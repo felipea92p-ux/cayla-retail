@@ -25,8 +25,8 @@
     "components/DetalleVentaModal.tsx": [
       "button «Reintentar»",
       "Boton «Corregir pago»",
-      "button «Imprimir ticket»",
-      "button «Imprimir»"
+      "BotonImprimir «Imprimir ticket»",
+      "BotonImprimir «Imprimir»"
     ],
     "components/EscanerBusqueda.tsx": [
       "button «Cerrar la cámara»",
@@ -52,11 +52,11 @@
       "Pastilla «Todos»",
       "Pastilla «{etiquetaProceso(p)}»",
       "button «Escanear una etiqueta»",
-      "button «movimientos.filtros-celular»",
+      "BotonFiltros «movimientos.filtros-celular»",
       "Pastilla «{p.texto}» #2",
       "Pastilla «{nombreTipo(cat)}»",
-      "button «movimientos.limpiar»",
-      "a «Exportar a Excel con estos filtros»",
+      "BotonLimpiar «Limpiar filtros»",
+      "BotonDescargar «Descargar Excel con estos filtros»",
       "button «Limpiar»",
       "button «Ver movimientos»"
     ],

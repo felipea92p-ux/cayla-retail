@@ -16,6 +16,7 @@
 import type { Database } from "@cayla-retail/database";
 import { celularValido, enlaceQrClub } from "./club-reglas";
 import { MESES_DEL_ANIO, type CumpleEscrito } from "./club-cumple-reglas";
+import { diaLima } from "./fechas-lima";
 import { esTipoDocumentoClienta, normalizarNumeroDocumento, problemaDocumento, type TipoDocumentoClienta } from "./documento-clienta-reglas";
 
 /** Los argumentos exactos de `registrarse_en_el_club`, como los genera la base. */
@@ -115,7 +116,7 @@ export function esUuid(texto: string): boolean {
 
 /** «S/ 20»; con céntimos, «S/ 25.50» (como se escribe un precio en la tienda). */
 export function formatoSoles(monto: number): string {
-  return `S/ ${Number.isInteger(monto) ? String(monto) : monto.toFixed(2)}`;
+  return `S/\u00a0${Number.isInteger(monto) ? String(monto) : monto.toFixed(2)}`;
 }
 
 /** «10»; con decimales, «12.5». Va antes de « %». */
@@ -161,13 +162,8 @@ export function textoLegal(p: PaginaClub, cual: "privacidad" | "terminos"): Text
 
 /** «1 de octubre de 2026», en hora de Lima. Acepta `aaaa-mm-dd` o un instante con zona. null si no se entiende. */
 export function fechaLarga(valor: string | null | undefined): string | null {
-  if (!valor) return null;
-  let iso = /^\d{4}-\d{2}-\d{2}$/.test(valor.trim()) ? valor.trim() : null;
-  if (!iso) {
-    const t = Date.parse(valor);
-    if (Number.isNaN(t)) return null;
-    iso = new Date(t).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
-  }
+  const iso = diaLima(valor?.trim());
+  if (!iso) return null;
   const [a, m, d] = iso.split("-").map(Number);
   const mes = MESES_DEL_ANIO[(m ?? 0) - 1];
   if (!a || !mes || !d) return null;
@@ -186,6 +182,8 @@ export type Trozo = string | { fuerte: string };
 export const AYUDA = {
   documento: "Lo usamos para reconocerte en caja y aplicar tus cupones.",
   padron: "Lo tomamos del padrón público para que tu nombre quede bien escrito.",
+  // Carné o pasaporte (Felipe 2026-10-15): el nombre se escribe tal cual está en el documento.
+  nombre: "Tal cual está en tu documento: nombres y apellidos, sin números.",
   celular: "Aquí te llegarán nuestras novedades y tus cupones.",
   nacimiento: "Para tu cupón de cumpleaños.",
   correo: "Opcional. Solo para contactarte si lo necesitamos.",
@@ -209,86 +207,6 @@ export function letraChica(e: { razonSocial: string; ruc: string; email: string 
 /** `/club/privacidad?t=<tienda>`: la política o los términos, sabiendo de qué tienda viene (para volver a su registro). */
 export function enlaceLegal(cual: "privacidad" | "terminos", ubicacionId: string | null): string {
   return ubicacionId && esUuid(ubicacionId) ? `/club/${cual}?t=${ubicacionId}` : `/club/${cual}`;
-}
-
-/* ------------------------------------------------------------------ Su nombre a medias */
-
-/**
- * En qué orden trae el padrón el nombre. SUNAT público (`apenomdenunciado`: «apellidos y nombres») trae primero los
- * apellidos; el proveedor de pago, si lo arma de sus partes, primero los nombres (`lib/padron.ts`, `normalizarRespuestaPadron`).
- */
-export type OrdenDelNombre = "apellidos_primero" | "nombres_primero";
-
-const PARTICULAS = new Set(["DE", "DEL", "LA", "LAS", "LOS", "Y", "DA", "DI", "VAN", "VON"]);
-const esParticula = (p: string) => PARTICULAS.has(p.toLocaleUpperCase("es"));
-
-/** «DE LA CRUZ» es UN apellido: la partícula va con la palabra que sigue. */
-function grupos(palabras: readonly string[]): string[][] {
-  const out: string[][] = [];
-  let pendiente: string[] = [];
-  for (const p of palabras) {
-    pendiente.push(p);
-    if (!esParticula(p)) {
-      out.push(pendiente);
-      pendiente = [];
-    }
-  }
-  if (pendiente.length > 0) out.push(pendiente);
-  return out;
-}
-
-const capital = (p: string) => p.charAt(0).toLocaleUpperCase("es") + p.slice(1).toLocaleLowerCase("es");
-const inicial = (g: readonly string[]) => `${(g.find((p) => !esParticula(p)) ?? g[0] ?? "").charAt(0).toLocaleUpperCase("es")}.`;
-const palabras = (t: string) => t.trim().split(" ").filter(Boolean);
-
-/** El nombre del padrón partido en nombres y apellidos (cada uno en grupos de palabras: «DE LA CRUZ» es uno). Con una coma
- *  («PÉREZ SALAS, LUCÍA») se sabe qué es qué; si no, manda el orden de la fuente. null sin nombre. */
-function partesDelNombre(nombre: string | null | undefined, orden: OrdenDelNombre): { nombres: string[][]; apellidos: string[][] } | null {
-  const limpio = (nombre ?? "").replace(/\s+/g, " ").trim();
-  if (!limpio) return null;
-  let nombres: string[][];
-  let apellidos: string[][];
-  if (limpio.includes(",")) {
-    const [ap, ...resto] = limpio.split(",");
-    apellidos = grupos(palabras(ap ?? ""));
-    nombres = grupos(palabras(resto.join(" ")));
-    if (nombres.length === 0) [nombres, apellidos] = [apellidos.slice(0, 1), apellidos.slice(1)];
-  } else {
-    const g = grupos(palabras(limpio));
-    const nApellidos = g.length >= 3 ? 2 : g.length - 1;
-    if (orden === "apellidos_primero") {
-      apellidos = g.slice(0, nApellidos);
-      nombres = g.slice(nApellidos);
-    } else {
-      nombres = g.slice(0, g.length - nApellidos);
-      apellidos = g.slice(g.length - nApellidos);
-    }
-  }
-  return nombres.length > 0 ? { nombres, apellidos } : null;
-}
-
-/**
- * «¿Eres Lucía P. S.?»: el primer nombre entero y la inicial de cada apellido. Para que ella confirme que tipeó bien su DNI sin
- * que la página revele el nombre completo de nadie (ADR-0288 G-3). Si el orden real fuera otro, se vería el primer apellido entero
- * y lo demás en iniciales: sigue a medias. null sin nombre.
- */
-export function nombreAMedias(nombre: string | null | undefined, orden: OrdenDelNombre): string | null {
-  const partes = partesDelNombre(nombre, orden);
-  const primero = partes?.nombres[0];
-  if (!partes || !primero) return null;
-  return [primero.map(capital).join(" "), ...partes.apellidos.map(inicial)].join(" ");
-}
-
-/**
- * El nombre del padrón en las dos cajas de un formulario («Nombres» y «Apellidos»), con mayúscula inicial: «PEREZ SALAS LUCIA
- * MARIA» (SUNAT, apellidos primero) → { nombres: «Lucia Maria», apellidos: «Perez Salas» }. Lo usa Apartados al no encontrar
- * la ficha por DNI (ADR-0367). Se puede corregir a mano: es una propuesta, no un dato sellado. null sin nombre.
- */
-export function nombresYApellidos(nombre: string | null | undefined, orden: OrdenDelNombre): { nombres: string; apellidos: string } | null {
-  const partes = partesDelNombre(nombre, orden);
-  if (!partes) return null;
-  const texto = (g: string[][]) => g.map((p) => p.map((x) => (esParticula(x) ? x.toLocaleLowerCase("es") : capital(x))).join(" ")).join(" ");
-  return { nombres: texto(partes.nombres), apellidos: texto(partes.apellidos) };
 }
 
 /* ------------------------------------------------------------------ Lo que ella escribe */
@@ -344,9 +262,13 @@ export const MENSAJE = {
   menor: "El Club CAYLA es para mayores de 18 años.",
   sinPadron: "No pudimos consultar tu DNI ahora. Inténtalo en unos minutos o acércate a caja.",
   archivado: "Con ese documento no podemos registrarte desde aquí. Acércate a caja y te ayudamos.",
+  // 20261015232000 (Felipe 2026-10-15): con una ficha que ya existía, el cartel no escribe nada; se pide en caja.
+  yaTieneFicha: "Ya tienes una ficha con ese documento. Para unirte al Club o cambiar tus datos, pídelo en caja.",
   datos: "Revisa tus datos: algo no quedó bien escrito.",
   textosCambiaron: "Los textos del Club cambiaron mientras los leías. Léelos otra vez y vuelve a marcar las casillas.",
   noDisponible: "No pudimos completar tu registro ahora. Inténtalo de nuevo en un momento o acércate a caja.",
+  // Un correo es de una sola persona (Felipe 2026-10-14). Sin decir de quién es: la página es pública.
+  correoRepetido: "Ese correo ya está registrado con otros datos. Usa otro o déjalo vacío: es opcional.",
 } as const;
 
 /**
@@ -363,7 +285,11 @@ export function problemasRegistro(r: RegistroEscrito, hoy: string): Partial<Reco
     if (mal) p.documento = mal;
     else if (esDni && !r.dniConfirmado) p.documento = "Confirma que el nombre que aparece es el tuyo.";
   }
-  if (!esDni && r.nombre.replace(/\s+/g, " ").trim().length < 3) p.nombre = "Escribe tus nombres y apellidos.";
+  // Carné o pasaporte: tal cual está en el documento, que nunca lleva números en el nombre (Felipe 2026-10-15). Con DNI el nombre
+  // sale del padrón (el servidor lo vuelve a leer y lo anota: `registrarme`).
+  const nombre = r.nombre.replace(/\s+/g, " ").trim();
+  if (!esDni && /[0-9]/.test(nombre)) p.nombre = "Tu nombre no lleva números: escríbelo tal cual está en tu documento.";
+  else if (!esDni && nombre.length < 3) p.nombre = "Escribe tus nombres y apellidos, tal cual están en tu documento.";
 
   const celular = soloDigitos(r.celular);
   if (celular === "") p.celular = "Escribe tu celular con WhatsApp.";
@@ -522,13 +448,45 @@ export function errorDeLaBase(hint: string | null | undefined): { mensaje: strin
       return { mensaje: MENSAJE.menor, campo: "nacimiento" };
     case "club_documento_archivado":
       return { mensaje: MENSAJE.archivado, campo: "documento" };
+    case "club_ya_tiene_ficha":
+      return { mensaje: MENSAJE.yaTieneFicha, campo: "documento" };
     case "celular_invalido":
       return { mensaje: "Tu celular tiene 9 dígitos y empieza con 9.", campo: "celular" };
     case "club_datos_invalidos":
       return { mensaje: MENSAJE.datos, campo: null };
+    // El correo de otra ficha (o de la cuenta web de otra ficha): 20261015054000. No dice de quién.
+    case "correo_repetido":
+      return { mensaje: MENSAJE.correoRepetido, campo: "correo" };
+    // El nombre (20261015133000): con DNI, la base no encontró la lectura del padrón (no se pudo anotar o venció); se vuelve a
+    // intentar. Con carné o pasaporte, traía números (la página ya lo dice antes; esto es la red).
+    case "nombre_sin_padron":
+      return { mensaje: MENSAJE.sinPadron, campo: "documento" };
+    case "nombre_con_numeros":
+      return { mensaje: "Tu nombre no lleva números: escríbelo tal cual está en tu documento.", campo: "nombre" };
     default:
       return { mensaje: MENSAJE.noDisponible, campo: null };
   }
+}
+
+/**
+ * El correo que el servidor no aceptó (el de otra persona, `correo_repetido`; o uno que su revisión vio mal escrito), con lo que
+ * estaba escrito (Felipe 2026-10-15). Mientras la caja diga ESE correo, el mensaje va bajo ella —no bajo el botón— y el correo no
+ * cuenta como listo: la guía lo pide y «Unirme» espera. Si lo cambia o lo borra (es opcional), vuelve a valer lo de siempre. Como la
+ * tienda online («el correo de otra persona», `FormularioRegistro`). Sin decir de quién es: la página es pública.
+ */
+export type CorreoRechazado = { correo: string; mensaje: string };
+
+/** El correo como se compara: en minúsculas y sin espacios alrededor (así lo guarda la base). */
+const correoComparable = (texto: string) => texto.trim().toLowerCase();
+
+/** Lo que contestó «Unirme», si es un rechazo del correo; null si es otra cosa (que sigue diciéndose bajo el botón). */
+export function correoRechazado(res: RespuestaRegistro, r: RegistroEscrito): CorreoRechazado | null {
+  return res.estado === "error" && res.campo === "correo" ? { correo: correoComparable(r.correo), mensaje: res.mensaje } : null;
+}
+
+/** El mensaje si la caja todavía dice el correo rechazado; null si ya escribió otro (o lo borró). */
+export function rechazoDelCorreo(rechazo: CorreoRechazado | null, correo: string): string | null {
+  return rechazo && rechazo.correo !== "" && correoComparable(correo) === rechazo.correo ? rechazo.mensaje : null;
 }
 
 /** La fila de `registrarse_en_el_club` → lo que ve ella. null si la base no devolvió su código (no se le dice «listo» sin él). */
@@ -560,7 +518,7 @@ export function ipDeLaPeticion(reenviadaPor: string | null | undefined, real: st
 
 export type Bienvenida = {
   titulo: string;
-  /** La línea bajo el título: «Ya eres miembro…», o desde cuándo lo es si ya lo era. */
+  /** La línea bajo el título: «Te damos la bienvenida…», o desde cuándo es miembro si ya lo era. */
   bajada: string;
   /** Solo si marcó la casilla de WhatsApp y la tienda tiene número (ADR-0288 G-6, G-12). */
   saludo: { titulo: string; parrafo: string; boton: string; enlace: string } | null;
@@ -568,8 +526,10 @@ export type Bienvenida = {
 
 /**
  * Lo que ve al terminar (diseño aprobado el 2026-10-01; su código va en su tarjeta de miembro, que dibuja la página). Nuevo:
- * «¡Te damos la bienvenida, {nombre}!» y «Ya eres miembro del Club CAYLA.». Ya era miembro: «Actualizamos tus datos» y desde
- * cuándo lo es. Sin género: sirve igual a un cliente o a una clienta (Felipe, 2026-10-02).
+ * «¡Listo, {nombre}!» y «Te damos la bienvenida al Club CAYLA.» (cómo se confirma el Club, Felipe 2026-10-15: la misma frase al
+ * terminar de crear la cuenta en la tienda; «bienvenida» una sola vez). Ya era miembro: «Actualizamos tus datos» y desde cuándo lo
+ * es («Eres miembro del Club CAYLA», como se le dice a quien ya es). Sin género: sirve igual a un cliente o a una clienta (Felipe,
+ * 2026-10-02).
  * Con la casilla de WhatsApp, el último paso: saludar a la tienda del cartel con su código (así guarda el número oficial y la
  * conversación la empieza ella). Sin texto `saludo` vigente, el chat se abre sin mensaje.
  */
@@ -582,12 +542,12 @@ export function bienvenida(r: Extract<RespuestaRegistro, { estado: "listo" }>, p
     : "";
   const enlace = r.conPublicidad ? enlaceQrClub(p.whatsapp, mensaje) : null;
   return {
-    titulo: r.eraSocia ? "Actualizamos tus datos" : `¡Te damos la bienvenida${r.nombre ? `, ${r.nombre}` : ""}!`,
+    titulo: r.eraSocia ? "Actualizamos tus datos" : `¡Listo${r.nombre ? `, ${r.nombre}` : ""}!`,
     bajada: r.eraSocia
       ? desde
         ? `Eres miembro del Club CAYLA desde el ${desde}.`
         : "Ya eras miembro del Club CAYLA."
-      : "Ya eres miembro del Club CAYLA.",
+      : "Te damos la bienvenida al Club CAYLA.",
     saludo: enlace
       ? {
           titulo: "Último paso: salúdanos por WhatsApp",

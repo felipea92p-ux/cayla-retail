@@ -9,7 +9,7 @@ import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
-import { ETIQUETA_MOTIVO_NOTA, chipEstado, hace, pasosDeNota, siguientePaso, type FilaVista } from "@/lib/notas-credito-reglas";
+import { ETIQUETA_MOTIVO_NOTA, chipEstado, diaDelCierre, esDocumentoInterno, faltaNotaDelProveedor, hace, nombreDeNotaDeCredito, pasosDeNota, siguientePaso, type FilaVista } from "@/lib/notas-credito-reglas";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
@@ -41,6 +41,7 @@ export function NotaCreditoVistaRapida({
   onCerrar,
   onNavegar,
   onRegistrar,
+  onAdjuntar,
   onDetalle,
 }: {
   nota: FilaVista;
@@ -48,6 +49,8 @@ export function NotaCreditoVistaRapida({
   onCerrar: () => void;
   onNavegar: (delta: 1 | -1) => void;
   onRegistrar: (compraId: string) => void;
+  /** «Llegó su nota de crédito» (fase 5b): adjuntar la nota del proveedor a este documento interno. */
+  onAdjuntar: (id: string) => void;
   onDetalle: (id: string) => void;
 }) {
   const [cerrando, setCerrando] = useState(false);
@@ -74,7 +77,7 @@ export function NotaCreditoVistaRapida({
     f.clase === "pendiente"
       ? [
           { titulo: "Comprobante", valor: f.documento, pie: `debes ${soles(f.compraSaldo)}` },
-          { titulo: "Antigüedad", valor: `${f.edadDias} ${f.edadDias === 1 ? "día" : "días"}`, pie: `cerrado el ${diaMes(f.cerradoEn?.slice(0, 10) ?? f.fecha)}` },
+          { titulo: "Antigüedad", valor: `${f.edadDias} ${f.edadDias === 1 ? "día" : "días"}`, pie: `cerrado el ${diaMes(diaDelCierre(f))}` },
           { titulo: "Unidades", valor: f.unidadesCerradas.toLocaleString("es-PE"), pie: "cerradas sin llegar" },
         ]
       : [
@@ -97,7 +100,7 @@ export function NotaCreditoVistaRapida({
             <div className="flex items-start gap-3.5 border-b border-tinta/10 px-6 pb-4 pt-5">
               <span aria-hidden className="font-display grid h-14 w-14 shrink-0 place-items-center rounded-full bg-sand text-2xl text-tinta">{iniciales}</span>
               <div className="min-w-0 flex-1">
-                <Dialog.Description className="label-cayla truncate text-[10.5px] text-tinta/65">{f.clase === "pendiente" ? "Nota por reclamar" : `Nota ${f.serieNumero ?? ""}`}</Dialog.Description>
+                <Dialog.Description className="label-cayla truncate text-[10.5px] text-tinta/65">{f.clase === "pendiente" ? "Nota por reclamar" : nombreDeNotaDeCredito(f.serieNumero)}</Dialog.Description>
                 <Dialog.Title asChild>
                   <h2 className="font-display truncate text-[23px] leading-tight text-tinta">{/* unificar-fijo: es el título de la hoja (Dialog.Title), no de un bloque */}{f.proveedorNombre}</h2>
                 </Dialog.Title>
@@ -109,7 +112,7 @@ export function NotaCreditoVistaRapida({
             </div>
 
             <div className="scroll-cayla min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-5">
-              <p className="label-cayla text-[10.5px] text-tinta/65">{f.clase === "pendiente" ? "Esperado con IGV" : "Monto de la nota"}</p>
+              <p className="label-cayla text-[10.5px] text-tinta/65">{f.clase === "pendiente" ? "Esperado con IGV" : esDocumentoInterno(f.serieNumero) ? "Monto del documento" : "Monto de la nota"}</p>
               <p className="font-display text-[40px] leading-[1.1] tabular-nums text-tinta">{soles(f.monto)}</p>
               <div className="mb-[18px] mt-2.5 flex flex-wrap gap-2">
                 <Chip tono={chip.tono}>{chip.texto}</Chip>
@@ -153,6 +156,10 @@ export function NotaCreditoVistaRapida({
                   className="btn-cayla btn-primario"
                 >
                   {f.bloqueada ? "Aún no se puede" : "Registrar nota"}
+                </button>
+              ) : faltaNotaDelProveedor(f) ? (
+                <button type="button" onClick={() => onAdjuntar(f.id)} className="btn-cayla btn-primario">
+                  Llegó su nota de crédito
                 </button>
               ) : null}
               <button type="button" onClick={() => onDetalle(f.id)} className="btn-cayla btn-secundario">

@@ -171,7 +171,7 @@ export function BajarEnManoModal({
   }
 
   return (
-    <Modal titulo="La tengo en la mano" subtitulo="Corregir el almacén y colgarla, en un paso" onClose={onClose} bloqueado={loading} alCerrarEnfocar={alCerrarEnfocar} ancho="max-w-md">
+    <Modal titulo="La tengo en la mano" subtitulo="Corregir el almacén y colgarla, en un paso" onClose={onClose} bloqueado={loading} alCerrarEnfocar={alCerrarEnfocar}>
       {(cerrar) => (
         // `noValidate`: sin él la burbuja del navegador frena el envío y no salen los textos propios.
         <form onSubmit={onSubmit} className="mt-2 space-y-4" noValidate>
@@ -242,9 +242,9 @@ export function BajarEnManoModal({
           <PieGuia guia={guia} listo="Todo listo para corregir y colgar." />
 
           {/* `pie-hoja-fijo`: los botones no se van bajo el pliegue en un celular de pie frente al rack (globals.css). */}
-          <div className="pie-hoja-fijo flex gap-2 pt-1">
-            <Boton type="button" onClick={cerrar} disabled={loading} className="flex-1">
-              {congelado ? "Cerrar" : "Cancelar"}
+          <div className="pie-acciones pie-hoja-fijo pt-1">
+            <Boton type="button" onClick={cerrar} disabled={loading}>
+              Cancelar
             </Boton>
             <Boton
               type="submit"
@@ -252,7 +252,7 @@ export function BajarEnManoModal({
               cargando={loading}
               disabled={!responsable.listo}
               title={responsable.motivo ?? guia.frase ?? undefined}
-              className={`flex-1 ${guia.claseConfirmar}`}
+              className={guia.claseConfirmar}
             >
               {congelado ? BOTON_EN_MANO_DE_NUEVO : BOTON_CORREGIR_Y_COLGAR}
             </Boton>

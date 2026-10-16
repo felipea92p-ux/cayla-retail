@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { HiloEnEspera, PalabraEnEspera } from "@/components/ui/campos";
 
 /* ====================================================================
    BotonCompacto · el botón de la isla de vidrio de Facturación (ADR-0124)
@@ -44,19 +45,25 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variante: VarianteBotonCompacto;
   /** Un icono de `lucide-react`; el botón lo deja en 15 px. Pásalo con `aria-hidden`. */
   icono?: ReactNode;
+  /** Está esperando a la base: la palabra pasa a `textoCargando`, corre el hilo y el botón se apaga. */
   cargando?: boolean;
+  /** «Guardando…» por defecto; otro verbo si lo que hace no es guardar («Enviando…», «Consultando…»). */
+  textoCargando?: string;
 };
 
-export function BotonCompacto({ variante, icono, cargando = false, className = "", children, type = "button", ...props }: Props) {
+// Mientras espera, lo mismo que `Boton` (ADR-0358, ronda 12): la palabra pasa a `textoCargando` sin cambiar el ancho y corre el hilo.
+export function BotonCompacto({ variante, icono, cargando, textoCargando = "Guardando…", className = "", children, type = "button", ...props }: Props) {
   return (
-    <button {...props} type={type} disabled={props.disabled || cargando} className={`${BASE} ${VARIANTE[variante]} ${className}`}>
+    <button {...props} type={type} disabled={props.disabled || cargando} aria-busy={cargando || undefined} className={`${BASE} ${VARIANTE[variante]} ${className}`}>
       {icono}
-      {children}
-      {cargando && (
-        <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden">
-          <span className={`block h-full w-1/3 rounded-full [animation:cayla-hilo-barrido_1.1s_linear_infinite] ${variante === "primario" ? "bg-crema" : "bg-rojo"}`} />
-        </span>
+      {cargando !== undefined && children ? (
+        <PalabraEnEspera cargando={cargando} texto={textoCargando}>
+          {children}
+        </PalabraEnEspera>
+      ) : (
+        children
       )}
+      {cargando && <HiloEnEspera claro={variante === "primario"} />}
     </button>
   );
 }

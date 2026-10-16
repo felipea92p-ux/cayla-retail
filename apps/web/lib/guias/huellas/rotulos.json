@@ -18,7 +18,7 @@
       "a «Ver foto grande»"
     ],
     "components/ImprimirRotulos.tsx": [
-      "button «→mandar»",
+      "BotonImprimir «→mandar»",
       "Volver «(sin nombre)»",
       "button «Quitar todas»",
       "button «{`Quitar ${m.referencia}»",
@@ -27,7 +27,7 @@
     ],
     "components/impresion/useImpresionBrother.tsx": [
       "button «{abierto ? \"Ocultar\" : \"Ver cómo\"}»",
-      "button «Copiar»"
+      "BotonCopiar «la línea»"
     ],
     "components/rotulos/TiraBrother.tsx": [
       "button «{`Una copia menos de ${nombre}»",

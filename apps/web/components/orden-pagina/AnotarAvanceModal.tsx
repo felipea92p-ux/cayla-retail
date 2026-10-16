@@ -7,8 +7,8 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { avisar } from "@/components/ui/Avisos";
-import { CampoTexto } from "@/components/ui/campos";
-import { Modal, botonCancelar, botonPrimario, campoEtiqueta } from "@/components/ui/Modal";
+import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
 import { cantidadesQueFaltan, avancesNuevos, cantidadConUnidad, esPrimeraFase, faltaTerminar, leerOrdenPagina, RPC_DESHACER_AVANCE, RPC_ORDEN_PRODUCCION, RPC_REGISTRAR_AVANCE, textoTermine, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
@@ -155,8 +155,7 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
       titulo={`¿Cuántas terminaste en ${nombreMinuscula}?`}
       subtitulo={fase.hechas > 0 ? `Ya van ${fase.hechas} de ${datos.orden.cantidadPlan}. Dejamos lo que falta: cambia lo que todavía no terminaste.` : "Dejamos lo que falta: cambia lo que todavía no terminaste."}
       variante="hoja"
-      conCerrar
-      ancho="max-w-3xl"
+      tamano="ancha"
       onClose={onClose}
       antesDeCerrar={avisoSalida.pedirAccion}
     >
@@ -219,13 +218,13 @@ export function AnotarAvanceModal({ datos, fase, onClose }: { datos: OrdenPagina
         </div>
 
         <div className="pie-hoja-fijo">
-          <div className="flex gap-2 border-t border-sand pt-3">
-            <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}>
+          <div className="pie-acciones border-t border-sand pt-3">
+            <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
-            </button>
-            <button type="submit" disabled={cargando || !guia.puedeConfirmar || problemasDeTela.length > 0} title={guia.frase ?? problemasDeTela[0] ?? responsable.motivo ?? undefined} className={`${botonPrimario} ${guia.claseConfirmar}`}>
-              {cargando ? "Anotando…" : total > 0 ? `Terminé ${total}` : "Terminé"}
-            </button>
+            </Boton>
+            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" disabled={!guia.puedeConfirmar || problemasDeTela.length > 0} title={guia.frase ?? problemasDeTela[0] ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+              {total > 0 ? `Terminé ${total}` : "Terminé"}
+            </Boton>
           </div>
         </div>
       </form>

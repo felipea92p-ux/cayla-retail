@@ -5,7 +5,7 @@
 // cosas distintas.
 
 import type { PreparacionAnalisis } from "./analisis-tipos";
-import { DIAS_SOSTENIDOS, diaAntes, UMBRAL_IDENTIFICADA, type ClaveCondicion } from "./motor-demanda-reglas";
+import { DIAS_SOSTENIDOS, diaAntes, fechaCorta, UMBRAL_IDENTIFICADA, type ClaveCondicion } from "./motor-demanda-reglas";
 
 /**
  * Qué se ve:
@@ -78,13 +78,48 @@ export function avisoDatosDeHoy(p: PreparacionAnalisis | undefined): string {
 export type AccesoPaso = { regularizar: boolean; cuadrar: boolean; conteo: boolean };
 
 /**
- * El botón de lo PRIMERO que le falta a una tienda para que el motor hable: registrar las ventas sin su prenda, cuadrar el piso o contar el
+ * El botón de lo PRIMERO que le falta a una tienda para que el motor hable: registrar las ventas sin su prenda (las pendientes), cuadrar el piso o contar el
  * almacén. Una sola regla para Análisis («Todavía no») y Frescura (el aviso de la puerta: Formidable 2026-10-10 (c)), así las dos pantallas
  * nunca mandan a lugares distintos por lo mismo. Null si no falta nada, si no hay qué registrar o si la cuenta no ve esa pantalla.
  */
-export function pasoParaHablar(falta: ClaveCondicion | null, sinPrenda: number, acceso: AccesoPaso): { href: string; texto: string } | null {
-  if (falta === "venta_identificada") return acceso.regularizar && sinPrenda > 0 ? { href: "/inventario/por-regularizar", texto: `Registrar ${sinPrenda} sin prenda` } : null;
+export function pasoParaHablar(falta: ClaveCondicion | null, pendientes: number | null, acceso: AccesoPaso): { href: string; texto: string } | null {
+  // Las ventas que todavía se pueden registrar (pendientes en Por regularizar), no todas las de 30 días sin prenda: las cerradas ya no
+  // vuelven (ADR-0357, act. 2026-10-14). Sin poder contarlas, el botón va igual, sin número.
+  if (falta === "venta_identificada") {
+    if (!acceso.regularizar) return null;
+    if (pendientes === null) return { href: "/inventario/por-regularizar", texto: "Registrar las ventas sin prenda" };
+    return pendientes > 0 ? { href: "/inventario/por-regularizar", texto: `Registrar ${pendientes} sin prenda` } : null;
+  }
   if (falta === "piso_cuadrado") return acceso.cuadrar ? { href: "/inventario/cuadrar", texto: "Cuadrar el piso" } : null;
   if (falta === "almacen_contado") return acceso.conteo ? { href: "/inventario/conteo", texto: "Contar el almacén" } : null;
   return null;
+}
+
+/** Lo que falta registrar de mi tienda (ADR-0357, act. 2026-10-14): las ventas sin prenda pendientes y las que ya se cerraron en 30 días. */
+export type PorRegistrar = { pendientes: number | null; cerradas30: number | null };
+
+/**
+ * La fecha más cercana en que se cumple «ventas con su prenda» si desde hoy todo se cobra con su prenda: hoy más los días que le faltan a
+ * la racha (los días cerrados, de ayer hacia atrás, sin un día bajo el 90 %). Null si ya se cumple o no se sabe.
+ */
+export function fechaQueSeCumple(p: Pick<PreparacionAnalisis, "hoy" | "racha"> | undefined): string | null {
+  if (!p) return null;
+  const faltan = DIAS_SOSTENIDOS - Math.min(p.racha.dias, DIAS_SOSTENIDOS);
+  return faltan > 0 ? diaAntes(p.hoy, -faltan) : null;
+}
+
+/**
+ * Las dos líneas que acompañan a «Ventas con su prenda» mientras no se cumple: cuántas ya se cerraron sin prenda (esas no vuelven a contar:
+ * por eso el botón registra menos de las que faltan) y desde qué día puede cumplirse esta parte. Null la que no corresponde.
+ */
+export function lineasDeLoQueFalta(p: PreparacionAnalisis | undefined, porRegistrar: PorRegistrar): { cerradas: string | null; fecha: string | null } {
+  const cumple = p?.condiciones.find((c) => c.clave === "venta_identificada")?.cumple === true;
+  if (!p || cumple) return { cerradas: null, fecha: null };
+  const n = porRegistrar.cerradas30 ?? 0;
+  const fecha = fechaQueSeCumple(p);
+  return {
+    cerradas: n > 0 ? `${n} ${n === 1 ? "venta se cerró" : "ventas se cerraron"} sin su prenda en estos 30 días: esas ya no se pueden registrar.` : null,
+    // `fechaCorta` ya cierra con el punto del mes («20 oct.»): la frase termina ahí.
+    fecha: fecha ? `Si desde hoy todo se cobra con su prenda, esta parte se cumple el ${fechaCorta(fecha)}` : null,
+  };
 }

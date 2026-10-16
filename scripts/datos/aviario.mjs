@@ -76,6 +76,9 @@ export const AVIARIO = [
     tablas: [
       "movimientos", "stock", "lotes", "sububicaciones", "costo_historial", "prendas_danadas",
       "transferencias", "transferencia_items", "transferencia_recepciones",
+      // ADR-0404: lo que una sede contó de MÁS al recibir un traslado, a revisar antes de entrar al stock. Es parte del traslado: mismo
+      // pájaro. Está en producción desde el 2026-10-14; la asignó el refresco del volcado del 2026-10-15.
+      "traslado_sobrantes",
       // Lo que una sede deja listo para enviar a otra y de qué traslado salió (pedidos entre sedes, ADR-0242). Es parte del
       // traslado: mismo pájaro. Asignadas en el refresco del 2026-10-05.
       "prendas_para_enviar", "prendas_para_enviar_salidas",
@@ -86,6 +89,11 @@ export const AVIARIO = [
       // `envios`, es el padre de sus lotes (`lotes.despacho_id`) y cada fila recibida lleva su movimiento: el pájaro del stock, no el de
       // Compras. Asignadas en el refresco del 2026-10-13, al pegarse en producción.
       "despachos", "despacho_items", "despacho_recibidos",
+      // La cara A de Recibir (decisiones de Felipe del 2026-10-13): lo contado de cada línea de un envío, lo contado que todavía no está
+      // en el stock (pendientes), cada «Hacer ahora» que lo mete, el rastro de cada cierre y reapertura, y los envíos que una sede abre sin
+      // aviso. Son de la recepción del envío, como `despacho_recibidos`: el pájaro del stock. Están en producción desde el 2026-10-14; las
+      // asignó el refresco del volcado del 2026-10-15.
+      "despacho_conteos", "despacho_pendientes", "despacho_separaciones", "despacho_cierres", "despachos_sin_aviso",
       // ADR-0208: el documento de «Bajar prendas al piso» y sus líneas; cada línea es un movimiento almacén→piso.
       "bajadas_piso", "bajada_piso_items",
       // Análisis v4 (ADR-0357, 20261006216000): «Liquidar desde», un número para toda la red (lo mueve quien ve Análisis).
@@ -161,6 +169,9 @@ export const AVIARIO = [
       // venden sin entrar al catálogo, y el precio mínimo con que se aceptan. Se venden por `venta_items`, así que son de quien responde por
       // la venta. Ya están en producción (la migración se pegó antes de fusionar); asignadas en el refresco del volcado del 2026-10-11.
       "piezas_liquidacion", "piezas_liquidacion_etiquetas", "parametros_liquidacion",
+      // La huella de cada envío con token de Ventas y Caja (ADR-0398): un mismo token con otro contenido se rechaza. La escriben las
+      // funciones que guardan en el mostrador y `fn_resolver_intento`. Asignada en el refresco del volcado del 2026-10-13.
+      "intentos_con_token",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales",
@@ -190,6 +201,9 @@ export const AVIARIO = [
       // ADR-0362 (fases 4 y 5a): lo que faltó o sobró al recibir un envío de orden y lo resuelto de cada deuda del proveedor («Nos
       // debe»): es lo que el proveedor le debe a CAYLA, el pájaro de Compras. Asignadas en el refresco del 2026-10-13.
       "despacho_diferencias", "proveedor_deuda_resoluciones",
+      // Las diferencias que todavía valen (reabrir un envío deja las viejas como historia, 20261013180000): es la misma deuda del
+      // proveedor, el mismo pájaro que `despacho_diferencias`. La asignó el refresco del volcado del 2026-10-15.
+      "despacho_diferencias_vigentes",
       // ADR-0184 (Compras por tienda): la parte de cada tienda en un comprobante y quién compra por cada tienda.
       // Asignadas en el refresco del volcado del 2026-09-23.
       "compra_parte_por_tienda", "compradores_de_tienda",
@@ -211,7 +225,15 @@ export const AVIARIO = [
       "comprobantes_produccion_recepciones", "comprobantes_produccion_cierres", "cotizaciones_maquila",
       // ADR-0161 (act. d): quién movió cada orden de etapa; solo la escribe `set_etapa_produccion`. Asignada en el refresco
       // del volcado del 2026-09-25.
-      "produccion_etapas_historial"] },
+      "produccion_etapas_historial",
+      // ADR-0362 (fase 7): las órdenes de insumos del Taller (OI-…), sus líneas y sus versiones. La compra del Taller no se mezcla con la
+      // de tienda (otros proveedores, otro destino, otro correlativo), así que son de Gallito, no de Pelícano. Están en producción desde
+      // el 2026-10-13; las asignó el refresco del volcado de ese día. La sesión de Producción confirma la asignación.
+      "ordenes_insumo", "orden_insumo_items", "orden_insumo_versiones",
+      // ADR-0362 (fase 7, parte 2): lo que se recibió en el Taller contra una orden de insumos y lo que se anotó como que no va a llegar
+      // («el proveedor nos debe»). Son de la orden del Taller, como sus líneas. Están en producción desde el 2026-10-15; las asignó el
+      // refresco del volcado de ese día.
+      "orden_insumo_recepciones", "orden_insumo_cierres"] },
   // `planilla_por_sede` (vista, ADR-0133 F7 / D-33): la planilla YA PAGADA por sede y período, leída de Dynamic. Es costo
   // operativo de la sede —Producción la usa para costear la mano de obra, pero no es suya—, por eso va con los gastos.
   // Finanzas F1–F10 (ADR-0195, ADR-0198), repartidas con el criterio de GOBIERNO §1 «Repartos que no son obvios»: Garza es la
@@ -230,7 +252,11 @@ export const AVIARIO = [
       "cuentas_dinero", "medios_de_cobro", "movimientos_dinero", "conciliaciones", "dinero_revisados", "cuentas_asignadas",
       // Caja y avisos: el mínimo de caja que vigilan el Flujo y el Resumen. Y el presupuesto: el tope de gasto de cada mes,
       // que se compara contra `gastos` —el mismo dueño que lo gastado responde por lo que se pensaba gastar—.
-      "parametros_finanzas", "presupuestos"] },
+      "parametros_finanzas", "presupuestos",
+      // Los gastos de un viaje (con sus órdenes y fotos) y los fondos por rendir con su rendición: plata entregada a una persona que
+      // vuelve como gastos o como devolución. Es plata del día, como `gastos`. Están en producción desde el 2026-10-13 (sus migraciones
+      // aún no están en main); las asignó el refresco del volcado de ese día. Finanzas (Felipe) confirma la asignación.
+      "gastos_viaje", "gastos_viaje_ordenes", "gasto_viaje_fotos", "rendiciones_fondo", "rendicion_fondo_items"] },
   { n: "12", pajaro: "Urraca", modulo: "Contabilidad",
     tablas: ["activos_fijos",
       // El plan de cuentas (PCGE, F2a) y la lista cerrada de tipos de activo, que trae su cuenta y su vida útil (F2b).

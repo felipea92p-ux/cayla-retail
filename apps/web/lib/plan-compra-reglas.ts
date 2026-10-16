@@ -346,7 +346,7 @@ export function problemasDelBorrador(b: Borrador, tallas: readonly TallaPlan[]):
   else if (normal !== null && bueno < normal) p.bueno = "El bueno no puede ser menos que el normal.";
   const precio = leerNumeroDeMonto(b.precio);
   const costo = leerNumeroDeMonto(b.costo);
-  const caro = `Revisa el monto: más de S/ ${MAX_MONTO_PRENDA.toLocaleString("es-PE")} por prenda no parece real.`;
+  const caro = `Revisa el monto: más de S/\u00a0${MAX_MONTO_PRENDA.toLocaleString("es-PE")} por prenda no parece real.`;
   if (precio === null || precio <= 0) p.precio = "Escribe el precio de venta promedio de la categoría.";
   else if (precio > MAX_MONTO_PRENDA) p.precio = caro;
   if (costo === null) p.costo = "Escribe el costo promedio por prenda.";
@@ -450,8 +450,7 @@ export function fraseDeLoReal(vendido: number, l: Pick<LineaPlan, "flojo" | "nor
 
 /** Cómo se escriben las cantidades, el dinero y las fechas en esta pantalla (una sola vez, no en cada componente). */
 export const enteroES = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
-export const solesES = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-export const fechaLargaES = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("es-PE", { day: "numeric", month: "long" });
+export const solesES = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /** Cuántas categorías son «las que más venden». */
 export const TOP_VENTAS = 10;

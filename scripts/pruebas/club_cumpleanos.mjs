@@ -8,7 +8,8 @@
  * y a quién, nada impedía darlo dos veces en el año ni fuera de su mes, y el candado de costo lo frenaba aunque Felipe
  * decidió regalarlo completo. La base tiene que hacer cumplir, no la pantalla:
  *   · Cobrar solo dice «canjear» (`p_canjear_cumpleanos`) y manda la parte del club por línea; la base la recalcula
- *     (`round((precio − descuento_sin_club) × pct / 100, 2)`, en cascada) y la rechaza si no coincide;
+ *     (`fn_descuento_campana(precio − descuento_sin_club, pct)`, en cascada: el precio que queda baja al múltiplo de
+ *     S/ 0.10, ADR-0403 act. 2026-10-15; hasta ese día era `round(… × pct / 100, 2)`) y la rechaza si no coincide;
  *   · solo una socia, en su mes de Lima, una vez por año (el único parcial de `club_canjes`);
  *   · los candados de la venta miden el descuento SIN la parte del club; anular libera el canje; una devolución no.
  *
@@ -16,16 +17,17 @@
  * que los permisos se evalúen de verdad; cuentas del seed: Felipe, líder y Admin; Micaela, integrante de Trujillo con tope
  * de descuento de venta de 10 %; Sandra, para aprobar una devolución que no registró):
  *   0. La tabla de paridad de `apps/web/lib/club-cumple-canje-reglas.test.ts` (se lee de ese archivo): Postgres da, caso por
- *      caso, lo mismo que la regla de la web (medio céntimo hacia arriba).
+ *      caso, lo mismo que la regla de la web (el precio que queda, al S/ 0.10 de abajo).
  *   a. Canje correcto: la línea guarda el total y la parte del club, el pago cuadra, `club_canjes` anota el canje (tipo,
  *      año de Lima, %, monto, quién) y la actividad lo cuenta sin datos de la clienta; la cascada (campaña de 20 % → 28 %)
- *      con dos unidades y una prenda sin registrar; el medio céntimo de la base; el % configurable.
+ *      con dos unidades y una prenda sin registrar; un precio que ya no terminaba en 0; el % configurable.
  *   b. Bajo costo por la parte del club → PASA; bajo costo por un descuento normal → sigue fallando, con canje o sin él.
  *   c. Segundo canje del año → `cumple_ya_canjeado`, y no queda la segunda venta.
  *   d. Fuera de su mes o sin mes → `cumple_fuera_de_mes`; no socia o archivada → `cumple_no_socia`; anonimizada →
  *      `clienta_anonimizada`; sin clienta → `cumple_sin_clienta`. En ningún rechazo queda venta, canje ni stock movido.
- *   e. El monto: manipulado → `cumple_descuento_distinto` (1 céntimo de holgura, 2 no); una parte del club sin canjear →
- *      `cumple_sin_canje`; un canje sin nada que descontar → `cumple_sin_monto`.
+ *   e. El monto: manipulado → `cumple_descuento_distinto` (1 céntimo de holgura, 2 no); la cuenta vieja de una caja sin
+ *      recargar pasa (la transición de 20261015182000); una parte del club sin canjear → `cumple_sin_canje`; un canje sin
+ *      nada que descontar → `cumple_sin_monto`.
  *   f. Los candados miden SIN el club: el tope de la asesora (D-67), el 35 % del líder y el argumento sobre el 15 % (el
  *      código de descuento ya no existe desde 20261002100000).
  *   g. Anular la venta libera el canje (con la hora y la persona de la anulación) y se puede volver a canjear; una
@@ -248,7 +250,7 @@ select id as talla from retail.tallas where activo and estado = 'aprobado' order
 select codigo as color from retail.colores where activo order by codigo limit 1 \\gset
 `;
 
-/** Una campaña de 20 % vigente hoy sobre BLU-EMMA-NEG-M (79.90 → 63.92: descuento 15.98, exacto, ADR-0302). Deja :etq. Como postgres. */
+/** Una campaña de 20 % vigente hoy sobre BLU-EMMA-NEG-M (79.90 → 63.90: descuento 16.00, el 63.92 exacto baja al S/ 0.10 de abajo, ADR-0403). Deja :etq. Como postgres. */
 const CAMPANA_20 = `reset role;
 insert into retail.etiquetas (nombre, estado, activo, descuento_pct, vigente_desde, vigente_hasta)
   values ('ZZ Cumple Campaña (prueba)', 'aprobado', true, 20, retail.fn_hoy_lima() - 1, retail.fn_hoy_lima() + 5)
@@ -338,7 +340,7 @@ try {
 // =====================================================================================================================
 {
   const r = correr(
-    `select string_agg(format('%s|%s|%s|%s', p, d, pct, round((p - d) * pct / 100, 2)), E'\\n' order by n) from (values ${PARIDAD.map(
+    `select string_agg(format('%s|%s|%s|%s', p, d, pct, retail.fn_descuento_campana(p - d, pct)), E'\\n' order by n) from (values ${PARIDAD.map(
       ([p, d, pct], n) => `(${n}, ${p}::numeric, ${d}::numeric, ${pct}::numeric)`
     ).join(", ")}) t(n, p, d, pct);`
   );
@@ -350,7 +352,7 @@ try {
         .map(([[p, d, pct, dio], [, , , web]]) => `${p} − ${d} al ${pct} %: Postgres ${dio}, la web ${web}`)
     : [r.mensaje];
   registrar(
-    `(0) Postgres da lo mismo que la regla de la web en los ${PARIDAD.length} casos de su tabla (medio céntimo hacia arriba, cascada)`,
+    `(0) Postgres (fn_descuento_campana) da lo mismo que la regla de la web en los ${PARIDAD.length} casos de su tabla (precio al S/ 0.10 de abajo, cascada)`,
     PARIDAD.length >= 25 && malos.length === 0,
     malos.join(" · ") || `${PARIDAD.length} casos`,
     "ninguna diferencia (y al menos 25 casos)"
@@ -361,9 +363,9 @@ try {
 // a. Canje correcto
 // =====================================================================================================================
 caso(
-  "(a) canje de 10 % en una prenda a precio de lista: la línea guarda el total (7.99) y la parte del club (7.99) sin motivo, el pago cuadra en 71.91, y club_canjes anota tipo, año de Lima, %, monto y quién",
+  "(a) canje de 10 % en una prenda a precio de lista: 71.91 baja a 71.90, la línea guarda el total (8.00) y la parte del club (8.00) sin motivo, el pago cuadra en 71.90, y club_canjes anota tipo, año de Lima, %, monto y quién",
   SEDE() + como(FELIPE) + SOCIA("f", "90990101", "Cumple Uno Prueba", "966990101") +
-    VENDER("venta", { lineas: items(item({ club: 7.99 })), clienta: ":'f'", canjear: "true" }) +
+    VENDER("venta", { lineas: items(item({ club: 8 })), clienta: ":'f'", canjear: "true" }) +
     `reset role;
 select descuento_unitario, descuento_club_unitario, coalesce(motivo_descuento, '-'), subtotal from retail.venta_items where venta_id::text = :'venta';
 select sum(monto) from retail.venta_pagos where venta_id::text = :'venta';
@@ -371,24 +373,24 @@ select tipo, anio = :anio_hoy, pct, monto, registrado_por = :'persona_felipe', a
   from retail.club_canjes where venta_id::text = :'venta';
 select cliente_id = :'f'::uuid from retail.ventas where id::text = :'venta';
 `,
-  "7.99|7.99|-|71.91\n71.91\ncumpleanos|t|10.00|7.99|t|t|t\nt"
+  "8.00|8.00|-|71.90\n71.90\ncumpleanos|t|10.00|8.00|t|t|t\nt"
 );
 caso(
   "(a) …y la actividad lo cuenta (vender · cumpleanos_canjeado, sobre la venta) sin nada de la clienta: ni su nombre, ni su DNI, ni su celular, ni su código, ni su id",
   SEDE() + como(FELIPE) + SOCIA("f", "90990102", "Cumple Actividad Prueba", "966990102") +
-    VENDER("venta", { lineas: items(item({ club: 7.99 })), clienta: ":'f'", canjear: "true" }) +
+    VENDER("venta", { lineas: items(item({ club: 8 })), clienta: ":'f'", canjear: "true" }) +
     `reset role;
 select a.modulo, a.accion, a.tabla, a.registro_id = :'venta', a.persona_id = :'persona_felipe', a.detalle ->> 'pct', a.detalle ->> 'monto',
        (a.descripcion || a.detalle::text) !~* ('(cumple actividad|90990102|966990102|' || :'f_codigo' || '|' || :'f' || ')')
   from retail.actividad a where a.accion = 'cumpleanos_canjeado' and a.registro_id = :'venta';
 `,
-  "vender|cumpleanos_canjeado|ventas|t|t|10.00|7.99|t"
+  "vender|cumpleanos_canjeado|ventas|t|t|10.00|8.00|t"
 );
 caso(
-  "(a) la cascada (CL-11): la prenda con campaña de 20 % (15.98) suma 6.39 y queda en 28 %; dos unidades y una prenda sin registrar de 45.00 (4.50) entran en el mismo canje: monto 17.28",
+  "(a) la cascada (CL-11): la prenda con campaña de 20 % (16.00, queda en 63.90) suma 6.40 (57.51 baja a 57.50) y queda en 28 %; dos unidades y una prenda sin registrar de 45.00 (4.50: 40.50 ya termina en 0) entran en el mismo canje: monto 17.30",
   SEDE() + CAMPANA_20 + como(FELIPE) + SOCIA("f", "90990103", "Cumple Cascada Prueba", "966990103") +
     VENDER("venta", {
-      lineas: items(item({ sinClub: 15.98, club: 6.39, cant: 2, motivo: "campana", etq: ":'etq'" }), item({ v: LIBRE, precio: "45", club: 4.5, libre: true })),
+      lineas: items(item({ sinClub: 16, club: 6.4, cant: 2, motivo: "campana", etq: ":'etq'" }), item({ v: LIBRE, precio: "45", club: 4.5, libre: true })),
       clienta: ":'f'",
       canjear: "true",
     }) +
@@ -399,10 +401,10 @@ select monto from retail.club_canjes where venta_id::text = :'venta';
 select sum(monto) from retail.venta_pagos where venta_id::text = :'venta';
 select precio_cobrado from retail.prendas_por_regularizar p join retail.venta_items vi on vi.id = p.venta_item_id where vi.venta_id::text = :'venta';
 `,
-  "22.37/6.39/campana/28 4.50/4.50/-/10\n17.28\n155.56\n40.50"
+  "22.40/6.40/campana/28 4.50/4.50/-/10\n17.30\n155.50\n40.50"
 );
 caso(
-  "(a) el medio céntimo de la base sube (75.45 × 10 % = 7.545 → 7.55, como la web), y el % sale de configuracion_empresa (12.5 %: 79.90 → 9.9875 → 9.99)",
+  "(a) sobre un precio que ya no terminaba en 0 (79.90 − 4.45 a mano = 75.45: al 10 % queda 67.905 → 67.90, el club pone 7.55), y el % sale de configuracion_empresa (12.5 %: 79.90 → 69.9125 → 69.90, el club pone 10.00)",
   SEDE() + como(FELIPE) + SOCIA("f", "90990104", "Cumple Medio Prueba", "966990104") + SOCIA("g", "90990105", "Cumple Doce Prueba", "966990105") +
     VENDER("v_medio", { lineas: items(item({ sinClub: 4.45, club: 7.55, motivo: "cerrar_venta" })), clienta: ":'f'", canjear: "true" }) +
     `reset role;
@@ -410,12 +412,12 @@ insert into retail.configuracion_empresa (ruc, razon_social, club_cumple_pct) va
   on conflict (id) do update set club_cumple_pct = 12.5;
 ` +
     como(FELIPE) +
-    VENDER("v_doce", { lineas: items(item({ club: 9.99 })), clienta: ":'g'", canjear: "true" }) +
+    VENDER("v_doce", { lineas: items(item({ club: 10 })), clienta: ":'g'", canjear: "true" }) +
     `reset role;
 select descuento_club_unitario from retail.venta_items where venta_id::text = :'v_medio';
 select pct, monto from retail.club_canjes where venta_id::text = :'v_doce';
 `,
-  "7.55\n12.50|9.99"
+  "7.55\n12.50|10.00"
 );
 
 // =====================================================================================================================
@@ -423,16 +425,16 @@ select pct, monto from retail.club_canjes where venta_id::text = :'v_doce';
 // =====================================================================================================================
 const COSTO_75 = `reset role;\nupdate retail.variantes set costo = 75 where id = :'v1';\n`;
 caso(
-  "(b) con costo 75: el cumpleaños la deja en 71.91, bajo el costo, y PASA (Felipe: es un regalo del club)",
+  "(b) con costo 75: el cumpleaños la deja en 71.90, bajo el costo, y PASA (Felipe: es un regalo del club)",
   SEDE() + COSTO_75 + como(FELIPE) + SOCIA("f", "90990201", "Cumple Costo Prueba", "966990201") +
-    VENDER("venta", { lineas: items(item({ club: 7.99 })), clienta: ":'f'", canjear: "true" }) +
+    VENDER("venta", { lineas: items(item({ club: 8 })), clienta: ":'f'", canjear: "true" }) +
     `reset role;\nselect subtotal, costo_unitario from retail.venta_items where venta_id::text = :'venta';\n`,
-  "71.91|75.00"
+  "71.90|75.00"
 );
 caso(
-  "(b) …pero un descuento normal que la deja bajo el costo sigue fallando, con canje (5.00 + 7.49) o sin él (5.00)",
+  "(b) …pero un descuento normal que la deja bajo el costo sigue fallando, con canje (5.00 + 7.50) o sin él (5.00)",
   SEDE() + COSTO_75 + como(FELIPE) + SOCIA("f", "90990202", "Cumple Costo Dos", "966990202") +
-    VENDER("con", { lineas: items(item({ sinClub: 5, club: 7.49, motivo: "cerrar_venta" })), clienta: ":'f'", canjear: "true", token: `'${TOKEN_A}'` }) +
+    VENDER("con", { lineas: items(item({ sinClub: 5, club: 7.5, motivo: "cerrar_venta" })), clienta: ":'f'", canjear: "true", token: `'${TOKEN_A}'` }) +
     VENDER("sin", { lineas: items(item({ sinClub: 5, motivo: "cerrar_venta" })) }) +
     `select :'con', :'sin';\n` + NADA_SE_GUARDO(TOKEN_A, "f"),
   "ERROR|P0001|venta_descuento_bajo_costo|ERROR|P0001|venta_descuento_bajo_costo\n0|0|0"
@@ -444,8 +446,8 @@ caso(
 caso(
   "(c) el segundo canje del año: cumple_ya_canjeado, y no queda la segunda venta (el primero sigue vivo)",
   SEDE() + como(FELIPE) + SOCIA("f", "90990301", "Cumple Dos Veces", "966990301") +
-    VENDER("primera", { lineas: items(item({ club: 7.99 })), clienta: ":'f'", canjear: "true" }) +
-    VENDER("segunda", { lineas: items(item({ club: 7.99 })), clienta: ":'f'", canjear: "true", token: `'${TOKEN_A}'` }) +
+    VENDER("primera", { lineas: items(item({ club: 8 })), clienta: ":'f'", canjear: "true" }) +
+    VENDER("segunda", { lineas: items(item({ club: 8 })), clienta: ":'f'", canjear: "true", token: `'${TOKEN_A}'` }) +
     `select :'segunda';
 reset role;
 select (select count(*) from retail.ventas where token_cliente = '${TOKEN_A}'),
@@ -457,7 +459,7 @@ select (select count(*) from retail.ventas where token_cliente = '${TOKEN_A}'),
 caso(
   "(c) …y el único parcial lo hace imposible aunque alguien escriba directo en la tabla (23505)",
   SEDE() + como(FELIPE) + SOCIA("f", "90990302", "Cumple Directo Prueba", "966990302") +
-    VENDER("venta", { lineas: items(item({ club: 7.99 })), clienta: ":'f'", canjear: "true" }) +
+    VENDER("venta", { lineas: items(item({ club: 8 })), clienta: ":'f'", canjear: "true" }) +
     `reset role;\n` +
     `select pg_temp.intento(format($q$insert into retail.club_canjes (clienta_id, venta_id, tipo, anio, pct, monto) values (%L, %L, 'cumpleanos', %s, 10, 1)$q$, :'f', :'venta', :anio_hoy));\n`,
   (s) => s.startsWith("23505|") && s.includes("club_canjes_uno_vivo_por_anio")
@@ -472,10 +474,10 @@ caso(
     SOCIA("otro", "90990401", "Cumple Otro Mes", "966990401", ":'otro_mes'") +
     SOCIA("sin_mes", "90990402", "Cumple Sin Mes", "966990402", "null") +
     ALTA("no_socia", { numero: "90990403", nombre: "Cumple No Socia", celular: "966990403" }) +
-    VENDER("r1", { lineas: items(item({ club: 7.99 })), clienta: ":'otro'", canjear: "true", token: `'${TOKEN_A}'` }) +
-    VENDER("r2", { lineas: items(item({ club: 7.99 })), clienta: ":'sin_mes'", canjear: "true", token: `'${TOKEN_A}'` }) +
-    VENDER("r3", { lineas: items(item({ club: 7.99 })), clienta: ":'no_socia'", canjear: "true", token: `'${TOKEN_A}'` }) +
-    VENDER("r4", { lineas: items(item({ club: 7.99 })), canjear: "true", token: `'${TOKEN_A}'` }) +
+    VENDER("r1", { lineas: items(item({ club: 8 })), clienta: ":'otro'", canjear: "true", token: `'${TOKEN_A}'` }) +
+    VENDER("r2", { lineas: items(item({ club: 8 })), clienta: ":'sin_mes'", canjear: "true", token: `'${TOKEN_A}'` }) +
+    VENDER("r3", { lineas: items(item({ club: 8 })), clienta: ":'no_socia'", canjear: "true", token: `'${TOKEN_A}'` }) +
+    VENDER("r4", { lineas: items(item({ club: 8 })), canjear: "true", token: `'${TOKEN_A}'` }) +
     `select :'r1', :'r2', :'r3', :'r4';\n` +
     `reset role;\nselect (select count(*) from retail.ventas where token_cliente = '${TOKEN_A}'), (select count(*) from retail.club_canjes where clienta_id in (:'otro', :'sin_mes', :'no_socia')), (select coalesce(sum(cantidad), 0) from retail.stock where variante_id = :'v1' and ubicacion_id = :'ubic') - :stock0;\n`,
   "ERROR|cumple_fuera_de_mes|ERROR|cumple_fuera_de_mes|ERROR|cumple_no_socia|ERROR|cumple_sin_clienta\n0|0|0"
@@ -488,8 +490,8 @@ caso(
     `select retail.archivar_clienta(:'arch', 'se mudó', false, null) as _a \\gset
 select retail.archivar_clienta(:'anon', 'pidió que la borren', true, null) as _b \\gset
 ` +
-    VENDER("r1", { lineas: items(item({ club: 7.99 })), clienta: ":'arch'", canjear: "true", token: `'${TOKEN_A}'` }) +
-    VENDER("r2", { lineas: items(item({ club: 7.99 })), clienta: ":'anon'", canjear: "true", token: `'${TOKEN_A}'` }) +
+    VENDER("r1", { lineas: items(item({ club: 8 })), clienta: ":'arch'", canjear: "true", token: `'${TOKEN_A}'` }) +
+    VENDER("r2", { lineas: items(item({ club: 8 })), clienta: ":'anon'", canjear: "true", token: `'${TOKEN_A}'` }) +
     `select :'r1', :'r2';\n` + NADA_SE_GUARDO(TOKEN_A, "arch"),
   "ERROR|cumple_no_socia|ERROR|clienta_anonimizada\n0|0|0"
 );
@@ -498,30 +500,50 @@ select retail.archivar_clienta(:'anon', 'pidió que la borren', true, null) as _
 // e. El monto lo decide la base
 // =====================================================================================================================
 caso(
-  "(e) la web manda un monto que no es el de la regla: cumple_descuento_distinto (5.00, y 7.97 a 2 céntimos); a 1 céntimo (7.98) pasa y se guarda lo que mandó",
+  "(e) la web manda un monto que no es el de la regla (8.00): cumple_descuento_distinto (5.00, y 8.02 a 2 céntimos); a 1 céntimo (8.01) pasa y se guarda lo que mandó",
   SEDE() + como(FELIPE) +
     SOCIA("f", "90990501", "Cumple Manipulado", "966990501") + SOCIA("g", "90990502", "Cumple Holgura", "966990502") +
     VENDER("r1", { lineas: items(item({ club: 5 })), clienta: ":'f'", canjear: "true", token: `'${TOKEN_A}'` }) +
-    VENDER("r2", { lineas: items(item({ club: 7.97 })), clienta: ":'f'", canjear: "true", token: `'${TOKEN_A}'` }) +
-    VENDER("ok", { lineas: items(item({ club: 7.98 })), clienta: ":'g'", canjear: "true" }) +
+    VENDER("r2", { lineas: items(item({ club: 8.02 })), clienta: ":'f'", canjear: "true", token: `'${TOKEN_A}'` }) +
+    VENDER("ok", { lineas: items(item({ club: 8.01 })), clienta: ":'g'", canjear: "true" }) +
     `select :'r1', :'r2';
 reset role;
 select descuento_club_unitario, (select monto from retail.club_canjes where venta_id::text = :'ok') from retail.venta_items where venta_id::text = :'ok';
 ` + NADA_SE_GUARDO(TOKEN_A, "f"),
-  // Stock −1: es la venta de 7.98, que sí pasó; las rechazadas no dejaron venta ni canje.
-  "ERROR|cumple_descuento_distinto|ERROR|cumple_descuento_distinto\n7.98|7.98\n0|0|-1"
+  // Stock −1: es la venta de 8.01, que sí pasó; las rechazadas no dejaron venta ni canje.
+  "ERROR|cumple_descuento_distinto|ERROR|cumple_descuento_distinto\n8.01|8.01\n0|0|-1"
+);
+// La transición de 20261015182000: una caja con Vender abierto desde antes de publicar la web manda la cuenta vieja
+// (`round(… × pct / 100, 2)`), y pasa. Con 0.49 a mano la prenda cobra 79.41: la regla nueva da 8.01 (71.469 → 71.40) y la
+// vieja 7.94; las dos están a 7 céntimos, así que cada una pasa por su lado y lo de en medio (7.97) no pasa por ninguno.
+caso(
+  "(e) la transición: con 0.49 a mano (79.41), la regla nueva (8.01) pasa, la cuenta vieja de una caja sin recargar (7.94) también, y lo de en medio (7.97) es cumple_descuento_distinto",
+  SEDE() + como(FELIPE) +
+    SOCIA("f", "90990503", "Cumple Transicion Nueva", "966990503") + SOCIA("g", "90990504", "Cumple Transicion Vieja", "966990504") +
+    SOCIA("h", "90990505", "Cumple Transicion Medio", "966990505") +
+    VENDER("nueva", { lineas: items(item({ sinClub: 0.49, club: 8.01, motivo: "cerrar_venta" })), clienta: ":'f'", canjear: "true" }) +
+    VENDER("vieja", { lineas: items(item({ sinClub: 0.49, club: 7.94, motivo: "cerrar_venta" })), clienta: ":'g'", canjear: "true" }) +
+    VENDER("medio", { lineas: items(item({ sinClub: 0.49, club: 7.97, motivo: "cerrar_venta" })), clienta: ":'h'", canjear: "true", token: `'${TOKEN_A}'` }) +
+    `select :'medio';
+reset role;
+select string_agg(vi.descuento_club_unitario::text, ' ' order by vi.descuento_club_unitario desc) from retail.venta_items vi where vi.venta_id::text in (:'nueva', :'vieja');
+` + NADA_SE_GUARDO(TOKEN_A, "h"),
+  // Stock −2: las dos que pasaron.
+  "ERROR|cumple_descuento_distinto\n8.01 7.94\n0|0|-2"
 );
 caso(
   "(e) una parte del club sin canjear: cumple_sin_canje (aunque sea socia en su mes); canjear con la parte del club en 0: cumple_descuento_distinto",
   SEDE() + como(FELIPE) + SOCIA("f", "90990511", "Cumple Sin Canje", "966990511") +
-    VENDER("r1", { lineas: items(item({ club: 7.99 })), clienta: ":'f'", canjear: "false", token: `'${TOKEN_A}'` }) +
+    VENDER("r1", { lineas: items(item({ club: 8 })), clienta: ":'f'", canjear: "false", token: `'${TOKEN_A}'` }) +
     VENDER("r2", { lineas: items(item({ club: 0 })), clienta: ":'f'", canjear: "true", token: `'${TOKEN_A}'` }) +
     VENDER("r3", { lineas: items(item()), clienta: ":'f'", canjear: "true", token: `'${TOKEN_A}'` }) +
     `select :'r1', :'r2', :'r3';\n` + NADA_SE_GUARDO(TOKEN_A, "f"),
   "ERROR|cumple_sin_canje|ERROR|cumple_descuento_distinto|ERROR|cumple_descuento_distinto\n0|0|0"
 );
 caso(
-  "(e) un canje que no regala nada (una prenda sin registrar de S/ 0.04: el 10 % redondea a 0.00): cumple_sin_monto, no se gasta el cumpleaños",
+  // Con la regla del S/ 0.10 toda prenda que cobra algo recibe algo del club (S/ 0.04 al 10 % queda en 0.00: el club pone
+  // los 0.04), así que hoy a «nada que descontar» solo se llega con la cuenta vieja de la transición, que aquí da 0.00.
+  "(e) un canje que no regala nada (una prenda sin registrar de S/ 0.04 con la parte del club en 0.00, la cuenta vieja): cumple_sin_monto, no se gasta el cumpleaños",
   SEDE() + como(FELIPE) + SOCIA("f", "90990521", "Cumple Sin Monto", "966990521") +
     VENDER("r1", { lineas: items(item({ v: LIBRE, precio: "0.04", club: 0, libre: true })), clienta: ":'f'", canjear: "true", token: `'${TOKEN_A}'` }) +
     `select :'r1';\n` + NADA_SE_GUARDO(TOKEN_A, "f"),
@@ -534,7 +556,7 @@ caso(
 caso(
   "(f) D-67: Micaela (tope de descuento de venta 10 %) declara 10 % y canjea el cumpleaños → pasa; declara 15 % sin autorización, con o sin canje → 42501, igual que antes",
   SEDE("Tienda Trujillo") + como(FELIPE) + SOCIA("f", "90990601", "Cumple Tope Prueba", "966990601") + como(MICAELA) +
-    VENDER("ok", { lineas: items(item({ club: 7.99 })), clienta: ":'f'", canjear: "true", pct: "10" }) +
+    VENDER("ok", { lineas: items(item({ club: 8 })), clienta: ":'f'", canjear: "true", pct: "10" }) +
     VENDER("r1", { lineas: items(item()), pct: "15" }) +
     `select :'r1';
 reset role;
@@ -542,30 +564,30 @@ select v.descuento_pct, k.monto from retail.ventas v join retail.club_canjes k o
 `,
   (s) => {
     const l = s.split("\n");
-    return l.length === 2 && l[0].startsWith("ERROR|42501|") && l[1] === "10.00|7.99";
+    return l.length === 2 && l[0].startsWith("ERROR|42501|") && l[1] === "10.00|8.00";
   }
 );
 caso(
-  "(f) sin código (20261002100000): Micaela da un 10 % a mano (7.99) y canjea el cumpleaños (7.19) → pasa; y un 19 % a mano (15.18) con argumento, sin canje, también pasa: ya no hay tope de código",
+  "(f) sin código (20261002100000): Micaela da S/ 7.99 a mano y canjea el cumpleaños (7.21: 64.719 → 64.70) → pasa; y un 19 % a mano (15.18) con argumento, sin canje, también pasa: ya no hay tope de código",
   SEDE("Tienda Trujillo") + como(FELIPE) + SOCIA("f", "90990611", "Cumple Codigo Prueba", "966990611") + como(MICAELA) +
-    VENDER("ok", { lineas: items(item({ sinClub: 7.99, club: 7.19, motivo: "cerrar_venta" })), clienta: ":'f'", canjear: "true" }) +
+    VENDER("ok", { lineas: items(item({ sinClub: 7.99, club: 7.21, motivo: "cerrar_venta" })), clienta: ":'f'", canjear: "true" }) +
     VENDER("r1", { lineas: items(item({ sinClub: 15.18, motivo: "cerrar_venta", argumento: "Clienta frecuente" })) }) +
     `select :'r1' not like 'ERROR%';
 reset role;
 select descuento_unitario, descuento_club_unitario from retail.venta_items where venta_id::text = :'ok';
 `,
-  "t\n15.18|7.19"
+  "t\n15.20|7.21"
 );
 caso(
-  "(f) el líder: 35 % a mano (27.96, con argumento) + cumpleaños (5.19) = 41 % → pasa; y 12 % a mano (9.59) + cumpleaños (7.03) = 21 % → pasa SIN argumento escrito",
+  "(f) el líder: 35 % a mano (27.96, con argumento) + cumpleaños (5.24) = 42 % → pasa; y 12 % a mano (9.59) + cumpleaños (7.11) = 21 % → pasa SIN argumento escrito",
   SEDE() + como(FELIPE) + SOCIA("f", "90990621", "Cumple Lider Prueba", "966990621") + SOCIA("g", "90990622", "Cumple Argumento", "966990622") +
-    VENDER("v35", { lineas: items(item({ sinClub: 27.96, club: 5.19, motivo: "liquidacion_temporada", argumento: "Fin de temporada" })), clienta: ":'f'", canjear: "true" }) +
-    VENDER("v12", { lineas: items(item({ sinClub: 9.59, club: 7.03, motivo: "cerrar_venta" })), clienta: ":'g'", canjear: "true" }) +
+    VENDER("v35", { lineas: items(item({ sinClub: 27.96, club: 5.24, motivo: "liquidacion_temporada", argumento: "Fin de temporada" })), clienta: ":'f'", canjear: "true" }) +
+    VENDER("v12", { lineas: items(item({ sinClub: 9.59, club: 7.11, motivo: "cerrar_venta" })), clienta: ":'g'", canjear: "true" }) +
     `reset role;
 select string_agg(vi.descuento_unitario || '/' || vi.descuento_club_unitario || '/' || coalesce(vi.argumento_descuento, '-'), ' ' order by vi.descuento_unitario desc)
   from retail.venta_items vi where vi.venta_id::text in (:'v35', :'v12');
 `,
-  "33.15/5.19/Fin de temporada 16.62/7.03/-"
+  "33.20/5.24/Fin de temporada 16.70/7.11/-"
 );
 
 // =====================================================================================================================
@@ -574,7 +596,7 @@ select string_agg(vi.descuento_unitario || '/' || vi.descuento_club_unitario || 
 caso(
   "(g) anular la venta libera el canje (con la hora y la persona de la anulación) y la socia vuelve a canjear este año: un canje vivo, dos en la historia",
   SEDE() + como(FELIPE) + SOCIA("f", "90990701", "Cumple Anulada Prueba", "966990701") +
-    VENDER("venta", { lineas: items(item({ club: 7.99 })), clienta: ":'f'", canjear: "true" }) +
+    VENDER("venta", { lineas: items(item({ club: 8 })), clienta: ":'f'", canjear: "true" }) +
     `reset role;
 select id as item from retail.venta_items where venta_id::text = :'venta' \\gset
 ` + como(FELIPE) +
@@ -583,7 +605,7 @@ reset role;
 select k.anulado_en = v.anulado_en, k.anulado_por = v.anulado_por, k.anulado_por = :'persona_felipe'
   from retail.club_canjes k join retail.ventas v on v.id = k.venta_id where k.venta_id::text = :'venta';
 ` + como(FELIPE) +
-    VENDER("otra", { lineas: items(item({ club: 7.99 })), clienta: ":'f'", canjear: "true" }) +
+    VENDER("otra", { lineas: items(item({ club: 8 })), clienta: ":'f'", canjear: "true" }) +
     `reset role;
 select (select count(*) from retail.club_canjes where clienta_id = :'f' and anulado_en is null),
        (select count(*) from retail.club_canjes where clienta_id = :'f'),
@@ -594,14 +616,14 @@ select (select count(*) from retail.club_canjes where clienta_id = :'f' and anul
 caso(
   "(g) una devolución (registrada y aprobada) NO libera el canje: el siguiente canje del año sigue siendo cumple_ya_canjeado",
   SEDE() + como(FELIPE) + SOCIA("f", "90990711", "Cumple Devuelta Prueba", "966990711") +
-    VENDER("venta", { lineas: items(item({ club: 7.99 })), clienta: ":'f'", canjear: "true" }) +
+    VENDER("venta", { lineas: items(item({ club: 8 })), clienta: ":'f'", canjear: "true" }) +
     `reset role;
 select id as item from retail.venta_items where venta_id::text = :'venta' \\gset
 ` + como(FELIPE) +
     `select retail.crear_devolucion(:'venta', :'ubic', jsonb_build_array(jsonb_build_object('venta_item_id', :'item', 'cantidad', 1, 'condicion', 'vendible')), 'prueba club_cumpleanos', 'otro') as dev \\gset
 ` + como(SANDRA) + intentoCon(`select retail.aprobar_devolucion(%L, null, null)`, ":'dev'") +
     como(FELIPE) +
-    VENDER("otra", { lineas: items(item({ club: 7.99 })), clienta: ":'f'", canjear: "true" }) +
+    VENDER("otra", { lineas: items(item({ club: 8 })), clienta: ":'f'", canjear: "true" }) +
     `select :'otra';
 reset role;
 select (select estado from retail.devoluciones where id = :'dev'), (select count(*) from retail.club_canjes where clienta_id = :'f' and anulado_en is null);
@@ -622,7 +644,7 @@ caso(
     SOCIA("otro", "90990802", "Cumple Resumen Otro", "966990802", ":'otro_mes'") +
     ALTA("no_socia", { numero: "90990803", nombre: "Cumple Resumen No", celular: "966990803" }) +
     RESUMEN("f") +
-    VENDER("venta", { lineas: items(item({ club: 7.99 })), clienta: ":'f'", canjear: "true" }) +
+    VENDER("venta", { lineas: items(item({ club: 8 })), clienta: ":'f'", canjear: "true" }) +
     RESUMEN("f") +
     `reset role;
 select id as item from retail.venta_items where venta_id::text = :'venta' \\gset
@@ -909,7 +931,7 @@ async function carrera(nombre, fn) {
   if (!bien) fallas++;
   console.log(`${bien ? "✓" : "✗"} ${nombre}${bien ? "" : `\n    obtenido: ${String(obtenido).split("\n").join("\n              ")}`}`);
 }
-const LINEA_CUMPLE = items(item({ club: 7.99 }));
+const LINEA_CUMPLE = items(item({ club: 8 }));
 
 await carrera(
   "(j1) una caja canjea el cumpleaños de una socia y, mientras guarda, otra caja canjea a la MISMA socia: la segunda ESPERA en la lectura de la ficha (sin COMMIT: las dos terminan en ROLLBACK)",

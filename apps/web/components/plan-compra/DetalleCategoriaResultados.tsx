@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Shirt } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Modal } from "@/components/ui/Modal";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Vacio } from "@/components/ui/Vacio";
@@ -19,6 +20,7 @@ import {
   type LecturaResultados,
   type SenalCategoria,
 } from "@/lib/plan-compra-resultados";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 // El detalle de una categoría en Resultados (ADR-0372, C6 · Felipe 2026-10-12: «al darle clic a una fila, qué prendas y de qué colores se
 // vendieron más»; y después, «sus ventas contra lo esperado y la campaña pasada»). Solo lee: lo que ya trae `fn_plan_compra_resultados`
@@ -28,7 +30,7 @@ import {
 const pct = (d: number) => `${d >= 0 ? "+" : "−"}${Math.abs(Math.round(d * 100))} %`;
 const tonoDe = (d: number | null) => (d === null ? undefined : d >= 0.02 ? "text-verde" : d <= -0.05 ? "text-rojo-profundo" : undefined);
 
-const ancho = (v: number, max: number) => `${max > 0 ? Math.max(2, (v / max) * 100) : 0}%`;
+// Las barras a escala son la barra de avance del sistema en tinta (ronda 14 de /unificar): la más larga no está «lista».
 
 export function DetalleCategoriaResultados({
   r,
@@ -74,7 +76,7 @@ export function DetalleCategoriaResultados({
   const maxTienda = Math.max(0, ...porTienda.map((x) => x.unidades));
 
   return (
-    <Modal titulo={categoria.nombre} subtitulo={`${r.plan.nombre} · ${categoria.familia} · ${enteroES.format(unidades)} ${unidades === 1 ? "prenda vendida" : "prendas vendidas"}`} onClose={onClose} variante="hoja" ancho="max-w-2xl" conCerrar>
+    <Modal titulo={categoria.nombre} subtitulo={`${r.plan.nombre} · ${categoria.familia} · ${enteroES.format(unidades)} ${unidades === 1 ? "prenda vendida" : "prendas vendidas"}`} onClose={onClose} variante="hoja" tamano="ancha" conCerrar>
       <div className="space-y-6">
         {r.tiendas.length > 1 && (
           <div role="group" aria-label="Tienda" className="flex flex-wrap gap-2">
@@ -144,14 +146,12 @@ export function DetalleCategoriaResultados({
 
         {tienda === null && porTienda.length > 1 && (
           <section>
-            <h3 className="text-[13px] font-semibold text-tinta">Por tienda</h3>
+            <TituloGrupo>Por tienda</TituloGrupo>
             <ol className="mt-2 space-y-1.5">
               {porTienda.map(({ t, unidades: u }) => (
                 <li key={t.id} className="grid grid-cols-[7rem_minmax(0,1fr)_3rem] items-center gap-3 text-sm">
                   <span className="truncate text-tinta/80">{t.nombre}</span>
-                  <span className="h-2 overflow-hidden rounded-full bg-sand">
-                    <span className="block h-full rounded-full bg-tinta/60" style={{ width: ancho(u, maxTienda) }} />
-                  </span>
+                  <BarraAvance pct={(u / maxTienda) * 100} tono="tinta" decorativa />
                   <span className="text-right tabular-nums text-tinta">{enteroES.format(u)}</span>
                 </li>
               ))}
@@ -160,7 +160,7 @@ export function DetalleCategoriaResultados({
         )}
 
         <section>
-          <h3 className="text-[13px] font-semibold text-tinta">Las prendas que más se vendieron</h3>
+          <TituloGrupo>Las prendas que más se vendieron</TituloGrupo>
           {prendas.length === 0 ? (
             <Vacio tamano="chico" icono={<Shirt />} titulo={tienda === null ? "Todavía no se vendió ninguna" : "En esta tienda no se vendió ninguna"}>
               Cuando se venda una prenda de {categoria.nombre}, aparece aquí con su color.
@@ -178,9 +178,7 @@ export function DetalleCategoriaResultados({
                       {p.color && <span className="text-taupe"> · {p.color}</span>}
                     </span>
                   </span>
-                  <span className="h-2 overflow-hidden rounded-full bg-sand">
-                    <span className={`block h-full rounded-full ${i === 0 ? "bg-rojo" : "bg-tinta/60"}`} style={{ width: ancho(p.unidades, maxPrenda) }} />
-                  </span>
+                  <BarraAvance pct={(p.unidades / maxPrenda) * 100} tono="tinta" decorativa indice={i} />
                   <span className="text-right tabular-nums text-tinta">{enteroES.format(p.unidades)}</span>
                   <span className="text-right tabular-nums text-tinta/70">{solesES(p.soles)}</span>
                 </li>
@@ -191,7 +189,7 @@ export function DetalleCategoriaResultados({
 
         {colores.length > 0 && (
           <section>
-            <h3 className="text-[13px] font-semibold text-tinta">Por color</h3>
+            <TituloGrupo>Por color</TituloGrupo>
             <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
               {colores.map((c) => (
                 <li key={c.codigo} className="grid grid-cols-[minmax(0,1fr)_minmax(0,6rem)_2.5rem] items-center gap-3 text-sm">
@@ -199,9 +197,7 @@ export function DetalleCategoriaResultados({
                     <span data-color-dato aria-hidden className="h-3.5 w-3.5 flex-none rounded-full border border-sand" style={c.hex ? { backgroundColor: c.hex } : undefined} />
                     <span className="truncate text-tinta">{c.nombre}</span>
                   </span>
-                  <span className="h-2 overflow-hidden rounded-full bg-sand">
-                    <span className="block h-full rounded-full bg-tinta/60" style={{ width: ancho(c.unidades, maxColor) }} />
-                  </span>
+                  <BarraAvance pct={(c.unidades / maxColor) * 100} tono="tinta" decorativa />
                   <span className="text-right tabular-nums text-tinta">{enteroES.format(c.unidades)}</span>
                 </li>
               ))}

@@ -10,8 +10,9 @@ import {
   type ParametrosCaja,
   type ParametrosFinanzasConCorte,
 } from "@/lib/configuracion-reglas";
+import { leerConfiguracionTiendaWeb, type ConfiguracionTiendaWeb } from "@/lib/tienda-web-reglas";
 
-export type { CampanaConfig, ConfiguracionTiendas, EfectoCampana, TiendaConfig } from "@/lib/configuracion-reglas";
+export type { ConfiguracionTiendas } from "@/lib/configuracion-reglas";
 
 // Configuración ▸ Tiendas y caja (ADR-0195 F1, 20260924210000). Todo sale de `fn_configuracion_tiendas` (solo líder)
 // y de `fn_parametros_caja` (la única regla de qué meta y qué fondo rigen un día; la lee también Caja).
@@ -49,6 +50,16 @@ export async function getParametrosFinanzas(): Promise<ParametrosFinanzasConCort
   const p = leerParametrosFinanzas(data);
   // `inicioFinanzas` nace con ADR-0332: una base que aún no tiene esa migración no manda la clave y sale «sin corte».
   return p ? { ...p, inicioFinanzas: leerInicioFinanzas(data), corteDisponible: baseTraeElCorte(data) } : null;
+}
+
+/** Configuración ▸ Tienda web (ADR-0408, act. 6, 20261014231000): cada tienda abierta con lo que la web le muestra al cliente
+ *  (su WhatsApp es el del QR del club) y los plazos de los pedidos web. `null` si la base todavía no tiene la migración: la
+ *  pestaña lo dice en vez de caerse (principio 9). */
+export async function getConfiguracionTiendaWeb(): Promise<ConfiguracionTiendaWeb | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_configuracion_tienda_web" as never);
+  if (error) return null;
+  return leerConfiguracionTiendaWeb(data);
 }
 
 /** Configuración ▸ Empresa: los datos de la empresa y de cada punto de emisión, tal como los usa Facturación. Solo lectura. */

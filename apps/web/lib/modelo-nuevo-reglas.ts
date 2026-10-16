@@ -34,6 +34,7 @@ export type BorradorModelo = {
   cantidades: Record<string, string>;
 };
 
+/** @internal Comodidad de las pruebas de Modelo nuevo: un borrador sin nada (la pantalla arma el suyo). */
 export const BORRADOR_VACIO: BorradorModelo = { nombre: "", categoria: null, tallaIds: [], colorCodigos: [], precio: "", esMuestra: false, cantidades: {} };
 
 type TallaEmbebida = { id: string; valor: string; activo: boolean };
@@ -184,8 +185,8 @@ export function problemaDePrecio(b: BorradorModelo): string | null {
   if (l.tipo === "invalido") return "El precio tiene que ser un número, por ejemplo 12.50.";
   if (l.tipo === "negativo") return "El precio no puede ser negativo.";
   const valor = l.tipo === "ok" ? aCentimos(l.valor) : 0;
-  if (valor > PRECIO_MAXIMO) return "El precio no puede pasar de S/ 99,999.99.";
-  if (!b.esMuestra && valor < PRECIO_MINIMO) return l.tipo === "ok" && l.valor > 0 ? "El precio mínimo es S/ 0.01." : "Pon el precio a tienda. Una muestra sí puede ir sin precio.";
+  if (valor > PRECIO_MAXIMO) return "El precio no puede pasar de S/\u00a099,999.99.";
+  if (!b.esMuestra && valor < PRECIO_MINIMO) return l.tipo === "ok" && l.valor > 0 ? "El precio mínimo es S/\u00a00.01." : "Pon el precio a tienda. Una muestra sí puede ir sin precio.";
   return null;
 }
 
@@ -202,7 +203,7 @@ export function problemaDeCostos(c: TextosDeOrden): string | null {
     if (l.tipo === "coma") return `Escribe el costo de ${cual} con punto, por ejemplo 12.50.`;
     if (l.tipo === "invalido") return `El costo de ${cual} tiene que ser un número, por ejemplo 12.50.`;
     if (l.tipo === "negativo") return `El costo de ${cual} no puede ser negativo.`;
-    if (l.tipo === "ok" && aCentimos(l.valor) > COSTO_MAXIMO) return `El costo de ${cual} no puede pasar de S/ 999,999.99.`;
+    if (l.tipo === "ok" && aCentimos(l.valor) > COSTO_MAXIMO) return `El costo de ${cual} no puede pasar de S/\u00a0999,999.99.`;
   }
   return null;
 }

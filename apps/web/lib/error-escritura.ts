@@ -33,6 +33,7 @@
  */
 
 import { mensajeErrorResponsable } from "./responsable-reglas";
+import { montosSinCorte } from "./montos-sin-corte";
 
 /** La forma del error de supabase-js, sin acoplarnos a su tipo. */
 export type ErrorEscritura = {
@@ -55,6 +56,15 @@ export type ErrorEscritura = {
 type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
+  // Montos de Ventas y Caja (/chaos 2026-10-13, 20261013204000): el respaldo de la tabla cuando una pantalla no lo frenó antes.
+  { marca: "recibido_con_tope", frase: "El vuelto pasa de S/\u00a0500: revisa con cuánto paga el cliente y vuelve a intentar." },
+  { marca: "_montos_finitos", frase: "Uno de los montos no es un número válido. Revísalo y vuelve a intentar." },
+  // Nombres con tope en Catálogo (/chaos 2026-10-14, 20261014182000): la pantalla ya corta antes; esto es el respaldo.
+  // Precio y costo de una prenda hasta S/ 5 000 (20261015152000, ADR-0415): la pantalla corta antes; esto es el respaldo.
+  { marca: "_precio_con_tope", frase: "Un precio o un costo pasa de S/\u00a05000: revisa que no falte el punto (59.90, no 5990)." },
+  { marca: "_textos_con_tope", frase: "Un nombre o una descripción es demasiado largo. Acórtalo y vuelve a intentar." },
+  // Montos con tope en Finanzas (/chaos 2026-10-14, 20261015002000, ADR-0412): un gasto o un movimiento de dinero, hasta un millón de soles.
+  { marca: "_monto_con_tope", frase: "El monto pasa de S/\u00a01 000 000: revisa que no sobre un cero y vuelve a intentar." },
   // Costo atípico (20260930120000 y siguientes): un costo por prenda fuera de lo normal (sin costo, mayor que el precio,
   // más del doble o menos de dos tercios del vigente) no entra al costo de la prenda sin que un líder lo confirme.
   // ORDEN: `costo_atipico_sin_lider` va ANTES que `costo_atipico`, porque la búsqueda es por «contiene» y la segunda marca
@@ -163,6 +173,11 @@ const HUELLAS: Huella[] = [
     marca: "variantes_producto_talla_color_unico",
     frase: "Ese producto ya tiene esa talla y ese color. Búscalo en el catálogo: el código que escaneaste puede ser un duplicado de la etiqueta.",
   },
+  // Las fechas de una factura de compra (/chaos de Compras 2026-10-15, 20261015170000, ADR-0421): la pantalla ya lo frena.
+  { marca: "compras_vence_despues_de_emitir", frase: "El vencimiento no puede ser anterior a la emisión: revisa las fechas del documento." },
+  // La ficha de un cliente (/chaos 2026-10-15, 20261015154000, ADR-0416): la pantalla ya lo frena; esto es el respaldo.
+  { marca: "clientas_con_algun_dato", frase: "La ficha necesita al menos el documento, el nombre o el celular." },
+  { marca: "clientas_cumple_fecha_real", frase: "Ese cumpleaños no existe: revisa el día y el mes." },
   {
     // Un documento, una clienta: `clientas_dni_unico` (20260922140000) pasó a `clientas_documento_unico`, por tipo y
     // número, en 20260930160000 (ADR-0288 D-2). `registrar_clienta` hace upsert por documento y `editar_clienta` lo
@@ -478,8 +493,12 @@ const HUELLAS: Huella[] = [
  * `hint` de las RPC de temporadas (ADR-0246) cuyo mensaje ya viene en castellano de CAYLA. Casi todos llegan como
  * `P0001` y pasarían igual; los de PERMISO (`temporada_sin_permiso`, `calendario_sin_permiso`) llevan `42501`, y sin
  * esto caían al genérico «No se pudo… Código: …» en vez de decir «Solo el líder puede cambiar el calendario».
+ * Lo mismo los del fondo por rendir (ADR-0362 fase 6): `fondo_propio` («Nadie se entrega plata a sí mismo…») y `fondo_ajeno`
+ * («Desde tu fondo pagas tú: elige tu nombre en «Responsable».») llegan con `42501` y una frase que dice qué hacer; y los de la rendición
+ * (actividad 5): `rendicion_quien_aprueba` («Le entregaste plata en esta rendición…», `42501`), `rendicion_abierta`, `rendicion_sobra`,
+ * `rendicion_cambio`, `rendicion_sin_explicacion` y `en_rendicion` («Ese gasto ya está en una rendición…»).
  */
-const HINT_EN_CASTELLANO = /^(temporada|calendario)_[a-z_]+$/;
+const HINT_EN_CASTELLANO = /^((temporada|calendario|fondo|rendicion)_[a-z_]+|en_rendicion)$/;
 
 /**
  * `hint` de la corrección de color y talla de una variante (ADR-0263, 20260929045000). Su mensaje ya viene en castellano
@@ -500,9 +519,18 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
 /**
  * `hint` del documento de la clienta y de la venta ligada a su ficha (ADR-0288, `20260930160000`). Su mensaje ya viene en
  * castellano de CAYLA y dice qué hacer, pero dos no llegan como `P0001`: `documento_invalido` trae `22023` («El DNI tiene 8
- * dígitos.») y `documento_de_otra_ficha` trae `23505` («Ese documento ya es de otra ficha…»); sin esto caerían al genérico
- * con «Código:». Van ANTES que las huellas, como los de variante: el hint es nuestro y exacto. La frase de acá es solo el
- * respaldo por si el mensaje no llega.
+ * dígitos.») y `documento_de_otra_ficha` trae `23505` («Ese documento ya es de la ficha de …», con el nombre de esa ficha desde
+ * 20261015054000: ya no se unen fichas); sin esto caerían al genérico con «Código:». Van ANTES que las huellas, como los de
+ * variante: el hint es nuestro y exacto. La frase de acá es solo el respaldo por si el mensaje no llega.
+ *   · `correo_repetido` (20261015054000, Felipe 2026-10-14): un correo es de una sola persona; trae `23505` y no dice de quién es
+ *     (la misma frase sale en el cartel público). En el ERP casi no llega: «Editar» de la ficha recibe el de abajo.
+ *   · `correo_de_otra_ficha` (20261015123000, Felipe 2026-10-15: «Editar» de la ficha escribe el correo): `23505`, y SÍ dice de qué
+ *     ficha es (nombre y código del club; o que con ese correo entra a la tienda online la cuenta de otra ficha): lo ve solo quien
+ *     edita fichas. La hoja lo pone bajo la caja del correo (`esRechazoDelCorreo`, lib/correo-clienta-reglas.ts).
+ *   · `correo_invalido` (20261015123000): `22023`, el correo no tiene la forma algo@algo.algo.
+ *   · `nombre_sin_padron` (20261015133000, Felipe 2026-10-15): `P0001`, el nombre de un DNI no es una lectura del padrón anotada
+ *     por el servidor en la última hora (se escribió a mano, o la hoja quedó abierta mucho rato). Se vuelve a consultar el padrón.
+ *   · `nombre_con_numeros` (20261015133000): `22023`, el nombre escrito de un carné o un pasaporte trae números.
  *   · `clienta_anonimizada`: la ficha pidió borrar sus datos (Ley 29733) y la venta no se puede guardar a su nombre.
  *   · `clienta_no_existe`: la ficha del ticket ya no está en la libreta (típico: una venta sin conexión que llegó tarde).
  * Tanda 1b (club: socia, publicidad por WhatsApp y el número de cada tienda), con el mismo criterio:
@@ -539,7 +567,12 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
  */
 const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["documento_invalido", "El documento del cliente no tiene el formato de su tipo: el DNI tiene 8 dígitos; el carné y el pasaporte, de 6 a 12 letras o números."],
-  ["documento_de_otra_ficha", "Ese documento ya es de otra ficha. Si son el mismo cliente, únelas desde su ficha."],
+  ["documento_de_otra_ficha", "Ese documento ya es de otra ficha. Un documento es de una sola persona: búscala en Clientes y corrige la que esté mal."],
+  ["correo_repetido", "Ese correo ya está registrado con los datos de otra persona. Usa otro correo."],
+  ["correo_de_otra_ficha", "Ese correo ya es de otra ficha. Un correo es de una sola persona: búscala en Clientes y corrige la que esté mal."],
+  ["correo_invalido", "Revisa el correo: parece incompleto. Si no lo tiene, déjalo vacío."],
+  ["nombre_sin_padron", "El nombre de un DNI sale del padrón y no se escribe a mano. Vuelve a consultarlo y guarda el nombre que trae."],
+  ["nombre_con_numeros", "El nombre no lleva números: escríbelo tal cual está en su documento."],
   ["clienta_anonimizada", "Este cliente pidió borrar sus datos: la venta no se puede guardar a su nombre. Quítalo del ticket y vende sin cliente."],
   ["clienta_no_existe", "Ese cliente ya no está en la libreta. Quítalo del ticket y vuelve a buscarlo."],
   ["club_sin_texto", "El club todavía no tiene su texto vigente para leerle al cliente, así que no se puede registrar su «sí». Avisa al líder."],
@@ -562,7 +595,7 @@ const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["aniversario_no_disponible", "Este miembro no tiene un vale de aniversario disponible (pudo vencer, o su año de club todavía no cuenta)."],
   ["aniversario_ya_canjeado", "Este miembro ya usó su vale de aniversario de este año de club."],
   ["aniversario_sin_monto", "En esta venta no queda nada que descontar con el vale de aniversario: no se usa."],
-  ["aniversario_cubre_todo", "El vale de aniversario cubre toda la compra, y una venta en S/ 0 no se puede registrar. Agrega otra prenda o cobra esta compra sin el vale."],
+  ["aniversario_cubre_todo", "El vale de aniversario cubre toda la compra, y una venta en S/\u00a00 no se puede registrar. Agrega otra prenda o cobra esta compra sin el vale."],
   ["aniversario_descuento_distinto", "El descuento del vale de aniversario no coincide con el que calcula el sistema. Vuelve a abrir el cobro."],
 ]);
 
@@ -608,7 +641,10 @@ export function esSinModulo(error: ErrorEscritura): boolean {
   return !!error && !!error.hint && HINT_SIN_MODULO.test(error.hint) && !!error.message;
 }
 
-/** Textos que delatan que ni siquiera se llegó al servidor. */
+/**
+ * Textos que delatan que la RESPUESTA no llegó. No dicen si la petición salió: el navegador escribe lo mismo cuando no había
+ * internet que cuando la base guardó y la respuesta se perdió de vuelta (/chaos de Producción, ADR-0409 y ADR-0410).
+ */
 const SIN_RED = ["failed to fetch", "networkerror", "load failed", "fetch failed", "aborted"];
 
 /**
@@ -616,7 +652,8 @@ const SIN_RED = ["failed to fetch", "networkerror", "load failed", "fetch failed
  * bifurcar ANTES de mostrar nada — la cola de ventas offline (`lib/ventas-offline.ts`,
  * BACKLOG "resiliencia sin internet") la reusa para decidir si una venta se encola en vez
  * de mostrarse como fallo. Misma lista `SIN_RED` que `traducirError` ya usaba: una sola
- * fuente de verdad para "esto no llegó al servidor" (principio 4).
+ * fuente de verdad para «la respuesta no llegó» (principio 4). Que la respuesta no llegue no
+ * quiere decir que la base no haya guardado: por eso la venta se encola con la MISMA marca.
  */
 export function esFalloDeRed(error: ErrorEscritura): boolean {
   if (!error) return false;
@@ -694,18 +731,30 @@ export function esVersionCambiada(error: ErrorEscritura): boolean {
  *
  * `contexto` describe la acción en el idioma del negocio ("registrar la venta", "cerrar la
  * caja"), no la RPC: termina dentro de la frase que ella lee con prisa.
- * `confirmarAntesDeRepetir`: para escrituras de dinero, donde repetir a ciegas duplica el movimiento.
+ *
+ * UN CORTE DE RED NO DICE SI SE GUARDÓ (ADR-0410). La conexión puede cortarse DESPUÉS de que la base guardó y antes de que
+ * la respuesta llegue, y el navegador lo cuenta igual que si la petición nunca hubiera salido. Hasta el 2026-10-14 la frase
+ * de siempre decía «No se guardó nada — vuelve a intentar», y solo las pantallas que pedían `confirmarAntesDeRepetir` decían
+ * la verdad: en Ingresar insumo un lote que SÍ entró se anunció como no guardado (/chaos, ADR-0409), y en una pantalla sin
+ * token repetir duplica lo hecho. Ahora toda escritura dice que no se sabe y pide mirar antes de repetir.
+ * `lectura`: el error es de una LECTURA (cargar, buscar, revisar antes de borrar): ahí no hay nada que pudo guardarse, y la
+ * frase dice solo que se cortó la conexión.
+ * `confirmarAntesDeRepetir`: lo que pedían las escrituras de dinero antes de ADR-0410. Ya es lo de siempre y no cambia
+ * nada; queda mientras haya pantallas que la pasan.
+ *
+ * Los montos de la frase no se parten al bajar de renglón: el mensaje de la base trae «S/ 25.00» con un espacio normal
+ * (`raise exception '… S/ % …'`, en 38 migraciones), y aquí pasa al espacio que no se parte, como `soles` (ADR-0413).
  */
-export function traducirError(error: ErrorEscritura, contexto: string, opciones: { confirmarAntesDeRepetir?: boolean } = {}): string {
+export function traducirError(error: ErrorEscritura, contexto: string, opciones: { lectura?: boolean; confirmarAntesDeRepetir?: boolean } = {}): string {
+  return montosSinCorte(fraseDelError(error, contexto, opciones));
+}
+
+function fraseDelError(error: ErrorEscritura, contexto: string, opciones: { lectura?: boolean; confirmarAntesDeRepetir?: boolean }): string {
   if (!error) return `No se pudo ${contexto}.`;
 
   if (esFalloDeRed(error)) {
-    // Con plata de por medio la conexión puede cortarse DESPUÉS de que la base guardó y antes de que la respuesta
-    // llegue: decir «no se guardó nada» invitaría a repetir el pago y duplicarlo. Ahí se dice la verdad: no se sabe.
-    if (opciones.confirmarAntesDeRepetir) {
-      return `Se cortó la conexión mientras se intentaba ${contexto}: no podemos confirmar si llegó a guardarse. Antes de volver a intentarlo, revisa si ya aparece registrado.`;
-    }
-    return `No se pudo ${contexto}: la conexión falló antes de llegar al servidor. No se guardó nada — revisa el internet y vuelve a intentar.`;
+    if (opciones.lectura) return `No se pudo ${contexto}: se cortó la conexión. Revisa el internet y vuelve a intentar.`;
+    return `Se cortó la conexión mientras se intentaba ${contexto}: no podemos confirmar si llegó a guardarse. Antes de volver a intentarlo, revisa si ya aparece registrado.`;
   }
 
   // El combo «Responsable» (ADR-0161/0162): la base rechaza con 42501 y un `hint` estable. Va antes de las huellas:

@@ -1,4 +1,5 @@
 import { aCentimos, leerDinero, type LecturaDinero } from "./modelo-nuevo-reglas";
+import { soles } from "./orden-ficha-reglas";
 
 // «Fases y quién las hace», el bloque nuevo de la hoja «Nueva orden de producción» (ADR-0400, decisiones 2, 3 y 5; actividad 2): las reglas
 // puras. Sin React ni Supabase, para que las importen la página (servidor) y el formulario (cliente), y para que la pantalla DIGA qué falta con
@@ -274,9 +275,9 @@ export function problemasFases(fases: readonly FaseBorrador[], ctx: ContextoFase
     else if (s.minimo.tipo === "invalido") di("fase_tarifa_invalida", `La cantidad mínima de ${nombre} es un número entero, por ejemplo 150.`);
     else if (s.tarifa.tipo === "negativo" || (s.tarifa.tipo === "ok" && s.tarifa.valor <= 0)) di("fase_sin_tarifa", `La tarifa por prenda de ${nombre} tiene que ser mayor que cero.`);
     else if (s.tarifaPrenda === null) di("fase_sin_tarifa", `Falta la tarifa por prenda de ${nombre}: escríbela o guárdala en la lista de precios del proveedor.`);
-    else if (s.tarifaPrenda > TARIFA_MAXIMA) di("fase_tarifa_invalida", `La tarifa de ${nombre} no puede pasar de S/ 9,999.99.`);
+    else if (s.tarifaPrenda > TARIFA_MAXIMA) di("fase_tarifa_invalida", `La tarifa de ${nombre} no puede pasar de S/\u00a09,999.99.`);
     else if (s.fijo.tipo === "negativo") di("fase_tarifa_invalida", `El fijo por orden de ${nombre} no puede ser negativo.`);
-    else if (s.fijoOrden > FIJO_MAXIMO) di("fase_tarifa_invalida", `El fijo por orden de ${nombre} no puede pasar de S/ 99,999.99.`);
+    else if (s.fijoOrden > FIJO_MAXIMO) di("fase_tarifa_invalida", `El fijo por orden de ${nombre} no puede pasar de S/\u00a099,999.99.`);
     else if (s.cantidadMinima !== null && s.cantidadMinima <= 0) di("fase_tarifa_invalida", `La cantidad mínima de ${nombre} tiene que ser mayor que cero.`);
 
     const fecha = f.fechaPrometida.trim();
@@ -287,8 +288,6 @@ export function problemasFases(fases: readonly FaseBorrador[], ctx: ContextoFase
 }
 
 // ---------- Avisos y textos ----------
-
-const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /**
  * «Confecciones del Norte cobra desde 150 prendas: esta orden lleva 50». La base NO bloquea (decisión 5 del ADR-0400: avisa). Solo con una fase de

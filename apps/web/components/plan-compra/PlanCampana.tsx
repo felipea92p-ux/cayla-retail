@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Globito } from "@/components/ui/Globito";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, CalendarDays, Download, PanelRightOpen } from "lucide-react";
+import { ArrowRight, CalendarDays, PanelRightOpen } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Ayuda } from "@/components/Ayuda";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -57,6 +58,7 @@ import {
 import type { FamiliaPlan } from "@/lib/plan-compra";
 import { avisoSinPlan, formaDeLaTabla, proximaCampana, queTocaHoy, subtituloDelPlan } from "@/lib/plan-compra-momento";
 import type { LecturaMotor } from "@/lib/motor-demanda";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 // Compras ▸ Plan de campaña (ADR-0349). Una fila por categoría: su barra de rango (los tres escenarios contra lo que ya hay y lo que hay
 // que comprar), cuánto cuesta; al abrirla, su ventana para armar o corregir el plan. Durante y después de la campaña, lo que se vendió de
@@ -95,8 +97,8 @@ export function PlanCampana({
   puedeContar: boolean;
   /** Ve Análisis: el simulador ofrece el acceso a «Qué pedir», prenda por prenda. */
   veAnalisis?: boolean;
-  /** Solo para «Fijar un mínimo» por tienda: su función de la base todavía pide ser líder. El resto del plan es de quien tiene el
-   *  módulo (ADR-0387). */
+  /** Solo para «Campaña nueva»: escribe en Catálogo ▸ Etiquetas y sigue siendo de un líder. El resto del plan, el mínimo por tienda
+   *  incluido, es de quien tiene el módulo (ADR-0387; ADR-0362, decisión 64). */
   esLider: boolean;
   /** La URL pedía una campaña que no existe (vieja o escrita a mano): se muestra la más reciente y se dice. */
   planPedidoNoExiste?: boolean;
@@ -309,16 +311,12 @@ export function PlanCampana({
                       aria-expanded={resumenAbierto}
                       aria-label={avisos > 0 ? `Resumen y avisos: ${avisos} ${avisos === 1 ? "aviso" : "avisos"}` : "Resumen y avisos"}
                     >
-                      <PanelRightOpen aria-hidden className="h-[18px] w-[18px]" />
+                      <PanelRightOpen aria-hidden className="h-4 w-4" />
                     </Boton>
                   </TooltipTrigger>
                   <TooltipContent sideOffset={6}>Resumen y avisos</TooltipContent>
                 </Tooltip>
-                {avisos > 0 && (
-                  <span aria-hidden className="pointer-events-none absolute -right-2 -top-2 inline-grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1 text-[11px] font-semibold leading-none text-crema ring-2 ring-crema">
-                    {avisos}
-                  </span>
-                )}
+                <Globito n={avisos} pide esquina className="absolute -right-2 -top-2" />
               </span>
             {campanas && (
               <SelectorCampana
@@ -335,14 +333,8 @@ export function PlanCampana({
               />
             )}
               {totales.conPlan > 0 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Boton peso="fantasma" className="w-10 justify-center px-0!" onClick={() => setExportando(true)} aria-label="Exportar">
-                      <Download aria-hidden className="h-[18px] w-[18px]" />
-                    </Boton>
-                  </TooltipTrigger>
-                  <TooltipContent sideOffset={6}>Exportar</TooltipContent>
-                </Tooltip>
+                // La lista de compra para imprimir o bajar (abre su hoja): la pieza de descargar con su texto, nunca solo un ícono (ADR-0358, ronda 10).
+                <BotonDescargar onClick={() => setExportando(true)}>Descargar la lista</BotonDescargar>
               )}
               </div>
             </TooltipProvider>
@@ -482,19 +474,17 @@ export function PlanCampana({
           )}
 
           {hechos && hechos.planId === plan.plan.id && hechos.tiendasActivas.length > 1 && (
-            // El reparto entre tiendas (Felipe 2026-10-12): según lo que vende cada una; el mínimo de la que vende poco (Lima) lo fija, por ahora,
-            // solo un líder: `guardar_plan_compra_minimo` todavía lo exige en la base (pasarlo al módulo, ADR-0387, espera el OK de Felipe).
+            // El reparto entre tiendas (Felipe 2026-10-12): según lo que vende cada una; el mínimo de la que vende poco (Lima) lo fija quien
+            // tiene el módulo, sea o no líder (ADR-0362, decisión 64; la base lo exige también).
             <div data-guia="plan.reparto" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-[13px] text-tinta/80">
               <span className="min-w-0 basis-full">
                 Lo que conviene tener se reparte entre las tiendas según lo que vende cada una
                 {fraseDeLosMinimos(hechos.tiendasActivas, hechos.minimos) ? `; con mínimo: ${fraseDeLosMinimos(hechos.tiendasActivas, hechos.minimos)}` : ""}. El
                 detalle, en la hoja de cada categoría.
               </span>
-              {esLider && (
-                <Boton peso="discreto" onClick={() => setEditandoReparto(true)}>
-                  {hechos.minimos.size > 0 ? "Cambiar los mínimos" : "Fijar un mínimo"}
-                </Boton>
-              )}
+              <Boton peso="discreto" onClick={() => setEditandoReparto(true)}>
+                {hechos.minimos.size > 0 ? "Cambiar los mínimos" : "Fijar un mínimo"}
+              </Boton>
             </div>
           )}
 

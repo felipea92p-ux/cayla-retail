@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Banknote, Check, Package } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { Confirmacion, DatosDelProveedor, MediosDePago, PILDORA, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -225,8 +226,8 @@ export function RegistrarPagoModal({
   // ADR-0195 F3b: «Sale de». La propuesta sale de la primera tienda del comprobante. A quien no ve las finanzas de todo
   // (`fn_ve_finanzas_de_todo`: líder, Configuración o Cierre de mes), `fn_cuentas_para_elegir` solo le lista en efectivo los
   // cajones y cajas fuertes de las sedes que opera: si la del comprobante no es una de ellas, se le propone una suya. La base
-  // vuelve a validar la cuenta al guardar (`fn_cuenta_sellada`).
-  const cuentas = useCuentasParaElegir("pago", compra.ubicacionesDestino[0] || null);
+  // vuelve a validar la cuenta al guardar (`fn_cuenta_sellada`). ADR-0362 fase 6: «Mi fondo» primero, si quien paga tiene uno.
+  const cuentas = useCuentasParaElegir("pago", compra.ubicacionesDestino[0] || null, true, { conMiFondo: true });
   const [loading, setLoading] = useState(false);
   // Quién registra el pago (ADR-0161/0162): `registrar_pagos_compra` firma con esa persona.
   const responsable = useResponsable();
@@ -307,7 +308,7 @@ export function RegistrarPagoModal({
 
   return (
     <Modal
-      variante="papel"
+      variante="hoja"
       titulo={
         hecho ? (
           <span className="sr-only">Pago registrado</span>
@@ -319,7 +320,7 @@ export function RegistrarPagoModal({
         )
       }
       subtitulo={hecho ? undefined : `1 comprobante · ${compra.documento}`}
-      ancho="max-w-2xl"
+      tamano="ancha"
       onClose={terminar}
     >
       {(cerrar) =>
@@ -373,12 +374,7 @@ export function RegistrarPagoModal({
                     </span>
                   )}
                   {/* La cascada: cuánto del saldo cubre este pago. Se llena al abrir. Verde = queda en cero; rojo = se pasa del saldo. */}
-                  <div aria-hidden className="mt-1.5 h-1 overflow-hidden rounded-full bg-sand sm:col-span-3">
-                    <div
-                      className={`h-full origin-left rounded-full transition-[transform,background-color] duration-500 ease-cayla ${excede ? "bg-rojo" : llena ? "bg-verde" : "bg-tinta"}`}
-                      style={{ transform: `scaleX(${armada && compra.saldo > 0 ? Math.min(1, suma / compra.saldo) : 0})` }}
-                    />
-                  </div>
+                  <BarraAvance pct={armada && compra.saldo > 0 ? (suma / compra.saldo) * 100 : 0} alto="fina" tono={excede ? "rojo" : llena ? "verde" : "tinta"} decorativa className="mt-1.5 sm:col-span-3" />
                   <span className={`mt-1 flex min-h-[18px] items-center gap-1.5 text-xs sm:col-start-4 sm:justify-end ${excede ? "text-rojo" : llena ? "text-verde-profundo" : "text-tinta/55"}`} aria-live="polite">
                     {excede ? (
                       "Supera el saldo"
@@ -425,7 +421,7 @@ export function RegistrarPagoModal({
               )}
             </section>
 
-            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} totalComprobante={compra.total} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
 
             <div className="border-t border-tinta/10 pt-4">
               <p className="text-sm text-tinta">
@@ -462,13 +458,13 @@ export function RegistrarPagoModal({
               <ComboResponsable control={responsable} deshabilitado={loading} />
 
               {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
-              <div className="-mx-6 -mb-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 px-6 py-4">
+              <div className="pie-acciones -mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
                 <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55">Todo o nada: si el comprobante ya no admite el monto, no se registra.</p>
                 <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
                   Cancelar
                 </button>
-                <Boton type="submit" peso="primario" cargando={loading} disabled={loading || excede || favorExcedido || suma <= 0}>
-                  {loading ? "Registrando…" : `Registrar pago de ${soles(suma)}`}
+                <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={loading || excede || favorExcedido || suma <= 0}>
+                  {`Registrar pago de ${soles(suma)}`}
                 </Boton>
               </div>
             </div>
@@ -516,13 +512,13 @@ function AnularCompraModal({ compra, onClose }: { compra: CompraResumen; onClose
           </p>
           <CampoTexto etiqueta="Motivo" id="anular-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Se registró por error, el proveedor la reemplazó…" autoFocus />
           <ComboResponsable control={responsable} deshabilitado={loading} />
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={cerrar} className={botonCancelar} disabled={loading}>
+          <div className="pie-acciones pt-1">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={loading}>
               Volver
             </button>
-            <button type="submit" className={botonPrimario} disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined}>
-              {loading ? "Anulando…" : "Anular"}
-            </button>
+            <Boton peso="primario" cargando={loading} textoCargando="Anulando…" type="submit" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined}>
+              Anular
+            </Boton>
           </div>
         </form>
       )}

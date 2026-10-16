@@ -7,7 +7,7 @@ import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { actividadPreviaVenta, descripcionEntregada, etiquetaDia, totalesVenta } from "@/lib/cambios-reglas";
 import { estadoPlazoDevolucion, estadoPrendaDevolucion } from "@/lib/devoluciones-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { hoyLima } from "@/lib/fechas-lima";
+import { diaLima, hoyLima } from "@/lib/fechas-lima";
 
 /**
  * Las compras de Devoluciones (2026-09-18), en dos modos (2026-09-22, ver
@@ -47,7 +47,7 @@ export function DevolucionesVentas({
   onAnular: (linea: LineaVentaReciente) => void;
 }) {
   const accionCompra = (compra: LineaVentaReciente) =>
-    !compra.anulada && hoyLima(new Date(compra.creadoEn)) === hoyLima(ahora) ? (
+    !compra.anulada && diaLima(compra.creadoEn) === hoyLima(ahora) ? (
       <button
         type="button"
         onClick={() => onAnular(compra)}

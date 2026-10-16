@@ -20,7 +20,8 @@ export function ElegirPrendaExistente({
   onEsNueva,
 }: {
   categoria: CategoriaDeLinea;
-  marca: { id: string; nombre: string };
+  /** `id` vacío = sin marca (ADR-0393, 2026-10-14). */
+  marca: { id: string | null; nombre: string };
   onElegir: (prenda: PrendaRecepcion) => void;
   onEsNueva: () => void;
 }) {
@@ -79,7 +80,9 @@ export function ElegirPrendaExistente({
       )}
       {prendas !== null && prendas.length === 0 && !fallo && !buscando && (
         <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: "Crearla como nueva", onClick: onEsNueva }}>
-          {busqueda ? `No hay ${categoria.nombre.toLowerCase()} de ${marca.nombre} que digan «${busqueda}».` : `Todavía no hay ${categoria.nombre.toLowerCase()} de ${marca.nombre} en el catálogo.`}
+          {busqueda
+            ? `No hay ${categoria.nombre.toLowerCase()} ${marca.id ? `de ${marca.nombre}` : "sin marca"} que digan «${busqueda}».`
+            : `Todavía no hay ${categoria.nombre.toLowerCase()} ${marca.id ? `de ${marca.nombre}` : "sin marca"} en el catálogo.`}
         </Vacio>
       )}
       {prendas !== null && prendas.length > 0 && (

@@ -49,7 +49,7 @@
       "Desplegable «(sin nombre)»"
     ],
     "components/ProduccionSoloLider.tsx": [
-      "BotonEnlace «Ir a Órdenes»"
+      "BotonVer «Ir a Órdenes»"
     ]
   }
 }

@@ -1,0 +1,185 @@
+/* ==================================================================
+   AVENTURERO — el gato del meme en «Sin acceso» y en las barreras de error (Felipe, 2026-10-15)
+   Componente: components/ui/Aventurero.tsx. La importan globals.css (toda la app) y global-error.tsx (que se pinta sin
+   globals.css): por eso no usa @layer, ni Tailwind, ni más tokens que los dos colores fijos, que global-error también declara.
+
+   El texto es el de los memes: Impact (o Anton donde no hay Impact), blanco con borde negro. Va sobre una FOTO, que no cambia con
+   el tema, así que sus dos colores son los fijos (ADR-0336, regla 3: lo que se escribe sobre un color de dato), iguales en claro y
+   en oscuro. El borde es un trazo detrás del relleno (`paint-order`), como el de un meme de verdad.
+
+   Movimiento (ADR-0136, act. 2026-10-15): cada pata gira unos grados desde su codo; la máscara que la recorta no se mueve, así que
+   la pata se levanta y deja ver el teclado. Sube con la curva de entrada (--ease-cayla) y cae de golpe con la de salida
+   (--ease-salida): escritas con sus números porque global-error no trae esos tokens. Sin rebote: nunca baja de donde estaba. Es un
+   bucle pedido por Felipe, y con prefers-reduced-motion el gato se queda quieto.
+     · error («lo está dando todo»): teclea apurado, las dos patas por turno, un golpe cada ~0,4 s.
+     · sin-acceso («decidió que no puedes ver esto»): dos toques con la pata de atrás, levanta la de adelante, la sostiene… y
+       Enter. Después descansa casi 2 s antes de volver a decidir.
+   ================================================================== */
+
+.aventurero {
+  margin: 0;
+}
+
+.aventurero-lienzo {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.aventurero-meme {
+  font-family: Impact, Haettenschweiler, var(--font-anton), "Arial Narrow Bold", sans-serif;
+  text-anchor: middle;
+  fill: var(--color-crema-fija);
+  stroke: var(--color-tinta-fija);
+  stroke-width: 10px;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+  letter-spacing: 1px;
+}
+
+/* LA PANTALLA (Felipe 2026-10-15: «que la imagen ocupe todo el espacio, al igual que el mensaje», y que sea responsive). Dos
+   arreglos, según la forma de la ventana:
+
+   · APILADO (monitor alto —de 1000 px para arriba— y celular): la foto arriba y el mensaje abajo, con UN ancho, el mayor con el que la
+     foto entera y el mensaje caben sin bajar del pliegue: lo alto que queda para la foto (la ventana menos lo reservado para el mensaje,
+     la cabecera y los márgenes) por 960/560, la proporción de la foto. Nunca más que el espacio disponible ni que 72rem (la foto mide
+     960 px: más ancha se ve blanda) y nunca menos que 22rem.
+   · LADO A LADO (pantalla baja y ancha —menos de 1000 px de alto, con 45rem o más para la tarjeta—: los laptops): apilada, la foto
+     quedaba angosta porque manda el alto (a 1280×800, el error salía de 439 px, más chico que la tarjeta de antes). Aquí la tarjeta usa
+     todo el ancho hasta 72rem: la foto a la izquierda (3/5) sobre un paño oscuro que la enmarca si el mensaje es más alto que ella, y el
+     mensaje a la derecha.
+
+   Medido el 2026-10-15 en la web local (el ancho de la foto, en px; ningún tamaño de escritorio baja del pliegue):
+                  2560×1440  1920×1080  1440×900   1280×800   1024×768   375×812
+     «Sin acceso»   1.150      1.054     652 lado   556 lado     519        341
+     error          1.150        917     652 lado   556 lado     382        341
+   En un celular chico (375×667) el error baja 79 px, que en el celular es lo normal.
+   Dentro de una vista que ya tiene su cabecera y sus pestañas (`data-en-vista`, la de Facturación) se reserva más alto y no se estira
+   hasta el piso. */
+.aventurero-pantalla {
+  container: aventurero / inline-size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100dvh - 9rem);
+}
+
+.aventurero-tarjeta {
+  --aventurero-reservado: 29rem;
+  width: min(100%, max(22rem, min(72rem, calc((100dvh - var(--aventurero-reservado)) * 960 / 560))));
+}
+
+/* El mensaje de un error es más largo que el de «Sin acceso» (dos párrafos, dos botones y el código): reserva más. */
+.aventurero-tarjeta[data-motivo="error"] {
+  --aventurero-reservado: 34rem;
+}
+
+.aventurero-pantalla[data-en-vista] {
+  min-height: 0;
+}
+
+.aventurero-pantalla[data-en-vista] .aventurero-tarjeta {
+  --aventurero-reservado: 44rem;
+}
+
+/* El mensaje: con la tarjeta ancha, cada párrafo se queda en un ancho que se lee de una mirada (40rem). */
+.aventurero-mensaje {
+  padding: 1.5rem 1.25rem 1.75rem;
+}
+
+.aventurero-mensaje p {
+  max-width: 40rem;
+  margin-inline: auto;
+}
+
+@media (min-width: 640px) {
+  .aventurero-mensaje {
+    padding: 1.75rem 2.5rem 2.25rem;
+  }
+}
+
+/* En una ventana baja (un laptop de 768 px), el mensaje apilado se acerca a la foto: con esos márgenes, el error bajaba 24 px del pliegue. */
+@media (max-height: 50rem) {
+  .aventurero-mensaje {
+    padding-top: 1rem;
+    padding-bottom: 1.25rem;
+  }
+}
+
+/* Lado a lado: el paño de la foto es de tinta FIJA (oscuro en los dos temas), como el marco de una foto; la foto va centrada en él. */
+@media (max-height: 62.4375rem) {
+  @container aventurero (min-width: 45rem) {
+    .aventurero-tarjeta {
+      width: min(100%, 72rem);
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    }
+
+    .aventurero-tarjeta > .aventurero {
+      display: flex;
+      align-items: center;
+      background: var(--color-tinta-fija);
+    }
+
+    .aventurero-tarjeta > .aventurero-mensaje {
+      align-self: center;
+      padding: 2rem 2.25rem;
+    }
+  }
+}
+
+/* El giro se mide en píxeles de la foto (el `transform-origin` del codo lo pone el componente). */
+.aventurero-pata {
+  transform-box: view-box;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .aventurero[data-motivo="error"] .aventurero-pata-atras {
+    animation: aventurero-teclea-atras 1.6s infinite;
+  }
+  .aventurero[data-motivo="error"] .aventurero-pata-adelante {
+    animation: aventurero-teclea-adelante 1.6s infinite;
+  }
+  .aventurero[data-motivo="sin-acceso"] .aventurero-pata-atras {
+    animation: aventurero-duda 4.2s infinite;
+  }
+  .aventurero[data-motivo="sin-acceso"] .aventurero-pata-adelante {
+    animation: aventurero-decide 4.2s infinite;
+  }
+}
+
+/* Error: la pata de atrás golpea al 15 % y al 60 %; la de adelante, al 38 % y al 85 %. */
+@keyframes aventurero-teclea-atras {
+  0% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1); }
+  8% { transform: rotate(-4deg); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  15% { transform: rotate(0deg); }
+  45% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1); }
+  53% { transform: rotate(-3.2deg); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  60%, 100% { transform: rotate(0deg); }
+}
+
+@keyframes aventurero-teclea-adelante {
+  0%, 23% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1); }
+  31% { transform: rotate(-3.6deg); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  38% { transform: rotate(0deg); }
+  70% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1); }
+  78% { transform: rotate(-2.8deg); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  85%, 100% { transform: rotate(0deg); }
+}
+
+/* Sin acceso: dos toques cortos («a ver…»)… */
+@keyframes aventurero-duda {
+  0% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1); }
+  5% { transform: rotate(-3deg); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  9% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1); }
+  14% { transform: rotate(-2.5deg); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  18%, 100% { transform: rotate(0deg); }
+}
+
+/* …y la decisión: la pata de adelante sube despacio, se queda arriba un momento y cae sobre la tecla. */
+@keyframes aventurero-decide {
+  0%, 26% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1); }
+  44% { transform: rotate(-4.5deg); }
+  52% { transform: rotate(-4.5deg); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  56%, 100% { transform: rotate(0deg); }
+}

@@ -2,13 +2,13 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 136,
+  "total": 140,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
       "button «{o.texto}»",
       "CampoTexto «{guia.etiqueta(\"nota\", ayudaNota.etiqueta)}»",
-      "button «Descargar reporte de este ajuste»",
+      "BotonDescargar «Descargar reporte del ajuste»",
       "ComboResponsable «{error && ( <Aviso tono=\"error\">{error}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
@@ -57,14 +57,14 @@
       "DesplegablePildora «Condición»",
       "button «{`existencias.ver-${valor}»",
       "DesplegablePildora «Ordenar por»",
-      "button «{`Quitar filtro ${c.texto}»",
-      "button «{`Volver al orden de siempre (ahora: ${ordenTexto}»",
-      "button «existencias.chip-vista»",
-      "button «Limpiar todo»",
+      "FiltroPuesto «{`Quitar filtro ${c.texto}»",
+      "FiltroPuesto «{`Volver al orden de siempre (ahora: ${ordenTexto}»",
+      "FiltroPuesto «{`Volver a las tarjetas (ahora: ${vistaDistinta}»",
+      "BotonLimpiar «Limpiar todo»",
       "button «existencias.escanear»",
       "BotonFiltros «{alLadoDeFiltros}»",
-      "button «Limpiar filtros»",
-      "button «existencias.copiar-enlace»",
+      "BotonLimpiar «Limpiar filtros»",
+      "BotonCopiar «el enlace de esta lista»",
       "button «Limpiar»",
       "button «Ver»"
     ],
@@ -74,11 +74,11 @@
       "Link «{p.referencia}»",
       "Link «Cuadrar el piso»",
       "Link «Cuadrar el piso» #2",
-      "button «Exportar CSV»",
-      "button «Exportar CSV» #2",
+      "BotonDescargar «Descargar CSV»",
+      "BotonDescargar «Descargar CSV» #2",
       "Casilla «Marcar todas las tallas de esta página»",
       "Casilla «{`Marcar ${f.referencia}»",
-      "button «Exportar CSV» #3",
+      "BotonDescargar «Descargar CSV» #3",
       "button «{resumen.apartado}»",
       "button «Resumen por categoría»",
       "Link «Bajar al piso»",
@@ -92,14 +92,18 @@
       "ComboResponsable «)»",
       "CampoTexto «Nota (opcional)»",
       "Boton «{responsable.motivo ?? \"Vuelve al almacén de la tienda\"}»",
+      "Boton «{responsable.motivo ?? `Vuelve a ${p.devolucion.proveedor}»",
       "Boton «{responsable.motivo ?? undefined}»",
       "Boton «{responsable.motivo ?? undefined}» #2",
       "CampoTexto «{guia.etiqueta(\"arreglo\", \"¿Qué se arregló?\")}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "CampoTexto «{guia.etiqueta(\"devolucion\", \"Nota\")}»",
+      "Boton «Cancelar» #2",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2",
       "CampoMonto «0.00»",
       "CampoSelect «{guia.etiqueta(\"metodo\", \"Forma de pago\")}»",
-      "Boton «Cancelar» #2",
+      "Boton «Cancelar» #3",
       "Boton «{responsable.motivo ?? undefined}» #3"
     ],
     "components/ResumenStockOverlay.tsx": [
@@ -149,7 +153,7 @@
       "ComboResponsable «);»",
       "button «Cancelar»",
       "Volver «)»",
-      "button «{completo ? undefined : (guia.frase ?? responsable.motivo ?? undefined)}»"
+      "Boton «{completo ? undefined : (guia.frase ?? responsable.motivo ?? undefined)}»"
     ],
     "components/existencias/PanelTalla.tsx": [
       "button «{`${valor}»",
@@ -160,7 +164,7 @@
       "Pestanas «(sin nombre)»",
       "button «{`${c.color ?? \"Sin color\"}»",
       "button «{lectura}»",
-      "button «existencias.cajon-codigo»",
+      "BotonCopiar «el código de esta talla»",
       "button «→() => alAccionar(a.clave)»",
       "button «Ver piso y almacén»",
       "button «{lectura}» #2",
@@ -170,10 +174,10 @@
     "components/existencias/ParaHoy.tsx": [
       "Link «{contenido}»",
       "button «{contenido}»",
-      "button «→() => setAbiertoMovil((v) => !v)»",
       "button «Ver cuáles»",
       "Boton «)»",
-      "button «{todas ? \"Ver menos\" : `Ver ${ocultas}»"
+      "button «→() => setAbiertoMovil((v) => !v)»",
+      "BotonVerMas «)»"
     ],
     "components/existencias/PieTarjeta.tsx": [
       "button «existencias.colgar»",

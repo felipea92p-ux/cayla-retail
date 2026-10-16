@@ -5,7 +5,7 @@
   "total": 3,
   "controles": {
     "components/finanzas/PresupuestoPanel.tsx": [
-      "button «fin-reportes.excel»",
+      "BotonDescargar «Descargar Excel»",
       "Link «fin-presupuesto.cambiar»",
       "Link «Ponerlos en Configuración»"
     ]

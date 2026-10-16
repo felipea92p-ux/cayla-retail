@@ -14,7 +14,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
 
 function money(n: number) {
-  return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "S/\u00a0" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 type Params = { sede?: string; estado?: string; pagina?: string; prueba?: string };
@@ -106,7 +106,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
             </Link>
             {sedes.map((u) => (
               <Link key={u.id} href={href({ sede: u.id })} aria-current={sede?.id === u.id ? "page" : undefined} className="pildora-cayla">
-                {u.nombre.replace(/^Tienda\s+/i, "")} <span className="font-normal opacity-60">{resumenTodo.porSede.get(u.id)}</span>
+                {u.nombre.replace(/^Tienda\s+/i, "")} <span className="font-normal">{resumenTodo.porSede.get(u.id)}</span>
               </Link>
             ))}
             <span className="mx-1 h-5 w-px bg-sand" aria-hidden />
@@ -115,7 +115,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
               aria-current={soloConDiferencia ? "page" : undefined}
               className="pildora-cayla"
             >
-              Solo los que no cuadraron <span className="font-normal opacity-60">{conDiferencia}</span>
+              Solo los que no cuadraron <span className="font-normal">{conDiferencia}</span>
             </Link>
           </nav>
 

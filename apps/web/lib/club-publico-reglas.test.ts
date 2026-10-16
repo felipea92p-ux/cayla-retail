@@ -51,7 +51,7 @@ describe("paso 1: las cifras del inicio salen de fn_club_pagina", () => {
   it("las tres tarjetas, con el % y la escala vigentes", () => {
     const [cumple, vale, whatsapp] = tarjetasDelInicio(pagina());
     expect(cumple).toEqual({ tipo: "cumple", cifra: "10 %", fuerte: "En tu mes de cumpleaños", resto: ", en una compra en cualquier tienda CAYLA." });
-    expect(vale).toMatchObject({ tipo: "vale", fuerte: "Un vale cada aniversario", resto: ", de S/ 20 a S/ 60, que crece contigo.*" });
+    expect(vale).toMatchObject({ tipo: "vale", fuerte: "Un vale cada aniversario", resto: ", de S/\u00a020 a S/\u00a060, que crece contigo.*" });
     expect(whatsapp).toEqual({ tipo: "whatsapp", fuerte: "Lo nuevo, primero", resto: ", por WhatsApp. Solo si quieres." });
   });
 
@@ -59,7 +59,7 @@ describe("paso 1: las cifras del inicio salen de fn_club_pagina", () => {
     const p = pagina({ pct: 12.5, escala: [{ anio: 1, monto: 25 }, { anio: 2, monto: 80 }] });
     const [cumple, vale] = tarjetasDelInicio(p);
     expect(cumple).toMatchObject({ cifra: "12.5 %" });
-    expect(vale).toMatchObject({ resto: ", de S/ 25 a S/ 80, que crece contigo.*" });
+    expect(vale).toMatchObject({ resto: ", de S/\u00a025 a S/\u00a080, que crece contigo.*" });
   });
 
   it("la escalera: una barra por año, de menor a mayor, la más baja al 30 % y la más alta al 100 %", () => {
@@ -70,14 +70,14 @@ describe("paso 1: las cifras del inicio salen de fn_club_pagina", () => {
 
   it("con un solo monto la escalera no sube y el texto no promete que crezca", () => {
     expect(barrasDelVale([{ anio: 1, monto: 20 }, { anio: 2, monto: 20 }]).map((b) => b.alto)).toEqual([100, 100]);
-    expect(rangoDelVale([{ anio: 1, monto: 20 }, { anio: 2, monto: 20 }])).toBe("de S/ 20");
-    expect(rangoDelVale([{ anio: 1, monto: 20 }])).toBe("de S/ 20");
+    expect(rangoDelVale([{ anio: 1, monto: 20 }, { anio: 2, monto: 20 }])).toBe("de S/\u00a020");
+    expect(rangoDelVale([{ anio: 1, monto: 20 }])).toBe("de S/\u00a020");
     expect(rangoDelVale([])).toBe("");
   });
 
   it("la nota del umbral, con las compras y el monto vigentes", () => {
-    expect(notaDelUmbral(pagina())).toBe("*Un año cuenta si hiciste 6 compras o sumaste S/ 600 en compras.");
-    expect(notaDelUmbral(pagina({ compras: 1, monto_minimo: 350.5 }))).toBe("*Un año cuenta si hiciste 1 compra o sumaste S/ 350.50 en compras.");
+    expect(notaDelUmbral(pagina())).toBe("*Un año cuenta si hiciste 6 compras o sumaste S/\u00a0600 en compras.");
+    expect(notaDelUmbral(pagina({ compras: 1, monto_minimo: 350.5 }))).toBe("*Un año cuenta si hiciste 1 compra o sumaste S/\u00a0350.50 en compras.");
   });
 });
 

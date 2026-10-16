@@ -12,6 +12,8 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { TEXTO_TIPO_CUENTA, TIPOS_QUE_SE_AGREGAN, type CuentaDinero, type TipoCuenta } from "@/lib/cuentas-dinero-reglas";
 import { cambiosDeCuenta, formInicial, leerDetalleCuenta, salidaDeCuenta, textoUsos, type DetalleCuenta, type FormCuenta } from "@/lib/cuenta-editar-reglas";
+import { MAX_NOMBRE_CUENTA, MAX_NUMERO_CUENTA } from "@/lib/finanzas-topes";
+import { Boton } from "@/components/ui/campos";
 
 // Configuración ▸ Cuentas y cobros ▸ «Editar cuenta» (ADR-0195 F3, actualización 2026-09-25). Lo que se puede cambiar lo
 // dice la base (`fn_cuenta_dinero_detalle`) y lo vuelve a exigir al guardar: el nombre y el número siempre; el tipo mientras
@@ -46,7 +48,7 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
         if (!vivo) return;
         const d = error ? null : leerDetalleCuenta(data);
         if (!d) {
-          setFalla(error ? traducirError(error as never, "leer la cuenta") : "No se pudo leer la cuenta. Recarga la pantalla.");
+          setFalla(error ? traducirError(error as never, "leer la cuenta", { lectura: true }) : "No se pudo leer la cuenta. Recarga la pantalla.");
           return;
         }
         setLeido(d);
@@ -93,11 +95,11 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
   const bloqueado = guardando || !detalle;
 
   return (
-    <Modal variante="hoja" titulo="Editar cuenta" subtitulo={subtitulo(detalle, cuenta)} onClose={onCerrar} ancho="max-w-[520px]">
+    <Modal variante="hoja" titulo="Editar cuenta" subtitulo={subtitulo(detalle, cuenta)} onClose={onCerrar} tamano="mediana">
       {falla && <p className="nota-cayla mb-4">{falla}</p>}
 
       <CampoFin etiqueta="Nombre" htmlFor="ed-cta-nombre">
-        <InputFin id="ed-cta-nombre" value={form.nombre} disabled={bloqueado} onChange={(e) => poner({ nombre: e.target.value })} />
+        <InputFin id="ed-cta-nombre" value={form.nombre} disabled={bloqueado} onChange={(e) => poner({ nombre: e.target.value })} maxLength={MAX_NOMBRE_CUENTA} />
       </CampoFin>
 
       {detalle?.automatica ? (
@@ -122,7 +124,7 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
               />
             </CampoFin>
             <CampoFin etiqueta="Número (opcional)" htmlFor="ed-cta-numero">
-              <InputFin id="ed-cta-numero" value={form.numero} disabled={bloqueado} onChange={(e) => poner({ numero: e.target.value })} placeholder="•••• 1942" />
+              <InputFin id="ed-cta-numero" value={form.numero} disabled={bloqueado} onChange={(e) => poner({ numero: e.target.value })} placeholder="•••• 1942" maxLength={MAX_NUMERO_CUENTA} />
             </CampoFin>
           </div>
           <div className="fin-dos-campos">
@@ -177,9 +179,8 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
             <button type="button" className="btn-cayla btn-secundario" onClick={() => setConfirmarEliminar(false)} disabled={guardando}>
               No, volver
             </button>
-            <button
+            <Boton peso="peligro" cargando={guardando} textoCargando="Eliminando…"
               type="button"
-              className="btn-cayla btn-peligro"
               disabled={guardando || !responsable.listo}
               onClick={() =>
                 enviar(
@@ -189,8 +190,8 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
                 )
               }
             >
-              {guardando ? "Eliminando…" : "Sí, eliminar"}
-            </button>
+              Sí, eliminar
+            </Boton>
           </div>
         </div>
       ) : (
@@ -219,9 +220,9 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
           <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
             Cancelar
           </button>
-          <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={bloqueado || !hayCambios || !responsable.listo}>
-            {guardando ? "Guardando…" : "Guardar cambios"}
-          </button>
+          <Boton peso="primario" cargando={guardando} type="button" onClick={guardar} disabled={bloqueado || !hayCambios || !responsable.listo}>
+            Guardar cambios
+          </Boton>
         </div>
       )}
     </Modal>

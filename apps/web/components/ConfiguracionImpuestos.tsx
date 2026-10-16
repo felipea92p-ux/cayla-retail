@@ -9,6 +9,8 @@ import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraBloque, CampoFin, InputFin, PieTabla, SelectFin, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { fechaCorta, solesRedondo } from "@/lib/gastos-reglas";
@@ -17,6 +19,7 @@ import {
   TEXTO_REGIMEN,
   aniosDeRegimen,
   delAnio,
+  diaDelRegistro,
   parsearParametro,
   valorEnCasilla,
   vigenteEnAnio,
@@ -24,18 +27,26 @@ import {
   type ParametroFila,
   type Regimen,
 } from "@/lib/impuestos-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Configuración ▸ Impuestos (ADR-0195 F8), dibujada como el spike (docs/maquetas/finanzas-2026-09/, `cfgImpuestos`): la
 // tasa de IGV con sus vigencias, la UIT de cada año y —lo que el spike dejaba para cuando el contador confirme— el
 // régimen, el límite de ventas y el pago a cuenta de cada año. Como Tiendas y caja, CADA CASILLA SE GUARDA SOLA al salir de
 // ella si cambió, firmada con el responsable. En la base solo se agregan filas: una corrección es una fila nueva.
+//
+// El tope diario de la planilla de movilidad (ADR-0362, fase 6 · actividad 6, decisión 68) vive aquí, con vigencias como la tasa de IGV:
+// lo fija el contador y, mientras no haya, ninguna planilla se marca «no deducible».
 
 type Guardar = (nombre: NombreParametro, vigenteDesde: string, valor: number | null, texto: string | null, listo: string) => Promise<boolean>;
 
-/** Una casilla que se guarda al salir si su texto cambió; si el guardado falla, vuelve a lo de antes. */
+/**
+ * Una casilla que se guarda al salir si su texto cambió; si el guardado falla, vuelve a lo de antes. Mientras guarda no se edita
+ * (/chaos 2026-10-14): con la red lenta, dos cambios seguidos llegaban en desorden y quedaba el primero aunque se escribió el segundo.
+ */
 function Casilla({ valor, etiqueta, ancho, alGuardar, placeholder = "—" }: { valor: string; etiqueta: string; ancho: string; alGuardar: (nuevo: string) => Promise<boolean>; placeholder?: string }) {
   const [t, setT] = useState(valor);
   const [antes, setAntes] = useState(valor);
+  const [guardando, setGuardando] = useState(false);
   if (valor !== antes) {
     setAntes(valor);
     setT(valor);
@@ -46,14 +57,18 @@ function Casilla({ valor, etiqueta, ancho, alGuardar, placeholder = "—" }: { v
       inputMode="decimal"
       value={t}
       placeholder={placeholder}
+      readOnly={guardando}
+      aria-busy={guardando || undefined}
       onChange={(e) => setT(e.target.value)}
       onKeyDown={(e) => {
         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-        if (e.key === "Escape") setT(valor);
+        if (e.key === "Escape" && !guardando) setT(valor);
       }}
       onBlur={async () => {
-        if (t.trim() === valor.trim()) return;
+        if (guardando || t.trim() === valor.trim()) return;
+        setGuardando(true);
         const ok = await alGuardar(t);
+        setGuardando(false);
         if (!ok) setT(valor);
       }}
       className={`fin-control fin-num inline-block ${ancho}`}
@@ -73,10 +88,11 @@ function Quien({ p, onConfirmar }: { p: ParametroFila; onConfirmar: () => void }
       </small>
     );
   if (!p.registradoPor) return p.nota ? <small>{p.nota}</small> : null;
+  const dia = diaDelRegistro(p.registradoEn);
   return (
     <small>
       {p.correcciones > 0 ? "corregido" : "puesto"} por {p.registradoPor}
-      {p.registradoEn ? ` · ${fechaCorta(p.registradoEn.slice(0, 10), true)}` : ""}
+      {dia ? ` · ${dia}` : ""}
     </small>
   );
 }
@@ -85,7 +101,7 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
   const router = useRouter();
   const responsable = useResponsable();
   const [guardando, setGuardando] = useState(false);
-  const [nuevaTasa, setNuevaTasa] = useState(false);
+  const [nueva, setNueva] = useState<VigenciaNueva | null>(null);
   const [aniosUitExtra, setAniosUitExtra] = useState<number[]>([]);
   const [aniosRegimenExtra, setAniosRegimenExtra] = useState<number[]>([]);
 
@@ -116,12 +132,20 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
       avisar.error(`${que}: ${v.error}`);
       return false;
     }
-    const legible = nombre === "igv" || nombre === "renta_pago_cuenta" ? `${Number((v.valor * 100).toFixed(2))} %` : nombre === "uit" ? solesRedondo(v.valor) : `${v.valor} UIT`;
+    const legible =
+      nombre === "igv" || nombre === "renta_pago_cuenta"
+        ? `${Number((v.valor * 100).toFixed(2))} %`
+        : nombre === "uit"
+          ? solesRedondo(v.valor)
+          : nombre === "tope_planilla_movilidad"
+            ? `S/\u00a0${v.valor.toFixed(2)} por persona y día`
+            : `${v.valor} UIT`;
     return guardar(nombre, vigenteDesde, v.valor, null, `${que}: ${legible}.`);
   };
   const confirmar = (p: ParametroFila, que: string) => () => void guardar(p.nombre, p.vigenteDesde, p.valor, p.texto, `${que}: confirmado.`);
 
   const tasas = parametros.filter((p) => p.nombre === "igv").sort((a, b) => (a.vigenteDesde < b.vigenteDesde ? 1 : -1));
+  const topes = parametros.filter((p) => p.nombre === "tope_planilla_movilidad").sort((a, b) => (a.vigenteDesde < b.vigenteDesde ? 1 : -1));
   const uits = parametros.filter((p) => p.nombre === "uit");
   const aniosUit = [...new Set([...uits.map((u) => Number(u.vigenteDesde.slice(0, 4))), ...aniosUitExtra])].sort((a, b) => b - a);
   const anios = aniosDeRegimen(parametros, anioActual, aniosRegimenExtra);
@@ -151,7 +175,7 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
               </li>
             ))}
           </ul>
-          <button type="button" className="btn-cayla btn-sutil btn-chico mt-3" onClick={() => setNuevaTasa(true)} aria-haspopup="dialog" data-guia="config.nueva-tasa">
+          <button type="button" className="btn-cayla btn-sutil btn-chico mt-3" onClick={() => setNueva("igv")} aria-haspopup="dialog" data-guia="config.nueva-tasa">
             + Nueva tasa desde una fecha
           </button>
         </Superficie>
@@ -177,6 +201,38 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
           </ul>
           <button type="button" className="btn-cayla btn-sutil btn-chico mt-3" onClick={() => setAniosUitExtra((a) => [...a, Math.max(anioActual, ...aniosUit) + 1])}>
             + UIT de un año nuevo
+          </button>
+        </Superficie>
+
+        <Superficie pad className="anim-sube" guia="config.impuestos-tope">
+          <CabeceraBloque titulo="Tope diario de la planilla de movilidad" bajada="Por persona y por día. Lo que pase se deja registrar y queda «no deducible»." />
+          {topes.length === 0 ? (
+            <p className="fin-tenue text-[13px]">
+              Sin tope: lo fija el contador (SUNAT lo limita al 4 % de la remuneración mínima vital). Mientras no haya, ningún taxi ni cargador se marca.
+            </p>
+          ) : (
+            <ul className="fin-vigencias">
+              {topes.map((t) => (
+                <li key={t.vigenteDesde}>
+                  <span>
+                    Desde {fechaCorta(t.vigenteDesde, true)}
+                    <Quien p={t} onConfirmar={confirmar(t, "Tope de la planilla")} />
+                  </span>
+                  <span className="fin-con-unidad">
+                    S/
+                    <Casilla
+                      valor={valorEnCasilla(t)}
+                      etiqueta={`Tope de la planilla desde el ${fechaCorta(t.vigenteDesde, true)}, en soles`}
+                      ancho="w-20"
+                      alGuardar={guardarCasilla("tope_planilla_movilidad", t.vigenteDesde, `Tope de la planilla desde el ${fechaCorta(t.vigenteDesde, true)}`)}
+                    />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <button type="button" className="btn-cayla btn-sutil btn-chico mt-3" onClick={() => setNueva("tope_planilla_movilidad")} aria-haspopup="dialog" data-guia="config.nuevo-tope">
+            + Tope desde una fecha
           </button>
         </Superficie>
       </section>
@@ -213,7 +269,7 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
 
       <div className="nota-cayla">La retención del recibo por honorarios la define el contador. Cuando la confirme, se configura aquí.</div>
 
-      {nuevaTasa && <NuevaTasa onCerrar={() => setNuevaTasa(false)} guardar={guardar} guardando={guardando} responsable={responsable} />}
+      {nueva && <NuevaVigencia nombre={nueva} onCerrar={() => setNueva(null)} guardar={guardar} guardando={guardando} responsable={responsable} />}
     </>
   );
 }
@@ -293,37 +349,87 @@ function FilaAnio({
   );
 }
 
-function NuevaTasa({ onCerrar, guardar, guardando, responsable }: { onCerrar: () => void; guardar: Guardar; guardando: boolean; responsable: ReturnType<typeof useResponsable> }) {
+type VigenciaNueva = "igv" | "tope_planilla_movilidad";
+
+const HOJA: Record<VigenciaNueva, { titulo: string; subtitulo: string; etiqueta: string; ayuda: string; ejemplo: string; pendiente: string; listo: (desde: string, t: string) => string }> = {
+  igv: {
+    titulo: "Nueva tasa de IGV",
+    subtitulo: "Desde esa fecha, los gastos con factura calculan su IGV con esta tasa. Lo registrado antes no cambia.",
+    etiqueta: "Tasa (%)",
+    ayuda: "El IGV con el IPM: hoy 18.",
+    ejemplo: "18", // sugerir-fijo: la tasa de IGV vigente es la misma para todo, no depende de nada elegido en la hoja
+    pendiente: "Escribe la tasa en %, por ejemplo 18.",
+    listo: (desde, t) => `Tasa de IGV desde el ${fechaCorta(desde, true)}: ${t.trim()} %.`,
+  },
+  tope_planilla_movilidad: {
+    titulo: "Nuevo tope de la planilla de movilidad",
+    subtitulo:
+      "Desde esa fecha, lo que pase este monto por persona y por día queda «no deducible», también en las planillas ya anotadas de esos días.",
+    etiqueta: "Tope por persona y día (S/)",
+    ayuda: "SUNAT: el 4 % de la remuneración mínima vital. Confírmalo con el contador.",
+    ejemplo: "45.20", // sugerir-fijo: el formato de un monto en soles, no depende de nada elegido en la hoja
+    pendiente: "Escribe el tope en soles, por ejemplo 45.20.",
+    listo: (desde, t) => `Tope de la planilla desde el ${fechaCorta(desde, true)}: S/\u00a0${Number(t.replace(",", ".")).toFixed(2)} por persona y día.`,
+  },
+};
+
+function NuevaVigencia({
+  nombre,
+  onCerrar,
+  guardar,
+  guardando,
+  responsable,
+}: {
+  nombre: VigenciaNueva;
+  onCerrar: () => void;
+  guardar: Guardar;
+  guardando: boolean;
+  responsable: ReturnType<typeof useResponsable>;
+}) {
   const [desde, setDesde] = useState("");
-  const [tasa, setTasa] = useState("");
-  const v = parsearParametro("igv", tasa);
-  const listo = /^\d{4}-\d{2}-\d{2}$/.test(desde) && v.ok;
+  const [valor, setValor] = useState("");
+  const h = HOJA[nombre];
+  const v = parsearParametro(nombre, valor);
+  const fechaLista = /^\d{4}-\d{2}-\d{2}$/.test(desde);
+  const listo = fechaLista && v.ok;
+  // Guía de foco (ADR-0284): sale de lo mismo que habilita «Agregar».
+  const guia = useGuiaCampos([
+    { id: "desde", nombre: "Desde", requerido: true, hecho: fechaLista, pendiente: "Elige desde qué fecha rige." },
+    { id: "valor", nombre: h.etiqueta, requerido: true, hecho: v.ok, pendiente: valor && !v.ok ? v.error : h.pendiente },
+    { id: "responsable", nombre: "Quién hace el cambio", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién hace el cambio." },
+  ]);
   return (
-    <Modal variante="hoja" titulo="Nueva tasa de IGV" subtitulo="Desde esa fecha, los gastos con factura calculan su IGV con esta tasa. Lo registrado antes no cambia." onClose={onCerrar} ancho="max-w-[480px]">
+    <Modal variante="hoja" titulo={h.titulo} subtitulo={h.subtitulo} onClose={onCerrar}>
       <div className="fin-dos-campos" data-guia="config.nueva-tasa-campos">
-        <CampoFin etiqueta="Desde" htmlFor="tasa-desde">
-          <InputFin id="tasa-desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
-        </CampoFin>
-        <CampoFin etiqueta="Tasa (%)" htmlFor="tasa-valor" ayuda={tasa && !v.ok ? v.error : "El IGV con el IPM: hoy 18."} tono={tasa && !v.ok ? "aviso" : undefined}>
-          <InputFin id="tasa-valor" inputMode="decimal" value={tasa} onChange={(e) => setTasa(e.target.value)} placeholder="18" />
-        </CampoFin>
+        <CampoGuiado id="desde" guia={guia}>
+          <CampoFin etiqueta="Desde" htmlFor="vigencia-desde">
+            <InputFin id="vigencia-desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
+          </CampoFin>
+        </CampoGuiado>
+        <CampoGuiado id="valor" guia={guia}>
+          <CampoFin etiqueta={h.etiqueta} htmlFor="vigencia-valor" ayuda={valor && !v.ok ? v.error : h.ayuda} tono={valor && !v.ok ? "aviso" : undefined}>
+            <InputFin id="vigencia-valor" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder={h.ejemplo} />
+          </CampoFin>
+        </CampoGuiado>
       </div>
-      <ComboResponsable control={responsable} deshabilitado={guardando} />
+      <CampoGuiado id="responsable" guia={guia}>
+        <ComboResponsable control={responsable} deshabilitado={guardando} />
+      </CampoGuiado>
+      <PieGuia guia={guia} listo="Todo listo para agregar." />
       <div className="fin-botones" data-guia="config.nueva-tasa-botones">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar}>
           Cancelar
         </button>
-        <button
+        <Boton peso="primario" cargando={guardando}
           type="button"
-          className="btn-cayla btn-primario"
           disabled={!listo || guardando || !responsable.listo}
           onClick={async () => {
             if (!v.ok) return;
-            if (await guardar("igv", desde, v.valor, null, `Tasa de IGV desde el ${fechaCorta(desde, true)}: ${tasa.trim()} %.`)) onCerrar();
+            if (await guardar(nombre, desde, v.valor, null, h.listo(desde, valor))) onCerrar();
           }}
         >
-          {guardando ? "Guardando…" : "Agregar"}
-        </button>
+          Agregar
+        </Boton>
       </div>
     </Modal>
   );

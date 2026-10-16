@@ -85,7 +85,7 @@ function PanelActividad({
       titulo={`Actividad · ${titulo}`}
       subtitulo={`${ubicacionEtiqueta} · quién hizo qué y cuándo`}
       onClose={onClose}
-      ancho="sm:max-w-xl"
+      tamano="mediana"
       variante="papel"
     >
       {(cerrar) => (

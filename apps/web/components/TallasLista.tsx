@@ -331,19 +331,18 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
         <Modal
           titulo={`Aprobar «${aprobandoTalla.valor}»`}
           subtitulo="A qué categoría aplica, por qué es distinta de las que ya existen — queda de referencia."
-          ancho="max-w-sm"
           onClose={() => setAprobandoAbierto(null)}
         >
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Comentario (obligatorio)" value={comentarioAprobar} onChange={(e) => setComentarioAprobar(e.target.value)} autoFocus />
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={aprobandoId === aprobandoTalla.id}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={cerrar} disabled={aprobandoId === aprobandoTalla.id}>
                   Cancelar
                 </Boton>
                 <Boton
                   peso="primario"
-                  className="flex-1"
+                 
                   cargando={aprobandoId === aprobandoTalla.id}
                   disabled={!comentarioAprobar.trim()}
                   onClick={() => aprobar(aprobandoTalla)}
@@ -357,17 +356,17 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
       )}
 
       {rechazandoTalla && (
-        <Modal titulo={`Rechazar «${rechazandoTalla.valor}»`} ancho="max-w-sm" onClose={() => setRechazandoAbierto(null)}>
+        <Modal titulo={`Rechazar «${rechazandoTalla.valor}»`} onClose={() => setRechazandoAbierto(null)}>
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoId === rechazandoTalla.id}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={cerrar} disabled={rechazandoId === rechazandoTalla.id}>
                   Cancelar
                 </Boton>
                 <Boton
                   peso="primario"
-                  className="flex-1"
+                 
                   cargando={rechazandoId === rechazandoTalla.id}
                   onClick={() => rechazar(rechazandoTalla)}
                 >
@@ -408,7 +407,7 @@ function NuevaTallaModal({
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
   ]);
   return (
-    <Modal titulo="Nueva talla" subtitulo="Queda disponible de inmediato para cualquier prenda nueva." ancho="max-w-sm" onClose={onClose}>
+    <Modal titulo="Nueva talla" subtitulo="Queda disponible de inmediato para cualquier prenda nueva." onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           <CampoGuiado id="valor" guia={guia}>
@@ -418,8 +417,8 @@ function NuevaTallaModal({
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+          <div className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
             <Boton

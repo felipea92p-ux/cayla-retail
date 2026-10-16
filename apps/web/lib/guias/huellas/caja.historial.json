@@ -14,7 +14,7 @@
     ],
     "components/AperturasPorRevisar.tsx": [
       "ComboResponsable «(sin nombre)»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/HistorialCierresTabla.tsx": [
       "button «{`Ver el detalle del cierre de ${c.ubicacionNombre}»"

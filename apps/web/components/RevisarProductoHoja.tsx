@@ -21,6 +21,7 @@ import {
   type ModoRevision,
   type ProductoPorRevisar,
 } from "@/lib/revisar-productos-reglas";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 /**
  * Aprobar o rechazar UNA prenda propuesta (`revisar_producto_censo`, ADR-0371), con el combo «Responsable» (ADR-0161: revisar el
@@ -81,7 +82,7 @@ export function RevisarProductoHoja({
   }
 
   return (
-    <Modal variante="hoja" ancho="max-w-lg" bloqueado={guardando} titulo={bloqueo ? `No se puede ${modo === "rechazar" ? "rechazar" : "aprobar"} «${producto.referencia}» todavía` : textos.titulo} subtitulo={bloqueo ? undefined : textos.subtitulo} onClose={onClose}>
+    <Modal variante="hoja" tamano="mediana" bloqueado={guardando} titulo={bloqueo ? `No se puede ${modo === "rechazar" ? "rechazar" : "aprobar"} «${producto.referencia}» todavía` : textos.titulo} subtitulo={bloqueo ? undefined : textos.subtitulo} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <p className="text-[13.5px] leading-normal text-tinta/70">
@@ -98,14 +99,14 @@ export function RevisarProductoHoja({
                   Volver
                 </Boton>
                 {bloqueo.motivo === "ordenes" && veProduccion && (
-                  <BotonEnlace href="/produccion/ordenes" peso="primario" className="flex-1">
+                  <BotonVer href="/produccion/ordenes" className="flex-1">
                     Ver las órdenes
-                  </BotonEnlace>
+                  </BotonVer>
                 )}
                 {bloqueo.motivo === "stock" && veExistencias && (
-                  <BotonEnlace href="/inventario" peso="primario" className="flex-1">
+                  <BotonVer href="/inventario" className="flex-1">
                     Ir a Existencias
-                  </BotonEnlace>
+                  </BotonVer>
                 )}
                 {/* Quien revisa edita el catálogo (la pantalla lo exige): la ficha siempre se le abre. */}
                 {bloqueo.motivo === "precio" && (
@@ -137,7 +138,7 @@ export function RevisarProductoHoja({
                   title={responsable.motivo ?? undefined}
                   className="flex-1"
                 >
-                  {guardando ? "Guardando…" : textos.boton}
+                  {textos.boton}
                 </Boton>
               </div>
             </>

@@ -113,8 +113,8 @@ export const GUIA_COMPROBANTES_MES: Guia = {
       id: "opciones",
       ancla: "comprobantes.opciones",
       opcional: true,
-      titulo: "Opciones de cada comprobante",
-      texto: "Todo lo que se hace con un comprobante ya emitido está aquí dentro (te lo abrimos en el paso siguiente).",
+      titulo: "Más acciones de cada comprobante",
+      texto: "Todo lo que se hace con un comprobante ya emitido está detrás de sus tres puntos «⋯» (te lo abrimos en el paso siguiente).",
     },
     {
       id: "opciones-acciones",

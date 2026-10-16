@@ -6,8 +6,8 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { avisar } from "@/components/ui/Avisos";
-import { CampoSelect, CampoTexto } from "@/components/ui/campos";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { Modal } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
 import { camposDeTelaUsada } from "@/lib/orden-pagina-guia";
@@ -119,8 +119,7 @@ export function TelaUsadaModal({ datos, modo, insumoId, onClose }: { datos: Orde
       titulo={devuelve ? "¿Cuánto devuelves al estante?" : "¿Cuánto usaste?"}
       subtitulo={devuelve ? "Lo que sobró vuelve al lote del que salió, a su mismo costo." : "Sale del estante del Taller y queda en la orden. El costo lo calcula el sistema con lo que realmente se usó."}
       variante="hoja"
-      conCerrar
-      ancho="max-w-lg"
+      tamano="mediana"
       onClose={onClose}
       antesDeCerrar={avisoSalida.pedirAccion}
     >
@@ -159,14 +158,14 @@ export function TelaUsadaModal({ datos, modo, insumoId, onClose }: { datos: Orde
         )}
 
         <div className="pie-hoja-fijo">
-          <div className="flex gap-2 border-t border-sand pt-3">
-            <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}>
+          <div className="pie-acciones border-t border-sand pt-3">
+            <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
-            </button>
+            </Boton>
             {tela && (
-              <button type="submit" disabled={cargando || !guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={`${botonPrimario} ${guia.claseConfirmar}`}>
-                {cargando ? "Anotando…" : devuelve ? "Devolver" : "Anotar"}
-              </button>
+              <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+                {devuelve ? "Devolver" : "Anotar"}
+              </Boton>
             )}
           </div>
         </div>

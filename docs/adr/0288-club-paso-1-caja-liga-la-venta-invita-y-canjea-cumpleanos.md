@@ -578,6 +578,9 @@ parte del club.
 - `descuento_sin_club = descuento_unitario − descuento_club_unitario`.
 - Una prenda al 20 % queda en 28 %.
 - El redondeo es el de Postgres (medio céntimo hacia arriba); la regla de la web lo replica, con prueba.
+- **Cambió el 2026-10-15** ([ADR-0403, «Actualización 2026-10-15»](0403-el-descuento-en-porcentaje-deja-el-precio-sin-centimos.md)):
+  la parte del club es `fn_descuento_campana(precio_unitario − descuento_sin_club, pct)`, la regla única del %: el precio que
+  queda baja al múltiplo de S/ 0.10 (59.90 al 10 % → 53.90, el club pone 6.00, no 5.99). La cascada y todo lo demás siguen igual.
 
 **`registrar_venta`** suma `p_canjear_cumpleanos boolean default false`. Cambia de firma: `drop` de la vieja y `create`
 de la nueva, partiendo de la definición viva de producción (la de la 1a).

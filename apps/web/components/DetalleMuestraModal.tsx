@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ImagePlus, RotateCcw, Wand2 } from "lucide-react";
+import { ImagePlus, RotateCcw, Wand2, Shirt } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
@@ -19,6 +19,7 @@ import { reducirMuestra, subirMuestra } from "@/lib/muestra-atributo";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import { ayudaDeTejido } from "@/lib/tejido-ayuda";
 import type { ColorDibujo } from "@/lib/dibujo-generado";
+import { Vacio } from "@/components/ui/Vacio";
 
 /**
  * El detalle de un tejido o de un patrón (ADR-0256): se abre al hacer clic en su tarjeta de Atributos.
@@ -105,7 +106,7 @@ export function DetalleMuestraModal({
         .order("referencia");
       if (!vigente) return;
       if (error) {
-        setCarga({ estado: "error", mensaje: traducirError(error, "cargar las prendas") });
+        setCarga({ estado: "error", mensaje: traducirError(error, "cargar las prendas", { lectura: true }) });
         return;
       }
       const prendas = (data ?? []).map((p) => ({
@@ -193,7 +194,7 @@ export function DetalleMuestraModal({
     <Modal
       titulo={muestra.nombre}
       subtitulo={cantidad === null ? (tipo === "tejido" ? "Tejido" : "Patrón") : `${tipo === "tejido" ? "Tejido" : "Patrón"} · ${textoPrendas(cantidad)}`}
-      ancho="max-w-lg"
+      tamano="mediana"
       bloqueado={guardando}
       onClose={onClose}
     >
@@ -229,7 +230,7 @@ export function DetalleMuestraModal({
 
           {puedeEditar && !pendiente && generador === null && (
             <div className="flex flex-wrap gap-2">
-              <Boton peso="fantasma" className="px-3 py-2 text-[11px]" cargando={preparando} onClick={() => selector.current?.click()}>
+              <Boton textoCargando="Subiendo…" peso="fantasma" className="px-3 py-2 text-[11px]" cargando={preparando} onClick={() => selector.current?.click()}>
                 <span className="inline-flex items-center gap-1.5">
                   <ImagePlus className="h-3.5 w-3.5" aria-hidden />
                   Subir foto
@@ -268,13 +269,13 @@ export function DetalleMuestraModal({
 
           {pendiente && (
             <div className="space-y-3 rounded-lg border border-sand bg-hueso/60 p-3">
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={() => setPendiente(null)} disabled={guardando}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={() => setPendiente(null)} disabled={guardando}>
                   Cancelar
                 </Boton>
                 <Boton
                   peso="primario"
-                  className="flex-1"
+                 
                   cargando={guardando}
                   onClick={guardar}
                 >
@@ -325,7 +326,7 @@ export function DetalleMuestraModal({
             </div>
           )}
           {carga.estado === "listo" && carga.prendas.length === 0 && (
-            <p className="rounded-lg border border-dashed border-tinta/15 p-3 text-sm text-tinta/60">Ninguna prenda usa {palabra.el} todavía.</p>
+            <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Shirt />}>Ninguna prenda usa {palabra.el} todavía.</Vacio>
           )}
           {carga.estado === "listo" && carga.prendas.length > 0 && (
             <ul className="max-h-72 divide-y divide-sand overflow-y-auto rounded-lg border border-sand">

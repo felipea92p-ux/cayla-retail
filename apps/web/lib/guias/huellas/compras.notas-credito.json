@@ -2,19 +2,31 @@
   "guia": "compras.notas-credito",
   "ruta": "/compras/notas-credito",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 44,
+  "total": 53,
   "controles": {
     "components/NotaCreditoDetalle.tsx": [
-      "button «→copiar»",
-      "Boton «Registrar la nota»"
+      "BotonCopiar «el mensaje para el proveedor»",
+      "Boton «Registrar la nota»",
+      "Boton «Llegó su nota de crédito»"
     ],
     "components/NotaCreditoVistaRapida.tsx": [
       "button «Cerrar vista rápida»",
       "button «{f.bloqueada ? \"Aún no se puede\" : \"Registrar nota\"}»",
+      "button «Llegó su nota de crédito»",
       "button «Ver detalle»",
       "Link «Comprobante»",
       "button «Nota anterior»",
       "button «Nota siguiente»"
+    ],
+    "components/NotaDelProveedorModal.tsx": [
+      "Casilla «{`${d.serieNumero ?? \"\"}»",
+      "CampoTexto «Serie y número de la nota»",
+      "CampoFecha «Fecha de la nota»",
+      "CampoMonto «Monto de la nota»",
+      "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
+      "Boton «Recargar»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/NotasCreditoPanel.tsx": [
       "Boton «notas-credito.registrar»",
@@ -32,7 +44,6 @@
     "components/RegistrarNotaCreditoModal.tsx": [
       "button «Listo»",
       "button «{f.etiqueta}»",
-      "button «→() => elegirFactura(f.id)»",
       "button «{ETIQUETA_MOTIVO_NOTA[m]}»",
       "input «FC01-000018»",
       "CampoFecha «Fecha de la nota»",
@@ -43,7 +54,7 @@
       "button «Usar»",
       "ComboResponsable «(sin nombre)»",
       "button «Cancelar»",
-      "button «(sin nombre)»",
+      "Boton «(sin nombre)»",
       "button «{titulo}»",
       "button «Cambiar»"
     ],
@@ -55,7 +66,7 @@
       "CampoTexto «Nota (opcional)»",
       "ComboResponsable «Cancelar»",
       "button «Cancelar»",
-      "button «{loading ? \"Registrando…\" : \"Registrar reembolso\"}»"
+      "Boton «Registrar reembolso»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"

@@ -1,0 +1,146 @@
+/* Ronda 9 de /unificar (2026-10-13): las seis decisiones que dejaron abiertas las rondas 6–8, en demos VIVAS.
+   Solo tokens del ERP (var(--color-…)): «Ver en oscuro» las invierte como al ERP. Lo que ya es del ERP (buscador, lista-flotante,
+   pildora-filtro, titulo-seccion, btn-cayla, fila-cayla, encabezado-tabla-cayla, Chip) se usa tal cual desde app.css, copiado del
+   DOM real (vivas.json). sg-* = la lista de sugerencias propuesta · cf-* = la planilla de Conteo · ts-* = el conteo de un título. */
+
+.dz { width: 100%; font-family: var(--font-sans); color: var(--color-tinta); font-size: 14px; line-height: 1.5; }
+.dz * { box-sizing: border-box; }
+.dz-barra { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+.dz-barra .dz-et { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-taupe); font-weight: 600; margin-right: 4px; }
+.dz-repetir { margin-left: auto; font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px dashed color-mix(in srgb, var(--color-taupe) 55%, transparent); background: transparent; color: var(--color-taupe); cursor: pointer; }
+.dz-repetir:hover { color: var(--color-tinta); border-color: var(--color-tinta); }
+.dz-lienzo { padding: 18px; background: var(--color-crema); border-radius: 14px; display: flex; flex-direction: column; gap: 14px; }
+.dz-papel { padding: 18px 20px; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 16px; display: flex; flex-direction: column; gap: 12px; }
+.dz-et2 { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--color-taupe); font-weight: 600; margin: 4px 0 -4px; }
+.dz-nota { font-size: 12px; color: var(--color-taupe); margin: 2px 0 0; }
+.dz [hidden] { display: none !important; }
+.dz-ancla { position: relative; }
+.dz-flota { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 5; }
+.dz-flota.angosta { right: auto; width: 288px; }
+.dz-reserva { margin-bottom: 340px; }
+.dz-lectura { min-height: 20px; margin: 8px 0 0; font-size: 13px; color: var(--color-verde); }
+.dz-lectura:empty { visibility: hidden; }
+.dz-columnas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 900px) { .dz-columnas { grid-template-columns: minmax(0, 1fr); } }
+.dz-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+/* ============ 1 · LA LISTA DE SUGERENCIAS (la pistola y el buscador de facturas) ============ */
+/* La lista de todo combo (Desplegable: lista-flotante, filas de 8 px de margen, cascada de 30 ms), con la fila rica:
+   miniatura de 36 px, dos líneas, un dato a la derecha y la tecla que la toma. La activa lleva el hilo rojo de canto. */
+.sg-lista { border-radius: var(--radius-lg, 10px); padding: 6px 0; max-height: 320px; overflow-y: auto; }
+.sg-lista.en-linea { border: 1px solid var(--color-sand); border-radius: 14px; box-shadow: none; background: var(--color-papel); max-height: 300px; }
+.sg-fila { position: relative; display: flex; align-items: center; gap: 12px; margin: 0 6px; padding: 7px 10px; border-radius: 6px; cursor: pointer; color: color-mix(in srgb, var(--color-tinta) 85%, transparent); transition: background-color 150ms; animation: cayla-entrada 360ms var(--ease-cayla) backwards; animation-delay: calc(var(--i, 0) * 30ms); }
+.sg-fila.activa { background: color-mix(in srgb, var(--color-rojo) 10%, var(--color-papel)); color: var(--color-tinta); }
+.sg-canto { position: absolute; left: 0; top: 50%; width: 2px; height: 22px; margin-top: -11px; border-radius: 99px; background: var(--color-rojo); transform: scaleY(0); transition: transform 200ms var(--ease-cayla); }
+.sg-fila.activa .sg-canto { transform: scaleY(1); }
+.sg-mini { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta-fija) 10%, transparent); }
+.sg-mini svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.sg-txt { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.sg-n { font-size: 14px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sg-d { font-size: 12px; line-height: 1.35; color: var(--color-taupe); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+.sg-d .chip-mini { display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border-radius: 999px; font-size: 11.5px; line-height: 18px; margin-right: 6px; }
+.sg-d .chip-mini::before { content: ""; width: 5px; height: 5px; border-radius: 99px; background: currentColor; }
+.sg-der { flex-shrink: 0; text-align: right; font-size: 12px; color: var(--color-taupe); font-variant-numeric: tabular-nums; display: flex; flex-direction: column; align-items: flex-end; }
+.sg-der b { font-weight: 500; font-size: 14px; color: var(--color-tinta); }
+.sg-tecla { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 6px; border-radius: 5px; border: 1px solid color-mix(in srgb, var(--color-tinta) 18%, transparent); font-size: 10.5px; color: var(--color-taupe); opacity: 0; transform: translateX(-4px); transition: opacity 200ms var(--ease-cayla), transform 200ms var(--ease-cayla); }
+.sg-fila.activa .sg-tecla { opacity: 1; transform: none; }
+.sg-fila.sumo { animation: cayla-fila-recien 1200ms var(--ease-cayla) both; }
+.sg-pie { position: sticky; bottom: -6px; margin-top: 4px; padding: 6px 16px 4px; font-size: 11.5px; color: var(--color-taupe); background: var(--color-papel); border-top: 1px solid color-mix(in srgb, var(--color-tinta) 10%, transparent); }
+
+/* ============ 2 · LA PLANILLA DE CONTEO ============ */
+.cf-tarjeta { background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-xl, 16px); overflow: hidden; }
+.cf-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 6px 12px 6px 18px; }
+.cf-cab h3 { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.35; }
+.cf-cab p { margin: 6px 0 0; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--color-taupe); }
+.cf-mini { width: 60px; height: 60px; border-radius: 10px; display: grid; place-items: center; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta-fija) 10%, transparent); }
+.cf-mini svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.cf-punto { width: 12px; height: 12px; border-radius: 99px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta-fija) 15%, transparent); }
+.cf-tabla { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 14px; }
+.cf-tabla th, .cf-tabla td { vertical-align: middle; }
+.cf-tabla thead th { font-size: 12px; font-weight: 400; color: var(--color-taupe); text-align: center; padding: 5px 4px; line-height: 1.25; }
+.cf-tabla thead th:first-child, .cf-tabla tbody th { text-align: left; padding-left: 18px; }
+.cf-tabla thead th:last-child { text-align: left; padding-left: 8px; }
+.cf-tabla tbody th { font-weight: 600; padding: 3px 4px 3px 18px; }
+.cf-tabla tbody td { padding: 3px 4px; text-align: center; }
+.cf-tabla tbody td:last-child { text-align: left; padding: 3px 12px 3px 8px; }
+.cf-tabla .debe { color: color-mix(in srgb, var(--color-tinta) 65%, transparent); font-variant-numeric: tabular-nums; }
+/* hoy: cabecera hueso al 40 %, divisiones arena al 60 % */
+.cf-hoy thead tr { background: color-mix(in oklab, var(--color-hueso) 40%, transparent); }
+.cf-hoy tbody tr + tr { border-top: 1px solid color-mix(in srgb, var(--color-sand) 60%, transparent); }
+.cf-hoy tbody tr { transition: background-color 300ms; }
+.cf-hoy tbody tr.correcta { background: color-mix(in srgb, var(--color-verde) 4.5%, transparent); }
+/* propuesta: la cara de <Tabla> — cabecera arena, zebra hueso, cascada al llegar, la fila recién contada respira en verde */
+.cf-tabla-sis thead tr { background: color-mix(in oklab, var(--color-sand) 70%, transparent); }
+.cf-tabla-sis thead th { padding-top: 8px; padding-bottom: 8px; }
+.cf-tabla-sis tbody tr { transition: background-color 150ms; animation: cayla-entrada 420ms var(--ease-cayla) backwards; animation-delay: calc(var(--k, 0) * 28ms); }
+.cf-tabla-sis tbody tr:nth-child(even) { background: color-mix(in oklab, var(--color-hueso) 50%, transparent); }
+.cf-tabla-sis tbody tr:hover { background: color-mix(in oklab, var(--color-crema) 60%, transparent); }
+.cf-tabla-sis tbody tr.correcta { background: color-mix(in srgb, var(--color-verde) 4.5%, transparent); }
+.cf-tabla-sis tbody tr.recien { animation: cayla-fila-recien 1400ms var(--ease-cayla) both; }
+.cf-tabla-sis tbody th, .cf-tabla-sis tbody td { padding-top: 6px; padding-bottom: 6px; }
+.cf-campo { display: inline-flex; align-items: center; gap: 6px; }
+.cf-mas { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 6px; border: 1px solid color-mix(in srgb, var(--color-taupe) 25%, transparent); background: var(--color-papel); color: color-mix(in srgb, var(--color-taupe) 70%, transparent); cursor: pointer; font: inherit; font-size: 14px; line-height: 1; }
+.cf-mas:hover { border-color: color-mix(in srgb, var(--color-taupe) 50%, transparent); color: var(--color-tinta); }
+.cf-campo input.caja-campo-input { height: 26px; min-height: 0; width: 64px; padding: 0 4px; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* ============ 3 · LOS FILTROS DE FRESCURA ============ */
+.fz-grupo-titulo { font-size: 10px; letter-spacing: .13em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-tinta) 55%, transparent); padding: 10px 16px 4px; margin: 0; }
+.fz-grupo-raya { height: 1px; margin: 6px 12px; background: color-mix(in srgb, var(--color-tinta) 10%, transparent); }
+.fz-op { position: relative; display: flex; align-items: center; margin: 0 6px; padding: 8px 10px; border-radius: 6px; font-size: 14px; cursor: pointer; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); animation: cayla-entrada 300ms var(--ease-cayla) backwards; animation-delay: calc(var(--i, 0) * 30ms); }
+.fz-op:hover, .fz-op.activa, .fz-lista:not(:hover) .fz-op[aria-selected="true"] { background: color-mix(in srgb, var(--color-rojo) 10%, var(--color-papel)); color: var(--color-tinta); }
+.fz-op .sg-canto { height: 16px; margin-top: -8px; }
+.fz-op[aria-selected="true"] .sg-canto { transform: scaleY(1); }
+.fz-op .t { flex: 1; }
+.fz-op .combo-tilde { display: none; }
+.fz-op[aria-selected="true"] .combo-tilde { display: block; }
+.fz-lista { border-radius: 10px; padding: 0 0 6px; width: 260px; max-height: 340px; overflow-y: auto; }
+
+/* ============ 5 · EL CONTEO DE UN TÍTULO ============ */
+.ts-cuenta { margin-left: 8px; font-family: var(--font-sans); font-size: 13px; font-weight: 500; letter-spacing: 0; color: color-mix(in srgb, var(--color-tinta) 45%, transparent); font-variant-numeric: tabular-nums; vertical-align: 2px; }
+.ts-globo { display: inline-grid; place-items: center; min-width: 22px; height: 20px; margin-left: 8px; padding: 0 6px; border-radius: 999px; background: color-mix(in srgb, var(--color-tinta) 10%, transparent); font-family: var(--font-sans); font-size: 11px; font-weight: 600; letter-spacing: 0; color: color-mix(in srgb, var(--color-tinta) 75%, transparent); font-variant-numeric: tabular-nums; vertical-align: 3px; animation: cayla-entrada 320ms var(--ease-cayla) 200ms backwards; }
+.titulo-grupo .ts-globo { margin-left: 0; height: 18px; min-width: 20px; font-size: 10.5px; vertical-align: 0; }
+.ts-tarjeta { background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 16px; padding: 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+.ts-filas { display: flex; flex-direction: column; }
+.ts-filas span { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid color-mix(in srgb, var(--color-sand) 70%, transparent); font-size: 13.5px; }
+.ts-filas span i { font-style: normal; color: var(--color-taupe); }
+.ts-tablero { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.ts-col { background: color-mix(in oklab, var(--color-hueso) 60%, transparent); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.ts-oc { background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 10px; padding: 8px 10px; font-size: 12.5px; }
+.ts-oc b { display: block; font-weight: 600; font-size: 13px; }
+/* B (antes): las formas sueltas */
+.ts-antes-v { font-size: 11px; letter-spacing: .13em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-tinta) 60%, transparent); margin: 0; }
+.ts-antes-s { font-family: var(--font-serif); font-size: 18px; font-weight: 600; margin: 0; display: flex; align-items: baseline; gap: 8px; }
+.ts-antes-s small { font-family: var(--font-sans); font-size: 11px; font-weight: 400; color: color-mix(in srgb, var(--color-tinta) 55%, transparent); }
+
+/* ============ 6 · LAS ACCIONES CHICAS ============ */
+.ac-hoja { background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 18px; padding: 18px 22px; display: flex; flex-direction: column; gap: 0; }
+.ac-fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; border-top: 1px solid color-mix(in srgb, var(--color-sand) 80%, transparent); font-size: 13.5px; min-height: 52px; }
+.ac-fila:first-child { border-top: 0; }
+.ac-fila .q { color: var(--color-taupe); font-size: 12.5px; display: block; }
+.ac-fila .nums { display: flex; gap: 6px; }
+.ac-fila .nums span { width: 44px; height: 30px; display: grid; place-items: center; border-radius: 8px; background: var(--color-hueso); font-variant-numeric: tabular-nums; font-size: 13px; transition: background-color 300ms; }
+.ac-fila .nums span.lleno { background: color-mix(in srgb, var(--color-verde) 14%, var(--color-papel)); }
+.ac-antes { font-size: 11px; letter-spacing: .13em; text-transform: uppercase; font-weight: 600; color: var(--color-rojo); background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit; }
+.ac-antes:hover { text-decoration: underline; }
+.ac-hecho { color: var(--color-verde); font-size: 12px; margin-left: 8px; animation: cayla-entrada 260ms var(--ease-cayla) both; }
+
+/* ============ 4 · DESACTIVAR COLOR ============ */
+.dc-hoja { background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 18px; padding: 20px 24px 18px; display: flex; flex-direction: column; gap: 12px; }
+.dc-hoja h5 { margin: 0; font: 500 23px/1.15 var(--font-serif); }
+.dc-muestra { display: flex; align-items: center; gap: 12px; font-size: 13.5px; }
+.dc-muestra i { width: 36px; height: 36px; border-radius: 10px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta-fija) 12%, transparent); }
+.dc-pie-sis { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--color-tinta) 10%, transparent); }
+.dc-pie-sis .der { display: flex; gap: 8px; }
+.dc-linea { display: flex; align-items: center; justify-content: space-between; gap: 14px; border-top: 1px solid color-mix(in srgb, var(--color-tinta) 10%, transparent); padding-top: 12px; font-size: 12px; color: color-mix(in srgb, var(--color-tinta) 55%, transparent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sg-fila, .fz-op, .cf-tabla-sis tbody tr, .ts-globo, .ac-hecho { animation: none !important; }
+}
+
+/* La página de elegir pinta sus propios h2 (`.familia h2`, 34 px): dentro de una demo manda la pieza del ERP. */
+.dz h2.titulo-seccion-texto, .dz h3.titulo-seccion-texto { font-family: var(--font-serif); font-size: 21px; font-weight: 400; line-height: 1.2; letter-spacing: -0.005em; margin: 0; }
+.dz h3.titulo-grupo { font-size: 11px; font-weight: 600; letter-spacing: 0.13em; margin: 0; }
+
+.fz-lista .combo-buscar { margin-bottom: 6px; }
+.fz-lista .combo-buscar input { all: unset; flex: 1; height: 40px; font-size: 14px; }
+.fz-lista .combo-buscar svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; }

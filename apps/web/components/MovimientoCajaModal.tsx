@@ -1,16 +1,21 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { esMotivoDeAjuste, motivosDeMovimiento, referenciaObligatoria } from "@/lib/caja-panel-reglas";
-import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "@/components/ui/Modal";
-import { Desplegable } from "@/components/ui/campos";
+import { Modal, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
+import { Desplegable, Boton } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 // En pantalla se dice «entrada» y «salida» (Felipe, 2026-09-22): es plata que entra o sale del cajón, y así lo dice el
 // mostrador. En la base el tipo sigue siendo 'ingreso' | 'egreso' — solo cambian las palabras, no el dato.
@@ -41,11 +46,12 @@ export function MovimientoCajaModal({
   const [motivoRapido, setMotivoRapido] = useState("");
   const [motivoLibre, setMotivoLibre] = useState("");
   const [nota, setNota] = useState("");
-  const [loading, setLoading] = useState(false);
   const idEtiquetaMotivo = useId();
-  // Doble clic (ADR-0190): un token por intento. Si el mismo intento llega dos veces (dos clics, un reintento tras
-  // una red que se cae), la base devuelve lo ya guardado en vez de registrar el retiro dos veces. Uno por cada vez que se abre la ventana.
-  const token = useRef<string>(crypto.randomUUID());
+  // Doble clic (ADR-0190) y respuesta perdida (/chaos 2026-10-13): la marca del envío sigue a lo que se manda. El mismo
+  // movimiento reenviado no se registra dos veces; si la respuesta se pierde, la hoja se congela hasta saber si se guardó.
+  const intento = useIntento("registrar_movimiento_caja");
+  const loading = intento.enviando;
+  const [revisando, setRevisando] = useState(false);
   // Quién hace el ingreso o egreso (ADR-0161, A12: el cierre de caja lo muestra por movimiento).
   const responsable = useResponsable();
 
@@ -79,35 +85,53 @@ export function MovimientoCajaModal({
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
     }
-    setLoading(true);
+    const params = {
+      p_caja_id: cajaId,
+      p_tipo: tipo,
+      p_monto: numeroDeMonto(monto) || 0,
+      p_motivo: motivo,
+      p_nota: nota.trim() || undefined,
+      p_es_ajuste: esAjuste,
+    };
     const supabase = createClient();
-    const { error } = await firmar(
-      supabase.rpc("registrar_movimiento_caja", {
-        p_caja_id: cajaId,
-        p_tipo: tipo,
-        p_monto: Number(monto) || 0,
-        p_motivo: motivo,
-        p_nota: nota.trim() || undefined,
-        p_es_ajuste: esAjuste,
-        p_token: token.current,
-      }),
-      responsable.firma(),
+    const r = await intento.enviar(huellaDe(params), (token, senal) =>
+      firmar(supabase.rpc("registrar_movimiento_caja", { ...params, p_token: token }), responsable.firma()).abortSignal(senal),
     );
-    setLoading(false);
-    responsable.despues(error);
-    if (error) {
-      avisar.error(traducirError(error, "registrar el movimiento de caja"));
+    if (r.tipo === "ocupado" || r.tipo === "congelado") return;
+    responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+    // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (r.tipo === "incierto") return;
+    if (r.tipo === "error") {
+      avisar.error(traducirError(r.error, "registrar el movimiento de caja"));
       return;
     }
-    avisar.exito(`${TEXTO_TIPO[tipo]} de caja registrada`, { detalle: `S/ ${(Number(monto) || 0).toFixed(2)} · ${motivo}` });
+    registrado(tipo);
+  }
+
+  function registrado(t: "ingreso" | "egreso") {
+    avisar.exito(`${TEXTO_TIPO[t]} de caja registrada`, { detalle: `S/\u00a0${(numeroDeMonto(monto) || 0).toFixed(2)} · ${motivo}` });
     router.refresh();
     onClose();
   }
 
+  async function revisar() {
+    setRevisando(true);
+    const res = await intento.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho" && tipo) return registrado(tipo);
+    if (res.tipo === "no_llego") {
+      avisar.aviso("No se registró", { detalle: "No quedó ningún movimiento guardado. Revisa los datos y vuelve a registrarlo." });
+      return;
+    }
+    if (res.tipo === "sin_respuesta") avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+  }
+
   return (
-    <Modal titulo={soloSalida ? "Retiro o depósito" : "Entrada o salida de caja"} onClose={onClose}>
+    <Modal titulo={soloSalida ? "Retiro o depósito" : "Entrada o salida de caja"} onClose={onClose} bloqueado={loading || intento.incierto}>
       {(cerrar) => (
       <form onSubmit={onSubmit} className="space-y-4">
+        {/* En duda, los datos no se tocan: cambiarlos y reenviar podría registrar el movimiento dos veces. */}
+        <fieldset disabled={intento.incierto} className="campos-congelables min-w-0 space-y-4">
         <div className={soloSalida ? "hidden" : "space-y-1.5"}>
           <span className={campoEtiqueta}>Tipo</span>
           <div className="flex gap-2">
@@ -140,16 +164,13 @@ export function MovimientoCajaModal({
             </span>
             <input
               id="mov-monto"
-              type="number"
-              inputMode="decimal"
-              min={0.01}
-              step="0.01"
+              {...atributosMontoTexto(monto)}
               required
               autoFocus
               placeholder="0.00"
               value={monto}
               onChange={(e) => setMonto(e.target.value)}
-              className="font-display self-stretch py-0 text-2xl tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className={`font-display self-stretch py-0 text-2xl tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
             />
           </div>
         </div>
@@ -205,13 +226,15 @@ export function MovimientoCajaModal({
         </div>
 
         <ComboResponsable control={responsable} deshabilitado={loading} />
-        <div className="flex gap-2 pt-1">
-          <button type="button" onClick={cerrar} className={botonCancelar}>
+        </fieldset>
+        {intento.incierto && <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} />}
+        <div className="pie-acciones pt-1">
+          <button type="button" onClick={cerrar} disabled={intento.incierto} className="btn-cayla btn-secundario">
             Cancelar
           </button>
-          <button type="submit" disabled={loading || !tipo || !motivoRapido || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
-            {loading ? "Guardando…" : "Registrar"}
-          </button>
+          <Boton peso="primario" cargando={loading} type="submit" disabled={loading || revisando || !tipo || !motivoRapido || !responsable.listo} title={responsable.motivo ?? undefined}>
+            {intento.incierto ? "Volver a intentar" : "Registrar"}
+          </Boton>
         </div>
       </form>
       )}

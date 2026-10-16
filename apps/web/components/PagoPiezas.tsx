@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { Copy, X } from "lucide-react";
-import { avisar } from "@/components/ui/Avisos";
+import { useEffect, type ReactNode } from "react";
+import { X } from "lucide-react";
 import { BarraApilada } from "@/components/ui/BarraApilada";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ETIQUETA_METODO, ETIQUETA_METODO_PAGO, METODO_SALDO_A_FAVOR, soles } from "@/lib/compras-reglas";
 import { sumaLineasPago, type LineaPago } from "@/components/LineasPago";
 import { CampoSaleDe } from "@/components/finanzas/CampoCuenta";
-import { cuentaEfectiva, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
+import { cuentaEfectiva, usadoDelFondo, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
+import { UMBRAL_BANCARIZACION, avisoBancarizacion, avisoBancarizacionLote } from "@/lib/no-deducible-reglas";
 
 // Piezas que comparten los dos modales de pago de Por pagar (spike 2026-09-19, ADR-0131): «Pagar juntos»
 // (`PagoJuntosModal`, varios comprobantes de un proveedor) y el pago de UN comprobante (`RegistrarPagoModal`, el botón
@@ -58,17 +60,6 @@ export function Tilde() {
       <path pathLength={1} d="M20 6 9 17l-5-5" className="trazo-linea anim-tilde" />
     </svg>
   );
-}
-
-// El acuse de que se copió es el propio botón (✓ Copiado, `DatoCopiable`); solo un fallo merece un aviso.
-async function copiarAlPortapapeles(valor: string, que: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(valor);
-    return true;
-  } catch {
-    avisar.error(`No se pudo copiar ${que.toLowerCase()}`, { detalle: "Selecciónalo y cópialo a mano." });
-    return false;
-  }
 }
 
 /**
@@ -145,8 +136,8 @@ export function DatosDelMedio({ medio, datos, saldoFavor = 0 }: { medio: string;
       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
         {datos?.banco && <DatoSimple etiqueta="Banco" valor={datos.banco} />}
         {datos?.titular && <DatoSimple etiqueta="Titular" valor={datos.titular} nota="Compáralo con el nombre que muestra el banco antes de confirmar." />}
-        {cuenta && <DatoCopiable etiqueta="Cuenta" valor={cuenta} onCopiar={() => copiarAlPortapapeles(cuenta, "Cuenta")} />}
-        {cci && <DatoCopiable etiqueta="CCI" valor={cciConGuiones(cci)} onCopiar={() => copiarAlPortapapeles(cci, "CCI")} />}
+        {cuenta && <DatoCopiable etiqueta="Cuenta" que="la cuenta" valor={cuenta} copiar={cuenta} />}
+        {cci && <DatoCopiable etiqueta="CCI" que="el CCI" valor={cciConGuiones(cci)} copiar={cci} />}
       </div>
     ) : (
       falta(medio === "transferencia" ? "la cuenta ni el CCI" : "el número de cuenta")
@@ -157,7 +148,7 @@ export function DatosDelMedio({ medio, datos, saldoFavor = 0 }: { medio: string;
     const otra = medio === "yape" ? "plin" : "yape";
     cuerpo = tiene ? (
       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-        <DatoCopiable etiqueta={`Celular ${ETIQUETA_METODO_PAGO[medio]}`} valor={celularConEspacios(celular!)} onCopiar={() => copiarAlPortapapeles(celular!, "Celular")} />
+        <DatoCopiable etiqueta={`Celular ${ETIQUETA_METODO_PAGO[medio]}`} que="el celular" valor={celularConEspacios(celular!)} copiar={celular!} />
         {datos?.titular && <DatoSimple etiqueta="Titular" valor={datos.titular} nota={`Compáralo con el nombre que muestra ${ETIQUETA_METODO_PAGO[medio]} antes de confirmar.`} />}
       </div>
     ) : celular && datos?.billeteras?.includes(otra) ? (
@@ -183,33 +174,14 @@ export function DatosDelMedio({ medio, datos, saldoFavor = 0 }: { medio: string;
   );
 }
 
-function DatoCopiable({ etiqueta, valor, onCopiar }: { etiqueta: string; valor: string; onCopiar: () => Promise<boolean> }) {
-  // «✓ Copiado» durante un momento y vuelve el ícono: el gesto se confirma donde se hizo, sin un aviso aparte.
-  const [copiado, setCopiado] = useState(false);
-  useEffect(() => {
-    if (!copiado) return;
-    const t = setTimeout(() => setCopiado(false), 1700);
-    return () => clearTimeout(t);
-  }, [copiado]);
+// Copiar es la pieza del sistema (<BotonCopiar>, ronda 13): el ícono junto al dato, que se vuelve ✓ y dice «Copiado» donde se tocó.
+function DatoCopiable({ etiqueta, que, valor, copiar }: { etiqueta: string; que: string; valor: string; copiar: string }) {
   return (
     <div className="min-w-0">
       <p className="label-cayla text-[10px] text-tinta/55">{etiqueta}</p>
       <p className="mt-1 flex items-center gap-2 text-sm tabular-nums text-tinta">
         <span className="truncate">{valor}</span>
-        <button
-          type="button"
-          onClick={async () => setCopiado(await onCopiar())}
-          aria-label={`Copiar ${etiqueta.toLowerCase()}`}
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-md px-1 py-0.5 text-[11px] transition-colors duration-200 ${copiado ? "bg-verde/10 text-verde-profundo" : "text-tinta/55 hover:text-rojo"}`}
-        >
-          {copiado ? (
-            <>
-              <Tilde /> Copiado
-            </>
-          ) : (
-            <Copy aria-hidden className="h-3.5 w-3.5" />
-          )}
-        </button>
+        <BotonCopiar forma="icono" texto={copiar} que={que} className="-my-1.5" />
       </p>
     </div>
   );
@@ -346,6 +318,8 @@ export function MediosDePago({
   id = "pago",
   exacto = false,
   cuentas,
+  totalComprobante,
+  aplicaciones,
 }: {
   lineas: LineaPago[];
   onLineas: (l: LineaPago[]) => void;
@@ -366,6 +340,10 @@ export function MediosDePago({
   exacto?: boolean;
   /** ADR-0195 F3b: con las cuentas, cada medio pregunta «Sale de» (propuesta según el medio y la tienda). */
   cuentas?: { lista: readonly CuentaElegible[]; listo: boolean };
+  /** ADR-0362 (fase 6 · actividad 6): el total del COMPROBANTE que se paga; de S/ 2 000 o más avisa lo que queda «no deducible». */
+  totalComprobante?: number;
+  /** Pagar juntos: cada comprobante con su total y lo que recibe de este pago (el aviso de lo no deducible mira a cada uno). */
+  aplicaciones?: readonly { total: number; monto: number }[];
 }) {
   const suma = sumaLineasPago(lineas);
   const falta = Math.round((objetivo - suma) * 100) / 100;
@@ -403,6 +381,19 @@ export function MediosDePago({
     onLineas([{ monto: usar.toFixed(2), metodo: METODO_SALDO_A_FAVOR, referencia: "" }, ...(resto > 0 ? [{ monto: resto.toFixed(2), metodo: lineas[0]?.metodo === METODO_SALDO_A_FAVOR ? "transferencia" : (lineas[0]?.metodo ?? "transferencia"), referencia: "" }] : [])]);
   };
   const fechaCampo = <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={onFecha} required />;
+  // Lo que de verdad sale por cada línea: en «Pagar juntos» con un solo medio el monto no se escribe, es todo el pago.
+  const conMontos = exacto && !varios ? [{ ...lineas[0], monto: objetivo.toFixed(2) }] : lineas;
+  // Lo que queda «no deducible» (ADR-0362, fase 6): cada medio con el tipo de la cuenta de la que sale (un fondo cuenta con cualquiera).
+  const tipoCuentaDe = (l: LineaPago) => {
+    if (!cuentas || l.metodo === METODO_SALDO_A_FAVOR) return null;
+    const idCuenta = cuentaEfectiva(cuentas.lista, "pago", l.metodo, l.cuentaId);
+    return cuentas.lista.find((c) => c.id === idCuenta)?.tipo ?? null;
+  };
+  const lineasAviso = conMontos.map((l) => ({ monto: l.monto, medio: l.metodo, tipoCuenta: tipoCuentaDe(l) }));
+  const avisoNoDeducible = aplicaciones ? avisoBancarizacionLote(aplicaciones, lineasAviso) : avisoBancarizacion(totalComprobante, lineasAviso);
+  const reservarAviso = aplicaciones
+    ? aplicaciones.some((a) => a.monto > 0 && a.total >= UMBRAL_BANCARIZACION)
+    : (totalComprobante ?? 0) >= UMBRAL_BANCARIZACION;
   // «Sale de» (F3b). Con saldo a favor no sale de ninguna cuenta: el campo queda invisible y conserva su alto (ADR-0185).
   const saleDe = (l: LineaPago, i: number) =>
     cuentas ? (
@@ -417,6 +408,7 @@ export function MediosDePago({
           valor={cuentaEfectiva(cuentas.lista, "pago", l.metodo, l.cuentaId)}
           onValor={(v) => cambiar(i, { cuentaId: v })}
           deshabilitado={l.metodo === METODO_SALDO_A_FAVOR}
+          montoDelFondo={usadoDelFondo(conMontos, cuentas.lista, i)}
         />
       </div>
     ) : null;
@@ -526,6 +518,7 @@ export function MediosDePago({
             Usas {soles(favorUsado)} de saldo a favor y solo tienes {soles(saldoFavor)}.
           </Aviso>}
       </div>
+      <AvisoNoDeducible aviso={avisoNoDeducible} reservar={reservarAviso} />
     </div>
   );
 }

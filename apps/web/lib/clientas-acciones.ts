@@ -18,6 +18,8 @@ import {
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import { normalizarNumeroDocumento, type TipoDocumentoClienta } from "@/lib/documento-clienta-reglas";
 import { aResumenCompras, type FilaResumenCompras } from "@/lib/clientas-lista-reglas";
+import { normalizarCorreo } from "@/lib/correo-clienta-reglas";
+import { leerTiendaOnline } from "@/lib/clienta-tienda-online-reglas";
 
 // Las escrituras y la búsqueda de /clientas: una función por RPC. Detrás de esta interfaz para
 // que el panel no sepa de Supabase (mismo criterio que `colaboradores-acciones.ts`). Todas son
@@ -26,7 +28,8 @@ import { aResumenCompras, type FilaResumenCompras } from "@/lib/clientas-lista-r
 // (política `clientas_select`). Esta capa nunca es la única puerta: la base la vuelve a exigir.
 //
 // Paso 2 del acta (docs/datos/DECISIONES-2026-09-26-clientas.md sección H): editar, archivar/
-// anonimizar, unir y exportar se suman al alta y la búsqueda que ya existían (D-76/D-77).
+// anonimizar y exportar se suman al alta y la búsqueda que ya existían (D-76/D-77). «Unir fichas» (D-99) se retiró el
+// 2026-10-14 (Felipe: el documento y el correo son de una sola persona; `unir_clientas` se borró en 20261015054000).
 // Candado optimista (ADR-0193 reusado): cada acción que edita manda `version`, y si la base
 // devuelve PT409, `error-escritura.ts` ya lo traduce sin que esta capa haga nada especial.
 //
@@ -49,7 +52,6 @@ export type DatosAlta = {
 export type ResultadoBusqueda = { clientas: Clienta[]; error: ErrorEscritura };
 export type ResultadoAlta = { id: string | null; error: ErrorEscritura };
 export type ResultadoVersion = { version: number | null; error: ErrorEscritura };
-export type ResultadoUnion = { clienta: Clienta | null; error: ErrorEscritura };
 
 /** `undefined` si el texto viene vacío tras recortarlo — así la RPC (que espera `smallint`,
  *  no admite `''`) recibe `null`, nunca una cadena vacía. */
@@ -61,6 +63,18 @@ function smallintOVacio(texto: string): number | undefined {
 export async function buscarClienta(termino: string, incluirArchivadas = false): Promise<ResultadoBusqueda> {
   const { data, error } = await createClient().rpc("buscar_clienta", { p_termino: termino, p_incluir_archivadas: incluirArchivadas });
   return { clientas: (data ?? []).map(aClienta), error };
+}
+
+/**
+ * La ficha que tiene ESE documento (activa o archivada), o null si no hay. La leen las dos altas (/clientas y el ticket de Vender)
+ * justo antes de `registrar_clienta`, para decir lo que pasó de verdad (`resultadoDelAlta`, lib/alta-clienta-reglas.ts): la base
+ * completa o reactiva la que había en vez de crear otra. Si la lectura falla, null: el alta sigue igual y solo cambia la frase.
+ */
+export async function fichaConDocumento(tipo: TipoDocumentoClienta, numero: string): Promise<Clienta | null> {
+  const limpio = normalizarNumeroDocumento(numero);
+  if (limpio === "") return null;
+  const { clientas } = await buscarClienta(limpio, true);
+  return clientas.find((c) => c.documentoTipo === tipo && c.documentoNumero === limpio) ?? null;
 }
 
 /**
@@ -83,10 +97,13 @@ export async function registrarClienta(datos: DatosAlta, firma: Firma | null): P
   return { id: data ?? null, error };
 }
 
-export type DatosEdicion = DatosAlta & { tallas: Record<string, string> | null };
+/** `correo`: el de CONTACTO (Felipe 2026-10-15, 20261015123000). Vacío lo borra; la base lo guarda en minúsculas. */
+export type DatosEdicion = DatosAlta & { tallas: Record<string, string> | null; correo: string };
 
 /** Editar ya no toca el club ni la publicidad (ADR-0288 D-4): su «BAJA» es `registrarBajaWhatsapp`. A una socia la base
- *  no le deja borrar el celular (hint `socia_sin_celular`). */
+ *  no le deja borrar el celular (hint `socia_sin_celular`). El correo viaja SIEMPRE, también vacío (= borrarlo): la base lee la
+ *  falta de `p_correo` como «no lo toques» (así la ficha de antes no borra correos). El de otra ficha vuelve con el hint
+ *  `correo_de_otra_ficha` y el nombre de esa ficha. El correo con que entra a la tienda online (`cuentas_web`) no cambia aquí. */
 export async function editarClienta(id: string, datos: DatosEdicion, version: number, firma: Firma | null): Promise<ResultadoVersion> {
   const { data, error } = await firmar(
     createClient().rpc("editar_clienta", {
@@ -100,6 +117,7 @@ export async function editarClienta(id: string, datos: DatosEdicion, version: nu
       p_cumple_anio: smallintOVacio(datos.cumpleAnio),
       p_tallas: datos.tallas ?? undefined,
       p_version_esperada: version,
+      p_correo: normalizarCorreo(datos.correo),
     }),
     firma,
   );
@@ -126,39 +144,19 @@ export async function reactivarClienta(id: string, version: number, firma: Firma
   return { version: data ?? null, error };
 }
 
-/** D-99: junta dos fichas (celular primero, documento después) en una sola transacción — mueve sus
- *  ventas/separaciones/pedidos y anonimiza a la perdedora. No hay deshacer: el rastro completo
- *  queda en `retail.clientas_fusiones`. */
-export async function unirClientas(
-  mantenerId: string,
-  fusionarId: string,
-  versionMantener: number,
-  versionFusionar: number,
-  firma: Firma | null,
-): Promise<ResultadoUnion> {
-  const { data, error } = await firmar(
-    createClient().rpc("unir_clientas", {
-      p_mantener_id: mantenerId,
-      p_fusionar_id: fusionarId,
-      p_version_mantener_esperada: versionMantener,
-      p_version_fusionar_esperada: versionFusionar,
-    }),
-    firma,
-  );
-  return { clienta: data ? aClienta(data) : null, error };
-}
-
 export type ResultadoFicha = { ficha: FichaClienta | null; error: ErrorEscritura };
 
 /** La ficha completa (clienta + su actividad), leída DESDE EL NAVEGADOR — para abrirla al hacer
- *  clic en una fila y para refrescarla tras editar/archivar/unir, sin depender de un Server
- *  Component. Mismas cinco lecturas que `lib/clientas.ts` (`getFichaClienta`, usada al aterrizar
- *  en `/clientas` la primera vez); esta es su gemela del lado del cliente.
+ *  clic en una fila y para refrescarla tras editar o archivar, sin depender de un Server
+ *  Component. Es la única lectura de la ficha: su gemela del servidor (`getFichaClienta`)
+ *  ya no la llamaba nadie y se borró el 2026-10-14 (ADR-0406).
  *  Tanda 1f (ADR-0288): más su sede y frecuente con compra neta (`fn_clienta_su_sede`, la regla de la lista). Esa sexta
- *  lectura no tumba la ficha si falla (la base sin la migración 20260930210000): llega `null` y la ficha sigue. */
+ *  lectura no tumba la ficha si falla (la base sin la migración 20260930210000): llega `null` y la ficha sigue.
+ *  Y la séptima (20261015123000): lo que tiene en la tienda online (`fn_clienta_tienda_online`), para avisar al archivar con un
+ *  pedido web en curso y al editar el correo. Tampoco la tumba: sin ella, la hoja no avisa. */
 export async function cargarFichaClienta(id: string): Promise<ResultadoFicha> {
   const supabase = createClient();
-  const [clienta, compras, cambios, devoluciones, separaciones, resumen] = await Promise.all([
+  const [clienta, compras, cambios, devoluciones, separaciones, resumen, tiendaOnline] = await Promise.all([
     supabase
       .from("clientas")
       .select(COLUMNAS_CLIENTA)
@@ -169,6 +167,7 @@ export async function cargarFichaClienta(id: string): Promise<ResultadoFicha> {
     supabase.rpc("fn_clienta_devoluciones", { p_id: id }),
     supabase.rpc("fn_clienta_separaciones", { p_id: id }),
     supabase.rpc("fn_clienta_su_sede", { p_clienta_id: id }),
+    supabase.rpc("fn_clienta_tienda_online", { p_id: id }),
   ]);
 
   const error = clienta.error ?? compras.error ?? cambios.error ?? devoluciones.error ?? separaciones.error;
@@ -183,6 +182,7 @@ export async function cargarFichaClienta(id: string): Promise<ResultadoFicha> {
       devoluciones: ((devoluciones.data ?? []) as FilaDevolucion[]).map(aDevolucion),
       separaciones: ((separaciones.data ?? []) as FilaSeparacion[]).map(aSeparacion),
       resumenCompras: filaResumen ? aResumenCompras(filaResumen) : null,
+      tiendaOnline: tiendaOnline.error ? null : leerTiendaOnline(tiendaOnline.data),
     },
     error: null,
   };

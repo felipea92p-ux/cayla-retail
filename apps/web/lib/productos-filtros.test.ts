@@ -115,7 +115,7 @@ describe("productos-filtros — estado, conteo y chips", () => {
       "Color: Negro",
       "Estado: Todos",
       "Disponibilidad: Pedir a proveedor",
-      "Precio: Hasta S/ 80",
+      "Precio: Hasta S/\u00a080",
     ]);
     expect(chips.find((c) => c.texto.startsWith("Precio"))?.quitar).toEqual(["precioMin", "precioMax"]);
   });

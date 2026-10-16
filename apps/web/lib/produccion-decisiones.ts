@@ -14,7 +14,7 @@ import { tramosPorPagar } from "./por-pagar-produccion-reglas";
 import { textoDePedido, type PedidoDeInsumo } from "./orden-pagina-reglas";
 import type { TelaDelTallerLeida } from "./tela-del-taller-reglas";
 
-const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 // ---------------------------------------------------------------------------

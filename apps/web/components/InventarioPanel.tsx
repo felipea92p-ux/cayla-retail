@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Globito } from "@/components/ui/Globito";
 import { useMemo, useRef, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, ListChecks, Moon, Package, PackageX, ScanLine, ShoppingBag, SignpostBig, Tag, TriangleAlert, X } from "lucide-react";
@@ -24,7 +25,8 @@ import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
 import { ApartadosModal } from "@/components/ApartadosModal";
 import { ResumenStockOverlay } from "@/components/ResumenStockOverlay";
 import { RitmoRecientePopover } from "@/components/RitmoRecientePopover";
-import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas";
+import { resumirApartados, type Apartado } from "@/lib/apartados-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
 import { ExistenciasVacio } from "@/components/ExistenciasVacio";
 import { ParaHoy, type AccionTarea } from "@/components/existencias/ParaHoy";
@@ -58,6 +60,7 @@ import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/in
 // Solo el TIPO: `lib/sububicaciones.ts` importa el cliente de servidor (`next/headers`) y este archivo es "use client";
 // importar un valor de ahí rompe el build de Vercel (Turbopack lo rechaza aunque `tsc` y vitest pasen).
 import type { Sububicacion } from "@/lib/sububicaciones";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 const TODAS = "__todas__";
 
@@ -826,9 +829,9 @@ export function InventarioPanel({
                   title="Lo pendiente de la sede, en el orden en que conviene hacerlo"
                   className="btn-cayla btn-secundario h-10 shrink-0 gap-2 px-3 py-1 text-[13px] text-taupe"
                 >
-                  <ListChecks aria-hidden className="h-4 w-4" strokeWidth={1.5} />
+                  <ListChecks aria-hidden className="h-4 w-4" />
                   <span className="max-sm:sr-only">Pendientes</span>
-                  {tareasHoy.length > 0 && <b className="rounded-full bg-ambar/[0.13] px-1.5 text-[11px] font-semibold tabular-nums text-ambar-profundo">{tareasHoy.length}</b>}
+                  <Globito n={tareasHoy.length} pide />
                 </button>
               )
             }
@@ -1000,9 +1003,9 @@ export function InventarioPanel({
                 {conteo.total} {conteo.total === 1 ? conteo.unidad.uno : conteo.unidad.varios} · {tallasEnTarjetas} {tallasEnTarjetas === 1 ? "talla" : "tallas"}
               </span>
               <PaginacionLocal pagina={paginaTarjetas.pagina} totalPaginas={paginaTarjetas.totalPaginas} onPagina={irAPagina} />
-              <button type="button" onClick={exportarCsv} className="btn-cayla btn-secundario btn-chico">
-                Exportar CSV
-              </button>
+              <BotonDescargar onClick={exportarCsv} chico>
+                Descargar CSV
+              </BotonDescargar>
             </span>
             {/* La leyenda de las columnas de las tarjetas (ADR-0391): el número grande, la línea chica y sus dos tonos. */}
             {separa && (
@@ -1047,9 +1050,9 @@ export function InventarioPanel({
                 {prendas.length} {prendas.length === 1 ? "prenda" : "prendas"} · {filtradas.length} {filtradas.length === 1 ? "talla" : "tallas"}
               </span>
               <PaginacionLocal pagina={paginaPrendas.pagina} totalPaginas={paginaPrendas.totalPaginas} onPagina={irAPagina} />
-              <button type="button" onClick={exportarCsv} className="btn-cayla btn-secundario btn-chico">
-                Exportar CSV
-              </button>
+              <BotonDescargar onClick={exportarCsv} chico>
+                Descargar CSV
+              </BotonDescargar>
             </span>
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -1281,9 +1284,9 @@ export function InventarioPanel({
             <span className="flex flex-wrap items-center gap-3">
               <span>{textoMostrando(paginaActual, filtradas.length, stock.length)}</span>
               <PaginacionLocal pagina={paginaActual.pagina} totalPaginas={paginaActual.totalPaginas} onPagina={irAPagina} />
-              <button type="button" onClick={exportarCsv} className="btn-cayla btn-secundario btn-chico">
-                Exportar CSV
-              </button>
+              <BotonDescargar onClick={exportarCsv} chico>
+                Descargar CSV
+              </BotonDescargar>
             </span>
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -1402,7 +1405,7 @@ export function InventarioPanel({
       )}
 
       {viendoPendientes && (
-        <Modal titulo="Pendientes de hoy" subtitulo="Lo de la sede, en el orden en que conviene hacerlo" onClose={() => setViendoPendientes(false)} ancho="max-w-2xl">
+        <Modal conCerrar titulo="Pendientes de hoy" subtitulo="Lo de la sede, en el orden en que conviene hacerlo" onClose={() => setViendoPendientes(false)} tamano="ancha">
           {/* Cada botón de una tarea cierra la ventana (`alElegir`) y hace lo suyo: filtrar, abrir Dañadas o Apartados, o ir a otra pantalla. */}
           <ParaHoy
             tareas={tareasHoy}
@@ -1511,7 +1514,7 @@ export function InventarioPanel({
             onClick={() => setCamara(true)}
             className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.99]"
           >
-            <ScanLine size={19} aria-hidden />
+            <ScanLine size={20} aria-hidden />
             Escanear prenda
           </button>
         </div>

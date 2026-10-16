@@ -232,8 +232,8 @@ describe("avisos y textos", () => {
   });
   it("textoQuien: «Taller», o «Afuera · quién · S/ 4.50 por prenda» (sin tarifa si aún no hay; «elige a quién» sin proveedor)", () => {
     expect(textoQuien(fasesIniciales()[3], PROVEEDORES)).toBe("Taller");
-    expect(textoQuien(afuera("costura")[3], PROVEEDORES)).toBe("Afuera · Confecciones del Norte · S/ 4.50 por prenda");
-    expect(textoQuien(afuera("costura", { tarifa: "" })[3], PROVEEDORES, { lista: LISTA, hoy: HOY })).toBe("Afuera · Confecciones del Norte · S/ 5.00 por prenda");
+    expect(textoQuien(afuera("costura")[3], PROVEEDORES)).toBe("Afuera · Confecciones del Norte · S/\u00a04.50 por prenda");
+    expect(textoQuien(afuera("costura", { tarifa: "" })[3], PROVEEDORES, { lista: LISTA, hoy: HOY })).toBe("Afuera · Confecciones del Norte · S/\u00a05.00 por prenda");
     expect(textoQuien(afuera("costura", { tarifa: "" })[3], PROVEEDORES)).toBe("Afuera · Confecciones del Norte");
     expect(textoQuien(afuera("costura", { proveedorId: null, tarifa: "" })[3], PROVEEDORES)).toBe("Afuera · elige a quién");
   });

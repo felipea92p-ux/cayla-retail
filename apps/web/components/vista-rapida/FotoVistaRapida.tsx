@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, type RefObject } from "react";
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { esperarMiniatura, precargarMiniaturas } from "@/components/ui/precargar-miniaturas";
 import { ZoomIn } from "lucide-react";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { categoriaDe, type FilaConCategoria } from "@/lib/categoria-de-prenda";
+import { SIZES_VISTA_RAPIDA as SIZES_FOTO } from "@/lib/fotos-tamanos";
 import { hayPunteroFino } from "./movimiento";
 
 /** Lo que la foto necesita de la prenda: cómo se llama y, sin foto, su categoría para dibujar su ícono. La vista rápida de Productos pasa su `ProductoListado`; la hoja «Ver el modelo» de Producción, lo que ya tiene. */
@@ -32,9 +34,12 @@ export function FotoVistaRapida({
   fila,
   onAmpliar,
   botonAmpliar,
+  precargar,
 }: {
   producto: PrendaParaFoto;
   fila: ColorParaFoto | undefined;
+  /** Las fotos de TODOS los colores de la prenda: se bajan apenas abre la hoja, para que pasar de un color a otro no espere a la red. */
+  precargar?: readonly (string | null | undefined)[];
   onAmpliar?: (foto: { fotoUrl: string; color: string }) => void;
   /** El botón de la lupa, para devolverle el foco al cerrar la foto en grande. */
   botonAmpliar?: RefObject<HTMLButtonElement | null>;
@@ -47,15 +52,34 @@ export function FotoVistaRapida({
   const [capas, setCapas] = useState<Capa[]>(() => (fila ? [{ id: 0, clave, nombre, hex: fila.hex, fotoUrl }] : []));
   const caja = useRef<HTMLDivElement>(null);
 
+  // Las otras fotos empiezan a bajar al abrir; la del color que se mira ya la está pidiendo su capa (se pide primero, por eso va antes).
+  useEffect(() => {
+    precargarMiniaturas([fotoUrl, ...(precargar ?? [])], SIZES_FOTO);
+    // Solo al abrir (o si cambia el juego de fotos): el color mirado no vuelve a disparar la precarga.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [precargar?.join("|")]);
+
   useEffect(() => {
     if (hex === undefined) return;
-    setCapas((previas) => {
-      const ultima = previas[previas.length - 1];
-      if (ultima && ultima.clave === clave && ultima.fotoUrl === fotoUrl) return previas;
-      return [...previas.slice(-1), { id: siguiente.current++, clave, nombre, hex, fotoUrl }];
-    });
-    const quitar = setTimeout(() => setCapas((previas) => previas.slice(-1)), MS_CRUCE);
-    return () => clearTimeout(quitar);
+    let vigente = true;
+    let quitar: ReturnType<typeof setTimeout> | undefined;
+    // La capa nueva entra cuando su foto YA está lista: hasta entonces se queda la anterior a la vista (antes entraba vacía y la caja
+    // se veía en blanco mientras llegaba la foto). Pasar el mouse por otro color antes de que llegue cancela esta espera.
+    const poner = () => {
+      if (!vigente) return;
+      setCapas((previas) => {
+        const ultima = previas[previas.length - 1];
+        if (ultima && ultima.clave === clave && ultima.fotoUrl === fotoUrl) return previas;
+        return [...previas.slice(-1), { id: siguiente.current++, clave, nombre, hex, fotoUrl }];
+      });
+      quitar = setTimeout(() => setCapas((previas) => previas.slice(-1)), MS_CRUCE);
+    };
+    if (fotoUrl) void esperarMiniatura(fotoUrl, SIZES_FOTO).then(poner);
+    else poner();
+    return () => {
+      vigente = false;
+      clearTimeout(quitar);
+    };
   }, [clave, nombre, hex, fotoUrl]);
 
   function mover(e: React.PointerEvent<HTMLDivElement>) {
@@ -71,6 +95,7 @@ export function FotoVistaRapida({
     caja.current?.style.setProperty("--vr-py", "0px");
   }
 
+  const sinFotoDe = (c: Capa) => <MosaicoPrenda forma="relleno" conNombre colorHex={c.hex} {...categoriaDe(producto)} className="h-full w-full !rounded-none" />;
   const arriba = capas[capas.length - 1];
   const ampliable = onAmpliar && arriba?.fotoUrl ? { fotoUrl: arriba.fotoUrl, color: arriba.nombre } : null;
 
@@ -80,9 +105,9 @@ export function FotoVistaRapida({
         <div key={c.id} className="vr-capa" data-nueva={c.id > 0 || undefined}>
           <div className="vr-par">
             {c.fotoUrl ? (
-              <Image src={c.fotoUrl} alt={`${producto.referencia} — ${c.nombre}`} fill sizes="260px" className="object-cover" unoptimized />
+              <ImagenDePrenda src={c.fotoUrl} alt={`${producto.referencia} — ${c.nombre}`} fill sizes={SIZES_FOTO} className="object-cover" fondo={c.hex} fallback={sinFotoDe(c)} />
             ) : (
-              <MosaicoPrenda forma="relleno" conNombre colorHex={c.hex} {...categoriaDe(producto)} className="h-full w-full !rounded-none" />
+              sinFotoDe(c)
             )}
           </div>
           {!c.fotoUrl && i === capas.length - 1 && <span className="vr-muestra">Muestra{c.nombre ? ` — ${c.nombre}` : ""}</span>}

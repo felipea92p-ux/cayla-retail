@@ -60,14 +60,14 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Las respuestas de hoy",
-      texto: "Una tarjeta por pregunta, con su estado (va bien, atención o urgente) y las prendas que lo explican. Toca una tarjeta para ir a su pestaña.",
+      texto: "Una tarjeta por pregunta, con su estado (urgente, atención o va bien) y las prendas que lo explican. Si los datos están incompletos, nunca dice «va bien»: dice «con lo registrado». Toca una tarjeta para ir a su pestaña.",
     },
     {
       id: "que-hacer",
       ancla: "analisis.que-hacer",
       opcional: true,
       titulo: "Qué hacer hoy",
-      texto: "Lo urgente del día en orden: qué reponer, qué pedir a otra sede, qué mover. Si dice «nada urgente», la tienda va bien.",
+      texto: "Lo urgente del día en orden: qué reponer, qué pedir a otra sede, qué mover. Si dice «nada urgente» con los datos completos, la tienda va bien.",
     },
     {
       id: "acaba",
@@ -75,7 +75,7 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-acaba" }],
       titulo: "Se está acabando",
-      texto: "Las prendas que, al ritmo que se venden, se acaban pronto, con los días que les quedan. Desde aquí puedes pedirlas a otra sede antes de quedarte sin nada.",
+      texto: "Las prendas que, al ritmo que se venden desde que se colgaron, se acaban pronto, con los días que les quedan. Desde aquí puedes pedirlas a otra sede antes de quedarte sin nada.",
     },
     {
       id: "nose",
@@ -83,7 +83,7 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-nose" }],
       titulo: "No se vende",
-      texto: "Las prendas que llevan mucho sin venderse aunque hay stock. Para decidir si moverlas, trasladarlas o liquidarlas.",
+      texto: "Las prendas que llevan sin venderse más de lo que tardan las de su tipo en tu piso, aunque hay stock. Para decidir si trasladarlas o liquidarlas. Las que pueden haberse vendido sin registrar van aparte, en «Aún no se sabe».",
     },
     {
       id: "piso",
@@ -99,7 +99,7 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-pedir" }],
       titulo: "Qué pedir",
-      texto: "Arriba, cuánto falta para la campaña, con un atajo al Plan de campaña. «¿Para cuánto te alcanza?»: cada tipo de prenda, para cuánto alcanza lo que tienes; lo que no llega va en ámbar y conviene pedirlo. Toca un tipo y al lado ves lo que más se vende de él (Top 5, 10…).",
+      texto: "Arriba, cuánto falta para la campaña, con un atajo al Plan de campaña. «¿Para cuánto te alcanza?»: cada tipo de prenda, para cuánto alcanza lo que tienes (contando también lo vendido sin registrar); lo que no llega va en ámbar y conviene pedirlo. Toca un tipo y al lado ves lo que más se vende.",
     },
     {
       id: "pedir-orden",
@@ -173,7 +173,7 @@ export const GUIA_FRESCURA: Guia = {
       ancla: "frescura.filtros",
       opcional: true,
       titulo: "Filtra por tipo y estado",
-      texto: "Elige una categoría o un estado. «Por decidir» deja solo las que esperan tu decisión, con su número; «Decididas», las que ya la tienen. «Quitar filtros» vuelve a mostrar todo.",
+      texto: "Elige una categoría o un estado. «Por decidir» deja solo las que esperan tu decisión, con su número; «Decididas», las que ya la tienen. «Limpiar filtros» vuelve a mostrar todo.",
     },
     {
       id: "buscador",

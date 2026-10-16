@@ -13,6 +13,7 @@
  */
 
 import type { CampoDeGuia } from "./guia-campos";
+import { FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
 
 /** Una sede con precio propio, como la devuelve `fn_precios_sede_producto`. */
 export type PrecioDeSede = {
@@ -58,7 +59,7 @@ export function leerMonto(texto: string): number | null {
   return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
 }
 
-export const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+export const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
 /** Cuánto se aleja un precio del general, en fracción (0,1 = 10 % más; −0,1 = 10 % menos). Sin general → null. */
 export function diferencia(precio: number, general: number | null): number | null {
@@ -409,14 +410,16 @@ export function camposPonerPrecio(h: {
   // «Igual» solo si TODAS las tallas valen eso (`general` es null cuando cambia según la talla): es lo que rechaza la base.
   const igual = precio !== null && h.general !== null && Math.abs(precio - h.general) < 0.005;
   const bajoCosto = bajoElCostoSinIgual(precio, h.general, h.costoMaximo ?? null);
+  // ADR-0415: ninguna prenda pasa de S/ 5 000 (la base lo rechaza con `precios_sede_prenda_precio_con_tope`).
+  const sobreTope = precio !== null && precio > MAX_PRECIO_PRENDA;
   return [
     { id: "tienda", nombre: "Tienda", requerido: true, hecho: h.tiendaId !== null, pendiente: "Elige la tienda." },
     {
       id: "precio",
       nombre: "Precio en esta tienda",
       requerido: true,
-      hecho: precio !== null && !igual && !bajoCosto,
-      pendiente: igual ? "Ese ya es el precio de la prenda: escribe otro." : bajoCosto ? FRASE_BAJO_COSTO : "Escribe el precio de esta tienda.",
+      hecho: precio !== null && !igual && !bajoCosto && !sobreTope,
+      pendiente: sobreTope ? FRASE_PRECIO_CON_TOPE : igual ? "Ese ya es el precio de la prenda: escribe otro." : bajoCosto ? FRASE_BAJO_COSTO : "Escribe el precio de esta tienda.",
     },
     { id: "motivo", nombre: "Por qué", requerido: true, hecho: h.motivo.trim().length >= 3, pendiente: "Escribe por qué esta tienda tiene otro precio." },
     { id: "responsable", nombre: "Quién lo cambia", requerido: true, hecho: h.responsableListo, pendiente: h.responsableMotivo ?? "Elige quién lo cambia." },

@@ -1,8 +1,9 @@
 import type { CSSProperties, ReactNode } from "react";
 import { FechaHoraLima } from "@/components/ui/FechaHoraLima";
 
-/** La cabecera de Cambios, Devoluciones y Caja (Atelier, 2026-09-19), y desde el 2026-09-26 también la
- *  de Inventario (ADR-0220): arriba, dónde y cuándo —la sede que se mira y la hora de Lima, viva—, con
+/** La cabecera de Cambios, Devoluciones y Caja (Atelier, 2026-09-19), desde el 2026-09-26 también la
+ *  de Inventario (ADR-0220) y desde el 2026-10-14 la de TODO el ERP menos Finanzas (Felipe, `/unificar`,
+ *  ADR-0358): Compras, Recibir, Producción, Catálogo, Configuración, Rendimiento, Actividad, Inicio… arriba, dónde y cuándo —la sede que se mira y la hora de Lima, viva—, con
  *  el hilo de CAYLA (taupe) trazándose a su lado; después el título en la serif de la casa y su frase.
  *  A la derecha va UNA cosa: lo que acompañe (el resumen de la sede, el reloj de Caja) o, si la pantalla
  *  no trae nada de eso, sus acciones. El título es de 46 px: más presencia que el 30 de las demás
@@ -24,10 +25,12 @@ export function EncabezadoPagina({
 }: {
   sede: string;
   titulo: ReactNode;
-  subtitulo: ReactNode;
+  /** La frase bajo el título. Opcional: una ficha (Editar producto) dice lo suyo con el título. */
+  subtitulo?: ReactNode;
   /** La línea de arriba dice solo el día: la pantalla trae su propio reloj (Caja). */
   sinHora?: boolean;
-  /** Algo más que decir en la línea de arriba, tras la hora (Facturación: desde cuándo está lo que se ve). */
+  /** Algo más que decir en la línea de arriba, tras la hora: desde cuándo está lo que se ve (Facturación) o de dónde se llegó, lo que
+   *  antes era un sobretítulo («Productos · Blusa Emma» en Etiquetas, el documento de una factura, el código de una prenda). */
   detalle?: ReactNode;
   /** La vuelta a la pantalla de arriba: `<Volver … />`, una flecha a la izquierda de la línea «sede · fecha»
    *  (Felipe, 2026-10-06, ADR-0220 act.). Antes iba en `pie` como botón con texto y ocupaba una fila entera bajo la frase. */
@@ -58,7 +61,7 @@ export function EncabezadoPagina({
           </p>
         </div>
         <h1 className="font-display mt-3 text-4xl leading-none tracking-tight text-tinta sm:text-[46px]">{titulo}</h1>
-        <p className="mt-2.5 max-w-md text-[15px] text-tinta/70">{subtitulo}</p>
+        {subtitulo && <p className="mt-2.5 max-w-md text-[15px] text-tinta/70">{subtitulo}</p>}
         {bajoLaFrase && <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2.5">{bajoLaFrase}</div>}
       </div>
       {derechaOcupada

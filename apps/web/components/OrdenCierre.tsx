@@ -10,7 +10,7 @@ import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoMonto } from "@/components/ui/campos";
 import { MatrizOrdenTabla } from "@/components/MatrizOrden";
-import { costoUnitario, segundas, totalBuenas, urlLlevarATiendas, type MatrizOrden } from "@/lib/produccion-reglas";
+import { costoUnitario, problemaDeBuenas, segundas, totalBuenas, urlLlevarATiendas, type MatrizOrden } from "@/lib/produccion-reglas";
 import type { OrdenProduccion } from "@/lib/produccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -79,6 +79,12 @@ export function OrdenCierre({
   async function confirmar(confirmaCostoAtipico = false) {
     if (total <= 0) {
       avisar.error("No salió ninguna prenda buena — si el lote se perdió, anula la orden en vez de cerrarla.");
+      return;
+    }
+    // ADR-0415: hasta el doble de lo pedido por talla (o 5 más si es chica); la base dice lo mismo (`buenas_de_mas`).
+    const deMas = problemaDeBuenas(orden.lineas, buenas);
+    if (deMas) {
+      avisar.error(deMas);
       return;
     }
     if (!responsable.listo) {
@@ -190,8 +196,8 @@ export function OrdenCierre({
           onConfirmar={() => confirmar(true)}
         />
       ) : (
-        <Boton peso="primario" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="mt-4 w-full" onClick={() => confirmar()}>
-          {cargando ? "Cerrando…" : orden.esMuestra ? "Terminar muestra" : "Confirmar entrada al stock"}
+        <Boton textoCargando="Cerrando…" peso="primario" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="mt-4 w-full" onClick={() => confirmar()}>
+          {orden.esMuestra ? "Terminar muestra" : "Confirmar entrada al stock"}
         </Boton>
       )}
     </section>

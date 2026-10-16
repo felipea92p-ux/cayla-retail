@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Archive, Bell, Check, MessageCircle, Printer, SearchX, SlidersHorizontal } from "lucide-react";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { ResumenApartados } from "@/lib/separaciones";
@@ -12,19 +12,21 @@ import {
   coincide,
   colaPorAvisar,
   encendida,
-  diaLima,
   estadoVisible,
   formatoCelular,
   paraQuienPedido,
   textoDevolucion,
+  textoPagosDeFila,
   textoEstadoPedido,
   type Apartado,
   type PedidoApartado,
   type AvisoApartado,
   type ClaveEstado,
 } from "@/lib/separaciones-reglas";
+import { diaLima } from "@/lib/fechas-lima";
 import { BarraPlazo, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
-import { CancelarPedidoModal, DevolverModal, EnviarPedidoModal, ExtenderModal, LiberarModal, RecordarModal, ReimprimirApartadoModal } from "@/components/apartados/ModalesApartado";
+import { CancelarPedidoModal, DevolverModal, EnviarPedidoModal, LiberarModal, RecordarModal, ReimprimirApartadoModal } from "@/components/apartados/ModalesApartado";
+import { DetalleApartadoModal, type ModoDetalle } from "@/components/apartados/DetalleApartado";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { SubirPedidoAlAlmacenModal } from "@/components/PedidoClienteModales";
 import { envioConCliente, type PedidoParaSubir } from "@/lib/pedidos-con-cliente-reglas";
@@ -165,7 +167,15 @@ export function TodosVista({
   };
   const [liberar, setLiberar] = useState<Apartado | null>(null);
   const [devolver, setDevolver] = useState<Apartado | null>(null);
-  const [extender, setExtender] = useState<Apartado | null>(null);
+  // El detalle de un apartado (ADR-0414): se abre al tocar la fila, o directo en «Aplazar» desde su botón. Se guarda el id, no la fila:
+  // al abonar o aplazar la página se refresca y el detalle lee el apartado ya cambiado.
+  const [detalle, setDetalleCrudo] = useState<{ id: string; modo: ModoDetalle } | null>(null);
+  // El botón del nombre de la fila que abrió la hoja: al cerrarla, el foco vuelve ahí (si no, caía al fondo de la página: TEC-06).
+  const filaQueAbrio = useRef<HTMLElement | null>(null);
+  const setDetalle = (d: { id: string; modo: ModoDetalle } | null) => {
+    if (d) filaQueAbrio.current = document.querySelector<HTMLElement>(`[data-detalle-de="${d.id}"]`);
+    setDetalleCrudo(d);
+  };
   // «Reimprimir» (ADR-0367): el ticket de cualquier apartado de la lista, abierto o cerrado.
   const [reimprimir, setReimprimir] = useState<Apartado | null>(null);
   // Recordar (Apartados v2, paso 1): la cola del día o una sola clienta desde su fila. Lo avisado en esta visita se
@@ -217,7 +227,7 @@ export function TodosVista({
 
   const cifras = [
     { etiqueta: "Por recoger", valor: String(resumen.porRecoger), pie: `${resumen.prendasGuardadas} ${resumen.prendasGuardadas === 1 ? "prenda guardada" : "prendas guardadas"}` },
-    { etiqueta: "En custodia", valor: money(resumen.enCustodia), pie: `Anticipos: entran a ventas al entregar${resumen.enCustodiaEfectivo > 0 ? ` · ${money(resumen.enCustodiaEfectivo)} fue en efectivo` : ""}`, custodia: true },
+    { etiqueta: "En custodia", valor: money(resumen.enCustodia), pie: `Adelantos: entran a ventas al entregar${resumen.enCustodiaEfectivo > 0 ? ` · ${money(resumen.enCustodiaEfectivo)} fue en efectivo` : ""}`, custodia: true },
     { etiqueta: "Por devolver", valor: money(resumen.montoPorDevolver), pie: `${resumen.porDevolver} ${resumen.porDevolver === 1 ? "cliente espera" : "clientes esperan"} su dinero`, alerta: resumen.porDevolver > 0 },
     { etiqueta: "Vencen en 2 días", valor: String(resumen.vencenPronto), pie: "Buen momento para escribirles" },
   ];
@@ -260,7 +270,7 @@ export function TodosVista({
 
       {conOtraSede && pedidos.length > 0 && (
         <section data-guia="apartados.pedidos" className="rounded-2xl border border-sand">
-          <TituloSeccion nivel={3} dato={<b>{pedidos.length}</b>} className="border-b border-sand px-5 py-3">
+          <TituloSeccion nivel={3} cuenta={pedidos.length} className="border-b border-sand px-5 py-3">
             Pedidos entre tiendas
           </TituloSeccion>
           <ul className="divide-y divide-sand">
@@ -456,20 +466,39 @@ export function TodosVista({
           if (filas.length === 0) return null;
           return (
             <section key={g.titulo} data-guia="apartados.lista">
-              <TituloSeccion nivel={3} dato={<b>{filas.length}</b>} className="mb-2.5">
+              <TituloSeccion nivel={3} cuenta={filas.length} className="mb-2.5">
                 {g.titulo}
               </TituloSeccion>
               <ul className="divide-y divide-sand overflow-hidden rounded-2xl border border-sand">
                 {filas.map(({ a, e }, i) => (
-                  <li key={a.id} style={{ ["--i" as string]: i }} className="anim-sube grid items-center gap-x-5 gap-y-2 px-5 py-3.5 hover:bg-crema/60 md:grid-cols-[minmax(190px,1.3fr)_minmax(130px,1fr)_150px_170px_auto]">
+                  <li
+                    key={a.id}
+                    style={{ ["--i" as string]: i }}
+                    // Toda la fila abre el detalle; sus botones hacen lo suyo. Un clic que sube desde una hoja abierta (portal de React) no
+                    // es de la fila (ADR-0128): se ignora lo que no nació en su DOM.
+                    onClick={(ev) => {
+                      if (!ev.currentTarget.contains(ev.target as Node) || (ev.target as HTMLElement).closest("button, a")) return;
+                      setDetalle({ id: a.id, modo: "ver" });
+                    }}
+                    className="anim-sube grid cursor-pointer items-center gap-x-5 gap-y-2 px-5 py-3.5 hover:bg-crema/60 md:grid-cols-[minmax(190px,1.3fr)_minmax(130px,1fr)_150px_170px_auto]"
+                  >
                     <div className="flex min-w-0 items-center gap-3">
                       <span className="font-display grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sand/70 text-sm">{`${a.nombres[0] ?? ""}${a.apellidos[0] ?? ""}`.toUpperCase()}</span>
                       <div className="min-w-0">
-                        <p className="truncate font-semibold text-tinta">{a.nombres} {a.apellidos}</p>
+                        {/* El nombre es el botón de la fila para el teclado y el lector; con el mouse, toda la fila. */}
+                        <button
+                          type="button"
+                          onClick={() => setDetalle({ id: a.id, modo: "ver" })}
+                          aria-label={`Ver el detalle del apartado ${a.codigo} de ${a.nombres} ${a.apellidos}`}
+                          data-detalle-de={a.id}
+                          className="block max-w-full truncate text-left font-semibold text-tinta hover:underline focus-visible:underline"
+                        >
+                          {a.nombres} {a.apellidos}
+                        </button>
                         <p className="text-xs text-tinta/60 tabular-nums">
                           {ver.celular && a.celular && `${formatoCelular(a.celular)} · `}<span className="font-mono">{a.codigo}</span>
                           {ver.estante && conEstante && a.estante && (
-                            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-hueso px-1.5 font-mono text-[10.5px] text-tinta/80"><Archive className="h-2.5 w-2.5" aria-hidden />{a.estante}</span>
+                            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-hueso px-1.5 font-mono text-[10.5px] text-tinta/80"><Archive className="h-3 w-3" aria-hidden />{a.estante}</span>
                           )}
                         </p>
                         {ver.asesora && a.asesora && <p className="text-[11.5px] text-tinta/55">atendió {a.asesora}</p>}
@@ -487,30 +516,27 @@ export function TodosVista({
                       <b className="font-semibold">{money(a.adelanto)}</b> <span className="text-xs text-tinta/55">de {money(a.total)}</span>
                       <p className="text-xs text-tinta/60">
                         {a.estado === "liberada" ? `por ${textoDevolucion(a)}` : a.estado === "abierta" ? `saldo ${money(a.saldo)}` : "cerrado"}
-                        {conAbonos && a.pagos.some((p) => p.abono) && (
-                          <span className="text-verde-profundo"> · {a.pagos.filter((p) => p.abono).length} {a.pagos.filter((p) => p.abono).length === 1 ? "abono" : "abonos"}</span>
-                        )}
+                        {textoPagosDeFila(a.pagos) && <span className="text-verde-profundo"> · {textoPagosDeFila(a.pagos)}</span>}
                       </p>
                     </div>
                     <div className="space-y-1">
                       <EstadoChip {...e} />
-                      {a.estado === "abierta" && <BarraPlazo creadaEl={a.creadaEn.slice(0, 10)} hoy={hoy} />}
+                      {a.estado === "abierta" && <BarraPlazo creadaEl={diaLima(a.creadaEn)} hoy={hoy} />}
                       <p className="text-[11.5px] text-tinta/60">
                         {a.estado === "abierta" ? `vence ${fechaCorta(a.venceEl)}${a.extensiones ? " · extendido" : ""}` : a.estado === "liberada" ? (a.liberadaSola ? "se liberó solo" : "liberado") : a.estado === "entregada" ? `boleta ${a.comprobanteFinal ?? a.comprobanteAnticipo ?? ""}` : a.notaCredito ? `NC ${a.notaCredito}` : "devuelto"}
                       </p>
                     </div>
                     <div className="flex flex-wrap justify-end gap-1.5">
-                      {a.comprobanteAnticipo && (
-                        <button
-                          type="button"
-                          onClick={() => setReimprimir(a)}
-                          aria-label={`Reimprimir el ticket de ${a.codigo}`}
-                          title="Reimprimir el ticket"
-                          className={`${BOTON_CHICO} inline-flex items-center`}
-                        >
-                          <Printer className="h-3.5 w-3.5" aria-hidden />
-                        </button>
-                      )}
+                      {/* Todo apartado tiene ticket: la constancia (los nuevos, ADR-0399) o su boleta de anticipo (los viejos). */}
+                      <button
+                        type="button"
+                        onClick={() => setReimprimir(a)}
+                        aria-label={`Reimprimir el ticket de ${a.codigo}`}
+                        title="Reimprimir el ticket"
+                        className={`${BOTON_CHICO} inline-flex items-center`}
+                      >
+                        <Printer className="h-3.5 w-3.5" aria-hidden />
+                      </button>
                       {(e.clave === "vigente" || e.clave === "porvencer" || e.clave === "vencida") && a.celular !== "" &&
                         (() => {
                           // El botón de cada fila abre la misma ventana que el lote, con esta sola clienta: así todo
@@ -531,8 +557,8 @@ export function TodosVista({
                         })()}
                       {e.clave === "vencida" && puedeGestionar && (
                         <>
-                          <button type="button" disabled={a.extensiones >= EXTENSIONES_MAX} title={a.extensiones >= EXTENSIONES_MAX ? "Ya se extendió una vez" : undefined} onClick={() => setExtender(a)} className={BOTON_CHICO}>
-                            +7 días
+                          <button type="button" disabled={a.extensiones >= EXTENSIONES_MAX} title={a.extensiones >= EXTENSIONES_MAX ? `Ya se aplazó ${EXTENSIONES_MAX} veces` : "Aplazar el vencimiento"} onClick={() => setDetalle({ id: a.id, modo: "aplazar" })} className={BOTON_CHICO}>
+                            Aplazar
                           </button>
                           <button type="button" onClick={() => setLiberar(a)} className={BOTON_CHICO}>Liberar</button>
                         </>
@@ -569,7 +595,32 @@ export function TodosVista({
         />
       )}
       {reimprimir && <ReimprimirApartadoModal apartado={reimprimir} sede={ubicacionEtiqueta} onClose={() => setReimprimir(null)} />}
-      {extender && <ExtenderModal apartado={extender} ubicacion={ubicacion} onClose={() => setExtender(null)} />}
+      {(() => {
+        const elegido = detalle ? (fuente.find((x) => x.id === detalle.id) ?? apartados.find((x) => x.id === detalle.id)) : undefined;
+        return (
+          elegido &&
+          detalle && (
+            <DetalleApartadoModal
+              key={`${elegido.id}:${detalle.modo}`}
+              apartado={elegido}
+              ubicacion={ubicacion}
+              hoy={hoy}
+              cajaAbierta={cajaAbierta}
+              puedeGestionar={puedeGestionar}
+              conAbonos={conAbonos}
+              conEstante={conEstante}
+              prendas={prendas}
+              modoInicial={detalle.modo}
+              alCerrarEnfocar={filaQueAbrio}
+              onEntregar={(id) => {
+                setDetalle(null);
+                irAEntregar(id);
+              }}
+              onClose={() => setDetalle(null)}
+            />
+          )
+        );
+      })()}
       {liberar && <LiberarModal apartado={liberar} ubicacion={ubicacion} onClose={() => setLiberar(null)} />}
       {devolver && <DevolverModal apartado={devolver} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onClose={() => setDevolver(null)} />}
     </div>

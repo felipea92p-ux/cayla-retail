@@ -17,12 +17,12 @@ import { PiezaLiquidacionModal } from "@/components/liquidacion/PiezaLiquidacion
 import { PrecioMinimoLiquidacion } from "@/components/liquidacion/PrecioMinimoLiquidacion";
 import { createClient } from "@/lib/supabase/client";
 import { normalizarBusqueda } from "@/lib/combo-reglas";
+import { diaLima } from "@/lib/fechas-lima";
 import {
   cifrasDe,
   codigoDeLiquidacion,
   diasALaVenta,
   tiempoALaVenta,
-  fechaLima,
   filtrar,
   piezaLeidaDeJson,
   soles,
@@ -147,7 +147,7 @@ export function LiquidacionPantalla({
           activa={filtro === "disponibles"}
           onClick={() => setFiltro("disponibles")}
         >
-          {cifras.disponibles === 0 ? "ninguna prenda todavía" : `S/ ${soles(cifras.valorDisponible)} si se venden todas`}
+          {cifras.disponibles === 0 ? "ninguna prenda todavía" : `S/\u00a0${soles(cifras.valorDisponible)} si se venden todas`}
         </TarjetaCifra>
         {/* Las tres filtran (/formidable, H5): antes «Rebajadas» tenía la misma forma y no hacía nada. */}
         <TarjetaCifra
@@ -170,7 +170,7 @@ export function LiquidacionPantalla({
           activa={filtro === "vendidas"}
           onClick={() => setFiltro("vendidas")}
         >
-          {cifras.vendidasMes === 0 ? "nada cobrado este mes" : `S/ ${soles(cifras.cobradoMes)} cobrados`}
+          {cifras.vendidasMes === 0 ? "nada cobrado este mes" : `S/\u00a0${soles(cifras.cobradoMes)} cobrados`}
         </TarjetaCifra>
       </div>
 
@@ -261,13 +261,13 @@ export function LiquidacionPantalla({
                 {/* El precio que cobra la caja arriba y, si se rebajó, el de entrada tachado DEBAJO: lado a lado se partían en dos líneas
                     a 800 px (/chaos, 2026-10-10). */}
                 <span className="flex flex-col items-end tabular-nums text-tinta">
-                  <span className="whitespace-nowrap">S/ {soles(p.precio)}</span>
-                  {p.precioInicial > p.precio && <span className="liq-tachado text-[12px] leading-tight">S/ {soles(p.precioInicial)}</span>}
+                  <span className="whitespace-nowrap">S/&nbsp;{soles(p.precio)}</span>
+                  {p.precioInicial > p.precio && <span className="liq-tachado text-[12px] leading-tight">S/&nbsp;{soles(p.precioInicial)}</span>}
                 </span>
                 <span className="text-[13px] text-taupe">
                   {p.estado === "disponible"
                     ? tiempoALaVenta(diasALaVenta(p, hoy))
-                    : (fechaLima(p.estado === "vendida" ? p.vendidaEn : p.retiradaEn) ?? "—")}
+                    : (diaLima(p.estado === "vendida" ? p.vendidaEn : p.retiradaEn) ?? "—")}
                 </span>
                 <span className="text-right">
                   <Chip tono={p.estado === "disponible" ? (p.etiquetas > 1 ? "ambar" : "verde") : p.estado === "vendida" ? "pizarra" : "apagado"}>

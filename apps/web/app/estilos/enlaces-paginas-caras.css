@@ -54,13 +54,13 @@
   /* Antes de medir la píldora (el HTML del servidor, sin JavaScript), el número actual se pinta él mismo. */
   .paginas:not([data-pista]) .paginas-n[aria-current="page"] { background: var(--color-tinta); }
   .paginas-n:is(:disabled, [aria-disabled="true"]) {
-    color: color-mix(in srgb, var(--color-tinta) 28%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 28%, transparent); /* contraste: no aplica — botón deshabilitado (WCAG lo exime) */
     pointer-events: none;
   }
   .paginas-n svg { width: 16px; height: 16px; flex-shrink: 0; transition: translate 200ms var(--ease-cayla); }
   .paginas-n.atras:hover svg { translate: -2px 0; }
   .paginas-n.adelante:hover svg { translate: 2px 0; }
-  .paginas-corte { width: 20px; text-align: center; color: color-mix(in srgb, var(--color-tinta) 40%, transparent); }
+  .paginas-corte { width: 20px; text-align: center; color: color-mix(in srgb, var(--color-tinta) 50%, transparent); } /* contraste: gráfico sobre papel, crema */
   .paginas-grande .paginas-n { min-width: 36px; height: 36px; border-radius: 10px; }
   .paginas-grande .paginas-pista { border-radius: 10px; }
   /* La paginación por cursor (sin números): las mismas flechas, con su texto. */

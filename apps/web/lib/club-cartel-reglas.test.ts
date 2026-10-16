@@ -18,33 +18,33 @@ describe("el cartel «Invitación»: lo que dice sale de la base", () => {
     const t = textosDelCartel(base())!;
     expect(t.lineas).toEqual([
       { beneficio: "Tu cumpleaños", valor: "10 %" },
-      { beneficio: "Cada aniversario*", valor: "vale de S/ 20 a 60" },
+      { beneficio: "Cada aniversario*", valor: "vale de S/\u00a020 a 60" },
       { beneficio: "Lo nuevo, primero", valor: "por WhatsApp" },
     ]);
     expect(letraChicaDelCartel("Tienda TRU", t)).toBe(
-      "Tienda TRU · *Un año cuenta si hiciste 6 compras o sumaste S/ 600. Novedades por WhatsApp solo si las pides. Solo mayores de 18. Condiciones al escanear.",
+      "Tienda TRU · *Un año cuenta si hiciste 6 compras o sumaste S/\u00a0600. Novedades por WhatsApp solo si las pides. Solo mayores de 18. Condiciones al escanear.",
     );
   });
 
   it("si el líder cambia los beneficios, el cartel cambia con ellos (ninguna cifra escrita a mano)", () => {
     const t = textosDelCartel(base({ pct: 15, escala: escala([25, 35, 45, 55, 80]), compras: 4, monto_minimo: 450 }))!;
     expect(t.lineas[0].valor).toBe("15 %");
-    expect(t.lineas[1].valor).toBe("vale de S/ 25 a 80");
-    expect(t.condiciones).toContain("si hiciste 4 compras o sumaste S/ 450.");
+    expect(t.lineas[1].valor).toBe("vale de S/\u00a025 a 80");
+    expect(t.condiciones).toContain("si hiciste 4 compras o sumaste S/\u00a0450.");
   });
 
   it("el vale va del menor al mayor de la escala, aunque la escala no venga ordenada ni crezca de a poco", () => {
     expect(textosDelCartel(base({ escala: [{ anio: 3, monto: 40 }, { anio: 1, monto: 20 }, { anio: 5, monto: 60 }, { anio: 2, monto: 30 }, { anio: 4, monto: 50 }] }))!.lineas[1].valor).toBe(
-      "vale de S/ 20 a 60",
+      "vale de S/\u00a020 a 60",
     );
-    expect(textosDelCartel(base({ escala: escala([40, 40, 40, 40, 40]) }))!.lineas[1].valor).toBe("vale de S/ 40");
+    expect(textosDelCartel(base({ escala: escala([40, 40, 40, 40, 40]) }))!.lineas[1].valor).toBe("vale de S/\u00a040");
   });
 
   it("con céntimos se escribe como un precio de la tienda; el % con decimales también", () => {
     const t = textosDelCartel(base({ pct: 12.5, escala: escala([25.5, 30, 40, 50, 60.25]), monto_minimo: 599.9 }))!;
     expect(t.lineas[0].valor).toBe("12.5 %");
-    expect(t.lineas[1].valor).toBe("vale de S/ 25.50 a 60.25");
-    expect(t.condiciones).toContain("sumaste S/ 599.90.");
+    expect(t.lineas[1].valor).toBe("vale de S/\u00a025.50 a 60.25");
+    expect(t.condiciones).toContain("sumaste S/\u00a0599.90.");
   });
 
   it("una sola compra se dice en singular", () => {

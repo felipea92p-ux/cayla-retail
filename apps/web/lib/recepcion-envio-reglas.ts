@@ -766,7 +766,7 @@ export function leerCosto(t: string): { centimos: number | null; problema: strin
   const limpio = t.replace(/\s+/g, "");
   const n = leerNumero(limpio, 2);
   if (n.tipo === "vacio") return { centimos: null, problema: "Escribe el costo por unidad." };
-  if (n.tipo === "ok") return n.escalado > COSTO_MAXIMO_CENTIMOS ? { centimos: null, problema: "El costo va hasta S/ 99,999.99." } : { centimos: n.escalado, problema: null };
+  if (n.tipo === "ok") return n.escalado > COSTO_MAXIMO_CENTIMOS ? { centimos: null, problema: "El costo va hasta S/\u00a099,999.99." } : { centimos: n.escalado, problema: null };
   switch (n.motivo) {
     case "negativo":
       return { centimos: null, problema: "El costo no puede ser negativo." };
@@ -1182,8 +1182,10 @@ export function detalleRecibido(r: Pick<ResultadoRecepcion, "buenas" | "danadas"
   return partes.length > 0 ? partes.join(" · ") : "nada por anotar";
 }
 
-/** «ENV-000061 recibido · 30 prendas al almacén, 2 a cuarentena · faltan 2». */
-export const textoRecibido = (r: ResultadoRecepcion): string => `${tituloRecibido(r)} · ${detalleRecibido(r)}`;
+/** «ENV-000061 recibido · 30 prendas al almacén, 2 a cuarentena · faltan 2». Lo dice «Cómo se cerró», que a veces solo tiene el
+ *  resumen que arma con las líneas (sin lotes ni despacho): por eso pide solo lo que usan sus dos piezas. */
+export const textoRecibido = (r: Pick<ResultadoRecepcion, "numero" | "buenas" | "danadas" | "faltan" | "sobran">): string =>
+  `${tituloRecibido(r)} · ${detalleRecibido(r)}`;
 
 /** Qué decir cuando se corta la señal al recibir. La recepción pudo llegar a la base y perderse solo la respuesta: reintentar sin cambiar nada
  *  es seguro (el mismo token con los mismos datos devuelve la misma recepción, sin repetir nada). */
@@ -1191,7 +1193,7 @@ export const AVISO_DE_CORTE_RECEPCION =
   "Se cortó la conexión y no sabemos si la recepción llegó a guardarse. Vuelve a pulsar «Recibir» sin cambiar nada: si ya se guardó, no se repite.";
 
 export const AVISO_DE_CORTE_APERTURA =
-  "Se cortó la conexión y no sabemos si el envío se abrió. Vuelve a pulsar «Empezar a recibir»: si ya estaba abierto, no pasa nada.";
+  "Se cortó la conexión y no sabemos si el envío se abrió. Vuelve a pulsar el botón: si ya estaba abierto, no pasa nada.";
 
 export const AVISO_DE_CORTE_PRENDA =
   "Se cortó la conexión y no sabemos si la prenda se creó. Vuelve a pulsar el botón sin cambiar nada: si ya se creó, no se repite.";
@@ -1209,9 +1211,14 @@ export const TEXTO_QUIEN_COMPRO =
  *  42501 (otra sede, quien compró) y sin esto caerían al genérico «No se pudo…»: se dicen tal cual. `null` = no es uno de estos (el
  *  error sigue por `traducirError`: el responsable, la versión, la red). */
 const HINTS_DE_LA_RECEPCION = /^(recepcion|recibir|envio|orden_compra|orden)_[a-z_]+$/;
+/** La base dice «pulsa «Empezar a recibir»» (el botón de la fase 4); con la cara A el botón es «Abrir el fardo». El texto vive en nueve
+ *  lugares del SQL, varios dentro de reemplazos anclados y huellas md5: se traduce aquí, por su pista, en vez de tocarlo allá. */
+export const TEXTO_ENVIO_SIN_ABRIR = "Este envío todavía no se abrió: ábrelo primero y después cuenta.";
+
 export function mensajeDeLaRecepcion(error: { message?: string | null; hint?: string | null } | null | undefined): string | null {
   if (!error?.message) return null;
   if (esQuienCompro(error)) return TEXTO_QUIEN_COMPRO;
+  if (error.hint === "envio_sin_abrir") return TEXTO_ENVIO_SIN_ABRIR;
   if (error.hint && HINTS_DE_LA_RECEPCION.test(error.hint) && !/_sin_modulo$/.test(error.hint)) return error.message;
   return null;
 }
@@ -1432,7 +1439,9 @@ export function borradorDePrenda(ctx: ContextoPrenda, o: { precioSugerido?: numb
   }
   return {
     nombre: "",
-    tallaIds: ctx.tallas.filter((t) => t.habitual).map((t) => t.id),
+    // Sin tallas marcadas (Felipe 2026-10-13, /formidable): las «de siempre» venían marcadas aunque no hubieran llegado, y la prenda
+    // nacía con tallas en cero que después salían en Existencias y en las etiquetas. Se marcan las que llegaron.
+    tallaIds: [],
     colorCodigos: [],
     precio: o.precioSugerido != null && o.precioSugerido > 0 ? costoComoTexto(o.precioSugerido) : "",
     descripcion: "",
@@ -1467,8 +1476,8 @@ export function leerPrecioVenta(t: string, obligatorio: boolean): { centimos: nu
     if (n.motivo === "ambiguo") return { centimos: null, problema: `¿«${limpio}» son ${limpio.replace(".", "")} soles? Escríbelo sin el punto de miles.` };
     return { centimos: null, problema: "Escribe el precio con punto decimal, por ejemplo 59.90." };
   }
-  if (n.escalado <= 0) return { centimos: null, problema: "El precio de venta tiene que ser mayor que S/ 0." };
-  if (n.escalado > PRECIO_MAXIMO_CENTIMOS) return { centimos: null, problema: "El precio va hasta S/ 99,999.99." };
+  if (n.escalado <= 0) return { centimos: null, problema: "El precio de venta tiene que ser mayor que S/\u00a00." };
+  if (n.escalado > PRECIO_MAXIMO_CENTIMOS) return { centimos: null, problema: "El precio va hasta S/\u00a099,999.99." };
   return { centimos: n.escalado, problema: null };
 }
 
@@ -1477,9 +1486,10 @@ export function leerPrecioVenta(t: string, obligatorio: boolean): { centimos: nu
  * número, talla habilitada en la categoría, precio mayor que 0 y hasta S/ 99 999.99, tejido y patrón si la familia los pide) más lo que Nuevo
  * producto también exige (al menos una talla si la categoría las tiene). Los colores son opcionales: sin color, la prenda va «Sin color».
  *
- * `tocados` (ADR-0284 act. h): las tallas habituales y el precio que sugirió quien compró vienen puestos, pero importan (las tallas que
- * llegaron pueden ser otras; el precio es al que se vende). Mientras la persona no los toca son «sugeridos»: la luz pasa por ellos para que los
- * revise y nunca bloquean. Puestos mal (sin tallas, un precio que no sirve), bloquean como siempre.
+ * Las tallas arrancan sin marcar (Felipe 2026-10-13, /formidable): se marcan las que llegaron, y sin ninguna no se crea.
+ * `tocados.precio` (ADR-0284 act. h): el precio que sugirió quien compró viene puesto, pero importa (es al que se vende). Mientras la persona
+ * no lo toca es «sugerido»: la luz pasa por él para que lo revise y no bloquea. Puesto mal (un precio que no sirve), bloquea como siempre.
+ * (`tocados.tallas` queda en la firma por compatibilidad: ya no cambia nada.)
  */
 export function camposDePrenda(b: BorradorPrenda, ctx: ContextoPrenda, tocados: { tallas?: boolean; precio?: boolean } = {}): CampoDeGuia[] {
   const campos: CampoDeGuia[] = [];
@@ -1491,12 +1501,7 @@ export function camposDePrenda(b: BorradorPrenda, ctx: ContextoPrenda, tocados: 
   }
   if (ctx.tallas.length > 0) {
     const ok = tallasElegidas(b, ctx).length > 0;
-    const porRevisar = nueva && ok && !tocados.tallas;
-    campos.push(
-      porRevisar
-        ? { id: "prenda-tallas", nombre: "Tallas", requerido: false, sugerido: true, hecho: false, pendiente: "Revisa las tallas: vienen marcadas las de siempre. Deja solo las que llegaron." }
-        : { id: "prenda-tallas", nombre: "Tallas", requerido: true, hecho: ok, pendiente: "Elige las tallas que llegaron." },
-    );
+    campos.push({ id: "prenda-tallas", nombre: "Tallas", requerido: true, hecho: ok, pendiente: "Marca las tallas que llegaron." });
   }
   campos.push({ id: "prenda-colores", nombre: "Colores", requerido: false, hecho: b.colorCodigos.length > 0, pendiente: "" });
   if (!nueva) {
@@ -1562,7 +1567,7 @@ export function argsPrepararPrenda(
     despachoId: string;
     despachoItemId: string | null;
     categoriaId: string;
-    marcaId: string;
+    marcaId: string | null;
     productoId: string | null;
     confirmoDistinto: boolean;
     token: string;
@@ -1593,6 +1598,9 @@ export function argsPrepararPrenda(
 
 /** «Se crean 4: M y L en Negro y en Blanco»: lo que la hoja va a crear, para leerlo antes de pulsar. */
 export function textoDeLoQueSeCrea(b: BorradorPrenda, ctx: ContextoPrenda, nombreColor: (codigo: string) => string): string | null {
+  // Sin tallas marcadas en una categoría que las tiene, todavía no se crea nada: «1 combinación: Única» decía algo que no iba a pasar
+  // (la talla es obligatoria). Aparece apenas se marca la primera (las tallas arrancan sin marcar, Felipe 2026-10-13).
+  if (ctx.modo === "nueva" && ctx.tallas.length > 0 && tallasElegidas(b, ctx).length === 0) return null;
   const combinaciones = combinacionesDeLaHoja(b, ctx);
   if (combinaciones.length === 0) return null;
   const tallas = [...new Set(combinaciones.map((c) => c.talla_id))].map((id) => (id ? (ctx.tallas.find((t) => t.id === id)?.valor ?? "?") : "Única"));

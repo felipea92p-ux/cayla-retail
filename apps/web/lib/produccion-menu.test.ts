@@ -42,9 +42,9 @@ describe("puedeVerProduccion", () => {
 });
 
 describe("hijosMenuCompras (Compras es de las tiendas: parado en el Taller no se muestra — Felipe, 2026-09-21)", () => {
-  it("el líder ve las siete pantallas de Compras desde una tienda o un almacén, en el orden plan → proveedor → orden de compra → factura → recepción → pago → notas", () => {
+  it("el líder ve las siete pantallas de Compras desde una tienda o un almacén, en el orden plan → proveedor → orden de compra → factura → pago → fondos → notas (Recibir vive en Inventario desde el 2026-10-14)", () => {
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
-      expect(hijosMenuCompras({ esLider: true, ubicacionTipo })).toEqual(["plan", "proveedores", "ordenesCompra", "comprobantes", "recibir", "porPagar", "notasCredito"]);
+      expect(hijosMenuCompras({ esLider: true, ubicacionTipo })).toEqual(["plan", "proveedores", "ordenesCompra", "comprobantes", "porPagar", "fondos", "notasCredito"]);
     }
   });
 
@@ -55,9 +55,10 @@ describe("hijosMenuCompras (Compras es de las tiendas: parado en el Taller no se
   // ADR-0387 (Felipe 2026-10-12, «el módulo es la llave»): Plan de campaña y Órdenes de compra piden solo su módulo, no la plata de
   // Compras. Sin módulos (la forma vieja con que esta vista arma el menú) quien no es líder ve esas dos en una tienda o un almacén;
   // con módulos, cada cuenta ve solo las de su rol. Las cinco de plata siguen pidiendo `verDineroCompras`. En el Taller, nada.
-  it("quien no es líder ve en Compras solo lo que no pide la plata de Compras (Plan de campaña y Órdenes de compra); en el Taller, nada", () => {
+  // ADR-0362 fase 6 (decisión 65): Fondos por rendir, igual que esas dos, pide solo su módulo (nace sin rol: con módulos solo la ve el líder).
+  it("quien no es líder ve en Compras solo lo que no pide la plata de Compras (Plan de campaña, Órdenes de compra y Fondos por rendir); en el Taller, nada", () => {
     for (const ubicacionTipo of TIPOS) {
-      expect(hijosMenuCompras({ esLider: false, ubicacionTipo })).toEqual(ubicacionTipo === "taller" ? [] : ["plan", "ordenesCompra"]);
+      expect(hijosMenuCompras({ esLider: false, ubicacionTipo })).toEqual(ubicacionTipo === "taller" ? [] : ["plan", "ordenesCompra", "fondos"]);
     }
   });
 

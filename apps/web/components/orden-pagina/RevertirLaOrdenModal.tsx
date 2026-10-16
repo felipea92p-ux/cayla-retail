@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
-import { Modal, botonCancelar } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { traducirError } from "@/lib/error-escritura";
 import { RPC_REVERTIR_PRODUCCION, textoQuePasaAlRevertir, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 import { firmar } from "@/lib/responsable-reglas";
@@ -50,17 +50,17 @@ export function RevertirLaOrdenModal({ datos, onClose }: { datos: OrdenPagina; o
   }
 
   return (
-    <Modal titulo="¿Revertimos el cierre?" subtitulo={`${orden.numeroTexto} · ${orden.producto.referencia} · ${orden.cantidadBuenas ?? 0} buenas`} variante="hoja" conCerrar ancho="max-w-lg" onClose={onClose}>
+    <Modal titulo="¿Revertimos el cierre?" subtitulo={`${orden.numeroTexto} · ${orden.producto.referencia} · ${orden.cantidadBuenas ?? 0} buenas`} variante="hoja" tamano="mediana" onClose={onClose}>
       <form onSubmit={onSubmit} className="mt-3.5 space-y-4">
         <p className="text-sm text-tinta/75">{textoQuePasaAlRevertir(orden)}</p>
         <ComboResponsable control={responsable} deshabilitado={cargando} compacto />
         <div className="pie-hoja-fijo">
-          <div className="flex gap-2 border-t border-sand pt-3">
-            <button type="button" onClick={onClose} className={botonCancelar}>
+          <div className="pie-acciones border-t border-sand pt-3">
+            <Boton type="button" onClick={onClose}>
               Volver
-            </button>
-            <Boton type="submit" peso="peligro" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
-              {cargando ? "Revirtiendo…" : "Revertir cierre"}
+            </Boton>
+            <Boton type="submit" peso="peligro" cargando={cargando} textoCargando="Revirtiendo…" disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
+              Revertir cierre
             </Boton>
           </div>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { Chip } from "@/components/ui/Chip";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -22,6 +23,8 @@ import { detalleSeleccion, etiquetaVence, partirCoincidencia, plazoConsumido, TI
 import { useContar } from "@/lib/useContar";
 import { useFlip } from "@/lib/useFlip";
 import { Vacio } from "@/components/ui/Vacio";
+import { Casilla } from "@/components/ui/Casilla";
+import { FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 
 // Lista de Por pagar (maqueta 02 y celular de la 11). UNA tabla partida en tramos de urgencia
 // —Vencidas, Vencen esta semana, Más adelante— o, si se prefiere, agrupada por proveedor (para
@@ -295,12 +298,9 @@ export function PorPagarLista({
           (para quitarlo) y dice «de cuántos». La cifra cuenta hasta su valor nuevo al filtrar. */}
       <div className="anim-entra mb-2 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[12.5px] text-tinta/65" style={{ ["--i" as string]: Math.max(0, indice - 1) }}>
         {filtroLocal && (
-          <span className="label-cayla anim-entrada inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] py-1 pl-2.5 pr-1.5 text-[10px] text-tinta/75">
+          <FiltroPuesto onQuitar={quitarFiltro} etiqueta={`Quitar filtro ${filtroLocal.etiqueta}`}>
             {filtroLocal.etiqueta}
-            <button type="button" onClick={quitarFiltro} aria-label={`Quitar filtro ${filtroLocal.etiqueta}`} className="grid h-4 w-4 place-items-center rounded-full text-sm leading-none transition-colors hover:bg-tinta hover:text-crema">
-              ×
-            </button>
-          </span>
+          </FiltroPuesto>
         )}
         <span className="tabular-nums" aria-live="polite">
           {filtroLocal ? (
@@ -353,7 +353,7 @@ export function PorPagarLista({
                   </span>
                 )}
                 <span>{b.titulo}</span>
-                <span className="opacity-70 dark:opacity-100">· {contar(b.cantidad)}</span>
+                <span>· {contar(b.cantidad)}</span>
               </p>
               <p className="flex shrink-0 items-center gap-3.5 text-sm tabular-nums">
                 {b.proveedorId && (
@@ -367,7 +367,7 @@ export function PorPagarLista({
                 )}
                 <span>
                   <CifraQueCuenta valor={b.saldo} formato="soles" alMontar={llegando} />
-                  {b.parcial && <span className="ml-1 text-xs opacity-70 dark:opacity-85">en esta página</span>}
+                  {b.parcial && <span className="ml-1 text-xs dark:opacity-85">en esta página</span>}
                 </span>
               </p>
             </div>
@@ -432,7 +432,7 @@ export function PorPagarLista({
         }
         acciones={
           <>
-            <button type="button" onClick={() => setSeleccion([])} className="label-cayla text-[11px] text-tinta/65 transition-colors hover:text-rojo">
+            <button type="button" onClick={() => setSeleccion([])} className="btn-cayla btn-enlace text-[13px]">
               Limpiar
             </button>
             <Boton type="button" peso="primario" onClick={() => setPagando(true)}>
@@ -576,7 +576,7 @@ function FilaPorPagar({
   const colorVence = tramo === "vencidas" ? "text-rojo" : tramo === "semana" ? "text-ambar-profundo" : "text-tinta";
   const vence = c.fechaVencimiento ? etiquetaVence(c.fechaVencimiento, ahora) : "Sin fecha";
   const plazo = plazoConsumido(c, ahora);
-  const colorPlazo = tramo === "vencidas" ? "bg-rojo" : tramo === "semana" ? "bg-ambar" : "bg-tinta/45";
+  const tonoPlazo = tramo === "vencidas" ? "rojo" : tramo === "semana" ? "ambar" : "tinta";
   const pctPagado = c.total > 0 ? Math.min(1, c.pagado / c.total) : 0;
 
   // La cifra que cambió cuenta hasta su valor nuevo, y la fila que recibió un pago (sin saldarse) se enciende en verde.
@@ -635,7 +635,7 @@ function FilaPorPagar({
         </span>
       )}
       <span data-guia="por-pagar.casilla" className={`relative z-10 pt-0.5 @[40rem]:pt-0 ${sellada ? "opacity-55" : ""}`}>
-        <Casilla marcada={marcada} onAlternar={onAlternar} etiqueta={`Elegir ${c.documento} de ${c.proveedorNombre} para pagar`} />
+        <Casilla marcada={marcada} onCambio={onAlternar} etiqueta={`Elegir ${c.documento} de ${c.proveedorNombre} para pagar`} />
       </span>
       <div className={`min-w-0 flex-1 @[40rem]:flex-none ${sellada ? "opacity-55" : ""}`}>
         <span className="block truncate text-sm text-tinta">
@@ -651,7 +651,7 @@ function FilaPorPagar({
             <span className="truncate">{c.nota}</span>
           </span>
         )}
-        <span className="block text-xs text-tinta/55">Emitida {diaMes(c.fechaEmision)}</span>
+        <span className="block text-xs text-tinta/70">Emitida {diaMes(c.fechaEmision)}</span>
         <span className={`mt-1 block text-xs @[40rem]:hidden ${colorVence}`}>{vence}</span>
         {/* Lo que el proveedor todavía debe acreditar por un faltante cerrado: parte de este saldo que no
             hay que pagar. Va bajo el proveedor (la columna con sitio). Es su propio enlace al comprobante,
@@ -665,21 +665,17 @@ function FilaPorPagar({
       </div>
       <div className={`hidden @[40rem]:block ${sellada ? "opacity-55" : ""}`}>
         <span className={`block text-sm ${colorVence}`}>{vence}</span>
-        {c.fechaVencimiento && <span className="block text-xs tabular-nums text-tinta/55">{diaMes(c.fechaVencimiento)}</span>}
+        {c.fechaVencimiento && <span className="block text-xs tabular-nums text-tinta/70">{diaMes(c.fechaVencimiento)}</span>}
         {/* Plazo consumido (emisión → vencimiento): «vence en 14 días» no dice si era un plazo de 15 o de 60. */}
         {plazo && (
-          <span className="mt-[5px] block h-[3px] w-[5.5rem] overflow-hidden rounded-full bg-sand" title={`${plazo.usados} de ${plazo.total} días de plazo consumidos`}>
-            <span className={`anim-crece-x block h-full rounded-full ${colorPlazo}`} style={{ width: `${Math.round(plazo.fraccion * 100)}%`, ["--i" as string]: posicion }} />
-          </span>
+          <BarraAvance pct={plazo.fraccion * 100} alto="fina" tono={tonoPlazo} decorativa indice={posicion} title={`${plazo.usados} de ${plazo.total} días de plazo consumidos`} className="mt-[5px] w-[5.5rem]" />
         )}
       </div>
       <div className={`hidden text-right tabular-nums @[56rem]:block ${sellada ? "opacity-55" : ""}`}>
-        <span className={`block text-sm ${c.pagado > 0 ? "text-tinta" : "text-tinta/55"}`}>{c.pagado > 0 ? soles(c.pagado) : "Sin pagos"}</span>
-        <span className="block text-xs text-tinta/55">de {soles(c.total)}</span>
+        <span className={`block text-sm ${c.pagado > 0 ? "text-tinta" : "text-tinta/70"}`}>{c.pagado > 0 ? soles(c.pagado) : "Sin pagos"}</span>
+        <span className="block text-xs text-tinta/70">de {soles(c.total)}</span>
         {c.pagado > 0 && (
-          <span className="ml-auto mt-[5px] block h-[3px] w-[5.5rem] overflow-hidden rounded-full bg-sand" title={`${Math.round(pctPagado * 100)} % pagado`}>
-            <span className="anim-crece-x block h-full rounded-full bg-verde transition-[width] duration-700 ease-cayla" style={{ width: `${Math.round(pctPagado * 100)}%`, ["--i" as string]: posicion }} />
-          </span>
+          <BarraAvance pct={pctPagado * 100} alto="fina" decorativa indice={posicion} title={`${Math.round(pctPagado * 100)} % pagado`} className="ml-auto mt-[5px] w-[5.5rem]" />
         )}
       </div>
       <div className={`shrink-0 text-right ${sellada ? "opacity-55" : ""}`}>
@@ -693,30 +689,8 @@ function FilaPorPagar({
       <div data-guia="por-pagar.pagar" className={`relative z-10 hidden items-center justify-end gap-2 text-right @[40rem]:flex ${sellada ? "opacity-55" : ""}`}>
         <BotonPagar compra={c} compacto saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} />
         {/* La flecha aparece al pasar el mouse: dice «esta fila se abre», sin ocupar sitio en reposo. */}
-        <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 -translate-x-1.5 text-tinta/45 opacity-0 transition-[opacity,transform] duration-200 ease-cayla group-hover:translate-x-0 group-hover:opacity-100" />
+        <ChevronRight aria-hidden className="h-4 w-4 shrink-0 -translate-x-1.5 text-tinta/45 opacity-0 transition-[opacity,transform] duration-200 ease-cayla group-hover:translate-x-0 group-hover:opacity-100" />
       </div>
     </div>
-  );
-}
-
-// Casilla de 17 px como la de las maquetas: la marcada en tinta con el check en crema, y el tilde se DIBUJA al marcar
-// (`pathLength="1"` en el trazo). Un input nativo (invisible) sostiene el foco, el teclado y el lector de pantalla.
-function Casilla({ marcada, onAlternar, etiqueta }: { marcada: boolean; onAlternar: () => void; etiqueta: string }) {
-  return (
-    <label className="inline-flex cursor-pointer">
-      <input type="checkbox" checked={marcada} onChange={onAlternar} aria-label={etiqueta} className="peer sr-only" />
-      <span
-        aria-hidden
-        className={`grid h-[17px] w-[17px] place-items-center rounded-[4px] border-[1.5px] transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-rojo/60 ${
-          marcada ? "border-tinta bg-tinta text-crema" : "border-tinta/45 bg-papel hover:border-rojo"
-        }`}
-      >
-        {marcada && (
-          <svg viewBox="0 0 24 24" className="h-3 w-3 fill-none stroke-current" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-            <path pathLength={1} d="M20 6 9 17l-5-5" className="trazo-linea anim-tilde" />
-          </svg>
-        )}
-      </span>
-    </label>
   );
 }

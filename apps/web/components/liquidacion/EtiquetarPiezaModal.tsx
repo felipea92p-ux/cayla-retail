@@ -17,6 +17,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { camposDeEtiquetar } from "@/lib/liquidacion-guia";
 import { errorDeLiquidacion, MAX_DESCRIPCION_LIQUIDACION, piezaDeJson, precioDeTexto, soles, type PiezaLiquidacion } from "@/lib/liquidacion-reglas";
 import { sugerirDescripcionLiquidacion } from "@/lib/sugerencias-liquidacion";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 export type CategoriaLiquidacion = { id: string; nombre: string; prefijo: string | null; familia: string | null };
 
@@ -88,7 +89,7 @@ export function EtiquetarPiezaModal({
     token.current = crypto.randomUUID();
     setLista(pieza);
     onEtiquetada(pieza);
-    avisar.exito("Etiqueta creada", { detalle: `${pieza.descripcion ?? pieza.categoria} a S/ ${soles(pieza.precio)}. Imprímela y pégala en la prenda.` });
+    avisar.exito("Etiqueta creada", { detalle: `${pieza.descripcion ?? pieza.categoria} a S/\u00a0${soles(pieza.precio)}. Imprímela y pégala en la prenda.` });
   }
 
   function otra() {
@@ -107,10 +108,9 @@ export function EtiquetarPiezaModal({
       }
       onClose={onClose}
       variante="hoja"
-      ancho="max-w-md"
       // La ✕ arriba (/formidable, 2.ª prueba ciega): en «Lista para imprimir» los dos botones son «Etiquetar otra» e «Imprimir», y no
-      // se veía cómo terminar sin hacer ninguna de las dos.
-      conCerrar
+      // se veía cómo terminar sin hacer ninguna de las dos. Mientras se llena, la salida es «Cancelar» (ADR-0358, ronda 12: una sola).
+      conCerrar={Boolean(lista?.codigo)}
     >
       {lista?.codigo ? (
         <div className="space-y-4">
@@ -124,9 +124,9 @@ export function EtiquetarPiezaModal({
             <Boton type="button" onClick={otra}>
               + Etiquetar otra
             </Boton>
-            <Boton type="button" peso="primario" cargando={impresion.enviando} onClick={impresion.imprimir}>
+            <BotonImprimir peso="primario" cargando={impresion.enviando} onClick={impresion.imprimir}>
               Imprimir etiqueta
-            </Boton>
+            </BotonImprimir>
           </div>
           {impresion.hoja}
         </div>
@@ -146,7 +146,7 @@ export function EtiquetarPiezaModal({
             />
           </CampoGuiado>
           {/* Un solo rótulo para el precio (/formidable, ley 8): el título del bloque; el del campo queda para el lector de pantalla. */}
-          <CampoGuiado id="precio" guia={guia} titulo="Precio" ayuda={esLider ? `El mínimo es S/ ${soles(minimo)}; tú puedes bajarlo` : `Desde S/ ${soles(minimo)}`}>
+          <CampoGuiado id="precio" guia={guia} titulo="Precio" ayuda={esLider ? `El mínimo es S/\u00a0${soles(minimo)}; tú puedes bajarlo` : `Desde S/\u00a0${soles(minimo)}`}>
             <CampoMonto etiqueta="Precio" etiquetaOculta inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} />
           </CampoGuiado>
           <CampoGuiado id="responsable" guia={guia}>
@@ -154,7 +154,7 @@ export function EtiquetarPiezaModal({
           </CampoGuiado>
           <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
             <PieGuia guia={guia} listo="Todo listo. Después la imprimes y la pegas en la prenda." />
-            <div className="ml-auto flex gap-3">
+            <div className="ml-auto pie-acciones">
               <Boton type="button" onClick={onClose}>
                 Cancelar
               </Boton>

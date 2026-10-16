@@ -32,6 +32,8 @@ import {
 } from "@/lib/impuestos-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { Settings2 } from "lucide-react";
+import { BotonVer } from "@/components/ui/BotonDescargar";
+import { Boton } from "@/components/ui/campos";
 
 // Finanzas ▸ Impuestos (ADR-0195 F8), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, `vista-impuestos.js`):
 // cabecera con «CAYLA entera» y las descargas → cuatro cifras → el límite del régimen y lo que conviene revisar → los
@@ -113,15 +115,15 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
         acciones={
           <>
             <Chip versalitas={false}>CAYLA entera</Chip>
-            <button type="button" className="btn-cayla btn-secundario" disabled={bajando !== null} onClick={() => bajar("ventas")} data-guia="fin-impuestos.registro-ventas">
-              {bajando === "ventas" ? "Armando…" : "Registro de ventas"}
-            </button>
-            <button type="button" className="btn-cayla btn-secundario" disabled={bajando !== null} onClick={() => bajar("compras")} data-guia="fin-impuestos.registro-compras">
-              {bajando === "compras" ? "Armando…" : "Registro de compras"}
-            </button>
-            <button type="button" className="btn-cayla btn-primario" disabled={bajando !== null} onClick={() => bajar("paquete")} data-guia="fin-impuestos.paquete">
-              {bajando === "paquete" ? "Armando…" : "Paquete para el contador"}
-            </button>
+            <Boton cargando={bajando === "ventas"} textoCargando="Armando…" type="button" disabled={bajando !== null} onClick={() => bajar("ventas")} data-guia="fin-impuestos.registro-ventas">
+              Registro de ventas
+            </Boton>
+            <Boton cargando={bajando === "compras"} textoCargando="Armando…" type="button" disabled={bajando !== null} onClick={() => bajar("compras")} data-guia="fin-impuestos.registro-compras">
+              Registro de compras
+            </Boton>
+            <Boton peso="primario" cargando={bajando === "paquete"} textoCargando="Armando…" type="button" disabled={bajando !== null} onClick={() => bajar("paquete")} data-guia="fin-impuestos.paquete">
+              Paquete para el contador
+            </Boton>
           </>
         }
       />
@@ -135,7 +137,9 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
             : "Sin datos"}
         </TarjetaCifra>
         <TarjetaCifra etiqueta="IGV que descuentas" valor={foco ? solesRedondo(foco.credito) : null} {...entra(2)}>
-          {`Facturas de mercadería, gastos, activos e insumos${foco && foco.creditoNotas > 0 ? `, menos ${solesRedondo(foco.creditoNotas)} de notas de crédito` : ""}`}
+          {`Facturas de mercadería, gastos, activos e insumos${foco && foco.creditoNotas > 0 ? `, menos ${solesRedondo(foco.creditoNotas)} de notas de crédito` : ""}${
+            panel.revisar.igvPerdido.igv > 0 ? `, menos ${solesRedondo(panel.revisar.igvPerdido.igv)} que se pierde por pagar sin banco` : ""
+          }`}
         </TarjetaCifra>
         <TarjetaCifra
           etiqueta={aFavor ? `Saldo a favor para ${siguiente}` : `IGV a pagar en ${siguiente}`}
@@ -288,7 +292,7 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
         <i style={{ width: `${Math.min(1, avance) * 100}%` }} />
       </div>
       <div className="fin-marcas">
-        <span>S/ 0</span>
+        <span>S/&nbsp;0</span>
         <span>
           Vendido en 12 meses: <b>{solesRedondo(umbral.ventas12m)}</b>
         </span>
@@ -336,6 +340,14 @@ function ParaRevisar({ panel }: { panel: PanelImpuestos }) {
       accion: r.boletas.gastos > 0 ? { texto: "Ver gastos", href: `/finanzas/gastos?mes=${mes}&ver=todas` } : undefined,
     });
   }
+  // ADR-0362, fase 6 · actividad 8 (decisión 72): el IGV que se perdió en el mes del pago. La base ya lo restó; aquí se dice y se dice qué hacer.
+  if (r.igvPerdido.igv > 0) {
+    puntos.push({
+      tono: "ambar",
+      titulo: `${solesRedondo(r.igvPerdido.igv)} de IGV que no se descuenta`,
+      detalle: `${plural(r.igvPerdido.n, "pago", "pagos")} en efectivo o desde un fondo de facturas de S/\u00a02,000 o más. SUNAT pide pagarlas por el banco: ese IGV ya está restado de lo que descuentas.`,
+    });
+  }
   if (r.rechazados.n > 0) {
     puntos.push({
       tono: "rojo",
@@ -362,7 +374,7 @@ function ParaRevisar({ panel }: { panel: PanelImpuestos }) {
   puntos.push({
     tono: "pizarra",
     titulo: "Recibos por honorarios: retención del 8 %",
-    detalle: `${r.honorarios.n > 0 ? `${plural(r.honorarios.n, "recibo", "recibos")} este mes${r.honorarios.mayores ? `, ${r.honorarios.mayores} de más de S/ 1,500` : ""}. ` : ""}El contador define si CAYLA debe retener. Mientras tanto, se paga el total.`,
+    detalle: `${r.honorarios.n > 0 ? `${plural(r.honorarios.n, "recibo", "recibos")} este mes${r.honorarios.mayores ? `, ${r.honorarios.mayores} de más de S/\u00a01,500` : ""}. ` : ""}El contador define si CAYLA debe retener. Mientras tanto, se paga el total.`,
   });
   return (
     <Superficie pad className="anim-sube" guia="fin-impuestos.revisar">
@@ -376,9 +388,9 @@ function ParaRevisar({ panel }: { panel: PanelImpuestos }) {
               <p>{p.detalle}</p>
             </div>
             {p.accion ? (
-              <Link href={p.accion.href} className="btn-cayla btn-sutil btn-chico">
+              <BotonVer href={p.accion.href} chico>
                 {p.accion.texto}
-              </Link>
+              </BotonVer>
             ) : (
               <span />
             )}

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CircleCheck, Download, FileText, Plus, Store, UserRound, Wallet } from "lucide-react";
+import { CircleCheck, FileText, Plus, Store, UserRound, Wallet } from "lucide-react";
 import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Modal } from "@/components/ui/Modal";
@@ -18,6 +18,8 @@ import {
   leerAtajosElegidos,
   type ClaveAtajo,
 } from "@/lib/historial-acciones-reglas";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 
 // Filtros de Ventas ▸ Historial (ADR-0147), con el mismo patrón que Catálogo y Compras: a la vista el período
 // (los atajos de siempre: 7, 30 y 90 días, o fechas propias) y un botón «Filtros · N» que despliega el panel
@@ -147,7 +149,9 @@ export function FiltrosHistorialVentas({
   return (
     <div className="space-y-2.5">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <div className="-mx-4 -my-1 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto px-4 py-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
+        {/* En el celular la fila se desliza y sale desde el borde izquierdo de la pantalla (`-ml-4 pl-4`); por la derecha termina
+            antes de «Filtros» (con `-mx-4` se metía 16 px debajo de la píldora). */}
+        <div className="-my-1 -ml-4 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-1 pl-4 [scrollbar-width:none] sm:ml-0 sm:flex-wrap sm:overflow-visible sm:pl-0 [&::-webkit-scrollbar]:hidden">
         <div role="group" aria-label="Período" data-guia="historial.periodos" className="flex shrink-0 items-center gap-1.5">
           <Pastilla
             activa={!mostrarFechas && periodo === "hoy"}
@@ -198,14 +202,13 @@ export function FiltrosHistorialVentas({
           </button>
         </div>
         </div>
-        {/* `BotonFiltros` trae su `mt-1.5` para alinearse con un campo con etiqueta; acá no hay etiqueta. */}
-        <div data-guia="historial.herramientas" className="-mt-1.5 flex shrink-0 items-center gap-2">
+        <div data-guia="historial.herramientas" className="flex shrink-0 items-center gap-2">
           {exportarHref && (
-            // Una descarga, no una navegación: `<a download>` y no `Link` (no pasa por el loader de pantalla).
-            // Exportar un Excel es trabajo de computadora: en el celular no ocupa el lugar de los períodos y atajos.
-            <a href={exportarHref} download className="mt-1.5 hidden h-9 items-center gap-1.5 rounded-lg border border-tinta/20 px-3 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo sm:inline-flex">
-              <Download className="h-3.5 w-3.5" aria-hidden /> Exportar
-            </a>
+            // Una descarga, no una navegación (`<a download>`: no pasa por el loader de pantalla). Bajar un Excel es trabajo de
+            // computadora: en el celular no ocupa el lugar de los períodos y atajos. La pieza de descargar (ADR-0358, ronda 10).
+            <span className="hidden sm:inline-flex">
+              <BotonDescargar href={exportarHref}>Descargar Excel</BotonDescargar>
+            </span>
           )}
           {/* La guía (ADR-0389) abre el panel con «historial.filtros» y lo cierra con «historial.filtros-cerrar»: un ancla por estado,
               para que cerrar nunca vuelva a abrir. `inline-flex` no cambia nada del lugar del botón. */}
@@ -313,34 +316,23 @@ export function FiltrosHistorialVentas({
       {chips.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           {chips.map((c) => (
-            <button
-              key={Object.keys(c.quitar).join("|")}
-              type="button"
-              onClick={() => aplicar(c.quitar)}
-              aria-label={`Quitar filtro ${c.texto}`}
-              className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
-            >
+            <FiltroPuesto key={Object.keys(c.quitar).join("|")} onQuitar={() => aplicar(c.quitar)} etiqueta={`Quitar filtro ${c.texto}`}>
               {c.texto}
-              <span aria-hidden className="text-sm leading-none">
-                ×
-              </span>
-            </button>
+            </FiltroPuesto>
           ))}
-          <button
-            type="button"
+          <BotonLimpiar
             onClick={() => {
               setPersonalizadoAbierto(false);
               router.push(pathname);
             }}
-            className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo"
           >
             Limpiar todo
-          </button>
+          </BotonLimpiar>
         </div>
       )}
 
       {eligiendo && (
-        <Modal titulo="Tus atajos" subtitulo="Los de fábrica siempre están. Los que marques quedan guardados en este equipo." onClose={() => setEligiendo(false)} ancho="max-w-sm" variante="hoja">
+        <Modal conCerrar titulo="Tus atajos" subtitulo="Los de fábrica siempre están. Los que marques quedan guardados en este equipo." onClose={() => setEligiendo(false)} variante="hoja">
           <ul data-guia="historial.atajos-modal" className="divide-y divide-dashed divide-tinta/10">
             {ATAJOS.filter((a) => puedeMias || a.clave !== "mias").map((a) => (
               <li key={a.clave} className="py-1.5">

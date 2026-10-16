@@ -1,7 +1,7 @@
 import { exigirPermiso } from "@/lib/persona-actual";
 import { opcional } from "@/lib/resultado";
 import { getComprobantesMes, getExtrasDeComprobantes, getResumenPorEnviar } from "@/lib/comprobantes";
-import { mesActualLima, mesLimaUTC } from "@/lib/fecha-lima";
+import { mesActualLima, mesLimaUTC } from "@/lib/fechas-lima";
 import { mesDeParametro, periodoDelMes, tiendasOperativas } from "@/lib/facturacion-reglas";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { ComprobantesPanel } from "@/components/ComprobantesPanel";

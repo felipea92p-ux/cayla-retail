@@ -36,10 +36,11 @@ export function ElegirDemoModal({ filas, onClose }: { filas: readonly FilaMenu[]
 
   return (
     <Modal
+      conCerrar
       titulo="Demo del sistema"
       subtitulo={`Elige qué quieres ver y te lo mostramos paso a paso, en la pantalla de verdad. No se guarda nada.${conGuia === 0 ? "" : ` ${conGuia === 1 ? "1 demo" : `${conGuia} demos`} en tu menú.`}`}
       variante="hoja"
-      ancho="max-w-lg"
+      tamano="mediana"
       onClose={onClose}
     >
       {(cerrar) => (
@@ -57,7 +58,7 @@ export function ElegirDemoModal({ filas, onClose }: { filas: readonly FilaMenu[]
                 }}
                 className="group flex w-full items-center gap-3 rounded-xl border border-tinta/25 bg-papel px-4 py-3 text-left transition-colors hover:bg-sand/35"
               >
-                <PlayCircle className="h-[18px] w-[18px] shrink-0 text-tinta" aria-hidden />
+                <PlayCircle className="h-4 w-4 shrink-0 text-tinta" aria-hidden />
                 <span className="flex-1">
                   <span className="block text-sm text-tinta">{aqui.titulo}</span>
                   <span className="mt-0.5 block text-xs text-tinta/60">{aqui.resumen}</span>
@@ -84,13 +85,13 @@ export function ElegirDemoModal({ filas, onClose }: { filas: readonly FilaMenu[]
                         }}
                         className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-sand/35"
                       >
-                        <PlayCircle className="h-[18px] w-[18px] shrink-0 text-tinta/70" aria-hidden />
+                        <PlayCircle className="h-4 w-4 shrink-0 text-tinta/70" aria-hidden />
                         <span className="flex-1 text-sm text-tinta">{h.etiqueta}</span>
                         <ChevronRight className="h-4 w-4 text-tinta/40 transition-transform duration-200 ease-cayla group-hover:translate-x-0.5" aria-hidden />
                       </button>
                     ) : (
                       <div className="flex items-center gap-3 px-4 py-3" aria-disabled>
-                        <PlayCircle className="h-[18px] w-[18px] shrink-0 text-tinta/25" aria-hidden />
+                        <PlayCircle className="h-4 w-4 shrink-0 text-tinta/25" aria-hidden />
                         <span className="flex-1 text-sm text-tinta/45">{h.etiqueta}</span>
                         <span className="text-[11px] text-tinta/45">Pronto</span>
                       </div>

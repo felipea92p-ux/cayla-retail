@@ -6,7 +6,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
-import { Modal, botonCancelar } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { traducirError } from "@/lib/error-escritura";
 import { RPC_ANULAR_PRODUCCION, insumosPorDevolver, prendasAfuera, textoAnulasteLaOrden, textoPrendasAfuera, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 import { firmar } from "@/lib/responsable-reglas";
@@ -55,7 +55,7 @@ export function AnularLaOrdenModal({ datos, onClose }: { datos: OrdenPagina; onC
   }
 
   return (
-    <Modal titulo="¿Anulamos esta orden?" subtitulo={`${orden.numeroTexto} · ${orden.producto.referencia} · ${orden.cantidadPlan} ${orden.cantidadPlan === 1 ? "prenda" : "prendas"}`} variante="hoja" conCerrar ancho="max-w-lg" onClose={onClose}>
+    <Modal titulo="¿Anulamos esta orden?" subtitulo={`${orden.numeroTexto} · ${orden.producto.referencia} · ${orden.cantidadPlan} ${orden.cantidadPlan === 1 ? "prenda" : "prendas"}`} variante="hoja" tamano="mediana" onClose={onClose}>
       <form onSubmit={onSubmit} className="mt-3.5 space-y-4">
         <p className="text-sm text-tinta/75">
           La orden queda anulada y no toca el stock de prendas. Sigue a la vista en Terminadas, para que no se pierda el registro.
@@ -73,12 +73,12 @@ export function AnularLaOrdenModal({ datos, onClose }: { datos: OrdenPagina; onC
         <CampoTexto id="anular-orden-motivo" etiqueta="Por qué la anulas" pie="Opcional · queda escrito en la orden" value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={200} />
         <ComboResponsable control={responsable} deshabilitado={cargando} compacto />
         <div className="pie-hoja-fijo">
-          <div className="flex gap-2 border-t border-sand pt-3">
-            <button type="button" onClick={onClose} className={botonCancelar}>
+          <div className="pie-acciones border-t border-sand pt-3">
+            <Boton type="button" onClick={onClose}>
               Volver
-            </button>
-            <Boton type="submit" peso="peligro" cargando={cargando} disabled={!responsable.listo || afuera !== null} title={afuera ? textoPrendasAfuera(afuera) : (responsable.motivo ?? undefined)}>
-              {cargando ? "Anulando…" : "Anular orden"}
+            </Boton>
+            <Boton type="submit" peso="peligro" cargando={cargando} textoCargando="Anulando…" disabled={!responsable.listo || afuera !== null} title={afuera ? textoPrendasAfuera(afuera) : (responsable.motivo ?? undefined)}>
+              Anular orden
             </Boton>
           </div>
         </div>

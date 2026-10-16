@@ -9,7 +9,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { CampoTexto, Desplegable, Boton } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Aviso } from "@/components/ui/Aviso";
-import { Modal, campoEtiqueta, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { Chip } from "@/components/ui/Chip";
@@ -23,7 +23,8 @@ import { MotorEnProduccion } from "@/components/motor-demanda/MotorEnProduccion"
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, cantidadesDeLaCurva, cantidadesInicialesDeNuevaOrden, sugerirCurva } from "@/lib/produccion-decision-reglas";
-import { costoUnitario, precioParaMargen, semaforoMargen, TEXTO_SEMAFORO, type Semaforo } from "@/lib/produccion-reglas";
+import { costoUnitario, precioParaMargen, problemaDeEntrega, semaforoMargen, TEXTO_SEMAFORO, type Semaforo } from "@/lib/produccion-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ModeloNuevoCampos } from "@/components/ModeloNuevoCampos";
@@ -472,8 +473,15 @@ export function NuevaOrdenProduccionForm({
       avisar.error(faltas[0].texto);
       return;
     }
+    // Una fase o una tela que la base rechazaría se dice antes de mandar (es lo mismo que apaga el botón y lo que dice la guía de foco).
     if (problemasDeFases.length > 0 || problemasDeTela.length > 0) {
       avisar.error(problemasDeFases[0]?.texto ?? problemasDeTela[0]?.texto ?? "");
+      return;
+    }
+    // ADR-0415: la entrega es una promesa; no puede ser antes de hoy (la base dice lo mismo, `entrega_pasada`).
+    const entregaMala = problemaDeEntrega(fechaEntrega, hoyLima());
+    if (entregaMala) {
+      avisar.error(entregaMala);
       return;
     }
     if (!responsable.listo) {
@@ -548,6 +556,12 @@ export function NuevaOrdenProduccionForm({
       avisar.error(problemasDeFases[0]?.texto ?? problemasDeTela[0]?.texto ?? "");
       return;
     }
+    // ADR-0415: la entrega es una promesa; no puede ser antes de hoy (la base dice lo mismo, `entrega_pasada`).
+    const entregaMala = problemaDeEntrega(fechaEntrega, hoyLima());
+    if (entregaMala) {
+      avisar.error(entregaMala);
+      return;
+    }
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
@@ -596,7 +610,6 @@ export function NuevaOrdenProduccionForm({
       onClose={onClose}
       antesDeCerrar={avisoSalida.pedirAccion}
       variante="hoja"
-      conCerrar
       // 1080 px (A3). `scroll-pb`: bajo 980 px la ficha es una barra pegada abajo y, al llevar el cursor a un campo (la guía de foco), no debe quedar detrás de ella.
       ancho="max-w-[1080px] scroll-pb-[calc(var(--alto-barra-ficha,10rem)+1rem)] min-[980px]:scroll-pb-0"
     >
@@ -802,7 +815,7 @@ export function NuevaOrdenProduccionForm({
         )}
 
         <div data-guia="prod-orden-nueva.entrega" className="grid gap-4 sm:grid-cols-2">
-          <CampoTexto etiqueta="Fecha de entrega" pie="Opcional" type="date" value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} />
+          <CampoTexto etiqueta="Fecha de entrega" pie="Opcional" type="date" min={hoyLima()} value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} />
           <CampoTexto etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} placeholder={sugerirNotaDeOrden(tipo)} maxLength={MAX_NOTA_ORDEN_BASE} />
         </div>
 
@@ -864,18 +877,21 @@ export function NuevaOrdenProduccionForm({
               </Aviso>
             )}
 
-            <div className="flex gap-2">
-              <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}>
+            <div className="pie-acciones">
+              <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className="btn-cayla btn-secundario">
                 Cancelar
               </button>
-              <button
+              <Boton
+                peso="primario"
+                cargando={cargando}
+                textoCargando="Abriendo…"
                 type="submit"
                 disabled={cargando || !guia.puedeConfirmar || !responsable.listo}
                 title={guia.frase ?? responsable.motivo ?? undefined}
-                className={`${botonPrimario} ${guia.claseConfirmar}`}
+                className={`flex-1 ${guia.claseConfirmar}`}
               >
-                {cargando ? "Abriendo…" : esNuevo ? "Crear y abrir orden" : "Abrir orden"}
-              </button>
+                {esNuevo ? "Crear y abrir orden" : "Abrir orden"}
+              </Boton>
             </div>
           </div>
         </FichaOrden>

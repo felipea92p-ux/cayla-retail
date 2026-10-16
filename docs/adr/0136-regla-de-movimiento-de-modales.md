@@ -407,3 +407,45 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
 - **El texto:** «Bienvenido(a)» lo pidió Felipe literal; no se adivina el género a partir del nombre (regla del vocabulario del ERP).
 - **Dónde vive:** el texto y las curvas en `lib/login-saludo.ts` y `lib/login-entrada.ts` (`instanteParaSeguir`, `opacidadDelSaludo`; con su prueba), el nombre en `lib/entrada-estado.ts`
   (`ponerNombreDelSaludo`), el dibujo en `components/login/EntradaColibri.tsx` y los estilos `.entrada-saludo*` en `app/estilos/login.css`.
+
+## Actualización 2026-10-13 (e) — al entrar ya no «se ve el inicio»: la pantalla de destino espera tras el velo, reportado por Felipe
+
+- **El problema:** Felipe vio «un pequeño parpadeo muy breve y se ve el inicio» al iniciar sesión. Medido cuadro por cuadro (versión de producción local, 120 ms de latencia
+  simulada) eran **dos** parpadeos con la misma cara: (1) el login navegaba a `/` y el Inicio redirigía en el servidor; una redirección desde una página no se salta el paso, así
+  que Next pintaba `/` —la app con «Inicio» marcado en el menú— y recién después pedía el destino (8 a 17 cuadros, casi sin velo, en una cuenta cuya pantalla principal no es el
+  Inicio, una terminal de ventas o CAYLA Global); y (2) la pantalla de destino llegaba antes de que el velo de la entrada tapara (entra de 250 a 1000 ms y es casi transparente
+  su primer medio segundo), así que se veía —también el Inicio de quien aterriza ahí— antes de que la ventana del colibrí la abriera (27 a 39 cuadros, en todas las cuentas).
+- **Lo que se hace:** (1) el login pregunta primero a `/api/aterrizaje` a dónde entra la cuenta (`aterrizajeDe`, la regla del Inicio, que ahora incluye la de CAYLA Global y el
+  Admin: una sola para los dos) y navega UNA vez, directo, con `router.replace` y sin `router.refresh()` (era otro viaje a `/`, descartado pero pagado); (2) la pantalla de
+  destino se pide de inmediato pero **no se muestra hasta que el velo tapa** (`veloCubre`): `EsperaAlVelo`, montada en el layout de la app por encima de todo `loading.tsx`,
+  suspende mientras tanto y React deja el login a la vista (la navegación es una transición). Resultado medido: 0 cuadros en `/` y 0 con la app a la vista antes de la ventana,
+  con la ventana abriéndose a los mismos ~1,8 s; sin animación, Existencias llega en 0,47 s en vez de 1,46 s.
+- **Lo que se descartó:** esperar al velo para *pedir* la pantalla (la primera versión): limpio, pero alargaba la entrada 0,2–0,45 s, porque el servidor empezaba recién al
+  segundo. Tapar el cambio con un velo que salta a negro de golpe: otro parpadeo, a oscuras.
+- **Los límites:** la espera es UNA promesa por entrada y se suelta sola al tope (`MS_TOPE_DEL_VELO`, 1,5 s: pestaña en segundo plano), si la entrada se deshace o en la salida
+  (no espera nada); con `prefers-reduced-motion` no hay entrada ni espera, y el loader (ADR-0149) cubre desde que se abre la sesión hasta la pantalla de destino (el login toma
+  su ficha con `useEsperando`). Si `/api/aterrizaje` falla o tarda más de 5 s, el login entra por `/` como antes: el parpadeo vuelve, nunca una pantalla equivocada.
+- **Dónde vive:** la espera en `lib/entrada-estado.ts` (`veloPendiente`, `marcarVeloCubierto`; con su prueba), el umbral en `lib/login-entrada.ts` (`veloCubre`,
+  `MS_TOPE_DEL_VELO`), `EsperaAlVelo` y el aviso de la capa en `components/login/EntradaColibri.tsx`, la consulta en `app/api/aterrizaje/route.ts` y lo que el login hace con
+  su respuesta en `lib/login-aterrizaje.ts`.
+
+## Actualización 2026-10-15 — Aventurero: el gato que teclea en «Sin acceso» y en los errores, pedido por Felipe
+
+- **Qué:** las pantallas donde la persona NO llega a lo que buscaba —«Sin acceso» (su rol no ve el módulo, o no ve ninguna pantalla) y las
+  cuatro barreras de error (la de la app, la de una vista de Facturación y la global)— abren con un meme: la foto de Aventurero, un gato
+  naranja con las patas en el teclado, y en letra de meme (Impact, o Anton donde no hay Impact) «Aventurero decidió / que no puedes ver
+  esto» o «Aventurero lo está dando todo / para solucionarlo». Sus **patas se mueven en bucle**: en un error teclea apurado, las dos por
+  turno (un golpe cada ~0,4 s); en «Sin acceso» da dos toques con la de atrás, levanta la de adelante, la sostiene y la deja caer (el Enter
+  de quien decidió), y descansa casi 2 s antes de repetir.
+- **Por qué se admite:** lo pidió Felipe («que le animes las patas al gatito»). Es adorno, no señal: quitarlo no pierde información, porque
+  lo que hay que hacer (reintentar, a quién pedir el acceso, el código del error) lo sigue diciendo el texto de la tarjeta, que no cambió.
+  Lo que sí cambió: «Sin acceso» de una cuenta que no ve NINGUNA pantalla ya no ofrece «Volver al inicio» (el Inicio la devolvía ahí), sino
+  «Ya me lo activaron», para entrar después de que un líder le active algo.
+- **Cómo se mueve sin deformar la foto:** cada pata es la misma foto otra vez, recortada por una elipse difusa que no se mueve, y girada
+  3–4,5° desde su codo: dentro de la elipse la pata se levanta y deja ver el teclado; fuera, la foto sigue quieta. Sube con la curva de
+  entrada (--ease-cayla) y cae con la de salida (--ease-salida); nunca baja de donde estaba, así que no hay rebote.
+- **Los límites:** sin rebote, solo los dos colores fijos (`tinta-fija`, `crema-fija`: el texto va sobre una foto, igual en claro y en
+  oscuro), y con `prefers-reduced-motion` el gato se queda quieto.
+- **Dónde vive:** `apps/web/components/ui/Aventurero.tsx`, `apps/web/app/estilos/aventurero.css` (que también importa `global-error.tsx`,
+  pintada sin globals.css) y la foto en `apps/web/public/aventurero.webp` (recortada para que el texto no tape al gato; la pantalla del
+  monitor y el teléfono no se leen a ese tamaño).

@@ -14,14 +14,14 @@
       "Desplegable «actualizarLinea(i,»",
       "input «Cantidad»",
       "button «Quitar»",
-      "button «+ Agregar otra prenda»",
-      "ComboResponsable «(sin nombre)»",
-      "button «nuevo-traslado.enviar»"
+      "Boton «+ Agregar otra prenda»",
+      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
+      "Boton «nuevo-traslado.enviar»"
     ],
     "components/TrasladoEnviado.tsx": [
       "textarea «{`Mensaje para ${destino}»",
       "a «Abrir WhatsApp»",
-      "button «Copiar mensaje»",
+      "BotonCopiar «el mensaje»",
       "Link «{id ? \"Ver el traslado\" : \"Ver traslados en curso\"}»",
       "button «Enviar otro traslado»"
     ]

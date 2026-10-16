@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { filasPorModelo, seVendioYYaNoHay, sugerenciaDeOrden, type FilaModelo } from "./produccion-decisiones";
 import type { DemandaVariante } from "./produccion-decision-reglas";
-import { aclaracionDeLaBase, fraseDeLaFalta, hojaDelModelo, matrizDeLaHoja, materialesDelModelo, hrefVerEnExistencias, ordenesDelModelo, prendasPorFabricar, textoDeEntrega, SIN_COLOR, SIN_TALLA } from "./produccion-hoja-modelo";
+import { aclaracionDeLaBase, fraseDeLaFalta, hojaDelModelo, matrizDeLaHoja, materialesDelModelo, hrefVerEnExistencias, lineaDeOrigen, ordenesDelModelo, prendasPorFabricar, textoDeEntrega, SIN_COLOR, SIN_TALLA } from "./produccion-hoja-modelo";
 import type { DemandaDeSede } from "./produccion-por-tienda";
 
 // Una variante: [id, talla, color, hex, stockRed, ventasNetas, stockTaller]
@@ -333,5 +333,21 @@ describe("órdenes y materiales del modelo", () => {
     expect(prendasPorFabricar({ ...base, ventasBase: 30 })).toBe(12);
     expect(prendasPorFabricar({ ...base, ventasBase: 2 })).toBe(0);
     expect(prendasPorFabricar({ estado: "alcanza", producir: 12, ventasBase: 30 })).toBe(0);
+  });
+});
+
+describe("lineaDeOrigen — marca y proveedor bajo el nombre del modelo", () => {
+  it("dice las dos cosas cuando están registradas", () => {
+    expect(lineaDeOrigen({ marca: "Cayla", proveedor: "Textil Sur" })).toBe("Marca Cayla · Proveedor Textil Sur");
+  });
+
+  it("dice lo que falta, sin esconder lo otro", () => {
+    expect(lineaDeOrigen({ marca: "Cayla", proveedor: null })).toBe("Marca Cayla · Sin proveedor");
+    expect(lineaDeOrigen({ marca: null, proveedor: "Textil Sur" })).toBe("Sin marca · Proveedor Textil Sur");
+    expect(lineaDeOrigen({ marca: null, proveedor: null })).toBe("Sin marca · Sin proveedor");
+  });
+
+  it("no afirma «Sin marca» si la ficha no se pudo leer", () => {
+    expect(lineaDeOrigen(null)).toBeNull();
   });
 });

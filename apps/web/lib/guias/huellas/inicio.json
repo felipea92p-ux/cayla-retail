@@ -2,7 +2,7 @@
   "guia": "inicio",
   "ruta": "/",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 48,
+  "total": 59,
   "controles": {
     "app/(app)/page.tsx": [
       "Link «inicio.vender»",
@@ -11,9 +11,24 @@
       "input «Ver»",
       "Link «{a.etiqueta}»"
     ],
+    "components/fondos/FotoDelGasto.tsx": [
+      "button «{abriendo ? \"Abriendo…\" : \"Ver foto\"}»",
+      "input «);»"
+    ],
+    "components/fondos/RendirFondo.tsx": [
+      "button «Volver a intentar»",
+      "CampoMonto «¿Cuánto tienes en la mano?»",
+      "CampoTexto «¿Qué pasó con lo que falta?»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "button «Volver a intentar» #2",
+      "CampoTexto «¿Por qué la retiras?»",
+      "Boton «Retirar para corregir»",
+      "Boton «Retirar para corregir» #2"
+    ],
     "components/inicio-almacen/BloquesLaterales.tsx": [
       "Link «{v.de.sigla}»",
-      "Link «{p.fotoUrl ? <Image src={p.fotoUrl}»",
+      "Link «{p.fotoUrl ? <ImagenDePrenda src={p.fotoUrl}»",
       "Link «Bajar al piso»",
       "Link «{a.etiqueta}»"
     ],
@@ -21,7 +36,7 @@
       "Link «Crear producto»",
       "Link «Colgar en tandas»",
       "a «Ver los»",
-      "Link «{p.fotoUrl ? <Image src={p.fotoUrl}»",
+      "Link «{p.fotoUrl ? <ImagenDePrenda src={p.fotoUrl}»",
       "Link «{a.titulo}»",
       "Link «Empezar»",
       "Link «{a.titulo}» #2"
@@ -46,7 +61,7 @@
       "Link «{a.titulo}»"
     ],
     "components/inicio-almacen/VerMas.tsx": [
-      "button «{abierto ? \"Ver menos\" : `Ver ${cantidad}»"
+      "BotonVerMas «);»"
     ],
     "components/inicio/AjustarInicio.tsx": [
       "button «→() => setAbierto(true)»",

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { primerBloqueo } from "./cambios-reglas";
 import {
@@ -8,7 +9,10 @@ import {
   estadoPrendaDevolucion,
   etiquetaCondicion,
   impactoDevolucion,
+  comprobanteSinAceptar,
+  medioSugeridoReembolso,
   revisarAprobacion,
+  textoEsperaSunat,
   textoMotivo,
   validarDevolucion,
   valorPagado,
@@ -216,7 +220,7 @@ describe("impactoDevolucion", () => {
 
   it("registrar no mueve la caja, y dice cuánto pagó la clienta", () => {
     expect(impactoDevolucion(base).caja.titulo).toBe("Al registrarla, la caja no se mueve");
-    expect(impactoDevolucion(base).caja.detalle).toContain("S/ 250.00");
+    expect(impactoDevolucion(base).caja.detalle).toContain("S/\u00a0250.00");
   });
 
   it("solo con un comprobante aceptado por SUNAT anuncia la nota de crédito, total o parcial", () => {
@@ -241,7 +245,70 @@ describe("revisarAprobacion", () => {
   });
 
   it("reembolsar más de lo que pagó avisa pero no frena; un monto negativo sí frena", () => {
-    expect(revisarAprobacion({ ...base, monto: 100 })).toEqual({ bloqueo: null, aviso: "Es más de lo que pagó el cliente (S/ 79.90)." });
+    expect(revisarAprobacion({ ...base, monto: 100 })).toEqual({ bloqueo: null, aviso: "Es más de lo que pagó el cliente (S/\u00a079.90)." });
     expect(revisarAprobacion({ ...base, monto: -5 }).bloqueo).toBe("El monto del reembolso no puede ser negativo.");
+  });
+});
+
+describe("la boleta todavía no aceptada por SUNAT bloquea la aprobación (Felipe 2026-10-12)", () => {
+  const c = (tipo: string, estado: string, creadoEn = "2026-10-12T15:00:00Z") => ({ tipo, estado, documento: `${tipo} B004-000029`, creadoEn });
+
+  it.each(["pendiente", "pendiente_reintento", "enviado", "rechazado"])("una boleta en «%s» bloquea", (estado) => {
+    const sin = comprobanteSinAceptar([c("boleta", estado)]);
+    expect(sin).toEqual({ documento: "boleta B004-000029", estado });
+    expect(revisarAprobacion({ monto: null, metodo: "efectivo", cajaAbierta: true, valorPagado: 79.9, sinAceptar: sin }).bloqueo).toContain(
+      "todavía no está aceptada por SUNAT",
+    );
+  });
+
+  it.each(["aceptado", "no_emitido", "anulado"])("una boleta en «%s» no bloquea", (estado) => {
+    expect(comprobanteSinAceptar([c("boleta", estado)])).toBeNull();
+  });
+
+  it("una nota de venta no va a SUNAT: no bloquea", () => {
+    expect(comprobanteSinAceptar([c("nota_venta", "pendiente")])).toBeNull();
+  });
+
+  it("la rechazada dice que se reintente; las demás, que se espere", () => {
+    expect(textoEsperaSunat({ documento: "boleta B004-000029", estado: "rechazado" })).toContain("Reintenta su envío en Comprobantes");
+    expect(textoEsperaSunat({ documento: "boleta B004-000029", estado: "enviado" })).toContain("SUNAT aún no responde");
+    expect(textoEsperaSunat({ documento: "boleta B004-000029", estado: "pendiente" })).toContain("Espera a que SUNAT la acepte");
+  });
+
+  it("la pantalla y la base dicen lo mismo (20261012221000)", () => {
+    const sql = readFileSync(new URL("../../../supabase/migrations/20261012221000_devolucion_espera_la_boleta_aceptada.sql", import.meta.url), "utf8");
+    for (const frase of [
+      "de esta venta todavía no está aceptada por SUNAT",
+      "SUNAT la rechazó",
+      "se envió y SUNAT aún no responde",
+      "todavía no se envía",
+      "Reintenta su envío en Comprobantes y, cuando SUNAT la acepte, vuelve a aprobar: así sale su nota de crédito.",
+      "Espera a que SUNAT la acepte y vuelve a aprobar: así sale su nota de crédito.",
+    ]) {
+      expect(sql).toContain(frase);
+    }
+  });
+});
+
+describe("el medio del reembolso: libre, con aviso (Felipe 2026-10-12)", () => {
+  const medios = ["efectivo", "tarjeta", "yape", "plin", "transferencia"];
+  const nombre = (m: string) => ({ efectivo: "Efectivo", tarjeta: "Tarjeta", yape: "Yape" })[m] ?? m;
+  const base = { monto: 79.9, cajaAbierta: true, valorPagado: 79.9, etiquetaMedio: nombre };
+
+  it("propone el medio con que más se pagó; sin pagos conocidos, efectivo", () => {
+    expect(medioSugeridoReembolso([{ metodo: "tarjeta", monto: 60 }, { metodo: "efectivo", monto: 19.9 }], medios)).toBe("tarjeta");
+    expect(medioSugeridoReembolso([{ metodo: "anticipo", monto: 79.9 }], medios)).toBe("efectivo");
+    expect(medioSugeridoReembolso([], medios)).toBe("efectivo");
+  });
+
+  it("devolver con un medio con que no se pagó avisa, pero no frena", () => {
+    const r = revisarAprobacion({ ...base, metodo: "efectivo", pagos: [{ metodo: "tarjeta", monto: 79.9 }] });
+    expect(r.bloqueo).toBeNull();
+    expect(r.aviso).toBe("Esta venta se pagó con Tarjeta (S/\u00a079.90). Vas a devolver en Efectivo: confírmalo con el cliente.");
+  });
+
+  it("con el mismo medio, o sin reembolso, no hay nada que avisar", () => {
+    expect(revisarAprobacion({ ...base, metodo: "tarjeta", pagos: [{ metodo: "tarjeta", monto: 79.9 }] }).aviso).toBeNull();
+    expect(revisarAprobacion({ ...base, monto: null, metodo: "efectivo", pagos: [{ metodo: "tarjeta", monto: 79.9 }] }).aviso).toBeNull();
   });
 });

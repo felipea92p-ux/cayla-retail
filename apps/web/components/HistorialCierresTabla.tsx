@@ -5,9 +5,10 @@ import { Tabla, Encabezado, TABLA } from "@/components/ui/Tabla";
 import { useDetalleCierre } from "@/components/CierreCajaDetalle";
 import type { CierreCaja } from "@/lib/caja";
 import { agruparPorDia, estadoCierre, horaLima, quienAtendio, textoResultado, type EstadoCierre } from "@/lib/historial-cierres-reglas";
+import { SeparadorDia } from "@/components/ui/TituloSeccion";
 
 function money(n: number) {
-  return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "S/\u00a0" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // Las columnas de la maqueta aprobada (docs/maquetas/historial-cierres-2026-10, Felipe 2026-10-08): tienda · quién atendió
@@ -47,7 +48,7 @@ export function HistorialCierresTabla({ cierres, pie }: { cierres: CierreCaja[];
         />
         {grupos.map((g) => (
           <section key={g.clave} aria-label={g.etiqueta}>
-            <h3 className="px-5 pb-2 pt-4 text-[13.5px] font-semibold text-tinta">{g.etiqueta}</h3>
+            <SeparadorDia>{g.etiqueta}</SeparadorDia>
             <ul className="divide-y divide-sand border-t border-sand">
               {g.cierres.map((c) => {
                 const estado = estadoCierre(c.diferencia);
@@ -90,7 +91,7 @@ export function HistorialCierresTabla({ cierres, pie }: { cierres: CierreCaja[];
                       </span>
                       <span data-guia="caja-historial.diferencia" className={`flex items-center gap-2.5 whitespace-nowrap font-semibold ${r.texto}`}>
                         <span className={`grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full ${r.fondo}`} aria-hidden>
-                          <Icono className="h-3 w-3 text-papel" strokeWidth={3} />
+                          <Icono /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-3 w-3 text-papel" strokeWidth={3} />
                         </span>
                         {textoResultado(c.diferencia)}
                       </span>

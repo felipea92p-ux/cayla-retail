@@ -4,9 +4,11 @@
 // lo importan, y si estuviera junto con las consultas arrastraría
 // `next/headers` al navegador — Next lo rechaza en tiempo de compilación.
 
-import { hoyLima } from "./fechas-lima";
+import { diaLima } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
 import { estadoDeMiTienda, nombreDeLineaSinPrenda } from "./reparto-reglas";
+import type { NoDeducible } from "./no-deducible-reglas";
+import { numeroDeMonto } from "./monto-plata-reglas";
 
 // La etiqueta de una línea sin prenda vive junto a `etiquetaDeLinea` (reparto-reglas); las pantallas la piden desde acá.
 export { nombreDeLineaSinPrenda };
@@ -146,6 +148,8 @@ export type PagoCompra = {
   monto: number;
   metodo: string;
   referencia: string | null;
+  /** Lo que la base dice no deducible de este pago (ADR-0362, fase 6 · actividad 6; `fn_no_deducibles`): lo ponen los cargadores. */
+  noDeducible?: NoDeducible | null;
 };
 
 export type ProveedorResumen = { id: string; nombre: string; ruc: string | null };
@@ -287,8 +291,13 @@ export const ETIQUETA_MOTIVO_NOTA: Record<string, string> = {
   otro: "Otro",
 };
 
+/**
+ * «S/ 1,234.50». Entre «S/» y la cifra va un espacio que no se parte (`\u00a0`, como lo escribe el propio `Intl` en es-PE): un renglón
+ * nunca deja «S/» sola al final y la cifra en el siguiente («su deuda pasa de S/ ⏎ 25.00»). Así se escribe todo monto del ERP
+ * (`lib/montos-sin-corte.test.ts`, ADR-0413).
+ */
 export function soles(n: number): string {
-  return `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function fechaCorta(iso: string | null): string {
@@ -296,7 +305,7 @@ export function fechaCorta(iso: string | null): string {
   // Un INSTANTE (con hora: la llegada de un lote, un pago) se lee en Lima: de 7 pm a medianoche de Lima, en UTC ya es «mañana», y
   // cortar los 10 primeros caracteres ponía la recepción de las 22:17 del 12/10 con fecha 13/10 (prueba ciega del 2026-10-12).
   // Una FECHA sola (`aaaa-mm-dd`) se usa tal cual.
-  const dia = /^\d{4}-\d{2}-\d{2}[T ]\d/.test(iso) && !Number.isNaN(Date.parse(iso)) ? hoyLima(new Date(iso)) : iso.slice(0, 10);
+  const dia = diaLima(iso) ?? iso.slice(0, 10);
   const [a, m, d] = dia.split("-");
   return `${d}/${m}/${a}`;
 }
@@ -374,7 +383,7 @@ export function totalesDeLasLineasQueSeEnvian(
   conIgv: boolean,
 ): { subtotal: number; igv: number; total: number } {
   return totalesCompra(
-    lineas.filter(seEnviaLinea).map((l) => ({ cantidad: l.cantidad, costoTipeado: Number(l.costoUnitario) })),
+    lineas.filter(seEnviaLinea).map((l) => ({ cantidad: l.cantidad, costoTipeado: typeof l.costoUnitario === "number" ? l.costoUnitario : numeroDeMonto(l.costoUnitario) })),
     igvPorcentaje,
     conIgv,
   );
@@ -497,4 +506,14 @@ export const MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE =
 /** Lo mismo para una TABLA o VISTA que la base todavía no tiene (PostgREST `PGRST205`, Postgres `42P01`). */
 export function esRelacionAusente(error: { code?: string | null } | null | undefined): boolean {
   return error?.code === "PGRST205" || error?.code === "42P01";
+}
+
+/** El IGV va de 0 % a 18 %, la emisión no es futura y el vencimiento no es anterior a la emisión: lo mismo que exige `registrar_compra`
+ *  (`igv_fuera_de_rango`, `emision_futura`) y la tabla (`compras_vence_despues_de_emitir`), dicho antes de mandar (/chaos de Compras,
+ *  ADR-0421). Fechas `aaaa-mm-dd`; sin vencimiento (al contado), no se mira. */
+export function problemaDeFechasEIgv(e: { fechaEmision: string; fechaVencimiento: string | null; igvPorcentaje: number; hoy: string }): string | null {
+  if (!(e.igvPorcentaje >= 0 && e.igvPorcentaje <= 18)) return "El IGV de la factura va de 0 % a 18 %: revisa el porcentaje.";
+  if (e.fechaEmision > e.hoy) return "La fecha de emisión no puede ser futura: revisa la fecha del documento.";
+  if (e.fechaVencimiento && e.fechaVencimiento < e.fechaEmision) return "El vencimiento no puede ser anterior a la emisión.";
+  return null;
 }

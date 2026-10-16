@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { PrendaAnalisis } from "./analisis-tipos";
 import {
   coincideBusqueda,
+  conVentanaDeRitmo,
+  DIAS_MINIMOS_RITMO,
+  ventanaDeRitmo,
   diasQueQuedan,
   edadDelInventario,
   esTallaUnica,
@@ -12,6 +15,7 @@ import {
   leerBusqueda,
   leerVista,
   liquidarDesdeValido,
+  noHabiaDe,
   ordenSeAcaba,
   otraSedeQueLaTiene,
   porLlegar,
@@ -69,6 +73,25 @@ describe("cuántos días quedan", () => {
     expect(diasQueQuedan(prenda({ piso: 3, vendidas30: 2, diasDeVentas: 60 }))).toBe(45);
     expect(diasQueQuedan(prenda({ piso: 3, vendidas30: 3, diasDeVentas: 0 }))).toBe(1);
   });
+  it("la ventana del ritmo: los días que estuvo colgada, de 7 a los de la tienda (Felipe 2026-10-12 y 2026-10-14)", () => {
+    // Datos inventados: hoy 14 de octubre, la tienda vende en el ERP hace 15 días.
+    expect(ventanaDeRitmo("2026-10-11", "2026-10-14", 15)).toBe(7); // colgada 4 días: el piso de una semana
+    expect(ventanaDeRitmo("2026-10-04", "2026-10-14", 15)).toBe(11); // colgada 11 días
+    expect(ventanaDeRitmo("2026-09-20", "2026-10-14", 15)).toBe(15); // antes de que la tienda vendiera: el techo
+    expect(ventanaDeRitmo("2026-08-01", "2026-10-14", 30)).toBe(30);
+    expect(ventanaDeRitmo("2026-10-12", "2026-10-14", 3)).toBe(3); // una tienda de 3 días no se mide en 7
+    expect(ventanaDeRitmo(null, "2026-10-14", 15)).toBe(15); // sin saber cuándo salió, la de la tienda
+    expect(DIAS_MINIMOS_RITMO).toBe(7);
+  });
+  it("con su ventana, lo colgado hace poco que vende se ve acabar; entre los días de la tienda, no", () => {
+    // 4 en la tienda, 2 vendidas en los 4 días que lleva colgada (ventana 7): duran 14 días y se acaba. Entre 15, duraban 30.
+    const [t] = conVentanaDeRitmo([prenda({ piso: 4, vendidas30: 2, salioAlPiso: "2026-10-11" })], "2026-10-14", 15);
+    expect(t.diasDeVentas).toBe(7);
+    expect(t.diasDeVentasTienda).toBe(15);
+    expect(diasQueQuedan(t)).toBe(14);
+    expect(seEstaAcabando(t)).toBe(true);
+    expect(seEstaAcabando(prenda({ piso: 4, vendidas30: 2, diasDeVentas: 15 }))).toBe(false);
+  });
   it("si queda algo, al menos 1 día", () => {
     expect(diasQueQuedan(prenda({ piso: 1, vendidas30: 300 }))).toBe(1);
   });
@@ -101,6 +124,22 @@ describe("el grupo de cada prenda (una sola)", () => {
   it("sin stock o sin dato de días, no cae en las quietas", () => {
     expect(grupoDe(prenda({ diasSinVender: 120 }), 60)).toBeNull();
     expect(grupoDe(prenda({ piso: 2 }), 60)).toBeNull();
+  });
+  // ADR-0357, act. 2026-10-14: una venta pendiente anotada en caja de su tipo, talla y color puede ser una de sus unidades colgadas.
+  it("lo quieto con una unidad que puede ser una venta sin registrar no se manda ni se liquida: «duda»", () => {
+    expect(grupoDe(prenda({ piso: 3, diasSinVender: 64, otras: otras(3), enDuda: 1 }), 60)).toBe("duda");
+    expect(grupoDe(prenda({ piso: 3, diasSinVender: 64, otras: otras(1), enDuda: 1 }), 60)).toBe("duda");
+    expect(grupoDe(prenda({ piso: 3, diasSinVender: 44, enDuda: 2 }), 60)).toBe("duda");
+  });
+  it("la duda no cambia lo que no estaba quieto: lo nuevo, lo que se vende y lo que se acaba siguen igual", () => {
+    expect(grupoDe(prenda({ piso: 3, diasSinVender: 20, enDuda: 1 }), 60)).toBeNull();
+    expect(grupoDe(prenda({ piso: 20, vendidas30: 5, diasSinVender: 2, enDuda: 1 }), 60)).toBeNull();
+    expect(grupoDe(prenda({ piso: 1, vendidas30: 4, enDuda: 1 }), 60)).toBe("comprar");
+  });
+  it("sin duda (0) o sin saberla (sin la lectura de Frescura), se juzga como siempre", () => {
+    expect(grupoDe(prenda({ piso: 3, diasSinVender: 64, otras: otras(1), enDuda: 0 }), 60)).toBe("liquidar");
+    expect(grupoDe(prenda({ piso: 3, diasSinVender: 64, otras: otras(1) }), 60)).toBe("liquidar");
+    expect(grupoDe(prenda({ piso: 3, diasSinVender: 44, enDuda: 0 }), 60)).toBe("vigila");
   });
   it("prendasDe filtra por grupos y se ordena de lo más urgente a lo menos", () => {
     const a = prenda({ varianteId: "a", vendidas30: 6 });
@@ -170,5 +209,31 @@ describe("la tienda como se habla en tienda", () => {
     expect(sedeDeAnalisis({ id: "1", nombre: "Tienda AQP" })).toMatchObject({ codigo: "AQP", ciudad: "Arequipa" });
     expect(sedeDeAnalisis({ id: "2", nombre: "Tienda Trujillo" })).toMatchObject({ codigo: "TRU", ciudad: "Trujillo" });
     expect(sedeDeAnalisis({ id: "3", nombre: "Tienda Cusco" })).toMatchObject({ codigo: "CUS", ciudad: "Cusco" });
+  });
+});
+
+describe("«Te pidieron y no había»: el día de Lima en que se anotó", () => {
+  // Como lo manda `pedidos_no_atendidos`: `created_at` es un instante en UTC. Anotado el 13 de octubre a las 20:00 de Lima
+  // (2026-10-14 01:00 UTC).
+  const pedido = (p: Partial<Parameters<typeof noHabiaDe>[0][number]> = {}) => ({
+    resuelto: false,
+    motivo: "no_habia_talla" as const,
+    productoReferencia: "Polo Lucky",
+    descripcionLibre: null,
+    talla: "M",
+    creadoEn: "2026-10-14T01:00:00.123456+00:00",
+    ...p,
+  });
+
+  it("lo anotado a las 20:00 del 13 en Lima es del 13, aunque en UTC ya sea el 14", () => {
+    expect(noHabiaDe([pedido()])).toEqual([{ que: "Polo Lucky · M", dia: "2026-10-13" }]); // con el corte de UTC, «2026-10-14»
+  });
+
+  it("solo cuentan los pedidos de talla que siguen sin resolver", () => {
+    expect(noHabiaDe([pedido({ resuelto: true }), pedido({ motivo: "se_probo_no_llevo" })])).toEqual([]);
+  });
+
+  it("sin un instante que se lea, el día queda vacío", () => {
+    expect(noHabiaDe([pedido({ creadoEn: "" })])).toEqual([{ que: "Polo Lucky · M", dia: null }]);
   });
 });

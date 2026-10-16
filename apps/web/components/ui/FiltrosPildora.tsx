@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, FunnelX, Minus, SearchX, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
-import { ALTO_CONTROL } from "@/components/ui/campos";
 import { type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
-import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
+import { comboNecesitaBuscador, filtrarCombo, tramosPorGrupo } from "@/lib/combo-reglas";
 import { TODOS, alternarEnLista, textoPildora, textoPildoraVarias, type EstadoCasilla } from "@/lib/pildora-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 
@@ -24,9 +23,10 @@ import { Vacio } from "@/components/ui/Vacio";
 
 export { TODOS };
 
-/** El botón "Filtros · N" que abre/cierra el panel — mismo alto y mismo
- *  ritmo vertical que el campo de búsqueda al lado (ver comentario en cada
- *  consumidor sobre el `<span>` de etiqueta transparente que los empareja). */
+/** El botón «Filtros» que abre y cierra el panel (ADR-0358, ronda 10: Felipe lo eligió tocándolo el 2026-10-13): una píldora más, con la
+ *  cara de las que abre —borde arena, su ícono y su nombre en letra normal; abierto, borde tinta y la flecha roja—. Cuántos filtros hay
+ *  puestos va en el globito de los títulos y las pestañas (`titulo-cuenta`), que entra subiendo con el primero. Antes eran dos caras: «FILTROS
+ *  · 1» en versalitas y, en Existencias, un cuadrado solo ícono con una cifra negra en la esquina. */
 export function BotonFiltros({
   abierto,
   activos,
@@ -39,49 +39,25 @@ export function BotonFiltros({
   onClick: () => void;
   /** Ancla de la guía (ADR-0389), en el botón mismo. */
   "data-guia"?: string;
-  /** Solo el icono, cuadrado y del alto de su fila (Existencias, 2026-10-06): el nombre va como etiqueta y al pasar el mouse, y
-   *  cuántos filtros hay puestos, en una cifra sobre la esquina. Las demás barras siguen con «Filtros · N» en texto. */
+  /** Bajo `sm`, solo el ícono en un cuadrado de 38 px con un punto si hay filtros puestos, como las demás píldoras (`soloIconoEnCelular`):
+   *  el buscador del celular conserva su ancho (Productos, Existencias). Desde `sm`, la píldora entera. */
   soloIcono?: boolean;
 }) {
-  if (soloIcono) {
-    const nombre = activos > 0 ? `Filtros · ${activos} ${activos === 1 ? "puesto" : "puestos"}` : "Filtros";
-    return (
-      <button
-        type="button"
-        data-guia={guia}
-        onClick={onClick}
-        aria-expanded={abierto}
-        aria-controls="filtros-panel"
-        aria-label={nombre}
-        title={nombre}
-        className={`relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors ${
-          abierto || activos > 0 ? "border-tinta/30 bg-tinta/[0.04] text-tinta" : "border-sand bg-papel text-tinta/65 hover:border-taupe hover:text-tinta"
-        }`}
-      >
-        <SlidersHorizontal aria-hidden className="h-4 w-4" strokeWidth={1.75} />
-        {activos > 0 && (
-          <b aria-hidden className="absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-tinta px-1 text-[10.5px] font-semibold leading-none tabular-nums text-crema">
-            {activos}
-          </b>
-        )}
-      </button>
-    );
-  }
+  const nombre = activos > 0 ? `Filtros · ${activos} ${activos === 1 ? "puesto" : "puestos"}` : "Filtros";
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-expanded={abierto}
-      aria-controls="filtros-panel"
-      className={`label-cayla mt-1.5 ${ALTO_CONTROL} inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-3.5 text-[11px] transition-colors ${
-        abierto || activos > 0
-          ? "border-tinta/30 bg-tinta/[0.04] text-tinta"
-          : "border-tinta/15 text-tinta/65 hover:border-tinta/25 hover:text-tinta"
-      }`}
-    >
-      <SlidersHorizontal aria-hidden className="h-3.5 w-3.5" />
-      Filtros{activos > 0 ? ` · ${activos}` : ""}
-    </button>
+    <div className={`pildora-filtro shrink-0 ${soloIcono ? "pildora-filtro-icono-celular" : ""}`} data-abierta={abierto ? "" : undefined}>
+      <button type="button" data-guia={guia} onClick={onClick} aria-expanded={abierto} aria-controls="filtros-panel" aria-label={nombre} className="pildora-filtro-boton">
+        <SlidersHorizontal aria-hidden className="pildora-filtro-icono" />
+        {soloIcono && activos > 0 && <span aria-hidden className="pildora-filtro-punto" />}
+        <span className="pildora-filtro-nombre">Filtros</span>
+        {activos > 0 && (
+          <span aria-hidden className="titulo-cuenta pildora-filtro-cuenta">
+            {activos}
+          </span>
+        )}
+        <ChevronDown aria-hidden className="pildora-filtro-flecha" />
+      </button>
+    </div>
   );
 }
 
@@ -153,8 +129,10 @@ type VariasOpciones = {
 };
 
 /** Una opción de la lista. `cantidad`: cuántas prendas trae (Productos, ADR-0308). `grupo` / `hijo`: la fila es el encabezado de un
- *  grupo marcable (una familia) o un elemento dentro de él; `estado` dice cómo se ve su casilla cuando la lista tiene esa jerarquía. */
-type OpcionPildora = OpcionCombo<string> & { cantidad?: number; grupo?: boolean; hijo?: boolean; estado?: EstadoCasilla };
+ *  grupo marcable (una familia) o un elemento dentro de él; `estado` dice cómo se ve su casilla cuando la lista tiene esa jerarquía.
+ *  `apartado`: el título del grupo al que pertenece, como el <optgroup> (el `Opcion.grupo` de Desplegable): las opciones seguidas del
+ *  mismo apartado se listan bajo ese título en versalitas («Cuánto lleva», «Otros», «Temporada» en Frescura; ADR-0358, ronda 9). */
+type OpcionPildora = OpcionCombo<string> & { cantidad?: number; grupo?: boolean; hijo?: boolean; estado?: EstadoCasilla; apartado?: string };
 
 export function DesplegablePildora({
   icono: Icono,
@@ -201,7 +179,8 @@ export function DesplegablePildora({
   const mostrarBuscador = comboNecesitaBuscador(opciones.length);
   const filtradas = useMemo(() => {
     if (!mostrarBuscador || !busqueda) return opciones;
-    return filtrarCombo(opciones, busqueda, (o) => ({ texto: o.texto }));
+    // El apartado también se busca, como el grupo de Desplegable: «temporada» encuentra las del apartado Temporada.
+    return filtrarCombo(opciones, busqueda, (o) => ({ texto: o.texto, detalle: o.apartado }));
   }, [opciones, busqueda, mostrarBuscador]);
   const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
   const mostradas = mostrarBuscador ? filtradas.slice(0, visibles) : opciones;
@@ -405,61 +384,22 @@ export function DesplegablePildora({
                 )}
               </li>
             ) : (
-              mostradas.map((o, i) => {
-                // Con jerarquía (Color), la casilla dice lo que hace la base: familia marcada ⇒ sus tonos ya van incluidos.
-                const marcada = o.estado ? o.estado === "marcada" || o.estado === "cubierta" : marcadas.includes(o.valor);
-                const parcial = o.estado === "parcial";
-                return (
-                  <li
-                    key={o.valor}
-                    data-i={i}
-                    role="option"
-                    aria-selected={marcada || parcial}
-                    onMouseEnter={() => setActivo(i)}
-                    onClick={() => elegir(o)}
-                    className={`relative flex cursor-pointer select-none items-center rounded-md py-2 pr-3 text-sm outline-none transition-colors ${
-                      o.hijo ? "pl-8" : "pl-3"
-                    } ${o.grupo && i > 0 ? "mt-1.5 rounded-t-none border-t border-tinta/10 pt-2.5" : ""} ${
-                      i === activo ? "bg-rojo/10 text-tinta" : "text-tinta"
-                    } ${!varias && o.valor === valor ? "font-medium" : ""} ${o.grupo ? "font-medium" : ""}`}
-                  >
-                    {/* Una sola opción: la elegida lleva el hilo rojo de canto y su ✓, como toda lista de combo (ADR-0358, ronda 6). */}
-                    {!varias && (
-                      <span
-                        aria-hidden
-                        className={`absolute -left-1 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${o.valor === valor ? "scale-y-100" : "scale-y-0"}`}
-                      />
-                    )}
-                    {varias && (
-                      <span
-                        aria-hidden
-                        className={`mr-2 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border ${
-                          o.estado === "cubierta"
-                            ? "border-tinta/45 bg-tinta/45 text-crema"
-                            : marcada
-                              ? "border-tinta bg-tinta text-crema"
-                              : parcial
-                                ? "border-tinta bg-tinta/10 text-tinta"
-                                : "border-tinta/30"
-                        }`}
-                      >
-                        {marcada && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
-                        {parcial && <Minus className="h-2.5 w-2.5" strokeWidth={3} />}
-                      </span>
-                    )}
-                    {o.icono && <span className="mr-2 inline-block align-middle">{o.icono}</span>}
-                    <span className="align-middle">{o.texto}</span>
-                    {parcial && <span className="sr-only">, algunos tonos marcados</span>}
-                    {o.estado === "cubierta" && <span className="sr-only">, ya incluido en la familia marcada</span>}
-                    {o.cantidad != null && (
-                      <span className="ml-auto pl-4 text-xs tabular-nums text-tinta/45" aria-label={`${o.cantidad} ${o.cantidad === 1 ? "prenda" : "prendas"}`}>
-                        {o.cantidad}
-                      </span>
-                    )}
-                    {!varias && o.valor === valor && <Check aria-hidden className={`combo-tilde ${o.cantidad == null ? "ml-auto" : ""}`} />}
+              // Los apartados (lib/combo-reglas.ts): un título y sus opciones en un `role="group"`; sin apartado, las filas sueltas de
+              // siempre. El índice de cada fila es el de la lista plana, así las flechas no saben que hay apartados.
+              tramosPorGrupo(mostradas.map((o) => ({ o, grupo: o.apartado }))).map((t, k) =>
+                t.grupo === undefined ? (
+                  <Fragment key={`t${k}`}>{t.items.map(({ o: { o }, i }) => opcion(o, i))}</Fragment>
+                ) : (
+                  <li key={`t${k}`} role="presentation">
+                    <p id={`${id}-g${k}`} aria-hidden className="label-cayla px-3 pb-1 pt-2.5 text-[10px] text-tinta/55">
+                      {t.grupo}
+                    </p>
+                    <ul role="group" aria-labelledby={`${id}-g${k}`}>
+                      {t.items.map(({ o: { o }, i }) => opcion(o, i))}
+                    </ul>
                   </li>
-                );
-              })
+                )
+              )
             )}
           </ul>
         </div>,
@@ -467,6 +407,62 @@ export function DesplegablePildora({
         )}
     </div>
   );
+
+  function opcion(o: OpcionPildora, i: number) {
+    // Con jerarquía (Color), la casilla dice lo que hace la base: familia marcada ⇒ sus tonos ya van incluidos.
+    const marcada = o.estado ? o.estado === "marcada" || o.estado === "cubierta" : marcadas.includes(o.valor);
+    const parcial = o.estado === "parcial";
+    return (
+      <li
+        key={o.valor}
+        data-i={i}
+        role="option"
+        aria-selected={marcada || parcial}
+        onMouseEnter={() => setActivo(i)}
+        onClick={() => elegir(o)}
+        className={`relative flex cursor-pointer select-none items-center rounded-md py-2 pr-3 text-sm outline-none transition-colors ${
+          o.hijo ? "pl-8" : "pl-3"
+        } ${o.grupo && i > 0 ? "mt-1.5 rounded-t-none border-t border-tinta/10 pt-2.5" : ""} ${
+          i === activo ? "bg-rojo/10 text-tinta" : "text-tinta"
+        } ${!varias && o.valor === valor ? "font-medium" : ""} ${o.grupo ? "font-medium" : ""}`}
+      >
+        {/* Una sola opción: la elegida lleva el hilo rojo de canto y su ✓, como toda lista de combo (ADR-0358, ronda 6). */}
+        {!varias && (
+          <span
+            aria-hidden
+            className={`absolute -left-1 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${o.valor === valor ? "scale-y-100" : "scale-y-0"}`}
+          />
+        )}
+        {varias && (
+          <span
+            aria-hidden
+            className={`mr-2 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border ${
+              o.estado === "cubierta"
+                ? "border-tinta/45 bg-tinta/45 text-crema"
+                : marcada
+                  ? "border-tinta bg-tinta text-crema"
+                  : parcial
+                    ? "border-tinta bg-tinta/10 text-tinta"
+                    : "border-tinta/30"
+            }`}
+          >
+            {marcada && <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-2.5 w-2.5" strokeWidth={3} />}
+            {parcial && <Minus /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-2.5 w-2.5" strokeWidth={3} />}
+          </span>
+        )}
+        {o.icono && <span className="mr-2 inline-block align-middle">{o.icono}</span>}
+        <span className="align-middle">{o.texto}</span>
+        {parcial && <span className="sr-only">, algunos tonos marcados</span>}
+        {o.estado === "cubierta" && <span className="sr-only">, ya incluido en la familia marcada</span>}
+        {o.cantidad != null && (
+          <span className="ml-auto pl-4 text-xs tabular-nums text-tinta/45" aria-label={`${o.cantidad} ${o.cantidad === 1 ? "prenda" : "prendas"}`}>
+            {o.cantidad}
+          </span>
+        )}
+        {!varias && o.valor === valor && <Check aria-hidden className={`combo-tilde ${o.cantidad == null ? "ml-auto" : ""}`} />}
+      </li>
+    );
+  }
 }
 
 /** La lista flotante, al ancho de su texto y no al de la píldora (con la píldora de 90 px los nombres de marca se partían en

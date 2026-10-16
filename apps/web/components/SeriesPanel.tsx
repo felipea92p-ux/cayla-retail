@@ -264,12 +264,12 @@ export function SeriesPanel({
                 onChange={(e) => setNumero(e.target.value)}
                 placeholder="1"
               />
-              <div className="flex gap-2 pt-3">
-                <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+              <div className="pie-acciones pt-3">
+                <Boton type="button" peso="fantasma" onClick={cerrar}>
                   Cancelar
                 </Boton>
-                <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
-                  {loading ? "Guardando…" : "Registrar serie"}
+                <Boton type="submit" peso="primario" cargando={loading}>
+                  Registrar serie
                 </Boton>
               </div>
             </form>
@@ -330,19 +330,19 @@ function ModalArchivarSerie({ serie, onClose }: { serie: SerieComprobante; onClo
             placeholder="Serie de pruebas: pasamos a la SUNAT real"
           />
           <ComboResponsable control={responsable} deshabilitado={loading} className="pt-2" />
-          <div className="flex gap-2 pt-3">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div className="pie-acciones pt-3">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton
+            <Boton textoCargando="Archivando…"
               type="submit"
               peso="primario"
-              className="flex-1"
+             
               cargando={loading}
               disabled={!responsable.listo}
               title={responsable.motivo ?? undefined}
             >
-              {loading ? "Archivando…" : "Archivar"}
+              Archivar
             </Boton>
           </div>
         </form>

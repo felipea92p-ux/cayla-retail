@@ -106,7 +106,7 @@ function FilaMiembro({
           </span>
         ) : (
           <span className={`grid h-9 w-9 place-items-center rounded-[10px] bg-tinta text-crema ${apagado ? "opacity-60" : ""}`}>
-            <IconoAparato className="h-[18px] w-[18px]" />
+            <IconoAparato className="h-5 w-5" />
           </span>
         )}
         <span className="min-w-0">

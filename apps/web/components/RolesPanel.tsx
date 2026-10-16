@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Lock, Plus, SearchX, ShieldCheck } from "lucide-react";
+import { ChevronDown, Lock, Plus, SearchX, ShieldCheck, Users } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Boton, Desplegable } from "@/components/ui/campos";
@@ -294,7 +295,7 @@ export function RolesPanel({
             {cuentas && (
               <div className="mt-3 flex flex-wrap items-center gap-2.5">
                 {cuentasDelElegido.length === 0 ? (
-                  <p className="text-[13px] text-tinta/60">Ninguna cuenta tiene este rol todavía.</p>
+                  <Vacio tamano="chico" alinear="izquierda" className="px-0 py-1" icono={<Users />}>Ninguna cuenta tiene este rol todavía.</Vacio>
                 ) : (
                   <>
                     <PilaPersonas mas={Math.max(0, cuentasDelElegido.length - 5)}>
@@ -500,7 +501,7 @@ export function RolesPanel({
               Descartar
             </Boton>
             <Boton type="button" peso="primario" onClick={guardar} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
-              {guardando ? "Guardando…" : "Guardar cambios"}
+              Guardar cambios
             </Boton>
           </>
         }
@@ -623,7 +624,7 @@ function TarjetasRoles({
           data-guia="roles.nuevo"
           className="grid min-h-[150px] place-content-center justify-items-center gap-1.5 rounded-2xl border border-dashed border-taupe/60 text-[14px] font-semibold text-taupe transition-colors duration-200 ease-cayla hover:border-taupe hover:text-tinta"
         >
-          <Plus aria-hidden className="h-6 w-6" strokeWidth={1.6} />
+          <Plus /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ aria-hidden className="h-6 w-6" strokeWidth={1.5} />
           Nuevo rol
         </button>
       </div>
@@ -679,9 +680,8 @@ function TarjetaRol({ rol, elegido, cuentas, sinGuardar, onElegir }: { rol: RolV
         ))}
         {muestra.length > 8 && <span className="grid h-7 place-items-center px-1 text-[11.5px] font-semibold text-tinta/60">+{muestra.length - 8}</span>}
       </span>
-      <span aria-hidden className="block h-1.5 overflow-hidden rounded-full bg-hueso">
-        <span className={`block h-full rounded-full transition-[width] duration-500 ease-cayla ${rol.fijo ? "bg-taupe" : "bg-tinta"}`} style={{ width: `${Math.round((n / de) * 100)}%` }} />
-      </span>
+      {/* Cuántos módulos ve el rol: una medida, no un avance (un rol con todos no está «listo»): siempre en tinta. */}
+      <BarraAvance pct={(n / de) * 100} tono="tinta" decorativa />
       <span className="flex items-center justify-between gap-2 text-[12.5px] text-tinta/60">
         <PilaPersonas>
           {(cuentas ?? []).slice(0, 4).map((c) => (
@@ -769,9 +769,9 @@ function CuentasDelRolModal({ rol, cuentas, onClose }: { rol: RolVista; cuentas:
   const filtradas = cuentas.filter((c) => norm(`${c.nombre} ${c.ubicacion ?? ""}`).includes(norm(q.trim())));
   return (
     <Modal
+      conCerrar
       titulo={rol.nombre}
       subtitulo={`${cuentas.length === 1 ? "1 cuenta tiene" : `${cuentas.length} cuentas tienen`} este rol. Para cambiar el de una, usa «Asignar» o su fila en Cuentas.`}
-      ancho="max-w-md"
       onClose={onClose}
     >
       <div className="mt-4 space-y-2">

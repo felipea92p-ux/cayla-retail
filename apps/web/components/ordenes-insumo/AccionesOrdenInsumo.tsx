@@ -3,7 +3,7 @@
 import { useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Ban, Pencil, Printer } from "lucide-react";
+import { Ban, ReceiptText } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, BotonEnlace, CampoTexto } from "@/components/ui/campos";
@@ -27,13 +27,18 @@ import {
   numeroOrdenInsumo,
   puedeAnularOrdenInsumo,
   puedeEditarOrdenInsumo,
+  puedeRegistrarComprobanteInsumo,
   type DetalleOrdenInsumo,
 } from "@/lib/ordenes-insumo-reglas";
+import { baseConPapelDeInsumos } from "@/lib/comprobante-orden-insumo-reglas";
 import { anularOrdenInsumo } from "@/lib/ordenes-insumo-acciones";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 // Lo que se hace con una orden de insumos (ADR-0362, fase 7 · actividad 2), como en la orden de compra (fase 1): «Imprimir o guardar
-// PDF» siempre; «Editar» y «Anular orden» solo mientras está «generada». El comprobante y la recepción del Taller llegan después (esperan
-// a Felipe): cuando lleguen, sus botones se suman aquí y editar/anular sumarán su candado, como hicieron las fases 2 y 3.
+// PDF» siempre; «Editar» y «Anular orden» solo mientras está «generada». Con papel (fase 7 parte 2, actividad 1) se suma «Registrar
+// comprobante» —la acción principal— mientras la orden esté generada. Y desde que tiene un papel «Editar» se va (la base no edita una orden
+// que tuvo papel); mientras tenga uno vigente también se va «Anular orden» (primero se anula el papel; la orden abierta lo explica).
 //
 // Va al pie de la ventana de la orden (`lugar="pie"`: anular a la izquierda; imprimir y editar a la derecha, donde la mano ya está al
 // terminar de leer) y en la cabecera de su página (`lugar="cabecera"`).
@@ -54,16 +59,18 @@ export function AccionesOrdenInsumo({ orden, empresa, lugar }: { orden: DetalleO
   useTituloDeImpresion(numeroOrdenInsumo(orden.numero));
 
   const imprimir = (
-    <Boton onClick={() => window.print()} data-guia="oi.imprimir">
-      <span className="inline-flex items-center gap-2">
-        <Printer aria-hidden className="h-3.5 w-3.5" /> Imprimir o guardar PDF
-      </span>
-    </Boton>
+    <BotonImprimir onClick={() => window.print()} title="También sirve para guardar la orden en PDF" guia="oi.imprimir">
+      Imprimir la orden
+    </BotonImprimir>
   );
   const editar = puedeEditarOrdenInsumo(orden) && (
-    <BotonEnlace href={`${RUTA_ORDENES_INSUMO}/editar/${orden.id}`} data-guia="oi.editar">
+    <BotonEditar href={`${RUTA_ORDENES_INSUMO}/editar/${orden.id}`} guia="oi.editar" />
+  );
+  // Solo con una base que ya sabe del papel (toda línea trae su id): una web publicada antes que la migración no ofrece un botón roto.
+  const registrar = puedeRegistrarComprobanteInsumo(orden) && baseConPapelDeInsumos(orden) && (
+    <BotonEnlace href={`${RUTA_ORDENES_INSUMO}/comprobante/${orden.id}`} peso="primario" data-guia="oi.registrar-comprobante">
       <span className="inline-flex items-center gap-2">
-        <Pencil aria-hidden className="h-3.5 w-3.5" /> Editar
+        <ReceiptText aria-hidden className="h-3.5 w-3.5" /> Registrar la compra
       </span>
     </BotonEnlace>
   );
@@ -89,6 +96,7 @@ export function AccionesOrdenInsumo({ orden, empresa, lugar }: { orden: DetalleO
           <div className="ml-auto flex flex-wrap items-center gap-3">
             {imprimir}
             {editar}
+            {registrar}
           </div>
         </div>
       ) : (
@@ -96,6 +104,7 @@ export function AccionesOrdenInsumo({ orden, empresa, lugar }: { orden: DetalleO
           {anular}
           {imprimir}
           {editar}
+          {registrar}
         </div>
       )}
       {anulando && (
@@ -240,12 +249,12 @@ function AnularOrdenInsumoModal({
             </Aviso>
           )}
           <PieGuia guia={guia} listo="Todo listo para anular." />
-          <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
+          <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Anulando…" : "Anular orden"}
+            <Boton textoCargando="Anulando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              Anular orden
             </Boton>
           </div>
         </form>

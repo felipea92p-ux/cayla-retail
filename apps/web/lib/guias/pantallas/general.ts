@@ -315,6 +315,13 @@ export const GUIA_INICIO: Guia = {
       texto: "Cuánto llevas vendido en el mes contra tu meta del mes, y cuántos días de trabajo te quedan.",
     },
     {
+      id: "tu-fondo",
+      ancla: "inicio.tu-fondo",
+      opcional: true,
+      titulo: "Tu fondo",
+      texto: "Si CAYLA te entregó plata para comprar, aquí ves cuánto te queda y cuánto gastaste; si pagaste de tu bolsillo, cuánto te debe CAYLA. «Rendir» abre tu rendición: cuentas tu efectivo y otra persona la revisa. Si no hay nada que rendir, al tocarla vas a donde compras. Solo la ves tú.",
+    },
+    {
       id: "vender",
       ancla: "inicio.vender",
       opcional: true,
@@ -944,19 +951,19 @@ export const GUIA_CONFIGURACION: Guia = {
   id: "configuracion",
   ruta: "/configuracion",
   titulo: "Configuración",
-  resumen: "Lo que se ajusta una vez y todas las pantallas leen: metas, cuentas, caja, gastos fijos e impuestos.",
+  resumen: "Lo que se ajusta una vez y todas las pantallas leen: metas, tienda web, cuentas, caja, gastos fijos e impuestos.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
       titulo: "La configuración",
-      texto: "Aquí se ajusta lo que todas las pantallas leen: la meta de cada tienda, las cuentas de banco, los topes de gasto, el IGV. Cada cambio queda anotado con quién lo hizo. En la demo solo miramos cada sección, sin guardar nada.",
+      texto: "Aquí se ajusta lo que todas las pantallas leen: la meta de cada tienda, lo que ve el cliente en la tienda web, las cuentas de banco, los topes de gasto, el IGV. Cada cambio queda anotado con quién lo hizo. En la demo solo miramos cada sección, sin guardar nada.",
     },
     {
       id: "pestanas",
       ancla: "config.pestanas",
-      titulo: "Siete secciones",
-      texto: "Empresa, Tiendas y caja, Cuentas y cobros, Caja y avisos, Gastos fijos, Presupuesto e Impuestos. Te las mostramos una por una, empezando por Tiendas y caja.",
+      titulo: "Ocho secciones",
+      texto: "Empresa, Tiendas y caja, Tienda web, Cuentas y cobros, Caja y avisos, Gastos fijos, Presupuesto e Impuestos. Te las mostramos una por una, empezando por Tiendas y caja.",
     },
     {
       id: "guardado",
@@ -977,7 +984,7 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.tiendas-whatsapp",
       opcional: true,
       titulo: "WhatsApp de cada tienda",
-      texto: "El número al que escriben los clientes desde el cartel del club. Sin número, esa tienda no muestra el código QR. «Ver el cartel del club» te lleva al cartel, tal como sale impreso.",
+      texto: "El número al que escriben los clientes desde el cartel del club y desde la tienda web. Sin número, esa tienda no muestra el código QR ni sale en la web. «Ver el cartel del club» te lleva al cartel, tal como sale impreso.",
     },
     {
       id: "carga-inicial",
@@ -999,6 +1006,35 @@ export const GUIA_CONFIGURACION: Guia = {
       opcional: true,
       titulo: "Cómo lo ve la caja",
       texto: "La caja ve la meta de hoy y cuánto le falta; al cerrar, el fondo que debe dejar. Si deja menos, se le pide confirmar, no se le bloquea, y el líder lo ve. «Ver cómo se ve en Caja» te lleva a esa pantalla.",
+    },
+    {
+      id: "tienda-web-sedes",
+      ancla: "config.tienda-web-sedes",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "config.tab-tienda-web" }],
+      titulo: "Cada tienda en la tienda web",
+      texto: "Lo que el cliente ve de cada tienda en la tienda online: el nombre (Trujillo, no Tienda TRU), el WhatsApp donde llegan sus pedidos, la dirección para recoger y el horario. Mientras falte algo, la tarjeta dice qué y te lleva a la casilla.",
+    },
+    {
+      id: "tienda-web-mostrar",
+      ancla: "config.tienda-web-mostrar",
+      opcional: true,
+      titulo: "Se ve en la web",
+      texto: "Con nombre, WhatsApp y dirección, la tienda se puede encender: el cliente la ve y puede recoger ahí lo que separa. Apagada, no la ve. En la demo no la tocamos.",
+    },
+    {
+      id: "tienda-web-plazos",
+      ancla: "config.tienda-web-plazos",
+      opcional: true,
+      titulo: "Para todas las sedes",
+      texto: "Cuántas horas tiene la tienda para confirmar un pedido antes de que se cierre solo, cuándo avisar si no paga o no recoge, y desde cuántas prendas el cliente ve el número en vez de «Hay».",
+    },
+    {
+      id: "tienda-web-nota",
+      ancla: "config.tienda-web-nota",
+      opcional: true,
+      titulo: "Un solo WhatsApp por tienda",
+      texto: "Es el mismo número del cartel del club: cambiarlo aquí también lo cambia en Tiendas y caja. Y por ahora todo pedido web se recoge en tienda: no hay envíos.",
     },
     {
       id: "cuentas-lista",
@@ -1073,7 +1109,7 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.propuesta-botones",
       opcional: true,
       titulo: "Aplicar o dejarlo",
-      texto: "«Aplicar» guarda esos topes de una vez, a nombre del responsable; «Cancelar» (o «Cerrar», si no hay nada que cambiar) no toca nada. En la demo no aplicamos: cerramos la ventana.",
+      texto: "«Aplicar» guarda esos topes de una vez, a nombre del responsable; «Cancelar» no toca nada (si no hay nada que cambiar, la ventana se cierra con la × de arriba). En la demo no aplicamos: cerramos la ventana.",
     },
     {
       id: "impuestos-igv",
@@ -1112,6 +1148,20 @@ export const GUIA_CONFIGURACION: Guia = {
       preparar: [{ tipo: "escape" }],
       titulo: "La UIT de cada año",
       texto: "El valor de la UIT, que marca el límite de ventas del régimen y la renta.",
+    },
+    {
+      id: "impuestos-tope",
+      ancla: "config.impuestos-tope",
+      opcional: true,
+      titulo: "El tope de la planilla",
+      texto: "Cuánto se acepta por persona y por día en taxis y cargadores sin comprobante. Lo fija el contador: lo que pase se deja registrar y queda «no deducible». Sin tope, no se marca nada.",
+    },
+    {
+      id: "nuevo-tope",
+      ancla: "config.nuevo-tope",
+      opcional: true,
+      titulo: "Un tope nuevo",
+      texto: "Cuando el contador lo fije o cambie, se agrega desde una fecha, como una tasa nueva. Lo de antes de esa fecha no se marca.",
     },
     {
       id: "impuestos-regimen",

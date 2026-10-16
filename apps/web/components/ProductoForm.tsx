@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Plus, Undo2 } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -123,6 +124,7 @@ import { MarcaCampo, EtiquetaAhora } from "@/components/alta-producto/guia";
 import type { EstadoCampo } from "@/lib/alta-producto-guia";
 import { pendientesDeFicha, type IdPendiente, type PendienteFicha } from "@/lib/producto-ficha-guia";
 import type { AjusteStockFicha, ContextoFicha, LecturaStockFicha } from "@/components/ficha-producto/piezas";
+import { MAX_DESCRIPCION_PRODUCTO, MAX_NOMBRE_PRODUCTO } from "@/lib/catalogo-topes";
 
 /* ====================================================================
    ProductoForm · edición de producto+variantes (V2, 2026-09-15)
@@ -588,6 +590,9 @@ export function ProductoForm({
   });
   const avisoBloque = avisoBloqueSinAplicar(bloquePendiente);
   const avisosSinBloquear = problemas.filter((p) => !p.bloquea).map((p) => p.texto);
+  // El piso del precio de una tienda (`costoMaximoGuardado`) mira las tallas que ese precio alcanza: la de obsequio (0 en una categoría
+  // que admite el 0) no; la de ropa en 0, sí (20261015121000). Con la categoría GUARDADA, la que mira la base (`poner_precio_sede`).
+  const admiteCeroGuardada = !!categorias.find((c) => c.id === enLaBase.datos.categoriaId)?.admitePrecioCero;
 
   function aplicar(e: EstadoFicha) {
     setReferencia(e.referencia);
@@ -1114,10 +1119,7 @@ export function ProductoForm({
     return (
       <span className="inline-flex flex-wrap items-center gap-x-2 text-ambar">
         antes: {c.antes}
-        <button type="button" onClick={() => deshacerCampo(campo)} className="label-cayla inline-flex items-center gap-1 text-[10.5px] text-taupe hover:text-rojo">
-          <Undo2 aria-hidden className="h-3 w-3" />
-          Deshacer
-        </button>
+        <BotonDeshacer onClick={() => deshacerCampo(campo)} className="text-[12px]" />
       </span>
     );
   }
@@ -1292,6 +1294,7 @@ export function ProductoForm({
             <CampoTexto
               etiqueta="Referencia"
               id="producto-referencia"
+              maxLength={MAX_NOMBRE_PRODUCTO}
               value={referencia}
               onChange={(e) => setReferencia(e.target.value)}
               placeholder="Blusa Lino"
@@ -1338,6 +1341,7 @@ export function ProductoForm({
             <div className="@lg:col-span-2">
               <CampoTexto
                 etiqueta="Descripción (opcional)"
+                maxLength={MAX_DESCRIPCION_PRODUCTO}
                 value={descripcion}
                 onChange={(e) => setDescripcion(e.target.value)}
                 placeholder="Detalle interno, no se muestra al cliente"
@@ -1640,7 +1644,7 @@ export function ProductoForm({
                 todas={preciosSede.todas}
                 tiendas={preciosSede.tiendas}
                 ubicacionActual={preciosSede.ubicacionId}
-                costoMaximo={veCosto ? costoMaximoGuardado(filas) : null}
+                costoMaximo={veCosto ? costoMaximoGuardado(filas, admiteCeroGuardada) : null}
                 deshabilitado={loading}
               />
             )}
@@ -1652,9 +1656,7 @@ export function ProductoForm({
                     <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ambar" />
                     <span className="min-w-0">
                       Se corrige al guardar: <b className="font-semibold">{c.texto}</b>. Conserva su stock y su historia.{" "}
-                      <button type="button" disabled={loading} onClick={() => deshacerCorreccion(c.claves, c.destino)} className="btn-cayla btn-enlace text-[12px]">
-                        Deshacer
-                      </button>
+                      <BotonDeshacer disabled={loading} onClick={() => deshacerCorreccion(c.claves, c.destino)} className="text-[12px]" />
                     </span>
                   </li>
                 ))}
@@ -1672,9 +1674,7 @@ export function ProductoForm({
                         {u > 0
                           ? `. Sus ${u} u. (contando todas las sedes, no solo la tabla de arriba) siguen en el inventario, pero ya no se podrán vender en ninguna: si existen, véndelas antes o pide un ajuste.`
                           : "."}{" "}
-                        <button type="button" disabled={loading} onClick={() => setFilas((actual) => devolverColor(actual, c))} className="btn-cayla btn-enlace text-[12px]">
-                          Deshacer
-                        </button>
+                        <BotonDeshacer disabled={loading} onClick={() => setFilas((actual) => devolverColor(actual, c))} className="text-[12px]" />
                       </span>
                     </li>
                   );
@@ -1694,9 +1694,7 @@ export function ProductoForm({
                         {u > 0
                           ? `. Sus ${u} u. (contando todas las sedes, no solo la tabla de arriba) siguen en el inventario, pero ya no se podrán vender en ninguna: si existen, véndelas antes o pide un ajuste.`
                           : "."}{" "}
-                        <button type="button" disabled={loading} onClick={() => setFilas((actual) => devolverTalla(actual, t))} className="btn-cayla btn-enlace text-[12px]">
-                          Deshacer
-                        </button>
+                        <BotonDeshacer disabled={loading} onClick={() => setFilas((actual) => devolverTalla(actual, t))} className="text-[12px]" />
                       </span>
                     </li>
                   );
@@ -1714,7 +1712,7 @@ export function ProductoForm({
               {/* Solo abren su ventana (nada se guarda hasta «Revisar y guardar»): `aria-haspopup` lo dice al lector y deja que la guía las abra. */}
               <button type="button" id="variantes-agregar-color" aria-haspopup="dialog" data-guia="editar.agregar-color" className="taller-agregar-color justify-start @lg:justify-center" disabled={loading} onClick={() => setAgregandoColor(true)}>
                 <span aria-hidden className="taller-agregar-icono">
-                  <Plus strokeWidth={2.5} className="h-3.5 w-3.5" />
+                  <Plus className="h-3.5 w-3.5" />
                 </span>
                 <span className="taller-agregar-texto">
                   <b>Agregar color</b>
@@ -1723,7 +1721,7 @@ export function ProductoForm({
               </button>
               <button type="button" aria-haspopup="dialog" data-guia="editar.agregar-talla" className="taller-agregar-color justify-start @lg:justify-center" disabled={loading || filas.length === 0} onClick={() => setAgregandoTalla(true)}>
                 <span aria-hidden className="taller-agregar-icono">
-                  <Plus strokeWidth={2.5} className="h-3.5 w-3.5" />
+                  <Plus className="h-3.5 w-3.5" />
                 </span>
                 <span className="taller-agregar-texto">
                   <b>Agregar talla</b>

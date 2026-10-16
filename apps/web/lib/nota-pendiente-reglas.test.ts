@@ -7,12 +7,12 @@ const abierta: NotaPendiente = { unidadesCerradas: 4, montoEsperado: 236, resuel
 describe("chipNotaPendiente", () => {
   it("el chip dice el monto esperado con dos decimales y es ámbar", () => {
     const c = chipNotaPendiente(resuelta, 1416);
-    expect(c.texto).toBe("Esperando nota S/ 236.00");
+    expect(c.texto).toBe("Esperando nota S/\u00a0236.00");
     expect(c.tono).toBe("ambar");
   });
 
   it("con miles usa el formato de Perú (S/ 1,416.00)", () => {
-    expect(chipNotaPendiente({ ...resuelta, montoEsperado: 1416 }, 1416).texto).toBe("Esperando nota S/ 1,416.00");
+    expect(chipNotaPendiente({ ...resuelta, montoEsperado: 1416 }, 1416).texto).toBe("Esperando nota S/\u00a01,416.00");
   });
 
   // Desde 2026-09-19 la frase dice DÓNDE se registra: hay una sola puerta, el módulo de Notas de crédito.
@@ -45,7 +45,7 @@ describe("chipNotaPendiente", () => {
   });
 
   it("la pista nombra el monto, para el tooltip y el lector de pantalla", () => {
-    expect(chipNotaPendiente(resuelta, 1416).pista).toContain("por S/ 236.00");
+    expect(chipNotaPendiente(resuelta, 1416).pista).toContain("por S/\u00a0236.00");
   });
 });
 

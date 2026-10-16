@@ -14,6 +14,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { tipoDeParametro } from "@/lib/modelo-nuevo-orden-reglas";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { conPreciosMasBajos, conPreciosMasBajosDeModelos } from "@/lib/produccion-reglas";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Órdenes de producción del Taller (restaurada 2026-09-15 sobre V2). Una sola
 // forma de producir: la orden. Se abre con sus fases (quién hace cada una) y su tela, avanza fase por fase y al cerrar
@@ -47,7 +48,7 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
   if (!taller) {
     return (
       <div className="space-y-6">
-        <h1 className="font-display text-2xl text-tinta">Producción</h1>
+        <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Órdenes" />
         <div className="card-cayla">
           <Vacio icono={<Factory />} titulo="No hay un Taller activo">
             Producción necesita una ubicación de tipo Taller para saber dónde entra el stock. Pídele al líder que active el Taller.

@@ -4,7 +4,8 @@
 // LAS REGLAS DE FELIPE (2026-10-12):
 //   · El objetivo de cada categoría (lo que conviene tener en toda CAYLA) se reparte según lo que vendió cada tienda en 90 días. Se usa su
 //     RITMO por día con ERP, no el total: una tienda que abrió hace un mes no queda castigada contra una que vende hace tres.
-//   · Una tienda casi sin ventas (Lima al empezar) recibe el MÍNIMO que fija un líder; lo que queda se reparte entre las demás según su ritmo.
+//   · Una tienda casi sin ventas (Lima al empezar) recibe el MÍNIMO que se le fija (quien tiene el módulo, ADR-0362 decisión 64); lo que queda
+//     se reparte entre las demás según su ritmo.
 //   · Se manda todo al inicio: a cada tienda, lo que le toca menos lo que ya tiene. Si una ya tiene de más, lo que le sobra se puede trasladar.
 //
 // CONTRATO: PROMETE porcentajes que suman 100 % y unidades enteras que suman exacto el objetivo (resto mayor). NO mueve nada: dice cuánto.
@@ -18,7 +19,7 @@ export type TiendaReparto = {
   dias90: number;
   /** Lo que tiene hoy de la categoría. */
   stock: number;
-  /** El mínimo que fijó un líder (0 a 1), o null. */
+  /** El mínimo que se le fijó a la tienda (0 a 1), o null. */
   minimo: number | null;
 };
 

@@ -19,6 +19,7 @@ import {
 } from "@/lib/variantes-ficha-reglas";
 import { MatrizNuevas, MontosNuevas, PieModal, type ContextoFicha } from "./piezas";
 import { Aviso } from "@/components/ui/Aviso";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 // «Llegó una talla nueva»: las tallas habilitadas en la categoría que la prenda todavía no vende, en su orden (S, M, L…
 // y no alfabético). Cada talla elegida nace en cada color que la prenda ya vende (si están todas desactivadas, en los que
@@ -70,11 +71,11 @@ export function AgregarTallasModal({
   const clasificadas = clasificarCombinaciones(filas, combos);
   const nacen = clasificadas.filter((c) => c.queHace === "nueva").length;
   const vuelven = clasificadas.filter((c) => c.queHace === "reactiva");
-  const precioOk = precio.trim() !== "" && precioValido(Number(precio), admitePrecioCero);
+  const precioOk = precio.trim() !== "" && precioValido(numeroDeMonto(precio), admitePrecioCero);
   const colores = coloresDeLaPrenda.map((c) => ctx.colores.find((x) => x.codigo === c) ?? { codigo: c, nombre: n.color(c), hex: null, familiaColor: null });
 
   return (
-    <Modal titulo="Agregar talla" subtitulo="Llegó una talla que la prenda no tenía" onClose={onClose} ancho="max-w-2xl">
+    <Modal titulo="Agregar talla" subtitulo="Llegó una talla que la prenda no tenía" onClose={onClose} tamano="ancha">
       {(cerrar) => (
         <div data-guia="agregar-talla.cuerpo" className="space-y-5">
           {disponibles.length === 0 ? (

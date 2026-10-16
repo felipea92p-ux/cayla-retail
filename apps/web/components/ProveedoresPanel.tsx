@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, FunnelX, SearchX, Truck } from "lucide-react";
@@ -22,6 +23,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // La tabla de líder gana columnas según el ANCHO DE LA TABLA, no el de la ventana (container queries de
 // Tailwind: `@3xl`, `@5xl`, `@7xl` miden el contenedor `@container` de <Tabla>). Con el menú lateral abierto
@@ -189,20 +191,20 @@ export function ProveedoresPanel({
 
   return (
     <div className="space-y-6">
-      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Proveedores</h1>
-          <p className="mt-1 text-sm text-tinta/65">A quién se le compra. Un proveedor tiene que estar acá antes de poder registrar su comprobante.</p>
-        </div>
-        {puedeEditar && (
-          <Boton peso="primario" onClick={() => setBorrador(BORRADOR_VACIO)} aria-haspopup="dialog" data-guia="proveedores.registrar">
-            <span className="flex items-center gap-2">
-              <span aria-hidden>+</span> Registrar proveedor
-            </span>
-          </Boton>
-        )}
-      </div>
+      <EncabezadoPagina
+        sede="Todas las tiendas"
+        titulo="Proveedores"
+        subtitulo="A quién se le compra. Un proveedor tiene que estar acá antes de poder registrar su comprobante."
+        acciones={
+          puedeEditar && (
+            <Boton peso="primario" onClick={() => setBorrador(BORRADOR_VACIO)} aria-haspopup="dialog" data-guia="proveedores.registrar">
+              <span className="flex items-center gap-2">
+                <span aria-hidden>+</span> Registrar proveedor
+              </span>
+            </Boton>
+          )
+        }
+      />
 
       {verMontos && resumen && <ProveedoresIndicadores resumen={resumen} reparto={reparto} foco={foco} onFoco={setFoco} onAbrir={setAbiertoId} />}
 
@@ -394,16 +396,6 @@ export function ProveedoresPanel({
             }
             router.refresh();
           }}
-          onDesactivar={
-            borrador.id
-              ? async () => {
-                  const p = proveedores.find((x) => x.id === borrador.id);
-                  if (!p) return;
-                  await onCambiarEstado(p);
-                  setBorrador(null);
-                }
-              : undefined
-          }
         />
       )}
     </div>
@@ -570,12 +562,19 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
             >
               {soles(saldo)}
             </Link>
-            {/* La deuda a escala: el largo es la parte del mayor saldo de la lista y el rojo, lo ya vencido. */}
-            <span aria-hidden title={vencido ? `Vencido: ${soles(p.saldo_vencido ?? 0)}` : "Nada vencido"} className="mt-1 block h-[3px] overflow-hidden rounded-full bg-sand">
-              <span className="anim-crece-x flex h-full" style={{ width: `${Math.max(4, (saldo / maxSaldo) * 100)}%`, ["--i" as string]: 8 + Math.min(indice, 10) }}>
-                <span className="h-full bg-rojo" style={{ width: `${(Math.min(p.saldo_vencido ?? 0, saldo) / saldo) * 100}%` }} />
-                <span className="h-full flex-1 bg-tinta/45" />
-              </span>
+            {/* La deuda a escala del mayor saldo de la lista (ronda 14 de /unificar): la barra apilada del sistema, lo ya vencido en rojo y
+                lo que falta vencer en tinta, medida contra el mayor saldo (el hueco del final es la pista). */}
+            <span title={vencido ? `Vencido: ${soles(p.saldo_vencido ?? 0)}` : "Nada vencido"} className="mt-1 block">
+              <BarraApilada
+                alto={4}
+                decorativa
+                total={maxSaldo}
+                retraso={8 + Math.min(indice, 10)}
+                segmentos={[
+                  { clave: "vencido", nombre: "Vencido", valor: Math.min(p.saldo_vencido ?? 0, saldo), clase: "bg-rojo" },
+                  { clave: "por-vencer", nombre: "Por vencer", valor: saldo - Math.min(p.saldo_vencido ?? 0, saldo), clase: "bg-tinta" },
+                ]}
+              />
             </span>
           </>
         ) : (
@@ -606,8 +605,8 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
             + Comprobante
           </Link>
         ) : (
-          <Boton type="button" peso="discreto" cargando={cambiando} onClick={onReactivar} className="relative px-2.5 py-1.5 text-[11px]">
-            {cambiando ? "…" : "Reactivar"}
+          <Boton textoCargando="Reactivando…" type="button" peso="discreto" cargando={cambiando} onClick={onReactivar} className="relative px-2.5 py-1.5 text-[11px]">
+            Reactivar
           </Boton>
         )}
         <ChevronRight aria-hidden className="h-4 w-4 shrink-0 -translate-x-1.5 text-tinta/45 opacity-0 transition-[opacity,transform] duration-300 ease-cayla group-hover:translate-x-0 group-hover:opacity-100" />

@@ -9,6 +9,7 @@ import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
 import { puedeVerProduccion } from "@/lib/produccion-menu";
 import { Factory } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Insumos del Taller (ADR-0133, F3): tela y avíos, con su saldo por lote. Mismo acceso que Órdenes (`puedeVerProduccion`):
 // solo parado en el Taller, líder incluido. El costo de cada lote lo ve quien ve Producción en el Taller (Felipe 2026-10-15,
@@ -25,7 +26,7 @@ export default async function InsumosPage() {
   if (!taller) {
     return (
       <div className="space-y-6">
-        <h1 className="font-display text-2xl text-tinta">Insumos</h1>
+        <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Insumos" />
         <div className="card-cayla">
           <Vacio icono={<Factory />} titulo="No hay un Taller activo">
             Insumos necesita una ubicación de tipo Taller para saber dónde están la tela y los avíos. Pídele al líder que active el Taller.

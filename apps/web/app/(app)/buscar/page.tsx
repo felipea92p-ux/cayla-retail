@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Suspense } from "react";
+import { BotonBuscar } from "@/components/ui/BotonBuscar";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { createClient } from "@/lib/supabase/server";
@@ -10,6 +10,10 @@ import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { CampoTexto, Boton } from "@/components/ui/campos";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { SearchX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Rediseño V2 (2026-09-12) — no una adaptación de la versión V1: esa dependía de
 // `getCatalogoConStock`/`mapaSedes`/`contenedores`, ninguno con equivalente V2.
@@ -24,19 +28,26 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
   return (
     <div className="space-y-6">
       <div>
-        <p className="label-cayla text-[11px] text-tinta/65" data-guia="buscar.ayuda">
-          Búsqueda
-          <Ayuda titulo="Búsqueda">
-            Para responderle a un cliente sin ir al almacén a ciegas. Te dice cuánto hay de esa
-            prenda para vender y en qué sede: no cuenta lo apartado ni lo que está en
-            Cuarentena. Puedes escribir la referencia, el SKU, la talla o el color, o escanear
-            la etiqueta con la pistola: es lo mismo, la pistola solo escribe el código por ti.
-          </Ayuda>
-        </p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">
-          {term ? <>&ldquo;{q}&rdquo;</> : "Buscar en el catálogo"}
-        </h1>
-        <form method="get" className="mt-4 flex items-end gap-3">
+        {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
+        <EncabezadoPagina
+          sede="Todas las sedes"
+          titulo={
+            <>
+              {term ? <>&ldquo;{q}&rdquo;</> : "Buscar en el catálogo"}
+              {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 46 px (como Marcas). */}
+              <span data-guia="buscar.ayuda" className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal">
+                <Ayuda titulo="Búsqueda">
+                  Para responderle a un cliente sin ir al almacén a ciegas. Te dice cuánto hay de esa
+                  prenda para vender y en qué sede: no cuenta lo apartado ni lo que está en
+                  Cuarentena. Puedes escribir la referencia, el SKU, la talla o el color, o escanear
+                  la etiqueta con la pistola: es lo mismo, la pistola solo escribe el código por ti.
+                </Ayuda>
+              </span>
+            </>
+          }
+          subtitulo="Cuánto hay de una prenda para vender y en qué sede."
+        />
+        <form method="get" className="mt-6 flex items-end gap-3">
           <div className="max-w-sm flex-1" data-guia="buscar.campo">
             <CampoTexto
               name="q"
@@ -46,9 +57,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
               autoFocus
             />
           </div>
-          <Boton type="submit" peso="primario" data-guia="buscar.boton">
-            Buscar
-          </Boton>
+          <BotonBuscar type="submit" peso="primario" data-guia="buscar.boton" />
         </form>
       </div>
 
@@ -77,10 +86,9 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
 
   if (resultados.length === 0) {
     return (
-      <p className="text-sm text-tinta/65">
-        Sin coincidencias para &ldquo;{textoOriginal}&rdquo; — revisa la escritura o prueba con menos
-        palabras.
-      </p>
+      <Vacio icono={<SearchX />} titulo={<>Sin coincidencias para «{textoOriginal}»</>}>
+        Revisa la escritura o prueba con menos palabras.
+      </Vacio>
     );
   }
 
@@ -168,9 +176,9 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
           pantalla también depende del catálogo V1. La tarjeta ya responde la
           pregunta que motiva la búsqueda (cuánto hay y dónde) sin necesitar
           ese detalle. */}
-      <Link href="/productos" className="label-cayla text-[11px] text-tinta/65 hover:text-rojo" data-guia="buscar.catalogo">
-        Ver catálogo completo →
-      </Link>
+      <EnlaceVer href="/productos" guia="buscar.catalogo">
+        Ver catálogo completo
+      </EnlaceVer>
     </div>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowUpDown, Banknote, CalendarRange, CircleCheck, ClipboardList, Link2, PackageSearch, Palette, Ruler, Shirt, Tag, Truck } from "lucide-react";
+import { ArrowUpDown, Banknote, CalendarRange, CircleCheck, ClipboardList, PackageSearch, Palette, Ruler, Shirt, Tag, Truck } from "lucide-react";
 import { bordeDeMuestra, FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
 import { Slider } from "radix-ui";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
@@ -48,6 +49,7 @@ import {
 } from "@/lib/productos-filtros";
 import { SIN_EN_URL } from "@/lib/marcas";
 import { Buscador } from "@/components/ui/Buscador";
+import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 
 // Filtros de /productos. Mismo patrón que `FiltrosMovimientos.tsx`: viven en
 // la URL, la página es un Server Component que filtra en Postgres
@@ -247,50 +249,37 @@ export function FiltrosProductos({
   const bloqueChips = chips.length > 0 && (
     <div className={`flex flex-wrap items-center gap-2 ${panelAbierto ? "md:hidden" : ""}`}>
       {chips.map((c) => (
-        <button
-          key={c.quitar.join("|")}
-          type="button"
-          onClick={() => {
+        <FiltroPuesto key={c.quitar.join("|")} onQuitar={() => {
             setTipeado((t) => sinCajas(t, c.quitar as CajaTipeada[]));
             aplicar(Object.fromEntries(c.quitar.map((k) => [k, ""])));
-          }}
-          className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
-          aria-label={`Quitar filtro ${c.texto}`}
-        >
+          }} etiqueta={`Quitar filtro ${c.texto}`}>
           {c.texto}
-          <span aria-hidden className="text-sm leading-none">×</span>
-        </button>
+        </FiltroPuesto>
       ))}
-      <button
-        type="button"
+      <BotonLimpiar
         onClick={() => {
           setTipeado({});
           navegar(consultaSinFiltros(consultaVigente()));
         }}
-        className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo"
       >
         Limpiar todo
-      </button>
+      </BotonLimpiar>
     </div>
   );
 
   const activos = contarFiltrosActivos(consultaUrl);
 
-  /** El enlace de esta misma lista, para mandarlo a otra sede (Felipe, 2026-10-02): todo lo filtrado vive en la URL. */
-  async function copiarEnlace() {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      // «Hay en / Sin stock en [sede]» mira la sede de quien abre el enlace, no la de quien lo manda: se dice.
-      const deLaSede = disponibilidad === "en_sede" || disponibilidad === "sin_sede";
-      avisar.exito("Enlace copiado", {
-        detalle: deLaSede
-          ? "Quien lo abra ve los mismos filtros, pero «Hay en» y «Sin stock en» se aplican a SU sede."
-          : "Quien lo abra ve esta misma lista, con los mismos filtros.",
-      });
-    } catch {
-      avisar.error("No se pudo copiar el enlace", { detalle: "Cópialo desde la barra de direcciones del navegador." });
-    }
+  /** El enlace de esta misma lista, para mandarlo a otra sede (Felipe, 2026-10-02): todo lo filtrado vive en la URL. Al copiarlo,
+   *  «Hay en / Sin stock en [sede]» mira la sede de quien abre el enlace, no la de quien lo manda: se dice. */
+  function avisarEnlaceCopiado() {
+    const deLaSede = disponibilidad === "en_sede" || disponibilidad === "sin_sede";
+    avisar.exito("Enlace copiado", {
+      detalle: deLaSede
+        ? "Quien lo abra ve los mismos filtros, pero «Hay en» y «Sin stock en» se aplican a SU sede."
+        : "Quien lo abra ve esta misma lista, con los mismos filtros.",
+    });
   }
+
 
   // Conteo arriba y un solo «Ordenar por», fuera del panel (Felipe, 2026-10-02): ordenar no quita prendas, solo las acomoda.
   // Vive aquí (y no en la página) para que el orden y lo tecleado se apliquen sobre la misma URL vigente (`consultaVigente`).
@@ -315,29 +304,24 @@ export function FiltrosProductos({
         </span>
         {/* Con el panel abierto los chips no se ven: «Limpiar filtros» queda aquí, a la vista. */}
         {panelAbierto && chips.length > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              setTipeado({});
-              navegar(consultaSinFiltros(consultaVigente()));
-            }}
-            className="label-cayla hidden text-[10px] text-tinta/55 hover:text-rojo md:inline"
-          >
-            Limpiar filtros
-          </button>
+          <span className="hidden md:inline-flex">
+            <BotonLimpiar
+              onClick={() => {
+                setTipeado({});
+                navegar(consultaSinFiltros(consultaVigente()));
+              }}
+            >
+              Limpiar filtros
+            </BotonLimpiar>
+          </span>
         )}
       </p>
       <div className="flex min-w-0 items-center gap-1 sm:gap-2">
-        {/* En el celular solo el ícono: con el texto, «Copiar enlace» y «Ordenar por» no cabían juntos en 375 px. */}
-        <button
-          type="button"
-          onClick={copiarEnlace}
-          aria-label="Copiar enlace de esta lista"
-          className="label-cayla inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[11px] text-tinta/60 transition-colors hover:text-tinta"
-        >
-          <Link2 aria-hidden className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Copiar enlace</span>
-        </button>
+        {/* Copiar es la pieza del sistema (ronda 13). En el celular solo el ícono: con el texto, «Copiar enlace» y «Ordenar por» no cabían
+            juntos en 375 px. */}
+        <BotonCopiar texto={() => window.location.href} que="el enlace de esta lista" icono="enlace" soloIconoEnCelular alCopiar={avisarEnlaceCopiado} className="h-9 min-h-9 py-0">
+          Copiar enlace
+        </BotonCopiar>
         {/* En el celular «Ordenar» vive junto al buscador, como ícono (2026-10-09): aquí su fila le cedía el ancho a «Tamaño». */}
         <div className="hidden min-w-0 rounded-lg bg-sand/50 p-0.5 sm:block">{ordenar(false)}</div>
         {junto}
@@ -547,9 +531,9 @@ export function FiltrosProductos({
       {panelAbierto && !hojaAbierta && <div data-guia="productos.panel" className="hidden md:block">{panel}</div>}
 
       {hojaAbierta && (
-        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} ancho="max-w-lg">
+        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} tamano="mediana">
           {panel}
-          <div className="pie-hoja-fijo mt-4 flex items-center gap-2">
+          <div className="pie-hoja-fijo pie-acciones mt-4">
             {activos > 0 && (
               <button
                 type="button"
@@ -557,7 +541,7 @@ export function FiltrosProductos({
                   setTipeado({});
                   navegar(consultaSinFiltros(consultaVigente()));
                 }}
-                className="btn-cayla btn-sutil"
+                className="btn-cayla btn-secundario"
               >
                 Limpiar
               </button>

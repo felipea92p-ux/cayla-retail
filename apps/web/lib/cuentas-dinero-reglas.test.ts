@@ -12,9 +12,11 @@ import {
   insigniaCuenta,
   leerConciliacion,
   leerCuenta,
+  leerEgresoParaMovimiento,
   otrosDelCajon,
   resumenConciliacion,
   textoRecibe,
+  textoSalida,
   tipoDeMovimiento,
   validarMovimiento,
   type BorradorMovimiento,
@@ -192,7 +194,7 @@ describe("el formulario «Registrar movimiento»", () => {
     expect(tipoDeMovimiento({ que: "dueno_pone", clase: "aporte" })).toBe("aporte");
   });
   it("sacar plata: una devolución no pasa lo que CAYLA debe; un retiro, sí se puede", () => {
-    expect(validarMovimiento({ ...base, que: "dueno_saca", clase: "devolucion_prestamo", origen: "bcp", destino: "", monto: "7000" }, ctx)).toEqual({ ok: false, error: "CAYLA te debe S/ 6,000.00: una devolución no puede ser mayor." });
+    expect(validarMovimiento({ ...base, que: "dueno_saca", clase: "devolucion_prestamo", origen: "bcp", destino: "", monto: "7000" }, ctx)).toEqual({ ok: false, error: "CAYLA te debe S/\u00a06,000.00: una devolución no puede ser mayor." });
     const r = validarMovimiento({ ...base, que: "dueno_saca", clase: "retiro", origen: "bcp", destino: "", monto: "7000" }, ctx);
     expect(r.ok && [r.valor.p_tipo, r.valor.p_cuenta_destino_id]).toEqual(["retiro", null]);
   });
@@ -203,6 +205,31 @@ describe("el formulario «Registrar movimiento»", () => {
     expect(cuentasPara(TODAS, ["banco"], "destino").map((c) => c.id)).toEqual(["bcp", "ibk"]);
     expect(cuentasPara([{ ...bcp, soloDestino: true }, ibk], ["banco"], "origen").map((c) => c.id)).toEqual(["ibk"]);
     expect(cuentasPara(TODAS, null, "origen")).toEqual([]);
+  });
+});
+
+describe("«¿Cuál salida?»: cada salida de la tienda con su día de Lima", () => {
+  // Como la manda `fn_egresos_para_movimiento` (`caja_movimientos.created_at`, timestamptz en UTC, con microsegundos):
+  // 2026-10-14 01:00 UTC = 2026-10-13 20:00 en Lima.
+  const salida = leerEgresoParaMovimiento({ id: "e1", caja_id: "caja-tru", monto: 300, motivo: "Depósito bancario", nota: "Voucher 7788", creado_en: "2026-10-14T01:00:00.123456+00:00", marca: null });
+  const conInstante = (creadoEn: string): EgresoParaMovimiento => ({ ...salida, creadoEn });
+
+  it("lo registrado a las 20:00 del 13 de octubre es del 13, aunque en UTC ya sea el 14", () => {
+    expect(textoSalida(salida)).toBe("13 oct · S/\u00a0300.00 · Depósito bancario — Voucher 7788");
+  });
+  it("el día cambia a la medianoche de Lima, no a la de UTC; el mes también", () => {
+    expect(textoSalida(conInstante("2026-10-14T04:59:00+00:00"))).toBe("13 oct · S/\u00a0300.00 · Depósito bancario — Voucher 7788"); // 23:59 en Lima
+    expect(textoSalida(conInstante("2026-10-14T05:00:00+00:00"))).toBe("14 oct · S/\u00a0300.00 · Depósito bancario — Voucher 7788"); // 00:00 en Lima
+    expect(textoSalida(conInstante("2026-11-01T02:30:00+00:00"))).toBe("31 oct · S/\u00a0300.00 · Depósito bancario — Voucher 7788"); // 21:30 del 31 en Lima
+  });
+  it("sin instante, o con uno que no se lee, empieza por el monto: no inventa un día", () => {
+    expect(textoSalida(conInstante(""))).toBe("S/\u00a0300.00 · Depósito bancario — Voucher 7788");
+    expect(textoSalida(conInstante("ayer"))).toBe("S/\u00a0300.00 · Depósito bancario — Voucher 7788");
+    // Lo que deja `leerEgresoParaMovimiento` si la fila llegara sin `creado_en`.
+    expect(textoSalida(leerEgresoParaMovimiento({ id: "e2", caja_id: "caja-tru", monto: 300, motivo: "Depósito bancario", nota: null, marca: null }))).toBe("S/\u00a0300.00 · Depósito bancario");
+  });
+  it("la nota y la marca «no es gasto» se leen igual que antes", () => {
+    expect(textoSalida({ ...salida, nota: null, marca: "deposito" })).toBe("13 oct · S/\u00a0300.00 · Depósito bancario (marcado «no es gasto»)");
   });
 });
 
@@ -257,5 +284,16 @@ describe("efectivo por tienda y fechas", () => {
   it("lee una cuenta de la base (saldo nulo = no le toca verlo)", () => {
     const c = leerCuenta({ id: "x", nombre: "BCP", tipo: "banco", cuenta_contable: "104", saldo: null, archivada: false, solo_destino: true, orden: 10 });
     expect([c.saldo, c.soloDestino, c.orden]).toEqual([null, true, 10]);
+  });
+});
+
+// /chaos de Finanzas 2026-10-14 (ADR-0412): un movimiento de dinero llega hasta S/ 1 000 000 (`movimientos_dinero_monto_con_tope`).
+describe("el monto de un movimiento tiene tope", () => {
+  const hoy = "2026-09-24";
+  const base: BorradorMovimiento = { que: "deposito", clase: "aporte", origen: "cTRU", destino: "bcp", monto: "1,500", referencia: "", comision: "", fecha: hoy, fuente: "caja", egresoId: "" };
+  const ctx = { cuentas: TODAS, egresos: [], deuda: 6000, hoy };
+  it("un millón entra; un sol más, no", () => {
+    expect(validarMovimiento({ ...base, monto: "1000000" }, ctx).ok).toBe(true);
+    expect(validarMovimiento({ ...base, monto: "1000001" }, ctx)).toEqual({ ok: false, error: "El monto pasa de S/\u00a01 000 000: revisa que no sobre un cero." });
   });
 });

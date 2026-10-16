@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { soles } from "@/lib/compras-reglas";
 import { cantidadTexto } from "@/lib/insumos-reglas";
 import { DIAS_RITMO_RECIENTE } from "@/lib/inventario-reglas";
@@ -16,7 +17,7 @@ import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { FotoPrenda } from "@/components/ui/FotoPrenda";
-import type { HojaDeModelo } from "@/lib/produccion-hoja-modelo";
+import { lineaDeOrigen, type HojaDeModelo } from "@/lib/produccion-hoja-modelo";
 import type { PresentacionDeModelo } from "@/lib/produccion-presentacion";
 import { FilaQueAbreLaHoja } from "@/components/produccion-resumen/FilaQueAbreLaHoja";
 import { ProveedorFichasDeColor } from "@/components/produccion-resumen/FichasDeColor";
@@ -53,7 +54,8 @@ function FotoModelo({ productoId, presentaciones, ancho, className }: { producto
   );
 }
 
-export function ResumenProduccionPanel({ sede,
+export function ResumenProduccionPanel({
+  sede,
   presentaciones,
   decisiones,
   ocultas,
@@ -65,7 +67,7 @@ export function ResumenProduccionPanel({ sede,
   telas,
   hoyEnElTaller,
   falloRed,
-}: { sede: string;
+}: {
   /** Cómo se dibuja cada modelo (foto, o color y categoría): por `productoId`. Vacío si el catálogo no se pudo leer: se dibuja la percha. */
   presentaciones: Record<string, PresentacionDeModelo>;
   decisiones: Decision[];
@@ -83,12 +85,16 @@ export function ResumenProduccionPanel({ sede,
   /** Dónde está cada orden abierta (una tarjeta por fase) y su frase. `null`: la lectura falló (se dice y se manda a Órdenes). */
   hoyEnElTaller: { cifras: CifraDeFase[]; dato: string } | null;
   falloRed: string | null;
+  /** La sede de la línea de arriba de la cabecera (el Taller). */
+  sede: string;
 }) {
   const maxDias = 60; // la escala de la barra: hasta el techo de «alta cobertura» de Inventario
 
   return (
     <ProveedorFichasDeColor fichas={fichasDeColor}>
     <div className="space-y-6">
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): el título es el del menú («Resumen») y la pregunta
+          que responde pasa a la frase. */}
       <EncabezadoPagina
         sede={sede}
         titulo="Resumen"
@@ -157,7 +163,14 @@ export function ResumenProduccionPanel({ sede,
       </div>
 
       <section data-guia="prod-resumen.decidir" aria-label="Para decidir" className="space-y-3">
-        <TituloSeccion dato={totalAsuntos === 0 ? "nada por ahora" : totalAsuntos > decisiones.length ? `${plural(totalAsuntos, "asunto", "asuntos")} · se ven ${decisiones.length}` : plural(totalAsuntos, "asunto", "asuntos")}>Para decidir</TituloSeccion>
+        {/* Cuántos asuntos hay de verdad, en el globito (ADR-0358, ronda 9); a la derecha, solo lo que el número no dice: que se ven
+            menos de los que hay, o que no hay nada. */}
+        <TituloSeccion
+          cuenta={totalAsuntos > 0 ? totalAsuntos : undefined}
+          dato={totalAsuntos === 0 ? "nada por ahora" : totalAsuntos > decisiones.length ? `se ven ${decisiones.length}` : undefined}
+        >
+          Para decidir
+        </TituloSeccion>
         {decisiones.length === 0 ? (
           <div className="card-cayla">
             <Vacio tamano="chico" icono={<CircleCheck />}>
@@ -180,7 +193,7 @@ export function ResumenProduccionPanel({ sede,
                   </svg>
                 )}
                 <div className="min-w-0">
-                  <h3 className="text-[14.5px] font-medium text-tinta">{d.titulo}</h3>
+                  <h3 className="text-[14.5px] font-medium text-tinta">{/* unificar-fijo: el nombre de un asunto de la lista, un dato y no el título de una sección */}{d.titulo}</h3>
                   <p className="mt-0.5 text-[13px] text-tinta/70">{d.detalle}</p>
                 </div>
                 <Link
@@ -257,6 +270,7 @@ export function ResumenProduccionPanel({ sede,
               {modelos.map((m, i) => {
                 const pct = m.diasRed === null ? 0 : Math.min(100, (m.diasRed / maxDias) * 100);
                 const agotadas = textoAgotadas(agotadasQueSeVendian(m));
+                const origen = lineaDeOrigen(hojas[m.productoId]?.ficha ?? null);
                 return (
                   <li key={m.productoId} className="border-b border-tinta/10 last:border-b-0">
                     <FilaQueAbreLaHoja
@@ -269,6 +283,12 @@ export function ResumenProduccionPanel({ sede,
                         <FotoModelo productoId={m.productoId} presentaciones={presentaciones} ancho={32} className="w-8" />
                         <span className="min-w-0">
                           <span className="line-clamp-2 break-words text-[14px] leading-snug text-tinta">{m.referencia}</span>
+                          {/* De quién es y a quién se le compra: a la vista en la lista, sin abrir la hoja (Felipe 2026-10-15). */}
+                          {origen && (
+                            <span data-origen className="line-clamp-2 break-words text-xs text-tinta/65">
+                              {origen}
+                            </span>
+                          )}
                           <span className="block text-xs text-tinta/65 lg:hidden">
                             stock {m.stockRed} · {m.ritmoDia ? `${(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")}/sem. · ${baseDelRitmo(m.ventasBase).corto}` : "sin ritmo"}
                           </span>
@@ -298,11 +318,13 @@ export function ResumenProduccionPanel({ sede,
                           <span className="text-xs text-tinta/65">Sin ventas medidas</span>
                         ) : (
                           <>
-                            <span className="relative block h-2 rounded-full bg-sand" role="img" aria-label={m.stockRed <= 0 ? "Agotado en las tiendas" : `${textoDiasDeStock(m.stockRed, m.diasRed)} de stock`}>
-                              <span className="absolute inset-y-0 left-0 rounded-full bg-tinta" style={{ width: `${pct}%` }} />
-                              <span aria-hidden className="absolute -top-0.5 h-3 w-px bg-tinta/45" style={{ left: `${(7 / maxDias) * 100}%` }} />
-                              <span aria-hidden className="absolute -top-0.5 h-3 w-px bg-tinta/45" style={{ left: `${(30 / maxDias) * 100}%` }} />
-                            </span>
+                            {/* Días de stock en las tiendas, con las rayitas de 7 y 30 días: una medida, no un avance (nunca pasa a verde). */}
+                            <BarraAvance
+                              pct={pct}
+                              tono="tinta"
+                              marca={[(7 / maxDias) * 100, (30 / maxDias) * 100]}
+                              etiqueta={m.stockRed <= 0 ? "Agotado en las tiendas" : `${textoDiasDeStock(m.stockRed, m.diasRed)} de stock`}
+                            />
                             <span className="mt-1 block text-xs tabular-nums text-tinta/65">
                               {textoDiasDeStock(m.stockRed, m.diasRed)}{m.stockTaller > 0 ? ` · +${m.stockTaller} en el Taller` : ""}
                             </span>

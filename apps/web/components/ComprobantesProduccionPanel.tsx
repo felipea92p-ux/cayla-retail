@@ -26,20 +26,23 @@ const ETIQUETA_FILTRO: Record<FiltroEstado, string> = { todos: "Todos", por_paga
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
-export function ComprobantesProduccionPanel({ sede,
+export function ComprobantesProduccionPanel({
   comprobantes,
   proveedores,
   todosLosProveedores,
   insumos,
   hoy,
   tallerId,
-}: { sede: string;
+  sede,
+}: {
   comprobantes: ComprobanteProduccion[];
   proveedores: ProveedorProduccion[];
   todosLosProveedores: ProveedorProduccion[];
   insumos: InsumoParaComprobante[];
   hoy: string;
   tallerId: string | null;
+  /** La sede de la línea de arriba de la cabecera (el Taller). */
+  sede: string;
 }) {
   const [estado, setEstado] = useState<FiltroEstado>("todos");
   const [proveedorId, setProveedorId] = useState("");
@@ -54,6 +57,7 @@ export function ComprobantesProduccionPanel({ sede,
 
   return (
     <div className="space-y-6">
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
       <EncabezadoPagina
         sede={sede}
         titulo="Facturas de insumos"
@@ -104,7 +108,7 @@ export function ComprobantesProduccionPanel({ sede,
             titulo="Todavía no hay facturas de insumos"
             acciones={
               todosLosProveedores.length === 0 ? (
-                <BotonEnlace href="/produccion/proveedores" peso="primario">
+                <BotonEnlace href="/produccion/proveedores" peso="primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
                   Ir a Proveedores
                 </BotonEnlace>
               ) : (

@@ -155,7 +155,6 @@ export function ProveedorModal({
   existentes = [],
   onClose,
   onGuardado,
-  onDesactivar,
 }: {
   inicial: Borrador;
   /** Rubros ya usados en el directorio: los botones que se eligen con un toque. */
@@ -166,8 +165,6 @@ export function ProveedorModal({
   /** `id` del proveedor guardado (el nuevo, o el que se editó): la lista lo marca y lo lleva a la vista. `datos` trae lo
    *  que se guardó, para quien lo necesita en pantalla sin esperar a que la página vuelva a leer el directorio (Recibir). */
   onGuardado: (id: string | null, datos?: { nombre: string; ruc: string | null }) => void;
-  /** Solo al editar: desactivar vive acá y no en la fila (ver ProveedoresPanel). */
-  onDesactivar?: () => Promise<void>;
 }) {
   const [nombre, setNombre] = useState(inicial.nombre);
   const [ruc, setRuc] = useState(inicial.ruc);
@@ -600,18 +597,9 @@ export function ProveedorModal({
                   />
                 </section>
 
-                {onDesactivar && (
-                  <p className="border-t border-tinta/10 pt-3 text-xs text-tinta/55">
-                    ¿Ya no se le compra?{" "}
-                    <button type="button" onClick={onDesactivar} disabled={fase !== "reposo"} className="btn-enlace">
-                      Desactivar proveedor
-                    </button>
-                    . Deja de aparecer al registrar comprobantes; su historial se conserva.
-                  </p>
-                )}
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 border-t border-tinta/10 px-6 py-4" data-guia="proveedor-modal.pie">
+              <div className="pie-acciones border-t border-tinta/10 px-6 py-4" data-guia="proveedor-modal.pie">
                 <Boton type="button" peso="fantasma" onClick={pedirCierre} disabled={fase !== "reposo"}>
                   Cancelar
                 </Boton>

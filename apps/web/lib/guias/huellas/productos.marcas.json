@@ -2,7 +2,7 @@
   "guia": "productos.marcas",
   "ruta": "/productos/marcas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 36,
+  "total": 37,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «(sin nombre)»",
@@ -11,16 +11,16 @@
     ],
     "components/EditarMarcaModal.tsx": [
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la marca\")}»",
-      "button «Deshacer»",
+      "BotonDeshacer «) : sePuedeQuitar(p) ? (»",
       "button «Quitar»",
       "button «Quitar» #2",
       "button «Quitar» #3",
       "input «Razón social o nombre del proveedor nuevo»",
       "input «RUC del proveedor nuevo (opcional)»",
       "ComboBuscable «(sin nombre)»",
-      "ComboResponsable «void guardar(cerrar)»",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
-      "button «Cancelar»"
+      "ComboResponsable «Cancelar»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/MarcasLista.tsx": [
       "Boton «marcas.nueva»",
@@ -42,10 +42,10 @@
       "button «Mejor elijo uno que ya existe»",
       "ComboBuscable «)» #2",
       "button «Cancelar»",
-      "button «{firma.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
-      "Link «Imprimir etiquetas»",
+      "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/marcas/FiltrosMarcas.tsx": [
@@ -56,7 +56,8 @@
     ],
     "components/marcas/TarjetaMarca.tsx": [
       "button «Reactivar»",
-      "button «marcas.editar»"
+      "button «marcas.editar»",
+      "LapizEditar «{m.nombre}»"
     ]
   }
 }

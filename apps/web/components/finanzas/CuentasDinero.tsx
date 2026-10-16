@@ -16,6 +16,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { fechaCorta, solesRedondo, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
+import { horaLima } from "@/lib/fechas-lima";
 import {
   MEDIOS_COBRO,
   OPCIONES_QUE_PASO,
@@ -30,13 +31,13 @@ import {
   diaYNumero,
   explicacionCuenta,
   hoyEnPalabras,
-  horaLima,
   insigniaCuenta,
   leerEgresoParaMovimiento,
   nombreCorto,
   opcionQuePaso,
   otrosDelCajon,
   resumenConciliacion,
+  textoSalida,
   tipoDeMovimiento,
   validarMovimiento,
   type BorradorMovimiento,
@@ -55,6 +56,7 @@ import {
 import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { ArrowLeftRight, Landmark, Store } from "lucide-react";
+import { MAX_REFERENCIA_MOVIMIENTO } from "@/lib/finanzas-topes";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/,
 // `vista-dinero.js`): cabecera con «Ver» y «+ Registrar movimiento» → pestañas (una ruta cada una) → el cuerpo de la
@@ -745,9 +747,9 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
                 }}
               />
             </CampoFin>
-            <button type="button" className="btn-cayla btn-primario" disabled={guardando || !responsable.listo} onClick={anotar}>
-              {guardando ? "Guardando…" : "Anotar"}
-            </button>
+            <Boton peso="primario" cargando={guardando} type="button" disabled={guardando || !responsable.listo} onClick={anotar}>
+              Anotar
+            </Boton>
           </div>
         </Superficie>
       )}
@@ -882,7 +884,7 @@ function RegistrarMovimientoModal({
   const conSaldo = (c: CuentaDinero) => (c.saldo === null ? c.nombre : `${c.nombre} · ${solesRedondo(c.saldo)}`);
 
   return (
-    <Modal variante="hoja" titulo="Registrar movimiento" subtitulo={`La plata cambia de lugar: no es venta ni gasto.${esLider ? "" : " Tu rol registra los depósitos de tu tienda al banco."}`} onClose={onCerrar} ancho="max-w-[580px]">
+    <Modal variante="hoja" titulo="Registrar movimiento" subtitulo={`La plata cambia de lugar: no es venta ni gasto.${esLider ? "" : " Tu rol registra los depósitos de tu tienda al banco."}`} onClose={onCerrar} tamano="mediana">
       <CampoFin etiqueta="Qué pasó" htmlFor="mov-que" guia="fin-dinero.mov-que">
         <SelectFin<QuePaso> id="mov-que" valor={b.que} onValor={elegirQue} opciones={opciones} />
       </CampoFin>
@@ -972,10 +974,7 @@ function RegistrarMovimientoModal({
                 valor={b.egresoId}
                 onValor={(egresoId) => cambiar({ egresoId })}
                 marcador="Elige…"
-                opciones={egresosDelTipo.map((e) => ({
-                  valor: e.id,
-                  texto: `${fechaCorta(e.creadoEn.slice(0, 10))} · ${soles(e.monto)} · ${e.motivo}${e.nota ? ` — ${e.nota}` : ""}${e.marca ? " (marcado «no es gasto»)" : ""}`,
-                }))}
+                opciones={egresosDelTipo.map((e) => ({ valor: e.id, texto: textoSalida(e) }))}
               />
             </CampoFin>
           )}
@@ -991,7 +990,7 @@ function RegistrarMovimientoModal({
           )}
         </CampoFin>
         <CampoFin etiqueta="Voucher o nota" htmlFor="mov-ref">
-          <InputFin id="mov-ref" value={b.referencia} onChange={(e) => cambiar({ referencia: e.target.value })} placeholder={tipo === "abono_tarjeta" ? "Liquidación Niubiz 20-sep" : "Voucher 120441"} />
+          <InputFin id="mov-ref" value={b.referencia} onChange={(e) => cambiar({ referencia: e.target.value })} placeholder={tipo === "abono_tarjeta" ? "Liquidación Niubiz 20-sep" : "Voucher 120441"} maxLength={MAX_REFERENCIA_MOVIMIENTO} />
         </CampoFin>
       </div>
 
@@ -1013,9 +1012,9 @@ function RegistrarMovimientoModal({
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || !responsable.listo}>
-          {guardando ? "Registrando…" : "Registrar"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Registrando…" type="button" onClick={guardar} disabled={guardando || !responsable.listo}>
+          Registrar
+        </Boton>
       </div>
     </Modal>
   );
@@ -1071,7 +1070,7 @@ function MovimientoDetalleModal({ movimiento: m, onCerrar }: { movimiento: Movim
       titulo={TEXTO_MOVIMIENTO[m.tipo]}
       subtitulo={[fechaCorta(m.fecha, true), m.referencia].filter(Boolean).join(" · ")}
       onClose={onCerrar}
-      ancho="max-w-[520px]"
+      tamano="mediana"
     >
       <ListaDatos
         guia="fin-dinero.movimiento-detalle"
@@ -1137,7 +1136,7 @@ function AnularModal({
   }
 
   return (
-    <Modal variante="hoja" titulo={titulo} subtitulo={subtitulo} onClose={onCerrar} ancho="max-w-[520px]">
+    <Modal variante="hoja" titulo={titulo} subtitulo={subtitulo} onClose={onCerrar} tamano="mediana">
       <CampoFin etiqueta="Motivo" htmlFor="anular-motivo">
         <InputFin id="anular-motivo" value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Ej. se registró dos veces" />
       </CampoFin>
@@ -1146,9 +1145,9 @@ function AnularModal({
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Volver
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={anular} disabled={guardando || !responsable.listo}>
-          {guardando ? "Anulando…" : accion}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Anulando…" type="button" onClick={anular} disabled={guardando || !responsable.listo}>
+          {accion}
+        </Boton>
       </div>
     </Modal>
   );

@@ -29,7 +29,7 @@ export function bolsasDeLaCaja<T extends PrendaDeCaja>(prendas: readonly T[]): T
 
 /** Cuánto cuesta, como lo lee la colaboradora: «S/ 0.50», y «Obsequio» cuando se regala (precio 0). */
 export function precioDeBolsa(precio: number): string {
-  return precio === 0 ? "Obsequio" : `S/ ${precio.toFixed(2)}`;
+  return precio === 0 ? "Obsequio" : `S/\u00a0${precio.toFixed(2)}`;
 }
 
 /** El nombre de la bolsa: su modelo y, si los tiene, su talla y su color («Bolsa de papel CAYLA · Grande»). */

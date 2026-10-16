@@ -4,6 +4,9 @@
 // servidor y desde el navegador, y se prueba en `liquidacion-reglas.test.ts`. Las reglas que cuidan el dinero viven en la base
 // (`20261010195000_piezas_de_liquidacion.sql`): aquí solo se anticipan para no mandar algo que se va a rechazar.
 
+import { diaLima } from "./fechas-lima";
+import { montosSinCorte } from "./montos-sin-corte";
+
 export type EstadoPieza = "disponible" | "vendida" | "retirada";
 
 export type PiezaLiquidacion = {
@@ -120,7 +123,7 @@ export function problemaDePrecio(t: string, minimo: number, esLider: boolean): s
   if (t.trim() === "") return "Escribe el precio.";
   const n = precioDeTexto(t);
   if (n === null) return "Escribe un precio mayor que cero, con hasta dos decimales.";
-  if (n < minimo && !esLider) return `No baja de S/ ${soles(minimo)} sin un líder: pídele que la etiquete él.`;
+  if (n < minimo && !esLider) return `No baja de S/\u00a0${soles(minimo)} sin un líder: pídele que la etiquete él.`;
   return null;
 }
 
@@ -142,7 +145,7 @@ const mesDe = (iso: string | null): string => (iso ?? "").slice(0, 7);
 export function cifrasDe(piezas: readonly PiezaLiquidacion[], hoy: string): CifrasLiquidacion {
   const mes = hoy.slice(0, 7);
   const disponibles = piezas.filter((p) => p.estado === "disponible");
-  const vendidasMes = piezas.filter((p) => p.estado === "vendida" && mesDe(fechaLima(p.vendidaEn)) === mes);
+  const vendidasMes = piezas.filter((p) => p.estado === "vendida" && mesDe(diaLima(p.vendidaEn)) === mes);
   return {
     disponibles: disponibles.length,
     valorDisponible: redondear(disponibles.reduce((s, p) => s + p.precio, 0)),
@@ -154,14 +157,6 @@ export function cifrasDe(piezas: readonly PiezaLiquidacion[], hoy: string): Cifr
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
 
-/** La fecha (AAAA-MM-DD) de Lima de un instante. Lima no tiene horario de verano: siempre UTC−5. */
-export function fechaLima(iso: string | null): string | null {
-  if (!iso) return null;
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return null;
-  return new Date(t - 5 * 3600 * 1000).toISOString().slice(0, 10);
-}
-
 /** «hoy», «1 día», «12 días»: cuánto lleva a la venta, dicho como en la tienda. */
 export function tiempoALaVenta(dias: number): string {
   return dias <= 0 ? "desde hoy" : dias === 1 ? "1 día" : `${dias} días`;
@@ -169,7 +164,7 @@ export function tiempoALaVenta(dias: number): string {
 
 /** Cuántos días lleva a la venta una pieza disponible (desde su primera etiqueta). */
 export function diasALaVenta(p: PiezaLiquidacion, hoy: string): number {
-  const desde = fechaLima(p.creadoEn);
+  const desde = diaLima(p.creadoEn);
   if (!desde) return 0;
   return Math.max(0, Math.round((Date.parse(hoy) - Date.parse(desde)) / 86_400_000));
 }
@@ -188,7 +183,7 @@ export function errorDeLiquidacion(mensaje: string): { titulo: string; detalle?:
   const pista = (m: RegExp) => m.test(mensaje);
   // El hint de la base trae el detalle con el precio y el código vigentes: se muestra tal cual.
   // En pantalla se dice «prenda» (/formidable, ley 4): los textos de la base, ya en producción, dicen «pieza».
-  const detalle = mensaje.replace(/^[\s\S]*?liquidacion_[a-z_]+\s*/, "").replace(/\bpieza\b/g, "prenda").trim() || undefined;
+  const detalle = montosSinCorte(mensaje.replace(/^[\s\S]*?liquidacion_[a-z_]+\s*/, "").replace(/\bpieza\b/g, "prenda").trim()) || undefined;
   if (pista(/liquidacion_bajo_minimo/)) return { titulo: "Ese precio necesita un líder", detalle };
   if (pista(/liquidacion_etiqueta_vieja/)) return { titulo: "Esa etiqueta ya no vale", detalle, releer: true };
   if (pista(/liquidacion_ya_vendida/)) return { titulo: "Esa prenda ya se vendió", detalle, releer: true };

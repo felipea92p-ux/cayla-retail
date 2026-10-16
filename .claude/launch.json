@@ -18,6 +18,16 @@
       "autoPort": true
     },
     {
+      "name": "cayla-retail-dev-local-bin",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "PATH=\"$HOME/.local/bin:$HOME/.local/lib/node/bin:$PATH\" PORT=${PORT:-3010} pnpm --filter web dev"
+      ],
+      "port": 3010,
+      "autoPort": true
+    },
+    {
       "name": "cayla-retail-dev-libre",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
@@ -81,6 +91,26 @@
         "mkdir -p apps/web/unificar/.salida && python3 -m http.server ${PORT:-8793} --directory apps/web/unificar/.salida"
       ],
       "port": 8793,
+      "autoPort": true
+    },
+    {
+      "name": "tienda-dev",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "pnpm --filter tienda exec next dev --port ${PORT:-3100}"
+      ],
+      "port": 3100,
+      "autoPort": true
+    },
+    {
+      "name": "tienda-dev-local-bin",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "PATH=\"$HOME/.local/bin:$HOME/.local/lib/node/bin:$PATH\" pnpm --filter tienda exec next dev --port ${PORT:-3100}"
+      ],
+      "port": 3100,
       "autoPort": true
     }
   ]

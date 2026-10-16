@@ -16,7 +16,12 @@ import { cuentaDeSalida, medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sella
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { hoyLima } from "@/lib/fechas-lima";
+import { diaLima } from "@/lib/fechas-lima";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
+import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
+import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
 import {
   TEXTO_COMPROBANTE,
   TEXTO_MEDIO,
@@ -38,6 +43,8 @@ import {
   type TipoComprobante,
   type UbicacionGastos,
 } from "@/lib/gastos-reglas";
+import { MAX_DESCRIPCION_GASTO, MAX_NOMBRE_ACTIVO } from "@/lib/finanzas-topes";
+import { Boton } from "@/components/ui/campos";
 
 // Registrar un gasto o un activo fijo (ADR-0195 F2). Una sola ventana para los casos de la vida real:
 //  · sin comprobante (mototaxi, bolsas): cómo se pagó; si fue efectivo, sale del cajón abierto de esa tienda;
@@ -84,21 +91,28 @@ export function RegistrarGastoModal({
 }) {
   const router = useRouter();
   const responsable = useResponsable();
-  const [guardando, setGuardando] = useState(false);
+  // El gasto lleva la marca atada a lo que se manda (`useIntento`, ADR-0398): si la respuesta se pierde, la hoja se congela hasta
+  // reenviar lo mismo o preguntar si se guardó. Caja abre esta hoja desde «Registrar gasto» ▸ formulario completo.
+  const intento = useIntento("registrar_gasto");
+  const [guardandoActivo, setGuardandoActivo] = useState(false);
+  const [revisando, setRevisando] = useState(false);
   const [proveedores, setProveedores] = useState(proveedoresIniciales);
   const [nuevoProveedor, setNuevoProveedor] = useState<{ nombre: string; ruc: string } | null>(null);
   const [descartados, setDescartados] = useState<ReadonlySet<string>>(() => new Set());
   const alSumar = nuevoProveedor ? sumarProveedorDeGasto(nuevoProveedor, proveedores, descartados) : null;
-  const [token] = useState(() => crypto.randomUUID());
+  // El activo (solo Finanzas) sigue con una marca por apertura: `registrar_activo` todavía no compara el contenido en la base.
+  // Va con el /chaos de Finanzas (deuda declarada en `lib/intento-reglas.test.ts`, TOKEN_FIJO_TODAVIA).
+  const [tokenActivo] = useState(() => crypto.randomUUID());
   const [documento, setDocumento] = useState("");
   const esActivo = clase === "activo";
+  const guardando = esActivo ? guardandoActivo : intento.enviando;
   // Vida útil = la del tipo de bien (spike: un solo campo «10 años · muebles»); el contador confirma la de cada tipo.
   const [activo, setActivo] = useState({ tipo: "" });
   const [b, setB] = useState<BorradorGasto>(() => ({
     ubicacion: egreso?.ubicacionId ?? (esActivo && ubicacionInicial === "empresa" ? (ubicaciones[0]?.id ?? "") : ubicacionInicial),
     categoria: "",
     descripcion: egreso?.nota ?? "",
-    fecha: egreso ? hoyLima(new Date(egreso.creadoEn)) : hoy,
+    fecha: egreso ? (diaLima(egreso.creadoEn) ?? "") : hoy,
     monto: egreso ? String(egreso.monto) : "",
     // Lo más común (la luz, el alquiler, el contador) llega con factura; lo que sale del cajón, casi nunca.
     comprobante: egreso ? "sin_comprobante" : "factura",
@@ -146,6 +160,14 @@ export function RegistrarGastoModal({
   const salida = cuentasGasto.find((c) => c.id === cuentaSalida) ?? null;
   const bancoConMedio = salida?.tipo === "banco" ? (mediosDeBanco(conComprobante).includes(medioBanco) ? medioBanco : "transferencia") : null;
   const medioSalida = salida ? (medioDeCuenta(salida.tipo) ?? bancoConMedio ?? "transferencia") : "";
+  // ADR-0362 (fase 6 · actividad 6, decisiones 56 y 70): un comprobante de S/ 2 000 o más pagado en efectivo queda «no deducible». Se
+  // deja registrar; la hoja lo avisa. Sin comprobante o a crédito (se paga después, desde Por pagar) no hay nada que avisar aquí.
+  const pagaAhora = conComprobante && !aCredito && monto.ok;
+  const avisoNoDeducible = pagaAhora
+    ? avisoBancarizacion(monto.valor, [
+        { monto: monto.valor, medio: egreso ? "efectivo" : conCuentas ? medioSalida : b.medio, tipoCuenta: egreso ? "cajon" : (salida?.tipo ?? null) },
+      ])
+    : null;
 
   function elegirComprobante(t: TipoComprobante) {
     setB((x) => {
@@ -198,11 +220,39 @@ export function RegistrarGastoModal({
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
     }
-    setGuardando(true);
-    const { error } = await firmar(createClient().rpc((esActivo ? "registrar_activo" : "registrar_gasto") as never, { ...v.valor, p_token: token } as never), responsable.firma());
-    setGuardando(false);
-    responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, esActivo ? "registrar el activo" : "registrar el gasto"));
+    if (esActivo) {
+      setGuardandoActivo(true);
+      const { error } = await firmar(createClient().rpc("registrar_activo" as never, { ...v.valor, p_token: tokenActivo } as never), responsable.firma());
+      setGuardandoActivo(false);
+      responsable.despues(error);
+      if (error) return avisar.error(traducirError(error, "registrar el activo"));
+      return registrado();
+    }
+    const r = await intento.enviar(huellaDe(v.valor), (token, senal) =>
+      firmar(createClient().rpc("registrar_gasto" as never, { ...v.valor, p_token: token } as never), responsable.firma()).abortSignal(senal),
+    );
+    if (r.tipo === "ocupado") return;
+    if (r.tipo === "congelado") return avisarCongelado(avisar);
+    responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+    // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (r.tipo === "incierto") return;
+    if (r.tipo === "error") return avisar.error(traducirError(r.error, "registrar el gasto"));
+    registrado();
+  }
+
+  async function revisar() {
+    setRevisando(true);
+    const res = await intento.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return registrado();
+    if (res.tipo === "no_llego") {
+      avisar.aviso("El gasto no se registró", { detalle: "No quedó nada guardado. Revisa los datos y vuelve a registrarlo." });
+      return;
+    }
+    avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+  }
+
+  function registrado() {
     const que = esActivo ? "Activo" : "Gasto";
     avisar.exito(egreso ? `Egreso clasificado como ${que.toLowerCase()}` : `${que} registrado`, {
       detalle: aCredito
@@ -327,11 +377,11 @@ export function RegistrarGastoModal({
                   </div>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => setNuevoProveedor(null)}>
+                    Cancelar
+                  </button>
                   <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={sumarProveedor}>
                     Sumar proveedor
-                  </button>
-                  <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setNuevoProveedor(null)}>
-                    Cancelar
                   </button>
                   <span className="text-[12px]">Queda en el directorio; sus cuentas se completan en Compras ▸ Proveedores.</span>
                 </div>
@@ -343,175 +393,190 @@ export function RegistrarGastoModal({
   );
 
   return (
-    <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={onCerrar} antesDeCerrar={avisoSalida.pedirAccion} ancho="max-w-[620px]">
-      {/* Orden del spike: un gasto empieza por su comprobante; un activo, por qué es, dónde está y cuánto dura. */}
-      {!esActivo && bloqueComprobante}
-      <div className="grid gap-x-3 sm:grid-cols-[1fr_10.5rem]" data-guia="fin-gastos.form-que">
-        {esActivo ? (
-          <CampoFin etiqueta="Qué es" htmlFor="gasto-descripcion">
-            <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Estante de exhibición en L" />
-          </CampoFin>
-        ) : (
-          <CampoFin etiqueta="Qué se pagó" htmlFor="gasto-descripcion">
-            <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Luz de septiembre" />
-          </CampoFin>
-        )}
-        <CampoFin etiqueta={conComprobante ? "Fecha del comprobante" : "Fecha"} htmlFor="gasto-fecha">
-          <InputFin id="gasto-fecha" type="date" max={hoy} value={b.fecha} onChange={(e) => poner("fecha", e.target.value)} />
-        </CampoFin>
-      </div>
-
-      {esActivo ? (
-        <div className="fin-dos-campos">
-          <CampoFin etiqueta="Dónde está" htmlFor="gasto-ubicacion">
-            <SelectFin
-              id="gasto-ubicacion"
-              valor={b.ubicacion}
-              deshabilitado={!!egreso || opcionesUbicacion.length < 2}
-              onValor={(v) => poner("ubicacion", v)}
-              opciones={opcionesUbicacion}
-            />
-          </CampoFin>
-          <CampoFin
-            etiqueta="Vida útil"
-            htmlFor="activo-tipo"
-            ayuda={
-              tipoActivo
-                ? `Cuenta ${tipoActivo.cuenta}.${monto.ok ? ` Se deprecia ${soles((monto.valor - igv) / Math.max(1, tipoActivo.vidaUtilMeses))} al mes desde el próximo mes${igv ? ", sobre el costo sin IGV" : ""}.` : ""}`
-                : "La sugiere el tipo de bien; el contador la confirma."
-            }
-          >
-            <SelectFin
-              id="activo-tipo"
-              valor={activo.tipo}
-              onValor={(tipo) => setActivo({ tipo })}
-              marcador="Elige qué tipo de bien es…"
-              opciones={tiposActivo.map((t) => ({ valor: t.codigo, texto: `${textoVidaUtil(t.vidaUtilMeses)} · ${t.nombre.toLowerCase()}` }))}
-            />
-          </CampoFin>
-        </div>
-      ) : (
-        <div className="fin-dos-campos" data-guia="fin-gastos.form-categoria">
-          <CampoFin etiqueta="Categoría" htmlFor="gasto-categoria" ayuda={categoria ? `Va a la cuenta ${categoria.cuenta}. Nadie la elige: viene con la categoría.` : "Sin «Otros»: si no calza en ninguna, avisa al líder."}>
-            <SelectFin
-              id="gasto-categoria"
-              valor={b.categoria}
-              onValor={(v) => poner("categoria", v)}
-              marcador="Elige…"
-              opciones={categorias.map((c) => ({ valor: c.codigo, texto: `${c.nombre} — ${c.ejemplos}` }))}
-            />
-          </CampoFin>
-          <CampoFin etiqueta="A quién se le carga" htmlFor="gasto-ubicacion">
-            <SelectFin
-              id="gasto-ubicacion"
-              valor={b.ubicacion}
-              deshabilitado={!!egreso || !!fijo || opcionesUbicacion.length < 2}
-              onValor={(v) => poner("ubicacion", v)}
-              opciones={opcionesUbicacion}
-            />
-          </CampoFin>
-        </div>
-      )}
-
-      {esActivo && bloqueComprobante}
-
-      <div className="fin-dos-campos" data-guia="fin-gastos.form-monto">
-        <CampoFin etiqueta={esActivo ? "Costo (con IGV)" : "Total pagado (con IGV)"} htmlFor="gasto-monto" ayuda={egreso ? "Es lo que salió del cajón: no se cambia." : undefined}>
-          <InputFin id="gasto-monto" inputMode="decimal" value={b.monto} readOnly={!!egreso} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" />
-        </CampoFin>
-        <CampoFin etiqueta="IGV" ayuda={b.comprobante === "factura" ? "Descontable: sale del total (18 %)." : "Solo la factura da IGV descontable."}>
-          <SalidaFin>{b.comprobante === "factura" ? soles(igv) : "S/ 0.00"}</SalidaFin>
-        </CampoFin>
-      </div>
-
-      {/* Guía interactiva (ADR-0389): la condición y de dónde salió, juntas en un recorte. */}
-      {!egreso && (
-        <div data-guia="fin-gastos.form-pago">
-        <CampoFin etiqueta="¿Cómo se paga?">
-          <RadiosFin
-            nombre="gasto-condicion"
-            etiqueta="Condición de pago"
-            valor={aCredito ? "credito" : "contado"}
-            onValor={(v) => poner("condicion", v)}
-            opciones={[
-              { valor: "contado", texto: "Ya se pagó" },
-              { valor: "credito", texto: "A crédito", deshabilitada: !conComprobante },
-            ]}
-          />
-        </CampoFin>
-
-        <div className="fin-dos-campos" data-sin-cascada>
-          {aCredito ? (
-            <CampoFin etiqueta="Vence" htmlFor="gasto-vence" ayuda="Queda en Compras ▸ Por pagar hasta ese día.">
-              <InputFin id="gasto-vence" type="date" min={b.fecha} value={b.vence} onChange={(e) => poner("vence", e.target.value)} />
+    <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={onCerrar} antesDeCerrar={avisoSalida.pedirAccion} tamano="mediana" bloqueado={guardando || intento.incierto}>
+      {/* Los campos se congelan mientras no se sabe si el gasto se guardó (la cascada de la hoja sigue igual: globals.css). */}
+      <fieldset disabled={intento.incierto} className="campos-congelables min-w-0">
+        {/* Orden del spike: un gasto empieza por su comprobante; un activo, por qué es, dónde está y cuánto dura. */}
+        {!esActivo && bloqueComprobante}
+        <div className="grid gap-x-3 sm:grid-cols-[1fr_10.5rem]" data-guia="fin-gastos.form-que">
+          {esActivo ? (
+            <CampoFin etiqueta="Qué es" htmlFor="gasto-descripcion">
+              <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Estante de exhibición en L" maxLength={MAX_NOMBRE_ACTIVO} />
             </CampoFin>
-          ) : conCuentas ? (
-            <CampoCuentaFin
-              id="gasto-cuenta"
-              etiqueta="Salió de"
-              cuentas={cuentasGasto}
-              listo={cuentasPago.listo}
-              clase="pago"
-              medio={medioSalida || "transferencia"}
-              sinMedio
-              valor={cuentaSalida}
-              onValor={(v) => poner("cuentaId", v)}
-            />
           ) : (
+            <CampoFin etiqueta="Qué se pagó" htmlFor="gasto-descripcion">
+              <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Luz de septiembre" maxLength={MAX_DESCRIPCION_GASTO} />
+            </CampoFin>
+          )}
+          <CampoFin etiqueta={conComprobante ? "Fecha del comprobante" : "Fecha"} htmlFor="gasto-fecha">
+            <InputFin id="gasto-fecha" type="date" max={hoy} value={b.fecha} onChange={(e) => poner("fecha", e.target.value)} />
+          </CampoFin>
+        </div>
+
+        {esActivo ? (
+          <div className="fin-dos-campos">
+            <CampoFin etiqueta="Dónde está" htmlFor="gasto-ubicacion">
+              <SelectFin
+                id="gasto-ubicacion"
+                valor={b.ubicacion}
+                deshabilitado={!!egreso || opcionesUbicacion.length < 2}
+                onValor={(v) => poner("ubicacion", v)}
+                opciones={opcionesUbicacion}
+              />
+            </CampoFin>
             <CampoFin
-              etiqueta="Salió de"
-              htmlFor="gasto-medio"
-              tono={b.medio === "efectivo" && !cajaDeLaTienda ? "aviso" : undefined}
+              etiqueta="Vida útil"
+              htmlFor="activo-tipo"
               ayuda={
-                b.medio === "efectivo"
-                  ? cajaDeLaTienda
-                    ? "Sale del cajón abierto de esa tienda: se crea su egreso de caja en la misma operación."
-                    : "La caja de esa tienda no está abierta. Si ya salió del cajón, regístralo en Caja y clasifícalo aquí."
-                  : "Si sale de un cajón, se crea su egreso de caja en la misma operación."
+                tipoActivo
+                  ? `Cuenta ${tipoActivo.cuenta}.${monto.ok ? ` Se deprecia ${soles((monto.valor - igv) / Math.max(1, tipoActivo.vidaUtilMeses))} al mes desde el próximo mes${igv ? ", sobre el costo sin IGV" : ""}.` : ""}`
+                  : "La sugiere el tipo de bien; el contador la confirma."
               }
             >
-              <SelectFin<BorradorGasto["medio"]>
-                id="gasto-medio"
-                valor={b.medio}
-                onValor={(m) => poner("medio", m)}
-                marcador="Elige…"
-                opciones={mediosPara(b.comprobante).map((m) => ({ valor: m, texto: m === "efectivo" ? "Efectivo del cajón" : TEXTO_MEDIO[m] }))}
-              />
-            </CampoFin>
-          )}
-          {!aCredito && conCuentas && bancoConMedio && (
-            <CampoFin etiqueta="Cómo" htmlFor="gasto-medio-banco" ayuda="Del banco, por qué camino salió.">
               <SelectFin
-                id="gasto-medio-banco"
-                valor={bancoConMedio}
-                onValor={(m) => setMedioBanco(m)}
-                opciones={mediosDeBanco(conComprobante).map((m) => ({ valor: m, texto: TEXTO_MEDIO[m] }))}
+                id="activo-tipo"
+                valor={activo.tipo}
+                onValor={(tipo) => setActivo({ tipo })}
+                marcador="Elige qué tipo de bien es…"
+                opciones={tiposActivo.map((t) => ({ valor: t.codigo, texto: `${textoVidaUtil(t.vidaUtilMeses)} · ${t.nombre.toLowerCase()}` }))}
               />
             </CampoFin>
-          )}
-          {!aCredito && (conCuentas ? !bancoConMedio && medioSalida && medioSalida !== "efectivo" : b.medio && b.medio !== "efectivo") && (
-            <CampoFin etiqueta="N.° de operación (opcional)" htmlFor="gasto-referencia">
-              <InputFin id="gasto-referencia" value={b.referencia} onChange={(e) => poner("referencia", e.target.value)} />
+          </div>
+        ) : (
+          <div className="fin-dos-campos" data-guia="fin-gastos.form-categoria">
+            <CampoFin etiqueta="Categoría" htmlFor="gasto-categoria" ayuda={categoria ? `Va a la cuenta ${categoria.cuenta}. Nadie la elige: viene con la categoría.` : "Sin «Otros»: si no calza en ninguna, avisa al líder."}>
+              <SelectFin
+                id="gasto-categoria"
+                valor={b.categoria}
+                onValor={(v) => poner("categoria", v)}
+                marcador="Elige…"
+                opciones={categorias.map((c) => ({ valor: c.codigo, texto: `${c.nombre} — ${c.ejemplos}` }))}
+              />
             </CampoFin>
-          )}
-        </div>
-        </div>
-      )}
-      {!egreso && !aCredito && conCuentas && bancoConMedio && (
-        <CampoFin etiqueta="N.° de operación (opcional)" htmlFor="gasto-referencia">
-          <InputFin id="gasto-referencia" value={b.referencia} onChange={(e) => poner("referencia", e.target.value)} />
-        </CampoFin>
-      )}
+            <CampoFin etiqueta="A quién se le carga" htmlFor="gasto-ubicacion">
+              <SelectFin
+                id="gasto-ubicacion"
+                valor={b.ubicacion}
+                deshabilitado={!!egreso || !!fijo || opcionesUbicacion.length < 2}
+                onValor={(v) => poner("ubicacion", v)}
+                opciones={opcionesUbicacion}
+              />
+            </CampoFin>
+          </div>
+        )}
 
-      <ComboResponsable control={responsable} deshabilitado={guardando} />
+        {esActivo && bloqueComprobante}
+
+        <div className="fin-dos-campos" data-guia="fin-gastos.form-monto">
+          <CampoFin etiqueta={esActivo ? "Costo (con IGV)" : "Total pagado (con IGV)"} htmlFor="gasto-monto" ayuda={egreso ? "Es lo que salió del cajón: no se cambia." : undefined}>
+            <InputFin id="gasto-monto" inputMode="decimal" value={b.monto} readOnly={!!egreso} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" />
+          </CampoFin>
+          <CampoFin etiqueta="IGV" ayuda={b.comprobante === "factura" ? "Descontable: sale del total (18 %)." : "Solo la factura da IGV descontable."}>
+            <SalidaFin>{b.comprobante === "factura" ? soles(igv) : "S/\u00a00.00"}</SalidaFin>
+          </CampoFin>
+        </div>
+
+        {/* Guía interactiva (ADR-0389): la condición y de dónde salió, juntas en un recorte. */}
+        {!egreso && (
+          <div data-guia="fin-gastos.form-pago">
+          <CampoFin etiqueta="¿Cómo se paga?">
+            <RadiosFin
+              nombre="gasto-condicion"
+              etiqueta="Condición de pago"
+              valor={aCredito ? "credito" : "contado"}
+              onValor={(v) => poner("condicion", v)}
+              opciones={[
+                { valor: "contado", texto: "Ya se pagó" },
+                { valor: "credito", texto: "A crédito", deshabilitada: !conComprobante },
+              ]}
+            />
+          </CampoFin>
+
+          <div className="fin-dos-campos" data-sin-cascada>
+            {aCredito ? (
+              <CampoFin etiqueta="Vence" htmlFor="gasto-vence" ayuda="Queda en Compras ▸ Por pagar hasta ese día.">
+                <InputFin id="gasto-vence" type="date" min={b.fecha} value={b.vence} onChange={(e) => poner("vence", e.target.value)} />
+              </CampoFin>
+            ) : conCuentas ? (
+              <CampoCuentaFin
+                id="gasto-cuenta"
+                etiqueta="Salió de"
+                cuentas={cuentasGasto}
+                listo={cuentasPago.listo}
+                clase="pago"
+                medio={medioSalida || "transferencia"}
+                sinMedio
+                valor={cuentaSalida}
+                onValor={(v) => poner("cuentaId", v)}
+              />
+            ) : (
+              <CampoFin
+                etiqueta="Salió de"
+                htmlFor="gasto-medio"
+                tono={b.medio === "efectivo" && !cajaDeLaTienda ? "aviso" : undefined}
+                ayuda={
+                  b.medio === "efectivo"
+                    ? cajaDeLaTienda
+                      ? "Sale del cajón abierto de esa tienda: se crea su egreso de caja en la misma operación."
+                      : "La caja de esa tienda no está abierta. Si ya salió del cajón, regístralo en Caja y clasifícalo aquí."
+                    : "Si sale de un cajón, se crea su egreso de caja en la misma operación."
+                }
+              >
+                <SelectFin<BorradorGasto["medio"]>
+                  id="gasto-medio"
+                  valor={b.medio}
+                  onValor={(m) => poner("medio", m)}
+                  marcador="Elige…"
+                  opciones={mediosPara(b.comprobante).map((m) => ({ valor: m, texto: m === "efectivo" ? "Efectivo del cajón" : TEXTO_MEDIO[m] }))}
+                />
+              </CampoFin>
+            )}
+            {!aCredito && conCuentas && bancoConMedio && (
+              <CampoFin etiqueta="Cómo" htmlFor="gasto-medio-banco" ayuda="Del banco, por qué camino salió.">
+                <SelectFin
+                  id="gasto-medio-banco"
+                  valor={bancoConMedio}
+                  onValor={(m) => setMedioBanco(m)}
+                  opciones={mediosDeBanco(conComprobante).map((m) => ({ valor: m, texto: TEXTO_MEDIO[m] }))}
+                />
+              </CampoFin>
+            )}
+            {!aCredito && (conCuentas ? !bancoConMedio && medioSalida && medioSalida !== "efectivo" : b.medio && b.medio !== "efectivo") && (
+              <CampoFin etiqueta="N.° de operación (opcional)" htmlFor="gasto-referencia">
+                <InputFin id="gasto-referencia" value={b.referencia} onChange={(e) => poner("referencia", e.target.value)} />
+              </CampoFin>
+            )}
+          </div>
+          </div>
+        )}
+        {!egreso && !aCredito && conCuentas && bancoConMedio && (
+          <CampoFin etiqueta="N.° de operación (opcional)" htmlFor="gasto-referencia">
+            <InputFin id="gasto-referencia" value={b.referencia} onChange={(e) => poner("referencia", e.target.value)} />
+          </CampoFin>
+        )}
+
+        <AvisoNoDeducible aviso={avisoNoDeducible} reservar={pagaAhora && monto.valor >= UMBRAL_BANCARIZACION} />
+
+        <ComboResponsable control={responsable} deshabilitado={guardando || intento.incierto} />
+      </fieldset>
+
+      {intento.incierto && <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} className="mt-4" />}
 
       <div className="fin-botones mt-4" data-guia="fin-gastos.form-botones">
-        <button type="button" className="btn-cayla btn-secundario" onClick={() => avisoSalida.pedirAccion(onCerrar)} disabled={guardando}>
+        <button type="button" className="btn-cayla btn-secundario" onClick={() => avisoSalida.pedirAccion(onCerrar)} disabled={guardando || intento.incierto}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || !responsable.listo}>
-          {guardando ? "Guardando…" : egreso ? (esActivo ? "Guardar como activo" : "Guardar como gasto") : esActivo ? "Registrar activo" : "Registrar gasto"}
-        </button>
+        <Boton peso="primario" cargando={guardando} type="button" onClick={guardar} disabled={guardando || revisando || !responsable.listo}>
+          {intento.incierto
+              ? "Volver a intentar"
+              : egreso
+                ? esActivo
+                  ? "Guardar como activo"
+                  : "Guardar como gasto"
+                : esActivo
+                  ? "Registrar activo"
+                  : "Registrar gasto"}
+        </Boton>
       </div>
       {avisoSalida.aviso}
     </Modal>

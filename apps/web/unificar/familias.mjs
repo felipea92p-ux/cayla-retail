@@ -223,7 +223,7 @@ const BASE = [
     grupo: "Datos",
     nombre: "Gráficos",
     funcion: "Barras, líneas o donas que muestran una evolución o un reparto.",
-    pieza: "`Graficos`, `BarrasMensuales`, `Sparkline`, `DonaMetodos` (components/ui/)",
+    pieza: "repartida en familias propias: la barra apilada (`grafico.barra`), la de avance (`grafico.avance`), el anillo (`grafico.anillo`), la línea (`grafico.linea`), las barras por tiempo (`grafico.barras`) y la barra a escala (`grafico.escala`)",
     gobierna: ["ADR-0169"],
   },
   {
@@ -235,11 +235,51 @@ const BASE = [
     gobierna: ["ADR-0169", "ADR-0128", "ADR-0357", "ADR-0359"],
   },
   {
+    id: "grafico.avance",
+    grupo: "Datos",
+    nombre: "Barra de avance",
+    funcion: "Una barra fina que se llena: cuánto va de algo contra su total o su meta (lo vendido contra la meta, lo contado, lo pagado de una factura).",
+    pieza: "`<BarraAvance>` (components/ui/BarraAvance.tsx), ADR-0358 (ronda 13); las del Observatorio (ADR-0322), Análisis (ADR-0357) y Finanzas (ADR-0195) tienen su diseño por decisión",
+    gobierna: ["ADR-0169", "ADR-0136", "ADR-0322", "ADR-0357", "ADR-0195"],
+  },
+  {
+    id: "grafico.linea",
+    grupo: "Datos",
+    nombre: "Línea",
+    funcion: "Una línea que muestra cómo va algo en el tiempo, casi siempre contra una referencia (ayer, la meta, el plan).",
+    pieza: "`<Linea>` (components/ui/Linea.tsx) y, en una fila, `<Sparkline>`, ADR-0358 (ronda 14); las del Observatorio (ADR-0322) y Análisis (ADR-0357) tienen su diseño por decisión",
+    gobierna: ["ADR-0169", "ADR-0136", "ADR-0319", "ADR-0325", "ADR-0372", "ADR-0128"],
+  },
+  {
+    id: "grafico.barras",
+    grupo: "Datos",
+    nombre: "Barras por tiempo",
+    funcion: "Una barra por hora, día, semana o mes: cuánto se vendió o cuánto vence en cada una.",
+    pieza: "`<BarrasTiempo>` (components/ui/BarrasTiempo.tsx), ADR-0358 (ronda 14); las de Análisis (ADR-0357), Finanzas (ADR-0195), las tarjetas de Facturación (ADR-0124) y «Cómo cerró cada día» (Felipe, 2026-10-12) tienen su diseño por decisión",
+    gobierna: ["ADR-0169", "ADR-0136", "ADR-0319", "ADR-0325", "ADR-0147", "ADR-0372", "ADR-0128"],
+  },
+  {
+    id: "grafico.escala",
+    grupo: "Datos",
+    nombre: "Barra a escala",
+    funcion: "Una fila por cosa (un proveedor, una talla, una tienda) con una barra a escala de la mayor.",
+    pieza: "la barra de avance en tinta (`<BarraAvance tono=\"tinta\">`), ADR-0358 (ronda 14); con dos partes (lo vencido y lo que no), la barra apilada medida contra el mayor (`total`)",
+    gobierna: ["ADR-0169", "ADR-0352", "ADR-0357", "ADR-0322"],
+  },
+  {
+    id: "grafico.anillo",
+    grupo: "Datos",
+    nombre: "Anillo",
+    funcion: "Un anillo que se cierra con la cifra adentro: cuánto va de algo (mi meta de hoy, lo contado de un envío, las semanas que alcanza una talla).",
+    pieza: "`<Anillo>` (components/ui/Anillo.tsx), ADR-0358 (ronda 13); los del Observatorio (ADR-0322), Análisis (ADR-0357) y los pases de Traslados (ADR-0355) tienen su diseño por decisión",
+    gobierna: ["ADR-0169", "ADR-0136", "ADR-0322", "ADR-0357", "ADR-0355"],
+  },
+  {
     id: "titulo-pagina",
     grupo: "Textos",
     nombre: "Títulos de pantalla",
     funcion: "El nombre grande de la pantalla, arriba.",
-    pieza: "`<EncabezadoPagina>` (Ventas, Inventario, Catálogo ▸ Productos); `<CabeceraPantalla>` (Finanzas)",
+    pieza: "`<EncabezadoPagina>` en todo el ERP; `<CabeceraPantalla>` solo en Finanzas (decidido el 2026-10-14)",
     gobierna: ["ADR-0220", "ADR-0195", "ADR-0254"],
   },
   {
@@ -281,8 +321,8 @@ const BASE = [
     grupo: "Hojas",
     nombre: "Hojas y modales",
     funcion: "La ventana que se abre encima de la pantalla.",
-    pieza: "`<Modal>` / `<ModalRuta>` (components/ui/Modal.tsx)",
-    gobierna: ["ADR-0136"],
+    pieza: "`<Modal>` / `<ModalRuta>` (components/ui/Modal.tsx): una cara, tres anchos (`tamano`) y una salida a la vista (decidido el 2026-10-14)",
+    gobierna: ["ADR-0136", "ADR-0358"],
   },
   {
     id: "avatar",
@@ -421,8 +461,13 @@ export const DECISIONES = {
     "tambien": ["app/globals.css"],
     "firmas": [
       // Un enlace o un botón sutil teñido de rojo a mano para borrar o anular: va btn-peligro.
-      "\\bbtn-(?:sutil|enlace)\\b[^\"'`]*\\btext-rojo"
+      "\\bbtn-(?:sutil|enlace)\\b[^\"'`]*\\btext-rojo",
+      // Desactivar, eliminar, anular, borrar o archivar escrito como enlace (dentro de una frase): es un <Boton peso="peligro"> en el
+      // pie de la hoja, como en Categorías, Familias, Colores y Proveedores (ronda 9, 2026-10-13). «Archivados (3)», que muestra
+      // lo archivado, no es la acción (`(?!d)`).
+      "\\bbtn-enlace\\b[^\\n]*(?:\\n[^\\n]*){0,3}?\\n\\s*(?:\\{[^}\\n]*\\?\\s*\")?(?:Desactiv|Elimin|Anul|Borr|Archiv)(?:ar|a)(?!d)\\w*"
     ],
+    "ventana": 4,
     "deuda": []
   },
   "accion.cerrar": {
@@ -468,7 +513,12 @@ export const DECISIONES = {
     "elegida": "P1 · el ícono de lo que falta que se dibuja, título serif, frase que dice qué hacer y el botón (grande y chico); al no encontrar, dice qué se buscó y deja deshacerlo ahí; elegida tocándola el 2026-10-08",
     "pieza": "components/ui/Vacio.tsx",
     "tambien": ["app/estilos/vacio-aviso-buscador.css"],
+    "ventana": 2,
     "firmas": [
+      // La frase gris suelta que dice que no hay nada («Sin ventas todavía.», «No hay separaciones abiertas.», «Ninguna cuenta tiene
+      // este rol»), con el texto en su línea o en la siguiente: el censo de mostrador (2026-10-13) encontró 49 que las firmas de abajo,
+      // atadas a una clase exacta, no veían. «Nada se guarda todavía» explica, no es un vacío; otra frase que explica lleva su unificar-fijo.
+      "<(?:p|div)\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:tinta\\/(?:4|5|6)[05]|taupe(?:\\/\\d+)?)(?![\\w-])[^\"'`]*[\"'`]\\}?[^>]*>\\s*(?:Sin |Ningún|Ninguna|Ninguno|Nada (?!se guard)|Todavía no|No hay|Aún no (?!se guard))",
       // La frase en cursiva serif (B) y su versión «SinCoincidencias».
       "\\bfont-display\\b[^\"'`]*\\bitalic\\b[^\"'`]*\\btext-tinta\\/6[05]\\b",
       // La frase gris suelta de <Tabla> y sus primas (A), la centrada gris clara de Caja y la cursiva chica.
@@ -538,7 +588,10 @@ export const DECISIONES = {
       // CSS (`[type="checkbox"]`) ni el input escondido que solo guarda un estado (`sr-only`, el «ver más» del Inicio).
       "(?<!\\[)type=(?:\"checkbox\"|\\{\"checkbox\"\\})(?![^\\n]*\\bsr-only\\b)",
       // Un interruptor hecho a mano (la pieza es <Interruptor>).
-      "(?<!\\[)role=\"switch\""
+      "(?<!\\[)role=\"switch\"",
+      // Una casilla invisible que mueve una cara dibujada a mano con `peer-checked:` (la casilla propia de Por pagar, el «Es un regalo» de
+      // Recepción): es <Casilla> o <Interruptor>. Encontradas al rastrear el censo de después (2026-10-13).
+      "(?<!\\[)type=(?:\"checkbox\"|\\{\"checkbox\"\\})[^\\n]*\\bpeer\\b"
     ],
     "excepciones": [
       { "archivo": "components/finanzas/EscenariosPanel.tsx", "motivo": "ADR-0195: Finanzas se dibuja como su spike; la casilla es la de la opción en tarjeta del kit (fin-opcion-esc)" },
@@ -595,7 +648,9 @@ export const DECISIONES = {
       "\\bunderline\\b[^\"'`]*\\bdecoration-tinta\\/\\d+",
       "\\bhover:text-rojo(?:-profundo)?\\b[^\"'`]*\\bhover:underline\\b|\\bhover:underline\\b[^\"'`]*\\bhover:text-rojo",
       // La flecha escrita a mano al final de un `btn-enlace` («Ver traslados →»): un enlace que lleva a ver más es <EnlaceVer>.
-      "\\bbtn-enlace\\b[^\\n]*(?:\\n[^\\n]*){0,3}?[^\\n]*→\\s*(?:\\{|<\\/)"
+      "\\bbtn-enlace\\b[^\\n]*(?:\\n[^\\n]*){0,3}?[^\\n]*→\\s*(?:\\{|<\\/)",
+      // Lo mismo en versalitas a mano («Ver los 11 →», «Ver todas las sedes →»): encontradas por el censo de después (2026-10-13).
+      "\\blabel-cayla\\b[^\\n]*(?:\\n[^\\n]*){0,3}?[^\\n]*→\\s*(?:\\{|<\\/|\\n|$)"
     ],
     "ventana": 4,
     "deuda": [],
@@ -614,9 +669,7 @@ export const DECISIONES = {
       // Un encabezado de tabla a mano (sus títulos con `role="columnheader"`): el encabezado es <Encabezado>.
       "role=\"columnheader\""
     ],
-    "deuda": [
-      "components/conteo/ListaConteo.tsx"
-    ],
+    "deuda": [],
     "excepciones": [
       { "archivo": "app/estilos/finanzas.css", "motivo": "ADR-0195: el CSS del kit de Finanzas (su comentario nombra la tabla del spike)" },
       { "archivo": "components/ConfiguracionCargaInicial.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
@@ -662,13 +715,15 @@ export const DECISIONES = {
     "pieza": "components/ui/TituloSeccion.tsx",
     "tambien": ["app/estilos/titulos.css"],
     "firmas": [
+      // Cuántos hay en un bloque, puesto a la derecha como si fuera un resumen: va en `cuenta`, el globito pegado al nombre (ronda 9).
+      "<TituloSeccion\\b(?:[^>]|=>)*?\\bdato=\\{<b>\\{[\\w.]+\\.length\\}<\\/b>\\}",
       // Un título de bloque en serif dibujado a mano (de 18 a 24 px): es <TituloSeccion>.
       "<h[234]\\b[^>]*className=[\"'{`][^\"'`]*\\bfont-(?:display|serif)\\b[^\"'`]*\\btext-(?:lg|xl|2xl|\\[(?:1[89]|2[0-4])(?:\\.5)?px\\])",
       "<h[234]\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:lg|xl|2xl|\\[(?:1[89]|2[0-4])(?:\\.5)?px\\])[^\"'`]*\\bfont-(?:display|serif)\\b",
       // Un título en versalitas a mano (`label-cayla` en un h2/h3/h4): de bloque, <TituloSeccion>; de grupo, <TituloGrupo>.
       "<h[234]\\b[^>]*className=[\"'{`][^\"'`]*\\blabel-cayla\\b",
       // Un título en sans seminegrita a mano (13 a 16 px).
-      "<h[234]\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:sm|base|\\[1[3-6](?:\\.5)?px\\])\\b[^\"'`]*\\bfont-(?:semibold|medium|bold)\\b"
+      "<h[234]\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:sm|base|\\[1[3-6](?:\\.5)?px\\])(?![\\w-])[^\"'`]*\\bfont-(?:semibold|medium|bold)\\b"
     ],
     "deuda": [],
     "excepciones": [
@@ -723,18 +778,14 @@ export const DECISIONES = {
     "registro": "docs/unificar/campo-combo.md",
     "elegida": "P1 · el combo es la misma caja que se enciende (el chevron gira y se pone rojo, el valor elegido entra subiendo); P1 · una lista para todo combo: la elegida con el hilo rojo de canto y su ✓ que se dibuja, cascada hasta 8, buscador fijo con su lupa; elegidas tocándolas el 2026-10-13",
     "pieza": "components/ui/campos.tsx",
-    "tambien": ["app/globals.css", "components/ui/ComboBuscable.tsx", "components/ComboResponsable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/useCombo.ts", "app/estilos/campos-y-casillas.css"],
+    "tambien": ["app/globals.css", "components/ui/ComboBuscable.tsx", "components/ComboResponsable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/useCombo.ts", "app/estilos/campos-y-casillas.css", "components/ui/ListaSugerencias.tsx"],
     "firmas": [
       // Un combo o una lista desplegable hecha a mano (la regla de combos ya era una, ADR-0209; ahora también su cara).
       "role=\"combobox\"",
       "role=\"listbox\"",
       "\\blista-flotante\\b"
     ],
-    "deuda": [
-      "components/LlegoMercaderia.tsx",
-      "components/RecepcionEnvio.tsx",
-      "components/RegistrarNotaCreditoModal.tsx"
-    ],
+    "deuda": [],
     "excepciones": [
       { "archivo": "components/finanzas/kit.tsx", "motivo": "ADR-0195: el kit de Finanzas (fin-control, SelectFin) queda como está; con la caja de la ronda 6 está a 4 px de ser igual y Felipe dice si se une" },
       { "archivo": "app/estilos/alta-guia.css", "motivo": "la guía de foco (ADR-0284) busca los controles por su rol o su etiqueta: no dibuja ninguno" },
@@ -771,10 +822,208 @@ export const DECISIONES = {
       // El título de Campo copiado a mano (versalitas sobre una caja): es <Campo> o la clase `campo-etiqueta`.
       "\\blabel-cayla block text-\\[11px\\] text-tinta\\/(?:6\\d|7\\d)\\b",
       // Un título de campo en letra normal hecho a mano: un <label> de 12 a 14 px con peso.
-      "<label\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:xs|sm|\\[1[234](?:\\.5)?px\\])\\b[^\"'`]*\\bfont-(?:medium|semibold)\\b"
+      "<label\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:xs|sm|\\[1[234](?:\\.5)?px\\])(?![\\w-])[^\"'`]*\\bfont-(?:medium|semibold)\\b"
     ],
     "deuda": [],
     "excepciones": []
+  },
+  "accion.exportar": {
+    "fecha": "2026-10-13",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.exportar.md",
+    "elegida": "P1 · «Descargar» + qué («Descargar Excel», «Descargar CSV», «Descargar reporte del ajuste»), nunca «Exportar» ni solo un ícono: el botón secundario con el ícono de descarga que BAJA 2 px al pasar el mouse y el hilo mientras se arma el archivo; elegida tocándola el 2026-10-13",
+    "pieza": "components/ui/BotonDescargar.tsx",
+    "tambien": ["app/globals.css"],
+    "firmas": [
+      // El ícono de descarga dibujado fuera de la pieza (un botón a mano o solo un ícono): es <BotonDescargar>.
+      "<Download\\b",
+      // «Exportar» como texto de un botón, un ítem de menú o una etiqueta: el verbo es «Descargar».
+      "^\\s*Exportar\\b|>\\s*Exportar\\b|etiqueta: \"Exportar|aria-label=\"Exportar"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.filtrar": {
+    "fecha": "2026-10-13",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.filtrar.md",
+    "elegida": "P1 · una píldora más: «Filtros» con la cara de las píldoras que abre (borde arena, su ícono, su nombre en letra normal; abierta, borde tinta y la flecha roja) y cuántos hay puestos en el globito de los títulos; en el celular, solo el ícono con su punto; elegida tocándola el 2026-10-13",
+    "pieza": "components/ui/FiltrosPildora.tsx",
+    "tambien": ["app/estilos/campos-y-casillas.css"],
+    "ventana": 3,
+    "firmas": [
+      // Un botón de filtros hecho a mano (el ícono de deslizadores y «Filtros» al lado): es <BotonFiltros>.
+      "\\bSlidersHorizontal\\b[^\\n]*(?:\\n[^\\n]*){0,1}?\\n\\s*Filtros\\b",
+      // El conteo escrito («Filtros · 2»): va en el globito de la pieza.
+      "Filtros\\{[^}]*·"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.ver": {
+    "fecha": "2026-10-13",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.ver.md",
+    "elegida": "P1 · llevar a ver algo en otra pantalla es siempre el botón secundario con la flecha a la derecha que avanza 4 px (<BotonVer>), nunca negro ni con «→» escrito; dentro de una frase, el enlace; junto a un resumen, <EnlaceVer>; elegida tocándola el 2026-10-13. Al lado de una fila de una lista (los pendientes del turno en Caja), «Ver» es el enlace del sistema (`btn-cayla btn-enlace`): la fila no crece (P1, elegida el 2026-10-14)",
+    "pieza": "components/ui/BotonDescargar.tsx",
+    "tambien": [],
+    "ventana": 6,
+    "firmas": [
+      // Un botón NEGRO que solo lleva a otra pantalla («Ver en Existencias», «Ir a Caja», «Abrir ficha completa»): es <BotonVer>.
+      "<(?:Link|BotonEnlace|a)\\b[^>]*?(?:\\bbtn-primario\\b|peso=\"primario\")[^>]*>\\s*\\n(?:\\s*<[^>]*\\/>\\s*\\n)?\\s*(?:Ver|Ir a|Abrir ficha)\\b",
+      // «→» escrito a mano en un botón del sistema que lleva a otro lado: la flecha la dibuja la pieza.
+      "\\bbtn-(?:primario|secundario|sutil)\\b[^\\n]*(?:\\n[^\\n]*){0,2}?\\n\\s*(?:Ver|Ir a|Abrir)\\b[^\\n]*→",
+      // El «Ver» de una fila hecho a mano (un botoncito de 11 px con borde): es el enlace del sistema.
+      "<(?:Link|a|button)\\b(?:[^>]|=>)*?\\btext-\\[11px\\](?:[^>]|=>)*>\\s*Ver\\s*<"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.cancelar": {
+    "fecha": "2026-10-14",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.cancelar.md",
+    "elegida": "P1 · «Cancelar» es el botón secundario del sistema, del ancho de su palabra, ANTES del botón que guarda y los dos a la derecha del pie (`pie-acciones` / <PieAcciones>); lo que borra o desactiva, solo a la izquierda; en el celular, mitades; el flujo del mostrador conserva sus 48 px; elegida tocándola el 2026-10-14",
+    "pieza": "components/ui/PieAcciones.tsx",
+    "tambien": ["app/estilos/pie-acciones.css", "components/ui/Modal.tsx", "components/FlujoGuiado.tsx"],
+    "ventana": 6,
+    "firmas": [
+      // Un «Cancelar» a media fila (`flex-1`, `botonCancelar`), sutil, discreto o en versalitas: es el secundario a su medida en `pie-acciones`.
+      "<(?:Boton|button|BotonEnlace|Link)\\b(?:[^>]|=>)*?(?:\\bbtn-sutil\\b|peso=\"discreto\"|\\blabel-cayla\\b|\\bflex-1\\b|\\{botonCancelar\\})(?:[^>]|=>)*>\\s*Cancelar(?=\\s*(?:<|\\n|$))"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/GeneradorDibujo.tsx", "motivo": "una barra de herramientas del dibujo (Cancelar, Otras variantes, Usar este), no el pie de una hoja" }
+    ]
+  },
+  "accion.limpiar": {
+    "fecha": "2026-10-14",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.limpiar.md",
+    "elegida": "P2 · cada filtro puesto es la píldora de los vacíos (<FiltroPuesto>, tinta con su ✕) y «Limpiar todo» una píldora más, punteada, con el embudo tachado (<BotonLimpiar>); el verbo es «Limpiar» + qué, nunca «Quitar filtros»; en la hoja del celular, el secundario; en el calendario y en «Pagar juntos», el enlace; elegida tocándola el 2026-10-14",
+    "pieza": "components/ui/FiltrosPuestos.tsx",
+    "tambien": ["app/estilos/vacio-aviso-buscador.css"],
+    "ventana": 4,
+    "firmas": [
+      // «Limpiar» en versalitas sueltas o sutil: es <BotonLimpiar> en la fila de filtros, el enlace en el calendario, el secundario en una hoja.
+      "<(?:button|Boton)\\b(?:[^>]|=>)*?(?:\\blabel-cayla\\b|\\bbtn-sutil\\b)(?:[^>]|=>)*>\\s*Limpiar\\b",
+      // La pastilla de un filtro puesto hecha a mano (versalitas con su ×): es <FiltroPuesto>.
+      "rounded-full border border-tinta\\/15 bg-tinta\\/\\[0\\.04\\]",
+      // El verbo: «Limpiar», nunca «Quitar filtros».
+      "\\bQuitar (?:los )?filtros\\b"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.imprimir": {
+    "fecha": "2026-10-14",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.imprimir.md",
+    "elegida": "P1 · <BotonImprimir>: siempre con la impresora a la izquierda y «Imprimir» + qué; negro solo si imprimir ES el paso (el ticket después de vender, las etiquetas de lo que acaba de llegar), si no secundario; «o guardar en PDF» va en la frase de al lado; la hoja sale de la impresora al pasar el mouse; elegida tocándola el 2026-10-14. La impresora es SOLO de lo que imprime en ese momento: «Etiquetas», que lleva a la pantalla de etiquetas, lleva la etiqueta (<Tag>) en Productos y en Existencias (P1, elegida el 2026-10-14)",
+    "pieza": "components/ui/BotonImprimir.tsx",
+    "tambien": ["app/globals.css"],
+    "ventana": 3,
+    "firmas": [
+      // La impresora dibujada fuera de la pieza (un botón a mano): es <BotonImprimir>.
+      "<Printer\\b",
+      // «Imprimir o guardar (en) PDF» en el botón: lo del PDF va en la frase de al lado.
+      "Imprimir o guardar",
+      // Un botón del sistema que dice «Imprimir…» sin la pieza.
+      "(?:\\bbtn-(?:primario|secundario)\\b|<Boton\\b)(?:[^>]|=>)*>\\s*(?:\\{[^}\\n]*\\?\\s*)?[\"`]?Imprimir\\b"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/OpcionesComprobante.tsx", "motivo": "«Imprimir de nuevo» es una opción de una lista (abre el PDF), no un botón" },
+      { "archivo": "components/apartados/TodosVista.tsx", "motivo": "fila compacta del mostrador: reimprimir es un ícono con su nombre para el lector, junto al de WhatsApp" },
+      { "archivo": "components/GuiaImpresion.tsx", "motivo": "la guía de impresión DIBUJA el botón de la pantalla de etiquetas para explicarlo; no es un botón" }
+    ]
+  },
+  "titulo-pagina": {
+    "fecha": "2026-10-14",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/titulo-pagina.md",
+    "elegida": "P1 · la cabecera de Inventario (<EncabezadoPagina>) en todas las pantallas menos Finanzas: arriba la sede y la fecha con su hilo, el nombre del menú en 46 px, la frase y los botones a la derecha; la vuelta es la flecha a la izquierda de la línea de la sede y lo que dice de dónde se llegó va tras la fecha (`detalle`); Finanzas conserva la de su spike (<CabeceraPantalla>, ADR-0195); elegida mirando las fotos de cada pantalla el 2026-10-14",
+    "pieza": "components/ui/EncabezadoPagina.tsx",
+    "tambien": ["components/ui/CabeceraPantalla.tsx"],
+    "firmas": [
+      // El título de una pantalla dibujado a mano en la serif de la casa (con su sobretítulo en versalitas al lado): es <EncabezadoPagina>.
+      "<h1\\b(?:[^>]|=>)*\\bfont-display\\b",
+      // La cabecera de Finanzas fuera de Finanzas.
+      "<CabeceraPantalla\\b"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/GastosPanel.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
+      { "archivo": "components/ImpuestosPanel.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
+      { "archivo": "components/finanzas/ResumenFinanzas.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
+      { "archivo": "components/finanzas/CierreMes.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
+      { "archivo": "components/finanzas/CabeceraDinero.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
+      { "archivo": "components/finanzas/CabeceraReportes.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
+      { "archivo": "app/(app)/productos/[id]/historial/page.tsx", "motivo": "la página «Historial» de la vista rápida es decidida a propósito (ADR-0354, ADR-0136 act. 2026-10-05)" },
+      { "archivo": "components/PantallaNoEncontrada.tsx", "motivo": "un estado (la pantalla que no existe), no la cabecera de una pantalla del menú" },
+      { "archivo": "components/ProduccionSoloEnTaller.tsx", "motivo": "un estado (Producción solo se ve parado en el Taller), no la cabecera de una pantalla" },
+      { "archivo": "components/ProduccionSoloLider.tsx", "motivo": "un estado (esta pantalla de Producción es del líder), no la cabecera de una pantalla" },
+      { "archivo": "app/(app)/sin-acceso/page.tsx", "motivo": "un estado (tu rol no ve este módulo), no la cabecera de una pantalla" },
+      { "archivo": "app/(app)/error.tsx", "motivo": "un estado (la pantalla se cayó), no la cabecera de una pantalla" },
+      { "archivo": "app/(app)/global/elige-sede/page.tsx", "motivo": "un estado (en CAYLA Global esta pantalla pide una sede), no la cabecera de una pantalla" },
+      { "archivo": "components/plan-compra/ExportarPlan.tsx", "motivo": "la hoja del plan de campaña que se imprime o se guarda: es papel, no una pantalla" },
+      { "archivo": "components/clientas/piezas-club-publico.tsx", "motivo": "la página pública del club, para el cliente fuera del ERP, con su propio diseño" },
+      { "archivo": "components/clientas/PaginaLegalClub.tsx", "motivo": "la página legal del club, pública y fuera del ERP, con su propio diseño" }
+    ]
+  },
+  "accion.guardar": {
+    "fecha": "2026-10-14",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.guardar.md",
+    "elegida": "P1 · mientras guarda, el botón dice «Guardando…» (u otro verbo, `textoCargando`: «Anulando…», «Desactivando…», «Imprimiendo…») y corre el hilo de abajo, sin cambiar de ancho, y se apaga para que un doble clic no guarde dos veces; lo hace la pieza con `cargando` (`<Boton>`, `BotonCompacto` y los botones del flujo del mostrador); elegida tocándola el 2026-10-14",
+    "pieza": "components/ui/campos.tsx",
+    "tambien": ["components/ui/BotonCompacto.tsx", "components/FlujoGuiado.tsx"],
+    "firmas": [
+      // La palabra de espera escrita a mano en el botón: la pone la pieza con `cargando`.
+      "\\?\\s*\"Guardando…\"\\s*:",
+      // La rueda que gira dentro de un botón que guarda: la espera es el hilo de la pieza.
+      "<Loader2\\b[^>]*animate-spin"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.editar": {
+    "fecha": "2026-10-14",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.editar.md",
+    "elegida": "P1 · abrir la edición de algo entero es el botón secundario con el lápiz (<BotonEditar>), nunca negro; en una fila o una tarjeta de una lista, el lápiz solo de 32 px con «Editar …» para el lector (<LapizEditar>); dentro de una frase o de una hoja, el enlace (ronda 9); elegida tocándola el 2026-10-14",
+    "pieza": "components/ui/BotonEditar.tsx",
+    "tambien": [],
+    "ventana": 3,
+    "firmas": [
+      // El lápiz dibujado fuera de la pieza (un «Editar» a mano).
+      "<Pencil\\b",
+      // «Editar» negro, sutil o en versalitas: es <BotonEditar> o <LapizEditar>.
+      "(?:\\bbtn-primario\\b|peso=\"primario\"|\\bbtn-sutil\\b|peso=\"discreto\"|<AccionTarjeta\\b)(?:[^>]|=>)*>\\s*Editar\\b"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/vista-rapida/VistaRapidaProducto.tsx", "motivo": "la vista rápida de un producto es de diseño propio (ADR-0136 act. 2026-10-05); su «Editar» ya es el secundario con el lápiz, con la cara de sus botones" },
+      { "archivo": "components/ficha-producto/MatrizStockFicha.tsx", "motivo": "la ficha de stock: el lápiz de corregir un color va junto al tacho, los dos con su borde, y el chico de la celda es la pista de que la talla se edita al tocarla" }
+    ]
+  },
+  "modal": {
+    "fecha": "2026-10-14",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/modal.md",
+    "elegida": "P1 · P1 · P1 · toda hoja con la misma cara (papel, sin sombra, título serif de 24 px y la frase en taupe), tres anchos con nombre (`tamano`: angosta 448, mediana 576, ancha 768) y una salida a la vista (la × si solo se lee, «Cancelar» si guarda, nunca las dos); las de diseño propio conservan su `ancho` con su motivo; elegidas tocándolas el 2026-10-14",
+    "pieza": "components/ui/Modal.tsx",
+    "tambien": ["components/ui/ModalRuta.tsx"],
+    "firmas": [
+      // Un ancho a medida (`max-w-…`): la hoja recibe un tamaño con nombre.
+      "\\bancho=(?:\"[^\"]*max-w|\\{\"[^\"]*max-w|\\{`[^`]*max-w)",
+      // El título de 26 px de antes: toda hoja tiene el mismo título.
+      "\\btituloGrande\\b"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/NuevaOrdenProduccionForm.tsx", "motivo": "Nueva orden de producción es de diseño propio (la matriz y la barra de la ficha): conserva su ancho" }
+    ]
   },
   "grafico.barra": {
     "fecha": "2026-10-09",
@@ -798,6 +1047,226 @@ export const DECISIONES = {
       "className=\"[^\"]*(?<![\\w-])(?:kpi-apilada|nc-conc|nc-barra)(?![\\w-])",
       // Una pieza homónima (la de Facturación y Proformas, con `partes` y leyenda propia): el mismo nombre que la del sistema.
       "^\\s*(?:export\\s+)?(?:default\\s+)?(?:function|const)\\s+BarraApilada\\b"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "grafico.avance": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/grafico.avance.md",
+    "elegida": "P1 · una barra con tres altos (fina 3 · normal 6 · gruesa 12): la pista en arena y el relleno en tinta que pasa a verde al completarse; el rojo o el ámbar los pone la pantalla cuando algo está mal; la rayita de «a esta hora tocaba» opcional; se llena desde cero una vez al verse y se desliza si la cifra cambia; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/BarraAvance.tsx",
+    "tambien": ["app/estilos/avance-anillo-copiar.css"],
+    "firmas": [
+      // Una barra de avance que le habla al lector por su cuenta: es <BarraAvance etiqueta>.
+      "role=\"progressbar\"",
+      // Las barras con clase propia de antes (Nueva compra, Ventas sin registrar, Compras, Recibir contando).
+      "(?<![\\w-])(?:cr-progreso|vsr-f-bar|cmp-mini|rc-barra)(?![\\w-])",
+      // Una pieza homónima (la del detalle de un comprobante tenía el mismo nombre).
+      "^\\s*(?:export\\s+)?(?:default\\s+)?(?:function|const)\\s+BarraAvance\\b"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/clientas/RegistroClub.tsx", "motivo": "la página pública del club es para el cliente y tiene su propia cara (club-publico.css): su barra de avance del registro no se toca sin la palabra de Felipe" }
+    ]
+  },
+  "grafico.anillo": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/grafico.anillo.md",
+    "elegida": "P1 · tres tamaños con nombre (chico 40 · mediano 72 · grande 160): la pista en hueso y el arco de tinta con las puntas redondas que pasa a verde al cerrarse; el ámbar o el rojo, solo si la pantalla lo pide; la cifra adentro; se cierra desde arriba una vez al verse y se desliza si la cifra cambia; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/Anillo.tsx",
+    "tambien": ["app/estilos/avance-anillo-copiar.css"],
+    "ventana": 12,
+    "firmas": [
+      // Un arco dibujado a mano: un <circle> con su trazo partido (`strokeDasharray` o `strokeDashoffset`).
+      "<circle\\b(?:[^>]|=>)*?\\bstroke(?:Dasharray|Dashoffset)=",
+      // Una pieza homónima (Recibir y Conteo tenían su propio `Anillo`).
+      "^\\s*(?:export\\s+)?(?:default\\s+)?(?:function|const)\\s+Anillo(?!\\w)"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/observatorio/piezas.tsx", "motivo": "el Observatorio del Admin tiene su diseño y su movimiento por decisión (ADR-0322)" },
+      { "archivo": "components/observatorio/Mapa.tsx", "motivo": "el Observatorio del Admin tiene su diseño y su movimiento por decisión (ADR-0322)" },
+      { "archivo": "components/observatorio/Abajo.tsx", "motivo": "el Observatorio del Admin tiene su diseño y su movimiento por decisión (ADR-0322)" },
+      { "archivo": "components/analisis/piezas.tsx", "motivo": "los gráficos de Análisis tienen su movimiento por decisión (ADR-0357)" },
+      { "archivo": "components/ui/Espera.tsx", "motivo": "el loader del sistema (ADR-0149): su círculo gira, no mide nada" },
+      { "archivo": "components/traslados-pases/Billetera.tsx", "motivo": "el anillo de la billetera de pases de Traslados es parte del diseño de los pases, con su movimiento al verse (ADR-0355)" }
+    ]
+  },
+  "grafico.linea": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/grafico.linea.md",
+    "elegida": "P1 · lo de hoy en tinta (2,5 px) con un área suave, la referencia (ayer, la meta, el plan) en taupe punteado siempre igual, tres rayas de fondo con sus montos y las marcas de tiempo, el último punto con su cifra en serif; al pasar el mouse una guía salta al punto más cercano con un globito; en una fila, la mini (`Sparkline`); se dibuja una vez al verse; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/Linea.tsx",
+    "tambien": ["components/ui/Sparkline.tsx", "app/estilos/graficos-tiempo.css"],
+    "firmas": [
+      // Una línea de datos dibujada a mano: una <polyline> o un <path> armado con su propia función de trazo.
+      "<polyline\\b",
+      "\\bd=\\{(?:trazo|camino|linea)\\("
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "grafico.barras": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/grafico.barras.md",
+    "elegida": "P1 · todas en arena con las esquinas de arriba redondas y un ancho máximo de 28 px, la que importa (la hora de ahora, el mejor día, el mes en curso) en tinta con su cifra encima, la meta de cada barra una rayita taupe, la cifra sobre todas cuando se lee el monto de cada una, el rojo o el ámbar los pone la pantalla, un globito al pasar el mouse; crecen desde abajo en cascada una vez al verse; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/BarrasTiempo.tsx",
+    "tambien": ["components/ui/BarrasMensuales.tsx", "app/estilos/graficos-tiempo.css"],
+    "firmas": [
+      // Una fila de barras dibujada a mano: una caja `flex` que las alinea abajo (`items-end`) con un alto fijo. Las clases, en cualquier orden.
+      "[\"'`](?=[^\"'`]*(?<![\\w-])flex(?![\\w-]))(?=[^\"'`]*(?<![\\w-])items-end(?![\\w-]))(?=[^\"'`]*(?<![\\w-])h-(?:\\d+|\\[\\d+px\\])(?![\\w.\\[-]))"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "grafico.escala": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/grafico.escala.md",
+    "elegida": "P1 · la barra de avance de la ronda 13 en tinta y sin pasar a verde (la más larga no está «lista»): pista de arena, relleno en tinta a escala de la mayor, el nombre a la izquierda y la cifra a la derecha; lo vencido o lo que falta lo pinta la pantalla; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/BarraAvance.tsx",
+    "tambien": ["components/ui/BarraApilada.tsx"],
+    "firmas": [
+      // Una pista con su relleno dibujada a mano: una fila baja (3 a 8 px) que recorta, redonda, sobre arena, hueso o tinta al 10 %.
+      "[\"'`](?=[^\"'`]*(?<![\\w-])h-(?:1|1\\.5|2|\\[3px\\]|\\[5px\\])(?![\\w.\\[-]))(?=[^\"'`]*(?<![\\w-])overflow-hidden(?![\\w-]))(?=[^\"'`]*(?<![\\w-])rounded-full(?![\\w-]))(?=[^\"'`]*(?<![\\w-])bg-(?:sand|hueso|tinta/10)(?![\\w-]))"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/ui/AvisoDestacado.tsx", "motivo": "la barra de un aviso destacado mide cuánto le queda al aviso a la vista: no es un dato que se compare" }
+    ]
+  },
+  "accion.copiar": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.copiar.md",
+    "elegida": "P1 · junto a un dato que ya se ve, el ícono solo de 32 px (como el lápiz de Editar); suelto, el secundario «Copiar …» (con el eslabón si es un enlace); los dos dicen «✓ Copiado» 1,8 s sin cambiar de ancho, y si el navegador no deja, avisan; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/BotonCopiar.tsx",
+    "tambien": ["app/estilos/avance-anillo-copiar.css"],
+    "firmas": [
+      // Copiar al portapapeles por su cuenta: es <BotonCopiar>, que además dice «Copiado» y avisa si falla.
+      "\\bnavigator\\.clipboard\\b",
+      // El ícono de copiar dibujado fuera de la pieza.
+      "<Copy[\\s/>]"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.menu": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.menu.md",
+    "elegida": "P1 · donde cabe la palabra (la cabecera, una tarjeta, una barra), el secundario «Más ▾»; en una fila de una lista, el «⋯» solo de 32 px sin borde, como el lápiz de Editar, con «Más acciones de …» al pasar el mouse; los dos abren la misma lista, que entra como la de un combo; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/MenuAcciones.tsx",
+    "firmas": [
+      // Los tres puntos dibujados fuera de la pieza (`<MenuAcciones>` o `<BotonPuntos>`).
+      "<(?:MoreHorizontal|MoreVertical|Ellipsis|EllipsisVertical)[\\s/>]",
+      ">\\s*⋯\\s*<"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "icono": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/icono.md",
+    "elegida": "P1 en las dos preguntas · el grosor de fábrica de lucide (2) en todos, y cuatro tamaños según el lugar: 12 en una insignia, 14 junto a un texto, 16 en un botón o un campo, 20 junto a un título o en una tecla grande; la marca sobre un punto lleno lleva 3 (como la casilla) y el ícono grande (24 px o más) 1,5 (como el de un vacío); elegida mirando las fotos el 2026-10-15",
+    "pieza": "lib/iconos.ts",
+    "tambien": ["app/estilos/vacio-aviso-buscador.css"],
+    "ventana": 8,
+    "firmas": [
+      // Un ícono (un componente en mayúscula) con un grosor que no es el de fábrica.
+      "<[A-Z][\\w.]*\\b(?:[^>]|=>)*?\\bstrokeWidth=(?:\\{|\")(?!2(?:\\}|\"))[\\d.]+",
+      // Un ícono con un tamaño fuera de la escala (10, 11, 13, 15, 17, 18, 19 o 22 px), por `size` o por su clase.
+      "<[A-Z][\\w.]*\\b(?:[^>]|=>)*?\\bsize=\\{(?:10|11|13|15|17|18|19|22)\\}",
+      "<[A-Z][\\w.]*\\b(?:[^>]|=>)*?className=(?:\"|\\{`|\\{\")[^\"`]*\\b(?:size|h|w)-(?:2\\.5|4\\.5|\\[(?:10|11|13|15|17|18|19|22)px\\])",
+      // Lo mismo en un CSS: un svg con otro grosor o con un tamaño fuera de la escala.
+      "svg[^{,]*\\{[^}]*?stroke-width:\\s*(?!2\\s*;)[\\d.]+",
+      "svg[^{,]*\\{[^}]*?\\bwidth:\\s*(?:10|11|13|15|17|18|19|22)px"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/AppShell.tsx", "motivo": "el marco (lateral y cabecera): fuera del censo desde la ronda 1; su trazo de 1,5 se decide aparte (docs/unificar/icono.md)" },
+      { "archivo": "components/guias/BotonDemo.tsx", "motivo": "el botón «Demo» de la cabecera: es del marco, como el lateral (docs/unificar/icono.md)" },
+      { "archivo": "components/colaboradores/IconoModulo.tsx", "motivo": "dibuja el ícono del menú de cada módulo, igual que el lateral (el marco)" },
+      { "archivo": "components/traslados-pases/PasePedido.tsx", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
+      { "archivo": "components/traslados-pases/PaseTraslado.tsx", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
+      { "archivo": "components/traslados-pases/ReversoPase.tsx", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
+      { "archivo": "app/estilos/traslados-pases.css", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
+      { "archivo": "components/GastoRapidoModal.tsx", "motivo": "el gasto rápido de Caja: la ★ que se dibuja y el sello de «listo» (ADR-0368)" },
+      { "archivo": "components/MosaicoPrenda.tsx", "motivo": "la prenda sin foto: el ícono de su categoría es un dibujo sobre el color (ADR-0333)" },
+      { "archivo": "components/vista-rapida/MatrizUnidades.tsx", "motivo": "la vista rápida de producto, con su movimiento propio (ADR-0136 act. 2026-10-05)" },
+      { "archivo": "app/estilos/vista-rapida.css", "motivo": "la vista rápida de producto, con su movimiento propio (ADR-0136 act. 2026-10-05)" },
+      { "archivo": "app/estilos/historial-prenda.css", "motivo": "el historial de una prenda, con su hilo y sus nudos (ADR-0354)" },
+      { "archivo": "app/estilos/movimientos-sellos.css", "motivo": "los sellos de Movimientos (ADR-0353)" },
+      { "archivo": "app/estilos/observatorio.css", "motivo": "el Observatorio del Admin (ADR-0322)" },
+      { "archivo": "app/estilos/analisis.css", "motivo": "Análisis tiene su diseño propio (ADR-0357)" },
+      { "archivo": "app/estilos/analisis-hoy.css", "motivo": "Análisis tiene su diseño propio (ADR-0357)" },
+      { "archivo": "app/estilos/analisis-pedir.css", "motivo": "Análisis tiene su diseño propio (ADR-0357)" },
+      { "archivo": "app/estilos/ventas-sin-registrar.css", "motivo": "la mesa de Ventas sin registrar (ADR-0360)" },
+      { "archivo": "app/estilos/inicio-almacen.css", "motivo": "Inicio de Almacén dibuja su propio juego de íconos (ADR-0292)" },
+      { "archivo": "app/estilos/club-publico.css", "motivo": "la página pública del club: la ven los clientes, fuera del ERP" },
+      { "archivo": "app/estilos/recepcion-conteo.css", "motivo": "la balanza de Recibir es un dibujo de 120 px, no un ícono" }
+    ]
+  },
+  "contador": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/contador.md",
+    "elegida": "P1 · el globito de las pestañas en todas partes (20 px, gris suave); si te pide algo, ámbar suave; en la esquina de un ícono o un botón, lleno con su anillo (tinta, o ámbar si pide); dentro de un botón negro, crema suave; rojo solo si dice un error; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/Globito.tsx",
+    "tambien": ["components/ui/Insignia.tsx", "app/estilos/globito-vermas.css"],
+    "firmas": [
+      // Un globito con número a mano: redondo, chico (16 a 24 px), con letra de 9,5 a 11 px y un fondo lleno.
+      "className=(?:\"|\\{`)(?=[^\"`]*\\brounded-full\\b)(?=[^\"`]*\\b(?:min-w-(?:4|5|6|\\[1[5-9]px\\])|h-\\[1[5-8]px\\])(?![\\w-]))(?=[^\"`]*\\btext-\\[(?:9\\.5|10|10\\.5|11)px\\])(?=[^\"`]*\\bbg-(?:rojo|ambar|tinta|crema|papel)(?![\\w-]))",
+      // El «te pide algo» en ámbar suave a mano.
+      "className=(?:\"|\\{`)(?=[^\"`]*\\brounded-full\\b)(?=[^\"`]*\\bbg-ambar\\/\\[?0?\\.1)(?=[^\"`]*\\btabular-nums\\b)(?=[^\"`]*\\btext-\\[11px\\])"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.siguiente": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.siguiente.md",
+    "elegida": "P1 · «Ver más / Ver menos» es la franja al pie de la lista de Inicio de Almacén: «Ver 3 más» en taupe con la flecha que da media vuelta, y las filas bajan en su lugar; en una lista suelta, el enlace con la misma flecha. «Siguiente» y «Anterior» ya los resuelven la paginación (ronda 8) y los pasos a paso; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/VerMas.tsx",
+    "tambien": ["components/inicio-almacen/VerMas.tsx", "app/estilos/globito-vermas.css"],
+    "firmas": [
+      // Un «Ver más / Ver menos» a mano: el texto que dice al abrir.
+      "\\bVer menos\\b"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.deshacer": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.deshacer.md",
+    "elegida": "P1 · el enlace (la acción chica que corrige una sola cosa, ronda 9) con la flecha curva delante; el «Deshacer» de un aviso es del aviso; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/BotonDeshacer.tsx",
+    "ventana": 3,
+    "firmas": [
+      // Un botón «Deshacer» escrito a mano.
+      ">\\s*Deshacer\\s*</"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.buscar": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.buscar.md",
+    "elegida": "P1 · lo que busca recién al apretar (el padrón de SUNAT, unir dos clientes) es el secundario con la lupa; el primario solo si buscar es el paso de esa hoja; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/BotonBuscar.tsx",
+    "ventana": 3,
+    "firmas": [
+      // Un botón «Buscar» escrito a mano.
+      ">\\s*Buscar\\s*</(?:Boton|button)>"
     ],
     "deuda": [],
     "excepciones": []

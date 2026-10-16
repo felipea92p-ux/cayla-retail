@@ -108,6 +108,25 @@ describe("un modelo = todas sus tallas y colores (ADR-0357, decisión 12)", () =
   });
 });
 
+describe("la ventana del ritmo del modelo (2026-10-14)", () => {
+  it("se mide desde que se colgó cualquiera de sus tallas, no desde su primera talla; sin los días de la tienda, como antes", () => {
+    // El chaleco se colgó por primera vez el 28 de setiembre (HOY es el 10 de octubre: 13 días) en una tienda con 20 días de ventas.
+    const conTienda = chaleco.map((v) => ({ ...v, diasDeVentas: 7, diasDeVentasTienda: 20 }));
+    expect(modeloDe(conTienda, HOY).diasDeVentas).toBe(13);
+    expect(modeloDe(conTienda, HOY).diasDeVentasTienda).toBe(20);
+    expect(modeloDe(chaleco, HOY).diasDeVentas).toBe(11);
+  });
+});
+
+describe("lo que puede ser una venta sin registrar (ADR-0357, act. 2026-10-14)", () => {
+  it("el modelo suma las unidades en duda de sus tallas; sin la lectura de Frescura en ninguna, no lo dice", () => {
+    const conDudas = chaleco.map((v) => (v.varianteId === "aM" ? { ...v, enDuda: 1 } : v.varianteId === "tL" ? { ...v, enDuda: 1 } : { ...v, enDuda: 0 }));
+    expect(modeloDe(conDudas, HOY).enDuda).toBe(2);
+    expect(modeloDe(chaleco.map((v) => ({ ...v, enDuda: 0 })), HOY).enDuda).toBe(0);
+    expect(modeloDe(chaleco, HOY).enDuda).toBeUndefined();
+  });
+});
+
 describe("días sin venderse del modelo", () => {
   it("desde la última venta de cualquiera, o desde la PRIMERA vez que se colgó: colgar otra talla después no reinicia la cuenta", () => {
     const quieto = [

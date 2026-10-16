@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, type MutableRefObject, type ReactNode, type RefObject } from "react";
+import { BotonBuscar } from "@/components/ui/BotonBuscar";
 import { ArrowRight, ReceiptText, ScanLine } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
+import { MAX_LARGO_BUSQUEDA } from "@/lib/cambios-reglas";
 import { Desplegable } from "@/components/ui/campos";
 import { usePistola } from "@/components/ui/usePistola";
 import { busquedaDesdeLectura } from "@/lib/cambios-atajos-reglas";
@@ -143,12 +145,11 @@ export function BuscadorVentas({
         onBlur={() => setEscaneando(false)}
         inputMode="search"
         placeholder={escaneando ? "Escanea la etiqueta…" : "Boleta, DNI, cliente, prenda o código"}
+        maxLength={MAX_LARGO_BUSQUEDA}
         etiqueta="Buscar la venta: boleta, DNI o RUC, nombre del cliente, nombre o código de la prenda"
         className={escaneando ? "escaneando" : ""}
         accion={
-          <button type="submit" disabled={buscando} className="btn-cayla btn-primario h-12 shrink-0">
-            Buscar
-          </button>
+          <BotonBuscar type="submit" peso="primario" disabled={buscando} className="h-12 shrink-0" />
         }
       />
 

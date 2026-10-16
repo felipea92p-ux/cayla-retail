@@ -10,7 +10,7 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
-import { Modal, botonCancelar, campoEtiqueta } from "@/components/ui/Modal";
+import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { soles } from "@/lib/compras-reglas";
 import { leerCostoAtipico, type CostoAtipico } from "@/lib/costo-atipico-reglas";
@@ -126,8 +126,7 @@ export function PasarAlStockModal({ datos, onClose }: { datos: OrdenPagina; onCl
       titulo={orden.esMuestra ? "¿Terminamos la muestra?" : "¿Pasamos las prendas al stock?"}
       subtitulo={`${orden.producto.referencia}: dejamos lo que se terminó en ${ultima?.nombre ?? "la última fase"}. Bájalo si algo no salió bueno.`}
       variante="hoja"
-      conCerrar
-      ancho="max-w-3xl"
+      tamano="ancha"
       onClose={onClose}
       antesDeCerrar={avisoSalida.pedirAccion}
     >
@@ -219,12 +218,12 @@ export function PasarAlStockModal({ datos, onClose }: { datos: OrdenPagina; onCl
 
         {!atipico && (
           <div className="pie-hoja-fijo">
-            <div className="flex gap-2 border-t border-sand pt-3">
-              <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}>
+            <div className="pie-acciones border-t border-sand pt-3">
+              <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
                 Cancelar
-              </button>
-              <Boton type="submit" peso="primario" cargando={cargando} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
-                {cargando ? "Pasando…" : orden.esMuestra ? "Terminar muestra" : total > 0 ? `Pasar ${total} al stock` : "Pasar al stock"}
+              </Boton>
+              <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Pasando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+                {orden.esMuestra ? "Terminar muestra" : total > 0 ? `Pasar ${total} al stock` : "Pasar al stock"}
               </Boton>
             </div>
           </div>

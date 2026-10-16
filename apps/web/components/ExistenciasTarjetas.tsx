@@ -1,7 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { useRef, useState } from "react";
+import { precargarFotoFija, precargarMiniaturas } from "@/components/ui/precargar-miniaturas";
+import { FOTO_PANEL_TALLA, SIZES_MINIATURA_EXISTENCIAS } from "@/lib/fotos-tamanos";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { PieTarjeta } from "@/components/existencias/PieTarjeta";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import { queHacerPrenda, tallaParaReponer, textoTallasRecortadas, type PrendaAgrupada } from "@/lib/existencias-prendas";
@@ -123,7 +125,7 @@ function ColumnasTallas({
               {(marca === "cumple" || marca === "principal") &&
                 (Simbolo ? (
                   <span aria-hidden className={`grid h-3.5 w-3.5 place-items-center rounded-full bg-papel shadow-[0_0_0_1.25px_currentColor] ${TONO_INSIGNIA[tono]}`}>
-                    <Simbolo aria-hidden className="h-2.5 w-2.5" strokeWidth={2.6} />
+                    <Simbolo /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ aria-hidden className="h-2.5 w-2.5" strokeWidth={3} />
                   </span>
                 ) : (
                   <i aria-hidden className={`h-1.5 w-1.5 rounded-full ${TONO_PUNTO[tono]}`} />
@@ -208,8 +210,12 @@ export function ExistenciasTarjetas({
 }) {
   // El color que se ve en cada tarjeta. Sin elegir, el primero de la lista; si el elegido ya no está (un filtro, un guardado), también.
   const [elegida, setElegida] = useState<Record<string, string>>({});
+  // El color que el mouse está mirando, en UNA tarjeta a la vez: la tarjeta lo muestra mientras el mouse esté sobre su punto y vuelve al
+  // elegido al salir (como la vista previa de Vender). Un clic lo deja fijo (`elegida`). Con el dedo no hay «pasar por encima».
+  const [mirando, setMirando] = useState<{ modelo: string; color: string } | null>(null);
   // La tarjeta, para devolverle el foco al cerrar una ventana abierta desde el menú «⋯» (el menú no deja un botón al que volver).
   const tarjetas = useRef(new Map<string, HTMLElement>());
+  const sinFotoDe = (p: PrendaAgrupada<FilaExistencias>) => <SinFoto tamano="h-full w-full" colorHex={p.colorHex} {...categoriaDe(p)} />;
   const ventas = (f: FilaExistencias) => (f.ritmoReciente?.tipo === "medida" ? f.ritmoReciente.unidadesDia : 0);
 
   return (
@@ -218,7 +224,10 @@ export function ExistenciasTarjetas({
       {modelos.map((m) => {
         const faltanModelo = tallasQueFaltan(m.colores);
         // Sin elegir, el color que importa (`colorDeEntrada`), no el primero: uno agotado dejaba la tarjeta vacía.
-        const p = m.colores.find((c) => c.clave === elegida[m.clave]) ?? colorDeEntrada(m.colores, faltanModelo) ?? m.colores[0];
+        const pFijo = m.colores.find((c) => c.clave === elegida[m.clave]) ?? colorDeEntrada(m.colores, faltanModelo) ?? m.colores[0];
+        // `p` es el color que se VE (el mirado, si el mouse está sobre un punto de esta tarjeta); `pFijo`, el elegido: los puntos marcan el
+        // elegido para que no se muevan ni cambien de tamaño bajo el mouse (si no, el punto crecería y se correría de debajo del puntero).
+        const p = (mirando?.modelo === m.clave ? m.colores.find((c) => c.clave === mirando.color) : undefined) ?? pFijo;
         const tallasVista = tallasCompletas?.(p) ?? p.tallas;
         // Lo que el filtro marca en este color, la que más se vende primero (la «principal» lleva el aro).
         const cumplen = marcaDelFiltro ? [...tallasVista.filter(marcaDelFiltro.coincide)].sort((a, b) => ventas(b) - ventas(a)) : [];
@@ -293,6 +302,13 @@ export function ExistenciasTarjetas({
             tabIndex={0}
             data-guia="existencias.prenda"
             aria-label={`${etiqueta}. Enter abre el detalle`}
+            // Con el mouse encima, las fotos de los otros colores empiezan a bajar: al pasar por un punto la foto ya está.
+            onPointerEnter={(e) => {
+              if (e.pointerType !== "mouse") return;
+              // La foto del panel de talla (la del color que se ve) se adelanta: tocar la tarjeta lo abre con la foto ya lista.
+              precargarFotoFija(p.fotoUrl, FOTO_PANEL_TALLA.width, FOTO_PANEL_TALLA.height);
+              precargarMiniaturas(m.colores.map((c) => c.fotoUrl), SIZES_MINIATURA_EXISTENCIAS);
+            }}
             // Toda la tarjeta abre el cajón (Felipe, 2026-10-07). Los controles de adentro (colores, tallas, acciones) hacen lo suyo;
             // un clic que no nació en el DOM de la tarjeta (un modal abierto desde ella sube por React) se ignora (CLAUDE.md, ADR-0128).
             onClick={(e) => {
@@ -310,23 +326,29 @@ export function ExistenciasTarjetas({
           >
             {/* Foto (o su categoría sobre su color), nombre, los colores con el nombre del que se ve (y lo dañado o apartado) y el precio. */}
             <div className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-2.5">
-              <span data-miniatura className="block h-[46px] w-10 shrink-0 overflow-hidden rounded-[9px] bg-sand/50">
-                {p.fotoUrl ? <Image src={p.fotoUrl} alt="" width={80} height={92} unoptimized className="h-full w-full object-cover" /> : <SinFoto tamano="h-full w-full" colorHex={p.colorHex} {...categoriaDe(p)} />}
+              <span data-miniatura className="relative block h-[46px] w-10 shrink-0 overflow-hidden rounded-[9px] bg-sand/50">
+                {/* La miniatura pasa por el optimizador (`ImagenDePrenda`): una foto real pesa ~200 KB y aquí se ve a 40 px (ADR-0168). */}
+                {p.fotoUrl ? <ImagenDePrenda src={p.fotoUrl} alt="" fill sizes={SIZES_MINIATURA_EXISTENCIAS} className="object-cover" fondo={p.colorHex} fallback={sinFotoDe(p)} /> : sinFotoDe(p)}
               </span>
               <span className="min-w-0">
                 <span data-guia="existencias.prenda-nombre" className="block truncate font-display text-[16.5px] leading-tight text-tinta" title={[p.referencia, mostrarMarca ? p.marca : null, p.categoria].filter(Boolean).join(" · ")}>
                   {p.referencia}
                 </span>
                 <span className="mt-1 flex min-w-0 items-center gap-1.5">
-              <div className="flex shrink-0 items-center gap-2.5 pl-0.5" role="radiogroup" aria-label={`Color de ${p.referencia}`}>
+              <div className="flex shrink-0 items-center gap-2.5 pl-0.5" role="radiogroup" aria-label={`Color de ${p.referencia}`} onPointerLeave={() => setMirando(null)}>
                 {m.colores.map((h) => {
-                  const propia = h.clave === p.clave;
+                  const propia = h.clave === pFijo.clave;
                   const n = marcaDelFiltro ? (tallasCompletas?.(h) ?? h.tallas).filter(marcaDelFiltro.coincide).length : 0;
                   return (
                     <button
                       key={h.clave}
                       type="button"
                       role="radio"
+                      onPointerEnter={(e) => {
+                        if (e.pointerType !== "mouse") return;
+                        setMirando({ modelo: m.clave, color: h.clave });
+                        precargarFotoFija(h.fotoUrl, FOTO_PANEL_TALLA.width, FOTO_PANEL_TALLA.height);
+                      }}
                       onClick={() => setElegida((previa) => ({ ...previa, [m.clave]: h.clave }))}
                       title={`${h.color ?? "Sin color"}${propia ? " (el que ves)" : " · ver este color"}`}
                       aria-label={`${h.color ?? "Sin color"}${n ? `: ${n} ${n === 1 ? "talla" : "tallas"} ${marcaDelFiltro?.etiqueta.toLocaleLowerCase("es") ?? ""}` : ""}`}
@@ -350,7 +372,7 @@ export function ExistenciasTarjetas({
               </span>
               {p.precio != null && (
                 <span className="flex flex-col items-end self-start">
-                  <span className="font-display text-[15px] tabular-nums text-tinta">S/ {p.precio.toFixed(2)}</span>
+                  <span className="font-display text-[15px] tabular-nums text-tinta">S/&nbsp;{p.precio.toFixed(2)}</span>
                   {/* Precio propio de esta sede (Felipe 2026-10-09): distinto del de las demás tiendas. */}
                   {p.precioDeSede && <span className="whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">Precio de esta tienda</span>}
                 </span>

@@ -2,11 +2,11 @@
   "guia": "compras.proveedores",
   "ruta": "/compras/proveedores",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 41,
+  "total": 40,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "Boton «{actual?.fase === \"cargando\" ? \"Buscando…\" : \"Buscar\"}»",
+      "BotonBuscar «) : ( campoNumero )»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/ProveedorModal.tsx": [
@@ -26,7 +26,6 @@
       "button «{ETIQUETA_BILLETERA[b]}»",
       "button «Usar el teléfono de contacto (»",
       "CampoTexto «Titular de la cuenta»",
-      "button «Desactivar proveedor»",
       "Boton «Cancelar»",
       "Boton «(sin nombre)»"
     ],
@@ -36,7 +35,7 @@
       "Boton «{p.activo ? \"Desactivar\" : \"Reactivar\"}»",
       "button «Proveedor anterior»",
       "button «Proveedor siguiente»",
-      "Link «Abrir ficha completa →»"
+      "BotonVer «Abrir ficha completa»"
     ],
     "components/ProveedoresPanel.tsx": [
       "Boton «proveedores.registrar»",
@@ -51,7 +50,7 @@
       "Link «{soles(saldo)}»",
       "Link «{soles(p.saldo_favor ?? 0)}»",
       "Link «proveedores.comprobante»",
-      "Boton «{cambiando ? \"…\" : \"Reactivar\"}»"
+      "Boton «Reactivar»"
     ]
   }
 }

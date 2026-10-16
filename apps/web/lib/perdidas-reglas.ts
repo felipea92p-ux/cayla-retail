@@ -109,7 +109,7 @@ export function unidadesTexto(n: number): string {
 }
 
 export function solesPerdidas(n: number): string {
-  return `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 // ── 2. El período ─────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -347,7 +347,6 @@ export function listaCortada(r: Pick<ResumenPerdidas, "hechos" | "hechosTotal">)
 /** Los módulos de las pantallas a las que lleva un respaldo (ADR-0161): quien no los ve lee el respaldo sin enlace, como los
  *  atajos de Movimientos (ADR-0241). Sin esto, «Traslado 24» llevaba a «Sin acceso». */
 export const MODULOS_DE_RESPALDO = ["conteos", "traslados"] as const;
-export type ModuloDeRespaldo = (typeof MODULOS_DE_RESPALDO)[number];
 
 /** Adónde lleva el documento de un hecho (el conteo o el traslado), si la cuenta ve el módulo de esa pantalla; una venta
  *  anulada no tiene pantalla propia aquí. */

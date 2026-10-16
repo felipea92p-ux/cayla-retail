@@ -20,6 +20,7 @@
 // lateral se pliega: los grupos cuentan como cerrados) y ADR-0133 (Producción y Compras son dos módulos distintos).
 
 import type { ClaveModulo } from "./modulos";
+import type { Vista } from "./vista-global";
 
 /* ------------------------------------------------------------------
    Vocabulario del árbol
@@ -27,6 +28,7 @@ import type { ClaveModulo } from "./modulos";
 
 /** Tipo de la ubicación en la que está parado quien mira (`personas.ubicacionTipo`). */
 export type TipoUbicacion = "tienda" | "almacen" | "taller";
+/** @internal Todos los tipos de ubicación, para que las pruebas del menú y de los módulos recorran cada uno. */
 export const TIPOS_UBICACION: readonly TipoUbicacion[] = ["tienda", "almacen", "taller"];
 
 /**
@@ -117,10 +119,11 @@ export type ClaveIcono =
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
   | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso" | "liquidacion"
-  | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos";
+  | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos" | "fondos" | "vitrina" | "pedidosWeb"
+  | "recomendaciones";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
-export type ClaveContador = "trasladosPorAtender";
+export type ClaveContador = "trasladosPorAtender" | "pedidosWebPorConfirmar";
 export type Contadores = Partial<Record<ClaveContador, number | null>>;
 
 /* ------------------------------------------------------------------
@@ -135,9 +138,8 @@ type Comun = {
   pajaro: Pajaro;
   /** Se muestra solo a quien tiene este permiso. */
   exige?: Permiso;
-  /** Se muestra solo a quien NO lo tiene. Existe por UN caso: «Recibir mercadería» vive en Compras para quien ve el dinero
-   *  de compras y en Inventario para quien no (ADR-0113); las dos filas apuntan a `/recibir` y nunca salen a la vez (parado en
-   *  el Taller, quien ve el dinero no tiene ninguna: allí Compras no se muestra). */
+  /** Se muestra solo a quien NO lo tiene. Lo usó «Recibir mercadería» mientras vivía en Compras para quien ve el dinero y en
+   *  Inventario para quien no (ADR-0113, hasta el 2026-10-14); hoy ninguna fila lo usa, y queda para un caso igual. */
   soloSinPermiso?: Permiso;
   /** Si esta fila queda SOLA bajo su grupo de primer nivel, conserva su propio nombre en vez de tomar el del grupo. Existe por dos
    *  casos: «Recibir mercadería» en Inventario —un rol que solo ve ese módulo veía una fila llamada «Inventario» que abría Recibir
@@ -324,6 +326,10 @@ export const ARBOL: readonly Nodo[] = [
       // Apartados (ADR-0166): la clienta aparta con un adelanto y recoge pagando el saldo. Junto al Punto de venta en el
       // menú, pero con módulo propio desde el ADR-0196: el líder decide aparte quién vende y quién maneja apartados.
       { id: "venta.apartados", modulo: "apartados", etiqueta: "Apartados", estado: "viva", ruta: "/vender/apartados", icono: "apartados", pajaro: "07 Colibrí" },
+      // Pedidos web (ADR-0408, actividad 8): lo que los clientes separan en la tienda online, junto a Apartados (la maqueta aprobada,
+      // «Ventas ▸ Pedidos web»). La visibilidad la da su módulo, que nace solo para el líder. Lleva a Ventas a 7 hijas: ver
+      // `EXCEPCIONES_TOPE_HIJAS` en menu.test.ts.
+      { id: "venta.pedidosWeb", modulo: "pedidos_web", etiqueta: "Pedidos web", estado: "viva", ruta: "/vender/pedidos-web", icono: "pedidosWeb", contador: "pedidosWebPorConfirmar", pajaro: "07 Colibrí" },
       { id: "venta.caja", modulo: "caja", etiqueta: "Caja", estado: "viva", ruta: "/caja", icono: "caja", pajaro: "07 Colibrí" },
       // Historial de ventas (ADR-0147): el libro de todas las ventas; se lee tras cobrar y cuadrar y de ahí se pasa a corregir.
       { id: "venta.historial", modulo: "historial", etiqueta: "Historial", estado: "viva", ruta: "/vender/historial", icono: "historial", pajaro: "07 Colibrí" },
@@ -352,9 +358,11 @@ export const ARBOL: readonly Nodo[] = [
       { id: "inventario.conteo", modulo: "conteos", etiqueta: "Conteo", estado: "viva", ruta: "/inventario/conteo", icono: "conteo", pajaro: "06 Lechuza" },
       // Análisis (ADR-0101), Frescura del piso (ADR-0208) y Plan del piso (ADR-0352) vivieron aquí como filas 5.ª a 7.ª hasta el
       // 2026-10-13: desde ADR-0392 son de «Gestión» (arriba). Inventario vuelve a las cuatro de operar stock (ADR-0071), más
-      // «Recibir mercadería» para quien no ve Compras: cabe en el tope general de 6, sin excepción.
-      // Quien no ve Compras no tiene el grupo donde vive «Recibir mercadería»: su puerta está acá, donde vive el stock.
-      { id: "inventario.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", soloSinPermiso: "verDineroCompras", conservaNombre: true },
+      // «Recibir mercadería»: cabe en el tope general de 6, sin excepción.
+      // Recibir vive AQUÍ para todos (Felipe, 2026-10-14; ADR-0393 y ADR-0362, decisión 38): es donde entra el stock. Hasta ese día
+      // vivía en Compras para quien ve el dinero de Compras y aquí solo para quien no (ADR-0113): dos lugares según quién mirara, y el
+      // líder parado en el Taller no lo tenía en ningún menú. Lo que muestra (con o sin montos) lo sigue decidiendo la pantalla.
+      { id: "inventario.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", conservaNombre: true },
     ],
   },
 
@@ -367,6 +375,9 @@ export const ARBOL: readonly Nodo[] = [
     id: "catalogo", etiqueta: "Catálogo", estado: "viva", icono: "catalogo", raiz: "/productos", pajaro: "02 Loro",
     hijos: [
       { id: "catalogo.productos", modulo: "productos", etiqueta: "Productos", estado: "viva", ruta: "/productos", icono: "productos", pajaro: "02 Loro" },
+      // ADR-0408 (actividad 3): qué modelos se ven en la tienda online y a qué precio web. Justo después de Productos, como en la
+      // maqueta aprobada («Catálogo ▸ Vitrina web»). La visibilidad la da su módulo, que nace solo para el líder.
+      { id: "catalogo.vitrina", modulo: "vitrina_web", etiqueta: "Vitrina web", estado: "viva", ruta: "/productos/vitrina", icono: "vitrina", pajaro: "02 Loro" },
       { id: "catalogo.categorias", modulo: "atributos", etiqueta: "Categorías", estado: "viva", ruta: "/productos/categorias", icono: "categorias", pajaro: "02 Loro" },
       { id: "catalogo.marcas", modulo: "atributos", etiqueta: "Marcas", estado: "viva", ruta: "/productos/marcas", icono: "marcas", pajaro: "02 Loro" },
       { id: "catalogo.atributos", modulo: "atributos", moduloAlterno: "etiquetas", etiqueta: "Atributos", estado: "viva", ruta: "/productos/atributos", icono: "atributos", pajaro: "02 Loro" },
@@ -398,15 +409,15 @@ export const ARBOL: readonly Nodo[] = [
       { id: "compras.plan", modulo: "plan_compra", etiqueta: "Plan de campaña", estado: "viva", ruta: "/compras/plan", icono: "campana", pajaro: "09 Pelícano" },
       { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "editarCuentasProveedor" },
       // Órdenes de compra (ADR-0362): lo que se le pide al proveedor, antes de su factura; por eso va entre las dos. Sin `exige`: el
-      // módulo es la llave y trae sus precios (decisión 34). Es la 7.ª hija de Compras, TEMPORAL (decisión 38): la excepción vive en
-      // `menu.test.ts` y se quita cuando «Recibir mercadería» pase a Inventario (sesión de Recepción, ADR-0362 «Contrato con»). El
-      // id termina en «Compra» a propósito: Producción ya tiene `produccion.ordenes` (sus órdenes de producción) y ninguna pantalla
+      // módulo es la llave y trae sus precios (decisión 34). Fue la 7.ª hija de Compras mientras «Recibir mercadería» vivía aquí
+      // (decisión 38); desde el 2026-10-14 Recibir está en Inventario y Compras queda en 7 con «Fondos por rendir» (decisión 65). El id termina en «Compra» a propósito: Producción ya tiene `produccion.ordenes` (sus órdenes de producción) y ninguna pantalla
       // puede llamarse igual en los dos módulos.
       { id: "compras.ordenesCompra", modulo: "ordenes_compra", etiqueta: "Órdenes de compra", estado: "viva", ruta: "/compras/ordenes", icono: "ordenes", pajaro: "09 Pelícano" },
       { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Facturas de proveedor", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDineroCompras" },
-      // ADR-0111/0113: recibir es una sola puerta (`/recibir`). El dato es del Halcón (envíos y lotes), no del Pelícano.
-      { id: "compras.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", exige: "verDineroCompras" },
+      // «Recibir mercadería» ya no vive aquí: desde el 2026-10-14 es una sola fila, en Inventario (ver allí).
       { id: "compras.porPagar", modulo: "por_pagar", etiqueta: "Por pagar", estado: "viva", ruta: "/compras/por-pagar", icono: "porPagar", pajaro: "09 Pelícano", exige: "verDineroCompras" },
+      // Fondos por rendir (ADR-0362, fase 6; Felipe 2026-10-13, decisión 65: «Compras, directo», como octava entrada). Solo pide su módulo.
+      { id: "compras.fondos", modulo: "fondos", etiqueta: "Fondos por rendir", estado: "viva", ruta: "/compras/fondos", icono: "fondos", pajaro: "09 Pelícano" },
       // Notas de crédito (2026-09-19): lo que el proveedor le acredita a CAYLA. Va pegada a «Por pagar» y al final: las dos
       // responden a la misma pregunta —cuánto dinero hay entre CAYLA y ese proveedor—, una de cada lado. Sin insignia a
       // propósito: el contador de «por reclamar» saldría de `notas_credito_tablero()`, y pagarlo en CADA pantalla de la app
@@ -446,6 +457,10 @@ export const ARBOL: readonly Nodo[] = [
     hijos: [
       { id: "clientas.fichas", modulo: "clientas", etiqueta: "Fichas", estado: "viva", ruta: "/clientas", icono: "clientas", pajaro: "07 Colibrí" },
       { id: "clientas.avisos", modulo: "avisos_club", etiqueta: "Avisos", estado: "viva", ruta: "/clientas/avisos", icono: "avisos", pajaro: "07 Colibrí" },
+      // Recomendaciones (ADR-0408, Felipe 2026-10-15): lo que los clientes le recomiendan a CAYLA desde la tienda online, con su nombre.
+      // La visibilidad la da su módulo, que nace solo para el líder. Trabaja parada en una sede (firma con el responsable de ahí):
+      // en CAYLA Global manda a elegir sede, como Avisos (`RUTAS_DE_SEDE_DENTRO_DE_LA_VISTA_GLOBAL`).
+      { id: "clientas.recomendaciones", modulo: "recomendaciones", etiqueta: "Recomendaciones", estado: "viva", ruta: "/clientas/recomendaciones", icono: "recomendaciones", pajaro: "07 Colibrí" },
     ],
   },
   // Rendimiento (ADR-0219, respuesta 20) fue hoja suelta «al final del menú lateral» hasta el 2026-10-13: desde ADR-0392 es la
@@ -485,11 +500,24 @@ function primeraRutaDe(modulos: readonly ClaveModulo[], preferido?: string | nul
  * principal» ni de que Inicio se apague. Una PERSONA: la pantalla principal de su rol si todavía la ve; si no (o su
  * rol nunca eligió una), la primera pantalla que ve, en el orden del menú (Inicio sale primero si la tiene, como
  * antes); si no le queda NINGUNA (ni Inicio ni ningún otro módulo), «Sin acceso» — nunca queda sin saber a dónde ir.
+ * En CAYLA Global (ADR-0275) el Inicio de una sede no tiene sentido: quien iba a quedarse en él va al tablero, salvo
+ * el Admin, cuyo Inicio es el Observatorio de toda la empresa (ADR-0322; si el Observatorio no se puede leer, el Inicio
+ * lo manda igual al tablero al dibujarse).
+ *
+ * La usan el Inicio, al abrirse, y el login, ANTES de navegar (`app/api/aterrizaje`): así la cuenta entra directo a su
+ * pantalla, sin pasar por `/` (Felipe 2026-10-13: al entrar «se ve el inicio» un instante). Una sola regla para los dos.
  */
-export function aterrizajeDe(perfil: { terminal?: boolean; modulos?: readonly ClaveModulo[] | null; pantallaPrincipal?: string | null }): string {
+export function aterrizajeDe(perfil: {
+  terminal?: boolean;
+  modulos?: readonly ClaveModulo[] | null;
+  pantallaPrincipal?: string | null;
+  esAdmin?: boolean;
+  vista?: Vista;
+}): string {
   const modulos = perfil.modulos ?? [];
   if (perfil.terminal) return esMostrador(perfil) ? "/vender" : "/";
-  return primeraRutaDe(modulos, perfil.pantallaPrincipal) ?? "/sin-acceso";
+  const destino = primeraRutaDe(modulos, perfil.pantallaPrincipal) ?? "/sin-acceso";
+  return destino === "/" && perfil.vista === "global" && !perfil.esAdmin ? "/global" : destino;
 }
 
 /**

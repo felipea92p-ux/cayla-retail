@@ -1,8 +1,7 @@
 "use client";
 
 import { useRef, useState, type CSSProperties, type ReactNode } from "react";
-import Link from "next/link";
-import { Check, Minus, Plus, Printer, ScanLine, Store, Warehouse } from "lucide-react";
+import { Check, Minus, Plus, ScanLine, Store, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -54,6 +53,9 @@ import { preguntaFirma } from "@/lib/firma-heredada";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Volver } from "@/components/ui/Volver";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { Boton } from "@/components/ui/campos";
+import { SobrantesPase } from "@/components/traslados-pases/SobrantesPase";
 
 // El reverso del pase (ADR-0355, maqueta D): lo que se hace con la caja al darle vuelta.
 //  · Te llega: cuentas a ciegas (− / +, la pistola o la cámara; lo contado se guarda solo). «Terminé de contar» destapa lo que
@@ -384,6 +386,7 @@ export function ReversoPase({
           </blockquote>
         )}
         {modo === "llegada" && lugarRecibido && <p className="tp-dato">Entró {lugarTexto(lugarRecibido, t.ubicacionDestinoNombre)}.</p>}
+        {modo === "llegada" && <SobrantesPase traslado={t} puedeRevisar={esDestino && puedeCerrarDiferencia} />}
         {modo === "anulada" && (
           <blockquote className="tp-cita">
             “{t.motivoAnulacion ?? "Sin motivo escrito"}”<cite>{t.anuladoPorNombre ? `${t.anuladoPorNombre}, al anularla` : "Al anularla"}</cite>
@@ -475,22 +478,22 @@ export function ReversoPase({
             )}
             <div className="tp-fila">
               <Volver onClick={() => setTermino(false)} deshabilitado={ocupado} a="Volver a contar" className="self-center" />
-              <button type="button" onClick={() => void alConfirmar()} disabled={ocupado || r.resumenGuardado.errores > 0} className="btn-cayla btn-primario tp-grande">
-                {r.trabajando === "confirmar" ? "Confirmando…" : que ? "Confirmar lo que llegó" : "Confirmar"}
-              </button>
+              <Boton peso="primario" cargando={r.trabajando === "confirmar"} textoCargando="Confirmando…" type="button" onClick={() => void alConfirmar()} disabled={ocupado || r.resumenGuardado.errores > 0} className="tp-grande">
+                {que ? "Confirmar lo que llegó" : "Confirmar"}
+              </Boton>
             </div>
           </>
         ) : cierraLider ? (
           <>
             <PieGuia guia={guiaCerrar} listo="Listo: ya puedes cerrarla." />
-            <button
+            <Boton peso="primario" cargando={r.trabajando === "cerrar"} textoCargando="Cerrando…"
               type="button"
               onClick={() => void alCerrar()}
               disabled={ocupado || !textoObligatorioValido(nota) || r.resumenGuardado.errores > 0 || f.sinNombre}
-              className="btn-cayla btn-primario tp-grande"
+              className="tp-grande"
             >
-              {r.trabajando === "cerrar" ? "Cerrando…" : "Cerrar con la diferencia"}
-            </button>
+              Cerrar con la diferencia
+            </Boton>
           </>
         ) : modo === "envio" && esOrigen && anulando ? (
           <>
@@ -499,14 +502,14 @@ export function ReversoPase({
               <button type="button" onClick={() => setAnulando(false)} disabled={ocupado} className="btn-cayla btn-secundario">
                 No anular
               </button>
-              <button
+              <Boton peso="peligro" cargando={anulandoAhora} textoCargando="Anulando…"
                 type="button"
                 onClick={() => void alAnular()}
                 disabled={ocupado || !textoObligatorioValido(motivo) || !responsable.listo}
-                className="btn-cayla btn-peligro tp-grande"
+                className="tp-grande"
               >
-                {anulandoAhora ? "Anulando…" : "Anular · vuelve a tu stock"}
-              </button>
+                Anular · vuelve a tu stock
+              </Boton>
             </div>
           </>
         ) : modo === "envio" && (esOrigen || anular.mostrar) ? (
@@ -515,9 +518,7 @@ export function ReversoPase({
               {esOrigen && (
                 <>
                   {/* La guía para pegar en la caja, con el QR que abre el conteo (ADR-0242 D-3). Ni ella ni el WhatsApp dicen cuántas van. */}
-                  <Link href={rutaDeLaGuia(t.id)} className="btn-cayla btn-secundario">
-                    <Printer aria-hidden strokeWidth={1.7} className="h-4 w-4" /> Guía
-                  </Link>
+                  <BotonImprimir href={rutaDeLaGuia(t.id)}>Imprimir la guía</BotonImprimir>
                   <button type="button" onClick={avisarPorWhatsApp} className="btn-cayla btn-secundario">
                     Avisar por WhatsApp
                   </button>

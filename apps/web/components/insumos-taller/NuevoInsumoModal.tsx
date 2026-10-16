@@ -8,7 +8,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
-import { Modal, botonCancelar } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
 import { valoresDeLaFicha, type VocabularioDeTelas } from "@/lib/insumos-ficha-reglas";
@@ -109,7 +109,7 @@ export function NuevoInsumoModal({ existentes, vocabulario, leyoVocabulario, onC
   }
 
   return (
-    <Modal titulo="Nuevo insumo" subtitulo="Tela o avío que el Taller compra" variante="hoja" conCerrar ancho="max-w-lg" onClose={onClose} antesDeCerrar={avisoSalida.pedirAccion}>
+    <Modal titulo="Nuevo insumo" subtitulo="Tela o avío que el Taller compra" variante="hoja" tamano="mediana" onClose={onClose} antesDeCerrar={avisoSalida.pedirAccion}>
       <form onSubmit={guardar} className="mt-3.5 space-y-4">
         <div data-guia="prod-insumo-nuevo.tipo" className="grid grid-cols-2 gap-3">
           <CampoSelect etiqueta="Tipo" valor={tipo} onValor={cambiarTipo} opciones={TIPOS_INSUMO.map((t) => ({ valor: t.valor, texto: t.etiqueta }))} />
@@ -157,12 +157,12 @@ export function NuevoInsumoModal({ existentes, vocabulario, leyoVocabulario, onC
         </div>
 
         <div className="pie-hoja-fijo">
-          <div className="flex gap-2 border-t border-sand pt-3">
-            <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}>
+          <div className="pie-acciones border-t border-sand pt-3">
+            <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
-            </button>
+            </Boton>
             <Boton type="submit" peso="primario" cargando={cargando} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
-              {cargando ? "Guardando…" : "Agregar al catálogo"}
+              Agregar al catálogo
             </Boton>
           </div>
         </div>

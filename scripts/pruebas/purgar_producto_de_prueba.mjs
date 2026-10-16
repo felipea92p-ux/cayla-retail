@@ -53,6 +53,12 @@ import { fileURLToPath } from "node:url";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
+// Un apartado VIEJO (de antes de ADR-0399): ya tiene su boleta de anticipo con correlativo gastado. Se arma a mano sobre la separación
+// `:'<sep>'` para que el borrado de un producto de prueba siga entendiendo lo que la producción conserva.
+const anticipoViejo = (sep, monto) => `select retail.emitir_comprobante(:'ubic', 'boleta', round(${monto} / 1.18, 2), ${monto} - round(${monto} / 1.18, 2), ${monto}, null, 'sin_documento', null,
+  'Ana Prueba', jsonb_build_array(jsonb_build_object('descripcion', 'Anticipo', 'cantidad', 1, 'precio_unitario', round(${monto} / 1.18, 2)))) as ca_${sep} \\gset
+update retail.comprobantes set separacion_id = :'${sep}', es_anticipo = true where id = :'ca_${sep}';
+update retail.separaciones set comprobante_anticipo_id = :'ca_${sep}' where id = :'${sep}';`;
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 
 // El script tal cual, sin su begin/commit: la prueba lo envuelve en su propia transacción con ROLLBACK.
@@ -259,15 +265,18 @@ select retail.registrar_venta(:'ubic', jsonb_build_array(jsonb_build_object('var
   jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 50)), null, gen_random_uuid(), 'boleta') as v2 \\gset
 update retail.comprobantes set estado = 'aceptado', entorno_transmision = 'sandbox', enviado_at = now(), respuesta_sunat = '{"ok": true}' where venta_id = :'v2';
 select serie as serie_bol from retail.comprobantes where venta_id = :'v2' \\gset
--- Separación 1, entregada: boleta de anticipo + boleta de la entrega que lo descuenta (como APT-TRU-0004). Separación 2,
+-- Separación 1, entregada: boleta de anticipo + boleta de la entrega que lo descuenta (como APT-TRU-0004). Desde ADR-0399 un apartado
+-- nuevo ya no emite anticipo; los dos de este escenario se arman «viejos» a mano (la producción conserva uno y el borrado debe seguir entendiéndolos). Separación 2,
 -- abierta con su apartado (como APT-TRU-0005). Los adelantos, por Yape y tarjeta: no entran a la caja.
 select retail.separar_prendas(p_ubicacion_id => :'ubic', p_items => jsonb_build_array(jsonb_build_object('variante_id', :'va', 'cantidad', 1, 'precio_unitario', 50)),
   p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 20)), p_clienta_nombres => 'Ana', p_clienta_apellidos => 'Prueba',
   p_clienta_celular => '987111222', p_devolucion_medio => 'yape') as s1 \\gset
+${anticipoViejo("s1", 20)}
 select retail.entregar_separacion(:'s1', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 30))) as v3 \\gset
 select retail.separar_prendas(p_ubicacion_id => :'ubic', p_items => jsonb_build_array(jsonb_build_object('variante_id', :'vb', 'cantidad', 1, 'precio_unitario', 50)),
   p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', 15)), p_clienta_nombres => 'Bea', p_clienta_apellidos => 'Prueba',
   p_clienta_celular => '987111333', p_devolucion_medio => 'yape') as s2 \\gset
+${anticipoViejo("s2", 15)}
 -- Compra: factura a crédito repartida entre Lima y Trujillo, reasignada, recibida en parte en Lima y con un faltante cerrado
 -- (como F001-000022 de Blusa Xd).
 select retail.registrar_compra(:'prov', 'F001', 'N' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 8), 'credito', :'ubic',
@@ -836,7 +845,7 @@ select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto()) || ']';`,
     "docs · rechazo: una separación que también aparta otra prenda",
     `select retail.separar_prendas(p_ubicacion_id => :'ubic', p_items => jsonb_build_array(jsonb_build_object('variante_id', :'va', 'cantidad', 1, 'precio_unitario', 50),
         jsonb_build_object('variante_id', :'o1', 'cantidad', 1, 'precio_unitario', :'p1')),
-      p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 10)), p_clienta_nombres => 'Cira', p_clienta_apellidos => 'Prueba',
+      p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 40)), p_clienta_nombres => 'Cira', p_clienta_apellidos => 'Prueba',
       p_clienta_celular => '987111444', p_devolucion_medio => 'yape') as s3 \\gset`,
     /apartan 2 prenda\(s\) de otros productos/,
     { separaciones: `:'s1' || ',' || :'s2' || ',' || :'s3'` }
@@ -844,7 +853,7 @@ select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto()) || ']';`,
   rechazoDocs(
     "docs · rechazo: una separación pagada en efectivo (ese dinero entró a la caja con su movimiento)",
     `select retail.separar_prendas(p_ubicacion_id => :'ubic', p_items => jsonb_build_array(jsonb_build_object('variante_id', :'va', 'cantidad', 1, 'precio_unitario', 50)),
-      p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', 10, 'recibido', 10)), p_clienta_nombres => 'Dora', p_clienta_apellidos => 'Prueba',
+      p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', 15, 'recibido', 15)), p_clienta_nombres => 'Dora', p_clienta_apellidos => 'Prueba',
       p_clienta_celular => '987111555', p_devolucion_medio => 'yape') as s3 \\gset`,
     /entraron en efectivo a una caja[\s\S]*caja_movimientos citan a separaciones/,
     { separaciones: `:'s1' || ',' || :'s2' || ',' || :'s3'` }

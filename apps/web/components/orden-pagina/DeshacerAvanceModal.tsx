@@ -4,7 +4,9 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { avisar } from "@/components/ui/Avisos";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Boton } from "@/components/ui/campos";
+import { Modal } from "@/components/ui/Modal";
+import { PieAcciones } from "@/components/ui/PieAcciones";
 import { traducirError } from "@/lib/error-escritura";
 import { RPC_DESHACER_AVANCE, type EntradaDeTiempo, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 import { firmar } from "@/lib/responsable-reglas";
@@ -57,17 +59,15 @@ export function DeshacerAvanceModal({ datos, entrada, onClose }: { datos: OrdenP
   }
 
   return (
-    <Modal titulo="¿Deshacer esta anotación?" subtitulo={`${entrada.titulo}${entrada.cuanto ? ` · ${entrada.cuanto}` : ""}. Las prendas vuelven a quedar por terminar.`} variante="hoja" conCerrar ancho="max-w-md" onClose={onClose}>
+    <Modal titulo="¿Deshacer esta anotación?" subtitulo={`${entrada.titulo}${entrada.cuanto ? ` · ${entrada.cuanto}` : ""}. Las prendas vuelven a quedar por terminar.`} variante="hoja" onClose={onClose}>
       <form onSubmit={onSubmit} className="mt-3.5 space-y-4">
         <ComboResponsable control={responsable} deshabilitado={cargando} compacto />
-        <div className="flex gap-2">
-          <button type="button" onClick={onClose} className={botonCancelar}>
+        <PieAcciones>
+          <Boton type="button" onClick={onClose}>
             Cancelar
-          </button>
-          <button type="submit" disabled={cargando || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
-            {cargando ? "Deshaciendo…" : "Deshacer"}
-          </button>
-        </div>
+          </Boton>
+          <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Deshaciendo…" disabled={!responsable.listo} title={responsable.motivo ?? undefined}>{/* unificar-fijo: confirma la hoja «¿Deshacer esta anotación?», que guarda; no es el enlace chico de BotonDeshacer */}Deshacer</Boton>
+        </PieAcciones>
       </form>
     </Modal>
   );

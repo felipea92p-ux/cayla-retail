@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  anioLima,
   avisoCumpleApagado,
   ayudaCumpleFueraDeMes,
   ayudaPieCumple,
@@ -22,85 +21,98 @@ import {
   ticketConCumple,
   type ResumenCumple,
 } from "./club-cumple-canje-reglas";
+import { descuentoUnitarioPorPorcentaje } from "./vender-reglas";
 
 /**
- * [precio, descuento sin club, %, lo que da Postgres]: `round((precio − descuento) × pct / 100, 2)` con `numeric`, medido en
- * Postgres 17 el 2026-09-30. ES LA MISMA TABLA que `scripts/pruebas/club_cumpleanos.mjs` le pasa a la base (sección a): si
- * la caja y la base dan distinto, `registrar_venta` rechaza la venta con `cumple_descuento_distinto`.
+ * [precio, descuento sin club, %, lo que da Postgres]: `retail.fn_descuento_campana(precio − descuento, pct)`, el precio que
+ * queda bajado al múltiplo de S/ 0.10 (ADR-0403, extendido al cumpleaños el 2026-10-15), medido en Postgres el 2026-10-15. ES
+ * LA MISMA TABLA que `scripts/pruebas/club_cumpleanos.mjs` le pasa a la base (sección 0): si la caja y la base dan distinto,
+ * `registrar_venta` rechaza la venta con `cumple_descuento_distinto`. Muchas filas son las de la cuenta vieja (exacta al
+ * céntimo, medio céntimo hacia arriba): se quedaron para que la tabla siga cubriendo los precios que no terminan en 0.
  */
 const MEDIDO_EN_POSTGRES: [number, number, number, number][] = [
-  [79.9, 16.0, 10, 6.39], // la cascada del contrato: campaña 20 % (16.00) + 10 % → 22.39, un 28 %
-  [79.9, 0, 10, 7.99],
-  [89.9, 18.0, 10, 7.19],
-  [149.9, 44.97, 10, 10.49],
-  [79.9, 23.97, 10, 5.59],
-  [99.9, 9.99, 15, 13.49],
-  [59.9, 0, 12.5, 7.49],
-  [199.9, 0, 33.33, 66.63],
-  [39.9, 39.9, 10, 0],
-  [0.04, 0, 10, 0],
-  [0.05, 0, 10, 0.01], // medio céntimo: sube
-  [12.35, 0, 10, 1.24],
-  [1.15, 0, 10, 0.12],
-  [100.05, 0, 10, 10.01],
-  [1234.55, 0, 10, 123.46],
-  // Medio céntimo donde la coma flotante se equivoca (`Math.round(x * 100) / 100` da un céntimo MENOS):
+  [59.9, 0, 10, 6.0], // el ticket de Felipe del 2026-10-15: 53.91 → 53.90 (antes el club ponía 5.99)
+  [79.9, 16.0, 10, 6.4], // la cascada del contrato: campaña 20 % (16.00) → 63.90; al 10 % 57.51 → 57.50; total 22.40, un 28 %
+  [79.9, 0, 10, 8.0],
+  [89.9, 18.0, 10, 7.2],
+  [149.9, 44.97, 10, 10.53], // lo que queda no termina en 0 (104.93): 94.437 → 94.40
+  [79.9, 23.97, 10, 5.63],
+  [99.9, 9.99, 15, 13.51],
+  [59.9, 0, 12.5, 7.5],
+  [199.9, 0, 33.33, 66.7],
+  [39.9, 39.9, 10, 0], // nada que descontar: queda en 0
+  [0.04, 0, 10, 0.04], // menos de S/ 0.10: el precio que queda es 0.00
+  [0.05, 0, 10, 0.05],
+  [12.35, 0, 10, 1.25],
+  [1.15, 0, 10, 0.15],
+  [100.05, 0, 10, 10.05],
+  [1234.55, 0, 10, 123.55],
   [1.45, 0, 10, 0.15],
-  [2.85, 0, 10, 0.29],
-  [5.65, 0, 10, 0.57],
-  [10.05, 0, 10, 1.01],
+  [2.85, 0, 10, 0.35],
+  [5.65, 0, 10, 0.65],
+  [10.05, 0, 10, 1.05],
   [125.45, 0, 10, 12.55],
   [89.9, 4.45, 10, 8.55],
-  [1.16, 0, 12.5, 0.15],
-  [1.9, 0, 15, 0.29],
-  [2.9, 0, 5, 0.15],
-  [3.8, 0, 7.5, 0.29],
-  [3.38, 3.33, 10, 0.01],
-  [1.14, 0.99, 10, 0.02],
-  [16.13, 15.98, 10, 0.02],
+  [1.16, 0, 12.5, 0.16],
+  [1.9, 0, 15, 0.3],
+  [2.9, 0, 5, 0.2],
+  [3.8, 0, 7.5, 0.3],
+  [3.38, 3.33, 10, 0.05],
+  [1.14, 0.99, 10, 0.05],
+  [16.13, 15.98, 10, 0.05],
   [0.01, 0, 50, 0.01],
-  [0.03, 0, 50, 0.02],
+  [0.03, 0, 50, 0.03],
+  // Donde el precio exacto cae JUSTO en un múltiplo de S/ 0.10, la coma flotante baja un escalón de más (5.60 × 0.875 da
+  // 4.8999…, y el club pondría 0.80): la regla cuenta en enteros y no se equivoca.
+  [5.6, 0, 12.5, 0.7],
+  [44.8, 0, 12.5, 5.6],
+  [77.6, 0, 12.5, 9.7],
 ];
 
-/** La cuenta ingenua, en coma flotante: lo que NO hay que hacer. */
-const ingenua = (p: number, d: number, pct: number) => Math.round(((p - d) * pct) / 100 * 100) / 100;
+/** La regla nueva, en coma flotante: lo que NO hay que hacer. */
+const ingenua = (p: number, d: number, pct: number) => Math.round((p - d - Math.floor(((p - d) * (100 - pct)) / 10) / 10) * 100) / 100;
 
 describe("descuentoClubLinea: el mismo céntimo que Postgres", () => {
   it.each(MEDIDO_EN_POSTGRES)("S/ %s − %s al %s %% → %s", (precio, sinClub, pct, postgres) => {
     expect(descuentoClubLinea(precio, sinClub, pct)).toBe(postgres);
   });
 
-  it("la coma flotante se equivoca en al menos 10 casos de la tabla (por eso la regla cuenta en enteros)", () => {
+  it("la coma flotante se equivoca en la tabla (por eso la regla cuenta en enteros)", () => {
     const errados = MEDIDO_EN_POSTGRES.filter(([p, d, pct, postgres]) => ingenua(p, d, pct) !== postgres);
-    expect(errados.length).toBeGreaterThanOrEqual(10);
+    expect(errados.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("de S/ 0.00 a S/ 300.00, céntimo por céntimo, con 6 % distintos: medio céntimo hacia arriba, siempre", () => {
-    // Referencia independiente, en céntimos: round(c × pct / 100) con el % en centésimas de punto.
-    // (con BigInt, sin la división de la regla: si la regla se equivocara al dividir, esta no se equivoca igual)
-    const referencia = (centimos: number, pct: number) => {
-      const num = BigInt(centimos) * BigInt(Math.round(pct * 100));
-      return Number((BigInt(2) * num + BigInt(10_000)) / BigInt(20_000)) / 100;
-    };
+  it("es la MISMA cuenta que el descuento a mano en % (una sola regla en la caja), sobre lo que la prenda ya cobraba", () => {
+    for (const [p, d, pct] of MEDIDO_EN_POSTGRES) {
+      expect(descuentoClubLinea(p, d, pct)).toBe(descuentoUnitarioPorPorcentaje(Math.round((p - d) * 100) / 100, pct));
+    }
+  });
+
+  it("de S/ 0.00 a S/ 300.00, céntimo por céntimo, con 6 % distintos: el precio que queda es múltiplo de S/ 0.10, nunca menos que el % y a menos de 10 céntimos de él", () => {
+    // En enteros, sin la división de la regla: club × 10 000 ≥ precio × pct (en centésimas de punto) y < eso + 10 céntimos.
     const malos: string[] = [];
     for (const pct of [10, 12.5, 15, 5, 7.5, 33.33]) {
+      const pctC = Math.round(pct * 100);
       for (let c = 0; c <= 30_000; c++) {
-        const dio = descuentoClubLinea(c / 100, 0, pct);
-        if (dio !== referencia(c, pct)) malos.push(`${c / 100} al ${pct} %: ${dio}`);
+        const clubC = Math.round(descuentoClubLinea(c / 100, 0, pct) * 100);
+        const exacto = c * pctC; // el club exacto, × 10 000
+        if ((c - clubC) % 10 !== 0 || clubC * 10_000 < exacto || clubC * 10_000 >= exacto + 100_000) {
+          malos.push(`${c / 100} al ${pct} %: ${clubC / 100}`);
+        }
       }
     }
     expect(malos.slice(0, 5)).toEqual([]);
   });
 
   it("con descuento previo cuenta sobre lo que queda (cascada), no sobre el precio de lista", () => {
-    expect(descuentoClubLinea(79.9, 16, 10)).toBe(6.39);
-    expect(descuentoClubLinea(79.9, 0, 10)).toBe(7.99);
+    expect(descuentoClubLinea(79.9, 16, 10)).toBe(6.4);
+    expect(descuentoClubLinea(79.9, 0, 10)).toBe(8);
   });
 });
 
 describe("descuentosParaRegistrar: lo que viaja en p_items", () => {
   it("descuento_unitario es el TOTAL (sin club + club) y descuento_club_unitario, la parte del cumpleaños", () => {
-    expect(descuentosParaRegistrar(16, 6.39)).toEqual({ descuento_unitario: 22.39, descuento_club_unitario: 6.39 });
+    expect(descuentosParaRegistrar(16, 6.4)).toEqual({ descuento_unitario: 22.4, descuento_club_unitario: 6.4 });
   });
   it("suma al céntimo exacto, sin el ruido de la coma flotante (0.1 + 0.2 = 0.30000000000000004)", () => {
     expect(0.1 + 0.2).not.toBe(0.3);
@@ -121,15 +133,15 @@ describe("ticketConCumple: las líneas y el total con el canje", () => {
   it("cascada a toda la compra: la de campaña pasa de 20 % a 28 %, y el total baja lo que regala el club", () => {
     const t = ticketConCumple(ticket, 10);
     expect(t.lineas.map((l) => [l.clave, l.descuentoClubUnitario, l.precioFinalUnitario])).toEqual([
-      ["campana", 6.39, 57.51],
-      ["lista", 7.99, 71.91],
+      ["campana", 6.4, 57.5],
+      ["lista", 8, 71.9],
       ["sin-registrar", 4.5, 40.5],
     ]);
     const campana = t.lineas[0];
     expect(Math.round(((campana.descuentoUnitario + campana.descuentoClubUnitario) / campana.precioUnitario) * 100)).toBe(28);
     expect(t.totalSinCumple).toBe(268.7);
-    expect(t.totalCumple).toBe(26.87); // 6.39 + 2 × 7.99 + 4.50: el `monto` del canje
-    expect(t.total).toBe(241.83);
+    expect(t.totalCumple).toBe(26.9); // 6.40 + 2 × 8.00 + 4.50: el `monto` del canje
+    expect(t.total).toBe(241.8);
   });
 
   it("sin canje (pct null) todo queda igual y la parte del club es 0", () => {
@@ -150,9 +162,6 @@ describe("el mes de Lima", () => {
   });
   it("a las 00:00 de Lima ya es octubre", () => {
     expect(mesLima(new Date("2026-10-01T05:00:00Z"))).toBe(10);
-  });
-  it("el año del canje es el de Lima: el 31 de diciembre a las 20:00 todavía es el año que termina", () => {
-    expect(anioLima(new Date("2027-01-01T01:00:00Z"))).toBe(2026);
   });
 });
 

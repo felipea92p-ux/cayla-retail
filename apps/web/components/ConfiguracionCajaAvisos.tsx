@@ -10,8 +10,9 @@ import { CabeceraBloque, CampoFin, InputFin, SelectFin, Superficie } from "@/com
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { validarParametrosFinanzas, type ParametrosFinanzas, type ParametrosFinanzasConCorte } from "@/lib/configuracion-reglas";
-import { hoyLima } from "@/lib/apartados-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { consecuenciaCorte, corteParaBase, fechaDelCorte, opcionesCorte, SIN_CORTE } from "@/lib/finanzas-arranque-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Configuración ▸ Caja y avisos (spike `cfgCaja`, 20260925103000): el mínimo de caja que vigilan el Flujo y el Resumen, y
 // cuándo el sistema llama la atención. Cada casilla se guarda sola al salir de ella, firmada con el responsable. Aparte,
@@ -72,7 +73,7 @@ export function ConfiguracionCajaAvisos({ parametros }: { parametros: Parametros
     }
     avisar.exito(
       campo === "minimoCaja"
-        ? `Mínimo de caja: S/ ${Math.round(v.valor.minimoCaja).toLocaleString("es-PE")}.`
+        ? `Mínimo de caja: S/\u00a0${Math.round(v.valor.minimoCaja).toLocaleString("es-PE")}.`
         : campo === "avisoGastoPct"
           ? `Un gasto avisa si supera su promedio en ${v.valor.avisoGastoPct} %.`
           : `Los vencimientos se avisan con ${v.valor.avisoVenceDias} días.`,
@@ -146,9 +147,9 @@ export function ConfiguracionCajaAvisos({ parametros }: { parametros: Parametros
           <SelectFin id="cfg-corte" valor={corte} onValor={setCorte} opciones={opciones} deshabilitado={guardando} />
         </CampoFin>
         <div className="fin-botones">
-          <button type="button" className="btn-cayla btn-primario" onClick={guardarCorte} disabled={guardando || corte === corteBase || !responsable.listo}>
-            {guardando ? "Guardando…" : "Guardar"}
-          </button>
+          <Boton peso="primario" cargando={guardando} type="button" onClick={guardarCorte} disabled={guardando || corte === corteBase || !responsable.listo}>
+            Guardar
+          </Boton>
         </div>
       </Superficie>
       )}

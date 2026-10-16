@@ -12,6 +12,8 @@ import { desdeDeParams, vueltaAProductos } from "@/lib/vuelta-productos";
 import { Volver } from "@/components/ui/Volver";
 import { Chip } from "@/components/ui/Chip";
 import { precioUnico } from "@/lib/precio-sede-reglas";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { esUuid } from "@/lib/club-registro-reglas";
 
 
 // Edición de producto (V2). Mismo candado de cortesía que /productos/nuevo
@@ -26,6 +28,8 @@ export default async function EditarProductoPage({
   searchParams: Promise<{ desde?: string | string[] }>;
 }) {
   const { id } = await params;
+  // Un id que no es un uuid no es ningún producto: «no existe», no la pantalla de error (/chaos 2026-10-13, #12).
+  if (!esUuid(id)) notFound();
   // Tabla o Grilla, con sus filtros: de donde se salió a editar (`lib/vuelta-productos.ts`).
   const volverA = vueltaAProductos(desdeDeParams((await searchParams).desde));
   const persona = await requirePersonaActualV2();
@@ -112,20 +116,25 @@ export default async function EditarProductoPage({
   return (
     <div className="space-y-6">
       <div data-guia="editar.cabecera">
-        <Volver href={volverA} a="Productos" className="mb-2" />
-        <h1 className="font-display mt-1 text-2xl text-tinta">
-          {producto.referencia}
-          {producto.codigo && <span className="ml-2 font-mono text-base text-tinta/45">{producto.codigo}</span>}
-          {/* ADR-0371: una insignia, no un aviso con botones (Felipe quitó el aviso el 2026-10-02: «no me sirve»). Se aprueba o se rechaza
-              desde Productos ▸ Por revisar; aquí solo se dice qué es. */}
-          {producto.estadoAlta === "pendiente" && (
-            <span className="ml-3 inline-block align-middle font-sans text-base" title="Alguien la propuso sin editar el catálogo. Quien edita el catálogo la aprueba o la rechaza en Productos ▸ Por revisar.">
-              <Chip tono="ambar" versalitas={false}>
-                Pendiente de revisión
-              </Chip>
-            </span>
-          )}
-        </h1>
+        {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): la prenda de título y su código en la línea de
+            arriba. */}
+        <EncabezadoPagina
+          sede={persona.ubicacionEtiqueta}
+          detalle={producto.codigo ? <span className="font-mono normal-case tracking-normal">{producto.codigo}</span> : undefined}
+          volver={<Volver href={volverA} a="Productos" />}
+          titulo={producto.referencia}
+          pie={
+            // ADR-0371: una insignia, no un aviso con botones (Felipe quitó el aviso el 2026-10-02: «no me sirve»). Se aprueba o se rechaza
+            // desde Productos ▸ Por revisar; aquí solo se dice qué es.
+            producto.estadoAlta === "pendiente" && (
+              <span title="Alguien la propuso sin editar el catálogo. Quien edita el catálogo la aprueba o la rechaza en Productos ▸ Por revisar.">
+                <Chip tono="ambar" versalitas={false}>
+                  Pendiente de revisión
+                </Chip>
+              </span>
+            )
+          }
+        />
       </div>
 
       <ProductoForm

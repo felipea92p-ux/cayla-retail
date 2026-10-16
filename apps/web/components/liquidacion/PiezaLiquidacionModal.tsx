@@ -17,7 +17,9 @@ import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { traducirError } from "@/lib/error-escritura";
 import { camposDeCambiarPrecio, camposDeRetirar } from "@/lib/liquidacion-guia";
-import { diasALaVenta, tiempoALaVenta, errorDeLiquidacion, fechaLima, piezaDeJson, precioDeTexto, soles, type PiezaLiquidacion } from "@/lib/liquidacion-reglas";
+import { diasALaVenta, tiempoALaVenta, errorDeLiquidacion, piezaDeJson, precioDeTexto, soles, type PiezaLiquidacion } from "@/lib/liquidacion-reglas";
+import { diaLima } from "@/lib/fechas-lima";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 type Modo = "ver" | "precio" | "retirar";
 
@@ -106,7 +108,7 @@ export function PiezaLiquidacionModal({
     setRebajadaDe(antes);
     setPrecio("");
     setModo("ver");
-    avisar.exito("Precio cambiado", { detalle: `Ahora cuesta S/ ${soles(nueva.precio)}.` });
+    avisar.exito("Precio cambiado", { detalle: `Ahora cuesta S/\u00a0${soles(nueva.precio)}.` });
   }
 
   async function retirar(e: React.FormEvent) {
@@ -121,13 +123,13 @@ export function PiezaLiquidacionModal({
   const dias = diasALaVenta(pieza, hoy);
   const subtitulo =
     pieza.estado === "vendida"
-      ? `Se vendió el ${fechaLima(pieza.vendidaEn) ?? "—"} a S/ ${soles(pieza.precio)}.`
+      ? `Se vendió el ${diaLima(pieza.vendidaEn) ?? "—"} a S/\u00a0${soles(pieza.precio)}.`
       : pieza.estado === "retirada"
-        ? `Se retiró el ${fechaLima(pieza.retiradaEn) ?? "—"}: ${pieza.motivoRetiro ?? "sin motivo"}.`
+        ? `Se retiró el ${diaLima(pieza.retiradaEn) ?? "—"}: ${pieza.motivoRetiro ?? "sin motivo"}.`
         : `A la venta ${dias <= 0 ? "desde hoy" : `hace ${tiempoALaVenta(dias)}`}${pieza.etiquetas > 1 ? `, con ${pieza.etiquetas - 1} ${pieza.etiquetas === 2 ? "rebaja" : "rebajas"}` : ""}.`;
 
   return (
-    <Modal titulo={pieza.descripcion ?? (pieza.categoria || "Prenda de liquidación")} subtitulo={subtitulo} onClose={onClose} variante="hoja" ancho="max-w-md" conCerrar>
+    <Modal titulo={pieza.descripcion ?? (pieza.categoria || "Prenda de liquidación")} subtitulo={subtitulo} onClose={onClose} variante="hoja" conCerrar={modo === "ver"}>
       <div className="space-y-4">
         {codigoViejo && codigoViejo !== pieza.codigo && pieza.estado === "disponible" && (
           <Aviso tono="atencion" titulo="Esa etiqueta ya no vale">
@@ -136,7 +138,7 @@ export function PiezaLiquidacionModal({
         )}
         {rebajadaDe !== null && (
           <Aviso tono="exito" titulo="Etiqueta nueva lista">
-            Bajó de <span className="liq-tachado">S/ {soles(rebajadaDe)}</span> a S/ {soles(pieza.precio)}. Imprímela y quita la vieja de la prenda.
+            Bajó de <span className="liq-tachado">S/&nbsp;{soles(rebajadaDe)}</span> a S/&nbsp;{soles(pieza.precio)}. Imprímela y quita la vieja de la prenda.
           </Aviso>
         )}
 
@@ -146,7 +148,7 @@ export function PiezaLiquidacionModal({
           </Chip>
           {pieza.precioInicial > pieza.precio && (
             <span className="text-[13px] text-taupe">
-              Entró a <span className="liq-tachado">S/ {soles(pieza.precioInicial)}</span>
+              Entró a <span className="liq-tachado">S/&nbsp;{soles(pieza.precioInicial)}</span>
             </span>
           )}
         </div>
@@ -159,7 +161,7 @@ export function PiezaLiquidacionModal({
 
         {modo === "precio" && (
           <form onSubmit={cambiarPrecio} className="space-y-4">
-            <CampoGuiado id="precio" guia={guiaPrecio} titulo="Precio nuevo" ayuda={`Ahora: S/ ${soles(pieza.precio)} · mínimo S/ ${soles(minimo)}`}>
+            <CampoGuiado id="precio" guia={guiaPrecio} titulo="Precio nuevo" ayuda={`Ahora: S/\u00a0${soles(pieza.precio)} · mínimo S/\u00a0${soles(minimo)}`}>
               <CampoMonto etiqueta="Precio nuevo" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} autoFocus />
             </CampoGuiado>
             <CampoGuiado id="responsable" guia={guiaPrecio}>
@@ -167,7 +169,7 @@ export function PiezaLiquidacionModal({
             </CampoGuiado>
             <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
               <PieGuia guia={guiaPrecio} listo="Sale una etiqueta nueva; la de ahora deja de valer." />
-              <div className="ml-auto flex gap-3">
+              <div className="ml-auto pie-acciones">
                 <Boton type="button" onClick={() => setModo("ver")}>
                   Cancelar
                 </Boton>
@@ -189,11 +191,11 @@ export function PiezaLiquidacionModal({
             </CampoGuiado>
             <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
               <PieGuia guia={guiaRetiro} listo="Deja de estar a la venta. No se borra: queda en «Retiradas»." />
-              <div className="ml-auto flex gap-3">
+              <div className="ml-auto pie-acciones">
                 <Boton type="button" onClick={() => setModo("ver")}>
                   Cancelar
                 </Boton>
-                <Boton type="submit" peso="peligro" cargando={guardando} disabled={!guiaRetiro.puedeConfirmar} className={guiaRetiro.claseConfirmar}>
+                <Boton textoCargando="Retirando…" type="submit" peso="peligro" cargando={guardando} disabled={!guiaRetiro.puedeConfirmar} className={guiaRetiro.claseConfirmar}>
                   Retirar
                 </Boton>
               </div>
@@ -213,9 +215,9 @@ export function PiezaLiquidacionModal({
               <Boton type="button" onClick={() => setModo("precio")}>
                 Bajar el precio
               </Boton>
-              <Boton type="button" peso="primario" cargando={impresion.enviando} onClick={impresion.imprimir}>
+              <BotonImprimir peso="primario" cargando={impresion.enviando} onClick={impresion.imprimir}>
                 Imprimir etiqueta
-              </Boton>
+              </BotonImprimir>
             </div>
           </>
         )}

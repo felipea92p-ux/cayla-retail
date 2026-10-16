@@ -549,6 +549,13 @@ describe("la prenda que faltó en un conteo y apareció (ADR-0291)", () => {
     expect(textoHallazgoSinResponder("Gris antracita / Estándar", { conteoNumero: 13 })).toBe("Indica si Gris antracita / Estándar es la prenda que faltó en el Conteo 13.");
   });
 
+  it("el día del faltante es el de Lima en que se cerró el conteo, no el de UTC", () => {
+    // `cerrado_en` llega en UTC: 2026-10-01 01:00 UTC son las 20:00 del 30 de septiembre en Lima. Con el corte de UTC decía «(01/10)».
+    expect(textoFaltanteConteo({ conteoNumero: 13, cerradoEn: "2026-10-01T01:00:00.123456+00:00", faltaron: 1, encontradas: 0, pendientes: 1 })).toBe("Faltó 1 en el Conteo 13 (30/09).");
+    expect(textoFaltanteConteo({ conteoNumero: 13, cerradoEn: "2026-10-01T05:00:00+00:00", faltaron: 1, encontradas: 0, pendientes: 1 })).toBe("Faltó 1 en el Conteo 13 (01/10)."); // 00:00 en Lima
+    expect(textoFaltanteConteo({ conteoNumero: 13, cerradoEn: "ayer", faltaron: 1, encontradas: 0, pendientes: 1 })).toBe("Faltó 1 en el Conteo 13.");
+  });
+
   it("al enviar, el enlace viaja solo en la línea enlazada; sin enlaces el envío es idéntico al de siempre", () => {
     const base = { ubicacionId: "u", sububicacionId: null, cargaInicial: [], motivo: "otro", alPiso: false, nota: "", token: "t" };
     const con = argumentosDeAjuste({ ...base, ajustes: [{ variante: { varianteId: "v1" }, delta: 1, conteoItemId: "item-13" }, { variante: { varianteId: "v2" }, delta: 2 }] });

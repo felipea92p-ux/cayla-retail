@@ -5,13 +5,13 @@
   "total": 142,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
-      "Volver «{producto.referencia}»"
+      "Volver «(sin nombre)»"
     ],
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
       "button «{o.texto}»",
       "CampoTexto «{guia.etiqueta(\"nota\", ayudaNota.etiqueta)}»",
-      "button «Descargar reporte de este ajuste»",
+      "BotonDescargar «Descargar reporte del ajuste»",
       "ComboResponsable «{error && ( <Aviso tono=\"error\">{error}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
@@ -28,7 +28,7 @@
       "Casilla «{`Igualar ${t.sede}»"
     ],
     "components/ProductoForm.tsx": [
-      "button «Deshacer»",
+      "BotonDeshacer «);»",
       "CampoTexto «Referencia»",
       "ComboBuscable «(sin nombre)»",
       "CampoTexto «Descripción (opcional)»",
@@ -38,9 +38,9 @@
       "CampoSelect «Temporada (opcional)»",
       "button «Temporada por color»",
       "CampoSelect «);»",
-      "button «Deshacer» #2",
-      "button «Deshacer» #3",
-      "button «Deshacer» #4",
+      "BotonDeshacer «))»",
+      "BotonDeshacer «);» #2",
+      "BotonDeshacer «);» #3",
       "button «editar.agregar-color»",
       "button «editar.agregar-talla»",
       "button «Ir a»"
@@ -83,9 +83,9 @@
       "button «+ Registrar una marca o un proveedor nuevo»"
     ],
     "components/alta-producto/FotosAlta.tsx": [
-      "button «{`Quitar foto de ${c.nombre}»",
+      "button «{etiqueta}»",
       "input «input.current?.click()»",
-      "button «{etiqueta}»"
+      "button «{etiqueta}» #2"
     ],
     "components/alta-producto/GrillaMuestras.tsx": [
       "button «{title}»",
@@ -105,13 +105,13 @@
       "button «Mejor elijo uno que ya existe»",
       "ComboBuscable «)» #2",
       "button «Cancelar»",
-      "button «{firma.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
       "CampoTexto «Nombre del color»",
       "Desplegable «setCodigoEscrito(normaliz»",
       "CampoTexto «Código»",
-      "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
       "button «Elegir»"
     ],
@@ -144,7 +144,7 @@
     ],
     "components/ficha-producto/ImprimirLoQueEntro.tsx": [
       "button «Más tarde»",
-      "button «Imprimir»"
+      "BotonImprimir «Imprimir»"
     ],
     "components/ficha-producto/MatrizStockFicha.tsx": [
       "SegmentoDeslizante «Qué se escribe en la tabla»",
@@ -190,7 +190,7 @@
       "Boton «{`Poner un precio propio en ${f.sede}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
-      "Link «Imprimir etiquetas»",
+      "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/ficha-producto/SeccionFicha.tsx": [

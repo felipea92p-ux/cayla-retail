@@ -19,6 +19,7 @@ import type { DevolucionPendiente, DevolucionResuelta } from "@/lib/devoluciones
 import { estadoPrendaDevolucion } from "@/lib/devoluciones-reglas";
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import type { DevolucionArmada } from "@/lib/devoluciones-cambio-de-sede";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 type Filtro = "todas" | "con_devolucion" | "sin_comprobante";
 
@@ -278,9 +279,7 @@ export function DevolucionesPanel({
       <AvisosDevoluciones accesos={accesos} cajaAbierta={cajaAbierta} esLider={esLider} />
 
       <section ref={zonaBusqueda} aria-labelledby="iniciar-devolucion" className="scroll-mt-24 space-y-4">
-        <h2 id="iniciar-devolucion" className="text-[15px] font-semibold text-tinta">
-          Iniciar una devolución
-        </h2>
+        <TituloSeccion id="iniciar-devolucion">Iniciar una devolución</TituloSeccion>
         <BuscadorVentas
           key={`${busqueda}|${todasLasSedes}`}
           valorInicial={busqueda}
@@ -399,7 +398,7 @@ export function DevolucionesPanel({
           }}
           className="flex h-14 flex-1 items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.98]"
         >
-          <ScanLine size={18} aria-hidden />
+          <ScanLine size={20} aria-hidden />
           Escanear prenda
         </button>
         <button

@@ -10,7 +10,7 @@ import { ResumenSede } from "@/components/ui/ResumenSede";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
-import { BotonEnlace } from "@/components/ui/campos";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
 import { FichaDeLaOrden } from "@/components/orden-pagina/FichaDeLaOrden";
 import { RutaDeFases } from "@/components/orden-pagina/RutaDeFases";
@@ -43,9 +43,7 @@ export default async function OrdenProduccionPage({ params }: { params: Promise<
               icono={<FileX />}
               titulo="No encontramos esa orden"
               acciones={
-                <BotonEnlace href="/produccion/ordenes" peso="primario">
-                  Ver las órdenes
-                </BotonEnlace>
+                <BotonVer href="/produccion/ordenes">Ver las órdenes</BotonVer>
               }
             >
               El enlace no corresponde a ninguna orden del Taller.

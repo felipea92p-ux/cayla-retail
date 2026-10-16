@@ -251,7 +251,7 @@ describe("la ficha", () => {
     expect(textoColoresYTallas(p.lineas)).toBe("negro y caqui · tallas 28, 30 y 32");
     expect(textoColoresYTallas([])).toBeNull();
     expect(textoApertura(p.orden)).toBe("Abierta el martes 13 por Felipe");
-    expect(textoSeVende(129)).toBe("se vende a S/ 129.00");
+    expect(textoSeVende(129)).toBe("se vende a S/\u00a0129.00");
     expect(textoSeVende(0)).toBeNull();
     expect(textoSeVende(null)).toBeNull();
   });
@@ -267,7 +267,7 @@ describe("la ficha", () => {
     const c = cifrasDeLaOrden(p, HOY);
     expect(c.prendas).toEqual({ valor: 48, etiqueta: "Prendas", aparte: "24 negro · 24 caqui" });
     expect(c.entrega).toEqual({ valor: 4, etiqueta: "Para el vie 23 oct", nota: "días", atrasada: false });
-    expect(c.costo).toEqual({ valor: 1050, nota: "de S/ 1,392.00", etiqueta: "Costo hasta hoy" });
+    expect(c.costo).toEqual({ valor: 1050, nota: "de S/\u00a01,392.00", etiqueta: "Costo hasta hoy" });
     expect(cifrasDeLaOrden(orden({ costos: null }), HOY).costo).toBeNull();
     expect(cifrasDeLaOrden(p, "2026-10-25").entrega).toMatchObject({ valor: 2, etiqueta: "Atrasada · era el vie 23 oct", atrasada: true });
     expect(cifrasDeLaOrden(p, "2026-10-23").entrega).toMatchObject({ valor: 0, nota: "hoy" });
@@ -403,14 +403,14 @@ describe("el costo", () => {
     expect(t.filas.map((f) => f.concepto)).toEqual(["Tela", "Avíos", "Costura afuera"]);
     expect(t.filas[0]).toMatchObject({ estimado: "1,080.00", real: "1,050.00", realPendiente: false, detalle: "36 m de Gabardina" });
     expect(t.filas[1]).toMatchObject({ estimado: "96.00", real: "aún no", realPendiente: true });
-    expect(t.filas[2]).toMatchObject({ estimado: "216.00", real: "al volver", realPendiente: true, detalle: "48 × S/ 4.50 · Confecciones del Norte" });
+    expect(t.filas[2]).toMatchObject({ estimado: "216.00", real: "al volver", realPendiente: true, detalle: "48 × S/\u00a04.50 · Confecciones del Norte" });
     expect(t.total).toEqual({ estimado: "1,392.00", real: "1,050.00" });
     expect(t.porPrenda).toEqual({ estimado: "29.00", real: "al cerrar", realPendiente: true });
   });
   it("con la Vuelta, el servicio muestra lo devengado; cerrada la orden, el real por prenda", () => {
     const p = orden();
     const conVuelta = { ...p, fases: p.fases.map((f) => (f.clave === "costura" ? { ...f, devengado: 207, fijoOrden: 80 } : f)) };
-    expect(textoCosto(conVuelta)!.filas[2]).toMatchObject({ real: "207.00", realPendiente: false, detalle: "48 × S/ 4.50 · Confecciones del Norte + S/ 80.00 fijo", estimado: "296.00" });
+    expect(textoCosto(conVuelta)!.filas[2]).toMatchObject({ real: "207.00", realPendiente: false, detalle: "48 × S/\u00a04.50 · Confecciones del Norte + S/\u00a080.00 fijo", estimado: "296.00" });
     const cerrada = { ...p, orden: { ...p.orden, estado: "terminada" as const, cantidadBuenas: 46 } };
     expect(textoCosto(cerrada)!.porPrenda).toEqual({ estimado: "29.00", real: "22.83", realPendiente: false });
   });
@@ -676,7 +676,7 @@ describe("Salida y Vuelta — lo que se puede mandar y lo que está afuera, por 
     });
     it("el renglón de una Vuelta dice lo que no volvió bueno y, si se ven costos, lo que se le debe", () => {
       expect(detalleDeVuelta({ numeroTexto: "OP-000002", segundas: 0, faltantes: 0, devengado: null })).toBe("OP-000002");
-      expect(detalleDeVuelta({ numeroTexto: "OP-000002", segundas: 5, faltantes: 3, devengado: 180 })).toBe("OP-000002 · 5 segundas · 3 faltaron: queda anotado por qué · se le deben S/ 180.00 hasta ahora");
+      expect(detalleDeVuelta({ numeroTexto: "OP-000002", segundas: 5, faltantes: 3, devengado: 180 })).toBe("OP-000002 · 5 segundas · 3 faltaron: queda anotado por qué · se le deben S/\u00a0180.00 hasta ahora");
       expect(detalleDeVuelta({ numeroTexto: "OP-000002", segundas: 0, faltantes: 1, devengado: 0 })).toBe("OP-000002 · 1 faltó: queda anotado por qué");
     });
     it("el devengado se lee de la respuesta de la base, o es null", () => {

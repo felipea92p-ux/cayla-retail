@@ -5,7 +5,7 @@
   "total": 6,
   "controles": {
     "components/finanzas/EscenariosPanel.tsx": [
-      "button «fin-reportes.excel»",
+      "BotonDescargar «Descargar Excel»",
       "button «fin-escenarios.volver»",
       "input «Pasar un pago a otra semana»",
       "input «Cerrar»",

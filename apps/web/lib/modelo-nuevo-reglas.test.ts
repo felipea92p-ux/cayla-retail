@@ -198,13 +198,13 @@ describe("dinero y nombre: lo que la base rechaza se dice antes (/chaos 2026-10-
     const pp = (precio: string, esMuestra = false) => problemaDePrecio(borrador({ precio, esMuestra }));
     expect(pp("40")).toBeNull();
     expect(pp("0.01")).toBeNull();
-    expect(pp("0.001")).toBe("El precio mínimo es S/ 0.01.");
+    expect(pp("0.001")).toBe("El precio mínimo es S/\u00a00.01.");
     expect(pp("0")).toBe("Pon el precio a tienda. Una muestra sí puede ir sin precio.");
     expect(pp("")).toBe("Pon el precio a tienda. Una muestra sí puede ir sin precio.");
     expect(pp("0.001", true)).toBeNull();
     expect(pp("", true)).toBeNull();
     expect(pp("99999.99")).toBeNull();
-    expect(pp("100000")).toBe("El precio no puede pasar de S/ 99,999.99.");
+    expect(pp("100000")).toBe("El precio no puede pasar de S/\u00a099,999.99.");
     expect(pp("1e9")).toBe("El precio tiene que ser un número, por ejemplo 12.50.");
     expect(pp("-1", true)).toBe("El precio no puede ser negativo.");
   });
@@ -221,7 +221,7 @@ describe("dinero y nombre: lo que la base rechaza se dice antes (/chaos 2026-10-
     expect(c("12,50")).toBe("Escribe el costo de la tela con punto, por ejemplo 12.50.");
     expect(c("", "S/ 50")).toBe("El costo de los avíos tiene que ser un número, por ejemplo 12.50.");
     expect(c("", "", "-0.01")).toBe("El costo de la maquila no puede ser negativo.");
-    expect(c("1000000")).toBe("El costo de la tela no puede pasar de S/ 999,999.99.");
+    expect(c("1000000")).toBe("El costo de la tela no puede pasar de S/\u00a0999,999.99.");
     expect(c("1e9")).toBe("El costo de la tela tiene que ser un número, por ejemplo 12.50.");
     expect(c("12,50", "S/ 5")).toBe("Escribe el costo de la tela con punto, por ejemplo 12.50.");
   });
@@ -554,7 +554,7 @@ describe("Nueva orden: los de gravedad 4 de /chaos (2026-10-10), #6, #7 y #8", (
     // La etiqueta puede ir en varias líneas (A3 le suma `variante`, `conCerrar` y el ancho): se lee sin importar los saltos.
     expect(f).toMatch(/<Modal\s+titulo="Nueva orden de producción"\s+onClose=\{onClose\}\s+antesDeCerrar=\{avisoSalida\.pedirAccion\}/);
     expect(f).not.toContain("onClose={() => avisoSalida.pedirAccion(onClose)}");
-    expect(f).toContain("onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}");
+    expect(f).toContain('onClick={() => avisoSalida.pedirAccion(onClose)} className="btn-cayla btn-secundario"');
     // Elegir el tipo (Producción/Muestra), el modo (Ya existe/Modelo nuevo) o el modelo de la lista no es trabajo perdido: no cuenta como «cambios sin guardar».
     const foto = /fotoFormulario\(\{([^}]*)\}\)/.exec(f)?.[1] ?? "";
     for (const ligero of ["tipo", "modoModelo", "productoId"]) expect(foto, ligero).not.toContain(ligero);
@@ -570,18 +570,22 @@ describe("Nueva orden: los de gravedad 4 de /chaos (2026-10-10), #6, #7 y #8", (
 describe("el botón principal de Nueva orden cabe a 375 px", () => {
   it("su etiqueta tiene a lo más 20 letras (a 375 px «Crear modelo y abrir orden» medía 180 px en un botón de 159 y se recortaba ~21 px)", () => {
     const fuente = readFileSync(join(__dirname, "..", "components", "NuevaOrdenProduccionForm.tsx"), "utf8");
-    const etiquetas = [...fuente.matchAll(/cargando \? "Abriendo…" : esNuevo \? "([^"]+)" : "([^"]+)"/g)];
+    // Desde la ronda 12 de /unificar (ADR-0358) «Abriendo…» lo pone la pieza (`textoCargando`); la etiqueta es la del botón en reposo.
+    expect(fuente).toContain('textoCargando="Abriendo…"');
+    const etiquetas = [...fuente.matchAll(/\{esNuevo \? "([^"]+)" : "([^"]+)"\}/g)];
     expect(etiquetas.length).toBe(1);
     for (const e of [etiquetas[0][1], etiquetas[0][2]]) expect(e.length, e).toBeLessThanOrEqual(20);
   });
 });
 
 describe("el formulario de Nueva orden", () => {
-  it("ningún <Boton> de adentro envía el formulario sin querer: todos llevan type=\"button\" (sin él, «Usar ese modelo» volvía a crear la orden)", () => {
+  it("ningún <Boton> de adentro envía el formulario sin querer: todos llevan type=\"button\" (sin él, «Usar ese modelo» volvía a crear la orden); el único que envía lo declara", () => {
     const fuente = readFileSync(join(__dirname, "..", "components", "NuevaOrdenProduccionForm.tsx"), "utf8");
     const aperturas = [...fuente.matchAll(/<Boton\b[^>]*>/g)].map((m) => m[0]);
     expect(aperturas.length).toBeGreaterThan(0);
-    for (const a of aperturas) expect(a, a).toContain('type="button"');
+    for (const a of aperturas) expect(a, a).toMatch(/type="(button|submit)"/);
+    // Enviar el formulario es «Abrir orden» (desde la ronda 12 un <Boton>, ADR-0358): uno solo.
+    expect(aperturas.filter((a) => a.includes('type="submit"')).length).toBe(1);
   });
 });
 

@@ -5,7 +5,7 @@
   "total": 38,
   "controles": {
     "components/ProduccionSoloLider.tsx": [
-      "BotonEnlace «Ir a Órdenes»"
+      "BotonVer «Ir a Órdenes»"
     ],
     "components/ProveedorProduccionModal.tsx": [
       "CampoTexto «Nombre o razón social»",
@@ -48,8 +48,8 @@
       "CampoTexto «{guia.etiqueta(\"minimo\", \"Mínimo de prendas\")}»",
       "CampoTexto «{guia.etiqueta(\"fijo\", \"Fijo por orden\")}»",
       "CampoTexto «Nota»",
-      "ComboResponsable «avisoSalida.pedirA»",
-      "button «Cancelar»",
+      "ComboResponsable «avisoSalida.pedir»",
+      "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ]
   }

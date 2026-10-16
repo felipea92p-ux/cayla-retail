@@ -8,7 +8,7 @@
       "button «Cerrar»"
     ],
     "components/plan-compra/AvisoStock.tsx": [
-      "BotonEnlace «Ir a Conteo»",
+      "BotonVer «Ir a Conteo»",
       "Boton «Ver qué falta»"
     ],
     "components/plan-compra/CampanasArchivadasModal.tsx": [
@@ -28,14 +28,14 @@
       "Boton «{responsable.motivo ?? guia.frase ?? (cambio ? undefined : \"No cambiaste nada\")}»"
     ],
     "components/plan-compra/ExportarPlan.tsx": [
-      "Boton «Imprimir»",
-      "Boton «Descargar Excel (CSV)»"
+      "BotonImprimir «Imprimir la lista»",
+      "BotonDescargar «Descargar Excel»"
     ],
     "components/plan-compra/FilaCategoria.tsx": [
       "button «plan.categoria»"
     ],
     "components/plan-compra/FormularioCategoria.tsx": [
-      "button «Usar el del catálogo: S/»",
+      "button «Usar el del catálogo: S/&nbsp;»",
       "Boton «Usar estos tres»",
       "Boton «Proponer el normal desde lo vendido»",
       "CampoTexto «Flojo, prendas»",
@@ -54,14 +54,14 @@
       "BotonFiltro «{p.texto}»",
       "DesplegablePildora «Familia»",
       "DesplegablePildora «Ordenar por»",
-      "Boton «{q.trim() ? \"Borrar la búsqueda\" : \"Quitar los filtros\"}»",
+      "Boton «{q.trim() ? \"Borrar la búsqueda\" : \"Limpiar filtros\"}»",
       "button «{plegadas.length}»"
     ],
     "components/plan-compra/NuevaCampanaModal.tsx": [
       "CampoTexto «{<span className=\"sr-only\">{nueva ? \"Nombre de la campaña\" : \"Nombre del plan\"}»",
       "CampoFecha «{<span className=\"sr-only\">Desde</span>}»",
       "CampoFecha «{<span className=\"sr-only\">Hasta</span>}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «Can»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
@@ -83,7 +83,7 @@
       "Boton «Campaña nueva» #2",
       "Boton «Ver campañas archivadas»",
       "Boton «plan.resumen»",
-      "Boton «Exportar»",
+      "BotonDescargar «Descargar la lista»",
       "Boton «plan.empezar»",
       "Boton «Restaurar…»",
       "BotonEnlace «{aviso.verResultados}»",

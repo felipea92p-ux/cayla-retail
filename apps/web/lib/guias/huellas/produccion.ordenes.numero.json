@@ -6,7 +6,7 @@
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «; if (!puedeVerProduccion(persona)) return»",
-      "BotonEnlace «Ver las órdenes»"
+      "BotonVer «Ver las órdenes»"
     ],
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -39,7 +39,7 @@
       "CampoTexto «Nombre del color»",
       "Desplegable «setCodigoEscrito(normaliz»",
       "CampoTexto «Código»",
-      "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
       "button «Elegir»"
     ],
@@ -55,55 +55,55 @@
     "components/orden-pagina/AnotarAvanceModal.tsx": [
       "CampoTexto «{`${t.nombre}»",
       "CampoTexto «Nota»",
-      "ComboResponsable «avisoSalida.pedirAccion(onClo»",
-      "button «Cancelar»",
-      "button «{guia.frase ?? problemasDeTela[0] ?? responsable.motivo ?? undefined}»"
+      "ComboResponsable «avisoSalida.pedirAccion(onCl»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? problemasDeTela[0] ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/AnotarSalidaModal.tsx": [
       "CampoTexto «N.º de guía»",
       "CampoTexto «Nota»",
-      "ComboResponsable «avisoSalida.pedirAccion(onClo»",
-      "button «Cancelar»",
-      "button «{guia.frase ?? responsable.motivo ?? undefined}»"
+      "ComboResponsable «avisoSalida.pedirAccion(onCl»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/AnotarVueltaModal.tsx": [
       "SegmentoDeslizante «Qué anotas»",
       "CampoTexto «Qué pasó con lo que no volvió bueno»",
       "CampoTexto «N.º de guía»",
       "CampoTexto «Nota»",
-      "ComboResponsable «avisoSalida.pedirAccion(onClo»",
-      "button «Cancelar»",
-      "button «{guia.frase ?? responsable.motivo ?? undefined}»"
+      "ComboResponsable «avisoSalida.pedirAccion(onCl»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/AnularLaOrdenModal.tsx": [
       "CampoTexto «Por qué la anulas»",
       "ComboResponsable «Volver»",
-      "button «Volver»",
+      "Boton «Volver»",
       "Boton «{afuera ? textoPrendasAfuera(afuera) : (responsable.motivo ?? undefined)}»"
     ],
     "components/orden-pagina/AnularSalidaOVueltaModal.tsx": [
       "CampoTexto «{guia.etiqueta(\"motivo\", \"Por qué la anulas\")}»",
-      "ComboResponsable «avisoSalida.pedirAccion(onClo»",
-      "button «Cancelar»",
+      "ComboResponsable «avisoSalida.pedirAccion(onCl»",
+      "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/CambiarQuienModal.tsx": [
-      "ComboResponsable «avisoSalida.pedirA»",
-      "button «Cancelar»",
-      "button «{guia.frase ?? responsable.motivo ?? undefined}»"
+      "ComboResponsable «avisoSalida.pedir»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/DeshacerAvanceModal.tsx": [
       "ComboResponsable «Cancelar»",
-      "button «Cancelar»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/LineaDeTiempo.tsx": [
-      "button «{primeraAnulable === e ? \"prod-orden.anular\" : undefined}»",
-      "button «Deshacer»"
+      "Boton «{primeraAnulable === e ? \"prod-orden.anular\" : undefined}»",
+      "BotonDeshacer «→() => setDeshaciendo(e)»"
     ],
     "components/orden-pagina/PasarAlStockModal.tsx": [
       "ComboResponsable «{!atipico && <PieGuia guia={guia}»",
-      "button «Cancelar»",
+      "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/PideAtencion.tsx": [
@@ -111,7 +111,7 @@
     ],
     "components/orden-pagina/RevertirLaOrdenModal.tsx": [
       "ComboResponsable «Volver»",
-      "button «Volver»",
+      "Boton «Volver»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/RutaDeFases.tsx": [
@@ -130,8 +130,8 @@
       "CampoTexto «{guia.etiqueta(\"cantidad\", devuelve ? `Cuántos ${unidad}»",
       "CampoTexto «Nota»",
       "ComboResponsable «)»",
-      "button «Cancelar»",
-      "button «{guia.frase ?? responsable.motivo ?? undefined}»"
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-produccion/AgregarColor.tsx": [
       "button «{`Quitar ${nombre}»",

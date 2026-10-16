@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Ayuda } from "@/components/Ayuda";
 import { Modal } from "@/components/ui/Modal";
+import { Linea } from "@/components/ui/Linea";
 import { enteroES } from "@/lib/plan-compra-reglas";
 import type { ComoVa } from "@/lib/plan-compra-resultados";
 
@@ -11,28 +12,42 @@ import type { ComoVa } from "@/lib/plan-compra-resultados";
 // «no quedaba bien»): el veredicto es la cifra; la curva, a un toque, en una hoja. El plan «a hoy» tiene la forma de la misma campaña el año
 // pasado (Navidad vende más al final). Solo lee.
 
-const W = 560;
-const H = 220;
-
+/** La curva: la línea del sistema (ronda 14 de /unificar). Lo vendido en tinta, el plan en taupe punteado y «si sigue así» en tinta suave. */
 function Curva({ c }: { c: ComoVa }) {
-  const max = Math.max(1, c.planTotal ?? 0, c.proyeccion, c.vendido) * 1.08;
-  const X = (i: number) => 16 + (i / Math.max(1, c.dias - 1)) * (W - 32);
-  const Y = (v: number) => H - 14 - (v / max) * (H - 30);
-  const linea = (arr: readonly number[], desde = 0) => arr.map((v, i) => `${i ? "L" : "M"}${X(i + desde).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
   const hoyI = c.medidos - 1;
+  const sigue = c.medidos < c.dias;
+  const dia = (i: number) => `Día ${i + 1}`;
   return (
     <div>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Lo vendido acumulado contra el plan" className="h-auto w-full">
-        <line x1="16" x2={W - 16} y1={H - 14} y2={H - 14} className="stroke-sand" />
-        {c.plan && <path d={linea(c.plan)} fill="none" strokeWidth="2" strokeDasharray="6 5" className="stroke-pizarra" />}
-        {c.medidos < c.dias && <path d={linea(c.proyectado.slice(hoyI), hoyI)} fill="none" strokeWidth="2.5" strokeDasharray="3 4" className="stroke-rojo" strokeOpacity="0.4" />}
-        <path d={linea(c.real)} fill="none" strokeWidth="3" className="stroke-rojo" />
-        <circle cx={X(hoyI)} cy={Y(c.real[hoyI])} r="5" className="fill-rojo" />
-      </svg>
+      <Linea
+        serie={c.real.map((v, i) => ({ x: i, y: v }))}
+        referencia={c.plan ? c.plan.map((v, i) => ({ x: i, y: v })) : null}
+        proyeccion={sigue ? c.proyectado.slice(hoyI).map((v, k) => ({ x: hoyI + k, y: v })) : null}
+        desde={0}
+        hasta={Math.max(c.dias - 1, 1)}
+        marcasX={[
+          { x: 0, texto: dia(0) },
+          { x: hoyI, texto: "hoy", fuerte: true },
+          { x: c.dias - 1, texto: dia(c.dias - 1) },
+        ].filter((m, k, todas) => todas.findIndex((o) => o.x === m.x) === k)}
+        formatoY={(v) => enteroES.format(Math.round(v))}
+        cifra={enteroES.format(Math.round(c.real[hoyI] ?? 0))}
+        cifraReferencia={c.plan && c.planTotal !== null ? { valor: enteroES.format(Math.round(c.planTotal)), texto: "plan" } : null}
+        leer={(x) => (
+          <>
+            <b className="block font-semibold">{dia(x)}</b>
+            {x <= hoyI && <span className="block">Vendido: {enteroES.format(Math.round(c.real[x] ?? 0))}</span>}
+            {c.plan && <span className="block">Plan: {enteroES.format(Math.round(c.plan[x] ?? 0))}</span>}
+            {x > hoyI && <span className="block">Si sigue así: {enteroES.format(Math.round(c.proyectado[x] ?? 0))}</span>}
+          </>
+        )}
+        alto={220}
+        etiqueta="Lo vendido acumulado contra el plan"
+      />
       <p className="mt-1 flex flex-wrap gap-x-4 text-xs text-taupe">
+        <span>— Vendido</span>
         {c.plan && <span>– – Plan</span>}
-        <span className="text-rojo-profundo">— Vendido</span>
-        {c.medidos < c.dias && <span>··· Si sigue así</span>}
+        {sigue && <span>··· Si sigue así</span>}
       </p>
     </div>
   );
@@ -114,7 +129,7 @@ export function CeldaComoVa({
         </button>
       )}
       {abierta && (
-        <Modal titulo={de ? `¿Cómo va ${de}?` : "¿Cómo va la campaña?"} subtitulo={`Día ${c.medidos} de ${c.dias}: lo vendido contra el plan, y dónde termina si sigue así.`} onClose={() => setAbierta(false)} variante="hoja" ancho="max-w-2xl" conCerrar>
+        <Modal titulo={de ? `¿Cómo va ${de}?` : "¿Cómo va la campaña?"} subtitulo={`Día ${c.medidos} de ${c.dias}: lo vendido contra el plan, y dónde termina si sigue así.`} onClose={() => setAbierta(false)} variante="hoja" tamano="ancha" conCerrar>
           <Curva c={c} />
         </Modal>
       )}

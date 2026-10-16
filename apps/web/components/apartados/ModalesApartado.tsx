@@ -1,30 +1,33 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
-import { Check, MessageCircle, Minus, Plus, Printer, Trash2 } from "lucide-react";
+import { Check, MessageCircle, Minus, Plus, Trash2 } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { CampoMonto } from "@/components/ui/CampoMonto";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { descuentoDeCampana } from "@/lib/vender-reglas";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
-import { Modal, botonCancelar, botonPrimario, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
+import { Modal, botonCancelar, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
 import { money } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { diaLima, hoyLima } from "@/lib/fechas-lima";
 import {
   AVISO_DIAS,
-  EXTENSIONES_MAX,
   FUNCIONES_APARTADOS,
   PRESETS_APARTADOS,
+  avisoDeAbono,
   diasEsperaPorAbono,
   presetDe,
   type FuncionApartados,
   type PedidoApartado,
   PLAZO_DIAS,
   enlaceWhatsapp,
+  esConstancia,
   estadoVisible,
   formatoCelular,
   mensajeWhatsapp,
@@ -37,17 +40,22 @@ import {
 } from "@/lib/separaciones-reglas";
 import { NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { EstadoChip, FotoPrenda, ReciboApartado, fechaCorta } from "@/components/apartados/piezas";
+import { TicketDeEntrega, useReciboDeApartado } from "@/components/apartados/useReciboDeApartado";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { firmar } from "@/lib/responsable-reglas";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@/lib/cuenta-sellada-reglas";
-import { CampoSelect } from "@/components/ui/campos";
+import { CampoSelect, Boton } from "@/components/ui/campos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
 import { Casilla } from "@/components/ui/Casilla";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 /** La tienda del apartado: el combo «Responsable» lista a quien está de turno AHÍ, no en otra sede activa. */
 export type UbicacionApartado = { ubicacionId: string; etiqueta: string };
@@ -72,10 +80,9 @@ function imprimirYSeguir(cerrar: () => void) {
 function Botones({ cerrar, principal }: { cerrar: () => void; principal: string }) {
   return (
     <div className="sticky -bottom-6 z-10 -mx-6 -mb-6 space-y-2 border-t border-sand bg-crema px-6 pt-3 pb-6">
-      <button type="button" autoFocus onClick={() => imprimirYSeguir(cerrar)} className={`${botonPrimario} flex w-full items-center justify-center gap-2`}>
-        <Printer className="h-4 w-4" aria-hidden />
+      <BotonImprimir peso="primario" autoFocus onClick={() => imprimirYSeguir(cerrar)} className="w-full">
         {principal}
-      </button>
+      </BotonImprimir>
       <div className="grid grid-cols-2 gap-2">
         <button type="button" onClick={() => window.print()} className={botonCancelar}>
           Solo imprimir
@@ -98,8 +105,10 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
   const pasos = [
     `Pega la etiqueta «APARTADO · ${a.codigo}» en la prenda.`,
     a.estante ? `Guárdala en el estante ${a.estante} de Apartados, no en el piso.` : "Guárdala en «Apartados» del almacén, no en el piso.",
-    // Sin celular (ADR-0367) no hay a dónde enviarla: la boleta impresa es la que se lleva.
-    ...(a.celular ? [`Envía la boleta por WhatsApp al ${a.celular}.`] : ["Entrégale la boleta impresa: no dejó celular."]),
+    // Sin celular (ADR-0367) no hay a dónde enviarla: la constancia impresa es la que se lleva. Un apartado viejo sigue con su boleta.
+    ...(a.celular
+      ? [`Envía ${esConstancia(a) ? "la constancia" : "la boleta"} por WhatsApp al ${a.celular}.`]
+      : [`Entrégale ${esConstancia(a) ? "la constancia impresa" : "la boleta impresa"}: no dejó celular.`]),
   ];
   const [mes, dia, semana] = [
     new Date(`${a.venceEl}T12:00:00Z`).toLocaleDateString("es-PE", { month: "short", timeZone: "UTC" }).replace(".", "").toUpperCase(),
@@ -107,7 +116,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
     new Date(`${a.venceEl}T12:00:00Z`).toLocaleDateString("es-PE", { weekday: "short", timeZone: "UTC" }).replace(".", ""),
   ];
   return (
-    <Modal titulo="Apartado registrado" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} ancho="max-w-md">
+    <Modal titulo="Apartado registrado" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <div className="card-cayla p-5 text-center">
@@ -144,10 +153,21 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
           </div>
           <div className="card-cayla space-y-2.5 p-4 text-sm">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-tinta">
-                Boleta <span className="font-mono">{a.comprobanteAnticipo}</span> · anticipo
-              </span>
-              <span className="text-[11px] text-tinta/60">Pendiente de enviar</span>
+              {esConstancia(a) ? (
+                <>
+                  <span className="text-tinta">
+                    Constancia <span className="font-mono">{a.codigo}</span>
+                  </span>
+                  <span className="text-[11px] text-tinta/60">No es comprobante de pago</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-tinta">
+                    Boleta <span className="font-mono">{a.comprobanteAnticipo}</span> · anticipo
+                  </span>
+                  <span className="text-[11px] text-tinta/60">Pendiente de enviar</span>
+                </>
+              )}
             </div>
             <div className="space-y-0.5 border-t border-sand pt-2.5 text-xs text-tinta/80">
               {a.pagos.map((p, i) => (
@@ -182,15 +202,17 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
 export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo = 0, sede, onClose }: { apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number; /** Lo que no se cobró por llevar el efectivo del saldo a S/ 0.10 (ADR-0311). */ redondeo?: number; sede: string; onClose: () => void }) {
   const a = apartado;
   useTituloDeImpresion(a.codigo);
+  // Un apartado nuevo imprime LA boleta o factura de siempre (con su QR y su número); uno viejo, su ticket de antes (ADR-0399).
+  const recibo = useReciboDeApartado(a, sede, redondeo, esConstancia(a));
   return (
-    <Modal titulo="Apartado entregado" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} ancho="max-w-md">
+    <Modal titulo="Apartado entregado" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <div className="card-cayla p-5 text-center">
             <p className="label-cayla text-[11px] text-verde-profundo">Liquidado</p>
             <p className="font-display mt-2 text-3xl text-tinta">{money(a.total)}</p>
             <p className="mt-1 text-sm text-tinta/70">
-              {money(a.adelanto)} de anticipo + {money(a.total - a.adelanto)} hoy · {a.nombres}
+              {money(a.adelanto)} de adelanto + {money(a.total - a.adelanto)} hoy · {a.nombres}
             </p>
           </div>
           {vuelto > 0 && (
@@ -201,17 +223,17 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
           )}
           <div className="card-cayla space-y-2 p-4 text-xs text-tinta/80">
             <p className="flex justify-between tabular-nums"><span>Total de las prendas</span><span>{money(a.total)}</span></p>
-            <p className="flex justify-between tabular-nums"><span>(−) {a.pagos.some((p) => p.abono) ? "Anticipos (apartado y abonos)" : `Anticipo ${a.comprobanteAnticipo}`}</span><span>−{money(a.adelanto)}</span></p>
+            <p className="flex justify-between tabular-nums"><span>(−) {esConstancia(a) ? "Adelanto" : a.pagos.some((p) => p.abono) ? "Anticipos (apartado y abonos)" : `Anticipo ${a.comprobanteAnticipo}`}</span><span>−{money(a.adelanto)}</span></p>
             {pagadoHoy.map((p, i) => (
               <p key={i} className="flex justify-between tabular-nums text-tinta"><span>Hoy · {p.metodo}</span><span>{money(p.monto)}</span></p>
             ))}
             {redondeo > 0 && (
               <p className="flex justify-between tabular-nums text-tinta/70" data-redondeo><span>{TEXTO_REDONDEO}</span><span>{money(redondeo)}</span></p>
             )}
-            <p className="border-t border-sand pt-2 text-tinta/70">La venta de {money(a.total)} entra hoy a ingresos y sale de «En custodia».</p>
+            <p className="border-t border-sand pt-2 text-tinta/70">La venta de {money(a.total)} entra hoy a ingresos y sale de «En custodia».{esConstancia(a) && " La boleta o factura sale por el total, sin nombrar el adelanto."}</p>
           </div>
           <Botones cerrar={cerrar} principal="Imprimir y entregar" />
-          <ReciboApartado apartado={a} tipo="final" sede={sede} pagadoHoy={pagadoHoy} redondeo={redondeo} />
+          {recibo ? <TicketDeEntrega recibo={recibo} codigo={a.codigo} /> : <ReciboApartado apartado={a} tipo="final" sede={sede} pagadoHoy={pagadoHoy} redondeo={redondeo} />}
         </div>
       )}
     </Modal>
@@ -226,36 +248,37 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
 export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado: Apartado; sede: string; onClose: () => void }) {
   const a = apartado;
   const conFinal = a.estado === "entregada" && !!a.comprobanteFinal;
+  const constancia = esConstancia(a);
   const [cual, setCual] = useState<"anticipo" | "final">(conFinal ? "final" : "anticipo");
-  const numero = cual === "final" ? a.comprobanteFinal : a.comprobanteAnticipo;
+  const reciboFinal = useReciboDeApartado(a, sede, 0, constancia && conFinal);
+  const numero = cual === "final" ? a.comprobanteFinal : constancia ? a.codigo : a.comprobanteAnticipo;
   useTituloDeImpresion(`${a.codigo}${cual === "final" ? "-final" : ""}`);
   return (
-    <Modal titulo="Reimprimir ticket" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} ancho="max-w-sm" conCerrar>
+    <Modal titulo="Reimprimir ticket" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} conCerrar>
       {() => (
         <div className="space-y-4">
           {conFinal && (
             <div className="flex flex-wrap gap-2" role="group" aria-label="Qué ticket imprimir">
-              <button type="button" aria-pressed={cual === "final"} onClick={() => setCual("final")} className="pildora-cayla">Boleta final</button>
-              <button type="button" aria-pressed={cual === "anticipo"} onClick={() => setCual("anticipo")} className="pildora-cayla">Anticipo</button>
+              <button type="button" aria-pressed={cual === "final"} onClick={() => setCual("final")} className="pildora-cayla">{constancia ? "Boleta o factura" : "Boleta final"}</button>
+              <button type="button" aria-pressed={cual === "anticipo"} onClick={() => setCual("anticipo")} className="pildora-cayla">{constancia ? "Constancia" : "Anticipo"}</button>
             </div>
           )}
           <div className="card-cayla space-y-1.5 p-4 text-sm">
             <p className="flex items-baseline justify-between gap-3">
               <span className="text-tinta">
-                Boleta <span className="font-mono">{numero ?? "—"}</span>
+                {cual === "anticipo" && constancia ? "Constancia" : "Boleta"} <span className="font-mono">{numero ?? "—"}</span>
               </span>
-              <span className="text-[11px] text-tinta/60">{cual === "final" ? "final" : "anticipo"}</span>
+              <span className="text-[11px] text-tinta/60">{cual === "final" ? (constancia ? "por el total" : "final") : constancia ? "no es comprobante de pago" : "anticipo"}</span>
             </p>
             <p className="text-xs text-tinta/70">
               {a.nombres} {a.apellidos} · {cual === "final" ? `total ${money(a.total)}` : `adelanto ${money(a.adelanto)} de ${money(a.total)}`}
             </p>
-            <p className="text-xs text-tinta/60">Apartado el {fechaCorta(a.creadaEn.slice(0, 10))} · sale marcado como COPIA.</p>
+            <p className="text-xs text-tinta/60">Apartado el {fechaCorta(diaLima(a.creadaEn))} · sale marcado como COPIA.</p>
           </div>
-          <button type="button" autoFocus onClick={() => window.print()} className={`${botonPrimario} flex w-full items-center justify-center gap-2`}>
-            <Printer className="h-4 w-4" aria-hidden />
-            Imprimir
-          </button>
-          <ReciboApartado key={cual} apartado={a} tipo={cual} sede={sede} copia />
+          <BotonImprimir peso="primario" autoFocus onClick={() => window.print()} className="w-full">
+            Imprimir la copia
+          </BotonImprimir>
+          {cual === "final" && reciboFinal ? <TicketDeEntrega recibo={reciboFinal} codigo={a.codigo} /> : <ReciboApartado key={cual} apartado={a} tipo={cual} sede={sede} copia />}
         </div>
       )}
     </Modal>
@@ -302,17 +325,16 @@ export function LiberarModal({ apartado, ubicacion, onClose }: { apartado: Apart
             ))}
           </div>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex gap-2">
-            <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
-            <button
+          <div className="pie-acciones">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
+            <Boton peso="primario" cargando={enviando} textoCargando="Liberando…"
               type="button"
               disabled={!motivo || enviando || !responsable.listo}
               title={!motivo ? "Elige por qué se libera." : (responsable.motivo ?? undefined)}
               onClick={() => liberar(cerrar)}
-              className={botonPrimario}
             >
-              {enviando ? "Liberando…" : "Liberar prendas"}
-            </button>
+              Liberar prendas
+            </Boton>
           </div>
         </div>
       )}
@@ -365,7 +387,7 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
 
   const medios: MedioDevolucionReal[] = ["yape", "plin", "transferencia", "efectivo", "tarjeta"];
   return (
-    <Modal titulo="Devolver el adelanto" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo}`} onClose={onClose} ancho="max-w-md">
+    <Modal titulo="Devolver el adelanto" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo}`} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <div className="card-cayla p-4 text-center">
@@ -419,59 +441,17 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
               </div>
             </div>
           )}
-          <p className="text-xs text-tinta/60">Se intentará la nota de crédito sobre la boleta {apartado.comprobanteAnticipo}; si SUNAT aún no la aceptó, queda pendiente con aviso.</p>
-          <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex gap-2">
-            <button type="button" onClick={cerrar} className={botonCancelar}>Cancelar</button>
-            <button type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => devolver(cerrar)} className={botonPrimario}>
-              {enviando ? "Registrando…" : "Registrar devolución"}
-            </button>
-          </div>
-        </div>
-      )}
-    </Modal>
-  );
-}
-
-/** Extender el plazo 7 días (una sola vez): una confirmación breve para que quien lo hace firme con el combo. */
-export function ExtenderModal({ apartado, ubicacion, onClose }: { apartado: Apartado; ubicacion: UbicacionApartado; onClose: () => void }) {
-  const router = useRouter();
-  const [enviando, setEnviando] = useState(false);
-  // Extender guarda en la tienda (cambia la fecha límite de la clienta): pide Responsable (ADR-0161), vacío al abrir.
-  const responsable = useResponsable(ubicacion, { modo: "atencion" }); // módulo Punto de venta: «¿Quién está atendiendo?», vacío al abrir
-  const agotado = apartado.extensiones >= EXTENSIONES_MAX;
-
-  async function extender(cerrar: () => void) {
-    if (agotado || !responsable.listo) return;
-    setEnviando(true);
-    const { data, error } = await firmar(createClient().rpc("extender_separacion", { p_separacion_id: apartado.id }), responsable.firma());
-    setEnviando(false);
-    responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, "extender el apartado"));
-    avisar.exito("Plazo extendido 7 días", { detalle: `${apartado.nombres} recoge hasta el ${fechaCorta(String(data))}. Avísale por WhatsApp.` });
-    router.refresh();
-    cerrar();
-  }
-
-  return (
-    <Modal titulo="¿Extender 7 días?" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo}`} onClose={onClose}>
-      {(cerrar) => (
-        <div className="space-y-4">
-          <p className="text-sm text-tinta/80">
-            Venció el <b>{fechaCorta(apartado.venceEl)}</b>. Las prendas siguen guardadas una semana más y el precio se mantiene. Solo se puede extender una vez.
+          <p className="text-xs text-tinta/60">
+            {esConstancia(apartado)
+              ? "Solo se registra que el dinero volvió al cliente: no hay comprobante que anular, así que no se gasta ningún correlativo."
+              : `Se intentará la nota de crédito sobre la boleta ${apartado.comprobanteAnticipo}; si SUNAT aún no la aceptó, queda pendiente con aviso.`}
           </p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex gap-2">
-            <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
-            <button
-              type="button"
-              disabled={enviando || agotado || !responsable.listo}
-              title={agotado ? "Ya se extendió una vez." : (responsable.motivo ?? undefined)}
-              onClick={() => extender(cerrar)}
-              className={botonPrimario}
-            >
-              {enviando ? "Extendiendo…" : "Extender 7 días"}
-            </button>
+          <div className="pie-acciones">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Cancelar</button>
+            <Boton peso="primario" cargando={enviando} textoCargando="Registrando…" type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => devolver(cerrar)}>
+              Registrar devolución
+            </Boton>
           </div>
         </div>
       )}
@@ -539,15 +519,13 @@ export function RecordarModal({
         if (hechas.size) router.refresh();
         onClose();
       }}
-      ancho="max-w-lg"
+      tamano="mediana"
     >
       {(cerrar) => (
         <div className="space-y-4">
           {varias && (
             <>
-              <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-sand">
-                <span className="block h-full rounded-full bg-tinta transition-[width] duration-500 ease-[var(--ease-cayla)]" style={{ width: `${(hechas.size / cola.length) * 100}%` }} />
-              </div>
+              <BarraAvance pct={(hechas.size / cola.length) * 100} decorativa />
               <ul className="divide-y divide-sand overflow-hidden rounded-xl border border-sand">
                 {cola.map((a, i) => (
                   <li key={a.id}>
@@ -577,25 +555,22 @@ export function RecordarModal({
             <p className="rounded-xl rounded-bl-sm bg-hueso px-3.5 py-3 text-[13.5px] text-tinta">{mensaje}</p>
             <p className="text-xs text-tinta/60">Se abre WhatsApp con este texto y lo envías tú. Al volver, queda anotado quién le escribió y cuándo.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="pie-acciones">
             {varias ? (
-              <button type="button" onClick={saltar} disabled={cola.length - hechas.size <= 1} className={botonCancelar}>
+              <button type="button" onClick={saltar} disabled={cola.length - hechas.size <= 1} className="btn-cayla btn-secundario">
                 Saltar
               </button>
             ) : (
-              <button type="button" onClick={cerrar} className={botonCancelar}>
+              <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
                 Mejor no
               </button>
             )}
-            <button
-              type="button"
-              disabled={enviando || hechas.has(actual.id)}
-              onClick={() => escribir(cerrar)}
-              className={`${botonPrimario} flex flex-1 items-center justify-center gap-2`}
-            >
-              <MessageCircle className="h-4 w-4" aria-hidden />
-              {enviando ? "Anotando…" : varias ? "Abrir WhatsApp y seguir" : "Abrir WhatsApp"}
-            </button>
+            <Boton type="button" peso="primario" cargando={enviando} textoCargando="Anotando…" disabled={hechas.has(actual.id)} onClick={() => escribir(cerrar)} className="flex-1">
+              <span className="flex items-center justify-center gap-2">
+                <MessageCircle className="-my-1 h-4 w-4" aria-hidden />
+                {varias ? "Abrir WhatsApp y seguir" : "Abrir WhatsApp"}
+              </span>
+            </Boton>
           </div>
         </div>
       )}
@@ -609,126 +584,173 @@ const detalleVariante = (p: { color: string | null; talla: string | null; codigo
   [p.color, p.talla, codigoPrenda(p)].filter(Boolean).join(" · ");
 
 /**
- * Abonar a cuenta (Apartados v2, paso 2 — 20260927100000): la clienta paga una parte y la prenda sigue guardada. Sale su
- * boleta de anticipo; al recoger, la boleta final descuenta todos. El plazo no cambia solo: se puede elegir esperarla
+ * Abonar a cuenta (Apartados v2, paso 2 — 20260927100000): la clienta paga una parte y la prenda sigue guardada. Desde ADR-0399 el abono
+ * no emite comprobante (antes sacaba su boleta de anticipo y la final los descontaba); al recoger sale una boleta o factura por el total.
+ * El plazo no cambia solo: se puede elegir esperarla
  * 2 días más, o 3 si el abono cubre la mitad o más de lo que le faltaba (Felipe, 2026-09-26).
  */
 export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apartado: Apartado; ubicacion: UbicacionApartado; cajaAbierta: boolean; onClose: () => void }) {
-  const router = useRouter();
-  const [metodo, setMetodo] = useState<MetodoPago>("yape");
-  const [monto, setMonto] = useState(0);
-  const [esperar, setEsperar] = useState(false);
-  const [enviando, setEnviando] = useState(false);
-  const token = useRef<string>(crypto.randomUUID());
-  const responsable = useResponsable(ubicacion, { modo: "atencion" });
-  const saldo = apartado.saldo;
-  const dias = diasEsperaPorAbono(monto, saldo);
-  const nuevaFecha = sumarDiasIso(apartado.venceEl < new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" }) ? new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" }) : apartado.venceEl, dias);
-  const valido = monto > 0 && monto <= saldo;
-  const rapidos = [20, 50].filter((x) => x < saldo);
-
-  async function abonar(cerrar: () => void) {
-    if (!valido || !responsable.listo || !cajaAbierta) return;
-    setEnviando(true);
-    const { data, error } = await firmar(
-      createClient().rpc("abonar_separacion", {
-        p_separacion_id: apartado.id,
-        p_pagos: [{ metodo, monto }],
-        p_esperar: esperar,
-        p_token: token.current,
-      }),
-      responsable.firma(),
-    );
-    setEnviando(false);
-    responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, "registrar el abono", { confirmarAntesDeRepetir: true }));
-    const r = (data ?? {}) as { vence_el?: string; saldo?: number };
-    avisar.exito(`Abono de ${money(monto)} anotado`, {
-      detalle: `${apartado.nombres}: ${Number(r.saldo ?? saldo - monto) > 0 ? `falta ${money(Number(r.saldo ?? saldo - monto))}` : "ya pagó todo"}${esperar && r.vence_el ? ` · recoge hasta el ${fechaCorta(r.vence_el)}` : ""}. Sale su boleta de anticipo.`,
-    });
-    router.refresh();
-    cerrar();
-  }
-
+  const [ocupado, setOcupado] = useState(false);
   return (
-    <Modal titulo="Abonar a cuenta" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la prenda sigue guardada`} onClose={onClose} ancho="max-w-md">
-      {(cerrar) => (
-        <div className="space-y-4">
-          <div className="card-cayla flex items-baseline justify-between p-4">
-            <span className="text-sm text-tinta/70">Falta pagar hoy</span>
-            <span className="font-display text-2xl tabular-nums">{money(saldo)}</span>
-          </div>
-          <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1" role="radiogroup" aria-label="Cómo paga el abono">
-            {METODOS_PAGO.map((m) => (
-              <button
-                key={m}
-                type="button"
-                role="radio"
-                aria-checked={metodo === m}
-                onClick={() => setMetodo(m)}
-                style={metodo === m ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined}
-                className={`metodo-${m} flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] capitalize transition-colors ${metodo === m ? "shadow-sm" : "text-tinta/60 hover:bg-papel/60"}`}
-              >
-                {ICONO_METODO[m]}
-                {m}
-              </button>
-            ))}
-          </div>
-          <label className="flex items-center justify-between gap-3 rounded-xl border border-sand bg-papel px-4 py-3">
-            <span className="text-sm">Abona</span>
-            <span className="flex items-center gap-1 border-b border-tinta/20 text-lg">
-              <span className="text-tinta/50">S/</span>
-              <CampoMonto aria-label="Monto del abono" valor={monto} onCambio={setMonto} className="w-24 bg-transparent py-1 text-right tabular-nums outline-none" />
-            </span>
-          </label>
-          <div className="flex flex-wrap gap-1.5">
-            {rapidos.map((x) => (
-              <button key={x} type="button" onClick={() => setMonto(x)} className="rounded-full border border-sand px-3 py-1 text-xs tabular-nums hover:border-taupe">
-                {money(x)}
-              </button>
-            ))}
-            <button type="button" onClick={() => setMonto(saldo)} className="rounded-full border border-sand px-3 py-1 text-xs tabular-nums hover:border-taupe">
-              Todo · {money(saldo)}
-            </button>
-          </div>
-          <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-sand">
-            <span className="block h-full rounded-full bg-tinta transition-[width] duration-500 ease-[var(--ease-cayla)]" style={{ width: `${Math.min(100, ((apartado.adelanto + Math.max(0, monto)) / apartado.total) * 100)}%` }} />
-          </div>
-          <p className="flex justify-between text-xs text-tinta/60 tabular-nums">
-            <span>Pagado {money(apartado.adelanto + Math.max(0, monto))} de {money(apartado.total)}</span>
-            <b className="text-tinta">Queda {money(Math.max(0, saldo - monto))}</b>
-          </p>
-          {monto > saldo && <Aviso tono="error" chico>El abono no puede pasar lo que falta ({money(saldo)}).</Aviso>}
-          <label className="flex cursor-pointer items-start gap-2.5 text-[13px] text-tinta/85">
-            <Casilla marcada={esperar} onCambio={() => setEsperar(!esperar)} etiqueta={`Esperarla ${dias} días más`} className="mt-0.5 shrink-0" />
-            <span>
-              Esperarla {dias} días más: recoge hasta el <b>{fechaCorta(nuevaFecha)}</b>
-              <span className="block text-xs text-tinta/55">{dias === 3 ? "Abona la mitad o más de lo que le faltaba: 3 días." : "Con la mitad o más de lo que le falta serían 3 días."} Sin marcar, la fecha sigue el {fechaCorta(apartado.venceEl)}.</span>
-            </span>
-          </label>
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Sale una boleta de anticipo por el abono. Al recoger, la boleta final descuenta todos los anticipos.</p>
-          <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex gap-2">
-            <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
-            <button
-              type="button"
-              disabled={!valido || enviando || !responsable.listo || !cajaAbierta}
-              title={!cajaAbierta ? "Abre la caja para cobrar el abono." : (responsable.motivo ?? undefined)}
-              onClick={() => abonar(cerrar)}
-              className={botonPrimario}
-            >
-              {enviando ? "Guardando…" : `Registrar abono · ${money(Math.max(0, monto))}`}
-            </button>
-          </div>
-        </div>
-      )}
+    <Modal titulo="Abonar a cuenta" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la prenda sigue guardada`} onClose={onClose} bloqueado={ocupado}>
+      {(cerrar) => <AbonarFormulario apartado={apartado} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onListo={cerrar} onCancelar={cerrar} onOcupado={setOcupado} />}
     </Modal>
   );
 }
 
 /**
+ * El cuerpo de «Abonar a cuenta», sin su hoja: lo usa `AbonarModal` y el detalle del apartado (ADR-0414), que lo muestra dentro de su
+ * propia hoja. `onOcupado` avisa mientras el abono va en camino o quedó en duda, para que la hoja no se cierre con el dinero en el aire.
+ */
+export function AbonarFormulario({
+  apartado,
+  ubicacion,
+  cajaAbierta,
+  onListo,
+  onCancelar,
+  onOcupado,
+}: {
+  apartado: Apartado;
+  ubicacion: UbicacionApartado;
+  cajaAbierta: boolean;
+  onListo: () => void;
+  onCancelar: () => void;
+  onOcupado?: (ocupado: boolean) => void;
+}) {
+  const router = useRouter();
+  const [metodo, setMetodo] = useState<MetodoPago>("yape");
+  const [monto, setMonto] = useState(0);
+  const [esperar, setEsperar] = useState(false);
+  // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): si la respuesta se pierde, la hoja se congela hasta saber si
+  // el abono quedó; cambiar el monto y reenviar con la marca vieja devolvía el abono anterior.
+  const envio = useIntento("abonar_separacion");
+  const enviando = envio.enviando;
+  const [revisando, setRevisando] = useState(false);
+  const ocupado = enviando || envio.incierto;
+  useEffect(() => {
+    onOcupado?.(ocupado);
+  }, [ocupado, onOcupado]);
+  const responsable = useResponsable(ubicacion, { modo: "atencion" });
+  const saldo = apartado.saldo;
+  const dias = diasEsperaPorAbono(monto, saldo);
+  const hoy = hoyLima();
+  const nuevaFecha = sumarDiasIso(apartado.venceEl < hoy ? hoy : apartado.venceEl, dias);
+  const valido = monto > 0 && monto <= saldo;
+  const rapidos = [20, 50].filter((x) => x < saldo);
+
+  async function abonar(cerrar: () => void) {
+    if (!valido || !responsable.listo || !cajaAbierta) return;
+    const params = { p_separacion_id: apartado.id, p_pagos: [{ metodo, monto }], p_esperar: esperar };
+    const res = await envio.enviar(huellaDe(params), (token, senal) =>
+      firmar(createClient().rpc("abonar_separacion", { ...params, p_token: token }), responsable.firma()).abortSignal(senal),
+    );
+    if (res.tipo === "ocupado") return;
+    if (res.tipo === "congelado") return avisarCongelado(avisar);
+    responsable.despues(res.tipo === "error" || res.tipo === "incierto" ? res.error : null);
+    // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (res.tipo === "incierto") return;
+    if (res.tipo === "error") return avisar.error(traducirError(res.error, "registrar el abono"));
+    abonado((res.tipo === "ok" ? res.data : res.datos) as { vence_el?: string; saldo?: number } | null, cerrar);
+  }
+
+  async function revisar(cerrar: () => void) {
+    setRevisando(true);
+    const res = await envio.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return abonado(res.datos as { vence_el?: string; saldo?: number }, cerrar);
+    if (res.tipo === "no_llego") {
+      avisar.aviso("El abono no se registró", { detalle: "No se cobró nada. Revisa el monto y vuelve a registrarlo." });
+      return;
+    }
+    if (res.tipo === "sin_respuesta") avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+  }
+
+  function abonado(datos: { vence_el?: string; saldo?: number } | null, cerrar: () => void) {
+    const r = datos ?? {};
+    avisar.exito(`Abono de ${money(monto)} anotado`, {
+      detalle: avisoDeAbono(apartado, { saldo: Number(r.saldo ?? saldo - monto), venceEl: esperar && r.vence_el ? r.vence_el : null }),
+    });
+    router.refresh();
+    cerrar();
+  }
+
+  const cerrar = onListo;
+  return (
+    <div className="space-y-4">
+      {/* En duda, nada se toca: otro monto reenviado podría cobrar el abono dos veces. */}
+      <fieldset disabled={envio.incierto} className="min-w-0 space-y-4">
+      <div className="card-cayla flex items-baseline justify-between p-4">
+        <span className="text-sm text-tinta/70">Falta pagar hoy</span>
+        <span className="font-display text-2xl tabular-nums">{money(saldo)}</span>
+      </div>
+      <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1" role="radiogroup" aria-label="Cómo paga el abono">
+        {METODOS_PAGO.map((m) => (
+          <button
+            key={m}
+            type="button"
+            role="radio"
+            aria-checked={metodo === m}
+            onClick={() => setMetodo(m)}
+            style={metodo === m ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined}
+            className={`metodo-${m} flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] capitalize transition-colors ${metodo === m ? "shadow-sm" : "text-tinta/60 hover:bg-papel/60"}`}
+          >
+            {ICONO_METODO[m]}
+            {m}
+          </button>
+        ))}
+      </div>
+      <label className="flex items-center justify-between gap-3 rounded-xl border border-sand bg-papel px-4 py-3">
+        <span className="text-sm">Abona</span>
+        <span className="flex items-center gap-1 border-b border-tinta/20 text-lg">
+          <span className="text-tinta/50">S/</span>
+          <CampoMonto aria-label="Monto del abono" valor={monto} onCambio={setMonto} className="w-24 bg-transparent py-1 text-right tabular-nums outline-none" />
+        </span>
+      </label>
+      <div className="flex flex-wrap gap-1.5">
+        {rapidos.map((x) => (
+          <button key={x} type="button" onClick={() => setMonto(x)} className="rounded-full border border-sand px-3 py-1 text-xs tabular-nums hover:border-taupe">
+            {money(x)}
+          </button>
+        ))}
+        <button type="button" onClick={() => setMonto(saldo)} className="rounded-full border border-sand px-3 py-1 text-xs tabular-nums hover:border-taupe">
+          Todo · {money(saldo)}
+        </button>
+      </div>
+      <BarraAvance pct={((apartado.adelanto + Math.max(0, monto)) / apartado.total) * 100} decorativa />
+      <p className="flex justify-between text-xs text-tinta/60 tabular-nums">
+        <span>Pagado {money(apartado.adelanto + Math.max(0, monto))} de {money(apartado.total)}</span>
+        <b className="text-tinta">Queda {money(Math.max(0, saldo - monto))}</b>
+      </p>
+      {monto > saldo && <Aviso tono="error" chico>El abono no puede pasar lo que falta ({money(saldo)}).</Aviso>}
+      <label className="flex cursor-pointer items-start gap-2.5 text-[13px] text-tinta/85">
+        <Casilla marcada={esperar} onCambio={() => setEsperar(!esperar)} etiqueta={`Esperarla ${dias} días más`} className="mt-0.5 shrink-0" />
+        <span>
+          Esperarla {dias} días más: recoge hasta el <b>{fechaCorta(nuevaFecha)}</b>
+          <span className="block text-xs text-tinta/55">{dias === 3 ? "Abona la mitad o más de lo que le faltaba: 3 días." : "Con la mitad o más de lo que le falta serían 3 días."} Sin marcar, la fecha sigue el {fechaCorta(apartado.venceEl)}.</span>
+        </span>
+      </label>
+      <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">{esConstancia(apartado) ? "El abono se suma al adelanto y no emite comprobante. Al recoger, sale una sola boleta o factura por el total." : "Sale una boleta de anticipo por el abono. Al recoger, la boleta final descuenta todos los anticipos."}</p>
+      <ComboResponsable control={responsable} deshabilitado={enviando} />
+      </fieldset>
+      {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
+      <div className="pie-acciones">
+        <button type="button" onClick={onCancelar} disabled={envio.incierto} className="btn-cayla btn-secundario">Mejor no</button>
+        <Boton peso="primario" cargando={enviando}
+          type="button"
+          disabled={!valido || enviando || revisando || !responsable.listo || !cajaAbierta}
+          title={!cajaAbierta ? "Abre la caja para cobrar el abono." : (responsable.motivo ?? undefined)}
+          onClick={() => abonar(cerrar)}
+        >
+          {envio.incierto ? "Volver a intentar" : `Registrar abono · ${money(Math.max(0, monto))}`}
+        </Boton>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Editar las prendas de un apartado abierto (paso 4 — 20260927120000): quitar, sumar o cambiar la talla, todo o nada.
- * Lo nuevo entra con el precio y la campaña de HOY; el anticipo ya emitido no cambia. Si el nuevo total quedara por
+ * Lo nuevo entra con el precio y la campaña de HOY; el adelanto ya recibido no cambia. Si el nuevo total quedara por
  * debajo de lo que ya pagó, la base lo rechaza (qué hacer con esa diferencia lo decide Felipe).
  */
 export function EditarApartadoModal({
@@ -747,8 +769,11 @@ export function EditarApartadoModal({
   const [quitar, setQuitar] = useState<ReadonlySet<string>>(() => new Set());
   const [sumar, setSumar] = useState<{ varianteId: string; cantidad: number }[]>([]);
   const [texto, setTexto] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const token = useRef<string>(crypto.randomUUID());
+  // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): si la respuesta se pierde, la hoja se congela hasta saber si
+  // la edición quedó.
+  const envio = useIntento("editar_separacion");
+  const enviando = envio.enviando;
+  const [revisando, setRevisando] = useState(false);
   const responsable = useResponsable(ubicacion, { modo: "atencion" });
 
   const quedan = apartado.prendas.filter((p) => !quitar.has(p.itemId));
@@ -784,31 +809,50 @@ export function EditarApartadoModal({
 
   async function guardar(cerrar: () => void) {
     if (!cambio || debajo || sinPrendas || !responsable.listo) return;
-    setEnviando(true);
-    const { error } = await firmar(
-      createClient().rpc("editar_separacion", {
-        p_separacion_id: apartado.id,
-        p_quitar: [...quitar],
-        p_agregar: sumar.map((l) => {
-          const p = porId.get(l.varianteId)!;
-          return { variante_id: l.varianteId, cantidad: l.cantidad, precio_unitario: p.precio, descuento_unitario: descuentoHoy(p) };
-        }),
-        p_token: token.current,
+    const params = {
+      p_separacion_id: apartado.id,
+      p_quitar: [...quitar],
+      p_agregar: sumar.map((l) => {
+        const p = porId.get(l.varianteId)!;
+        return { variante_id: l.varianteId, cantidad: l.cantidad, precio_unitario: p.precio, descuento_unitario: descuentoHoy(p) };
       }),
-      responsable.firma(),
+    };
+    const res = await envio.enviar(huellaDe(params), (token, senal) =>
+      firmar(createClient().rpc("editar_separacion", { ...params, p_token: token }), responsable.firma()).abortSignal(senal),
     );
-    setEnviando(false);
-    responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, "editar el apartado", { confirmarAntesDeRepetir: true }));
+    if (res.tipo === "ocupado") return;
+    if (res.tipo === "congelado") return avisarCongelado(avisar);
+    responsable.despues(res.tipo === "error" || res.tipo === "incierto" ? res.error : null);
+    // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (res.tipo === "incierto") return;
+    if (res.tipo === "error") return avisar.error(traducirError(res.error, "editar el apartado"));
+    editado(cerrar);
+  }
+
+  async function revisar(cerrar: () => void) {
+    setRevisando(true);
+    const res = await envio.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return editado(cerrar);
+    if (res.tipo === "no_llego") {
+      avisar.aviso("La edición no se guardó", { detalle: "El apartado sigue como estaba. Revisa los cambios y vuelve a guardar." });
+      return;
+    }
+    if (res.tipo === "sin_respuesta") avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+  }
+
+  function editado(cerrar: () => void) {
     avisar.exito("Apartado editado", { detalle: `${apartado.codigo}: total ${money(totalNuevo)} · saldo ${money(totalNuevo - apartado.adelanto)}. La fecha no cambia.` });
     router.refresh();
     cerrar();
   }
 
   return (
-    <Modal titulo="Editar prendas del apartado" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la fecha límite no cambia`} onClose={onClose} ancho="max-w-xl">
+    <Modal titulo="Editar prendas del apartado" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la fecha límite no cambia`} onClose={onClose} tamano="mediana" bloqueado={enviando || envio.incierto}>
       {(cerrar) => (
         <div className="space-y-4">
+          {/* En duda, nada se toca: otra edición reenviada podría mover prendas dos veces. */}
+          <fieldset disabled={envio.incierto} className="min-w-0 space-y-4">
           {sinId && <Aviso tono="atencion" chico>Para editar hace falta la actualización de la base de este paso: todavía no está aplicada.</Aviso>}
           <ul className="divide-y divide-sand overflow-hidden rounded-xl border border-sand">
             {apartado.prendas.map((pr) => {
@@ -892,19 +936,20 @@ export function EditarApartadoModal({
           </div>
           {debajo && !sinPrendas && <Aviso tono="error" chico>El nuevo total queda por debajo de lo que ya pagó ({money(apartado.adelanto)}): suma otra prenda o libera el apartado.</Aviso>}
           {sinPrendas && <Aviso tono="error" chico>El apartado no puede quedarse sin prendas: si ya no quiere nada, libéralo.</Aviso>}
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Se guarda todo junto o nada: lo que sale vuelve a la tienda, lo nuevo se aparta con el precio de hoy. El anticipo ya emitido sigue valiendo.</p>
+          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Se guarda todo junto o nada: lo que sale vuelve a la tienda, lo nuevo se aparta con el precio de hoy. El adelanto ya recibido sigue valiendo.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex gap-2">
-            <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
-            <button
+          </fieldset>
+          {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
+          <div className="pie-acciones">
+            <button type="button" onClick={cerrar} disabled={envio.incierto} className="btn-cayla btn-secundario">Mejor no</button>
+            <Boton peso="primario" cargando={enviando}
               type="button"
-              disabled={!cambio || debajo || sinPrendas || enviando || !responsable.listo || sinId}
+              disabled={!cambio || debajo || sinPrendas || enviando || revisando || !responsable.listo || sinId}
               title={responsable.motivo ?? undefined}
               onClick={() => guardar(cerrar)}
-              className={botonPrimario}
             >
-              {enviando ? "Guardando…" : "Guardar cambios"}
-            </button>
+              {envio.incierto ? "Volver a intentar" : "Guardar cambios"}
+            </Boton>
           </div>
         </div>
       )}
@@ -940,7 +985,7 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
   }
 
   return (
-    <Modal titulo="Opciones de Apartados" subtitulo={`${ubicacion.etiqueta} · elige un punto de partida y ajusta función por función`} onClose={onClose} ancho="max-w-lg">
+    <Modal titulo="Opciones de Apartados" subtitulo={`${ubicacion.etiqueta} · elige un punto de partida y ajusta función por función`} onClose={onClose} tamano="mediana">
       {(cerrar) => (
         <div className="space-y-4">
           <div className="grid gap-2" role="radiogroup" aria-label="Punto de partida">
@@ -992,11 +1037,11 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
           ))}
           <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Apagar una función esconde sus botones en esta tienda. Lo que ya se hizo con ella (un abono, un estante) sigue contando.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex gap-2">
-            <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
-            <button type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => guardar(cerrar)} className={botonPrimario}>
-              {enviando ? "Guardando…" : "Guardar opciones"}
-            </button>
+          <div className="pie-acciones">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
+            <Boton peso="primario" cargando={enviando} type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => guardar(cerrar)}>
+              Guardar opciones
+            </Boton>
           </div>
         </div>
       )}
@@ -1007,31 +1052,54 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
 /** La otra tienda envía lo que le pidieron: es el traslado de siempre, con la clienta en la nota. */
 export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedido: PedidoApartado; prenda: PrendaApartable | undefined; ubicacion: UbicacionApartado; onClose: () => void }) {
   const router = useRouter();
-  const manana = sumarDiasIso(new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" }), 1);
+  const manana = sumarDiasIso(hoyLima(), 1);
   const [llega, setLlega] = useState(manana);
-  const [enviando, setEnviando] = useState(false);
-  const token = useRef<string>(crypto.randomUUID());
+  // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): el pedido y la fecha. Si la respuesta se pierde, la hoja se
+  // congela hasta saber si el traslado salió.
+  const envio = useIntento("enviar_pedido_para_apartar");
+  const enviando = envio.enviando;
+  const [revisando, setRevisando] = useState(false);
   const responsable = useResponsable(ubicacion, { modo: "atencion" });
 
   async function enviar(cerrar: () => void) {
     if (!responsable.listo || !llega) return;
-    setEnviando(true);
-    const { error } = await firmar(
-      createClient().rpc("enviar_pedido_para_apartar", { p_pedido_id: pedido.id, p_fecha_estimada_llegada: `${llega}T12:00:00-05:00`, p_token: token.current }),
-      responsable.firma(),
+    const params = { p_pedido_id: pedido.id, p_fecha_estimada_llegada: `${llega}T12:00:00-05:00` };
+    const res = await envio.enviar(huellaDe(params), (token, senal) =>
+      firmar(createClient().rpc("enviar_pedido_para_apartar", { ...params, p_token: token }), responsable.firma()).abortSignal(senal),
     );
-    setEnviando(false);
-    responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, "enviar la prenda", { confirmarAntesDeRepetir: true }));
+    if (res.tipo === "ocupado") return;
+    if (res.tipo === "congelado") return avisarCongelado(avisar);
+    responsable.despues(res.tipo === "error" || res.tipo === "incierto" ? res.error : null);
+    // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (res.tipo === "incierto") return;
+    if (res.tipo === "error") return avisar.error(traducirError(res.error, "enviar la prenda"));
+    enviado(cerrar);
+  }
+
+  async function revisar(cerrar: () => void) {
+    setRevisando(true);
+    const res = await envio.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return enviado(cerrar);
+    if (res.tipo === "no_llego") {
+      avisar.aviso("La prenda no salió", { detalle: "No se armó ningún traslado. Revisa la fecha y vuelve a enviarla." });
+      return;
+    }
+    if (res.tipo === "sin_respuesta") avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+  }
+
+  function enviado(cerrar: () => void) {
     avisar.exito(`Enviado a ${pedido.otraSede}`, { detalle: "Salió como traslado: sepárala y mándala con la nota del cliente." });
     router.refresh();
     cerrar();
   }
 
   return (
-    <Modal titulo={`Enviar a ${pedido.otraSede}`} subtitulo={paraQuienPedido(pedido)} onClose={onClose} ancho="max-w-md">
+    <Modal titulo={`Enviar a ${pedido.otraSede}`} subtitulo={paraQuienPedido(pedido)} onClose={onClose} bloqueado={enviando || envio.incierto}>
       {(cerrar) => (
         <div className="space-y-4">
+          {/* En duda, nada se toca: otra fecha reenviada podría armar dos traslados. */}
+          <fieldset disabled={envio.incierto} className="min-w-0 space-y-4">
           <div className="card-cayla p-4 text-sm">
             <p className="font-semibold">{prenda?.referencia ?? "Prenda"} · {pedido.cantidad} u.</p>
             <p className="text-xs text-tinta/60">{prenda ? detalleVariante(prenda) : ""}</p>
@@ -1043,11 +1111,13 @@ export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedi
           </label>
           <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Sale de tu almacén como un traslado más; Traslados lo muestra en camino hasta que {pedido.otraSede} lo reciba.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex gap-2">
-            <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
-            <button type="button" disabled={enviando || !responsable.listo || !llega} title={responsable.motivo ?? undefined} onClick={() => enviar(cerrar)} className={botonPrimario}>
-              {enviando ? "Enviando…" : "Enviar por traslado"}
-            </button>
+          </fieldset>
+          {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
+          <div className="pie-acciones">
+            <button type="button" onClick={cerrar} disabled={envio.incierto} className="btn-cayla btn-secundario">Mejor no</button>
+            <Boton peso="primario" cargando={enviando} textoCargando="Enviando…" type="button" disabled={enviando || revisando || !responsable.listo || !llega} title={responsable.motivo ?? undefined} onClick={() => enviar(cerrar)}>
+              {envio.incierto ? "Volver a intentar" : "Enviar por traslado"}
+            </Boton>
           </div>
         </div>
       )}
@@ -1081,11 +1151,11 @@ export function CancelarPedidoModal({ pedido, ubicacion, onClose }: { pedido: Pe
             <input value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={120} placeholder={pedido.direccion === "me_piden" ? "Ya no la tenemos" : "El cliente ya no la quiere"} className={campoTexto} />
           </label>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex gap-2">
-            <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
-            <button type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => cancelar(cerrar)} className={botonPrimario}>
-              {enviando ? "Cancelando…" : "Cancelar pedido"}
-            </button>
+          <div className="pie-acciones">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
+            <Boton peso="primario" cargando={enviando} textoCargando="Cancelando…" type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => cancelar(cerrar)}>
+              Cancelar pedido
+            </Boton>
           </div>
         </div>
       )}

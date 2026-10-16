@@ -7,7 +7,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
-import { Modal, botonCancelar } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { camposDeIngresoDeInsumo, ingresoListo } from "@/lib/insumos-guia";
@@ -65,7 +65,7 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
     responsable.despues(error);
     setCargando(false);
     if (error) {
-      avisar.error(traducirError(error, "ingresar el insumo"));
+      avisar.error(traducirError(error, "ingresar el insumo", { confirmarAntesDeRepetir: true }));
       return;
     }
     avisar.exito(`${cantidadTexto(q, unidad)} de ${insumo.nombre} entraron`, {
@@ -76,7 +76,7 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
   }
 
   return (
-    <Modal titulo="Ingresar insumo" subtitulo="Cada ingreso abre un lote con su propio costo" variante="hoja" conCerrar onClose={onClose} ancho="max-w-md">
+    <Modal titulo="Ingresar insumo" subtitulo="Cada ingreso abre un lote con su propio costo" variante="hoja" onClose={onClose}>
       <form onSubmit={guardar} className="mt-3.5 space-y-4">
         <CampoGuiado id="insumo" guia={guia}>
           <CampoSelect
@@ -123,12 +123,12 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
           <PieGuia guia={guia} listo="Todo listo para abrir el lote." conFrase />
         </div>
         <div className="pie-hoja-fijo">
-          <div className="flex gap-2 border-t border-sand pt-3">
-            <button type="button" onClick={onClose} className={botonCancelar}>
+          <div className="pie-acciones border-t border-sand pt-3">
+            <Boton type="button" onClick={onClose}>
               Cancelar
-            </button>
-            <Boton peso="primario" type="submit" cargando={cargando} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
-              {cargando ? "Ingresando…" : "Abrir lote y sumar al saldo"}
+            </Boton>
+            <Boton textoCargando="Ingresando…" peso="primario" type="submit" cargando={cargando} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+              Abrir lote y sumar al saldo
             </Boton>
           </div>
         </div>

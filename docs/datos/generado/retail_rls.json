@@ -364,12 +364,32 @@
   "relkind": "r",
   "rls": true
  },
+ "despacho_cierres": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "despacho_conteos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "despacho_diferencias": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
+ "despacho_diferencias_vigentes": {
+  "forzado": false,
+  "relkind": "v",
+  "rls": false
+ },
  "despacho_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "despacho_pendientes": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -379,7 +399,17 @@
   "relkind": "r",
   "rls": true
  },
+ "despacho_separaciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "despachos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "despachos_sin_aviso": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -454,6 +484,11 @@
   "relkind": "r",
   "rls": true
  },
+ "gasto_viaje_fotos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "gastos": {
   "forzado": false,
   "relkind": "r",
@@ -470,6 +505,16 @@
   "rls": true
  },
  "gastos_legado_2026_09": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "gastos_viaje": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "gastos_viaje_ordenes": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -500,6 +545,11 @@
   "rls": true
  },
  "insumos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "intentos_con_token": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -569,7 +619,32 @@
   "relkind": "r",
   "rls": true
  },
+ "orden_insumo_cierres": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "orden_insumo_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "orden_insumo_recepciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "orden_insumo_versiones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "ordenes_compra": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "ordenes_insumo": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -744,6 +819,16 @@
   "relkind": "r",
   "rls": true
  },
+ "rendicion_fondo_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "rendiciones_fondo": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "respaldo_b001_f001_renumeradas_20261007": {
   "forzado": false,
   "relkind": "r",
@@ -875,6 +960,11 @@
   "rls": true
  },
  "transferencias": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "traslado_sobrantes": {
   "forzado": false,
   "relkind": "r",
   "rls": true

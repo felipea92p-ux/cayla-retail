@@ -1,8 +1,32 @@
-# Órdenes de compra — estado vivo (2026-10-13, 13:00)
+# Órdenes de compra — estado vivo (2026-10-15)
 
-> Felipe NO cambió de cuenta: la misma sesión siguió (worktree `.claude/worktrees/rediseno-modulo-colaboradores-c962d9`). **Esta sección
-> manda sobre todo lo de abajo.** Las decisiones 1–64 viven en `docs/adr/0362-ordenes-de-compra-y-despacho-a-sedes.md`. Avance: **~76 de
-> 100** (pesos 15/20/12/15/10/18/10; la fase 7 parte 1 ya está en producción).
+> **Esta sección manda sobre todo lo de abajo**, que queda como historia. Las decisiones 1–88 viven en
+> `docs/adr/0362-ordenes-de-compra-y-despacho-a-sedes.md`. Avance: **~100 de 100** (pesos 15/20/12/15/10/18/10): la fase 5b, la última de los
+> pesos, está en producción desde el 2026-10-15 y falta fusionar su PR. Lo que sigue en «Falta» no entraba en los pesos.
+
+## Estado al 2026-10-15
+
+- **En `main` y en producción:** las fases 1, 2, 3, 4, 5a, 6 (PR #1055, con los cambios de /formidable de Fondos en #1088) y 7 completa:
+  la parte 1 (la orden de insumos, #1019) y la parte 2 (el papel y la recepción en el Taller, **#1098, fusionado el 2026-10-15**; sus
+  siete migraciones `20261015015000` … `20261015043000` y `20261015112000`, pegadas en orden y una sola vez, con las huellas iguales al
+  banco). Detalle de la 7.2: ADR-0362, «Fase 7, parte 2», y `contrato-ordenes-de-insumos.md`.
+- **Fase 5b, la plata de «Nos debe»** (decisiones 14, 24, 27 y 58–61): construida en la rama `claude/purchase-order-phase5b-9b0c82`
+  (PR #1120, **sin fusionar**) y sus dos migraciones en producción desde el 2026-10-15 (`20261015145000` y `20261015150000`; allá
+  `20261015233508` y `20261015234146`, con las huellas iguales al banco). Detalle: ADR-0362, «Fase 5b», y `contrato-nos-debe.md`.
+- **Decisión 64 («Fijar un mínimo» del Plan con el módulo):** hecha el 2026-10-15 (`20261015141000`, con `pruebas:plan-compra-minimo`) y
+  en producción (allá `20261015141027`, huella igual al banco); además, el plan se bloquea al sumar los mínimos, para que dos personas a la
+  vez no pasen del 100 %.
+- **Falta:**
+  - De la fase 5b: los 3 cambios de `/formidable` (otro PR, después de la prueba ciega), el contador para la cuenta puente 4019, y el
+    refresco del volcado de producción (21 tablas nuevas, 19 de otros módulos que necesitan su pájaro en el aviario).
+  - La lista de compras del Taller desde la orden de producción (decisión 62: después).
+  - De Felipe, transversales: la coma decimal y el piso y techo de las fechas (los g2 de /chaos de la fase 7.2).
+  - Pruebas con personas: repetir las ciegas sobre lo nuevo y probar con alguien del Taller que no hizo la orden.
+
+## Historia: el estado del 2026-10-13 (13:00)
+
+> Felipe NO cambió de cuenta: la misma sesión siguió (worktree `.claude/worktrees/rediseno-modulo-colaboradores-c962d9`). Las decisiones
+> 1–64 vivían en el ADR-0362. Avance de entonces: ~76 de 100 (la fase 7 parte 1 ya estaba en producción).
 
 ## En producción (pegado y verificado por huella contra el banco)
 
@@ -76,7 +100,8 @@ oscuro, 375 px, caos con plata, /formidable.
 **Fase 5b · la plata de «Nos debe» (≈4)** — contrato `contrato-nos-debe.md`; decisiones 14, 24, 27 y 58–61. Cuatro actividades:
 (1) «Pasar a saldo a favor»: documento interno ya, marcado «falta su nota de crédito» hasta que llegue la nota del proveedor (58; boleta,
 nota de venta o sin comprobante: interno sin IGV); (2) «Depositó» desde la ficha del proveedor, con el módulo Proveedores (59); (3) devolver
-una dañada al proveedor desde la cuarentena, la hace quien tiene Recibir (no solo el líder), queda como deuda «por reponer» (60);
+una dañada al proveedor desde la cuarentena, la hace quien tiene Existencias (no solo el líder; Felipe 2026-10-15: solo lo que llegó
+dañado en una recepción, el grupo entero), queda como deuda «por reponer» (60);
 (4) aviso del IGV en Inicio que no se oculta (61). Ojo: hoy el saldo a favor solo nace de una nota de crédito (`proveedor_creditos`); el
 documento interno es una forma nueva y hay que cuidar el signo de `fn_saldo_favor_proveedor` y el Balance (ver el contrato).
 

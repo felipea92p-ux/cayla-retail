@@ -203,7 +203,7 @@ export function PorRegularizarLista({
                 aria-label={orden.dir === "desc" ? "Ordenadas de la más reciente a la más antigua. Cambiar a la más antigua primero" : "Ordenadas de la más antigua a la más reciente. Cambiar a la más reciente primero"}
                 className="inline-flex h-8 items-center gap-1.5 rounded-md border border-sand bg-papel px-2.5 text-xs text-tinta transition-colors hover:bg-hueso"
               >
-                {orden.dir === "asc" ? <CalendarArrowUp aria-hidden strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0" /> : <CalendarArrowDown aria-hidden strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0" />}
+                {orden.dir === "asc" ? <CalendarArrowUp aria-hidden className="h-3.5 w-3.5 shrink-0" /> : <CalendarArrowDown aria-hidden className="h-3.5 w-3.5 shrink-0" />}
                 <span className="hidden md:inline">{orden.dir === "desc" ? "Recientes" : "Antiguas"}</span>
               </button>
               <DesplegablePildora

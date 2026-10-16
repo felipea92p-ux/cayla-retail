@@ -22,7 +22,20 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
-export function PorPagarProduccionPanel({ sede, comprobantes, deuda, igv, hoy }: { sede: string; comprobantes: ComprobanteProduccion[]; deuda: DeudaFila[]; igv: IgvMes | null; hoy: string }) {
+export function PorPagarProduccionPanel({
+  comprobantes,
+  deuda,
+  igv,
+  hoy,
+  sede,
+}: {
+  comprobantes: ComprobanteProduccion[];
+  deuda: DeudaFila[];
+  igv: IgvMes | null;
+  hoy: string;
+  /** La sede de la línea de arriba de la cabecera (el Taller). */
+  sede: string;
+}) {
   const [pagando, setPagando] = useState<ComprobanteProduccion | null>(null);
   const tramos = tramosPorPagar(comprobantes, hoy);
   const totalPorPagar = tramos.reduce((s, t) => s + t.monto, 0);
@@ -33,6 +46,7 @@ export function PorPagarProduccionPanel({ sede, comprobantes, deuda, igv, hoy }:
 
   return (
     <div className="space-y-6">
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
       <EncabezadoPagina
         sede={sede}
         titulo="Por pagar"

@@ -34,6 +34,7 @@ import {
   leerResultadoRecepcion,
   lineasParaBase,
   mensajeDeLaRecepcion,
+  TEXTO_ENVIO_SIN_ABRIR,
   matrizDe,
   costoDeReposicion,
   opcionesSobrante,
@@ -749,8 +750,13 @@ const TALLAS = [
 const CTX_NUEVA: ContextoPrenda = { modo: "nueva", tallas: TALLAS, exigeTejidoPatron: false, tejidos: [], patrones: [] };
 
 describe("la hoja «Es nueva»", () => {
-  it("viene con las tallas habituales y el precio que sugirió quien compró", () => {
-    expect(borradorDePrenda(CTX_NUEVA, { precioSugerido: 59.9 })).toEqual({ nombre: "", tallaIds: ["t-s", "t-m"], colorCodigos: [], precio: "59.90", descripcion: "", tejidoId: "", patronId: "" });
+  it("arranca SIN tallas marcadas (se marcan las que llegaron) y con el precio que sugirió quien compró (Felipe 2026-10-13)", () => {
+    expect(borradorDePrenda(CTX_NUEVA, { precioSugerido: 59.9 })).toEqual({ nombre: "", tallaIds: [], colorCodigos: [], precio: "59.90", descripcion: "", tejidoId: "", patronId: "" });
+    expect(camposDePrenda(borradorDePrenda(CTX_NUEVA), CTX_NUEVA).find((c) => c.id === "prenda-tallas")).toMatchObject({
+      requerido: true,
+      hecho: false,
+      pendiente: "Marca las tallas que llegaron.",
+    });
     expect(borradorDePrenda(CTX_NUEVA).precio).toBe("");
   });
 
@@ -767,7 +773,7 @@ describe("la hoja «Es nueva»", () => {
 
   it("si la familia los pide, tejido y patrón de la categoría; sin ellos habilitados, lo dice", () => {
     const ctx: ContextoPrenda = { ...CTX_NUEVA, exigeTejidoPatron: true, tejidos: [{ id: "tj", texto: "Algodón" }], patrones: [] };
-    const b = { ...borradorDePrenda(ctx), nombre: "Chompa", precio: "50", tejidoId: "tj" };
+    const b = { ...borradorDePrenda(ctx), nombre: "Chompa", tallaIds: ["t-m"], precio: "50", tejidoId: "tj" };
     const pendientes = camposDePrenda(b, ctx).filter((c) => c.requerido && !c.hecho);
     expect(pendientes.map((c) => c.id)).toEqual(["prenda-patron"]);
     expect(pendientes[0]!.pendiente).toMatch(/no tiene patrones habilitados/);
@@ -776,7 +782,7 @@ describe("la hoja «Es nueva»", () => {
   it("el precio de venta: obligatorio y mayor que 0 al crear; opcional al sumar tallas o colores", () => {
     expect(leerPrecioVenta("59.90", true)).toEqual({ centimos: 5990, problema: null });
     expect(leerPrecioVenta("", true).problema).toBe("Escribe el precio de venta.");
-    expect(leerPrecioVenta("0", true).problema).toBe("El precio de venta tiene que ser mayor que S/ 0.");
+    expect(leerPrecioVenta("0", true).problema).toBe("El precio de venta tiene que ser mayor que S/\u00a00.");
     expect(leerPrecioVenta("", false)).toEqual({ centimos: null, problema: null });
   });
 
@@ -794,6 +800,10 @@ describe("la hoja «Es nueva»", () => {
     ]);
     const nombres: Record<string, string> = { NE: "Negro", BL: "Blanco" };
     expect(textoDeLoQueSeCrea(b, CTX_NUEVA, (c) => nombres[c] ?? c)).toBe("Se crean 4 combinaciones: S y M en Negro y Blanco.");
+    // Sin tallas marcadas no dice «1 combinación: Única» (la talla es obligatoria): no dice nada hasta que se marque una.
+    expect(textoDeLoQueSeCrea({ ...b, tallaIds: [] }, CTX_NUEVA, (c) => nombres[c] ?? c)).toBeNull();
+    // Una categoría sin tallas (un accesorio) sí: «Única».
+    expect(textoDeLoQueSeCrea({ ...b, tallaIds: [], colorCodigos: [] }, { ...CTX_NUEVA, tallas: [] }, (c) => c)).toBe("Se crea 1 combinación: Única.");
   });
 
   it("los argumentos: una línea del envío no manda categoría ni marca; algo fuera de la guía sí", () => {
@@ -895,13 +905,15 @@ describe("la forma de la base de la fase 4", () => {
 
   it("el costo y el precio de venta van hasta S/ 99 999.99, como la base", () => {
     expect(leerCosto("99999.99").problema).toBeNull();
-    expect(leerCosto("100000").problema).toBe("El costo va hasta S/ 99,999.99.");
-    expect(leerPrecioVenta("100000", true).problema).toBe("El precio va hasta S/ 99,999.99.");
+    expect(leerCosto("100000").problema).toBe("El costo va hasta S/\u00a099,999.99.");
+    expect(leerPrecioVenta("100000", true).problema).toBe("El precio va hasta S/\u00a099,999.99.");
   });
 
   it("los avisos de la fase se dicen tal cual (también los que llegan con 42501); los demás siguen su camino", () => {
     expect(mensajeDeLaRecepcion({ hint: "recibir_otra_sede", message: "Este envío va a Tienda Lima: lo recibe esa tienda" })).toBe("Este envío va a Tienda Lima: lo recibe esa tienda");
     expect(mensajeDeLaRecepcion({ hint: "recibir_quien_compro", message: "Hiciste esta orden: la tiene que recibir otra persona de la tienda" })).toBe(TEXTO_QUIEN_COMPRO);
+    // La base todavía nombra el botón de la fase 4; la pantalla dice lo que sirve en las dos caras.
+    expect(mensajeDeLaRecepcion({ hint: "envio_sin_abrir", message: "Este envío todavía no se abrió: pulsa «Empezar a recibir»" })).toBe(TEXTO_ENVIO_SIN_ABRIR);
     expect(mensajeDeLaRecepcion({ hint: "recepcion_faltante_causa", message: "Faltan 2 de Chompas: elige qué pasó" })).toBe("Faltan 2 de Chompas: elige qué pasó");
     expect(mensajeDeLaRecepcion({ hint: "envio_ya_recibido", message: "Este envío ya se recibió" })).toBe("Este envío ya se recibió");
     expect(mensajeDeLaRecepcion({ hint: "recibir_sin_modulo", message: "x" })).toBeNull();
@@ -912,14 +924,13 @@ describe("la forma de la base de la fase 4", () => {
 });
 
 describe("lo que viene puesto se revisa (ADR-0284 act. h)", () => {
-  it("las tallas de siempre y el precio sugerido son «sugeridos» hasta que se tocan: la luz pasa por ellos y no bloquean", () => {
-    const b = { ...borradorDePrenda(CTX_NUEVA, { precioSugerido: 59.9 }), nombre: "Chompa Aurora" };
+  it("el precio sugerido es «sugerido» hasta que se toca (la luz pasa y no bloquea); las tallas no vienen puestas: marcadas, están hechas", () => {
+    const b = { ...borradorDePrenda(CTX_NUEVA, { precioSugerido: 59.9 }), nombre: "Chompa Aurora", tallaIds: ["t-s", "t-m"] };
     const antes = camposDePrenda(b, CTX_NUEVA);
-    expect(antes.find((c) => c.id === "prenda-tallas")).toMatchObject({ requerido: false, sugerido: true, hecho: false });
+    expect(antes.find((c) => c.id === "prenda-tallas")).toMatchObject({ requerido: true, hecho: true });
     expect(antes.find((c) => c.id === "prenda-precio")).toMatchObject({ requerido: false, sugerido: true, hecho: false });
     expect(antes.filter((c) => c.requerido && !c.hecho)).toEqual([]);
-    const despues = camposDePrenda(b, CTX_NUEVA, { tallas: true, precio: true });
-    expect(despues.find((c) => c.id === "prenda-tallas")).toMatchObject({ requerido: true, hecho: true });
+    const despues = camposDePrenda(b, CTX_NUEVA, { precio: true });
     expect(despues.find((c) => c.id === "prenda-precio")).toMatchObject({ requerido: true, hecho: true });
   });
 

@@ -101,7 +101,7 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
               <p className="op-fase-detalle">{t.detalle}</p>
               {servicio && fase.tarifaPrenda !== null && fase.estado !== "hecha" && (
                 <p className="op-fase-detalle">
-                  S/ {fase.tarifaPrenda.toFixed(2)} por prenda{fase.fijoOrden > 0 ? ` + S/ ${fase.fijoOrden.toFixed(2)} fijo` : ""}
+                  S/&nbsp;{fase.tarifaPrenda.toFixed(2)} por prenda{fase.fijoOrden > 0 ? ` + S/\u00a0${fase.fijoOrden.toFixed(2)} fijo` : ""}
                 </p>
               )}
               {aviso && (

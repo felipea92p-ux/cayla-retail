@@ -228,7 +228,13 @@ export function OrdenesLista({
           <div data-resultados>
             {visibles.length === 0 ? (
               hayFiltro ? (
-                <Vacio tamano="chico" icono={<FunnelX />} accion={{ texto: "Quitar los filtros", onClick: quitarFiltros }} className="py-5">
+                // El verbo es «Limpiar» + qué, nunca «Quitar filtros» (ADR-0358, accion.limpiar): si lo único puesto es la búsqueda, se borra la búsqueda.
+                <Vacio
+                  tamano="chico"
+                  icono={<FunnelX />}
+                  accion={{ texto: fase === null && filtro === "todas" ? "Borrar la búsqueda" : "Limpiar filtros", onClick: quitarFiltros }}
+                  className="py-5"
+                >
                   Ninguna orden coincide con lo que elegiste.
                 </Vacio>
               ) : (

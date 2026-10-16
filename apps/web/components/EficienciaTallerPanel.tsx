@@ -41,7 +41,18 @@ function Variacion({ actual, anterior }: { actual: number | null; anterior: numb
   return <>{v > 0 ? "▲" : "▼"} {pct(Math.abs(v))} {v > 0 ? "más" : "menos"} que el período anterior</>;
 }
 
-export function EficienciaTallerPanel({ sede, periodos, estadoPlanilla, hayGastos }: { sede: string; periodos: EficienciaPeriodo[]; estadoPlanilla: EstadoPlanilla; hayGastos: boolean }) {
+export function EficienciaTallerPanel({
+  periodos,
+  estadoPlanilla,
+  hayGastos,
+  sede,
+}: {
+  periodos: EficienciaPeriodo[];
+  estadoPlanilla: EstadoPlanilla;
+  hayGastos: boolean;
+  /** La sede de la línea de arriba de la cabecera (el Taller). */
+  sede: string;
+}) {
   const [clave, setClave] = useState(periodos[0]?.ventana.clave ?? "");
   const i = Math.max(0, periodos.findIndex((p) => p.ventana.clave === clave));
   const actual = periodos[i];
@@ -50,14 +61,16 @@ export function EficienciaTallerPanel({ sede, periodos, estadoPlanilla, hayGasto
 
   return (
     <div className="space-y-6">
-      {/* «Hoy | Eficiencia»: las dos miradas del líder sobre el Taller (ADR-0133, F6 y F7), con la pestaña de vista del sistema
-          (ADR-0358). Eficiencia NO es una fila del lateral (el menú de Producción está en su tope de hijas): se llega desde aquí. */}
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). Eficiencia es una pestaña del Resumen, no una fila
+          del menú: su título es el nombre de la pestaña y lo suyo va en la frase. */}
       <EncabezadoPagina
         sede={sede}
         titulo="Eficiencia"
         subtitulo="Cuánto cuesta de verdad cada prenda que sale del Taller: la tela, los avíos y los servicios de afuera de lo que pasó al stock, más lo que cuesta transformarlo —la planilla y los gastos del Taller— repartido entre las prendas buenas."
       />
 
+      {/* «Hoy | Eficiencia»: las dos miradas del líder sobre el Taller (ADR-0133, F6 y F7), con la pestaña de vista del sistema
+          (ADR-0358). Eficiencia NO es una fila del lateral (el menú de Producción está en su tope de hijas): se llega desde aquí. */}
       <Pestanas
         etiquetaAccesible="Miradas del Taller"
         idIndicador="produccion-miradas"
@@ -68,6 +81,7 @@ export function EficienciaTallerPanel({ sede, periodos, estadoPlanilla, hayGasto
           { clave: "eficiencia", etiqueta: "Eficiencia", href: "/produccion/eficiencia", ayuda: "Cuánto cuesta cada prenda" },
         ]}
       />
+
       {estadoPlanilla === "sin_vista" && (
         <p data-guia="prod-eficiencia.aviso-planilla" className="rounded-md bg-sand/60 px-3 py-2.5 text-sm text-tinta/80">
           Todavía no se puede leer la planilla del Taller. Mientras tanto se muestran los materiales por prenda; el costo completo aparecerá solo cuando se pueda leer.

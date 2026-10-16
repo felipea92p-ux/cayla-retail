@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Printer, Trash2, X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { Volver } from "@/components/ui/Volver";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ComboBuscable, type OpcionCombo } from "@/components/ui/ComboBuscable";
@@ -22,6 +22,7 @@ import {
   type ModeloRotulo,
 } from "@/lib/rotulos-reglas";
 import type { ModeloElegible } from "@/lib/rotulos";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 /** Un doble clic en una × no se lleva también la ficha que se corre a ocupar su lugar. */
@@ -163,10 +164,9 @@ export function ImprimirRotulos({
     // La guía interactiva enciende los dos botones juntos (ADR-0389): el mismo flex que pone la cabecera, para que se vean igual.
     <div data-guia="rotulos.imprimir" className="flex flex-wrap items-center gap-x-3 gap-y-2.5">
       <BotonGuiaImpresion />
-      <button type="button" className="btn-cayla btn-primario" disabled={total === 0 || enviando || recorriendo !== null} onClick={mandar}>
-        <Printer aria-hidden className="h-4 w-4" />
-        {total === 0 ? "Nada que imprimir" : recorriendo || enviando ? "Imprimiendo…" : `Imprimir ${plural(total, "rótulo", "rótulos")}`}
-      </button>
+      <BotonImprimir peso="primario" cargando={Boolean(recorriendo || enviando)} disabled={total === 0} onClick={mandar}>
+        {total === 0 ? "Nada que imprimir" : `Imprimir ${plural(total, "rótulo", "rótulos")}`}
+      </BotonImprimir>
     </div>
   );
 

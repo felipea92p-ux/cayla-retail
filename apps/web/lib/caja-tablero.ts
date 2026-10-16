@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { apartadoDeFila, estadoVisible, ORDEN_ESTADO, type ClaveEstado } from "@/lib/separaciones-reglas";
 import { getGastosDeUbicacion } from "@/lib/gastos";
+import { tieneComprobante } from "@/lib/gastos-reglas";
 import { getDevolucionesPendientes } from "@/lib/devoluciones";
 import { getTrasladosPorAtender } from "@/lib/traslados";
 import { diaYHoraLima } from "@/lib/fechas-lima";
@@ -131,7 +132,8 @@ async function leerGastos(ubicacionId: string, hoy: string, movimientos: readonl
       categoria: g.categoriaNombre,
       hora: delCajon(g) ? (horaDe.get(g.cajaMovimientoId!) ?? "") : g.creadoEn ? diaYHoraLima(g.creadoEn).hora : "",
       monto: g.montoTotal,
-      conComprobante: g.comprobanteTipo !== "sin_comprobante",
+      // Un gasto del viaje trae su papel de su ficha: la planilla de movilidad es «sin comprobante»; un ticket, no.
+      conComprobante: tieneComprobante(g.comprobanteTipo),
       medio: delCajon(g) ? null : (g.medioPago as "yape" | "plin"),
     }));
   const suma = (filas: GastoCaja[]) => Math.round(filas.reduce((s, g) => s + g.monto, 0) * 100) / 100;
@@ -155,7 +157,7 @@ async function leerPosventa(cajaId: string): Promise<ContextoTableroCaja["posven
         en: c.created_at,
         tipo: "cambio" as const,
         hora: diaYHoraLima(c.created_at).hora,
-        texto: dif === 0 ? "Cambio · sin diferencia de precio" : `Cambio · ${dif > 0 ? "pagó" : "se le devolvió"} S/ ${Math.abs(dif).toFixed(2)}`,
+        texto: dif === 0 ? "Cambio · sin diferencia de precio" : `Cambio · ${dif > 0 ? "pagó" : "se le devolvió"} S/\u00a0${Math.abs(dif).toFixed(2)}`,
         efectivo,
       };
     }),
@@ -167,7 +169,7 @@ async function leerPosventa(cajaId: string): Promise<ContextoTableroCaja["posven
         en: d.created_at,
         tipo: "devolucion" as const,
         hora: diaYHoraLima(d.created_at).hora,
-        texto: monto > 0 ? `Devolución · S/ ${monto.toFixed(2)} por ${d.reembolso_metodo ?? "—"}` : "Devolución · sin reembolso",
+        texto: monto > 0 ? `Devolución · S/\u00a0${monto.toFixed(2)} por ${d.reembolso_metodo ?? "—"}` : "Devolución · sin reembolso",
         efectivo,
       };
     }),

@@ -196,8 +196,16 @@ describe("cerrar con diferencia", () => {
     const top = linea({ varianteId: "t1", referencia: "Top Aurora", talla: "M", color: "Negro", cantidadEnviada: 1, cantidadRecibida: 2 });
     const c = consecuenciaCierre([jean, { ...BLUSA, cantidadRecibida: 0 }, top], {}, { destino: "piso_venta", sede: "Tienda Lima" });
     expect(c.perdidas).toBe("Se dan por perdidas 3 prendas: Jean Mom 30 azul (2), Blusa Valentina S blanco (1).");
-    expect(c.deMas).toBe("Llegó 1 prenda de más y también entra: Top Aurora M negro.");
-    expect(c.entran).toBe("Entran 3 prendas al piso de venta de Tienda Lima.");
+    // ADR-0404: del top entra lo enviado (1); el de más queda por revisar, fuera del stock.
+    expect(c.deMas).toBe("Queda por revisar 1 prenda de más, sin entrar al stock: Top Aurora M negro.");
+    expect(c.entran).toBe("Entran 2 prendas al piso de venta de Tienda Lima.");
+  });
+
+  it("una prenda que no venía en la caja no entra: queda entera por revisar", () => {
+    const nueva = linea({ varianteId: "n1", referencia: "Falda Ariana", talla: "M", color: "Rosado", cantidadEnviada: null, cantidadRecibida: 2 });
+    const c = consecuenciaCierre([{ ...VESTIDO, cantidadRecibida: 2 }, nueva], {}, { destino: "piso_venta", sede: "Tienda Lima" });
+    expect(c.entran).toBe("Entran 2 prendas al piso de venta de Tienda Lima.");
+    expect(c.deMas).toBe("Quedan por revisar 2 prendas de más, sin entrar al stock: Falda Ariana M rosado (2).");
   });
 
   it("la nota y el motivo son obligatorios", () => {

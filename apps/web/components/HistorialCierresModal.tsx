@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { CalendarX, CircleCheck, Clock } from "lucide-react";
 import { leerCierresDelMes } from "@/app/actions/caja";
 import { Aviso } from "@/components/ui/Aviso";
-import { Modal } from "@/components/ui/Modal";
+import { ANCHO_HOJA, Modal } from "@/components/ui/Modal";
 import { SelectorMes } from "@/components/ui/SelectorMes";
 import { Vacio } from "@/components/ui/Vacio";
 import { Volver } from "@/components/ui/Volver";
@@ -14,11 +13,12 @@ import { GraficoCierresDelMes } from "@/components/GraficoCierresDelMes";
 import type { CierreCaja } from "@/lib/caja";
 import { NOMBRES_MES, esMismoMes, type Mes } from "@/lib/facturacion-reglas";
 import { bloqueFecha, diaDeLima, duracionTurno, estadoCierre, filtrarCierres, mesDeLima, resumirCierres, type EstadoCierre, type FiltroCierres } from "@/lib/historial-cierres-reglas";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 const claveMes = ({ anio, mes }: Mes) => `${anio}-${mes}`;
 
 function money(n: number) {
-  return (n >= 0 ? "S/ " : "-S/ ") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n >= 0 ? "S/\u00a0" : "-S/\u00a0") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function hora(iso: string) {
@@ -146,7 +146,7 @@ export function HistorialCierresModal({
       }
       onClose={onClose}
       // La hoja crece (o se encoge) al pasar de la lista al detalle con el mismo ritmo de las demás: `ease-cayla`, sin rebote.
-      ancho={`${abierto ? ANCHO_DETALLE_CIERRE : "max-w-xl"} transition-[max-width] duration-300 ease-cayla motion-reduce:transition-none`}
+      ancho={`${abierto ? ANCHO_DETALLE_CIERRE : ANCHO_HOJA.mediana} transition-[max-width] duration-300 ease-cayla motion-reduce:transition-none`} /* unificar-fijo: crece de mediana a ancha al abrir un cierre, con su transición */
       arriba={
         abierto ? (
           <div className="mb-3 flex items-center gap-2.5 pr-10">
@@ -220,9 +220,7 @@ export function HistorialCierresModal({
         )}
         <div data-guia="caja.historial-pie" className="flex items-center justify-between gap-3 pt-3">
           <p className="text-xs text-tinta/60">{cierres.length > 0 ? "Toca un ticket o una barra para ver su detalle" : ""}</p>
-          <Link href="/caja/historial" className="label-cayla text-[11px] text-rojo hover:text-rojo-profundo">
-            Ver todas las sedes →
-          </Link>
+          <EnlaceVer href="/caja/historial">Ver todas las sedes</EnlaceVer>
         </div>
       </div>
       {abierto && <DetalleCierreContenido cierre={abierto} detalle={detalle} cargando={cargando} error={error} />}

@@ -125,12 +125,12 @@ describe("los textos", () => {
   });
 
   it("tarifa, mínimo y fijo", () => {
-    expect(textoTarifa(t())).toBe("S/ 4.50 por prenda");
+    expect(textoTarifa(t())).toBe("S/\u00a04.50 por prenda");
     expect(textoMinimo(t())).toBe("Sin mínimo");
     expect(textoMinimo(t({ cantidadMinima: 1 }))).toBe("Desde 1 prenda");
     expect(textoMinimo(t({ cantidadMinima: 50 }))).toBe("Desde 50 prendas");
     expect(textoFijo(t())).toBeNull();
-    expect(textoFijo(t({ fijoOrden: 12.5 }))).toBe("+ S/ 12.50 por orden");
+    expect(textoFijo(t({ fijoOrden: 12.5 }))).toBe("+ S/\u00a012.50 por orden");
   });
 
   it("la vigencia dice hoy, ayer o el día", () => {
@@ -140,7 +140,7 @@ describe("los textos", () => {
   });
 
   it("el aviso de éxito nombra al servicio, la fase y la tarifa", () => {
-    expect(textoTarifaGuardada("Confecciones del Norte", "costura", 4.5)).toBe("Tarifa de Confecciones del Norte para Costura: S/ 4.50 por prenda");
+    expect(textoTarifaGuardada("Confecciones del Norte", "costura", 4.5)).toBe("Tarifa de Confecciones del Norte para Costura: S/\u00a04.50 por prenda");
   });
 });
 
@@ -149,18 +149,18 @@ describe("textoDeLoQueSeReemplaza", () => {
 
   it("una tarifa de antes queda como historia y la nueva rige desde hoy", () => {
     expect(textoDeLoQueSeReemplaza(vigente({ vigente_desde: "2026-10-01" }), "2026-10-15", true)).toBe(
-      "Ahora cobra S/ 4.50 por prenda, desde 50 prendas. Rige desde el " + textoVigencia({ vigenteDesde: "2026-10-01" }, "2026-10-15").slice("Desde el ".length) + ". La nueva rige desde hoy y esta queda guardada como historia.",
+      "Ahora cobra S/\u00a04.50 por prenda, desde 50 prendas. Rige desde el " + textoVigencia({ vigenteDesde: "2026-10-01" }, "2026-10-15").slice("Desde el ".length) + ". La nueva rige desde hoy y esta queda guardada como historia.",
     );
   });
 
   it("una tarifa cargada hoy se corrige, no se archiva", () => {
     expect(textoDeLoQueSeReemplaza(vigente({ vigente_desde: "2026-10-15", cantidad_minima: null, fijo_orden: 12.5 }), "2026-10-15", true)).toBe(
-      "Ahora cobra S/ 4.50 por prenda, + S/ 12.50 por orden. Como se cargó hoy, lo que guardes la corrige.",
+      "Ahora cobra S/\u00a04.50 por prenda, + S/\u00a012.50 por orden. Como se cargó hoy, lo que guardes la corrige.",
     );
   });
 
   it("al agregar sobre una fase que ya tiene precio, avisa cuál reemplaza", () => {
-    expect(textoDeLoQueSeReemplaza(vigente({ vigente_desde: "2026-10-14" }), "2026-10-15", false)).toMatch(/^Ya tiene una tarifa en Costura: S\/ 4\.50 por prenda, desde 50 prendas\. Rige desde ayer\./);
+    expect(textoDeLoQueSeReemplaza(vigente({ vigente_desde: "2026-10-14" }), "2026-10-15", false)).toMatch(/^Ya tiene una tarifa en Costura: S\/\u00a04\.50 por prenda, desde 50 prendas\. Rige desde ayer\./);
   });
 });
 

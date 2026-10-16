@@ -97,7 +97,7 @@ export function ArbolCategoria({
             {elegida.prefijo && <p className="text-xs text-tinta/60">Código empieza con {elegida.prefijo}-</p>}
           </div>
         </div>
-        <button type="button" onClick={onCambiar} className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo">
+        <button type="button" onClick={onCambiar} className="btn-cayla btn-enlace text-xs">
           Cambiar
         </button>
       </div>
@@ -196,7 +196,7 @@ export function ArbolCategoria({
                 <path d={verTodas ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"} />
               </svg>
               <span className="min-w-0">
-                <span className="block text-sm font-medium leading-tight">{verTodas ? "Ver menos" : "Ver más"}</span>
+                <span className="block text-sm font-medium leading-tight">{/* unificar-fijo: una tecla más entre las tarjetas de familia (dice lo que esconde), no el pie de una lista */}{verTodas ? "Ver menos" : "Ver más"}</span>
                 {/* Los nombres de lo escondido, no «3 más»: quien busca zapatos tiene que leer «Calzado» para saber dónde tocar. */}
                 <span className="line-clamp-2 text-xs text-tinta/55" title={nombresOcultos}>
                   {verTodas ? "Solo las principales" : nombresOcultos}

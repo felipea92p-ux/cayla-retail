@@ -1,19 +1,23 @@
 # Cómo seguir con `/unificar` desde otra sesión
 
-Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`), el 2026-10-09 con la ronda 5b, la barra apilada (rama `claude/keen-feistel-35a4cb`), el 2026-10-12 con las rondas 6 y 7 armadas y el 2026-10-13 con las rondas 6, 7 y 8 decididas y migradas (rama `claude/unificar-componentes-animaciones-f811a1`). Es el punto de partida para la próxima sesión: qué está
+Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`), el 2026-10-09 con la ronda 5b, la barra apilada (rama `claude/keen-feistel-35a4cb`), el 2026-10-12 con las rondas 6 y 7 armadas, el 2026-10-13 con las rondas 6, 7 y 8 decididas y migradas (rama `claude/unificar-componentes-animaciones-f811a1`, PR #1026, fusionado el mismo día) y sus herramientas de migración en el repo (rama `claude/unificar-herramientas-deuda`), y ese mismo día con la ronda 9 —las seis que quedaron abiertas— y la ronda 10 —descargar, filtros y ver en otra pantalla— decididas y migradas, más el censo del mostrador rastreado al código, y el 2026-10-14 con la ronda 11 —cancelar, limpiar e imprimir— decidida y migrada (rama `claude/mystifying-jang-ef15d0`) y, ese mismo día, los pendientes antes de la ronda 12 —la cabecera de todas las pantallas, «Etiquetas», el «Ver» de Caja, Nueva compra a 1440 px y los contrastes heredados del claro— (rama `claude/unificar-ronda-12`), y ese mismo día la ronda 12 —guardar, editar y las hojas— decidida y migrada (misma rama), y el 2026-10-15 con la ronda 13 —la barra de avance, el anillo, copiar y el menú «Más»— decidida y migrada (rama `claude/unificar-ronda-13`) y la ronda 14 —la línea, las barras por tiempo, la barra a escala y la dona— decidida y migrada (rama `claude/unificar-ronda-14`), y la ronda 15 —los íconos, el globito con número, «Ver más», «Deshacer» y «Buscar»— decidida y migrada (rama `claude/unificar-ronda-15`). Es el punto de partida para la próxima sesión: qué está
 decidido, qué falta, cómo se trabaja y lo que se aprendió en el camino. **Léelo antes de abrir la skill** (`/unificar`) y mantenlo al día
 al cerrar cada ronda: la próxima sesión no ve esta conversación.
 
 **Para arrancar, pega esto en la sesión nueva:**
 
-> Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md` y `docs/unificar/README.md`. Las rondas 6, 7 y 8 están decididas y
-> migradas (deuda 258 → 4). Muéstrame las seis decisiones que quedaron abiertas (README, «La migración de las rondas 6–8») y, cuando
-> responda, ciérralas; después arma la ronda siguiente del tablero («Por analizar»).
+> Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md`, `docs/unificar/README.md` y `docs/unificar/MIGRAR.md`. Las rondas 1 a 15
+> están decididas y migradas (deuda 0 en todas las familias; quedan sin decisión solo `estado`, que tiene pieza pero no candado, `grafico`,
+> ya repartida en sus familias, y `accion.anterior`, que no tiene nada que decidir). Arma la ronda 16, de cierre: el candado de `estado`
+> (las 7 píldoras-etiqueta a mano), la pregunta del trazo del marco (lateral y cabecera en 1,5: ¿pasan a 2?), «Cómo cerró cada día» si
+> Felipe la quiere con la pieza, y el arreglo del escáner de guías para las piezas que se cierran solas. Antes de levantar el servidor, mira
+> el disco (`df -h /`) y el tamaño de `apps/web/.next/dev/cache`.
 
 ## Dónde quedó
 
-Doce familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelante, **tocando** demos vivas), migradas y vigiladas por
-`lib/unificar.test.ts`. **Las once con candado están en deuda 0** (la de la ronda 5b, `grafico.barra`, se migró entera el mismo día en que se decidió).
+Treinta y dos familias decididas por Felipe (las últimas, `accion.guardar`, `accion.editar` y `modal`, el 2026-10-14), todas **mirando** (y de la ronda 3 en adelante, **tocando** demos vivas), migradas y vigiladas
+por `lib/unificar.test.ts`. **Todas las que tienen candado están en deuda 0** desde la ronda 9 (2026-10-13), también tras las rondas 10 y
+11. La tabla de abajo es la de las rondas 1–5b; las de las rondas 6–11 están en el tablero (`README.md`) y en «Piezas únicas» de `CLAUDE.md`.
 
 | Ronda | Familia | La pieza | Registro |
 |---|---|---|---|
@@ -33,13 +37,209 @@ Doce familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelan
 
 Lo mismo, en corto, está en la tabla «Piezas únicas» de `CLAUDE.md`, que es lo que lee cualquier sesión que construya una pantalla.
 
+## Ronda 15 (2026-10-15): los íconos, el globito con número, «Ver más», «Deshacer» y «Buscar», decididos y migrados
+
+Medí los íconos en el código (922 en 320 archivos) y en 95 pantallas con un medidor rápido sin fotos (`rondas/15/medir.mjs`; el censo
+completo se cortó al caerse el servidor). La página mostró siete pantallas reales con cada propuesta aplicada **en vivo** (un CSS y un
+script que solo cambian el dibujo) y una fila de íconos aumentados tres veces. Felipe eligió **las cinco P1**: el grosor de fábrica (2) y
+cuatro tamaños según el lugar (12 · 14 · 16 · 20); `<Globito>`; `<BotonVerMas>` + `<FilasDeMas>`; `<BotonDeshacer>`; `<BotonBuscar>`.
+Migrado el mismo día con deuda 0.
+
+Lo aprendido en esta ronda:
+- **Un medidor de 80 líneas alcanza** cuando la familia no necesita fotos por variante: el censo completo saca una captura de cada huella
+  y con cientos de íconos tarda más de una hora. `medir.mjs` recorre 321 vistas en ~30 minutos y reintenta si el servidor se cae.
+- **El tamaño se decide mirando el contenedor**, no el número: un 18 en un botón va a 16 y el mismo 18 en una tecla de 40 px va a 20. El
+  migrador (`migrar-iconos.py`) lleva una tabla escrita a mano por línea; **los números de línea se corren** al sumar una importación
+  arriba: regenera la lista de firmas y la tabla después de cada pasada, o un tamaño cae donde no era (pasó con dos íconos de Recibir).
+- **De mirar cada caso salieron dos reglas que la página no tenía:** la marca sobre un punto lleno (✓ − ‖ ✕) lleva trazo 3 como la
+  casilla, y un ícono de 24 px o más lleva 1,5 como el de un vacío. Se dicen en el registro y en el informe, para que Felipe pueda objetar.
+- **Un `unificar-fijo` dentro de una etiqueta va como `/* … */` tras el nombre** (`<Check /* unificar-fijo: … */ …>`): el escáner de guías
+  quita los comentarios y el nombre del control no cambia. Un `{/* … */}` antes del texto sí lo cambia.
+- **El escáner de guías tiene que conocer cada pieza nueva** (`CONTROLES` en `guias/escaner.mjs`) y la pieza recibe su ancla como
+  `data-guia` (no `guia`), o el control desaparece de la huella.
+- **El censo no ve un `<aside>` dentro de la pantalla** (el ticket de Vender): `fueraDelCenso` lo toma por el lateral.
+
+## Ronda 14 (2026-10-15): la línea, las barras por tiempo, la barra a escala y la dona, decididas y migradas
+
+Sobre el mapa de gráficos de la ronda 13, una página con cuatro preguntas y demos vivas (la línea mueve su guía y su globito con el mouse; las
+barras dicen lo suyo). Felipe eligió **las cuatro P1**. Piezas nuevas: `<Linea>` (con `continuo`, `ahora`, `proyeccion`, `puntos`, `minY`) y
+`<BarrasTiempo>` (con `destacada`, `meta`, `referencia`, negativas hacia abajo, `rayada`, `encima`, `debajo` y `respuesta`). La barra a escala es
+la de avance en tinta; con dos partes, la barra apilada con `total`. La dona de lo cobrado pasó a la barra apilada. Migrado el mismo día: 4
+líneas, 11 grupos de barras, 5 barras a escala y la dona; deuda 0.
+
+Lo aprendido en esta ronda:
+- **Un gráfico hecho para una pantalla hace más que dibujar:** Caja leía cualquier minuto hasta «ahora» y decía la diferencia contra ayer;
+  Por pagar filtraba la lista y mostraba lo que cubre la caja; el Historial actualizaba su lectura de arriba. La pieza tiene que aceptar eso
+  (`continuo`, `leer`, `respuesta`, `debajo`) o la migración pierde lo que hace. Leer cada uno ANTES de escribir la pieza.
+- **Un botón por barra no escala:** con 120 días, el Historial habría sumado 120 paradas del teclado. Botón solo si tocar hace algo
+  (`onElegir`); si la pantalla solo quiere saber cuál se apunta (`onApuntar`), basta el mouse.
+- **Un diseño de hace tres días se respeta:** «Cómo cerró cada día» de Caja era la maqueta que Felipe eligió el 2026-10-12; quedó aparte y se
+  dice en el registro.
+- **Lo que solo dibujaba la curva se borra con ella** (`pulsoDeVentas`, `mediaMovil`, `ventanaDeSuavizado`): Knip de producción lo marca.
+- **En local casi no hay datos para los gráficos** (caja cerrada, sin metas, sin compras repetidas): se verifica en Rendimiento ▸ Mes, Por
+  pagar, el Historial y la vista rápida de un proveedor, y lo demás queda para mirar en la tienda.
+- **`pathLength="1"` mata un punteado:** el `stroke-dasharray` se mide contra ese largo y la referencia sale continua. La línea punteada no lo
+  lleva; solo el trazo que se dibuja.
+
+## Ronda 13 (2026-10-15): la barra de avance, el anillo, copiar y el menú «Más», decididos y migrados
+
+El censo de gráficos, íconos y botones se cortó por disco; se repitió dirigido a los 11 módulos donde viven, y los gráficos se trazaron en el
+código (unos 120, en `rondas/13/graficos.md`). De `grafico` salieron dos familias propias, `grafico.avance` y `grafico.anillo`. Felipe eligió
+**las cuatro P1** tocando las demos. Piezas: `<BarraAvance>` (reemplaza también a la homónima de `ComprobanteAvance`), `<Anillo>`,
+`<BotonCopiar>` y el «⋯» de 32 px de `<MenuAcciones>` con `<BotonPuntos>`. Migrado el mismo día: unas 40 barras, 9 anillos, 12 «copiar» y 3
+menús; deuda 0.
+
+Lo aprendido en esta ronda:
+- **La caché de Turbopack crece sin techo mientras el servidor compila pantallas nuevas:** 17 GB tras el censo, 22 GB tras verificar. Con el
+  disco bajo, el censo se corta (el vigilante lo detiene) y, más abajo, se apaga Docker. La sesión no puede borrar `.next/dev/cache`: se
+  detiene el servidor (libera unos 5 GB de temporales) y se le pide a Felipe. **Mira el disco antes de levantar el servidor y entre censos.**
+- **Un censo dirigido (`--modulo`) cuesta mucho menos** que uno de todo el ERP: compila solo lo que hace falta, y las pantallas ya
+  compiladas salen de la caché.
+- **El motor no ve los gráficos chicos:** una barra de avance o un anillo de 40 px no tienen huella propia. Se trazan en el código (un agente
+  `Explore` lo hizo en 20 min) y se fotografían en su pantalla con `rondas/13/fotos.mjs`.
+- **Una pieza que reemplaza a otra no puede perder lo que la otra hacía:** la nota de crédito copiaba por el camino viejo si el navegador no
+  dejaba; ahora lo hace `BotonCopiar` para todas. Lo que una pantalla avisaba al copiar se conserva con `alCopiar`.
+- **Una pieza que usa un Server Component no puede tener JavaScript:** la barra y el anillo se llenan con CSS (una animación al montarse y una
+  transición si la cifra cambia), sin `useEffect`.
+- **Una prueba que importa con rutas relativas** (las de Conteo, que no resuelven `@/` en vitest) rompe si la pieza nueva entra con `@/`.
+- **El escáner de las guías nombra mal a las piezas que se cierran solas** (`«)»`, `«);»`): ahora mira `que`; el arreglo general (78 huellas)
+  quedó en el backlog.
+- **`btn-chico` mide 44 px** (para el dedo): en una barra de filtros de 36 px, el secundario lleva su alto con `className`.
+
+## Ronda 12 (2026-10-14): guardar, editar y las hojas, decididas y migradas
+
+Censo nuevo de las tres familias (Admin y el terminal del mostrador) y una página de elegir con cinco preguntas: mientras guarda, «Editar», y
+de las hojas su cara, su ancho y su salida. Las demos de hojas usan las clases reales de `<Modal>` y entran como una de verdad; el botón que
+guarda espera 2 s. Felipe eligió **las cinco P1**. Migrado el mismo día, deuda 0 en las tres: la cara y los anchos en la pieza (146 hojas a
+`tamano`), unas 30 salidas, 140 botones que esperaban a mano (dos codemods en `rondas/12/`) y 22 «Editar».
+
+Lo aprendido en esta ronda:
+- **Una regex no lee JSX.** `<Modal\b((?:[^>]|=>)*?)>` corta en el `>` de un título con JSX (`titulo={<span>…</span>}`): la primera pasada
+  dejó 23 hojas sin migrar y se vio buscando los `ancho=` que quedaban. `rondas/12/etiquetas.mjs` lee la etiqueta de apertura respetando
+  llaves y comillas; úsalo en todo codemod que toque atributos.
+- **Un valor por defecto cambia más de lo que parece.** Al hacer que `<Boton cargando>` diga «Guardando…», todo botón que ya pasaba
+  `cargando` lo dijo, también los que desactivan, anulan o imprimen. Hay que listar los que ya usaban la prop y darles su verbo
+  (`verbos2.mjs`), y las piezas que envuelven a `Boton` (`BotonImprimir`, `BotonDescargar`) ponen el suyo.
+- **Los gerundios no terminan todos en «-ando».** El primer codemod buscaba `…ando…` y se le escaparon «Abriendo», «Recibiendo»,
+  «Pidiendo», «Moviendo», «Devolviendo».
+- **Las pruebas que leen el texto del código se rompen con la migración** (Nueva orden de producción: la etiqueta del botón y que todo
+  `<Boton>` lleve `type`): se adaptan conservando su intención, y una prueba que prohíbe `unificar-fijo` en un archivo pide declarar su
+  excepción en `familias.mjs`.
+- **Al reabrir la sesión, la app puede volver la worktree a su rama original.** Revisa `git branch --show-current` antes de seguir.
+
+## Pendientes (2026-10-14): la cabecera, «Etiquetas» y «Ver», decididos y migrados
+
+Antes de la ronda 12, Felipe pidió cerrar lo que las rondas 9–11 dejaron anotado. Lo que no necesitaba decisión se hizo directo: **Nueva compra
+a 1440 px** (la plantilla de la fila reparte el ancho entre producto y talla, y el combo de talla dice «Sin desglose» cerrado: `Opcion.corto`)
+y **los contrastes heredados del claro** (91 textos al 55-60 % de tinta en Compras, Por pagar, Categorías y Configuración, el buscador de la
+cabecera, el atajo «/» y el segmento inactivo, a 70 %; la fila «ya pasó» de las tablas de Finanzas atenúa su texto en vez de bajar la opacidad
+entera). `tema:auditar` de esas pantallas: 0 en claro y en oscuro.
+
+Lo que sí era de Felipe, en una página de elegir con **fotos de cada pantalla** (la cabecera de hoy y la propuesta armada en el navegador con
+la de Clientes: `rondas/pendientes/cabeceras.mjs`) y demos vivas: eligió **P1 · P1 · P1**. La cabecera de Inventario en todas menos Finanzas
+(`titulo-pagina`, registro nuevo), «Etiquetas» con la etiqueta (`accion.imprimir`) y el «Ver» de una fila como el enlace (`accion.ver`).
+Migrado el mismo día: 31 pantallas en 33 archivos, 5 íconos y 1 enlace; deuda 0.
+
+Lo aprendido:
+- **Un censo de cabeceras se hace con una sola cuenta por sede.** Admin y `admin-taller` son la misma persona: al visitar `/global` la sede
+  de la sesión pasó a «CAYLA Global» y todo lo que vino después fue «elige una sede». El censo salta `/global` y se repite por tramos (`SOLO=`).
+- **La pieza tenía que aceptar lo que cada pantalla traía:** la frase pasó a ser opcional y el sobretítulo («Productos · Blusa Emma», «Tu
+  parte», el documento) va tras la fecha en `detalle`. Sin eso, la migración habría inventado frases o perdido datos.
+- **La sede de la línea de arriba es la que se mira:** «Todas las tiendas» en Compras (ADR-0387), la de la cuenta en Recibir y el Taller en
+  Producción. No es decoración: dice qué está viendo la persona.
+- **El escáner de las guías no conocía las piezas de las rondas 10 y 11** (`BotonVer`, `BotonDescargar`, `BotonImprimir`, `BotonLimpiar`,
+  `FiltroPuesto`): un control migrado a ellas salía de la huella sin que nada avisara. Arreglado (`guias/escaner.mjs`, CONTROLES; 92 controles
+  vuelven a 46 huellas). **Una pieza nueva de `/unificar` que es un control se suma ahí en el mismo commit que la crea.**
+- **Familias y Editar producto se caen en la base local** (`familias.entra_a_motores`, ADR-0377, no aplicada): se revisó el código, no la
+  pantalla. No se aplican migraciones sin que Felipe lo pida.
+
+## Ronda 11 (2026-10-14): cancelar, limpiar e imprimir, decididas y migradas
+
+Censo nuevo de las tres familias (Admin y el terminal del mostrador, con escenarios) y una página de elegir con el CSS del ERP de ese día
+(`rondas/11/bajar-css.mjs` con la cuenta `integrante`, para no pisar la sesión de un censo). Felipe eligió **P1 · P2 · P1**: el pie de una hoja con
+«Cancelar» a su medida ANTES de «Guardar» (`pie-acciones` / `<PieAcciones>`), los filtros puestos con la píldora de los vacíos y «Limpiar todo»
+punteado (`<FiltroPuesto>`, `<BotonLimpiar>`), e imprimir con la impresora y «Imprimir» + qué (`<BotonImprimir>`). Migrado el mismo día: 116 pies
+en 86 archivos (con dos scripts: uno por el texto «Cancelar» y otro por `botonCancelar`, que alcanzó los «Mejor no» de Apartados), 8 filtros
+puestos y 11 «Limpiar», 24 botones de imprimir. Deuda 0 en las tres.
+
+Lo aprendido en esta ronda:
+- **Una regla sin `@layer` le gana a las utilidades de Tailwind.** El pie decide el ancho de sus botones aunque traigan `flex-1` (los pies de
+  antes): así la migración fue cambiar la caja, no cada botón. Pero hay que acotarla: solo a `button` y `a` (una nota con `flex-1` a la
+  izquierda conserva su lugar) y nunca a la flecha de `<Volver>` (`data-pieza="volver"`), que perdería su círculo.
+- **Un pie que comparte la fila (`ml-auto`, al lado de «Falta: …») se encoge al ancho de sus palabras:** sus mitades a 375 px no eran mitades.
+  En el celular el pie ocupa toda la fila (menos el `pie-hoja-fijo`, que se estira con sus márgenes negativos). Se vio mirando la captura.
+- **Ningún Cancelar va después de Guardar:** había tres (Editar marca, «Liquidar desde» de Análisis, el aviso de una venta sin conexión). El
+  script que migra también tiene que revisar el orden, y el aviso de «orden» de un script que ya cambió las clases que buscaba es falso.
+- **Una prueba que busca el texto del código** (`modelo-nuevo-reglas.test.ts`, «className={botonCancelar}») se rompe con la migración aunque el
+  comportamiento no cambie: se actualiza lo que espera, sin comillas dobles anidadas.
+- **Un `unificar-fijo` dentro de un botón le borra el nombre a la huella de la guía** («(sin nombre)»); va dentro de la etiqueta de apertura,
+  como comentario de JS (`<BotonEnlace … /* unificar-fijo: … */>`).
+- **La caché de Turbopack llegó a 19 GB** (disco a 5 GB libres) y no se puede borrar desde la sesión: se detiene el servidor y se le pide a
+  Felipe. Al detenerlo, el disco volvió a 14 GB.
+- **La app apaga los servidores de vista previa al cerrar el turno:** un censo, una página de elegir o una verificación se hacen dentro del mismo
+  turno, y la página de elegir se entrega empaquetada en un solo archivo (abre sin servidor).
+
+## Ronda 10 (2026-10-13): descargar, filtros y ver en otra pantalla, decididas y migradas
+
+Una página de elegir con tres preguntas (fuentes en `rondas/10/`, que reusa el CSS y el guion de la ronda 9). Felipe eligió las tres **P1**:
+`<BotonDescargar>` («Descargar» + qué, el ícono que baja 2 px, el hilo mientras se arma el archivo), `<BotonFiltros>` como una píldora más
+con su número en el globito, y `<BotonVer>` (el secundario con la flecha que avanza; nunca negro). Migrado el mismo día: 17 descargas y
+17 «ver», deuda 0; la acción de un vacío sigue negra con su `unificar-fijo`. Registros: `accion.exportar.md`, `accion.filtrar.md`,
+`accion.ver.md`.
+
+**El censo del mostrador** (`terminal-ventas`, 61 de 133 vistas), rastreado al código, encontró **49 frases grises sueltas** en 40
+archivos que la ronda 5 ya prohibía («Sin ventas todavía.», «No hay tickets en espera.»): pasaron a `<Vacio>` y la firma de `vacio` aprendió
+a verlas (`ventana: 2`, ver `vacio.md`). Y tres «Ver … →» de Caja cuya clase iba en una constante pasaron a `<EnlaceVer>`.
+
+Lo aprendido en esta ronda:
+- **Una caja `inline-flex` dentro de `<Boton>` hace crecer el botón.** `<Boton>` envuelve su texto en un `<span>` de bloque; una caja
+  `inline-flex` adentro (el «+» de «+ Nuevo cliente», el ícono de descarga) arma su propia línea de texto y suma hasta 5 px: en Clientes
+  había 39,75 · 45,25 · 43,25 px en la misma fila. Las cajas de adentro van en `flex` (de bloque) y un ícono más alto que la letra lleva
+  `-my-1`. Mide el alto de los botones de una fila (`getBoundingClientRect().height`), no lo mires a ojo.
+- **El CSS base dibuja todo `svg` como bloque:** un ícono suelto dentro de `<Boton>` baja de línea. Siempre en una caja `flex` con el texto.
+- **Una firma que lee la clase escrita no ve una clase en una constante** (`className={enlaceVer}`). El censo sí: por eso se rastrea.
+- **Una firma atada a clases exactas deja pasar casi todo.** La de vacíos conocía seis combinaciones; el ERP tenía 49 frases con otras.
+  La nueva mira lo que la frase DICE («Sin», «No hay», «Todavía no») en un texto gris, y deja pasar «Nada se guarda todavía», que explica.
+- **El panel del navegador integrado no sirve para medir a 1440 px** (se encoge a su ancho y `sm:` no aplica): `resize_window` con
+  `width: 1440` y, para fotos, un script de Playwright con la sesión del auditor (`.salida/elegir-ronda9/vacios-foto.mjs`, `escenas.mjs`).
+
+## Ronda 9 (2026-10-13): las seis que quedaron abiertas, decididas y migradas
+
+Una página de elegir con las seis preguntas (fuentes en `rondas/9/`): **lo de hoy copiado del DOM real del ERP** (`piezas-vivas.mjs` guarda
+el `outerHTML` de cada pieza ya dibujada) y las propuestas con las clases reales; todo vivo. Felipe eligió P1 · P1 · P1 · P1 · P2 · P2 (en la
+1 tomó P1, «una lista para las tres», en vez de la recomendada). Piezas nuevas: `<ListaSugerencias>` (+ `ariaDelBuscador`), `apartado` en
+`DesplegablePildora`, `cuenta` y `nota` en los títulos (el globito de las pestañas, `titulo-cuenta`). Migrado: Llegó mercadería, Recibir
+contra factura, Registrar nota de crédito, Contar, Frescura, Colores, ocho acciones chicas y doce títulos con número. **Deuda
+4 → 0.** Firmas nuevas: desactivar escrito como enlace (`accion.eliminar`) y un conteo puesto como `dato` (`titulo-seccion`).
+
+Lo aprendido en esta ronda:
+- **Turbopack puede servir un CSS de hace una semana.** El `next dev` de esta worktree arrancó con un `.next/dev` del 6 de octubre y servía
+  el CSS sin NINGUNA pieza de las rondas 6–8 (sin `titulo-seccion`, sin `caja-campo`): la pantalla parecía rota y no lo estaba. Si una foto
+  sale con títulos en sans o cajas sin estilo, mira si el CSS servido trae la clase (`curl` del `.css` del `<link>` + `grep`); se arregla
+  tocando `app/globals.css` con el servidor arriba (sumar y quitar una línea).
+- **El `.next` crece 4 GB en media hora con un censo.** Con el disco al 96 % hay que liberarlo antes (Felipe borró el de esta worktree: 18 GB)
+  y correr el censo con un vigía que lo detenga si el disco baja de 8 GB (ver `rondas/9/README.md`). `pkill -f "unificar/cli.mjs"` mata
+  también al vigía si su línea de comandos nombra el censo: guarda el pid.
+- **`pnpm` reescribe `pnpm-lock.yaml`** al levantar el servidor y en el gancho de commit (quita `@pnpm/exe`): `git checkout -- pnpm-lock.yaml`
+  antes de cada commit, o viaja un cambio que nadie pidió.
+- **Lo que el seed no tiene se mira en una página de ensayo** con datos en memoria (`app/(app)/ensayo-r9/page.tsx` para Contar, sin un conteo
+  abierto en la base local), borrada antes del commit. No se crean datos en la base compartida para una foto.
+- **Una animación de `<tr>` que se quita vuelve a correr la de entrada:** el respiro de la fila recién contada vive en sus celdas
+  (`tr.fila-cayla[data-recien] > :is(td, th)`), y se quita el atributo solo al terminar ESE respiro (`animationName`), porque el estado de
+  adentro también anima.
+- **Una firma con `\b` después de un tamaño entre corchetes no ve nada:** entre «]» y un espacio no hay límite de palabra. La de títulos en
+  sans dejó pasar 10 archivos hasta que el censo de después, rastreado al código, los encontró. Termina un tamaño con `(?![\w-])`.
+  Rastrear el censo al código (el texto de cada variante, con `grep`) es lo que encuentra lo que las firmas no ven.
+- **Al elegir una pieza para «desactivar», busca sus gemelas:** la firma nueva encontró «Desactivar proveedor», el mismo enlace en una frase;
+  resultó inalcanzable (ninguna pantalla se lo pasaba a la hoja) y Felipe pidió quitarlo. Antes de migrar una gemela, mira si se ve.
+
 ## Rondas 6, 7 y 8: decididas el 2026-10-13 y migradas el mismo día
 
 Felipe eligió tocando las demos: P1 en todo salvo el enlace suelto (P2, versalitas rojas con la flecha que avanza). Diez piezas nuevas o
 rehechas (la caja que se enciende, la lista de todo combo, la píldora de filtro, el título de campo, la casilla y el interruptor, la tabla
 con movimiento, `TituloSeccion` / `TituloGrupo` / `SeparadorDia`, `btn-enlace` y `EnlaceVer`, `<Paginas>`, `AvatarPersona`) y la
-migración de toda la deuda en un día: **258 archivos → 4**, en tres lotes en paralelo (dos agentes con
-`apps/web/unificar/.salida/INSTRUCCIONES-MIGRAR-R678.md` y la sesión principal), nueve commits por módulo, la suite entera en verde y
+migración de toda la deuda en un día: **258 archivos → 4**, en tres lotes en paralelo (dos agentes con la
+guía que ahora vive en [MIGRAR.md](MIGRAR.md) y la sesión principal), nueve commits por módulo, la suite entera en verde y
 Vender, el ticket, el descuento y Devoluciones probados a 375 px. Lo que quedó abierto está en el README («La migración de las rondas
 6–8»): tres combos con fotos o pistola, la tabla de Conteo, los filtros de Frescura, «Desactivar color», los conteos que pasaron a la
 derecha y las acciones chicas que dejaron de ser versalitas rojas.
@@ -134,17 +334,25 @@ El orden recomendado sale del tablero `README.md` («Por analizar»): primero lo
 1. ~~`vacio`~~, ~~`aviso`~~, ~~`buscador`~~: ronda 5, decididas y migradas (deuda 0). ~~`combo`, `campo`, `etiqueta-campo`, `casilla`,
    `tabla`, `titulo-seccion`, `enlace`, `paginacion`, `avatar`~~: rondas 6–8, decididas y migradas el 2026-10-13 (deuda 258 → 4; lo
    abierto, en el README). Falta la pasada del mostrador (`terminal-ventas`).
-2. **Las seis decisiones abiertas de las rondas 6–8** (README): los tres combos con fotos o pistola, la tabla de Conteo, los filtros de
-   Frescura (grupos con título en la píldora), «Desactivar color», los conteos a la derecha y las acciones chicas.
-8. **`accion.ver`, `accion.filtrar`, `accion.exportar`** — botones de una función.
-9. **`casilla`, `enlace`, `modal`, `grafico`, `paginacion`, `avatar`** — pocas formas: rondas cortas. De los gráficos, **la barra apilada ya está decidida (ronda 5b)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357).
-10. **`icono`** (250 huellas: casi todo tamaño y trazo de lucide; depurar mucho antes de mostrar).
-11. **`contador` y las píldoras-etiqueta** — cierran el candado de `estado` (las 7 a mano: `ExistenciasChips`, `ConfirmarCambios`, `RolesPanel`, `DevolucionesPanel`, `atributos/kit`, `ModalesApartado`, `FichaColaborador`).
-12. **`titulo-pagina`** — **no se corre** hasta que Felipe decida la cabecera de Compras, Caja, Recibir y el resto de Catálogo (ADR-0220).
+2. ~~Las seis decisiones abiertas de las rondas 6–8~~: ronda 9, decididas y migradas el 2026-10-13 (deuda 0).
+8. ~~`accion.ver`, `accion.filtrar`, `accion.exportar`~~: ronda 10, decididas y migradas el 2026-10-13 (deuda 0). ~~La pasada del
+   mostrador~~: hecha (49 vacíos a mano encontrados y migrados).
+8b. ~~`accion.cancelar`, `accion.limpiar`, `accion.imprimir`~~: ronda 11, decididas y migradas el 2026-10-14 (deuda 0). ~~El «Ver» de
+   24 px de los pendientes de Caja y los dos íconos de «Etiquetas»~~: pendientes, decididos y migrados el 2026-10-14. Quedan
+   `accion.guardar`, `accion.editar` y el «Entendido» en versalitas de Movimientos: la ronda 12.
+9. ~~`casilla`, `enlace`, `paginacion`, `avatar`~~ (rondas 6 y 8) · ~~`modal`~~ (ronda 12) · **`grafico`**. De los gráficos, la barra
+   apilada (ronda 5b), ~~la barra de avance y el anillo~~ (ronda 13) ya están decididos. **Ronda 14:** las líneas, las barras por hora o
+   por día, las barras que comparan a escala y la dona de lo cobrado (el mapa, en `rondas/13/graficos.md`). Los de Análisis, el Observatorio
+   y Finanzas tienen su diseño por ADR. ~~`accion.menu`, `accion.copiar`~~ (ronda 13); `accion.buscar` tiene una sola forma: registrarla
+   cuando Felipe la confirme. ~~La línea, las barras por tiempo, la barra a escala y la dona~~ (ronda 14): de los gráficos no queda nada.
+10. ~~**`icono`**~~: ronda 15, decidida y migrada (deuda 0). **Queda el marco** (lateral y cabecera, trazo 1,5): ¿pasa a 2?
+11. ~~**`contador`**~~ (ronda 15). **Las píldoras-etiqueta** cierran el candado de `estado` (las 7 a mano: `ExistenciasChips`, `ConfirmarCambios`, `RolesPanel`, `DevolucionesPanel`, `atributos/kit`, `ModalesApartado`, `FichaColaborador`): **ronda 16**.
+12. ~~`titulo-pagina`~~ — decidida y migrada el 2026-10-14 (pendientes): `<EncabezadoPagina>` en todas menos Finanzas. Queda Cotizaciones
+    de maquila, que no tiene cabecera de pantalla (es una tarjeta).
 
 ### 2. Preguntas abiertas para Felipe
 
-- **La cabecera de Compras, Caja, Recibir y el resto de Catálogo** (ADR-0220): decidirla destraba `titulo-pagina`.
+- ~~**La cabecera de Compras, Caja, Recibir y el resto de Catálogo**~~: decidida el 2026-10-14 (P1, la de Inventario en todas menos Finanzas).
 - **«Piden algo hoy»** de Análisis (la cifra que cuenta tres grupos y filtra uno): va en su propia tarea.
 - **Avisar a Dany** de los cambios en Rendimiento y Clientes (dueña del plan de Clientes): pestañas, cifras, botones y la × en
   Beneficios del club. Redactar el mensaje con capturas; lo envía Felipe.
@@ -163,7 +371,7 @@ Ninguna la causó la ronda 4, pero fallan contraste (WCAG) en los dos temas:
 
 - el «Pagar» `btn-sutil` de una fila marcada en Por pagar (1,8:1);
 - el conteo gris de las píldoras de Clientes (`dark:opacity-85`, 2,5:1);
-- 24 textos de filas atenuadas (Por pagar, Compras, Categorías, Configuración).
+- ~~24 textos de filas atenuadas (Por pagar, Compras, Categorías, Configuración)~~: arreglados el 2026-10-14 (eran 91), 0 en las cuatro.
 
 ### 4. Huecos del censo
 
@@ -239,12 +447,12 @@ variante y no pierdas ninguna al migrar.
 
 ## Lo que se aprendió (y conviene no repetir)
 
-- **Migrar en lotes paralelos funciona con un archivo de instrucciones y lotes que no se tocan.** Cada agente recibió su lista exacta
-  (`.salida/lote-A.md`, `lote-B.md`), las reglas («cambia cómo se ve, nunca qué hace») y qué NO tocar (`familias.mjs`, las piezas, las
-  huellas). La sesión principal rehace la deuda, acepta las huellas y commitea al final.
+- **Migrar en lotes paralelos funciona con un archivo de instrucciones y lotes que no se tocan.** Cada agente recibió su lista exacta,
+  las reglas («cambia cómo se ve, nunca qué hace») y qué NO tocar (`familias.mjs`, las piezas, las huellas). La sesión principal rehace
+  la deuda, acepta las huellas y commitea al final. El recorrido y la guía para cada agente: [MIGRAR.md](MIGRAR.md).
 - **Un rellenador de deuda que corta en el primer «]» rompe `familias.mjs`:** una ruta como `[compraId]` lleva «]» adentro. El cierre de
-  la lista es «]» al empezar una línea (`.salida/rellenar-deuda.mjs`, ya corregido). Prueba `node -e 'import("./unificar/familias.mjs")'`
-  después de escribirlo.
+  la lista es «]» al empezar una línea. `pnpm --filter web unificar:rellenar <familias…>` (`apps/web/unificar/rellenar-deuda.mjs`) ya lo
+  hace bien y, si el archivo queda roto o con una clave repetida, lo deja como estaba.
 - **Una clave repetida en un objeto de JS gana la última:** un `"excepciones": []` olvidado al final de la decisión borraba las
   excepciones de arriba sin error. Revisa que cada decisión tenga una sola `deuda`, `excepciones` y `firmas`.
 - **Una firma con `[^>]*` se corta en la flecha de un `onValor={(v) => …}`:** la de `filtro` dejó escapar seis. Usa `(?:[^>]|=>)*?`.
@@ -281,6 +489,9 @@ variante y no pierdas ninguna al migrar.
 | `apps/web/unificar/cli.mjs` | el censo, lo medido al pasar el mouse, el informe y la lámina |
 | `apps/web/unificar/elegir.mjs` | la página de elegir (fotos, `demo` vivas, `movimiento`) |
 | `apps/web/unificar/deuda.mjs` | la deuda (la usa `lib/unificar.test.ts`) |
+| `apps/web/unificar/ver-deuda.mjs` | `unificar:ver`: cada línea de deuda con su contexto, por familia o por archivo |
+| `apps/web/unificar/rellenar-deuda.mjs` | `unificar:rellenar`: reescribe la `deuda` de `familias.mjs` y la valida |
+| `docs/unificar/MIGRAR.md` | cómo se migra una familia en lotes paralelos, con la guía para cada agente |
 | `apps/web/components/ui/campos.tsx` | `Boton`, `BotonEnlace`, `BotonAncla` (y sus pesos) |
 | `apps/web/components/ui/OndaBotones.tsx` | la onda al clic |
 | `apps/web/app/globals.css` | `btn-cayla`, `.mov-boton`, la voz de la cabecera y `cayla-onda` |

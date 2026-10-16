@@ -1,13 +1,14 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { getCargaInicial } from "@/lib/carga-inicial";
 import { ConfiguracionCargaInicial } from "@/components/ConfiguracionCargaInicial";
-import { getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from "@/lib/configuracion";
+import { getConfiguracionTiendaWeb, getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from "@/lib/configuracion";
 import { getCategoriasGasto, getContextoGastos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
-import { hoyLima } from "@/lib/fechas-lima";
+import { anioLima, hoyLima } from "@/lib/fechas-lima";
 import { esMes, mesDe, rangoMes } from "@/lib/gastos-reglas";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { PestanasFin } from "@/components/finanzas/kit";
 import { ConfiguracionTiendas } from "@/components/ConfiguracionTiendas";
+import { ConfiguracionTiendaWeb } from "@/components/ConfiguracionTiendaWeb";
 import { ConfiguracionEmpresa } from "@/components/ConfiguracionEmpresa";
 import { ConfiguracionCajaAvisos } from "@/components/ConfiguracionCajaAvisos";
 import { TablaGastosFijos } from "@/components/GastosFijosYActivos";
@@ -20,11 +21,14 @@ import { ConfiguracionPresupuesto } from "@/components/finanzas/ConfiguracionPre
 
 // Configuración (ADR-0195, módulo «configuracion»; delegable desde el ADR-0253): lo que se ajusta una vez y todas las pantallas leen. Como
 // en el spike (docs/maquetas/finanzas-2026-09/, `VISTAS.config`), una sola pantalla con pestañas por URL (`?tab=`). Hoy
-// trae Empresa (solo lectura), Tiendas y caja (F1), Cuentas y cobros (F3), Caja y avisos, Gastos fijos (F2b), Presupuesto
-// (capa «para decidir», `?mes=` elige el mes) e Impuestos (F8), sin pestañas vacías.
+// trae Empresa (solo lectura), Tiendas y caja (F1), Tienda web (la tienda online, ADR-0408 act. 6), Cuentas y cobros (F3), Caja y
+// avisos, Gastos fijos (F2b), Presupuesto (capa «para decidir», `?mes=` elige el mes) e Impuestos (F8), sin pestañas vacías.
+// «Tienda web» es una pestaña de Configuración, no un módulo (ADR-0306): quien ve Configuración la ve, y guarda lo mismo que en
+// las demás (`fn_puede_configurar`, ADR-0253).
 const PESTANAS = [
   { clave: "empresa", etiqueta: "Empresa", href: "/configuracion?tab=empresa", guia: "config.tab-empresa" },
   { clave: "tiendas", etiqueta: "Tiendas y caja", href: "/configuracion?tab=tiendas", guia: "config.tab-tiendas" },
+  { clave: "tienda-web", etiqueta: "Tienda web", href: "/configuracion?tab=tienda-web", guia: "config.tab-tienda-web" },
   { clave: "cuentas", etiqueta: "Cuentas y cobros", href: "/configuracion?tab=cuentas", guia: "config.tab-cuentas" },
   { clave: "caja", etiqueta: "Caja y avisos", href: "/configuracion?tab=caja", guia: "config.tab-caja" },
   { clave: "fijos", etiqueta: "Gastos fijos", href: "/configuracion?tab=fijos", guia: "config.tab-fijos" },
@@ -39,14 +43,16 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo="Gestión · Configuración"
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
+      <EncabezadoPagina
+        sede="Toda CAYLA"
         titulo="Configuración"
-        bajada="Lo que se ajusta una vez y todas las pantallas leen. Cada cambio queda en la historia con quién lo hizo."
+        subtitulo="Lo que se ajusta una vez y todas las pantallas leen. Cada cambio queda en la historia con quién lo hizo."
       />
       <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...PESTANAS]} guia="config.pestanas" />
       {pestana === "empresa" && <ConfiguracionEmpresa datos={await getDatosEmpresa()} />}
       {pestana === "tiendas" && <SeccionTiendas esLider={persona.rol === "lider"} esAdmin={persona.esAdmin} />}
+      {pestana === "tienda-web" && <SeccionTiendaWeb />}
       {pestana === "cuentas" && <SeccionCuentas />}
       {pestana === "caja" && <ConfiguracionCajaAvisos parametros={await getParametrosFinanzas()} />}
       {pestana === "fijos" && <SeccionFijos />}
@@ -66,6 +72,16 @@ async function SeccionTiendas({ esLider, esAdmin }: { esLider: boolean; esAdmin:
       despuesDeWhatsapp={carga && carga.sedes.length > 0 ? <ConfiguracionCargaInicial lectura={carga} esLider={esLider} esAdmin={esAdmin} /> : null}
     />
   );
+}
+
+// Tienda web (ADR-0408, act. 6): lo que la tienda online muestra de cada tienda y los plazos de los pedidos web. Si la base no la
+// puede leer (falta su migración), lo dice en una línea y el resto de Configuración sigue igual.
+async function SeccionTiendaWeb() {
+  const datos = await getConfiguracionTiendaWeb();
+  if (!datos) {
+    return <p className="nota-cayla">No se pudo leer la tienda web. Si recién se instaló, falta pegar su migración (20261014231000) en la base.</p>;
+  }
+  return <ConfiguracionTiendaWeb datos={datos} />;
 }
 
 // Cuentas y cobros (ADR-0195 F3): las cuentas con su saldo de hoy (sumado por la base) y a qué cuenta entra cada cobro.
@@ -123,7 +139,7 @@ async function SeccionImpuestos() {
   return (
     <>
       {parametros.falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{parametros.falla}</p>}
-      <ConfiguracionImpuestos parametros={parametros.datos} anioActual={Number(hoyLima().slice(0, 4))} />
+      <ConfiguracionImpuestos parametros={parametros.datos} anioActual={anioLima()} />
     </>
   );
 }

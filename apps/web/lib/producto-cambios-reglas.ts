@@ -69,6 +69,8 @@ export type FichaEditable = {
 /**
  * Cada campo de `FichaEditable` tiene que aparecer aquí. Agregar uno al tipo sin agregarlo a esta lista no compila: es el
  * recordatorio de que hay que decidir cómo se compara (y cómo se cuenta) antes de que la pantalla lo deje editar.
+ *
+ * @internal Su trabajo es no compilar si falta un campo; además la prueba compara sus claves con las de la ficha.
  */
 export const CAMPOS_CUBIERTOS: Record<keyof FichaEditable, true> = {
   referencia: true,
@@ -342,7 +344,7 @@ function soles(valor: string, vacio: string): string {
   if (t === "") return vacio;
   const n = Number(t);
   if (!Number.isFinite(n)) return t;
-  return `S/ ${Number.isInteger(n) ? n : n.toFixed(2)}`;
+  return `S/\u00a0${Number.isInteger(n) ? n : n.toFixed(2)}`;
 }
 
 /** «S/ 90», «S/ 90.50», o «sin precio» si el campo está vacío. */

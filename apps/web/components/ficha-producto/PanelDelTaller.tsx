@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import Image from "next/image";
+import { BarraAvance } from "@/components/ui/BarraAvance";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { vistaDeFotos, type FotoLocal } from "@/lib/fotos-por-color-reglas";
 import { compararTallas } from "@/lib/tallas";
@@ -11,6 +12,7 @@ import { rangoDePrecios, tonoDeBarra } from "@/lib/matriz-ficha-reglas";
 import { useSubirFotos, type FotoSubida } from "./useSubirFotos";
 import type { ContextoFicha } from "./piezas";
 import type { StockFicha } from "./useStockFicha";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 // Panel del taller (maqueta B, Felipe 2026-10-02): la columna derecha que usa el ancho que ADR-0257 dejó libre. Es la identidad
 // visual de la prenda en vivo —la foto del color elegido, sus colores, el stock por talla de ese color, el precio y lo que le falta—
@@ -73,7 +75,7 @@ export function PanelDelTaller({
 
   const precios = filas
     .filter((f) => f.activo)
-    .map((f) => Number(f.precio))
+    .map((f) => numeroDeMonto(f.precio))
     .filter((p) => p > 0);
   const primerSinFoto = colores.find(sinFoto) ?? null;
   const pendiente = pendientes[0];
@@ -83,7 +85,7 @@ export function PanelDelTaller({
       <div data-guia="editar.foto" className="taller-panel-foto">
         <div className="taller-foto-grande">
           {foto ? (
-            <Image key={foto.url} src={foto.url} alt="" fill sizes="340px" className="taller-foto-img object-cover" unoptimized />
+            <ImagenDePrenda key={foto.url} src={foto.url} alt="" fill sizes="340px" className="taller-foto-img object-cover" fallback={null} />
           ) : (
             <div className="taller-foto-vacia">{colorMostrado ? `Sin foto de ${n.color(colorMostrado)} todavía` : "Sin fotos todavía"}</div>
           )}
@@ -170,18 +172,13 @@ export function PanelDelTaller({
               return (
                 <div key={f.clave} className="taller-barra-talla">
                   <b className="min-w-0 text-[12px] text-taupe">{talla}</b>
-                  <div className="taller-pista">
-                    <div
-                      className="taller-relleno"
-                      data-tono={tonoDeBarra(u)}
-                      role="progressbar"
-                      aria-valuenow={u}
-                      aria-valuemin={0}
-                      aria-valuemax={max}
-                      aria-label={`${nombre}: ${u} ${u === 1 ? "unidad" : "unidades"}`}
-                      style={{ width: esperando ? 0 : `${Math.round((u / max) * 100)}%` }}
-                    />
-                  </div>
+                  {/* La barra a escala del sistema (ronda 14 de /unificar): en tinta, ámbar si quedan pocas (lo pinta la pantalla). */}
+                  <BarraAvance
+                    pct={esperando ? 0 : (u / max) * 100}
+                    tono={tonoDeBarra(u) === "bajo" ? "ambar" : "tinta"}
+                    etiqueta={nombre}
+                    texto={`${u} ${u === 1 ? "unidad" : "unidades"}`}
+                  />
                   <span
                     className={`text-right text-[12px] tabular-nums ${cambiada ? "font-semibold text-ambar-profundo" : "text-tinta"}`}
                     title={cambiada ? (guardada ? `Antes ${stock.numeroGuardado(f.id!)} · se guarda con «Revisar y guardar»` : "Entra como stock inicial al guardar") : undefined}

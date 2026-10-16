@@ -1,7 +1,8 @@
 # ADR-0251 · SQL pegado en producción: la casilla, el candado de `drop trigger` y la deriva
 
-- **Fecha:** 2026-09-28 (act. 2026-10-12: la casilla se comprueba) · **Estado:** construido; la revisión diaria corre desde el
-  2026-10-03 (llave guardada en GitHub) y, desde el 2026-10-12, el check «SQL pegado» comprueba la casilla en producción.
+- **Fecha:** 2026-09-28 (act. 2026-10-12: la casilla se comprueba; act. 2026-10-14: un PR cerrado con su SQL en producción
+  avisa) · **Estado:** construido; la revisión diaria corre desde el 2026-10-03 (llave guardada en GitHub), desde el
+  2026-10-12 el check «SQL pegado» comprueba la casilla en producción y, desde el 2026-10-14, «SQL huérfano» avisa al cerrar.
 - **Pedido:** Felipe, 2026-09-27 (eligió «casilla + revisión diaria»): que no se vuelva a publicar un cambio sin su SQL.
 - **Migración:** `20260928210000_huellas_catalogo_con_llave.sql` (la llave de la revisión diaria). Lo demás vive en
   `.github/` y `scripts/migraciones/`.
@@ -187,3 +188,77 @@ del mismo Postgres (en una de las tandas).
   ve la revisión diaria.
 - **Supabase o la API de artefactos de GitHub no responden:** los PR con SQL quedan en rojo («no se pudo leer producción»)
   hasta que vuelvan; los PR sin SQL no se enteran. El dueño puede saltarse la regla en una urgencia.
+
+## Actualización 2026-10-14 — un PR cerrado sin fusionar, con su SQL en producción, avisa
+
+**Pedido:** Felipe, 2026-10-14, después de #978 → #1062.
+
+**El hueco.** El SQL se pega ANTES de fusionar. Si después el PR se cierra sin fusionar, su SQL sigue vivo en producción y
+no está en ningún archivo de `main`: la próxima migración que rehaga esa función desde el repo lo borra sin que nadie se
+entere. #978 (ADR-0382) se cerró el 2026-10-12, sin comentario, con su migración ya pegada en `aprobar_devolucion`. Nada
+avisó hasta que el check «SQL pegado» de #1054, que cambia la misma función, salió rojo el 2026-10-14 sin una causa a la
+vista (lo resolvió #1062, que devolvió ese trabajo al repo apilado sobre #1054). Los dos avisos que había no podían verlo:
+«SQL pegado» mira un PR antes de fusionar, nunca uno que se cierra; y la revisión diaria dice «producción ≠ main» sin
+nombres, como casi todos los días desde el 03-oct.
+
+**DECIDÍ: un aviso propio, en el momento del cierre** (`.github/workflows/sql-huerfano.yml` + `scripts/migraciones/sql-huerfano.mjs`).
+Cuando un PR de este repo se cierra sin fusionar, marcó «SQL pegado en producción» y agrega migraciones que `main` no
+tiene, se abre el aviso «SQL en producción que main no tiene: PR #N» —con los nombres de archivo y las dos salidas:
+reabrirlo o llevar sus migraciones a otro PR, o devolver producción a lo que dice `main`— y se comenta en el PR. GitHub lo
+manda por correo a quien sigue el repo. El aviso se cierra solo cuando esos archivos llegan a `main`. Corre también al
+llegar migraciones a `main` (para cerrar los que ya no corresponden) y una vez al día (por si GitHub no entregó un cierre, o
+el PR iba contra una rama que todavía no tenía este workflow, como uno apilado). Un aviso por PR: si se cierra a mano, no
+se vuelve a abrir.
+- **`pull_request_target`, no `pull_request`.** GitHub no corre `pull_request` en un PR con conflictos, y un PR que se
+  cierra sin fusionar suele tenerlos. Como `pull_request_target` corre con permiso de escribir, el job baja SIEMPRE `main`
+  (nunca el código del PR), salta los forks (no pudieron pegar nada en producción) y lee el cuerpo con `gh`, sin
+  interpolarlo en el shell. Lo vigila la prueba.
+- **La misma regla que «SQL pegado».** La casilla y las migraciones nuevas se leen con `revisarSqlPegado`: las dos piezas
+  no pueden discrepar sobre qué es «marcó pegado» ni qué es «migración nueva».
+- **Verde cuando avisó.** El aviso y el comentario ya notifican; la corrida sale roja solo si no pudo mirar (GitHub no
+  respondió, no están las migraciones de main). Un rojo que quiere decir «hay aviso» se vuelve paisaje, como le pasó a la
+  revisión diaria.
+- **Lo público.** El aviso nombra el PR y sus archivos de migración, que ya están en el PR (y el PR ya dice que se
+  pegaron); nunca qué objeto de la base cambia, y el script no lee el contenido de ningún archivo. Y solo dice que
+  producción tiene algo DE MÁS, nunca que le falta algo de `main` (eso diría qué puerta sigue abierta).
+
+**Medido hoy (solo lectura).** De 1045 PR cerrados, 29 sin fusionar; 2 con «SQL pegado» marcada: #978 (su migración todavía
+no está en `main`: viaja en #1062 → #1054) y #788 (sus dos migraciones ya llegaron a `main` por otro PR). El simulacro contra
+GitHub (`--simular`) abre solo el de #978. Otros cinco cerrados sin fusionar tienen migraciones que tampoco están en `main`
+con ese nombre (#56, #58, #123, #131, #170, del 16 al 18-sep): son de antes de la casilla (28-sep), así que este aviso no
+los ve. Si alguno se pegó, lo dice la revisión diaria, sin nombre.
+
+**DESCARTÉ:**
+- **Que la revisión diaria cruce sus diferencias con los PR cerrados y nombre el de origen.** Para atribuir una diferencia
+  a un PR hace falta la huella que ese PR deja en cada objeto, y el artefacto `huellas-del-pr` dura 7 días: un PR cerrado
+  hace más de una semana ya no se puede atribuir. Peor: en el caso que lo motivó no habría nombrado a #978. En cuanto otro
+  PR pega encima de la misma función (lo que hizo #1054 con `aprobar_devolucion`), producción ya no calza ni con la huella
+  de #978 ni con la de `main`. Y avisaría hasta un día tarde, en un aviso que está rojo casi todos los días.
+- **Solo comentar en el PR.** Lo lee quien lo cerró, una vez; no queda en ninguna lista de pendientes ni se cierra cuando
+  se resuelve.
+- **Comprobar en producción antes de avisar** (con las huellas del PR, como «SQL pegado»). Diría «no está» en el mismo caso
+  de la pila (producción con otra versión encima) y callaría justo el aviso que importa; y pasados 7 días no hay huellas.
+  Avisar de más cuesta un clic («la casilla se marcó por error»); callar cuesta otro #978.
+
+**SE ROMPE SI:**
+- **Se pega el SQL sin marcar la casilla** (o marcando «se pega después») y el PR se cierra: no hay aviso. La revisión
+  diaria lo sigue viendo, sin nombre.
+- **Las migraciones vuelven a `main` con otro nombre** (renumeradas por un choque de versión): el aviso no se cierra solo
+  y hay que cerrarlo a mano. Comparar por contenido no sirve: la migración que llega a `main` suele venir corregida.
+- **Alguien cierra el aviso a mano sin resolverlo:** no se vuelve a abrir. Es la misma puerta que «la casilla se marcó por
+  error», y se eligió así para que un aviso descartado no vuelva cada mañana.
+- **Un PR apilado se cierra y su rama base no tiene este workflow:** no hay aviso en el momento; lo abre el barrido de la
+  mañana siguiente.
+- **GitHub no responde:** la corrida queda roja y la del día siguiente lo repite (cada corrida decide de nuevo con lo que
+  hay; no se pierde nada).
+
+Lo vigila `scripts/migraciones/sql-huerfano.test.mjs`, en «Tipos, lint y pruebas»: el caso de #978, lo que no avisa, un
+aviso por PR, el cierre solo, lo público sin objetos de la base, el script con un `gh` caído, y que el workflow baje `main`
+y no interpole el cuerpo del PR.
+
+## Actualización 2026-10-14 (b) — la revisión diaria resta lo que los PR abiertos declaran pegado
+
+Desde el [ADR-0402](0402-deriva-diaria-resta-lo-que-los-pr-declaran-pegado.md), la revisión diaria no compara producción con `main` a
+secas sino con `main` MÁS el SQL de los PR abiertos que marcaron «SQL pegado en producción», aplicado cada mañana sobre la base de
+`main` (`scripts/migraciones/deriva-pegados.mjs`). Medido ese día: de 203 diferencias a 5, y las 5 eran SQL que nadie declaraba. El
+rojo vuelve a querer decir algo; lo público sigue siendo sí o no.

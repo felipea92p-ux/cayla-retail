@@ -6,6 +6,10 @@ import { conMiParte, detalleMiParteDeJson, parteDeFila, type DetalleMiParte, typ
 // ve enteros). Si la base todavía no tiene las funciones (web publicada antes de pegar 20260923180400) no se rompe nada: no hay
 // partes que mostrar (principio 9).
 
+/**
+ * @public Sin uso desde ADR-0387 (2026-10-12): su pantalla, `MisPartesDeCompras`, ya no se dibuja. Es la única llamada a
+ * `fn_mis_partes_de_compras`: se retira junto con ella, con su migración y el OK de Felipe (ADR-0406).
+ */
 export async function getMisPartesDeCompras(): Promise<ParteDeCompra[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_mis_partes_de_compras");
@@ -31,6 +35,8 @@ export async function getMiParteDeCompra(compraId: string): Promise<DetalleMiPar
  * ADR-0187: las filas de Por pagar de quien NO es líder, con los montos de SU parte (`fn_deuda_visible`). Si la base todavía
  * no tiene la función (web publicada antes de pegar 20260924100000) se devuelven como llegaron: la base igual topa el pago
  * en su parte (principio 9).
+ *
+ * @public Sin uso desde ADR-0387, igual que `getMisPartesDeCompras`: es la única llamada a `fn_deuda_visible` y se retira con ella.
  */
 export async function porPagarConMiParte(filas: CompraResumen[]): Promise<CompraResumen[]> {
   if (filas.length === 0) return filas;

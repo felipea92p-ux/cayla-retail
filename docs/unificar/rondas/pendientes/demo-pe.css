@@ -1,0 +1,12 @@
+/* Pendientes de /unificar: las demos de «Etiquetas» y del «Ver» de una fila. Solo tokens. */
+.pe-barra { display: flex; flex-wrap: wrap; gap: 8px; }
+.pe-cajon { display: flex; flex-direction: column; gap: 10px; padding: 14px 18px; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 16px; width: min(100%, 360px); font-size: 14px; color: var(--color-tinta); }
+.pe-panel { width: min(100%, 460px); padding: 18px 20px; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 16px; }
+.pe-cab { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; color: var(--color-tinta); }
+.pe-fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--color-sand); font-size: 13px; color: var(--color-tinta); }
+.pe-fila:first-of-type { border-top: 0; }
+.pe-txt { display: inline-flex; align-items: center; gap: 8px; }
+.pe-alerta { width: 14px; height: 14px; color: var(--color-ambar); }
+/* Hoy: el «Ver» de 24 px hecho a mano (borde arena, 11 px en seminegrita) */
+.pe-hoy-ver { border: 1px solid var(--color-sand); border-radius: 6px; padding: 4px 10px; font: 600 11px/1 var(--font-sans); color: var(--color-tinta); text-decoration: none; }
+.pe-hoy-ver:hover { border-color: var(--color-taupe); }

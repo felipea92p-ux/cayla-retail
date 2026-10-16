@@ -1,5 +1,5 @@
 import { compararTallas } from "./tallas";
-import { diasEntreFechas } from "./fechas-lima";
+import { diaLima, diasEntreFechas } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
 import { precioPropioMasBajo } from "./precio-sede-reglas";
 
@@ -118,16 +118,6 @@ export function etapaActual(etapas: Partial<Record<EtapaClave, EstadoEtapa>>, es
   return pendiente ? pendiente.clave : "listo";
 }
 
-/** Columnas del tablero, en el orden en que la prenda las recorre. Las muestras no entran al tablero:
- *  tienen otras tres etapas y van en su propia franja. */
-export const COLUMNAS_TABLERO = [
-  { clave: "corte", titulo: "Por cortar" },
-  { clave: "confeccion", titulo: "En confección" },
-  { clave: "acabado", titulo: "En acabados" },
-  { clave: "listo", titulo: "Listas para cerrar" },
-] as const;
-export type ColumnaTablero = (typeof COLUMNAS_TABLERO)[number]["clave"];
-
 /** Cuántos días antes de la entrega una orden abierta empieza a avisar. Es una convención de menú, no
  *  un dato del Taller: se puede afinar cuando haya plazos reales por etapa (Eficiencia, F7). */
 export const DIAS_ENTREGA_PRONTO = 2;
@@ -217,6 +207,28 @@ export function totalBuenas(buenas: Record<string, number | string>): number {
   return Object.values(buenas).reduce<number>((s, v) => s + Math.max(0, Math.floor(Number(v) || 0)), 0);
 }
 
+/** Lo más que puede anotarse como bueno de una talla (ADR-0415): el doble de lo pedido, o 5 más si la talla es chica. Que salgan
+ *  algunas más es real (el corte rindió); más que eso es casi siempre un cero de más. La base dice lo mismo (`buenas_de_mas`). */
+export function topeDeBuenas(plan: number): number {
+  return Math.max(plan * 2, plan + 5);
+}
+
+/** La frase de la primera talla que pasa el tope, para decirlo antes de mandar; null si todas caben. */
+export function problemaDeBuenas(lineas: readonly { varianteId: string; cantidadPlan: number }[], buenas: Readonly<Record<string, number | string>>): string | null {
+  for (const l of lineas) {
+    const anotadas = Math.max(0, Math.floor(Number(buenas[l.varianteId]) || 0));
+    if (anotadas > topeDeBuenas(l.cantidadPlan)) {
+      return `De una talla se pidieron ${l.cantidadPlan} y anotaste ${anotadas} buenas: más del doble de lo pedido. Revisa la cantidad; si de verdad salieron tantas, anota hasta ${topeDeBuenas(l.cantidadPlan)} y abre otra orden con el resto.`;
+    }
+  }
+  return null;
+}
+
+/** La entrega es una promesa del Taller: no puede ser antes de hoy (ADR-0415, `entrega_pasada`). Vacía es válida (es opcional). */
+export function problemaDeEntrega(fecha: string, hoy: string): string | null {
+  return fecha !== "" && fecha < hoy ? "La entrega no puede ser antes de hoy: elige el día en que el Taller la va a entregar, o déjala en blanco." : null;
+}
+
 /** Lo planeado que no salió bueno (segundas o pérdidas). Nunca negativo. */
 export function segundas(plan: number, buenas: number): number {
   return Math.max(0, plan - buenas);
@@ -276,6 +288,16 @@ export function resumenTablero(ordenes: OrdenParaResumen[], hoy: string): Resume
     pronto,
     margenPromedio: margenes.length ? margenes.reduce((a, b) => a + b, 0) / margenes.length : null,
   };
+}
+
+/** Las prendas buenas que entraron al stock desde el día `desde` (`aaaa-mm-dd` de Lima): el «terminadas hoy · 7 días · 30 días» del
+ *  Taller en el Observatorio. `inventariadoEn` es un instante que la base manda en UTC: se compara su día de LIMA (`diaLima`); con
+ *  sus 10 primeros caracteres, lo cerrado de 7 pm a medianoche contaba como terminado al día siguiente. */
+export function terminadasDesde(ordenes: readonly { inventariadoEn: string | null; cantidadBuenas: number | null }[], desde: string): number {
+  return ordenes.reduce((suma, o) => {
+    const dia = diaLima(o.inventariadoEn);
+    return dia !== null && dia >= desde ? suma + (o.cantidadBuenas ?? 0) : suma;
+  }, 0);
 }
 
 // ---------------------------------------------------------------------------

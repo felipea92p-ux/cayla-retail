@@ -10,7 +10,7 @@
 //
 // La segunda mitad de D-31 —comparar contra una cotización real de maquila externa— la DESCARTÓ Felipe el 2026-09-22: no se registra ninguna cotización.
 
-import { hoyLima, sumarDias } from "./fechas-lima";
+import { sumarDias } from "./fechas-lima";
 import { redondear2 } from "./comprobantes-produccion-reglas";
 
 export type PlanillaPeriodo = { periodoId: string; ini: string; fin: string; personas: number; pagado: number; provisiones: number; costoTotal: number };
@@ -35,9 +35,6 @@ export type VentanaPeriodo = { clave: string; ini: string; fin: string; etiqueta
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const corto = (iso: string) => `${Number(iso.slice(8, 10))} ${MESES[Number(iso.slice(5, 7)) - 1]}`;
 export const etiquetaPeriodo = (ini: string, fin: string) => `${corto(ini)} – ${corto(fin)}`;
-
-/** Un timestamp de la base (UTC) a la fecha de Lima. */
-export const fechaLimaDe = (iso: string | null): string | null => (iso ? hoyLima(new Date(iso)) : null);
 
 /**
  * Los períodos a mirar, del más reciente al más viejo. Con planilla de Dynamic son sus períodos pagados (del 29 al 28). Sin planilla visible se usan los últimos 3

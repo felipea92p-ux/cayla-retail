@@ -5,7 +5,7 @@
   "total": 17,
   "controles": {
     "components/ProduccionSoloLider.tsx": [
-      "BotonEnlace «Ir a Órdenes»"
+      "BotonVer «Ir a Órdenes»"
     ],
     "components/ResumenProduccionPanel.tsx": [
       "BotonEnlace «Ver órdenes»",

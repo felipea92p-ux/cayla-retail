@@ -25,6 +25,9 @@ export type Apartado = {
    *  cualquiera aparta, pero el apartado de otra persona solo lo libera una líder. Es la MISMA regla
    *  que aplica `liberar_apartado`, en un solo lugar: la pantalla solo decide si ofrece el botón. */
   puedeLiberar: boolean;
+  /** La reserva de un pedido web (ADR-0408, act. 8): se entrega o se libera desde Ventas ▸ Pedidos web, nunca desde aquí (la base
+   *  lo rechaza). Se rotula con su número en vez de esconderla: la unidad sigue «apartada» en el stock y así se explica. */
+  pedidoWeb?: { codigo: string; tiendaPedido: string; paraOtraTienda: boolean } | null;
 };
 
 /** Por qué se libera un apartado — los mismos cuatro valores que valida `liberar_apartado`. */
@@ -35,12 +38,6 @@ export const MOTIVOS_LIBERACION = [
   { valor: "otro", texto: "Otro motivo" },
 ] as const;
 export type MotivoLiberacion = (typeof MOTIVOS_LIBERACION)[number]["valor"];
-
-/** `aaaa-mm-dd` de HOY en Lima. `en-CA` da justo ese formato, y `timeZone` evita que un servidor
- *  en UTC corra la fecha un día (a las 8 p. m. de Lima ya es «mañana» en UTC). */
-export function hoyLima(ahora: Date = new Date()): string {
-  return ahora.toLocaleDateString("en-CA", { timeZone: "America/Lima" });
-}
 
 /** Días de calendario entre `hoy` y `venceEl`: negativo = ya venció. */
 export function diasHasta(venceEl: string, hoy: string): number {

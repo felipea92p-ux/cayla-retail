@@ -224,7 +224,7 @@ export function FilaFase({
   const opciones: Opcion<string>[] = elegidoFuera ? [{ valor: elegidoFuera.id, texto: `${elegidoFuera.nombre} · ya no hace servicios`, deshabilitada: true }, ...opcionesProveedor] : opcionesProveedor;
 
   const tarifaVacia = fase.tarifa.trim() === "";
-  const pieTarifa = sugerida ? (tarifaVacia ? "de su lista de precios" : `su lista dice S/ ${dosDecimales(sugerida.tarifa)}`) : "sin IGV";
+  const pieTarifa = sugerida ? (tarifaVacia ? "de su lista de precios" : `su lista dice S/\u00a0${dosDecimales(sugerida.tarifa)}`) : "sin IGV";
   const minimoVacio = fase.minimo.trim() === "";
   const pieMinimo = sugerida?.minimo != null && minimoVacio ? "de su lista de precios" : "desde cuántas prendas cobra";
   const idBase = `fase-${fase.clave}`;

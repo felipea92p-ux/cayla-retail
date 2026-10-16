@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -11,6 +11,7 @@ import { SelloTipo } from "@/components/movimientos/SelloTipo";
 import { TrayectoMovimiento } from "@/components/movimientos/TrayectoMovimiento";
 import type { ConsultarLink, DetalleBajadas, DetalleCajon, ItemPrenda, PasoCajon, RutaCajon, TonoCifra, VistaCajon } from "@/lib/movimientos-cajon";
 import { TIPOS_VISUALES, type TipoVisual } from "@/lib/movimientos-tipos";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css (mismo contrato que `PanelTalla`). */
 const MS_SALIDA = 240;
@@ -66,7 +67,7 @@ function BloqueRuta({ ruta, tipo }: { ruta: RutaCajon; tipo: TipoVisual }) {
   if (!ruta.destino && !corrige) return null;
   return (
     <section className="mt-6 border-t border-sand pt-5" data-mv-tono={TIPOS_VISUALES[tipo].tono}>
-      <h3 className="mb-3 text-[15px] font-semibold text-tinta">Ruta</h3>
+      <TituloGrupo className="mb-3">Ruta</TituloGrupo>
       <TrayectoMovimiento origen={ruta.origen} destino={ruta.destino} tipo={tipo} motivo={ruta.motivo} solo={tipo === "conteo" ? "se corrigió tras contar" : "se corrigió aquí"} />
     </section>
   );
@@ -77,7 +78,7 @@ function BloquePasos({ pasos, tipo }: { pasos: PasoCajon[]; tipo: TipoVisual }) 
   if (pasos.length === 0) return null;
   return (
     <section className="mt-6 border-t border-sand pt-5" data-mv-tono={TIPOS_VISUALES[tipo].tono}>
-      <h3 className="mb-3 text-[15px] font-semibold text-tinta">Qué pasó</h3>
+      <TituloGrupo className="mb-3">Qué pasó</TituloGrupo>
       <ol className="mv-pasos">
         {pasos.map((p, i) => (
           <li key={i} data-hecho={p.hecho ? "" : undefined} style={{ "--k": i } as React.CSSProperties}>
@@ -126,7 +127,7 @@ function BloquePrenda({ prenda }: { prenda: NonNullable<DetalleCajon["prenda"]> 
   return (
     <div className="mt-6 flex items-center gap-4">
       {prenda.fotoUrl ? (
-        <Image src={prenda.fotoUrl} alt="" width={64} height={74} unoptimized className="h-[74px] w-16 shrink-0 rounded-[10px] border border-tinta/10 bg-hueso object-cover" />
+        <ImagenDePrenda src={prenda.fotoUrl} alt="" width={64} height={74} className="h-[74px] w-16 shrink-0 rounded-[10px] border border-tinta/10 bg-hueso object-cover" fallback={<SinFoto tamano="h-[74px] w-16" />} />
       ) : (
         <SinFoto tamano="h-[74px] w-16" />
       )}
@@ -141,10 +142,13 @@ function BloquePrenda({ prenda }: { prenda: NonNullable<DetalleCajon["prenda"]> 
 function Seccion({ icono: Icono, titulo, children }: { icono?: typeof FileText; titulo: string; children: React.ReactNode }) {
   return (
     <section className="mt-6 border-t border-sand pt-5 pb-1">
-      <h3 className="mb-3 flex items-center gap-2 text-[15px] font-semibold text-tinta">
-        {Icono && <Icono aria-hidden className="h-[18px] w-[18px] text-tinta/70" strokeWidth={1.6} />}
-        {titulo}
-      </h3>
+      {/* El título de un grupo del cajón (ADR-0358, ronda 7): versalitas con su raya; el ícono, si lo trae, va con él. */}
+      <TituloGrupo className="mb-3">
+        <span className="inline-flex items-center gap-1.5">
+          {Icono && <Icono aria-hidden className="h-3.5 w-3.5 text-tinta/70" />}
+          {titulo}
+        </span>
+      </TituloGrupo>
       {children}
     </section>
   );
@@ -179,7 +183,7 @@ function ListaPrendas({ items }: { items: ItemPrenda[] }) {
       {!expandido && items.length > TOPE && (
         <button type="button" onClick={() => setExpandido(true)} className="flex w-full items-center justify-center gap-1 border-t border-sand py-3 text-[13.5px] text-taupe hover:text-tinta">
           Ver las {items.length - TOPE} restantes
-          <ChevronDown aria-hidden className="h-4 w-4" strokeWidth={1.6} />
+          <ChevronDown aria-hidden className="h-4 w-4" />
         </button>
       )}
     </div>
@@ -193,12 +197,12 @@ function FilaEnlace({ link, onVerVenta }: { link: ConsultarLink; onVerVenta?: ()
   const abre = Boolean(link.href) || (link.onClick === "abrir_venta" && Boolean(onVerVenta));
   const cuerpo = (
     <>
-      <Icono aria-hidden className="h-[18px] w-[18px] shrink-0 text-tinta/70" strokeWidth={1.6} />
+      <Icono aria-hidden className="h-4 w-4 shrink-0 text-tinta/70" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[14.5px] text-tinta">{link.texto}</span>
         {link.detalle && <span className="block truncate text-[13px] text-taupe">{link.detalle}</span>}
       </span>
-      {abre && <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/50" strokeWidth={1.6} />}
+      {abre && <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/50" />}
     </>
   );
   const clase = "flex min-h-12 w-full items-center gap-3 border-b border-sand py-2 text-left last:border-b-0";
@@ -350,7 +354,7 @@ export function CajonMovimiento({
               aria-label="Cerrar"
               className="absolute right-5 top-5 z-10 rounded-full p-1.5 text-tinta transition-colors hover:bg-tinta/[0.05] hover:text-rojo"
             >
-              <X aria-hidden className="h-5 w-5" strokeWidth={1.5} />
+              <X aria-hidden className="h-5 w-5" />
             </button>
 
             <div className="scroll-cayla min-h-0 flex-1 overflow-y-auto px-[30px] pb-8 pt-8">

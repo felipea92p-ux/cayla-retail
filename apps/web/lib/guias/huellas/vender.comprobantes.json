@@ -16,7 +16,7 @@
       "DesplegablePildora «Tipo»",
       "DesplegablePildora «Tienda»",
       "DesplegablePildora «Estado»",
-      "BotonCompacto «comprobantes.opciones»",
+      "BotonPuntos «{`${ETIQUETA_TIPO[c.tipo]}»",
       "CampoTexto «Motivo»",
       "ComboResponsable «Cancelar»",
       "Boton «Cancelar»",
@@ -42,8 +42,8 @@
     "components/DetalleVentaModal.tsx": [
       "button «Reintentar»",
       "Boton «Corregir pago»",
-      "button «Imprimir ticket»",
-      "button «Imprimir»"
+      "BotonImprimir «Imprimir ticket»",
+      "BotonImprimir «Imprimir»"
     ],
     "components/FacturacionPestanas.tsx": [
       "Pestanas «);»"

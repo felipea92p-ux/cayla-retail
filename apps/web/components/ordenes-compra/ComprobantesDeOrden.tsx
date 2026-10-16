@@ -22,6 +22,7 @@ import { MAX_MOTIVO_COMPROBANTE, problemaDeMotivoComprobante, sePuedeAnularCompr
 import { numeroOrdenCompra, tieneComprobanteVigente, type ComprobanteDeOrden, type DetalleOrden } from "@/lib/ordenes-compra-reglas";
 import { textoParaBase } from "@/lib/orden-compra-alta";
 import { anularComprobanteDeOrden } from "@/lib/ordenes-compra-acciones";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 // Los comprobantes de una orden (ADR-0362, fase 2 · actividad 8): la lista que se ve en la orden abierta, del más reciente al más antiguo,
 // con «Anular» en los que se pueden anular. Anular un comprobante es anular la compra (`anular_compra`, la misma función de Facturas de
@@ -55,9 +56,7 @@ export function ComprobantesDeOrden({ orden }: { orden: DetalleOrden }) {
 
   return (
     <section aria-label="Comprobantes de la orden" data-guia="orden.comprobantes" className="space-y-2">
-      <h3 className="text-[13px] font-semibold text-tinta">
-        Comprobantes <span className="font-normal text-taupe">· el papel que ya llegó</span>
-      </h3>
+      <TituloGrupo nota="el papel que ya llegó">Comprobantes</TituloGrupo>
       <Tabla>
         <div className="hidden @min-[40rem]:block">
           <Encabezado
@@ -238,12 +237,12 @@ function AnularComprobanteModal({
               {error}
             </Aviso>
           )}
-          <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
+          <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Anulando…" : "Anular comprobante"}
+            <Boton textoCargando="Anulando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              Anular comprobante
             </Boton>
           </div>
         </form>

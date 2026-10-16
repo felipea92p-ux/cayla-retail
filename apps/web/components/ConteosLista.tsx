@@ -4,7 +4,8 @@ import type { TonoChip } from "@/components/ui/Chip";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { ColumnaHora, DIA_CUANTOS, DIA_ETIQUETA, DIA_TITULO, FILA_ACTIVIDAD, PUNTO_ACTIVIDAD } from "@/components/ui/lista-actividad";
 import { resultadoConteo, textoAlcance, textoLugar, textoResultadoConteo, type ResultadoConteo } from "@/lib/conteo-reglas";
-import { apoyoDeResultado, cifraDeConteo, horaLimaDe, responsablesDeConteo, textoAperturaCierre, type GrupoDia } from "@/lib/conteo-recientes-reglas";
+import { apoyoDeResultado, cifraDeConteo, responsablesDeConteo, textoAperturaCierre, type GrupoDia } from "@/lib/conteo-recientes-reglas";
+import { horaLima } from "@/lib/fechas-lima";
 import { etiquetaDia } from "@/lib/movimientos-reglas";
 
 /* ====================================================================
@@ -53,7 +54,7 @@ function FichaDeLugar({ tipo }: { tipo: string | null }) {
   const clase = "h-[18px] w-[18px]";
   return (
     <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-tinta/10 bg-sand/50 text-taupe">
-      {tipo === "piso_venta" ? <IconoPercha className={clase} /> : tipo === "almacen_tienda" ? <Package className={clase} strokeWidth={1.5} /> : <ClipboardCheck className={clase} strokeWidth={1.5} />}
+      {tipo === "piso_venta" ? <IconoPercha className={clase} /> : tipo === "almacen_tienda" ? <Package className={clase} /> : <ClipboardCheck className={clase} />}
     </span>
   );
 }
@@ -73,7 +74,7 @@ export function ConteosLista({ grupos, hoy }: { grupos: GrupoDia[]; hoy: string 
               const { abrio, cerro } = responsablesDeConteo(c);
               const apoyo = apoyoDeResultado(c);
               const cifra = cifraDeConteo(c);
-              const hora = horaLimaDe(c.creadoEn);
+              const hora = horaLima(c.creadoEn);
               const detalle = `${textoLugar(c)} · ${textoAlcance(c)}`;
               return (
                 <li key={c.id}>
@@ -126,7 +127,7 @@ export function ConteosLista({ grupos, hoy }: { grupos: GrupoDia[]; hoy: string 
                           </span>
                         )}
                       </span>
-                      <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 text-tinta/30" />
+                      <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/30" />
                     </span>
                   </Link>
                 </li>

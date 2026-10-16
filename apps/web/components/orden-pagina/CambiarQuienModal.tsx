@@ -8,7 +8,8 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { FilaFase } from "@/components/orden-produccion/FasesDeLaOrden";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
-import { Modal, botonCancelar, botonPrimario, campoEtiqueta } from "@/components/ui/Modal";
+import { Boton } from "@/components/ui/campos";
+import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
 import { fasesParaRpc, problemasFases, proveedoresQueSirven, type FaseBorrador, type FaseClave, type Quien, type TarifaDeLista } from "@/lib/orden-fases-reglas";
@@ -132,8 +133,7 @@ export function CambiarQuienModal({ datos, fase, opciones, hoy, onClose }: { dat
       titulo={`¿Quién hace ${nombreMinuscula}?`}
       subtitulo={`Ahora: ${quienDeFase(fase)}. Se puede cambiar hasta que ${nombreMinuscula} empiece.`}
       variante="hoja"
-      conCerrar
-      ancho="max-w-xl"
+      tamano="mediana"
       onClose={onClose}
       antesDeCerrar={avisoSalida.pedirAccion}
     >
@@ -170,13 +170,13 @@ export function CambiarQuienModal({ datos, fase, opciones, hoy, onClose }: { dat
         </div>
 
         <div className="pie-hoja-fijo">
-          <div className="flex gap-2 border-t border-sand pt-3">
-            <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}>
+          <div className="pie-acciones border-t border-sand pt-3">
+            <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
-            </button>
-            <button type="submit" disabled={cargando || !guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={`${botonPrimario} ${guia.claseConfirmar}`}>
-              {cargando ? "Guardando…" : "Guardar el cambio"}
-            </button>
+            </Boton>
+            <Boton type="submit" peso="primario" cargando={cargando} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+              Guardar el cambio
+            </Boton>
           </div>
         </div>
       </form>

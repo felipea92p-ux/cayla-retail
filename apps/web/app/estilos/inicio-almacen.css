@@ -38,11 +38,11 @@
   .ia {
     --ia-t80: color-mix(in srgb, var(--color-tinta) 80%, transparent);
     --ia-t65: color-mix(in srgb, var(--color-tinta) 65%, transparent);
-    --ia-t50: color-mix(in srgb, var(--color-tinta) 50%, transparent);
-    --ia-t30: color-mix(in srgb, var(--color-tinta) 30%, transparent);
-    --ia-t12: color-mix(in srgb, var(--color-tinta) 12%, transparent);
-    --ia-t08: color-mix(in srgb, var(--color-tinta) 8%, transparent);
-    --ia-t05: color-mix(in srgb, var(--color-tinta) 5%, transparent);
+    --ia-t50: color-mix(in srgb, var(--color-tinta) 64%, transparent); /* contraste: texto sobre papel, crema, hueso */
+    --ia-t30: color-mix(in srgb, var(--color-tinta) 30%, transparent); /* contraste: no aplica — puntos, rayas y bordes de adorno */
+    --ia-t12: color-mix(in srgb, var(--color-tinta) 12%, transparent); /* contraste: no aplica — fondos y líneas, no es texto */
+    --ia-t08: color-mix(in srgb, var(--color-tinta) 8%, transparent); /* contraste: no aplica — fondos y líneas, no es texto */
+    --ia-t05: color-mix(in srgb, var(--color-tinta) 5%, transparent); /* contraste: no aplica — fondos y líneas, no es texto */
     container: ia / inline-size;
     display: grid;
     gap: 28px;
@@ -204,7 +204,7 @@
     --h-80: var(--ia-t80);
     --h-60: var(--ia-t65);
     --h-line: var(--ia-t12);
-    --h-grid: color-mix(in srgb, var(--color-tinta) 7%, transparent);
+    --h-grid: color-mix(in srgb, var(--color-tinta) 7%, transparent); /* contraste: no aplica — la cuadrícula de fondo de un gráfico */
     --h-edge: var(--color-sand);
     --h-glass: color-mix(in srgb, var(--color-hueso) 50%, transparent);
     --h-glass-b: var(--color-sand);
@@ -212,7 +212,7 @@
     --h-b: color-mix(in srgb, var(--color-pizarra) 16%, transparent);
     --h-btn: var(--color-tinta);
     --h-btn-fg: var(--color-crema);
-    --h-halo: color-mix(in srgb, var(--color-tinta) 8%, transparent);
+    --h-halo: color-mix(in srgb, var(--color-tinta) 8%, transparent); /* contraste: no aplica — el halo de adorno de un gráfico */
     --h-kbd: var(--ia-t05);
     position: relative;
     isolation: isolate;
@@ -636,36 +636,6 @@
     font-weight: 400;
     line-height: 1;
   }
-  .ia-ring {
-    flex: none;
-    width: 54px;
-    height: 54px;
-    transform: rotate(-90deg);
-  }
-  .ia-ring circle {
-    fill: none;
-    stroke-width: 4.5;
-    stroke-linecap: round;
-  }
-  .ia-ring .ia-bg {
-    stroke: var(--h-line);
-  }
-  .ia-ring .ia-fg {
-    stroke: var(--h-fg);
-    stroke-dasharray: 100;
-    stroke-dashoffset: 100;
-    transition: stroke-dashoffset 1300ms var(--ease-cayla) 300ms;
-  }
-  .ia-in .ia-ring .ia-fg {
-    stroke-dashoffset: var(--off);
-  }
-  .ia-ring.ia-l .ia-bg {
-    stroke: var(--ia-t12);
-  }
-  .ia-ring.ia-l .ia-fg {
-    stroke: var(--color-verde);
-  }
-
   /* ── «Te toca» ── */
   .ia-tt {
     overflow: hidden;
@@ -760,47 +730,12 @@
     flex: none;
     width: 16px;
     height: 16px;
-    color: var(--ia-t30);
+    color: color-mix(in srgb, var(--color-tinta) 50%, transparent); /* contraste: gráfico sobre papel, crema */
     transition: transform 300ms var(--ease-cayla), color 260ms var(--ease-cayla);
   }
   .ia-ap:hover .ia-chev {
     transform: translateX(4px);
     color: var(--color-rojo);
-  }
-  .ia-mas {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 550ms var(--ease-cayla);
-  }
-  .ia-mas.ia-on {
-    grid-template-rows: 1fr;
-  }
-  .ia-mas > div {
-    overflow: hidden;
-  }
-  .ia-vm {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    padding: 13px;
-    border-top: 1px solid var(--ia-t08);
-    color: var(--color-taupe);
-    font-size: 13.5px;
-    font-weight: 500;
-    transition: background 260ms var(--ease-cayla);
-  }
-  .ia-vm:hover {
-    background: var(--ia-t05);
-  }
-  .ia-vm svg.ia-ic {
-    width: 15px;
-    height: 15px;
-    transition: transform 400ms var(--ease-cayla);
-  }
-  .ia-vm.ia-on svg.ia-ic {
-    transform: rotate(180deg);
   }
   .ia-dial {
     display: flex;
@@ -1118,13 +1053,12 @@
     color: var(--ia-t65);
     font-size: 12.5px;
   }
-  .ia-k .ia-ring {
+  /* El anillo chico del sistema (<Anillo>, ronda 13 de /unificar), a la derecha de la cifra. */
+  .ia-k .ia-k-anillo {
     position: absolute;
     right: 12px;
     top: 50%;
-    width: 46px;
-    height: 46px;
-    margin-top: -23px;
+    margin-top: -20px;
   }
 
   /* ── «En camino» ── */

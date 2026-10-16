@@ -5,9 +5,11 @@
 # revisar nada (0 tareas; arreglado en `afab818`). Un gate que depende de la memoria de una
 # persona no es un gate: es una intención.
 #
-# POR QUÉ NO CORRE `build`. Vercel ya construye en cada push a main, con el mismo Next y el
-# mismo lockfile, y `next.config.ts` no tiene `ignoreBuildErrors`. Repetirlo acá agrega
-# minutos y no agrega señal. Lo que Vercel NO corre —y por eso está acá— es lint y pruebas.
+# POR QUÉ `next build` CORRE SOLO EN LOS PR QUE TOCAN LA WEB (ADR-0407, 2026-10-14). Vercel construye main en cada push, con
+# el mismo Next y el mismo lockfile, y `next.config.ts` no tiene `ignoreBuildErrors`: repetirlo en main no agrega señal. Pero
+# antes de fusionar el único build era la vista previa de Vercel, y se apagaron (72 % de los minutos de build, nadie las abría).
+# El job `compilar-web` toma ese lugar: ~90 s en un runner, solo si el PR cambia lo que se compila (`compilar` en
+# `scripts/ci/alcance.mjs`). Lo que Vercel NO corre —y por eso está acá— es lint y pruebas.
 #
 # LO QUE ESTE CI NO PUEDE DECIR. No toca base de datos: `migraciones:verificar` necesita el
 # Postgres local y no corre acá. O sea que verde significa "el código tipa, pasa lint, las
@@ -64,6 +66,8 @@ jobs:
     outputs:
       alcance: ${{ steps.medir.outputs.alcance }}
       verificar: ${{ steps.medir.outputs.verificar }}
+      compilar: ${{ steps.medir.outputs.compilar }}
+      compilar_tienda: ${{ steps.medir.outputs.compilar_tienda }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -105,12 +109,17 @@ jobs:
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
         run: pnpm --filter web exec next typegen
 
-      # Los tres corren SIEMPRE aunque uno falle, pero solo si la instalación funcionó
-      # (si no hay node_modules, los tres fallarían por la misma razón y el informe sería
+      # Todos corren SIEMPRE aunque uno falle, pero solo si la instalación funcionó
+      # (si no hay node_modules, todos fallarían por la misma razón y el informe sería
       # ruido). Un push malo devuelve así el diagnóstico completo en una vuelta: sin esto,
       # arreglar el lint solo sirve para descubrir que además fallaban las pruebas.
+      # Más memoria para `tsc`: el 2026-10-16 revisar los tipos de la web pedía ~1,98 GB y Node corta en ~2 GB por defecto, así que un
+      # PR que sumaba unos pocos archivos moría con «JavaScript heap out of memory» (código 134) sin ningún error de tipos. El runner
+      # tiene memoria de sobra; 6 GB deja margen para que el ERP siga creciendo.
       - name: Tipos
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: pnpm typecheck
 
       - name: Lint
@@ -120,6 +129,23 @@ jobs:
       - name: Pruebas
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
         run: pnpm test
+
+      # Código muerto (ADR-0406): un archivo que nadie importa, una exportación que nadie lee o una dependencia que nadie carga
+      # ponen el PR en rojo. Lee todo el monorepo en ~3 s; lo que se queda sin uso a propósito se declara en `knip.ts` o con
+      # `@public` junto al código, con su motivo. Cuenta las pruebas como uso: lo que SOLO usa su prueba lo ve el paso de abajo.
+      - name: Código muerto
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: pnpm knip --no-progress
+
+      # Lo que solo usan las pruebas (ADR-0406, act. 2026-10-14; antes `reglas-sin-uso.test.ts`, ADR-0234): `knip --production`
+      # parte de lo que llega a la tienda y no cuenta las pruebas. Pone el PR en rojo si aparece una pieza que ninguna pantalla
+      # importa, o si una de la deuda de antes (`scripts/knip/deuda-produccion.mjs`, solo baja) ya se usa o ya no existe. Lo que
+      # existe PARA su prueba se declara con `@internal` y su motivo. ~1 s.
+      - name: Código que solo usan las pruebas
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: |
+          node --test scripts/knip/produccion.test.mjs
+          pnpm knip:produccion
 
       # El aviario (ADR-0104): ninguna tabla de producción sin pájaro, ninguna con dos, y
       # `docs/datos/generado/AVIARIO.md` al día. Tampoco toca base de datos: lee el volcado
@@ -152,9 +178,11 @@ jobs:
       # Las pruebas del check «SQL pegado» (el check en sí corre en `sql-pegado.yml`, también al editar el cuerpo del
       # PR). Aquí porque una de ellas lee la plantilla del formulario, y ese workflow solo baja scripts/migraciones.
       # deriva-diaria.test.mjs simula `deriva-diaria.yml` paso a paso (bash, jq y curl, que el runner trae).
+      # sql-huerfano.test.mjs vigila el aviso de un PR cerrado con su SQL en producción (`sql-huerfano.yml`).
+      # deriva-pegados.test.mjs vigila qué PR abiertos se suman a main antes de compararlo con producción (ADR-0402).
       - name: Pruebas del check SQL pegado y de la deriva
         if: ${{ !cancelled() }}
-        run: node --test scripts/migraciones/sql-pegado.test.mjs scripts/migraciones/deriva.test.mjs scripts/migraciones/deriva-diaria.test.mjs scripts/migraciones/huellas-del-pr.test.mjs scripts/migraciones/sql-en-produccion.test.mjs
+        run: node --test scripts/migraciones/sql-pegado.test.mjs scripts/migraciones/deriva.test.mjs scripts/migraciones/deriva-diaria.test.mjs scripts/migraciones/huellas-del-pr.test.mjs scripts/migraciones/sql-en-produccion.test.mjs scripts/migraciones/sql-huerfano.test.mjs scripts/migraciones/deriva-pegados.test.mjs
 
       # Números de ADR únicos: cada sesión numera su ADR como "el siguiente" de su `main` y,
       # con ramas paralelas, dos eligen el mismo (0074 y 0105 siguen repetidos en
@@ -170,9 +198,11 @@ jobs:
       # Qué versiones construye Vercel (ADR-0383): el `ignoreCommand` de `apps/web/vercel.json` salta la vista previa de un
       # merge que solo trae `main` a la rama. Si el filtro se equivocara hacia saltar de más, una rama con código se quedaría
       # sin compilar en Vercel sin que nadie lo note: por eso sus pruebas corren aquí. Solo usan Node.
+      # Y el vigía del acuse (ADR-0425, `vigia-vercel.yml`): si Vercel no recibe el último commit de main, pide la
+      # publicación al Deploy Hook. Sus pruebas simulan un commit sin publicación contra un GitHub falso en 127.0.0.1.
       - name: Qué construye Vercel
         if: ${{ !cancelled() }}
-        run: node --test scripts/ci/vercel-ignorar.test.mjs
+        run: node --test scripts/ci/vercel-ignorar.test.mjs scripts/ci/vercel-ignorar-tienda.test.mjs scripts/ci/vigia-vercel.test.mjs
 
       # Una entrada nueva de bitácora o de backlog vive en su propio archivo (ADR-0259): BITACORA.md y BACKLOG.md eran los
       # dos archivos más tocados del repo y cada PR chocaba ahí con el anterior. Van también las pruebas de «qué toca el
@@ -204,6 +234,63 @@ jobs:
       - name: Lectura de código de datos:comparar
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
         run: node --test scripts/datos/comparar-lectura.test.mjs scripts/datos/comparar.test.mjs
+
+  # Compila la web (ADR-0407). Sustituye a la vista previa de Vercel como el build previo a fusionar: lo que `tsc`, lint y las
+  # pruebas no ven —un `"use client"` llamado desde el servidor, una página que revienta al prerenderizarse, una importación
+  # que Turbopack no resuelve— solo sale al compilar. Medido el 2026-10-14 en un runner: 92 s de `next build` + 6 s de
+  # instalación con caché. Con `!= 'no'` y no `== 'si'`: si `alcance` falla, su salida llega vacía y el job corre; nunca se
+  # salta por no saber. En un push a `main` no corre: Vercel construye producción.
+  # Las variables son de mentira: `next build` no habla con Supabase (las pantallas son dinámicas); solo las lee para armar
+  # la lista de hosts de imágenes (`next.config.ts`).
+  compilar-web:
+    name: Compila la web
+    needs: alcance
+    if: ${{ !cancelled() && needs.alcance.outputs.compilar != 'no' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: clave-de-mentira-solo-para-compilar
+      # `next build` revisa los tipos con el mismo `tsc` que el paso «Tipos»: misma memoria y mismo porqué (2026-10-16).
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: next build
+        run: pnpm --filter web exec next build
+
+  # Compila la tienda online (ADR-0408), la app aparte de `apps/tienda`: lo mismo que «Compila la web», solo cuando el PR puede
+  # cambiar lo que ella compila. Sin `TIENDA_DB_URL`: la portada se arma sin campaña, como cuando la base no responde
+  # (lib/base.ts), y la compilación no habla con ninguna base.
+  compilar-tienda:
+    name: Compila la tienda
+    needs: alcance
+    if: ${{ !cancelled() && needs.alcance.outputs.compilar_tienda != 'no' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: next build
+        run: pnpm --filter tienda build
 
   # PARTIDO EN TANDAS (ADR-0381, 2026-10-12). Las ~180 pruebas corrían en serie sobre una base: 8–11 min, y el ruleset exige
   # la rama al día con main, así que un PR que tardaba 10 min ya estaba atrasado otra vez. Ahora corren en 4 jobs a la vez,
@@ -266,11 +353,15 @@ jobs:
       # una en el catálogo: esas huellas las compara el check «SQL pegado» con producción cuando el PR dice que su SQL ya
       # está pegado. Una migración que no se aplica hace fallar este paso, igual que antes hacía fallar `supabase start`.
       # Al final los archivos vuelven a su carpeta: hay pruebas que leen el de su migración.
+      #
+      # `supabase start` se reintenta UNA vez: el 54422 de la base cae en el rango de puertos salientes de Linux (32768–60999), y
+      # mientras se bajan las imágenes alguna conexión a veces lo ocupa («failed to bind host port … address already in use»; tres
+      # tandas el 2026-10-15, en PR distintos). Un error de verdad (una migración, la semilla) falla igual en el segundo intento.
       - id: supabase
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' && needs.alcance.outputs.alcance != 'web' }}
         run: |
           if [ "${{ github.event_name }}" = pull_request ]; then node scripts/migraciones/huellas-del-pr.mjs apartar "$RUNNER_TEMP/migraciones-del-pr"; fi
-          npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"
+          npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS" || { npx "$SUPABASE_CLI" stop --no-backup || true; sleep 15; npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"; }
           if [ -d "$RUNNER_TEMP/migraciones-del-pr" ]; then
             if [ "${{ matrix.tanda }}" = 1 ]; then huellas="$RUNNER_TEMP/huellas-del-pr.json"; else huellas=""; fi
             node scripts/migraciones/huellas-del-pr.mjs aplicar "$RUNNER_TEMP/migraciones-del-pr" $huellas
@@ -282,7 +373,7 @@ jobs:
       - name: Solo las pruebas que leen la web (el PR solo cambia apps/web)
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' && needs.alcance.outputs.alcance == 'web' }}
         run: |
-          npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"
+          npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS" || { npx "$SUPABASE_CLI" stop --no-backup || true; sleep 15; npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"; }
           node scripts/ci/pruebas-web.mjs
 
       # Apenas la base está arriba, para que el check «SQL pegado» no espere las pruebas. Sin migraciones nuevas (o si no se

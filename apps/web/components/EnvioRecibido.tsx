@@ -8,6 +8,8 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { soles } from "@/lib/compras-reglas";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import type { MovimientoDelEnvio } from "@/lib/envio-reglas";
+import { BotonVer } from "@/components/ui/BotonDescargar";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 // «Envío recibido»: lo que queda después de confirmar (spike de Recibir, 2026-09-19). No es solo «61 unidades»:
 // muestra QUÉ entró, prenda por prenda, colgando de un hilo — la idea de que cada prenda entra como un
@@ -44,7 +46,7 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
       {ok.sinConexion ? (
         // Sin conexión no hay «visto» verde: todavía no se registró nada. Nube tachada en ámbar, quieta.
         <span aria-hidden className="mb-2 grid h-[76px] w-[76px] place-items-center rounded-full border-2 border-ambar text-ambar-profundo">
-          <CloudOff className="h-8 w-8" strokeWidth={1.6} />
+          <CloudOff /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ className="h-8 w-8" strokeWidth={1.5} />
         </span>
       ) : (
         <span aria-hidden className="relative mb-2 block h-[76px] w-[76px]">
@@ -116,9 +118,9 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
       )}
 
       {ok.unidades > 0 && ok.lotes.length > 0 && (
-        <Link href={urlEtiquetasDePrecio({ lotes: ok.lotes })} className="btn-cayla btn-primario mt-4">
+        <BotonImprimir href={urlEtiquetasDePrecio({ lotes: ok.lotes })} peso="primario" className="mt-4">
           Imprimir {ok.unidades === 1 ? "la etiqueta" : `${ok.unidades} etiquetas`} de precio
-        </Link>
+        </BotonImprimir>
       )}
 
       <div className="flex flex-wrap justify-center gap-3 pt-4">
@@ -127,9 +129,7 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
         </Boton>
         {/* Sin red, navegar deja la pestaña en una página que no carga (y la cola solo sube desde Recibir). */}
         {!ok.sinConexion && (
-          <Link href="/recibir?vista=recibidas&nueva=1" className="btn-cayla btn-primario">
-            Ver recibidas
-          </Link>
+          <BotonVer href="/recibir?vista=recibidas&nueva=1">Ver recibidas</BotonVer>
         )}
       </div>
     </div>

@@ -11,6 +11,12 @@
 -- de punta a punta desde el propio seed, no solo con INSERT directo.
 -- ============================================================================
 
+-- EL RELOJ: EN HORA DE LIMA. El contenedor de Postgres (y el runner del CI) van en UTC: después de las
+-- 19:00 de Lima ya es «mañana» para `current_date`, pero las funciones miden «hoy» en hora de Lima. Sin
+-- esta línea, la compra del seed salía con fecha de mañana y la base la rechazaba («La fecha de emisión
+-- no puede ser futura») y el seed no entraba: pasó en el CI del PR #1127 el 2026-10-15 a las 19:33.
+set timezone = 'America/Lima';
+
 -- ==================== 1. usuario para entrar ====================
 -- Mismo patrón que V1 (ver git tag cayla-v1-pre-retail-v2): credenciales
 -- de desarrollo, a propósito obvias: felipe@cayla.local / cayla-local
@@ -423,6 +429,9 @@ begin
           from retail.variantes v join retail.productos p on p.id = v.producto_id
           where p.referencia in ('Blusa Emma', 'Blusa Valentina')),
       'metodo', 'transferencia', 'referencia', 'BCP-7781'),
+    -- La emisión con el día de Lima: el valor por defecto de registrar_compra es current_date (UTC en la base), y de 19:00 a
+    -- 24:00 de Lima ya es «mañana» y la regla de emisión no futura (20261015171000) lo rechaza.
+    p_fecha_emision => retail.fn_hoy_lima(),
     p_nota => 'Factura al contado, detallada por talla/color'
   ) into compra1_id;
   -- recepción completa de la factura 1, con su guía
@@ -441,7 +450,8 @@ begin
                from retail.productos p join retail.variantes v on v.producto_id = p.id
                where p.referencia in ('Vestido Sofía', 'Vestido Antonella', 'Casaca Ximena', 'Casaca Luciana')
                group by p.id, p.referencia) x),
-    p_fecha_vencimiento => current_date + 30,
+    p_fecha_emision => retail.fn_hoy_lima(),
+    p_fecha_vencimiento => retail.fn_hoy_lima() + 30,
     p_nota => 'Factura al crédito, agrupada por modelo'
   ) into compra2_id;
   -- recepción PARCIAL de la factura 2: de cada modelo llega la mitad (15 por

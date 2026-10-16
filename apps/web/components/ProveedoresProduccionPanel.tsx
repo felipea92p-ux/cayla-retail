@@ -70,6 +70,7 @@ export function ProveedoresProduccionPanel({
 
   return (
     <div className="space-y-6">
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
       <EncabezadoPagina
         sede={sede}
         titulo="Proveedores"

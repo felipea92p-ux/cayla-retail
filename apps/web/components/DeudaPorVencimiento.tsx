@@ -6,6 +6,8 @@ import { usePorPagar } from "@/components/PorPagarContexto";
 import { soles } from "@/lib/compras-reglas";
 import type { DeudaPorVencimiento as Tramo, TramoVencimiento } from "@/lib/compras-indicadores";
 import { tramoVencimientoDe } from "@/lib/por-pagar-reglas";
+import { Receipt } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // «Deuda por vencimiento» (maqueta 02): cuánto de lo que se debe ya venció, cuánto vence esta semana, este mes y después — la barra
 // apilada da la proporción, la leyenda el monto y el %. Las cifras vienen de la base sobre TODA la deuda (`deuda_por_vencimiento()`),
@@ -48,10 +50,10 @@ export function DeudaPorVencimiento({ tramos, indice = 0 }: { tramos: Tramo[]; /
     <div data-guia="por-pagar.vencimiento" className="card-cayla anim-entra min-w-0 p-5" style={{ ["--i" as string]: indice }}>
       <p className="label-cayla flex items-baseline justify-between gap-3 text-[11px] text-tinta/65">
         Deuda por vencimiento
-        {total > 0 && <span className="text-[12px] font-normal normal-case tracking-normal text-tinta/55">clic para filtrar la lista</span>}
+        {total > 0 && <span className="text-[12px] font-normal normal-case tracking-normal text-tinta/70">clic para filtrar la lista</span>}
       </p>
       {total <= 0 ? (
-        <p className="mt-4 text-sm text-tinta/65">No hay deuda pendiente con proveedores.</p>
+        <Vacio tamano="chico" alinear="izquierda" className="mt-2 px-0" icono={<Receipt />}>No hay deuda pendiente con proveedores.</Vacio>
       ) : (
         <>
           <BarraApilada
@@ -82,7 +84,7 @@ export function DeudaPorVencimiento({ tramos, indice = 0 }: { tramos: Tramo[]; /
                 <span className="font-display mt-0.5 block text-[19px] tabular-nums text-tinta">
                   <CifraQueCuenta valor={f.monto} formato="soles" alMontar />
                 </span>
-                <span className="block text-xs tabular-nums text-tinta/55">{Math.round((f.monto / total) * 100)} %</span>
+                <span className="block text-xs tabular-nums text-tinta/70">{Math.round((f.monto / total) * 100)} %</span>
               </button>
             ))}
           </div>
@@ -90,7 +92,7 @@ export function DeudaPorVencimiento({ tramos, indice = 0 }: { tramos: Tramo[]; /
       )}
       <div className="mt-3.5 flex flex-wrap justify-between gap-x-4 gap-y-1 rounded-[10px] border border-dashed border-tinta/25 px-3 py-2 text-xs">
         <span className="text-tinta/65">Días promedio de pago · % pagado a tiempo</span>
-        <span className="text-tinta/55">Aparecen con el primer comprobante pagado</span>
+        <span className="text-tinta/70">Aparecen con el primer comprobante pagado</span>
       </div>
     </div>
   );

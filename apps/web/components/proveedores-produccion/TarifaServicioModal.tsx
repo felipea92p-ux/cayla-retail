@@ -7,7 +7,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
-import { Modal, botonCancelar } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
 import { FASES } from "@/lib/orden-fases-reglas";
@@ -109,8 +109,7 @@ export function TarifaServicioModal({
       titulo={tarifa ? "Cambiar la tarifa" : "Nueva tarifa"}
       subtitulo={tarifa ? `${tarifa.proveedorNombre} · ${nombreDeFase(tarifa.fase)}` : "Lo que cobra un servicio de afuera por prenda en una fase"}
       variante="hoja"
-      conCerrar
-      ancho="max-w-xl"
+      tamano="mediana"
       onClose={onClose}
       antesDeCerrar={avisoSalida.pedirAccion}
     >
@@ -192,12 +191,12 @@ export function TarifaServicioModal({
         </div>
 
         <div className="pie-hoja-fijo">
-          <div className="flex gap-2 border-t border-sand pt-3">
-            <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}>
+          <div className="pie-acciones border-t border-sand pt-3">
+            <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
-            </button>
+            </Boton>
             <Boton type="submit" peso="primario" cargando={cargando} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
-              {cargando ? "Guardando…" : tarifa ? "Guardar la tarifa nueva" : "Guardar la tarifa"}
+              {tarifa ? "Guardar la tarifa nueva" : "Guardar la tarifa"}
             </Boton>
           </div>
         </div>

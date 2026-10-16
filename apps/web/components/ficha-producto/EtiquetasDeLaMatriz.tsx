@@ -1,10 +1,13 @@
 "use client";
 
 import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { TarjetaMuestraBase } from "@/components/alta-producto/GrillaMuestras";
 import { GRUPOS_ETIQUETA, ORDEN_GRUPOS_ETIQUETA, estiloConocido } from "@/lib/etiqueta-grupos";
 import { cuentaEtiqueta } from "@/lib/matriz-ficha-reglas";
 import type { FilaFicha } from "@/lib/variantes-ficha-reglas";
+import { Tag } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 /** Una etiqueta que la cuenta puede poner, con su grupo (Rotación, Artesanal, Campaña, General) para dibujarla como en Atributos. */
 export type EtiquetaMatriz = { valor: string; texto: string; estilo: string };
@@ -40,7 +43,11 @@ export function EtiquetasDeLaMatriz({
   deshabilitado: boolean;
 }) {
   if (etiquetas.length === 0) {
-    return <p className="text-[12.5px] italic text-tinta/55">Todavía no hay etiquetas aprobadas.</p>;
+    return (
+      <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Tag />}>
+        Todavía no hay etiquetas aprobadas.
+      </Vacio>
+    );
   }
   const grupos = ORDEN_GRUPOS_ETIQUETA.map((estilo) => ({
     estilo,
@@ -98,12 +105,7 @@ export function EtiquetasDeLaMatriz({
                   <span className="px-0.5 text-[10.5px] tabular-nums text-taupe">
                     {c.con === 0 ? "ninguna talla" : c.con === c.de ? "todas las tallas" : `${c.con} de ${c.de} tallas`}
                   </span>
-                  <span aria-hidden className="mx-0.5 mb-0.5 block h-[3px] overflow-hidden rounded-full bg-sand/70">
-                    <span
-                      className="block h-full rounded-full bg-tinta/70 transition-[width] duration-300 ease-cayla motion-reduce:transition-none"
-                      style={{ width: c.de > 0 ? `${(c.con / c.de) * 100}%` : "0%" }}
-                    />
-                  </span>
+                  <BarraAvance pct={c.de > 0 ? (c.con / c.de) * 100 : 0} alto="fina" decorativa className="mx-0.5 mb-0.5 w-auto" />
                 </TarjetaMuestraBase>
               );
             })}

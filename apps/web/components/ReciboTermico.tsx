@@ -18,7 +18,7 @@ import {
   type ReciboVenta,
 } from "@/lib/recibo-reglas";
 
-const s = (n: number) => `S/ ${n.toFixed(2)}`;
+const s = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
 /**
  * El comprobante como sale de la térmica de 80 mm: la «representación impresa» de la boleta o
@@ -39,7 +39,13 @@ const s = (n: number) => `S/ ${n.toFixed(2)}`;
  *  · Sin QR del club: el papel lleva solo el QR de SUNAT (Felipe 2026-10-01, ADR-0288 act. j). La clienta se une con el
  *    QR del cartel del mostrador.
  */
-export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta; emisor?: Emisor }) {
+export function ReciboTermico({ recibo, emisor = EMISOR, apartado }: {
+  recibo: ReciboVenta;
+  emisor?: Emisor;
+  /** La entrega de un apartado (ADR-0399): el papel es la misma boleta o factura, pero en vez de la forma de pago —que mostraría el
+   *  adelanto, un pacto interno— lleva el sello «CANCELADO» y una referencia al apartado, sin plata. */
+  apartado?: { codigo: string };
+}) {
   const { fecha, hora } = fechaHoraLima(recibo.emitidoEn);
   const cli = recibo.cliente;
   const fiscal = desglosaIgv(recibo.tipo);
@@ -136,7 +142,13 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
       <p className="rt-son">SON: {montoEnLetras(recibo.total)}</p>
 
       <div className="rt-linea" />
-      <p className="rt-subtitulo">Forma de pago</p>
+      {apartado ? (
+        <p className="rt-centro">
+          <span className="rt-cancelado">CANCELADO</span>
+        </p>
+      ) : (
+        <p className="rt-subtitulo">Forma de pago</p>
+      )}
       {recibo.pagos.map((p) => (
         <div key={p.metodo}>
           <div className="rt-fila">
@@ -188,6 +200,7 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
         </p>
         <p className="rt-lema">{emisor.lema}</p>
         <p className="rt-negrita">¡Gracias por tu compra!</p>
+        {apartado && <p>Prendas apartadas · ref. {apartado.codigo}</p>}
       </footer>
 
     </div>

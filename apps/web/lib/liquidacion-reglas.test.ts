@@ -6,7 +6,6 @@ import {
   textoBuscable,
   tiempoALaVenta,
   errorDeLiquidacion,
-  fechaLima,
   filtrar,
   nombreEnVenta,
   piezaDeJson,
@@ -108,7 +107,8 @@ describe("las cifras", () => {
     expect(filtrar(piezas, "retiradas").map((p) => p.id)).toEqual(["e"]);
   });
   it("las fechas son de Lima", () => {
-    expect(fechaLima("2026-10-01T03:00:00Z")).toBe("2026-09-30");
+    // Etiquetada el 1 de octubre a las 3 a. m. UTC = las 22:00 del 30 de setiembre en Lima: lleva 10 días, no 9.
+    expect(diasALaVenta(pieza({ creadoEn: "2026-10-01T03:00:00Z" }), "2026-10-10")).toBe(10);
     expect(diasALaVenta(pieza({ creadoEn: "2026-10-01T15:00:00Z" }), "2026-10-10")).toBe(9);
     expect([0, 1, 9].map(tiempoALaVenta)).toEqual(["desde hoy", "1 día", "9 días"]);
   });
@@ -137,7 +137,7 @@ describe("los errores", () => {
     expect(errorDeLiquidacion("liquidacion_etiqueta_vieja Esa etiqueta ya no vale: la pieza cuesta ahora S/ 20.00")).toEqual({
       titulo: "Esa etiqueta ya no vale",
       // En pantalla se dice «prenda» aunque la base, ya en producción, diga «pieza» (/formidable, ley 4).
-      detalle: "Esa etiqueta ya no vale: la prenda cuesta ahora S/ 20.00",
+      detalle: "Esa etiqueta ya no vale: la prenda cuesta ahora S/\u00a020.00",
       releer: true,
     });
     expect(errorDeLiquidacion("liquidacion_bajo_minimo x")?.titulo).toBe("Ese precio necesita un líder");

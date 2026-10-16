@@ -1,14 +1,18 @@
 "use client";
 
 import { avisar } from "@/components/ui/Avisos";
+import { useEsperando } from "@/components/ui/Espera";
 import { IsotipoCayla } from "@/components/ui/IsotipoCayla";
 import { PanelVuelo } from "@/components/login/PanelVuelo";
 import { saludoDelDia } from "@/lib/login-vuelo";
 import { entradaEnCurso, iniciarEntrada, ponerNombreDelSaludo } from "@/lib/entrada-estado";
+import { TOPE_DE_ESPERA } from "@/lib/login-entrada";
+import { DESTINO_SI_NO_SE, MS_TOPE_DEL_ATERRIZAJE, destinoDeLaRespuesta } from "@/lib/login-aterrizaje";
 import { cuentaParaSaludar } from "@/lib/login-saludo";
 import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Boton } from "@/components/ui/campos";
 
 const MENSAJES_ERROR: Record<string, string> = {
   sin_persona:
@@ -38,6 +42,23 @@ function conTope<T>(promesa: Promise<T>, ms: number): Promise<T | null> {
   return Promise.race([promesa, new Promise<null>((r) => setTimeout(() => r(null), ms))]);
 }
 
+/**
+ * A qué pantalla entra la cuenta recién abierta: `/api/aterrizaje`, la misma regla del Inicio (`aterrizajeDe`). Cualquier fallo, o una respuesta
+ * que no llega a tiempo, es «no sé»: el Inicio, el camino de siempre (`lib/login-aterrizaje.ts`).
+ */
+async function pedirAterrizaje(): Promise<string> {
+  const leer = async () => {
+    // `manual`: sin sesión o sin acceso la ruta responde con su redirección al login; seguirla sería bajar el login entero para nada.
+    const res = await fetch("/api/aterrizaje", { cache: "no-store", redirect: "manual" });
+    return res.ok ? destinoDeLaRespuesta(await res.json()) : DESTINO_SI_NO_SE;
+  };
+  try {
+    return (await conTope(leer(), MS_TOPE_DEL_ATERRIZAJE)) ?? DESTINO_SI_NO_SE;
+  } catch {
+    return DESTINO_SI_NO_SE;
+  }
+}
+
 export default function LoginPage() {
   return (
     <Suspense fallback={null}>
@@ -54,6 +75,19 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Desde que la sesión se abre hasta que la pantalla de destino reemplaza al login, el loader general cubre la espera (ADR-0149): preguntar a
+  // dónde entrar es un GET a /api, que no lo abre solo. Si vuela el colibrí, el loader se aparta y el vuelo ocupa su lugar. Se suelta al irse el
+  // login (la pantalla de destino ya está) o, si algo lo dejara aquí, al tope de la entrada: el botón vuelve a «Entrar» y se puede reintentar.
+  const [entrando, setEntrando] = useState(false);
+  useEsperando(entrando);
+  useEffect(() => {
+    if (!entrando) return;
+    const tope = window.setTimeout(() => {
+      setEntrando(false);
+      setLoading(false);
+    }, TOPE_DE_ESPERA);
+    return () => window.clearTimeout(tope);
+  }, [entrando]);
   // El saludo depende de la hora: lo pone el navegador (en el servidor no se sabe cuándo se abrirá la página).
   const saludo = useSyncExternalStore(sinSuscripcion, () => saludoDelDia(new Date()), () => null);
   // El motivo por el que te mandaron al login (sesión vencida, sin acceso)
@@ -73,11 +107,11 @@ function LoginForm() {
       avisar.error("Correo o contraseña incorrectos.", { enfocar: "login-email" });
       return;
     }
+    // El botón sigue en «Entrando…» hasta que el login se va (no se inicia sesión dos veces) y el loader cubre la espera.
+    setEntrando(true);
     // «El colibrí se abre» (Felipe 2026-10-13): el colibrí cruza al centro y se abre sobre la pantalla de destino mientras carga.
-    // Si la persona pidió menos movimiento, o no hay colibrí a la vista, el login entra como siempre. Con la entrada en curso el
-    // botón sigue en «Entrando…» (la capa frena los clics): no se inicia sesión dos veces.
-    if (!iniciarEntrada()) setLoading(false);
-    else {
+    // Si la persona pidió menos movimiento, o no hay colibrí a la vista, el login entra como siempre (con el loader).
+    if (iniciarEntrada()) {
       // El saludo de la entrada («Bienvenido(a), Camila»): el nombre llega de la base enseguida, con la sesión recién abierta. Si tarda o falla, el saludo va sin nombre.
       const id = entradaEnCurso()?.id;
       if (id !== undefined) {
@@ -86,8 +120,12 @@ function LoginForm() {
         });
       }
     }
-    router.push("/");
-    router.refresh();
+    // UNA navegación, directo a la pantalla de la cuenta (Felipe 2026-10-13: «se ve el inicio»). Antes se navegaba a `/` y el Inicio
+    // redirigía, y Next pintaba `/` —la app con «Inicio» marcado— antes del destino. Con el colibrí, la pantalla de destino carga mientras
+    // vuela pero no se muestra hasta que su velo tapa todo (`EsperaAlVelo`): solo se ve por la ventana. Sin `router.refresh()`: el destino
+    // ya se pide con la sesión abierta, y el refresco era otro viaje a `/` que demoraba la entrada. `replace`: «atrás» no vuelve a un login
+    // del que ya se salió.
+    router.replace(await pedirAterrizaje());
   }
 
   // «El vuelo» (Felipe 2026-10-13): la marca a la izquierda y el formulario a la derecha; en el celular, solo el formulario.
@@ -165,13 +203,13 @@ function LoginForm() {
               </div>
             </div>
 
-            <button
+            <Boton peso="primario" cargando={loading} textoCargando="Entrando…"
               type="submit"
               disabled={loading}
-              className="btn-cayla btn-primario mt-2 w-full"
+              className="mt-2 w-full"
             >
-              {loading ? "Entrando…" : "Entrar"}
-            </button>
+              Entrar
+            </Boton>
           </div>
         </form>
 

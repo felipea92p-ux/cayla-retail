@@ -12,8 +12,8 @@
       "CampoTexto «Documento»",
       "CampoSelect «Origen»",
       "CampoTexto «Nota»",
-      "ComboResponsable «(sin nombre)»",
-      "button «Cancelar»",
+      "ComboResponsable «Canc»",
+      "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/InsumosPanel.tsx": [
@@ -31,8 +31,8 @@
       "CampoSelect «{foco.etiqueta(\"color\", \"Color\")}»"
     ],
     "components/insumos-taller/FichaDeLaTelaModal.tsx": [
-      "ComboResponsable «avisoSalida.pedirAc»",
-      "button «Cancelar»",
+      "ComboResponsable «avisoSalida.pedirA»",
+      "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/insumos-taller/NuevoInsumoModal.tsx": [
@@ -43,8 +43,8 @@
       "CampoTexto «{guia.etiqueta(\"minimo\", \"Mínimo\")}»",
       "CampoTexto «{guia.etiqueta(\"merma\", \"Merma al cortar (%)\")}»",
       "CampoTexto «Nota»",
-      "ComboResponsable «avisoSalida.pe»",
-      "button «Cancelar»",
+      "ComboResponsable «avisoSalida.p»",
+      "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ]
   }

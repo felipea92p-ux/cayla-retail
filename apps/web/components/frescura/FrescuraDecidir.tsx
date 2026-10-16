@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
-import { CampoTexto } from "@/components/ui/campos";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -191,14 +191,14 @@ export function FrescuraDecidir({ prenda, sede, esLider, ahora, categoria, cayla
           No, todavía no
         </button>
         {opcion !== "sacar" && (
-          <button
+          <Boton peso="primario" cargando={enviando} textoCargando="Anotando…"
             type="submit"
-            className={`btn-cayla btn-primario w-full sm:w-auto ${guia.claseConfirmar}`}
+            className={`w-full sm:w-auto ${guia.claseConfirmar}`}
             disabled={enviando || !guia.puedeConfirmar || !responsable.listo}
             title={responsable.motivo ?? guia.frase ?? undefined}
           >
-            {enviando ? "Anotando…" : "Anotar"}
-          </button>
+            Anotar
+          </Boton>
         )}
       </div>
     </form>
@@ -285,9 +285,9 @@ export function FrescuraQuitar({ decisionId, sede, onNo, onListo }: { decisionId
         <button type="button" className="btn-cayla btn-sutil" onClick={onNo} disabled={enviando}>
           No
         </button>
-        <button type="submit" className={`btn-cayla btn-secundario ${guia.claseConfirmar}`} disabled={enviando || !guia.puedeConfirmar || !responsable.listo} title={responsable.motivo ?? guia.frase ?? undefined}>
-          {enviando ? "Quitando…" : "Quitar"}
-        </button>
+        <Boton cargando={enviando} textoCargando="Quitando…" type="submit" className={`${guia.claseConfirmar}`} disabled={enviando || !guia.puedeConfirmar || !responsable.listo} title={responsable.motivo ?? guia.frase ?? undefined}>
+          Quitar
+        </Boton>
       </div>
     </form>
   );

@@ -324,7 +324,7 @@ export function MatrizStockFicha({
                             className="group inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-0.5 transition-colors hover:bg-papel disabled:pointer-events-none"
                           >
                             {nombreTalla}
-                            <Pencil aria-hidden className="h-2.5 w-2.5 text-tinta/30 transition-colors group-hover:text-tinta/70" />
+                            <Pencil aria-hidden className="h-3 w-3 text-tinta/30 transition-colors group-hover:text-tinta/70" />
                           </button>
                         ) : (
                           <span className="whitespace-nowrap px-1.5 py-0.5">{nombreTalla}</span>
@@ -518,7 +518,7 @@ export function MatrizStockFicha({
         </span>
         {h.puede && (
           <span aria-hidden className="hidden items-center gap-1 text-[12px] font-semibold group-hover:inline-flex group-focus-visible:inline-flex">
-            <Plus strokeWidth={2.5} className="h-3 w-3" />
+            <Plus className="h-3 w-3" />
             {h.queHace === "reactiva" ? "Volver" : "Agregar"}
           </span>
         )}
@@ -564,7 +564,7 @@ export function MatrizStockFicha({
         }
       >
         <button type="button" tabIndex={-1} disabled={deshabilitado || !puedeBajar} aria-label={`Restar a ${etiqueta}`} onClick={() => paso(f, -1)} className={BOTON_PASO}>
-          <Minus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
+          <Minus aria-hidden className="h-3 w-3" />
         </button>
         <input
           type="text"
@@ -591,7 +591,7 @@ export function MatrizStockFicha({
           onClick={() => paso(f, 1)}
           className={BOTON_PASO}
         >
-          <Plus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
+          <Plus aria-hidden className="h-3 w-3" />
         </button>
       </span>
     );
@@ -661,7 +661,7 @@ export function MatrizStockFicha({
         aria-label={`${campo === "precio" ? "Precio" : "Costo"} de ${etiqueta}`}
         value={valor}
         disabled={deshabilitado}
-        title={cambiado ? `Antes S/ ${texto(antes!)} · se guarda con «Revisar y guardar»` : undefined}
+        title={cambiado ? `Antes S/\u00a0${texto(antes!)} · se guarda con «Revisar y guardar»` : undefined}
         onChange={(e) => onCambioFila(f.clave, { [campo]: limpiarPrecio(e.target.value) })}
         onFocus={(e) => e.currentTarget.select()}
         className={`w-[58px] rounded-[7px] border border-transparent bg-hueso px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${

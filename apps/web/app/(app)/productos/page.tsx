@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getPendientesDeLaSede } from "@/lib/recepcion-conteo";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ChevronDown, LayoutGrid, Rows3, SignpostBig } from "lucide-react";
@@ -106,7 +107,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar] = await Promise.all([
+  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar, recibidoPorCrear] = await Promise.all([
     listarProductos(filtros, pagina),
     // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
     getFacetasProductos(filtros),
@@ -124,6 +125,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     // ADR-0371: cuántas prendas propuestas esperan que alguien las apruebe. Solo a quien puede revisarlas; `null` si no se pudo saber
     // (la función aún no está en la base): sin número no se avisa nada, nunca un «0» que diga que no hay.
     editaCatalogo ? getPorRevisarResumen() : Promise.resolve(null),
+    // ADR-0393 (decisión 4): lo nuevo que llegó a la sede y todavía no existe en el catálogo («por crear»). `null` si la base no lo sabe.
+    getPendientesDeLaSede(persona.ubicacionId),
   ]);
 
   // Lo de la sede elegida arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Va después de la
@@ -243,8 +246,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
               reemplazar={false}
               guia="productos.vista"
               opciones={[
-                { valor: "grilla", etiqueta: "Grilla", href: hrefConVista("grilla"), icono: <LayoutGrid aria-hidden strokeWidth={1.75} />, guia: "productos.vista-grilla" },
-                { valor: "tabla", etiqueta: "Tabla", href: hrefConVista("tabla"), icono: <Rows3 aria-hidden strokeWidth={1.75} />, guia: "productos.vista-tabla" },
+                { valor: "grilla", etiqueta: "Grilla", href: hrefConVista("grilla"), icono: <LayoutGrid aria-hidden />, guia: "productos.vista-grilla" },
+                { valor: "tabla", etiqueta: "Tabla", href: hrefConVista("tabla"), icono: <Rows3 aria-hidden />, guia: "productos.vista-tabla" },
               ]}
               soloIconoEnCelular
             />
@@ -253,7 +256,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             {/* En el celular las tres acciones van en UNA fila (2026-10-09): Grilla/Tabla y Rótulos quedan en su ícono, con la
                 palabra para el lector de pantalla y al pasar el mouse; «Nuevo producto» conserva la suya. */}
             <BotonEnlace href={urlRotulos([], { productos: hrefConVista(vista) }) ?? "/rotulos"} peso="fantasma" title="Rótulos" className="max-sm:!px-3" data-guia="productos.rotulos">
-              <SignpostBig aria-hidden className="h-4 w-4" strokeWidth={1.75} />
+              <SignpostBig aria-hidden className="h-4 w-4" />
               <span className="max-sm:sr-only">Rótulos</span>
             </BotonEnlace>
             {editaCatalogo && (
@@ -281,6 +284,23 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           }
         >
           La propusieron en un conteo o desde el Taller. Mientras tanto se pueden vender.
+        </Aviso>
+      )}
+
+      {recibidoPorCrear && recibidoPorCrear.porCrear > 0 && (
+        // ADR-0393 (decisión 4): lo que llegó y se contó como «nuevo» espera su ficha. Se crea desde Recibir («Crear ahora»), con las
+        // tallas y colores que llegaron: así la prenda nace con su stock contado.
+        <Aviso
+          guia="productos.por-crear"
+          tono="info"
+          titulo={recibidoPorCrear.porCrear === 1 ? "1 prenda recibida por crear" : `${recibidoPorCrear.porCrear.toLocaleString("es-PE")} prendas recibidas por crear`}
+          accion={
+            <Link href="/recibir" className="btn-cayla btn-enlace text-[13px]">
+              Crear desde Recibir
+            </Link>
+          }
+        >
+          Llegaron a {persona.ubicacionEtiqueta} y se contaron como nuevas: están en el almacén, pero no se pueden vender hasta crearlas.
         </Aviso>
       )}
 

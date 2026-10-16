@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { CircleCheck, FunnelX, Receipt, ShoppingBag, TriangleAlert } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { avisar } from "@/components/ui/Avisos";
@@ -36,7 +37,7 @@ import { useIdsNuevos } from "@/lib/useNovedades";
 import type { CajaAbierta, MovimientoCaja, ResumenCaja, SeriesVentasCaja, CierreCaja } from "@/lib/caja";
 import { claveLocal, leer } from "@/lib/almacen-local";
 import type { VentaEncolada } from "@/lib/ventas-offline";
-import { duracionAbierta, formatoDuracion, metodosDe, minutosDeHora, ritmoDelDia, turnoLargo, type MetodoRitmo } from "@/lib/caja-panel-reglas";
+import { duracionAbierta, formatoDuracion, metodosDe, minutosDeHora, ritmoDelDia, textoMetodosDeVenta, turnoLargo, type MetodoRitmo } from "@/lib/caja-panel-reglas";
 import { filaDeMovimiento } from "@/lib/caja-movimiento-reglas";
 import { elegirMetodo, elegirVista, FILTRO_MOV_INICIAL, metodosDelTurno, pasaFiltroMov, piezasDelCajon, type FiltroMov, type ModoCierres } from "@/lib/caja-tablero-reglas";
 import type { ContextoTableroCaja } from "@/lib/caja-tablero";
@@ -44,10 +45,11 @@ import type { CategoriaGasto, UbicacionGastos } from "@/lib/gastos-reglas";
 import type { ConceptoOrdenado } from "@/lib/gasto-rapido-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { DIAS_SEMANA, explicarMeta, minutosDeHora as minutosLima, proyeccionAlCierre, type ParametrosCaja } from "@/lib/configuracion-reglas";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -238,7 +240,7 @@ export function CajaAbiertaPanel({
       horaTexto: v.hora,
       icono: "venta" as const,
       metodos: metodosDe(v.metodosPago),
-      titulo: `Venta${v.metodosPago ? ` · ${v.metodosPago}` : ""}`,
+      titulo: `Venta${v.metodosPago ? ` · ${textoMetodosDeVenta(v.metodosPago)}` : ""}`,
       meta: v.vendedor ?? "—",
       monto: v.total,
       color: colorDeMetodo(v.metodosPago),
@@ -341,7 +343,7 @@ export function CajaAbiertaPanel({
                     onClick={() => setFiltroMov(elegirMetodo(filtroMov, clave))}
                     className="pildora-cayla"
                   >
-                    <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: METODO_RITMO[clave].color }} />
+                    <span aria-hidden className={`h-2 w-2 rounded-full ${filtroMov.metodo === clave ? ARO_PUNTO_ELEGIDO : ""}`} style={{ background: METODO_RITMO[clave].color }} />
                     {METODO_RITMO[clave].texto}
                     <span className="pildora-cayla__n">{ventas}</span>
                   </button>
@@ -367,13 +369,9 @@ export function CajaAbiertaPanel({
               </div>
             )}
             {filtrados.length > LIMITE_TARJETA && (
-              <button
-                type="button"
-                onClick={() => setModal("todos")}
-                className="label-cayla mt-2 self-start rounded-md px-2 py-1 text-[11px] text-taupe-profundo transition-colors hover:bg-sand/40 hover:text-tinta"
-              >
-                Ver los {filtrados.length} →
-              </button>
+              <EnlaceVer onClick={() => setModal("todos")} className="mt-2 self-start">
+                Ver los {filtrados.length}
+              </EnlaceVer>
             )}
           </div>
   );
@@ -444,9 +442,7 @@ export function CajaAbiertaPanel({
             <div data-guia="caja.meta" className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 4 } as CSSProperties}>
               <TituloSeccion dato={<b>{soles0(metaVentaDiaria)}</b>}>Meta de hoy</TituloSeccion>
               <p className="mt-1 text-[13px] text-taupe">{explicacionMeta}</p>
-              <div className="mb-1 mt-4 h-3 overflow-hidden rounded-full bg-sand">
-                <div className="h-full rounded-full bg-tinta transition-[width] duration-1000 [transition-timing-function:var(--ease-cayla)]" style={{ width: `${metaPct}%` }} />
-              </div>
+              <BarraAvance pct={metaPct} alto="gruesa" etiqueta="Meta de hoy" className="mb-1 mt-4" />
               <dl className="mt-auto grid grid-cols-3 gap-4 pt-4">
                 <DatoMeta etiqueta="Llevas" valor={soles0(totalVentas)} />
                 <DatoMeta etiqueta="Te faltan" valor={faltaMeta > 0 ? soles0(faltaMeta) : "—"} detalle={faltaMeta > 0 ? undefined : <b className="font-semibold text-verde-profundo">Meta cumplida.</b>} />
@@ -643,15 +639,18 @@ function EstadoSync({ pendientes }: { pendientes: number }) {
           ok ? "bg-verde/15 text-verde-profundo" : "bg-ambar/15 text-ambar-profundo"
         }`}
       >
-        <span aria-hidden className="relative flex h-[15px] w-[15px] items-center justify-center">
+        <span aria-hidden className="relative flex h-3.5 w-3.5 items-center justify-center">
           <span className={`anim-caja-ping absolute inset-0 rounded-full ${ok ? "bg-verde" : "bg-ambar"}`} />
-          <Icono size={15} className={`relative ${ok ? "anim-caja-check" : ""}`} />
+          <Icono size={14} className={`relative ${ok ? "anim-caja-check" : ""}`} />
         </span>
         <span className="relative">{ok ? "Todo sincronizado" : `${pendientes} venta${pendientes === 1 ? "" : "s"} sin sincronizar`}</span>
       </span>
     </span>
   );
 }
+
+// El QR se pinta en tinta, igual que la píldora elegida: sin este aro (del color del texto de la píldora) su punto desaparecería.
+const ARO_PUNTO_ELEGIDO = "ring-1 ring-current";
 
 // Cada método con su etiqueta y su color: los mismos de la dona (`ETIQUETA_METODO`), una sola fuente.
 // "otro" no tiene color de dato propio y cae al taupe neutro, como ya hace `colorDeMetodo`.
@@ -660,6 +659,7 @@ const METODO_RITMO: Record<MetodoRitmo, { texto: string; color: string }> = {
   tarjeta: ETIQUETA_METODO.tarjeta!,
   yape: ETIQUETA_METODO.yape!,
   transferencia: ETIQUETA_METODO.transferencia!,
+  qr: ETIQUETA_METODO.qr!,
   otro: { texto: "Otro", color: "var(--color-taupe)" },
 };
 
@@ -802,7 +802,7 @@ function RitmoDelDia({ ventas, abiertaEn, idsNuevos }: { ventas: VentaDelDia[]; 
 
 /** «S/ 1,700»: las cifras de la tarjeta de meta van redondas (spike de Finanzas). */
 function soles0(n: number): string {
-  return `S/ ${Math.round(n).toLocaleString("es-PE")}`;
+  return `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
 }
 
 function DatoMeta({ etiqueta, valor, detalle }: { etiqueta: string; valor: string; detalle?: ReactNode }) {

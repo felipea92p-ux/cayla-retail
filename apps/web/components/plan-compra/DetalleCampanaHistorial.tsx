@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Modal } from "@/components/ui/Modal";
+import { BarraAvance } from "@/components/ui/BarraAvance";
+import { BarrasTiempo } from "@/components/ui/BarrasTiempo";
 import { createClient } from "@/lib/supabase/client";
 import { fechaCortaES } from "@/lib/plan-compra-reglas";
 import {
@@ -20,12 +22,15 @@ import {
   type LecturaHistorial,
   type Medida,
 } from "@/lib/plan-compra-historial";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { History } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // El detalle de una campaña del Historial (ADR-0372, C3 · Felipe 2026-10-12: «al darle clic a una fila, los detalles»). Solo lee.
 // Sinatra no sabe qué prendas se vendieron: antes del ERP, el detalle es el día a día de la campaña (contra un día normal) y la MISMA
 // campaña año por año. Las prendas y los colores existen desde que vende el ERP: para eso, un enlace a Resultados.
 
-const solesSinCentimos = (n: number) => `S/ ${Math.round(n).toLocaleString("es-PE")}`;
+const solesSinCentimos = (n: number) => `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
 const DIAS_SEMANA = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const diaDeSemana = (iso: string) => DIAS_SEMANA[new Date(`${iso}T12:00:00Z`).getUTCDay()];
 
@@ -91,10 +96,9 @@ export function DetalleCampanaHistorial({
         .sort((a, b) => b.anio - a.anio)
     : undefined;
   const maxAnual = Math.max(1, ...(anuales ?? []).map((x) => (x.medida.estado === "medida" ? x.medida.soles : 0)));
-  const maxDia = Math.max(1, ...(detalle?.dias ?? []).map((d) => d.soles), detalle?.diaNormal ?? 0);
 
   return (
-    <Modal titulo={`${campana.nombre} ${anio}`} subtitulo={`Del ${fechaCortaES(campana.desde)} al ${fechaCortaES(campana.hasta)}: día a día y la misma campaña en cada año.`} onClose={onClose} variante="hoja" ancho="max-w-2xl" conCerrar>
+    <Modal titulo={`${campana.nombre} ${anio}`} subtitulo={`Del ${fechaCortaES(campana.desde)} al ${fechaCortaES(campana.hasta)}: día a día y la misma campaña en cada año.`} onClose={onClose} variante="hoja" tamano="ancha" conCerrar>
       <div className="space-y-6">
         {historial.tiendas.length > 1 && (
           <div role="group" aria-label="Tienda" className="flex flex-wrap gap-2">
@@ -129,23 +133,24 @@ export function DetalleCampanaHistorial({
             </dl>
 
             <section data-guia="plan-historial.dias">
-              <h3 className="text-[13px] font-semibold text-tinta">Día a día</h3>
+              <TituloGrupo>Día a día</TituloGrupo>
               <p className="text-xs text-tinta/70">
                 {detalle.diaNormal !== null ? `La línea es un día normal: ${solesSinCentimos(detalle.diaNormal)} (el promedio de los 60 días de antes).` : "Sin los 60 días de antes no hay día normal con qué comparar."}
               </p>
-              <div className="relative mt-3 flex h-36 items-end gap-[3px]" role="img" aria-label={`Ventas por día de ${campana.nombre} ${anio} en ${tienda?.nombre ?? ""}`}>
-                {detalle.diaNormal !== null && (
-                  <div aria-hidden className="pointer-events-none absolute inset-x-0 border-t border-dashed border-taupe" style={{ bottom: `${(detalle.diaNormal / maxDia) * 100}%` }} />
-                )}
-                {detalle.dias.map((d) => (
-                  <div
-                    key={d.fecha}
-                    title={`${diaDeSemana(d.fecha)} ${fechaCortaES(d.fecha)}: ${d.soles > 0 ? solesSinCentimos(d.soles) : "sin venta"}`}
-                    className={`min-w-0 flex-1 rounded-t-sm ${d.fecha === detalle.mejor?.fecha ? "bg-rojo" : d.soles > 0 ? "bg-tinta/70" : "bg-sand"}`}
-                    style={{ height: `${Math.max(2, (d.soles / maxDia) * 100)}%` }}
-                  />
-                ))}
-              </div>
+              {/* Las barras por tiempo del sistema (ronda 14 de /unificar): el mejor día en tinta con su cifra; la raya, un día normal. */}
+              <BarrasTiempo
+                className="mt-3"
+                alto={144}
+                barras={detalle.dias.map((d) => ({
+                  clave: d.fecha,
+                  valor: d.soles,
+                  tip: `${diaDeSemana(d.fecha)} ${fechaCortaES(d.fecha)}: ${d.soles > 0 ? solesSinCentimos(d.soles) : "sin venta"}`,
+                  cifra: solesSinCentimos(d.soles),
+                }))}
+                destacada={detalle.mejor?.fecha ?? null}
+                referencia={detalle.diaNormal !== null ? { valor: detalle.diaNormal } : null}
+                etiqueta={`Ventas por día de ${campana.nombre} ${anio} en ${tienda?.nombre ?? ""}`}
+              />
               <div className="mt-1 flex justify-between text-[11px] text-taupe">
                 <span>{fechaCortaES(detalle.dias[0]?.fecha ?? campana.desde)}</span>
                 <span>{fechaCortaES(detalle.dias.at(-1)?.fecha ?? campana.hasta)}</span>
@@ -155,11 +160,11 @@ export function DetalleCampanaHistorial({
         )}
 
         <section data-guia="plan-historial.anual">
-          <h3 className="text-[13px] font-semibold text-tinta">La misma campaña, año por año</h3>
+          <TituloGrupo>La misma campaña, año por año</TituloGrupo>
           {anuales === undefined ? (
             <p className="mt-2 text-sm text-taupe">Buscando los otros años…</p>
           ) : anuales.length === 0 ? (
-            <p className="mt-2 text-sm text-taupe">No hay otros años con datos de esta tienda.</p>
+            <Vacio tamano="chico" alinear="izquierda" className="mt-1 px-0" icono={<History />}>No hay otros años con datos de esta tienda.</Vacio>
           ) : (
             <ol className="mt-2 space-y-1.5">
               {anuales.map((x, i) => {
@@ -169,9 +174,8 @@ export function DetalleCampanaHistorial({
                 return (
                   <li key={x.anio} className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 text-sm">
                     <span className={x.anio === anio ? "font-semibold text-tinta" : "text-tinta/80"}>{x.anio}</span>
-                    <span className="h-2 overflow-hidden rounded-full bg-sand">
-                      <span className={`block h-full rounded-full ${x.anio === anio ? "bg-rojo" : "bg-tinta/60"}`} style={{ width: `${(m.soles / maxAnual) * 100}%` }} />
-                    </span>
+                    {/* La barra a escala del sistema (ronda 14): la de avance en tinta; el año que se mira va en negrita a la izquierda. */}
+                    <BarraAvance pct={(m.soles / maxAnual) * 100} tono="tinta" decorativa indice={i} />
                     <span className="whitespace-nowrap text-right tabular-nums text-tinta">
                       {solesSinCentimos(m.soles)}
                       <span className="text-xs text-taupe">

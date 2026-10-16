@@ -2,16 +2,19 @@
   "guia": "inventario.conteo.id.revisar",
   "ruta": "/inventario/conteo/[id]/revisar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 9,
+  "total": 10,
   "controles": {
     "app/(app)/inventario/conteo/[id]/revisar/page.tsx": [
       "Volver «(sin nombre)»"
+    ],
+    "components/conteo/PasosConteo.tsx": [
+      "button «{contenido}»"
     ],
     "components/conteo/RevisarConteo.tsx": [
       "Link «Volver a contar»",
       "ComboResponsable «(sin nombre)»",
       "button «{responsable.motivo ?? undefined}»",
-      "button «{responsable.motivo ?? undefined}» #2",
+      "Boton «{responsable.motivo ?? undefined}»",
       "Link «Cerrar como conteo parcial»",
       "button «{textoPie}»",
       "Link «Continuar»",

@@ -290,14 +290,44 @@
   "src_table": "cuentas_dinero"
  },
  {
+  "conname": "cuentas_dinero_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cuentas_dinero"
+ },
+ {
+  "conname": "despacho_cierres_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despacho_cierres"
+ },
+ {
+  "conname": "despacho_conteos_contado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despacho_conteos"
+ },
+ {
   "conname": "despacho_diferencias_creado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "despacho_diferencias"
  },
  {
+  "conname": "despacho_pendientes_anotado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despacho_pendientes"
+ },
+ {
+  "conname": "despacho_pendientes_resuelto_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despacho_pendientes"
+ },
+ {
   "conname": "despacho_recibidos_creado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "despacho_recibidos"
+ },
+ {
+  "conname": "despacho_separaciones_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despacho_separaciones"
  },
  {
   "conname": "despachos_abierto_por_fkey",
@@ -318,6 +348,11 @@
   "conname": "despachos_despachado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "despachos"
+ },
+ {
+  "conname": "despachos_sin_aviso_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despachos_sin_aviso"
  },
  {
   "conname": "devoluciones_aprobado_por_fkey",
@@ -368,6 +403,16 @@
   "conname": "frescura_decisiones_persona_id_fkey",
   "ref_table": "public.personas",
   "src_table": "frescura_decisiones"
+ },
+ {
+  "conname": "gasto_viaje_fotos_archivada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "gasto_viaje_fotos"
+ },
+ {
+  "conname": "gasto_viaje_fotos_subida_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "gasto_viaje_fotos"
  },
  {
   "conname": "gastos_anulado_por_fkey",
@@ -450,6 +495,21 @@
   "src_table": "orden_compra_versiones"
  },
  {
+  "conname": "orden_insumo_cierres_usuario_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "orden_insumo_cierres"
+ },
+ {
+  "conname": "orden_insumo_recepciones_usuario_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "orden_insumo_recepciones"
+ },
+ {
+  "conname": "orden_insumo_versiones_reemplazada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "orden_insumo_versiones"
+ },
+ {
   "conname": "ordenes_compra_actualizada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "ordenes_compra"
@@ -463,6 +523,21 @@
   "conname": "ordenes_compra_creada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "ordenes_compra"
+ },
+ {
+  "conname": "ordenes_insumo_actualizada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_anulada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_insumo"
  },
  {
   "conname": "parametros_liquidacion_actualizado_por_fkey",
@@ -655,6 +730,26 @@
   "src_table": "proveedores_produccion"
  },
  {
+  "conname": "rendiciones_fondo_aprobada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "rendiciones_fondo"
+ },
+ {
+  "conname": "rendiciones_fondo_devuelta_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "rendiciones_fondo"
+ },
+ {
+  "conname": "rendiciones_fondo_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "rendiciones_fondo"
+ },
+ {
+  "conname": "rendiciones_fondo_rendida_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "rendiciones_fondo"
+ },
+ {
   "conname": "roles_archivado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "roles"
@@ -828,6 +923,16 @@
   "conname": "transferencias_recepcion_firmada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "transferencias"
+ },
+ {
+  "conname": "traslado_sobrantes_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "traslado_sobrantes"
+ },
+ {
+  "conname": "traslado_sobrantes_revisado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "traslado_sobrantes"
  },
  {
   "conname": "ubicaciones_sede_dynamic_id_fkey",

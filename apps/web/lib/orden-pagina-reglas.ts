@@ -1021,7 +1021,7 @@ export function detalleDeVuelta(o: { segundas: number; faltantes: number; deveng
   const partes = [o.numeroTexto];
   if (o.segundas > 0) partes.push(cuantas(o.segundas, "segunda", "segundas"));
   if (o.faltantes > 0) partes.push(`${cuantas(o.faltantes, "faltó", "faltaron")}: queda anotado por qué`);
-  if (o.devengado !== null && o.devengado > 0) partes.push(`se le deben S/ ${o.devengado.toFixed(2)} hasta ahora`);
+  if (o.devengado !== null && o.devengado > 0) partes.push(`se le deben ${soles(o.devengado)} hasta ahora`);
   return partes.join(" · ");
 }
 

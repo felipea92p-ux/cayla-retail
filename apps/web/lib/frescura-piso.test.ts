@@ -266,7 +266,7 @@ describe("respuestaDelPiso: la frase de la cabecera", () => {
 
 describe("solesEnteros", () => {
   it("como el resto del ERP", () => {
-    expect(solesEnteros(20222.4)).toBe("S/ 20,222");
+    expect(solesEnteros(20222.4)).toBe("S/\u00a020,222");
   });
 });
 
@@ -469,6 +469,18 @@ describe("la puerta cerrada: por qué son aproximados y el botón que lo arregla
     expect(pasoDeLaPuerta({ puedeHablar: false, aviso: "", falta: "almacen_contado" }, TODO)).toEqual({ texto: "Contar el almacén", href: "/inventario/conteo" });
     expect(pasoDeLaPuerta({ puedeHablar: false, aviso: "", falta: "venta_identificada", sinPrenda: 7 }, TODO)).toEqual({
       texto: "Registrar 7 sin prenda",
+      href: "/inventario/por-regularizar",
+    });
+  });
+
+  it("«Registrar N» cuenta las pendientes cuando se contaron (ADR-0357, act. 2026-10-14), no las de 30 días", () => {
+    expect(pasoDeLaPuerta({ puedeHablar: false, aviso: "", falta: "venta_identificada", sinPrenda: 347, pendientes: 41 }, TODO)).toEqual({
+      texto: "Registrar 41 sin prenda",
+      href: "/inventario/por-regularizar",
+    });
+    expect(pasoDeLaPuerta({ puedeHablar: false, aviso: "", falta: "venta_identificada", sinPrenda: 347, pendientes: 0 }, TODO)).toBeNull();
+    expect(pasoDeLaPuerta({ puedeHablar: false, aviso: "", falta: "venta_identificada", sinPrenda: 347, pendientes: null }, TODO)).toEqual({
+      texto: "Registrar las ventas sin prenda",
       href: "/inventario/por-regularizar",
     });
   });

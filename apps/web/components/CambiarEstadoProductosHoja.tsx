@@ -6,12 +6,13 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { esFuncionAusente } from "@/lib/compras-reglas";
 import { avisar } from "@/components/ui/Avisos";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { textosCambioEstado, type EstadoProducto, type VocabularioEstado } from "@/lib/cambiar-estado-productos-reglas";
 import type { ProductoListado } from "@/lib/catalogo-v2";
+import { Boton } from "@/components/ui/campos";
 
 /**
  * Confirmar descontinuar (o desactivar) o reactivar prendas, con el combo «Responsable» (ADR-0161: cambiar el estado de una
@@ -67,7 +68,7 @@ export function CambiarEstadoProductosHoja({
   }
 
   return (
-    <Modal variante="hoja" ancho="max-w-lg" bloqueado={guardando} titulo={textos.titulo} subtitulo={textos.subtitulo} onClose={onClose}>
+    <Modal variante="hoja" tamano="mediana" bloqueado={guardando} titulo={textos.titulo} subtitulo={textos.subtitulo} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <ul className="max-h-60 divide-y divide-sand overflow-y-auto border-y border-sand">
@@ -85,19 +86,18 @@ export function CambiarEstadoProductosHoja({
           </ul>
           <ComboResponsable control={responsable} deshabilitado={guardando} />
           <p className="nota-cayla">{textos.nota}</p>
-          <div className="flex gap-2 pt-1">
-            <button type="button" onClick={cerrar} disabled={guardando} className={botonCancelar}>
+          <div className="pie-acciones pt-1">
+            <button type="button" onClick={cerrar} disabled={guardando} className="btn-cayla btn-secundario">
               Volver
             </button>
-            <button
+            <Boton peso="primario" cargando={guardando}
               type="button"
               onClick={() => void confirmar()}
               disabled={guardando || !responsable.listo || cambian.length === 0}
               title={responsable.motivo ?? undefined}
-              className={botonPrimario}
             >
-              {guardando ? "Guardando…" : textos.boton}
-            </button>
+              {textos.boton}
+            </Boton>
           </div>
         </div>
       )}

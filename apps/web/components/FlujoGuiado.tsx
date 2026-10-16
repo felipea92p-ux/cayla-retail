@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, type ReactNode, type RefObject } from "react";
+import { Anillo } from "@/components/ui/Anillo";
 import { AlertTriangle, Check, Clock } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { Volver } from "@/components/ui/Volver";
 import { ImpactoVista, ListaValidaciones } from "@/components/CambioResumen";
 import type { ImpactoOperacion, Validacion } from "@/lib/cambios-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { HiloEnEspera, PalabraEnEspera } from "@/components/ui/campos";
 
 // Las piezas que Cambios y Devoluciones comparten (2026-09-18): las dos son un flujo
 // guiado en la misma página —sin modal, ADR-0044— con "Paso X de N", validaciones en vivo
@@ -147,27 +149,6 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
   );
 }
 
-/** El anillo de «cuántas revisiones van»: se llena solo al ir cumpliéndose. */
-function AnilloProgreso({ pct }: { pct: number }) {
-  return (
-    <svg viewBox="0 0 36 36" className="anillo-progreso h-full w-full" aria-hidden>
-      <circle cx="18" cy="18" r="15.9155" fill="none" stroke="currentColor" strokeOpacity=".16" strokeWidth="3" />
-      <circle
-        className="rg"
-        cx="18"
-        cy="18"
-        r="15.9155"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        transform="rotate(-90 18 18)"
-        style={{ strokeDasharray: `${pct} 100` }}
-      />
-    </svg>
-  );
-}
-
 /** "Lo que el sistema revisa": las validaciones en vivo, pegadas al costado en escritorio.
  *  Arriba, un anillo con cuántas van cumplidas (un aviso —como el plazo vencido en una
  *  devolución— no frena, así que cuenta como revisado) y el plazo de la compra, verde o
@@ -176,21 +157,17 @@ function AnilloProgreso({ pct }: { pct: number }) {
 export function PanelValidaciones({ validaciones, impacto, guia }: { validaciones: readonly Validacion[]; impacto?: ImpactoOperacion | null; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   const total = validaciones.length;
   const cumplidas = validaciones.filter((v) => v.estado === "ok" || v.estado === "aviso").length;
-  const completo = cumplidas === total;
   const plazo = validaciones.find((v) => v.clave === "plazo");
   return (
     <aside data-guia={guia} className="grid gap-4 self-start lg:sticky lg:top-24">
       <div className="rounded-[22px] bg-papel p-6 ring-1 ring-tinta/[0.07]">
         <div className="mb-5 flex items-center gap-4">
-          <div className={`relative h-[68px] w-[68px] shrink-0 transition-colors duration-500 ${completo ? "text-verde" : "text-ambar"}`}>
-            <AnilloProgreso pct={total ? (cumplidas / total) * 100 : 0} />
-            <span aria-hidden className="font-display absolute inset-0 grid place-items-center text-xl tabular-nums text-tinta">
+          {/* El anillo del sistema (ronda 13): en tinta mientras faltan revisiones y verde cuando están todas. */}
+          <Anillo pct={total ? (cumplidas / total) * 100 : 0} tamano="mediano" etiqueta={`${cumplidas} de ${total} revisiones cumplidas`}>
+            <span className="font-display text-xl font-normal">
               {cumplidas}/{total}
             </span>
-            <span className="sr-only">
-              {cumplidas} de {total} revisiones cumplidas
-            </span>
-          </div>
+          </Anillo>
           <div className="min-w-0 space-y-1.5">
             <TituloSeccion nivel={3}>Lo que revisa el sistema</TituloSeccion>
             {plazo &&
@@ -248,25 +225,39 @@ export function PieDelPaso({ aviso, children, guia }: { aviso: string | null; ch
 // la etiqueta en mayúsculas chicas con aire entre las letras (`label-cayla`) y, si hay un
 // monto, a la derecha y en la serif de la casa — la etiqueta dice qué se hace; el monto,
 // cuánto. Sin monto, la etiqueta va centrada.
-function ContenidoBoton({ children, monto }: { children: ReactNode; monto?: string }) {
+// Mientras espera (ADR-0358, ronda 12): la etiqueta pasa a `textoCargando` sin cambiar el ancho, corre el hilo y el botón se apaga, como en
+// todo botón que guarda (`Boton`); el monto se queda a la vista.
+type Espera = { cargando?: boolean; textoCargando?: string };
+function ContenidoBoton({ children, monto, cargando, textoCargando }: { children: ReactNode; monto?: string } & Espera) {
+  const etiqueta = <span className="label-cayla flex items-center gap-2 text-[11px]">{children}</span>;
   return (
     <>
-      <span className="label-cayla flex items-center gap-2 text-[11px]">{children}</span>
+      {cargando !== undefined ? (
+        <PalabraEnEspera cargando={cargando} texto={textoCargando}>
+          {etiqueta}
+        </PalabraEnEspera>
+      ) : (
+        etiqueta
+      )}
       {monto && <strong className="font-display text-lg">{monto}</strong>}
+      {cargando && <HiloEnEspera claro />}
     </>
   );
 }
 
-export function BotonPrincipal({ onClick, children, disabled = false, monto, guia }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
+export function BotonPrincipal({ onClick, children, disabled = false, monto, guia, cargando, textoCargando }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string; /** Ancla de la guía (ADR-0389). */ guia?: string } & Espera) {
   return (
     <button
       type="button"
       data-guia={guia}
       onClick={onClick}
-      disabled={disabled}
-      className={`mov-boton flex h-12 items-center gap-8 rounded-md bg-tinta px-6 text-crema hover:bg-rojo-profundo disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
+      disabled={disabled || cargando}
+      aria-busy={cargando || undefined}
+      className={`mov-boton relative flex h-12 items-center gap-8 rounded-md bg-tinta px-6 text-crema hover:bg-rojo-profundo disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
     >
-      <ContenidoBoton monto={monto}>{children}</ContenidoBoton>
+      <ContenidoBoton monto={monto} cargando={cargando} textoCargando={textoCargando}>
+        {children}
+      </ContenidoBoton>
     </button>
   );
 }
@@ -277,7 +268,8 @@ export function BotonSecundario({ onClick, children, disabled = false }: { onCli
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="mov-boton label-cayla inline-flex h-12 items-center gap-2 rounded-md px-5 text-[11px] text-tinta ring-1 ring-tinta/15 hover:bg-papel hover:ring-tinta/30 disabled:opacity-50"
+      // El secundario del sistema (ADR-0358, ronda 11: «Cancelar» y sus vecinos hablan en letra normal), con el alto de 48 px del flujo.
+      className="btn-cayla btn-secundario h-12 gap-2 px-5"
     >
       {children}
     </button>
@@ -285,15 +277,18 @@ export function BotonSecundario({ onClick, children, disabled = false }: { onCli
 }
 
 /** El único rojo del flujo: la acción que mueve stock o plata de verdad. */
-export function BotonRojo({ onClick, children, disabled = false, monto }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string }) {
+export function BotonRojo({ onClick, children, disabled = false, monto, cargando, textoCargando }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string } & Espera) {
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
-      className={`mov-boton flex h-12 items-center gap-8 rounded-md bg-rojo px-6 text-crema hover:bg-rojo-profundo disabled:opacity-70 ${monto ? "justify-between" : "justify-center"}`}
+      disabled={disabled || cargando}
+      aria-busy={cargando || undefined}
+      className={`mov-boton relative flex h-12 items-center gap-8 rounded-md bg-rojo px-6 text-crema hover:bg-rojo-profundo disabled:opacity-70 ${monto ? "justify-between" : "justify-center"}`}
     >
-      <ContenidoBoton monto={monto}>{children}</ContenidoBoton>
+      <ContenidoBoton monto={monto} cargando={cargando} textoCargando={textoCargando}>
+        {children}
+      </ContenidoBoton>
     </button>
   );
 }

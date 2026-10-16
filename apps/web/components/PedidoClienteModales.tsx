@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, MessageCircle } from "lucide-react";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
@@ -22,6 +22,7 @@ import {
   type ClientePedido,
   type PedidoParaSubir,
 } from "@/lib/pedidos-con-cliente-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Tres ventanas cortas de los pedidos PARA UN CLIENTE (ADR-0328 act. 17). Cada una tiene un solo control (quién lo hace):
 // no llevan la guía de foco por campos (se declaran «no-aplica» en `lib/guia-de-foco-pantallas.ts`).
@@ -59,19 +60,19 @@ export function SubirPedidoAlAlmacenModal({ pedido, ubicacion, onClose }: { pedi
   }
 
   return (
-    <Modal titulo="Subir al almacén" subtitulo={`Pedido de ${pedido.otraSede} para un cliente`} onClose={onClose} ancho="max-w-md" bloqueado={enviando}>
+    <Modal titulo="Subir al almacén" subtitulo={`Pedido de ${pedido.otraSede} para un cliente`} onClose={onClose} bloqueado={enviando}>
       {(cerrar) => (
         <div className="space-y-4">
           <p className="card-cayla p-4 text-sm text-tinta">{prenda}</p>
           <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">{textoSubirAlAlmacen(pedido.reservaEn, pedido.otraSede)}</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex gap-2">
-            <button type="button" onClick={cerrar} className={botonCancelar} disabled={enviando}>
+          <div className="pie-acciones">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={enviando}>
               Mejor no
             </button>
-            <button type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => subir(cerrar)} className={botonPrimario}>
-              {enviando ? "Guardando…" : "Ya la subí al almacén"}
-            </button>
+            <Boton peso="primario" cargando={enviando} type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => subir(cerrar)}>
+              Ya la subí al almacén
+            </Boton>
           </div>
         </div>
       )}
@@ -124,7 +125,7 @@ export function AvisarAlClienteModal({
   }
 
   return (
-    <Modal titulo={titulo} subtitulo={subtitulo} onClose={onClose} ancho="max-w-md">
+    <Modal titulo={titulo} subtitulo={subtitulo} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <p className="rounded-xl bg-hueso px-3.5 py-3 text-sm text-tinta/85">{mensaje}</p>
@@ -132,21 +133,25 @@ export function AvisarAlClienteModal({
             <p className="text-xs text-tinta/70">No dejó celular: avísale como acordaron (llamada o en persona) y deja constancia aquí.</p>
           )}
           {estado !== "hecho" && !responsable.listo && <ComboResponsable control={responsable} />}
-          <div className="flex gap-2">
-            <button type="button" onClick={cerrar} className={botonCancelar}>
+          <div className="pie-acciones">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
               {estado === "hecho" ? "Listo" : "Ahora no"}
             </button>
             {estado !== "hecho" && !enlace && (
-              <button
+              <Boton
                 type="button"
+                peso="primario"
+                cargando={estado === "guardando"}
                 disabled={!responsable.listo || estado !== "listo"}
                 title={responsable.motivo ?? undefined}
                 onClick={() => void marcar()}
-                className={`${botonPrimario} inline-flex items-center justify-center gap-2`}
+                className="flex-1"
               >
-                <Check aria-hidden className="h-4 w-4" strokeWidth={1.75} />
-                {estado === "guardando" ? "Guardando…" : "Ya le avisé"}
-              </button>
+                <span className="flex items-center justify-center gap-2">
+                  <Check aria-hidden className="-my-1 h-4 w-4" />
+                  Ya le avisé
+                </span>
+              </Boton>
             )}
             {estado !== "hecho" && enlace && (
               <a
@@ -161,8 +166,8 @@ export function AvisarAlClienteModal({
                 }}
                 className={`${botonPrimario} inline-flex items-center justify-center gap-2 ${!responsable.listo || estado !== "listo" ? "pointer-events-none opacity-50" : ""}`}
               >
-                <MessageCircle aria-hidden className="h-4 w-4" strokeWidth={1.75} />
-                {estado === "guardando" ? "Guardando…" : "Abrir WhatsApp"}
+                <MessageCircle aria-hidden className="h-4 w-4" />
+                {estado === "guardando" ? "Guardando…" : "Abrir WhatsApp" /* unificar-fijo: un enlace que abre WhatsApp en otra pestaña y anota a la vez; no es un botón */}
               </a>
             )}
           </div>
@@ -222,31 +227,29 @@ export function SigueEnPieModal({
   }
 
   return (
-    <Modal titulo={`¿Sigue en pie el pedido de ${cliente}?`} subtitulo={espera} onClose={onClose} ancho="max-w-md" bloqueado={guardando !== null}>
+    <Modal titulo={`¿Sigue en pie el pedido de ${cliente}?`} subtitulo={espera} onClose={onClose} bloqueado={guardando !== null}>
       {(cerrar) => (
         <div className="space-y-4">
           <p className="card-cayla p-4 text-sm text-tinta">{pedido.lineas.map(etiquetaLinea).join(", ")}</p>
           <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">{explicacion}</p>
           {!responsable.listo && <ComboResponsable control={responsable} deshabilitado={guardando !== null} />}
-          <div className="flex gap-2">
-            <button
+          <div className="pie-acciones">
+            <Boton cargando={guardando === "cancela"} textoCargando="Cancelando…"
               type="button"
               onClick={() => responder(false, cerrar)}
-              className={botonCancelar}
               disabled={guardando !== null || !responsable.listo}
               title={responsable.motivo ?? undefined}
             >
-              {guardando === "cancela" ? "Cancelando…" : "Ya no la quiere"}
-            </button>
-            <button
+              Ya no la quiere
+            </Boton>
+            <Boton peso="primario" cargando={guardando === "sigue"}
               type="button"
               onClick={() => responder(true, cerrar)}
-              className={botonPrimario}
               disabled={guardando !== null || !responsable.listo}
               title={responsable.motivo ?? undefined}
             >
-              {guardando === "sigue" ? "Guardando…" : "Sí, sigue en pie"}
-            </button>
+              Sí, sigue en pie
+            </Boton>
           </div>
         </div>
       )}

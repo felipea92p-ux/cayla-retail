@@ -7,8 +7,8 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { avisar } from "@/components/ui/Avisos";
-import { CampoTexto } from "@/components/ui/campos";
-import { Modal, botonCancelar, botonPrimario, campoEtiqueta } from "@/components/ui/Modal";
+import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
@@ -152,8 +152,7 @@ export function AnotarVueltaModal({ datos, fase, onClose }: { datos: OrdenPagina
       titulo={`¿Cuántas volvieron de ${servicio}?`}
       subtitulo={`${fase.nombre}: dejamos todo lo que está afuera como si hubiera vuelto bueno. Cambia lo que no.`}
       variante="hoja"
-      conCerrar
-      ancho="max-w-3xl"
+      tamano="ancha"
       onClose={onClose}
       antesDeCerrar={avisoSalida.pedirAccion}
     >
@@ -206,13 +205,13 @@ export function AnotarVueltaModal({ datos, fase, onClose }: { datos: OrdenPagina
         </div>
 
         <div className="pie-hoja-fijo">
-          <div className="flex gap-2 border-t border-sand pt-3">
-            <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}>
+          <div className="pie-acciones border-t border-sand pt-3">
+            <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
               Cancelar
-            </button>
-            <button type="submit" disabled={cargando || !guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={`${botonPrimario} ${guia.claseConfirmar}`}>
-              {cargando ? "Anotando…" : total > 0 ? `Anotar vuelta de ${total}` : "Anotar vuelta"}
-            </button>
+            </Boton>
+            <Boton type="submit" peso="primario" cargando={cargando} textoCargando="Anotando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+              {total > 0 ? `Anotar vuelta de ${total}` : "Anotar vuelta"}
+            </Boton>
           </div>
         </div>
       </form>

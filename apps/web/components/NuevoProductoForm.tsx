@@ -43,7 +43,7 @@ import {
 } from "@/lib/alta-producto-guia";
 import { nombreTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
 import { temporadaParaAlta } from "@/lib/temporada-ficha-reglas";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import { descuentoDeCampana } from "@/lib/vender-reglas";
 import { campanaDelAlta, repartirEtiquetas, unirEtiquetas } from "@/lib/etiquetas-alta-reglas";
 import { useResponsable } from "@/lib/useResponsable";
@@ -94,6 +94,7 @@ import { precioValido } from "@/lib/variantes-ficha-reglas";
 import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada, type CargaInicialSede } from "@/lib/carga-inicial-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
+import { MAX_DESCRIPCION_PRODUCTO, MAX_NOMBRE_PRODUCTO } from "@/lib/catalogo-topes";
 
 /** Con la carga inicial de la sede cerrada, ninguna cantidad viaja (un objeto fijo: no cambia en cada render). */
 const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
@@ -556,8 +557,21 @@ export function NuevoProductoForm({
   const fotosOrdenadas = ordenarFotosAlta(fotos, coloresElegidos);
 
   // ---------- guardar ----------
+  // Un segundo clic (o Enter) mientras el alta viaja no la manda otra vez: con el mismo token la base devuelve el mismo producto y no
+  // duplica el stock, pero las fotos se suben DESPUÉS de cada respuesta y quedarían dos veces (/chaos de Catálogo 2026-10-14, DC-01).
+  const enviando = useRef(false);
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (enviando.current) return;
+    enviando.current = true;
+    try {
+      await crear();
+    } finally {
+      enviando.current = false;
+    }
+  }
+
+  async function crear() {
     if (!puedeGuardar) {
       // No debería pasar (el botón está apagado y Enter en un campo no envía), pero un envío programático llegaría hasta acá.
       avisar.error(problemas[0]?.texto ?? "Falta completar el formulario.");
@@ -791,7 +805,7 @@ export function NuevoProductoForm({
           .join(" · ")
       : "",
     4: [
-      precioNum > 0 ? `S/ ${precioNum.toFixed(2)}` : null,
+      precioNum > 0 ? `S/\u00a0${precioNum.toFixed(2)}` : null,
       stock.total > 0 ? `${plural(stock.total, "unidad", "unidades")} · ${destinoTexto}` : sinStockVigente ? "Sin stock todavía" : null,
     ]
       .filter(Boolean)
@@ -835,7 +849,7 @@ export function NuevoProductoForm({
         // El paso 4 cierra el alta: aquí termina la persona, así que aquí está «Crear» (la ficha conserva el suyo).
         <button
           type="submit"
-          disabled={!puedeGuardar || !responsable.listo}
+          disabled={cargando || !puedeGuardar || !responsable.listo}
           title={responsable.motivo ?? undefined}
           className={`btn-cayla btn-primario ${listo && !cargando ? "hilo-seguir" : ""}`}
         >
@@ -902,6 +916,7 @@ export function NuevoProductoForm({
               <CampoTexto
                 id="nombre-producto"
                 etiqueta="Nombre"
+                maxLength={MAX_NOMBRE_PRODUCTO}
                 caja
                 className="!h-12 text-base"
                 placeholder={sugerirNombre(contextoSugerencia).texto}
@@ -920,7 +935,7 @@ export function NuevoProductoForm({
             </div>
           </FilaAlta>
           <FilaAlta etiqueta="Descripción" ayuda="Opcional · lo que no dice el nombre: corte, largo, detalles" campo="descripcion" estado={est.descripcion}>
-            <CampoTexto etiqueta="Descripción" caja placeholder={sugerirDescripcion(contextoSugerencia).texto} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
+            <CampoTexto etiqueta="Descripción" caja maxLength={MAX_DESCRIPCION_PRODUCTO} placeholder={sugerirDescripcion(contextoSugerencia).texto} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
           </FilaAlta>
 
           {/* Tejido y patrón describen la prenda: van aquí, con el nombre y la marca (spike v2), no con sus variantes. */}

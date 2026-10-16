@@ -5,7 +5,7 @@
   "total": 3,
   "controles": {
     "components/finanzas/FlujoCajaPanel.tsx": [
-      "button «fin-reportes.excel»",
+      "BotonDescargar «Descargar Excel»",
       "Link «Configuración ▸ Tiendas y caja»",
       "Link «Configuración ▸ Caja y avisos»"
     ]

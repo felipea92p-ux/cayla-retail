@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { CampoTexto } from "@/components/ui/campos";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 import { guardarEjesCategoria, proponerValorVocabulario, sumarAlEje, type EjeIds, type TipoVocabulario } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { sinTildes } from "@/lib/marcas";
@@ -71,7 +71,6 @@ export function ProponerValor(props: Props) {
       {abierto && (
         <Modal
           variante="hoja"
-          ancho="max-w-md"
           titulo={t.titulo}
           subtitulo="¿No está? Agrégalo. Si no eres Líder, queda pendiente hasta que un Líder lo apruebe."
           onClose={() => setAbierto(false)}
@@ -155,16 +154,15 @@ function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, univer
         disabled={trabajando}
       />
       <div className="flex flex-wrap items-center gap-2.5">
-        <button
+        <Boton peso="primario" cargando={trabajando}
           type="button"
           onClick={() => void agregar()}
           disabled={!texto.trim() || trabajando || !firma.listo}
           title={firma.motivo ?? undefined}
-          className="btn-cayla btn-primario"
         >
-          {trabajando ? "Guardando…" : "Agregar"}
-        </button>
-        <button type="button" onClick={() => onCerrar()} disabled={trabajando} className="btn-cayla btn-sutil">
+          Agregar
+        </Boton>
+        <button type="button" onClick={() => onCerrar()} disabled={trabajando} className="btn-cayla btn-secundario">
           Cancelar
         </button>
       </div>

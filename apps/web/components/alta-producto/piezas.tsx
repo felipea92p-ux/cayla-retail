@@ -19,12 +19,16 @@ export function ChipOpcion({
   children,
   className = "",
   disabled = false,
+  chico = false,
 }: {
   elegido: boolean;
   onClick: () => void;
   children: ReactNode;
   className?: string;
   disabled?: boolean;
+  /** Dentro de una celda de tabla (las causas del cierre de Recibir): 32 px de alto, letra de 13 px y lo elegido relleno, para que tres opciones quepan
+   *  en dos líneas de la columna y la fila no se estire. */
+  chico?: boolean;
 }) {
   return (
     <button
@@ -32,11 +36,17 @@ export function ChipOpcion({
       onClick={onClick}
       aria-pressed={elegido}
       disabled={disabled}
-      className={`flex min-h-9 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors disabled:opacity-40 ${
-        elegido ? "border-tinta bg-tinta/[0.07] text-tinta" : "border-tinta/15 text-tinta/75 hover:border-tinta/40"
+      className={`flex items-center gap-1.5 rounded-md border transition-colors disabled:opacity-40 ${chico ? "min-h-8 px-2 py-1 text-[13px]" : "min-h-9 px-2.5 py-1.5 text-sm"} ${
+        elegido
+          ? chico
+            ? "border-tinta bg-tinta text-crema"
+            : "border-tinta bg-tinta/[0.07] text-tinta"
+          : "border-tinta/15 text-tinta/75 hover:border-tinta/40"
       } ${className}`}
     >
-      {elegido && (
+      {/* La chica marca lo elegido rellenándose (como la maqueta de Recibir), sin el ✓: el ✓ la ensanchaba y empujaba a sus vecinas a
+          otra línea en una celda angosta. */}
+      {elegido && !chico && (
         <span aria-hidden className="text-[11px] leading-none">
           ✓
         </span>
@@ -74,7 +84,7 @@ export function PasoAlta({
     // (en el celular los puntos miden ~56 px y no 104: basta 8rem, 2026-10-09).
     <section aria-labelledby={id} className="scroll-mt-32 rounded-xl sm:scroll-mt-[11.5rem] border border-sand bg-papel">
       <div className="px-4 pt-4 sm:px-5">
-        <h2 id={id} className="text-[14.5px] font-semibold text-tinta">
+        <h2 id={id} className="text-[14.5px] font-semibold text-tinta">{/* unificar-fijo: el título de un paso de Nuevo producto, que tiene su diseño aprobado (ADR-0260, ADR-0284) */}
           {titulo}
         </h2>
       </div>

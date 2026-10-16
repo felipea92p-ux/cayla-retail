@@ -291,13 +291,17 @@ const TOPE_HIJAS = 6;
 // entonces SÍ se regrupa (el subgrupo del piso, Frescura + Plan del piso), y este número no vuelve a subir.
 // INVENTARIO, cerrado (Felipe, 2026-10-13; ADR-0392): se regrupó, pero no en un subgrupo: Análisis, Frescura del piso y Plan del
 // piso son de «Gestión», un grupo de PRIMER nivel debajo de Inicio, junto con Rendimiento (que deja su fila suelta, así el primer
-// nivel sigue en 8). Inventario vuelve a 4 (5 con Recibir para quien no ve Compras) y cabe en el tope general: la excepción se
+// nivel sigue en 8). Inventario vuelve a 5 (las cuatro de operar stock y Recibir) y cabe en el tope general: la excepción se
 // borra y no vuelve.
-// COMPRAS, 7 — TEMPORAL (Felipe, 2026-10-10; ADR-0362, decisión 38): «Órdenes de compra» entra como séptima hija mientras
-// «Recibir mercadería» siga en Compras. La sesión de Recepción la muda a Inventario (la base ya la tiene en ese grupo desde el
-// 2026-10-07; falta la web, de otra sesión): ESE día se borra esta entrada y Compras vuelve a 6. No se regrupó porque las siete
-// son puertas de uso diario y la mudanza ya está decidida.
-const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7 };
+// COMPRAS, 7 (Felipe, 2026-10-13; ADR-0362, decisión 65): «Fondos por rendir» va DIRECTO en Compras. Se le preguntó con el subgrupo
+// «Pagos» (Por pagar + Fondos + Notas de crédito) como recomendación, y eligió no regrupar. «Órdenes de compra» entró como séptima hija
+// mientras «Recibir mercadería» vivía en Compras (decisión 38); Recibir se mudó a Inventario el 2026-10-14 (ADR-0393, 20261014210000) y
+// Compras bajó de 8 a 7: desde ese día la excepción es solo por Fondos por rendir, y no vuelve a subir.
+// VENTAS, 7 (ADR-0408, actividad 8, 2026-10-14): «Pedidos web» va DIRECTO en Ventas, junto a Apartados, como lo dibuja la maqueta
+// aprobada de la tienda online («Ventas ▸ Pedidos web»). Solo quien ve todos los módulos de Ventas (el líder) llega a 7; un rol de
+// tienda con Pedidos web y sin Comprobantes queda en 6. Si Felipe prefiere no subir el tope, el remedio es un subgrupo
+// («Separaciones»: Apartados y Pedidos web), como Posventa (D-84).
+const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7, venta: 7 };
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
 
 // Todos los grupos que hay dentro de `fs`, en cualquier profundidad: un subgrupo (D-84) tiene que cumplir el mismo tope
@@ -331,16 +335,11 @@ describe.each(MENUS.map(({ perfil, menu }) => [nombreDe(perfil), perfil, menu] a
     }
   });
 
-  it("«Recibir mercadería» vive como MÁXIMO en un grupo: Compras si ve el dinero de Compras, Inventario si no, y ninguno si lo ve parado en el Taller", () => {
+  it("«Recibir mercadería» vive en UN grupo, Inventario, para todos y en cualquier sede (Felipe, 2026-10-14)", () => {
     const dueños = menu.riel.filter(esGrupoMenu).filter((g) => hojasDe(g).some((h) => h.href === "/recibir")).map((g) => g.id);
-    // Desde 20260923130000 el dinero de Compras es su propio permiso (`verDineroCompras`); `verDinero` quedó para el Taller.
-    const veDinero = perfil.permisos.includes("verDineroCompras");
-    expect(dueños.length).toBeLessThanOrEqual(1);
-    // El único perfil sin grupo es el del hecho de producto que documenta la sección 3 (PR #219, Felipe 2026-09-21).
-    expect(dueños.length === 0).toBe(veDinero && perfil.ubicacionTipo === "taller");
-    if (dueños.length === 1) expect(dueños[0]).toBe(veDinero ? "compras" : "inventario");
-    // Aterrizar en /recibir abre el módulo que la contiene, se le pinte o no (Compras está oculto en el Taller).
-    expect(menu.grupoDe("/recibir")).toBe(veDinero ? "compras" : "inventario");
+    expect(dueños).toEqual(["inventario"]);
+    // Aterrizar en /recibir abre Inventario, también para quien ve el dinero de Compras.
+    expect(menu.grupoDe("/recibir")).toBe("inventario");
   });
 
 });
@@ -462,15 +461,15 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
 });
 
 describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21, PR #219)", () => {
-  it("con `verDineroCompras` y los siete módulos ve las siete pantallas desde una tienda o un almacén, en el orden plan → proveedor → orden de compra → factura → recepción → pago → notas de crédito", () => {
+  it("con `verDineroCompras` y los siete módulos ve las siete pantallas desde una tienda o un almacén, en el orden plan → proveedor → orden de compra → factura → pago → fondos → notas de crédito (Recibir vive en Inventario desde el 2026-10-14)", () => {
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
       expect(hijosDeGrupo({ permisos: LIDER, ubicacionTipo }, "compras")).toEqual([
         "compras.plan",
         "compras.proveedores",
         "compras.ordenesCompra",
         "compras.comprobantes",
-        "compras.recibir",
         "compras.porPagar",
+        "compras.fondos",
         "compras.notasCredito",
       ]);
     }
@@ -480,20 +479,16 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
     expect(menuPara({ permisos: LIDER, ubicacionTipo: "taller" }).riel.some((f) => f.id === "compras")).toBe(false);
   });
 
-  it("HECHO DE PRODUCTO: el líder parado en el Taller no tiene «Recibir mercadería» (Compras e Inventario, /recibir) en ningún menú — la ruta sigue viva, solo sin un link desde ahí", () => {
-    // Es consecuencia de dos reglas que se cruzan: «Recibir mercadería» vive en Compras para quien ve el dinero, y Compras no se
-    // muestra en el Taller. Quien no ve el dinero lo tiene en Inventario, así que no le pasa. Hasta que se quitó «+ Nuevo» (todas
-    // partes, pedido de Felipe) este perfil llegaba igual por ahí; sin ese atajo, /recibir queda sin ningún link para él. Si Felipe
-    // decide que el líder en el Taller sí debe verlo en el lateral, se revierte a propósito (p. ej. quitando `soloSinPermiso` de
-    // `inventario.recibir`) y esta prueba cambia con esa decisión; no debe ponerse en verde por accidente.
-    const menu = menuPara({ permisos: LIDER, ubicacionTipo: "taller" });
-    const filas = menu.riel.flatMap(hojasDe);
-    expect(filas.map((f) => f.href)).not.toContain("/recibir");
-    expect(filas.map((f) => f.etiqueta)).not.toContain("Recibir mercadería");
-    expect(menu.movil.map((c) => c.href)).not.toContain("/recibir");
-    // Desde una tienda o un almacén sí lo tiene, dentro de Compras.
-    for (const ubicacionTipo of ["tienda", "almacen"] as const) {
-      expect(hijosDeGrupo({ permisos: LIDER, ubicacionTipo }, "compras")).toContain("compras.recibir");
+  it("DECISIÓN DE FELIPE (2026-10-14): «Recibir mercadería» vive en Inventario para todos —líder e integrante, en cualquier sede, el Taller incluido— y nunca en Compras", () => {
+    // Hasta ese día vivía en Compras para quien ve el dinero y en Inventario para quien no (ADR-0113), y el líder parado en el Taller
+    // no lo tenía en ningún menú (Compras no se muestra allí). Felipe pidió una sola puerta, en Inventario, donde entra el stock.
+    for (const permisos of [LIDER, INTEGRANTE]) {
+      for (const ubicacionTipo of ["tienda", "almacen", "taller"] as const) {
+        expect(hijosDeGrupo({ permisos, ubicacionTipo }, "inventario"), `${ubicacionTipo}`).toContain("inventario.recibir");
+        const filas = menuPara({ permisos, ubicacionTipo }).riel.flatMap(hojasDe).filter((f) => f.href === "/recibir");
+        expect(filas.map((f) => f.etiqueta), `${ubicacionTipo}: una sola fila`).toEqual(["Recibir mercadería"]);
+      }
+      expect(hijosDeGrupo({ permisos, ubicacionTipo: "tienda" }, "compras")).not.toContain("compras.recibir");
     }
   });
 
@@ -715,11 +710,10 @@ describe("el menú de una terminal con el rol «Terminal administrativa»", () =
     expect(riel.find((f) => f.etiqueta === "Compras")).toMatchObject({ href: "/compras/proveedores" });
   });
 
-  it("si algún día recibe `verDineroCompras` (su rol suma Facturas de compra, Por pagar o Notas de crédito), Compras aparece con lo que su rol ve, SIN tocar el árbol", () => {
+  it("si algún día recibe `verDineroCompras` (su rol suma Facturas de compra, Por pagar o Notas de crédito), Recibir sigue en Inventario: vive en UN solo grupo para todos (Felipe, 2026-10-14)", () => {
     const conDinero = menuPara(perfilTerminal("administrativa", "tienda", ["verDineroCompras"])).riel;
-    expect(hijasDe(conDinero, "Compras")).toEqual(["Proveedores", "Recibir mercadería"]);
-    // ...y en Compras pierde el duplicado: «Recibir mercadería» vive en UN solo grupo (ADR-0113).
-    expect(hijasDe(conDinero, "Inventario")).not.toContain("Recibir mercadería");
+    expect(hijasDe(conDinero, "Inventario")).toContain("Recibir mercadería");
+    expect(hijasDe(conDinero, "Compras")).not.toContain("Recibir mercadería");
   });
 
   it("no ve Ventas ni Producción", () => {
@@ -773,6 +767,30 @@ describe("terminales sin tipo: el rol manda", () => {
   it("la pantalla principal elegida manda si el rol todavía la ve; si no (se apagó ese módulo), cae a la primera que ve", () => {
     expect(aterrizajeDe({ modulos: ["inicio", "vender", "caja"], pantallaPrincipal: "caja" })).toBe("/caja");
     expect(aterrizajeDe({ modulos: ["inicio", "vender"], pantallaPrincipal: "caja" })).toBe("/"); // ya no tiene «caja»: vuelve al default
+  });
+
+  it("en CAYLA Global, quien iba a quedarse en el Inicio va al tablero; el Admin no, porque su Inicio es el Observatorio (ADR-0275, ADR-0322)", () => {
+    expect(aterrizajeDe({ modulos: ["inicio", "cayla_global"], vista: "global" })).toBe("/global");
+    expect(aterrizajeDe({ modulos: ["inicio", "cayla_global"], vista: "global", esAdmin: true })).toBe("/");
+    // Parado en una sede, el Inicio es el Inicio, sea o no Admin.
+    expect(aterrizajeDe({ modulos: ["inicio", "cayla_global"], vista: "sede" })).toBe("/");
+    expect(aterrizajeDe({ modulos: ["inicio", "cayla_global"], vista: "sede", esAdmin: true })).toBe("/");
+    // Una pantalla principal que no es el Inicio manda igual en CAYLA Global, y sin ninguna pantalla sigue siendo «Sin acceso».
+    expect(aterrizajeDe({ modulos: ["inicio", "clientas", "cayla_global"], pantallaPrincipal: "clientas", vista: "global" })).toBe("/clientas");
+    expect(aterrizajeDe({ modulos: [], vista: "global" })).toBe("/sin-acceso");
+  });
+
+  it("parada en una sede, la vista y el Admin no le cambian el destino a nadie: es la regla de siempre", () => {
+    const perfiles: { terminal?: boolean; modulos: ClaveModulo[]; pantallaPrincipal?: string }[] = [
+      { modulos: ["inicio", "vender"] },
+      { modulos: ["vender"] },
+      { modulos: ["inicio", "vender", "caja"], pantallaPrincipal: "caja" },
+      { terminal: true, modulos: ["vender", "caja"] },
+      { terminal: true, modulos: ["existencias"] },
+    ];
+    for (const perfil of perfiles) {
+      for (const esAdmin of [false, true]) expect(aterrizajeDe({ ...perfil, vista: "sede", esAdmin })).toBe(aterrizajeDe(perfil));
+    }
   });
 });
 

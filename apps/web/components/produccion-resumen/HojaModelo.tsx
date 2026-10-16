@@ -23,8 +23,8 @@ import { TONO_ESTADO_MODELO } from "./estado-modelo";
 // «Ver el modelo» (Resumen de Producción, tarea #8 del análisis docs/pantallas/produccion.md): la hoja que se abre al tocar un modelo de «¿Qué producir?».
 //
 // Es la ficha COMPLETA del modelo, con el mismo diseño que la vista rápida de Catálogo ▸ Productos (Felipe 2026-10-13: «tiene que dejarme ver todo: proveedor, marca, qué tienda lo vende…
-// son datos que ya existen»): a la izquierda la foto grande, que sigue al color que se mira, con su ficha de color y la descripción; a la derecha, lo que hay y lo que falta, QUÉ TIENDA lo
-// vende (y qué le queda a cada una), la matriz color × talla de toda la red o de una tienda, la ficha (marca, proveedor, material, patrón), las órdenes abiertas del modelo y la tela y los
+// son datos que ya existen»): a la izquierda la foto grande, que sigue al color que se mira, con su ficha de color y la descripción; a la derecha, lo que hay y lo que falta, la ficha (marca, proveedor, material, patrón), QUÉ TIENDA lo
+// vende (y qué le queda a cada una), la matriz color × talla de toda la red o de una tienda, las órdenes abiertas del modelo y la tela y los
 // avíos que lleva contra su saldo. Es de solo lectura: lo que decide —abrir la orden, trasladar— sale de aquí, no se guarda nada. Todo el movimiento es el de `<Modal>` (ADR-0136) y el de
 // la foto de la vista rápida (su excepción escrita); esta hoja no agrega ninguno. Lo que cuenta cada cifra vive en `lib/produccion-hoja-modelo.ts` y `lib/produccion-decisiones.ts`.
 
@@ -48,6 +48,7 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
   const enFoto = vista ?? fijado;
   const colorEnFoto = hoja.colores.find((c) => c.nombre === enFoto) ?? hoja.colores[0];
   const fichaEnFoto = colorEnFoto ? fichaDeColor(colorEnFoto.nombre) : null;
+  const fotosDeLosColores = useMemo(() => hoja.colores.map((c) => c.fotoUrl), [hoja.colores]);
   const aLaFoto = colorEnFoto ? { clave: colorEnFoto.nombre, nombre: colorEnFoto.nombre, hex: colorEnFoto.hex, fotoUrl: colorEnFoto.fotoUrl } : undefined;
   const prenda = { referencia: hoja.referencia, categoria: presentacion?.categoria, categoriaPrefijo: presentacion?.categoriaPrefijo, categoriaFamilia: presentacion?.categoriaFamilia };
 
@@ -62,8 +63,7 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
       <Modal
         variante="hoja"
         conCerrar
-        tituloGrande
-        ancho="max-w-4xl"
+        tamano="ancha"
         titulo={hoja.referencia}
         subtitulo={
           <span className="vr-meta">
@@ -95,7 +95,7 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
       >
         <div className="vr-cuerpo vr-quieta">
           <aside data-guia="prod-resumen.hoja-foto" className="vr-lado">
-            <FotoVistaRapida producto={prenda} fila={aLaFoto} onAmpliar={setFotoGrande} botonAmpliar={botonAmpliar} />
+            <FotoVistaRapida producto={prenda} fila={aLaFoto} onAmpliar={setFotoGrande} botonAmpliar={botonAmpliar} precargar={fotosDeLosColores} />
             <div>
               <div className="vr-pie-foto">
                 <span className="vr-sw" data-color-dato style={{ background: colorEnFoto?.hex ?? undefined, width: 20, height: 20 }} />
@@ -132,6 +132,9 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
               {falta && <p className="mt-3 text-[13.5px] leading-relaxed text-tinta">{falta}</p>}
             </div>
 
+            {/* De quién es y quién lo trae, ARRIBA: lo primero que se pregunta al decidir una corrida (Felipe 2026-10-15). Abajo de la matriz quedaba bajo el pliegue y la hoja parecía no decirlo. */}
+            <FichaDelModelo ficha={ficha} />
+
             <TiendasDelModelo hoja={hoja} />
 
             <MatrizDelModelo
@@ -148,7 +151,6 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
               alVistaPrevia={setVista}
             />
 
-            <FichaDelModelo ficha={ficha} />
             <OrdenesDelModelo ordenes={hoja.ordenes} />
             <TelaDelModelo materiales={hoja.materiales} />
 

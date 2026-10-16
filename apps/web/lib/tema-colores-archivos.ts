@@ -19,7 +19,7 @@ const MASCARA = "Máscaras: solo cuenta el canal alfa, el color que se escribe n
 
 export const COLORES_A_MANO: Record<string, ColoresAMano> = {
   // ---------- Permanentes: papel físico ----------
-  "app/globals.css": { cuenta: 26, motivo: "Papel físico (etiqueta de precio, recibo térmico, hoja de impresión: #000/#fff a propósito, la térmica no imprime otro color), máscaras y el valor inicial de una propiedad registrada." },
+  "app/globals.css": { cuenta: 28, motivo: "Papel físico (etiqueta de precio, recibo térmico, hoja de impresión: #000/#fff a propósito, la térmica no imprime otro color), máscaras y el valor inicial de una propiedad registrada." },
   "components/BoletaA4.tsx": { cuenta: 23, motivo: PAPEL_A4 },
   "components/ProformaA4.tsx": { cuenta: 22, motivo: PAPEL_A4 },
   "components/ProformasPanel.tsx": { cuenta: 1, motivo: "El papel blanco de la vista previa de la proforma A4 (ver ProformaA4)." },
@@ -45,7 +45,7 @@ export const COLORES_A_MANO: Record<string, ColoresAMano> = {
   "components/ui/IsotipoCayla.tsx": { cuenta: 1, motivo: "El rojo de la MARCA (muestreado del propio logo): no cambia con el tema." },
   "app/estilos/inicio-almacen.css": { cuenta: 6, motivo: MASCARA },
   "app/estilos/observatorio.css": { cuenta: 6, motivo: MASCARA },
-  "app/global-error.tsx": { cuenta: 6, motivo: "Pantalla de error global: se dibuja sin globals.css (el layout raíz reventó), así que lleva su propia paleta en dos juegos de variables, claro y oscuro, con los valores de tema.css." },
+  "app/global-error.tsx": { cuenta: 8, motivo: "Pantalla de error global: se dibuja sin globals.css (el layout raíz reventó), así que lleva su propia paleta en dos juegos de variables, claro y oscuro, con los valores de tema.css, más la tinta y la crema fijas del texto de Aventurero." },
 
   // ---------- Deuda: se paga en la actividad de su módulo (ADR-0336) ----------
 };

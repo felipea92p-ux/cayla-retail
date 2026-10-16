@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -28,7 +29,7 @@ import { ICONO_DEL_ACCESO, TRAZOS_MENU } from "@/lib/menu-iconos";
 import { formatoSoles } from "@/lib/resumen-formato";
 import { contarVencidas } from "@/lib/por-regularizar";
 import { contarComprobantesAtascados } from "@/lib/comprobantes";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { AjustarInicio } from "@/components/inicio/AjustarInicio";
 import { InicioAlmacen } from "@/components/inicio-almacen/InicioAlmacen";
 import { accesosAlmacen, esPerfilAlmacen, fuentesDeAlmacen } from "@/lib/inicio-almacen-reglas";
@@ -39,6 +40,9 @@ import { Etiqueta } from "@/components/inicio/TarjetasInicio";
 import { EsqueletoPiso, PisoDelInicio } from "@/components/inicio/PisoDelInicio";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { SeccionLoQueVaBien, SeccionMiMeta, SeccionTuMes } from "@/components/inicio/MiMeta";
+import { TuFondoConRendir } from "@/components/fondos/TuFondoConRendir";
+import { getResumenMiFondo } from "@/lib/fondos";
+import { hrefTuFondo, mostrarTuFondo } from "@/lib/fondos-reglas";
 
 // Inicio por rol, computadora y celular (spike docs/maquetas/inicio-movil-roles-2026-09/, decisiones de Felipe del
 // 2026-09-26, con 5 referentes: Shopify, Square, Toast, Dynamics 365 y Zebra). UN solo orden en todos los tamaños:
@@ -56,6 +60,11 @@ import { SeccionLoQueVaBien, SeccionMiMeta, SeccionTuMes } from "@/components/in
 // cabina «Nuevo producto» (Felipe, 2026-09-30, ADR-0292; maqueta docs/maquetas/inicio-almacen-2026-09/). Usa los mismos
 // avisos, el mismo filtro «Ajustar» y las mismas reglas de arriba: solo cambia cómo se dibuja y qué más lee.
 //
+// «Tu fondo» (ADR-0362, fase 6 · actividad 4): quien tiene plata de CAYLA para comprar ve cuánto le queda, después de sus cifras del día
+// (es una cifra suya) y antes de «Te toca»; en el Inicio de almacén, arriba de su columna derecha. Lleva a Órdenes de compra (o a Por
+// pagar) si ve esa pantalla. El Observatorio del Admin no la lleva: su diseño es una decisión (ADR-0322); un Admin con fondo lo ve en
+// Órdenes de compra.
+//
 // La cuenta ADMIN (no vende: mira cómo va el negocio) tiene el Observatorio (Felipe, 2026-10-03, ADR-0322; maqueta
 // docs/maquetas/inicio-admin-v3-2026-10/): el mapa de las tiendas, cuánto vendió cada una contra su meta y lo que hay por
 // revisar. Es el único Inicio que se abre en CAYLA Global (mira toda la empresa); con una tienda elegida arriba, abre
@@ -65,9 +74,17 @@ export default async function InicioPage() {
   const persona = await requirePersonaActualV2();
   // Una terminal cuyo ROL ve el Punto de Venta aterriza ahí (pedido de Felipe, 2026-09-21; sin tipo desde 2026-09-22): su
   // menú no tiene «Inicio», su casa es el mostrador. Una persona aterriza en la pantalla principal de su rol, o en la
-  // primera que ve (20260925220000). Es un aterrizaje, no un candado. La regla vive en `aterrizajeDe`.
+  // primera que ve (20260925220000); en CAYLA Global, en el tablero, salvo el Admin. Es un aterrizaje, no un candado. La
+  // regla vive en `aterrizajeDe`, la misma que usa el login para entrar directo (2026-10-13): esta redirección queda para
+  // quien abre `/` a mano o desde el menú.
   const modulos = persona.modulos.map((m) => m.clave);
-  const destino = aterrizajeDe({ terminal: persona.terminal, modulos, pantallaPrincipal: persona.pantallaPrincipal });
+  const destino = aterrizajeDe({
+    terminal: persona.terminal,
+    modulos,
+    pantallaPrincipal: persona.pantallaPrincipal,
+    esAdmin: persona.esAdmin,
+    vista: persona.vista,
+  });
   if (destino !== "/") redirect(destino);
   if (persona.esAdmin) {
     const datos = await getDatosObservatorio();
@@ -85,6 +102,7 @@ export default async function InicioPage() {
     }
   }
   // En CAYLA Global el Inicio de una sede no tiene sentido (mostraría la sede donde trabaja bajo «CAYLA Global»): al tablero.
+  // A quien no es Admin ya lo mandó `aterrizajeDe`; aquí llega solo el Admin cuyo Observatorio no se pudo leer.
   if (persona.vista === "global") redirect("/global");
   const esLider = persona.rol === "lider";
   const ve = (m: (typeof modulos)[number]) => modulos.includes(m);
@@ -97,7 +115,7 @@ export default async function InicioPage() {
   const piso = pisoQueSeVe({ ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal, modulos });
   const esAlmacen = esPerfilAlmacen({ ubicacionTipo: persona.ubicacionTipo, modulos, puedeEditarCatalogo });
 
-  const [hoy, miMeta, traslados, prendasVencidas, aperturas, comprobantesAtascados, equipo, datosAlmacen] = await Promise.all([
+  const [hoy, miMeta, traslados, prendasVencidas, aperturas, comprobantesAtascados, equipo, datosAlmacen, fondo] = await Promise.all([
     mostrarHoy(perfil) ? getHoyDeLaSede(persona.ubicacionId, esLider) : Promise.resolve(null),
     // Su meta (ADR-0325): solo de una integrante de tienda; la líder tiene Rendimiento. `null` = sin meta: el Inicio queda como estaba.
     !esLider && mostrarHoy(perfil) ? getMiMeta() : Promise.resolve(null),
@@ -111,7 +129,11 @@ export default async function InicioPage() {
     // Lo que solo lee la cuenta de almacén. El piso de la sede sale del motor del piso (una lectura), ya no de Existencias
     // entera: no hace falta la lista de sedes.
     esAlmacen ? getInicioAlmacen({ ubicacionId: persona.ubicacionId, ve }) : Promise.resolve(null),
+    // Una terminal no tiene fondo (es un aparato, ADR-0162): ni se pregunta.
+    persona.terminal ? Promise.resolve(null) : getResumenMiFondo(),
   ]);
+  const tuFondo = mostrarTuFondo(fondo) ? fondo : null;
+  const hrefFondo = hrefTuFondo((m) => ve(m));
   const fuentes = await getFuentesAvisos(
     { ubicacionId: persona.ubicacionId, sedePropiaId: persona.sedePropiaId, esLider, esTerminal: persona.terminal, ve, pagaCompras: puede(persona, "verDineroCompras") },
     {
@@ -139,7 +161,6 @@ export default async function InicioPage() {
         : persona.ubicacionTipo === "taller"
           ? "Taller"
           : "Integrante";
-  const fecha = new Intl.DateTimeFormat("es-PE", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Lima" }).format(new Date());
 
   const ajustar =
     avisos.length > 0 ? (
@@ -155,11 +176,12 @@ export default async function InicioPage() {
   if (datosAlmacen) {
     return (
       <div className="space-y-6 pb-24 sm:pb-0">
-        <CabeceraPantalla sobretitulo={fecha} titulo={saludo} bajada={`${etiquetaRol} · ${persona.ubicacionEtiqueta}`} />
+        <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo={saludo} subtitulo={etiquetaRol} />
         <InicioAlmacen
           datos={datosAlmacen}
           visibles={visibles}
           ajustar={ajustar}
+          tuFondo={tuFondo ? <TuFondoConRendir fondo={tuFondo} href={hrefFondo} guia="inicio.tu-fondo" /> : null}
           accesos={accesosAlmacen(modulos)}
           veRecibir={ve("recibir")}
           puedeEditarCatalogo={puedeEditarCatalogo}
@@ -179,10 +201,11 @@ export default async function InicioPage() {
 
   return (
     <div className={`space-y-6 ${fijo ? "pb-24 sm:pb-0" : ""}`}>
-      <CabeceraPantalla
-        sobretitulo={fecha}
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): la sede y la fecha arriba, el saludo de título. */}
+      <EncabezadoPagina
+        sede={persona.ubicacionEtiqueta}
         titulo={saludo}
-        bajada={`${etiquetaRol} · ${persona.ubicacionEtiqueta}`}
+        subtitulo={etiquetaRol}
         acciones={
           vende ? (
             <Link href="/vender" className="btn-cayla btn-primario hidden items-center gap-2 sm:inline-flex" data-guia="inicio.vender">
@@ -200,6 +223,12 @@ export default async function InicioPage() {
               <SeccionLoQueVaBien miMeta={miMeta} />
               <SeccionTuMes miMeta={miMeta} />
             </>
+          )}
+          {tuFondo && (
+            // En la misma grilla que las cifras de «Tu día»: una cifra más, no una franja a todo el ancho.
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <TuFondoConRendir fondo={tuFondo} href={hrefFondo} guia="inicio.tu-fondo" className="col-span-2 sm:col-span-1" />
+            </div>
           )}
           <TeToca visibles={visibles} ajustar={ajustar} />
           {piso.alguno && (
@@ -257,7 +286,7 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
       <section data-guia="inicio.hoy">
         <Etiqueta>{titulo}</Etiqueta>
         <div className="card-cayla flex items-start gap-3 px-4 py-3.5 text-sm text-tinta/80 sm:px-5">
-          <Icono clave="caja" className="mt-0.5 size-[18px] text-tinta/60" />
+          <Icono clave="caja" className="mt-0.5 size-4 text-tinta/60" />
           <p>
             <span className="font-semibold text-tinta">{esLider ? "Aún sin ventas hoy." : "Aún no tienes ventas hoy."}</span> {caja}
             {esLider && r.meta ? ` · meta ${formatoSoles(r.meta.meta)}` : ""}.
@@ -290,9 +319,7 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
           r.meta ? (
             <TarjetaCifra etiqueta="Meta del día" valor={`${r.meta.pct} %`}>
               Faltan {formatoSoles(r.meta.falta)} de {formatoSoles(r.meta.meta)}
-              <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-tinta/10" aria-hidden>
-                <span className="block h-full rounded-full bg-verde" style={{ width: `${r.meta.barra}%` }} />
-              </span>
+              <BarraAvance pct={r.meta.barra} decorativa className="mt-2" />
             </TarjetaCifra>
           ) : (
             <TarjetaCifra etiqueta="Meta del día" valor={null}>
@@ -402,7 +429,7 @@ function Accesos({ accesos }: { accesos: AccesoRapido[] }) {
             href={a.href}
             className="card-cayla flex flex-col items-center gap-1.5 px-1.5 py-3 text-center text-xs text-tinta transition-colors hover:bg-tinta/5 hover:text-rojo"
           >
-            <Icono clave={a.icono} className="size-[22px]" />
+            <Icono clave={a.icono} className="size-5" />
             {a.etiqueta}
           </Link>
         ))}

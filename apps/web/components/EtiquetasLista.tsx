@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import Link from "next/link";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
@@ -14,7 +13,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { camposDeCampana } from "@/lib/etiqueta-campana-guia";
+import { campanaValida, camposDeCampana } from "@/lib/etiqueta-campana-guia";
 import {
   AccionTarjeta,
   BarraAtributos,
@@ -31,10 +30,12 @@ import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
 import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import { AYUDA_COMENTARIO_APROBAR, avisoEtiquetaAgregada, cuerpoAprobarEtiqueta, verboAprobacion } from "@/lib/etiqueta-aprobacion-reglas";
 import { nombreBajoCosto, objecionVigencia, parsearDescuento, parsearFecha, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
-import { hoyLima, textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
+import { textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import { GRUPOS_ETIQUETA, ORDEN_GRUPOS_ETIQUETA, type EstiloEtiqueta } from "@/lib/etiqueta-grupos";
 import { normalizarNombre } from "@/lib/patron-visual";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 /**
  * Vocabulario cerrado de etiquetas de catálogo (folksonomy: "Oferta",
@@ -154,16 +155,13 @@ function TarjetaEtiqueta({
               {prendas === 0 ? "Sin prendas etiquetadas" : `${prendas} ${prendas === 1 ? "prenda etiquetada" : "prendas etiquetadas"} a mano`}
             </p>
           )}
-          {e.descuentoPct !== null && !DESCUENTO_YA_SE_APLICA && <p className="text-[10.5px] text-tinta/50">Aún no se aplica en Vender</p>}
+          {e.descuentoPct !== null && !DESCUENTO_YA_SE_APLICA && <p className="text-[10.5px] text-tinta/50">Aún no se aplica en Vender</p>} {/* unificar-fijo: dice el estado del descuento, no que falte algo */}
           {/* ADR-0180 paso 2: con la campaña vigente se imprimen sus etiquetas (precio rebajado); al terminar, las mismas
               prendas vuelven al precio normal. Antes de empezar no hay nada que imprimir: la etiqueta diría el precio de hoy. */}
           {e.descuentoPct !== null && e.estado === "aprobado" && !apagada && vigencia?.estado !== "proxima" && (
-            <Link
-              href={urlEtiquetasDePrecio({ campana: e.id })}
-              className="label-cayla mt-0.5 self-start text-[10px] text-tinta/75 underline underline-offset-4 transition-colors hover:text-tinta"
-            >
-              {vigencia?.estado === "terminada" ? "Volver al precio normal" : "Imprimir etiquetas de precio"}
-            </Link>
+            <BotonImprimir href={urlEtiquetasDePrecio({ campana: e.id })} chico className="mt-0.5 self-start">
+              {vigencia?.estado === "terminada" ? "Imprimir con el precio normal" : "Imprimir etiquetas de precio"}
+            </BotonImprimir>
           )}
         </>
       }
@@ -538,19 +536,18 @@ export function EtiquetasLista({
         <Modal
           titulo={`${verboAprobacion(aprobandoEtiqueta.estado)} «${aprobandoEtiqueta.nombre}»`}
           subtitulo={AYUDA_COMENTARIO_APROBAR}
-          ancho="max-w-sm"
           onClose={() => setAprobandoAbierto(null)}
         >
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Comentario (obligatorio)" value={comentarioAprobar} onChange={(e) => setComentarioAprobar(e.target.value)} autoFocus />
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={aprobandoId === aprobandoEtiqueta.id}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={cerrar} disabled={aprobandoId === aprobandoEtiqueta.id}>
                   Cancelar
                 </Boton>
                 <Boton
                   peso="primario"
-                  className="flex-1"
+                 
                   cargando={aprobandoId === aprobandoEtiqueta.id}
                   disabled={!comentarioAprobar.trim()}
                   onClick={() => aprobar(aprobandoEtiqueta)}
@@ -564,17 +561,17 @@ export function EtiquetasLista({
       )}
 
       {rechazandoEtiqueta && (
-        <Modal titulo={`Rechazar «${rechazandoEtiqueta.nombre}»`} ancho="max-w-sm" onClose={() => setRechazandoAbierto(null)}>
+        <Modal titulo={`Rechazar «${rechazandoEtiqueta.nombre}»`} onClose={() => setRechazandoAbierto(null)}>
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoId === rechazandoEtiqueta.id}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={cerrar} disabled={rechazandoId === rechazandoEtiqueta.id}>
                   Cancelar
                 </Boton>
                 <Boton
                   peso="primario"
-                  className="flex-1"
+                 
                   cargando={rechazandoId === rechazandoEtiqueta.id}
                   onClick={() => rechazar(rechazandoEtiqueta)}
                 >
@@ -622,14 +619,15 @@ function CampanaModal({
   const [elegidas, setElegidas] = useState(() => new Set(etiqueta.categoriaIds));
   const [guardando, setGuardando] = useState(false);
 
-  // Guía de foco: sale de la misma regla que apaga «Guardar» (`valido`); todo es opcional, así que solo «sigue» lo mal escrito.
+  // Guía de foco: sale de la misma regla que apaga «Guardar» (`campanaValida`, y su prueba exige que coincidan); todo es opcional,
+  // así que solo «sigue» lo mal escrito.
   const guia = useGuiaCampos(camposDeCampana({ descuento, desde, hasta, categorias: elegidas.size, puedeDarDescuento }));
 
   const pct = parsearDescuento(descuento);
   const fDesde = parsearFecha(desde);
   const fHasta = parsearFecha(hasta);
   const objecion = fDesde.ok && fHasta.ok ? objecionVigencia(fDesde.valor, fHasta.valor) : null;
-  const valido = pct.ok && fDesde.ok && fHasta.ok && !objecion;
+  const valido = campanaValida({ descuento, desde, hasta });
   // La campaña no se bloquea por bajar del costo (puede ser una liquidación a propósito),
   // pero quien la configura se entera: número en rojo y cuántas prendas serían.
   const bajoCosto = prendasBajoCosto(pct.ok ? pct.valor : null, prendasConCosto, elegidas, new Set(variantesManuales));
@@ -673,7 +671,7 @@ function CampanaModal({
   }
 
   return (
-    <Modal titulo={`Campaña «${etiqueta.nombre}»`} ancho="max-w-md" onClose={onClose}>
+    <Modal titulo={`Campaña «${etiqueta.nombre}»`} onClose={onClose}>
       {(cerrar) => (
         <div data-guia="atributos.campana-form" className="mt-5 space-y-5">
           <CampoGuiado id="descuento" guia={guia}>
@@ -763,11 +761,11 @@ function CampanaModal({
           </p>
 
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div data-guia="atributos.campana-pie" className="flex gap-2 pt-1">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+          <div data-guia="atributos.campana-pie" className="pie-acciones pt-1">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!valido} title={guia.frase ?? undefined}>
+            <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!valido} title={guia.frase ?? undefined}>
               Guardar
             </Boton>
           </div>
@@ -801,7 +799,7 @@ function NuevaEtiquetaModal({
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
   ]);
   return (
-    <Modal titulo="Nueva etiqueta" subtitulo="Queda disponible de inmediato para cualquier variante." ancho="max-w-sm" onClose={onClose}>
+    <Modal titulo="Nueva etiqueta" subtitulo="Queda disponible de inmediato para cualquier variante." onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           <CampoGuiado id="nombre" guia={guia}>
@@ -811,8 +809,8 @@ function NuevaEtiquetaModal({
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+          <div className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
             <Boton
