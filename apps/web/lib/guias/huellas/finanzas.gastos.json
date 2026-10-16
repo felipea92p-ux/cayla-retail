@@ -2,7 +2,7 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 42,
+  "total": 44,
   "controles": {
     "components/GastosFijosYActivos.tsx": [
       "BotonEditar «Editar fijos»",
@@ -53,6 +53,10 @@
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"
+    ],
+    "components/finanzas/GastosPulso.tsx": [
+      "button «fin-gastos.resolver»",
+      "button «Ver todas»"
     ]
   }
 }

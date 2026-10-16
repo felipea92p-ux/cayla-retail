@@ -56,6 +56,8 @@ import {
   type Ver,
 } from "@/lib/gastos-reglas";
 import { Boton } from "@/components/ui/campos";
+import { GastosPulso } from "@/components/finanzas/GastosPulso";
+import { bandejaPulso, gastastePulso } from "@/lib/gastos-pulso-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { Check, FunnelX, Receipt, SearchX } from "lucide-react";
 
@@ -185,6 +187,15 @@ export function GastosPanel({
           {f}
         </p>
       ))}
+
+      {/* Camino A (Felipe 2026-10-15): primero la respuesta y la bandeja; las cifras, después. */}
+      <GastosPulso
+        gastaste={gastastePulso(panel)}
+        bandeja={bandejaPulso(egresos, fijos)}
+        nombreCorto={nombreCorto}
+        onResolver={(cosa) => (cosa.tipo === "egreso" ? setClasificar(cosa.egreso) : setRegistrar({ fijo: cosa.fijo }))}
+        onVerTodas={() => setPestana(bandejaPulso(egresos, fijos).cosas[0]?.tipo === "fijo" ? "fijos" : "egresos")}
+      />
 
       <section className="fin-cifras" data-guia="fin-gastos.cifras">
         {/* Sin `panel` es porque la lectura falló (la falla se dice arriba): «no se pudo leer», no «sin dato» (ADR-0358). */}

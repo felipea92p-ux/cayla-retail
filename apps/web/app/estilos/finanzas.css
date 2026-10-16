@@ -2324,3 +2324,56 @@
     margin-top: 6px;
   }
 }
+
+/* ---- Gastos en camino A: la cosa por revisar, de a una. ---- */
+@layer components {
+  .fin-gastos-cosa {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--color-hueso);
+  }
+  .fin-gastos-cosa > div > b {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 21px;
+    font-weight: 500;
+    line-height: 1.15;
+    margin-top: 4px;
+  }
+  .fin-gastos-cosa > div > p {
+    font-size: 13.5px;
+    margin-top: 4px;
+    color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre hueso (ADR-0336: desde 64 % pasa) */
+  }
+  .fin-gastos-cosa-der {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    flex: none;
+  }
+  .fin-gastos-cosa-monto {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-gastos-cosa-mas {
+    margin-top: 10px;
+    font-size: 13.5px;
+  }
+  @media (max-width: 560px) {
+    .fin-gastos-cosa {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .fin-gastos-cosa-der {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+  }
+}

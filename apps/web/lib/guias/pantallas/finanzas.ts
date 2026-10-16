@@ -216,6 +216,27 @@ export const GUIA_FIN_GASTOS: Guia = {
       texto: "Arriba de los botones eliges quién lo está registrando. «Registrar gasto» lo guarda y ya suma en las cifras del mes. En la demo no registramos: cerramos la ventana.",
     },
     {
+      id: "pulso",
+      ancla: "fin-gastos.pulso",
+      preparar: [{ tipo: "escape" }],
+      titulo: "¿En qué se fue la plata?",
+      texto: "Lo gastado en el mes y, en una frase, qué pesó más: «7 de cada 10 soles fueron alquileres». Debajo, las tres categorías que más pesaron.",
+    },
+    {
+      id: "bandeja",
+      ancla: "fin-gastos.bandeja",
+      opcional: true,
+      titulo: "Lo que falta revisar, de a uno",
+      texto: "Una salida de caja que nadie dijo qué fue, o un gasto fijo del mes que ya pasó sin registrarse. Aparece una cosa a la vez, con su botón: Clasificar o Registrar. Cuando no queda nada, lo dice.",
+    },
+    {
+      id: "resolver",
+      ancla: "fin-gastos.resolver",
+      opcional: true,
+      titulo: "Resolverlo desde aquí",
+      texto: "El botón abre la misma hoja de siempre: «¿Qué fue esta salida?» para una salida de caja, o el formulario del gasto ya armado con el fijo. En la demo no se guarda nada.",
+    },
+    {
       id: "cifras",
       ancla: "fin-gastos.cifras",
       preparar: [{ tipo: "escape" }],
