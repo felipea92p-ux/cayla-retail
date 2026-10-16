@@ -11,6 +11,12 @@
 -- de punta a punta desde el propio seed, no solo con INSERT directo.
 -- ============================================================================
 
+-- EL RELOJ: EN HORA DE LIMA. El contenedor de Postgres (y el runner del CI) van en UTC: después de las
+-- 19:00 de Lima ya es «mañana» para `current_date`, pero las funciones miden «hoy» en hora de Lima. Sin
+-- esta línea, la compra del seed salía con fecha de mañana y la base la rechazaba («La fecha de emisión
+-- no puede ser futura») y el seed no entraba: pasó en el CI del PR #1127 el 2026-10-15 a las 19:33.
+set timezone = 'America/Lima';
+
 -- ==================== 1. usuario para entrar ====================
 -- Mismo patrón que V1 (ver git tag cayla-v1-pre-retail-v2): credenciales
 -- de desarrollo, a propósito obvias: felipe@cayla.local / cayla-local
