@@ -5,7 +5,7 @@
   "total": 33,
   "controles": {
     "app/(app)/ordenes-insumos/comprobante/[id]/page.tsx": [
-      "Volver «; const subtitulo = \"El papel que te dio el proveedor del»",
+      "Volver «{RUTA_ORDENES_INSUMO}»",
       "BotonEnlace «Ver las órdenes de insumos»",
       "BotonEnlace «Ver la orden»"
     ],
@@ -25,7 +25,7 @@
       "CampoSelect «{etiqueta}»"
     ],
     "components/ordenes-insumo/RegistrarComprobanteOrdenInsumo.tsx": [
-      "Volver «(sin nombre)»",
+      "Volver «{RUTA_ORDENES_INSUMO}»",
       "SegmentoDeslizante «Tipo de papel»",
       "CampoSelect «Tipo de papel»",
       "CampoTexto «Serie»",
@@ -38,12 +38,12 @@
       "Boton «oi-comprobante.fuera»",
       "CampoTexto «Total que dice el papel, en soles»",
       "CampoTexto «Nota»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Recargar»",
       "BotonEnlace «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
       "button «{`Quitar el renglón ${numero}»",
-      "ComboBuscable «(sin nombre)»",
+      "ComboBuscable «{l.insumoId}»",
       "CampoTexto «{`Cantidad del renglón ${numero}»",
       "CampoTexto «{`Costo por ${porUnidad}»"
     ]

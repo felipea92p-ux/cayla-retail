@@ -7,7 +7,7 @@
     "components/GuiaImpresion.tsx": [
       "button «Ir al paso»",
       "button «{children}»",
-      "Pestanas «(sin nombre)»",
+      "Pestanas «{[ { clave: \"windows\", etiqueta: \"Windows\"}»",
       "button «{p.titulo}»",
       "button «← Anterior»",
       "button «Listo, ya salió bien»",
@@ -22,7 +22,7 @@
       "Volver «(sin nombre)»",
       "button «Quitar todas»",
       "button «{`Quitar ${m.referencia}»",
-      "ComboBuscable «)»",
+      "ComboBuscable «{opciones}»",
       "SegmentoDeslizante «Cómo salen los rótulos»"
     ],
     "components/impresion/useImpresionBrother.tsx": [
@@ -31,7 +31,7 @@
     ],
     "components/rotulos/TiraBrother.tsx": [
       "button «{`Una copia menos de ${nombre}»",
-      "input «= MAX_COPIAS»",
+      "input «{`copias-${r.clave}»",
       "button «{`Una copia más de ${nombre}»"
     ]
   }

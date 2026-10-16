@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Chip } from "@/components/ui/Chip";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
 import { Check, MessageCircle, Minus, Plus, Trash2 } from "lucide-react";
@@ -1001,7 +1002,7 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
                 <span className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full border-[1.5px] border-tinta`}>{preset === k && <span className="h-2 w-2 rounded-full bg-tinta" />}</span>
                 <span>
                   <b className="text-sm">{PRESETS_APARTADOS[k].titulo}</b>
-                  {k === "completo" && <span className="ml-2 rounded-full bg-pizarra/10 px-2 py-0.5 text-[10.5px] text-pizarra">de fábrica</span>}
+                  {k === "completo" && <Chip tono="pizarra" versalitas={false} className="ml-2">de fábrica</Chip>}
                   <span className="block text-xs text-tinta/60">{PRESETS_APARTADOS[k].texto}</span>
                 </span>
               </button>

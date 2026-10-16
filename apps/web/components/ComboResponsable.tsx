@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Chip } from "@/components/ui/Chip";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, Clock, RefreshCw, Search, ShieldCheck, UserRound, SearchX } from "lucide-react";
 import { nombresCortos } from "@/lib/nombre-integrante";
@@ -94,10 +95,10 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
   if (estado === "admin" && compacto) {
     return (
       <p role="status" className={`flex ${className}`}>
-        <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-pizarra/[0.1] px-2.5 text-[11px] font-medium text-pizarra" title="Eres admin: no necesitas autorización. Lo que guardes queda a tu nombre.">
-          <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <Chip tono="pizarra" versalitas={false} title="Eres admin: no necesitas autorización. Lo que guardes queda a tu nombre.">
+          <ShieldCheck className="h-3 w-3 shrink-0" aria-hidden />
           Admin · queda a tu nombre
-        </span>
+        </Chip>
       </p>
     );
   }

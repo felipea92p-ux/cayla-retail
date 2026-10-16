@@ -18,7 +18,7 @@
       "CampoTexto «Celular Yape / Plin»",
       "button «{ETIQUETA_BILLETERA[b]}»",
       "CampoTexto «Titular de la cuenta»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «{responsable.motivo ?? undefined}»",
       "Boton «{responsable.motivo ?? undefined}» #2"
     ],

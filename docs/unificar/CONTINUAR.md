@@ -1,17 +1,17 @@
 # Cómo seguir con `/unificar` desde otra sesión
 
-Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`), el 2026-10-09 con la ronda 5b, la barra apilada (rama `claude/keen-feistel-35a4cb`), el 2026-10-12 con las rondas 6 y 7 armadas, el 2026-10-13 con las rondas 6, 7 y 8 decididas y migradas (rama `claude/unificar-componentes-animaciones-f811a1`, PR #1026, fusionado el mismo día) y sus herramientas de migración en el repo (rama `claude/unificar-herramientas-deuda`), y ese mismo día con la ronda 9 —las seis que quedaron abiertas— y la ronda 10 —descargar, filtros y ver en otra pantalla— decididas y migradas, más el censo del mostrador rastreado al código, y el 2026-10-14 con la ronda 11 —cancelar, limpiar e imprimir— decidida y migrada (rama `claude/mystifying-jang-ef15d0`) y, ese mismo día, los pendientes antes de la ronda 12 —la cabecera de todas las pantallas, «Etiquetas», el «Ver» de Caja, Nueva compra a 1440 px y los contrastes heredados del claro— (rama `claude/unificar-ronda-12`), y ese mismo día la ronda 12 —guardar, editar y las hojas— decidida y migrada (misma rama), y el 2026-10-15 con la ronda 13 —la barra de avance, el anillo, copiar y el menú «Más»— decidida y migrada (rama `claude/unificar-ronda-13`) y la ronda 14 —la línea, las barras por tiempo, la barra a escala y la dona— decidida y migrada (rama `claude/unificar-ronda-14`), y la ronda 15 —los íconos, el globito con número, «Ver más», «Deshacer» y «Buscar»— decidida y migrada (rama `claude/unificar-ronda-15`). Es el punto de partida para la próxima sesión: qué está
+Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`), el 2026-10-09 con la ronda 5b, la barra apilada (rama `claude/keen-feistel-35a4cb`), el 2026-10-12 con las rondas 6 y 7 armadas, el 2026-10-13 con las rondas 6, 7 y 8 decididas y migradas (rama `claude/unificar-componentes-animaciones-f811a1`, PR #1026, fusionado el mismo día) y sus herramientas de migración en el repo (rama `claude/unificar-herramientas-deuda`), y ese mismo día con la ronda 9 —las seis que quedaron abiertas— y la ronda 10 —descargar, filtros y ver en otra pantalla— decididas y migradas, más el censo del mostrador rastreado al código, y el 2026-10-14 con la ronda 11 —cancelar, limpiar e imprimir— decidida y migrada (rama `claude/mystifying-jang-ef15d0`) y, ese mismo día, los pendientes antes de la ronda 12 —la cabecera de todas las pantallas, «Etiquetas», el «Ver» de Caja, Nueva compra a 1440 px y los contrastes heredados del claro— (rama `claude/unificar-ronda-12`), y ese mismo día la ronda 12 —guardar, editar y las hojas— decidida y migrada (misma rama), y el 2026-10-15 con la ronda 13 —la barra de avance, el anillo, copiar y el menú «Más»— decidida y migrada (rama `claude/unificar-ronda-13`) y la ronda 14 —la línea, las barras por tiempo, la barra a escala y la dona— decidida y migrada (rama `claude/unificar-ronda-14`), y la ronda 15 —los íconos, el globito con número, «Ver más», «Deshacer» y «Buscar»— decidida y migrada (rama `claude/unificar-ronda-15`), y la ronda 16 —el cierre: el marco, las píldoras y los cierres del mes— (rama `claude/unificar-ronda-16`). Es el punto de partida para la próxima sesión: qué está
 decidido, qué falta, cómo se trabaja y lo que se aprendió en el camino. **Léelo antes de abrir la skill** (`/unificar`) y mantenlo al día
 al cerrar cada ronda: la próxima sesión no ve esta conversación.
 
 **Para arrancar, pega esto en la sesión nueva:**
 
-> Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md`, `docs/unificar/README.md` y `docs/unificar/MIGRAR.md`. Las rondas 1 a 15
-> están decididas y migradas (deuda 0 en todas las familias; quedan sin decisión solo `estado`, que tiene pieza pero no candado, `grafico`,
-> ya repartida en sus familias, y `accion.anterior`, que no tiene nada que decidir). Arma la ronda 16, de cierre: el candado de `estado`
-> (las 7 píldoras-etiqueta a mano), la pregunta del trazo del marco (lateral y cabecera en 1,5: ¿pasan a 2?), «Cómo cerró cada día» si
-> Felipe la quiere con la pieza, y el arreglo del escáner de guías para las piezas que se cierran solas. Antes de levantar el servidor, mira
-> el disco (`df -h /`) y el tamaño de `apps/web/.next/dev/cache`.
+> Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md`, `docs/unificar/README.md` y `docs/unificar/MIGRAR.md`. Las rondas 1 a 16
+> están decididas y migradas: todas las familias del censo tienen su pieza y su candado (salvo `grafico`, repartida en sus familias, y
+> `accion.anterior`, sin nada que decidir). Lo que sigue es mantenimiento: un censo de control de todo el ERP con las cuentas Admin,
+> `terminal-ventas` e `integrante` (el censo ya ve el ticket de Vender) para encontrar lo que se haya dibujado a mano después, y las preguntas
+> abiertas de «Lo que falta». Antes de levantar el servidor, mira el disco (`df -h /`), el tamaño de `apps/web/.next/dev/cache` y que
+> Docker responda (`docker info`).
 
 ## Dónde quedó
 
@@ -36,6 +36,20 @@ por `lib/unificar.test.ts`. **Todas las que tienen candado están en deuda 0** d
 | 5b | `grafico.barra` | `<BarraApilada>`: pista de arena + el movimiento de Compras (entra, se reacomoda, el apuntado se estira y los demás bajan); 12 · 8 · 4 px; si responde, cada tramo es un botón. **Deuda: 0**; migrada entera (Compras, Vender, Caja y Producción) | [grafico.barra.md](grafico.barra.md) |
 
 Lo mismo, en corto, está en la tabla «Piezas únicas» de `CLAUDE.md`, que es lo que lee cualquier sesión que construya una pantalla.
+
+## Ronda 16 (2026-10-15): el cierre — el marco, las píldoras y los cierres del mes
+
+Tres preguntas con lo que quedaba afuera. Felipe eligió: **el marco se queda en trazo 1,5** (P2) con sus tamaños en la escala; **las 12
+píldoras de color a mano pasan a `<Chip>`** (P1), y `estado` gana su candado; **«Cómo cerró cada día» se queda** (P1). Y dos arreglos de
+herramientas: el escáner de guías nombra una pieza que se cierra sola por sus datos (92 huellas), y el censo ve un `<aside>` dentro de `main`.
+
+Lo aprendido en esta ronda:
+- **El grosor se juzga por la línea que se ve** (trazo × tamaño ÷ 24), no por el número: 1,5 a 20 px es 1,25 px, lo mismo que 2 a 16.
+- **Un CSS en vivo sobre el marco tiene que apuntar a los íconos** (`svg[viewBox="0 0 24 24"]`), o afina también el colibrí del logo.
+- **Un título de demo no lleva `<Chip>` entre comillas invertidas:** `una()` lo pone como HTML y la etiqueta desaparece.
+- **Si el disco se llena, Docker Desktop queda en «ExitBadState»** y no se recupera con `open -a Docker` ni con `quit`: hay que reiniciarlo
+  a mano. La caché de Turbopack volvió a crecer al reiniciar el servidor; mírala antes de levantarlo.
+- **zsh no parte una variable en un `for`:** `for id in $ids` corre una sola vez con todo; usa `while read id; do …; done < archivo`.
 
 ## Ronda 15 (2026-10-15): los íconos, el globito con número, «Ver más», «Deshacer» y «Buscar», decididos y migrados
 
