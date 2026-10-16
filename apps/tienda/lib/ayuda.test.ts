@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { avisosParaSeparar, interpretarAyuda, PLAZOS_SIN_DATOS, pasosParaSeparar, puntosDeCambios, textoCambios } from "./ayuda";
+import {
+  avisosParaSeparar,
+  interpretarAyuda,
+  PLAZOS_SIN_DATOS,
+  partirTituloLegal,
+  pasosParaSeparar,
+  puntosDeCambios,
+  seccionQueSeLee,
+  textoCambios,
+} from "./ayuda";
 
 // Lo que devuelve `retail.tienda_ayuda()` con los plazos de fábrica de Configuración ▸ Tienda web y el de cambio de la caja.
 const DE_FABRICA = { horas_para_confirmar: 24, horas_para_pagar: 48, dias_para_recoger: 7, dias_para_cambiar: 15 };
@@ -138,5 +147,43 @@ describe("Cambios y devoluciones", () => {
     const p = puntosDeCambios(PLAZOS_SIN_DATOS);
     expect(p.plazo).toEqual({ titulo: "Mira el plazo en tu boleta", texto: "Es el mismo que en tienda, para cambiar o devolver tu prenda." });
     expect(Object.values(p).map((x) => `${x.titulo} ${x.texto}`).join(" ")).not.toMatch(/\d/);
+  });
+});
+
+describe("las lecturas largas (Privacidad y Términos del Club)", () => {
+  it("el número del título va aparte y el título se vuelve a armar letra por letra", () => {
+    for (const titulo of ["1. Quién es responsable de tus datos", "10. Cambios", "6. Cambios y fin del programa", "4. Qué datos son obligatorios"]) {
+      const { numero, texto } = partirTituloLegal(titulo);
+      expect(numero).toMatch(/^\d+$/);
+      expect(`${numero}. ${texto}`).toBe(titulo);
+    }
+    expect(partirTituloLegal("10. Cambios")).toEqual({ numero: "10", texto: "Cambios" });
+  });
+
+  it("un título sin número al principio va entero (nunca se pierde una palabra)", () => {
+    for (const titulo of ["Cambios", "Versión 2. Borrador", "1.Pegado", "1. ", ""]) {
+      expect(partirTituloLegal(titulo)).toEqual({ numero: null, texto: titulo });
+    }
+  });
+
+  const BORDES = [
+    { id: "a", arriba: -900 },
+    { id: "b", arriba: -120 },
+    { id: "c", arriba: 240 },
+    { id: "d", arriba: 900 },
+  ];
+
+  it("se enciende la última sección que ya subió hasta la línea de lectura", () => {
+    expect(seccionQueSeLee(BORDES, 280)).toBe("c");
+    expect(seccionQueSeLee(BORDES, 200)).toBe("b");
+    // Justo en la línea, ya cuenta como leída.
+    expect(seccionQueSeLee(BORDES, 240)).toBe("c");
+  });
+
+  it("arriba de todo, la primera; al final de la página, la última (aunque sea corta); sin secciones, ninguna", () => {
+    expect(seccionQueSeLee([{ id: "a", arriba: 400 }, { id: "b", arriba: 1200 }], 280)).toBe("a");
+    expect(seccionQueSeLee(BORDES, 280, true)).toBe("d");
+    expect(seccionQueSeLee([], 280)).toBeNull();
+    expect(seccionQueSeLee([], 280, true)).toBeNull();
   });
 });

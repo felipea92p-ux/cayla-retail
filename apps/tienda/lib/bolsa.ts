@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { soles } from "./catalogo";
+import { deFavoritos, soles, type Prenda } from "./catalogo";
+import { paraSeguirMirando } from "./catalogo-lista";
 import { nombreTienda } from "./pedidos";
 import { sedesEnOrden } from "./sede-elegida";
 import { interpretarSedes, type Sede } from "./tiendas";
@@ -376,6 +377,20 @@ export const importe = (n: number | null) => (n === null ? "" : soles(n));
 
 /** «3 prendas», «1 prenda». */
 export const cuantas = (n: number) => `${n} ${n === 1 ? "prenda" : "prendas"}`;
+
+/** Un carril de la bolsa vacía: de dónde salen sus prendas (la lista a la que lleva su «Ver todo») y cuáles. */
+export type CarrilDeLaBolsaVacia = { lista: "favoritos" | "nuevo" | "todo"; prendas: Prenda[] };
+
+/**
+ * Lo que ofrece la bolsa vacía en vez de un callejón (2026-10-16): sus favoritos que todavía se ven en la tienda online (lo último que
+ * guardó primero) y Lo nuevo (con foto primero, lo más reciente primero), sin repetir las que ya están en sus favoritos; si no hay nada
+ * nuevo, toda la tienda en su orden. Hasta `cuantas` por carril. Sin nada publicado, ningún carril (la bolsa dice solo lo suyo).
+ */
+export function carrilesDeLaBolsaVacia(prendas: readonly Prenda[], favoritos: Iterable<string>, cuantas = 8): CarrilDeLaBolsaVacia[] {
+  const suyas = deFavoritos(prendas, favoritos).slice(0, cuantas);
+  const otras = paraSeguirMirando(prendas, "favoritos", { fuera: suyas.map((p) => p.id), cuantas });
+  return [...(suyas.length > 0 ? [{ lista: "favoritos" as const, prendas: suyas }] : []), ...(otras ? [otras] : [])];
+}
 
 /** «Chaleco Zenit, Chocolate, talla S»: la prenda dicha entera, para el lector de pantalla de «Quitar» y de la cantidad (en una
  *  bolsa con varias, «Quitar» a secas no dice cuál). */

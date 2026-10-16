@@ -3,7 +3,7 @@
 **Decisiones de Felipe** (con la recomendación de la revisión):
 - [ ] **Páginas legales en borrador en producción:** Privacidad y Términos dicen «Borrador: lo revisa CAYLA» y «Versión:
   borrador-2026-10-14». Que las revise el abogado, publicarlas como versión final y recién ahí quitar el sello (texto legal: no se tocó).
-- [x] ~~**Portada sin cuenta sin ninguna prenda**~~ — Felipe 2026-10-15: se deja como está (la ropa es para quien tiene cuenta).
+- [x] ~~**Portada sin cuenta sin ninguna prenda**~~ — Felipe 2026-10-15: se deja como está (la ropa es para quien tiene cuenta). **Cambió el 2026-10-16:** fotos de prendas sin precio (ADR-0408 act. h).
 - [ ] **Textos del Club que chocan:** «Sin mensajes de publicidad» frente a la casilla «Quiero recibir por WhatsApp novedades y
   promociones» (recomendado «Sin publicidad, salvo que tú la pidas»); y «En caja, con tu DNI» ahora que hay carné y pasaporte
   («con tu documento»).

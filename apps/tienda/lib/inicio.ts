@@ -3,6 +3,7 @@ import { normalizar } from "./buscador";
 import {
   claveCategoria,
   colorDeDibujo,
+  conFotoPrimero,
   enOferta,
   formaDe,
   fotoOptimizable,
@@ -33,7 +34,6 @@ export type Hero =
   /** Sin campaña ni nada nuevo: la frase de la marca. */
   | { tipo: "marca" };
 
-const conFotoPrimero = (a: Prenda, b: Prenda) => Number(fotosDeTarjeta(b)[0] !== null) - Number(fotosDeTarjeta(a)[0] !== null);
 
 /**
  * El héroe del Inicio (maqueta: la campaña vigente; si no hay, «Lo nuevo»). Las prendas del collage, las que tienen foto primero.

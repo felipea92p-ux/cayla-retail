@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as EventoPuntero } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { formaDe, fotoOptimizable } from "@/lib/catalogo";
@@ -20,9 +20,11 @@ import {
   tallaDelPrecio,
   tallasDelColor,
   type Ficha,
+  type Promesa,
 } from "@/lib/ficha";
 import { leyendaNiveles, textoNivel, tonoNivel } from "@/lib/stock";
 import { AgregarALaBolsa } from "./bolsa/AgregarALaBolsa";
+import { Promesas } from "./bolsa/Promesas";
 import { BotonAvisame } from "./club/BotonAvisame";
 import { BotonFavorito } from "./club/BotonFavorito";
 import { DibujoPrenda } from "./DibujoPrenda";
@@ -39,6 +41,10 @@ import { Icono } from "./Icono";
  * tienda la trae. Después, lo que pasó al agregar («La talla M ya está en tu bolsa») y «Ver mi bolsa (N)». En el celular el botón y el
  * corazón van en la barra de abajo, que queda pegada mientras se ve la prenda y lo que va debajo (`children`: «Combínalo con»,
  * «También te puede gustar»), y lo que pasó al agregar va en la misma barra: la cabecera con la bolsa ya no se ve.
+ *
+ * Junto al botón, lo que la tienda ya cumple (`promesas`: separas sin pagar, recoges en tu tienda, cambias en cualquier tienda CAYLA). En
+ * el celular el nombre y el precio van pegados a la foto (los chips, debajo del precio): sin eso, el precio quedaba bajo la barra de
+ * abajo en la primera pantalla. En la computadora, con el mouse, la foto se acerca donde está el mouse (`FotoGaleria`).
  */
 export function FichaPrenda({
   ficha,
@@ -47,6 +53,7 @@ export function FichaPrenda({
   origenFotos,
   chips = [],
   cambios,
+  promesas = [],
   esperas = [],
   esperasIds = {},
   enLaBolsa = 0,
@@ -63,6 +70,8 @@ export function FichaPrenda({
   chips?: { texto: string; tono?: "nuevo" }[];
   /** «Cambios»: como en tienda, con el plazo de la caja (`lib/ayuda.ts`, el mismo de «Cambios y devoluciones»). */
   cambios: string;
+  /** Lo que la tienda ya cumple, junto al botón (`promesasDeCompra`, con los plazos de la ayuda). */
+  promesas?: readonly Promesa[];
   /** Lo que la cuenta ya pidió con «Avísame» (`claveEspera`: prenda y tienda). */
   esperas?: readonly string[];
   /** El id de cada una de esas esperas (por su misma clave): con él, «Te avisaremos ×» la quita desde la ficha, aunque se haya pedido
@@ -195,7 +204,8 @@ export function FichaPrenda({
         <Galeria key={color} ficha={ficha} color={color} hex={colorElegido.hex} origenFotos={origenFotos} />
 
         <div className="t-pdp-info">
-          <div>
+          {/* En el celular esta caja se deshace (`display: contents`): el nombre y el precio suben y los chips van bajo el precio. */}
+          <div className="cp-pdp-cab">
             {(chips.length > 0 || campana) && (
               <div className="t-pdp-chips">
                 {chips.map((c) => (
@@ -301,8 +311,19 @@ export function FichaPrenda({
           {/* En el celular esta línea solo lleva a la bolsa: lo que pasó al agregar se dice en la barra de abajo. */}
           {lineaDeLaBolsa("t-pdp-bolsa t-pdp-bolsa-info", true)}
 
+          {promesas.length > 0 && <Promesas promesas={promesas} />}
+
+          {/* Lo que describe la prenda va primero y abierto; cómo se separa ya lo dicen las promesas de arriba: aquí, el detalle. */}
           <div className="t-acordeon">
-            <details open>
+            {ficha.descripcion && (
+              <details open>
+                <summary>
+                  Detalles <Icono nombre="chevron" />
+                </summary>
+                <p>{ficha.descripcion}</p>
+              </details>
+            )}
+            <details>
               <summary>
                 Cómo funciona separar <Icono nombre="chevron" />
               </summary>
@@ -311,14 +332,6 @@ export function FichaPrenda({
                 revisa que esté y te confirma. No pagas nada en la web: el pago se coordina por WhatsApp y lo recoges en tu tienda.
               </p>
             </details>
-            {ficha.descripcion && (
-              <details>
-                <summary>
-                  Detalles <Icono nombre="chevron" />
-                </summary>
-                <p>{ficha.descripcion}</p>
-              </details>
-            )}
             <details>
               <summary>
                 Cambios <Icono nombre="chevron" />
@@ -339,13 +352,13 @@ export function FichaPrenda({
   );
 }
 
-/** Las fotos del color elegido primero. En el celular se deslizan de lado y los puntos dicen cuál se ve. */
+/** Las fotos del color elegido primero. En el celular se deslizan de lado y los puntos (sobre la foto) dicen cuál se ve. */
 function Galeria({ ficha, color, hex, origenFotos }: { ficha: Ficha; color: string; hex: string | null; origenFotos: string | undefined }) {
   const { fotos, enOtroColor } = fotosDelColor(ficha, color);
   const [vista, setVista] = useState(0);
   const forma = formaDe(ficha.categoria?.prefijo);
   return (
-    <div>
+    <div className="cp-galeria">
       <div
         className="t-galeria"
         onScroll={(e) => {
@@ -385,6 +398,11 @@ function Galeria({ ficha, color, hex, origenFotos }: { ficha: Ficha; color: stri
   );
 }
 
+/** ¿Esta foto se acerca con el mouse? Solo en la computadora (desde 960 px de tienda, con la galería en columna) y con un mouse: con el
+ *  dedo la tira se desliza y no hay «pasar por encima». */
+const seAcerca = (foto: HTMLElement | null) =>
+  Boolean(foto) && window.matchMedia("(hover: hover) and (pointer: fine)").matches && (foto?.closest(".tienda")?.clientWidth ?? 0) >= 960;
+
 function FotoGaleria({
   url,
   alt,
@@ -404,21 +422,49 @@ function FotoGaleria({
 }) {
   // Una foto que no carga deja la silueta, nunca una imagen rota.
   const [rota, setRota] = useState(false);
+  // La lupa (2026-10-16): con el mouse encima, la foto se acerca al doble donde está el mouse y lo sigue. La foto grande se pide recién la
+  // primera vez que el mouse entra (nadie la descarga si no mira de cerca) y, mientras llega, se acerca la que ya se ve. Lo que sigue al
+  // mouse va por variables de CSS, sin volver a dibujar.
+  const [lupa, setLupa] = useState<"no" | "pedida" | "lista">("no");
+  const [encima, setEncima] = useState(false);
+  const marco = useRef<HTMLElement>(null);
+
+  function seguir(e: EventoPuntero<HTMLElement>) {
+    const el = marco.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return;
+    el.style.setProperty("--cp-lupa-x", `${(((e.clientX - r.left) / r.width) * 100).toFixed(1)}%`);
+    el.style.setProperty("--cp-lupa-y", `${(((e.clientY - r.top) / r.height) * 100).toFixed(1)}%`);
+  }
+  function entrar(e: EventoPuntero<HTMLElement>) {
+    if (e.pointerType !== "mouse" || rota || !seAcerca(marco.current)) return;
+    seguir(e);
+    setEncima(true);
+    if (lupa === "no") setLupa("pedida");
+  }
+
+  // La primera foto de la computadora ocupa la columna entera (hasta 640 px); las demás, de a dos. Antes decía «34vw» para todas y el
+  // navegador elegía una foto más chica que la que se veía.
+  const tamanos = primera ? "(min-width: 1280px) 640px, (min-width: 960px) 50vw, 100vw" : "(min-width: 1280px) 320px, (min-width: 960px) 25vw, 100vw";
   return (
-    <figure className={`t-foto-g${rota ? " sin-foto" : ""}`}>
+    <figure
+      ref={marco}
+      className={`t-foto-g${rota ? " sin-foto" : ""}`}
+      data-cp-lupa={encima ? (lupa === "lista" ? "lista" : "") : undefined}
+      onPointerEnter={entrar}
+      // Si el mouse ya estaba sobre la foto al llegar la página (no hubo «entrar»), la lupa empieza con el primer movimiento.
+      onPointerMove={(e) => (encima ? seguir(e) : entrar(e))}
+      onPointerLeave={() => setEncima(false)}
+    >
       <span className="t-dibujo">
         <DibujoPrenda forma={forma} color={hex} />
       </span>
       {!rota && (
-        <Image
-          src={url}
-          alt={alt}
-          fill
-          sizes="(min-width: 960px) 34vw, 100vw"
-          priority={primera}
-          unoptimized={!optimizar}
-          onError={() => setRota(true)}
-        />
+        <Image src={url} alt={alt} fill sizes={tamanos} priority={primera} unoptimized={!optimizar} onError={() => setRota(true)} />
+      )}
+      {!rota && lupa !== "no" && (
+        <Image src={url} alt="" aria-hidden fill sizes="1080px" unoptimized={!optimizar} className="cp-lupa" onLoad={() => setLupa("lista")} />
       )}
       {rotulo && <figcaption>{rotulo}</figcaption>}
     </figure>

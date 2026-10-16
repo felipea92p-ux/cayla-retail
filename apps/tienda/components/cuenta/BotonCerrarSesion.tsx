@@ -10,7 +10,7 @@ import { Icono } from "../Icono";
 export function BotonCerrarSesion({ className, conIcono = false }: { className: string; conIcono?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" className={className} disabled={pending}>
+    <button type="submit" className={className} disabled={pending} aria-busy={pending || undefined}>
       {conIcono && <Icono nombre="flecha" />}
       {pending ? "Cerrando sesión…" : "Cerrar sesión"}
     </button>

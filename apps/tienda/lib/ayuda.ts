@@ -142,3 +142,31 @@ export function textoCambios(p: Plazos): string {
     ? `Igual que en tienda: puedes cambiar o devolver tu prenda dentro de ${enDias(p.diasParaCambiar)}, en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta.`
     : "Igual que en tienda: puedes cambiar o devolver tu prenda en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta. El plazo va impreso en tu boleta.";
 }
+
+// ---- Las lecturas largas (Privacidad y Términos del Club): solo cómo se dibujan, nunca qué dicen ----
+
+/** Una sección de un texto legal: su ancla y su título tal cual está escrito («1. Quién es responsable de tus datos»). */
+export type SeccionLegal = { id: string; titulo: string };
+
+/**
+ * «1. Quién es responsable de tus datos» → el número («1») y el resto, para dibujar el número aparte en el índice y en el título
+ * (revisión «a nivel mundial», 2026-10-16). Se lee igual: el título se arma con el número, su punto, un espacio y el resto, así que
+ * no cambia ni una letra. Sin número al principio, va entero.
+ */
+export function partirTituloLegal(titulo: string): { numero: string | null; texto: string } {
+  const m = /^(\d+)\.\s+(\S[\s\S]*)$/.exec(titulo);
+  return m ? { numero: m[1], texto: m[2] } : { numero: null, texto: titulo };
+}
+
+/**
+ * La sección que se está leyendo, para encenderla en el índice del costado: la última cuyo borde de arriba ya subió hasta la línea de
+ * lectura (`linea`, en píxeles desde arriba de la ventana). Antes de la primera, la primera; al llegar al final de la página
+ * (`alFinal`), la última, aunque sea tan corta que nunca suba hasta la línea. Sin secciones, ninguna.
+ */
+export function seccionQueSeLee(bordes: readonly { id: string; arriba: number }[], linea: number, alFinal = false): string | null {
+  if (bordes.length === 0) return null;
+  if (alFinal) return bordes[bordes.length - 1].id;
+  let actual = bordes[0].id;
+  for (const b of bordes) if (b.arriba <= linea) actual = b.id;
+  return actual;
+}

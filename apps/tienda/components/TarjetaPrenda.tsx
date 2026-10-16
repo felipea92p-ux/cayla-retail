@@ -72,7 +72,8 @@ export function TarjetaPrenda({
             <span className="t-insignias">
               {puesto && <span className="t-insignia">N.º {puesto}</span>}
               {oferta && <span className="t-insignia oferta">{oferta}</span>}
-              {nueva && <span className="t-insignia nuevo">Nuevo</span>}
+              {/* «Nuevo» va claro (2026-10-16): con casi todo el catálogo nuevo, un sello negro en cada foto le quitaba la vista a la prenda. */}
+              {nueva && <span className="t-insignia cp-insignia-nuevo">Nuevo</span>}
             </span>
           )}
         </Link>

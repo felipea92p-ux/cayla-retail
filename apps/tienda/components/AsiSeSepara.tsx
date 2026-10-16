@@ -1,24 +1,24 @@
 import Link from "next/link";
-import { Icono, type NombreIcono } from "./Icono";
-
-const PASOS: [NombreIcono, string, string][] = [
-  ["persona", "Crea tu cuenta", "Con tu correo, tu DNI y tu celular, y forma parte del Club CAYLA."],
-  ["tienda", "Elige y toca «Separar»", "Mira cuánto hay en cada tienda. No pagas nada aquí."],
-  ["chat", "Mándalo por WhatsApp", "El mensaje ya va escrito con tu número de pedido. La tienda te confirma."],
-  ["bolsa", "Paga y recógelo", "Coordinas el pago por WhatsApp y lo recoges en tu tienda."],
-];
-
-/** El primer paso para quien ya entró con su cuenta: pedirle «Crea tu cuenta» a quien ya la tiene confundía. */
-const YA_TIENES_CUENTA: [NombreIcono, string, string] = ["check", "Ya tienes tu cuenta", "Ya eres parte del Club CAYLA. Tus pedidos quedan en «Mi perfil»."];
+import { pasosParaSeparar } from "@/lib/ayuda";
+import { leerSedes } from "@/lib/tiendas-servidor";
+import { LineaDePasos } from "./ayuda/LineaDePasos";
+import { Icono } from "./Icono";
 
 /**
- * «Así se separa» (maqueta, `seccionComo`): los cuatro pasos, en la portada y en el Inicio. En el Inicio (`conCuenta`) el primero ya está
- * hecho y lo dice (con su visto); en la portada, sin cuenta, invita a crearla.
+ * «Así se separa» (maqueta, `seccionComo`): los cuatro pasos, en la portada y en el Inicio, con la MISMA línea de tiempo y los mismos
+ * textos que «Cómo separar» (`pasosParaSeparar`, revisión «a nivel mundial» 2026-10-16). Antes eran cuatro cajas con textos propios, que
+ * decían «tu DNI» (la cuenta también se crea con carné de extranjería o pasaporte) y «Ya eres parte del Club». Las tiendas son las de
+ * la web («En cada prenda ves cuánto hay en Lima y Trujillo»): las lee de la misma lectura que la página ya hizo (`leerSedes` va una vez
+ * por petición). En el Inicio (`conCuenta`) el primero ya está hecho y lo dice con su visto; en la portada, sin cuenta, invita a crearla.
  */
-export function AsiSeSepara({ conCuenta = false }: { conCuenta?: boolean }) {
-  const pasos = conCuenta ? [YA_TIENES_CUENTA, ...PASOS.slice(1)] : PASOS;
+export async function AsiSeSepara({ conCuenta = false }: { conCuenta?: boolean }) {
+  const sedes = await leerSedes();
+  const pasos = pasosParaSeparar(
+    sedes.map((s) => s.nombre),
+    conCuenta,
+  );
   return (
-    <section className="t-sec t-ancho" aria-labelledby="asi-se-separa">
+    <section className="t-sec t-ancho ay-asi" aria-labelledby="asi-se-separa">
       <div className="t-sec-cab">
         <div>
           <span className="t-ceja">Sin pagar en la web</span>
@@ -30,17 +30,7 @@ export function AsiSeSepara({ conCuenta = false }: { conCuenta?: boolean }) {
           Cómo funciona <Icono nombre="flecha" />
         </Link>
       </div>
-      <ol className="t-como">
-        {pasos.map(([icono, titulo, texto], i) => (
-          <li key={titulo} data-hecho={conCuenta && i === 0 ? "" : undefined}>
-            <span className="t-como-ic">
-              <Icono nombre={icono} />
-            </span>
-            <b>{titulo}</b>
-            <span>{texto}</span>
-          </li>
-        ))}
-      </ol>
+      <LineaDePasos pasos={pasos} />
     </section>
   );
 }

@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { soles, type Color, type PrecioTarjeta, type Prenda } from "./catalogo";
+import type { Plazos } from "./ayuda";
+import { claveCategoria, conFotoPrimero, soles, type Color, type PrecioTarjeta, type Prenda } from "./catalogo";
+import { grupoDe } from "./grupos";
 import type { Look } from "./looks";
 import { pctTexto } from "./portada";
 import { esquemaNivel, hayAlgo, type Nivel } from "./stock";
@@ -244,6 +246,72 @@ export function combinaCon(looks: readonly Look[], productoId: string, prendas: 
     return p ? [p] : [];
   });
   return otras.length > 0 ? { look, prendas: otras } : null;
+}
+
+/**
+ * «También te puede gustar» (2026-10-16): las otras prendas de su categoría y, si no llenan la fila, las de su grupo (`lib/grupos.ts`:
+ * «Arriba», «Bolsos y accesorios»…), las de su menú («Ropa» o «Accesorios») y después las demás; dentro de cada parte, las que tienen
+ * foto primero y en el orden del catálogo. Nunca la misma prenda ni lo que ya sale arriba en «Combínalo con» (`fuera`). Antes eran solo
+ * las de su categoría: con una o dos, la fila de la computadora quedaba medio vacía. `ceja`: de dónde salen (su categoría o su grupo,
+ * si todas son de ahí; si no, «Sigue mirando»); `ver`: la lista de eso mismo, para su «Ver todo» (sin nada, toda la tienda).
+ */
+export function parecidasA(
+  prenda: { id: string; categoria: { nombre: string; prefijo: string | null } | null },
+  prendas: readonly Prenda[],
+  { fuera = [], cuantas = 8 }: { fuera?: readonly string[]; cuantas?: number } = {},
+): { prendas: Prenda[]; ceja: string; ver: { categoria: string | null; grupo: string | null } } {
+  const clave = claveCategoria(prenda.categoria);
+  const grupo = clave ? grupoDe(clave) : null;
+  const sacar = new Set([prenda.id, ...fuera]);
+  // 0: su categoría · 1: su grupo · 2: su menú · 3: lo demás.
+  const cercania = (p: Prenda): number => {
+    const suya = claveCategoria(p.categoria);
+    if (!clave || !suya) return 3;
+    if (suya === clave) return 0;
+    const g = grupoDe(suya);
+    if (grupo && g.clave === grupo.clave) return 1;
+    return grupo && g.menu === grupo.menu ? 2 : 3;
+  };
+  const elegidas = prendas
+    .filter((p) => !sacar.has(p.id))
+    .map((p) => ({ p, c: cercania(p) }))
+    .sort((a, b) => a.c - b.c || conFotoPrimero(a.p, b.p))
+    .slice(0, cuantas);
+  const lejos = Math.max(0, ...elegidas.map((x) => x.c));
+  const prendasElegidas = elegidas.map((x) => x.p);
+  if (lejos === 0 && clave && prenda.categoria) return { prendas: prendasElegidas, ceja: prenda.categoria.nombre, ver: { categoria: clave, grupo: null } };
+  if (lejos <= 1 && grupo) return { prendas: prendasElegidas, ceja: grupo.nombre, ver: { categoria: null, grupo: grupo.clave } };
+  return { prendas: prendasElegidas, ceja: "Sigue mirando", ver: { categoria: null, grupo: null } };
+}
+
+/** Una promesa de la tienda junto al botón (el ícono, lo que se promete y su detalle en una línea). */
+export type Promesa = { icono: "chat" | "tienda" | "traslado"; titulo: string; texto: string };
+
+const enDias = (n: number) => `${n} ${n === 1 ? "día" : "días"}`;
+
+/**
+ * Lo que la tienda ya cumple, dicho junto al botón de comprar (2026-10-16, la confianza a la vista de las marcas grandes): separas sin
+ * pagar en la web, recoges en tu tienda y cambias en cualquier tienda CAYLA. Promete lo mismo que «Cómo separar» y «Cambios y
+ * devoluciones» (`lib/ayuda.ts`: `pasosParaSeparar`, `avisosParaSeparar`, `textoCambios`), con sus mismos plazos (`tienda_ayuda()`); sin
+ * el plazo, la frase va sin número, nunca uno inventado. La usan la ficha, el look y la bolsa.
+ */
+export function promesasDeCompra(p: Plazos): Promesa[] {
+  return [
+    { icono: "chat", titulo: "Separas sin pagar en la web", texto: "La tienda te confirma por WhatsApp y coordinas el pago con ella." },
+    {
+      icono: "tienda",
+      titulo: "Recoges en tu tienda",
+      texto: p.diasParaRecoger !== null ? `Hasta ${enDias(p.diasParaRecoger)} después de pagar.` : "En la tienda que elegiste, después de pagar.",
+    },
+    {
+      icono: "traslado",
+      titulo: "Cambias en cualquier tienda CAYLA",
+      texto:
+        p.diasParaCambiar !== null
+          ? `Tienes ${enDias(p.diasParaCambiar)}, con tu boleta y la etiqueta puesta.`
+          : "Con tu boleta y la etiqueta puesta. El plazo va impreso en tu boleta.",
+    },
+  ];
 }
 
 /** Una talla del «Agregar» rápido de la tarjeta: su nombre y la prenda que agrega (`null`: esa talla no hay, se ve tachada). */

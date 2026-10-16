@@ -1,7 +1,9 @@
 "use client";
 
 import type { ReactNode, Ref } from "react";
-import { codigoLimpio, cuentaRegresiva, type MarcaCampo } from "@/lib/cuentas";
+import { codigoLimpio, cuentaRegresiva, normalizarCorreo, type MarcaCampo } from "@/lib/cuentas";
+import { buzonDelCorreo } from "@/lib/panel-entrada";
+import { Icono } from "../Icono";
 import { Campo, Resultado } from "./CampoGuiado";
 
 // La forma de confirmar un correo con un código, la misma de «Crear cuenta» (Felipe 2026-10-15): el correo con «Obtener código» al lado
@@ -59,6 +61,8 @@ export function CorreoConCodigo({
   onFoco: (campo: "correo" | "codigo" | null) => void;
 }) {
   const contando = restan > 0;
+  // Un atajo a su buzón para buscar el código (se abre aparte: lo escrito aquí no se pierde).
+  const buzon = buzonDelCorreo(normalizarCorreo(correo));
   return (
     <>
       <Campo
@@ -129,6 +133,12 @@ export function CorreoConCodigo({
               <button type="button" className="w-enlace" onClick={onReenviar} disabled={!puedeReenviar || contando || reenviando || bloqueado}>
                 {reenviando ? "Mandando otro código…" : contando ? `Reenviar en ${cuentaRegresiva(restan)}` : "Reenviar"}
               </button>
+              {buzon && (
+                <a className="w-enlace en-buzon" href={buzon.href} target="_blank" rel="noopener noreferrer">
+                  Abrir {buzon.nombre}
+                  <Icono nombre="flecha" />
+                </a>
+              )}
             </span>
           )}
         </Campo>

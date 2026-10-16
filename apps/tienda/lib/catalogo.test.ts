@@ -346,6 +346,37 @@ describe("las listas: Lo nuevo, las ofertas y Más vendidos (actividad 5)", () =
     expect(nombreOrden("destacado", "favoritos")).toBe("Destacado");
   });
 
+  it("«Destacado» abre con lo que tiene foto; dentro de cada parte, el orden propio de la lista (2026-10-16)", () => {
+    const silueta = { colores: [{ codigo: "BEI", nombre: "Beige", hex: "#D5BA98", foto: null }], fotos: [] };
+    const conFoto = { fotos: [FOTO] };
+    const todas = [
+      prenda("Aretes", { ...silueta, nuevo: { dias: 1 }, vendidos: 1 }),
+      prenda("Blusa", { ...conFoto, nuevo: { dias: 9 }, vendidos: 3, ...oferta(ANIV, "Aniversario", 20, "2026-10-21") }),
+      prenda("Collar", { ...silueta, nuevo: { dias: 4 }, ...oferta(ANIV, "Aniversario", 20, "2026-10-21") }),
+      prenda("Falda", { ...conFoto, nuevo: { dias: 2 }, vendidos: 2 }),
+      // Sin fotos del modelo, pero con la de un color: su tarjeta se ve con foto.
+      prenda("Vestido", { nuevo: { dias: 6 } }),
+    ];
+    const ver = (l: Parameters<typeof filtrarYOrdenar>[1]) => nombres(filtrarYOrdenar(todas, l));
+    // Toda la tienda: con foto primero, en el orden de la base; después las siluetas, en el mismo orden.
+    expect(ver({ categoria: null, orden: "destacado" })).toEqual(["Blusa", "Falda", "Vestido", "Aretes", "Collar"]);
+    // Lo nuevo: con foto primero y, en cada parte, lo más reciente primero.
+    expect(ver({ categoria: null, orden: "destacado", lista: "nuevo" })).toEqual(["Falda", "Vestido", "Blusa", "Aretes", "Collar"]);
+    expect(ver({ categoria: null, orden: "destacado", lista: "ofertas" })).toEqual(["Blusa", "Collar"]);
+    // Más vendidos se queda en su puesto (la tarjeta dice «N.º 1»), aunque el primero no tenga foto.
+    expect(ver({ categoria: null, orden: "destacado", lista: "vendidos" })).toEqual(["Aretes", "Falda", "Blusa"]);
+    // Tus favoritos, en lo que guardaste (lo último primero).
+    expect(nombres(filtrarYOrdenar(deFavoritos(todas, ["Collar", "Blusa"]), { categoria: null, orden: "destacado", lista: "favoritos" }))).toEqual([
+      "Collar",
+      "Blusa",
+    ]);
+    // Por precio manda el precio: la persona pidió ese orden.
+    const precios = todas.map((p, i) => ({ ...p, precioFinal: [10, 50, 20, 40, 30][i] }));
+    expect(nombres(filtrarYOrdenar(precios, { categoria: null, orden: "precio-asc" }))).toEqual(["Aretes", "Collar", "Vestido", "Falda", "Blusa"]);
+    // No toca la lista de entrada.
+    expect(nombres(todas)).toEqual(["Aretes", "Blusa", "Collar", "Falda", "Vestido"]);
+  });
+
   it("los favoritos: lo guardado en su orden (lo último primero), sin lo que ya no está en la tienda online, y todos van en su lista", () => {
     const [a, b, c] = lista;
     expect(nombres(deFavoritos(lista, [c.id, "ya-no-se-ve", a.id]))).toEqual(["Blusa C", "Blusa A"]);

@@ -5,6 +5,7 @@ import {
   agregarUna,
   agregarVarias,
   BOLSA_VACIA,
+  carrilesDeLaBolsaVacia,
   cuantasDe,
   elegirSede,
   escribirBolsa,
@@ -28,6 +29,7 @@ import {
   type BolsaEnBase,
   type MarcaDeLinea,
 } from "./bolsa";
+import type { Prenda } from "./catalogo";
 
 const A = "11111111-2222-4333-8444-555555555551";
 const B = "11111111-2222-4333-8444-555555555552";
@@ -440,5 +442,30 @@ describe("cómo viaja la bolsa a la base", () => {
     const servidor = readdirSync(__dirname).filter((f) => f.endsWith("-servidor.ts"));
     expect(servidor).toContain("bolsa-servidor.ts");
     expect(servidor.filter((f) => /\}::jsonb/.test(readFileSync(join(__dirname, f), "utf8")))).toEqual([]);
+  });
+});
+
+describe("la bolsa vacía ofrece algo (2026-10-16)", () => {
+  const FOTO = "https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/fotos/x.jpg";
+  const prenda = (id: string, { nuevo = null, foto = true }: { nuevo?: number | null; foto?: boolean } = {}) =>
+    ({ id, nombre: id, categoria: null, colores: [], fotos: foto ? [FOTO] : [], nuevo: nuevo === null ? null : { dias: nuevo }, vendidos: null }) as unknown as Prenda;
+  const catalogo = [prenda("a", { nuevo: 9 }), prenda("b", { nuevo: 2, foto: false }), prenda("c", { nuevo: 4 }), prenda("d"), prenda("e", { nuevo: 1 })];
+  const ver = (cs: ReturnType<typeof carrilesDeLaBolsaVacia>) => cs.map((c) => `${c.lista}: ${c.prendas.map((p) => p.id).join(",")}`);
+
+  it("sus favoritos que se ven (lo último guardado primero) y Lo nuevo sin repetirlos, con foto primero y lo más reciente primero", () => {
+    expect(ver(carrilesDeLaBolsaVacia(catalogo, ["c", "ya-no-se-ve", "d"]))).toEqual(["favoritos: c,d", "nuevo: e,a,b"]);
+  });
+
+  it("sin favoritos, solo Lo nuevo; sin nada nuevo, toda la tienda en su orden (con foto primero)", () => {
+    expect(ver(carrilesDeLaBolsaVacia(catalogo, new Set<string>()))).toEqual(["nuevo: e,c,a,b"]);
+    const sinNuevo = catalogo.map((p) => ({ ...p, nuevo: null }));
+    expect(ver(carrilesDeLaBolsaVacia(sinNuevo, []))).toEqual(["todo: a,c,d,e,b"]);
+  });
+
+  it("hasta `cuantas` por carril, y sin nada publicado, ningún carril", () => {
+    expect(carrilesDeLaBolsaVacia(catalogo, ["a", "c", "d"], 2).map((c) => c.prendas.length)).toEqual([2, 2]);
+    expect(carrilesDeLaBolsaVacia([], ["a"])).toEqual([]);
+    // Si todo lo nuevo ya está en sus favoritos, el segundo carril no repite: queda solo el de favoritos.
+    expect(ver(carrilesDeLaBolsaVacia([prenda("a", { nuevo: 1 })], ["a"]))).toEqual(["favoritos: a"]);
   });
 });
