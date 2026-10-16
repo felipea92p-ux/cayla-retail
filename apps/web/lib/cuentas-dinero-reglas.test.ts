@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   agruparCuentas,
+  agruparMaquinas,
   cuadra,
   cuentaParaConciliar,
   cuentasPara,
@@ -15,9 +16,11 @@ import {
   leerEgresoParaMovimiento,
   otrosDelCajon,
   resumenConciliacion,
+  textoDondeCobra,
   textoRecibe,
   textoSalida,
   tipoDeMovimiento,
+  tiposParaMedio,
   validarMovimiento,
   type BorradorMovimiento,
   type ConciliacionCuenta,
@@ -84,7 +87,7 @@ describe("qué cuentas se ven y cómo se agrupan (spike `vistaCuentas`)", () => 
   it("los grupos del spike, en su orden, con su cuenta contable; los vacíos no salen", () => {
     expect(agruparCuentas(cuentasVisibles(TODAS, TRU)).map((g) => `${g.titulo} ${g.cuenta}: ${g.cuentas.map((c) => c.id).join(",")}`)).toEqual([
       "Bancos 104: bcp,ibk",
-      "Por abonar 105: pos",
+      "Por depositar 105: pos",
       "Cajones y fondo fijo 101: cTRU",
       "Cajas fuertes y efectivo por rendir 101: fTRU,rend",
       "Tarjetas de crédito de CAYLA · lo que se debe 451: visa",
@@ -105,12 +108,42 @@ describe("de dónde le llega la plata a cada cuenta, en palabras", () => {
     expect(explicacionCuenta(cuenta({ id: "x", tipo: "banco" }), medios, false)).toBe("Sin cobros asignados todavía");
   });
   it("cada tipo tiene su explicación (el cajón del Taller es un fondo para gastos chicos)", () => {
-    expect(explicacionCuenta(pos, medios, false)).toBe("Tarjeta de las 2 tiendas, hasta que el banco los abona");
+    expect(explicacionCuenta(pos, medios, false)).toBe("Tarjeta de las 2 tiendas, hasta que la máquina los deposita");
     expect(explicacionCuenta(cajonTru, medios, false)).toBe("Caja abierta hoy");
     expect(explicacionCuenta(cajonLim, medios, false)).toBe("Caja cerrada: lo que quedó para el próximo turno");
     expect(explicacionCuenta(cajonLim, medios, true)).toBe("Para gastos chicos del Taller");
     expect(explicacionCuenta(fuerteTru, medios, false)).toBe("Lo que los cierres guardan en la tienda");
     expect(explicacionCuenta(visa, medios, false)).toBe("Lo que debes a la tarjeta");
+  });
+  it("el QR tiene su fila y, como la tarjeta, puede esperar en la cuenta «por depositar» de su máquina (ADR-0429)", () => {
+    const conQr: FilaMedio[] = [...medios, { ubicacionId: TRU, ubicacionNombre: "Tienda TRU", medio: "qr", cuentaId: "pos", cuentaNombre: "Niubiz", vigenteDesde: null }];
+    expect(textoRecibe(pos, conQr)).toBe("Tarjeta de las 2 tiendas · QR de TRU");
+    expect(tiposParaMedio("qr")).toEqual(["por_abonar", "banco"]);
+    expect(tiposParaMedio("tarjeta")).toEqual(["por_abonar", "banco"]);
+    expect(tiposParaMedio("yape")).toEqual(["banco"]);
+  });
+});
+
+describe("las máquinas de cobro (ADR-0429)", () => {
+  const filas = [
+    { maquina_id: "izi", nombre: "Izipay", cuenta_id: "pdi", cuenta_nombre: "Por depositar Izipay", archivada: false, ubicacion_id: TRU, ubicacion_nombre: "Tienda TRU", medio: "tarjeta", por_defecto: false },
+    { maquina_id: "izi", nombre: "Izipay", cuenta_id: "pdi", cuenta_nombre: "Por depositar Izipay", archivada: false, ubicacion_id: TRU, ubicacion_nombre: "Tienda TRU", medio: "qr", por_defecto: true },
+    { maquina_id: "izi", nombre: "Izipay", cuenta_id: "pdi", cuenta_nombre: "Por depositar Izipay", archivada: false, ubicacion_id: LIM, ubicacion_nombre: "Tienda LIM", medio: "tarjeta", por_defecto: true },
+    { maquina_id: "izi", nombre: "Izipay", cuenta_id: "pdi", cuenta_nombre: "Por depositar Izipay", archivada: false, ubicacion_id: LIM, ubicacion_nombre: "Tienda LIM", medio: "qr", por_defecto: true },
+    { maquina_id: "ven", nombre: "Vendemás", cuenta_id: "pdv", cuenta_nombre: "Por depositar Vendemás", archivada: false, ubicacion_id: TRU, ubicacion_nombre: "Tienda TRU", medio: "tarjeta", por_defecto: true },
+    { maquina_id: "vieja", nombre: "Niubiz", cuenta_id: "pos", cuenta_nombre: "Niubiz", archivada: true, ubicacion_id: null, ubicacion_nombre: null, medio: null, por_defecto: null },
+  ];
+  it("una fila por máquina, tienda y medio se junta por máquina; una sin tiendas queda sin sedes", () => {
+    const maquinas = agruparMaquinas(filas);
+    expect(maquinas.map((m) => `${m.nombre}:${m.sedes.length}:${m.archivada}`)).toEqual(["Izipay:4:false", "Vendemás:1:false", "Niubiz:0:true"]);
+    expect(maquinas[0]!.sedes.filter((s) => s.porDefecto).map((s) => `${s.ubicacionNombre} ${s.medio}`)).toEqual(["Tienda TRU qr", "Tienda LIM tarjeta", "Tienda LIM qr"]);
+  });
+  it("dónde cobra, en palabras: los mismos medios en todas, una sola frase; distintos, una parte por tienda; sin tiendas, lo dice", () => {
+    const [izipay, vendemas, niubiz] = agruparMaquinas(filas);
+    expect(textoDondeCobra(izipay!)).toBe("Tarjeta y QR en TRU y LIM");
+    expect(textoDondeCobra(vendemas!)).toBe("Tarjeta en TRU");
+    expect(textoDondeCobra(niubiz!)).toBe("En ninguna tienda todavía");
+    expect(textoDondeCobra({ sedes: izipay!.sedes.filter((s) => !(s.ubicacionId === LIM && s.medio === "tarjeta")) })).toBe("TRU: tarjeta y QR · LIM: QR");
   });
 });
 

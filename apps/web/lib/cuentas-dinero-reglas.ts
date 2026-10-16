@@ -13,7 +13,7 @@ export const TEXTO_TIPO_CUENTA: Record<TipoCuenta, string> = {
   caja_fuerte: "Caja fuerte",
   por_rendir: "Por rendir",
   banco: "Banco o billetera",
-  por_abonar: "Por abonar",
+  por_abonar: "Por depositar (máquina de cobro)",
   tarjeta_credito: "Tarjeta de crédito (deuda)",
 };
 /** Las que nacen con el sistema (con cada sede, o una sola): se ven, no se archivan. */
@@ -21,14 +21,14 @@ export const TIPOS_AUTOMATICOS: readonly TipoCuenta[] = ["cajon", "caja_fuerte",
 /** Las que el líder agrega en Configuración. */
 export const TIPOS_QUE_SE_AGREGAN: readonly { tipo: TipoCuenta; texto: string }[] = [
   { tipo: "banco", texto: "Banco o billetera (104)" },
-  { tipo: "por_abonar", texto: "Por abonar: el POS de tarjeta (105)" },
+  { tipo: "por_abonar", texto: "Por depositar: lo que una máquina de tarjeta o QR aún no depositó (105)" },
   { tipo: "tarjeta_credito", texto: "Tarjeta de crédito de CAYLA (451)" },
 ];
 
 /** Cómo agrupa el spike las cuentas (`vistaCuentas`): cada grupo con su cuenta contable. */
 export const GRUPOS_CUENTAS: readonly { clave: string; tipos: readonly TipoCuenta[]; titulo: string; cuenta: string }[] = [
   { clave: "bancos", tipos: ["banco"], titulo: "Bancos", cuenta: "104" },
-  { clave: "por_abonar", tipos: ["por_abonar"], titulo: "Por abonar", cuenta: "105" },
+  { clave: "por_abonar", tipos: ["por_abonar"], titulo: "Por depositar", cuenta: "105" },
   { clave: "cajones", tipos: ["cajon"], titulo: "Cajones y fondo fijo", cuenta: "101" },
   { clave: "fuertes", tipos: ["caja_fuerte", "por_rendir"], titulo: "Cajas fuertes y efectivo por rendir", cuenta: "101" },
   { clave: "tarjetas", tipos: ["tarjeta_credito"], titulo: "Tarjetas de crédito de CAYLA · lo que se debe", cuenta: "451" },
@@ -46,12 +46,46 @@ export const TEXTO_MOVIMIENTO: Record<TipoMovimiento, string> = {
   entre_cuentas: "Entre cuentas",
 };
 
-export type MedioCobro = "yape" | "plin" | "tarjeta" | "transferencia";
-export const MEDIOS_COBRO: readonly MedioCobro[] = ["yape", "plin", "tarjeta", "transferencia"];
-export const TEXTO_MEDIO_COBRO: Record<MedioCobro, string> = { yape: "Yape", plin: "Plin", tarjeta: "Tarjeta", transferencia: "Transferencia" };
+/** En el orden de la tabla de Configuración y de `fn_medios_de_cobro` (ADR-0429: el QR tiene su fila, como la tarjeta). */
+export type MedioCobro = "yape" | "plin" | "tarjeta" | "qr" | "transferencia";
+export const MEDIOS_COBRO: readonly MedioCobro[] = ["yape", "plin", "tarjeta", "qr", "transferencia"];
+export const TEXTO_MEDIO_COBRO: Record<MedioCobro, string> = { yape: "Yape", plin: "Plin", tarjeta: "Tarjeta", qr: "QR", transferencia: "Transferencia" };
+/** Los que cobra una máquina (Izipay, Vendemás) y esperan en su cuenta «por depositar» hasta que la máquina los deposita. */
+export const MEDIOS_DE_MAQUINA: readonly MedioCobro[] = ["tarjeta", "qr"];
 /** A qué tipo de cuenta puede entrar cada medio (la base lo vuelve a exigir). */
 export function tiposParaMedio(medio: MedioCobro): TipoCuenta[] {
-  return medio === "tarjeta" ? ["por_abonar", "banco"] : ["banco"];
+  return MEDIOS_DE_MAQUINA.includes(medio) ? ["por_abonar", "banco"] : ["banco"];
+}
+
+// ---- Las máquinas de cobro (ADR-0429) -----------------------------------------------------------------------------------
+
+export type SedeDeMaquina = { ubicacionId: string; ubicacionNombre: string; medio: MedioCobro; porDefecto: boolean };
+export type MaquinaPos = {
+  id: string;
+  nombre: string;
+  cuentaId: string;
+  cuentaNombre: string;
+  archivada: boolean;
+  /** En qué tiendas cobra y con qué medio; `porDefecto` si hoy es a donde entra ese medio en esa tienda (`medios_de_cobro`). */
+  sedes: SedeDeMaquina[];
+};
+
+/** `fn_pos_maquinas` devuelve una fila por máquina, tienda y medio (y una con la tienda en nulo si no opera en ninguna):
+ *  aquí se juntan por máquina, en el orden en que llegan. */
+export function agruparMaquinas(filas: readonly Record<string, unknown>[]): MaquinaPos[] {
+  const porId = new Map<string, MaquinaPos>();
+  for (const f of filas) {
+    const id = String(f.maquina_id);
+    let m = porId.get(id);
+    if (!m) {
+      m = { id, nombre: String(f.nombre), cuentaId: String(f.cuenta_id), cuentaNombre: String(f.cuenta_nombre ?? ""), archivada: Boolean(f.archivada), sedes: [] };
+      porId.set(id, m);
+    }
+    if (f.ubicacion_id !== null && f.ubicacion_id !== undefined) {
+      m.sedes.push({ ubicacionId: String(f.ubicacion_id), ubicacionNombre: String(f.ubicacion_nombre ?? ""), medio: String(f.medio) as MedioCobro, porDefecto: Boolean(f.por_defecto) });
+    }
+  }
+  return [...porId.values()];
 }
 
 // ---- Lo que devuelve la base → tipos de la pantalla ---------------------------------------------------------------------
@@ -346,6 +380,26 @@ function listaY(xs: string[]): string {
   return `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}`;
 }
 
+/** «Tarjeta y QR en TRU, AQP y LIM», «Tarjeta en TRU y AQP»; si cobra distinto en cada tienda, una parte por tienda
+ *  («TRU: tarjeta y QR · LIM: QR»). Sin tiendas: «En ninguna tienda todavía». */
+export function textoDondeCobra(maquina: Pick<MaquinaPos, "sedes">): string {
+  if (!maquina.sedes.length) return "En ninguna tienda todavía";
+  const nombreMedio = (m: MedioCobro) => (m === "tarjeta" ? "tarjeta" : TEXTO_MEDIO_COBRO[m]);
+  const porTienda = new Map<string, { tienda: string; medios: MedioCobro[] }>();
+  for (const s of maquina.sedes) {
+    const t = porTienda.get(s.ubicacionId) ?? { tienda: corto(s.ubicacionNombre), medios: [] };
+    if (!t.medios.includes(s.medio)) t.medios.push(s.medio);
+    porTienda.set(s.ubicacionId, t);
+  }
+  const tiendas = [...porTienda.values()];
+  const mediosDe = (t: { medios: MedioCobro[] }) => listaY(MEDIOS_COBRO.filter((m) => t.medios.includes(m)).map(nombreMedio));
+  const mismos = tiendas.every((t) => mediosDe(t) === mediosDe(tiendas[0]!));
+  const texto = mismos
+    ? `${mediosDe(tiendas[0]!)} en ${listaY(tiendas.map((t) => t.tienda))}`
+    : tiendas.map((t) => `${t.tienda}: ${mediosDe(t)}`).join(" · ");
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
 /** La línea de abajo de cada tarjeta: de dónde le llega la plata, o qué es. */
 export function explicacionCuenta(c: CuentaDinero, medios: readonly FilaMedio[], esTaller: boolean): string {
   const recibe = textoRecibe(c, medios);
@@ -353,7 +407,7 @@ export function explicacionCuenta(c: CuentaDinero, medios: readonly FilaMedio[],
     case "banco":
       return recibe ?? "Sin cobros asignados todavía";
     case "por_abonar":
-      return recibe ? `${recibe}, hasta que el banco los abona` : "Cobros con tarjeta hasta que el banco los abona";
+      return recibe ? `${recibe}, hasta que la máquina los deposita` : "Cobros con tarjeta y QR hasta que la máquina los deposita";
     case "cajon":
       if (esTaller) return "Para gastos chicos del Taller";
       return c.cajaAbierta ? "Caja abierta hoy" : "Caja cerrada: lo que quedó para el próximo turno";

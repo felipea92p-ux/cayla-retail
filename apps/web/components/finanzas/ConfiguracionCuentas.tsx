@@ -20,15 +20,17 @@ import {
   TIPOS_AUTOMATICOS,
   TIPOS_QUE_SE_AGREGAN,
   nombreCorto,
+  textoDondeCobra,
   textoRecibe,
   tiposParaMedio,
   type CuentaDinero,
   type FilaMedio,
+  type MaquinaPos,
   type MedioCobro,
   type TipoCuenta,
 } from "@/lib/cuentas-dinero-reglas";
 import { Boton } from "@/components/ui/campos";
-import { Store } from "lucide-react";
+import { CreditCard, Store } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { MAX_NOMBRE_CUENTA, MAX_NUMERO_CUENTA } from "@/lib/finanzas-topes";
 import { LapizEditar } from "@/components/ui/BotonEditar";
@@ -37,11 +39,24 @@ import { LapizEditar } from "@/components/ui/BotonEditar";
 // de CAYLA (los cajones y cajas fuertes nacen con cada tienda; aquí se agregan bancos, billeteras, el POS y la tarjeta) y a
 // qué cuenta entra cada medio de cobro en cada tienda. Como en Tiendas y caja, CADA CASILLA SE GUARDA SOLA al cambiar,
 // firmada con el responsable. Cambiar a qué cuenta entra un cobro rige desde hoy: lo pasado no se mueve. Cada cuenta se
-// corrige, archiva o elimina desde «Editar» (`EditarCuentaModal`, actualización 2026-09-25).
+// corrige, archiva o elimina desde «Editar» (`EditarCuentaModal`, actualización 2026-09-25). Desde el ADR-0429, también las
+// máquinas de cobro (Izipay, Vendemás): en qué tiendas cobran con tarjeta y QR y en qué cuenta «por depositar» espera esa plata.
+// Se leen, no se editan aquí: el destino por defecto de cada tienda se cambia en «A qué cuenta entra cada cobro».
 
 type Consulta = PromiseLike<{ error: unknown }>;
 
-export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: CuentaDinero[]; medios: FilaMedio[]; hoy: string }) {
+export function ConfiguracionCuentas({
+  cuentas,
+  medios,
+  maquinas,
+  hoy,
+}: {
+  cuentas: CuentaDinero[];
+  medios: FilaMedio[];
+  /** Nulo = la base todavía no conoce las máquinas (falta pegar 20261016173000): la tarjeta no se dibuja. */
+  maquinas: MaquinaPos[] | null;
+  hoy: string;
+}) {
   const router = useRouter();
   const responsable = useResponsable();
   const [guardando, setGuardando] = useState(false);
@@ -177,9 +192,52 @@ export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: Cuenta
           </div>
         )}
         <PieTabla>
-          <span>El efectivo siempre cae al cajón de la tienda.</span>
+          <span>El efectivo siempre cae al cajón de la tienda. La tarjeta y el QR entran a la cuenta «por depositar» de la máquina que los cobra.</span>
         </PieTabla>
       </Superficie>
+
+      {maquinas && (
+        <Superficie className="anim-sube" guia="config.maquinas">
+          <TituloDeTarjeta titulo="Máquinas de cobro" bajada="Con qué máquina se cobra con tarjeta y QR en cada tienda, y en qué cuenta espera lo cobrado hasta que la máquina lo deposita, sin su comisión." />
+          {maquinas.length === 0 ? (
+            <Vacio tamano="chico" icono={<CreditCard />}>
+              No hay máquinas de cobro.
+            </Vacio>
+          ) : (
+            <div className="fin-tabla-wrap">
+              <table className="fin-tabla" style={{ minWidth: 560 }}>
+                <thead>
+                  <tr>
+                    <th>Máquina</th>
+                    <th>Lo cobrado espera en</th>
+                    <th>Dónde cobra</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {maquinas.map((m) => (
+                    <tr key={m.id} className={m.archivada ? "fin-suave" : undefined}>
+                      <td data-l="Máquina">
+                        <b>{m.nombre}</b>
+                      </td>
+                      <td data-l="Espera en">{nombreCorto(m.cuentaNombre)}</td>
+                      <td className="fin-ancha" data-l="Dónde cobra">{textoDondeCobra(m)}</td>
+                      <td data-l="Estado">
+                        <Chip tono={m.archivada ? "apagado" : "verde"} tachado={false}>
+                          {m.archivada ? "archivada" : "activa"}
+                        </Chip>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <PieTabla>
+            <span>Donde una tienda tiene dos máquinas para un mismo medio, la hoja de cobro pregunta cuál y marca de entrada la de «A qué cuenta entra cada cobro». Donde hay una sola, no pregunta.</span>
+          </PieTabla>
+        </Superficie>
+      )}
 
       {agregar && <AgregarCuentaModal hoy={hoy} onCerrar={() => setAgregar(false)} />}
       {editar && <EditarCuentaModal cuenta={editar} hoy={hoy} onCerrar={() => setEditar(null)} />}

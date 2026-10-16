@@ -15,7 +15,7 @@ import { TablaGastosFijos } from "@/components/GastosFijosYActivos";
 import { getParametrosTributarios } from "@/lib/impuestos";
 import { ConfiguracionImpuestos } from "@/components/ConfiguracionImpuestos";
 import { ConfiguracionCuentas } from "@/components/finanzas/ConfiguracionCuentas";
-import { getMediosDeCobro, getSaldos } from "@/lib/cuentas-dinero";
+import { getMaquinasPos, getMediosDeCobro, getSaldos } from "@/lib/cuentas-dinero";
 import { getPresupuestoConfig } from "@/lib/presupuesto";
 import { ConfiguracionPresupuesto } from "@/components/finanzas/ConfiguracionPresupuesto";
 
@@ -84,9 +84,10 @@ async function SeccionTiendaWeb() {
   return <ConfiguracionTiendaWeb datos={datos} />;
 }
 
-// Cuentas y cobros (ADR-0195 F3): las cuentas con su saldo de hoy (sumado por la base) y a qué cuenta entra cada cobro.
+// Cuentas y cobros (ADR-0195 F3): las cuentas con su saldo de hoy (sumado por la base), a qué cuenta entra cada cobro y las
+// máquinas de cobro (ADR-0429; la tarjeta no se dibuja si la base todavía no las conoce).
 async function SeccionCuentas() {
-  const [cuentas, medios] = await Promise.all([getSaldos(null), getMediosDeCobro()]);
+  const [cuentas, medios, maquinas] = await Promise.all([getSaldos(null), getMediosDeCobro(), getMaquinasPos()]);
   return (
     <>
       {[cuentas.falla, medios.falla]
@@ -96,7 +97,7 @@ async function SeccionCuentas() {
             {f}
           </p>
         ))}
-      <ConfiguracionCuentas cuentas={cuentas.datos} medios={medios.datos} hoy={hoyLima()} />
+      <ConfiguracionCuentas cuentas={cuentas.datos} medios={medios.datos} maquinas={maquinas} hoy={hoyLima()} />
     </>
   );
 }

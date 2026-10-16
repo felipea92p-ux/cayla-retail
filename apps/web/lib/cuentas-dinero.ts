@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import {
+  agruparMaquinas,
   leerCierre,
   leerConciliacion,
   leerConciliacionCuenta,
@@ -16,6 +17,7 @@ import {
   type CuentaDinero,
   type EfectivoFila,
   type FilaMedio,
+  type MaquinaPos,
   type MovimientoDinero,
   type MovimientoDueno,
   type SinCuenta,
@@ -72,6 +74,16 @@ export async function getMediosDeCobro(): Promise<Lectura<FilaMedio[]>> {
   const { data, error } = await supabase.rpc("fn_medios_de_cobro" as never);
   if (error) return { datos: [], falla: falla("a qué cuenta entra cada cobro", error) };
   return { datos: ((data ?? []) as Fila[]).map(leerMedio), falla: null };
+}
+
+/** Solo el líder: las máquinas de cobro (Izipay, Vendemás) con su cuenta «por depositar» y en qué tiendas cobran (ADR-0429).
+ *  Nulo si la base todavía no las conoce (la web salió antes que la migración 20261016173000): la tarjeta no se dibuja y
+ *  nada más cambia. */
+export async function getMaquinasPos(): Promise<MaquinaPos[] | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_pos_maquinas" as never);
+  if (error) return null;
+  return agruparMaquinas((data ?? []) as Fila[]);
 }
 
 /** Solo el líder: lo que movió plata este mes y todavía no dice de qué cuenta. */
