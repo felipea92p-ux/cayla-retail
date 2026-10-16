@@ -5,7 +5,7 @@
   "total": 16,
   "controles": {
     "app/(app)/productos/por-revisar/page.tsx": [
-      "Volver «(sin nombre)»",
+      "Volver «/productos»",
       "BotonEnlace «Ir a Productos»"
     ],
     "components/Paginacion.tsx": [
@@ -22,7 +22,7 @@
       "BotonVer «Ver las órdenes»",
       "BotonVer «Ir a Existencias»",
       "BotonEnlace «Ponerle precio»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Volver» #2",
       "Boton «{responsable.motivo ?? undefined}»"
     ],

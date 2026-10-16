@@ -6,7 +6,7 @@
   "controles": {
     "components/finanzas/EstadoResultadosPanel.tsx": [
       "BotonDescargar «Descargar Excel»",
-      "input «Comparar con»",
+      "input «→(e) => ir({ comparar: e.target.checked ? \"1\" : null»",
       "button «{k.clave === \"ventas\" ? \"fin-resultados.celda\" : undefined}»"
     ]
   }

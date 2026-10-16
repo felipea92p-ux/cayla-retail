@@ -40,6 +40,10 @@ export const PRUEBAS = [
   // en una vuelta, no uno por uno.
   "caja:verificar",
 
+  // Tener sesión no es ser del equipo: una cuenta de Dynamic que no trabaja en retail no lee el catálogo, las sedes ni
+  // los proveedores, ni da de alta vocabulario; el líder, una colaboradora y una terminal siguen igual. ROLLBACK.
+  "pruebas:sesion-no-es-equipo",
+
   // Meta del día y fondo de caja unidos a las campañas (ADR-0195 F1): si dos campañas se cruzan gana la mayor, la
   // meta del mes es la suma de los días, solo el líder guarda y el cierre anota el fondo que regía. ROLLBACK.
   "pruebas:configuracion-caja",

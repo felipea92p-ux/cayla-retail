@@ -7,10 +7,10 @@
     "components/finanzas/EscenariosPanel.tsx": [
       "BotonDescargar «Descargar Excel»",
       "button «fin-escenarios.volver»",
-      "input «Pasar un pago a otra semana»",
-      "input «Cerrar»",
-      "input «Un gasto nuevo»",
-      "input «);»"
+      "input «(sin nombre)»",
+      "input «→(e) => cambiar({ cerrarTienda: e.target.checked»",
+      "input «(sin nombre)» #2",
+      "input «{id}»"
     ]
   }
 }

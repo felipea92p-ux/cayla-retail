@@ -8,9 +8,9 @@
       "input «{`Cantidad que llegó de ${l.insumo}»",
       "input «{`Código de lote de ${l.insumo}»",
       "Casilla «{`El resto (${cantidadTexto(resto, l.unidad)}»",
-      "Desplegable «)»",
+      "Desplegable «{e.motivo}»",
       "CampoTexto «Nota de la entrega»",
-      "ComboResponsable «Registrar recepción»",
+      "ComboResponsable «{responsable}»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/RecibirProduccionPanel.tsx": [
@@ -19,7 +19,7 @@
     ],
     "components/ordenes-insumo/RecibirOrdenInsumoModal.tsx": [
       "CampoTexto «Nota de la entrega»",
-      "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
+      "ComboResponsable «{responsable}»",
       "Boton «Recargar»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
@@ -27,7 +27,7 @@
       "CampoTexto «{`Costo por ${porUnidad}»",
       "CampoTexto «{`Código de lote de ${l.insumo}»",
       "Casilla «{`El resto de ${l.insumo}»",
-      "Desplegable «)»"
+      "Desplegable «{e.motivo}»"
     ]
   }
 }
