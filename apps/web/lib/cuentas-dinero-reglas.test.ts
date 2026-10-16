@@ -394,7 +394,7 @@ describe("el depósito de la máquina se cruza contra los días pendientes (ADR-
 
 describe("la tarifa de cada máquina solo estima y avisa (ADR-0429, act. 4)", () => {
   it("se lee en palabras de tienda, y sin tarifa lo dice", () => {
-    expect(textoTarifa({ tasaPct: 3.5, igvSobreTasa: true, cargoFijo: 0.2, diasAbono: 2, desde: "2026-10-16" })).toBe("3.5 % + IGV + S/ 0.20 por pago · deposita en 2 días hábiles");
+    expect(textoTarifa({ tasaPct: 3.5, igvSobreTasa: true, cargoFijo: 0.2, diasAbono: 2, desde: "2026-10-16" }).replace(/\u00a0/g, " ")).toBe("3.5 % + IGV + S/ 0.20 por pago · deposita en 2 días hábiles");
     expect(textoTarifa({ tasaPct: 2.95, igvSobreTasa: false, cargoFijo: 0, diasAbono: 1, desde: null })).toBe("2.95 % · deposita al día hábil siguiente");
     expect(textoTarifa({ tasaPct: 0, igvSobreTasa: false, cargoFijo: 0, diasAbono: 0, desde: null })).toBe("Sin comisión · deposita el mismo día");
     expect(textoTarifa(null)).toBe("Sin tarifa: solo avisa pasados 3 días hábiles");
@@ -416,7 +416,7 @@ describe("la tarifa de cada máquina solo estima y avisa (ADR-0429, act. 4)", ()
     });
     expect(validarTarifa({ medio: "qr", tasa: "", igvSobreTasa: false, cargoFijo: "", diasAbono: "1" }, "izi")).toMatchObject({ ok: true, valor: { p_tasa_pct: 0, p_cargo_fijo: 0, p_dias_abono: 1 } });
     expect(validarTarifa({ medio: "tarjeta", tasa: "101", igvSobreTasa: true, cargoFijo: "0", diasAbono: "2" }, "ven")).toEqual({ ok: false, error: "La tasa va de 0 a 100 %." });
-    expect(validarTarifa({ medio: "tarjeta", tasa: "3", igvSobreTasa: true, cargoFijo: "51", diasAbono: "2" }, "ven")).toEqual({ ok: false, error: "El cargo fijo por pago va de S/ 0 a S/ 50." });
+    expect((validarTarifa({ medio: "tarjeta", tasa: "3", igvSobreTasa: true, cargoFijo: "51", diasAbono: "2" }, "ven") as { error: string }).error.replace(/\u00a0/g, " ")).toBe("El cargo fijo por pago va de S/ 0.00 a S/ 50.00.");
     expect(validarTarifa({ medio: "tarjeta", tasa: "3", igvSobreTasa: true, cargoFijo: "0", diasAbono: "16" }, "ven")).toEqual({ ok: false, error: "Los días de abono van de 0 a 15." });
     expect(validarTarifa({ medio: "tarjeta", tasa: "abc", igvSobreTasa: true, cargoFijo: "0", diasAbono: "2" }, "ven").ok).toBe(false);
   });

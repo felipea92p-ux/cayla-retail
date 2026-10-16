@@ -70,7 +70,7 @@ export function textoTarifa(t: TarifaPos | null): string {
   if (!t) return "Sin tarifa: solo avisa pasados 3 días hábiles";
   // Con punto decimal, como todo monto y porcentaje del ERP («3.5 %», «2.95 %»).
   const tasa = `${Number(t.tasaPct.toFixed(2))} %${t.igvSobreTasa && t.tasaPct > 0 ? " + IGV" : ""}`;
-  const fijo = t.cargoFijo > 0 ? ` + S/ ${t.cargoFijo.toFixed(2)} por pago` : "";
+  const fijo = t.cargoFijo > 0 ? ` + ${soles2(t.cargoFijo)} por pago` : "";
   const dias = t.diasAbono === 0 ? "deposita el mismo día" : t.diasAbono === 1 ? "deposita al día hábil siguiente" : `deposita en ${t.diasAbono} días hábiles`;
   return `${t.tasaPct === 0 && t.cargoFijo === 0 ? "Sin comisión" : tasa + fijo} · ${dias}`;
 }
@@ -128,7 +128,7 @@ export function validarTarifa(b: BorradorTarifa, maquinaId: string): Resultado<P
   if (tasa.valor > 100) return { ok: false, error: "La tasa va de 0 a 100 %." };
   const fijo = numeroOCero(b.cargoFijo);
   if (!fijo.ok) return { ok: false, error: `Cargo fijo: ${fijo.error.charAt(0).toLowerCase()}${fijo.error.slice(1)}` };
-  if (fijo.valor > 50) return { ok: false, error: "El cargo fijo por pago va de S/ 0 a S/ 50." };
+  if (fijo.valor > 50) return { ok: false, error: `El cargo fijo por pago va de ${soles2(0)} a ${soles2(50)}.` };
   if (!/^\d{1,2}$/.test(b.diasAbono.trim()) || Number(b.diasAbono) > 15) return { ok: false, error: "Los días de abono van de 0 a 15." };
   return {
     ok: true,
