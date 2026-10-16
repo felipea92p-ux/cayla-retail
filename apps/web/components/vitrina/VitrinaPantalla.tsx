@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
-import { MonitorSmartphone, SearchX } from "lucide-react";
+import { LayoutGrid, List, MonitorSmartphone, SearchX } from "lucide-react";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Casilla } from "@/components/ui/Casilla";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { MiniaturaPrenda, SinFoto } from "@/components/ui/PrendaCelda";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Encabezado, Tabla, fila } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Vacio } from "@/components/ui/Vacio";
@@ -50,6 +52,9 @@ export function VitrinaPantalla({ lectura, esperan }: { lectura: LecturaVitrina;
     setModelos(lectura.modelos);
   }
   const [filtro, setFiltro] = useState<FiltroVitrina>("todos");
+  // Cómo se ve la lista (ADR-0430): «Vitrina», las prendas en mosaico como las ve el cliente (de fábrica), o «Lista», la tabla de
+  // siempre, más compacta para revisar muchas. Las dos hacen lo mismo: tocar abre su hoja, la casilla elige, el interruptor muestra.
+  const [vista, setVista] = useState<"vitrina" | "lista">("vitrina");
   const [texto, setTexto] = useState("");
   const [elegidos, setElegidos] = useState<string[]>([]);
   const [abierto, setAbierto] = useState<string | null>(null);
@@ -72,7 +77,7 @@ export function VitrinaPantalla({ lectura, esperan }: { lectura: LecturaVitrina;
   };
 
   return (
-    <div className="space-y-6">
+    <div className="tw space-y-6">
       <div className="grid gap-3 sm:grid-cols-3" data-guia="vitrina.cifras">
         <TarjetaCifra
           punto="verde"
@@ -125,6 +130,16 @@ export function VitrinaPantalla({ lectura, esperan }: { lectura: LecturaVitrina;
           <p className="min-w-[12rem] flex-1 text-[13px] text-taupe" data-guia="vitrina.ayuda">
             Toca un modelo para ver lo que ve el cliente o cambiar Lo nuevo. Marca varios para mostrarlos u ocultarlos juntos.
           </p>
+          <SegmentoDeslizante
+            forma="modo"
+            etiqueta="Cómo ver los modelos"
+            valor={vista}
+            onCambio={(v) => setVista(v === "lista" ? "lista" : "vitrina")}
+            opciones={[
+              { clave: "vitrina", etiqueta: "Vitrina", icono: <LayoutGrid />, ayuda: "Las prendas como las ve el cliente", guia: "vitrina.vista-vitrina" },
+              { clave: "lista", etiqueta: "Lista", icono: <List />, ayuda: "Una fila por modelo, para revisar muchos" },
+            ]}
+          />
         </div>
 
         {visibles.length === 0 ? (
@@ -142,6 +157,21 @@ export function VitrinaPantalla({ lectura, esperan }: { lectura: LecturaVitrina;
               {filtro === "sin_stock" ? "Todos los modelos que se ven en la web tienen algo en alguna tienda." : "Ningún modelo se ve en la web todavía."}
             </Vacio>
           )
+        ) : vista === "vitrina" ? (
+          <ul className="tw-vitrina" data-guia="vitrina.lista" aria-label="Los modelos, como los ve el cliente">
+            {visibles.map((m, i) => (
+              <CartaModelo
+                key={m.id}
+                modelo={m}
+                tiendas={tiendas}
+                i={i}
+                elegido={elegidos.includes(m.id)}
+                onElegir={() => alternar(m.id)}
+                onAbrir={() => setAbierto(m.id)}
+                onInterruptor={() => setLote({ modo: m.vitrina?.publicado ? "ocultar" : "mostrar", ids: [m.id] })}
+              />
+            ))}
+          </ul>
         ) : (
           <Tabla className="rounded-none border-0 shadow-none" guia="vitrina.lista">
             <Encabezado
@@ -319,5 +349,81 @@ function FilaModelo({
         </button>
       </span>
     </div>
+  );
+}
+
+/** Un modelo en la vista «Vitrina» (ADR-0430): su foto vertical como la ve el cliente (sin foto, su categoría sobre su color, ADR-0333),
+ *  la casilla para elegir varios, el nombre que abre su hoja, lo libre en cada tienda y el interruptor. Apagado, la foto se atenúa:
+ *  así se ve de un vistazo qué no ve el cliente. Entra en cascada al llegar (`.tw-carta`). */
+function CartaModelo({
+  modelo: m,
+  tiendas,
+  i,
+  elegido,
+  onElegir,
+  onAbrir,
+  onInterruptor,
+}: {
+  modelo: ModeloVitrina;
+  tiendas: LecturaVitrina["tiendas"];
+  i: number;
+  elegido: boolean;
+  onElegir: () => void;
+  onAbrir: () => void;
+  onInterruptor: () => void;
+}) {
+  const v = m.vitrina;
+  const razon = razonNoSeMuestra(m);
+  const empaque = esEmpaque(m);
+  const encendido = interruptorEncendido(m);
+  const foto = m.foto ?? m.colores.find((c) => c.foto)?.foto ?? null;
+  const sinFoto = <SinFoto tamano="h-full w-full !rounded-none" colorHex={m.colores[0]?.hex ?? null} prefijo={m.prefijo} familia={m.familia} categoria={m.categoria} conNombre />;
+  return (
+    <li
+      className="tw-carta"
+      style={{ "--i": i } as CSSProperties}
+      data-elegida={elegido ? "" : undefined}
+      data-oculta={encendido ? undefined : ""}
+    >
+      <span className="tw-carta-casilla" data-guia="vitrina.casilla">
+        <Casilla marcada={elegido} onCambio={onElegir} etiqueta={`Elegir ${m.nombre}`} />
+      </span>
+      <button type="button" onClick={onAbrir} className="tw-carta-foto" aria-label={`Abrir ${m.nombre}`} tabIndex={-1}>
+        <span>{foto ? <ImagenDePrenda src={foto} alt="" fill sizes="200px" className="object-cover" fondo={m.colores[0]?.hex ?? null} fallback={sinFoto} /> : sinFoto}</span>
+      </button>
+      <span className="tw-carta-cuerpo">
+        <button type="button" onClick={onAbrir} data-guia="vitrina.abrir" className="tw-carta-nombre">
+          <span data-guia="vitrina.modelo">{m.nombre}</span>
+        </button>
+        <span className="tw-carta-stock" aria-label="Libre en cada tienda">
+          {stockEnTiendas(m, tiendas).map((s) => (
+            <span key={s.sede} data-cero={s.cantidad === 0 ? "" : undefined}>
+              {s.sede} {s.cantidad}
+            </span>
+          ))}
+        </span>
+        {(razon || (v && v.enLoNuevo !== "automatico")) && (
+          <span className="flex flex-wrap gap-1.5">
+            {razon && <Chip tono={razon.tono}>{razon.chip}</Chip>}
+            {v?.enLoNuevo === "fijo" && <Chip tono="verde">Fijado en Lo nuevo</Chip>}
+            {v?.enLoNuevo === "quitado" && <Chip tono="neutro">Fuera de Lo nuevo</Chip>}
+          </span>
+        )}
+        <span className="tw-carta-pie" data-guia="vitrina.interruptor">
+          <span>{encendido ? "Se ve en la web" : "No se ve"}</span>
+          <button
+            type="button"
+            role="switch" // unificar-fijo: la cara del interruptor del sistema en la carta de un modelo; su título es la línea de al lado
+            aria-checked={encendido}
+            aria-label={`${m.nombre} en la web`}
+            disabled={empaque}
+            onClick={onInterruptor}
+            className="interruptor disabled:opacity-50"
+          >
+            <span aria-hidden className="interruptor-perilla" />
+          </button>
+        </span>
+      </span>
+    </li>
   );
 }

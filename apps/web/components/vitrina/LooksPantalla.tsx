@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Shirt } from "lucide-react";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
-import { Encabezado, Tabla, fila } from "@/components/ui/Tabla";
+import { SinFoto } from "@/components/ui/PrendaCelda";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Vacio } from "@/components/ui/Vacio";
 import { LookHoja } from "@/components/vitrina/LookHoja";
@@ -22,9 +22,6 @@ import {
   type LecturaLooks,
   type Look,
 } from "@/lib/vitrina-looks-reglas";
-
-// En el celular la fila es una tarjeta: el lugar, el look y su interruptor; desde `sm`, columnas.
-const PLANTILLA = "grid-cols-[1.75rem_minmax(0,1fr)_2.75rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_4.5rem]";
 
 /**
  * Tienda web ▸ Vitrina ▸ Looks (ADR-0408, actividad 11; maqueta v4, «looks-erp»): las combinaciones de 2 a 4 prendas que la tienda
@@ -74,7 +71,7 @@ export function LooksPantalla({ lectura }: { lectura: LecturaLooks }) {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="tw space-y-6">
       <div className="grid gap-3 sm:grid-cols-2" data-guia="looks.cifras">
         <TarjetaCifra
           punto="verde"
@@ -119,15 +116,12 @@ export function LooksPantalla({ lectura }: { lectura: LecturaLooks }) {
             {filtro === "no_se_ven" ? "Todos los looks encendidos se ven en la web." : "Ningún look se ve en la web todavía."}
           </Vacio>
         ) : (
-          <Tabla className="rounded-none border-0 shadow-none" guia="looks.lista">
-            <Encabezado
-              plantilla={PLANTILLA}
-              columnas={[{ titulo: "Lugar" }, { titulo: "Look" }, { titulo: "En la web", alinear: "der" }]}
-            />
-            {visibles.map((l) => (
-              <FilaLook key={l.id} look={l} onAbrir={() => setAbierto(l.id)} onInterruptor={() => setInterruptor({ id: l.id, publicado: !l.publicado })} />
+          // Cada look como lo arma el cliente (ADR-0430): sus prendas lado a lado, en su orden de «Arma tu look».
+          <ul className="tw-looks" data-guia="looks.lista" aria-label="Los looks, en el orden en que salen en la tienda">
+            {visibles.map((l, i) => (
+              <CartaLook key={l.id} look={l} i={i} onAbrir={() => setAbierto(l.id)} onInterruptor={() => setInterruptor({ id: l.id, publicado: !l.publicado })} />
             ))}
-          </Tabla>
+          </ul>
         )}
       </section>
 
@@ -164,59 +158,51 @@ export function LooksPantalla({ lectura }: { lectura: LecturaLooks }) {
   );
 }
 
-/** Una fila: su lugar, el look (sus prendas en miniatura, el nombre que abre la hoja, cuántas y cuánto) y el interruptor. La fila entera
- *  también abre la hoja con el mouse; el interruptor no la dispara. */
-function FilaLook({ look: l, onAbrir, onInterruptor }: { look: Look; onAbrir: () => void; onInterruptor: () => void }) {
+/** Un look como lo arma el cliente (ADR-0430): su lugar, sus 2 a 4 prendas lado a lado (la que ya no se ve en la web, atenuada), el
+ *  nombre que abre su hoja, cuántas y cuánto, por qué no sale si no sale, y el interruptor. Entra en cascada al llegar (`.tw-carta`). */
+function CartaLook({ look: l, i, onAbrir, onInterruptor }: { look: Look; i: number; onAbrir: () => void; onInterruptor: () => void }) {
   const estado = estadoDeLook(l);
   const motivo = porQueNoSeVe(l);
   return (
-    <div
-      role="row"
-      onClick={(e) => {
-        // Un clic que sube desde una hoja abierta (vive en un portal) o desde el interruptor o el nombre no abre otra vez.
-        if (!e.currentTarget.contains(e.target as Node) || (e.target as HTMLElement).closest("a,button,input,label")) return;
-        onAbrir();
-      }}
-      className={fila(PLANTILLA, "cursor-pointer items-center sm:items-center")}
-    >
-      <span className="font-display text-[22px] leading-none text-taupe tabular-nums" aria-label={`Lugar ${l.lugar}`}>
-        {l.lugar}
-      </span>
-      {/* En el celular, las prendas arriba y el nombre debajo, a todo el ancho; desde `sm`, en una fila. */}
-      <span className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-        {/* Del ancho de 4 prendas: así los nombres quedan alineados aunque un look lleve 2 y otro 4. */}
-        <span className="flex shrink-0 -space-x-1.5 sm:w-[158px]" aria-hidden>
-          {l.piezas.map((p) => (
-            <span key={p.posicion} className={`rounded-md ring-2 ring-papel ${p.seVe ? "" : "opacity-45"}`}>
-              <MiniaturaPrenda fotoUrl={p.foto} colorHex={p.color.hex} tamano="md" prefijo={p.prefijo} familia={p.familia} categoria={p.categoria} />
-            </span>
-          ))}
+    <li className="tw-carta" style={{ "--i": i } as CSSProperties} data-oculta={l.publicado ? undefined : ""}>
+      <button type="button" onClick={onAbrir} className="tw-look-collage" aria-label={`Abrir el look ${l.nombre}`} tabIndex={-1}>
+        <span className="tw-look-lugar" aria-label={`Lugar ${l.lugar}`}>
+          {l.lugar}
         </span>
-        <span className="min-w-0 flex-1">
-          <button type="button" onClick={onAbrir} data-guia="looks.abrir" className="block max-w-full text-left font-medium text-tinta hover:text-rojo-profundo sm:truncate">
-            {l.nombre}
-          </button>
-          <span className="block text-[12px] text-taupe sm:truncate">{`${resumenLook(l)} · ${l.piezas.map((p) => p.nombre).join(", ")}`}</span>
-          {estado === "no_se_ve" && motivo && (
-            <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-ambar-profundo">
-              <Chip tono="ambar">No se ve en la web</Chip>
-              <span className="min-w-0">{motivo}</span>
+        {l.piezas.map((p) => {
+          const sinFoto = <SinFoto tamano="h-full w-full !rounded-none" colorHex={p.color.hex} prefijo={p.prefijo} familia={p.familia} categoria={p.categoria} />;
+          return (
+            <span key={p.posicion} data-no-se-ve={p.seVe ? undefined : ""}>
+              {p.foto ? <ImagenDePrenda src={p.foto} alt="" fill sizes="140px" className="object-cover" fondo={p.color.hex} fallback={sinFoto} /> : sinFoto}
             </span>
-          )}
-        </span>
-      </span>
-      <span className="flex justify-end self-center" data-guia="looks.interruptor">
-        <button
-          type="button"
-          role="switch" // unificar-fijo: la cara del interruptor del sistema en una fila de tabla; su título es la columna «En la web»
-          aria-checked={l.publicado}
-          aria-label={`Mostrar el look ${l.nombre} en la web`}
-          onClick={onInterruptor}
-          className="interruptor"
-        >
-          <span aria-hidden className="interruptor-perilla" />
+          );
+        })}
+      </button>
+      <span className="tw-carta-cuerpo">
+        <button type="button" onClick={onAbrir} data-guia="looks.abrir" className="tw-carta-nombre">
+          {l.nombre}
         </button>
+        <span className="text-[12px] leading-snug text-taupe">{`${resumenLook(l)} · ${l.piezas.map((p) => p.nombre).join(", ")}`}</span>
+        {estado === "no_se_ve" && motivo && (
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-ambar-profundo">
+            <Chip tono="ambar">No se ve en la web</Chip>
+            <span className="min-w-0">{motivo}</span>
+          </span>
+        )}
+        <span className="tw-carta-pie" data-guia="looks.interruptor">
+          <span>{l.seVe ? "Se ve en la web" : l.publicado ? "Encendido" : "Oculto"}</span>
+          <button
+            type="button"
+            role="switch" // unificar-fijo: la cara del interruptor del sistema en la carta de un look; su título es la línea de al lado
+            aria-checked={l.publicado}
+            aria-label={`Mostrar el look ${l.nombre} en la web`}
+            onClick={onInterruptor}
+            className="interruptor"
+          >
+            <span aria-hidden className="interruptor-perilla" />
+          </button>
+        </span>
       </span>
-    </div>
+    </li>
   );
 }

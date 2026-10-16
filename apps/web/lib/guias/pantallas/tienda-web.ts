@@ -352,7 +352,13 @@ export const GUIA_VITRINA: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "vitrina.buscador" }],
       titulo: "Todos los modelos que se venden",
-      texto: "Cada modelo con lo libre en cada tienda y si se ve en la web. El precio no se pone aquí: en la web vale lo mismo que en la tienda que el cliente elige.",
+      texto: "Cada modelo con su foto, lo libre en cada tienda y si se ve en la web. El precio no se pone aquí: en la web vale lo mismo que en la tienda que el cliente elige. El que está apagado se ve atenuado, porque el cliente no lo ve.",
+    },
+    {
+      id: "vista",
+      ancla: "vitrina.vista-vitrina",
+      titulo: "Vitrina o lista",
+      texto: "«Vitrina» muestra las prendas como las ve el cliente en la tienda online. «Lista» pone una fila por modelo, más cómoda para revisar muchos de una vez. Las dos hacen lo mismo.",
     },
     {
       id: "ayuda",

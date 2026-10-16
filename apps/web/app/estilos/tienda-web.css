@@ -333,7 +333,7 @@
   }
   .tw-carta:hover { border-color: var(--color-taupe); transform: translateY(-2px); box-shadow: 0 14px 28px -20px color-mix(in srgb, var(--color-sombra) 55%, transparent); }
   .tw-carta[data-elegida] { border-color: var(--color-tinta); box-shadow: 0 0 0 1px var(--color-tinta); }
-  .tw-carta-foto { position: relative; aspect-ratio: 3 / 4; background: var(--color-hueso); cursor: pointer; }
+  .tw-carta-foto { position: relative; display: block; width: 100%; aspect-ratio: 3 / 4; background: var(--color-hueso); cursor: pointer; }
   .tw-carta-foto > :first-child { position: absolute; inset: 0; }
   /* Apagada: el cliente no la ve, así que la foto se apaga un poco (la tarjeta sigue legible). */
   .tw-carta[data-oculta] .tw-carta-foto { opacity: 0.5; transition: opacity 240ms var(--ease-cayla); }
@@ -349,11 +349,12 @@
   /* ───────── Looks: la percha con sus prendas ───────── */
   .tw-looks { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; padding: 16px 20px 20px; }
   @container tw (max-width: 560px) { .tw-looks { grid-template-columns: minmax(0, 1fr); padding: 12px; } }
-  .tw-look-collage { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; aspect-ratio: 16 / 10; background: var(--color-hueso); cursor: pointer; }
+  .tw-look-collage { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; width: 100%; aspect-ratio: 16 / 10; background: var(--color-hueso); cursor: pointer; }
+  .tw-carta[data-oculta] .tw-look-collage { opacity: 0.5; transition: opacity 240ms var(--ease-cayla); }
   .tw-look-collage > span { position: relative; overflow: hidden; }
   .tw-look-collage > span > :first-child { position: absolute; inset: 0; }
   .tw-look-collage > span[data-no-se-ve] { opacity: 0.45; }
-  .tw-look-lugar {
+  .tw-look-collage > .tw-look-lugar {
     position: absolute;
     top: 8px;
     left: 8px;
@@ -425,6 +426,7 @@
   .tw-pendiente-ir svg,
   .tw-carta,
   .tw-carta[data-oculta] .tw-carta-foto,
+  .tw-carta[data-oculta] .tw-look-collage,
   .tw-previa[data-apagada],
   .tw-previa-nombre,
   .tw-previa-boton {

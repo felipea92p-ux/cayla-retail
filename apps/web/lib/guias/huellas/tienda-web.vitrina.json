@@ -2,7 +2,7 @@
   "guia": "tienda-web.vitrina",
   "ruta": "/tienda-web/vitrina",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 17,
+  "total": 22,
   "controles": {
     "components/vitrina/VitrinaLoteHoja.tsx": [
       "ComboResponsable «(sin nombre)»",
@@ -17,6 +17,7 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/vitrina/VitrinaPantalla.tsx": [
+      "SegmentoDeslizante «Cómo ver los modelos»",
       "Boton «Borrar la búsqueda»",
       "Casilla «{todosMarcados ? \"Quitar todos los de la lista\" : \"Elegir todos los de la lista\"}»",
       "button «vitrina.desmarcar»",
@@ -24,7 +25,11 @@
       "Boton «vitrina.lote-mostrar»",
       "Casilla «{`Elegir ${m.nombre}»",
       "button «vitrina.abrir»",
-      "button «{`${m.nombre}»"
+      "button «{`${m.nombre}»",
+      "Casilla «{`Elegir ${m.nombre}» #2",
+      "button «{`Abrir ${m.nombre}»",
+      "button «vitrina.abrir» #2",
+      "button «{`${m.nombre}» #2"
     ],
     "components/vitrina/VitrinaPestanas.tsx": [
       "Pestanas «);»"
