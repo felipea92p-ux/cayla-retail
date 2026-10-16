@@ -9,8 +9,9 @@
   escanear»): sigue siendo cierto con la cuenta, pero crearla toma un poco más que un minuto (correo con código y contraseña). ¿Se ajusta?
 
 **Para hacer:**
-- [ ] **Pegar `20261016154000` en producción** (con OK de Felipe): una sola parte, idempotente, sin tablas ni políticas; el orden con la
-  publicación no importa. Después, refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`).
+- [x] ~~**Pegar `20261016154000` en producción**~~ — pegada el 2026-10-16 con el OK de Felipe (registrada como `20261016170613`), con la
+  huella esperada (`77fbcba6…`).
+- [ ] **Refrescar el volcado** del diccionario (`docs/datos/generado/COMO-REFRESCAR.md`): cambió el comentario de dos funciones.
 - [ ] **Publicar** la tienda y el ERP de este PR, y ver en producción que un cartel ya impreso (`/club/<tienda>`) lleva a tienda.cayla.pe.
 - [ ] **Retirar `registrarse_en_el_club`** (sin llamador en la web) con las seis pruebas del Club rehechas sobre el registro de la tienda, y
   el CSS que quedó del registro del cartel en `club-publico.css` (tarea aparte ya propuesta).
