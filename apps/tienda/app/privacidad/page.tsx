@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import { TEXTOS_VERSION } from "@/lib/cuentas";
 import { haySesion } from "@/lib/sesion-servidor";
+// Los enlaces dentro del texto legal (el correo, de una página a la otra) tienen su cara en ayuda.css.
+import "../estilos/ayuda.css";
 
 export const metadata: Metadata = { title: "Política de privacidad · CAYLA" };
 
@@ -30,8 +32,8 @@ export default async function Privacidad() {
             <h2>1. Quién es responsable de tus datos</h2>
             <p>
               CAYLA S.A.C., RUC 20605964550, con domicilio en Mz. Q Lt. 26, Urb. San Andrés V Etapa, Víctor Larco Herrera, Trujillo, La
-              Libertad, Perú. Correo: caylaperu@gmail.com. Tus datos forman parte del banco de datos personales «Clientes», inscrito en el
-              Registro Nacional de Protección de Datos Personales.
+              Libertad, Perú. Correo: <a href="mailto:caylaperu@gmail.com">caylaperu@gmail.com</a>. Tus datos forman parte del banco de
+              datos personales «Clientes», inscrito en el Registro Nacional de Protección de Datos Personales.
             </p>
           </section>
 
@@ -108,7 +110,8 @@ export default async function Privacidad() {
             </ul>
           </section>
 
-          <section>
+          {/* Los Términos del Club enlazan aquí (su punto 7): `/privacidad#conservacion`. */}
+          <section id="conservacion">
             <h2>6. Cuánto tiempo los guardamos</h2>
             <p>
               Mientras tengas tu cuenta y seas miembro del club. Si pasan 3 años desde tu última compra o tu última entrada a tu cuenta
@@ -124,8 +127,9 @@ export default async function Privacidad() {
             <h2>7. Tus derechos</h2>
             <p>
               Puedes acceder a tus datos, rectificarlos, pedir su cancelación, oponerte a su uso y revocar tus autorizaciones, gratis: en
-              cualquier tienda CAYLA, con tu documento, o escribiendo a caylaperu@gmail.com desde el correo de tu cuenta. Algunas las haces
-              tú mismo en «Mi cuenta»: cambiar el correo con que entras (con un código que te llega al correo nuevo) y eliminar tu cuenta.
+              cualquier tienda CAYLA, con tu documento, o escribiendo a <a href="mailto:caylaperu@gmail.com">caylaperu@gmail.com</a> desde el
+              correo de tu cuenta. Algunas las haces tú mismo en «Mi cuenta»: cambiar el correo con que entras (con un código que te llega al
+              correo nuevo) y eliminar tu cuenta.
               Si ya no puedes entrar porque perdiste tu correo, en cualquier tienda CAYLA, con tu DNI, te ayudamos a cambiarlo. Te
               respondemos dentro de los plazos de la Ley 29733 y su reglamento. Si no estás conforme, puedes acudir a la Autoridad Nacional de
               Protección de Datos Personales del Ministerio de Justicia y Derechos Humanos.

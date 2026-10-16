@@ -43,35 +43,55 @@ function listaDeNombres(nombres: readonly string[]): string {
 
 type Paso = { titulo: string; texto: string };
 
+/** Un paso de «Cómo separar». `hecho`: el que la persona ya cumplió (con cuenta, «Crea tu cuenta» ya está y se marca con ✓). */
+export type PasoParaSeparar = Paso & { hecho: boolean };
+
 /**
  * Los cuatro pasos de «Cómo separar», con las tiendas de la web: «En cada prenda ves cuánto hay en Trujillo, Arequipa y Lima». Con una
- * sola tienda no hay otra de dónde traer; sin tiendas (o sin base), la frase va sin nombres.
+ * sola tienda no hay otra de dónde traer; sin tiendas (o sin base), la frase va sin nombres. Con cuenta (`conCuenta`), el primero ya
+ * está hecho: no se le pide crear una cuenta a quien ya la tiene. «Tu documento»: la cuenta se crea con DNI, carné de extranjería o
+ * pasaporte (decir solo «DNI» dejaba fuera a quien no lo tiene).
  */
-export function pasosParaSeparar(tiendas: readonly string[]): Paso[] {
+export function pasosParaSeparar(tiendas: readonly string[], conCuenta = false): PasoParaSeparar[] {
   const donde = tiendas.length > 0 ? `En cada prenda ves cuánto hay en ${listaDeNombres(tiendas)}.` : "En cada prenda ves cuánto hay en cada tienda.";
   const traer = tiendas.length === 1 ? "" : " Lo que no está en tu tienda, la tienda puede traerlo de otra.";
   return [
-    { titulo: "Crea tu cuenta", texto: "Con tu correo, tu DNI, tu celular y tu cumpleaños, y forma parte del Club CAYLA." },
-    { titulo: "Elige tus prendas y tu tienda", texto: `${donde}${traer}` },
-    { titulo: "Toca «Separar» y mándalo por WhatsApp", texto: "Se crea tu pedido con su número y el mensaje ya va escrito. No pagas nada en la web." },
+    conCuenta
+      ? { titulo: "Ya tienes tu cuenta", texto: "Y eres miembro del Club CAYLA.", hecho: true }
+      : { titulo: "Crea tu cuenta", texto: "Con tu correo, tu documento, tu celular y tu cumpleaños. Al crearla ya eres miembro del Club CAYLA.", hecho: false },
+    { titulo: "Elige tus prendas y tu tienda", texto: `${donde}${traer}`, hecho: false },
+    {
+      titulo: "Toca «Separar» y mándalo por WhatsApp",
+      texto: "Se crea tu pedido con su número y el mensaje ya va escrito. No pagas nada en la web.",
+      hecho: false,
+    },
     {
       titulo: "Paga y recógelo",
-      texto: "Coordinan el pago por WhatsApp (Yape, Plin, transferencia o en tienda) y lo recoges en tu tienda con un código.",
+      // «Coordinas … con la tienda»: antes decía «Coordinan el pago», y no se sabía quién.
+      texto: "Coordinas el pago con la tienda por WhatsApp (Yape, Plin, transferencia o en tienda) y lo recoges en tu tienda con un código.",
+      hecho: false,
     },
   ];
 }
 
-/** Los dos avisos de «Cómo separar»: cuánto espera un pedido sin confirmar y dónde se recoge. Sin el plazo, sin número. */
+/**
+ * Los dos avisos de «Cómo separar»: cuánto espera un pedido sin confirmar y dónde se recoge. Sin el plazo, sin número. El plazo es el
+ * de la TIENDA para confirmarlo (el mismo que cuenta hacia atrás la página del pedido, «Falta que la tienda lo confirme»): el título
+ * decía «Tienes 24 horas», y parecía un plazo de la persona.
+ */
 export function avisosParaSeparar(p: Plazos): { confirmar: Paso; recoger: Paso } {
   const horas = p.horasParaConfirmar;
   return {
     confirmar:
       horas !== null
         ? {
-            titulo: `Tienes ${enHoras(horas)}`,
-            texto: `Si en ${enHoras(horas)} nadie confirma el pedido, se cierra solo y puedes volver a separarlo.`,
+            titulo: `La tienda tiene ${enHoras(horas)} para confirmarlo`,
+            texto: "Si en ese tiempo no lo confirma, el pedido se cierra solo y puedes volver a separarlo.",
           }
-        : { titulo: "Si nadie lo confirma, se cierra solo", texto: "Pasado el plazo, el pedido se cierra solo y puedes volver a separarlo." },
+        : {
+            titulo: "La tienda tiene un plazo para confirmarlo",
+            texto: "Si no lo confirma a tiempo, el pedido se cierra solo y puedes volver a separarlo.",
+          },
     recoger: {
       titulo: "Por ahora, todo se recoge en tienda",
       texto: `Todavía no hacemos envíos. Lo recoges en la tienda que elegiste${p.diasParaRecoger !== null ? `, hasta ${enDias(p.diasParaRecoger)} después de pagar` : ""}.`,
@@ -79,7 +99,24 @@ export function avisosParaSeparar(p: Plazos): { confirmar: Paso; recoger: Paso }
   };
 }
 
-/** «Cambios y devoluciones»: como en tienda, con el mismo plazo que la boleta. Sin el plazo, se dice que va impreso en la boleta. */
+/**
+ * «Cambios y devoluciones» en tres cosas que se leen de un vistazo: cuánto tiempo, dónde y qué llevar. Promete lo mismo que
+ * `textoCambios` (la misma regla de la tienda), solo que partido: el plazo de la caja (el que imprime la boleta), cualquier tienda CAYLA,
+ * la boleta y la etiqueta puesta. Sin el plazo, sin número: lo dice la boleta.
+ */
+export function puntosDeCambios(p: Plazos): { plazo: Paso; donde: Paso; llevar: Paso } {
+  return {
+    plazo:
+      p.diasParaCambiar !== null
+        ? { titulo: `Tienes ${enDias(p.diasParaCambiar)}`, texto: "Para cambiar o devolver tu prenda, igual que en tienda." }
+        : { titulo: "Mira el plazo en tu boleta", texto: "Es el mismo que en tienda, para cambiar o devolver tu prenda." },
+    donde: { titulo: "En cualquier tienda CAYLA", texto: "La que te quede más cerca, aunque no sea donde la recogiste." },
+    llevar: { titulo: "Lleva tu boleta", texto: "Y la prenda con su etiqueta puesta." },
+  };
+}
+
+/** «Cambios y devoluciones» en una frase (la ficha de cada prenda la muestra así): como en tienda, con el mismo plazo que la boleta.
+ *  Sin el plazo, se dice que va impreso en la boleta. */
 export function textoCambios(p: Plazos): string {
   return p.diasParaCambiar !== null
     ? `Igual que en tienda: puedes cambiar o devolver tu prenda dentro de ${enDias(p.diasParaCambiar)}, en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta.`

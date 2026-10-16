@@ -34,3 +34,11 @@ export const whatsappLegible = (numero: string) => `+51 ${numero.slice(0, 3)} ${
 
 /** El enlace que abre un chat con la tienda, sin mensaje armado: el del pedido llega con «Separar» (actividad 7). */
 export const enlaceWhatsapp = (numero: string) => `https://wa.me/51${numero}`;
+
+/**
+ * «Cómo llegar»: la dirección de la tienda en Google Maps (en el celular abre la app de mapas). El ERP guarda la dirección escrita, sin
+ * coordenadas, así que se busca tal cual, con el nombre web de la tienda —que es su ciudad: «Trujillo», «Lima»— y el país, para que
+ * «Jr. Pizarro 512» no caiga en otra ciudad. Es el formato público y estable de Google (`api=1`), sin llave.
+ */
+export const enlaceMapa = (sede: Pick<Sede, "nombre" | "direccion">) =>
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${sede.direccion}, ${sede.nombre}, Perú`)}`;
