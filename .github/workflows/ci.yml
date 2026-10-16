@@ -353,11 +353,15 @@ jobs:
       # una en el catálogo: esas huellas las compara el check «SQL pegado» con producción cuando el PR dice que su SQL ya
       # está pegado. Una migración que no se aplica hace fallar este paso, igual que antes hacía fallar `supabase start`.
       # Al final los archivos vuelven a su carpeta: hay pruebas que leen el de su migración.
+      #
+      # `supabase start` se reintenta UNA vez: el 54422 de la base cae en el rango de puertos salientes de Linux (32768–60999), y
+      # mientras se bajan las imágenes alguna conexión a veces lo ocupa («failed to bind host port … address already in use»; tres
+      # tandas el 2026-10-15, en PR distintos). Un error de verdad (una migración, la semilla) falla igual en el segundo intento.
       - id: supabase
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' && needs.alcance.outputs.alcance != 'web' }}
         run: |
           if [ "${{ github.event_name }}" = pull_request ]; then node scripts/migraciones/huellas-del-pr.mjs apartar "$RUNNER_TEMP/migraciones-del-pr"; fi
-          npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"
+          npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS" || { npx "$SUPABASE_CLI" stop --no-backup || true; sleep 15; npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"; }
           if [ -d "$RUNNER_TEMP/migraciones-del-pr" ]; then
             if [ "${{ matrix.tanda }}" = 1 ]; then huellas="$RUNNER_TEMP/huellas-del-pr.json"; else huellas=""; fi
             node scripts/migraciones/huellas-del-pr.mjs aplicar "$RUNNER_TEMP/migraciones-del-pr" $huellas
@@ -369,7 +373,7 @@ jobs:
       - name: Solo las pruebas que leen la web (el PR solo cambia apps/web)
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' && needs.alcance.outputs.alcance == 'web' }}
         run: |
-          npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"
+          npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS" || { npx "$SUPABASE_CLI" stop --no-backup || true; sleep 15; npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"; }
           node scripts/ci/pruebas-web.mjs
 
       # Apenas la base está arriba, para que el check «SQL pegado» no espere las pruebas. Sin migraciones nuevas (o si no se
