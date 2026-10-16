@@ -211,6 +211,13 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   (`<BotonDeshacer>`); y **«Buscar»** al apretar, el secundario con la lupa (`<BotonBuscar>`). Migrado el mismo día: 89 archivos de íconos, 9
   globitos, 4 «Ver más», 7 «Deshacer» y 5 «Buscar»; deuda 0. El marco (lateral y cabecera) dibuja con 1,5 y queda para decidir aparte.
   Registros: `icono.md`, `contador.md`, `accion.siguiente.md`, `accion.deshacer.md` y `accion.buscar.md`.
+- **2026-10-15 · ronda 16, el cierre: el marco, las píldoras y los cierres del mes, mirando** (fuentes en `docs/unificar/rondas/16/`).
+  Felipe eligió: **el marco se queda en trazo 1,5** (P2: a 20 px su línea se ve como la de un ícono de 16 px con trazo 2; sus tamaños
+  sueltos, 18 y 22, pasan a la escala); **las 12 píldoras de color hechas a mano pasan a `<Chip>`** (P1), con lo que `estado` gana su
+  candado; y **«Cómo cerró cada día» se queda** (P1, su maqueta del 12) como excepción de las barras por tiempo. Además, dos arreglos de
+  herramientas: el escáner de las guías nombra una pieza que se cierra sola por sus datos (`texto`, `href`, `id`, `valor`, `control`…) y no
+  por el código que le sigue (92 huellas aceptadas), y el censo ve un `<aside>` dentro de la pantalla (el ticket de Vender). Con esto quedan
+  sin decisión solo `grafico` (repartida en sus familias) y `accion.anterior` (nada que decidir).
 
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en

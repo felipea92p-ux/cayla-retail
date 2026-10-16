@@ -5,16 +5,16 @@
   "total": 14,
   "controles": {
     "components/MediosDePago.tsx": [
-      "Desplegable «cambiar(i,»",
+      "Desplegable «{m.metodo}»",
       "input «{`Monto del medio ${i + 1}»",
       "input «{`Referencia del medio ${i + 1}»",
       "button «{`Quitar el medio ${i + 1}»",
       "button «Agregar otro medio»",
-      "Desplegable «(sin nombre)»"
+      "Desplegable «{valor}»"
     ],
     "components/PagarComprobanteProduccionModal.tsx": [
       "CampoTexto «Fecha del pago»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/finanzas/Confianza.tsx": [

@@ -15,7 +15,6 @@ import { TIPOS_DOCUMENTO_CLIENTA, esTipoDocumentoClienta, normalizarNumeroDocume
 export {
   TIPOS_DOCUMENTO_CLIENTA,
   ajustarNumeroAlTipo,
-  esTipoDocumentoClienta,
   largoMaximoDocumento,
   normalizarNumeroDocumento,
   problemaDocumento,

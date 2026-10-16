@@ -13,7 +13,7 @@
     ],
     "components/finanzas/SaldosArranqueModal.tsx": [
       "button «Usar esta cifra»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «→guardar»"
     ]

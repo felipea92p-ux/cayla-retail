@@ -6,7 +6,7 @@
   "controles": {
     "components/AbrirConteo.tsx": [
       "SegmentoDeslizante «Qué vas a contar»",
-      "ComboResponsable «{error && ( <Aviso tono=\"error\">{error}»",
+      "ComboResponsable «{responsable}»",
       "Boton «{guia.frase ?? undefined}»",
       "button «{o.icono}»",
       "button «{c.nombre}»"
@@ -25,7 +25,7 @@
       "button «Cancelar conteo»"
     ],
     "components/conteo/CancelarConteoModal.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «Seguir contando»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],

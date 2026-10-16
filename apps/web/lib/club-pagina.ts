@@ -3,8 +3,9 @@ import { crearClienteAnonimo } from "@/lib/supabase/anonimo";
 import { crearClienteAdmin } from "@/lib/supabase-admin";
 import { esUuid, lecturaDePagina, type LecturaPagina } from "@/lib/club-registro-reglas";
 
-// La lectura de la página pública del Club CAYLA (ADR-0288 act. g), del lado del servidor. La usan la página de registro
-// (`app/club/[tienda]/page.tsx`), las de privacidad y términos, y la acción `registrarme` al releer los textos que cambiaron.
+// La lectura de la página pública del Club CAYLA (ADR-0288 act. g), del lado del servidor. La usan las páginas de privacidad y
+// términos; la de registro (`app/club/[tienda]/page.tsx`) y su acción `registrarme` se retiraron el 2026-10-16 (el cartel lleva a
+// la tienda online).
 
 /**
  * Lo que la página de ESTA tienda muestra: `fn_club_pagina`, como `anon` (sin la sesión que pudiera tener el aparato). Un
@@ -28,9 +29,9 @@ export async function leerPaginaClub(ubicacionId: string): Promise<LecturaPagina
 
 /**
  * La política y los términos no dependen de la tienda (el % y la escala son de toda la empresa), pero `fn_club_pagina` pide
- * una. Se usa la del registro de donde viene (`?t=`); si se abre la dirección suelta, la primera tienda activa, buscada con la
- * llave de servicio (la única lectura que hace: un id; `anon` no ve `ubicaciones`). `volverA`: la tienda de su registro, para
- * el enlace de vuelta (solo si vino de ahí).
+ * una. Se usa la tienda de donde viene (`?t=`); si se abre la dirección suelta, la primera tienda activa, buscada con la
+ * llave de servicio (la única lectura que hace: un id; `anon` no ve `ubicaciones`). `volverA`: la tienda de donde vino, para que
+ * el enlace a la otra página la conserve (solo si vino con una).
  */
 export async function leerTextosLegales(t: string | null | undefined): Promise<{ lectura: LecturaPagina; volverA: string | null }> {
   if (t && esUuid(t)) {

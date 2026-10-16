@@ -1,41 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
-  MENSAJE,
-  argumentosRegistro,
-  bienvenida,
   bloquesDeTexto,
-  casillaTerminos,
   completarMarcadores,
-  correoRechazado,
   cuerpoLegal,
-  edadCumplida,
   enlaceLegal,
-  errorDeLaBase,
   escalaEnPalabras,
   esUuid,
   fechaLarga,
   formatoPct,
   formatoSoles,
-  ipDeLaPeticion,
   lecturaDePagina,
-  leerDatosRegistro,
-  letraChica,
   marcadoresDePagina,
-  mensajeDeConsulta,
-  nacimientoIso,
-  problemasRegistro,
-  rechazoDelCorreo,
-  respuestaDeRegistro,
   textoLegal,
   trozosDeLinea,
-  versionesDe,
-  type DatosRegistro,
   type PaginaClub,
-  type RegistroEscrito,
 } from "./club-registro-reglas";
 
 const TIENDA = "3f2a9c1e-7b4d-4e8a-9c21-5d6e7f8a9b0c";
-const HOY = "2026-10-01";
 
 // Lo que devolvería `fn_club_pagina` con los valores de la tanda 1g (G-13): 10 %, 6 compras o S/ 600, 60 días, S/ 20…60.
 const JSON_PAGINA = {
@@ -64,19 +45,6 @@ const pagina = (): PaginaClub => {
   const l = lecturaDePagina(JSON_PAGINA);
   if (l.estado !== "lista") throw new Error("la página de prueba debería leerse");
   return l.pagina;
-};
-
-const BIEN: RegistroEscrito = {
-  documentoTipo: "dni",
-  documentoNumero: "46027897",
-  dniConfirmado: true,
-  nombre: "",
-  celular: "987654321",
-  nacimiento: { dia: "12", mes: "9", anio: "1990" },
-  correo: "",
-  mayorDeEdad: true,
-  aceptaTerminos: true,
-  aceptaPublicidad: false,
 };
 
 describe("lo que contesta fn_club_pagina", () => {
@@ -173,252 +141,11 @@ describe("cifras y marcadores", () => {
   });
 });
 
-describe("los textos aprobados de la página (docs/club/texto-legal-registro-v2.md)", () => {
-  it("la casilla de los términos, breve, y la letra chica con los datos de CAYLA S.A.C. (sin «Brasil»: eso va en la Política)", () => {
-    const casilla = casillaTerminos()
-      .map((t) => (typeof t === "string" ? t : t.texto))
-      .join("");
-    expect(casilla).toBe(
-      "Acepto la Política de privacidad y los Términos del Club CAYLA.",
-    );
-    expect(letraChica({ razonSocial: "CAYLA S.A.C.", ruc: "20605964550", email: "caylaperu@gmail.com" })).toBe(
-      "CAYLA S.A.C. (RUC 20605964550) es la responsable de tus datos. Puedes acceder a ellos, corregirlos, pedir que los borremos u oponerte a su uso en cualquier tienda CAYLA o en caylaperu@gmail.com.",
-    );
-  });
-
+describe("los enlaces a la política y los términos", () => {
   it("los enlaces a la política y los términos llevan la tienda de donde viene, si es una", () => {
     expect(enlaceLegal("privacidad", TIENDA)).toBe(`/club/privacidad?t=${TIENDA}`);
     expect(enlaceLegal("terminos", null)).toBe("/club/terminos");
     expect(enlaceLegal("terminos", "x")).toBe("/club/terminos");
-  });
-});
-
-// El nombre del padrón a medias («Lucía P. S.») y partido en nombres y apellidos: desde el 2026-10-15 es UNA regla para todo el
-// sistema, con los nombres primero, y sus pruebas viven en `lib/nombre-de-persona.test.ts`.
-
-describe("lo que ella escribe: UNA regla para la pantalla, su guía y el servidor", () => {
-  it("todo bien: nada que decir", () => {
-    expect(problemasRegistro(BIEN, HOY)).toEqual({});
-  });
-
-  it("el documento: vacío, mal escrito, y con DNI, sin confirmar su nombre", () => {
-    expect(problemasRegistro({ ...BIEN, documentoNumero: "" }, HOY).documento).toBe("Escribe tu DNI.");
-    expect(problemasRegistro({ ...BIEN, documentoNumero: "4602" }, HOY).documento).toBe("El DNI tiene 8 dígitos.");
-    expect(problemasRegistro({ ...BIEN, dniConfirmado: false }, HOY).documento).toMatch(/Confirma/);
-    const pasaporte = { ...BIEN, documentoTipo: "pasaporte" as const, documentoNumero: "AB123456", dniConfirmado: false, nombre: "Ana Torres" };
-    expect(problemasRegistro(pasaporte, HOY)).toEqual({});
-    expect(problemasRegistro({ ...pasaporte, documentoNumero: "" }, HOY).documento).toBe("Escribe el número de tu documento.");
-    expect(problemasRegistro({ ...pasaporte, nombre: " A " }, HOY).nombre).toBe("Escribe tus nombres y apellidos, tal cual están en tu documento.");
-  });
-
-  it("con carné o pasaporte el nombre va tal cual está en el documento: sin números (Felipe 2026-10-15); con DNI, no se escribe", () => {
-    const pasaporte = { ...BIEN, documentoTipo: "pasaporte" as const, documentoNumero: "AB123456", dniConfirmado: false };
-    expect(problemasRegistro({ ...pasaporte, nombre: "Ana 2 Torres" }, HOY).nombre).toBe("Tu nombre no lleva números: escríbelo tal cual está en tu documento.");
-    expect(problemasRegistro({ ...pasaporte, documentoTipo: "carne_extranjeria", documentoNumero: "001234567", nombre: "A1" }, HOY).nombre).toMatch(/no lleva números/);
-    expect(problemasRegistro({ ...pasaporte, nombre: "Mary O'Neil Ñaupari" }, HOY).nombre).toBeUndefined();
-    // Con DNI el nombre lo trae el padrón: lo que diga la caja del nombre (aunque traiga números) no cuenta.
-    expect(problemasRegistro({ ...BIEN, nombre: "Ana 2" }, HOY).nombre).toBeUndefined();
-  });
-
-  it("lo que dice la base del nombre (20261015133000), en palabras para ella", () => {
-    expect(errorDeLaBase("nombre_sin_padron")).toEqual({ mensaje: MENSAJE.sinPadron, campo: "documento" });
-    expect(errorDeLaBase("nombre_con_numeros")).toEqual({ mensaje: "Tu nombre no lleva números: escríbelo tal cual está en tu documento.", campo: "nombre" });
-  });
-
-  it("el celular: obligatorio, 9 dígitos que empiezan en 9; pegado con +51 y espacios sirve", () => {
-    expect(problemasRegistro({ ...BIEN, celular: "" }, HOY).celular).toBe("Escribe tu celular con WhatsApp.");
-    expect(problemasRegistro({ ...BIEN, celular: "887654321" }, HOY).celular).toMatch(/9 dígitos/);
-    expect(problemasRegistro({ ...BIEN, celular: "987 654 321" }, HOY).celular).toBeUndefined();
-  });
-
-  it("la fecha de nacimiento: completa, que exista, con un año creíble y con 18 años cumplidos a la fecha de Lima", () => {
-    const con = (dia: string, mes: string, anio: string) => problemasRegistro({ ...BIEN, nacimiento: { dia, mes, anio } }, HOY).nacimiento;
-    expect(con("12", "9", "")).toBe("Completa el día, el mes y el año.");
-    expect(con("31", "4", "1990")).toMatch(/no existe/);
-    expect(con("29", "2", "2001")).toMatch(/no existe/);
-    expect(con("29", "2", "2000")).toBeUndefined();
-    expect(con("1", "1", "1900")).toMatch(/año/);
-    expect(con("1", "1", "2030")).toMatch(/año/);
-    expect(con("2", "10", "2008")).toBe(MENSAJE.menor);
-    expect(con("1", "10", "2008")).toBeUndefined();
-    expect(edadCumplida("2008-10-01", HOY)).toBe(18);
-    expect(edadCumplida("2008-10-02", HOY)).toBe(17);
-  });
-
-  it("el correo es opcional; si lo escribe, bien escrito", () => {
-    expect(problemasRegistro({ ...BIEN, correo: "  " }, HOY).correo).toBeUndefined();
-    expect(problemasRegistro({ ...BIEN, correo: "ana@" }, HOY).correo).toMatch(/correo/);
-    expect(problemasRegistro({ ...BIEN, correo: "ana@correo.pe" }, HOY).correo).toBeUndefined();
-  });
-
-  it("las dos casillas obligatorias; la de WhatsApp nunca bloquea (G-12)", () => {
-    expect(problemasRegistro({ ...BIEN, mayorDeEdad: false }, HOY).mayor).toBeDefined();
-    expect(problemasRegistro({ ...BIEN, aceptaTerminos: false }, HOY).terminos).toBeDefined();
-    expect(problemasRegistro({ ...BIEN, aceptaPublicidad: false }, HOY)).toEqual({});
-    expect(problemasRegistro({ ...BIEN, aceptaPublicidad: true }, HOY)).toEqual({});
-  });
-
-  it("la fecha de las tres cajas viaja como aaaa-mm-dd", () => {
-    expect(nacimientoIso({ dia: "5", mes: "3", anio: "1991" })).toBe("1991-03-05");
-    expect(nacimientoIso({ dia: "5", mes: "", anio: "1991" })).toBeNull();
-  });
-});
-
-describe("lo que llega a la acción pública no se cree", () => {
-  const datos: DatosRegistro = { ...BIEN, ubicacionId: TIENDA, versiones: { terminos: 1, privacidad: 2, casillaPublicidad: 1 } };
-
-  it("con la forma esperada, pasa tal cual", () => {
-    expect(leerDatosRegistro(JSON.parse(JSON.stringify(datos)))).toEqual(datos);
-  });
-
-  it("cualquier campo con otra forma, desmedido o una tienda que no es un uuid: nada", () => {
-    for (const cambio of [
-      { ubicacionId: "x" },
-      { documentoTipo: "ruc" },
-      { celular: 987654321 },
-      { mayorDeEdad: "true" },
-      { nombre: "x".repeat(201) },
-      { nacimiento: { dia: "1", mes: "1" } },
-      { versiones: { terminos: 1, privacidad: 0, casillaPublicidad: 1 } },
-      { versiones: { terminos: 1.5, privacidad: 1, casillaPublicidad: 1 } },
-    ]) {
-      expect(leerDatosRegistro({ ...datos, ...cambio }), JSON.stringify(cambio)).toBeNull();
-    }
-    expect(leerDatosRegistro(null)).toBeNull();
-    expect(leerDatosRegistro("hola")).toBeNull();
-  });
-
-  it("los argumentos de registrarse_en_el_club: con DNI, el nombre que el SERVIDOR leyó del padrón", () => {
-    const a = argumentosRegistro({ ...datos, nombre: "Lo que diga el navegador", celular: "987 654 321", correo: " ana@correo.pe " }, "PEREZ SALAS LUCIA");
-    expect(a).toEqual({
-      p_ubicacion_id: TIENDA,
-      p_documento_tipo: "dni",
-      p_documento_numero: "46027897",
-      p_nombre: "PEREZ SALAS LUCIA",
-      p_telefono: "987654321",
-      p_nacimiento: "1990-09-12",
-      p_correo: "ana@correo.pe",
-      p_mayor_de_edad: true,
-      p_acepta_terminos: true,
-      p_acepta_publicidad: false,
-      p_versiones: { terminos: 1, privacidad: 2, casilla_publicidad: 1 },
-      p_nombre_del_padron: true,
-    });
-  });
-
-  it("con carné o pasaporte, el nombre que ella escribió; un correo vacío viaja como null (no borra el que tenía)", () => {
-    const a = argumentosRegistro({ ...datos, documentoTipo: "carne_extranjeria", documentoNumero: "ab 1234 56", nombre: "  Ana   Torres ", correo: "" }, null);
-    expect(a).toMatchObject({ p_documento_numero: "AB123456", p_nombre: "Ana Torres", p_correo: null, p_nombre_del_padron: false });
-  });
-
-  it("las versiones que viajan son las que ella vio en pantalla", () => {
-    expect(versionesDe(pagina())).toEqual({ terminos: 1, privacidad: 2, casillaPublicidad: 1 });
-  });
-
-  it("la ip de quien llama es la primera de x-forwarded-for", () => {
-    expect(ipDeLaPeticion("190.1.2.3, 10.0.0.1", "10.0.0.9")).toBe("190.1.2.3");
-    expect(ipDeLaPeticion(null, " 190.1.2.3 ")).toBe("190.1.2.3");
-    expect(ipDeLaPeticion("", null)).toBe("desconocida");
-  });
-});
-
-describe("lo que contesta el servidor, sin revelar datos de nadie", () => {
-  it("los mensajes de la consulta del padrón son los del borrador aprobado", () => {
-    expect(mensajeDeConsulta({ estado: "no_encontrado" })).toBe(
-      "No encontramos ese DNI. Revisa el número; si es correcto, acércate a caja y te ayudamos.",
-    );
-    expect(mensajeDeConsulta({ estado: "limite" })).toBe("Hiciste varios intentos seguidos. Vuelve a intentarlo en una hora o acércate a caja.");
-    expect(mensajeDeConsulta({ estado: "sin_padron" })).toBe(MENSAJE.sinPadron);
-    expect(mensajeDeConsulta({ estado: "invalido" })).toMatch(/8 dígitos/);
-  });
-
-  it("los hints de la base: menor, documento archivado, datos inválidos, texto que cambió; lo demás, «no pudimos»", () => {
-    expect(errorDeLaBase("club_texto_cambio")).toBe("texto_cambio");
-    expect(errorDeLaBase("club_menor")).toEqual({ mensaje: "El Club CAYLA es para mayores de 18 años.", campo: "nacimiento" });
-    expect(errorDeLaBase("club_documento_archivado")).toEqual({ mensaje: MENSAJE.archivado, campo: "documento" });
-    expect(errorDeLaBase("club_ya_tiene_ficha")).toEqual({ mensaje: MENSAJE.yaTieneFicha, campo: "documento" });
-    expect(errorDeLaBase("club_datos_invalidos")).toEqual({ mensaje: MENSAJE.datos, campo: null });
-    expect(errorDeLaBase("celular_invalido")).toMatchObject({ campo: "celular" });
-    expect(errorDeLaBase(undefined)).toEqual({ mensaje: MENSAJE.noDisponible, campo: null });
-    expect(errorDeLaBase("23505")).toEqual({ mensaje: MENSAJE.noDisponible, campo: null });
-  });
-
-  it("el correo de otra persona (20261015054000) va a la caja del correo y no dice de quién es", () => {
-    expect(errorDeLaBase("correo_repetido")).toEqual({ mensaje: MENSAJE.correoRepetido, campo: "correo" });
-    // La página es pública: ni un nombre, ni un documento, ni «la ficha de…».
-    expect(MENSAJE.correoRepetido).not.toMatch(/ficha|DNI|documento de|nombre/i);
-    expect(MENSAJE.correoRepetido).toMatch(/opcional/);
-  });
-
-  it("el correo que no se aceptó se queda pegado a lo que estaba escrito: bajo su caja mientras siga igual (Felipe 2026-10-15)", () => {
-    const r = { ...BIEN, correo: " Ana@Correo.PE " };
-    const rechazo = correoRechazado({ estado: "error", mensaje: MENSAJE.correoRepetido, campo: "correo" }, r);
-    expect(rechazo).toEqual({ correo: "ana@correo.pe", mensaje: MENSAJE.correoRepetido });
-    // El mismo correo, escrito como sea: sigue el mensaje. Otro, o vacío: ya no.
-    expect(rechazoDelCorreo(rechazo, "ana@correo.pe")).toBe(MENSAJE.correoRepetido);
-    expect(rechazoDelCorreo(rechazo, "ANA@correo.pe  ")).toBe(MENSAJE.correoRepetido);
-    expect(rechazoDelCorreo(rechazo, "ana.p@correo.pe")).toBeNull();
-    expect(rechazoDelCorreo(rechazo, "")).toBeNull();
-    expect(rechazoDelCorreo(null, "ana@correo.pe")).toBeNull();
-    // Lo que no es del correo sigue bajo el botón: sin campo, de otro campo, o una respuesta que no es un error.
-    expect(correoRechazado({ estado: "error", mensaje: MENSAJE.noDisponible, campo: null }, r)).toBeNull();
-    expect(correoRechazado({ estado: "error", mensaje: MENSAJE.archivado, campo: "documento" }, r)).toBeNull();
-    expect(correoRechazado({ estado: "textos_cambiaron", pagina: pagina() }, r)).toBeNull();
-  });
-
-  it("la fila de la base: sin su código no se dice «listo»; el código, en mayúsculas", () => {
-    expect(respuestaDeRegistro({ codigo_club: "c-0142", club_desde: "2026-09-12T15:00:00Z", era_socia: true, nombre_corto: "Lucía" }, true)).toEqual({
-      estado: "listo",
-      nombre: "Lucía",
-      codigo: "C-0142",
-      clubDesde: "2026-09-12T15:00:00Z",
-      eraSocia: true,
-      conPublicidad: true,
-    });
-    expect(respuestaDeRegistro({ codigo_club: null }, false)).toBeNull();
-    expect(respuestaDeRegistro(null, false)).toBeNull();
-  });
-});
-
-describe("después de «Unirme»", () => {
-  const listo = { estado: "listo" as const, nombre: "Lucía", codigo: "C-0142", clubDesde: "2026-09-12T15:00:00Z", eraSocia: false, conPublicidad: true };
-
-  it("nuevo: bienvenida (sin género) con su nombre y su código; con WhatsApp, el saludo a la tienda con su nombre y su código", () => {
-    const b = bienvenida(listo, pagina());
-    // Cómo se confirma el Club (Felipe 2026-10-15): «¡Listo!» arriba y «Te damos la bienvenida…» debajo, sin repetir «bienvenida».
-    expect(b.titulo).toBe("¡Listo, Lucía!");
-    expect(b.bajada).toBe("Te damos la bienvenida al Club CAYLA.");
-    expect(`${b.titulo} ${b.bajada}`.match(/bienvenida/gi)).toHaveLength(1);
-    expect(b.saludo?.titulo).toBe("Último paso: salúdanos por WhatsApp");
-    // A la tienda del cartel: la que le contesta y le escribe después.
-    expect(b.saludo?.boton).toBe("Saludar a Tienda TRU");
-    expect(b.saludo?.enlace.startsWith("https://wa.me/51953585537?text=")).toBe(true);
-    expect(decodeURIComponent(b.saludo!.enlace.split("text=")[1]!)).toBe("Hola CAYLA, soy Lucía. Me acabo de unir al Club CAYLA (C-0142).");
-  });
-
-  it("sin la casilla de WhatsApp, la página termina en su código (G-12)", () => {
-    expect(bienvenida({ ...listo, conPublicidad: false }, pagina()).saludo).toBeNull();
-  });
-
-  it("sin número de la tienda no hay a quién saludar; sin texto de saludo, el chat se abre sin mensaje", () => {
-    expect(bienvenida(listo, { ...pagina(), whatsapp: null }).saludo).toBeNull();
-    const sinSaludo = bienvenida(listo, { ...pagina(), textos: { ...pagina().textos, saludo: null } });
-    expect(sinSaludo.saludo?.enlace).toBe("https://wa.me/51953585537?text=");
-  });
-
-  it("ya era miembro: «Actualizamos tus datos» y desde cuándo lo es", () => {
-    const b = bienvenida({ ...listo, eraSocia: true }, pagina());
-    expect(b.titulo).toBe("Actualizamos tus datos");
-    expect(b.bajada).toBe("Eres miembro del Club CAYLA desde el 12 de setiembre de 2026.");
-    expect(bienvenida({ ...listo, eraSocia: true, clubDesde: null }, pagina()).bajada).toBe("Ya eras miembro del Club CAYLA.");
-  });
-
-  it("sin su nombre corto, la bienvenida no dice «null» y el saludo no deja marcadores ni espacios dobles", () => {
-    const b = bienvenida({ ...listo, nombre: null }, pagina());
-    expect(b.titulo).toBe("¡Listo!");
-    const saludo = decodeURIComponent(b.saludo!.enlace.split("text=")[1]!);
-    expect(saludo).not.toMatch(/\{|\}|null| {2}| \./);
-    expect(saludo).toContain("(C-0142)");
   });
 });
 

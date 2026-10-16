@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Chip } from "@/components/ui/Chip";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Lock, Plus, SearchX, ShieldCheck, Users } from "lucide-react";
@@ -666,9 +667,9 @@ function TarjetaRol({ rol, elegido, cuentas, sinGuardar, onElegir }: { rol: RolV
           {sinGuardar && <span className="ml-1.5 align-top text-base text-rojo" title="Cambios sin guardar">•</span>}
         </span>
         {aviso === "sin_modulos" ? (
-          <span className="shrink-0 rounded-full bg-ambar/15 px-2 py-px text-[10.5px] font-semibold text-ambar-profundo">Sin módulos</span>
+          <Chip tono="ambar" className="shrink-0">Sin módulos</Chip>
         ) : aviso === "sin_uso" ? (
-          <span className="shrink-0 rounded-full bg-tinta/[0.06] px-2 py-px text-[10.5px] font-semibold text-tinta/60">Sin uso</span>
+          <Chip tono="neutro" className="shrink-0">Sin uso</Chip>
         ) : null}
       </span>
       <span className="text-[13px] leading-snug text-tinta/65">{lineaDe(rol)}</span>

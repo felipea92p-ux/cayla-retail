@@ -5,7 +5,7 @@
   "total": 2,
   "controles": {
     "app/(app)/pedidos-no-atendidos/page.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «/»"
     ],
     "components/PedidosNoAtendidosLista.tsx": [
       "Boton «pedidos.resolver»"
