@@ -59,7 +59,7 @@ export const fechaCorta = (hasta: string) => fecha(hasta, { day: "numeric", mont
  *  crearla (quien ya entró leía «Crea tu cuenta…», revisión 2026-10-15): se le recuerda dónde están sus beneficios del Club. El «%» va
  *  pegado a su número con un espacio que no se parte (en un celular angosto la frase baja a dos líneas). */
 export function anuncios(campana: Campana | null, conCuenta = false): string[] {
-  const club = conCuenta ? "Tus beneficios del Club CAYLA están en Mi cuenta" : "Crea tu cuenta y forma parte del Club CAYLA";
+  const club = conCuenta ? "Tus beneficios del Club CAYLA están en Mi perfil" : "Crea tu cuenta y forma parte del Club CAYLA";
   const frases = ["Separa online y recoge en tu tienda", "Mira cuánto hay en cada tienda", club];
   if (!campana) return frases;
   const hasta = campana.hasta ? ` hasta el ${fechaCorta(campana.hasta)}` : "";

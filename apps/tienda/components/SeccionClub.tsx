@@ -45,7 +45,7 @@ export function SeccionClub({ nombre, desde, conCuenta }: { nombre: string | nul
           </ul>
           {conCuenta ? (
             <Link className="t-btn" href="/cuenta">
-              Ver mi cuenta
+              Ver mi perfil
             </Link>
           ) : (
             <Link className="t-btn" href="/crear-cuenta">

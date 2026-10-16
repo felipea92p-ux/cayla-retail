@@ -34,23 +34,9 @@
 .t-circ:hover .t-circ-img { transform: scale(1.07); }
 .t-circ:focus-visible { outline: 2px solid var(--rojo); outline-offset: 4px; border-radius: 8px; }
 
-/* ---- Las flechas de un carril (`CarrilConFlechas`): solo con mouse (con el dedo, el carril se desliza). Cada una sale si hay algo más
-   hacia su lado. Los círculos las llevan a la altura de las fotos; el carril de Lo nuevo, a la de las fotos de sus tarjetas. ---- */
-.t-carril-envol { position: relative; }
-.t-carril-flecha { display: none; }
-@media (hover: hover) and (pointer: fine) {
-  .t-carril-flecha { position: absolute; z-index: 7; top: var(--flecha-y, 50%); width: 40px; height: 40px; margin-top: -20px; padding: 0; display: grid; place-items: center; border: 1px solid var(--sand); border-radius: 50%; background: var(--papel); color: var(--tinta); cursor: pointer; box-shadow: 0 10px 24px -14px var(--sombra); transition: border-color .2s, transform .2s var(--ease); animation: t-flecha-asoma .25s var(--ease) both; }
-  .t-carril-flecha[hidden] { display: none; }
-  .t-carril-flecha:hover { border-color: var(--tinta); transform: scale(1.06); }
-  .t-carril-flecha:active { transform: scale(.96); }
-  .t-carril-flecha .ic { width: 18px; height: 18px; }
-  .t-carril-flecha.antes { left: var(--flecha-borde, 6px); }
-  .t-carril-flecha.antes .ic { transform: scaleX(-1); }
-  .t-carril-flecha.despues { right: var(--flecha-borde, 6px); }
-}
+/* Las flechas de un carril (`CarrilConFlechas`) viven en catalogo.css: también las usa «Mi perfil». Aquí, su altura en el Inicio. */
 .t-circs-envol { --flecha-y: 53px; }
 .t-carril-inicio { --flecha-y: 42%; }
-@keyframes t-flecha-asoma { from { opacity: 0; } }
 
 /* ---- Las ofertas: la banda oscura, con una píldora por campaña ---- */
 .t-ofertas { margin-top: 36px; padding-block: 38px 36px; background: var(--t-oscuro); color: var(--t-oscuro-tinta); }

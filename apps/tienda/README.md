@@ -42,7 +42,7 @@ ERP cada cuenta es una fila de `cuentas_web` unida a su ficha del Club, y la tie
   proyecto de clientes pone sus topes a la ip de cada persona. El enlace del correo lleva a `/nueva-contrasena`, que canjea su
   código recién al guardar (un lector de correos que abre enlaces solo no lo gasta).
 - `proxy.ts` refresca la sesión y lleva a cada uno a su lado (con sesión, de la portada y de «Entrar» al Inicio, `/inicio`; sin
-  sesión, del Inicio, el catálogo y «Mi cuenta» a «Entrar»).
+  sesión, del Inicio, el catálogo y «Mi perfil» a «Entrar»).
 - La llave secreta del proyecto de clientes solo la lee `lib/sesion-servidor.ts`; la cookie se llama `tienda-sesion` (en local
   el ERP también vive en `localhost` y no deben pisarse).
 - **Un correo es de una sola persona** (Felipe 2026-10-14, `20261015054000`): el correo de contacto de OTRA ficha del Club no sirve
@@ -64,7 +64,7 @@ Términos del Club, 7, y Privacidad, 6). La base lo lleva en `cuentas_web.ultima
   (`tienda_anotar_entrada` dice `cerrada`: se borra el usuario, se cierra la sesión y «Entrar» lo explica) y, si nunca vuelve, la ruta
   programada `/api/cuentas-cerradas` (`vercel.json`, cada madrugada a las 03:30 de Lima, con `CRON_SECRET`).
 
-## Mi cuenta: cambiar el correo, restablecer el acceso y eliminar la cuenta
+## Mi perfil: cambiar el correo, restablecer el acceso y eliminar la cuenta
 
 Felipe 2026-10-15, `20261015132000` (y `20261015131000`, la anonimización que espera un pedido web pagado). Las acciones están en
 `app/acciones/mi-cuenta.ts`, lo que habla con la base y el proyecto de clientes en `lib/mi-cuenta-servidor.ts` y las reglas puras en
@@ -76,7 +76,7 @@ Felipe 2026-10-15, `20261015132000` (y `20261015131000`, la anonimización que e
   (`tienda_pedir_cambio_correo`, los topes de la 2b) → el proyecto de clientes manda el código SOLO al correo nuevo
   (`plantillas/correo-nuevo.html`). Con el código: la base cuenta el intento (`tienda_intento_cambio_correo`) → el proyecto lo verifica
   (el correo de entrada cambia AHÍ y le avisa al anterior con `plantillas/correo-cambiado.html`) → la base aplica el correo que el
-  proyecto dice que quedó (`tienda_correo_confirmado`). Si la base no contestó en ese momento, «Mi cuenta» lo concilia al abrirse.
+  proyecto dice que quedó (`tienda_correo_confirmado`). Si la base no contestó en ese momento, «Mi perfil» lo concilia al abrirse.
 - **Restablecer mi acceso** (`/restablecer-acceso`, pública): quien perdió su correo lo pide en una tienda; el ERP (ficha del cliente ▸
   «Restablecer acceso») anota el pedido y le pasa a `POST /api/restablecer-acceso` una ficha de un solo uso (10 minutos) para mandar el
   primer código. En la página, ella escribe su correo nuevo, el código y su contraseña nueva, y todo se confirma junto («Guardar y
@@ -115,9 +115,10 @@ seguridad «Email address changed» encendido con `correo-cambiado.html`, y `htt
 
 ## El Club en la cuenta
 
-«Mi cuenta» muestra lo del Club de ESA persona (actividad 12): su descuento de cumpleaños y su vale por aniversario con las mismas
-funciones que cobra la caja, «Novedades para ti» (lo que llegó desde su visita anterior), sus favoritos y lo que espera
-(`tienda_mi_club`, `20261015025000`). El corazón (`components/club/BotonFavorito.tsx`) y «Avísame cuando llegue»
+«Mi perfil» (`/cuenta`; se llamaba «Mi cuenta» hasta el 2026-10-15, cuando se ordenó: ADR-0408, act. g) muestra arriba cuatro cuadros
+con cómo están sus pedidos, su Club, sus favoritos y sus avisos (`lib/perfil.ts`), y lo del Club de ESA persona (actividad 12): su
+descuento de cumpleaños y su vale por aniversario con las mismas funciones que cobra la caja, «Novedades para ti» (lo que llegó desde
+su visita anterior), sus favoritos y lo que espera (`tienda_mi_club`, `20261015025000`). El corazón (`components/club/BotonFavorito.tsx`) y «Avísame cuando llegue»
 (`components/club/BotonAvisame.tsx`) guardan con `tienda_favorito` y `tienda_avisame` (`20261015024000`): por modelo el corazón, y por
 prenda y tienda la espera; si la prenda ya hay, no se anota. Lo que esperan los clientes lo ve el ERP en Vitrina web ▸ Esperan una talla
 (`fn_vitrina_esperan`, `20261015030000`), sin datos de nadie. El aviso de que llegó está en la cuenta, nunca por WhatsApp.

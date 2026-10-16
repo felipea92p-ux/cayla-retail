@@ -4,9 +4,10 @@ import { fechaCorta, INSIGNIA, nombreTienda, vivas, type Pedido } from "@/lib/pe
 import type { LecturaMisPedidos } from "@/lib/pedidos-servidor";
 import { Miniatura } from "../bolsa/Miniatura";
 import { Icono } from "../Icono";
+import { SeccionDelPerfil } from "./SeccionDelPerfil";
 import "@/app/estilos/bolsa.css";
 
-/** Cuántos pedidos se ven en «Mi cuenta»; todos, en «Mis pedidos». */
+/** Cuántos pedidos se ven en «Mi perfil»; todos, en «Mis pedidos». */
 const EN_LA_CUENTA = 3;
 
 /** Un pedido en la lista (maqueta, `w-ped`): su primera prenda, el número y el total, la tienda y el día, y en qué está. */
@@ -40,24 +41,29 @@ export function FilaDePedido({ pedido: p, origenFotos }: { pedido: Pedido; orige
 }
 
 /**
- * «Mis pedidos» en «Mi cuenta» (maqueta v4, `vCuenta`: el primer bloque, antes de los beneficios del Club): los últimos pedidos, cada uno
- * con en qué está, y el camino a todos (`/cuenta/pedidos`). Sin pedidos, lo dice y lleva a la ropa; si la base no contestó, lo dice y
- * se puede volver a intentar. Solo los de esta cuenta: lo decide la base (`retail.tienda_mis_pedidos`).
+ * «Mis pedidos» en «Mi perfil» (maqueta v4, `vCuenta`: el primer bloque, antes del Club): los últimos pedidos, cada uno con en qué está;
+ * si hay más de los que caben, «Ver todos» lleva a `/cuenta/pedidos`. Sin pedidos, lo dice y lleva a la ropa; si la base no contestó, lo
+ * dice y se puede volver a intentar. Solo los de esta cuenta: lo decide la base (`retail.tienda_mis_pedidos`). En la computadora va lado
+ * a lado con «Mi Club CAYLA».
  */
 export function MisPedidosEnLaCuenta({ lectura, origenFotos }: { lectura: LecturaMisPedidos; origenFotos: string | undefined }) {
+  const pedidos = lectura.estado === "ok" ? lectura.pedidos : null;
+  const verTodos =
+    pedidos && pedidos.length > EN_LA_CUENTA ? (
+      <Link className="t-ver" href="/cuenta/pedidos">
+        Ver todos <Icono nombre="flecha" />
+      </Link>
+    ) : null;
   return (
-    <section className="c-bloque" aria-labelledby="cuenta-pedidos" data-club="pedidos">
-      <h2 className="c-bloque-t" id="cuenta-pedidos">
-        Mis pedidos
-      </h2>
-      {lectura.estado !== "ok" ? (
+    <SeccionDelPerfil id="pf-pedidos" titulo="Mis pedidos" cuenta={pedidos?.length ?? null} accion={verTodos} mitad>
+      {pedidos === null ? (
         <>
           <p className="w-texto-sec">No pudimos cargar tus pedidos ahora. Vuelve a intentarlo en unos minutos.</p>
-          <Link className="t-enlace c-ver" href="/cuenta/pedidos">
-            Ver mis pedidos
+          <Link className="t-btn t-btn-sec t-btn-chico c-reintentar" href="/cuenta">
+            Volver a intentar
           </Link>
         </>
-      ) : lectura.pedidos.length === 0 ? (
+      ) : pedidos.length === 0 ? (
         <>
           <p className="w-texto-sec">Todavía no separaste nada. Cuando separes, aquí ves en qué está cada pedido.</p>
           <Link className="t-btn t-btn-sec t-btn-chico c-reintentar" href="/catalogo">
@@ -65,19 +71,14 @@ export function MisPedidosEnLaCuenta({ lectura, origenFotos }: { lectura: Lectur
           </Link>
         </>
       ) : (
-        <>
-          <ul className="w-lista t-pedidos">
-            {lectura.pedidos.slice(0, EN_LA_CUENTA).map((p) => (
-              <li key={p.codigo}>
-                <FilaDePedido pedido={p} origenFotos={origenFotos} />
-              </li>
-            ))}
-          </ul>
-          <Link className="t-enlace c-ver" href="/cuenta/pedidos">
-            {lectura.pedidos.length > EN_LA_CUENTA ? `Ver todos mis pedidos (${lectura.pedidos.length})` : "Ver mis pedidos"}
-          </Link>
-        </>
+        <ul className="w-lista t-pedidos">
+          {pedidos.slice(0, EN_LA_CUENTA).map((p) => (
+            <li key={p.codigo}>
+              <FilaDePedido pedido={p} origenFotos={origenFotos} />
+            </li>
+          ))}
+        </ul>
       )}
-    </section>
+    </SeccionDelPerfil>
   );
 }

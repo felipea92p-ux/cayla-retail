@@ -28,12 +28,12 @@ export default async function MisPedidos() {
       <div className="t-ancho t-angosto">
         <div className="t-cuenta-pag">
           <nav className="t-ruta" aria-label="Estás en">
-            <Link href="/cuenta">Mi cuenta</Link>
+            <Link href="/cuenta">Mi perfil</Link>
             <span aria-hidden="true">/</span>
             <span>Mis pedidos</span>
           </nav>
           <div className="t-cuenta-cab">
-            <span className="t-ceja">Mi cuenta</span>
+            <span className="t-ceja">Mi perfil</span>
             <h1>
               Mis <em>pedidos</em>
             </h1>

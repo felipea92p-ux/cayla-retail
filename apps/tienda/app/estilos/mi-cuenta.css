@@ -23,11 +23,4 @@
 .w-frena-item .w-enlace { display: inline-flex; align-items: center; gap: 6px; }
 .w-frena-item .w-enlace .ic { width: 15px; height: 15px; }
 
-/* ---- «Tu cuenta», al final de «Mi cuenta» ---- */
-.w-tu-cuenta { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--sand); }
-.w-tu-cuenta-correo { margin: 0; font-size: 14px; line-height: 1.5; }
-.w-tu-cuenta-correo .w-texto-sec { margin: 0; }
-.w-tu-cuenta-acc { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
-.w-tu-cuenta-acc .t-btn.t-btn-chico { margin-left: 0; }
-.w-tu-cuenta-eliminar { color: var(--rojo-profundo); text-decoration-color: color-mix(in srgb, var(--rojo-profundo) 45%, transparent); }
-.w-tu-cuenta-eliminar:hover { color: var(--tinta); }
+/* «Tu cuenta», al final de «Mi perfil», vive en perfil.css (`.pf-acceso`). */

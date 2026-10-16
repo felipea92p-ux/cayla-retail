@@ -73,7 +73,7 @@ export default async function MiPedido({ params }: { params: Promise<{ numero: s
       <div className="t-ancho t-angosto">
         <div className="w-ficha t-pedido">
           <nav className="t-ruta" aria-label="Estás en">
-            <Link href="/cuenta">Mi cuenta</Link>
+            <Link href="/cuenta">Mi perfil</Link>
             <span aria-hidden="true">/</span>
             <Link href="/cuenta/pedidos">Mis pedidos</Link>
             <span aria-hidden="true">/</span>
