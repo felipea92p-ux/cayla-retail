@@ -7,7 +7,8 @@ Por qué así: 16.4.2 y Sentry 11.8.0 salieron hace menos de un día y el freno 
 pnpm 11) las instalaría solo agregando excepciones a `minimumReleaseAgeExclude`; 16.4.1 (14-oct) y 10.76.2 (8-oct) entran sin
 excepción. Sentry se queda en la 10.x: la 11 quita `sendDefaultPii` y, sin reemplazarlo por `dataCollection`, mandaría cookies,
 encabezados y búsquedas, lo que ADR-0424 prohíbe; ese salto es una decisión aparte.
-Felipe se lleva: typecheck, 527 archivos de pruebas, lint, knip y `next build` de las dos apps en verde en local; las 14 alertas que
-quedan son de piezas de compilación (`sharp`, `postcss`, `nanoid`, `browserslist`, `brace-expansion`, `source-map-js`,
-`baseline-browser-mapping`) que llegan por el plugin de webpack de Sentry y por `postcss` dentro de `next`, y sus versiones parchadas ya
-pasan el freno: un `pnpm update` de esas siete, en otro PR.
+Felipe se lleva: typecheck, 527 archivos de pruebas, lint, knip y `next build` de las dos apps en verde en local. En un segundo commit
+de la misma rama, `pnpm update -r` de las 7 piezas de compilación que quedaban con alerta (`sharp`, `postcss`, `nanoid`,
+`browserslist`, `brace-expansion`, `source-map-js`, `baseline-browser-mapping`, que llegan por el plugin de webpack de Sentry y por
+`postcss` dentro de `next`): el freno se vio trabajar —saltó `baseline-browser-mapping` 2.11.29 (15-oct) y tomó la 2.11.28— y
+`pnpm audit --prod` quedó en 0.
