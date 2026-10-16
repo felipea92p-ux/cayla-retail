@@ -670,6 +670,12 @@ export const GUIA_FIN_RESULTADOS: Guia = {
     VER,
     EXCEL,
     {
+      id: "pulso",
+      ancla: "fin-resultados.pulso",
+      titulo: "¿Cuánto ganó?",
+      texto: "La respuesta grande para lo que estás mirando: lo que quedó (o faltó) en el mes después de pagar la ropa, los sueldos, los alquileres y los servicios. «¿Por qué?» abre la cuenta paso a paso, la misma que en el Resumen. El cuadro de abajo es el detalle.",
+    },
+    {
       id: "herramientas",
       ancla: "fin-resultados.herramientas",
       titulo: "El mes y la comparación",

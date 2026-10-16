@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import { filaDeVer, leerResumen, type ResumenFinanzas } from "./resumen-finanzas-reglas";
 import type { FilaER } from "./resultados-reglas";
-import { cascadaPulso, lugaresPulso, nombreDia, respuestaPulso, ritmoPulso } from "./pulso-reglas";
+import { cascadaDeFila, cascadaPulso, lugaresPulso, nombreDia, respuestaDeFila, respuestaPulso, ritmoPulso } from "./pulso-reglas";
 
 const todas = leerResumen(fixture.todas);
 const tru = leerResumen(fixture.tru);
@@ -159,5 +159,14 @@ describe("lugaresPulso", () => {
 
   it("solo mirando CAYLA entera", () => {
     expect(lugaresPulso(tru)).toBeNull();
+  });
+});
+
+describe("respuestaDeFila y cascadaDeFila (la misma pieza para Reportes)", () => {
+  it("dan lo mismo que el Resumen para la misma fila", () => {
+    const r = conMes([{ ventas: 46900, costo: 22500, margen: 24400, planilla: 12290, gastos: 7300, depreciacion: 440, resultado: 4370 }]);
+    const f = (r.resultadosMes.estado === "ok" ? r.resultadosMes.datos : [])[0]!;
+    expect(respuestaDeFila(f, { mes: "2026-10", vende: true, taller: false })).toEqual(respuestaPulso(r));
+    expect(cascadaDeFila(f)).toEqual(cascadaPulso(r));
   });
 });

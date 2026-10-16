@@ -7,6 +7,7 @@ import { Chip } from "@/components/ui/Chip";
 import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
+import { CascadaPulso } from "@/components/finanzas/CascadaPulso";
 import { Confianza } from "@/components/finanzas/Confianza";
 import { GraficoSemanas } from "@/components/finanzas/GraficoSemanas";
 import { VerPorPagar } from "@/components/finanzas/PorPagarAcciones";
@@ -151,7 +152,6 @@ function Respuesta({ r }: { r: ResumenFinanzas }) {
   const cascada = cascadaPulso(r);
   const vende = r.ver.todas || r.ver.tipo === "tienda";
   const pregunta = vende ? "¿Estoy ganando plata?" : r.ver.tipo === "taller" ? "¿Cuánto cuesta el Taller?" : "¿Cuánto cuesta lo de la empresa?";
-  const mayor = Math.max(1, ...cascada.map((t) => t.monto));
   return (
     <section className="fin-pulso-hero" aria-labelledby="fin-pulso-pregunta" data-guia="fin-resumen.respuesta">
       <p id="fin-pulso-pregunta" {...entraEn("fin-pulso-pregunta", 1)}>
@@ -185,25 +185,7 @@ function Respuesta({ r }: { r: ResumenFinanzas }) {
               <button type="button" className="btn-cayla btn-enlace" aria-expanded={porque} aria-controls="fin-pulso-cascada" onClick={() => setPorque((v) => !v)}>
                 {porque ? "Cerrar" : `¿Por qué ${soles(resp.monto)}?`}
               </button>
-              {porque && (
-                <ol id="fin-pulso-cascada" className="fin-pulso-cascada" aria-label="De dónde sale el número">
-                  {cascada.map((t, i) => (
-                    <li key={t.clave} className="fin-pulso-tramo anim-entra" data-tipo={t.tipo} style={{ ["--i" as string]: i } as CSSProperties}>
-                      <span className="fin-pulso-tramo-nombre">
-                        {t.nombre}
-                        {t.detalle && <small>{t.detalle}</small>}
-                      </span>
-                      <span className="fin-pulso-tramo-monto num">
-                        {t.tipo === "sale" ? "−" : ""}
-                        {soles(t.monto)}
-                      </span>
-                      <span className="fin-pulso-tramo-barra" aria-hidden="true">
-                        <i style={{ ["--w" as string]: `${Math.round((t.monto / mayor) * 100)}%` } as CSSProperties} />
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              )}
+              {porque && <CascadaPulso id="fin-pulso-cascada" tramos={cascada} etiqueta="De dónde sale el número" />}
             </div>
           )}
         </>

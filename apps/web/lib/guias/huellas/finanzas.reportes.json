@@ -2,12 +2,15 @@
   "guia": "finanzas.reportes",
   "ruta": "/finanzas/reportes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 3,
+  "total": 4,
   "controles": {
     "components/finanzas/EstadoResultadosPanel.tsx": [
       "BotonDescargar «Descargar Excel»",
       "input «Comparar con»",
       "button «{k.clave === \"ventas\" ? \"fin-resultados.celda\" : undefined}»"
+    ],
+    "components/finanzas/ResultadoPulso.tsx": [
+      "button «{porque ? \"Cerrar\" : `¿Por qué ${soles(resp.monto)}»"
     ]
   }
 }

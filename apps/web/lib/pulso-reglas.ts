@@ -43,14 +43,19 @@ export function respuestaPulso(r: ResumenFinanzas): Respuesta {
   if (r.resultadosMes.estado !== "ok") return { estado: "sin_datos", motivo: motivoAusencia(r.resultadosMes) ?? "El estado de resultados no se pudo leer." };
   const f = filaDeVer(r.resultadosMes.datos, r.ver);
   if (!f) return { estado: "sin_datos", motivo: "Todavía no hay nada registrado este mes." };
-  if (f.ventas <= 0 && f.gastos <= 0 && f.planilla <= 0) return { estado: "sin_datos", motivo: `Todavía no hay ventas ni gastos en ${mesNombre(r.mes)}.` };
+  return respuestaDeFila(f, { mes: r.mes, vende: r.ver.todas || r.ver.tipo === "tienda", taller: r.ver.tipo === "taller" });
+}
+
+/** La misma respuesta a partir de una fila del Estado de resultados: la usan Resumen y Reportes (una función, una pieza). */
+export function respuestaDeFila(f: FilaER, ctx: { mes: string; vende: boolean; taller: boolean }): Respuesta {
+  if (f.ventas <= 0 && f.gastos <= 0 && f.planilla <= 0) return { estado: "sin_datos", motivo: `Todavía no hay ventas ni gastos en ${mesNombre(ctx.mes)}.` };
   const res = r2(f.resultado);
   const estado = res > 0 ? "gana" : res < 0 ? "pierde" : "empata";
-  const vende = r.ver.todas || r.ver.tipo === "tienda";
+  const vende = ctx.vende;
   const pagos = [f.costo > 0 ? "la ropa" : null, f.planilla > 0 ? "los sueldos" : null, f.gastos > 0 ? "los alquileres y los servicios" : null, f.depreciacion > 0 ? "el desgaste de máquinas y muebles" : null].filter(Boolean) as string[];
   const lista = pagos.length ? pagos.join(", ").replace(/, ([^,]*)$/, " y $1") : "lo registrado";
   const explica = !vende
-    ? `${r.ver.tipo === "taller" ? "El Taller" : "La empresa"} no vende: esto es lo que costó este mes (${lista}).`
+    ? `${ctx.taller ? "El Taller" : "La empresa"} no vende: esto es lo que costó este mes (${lista}).`
     : f.ventas <= 0
       ? `Sin ventas todavía: esto es lo que ya se pagó este mes (${lista}).`
       : estado === "gana"
@@ -145,6 +150,11 @@ export function cascadaPulso(r: ResumenFinanzas): TramoCascada[] {
   if (r.resultadosMes.estado !== "ok") return [];
   const f = filaDeVer(r.resultadosMes.datos, r.ver);
   if (!f) return [];
+  return cascadaDeFila(f);
+}
+
+/** La cascada de una fila del Estado de resultados: la usan Resumen y Reportes. */
+export function cascadaDeFila(f: FilaER): TramoCascada[] {
   const gastosTop = [...f.detalleGastos].sort((a, b) => b.monto - a.monto).slice(0, 3).map((g) => `${g.nombre} ${soles(g.monto)}`);
   const tramos: TramoCascada[] = [{ clave: "ventas", nombre: "Lo que vendiste", monto: f.ventas, tipo: "entra", detalle: "Sin IGV: ese 18 % es de SUNAT." }];
   if (f.costo > 0) tramos.push({ clave: "costo", nombre: "Lo que costó la ropa", monto: f.costo, tipo: "sale", detalle: f.sinCosto > 0 ? `${f.sinCosto} ${f.sinCosto === 1 ? "prenda vendida sin costo" : "prendas vendidas sin costo"}.` : undefined });
