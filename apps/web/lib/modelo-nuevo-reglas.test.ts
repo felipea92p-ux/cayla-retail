@@ -447,10 +447,13 @@ describe("camposDeGuiaOrden — la guía de foco dice lo mismo que la validació
   it("con un modelo que ya existe solo hay dos cosas por decidir: cuál y cuántas", () => {
     const campos = guia(BORRADOR_VACIO, { esNuevo: false, hayModelo: false });
     expect(faltanDe(campos).map((c) => c.id)).toEqual(["modelo", "cantidades"]);
-    // …y un costo mal escrito también frena a un modelo que ya existe (antes «12,50» se guardaba como 0).
-    const conCosto = camposDeGuiaOrden({ esNuevo: false, hayModelo: true, borrador: BORRADOR_VACIO, celdas: [], totalExistente: 12, costos: { tela: "12,50", avios: "", maquila: "" } });
-    expect(faltanDe(conCosto).map((c) => c.id)).toEqual(["costos"]);
-    expect(sePuedeConfirmar(conCosto)).toBe(false);
+    // …y una fase o una tela que la base rechazaría también frenan a un modelo que ya existe (ADR-0400: los tres montos tecleados ya no existen).
+    const conFase = camposDeGuiaOrden({ esNuevo: false, hayModelo: true, borrador: BORRADOR_VACIO, celdas: [], totalExistente: 12, fases: { falta: "Si «Costura» sale a un servicio, dice a quién" } });
+    expect(faltanDe(conFase).map((c) => c.id)).toEqual(["fases"]);
+    expect(sePuedeConfirmar(conFase)).toBe(false);
+    const conTela = camposDeGuiaOrden({ esNuevo: false, hayModelo: true, borrador: BORRADOR_VACIO, celdas: [], totalExistente: 12, tela: { falta: "El consumo por prenda tiene que ser mayor que cero", elegida: true } });
+    expect(faltanDe(conTela).map((c) => c.id)).toEqual(["tela"]);
+    expect(estadosDe(campos)["tela"]).toBe("opcional");
     expect(sePuedeConfirmar(guia(BORRADOR_VACIO, { esNuevo: false, hayModelo: true, totalExistente: 12 }))).toBe(true);
     expect(sePuedeConfirmar(guia(BORRADOR_VACIO, { esNuevo: false, hayModelo: true, totalExistente: 0 }))).toBe(false);
   });
@@ -495,9 +498,8 @@ describe("camposDeGuiaOrden — la guía de foco dice lo mismo que la validació
       };
       const c = celdas(b);
       b.cantidades = Object.fromEntries(c.map((x) => [x.clave, elegir(["5", "5", "5", "", "0", "1.5", "abc"])]));
-      const costos = { tela: elegir(["", "", "700", "12,50"]), avios: elegir(["", "", "140", "S/ 5"]), maquila: elegir(["", "", "0", "-1"]) };
-      const problemas = problemasDelModelo(b, c, costos);
-      const campos = camposDeGuiaOrden({ esNuevo: true, hayModelo: true, borrador: b, celdas: c, totalExistente: 0, costos });
+      const problemas = problemasDelModelo(b, c);
+      const campos = camposDeGuiaOrden({ esNuevo: true, hayModelo: true, borrador: b, celdas: c, totalExistente: 0 });
       expect(sePuedeConfirmar(campos), JSON.stringify(b)).toBe(problemas.length === 0);
       expect(faltanDe(campos).map((x) => x.id), JSON.stringify(b)).toEqual(problemas.map((p) => p.campo));
       if (problemas.length === 0) completos += 1;
@@ -527,7 +529,7 @@ describe("«Modelo nuevo»: lo obligatorio primero, el color después y cerrado 
   it("el orden de la guía de foco es el de la pantalla (los colores no son un paso: son opcionales)", () => {
     const b = conCantidades(borrador({ nombre: "", precio: "" }), "");
     const ids = camposDeGuiaOrden({ esNuevo: true, hayModelo: true, borrador: b, celdas: celdas(b), totalExistente: 0 }).map((c) => c.id);
-    expect(ids).toEqual(["nombre", "categoria", "tallas", "precio", "cantidades", "costos"]);
+    expect(ids).toEqual(["nombre", "categoria", "tallas", "precio", "cantidades", "fases", "tela"]);
   });
 });
 
@@ -556,7 +558,8 @@ describe("Nueva orden: los de gravedad 4 de /chaos (2026-10-10), #6, #7 y #8", (
     // Elegir el tipo (Producción/Muestra), el modo (Ya existe/Modelo nuevo) o el modelo de la lista no es trabajo perdido: no cuenta como «cambios sin guardar».
     const foto = /fotoFormulario\(\{([^}]*)\}\)/.exec(f)?.[1] ?? "";
     for (const ligero of ["tipo", "modoModelo", "productoId"]) expect(foto, ligero).not.toContain(ligero);
-    for (const trabajo of ["nombreNuevo", "precioNuevo", "cantidades", "tela", "avios", "maquila", "tallasNuevas", "coloresNuevos"]) expect(foto, trabajo).toContain(trabajo);
+    // ADR-0400: los tres montos tecleados ya no existen; el trabajo de la orden son sus fases y su tela (la tela sugerida sola NO cuenta: `telasTocadas`).
+    for (const trabajo of ["nombreNuevo", "precioNuevo", "cantidades", "fases", "telas", "tallasNuevas", "coloresNuevos"]) expect(foto, trabajo).toContain(trabajo);
     expect(f).toContain("{avisoSalida.aviso}");
     // Los dos caminos de guardar (modelo nuevo y modelo que ya existe) cierran por la misma función, que retira la guardia ANTES de cerrar y de refrescar.
     expect([...f.matchAll(/avisoSalida\.retirarYa\(\)/g)].length).toBe(1);

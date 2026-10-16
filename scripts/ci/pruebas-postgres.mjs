@@ -1261,6 +1261,38 @@ export const PRUEBAS = [
   // contenido en las cinco funciones del fondo con su revisión en fn_resolver_intento. ROLLBACK siempre.
   "pruebas:fondos-entradas",
 
+  // La orden con sus fases, quién hace cada una y su tela (ADR-0400, actividad 1): la espina obligatoria, el servicio con
+  // proveedor y tarifa congelados, la tela por color con su plan, el estado derivado, cambiar quién solo antes de empezar,
+  // lo anotado inmutable y las puertas (módulo + Taller). ROLLBACK.
+  "pruebas:produccion-fases",
+
+  // El avance de una fase, la Salida a un servicio, su Vuelta y la orden en una lectura (ADR-0400, actividades 3 y 4): «Terminé N» dentro
+  // de lo que de verdad entró (por talla y color; plan × 1,10 en el corte), Deshacer solo del último y mientras nadie lo use, Salida y
+  // Vuelta que no pasan de lo que hay, faltantes con motivo, devengado, nada que toque movimientos ni stock, lo rechazado no deja nada,
+  // las puertas (módulo + Taller) y la forma de fn_orden_produccion. ROLLBACK.
+  "pruebas:produccion-avances",
+
+  // Anular una Salida o una Vuelta mal anotada (ADR-0400, actividad 4b): fila contraria con su motivo, solo si nada avanzó después, las sumas cuadran
+  // sin saberlo, la fase vuelve a «no empezó» y la anulación no se anula. ROLLBACK.
+  "pruebas:produccion-anulaciones",
+
+  // La lista de Órdenes del Taller en una lectura (ADR-0400, actividad 5): lo mismo que la página de cada orden, sin costos, con su tope de históricas y
+  // «al stock este mes» exacto. ROLLBACK.
+  "pruebas:produccion-lista",
+
+  // Pasar la orden al stock (ADR-0400, actividad 6): el candado de las buenas, no cerrar ni anular con prendas afuera, el costo de servicios devengado, lo medido en el
+  // modelo, las órdenes de antes de las fases como siempre y quién ve los costos del Taller. ROLLBACK.
+  "pruebas:produccion-cierre",
+
+  // La tela pendiente de la orden (ADR-0400, actividad 7): lo que otras órdenes ya reservan, lo pedido, y que la lista diga lo mismo que la página. ROLLBACK.
+  "pruebas:produccion-tela",
+
+  // La lista de precios de los servicios de afuera (ADR-0400, actividad 8): tarifa nueva desde hoy, historia, solo el líder, sin monto en la actividad. ROLLBACK.
+  "pruebas:produccion-tarifas",
+
+  // La tela del Taller (ADR-0400, actividad 8d): lo comprometido (la cuenta de Nueva orden y de la página), lo pedido y las órdenes sin tela declarada. ROLLBACK.
+  "pruebas:produccion-tela-del-taller",
+
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y
   // terminal; y el PUNTO DE ENCHUFE: todas las `fn_puede_*()` dan lo mismo que con las definiciones fijas del ADR-0160

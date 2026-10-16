@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTaller } from "@/lib/produccion";
 import { getInsumosDelTaller } from "@/lib/insumos";
+import { getVocabularioDeTelas } from "@/lib/telas-vocabulario";
 import { hoyLima } from "@/lib/fechas-lima";
 import { InsumosPanel } from "@/components/InsumosPanel";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
@@ -11,8 +12,9 @@ import { Vacio } from "@/components/ui/Vacio";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Insumos del Taller (ADR-0133, F3): tela y avíos, con su saldo por lote. Mismo acceso que Órdenes (`puedeVerProduccion`):
-// solo parado en el Taller, líder incluido. Quien no es líder ve cantidades, no dinero: los costos se recortan en
-// `getInsumosDelTaller`, antes de salir del servidor. Ver docs/PLAN-PRODUCCION.md.
+// solo parado en el Taller, líder incluido. El costo de cada lote lo ve quien ve Producción en el Taller (Felipe 2026-10-15,
+// ADR-0400 actividad 6: la base se lo da a esa persona y a nadie más); el CAPITAL total y crear o ingresar insumos siguen
+// siendo del líder. Ver docs/PLAN-PRODUCCION.md.
 export default async function InsumosPage() {
   const persona = await requirePersonaActualV2();
   if (!puedeVerProduccion(persona)) {
@@ -35,11 +37,18 @@ export default async function InsumosPage() {
   }
 
   const esLider = persona.rol === "lider";
-  const datos = await getInsumosDelTaller(taller.id, { conCostos: esLider, hoy: hoyLima() });
+  const [datosConCostos, vocabulario] = await Promise.all([
+    getInsumosDelTaller(taller.id, { conCostos: true, hoy: hoyLima() }),
+    // Dato de apoyo (la ficha de la tela): si no se lee, la lista sigue en pie y la ficha lo dice.
+    getVocabularioDeTelas(),
+  ]);
+  // `veCostos` lo dice la base (si no entregó costo teniendo lotes, no se dibuja «S/ 0.00» como si fuera un dato). El capital total es solo del líder.
+  const veCostos = datosConCostos.veCostos;
+  const datos = { ...datosConCostos, capital: esLider ? datosConCostos.capital : null };
 
   return (
     <div className="space-y-6">
-      <InsumosPanel sede={persona.ubicacionEtiqueta} datos={datos} tallerId={taller.id} esLider={esLider} />
+      <InsumosPanel sede={persona.ubicacionEtiqueta} datos={datos} tallerId={taller.id} esLider={esLider} veCostos={veCostos} vocabulario={vocabulario.vocabulario} leyoVocabulario={vocabulario.leyo} />
     </div>
   );
 }

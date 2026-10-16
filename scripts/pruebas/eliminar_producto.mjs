@@ -347,7 +347,12 @@ select pg_temp.huella(:'va');`);
   // una línea de traslado de la misma prenda.
   // Y una prenda quitada de un apartado (`separacion_items_retirados`), del apartado de la misma prenda (renglón 7).
   // Y lo contado de más al recibir un traslado (`traslado_sobrantes`, ADR-0404), de la recepción de la misma prenda.
-  const POR_SU_MADRE = ["produccion_lineas", "transferencia_recepciones", "separacion_items_retirados", "traslado_sobrantes"];
+  // Y lo del rediseño de Producción (ADR-0400): el avance, las líneas de una Salida y de una Vuelta cuelgan de una fase de una orden y
+  // solo se anotan contra una línea de ESA orden (`registrar_avance`, `registrar_salida` y `registrar_vuelta` lo piden), así que son de
+  // la misma prenda que la orden; y `producto_consumos` solo lo escriben `abrir_orden_produccion` y `cerrar_produccion`, que ya
+  // tienen la orden. La orden (`producciones`) es historia y frena el borrado, y ninguna se borra nunca.
+  const POR_SU_MADRE = ["produccion_lineas", "transferencia_recepciones", "separacion_items_retirados", "traslado_sobrantes",
+    "produccion_avances", "produccion_salida_lineas", "produccion_vuelta_lineas", "producto_consumos"];
   const conocidas = [...SUYAS, ...HISTORIA, ...POR_SU_MADRE].map((t) => `'retail.${t}'`).join(", ");
   const r = correr(`select coalesce(string_agg(distinct c.conrelid::regclass::text, ', '), 'NINGUNA')
     from pg_constraint c

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { GUIA_PROD_RESUMEN } from "./guias/pantallas/produccion";
 import { UMBRAL_POCA_BASE_VENTAS } from "./inventario-reglas";
 import type { ComprobanteProduccion } from "./comprobantes-produccion-reglas";
+import type { PedidoDeInsumo } from "./orden-pagina-reglas";
 import { cantidadesInicialesDeNuevaOrden, sugerirVariante, type DemandaVariante, type Rendimiento } from "./produccion-decision-reglas";
 import { fraseDeLaFalta, hojaDelModelo } from "./produccion-hoja-modelo";
 import {
@@ -9,6 +10,7 @@ import {
   cifrasResumen,
   decisionesDeProduccion,
   demandaDeInsumos,
+  demandaDelTaller,
   filasDeTela,
   filasPorModelo,
   baseDelRitmo,
@@ -105,7 +107,7 @@ describe("decisionesDeProduccion", () => {
     expect(decisionesDeProduccion(contexto({ insumos: [insumo("lino", { saldo: 220 })], demanda }))).toEqual([]);
   });
 
-  it("falta tela y no alcanza ni con lo facturado: pide registrar el comprobante", () => {
+  it("falta tela y no alcanza ni con lo facturado: lleva a PEDIRLA, no a registrar un comprobante", () => {
     const d = decisionesDeProduccion(
       contexto({
         insumos: [insumo("lino", { saldo: 50 })],
@@ -115,7 +117,67 @@ describe("decisionesDeProduccion", () => {
     );
     expect(d[0].tipo).toBe("insumo");
     expect(d[0].titulo).toContain("Faltan 110 m");
-    expect(d[0].accion.href).toBe("/produccion/comprobantes");
+    // Lleva el insumo y los metros que faltan aun contando lo facturado (los mismos 110 m del título): la hoja de pedir los trae puestos.
+    expect(d[0].accion).toEqual({ texto: "Pedir la tela", href: "/ordenes-insumos/nueva?insumo=lino&cantidad=110" });
+  });
+
+  describe("la tela que viene en camino (regla de Felipe, 2026-10-16): cuenta lo que falta recibir de los pedidos, salvo los atrasados", () => {
+    const pedido = (extra: Partial<PedidoDeInsumo> = {}): PedidoDeInsumo => ({ numeroTexto: "OI-000003", proveedor: "Textiles Andinos", cantidad: 100, unidad: "metro", fechaEntrega: "2026-10-23", atrasado: false, ...extra });
+    const camino = (cuenta: number, pedidos: PedidoDeInsumo[], atrasado = 0) => new Map([["lino", { cuenta, atrasado, pedidos }]]);
+    const base = { insumos: [insumo("lino", { saldo: 50 })], demanda: new Map([["lino", { insumoId: "lino", necesita: 200, ordenes: ["Blusa a"] }]]) };
+
+    it("el caso de la prueba ciega: faltan 146.5 y hay 155 pedidos → ya no se contradice: dice que faltan 146.5 hoy, que ya viene lo pedido, y a dónde mirar", () => {
+      const [d] = decisionesDeProduccion(
+        contexto({ insumos: [insumo("lino", { saldo: 0 })], demanda: new Map([["lino", { insumoId: "lino", necesita: 146.5, ordenes: ["Pantalón"] }]]), enCamino: camino(155, [pedido({ numeroTexto: "OI-000002", cantidad: 35 }), pedido({ numeroTexto: "OI-000001", cantidad: 120 })]) })
+      );
+      expect(d).toMatchObject({ tipo: "insumo", severidad: 2, accion: { texto: "Ver los pedidos", href: "/ordenes-insumos" } });
+      expect(d.titulo).toBe("Faltan 146.5 m de Insumo lino hoy, pero ya vienen 155 m en camino");
+      expect(d.detalle).toContain("Alcanza cuando llegue lo pedido");
+      expect(d.detalle).toContain("Si ya llegó, anótalo en Recibir");
+      expect(d.porque).toContain("OI-000002 · 35 m a Textiles Andinos");
+      expect(d.porque).toContain("necesitan 146.5 m");
+    });
+
+    it("si lo que viene no cubre, siguen faltando los metros que quedan, aun contando lo que viene, y lleva a PEDIR lo que falta", () => {
+      const [d] = decisionesDeProduccion(contexto({ ...base, enCamino: camino(100, [pedido()]) }));
+      expect(d).toMatchObject({ tipo: "insumo", severidad: 3, accion: { texto: "Pedir la tela", href: "/ordenes-insumos/nueva?insumo=lino&cantidad=50" } });
+      expect(d.titulo).toBe("Faltan 50 m de Insumo lino para lo que hay que cortar, aun contando lo que viene");
+      expect(d.detalle).toContain("No alcanza ni con lo que viene");
+      expect(d.porque).toContain("OI-000003 · 100 m a Textiles Andinos · llega el vie 23 oct");
+    });
+
+    it("un pedido ATRASADO no se cuenta, se nombra aparte, y la tarjeta lleva a verlo (para llamar al proveedor), no a pedir de nuevo", () => {
+      const [d] = decisionesDeProduccion(contexto({ ...base, enCamino: camino(0, [pedido({ atrasado: true, fechaEntrega: "2026-10-10" })], 100) }));
+      expect(d.titulo).toBe("Faltan 150 m de Insumo lino para lo que hay que cortar");
+      expect(d.detalle).toBe("No alcanza: lo pedido está atrasado y no lo cuento.");
+      expect(d.porque).toContain("debía llegar el sáb 10 oct (atrasado, no lo cuento)");
+      expect(d.accion).toEqual({ texto: "Ver los pedidos", href: "/ordenes-insumos" });
+    });
+
+    it("sin nada en camino, pide; un avío dice «los avíos»; con tres pedidos nombra dos y cuenta el resto", () => {
+      const [sin] = decisionesDeProduccion(contexto(base));
+      expect(sin.accion).toEqual({ texto: "Pedir la tela", href: "/ordenes-insumos/nueva?insumo=lino&cantidad=150" });
+      expect(sin.porque).not.toContain("OI-");
+      expect(sin.detalle).toBe("No alcanza y no hay nada pedido.");
+      const [avio] = decisionesDeProduccion(contexto({ insumos: [insumo("boton", { saldo: 5, tipo: "avio", unidad: "unidad" })], demanda: new Map([["boton", { insumoId: "boton", necesita: 80, ordenes: ["Blusa a"] }]]) }));
+      expect(avio.accion).toEqual({ texto: "Pedir los avíos", href: "/ordenes-insumos/nueva?insumo=boton&cantidad=75" });
+      const [tres] = decisionesDeProduccion(contexto({ ...base, enCamino: camino(30, [pedido({ cantidad: 10 }), pedido({ numeroTexto: "OI-000002", cantidad: 10 }), pedido({ numeroTexto: "OI-000001", cantidad: 10 })]) }));
+      expect(tres.porque).toContain("y 1 más");
+    });
+
+    it("la facturada sin orden y lo que viene en camino se suman (nada se cuenta dos veces: la base ya no mezcla los papeles de una orden con los de sin orden)", () => {
+      const [d] = decisionesDeProduccion(
+        contexto({ ...base, llegadas: [{ insumoId: "lino", documento: "F001-100", proveedor: "X", pendiente: 40 }], enCamino: camino(110, [pedido({ cantidad: 110 })]) })
+      );
+      // 200 − 50 = 150 de falta; 40 facturados + 110 en camino = 150: justo alcanza.
+      expect(d.titulo).toBe("Faltan 150 m de Insumo lino hoy, pero ya vienen 150 m en camino");
+    });
+
+    it("un insumo bajo el mínimo que tiene tela en camino no dice «no hay pedido en camino»; con el pedido atrasado, sí", () => {
+      const bajo = insumo("lino", { saldo: 5, minimo: 50, tono: "bajo" });
+      expect(decisionesDeProduccion(contexto({ insumos: [bajo], enCamino: camino(30, [pedido()]) })).map((d) => d.tipo)).not.toContain("minimo");
+      expect(decisionesDeProduccion(contexto({ insumos: [bajo], enCamino: camino(0, [pedido({ atrasado: true })], 30) })).map((d) => d.tipo)).toContain("minimo");
+    });
   });
 
   it("plata: vencido en severidad 3, por vencer en 2; sin deuda no hay tarjeta", () => {
@@ -767,5 +829,65 @@ describe("filasDeTela", () => {
       [{ insumoId: "b", documento: "F1", proveedor: "X", pendiente: 50 }, { insumoId: "c", documento: "F2", proveedor: "X", pendiente: 30 }]
     );
     expect(f.map((x) => [x.insumoId, x.estado, x.faltan])).toEqual([["a", "alcanza", 0], ["b", "alcanza_si_llega", 0], ["c", "falta", 50], ["d", "sin_demanda", 0]]);
+  });
+});
+
+describe("demandaDelTaller: UNA cuenta de lo que piden las órdenes abiertas (ADR-0400, actividad 8d)", () => {
+  const rendimiento = { p1: [rend("lino", 2.5)] };
+  const declarada = (telas: { insumoId: string; comprometido: number; ordenes?: string[] }[], sinDeclarar: string[] = []) => ({
+    telas: telas.map((t) => ({ insumoId: t.insumoId, comprometido: t.comprometido, ordenes: t.ordenes ?? [], enCamino: 0, atrasado: 0, pedidos: [] })),
+    sinDeclarar: sinDeclarar.map((id) => ({ id, productoId: "p1", referencia: `Blusa ${id}` })),
+  });
+
+  it("lo declarado manda: se toma lo comprometido de la base y NO el rendimiento medido de sus órdenes", () => {
+    const d = demandaDelTaller(declarada([{ insumoId: "lino", comprometido: 37.8, ordenes: ["Blusa a"] }]), [orden("a")], rendimiento, {});
+    expect([...d.values()]).toEqual([{ insumoId: "lino", necesita: 37.8, ordenes: ["Blusa a"] }]);
+  });
+
+  it("una orden sin tela declarada sigue contándose con el rendimiento medido de su modelo, y se suma a lo declarado de la misma tela", () => {
+    const d = demandaDelTaller(declarada([{ insumoId: "lino", comprometido: 30, ordenes: ["Blusa a"] }], ["b"]), [orden("a"), orden("b")], rendimiento, {});
+    expect(d.get("lino")).toEqual({ insumoId: "lino", necesita: 130, ordenes: ["Blusa a", "Blusa b"] });
+  });
+
+  it("las órdenes que sí declaran no se cuentan dos veces por su rendimiento", () => {
+    const d = demandaDelTaller(declarada([]), [orden("a")], rendimiento, {});
+    expect(d.size).toBe(0);
+  });
+
+  it("una tela comprometida en cero no aparece, y los modelos repetidos se nombran una vez", () => {
+    expect(demandaDelTaller(declarada([{ insumoId: "lino", comprometido: 0 }]), [], rendimiento, {}).size).toBe(0);
+    const d = demandaDelTaller(declarada([{ insumoId: "lino", comprometido: 10, ordenes: ["Blusa a", "Blusa a"] }]), [], rendimiento, {});
+    expect(d.get("lino")?.ordenes).toEqual(["Blusa a"]);
+  });
+
+  it("si la base no pudo contestar, todas las órdenes se cuentan con el rendimiento medido, como antes", () => {
+    const d = demandaDelTaller(null, [orden("a")], rendimiento, {});
+    expect(d.get("lino")?.necesita).toBe(100);
+  });
+
+  it("una orden de muestra declara tela y SÍ la reserva (el estante no es suyo ni de otra); sin declarar sigue sin contar", () => {
+    const d = demandaDelTaller(declarada([{ insumoId: "lino", comprometido: 12, ordenes: ["Muestra"] }], ["m"]), [orden("m", { esMuestra: true })], rendimiento, {});
+    expect(d.get("lino")?.necesita).toBe(12);
+  });
+});
+
+describe("filasDeTela con lo que viene en camino", () => {
+  const pedido = (extra: Partial<PedidoDeInsumo> = {}): PedidoDeInsumo => ({ numeroTexto: "OI-000003", proveedor: "Textiles Andinos", cantidad: 500, unidad: "metro", fechaEntrega: null, atrasado: false, ...extra });
+  const piden = new Map([["lino", { insumoId: "lino", necesita: 200, ordenes: ["Blusa a"] }]]);
+
+  it("lo que viene en camino se suma a lo que hay: cubre lo que falta → «alcanza si llega»; no lo cubre → falta lo que queda", () => {
+    const cubre = filasDeTela([insumo("lino", { saldo: 50 })], piden, [], new Map([["lino", { cuenta: 500, atrasado: 0, pedidos: [pedido()] }]]));
+    expect(cubre[0]).toMatchObject({ estado: "alcanza_si_llega", enCamino: 500, faltan: 0, pedidos: [pedido()] });
+    const medio = filasDeTela([insumo("lino", { saldo: 50 })], piden, [], new Map([["lino", { cuenta: 100, atrasado: 0, pedidos: [pedido({ cantidad: 100 })] }]]));
+    expect(medio[0]).toMatchObject({ estado: "falta", enCamino: 100, faltan: 50, porLlegar: 100 });
+  });
+
+  it("lo facturado sin orden y lo que viene en camino se suman en «por llegar»; lo atrasado NO", () => {
+    const f = filasDeTela([insumo("lino", { saldo: 50 })], piden, [{ insumoId: "lino", documento: "F001-100", proveedor: "X", pendiente: 40 }], new Map([["lino", { cuenta: 60, atrasado: 90, pedidos: [pedido({ cantidad: 60 }), pedido({ numeroTexto: "OI-000001", cantidad: 90, atrasado: true })] }]]));
+    expect(f[0]).toMatchObject({ facturado: 40, enCamino: 60, atrasado: 90, porLlegar: 100, estado: "falta", faltan: 50 });
+  });
+
+  it("sin nada en camino la fila no trae pedidos ni cantidades", () => {
+    expect(filasDeTela([insumo("lino")], new Map(), [])[0]).toMatchObject({ pedidos: [], enCamino: 0, atrasado: 0, facturado: 0 });
   });
 });

@@ -136,7 +136,7 @@ export function repartoDelGasto(e: EficienciaPeriodo): PartePlata[] {
   const partes: [PartePlata["clave"], string, number][] = [
     ["planilla", "Planilla (sueldos y cargas)", e.planilla ?? 0],
     ["materiales", "Tela y avíos de lo que cerró", e.materiales],
-    ["maquila", "Maquila", e.maquila],
+    ["maquila", "Servicios de afuera", e.maquila],
     ["gastos", "Gastos generales", e.gastos],
   ];
   return partes.filter(([, , m]) => m > 0).map(([clave, etiqueta, monto]) => ({ clave, etiqueta, monto, parte: monto / total }));
