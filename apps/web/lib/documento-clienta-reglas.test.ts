@@ -102,4 +102,8 @@ describe("contactoVisible (Felipe 2026-10-13: el DNI y el celular a medias para 
     expect(contactoVisible({ ...ana, telefonoWhatsapp: "+51 987 654 321" }, false).celular).toBe("9•• ••• 321");
     expect(contactoVisible({ ...ana, telefonoWhatsapp: "412 3456" }, false).celular).toBe("•••");
   });
+  it("un fijo con la clave de su ciudad no se muestra como «9•• ••• 456»: no es celular", () => {
+    expect(contactoVisible({ ...ana, telefonoWhatsapp: "044 123456" }, false).celular).toBe("•••");
+    expect(contactoVisible({ ...ana, telefonoWhatsapp: "044 123456" }, true).celular).toBe("044 123456");
+  });
 });
