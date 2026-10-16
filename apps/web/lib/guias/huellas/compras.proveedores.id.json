@@ -77,7 +77,7 @@
       "CampoFecha «Fecha del depósito»",
       "CampoTexto «Referencia»",
       "CampoTexto «Nota»",
-      "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
+      "ComboResponsable «{responsable}»",
       "Boton «Recargar»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
@@ -95,7 +95,7 @@
       "Boton «proveedor-ficha.saldo-a-favor»",
       "CampoTexto «Cuántas pasan»",
       "CampoTexto «Nota»",
-      "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
+      "ComboResponsable «{responsable}»",
       "Boton «Recargar»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"

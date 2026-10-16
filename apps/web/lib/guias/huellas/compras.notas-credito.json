@@ -23,7 +23,7 @@
       "CampoTexto «Serie y número de la nota»",
       "CampoFecha «Fecha de la nota»",
       "CampoMonto «Monto de la nota»",
-      "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
+      "ComboResponsable «{responsable}»",
       "Boton «Recargar»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
