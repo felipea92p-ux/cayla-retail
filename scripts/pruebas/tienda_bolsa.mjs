@@ -19,14 +19,17 @@
  *      tienda, lo agotado (también lo que solo está en el Taller o en una tienda escondida: la regla de la ficha), una talla que esa
  *      tienda no ofrece (a S/ 0, ADR-0384; con precio propio de la tienda, la de ropa sí se ofrece y se separa ahí, 20261015121000: en
  *      otra tienda que no le puso precio, `no_se_vende`; si no la ofrece ninguna tienda de la web, `no_publicada`), una
- *      tienda escondida, sin cuenta o una bolsa torcida no separan NADA. A lo sumo 3 separaciones «por confirmar» a la vez por cliente
- *      (`tienda_separar_tope`, decisión de Felipe 2026-10-14): la marca se mira antes que el tope, y lo confirmado o vencido no
- *      cuenta. Que «Separar» cierre las esperas de «Avísame» lo prueba `pnpm pruebas:tienda-club` (S).
+ *      tienda escondida, sin cuenta o una bolsa torcida no separan NADA. A lo sumo 3 separaciones ABIERTAS a la vez por cliente
+ *      (`tienda_separar_tope`; por confirmar vigentes, confirmadas y pagadas sin recoger: 20261016001000, Felipe 2026-10-15) y 2 de
+ *      una misma prenda y talla entre todas ellas (`tienda_separar_tope_prenda`): la marca se mira antes que el tope, y lo vencido no
+ *      cuenta. La bolsa pregunta por 2 como máximo de cada prenda (nunca revela la cifra). Que «Separar» cierre las esperas de «Avísame» lo prueba `pnpm pruebas:tienda-club` (S).
  *   C. «Mis pedidos» (`tienda_mis_pedidos`, `tienda_pedido`): cada cliente ve SOLO lo suyo (el número de otro responde igual
  *      que uno que no existe); el código de 4 cifras sale solo cuando está listo para recoger; los plazos son los de
  *      Configuración ▸ Tienda web; cada prenda trae cómo se ve y la tienda su nombre web y su WhatsApp.
  *   D. El cierre programado (`fn_cerrar_pedidos_web_sin_confirmar`): pasadas las horas de Configuración se cierra; lo que no
- *      llega a su plazo y lo confirmado, no; solo lo ejecuta `service_role`.
+ *      llega a su plazo y lo confirmado, no; solo lo ejecuta `service_role`. Y lo confirmado que nadie pagó en las horas de «Si no
+ *      paga» se anula solo, sin persona, y su prenda vuelve (`fn_anular_pedidos_web_sin_pagar`, 20261016001000); lo pagado en parte,
+ *      lo que no llega a su plazo y lo que tiene un pago de pasarela esperando, no.
  *   E. La puerta: solo `tienda_web` ejecuta las `tienda_*` nuevas (y de verdad, con su rol) y no llega al motor por fuera.
  *   F. Las migraciones se pueden pegar dos veces.
  *
@@ -308,7 +311,7 @@ select concat_ws(',',
   "true,t,false,3,false,3",
 );
 escenario(
-  "lo que llega torcido de la cookie no la rompe: se ignora lo mal escrito, la misma prenda se suma y una tienda escondida es «Todas»",
+  "lo que llega torcido de la cookie no la rompe: se ignora lo mal escrito, la misma prenda se suma (hasta 2, 20261016001000) y una tienda escondida es «Todas»",
   `update retail.ubicacion_datos_web set mostrar = false where ubicacion_id = :'lim';
 select retail.tienda_bolsa(jsonb_build_array(
   jsonb_build_object('variante_id', :'v', 'cantidad', 1), jsonb_build_object('variante_id', 'no-es-un-id', 'cantidad', 1),
@@ -317,7 +320,7 @@ select retail.tienda_bolsa(jsonb_build_array(
 select concat_ws(',', jsonb_array_length((:'b')::jsonb -> 'lineas'), (:'b')::jsonb -> 'lineas' -> 0 ->> 'cantidad',
   coalesce((:'b')::jsonb ->> 'sede', 'todas'), jsonb_array_length((:'b')::jsonb -> 'sedes'),
   jsonb_array_length(retail.tienda_bolsa('"no soy una lista"'::jsonb, null) -> 'lineas'));`,
-  "1,3,todas,1,0",
+  "1,2,todas,1,0",
 );
 
 seccion("— B. «Separar» —");
@@ -374,26 +377,42 @@ select concat_ws(',', (select estado from retail.pedidos_web where codigo = :'c1
   "por_confirmar,t",
 );
 escenario(
-  // Decisión de Felipe (2026-10-14): a lo sumo 3 separaciones «por confirmar» a la vez por cliente. La marca se mira ANTES que el tope.
-  "el tope de 3 por confirmar: la cuarta se rechaza (tienda_separar_tope, con el tope en el detalle); el reintento con la MISMA marca devuelve su pedido; lo de otro cliente no cuenta; al confirmarse una o al vencer otra, se separa de nuevo",
-  `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 10);
+  // Felipe 2026-10-15 (D2, 20261016001000): a lo sumo 3 separaciones ABIERTAS por cliente (por confirmar vigentes, confirmadas y pagadas
+  // sin recoger; antes, solo las por confirmar). La marca se mira ANTES que el tope.
+  "el tope de 3 abiertas: la cuarta se rechaza (tienda_separar_tope, con el tope en el detalle); el reintento con la MISMA marca devuelve su pedido; lo de otro cliente no cuenta; lo confirmado SIGUE contando; al vencer una, se separa de nuevo",
+  `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 10), pg_temp.dejar(:'v2', :'tru', :'tru_piso', 10);
 select gen_random_uuid() as tok1 \\gset
 ${separar("c1", bolsa(L("v")), { token: ":'tok1'" })}
 ${separar("c2", bolsa(L("v")))}
-${separar("c3", bolsa(L("v")))}
-select pg_temp.probar(${separarTexto(bolsa(L("v")))}) as cuarta \\gset
+${separar("c3", bolsa(L("v2")))}
+select pg_temp.probar(${separarTexto(bolsa(L("v2")))}) as cuarta \\gset
 select retail.tienda_separar(:'usr_a', :'tru', ${bolsa(L("v"))}, :'tok1') as otra_vez \\gset
 ${separar("cb", bolsa(L("v")), { usr: "usr_b" })}
 select id as p1 from retail.pedidos_web where codigo = :'c1' \\gset
 select retail.confirmar_pedido_web(:'p1', pg_temp.todas(:'p1', 'reservar')) is not null as _c \\gset
-${separar("c4", bolsa(L("v")))}
-select pg_temp.probar(${separarTexto(bolsa(L("v")))}) as quinta \\gset
+select pg_temp.probar(${separarTexto(bolsa(L("v2")))}) as con_confirmada \\gset
 ${VIAJAR(`update retail.pedidos_web set creado_en = now() - interval '25 hours' where codigo = :'c2';`)}
-${separar("c5", bolsa(L("v")))}
+${separar("c4", bolsa(L("v2")))}
 select concat_ws(',', split_part(:'cuarta', '|', 2), split_part(:'cuarta', '|', 4),
-  (:'otra_vez')::jsonb ->> 'codigo' = :'c1', (:'otra_vez')::jsonb ->> 'ya_estaba', length(:'cb') > 0, length(:'c4') > 0,
-  split_part(:'quinta', '|', 2), length(:'c5') > 0, (select count(*) from retail.pedidos_web where clienta_id = :'cli_a'));`,
-  "tienda_separar_tope,3,t,true,t,t,tienda_separar_tope,t,5",
+  (:'otra_vez')::jsonb ->> 'codigo' = :'c1', (:'otra_vez')::jsonb ->> 'ya_estaba', length(:'cb') > 0,
+  split_part(:'con_confirmada', '|', 2), length(:'c4') > 0, (select count(*) from retail.pedidos_web where clienta_id = :'cli_a'));`,
+  "tienda_separar_tope,3,t,true,t,tienda_separar_tope,t,4",
+);
+escenario(
+  // D2 (20261016001000): hasta 2 de una misma prenda y talla entre todas las separaciones abiertas de un cliente.
+  "hasta 2 de la misma prenda y talla, sumando sus otras separaciones abiertas: la tercera se rechaza (tienda_separar_tope_prenda, con la prenda en el detalle) sin crear nada; otro cliente sí puede; al cerrarse una, vuelve a poder",
+  `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 10), pg_temp.dejar(:'v2', :'tru', :'tru_piso', 2);
+select pg_temp.probar(${separarTexto(bolsa(L("v", 3)))}) as tres_de_una \\gset
+${separar("c1", bolsa(L("v", 2)))}
+select (select count(*) from retail.pedidos_web where clienta_id = :'cli_a') as antes \\gset
+select pg_temp.probar(${separarTexto(bolsa(L("v2"), L("v")))}) as otra_mas \\gset
+select (select count(*) from retail.pedidos_web where clienta_id = :'cli_a') as despues \\gset
+${separar("cb", bolsa(L("v", 2)), { usr: "usr_b" })}
+${VIAJAR(`update retail.pedidos_web set creado_en = now() - interval '25 hours' where codigo = :'c1';`)}
+${separar("c2", bolsa(L("v", 2)))}
+select concat_ws(',', split_part(:'tres_de_una', '|', 2), split_part(:'otra_mas', '|', 2), split_part(:'otra_mas', '|', 4) = :'v',
+  :'despues'::bigint = :'antes'::bigint, length(:'cb') > 0, length(:'c2') > 0);`,
+  "tienda_separar_tope_prenda,tienda_separar_tope_prenda,t,t,t,t",
 );
 escenario(
   "lo que solo está en el Taller o en una tienda escondida no se separa: «Separar» lee la regla de la ficha, que dice que no hay",
@@ -559,12 +578,12 @@ select concat_ws(',', :'con24', ${pedidoDe("usr_a", ":'ca'")} ->> 'estado',
   "vencido,por_confirmar,t,48",
 );
 
-seccion("— D. El cierre de las 24 h —");
+seccion("— D. El cierre programado: lo no confirmado y lo que nadie pagó —");
 escenario(
   "pasadas las horas de Configuración se cierra solo; lo que no llega a su plazo y lo confirmado, no",
-  `select pg_temp.dejar(:'v', :'tru', :'tru_alm', 3);
+  `select pg_temp.dejar(:'v', :'tru', :'tru_alm', 3), pg_temp.dejar(:'v2', :'tru', :'tru_alm', 1);
 ${separar("c25", bolsa(L("v")))}
-${separar("c23", bolsa(L("v")))}
+${separar("c23", bolsa(L("v2")))}
 ${separar("cok", bolsa(L("v")))}
 select id as pok from retail.pedidos_web where codigo = :'cok' \\gset
 select retail.confirmar_pedido_web(:'pok', pg_temp.todas(:'pok', 'reservar')) is not null as _c \\gset
@@ -588,6 +607,66 @@ select concat_ws(',', (:'r')::jsonb ->> 'horas_para_confirmar', (select estado f
   "48,por_confirmar",
 );
 
+escenario(
+  // D9 (Felipe 2026-10-15, 20261016001000): lo confirmado que nadie pagó se anula solo a las horas de «Si no paga» (de fábrica 48).
+  "lo confirmado que nadie pagó en las horas de «Si no paga» se anula solo («El cliente no pagó», sin persona) y su prenda vuelve a estar disponible; lo pagado en parte, lo que no llega al plazo y lo que tiene un pago de pasarela esperando, no",
+  `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 4), pg_temp.dejar(:'v2', :'tru', :'tru_piso', 2);
+${separar("cviejo", bolsa(L("v")))}
+${separar("cnuevo", bolsa(L("v")))}
+${separar("cparcial", bolsa(L("v2")))}
+${separar("cpasarela", bolsa(L("v2")), { usr: "usr_b" })}
+select id as pviejo from retail.pedidos_web where codigo = :'cviejo' \\gset
+select id as pnuevo from retail.pedidos_web where codigo = :'cnuevo' \\gset
+select id as pparcial from retail.pedidos_web where codigo = :'cparcial' \\gset
+select id as ppasarela from retail.pedidos_web where codigo = :'cpasarela' \\gset
+select retail.confirmar_pedido_web(:'pviejo', pg_temp.todas(:'pviejo', 'reservar')) is not null
+   and retail.confirmar_pedido_web(:'pnuevo', pg_temp.todas(:'pnuevo', 'reservar')) is not null
+   and retail.confirmar_pedido_web(:'pparcial', pg_temp.todas(:'pparcial', 'reservar')) is not null
+   and retail.confirmar_pedido_web(:'ppasarela', pg_temp.todas(:'ppasarela', 'reservar')) is not null as _c \\gset
+select retail.registrar_pago_pedido_web(:'pparcial', 1.00, 'yape', '77770091') is not null as _g \\gset
+insert into retail.pedido_web_pagos (pedido_id, origen, medio, monto, estado, proveedor, referencia_externa)
+values (:'ppasarela', 'pasarela', 'tarjeta', 1.00, 'pendiente', 'pasarela_prueba', 'zz-ref-1');
+select retail.fn_tienda_libre(:'v', retail.fn_tienda_sedes_web()) as libres_antes \\gset
+${VIAJAR(`update retail.pedidos_web set creado_en = now() - interval '50 hours', confirmado_en = now() - interval '49 hours'
+ where id in (:'pviejo', :'pparcial', :'ppasarela');
+update retail.pedidos_web set creado_en = now() - interval '48 hours', confirmado_en = now() - interval '47 hours' where id = :'pnuevo';`)}
+select retail.fn_cerrar_pedidos_web_sin_confirmar() as r \\gset
+select retail.fn_cerrar_pedidos_web_sin_confirmar() as r2 \\gset
+-- «anulados_sin_pagar» cuenta los de toda la base (la local es compartida): aquí se mira que estén los de esta prueba.
+select concat_ws(',', ((:'r')::jsonb ->> 'anulados_sin_pagar')::integer >= 1, (:'r')::jsonb ->> 'horas_sin_pagar',
+  (select string_agg(w.estado || '/' || coalesce(w.cierre_motivo, '-') || '/' || coalesce(w.cerrado_por::text, 'nadie'), ' '
+                     order by array_position(array[:'pviejo', :'pnuevo', :'pparcial', :'ppasarela']::uuid[], w.id))
+     from retail.pedidos_web w where w.id in (:'pviejo', :'pnuevo', :'pparcial', :'ppasarela')),
+  (select string_agg(l.estado || '/' || a.estado, ' ') from retail.pedido_web_lineas l join retail.apartados a on a.id = l.apartado_id
+    where l.pedido_id = :'pviejo'),
+  retail.fn_tienda_libre(:'v', retail.fn_tienda_sedes_web()) = :'libres_antes'::integer + 1,
+  (select count(*) from retail.pedidos_web where id = :'pviejo' and estado = 'anulado') = 1);`,
+  "t,48,anulado/cliente_no_pago/nadie confirmado/-/nadie confirmado/-/nadie confirmado/-/nadie,liberada/liberado,t,t",
+);
+escenario(
+  "las horas de «Si no paga» son las de Configuración: con 72 h, uno confirmado hace 49 h sin pagar sigue confirmado",
+  `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 1);
+${separar("cviejo", bolsa(L("v")))}
+select id as pviejo from retail.pedidos_web where codigo = :'cviejo' \\gset
+select retail.confirmar_pedido_web(:'pviejo', pg_temp.todas(:'pviejo', 'reservar')) is not null as _c \\gset
+${VIAJAR(`update retail.pedidos_web set creado_en = now() - interval '50 hours', confirmado_en = now() - interval '49 hours' where id = :'pviejo';`)}
+update retail.configuracion_tienda_web set horas_aviso_sin_pagar = 72 where id;
+select retail.fn_cerrar_pedidos_web_sin_confirmar() as r \\gset
+select concat_ws(',', (:'r')::jsonb ->> 'horas_sin_pagar', (select estado from retail.pedidos_web where id = :'pviejo'));`,
+  "72,confirmado",
+);
+escenario(
+  // El candado de la base: la anulación sin persona es SOLO la del barrido (confirmado, sin pagar nada, «no pagó»).
+  "el candado deja anular sin persona solo lo confirmado sin ningún pago y por «no pagó»: por otro motivo, sin persona, no se puede",
+  `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 1);
+${separar("ca", bolsa(L("v")))}
+select id as pa from retail.pedidos_web where codigo = :'ca' \\gset
+select retail.confirmar_pedido_web(:'pa', pg_temp.todas(:'pa', 'reservar')) is not null as _c \\gset
+select position('pedidos_web_cierre_coherente' in pg_temp.probar(format(
+  'update retail.pedidos_web set estado = %L, cerrado_en = now(), cierre_motivo = %L where id = %L', 'anulado', 'cliente_desistio', :'pa'))) > 0;`,
+  "t",
+);
+
 seccion("— E. La puerta —");
 escenario(
   "solo tienda_web ejecuta las tienda_* nuevas; el cierre, solo service_role; las piezas internas y el motor, nadie de afuera",
@@ -599,6 +678,7 @@ escenario(
   has_function_privilege('service_role', 'retail.fn_cerrar_pedidos_web_sin_confirmar()', 'EXECUTE'),
   (select count(*) from unnest(array['anon', 'authenticated', 'tienda_web']) r
     where has_function_privilege(r, 'retail.fn_cerrar_pedidos_web_sin_confirmar()', 'EXECUTE')
+       or has_function_privilege(r, 'retail.fn_anular_pedidos_web_sin_pagar(integer)', 'EXECUTE')
        or has_function_privilege(r, 'retail.fn_bolsa_web_precios(uuid[], uuid[])', 'EXECUTE')
        or has_function_privilege(r, 'retail.fn_tienda_precio_talla(uuid[], uuid)', 'EXECUTE')
        or has_function_privilege(r, 'retail.fn_bolsa_web_prenda(uuid)', 'EXECUTE')

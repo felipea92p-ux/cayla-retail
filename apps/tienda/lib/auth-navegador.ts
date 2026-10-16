@@ -1,5 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
-import { COOKIE_SESION, configAuth } from "./sesion";
+import { configAuth, OPCIONES_COOKIE_SESION } from "./sesion";
 
 /**
  * El cliente del proyecto de inicio de sesión de los CLIENTES en el navegador (ADR-0408): solo con su dirección y su llave
@@ -9,5 +9,5 @@ import { COOKIE_SESION, configAuth } from "./sesion";
  */
 export function clienteNavegador() {
   const ajustes = configAuth();
-  return ajustes ? createBrowserClient(ajustes.url, ajustes.llavePublica, { cookieOptions: { name: COOKIE_SESION } }) : null;
+  return ajustes ? createBrowserClient(ajustes.url, ajustes.llavePublica, { cookieOptions: OPCIONES_COOKIE_SESION }) : null;
 }

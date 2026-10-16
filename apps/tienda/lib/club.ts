@@ -185,19 +185,7 @@ export const montoDicho = (n: number) => soles(Math.round(n * 100) / 100);
 const pctDicho = (pct: number) => `${Number.isInteger(pct) ? pct : pct.toFixed(1)} %`;
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
-/* ------------------------------------------------------------------ Lo que dice «Mi cuenta» */
-
-/** La línea bajo la tarjeta del Club (maqueta: «Eres miembro del Club CAYLA. Tu descuento de cumpleaños llega el …»). */
-export function fraseDeLaCabecera(club: MiClub["club"], hoy: Dia): string {
-  // Lo que hacer lo dice el bloque de los beneficios: aquí, solo que no está activa.
-  if (!club.activa) return "Tu ficha del Club CAYLA no está activa.";
-  const c = club.cumple;
-  if (c.estado === "disponible") return "Eres miembro del Club CAYLA. Este mes es tu cumpleaños: tu descuento ya está disponible.";
-  if (c.estado === "proximo" && c.dia && c.mes) {
-    return `Eres miembro del Club CAYLA. Tu descuento de cumpleaños llega el ${proximoCumple(c.dia, c.mes, hoy)}.`;
-  }
-  return "Eres miembro del Club CAYLA.";
-}
+/* ------------------------------------------------------------------ Lo que dice «Mi perfil» de sus beneficios */
 
 /** El próximo cumpleaños: «14 de octubre» este año o, si ya pasó, «14 de octubre de 2027». */
 export function proximoCumple(dia: number, mes: number, hoy: Dia): string {
@@ -362,14 +350,29 @@ export function textoAvisoAnotado(talla: string, sedeNombre: string | null): str
   return `Te avisaremos en tu cuenta ${que}${sedeNombre ? ` a ${sedeNombre}` : ""}.`;
 }
 
+/**
+ * «Te avisaremos cuando llegue» ya pedido se puede quitar desde la misma ficha (antes, solo desde «Mi cuenta»). Lo que oye el lector de
+ * pantalla en ese botón: «Quitar el aviso de la talla M a Trujillo».
+ */
+export function etiquetaQuitarAviso(talla: string, sedeNombre: string | null): string {
+  const de = sinNombre(talla) ? "" : ` de la talla ${talla.trim()}`;
+  return `Quitar el aviso${de}${sedeNombre ? ` a ${sedeNombre}` : ""}`;
+}
+
+/** El aviso de abajo después de quitarlo: qué pasó y que se puede volver a pedir. */
+export function textoAvisoQuitado(talla: string): string {
+  const de = sinNombre(talla) ? "" : ` de la talla ${talla.trim()}`;
+  return `Quitamos el aviso${de}. Puedes volver a pedirlo cuando quieras.`;
+}
+
 export type EstadoFavorito = "guardado" | "quitado" | "tope" | "no_disponible" | "cuenta_inactiva" | "sin_sesion" | "sin_respuesta";
 export type EstadoAviso = "anotada" | "hay" | "tope" | "no_disponible" | "cuenta_inactiva" | "sin_sesion" | "sin_respuesta";
 export type EstadoQuitar = "quitada" | "no_esta" | "sin_sesion" | "sin_respuesta";
 
 export const MENSAJES_CLUB = {
   favoritoGuardado: "Guardado en tus favoritos.",
-  favoritoTope: "Ya tienes 100 favoritos. Quita alguno en Mi cuenta para guardar otro.",
-  avisoTope: "Ya pediste 30 avisos. Quita alguno en Mi cuenta para pedir otro.",
+  favoritoTope: "Ya tienes 100 favoritos. Quita alguno en Mi perfil para guardar otro.",
+  avisoTope: "Ya pediste 30 avisos. Quita alguno en Mi perfil para pedir otro.",
   noDisponible: "Esta prenda ya no está en la tienda online.",
   cuentaInactiva: "Tu ficha del Club no está activa. Acércate a cualquier tienda CAYLA y la revisan contigo.",
   sinSesion: "Entra a tu cuenta para guardarlo.",

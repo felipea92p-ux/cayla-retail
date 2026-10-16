@@ -10,18 +10,22 @@
 
 /* ---- «Ver lo que hay en»: la tienda elegida (maqueta v4, `filtroTienda`). Una franja bajo la cabecera; en el celular sin el texto y
    corriendo de lado, desde 960 px centrada y con su texto. ---- */
-.t-ubic { flex: none; display: flex; align-items: center; gap: 10px; padding: 7px 16px; font-size: 12.5px; color: var(--tinta-60); background: var(--papel); border-bottom: 1px solid var(--sand); white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+.t-ubic { flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 16px; font-size: 12.5px; color: var(--tinta-60); background: var(--papel); border-bottom: 1px solid var(--sand); white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
 .t-ubic::-webkit-scrollbar { display: none; }
 .t-ubic .ic { width: 15px; height: 15px; color: var(--taupe); flex: none; }
 .t-filtro-txt { display: none; }
 .t-pildoras-tienda { display: flex; gap: 6px; }
 .t-pildora-mini { flex: none; border: 1px solid var(--sand); background: var(--crema); border-radius: 999px; padding: 5px 13px; font-size: 12.5px; font-weight: 600; color: var(--tinta); transition: background-color .2s, color .2s, border-color .2s; }
 .t-pildora-mini:hover { border-color: var(--tinta); }
+/* La tienda se elige con el dedo en 44 px de alto (una capa invisible sobre la píldora de 29; la franja la deja entera a la vista). */
+.t-pildora-mini { position: relative; }
+.t-pildora-mini::before { content: ""; position: absolute; inset: -8px -3px; }
 .t-pildora-mini[aria-current="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
 
 /* ---- La ruta y la cabecera de la lista ---- */
 .t-ruta { display: flex; gap: 6px; align-items: center; padding-block: 14px 0; font-size: 12px; color: var(--tinta-60); flex-wrap: wrap; }
-.t-ruta a { color: var(--tinta-60); }
+/* El enlace mide 16 px de alto: su zona de toque crece a 44 sin mover nada (el relleno y el margen negativo se anulan). */
+.t-ruta a { color: var(--tinta-60); padding-block: 14px; margin-block: -14px; }
 .t-ruta a:hover { color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; }
 .t-lista-cab { padding-block: 10px 18px; display: flex; flex-direction: column; gap: 6px; }
 .t-lista-cab h1 { margin: 6px 0 0; font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 8cqi, 60px); line-height: .94; letter-spacing: -.015em; }
@@ -40,7 +44,72 @@
 .t-orden a { border: 1px solid var(--sand); background: var(--papel); border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 600; color: var(--tinta); white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; transition: border-color .2s; }
 .t-orden a:hover { border-color: var(--taupe); }
 .t-orden .ic { width: 14px; height: 14px; }
+/* «Orden:» delante de cuál, donde cabe (en el celular el botón dice solo cuál, con sus flechas). */
+.t-orden-rot { display: none; font-weight: 500; color: var(--tinta-60); margin-right: -2px; }
 .t-conteo { font-size: 12.5px; color: var(--tinta-60); margin: -4px 0 14px; }
+/* Dónde empieza la barra cuando no está pegada (`FiltrosDeLista`): al tocar un filtro con la barra pegada, la vista vuelve aquí. */
+.t-filtros-marca { display: block; height: 0; }
+/* Con el dedo, cada filtro se toca en 44 px de alto aunque se vea más bajo (36, 30): una capa invisible lo agranda. Las filas que se
+   deslizan recortan lo que asoma, así que llevan el mismo margen por dentro y por fuera (no cambia nada de lugar). */
+.t-filtros .t-pildoras { padding-block: 5px; margin-block: -5px; }
+.t-filtros .t-pildora, .t-orden a, .t-subcat { position: relative; }
+.t-filtros .t-pildora::before { content: ""; position: absolute; inset: -5px -3px; }
+.t-orden a::before { content: ""; position: absolute; inset: -6px -3px; }
+.t-subcat::before { content: ""; position: absolute; inset: -8px -10px; }
+/* Los filtros en dos niveles (Felipe 2026-10-15): los grupos como píldoras y, debajo, las categorías del grupo encendido, como pestañas
+   con su raya roja. En el celular, cada fila se desliza sola. */
+.t-filtros-niveles { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.t-filtros:has(.t-filtros-niveles) { align-items: flex-start; }
+.t-subcats { display: flex; gap: 2px 20px; overflow-x: auto; scrollbar-width: none; padding: 8px 2px 6px; margin-block: -4px; animation: t-subcats .35s var(--ease) both; }
+.t-subcats::-webkit-scrollbar { display: none; }
+.t-subcat { flex: none; position: relative; padding: 5px 0 7px; font-size: 13px; color: var(--tinta-60); white-space: nowrap; transition: color .2s; }
+.t-subcat small { margin-left: 3px; font-size: 11px; font-variant-numeric: tabular-nums; }
+.t-subcat::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 2px; background: var(--rojo); transform: scaleX(0); transform-origin: left; transition: transform .3s var(--ease); }
+.t-subcat:hover { color: var(--tinta); }
+.t-subcat[aria-current="true"] { color: var(--tinta); font-weight: 600; }
+.t-subcat[aria-current="true"]::after { transform: scaleX(1); }
+.t-subcat:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 4px; }
+@keyframes t-subcats { from { opacity: 0; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .t-subcats { animation: none; } .t-subcat::after { transition: none; } }
+
+/* ---- Las filas que se deslizan se desvanecen en su borde (2026-10-16): en el celular, la fila de píldoras quedaba cortada de golpe por
+   el botón del orden («Vestid…») y no se sabía si había más. A la derecha se desvanece mientras queda algo por ver; a la izquierda, solo
+   cuando ya se deslizó. Donde el navegador sabe animar con el deslizamiento, los bordes siguen a la fila (al final, la derecha queda
+   nítida); donde no, la derecha se desvanece siempre. La máscara solo usa la opacidad de su color (`--tinta`, opaca en los dos temas). ---- */
+@property --cp-filo-izq { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --cp-filo-der { syntax: "<length>"; inherits: false; initial-value: 0px; }
+.t-filtros .t-pildoras, .t-filtros .t-subcats {
+  --cp-filo-izq: 0px;
+  --cp-filo-der: 28px;
+  -webkit-mask-image: linear-gradient(to right, transparent, var(--tinta) var(--cp-filo-izq), var(--tinta) calc(100% - var(--cp-filo-der)), transparent);
+  mask-image: linear-gradient(to right, transparent, var(--tinta) var(--cp-filo-izq), var(--tinta) calc(100% - var(--cp-filo-der)), transparent);
+}
+@supports (animation-timeline: scroll()) {
+  .t-filtros .t-pildoras { --cp-filo-der: 0px; animation: cp-filo linear both; animation-timeline: scroll(self inline); }
+  /* Las subcategorías ya entran con su propia animación: la del borde va segunda. */
+  .t-filtros .t-subcats { --cp-filo-der: 0px; animation: t-subcats .35s var(--ease) both, cp-filo linear both; animation-timeline: auto, scroll(self inline); }
+}
+@keyframes cp-filo {
+  0% { --cp-filo-izq: 0px; --cp-filo-der: 28px; }
+  6% { --cp-filo-izq: 22px; }
+  94% { --cp-filo-der: 28px; }
+  100% { --cp-filo-izq: 22px; --cp-filo-der: 0px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .t-filtros .t-pildoras, .t-filtros .t-subcats { animation: none; --cp-filo-izq: 0px; --cp-filo-der: 28px; }
+}
+
+/* ---- Mientras llega la lista nueva (`PendienteDelEnlace`): lo tocado ya se ve elegido y la lista se apaga un poco, con un pequeño
+   retraso (si llega al instante, nada parpadea). Antes, durante ese medio segundo, nada decía que el toque había llegado. ---- */
+.t-pendiente { display: none; }
+.t-pildora:has(> .t-pendiente[data-pendiente]), .t-pildora-mini:has(> .t-pendiente[data-pendiente]) { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+.t-subcat:has(> .t-pendiente[data-pendiente]) { color: var(--tinta); }
+.t-subcat:has(> .t-pendiente[data-pendiente])::after { transform: scaleX(1); }
+.t-orden a:has(> .t-pendiente[data-pendiente]), .t-campana:has(> .t-pendiente[data-pendiente]) { border-color: var(--tinta); }
+.tienda:has(.t-pendiente[data-pendiente]) :is(.t-grilla, .t-conteo) { opacity: .45; transition: opacity .25s var(--ease) .12s; }
+/* Mientras tanto, la que estaba elegida deja de verse elegida: nunca dos píldoras encendidas a la vez. */
+:is(.t-pildoras, .t-pildoras-tienda):has(.t-pendiente[data-pendiente]) :is(.t-pildora, .t-pildora-mini)[aria-current="true"]:not(:has(> .t-pendiente[data-pendiente])) { background: transparent; border-color: var(--sand); color: var(--tinta); }
+.t-subcats:has(.t-pendiente[data-pendiente]) .t-subcat[aria-current="true"]:not(:has(> .t-pendiente[data-pendiente]))::after { transform: scaleX(0); }
 
 /* ---- La grilla ---- */
 .t-grilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 10px; }
@@ -74,6 +143,9 @@
 .t-insignia { font-size: 9.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 4px 7px 3px; border-radius: 2px; background: var(--t-papel-fijo); color: var(--t-tinta-fija); }
 .t-insignia.oferta { background: var(--t-oferta); color: var(--t-oferta-tinta); }
 .t-insignia.nuevo { background: var(--t-tinta-fija); color: var(--t-papel-fijo); }
+/* El «Nuevo» de la tarjeta: claro, con su filo (2026-10-16). Cuando casi todo el catálogo es nuevo, el sello negro en cada foto le quitaba
+   la vista a la prenda; el de la oferta sigue en rojo, que es lo que cambia el precio. (El sello negro sigue para quien lo usa.) */
+.t-insignia.cp-insignia-nuevo { background: var(--t-papel-fijo); color: var(--t-tinta-fija); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--t-tinta-fija) 14%, transparent); }
 
 .t-card-info { display: flex; flex-direction: column; gap: 4px; padding-inline: 1px; }
 .t-card-nom { font-size: 13px; font-weight: 500; line-height: 1.3; color: var(--tinta); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -95,22 +167,59 @@
 .t-card-nota { font-size: 11px; font-weight: 600; color: var(--ambar); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .t-card-nota.ok { color: var(--verde); }
 .t-card-nota.no { color: var(--tinta-60); font-weight: 500; }
+/* «Tus favoritos»: la prenda que se acaba de quitar queda apagada hasta recargar (no desaparece bajo el dedo, y el corazón la vuelve a
+   guardar). */
+.t-grilla-favoritos .t-card:has(.c-corazon[aria-pressed="false"]) :is(.t-card-enlace, .t-card-info) { opacity: .45; transition: opacity .3s var(--ease); }
 
 /* Las campañas de las ofertas (actividad 5, maqueta `t-campanas`): una tarjeta por campaña, que la elige o la suelta. */
 .t-campanas { display: grid; grid-auto-flow: column; grid-auto-columns: 78%; gap: 10px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 4px; padding: 0 16px 14px; }
 .t-campanas::-webkit-scrollbar { display: none; }
 .t-campana { border: 1px solid var(--sand); border-radius: 10px; padding: 14px; background: var(--papel); display: flex; flex-direction: column; gap: 4px; color: var(--tinta); transition: border-color .2s, box-shadow .2s; }
-.t-campana:hover { border-color: var(--taupe); }
+a.t-campana:hover { border-color: var(--taupe); }
 .t-campana[aria-current="true"] { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
 .t-campana b { font-family: var(--serif); font-size: 24px; font-weight: 500; line-height: 1; }
 .t-campana .pct { font-family: var(--serif); font-style: italic; font-size: 36px; line-height: 1; color: var(--rojo); }
 .t-campana small { font-size: 12px; color: var(--tinta-60); }
 .t-campana:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+/* Con una sola campaña, su tarjeta va a lo ancho, con el descuento a la izquierda (2026-10-16): sola en una cuarta parte de la fila, en la
+   computadora quedaba media página vacía a su lado. */
+.t-campanas:has(> .t-campana:only-child) { grid-auto-columns: 100%; }
+.t-campana:only-child { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 2px 18px; padding: 16px 20px; }
+.t-campana:only-child .pct { grid-row: 1 / span 2; font-size: 44px; }
+.t-campana:only-child :is(b, small) { grid-column: 2; }
 
 /* Un carril que se desliza de lado (la ficha: «También te puede gustar»; el Inicio: Lo nuevo). */
 .t-carril { display: grid; grid-auto-flow: column; grid-auto-columns: 47%; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: -16px; padding: 0 16px 10px; scroll-padding-inline: 16px; }
 .t-carril::-webkit-scrollbar { display: none; }
 .t-carril > * { scroll-snap-align: start; }
+/* ---- Las flechas de un carril (`CarrilConFlechas`): solo con mouse (con el dedo, el carril se desliza). Cada una sale si hay algo más
+   hacia su lado. Cada carril las lleva a la altura de sus fotos (`--flecha-y`: el Inicio en inicio.css, «Mi perfil» en perfil.css). ---- */
+.t-carril-envol { position: relative; }
+.t-carril-flecha { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .t-carril-flecha { position: absolute; z-index: 7; top: var(--flecha-y, 50%); width: 40px; height: 40px; margin-top: -20px; padding: 0; display: grid; place-items: center; border: 1px solid var(--sand); border-radius: 50%; background: var(--papel); color: var(--tinta); cursor: pointer; box-shadow: 0 10px 24px -14px var(--sombra); transition: border-color .2s, transform .2s var(--ease); animation: t-flecha-asoma .25s var(--ease) both; }
+  .t-carril-flecha[hidden] { display: none; }
+  .t-carril-flecha:hover { border-color: var(--tinta); transform: scale(1.06); }
+  .t-carril-flecha:active { transform: scale(.96); }
+  .t-carril-flecha .ic { width: 18px; height: 18px; }
+  .t-carril-flecha.antes { left: var(--flecha-borde, 6px); }
+  .t-carril-flecha.antes .ic { transform: scaleX(-1); }
+  .t-carril-flecha.despues { right: var(--flecha-borde, 6px); }
+}
+@keyframes t-flecha-asoma { from { opacity: 0; } }
+
+/* ---- Un carril de prendas bajo una página (2026-10-16: «Combínalo con» y «También te puede gustar» en la ficha; la bolsa vacía y las
+   listas vacías, `SigueMirando`): las flechas del mouse a la altura de sus fotos. ---- */
+.cp-carril { --flecha-y: 42%; }
+/* Su cabeza: la ceja y su enlace («Ver todo», «Ver el look») en una línea, y el título debajo a todo lo ancho. Con el enlace al lado del
+   título, en el celular «También te puede gustar» se partía en dos líneas. */
+.cp-sec-cab { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0 12px; }
+.cp-sec-cab > div { display: contents; }
+.cp-sec-cab .t-ceja { grid-column: 1; grid-row: 1; }
+.cp-sec-cab .t-ver { grid-column: 2; grid-row: 1; margin-block: -12px; }
+.cp-sec-cab :is(h1, h2) { grid-column: 1 / -1; grid-row: 2; }
+.cp-sec-cab p { grid-column: 1 / -1; grid-row: 3; }
+.cp-sec-cab .t-ver:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 4px; }
 
 /* Solo para el lector de pantalla («Antes S/ 74.90»). */
 .t-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
@@ -127,10 +236,18 @@
 @container tienda (min-width: 960px) {
   .t-ubic { justify-content: center; }
   .t-filtro-txt { display: inline; }
+  .t-orden-rot { display: inline; }
   .t-grilla { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 40px 18px; }
   .t-pildoras { flex-wrap: wrap; overflow: visible; }
-  .t-carril { grid-auto-columns: calc((100% - 3 * 18px) / 4); gap: 18px; margin-inline: 0; padding-inline: 0; }
+  /* Aquí las píldoras bajan de fila en vez de deslizarse: sin borde que desvanecer (la máscara recortaría el foco). */
+  .t-filtros .t-pildoras { -webkit-mask-image: none; mask-image: none; animation: none; }
+  /* Sin el relleno del celular, tampoco su margen de encaje: con él, al deslizar, la primera tarjeta quedaba corrida 16 px y la cuarta
+     cortada. */
+  .t-carril { grid-auto-columns: calc((100% - 3 * 18px) / 4); gap: 18px; margin-inline: 0; padding-inline: 0; scroll-padding-inline: 0; }
   .t-campanas { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-columns: auto; margin: 0 0 4px; padding: 0 0 18px; overflow: visible; }
+  .t-campanas:has(> .t-campana:only-child) { grid-template-columns: minmax(0, 1fr); }
+  .t-campana:only-child .pct { font-size: 52px; }
+  .cp-carril { --flecha-borde: -20px; }
 }
 
 /* Mientras llega una página con cuenta (app/(catalogo)/loading.tsx): la grilla de siempre con tarjetas vacías que brillan. El brillo es
@@ -138,7 +255,7 @@
    «estudio» de la foto es claro en los dos temas (`--t-foto`), así que su brillo también (`--t-papel-fijo`): con `--papel`, en oscuro
    cruzaba una franja oscura. Quieto (prefers-reduced-motion), la foto es lisa: el degradado detenido dejaba una esquina manchada. */
 .t-esqueleto { padding-block: 28px 64px; }
-.t-esqueleto .t-card-foto {
+.t-esqueleto .t-card-foto, .t-esqueleto .t-foto-g {
   background: linear-gradient(110deg, var(--t-foto) 38%, color-mix(in srgb, var(--t-foto) 55%, var(--t-papel-fijo)) 50%, var(--t-foto) 62%);
   background-size: 260% 100%;
   animation: brillo 1.4s linear infinite;
@@ -147,12 +264,38 @@
 .t-esqueleto-linea + .t-esqueleto-linea { width: 55%; margin-top: 7px; }
 .t-solo-lector { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {
-  .t-esqueleto .t-card-foto { animation: none; background: var(--t-foto); }
+  .t-esqueleto .t-card-foto, .t-esqueleto .t-foto-g { animation: none; background: var(--t-foto); }
 }
-/* La lista que brilla de «Mi cuenta» y de la bolsa: un título y filas con su miniatura. */
+/* La lista que brilla de las páginas de «Mi perfil» y de la bolsa: un título y filas con su miniatura. */
 .t-esqueleto-lista { display: grid; gap: 18px; max-width: 760px; }
 .t-esqueleto-titulo { width: 40%; height: 30px; border-radius: 4px; background: var(--hueso); margin-bottom: 8px; }
 .t-esqueleto-fila { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 16px; align-items: center; }
 .t-esqueleto-fila .t-card-foto { width: 72px; }
 .t-esqueleto-fila .t-esqueleto-linea { margin-top: 0; }
 .t-esqueleto-fila .t-esqueleto-linea + .t-esqueleto-linea { margin-top: 9px; }
+/* Las piezas de las formas que brillan son <i> (no dicen nada): en bloque. */
+.t-esqueleto i { display: block; }
+/* La franja «Ver lo que hay en» mientras llega (FormaDelEsqueleto): su alto y sus píldoras, vacías. */
+.t-esqueleto-ubic .t-pildora-mini { display: block; height: 30px; padding: 0; border-color: transparent; background: var(--hueso); }
+/* La ficha que brilla (forma «ficha»): las mismas cajas de la ficha (`.t-pdp`, `.t-galeria`, `.t-foto-g`, ficha.css), con su ruta
+   arriba. Ni ella ni «Mi perfil» llevan el margen de arriba de la grilla: el de su página ya está en sus cajas. */
+.t-esqueleto[data-forma="ficha"], .t-esqueleto[data-forma="perfil"] { padding-top: 0; }
+.t-esqueleto .t-ruta .t-esq-ruta { width: min(220px, 60%); height: 10px; margin: 4px 0 3px; }
+.t-esq-chip { width: 96px; height: 24px; border-radius: 999px; background: var(--hueso); }
+.t-esq-titulo { height: clamp(28px, 6cqi, 42px); margin-top: 12px; border-radius: 4px; background: var(--hueso); }
+.t-esq-titulo.corto { width: 58%; margin-top: 8px; }
+.t-esq-precio { width: 120px; height: 24px; border-radius: 4px; background: var(--hueso); }
+.t-esqueleto .t-esq-etq { width: 130px; margin-top: 0; }
+.t-esq-swatch { width: 32px; height: 32px; border-radius: 50%; background: var(--hueso); }
+.t-esq-talla { height: 48px; border-radius: 6px; border: 1px solid var(--sand); background: var(--papel); }
+/* El botón de la ficha vive en la barra de abajo en el celular y en la columna en la computadora: el que brilla, igual. */
+.t-esqueleto .t-esq-boton { display: none; height: 52px; border-radius: 999px; background: var(--hueso); }
+/* En el celular la ficha pone el nombre y el precio arriba y las insignias debajo (`.cp-pdp-cab`, ficha.css): el esqueleto, igual. */
+.t-esqueleto .cp-pdp-cab .t-esq-titulo { order: -2; }
+.t-esqueleto .t-pdp-info > .t-esq-precio { order: -1; }
+.t-esq-barra { display: flex; gap: 10px; }
+.t-esq-barra i:first-child { flex: 1; height: 52px; border-radius: 999px; background: var(--hueso); }
+.t-esq-barra i:last-child { width: 52px; height: 52px; border-radius: 50%; background: var(--hueso); }
+@container tienda (min-width: 960px) {
+  .t-esqueleto .t-esq-boton { display: block; }
+}

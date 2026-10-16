@@ -191,8 +191,12 @@ error("transferencia sin CCI se rechaza",
 error("factura sin RUC se rechaza", `${preparar()}${separar({ extra: ", p_comprobante_tipo => 'factura'" })}`, "RUC");
 error("una boleta de más de S/700 exige DNI", `${preparar(MICAELA, { colchon: 20 })}${separar({ cantidad: 10 })}`, "lleva el DNI");
 exito("con DNI, la boleta de más de S/700 sí se separa, y al entregar lleva ese DNI",
-  `${preparar(MICAELA, { colchon: 20 })}${separar({ cantidad: 10, extra: ", p_clienta_dni => '70124598'" })}
-select retail.entregar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', :'precio'::numeric * 10 - 50))) as venta \\gset
+  // Dos prendas (el tope por prenda, 20261016003000) a S/400 en esta transacción, con el 30 % de adelanto.
+  `${preparar(MICAELA, { colchon: 20 })}
+update retail.variantes set precio = 400 where id = :'v';
+select retail.fn_precio_en_sede(:'v', :'ubic') as precio \\gset
+${separar({ cantidad: 2, pagosSql: pagos(["yape", 300]), extra: ", p_clienta_dni => '70124598'" })}
+select retail.entregar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', :'precio'::numeric * 2 - 300))) as venta \\gset
 select c.cliente_tipo_doc || ':' || c.cliente_num_doc from retail.comprobantes c where c.venta_id = :'venta';`,
   (s) => s === "dni:70124598");
 error("el precio de la caja distinto al del catálogo se rechaza",
@@ -213,7 +217,9 @@ exito(
   "una venta normal ya no puede llevarse la unidad separada",
   `${preparar()}
 select :cant0 - :apart0 as disp \\gset
-${separar({ cantidad: ":disp", extra: ", p_clienta_dni => '70124598'" })}
+-- Un cliente aparta hasta 2 de una prenda (20261016003000): lo demás lo aparta otra persona, y este cliente separa la última.
+select case when :disp > 1 then retail.apartar_stock(:'v', :'ubic', :disp - 1, 'Otra clienta', '999888777', retail.fn_hoy_lima() + 7, 'prueba') end as _otra \\gset
+${separar({ cantidad: 1, extra: ", p_clienta_dni => '70124598'" })}
 select case when (:cant0 - :apart0) * :'precio'::numeric > 0 then 1 end as _ \\gset
 savepoint antes;
 insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
@@ -423,6 +429,90 @@ set local request.jwt.claim.sub = '${MICAELA}';
 select retail.registrar_devolucion_separacion(:'sep', 'yape', 'OP-1');`, "Solo una líder");
 
 // ---------------------------------------------------------------------------
+// El 30 %, los topes por persona y el vencimiento diario (20261016003000, Felipe 2026-10-15: D1, D2, D4)
+// ---------------------------------------------------------------------------
+error("D1: un adelanto debajo del 30 % del total no separa",
+  `${preparar()}${separar({ pagosSql: pagos(["yape", "ceil(:'precio'::numeric * 30) / 100 - 0.01"]) })}`, "El adelanto mínimo es");
+exito("D1: el 30 % justo (redondeado hacia arriba al céntimo) sí separa",
+  `${preparar()}${separar({ pagosSql: pagos(["yape", "ceil(:'precio'::numeric * 30) / 100"]) })}
+select s.adelanto = ceil(:'precio'::numeric * 30) / 100 from retail.separaciones s where s.id = :'sep';`,
+  (x) => x === "t");
+// Otra talla de la misma blusa, con stock en el piso, para que un mismo cliente junte apartados de cosas distintas.
+const OTRA_TALLA = `
+select id as v2 from retail.variantes where sku = 'BLU-EMMA-BEI-M' \\gset
+select retail.fn_precio_en_sede(:'v2', :'ubic') as precio2 \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'v2', :'ubic', :'piso', 'entrada', 10, 'colchón de prueba') returning id as m2 \\gset
+select retail.fn_aplicar_movimiento(:'m2') as _a2 \\gset
+`;
+const deLaOtraTalla = (sql) => sql.replace("'variante_id', :'v',", "'variante_id', :'v2',").replace("'precio_unitario', :'precio'::numeric", "'precio_unitario', :'precio2'::numeric");
+error("D2: un cuarto apartado abierto del mismo cliente (por su celular) no se separa, aunque lleve otra prenda",
+  `${preparar(FELIPE)}${OTRA_TALLA}${separar({ como: "s1" })}${separar({ como: "s2" })}${deLaOtraTalla(separar({ como: "s3" }))}
+${deLaOtraTalla(separar({ como: "s4" }))}`, "ya tiene 3 apartados abiertos");
+error("D2: tres de una misma prenda en un solo apartado no se separan",
+  `${preparar()}${separar({ cantidad: 3, pagosSql: pagos(["yape", ":'precio'::numeric * 3"]) })}`, "Se aparta hasta 2 de una misma prenda");
+error("D2: la misma persona por su DNI, con otro celular y en otro apartado, no suma una tercera de la misma prenda",
+  `${preparar()}${separar({ como: "s1", cantidad: 2, extra: ", p_clienta_dni => '70124598'" })}
+${separar({ como: "s2", extra: ", p_clienta_dni => '70124598'" }).replace("'987 111 222'", "'987 111 999'")}`,
+  "ya tiene 2 en otro apartado abierto");
+exito("D2: otro cliente (otro celular, sin DNI) sí aparta la misma prenda; lo liberado ya no cuenta",
+  `${preparar(FELIPE)}${separar({ como: "s1", cantidad: 2 })}
+${separar({ como: "s2", cantidad: 2 }).replace("'987 111 222'", "'987 111 999'")}
+select retail.liberar_separacion(:'s1', 'clienta_desistio') as _l \\gset
+${separar({ como: "s3", cantidad: 2 })}
+select count(*) from retail.separaciones where id in (:'s1', :'s2', :'s3');`,
+  (x) => x === "3");
+error("D1 al editar: sumar prendas que dejan lo pagado debajo del 30 % pide un abono antes",
+  `${preparar(FELIPE)}
+update retail.variantes set precio = 200 where id = :'v';
+select retail.fn_precio_en_sede(:'v', :'ubic') as precio \\gset
+${separar({ pagosSql: pagos(["yape", 60]) })}
+select retail.editar_separacion(:'sep', '{}'::uuid[], ${items(1)});`, "registra antes un abono");
+exito("D1 al editar: con el abono primero, sumar la prenda sí entra",
+  `${preparar(FELIPE)}
+update retail.variantes set precio = 200 where id = :'v';
+select retail.fn_precio_en_sede(:'v', :'ubic') as precio \\gset
+${separar({ pagosSql: pagos(["yape", 60]) })}
+select retail.abonar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 60))) as _ab \\gset
+select (retail.editar_separacion(:'sep', '{}'::uuid[], ${items(1)}) ->> 'total')::numeric = 400;`,
+  (x) => x === "t");
+error("D2 al editar: sumar una tercera de la misma prenda no entra",
+  `${preparar(FELIPE)}${separar({ cantidad: 2, pagosSql: pagos(["yape", ":'precio'::numeric * 2"]) })}
+select retail.editar_separacion(:'sep', '{}'::uuid[], ${items(1)});`, "Se aparta hasta 2 de una misma prenda");
+exito("D4: el barrido diario libera en TODAS las tiendas lo vencido hace más de 2 días y los apartados simples vencidos; no un pedido entre tiendas ni lo que está en su gracia",
+  `${preparar(FELIPE)}${separar({ como: "s_vieja" })}${separar({ como: "s_gracia" }).replace("'987 111 222'", "'987 111 999'")}
+update retail.separaciones set vence_el = retail.fn_hoy_lima() - 3 where id = :'s_vieja';
+update retail.separaciones set vence_el = retail.fn_hoy_lima() - 2 where id = :'s_gracia';
+-- apartar_stock no acepta una fecha pasada: se aparta con la de hoy y se corre hacia atrás aquí.
+select retail.apartar_stock(:'v', :'ubic', 1, 'Apartado simple', '999888777', retail.fn_hoy_lima(), 'prueba') as ap_viejo \\gset
+select retail.apartar_stock(:'v', :'ubic', 1, 'Pedido Entre tiendas', '999888777', retail.fn_hoy_lima(), 'prueba') as ap_pedido \\gset
+select retail.apartar_stock(:'v', :'ubic', 1, 'Apartado simple', '999888777', retail.fn_hoy_lima(), 'prueba') as ap_vigente \\gset
+update retail.apartados set vence_el = retail.fn_hoy_lima() - 3 where id in (:'ap_viejo', :'ap_pedido');
+insert into retail.separacion_pedidos (ubicacion_id, ubicacion_origen_id, variante_id, cantidad, estado, apartado_id,
+                                       clienta_nombres, clienta_apellidos, clienta_celular)
+  select :'ubic', u.id, :'v', 1, 'llego', :'ap_pedido', 'Pedido', 'Entre tiendas', '999888777'
+    from retail.ubicaciones u where u.nombre = 'Tienda Lima';
+reset role;
+set local role service_role;
+select retail.fn_vencer_apartados_de_todas() as r \\gset
+reset role;
+select ((:'r')::jsonb ->> 'apartados_con_adelanto')::integer >= 1, ((:'r')::jsonb ->> 'apartados_simples')::integer >= 1,
+       (select estado || '/' || coalesce(liberada_motivo, '-') from retail.separaciones where id = :'s_vieja'),
+       (select estado from retail.separaciones where id = :'s_gracia'),
+       (select estado || '/' || cierre_motivo from retail.apartados where id = :'ap_viejo'),
+       (select estado from retail.apartados where id = :'ap_vigente'),
+       (select estado from retail.apartados where id = :'ap_pedido'),
+       (select count(*) from retail.fn_verificar_separaciones()), (select count(*) from retail.fn_verificar_apartados());`,
+  (x) => x === "t|t|liberada/vencio|abierta|liberado/clienta_no_vino|abierto|abierto|0|0");
+exito("D4: el barrido solo lo corre el servidor (ni anon, ni authenticated, ni la tienda online); las piezas internas, nadie de afuera",
+  `select has_function_privilege('service_role', 'retail.fn_vencer_apartados_de_todas()', 'EXECUTE'),
+       (select count(*) from unnest(array['anon', 'authenticated', 'tienda_web']) r
+         where has_function_privilege(r, 'retail.fn_vencer_apartados_de_todas()', 'EXECUTE')
+            or has_function_privilege(r, 'retail.fn_vencer_separaciones_de(uuid)', 'EXECUTE')
+            or has_function_privilege(r, 'retail.fn_separaciones_abiertas_de(uuid, text, text)', 'EXECUTE'));`,
+  (x) => x === "t|0");
+
+// ---------------------------------------------------------------------------
 // Caja, lectura y seguridad
 // ---------------------------------------------------------------------------
 exito("el arqueo cuadra: adelanto en efectivo + saldo en efectivo + devolución en efectivo, al céntimo",
@@ -430,7 +520,7 @@ exito("el arqueo cuadra: adelanto en efectivo + saldo en efectivo + devolución 
 ${separar({ como: "s1", pagosSql: pagos(["efectivo", 50, 100]) })}
 select retail.entregar_separacion(:'s1', jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', :'precio'::numeric - 50, 'recibido', 100))) as _v \\gset
 ${separar({ como: "s2", pagosSql: pagos(["efectivo", 30]) })}
-${separar({ como: "s3", pagosSql: pagos(["yape", 20]) })}
+${separar({ como: "s3", pagosSql: pagos(["yape", 25]) })}
 set local request.jwt.claim.sub = '${FELIPE}';
 select retail.liberar_separacion(:'s2', 'clienta_desistio') as _l \\gset
 select retail.registrar_devolucion_separacion(:'s2', 'efectivo') as _r \\gset
@@ -587,7 +677,7 @@ select :'e1' ~ '^A-[0-9]{2}$', :'e1' <> :'e2', (select estante from retail.separ
 // Historial por fecha (20261010180000): el rango acota lo cerrado; lo que espera algo sale siempre
 // ---------------------------------------------------------------------------
 exito("historial por fecha: lo entregado de hace 40 días queda fuera de los últimos 30; lo abierto igual de viejo, no",
-  `${preparar(FELIPE)}${separar({ como: "s1" })}${separar({ como: "s2" })}${separar({ como: "s3" })}
+  `${preparar(FELIPE)}${separar({ como: "s1" })}${separar({ como: "s2" })}${separar({ como: "s3" }).replace("'987 111 222'", "'987 111 333'")}
 select retail.entregar_separacion(:'s1', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', :'precio'::numeric - 50))) as _v \\gset
 select retail.entregar_separacion(:'s3', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', :'precio'::numeric - 50))) as _w \\gset
 update retail.separaciones set created_at = now() - interval '40 days' where id in (:'s1', :'s2');

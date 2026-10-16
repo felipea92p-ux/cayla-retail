@@ -167,8 +167,23 @@ export const totalDelLook = (l: Pick<Look, "totalFinal" | "desde">): string => `
 /** «Look 2 · 3 prendas», la ceja de la tarjeta de un look en la lista. */
 export const cejaDeLook = (l: Pick<Look, "numero" | "piezas">): string => `Look ${l.numero} · ${cuantasPrendas(l.piezas.length)}`;
 
-/** La línea de la tarjeta: la frase y el total («desde» si una campaña no toca todas las tallas de alguna prenda). */
-export const lineaDeLook = (l: Look): string => [l.frase, `${l.desde ? "desde " : ""}${soles(l.totalFinal)}`].filter(Boolean).join(" · ");
+/**
+ * Lo que cuesta el look completo en su tarjeta, con la regla de la tarjeta de una prenda: lo que se paga («Desde …» si una campaña no
+ * toca todas las tallas de alguna prenda) y, si alguna prenda tiene campaña, el total sin ella tachado. Va en su propia línea: pegado a la
+ * frase, en el celular se partía en dos («S/» al final de una línea y «243.10» en la otra) y se perdía en el gris de la frase.
+ */
+export const precioDelLook = (l: Pick<Look, "total" | "totalFinal" | "desde">): PrecioTarjeta => {
+  const oferta = l.totalFinal < l.total;
+  return { principal: totalDelLook(l), anterior: oferta ? soles(l.total) : null, oferta };
+};
+
+/** ¿La lista de looks va de a tres en la computadora? Solo si llenan sus filas (3, 6, 9…): de a dos, con tres looks, el tercero quedaba
+ *  solo y con media pantalla vacía al lado. Con 2, 4 u 8, de a dos (filas llenas); con un número que no llena ni una ni otra, de a dos,
+ *  como la maqueta. */
+export const looksDeATres = (cuantos: number): boolean => cuantos >= 3 && cuantos % 3 === 0;
+
+/** «Otros looks», bajo un look abierto (2026-10-16): los demás que se ven, en su orden, hasta `cuantos` (los de una fila de la computadora). */
+export const otrosLooks = (looks: readonly Look[], id: string, cuantos = 3): Look[] => looks.filter((l) => l.id !== id).slice(0, cuantos);
 
 /* ---------------- Direcciones ---------------- */
 
@@ -217,8 +232,20 @@ export function lineasDelLook(l: Look, elegidas: TallasElegidas): LineaLook[] {
   });
 }
 
-/** «Agregar 3 prendas a mi bolsa», «Agregar 1 prenda a mi bolsa». */
-export const textoAgregar = (n: number): string => `Agregar ${cuantasPrendas(n)} a mi bolsa`;
+/**
+ * El botón de la hoja de tallas. Quien tocó «Agregar el look a mi bolsa» espera el look entero: si falta elegir alguna talla, el botón
+ * dice cuántas van DE cuántas («Agregar 2 de 3 prendas a mi bolsa»), para que nadie se lleve el look sin una prenda sin darse cuenta;
+ * con todas, «Agregar las 3 prendas a mi bolsa»; sin ninguna, qué hacer. `de`: las prendas del look.
+ */
+export function textoAgregar(n: number, de: number): string {
+  if (n === 0) return "Elige las tallas para agregar";
+  if (n >= de) return de === 1 ? "Agregar la prenda a mi bolsa" : `Agregar las ${de} prendas a mi bolsa`;
+  return `Agregar ${n} de ${cuantasPrendas(de)} a mi bolsa`;
+}
+
+/** Las prendas que todavía esperan su talla: tienen alguna disponible y no se eligió ninguna. La que no tiene ninguna no espera nada. */
+export const faltaTalla = (l: Look, elegidas: TallasElegidas): PiezaLook[] =>
+  l.piezas.filter((p) => p.tallas.some((t) => t.hay) && !p.tallas.some((t) => t.hay && t.varianteId === elegidas[p.posicion]));
 
 /** ¿La prenda no tiene ninguna talla disponible? Se ve, pero no se agrega. */
 export const sinTallasPorAhora = (p: PiezaLook): boolean => p.tallas.length > 0 && p.tallas.every((t) => !t.hay);
