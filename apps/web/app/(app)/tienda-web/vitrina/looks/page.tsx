@@ -6,7 +6,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { LooksPantalla } from "@/components/vitrina/LooksPantalla";
 import { VitrinaPestanas } from "@/components/vitrina/VitrinaPestanas";
 
-// Catálogo ▸ Vitrina web ▸ Looks (ADR-0408, actividad 11; maqueta docs/maquetas/tienda-online-2026-10, «looks-erp»): las combinaciones
+// Tienda web ▸ Vitrina ▸ Looks (ADR-0408, actividad 11; maqueta docs/maquetas/tienda-online-2026-10, «looks-erp»): las combinaciones
 // que la tienda online muestra en «Arma tu look». Es parte del módulo `vitrina_web` (una pestaña de la Vitrina, no otro módulo:
 // ADR-0306), con la misma cabecera de Catálogo ▸ Productos (`EncabezadoPagina`, ADR-0220).
 export default async function VitrinaLooksPage() {
@@ -19,7 +19,8 @@ export default async function VitrinaLooksPage() {
     <div className="space-y-6">
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
-        titulo="Vitrina web"
+        detalle="Tienda web"
+        titulo="Vitrina"
         subtitulo="Los looks de «Arma tu look»: prendas que se ven bien juntas y que el cliente agrega completas, eligiendo cada talla."
       />
       <VitrinaPestanas activa="looks" />

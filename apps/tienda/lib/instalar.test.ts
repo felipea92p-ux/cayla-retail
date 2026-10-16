@@ -15,10 +15,12 @@ import {
   pasosDeLaGuia,
   puedeOfrecerSola,
   REGISTRO_VACIO,
+  SCRIPT_DEL_AVISO,
   textoDelBoton,
   textoDelRegistro,
   type Registro,
   type Situacion,
+  VARIABLE_DEL_AVISO,
 } from "./instalar";
 
 const DIA = 24 * 60 * 60 * 1000;
@@ -174,5 +176,23 @@ describe("la guía", () => {
   it("el paso de Compartir lleva el ícono del botón, para reconocerlo", () => {
     expect(pasosDeLaGuia("ios")[0].icono).toBe("compartir");
     expect(pasosDeLaGuia("android")[0].icono).toBe("puntos");
+  });
+});
+
+describe("el aviso de Chrome que llega antes de que la página se arme", () => {
+  it("el script del <head> escucha beforeinstallprompt, le quita el aviso propio y lo deja en la variable que lee el proveedor", () => {
+    expect(SCRIPT_DEL_AVISO).toContain('"beforeinstallprompt"');
+    expect(SCRIPT_DEL_AVISO).toContain("preventDefault()");
+    expect(SCRIPT_DEL_AVISO).toContain(`window.${VARIABLE_DEL_AVISO}=e`);
+  });
+  it("es JavaScript válido que guarda el evento y no rompe sin él", () => {
+    let oyente: ((e: { preventDefault: () => void }) => void) | undefined;
+    const ventana = { addEventListener: (_: string, f: typeof oyente) => (oyente = f) };
+    new Function("window", SCRIPT_DEL_AVISO)(ventana);
+    let evitado = false;
+    const evento = { preventDefault: () => (evitado = true) };
+    oyente?.(evento);
+    expect(evitado).toBe(true);
+    expect((ventana as unknown as Record<string, unknown>)[VARIABLE_DEL_AVISO]).toBe(evento);
   });
 });

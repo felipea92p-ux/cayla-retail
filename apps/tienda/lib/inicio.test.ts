@@ -148,6 +148,9 @@ describe("la cabecera con cuenta", () => {
     expect(d.menus[0].grupos[0].href).toBe("/catalogo?grupo=arriba");
     expect(d.menus[0].grupos[0].categorias[0]).toMatchObject({ clave: "CMS", nombre: "Camisas y Blusas", cuantas: 2, href: "/catalogo?categoria=CMS" });
     expect(datosDeCabecera(prendas, "trujillo", undefined).menus[0].grupos[0].href).toBe("/catalogo?sede=trujillo&grupo=arriba");
+    // El botón del menú lleva a TODO el menú (antes «Ropa» no tenía destino y el cliente no podía ver toda la ropa junta).
+    expect(d.menus.map((m) => [m.href, m.todo])).toEqual([["/catalogo?menu=ropa", "Toda la ropa"], ["/catalogo?menu=accesorios", "Todos los accesorios"]]);
+    expect(datosDeCabecera(prendas, "trujillo", undefined).menus[0].href).toBe("/catalogo?sede=trujillo&menu=ropa");
     // Solo ropa: no hay menú «Accesorios»; sin nada, ningún menú.
     expect(datosDeCabecera([prenda("Blusa")], null, undefined).menus.map((m) => m.nombre)).toEqual(["Ropa"]);
     expect(datosDeCabecera([], null, undefined).menus).toEqual([]);

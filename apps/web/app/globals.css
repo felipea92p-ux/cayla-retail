@@ -67,6 +67,8 @@
 @import "./estilos/plan-piso.css";
 /* Historial de cierres de Caja: cada cierre como un ticket con su sello (maqueta E, Felipe 2026-10-12). */
 @import "./estilos/historial-tickets.css";
+/* Tienda web (ADR-0430): la ventana del navegador, el mosaico de prendas, el camino del pedido y su movimiento. */
+@import "./estilos/tienda-web.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
 

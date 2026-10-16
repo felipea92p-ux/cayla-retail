@@ -41,11 +41,21 @@ const CABECERAS_DE_SEGURIDAD = [
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
 ];
 
+// Los íconos y el colibrí de `public/` (2026-10-16): Vercel los sirve con `max-age=0, must-revalidate`, así que el navegador volvía a
+// preguntar por cada uno en cada visita (una ida y vuelta al servidor por archivo, aunque no hubiera cambiado). Sus nombres no llevan
+// huella (a diferencia de `/_next/static`, que ya es `immutable`), por eso no se les da un año: un día fresco y, pasado, se muestra la
+// copia mientras se revisa en segundo plano (`stale-while-revalidate`, una semana). Un ícono nuevo se ve a más tardar al día siguiente.
+// Fuera a propósito: `sw.js` (el navegador tiene que ver su versión nueva al instante) y el manifiesto (lo arma `app/manifest.ts`).
+const CACHE_DE_IMAGENES_FIJAS = "public, max-age=86400, stale-while-revalidate=604800";
+
 const nextConfig: NextConfig = {
   // Sin «X-Powered-By: Next.js»: no se anuncia con qué está hecha la tienda.
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: CABECERAS_DE_SEGURIDAD }];
+    return [
+      { source: "/:path*", headers: CABECERAS_DE_SEGURIDAD },
+      { source: "/:archivo(cayla-[^/]+\\.png)", headers: [{ key: "Cache-Control", value: CACHE_DE_IMAGENES_FIJAS }] },
+    ];
   },
   // La raíz del monorepo, como en apps/web: sin esto Next la adivina buscando lockfiles hacia arriba y, en un worktree
   // dentro del checkout principal, toma la carpeta equivocada.

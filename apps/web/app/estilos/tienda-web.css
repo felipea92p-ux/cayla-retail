@@ -1,0 +1,438 @@
+@layer components {
+/* ====================================================================
+   Tienda web (ADR-0430, Felipe 2026-10-16): el lenguaje visual del grupo que junta lo de la tienda online.
+
+   Tres piezas propias, porque ninguna familia de /unificar dibuja «lo que ve el cliente en internet»:
+   - la VENTANA (`.tw-marco`): un navegador con sus tres puntos y la dirección de la tienda. Dice «esto es la web» sin leer nada.
+   - el MOSAICO (`.tw-mosaico`, `.tw-tesela`): las prendas como las ve el cliente, en su foto vertical.
+   - el CAMINO (`.tw-camino`): el hilo que une los pasos de un pedido (confirmar → cobrar → entregar) con el plazo de cada tramo.
+   Todo lo demás (cifras, chips, tablas, avisos) son las piezas únicas del ERP.
+
+   Movimiento (ADR-0136, excepción de Tienda web, Felipe 2026-10-16: «ricas, una vez, sin bucle»): la ventana se asienta, su barra
+   recibe un barrido de luz, las teselas entran en cascada, el camino se dibuja tramo a tramo y sus puntos asoman, la bandeja entra en
+   cascada. UNA vez al llegar, con `--ease-cayla`, sin rebote ni bucle, y nada se mueve con `prefers-reduced-motion`. El único latido
+   (el punto de «por confirmar») es el de `<Chip vivo>`, que ya existía. Lo vigila `lib/tienda-web-movimiento.test.ts`.
+   ==================================================================== */
+
+  @keyframes tw-entra { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes tw-asienta { from { opacity: 0; transform: translateY(14px) scale(0.985); } to { opacity: 1; transform: none; } }
+  @keyframes tw-tesela { from { opacity: 0; transform: translateY(16px) scale(0.94); } to { opacity: 1; transform: none; } }
+  @keyframes tw-barrido { from { transform: translateX(-100%); } to { transform: translateX(110%); } }
+  @keyframes tw-dibuja { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+  @keyframes tw-asoma { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: none; } }
+  @keyframes tw-crece-x { from { transform: scaleX(0); } to { transform: none; } }
+
+  /* La pantalla: el contenedor de las consultas de ancho de sus piezas (se acomodan al ancho de la página, no de la ventana). */
+  .tw { container-type: inline-size; container-name: tw; }
+
+  /* Cada bloque de una pantalla de Tienda web entra un paso después del anterior (`--i`). */
+  .tw-entra { animation: tw-entra 460ms var(--ease-cayla) both; animation-delay: calc(min(var(--i, 0), 10) * 70ms + 60ms); }
+
+  /* ───────── La ventana: un navegador con la dirección de la tienda ───────── */
+  .tw-marco {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--color-sand);
+    border-radius: 18px;
+    background: var(--color-papel);
+    animation: tw-asienta 620ms var(--ease-cayla) both;
+    animation-delay: calc(min(var(--i, 0), 10) * 70ms + 60ms);
+  }
+  .tw-marco-barra {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--color-sand);
+    background: color-mix(in srgb, var(--color-hueso) 72%, var(--color-papel));
+  }
+  /* Una luz cruza la barra una sola vez, cuando la ventana termina de asentarse: «la página cargó». */
+  .tw-marco-barra::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 20%, color-mix(in srgb, var(--color-papel) 75%, transparent) 50%, transparent 80%);
+    transform: translateX(-100%);
+    animation: tw-barrido 1100ms var(--ease-cayla) both;
+    animation-delay: calc(min(var(--i, 0), 10) * 70ms + 520ms);
+  }
+  .tw-marco-puntos { display: flex; gap: 6px; flex: none; }
+  .tw-marco-puntos i { display: block; width: 10px; height: 10px; border-radius: 999px; }
+  .tw-marco-puntos i:nth-child(1) { background: color-mix(in srgb, var(--color-rojo) 70%, var(--color-papel)); }
+  .tw-marco-puntos i:nth-child(2) { background: color-mix(in srgb, var(--color-ambar) 70%, var(--color-papel)); }
+  .tw-marco-puntos i:nth-child(3) { background: color-mix(in srgb, var(--color-verde) 70%, var(--color-papel)); }
+  .tw-marco-direccion {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    flex: 1;
+    max-width: 30rem;
+    height: 28px;
+    padding: 0 12px;
+    border: 1px solid var(--color-sand);
+    border-radius: 999px;
+    background: var(--color-papel);
+    font-size: 12.5px;
+    color: var(--color-tinta);
+  }
+  .tw-marco-direccion svg { width: 14px; height: 14px; flex: none; color: var(--color-verde-profundo); }
+  .tw-marco-direccion span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tw-marco-direccion b { font-weight: 600; }
+  .tw-marco-direccion em { font-style: normal; color: var(--color-taupe); }
+  .tw-marco-cuerpo { position: relative; }
+
+  /* ───────── El mosaico: las prendas como las ve el cliente ───────── */
+  .tw-mosaico {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 10px;
+    padding: 14px;
+  }
+  @container tw (max-width: 900px) { .tw-mosaico { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  /* En el celular, dos filas de tres: la ventana muestra la vitrina sin tapar lo que pide acción, que va debajo. */
+  @container tw (max-width: 560px) {
+    .tw-mosaico { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 10px; }
+    .tw-mosaico > :nth-child(n + 7) { display: none; }
+  }
+  .tw-tesela {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    aspect-ratio: 3 / 4;
+    border-radius: 12px;
+    background: var(--color-hueso);
+    animation: tw-tesela 560ms var(--ease-cayla) both;
+    animation-delay: calc(min(var(--i, 0), 14) * 45ms + 280ms);
+    transition: transform 240ms var(--ease-cayla), box-shadow 240ms var(--ease-cayla);
+  }
+  .tw-tesela:hover,
+  .tw-tesela:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 26px -16px color-mix(in srgb, var(--color-sombra) 55%, transparent);
+  }
+  .tw-tesela > :first-child { position: absolute; inset: 0; }
+  /* El nombre sobre la foto: la tira oscura es de la foto (no se invierte con el tema), y el texto, crema fija. */
+  .tw-tesela-pie {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 22px 9px 8px;
+    font-size: 11.5px;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--color-crema-fija);
+    background: linear-gradient(to top, color-mix(in srgb, var(--color-tinta-fija) 72%, transparent), transparent);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tw-tesela-sello {
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-tinta-fija);
+    background: color-mix(in srgb, var(--color-crema-fija) 90%, transparent);
+  }
+
+  /* ───────── El camino: los pasos de un pedido, unidos por su plazo ───────── */
+  /* En la computadora, las cifras quedan en una fila y entre cada una va su tramo; en el celular el tramo no se dibuja (las cifras van
+     de a dos, como siempre). */
+  .tw-camino { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .tw-camino-tramo,
+  .tw-camino-hueco { display: none; }
+  @media (min-width: 1024px) {
+    .tw-camino { grid-template-columns: minmax(0, 1fr) 4.75rem minmax(0, 1fr) 4.75rem minmax(0, 1fr) 1.5rem minmax(0, 1fr); gap: 0; align-items: stretch; }
+    .tw-camino-tramo { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 2px; }
+    .tw-camino-hueco { display: block; }
+  }
+  .tw-camino-tramo svg { display: block; width: 100%; height: 16px; overflow: visible; }
+  .tw-camino-linea {
+    fill: none;
+    stroke: var(--color-taupe);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-dasharray: 1;
+    animation: tw-dibuja 700ms var(--ease-cayla) both;
+    animation-delay: calc(var(--d, 0) * 160ms + 420ms);
+  }
+  .tw-camino-punta {
+    fill: var(--color-taupe);
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: tw-asoma 360ms var(--ease-cayla) both;
+    animation-delay: calc(var(--d, 0) * 160ms + 1020ms);
+  }
+  .tw-camino-verbo { font-size: 11.5px; font-weight: 600; color: var(--color-tinta); line-height: 1.1; text-align: center; }
+  .tw-camino-plazo { font-size: 11px; color: var(--color-taupe); line-height: 1.1; text-align: center; white-space: nowrap; }
+  .tw-camino-verbo,
+  .tw-camino-plazo { animation: tw-entra 420ms var(--ease-cayla) both; animation-delay: calc(var(--d, 0) * 160ms + 640ms); }
+
+  /* ───────── La bandeja del Resumen: lo que pide la tienda online hoy ───────── */
+  .tw-bandeja { display: grid; gap: 10px; }
+  @container tw (min-width: 760px) { .tw-bandeja { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .tw-pendiente {
+    --tono: var(--color-pizarra);
+    position: relative;
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px 14px 18px;
+    border: 1px solid var(--color-sand);
+    border-radius: 14px;
+    background: var(--color-papel);
+    overflow: hidden;
+    animation: tw-entra 460ms var(--ease-cayla) both;
+    animation-delay: calc(min(var(--i, 0), 12) * 55ms + 200ms);
+    transition: border-color 200ms var(--ease-cayla), transform 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
+  }
+  .tw-pendiente[data-tono="urgente"] { --tono: var(--color-rojo-profundo); }
+  .tw-pendiente[data-tono="atencion"] { --tono: var(--color-ambar-profundo); }
+  .tw-pendiente:hover { border-color: var(--color-taupe); transform: translateY(-1px); background: color-mix(in srgb, var(--color-sand) 22%, var(--color-papel)); }
+  /* El filo del tono se dibuja de arriba abajo al llegar. */
+  .tw-pendiente::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--tono);
+    transform-origin: top;
+    animation: tw-crece-y 520ms var(--ease-cayla) both;
+    animation-delay: calc(min(var(--i, 0), 12) * 55ms + 420ms);
+  }
+  @keyframes tw-crece-y { from { transform: scaleY(0); } to { transform: none; } }
+  .tw-pendiente-icono {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    color: var(--tono);
+    background: color-mix(in srgb, var(--tono) 10%, transparent);
+  }
+  .tw-pendiente-icono svg { width: 20px; height: 20px; }
+  .tw-pendiente-titulo { font-size: 14.5px; font-weight: 600; color: var(--color-tinta); line-height: 1.3; }
+  .tw-pendiente-titulo b { font-family: var(--font-serif); font-size: 21px; font-weight: 500; margin-right: 5px; font-variant-numeric: lining-nums tabular-nums; }
+  .tw-pendiente-detalle { margin-top: 2px; font-size: 12.5px; color: var(--color-taupe); line-height: 1.35; }
+  .tw-pendiente-ir {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-tinta);
+    white-space: nowrap;
+  }
+  .tw-pendiente-ir svg { width: 16px; height: 16px; transition: transform 200ms var(--ease-cayla); }
+  .tw-pendiente:hover .tw-pendiente-ir svg { transform: translateX(4px); }
+
+  /* ───────── Las tiendas en la web (Resumen) ───────── */
+  .tw-sede {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--color-sand);
+    animation: tw-entra 420ms var(--ease-cayla) both;
+    animation-delay: calc(min(var(--i, 0), 8) * 60ms + 360ms);
+  }
+  .tw-sede:last-child { border-bottom: 0; }
+  .tw-sede-punto { width: 10px; height: 10px; margin-top: 5px; border-radius: 999px; background: var(--color-tinta-60); }
+  .tw-sede-punto[data-tono="verde"] { background: var(--color-verde); }
+  .tw-sede-punto[data-tono="ambar"] { background: var(--color-ambar); }
+  .tw-sede-punto { animation: tw-asoma 380ms var(--ease-cayla) both; animation-delay: calc(min(var(--i, 0), 8) * 60ms + 520ms); }
+
+  /* ───────── La vista previa de una tienda en Ajustes: «así te ve el cliente» ───────── */
+  .tw-previa { display: grid; gap: 10px; padding: 16px; }
+  .tw-previa-nombre { font-family: var(--font-serif); font-size: 22px; line-height: 1.1; color: var(--color-tinta); overflow-wrap: anywhere; transition: color 200ms var(--ease-cayla); }
+  .tw-previa-dato { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; font-size: 12.5px; color: var(--color-tinta); line-height: 1.35; overflow-wrap: anywhere; }
+  .tw-previa-dato svg { width: 14px; height: 14px; margin-top: 1px; color: var(--color-taupe); }
+  .tw-previa-dato[data-falta] { color: var(--color-taupe); font-style: italic; }
+  .tw-previa-boton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-crema-fija);
+    background: var(--color-verde-profundo);
+    transition: opacity 200ms var(--ease-cayla);
+  }
+  .tw-previa-boton svg { width: 14px; height: 14px; }
+  .tw-previa-boton[data-apagado] { opacity: 0.4; }
+  /* Una tienda apagada se ve como el cliente NO la ve: atenuada. */
+  .tw-previa[data-apagada] { opacity: 0.55; transition: opacity 260ms var(--ease-cayla); }
+
+  /* ───────── La línea de tiempo de los plazos (Ajustes) ───────── */
+  .tw-linea { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; padding: 4px 0 2px; }
+  .tw-linea-paso { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+  .tw-linea-paso::before {
+    content: "";
+    position: absolute;
+    top: 11px;
+    left: -50%;
+    width: 100%;
+    height: 2px;
+    background: var(--color-sand);
+    transform-origin: left;
+    animation: tw-crece-x 520ms var(--ease-cayla) both;
+    animation-delay: calc(var(--i, 0) * 180ms + 200ms);
+  }
+  .tw-linea-paso:first-child::before { display: none; }
+  .tw-linea-nodo {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    border: 2px solid var(--color-tinta);
+    background: var(--color-papel);
+    color: var(--color-tinta);
+    animation: tw-asoma 380ms var(--ease-cayla) both;
+    animation-delay: calc(var(--i, 0) * 180ms + 380ms);
+  }
+  .tw-linea-nodo svg { width: 12px; height: 12px; }
+  .tw-linea-nombre { font-size: 12.5px; font-weight: 600; color: var(--color-tinta); }
+  .tw-linea-plazo { font-size: 11.5px; color: var(--color-taupe); line-height: 1.3; padding: 0 4px; }
+  .tw-linea-plazo b { font-family: var(--font-serif); font-size: 17px; font-weight: 500; color: var(--color-tinta); font-variant-numeric: lining-nums tabular-nums; }
+  @container tw (max-width: 520px) { .tw-linea { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 14px; } .tw-linea-paso:nth-child(3)::before { display: none; } }
+
+  /* ───────── Vitrina en mosaico: la vista «como la ve el cliente» ───────── */
+  .tw-vitrina { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px; padding: 16px 20px 20px; }
+  @container tw (max-width: 560px) { .tw-vitrina { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; } }
+  .tw-carta {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border: 1px solid var(--color-sand);
+    border-radius: 14px;
+    background: var(--color-papel);
+    overflow: hidden;
+    animation: tw-tesela 520ms var(--ease-cayla) both;
+    animation-delay: calc(min(var(--i, 0), 18) * 35ms + 120ms);
+    transition: border-color 200ms var(--ease-cayla), transform 220ms var(--ease-cayla), box-shadow 220ms var(--ease-cayla);
+  }
+  .tw-carta:hover { border-color: var(--color-taupe); transform: translateY(-2px); box-shadow: 0 14px 28px -20px color-mix(in srgb, var(--color-sombra) 55%, transparent); }
+  .tw-carta[data-elegida] { border-color: var(--color-tinta); box-shadow: 0 0 0 1px var(--color-tinta); }
+  .tw-carta-foto { position: relative; display: block; width: 100%; aspect-ratio: 3 / 4; background: var(--color-hueso); cursor: pointer; }
+  .tw-carta-foto > :first-child { position: absolute; inset: 0; }
+  /* Apagada: el cliente no la ve, así que la foto se apaga un poco (la tarjeta sigue legible). */
+  .tw-carta[data-oculta] .tw-carta-foto { opacity: 0.5; transition: opacity 240ms var(--ease-cayla); }
+  .tw-carta-casilla { position: absolute; top: 8px; left: 8px; z-index: 1; padding: 3px; border-radius: 8px; background: color-mix(in srgb, var(--color-papel) 88%, transparent); }
+  .tw-carta-cuerpo { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 12px; min-width: 0; }
+  .tw-carta-nombre { font-size: 13.5px; font-weight: 600; color: var(--color-tinta); line-height: 1.25; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tw-carta-nombre:hover { color: var(--color-rojo-profundo); }
+  .tw-carta-stock { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 11.5px; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
+  .tw-carta-stock span[data-cero] { color: var(--color-taupe); }
+  .tw-carta-pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 4px; border-top: 1px solid var(--color-sand); }
+  .tw-carta-pie > span { font-size: 11.5px; font-weight: 600; color: var(--color-taupe); }
+
+  /* ───────── Looks: la percha con sus prendas ───────── */
+  .tw-looks { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; padding: 16px 20px 20px; }
+  @container tw (max-width: 560px) { .tw-looks { grid-template-columns: minmax(0, 1fr); padding: 12px; } }
+  .tw-look-collage { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; width: 100%; aspect-ratio: 16 / 10; background: var(--color-hueso); cursor: pointer; }
+  .tw-carta[data-oculta] .tw-look-collage { opacity: 0.5; transition: opacity 240ms var(--ease-cayla); }
+  .tw-look-collage > span { position: relative; overflow: hidden; }
+  .tw-look-collage > span > :first-child { position: absolute; inset: 0; }
+  .tw-look-collage > span[data-no-se-ve] { opacity: 0.45; }
+  .tw-look-collage > .tw-look-lugar {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-family: var(--font-serif);
+    font-size: 16px;
+    color: var(--color-tinta-fija);
+    background: color-mix(in srgb, var(--color-crema-fija) 92%, transparent);
+  }
+
+  /* ───────── Recomendaciones: cada una como un mensaje ───────── */
+  .tw-globo {
+    position: relative;
+    width: fit-content;
+    max-width: 100%;
+    padding: 10px 14px;
+    border-radius: 4px 14px 14px 14px;
+    background: var(--color-hueso);
+    color: var(--color-tinta);
+    font-size: 13.5px;
+    line-height: 1.45;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+  .tw-globo[data-sin-leer] { background: color-mix(in srgb, var(--color-ambar) 12%, var(--color-papel)); }
+  .tw-globo-respuesta {
+    margin-left: auto;
+    max-width: 92%;
+    padding: 8px 12px;
+    border-radius: 14px 4px 14px 14px;
+    background: color-mix(in srgb, var(--color-verde) 11%, var(--color-papel));
+    color: var(--color-tinta);
+    font-size: 12.5px;
+    line-height: 1.4;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    animation: tw-entra 420ms var(--ease-cayla) both;
+    animation-delay: 180ms;
+  }
+  .tw-globo-respuesta small { display: block; margin-bottom: 2px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-verde-profundo); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tw-entra,
+  .tw-marco,
+  .tw-marco-barra::after,
+  .tw-tesela,
+  .tw-camino-linea,
+  .tw-camino-punta,
+  .tw-camino-verbo,
+  .tw-camino-plazo,
+  .tw-pendiente,
+  .tw-pendiente::before,
+  .tw-sede,
+  .tw-sede-punto,
+  .tw-linea-paso::before,
+  .tw-linea-nodo,
+  .tw-carta,
+  .tw-globo-respuesta {
+    animation: none;
+  }
+  .tw-marco-barra::after { display: none; }
+  .tw-tesela,
+  .tw-pendiente,
+  .tw-pendiente-ir svg,
+  .tw-carta,
+  .tw-carta[data-oculta] .tw-carta-foto,
+  .tw-carta[data-oculta] .tw-look-collage,
+  .tw-previa[data-apagada],
+  .tw-previa-nombre,
+  .tw-previa-boton {
+    transition: none;
+  }
+  .tw-camino-linea { stroke-dashoffset: 0; }
+}

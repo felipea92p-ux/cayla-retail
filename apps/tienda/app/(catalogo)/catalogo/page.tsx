@@ -27,7 +27,7 @@ import {
 } from "@/lib/catalogo";
 import { categoriasConLaElegida, dondeHay, gruposConLoElegido, paraSeguirMirando, queSeBusca, vacioEnTienda } from "@/lib/catalogo-lista";
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
-import { delGrupo, grupoDe, gruposDe, leerGrupo, MENUS, tituloPartido } from "@/lib/grupos";
+import { delGrupo, delMenu, grupoDe, gruposDe, leerGrupo, leerMenu, MENUS, tituloPartido } from "@/lib/grupos";
 import { fechaLarga, pctTexto } from "@/lib/portada";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
 import { leerSesion } from "@/lib/sesion-servidor";
@@ -60,7 +60,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     const categoria = categoriasDe(catalogo?.prendas ?? []).find((c) => c.clave === pedida);
     if (categoria) return { title: `${categoria.nombre} · CAYLA` };
   }
-  return { title: `${leerGrupo(sp.grupo)?.nombre ?? TITULOS.todo} · CAYLA` };
+  return { title: `${leerGrupo(sp.grupo)?.nombre ?? leerMenu(sp.menu)?.nombre ?? TITULOS.todo} · CAYLA` };
 }
 
 // Las listas del catálogo (maqueta v4, `vLista` y `filtroTienda`): toda la tienda, Lo nuevo, las ofertas (con una tarjeta por campaña),
@@ -96,18 +96,29 @@ export default async function Catalogo({ searchParams }: Props) {
   // Un grupo de categorías (lib/grupos.ts: «Arriba», «Bolsos y accesorios»…), el de los títulos de los menús de la cabecera. Con una
   // categoría elegida no hace falta: ella dice su grupo.
   const grupoPedido = categoria ? null : leerGrupo(sp.grupo);
+  // Un menú de la cabecera («Ropa», «Accesorios»): toda la ropa junta. Se queda aunque se elija un grupo o una categoría de adentro; si lo
+  // elegido es de otro menú (una dirección escrita a mano) o son los favoritos, se ignora, como un grupo que no existe.
+  const menuLeido = leerMenu(sp.menu);
+  const menuPedido =
+    menuLeido &&
+    !esFavoritos &&
+    (!categoriaElegida || grupoDe(categoriaElegida.clave).menu === menuLeido.clave) &&
+    (!grupoPedido || grupoPedido.menu === menuLeido.clave)
+      ? menuLeido
+      : null;
+  const claveMenu = menuPedido?.clave ?? null;
   // Con una tienda elegida, solo lo que hay en ella (maqueta, `hayEnFiltro`): las categorías, las campañas y el conteo salen de ahí.
   // Los favoritos, no: son lo guardado, en su orden (lo último primero), haya o no en esa tienda.
   const enLaTienda = prendas ? prendas.filter((p) => hayEnTienda(p.stock, elegida?.id ?? null)) : [];
   const favoritosSinLeer = esFavoritos && guardados === null;
-  const base = esFavoritos ? deFavoritos(prendas ?? [], guardados?.favoritos ?? []) : enLaTienda;
+  const base = esFavoritos ? deFavoritos(prendas ?? [], guardados?.favoritos ?? []) : delMenu(enLaTienda, claveMenu);
   const campanas = lista === "ofertas" ? campanasDe(base) : [];
   const campana = campanas.find((c) => c.id === leerCampana(sp.campana))?.id ?? null;
   const deLaLista = filtrarYOrdenar(base, { categoria: null, orden: "destacado", lista, campana });
   // La lista en todas las tiendas: si tampoco ahí hay nada, lo que falta no es la tienda (la lista dice su propio vacío).
-  const enTodas = esFavoritos ? deLaLista : filtrarYOrdenar(prendas ?? [], { categoria: null, orden: "destacado", lista, campana });
+  const enTodas = esFavoritos ? deLaLista : filtrarYOrdenar(delMenu(prendas ?? [], claveMenu), { categoria: null, orden: "destacado", lista, campana });
   const vista = delGrupo(filtrarYOrdenar(base, { categoria, orden, lista, campana }), grupoPedido);
-  const loPedidoEnTodas = esFavoritos ? vista : delGrupo(filtrarYOrdenar(prendas ?? [], { categoria, orden, lista, campana }), grupoPedido);
+  const loPedidoEnTodas = esFavoritos ? vista : delGrupo(filtrarYOrdenar(delMenu(prendas ?? [], claveMenu), { categoria, orden, lista, campana }), grupoPedido);
   const enOtras = loPedidoEnTodas.length - vista.length;
   // El grupo encendido: el pedido o el de la categoría elegida. Lo elegido sale en los filtros aunque esta tienda no tenga nada de eso
   // (con 0): la persona ve dónde está.
@@ -131,16 +142,19 @@ export default async function Catalogo({ searchParams }: Props) {
       ? tituloPartido(categoriaElegida.nombre)
       : lista === "todo" && grupoPedido
         ? tituloPartido(grupoPedido.nombre)
-        : cab.titulo;
+        : lista === "todo" && menuPedido
+          ? menuPedido.titulo
+          : cab.titulo;
   const href = (cambios: {
     sede?: string | null;
     categoria?: string | null;
     orden?: typeof orden;
     campana?: string | null;
     grupo?: string | null;
-  }) => hrefLista({ sede, categoria, orden, lista, campana, grupo: grupoPedido?.clave ?? null, ...cambios });
+    menu?: string | null;
+  }) => hrefLista({ sede, categoria, orden, lista, campana, grupo: grupoPedido?.clave ?? null, menu: claveMenu, ...cambios });
   // Lo pedido, para decir lo que falta («No hay cinturones en Lima»).
-  const que = queSeBusca(lista, categoriaElegida?.nombre ?? grupoPedido?.nombre ?? null);
+  const que = queSeBusca(lista, categoriaElegida?.nombre ?? grupoPedido?.nombre ?? menuPedido?.nombre ?? null);
   // Vacía en la tienda elegida, pero otra sí tiene: dónde hay y un botón que lleva allá (con lo mismo elegido).
   const vacioAqui =
     vista.length === 0 && elegida && !esFavoritos
@@ -355,7 +369,7 @@ export default async function Catalogo({ searchParams }: Props) {
             {vista.length > 0 && (
               <p className="t-conteo" aria-live="polite">
                 {conteoDeLista(vista.length, {
-                  categoria: categoriaElegida?.nombre ?? grupoPedido?.nombre ?? null,
+                  categoria: categoriaElegida?.nombre ?? grupoPedido?.nombre ?? menuPedido?.nombre ?? null,
                   tienda: esFavoritos ? null : elegida?.nombre ?? null,
                   enOtras,
                 })}
@@ -393,7 +407,7 @@ export default async function Catalogo({ searchParams }: Props) {
                 <Icono nombre="tienda" />
                 <h3>No hay {que} aquí por ahora</h3>
                 <p>Prueba con otra categoría o mira todas.</p>
-                <Link className="t-btn" href={href({ categoria: null, grupo: null })}>
+                <Link className="t-btn" href={href({ categoria: null, grupo: null, menu: null })}>
                   {lista === "todo" ? "Ver toda la tienda" : "Ver todas"}
                 </Link>
               </div>

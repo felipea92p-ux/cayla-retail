@@ -5,7 +5,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { PedidosWebPantalla } from "@/components/pedidos-web/PedidosWebPantalla";
 
-// Ventas ▸ Pedidos web (ADR-0408, actividad 8; maqueta docs/maquetas/tienda-online-2026-10, «Pedidos web»): lo que los clientes
+// Tienda web ▸ Pedidos web (ADR-0408, actividad 8; maqueta docs/maquetas/tienda-online-2026-10, «Pedidos web»): lo que los clientes
 // separaron en la tienda online para ESTA tienda, para confirmarlo; y lo que otra tienda espera de aquí, para enviarlo. La cabecera es
 // la de Ventas (`EncabezadoPagina`, ADR-0220). El pedido abierto vive en la URL (`?pedido=<id>`): se comparte, sobrevive a recargar y
 // la página lo lee junto con la lista.
@@ -19,7 +19,7 @@ export default async function PedidosWebPage({ searchParams }: { searchParams: P
   if (persona.ubicacionTipo !== "tienda") {
     return (
       <div className="space-y-6">
-        <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Pedidos web" subtitulo="Lo que los clientes separan en la tienda online." />
+        <EncabezadoPagina sede={persona.ubicacionEtiqueta} detalle="Tienda web" titulo="Pedidos" subtitulo="Lo que los clientes separan en la tienda online." />
         <Aviso tono="info" titulo="Los pedidos web se atienden en una tienda">
           Cambia a una tienda desde el selector de arriba para ver sus pedidos.
         </Aviso>
@@ -38,7 +38,8 @@ export default async function PedidosWebPage({ searchParams }: { searchParams: P
     <div className="space-y-6">
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
-        titulo="Pedidos web"
+        detalle="Tienda web"
+        titulo="Pedidos"
         subtitulo={`Lo que separaron en la web para ${persona.ubicacionEtiqueta}: revisa el stock, confírmalo, registra sus pagos y entrégalo.`}
       />
       {tablero.error ? (

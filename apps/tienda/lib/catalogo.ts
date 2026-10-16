@@ -360,6 +360,7 @@ export function hrefLista({
   lista = "todo",
   campana = null,
   grupo = null,
+  menu = null,
 }: {
   sede?: string | null;
   categoria: string | null;
@@ -368,10 +369,14 @@ export function hrefLista({
   campana?: string | null;
   /** Un grupo de categorías (`lib/grupos.ts`, «Arriba», «Bolsos y accesorios»…). Con una categoría elegida no va: ella ya dice el grupo. */
   grupo?: string | null;
+  /** Un menú de la cabecera (`lib/grupos.ts`: «ropa», «accesorios»): toda la ropa junta. Se queda aunque se elija un grupo o una categoría
+   *  de adentro, para que la lista siga siendo «dentro de la ropa». */
+  menu?: string | null;
 }): string {
   const q = new URLSearchParams();
   if (lista !== "todo") q.set("lista", lista);
   if (sede) q.set("sede", sede);
+  if (menu) q.set("menu", menu);
   if (categoria) q.set("categoria", categoria);
   else if (grupo) q.set("grupo", grupo);
   if (lista === "ofertas" && campana) q.set("campana", campana);

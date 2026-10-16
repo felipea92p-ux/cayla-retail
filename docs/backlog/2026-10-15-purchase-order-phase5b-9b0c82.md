@@ -21,10 +21,8 @@
   - Después: las 16 funciones con la misma huella que el banco y los mismos permisos; las 22 anclas, «ya aplicado»; las tablas nuevas, con
     RLS y sin lectura directa. Las dos migraciones de seguridad que otra sesión pegó antes (`20261015221000`, `20261015222000`) no tocan
     nada de esta fase.
-- [ ] **Refrescar el volcado y el diccionario** (`pnpm datos:refrescar`, ver `docs/datos/generado/COMO-REFRESCAR.md`): queda aparte.
-  Producción ya tiene 21 tablas que el volcado no conoce: las 2 de esta fase y 19 de la tienda online, el padrón, Apartados y los datos
-  bancarios de los proveedores. Cada una necesita su pájaro en `scripts/datos/aviario.mjs`, y elegir el dueño de tablas de otros módulos
-  no es de esta fase.
+- [x] **Volcado y diccionario refrescados** el 2026-10-16 (rama `claude/volcado-produccion-2026-10-16`): las dos tablas de esta fase van
+  con Pelícano, junto a `compra_notas_credito`.
 - [ ] **`/formidable`:** los 3 cambios propuestos ([compras-nos-debe-plata](../formidable/compras-nos-debe-plata.md)) van en otro PR,
   después de la prueba ciega (Felipe 2026-10-15). Falta también la prueba con una colaboradora real.
 - [ ] **El contador:** el código y el nombre de la 4019; si la devolución de una dañada de factura necesita otra cosa que la nota 07.
