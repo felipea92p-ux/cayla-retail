@@ -13,7 +13,6 @@ import {
   deUnidad,
   diasDelMes,
   equilibrio,
-  frasesSalud,
   leerResumen,
   leerVerResumen,
   miniPresupuesto,
@@ -97,39 +96,8 @@ describe("punto de equilibrio (la regla de F5) y el día en que se cubre", () =>
   });
 });
 
-describe("la salud, en frases", () => {
-  it("CAYLA entera: días de caja, el día en que cubre sus costos y la meta del mes (spike)", () => {
-    const fs = frasesSalud(todas());
-    expect(fs.map((f) => f.n)).toEqual(["14 días", "día 30", "97,2 %"]);
-    expect(fs.map((f) => f.tono)).toEqual(["ambar", "ambar", "verde"]);
-    expect(fs[0]!.d).toBe("S/\u00a060,410 disponibles contra S/\u00a04,092 que salen en un día normal. La semana del 12 – 18 oct bajas de tu mínimo.");
-    expect(fs[1]!.d).toContain("Lo que vende después del día 30 (solo 1 día) es la ganancia.");
-    expect(fs[2]!.d).toBe("Meta S/\u00a0103,958; vas en S/\u00a080,851 y al cierre llegarías a S/\u00a0101,064.");
-  });
-
-  it("una tienda: cuándo cubre sus costos y cuánto se va en alquiler", () => {
-    const fs = frasesSalud(tru());
-    expect(fs.map((f) => [f.n, f.tono])).toEqual([
-      ["día 18", "verde"],
-      ["10,2 %", "verde"],
-    ]);
-  });
-
-  it("el Taller y la empresa: lo que costaron y en qué se fue", () => {
-    const [f] = frasesSalud(leerResumen(fixture.taller));
-    expect(f!.n).toBe("S/\u00a01,170");
-    expect(f!.t).toBe("costó el Taller en agosto");
-    expect(f!.d).toMatch(/^Alquileres S\/\u00a01,800 · Servicios básicos S\/\u00a0710 · Suministros S\/\u00a0520 · lo demás/);
-    expect(frasesSalud(leerResumen(fixture.empresa))[0]!.t).toBe("costó lo de la empresa en agosto");
-  });
-
-  it("sin datos, se dice por qué, sin inventar un número", () => {
-    const r = leerResumen(fixture.colaboradora);
-    const [f] = frasesSalud(r);
-    expect(f!.n).toBe("—");
-    expect(f!.d).toBe("Sin ventas en agosto para calcularlo.");
-  });
-});
+// Las frases de salud del spike («14 días de caja», «cubre sus costos el día 30») salieron del Resumen con el camino A
+// (ADR-0417, 2026-10-15): lo que decían lo dice ahora El Pulso (`pulso-reglas.ts`), con su propia prueba.
 
 describe("las cinco cifras", () => {
   it("CAYLA entera, con los números del spike", () => {
@@ -403,13 +371,6 @@ describe("Finanzas cuenta desde una fecha", () => {
     const r = conCorte(fixture.todas, "2026-09-01", "2026-08");
     const u = cifrasResumen(r).find((c) => c.clave === "utilidad")!;
     expect(u).toMatchObject({ etiqueta: "Utilidad de septiembre", valor: "—", detalle: "Se mide cuando el mes termine", rojo: false });
-  });
-
-  it("la frase de cuándo se cubren los costos explica el corte en vez de desaparecer", () => {
-    const r = conCorte(fixture.todas, "2026-09-01", "2026-08");
-    const f = frasesSalud(r).find((x) => x.clave === "equilibrio")!;
-    expect(f).toMatchObject({ n: "—", tono: "pizarra" });
-    expect(f.d).toContain("1 de septiembre de 2026");
   });
 
   it("el gráfico de cobertura queda sin barras y sin 'sin ventas' inventados", () => {

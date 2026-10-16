@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { CabeceraReportes } from "@/components/finanzas/CabeceraReportes";
+import { ResultadoPulso } from "@/components/finanzas/ResultadoPulso";
 import { Herramientas, ListaDatos, PieTabla, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { fechaCorta, mesDe, mesesRecientes, rangoMes } from "@/lib/gastos-reglas";
 import {
@@ -142,6 +143,9 @@ export function EstadoResultadosPanel({
           {f}
         </p>
       ))}
+
+      {/* Camino A (Felipe 2026-10-15): la respuesta grande de lo que se mira, antes del cuadro. CAYLA entera es la columna del consolidado. */}
+      <ResultadoPulso fila={(ver === "todas" ? filas.find((f) => f.unidad === "consolidado") : columnas[0]) ?? null} mes={mes} enCurso={mes === mesDe(hoy)} />
 
       <div {...entra(1)}>
         <Superficie>
