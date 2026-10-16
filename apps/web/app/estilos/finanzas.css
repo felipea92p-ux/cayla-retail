@@ -2281,3 +2281,46 @@
     }
   }
 }
+
+/* ---- Cuentas y dinero en camino A: las partes de «tienes» y las dos preguntas de al lado. ---- */
+@layer components {
+  .fin-dinero-partes {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  .fin-dinero-partes > li {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--color-hueso);
+    font-size: 13px;
+  }
+  .fin-dinero-partes > li > b {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-dinero-partes > li[data-deuda] > b {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-dinero-alcanza {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .fin-dinero-alcanza > .nota-cayla {
+    flex-basis: 100%;
+  }
+  .fin-dinero-ver {
+    flex-basis: 100%;
+    font-size: 13.5px;
+    margin-top: 6px;
+  }
+}

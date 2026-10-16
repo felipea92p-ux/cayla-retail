@@ -393,6 +393,26 @@ export const GUIA_FIN_CUENTAS: Guia = {
     },
     { ...PESTANAS_DINERO, preparar: [{ tipo: "escape" }] },
     {
+      id: "pulso",
+      ancla: "fin-dinero.pulso",
+      titulo: "¿Dónde está mi plata?",
+      texto: "La respuesta grande: todo lo que tienes, sumado de los bancos, lo que la máquina de tarjeta todavía no deposita y el efectivo de cajones y cajas fuertes. La tarjeta de crédito va aparte, porque es deuda. Nada se escribe a mano: sale de los movimientos.",
+    },
+    {
+      id: "alcanza",
+      ancla: "fin-dinero.alcanza",
+      opcional: true,
+      titulo: "¿Me alcanza?",
+      texto: "La primera semana de las próximas seis en que la plata bajaría de tu mínimo de caja, con lo que vence y lo que esperas vender. Y qué pasa si depositas lo que está guardado en las cajas fuertes.",
+    },
+    {
+      id: "debes",
+      ancla: "fin-dinero.debes",
+      opcional: true,
+      titulo: "¿Qué debes?",
+      texto: "Lo vencido primero y lo próximo que vence, de todas las facturas por pagar. Si hay una factura sin anotar, no está aquí: por eso el medidor de confianza del Resumen las cuenta.",
+    },
+    {
       id: "cuentas",
       ancla: "fin-dinero.cuentas",
       titulo: "Cada lugar con su saldo",
