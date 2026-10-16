@@ -14,6 +14,8 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
+import { BarraAvance } from "@/components/ui/BarraAvance";
+import { Camino } from "@/components/tienda-web/Camino";
 import { PedidoWebHoja } from "@/components/pedidos-web/PedidoWebHoja";
 import { EnviarPedidoWebHoja } from "@/components/pedidos-web/EnviarPedidoWebHoja";
 import { RegistrarPagoHoja } from "@/components/pedidos-web/RegistrarPagoHoja";
@@ -28,12 +30,14 @@ import {
   momentoDe,
   PESTANAS_PEDIDOS,
   plazoCorto,
+  relojDelPlazo,
   URGENTE_MS,
   type EnvioPorHacer,
   type PagoDeLista,
   type ParaEnviar,
   type PedidoDeLista,
   type PedidoDetalle,
+  type PlazosPedidosWeb,
   type PestanaPedidos,
   type PrendaWeb,
   type TableroPedidosWeb,
@@ -154,69 +158,87 @@ export function PedidosWebPantalla({
         </Aviso>
       )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-guia="pedidos-web.cifras">
-        <TarjetaCifra
-          punto={cifras.porConfirmar > 0 ? (cifras.proximoVenceEnMs !== null && cifras.proximoVenceEnMs < URGENTE_MS ? "rojo" : "ambar") : "neutro"}
-          etiqueta="Por confirmar"
-          className="anim-entra"
-          style={{ ["--i" as string]: 0 }}
-          valor={<CifraQueCuenta valor={cifras.porConfirmar} alMontar />}
-          activa={pestana === "confirmar"}
-          onClick={() => cambiarPestana("confirmar")}
-        >
-          {cifras.proximoVenceEnMs !== null ? `El próximo vence en ${plazoCorto(cifras.proximoVenceEnMs)}` : "Nada esperando"}
-        </TarjetaCifra>
-        <TarjetaCifra
-          punto={cifras.sinPagar > 0 ? "rojo" : cifras.confirmados > 0 ? "ambar" : "neutro"}
-          etiqueta="Por cobrar"
-          className="anim-entra"
-          style={{ ["--i" as string]: 1 }}
-          valor={<CifraQueCuenta valor={cifras.porCobrar} formato="soles" alMontar />}
-          activa={pestana === "cobrar"}
-          onClick={() => cambiarPestana("cobrar")}
-        >
-          {cifras.sinPagar > 0
-            ? `${cifras.sinPagar} sin pagar hace más de ${plazos.horasAvisoSinPagar} h`
-            : cifras.confirmados === 0
-              ? "Nada por cobrar"
-              : `${cifras.confirmados} ${cifras.confirmados === 1 ? "pedido confirmado" : "pedidos confirmados"}`}
-        </TarjetaCifra>
-        <TarjetaCifra
-          punto={cifras.sinRecoger > 0 ? "rojo" : cifras.porEntregar > 0 ? "verde" : "neutro"}
-          etiqueta="Por entregar"
-          className="anim-entra"
-          style={{ ["--i" as string]: 2 }}
-          valor={<CifraQueCuenta valor={cifras.porEntregar} alMontar />}
-          activa={pestana === "entregar"}
-          onClick={() => cambiarPestana("entregar")}
-        >
-          {cifras.sinRecoger > 0 ? `${cifras.sinRecoger} sin recoger hace más de ${plazos.diasAvisoSinRecoger} días` : "Pagados"}
-        </TarjetaCifra>
-        {cifras.porDevolver > 0 ? (
-          // Plata de clientes en pedidos anulados: lo que falta hacer con el dinero va primero (lleva a «Cerrados»).
+      {/* El camino del pedido (ADR-0430): las tres cifras de los pasos, unidas por lo que las hace avanzar y su plazo; cada una sigue
+          filtrando la lista como antes. «Cobrado hoy» va aparte: no es un paso del pedido. */}
+      <Camino
+        etiqueta="El camino de los pedidos web: cada cifra muestra los pedidos de ese paso"
+        guia="pedidos-web.cifras"
+        tramos={[
+          { verbo: "Confirmas", plazo: `en ${plazos.horasParaConfirmar} h` },
+          { verbo: "Paga", plazo: `en ${plazos.horasAvisoSinPagar} h` },
+        ]}
+        pasos={[
           <TarjetaCifra
-            punto="rojo"
-            etiqueta="Cobrado hoy"
+            key="confirmar"
+            punto={cifras.porConfirmar > 0 ? (cifras.proximoVenceEnMs !== null && cifras.proximoVenceEnMs < URGENTE_MS ? "rojo" : "ambar") : "neutro"}
+            vivo={cifras.proximoVenceEnMs !== null && cifras.proximoVenceEnMs < URGENTE_MS}
+            etiqueta="Por confirmar"
             className="anim-entra"
-            style={{ ["--i" as string]: 3 }}
-            valor={<CifraQueCuenta valor={cifras.cobradoHoy} formato="soles" alMontar />}
-            activa={pestana === "cerrados"}
-            onClick={() => cambiarPestana("cerrados")}
+            style={{ ["--i" as string]: 0 }}
+            valor={<CifraQueCuenta valor={cifras.porConfirmar} alMontar />}
+            activa={pestana === "confirmar"}
+            onClick={() => cambiarPestana("confirmar")}
           >
-            {`${soles(cifras.porDevolver)} por devolver en ${cifras.pedidosPorDevolver} ${cifras.pedidosPorDevolver === 1 ? "pedido anulado" : "pedidos anulados"}`}
-          </TarjetaCifra>
-        ) : (
+            {cifras.proximoVenceEnMs !== null ? `El próximo vence en ${plazoCorto(cifras.proximoVenceEnMs)}` : "Nada esperando"}
+          </TarjetaCifra>,
           <TarjetaCifra
-            punto="neutro"
-            etiqueta="Cobrado hoy"
+            key="cobrar"
+            punto={cifras.sinPagar > 0 ? "rojo" : cifras.confirmados > 0 ? "ambar" : "neutro"}
+            etiqueta="Por cobrar"
             className="anim-entra"
-            style={{ ["--i" as string]: 3 }}
-            valor={<CifraQueCuenta valor={cifras.cobradoHoy} formato="soles" alMontar />}
+            style={{ ["--i" as string]: 1 }}
+            valor={<CifraQueCuenta valor={cifras.porCobrar} formato="soles" alMontar />}
+            activa={pestana === "cobrar"}
+            onClick={() => cambiarPestana("cobrar")}
           >
-            En pedidos web
-          </TarjetaCifra>
-        )}
-      </div>
+            {cifras.sinPagar > 0
+              ? `${cifras.sinPagar} sin pagar hace más de ${plazos.horasAvisoSinPagar} h`
+              : cifras.confirmados === 0
+                ? "Nada por cobrar"
+                : `${cifras.confirmados} ${cifras.confirmados === 1 ? "pedido confirmado" : "pedidos confirmados"}`}
+          </TarjetaCifra>,
+          <TarjetaCifra
+            key="entregar"
+            punto={cifras.sinRecoger > 0 ? "rojo" : cifras.porEntregar > 0 ? "verde" : "neutro"}
+            etiqueta="Por entregar"
+            className="anim-entra"
+            style={{ ["--i" as string]: 2 }}
+            valor={<CifraQueCuenta valor={cifras.porEntregar} alMontar />}
+            activa={pestana === "entregar"}
+            onClick={() => cambiarPestana("entregar")}
+          >
+            {cifras.sinRecoger > 0
+              ? `${cifras.sinRecoger} sin recoger hace más de ${plazos.diasAvisoSinRecoger} días`
+              : `Pagados: recogen en ${plazos.diasAvisoSinRecoger} días, con su código`}
+          </TarjetaCifra>,
+        ]}
+        cierre={
+          cifras.porDevolver > 0 ? (
+            // Plata de clientes en pedidos anulados: lo que falta hacer con el dinero va primero (lleva a «Cerrados»).
+            <TarjetaCifra
+              punto="rojo"
+              etiqueta="Cobrado hoy"
+              className="anim-entra"
+              style={{ ["--i" as string]: 3 }}
+              valor={<CifraQueCuenta valor={cifras.cobradoHoy} formato="soles" alMontar />}
+              activa={pestana === "cerrados"}
+              onClick={() => cambiarPestana("cerrados")}
+            >
+              {`${soles(cifras.porDevolver)} por devolver en ${cifras.pedidosPorDevolver} ${cifras.pedidosPorDevolver === 1 ? "pedido anulado" : "pedidos anulados"}`}
+            </TarjetaCifra>
+          ) : (
+            <TarjetaCifra
+              punto="neutro"
+              etiqueta="Cobrado hoy"
+              className="anim-entra"
+              style={{ ["--i" as string]: 3 }}
+              valor={<CifraQueCuenta valor={cifras.cobradoHoy} formato="soles" alMontar />}
+            >
+              En pedidos web
+            </TarjetaCifra>
+          )
+        }
+      />
 
       {tablero.paraEnviar.length > 0 && (
         <ParaEnviarSeccion
@@ -257,6 +279,8 @@ export function PedidosWebPantalla({
                 key={p.id}
                 pedido={p}
                 ahora={ahora}
+                plazos={plazos}
+                indice={i}
                 abierto={abierto?.id === p.id}
                 recien={recien === p.id}
                 primera={i === 0}
@@ -383,6 +407,8 @@ export function PedidosWebPantalla({
 function FilaPedido({
   pedido: p,
   ahora,
+  plazos,
+  indice,
   abierto,
   recien,
   primera,
@@ -390,12 +416,15 @@ function FilaPedido({
 }: {
   pedido: PedidoDeLista;
   ahora: number;
+  plazos: PlazosPedidosWeb;
+  indice: number;
   abierto: boolean;
   recien: boolean;
   primera: boolean;
   onAbrir: () => void;
 }) {
   const estado = estadoVisible(p, ahora);
+  const reloj = relojDelPlazo(p, plazos, ahora);
   const vistas = p.prendasVista.slice(0, 4);
   return (
     <div
@@ -453,6 +482,8 @@ function FilaPedido({
           {estado.texto}
         </Chip>
         {estado.accion && <span className="mt-0.5 block truncate text-[12px] text-taupe">{estado.accion}</span>}
+        {/* El reloj de su plazo (ADR-0430): cuánto lleva del tiempo de este paso; se llena una vez al verse. */}
+        {reloj && <BarraAvance pct={reloj.pct} alto="fina" tono={reloj.tono} indice={indice} etiqueta={reloj.texto} className="mt-1.5 block max-w-[11rem]" />}
       </span>
     </div>
   );

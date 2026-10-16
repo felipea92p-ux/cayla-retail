@@ -82,8 +82,8 @@ export const GUIA_PEDIDOS_WEB: Guia = {
     {
       id: "cifras",
       ancla: "pedidos-web.cifras",
-      titulo: "Cómo va tu tienda",
-      texto: "Cuántos esperan que los confirmes y cuándo vence el primero, cuánto falta cobrar, cuántos pagaron y esperan recoger, y lo cobrado hoy (o, si un pedido anulado ya había pagado, lo que falta devolverle). Toca una cifra y la lista muestra esos pedidos.",
+      titulo: "El camino de un pedido",
+      texto: "Un pedido pasa por tres pasos: lo confirmas, el cliente paga y lo recoge; entre cada paso va su plazo. Cada cifra dice cuántos hay en ese paso y toca para ver la lista. Aparte, lo cobrado hoy (o lo que falta devolver de un anulado).",
     },
     {
       id: "para-enviar",

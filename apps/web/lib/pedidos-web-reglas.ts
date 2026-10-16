@@ -539,6 +539,42 @@ export function estadoVisible(
   return { texto: "Anulado", tono: "apagado", vivo: false, accion: "" };
 }
 
+/**
+ * El RELOJ del plazo de un pedido abierto (Tienda web ▸ Pedidos, ADR-0430): cuánto lleva del plazo del paso en que está, para la barra
+ * fina de su fila. Por confirmar: de las horas para confirmar, desde que se separó (se cierra solo al llegar). Confirmado: de las horas
+ * del aviso «sin pagar», desde que se confirmó. Pagado: de los días para recoger, desde que se pagó. El tono es el mismo que ya decide
+ * `estadoVisible` (rojo si urge o ya pasó; ámbar pasada la mitad), así barra y chip nunca dicen dos cosas. `null`: nada que medir.
+ */
+export function relojDelPlazo(
+  p: Pick<PedidoDeLista, "estado" | "creadoEn" | "venceEn" | "confirmadoEn" | "pagadoEn" | "sinPagar" | "sinRecoger">,
+  plazos: PlazosPedidosWeb,
+  ahora: number,
+): { pct: number; tono: "tinta" | "ambar" | "rojo"; texto: string } | null {
+  const medir = (desde: string | null, totalMs: number, nombre: string) => {
+    const d = desde ? Date.parse(desde) : Number.NaN;
+    if (!Number.isFinite(d) || totalMs <= 0) return null;
+    const pct = Math.min(100, Math.max(0, ((ahora - d) / totalMs) * 100));
+    return { pct, texto: `Lleva ${Math.round(pct)} % del plazo para ${nombre}` };
+  };
+  if (p.estado === "por_confirmar") {
+    const total = plazos.horasParaConfirmar * HORA;
+    const desde = p.venceEn ? new Date(Date.parse(p.venceEn) - total).toISOString() : p.creadoEn;
+    const m = medir(desde, total, "confirmar");
+    if (!m) return null;
+    const queda = p.venceEn ? Date.parse(p.venceEn) - ahora : total * (1 - m.pct / 100);
+    return { ...m, tono: queda < URGENTE_MS ? "rojo" : m.pct >= 50 ? "ambar" : "tinta" };
+  }
+  if (p.estado === "confirmado") {
+    const m = medir(p.confirmadoEn, plazos.horasAvisoSinPagar * HORA, "pagar");
+    return m && { ...m, tono: p.sinPagar ? "rojo" : m.pct >= 50 ? "ambar" : "tinta" };
+  }
+  if (p.estado === "pagado") {
+    const m = medir(p.pagadoEn, plazos.diasAvisoSinRecoger * 24 * HORA, "recoger");
+    return m && { ...m, tono: p.sinRecoger ? "rojo" : m.pct >= 50 ? "ambar" : "tinta" };
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------------------------------------------------------
 // Los motivos (los mismos que acepta la base)
 // ---------------------------------------------------------------------------------------------------------------------------
