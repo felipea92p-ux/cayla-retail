@@ -189,7 +189,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       opcional: true,
       ...CAJA_ABIERTA,
       titulo: "Cobrar",
-      texto: "Abre la hoja de cobro: eliges cómo paga (efectivo, tarjeta, Yape o QR, o varios a la vez), cuánto entrega para calcular el vuelto y si quiere boleta o factura con su DNI o RUC. La venta se guarda solo al confirmar. En la demo no lo tocamos.",
+      texto: "Abre la hoja de cobro: eliges cómo paga (efectivo, tarjeta, Yape o QR, o varios), cuánto entrega para el vuelto y si quiere boleta o factura con su DNI o RUC. Con dos máquinas de tarjeta en la tienda, marcas en cuál la pasaste (Vendemás viene marcada). Se guarda solo al confirmar. En la demo no lo tocamos.",
     },
     {
       id: "barra-ticket",

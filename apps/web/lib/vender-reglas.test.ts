@@ -23,6 +23,12 @@ import {
   pasoDelDescuento,
   pagosCobrados,
   pagosParaRpc,
+  pagoNuevo,
+  cuentaPorDefecto,
+  leerMaquinasDeCobro,
+  maquinasPara,
+  nombreMaquina,
+  preguntaMaquina,
   pagosTrasEditarMonto,
   pasoDelCobro,
   porcentajeDeLinea,
@@ -1119,5 +1125,57 @@ describe("tiposDeComprobanteDeLaSede — solo los comprobantes con serie", () =>
   it("si la lectura falló o la sede no tiene ninguna serie, se ofrecen los tres (cobrar dice qué falta)", () => {
     expect(tiposDeComprobanteDeLaSede(null)).toEqual(["boleta", "factura", "nota_venta"]);
     expect(tiposDeComprobanteDeLaSede([])).toEqual(["boleta", "factura", "nota_venta"]);
+  });
+});
+
+describe("la máquina que cobró la tarjeta o el QR (ADR-0429)", () => {
+  const filas = [
+    { maquina_id: "izi", nombre: "Izipay", cuenta_id: "pdi", medio: "tarjeta", por_defecto: false },
+    { maquina_id: "izi", nombre: "Izipay", cuenta_id: "pdi", medio: "qr", por_defecto: true },
+    { maquina_id: "ven", nombre: "Vendemás", cuenta_id: "pdv", medio: "tarjeta", por_defecto: true },
+    { maquina_id: null, nombre: "rara", cuenta_id: "x", medio: "tarjeta", por_defecto: true },
+    { maquina_id: "y", nombre: "otra", cuenta_id: "y", medio: "yape", por_defecto: true },
+  ];
+  const tru = leerMaquinasDeCobro(filas);
+  const lim = leerMaquinasDeCobro(filas.filter((f) => f.maquina_id === "izi")).map((m) => ({ ...m, porDefecto: true }));
+
+  it("las filas de la base se leen; una sin id o con otro medio se descarta sin tumbar la caja", () => {
+    expect(tru.map((m) => `${m.nombre}:${m.medio}:${m.porDefecto}`)).toEqual(["Izipay:tarjeta:false", "Izipay:qr:true", "Vendemás:tarjeta:true"]);
+    expect(leerMaquinasDeCobro(null)).toEqual([]);
+  });
+
+  it("Trujillo pregunta por la tarjeta (dos máquinas), no por el QR ni por Yape; Lima no pregunta nada", () => {
+    expect(preguntaMaquina(tru, "tarjeta")).toBe(true);
+    expect(preguntaMaquina(tru, "qr")).toBe(false);
+    expect(preguntaMaquina(tru, "yape")).toBe(false);
+    expect(preguntaMaquina(lim, "tarjeta")).toBe(false);
+    expect(maquinasPara(tru, "efectivo")).toEqual([]);
+  });
+
+  it("un pago nace con la máquina por defecto de la tienda; sin máquinas, sin cuenta (la base decide sola)", () => {
+    expect(pagoNuevo("tarjeta", 50, tru)).toEqual({ metodo: "tarjeta", monto: 50, cuentaId: "pdv" });
+    expect(pagoNuevo("qr", 50, tru)).toEqual({ metodo: "qr", monto: 50, cuentaId: "pdi" });
+    expect(pagoNuevo("efectivo", 50, tru)).toEqual({ metodo: "efectivo", monto: 50 });
+    expect(pagoNuevo("tarjeta", 50, [])).toEqual({ metodo: "tarjeta", monto: 50 });
+    // Si ninguna está marcada como defecto pero hay una sola, esa.
+    expect(cuentaPorDefecto(tru.map((m) => ({ ...m, porDefecto: false })).filter((m) => m.medio === "qr"), "qr")).toBe("pdi");
+    // Dos sin defecto: ninguna (la cajera elige o la base decide).
+    expect(cuentaPorDefecto(tru.map((m) => ({ ...m, porDefecto: false })), "tarjeta")).toBeUndefined();
+  });
+
+  it("la pista dice en qué máquina cobrar", () => {
+    expect(nombreMaquina(tru, { metodo: "tarjeta", cuentaId: "pdi" })).toBe("Izipay");
+    expect(nombreMaquina(tru, { metodo: "tarjeta" })).toBeNull();
+    expect(nombreMaquina(tru, { metodo: "yape", cuentaId: "pdi" })).toBeNull();
+  });
+
+  it("la máquina viaja a registrar_venta como `cuenta_id`, solo con tarjeta o QR y solo si está puesta", () => {
+    expect(pagosParaRpc([{ metodo: "tarjeta", monto: 60, cuentaId: "pdv" }, { metodo: "qr", monto: 40, cuentaId: "pdi" }])).toEqual([
+      { metodo: "tarjeta", monto: 60, cuenta_id: "pdv" },
+      { metodo: "qr", monto: 40, cuenta_id: "pdi" },
+    ]);
+    expect(pagosParaRpc([{ metodo: "tarjeta", monto: 100 }])).toEqual([{ metodo: "tarjeta", monto: 100 }]);
+    const [yape] = pagosParaRpc([{ metodo: "yape", monto: 100, cuentaId: "pdi", referencia: "123" }]);
+    expect(yape).toEqual({ metodo: "yape", monto: 100, referencia: "123" });
   });
 });

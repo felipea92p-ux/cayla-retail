@@ -192,6 +192,38 @@ select pg_temp.intento(format('update retail.venta_pagos set cuenta_dinero_id = 
   esperar("la cuenta de un cobro sigue sin cambiar después", r.ok && cambiar.includes("se sella al cobrar"), r);
 }
 
+// 3b. Actividad 2 (20261016182000): lo que la hoja marca viaja en `p_pagos[].cuenta_id` y `registrar_venta` lo guarda; lo que
+//     no sirve no tumba la venta.
+{
+  const ventaCon = (nombre, ubic, pagos) => `
+select retail.registrar_venta(:'${ubic}',
+  jsonb_build_array(jsonb_build_object('variante_id', :'v', 'cantidad', 1, 'precio_unitario', 100, 'descuento_unitario', 0)),
+  jsonb_build_array(${pagos.map(([m, monto, cuenta]) => `jsonb_build_object('metodo', '${m}', 'monto', ${monto}${cuenta ? `, 'cuenta_id', ${cuenta}` : ""})`).join(", ")}),
+  null, gen_random_uuid(), p_descuento_pct => 0) as ${nombre} \\gset
+`;
+  const r = correr(`${ESCENA}
+${ventaCon("v1", "tru", [["tarjeta", 100, ":'izipay_cta'"]])}
+select pg_temp.cta(cuenta_dinero_id) from retail.venta_pagos where venta_id = :'v1';
+${ventaCon("v2", "tru", [["tarjeta", 60, ":'vendemas_cta'"], ["qr", 40, ":'izipay_cta'"]])}
+select string_agg(metodo || ':' || pg_temp.cta(cuenta_dinero_id), ',' order by metodo) from retail.venta_pagos where venta_id = :'v2';
+select retail.abrir_caja(:'lim', 100.00, 'prueba automatizada') as caja_lim \\gset
+${ventaCon("v3", "lim", [["tarjeta", 100, ":'vendemas_cta'"]])}
+select pg_temp.cta(cuenta_dinero_id), (select estado from retail.ventas where id = :'v3') from retail.venta_pagos where venta_id = :'v3';
+${ventaCon("v4", "tru", [["tarjeta", 100, "'no-es-un-uuid'"]])}
+select pg_temp.cta(cuenta_dinero_id), (select estado from retail.ventas where id = :'v4') from retail.venta_pagos where venta_id = :'v4';
+${ventaCon("v5", "tru", [["yape", 100, ":'izipay_cta'"]])}
+select pg_temp.cta(cuenta_dinero_id) from retail.venta_pagos where venta_id = :'v5';
+${ventaCon("v6", "tru", [["tarjeta", 100, ":'cajon_tru'"]])}
+select pg_temp.cta(cuenta_dinero_id), (select estado from retail.ventas where id = :'v6') from retail.venta_pagos where venta_id = :'v6';`);
+  const [izipay, dos, limVendemas, basura, yape, cajon] = lineas(r);
+  esperar("la hoja marcó Izipay para la tarjeta en Trujillo: se sella en Izipay (no en la de defecto)", r.ok && izipay === "Por depositar Izipay", r);
+  esperar("tarjeta en Vendemás y QR en Izipay en la misma venta, cada uno en su puente", r.ok && dos === "qr:Por depositar Izipay,tarjeta:Por depositar Vendemás", r);
+  esperar("Vendemás marcada en Lima (donde no opera): la venta se completa y el cobro queda «sin cuenta»", r.ok && limVendemas === "-|completada", r);
+  esperar("un `cuenta_id` que no es un uuid no tumba la venta: se sella la máquina por defecto", r.ok && basura === "Por depositar Vendemás|completada", r);
+  esperar("con Yape el `cuenta_id` se ignora (no es de una máquina)", r.ok && yape === "-", r);
+  esperar("un cajón como «máquina» no pasa el sello: «sin cuenta», venta completa", r.ok && cajon === "-|completada", r);
+}
+
 // 4. Lo que ve la hoja de cobro y lo que ve Configuración.
 {
   const r = correr(`${ESCENA}
