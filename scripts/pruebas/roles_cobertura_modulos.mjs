@@ -142,6 +142,12 @@ const SOLO_PANTALLA = {
   cambios: "registrar_cambio solo mira la sede; cambios_select deja leer a líder o a quien opera esa sede.",
   // devoluciones salió el 2026-10-09: anular_venta la exige (fn_ve_modulo, 20261009182413_anular_venta_quien_ve_devoluciones).
   facturacion: "emitir_comprobante solo comprueba la sede; comprobantes_select deja leer a líder o a la sede.",
+  // Una decisión, no una deuda (ADR-0430, 2026-10-16): el Resumen no guarda nada ni lee nada propio.
+  tienda_web:
+    "es un tablero, no un candado (ADR-0430): el Resumen de la tienda web no guarda nada y no tiene lectura propia. Cada " +
+    "parte la lee la función de SU módulo, que ya lo exige (fn_pedidos_web_tablero → fn_pedido_web_exigir, fn_vitrina_* → " +
+    "vitrina_web, fn_recomendaciones → recomendaciones, fn_configuracion_tienda_web → configuracion), y la página solo pide " +
+    "la parte cuyo módulo ve la cuenta. Apagarlo esconde la vista de conjunto; no abre ni cierra ningún dato.",
   // recibir salió el 2026-10-12: fn_ve_costos_al_recibir lo pide para confirmar un costo fuera de lo normal al recibir
   // (20261012202000, ADR-0387: «el módulo es la llave»); recibir_lote, recibir_compras y recibir_insumo siguen mirando solo la sede.
   // produccion salió el 2026-10-15: fn_ordenes_insumo_por_recibir y recibir_orden_insumo lo piden para recibir en el Taller contra la orden
