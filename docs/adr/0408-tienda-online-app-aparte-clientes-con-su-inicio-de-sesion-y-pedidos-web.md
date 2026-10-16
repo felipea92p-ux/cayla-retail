@@ -290,3 +290,28 @@ Felipe decidió cómo salir sin costos nuevos y sin dominio por ahora; el primer
 - **Las fotos no dependen de una variable en producción:** `TIENDA_FOTOS_ORIGEN` llegaba a la tienda al funcionar pero no al compilar, y
   el optimizador rechazaba todas las fotos (400). En toda compilación de producción, `next.config.ts` acepta el almacén de CAYLA
   aunque la variable falte (con `NODE_ENV`: la tienda solo lee sus variables y las de Next, `lib/candados.test.ts`).
+
+## Actualización 2026-10-15 (f): la revisión completa de la tienda, con un banco de prendas reales
+
+Felipe pidió, con la tienda ya en producción, «revisar cada pantalla y hacerle mejoras visuales, amigables e intuitivas, y probar que
+todo funcione». Se hizo contra un **banco de pruebas propio** (una base `supabase` aparte con las 720 migraciones, 64 prendas reales
+de producción con sus fotos públicas, tallas y stock en dos tiendas, una campaña y tres looks; nada de eso va al repo), en cuatro áreas
+a la vez y probando cada flujo como un cliente, a 375 y 1280 px, en claro y oscuro. Lo estructural que quedó:
+
+- **Las categorías van en grupos, y los grupos en dos menús** (`lib/grupos.ts`, por prefijo como el resto de la tienda): «Ropa»
+  (Arriba, Vestidos y conjuntos, Abajo, Encima y más) y «Accesorios» (Bolsos y accesorios, Bisutería y belleza, Calzado, Más). El menú
+  «Ropa» de la maqueta mezclaba aretes y maquillaje con la ropa en una tercera columna de 17 filas; con 28 categorías reales, el
+  catálogo era una pared de píldoras en tres filas. Los mismos grupos arman el menú de la computadora (con la foto de una prenda por
+  categoría y lo último que llegó), el del celular y los filtros del catálogo en dos niveles (grupos → categorías del grupo, `?grupo=`).
+  Un prefijo que nadie ordenó cae en «Encima y más»: se ve, aunque no en su mejor lugar. **Pendiente:** que la base mande la familia
+  de la categoría (`categorias.familia`) en `tienda_catalogo`, para que una categoría nueva de accesorios no caiga en «Ropa».
+- **Sin migas en las listas de arriba del todo** (catálogo, Arma tu look): solo repetían el título y el logo ya lleva al Inicio. Las
+  fichas y los pedidos sí las llevan: ahí dicen de dónde se vino. El título del catálogo dice la categoría o el grupo elegido.
+- **Volver a la página pedida:** sin sesión, una página que pide cuenta lleva a «Entrar» con `?volver=` (la página y su búsqueda), y
+  al entrar o al crear la cuenta se vuelve a ella (`redireccionDelProxy` + `rutaParaVolver`, el mismo parámetro de los dos lados).
+- **El pie va después de `<main>`** en los tres marcos (un lector de pantalla lo reconoce como el pie) y llega solo al borde de abajo
+  en las páginas cortas.
+- **Las hojas de estilo de la tienda son globales:** dos clases nuevas chocaron con otras el mismo día (`.t-cuenta` con la cuenta
+  regresiva, `.t-mini` con la bolsa) y movieron íconos y miniaturas. Toda clase nueva lleva el prefijo de su pieza y se busca antes.
+- **«Reducir movimiento» no puede esconder nada:** con esa opción del celular, la animación de los avisos terminaba transparente y
+  ningún «Listo: …» de la tienda se veía. Una animación de entrada nunca deja su último cuadro invisible.
