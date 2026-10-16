@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * «Cómo separar» (ADR-0408, actividad 5; maqueta v4, `vComoSeparar`): los cuatro pasos y los dos avisos, con y sin cuenta (el pie de
+ * «Cómo separar» (ADR-0408, actividad 5; maqueta v4, `vComoSeparar`): los cuatro pasos y los avisos, con y sin cuenta (el pie de
  * todas las páginas la enlaza). Las tiendas son las de la web y los plazos, los del ERP (`retail.tienda_ayuda()`): nada escrito a mano que
  * pueda quedar viejo. Sin base, los pasos salen sin nombres y los avisos sin número. Termina en lo que sigue (revisión 2026-10-15): sin
  * cuenta, crearla (o entrar); con cuenta, el primer paso ya sale hecho y el botón lleva a toda la tienda (como la bolsa vacía). Antes la
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
  */
 export default async function ComoSeparar() {
   const [conCuenta, plazos, sedes] = await Promise.all([haySesion(), leerAyuda(), leerSedes()]);
-  const { confirmar, recoger } = avisosParaSeparar(plazos);
+  const { confirmar, pagar, recoger } = avisosParaSeparar(plazos);
   return (
     <MarcoCuenta conCuenta={conCuenta} conPie>
       <div className="t-ancho t-angosto w-pagina-form">
@@ -49,6 +49,7 @@ export default async function ComoSeparar() {
           </ol>
           <div className="w-ayuda-notas">
             <NotaAyuda icono="reloj" {...confirmar} />
+            <NotaAyuda icono="ticket" {...pagar} />
             <NotaAyuda icono="tienda" {...recoger}>
               <Link className="t-enlace w-ayuda-enlace" href="/tiendas">
                 Ver dónde están nuestras tiendas

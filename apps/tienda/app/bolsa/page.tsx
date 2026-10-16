@@ -7,7 +7,7 @@ import { FormularioSeparar } from "@/components/bolsa/FormularioSeparar";
 import { Miniatura } from "@/components/bolsa/Miniatura";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import { Icono } from "@/components/Icono";
-import { cuantas, importe, ofreceOtra, prendaParaLeer, textoDeLaMarca, vistaBolsa, yaNoEsta } from "@/lib/bolsa";
+import { cuantas, importe, ofreceOtra, prendaParaLeer, textoDeLaMarca, TOPE_POR_PRENDA, vistaBolsa, yaNoEsta } from "@/lib/bolsa";
 import { leerBolsaDeLaCookie, leerBolsaEnBase } from "@/lib/bolsa-servidor";
 import { formaDe, fotoOptimizable, hrefDePrenda, soles } from "@/lib/catalogo";
 import { detalleDeLaPrenda, nombreTienda } from "@/lib/pedidos";
@@ -148,7 +148,7 @@ export default async function Bolsa() {
                     <div className="t-bolsa-acc">
                       {/* Agotada: la cantidad no se puede cambiar (ni hay de dónde), solo quitarla. */}
                       {!urgente && (
-                        <CantidadEnLaBolsa varianteId={linea.varianteId} cantidad={linea.cantidad} prenda={leer} puedeSumar={ofreceOtra(marca)} />
+                        <CantidadEnLaBolsa varianteId={linea.varianteId} cantidad={linea.cantidad} prenda={leer} puedeSumar={ofreceOtra(marca) && linea.cantidad < TOPE_POR_PRENDA} />
                       )}
                       {quitar(leer)}
                     </div>

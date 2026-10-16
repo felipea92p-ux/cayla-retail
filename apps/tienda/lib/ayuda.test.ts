@@ -2,19 +2,35 @@ import { describe, expect, it } from "vitest";
 import { avisosParaSeparar, interpretarAyuda, PLAZOS_SIN_DATOS, pasosParaSeparar, puntosDeCambios, textoCambios } from "./ayuda";
 
 // Lo que devuelve `retail.tienda_ayuda()` con los plazos de fábrica de Configuración ▸ Tienda web y el de cambio de la caja.
-const DE_FABRICA = { horas_para_confirmar: 24, dias_para_recoger: 7, dias_para_cambiar: 15 };
+const DE_FABRICA = { horas_para_confirmar: 24, horas_para_pagar: 48, dias_para_recoger: 7, dias_para_cambiar: 15 };
 
 describe("los plazos de la ayuda", () => {
   it("lee lo que devuelve la base", () => {
-    expect(interpretarAyuda(DE_FABRICA)).toEqual({ horasParaConfirmar: 24, diasParaRecoger: 7, diasParaCambiar: 15 });
+    expect(interpretarAyuda(DE_FABRICA)).toEqual({ horasParaConfirmar: 24, horasParaPagar: 48, diasParaRecoger: 7, diasParaCambiar: 15 });
+  });
+
+  it("una base sin las horas para pagar (antes de 20261016001000) las deja sin dato y lo demás sigue", () => {
+    expect(interpretarAyuda({ horas_para_confirmar: 24, dias_para_recoger: 7, dias_para_cambiar: 15 })).toEqual({
+      horasParaConfirmar: 24,
+      horasParaPagar: null,
+      diasParaRecoger: 7,
+      diasParaCambiar: 15,
+    });
+    expect(interpretarAyuda({ ...DE_FABRICA, horas_para_pagar: 721 }).horasParaPagar).toBeNull();
   });
 
   it("un plazo raro (o fuera de lo que la base acepta) queda sin dato; los demás se usan; sin respuesta, ninguno", () => {
-    expect(interpretarAyuda({ ...DE_FABRICA, horas_para_confirmar: 0 })).toEqual({ horasParaConfirmar: null, diasParaRecoger: 7, diasParaCambiar: 15 });
+    expect(interpretarAyuda({ ...DE_FABRICA, horas_para_confirmar: 0 })).toEqual({
+      horasParaConfirmar: null,
+      horasParaPagar: 48,
+      diasParaRecoger: 7,
+      diasParaCambiar: 15,
+    });
     expect(interpretarAyuda({ ...DE_FABRICA, dias_para_recoger: "7" }).diasParaRecoger).toBeNull();
     expect(interpretarAyuda({ ...DE_FABRICA, horas_para_confirmar: 200 }).horasParaConfirmar).toBeNull();
     expect(interpretarAyuda({ horas_para_confirmar: null, dias_para_recoger: null, dias_para_cambiar: 15 })).toEqual({
       horasParaConfirmar: null,
+      horasParaPagar: null,
       diasParaRecoger: null,
       diasParaCambiar: 15,
     });
@@ -59,13 +75,18 @@ describe("Cómo separar", () => {
         titulo: "La tienda tiene 24 horas para confirmarlo",
         texto: "Si en ese tiempo no lo confirma, el pedido se cierra solo y puedes volver a separarlo.",
       },
+      pagar: {
+        titulo: "Pagas dentro de 48 horas",
+        texto: "Desde que la tienda confirma tu pedido tienes 48 horas para pagarlo. Si no llega ningún pago, se anula solo y las prendas vuelven a la tienda.",
+      },
       recoger: {
         titulo: "Por ahora, todo se recoge en tienda",
         texto: "Todavía no hacemos envíos. Lo recoges en la tienda que elegiste, hasta 7 días después de pagar.",
       },
     });
-    const uno = avisosParaSeparar({ horasParaConfirmar: 1, diasParaRecoger: 1, diasParaCambiar: 15 });
+    const uno = avisosParaSeparar({ horasParaConfirmar: 1, horasParaPagar: 1, diasParaRecoger: 1, diasParaCambiar: 15 });
     expect(uno.confirmar.titulo).toBe("La tienda tiene 1 hora para confirmarlo");
+    expect(uno.pagar.titulo).toBe("Pagas dentro de 1 hora");
     expect(uno.recoger.texto).toContain("hasta 1 día después de pagar");
   });
 
@@ -76,7 +97,8 @@ describe("Cómo separar", () => {
       texto: "Si no lo confirma a tiempo, el pedido se cierra solo y puedes volver a separarlo.",
     });
     expect(sin.recoger.texto).toBe("Todavía no hacemos envíos. Lo recoges en la tienda que elegiste.");
-    expect(`${sin.confirmar.titulo} ${sin.confirmar.texto} ${sin.recoger.texto}`).not.toMatch(/\d/);
+    expect(sin.pagar.titulo).toBe("Si no pagas, se anula solo");
+    expect(`${sin.confirmar.titulo} ${sin.confirmar.texto} ${sin.pagar.titulo} ${sin.pagar.texto} ${sin.recoger.texto}`).not.toMatch(/\d/);
   });
 });
 

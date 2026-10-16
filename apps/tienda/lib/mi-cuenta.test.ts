@@ -179,9 +179,10 @@ describe("eliminar la cuenta", () => {
     expect(leerLoQueFrena({ pedidos: [] })).toBeNull();
   });
 
-  it("la respuesta de eliminar: eliminada, en curso (con lo que frena) o sin cuenta", () => {
+  it("la respuesta de eliminar: eliminada, en curso (con lo que frena), en tienda (ficha de una tienda) o sin cuenta", () => {
     expect(leerEliminacion({ estado: "eliminada" })).toEqual({ estado: "eliminada" });
     expect(leerEliminacion({ estado: "sin_cuenta" })).toEqual({ estado: "sin_cuenta" });
+    expect(leerEliminacion({ estado: "en_tienda" })).toEqual({ estado: "en_tienda" });
     const enCurso = leerEliminacion({ estado: "en_curso", ...frena });
     expect(enCurso.estado).toBe("en_curso");
     expect(leerEliminacion({ estado: "en_curso" })).toEqual({ estado: "sin_respuesta" });

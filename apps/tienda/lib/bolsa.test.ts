@@ -5,11 +5,13 @@ import {
   agregarUna,
   agregarVarias,
   BOLSA_VACIA,
+  cuantasDe,
   elegirSede,
   escribirBolsa,
   interpretarBolsaEnBase,
   leerBolsa,
   ofreceOtra,
+  pasaElTopePorPrenda,
   prendaParaLeer,
   quitarLinea,
   quitarUna,
@@ -18,6 +20,7 @@ import {
   SEPARAR_SIN_RESPUESTA,
   sinPrendas,
   textoDeLaMarca,
+  TOPE_POR_PRENDA,
   TOPE_PRENDAS,
   unidades,
   vistaBolsa,
@@ -66,14 +69,18 @@ describe("la cookie de la bolsa", () => {
     expect(leerBolsa(`1.no-es-tienda.no-es-marca.${A}~1`)).toEqual({ lineas: [{ varianteId: A, cantidad: 1 }], sedeId: null, marca: null });
   });
 
-  it("la misma prenda dos veces se suma, y nunca pasa de 20 prendas", () => {
-    expect(leerBolsa(`1._._.${A}~2.${A}~3`).lineas).toEqual([{ varianteId: A, cantidad: 5 }]);
-    const llena = leerBolsa(`1._._.${A}~15.${B}~15`);
-    expect(unidades(llena)).toBe(TOPE_PRENDAS);
-    expect(llena.lineas).toEqual([
-      { varianteId: A, cantidad: 15 },
-      { varianteId: B, cantidad: 5 },
+  it("la misma prenda dos veces se suma, nunca pasa de 2 de una prenda (D2) ni de 20 prendas", () => {
+    expect(leerBolsa(`1._._.${A}~1.${A}~1`).lineas).toEqual([{ varianteId: A, cantidad: 2 }]);
+    expect(leerBolsa(`1._._.${A}~2.${A}~3`).lineas).toEqual([{ varianteId: A, cantidad: TOPE_POR_PRENDA }]);
+    expect(leerBolsa(`1._._.${A}~15.${B}~15`).lineas).toEqual([
+      { varianteId: A, cantidad: TOPE_POR_PRENDA },
+      { varianteId: B, cantidad: TOPE_POR_PRENDA },
     ]);
+    // Once prendas distintas de 2: la que pasa de 20 entra con lo que cabe.
+    const ids = Array.from({ length: 11 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`);
+    const llena = leerBolsa(`1._._.${ids.map((v) => `${v}~2`).join(".")}`);
+    expect(unidades(llena)).toBe(TOPE_PRENDAS);
+    expect(llena.lineas.at(-1)).toEqual({ varianteId: ids[9], cantidad: 2 });
   });
 
   it("agregar suma una; si no había tienda elegida, toma la que venía mirando; con 20 ya no cabe", () => {
@@ -82,6 +89,21 @@ describe("la cookie de la bolsa", () => {
     const dos = agregarUna(una!, A, { marca: M2, sedeId: TRU });
     expect(dos).toEqual({ lineas: [{ varianteId: A, cantidad: 2 }], sedeId: LIM, marca: M2 });
     expect(agregarUna({ lineas: [{ varianteId: A, cantidad: TOPE_PRENDAS }], sedeId: null, marca: null }, B, { marca: M1 })).toBeNull();
+  });
+
+  it("de una misma prenda y talla entran 2 (D2): la tercera no", () => {
+    const dos: Bolsa = { lineas: [{ varianteId: A, cantidad: TOPE_POR_PRENDA }], sedeId: null, marca: M1 };
+    expect(cuantasDe(dos, A)).toBe(2);
+    expect(cuantasDe(dos, B)).toBe(0);
+    expect(agregarUna(dos, A, { marca: M2 })).toBeNull();
+    expect(agregarUna(dos, B, { marca: M2 })?.lineas).toEqual([
+      { varianteId: A, cantidad: 2 },
+      { varianteId: B, cantidad: 1 },
+    ]);
+    expect(pasaElTopePorPrenda(dos, [A])).toBe(true);
+    expect(pasaElTopePorPrenda(dos, [B, B])).toBe(false);
+    expect(pasaElTopePorPrenda(dos, [B, B, B])).toBe(true);
+    expect(agregarVarias(dos, [B, A], { marca: M2 })).toBeNull();
   });
 
   it("un look entra entero o no entra: varias de una vez, la misma dos veces suma dos, y si no caben todas la bolsa no cambia", () => {
@@ -95,7 +117,12 @@ describe("la cookie de la bolsa", () => {
       marca: M2,
     });
     expect(agregarVarias(BOLSA_VACIA, [B, B], { marca: M1 })?.lineas).toEqual([{ varianteId: B, cantidad: 2 }]);
-    const casiLlena: Bolsa = { lineas: [{ varianteId: A, cantidad: TOPE_PRENDAS - 1 }], sedeId: null, marca: null };
+    // 19 prendas (de a 1, cada una distinta): cabe una más, no dos.
+    const casiLlena: Bolsa = {
+      lineas: Array.from({ length: TOPE_PRENDAS - 1 }, (_, i) => ({ varianteId: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`, cantidad: 1 })),
+      sedeId: null,
+      marca: null,
+    };
     expect(agregarVarias(casiLlena, [B], { marca: M1 })).not.toBeNull();
     expect(agregarVarias(casiLlena, [B, M2], { marca: M1 })).toBeNull();
     expect(agregarVarias(b, [], { marca: M1 })).toBeNull();
@@ -375,22 +402,25 @@ describe("las marcas que dice cada prenda", () => {
 });
 
 describe("lo que dice «Separar» cuando no separa", () => {
-  it("con el tope de separaciones esperando confirmación: dice el número que manda la base y lleva a «Mis pedidos»", () => {
+  it("con el tope de separaciones abiertas: dice el número que manda la base y lleva a «Mis pedidos»", () => {
     const r = respuestaDeSeparar("tienda_separar_tope", "3");
-    expect(r.mensaje).toBe(
-      "Ya tienes 3 separaciones esperando que la tienda confirme. Cuando te confirmen una (o se cierre), puedes separar otra.",
-    );
+    expect(r.mensaje).toBe("Ya tienes 3 separaciones abiertas. Cuando recojas alguna (o se cierre), puedes separar otra.");
     expect(r.enlace).toEqual({ texto: "Ver mis pedidos", href: "/cuenta/pedidos" });
     // El número es el de la base, no uno escrito en la tienda.
     expect(respuestaDeSeparar("tienda_separar_tope", "5").mensaje).toMatch(/^Ya tienes 5 separaciones/);
     // Sin un número que se pueda leer, la frase no inventa uno.
     for (const detalle of [null, "", "tres", "0", "-1", "999"]) {
       const sin = respuestaDeSeparar("tienda_separar_tope", detalle);
-      expect(sin.mensaje).toBe(
-        "Ya tienes el máximo de separaciones esperando que la tienda confirme. Cuando te confirmen una (o se cierre), puedes separar otra.",
-      );
+      expect(sin.mensaje).toBe("Ya tienes el máximo de separaciones abiertas. Cuando recojas alguna (o se cierre), puedes separar otra.");
       expect(sin.enlace).toEqual({ texto: "Ver mis pedidos", href: "/cuenta/pedidos" });
     }
+  });
+
+  it("con el tope por prenda (D2): dice cuántas y lleva a «Mis pedidos», donde están las otras", () => {
+    expect(respuestaDeSeparar("tienda_separar_tope_prenda", "00000000-0000-4000-8000-000000000001")).toEqual({
+      mensaje: "Puedes separar hasta 2 de la misma prenda y talla, contando las que ya separaste. Quita una para separar.",
+      enlace: { texto: "Ver mis pedidos", href: "/cuenta/pedidos" },
+    });
   });
 
   it("cada negativa conocida dice su frase, sin camino aparte; lo que la base no explica, «no pudimos separar ahora»", () => {

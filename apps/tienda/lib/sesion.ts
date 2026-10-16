@@ -4,6 +4,10 @@
 
 /** La cookie de la sesión. Con nombre propio: el ERP en local también vive en «localhost» y su cookie no debe pisarse con esta. */
 export const COOKIE_SESION = "tienda-sesion";
+/** Las opciones de esa cookie en los tres lugares que la escriben (el proxy, el servidor y el navegador). En producción viaja solo por
+ *  https (`secure`): `@supabase/ssr` no la marca así por su cuenta. No es `httpOnly` porque el navegador la usa para entrar y
+ *  recuperar la contraseña (`lib/auth-navegador.ts`); la sesión de verdad la valida el proyecto de clientes en cada página. */
+export const OPCIONES_COOKIE_SESION = { name: COOKIE_SESION, secure: process.env.NODE_ENV === "production" };
 
 export type ConfigAuth = { url: string; llavePublica: string };
 

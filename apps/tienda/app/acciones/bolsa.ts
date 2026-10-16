@@ -11,18 +11,23 @@ import {
   AGREGAR_NO_ALCANZA,
   AGREGAR_NO_ESTA,
   AGREGAR_SIN_RESPUESTA,
+  AGREGAR_TOPE_PRENDA,
+  AGREGAR_TOPE_PRENDA_LOOK,
   agregarUna,
   agregarVarias,
   avisoAgregada,
   BOLSA_CAMBIO,
+  cuantasDe,
   elegirSede,
   esId,
+  pasaElTopePorPrenda,
   quitarLinea,
   quitarUna,
   respuestaDeSeparar,
   revisarParaAgregar,
   SEPARAR_SIN_RESPUESTA,
   sinPrendas,
+  TOPE_POR_PRENDA,
   TOPE_PRENDAS,
   unidades,
 } from "@/lib/bolsa";
@@ -54,6 +59,7 @@ export async function agregarALaBolsa(varianteId: unknown, sedeId: unknown): Pro
   if (sesion.estado === "sin_respuesta") return { estado: "no", mensaje: AGREGAR_SIN_RESPUESTA };
 
   const bolsa = await leerBolsaDeLaCookie();
+  if (cuantasDe(bolsa, varianteId) >= TOPE_POR_PRENDA) return { estado: "no", mensaje: AGREGAR_TOPE_PRENDA };
   const nueva = agregarUna(bolsa, varianteId, { marca: randomUUID() });
   if (!nueva) return { estado: "no", mensaje: AGREGAR_LLENA };
   // La base dice si se puede: en la Vitrina, con precio, y con todas las que llevaría de esta prenda en alguna tienda de la web.
@@ -91,6 +97,7 @@ export async function agregarLookALaBolsa(varianteIds: unknown, sedeId: unknown)
   if (sesion.estado === "sin_respuesta") return { estado: "no", mensaje: AGREGAR_SIN_RESPUESTA };
 
   const bolsa = await leerBolsaDeLaCookie();
+  if (pasaElTopePorPrenda(bolsa, ids)) return { estado: "no", mensaje: AGREGAR_TOPE_PRENDA_LOOK };
   const conTodas = agregarVarias(bolsa, ids, { marca: randomUUID() });
   if (!conTodas) return { estado: "no", mensaje: AGREGAR_LLENA_LOOK };
   // Cada prenda se pregunta con todas las que llevaría la bolsa (las que ya estaban más las del look), como al agregar una sola.

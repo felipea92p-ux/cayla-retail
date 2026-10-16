@@ -208,6 +208,14 @@ export function esCelularPeru(texto: string): boolean {
   return /^9\d{8}$/.test(soloDigitos(texto));
 }
 
+/** El adelanto mínimo de un apartado (Felipe 2026-10-15, D1): el 30 % del total, redondeado hacia arriba al céntimo. Es la misma cuenta
+ *  de `separar_prendas` (20261016003000), que lo hace cumplir; aquí solo se dice antes de guardar. El atajo «30 %» del formulario
+ *  redondea al sol hacia arriba, así que siempre lo cumple. */
+const ADELANTO_MINIMO_PCT = 30;
+function adelantoMinimo(total: number): number {
+  return Math.ceil((Math.round(total * 100) * ADELANTO_MINIMO_PCT) / 100) / 100;
+}
+
 export function erroresDelApartado(f: FormularioApartado, total: number): Partial<Record<CampoApartado, string>> {
   const e: Partial<Record<CampoApartado, string>> = {};
   if (!f.nombres.trim()) e.nombres = "Escribe los nombres.";
@@ -230,6 +238,8 @@ export function erroresDelApartado(f: FormularioApartado, total: number): Partia
   else if (adelanto > total) e.pago = "El adelanto no puede pasar el total.";
   else if (f.pagos.some((p) => p.metodo === "efectivo" && p.recibido !== undefined && p.recibido < p.monto)) e.pago = "Lo recibido en efectivo no alcanza.";
   else if (vueltoDelAdelanto(f.pagos) > TOPE_VUELTO) e.pago = `El vuelto pasa de S/\u00a0${TOPE_VUELTO}: revisa cuánto entregó.`;
+  else if (adelanto + 0.001 < adelantoMinimo(total))
+    e.pago = `El adelanto mínimo es ${soles(adelantoMinimo(total))} (el ${ADELANTO_MINIMO_PCT} % del total).`;
   if (f.devolucionMedio === "transferencia") {
     if (soloDigitos(f.devolucionCci).length !== 20) e.devolucion = "El CCI tiene 20 dígitos.";
   } else {
