@@ -26,6 +26,7 @@ import {
   soles,
   solesConSigno,
   sumarMesesIso,
+  textoCategoria,
   textoSinCuenta,
   tiendaInicial,
   tiendasDeLaProyeccion,
@@ -100,12 +101,13 @@ describe("Lo que ya pasó (fn_flujo_caja_real)", () => {
         { clave: "efectivo", lado: "entra", monto: 5 },
         { clave: "dueno_pone", lado: "entra", monto: 99 },
         { clave: "yape", lado: "entra", monto: 0.001 },
+        { clave: "qr", lado: "entra", monto: 40 },
         { clave: "gastos", lado: "sale", monto: 30 },
         { clave: "mercaderia", lado: "sale", monto: 80 },
         { clave: "faltantes_caja", lado: "ajuste", monto: -12 },
       ],
     });
-    expect(l.entradas.map((c) => c.clave)).toEqual(["efectivo", "plin", "dueno_pone"]);
+    expect(l.entradas.map((c) => c.clave)).toEqual(["efectivo", "plin", "qr", "dueno_pone"]);
     expect(l.salidas.map((c) => c.clave)).toEqual(["mercaderia", "gastos"]);
     expect(l.ajustes.map((c) => c.clave)).toEqual(["faltantes_caja"]);
   });
@@ -129,6 +131,10 @@ describe("Lo que ya pasó (fn_flujo_caja_real)", () => {
 });
 
 describe("Rótulos", () => {
+  it("el QR tiene su rótulo y su lugar entre los medios de cobro (auditoría de Finanzas 2026-10-16, G05)", () => {
+    expect(textoCategoria("qr")).toBe("QR");
+  });
+
   it("soles con el signo delante del símbolo, sin céntimos", () => {
     expect(soles(-2484.4)).toBe("−S/\u00a02,484");
     expect(soles(38200)).toBe("S/\u00a038,200");

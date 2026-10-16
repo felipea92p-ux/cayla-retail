@@ -149,6 +149,42 @@ select (select sum((s->>'entro')::numeric) from jsonb_array_elements(:'despues':
   esperar("las semanas suman lo que entró y la última termina en el saldo final", r.ok && semanas === "t|t", r);
 }
 
+// 1b. El QR (`20261002130000_venta_pagos_qr.sql`) es plata que ENTRA. `fn_flujo_lado` solo conocía una lista de medios como «entra» y mandaba
+// todo lo demás a «sale»: el QR (el 21 % de lo cobrado en octubre) restaba de lo que salió, el burn de «días de caja» salía la mitad y la
+// identidad del saldo seguía en cero porque los dos errores se compensaban (auditoría de Finanzas 2026-10-16, G05).
+{
+  const r = correr(`${ESCENA}
+select ${REAL} as antes \\gset
+insert into retail.ventas (ubicacion_id, caja_id) values (:'tru', :'caja') returning id as v1 \\gset
+insert into retail.venta_pagos (venta_id, metodo, monto) values (:'v1', 'qr', 100);
+select ${REAL} as despues \\gset
+select pg_temp.cuadra(:'despues');
+select pg_temp.cat(:'despues', 'qr') - pg_temp.cat(:'antes', 'qr');
+select pg_temp.num(:'despues', 'entro') - pg_temp.num(:'antes', 'entro'), pg_temp.num(:'despues', 'salio') - pg_temp.num(:'antes', 'salio');
+select retail.fn_flujo_lado('qr');`);
+  const [cuadra, qr, lados, lado] = lineas(r);
+  esperar("un cobro con QR de S/ 100 cuenta como QR +100, y el flujo sigue cuadrando", r.ok && cuadra === "t" && Number(qr) === 100, r);
+  esperar("el QR entra: entró +100 y lo que salió no cambia", r.ok && lados.split("|").map(Number).join(",") === "100,0", r);
+  esperar("fn_flujo_lado('qr') es «entra»", r.ok && lado === "entra", r);
+}
+
+// 1c. La guarda de fondo: TODO medio de cobro que acepta `venta_pagos` entra como «entra». Un medio nuevo en el CHECK sin su lugar en
+// `fn_flujo_lado` (como pasó con el QR) cae aquí, en el CI, y no en la pantalla del líder. «anticipo» (lo que paga un apartado) y
+// «redondeo» (la diferencia de céntimos) no son un cobro con un medio y se cuentan por otro lado.
+{
+  const r = correr(`${ESCENA}
+select 'sin:' || coalesce(string_agg(m, ',' order by m), '') from (
+  select (regexp_matches(pg_get_constraintdef(c.oid), '''([a-z_]+)''', 'g'))[1] as m
+    from pg_constraint c where c.conrelid = 'retail.venta_pagos'::regclass and c.conname = 'venta_pagos_metodo_check') x
+ where m not in ('anticipo', 'redondeo') and retail.fn_flujo_lado(m) <> 'entra';
+select count(*) from (
+  select (regexp_matches(pg_get_constraintdef(c.oid), '''([a-z_]+)''', 'g'))[1] as m
+    from pg_constraint c where c.conrelid = 'retail.venta_pagos'::regclass and c.conname = 'venta_pagos_metodo_check') x;`);
+  const [sinLado, cuantos] = lineas(r);
+  esperar("todo medio de cobro de venta_pagos entra por «entra» en el flujo (ninguno cae en «sale»)", r.ok && sinLado === "sin:", r);
+  esperar("la guarda sí lee los medios del CHECK (si no los encuentra, no vigila nada)", r.ok && Number(cuantos) >= 8, r);
+}
+
 // 2. El cierre de caja: el faltante es un ajuste; el traslado a la caja fuerte o al banco solo cambia de lugar; el «banco»
 //    de una tienda sin cuenta de transferencias sale del cajón sin decir a dónde.
 {

@@ -33,7 +33,7 @@ export function solesConSigno(n: number): string {
 export type Lado = "entra" | "sale" | "ajuste";
 
 /** El orden del spike: primero cómo se cobró, después la plata del dueño y lo demás. */
-const ORDEN_ENTRA = ["efectivo", "yape", "plin", "tarjeta", "transferencia", "dueno_pone", "otros_ingresos"];
+const ORDEN_ENTRA = ["efectivo", "yape", "plin", "tarjeta", "transferencia", "qr", "dueno_pone", "otros_ingresos"];
 
 export const TEXTO_CATEGORIA: Record<string, string> = {
   efectivo: "Efectivo",
@@ -41,6 +41,7 @@ export const TEXTO_CATEGORIA: Record<string, string> = {
   plin: "Plin",
   tarjeta: "Tarjeta",
   transferencia: "Transferencia",
+  qr: "QR",
   dueno_pone: "Plata del dueño (aporte o préstamo)",
   otros_ingresos: "Otros ingresos de caja",
   mercaderia: "Proveedores de mercadería",

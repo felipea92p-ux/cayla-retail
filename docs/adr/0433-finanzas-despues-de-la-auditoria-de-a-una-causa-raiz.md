@@ -94,3 +94,21 @@ notas de crédito). **Fuera de esta actividad, anotado:** Compras (`orden-compra
 y el signo de un saldo inicial (G08) es otra decisión.
 **Verificado.** La prueba nueva falló con 42 casos antes del cambio y pasa 78/78 después; con una mutación (volver a borrar comas en gastos) cae con
 16. `tsc` limpio, eslint limpio, Knip limpio, vitest completo 532 archivos / 160 287 pruebas.
+
+## Actividad 3 · El QR entra en el Flujo (G05)
+
+**El problema.** `fn_flujo_lado` manda a «sale» todo lo que no reconoce. Cuando 20261002130000 sumó el QR como medio de cobro (hoy el 21 % de lo
+cobrado) nadie lo anotó en la lista de «entra»: cayó en «sale» con signo POSITIVO. Medido en producción (`fn_flujo_caja_real` del 1 al 16 de octubre):
+«Salió» −10 257.86 donde lo real es −2 948.90, «Entró» 47 651.66 donde lo real es 60 858.42, y los «días de caja» del Resumen salen 87 en vez de ~52.
+La identidad del saldo seguía en cero porque los dos errores se compensaban.
+
+DECIDÍ: el QR entra a la lista de «entra» de `fn_flujo_lado` (una función, la misma; `fn_flujo_lineas` ya emitía la categoría `qr`), y la web le da su
+rótulo y su lugar entre los medios. La defensa de fondo es una guarda en la suite `flujo_caja`: recorre los medios que acepta `venta_pagos` (el CHECK)
+y exige que cada uno entre por «entra»; un medio nuevo sin su lugar falla en el CI, no en la pantalla del líder.
+DESCARTÉ: una lista cerrada con un lado «desconocido» (que propone el informe): pediría un cuarto lado en `fn_flujo_caja_real`, la proyección y tres
+lectores de la web, y una categoría desconocida quedaría fuera de entró, salió y ajustes sin que nada la nombre, que es peor que mal clasificada.
+SE ROMPE SI: se agrega un medio de cobro y no se actualiza `fn_flujo_lado`: la guarda lo dice. **No incluye** `pago_planilla` y `pago_sunat` (siguen
+cayendo en «entre cuentas», hoy 0 filas): clasificarlos como «sale» sin tocar la proyección contaría dos veces la planilla (la proyección ya le suma
+la de Dynamic a la salida diaria); van con la proyección, en la actividad 4.
+**Verificado.** Suite `flujo_caja` 60/60 con la migración, y 4 de los 60 casos (los nuevos) fallan sin ella; las suites vecinas pasan igual que antes
+(`pedidos_web_entregar` y `redondeo_efectivo` fallan igual con y sin la migración, por el estado de la base local). vitest 160 288 pruebas, `tsc` y Knip limpios.

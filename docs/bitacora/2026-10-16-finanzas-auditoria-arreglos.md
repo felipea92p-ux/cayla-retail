@@ -7,3 +7,8 @@ Felipe se lleva: el resultado de octubre sube S/ 700 en Trujillo, Arequipa ya no
 Qué hice: cuatro lectores de monto de Finanzas y el saldo del banco leían «648,50» como S/ 64 850 (o «1,299» como 1.30); ahora todos usan la misma regla (`leerMontoPlata`, la de ADR-0419) y una prueba de 19 casos por lector, más un candado de archivo, impide que alguno vuelva a borrar comas.
 Por qué así: cinco reglas distintas para el mismo texto ya habían divergido una vez; una sola regla con una tabla compartida es lo que de verdad evita el siguiente caso.
 Felipe se lleva: nada que pegar (solo web). Si alguien escribió un monto con coma en Registrar gasto, depósitos o saldos de arranque antes de hoy, vale mirar si quedó en cientos de miles.
+
+## 2026-10-16 (Finanzas: el cobro con QR deja de restar del Flujo)
+Qué hice: el QR (21 % de lo cobrado en octubre) se contaba como salida en el Flujo de caja y los «días de caja» salían 87 en vez de ~52; ahora entra donde corresponde (una función de la base, un rótulo en la web) y una guarda de la suite exige que cada medio de cobro que acepta una venta entre por «entra».
+Por qué así: el comodín «todo lo demás es salida» era el defecto; no lo cerré con un cuarto lado porque una categoría sin lado desaparece de los totales sin que nada la nombre. La guarda en el CI hace que el próximo medio nuevo falle antes de llegar a la pantalla.
+Felipe se lleva: una migración más por pegar (`20261016214000`, una función); al pegarla, «Salió» de octubre baja de 10 258 a 2 949 y «Entró» sube a unos 61 mil. Los pagos de planilla y de SUNAT no se tocan aquí: van con la proyección.
