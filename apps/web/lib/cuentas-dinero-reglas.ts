@@ -41,7 +41,7 @@ export const TEXTO_MOVIMIENTO: Record<TipoMovimiento, string> = {
   retiro: "Retiro de utilidades",
   devolucion_prestamo: "Devolución de préstamo al dueño",
   deposito: "Depósito al banco",
-  abono_tarjeta: "Abono de tarjeta",
+  abono_tarjeta: "Depósito de la máquina",
   pago_tarjeta: "Pago de la tarjeta de crédito",
   entre_cuentas: "Entre cuentas",
 };
@@ -59,7 +59,23 @@ export function tiposParaMedio(medio: MedioCobro): TipoCuenta[] {
 
 // ---- Las máquinas de cobro (ADR-0429) -----------------------------------------------------------------------------------
 
-export type SedeDeMaquina = { ubicacionId: string; ubicacionNombre: string; medio: MedioCobro; porDefecto: boolean };
+/** La tarifa vigente de una máquina para un medio (ADR-0429, act. 4): SOLO estima y avisa; la comisión real sale del depósito. */
+export type TarifaPos = { tasaPct: number; igvSobreTasa: boolean; cargoFijo: number; diasAbono: number; desde: string | null };
+export function leerTarifa(f: Fila): TarifaPos | null {
+  if (f.tasa_pct === null || f.tasa_pct === undefined) return null;
+  return { tasaPct: num(f.tasa_pct), igvSobreTasa: f.igv_sobre_tasa !== false, cargoFijo: num(f.cargo_fijo), diasAbono: num(f.dias_abono), desde: texto(f.tarifa_desde) };
+}
+/** «3,5 % + IGV + S/ 0.20 por pago · deposita en 2 días hábiles»; sin tarifa, lo dice (y cuántos días se esperan antes de avisar). */
+export function textoTarifa(t: TarifaPos | null): string {
+  if (!t) return "Sin tarifa: solo avisa pasados 3 días hábiles";
+  // Con punto decimal, como todo monto y porcentaje del ERP («3.5 %», «2.95 %»).
+  const tasa = `${Number(t.tasaPct.toFixed(2))} %${t.igvSobreTasa && t.tasaPct > 0 ? " + IGV" : ""}`;
+  const fijo = t.cargoFijo > 0 ? ` + S/ ${t.cargoFijo.toFixed(2)} por pago` : "";
+  const dias = t.diasAbono === 0 ? "deposita el mismo día" : t.diasAbono === 1 ? "deposita al día hábil siguiente" : `deposita en ${t.diasAbono} días hábiles`;
+  return `${t.tasaPct === 0 && t.cargoFijo === 0 ? "Sin comisión" : tasa + fijo} · ${dias}`;
+}
+
+export type SedeDeMaquina = { ubicacionId: string; ubicacionNombre: string; medio: MedioCobro; porDefecto: boolean; tarifa: TarifaPos | null };
 export type MaquinaPos = {
   id: string;
   nombre: string;
@@ -82,10 +98,70 @@ export function agruparMaquinas(filas: readonly Record<string, unknown>[]): Maqu
       porId.set(id, m);
     }
     if (f.ubicacion_id !== null && f.ubicacion_id !== undefined) {
-      m.sedes.push({ ubicacionId: String(f.ubicacion_id), ubicacionNombre: String(f.ubicacion_nombre ?? ""), medio: String(f.medio) as MedioCobro, porDefecto: Boolean(f.por_defecto) });
+      m.sedes.push({ ubicacionId: String(f.ubicacion_id), ubicacionNombre: String(f.ubicacion_nombre ?? ""), medio: String(f.medio) as MedioCobro, porDefecto: Boolean(f.por_defecto), tarifa: leerTarifa(f) });
     }
   }
   return [...porId.values()];
+}
+
+/** Los medios con que cobra una máquina (sin repetir tiendas), con la tarifa vigente de cada uno: lo que se edita en Configuración. */
+export function mediosDeMaquina(m: Pick<MaquinaPos, "sedes">): { medio: MedioCobro; tarifa: TarifaPos | null }[] {
+  const vistos = new Map<MedioCobro, TarifaPos | null>();
+  for (const s of m.sedes) if (!vistos.has(s.medio)) vistos.set(s.medio, s.tarifa);
+  return MEDIOS_DE_MAQUINA.filter((medio) => vistos.has(medio)).map((medio) => ({ medio, tarifa: vistos.get(medio) ?? null }));
+}
+
+export type BorradorTarifa = { medio: MedioCobro; tasa: string; igvSobreTasa: boolean; cargoFijo: string; diasAbono: string };
+export type PayloadTarifa = { p_maquina_id: string; p_medio: MedioCobro; p_tasa_pct: number; p_igv_sobre_tasa: boolean; p_cargo_fijo: number; p_dias_abono: number };
+
+/** Lo que exige la base (`guardar_pos_tarifa`), dicho antes de mandar: tasa de 0 a 100, cargo de S/ 0 a 50 y días de 0 a 15. */
+/** Un número que puede ser cero (una tasa o un cargo que la máquina no cobra): vacío o «0» valen 0; lo demás, la regla de plata. */
+function numeroOCero(texto: string): Resultado<number> {
+  const t = texto.trim();
+  if (t === "" || /^0+([.,]0*)?$/.test(t)) return { ok: true, valor: 0 };
+  return parsearMonto(t);
+}
+
+export function validarTarifa(b: BorradorTarifa, maquinaId: string): Resultado<PayloadTarifa> {
+  const tasa = numeroOCero(b.tasa);
+  if (!tasa.ok) return { ok: false, error: `Tasa: ${tasa.error.charAt(0).toLowerCase()}${tasa.error.slice(1)}` };
+  if (tasa.valor > 100) return { ok: false, error: "La tasa va de 0 a 100 %." };
+  const fijo = numeroOCero(b.cargoFijo);
+  if (!fijo.ok) return { ok: false, error: `Cargo fijo: ${fijo.error.charAt(0).toLowerCase()}${fijo.error.slice(1)}` };
+  if (fijo.valor > 50) return { ok: false, error: "El cargo fijo por pago va de S/ 0 a S/ 50." };
+  if (!/^\d{1,2}$/.test(b.diasAbono.trim()) || Number(b.diasAbono) > 15) return { ok: false, error: "Los días de abono van de 0 a 15." };
+  return {
+    ok: true,
+    valor: { p_maquina_id: maquinaId, p_medio: b.medio, p_tasa_pct: Math.round(tasa.valor * 100) / 100, p_igv_sobre_tasa: b.igvSobreTasa, p_cargo_fijo: Math.round(fijo.valor * 100) / 100, p_dias_abono: Number(b.diasAbono) },
+  };
+}
+
+/** Por máquina, lo que espera depósito y lo que ya está atrasado (`fn_pos_alertas`). */
+export type AlertaPos = { maquinaId: string; nombre: string; cuentaId: string; pendientes: number; montoPendiente: number; esperado: number | null; atrasados: number; montoAtrasado: number; diasHabilesMasViejo: number; diasAbono: number; sinTarifa: boolean };
+export function leerAlertaPos(f: Fila): AlertaPos {
+  return {
+    maquinaId: String(f.maquina_id),
+    nombre: String(f.nombre),
+    cuentaId: String(f.cuenta_id),
+    pendientes: num(f.pendientes),
+    montoPendiente: num(f.monto_pendiente),
+    esperado: numONull(f.esperado),
+    atrasados: num(f.atrasados),
+    montoAtrasado: num(f.monto_atrasado),
+    diasHabilesMasViejo: num(f.dias_habiles_mas_viejo),
+    diasAbono: num(f.dias_abono),
+    sinTarifa: Boolean(f.sin_tarifa),
+  };
+}
+/** Solo las máquinas con algo atrasado, con su frase: «Vendemás no depositó 2 días (S/ 1,200): el más viejo lleva 5 días hábiles, y deposita en 2». */
+export function avisosDeMaquinas(alertas: readonly AlertaPos[]): { maquina: AlertaPos; titulo: string; detalle: string }[] {
+  return alertas
+    .filter((a) => a.atrasados > 0)
+    .map((a) => ({
+      maquina: a,
+      titulo: `${a.nombre} no depositó ${a.atrasados === 1 ? "1 día" : `${a.atrasados} días`} (${soles2(a.montoAtrasado)})`,
+      detalle: `El más viejo lleva ${a.diasHabilesMasViejo} días hábiles esperando${a.sinTarifa ? " (sin tarifa cargada: se avisa a los 3)" : ` y ${a.nombre} deposita en ${a.diasAbono}`}. Si ya llegó al banco, regístralo; si no, reclámalo a ${a.nombre}.`,
+    }));
 }
 
 // ---- Lo que devuelve la base → tipos de la pantalla ---------------------------------------------------------------------
@@ -467,7 +543,7 @@ export function deudaConDueno(movs: readonly MovimientoDueno[]): { deuda: number
 export type QuePaso = "deposito" | "abono_tarjeta" | "pago_tarjeta" | "entre_cuentas" | "dueno_pone" | "dueno_saca";
 export const OPCIONES_QUE_PASO: readonly { valor: QuePaso; texto: string; soloLider: boolean; origen: readonly TipoCuenta[] | null; destino: readonly TipoCuenta[] | null }[] = [
   { valor: "deposito", texto: "Depósito al banco", soloLider: false, origen: ["cajon", "caja_fuerte", "por_rendir"], destino: ["banco"] },
-  { valor: "abono_tarjeta", texto: "Abono de tarjeta", soloLider: true, origen: ["por_abonar"], destino: ["banco"] },
+  { valor: "abono_tarjeta", texto: "Depósito de la máquina (tarjeta y QR)", soloLider: true, origen: ["por_abonar"], destino: ["banco"] },
   { valor: "pago_tarjeta", texto: "Pagar la tarjeta de crédito", soloLider: true, origen: ["banco"], destino: ["tarjeta_credito"] },
   { valor: "entre_cuentas", texto: "Entre cuentas", soloLider: true, origen: ["banco"], destino: ["banco"] },
   { valor: "dueno_pone", texto: "Poner plata del dueño", soloLider: true, origen: null, destino: ["banco", "caja_fuerte", "por_rendir"] },
@@ -508,6 +584,98 @@ export function tipoDeMovimiento(b: Pick<BorradorMovimiento, "que" | "clase">): 
   if (b.que === "dueno_pone") return b.clase === "prestamo" ? "prestamo" : "aporte";
   if (b.que === "dueno_saca") return b.clase === "devolucion_prestamo" ? "devolucion_prestamo" : "retiro";
   return b.que;
+}
+
+// ---- El depósito de la máquina (ADR-0429): se cruza contra los días pendientes y la comisión sale sola ------------------
+
+/** Un día (tienda y medio) cobrado con una máquina que ningún depósito cubre todavía, como lo devuelve `fn_pos_pendientes`. */
+export type LotePendiente = {
+  clave: string;
+  fecha: string;
+  ubicacionId: string;
+  ubicacionNombre: string;
+  medio: MedioCobro;
+  bruto: number;
+  dias: number;
+  /** Cuántos pagos fueron ese día (para el cargo fijo por pago). */
+  nPagos: number;
+  /** La comisión esperada con la tarifa que regía ese día; nula sin tarifa (nunca se inventa un número). */
+  esperado: number | null;
+  diasHabiles: number;
+  /** Lleva más días hábiles que los que la máquina tarda en depositar (sin tarifa, 3). */
+  atrasado: boolean;
+};
+export function leerLotePendiente(f: Fila): LotePendiente {
+  return {
+    clave: String(f.clave),
+    fecha: String(f.fecha),
+    ubicacionId: String(f.ubicacion_id),
+    ubicacionNombre: String(f.ubicacion_nombre ?? ""),
+    medio: String(f.medio) as MedioCobro,
+    bruto: num(f.bruto),
+    dias: num(f.dias),
+    nPagos: num(f.n_pagos),
+    esperado: numONull(f.esperado),
+    diasHabiles: num(f.dias_habiles),
+    atrasado: f.atrasado === true,
+  };
+}
+
+/** Lo que la hoja marca de entrada: todos los días pendientes hasta la fecha del depósito (la máquina deposita lo de antes). */
+export function lotesPorDefecto(lotes: readonly LotePendiente[], fechaDeposito: string): string[] {
+  return lotes.filter((l) => l.fecha <= fechaDeposito).map((l) => l.clave);
+}
+
+/** «mié 15 oct · Trujillo · tarjeta»: cómo se lee un día pendiente en la lista. */
+export function textoLote(l: LotePendiente): string {
+  return `${fechaCorta(l.fecha)} · ${corto(l.ubicacionNombre)} · ${l.medio === "qr" ? "QR" : "tarjeta"}`;
+}
+
+/** La cuenta que la persona ve mientras marca: cuánto cobraron esos días, cuánto llegó y la comisión (la diferencia). */
+export function resumenAbono(
+  lotes: readonly LotePendiente[],
+  marcados: readonly string[],
+  neto: string,
+): { dias: number; bruto: number; neto: number | null; comision: number | null; esperado: number | null } {
+  const elegidos = lotes.filter((l) => marcados.includes(l.clave));
+  const bruto = Math.round(elegidos.reduce((a, l) => a + l.bruto, 0) * 100) / 100;
+  const m = neto.trim() === "" ? null : parsearMonto(neto);
+  const n = m && m.ok ? m.valor : null;
+  // La comisión esperada de los días marcados: solo si TODOS tienen tarifa (con uno sin tarifa, no se inventa una suma a medias).
+  const esperado = elegidos.length > 0 && elegidos.every((l) => l.esperado !== null) ? Math.round(elegidos.reduce((a, l) => a + (l.esperado ?? 0), 0) * 100) / 100 : null;
+  return { dias: elegidos.length, bruto, neto: n, comision: n === null ? null : Math.round((bruto - n) * 100) / 100, esperado };
+}
+
+export type PayloadAbonoPos = { p_cuenta_id: string; p_banco_id: string; p_fecha: string; p_neto: number; p_claves: string[]; p_referencia: string | null };
+
+/** Lo que exige la base (`registrar_abono_pos`), dicho antes de mandar: la máquina y el banco, al menos un día marcado, lo que
+ *  llegó, y que el depósito no sea mayor que lo cobrado ni anterior al último día que cubre. */
+export function validarAbonoPos(
+  b: Pick<BorradorMovimiento, "origen" | "destino" | "monto" | "referencia" | "fecha">,
+  lotes: readonly LotePendiente[],
+  marcados: readonly string[],
+  ctx: { cuentas: readonly CuentaDinero[]; hoy: string },
+): Resultado<PayloadAbonoPos> {
+  const maquina = ctx.cuentas.find((c) => c.id === b.origen);
+  const banco = ctx.cuentas.find((c) => c.id === b.destino);
+  if (!maquina || maquina.tipo !== "por_abonar") return { ok: false, error: "Elige la máquina que depositó." };
+  if (!banco || banco.tipo !== "banco") return { ok: false, error: "Elige a qué banco llegó." };
+  const elegidos = lotes.filter((l) => marcados.includes(l.clave));
+  if (elegidos.length === 0) return { ok: false, error: "Marca qué días cubre este depósito." };
+  const m = montoDentroDelTope(parsearMonto(b.monto));
+  if (!m.ok) return m;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(b.fecha)) return { ok: false, error: "Elige la fecha." };
+  if (b.fecha > ctx.hoy) return { ok: false, error: "La fecha no puede ser futura." };
+  const ultimo = elegidos.map((l) => l.fecha).sort().at(-1)!;
+  if (b.fecha < ultimo) return { ok: false, error: `El depósito no puede ser anterior al último día que cubre (${fechaCorta(ultimo)}).` };
+  const { bruto, comision } = resumenAbono(lotes, marcados, b.monto);
+  if (comision !== null && comision < 0) {
+    return { ok: false, error: `Llegó ${soles2(m.valor)} y esos días suman ${soles2(bruto)}: el depósito no puede ser mayor que lo cobrado. Marca los días que faltan (¿tarjeta y QR juntos?) o revisa el monto.` };
+  }
+  return {
+    ok: true,
+    valor: { p_cuenta_id: maquina.id, p_banco_id: banco.id, p_fecha: b.fecha, p_neto: m.valor, p_claves: elegidos.map((l) => l.clave), p_referencia: b.referencia.trim() || null },
+  };
 }
 
 /** Revisa el formulario antes de mandarlo (la base vuelve a revisar todo). `deuda` = lo que CAYLA le debe al dueño. */

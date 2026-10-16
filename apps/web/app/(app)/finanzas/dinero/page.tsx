@@ -1,6 +1,6 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
-import { getContextoDinero, getMediosDeCobro, getMovimientos, getSinCuenta, pendientesDeConciliar } from "@/lib/cuentas-dinero";
+import { getAlertasPos, getContextoDinero, getMediosDeCobro, getMovimientos, getSinCuenta, pendientesDeConciliar } from "@/lib/cuentas-dinero";
 import { CuentasPanel, PantallaDinero } from "@/components/finanzas/CuentasDinero";
 import { verDeLaVista } from "@/lib/vista-global";
 
@@ -12,10 +12,12 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
   const sp = await searchParams;
   const hoy = hoyLima();
   const ctx = await getContextoDinero(persona, verDeLaVista(persona.vista, sp.ver));
-  const [movimientos, medios, sinCuenta] = await Promise.all([
+  const [movimientos, medios, sinCuenta, alertas] = await Promise.all([
     getMovimientos(ctx.ver.ubicacionId),
     ctx.esLider ? getMediosDeCobro() : Promise.resolve({ datos: [], falla: null }),
     ctx.esLider && !ctx.ver.ubicacionId ? getSinCuenta() : Promise.resolve([]),
+    // Las máquinas que se atrasaron con su depósito (ADR-0429, act. 4): solo el líder; vacío si la base no lo sabe todavía.
+    ctx.esLider ? getAlertasPos() : Promise.resolve([]),
   ]);
 
   return (
@@ -36,6 +38,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
         medios={medios.datos}
         plata={ctx.plata}
         sinCuenta={sinCuenta}
+        alertas={alertas}
         ubicaciones={ctx.ubicaciones}
         talleres={ctx.talleres}
         ver={ctx.ver}

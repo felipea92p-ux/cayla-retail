@@ -36,7 +36,7 @@ const NADIE = "99999999-9999-4999-8999-999999999999"; // una sesión que no es d
 function psql(sql) {
   return execFileSync(
     "docker",
-    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
+    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", ...(process.env.DEPURAR ? ["-a"] : []), "-f", "-"],
     { input: sql, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }
   );
 }
@@ -44,7 +44,7 @@ function correr(sql) {
   try {
     return { ok: true, salida: psql(`${sql}\nrollback;\n`).trim() };
   } catch (e) {
-    return { ok: false, mensaje: `${e.stderr ?? ""}${e.message ?? ""}` };
+    return { ok: false, mensaje: `${process.env.DEPURAR ? `${e.stdout ?? ""}\n` : ""}${e.stderr ?? ""}${e.message ?? ""}` };
   }
 }
 const cambiaA = (id) => `set local request.jwt.claim.sub = '${id}';\n`;
@@ -290,6 +290,108 @@ select string_agg(medio || ':' || nombre, ',' order by medio, nombre) from retai
   esperar("una máquina opera en tiendas, no en el Taller", r.ok && taller.includes("en una tienda"), r);
   esperar("y solo con tarjeta o QR", r.ok && yape.includes("pos_maquinas_sedes_medio_check"), r);
   esperar("archivada, la hoja ya no la ofrece", r.ok && hoja === "qr:Izipay,tarjeta:Izipay", r);
+}
+
+// 7. Actividad 3 (20261016190000): el depósito de la máquina se cruza contra los días pendientes y la comisión es la diferencia.
+//    (En el local el día de hoy puede traer cobros del seed sin sellar que la vigencia deduce: todo se mide RELATIVO a lo que ya había.)
+{
+  const r = correr(`${ESCENA}
+select coalesce((select bruto from retail.fn_pos_pendientes(:'vendemas_cta') where fecha = retail.fn_hoy_lima()), 0) as bv0 \\gset
+${venta("v1", "tru", [["tarjeta", 60], ["qr", 40]])}
+select pg_temp.saldo(:'vendemas_cta') as s0v, pg_temp.saldo(:'ibk') as s0b \\gset
+select count(*), sum(bruto) - :bv0 from retail.fn_pos_pendientes(:'vendemas_cta') where fecha = retail.fn_hoy_lima();
+select clave as cv, bruto as bv from retail.fn_pos_pendientes(:'vendemas_cta') where fecha = retail.fn_hoy_lima() \\gset
+select clave as ci, bruto as bi from retail.fn_pos_pendientes(:'izipay_cta') where fecha = retail.fn_hoy_lima() and medio = 'qr' \\gset
+select gen_random_uuid() as tok \\gset
+select pg_temp.intento(format('select retail.registrar_abono_pos(%L, %L, retail.fn_hoy_lima(), %s, array[%L])', :'vendemas_cta', :'ibk', :bv + 10, :'cv'));
+select pg_temp.intento(format('select retail.registrar_abono_pos(%L, %L, retail.fn_hoy_lima() - 1, %s, array[%L])', :'vendemas_cta', :'ibk', :bv - 1.80, :'cv'));
+select pg_temp.intento(format('select retail.registrar_abono_pos(%L, %L, retail.fn_hoy_lima(), %s, array[]::text[])', :'vendemas_cta', :'ibk', :bv - 1.80));
+select pg_temp.intento(format('select retail.registrar_abono_pos(%L, %L, retail.fn_hoy_lima(), %s, array[%L])', :'vendemas_cta', :'cajon_tru', :bv - 1.80, :'cv'));
+select retail.registrar_abono_pos(:'vendemas_cta', :'ibk', retail.fn_hoy_lima(), :bv - 1.80, array[:'cv'], 'Liq. Vendemás', :'tok') as ab \\gset
+select (:'ab'::jsonb ->> 'comision'), (:'ab'::jsonb ->> 'dias'), (:'ab'::jsonb ->> 'bruto')::numeric = :bv, (:'ab'::jsonb ->> 'neto')::numeric = :bv - 1.80;
+select (retail.registrar_abono_pos(:'vendemas_cta', :'ibk', retail.fn_hoy_lima(), :bv - 1.80, array[:'cv'], 'Liq. Vendemás', :'tok')) ->> 'dias';
+select count(*) from retail.movimientos_dinero where token_cliente = :'tok';
+select pg_temp.saldo(:'vendemas_cta') - :s0v = -:bv, pg_temp.saldo(:'ibk') - :s0b = :bv - 1.80;
+select g.categoria, g.monto_total from retail.gastos g join retail.movimientos_dinero d on d.gasto_comision_id = g.id where d.token_cliente = :'tok';
+select count(*) from retail.fn_pos_pendientes(:'vendemas_cta') where clave = :'cv';
+select pg_temp.intento(format('select retail.registrar_abono_pos(%L, %L, retail.fn_hoy_lima(), 50, array[%L])', :'vendemas_cta', :'ibk', :'cv'));
+select retail.registrar_abono_pos(:'izipay_cta', :'ibk', retail.fn_hoy_lima(), :bi, array[:'ci']) as abi \\gset
+select :'abi'::jsonb ->> 'comision';
+select count(*) from retail.movimientos_dinero d where d.id = (:'abi'::jsonb ->> 'movimiento_id')::uuid and d.gasto_comision_id is not null;
+select ((retail.fn_conciliacion(:'vendemas_cta')) ->> 'saldo_sistema')::numeric = :s0v - :bv, jsonb_array_length((retail.fn_conciliacion(:'vendemas_cta')) -> 'lineas') >= 2;
+select id as mov from retail.movimientos_dinero where token_cliente = :'tok' \\gset
+select pg_temp.intento(format('delete from retail.pos_abonos_lotes where movimiento_dinero_id = %L', :'mov'));
+select retail.anular_movimiento_dinero(:'mov', 'El banco no lo abonó: era de otra máquina') as _an \\gset
+select count(*) from retail.fn_pos_pendientes(:'vendemas_cta') where clave = :'cv';
+select pg_temp.saldo(:'vendemas_cta') - :s0v;
+select :s0v;
+${cambiaA(MICAELA)}
+select pg_temp.intento(format('select retail.registrar_abono_pos(%L, %L, retail.fn_hoy_lima(), %s, array[%L])', :'vendemas_cta', :'ibk', :bv - 1.80, :'cv'));
+select pg_temp.intento(format('select count(*) from retail.fn_pos_pendientes(%L)', :'vendemas_cta'));
+${cambiaA(FELIPE)}
+select retail.fn_texto_movimiento_dinero('abono_tarjeta');`);
+  const [pendiente, mayor, anterior, sinDias, aCajon, abono, repetido, unoSolo, saldos, gasto, yaNo, otraVez, qrSinComision, sinGasto, concilia, borrarLote, libre, saldoVuelve, s0v, micaela, micaelaVe, texto] = lineas(r);
+  esperar("la venta de hoy suma S/ 60 al día pendiente de Vendemás (un solo renglón por día, tienda y medio)", r.ok && pendiente === "1|60.00", r);
+  esperar("un depósito mayor que lo cobrado se rechaza (comisión negativa = días sin marcar)", r.ok && mayor.includes("no puede ser mayor que lo cobrado"), r);
+  esperar("un depósito anterior al último día que cubre se rechaza", r.ok && anterior.includes("anterior al último día"), r);
+  esperar("sin días marcados no hay nada que cruzar", r.ok && sinDias.includes("Marca qué días"), r);
+  esperar("el depósito llega a un banco, no a un cajón", r.ok && aCajon.includes("llega a un banco"), r);
+  esperar("llegó S/ 1.80 menos de lo cobrado ese día: la comisión real es S/ 1.80, en un solo día", r.ok && abono === "1.80|1|t|t", r);
+  esperar("el mismo token devuelve el mismo abono (doble clic) y no hay dos", r.ok && repetido === "1" && unoSolo === "1", r);
+  esperar("la puente de Vendemás baja todo lo cobrado ese día e Interbank sube lo que llegó", r.ok && saldos === "t|t", r);
+  esperar("la comisión queda como gasto bancario (639) de la empresa", r.ok && gasto === "gastos_bancarios|1.80", r);
+  esperar("ese día ya no está pendiente y no se liquida dos veces", r.ok && yaNo === "0" && otraVez.includes("ya se liquidó"), r);
+  esperar("el QR de Izipay llegó completo: comisión 0 y ningún gasto", r.ok && qrSinComision === "0.00" && sinGasto === "0", r);
+  esperar("Conciliación de la puente cuadra: el saldo del sistema bajó exactamente lo liquidado, con el cobro y el depósito a la vista", r.ok && concilia === "t|t", r);
+  esperar("los días que cubrió un depósito no se borran", r.ok && borrarLote.includes("no se editan ni se borran"), r);
+  esperar("anular el depósito libera el día (vuelve a pendiente) y la puente recupera su saldo", r.ok && libre === "1" && saldoVuelve === "0.00", r);
+  esperar("registrar y ver lo pendiente es del líder", r.ok && micaela.includes("del líder") && micaelaVe.includes("del líder"), r);
+  esperar("el movimiento se llama «Depósito de la máquina»", r.ok && texto === "Depósito de la máquina", r);
+}
+
+// 8. Actividad 4 (20261016191000): la tarifa solo estima y avisa.
+{
+  const r = correr(`${ESCENA}
+select retail.fn_dias_habiles(date '2026-10-16', date '2026-10-19'), retail.fn_dias_habiles(date '2026-10-17', date '2026-10-18'), retail.fn_dias_habiles(date '2026-10-17', date '2026-10-19'), retail.fn_dias_habiles(date '2026-10-16', date '2026-10-16');
+select tasa_pct, igv_sobre_tasa, cargo_fijo, dias_abono from retail.fn_pos_tarifa(:'izipay', 'qr', retail.fn_hoy_lima());
+select (retail.fn_pos_tarifa(:'vendemas', 'tarjeta', retail.fn_hoy_lima())).id is null;
+select pg_temp.intento(format('select retail.guardar_pos_tarifa(%L, ''tarjeta'', 101, true, 0, 2)', :'vendemas'));
+select pg_temp.intento(format('select retail.guardar_pos_tarifa(%L, ''tarjeta'', 3, true, 51, 2)', :'vendemas'));
+select pg_temp.intento(format('select retail.guardar_pos_tarifa(%L, ''tarjeta'', 3, true, 0, 16)', :'vendemas'));
+select pg_temp.intento(format('select retail.guardar_pos_tarifa(%L, ''yape'', 3, true, 0, 2)', :'vendemas'));
+select pg_temp.intento(format('select retail.guardar_pos_tarifa(%L, ''qr'', 3, true, 0, 2)', :'vendemas'));
+select pg_temp.intento(format('select retail.guardar_pos_tarifa(%L, ''tarjeta'', ''NaN''::numeric, true, 0, 2)', :'vendemas'));
+select retail.guardar_pos_tarifa(:'vendemas', 'tarjeta', 3.5, true, 0.20, 2) as t1 \\gset
+select retail.guardar_pos_tarifa(:'vendemas', 'tarjeta', 3.5, true, 0.20, 2) = :'t1', (select count(*) from retail.pos_tarifas where maquina_id = :'vendemas');
+select vigente_desde from retail.pos_tarifas where id = :'t1';
+select coalesce((select esperado from retail.fn_pos_pendientes(:'vendemas_cta') where fecha = retail.fn_hoy_lima()), 0) as e0 \\gset
+${venta("v1", "tru", [["tarjeta", 60], ["qr", 40]])}
+select n_pagos > 0, esperado - :e0, dias_habiles, atrasado from retail.fn_pos_pendientes(:'vendemas_cta') where fecha = retail.fn_hoy_lima();
+select retail.fn_pos_comision_estimada(:'vendemas', 'tarjeta', 60, 1, retail.fn_hoy_lima()), retail.fn_pos_comision_estimada(:'izipay', 'qr', 40, 1, retail.fn_hoy_lima()), retail.fn_pos_comision_estimada(:'izipay', 'tarjeta', 40, 1, retail.fn_hoy_lima()) is null;
+select retail.guardar_pos_tarifa(:'vendemas', 'tarjeta', 3, true, 0.20, 2) as t2 \\gset
+select vigente_desde = retail.fn_hoy_lima(), (select count(*) from retail.pos_tarifas where maquina_id = :'vendemas') from retail.pos_tarifas where id = :'t2';
+select count(*) from retail.configuracion_historial where que = 'pos_tarifa' and detalle ->> 'maquina_id' = :'vendemas';
+select pg_temp.intento(format('update retail.pos_tarifas set tasa_pct = 1 where id = %L', :'t1'));
+select pg_temp.intento(format('update retail.ventas set created_at = created_at - interval ''9 days'' where id = %L', :'v1'));
+select count(*) filter (where atrasados >= 1), count(*) filter (where pendientes >= 1), bool_or(sin_tarifa) from retail.fn_pos_alertas() where nombre in ('Izipay', 'Vendemás');
+select count(*) filter (where tasa_pct is not null), count(*) from retail.fn_pos_maquinas() where nombre = 'Vendemás';
+${cambiaA(MICAELA)}
+select pg_temp.intento(format('select retail.guardar_pos_tarifa(%L, ''tarjeta'', 3, true, 0, 2)', :'vendemas'));
+select pg_temp.intento('select count(*) from retail.fn_pos_alertas()');`);
+  const [habiles, izipayQr, vendemasSin, t101, c51, d16, yape, qrNoOpera, nan, repetida, desde, pendiente, estimadas, cambio, historial, editar, retroceder, alertas, maquinas, micaela, micaelaVe] = lineas(r);
+  esperar("días hábiles: el sábado cuenta y el domingo no; el día de partida no", r.ok && habiles === "2|0|1|0", r);
+  esperar("el QR de Izipay nace sin comisión y deposita al día siguiente; Vendemás nace sin tarifa", r.ok && izipayQr === "0.00|f|0.00|1" && vendemasSin === "t", r);
+  esperar("la base rechaza una tasa de 101, un cargo de 51, 16 días, un medio que no es de máquina, un medio con el que no cobra y NaN",
+    r.ok && t101.includes("0 a 100") && c51.includes("0 a S/ 50") && d16.includes("0 a 15") && yape.includes("tarjeta o del QR") && qrNoOpera.includes("no cobra con QR") && nan.includes("0 a 100"), r);
+  esperar("la misma tarifa dos veces no abre una fila nueva; la primera vale para todo lo anterior", r.ok && repetida === "t|1" && desde === "1900-01-01", r);
+  esperar("con la tarifa, el día pendiente trae la comisión esperada (3,5 % + IGV sobre S/ 60 + S/ 0.20 = S/ 2.68) y no está atrasado", r.ok && pendiente === "t|2.68|0|f", r);
+  esperar("la estimación: S/ 2.68 para la tarjeta de Vendemás, S/ 0 para el QR de Izipay, nula para la tarjeta de Izipay (sin tarifa)", r.ok && estimadas === "2.68|0.00|t", r);
+  esperar("cambiarla abre una fila desde hoy y deja su rastro en la historia de Configuración", r.ok && cambio === "t|2" && historial === "2", r);
+  esperar("una tarifa no se edita", r.ok && editar.includes("no se edita ni se borra"), r);
+  esperar("una venta de hace 9 días sin depósito aparece ATRASADA en las dos máquinas (su tarjeta en Vendemás, su QR en Izipay), y ninguna está sin tarifa",
+    r.ok && retroceder === "SIN_ERROR" && alertas === "2|2|f", r);
+  esperar("Configuración ve la tarifa vigente en cada fila de la máquina", r.ok && maquinas === "1|1", r);
+  esperar("cambiar la tarifa y ver las alertas es del líder", r.ok && micaela.includes("del líder") && micaelaVe.includes("del líder"), r);
 }
 
 console.log(fallos === 0 ? `\nTodo en orden (${casos} casos) · contenedor: ${CONTENEDOR_LOCAL}` : `\n${fallos} de ${casos} caso(s) fallaron · contenedor: ${CONTENEDOR_LOCAL}`);

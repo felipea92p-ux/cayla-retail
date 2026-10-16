@@ -355,14 +355,21 @@ export const GUIA_FIN_CUENTAS: Guia = {
       ancla: "fin-dinero.mov-monto",
       opcional: true,
       titulo: "Monto y voucher",
-      texto: "Cuánto se movió y el número del voucher o una nota, para encontrarlo después en el banco.",
+      texto: "Cuánto se movió y el número del voucher o una nota, para encontrarlo después en el banco. En un depósito de la máquina es lo que LLEGÓ al banco, ya sin su comisión.",
+    },
+    {
+      id: "mov-lotes",
+      ancla: "fin-dinero.mov-lotes",
+      opcional: true,
+      titulo: "Qué días cubre el depósito",
+      texto: "Solo en un depósito de la máquina (Izipay, Vendemás): los días cobrados con tarjeta o QR que todavía no depositó, marcados hasta la fecha del depósito. Lo cobrado esos días menos lo que llegó es la comisión real: sale sola y queda como gasto.",
     },
     {
       id: "mov-fecha",
       ancla: "fin-dinero.mov-fecha",
       opcional: true,
       titulo: "La fecha",
-      texto: "El día en que la plata se movió de verdad (el del voucher), aunque lo anotes después. Si no sale de un cajón te la pide; un abono de tarjeta pide además la comisión del POS, que queda como gasto.",
+      texto: "El día en que la plata se movió de verdad (el del voucher), aunque lo anotes después. Si no sale de un cajón te la pide. En un depósito de la máquina, al lado ves la comisión real que salió de la cuenta.",
     },
     {
       id: "mov-botones",
@@ -372,6 +379,13 @@ export const GUIA_FIN_CUENTAS: Guia = {
       texto: "Arriba eliges quién lo hace. «Registrar» baja una cuenta y sube la otra en el mismo instante. En la demo no registramos: cerramos la ventana.",
     },
     { ...PESTANAS_DINERO, preparar: [{ tipo: "escape" }] },
+    {
+      id: "aviso-maquina",
+      ancla: "fin-dinero.aviso-maquina",
+      opcional: true,
+      titulo: "Una máquina se atrasó",
+      texto: "Si Izipay o Vendemás no depositó un día dentro de su plazo (el de su tarifa; sin tarifa, 3 días hábiles), aparece aquí: cuántos días esperan, cuánto suman y desde cuándo. «Registrar el depósito» abre el movimiento con esa máquina.",
+    },
     {
       id: "cuentas",
       ancla: "fin-dinero.cuentas",

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   agruparCuentas,
   agruparMaquinas,
+  avisosDeMaquinas,
   cuadra,
   cuentaParaConciliar,
   cuentasPara,
@@ -14,8 +15,18 @@ import {
   leerConciliacion,
   leerCuenta,
   leerEgresoParaMovimiento,
+  leerLotePendiente,
+  lotesPorDefecto,
+  mediosDeMaquina,
   otrosDelCajon,
+  resumenAbono,
   resumenConciliacion,
+  textoLote,
+  textoTarifa,
+  validarAbonoPos,
+  validarTarifa,
+  type AlertaPos,
+  type LotePendiente,
   textoDondeCobra,
   textoRecibe,
   textoSalida,
@@ -328,5 +339,105 @@ describe("el monto de un movimiento tiene tope", () => {
   it("un millón entra; un sol más, no", () => {
     expect(validarMovimiento({ ...base, monto: "1000000" }, ctx).ok).toBe(true);
     expect(validarMovimiento({ ...base, monto: "1000001" }, ctx)).toEqual({ ok: false, error: "El monto pasa de S/\u00a01 000 000: revisa que no sobre un cero." });
+  });
+});
+
+describe("el depósito de la máquina se cruza contra los días pendientes (ADR-0429)", () => {
+  const izipay = cuenta({ id: "pdi", nombre: "Por depositar Izipay", tipo: "por_abonar" });
+  const sinTarifa = { nPagos: 1, esperado: null, diasHabiles: 1, atrasado: false };
+  const lotes: LotePendiente[] = [
+    { clave: "cobros:2026-10-14:u-tru:tarjeta", fecha: "2026-10-14", ubicacionId: TRU, ubicacionNombre: "Tienda TRU", medio: "tarjeta", bruto: 1200, dias: 2, ...sinTarifa },
+    { clave: "cobros:2026-10-14:u-tru:qr", fecha: "2026-10-14", ubicacionId: TRU, ubicacionNombre: "Tienda TRU", medio: "qr", bruto: 300, dias: 2, ...sinTarifa },
+    { clave: "cobros:2026-10-15:u-lim:tarjeta", fecha: "2026-10-15", ubicacionId: LIM, ubicacionNombre: "Tienda LIM", medio: "tarjeta", bruto: 500.5, dias: 1, ...sinTarifa },
+    { clave: "cobros:2026-10-16:u-tru:tarjeta", fecha: "2026-10-16", ubicacionId: TRU, ubicacionNombre: "Tienda TRU", medio: "tarjeta", bruto: 80, dias: 0, ...sinTarifa },
+  ];
+  const ctx = { cuentas: [...TODAS, izipay], hoy: "2026-10-16" };
+  const base = { origen: "pdi", destino: "ibk", monto: "", referencia: " Liq. 15-oct ", fecha: "2026-10-15" };
+
+  it("de entrada vienen marcados los días hasta la fecha del depósito, no los de después", () => {
+    expect(lotesPorDefecto(lotes, "2026-10-15")).toEqual(["cobros:2026-10-14:u-tru:tarjeta", "cobros:2026-10-14:u-tru:qr", "cobros:2026-10-15:u-lim:tarjeta"]);
+    expect(lotesPorDefecto(lotes, "2026-10-13")).toEqual([]);
+  });
+
+  it("cada día se lee en palabras de tienda", () => {
+    expect(textoLote(lotes[1]!)).toBe("14 oct · TRU · QR");
+    expect(textoLote(lotes[2]!)).toBe("15 oct · LIM · tarjeta");
+  });
+
+  it("la cuenta que se ve mientras se marca: lo cobrado, lo que llegó y la comisión como diferencia", () => {
+    const marcados = lotesPorDefecto(lotes, "2026-10-15");
+    expect(resumenAbono(lotes, marcados, "")).toEqual({ dias: 3, bruto: 2000.5, neto: null, comision: null, esperado: null });
+    expect(resumenAbono(lotes, marcados, "1,950.50")).toEqual({ dias: 3, bruto: 2000.5, neto: 1950.5, comision: 50, esperado: null });
+    expect(resumenAbono(lotes, marcados, "2,100").comision).toBe(-99.5);
+  });
+
+  it("lo que viaja a registrar_abono_pos: la máquina, el banco, la fecha, el neto y las claves marcadas", () => {
+    const v = validarAbonoPos({ ...base, monto: "1,950.50" }, lotes, lotesPorDefecto(lotes, "2026-10-15"), ctx);
+    expect(v).toEqual({
+      ok: true,
+      valor: { p_cuenta_id: "pdi", p_banco_id: "ibk", p_fecha: "2026-10-15", p_neto: 1950.5, p_claves: ["cobros:2026-10-14:u-tru:tarjeta", "cobros:2026-10-14:u-tru:qr", "cobros:2026-10-15:u-lim:tarjeta"], p_referencia: "Liq. 15-oct" },
+    });
+  });
+
+  it("lo que la base rechazaría se dice antes: sin máquina o banco, sin días, neto mayor que lo cobrado, fecha anterior al último día o futura", () => {
+    const marcados = lotesPorDefecto(lotes, "2026-10-15");
+    expect(validarAbonoPos({ ...base, origen: "ibk", monto: "10" }, lotes, marcados, ctx)).toMatchObject({ ok: false, error: "Elige la máquina que depositó." });
+    expect(validarAbonoPos({ ...base, destino: "pos", monto: "10" }, lotes, marcados, ctx)).toMatchObject({ ok: false, error: "Elige a qué banco llegó." });
+    expect(validarAbonoPos({ ...base, monto: "10" }, lotes, [], ctx)).toMatchObject({ ok: false, error: "Marca qué días cubre este depósito." });
+    expect(validarAbonoPos({ ...base, monto: "2,100" }, lotes, marcados, ctx).ok).toBe(false);
+    expect((validarAbonoPos({ ...base, monto: "2,100" }, lotes, marcados, ctx) as { error: string }).error).toMatch(/no puede ser mayor que lo cobrado/);
+    expect(validarAbonoPos({ ...base, monto: "100", fecha: "2026-10-14" }, lotes, marcados, ctx)).toMatchObject({ ok: false, error: "El depósito no puede ser anterior al último día que cubre (15 oct)." });
+    expect(validarAbonoPos({ ...base, monto: "100", fecha: "2026-10-17" }, lotes, marcados, ctx)).toMatchObject({ ok: false, error: "La fecha no puede ser futura." });
+    expect(validarAbonoPos({ ...base, monto: "abc" }, lotes, marcados, ctx).ok).toBe(false);
+  });
+});
+
+describe("la tarifa de cada máquina solo estima y avisa (ADR-0429, act. 4)", () => {
+  it("se lee en palabras de tienda, y sin tarifa lo dice", () => {
+    expect(textoTarifa({ tasaPct: 3.5, igvSobreTasa: true, cargoFijo: 0.2, diasAbono: 2, desde: "2026-10-16" })).toBe("3.5 % + IGV + S/ 0.20 por pago · deposita en 2 días hábiles");
+    expect(textoTarifa({ tasaPct: 2.95, igvSobreTasa: false, cargoFijo: 0, diasAbono: 1, desde: null })).toBe("2.95 % · deposita al día hábil siguiente");
+    expect(textoTarifa({ tasaPct: 0, igvSobreTasa: false, cargoFijo: 0, diasAbono: 0, desde: null })).toBe("Sin comisión · deposita el mismo día");
+    expect(textoTarifa(null)).toBe("Sin tarifa: solo avisa pasados 3 días hábiles");
+  });
+
+  it("los medios de una máquina, sin repetir tiendas, con su tarifa", () => {
+    const m = agruparMaquinas([
+      { maquina_id: "izi", nombre: "Izipay", cuenta_id: "pdi", cuenta_nombre: "Por depositar Izipay", archivada: false, ubicacion_id: TRU, ubicacion_nombre: "Tienda TRU", medio: "tarjeta", por_defecto: false, tasa_pct: null },
+      { maquina_id: "izi", nombre: "Izipay", cuenta_id: "pdi", cuenta_nombre: "Por depositar Izipay", archivada: false, ubicacion_id: TRU, ubicacion_nombre: "Tienda TRU", medio: "qr", por_defecto: true, tasa_pct: "0.00", igv_sobre_tasa: false, cargo_fijo: "0.00", dias_abono: 1, tarifa_desde: "1900-01-01" },
+      { maquina_id: "izi", nombre: "Izipay", cuenta_id: "pdi", cuenta_nombre: "Por depositar Izipay", archivada: false, ubicacion_id: LIM, ubicacion_nombre: "Tienda LIM", medio: "qr", por_defecto: true, tasa_pct: "0.00", igv_sobre_tasa: false, cargo_fijo: "0.00", dias_abono: 1, tarifa_desde: "1900-01-01" },
+    ])[0]!;
+    expect(mediosDeMaquina(m).map((x) => `${x.medio}:${textoTarifa(x.tarifa)}`)).toEqual(["tarjeta:Sin tarifa: solo avisa pasados 3 días hábiles", "qr:Sin comisión · deposita al día hábil siguiente"]);
+  });
+
+  it("lo que exige la base, dicho antes: tasa 0–100, cargo 0–50, días 0–15; lo vacío cuenta como 0", () => {
+    expect(validarTarifa({ medio: "tarjeta", tasa: "3.5", igvSobreTasa: true, cargoFijo: "0.20", diasAbono: "2" }, "ven")).toEqual({
+      ok: true,
+      valor: { p_maquina_id: "ven", p_medio: "tarjeta", p_tasa_pct: 3.5, p_igv_sobre_tasa: true, p_cargo_fijo: 0.2, p_dias_abono: 2 },
+    });
+    expect(validarTarifa({ medio: "qr", tasa: "", igvSobreTasa: false, cargoFijo: "", diasAbono: "1" }, "izi")).toMatchObject({ ok: true, valor: { p_tasa_pct: 0, p_cargo_fijo: 0, p_dias_abono: 1 } });
+    expect(validarTarifa({ medio: "tarjeta", tasa: "101", igvSobreTasa: true, cargoFijo: "0", diasAbono: "2" }, "ven")).toEqual({ ok: false, error: "La tasa va de 0 a 100 %." });
+    expect(validarTarifa({ medio: "tarjeta", tasa: "3", igvSobreTasa: true, cargoFijo: "51", diasAbono: "2" }, "ven")).toEqual({ ok: false, error: "El cargo fijo por pago va de S/ 0 a S/ 50." });
+    expect(validarTarifa({ medio: "tarjeta", tasa: "3", igvSobreTasa: true, cargoFijo: "0", diasAbono: "16" }, "ven")).toEqual({ ok: false, error: "Los días de abono van de 0 a 15." });
+    expect(validarTarifa({ medio: "tarjeta", tasa: "abc", igvSobreTasa: true, cargoFijo: "0", diasAbono: "2" }, "ven").ok).toBe(false);
+  });
+
+  it("la comisión esperada de los días marcados solo se suma si TODOS tienen tarifa", () => {
+    const base = { ubicacionId: TRU, ubicacionNombre: "Tienda TRU", medio: "tarjeta" as const, dias: 1, nPagos: 2, diasHabiles: 1, atrasado: false };
+    const conTarifa: LotePendiente[] = [
+      { ...base, clave: "a", fecha: "2026-10-15", bruto: 100, esperado: 4.53 },
+      { ...base, clave: "b", fecha: "2026-10-15", bruto: 50, esperado: 2.27 },
+    ];
+    expect(resumenAbono(conTarifa, ["a", "b"], "143").esperado).toBe(6.8);
+    expect(resumenAbono([...conTarifa, { ...base, clave: "c", fecha: "2026-10-15", bruto: 10, esperado: null }], ["a", "b", "c"], "150").esperado).toBeNull();
+    expect(resumenAbono(conTarifa, [], "").esperado).toBeNull();
+    expect(leerLotePendiente({ clave: "x", fecha: "2026-10-10", ubicacion_id: TRU, medio: "qr", bruto: "12.5", dias: "6", n_pagos: "3", esperado: null, dias_habiles: "5", atrasado: true })).toMatchObject({ bruto: 12.5, nPagos: 3, esperado: null, diasHabiles: 5, atrasado: true });
+  });
+
+  it("el aviso: solo las máquinas con algo atrasado, con cuánto, desde cuándo y qué hacer", () => {
+    const al = (x: Partial<AlertaPos>): AlertaPos => ({ maquinaId: "ven", nombre: "Vendemás", cuentaId: "pdv", pendientes: 3, montoPendiente: 2500, esperado: 90, atrasados: 2, montoAtrasado: 1200, diasHabilesMasViejo: 5, diasAbono: 2, sinTarifa: false, ...x });
+    const avisos = avisosDeMaquinas([al({}), al({ maquinaId: "izi", nombre: "Izipay", atrasados: 0, montoAtrasado: 0 })]);
+    expect(avisos.map((a) => a.titulo.replace(/\u00a0/g, " "))).toEqual(["Vendemás no depositó 2 días (S/ 1,200.00)"]);
+    expect(avisos[0]!.detalle).toBe("El más viejo lleva 5 días hábiles esperando y Vendemás deposita en 2. Si ya llegó al banco, regístralo; si no, reclámalo a Vendemás.");
+    expect(avisosDeMaquinas([al({ atrasados: 1, montoAtrasado: 80, sinTarifa: true, diasHabilesMasViejo: 4 })])[0]!.detalle).toContain("sin tarifa cargada: se avisa a los 3");
   });
 });

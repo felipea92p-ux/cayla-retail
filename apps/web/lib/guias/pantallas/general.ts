@@ -1059,6 +1059,13 @@ export const GUIA_CONFIGURACION: Guia = {
       texto: "Izipay y Vendemás: en qué tiendas cobran con tarjeta y QR, y en qué cuenta «por depositar» espera esa plata hasta que la máquina la deposita en el banco, sin su comisión. Donde una tienda tiene dos para un mismo medio, Vender pregunta cuál.",
     },
     {
+      id: "maquina-tarifa",
+      ancla: "config.maquina-tarifa",
+      opcional: true,
+      titulo: "La tarifa de cada máquina",
+      texto: "El lápiz abre su tarifa: la tasa, si lleva IGV, el cargo fijo por pago y en cuántos días hábiles deposita. Solo sirve para estimar la comisión de lo pendiente y avisar si la máquina se atrasa: la comisión real sale de cada depósito. Cambia desde hoy.",
+    },
+    {
       id: "caja-caja",
       ancla: "config.caja-caja",
       opcional: true,

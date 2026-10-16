@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoFin, InputFin, PieTabla, SelectFin, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
 import { EditarCuentaModal } from "@/components/finanzas/EditarCuentaModal";
+import { TarifaMaquinaModal } from "@/components/finanzas/TarifaMaquinaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { parsearMonto, solesRedondo } from "@/lib/gastos-reglas";
@@ -19,9 +20,11 @@ import {
   TEXTO_TIPO_CUENTA,
   TIPOS_AUTOMATICOS,
   TIPOS_QUE_SE_AGREGAN,
+  mediosDeMaquina,
   nombreCorto,
   textoDondeCobra,
   textoRecibe,
+  textoTarifa,
   tiposParaMedio,
   type CuentaDinero,
   type FilaMedio,
@@ -62,6 +65,7 @@ export function ConfiguracionCuentas({
   const [guardando, setGuardando] = useState(false);
   const [agregar, setAgregar] = useState(false);
   const [editar, setEditar] = useState<CuentaDinero | null>(null);
+  const [tarifaDe, setTarifaDe] = useState<MaquinaPos | null>(null);
 
   const guardar = async (hacer: () => Consulta, que: string, listo: string) => {
     if (!responsable.listo) {
@@ -211,6 +215,7 @@ export function ConfiguracionCuentas({
                     <th>Máquina</th>
                     <th>Lo cobrado espera en</th>
                     <th>Dónde cobra</th>
+                    <th>Tarifa (solo estima y avisa)</th>
                     <th>Estado</th>
                   </tr>
                 </thead>
@@ -221,11 +226,25 @@ export function ConfiguracionCuentas({
                         <b>{m.nombre}</b>
                       </td>
                       <td data-l="Espera en">{nombreCorto(m.cuentaNombre)}</td>
-                      <td className="fin-ancha" data-l="Dónde cobra">{textoDondeCobra(m)}</td>
+                      <td data-l="Dónde cobra">{textoDondeCobra(m)}</td>
+                      <td className="fin-ancha" data-l="Tarifa">
+                        {mediosDeMaquina(m).map((x) => (
+                          <span key={x.medio} className="block">
+                            <b className="font-semibold">{TEXTO_MEDIO_COBRO[x.medio]}:</b> {textoTarifa(x.tarifa)}
+                          </span>
+                        ))}
+                      </td>
                       <td data-l="Estado">
-                        <Chip tono={m.archivada ? "apagado" : "verde"} tachado={false}>
-                          {m.archivada ? "archivada" : "activa"}
-                        </Chip>
+                        <span className="inline-flex flex-wrap items-center gap-2">
+                          <Chip tono={m.archivada ? "apagado" : "verde"} tachado={false}>
+                            {m.archivada ? "archivada" : "activa"}
+                          </Chip>
+                          {!m.archivada && mediosDeMaquina(m).length > 0 && (
+                            <span data-guia="config.maquina-tarifa">
+                              <LapizEditar que={`la tarifa de ${m.nombre}`} disabled={guardando} onClick={() => setTarifaDe(m)} />
+                            </span>
+                          )}
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -234,11 +253,12 @@ export function ConfiguracionCuentas({
             </div>
           )}
           <PieTabla>
-            <span>Donde una tienda tiene dos máquinas para un mismo medio, la hoja de cobro pregunta cuál y marca de entrada la de «A qué cuenta entra cada cobro». Donde hay una sola, no pregunta.</span>
+            <span>Donde una tienda tiene dos máquinas para un mismo medio, la hoja de cobro pregunta cuál y marca de entrada la de «A qué cuenta entra cada cobro». La tarifa solo sirve para estimar la comisión y avisar si la máquina se atrasa: la comisión real sale de cada depósito.</span>
           </PieTabla>
         </Superficie>
       )}
 
+      {tarifaDe && <TarifaMaquinaModal maquina={tarifaDe} onCerrar={() => setTarifaDe(null)} />}
       {agregar && <AgregarCuentaModal hoy={hoy} onCerrar={() => setAgregar(false)} />}
       {editar && <EditarCuentaModal cuenta={editar} hoy={hoy} onCerrar={() => setEditar(null)} />}
     </>

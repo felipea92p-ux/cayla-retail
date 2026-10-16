@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import {
   agruparMaquinas,
+  leerAlertaPos,
   leerCierre,
   leerConciliacion,
   leerConciliacionCuenta,
@@ -11,6 +12,7 @@ import {
   leerMovimiento,
   leerMovimientoDueno,
   leerSinCuenta,
+  type AlertaPos,
   type CierreConDiferencia,
   type Conciliacion,
   type ConciliacionCuenta,
@@ -84,6 +86,15 @@ export async function getMaquinasPos(): Promise<MaquinaPos[] | null> {
   const { data, error } = await supabase.rpc("fn_pos_maquinas" as never);
   if (error) return null;
   return agruparMaquinas((data ?? []) as Fila[]);
+}
+
+/** Solo el líder: por máquina de cobro, cuánto espera depósito y cuánto ya está atrasado (ADR-0429, act. 4). Vacío si la base todavía
+ *  no lo sabe (falta la migración 20261016191000) o la lectura falla: la pantalla no avisa nada y sigue igual. */
+export async function getAlertasPos(): Promise<AlertaPos[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_pos_alertas" as never);
+  if (error) return [];
+  return ((data ?? []) as Fila[]).map(leerAlertaPos);
 }
 
 /** Solo el líder: lo que movió plata este mes y todavía no dice de qué cuenta. */

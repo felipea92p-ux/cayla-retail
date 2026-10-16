@@ -11,7 +11,7 @@ import { Chip } from "@/components/ui/Chip";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraDinero, type PestanaDinero } from "@/components/finanzas/CabeceraDinero";
 import { PagosSinCuentaModal } from "@/components/finanzas/PagosSinCuenta";
-import { CabeceraBloque, CampoFin, Herramientas, InputFin, ListaDatos, OpcionesFin, PieTabla, RadiosFin, SelectFin, Superficie } from "@/components/finanzas/kit";
+import { CabeceraBloque, CampoFin, Herramientas, InputFin, ListaDatos, OpcionesFin, PieTabla, RadiosFin, SalidaFin, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -24,6 +24,7 @@ import {
   TEXTO_MOVIMIENTO,
   TEXTO_SIN_CUENTA,
   agruparCuentas,
+  avisosDeMaquinas,
   cuadra,
   cuentasPara,
   cuentasVisibles,
@@ -33,13 +34,19 @@ import {
   hoyEnPalabras,
   insigniaCuenta,
   leerEgresoParaMovimiento,
+  leerLotePendiente,
+  lotesPorDefecto,
   nombreCorto,
   opcionQuePaso,
   otrosDelCajon,
+  resumenAbono,
   resumenConciliacion,
+  textoLote,
   textoSalida,
   tipoDeMovimiento,
+  validarAbonoPos,
   validarMovimiento,
+  type AlertaPos,
   type BorradorMovimiento,
   type CierreConDiferencia,
   type Conciliacion,
@@ -48,12 +55,15 @@ import {
   type EfectivoFila,
   type EgresoParaMovimiento,
   type FilaMedio,
+  type LotePendiente,
   type MovimientoDinero,
   type MovimientoDueno,
   type QuePaso,
   type SinCuenta,
 } from "@/lib/cuentas-dinero-reglas";
 import { Boton } from "@/components/ui/campos";
+import { Casilla } from "@/components/ui/Casilla";
+import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { ArrowLeftRight, Landmark, Store } from "lucide-react";
 import { MAX_REFERENCIA_MOVIMIENTO } from "@/lib/finanzas-topes";
@@ -174,6 +184,7 @@ export function CuentasPanel({
   medios,
   plata,
   sinCuenta,
+  alertas,
   ubicaciones,
   talleres,
   ver,
@@ -185,6 +196,8 @@ export function CuentasPanel({
   medios: FilaMedio[];
   plata: MovimientoDueno[];
   sinCuenta: SinCuenta[];
+  /** Por máquina de cobro, cuánto espera depósito y cuánto ya está atrasado (ADR-0429, act. 4; solo el líder). */
+  alertas?: AlertaPos[];
   ubicaciones: UbicacionGastos[];
   /** Las sedes que son el Taller (su cajón es un fondo fijo). */
   talleres: string[];
@@ -193,6 +206,7 @@ export function CuentasPanel({
   hoy: string;
 }) {
   const abrir = useContext(ContextoMovimiento);
+  const avisosMaquinas = avisosDeMaquinas(alertas ?? []);
   const [detalle, setDetalle] = useState<MovimientoDinero | null>(null);
   // F3b: lo pasado que no dice su cuenta se completa una vez, desde el aviso.
   const [decirCuenta, setDecirCuenta] = useState(false);
@@ -210,6 +224,22 @@ export function CuentasPanel({
           Los bancos son de CAYLA entera: se ven igual en cualquier tienda. El cajón y la caja fuerte son los de {nombreSede}.
         </p>
       )}
+      {/* La máquina que no depositó a tiempo (ADR-0429, act. 4): se dice arriba de las cuentas, con el camino para registrarlo. */}
+      {avisosMaquinas.map((a) => (
+        <Aviso
+          key={a.maquina.maquinaId}
+          tono="atencion"
+          titulo={a.titulo}
+          guia="fin-dinero.aviso-maquina"
+          accion={
+            <button type="button" className="btn-cayla btn-enlace" onClick={() => abrir("abono_tarjeta")}>
+              Registrar el depósito
+            </button>
+          }
+        >
+          {a.detalle}
+        </Aviso>
+      ))}
 
       {grupos.length === 0 ? (
         <Superficie>
@@ -366,7 +396,7 @@ export function CuentasPanel({
         </Herramientas>
         {movimientos.length === 0 ? (
           <Vacio tamano="chico" icono={<ArrowLeftRight />}>
-            Sin movimientos todavía. Un depósito del cajón o un abono de tarjeta se registra con «+ Registrar movimiento».
+            Sin movimientos todavía. Un depósito del cajón o el depósito de una máquina se registra con «+ Registrar movimiento».
           </Vacio>
         ) : (
           <div className="fin-tabla-wrap">
@@ -858,17 +888,62 @@ function RegistrarMovimientoModal({
   }, [ubicacionCajon]);
   const egresosDelTipo = egresos.filter((e) => (tipo === "deposito" ? e.marca !== "retiro" : e.marca !== "deposito"));
 
+  // El depósito de una máquina (ADR-0429) se cruza contra los días que todavía no depositó: la lista llega de la base
+  // (`fn_pos_pendientes`), se marcan de entrada los días hasta la fecha del depósito y la comisión sale sola.
+  const esDepositoMaquina = tipo === "abono_tarjeta";
+  const maquinaId = esDepositoMaquina ? b.origen || null : null;
+  // Lo leído va con la máquina de la que se leyó: si la persona cambia de máquina, la lista anterior deja de valer sola
+  // (sin tocar el estado dentro del efecto) mientras llega la nueva.
+  const [leido, setLeido] = useState<{ maquinaId: string; lotes: LotePendiente[]; marcados: string[] } | null>(null);
+  useEffect(() => {
+    if (!maquinaId) return;
+    let vivo = true;
+    createClient()
+      .rpc("fn_pos_pendientes" as never, { p_cuenta_id: maquinaId } as never)
+      .then(({ data, error }) => {
+        if (!vivo) return;
+        const lista = error ? [] : ((data ?? []) as Record<string, unknown>[]).map(leerLotePendiente);
+        setLeido({ maquinaId, lotes: lista, marcados: lotesPorDefecto(lista, b.fecha) });
+      });
+    return () => {
+      vivo = false;
+    };
+    // La fecha no vuelve a cargar la lista: solo decide qué se marca de entrada al llegar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maquinaId]);
+  const lotes = leido && leido.maquinaId === maquinaId ? leido.lotes : null;
+  const marcados = leido && leido.maquinaId === maquinaId ? leido.marcados : [];
+  const marcar = (clave: string, si: boolean) =>
+    setLeido((l) => (l && l.maquinaId === maquinaId ? { ...l, marcados: si ? [...l.marcados.filter((c) => c !== clave), clave] : l.marcados.filter((c) => c !== clave) } : l));
+  const cuentaAbono = esDepositoMaquina ? resumenAbono(lotes ?? [], marcados, b.monto) : null;
+
   function elegirQue(que: QuePaso) {
     setB(inicialDe(que, cuentas, ubicacionId, deuda, hoy, b));
   }
 
   async function guardar() {
-    const v = validarMovimiento(b, { cuentas, egresos, deuda, hoy });
-    if (!v.ok) return avisar.error(v.error);
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
     }
+    if (esDepositoMaquina) {
+      const v = validarAbonoPos(b, lotes ?? [], marcados, { cuentas, hoy });
+      if (!v.ok) return avisar.error(v.error);
+      setGuardando(true);
+      const { error } = await firmar(createClient().rpc("registrar_abono_pos" as never, { ...v.valor, p_token: token } as never), responsable.firma());
+      setGuardando(false);
+      responsable.despues(error);
+      if (error) return avisar.error(traducirError(error, "registrar el depósito de la máquina"));
+      const r = resumenAbono(lotes ?? [], marcados, b.monto);
+      avisar.exito("Depósito de la máquina registrado", {
+        detalle: r.comision && r.comision > 0 ? `La comisión real, ${soles(r.comision)}, quedó como gasto bancario de la empresa.` : "Llegó completo: sin comisión.",
+      });
+      onCerrar();
+      router.refresh();
+      return;
+    }
+    const v = validarMovimiento(b, { cuentas, egresos, deuda, hoy });
+    if (!v.ok) return avisar.error(v.error);
     setGuardando(true);
     const { error } = await firmar(createClient().rpc("registrar_movimiento_dinero" as never, { ...v.valor, p_token: token } as never), responsable.firma());
     setGuardando(false);
@@ -981,6 +1056,46 @@ function RegistrarMovimientoModal({
         </div>
       )}
 
+      {esDepositoMaquina && (
+        <div data-sin-cascada data-guia="fin-dinero.mov-lotes">
+          <CampoFin
+            etiqueta="Qué días cubre este depósito"
+            ayuda={
+              lotes === null
+                ? "Leyendo lo que la máquina todavía no depositó…"
+                : lotes.length === 0
+                  ? "Esta máquina no tiene nada por depositar."
+                  : "Lo cobrado con la máquina que ningún depósito cubre todavía. Vienen marcados los días hasta la fecha del depósito."
+            }
+            tono={lotes !== null && lotes.length === 0 ? "aviso" : undefined}
+          >
+            {lotes && lotes.length > 0 && (
+              <ul className="fin-lotes">
+                {lotes.map((l) => (
+                  <li key={l.clave} className="fin-lote">
+                    <Casilla marcada={marcados.includes(l.clave)} onCambio={() => marcar(l.clave, !marcados.includes(l.clave))} etiqueta={`${textoLote(l)} · ${soles(l.bruto)}`} />
+                    <span className="fin-lote-texto">
+                      {textoLote(l)}
+                      {l.atrasado && (
+                        <>
+                          {" "}
+                          <Chip tono="ambar">atrasado</Chip>
+                        </>
+                      )}
+                    </span>
+                    <span className="fin-lote-dias">
+                      {l.dias === 0 ? "hoy" : l.dias === 1 ? "ayer" : `hace ${l.dias} días`}
+                      {l.esperado !== null && ` · comisión ≈ ${soles(l.esperado)}`}
+                    </span>
+                    <span className="fin-lote-monto">{soles(l.bruto)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CampoFin>
+        </div>
+      )}
+
       <div className="fin-dos-campos" data-guia="fin-dinero.mov-monto">
         <CampoFin etiqueta={tipo === "abono_tarjeta" ? "Monto que llegó al banco" : "Monto"} htmlFor="mov-monto">
           {esCajon && b.fuente === "egreso" ? (
@@ -990,7 +1105,7 @@ function RegistrarMovimientoModal({
           )}
         </CampoFin>
         <CampoFin etiqueta="Voucher o nota" htmlFor="mov-ref">
-          <InputFin id="mov-ref" value={b.referencia} onChange={(e) => cambiar({ referencia: e.target.value })} placeholder={tipo === "abono_tarjeta" ? "Liquidación Niubiz 20-sep" : "Voucher 120441"} maxLength={MAX_REFERENCIA_MOVIMIENTO} />
+          <InputFin id="mov-ref" value={b.referencia} onChange={(e) => cambiar({ referencia: e.target.value })} placeholder={tipo === "abono_tarjeta" ? "Depósito Izipay 15-oct" : "Voucher 120441"} maxLength={MAX_REFERENCIA_MOVIMIENTO} />
         </CampoFin>
       </div>
 
@@ -999,12 +1114,23 @@ function RegistrarMovimientoModal({
           <CampoFin etiqueta="Fecha" htmlFor="mov-fecha">
             <InputFin id="mov-fecha" type="date" max={hoy} value={b.fecha} onChange={(e) => cambiar({ fecha: e.target.value })} />
           </CampoFin>
-          {tipo === "abono_tarjeta" && (
-            <CampoFin etiqueta="Comisión del POS" htmlFor="mov-comision" ayuda="Queda como gasto bancario (639) de la empresa.">
-              <InputFin id="mov-comision" inputMode="decimal" value={b.comision} onChange={(e) => cambiar({ comision: e.target.value })} placeholder="0.00" />
+          {esDepositoMaquina && cuentaAbono && (
+            <CampoFin etiqueta="Comisión real" ayuda="Lo cobrado esos días menos lo que llegó. Queda como gasto bancario (639) de la empresa.">
+              <SalidaFin>
+                {cuentaAbono.dias === 0
+                  ? "Marca los días"
+                  : cuentaAbono.comision === null
+                    ? `${soles(cuentaAbono.bruto)} cobrados en ${cuentaAbono.dias === 1 ? "1 día" : `${cuentaAbono.dias} días`}`
+                    : `${soles(cuentaAbono.comision)} · ${soles(cuentaAbono.bruto)} cobrados − ${soles(cuentaAbono.neto ?? 0)} llegaron${cuentaAbono.esperado !== null ? ` · esperada ≈ ${soles(cuentaAbono.esperado)}` : ""}`}
+              </SalidaFin>
             </CampoFin>
           )}
         </div>
+      )}
+      {esDepositoMaquina && cuentaAbono?.comision !== null && cuentaAbono?.comision !== undefined && cuentaAbono.comision < 0 && (
+        <Aviso tono="atencion" titulo="Llegó más de lo cobrado en los días marcados" chico>
+          Marca los días que faltan (¿la máquina depositó la tarjeta y el QR juntos?) o revisa el monto.
+        </Aviso>
       )}
 
       <ComboResponsable control={responsable} deshabilitado={guardando} />

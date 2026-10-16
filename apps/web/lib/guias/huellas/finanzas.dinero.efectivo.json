@@ -2,10 +2,11 @@
   "guia": "finanzas.dinero.efectivo",
   "ruta": "/finanzas/dinero/efectivo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 22,
+  "total": 24,
   "controles": {
     "components/finanzas/CuentasDinero.tsx": [
       "Boton «fin-dinero.registrar»",
+      "button «Registrar el depósito»",
       "button «fin-dinero.poner-plata»",
       "button «Sacar plata»",
       "Link «Cambiar en Configuración»",
@@ -18,6 +19,7 @@
       "Boton «Anotar»",
       "button «{fechaCorta(h.fecha, true)}»",
       "button «Conciliar»",
+      "Casilla «{`${textoLote(l)}»",
       "ComboResponsable «Cancelar»",
       "button «Cancelar»",
       "Boton «Registrar»",
