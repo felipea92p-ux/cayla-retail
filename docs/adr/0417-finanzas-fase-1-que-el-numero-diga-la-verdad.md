@@ -119,3 +119,14 @@ Felipe eligió el **camino A («La respuesta»)** para los seis submódulos de F
 **Lo que NO se construyó, a propósito** (ver el backlog del día): la corrección masiva de costos a «sin IGV» (decisión 2: hay que medir y
 ensayar en producción), Interbank y las cuentas «por depositar» (decisión 3: toca la hoja de cobro de Vender), la planilla con sede,
 `/formidable`, `/chaos` y `guias:recorrer` sobre las seis pantallas, y pegar las tres migraciones.
+
+## Actualización 2026-10-16 (las tres migraciones en producción)
+
+Pegadas por Claude con la orden de Felipe, a las 00:15 de Lima, en orden: `20261015233000` (en producción `20261016171442`), `20261015235000`
+(`20261016171526`) y `20261016002000` (`20261016171602`). Protocolo: sonda de solo lectura (791 líneas del centinela con costo 0: 790 en
+meses abiertos y una `anulada`; las cuatro anclas de los reemplazos exactamente una vez; las 48 columnas que usan las tres en su lugar), dos
+ensayos en un solo lote que termina en excepción —el segundo con la llamada real a `fn_finanzas_confianza` y `fn_costo_estimado_resumen`
+como un líder activo en Dynamic— y, después de pegar, las siete huellas `md5(prosrc)` iguales a la pila donde corrieron las 54 pruebas.
+Resultado del relleno: 790 líneas con `costo_estimado`, ninguna en 0 (S/ 20,937 de costo estimado sobre S/ 36,367 vendidos en octubre al 16).
+El medidor de confianza de octubre sale bajo en producción, y es correcto: cero fijos, cero saldos de arranque, la tarjeta directo al banco,
+nueve lotes sin factura y el banco sin conciliar. Lo que lo sube es la Fase 0, que es de Felipe.
