@@ -5,13 +5,13 @@
   "total": 53,
   "controles": {
     "app/(app)/compras/factura/[compraId]/page.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «/compras»"
     ],
     "components/AccionesFaltantes.tsx": [
       "button «factura.cerrar-faltante»"
     ],
     "components/AdjuntosCompra.tsx": [
-      "input «input.current?.click()»",
+      "input «(sin nombre)»",
       "Boton «{texto}»",
       "button «{`Quitar ${f.name}»",
       "a «{a.nombre}»",
@@ -22,9 +22,9 @@
     ],
     "components/CerrarFaltanteModal.tsx": [
       "CampoSelect «¿En qué tienda faltó?»",
-      "input «de»",
+      "input «cierre-cantidad»",
       "button «{texto}»",
-      "ComboResponsable «Cerrar línea con faltante»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cerrar línea con faltante»"
     ],
     "components/CompraDetalle.tsx": [
@@ -39,11 +39,11 @@
       "input «{`Monto a pagar de ${compra.documento}»",
       "input «Total del pago»",
       "button «Todo ·»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «{`Registrar pago de ${soles(suma)}»",
       "CampoTexto «Motivo»",
-      "ComboResponsable «Volver»",
+      "ComboResponsable «{responsable}» #2",
       "button «Volver»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
@@ -68,10 +68,10 @@
       "CampoSelect «¿De qué línea?»",
       "CampoSelect «Sale de»",
       "CampoSelect «Va a»",
-      "input «de»",
-      "input «{ETIQUETA_MOTIVO_REASIGNACION[m]}»",
+      "input «reasignar-cantidad»",
+      "input «motivo-reasignacion»",
       "CampoTexto «{motivo === \"otro\" ? \"Nota (cuenta el motivo)\" : \"Nota (opcional)\"}»",
-      "ComboResponsable «{cantidadOk && haciaId ? `Mover ${n}»",
+      "ComboResponsable «{responsable}»",
       "Boton «{error ?? undefined}»"
     ],
     "components/finanzas/CampoCuenta.tsx": [

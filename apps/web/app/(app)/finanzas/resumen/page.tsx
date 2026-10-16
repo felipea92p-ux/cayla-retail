@@ -1,5 +1,5 @@
 import { exigirModulo } from "@/lib/persona-actual";
-import { getResumenFinanzas } from "@/lib/resumen-finanzas";
+import { getConfianzaFinanzas, getResumenFinanzas } from "@/lib/resumen-finanzas";
 import { leerVerResumen } from "@/lib/resumen-finanzas-reglas";
 import { ResumenFinanzasPanel } from "@/components/finanzas/ResumenFinanzas";
 
@@ -11,6 +11,7 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
   const sp = await searchParams;
   const esLider = persona.rol === "lider";
   const pedido = leerVerResumen(sp.ver, esLider);
-  const { datos, falla } = await getResumenFinanzas(pedido);
-  return <ResumenFinanzasPanel resumen={datos} falla={falla} acceso={{ lider: esLider, modulos: persona.modulos.map((m) => m.clave) }} />;
+  // Las dos lecturas van a la vez: el resumen y el medidor de confianza (ADR-0417) no dependen una de la otra.
+  const [{ datos, falla }, confianza] = await Promise.all([getResumenFinanzas(pedido), getConfianzaFinanzas(pedido)]);
+  return <ResumenFinanzasPanel resumen={datos} falla={falla} confianza={confianza} acceso={{ lider: esLider, modulos: persona.modulos.map((m) => m.clave) }} />;
 }

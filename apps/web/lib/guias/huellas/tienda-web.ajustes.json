@@ -5,7 +5,7 @@
   "total": 1,
   "controles": {
     "components/ConfiguracionTiendaWeb.tsx": [
-      "ComboResponsable «(sin nombre)»"
+      "ComboResponsable «{responsable}»"
     ]
   }
 }

@@ -209,7 +209,8 @@
     const n = nombrar(estilo(el).backgroundColor);
     return n.startsWith("#") || n.startsWith("≈");
   };
-  const fueraDelCenso = (el) => !!el.closest("aside, .papel-fijo, [data-papel], nextjs-portal") || (!!el.closest("header") && !el.closest("main") && !el.closest('[role="dialog"]'));
+  // El marco (el lateral y la cabecera) no se censa; un `<aside>` DENTRO de la pantalla sí (el ticket de Vender, ronda 16 de /unificar).
+  const fueraDelCenso = (el) => !!el.closest("aside:not(main aside), .papel-fijo, [data-papel], nextjs-portal") || (!!el.closest("header") && !el.closest("main") && !el.closest('[role="dialog"]'));
 
   // ---------- el movimiento (Felipe 2026-10-07: «que el censo diga si un componente tiene animaciones o cosas especiales») ----------
   // Lo que hace una pieza cuando la persona la usa: al pasar el mouse, al presionarla, al recibir el foco del teclado, cómo transiciona,

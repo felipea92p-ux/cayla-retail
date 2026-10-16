@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Chip } from "@/components/ui/Chip";
 import { precargarFotoFija, precargarMiniaturas } from "@/components/ui/precargar-miniaturas";
 import { FOTO_PANEL_TALLA, SIZES_MINIATURA_EXISTENCIAS } from "@/lib/fotos-tamanos";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
@@ -366,8 +367,8 @@ export function ExistenciasTarjetas({
                 })}
               </div>
                   <span className="min-w-0 truncate text-xs font-semibold text-tinta">{p.color ?? "Sin color"}</span>
-                  {p.danado > 0 && <span className="shrink-0 rounded-full bg-rojo/[0.11] px-1.5 text-[11px] font-semibold text-rojo-profundo">{p.danado} {p.danado === 1 ? "dañada" : "dañadas"}</span>}
-                  {p.apartado > 0 && <span className="shrink-0 rounded-full bg-pizarra/[0.12] px-1.5 text-[11px] font-semibold text-pizarra">{p.apartado} {p.apartado === 1 ? "apartada" : "apartadas"}</span>}
+                  {p.danado > 0 && <Chip tono="rojo" className="shrink-0">{p.danado} {p.danado === 1 ? "dañada" : "dañadas"}</Chip>}
+                  {p.apartado > 0 && <Chip tono="pizarra" className="shrink-0">{p.apartado} {p.apartado === 1 ? "apartada" : "apartadas"}</Chip>}
                 </span>
               </span>
               {p.precio != null && (

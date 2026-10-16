@@ -5,9 +5,9 @@
   "total": 117,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
-      "Volver «(sin nombre)»",
+      "Volver «/recibir»",
       "BotonEnlace «Ir a Recibir mercadería»",
-      "Volver «(sin nombre)» #2"
+      "Volver «/recibir» #2"
     ],
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -19,18 +19,18 @@
     ],
     "components/alta-producto/ElegirColores.tsx": [
       "button «{`Quitar ${c.nombre}»",
-      "ComboBuscable «setCarta((v) => !v)»",
+      "ComboBuscable «(sin nombre)»",
       "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
       "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
       "button «{c.nombre}»"
     ],
     "components/alta-producto/IdentidadAlta.tsx": [
-      "ComboResponsable «);»",
+      "ComboResponsable «{control}»",
       "button «Ir a elegir»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
       "CampoTexto «Nombre del color»",
-      "Desplegable «setCodigoEscrito(normaliz»",
+      "Desplegable «{familia}»",
       "CampoTexto «Código»",
       "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
@@ -56,12 +56,12 @@
       "CampoTexto «{guia.etiqueta(\"guia\", \"Número de guía\")}»",
       "CampoTexto «Nota (opcional)»",
       "CampoSelect «{guia.etiqueta(\"proveedor\", \"¿De quién llegó?\")}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Volver «→onVolver»",
       "Boton «recepcion.cerrar-boton»"
     ],
     "components/recepcion-conteo/ContarEnvio.tsx": [
-      "ComboResponsable «Cada categoría guarda quién la contó. Varias personas pueden»",
+      "ComboResponsable «{responsable}»",
       "button «→() => elegir(l)»",
       "button «recepcion.agregar»",
       "Boton «Anterior»",
@@ -99,12 +99,12 @@
     ],
     "components/recepcion-conteo/ReabrirEnvio.tsx": [
       "CampoTexto «{guia.etiqueta(\"reabrir-motivo\", \"¿Por qué lo reabres?\")}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/recepcion-conteo/RecibirContando.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «/recibir»"
     ],
     "components/recepcion-conteo/SepararPrendas.tsx": [
       "button «{`Una menos de ${etiqueta}»",
@@ -131,15 +131,15 @@
     ],
     "components/recepcion-envio/EmpezarARecibir.tsx": [
       "Boton «Recargar»",
-      "ComboResponsable «{errorDeApertura}»",
+      "ComboResponsable «{responsable}»",
       "Boton «{guia.frase ?? undefined}»",
       "BotonEnlace «Recibir sin aviso»",
-      "ComboResponsable «{errorDeApertura}» #2",
+      "ComboResponsable «{responsable}» #2",
       "Boton «{guia.frase ?? undefined}» #2"
     ],
     "components/recepcion-envio/FormularioRecepcion.tsx": [
       "CampoTexto «Nota de la recepción»",
-      "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
+      "ComboResponsable «{responsable}»",
       "Boton «Recargar»",
       "BotonEnlace «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
@@ -151,7 +151,7 @@
       "CampoSelect «Tejido»",
       "CampoSelect «Patrón»",
       "CampoTexto «{guia.etiqueta(\"prenda-descripcion\", \"Descripción (opcional)\")}»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Usar esa prenda»",
       "Boton «Es otra: crearla igual»",
       "Boton «Cancelar»",
@@ -163,7 +163,7 @@
       "button «{`Sumar a ${nombre}»"
     ],
     "components/recepcion-envio/PiezasEnvio.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «/recibir»"
     ],
     "components/recepcion-envio/TarjetasRecepcion.tsx": [
       "CampoTexto «Costo por unidad, en soles»",
@@ -171,8 +171,8 @@
       "button «No llegó nada de esto»",
       "button «{`Quitar ${nombre}»",
       "CampoSelect «Proveedor»",
-      "ComboBuscable «{etiqueta(idGuia.extra(e.clave, \"marca\"), \"Marca\")}»",
-      "ComboBuscable «onCambio(»",
+      "ComboBuscable «{e.categoriaId}»",
+      "ComboBuscable «{e.marcaId}»",
       "Boton «recepcion.agregar-extra»"
     ]
   }

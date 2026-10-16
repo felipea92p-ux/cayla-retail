@@ -1694,6 +1694,16 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   posventa y pendientes, solo lectura) + `components/CajaTablero.tsx` + `lib/caja-tablero-reglas.ts`. Las pantallas de Finanzas se arman con
   `components/finanzas/kit.tsx` + `app/estilos/finanzas.css`.
 
+- **Finanzas en camino A, «El Pulso», y la Fase 1 de datos** (2026-10-15, ADR-0417): cada pantalla de Finanzas abre con una pregunta y
+  su respuesta grande, y debajo sigue lo de siempre. La lógica es pura y probada, una por pantalla: `lib/pulso-reglas.ts` (Resumen: la
+  respuesta, la cascada que siempre cuadra, el ritmo, qué deja cada lugar; `respuestaDeFila`/`cascadaDeFila` las comparte Reportes),
+  `lib/dinero-pulso-reglas.ts`, `lib/impuestos-pulso-reglas.ts`, `lib/gastos-pulso-reglas.ts`, `lib/cierre-pulso-reglas.ts`; las piezas
+  en `components/finanzas/{CascadaPulso,Confianza,DineroPulso,ImpuestosPulso,GastosPulso,ResultadoPulso,CierrePulso}.tsx` y los estilos
+  `fin-pulso-*` en `app/estilos/finanzas.css`. Lo nuevo en la base (sin pegar al 2026-10-15): `fn_costo_estimado_prenda` + los disparadores
+  `prendas_por_regularizar_costo_estimado` y `venta_items_costo_real` + `fn_costo_estimado_resumen` (20261015233000; `venta_items.costo_estimado`);
+  `fn_finanzas_confianza` (20261015235000) → `lib/finanzas-confianza.ts` (los pesos) → `<Confianza>` en `/finanzas/resumen`; y los tipos
+  `pago_planilla` y `pago_sunat` de `movimientos_dinero` (20261016002000; `registrar_movimiento_dinero`, `fn_asientos_dinero_y_caja` 41 | 104 y
+  4011 | 104), que ofrece el modal de `/finanzas/dinero` (`OPCIONES_QUE_PASO`) y enlaza Impuestos.
 - **Finanzas F3–F10** (2026-09-25, ADR-0195, PR #396; detalle por fase en `docs/finanzas/fases/`). Todas las pantallas se
   arman con `components/finanzas/kit.tsx` + `app/estilos/finanzas.css`; permisos en la base con `fn_es_lider()` o
   `fn_capacidad_por_modulos(array['<clave>'])` y la tienda de la cuenta.

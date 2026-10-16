@@ -5,14 +5,14 @@
   "total": 10,
   "controles": {
     "app/(app)/inventario/conteo/[id]/revisar/page.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «{`/inventario/conteo/${c.id}»"
     ],
     "components/conteo/PasosConteo.tsx": [
       "button «{contenido}»"
     ],
     "components/conteo/RevisarConteo.tsx": [
       "Link «Volver a contar»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «{responsable.motivo ?? undefined}»",
       "Boton «{responsable.motivo ?? undefined}»",
       "Link «Cerrar como conteo parcial»",

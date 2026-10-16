@@ -14,13 +14,13 @@
     "components/plan-compra/CampanasArchivadasModal.tsx": [
       "BotonEnlace «Ver»",
       "Boton «{responsable.motivo ?? undefined}»",
-      "ComboResponsable «)»"
+      "ComboResponsable «{responsable}»"
     ],
     "components/plan-compra/EditarCampanaModal.tsx": [
       "CampoTexto «Nombre del plan»",
       "CampoFecha «{<span className=\"sr-only\">Desde</span>}»",
       "CampoFecha «{<span className=\"sr-only\">Hasta</span>}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «No, dejarla»",
       "Boton «Sí, borrar campaña»",
       "Boton «{responsable.motivo ?? undefined}»",
@@ -47,7 +47,7 @@
       "CampoTexto «{`Talla ${t.valor}»",
       "button «Volver a la que propone el sistema»",
       "CampoTexto «Nota (opcional)»",
-      "ComboResponsable «(sin nombre)»"
+      "ComboResponsable «{responsable}»"
     ],
     "components/plan-compra/ListaCategorias.tsx": [
       "SegmentoDeslizante «Cómo llenar el plan»",
@@ -61,7 +61,7 @@
       "CampoTexto «{<span className=\"sr-only\">{nueva ? \"Nombre de la campaña\" : \"Nombre del plan\"}»",
       "CampoFecha «{<span className=\"sr-only\">Desde</span>}»",
       "CampoFecha «{<span className=\"sr-only\">Hasta</span>}»",
-      "ComboResponsable «Can»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
@@ -75,7 +75,7 @@
       "Boton «{motivo}»"
     ],
     "components/plan-compra/PestanasPlan.tsx": [
-      "Pestanas «);»"
+      "Pestanas «{[ { clave: \"plan\", etiqueta: \"Plan\", href: `/compras/plan${conPlan}»"
     ],
     "components/plan-compra/PlanCampana.tsx": [
       "Boton «Armar el plan de»",
@@ -101,28 +101,28 @@
     ],
     "components/plan-compra/RecuperoModal.tsx": [
       "CampoTexto «Lo que sobra, en % del precio»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «{responsable.motivo ?? undefined}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/plan-compra/RepartoModal.tsx": [
       "CampoTexto «{`Mínimo de ${t.nombre}»",
-      "ComboResponsable «0 ? \"Todo listo para guardar.\" : \"Sin cambios todavía.\"»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/plan-compra/SelectorCampana.tsx": [
-      "Desplegable «);»"
+      "Desplegable «{actual ? actualId : \"\"}»"
     ],
     "components/plan-compra/SimuladorPlan.tsx": [
-      "input «Lo que sobra se vende al»",
-      "input «Comprarías»",
+      "input «{mult}»",
+      "input «{rec}»",
       "Link «Qué pedir, prenda por prenda, en Análisis»"
     ],
     "components/plan-compra/TopeModal.tsx": [
-      "CampoMonto «(sin nombre)»",
-      "ComboResponsable «(sin nombre)»",
+      "CampoMonto «{texto}»",
+      "ComboResponsable «{responsable}»",
       "Boton «{responsable.motivo ?? undefined}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"

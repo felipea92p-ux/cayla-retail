@@ -5,7 +5,7 @@
   "total": 29,
   "controles": {
     "app/(app)/inventario/cuadrar/page.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «/inventario»"
     ],
     "components/EscanerConteo.tsx": [
       "button «Cerrar la cámara»",
@@ -33,7 +33,7 @@
       "button «Escanear con la cámara»",
       "button «{motivoRevisar ?? undefined}»",
       "button «Volver a intentar»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "CampoTexto «{notaRequerida ? \"Por qué se vuelve a cuadrar\" : \"Nota (opcional)\"}»",
       "button «(sin nombre)»",
       "button «Sigue: confirmar»",

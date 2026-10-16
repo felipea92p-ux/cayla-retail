@@ -7,7 +7,7 @@
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
       "input «Ej.: se usó para vuelto antes de abrir»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? undefined}»",
       "Boton «{responsable.motivo ?? undefined}» #2",
@@ -29,13 +29,13 @@
       "CampoTexto «{destinoElegido.referencia}»",
       "button «Volver y dejar»",
       "button «Cerrar igual»",
-      "ComboResponsable «setPaso(\"contar\")»",
+      "ComboResponsable «{responsable}»",
       "Volver «→() => setPaso(\"contar\")»",
       "Boton «{responsable.motivo ?? invalido ?? undefined}»"
     ],
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "BotonBuscar «) : ( campoNumero )»",
+      "BotonBuscar «→buscar»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/EscanerCamara.tsx": [
@@ -45,25 +45,25 @@
       "button «Ver ticket»"
     ],
     "components/PedidoClienteModales.tsx": [
-      "ComboResponsable «Mejor no»",
+      "ComboResponsable «{responsable}»",
       "button «Mejor no»",
       "Boton «{responsable.motivo ?? undefined}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}» #2",
       "button «{estado === \"hecho\" ? \"Listo\" : \"Ahora no\"}»",
       "Boton «{responsable.motivo ?? undefined}» #2",
       "a «{responsable.motivo ?? undefined}»",
-      "ComboResponsable «(sin nombre)» #2",
+      "ComboResponsable «{responsable}» #3",
       "Boton «{responsable.motivo ?? undefined}» #3",
       "Boton «{responsable.motivo ?? undefined}» #4"
     ],
     "components/PedirYApartarModal.tsx": [
       "button «{c.talla}»",
       "button «{t.corto}»",
-      "input «{guia.etiqueta(\"apellidos\", \"Apellidos\")}»",
-      "input «{guia.etiqueta(\"celular\", \"Celular · WhatsApp (opcional)\")}»",
+      "input «{nombres}»",
+      "input «{apellidos}»",
       "input «9 dígitos»",
-      "input «{tienda ? tienda.corto : \"La otra tienda\"}»",
-      "ComboResponsable «Mejor no»",
+      "input «{nota}»",
+      "ComboResponsable «{responsable}»",
       "button «Mejor no»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
@@ -71,11 +71,11 @@
       "button «Usar «»",
       "button «{categoria ? `Cambiar a ${categoriaSugerida.nombre}»",
       "button «{t.valor}»",
-      "ComboBuscable «(sin nombre)»",
-      "ComboBuscable «(sin nombre)» #2",
+      "ComboBuscable «{categoriaId}»",
+      "ComboBuscable «{colorCodigo}»",
       "CampoTexto «Descripción corta»",
       "input «Precio cobrado en soles»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{corregir.responsable}»",
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/PuntoDeVenta.tsx": [
@@ -116,7 +116,7 @@
       "button «Cambiar»",
       "button «Aplicar descuento»",
       "button «Dejar en espera»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "button «Aplicar descuento» #2",
       "button «Quitar descuento»",
       "button «{loading ? \"Procesando…\" : \"Confirmar cobro\"}»",
@@ -152,7 +152,7 @@
     "components/punto-de-venta/AnotarNoHabia.tsx": [
       "Boton «→anotar»",
       "button «{t}»",
-      "ComboResponsable «(sin nombre)»"
+      "ComboResponsable «{responsable}»"
     ],
     "components/punto-de-venta/BolsaDelTicket.tsx": [
       "Boton «+ Agregar bolsa»",
@@ -174,12 +174,12 @@
       "button «{l.titulo}»",
       "button «Registrar cliente»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre completo\")}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Volver»",
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/punto-de-venta/DocumentoDelComprobante.tsx": [
-      "CampoTexto «onNombre(e.target.value)»",
+      "CampoTexto «{ID_NUMERO_DOC_COMPROBANTE}»",
       "CampoTexto «Nombre del cliente»"
     ],
     "components/punto-de-venta/EnviarBoleta.tsx": [
@@ -192,7 +192,7 @@
       "button «Dejar en espera»"
     ],
     "components/punto-de-venta/HojaDeCobro.tsx": [
-      "Volver «)»",
+      "Volver «→onVolver»",
       "CampoMonto «{`Monto en ${NOMBRE_METODO[m]}»",
       "button «{i === 0 ? \"Exacto\" : undefined}»",
       "input «Otro monto recibido»",
@@ -208,11 +208,11 @@
     ],
     "components/punto-de-venta/OpcionesDePrendaModal.tsx": [
       "button «→() => setFijo(c.clave)»",
-      "Casilla «))»",
+      "Casilla «(sin nombre)»",
       "button «Listo»",
       "button «{t.referencia}»",
       "button «{porQueDe === clave ? \"Cerrar\" : \"¿Por qué?\"}»",
-      "Casilla «))» #2",
+      "Casilla «(sin nombre)» #2",
       "button «{bajable ? `Agregar ${nombre}»",
       "button «{`Quitar ${nombre}»"
     ],
@@ -224,7 +224,7 @@
       "button «Pedir y apartar para este cliente»"
     ],
     "components/punto-de-venta/RegistrarBajadaModal.tsx": [
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],

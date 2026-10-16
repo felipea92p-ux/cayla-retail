@@ -11,7 +11,7 @@
       "CampoMonto «{guia.etiqueta(\"meta\", `Meta de ${mesEtiqueta}»",
       "CampoTexto «{guia.etiqueta(\"detalle\", \"¿Cuál?\")}»",
       "button «(sin nombre)»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],

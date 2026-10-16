@@ -5,7 +5,7 @@
   "total": 56,
   "controles": {
     "app/(app)/inventario/movimientos/page.tsx": [
-      "Pestanas «);»",
+      "Pestanas «(sin nombre)»",
       "Link «{o.etiqueta}»"
     ],
     "components/CajonMovimiento.tsx": [
@@ -18,7 +18,7 @@
       "button «{NOMBRE_METODO[m]}»",
       "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
       "CampoTexto «Qué pasó»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],

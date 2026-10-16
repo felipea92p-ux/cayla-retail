@@ -5,10 +5,10 @@
   "total": 14,
   "controles": {
     "app/(app)/productos/familias/page.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «/productos/categorias»"
     ],
     "components/ConfirmarConResponsable.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{control}»",
       "Boton «Cancelar»",
       "Boton «{control?.motivo ?? undefined}»"
     ],
@@ -18,7 +18,7 @@
       "Boton «Desactivar»",
       "Boton «Reactivar»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],

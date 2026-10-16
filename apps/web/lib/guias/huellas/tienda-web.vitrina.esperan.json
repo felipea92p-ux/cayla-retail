@@ -5,7 +5,7 @@
   "total": 3,
   "controles": {
     "app/(app)/tienda-web/vitrina/esperan/page.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «/tienda-web/vitrina»"
     ],
     "components/vitrina/EsperanPantalla.tsx": [
       "button «{p.texto}»",
