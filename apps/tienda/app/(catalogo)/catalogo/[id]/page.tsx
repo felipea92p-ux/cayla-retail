@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CarrilConFlechas } from "@/components/CarrilConFlechas";
 import { FichaPrenda } from "@/components/FichaPrenda";
 import { Icono } from "@/components/Icono";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
@@ -11,7 +12,7 @@ import { cuantasEnLaBolsa } from "@/lib/bolsa-servidor";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { claveCategoria, hrefDePrenda, hrefLista } from "@/lib/catalogo";
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
-import { chipsDelCatalogo, combinaCon, esIdDePrenda } from "@/lib/ficha";
+import { chipsDelCatalogo, combinaCon, esIdDePrenda, parecidasA, promesasDeCompra } from "@/lib/ficha";
 import { leerFicha, leerSeparadasPorOtros } from "@/lib/ficha-servidor";
 import { hrefLook } from "@/lib/looks";
 import { leerLooks } from "@/lib/looks-servidor";
@@ -47,7 +48,9 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 // La ficha de una prenda (maqueta v4, `vProducto`): sus fotos, su precio en la tienda elegida (o el mayor, con «Todas») y su campaña,
 // sus colores y tallas, y CUÁNTO HAY EN CADA TIENDA como nivel. Se lee en cada visita: lo que se vende en una tienda baja el nivel al
 // recargar. Con su botón (agregar a la bolsa o «Avísame»), el corazón, la propuesta k (otros ya separaron lo que queda en esa tienda) y
-// «Ver mi bolsa». Debajo, «Combínalo con» (el primer look que la lleva) y otras prendas de su categoría que hay en la tienda elegida.
+// «Ver mi bolsa» y, junto al botón, lo que la tienda ya cumple (separas sin pagar, recoges en tu tienda, cambias en cualquier tienda CAYLA,
+// con los plazos de la ayuda). Debajo, «Combínalo con» (el primer look que la lleva) y «También te puede gustar»: las de su categoría que
+// hay en la tienda elegida y, si no llenan la fila, las de su grupo y su menú.
 export default async function FichaDePrenda(props: Props) {
   const { id, sp, sedes, pedida, ficha } = await leer(props);
   const sesion = await leerSesion();
@@ -68,8 +71,9 @@ export default async function FichaDePrenda(props: Props) {
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
   const clave = ficha ? claveCategoria(ficha.categoria) : null;
   const enLaTienda = (catalogo?.prendas ?? []).filter((p) => hayEnTienda(p.stock, elegida?.id ?? null));
-  const similares = ficha ? enLaTienda.filter((p) => p.id !== ficha.id && claveCategoria(p.categoria) === clave).slice(0, 8) : [];
   const combina = ficha ? combinaCon(looks?.looks ?? [], ficha.id, catalogo?.prendas ?? []) : null;
+  // Las de su categoría y, si no llenan la fila, las de su grupo y su menú (sin repetir las de «Combínalo con»), de lo que hay en la tienda.
+  const parecidas = ficha ? parecidasA(ficha, enLaTienda, { fuera: combina?.prendas.map((p) => p.id) ?? [] }) : null;
   // «Nuevo · llegó hace 4 días» y «N.º 3 en más vendidos» salen del catálogo, que ya los trae.
   const chips = chipsDelCatalogo(catalogo?.prendas.find((p) => p.id === id) ?? null);
 
@@ -112,13 +116,15 @@ export default async function FichaDePrenda(props: Props) {
             origenFotos={origenFotos}
             chips={chips}
             cambios={textoCambios(plazos)}
+            promesas={promesasDeCompra(plazos)}
             esperas={guardados ? [...guardados.esperas.keys()] : []}
+            esperasIds={guardados ? Object.fromEntries(guardados.esperas) : {}}
             enLaBolsa={enLaBolsa}
             separadas={[...separadas]}
           >
             {combina && (
               <section className="t-sec" aria-labelledby="combina">
-                <div className="t-sec-cab">
+                <div className="t-sec-cab cp-sec-cab">
                   <div>
                     <span className="t-ceja">{combina.look.nombre}</span>
                     <h2 id="combina">
@@ -129,29 +135,41 @@ export default async function FichaDePrenda(props: Props) {
                     Ver el look <Icono nombre="flecha" />
                   </Link>
                 </div>
-                <div className="t-carril">
-                  {combina.prendas.map((p) => (
-                    <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={notaDeStock(p.stock, elegida, sedes)} />
-                  ))}
-                </div>
+                <CarrilConFlechas className="cp-carril">
+                  <div className="t-carril">
+                    {combina.prendas.map((p) => (
+                      <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={notaDeStock(p.stock, elegida, sedes)} />
+                    ))}
+                  </div>
+                </CarrilConFlechas>
               </section>
             )}
 
-            {similares.length > 0 && (
+            {parecidas && parecidas.prendas.length > 0 && (
               <section className="t-sec" aria-labelledby="similares">
-                <div className="t-sec-cab">
+                <div className="t-sec-cab cp-sec-cab">
                   <div>
-                    <span className="t-ceja">{ficha.categoria?.nombre ?? "Para ti"}</span>
+                    <span className="t-ceja">{parecidas.ceja}</span>
                     <h2 id="similares">
                       También te <em>puede gustar</em>
                     </h2>
                   </div>
+                  {/* «Ver todo» lleva a lo que dice la ceja: su categoría, su grupo o toda la tienda. */}
+                  <Link
+                    className="t-ver"
+                    href={hrefLista({ sede, categoria: parecidas.ver.categoria, grupo: parecidas.ver.grupo, orden: "destacado" })}
+                    aria-label={`Ver todo: ${parecidas.ceja === "Sigue mirando" ? "toda la tienda" : parecidas.ceja}`}
+                  >
+                    Ver todo <Icono nombre="flecha" />
+                  </Link>
                 </div>
-                <div className="t-carril">
-                  {similares.map((p) => (
-                    <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={notaDeStock(p.stock, elegida, sedes)} />
-                  ))}
-                </div>
+                <CarrilConFlechas className="cp-carril">
+                  <div className="t-carril">
+                    {parecidas.prendas.map((p) => (
+                      <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={notaDeStock(p.stock, elegida, sedes)} />
+                    ))}
+                  </div>
+                </CarrilConFlechas>
               </section>
             )}
           </FichaPrenda>

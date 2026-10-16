@@ -117,9 +117,9 @@ export function avisoAlEntrar(avisos: readonly AvisoClub[], vistos: ReadonlySet<
   };
 }
 
-/** «Y llegó 1 talla más que esperabas: mírala en Mi cuenta.» */
+/** «Y llegó 1 talla más que esperabas: mírala en Mi perfil.» */
 export const textoDeMas = (n: number) =>
-  n === 1 ? "Y llegó 1 talla más que esperabas: mírala en Mi cuenta." : `Y llegaron ${n} tallas más que esperabas: míralas en Mi cuenta.`;
+  n === 1 ? "Y llegó 1 talla más que esperabas: mírala en Mi perfil." : `Y llegaron ${n} tallas más que esperabas: míralas en Mi perfil.`;
 
 /* ---------------- La cookie de cada aviso ---------------- */
 

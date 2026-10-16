@@ -1507,7 +1507,25 @@ function leerDuraciones() {
   return JSON.parse(readFileSync(DURACIONES, "utf8"));
 }
 
+/**
+ * La base del CI va en UTC (la imagen de Postgres) y las funciones miden «hoy» en hora de Lima. Después de las 19:00 de Lima,
+ * `current_date` ya es «mañana», y las pruebas que arman datos con la fecha de hoy chocaban con la base («La fecha de emisión
+ * (16/10/2026) no puede ser futura: hoy es 15/10/2026»): las tandas quedaban en rojo en cualquier PR de 19:00 a 24:00 (2026-10-15;
+ * el seed ya lo arregló así, `set timezone` al comienzo de supabase/seed.sql). Toda sesión nueva de la tanda empieza en hora de
+ * Lima; la prueba que mide en UTC lo pide en su sesión (`set local timezone = 'UTC'`) y le gana a esto. Solo en GitHub Actions: en
+ * local la base es compartida y no se le cambia nada a nadie.
+ */
+function baseEnHoraDeLima() {
+  if (process.env.GITHUB_ACTIONS !== "true") return;
+  execFileSync(
+    "docker",
+    ["exec", "-i", "supabase_db_cayla-retail", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-q", "-c", "alter database postgres set timezone to 'America/Lima'"],
+    { stdio: "inherit" },
+  );
+}
+
 function correr({ n, de }) {
+  baseEnHoraDeLima();
   const duraciones = leerDuraciones();
   const mias = repartir(PRUEBAS, duraciones, de)[n - 1];
   console.log(`Tanda ${n}/${de}: ${mias.length} de ${PRUEBAS.length} pruebas.`);

@@ -380,7 +380,7 @@ function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guar
     const p = v.valor;
     const listo = {
       horasParaConfirmar: `Un pedido sin confirmar se cierra solo a las ${p.horasParaConfirmar} horas.`,
-      horasAvisoSinPagar: `Un pedido confirmado y sin pagar avisa a las ${p.horasAvisoSinPagar} horas.`,
+      horasAvisoSinPagar: `Un pedido confirmado sin ningún pago se anula solo a las ${p.horasAvisoSinPagar} horas.`,
       diasAvisoSinRecoger: `Un pedido pagado y sin recoger avisa a los ${p.diasAvisoSinRecoger} días.`,
       quedanPocasDesde: `El cliente ve el número con ${p.quedanPocasDesde} o menos.`,
     }[campo];
@@ -426,7 +426,7 @@ function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guar
       <CabeceraBloque titulo="Para todas las sedes" bajada="Los plazos de los pedidos que se separan en la web, y desde cuándo el cliente ve el número." />
       <div className="fin-dos-campos">
         {casilla("horasParaConfirmar", "Horas para confirmar", "Si la tienda no confirma el pedido en ese tiempo, se cierra solo y el cliente puede volver a separarlo.", "horas")}
-        {casilla("horasAvisoSinPagar", "Aviso si no paga, en horas", "Desde que la tienda lo confirma. Pasado ese tiempo, el pedido sale con aviso y la tienda decide.", "horas")}
+        {casilla("horasAvisoSinPagar", "Aviso si no paga, en horas", "Desde que la tienda lo confirma. Si no pagó nada, se anula solo y sus prendas vuelven a estar disponibles; si pagó una parte, sale con aviso y la tienda decide.", "horas")}
         {casilla("diasAvisoSinRecoger", "Días para recoger", "Desde que paga. Pasado ese plazo, se le recuerda al cliente y la tienda decide.", "días")}
         {casilla("quedanPocasDesde", "El número se ve desde", fraseNiveles(Number(b.quedanPocasDesde)), "o menos")}
       </div>

@@ -49,7 +49,7 @@ export function AvisoAlEntrar({ aviso, activas }: { aviso: Aviso; activas: strin
             </div>
             <div className="t-aviso-club-acc">
               <Link className="t-enlace" href="/cuenta">
-                Ver en Mi cuenta <Icono nombre="flecha" />
+                Ver en Mi perfil <Icono nombre="flecha" />
               </Link>
               <button type="button" className="t-btn t-btn-chico" onClick={entendido}>
                 Entendido

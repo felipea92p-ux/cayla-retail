@@ -1,7 +1,7 @@
 "use server";
 
 import { nombreAMedias } from "@cayla-retail/shared";
-import { consultarPadron } from "@/lib/padron";
+import { consultarPadronPublico } from "@/lib/padron";
 import { anotarLecturaPadron } from "@/lib/padron-lecturas";
 import { crearClienteAdmin } from "@/lib/supabase-admin";
 import { huellaDeLaIp, huellaDelDocumento } from "@/lib/club-intentos";
@@ -60,7 +60,7 @@ export async function consultarNombre(ubicacionId: string, numero: string): Prom
     const permitido = await dentroDelLimite("consulta", huellaDelDocumento("dni", dni), null);
     if (permitido === null) return { estado: "sin_padron" };
     if (!permitido) return { estado: "limite" };
-    const r = await consultarPadron("dni", dni);
+    const r = await consultarPadronPublico("dni", dni);
     if (!r.ok) return { estado: r.motivo === "no_encontrado" ? "no_encontrado" : "sin_padron" };
     // Con los nombres primero, venga de donde venga (`packages/shared/src/nombre-del-padron.ts`): «María P. G.».
     const aMedias = nombreAMedias(r.datos);
@@ -94,7 +94,7 @@ export async function registrarme(entrada: DatosRegistro): Promise<RespuestaRegi
 
     let nombrePadron: string | null = null;
     if (d.documentoTipo === "dni") {
-      const r = await consultarPadron("dni", numero);
+      const r = await consultarPadronPublico("dni", numero);
       if (!r.ok) return { estado: "error", mensaje: r.motivo === "no_encontrado" ? MENSAJE.dniNoEncontrado : MENSAJE.sinPadron, campo: "documento" };
       if (!(await anotarLecturaPadron("dni", numero, r.datos.nombre))) return { estado: "error", mensaje: MENSAJE.sinPadron, campo: "documento" };
       nombrePadron = r.datos.nombre;

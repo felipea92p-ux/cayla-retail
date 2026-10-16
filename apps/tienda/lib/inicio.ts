@@ -3,6 +3,7 @@ import { normalizar } from "./buscador";
 import {
   claveCategoria,
   colorDeDibujo,
+  conFotoPrimero,
   enOferta,
   formaDe,
   fotoOptimizable,
@@ -16,11 +17,12 @@ import {
   type Prenda,
 } from "./catalogo";
 import { hrefLooks } from "./looks";
+import { gruposDe, MENUS, type Menu } from "./grupos";
 import type { Campana } from "./portada";
 
 // El Inicio con cuenta y la cabecera de la tienda (ADR-0408, actividad 5; maqueta v4, `vInicio`, `heroCampana`, `heroNuevo`,
 // `circulosCats`, `megaHTML`). Lo que se arma con el catálogo ya leído (y ya filtrado por la tienda elegida): qué va en el héroe, las
-// categorías como círculos, las columnas del menú, los enlaces de la cabecera y el índice del buscador. Lógica pura, con su prueba.
+// categorías como círculos, los menús «Ropa» y «Accesorios», los enlaces de la cabecera y el índice del buscador. Lógica pura, con su prueba.
 
 /* ---------------- El héroe ---------------- */
 
@@ -32,7 +34,6 @@ export type Hero =
   /** Sin campaña ni nada nuevo: la frase de la marca. */
   | { tipo: "marca" };
 
-const conFotoPrimero = (a: Prenda, b: Prenda) => Number(fotosDeTarjeta(b)[0] !== null) - Number(fotosDeTarjeta(a)[0] !== null);
 
 /**
  * El héroe del Inicio (maqueta: la campaña vigente; si no hay, «Lo nuevo»). Las prendas del collage, las que tienen foto primero.
@@ -97,14 +98,6 @@ export function categoriasDelInicio(prendas: readonly Prenda[]): CategoriaInicio
     .sort((a, b) => puesto(a.clave) - puesto(b.clave) || b.cuantas - a.cuantas || a.nombre.localeCompare(b.nombre, "es"));
 }
 
-// Las columnas del menú «Ropa» de la computadora (maqueta, `megaHTML`), por prefijo. Lo que no está en las dos primeras va en la
-// tercera («Encima y más»): una categoría nueva aparece sola, sin tocar el código.
-const COLUMNAS: { titulo: string; prefijos: string[] | null }[] = [
-  { titulo: "Arriba", prefijos: ["CMS", "BLU", "TOP", "POL", "BOD", "SUD", "CMP", "LEN"] },
-  { titulo: "Completo y abajo", prefijos: ["VES", "CON", "ENT", "PAN", "JEA", "FAL", "SHO", "TBA"] },
-  { titulo: "Encima y más", prefijos: null },
-];
-
 /* ---------------- La cabecera con cuenta ---------------- */
 
 /** La lista de favoritos (la del catálogo): el corazón de la cabecera y el menú del celular llevan aquí, sea cual sea la tienda elegida. */
@@ -114,6 +107,22 @@ const HREF_FAVORITOS = "/catalogo?lista=favoritos";
 export const hrefDelInicio = (sede: string | null): string => (sede ? `/inicio?sede=${encodeURIComponent(sede)}` : "/inicio");
 
 type Enlace = { href: string; cuantas: number };
+
+/** Lo que dibuja una foto chica (`FotoTarjeta`): la foto, si se puede optimizar y, sin foto, la silueta en su color. */
+export type FotoChica = { foto: string | null; optimizar: boolean; forma: Forma; color: string | null; nombre: string };
+/** Una categoría del menú, con la foto de una de sus prendas (la que llegó hace menos, con foto si alguna tiene). */
+export type CategoriaMenu = { clave: string; nombre: string; cuantas: number; href: string; foto: FotoChica };
+/** Una prenda de la vitrina del menú: lo último que llegó. */
+export type PrendaMenu = { id: string; href: string; nombre: string; precio: string; oferta: boolean; foto: FotoChica };
+export type MenuCabecera = {
+  clave: Menu;
+  nombre: string;
+  grupos: { clave: string; nombre: string; href: string; categorias: CategoriaMenu[] }[];
+  /** La vitrina de la derecha: lo último que llegó de este menú, con foto (hasta 5; se ven las que caben). */
+  recien: PrendaMenu[];
+};
+
+const tieneFoto = (p: Prenda) => fotosDeTarjeta(p)[0] !== null;
 export type DatosCabecera = {
   inicio: string;
   nuevo: Enlace;
@@ -123,12 +132,9 @@ export type DatosCabecera = {
   looks: string;
   /** Los favoritos: el corazón de la computadora y el menú del celular. */
   favoritos: string;
-  /** El menú «Ropa» de la computadora: hasta tres columnas, solo las que tienen algo. */
-  columnas: { titulo: string; categorias: { clave: string; nombre: string; cuantas: number; href: string }[] }[];
-  /** El menú del celular: todas las categorías. */
-  categorias: { clave: string; nombre: string; href: string }[];
-  /** La tarjeta «Lo nuevo» del menú «Ropa»: la prenda que llegó hace menos. */
-  destacada: { href: string; nombre: string; foto: string | null; optimizar: boolean; forma: Forma; color: string | null } | null;
+  /** Los menús «Ropa» y «Accesorios» (lib/grupos.ts): solo los que tienen algo, con sus grupos y categorías. Los usan la computadora
+   *  (un menú que se abre por cada uno) y el celular (las categorías, en su grupo). */
+  menus: MenuCabecera[];
   /** El buscador: todo lo publicado (en la tienda elegida). */
   indice: ItemBusqueda[];
   /** Con el buscador vacío, las categorías para tocar. */
@@ -139,10 +145,35 @@ export type DatosCabecera = {
 export function datosDeCabecera(prendas: readonly Prenda[], sede: string | null, origenFotos: string | undefined): DatosCabecera {
   const lista = (l: "nuevo" | "vendidos" | "ofertas") => hrefLista({ sede, categoria: null, orden: "destacado", lista: l });
   const categorias = categoriasDelInicio(prendas);
-  const enAlguna = new Set(COLUMNAS.flatMap((c) => c.prefijos ?? []));
-  const hrefCategoria = (clave: string) => hrefLista({ sede, categoria: clave, orden: "destacado" });
-  const nueva = prendas.filter((p) => p.nuevo).sort(porLlegada)[0] ?? null;
-  const fotoNueva = nueva ? fotosDeTarjeta(nueva)[0] : null;
+  const fotoChica = (p: Prenda): FotoChica => {
+    const foto = fotosDeTarjeta(p)[0];
+    return { foto, optimizar: foto ? fotoOptimizable(foto, origenFotos) : false, forma: formaDe(p.categoria?.prefijo), color: colorDeDibujo(p), nombre: p.nombre };
+  };
+  const grupos = gruposDe(prendas);
+  const menus: MenuCabecera[] = MENUS.flatMap((m) => {
+    const suyos = grupos.filter((g) => g.menu === m.clave);
+    if (suyos.length === 0) return [];
+    const recien = suyos
+      .flatMap((g) => g.categorias.flatMap((c) => c.prendas))
+      .filter((p) => p.nuevo && tieneFoto(p))
+      .sort((a, b) => porLlegada(a, b) || a.nombre.localeCompare(b.nombre, "es"))
+      .slice(0, 5);
+    return [{
+      clave: m.clave,
+      nombre: m.nombre,
+      grupos: suyos.map((g) => ({
+        clave: g.clave,
+        nombre: g.nombre,
+        href: hrefLista({ sede, categoria: null, orden: "destacado", grupo: g.clave }),
+        categorias: g.categorias.map((c) => {
+          // La foto de la categoría: la prenda que llegó hace menos, entre las que tienen foto (si ninguna tiene, su silueta).
+          const cara = [...c.prendas].sort((a, b) => Number(tieneFoto(b)) - Number(tieneFoto(a)) || porLlegada(a, b) || a.nombre.localeCompare(b.nombre, "es"))[0];
+          return { clave: c.clave, nombre: c.nombre, cuantas: c.cuantas, href: hrefLista({ sede, categoria: c.clave, orden: "destacado" }), foto: fotoChica(cara) };
+        }),
+      })),
+      recien: recien.map((p) => ({ id: p.id, href: hrefDePrenda(p, sede), nombre: p.nombre, precio: precioTarjeta(p).principal, oferta: enOferta(p), foto: fotoChica(p) })),
+    }];
+  });
   return {
     inicio: hrefDelInicio(sede),
     nuevo: { href: lista("nuevo"), cuantas: prendas.filter((p) => p.nuevo).length },
@@ -150,23 +181,7 @@ export function datosDeCabecera(prendas: readonly Prenda[], sede: string | null,
     ofertas: { href: lista("ofertas"), cuantas: prendas.filter(enOferta).length },
     looks: hrefLooks(sede),
     favoritos: HREF_FAVORITOS,
-    columnas: COLUMNAS.map((c) => ({
-      titulo: c.titulo,
-      categorias: categorias
-        .filter((x) => (c.prefijos ? c.prefijos.includes(x.clave) : !enAlguna.has(x.clave)))
-        .map((x) => ({ clave: x.clave, nombre: x.nombre, cuantas: x.cuantas, href: hrefCategoria(x.clave) })),
-    })).filter((c) => c.categorias.length > 0),
-    categorias: categorias.map((x) => ({ clave: x.clave, nombre: x.nombre, href: hrefCategoria(x.clave) })),
-    destacada: nueva
-      ? {
-          href: hrefDePrenda(nueva, sede),
-          nombre: nueva.nombre,
-          foto: fotoNueva,
-          optimizar: fotoNueva ? fotoOptimizable(fotoNueva, origenFotos) : false,
-          forma: formaDe(nueva.categoria?.prefijo),
-          color: colorDeDibujo(nueva),
-        }
-      : null,
+    menus,
     indice: prendas.map((p) => {
       const foto = fotosDeTarjeta(p)[0];
       return {

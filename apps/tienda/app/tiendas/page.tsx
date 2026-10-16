@@ -5,18 +5,17 @@ import { hrefDelInicio } from "@/lib/inicio";
 import { claveDeSede } from "@/lib/sede-elegida";
 import { haySesion } from "@/lib/sesion-servidor";
 import { leerSedes } from "@/lib/tiendas-servidor";
-import "../estilos/tiendas.css";
-// «Ver solo lo que hay aquí» (`.t-tienda-ver`) vive con el Inicio, que es donde se estrenó.
-import "../estilos/inicio.css";
 
 // Nuestras tiendas (ADR-0408, actividad 6): la página del pie «Nuestras tiendas», con y sin cuenta. Sin cuenta, la cabecera de la portada;
-// con cuenta, la de la tienda (el menú, los favoritos, «Mi cuenta» y la bolsa) y, en cada tienda, «Ver solo lo que hay aquí», que lleva al
+// con cuenta, la de la tienda (el menú, los favoritos, «Mi perfil» y la bolsa) y, en cada tienda, «Ver solo lo que hay aquí», que lleva al
 // Inicio con esa tienda elegida (maqueta v4, `seccionTiendas` con cuenta). Se arma en cada visita porque la cabecera depende de la sesión
-// (antes se guardaba 5 minutos): lo que el ERP cambia en Configuración ▸ Tienda web se ve al recargar; sin base, lo dice en una línea.
+// (antes se guardaba 5 minutos): lo que el ERP cambia en Configuración ▸ Tienda web se ve al recargar; sin base, lo dice y deja volver a
+// intentar. Desde la revisión «a nivel mundial» (2026-10-16) lleva el título grande de las páginas de ayuda y las tarjetas parejas con
+// cualquier cantidad de tiendas (sus estilos los trae `NuestrasTiendas`).
 
 export const metadata: Metadata = {
   title: "Nuestras tiendas · CAYLA",
-  description: "Dónde recoger lo que separas en la web: la dirección, el horario y el WhatsApp de cada tienda CAYLA.",
+  description: "Dónde recoger lo que separas en la web: la dirección, el horario, el WhatsApp y cómo llegar a cada tienda CAYLA.",
 };
 
 export default async function Tiendas() {
@@ -25,7 +24,7 @@ export default async function Tiendas() {
     ? Object.fromEntries(sedes.map((s) => [s.id, { href: hrefDelInicio(claveDeSede(s.nombre)), actual: false }]))
     : undefined;
   return (
-    <MarcoCuenta conCuenta={conCuenta} conPie corta>
+    <MarcoCuenta conCuenta={conCuenta} conPie>
       <NuestrasTiendas sedes={sedes} enPagina ver={ver} />
     </MarcoCuenta>
   );

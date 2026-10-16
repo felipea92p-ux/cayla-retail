@@ -9,6 +9,7 @@ import { estadoRestablecer, pasoQueSigue, textoDeLoQueFalta, TEXTOS_CUENTA, type
 import { CajaClave } from "./CajaClave";
 import { Campo, Resultado } from "./CampoGuiado";
 import { CorreoConCodigo } from "./CorreoConCodigo";
+import { usePasoDelPanel } from "./EntradaViva";
 
 // «Restablecer mi acceso» (Felipe 2026-10-15): quien ya no puede entrar lo pide en una tienda CAYLA, que escribe su correo nuevo en el
 // ERP; a ese correo le llega un código. Aquí escribe ese correo (con «Obtener código» al lado si necesita uno nuevo), debajo el código
@@ -52,6 +53,8 @@ export function FormularioRestablecerAcceso() {
   const estado = estadoRestablecer({ correo, codigo: repetido || necesitaNuevo ? "" : codigo, clave });
   const sigue = pasoQueSigue(estado, enFoco);
   const listo = estado.faltan.length === 0 && !repetido && !necesitaNuevo && rechazado !== normal;
+  // El panel de al lado: con el código escrito, lo que toca es la contraseña nueva; al confirmar, todo hecho.
+  usePasoDelPanel(confirmado ? 3 : estado.campos.codigo === "ok" ? 2 : null);
 
   function esperar(segundos: number | null | undefined) {
     if (segundos === null || segundos === undefined) return;
@@ -233,7 +236,7 @@ export function FormularioRestablecerAcceso() {
             <>Todo listo.</>
           )}
         </p>
-        <button className="t-btn t-btn-ancho" type="submit" disabled={!listo || guardando || confirmado} aria-busy={guardando || undefined}>
+        <button className="t-btn t-btn-ancho" type="submit" disabled={!listo || guardando || confirmado} aria-busy={guardando || confirmado || undefined}>
           {guardando || confirmado ? "Entrando…" : "Guardar y entrar"}
         </button>
         <Link className="w-enlace" href="/entrar">

@@ -14,20 +14,19 @@ import { EntradaDelDia } from "./EntradaDelDia";
  * El marco de las páginas de la cuenta y de ayuda, el mismo de la portada: la franja de arriba (con la campaña vigente), la cabecera,
  * el contenido y, si se pide, el pie. Sin cuenta, la cabecera de la portada («Entrar», «Crear mi cuenta»); con cuenta, la de la tienda
  * (el menú, el buscador, los favoritos, «Mi cuenta» y la bolsa, armada con el catálogo con «Todas»). Los formularios (crear, entrar,
- * recuperar) van sin pie, como en la maqueta. `corta`: una página de poco contenido (Nuestras tiendas), con el pie al borde de la ventana.
+ * recuperar) van sin pie, como en la maqueta. El pie va después de <main> y llega solo al borde
+ * de abajo en una página corta (pie.css).
  */
 export async function MarcoCuenta({
   children,
   conCuenta = false,
   enPagina,
   conPie = false,
-  corta = false,
 }: {
   children: React.ReactNode;
   conCuenta?: boolean;
   enPagina?: "entrar" | "crear-cuenta" | "cuenta";
   conPie?: boolean;
-  corta?: boolean;
 }) {
   const [{ campana }, catalogo, favoritos, nombre] = await Promise.all([
     leerPortada(),
@@ -37,7 +36,7 @@ export async function MarcoCuenta({
   ]);
   return (
     <div className="tienda">
-      <Anuncio frases={anuncios(campana)} />
+      <Anuncio frases={anuncios(campana, conCuenta)} />
       {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
       {conCuenta && <EntradaDelDia />}
       {conCuenta ? (
@@ -51,10 +50,8 @@ export async function MarcoCuenta({
       ) : (
         <Cabecera enPagina={enPagina === "cuenta" ? undefined : enPagina} />
       )}
-      <main className={corta ? "t-pagina t-pagina-corta" : "t-pagina"}>
-        {children}
-        {conPie && <Pie anio={anioLima()} conCuenta={conCuenta} />}
-      </main>
+      <main className="t-pagina">{children}</main>
+      {conPie && <Pie anio={anioLima()} conCuenta={conCuenta} />}
     </div>
   );
 }

@@ -19,7 +19,6 @@ import { celularLegible } from "@/lib/club-caja-reglas";
 import {
   COLUMNAS_EXPORTAR,
   FILTROS_LISTA,
-  POR_PAGINA,
   cuentaDelFiltro,
   detalleFrecuentes,
   detallePublicidad,
@@ -31,6 +30,7 @@ import {
   publicidadDeLaFila,
   suSedeLegible,
   ultimaCompraLegible,
+  ultimaPagina,
   type CifrasClientas,
   type ClientaDeLista,
   type ParamsLista,
@@ -121,7 +121,7 @@ export function ClientasPanel({
     router.refresh();
   }
 
-  const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+  const paginas = ultimaPagina(total);
   // El vacío dice por qué y ofrece deshacerlo ahí mismo (ADR-0358 ronda 5): borrar la búsqueda o volver a «Todos».
   const vacioIcono = params.termino ? <SearchX /> : params.filtro === "todas" ? <Users /> : <FunnelX />;
   const vacioAccion = params.termino
@@ -238,7 +238,7 @@ export function ClientasPanel({
                     </Link>
                   ) : null}
                   <span className="tabular-nums">
-                    Página {Math.min(params.pagina, paginas)} de {paginas}
+                    Página {params.pagina} de {paginas}
                   </span>
                   {params.pagina < paginas ? (
                     <Link href={hrefLista(params, { pagina: params.pagina + 1 })} className="label-cayla text-[11px] text-tinta hover:text-rojo">

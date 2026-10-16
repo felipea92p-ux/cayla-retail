@@ -3,9 +3,9 @@ import { nombreAMedias } from "@cayla-retail/shared";
 import { consultarPadron } from "@cayla-retail/shared/padron";
 import { base } from "./base";
 
-// El nombre por DNI al crear la cuenta (ADR-0008): primero el servicio público y gratis de SUNAT; si no responde o no lo
-// encuentra, el proveedor de pago, si la tienda tiene uno (`TIENDA_PADRON_PROVEEDOR` y `TIENDA_PADRON_TOKEN`; sin ellos, solo
-// SUNAT). La consulta es la misma del ERP (`packages/shared/src/padron.ts`), con las variables de la tienda.
+// El nombre por DNI al crear la cuenta (ADR-0008): solo el servicio público y gratis de SUNAT (Felipe 2026-10-15, D6). Esta página la
+// abre cualquiera sin cuenta: el proveedor de pago no se usa aquí, para que nadie pueda gastar su cuota desde afuera. La consulta es la
+// misma del ERP (`packages/shared/src/padron.ts`), con la variable de la tienda (`TIENDA_PADRON_SUNAT_PUBLICO`).
 // El nombre no se escribe a mano (Felipe 2026-10-15): sin internet, o si el padrón no encuentra el DNI, no se crea la cuenta y la
 // persona puede volver a intentar. Nada se cae (principio 9).
 
@@ -13,11 +13,7 @@ export type NombreDelPadron = { estado: "encontrado"; nombre: string; aMedias: s
 
 export async function buscarNombre(dni: string): Promise<NombreDelPadron> {
   try {
-    const r = await consultarPadron("dni", dni, {
-      proveedor: process.env.TIENDA_PADRON_PROVEEDOR,
-      token: process.env.TIENDA_PADRON_TOKEN,
-      sunatPublico: process.env.TIENDA_PADRON_SUNAT_PUBLICO,
-    });
+    const r = await consultarPadron("dni", dni, { sunatPublico: process.env.TIENDA_PADRON_SUNAT_PUBLICO });
     if (!r.ok) return { estado: r.motivo === "no_encontrado" ? "no_encontrado" : "sin_padron" };
     // El nombre ya viene con los nombres primero («María Pérez García», la regla de `packages/shared`): es el que se guarda, y el
     // «Hola, María» de «Mi cuenta» toma su primera palabra. A medias («María P. G.») para confirmar sin revelarlo.

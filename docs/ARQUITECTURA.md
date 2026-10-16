@@ -1262,6 +1262,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   pegar en producción**) → `crearClienteAdmin()` → `fn_cerrar_pedidos_web_sin_confirmar()` (solo `service_role`): lee el plazo de
   Configuración ▸ Tienda web y cierra con él lo que nadie confirmó (`fn_cerrar_pedidos_web_vencidos` del motor). Devuelve
   `{cerrados, horas_para_confirmar}`; sin `CRON_SECRET` o con otra clave, 401. Si no corre, nada se rompe: lo vencido ya se LEE vencido.
+  Desde `20261016001000` (ADR-0426, en producción) también anula lo CONFIRMADO sin ningún pago pasadas las horas de «Si no paga»
+  (`fn_anular_pedidos_web_sin_pagar`, sus prendas vuelven) y devuelve además `{anulados_sin_pagar, horas_sin_pagar}`.
+- `GET /api/apartados/vencer` (cron diario 08:40 UTC = 03:40 Lima, `vercel.json`; ADR-0426 D4, `20261016003000`, en producción) →
+  `crearClienteAdmin()` → `fn_vencer_apartados_de_todas()` (solo `service_role`): libera en todas las tiendas los apartados vencidos hace
+  más de 2 días (`fn_vencer_separaciones_de`, la misma pieza que llama `fn_vencer_separaciones` al abrir la pantalla) y los apartados
+  simples de Existencias con su fecha pasada; no los pedidos entre tiendas ni los web. Devuelve `{apartados_con_adelanto, apartados_simples}`.
 - `/club/[token]` (PÚBLICA, sin sesión; `proxy.ts` deja pasar solo el prefijo `/club/`; ADR-0288 act. c) → la clienta
   confirma su publicidad desde su celular: `fn_invitacion_club` (lectura) y `confirmar_invitacion_club` (EXECUTE para
   `anon`, token de un uso que vence a los 7 días). Reglas en `lib/club-pagina-reglas.ts`.
@@ -1427,6 +1433,19 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `HojaReposicion.tsx` (`lib/nos-debe-acciones.ts` → `resolver_deuda_proveedor`); la orden nueva/editar lee `fn_nos_debe_resumen`
   (`getDatosNuevaOrden`, aviso); la recepción ofrece la causa `reposicion_faltante` con `deudas_del_proveedor` de `fn_envio_detalle`, y
   `recibir_despacho` reparte la reposición entre las deudas (`proveedor_deuda_resoluciones`). Lógica pura en `lib/nos-debe-reglas.ts`.
+- **La plata de «Nos debe»** (ADR-0362, fase 5b, 2026-10-15; migraciones `20261015145000` y `20261015150000`, en producción desde el
+  2026-10-15).
+  - **La ficha del proveedor:**
+    - `HojaSaldoAFavor.tsx` y `HojaDeposito.tsx` → `lib/nos-debe-acciones.ts`: `resolver_deuda_proveedor` (forma `saldo_a_favor`),
+      `registrar_deposito_deuda` y la lectura `fn_deuda_valor`.
+    - El saldo a favor se lee con `fn_saldo_favor_visible` (`lib/saldo-favor.ts`).
+  - **Notas de crédito:** `NotaDelProveedorModal.tsx` → `lib/nota-proveedor-acciones.ts` → `adjuntar_nota_proveedor`; el tablero lee
+    `fn_notas_proveedor_tablero`.
+  - **Existencias ▸ Dañadas:** `ResolverDanadosModal.tsx` → `devolver_danada_al_proveedor`; lee `fn_danadas_devolvibles` en
+    `getPrendasDanadasPendientes`.
+  - **Inicio y Observatorio:** `fn_igv_en_espera` (`lib/igv-en-espera.ts`).
+  - **Lógica pura:** `lib/nos-debe-reglas.ts`, `lib/nota-proveedor-reglas.ts`, `lib/igv-en-espera-reglas.ts` y `lib/danadas-reglas.ts`.
+  - **Contrato:** `docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md`, sección «Fase 5b».
 - **Compras por tienda** (ADR-0184, 2026-09-23; migraciones `20260923180000`–`180400`, **no en producción todavía**). QUIÉN usa Compras
   lo dice el rol (ADR-0161, `fn_capacidad_por_modulos`); DE QUÉ TIENDAS, `fn_compras_ubicaciones()` → `uuid[]`: el líder todas; con módulo,
   su tienda (`fn_ubicacion_actual_persona`) más las extra de `compradores_de_tienda` (R-10; la tabla sola no da acceso). Cada factura tiene
