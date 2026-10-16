@@ -132,14 +132,16 @@ export type ConsultaCorreo = "sin_revisar" | "libre" | "repetido" | "de_otra_per
 /**
  * Lo que dijo el servidor del documento. Con DNI: `encontrado` (el padrón dio el nombre, a medias) o `sin_nombre` (el DNI está
  * libre, pero el padrón no lo encontró, no respondió o se buscó demasiadas veces: sin el nombre del padrón no se crea la cuenta,
- * Felipe 2026-10-15, y se puede volver a intentar). Con carné o pasaporte: `libre` (el nombre se escribe).
+ * Felipe 2026-10-15, y se puede volver a intentar). Con carné o pasaporte: `libre` (el nombre se escribe). No dice si el documento
+ * ya es de alguien del Club (Felipe 2026-10-16: todos se registran igual, tengan ficha o no; y así nadie sabe si un DNI ajeno es
+ * del Club).
  */
 export type ConsultaDocumento =
   | { estado: "sin_revisar" }
   | { estado: "buscando" }
-  | { estado: "encontrado"; aMedias: string; delClub: boolean }
-  | { estado: "libre"; delClub: boolean }
-  | { estado: "sin_nombre"; motivo: "no_encontrado" | "sin_padron" | "limite"; delClub: boolean }
+  | { estado: "encontrado"; aMedias: string }
+  | { estado: "libre" }
+  | { estado: "sin_nombre"; motivo: "no_encontrado" | "sin_padron" | "limite" }
   | { estado: "repetido" }
   | { estado: "archivada" };
 
@@ -361,11 +363,10 @@ export const MENSAJES = {
   documentoLibre: "Ahora escribe tus nombres y tus apellidos, tal cual están en tu documento.",
   dniBuscando: "Buscando tu nombre…",
   dniRepetido: "Ya hay una cuenta con este DNI.",
+  // Desde 20261016154000 un documento sin cuenta la crea quien lo escriba (Felipe 2026-10-16): si no fue la persona, la tienda se
+  // la devuelve con «Restablecer acceso» (la ficha del cliente en el ERP). Va detrás de «Ya hay una cuenta con este …».
+  cuentaNoEsTuya: "Si no la creaste tú, acércate a cualquier tienda CAYLA y la recuperas.",
   dniArchivada: "Para crear tu cuenta necesitamos revisar tus datos en tienda: acércate a cualquier tienda CAYLA.",
-  dniDelClub: "Ya eras del Club CAYLA: tu cuenta se une a tu ficha si usas el correo que dejaste en la tienda",
-  // 20261015230000 (D7): una ficha que ya existía solo se une con el correo que ya tenía (el código prueba el correo, no el DNI).
-  fichaSinTuCorreo:
-    "Ya eres parte del Club con este documento. Para crear tu cuenta, pide en cualquier tienda CAYLA que anoten este correo en tu ficha.",
   // El nombre sale del padrón y no se escribe (Felipe 2026-10-15): sin él no se crea la cuenta. Cada uno va con «Volver a intentar».
   dniDelPadron: "Del padrón: así sale en tu boleta.",
   dniNoEncontrado: "No encontramos tu nombre con ese DNI. Revisa el número: sin tu nombre del padrón no podemos crear tu cuenta.",
@@ -382,7 +383,7 @@ export const MENSAJES = {
   avisosTitulo: "Avisos del Club por WhatsApp",
   avisosAyuda: "Te llegan al celular de arriba.",
   avisosCambio: "El texto de los avisos cambió. Léelo y vuelve a marcarlo si quieres recibirlos.",
-  avisosSinActivar: "Tus avisos por WhatsApp quedaron sin activar: tu ficha del Club tiene otro celular. Para cambiarlo, acércate a una tienda CAYLA.",
+  avisosSinActivar: "Tus avisos por WhatsApp quedaron sin activar: en la tienda tenemos anotado otro celular tuyo. Para cambiarlo, acércate a una tienda CAYLA.",
   noDisponible: "No pudimos crear tu cuenta ahora. Intenta de nuevo en unos minutos.",
   limite: "Hiciste muchos intentos seguidos. Espera un rato y vuelve a intentarlo.",
   codigoAyuda: "Son 6 números. Si no lo ves, revisa también tu carpeta de spam.",
@@ -418,9 +419,9 @@ export const MENSAJES = {
   claveNoDisponible: "No pudimos guardar tu contraseña ahora. Intenta de nuevo en unos minutos.",
 } as const;
 
-/** «Ya hay una cuenta con este DNI / carné de extranjería / pasaporte.» */
+/** «Ya hay una cuenta con este DNI / carné de extranjería / pasaporte.», y qué hacer si no la creó la persona. */
 export const documentoRepetido = (tipo: TipoDocumentoClienta) =>
-  tipo === "dni" ? MENSAJES.dniRepetido : `Ya hay una cuenta con este ${nombreDelDocumento(tipo)}.`;
+  `${tipo === "dni" ? MENSAJES.dniRepetido : `Ya hay una cuenta con este ${nombreDelDocumento(tipo)}.`} ${MENSAJES.cuentaNoEsTuya}`;
 
 /** «Te faltan 3 caracteres.» / «Te falta 1 carácter.» */
 export function faltanCaracteres(clave: string): string | null {
@@ -546,8 +547,8 @@ export function errorDeRegistro(hint: string | null | undefined, detalle: string
       return { campo: "documento", mensaje: documentoRepetido(tipo) };
     case "cuenta_archivada":
       return { campo: "documento", mensaje: MENSAJES.dniArchivada };
-    case "cuenta_ficha_sin_tu_correo":
-      return { campo: "correo", mensaje: MENSAJES.fichaSinTuCorreo };
+    // `cuenta_ficha_sin_tu_correo` (la regla D7) ya no existe desde 20261016154000: si llegara en los minutos en que la tienda nueva
+    // ya está publicada y la migración todavía no, cae en «No pudimos crear tu cuenta ahora», que es cierto (en un rato sí se puede).
     case "cuenta_menor":
       return { campo: "cumple", mensaje: MENSAJES.cumpleMenor };
     case "cuenta_sin_codigo":
@@ -649,10 +650,15 @@ export function leerCasillaWhatsapp(dato: unknown): CasillaWhatsapp | null {
 /** Cómo quedaron los avisos al crear la cuenta (`avisos_whatsapp` de `tienda_registrar_cuenta`). */
 export type AvisosAlCrear = "no" | "activados" | "ya_estaban" | "celular_distinto";
 
-/** El aviso con el que llega a «Mi cuenta» (`?aviso=`): unida a su ficha o nueva, y si los avisos quedaron sin activar. */
-export function avisoAlCrear(seUnioASuFicha: boolean, avisos: AvisosAlCrear): string {
+/**
+ * El aviso con el que llega a «Mi cuenta» (`?aviso=`), y si los avisos quedaron sin activar. «Ya eras del Club» solo para quien de
+ * verdad ya era miembro (se unió en el cartel antes de que existiera la página); quien solo tenía una ficha de caja (el DNI de una
+ * boleta) entra al Club recién ahora, y recibe la misma bienvenida que una persona nueva (Felipe 2026-10-16: el Club empieza con la
+ * cuenta, y nadie tiene por qué saber que tenía una ficha).
+ */
+export function avisoAlCrear(seUnioASuFicha: boolean, eraDelClub: boolean, avisos: AvisosAlCrear): string {
   if (avisos === "celular_distinto") return "avisos-sin-activar";
-  return seUnioASuFicha ? "unida" : "bienvenida";
+  return seUnioASuFicha && eraDelClub ? "unida" : "bienvenida";
 }
 
 const esquemaMiCuenta = z.object({
