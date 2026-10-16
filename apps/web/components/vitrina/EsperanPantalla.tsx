@@ -33,7 +33,7 @@ const PLANTILLA =
 const TONO: Record<EstadoEspera, TonoChip> = { falta: "ambar", llego: "verde", fuera: "neutro" };
 
 /**
- * Catálogo ▸ Vitrina web ▸ Esperan una talla (ADR-0408, actividad 12). Lo que los clientes de la tienda online pidieron con
+ * Tienda web ▸ Vitrina ▸ Esperan una talla (ADR-0408, actividad 12). Lo que los clientes de la tienda online pidieron con
  * «Avísame cuando llegue», por prenda y tienda: cuántas personas, desde cuándo, y si ya llegó o dónde hay para pedirla a otra sede.
  * Solo se lee: no tiene nada que guardar. Sin datos de nadie: a cada persona le avisa su cuenta, nunca la tienda por WhatsApp.
  */

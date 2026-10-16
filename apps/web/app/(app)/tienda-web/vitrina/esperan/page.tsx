@@ -7,7 +7,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
 import { EsperanPantalla } from "@/components/vitrina/EsperanPantalla";
 
-// Catálogo ▸ Vitrina web ▸ Esperan una talla (ADR-0408, actividad 12; maqueta docs/maquetas/tienda-online-2026-10, la cifra
+// Tienda web ▸ Vitrina ▸ Esperan una talla (ADR-0408, actividad 12; maqueta docs/maquetas/tienda-online-2026-10, la cifra
 // «Esperan una talla» de la Vitrina). Es una pantalla del módulo `vitrina_web` (su layout ya lo exige), no un módulo nuevo
 // (ADR-0306): se llega desde la cifra de la Vitrina. Solo lee: lo que los clientes pidieron con «Avísame», sin datos de nadie.
 export default async function EsperanPage() {
@@ -20,9 +20,10 @@ export default async function EsperanPage() {
     <div className="space-y-6">
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
+        detalle="Tienda web"
         titulo="Esperan una talla"
         subtitulo="Lo que los clientes de la tienda online pidieron que les avisen cuando llegue, por modelo, color, talla y tienda."
-        volver={<Volver href="/productos/vitrina" a="Vitrina web" />}
+        volver={<Volver href="/tienda-web/vitrina" a="la Vitrina" />}
       />
       {error ? (
         <Aviso tono="error" titulo="No se pudo leer lo que esperan los clientes">

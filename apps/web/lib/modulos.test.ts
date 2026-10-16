@@ -7,6 +7,7 @@ import {
   esGrupoMenu,
   menuPara,
   permisosDe,
+  type FilaMenu,
   type Nodo,
   type PerfilDelMenu,
   type TipoUbicacion,
@@ -158,6 +159,17 @@ const foto = (p: PerfilDelMenu) => {
   const m = menuPara(p);
   return { riel: m.riel, movil: m.movil, grupos: RUTAS.map((r) => m.grupoDe(r)) };
 };
+// Las filas `soloConModulo` no existían en el menú de antes de los roles, por definición (salen SOLO con módulos): la comparación las
+// deja fuera. Hoy es una: Tienda web ▸ Ajustes (ADR-0430), que abre el módulo Configuración, el del botón de la cabecera.
+const RUTAS_SOLO_CON_MODULO = (function rutas(nodos: readonly Nodo[]): string[] {
+  return nodos.flatMap((n) => (n.estado !== "viva" ? [] : "hijos" in n ? rutas(n.hijos) : n.soloConModulo ? [n.ruta] : []));
+})(ARBOL);
+const sinSoloConModulo = (filas: readonly FilaMenu[]): FilaMenu[] =>
+  filas.flatMap<FilaMenu>((f) => (esGrupoMenu(f) ? [{ ...f, hijos: sinSoloConModulo(f.hijos) }] : RUTAS_SOLO_CON_MODULO.includes(f.href) ? [] : [f]));
+const fotoDeAntes = (p: PerfilDelMenu) => {
+  const f = foto(p);
+  return { ...f, riel: sinSoloConModulo(f.riel) };
+};
 
 // ÚNICAS diferencias buscadas con el menú de antes: los módulos que nacieron DESPUÉS de que `MODULOS_DE_HOY` se
 // congelara a propósito (es la foto de lo que YA HABÍA cuando se escribió, no se actualiza con cada módulo nuevo).
@@ -209,7 +221,7 @@ describe("con los módulos de hoy, el menú de las personas es idéntico al de a
   for (const c of CUENTAS_DE_HOY) {
     for (const u of TIPOS_UBICACION) {
       it(`${c.nombre} en ${u}`, () => {
-        expect(foto(ahora(c, u, CON_MODULOS_NUEVOS(c)))).toEqual(foto(antes(c, u)));
+        expect(fotoDeAntes(ahora(c, u, CON_MODULOS_NUEVOS(c)))).toEqual(foto(antes(c, u)));
       });
     }
   }
@@ -219,7 +231,7 @@ describe("con los módulos de hoy, el menú de las personas es idéntico al de a
       const c = CUENTAS_DE_HOY[1]!;
       const deAntes = hrefs(antes(c, u));
       const deAhora = hrefs(ahora(c, u));
-      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/gestion/plan-del-piso", "/productos/liquidacion", "/compras/ordenes", "/compras/plan", "/ordenes-insumos", "/compras/fondos", "/productos/vitrina", "/vender/pedidos-web", "/clientas/recomendaciones"]
+      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/gestion/plan-del-piso", "/productos/liquidacion", "/compras/ordenes", "/compras/plan", "/ordenes-insumos", "/compras/fondos", "/tienda-web/vitrina", "/tienda-web/pedidos", "/tienda-web/recomendaciones"]
         .filter((h) => deAntes.includes(h))
         .sort();
       expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(esperado);

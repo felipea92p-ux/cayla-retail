@@ -27,7 +27,7 @@ import {
 const PLANTILLA = "grid-cols-[1.75rem_minmax(0,1fr)_2.75rem] sm:grid-cols-[2.5rem_minmax(0,1fr)_4.5rem]";
 
 /**
- * Catálogo ▸ Vitrina web ▸ Looks (ADR-0408, actividad 11; maqueta v4, «looks-erp»): las combinaciones de 2 a 4 prendas que la tienda
+ * Tienda web ▸ Vitrina ▸ Looks (ADR-0408, actividad 11; maqueta v4, «looks-erp»): las combinaciones de 2 a 4 prendas que la tienda
  * online muestra en «Arma tu look», en su orden. Tocar un look abre su hoja (nombre, frase, prendas, si se ve y su lugar); el interruptor de
  * una fila lo muestra u oculta. Un look encendido con una prenda que dejó de verse en la web no sale en la tienda: la fila dice cuál.
  * Toda escritura pasa por una hoja con el combo «Responsable» (ADR-0162).

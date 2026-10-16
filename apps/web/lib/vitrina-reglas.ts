@@ -1,4 +1,4 @@
-// Catálogo ▸ Vitrina web (ADR-0408, actividad 3): qué modelos se ven en la tienda online y cómo entran a «Lo nuevo». Lógica pura:
+// Tienda web ▸ Vitrina (ADR-0408, actividad 3): qué modelos se ven en la tienda online y cómo entran a «Lo nuevo». Lógica pura:
 // se importa desde el servidor y desde el cliente, y se prueba con `vitrina-reglas.test.ts`.
 //
 // No hay precio web (Felipe, 2026-10-14): en la web cada modelo vale lo que vale en la tienda elegida (`fn_precio_en_sede`) y, con

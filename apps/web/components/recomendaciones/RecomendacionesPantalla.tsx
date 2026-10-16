@@ -32,13 +32,13 @@ import {
   type ListaRecomendaciones,
 } from "@/lib/recomendaciones-reglas";
 
-const RUTA = "/clientas/recomendaciones";
+const RUTA = "/tienda-web/recomendaciones";
 // En el celular la fila es una tarjeta (cliente y estado arriba, la recomendación abajo); desde `sm`, columnas.
 const PLANTILLA = "grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[6.5rem_minmax(0,1fr)_8.5rem_minmax(0,1.6fr)_7rem]";
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
 
 /**
- * Clientes ▸ Recomendaciones (ADR-0408, Felipe 2026-10-15): lo que los clientes recomiendan desde la tienda online, con su nombre. Las
+ * Tienda web ▸ Recomendaciones (ADR-0408, Felipe 2026-10-15): lo que los clientes recomiendan desde la tienda online, con su nombre. Las
  * cifras (sin leer, respondidas, del mes, archivadas: las que filtran se tocan), la lista en UNA tarjeta con su buscador y sus dos
  * filtros (en qué estado y sobre qué), y la nota. Tocar una fila abre su hoja (la URL lo recuerda: `?r=`), donde se marca como leída,
  * se responde (el cliente lo ve en su cuenta) o se archiva, siempre con el combo «Responsable». Nada se borra.

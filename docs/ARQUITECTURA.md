@@ -838,7 +838,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `retirar_pieza_liquidacion`) + `PrecioMinimoLiquidacion.tsx` (`guardar_precio_minimo_liquidacion`); la etiqueta de papel es
   `EtiquetaLiquidacion.tsx` y se imprime con `useImprimirLiquidacion` (la misma hoja de la Brother). Vender
   (`PuntoDeVenta.tsx:agregarPiezaLiquidacion`) manda la línea con `pieza_liquidacion_codigo` a `registrar_venta`.
-- `/productos/vitrina` (Catálogo ▸ Vitrina web, módulo `vitrina_web`, ADR-0408 act. 3) → `page.tsx` lee `fn_vitrina_modelos` →
+- **Tienda web** (ADR-0430, Felipe 2026-10-16): el grupo del lateral que junta lo de la tienda online. `/tienda-web/layout.tsx` deja
+  entrar a quien ve alguno de sus módulos (`pedidos_web`, `vitrina_web`, `recomendaciones`, `configuracion`) y cada pantalla repite la
+  puerta del suyo. Las direcciones de antes (`/vender/pedidos-web`, `/productos/vitrina…`, `/clientas/recomendaciones`,
+  `/configuracion?tab=tienda-web`) redirigen en `next.config.ts` con su query. Las pantallas se describen abajo, cada una en su ruta.
+- `/tienda-web/vitrina` (Tienda web ▸ Vitrina, módulo `vitrina_web`, ADR-0408 act. 3) → `page.tsx` lee `fn_vitrina_modelos` →
   `VitrinaPantalla.tsx` (cifras, buscador, lista con casilla e interruptor, barra fija de los elegidos) + `VitrinaModeloHoja.tsx`
   (`vitrina_guardar_modelo`: mostrar, Lo nuevo y descripción) + `VitrinaLoteHoja.tsx` (`vitrina_mostrar`: mostrar u ocultar uno o
   varios); reglas en `lib/vitrina-reglas.ts`, guía de foco en `lib/vitrina-guia.ts`. Sin precio web (Felipe, 2026-10-14): en la web
@@ -849,13 +853,13 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   ofrece, con la regla del precio de la tienda (`fn_tienda_precio_talla` con «Todas»; Felipe 2026-10-15: la ropa en S/ 0 en su ficha con
   precio propio en una tienda de la web SÍ se muestra): la fila dice «Sin precio» y la hoja, que se le pone en su ficha.
   La cifra «Esperan una talla» (ADR-0408 act. 12) la lee el mismo `page.tsx` con `fn_vitrina_esperan` y lleva a
-  `/productos/vitrina/esperan` (Vitrina web ▸ Esperan una talla, mismo módulo, sin menú propio) → `page.tsx` lee `fn_vitrina_esperan` →
+  `/tienda-web/vitrina/esperan` (Vitrina ▸ Esperan una talla, mismo módulo, sin menú propio) → `page.tsx` lee `fn_vitrina_esperan` →
   `components/vitrina/EsperanPantalla.tsx` (cifras que filtran, buscador, píldoras de tienda, la lista por prenda y tienda); reglas en
   `lib/vitrina-esperan-reglas.ts`. Solo lee y sin datos personales: lo que los clientes pidieron con «Avísame» (`esperas_web`); «ya
   llegó» y «dónde hay» con la regla de «hay» de la ficha de la tienda (`fn_tienda_disponible` en las tiendas de la web). Una espera
   anotada en una tienda que después se escondió de la web cuenta como «cualquier tienda» (`fn_tienda_sede_elegida`, la regla con que se
   anota).
-- `/productos/vitrina/looks` (Vitrina web ▸ Looks, el mismo módulo `vitrina_web`, ADR-0408 act. 11; las dos vistas van en
+- `/tienda-web/vitrina/looks` (Vitrina ▸ Looks, el mismo módulo `vitrina_web`, ADR-0408 act. 11; las dos vistas van en
   `components/vitrina/VitrinaPestanas.tsx`) → `page.tsx` lee `fn_vitrina_looks` (los looks con sus prendas, si se ven y por qué no, el
   total con «Todas» —cada prenda, lo que vale en SU color: `fn_tienda_precios` por color, el mismo total de «Arma tu look»—, y los
   modelos que se ven en la web) → `LooksPantalla.tsx` (cifras, la lista en su orden con su interruptor) +
@@ -1237,7 +1241,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `deshacer_aviso_enviado`; «Pidió BAJA» con `registrar_baja_whatsapp`) + `BeneficiosClubModal.tsx` (líder,
   `guardar_beneficios_club`), vía `lib/club-avisos-acciones.ts`. Reglas puras en `lib/club-avisos-reglas.ts`,
   `lib/club-beneficios-reglas.ts` y la guía en `lib/club-beneficios-guia.ts`.
-- `/clientas/recomendaciones` (ADR-0408, Felipe 2026-10-15; módulo **`recomendaciones`**, nace solo para el líder; migraciones
+- `/tienda-web/recomendaciones` (ADR-0408, Felipe 2026-10-15; módulo **`recomendaciones`**, nace solo para el líder; migraciones
   `20261015134000` y `20261015135000`, **sin pegar en producción**): lo que los clientes le recomiendan a CAYLA desde la tienda online,
   siempre con su nombre. Tercera hija del grupo Clientes (después de Avisos); `app/(app)/clientas/layout.tsx` también la deja pasar y
   `recomendaciones/layout.tsx` pide `recomendaciones`. Son de todas las tiendas: en CAYLA Global pide elegir una sede, como Avisos.
@@ -1259,7 +1263,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   anonimizar cierra su cuenta web en la misma escritura (disparador `clientas_cuenta_web_al_anonimizar`; ver «La tienda online»).
 - `GET /api/pedidos-web/cerrar-vencidos` (cron cada 15 minutos, `vercel.json`; ADR-0408 DECIDÍ 8, tienda online actividad 7; **sin
   pegar en producción**) → `crearClienteAdmin()` → `fn_cerrar_pedidos_web_sin_confirmar()` (solo `service_role`): lee el plazo de
-  Configuración ▸ Tienda web y cierra con él lo que nadie confirmó (`fn_cerrar_pedidos_web_vencidos` del motor). Devuelve
+  Tienda web ▸ Ajustes y cierra con él lo que nadie confirmó (`fn_cerrar_pedidos_web_vencidos` del motor). Devuelve
   `{cerrados, horas_para_confirmar}`; sin `CRON_SECRET` o con otra clave, 401. Si no corre, nada se rompe: lo vencido ya se LEE vencido.
   Desde `20261016001000` (ADR-0426, en producción) también anula lo CONFIRMADO sin ningún pago pasadas las horas de «Si no paga»
   (`fn_anular_pedidos_web_sin_pagar`, sus prendas vuelven) y devuelve además `{anulados_sin_pagar, horas_sin_pagar}`.
@@ -1607,7 +1611,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (20261003135000). El adelanto y los abonos NO se redondean (`separar_prendas` y `abonar_separacion` rechazan la fila). La boleta final
   sale por el saldo exacto; el modal «Apartado entregado» y `ReciboApartado` dicen el redondeo.
 
-- **Pedidos web** (2026-10-14, ADR-0408 actividad 8; módulo propio `pedidos_web` en Ventas, nace solo del líder): `/vender/pedidos-web`
+- **Pedidos web** (2026-10-14, ADR-0408 actividad 8; módulo propio `pedidos_web`, en Tienda web desde ADR-0430, nace solo del líder): `/tienda-web/pedidos`
   (`layout.tsx` con `exigirModulo`) → `page.tsx` lee `fn_pedidos_web_tablero` (la lista de la tienda activa, sus prendas en miniatura, lo
   cobrado hoy y «Para enviar a otra tienda») y, con `?pedido=<id>`, `fn_pedido_web_detalle` → `lib/pedidos-web-reglas.ts` (lectura,
   pestañas, cifras, decisiones de cada prenda, WhatsApp) → `components/pedidos-web/PedidosWebPantalla.tsx` (`TarjetaCifra`, `Pestanas`,
@@ -1708,7 +1712,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   - `/finanzas/resumen` → el tablero que junta lo anterior (F10).
   - `/configuracion` gana Empresa (solo lectura), Cuentas y cobros, Caja y avisos (`parametros_finanzas`), Presupuesto e
     Impuestos; Tiendas y caja suma la hora de cierre (`ubicaciones.hora_cierre`), que Caja usa para «al ritmo de hoy».
-  - `/configuracion?tab=tienda-web` (ADR-0408, actividad 6; pestaña, no módulo) → `lib/configuracion.ts`
+  - `/tienda-web/ajustes` (ADR-0408, actividad 6; fue la pestaña `/configuracion?tab=tienda-web` hasta ADR-0430; módulo `configuracion`) → `lib/configuracion.ts`
     `getConfiguracionTiendaWeb` (`fn_configuracion_tienda_web`) + `lib/tienda-web-reglas.ts` (puro: la regla de qué le falta a una
     tienda para verse en la web, los plazos y la guía de foco) + `lib/sugerencias-tienda-web.ts` → `ConfiguracionTiendaWeb.tsx` →
     RPC `guardar_sede_tienda_web`, `guardar_whatsapp_tienda` (el WhatsApp es el mismo del QR del club) y
@@ -1910,7 +1914,7 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
 - `/` (portada sin cuenta) → `lib/portada-servidor.ts` `leerPortada()` → `retail.tienda_portada()`: la campaña vigente que
   termina primero. Si la base no responde, la portada sale sin campaña.
 - `/` («Nuestras tiendas», después del Club) y `/tiendas` (actividad 6) → `lib/tiendas-servidor.ts` `leerSedes()` →
-  `retail.tienda_sedes()`: las tiendas encendidas en Configuración ▸ Tienda web, abiertas y con nombre web, dirección y WhatsApp
+  `retail.tienda_sedes()`: las tiendas encendidas en Tienda web ▸ Ajustes, abiertas y con nombre web, dirección y WhatsApp
   (el del QR del club, `ubicaciones.whatsapp_numero`), por nombre web; el enlace abre un chat sin mensaje. Sin base, la portada sale
   sin la sección y `/tiendas` lo dice en una línea. Con sesión, `/tiendas` usa la cabecera con cuenta (`MarcoCuenta conCuenta`) y cada
   tienda lleva «Ver solo lo que hay aquí» (`/inicio?sede=…`, `hrefDelInicio` de `lib/inicio.ts`); por eso se arma en cada visita. Prueba

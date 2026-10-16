@@ -42,7 +42,7 @@ import {
   type SedeWeb,
 } from "@/lib/tienda-web-reglas";
 
-// Configuración ▸ Tienda web (ADR-0408, actividad 6; maqueta `vConfig` de docs/maquetas/tienda-online-2026-10/): lo que la
+// Tienda web ▸ Ajustes (ADR-0430; antes Configuración ▸ Tienda web, ADR-0408, actividad 6; maqueta `vConfig` de docs/maquetas/tienda-online-2026-10/): lo que la
 // tienda online le muestra al cliente de cada tienda —nombre, WhatsApp, dirección y horario, y si se muestra— y los plazos de
 // los pedidos web. Dibujada con el kit de Finanzas como el resto de Configuración (ADR-0195), y como sus otras pestañas: CADA
 // CASILLA SE GUARDA SOLA AL SALIR DE ELLA, firmada con el responsable, sin botón «Guardar» (la maqueta tenía uno; aquí manda

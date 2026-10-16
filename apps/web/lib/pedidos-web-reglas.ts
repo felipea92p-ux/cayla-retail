@@ -1,4 +1,4 @@
-// Ventas ▸ Pedidos web (ADR-0408, actividad 8; maqueta docs/maquetas/tienda-online-2026-10, «Pedidos web»): la parte pura de la
+// Tienda web ▸ Pedidos (ADR-0408, actividad 8; maqueta docs/maquetas/tienda-online-2026-10, «Pedidos web»): la parte pura de la
 // pantalla, sin React ni red, para importarla desde el servidor y el cliente y probarla sola.
 //
 // CONTRATO
@@ -7,7 +7,7 @@
 //            prenda; armar la decisión de cada prenda para confirmar (de dónde sale, por conseguir con fecha o quitarla) en la forma que
 //            pide `confirmar_pedido_web`, y lo que todavía falta para poder confirmar; y los mensajes de WhatsApp de la maqueta.
 //   ASUME:   que la base manda (permisos, stock, plazos, transiciones): lo que aquí se calcula es para mostrar y para no ofrecer lo que
-//            la base rechazaría. Los plazos (24 h, 48 h, 7 días) llegan de Configuración ▸ Tienda web en la lectura, nunca escritos aquí.
+//            la base rechazaría. Los plazos (24 h, 48 h, 7 días) llegan de Tienda web ▸ Ajustes en la lectura, nunca escritos aquí.
 //            Entregar (actividad 10): el código de 4 cifras como lo escribe la persona, lo que falta para poder entregar, la boleta y en
 //            qué va su envío a SUNAT, y los mensajes para avisarle que ya puede recogerlo (o que no lo recoge).
 //   NO HACE: lo de cobrar (registrar y anular un pago) vive en `pedidos-web-cobro-reglas.ts` (actividad 9); aquí solo se lee lo que
@@ -810,7 +810,7 @@ export type PlantillaWhatsapp = "libre" | "confirmado" | "cobro" | "sinstock" | 
 
 const primerNombre = (nombre: string) => nombre.trim().split(/\s+/)[0] ?? nombre;
 
-/** Los mensajes de la maqueta (`plantilla`), con la tienda y la dirección de Configuración ▸ Tienda web. */
+/** Los mensajes de la maqueta (`plantilla`), con la tienda y la dirección de Tienda web ▸ Ajustes. */
 export function mensajeWhatsapp(
   p: Pick<PedidoDetalle, "codigo" | "total" | "falta" | "pagado" | "cliente" | "tiendaWeb">,
   plantilla: PlantillaWhatsapp,

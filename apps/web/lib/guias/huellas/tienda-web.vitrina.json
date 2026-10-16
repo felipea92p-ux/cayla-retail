@@ -1,13 +1,9 @@
 {
-  "guia": "productos.vitrina",
-  "ruta": "/productos/vitrina",
+  "guia": "tienda-web.vitrina",
+  "ruta": "/tienda-web/vitrina",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 19,
+  "total": 17,
   "controles": {
-    "components/ficha-producto/RecordatorioEtiquetas.tsx": [
-      "BotonImprimir «Imprimir etiquetas»",
-      "button «Descartar el aviso de etiquetas pendientes»"
-    ],
     "components/vitrina/VitrinaLoteHoja.tsx": [
       "ComboResponsable «(sin nombre)»",
       "Boton «Cancelar»",

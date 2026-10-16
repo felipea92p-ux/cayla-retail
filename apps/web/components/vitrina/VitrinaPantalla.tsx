@@ -34,7 +34,7 @@ import {
 const PLANTILLA = "grid-cols-[1.5rem_minmax(0,1fr)_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_12rem_4.5rem]";
 
 /**
- * Catálogo ▸ Vitrina web (ADR-0408, actividad 3; maqueta v4, «vitrina»): todos los modelos que se pueden vender, con su stock libre en
+ * Tienda web ▸ Vitrina (ADR-0408, actividad 3; maqueta v4, «vitrina»): todos los modelos que se pueden vender, con su stock libre en
  * cada tienda y si se ven en la web. No hay precio web: en la web cada modelo vale lo que vale en la tienda que el cliente elige (y con
  * «Todas», lo más que vale entre ellas). Tocar un modelo abre su hoja (mostrar, Lo nuevo y lo que ve el cliente); el interruptor de una
  * fila muestra u oculta ese modelo, y marcar varios abre la barra para mostrarlos u ocultarlos juntos. Toda escritura pasa por una hoja
@@ -104,7 +104,7 @@ export function VitrinaPantalla({ lectura, esperan }: { lectura: LecturaVitrina;
           style={{ ["--i" as string]: 2 }}
           valor={esperan === null ? null : <CifraQueCuenta valor={esperan} alMontar />}
           noSePudoLeer={esperan === null}
-          href="/productos/vitrina/esperan"
+          href="/tienda-web/vitrina/esperan"
         >
           {esperan === null ? "No se pudo leer: entra para volver a intentar" : esperan === 1 ? "Persona que tocó «Avísame»" : "Personas que tocaron «Avísame»"}
         </TarjetaCifra>

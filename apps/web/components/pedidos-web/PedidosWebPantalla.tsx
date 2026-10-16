@@ -39,7 +39,7 @@ import {
   type TableroPedidosWeb,
 } from "@/lib/pedidos-web-reglas";
 
-const RUTA = "/vender/pedidos-web";
+const RUTA = "/tienda-web/pedidos";
 // En el celular la fila es una tarjeta (pedido y estado arriba, prendas y total abajo); desde `sm`, columnas.
 const PLANTILLA = "grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[6.5rem_minmax(0,1.2fr)_7.5rem_6.5rem_minmax(0,1.5fr)]";
 
@@ -65,7 +65,7 @@ export function MiniPrenda({ prenda, tamano = "sm" }: { prenda: PrendaWeb; taman
 }
 
 /**
- * Ventas ▸ Pedidos web (ADR-0408, actividad 8; maqueta v4, «Pedidos web»): las cifras de la tienda (cada una lleva a su pestaña),
+ * Tienda web ▸ Pedidos (ADR-0408, actividad 8; maqueta v4, «Pedidos web»): las cifras de la tienda (cada una lleva a su pestaña),
  * lo que otra tienda espera de aquí («Para enviar»), y la lista en sus cuatro pestañas. Tocar un pedido lo abre (la URL lo recuerda:
  * `?pedido=`). La hoja confirma, no confirma o anula; lo de enviar abre su propia hoja, y cobrar (actividad 9) también: «Registrar un
  * pago» y «Anular un pago» (o «Devolver») se abren ENCIMA de la del pedido, que se pone al día al guardar; y «Anular el pedido» de uno

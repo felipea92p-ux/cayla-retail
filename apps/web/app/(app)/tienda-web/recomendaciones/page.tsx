@@ -6,7 +6,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { RecomendacionesPantalla } from "@/components/recomendaciones/RecomendacionesPantalla";
 
-// Clientes ▸ Recomendaciones (ADR-0408, Felipe 2026-10-15; migraciones 20261015134000 y 20261015135000): lo que los clientes le
+// Tienda web ▸ Recomendaciones (ADR-0408, Felipe 2026-10-15; migraciones 20261015134000 y 20261015135000): lo que los clientes le
 // recomiendan a CAYLA desde la tienda online, SIEMPRE con su nombre. Son de todas las tiendas y de CAYLA en general (por eso la
 // cabecera dice «Todas las tiendas»). La recomendación abierta vive en la URL (`?r=<id>`): se comparte y sobrevive a recargar.
 export default async function RecomendacionesPage({ searchParams }: { searchParams: Promise<{ r?: string }> }) {
@@ -21,6 +21,7 @@ export default async function RecomendacionesPage({ searchParams }: { searchPara
     <div className="space-y-6">
       <EncabezadoPagina
         sede="Todas las tiendas"
+        detalle="Tienda web"
         titulo="Recomendaciones"
         subtitulo="Lo que los clientes le recomiendan a CAYLA desde la tienda online, con su nombre. Léelas, respóndeles y archívalas."
       />

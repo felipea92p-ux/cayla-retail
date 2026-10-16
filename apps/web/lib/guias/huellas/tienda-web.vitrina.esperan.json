@@ -1,0 +1,15 @@
+{
+  "guia": "tienda-web.vitrina.esperan",
+  "ruta": "/tienda-web/vitrina/esperan",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 3,
+  "controles": {
+    "app/(app)/tienda-web/vitrina/esperan/page.tsx": [
+      "Volver «(sin nombre)»"
+    ],
+    "components/vitrina/EsperanPantalla.tsx": [
+      "button «{p.texto}»",
+      "Boton «Borrar la búsqueda»"
+    ]
+  }
+}

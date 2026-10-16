@@ -105,6 +105,14 @@ const nextConfig: NextConfig = {
       { source: "/inventario/frescura", destination: "/gestion/frescura", permanent: false },
       { source: "/inventario/frescura/tienda", destination: "/gestion/frescura/tienda", permanent: false },
       { source: "/inventario/plan-del-piso", destination: "/gestion/plan-del-piso", permanent: false },
+      // ADR-0430 (2026-10-16): todo lo de la tienda online se juntó en el grupo «Tienda web». Los enlaces viejos siguen llegando, con su
+      // query intacta (`?pedido=`, `?pestana=`, `?r=`): un pedido compartido por WhatsApp antes del cambio abre igual. La pestaña
+      // «Tienda web» de Configuración es ahora Tienda web ▸ Ajustes; solo se desvía esa pestaña, el resto de Configuración no se toca.
+      { source: "/vender/pedidos-web", destination: "/tienda-web/pedidos", permanent: false },
+      { source: "/productos/vitrina", destination: "/tienda-web/vitrina", permanent: false },
+      { source: "/productos/vitrina/:resto*", destination: "/tienda-web/vitrina/:resto*", permanent: false },
+      { source: "/clientas/recomendaciones", destination: "/tienda-web/recomendaciones", permanent: false },
+      { source: "/configuracion", has: [{ type: "query", key: "tab", value: "tienda-web" }], destination: "/tienda-web/ajustes", permanent: false },
       // Consolidación de Catálogo (2026-09-17, pedido de Felipe): Colores/
       // Tallas/Tejidos/Patrones/Etiquetas eran 5 pantallas y 5 filas de menú
       // separadas para lo que en el fondo es un solo tipo de pantalla

@@ -37,7 +37,7 @@ import {
 type Hecho = "leida" | "respondida" | "archivada" | "en_bandeja";
 
 /**
- * La hoja de una recomendación (Clientes ▸ Recomendaciones): lo que escribió el cliente, quién es (con su ficha, si quien mira ve las
+ * La hoja de una recomendación (Tienda web ▸ Recomendaciones): lo que escribió el cliente, quién es (con su ficha, si quien mira ve las
  * fichas) y sobre qué; lo que ya se hizo con ella (quién la leyó, la respondió o la archivó, y cuándo); y lo que falta: responderle (lo
  * lee en su cuenta de la tienda online; una sola vez), o solo marcarla como leída, o archivarla. Todo firmado con el combo
  * «Responsable» (ADR-0162). Un doble toque no manda dos veces: el botón se apaga mientras la base responde y la base no repite (la

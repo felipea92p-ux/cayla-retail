@@ -1,4 +1,4 @@
-// Clientes ▸ Recomendaciones (ADR-0408, Felipe 2026-10-15; migraciones 20261015134000 y 20261015135000): lo que los clientes
+// Tienda web ▸ Recomendaciones (ADR-0408, Felipe 2026-10-15; migraciones 20261015134000 y 20261015135000): lo que los clientes
 // recomiendan desde la tienda online, SIEMPRE con su nombre, sobre una tienda o sobre CAYLA en general. Aquí, sin red ni React: lo
 // que devuelve `fn_recomendaciones` puesto en tipos, el estado de cada una, las cifras, los filtros y la búsqueda, y qué le falta a
 // una respuesta. Quien decide de verdad es la base (el módulo, el responsable, el largo, «ya tiene respuesta»): estas reglas solo
