@@ -72,13 +72,16 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
       window.history.replaceState(window.history.state, "", limpio.size ? `${pathname}?${limpio}` : pathname);
       return;
     }
-    ultimaDemo.current = { id: guia.id, cuando: Date.now() };
     // `history.replaceState` y no `router.replace`: en una ruta interceptada (el Historial de un producto, `@modal/(.)[id]`)
     // el router volvía a resolver la intercepción, Next respondía 500 y recargaba la página, y la guía se perdía.
     window.history.replaceState(window.history.state, "", limpio.size ? `${pathname}?${limpio}` : pathname);
     if (arranquePendiente.current) clearTimeout(arranquePendiente.current);
     arranquePendiente.current = setTimeout(() => {
       arranquePendiente.current = null;
+      // Se anota cuando la demo ARRANCA, no al programarla: en desarrollo React monta los efectos dos veces (Strict Mode) y la
+      // limpieza de la primera pasada cancela este temporizador; anotada antes, la segunda pasada la tomaba por «repetida» y la
+      // demo no arrancaba nunca (2026-10-16, con Next 16.4: `guias:recorrer` no arrancaba ninguna guía).
+      ultimaDemo.current = { id: guia.id, cuando: Date.now() };
       setOfrecida(null);
       setCorriendo(guia);
     }, 700);
