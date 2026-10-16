@@ -49,11 +49,11 @@ describe("vercel.json y las rutas del cron dicen lo mismo", () => {
     }
   });
 
-  it("los crons diarios (la conservación del club y la vara de CAYLA) corren de madrugada en Lima (UTC−5)", () => {
+  it("los crons diarios (la conservación del club, la vara de CAYLA y el vencimiento de los apartados) corren de madrugada en Lima (UTC−5)", () => {
     // Vercel evalúa el horario en UTC. Un cron nuevo que corra de día (tiendas abiertas, la foto a mitad de jornada) falla aquí.
     // Diario = un minuto y una hora fijos (el reintento de Lucode, cada 5 minutos, no es una foto y no entra).
     const diarios = crons.filter((c) => /^\d+ \d+ \* \* \*$/.test(c.schedule));
-    expect(diarios.map((c) => c.path).sort()).toEqual(["/api/club/conservacion", "/api/inventario/frescura-vara-cayla"]);
+    expect(diarios.map((c) => c.path).sort()).toEqual(["/api/apartados/vencer", "/api/club/conservacion", "/api/inventario/frescura-vara-cayla"]);
     for (const c of diarios) {
       const [minuto, hora] = c.schedule.split(" ");
       expect(Number(minuto), c.path).toBeGreaterThanOrEqual(0);

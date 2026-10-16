@@ -88,7 +88,8 @@ export function mensajeDelEnvio(r: Exclude<ResultadoEnvio, { estado: "enviada" }
       if (r.campo === "texto") return `Escribe un poco más: al menos ${MINIMO} letras.`;
       return "Algo no salió bien. Vuelve a intentarlo.";
     case "limite":
-      return `Hoy ya nos enviaste ${r.tope}. Mañana puedes enviarnos otra: las leemos todas.`;
+      // «Hoy ya nos enviaste 3 recomendaciones»: con el número solo («nos enviaste 3») no se entendía qué.
+      return `Hoy ya nos enviaste ${r.tope} ${r.tope === 1 ? "recomendación" : "recomendaciones"}. Mañana puedes enviarnos otra: las leemos todas.`;
     case "sin_cuenta":
       return "No encontramos tu cuenta. Sal y vuelve a entrar.";
     case "sin_sesion":
@@ -163,4 +164,54 @@ export function fraseDelCupo(tope: number, quedan: number): string {
   if (quedan >= tope) return `${base}.`;
   if (quedan <= 0) return `${base}: hoy ya las enviaste.`;
   return `${base}: hoy te ${quedan === 1 ? "queda 1" : `quedan ${quedan}`}.`;
+}
+
+/**
+ * Qué muestra la ficha para escribir. Recién enviada, el «¡Gracias!». Sin cupo hoy y sin nada escrito, «Por hoy ya está»: antes salía la
+ * caja abierta (con «✓ Listo» al escribir) y un botón apagado, y la persona podía escribir una recomendación entera que no iba a poder
+ * enviar. Si ya había escrito algo cuando se le acabó el cupo (lo agotó en otra pestaña), el formulario se queda con su texto a la vista,
+ * para que no lo pierda.
+ */
+export function vistaDelFormulario(e: { gracias: boolean; quedan: number; texto: string }): "gracias" | "sin_cupo" | "formulario" {
+  if (e.gracias) return "gracias";
+  return e.quedan <= 0 && letras(e.texto) === 0 ? "sin_cupo" : "formulario";
+}
+
+/** La marca en el título del campo, la misma guía de «Crear cuenta» (✓ Listo · Sigue aquí · Revisa). */
+export type MarcaDelTexto = "error" | "hecho" | "sigue";
+export const TEXTO_DE_MARCA: Record<MarcaDelTexto, string> = { error: "Revisa", hecho: "✓ Listo", sigue: "Sigue aquí" };
+
+/**
+ * Qué marca lleva el texto: lo que le falta manda («Revisa»); sin cupo hoy, ninguna (un «✓ Listo» mentiría: hoy no se puede enviar);
+ * con algo que se puede enviar, «✓ Listo»; vacío, es lo que sigue («Sigue aquí»: antes no decía nada y el botón apagado no explicaba por
+ * qué).
+ */
+export function marcaDelTexto(texto: string, sinCupo: boolean): MarcaDelTexto | null {
+  if (problemaDelTexto(texto)) return "error";
+  if (sinCupo) return null;
+  return letras(texto) > 0 ? "hecho" : "sigue";
+}
+
+/**
+ * «¿Sobre qué es?» se maneja como un grupo de botones de radio (el patrón de teclado de WAI-ARIA): → y ↓ pasan a la opción siguiente,
+ * ← y ↑ a la anterior, dando la vuelta en las puntas; Inicio y Fin, a la primera y a la última. Devuelve la posición nueva, o null si la
+ * tecla no es de las que mueven (se deja pasar: Tab sale del grupo).
+ */
+export function indiceConTecla(cantidad: number, actual: number, tecla: string): number | null {
+  if (cantidad <= 0) return null;
+  const i = Math.min(Math.max(0, actual), cantidad - 1);
+  switch (tecla) {
+    case "ArrowRight":
+    case "ArrowDown":
+      return (i + 1) % cantidad;
+    case "ArrowLeft":
+    case "ArrowUp":
+      return (i - 1 + cantidad) % cantidad;
+    case "Home":
+      return 0;
+    case "End":
+      return cantidad - 1;
+    default:
+      return null;
+  }
 }

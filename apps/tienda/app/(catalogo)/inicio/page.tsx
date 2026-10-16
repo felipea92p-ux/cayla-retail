@@ -2,13 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { AvisoAlEntrar } from "@/components/AvisoAlEntrar";
+import { CarrilConFlechas } from "@/components/CarrilConFlechas";
+import { CollageDePrendas } from "@/components/CollageDePrendas";
 import { CuentaRegresiva } from "@/components/CuentaRegresiva";
 import { FotoTarjeta } from "@/components/FotoTarjeta";
 import { Icono } from "@/components/Icono";
 import { Isotipo } from "@/components/Isotipo";
-import { Lamina } from "@/components/looks/Lamina";
+import { TarjetaLook } from "@/components/looks/TarjetaLook";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
+import { PendienteDelEnlace } from "@/components/PendienteDelEnlace";
 import { SeccionClub } from "@/components/SeccionClub";
 import { TarjetaPrenda } from "@/components/TarjetaPrenda";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
@@ -22,14 +25,13 @@ import {
   hrefDePrenda,
   hrefLista,
   leerCampana,
-  precioTarjeta,
   type Prenda,
 } from "@/lib/catalogo";
-import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
+import { leerBeneficiosDelClub, leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { categoriasDelInicio, heroDelInicio, type Hero } from "@/lib/inicio";
 import { avisoAlEntrar } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
-import { cejaDeLook, hrefLook, hrefLooks, lineaDeLook } from "@/lib/looks";
+import { hrefLooks } from "@/lib/looks";
 import { leerLooks } from "@/lib/looks-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
 import { anioLima, fechaCorta, fechaLarga, partirTitulo, pctTexto } from "@/lib/portada";
@@ -64,11 +66,12 @@ export default async function Inicio({ searchParams }: Props) {
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
   const pedida = sedeDeLaUrl(sp.sede, sedes);
-  const [catalogo, { campana }, sesion, lecturaLooks] = await Promise.all([
+  const [catalogo, { campana }, sesion, lecturaLooks, beneficios] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
     leerPortada(),
     leerSesion(),
     leerLooks(pedida?.id ?? null),
+    leerBeneficiosDelClub(),
   ]);
   const [lectura, avisos, vistos] =
     sesion.estado === "con_sesion"
@@ -124,28 +127,32 @@ export default async function Inicio({ searchParams }: Props) {
         </div>
       ) : (
         <>
+          {/* Los círculos de las categorías: en la computadora, centrados si caben y, si no, desde la primera (antes se cortaban
+              las primeras ocho a la izquierda, sin forma de verlas), con flechas para el mouse (`CarrilConFlechas`). */}
           {categorias.length > 0 && (
-            <nav className="t-circs" aria-label="Categorías">
-              {categorias.map((c) => {
-                const foto = fotosDeTarjeta(c.prenda)[0];
-                return (
-                  <Link key={c.clave} className="t-circ" href={hrefLista({ sede, categoria: c.clave, orden: "destacado" })} data-nuevo={c.nueva ? "" : undefined}>
-                    <span className="t-circ-img">
-                      <FotoTarjeta
-                        foto={foto}
-                        segunda={null}
-                        optimizar={[foto ? fotoOptimizable(foto, origenFotos) : false, false]}
-                        nombre=""
-                        forma={formaDe(c.prenda.categoria?.prefijo)}
-                        color={colorDeDibujo(c.prenda)}
-                        tamanos="96px"
-                      />
-                    </span>
-                    <b>{c.corto}</b>
-                  </Link>
-                );
-              })}
-            </nav>
+            <CarrilConFlechas className="t-circs-envol">
+              <nav className="t-circs" aria-label="Categorías">
+                {categorias.map((c) => {
+                  const foto = fotosDeTarjeta(c.prenda)[0];
+                  return (
+                    <Link key={c.clave} className="t-circ" href={hrefLista({ sede, categoria: c.clave, orden: "destacado" })} data-nuevo={c.nueva ? "" : undefined}>
+                      <span className="t-circ-img">
+                        <FotoTarjeta
+                          foto={foto}
+                          segunda={null}
+                          optimizar={[foto ? fotoOptimizable(foto, origenFotos) : false, false]}
+                          nombre=""
+                          forma={formaDe(c.prenda.categoria?.prefijo)}
+                          color={colorDeDibujo(c.prenda)}
+                          tamanos="96px"
+                        />
+                      </span>
+                      <b>{c.corto}</b>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </CarrilConFlechas>
           )}
 
           {nuevos.length > 0 && (
@@ -163,11 +170,13 @@ export default async function Inicio({ searchParams }: Props) {
                   <Icono nombre="flecha" />
                 </Link>
               </div>
-              <div className="t-carril">
-                {nuevos.slice(0, 10).map((p) => (
-                  <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} sinNuevo />
-                ))}
-              </div>
+              <CarrilConFlechas className="t-carril-inicio">
+                <div className="t-carril">
+                  {nuevos.slice(0, 10).map((p) => (
+                    <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} sinNuevo />
+                  ))}
+                </div>
+              </CarrilConFlechas>
             </section>
           )}
 
@@ -188,12 +197,7 @@ export default async function Inicio({ searchParams }: Props) {
               </div>
               <div className="t-looks-inicio">
                 {looks.slice(0, 3).map((l) => (
-                  <Link key={l.id} className="t-look-card" href={hrefLook(l.id, sede)}>
-                    <Lamina look={l} sede={sede} origenFotos={origenFotos} enlaces={false} />
-                    <span className="t-ceja">{cejaDeLook(l)}</span>
-                    <h3>{l.nombre}</h3>
-                    <small>{lineaDeLook(l)}</small>
-                  </Link>
+                  <TarjetaLook key={l.id} look={l} sede={sede} origenFotos={origenFotos} />
                 ))}
               </div>
             </section>
@@ -218,6 +222,7 @@ export default async function Inicio({ searchParams }: Props) {
                 <nav className="t-pildoras" aria-label="Campañas">
                   <Link className="t-pildora" href={`${hrefInicio(sede)}#ofertas`} scroll={false} aria-current={ofertaElegida ? undefined : "true"}>
                     Todas <small>{ofertas.length}</small>
+                    <PendienteDelEnlace />
                   </Link>
                   {campanas.map((c) => (
                     <Link
@@ -228,6 +233,7 @@ export default async function Inicio({ searchParams }: Props) {
                       aria-current={ofertaElegida?.id === c.id ? "true" : undefined}
                     >
                       {c.nombre} −{pctTexto(c.pct)} % <small>{c.hasta ? `hasta ${fechaCorta(c.hasta)}` : "sin fecha"}</small>
+                      <PendienteDelEnlace />
                     </Link>
                   ))}
                 </nav>
@@ -269,8 +275,8 @@ export default async function Inicio({ searchParams }: Props) {
         </>
       )}
 
-      <AsiSeSepara />
-      <SeccionClub nombre={cuenta?.nombre ?? null} desde={cuenta?.clubDesde ?? anioLima()} conCuenta />
+      <AsiSeSepara conCuenta />
+      <SeccionClub nombre={cuenta?.nombre ?? null} desde={cuenta?.clubDesde ?? anioLima()} conCuenta cumplePct={beneficios?.pct ?? null} />
       {sedes.length > 0 && (
         <NuestrasTiendas
           sedes={sedes}
@@ -332,8 +338,7 @@ function Heroe({
           <>
             <span className="t-hero-ceja">Recién llegado</span>
             <h1 className="t-hero-tit">
-              <span>Lo nuevo</span>
-              <em>de CAYLA</em>
+              <span>Lo nuevo</span> <em>de CAYLA</em>
             </h1>
             <p className="t-hero-desc">Lo que llegó a nuestras tiendas en los últimos 30 días.</p>
             <div className="t-hero-acciones">
@@ -348,47 +353,24 @@ function Heroe({
           <>
             <span className="t-hero-ceja">Tienda online</span>
             <h1 className="t-hero-tit">
-              <span>Donde el estilo</span>
-              <em>transforma</em>
+              <span>Donde el estilo</span> <em>transforma</em>
             </h1>
             <p className="t-hero-desc">Mira lo que hay en cada tienda, sepáralo aquí y recógelo en tu tienda.</p>
             <div className="t-hero-acciones">
               <Link className="t-btn t-btn-claro" href={hrefLista({ sede, categoria: null, orden: "destacado" })}>
-                Ver toda la ropa
+                Ver toda la tienda
               </Link>
             </div>
           </>
         )}
       </div>
-      {piezas.length > 0 && (
-        <div className="t-collage">
-          {piezas.map((p, i) => {
-            const foto = fotosDeTarjeta(p)[0];
-            return (
-              <Link key={p.id} className={`t-polaroid p${i + 1}`} href={hrefDePrenda(p, sede)} aria-label={`Ver ${p.nombre}`}>
-                <FotoTarjeta
-                  foto={foto}
-                  segunda={null}
-                  optimizar={[foto ? fotoOptimizable(foto, origenFotos) : false, false]}
-                  nombre={p.nombre}
-                  forma={formaDe(p.categoria?.prefijo)}
-                  color={colorDeDibujo(p)}
-                  tamanos="(min-width: 960px) 22vw, 45vw"
-                />
-                <span className="t-polaroid-pie">
-                  <span>{p.nombre}</span>
-                  <span className="num">{precioTarjeta(p).principal}</span>
-                </span>
-              </Link>
-            );
-          })}
-          {hero.tipo === "campana" && (
-            <span className="t-hero-pct" aria-hidden="true">
-              −{pctTexto(hero.campana.pct)}%
-            </span>
-          )}
-        </div>
-      )}
+      <CollageDePrendas
+        piezas={piezas}
+        href={(p) => hrefDePrenda(p, sede)}
+        conPrecio
+        origenFotos={origenFotos}
+        marca={hero.tipo === "campana" ? `−${pctTexto(hero.campana.pct)}%` : null}
+      />
     </section>
   );
 }
@@ -399,7 +381,12 @@ function TituloHeroe({ texto }: { texto: string }) {
   return (
     <h1 className="t-hero-tit">
       <span>{linea}</span>
-      {cursiva && <em>{cursiva}</em>}
+      {cursiva && (
+        <>
+          {" "}
+          <em>{cursiva}</em>
+        </>
+      )}
     </h1>
   );
 }

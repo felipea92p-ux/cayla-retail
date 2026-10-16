@@ -49,10 +49,16 @@ describe("textos de la campaña", () => {
 
   it("la franja de arriba: la campaña primero; sin campaña, solo las frases fijas", () => {
     const con = anuncios(ANIVERSARIO);
-    expect(con[0]).toMatch(/^Aniversario CAYLA · −12 % hasta el 21 oct\.?$/);
+    // El «%» va pegado a su número con un espacio que no se parte.
+    expect(con[0]).toMatch(/^Aniversario CAYLA · −12\u00a0% hasta el 21 oct\.?$/);
     expect(con).toHaveLength(4);
-    expect(anuncios({ ...ANIVERSARIO, hasta: null })[0]).toBe("Aniversario CAYLA · −12 %");
+    expect(anuncios({ ...ANIVERSARIO, hasta: null })[0]).toBe("Aniversario CAYLA · −12\u00a0%");
     expect(anuncios(null)).toEqual(["Separa online y recoge en tu tienda", "Mira cuánto hay en cada tienda", "Crea tu cuenta y forma parte del Club CAYLA"]);
+  });
+
+  it("con cuenta, la franja no invita a crear la cuenta: recuerda dónde están los beneficios del Club", () => {
+    expect(anuncios(null, true)).toEqual(["Separa online y recoge en tu tienda", "Mira cuánto hay en cada tienda", "Tus beneficios del Club CAYLA están en Mi perfil"]);
+    expect(anuncios(ANIVERSARIO, true)).not.toContain("Crea tu cuenta y forma parte del Club CAYLA");
   });
 });
 

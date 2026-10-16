@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type CSSProperties } from "react";
 import { SCRIPT_TEMA_ANTES_DE_PINTAR } from "@/lib/tema-reglas";
 import { AVISA_SOLO, avisarError } from "@/lib/errores-navegador";
 import { siSigueIgual } from "@/lib/errores-reglas";
@@ -18,18 +18,19 @@ import "./estilos/aventurero.css";
 // valores de `app/estilos/tema.css`) y aplica la preferencia guardada con el mismo script del layout, antes de pintar. Una pantalla
 // de error clara en medio de un ERP oscuro, justo cuando algo salió mal, sería lo último que alguien necesita.
 //
-// «Reintentar» usa `unstable_retry` (Next 16.2, el camino que su documentación da para global-error),
+// «Reintentar» usa `retry` (estable desde Next 16.3; en 16.2 era `unstable_retry`), el camino que su documentación da para global-error,
 // no `reset`: `reset` a secas solo vuelve a pintar con la respuesta que ya llegó —y esa trae el mismo
-// error—, así que el botón parecería no hacer nada aunque el corte ya haya pasado. `unstable_retry` =
+// error—, así que el botón parecería no hacer nada aunque el corte ya haya pasado. `retry` =
 // `router.refresh()` + `reset()` dentro de una transición: vuelve a pedir los datos, y Next ya lo
 // entrega hecho.
 //
 // Por qué no el patrón de `(app)/error.tsx` (`useRouter` + `startTransition`): SÍ funcionaría aquí —en la
 // 16.2.10 Next monta esta barrera dentro del contexto del router, así que `useRouter()` responde— y es lo que
-// hacen las barreras de la app. Se prefiere `unstable_retry` porque es el camino documentado para esta
+// hacen las barreras de la app. Se prefiere `retry` porque es el camino documentado para esta
 // pantalla, la que casi nadie ve ni prueba a mano, y deja que Next mantenga el reintento en vez de copiarlo
-// aquí. El precio es que es API inestable: `errores-reintentar.test.ts` falla si una versión nueva de Next
-// la quita, y entonces la salida es el patrón de `(app)/error.tsx` (o una recarga completa).
+// aquí. El precio es depender del nombre que Next le dé: `errores-reintentar.test.ts` falla si una versión nueva de Next
+// la quita o la renombra (pasó al subir de 16.2 a 16.4: `unstable_retry` → `retry`), y entonces la salida es el patrón de
+// `(app)/error.tsx` (o una recarga completa).
 //
 // Aventurero (2026-10-15) también está aquí, sobre el título: es la pantalla de error más rara de todas, y la única que se pinta sin
 // los tokens. Su texto usa los dos colores FIJOS de la paleta (iguales en claro y en oscuro: van sobre una foto), así que se
@@ -41,10 +42,10 @@ const ESTILOS =
 
 export default function ErrorGlobal({
   error,
-  unstable_retry,
+  retry,
 }: {
   error: Error & { digest?: string };
-  unstable_retry: () => void;
+  retry: () => void;
 }) {
   // Si el layout raíz reventó en el servidor, ya lo avisó el servidor (ADR-0424); si nació en el navegador, se avisa aquí.
   useEffect(() => avisarError(error, "global"), [error]);
@@ -68,7 +69,9 @@ export default function ErrorGlobal({
           padding: "24px",
         }}
       >
-        <div style={{ maxWidth: "28rem", width: "100%", textAlign: "center" }}>
+        {/* La foto crece con la ventana, como en la app (`.aventurero-tarjeta`, aventurero.css). Aquí no hay cabecera: se reserva solo lo
+            alto del mensaje y los márgenes. */}
+        <div className="aventurero-tarjeta" style={{ textAlign: "center", "--aventurero-reservado": "19rem" } as CSSProperties}>
           <Aventurero motivo="error" className="ge-aventurero" />
           <p
             style={{
@@ -89,7 +92,7 @@ export default function ErrorGlobal({
             Esto no es un problema de tu computadora. {siSigueIgual(AVISA_SOLO)}
           </p>
           <button
-            onClick={() => unstable_retry()}
+            onClick={() => retry()}
             style={{
               marginTop: "24px",
               background: "var(--ge-texto)",

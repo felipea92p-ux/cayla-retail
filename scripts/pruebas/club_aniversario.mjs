@@ -153,10 +153,16 @@ grant execute on function pg_temp.vender(uuid, jsonb, uuid, boolean, boolean, uu
 create function pg_temp.socia(p_dni text, p_cel text, p_desde date, p_ubic uuid) returns uuid language plpgsql as $f$
 declare v uuid;
 begin
-  v := (select r.clienta_id from retail.registrarse_en_el_club(p_ubic, 'dni', p_dni, 'SOCIA ANIVERSARIO PRUEBA', p_cel, date '1990-05-12',
-          null, true, true, false,
-          jsonb_build_object('terminos', (select max(t.version) from retail.club_textos t where t.tipo = 'terminos'),
-                             'privacidad', (select max(t.version) from retail.club_textos t where t.tipo = 'privacidad')), true) r);
+  v := (select c.id from retail.clientas c where c.documento_tipo = 'dni' and c.documento_numero = p_dni);
+  if v is not null then
+    -- Una ficha que ya existía: desde 20261015232000 el cartel no escribe en ella (se pide en caja). Se suma al Club como en caja.
+    update retail.clientas set codigo_club = coalesce(codigo_club, retail.fn_club_codigo_nuevo()), club_desde = coalesce(club_desde, now()) where id = v;
+  else
+    v := (select r.clienta_id from retail.registrarse_en_el_club(p_ubic, 'dni', p_dni, 'SOCIA ANIVERSARIO PRUEBA', p_cel, date '1990-05-12',
+            null, true, true, false,
+            jsonb_build_object('terminos', (select max(t.version) from retail.club_textos t where t.tipo = 'terminos'),
+                               'privacidad', (select max(t.version) from retail.club_textos t where t.tipo = 'privacidad')), true) r);
+  end if;
   update retail.clientas set club_desde = (p_desde::timestamp + interval '12 hours') at time zone 'America/Lima' where id = v;
   return v;
 end;

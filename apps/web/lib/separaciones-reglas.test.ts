@@ -145,6 +145,15 @@ describe("erroresDelApartado", () => {
     expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: 50, recibido: 40 }] }), 179).pago).toMatch(/no alcanza/);
     expect(pasoDelApartado(erroresDelApartado(formulario({ pagos: [] }), 179))).toBe(1);
   });
+  it("el adelanto es al menos el 30 % del total, redondeado hacia arriba al céntimo (D1, 20261016003000); el atajo «30 %» lo cumple", () => {
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "yape", monto: 23.96 }] }), 79.9).pago).toBe("El adelanto mínimo es S/23.97 (el 30 % del total).");
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "yape", monto: 23.97 }] }), 79.9).pago).toBeUndefined();
+    // 30 % de 99.99 = 29.997 → S/30.00 (hacia arriba, como la base).
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "yape", monto: 29.99 }] }), 99.99).pago).toMatch(/S\/30\.00/);
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "yape", monto: Math.ceil(179 * 0.3) }] }), 179).pago).toBeUndefined();
+    // Dos medios suman.
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "yape", monto: 20 }, { metodo: "plin", monto: 4 }] }), 79.9).pago).toBeUndefined();
+  });
   it("«Todo» en efectivo justo pasa aunque el total salga de un descuento con céntimos (99.90 − 14.99 = 84.91)", () => {
     const total = totalDeLineas([{ cantidad: 1, precioUnitario: 99.9, descuentoUnitario: 14.99 }]);
     expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: total, recibido: 84.91 }] }), total).pago).toBeUndefined();
@@ -405,8 +414,9 @@ describe("el tope del vuelto en Apartados", () => {
 
 describe("el tope del vuelto en el adelanto", () => {
   it("un adelanto en efectivo con más de S/ 500 de vuelto pide revisar", () => {
-    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: 30, recibido: 530 }] }), 179).pago).toBeUndefined();
-    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: 30, recibido: 530.01 }] }), 179).pago).toMatch(/vuelto pasa de S\/\u00a0500/);
+    // S/60 de adelanto: más que el 30 % de S/179 (20261016003000), para que lo que se mire sea el vuelto.
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: 60, recibido: 560 }] }), 179).pago).toBeUndefined();
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: 60, recibido: 560.01 }] }), 179).pago).toMatch(/vuelto pasa de S\/\u00a0500/);
   });
 });
 

@@ -418,6 +418,19 @@ ${MICAELA_CON_EL_MODULO}
 select ${hint(`format('select retail.fn_resolver_intento(%L, %L)', 'registrar_pago_pedido_web', :'tok')`)};`,
     "intento_de_otra_sede",
   );
+  escenario(
+    // D8 (Felipe 2026-10-15, 20261016001000): hasta que una pasarela confirme el pago sola, Yape, Plin y transferencia los anota el líder.
+    "Yape, Plin o transferencia de un pedido web solo los anota el líder: Micaela (con el módulo) no, en efectivo sí; Felipe sí",
+    `${confirmadoPorConseguir("a")}
+${MICAELA_CON_EL_MODULO}
+select ${hint(pagarSql("a", 5, "yape", "41000701"))} as yape \\gset
+select ${hint(pagarSql("a", 5, "transferencia", "41000702"))} as transf \\gset
+select (${pagar("a", 5, "efectivo")} ->> 'pago_id') is not null as efectivo \\gset
+set local request.jwt.claim.sub = '${FELIPE}';
+select (${pagar("a", 5, "plin", "41000703")} ->> 'pago_id') is not null as lider \\gset
+select :'yape' || '|' || :'transf' || '|' || :'efectivo' || '|' || :'lider' || '|' || (select pagado from retail.pedidos_web where id = :'a');`,
+    "pedido_web_pago_digital_solo_lider|pedido_web_pago_digital_solo_lider|t|t|10.00",
+  );
 
   // ===================================================================================================================
   console.log("— E. Pegar las migraciones dos veces —");

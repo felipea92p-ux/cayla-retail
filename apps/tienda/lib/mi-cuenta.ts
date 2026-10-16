@@ -31,6 +31,9 @@ export const TEXTOS_CUENTA = {
   // Eliminar la cuenta
   eliminarFrenaTitulo: "Antes, termina lo que tienes con la tienda",
   eliminarFrenaTexto: "Tu cuenta se puede eliminar cuando no tengas pedidos ni apartados pendientes: si no, se quedarían sin dueño.",
+  // 20261015230000: la ficha la abrió una tienda CAYLA; sus datos se borran allí, donde te ven. No se tocó nada.
+  eliminarEnTienda:
+    "Tu ficha del Club la abrió una tienda CAYLA: para borrar tus datos, pídelo en cualquier tienda o por su WhatsApp. Tu cuenta sigue igual.",
 } as const;
 
 /** Lo que borra «Eliminar mi cuenta» (los textos de la página, en este orden). */
@@ -303,13 +306,17 @@ export function leerLoQueFrena(dato: unknown): LoQueFrena | null {
 export const nadaQueFrene = (f: LoQueFrena) => f.pedidos.length === 0 && f.apartados.length === 0;
 
 /** `tienda_eliminar_mi_cuenta`. */
-export type Eliminacion = { estado: "eliminada" } | { estado: "en_curso"; frena: LoQueFrena } | { estado: "sin_cuenta" | "sin_respuesta" };
+export type Eliminacion =
+  | { estado: "eliminada" }
+  | { estado: "en_curso"; frena: LoQueFrena }
+  | { estado: "en_tienda" | "sin_cuenta" | "sin_respuesta" };
 
 export function leerEliminacion(dato: unknown): Eliminacion {
   const e = esquemaEstado.safeParse(dato);
   if (!e.success) return { estado: "sin_respuesta" };
   if (e.data.estado === "eliminada") return { estado: "eliminada" };
   if (e.data.estado === "sin_cuenta") return { estado: "sin_cuenta" };
+  if (e.data.estado === "en_tienda") return { estado: "en_tienda" };
   if (e.data.estado === "en_curso") {
     const frena = leerLoQueFrena(dato);
     return frena ? { estado: "en_curso", frena } : { estado: "sin_respuesta" };
@@ -335,10 +342,13 @@ export function queHacerConElPedido(p: PedidoQueFrena): QueHacer {
       enlace: { texto: "Ver mi pedido", href: `/cuenta/pedidos/${p.codigo}`, externo: false },
     };
   }
-  const queEs = p.estado === "por_confirmar" ? "por confirmar" : "confirmado";
+  const porConfirmar = p.estado === "por_confirmar";
   return {
-    titulo: `Pedido ${p.codigo} · ${queEs}`,
-    texto: `Recógelo en ${tienda} o, si ya no lo quieres, escríbele a la tienda para que lo anule.`,
+    titulo: `Pedido ${p.codigo} · ${porConfirmar ? "por confirmar" : "confirmado"}`,
+    // Uno por confirmar todavía no se recoge (antes decía «Recógelo»): o la tienda lo anula, o se cierra solo si nadie lo confirma.
+    texto: porConfirmar
+      ? `${tienda} todavía no lo confirma. Si ya no lo quieres, escríbele para que lo anule; si nadie lo confirma, se cierra solo.`
+      : `Págalo y recógelo en ${tienda} o, si ya no lo quieres, escríbele a la tienda para que lo anule.`,
     enlace: p.whatsapp
       ? {
           texto: "Escribir a la tienda",

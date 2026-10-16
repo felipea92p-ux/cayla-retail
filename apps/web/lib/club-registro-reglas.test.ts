@@ -336,6 +336,7 @@ describe("lo que contesta el servidor, sin revelar datos de nadie", () => {
     expect(errorDeLaBase("club_texto_cambio")).toBe("texto_cambio");
     expect(errorDeLaBase("club_menor")).toEqual({ mensaje: "El Club CAYLA es para mayores de 18 años.", campo: "nacimiento" });
     expect(errorDeLaBase("club_documento_archivado")).toEqual({ mensaje: MENSAJE.archivado, campo: "documento" });
+    expect(errorDeLaBase("club_ya_tiene_ficha")).toEqual({ mensaje: MENSAJE.yaTieneFicha, campo: "documento" });
     expect(errorDeLaBase("club_datos_invalidos")).toEqual({ mensaje: MENSAJE.datos, campo: null });
     expect(errorDeLaBase("celular_invalido")).toMatchObject({ campo: "celular" });
     expect(errorDeLaBase(undefined)).toEqual({ mensaje: MENSAJE.noDisponible, campo: null });

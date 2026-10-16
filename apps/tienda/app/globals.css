@@ -66,7 +66,6 @@
 .t-ancho { width: 100%; max-width: 1280px; margin-inline: auto; padding-inline: 16px; }
 .t-angosto { width: 100%; max-width: 620px; margin-inline: auto; }
 .t-anuncio { flex: none; height: 30px; display: grid; place-items: center; background: var(--t-oscuro); color: var(--t-oscuro-tinta); font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; overflow: hidden; padding-inline: 12px; text-align: center; white-space: nowrap; }
-.t-anuncio span { display: block; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .t-cab { flex: none; position: relative; z-index: 15; background: color-mix(in srgb, var(--crema) 95%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--sand); }
 .t-cab-fila { height: 56px; display: flex; align-items: center; gap: 2px; padding-inline: 10px 16px; max-width: 1360px; margin-inline: auto; }
 .t-logo { display: flex; align-items: center; gap: 8px; border: 0; background: none; padding: 4px 6px; color: var(--tinta); }
@@ -75,16 +74,26 @@
 .t-esp { flex: 1; }
 .t-btn { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 0 26px; border: 0; border-radius: 999px; background: var(--tinta); color: var(--crema); font-size: 14px; font-weight: 700; letter-spacing: .02em; transition: background-color .2s, transform .15s, opacity .15s; text-align: center; }
 .t-btn::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .22) 50%, transparent 65%); transform: translateX(-120%); transition: transform .7s var(--ease); }
-.t-btn:hover:not(:disabled)::after { transform: translateX(120%); }
-.t-btn:hover:not(:disabled) { background: var(--rojo-profundo); }
 .t-btn:active:not(:disabled) { transform: scale(.98); }
-.t-btn:disabled { opacity: .42; cursor: not-allowed; }
+/* Un botón todavía apagado (falta algo): arena con la letra tenue, de la paleta de la tienda (2026-10-16; antes era el negro a medias,
+   un gris plano que parecía roto). Mientras trabaja («Entrando…», «Agregando…») también está apagado, pero NO es que falte algo:
+   conserva su color y lo dice con `aria-busy`, así no parece que el toque no sirvió. */
+.t-btn:disabled { cursor: not-allowed; background: var(--sand); color: var(--tinta-60); box-shadow: none; }
+.t-btn[aria-busy="true"]:disabled { background: var(--tinta); color: var(--crema); cursor: progress; }
 .t-btn .ic { width: 19px; height: 19px; }
 .t-btn-ancho { width: 100%; }
 .t-btn-sec { background: transparent; color: var(--tinta); box-shadow: inset 0 0 0 1.5px var(--tinta); }
-.t-btn-sec:hover:not(:disabled) { background: var(--hueso); }
+.t-btn-sec:disabled { background: transparent; color: var(--tinta-40); box-shadow: inset 0 0 0 1.5px var(--sand); }
+.t-btn-sec[aria-busy="true"]:disabled { background: transparent; color: var(--tinta); box-shadow: inset 0 0 0 1.5px var(--tinta); }
 .t-btn-claro { background: var(--t-hero-tinta); color: var(--t-tinta-fija); }
-.t-btn-claro:hover:not(:disabled) { background: #ffffff; color: var(--t-tinta-fija); }
+/* El «pasar el mouse» solo donde hay mouse: con el dedo se quedaba pegado después del toque y «Agregar a la bolsa» o «Entrar»
+   quedaban en rojo, como si algo hubiera salido mal. Con el dedo responde el apretón (`:active`). */
+@media (hover: hover) {
+  .t-btn:hover:not(:disabled)::after { transform: translateX(120%); }
+  .t-btn:hover:not(:disabled) { background: var(--rojo-profundo); }
+  .t-btn-sec:hover:not(:disabled) { background: var(--hueso); }
+  .t-btn-claro:hover:not(:disabled) { background: #ffffff; color: var(--t-tinta-fija); } /* tema-fijo: el blanco del héroe, igual en los dos temas */
+}
 .t-enlace { border: 0; background: none; padding: 6px 0; font-size: 13px; font-weight: 600; color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--taupe); }
 .t-enlace:hover { color: var(--rojo-profundo); }
 .t-ceja { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--taupe); }
@@ -112,7 +121,7 @@
 .t-sec-cab h2 { margin: 6px 0 0; font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 8cqi, 60px); line-height: .94; letter-spacing: -.015em; }
 .t-sec-cab h2 em { font-style: italic; color: var(--rojo); }
 .t-sec-cab p { margin: 8px 0 0; color: var(--tinta-60); font-size: 14px; max-width: 48ch; }
-.t-ver { flex: none; border: 0; background: none; display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 8px 0; color: var(--tinta); white-space: nowrap; }
+.t-ver { flex: none; border: 0; background: none; display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 8px 0; min-height: 44px; color: var(--tinta); white-space: nowrap; }
 .t-ver b { min-width: 20px; height: 20px; border-radius: 10px; background: var(--sand); font-size: 10.5px; display: grid; place-items: center; padding: 0 5px; letter-spacing: 0; }
 .t-ver .ic { width: 16px; height: 16px; transition: transform .25s var(--ease); }
 .t-ver:hover .ic { transform: translateX(4px); }
@@ -126,22 +135,27 @@
 .t-beneficios li > span:first-child .ic { width: 18px; height: 18px; }
 .t-beneficios b { display: block; font-size: 14.5px; }
 .t-beneficios small { display: block; color: var(--tinta-60); font-size: 13px; margin-top: 1px; }
-.t-tarjeta-club { position: relative; overflow: hidden; aspect-ratio: 1.586; max-width: 440px; width: 100%; justify-self: center; border-radius: 18px; padding: 22px 22px 18px; color: #f5f0e8; background: radial-gradient(120% 120% at 100% 0%, #5a2a20 0%, #1e1b19 52%, #111010 100%); box-shadow: 0 34px 60px -30px rgba(0, 0, 0, .65); display: flex; flex-direction: column; justify-content: space-between; transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .25s var(--ease); }
+/* La tarjeta del Club con su sello: el descuento de cumpleaños que cobra la caja, como una etiqueta pegada a la tarjeta (a la
+   derecha, donde la tarjeta está vacía: arriba tapaba la marca). */
+.t-club-tarjeta { position: relative; justify-self: center; width: 100%; max-width: 440px; }
+.t-club-tarjeta .t-tarjeta-club { max-width: none; }
+.t-club-sello { position: absolute; z-index: 2; right: 12px; top: 36%; display: flex; flex-direction: column; align-items: flex-start; padding: 10px 14px 11px; border-radius: 14px; background: var(--papel); color: var(--tinta); border: 1px solid var(--sand); box-shadow: 0 18px 30px -18px var(--sombra); transform: rotate(5deg); }
+.t-club-sello b { font-family: var(--serif); font-weight: 500; font-size: 30px; line-height: 1; color: var(--rojo); letter-spacing: -.01em; }
+.t-club-sello small { margin-top: 3px; font-size: 11.5px; font-weight: 600; }
+/* En el Club, el brillo de la tarjeta pasa al verla (al bajar), no al cargar la página: abajo de todo, ya había pasado. */
+@supports (animation-timeline: view()) {
+  .t-club .t-tarjeta-club::after { animation: brillo linear both; animation-timeline: view(); animation-range: entry 40% cover 60%; }
+}
+.t-tarjeta-club { container-type: inline-size; position: relative; overflow: hidden; aspect-ratio: 1.586; max-width: 440px; width: 100%; justify-self: center; border-radius: 18px; padding: clamp(14px, 5cqi, 22px) clamp(14px, 5cqi, 22px) clamp(12px, 4cqi, 18px); color: #f5f0e8; background: radial-gradient(120% 120% at 100% 0%, #5a2a20 0%, #1e1b19 52%, #111010 100%); box-shadow: 0 34px 60px -30px rgba(0, 0, 0, .65); display: flex; flex-direction: column; justify-content: space-between; transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .25s var(--ease); }
 .t-tarjeta-club::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 38%, rgba(255, 255, 255, .16) 50%, transparent 62%); background-size: 260% 100%; background-position: 120% 0; animation: brillo 2.6s var(--ease) 1.2s 1 both; }
 .t-tarjeta-club .fila { display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 1; }
-.t-tarjeta-club img { width: 38px; filter: brightness(0) invert(1); opacity: .9; }
-.t-tarjeta-club .marca { font-family: var(--serif); font-size: 22px; letter-spacing: .24em; }
-.t-tarjeta-club .nombre { font-family: var(--serif); font-size: 24px; position: relative; z-index: 1; }
-.t-tarjeta-club small { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; opacity: .7; }
-.t-tarjeta-club .chip-oro { width: 40px; height: 30px; border-radius: 6px; background: linear-gradient(135deg, #d9b878, #a37f3e); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .2); }
-.t-tiendas { display: grid; gap: 12px; }
-.t-tienda { border: 1px solid var(--sand); border-radius: 10px; padding: 16px; background: var(--papel); display: flex; flex-direction: column; gap: 6px; }
-.t-tienda b { font-family: var(--serif); font-size: 24px; font-weight: 500; }
-.t-tienda small { color: var(--tinta-60); font-size: 13px; }
-.t-tienda .ic { width: 18px; height: 18px; color: var(--taupe); }
+.t-tarjeta-club img { width: clamp(26px, 8.6cqi, 38px); filter: brightness(0) invert(1); opacity: .9; }
+.t-tarjeta-club .marca { font-family: var(--serif); font-size: clamp(15px, 5cqi, 22px); letter-spacing: .24em; }
+.t-tarjeta-club .nombre { font-family: var(--serif); font-size: clamp(16px, 5.5cqi, 24px); position: relative; z-index: 1; }
+.t-tarjeta-club small { font-size: clamp(8px, 2.3cqi, 10px); letter-spacing: .18em; text-transform: uppercase; opacity: .7; }
+.t-tarjeta-club .chip-oro { width: clamp(28px, 9cqi, 40px); height: clamp(21px, 6.8cqi, 30px); border-radius: 6px; background: linear-gradient(135deg, #d9b878, #a37f3e); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .2); }
 .t-pie { margin-top: 40px; background: var(--t-oscuro); color: var(--t-oscuro-tinta); padding-block: 36px 26px; }
 .t-pie-in { display: grid; gap: 26px; }
-.t-pie h4 { margin: 0 0 10px; font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--t-oscuro-suave); }
 .t-pie ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .t-pie li a { display: inline-block; border: 0; background: none; padding: 4px 0; font-size: 13.5px; color: var(--t-oscuro-tinta); text-align: left; }
 .t-pie li a:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -151,9 +165,6 @@
 .t-pie-marca p { margin: 0; color: var(--t-oscuro-suave); font-size: 13px; max-width: 34ch; }
 .t-pie-legal { margin: 26px 0 0; padding-top: 16px; border-top: 1px solid var(--t-oscuro-filo); font-size: 11.5px; color: var(--t-oscuro-suave); display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between; }
 .t-solo-grande { display: none; }
-@container tienda (min-width: 700px) {
-  .t-tiendas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
 @container tienda (min-width: 960px) {
   .t-ancho { padding-inline: 40px; }
   .t-cab-fila { height: 70px; padding-inline: 26px; gap: 4px; }
@@ -165,12 +176,12 @@
   .t-colibri { width: 56px; top: 42px; right: auto; left: 46%; }
   .t-sec { padding-block: 56px 10px; }
   .t-sec-cab { margin-bottom: 26px; }
-  .t-club { margin-top: 64px; padding-block: 64px; }
+  .t-club { margin-top: 64px; padding-block: 88px; }
+  .t-club-sello { right: -26px; top: 34%; }
   .t-club-in { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); align-items: center; gap: 60px; }
   .t-pie { margin-top: 64px; }
   .t-pie-in { grid-template-columns: 1.4fr repeat(3, 1fr); }
 }
-@keyframes anuncio { from { opacity: 0; transform: translateY(8px); } }
 @keyframes subirLinea { from { opacity: 0; transform: translateY(40%); } }
 @keyframes volar {
   0% { opacity: 0; transform: translate(-340px, 160px) rotate(-18deg) scale(.7); }
@@ -178,20 +189,10 @@
   70% { transform: translate(-40px, -10px) rotate(6deg) scale(1.05); }
   100% { opacity: .9; transform: translate(0, 0) rotate(0) scale(1); }
 }
-.t-como { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; counter-reset: como; }
-.t-como li { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 18px; border: 1px solid var(--sand); border-radius: 14px; background: var(--papel); counter-increment: como; }
-.t-como li::before { content: counter(como); position: absolute; top: 12px; right: 16px; font-family: var(--serif); font-size: 36px; line-height: 1; color: var(--sand); }
-.t-como-ic { width: 40px; height: 40px; border-radius: 50%; background: var(--hueso); display: grid; place-items: center; margin-bottom: 4px; }
-.t-como-ic .ic { width: 20px; height: 20px; color: var(--rojo-profundo); }
-.t-como b { font-size: 15px; font-weight: 600; }
-.t-como li > span:last-child { color: var(--tinta-60); font-size: 13px; line-height: 1.45; }
-@container tienda (min-width: 700px) {
-  .t-como { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@container tienda (min-width: 960px) {
-  .t-como { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-}
 .t-btn.t-btn-chico { min-height: 38px; height: 38px; padding: 0 16px; font-size: 13px; margin-left: 6px; }
+/* Con el dedo, el botón chico también mide 44 px: en el celular medía 38 («Entrar» de la cabecera, «Entendido», «Ver toda la tienda»),
+   menos de lo que pide un dedo. Con mouse sigue en 38. */
+@media (pointer: coarse) { .t-btn.t-btn-chico { min-height: 44px; height: 44px; } }
 .t-portada-club { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 16px; padding-top: 8px; }
 .t-portada-club .t-tarjeta-club { max-width: 360px; transform: rotate(-4deg); box-shadow: 0 30px 60px -30px color-mix(in srgb, var(--t-oscuro) 80%, transparent); }
 .t-portada-club p { margin: 0; font-size: 13px; color: var(--t-hero-tinta); opacity: .85; text-align: center; }
@@ -208,13 +209,13 @@ a { color: inherit; text-decoration: none; }
 button, input, textarea { font: inherit; color: inherit; }
 .tienda { container: tienda / inline-size; min-height: 100vh; display: flex; flex-direction: column; background: var(--crema); color: var(--tinta); }
 .ic { width: 20px; height: 20px; flex: none; }
-.t-pagina { display: flex; flex-direction: column; min-height: 100%; }
+/* La página crece hasta el pie: en una página corta el pie queda abajo de todo, no a media pantalla. */
+.t-pagina { flex: 1; display: flex; flex-direction: column; min-height: 100%; }
 .t-fecha-larga { display: none; }
 @container tienda (min-width: 700px) {
   .t-fecha-larga { display: inline; }
   .t-fecha-corta { display: none; }
 }
-.t-anuncio span.entra { animation: anuncio .6s var(--ease) both; }
 /* Revelar al bajar (si el navegador lo sabe hacer; si no, todo queda quieto y visible). */
 @supports (animation-timeline: view()) {
   .t-revela { animation: revela linear both; animation-timeline: view(); animation-range: entry 0% entry 55%; }
@@ -225,6 +226,7 @@ button, input, textarea { font: inherit; color: inherit; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   /* Una animación que avanza con el scroll no mira su duración: sin esto, lo que «aparece al bajar» se quedaría invisible. */
   .t-revela { animation: none !important; }
+  .t-club .t-tarjeta-club::after { animation: none !important; }
 }
 /* El colibrí es una imagen de Next con su alto escrito: el alto sigue al ancho que pone cada lugar. */
 .t-logo img, .t-colibri, .t-tarjeta-club img { height: auto; }

@@ -1,35 +1,239 @@
 /* =====================================================================================================
-   TIENDA ONLINE CAYLA (ADR-0408) · actividad 5: las páginas de ayuda («Cómo separar» y «Cambios y devoluciones»).
-   Sale de la maqueta aprobada (docs/maquetas/tienda-online-2026-10: `vInfo`, `.w-pasos`, `.w-info`). La ficha, el título y el
-   texto son los de la cuenta (cuenta.css). Todo va dentro de `.w-pagina-ayuda`: la bolsa y el pedido (actividad 7) usan piezas con
-   el mismo nombre en la maqueta, y así ninguna pisa a la otra. Solo los tokens de app/globals.css: en oscuro se invierten solos.
+   TIENDA ONLINE CAYLA (ADR-0408) · Ayuda y confianza: las páginas de ayuda («Cómo separar», «Cambios y devoluciones» y la cabecera de
+   «Nuestras tiendas»), los pasos para separar (también en la portada y el Inicio), las lecturas largas (Privacidad y Términos del Club)
+   y las páginas que no están o que fallaron.
+   Revisión «a nivel mundial» (Felipe 2026-10-16: «competencia de grandes empresas mundiales»): antes eran columnas de 620 px en una
+   página vacía y cuatro cajas iguales en la portada; ahora usan el ancho de la tienda con la letra de la marca (EB Garamond para los
+   títulos, con su cursiva roja), mucho aire y una sola forma para cada cosa. Todas las clases llevan `ay-` (las hojas de la tienda son
+   globales). Solo los tokens de app/globals.css: en oscuro se invierten solos. Lo que cambia con el ancho es `@container tienda`.
    ===================================================================================================== */
 
-/* En la maqueta, la parte en cursiva del título va en rojo (`.w-titulo em`); aquí, solo en la ayuda: las páginas de la cuenta
-   (actividad 2) siguen como quedaron. */
-.w-pagina-ayuda .w-titulo em { color: var(--rojo); }
+/* ---- La página de ayuda: sus bloques, con el mismo aire entre uno y otro ---- */
+.ay-pagina { display: flex; flex-direction: column; gap: 56px; padding-block: 28px 0; }
 
-/* ---- Los pasos, numerados en su círculo ---- */
-.w-pagina-ayuda .w-pasos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; counter-reset: paso; }
-.w-pagina-ayuda .w-pasos li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; font-size: 14px; line-height: 1.4; counter-increment: paso; }
-.w-pagina-ayuda .w-pasos li::before {
-  content: counter(paso);
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: 1.5px solid var(--tinta);
+/* ---- La cabecera: ceja, título grande y, al lado en la computadora, para qué sirve la página ---- */
+.ay-cab { display: grid; gap: 16px; }
+.ay-cab-tit { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
+.ay-titulo { margin: 0; font-family: var(--serif); font-weight: 500; font-size: clamp(40px, 7.5cqi, 80px); line-height: .94; letter-spacing: -.02em; text-wrap: balance; }
+.ay-titulo em { font-style: italic; color: var(--rojo); }
+.ay-bajada { margin: 0; max-width: 46ch; font-size: 15.5px; line-height: 1.55; color: var(--tinta-60); text-wrap: pretty; }
+
+/* El título de un bloque dentro de la página («Lo que tienes que saber»): la misma letra, más chica. */
+.ay-h2 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: clamp(30px, 5cqi, 46px); line-height: 1; letter-spacing: -.012em; text-wrap: balance; }
+.ay-h2 em { font-style: italic; color: var(--rojo); }
+.ay-bloque { display: flex; flex-direction: column; gap: 22px; }
+.ay-bloque-cab { display: flex; flex-direction: column; gap: 8px; }
+
+/* ---- A dónde seguir: un enlace del alto de un dedo, con su flecha que avanza al pasar el mouse ---- */
+.ay-enlace { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; min-height: 44px; font-size: 13.5px; font-weight: 600; color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--taupe); transition: color .2s var(--ease); }
+.ay-enlace .ic { width: 15px; height: 15px; transition: transform .25s var(--ease); }
+.ay-enlace:hover { color: var(--rojo-profundo); text-decoration-color: currentColor; }
+.ay-enlace:hover .ic { transform: translateX(3px); }
+.ay-enlace:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; border-radius: 4px; }
+
+/* =====================================================================================================
+   LOS PASOS PARA SEPARAR: una línea de tiempo con números grandes (`LineaDePasos`). En el celular, uno bajo el otro con el hilo a la
+   izquierda; desde 960 px, en fila, unidos por el hilo. El paso cumplido lleva su visto y su tramo de hilo en verde.
+   ===================================================================================================== */
+.ay-pasos { --ay-hueco: 32px; list-style: none; margin: 0; padding: 0; display: grid; }
+.ay-paso { display: grid; grid-template-columns: 48px minmax(0, 1fr); column-gap: 16px; }
+.ay-paso-marca { display: flex; flex-direction: column; align-items: center; }
+.ay-paso-n {
   display: grid;
   place-items: center;
-  font-size: 12px;
-  font-weight: 700;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  font-family: var(--serif);
+  font-size: 46px;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--rojo);
+  font-variant-numeric: lining-nums;
 }
-.w-pagina-ayuda .w-pasos b { font-weight: 600; }
-.w-pagina-ayuda .w-pasos small { display: block; margin-top: 2px; color: var(--tinta-60); font-size: 13px; line-height: 1.45; }
+.ay-paso-hilo { flex: 1 1 auto; width: 1px; min-height: 16px; margin-block: 8px 6px; background: var(--sand); }
+.ay-paso:last-child .ay-paso-hilo { display: none; }
+.ay-paso-cuerpo { display: flex; flex-direction: column; gap: 5px; min-width: 0; padding: 9px 0 32px; }
+.ay-paso:last-child .ay-paso-cuerpo { padding-bottom: 0; }
+.ay-paso-t { font-size: 16px; font-weight: 600; line-height: 1.3; text-wrap: balance; }
+.ay-paso-x { font-size: 14px; line-height: 1.55; color: var(--tinta-60); max-width: 46ch; text-wrap: pretty; }
+/* El paso cumplido: su visto en un círculo verde (el lector oye «Hecho:») y su tramo de hilo verde; el título se apaga un poco para
+   que los ojos vayan al que sigue. */
+.ay-paso[data-hecho] .ay-paso-n { width: 44px; height: 44px; margin: 2px; border-radius: 50%; background: color-mix(in srgb, var(--verde) 16%, var(--papel)); color: var(--verde); }
+.ay-paso[data-hecho] .ay-paso-n .ic { width: 22px; height: 22px; }
+.ay-paso[data-hecho] .ay-paso-hilo { background: var(--verde); }
+.ay-paso[data-hecho] .ay-paso-t { color: var(--tinta-60); }
 
-/* ---- Una nota con su ícono ---- */
-.w-pagina-ayuda .w-info { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: var(--papel); border: 1px solid var(--sand); font-size: 14px; }
-.w-pagina-ayuda .w-info > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.w-pagina-ayuda .w-info b { font-weight: 600; }
-.w-pagina-ayuda .w-info small { color: var(--tinta-60); font-size: 13px; line-height: 1.45; }
-.w-pagina-ayuda .w-info .ic { width: 20px; height: 20px; flex: none; color: var(--taupe); margin-top: 1px; }
-.w-pagina-ayuda .w-info + .w-info { margin-top: -8px; }
+/* =====================================================================================================
+   LO QUE HAY QUE SABER: cada punto con su ícono, su título y su explicación (`NotaAyuda`). En el celular, tarjetas una bajo otra con
+   el ícono al costado; desde 960 px, de a tres en fila, con el ícono arriba.
+   ===================================================================================================== */
+.ay-puntos { display: grid; gap: 12px; }
+.ay-punto { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; align-items: start; padding: 20px 18px; border: 1px solid var(--sand); border-radius: 16px; background: var(--papel); }
+.ay-punto-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--hueso); color: var(--rojo-profundo); }
+.ay-punto-ic .ic { width: 20px; height: 20px; }
+.ay-punto-cuerpo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+/* `pretty` y no `balance`: equilibrar partía «24 / horas» en dos líneas; así la cifra se queda con su unidad. */
+.ay-punto-t { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 22px; line-height: 1.12; letter-spacing: -.005em; text-wrap: pretty; }
+.ay-punto-x { margin: 0; font-size: 14px; line-height: 1.55; color: var(--tinta-60); text-wrap: pretty; }
+/* El enlace de un punto no lo agranda: su área de toque (44 px) baja sobre el aire de la tarjeta. */
+.ay-punto .ay-enlace { margin-bottom: -12px; }
+
+/* =====================================================================================================
+   EL LLAMADO DEL FINAL («Cómo separar»): crear la cuenta (o entrar) o, con cuenta, ver la ropa. Una franja en hueso, como el Club de
+   la portada.
+   ===================================================================================================== */
+.ay-llamado { display: grid; gap: 22px; padding: 30px 22px; border-radius: 22px; background: var(--hueso); }
+.ay-llamado-tx { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ay-llamado-x { margin: 0; max-width: 48ch; font-size: 14.5px; line-height: 1.55; color: var(--tinta-60); }
+.ay-llamado-acc { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
+.ay-llamado-acc .ay-enlace { align-self: center; }
+
+/* =====================================================================================================
+   LAS LECTURAS LARGAS (Privacidad y Términos del Club): ni una palabra cambia; cambia cómo se leen. Letra de 16 px con interlineado
+   amplio, títulos en EB Garamond con su número aparte, listas finas y, en la computadora, el índice fijo al costado que enciende el
+   punto que se está leyendo (`IndiceLegal`). En el celular, el índice se abre arriba («En esta página»).
+   ===================================================================================================== */
+.ay-legal { display: flex; flex-direction: column; gap: 28px; padding-block: 28px 0; }
+.ay-cab[data-apilado] .ay-bajada { max-width: 62ch; }
+.ay-legal .ay-titulo { font-size: clamp(40px, 6.6cqi, 76px); }
+.ay-legal-cuerpo { display: grid; gap: 28px; }
+.ay-legal-texto { display: flex; flex-direction: column; gap: 36px; min-width: 0; max-width: 680px; align-self: start; }
+.ay-legal-sec { display: flex; flex-direction: column; gap: 12px; padding-top: 30px; border-top: 1px solid var(--sand); scroll-margin-top: 20px; }
+.ay-legal-h2 { margin: 0 0 4px; font-family: var(--serif); font-weight: 500; font-size: 26px; line-height: 1.15; letter-spacing: -.005em; text-wrap: balance; }
+.ay-legal-n { color: var(--taupe); font-variant-numeric: lining-nums; }
+/* La versión del texto («borrador-2026-10-14») no se parte en dos líneas por sus guiones. */
+.ay-sin-corte { white-space: nowrap; }
+.ay-legal-sec p, .ay-legal-sec li { margin: 0; font-size: 16px; line-height: 1.7; text-wrap: pretty; }
+.ay-legal-sec b { font-weight: 600; }
+.ay-legal-sec ul, .ay-legal-sec ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.ay-legal-sec ul > li { position: relative; padding-left: 24px; }
+/* Una raya fina en rojo, a la altura de la primera línea, en vez del punto del navegador. */
+.ay-legal-sec ul > li::before { content: ""; position: absolute; left: 3px; top: .82em; width: 9px; height: 1.5px; border-radius: 1px; background: var(--rojo); }
+.ay-legal-sec ol { counter-reset: ay-legal; }
+.ay-legal-sec ol > li { position: relative; padding-left: 30px; counter-increment: ay-legal; }
+.ay-legal-sec ol > li::before { content: counter(ay-legal) "."; position: absolute; left: 0; top: 0; font-family: var(--serif); font-size: 18px; line-height: 1.55; color: var(--taupe); font-variant-numeric: lining-nums; }
+/* Los enlaces dentro del texto legal: el correo de CAYLA y el punto de la otra página. */
+.ay-legal-texto a { color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--taupe); overflow-wrap: anywhere; transition: color .2s var(--ease); }
+.ay-legal-texto a:hover { color: var(--rojo-profundo); text-decoration-color: currentColor; }
+.ay-legal-texto a:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 3px; }
+/* El punto al que lleva un enlace (`/privacidad#conservacion`, desde los Términos) lleva su número en rojo: se ve dónde se llegó. */
+.ay-legal-sec:target .ay-legal-n { color: var(--rojo); }
+
+/* ---- El índice: en el celular, una lista que se abre; en la computadora, fijo al costado ---- */
+.ay-indice-fijo { display: none; }
+.ay-indice-movil { border: 1px solid var(--sand); border-radius: 16px; background: var(--papel); }
+.ay-indice-movil > summary { list-style: none; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 16px; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 16px; }
+.ay-indice-movil > summary::-webkit-details-marker { display: none; }
+.ay-indice-movil > summary .ic { width: 18px; height: 18px; margin-left: auto; color: var(--taupe); transition: transform .25s var(--ease); }
+.ay-indice-movil[open] > summary .ic { transform: rotate(180deg); }
+.ay-indice-movil > summary:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.ay-indice-cuantos { font-size: 12px; font-weight: 600; color: var(--tinta-60); }
+.ay-indice-lista { list-style: none; margin: 0; padding: 0 8px 10px; display: flex; flex-direction: column; }
+.ay-indice-lista a { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: baseline; gap: 6px; min-height: 44px; padding: 11px 8px; border-radius: 10px; font-size: 14px; line-height: 1.35; color: var(--tinta); transition: background-color .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease); }
+.ay-indice-lista a:hover { background: var(--hueso); }
+.ay-indice-lista a:focus-visible { outline: 2px solid var(--rojo); outline-offset: 1px; }
+.ay-indice-n { font-family: var(--serif); font-size: 16px; color: var(--taupe); font-variant-numeric: lining-nums; }
+.ay-indice-t { margin: 0 0 12px; font-size: 10.5px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--taupe); }
+.ay-indice-otra { margin-top: 18px; }
+
+/* =====================================================================================================
+   LA PÁGINA QUE NO ESTÁ (o que falló): con la marca y por dónde seguir (`PorDondeSeguir`). Nunca un callejón: siempre la acción
+   principal, otra al lado y, en la computadora, los caminos a la derecha.
+   ===================================================================================================== */
+.ay-sin-salida { display: flex; flex-direction: column; gap: 56px; padding-block: 36px 0; }
+.ay-sin-salida-in { display: grid; gap: 40px; }
+.ay-sin-salida-cab { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-width: 0; }
+/* El colibrí (223 × 150) como máscara sobre el rojo de la paleta: la imagen trae su propio rojo, que en oscuro casi no se veía. */
+.ay-sin-salida-colibri { display: block; width: 54px; aspect-ratio: 223 / 150; margin-bottom: 4px; background: var(--rojo); -webkit-mask: url("/cayla-isotipo.png") center / contain no-repeat; mask: url("/cayla-isotipo.png") center / contain no-repeat; animation: ay-asoma .5s var(--ease) both; }
+@keyframes ay-asoma { from { opacity: 0; transform: translate(-10px, 8px) rotate(-8deg); } }
+.ay-sin-salida-cab .ay-bajada { max-width: 40ch; }
+.ay-sin-salida-acc { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 24px; margin-top: 12px; }
+.ay-caminos { min-width: 0; }
+.ay-caminos-t { margin: 0 0 8px; font-size: 10.5px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--taupe); }
+.ay-caminos ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--sand); }
+.ay-caminos li { border-bottom: 1px solid var(--sand); }
+.ay-camino { display: grid; grid-template-columns: 44px minmax(0, 1fr) 18px; align-items: center; gap: 14px; min-height: 76px; padding: 14px 4px; color: var(--tinta); }
+.ay-camino-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--hueso); color: var(--rojo-profundo); transition: background-color .25s var(--ease), color .25s var(--ease); }
+.ay-camino-ic .ic { width: 20px; height: 20px; }
+.ay-camino-tx { min-width: 0; }
+.ay-camino-tx b { display: block; font-size: 15px; font-weight: 600; line-height: 1.3; }
+.ay-camino-tx small { display: block; margin-top: 3px; font-size: 13px; line-height: 1.45; color: var(--tinta-60); }
+.ay-camino > .ic { width: 18px; height: 18px; color: var(--taupe); transition: transform .25s var(--ease), color .2s var(--ease); }
+.ay-camino:hover .ay-camino-ic { background: var(--tinta); color: var(--crema); }
+.ay-camino:hover > .ic { transform: translateX(4px); color: var(--tinta); }
+.ay-camino:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 10px; }
+/* La página sola, sin pie (la que no está y la que falló: no saben si hay sesión): lo suyo queda al medio de la ventana, no arriba
+   con un vacío debajo. */
+.ay-pagina-sola { flex-grow: 1; justify-content: center; }
+.ay-pagina-sola .ay-sin-salida { padding-block: 40px 64px; }
+/* Lo que hay ahora (la prenda que ya no está): cuatro prendas, de a dos y, en la computadora, en una fila. */
+.ay-sugeridas .t-sec-cab { margin-bottom: 18px; }
+.ay-sugeridas .t-grilla { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* =====================================================================================================
+   DESDE LA TABLET: los puntos ya van de a tres, con el ícono arriba
+   ===================================================================================================== */
+@container tienda (min-width: 700px) {
+  .ay-puntos { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .ay-punto { grid-template-columns: minmax(0, 1fr); align-content: start; gap: 18px; padding: 24px 22px 26px; }
+  /* El llamado: su botón a su medida (de lado a lado, en una tablet, pesaba demasiado). */
+  .ay-llamado-acc { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 26px; }
+}
+
+/* =====================================================================================================
+   DESDE LA COMPUTADORA
+   ===================================================================================================== */
+@container tienda (min-width: 960px) {
+  .ay-pagina { gap: 96px; padding-block: 64px 0; }
+  .ay-cab { grid-template-columns: minmax(0, 1fr) minmax(0, 400px); align-items: end; column-gap: 72px; }
+  .ay-cab[data-apilado] { grid-template-columns: minmax(0, 1fr); }
+  .ay-bajada { font-size: 16.5px; padding-bottom: 10px; }
+  .ay-cab[data-apilado] .ay-bajada { padding-bottom: 0; }
+  .ay-bloque { gap: 30px; }
+
+  /* Los pasos en fila: cada número con su hilo hasta el siguiente (el hilo cruza el hueco entre columnas y se detiene antes del
+     número que sigue). */
+  .ay-pasos { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: var(--ay-hueco); }
+  .ay-paso { display: flex; flex-direction: column; gap: 22px; }
+  .ay-paso-marca { flex-direction: row; align-items: center; gap: 18px; }
+  .ay-paso-n { width: auto; height: 64px; font-size: 68px; place-items: center start; }
+  .ay-paso-hilo { width: auto; height: 1px; min-height: 0; margin: 0 calc(16px - var(--ay-hueco)) 0 0; }
+  /* El último no lleva hilo, pero guarda el alto de la fila. */
+  .ay-paso:last-child .ay-paso-hilo { display: block; visibility: hidden; }
+  .ay-paso[data-hecho] .ay-paso-n { width: 60px; height: 60px; margin: 2px 0; }
+  .ay-paso[data-hecho] .ay-paso-n .ic { width: 28px; height: 28px; }
+  .ay-paso-cuerpo { padding: 0; gap: 8px; }
+  .ay-paso-t { font-size: 17px; }
+  .ay-paso-x { font-size: 14.5px; }
+
+  .ay-puntos { gap: 16px; }
+  .ay-punto { gap: 22px; padding: 30px 28px 32px; }
+  .ay-punto-ic { width: 52px; height: 52px; }
+  .ay-punto-ic .ic { width: 22px; height: 22px; }
+  .ay-punto-t { font-size: 26px; }
+  .ay-punto-x { font-size: 14.5px; }
+
+  .ay-llamado { grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 56px; padding: 54px 60px; }
+  .ay-llamado-acc { flex-wrap: nowrap; }
+
+  .ay-legal { gap: 64px; padding-block: 64px 0; }
+  .ay-legal-cuerpo { grid-template-columns: 250px minmax(0, 680px); column-gap: 88px; }
+  .ay-legal-texto { gap: 44px; }
+  .ay-legal-h2 { font-size: 29px; }
+  .ay-legal-sec p, .ay-legal-sec li { font-size: 16.5px; }
+  .ay-indice-movil { display: none; }
+  .ay-indice-fijo { display: block; position: sticky; top: 24px; max-height: calc(100vh - 48px); overflow-y: auto; padding-bottom: 8px; }
+  .ay-indice-fijo .ay-indice-lista { padding: 0; border-left: 1px solid var(--sand); }
+  .ay-indice-fijo .ay-indice-lista a { min-height: 0; margin-left: -1px; padding: 8px 0 8px 16px; border-left: 2px solid transparent; border-radius: 0; font-size: 13.5px; color: var(--tinta-60); }
+  .ay-indice-fijo .ay-indice-lista a:hover { background: none; color: var(--tinta); }
+  .ay-indice-fijo .ay-indice-lista a[aria-current] { border-left-color: var(--rojo); color: var(--tinta); font-weight: 600; }
+  .ay-indice-fijo .ay-indice-n { font-size: 15px; }
+
+  .ay-sin-salida { gap: 88px; padding-block: 80px 0; }
+  .ay-pagina-sola .ay-sin-salida { padding-block: 48px 96px; }
+  .ay-sin-salida-in { grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); column-gap: 96px; align-items: center; }
+  .ay-sin-salida-colibri { width: 64px; }
+  .ay-sugeridas .t-grilla { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

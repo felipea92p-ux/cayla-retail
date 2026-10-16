@@ -40,7 +40,7 @@ export function FormularioEliminarCuenta({ correo, frena: frenaInicial }: { corr
     return (
       <div className="w-ficha">
         <div>
-          <span className="t-ceja">Mi cuenta</span>
+          <span className="t-ceja">Mi perfil</span>
           <h1 className="w-titulo">
             Eliminar tu cuenta, <em>todavía no.</em>
           </h1>
@@ -48,7 +48,7 @@ export function FormularioEliminarCuenta({ correo, frena: frenaInicial }: { corr
         <LoQueFrenaEliminar frena={frena} />
         <div className="w-pie-form">
           <Link className="t-btn t-btn-ancho t-btn-sec" href="/cuenta">
-            Volver a mi cuenta
+            Volver a mi perfil
           </Link>
         </div>
       </div>
@@ -65,7 +65,7 @@ export function FormularioEliminarCuenta({ correo, frena: frenaInicial }: { corr
       }}
     >
       <div>
-        <span className="t-ceja">Mi cuenta</span>
+        <span className="t-ceja">Mi perfil</span>
         <h1 className="w-titulo">
           Eliminar tu <em>cuenta.</em>
         </h1>
@@ -116,7 +116,7 @@ export function FormularioEliminarCuenta({ correo, frena: frenaInicial }: { corr
           {eliminando ? "Eliminando…" : "Eliminar mi cuenta"}
         </button>
         <Link className="w-enlace" href="/cuenta">
-          No, volver a mi cuenta
+          No, volver a mi perfil
         </Link>
       </div>
     </form>

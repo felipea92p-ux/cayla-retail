@@ -7,14 +7,18 @@ import {
   claveDelBorrador,
   contador,
   fraseDelCupo,
+  indiceConTecla,
   leerEnvio,
   leerMias,
   letras,
+  marcaDelTexto,
   mensajeDelEnvio,
   problemaDelTexto,
   quedanHoy,
   sePuedeEnviar,
+  TEXTO_DE_MARCA,
   textoLimpio,
+  vistaDelFormulario,
 } from "./recomendaciones";
 
 const ID = "44444444-4444-4444-8444-444444444444";
@@ -77,7 +81,8 @@ describe("lo que responde tienda_recomendar", () => {
     expect(mensajeDelEnvio({ estado: "invalido", campo: "texto", detalle: "corto" })).toMatch(/al menos 10 letras/);
     expect(mensajeDelEnvio({ estado: "invalido", campo: "texto", detalle: "largo" })).toMatch(/1000 letras/);
     expect(mensajeDelEnvio({ estado: "invalido", campo: "sobre", detalle: null })).toMatch(/ya no está en la web/);
-    expect(mensajeDelEnvio({ estado: "limite", tope: 3 })).toBe("Hoy ya nos enviaste 3. Mañana puedes enviarnos otra: las leemos todas.");
+    expect(mensajeDelEnvio({ estado: "limite", tope: 3 })).toBe("Hoy ya nos enviaste 3 recomendaciones. Mañana puedes enviarnos otra: las leemos todas.");
+    expect(mensajeDelEnvio({ estado: "limite", tope: 1 })).toBe("Hoy ya nos enviaste 1 recomendación. Mañana puedes enviarnos otra: las leemos todas.");
     expect(mensajeDelEnvio({ estado: "sin_sesion" })).toMatch(/lo que escribiste sigue aquí/);
     expect(mensajeDelEnvio({ estado: "sin_respuesta" })).toMatch(/no se envía dos veces/);
     expect(MENSAJE_SIN_RED).toMatch(/no se envía dos veces/);
@@ -122,5 +127,63 @@ describe("lo que responde tienda_mis_recomendaciones", () => {
 
   it("para el cliente no hay «archivada»: el archivo es de la tienda", () => {
     expect(Object.keys(INSIGNIA)).toEqual(["recibida", "leida", "respondida"]);
+  });
+});
+
+describe("la ficha para escribirla", () => {
+  it("sin cupo y sin nada escrito, «Por hoy ya está» (no una caja que no se podrá enviar)", () => {
+    expect(vistaDelFormulario({ gracias: false, quedan: 0, texto: "" })).toBe("sin_cupo");
+    // Espacios o invisibles no son «algo escrito»: la base tampoco los cuenta.
+    expect(vistaDelFormulario({ gracias: false, quedan: 0, texto: "  \n \u200b " })).toBe("sin_cupo");
+  });
+
+  it("si ya escribió algo cuando se le acabó el cupo, el formulario se queda con su texto a la vista", () => {
+    expect(vistaDelFormulario({ gracias: false, quedan: 0, texto: "Más tallas grandes, por favor" })).toBe("formulario");
+  });
+
+  it("con cupo, el formulario; recién enviada, el «¡Gracias!» (aunque haya sido la última del día)", () => {
+    expect(vistaDelFormulario({ gracias: false, quedan: 2, texto: "" })).toBe("formulario");
+    expect(vistaDelFormulario({ gracias: true, quedan: 0, texto: "" })).toBe("gracias");
+    expect(vistaDelFormulario({ gracias: true, quedan: 2, texto: "" })).toBe("gracias");
+  });
+});
+
+describe("la marca en el título del campo", () => {
+  it("vacío: «Sigue aquí»; con algo que se puede enviar: «✓ Listo»; corto o largo: «Revisa»", () => {
+    expect(marcaDelTexto("", false)).toBe("sigue");
+    expect(marcaDelTexto("   ", false)).toBe("sigue");
+    expect(marcaDelTexto("Hola", false)).toBe("error");
+    expect(marcaDelTexto("a".repeat(MAXIMO + 1), false)).toBe("error");
+    expect(marcaDelTexto("Más tallas grandes, por favor", false)).toBe("hecho");
+    expect(TEXTO_DE_MARCA).toEqual({ error: "Revisa", hecho: "✓ Listo", sigue: "Sigue aquí" });
+  });
+
+  it("sin cupo hoy nunca dice «✓ Listo» (no se puede enviar), pero lo que le falta al texto sí se dice", () => {
+    expect(marcaDelTexto("Más tallas grandes, por favor", true)).toBeNull();
+    expect(marcaDelTexto("", true)).toBeNull();
+    expect(marcaDelTexto("Hola", true)).toBe("error");
+  });
+});
+
+describe("«¿Sobre qué es?» con el teclado", () => {
+  it("las flechas pasan a la siguiente o a la anterior y dan la vuelta en las puntas", () => {
+    expect(indiceConTecla(3, 0, "ArrowRight")).toBe(1);
+    expect(indiceConTecla(3, 0, "ArrowDown")).toBe(1);
+    expect(indiceConTecla(3, 2, "ArrowRight")).toBe(0);
+    expect(indiceConTecla(3, 0, "ArrowLeft")).toBe(2);
+    expect(indiceConTecla(3, 1, "ArrowUp")).toBe(0);
+  });
+
+  it("Inicio y Fin van a la primera y a la última; otra tecla no mueve nada (Tab sale del grupo)", () => {
+    expect(indiceConTecla(3, 1, "Home")).toBe(0);
+    expect(indiceConTecla(3, 1, "End")).toBe(2);
+    for (const tecla of ["Tab", "Enter", " ", "a"]) expect(indiceConTecla(3, 1, tecla)).toBeNull();
+  });
+
+  it("sin opciones no hay a dónde ir; una posición fuera de la lista se toma desde la punta más cercana", () => {
+    expect(indiceConTecla(0, 0, "ArrowRight")).toBeNull();
+    expect(indiceConTecla(1, 0, "ArrowRight")).toBe(0);
+    expect(indiceConTecla(3, -1, "ArrowRight")).toBe(1);
+    expect(indiceConTecla(3, 9, "ArrowLeft")).toBe(1);
   });
 });

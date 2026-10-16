@@ -556,7 +556,7 @@ export const GUIA_NOTAS_CREDITO: Guia = {
       ancla: "notas-credito.estados",
       preparar: [{ tipo: "vaciar", ancla: "notas-credito.buscador" }],
       titulo: "Por reclamar, emitidas, aplicadas",
-      texto: "«Por reclamar»: el proveedor te debe una nota (por un faltante) y todavía no llega. «Emitidas»: ya llegaron. «Aplicadas»: ya bajaron deuda o te devolvieron la plata. «Todas» las junta (te la mostramos).",
+      texto: "«Por reclamar»: el proveedor te debe una nota (por un faltante) y todavía no llega; también la de una factura cuya plata ya volvió con un documento interno, y solo falta el papel. «Emitidas»: ya llegaron. «Aplicadas»: ya bajaron deuda o te devolvieron la plata. «Todas» las junta (te la mostramos).",
     },
     {
       id: "estado-todas",
@@ -601,7 +601,7 @@ export const GUIA_NOTAS_CREDITO: Guia = {
       ancla: "notas-credito.vista-acciones",
       opcional: true,
       titulo: "Registrar, ver o ir a la factura",
-      texto: "Cuando por fin llega una nota que esperabas, la registras desde aquí y ya viene con su factura elegida. También ves su detalle o abres la factura de origen. Con las flechas pasas a la siguiente.",
+      texto: "Cuando por fin llega una nota que esperabas, la registras desde aquí y ya viene con su factura elegida; si era de un documento interno, «Llegó su nota de crédito» la adjunta sin mover plata. También ves su detalle o abres la factura de origen. Con las flechas pasas a la siguiente.",
     },
     {
       id: "atajos",
@@ -901,7 +901,7 @@ export const GUIA_PROVEEDOR: Guia = {
       ancla: "proveedor-ficha.deuda",
       opcional: true,
       titulo: "Cada prenda por reponer",
-      texto: "Cada faltante que en una recepción se marcó «No vino» es una deuda: cuántas y de qué, en qué envío y sede faltaron, hace cuánto y cuánto valen. Se cierra cuando llegan.",
+      texto: "Cada faltante que en una recepción se marcó «No vino» es una deuda, y también lo que le devuelves desde Dañadas por llegar dañado: cuántas y de qué, en qué envío y sede, hace cuánto y cuánto valen. Se cierra cuando llegan o vuelve la plata.",
     },
     {
       id: "reposicion",
@@ -919,13 +919,47 @@ export const GUIA_PROVEEDOR: Guia = {
       texto: "Cuántas llegaron (viene puesto todo lo que debía), cómo llegaron y quién lo anota. Solo anota que el proveedor cumplió: no suma prendas al stock. Al anotarlo, queda en el historial de la deuda. En la demo no lo tocamos.",
     },
     {
+      // Cierra la hoja de la reposición antes de mostrar el otro camino.
+      id: "saldo-a-favor",
+      ancla: "proveedor-ficha.saldo-a-favor",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Pasar a saldo a favor",
+      texto: "Si el proveedor no va a mandar lo que faltó o lo que le devolviste, pásalo a saldo a favor: un documento interno por lo que pagaste baja lo que le debes por ese comprobante o, si ya lo pagaste, queda a favor para tu próximo pago. Lo que no se facturó no se pasa.",
+    },
+    {
+      id: "hoja-saldo-a-favor",
+      ancla: "proveedor-ficha.hoja-saldo-a-favor",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "proveedor-ficha.saldo-a-favor", siEsta: true }],
+      titulo: "Cuánto vale y adónde va",
+      texto: "Cuántas pasan (viene puesto todo lo que se puede), cuánto valen al costo de su comprobante y cuánto baja de tu deuda o queda a favor. La nota es opcional. Al pasarlo nace el documento interno DI-…, que queda en el historial. En la demo no lo tocamos.",
+    },
+    {
+      // Cierra la hoja de pasar a saldo a favor antes de mostrar el depósito.
+      id: "deposito",
+      ancla: "proveedor-ficha.deposito",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Depositó",
+      texto: "Si el proveedor no va a mandar lo que faltó y ya te devolvió la plata, lo registras aquí: el documento interno y el depósito que entró, en un solo paso. Solo si ya pagaste ese comprobante.",
+    },
+    {
+      id: "hoja-deposito",
+      ancla: "proveedor-ficha.hoja-deposito",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "proveedor-ficha.deposito", siEsta: true }],
+      titulo: "Lo que te devolvió",
+      texto: "Cuántas pagó con el depósito, cuánto te depositó (tiene que ser lo que quedó a tu favor), cuándo, cómo y a qué cuenta entró. La referencia y la nota son opcionales. En la demo no lo tocamos.",
+    },
+    {
       // Cierra la hoja aunque este paso se salte (no hay cerradas): `preparar` corre antes de ver si el paso aplica.
       id: "cerradas",
       ancla: "proveedor-ficha.nos-debe-cerradas",
       opcional: true,
       preparar: [{ tipo: "escape" }],
-      titulo: "Ya repuestas",
-      texto: "Las deudas que se cerraron en los últimos 90 días, con cuándo y cómo llegó cada reposición. Si son muchas, se pliegan: tócalas para verlas.",
+      titulo: "Ya saldadas",
+      texto: "Las deudas que se cerraron en los últimos 90 días, con cuándo y cómo se saldó cada parte: la reposición que llegó, lo que pasó a saldo a favor o lo que te devolvió con un depósito. Si son muchas, se pliegan: tócalas para verlas.",
     },
     {
       id: "saldo-favor",

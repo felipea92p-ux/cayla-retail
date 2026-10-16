@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Prenda } from "./catalogo";
 import {
+  avisoOtraTienda,
   avisoOtrosSepararon,
   botonDeLaFicha,
   campanaDeLaFicha,
@@ -13,14 +14,18 @@ import {
   fotosDelColor,
   interpretarFicha,
   interpretarSeparadas,
+  lineaAlAgregar,
   notaDeTalla,
+  parecidasA,
   precioDeLaFicha,
+  promesasDeCompra,
   tallaDelPrecio,
   tallasDelColor,
   tallasRapidas,
   type Ficha,
 } from "./ficha";
 import type { Look } from "./looks";
+import { PLAZOS_SIN_DATOS } from "./ayuda";
 
 const TRU = "f775651f-62c8-4ff4-a414-b5614026d0cd";
 const LIM = "2d97d322-8a0a-4cd5-99c4-70e52b9c01db";
@@ -234,6 +239,27 @@ describe("lo que la ficha conecta: el botón, la propuesta k, «Agregar» de la 
     expect(avisoOtrosSepararon(null, TRUJILLO, separadas)).toBeNull();
   });
 
+  it("una talla que no está en la tienda elegida pero sí en otra: se separa igual y la tienda la puede traer; si no, nada", () => {
+    const LIMA = { id: LIM, nombre: "Lima" };
+    // NEG S: Trujillo 3, Lima 0 → con Lima elegida, la trae de Trujillo.
+    expect(avisoOtraTienda(negS, LIMA, ficha.sedes)).toBe("No hay en Lima. Igual puedes separarla ahí: la tienda puede traerla de Trujillo.");
+    // BEI M: Trujillo 0, Lima 1 → con Trujillo elegida, la trae de Lima.
+    expect(avisoOtraTienda(beiM, TRUJILLO, ficha.sedes)).toBe("No hay en Trujillo. Igual puedes separarla ahí: la tienda puede traerla de Lima.");
+    // Hay en la elegida; sin tienda («Todas»); sin talla; en ninguna (eso es «Avísame»).
+    expect(avisoOtraTienda(negM, LIMA, ficha.sedes)).toBeNull();
+    expect(avisoOtraTienda(negS, null, ficha.sedes)).toBeNull();
+    expect(avisoOtraTienda(null, LIMA, ficha.sedes)).toBeNull();
+    expect(avisoOtraTienda(negL, LIMA, ficha.sedes)).toBeNull();
+  });
+
+  it("lo que dice la ficha junto al botón al agregar: corto y con la talla; si no entró, la frase del servidor", () => {
+    expect(lineaAlAgregar({ bien: true, texto: "Agregaste Blusa Emma · Negro · M a tu bolsa." }, "M", true)).toBe("La talla M ya está en tu bolsa.");
+    expect(lineaAlAgregar({ bien: true, texto: "Agregaste Collar a tu bolsa." }, "Única", false)).toBe("Ya está en tu bolsa.");
+    expect(lineaAlAgregar({ bien: false, texto: "Ya tienes en tu bolsa todas las que quedan de esa talla." }, "M", true)).toBe(
+      "Ya tienes en tu bolsa todas las que quedan de esa talla.",
+    );
+  });
+
   it("lo que dice la base de la propuesta k: solo las tallas con sí; lo raro se lee como «nadie» (nunca frena)", () => {
     expect([...interpretarSeparadas({ [negS.id]: true, [negM.id]: false })]).toEqual([negS.id]);
     for (const raro of [null, undefined, "x", 3, [], { "no-es-un-id": true }, { [negS.id]: "sí" }, { [negS.id]: 1 }]) {
@@ -277,5 +303,73 @@ describe("lo que la ficha conecta: el botón, la propuesta k, «Agregar» de la 
     expect(combinaCon(looks, "00000000-0000-4000-8000-00000000000e", catalogo)).toBeNull();
     expect(combinaCon([look("4", [A, D])], A, catalogo)).toBeNull();
     expect(combinaCon([], A, catalogo)).toBeNull();
+  });
+});
+
+describe("«También te puede gustar» llena su fila (2026-10-16)", () => {
+  const FOTO_X = "https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/fotos/x.jpg";
+  const prenda = (id: string, prefijo: string, conFoto = true) =>
+    ({ id, nombre: id, categoria: { nombre: `Cat ${prefijo}`, prefijo }, colores: [], fotos: conFoto ? [FOTO_X] : [] }) as unknown as Prenda;
+  const emma = { id: "emma", categoria: { nombre: "Camisas y Blusas", prefijo: "CMS" } };
+  // CMS y TOP son de «Arriba» (ropa); FAL, de «Abajo» (ropa); ARE, de «Bisutería y belleza» (accesorios).
+  const catalogo = [
+    prenda("aretes", "ARE"),
+    prenda("falda", "FAL"),
+    prenda("top", "TOP"),
+    prenda("camisa-sin-foto", "CMS", false),
+    prenda("emma", "CMS"),
+    prenda("camisa", "CMS"),
+  ];
+  const ids = (r: { prendas: Prenda[] }) => r.prendas.map((p) => p.id);
+
+  it("primero su categoría (con foto adelante), después su grupo, su menú y lo demás; nunca ella misma", () => {
+    const r = parecidasA(emma, catalogo);
+    expect(ids(r)).toEqual(["camisa", "camisa-sin-foto", "top", "falda", "aretes"]);
+    expect(r.ceja).toBe("Sigue mirando");
+  });
+
+  it("la ceja dice de dónde salen y «Ver todo» lleva a eso mismo: su categoría, su grupo o toda la tienda", () => {
+    expect(parecidasA(emma, catalogo, { cuantas: 2 })).toMatchObject({ ceja: "Camisas y Blusas", ver: { categoria: "CMS", grupo: null } });
+    expect(parecidasA(emma, catalogo, { cuantas: 3 })).toMatchObject({ ceja: "Arriba", ver: { categoria: null, grupo: "arriba" } });
+    expect(parecidasA(emma, catalogo)).toMatchObject({ ceja: "Sigue mirando", ver: { categoria: null, grupo: null } });
+  });
+
+  it("no repite lo que ya sale en «Combínalo con», y respeta cuántas caben", () => {
+    expect(ids(parecidasA(emma, catalogo, { fuera: ["camisa", "top"] }))).toEqual(["camisa-sin-foto", "falda", "aretes"]);
+    expect(parecidasA(emma, catalogo, { cuantas: 1 }).prendas).toHaveLength(1);
+    expect(parecidasA(emma, [prenda("emma", "CMS")]).prendas).toEqual([]);
+  });
+
+  it("una prenda sin categoría se completa con lo demás, en el orden del catálogo y con foto adelante", () => {
+    const r = parecidasA({ id: "x", categoria: null }, catalogo);
+    expect(ids(r)).toEqual(["aretes", "falda", "top", "emma", "camisa", "camisa-sin-foto"]);
+    expect(r.ceja).toBe("Sigue mirando");
+  });
+});
+
+describe("las promesas junto al botón (2026-10-16)", () => {
+  it("con los plazos de la ayuda: separar sin pagar, recoger en tu tienda y cambiar en cualquier tienda CAYLA", () => {
+    const [separar, recoger, cambiar] = promesasDeCompra({ ...PLAZOS_SIN_DATOS, diasParaRecoger: 7, diasParaCambiar: 15 });
+    expect(separar).toEqual({
+      icono: "chat",
+      titulo: "Separas sin pagar en la web",
+      texto: "La tienda te confirma por WhatsApp y coordinas el pago con ella.",
+    });
+    expect(recoger).toEqual({ icono: "tienda", titulo: "Recoges en tu tienda", texto: "Hasta 7 días después de pagar." });
+    expect(cambiar).toEqual({ icono: "traslado", titulo: "Cambias en cualquier tienda CAYLA", texto: "Tienes 15 días, con tu boleta y la etiqueta puesta." });
+    expect(promesasDeCompra({ ...PLAZOS_SIN_DATOS, diasParaRecoger: 1, diasParaCambiar: 1 }).map((p) => p.texto).slice(1)).toEqual([
+      "Hasta 1 día después de pagar.",
+      "Tienes 1 día, con tu boleta y la etiqueta puesta.",
+    ]);
+  });
+
+  it("sin la base, sin número: nunca un plazo inventado", () => {
+    const textos = promesasDeCompra(PLAZOS_SIN_DATOS).map((p) => p.texto);
+    expect(textos).toEqual([
+      "La tienda te confirma por WhatsApp y coordinas el pago con ella.",
+      "En la tienda que elegiste, después de pagar.",
+      "Con tu boleta y la etiqueta puesta. El plazo va impreso en tu boleta.",
+    ]);
+    expect(textos.join(" ")).not.toMatch(/\d/);
   });
 });
