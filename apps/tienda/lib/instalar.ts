@@ -15,9 +15,8 @@ export const CLAVE_REGISTRO = "cayla-instalar";
 export const DIAS_DE_SILENCIO = 30;
 /** Con este número de «Ahora no», no vuelve nunca (la fila de «Mi perfil» sigue ahí). */
 export const CIERRES_PARA_NO_VOLVER = 2;
-/** Primero ve la tienda: la hoja (que tapa) espera más que la franja (que no). */
-export const RETRASO_HOJA_MS = 8000;
-export const RETRASO_FRANJA_MS = 4000;
+/** Sale ni bien entra (Felipe 2026-10-16: con 8 s «demoraba un rato en aparecer»): solo lo que tarda la página en pintarse y asentarse. */
+export const RETRASO_MS = 800;
 /** Quien acaba de tocar o de bajar la página no recibe una hoja encima: se espera a que se quede quieta este rato. */
 export const QUIETUD_MS = 1200;
 /** Cuántas veces se vuelve a mirar si ya está quieta antes de dejarlo para otra visita. */
@@ -25,6 +24,11 @@ export const INTENTOS_DE_QUIETUD = 5;
 
 /** Las páginas donde se ofrece sola al entrar: el Inicio y el catálogo (no la ficha de una prenda, ni la bolsa, ni «Mi perfil»). */
 export const PAGINAS_DEL_AVISO: readonly string[] = ["/inicio", "/catalogo"];
+
+/** Donde un script mínimo del `<head>` deja el aviso de instalar de Chrome si llega ANTES de que la página termine de armarse (en un
+ *  celular lento, o apenas inicia sesión): ese aviso llega una sola vez y, sin esto, se perdería y no saldría nada en Android. */
+export const VARIABLE_DEL_AVISO = "__caylaAvisoInstalar";
+export const SCRIPT_DEL_AVISO = `window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.${VARIABLE_DEL_AVISO}=e;});`;
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
