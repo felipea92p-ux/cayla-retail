@@ -1298,6 +1298,19 @@ export const GUIA_FIN_CIERRE: Guia = {
       texto: "Cerrar un mes lo congela: nadie puede registrar ni cambiar nada con fecha de ese mes, y sus números ya no se mueven. Se cierra cada tienda, el Taller y lo de la empresa; al final, CAYLA entera. Es una demo: no se cierra nada.",
     },
     {
+      id: "pulso",
+      ancla: "fin-cierre.pulso",
+      titulo: "¿Puedo cerrar el mes?",
+      texto: "La respuesta en una cifra: cuántas cosas faltan para cerrar el mes, y el anillo con lo que ya pasó. Cuando no falta nada, dice «puedes cerrar»; cuando el mes ya está cerrado, lo dice.",
+    },
+    {
+      id: "cosas",
+      ancla: "fin-cierre.cosas",
+      opcional: true,
+      titulo: "Lo primero que falta",
+      texto: "Las primeras cosas por resolver, de todas las unidades: lo que frena el cierre va primero y cada una lleva a la pantalla donde se arregla. Abajo están todos los chequeos, unidad por unidad.",
+    },
+    {
       id: "matriz",
       ancla: "fin-cierre.matriz",
       titulo: "Cada parte de CAYLA",

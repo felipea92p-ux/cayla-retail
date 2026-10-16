@@ -2377,3 +2377,62 @@
     }
   }
 }
+
+/* ---- Cierre de mes en camino A: el anillo de lo que ya pasó. ---- */
+@layer components {
+  .fin-cierre-anillo {
+    position: relative;
+    width: 128px;
+    height: 128px;
+  }
+  .fin-cierre-anillo svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+  .fin-cierre-pista,
+  .fin-cierre-valor {
+    fill: none;
+    stroke-width: 9;
+    stroke-linecap: round;
+  }
+  .fin-cierre-pista {
+    stroke: var(--color-hueso);
+  }
+  .fin-cierre-valor {
+    stroke: var(--color-ambar);
+    stroke-dasharray: 1;
+    animation: fin-confianza-dibuja 1100ms var(--ease-cayla) backwards;
+  }
+  .fin-cierre-valor[data-estado="listo"],
+  .fin-cierre-valor[data-estado="cerrado"] {
+    stroke: var(--color-verde);
+  }
+  .fin-cierre-anillo-num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .fin-cierre-anillo-num > b {
+    font-family: var(--font-serif);
+    font-size: 40px;
+    font-weight: 500;
+  }
+  .fin-cierre-anillo-num > small {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-taupe);
+    margin-top: 4px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fin-cierre-valor {
+      animation: none;
+    }
+  }
+}
