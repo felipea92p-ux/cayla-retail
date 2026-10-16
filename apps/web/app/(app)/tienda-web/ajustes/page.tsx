@@ -13,7 +13,7 @@ export default async function AjustesTiendaWebPage() {
   const datos = await getConfiguracionTiendaWeb();
 
   return (
-    <div className="space-y-6">
+    <div className="tw space-y-6">
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
         detalle="Tienda web"

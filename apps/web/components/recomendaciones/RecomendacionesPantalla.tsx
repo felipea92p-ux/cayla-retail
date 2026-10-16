@@ -33,8 +33,10 @@ import {
 } from "@/lib/recomendaciones-reglas";
 
 const RUTA = "/tienda-web/recomendaciones";
-// En el celular la fila es una tarjeta (cliente y estado arriba, la recomendación abajo); desde `sm`, columnas.
-const PLANTILLA = "grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[6.5rem_minmax(0,1fr)_8.5rem_minmax(0,1.6fr)_7rem]";
+// Cada recomendación como un mensaje (ADR-0430): a la izquierda quién la escribió, sobre qué y cuándo; al centro lo que escribió, en su
+// globo (y debajo, si ya se le respondió, la respuesta de CAYLA); a la derecha en qué está. En el celular, quién y el estado arriba y el
+// mensaje debajo, a todo el ancho.
+const PLANTILLA = "grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[12rem_minmax(0,1fr)_7.5rem]";
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
 
 /**
@@ -102,7 +104,7 @@ export function RecomendacionesPantalla({
   const filtroDeCifra = (e: FiltroEstado) => () => elegirEstado(estado === e ? ESTADO_POR_DEFECTO : e);
 
   return (
-    <div className="space-y-6">
+    <div className="tw space-y-6">
       {abiertaInicial && !lista.recomendaciones.some((r) => r.id === abiertaInicial) && (
         <Aviso tono="atencion" titulo="No se encontró esa recomendación">
           Puede que el enlace esté mal copiado. Elige una de la lista.
@@ -203,10 +205,7 @@ export function RecomendacionesPantalla({
           )
         ) : (
           <>
-            <Encabezado
-              plantilla={PLANTILLA}
-              columnas={[{ titulo: "Llegó" }, { titulo: "Cliente" }, { titulo: "Sobre" }, { titulo: "Recomendación" }, { titulo: "Estado" }]}
-            />
+            <Encabezado plantilla={PLANTILLA} columnas={[{ titulo: "Quién" }, { titulo: "Lo que escribió" }, { titulo: "Estado" }]} />
             {enPagina.map((r, i) => {
               const e = estadoDe(r);
               return (
@@ -229,40 +228,50 @@ export function RecomendacionesPantalla({
                       abrir(r.id);
                     }
                   }}
-                  className={fila(PLANTILLA, "cursor-pointer items-center sm:items-center")}
+                  className={fila(PLANTILLA, "cursor-pointer items-start sm:items-start")}
                   aria-label={`Recomendación de ${deQuien(r)} sobre ${sobreQue(r)}: ${INSIGNIA[e].texto}`}
                 >
-                  <span className="hidden text-[12.5px] text-taupe sm:block">{haceCuanto(r.creadaEn, ahora)}</span>
-                  <span className="flex min-w-0 items-center gap-2">
+                  <span className="flex min-w-0 items-start gap-2.5">
                     {r.cliente ? (
-                      <AvatarPersona personaId={null} nombre={r.cliente.nombre} tamano={24} />
+                      <AvatarPersona personaId={null} nombre={r.cliente.nombre} tamano={32} />
                     ) : (
                       // Sin nombre (su ficha se anonimizó): sin iniciales que inventar.
-                      <UserX aria-hidden className="h-6 w-6 shrink-0 p-0.5 text-taupe" />
+                      <UserX aria-hidden className="h-8 w-8 shrink-0 p-1 text-taupe" />
                     )}
-                    <button
-                      type="button"
-                      onClick={(ev) => {
-                        // La fila también abre: sin esto, el clic subiría y abriría dos veces.
-                        ev.stopPropagation();
-                        abrir(r.id);
-                      }}
-                      title={r.cliente ? undefined : "Su ficha se anonimizó: la recomendación se queda, sin su nombre"}
-                      className={`min-w-0 truncate text-left hover:text-rojo-profundo ${r.cliente ? "text-tinta" : "italic text-taupe"} ${e === "sin_leer" ? "font-semibold" : ""}`}
-                    >
-                      {deQuien(r)}
-                    </button>
+                    <span className="min-w-0">
+                      <button
+                        type="button"
+                        onClick={(ev) => {
+                          // La fila también abre: sin esto, el clic subiría y abriría dos veces.
+                          ev.stopPropagation();
+                          abrir(r.id);
+                        }}
+                        title={r.cliente ? undefined : "Su ficha se anonimizó: la recomendación se queda, sin su nombre"}
+                        className={`block max-w-full truncate text-left hover:text-rojo-profundo ${r.cliente ? "text-tinta" : "italic text-taupe"} ${e === "sin_leer" ? "font-semibold" : ""}`}
+                      >
+                        {deQuien(r)}
+                      </button>
+                      <span className="block truncate text-[12px] text-taupe">
+                        {sobreQue(r)} · {haceCuanto(r.creadaEn, ahora)}
+                      </span>
+                    </span>
                   </span>
-                  <span className="col-start-2 row-start-1 flex justify-end sm:col-start-auto sm:row-start-auto sm:hidden">
+                  <span className="col-start-2 row-start-1 flex justify-end sm:hidden">
                     <Chip tono={INSIGNIA[e].tono} tachado={false}>
                       {INSIGNIA[e].texto}
                     </Chip>
                   </span>
-                  <span className="col-span-2 truncate text-[13px] text-taupe sm:col-span-1">
-                    {sobreQue(r)}
-                    <span className="sm:hidden"> · {haceCuanto(r.creadaEn, ahora)}</span>
+                  <span className="col-span-2 flex min-w-0 flex-col gap-1.5 sm:col-span-1">
+                    <span className="tw-globo line-clamp-3" data-sin-leer={e === "sin_leer" ? "" : undefined}>
+                      {r.texto}
+                    </span>
+                    {r.respuesta && (
+                      <span className="tw-globo-respuesta line-clamp-2">
+                        <small>CAYLA respondió</small>
+                        {r.respuesta}
+                      </span>
+                    )}
                   </span>
-                  <span className="col-span-2 line-clamp-2 min-w-0 whitespace-pre-line break-words text-[13.5px] text-tinta sm:col-span-1">{r.texto}</span>
                   <span className="hidden sm:block">
                     <Chip tono={INSIGNIA[e].tono} tachado={false}>
                       {INSIGNIA[e].texto}

@@ -779,7 +779,7 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
       id: "sedes",
       ancla: "config.tienda-web-sedes",
       titulo: "Cada tienda en la tienda web",
-      texto: "Lo que el cliente ve de cada tienda en la tienda online: el nombre (Trujillo, no Tienda TRU), el WhatsApp donde llegan sus pedidos, la dirección para recoger y el horario. Mientras falte algo, la tarjeta dice qué y te lleva a la casilla.",
+      texto: "Arriba de cada tienda ves su tarjeta tal como la verá el cliente, y cambia mientras escribes: el nombre (Trujillo, no Tienda TRU), la dirección para recoger, el horario y el WhatsApp donde llegan sus pedidos. Mientras falte algo, la tarjeta dice qué y te lleva a la casilla.",
     },
     {
       id: "mostrar",
@@ -792,7 +792,7 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
       id: "plazos",
       ancla: "config.tienda-web-plazos",
       titulo: "Para todas las sedes",
-      texto: "Cuántas horas tiene la tienda para confirmar un pedido antes de que se cierre solo, cuándo avisar si no paga o no recoge, y desde cuántas prendas el cliente ve el número en vez de «Hay».",
+      texto: "La línea de arriba es la vida de un pedido: el cliente separa, tú confirmas, paga y recoge, con el plazo de cada paso. Debajo se cambian esos plazos, y desde cuántas prendas el cliente ve el número en vez de «Hay».",
     },
     {
       id: "nota",

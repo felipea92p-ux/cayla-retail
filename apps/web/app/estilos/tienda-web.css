@@ -374,6 +374,8 @@
   /* ───────── Recomendaciones: cada una como un mensaje ───────── */
   .tw-globo {
     position: relative;
+    width: fit-content;
+    max-width: 100%;
     padding: 10px 14px;
     border-radius: 4px 14px 14px 14px;
     background: var(--color-hueso);
