@@ -78,7 +78,7 @@ export function OrdenCierre({
 
   async function confirmar(confirmaCostoAtipico = false) {
     if (total <= 0) {
-      avisar.error("No salió ninguna prenda buena — si la corrida se perdió, anula la orden en vez de cerrarla.");
+      avisar.error("No salió ninguna prenda buena — si el lote se perdió, anula la orden en vez de cerrarla.");
       return;
     }
     // ADR-0415: hasta el doble de lo pedido por talla (o 5 más si es chica); la base dice lo mismo (`buenas_de_mas`).
@@ -157,7 +157,7 @@ export function OrdenCierre({
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <CampoMonto etiqueta="Tela (real)" inputMode="decimal" data-campo="cierre-tela" value={tela} onChange={cambiaMonto(setTela)} />
             <CampoMonto etiqueta="Avíos (real)" inputMode="decimal" value={avios} onChange={cambiaMonto(setAvios)} />
-            <CampoMonto etiqueta="Maquila (real)" inputMode="decimal" value={maquila} onChange={cambiaMonto(setMaquila)} />
+            <CampoMonto etiqueta="Servicios (real)" inputMode="decimal" value={maquila} onChange={cambiaMonto(setMaquila)} />
           </div>
           <div className="mt-3 flex items-baseline justify-between rounded-md bg-papel px-3 py-2 text-sm">
             <span className="text-tinta/70">

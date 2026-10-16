@@ -91,7 +91,7 @@ describe("el margen se mide con el precio más bajo de cualquier tienda (ADR-037
 
   it("nadie vuelve a medir el margen con el precio de la grilla a secas: todo `semaforoMargen(` de una pantalla pasa por `precioParaMargen`", () => {
     const leer = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8");
-    for (const ruta of ["components/NuevaOrdenProduccionForm.tsx", "components/OrdenTarjeta.tsx", "components/OrdenPanel.tsx", "components/OrdenesTablero.tsx", "lib/produccion-reglas.ts"]) {
+    for (const ruta of ["components/NuevaOrdenProduccionForm.tsx", "components/OrdenTarjeta.tsx", "components/OrdenPanel.tsx", "lib/produccion-reglas.ts"]) {
       const llamadas = leer(ruta).match(/semaforoMargen\([^)]*\)\)?/g) ?? [];
       // La definición (`export function semaforoMargen(precioVenta: number, ...)`) no es una llamada.
       for (const l of llamadas.filter((x) => !x.includes("precioVenta: number"))) expect(l, `${ruta}: ${l}`).toMatch(/precioParaMargen/);
@@ -120,7 +120,6 @@ describe("etapas", () => {
 });
 
 import {
-  COLUMNAS_TABLERO,
   DIAS_ENTREGA_PRONTO,
   claveCelda,
   datosDeVariante,
@@ -153,9 +152,6 @@ describe("etapaActual", () => {
     expect(etapaActual({ patronaje: "hecho", muestra: "hecho", escalado: "hecho" }, true)).toBe("listo");
     expect(etapasDe(true)).toBe(ETAPAS_MUESTRA);
     expect(etapasDe(false)).toBe(ETAPAS_PRODUCCION);
-  });
-  it("las columnas del tablero son las etapas de producción más «listo», en orden", () => {
-    expect(COLUMNAS_TABLERO.map((c) => c.clave)).toEqual([...ETAPAS_PRODUCCION.map((e) => e.clave), "listo"]);
   });
 });
 
@@ -232,11 +228,11 @@ describe("datosDeVariante: cómo se nombra una prenda de la orden", () => {
     expect(datosDeVariante({ sku: null, codigo: null }).sku).toBe("");
   });
   it("una variante que no llegó no rompe la orden: todo vacío", () => {
-    expect(datosDeVariante(null)).toEqual({ sku: "", talla: null, color: null, colorHex: null });
+    expect(datosDeVariante(null)).toEqual({ sku: "", talla: null, color: null, colorHex: null, colorCodigo: null });
     expect(datosDeVariante(undefined).sku).toBe("");
   });
   it("sin talla o sin color deja null, para que la matriz pinte «Única» / «Sin color»", () => {
-    expect(datosDeVariante({ codigo: "X-1", talla: null, color: null })).toEqual({ sku: "X-1", talla: null, color: null, colorHex: null });
+    expect(datosDeVariante({ codigo: "X-1", talla: null, color: null })).toEqual({ sku: "X-1", talla: null, color: null, colorHex: null, colorCodigo: null });
   });
 });
 

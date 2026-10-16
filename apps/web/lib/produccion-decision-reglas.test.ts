@@ -3,7 +3,6 @@ import type { FilaResumen } from "./resumen-reglas";
 import { demandaDeInsumos } from "./produccion-decisiones";
 import {
   analizarInsumos,
-  costoMaterialesPorPrenda,
   demandaDeLaRed,
   enProduccionPorVariante,
   cantidadesDeLaCurva,
@@ -245,15 +244,3 @@ describe("analizarInsumos", () => {
   });
 });
 
-describe("costoMaterialesPorPrenda", () => {
-  const rend = [
-    { insumoId: "lino", insumo: "Lino", unidad: "metro" as const, tipo: "tela" as const, porPrenda: 2.5, ordenes: 1, prendas: 20 },
-    { insumoId: "boton", insumo: "Botón", unidad: "unidad" as const, tipo: "avio" as const, porPrenda: 6, ordenes: 1, prendas: 20 },
-  ];
-  it("suma rendimiento × costo unitario de cada insumo", () => {
-    expect(costoMaterialesPorPrenda(rend, (id) => (id === "lino" ? 20 : 0.5))).toBe(53);
-  });
-  it("si algún costo no se conoce, no hay costo (no se calcula con datos que faltan)", () => {
-    expect(costoMaterialesPorPrenda(rend, (id) => (id === "lino" ? 20 : null))).toBeNull();
-  });
-});

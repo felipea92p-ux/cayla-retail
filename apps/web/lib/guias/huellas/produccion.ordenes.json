@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 91,
+  "total": 103,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -21,12 +21,6 @@
     "components/NuevaOrdenProduccionForm.tsx": [
       "SegmentoDeslizante «Tipo de orden»",
       "Link «Editar producto»",
-      "Desplegable «{String(diasObjetivo)}»",
-      "button «{curva.total > 0 ? `Usar la sugerencia · ${curva.total}»",
-      "button «Usar como costo estimado»",
-      "CampoMonto «Tela»",
-      "CampoMonto «Avíos»",
-      "CampoMonto «Maquila»",
       "CampoTexto «Fecha de entrega»",
       "CampoTexto «Nota»",
       "Link «Ponle precio en Editar producto»",
@@ -39,7 +33,7 @@
     "components/OrdenCierre.tsx": [
       "CampoMonto «Tela (real)»",
       "CampoMonto «Avíos (real)»",
-      "CampoMonto «Maquila (real)»",
+      "CampoMonto «Servicios (real)»",
       "ComboResponsable «{responsable}»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
@@ -56,7 +50,7 @@
       "Boton «{responsable.motivo ?? undefined}» #2"
     ],
     "components/OrdenModales.tsx": [
-      "input «Por qué se cancela la corrida»",
+      "input «Por qué se cancela el lote»",
       "ComboResponsable «{responsable}»",
       "button «Volver»",
       "Boton «{responsable.motivo ?? undefined}»",
@@ -71,20 +65,10 @@
       "button «Reabrir»",
       "Link «Llevarlas a las tiendas»",
       "BotonImprimir «Imprimir etiquetas de precio»",
-      "Boton «→() => setCerrando(true)»",
+      "Boton «{orden.esMuestra ? \"Dar por terminada\" : \"Pasar al stock\"}»",
       "Boton «Anular»",
       "Boton «Volver sin cerrar»",
       "Boton «Revertir cierre»"
-    ],
-    "components/OrdenTarjeta.tsx": [
-      "button «prod-ordenes.tarjeta»"
-    ],
-    "components/OrdenesTablero.tsx": [
-      "Boton «prod-ordenes.nueva»",
-      "Boton «+ Crear el primer modelo»",
-      "Boton «Abrir una orden»",
-      "button «Terminadas (»",
-      "button «{o.referencia}»"
     ],
     "components/SelectorColor.tsx": [
       "input «Elegir color con el selector»",
@@ -128,10 +112,44 @@
       "button «{`Quitar ${nombre}»",
       "Boton «{abierto ? \"Listo con los colores\" : \"+ Agregar color\"}»"
     ],
+    "components/orden-produccion/ConsejoDeLaRed.tsx": [
+      "Boton «{`Usarla: pone las ${curva.total}»",
+      "button «prod-orden-nueva.red-abrir»",
+      "Desplegable «{String(diasObjetivo)}»"
+    ],
     "components/orden-produccion/ElegirModelo.tsx": [
       "button «prod-orden-nueva.modelo-fila»",
       "button «→() => onCrear(escrito)»",
       "button «Cambiar»"
+    ],
+    "components/orden-produccion/FasesDeLaOrden.tsx": [
+      "SegmentoDeslizante «{`Quién hace ${nombreEnFrase}»",
+      "SegmentoDeslizante «{`Dónde va el ${nombreEnFrase}»",
+      "CampoSelect «Proveedor»",
+      "CampoMonto «Por prenda»",
+      "CampoTexto «Cantidad mínima»",
+      "CampoFecha «Prometido para»",
+      "CampoMonto «Fijo por orden»",
+      "button «+ fijo por orden (ponchado, matriz)»"
+    ],
+    "components/orden-produccion/TelaDeLaOrden.tsx": [
+      "CampoSelect «Tela»",
+      "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"m\"}»",
+      "Casilla «Dejar este consumo como el del modelo»",
+      "CampoSelect «Avío»",
+      "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"unid.\"}»",
+      "Boton «+ Agregar avío»"
+    ],
+    "components/ordenes-lista/FilaDeOrden.tsx": [
+      "button «{`Abrir ${f.numeroTexto}»",
+      "Link «{`Abrir ${f.numeroTexto}»",
+      "button «{guiaPorque ? \"prod-ordenes.porque\" : undefined}»"
+    ],
+    "components/ordenes-lista/OrdenesLista.tsx": [
+      "Boton «prod-ordenes.nueva»",
+      "Pestanas «→(clave) => setPestana(clave as PestanaLista)»",
+      "button «{f.texto}»",
+      "Boton «+ Crear el primer modelo»"
     ]
   }
 }
