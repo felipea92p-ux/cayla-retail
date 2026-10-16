@@ -101,6 +101,20 @@ select retail.guardar_medio_de_cobro(:'tru', 'tarjeta', :'pos') as _m3 \\gset
 select (select count(*) from (select retail.cerrar_caja(id, 100) from retail.cajas where ubicacion_id = :'tru' and estado = 'abierta') x) as _previa \\gset
 select retail.abrir_caja(:'tru', 100.00, 'prueba automatizada') as caja \\gset
 `;
+/** Un comprobante de venta tal como lo deja Facturación (total con IGV; el IGV sale del 18 %): lo mismo que usa `impuestos.mjs`. */
+const COMPROBANTE = `
+create function pg_temp.comp(p_ubic uuid, p_tipo text, p_serie text, p_num int, p_total numeric, p_estado text, p_entorno text, p_dia date)
+returns uuid language plpgsql as $f$
+declare v_id uuid; v_igv numeric := round(p_total - p_total / 1.18, 2);
+begin
+  insert into retail.comprobantes (ubicacion_id, venta_id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc, cliente_nombre,
+                                   subtotal, igv, total, estado, entorno_transmision, created_at)
+  values (p_ubic, null, p_tipo, p_serie, p_num, 'dni', '44556677', 'Clienta de prueba F6',
+          p_total - v_igv, v_igv, p_total, p_estado, p_entorno, (p_dia + time '12:00') at time zone 'America/Lima')
+  returning id into v_id;
+  return v_id;
+end $f$;
+`;
 const conModulo = (m) => `insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), '${m}');\n`;
 const REAL = `retail.fn_flujo_caja_real(:'hoy'::date - 6, :'hoy'::date)`;
 
@@ -315,15 +329,13 @@ select jsonb_array_length(retail.fn_flujo_caja_proyeccion(4)->'semanas'), jsonb_
   esperar("4 semanas si se piden 4; nunca más de 12", r.ok && tope === "4|12", r);
 }
 
-// 7. Cobros esperados: la meta de cada día con su campaña; sin meta, el promedio de 8 semanas.
+// 7. Cobros esperados: la meta de cada día con su campaña (sin meta, el promedio: casos 7b y 7c).
 {
   const r = correr(`${ESCENA}
 select id as aniv from retail.etiquetas where estilo = 'campana' and nombre = 'Aniversario CAYLA' \\gset
 select retail.fn_flujo_caja_proyeccion(6) as antes \\gset
 select retail.guardar_metas_tienda(:'tru', array[1000,1000,1000,1000,1000,1000,1000]::numeric[], 100) as _m \\gset
 select retail.guardar_efecto_campana(:'aniv', :'tru', 50, null) as _e \\gset
-insert into retail.ventas (ubicacion_id, created_at) values (:'lim', ((:'hoy'::date - 7)::timestamp + interval '12 hours') at time zone 'America/Lima') returning id as v1 \\gset
-insert into retail.venta_pagos (venta_id, metodo, monto) values (:'v1', 'yape', 800);
 select retail.fn_flujo_caja_proyeccion(6) as p \\gset
 select (select count(*) from generate_series(:'hoy'::date + 1, :'hoy'::date + 42, interval '1 day') d
          where d::date between e.vigente_desde and e.vigente_hasta) as dias_aniv from retail.etiquetas e where e.id = :'aniv' \\gset
@@ -331,13 +343,51 @@ select pg_temp.cobros(:'p', :'tru') = 1000 * 42 + 500 * :'dias_aniv'::int;
 select bool_and(c->>'origen' = 'meta') from jsonb_array_elements(:'p'::jsonb->'cobros') c where (c->>'ubicacion_id')::uuid = :'tru';
 select :'dias_aniv'::int = 0 or exists (select 1 from jsonb_array_elements(:'p'::jsonb->'cobros') c, jsonb_array_elements(c->'campanas') k
                                          where (c->>'ubicacion_id')::uuid = :'tru' and k->>'nombre' = 'Aniversario CAYLA' and (c->>'monto')::numeric = 1500);
-select pg_temp.cobros(:'p', :'lim', :'hoy'::date + 7) - pg_temp.cobros(:'antes', :'lim', :'hoy'::date + 7),
-       bool_and(c->>'origen' = 'promedio') from jsonb_array_elements(:'p'::jsonb->'cobros') c where (c->>'ubicacion_id')::uuid = :'lim';`);
-  const [meta, origen, campana, promedio] = lineas(r);
+`);
+  const [meta, origen, campana] = lineas(r);
   esperar("con meta de S/ 1,000 por día, Trujillo espera cobrar 1,000 × 42 días + 50 % en los días del Aniversario", r.ok && meta === "t", r);
   esperar("esos cobros dicen que salen de la meta", r.ok && origen === "t", r);
   esperar("el día de campaña dice cuál rige y espera S/ 1,500", r.ok && campana === "t", r);
-  esperar("Lima no tiene meta: S/ 800 cobrados hace una semana suben ese mismo día de la semana en S/ 100 (÷ 8), y lo dice", r.ok && promedio === "100.00|t", r);
+}
+
+// 7b. Sin meta, el promedio de cada día de la semana se divide por los días que de verdad pasaron (no por 8) y se contrae hacia el promedio
+// diario de la tienda (ADR-0433, actividad 4). Lima con UN solo cobro, de S/ 800 hace una semana: no se proyecta S/ 800 cada semana ese día
+// (un día atípico), ni 100 (÷ 8): (800 + 2 × 800/7) ÷ (1 + 2) = 342.86 ese día y 76.19 los demás, y la semana vuelve a sumar 800.
+{
+  const r = correr(`${ESCENA}
+set local session_replication_role = replica;
+update retail.ventas set es_prueba = true where ubicacion_id = :'lim';
+reset session_replication_role;
+insert into retail.ventas (ubicacion_id, created_at) values (:'lim', ((:'hoy'::date - 7)::timestamp + interval '12 hours') at time zone 'America/Lima') returning id as v1 \\gset
+insert into retail.venta_pagos (venta_id, metodo, monto) values (:'v1', 'yape', 800);
+select retail.fn_flujo_caja_proyeccion(6) as p \\gset
+select pg_temp.cobros(:'p', :'lim', :'hoy'::date + 7);
+select round(coalesce(sum((c->>'monto')::numeric), 0), 2) from jsonb_array_elements(:'p'::jsonb->'cobros') c
+ where (c->>'ubicacion_id')::uuid = :'lim' and (c->>'fecha')::date between :'hoy'::date + 1 and :'hoy'::date + 7;
+select bool_and(c->>'origen' = 'promedio_corto') from jsonb_array_elements(:'p'::jsonb->'cobros') c where (c->>'ubicacion_id')::uuid = :'lim';`);
+  const [dia, semana, origen] = lineas(r);
+  esperar("con un solo día de historia el día cobrado espera S/ 342.86 (contraído hacia el promedio diario), no 800 ni 100", r.ok && Number(dia) === 342.86, r);
+  esperar("y la semana proyectada vuelve a sumar lo cobrado (S/ 800): no inventa ni pierde plata", r.ok && Number(semana) === 800, r);
+  esperar("con menos de 4 días de historia lo dice: «promedio_corto»", r.ok && origen === "t", r);
+}
+
+// 7c. Con 4 de cada día de la semana (28 días de S/ 1,000) el promedio es S/ 1,000 por día y dice «promedio»: antes salía la mitad (4 000 ÷ 8).
+{
+  const r = correr(`${ESCENA}
+set local session_replication_role = replica;
+update retail.ventas set es_prueba = true where ubicacion_id = :'lim';
+reset session_replication_role;
+insert into retail.ventas (ubicacion_id, created_at)
+  select :'lim', ((:'hoy'::date - g)::timestamp + interval '12 hours') at time zone 'America/Lima' from generate_series(1, 28) g;
+insert into retail.venta_pagos (venta_id, metodo, monto)
+  select v.id, 'yape', 1000 from retail.ventas v where v.ubicacion_id = :'lim' and not v.es_prueba;
+select retail.fn_flujo_caja_proyeccion(6) as p \\gset
+select round(coalesce(sum((c->>'monto')::numeric), 0), 2) from jsonb_array_elements(:'p'::jsonb->'cobros') c
+ where (c->>'ubicacion_id')::uuid = :'lim' and (c->>'fecha')::date between :'hoy'::date + 1 and :'hoy'::date + 7;
+select bool_and(c->>'origen' = 'promedio') from jsonb_array_elements(:'p'::jsonb->'cobros') c where (c->>'ubicacion_id')::uuid = :'lim';`);
+  const [semana, origen] = lineas(r);
+  esperar("28 días de S/ 1,000: la semana proyectada espera S/ 7,000 (antes salía S/ 3,500 por dividir entre 8)", r.ok && Number(semana) === 7000, r);
+  esperar("con 4 días de cada uno dice «promedio»", r.ok && origen === "t", r);
 }
 
 // 8. Salidas: vencimientos de F4 (lo vencido, en el primer bloque) y gastos fijos que vienen o faltan (no los registrados).
@@ -446,6 +496,74 @@ select string_agg(distinct p.provolatile::text, ',') from pg_proc p join pg_name
   esperar("anon no las llama; authenticated sí (el candado es el líder, adentro)", r.ok && privilegios === "f|f|t", r);
   esperar("las piezas internas no se llaman desde afuera", r.ok && internas === "f", r);
   esperar("nada se guarda: las lecturas son STABLE", r.ok && volatil === "s", r);
+}
+
+// 10b. Con qué se proyecta (ADR-0433, actividad 4): la base dice cuántos días de historia hay, si algún banco o caja fuerte declaró su saldo
+// de arranque, si hay facturas de proveedor y si el IGV entró; y da UN veredicto, `dias_de_caja_confiable` = 28 días de ventas y saldo declarado.
+{
+  const r = correr(`${ESCENA}
+set local session_replication_role = replica;
+update retail.ventas set es_prueba = true;
+reset session_replication_role;
+select retail.fn_flujo_caja_proyeccion(6) as p1 \\gset
+insert into retail.ventas (ubicacion_id, created_at) values (:'lim', ((:'hoy'::date - 30)::timestamp + interval '12 hours') at time zone 'America/Lima');
+select retail.fn_flujo_caja_proyeccion(6) as p2 \\gset
+set local session_replication_role = replica;
+update retail.cuentas_dinero set saldo_inicial = 0 where tipo in ('banco', 'caja_fuerte');
+reset session_replication_role;
+select retail.fn_flujo_caja_proyeccion(6) as p3 \\gset
+select (:'p1'::jsonb->>'saldo_inicial_declarado') || '|' || (:'p1'::jsonb->>'dias_de_caja_confiable') || '|' || (:'p1'::jsonb->>'historia_dias');
+select (:'p2'::jsonb->>'historia_dias') || '|' || (:'p2'::jsonb->>'dias_de_caja_confiable') || '|' || (:'p2'::jsonb->>'incluye_impuestos');
+select (:'p3'::jsonb->>'saldo_inicial_declarado') || '|' || (:'p3'::jsonb->>'dias_de_caja_confiable');`);
+  const [c1, c2, c3] = lineas(r);
+  esperar("con el BCP declarado (S/ 1,000 de arranque) pero sin ventas, el saldo está declarado y los días de caja NO son confiables (0 días de historia)", r.ok && c1 === "true|false|0", r);
+  esperar("con 30 días de historia y el saldo declarado SÍ son confiables, y el IGV entró", r.ok && c2 === "30|true|true", r);
+  esperar("sin ningún saldo de arranque declarado, no son confiables aunque haya 30 días de historia", r.ok && c3 === "false|false", r);
+}
+
+// 10c. El IGV y el pago a cuenta de renta del mes en curso entran a lo que sale (lo acumulado hasta hoy, el día 15 del mes siguiente). La
+// línea de IGV es EXACTAMENTE lo que Impuestos dice que se debe (`a_pagar` del mes, ya neto del crédito y del saldo a favor de la base de
+// cada quien), y la de renta, el 1 % de lo vendido sin IGV. Una boleta de S/ 1,180,000 (base 1,000,000, IGV 180,000) asegura que hay algo
+// que pagar aunque la base local traiga crédito de antes. Se piden 12 semanas para que el día 15 del mes que viene caiga dentro de la
+// ventana sea cual sea el día de hoy.
+{
+  const r = correr(`${ESCENA}
+${COMPROBANTE}
+select retail.fn_flujo_caja_proyeccion(12) as antes \\gset
+select pg_temp.comp(:'tru', 'boleta', 'B981', 1, 1180000, 'aceptado', 'produccion', :'hoy'::date) as b1 \\gset
+select retail.fn_flujo_caja_proyeccion(12) as p \\gset
+select pg_temp.salidas(:'p', 'impuesto', 'igv:%') > 0
+   and pg_temp.salidas(:'p', 'impuesto', 'igv:%') = (select m.a_pagar from retail.fn_impuestos_igv_meses(date_trunc('month', :'hoy'::date)::date, date_trunc('month', :'hoy'::date)::date) m);
+select pg_temp.salidas(:'p', 'impuesto', 'renta:%') - pg_temp.salidas(:'antes', 'impuesto', 'renta:%');
+select (select (s->>'fecha')::date from jsonb_array_elements(:'p'::jsonb->'salidas') s where s->>'id' like 'igv:%' limit 1)
+     = ((date_trunc('month', :'hoy'::date) + interval '1 month')::date + 14);
+select (:'p'::jsonb->>'incluye_impuestos');`);
+  const [igv, renta, fecha15, incluye] = lineas(r);
+  esperar("la línea de IGV es lo que Impuestos dice que se debe este mes (y es más que cero)", r.ok && igv === "t", r);
+  esperar("el pago a cuenta de renta suma el 1 % de lo vendido sin IGV: S/ 10,000 por una boleta de base 1,000,000", r.ok && renta === "10000.00", r);
+  esperar("las dos caen el día 15 del mes siguiente", r.ok && fecha15 === "t", r);
+  esperar("la proyección dice que incluye los impuestos", r.ok && incluye === "true", r);
+}
+
+// 11. El pago de la planilla y el pago a SUNAT (20261016002000, ADR-0417 situaciones 15 y 16) son SALIDAS del Flujo real, cada una en su categoría
+// («planilla», «impuestos»), y no cambian lo que sale en un «día normal» de la proyección (la planilla ya se suma aparte; un pago a SUNAT cae un día).
+{
+  const r = correr(`${ESCENA}
+select ${REAL} as antes \\gset
+select retail.fn_flujo_caja_proyeccion(6) as p_antes \\gset
+select retail.registrar_movimiento_dinero('pago_planilla', 1000, :'bcp', null, null, 'Planilla de prueba F6') as m1 \\gset
+select retail.registrar_movimiento_dinero('pago_sunat', 500, :'bcp', null, null, 'IGV de prueba F6') as m2 \\gset
+select ${REAL} as despues \\gset
+select retail.fn_flujo_caja_proyeccion(6) as p_despues \\gset
+select pg_temp.cuadra(:'despues');
+select pg_temp.cat(:'despues', 'planilla') - pg_temp.cat(:'antes', 'planilla'), pg_temp.cat(:'despues', 'impuestos') - pg_temp.cat(:'antes', 'impuestos');
+select pg_temp.num(:'despues', 'salio') - pg_temp.num(:'antes', 'salio'), pg_temp.num(:'despues', 'entro') - pg_temp.num(:'antes', 'entro');
+select pg_temp.num(:'p_despues', 'salidas_diarias') = pg_temp.num(:'p_antes', 'salidas_diarias');`);
+  const [cuadra, cats, lados, diarias] = lineas(r);
+  esperar("con los dos pagos, el flujo cuadra", r.ok && cuadra === "t", r);
+  esperar("la planilla pagada es una salida de S/ 1,000 en «planilla» y el pago a SUNAT una de S/ 500 en «impuestos»", r.ok && cats.split("|").map(Number).join(",") === "1000,500", r);
+  esperar("salió +1,500 y lo que entró no cambia (antes caían en «entre cuentas» y no se contaban)", r.ok && lados.split("|").map(Number).join(",") === "1500,0", r);
+  esperar("lo que sale en un día normal no se mueve por esos pagos (no se cuenta dos veces la planilla)", r.ok && diarias === "t", r);
 }
 
 console.log(`\n${casos - fallos}/${casos} casos en verde.`);

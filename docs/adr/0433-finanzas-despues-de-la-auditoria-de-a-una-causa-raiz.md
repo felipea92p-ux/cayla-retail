@@ -112,3 +112,31 @@ cayendo en «entre cuentas», hoy 0 filas): clasificarlos como «sale» sin toca
 la de Dynamic a la salida diaria); van con la proyección, en la actividad 4.
 **Verificado.** Suite `flujo_caja` 60/60 con la migración, y 4 de los 60 casos (los nuevos) fallan sin ella; las suites vecinas pasan igual que antes
 (`pedidos_web_entregar` y `redondeo_efectivo` fallan igual con y sin la migración, por el estado de la base local). vitest 160 288 pruebas, `tsc` y Knip limpios.
+
+## Actividad 4 · La proyección de caja dice con qué se apoya (G05, G06)
+
+**El problema.** «¿Me alcanza?» decía «Hoy tienes S/ 57 mil» y «~86 días de caja» sin una advertencia, con cuatro errores a la vez: los cobros de la
+tienda sin meta eran lo cobrado en 8 semanas ÷ 8 aunque solo hubiera 2 o 3 de cada día (~S/ 7 400 por semana contra ~26 000 reales); «lo que sale» no traía
+el IGV ni el pago a cuenta de renta; los pagos de planilla y de SUNAT (0 filas hoy) caían en «entre cuentas»; y nada decía que el punto de partida es
+provisional (las cuentas arrancaron en 0 el 25-sep, con 0 facturas de proveedor y un mes de historia).
+
+DECIDÍ (Felipe, 2026-10-16: «Hoy tienes» provisional con la lista de lo que falta; el IGV entra porque no incluirlo es confuso):
+- **Cobros por fechas reales y con contracción** (lente 4 de /rigor): el promedio de cada día de la semana se divide entre los días de ESE día que pasaron
+  desde que la tienda empezó a vender (tope de 8 semanas) y se contrae hacia el promedio diario de la tienda: (suma + 2 × diario) ÷ (días + 2). Con 8 días
+  pesa 80 % lo suyo; con 1, 33 %. Con menos de 4 días dice `promedio_corto`. Una tienda con un solo cobro de S/ 800 proyecta 342.86 ese día y 76.19 los
+  demás, y la semana vuelve a sumar 800: ni extrapola un día atípico ni pierde plata.
+- **IGV y pago a cuenta de renta** del mes en curso, lo acumulado hasta hoy (una cota que sube con lo que falte vender), el día 15 del mes siguiente
+  (no hay RUC ni calendario de SUNAT cargados; la ventana real es del 12 al 22). La línea de IGV es EXACTAMENTE el `a_pagar` que dice Impuestos. Si la cuenta
+  no ve Impuestos, la proyección sigue sin ellos y lo dice (`incluye_impuestos`): se degrada, no se cae (lente 5).
+- `pago_planilla` → «planilla» y `pago_sunat` → «impuestos» en el Flujo real, y fuera del «día normal» de la salida diaria (la planilla ya se suma aparte).
+- La base dice con qué se proyecta (`historia_dias`, `saldo_inicial_declarado`, `hay_facturas_de_proveedor`, `incluye_impuestos`) y da UN veredicto,
+  `dias_de_caja_confiable` (28 días de ventas y algún saldo declarado). La web marca «provisional», lista lo que falta con su enlace
+  (`FaltanProyeccion`, la misma pieza en el Flujo y en Cuentas y dinero) y no pinta en verde «dentro del mínimo» mientras tanto.
+DESCARTÉ: ocultar las cifras hasta tener saldos (la pantalla quedaría vacía en plena migración y no empujaría a completar); tomar el IGV del mes anterior como
+proxy (septiembre es casi nada frente a octubre); dividir entre 8 con un aviso (sigue subestimando ~3.5 veces).
+SE ROMPE SI: se pega la web antes que la migración (los campos nuevos llegan vacíos y la web no inventa: no dice «provisional»); un IGV de otro vencimiento
+que no sea el día 15 (hoy es un punto medio); se vuelve a ver un mes cerrado… (no aplica: la proyección mira hacia adelante).
+**Verificado.** `flujo_caja` 75/75 (12 casos nuevos o corregidos fallaban sin la migración: 7b, 7c, 10b, 10c y 11); 13 suites vecinas (las que re-pegan sus
+migraciones sobre la proyección y el flujo incluidas) pasan; `lib/flujo-caja-reglas.test.ts` y `lib/dinero-pulso-reglas.test.ts` (los literales viejos son
+«base vieja»: no dicen nada); la guía de Cuentas y dinero y la del Flujo dicen «provisional» y sus huellas se aceptaron tras revisarlas. vitest 160 297, `tsc`
+y Knip limpios. **No verificado en el navegador:** la base local compartida no tiene la migración (probé la función y la regla pura); queda para el pase final.

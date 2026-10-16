@@ -424,7 +424,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       ancla: "fin-dinero.alcanza",
       opcional: true,
       titulo: "¿Me alcanza?",
-      texto: "La primera semana de las próximas seis en que la plata bajaría de tu mínimo de caja, con lo que vence y lo que esperas vender. Y qué pasa si depositas lo que está guardado en las cajas fuertes.",
+      texto: "La primera semana de las próximas seis en que la plata bajaría de tu mínimo de caja, con lo que vence y lo que esperas vender. Y qué pasa si depositas lo que está guardado en las cajas fuertes. Si falta cargar saldos o historia, dice «provisional» y qué falta.",
     },
     {
       id: "debes",
@@ -1024,7 +1024,7 @@ export const GUIA_FIN_FLUJO: Guia = {
       ancla: "fin-flujo.dias",
       opcional: true,
       titulo: "Días de caja",
-      texto: "Si mañana no vendieras nada, para cuántos días te alcanza la plata con lo que sale en un día normal.",
+      texto: "Si mañana no vendieras nada, para cuántos días te alcanza la plata con lo que sale en un día normal. Si falta cargar saldos o historia, dice «provisional» y, arriba, qué falta.",
     },
     {
       id: "que-vence",
