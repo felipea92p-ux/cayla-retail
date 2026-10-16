@@ -357,7 +357,7 @@ function Heroe({
             <p className="t-hero-desc">Mira lo que hay en cada tienda, sepáralo aquí y recógelo en tu tienda.</p>
             <div className="t-hero-acciones">
               <Link className="t-btn t-btn-claro" href={hrefLista({ sede, categoria: null, orden: "destacado" })}>
-                Ver toda la ropa
+                Ver toda la tienda
               </Link>
             </div>
           </>

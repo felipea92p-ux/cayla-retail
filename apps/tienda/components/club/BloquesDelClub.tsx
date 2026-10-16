@@ -119,7 +119,7 @@ export function NovedadesParaTi({
       )}
       {novedades.total > enCarril.length && (
         <Link className="t-enlace c-ver" href="/catalogo">
-          Ver toda la ropa
+          Ver toda la tienda
         </Link>
       )}
     </Bloque>
@@ -149,7 +149,7 @@ export function TusFavoritos({
         <p className="w-texto-sec">
           Toca el corazón de una prenda para guardarla aquí.{" "}
           <Link className="t-enlace" href="/catalogo">
-            Ver toda la ropa
+            Ver toda la tienda
           </Link>
         </p>
       )}

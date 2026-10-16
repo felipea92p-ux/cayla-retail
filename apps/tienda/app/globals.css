@@ -189,7 +189,7 @@
   .t-como { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 }
 .t-btn.t-btn-chico { min-height: 38px; height: 38px; padding: 0 16px; font-size: 13px; margin-left: 6px; }
-/* Con el dedo, el botón chico también mide 44 px: en el celular medía 38 («Entrar» de la cabecera, «Entendido», «Ver toda la ropa»),
+/* Con el dedo, el botón chico también mide 44 px: en el celular medía 38 («Entrar» de la cabecera, «Entendido», «Ver toda la tienda»),
    menos de lo que pide un dedo. Con mouse sigue en 38. */
 @media (pointer: coarse) { .t-btn.t-btn-chico { min-height: 44px; height: 44px; } }
 .t-portada-club { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 16px; padding-top: 8px; }

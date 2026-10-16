@@ -61,7 +61,7 @@ export function MisPedidosEnLaCuenta({ lectura, origenFotos }: { lectura: Lectur
         <>
           <p className="w-texto-sec">Todavía no separaste nada. Cuando separes, aquí ves en qué está cada pedido.</p>
           <Link className="t-btn t-btn-sec t-btn-chico c-reintentar" href="/catalogo">
-            Ver toda la ropa
+            Ver toda la tienda
           </Link>
         </>
       ) : (

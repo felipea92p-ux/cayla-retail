@@ -63,9 +63,9 @@ export default async function Looks({ searchParams }: { searchParams: Promise<Re
           <div className="t-vacio">
             <Icono nombre="chispa" />
             <h3>Pronto verás aquí nuestros looks</h3>
-            <p>Estamos armando combinaciones de prendas que se ven bien juntas. Mientras tanto, mira toda la ropa.</p>
+            <p>Estamos armando combinaciones de prendas que se ven bien juntas. Mientras tanto, mira toda la tienda.</p>
             <Link className="t-btn" href={hrefLista({ sede, categoria: null, orden: "destacado" })}>
-              Ver toda la ropa
+              Ver toda la tienda
             </Link>
           </div>
         ) : (

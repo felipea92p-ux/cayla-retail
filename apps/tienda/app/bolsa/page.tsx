@@ -40,7 +40,7 @@ export default async function Bolsa() {
             <h3>Tu bolsa está vacía</h3>
             <p>Elige una prenda y su talla, o agrega un look completo.</p>
             <Link className="t-btn" href="/catalogo">
-              Ver toda la ropa
+              Ver toda la tienda
             </Link>
           </div>
         </div>

@@ -36,7 +36,7 @@ import { leerSedes } from "@/lib/tiendas-servidor";
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 const TITULOS: Record<Lista, string> = {
-  todo: "Toda la ropa",
+  todo: "Toda la tienda",
   nuevo: "Lo nuevo",
   ofertas: "Ofertas",
   vendidos: "Más vendidos",
@@ -62,7 +62,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   return { title: `${leerGrupo(sp.grupo)?.nombre ?? TITULOS.todo} · CAYLA` };
 }
 
-// Las listas del catálogo (maqueta v4, `vLista` y `filtroTienda`): toda la ropa, Lo nuevo, las ofertas (con una tarjeta por campaña),
+// Las listas del catálogo (maqueta v4, `vLista` y `filtroTienda`): toda la tienda, Lo nuevo, las ofertas (con una tarjeta por campaña),
 // los más vendidos (en su ranking) y «Tus favoritos» (lo que el cliente guardó con el corazón), de lo que el ERP muestra en Catálogo ▸
 // Vitrina web, al precio de la tienda que el cliente elige en «Ver lo que hay en» o, con «Todas», al mayor entre las tiendas de la web,
 // con la campaña encima. Con una tienda elegida, solo lo que hay en ella («N más en otras tiendas»; los favoritos no: lo guardado se ve
@@ -118,7 +118,7 @@ export default async function Catalogo({ searchParams }: Props) {
   // píldoras en tres filas «podría verse mucho mejor»). Con pocas (los favoritos, una tienda chica), todas de una vez.
   const porGrupos = grupos.length > 1 && categorias.length > 8;
   const cab = cabeceraDeLista(lista);
-  // En «Toda la ropa», el título dice lo que se está viendo: la categoría (con su grupo arriba) o el grupo (con su menú arriba).
+  // En «Toda la tienda», el título dice lo que se está viendo: la categoría (con su grupo arriba) o el grupo (con su menú arriba).
   const ceja =
     lista === "todo" && categoriaElegida
       ? grupoDe(categoriaElegida.clave).nombre
@@ -205,7 +205,7 @@ export default async function Catalogo({ searchParams }: Props) {
             <h3>{cab.vacio.titulo}</h3>
             <p>{cab.vacio.texto}</p>
             <Link className="t-btn" href={hrefLista({ sede, categoria: null, orden: "destacado" })}>
-              Ver toda la ropa
+              Ver toda la tienda
             </Link>
           </div>
         ) : (
@@ -367,7 +367,7 @@ export default async function Catalogo({ searchParams }: Props) {
                 <h3>No hay {que} aquí por ahora</h3>
                 <p>Prueba con otra categoría o mira todas.</p>
                 <Link className="t-btn" href={href({ categoria: null, grupo: null })}>
-                  {lista === "todo" ? "Ver toda la ropa" : "Ver todas"}
+                  {lista === "todo" ? "Ver toda la tienda" : "Ver todas"}
                 </Link>
               </div>
             )}

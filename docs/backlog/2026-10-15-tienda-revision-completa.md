@@ -3,8 +3,7 @@
 **Decisiones de Felipe** (con la recomendación de la revisión):
 - [ ] **Páginas legales en borrador en producción:** Privacidad y Términos dicen «Borrador: lo revisa CAYLA» y «Versión:
   borrador-2026-10-14». Que las revise el abogado, publicarlas como versión final y recién ahí quitar el sello (texto legal: no se tocó).
-- [ ] **Portada sin cuenta sin ninguna prenda:** recomendado una franja de 4 a 8 fotos de «Lo nuevo», sin precio ni stock, con «Crea tu
-  cuenta para ver precios y separar».
+- [x] ~~**Portada sin cuenta sin ninguna prenda**~~ — Felipe 2026-10-15: se deja como está (la ropa es para quien tiene cuenta).
 - [ ] **Textos del Club que chocan:** «Sin mensajes de publicidad» frente a la casilla «Quiero recibir por WhatsApp novedades y
   promociones» (recomendado «Sin publicidad, salvo que tú la pidas»); y «En caja, con tu DNI» ahora que hay carné y pasaporte
   («con tu documento»).
@@ -12,14 +11,16 @@
   separar no cambió).
 - [ ] **«Cómo separar» dice «La tienda tiene 24 horas para confirmarlo»** (antes «Tienes 24 horas»): es la regla de ADR-0408 (sin
   confirmar, se cierra solo). Confirmar que la intención no era «tienes 24 h para escribir».
-- [ ] **«Toda la ropa»** incluye aretes y maquillaje: recomendado «Toda la *tienda*». Y un título largo por grupo («Prendas de
-  *abajo*») para la página del grupo, dejando el corto en las píldoras.
+- [x] ~~**«Toda la ropa»** incluía aretes y maquillaje~~ — Felipe 2026-10-15: «Toda la *tienda*» (ceja «Catálogo»), también en los
+  botones «Ver toda la tienda» y el pie. Hecho en este PR.
+- [ ] Un título largo por grupo («Prendas de *abajo*») para la página del grupo, dejando el corto en las píldoras.
 - [ ] **Bolsa:** «Quitar» saca la prenda entera (la maqueta sacaba una) y se suma un «+»: recomendado dejarlo.
 - [ ] **Cambios en cualquier tienda** de un pedido web: confirmar.
 - [ ] **«Club CAYLA» del pie sin cuenta:** probar `/#club-cayla` en vez de Crear cuenta. **«Cómo llegar»:** hoy busca la dirección
   escrita en Google Maps; más exacto, guardar el enlace de Maps de cada tienda en Configuración ▸ Tienda web (cambio de base).
 
 **Para hacer:**
+- [ ] **Fusionar #1124 antes que #1129** (Felipe 2026-10-15) y resolver en #1129 los 5 archivos que chocan.
 - [ ] **Producción:** confirmar en el panel del proyecto de clientes que «Change email address» usa `correo-nuevo.html` (la guía lo
   decía): sin ella, «Cambiar mi correo» no se puede terminar (espera un código de 6 números).
 - [ ] **Los grupos por familia:** que `tienda_catalogo` mande `categorias.familia`, para que una categoría nueva de accesorios no caiga

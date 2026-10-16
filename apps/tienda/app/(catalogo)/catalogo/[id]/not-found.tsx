@@ -3,7 +3,7 @@ import { Icono } from "@/components/Icono";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 
-/** Una prenda que ya no se ve en la web (la ocultaron, se descontinuó o el enlace está mal): lo dice y lleva a toda la ropa. */
+/** Una prenda que ya no se ve en la web (la ocultaron, se descontinuó o el enlace está mal): lo dice y lleva a toda la tienda. */
 export default async function PrendaQueNoEsta() {
   const catalogo = await leerCatalogo(null);
   return (
@@ -14,7 +14,7 @@ export default async function PrendaQueNoEsta() {
           <h3>Esta prenda ya no está en la tienda</h3>
           <p>Puede que se haya agotado o que el enlace esté mal escrito. Mira lo que hay ahora.</p>
           <Link className="t-btn" href="/catalogo">
-            Ver toda la ropa
+            Ver toda la tienda
           </Link>
         </div>
       </div>

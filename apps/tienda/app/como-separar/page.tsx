@@ -18,7 +18,7 @@ export const metadata: Metadata = {
  * «Cómo separar» (ADR-0408, actividad 5; maqueta v4, `vComoSeparar`): los cuatro pasos y los dos avisos, con y sin cuenta (el pie de
  * todas las páginas la enlaza). Las tiendas son las de la web y los plazos, los del ERP (`retail.tienda_ayuda()`): nada escrito a mano que
  * pueda quedar viejo. Sin base, los pasos salen sin nombres y los avisos sin número. Termina en lo que sigue (revisión 2026-10-15): sin
- * cuenta, crearla (o entrar); con cuenta, el primer paso ya sale hecho y el botón lleva a toda la ropa (como la bolsa vacía). Antes la
+ * cuenta, crearla (o entrar); con cuenta, el primer paso ya sale hecho y el botón lleva a toda la tienda (como la bolsa vacía). Antes la
  * página acababa en las notas y no llevaba a ningún lado.
  */
 export default async function ComoSeparar() {
@@ -58,7 +58,7 @@ export default async function ComoSeparar() {
           <div className="w-ayuda-acciones">
             {conCuenta ? (
               <Link className="t-btn t-btn-ancho" href={hrefLista({ categoria: null, orden: "destacado" })}>
-                Ver toda la ropa
+                Ver toda la tienda
               </Link>
             ) : (
               <>

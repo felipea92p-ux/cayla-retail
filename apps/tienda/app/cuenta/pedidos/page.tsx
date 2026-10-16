@@ -54,7 +54,7 @@ export default async function MisPedidos() {
               <h3>Todavía no tienes pedidos</h3>
               <p>Cuando separes una prenda, aquí ves en qué está: si la tienda ya lo confirmó, cuánto falta pagar y cuándo recogerlo.</p>
               <Link className="t-btn" href="/catalogo">
-                Ver toda la ropa
+                Ver toda la tienda
               </Link>
             </div>
           ) : (

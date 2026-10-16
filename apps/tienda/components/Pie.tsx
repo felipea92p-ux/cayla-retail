@@ -21,7 +21,7 @@ const comprar = (sede: string | null): Columna => {
       ["Ofertas", lista("ofertas")],
       ["Más vendidos", lista("vendidos")],
       ["Arma tu look", hrefLooks(sede)],
-      ["Toda la ropa", hrefLista({ sede, categoria: null, orden: "destacado" })],
+      ["Toda la tienda", hrefLista({ sede, categoria: null, orden: "destacado" })],
     ],
   };
 };

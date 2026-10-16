@@ -268,7 +268,7 @@ describe("las listas: Lo nuevo, las ofertas y Más vendidos (actividad 5)", () =
   ];
   const nombres = (ps: Prenda[]) => ps.map((p) => p.nombre);
 
-  it("lee la lista y la campaña de la URL; lo raro vuelve a toda la ropa y a todas las campañas", () => {
+  it("lee la lista y la campaña de la URL; lo raro vuelve a toda la tienda y a todas las campañas", () => {
     expect(leerLista("nuevo")).toBe("nuevo");
     expect(leerLista(["vendidos", "x"])).toBe("vendidos");
     expect(leerLista("ofertas")).toBe("ofertas");
@@ -312,7 +312,7 @@ describe("las listas: Lo nuevo, las ofertas y Más vendidos (actividad 5)", () =
     expect(cabeceraDeLista("nuevo").titulo).toEqual(["Lo", "nuevo"]);
     expect(cabeceraDeLista("ofertas").titulo).toEqual(["Las", "ofertas"]);
     expect(cabeceraDeLista("vendidos")).toMatchObject({ titulo: ["Más", "vendidos"], ceja: "Lo que más se llevan" });
-    expect(cabeceraDeLista("todo")).toEqual({ ceja: "Toda la tienda", titulo: ["Toda la", "ropa"], frase: null, vacio: null });
+    expect(cabeceraDeLista("todo")).toEqual({ ceja: "Catálogo", titulo: ["Toda la", "tienda"], frase: null, vacio: null });
     // Vacía, cada lista dice qué aparecería ahí (no «no hay prendas» a secas).
     expect(cabeceraDeLista("ofertas").vacio?.titulo).toBe("Por ahora no hay ofertas");
     expect(cabeceraDeLista("nuevo").vacio?.titulo).toBe("Por ahora no hay nada nuevo");
