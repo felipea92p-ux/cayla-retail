@@ -1438,7 +1438,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `abrir_envio_sin_aviso`. `/recibir` cambia «Llegó mercadería» por `LlegoSinAviso.tsx` y suma `PendientesDeRecibir.tsx`
   (`fn_recepcion_pendientes`, el mismo número que el aviso «Recibido por terminar» del Inicio y el de Catálogo ▸ Productos). Lógica pura
   en `lib/recepcion-conteo-reglas.ts`; reusa la matriz, `HojaPrenda` y `ElegirPrendaExistente` de la fase 4.
-- **«Nos debe»** (ADR-0362, fase 5a, 2026-10-12; migración `20261013015000`, **sin pegar**): la ficha del proveedor
+- **«Nos debe»** (ADR-0362, fase 5a, 2026-10-12; migración `20261013015000`, en producción desde el 2026-10-13): la ficha del proveedor
   (`/compras/proveedores/[id]`) suma `components/nos-debe/NosDebeProveedor.tsx` (`lib/nos-debe.ts` → `fn_proveedor_nos_debe`) y la hoja
   `HojaReposicion.tsx` (`lib/nos-debe-acciones.ts` → `resolver_deuda_proveedor`); la orden nueva/editar lee `fn_nos_debe_resumen`
   (`getDatosNuevaOrden`, aviso); la recepción ofrece la causa `reposicion_faltante` con `deudas_del_proveedor` de `fn_envio_detalle`, y

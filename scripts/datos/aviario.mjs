@@ -68,6 +68,9 @@ export const AVIARIO = [
       // ADR-0292: en qué sede se registró cada producto. Es un dato del producto (el catálogo es global), no de la sede.
       // Refresco del volcado del 2026-10-02.
       "producto_origen",
+      // ADR-0408 (tienda online): qué modelos se ven en la web y cómo entran a Lo nuevo, y los looks de «Arma tu look» con sus
+      // prendas. Se manejan desde Catálogo ▸ Vitrina web: son de quien responde por el catálogo. Refresco del volcado del 2026-10-16.
+      "vitrina_productos", "vitrina_looks", "vitrina_look_piezas",
     ] },
   // Tucán es la traducción al estándar de Shopify (ADR-0030); sus tablas no existen en V2.
   { n: "03", pajaro: "Tucán", modulo: "Taxonomía universal", tablas: [] },
@@ -172,6 +175,19 @@ export const AVIARIO = [
       // La huella de cada envío con token de Ventas y Caja (ADR-0398): un mismo token con otro contenido se rechaza. La escriben las
       // funciones que guardan en el mostrador y `fn_resolver_intento`. Asignada en el refresco del volcado del 2026-10-13.
       "intentos_con_token",
+      // ADR-0408 (tienda online): la venta y el cliente que entran por otra puerta. Los pedidos web con sus líneas y sus pagos (Ventas ▸
+      // Pedidos web); la cuenta web de cada cliente, con el correo que confirma, sus cambios de correo, sus intentos de clave y sus
+      // visitas; sus favoritos, sus «Avísame cuando llegue» y sus recomendaciones (Clientes ▸ Recomendaciones); y los plazos de los
+      // pedidos web y lo que la web muestra de cada tienda. Son del pájaro que responde por `ventas`, `separaciones` y `clientas`.
+      // Refresco del volcado del 2026-10-16.
+      "pedidos_web", "pedido_web_lineas", "pedido_web_pagos",
+      "cuentas_web", "cuentas_web_pendientes", "cuentas_web_cambios_correo", "cuentas_web_intentos_clave", "cuentas_web_visitas",
+      "favoritos_web", "esperas_web", "recomendaciones_web", "configuracion_tienda_web", "ubicacion_datos_web",
+      // ADR-0008: la huella de las lecturas del padrón de la última hora, con que la base exige que el nombre de una ficha con DNI sea
+      // el del padrón (20261015133000). Cuida `clientas.nombre`. Refresco del volcado del 2026-10-16.
+      "padron_lecturas",
+      // ADR-0414: cada vez que se aplazó el vencimiento de un apartado, de qué fecha a cuál y quién. Refresco del volcado del 2026-10-16.
+      "separacion_aplazamientos",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales",
@@ -213,7 +229,13 @@ export const AVIARIO = [
       // ADR-0139 (Compras): el reparto de un comprobante entre tiendas (`compra_item_destinos`: línea × tienda × cantidad),
       // su bitácora de reasignaciones y la vista que cruza el plan con lo recibido y cerrado por tienda. Ya están en
       // producción (172000/173000 pegadas el 2026-09-20).
-      "compra_item_destinos", "compra_reasignaciones", "compra_item_reparto_resumen"] },
+      "compra_item_destinos", "compra_reasignaciones", "compra_item_reparto_resumen",
+      // ADR-0362 (fase 5b): la nota de crédito del proveedor (la 07) que respalda los documentos internos de una factura, y qué
+      // documentos respalda. Son del mismo pájaro que `compra_notas_credito`. Refresco del volcado del 2026-10-16.
+      "compra_notas_proveedor", "compra_notas_proveedor_documentos",
+      // Cada cambio del CCI, la cuenta, el Yape o el titular de un proveedor (20261013161000): antes, después, quién y cuándo.
+      // Refresco del volcado del 2026-10-16.
+      "proveedores_cambios_bancarios"] },
   { n: "10", pajaro: "Gallito", modulo: "Producción del Taller",
     tablas: ["producciones", "produccion_lineas", "insumos", "insumo_lotes", "movimientos_insumo", "v_insumo_saldos",
       // ADR-0133 (Producción, D-H): su propio directorio de proveedores y sus comprobantes de tela/avíos/maquila, aparte de los de

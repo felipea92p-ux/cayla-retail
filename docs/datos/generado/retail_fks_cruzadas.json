@@ -170,6 +170,11 @@
   "src_table": "compra_notas_credito"
  },
  {
+  "conname": "compra_notas_proveedor_usuario_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_notas_proveedor"
+ },
+ {
   "conname": "compra_pagos_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "compra_pagos"
@@ -560,9 +565,39 @@
   "src_table": "patrones"
  },
  {
+  "conname": "pedido_web_lineas_resuelta_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedido_web_lineas"
+ },
+ {
+  "conname": "pedido_web_pagos_anulado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedido_web_pagos"
+ },
+ {
+  "conname": "pedido_web_pagos_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedido_web_pagos"
+ },
+ {
   "conname": "pedidos_no_atendidos_atendido_por_fkey",
   "ref_table": "public.personas",
   "src_table": "pedidos_no_atendidos"
+ },
+ {
+  "conname": "pedidos_web_cerrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedidos_web"
+ },
+ {
+  "conname": "pedidos_web_confirmado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedidos_web"
+ },
+ {
+  "conname": "pedidos_web_entregado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedidos_web"
  },
  {
   "conname": "periodo_cierres_cerrado_por_fkey",
@@ -730,6 +765,21 @@
   "src_table": "proveedores_produccion"
  },
  {
+  "conname": "recomendaciones_web_archivada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "recomendaciones_web"
+ },
+ {
+  "conname": "recomendaciones_web_leida_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "recomendaciones_web"
+ },
+ {
+  "conname": "recomendaciones_web_respondida_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "recomendaciones_web"
+ },
+ {
   "conname": "rendiciones_fondo_aprobada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "rendiciones_fondo"
@@ -773,6 +823,11 @@
   "conname": "separacion_abonos_creado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "separacion_abonos"
+ },
+ {
+  "conname": "separacion_aplazamientos_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separacion_aplazamientos"
  },
  {
   "conname": "separacion_avisos_avisado_por_fkey",
@@ -963,5 +1018,25 @@
   "conname": "ventas_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "ventas"
+ },
+ {
+  "conname": "vitrina_looks_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "vitrina_looks"
+ },
+ {
+  "conname": "vitrina_looks_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "vitrina_looks"
+ },
+ {
+  "conname": "vitrina_productos_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "vitrina_productos"
+ },
+ {
+  "conname": "vitrina_productos_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "vitrina_productos"
  }
 ]
