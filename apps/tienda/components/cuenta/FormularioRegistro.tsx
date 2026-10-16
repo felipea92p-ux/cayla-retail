@@ -95,7 +95,9 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
   const [valorCodigo, setValorCodigo] = useState("");
   // Lo que el servidor dijo del correo al pedir el código (lo acaba de confirmar otro aparato): bajo su caja, mientras sea ese.
   const [avisoCorreo, setAvisoCorreo] = useState<{ correo: string; texto: string } | null>(null);
-  const [ahora, setAhora] = useState(() => Date.now());
+  // Hasta que se pide un código vale 0: nada la usa antes (el reloj de «volver a pedir» arranca con el envío, que fija la hora). Sin
+  // `Date.now()` aquí: la página se arma por adelantado y Next no deja leer el reloj al armarla.
+  const [ahora, setAhora] = useState(0);
   const [enviando, iniciar] = useTransition();
   const [pidiendo, iniciarPedido] = useTransition();
   const [probando, iniciarPrueba] = useTransition();

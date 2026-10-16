@@ -3,6 +3,7 @@
 import { useActionState, type ReactNode } from "react";
 import Link from "next/link";
 import { separar, type EstadoSeparar } from "@/app/acciones/bolsa";
+import { visible } from "@/lib/visible";
 import { Icono } from "../Icono";
 
 /**
@@ -34,7 +35,7 @@ export function FormularioSeparar({
   const [estado, accion, pendiente] = useActionState<EstadoSeparar, FormData>(separar, null);
 
   function irALaTienda() {
-    const bloque = document.getElementById("bloque-tienda");
+    const bloque = visible(document.querySelectorAll<HTMLElement>("#bloque-tienda"));
     if (!bloque) return;
     const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     bloque.scrollIntoView({ behavior: quieto ? "auto" : "smooth", block: "center" });

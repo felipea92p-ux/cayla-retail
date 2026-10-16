@@ -1,6 +1,6 @@
 import "server-only";
 import type { TipoDocumentoClienta } from "@cayla-retail/shared";
-import { unstable_cache } from "next/cache";
+import { cacheLife, unstable_cache } from "next/cache";
 import { cache } from "react";
 import { base, leerConRespaldo } from "./base";
 import {
@@ -135,6 +135,31 @@ export const leerCasillaDeAvisos = (): Promise<CasillaWhatsapp | null> =>
     null,
   );
 
+/** Lo mismo para la página «Crear cuenta», que se arma por adelantado (ADR-0432): el texto se guarda un minuto, igual para todos. Las
+ *  acciones (`app/acciones/cuenta.ts`) siguen leyendo el vigente de la base, sin guardar: comparan lo que la persona vio contra lo
+ *  vigente al mandar el código. Un fallo no se guarda (se lanza adentro y se responde `null` afuera). */
+async function casillaGuardada(): Promise<unknown> {
+  "use cache";
+  try {
+    const [fila] = await base()`select retail.tienda_casilla_whatsapp() as r`;
+    cacheLife({ stale: 300, revalidate: 60, expire: 3600 });
+    return fila?.r ?? null;
+  } catch (error) {
+    console.error(JSON.stringify({ evento: "tienda_casilla_whatsapp_fallo", mensaje: error instanceof Error ? error.message : String(error) }));
+    cacheLife({ stale: 300, revalidate: 5, expire: 3600 });
+    return null;
+  }
+}
+
+export async function leerCasillaDeAvisosGuardada(): Promise<CasillaWhatsapp | null> {
+  try {
+    return leerCasillaWhatsapp(await casillaGuardada());
+  } catch (error) {
+    console.error(JSON.stringify({ evento: "tienda_casilla_whatsapp_fallo", mensaje: error instanceof Error ? error.message : String(error) }));
+    return null;
+  }
+}
+
 /* ------------------------------------------------------------------ Crear la cuenta */
 
 export type DatosCuenta = {
@@ -217,9 +242,23 @@ const beneficiosCompartidos = unstable_cache(
   { revalidate: 300 },
 );
 
+async function beneficiosGuardados(): Promise<unknown> {
+  "use cache";
+  try {
+    const cruda = await beneficiosCompartidos();
+    cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
+    return cruda;
+  } catch (error) {
+    // Sin base: no se lanza (Next daría por rota la página que se arma por adelantado) y el respaldo dura segundos, no minutos.
+    console.error(JSON.stringify({ evento: "tienda_club_beneficios_fallo", mensaje: error instanceof Error ? error.message : String(error) }));
+    cacheLife({ stale: 300, revalidate: 5, expire: 3600 });
+    return null;
+  }
+}
+
 export const leerBeneficiosDelClub = async (): Promise<Beneficios | null> => {
   try {
-    return leerBeneficios(await beneficiosCompartidos());
+    return leerBeneficios(await beneficiosGuardados());
   } catch (error) {
     console.error(JSON.stringify({ evento: "tienda_club_beneficios_fallo", mensaje: error instanceof Error ? error.message : String(error) }));
     return null;

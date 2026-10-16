@@ -10,6 +10,7 @@ import {
   textoDelBoton,
   type AvisoAlEntrar,
 } from "@/lib/instalar";
+import { visible } from "@/lib/visible";
 import { Icono } from "../Icono";
 import { HojaNativa } from "./HojaNativa";
 import { IconoApp } from "./IconoApp";
@@ -18,13 +19,13 @@ import { useInstalar } from "./ProveedorInstalar";
 const EVENTOS_DE_ACTIVIDAD = ["touchstart", "pointerdown", "keydown", "scroll", "wheel"] as const;
 
 /** ¿Hay en la página el aviso del Club, abierto? Si lo hay, uno espera al otro: se ofrece la franja, que no se apila como tarjeta. */
-const hayAvisoDelClub = () => document.querySelector(".t-aviso-club-envol:not([data-cerrado])") !== null;
+const hayAvisoDelClub = () => visible(document.querySelectorAll(".t-aviso-club-envol:not([data-cerrado])")) !== null;
 
 /** Quien escribe algo, o ya tiene una hoja abierta, no recibe nada encima. */
 function hayAlgoQueNoSeDebeTapar() {
   const activo = document.activeElement;
   const escribiendo = activo instanceof HTMLElement && (activo.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(activo.tagName));
-  return escribiendo || document.querySelector("dialog[open]") !== null;
+  return escribiendo || visible(document.querySelectorAll("dialog[open]")) !== null;
 }
 
 /**
