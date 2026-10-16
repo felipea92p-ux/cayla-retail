@@ -1,6 +1,6 @@
 {
-  "guia": "clientas.recomendaciones",
-  "ruta": "/clientas/recomendaciones",
+  "guia": "tienda-web.recomendaciones",
+  "ruta": "/tienda-web/recomendaciones",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
   "total": 11,
   "controles": {

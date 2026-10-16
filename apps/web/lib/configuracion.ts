@@ -52,7 +52,7 @@ export async function getParametrosFinanzas(): Promise<ParametrosFinanzasConCort
   return p ? { ...p, inicioFinanzas: leerInicioFinanzas(data), corteDisponible: baseTraeElCorte(data) } : null;
 }
 
-/** Configuración ▸ Tienda web (ADR-0408, act. 6, 20261014231000): cada tienda abierta con lo que la web le muestra al cliente
+/** Tienda web ▸ Ajustes (ADR-0408, act. 6, 20261014231000): cada tienda abierta con lo que la web le muestra al cliente
  *  (su WhatsApp es el del QR del club) y los plazos de los pedidos web. `null` si la base todavía no tiene la migración: la
  *  pestaña lo dice en vez de caerse (principio 9). */
 export async function getConfiguracionTiendaWeb(): Promise<ConfiguracionTiendaWeb | null> {

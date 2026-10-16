@@ -1,4 +1,4 @@
-// La guía de foco de las hojas de Ventas ▸ Pedidos web (ADR-0284, ADR-0408 act. 8 y 9). No agrega reglas: cada «falta» es exactamente
+// La guía de foco de las hojas de Tienda web ▸ Pedidos (ADR-0284, ADR-0408 act. 8 y 9). No agrega reglas: cada «falta» es exactamente
 // lo que `confirmar_pedido_web`, `no_confirmar_pedido_web`, `anular_pedido_web`, `reservar_linea_pedido_web`, `enviar_pedido_web_desde`,
 // `registrar_pago_pedido_web`, `anular_pago_pedido_web` y `anular_pedido_web_pagado` rechazarían (o lo que apaga el botón), y la prueba lo
 // compara contra `problemaParaConfirmar`, `faltaDeLlegada`, `problemaDelPago`, `problemaParaAnular` y `problemaParaAnularPagado`.

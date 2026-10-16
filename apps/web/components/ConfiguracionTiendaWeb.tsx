@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
+import { CheckCircle2, Clock, MapPin, MessageCircle, ShoppingBag, Store, Wallet } from "lucide-react";
+import { MarcoWeb } from "@/components/tienda-web/MarcoWeb";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -42,7 +44,7 @@ import {
   type SedeWeb,
 } from "@/lib/tienda-web-reglas";
 
-// Configuración ▸ Tienda web (ADR-0408, actividad 6; maqueta `vConfig` de docs/maquetas/tienda-online-2026-10/): lo que la
+// Tienda web ▸ Ajustes (ADR-0430; antes Configuración ▸ Tienda web, ADR-0408, actividad 6; maqueta `vConfig` de docs/maquetas/tienda-online-2026-10/): lo que la
 // tienda online le muestra al cliente de cada tienda —nombre, WhatsApp, dirección y horario, y si se muestra— y los plazos de
 // los pedidos web. Dibujada con el kit de Finanzas como el resto de Configuración (ADR-0195), y como sus otras pestañas: CADA
 // CASILLA SE GUARDA SOLA AL SALIR DE ELLA, firmada con el responsable, sin botón «Guardar» (la maqueta tenía uno; aquí manda
@@ -188,8 +190,8 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     <>
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <p className="max-w-md text-[13px] text-taupe">
-          Lo que la tienda online le muestra al cliente de cada tienda. Cada casilla se guarda sola al salir de ella, a nombre de quien figure como
-          responsable; la web lo muestra en unos minutos.
+          Cada casilla se guarda sola al salir de ella, a nombre de quien figure como responsable; la web lo muestra en unos minutos. Arriba
+          de cada tienda ves cómo la verá el cliente mientras escribes.
         </p>
         <div className="w-full max-w-xs">
           <ComboResponsable control={responsable} deshabilitado={guardando} />
@@ -286,6 +288,26 @@ function TarjetaSede({
       <CabeceraBloque titulo={s.nombre}>
         <Chip tono={estado.tono}>{estado.texto}</Chip>
       </CabeceraBloque>
+
+      {/* Así la ve el cliente (ADR-0430): la tarjeta de esta tienda en la tienda online, con lo que está escrito ahora mismo. Cambia
+          mientras escribes; apagada, se ve atenuada (el cliente no la ve). Solo dibuja: no guarda nada. */}
+      <MarcoWeb ruta="/tiendas" etiqueta={`Así ve el cliente la tienda ${paraLaFrase} en la web`} className="!rounded-xl">
+        <div className="tw-previa" data-apagada={enWeb ? undefined : ""}>
+          <span className="tw-previa-nombre">{limpiarTexto(b.nombreWeb) ?? "Sin nombre en la web"}</span>
+          <span className="tw-previa-dato" data-falta={limpiarTexto(b.direccion) ? undefined : ""}>
+            <MapPin aria-hidden />
+            {limpiarTexto(b.direccion) ?? "Falta la dirección para recoger"}
+          </span>
+          <span className="tw-previa-dato" data-falta={limpiarTexto(b.horario) ? undefined : ""}>
+            <Clock aria-hidden />
+            {limpiarTexto(b.horario) ?? "Sin horario"}
+          </span>
+          <span className="tw-previa-boton" data-apagado={celularValido(b.whatsapp) ? undefined : ""} aria-hidden>
+            <MessageCircle />
+            {celularValido(b.whatsapp) ? "Escribir por WhatsApp" : "Sin WhatsApp"}
+          </span>
+        </div>
+      </MarcoWeb>
 
       <CampoGuiado id={idCampo(s.id, "nombre_web")} guia={guia}>
         <CampoFin
@@ -424,6 +446,7 @@ function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guar
   return (
     <Superficie pad className="anim-sube" guia="config.tienda-web-plazos">
       <CabeceraBloque titulo="Para todas las sedes" bajada="Los plazos de los pedidos que se separan en la web, y desde cuándo el cliente ve el número." />
+      <LineaDePlazos horasConfirmar={Number(b.horasParaConfirmar)} horasPagar={Number(b.horasAvisoSinPagar)} diasRecoger={Number(b.diasAvisoSinRecoger)} />
       <div className="fin-dos-campos">
         {casilla("horasParaConfirmar", "Horas para confirmar", "Si la tienda no confirma el pedido en ese tiempo, se cierra solo y el cliente puede volver a separarlo.", "horas")}
         {casilla("horasAvisoSinPagar", "Aviso si no paga, en horas", "Desde que la tienda lo confirma. Si no pagó nada, se anula solo y sus prendas vuelven a estar disponibles; si pagó una parte, sale con aviso y la tienda decide.", "horas")}
@@ -434,5 +457,30 @@ function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guar
         Cambiar estos números afecta a todas las sedes desde el siguiente pedido.
       </Aviso>
     </Superficie>
+  );
+}
+
+/** La vida de un pedido web en una línea (ADR-0430): separa → confirmas → paga → recoge, con el plazo de cada tramo tal como está escrito
+ *  en las casillas de abajo (cambia mientras escribes). Se dibuja una vez al llegar. Solo muestra: lo que se guarda son las casillas. */
+function LineaDePlazos({ horasConfirmar, horasPagar, diasRecoger }: { horasConfirmar: number; horasPagar: number; diasRecoger: number }) {
+  const n = (x: number) => (Number.isFinite(x) && x > 0 ? x : "—");
+  const pasos: { icono: ReactNode; nombre: string; plazo: ReactNode }[] = [
+    { icono: <ShoppingBag />, nombre: "Separa", plazo: "El cliente, en la web" },
+    { icono: <CheckCircle2 />, nombre: "Confirmas", plazo: <>en <b>{n(horasConfirmar)}</b> h, o se cierra solo</> },
+    { icono: <Wallet />, nombre: "Paga", plazo: <>en <b>{n(horasPagar)}</b> h, o se anula si no pagó nada</> },
+    { icono: <Store />, nombre: "Recoge", plazo: <>en <b>{n(diasRecoger)}</b> días, con su código</> },
+  ];
+  return (
+    <ol className="tw tw-linea" aria-label="La vida de un pedido web y sus plazos">
+      {pasos.map((p, i) => (
+        <li key={p.nombre} className="tw-linea-paso" style={{ "--i": i } as CSSProperties}>
+          <span aria-hidden className="tw-linea-nodo">
+            {p.icono}
+          </span>
+          <span className="tw-linea-nombre">{p.nombre}</span>
+          <span className="tw-linea-plazo">{p.plazo}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
