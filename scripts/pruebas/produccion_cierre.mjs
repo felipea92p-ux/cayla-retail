@@ -368,6 +368,17 @@ caso(
    select concat_ws(',', :'c', ${ESTADO}, (select cantidad_buenas from retail.producciones where id = :'oid'), (select costo_maquila from retail.producciones where id = :'oid'), ${MOV_ENTRADA});`,
   "OK,terminada,55,225.00,55"
 );
+caso(
+  "C10 el techo de las buenas que main ya tiene en producción (ADR-0415, 20261015153000): una talla no pasa del doble de lo pedido (o de 5 más si es chica) —buenas_de_mas, sin dejar nada escrito—; en el techo mismo, sí cierra",
+  `${ORDEN(ESPINA, LINO)}
+   delete from retail.produccion_fases where produccion_id = :'oid';
+   update retail.variantes set costo = 4.50 where id in (:'v1', :'v2');
+   select pg_temp.cierra(:'oid', ${L(["v1", 61], ["v2", 20])}, null, null, 225) as c1 \\gset
+   select concat_ws(',', pg_temp.eh(:'c1'), :'c1' like '%más del doble de lo pedido%', ${ESTADO}, ${MOV_ENTRADA}) as r1 \\gset
+   select pg_temp.cierra(:'oid', ${L(["v1", 60], ["v2", 40])}, null, null, 225, true) as c2 \\gset
+   select concat_ws(',', :'r1', :'c2', ${ESTADO});`,
+  "P0001|buenas_de_mas,t,en_proceso,0,OK,terminada"
+);
 
 // A. ANULAR CON PRENDAS AFUERA --------------------------------------------------------------------------------------------------
 caso(

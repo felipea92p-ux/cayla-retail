@@ -23,6 +23,10 @@
 --   · Que las segundas entren al stock como otro producto: otro cambio en el núcleo del catálogo (principio 1) con reglas de precio que hoy no existen; quedan anotadas en la Vuelta.
 --   · Tocar `revertir_produccion`: devuelve el stock como siempre. Lo medido que dejó el cierre se reescribe en el siguiente cierre del modelo.
 --
+-- OJO CON LA PRODUCCIÓN (2026-10-16): `cerrar_produccion` YA tiene en producción el techo `buenas_de_mas` de main (ADR-0415, 20261015153000, reemplazo anclado). Esta migración
+-- reemplaza la función ENTERA, así que lleva ese mismo bloque (con la misma marca): pegarla encima no lo quita, y volver a pegar 20261015153000 después no hace nada.
+-- Si main vuelve a parchar `cerrar_produccion`, hay que traer ese parche aquí antes de pegar esta migración (la prueba produccion_cierre.mjs, caso C10, vigila el techo).
+--
 -- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe, después de 154000 y 155000): solo `create or replace function` sobre funciones que ya existen o son nuevas; ninguna política
 -- ni `alter table`. Idempotente.
 
@@ -145,6 +149,21 @@ begin
   update produccion_lineas set cantidad_buenas = 0
     where produccion_id = p_produccion_id and cantidad_buenas is null;
 
+  -- ADR-0415 (20261015153000, ya en producción): salir algunas más de lo pedido es real (el corte rindió); más del doble es casi siempre un cero de más (buenas_de_mas).
+  declare
+    v_plan_tope integer;
+    v_buenas_tope integer;
+  begin
+    for v_plan_tope, v_buenas_tope in
+      select l.cantidad_plan, l.cantidad_buenas from produccion_lineas l
+       where l.produccion_id = p_produccion_id and l.cantidad_buenas > greatest(l.cantidad_plan * 2, l.cantidad_plan + 5)
+       order by l.cantidad_buenas - l.cantidad_plan desc
+    loop
+      raise exception 'De una talla se pidieron % y anotaste % buenas: más del doble de lo pedido. Revisa la cantidad; si de verdad salieron tantas, anota hasta % y abre otra orden con el resto.',
+        v_plan_tope, v_buenas_tope, greatest(v_plan_tope * 2, v_plan_tope + 5)
+        using errcode = 'P0001', hint = 'buenas_de_mas';
+    end loop;
+  end;
   select coalesce(sum(cantidad_buenas), 0) into v_total from produccion_lineas where produccion_id = p_produccion_id;
   if v_total = 0 then
     raise exception 'No salió ninguna prenda buena — si la corrida se perdió, anula la orden en vez de cerrarla';
