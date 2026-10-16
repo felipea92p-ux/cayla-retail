@@ -2,8 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { anularBoletaLucode, anularDocumentoLucode, entornoLucode } from "@/lib/lucode";
 import { firmaDeEncabezados, mensajeErrorResponsable } from "@/lib/responsable-reglas";
 import { capturarError } from "@/lib/errores";
-import { motivoParaNoPedirBaja } from "@/lib/anular-comprobante-reglas";
-import type { EstadoComprobante } from "@/lib/comprobantes-reglas";
+import { laBajaAnulaLaVenta, motivoDeAnulacionDeVenta, motivoParaNoAnularLaVenta, motivoParaNoPedirBaja } from "@/lib/anular-comprobante-reglas";
+import type { EstadoComprobante, TipoComprobante } from "@/lib/comprobantes-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 
 // POST /api/lucode/anular  { comprobante_id: string, motivo: string }
 //
@@ -11,12 +12,21 @@ import type { EstadoComprobante } from "@/lib/comprobantes-reglas";
 //   PROMETE: pide la baja de un comprobante ACEPTADO por el camino que SUNAT
 //            exige según su tipo (resumen diario para boletas, comunicación de
 //            baja para facturas y notas) y guarda el resultado real —
-//            distinguiendo "confirmada" de "en trámite".
+//            distinguiendo "confirmada" de "en trámite". Y, si es una boleta o
+//            una factura de una venta, ANULA LA VENTA en el mismo acto
+//            (`anular_venta`: las prendas vuelven al stock, la caja lo
+//            descuenta), porque una baja con la venta viva es un estado
+//            imposible (ADR-0016, act. 2026-10-14: 3 ventas así en dos semanas,
+//            dos cobradas otra vez).
 //   ASUME:   sesión válida y el responsable del combo en los encabezados
 //            `x-responsable`/`x-ubicacion` (ADR-0161). Que sea líder, que no
 //            haya nota vigente ni una baja en trámite se revisa ANTES de
 //            llamar a Lucode (`motivoParaNoPedirBaja`); la RPC lo vuelve a
-//            exigir al guardar.
+//            exigir al guardar. Y lo que `anular_venta` va a exigir (caja
+//            abierta, mismo día, sin cambio ni devolución, módulo Devoluciones)
+//            también se revisa ANTES (`motivoParaNoAnularLaVenta`): si la venta
+//            no se puede anular, la baja no se pide y el camino es Devolución
+//            con nota de crédito.
 //   NO HACE: no decide el plazo. La documentación de Lucode se contradice
 //            (3 vs 5 días) y SUNAT habla de 7: bloquear por una fecha
 //            inventada acá negaría anulaciones legítimas. Se intenta, y si el
@@ -61,7 +71,7 @@ export async function POST(request: Request) {
 
   const { data: comprobante, error: errComprobante } = await supabase
     .from("comprobantes")
-    .select("id, tipo, serie, numero, estado, entorno_transmision, anulacion_solicitada_at")
+    .select("id, tipo, serie, numero, estado, entorno_transmision, anulacion_solicitada_at, venta_id")
     .eq("id", comprobanteId)
     .maybeSingle();
 
@@ -109,6 +119,46 @@ export async function POST(request: Request) {
   }
 
   const tipo = comprobante.tipo as "boleta" | "factura" | "nota_credito" | "nota_debito";
+
+  // La venta que documenta (ADR-0016, act. 2026-10-14): todo lo que `anular_venta` va a exigir se mira ANTES de pedir la baja, porque la
+  // baja no se deshace y pedirla con la venta sin anular es justo el estado imposible que esto cierra. Si no se puede leer, 503: nunca
+  // «adelante» a ciegas. Una venta ya anulada no frena nada (la baja va sola).
+  let ventaParaAnular: { id: string; items: string[] } | null = null;
+  if (laBajaAnulaLaVenta(tipo as TipoComprobante, comprobante.venta_id)) {
+    const ventaId = comprobante.venta_id as string;
+    const rpcDatos = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>,
+    ) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
+    const [venta, items, veDevoluciones] = await Promise.all([
+      supabase.from("ventas").select("id, estado, caja_id, created_at").eq("id", ventaId).maybeSingle(),
+      supabase.from("venta_items").select("id").eq("venta_id", ventaId),
+      rpcDatos("fn_ve_modulo", { p_clave: "devoluciones" }),
+    ]);
+    const itemIds = (items.data ?? []).map((i) => i.id);
+    // Las mismas tres preguntas de `anular_venta`: un cambio cuelga de la línea (`cambios.venta_item_id`), una devolución de la venta.
+    const [cambios, devoluciones, caja] = await Promise.all([
+      supabase.from("cambios").select("id", { count: "exact", head: true }).in("venta_item_id", itemIds),
+      supabase.from("devoluciones").select("id", { count: "exact", head: true }).eq("venta_id", ventaId).neq("estado", "rechazada"),
+      venta.data?.caja_id ? supabase.from("cajas").select("estado").eq("id", venta.data.caja_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    ]);
+    const falla = venta.error ?? items.error ?? veDevoluciones.error ?? cambios.error ?? devoluciones.error ?? caja.error;
+    if (falla || !venta.data || !items.data || cambios.count === null || devoluciones.count === null) {
+      capturarError("lucode/anular: no se pudo leer la venta del comprobante", falla, { comprobante_id: comprobante.id, venta_id: ventaId });
+      return Response.json({ error: "No se pudo leer la venta de este comprobante. Reintenta en un momento." }, { status: 503 });
+    }
+    const rechazoVenta = motivoParaNoAnularLaVenta({
+      estado: venta.data.estado,
+      cajaEstado: caja.data?.estado ?? null,
+      diaVenta: hoyLima(new Date(venta.data.created_at)),
+      hoy: hoyLima(),
+      tieneCambioODevolucion: cambios.count > 0 || devoluciones.count > 0,
+      veDevoluciones: veDevoluciones.data === true,
+    });
+    if (rechazoVenta) return Response.json({ error: rechazoVenta.error }, { status: rechazoVenta.status });
+    if (venta.data.estado !== "anulada") ventaParaAnular = { id: venta.data.id, items: items.data.map((i) => i.id) };
+  }
+
   const resultado =
     tipo === "boleta"
       ? await anularBoletaLucode(comprobante.serie, comprobante.numero)
@@ -155,5 +205,32 @@ export async function POST(request: Request) {
     );
   }
 
-  return Response.json({ confirmada, estado: resultado.estado, entorno: resultado.entorno });
+  // La venta se anula en el mismo acto, con la misma firma. Cada prenda vuelve «vendible»: si la venta fue real y solo el documento
+  // estaba mal, se vuelve a cobrar y el stock vuelve a salir; si no se hizo, nunca salió. Si esto falla, la baja ya está pedida y
+  // guardada: se dice tal cual, con qué hacer, y queda en Sentry; nunca se pide la baja otra vez.
+  let ventaAnulada = false;
+  if (ventaParaAnular) {
+    const { error: errVenta } = await supabase.rpc("anular_venta", {
+      p_venta_id: ventaParaAnular.id,
+      p_motivo: motivoDeAnulacionDeVenta(comprobante.serie, comprobante.numero, motivo),
+      p_items: ventaParaAnular.items.map((id) => ({ venta_item_id: id, condicion: "vendible" })),
+    });
+    if (errVenta) {
+      capturarError("lucode/anular: baja guardada pero la venta no se anuló", errVenta, {
+        comprobante_id: comprobante.id,
+        comprobante: `${comprobante.serie}-${comprobante.numero}`,
+        venta_id: ventaParaAnular.id,
+      });
+      return Response.json(
+        {
+          error: `La baja se pidió a SUNAT (${resultado.estado}) y quedó guardada, pero la venta no se pudo anular: ${errVenta.message}. Anúlala desde Ventas ▸ Historial o avisa a quien administra el sistema; no vuelvas a pedir la baja.`,
+          resultado,
+        },
+        { status: 500 }
+      );
+    }
+    ventaAnulada = true;
+  }
+
+  return Response.json({ confirmada, estado: resultado.estado, entorno: resultado.entorno, ventaAnulada });
 }

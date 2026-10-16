@@ -101,6 +101,9 @@ select retail.registrar_venta(:'ubic',
     'descripcion_libre', 'Blusa concurrencia ${i}', 'categoria_id', :'cat', 'talla_id', :'talla', 'color_codigo', :'color')),
   jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', ${40 + i})),
   null, gen_random_uuid()) as venta_${i} \\gset`).join("")}
+-- Desde 20261015004000 cerrar en bloque exige un cuadre del piso guardado después de la última venta (now() es fijo en la transacción).
+insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen)
+  values (:'ubic', (select id from public.personas where auth_user_id = '${FELIPE}'), gen_random_uuid(), md5('fixture concurrencia cola'), now(), '{}'::jsonb);
 commit;
 select :'ubic' || '|' || :'v1';
 select string_agg(p.id::text, '|' order by p.id) from retail.prendas_por_regularizar p

@@ -145,6 +145,10 @@ exito(
     `${venta()}update retail.prendas_por_regularizar set vendido_en = now() + interval '1 day' where ubicacion_id = :'ubic' and estado = 'pendiente' and id <> :'fila';
 insert into retail.cola_arranque_plazo (ubicacion_id, hasta) values (:'ubic', retail.fn_hoy_lima() + 11)
   on conflict (ubicacion_id) do update set hasta = excluded.hasta;
+-- Cerrar en bloque exige un cuadre del piso guardado después de la última venta que se cierra (20261015004000, A6): en la transacción
+-- now() es fijo, así que el cuadre y el corte llevan el mismo instante y created_at >= corte se cumple.
+insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen)
+  values (:'ubic', (select id from public.personas where auth_user_id = '${FELIPE}'), gen_random_uuid(), md5('fixture corregir prenda'), now(), '{}'::jsonb);
 select retail.cerrar_cola_arranque(:'ubic', now(), 'no_se_sabe', null) as _cierre \\gset
 ${corregir()}
 select estado, descripcion from retail.prendas_por_regularizar where id = :'fila';

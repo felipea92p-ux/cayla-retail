@@ -142,6 +142,9 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       color: v.color,
       colorHex: v.colorHex ?? null,
       colorCodigo: v.colorCodigo ?? null,
+      // Con el color, la llave de «¿Es alguna de estas?» en Prenda sin registrar (`prendasPosibles`).
+      tallaId: v.tallaId ?? null,
+      categoriaId: v.categoriaId ?? null,
       categoria: v.categoria,
       categoriaPrefijo: v.categoriaPrefijo ?? null,
       categoriaFamilia: v.categoriaFamilia ?? null,
@@ -262,6 +265,8 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
         puedeApartar={modulos.includes("apartados") && persona.ubicacionTipo === "tienda"}
         // La libreta de clientas es del módulo «Clientas» (ADR-0249, 2026-09-28): sin él, el ticket no ofrece buscarla.
         puedeBuscarClienta={modulos.includes("clientas")}
+        // A5 (auditoría 2026-10-14): el enlace a la mesa de Ventas sin registrar, que vive en Existencias (ADR-0306).
+        verMesaRegularizar={modulos.includes("existencias")}
         club={club}
         qrDisponible={resQr.data === true}
         tiposComprobante={tiposDeComprobanteDeLaSede(resSeries.error ? null : (resSeries.data ?? null))}

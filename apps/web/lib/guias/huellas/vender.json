@@ -75,6 +75,8 @@
       "ComboBuscable «(sin nombre)» #2",
       "CampoTexto «Descripción corta»",
       "input «Precio cobrado en soles»",
+      "Boton «Corregir el precio»",
+      "Boton «Sí, cobré S/»",
       "ComboResponsable «)»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -233,6 +235,9 @@
       "button «{soles(r.total)}»",
       "BotonVer «Historial completo»",
       "BotonVer «Ir a Caja»"
+    ],
+    "components/punto-de-venta/SinRegistrarDeHoy.tsx": [
+      "Link «{TEXTO_ENLACE_MESA}»"
     ],
     "components/punto-de-venta/TarjetaPrenda.tsx": [
       "button «vender.prenda-abrir»",

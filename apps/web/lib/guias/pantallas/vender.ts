@@ -81,7 +81,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       ...CAJA_ABIERTA,
       preparar: [{ tipo: "vaciar", ancla: "vender.buscador" }],
       titulo: "Prenda sin registrar",
-      texto: "Para la prenda que todavía no está en el sistema (llegó sin etiqueta). Te pide categoría, talla, color y precio, y entra al ticket como cualquier otra; después Almacén la registra y le pone su etiqueta. Como el botón registra algo, en la demo no lo tocamos.",
+      texto: "Para la prenda que llegó sin etiqueta. Te pide categoría, talla y color; si en el piso hay una igual del sistema, «Es esta» la cobra como siempre. Si no, pones el precio (te dice cuánto cuestan las de esa categoría y, si te sales, te pide confirmar) y Almacén la registra después. En la demo no lo tocamos.",
     },
     {
       id: "ver-catalogo",
@@ -181,7 +181,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       solo: "escritorio",
       ...CAJA_ABIERTA,
       titulo: "Descuento, espera y quién atiende",
-      texto: "«Aplicar descuento» rebaja el ticket o solo unas prendas, en % o en soles, con su motivo; el % deja el precio sin céntimos. «Dejar en espera» guarda el ticket para atender a otro cliente. Arriba del botón eliges quién atiende.",
+      texto: "«Aplicar descuento» rebaja el ticket o solo unas prendas, en % o en soles, con su motivo; el % deja el precio sin céntimos. «Dejar en espera» guarda el ticket para atender a otro cliente. Arriba del botón eliges quién atiende. Debajo, cuántas sin registrar vendió hoy tu tienda y cuántas esperan.",
     },
     {
       id: "cobrar",
