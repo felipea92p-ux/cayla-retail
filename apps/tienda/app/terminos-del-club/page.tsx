@@ -20,8 +20,8 @@ const SECCIONES = [
   { id: "cumpleanos", titulo: "3. Cupón de cumpleaños" },
   { id: "aniversario", titulo: "4. Vale de aniversario" },
   { id: "avisos", titulo: "5. Avisos" },
-  { id: "cambios", titulo: "6. Cambios y fin del programa" },
-  { id: "conservacion", titulo: "7. Conservación de datos" },
+  { id: "cambios-del-club", titulo: "6. Cambios y fin del programa" },
+  { id: "conservacion-club", titulo: "7. Conservación de datos" },
 ] as const satisfies readonly TipoSeccion[];
 const [miembros, codigo, cumpleanos, aniversario, avisos, cambios, conservacion] = SECCIONES;
 

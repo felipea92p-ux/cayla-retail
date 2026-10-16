@@ -23,7 +23,7 @@ export default async function Tiendas() {
   const ver = Object.fromEntries(sedes.map((s) => [s.id, { href: hrefDelInicio(claveDeSede(s.nombre)), actual: false }]));
   return (
     <MarcoCuenta segunSesion conPie>
-      <SegunSesion visitante={<NuestrasTiendas sedes={sedes} enPagina />} conCuenta={<NuestrasTiendas sedes={sedes} enPagina ver={ver} />} />
+      <SegunSesion visitante={<NuestrasTiendas sedes={sedes} enPagina idTitulo="nuestras-tiendas-pagina" />} conCuenta={<NuestrasTiendas sedes={sedes} enPagina ver={ver} idTitulo="nuestras-tiendas-pagina" />} />
     </MarcoCuenta>
   );
 }

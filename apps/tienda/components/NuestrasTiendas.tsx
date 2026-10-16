@@ -19,6 +19,7 @@ export function NuestrasTiendas({
   ver,
   ceja,
   reintentar = "/tiendas",
+  idTitulo = "nuestras-tiendas",
 }: {
   sedes: Sede[];
   enPagina?: boolean;
@@ -28,6 +29,9 @@ export function NuestrasTiendas({
   ceja?: string;
   /** A dónde lleva «Volver a intentar» si la base no dio las tiendas: la misma página. */
   reintentar?: string;
+  /** El id del título de la sección (`aria-labelledby` y el ancla). Cada página pone el suyo: con cache components las últimas páginas
+   *  visitadas siguen en el documento, escondidas, y dos ids iguales harían que el ancla o el nombre apuntaran a la copia escondida. */
+  idTitulo?: string;
 }) {
   const laCeja = ceja ?? (ver ? "Mira lo que hay en cada una" : "Recoge en la que te quede cerca");
   // Bajo el título de la página, cada tienda es un h2; en una sección (h2), un h3.
@@ -129,9 +133,9 @@ export function NuestrasTiendas({
   if (enPagina) {
     return (
       <div className="t-ancho ay-pagina">
-        <section className="ay-bloque ay-tiendas-pag" aria-labelledby="nuestras-tiendas">
+        <section className="ay-bloque ay-tiendas-pag" aria-labelledby={idTitulo}>
           <EncabezadoAyuda
-            id="nuestras-tiendas"
+            id={idTitulo}
             ceja={laCeja}
             titulo={
               <>
@@ -146,11 +150,11 @@ export function NuestrasTiendas({
     );
   }
   return (
-    <section className="t-sec t-ancho ay-tiendas-sec" aria-labelledby="nuestras-tiendas">
+    <section className="t-sec t-ancho ay-tiendas-sec" aria-labelledby={idTitulo}>
       <div className="t-sec-cab">
         <div>
           <span className="t-ceja">{laCeja}</span>
-          <h2 id="nuestras-tiendas">
+          <h2 id={idTitulo}>
             Nuestras <em>tiendas</em>
           </h2>
         </div>

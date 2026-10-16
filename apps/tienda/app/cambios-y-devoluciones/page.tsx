@@ -42,14 +42,14 @@ export default async function CambiosYDevoluciones() {
         <div className="ay-puntos">
           <NotaAyuda icono="reloj" nivel="h2" {...plazo} />
           <NotaAyuda icono="tienda" nivel="h2" {...donde}>
-            <Link className="ay-enlace" href={conTiendas ? "#nuestras-tiendas" : "/tiendas"}>
+            <Link className="ay-enlace" href={conTiendas ? "#nuestras-tiendas-cambios" : "/tiendas"}>
               Ver nuestras tiendas y su WhatsApp <Icono nombre="flecha" />
             </Link>
           </NotaAyuda>
           <NotaAyuda icono="ticket" nivel="h2" {...llevar} />
         </div>
       </div>
-      {conTiendas && <NuestrasTiendas sedes={sedes} ceja="Cambia tu prenda en la que te quede cerca" reintentar="/cambios-y-devoluciones" />}
+      {conTiendas && <NuestrasTiendas sedes={sedes} ceja="Cambia tu prenda en la que te quede cerca" reintentar="/cambios-y-devoluciones" idTitulo="nuestras-tiendas-cambios" />}
     </MarcoCuenta>
   );
 }

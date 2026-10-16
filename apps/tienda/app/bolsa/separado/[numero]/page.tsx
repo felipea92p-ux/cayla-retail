@@ -15,9 +15,6 @@ import "../../../estilos/bolsa.css";
 
 export const metadata: Metadata = { title: "¡Listo, lo separaste! · CAYLA", robots: { index: false, follow: false } };
 
-// Todavía no se arma por adelantado (ADR-0432, fase 3): lee la cuenta antes de pintar nada. Sale de aquí cuando su cáscara esté lista.
-export const instant = false;
-
 /**
  * «¡Listo, lo separaste!» (maqueta v4, `vSeparado`): el número del pedido, cuánto falta para que se cierre solo si nadie lo confirma,
  * los tres pasos y el botón que abre WhatsApp con el mensaje ya escrito al número de la tienda elegida. Solo mientras está por
