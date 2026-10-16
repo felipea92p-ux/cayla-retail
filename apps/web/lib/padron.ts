@@ -17,15 +17,6 @@ export function consultarPadron(tipo: TipoConsulta, numero: string): Promise<Res
   });
 }
 
-/**
- * La consulta de una página que cualquiera abre sin cuenta (el cartel del Club): solo el servicio público y gratis de SUNAT, nunca el
- * proveedor de pago (Felipe 2026-10-15, D6). Así nadie puede gastar desde afuera la cuota que usa la caja para sus boletas y
- * facturas. Si SUNAT no responde o no encuentra el DNI, la página dice que se intente en unos minutos o en tienda.
- */
-export function consultarPadronPublico(tipo: TipoConsulta, numero: string): Promise<ResultadoPadron> {
-  return consultarConConfig(tipo, numero, { sunatPublico: process.env.PADRON_SUNAT_PUBLICO });
-}
-
 /** Lo que devuelve `GET /api/padron`. Vive aquí, con el resto del dominio, para
  *  que el formulario no tenga que importar tipos desde un route handler. */
 export type RespuestaPadron = {

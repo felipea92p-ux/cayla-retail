@@ -3,7 +3,6 @@ import {
   ajustarNumeroAlTipo,
   documentoLegible,
   documentoParaComprobante,
-  esTipoDocumentoClienta,
   largoMaximoDocumento,
   normalizarNumeroDocumento,
   problemaDocumento,
@@ -61,8 +60,6 @@ describe("documento de la clienta (ADR-0288 D-2): las mismas reglas que la base"
     expect(tipoDocumentoDe("carne_extranjeria")).toBe("carne_extranjeria");
     expect(tipoDocumentoDe("ruc")).toBe("dni");
     expect(tipoDocumentoDe(null)).toBe("dni");
-    expect(esTipoDocumentoClienta("pasaporte")).toBe(true);
-    expect(esTipoDocumentoClienta("ruc")).toBe(false);
   });
 
   it("en pantalla, el número a medias y con su tipo", () => {

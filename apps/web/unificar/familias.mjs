@@ -768,8 +768,7 @@ export const DECISIONES = {
       { "archivo": "components/ImprimirEtiquetasPrecio.tsx", "motivo": "papel físico (ADR-0336): la vista de la etiqueta que se imprime" },
       { "archivo": "components/traslados-pases/ReversoPase.tsx", "motivo": "ADR-0355: los pases de Traslados tienen su diseño por decisión" },
       { "archivo": "components/analisis/PestanaQuieta.tsx", "motivo": "ADR-0357: Análisis tiene su diseño y su movimiento por decisión" },
-      { "archivo": "components/BuscadorGlobal.tsx", "motivo": "el buscador de la cabecera (Ctrl K) es parte del marco, fuera del censo" },
-      { "archivo": "components/clientas/RegistroClub.tsx", "motivo": "la página pública del club (club-publico.css): la ve el cliente, tiene su propio diseño" }
+      { "archivo": "components/BuscadorGlobal.tsx", "motivo": "el buscador de la cabecera (Ctrl K) es parte del marco, fuera del censo" }
     ]
   },
   "combo": {
@@ -806,9 +805,7 @@ export const DECISIONES = {
       // `(?:[^>]|=>)`: la flecha de un `onValor={(v) => …}` no corta la búsqueda (así se escapaban seis, 2026-10-13).
       "<Desplegable\\b(?:[^>]|=>)*?\\bforma=\"(?:caja|cajaBaja)\""
     ],
-    "excepciones": [
-      { "archivo": "components/clientas/RegistroClub.tsx", "motivo": "la página pública del club tiene su propia caja (club-input) y el mes de nacimiento es un campo, no un filtro" }
-    ],
+    "excepciones": [],
     "deuda": []
   },
   "etiqueta-campo": {
@@ -1066,9 +1063,7 @@ export const DECISIONES = {
       "^\\s*(?:export\\s+)?(?:default\\s+)?(?:function|const)\\s+BarraAvance\\b"
     ],
     "deuda": [],
-    "excepciones": [
-      { "archivo": "components/clientas/RegistroClub.tsx", "motivo": "la página pública del club es para el cliente y tiene su propia cara (club-publico.css): su barra de avance del registro no se toca sin la palabra de Felipe" }
-    ]
+    "excepciones": []
   },
   "grafico.anillo": {
     "fecha": "2026-10-15",
