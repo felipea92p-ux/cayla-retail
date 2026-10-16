@@ -1,0 +1,1024 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Producción · Órdenes y la orden — lámina para elegir mirando</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@400;500;600&display=swap">
+<style>
+  /* =====================================================================
+     Tokens REALES del ERP, copiados de apps/web/app/globals.css (@theme) y
+     apps/web/app/estilos/tema.css (:root[data-tema="oscuro"]). Fuera de este
+     bloque no hay ningún hex: todo color es var(--color-…).
+     Los --prenda-* son color de DATO (el color de la prenda, ADR-0336 §3):
+     no cambian con el tema, como `data-color-dato` en MosaicoPrenda.
+     ===================================================================== */
+  :root {
+    --color-crema: #f5f0e8;
+    --color-papel: #fbf8f2;
+    --color-hueso: #eae1d2;
+    --color-sand: #e8e0d0;
+    --color-tinta: #1a1a18;
+    --color-tinta-60: #5b544c;
+    --color-taupe: #805c4c;
+    --color-rojo: #b8412d;
+    --color-rojo-profundo: #8b2a1f;
+    --color-verde: #48603f;
+    --color-verde-profundo: #44583a;
+    --color-ambar: #74501a;
+    --color-ambar-profundo: #734f15;
+    --color-pizarra: #4c5d6e;
+    --color-sombra: #1a1a18;
+    --color-vidrio: #ffffff;
+    --color-tinta-fija: #1a1a18;
+    --color-crema-fija: #f5f0e8;
+    --shadow-xl: 0 30px 64px -22px color-mix(in srgb, var(--color-sombra) 20%, transparent);
+
+    --prenda-blanco: #f3efe7;
+    --prenda-negro: #232321;
+    --prenda-arena: #d9c7a3;
+    --prenda-caqui: #a08a5e;
+    --prenda-crudo: #eee4d0;
+
+    --radius-sm: 4px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px; --radius-2xl: 20px;
+    --ease-cayla: cubic-bezier(0.32, 0.72, 0.24, 1);
+    --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-serif: "EB Garamond", ui-serif, Georgia, serif;
+    --ancho: 1440px;
+    color-scheme: light;
+  }
+  :root[data-tema="oscuro"] {
+    color-scheme: dark;
+    --color-crema: #1a1a18;
+    --color-papel: #242422;
+    --color-hueso: #31302d;
+    --color-sand: #3d3c38;
+    --color-sombra: #000000;
+    --color-vidrio: #31302d;
+    --color-tinta: #f5f0e8;
+    --color-tinta-60: #b9b2a7;
+    --color-taupe: #c4a898;
+    --color-rojo: #e8806a;
+    --color-rojo-profundo: #f29a86;
+    --color-verde: #9ccb8d;
+    --color-verde-profundo: #a8d49a;
+    --color-ambar: #e4b968;
+    --color-ambar-profundo: #ecc676;
+    --color-pizarra: #a2b8cd;
+    --shadow-xl: 0 30px 64px -22px rgb(0 0 0 / 0.7);
+  }
+  body[data-ancho="1024"] { --ancho: 1024px; }
+
+  /* ---------- base ---------- */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--color-crema); color: var(--color-tinta); font-family: var(--font-sans); font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased; overflow-x: auto; }
+  h1, h2, h3, h4, p, ul, ol, figure { margin: 0; }
+  ul, ol { padding: 0; list-style: none; }
+  button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; padding: 0; }
+  a { color: inherit; }
+  svg { display: block; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  :focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+  .ic { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .ic-18 { width: 18px; height: 18px; } .ic-16 { width: 16px; height: 16px; } .ic-14 { width: 14px; height: 14px; }
+  .label { text-transform: uppercase; letter-spacing: 0.13em; font-weight: 600; }
+  .serif { font-family: var(--font-serif); font-weight: 600; letter-spacing: -0.005em; }
+  .num { font-variant-numeric: lining-nums tabular-nums; }
+  .taupe { color: var(--color-taupe); }
+  .t60 { color: var(--color-tinta-60); }
+
+  /* =====================================================================
+     La lámina (lo que NO es el ERP): barra fija, índice, preguntas, marcos.
+     ===================================================================== */
+  .lam-barra { position: sticky; top: 0; z-index: 80; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding: 10px 24px; background: color-mix(in srgb, var(--color-crema) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px dashed var(--color-taupe); min-width: var(--ancho); }
+  .lam-barra b { font-size: 12px; letter-spacing: 0.04em; }
+  .lam-barra .grp { display: flex; align-items: center; gap: 6px; }
+  .lam-barra .sep { width: 1px; height: 20px; background: var(--color-sand); }
+  .lam-barra .grp a { text-decoration: none; }
+  .lam-barra .derecha { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .lam { width: var(--ancho); margin: 0 auto; padding: 32px 0 80px; }
+  .lam-intro { max-width: 880px; padding: 0 24px 8px; }
+  .lam-intro h1 { font: 600 40px/1.05 var(--font-serif); letter-spacing: -0.005em; }
+  .lam-intro p { margin-top: 12px; font-size: 15px; color: var(--color-tinta-60); max-width: 720px; }
+  .lam-intro .decidido { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .lam-preg { margin-top: 48px; padding: 0 24px; }
+  .lam-preg h2 { font: 600 30px/1.1 var(--font-serif); letter-spacing: -0.005em; display: flex; align-items: baseline; gap: 12px; }
+  .lam-preg h2 .n { font: 600 11px/1 var(--font-sans); letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-taupe); }
+  .lam-cambia { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .lam-cambia > div { border-left: 2px solid var(--color-sand); padding: 2px 0 2px 14px; font-size: 14px; color: var(--color-tinta-60); }
+  .lam-cambia b { color: var(--color-tinta); font-weight: 600; }
+  .lam-vista { margin-top: 24px; padding: 0 24px; }
+  .lam-vista figcaption { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: 13px; color: var(--color-tinta-60); }
+  .lam-vista figcaption .letra { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; background: var(--color-tinta); color: var(--color-crema); font: 600 16px/1 var(--font-serif); }
+  .lam-vista figcaption b { color: var(--color-tinta); font-weight: 600; }
+  .lam-vista figcaption .ancho { margin-left: auto; font-variant-numeric: tabular-nums; }
+  .pil { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; border: 1px solid var(--color-sand); padding: 0 14px; min-height: 32px; font-size: 13px; font-weight: 600; color: var(--color-taupe); white-space: nowrap; transition: background-color .15s, border-color .15s, color .15s; }
+  .pil:hover { color: var(--color-tinta); background: color-mix(in oklab, var(--color-sand) 40%, transparent); }
+  .pil[aria-pressed="true"], .pil[aria-current="true"] { background: var(--color-tinta); border-color: var(--color-tinta); color: var(--color-crema); }
+  .pil.dash { border-style: dashed; }
+
+  /* El marco: una pantalla del ERP al ancho elegido (1440 o 1024). `pantalla` es el contenedor de las consultas de abajo. */
+  .marco { position: relative; width: calc(var(--ancho) - 48px); container-type: inline-size; container-name: pantalla; background: var(--color-crema); border: 1px solid var(--color-sand); border-radius: var(--radius-lg); overflow: hidden; color: var(--color-tinta); }
+  /* A 1440 × 900 el navegador deja unos 820 px de alto a la página: la línea punteada marca hasta dónde se ve sin bajar. */
+  .marco .pliegue { position: absolute; left: 0; right: 0; top: 820px; height: 0; border-top: 1px dashed color-mix(in srgb, var(--color-taupe) 55%, transparent); pointer-events: none; z-index: 4; }
+  .marco .pliegue span { position: absolute; left: 12px; top: -22px; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; font-weight: 600; color: var(--color-taupe); background: var(--color-crema); padding: 2px 6px; border-radius: 4px; }
+  .erp { display: grid; grid-template-columns: 272px minmax(0, 1fr); min-height: 840px; }
+
+  /* ---------- lateral (AppShell) ---------- */
+  .lat { border-right: 1px solid color-mix(in srgb, var(--color-tinta) 10%, transparent); background: var(--color-crema); padding-bottom: 24px; }
+  .lat .logo { display: flex; align-items: center; gap: 12px; padding: 28px 0 24px 28px; }
+  .lat .logo svg { width: 48px; height: 32px; }
+  .lat .logo .marca { display: flex; flex-direction: column; }
+  .lat .logo .marca b { font-size: 15px; letter-spacing: 0.26em; text-transform: uppercase; font-weight: 600; }
+  .lat .logo .marca i { font-style: normal; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 600; color: var(--color-taupe); }
+  .lat nav { padding: 0 12px; position: relative; }
+  .lat .fila { position: relative; display: flex; align-items: center; gap: 14px; height: 48px; padding: 0 12px 0 16px; border-radius: var(--radius-lg); font-size: 15px; color: color-mix(in srgb, var(--color-tinta) 80%, transparent); white-space: nowrap; text-decoration: none; width: 100%; text-align: left; }
+  .lat .fila + .fila, .lat .hijas { margin-top: 8px; }
+  .lat .fila .ic { color: color-mix(in srgb, var(--color-tinta) 60%, transparent); }
+  .lat .fila:hover { background: color-mix(in srgb, var(--color-sand) 40%, transparent); color: var(--color-rojo); }
+  .lat .fila:hover .ic { color: var(--color-rojo); }
+  .lat .fila[aria-current="page"] { background: color-mix(in srgb, var(--color-sand) 70%, transparent); color: var(--color-tinta); font-weight: 500; }
+  .lat .fila[aria-current="page"] .ic, .lat .fila.abierto .ic { color: var(--color-tinta); }
+  .lat .fila .chev { margin-left: auto; width: 14px; height: 14px; color: color-mix(in srgb, var(--color-tinta) 50%, transparent); }
+  .lat .fila.abierto .chev { transform: rotate(90deg); }
+  .lat .hijas .fila { padding-left: 36px; }
+  .lat .hijas .hijas .fila { padding-left: 56px; }
+  .lat .hijas .fila + .fila { margin-top: 8px; }
+  .lat .riel { position: absolute; left: 0; width: 2px; height: 20px; border-radius: 999px; background: var(--color-rojo); top: 14px; }
+  .lat .grupo-t { padding: 0 16px 12px; font-size: 11px; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
+
+  /* ---------- cabecera de la app ---------- */
+  .barra { display: flex; align-items: center; gap: 12px; height: 60px; padding: 0 32px; border-bottom: 1px solid color-mix(in srgb, var(--color-tinta) 10%, transparent); background: color-mix(in srgb, var(--color-crema) 85%, transparent); }
+  .barra .icono-btn { display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--radius-md); color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
+  .barra .icono-btn:hover, .barra .act:hover { background: color-mix(in srgb, var(--color-sand) 60%, transparent); color: var(--color-rojo); }
+  /* tinta al 65 % (el ERP usa 60 y 50: 4,15:1 y 3,32:1 medidos); aquí 4,9:1 sobre hueso y 5,5:1 sobre papel. */
+  .barra .buscar { display: flex; align-items: center; gap: 10px; border-radius: 999px; border: 1px solid var(--color-sand); background: var(--color-hueso); padding: 0 14px; height: 36px; font-size: 13px; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
+  .barra .buscar kbd { font: 600 11px/1 var(--font-sans); border: 1px solid var(--color-sand); border-radius: 4px; background: var(--color-papel); padding: 3px 6px; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
+  .barra .derecha { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+  .barra .act { display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px; border-radius: var(--radius-md); color: color-mix(in srgb, var(--color-tinta) 65%, transparent); font-size: 11px; }
+  .barra .sede { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 8px; font-size: 11px; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); border-radius: var(--radius-md); }
+  .barra .sede:hover { background: color-mix(in srgb, var(--color-sand) 60%, transparent); color: var(--color-tinta); }
+
+  /* ---------- contenido ---------- */
+  .main { padding: 36px 40px 48px; min-width: 0; }
+
+  /* EncabezadoPagina */
+  .enc { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px 40px; }
+  .enc .sede-linea { display: flex; align-items: center; gap: 12px; }
+  .enc .sede-linea p { display: flex; align-items: center; gap: 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-taupe); }
+  .enc .hilo { display: block; width: 32px; height: 1px; background: var(--color-taupe); }
+  .enc h1 { margin-top: 12px; font: 600 46px/1 var(--font-serif); letter-spacing: -0.02em; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .enc .frase { margin-top: 10px; max-width: 448px; font-size: 15px; color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }
+  .enc .acciones { display: flex; align-items: center; gap: 12px; }
+  .volver { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; border: 1px solid var(--color-sand); background: var(--color-papel); color: var(--color-tinta); }
+  .volver:hover { border-color: color-mix(in srgb, var(--color-tinta) 40%, transparent); }
+  .volver .ic { width: 16px; height: 16px; stroke-width: 1.8; }
+
+  /* Botones (btn-cayla). En una cabecera (data-voz="cabecera") hablan en versalitas de 11 px y 40 px. */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: var(--radius-md); border: 1px solid transparent; padding: 8px 16px; min-height: 36px; font-size: 13.5px; font-weight: 500; line-height: 1.25; white-space: nowrap; transition: background-color .15s, border-color .15s, color .15s; }
+  .btn:disabled { cursor: not-allowed; opacity: 0.5; }
+  .btn-primario { background: var(--color-tinta); color: var(--color-crema); }
+  .btn-primario:hover:not(:disabled) { background: var(--color-rojo-profundo); color: var(--color-crema-fija); }
+  .btn-secundario { color: var(--color-tinta); border-color: var(--color-sand); }
+  .btn-secundario:hover:not(:disabled) { border-color: color-mix(in oklab, var(--color-taupe) 40%, transparent); background: color-mix(in oklab, var(--color-sand) 50%, transparent); }
+  .btn-peligro { color: var(--color-rojo); border-color: color-mix(in oklab, var(--color-rojo) 30%, transparent); }
+  .btn-peligro:hover:not(:disabled) { background: color-mix(in oklab, var(--color-rojo) 10%, transparent); }
+  .btn-sutil { color: var(--color-taupe); border-color: var(--color-sand); }
+  .btn-sutil:hover:not(:disabled) { color: var(--color-tinta); background: color-mix(in oklab, var(--color-sand) 30%, transparent); }
+  .btn .ic { width: 14px; height: 14px; stroke-width: 2; }
+  [data-voz="cabecera"] .btn:not(.btn-enlace) { text-transform: uppercase; letter-spacing: 0.13em; font-weight: 600; font-size: 11px; padding: 12px 16px; min-height: 40px; }
+  .btn-enlace { display: inline; padding: 0; border: 0; color: var(--color-tinta); font-weight: 500; background-image: linear-gradient(var(--color-rojo), var(--color-rojo)), linear-gradient(color-mix(in srgb, var(--color-tinta) 32%, transparent), color-mix(in srgb, var(--color-tinta) 32%, transparent)); background-size: 0% 1.5px, 100% 1px; background-position: 0 calc(50% + 0.7em), 0 calc(50% + 0.7em); background-repeat: no-repeat; transition: background-size 300ms var(--ease-cayla), color 200ms var(--ease-cayla); }
+  .btn-enlace:hover { background-size: 100% 1.5px, 100% 1px; color: var(--color-rojo-profundo); }
+
+  /* TarjetaCifra (la de Compras): papel, filo sand, radio 16; nombre 11 px 700 taupe con punto; número serif 28. La que filtra, puesta, arena al 40 %. */
+  .cifras { margin-top: 24px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .cifra { display: flex; flex-direction: column; text-align: left; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-xl); padding: 16px 20px; width: 100%; transition: background-color .2s var(--ease-cayla); }
+  .cifra:hover { background: color-mix(in srgb, var(--color-sand) 30%, transparent); }
+  .cifra[aria-pressed="true"] { background: color-mix(in srgb, var(--color-sand) 40%, transparent); }
+  .cifra .nom { display: flex; align-items: center; gap: 7px; min-height: 20px; font-size: 11px; font-weight: 700; line-height: 20px; color: var(--color-taupe); }
+  .cifra .nom i { width: 6px; height: 6px; border-radius: 999px; background: color-mix(in srgb, var(--color-tinta) 25%, transparent); }
+  .cifra .nom i.ambar { background: var(--color-ambar); } .cifra .nom i.verde { background: var(--color-verde); } .cifra .nom i.rojo { background: var(--color-rojo); } .cifra .nom i.pizarra { background: var(--color-pizarra); }
+  .cifra .val { margin-top: 4px; display: flex; align-items: baseline; gap: 8px; font: 600 28px/1.25 var(--font-serif); letter-spacing: -0.005em; }
+  .cifra .val small { font: 500 15px/1.5 var(--font-sans); color: var(--color-taupe); }
+  .cifra .ctx { margin-top: 4px; font-size: 13px; color: var(--color-taupe); }
+  .cifra[aria-pressed="true"] .ctx { color: var(--color-tinta); font-weight: 600; }
+
+  /* TituloSeccion: serif de 21 px con su dato a la derecha */
+  .tit-sec { margin-top: 28px; display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+  .tit-sec h2 { font: 600 21px/1.2 var(--font-serif); letter-spacing: -0.005em; }
+  .tit-sec .dato { font-size: 13px; color: var(--color-taupe); }
+
+  /* La tarjeta con herramientas + tabla (ADR-0169: filtros y tabla en UNA tarjeta) */
+  .card { background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-xl); }
+  .card.tabla { margin-top: 16px; overflow: hidden; }
+  .herr { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 16px; padding: 16px 20px; border-bottom: 1px solid var(--color-sand); }
+  .herr .filtros { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .herr .filtros .sep { width: 1px; height: 20px; background: var(--color-sand); margin: 0 4px; }
+
+  /* Pestañas de vista: el vidrio con la píldora de tinta, en versalitas de 12 px */
+  .pestanas { position: relative; display: inline-flex; gap: 2px; padding: 4px; border-radius: 14px; background: color-mix(in srgb, var(--color-vidrio) 45%, transparent); border: 1px solid color-mix(in srgb, var(--color-tinta) 9%, transparent); backdrop-filter: blur(22px); }
+  .pestana { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 15px; border-radius: 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; line-height: 20px; color: var(--color-tinta); white-space: nowrap; }
+  .pestana:hover { background: color-mix(in srgb, var(--color-tinta) 6%, transparent); }
+  .pestana[aria-selected="true"] { color: var(--color-crema); background: var(--color-tinta); box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--color-sombra) 75%, transparent); }
+  .pestana .cuenta { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: color-mix(in srgb, var(--color-tinta) 10%, transparent); font-size: 10.5px; letter-spacing: 0; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
+  .pestana[aria-selected="true"] .cuenta { background: color-mix(in srgb, var(--color-crema) 15%, transparent); color: var(--color-crema); }
+
+  /* Buscador: la caja hundida con la lupa */
+  .buscador { margin-left: auto; display: flex; align-items: center; gap: 8px; width: 260px; height: 40px; padding: 0 10px 0 12px; background: var(--color-hueso); border: 1px solid var(--color-sand); border-radius: var(--radius-md); color: var(--color-tinta); }
+  .buscador .ic { width: 16px; height: 16px; color: var(--color-taupe); }
+  .buscador input { flex: 1; min-width: 0; height: 38px; border: 0; background: transparent; font: inherit; color: inherit; outline: 0; font-size: 14px; }
+  .buscador input::placeholder { color: color-mix(in srgb, var(--color-taupe) 80%, transparent); }
+  .buscador kbd { font: 600 11px/1 var(--font-sans); border: 1px solid var(--color-sand); border-radius: 4px; background: var(--color-papel); padding: 3px 6px; color: var(--color-taupe); }
+
+  /* Tabla (TABLA de Tabla.tsx): cabecera sand 70 %, títulos 13 px taupe; filas px 20 py 12; zebra hueso 50 %. */
+  .tb-cab, .tb-fila { display: grid; grid-template-columns: minmax(0, 2.6fr) 72px minmax(0, 2fr) 96px 108px minmax(0, 1.9fr) 20px; column-gap: 16px; align-items: center; padding: 0 20px; }
+  .tb-fila > .explica { grid-column: 1 / -1; margin: 10px 0 2px; }
+  .tb-cab { background: color-mix(in oklab, var(--color-sand) 70%, transparent); padding-top: 8px; padding-bottom: 8px; font-size: 13px; color: var(--color-taupe); }
+  .tb-fila { position: relative; padding-top: 12px; padding-bottom: 12px; border-top: 1px solid var(--color-sand); text-align: left; width: 100%; color: var(--color-tinta); background-image: linear-gradient(var(--color-rojo), var(--color-rojo)); background-repeat: no-repeat; background-position: 0 50%; background-size: 2px 0; transition: background-color 180ms var(--ease-cayla), background-size 220ms var(--ease-cayla); }
+  .tb-fila:nth-child(even of .tb-fila) { background-color: color-mix(in oklab, var(--color-hueso) 50%, transparent); }
+  .tb-fila:hover { background-color: color-mix(in oklab, var(--color-crema) 60%, transparent); }
+  .tb-fila:hover, .tb-fila[aria-current="true"] { background-size: 2px calc(100% - 20px); }
+  .tb-fila[aria-current="true"] { background-color: color-mix(in oklab, var(--color-hueso) 75%, transparent); }
+  .tb-fila .chev { color: color-mix(in srgb, var(--color-tinta) 45%, transparent); opacity: 0; transform: translateX(-4px); transition: opacity .2s, transform .2s var(--ease-cayla); }
+  .tb-fila:hover .chev, .tb-fila[aria-current="true"] .chev { opacity: 1; transform: none; }
+  .tb-pie { display: flex; align-items: center; gap: 12px; padding: 10px 20px; border-top: 1px solid var(--color-sand); font-size: 13px; color: var(--color-taupe); }
+  .der { text-align: right; }
+  .celda-prenda { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .celda-prenda > span:last-child { display: block; flex: 1; min-width: 0; }
+  .celda-prenda .nombre { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 500; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .celda-prenda .nombre .nombre-txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .celda-prenda .nombre .chip { flex: none; }
+  .celda-prenda .sub { display: block; margin-top: 2px; font-size: 13px; color: var(--color-taupe); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .celda-fase { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+  .cuantas { font: 600 22px/1.1 var(--font-serif); font-variant-numeric: lining-nums tabular-nums; }
+  .cuantas small { display: block; font: 400 12px/1.4 var(--font-sans); color: var(--color-taupe); }
+  .celda-fase .sub { margin-top: 4px; font-size: 13px; color: var(--color-taupe); }
+  .celda-fase .entrega-inline { display: none; }
+  .dias { font-size: 15px; font-variant-numeric: tabular-nums; }
+  .dias small, .entrega small { display: block; font-size: 12.5px; color: var(--color-taupe); }
+  .entrega { font-size: 15px; font-variant-numeric: tabular-nums; }
+  .vacia { color: color-mix(in srgb, var(--color-tinta) 45%, transparent); }
+
+  /* El mosaico de la prenda: el ícono de su categoría sobre el COLOR de la prenda (MosaicoPrenda forma=relleno). */
+  /* El filo del mosaico es `tinta` (se invierte con el tema, ADR-0336 §2): así una prenda negra no se funde con el papel oscuro. */
+  .tile { position: relative; flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: var(--radius-md); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 14%, transparent); }
+  .tile .ic { width: 50%; height: 50%; }
+  .tile.g { width: 88px; height: 88px; border-radius: var(--radius-lg); }
+  .tile.m { width: 72px; height: 72px; border-radius: var(--radius-lg); }
+  .tile.blanco { background: var(--prenda-blanco); color: var(--color-tinta-fija); }
+  .tile.negro { background: var(--prenda-negro); color: var(--color-crema-fija); }
+  .tile.arena { background: var(--prenda-arena); color: var(--color-tinta-fija); }
+  .tile.caqui { background: var(--prenda-caqui); color: var(--color-crema-fija); }
+  .tile.crudo { background: var(--prenda-crudo); color: var(--color-tinta-fija); }
+  .puntos { display: inline-flex; gap: 4px; vertical-align: middle; }
+  .punto { width: 10px; height: 10px; border-radius: 999px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 30%, transparent); }
+  .punto.blanco { background: var(--prenda-blanco); } .punto.negro { background: var(--prenda-negro); } .punto.arena { background: var(--prenda-arena); } .punto.caqui { background: var(--prenda-caqui); } .punto.crudo { background: var(--prenda-crudo); }
+
+  /* Chip (la insignia con punto; ADR-0169): fondo del color al 10–15 %, texto en su «profundo». */
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 13px; line-height: 20px; white-space: nowrap; background: var(--color-sand); color: var(--color-taupe); }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: currentColor; flex: none; }
+  .chip.ambar { background: color-mix(in srgb, var(--color-ambar) 15%, transparent); color: var(--color-ambar-profundo); }
+  .chip.verde { background: color-mix(in srgb, var(--color-verde) 15%, transparent); color: var(--color-verde-profundo); }
+  .chip.rojo { background: color-mix(in srgb, var(--color-rojo) 10%, transparent); color: var(--color-rojo-profundo); }
+  .chip.pizarra { background: color-mix(in srgb, var(--color-pizarra) 15%, transparent); color: var(--color-pizarra); }
+  .chip.tinta { background: transparent; font-weight: 600; color: var(--color-tinta); box-shadow: inset 0 0 0 1.5px var(--color-tinta); }
+  .chip.tinta::before { display: none; }
+
+  /* La causa en rojo (una de tres) con su «¿Por qué?» a un toque. El rojo es texto rojo-profundo con su punto; nada más se tiñe. */
+  .causa { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  /* La causa es texto corrido (no flex): el «¿Por qué?» es un enlace EN LÍNEA dentro de la frase y se parte donde haga falta. */
+  .causa .linea { display: block; font-size: 13.5px; font-weight: 500; line-height: 1.4; color: var(--color-rojo-profundo); }
+  .causa .linea::before { content: ""; display: inline-block; vertical-align: 1px; margin-right: 8px; width: 6px; height: 6px; border-radius: 999px; background: var(--color-rojo); }
+  .causa .porque { font-size: 13px; white-space: nowrap; margin-left: 4px; }
+  .explica { display: none; margin-top: 6px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--color-hueso); font-size: 13px; line-height: 1.5; color: var(--color-tinta); }
+  .explica b { font-weight: 600; }
+  .explica.abierta { display: block; }
+  .causa.en-tarjeta { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--color-sand); }
+
+  /* Nota al pie (nota-cayla con su «i») */
+  .nota { margin-top: 16px; display: flex; gap: 10px; align-items: flex-start; background: color-mix(in oklab, var(--color-hueso) 85%, transparent); border-radius: var(--radius-xl); padding: 14px 18px; font-size: 13px; line-height: 1.6; color: var(--color-taupe); }
+  .nota .ic { width: 16px; height: 16px; margin-top: 2px; }
+  .nota b { color: var(--color-tinta); font-weight: 600; }
+
+  /* ---------- B · columnas por fase ---------- */
+  .tablero { margin-top: 16px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(236px, 1fr); gap: 12px; overflow-x: auto; padding-bottom: 4px; }
+  .columna { background: color-mix(in oklab, var(--color-hueso) 45%, transparent); border-radius: var(--radius-xl); padding: 12px; min-height: 420px; }
+  .columna > h3 { display: flex; align-items: center; gap: 8px; padding: 4px 6px 12px; font-size: 11px; color: var(--color-tinta-60); }
+  .columna > h3 .cuenta { margin-left: auto; display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: color-mix(in srgb, var(--color-tinta) 10%, transparent); color: var(--color-tinta); font-size: 11px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+  .columna > h3 .ic { width: 16px; height: 16px; }
+  .tarjeta { display: block; width: 100%; text-align: left; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-lg); padding: 12px; color: var(--color-tinta); transition: border-color .15s, background-color .15s; }
+  .tarjeta + .tarjeta { margin-top: 10px; }
+  .tarjeta:hover { border-color: color-mix(in srgb, var(--color-tinta) 35%, transparent); }
+  .tarjeta .cab { display: flex; align-items: center; gap: 10px; }
+  .tarjeta .cab .nombre { font-size: 15px; font-weight: 500; line-height: 1.25; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .tarjeta .cab .op { font-size: 12.5px; color: var(--color-taupe); margin-top: 2px; }
+  .tarjeta .cuerpo { margin-top: 10px; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+  .tarjeta .quien { font-size: 13px; color: var(--color-taupe); }
+  .tarjeta .quien b { color: var(--color-tinta); font-weight: 500; }
+  .tarjeta .avance { margin-top: 8px; height: 4px; border-radius: 999px; background: var(--color-sand); overflow: hidden; }
+  .tarjeta .avance i { display: block; height: 100%; border-radius: 999px; background: var(--color-tinta); }
+  .tarjeta .pie { margin-top: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--color-taupe); }
+  .tarjeta .pie b { color: var(--color-tinta); font-weight: 500; }
+  .tarjeta .chip { font-size: 12px; padding: 1px 9px; }
+
+  /* ---------- C · el cajón ---------- */
+  .velo { position: absolute; inset: 0; z-index: 5; background: color-mix(in srgb, var(--color-sombra) 25%, transparent); backdrop-filter: blur(2px); }
+  :root[data-tema="oscuro"] .velo { background: color-mix(in srgb, var(--color-sombra) 55%, transparent); }
+  .cajon { position: absolute; top: 8px; right: 8px; bottom: 8px; z-index: 6; width: 560px; overflow: auto; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-2xl); box-shadow: var(--shadow-xl); padding: 24px 28px 24px; }
+  .cerrar { position: absolute; top: 16px; right: 16px; display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--radius-md); color: var(--color-tinta-60); }
+  .cerrar:hover { background: color-mix(in oklab, var(--color-sand) 60%, transparent); color: var(--color-tinta); }
+  .cerrar .ic { width: 18px; height: 18px; }
+
+  /* La cabecera de la orden (dentro del cajón y de la página D) */
+  .orden-cab { display: flex; gap: 16px; align-items: flex-start; }
+  .orden-cab .op { font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-taupe); }
+  .orden-cab h2 { margin-top: 4px; font: 600 28px/1.05 var(--font-serif); letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .orden-cab .colores { margin-top: 6px; font-size: 13px; color: var(--color-taupe); display: flex; align-items: center; gap: 8px; }
+  .orden-cifras { margin-top: 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .orden-cifras > div { padding: 10px 12px; border-radius: var(--radius-lg); background: color-mix(in oklab, var(--color-hueso) 55%, transparent); }
+  .orden-cifras .nom { font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-taupe); }
+  .orden-cifras .val { margin-top: 2px; font: 600 24px/1.2 var(--font-serif); font-variant-numeric: lining-nums tabular-nums; }
+  .orden-cifras .val small { font: 400 13px/1.4 var(--font-sans); color: var(--color-taupe); margin-left: 4px; }
+
+  /* Títulos de grupo dentro de una hoja (TituloGrupo): versalitas con raya */
+  .grupo-t { display: flex; align-items: center; gap: 12px; margin: 24px 0 12px; }
+  .grupo-t .t { font-size: 11px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-tinta-60); white-space: nowrap; }
+  .grupo-t .raya { flex: 1; height: 1px; background: var(--color-sand); }
+  .grupo-t .dato { font-size: 12.5px; color: var(--color-taupe); white-space: nowrap; }
+
+  /* La ruta de fases como piezas, cosidas por un hilo: hecha ✓ · actual encendida · pendiente. */
+  .ruta { display: grid; gap: 24px; }
+  .ruta.fila { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .fase { position: relative; border: 1px solid var(--color-sand); border-radius: var(--radius-xl); padding: 14px 16px; background: color-mix(in oklab, var(--color-hueso) 40%, transparent); }
+  .fase.hecha { background: var(--color-papel); }
+  .fase.actual { background: var(--color-papel); border-color: color-mix(in srgb, var(--color-tinta) 45%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-tinta) 7%, transparent); }
+  .fase.pendiente { color: var(--color-tinta); }
+  .fase.agregar { border-style: dashed; background: transparent; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; text-align: center; color: var(--color-taupe); font-size: 13px; min-height: 120px; }
+  .fase.agregar b { color: var(--color-tinta); font-weight: 500; }
+  .fase.agregar .mas { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; border: 1px dashed var(--color-taupe); }
+  .fase.agregar .mas .ic { width: 16px; height: 16px; }
+  .fase .enc-f { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  .fase .glifo { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 999px; flex: none; }
+  .fase.hecha .glifo { background: color-mix(in srgb, var(--color-verde) 15%, transparent); color: var(--color-verde); }
+  .fase.hecha .glifo .ic { width: 14px; height: 14px; stroke-width: 2.2; }
+  .fase.actual .glifo { border: 2px solid var(--color-tinta); }
+  .fase.actual .glifo::after { content: ""; width: 8px; height: 8px; border-radius: 999px; background: var(--color-tinta); }
+  .fase.pendiente .glifo { border: 1.5px solid var(--color-taupe); }
+  .fase .nom { font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; }
+  .fase.pendiente .nom { color: var(--color-taupe); }
+  .fase .quien-f { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--color-taupe); white-space: nowrap; }
+  .fase .quien-f .ic { width: 14px; height: 14px; }
+  .fase .cant { margin-top: 10px; font: 600 24px/1.1 var(--font-serif); font-variant-numeric: lining-nums tabular-nums; }
+  .fase .cant small { font: 400 13px/1.4 var(--font-sans); color: var(--color-taupe); margin-left: 6px; }
+  .fase .det { margin-top: 4px; font-size: 13px; color: var(--color-taupe); line-height: 1.5; }
+  .fase .det b { color: var(--color-tinta); font-weight: 500; }
+  .fase .acciones-f { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .fase .acciones-f .btn { min-height: 36px; padding: 6px 14px; }
+  /* el hilo entre piezas: cosido (sólido) hasta la actual, punteado después */
+  .ruta.fila .fase:not(:last-child)::after { content: ""; position: absolute; top: 50%; right: -24px; width: 24px; height: 2px; background: var(--color-taupe); }
+  .ruta.fila .fase.actual::after, .ruta.fila .fase.pendiente::after { background: none; border-top: 2px dashed var(--color-sand); height: 0; }
+  .ruta.columna .fase:not(:last-child)::after { content: ""; position: absolute; left: 24px; bottom: -24px; height: 24px; width: 2px; background: var(--color-taupe); }
+  .ruta.columna .fase.actual::after, .ruta.columna .fase.pendiente::after { background: none; border-left: 2px dashed var(--color-sand); width: 0; }
+  /* «Terminé N de M» por talla y color: la matriz chica */
+  .matriz { margin-top: 10px; width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .matriz th { font-weight: 500; color: var(--color-taupe); text-align: right; padding: 2px 6px; }
+  .matriz th:first-child, .matriz td:first-child { text-align: left; padding-left: 0; }
+  .matriz td { text-align: right; padding: 3px 6px; border-top: 1px solid var(--color-sand); }
+  .matriz td:first-child { display: flex; align-items: center; gap: 6px; }
+  .matriz td.cero { color: var(--color-taupe); }
+
+  /* Tela y costo: dos tablitas; línea de tiempo: el hilo con sus puntos */
+  .dos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+  .lineas { font-size: 14px; }
+  .lineas > div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--color-sand); }
+  .lineas > div:first-child { border-top: 0; padding-top: 0; }
+  .lineas .k { color: var(--color-taupe); }
+  .lineas .v { font-variant-numeric: tabular-nums; text-align: right; }
+  .lineas .ok { color: var(--color-verde); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+  .lineas .ok .ic { width: 14px; height: 14px; stroke-width: 2.2; }
+  .costo { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .costo th { font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-taupe); text-align: right; padding: 0 0 8px; }
+  .costo th:first-child { text-align: left; }
+  .costo td { padding: 7px 0; border-top: 1px solid var(--color-sand); text-align: right; }
+  .costo td:first-child { text-align: left; }
+  .costo td small { display: block; font-size: 12px; color: var(--color-taupe); }
+  .costo tr.total td { font-weight: 600; border-top: 1.5px solid var(--color-tinta); }
+  .costo td.sin { color: var(--color-taupe); }
+  .tiempo { position: relative; padding-left: 22px; }
+  .tiempo::before { content: ""; position: absolute; left: 5px; top: 8px; bottom: 8px; width: 2px; background: var(--color-sand); }
+  .tiempo li { position: relative; padding: 0 0 16px; }
+  .tiempo li:last-child { padding-bottom: 0; }
+  .tiempo li::before { content: ""; position: absolute; left: -21px; top: 6px; width: 10px; height: 10px; border-radius: 999px; background: var(--color-papel); border: 2px solid var(--color-taupe); }
+  .tiempo li.hoy::before { background: var(--color-tinta); border-color: var(--color-tinta); }
+  .tiempo .cuando { font-size: 12.5px; color: var(--color-taupe); }
+  .tiempo .que { margin-top: 2px; font-size: 14px; display: flex; justify-content: space-between; gap: 12px; }
+  .tiempo .que b { font-weight: 500; }
+  .tiempo .que .cuanto { color: var(--color-taupe); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pie-orden { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--color-sand); display: flex; align-items: center; gap: 12px; }
+  .pie-orden .cuando-si { font-size: 12.5px; color: var(--color-taupe); }
+  .pie-orden .espacio { flex: 1; }
+
+  /* ---------- D · la página ---------- */
+  .pag-cab-der { display: flex; gap: 28px; align-items: flex-start; }
+  .pag-cab-der > div { text-align: left; }
+  .pag-cab-der .nom { font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-taupe); }
+  .pag-cab-der .val { margin-top: 2px; font: 600 28px/1.2 var(--font-serif); font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+  .pag-cab-der .val small { font: 400 13px/1.4 var(--font-sans); color: var(--color-taupe); margin-left: 4px; }
+  .pag-cab-der .ctx { margin-top: 2px; font-size: 13px; color: var(--color-taupe); }
+  .pag-bloques { margin-top: 24px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; }
+  .pag-bloque { padding: 20px 24px; }
+  .pag-bloque .grupo-t { margin-top: 0; }
+  .pag-bloque .grupo-t + .grupo-t { margin-top: 24px; }
+
+  /* ---------- 1024: el contenido queda en 672 px (lateral de 272 + 40 de margen a cada lado) ---------- */
+  @container pantalla (max-width: 1100px) {
+    .cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tb-cab, .tb-fila { grid-template-columns: minmax(0, 2.6fr) 56px minmax(0, 1.8fr) minmax(0, 1.4fr) 16px; column-gap: 12px; }
+    .col-dias, .col-entrega { display: none; }
+    .celda-fase .entrega-inline { display: block; margin-top: 2px; font-size: 13px; color: var(--color-taupe); }
+    .buscador { width: 100%; margin-left: 0; }
+    .ruta.fila { grid-template-columns: 1fr 1fr; }
+    .ruta.fila .fase::after { display: none; }
+    .dos, .pag-bloques { grid-template-columns: 1fr; }
+    .enc .frase { max-width: 100%; }
+    .pag-cab-der { gap: 20px; }
+    .pag-cab-der .val { font-size: 24px; }
+  }
+</style>
+</head>
+<body data-ancho="1440">
+
+<!-- Íconos: los trazos reales de lib/menu-iconos.ts e icono-categoria-reglas.ts (24×24, trazo 1,5), más cuatro del oficio: tijera, aguja, plancha y camión. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-cms" viewBox="0 0 24 24"><path d="M9 3.5 3.5 6.7 5 11l2.5-1.2v10.7h9V9.8L19 11l1.5-4.3L15 3.5"/><path d="m9 3.5 3 4.2 3-4.2"/><path d="M12 7.7v12.8"/><path d="M12 11h.01M12 14.5h.01M12 18h.01"/></symbol>
+  <symbol id="i-pan" viewBox="0 0 24 24"><path d="M7 3h10l3 18h-6.6L12 9.6 10.6 21H4z"/><path d="M7.2 6.2h9.6"/><path d="M12 6.2v3.4"/></symbol>
+  <symbol id="i-ves" viewBox="0 0 24 24"><path d="M9 3 8.6 8.8l-1.4 2.8-2.6 8.9h14.8l-2.6-8.9-1.4-2.8L15 3"/><path d="M9 3c.2 2.6 1.4 4 3 4s2.8-1.4 3-4"/><path d="M7.2 11.6h9.6"/></symbol>
+  <symbol id="i-inicio" viewBox="0 0 24 24"><path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5 M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244 M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"/></symbol>
+  <symbol id="i-produccion" viewBox="0 0 24 24"><path d="M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12"/></symbol>
+  <symbol id="i-resumen" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></symbol>
+  <symbol id="i-ordenes" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-insumos" viewBox="0 0 24 24"><path d="M7 3h10a1 1 0 011 1v1.5a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z M7 17.5h10a1 1 0 011 1V20a1 1 0 01-1 1H7a1 1 0 01-1-1v-1.5a1 1 0 011-1z M8 6.5v11M16 6.5v11 M8 10l8 2M8 13l8 2"/></symbol>
+  <symbol id="i-compras" viewBox="0 0 24 24"><path d="M7 21a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 M18 21a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></symbol>
+  <symbol id="i-gestion" viewBox="0 0 24 24"><path d="M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0 M16.24 7.76l-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/></symbol>
+  <symbol id="i-venta" viewBox="0 0 24 24"><path d="M16 10a4 4 0 0 1-8 0 M3.103 6.034h17.794 M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z"/></symbol>
+  <symbol id="i-inventario" viewBox="0 0 24 24"><path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z M7 16.5l-4.74-2.85 M7 16.5l5-3 M7 16.5v5.17 M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z M17 16.5l-5-3 M17 16.5l4.74-2.85 M17 16.5v5.17 M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z M12 8 7.26 5.15 M12 8l4.74-2.85 M12 13.5V8"/></symbol>
+  <symbol id="i-catalogo" viewBox="0 0 24 24"><path d="M12 7v14 M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-finanzas" viewBox="0 0 24 24"><path d="M13.744 17.736a6 6 0 1 1-7.48-7.48 M15 6h1v4 M6.134 14.768l.866-.5 2 3.464 M10 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0"/></symbol>
+  <symbol id="i-clientas" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 000-7.8z"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-chevabajo" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-lupa" viewBox="0 0 24 24"><path d="M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.8-4.8"/></symbol>
+  <symbol id="i-plegar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9 4v16"/><path d="M15.5 9.5L13 12l2.5 2.5"/></symbol>
+  <symbol id="i-historial" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-luna" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+  <symbol id="i-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-mas" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-izq" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+  <symbol id="i-tijera" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12"/></symbol>
+  <symbol id="i-aguja" viewBox="0 0 24 24"><path d="m4 20 11.5-11.5"/><path d="M14.5 5.5a3 3 0 1 1 4 4"/><path d="M15.5 8.5 18 6"/><path d="M4 20c3-.5 2.5-3 5-3.5"/></symbol>
+  <symbol id="i-plancha" viewBox="0 0 24 24"><path d="M3 17h18v-5a4 4 0 0 0-4-4H9a5 5 0 0 0-5 5v4z"/><path d="M4 13h17"/><path d="M12 8V6h6"/></symbol>
+  <symbol id="i-camion" viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2 M15 18H9 M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14 M15 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0 M5 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/></symbol>
+  <symbol id="i-taller" viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></symbol>
+  <symbol id="i-tela" viewBox="0 0 24 24"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 10c3 0 3 2 6 2s3-2 6-2 3 2 4 2"/><path d="M4 15c3 0 3 2 6 2s3-2 6-2 3 2 4 2"/></symbol>
+  <symbol id="i-colibri" viewBox="0 0 223 150"><path d="M3,6 C45,14 95,28 118,50 C134,64 136,96 124,112 C110,130 80,138 47,146 L68,102"/><path d="M3,6 C10,40 40,70 70,80 C85,85 100,87 112,87"/><path d="M104,40 C102,22 118,6 140,5 C155,4 165,10 172,16 L220,12"/><path d="M172,16 C156,22 144,38 134,62"/></symbol>
+</svg>
+
+<!-- ===================== Barra de la lámina ===================== -->
+<header class="lam-barra">
+  <b>PRODUCCIÓN · REDISEÑO · 2026-10</b>
+  <span class="sep"></span>
+  <nav class="grp" aria-label="Índice">
+    <a class="pil" href="#p1">1 · Órdenes</a>
+    <a class="pil" href="#vista-a">A lista</a>
+    <a class="pil" href="#vista-b">B columnas</a>
+    <span class="sep"></span>
+    <a class="pil" href="#p2">2 · La orden</a>
+    <a class="pil" href="#vista-c">C cajón</a>
+    <a class="pil" href="#vista-d">D página</a>
+  </nav>
+  <div class="derecha">
+    <span class="grp" role="group" aria-label="Ancho de pantalla">
+      <button class="pil" data-ancho="1440" aria-pressed="true">1440</button>
+      <button class="pil" data-ancho="1024" aria-pressed="false">1024</button>
+    </span>
+    <span class="sep"></span>
+    <button class="pil" id="tema" aria-pressed="false"><svg class="ic ic-14"><use href="#i-luna"/></svg> Oscuro</button>
+  </div>
+</header>
+
+<main class="lam">
+  <section class="lam-intro">
+    <h1>Órdenes y la orden: dos preguntas, cuatro pantallas</h1>
+    <p>Cada marco es el ERP tal como quedaría en el Mac mini del Taller: el menú de la izquierda, la barra de arriba y la cabecera del módulo son las de hoy. Lo que cambia entre A y B, y entre C y D, es lo que hay que elegir mirando. Los datos son los seis lotes de la base local; en la lámina «hoy» es el lunes 19 de octubre para que la entrega del 18 ya haya pasado, como dice la base.</p>
+    <div class="decidido" aria-label="Ya decidido, no se discute aquí">
+      <span class="pil dash">Una entidad: la orden</span>
+      <span class="pil dash">Corte · Costura · Acabado</span>
+      <span class="pil dash">Bordado, estampado y lavandería, opcionales</span>
+      <span class="pil dash">Cada fase, un quién: el Taller o afuera</span>
+      <span class="pil dash">Salida / Vuelta por talla y color</span>
+      <span class="pil dash">Rojo solo por tres causas</span>
+    </div>
+  </section>
+
+  <!-- ===================== PREGUNTA 1 ===================== -->
+  <section class="lam-preg" id="p1">
+    <h2><span class="n">Pregunta 1</span> Órdenes: ¿una lista o columnas por fase?</h2>
+    <div class="lam-cambia">
+      <div><b>A · Lista.</b> La urgencia manda: una fila por lote, ordenadas por entrega, y la fase es un dato de la fila (un chip con quién la tiene). Arriba, «Hoy en el Taller» cuenta por fase y filtra al tocarse. Cabe en 1024 sin desplazarse de costado.</div>
+      <div><b>B · Columnas.</b> El lugar manda: cada columna es una mesa del Taller y el lote es una tarjeta que avanza de izquierda a derecha. Se ve de un vistazo cuánto hay en cada mesa; la urgencia se lee tarjeta por tarjeta. En 1024 las cuatro columnas se desplazan de costado.</div>
+    </div>
+  </section>
+
+  <figure class="lam-vista" id="vista-a">
+    <figcaption><span class="letra">A</span><span><b>Órdenes como lista</b> · tabla del sistema, «Hoy en el Taller» arriba, pestañas de sección y píldoras de filtro</span><span class="ancho" data-ancho-texto>1440 px</span></figcaption>
+    <div class="marco" data-shell data-ruta="ordenes">
+      <div class="pliegue"><span>pliegue a 900 de alto</span></div>
+      <div class="erp">
+        <div data-lateral></div>
+        <div>
+          <div data-barra></div>
+          <div class="main" data-lista></div>
+        </div>
+      </div>
+    </div>
+  </figure>
+
+  <figure class="lam-vista" id="vista-b">
+    <figcaption><span class="letra">B</span><span><b>Órdenes como columnas por fase</b> · Por cortar · En costura · En acabado · Listas; lo que está afuera, marcado dentro de su columna</span><span class="ancho" data-ancho-texto>1440 px</span></figcaption>
+    <div class="marco" data-shell data-ruta="ordenes">
+      <div class="pliegue"><span>pliegue a 900 de alto</span></div>
+      <div class="erp">
+        <div data-lateral></div>
+        <div>
+          <div data-barra></div>
+          <div class="main">
+            <div data-voz="cabecera"><div data-encabezado></div></div>
+
+            <div class="card tabla" style="margin-top:24px">
+              <div class="herr">
+                <div class="pestanas" role="tablist">
+                  <button class="pestana" role="tab" aria-selected="true">En curso <span class="cuenta">5</span></button>
+                  <button class="pestana" role="tab" aria-selected="false">Muestras <span class="cuenta">1</span></button>
+                  <button class="pestana" role="tab" aria-selected="false">Terminadas <span class="cuenta">1</span></button>
+                </div>
+                <div class="filtros" role="group" aria-label="Filtrar">
+                  <button class="pil" aria-pressed="true">Todas</button>
+                  <button class="pil" aria-pressed="false">En el Taller</button>
+                  <button class="pil" aria-pressed="false">Afuera</button>
+                  <button class="pil" aria-pressed="false">Piden algo · 3</button>
+                </div>
+                <label class="buscador"><svg class="ic"><use href="#i-lupa"/></svg><input type="text" placeholder="Buscar por modelo u orden"><kbd>/</kbd></label>
+              </div>
+              <div style="padding:0 20px 20px">
+                <div class="tablero">
+                  <!-- POR CORTAR -->
+                  <section class="columna" aria-label="Por cortar">
+                    <h3 class="label"><svg class="ic"><use href="#i-tijera"/></svg> Por cortar <span class="cuenta">2</span></h3>
+                    <button class="tarjeta">
+                      <div class="cab"><span class="tile blanco"><svg class="ic"><use href="#i-cms"/></svg></span><div><div class="nombre">Blusa Marina</div><div class="op">OP-000004 · blanco, negro, arena</div></div></div>
+                      <div class="cuerpo"><div class="cuantas">40<small>prendas</small></div><div class="quien"><b>Taller</b> · 0 de 40</div></div>
+                      <div class="avance" aria-hidden="true"><i style="width:0"></i></div>
+                      <div class="pie"><span>Entrega <b>mié 28 oct</b> · en 9 días</span><span>Abierta hace 3 días</span></div>
+                      <div class="causa en-tarjeta"><span class="linea">Tela que no llega · faltan 32 m <span class="btn-enlace porque" data-porque>¿Por qué?</span></span><div class="explica">Para cortar 40 blusas hacen falta <b>60 m de lino crudo</b> y en Insumos hay 28 m. Pide los 32 m que faltan a Textiles Andinos desde Abastecimiento.</div></div>
+                    </button>
+                    <button class="tarjeta">
+                      <div class="cab"><span class="tile arena"><svg class="ic"><use href="#i-cms"/></svg></span><div><div class="nombre">Blusa Marina</div><div class="op">OP-000006 · arena, blanco</div></div></div>
+                      <div class="cuerpo"><div class="cuantas">50<small>prendas</small></div><div class="quien"><b>Taller</b> · 0 de 50</div></div>
+                      <div class="avance" aria-hidden="true"><i style="width:0"></i></div>
+                      <div class="pie"><span>Entrega <b>sin fecha</b></span><span>Abierta hace 4 días</span></div>
+                      <div class="causa en-tarjeta"><span class="linea">4 días sin moverse <span class="btn-enlace porque" data-porque>¿Por qué?</span></span><div class="explica">Se abrió el jueves 15 y nadie anotó el corte. Cuatro días sin un movimiento es más de lo que tarda un corte de 50.</div></div>
+                    </button>
+                  </section>
+                  <!-- EN COSTURA -->
+                  <section class="columna" aria-label="En costura">
+                    <h3 class="label"><svg class="ic"><use href="#i-aguja"/></svg> En costura <span class="cuenta">2</span></h3>
+                    <button class="tarjeta">
+                      <div class="cab"><span class="tile negro"><svg class="ic"><use href="#i-pan"/></svg></span><div><div class="nombre">Pantalón Lía <span class="chip pizarra">Afuera</span></div><div class="op">OP-000002 · negro, caqui</div></div></div>
+                      <div class="cuerpo"><div class="cuantas">48<small>prendas</small></div><div class="quien"><b>Confecciones del Norte</b> · 48 afuera</div></div>
+                      <div class="avance" aria-hidden="true"><i style="width:0"></i></div>
+                      <div class="pie"><span>Entrega <b>vie 23 oct</b> · en 4 días</span><span>Vuelve el mié 21</span></div>
+                    </button>
+                    <button class="tarjeta">
+                      <div class="cab"><span class="tile crudo"><svg class="ic"><use href="#i-ves"/></svg></span><div><div class="nombre">Vestido Aurora <span class="chip tinta">Muestra</span></div><div class="op">OP-000005 · crudo</div></div></div>
+                      <div class="cuerpo"><div class="cuantas">3<small>prendas</small></div><div class="quien"><b>Taller</b> · 2 de 3</div></div>
+                      <div class="avance" aria-hidden="true"><i style="width:66%"></i></div>
+                      <div class="pie"><span>Entrega <b>mié 21 oct</b> · en 2 días</span><span>Hoy, Rosa</span></div>
+                    </button>
+                  </section>
+                  <!-- EN ACABADO -->
+                  <section class="columna" aria-label="En acabado">
+                    <h3 class="label"><svg class="ic"><use href="#i-plancha"/></svg> En acabado <span class="cuenta">1</span></h3>
+                    <button class="tarjeta">
+                      <div class="cab"><span class="tile negro"><svg class="ic"><use href="#i-ves"/></svg></span><div><div class="nombre">Vestido Aurora</div><div class="op">OP-000003 · crudo, negro</div></div></div>
+                      <div class="cuerpo"><div class="cuantas">36<small>prendas</small></div><div class="quien"><b>Taller</b> · 21 de 36</div></div>
+                      <div class="avance" aria-hidden="true"><i style="width:58%"></i></div>
+                      <div class="pie"><span>Entrega <b>dom 18 oct</b></span><span>4 días en acabado</span></div>
+                      <div class="causa en-tarjeta"><span class="linea">Entrega pasada · ayer <span class="btn-enlace porque" data-porque aria-expanded="true">¿Por qué?</span></span><div class="explica abierta">Se prometió para el <b>domingo 18</b> y todavía faltan 15 vestidos por acabar (desde el jueves 15). Si salen hoy, llegan un día tarde.</div></div>
+                    </button>
+                  </section>
+                  <!-- LISTAS -->
+                  <section class="columna" aria-label="Listas">
+                    <h3 class="label"><svg class="ic"><use href="#i-check"/></svg> Listas <span class="cuenta">1</span></h3>
+                    <button class="tarjeta">
+                      <div class="cab"><span class="tile blanco"><svg class="ic"><use href="#i-cms"/></svg></span><div><div class="nombre">Blusa Marina</div><div class="op">OP-000001 · blanco, negro, arena</div></div></div>
+                      <div class="cuerpo"><div class="cuantas">57<small>de 60 buenas</small></div><span class="chip verde">Pasó al stock</span></div>
+                      <div class="avance" aria-hidden="true"><i style="width:100%"></i></div>
+                      <div class="pie"><span>Al stock el <b>vie 9 oct</b></span><span>3 segundas</span></div>
+                    </button>
+                  </section>
+                </div>
+              </div>
+            </div>
+            <div class="nota"><svg class="ic"><use href="#i-info"/></svg><p>Una tarjeta se pone en <b>rojo solo por tres causas</b>: la entrega ya pasó, la tela no llega o lleva días sin moverse. «¿Por qué?» te lo explica en una línea. Lo que está <b>afuera</b> sigue en la columna de su fase, con el nombre de quien lo tiene.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </figure>
+
+  <!-- ===================== PREGUNTA 2 ===================== -->
+  <section class="lam-preg" id="p2">
+    <h2><span class="n">Pregunta 2</span> La orden: ¿un cajón sobre la lista o su propia página?</h2>
+    <div class="lam-cambia">
+      <div><b>C · Cajón.</b> La lista queda a la vista y marcada: abres, anotas «Terminé» o una vuelta, cierras y sigues con la siguiente sin cambiar de pantalla. Todo cabe en 560 px, así que las fases van una debajo de otra y tela, costo y la línea de tiempo se leen bajando.</div>
+      <div><b>D · Página.</b> La orden tiene su URL (<code>/produccion/ordenes/OP-000002</code>) y todo el ancho: las fases van en fila cosidas por su hilo, tela y costo lado a lado, la línea de tiempo al costado. Se vuelve con la flecha; se puede enviar el enlace a quien tenga que verla.</div>
+    </div>
+  </section>
+
+  <figure class="lam-vista" id="vista-c">
+    <figcaption><span class="letra">C</span><span><b>La orden en un cajón</b> · 560 px sobre la lista A, con la fila abierta marcada</span><span class="ancho" data-ancho-texto>1440 px</span></figcaption>
+    <div class="marco marco-c" data-shell data-ruta="ordenes" data-abierta="OP-000002">
+      <div class="pliegue"><span>pliegue a 900 de alto</span></div>
+      <div class="erp">
+        <div data-lateral></div>
+        <div>
+          <div data-barra></div>
+          <div class="main" data-lista></div>
+        </div>
+      </div>
+      <div class="velo" aria-hidden="true"></div>
+      <aside class="cajon" aria-label="Orden OP-000002">
+        <button class="cerrar" aria-label="Cerrar"><svg class="ic"><use href="#i-x"/></svg></button>
+        <div data-orden-cab></div>
+        <div class="orden-cifras">
+          <div><div class="nom">Prendas</div><div class="val">48</div></div>
+          <div><div class="nom">Entrega</div><div class="val">vie 23<small>en 4 días</small></div></div>
+          <div><div class="nom">Costo hasta hoy</div><div class="val">S/ 1,146<small>de 1,392</small></div></div>
+        </div>
+
+        <div class="grupo-t"><span class="t">Fases</span><span class="raya"></span><span class="dato">1 de 3 hecha</span></div>
+        <div class="ruta columna" data-ruta-fases></div>
+
+        <div class="grupo-t"><span class="t">Tela</span><span class="raya"></span><span class="dato">Textiles Andinos</span></div>
+        <div data-tela></div>
+
+        <div class="grupo-t"><span class="t">Costo</span><span class="raya"></span><span class="dato">S/ 29.00 por prenda estimado</span></div>
+        <div data-costo></div>
+
+        <div class="grupo-t"><span class="t">Línea de tiempo</span><span class="raya"></span><span class="dato">3 movimientos</span></div>
+        <div data-tiempo></div>
+
+        <div class="pie-orden">
+          <button class="btn btn-peligro">Anular orden</button>
+          <span class="espacio"></span>
+          <span class="cuando-si">Se habilita cuando termine Acabado</span>
+          <button class="btn btn-secundario" disabled>Pasar al stock</button>
+        </div>
+      </aside>
+    </div>
+  </figure>
+
+  <figure class="lam-vista" id="vista-d">
+    <figcaption><span class="letra">D</span><span><b>La orden como página</b> · <code>/produccion/ordenes/OP-000002</code>, con la flecha para volver a Órdenes</span><span class="ancho" data-ancho-texto>1440 px</span></figcaption>
+    <div class="marco" data-shell data-ruta="ordenes">
+      <div class="pliegue"><span>pliegue a 900 de alto</span></div>
+      <div class="erp">
+        <div data-lateral></div>
+        <div>
+          <div data-barra></div>
+          <div class="main">
+            <header class="enc" data-voz="cabecera">
+              <div>
+                <div class="sede-linea">
+                  <a class="volver" href="#vista-a" aria-label="Volver a Órdenes" title="Volver a Órdenes"><svg class="ic"><use href="#i-izq"/></svg></a>
+                  <p><span class="hilo" aria-hidden="true"></span><span>Taller · lunes 19 de octubre · 10:42 · OP-000002</span></p>
+                </div>
+                <h1><span class="tile g negro" aria-hidden="true"><svg class="ic"><use href="#i-pan"/></svg></span><span>Pantalón Lía <span class="chip pizarra" style="font-size:13px;vertical-align:middle">En costura · afuera</span></span></h1>
+                <p class="frase">48 prendas · negro y caqui · tallas 28, 30 y 32 · se vende a S/ 129. Abierta el martes 13 por Felipe.</p>
+              </div>
+              <div class="pag-cab-der">
+                <div><div class="nom">Prendas</div><div class="val">48</div><div class="ctx">24 negro · 24 caqui</div></div>
+                <div><div class="nom">Entrega</div><div class="val">vie 23 oct</div><div class="ctx">en 4 días</div></div>
+                <div><div class="nom">Costo hasta hoy</div><div class="val">S/ 1,146<small>de 1,392</small></div><div class="ctx">S/ 29.00 por prenda estimado</div></div>
+              </div>
+            </header>
+
+            <div class="tit-sec"><h2>Fases</h2><span class="dato">1 de 3 hecha · la costura está afuera</span></div>
+            <div class="ruta fila" style="margin-top:12px" data-ruta-fases></div>
+
+            <div class="pag-bloques">
+              <div class="card pag-bloque">
+                <div class="grupo-t"><span class="t">Tela</span><span class="raya"></span><span class="dato">Textiles Andinos</span></div>
+                <div data-tela></div>
+                <div class="grupo-t"><span class="t">Costo</span><span class="raya"></span><span class="dato">estimado · real</span></div>
+                <div data-costo></div>
+              </div>
+              <div class="card pag-bloque">
+                <div class="grupo-t"><span class="t">Línea de tiempo</span><span class="raya"></span><span class="dato">quién · cuándo · cuánto</span></div>
+                <div data-tiempo></div>
+              </div>
+            </div>
+
+            <div class="pie-orden">
+              <button class="btn btn-peligro">Anular orden</button>
+              <span class="espacio"></span>
+              <span class="cuando-si">Se habilita cuando termine Acabado</span>
+              <button class="btn btn-secundario" disabled>Pasar al stock</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </figure>
+</main>
+
+<!-- ===================== Plantillas (se estampan en cada marco) ===================== -->
+<template id="t-lateral">
+  <aside class="lat" aria-label="Menú principal">
+    <a class="logo" href="#"><svg class="ic" style="color:var(--color-rojo);stroke-width:9"><use href="#i-colibri"/></svg><span class="marca"><b>CAYLA</b><i>Retail</i></span></a>
+    <nav>
+      <a class="fila" href="#"><svg class="ic"><use href="#i-inicio"/></svg> Inicio</a>
+      <button class="fila abierto" aria-expanded="true"><svg class="ic"><use href="#i-produccion"/></svg> Producción <svg class="ic chev"><use href="#i-chev"/></svg></button>
+      <div class="hijas">
+        <a class="fila" href="#"><svg class="ic"><use href="#i-resumen"/></svg> Resumen</a>
+        <a class="fila" href="#" aria-current="page"><span class="riel" aria-hidden="true"></span><svg class="ic"><use href="#i-ordenes"/></svg> Órdenes</a>
+        <a class="fila" href="#"><svg class="ic"><use href="#i-insumos"/></svg> Insumos</a>
+        <button class="fila" aria-expanded="false"><svg class="ic"><use href="#i-compras"/></svg> Abastecimiento <svg class="ic chev"><use href="#i-chev"/></svg></button>
+      </div>
+      <button class="fila" aria-expanded="false"><svg class="ic"><use href="#i-gestion"/></svg> Gestión <svg class="ic chev"><use href="#i-chev"/></svg></button>
+      <button class="fila" aria-expanded="false"><svg class="ic"><use href="#i-venta"/></svg> Ventas <svg class="ic chev"><use href="#i-chev"/></svg></button>
+      <button class="fila" aria-expanded="false"><svg class="ic"><use href="#i-inventario"/></svg> Inventario <svg class="ic chev"><use href="#i-chev"/></svg></button>
+      <button class="fila" aria-expanded="false"><svg class="ic"><use href="#i-catalogo"/></svg> Catálogo <svg class="ic chev"><use href="#i-chev"/></svg></button>
+      <button class="fila" aria-expanded="false"><svg class="ic"><use href="#i-finanzas"/></svg> Finanzas <svg class="ic chev"><use href="#i-chev"/></svg></button>
+      <a class="fila" href="#"><svg class="ic"><use href="#i-clientas"/></svg> Clientes</a>
+    </nav>
+  </aside>
+</template>
+
+<template id="t-barra">
+  <header class="barra">
+    <button class="icono-btn" aria-label="Contraer menú lateral"><svg class="ic ic-18"><use href="#i-plegar"/></svg></button>
+    <button class="buscar"><svg class="ic ic-16"><use href="#i-lupa"/></svg> Buscar <span style="margin-left:4px;display:flex;gap:2px"><kbd>Ctrl</kbd><kbd>K</kbd></span></button>
+    <div class="derecha">
+      <button class="act"><svg class="ic ic-18"><use href="#i-historial"/></svg><span class="label">Actividad</span></button>
+      <button class="icono-btn" aria-label="Modo oscuro"><svg class="ic ic-18"><use href="#i-luna"/></svg></button>
+      <button class="sede label">Taller <svg class="ic ic-14"><use href="#i-chevabajo"/></svg></button>
+    </div>
+  </header>
+</template>
+
+<template id="t-encabezado">
+  <header class="enc">
+    <div>
+      <div class="sede-linea"><p><span class="hilo" aria-hidden="true"></span><span>Taller · lunes 19 de octubre · 10:42</span></p></div>
+      <h1>Órdenes</h1>
+      <p class="frase">Cada lote, en qué fase está y quién lo tiene. Toca uno para anotar lo que terminaste.</p>
+    </div>
+    <div class="acciones">
+      <button class="btn btn-primario"><svg class="ic"><use href="#i-mas"/></svg> Nueva orden</button>
+    </div>
+  </header>
+</template>
+
+<template id="t-lista">
+  <div data-voz="cabecera"><div data-encabezado></div></div>
+
+  <div class="tit-sec"><h2>Hoy en el Taller</h2><span class="dato">6 órdenes abiertas · 3 piden algo</span></div>
+  <div class="cifras" style="margin-top:12px">
+    <button class="cifra" aria-pressed="false"><span class="nom"><i></i>POR CORTAR</span><span class="val">2<small>lotes</small></span><span class="ctx">90 prendas · 1 sin tela</span></button>
+    <button class="cifra" aria-pressed="false"><span class="nom"><i class="pizarra"></i>EN COSTURA</span><span class="val">2<small>lotes</small></span><span class="ctx">48 afuera con Confecciones del Norte</span></button>
+    <button class="cifra" aria-pressed="false"><span class="nom"><i class="ambar"></i>EN ACABADO</span><span class="val">1<small>lote</small></span><span class="ctx">36 vestidos · entrega pasada</span></button>
+    <button class="cifra" aria-pressed="false"><span class="nom"><i class="verde"></i>AL STOCK ESTE MES</span><span class="val">57<small>prendas</small></span><span class="ctx">1 lote · 3 segundas</span></button>
+  </div>
+
+  <div class="card tabla">
+    <div class="herr">
+      <div class="pestanas" role="tablist">
+        <button class="pestana" role="tab" aria-selected="true">En curso <span class="cuenta">5</span></button>
+        <button class="pestana" role="tab" aria-selected="false">Muestras <span class="cuenta">1</span></button>
+        <button class="pestana" role="tab" aria-selected="false">Terminadas <span class="cuenta">1</span></button>
+      </div>
+      <div class="filtros" role="group" aria-label="Filtrar">
+        <button class="pil" aria-pressed="true">Todas</button>
+        <button class="pil" aria-pressed="false">Por cortar</button>
+        <button class="pil" aria-pressed="false">En costura</button>
+        <button class="pil" aria-pressed="false">En acabado</button>
+        <span class="sep"></span>
+        <button class="pil" aria-pressed="false">Afuera</button>
+        <button class="pil" aria-pressed="false">Piden algo · 3</button>
+      </div>
+      <label class="buscador"><svg class="ic"><use href="#i-lupa"/></svg><input type="text" placeholder="Buscar por modelo u orden"><kbd>/</kbd></label>
+    </div>
+    <div class="tb-cab" role="row">
+      <span>Orden</span><span class="der">Prendas</span><span>Fase · quién la tiene</span><span class="col-dias">En la fase</span><span class="col-entrega">Entrega</span><span>Pide algo</span><span></span>
+    </div>
+
+    <button class="tb-fila" data-op="OP-000003">
+      <span class="celda-prenda"><span class="tile negro"><svg class="ic"><use href="#i-ves"/></svg></span><span style="min-width:0"><span class="nombre">Vestido Aurora</span><span class="sub">OP-000003 · crudo, negro</span></span></span>
+      <span class="cuantas der">36</span>
+      <span class="celda-fase"><span class="chip ambar">En acabado</span><span class="sub">Taller · 21 de 36</span><span class="entrega-inline">Entrega dom 18 oct · ayer</span></span>
+      <span class="dias col-dias">4 d<small>desde jue 15</small></span>
+      <span class="entrega col-entrega">dom 18 oct<small>ayer</small></span>
+      <span class="causa"><span class="linea">Entrega pasada <span class="btn-enlace porque" data-porque>¿Por qué?</span></span></span>
+      <svg class="ic chev ic-14"><use href="#i-chev"/></svg>
+      <span class="explica">Se prometió para el <b>domingo 18</b> y faltan 15 vestidos por acabar (en acabado desde el jueves 15). Si salen hoy, llegan un día tarde.</span>
+    </button>
+
+    <button class="tb-fila" data-op="OP-000002">
+      <span class="celda-prenda"><span class="tile negro"><svg class="ic"><use href="#i-pan"/></svg></span><span style="min-width:0"><span class="nombre">Pantalón Lía</span><span class="sub">OP-000002 · negro, caqui</span></span></span>
+      <span class="cuantas der">48</span>
+      <span class="celda-fase"><span class="chip pizarra">En costura · afuera</span><span class="sub">Confecciones del Norte · 48 afuera</span><span class="entrega-inline">Entrega vie 23 oct · en 4 días</span></span>
+      <span class="dias col-dias">3 d<small>desde vie 16</small></span>
+      <span class="entrega col-entrega">vie 23 oct<small>en 4 días</small></span>
+      <span class="vacia">—</span>
+      <svg class="ic chev ic-14"><use href="#i-chev"/></svg>
+    </button>
+
+    <button class="tb-fila" data-op="OP-000005">
+      <span class="celda-prenda"><span class="tile crudo"><svg class="ic"><use href="#i-ves"/></svg></span><span style="min-width:0"><span class="nombre"><span class="nombre-txt">Vestido Aurora</span><span class="chip tinta" style="font-size:11px;padding:0 7px;line-height:18px">Muestra</span></span><span class="sub">OP-000005 · crudo</span></span></span>
+      <span class="cuantas der">3</span>
+      <span class="celda-fase"><span class="chip ambar">En costura</span><span class="sub">Taller · 2 de 3</span><span class="entrega-inline">Entrega mié 21 oct · en 2 días</span></span>
+      <span class="dias col-dias">1 d<small>desde ayer</small></span>
+      <span class="entrega col-entrega">mié 21 oct<small>en 2 días</small></span>
+      <span class="vacia">—</span>
+      <svg class="ic chev ic-14"><use href="#i-chev"/></svg>
+    </button>
+
+    <button class="tb-fila" data-op="OP-000004">
+      <span class="celda-prenda"><span class="tile blanco"><svg class="ic"><use href="#i-cms"/></svg></span><span style="min-width:0"><span class="nombre">Blusa Marina</span><span class="sub">OP-000004 · blanco, negro, arena</span></span></span>
+      <span class="cuantas der">40</span>
+      <span class="celda-fase"><span class="chip">Por cortar</span><span class="sub">Taller · 0 de 40</span><span class="entrega-inline">Entrega mié 28 oct · en 9 días</span></span>
+      <span class="dias col-dias">3 d<small>abierta vie 16</small></span>
+      <span class="entrega col-entrega">mié 28 oct<small>en 9 días</small></span>
+      <span class="causa"><span class="linea">Tela que no llega <span class="btn-enlace porque" data-porque aria-expanded="true">¿Por qué?</span></span></span>
+      <svg class="ic chev ic-14"><use href="#i-chev"/></svg>
+      <span class="explica abierta">Para cortar 40 blusas hacen falta <b>60 m de lino crudo</b> y en Insumos hay 28 m. Faltan 32 m: pídelos a Textiles Andinos desde Abastecimiento.</span>
+    </button>
+
+    <button class="tb-fila" data-op="OP-000006">
+      <span class="celda-prenda"><span class="tile arena"><svg class="ic"><use href="#i-cms"/></svg></span><span style="min-width:0"><span class="nombre">Blusa Marina</span><span class="sub">OP-000006 · arena, blanco</span></span></span>
+      <span class="cuantas der">50</span>
+      <span class="celda-fase"><span class="chip">Por cortar</span><span class="sub">Taller · 0 de 50</span><span class="entrega-inline">Sin fecha de entrega</span></span>
+      <span class="dias col-dias">4 d<small>abierta jue 15</small></span>
+      <span class="entrega col-entrega vacia">Sin fecha</span>
+      <span class="causa"><span class="linea">4 días sin moverse <span class="btn-enlace porque" data-porque>¿Por qué?</span></span></span>
+      <svg class="ic chev ic-14"><use href="#i-chev"/></svg>
+      <span class="explica">Se abrió el jueves 15 y nadie anotó el corte. Cuatro días sin un movimiento es más de lo que tarda un corte de 50.</span>
+    </button>
+
+    <div class="tb-pie"><span>5 órdenes en curso</span><span style="margin-left:auto">Ordenadas por entrega, la más cercana primero</span></div>
+  </div>
+
+  <div class="nota"><svg class="ic"><use href="#i-info"/></svg><p>Una orden se pone en <b>rojo solo por tres causas</b>: la entrega ya pasó, la tela no llega o lleva días sin moverse. «¿Por qué?» te lo explica en una línea. Lo que está <b>afuera</b> aparece con el nombre de quien lo tiene y cuántas prendas se llevó.</p></div>
+</template>
+
+<template id="t-orden-cab">
+  <div class="orden-cab">
+    <span class="tile m negro" aria-hidden="true"><svg class="ic"><use href="#i-pan"/></svg></span>
+    <div style="min-width:0">
+      <div class="op">OP-000002 · lote</div>
+      <h2>Pantalón Lía <span class="chip pizarra" style="font-size:13px">En costura · afuera</span></h2>
+      <div class="colores"><span class="puntos"><span class="punto negro"></span><span class="punto caqui"></span></span> negro y caqui · 28, 30 y 32 · se vende a S/ 129</div>
+    </div>
+  </div>
+</template>
+
+<template id="t-fases">
+  <section class="fase hecha" aria-label="Corte, hecha">
+    <div class="enc-f"><span class="glifo"><svg class="ic"><use href="#i-check"/></svg></span><span class="nom">Corte</span><span class="quien-f"><svg class="ic"><use href="#i-taller"/></svg> Taller</span></div>
+    <div class="cant">48 <small>de 48</small></div>
+    <div class="det">Terminado el <b>jue 15</b> por Rosa · 70 m de gabardina usados</div>
+  </section>
+  <section class="fase actual" aria-label="Costura, en curso">
+    <div class="enc-f"><span class="glifo"></span><span class="nom">Costura</span><span class="quien-f"><svg class="ic"><use href="#i-camion"/></svg> Confecciones del Norte</span></div>
+    <div class="cant">0 <small>de 48 de vuelta</small></div>
+    <div class="det"><b>48 afuera</b> desde el vie 16 · prometido para el <b>mié 21</b> · S/ 4.50 por prenda</div>
+    <table class="matriz" aria-label="De vuelta por talla y color">
+      <thead><tr><th scope="col"></th><th scope="col">28</th><th scope="col">30</th><th scope="col">32</th></tr></thead>
+      <tbody>
+        <tr><td><span class="punto negro"></span>negro</td><td class="cero">0 / 8</td><td class="cero">0 / 8</td><td class="cero">0 / 8</td></tr>
+        <tr><td><span class="punto caqui"></span>caqui</td><td class="cero">0 / 8</td><td class="cero">0 / 8</td><td class="cero">0 / 8</td></tr>
+      </tbody>
+    </table>
+    <div class="acciones-f"><button class="btn btn-primario">Anotar vuelta</button><button class="btn btn-secundario">Otra salida</button></div>
+  </section>
+  <section class="fase pendiente" aria-label="Acabado, pendiente">
+    <div class="enc-f"><span class="glifo"></span><span class="nom">Acabado</span><span class="quien-f"><svg class="ic"><use href="#i-taller"/></svg> Taller</span></div>
+    <div class="cant">0 <small>de 48</small></div>
+    <div class="det">Empieza cuando vuelva la costura</div>
+  </section>
+  <button class="fase agregar"><span class="mas"><svg class="ic"><use href="#i-mas"/></svg></span><span><b>Agregar una fase</b><br>bordado, estampado o lavandería</span></button>
+</template>
+
+<template id="t-tela">
+  <div class="lineas">
+    <div><span class="k">Gabardina negra · Textiles Andinos</span><span class="v">plan 36 m · usados 35 m</span></div>
+    <div><span class="k">Gabardina caqui · Textiles Andinos</span><span class="v">plan 36 m · usados 35 m</span></div>
+    <div><span class="k">Total · 1.5 m por prenda × 48</span><span class="v"><span class="ok"><svg class="ic"><use href="#i-check"/></svg> Alcanzó · sobraron 2 m</span></span></div>
+  </div>
+</template>
+
+<template id="t-costo">
+  <table class="costo">
+    <thead><tr><th scope="col">Concepto</th><th scope="col">Estimado</th><th scope="col">Real</th></tr></thead>
+    <tbody>
+      <tr><td>Tela<small>72 m de gabardina</small></td><td>1,080.00</td><td>1,050.00</td></tr>
+      <tr><td>Avíos<small>cierres, botones, hilo</small></td><td>96.00</td><td>96.00</td></tr>
+      <tr><td>Costura afuera<small>48 × S/ 4.50 · Confecciones del Norte</small></td><td>216.00</td><td class="sin">al volver</td></tr>
+      <tr class="total"><td>Total · S/</td><td>1,392.00</td><td>1,146.00</td></tr>
+      <tr><td>Por prenda · S/</td><td>29.00</td><td class="sin">al cerrar</td></tr>
+    </tbody>
+  </table>
+</template>
+
+<template id="t-tiempo">
+  <ol class="tiempo">
+    <li class="hoy"><div class="cuando">vie 16 oct · 10:12 · Rosa</div><div class="que"><span><b>Salida a Confecciones del Norte</b> · 48 prendas</span><span class="cuanto">S/ 216.00 al volver</span></div></li>
+    <li><div class="cuando">jue 15 oct · 17:40 · Rosa</div><div class="que"><span><b>Terminó el corte</b> · 48 de 48</span><span class="cuanto">70 m de tela</span></div></li>
+    <li><div class="cuando">mar 13 oct · 09:05 · Felipe</div><div class="que"><span><b>Abrió la orden</b> · 48 prendas · entrega vie 23</span><span class="cuanto">est. S/ 1,392.00</span></div></li>
+  </ol>
+</template>
+
+<script>
+  // Estampa las plantillas en cada marco (el lateral, la barra y la lista se repiten en varias vistas).
+  const estampa = (id) => document.getElementById(id).content.cloneNode(true);
+  document.querySelectorAll('[data-lateral]').forEach((n) => n.replaceWith(estampa('t-lateral')));
+  document.querySelectorAll('[data-barra]').forEach((n) => n.replaceWith(estampa('t-barra')));
+  document.querySelectorAll('[data-lista]').forEach((n) => { n.append(estampa('t-lista')); });
+  document.querySelectorAll('[data-encabezado]').forEach((n) => n.replaceWith(estampa('t-encabezado')));
+  document.querySelectorAll('[data-orden-cab]').forEach((n) => n.replaceWith(estampa('t-orden-cab')));
+  document.querySelectorAll('[data-ruta-fases]').forEach((n) => n.append(estampa('t-fases')));
+  document.querySelectorAll('[data-tela]').forEach((n) => n.replaceWith(estampa('t-tela')));
+  document.querySelectorAll('[data-costo]').forEach((n) => n.replaceWith(estampa('t-costo')));
+  document.querySelectorAll('[data-tiempo]').forEach((n) => n.replaceWith(estampa('t-tiempo')));
+
+  // En C la fila de la orden abierta queda marcada (aria-current), como hace .fila-cayla.
+  document.querySelectorAll('[data-abierta]').forEach((m) => {
+    const fila = m.querySelector(`[data-op="${m.dataset.abierta}"]`);
+    if (fila) fila.setAttribute('aria-current', 'true');
+  });
+
+  // «¿Por qué?» a un toque: abre o cierra la explicación de su causa (sin animación).
+  document.querySelectorAll('[data-porque]').forEach((b) => {
+    b.setAttribute('role', 'button'); b.tabIndex = 0;
+    if (!b.hasAttribute('aria-expanded')) b.setAttribute('aria-expanded', 'false');
+    const alternar = (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const abierto = b.getAttribute('aria-expanded') === 'true';
+      b.setAttribute('aria-expanded', String(!abierto));
+      b.closest('.tb-fila, .tarjeta').querySelector('.explica').classList.toggle('abierta', !abierto);
+    };
+    b.addEventListener('click', alternar);
+    b.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') alternar(e); });
+  });
+
+  // Tema claro / oscuro: pone data-tema en <html>, como el botón real del ERP.
+  const btnTema = document.getElementById('tema');
+  const ponerTema = (oscuro) => {
+    document.documentElement.dataset.tema = oscuro ? 'oscuro' : 'claro';
+    btnTema.setAttribute('aria-pressed', String(oscuro));
+    btnTema.innerHTML = `<svg class="ic ic-14"><use href="#${oscuro ? 'i-sol' : 'i-luna'}"/></svg> ${oscuro ? 'Claro' : 'Oscuro'}`;
+  };
+  btnTema.addEventListener('click', () => ponerTema(document.documentElement.dataset.tema !== 'oscuro'));
+
+  // Ancho 1440 / 1024: cada vista entra en un marco de ese ancho.
+  const ponerAncho = (a) => {
+    document.body.dataset.ancho = a;
+    document.querySelectorAll('[data-ancho]').forEach((b) => b.tagName === 'BUTTON' && b.setAttribute('aria-pressed', String(b.dataset.ancho === a)));
+    document.querySelectorAll('[data-ancho-texto]').forEach((s) => (s.textContent = `${a} px`));
+    ajustarCajon();
+  };
+  document.querySelectorAll('button[data-ancho]').forEach((b) => b.addEventListener('click', () => ponerAncho(b.dataset.ancho)));
+
+  // El cajón de C: el marco crece hasta que se vea todo el cajón (en el ERP real, el cajón se desplaza por dentro).
+  function ajustarCajon() {
+    document.querySelectorAll('.marco-c').forEach((m) => {
+      const c = m.querySelector('.cajon');
+      m.style.minHeight = '';
+      requestAnimationFrame(() => { m.style.minHeight = `${c.scrollHeight + 16}px`; });
+    });
+  }
+  // Por la URL: #vista-c,oscuro,1024
+  const partes = location.hash.slice(1).split(',');
+  if (partes.includes('oscuro')) ponerTema(true);
+  if (partes.includes('1024')) ponerAncho('1024'); else ajustarCajon();
+  document.fonts?.ready.then(ajustarCajon);
+</script>
+</body>
+</html>

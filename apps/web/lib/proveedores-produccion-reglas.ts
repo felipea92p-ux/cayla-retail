@@ -10,7 +10,7 @@ export type RubroProduccion = "tela" | "avios" | "maquila" | "otro";
 export const RUBROS_PRODUCCION: { valor: RubroProduccion; etiqueta: string; ayuda: string }[] = [
   { valor: "tela", etiqueta: "Tela", ayuda: "Lino, popelina, punto… por metro o por kilo" },
   { valor: "avios", etiqueta: "Avíos", ayuda: "Botones, cierres, forros, hilos, etiquetas" },
-  { valor: "maquila", etiqueta: "Maquila", ayuda: "Costura o corte hecho fuera del Taller" },
+  { valor: "maquila", etiqueta: "Servicio de afuera", ayuda: "Corte, costura, bordado, estampado o lavandería hechos fuera del Taller" },
   { valor: "otro", etiqueta: "Otro", ayuda: "Cualquier otro proveedor del Taller" },
 ];
 

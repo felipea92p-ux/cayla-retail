@@ -10,7 +10,7 @@ export type UnidadInsumo = "metro" | "unidad" | "kilo" | "cono" | "par" | "docen
 export type TipoMovInsumo = "compra" | "consumo" | "devolucion" | "merma" | "ajuste";
 
 export const TIPOS_INSUMO: { valor: TipoInsumo; etiqueta: string; plural: string; ayuda: string }[] = [
-  { valor: "tela", etiqueta: "Tela", plural: "Telas", ayuda: "se compran por metro o por kilo y se cortan por corrida" },
+  { valor: "tela", etiqueta: "Tela", plural: "Telas", ayuda: "se compran por metro o por kilo y se cortan por lote" },
   { valor: "avio", etiqueta: "Avío", plural: "Avíos", ayuda: "botones, cierres, etiquetas e hilo" },
 ];
 

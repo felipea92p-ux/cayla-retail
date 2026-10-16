@@ -959,6 +959,7 @@ export const DECISIONES = {
       { "archivo": "app/(app)/productos/[id]/historial/page.tsx", "motivo": "la página «Historial» de la vista rápida es decidida a propósito (ADR-0354, ADR-0136 act. 2026-10-05)" },
       { "archivo": "components/PantallaNoEncontrada.tsx", "motivo": "un estado (la pantalla que no existe), no la cabecera de una pantalla del menú" },
       { "archivo": "components/ProduccionSoloEnTaller.tsx", "motivo": "un estado (Producción solo se ve parado en el Taller), no la cabecera de una pantalla" },
+      { "archivo": "components/ProduccionSoloLider.tsx", "motivo": "un estado (esta pantalla de Producción es del líder), no la cabecera de una pantalla" },
       { "archivo": "app/(app)/sin-acceso/page.tsx", "motivo": "un estado (tu rol no ve este módulo), no la cabecera de una pantalla" },
       { "archivo": "app/(app)/error.tsx", "motivo": "un estado (la pantalla se cayó), no la cabecera de una pantalla" },
       { "archivo": "app/(app)/global/elige-sede/page.tsx", "motivo": "un estado (en CAYLA Global esta pantalla pide una sede), no la cabecera de una pantalla" },

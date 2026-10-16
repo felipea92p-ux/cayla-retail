@@ -12,6 +12,7 @@
 
 import type { CampoDeGuia } from "./guia-campos";
 import { aTexto, leerNumero, problemaDeEntrega, textoParaBase } from "./orden-compra-alta";
+import type { PrecargaDePedido } from "./pedir-insumo-reglas";
 import {
   TOPES_INSUMO,
   calcularLineaInsumo,
@@ -57,6 +58,20 @@ export type OrdenInsumoBorrador = {
 
 export function lineaInsumoVacia(clave: string): LineaInsumoBorrador {
   return { clave, insumoId: "", descripcion: "", cantidad: "", precio: "", descuento: "", modoDescuento: "pct" };
+}
+
+/**
+ * La orden con la que abre «Nueva orden de insumos»: vacía, salvo «Llega a» (el taller que le toca) y, si la persona llegó desde un «Pedir N m»,
+ * la primera línea con ese insumo y esa cantidad (en SU unidad). Se arma una sola vez, al abrir: lo que la persona escriba después no se toca.
+ * El proveedor y el precio no se adivinan.
+ */
+export function borradorNuevoDeOrdenInsumo(destinoInicial: string, precarga: PrecargaDePedido | null): OrdenInsumoBorrador {
+  const primera = lineaInsumoVacia("l1");
+  if (precarga) {
+    primera.insumoId = precarga.insumoId;
+    primera.cantidad = precarga.cantidad ?? "";
+  }
+  return { proveedorId: "", destinoId: destinoInicial, entrega: "", nota: "", lineas: [primera] };
 }
 
 /**
@@ -139,18 +154,15 @@ function campoDestino(o: OrdenInsumoBorrador, ctx: ContextoOrdenInsumo): CampoDe
   };
 }
 
-/** «Entrega estimada»: vacía es «sugerida» (avisa, nunca bloquea); una fecha ESCRITA que la base rechazaría sí bloquea (como la fase 1). */
+/**
+ * «Entrega estimada»: es OPCIONAL de verdad (la base la acepta vacía, y la caja dice «si la sabes»), así que vacía no se lista como «falta» ni
+ * recibe la luz: queda como un campo opcional (ADR-0284, regla 5: «lo opcional de verdad no se lista como falta»; lo contrario decía «Faltan:
+ * …, Entrega estimada» y, dos líneas después, «puedes seguir así»). Una fecha ESCRITA que la base rechazaría sí bloquea (como la fase 1).
+ */
 function campoEntrega(o: OrdenInsumoBorrador, ctx: ContextoOrdenInsumo): CampoDeGuia {
   const problema = problemaDeEntrega(o.entrega, ctx.hoy, ctx.entregaOriginal);
   if (o.entrega && problema) return { id: "entrega", nombre: "Entrega estimada", requerido: true, hecho: false, pendiente: problema };
-  return {
-    id: "entrega",
-    nombre: "Entrega estimada",
-    requerido: false,
-    sugerido: true,
-    hecho: !!o.entrega,
-    pendiente: "¿Cuándo crees que llega? Sirve para saber si se atrasa.",
-  };
+  return { id: "entrega", nombre: "Entrega estimada", requerido: false, hecho: !!o.entrega, pendiente: "" };
 }
 
 /**

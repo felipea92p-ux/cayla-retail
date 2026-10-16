@@ -34,6 +34,7 @@ export function FichaOrden({
   costo,
   margen,
   entrega,
+  afuera = [],
   notaSinPrecio,
   children,
 }: {
@@ -53,10 +54,13 @@ export function FichaOrden({
   seVendeA: string | null;
   /** Solo líder: «S/ 69.90 en Tienda Lima», el precio propio más bajo con el que se mide el margen (ADR-0370). */
   precioMasBajo: string | null;
-  costo: { total: string; porPrenda: string | null } | null;
+  /** `partes`: de qué se forma el costo de cada prenda (la tela y cada servicio de afuera), ya escritas; suman lo que dice `porPrenda`. */
+  costo: { total: string; porPrenda: string | null; partes?: { clave: string; nombre: string; detalle: string | null; valor: string }[] } | null;
   margen: FilaMargen | null;
   /** «23 oct», o `null` («sin fecha»). */
   entrega: string | null;
+  /** Las fases que salen a un servicio y todavía no tienen un costo que repartir en `costo.partes` (una tarifa sin leer), ya escritas («Costura: Confecciones del Norte», ADR-0400); vacío = ninguna. */
+  afuera?: string[];
   /** Solo líder, modelo que existe sin precio: el aviso con su enlace a Editar producto. */
   notaSinPrecio?: ReactNode;
   /** Lo que cierra la orden. */
@@ -138,13 +142,32 @@ export function FichaOrden({
                 </dd>
               </>
             )}
+            {/* El costo se lee POR PRENDA, que es con lo que se mide el margen y se pone el precio; lo de toda la orden va debajo. Con dos o más partes (tela y servicios de afuera) se dice cuánto de cada prenda es de qué. */}
             {costo && (
               <>
-                <dt className="text-taupe">Costo estimado</dt>
-                <dd className="text-right tabular-nums text-tinta">
-                  {costo.total}
-                  {costo.porPrenda && <span className="block text-[12px] text-taupe">{costo.porPrenda} / prenda</span>}
-                </dd>
+                <dt className="text-taupe">{costo.porPrenda ? "Costo por prenda" : "Costo estimado"}</dt>
+                <dd className="text-right tabular-nums text-tinta">{costo.porPrenda ?? costo.total}</dd>
+                {costo.partes && costo.partes.length > 1 && (
+                  <dd className="col-span-2">
+                    <ul aria-label="De qué se forma el costo de cada prenda" className="space-y-1 border-l border-sand pl-3">
+                      {costo.partes.map((parte) => (
+                        <li key={parte.clave} className="flex items-baseline justify-between gap-3 text-[12.5px] leading-snug">
+                          <span className="min-w-0 text-taupe">
+                            {parte.nombre}
+                            {parte.detalle && <small className="block truncate text-[12px] text-taupe">{parte.detalle}</small>}
+                          </span>
+                          <span className="shrink-0 tabular-nums text-tinta">{parte.valor}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </dd>
+                )}
+                {costo.porPrenda && (
+                  <>
+                    <dt className="text-taupe">Toda la orden</dt>
+                    <dd className="text-right tabular-nums text-tinta">{costo.total}</dd>
+                  </>
+                )}
               </>
             )}
             {margen && (
@@ -158,6 +181,18 @@ export function FichaOrden({
             )}
             <dt className="text-taupe">Entrega</dt>
             <dd className="text-right tabular-nums text-tinta">{entrega ?? <span className="text-taupe">sin fecha</span>}</dd>
+            {afuera.length > 0 && (
+              <>
+                <dt className="text-taupe">Afuera</dt>
+                <dd className="text-right text-tinta">
+                  {afuera.map((linea) => (
+                    <span key={linea} className="block text-[12.5px] leading-snug">
+                      {linea}
+                    </span>
+                  ))}
+                </dd>
+              </>
+            )}
           </dl>
           {notaSinPrecio && <div className="max-[979px]:hidden">{notaSinPrecio}</div>}
         </div>

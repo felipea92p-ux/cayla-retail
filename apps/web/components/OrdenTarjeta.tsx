@@ -1,24 +1,11 @@
 "use client";
 
-import { soles } from "@/lib/compras-reglas";
-import { diaMes } from "@/lib/fechas-lima";
 import { Chip } from "@/components/ui/Chip";
-import {
-  desgloseCosto,
-  estadoEntrega,
-  etapaActual,
-  etapasDe,
-  precioParaMargen,
-  semaforoMargen,
-  TEXTO_SEMAFORO,
-  type EstadoEntrega,
-} from "@/lib/produccion-reglas";
+import { precioParaMargen, semaforoMargen, TEXTO_SEMAFORO, type EstadoEntrega } from "@/lib/produccion-reglas";
 import type { OrdenProduccion } from "@/lib/produccion";
-import { BarraApilada } from "@/components/ui/BarraApilada";
 
-// Una orden en el tablero (ADR-0133, F2): qué es, dónde está, si llega, y —solo para el líder— cuánto cuesta.
-// Es un botón: tocarla abre el panel. Sin animación en bucle (regla de la pantalla: la única es el punto «vivo»
-// del Chip): la etapa actual se ve por su color, no porque parpadee.
+// Lo que el cajón de una orden (`OrdenPanel`) toma de la antigua tarjeta del tablero (ADR-0133, F2): el semáforo de margen y el chip de entrega. La tarjeta misma se fue con el tablero
+// (ADR-0400, actividad 5): la lista de Órdenes dibuja cada orden con `FilaDeOrden`.
 
 const TONO_SEMAFORO = { gana: "bg-verde", filo: "bg-ambar", pierde: "bg-rojo" } as const;
 
@@ -34,93 +21,4 @@ export function ChipEntrega({ entrega }: { entrega: EstadoEntrega }) {
   if (entrega.tipo === "vencida") return <Chip tono="rojo">Entrega pasada · {entrega.dias} d</Chip>;
   if (entrega.tipo === "pronto") return <Chip tono="ambar">{entrega.dias === 0 ? "Entrega hoy" : `Entrega en ${entrega.dias} d`}</Chip>;
   return null;
-}
-
-export function OrdenTarjeta({
-  orden,
-  esLider,
-  hoy,
-  indice,
-  onAbrir,
-  refTarjeta,
-}: {
-  orden: OrdenProduccion;
-  esLider: boolean;
-  hoy: string;
-  indice: number;
-  onAbrir: () => void;
-  refTarjeta?: (el: HTMLElement | null) => void;
-}) {
-  const etapas = etapasDe(orden.esMuestra);
-  const actual = etapaActual(orden.etapas, orden.esMuestra);
-  const entrega = estadoEntrega(orden.fechaEntrega, hoy);
-  const sem = semaforoDeOrden(orden);
-  const costo = desgloseCosto(orden.costoTela, orden.costoAvios, orden.costoMaquila);
-  const conMaquila = actual !== "listo" && orden.etapas[actual] === "tercerizado";
-  const sinCosto = costo.total === 0;
-
-  return (
-    <button
-      ref={refTarjeta}
-      type="button"
-      data-guia="prod-ordenes.tarjeta"
-      onClick={onAbrir}
-      style={{ ["--i" as string]: indice }}
-      className="card-cayla alza-cayla anim-entra block w-full p-3.5 text-left"
-      aria-label={`${orden.referencia}, ${orden.cantidadPlan} prendas`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="font-display break-words text-lg leading-tight text-tinta">{/* unificar-fijo: el nombre de la orden en su tarjeta es un dato, no un título de sección */}{orden.referencia}</h3>
-          <p className="mt-0.5 text-xs text-tinta/65">
-            {[orden.categoria, `${orden.cantidadPlan} prendas`].filter(Boolean).join(" · ")}
-          </p>
-        </div>
-        {esLider && (
-          <div className="shrink-0 text-right">
-            <p className="font-display text-lg leading-tight tabular-nums text-tinta">{sinCosto ? "—" : soles(orden.costoUnitario)}</p>
-            <p className="whitespace-nowrap text-[10.5px] text-tinta/65">costo / prenda</p>
-          </div>
-        )}
-      </div>
-
-      {/* Etapas: hecha = verde, tercerizada = ámbar, la actual se ve más oscura que las pendientes. */}
-      <div className="mb-2.5 mt-3 flex gap-1" aria-hidden>
-        {etapas.map((e) => {
-          const estado = orden.etapas[e.clave];
-          const clase =
-            estado === "hecho" ? "bg-verde" : estado === "tercerizado" ? "bg-ambar/50" : e.clave === actual ? "bg-tinta/40" : "bg-sand";
-          return <span key={e.clave} title={e.etiqueta} className={`h-[5px] flex-1 rounded-full ${clase}`} />;
-        })}
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 text-xs text-tinta/65">
-        <span>{orden.fechaEntrega ? `entrega ${diaMes(orden.fechaEntrega)}` : "sin fecha de entrega"}</span>
-        <span className="flex flex-wrap items-center gap-1.5">
-          <ChipEntrega entrega={entrega} />
-          {conMaquila ? (
-            <Chip tono="ambar">Maquila externa</Chip>
-          ) : esLider && orden.costoTela + orden.costoAvios === 0 ? (
-            <Chip tono="ambar">Sin insumos</Chip>
-          ) : esLider && sem ? (
-            <span className="inline-flex items-center gap-1.5 text-tinta/75">
-              <span aria-hidden className={`h-2 w-2 rounded-full ${sem.clase}`} />
-              {sem.texto} {Math.round(sem.margen * 100)}%{sem.sede && ` · en ${sem.sede}`}
-            </span>
-          ) : null}
-        </span>
-      </div>
-
-      {esLider && !sinCosto && (
-        // La barra es `<BarraApilada>` (ADR-0358): decorativa (el costo ya está dicho en la tarjeta), un hilo de 4 px que entra con la tarjeta.
-        <BarraApilada
-          decorativa
-          className="mt-2.5"
-          alto={4}
-          retraso={indice}
-          segmentos={costo.partes.map((p) => ({ clave: p.clave, nombre: p.clave, valor: p.parte, clase: p.clave === "tela" ? "bg-tinta" : p.clave === "avios" ? "bg-taupe" : "bg-tinta/25" }))}
-        />
-      )}
-    </button>
-  );
 }

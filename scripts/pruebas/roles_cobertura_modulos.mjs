@@ -151,7 +151,9 @@ const SOLO_PANTALLA = {
   // recibir salió el 2026-10-12: fn_ve_costos_al_recibir lo pide para confirmar un costo fuera de lo normal al recibir
   // (20261012202000, ADR-0387: «el módulo es la llave»); recibir_lote, recibir_compras y recibir_insumo siguen mirando solo la sede.
   // produccion salió el 2026-10-15: fn_ordenes_insumo_por_recibir y recibir_orden_insumo lo piden para recibir en el Taller contra la orden
-  // de insumos (20261015040000, ADR-0362 fase 7 parte 2). abrir_produccion, cerrar_produccion y set_etapa_produccion siguen mirando solo la sede.
+  // de insumos (20261015040000, ADR-0362 fase 7 parte 2), y desde el rediseño del módulo (ADR-0400, 20261014154000) fn_produccion_puede_leer y
+  // fn_produccion_exigir_operar lo piden para leer y anotar las fases de una orden. abrir_produccion, cerrar_produccion y set_etapa_produccion
+  // siguen mirando solo la sede.
 };
 
 /**
