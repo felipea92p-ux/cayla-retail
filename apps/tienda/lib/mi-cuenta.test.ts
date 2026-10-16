@@ -188,7 +188,7 @@ describe("eliminar la cuenta", () => {
     expect(leerEliminacion({ estado: "borrada" })).toEqual({ estado: "sin_respuesta" });
   });
 
-  it("dice qué hacer con cada uno: el pagado se recoge; el que no, se recoge o se le escribe a la tienda para que lo anule", () => {
+  it("dice qué hacer con cada uno: el pagado se recoge; el confirmado se paga y se recoge; el que falta confirmar se anula o se cierra solo", () => {
     const f = leerLoQueFrena(frena)!;
     const pagado = queHacerConElPedido(f.pedidos[0]);
     expect(pagado.titulo).toBe("Pedido W-0007 · pagado");
@@ -196,8 +196,13 @@ describe("eliminar la cuenta", () => {
     expect(pagado.enlace).toEqual({ texto: "Ver mi pedido", href: "/cuenta/pedidos/W-0007", externo: false });
     const porConfirmar = queHacerConElPedido({ ...f.pedidos[1], whatsapp: "987654321" });
     expect(porConfirmar.titulo).toBe("Pedido W-0009 · por confirmar");
-    // «CAYLA Arequipa» no se vuelve «CAYLA CAYLA Arequipa».
-    expect(porConfirmar.texto).toContain("Recógelo en CAYLA Arequipa o, si ya no lo quieres, escríbele a la tienda");
+    // Todavía no se recoge: la tienda no lo confirmó. «CAYLA Arequipa» no se vuelve «CAYLA CAYLA Arequipa».
+    expect(porConfirmar.texto).toBe(
+      "CAYLA Arequipa todavía no lo confirma. Si ya no lo quieres, escríbele para que lo anule; si nadie lo confirma, se cierra solo.",
+    );
+    expect(queHacerConElPedido({ ...f.pedidos[1], estado: "confirmado" }).texto).toBe(
+      "Págalo y recógelo en CAYLA Arequipa o, si ya no lo quieres, escríbele a la tienda para que lo anule.",
+    );
     expect(porConfirmar.enlace?.externo).toBe(true);
     expect(porConfirmar.enlace?.href).toMatch(/^https:\/\/wa\.me\/51987654321\?text=/);
     expect(decodeURIComponent(porConfirmar.enlace!.href.split("?text=")[1])).toBe("Hola CAYLA Arequipa, quiero anular mi pedido W-0009.");

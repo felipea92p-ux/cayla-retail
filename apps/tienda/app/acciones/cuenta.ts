@@ -11,7 +11,7 @@ import {
   hayLlaveDeConfirmacion,
   usuarioConfirmadoDeEsteAparato,
 } from "@/lib/correo-confirmado-servidor";
-import { COOKIE_ENTRADA, ENTRADA_DURA_S, marcaDeEntrada } from "@/lib/entrada";
+import { conAviso, COOKIE_ENTRADA, ENTRADA_DURA_S, hrefConVolver, marcaDeEntrada, rutaParaVolver } from "@/lib/entrada";
 import { anotarEntradaEnBase, usuarioBorradoEnBase } from "@/lib/entrada-servidor";
 import {
   avisoAlCrear,
@@ -280,6 +280,8 @@ export async function crearCuenta(entrada: unknown): Promise<RespuestaCrear> {
   const leido = esquemaCrearCuenta.safeParse(entrada);
   if (!leido.success) return sinCrear(null, MENSAJES.noDisponible);
   const { registro: r, casilla } = leido.data;
+  // La página con cuenta que quería ver (la prenda que le mandaron): al terminar va ahí, no a «Mi cuenta». Solo una de esta tienda.
+  const volver = rutaParaVolver(leido.data.volver);
   const problema = problemaRegistro(r, hoyLima());
   if (problema) return problema;
 
@@ -372,11 +374,12 @@ export async function crearCuenta(entrada: unknown): Promise<RespuestaCrear> {
 
   // 8. Entrar. Si el proyecto de clientes no contesta justo ahora, la cuenta igual quedó: que entre con su correo.
   const { error } = await sesion.auth.signInWithPassword({ email: correo, password: r.clave });
-  if (error) redirect("/entrar?aviso=cuenta-creada");
+  if (error) redirect(conAviso(hrefConVolver("/entrar", volver), "cuenta-creada"));
   // Crear la cuenta también es entrar (la conservación del Club ya la cuenta por `creada_en`): se anota y se deja la marca del día,
   // así el marco de «Mi cuenta» no vuelve a preguntar hoy.
   if ((await anotarEntradaEnBase(usuarioWebId)) === "anotada") await marcarEntradaDeHoy(usuarioWebId);
-  redirect(`/cuenta?aviso=${aviso}`);
+  // A la prenda que quería ver, con la bienvenida al Club abajo. Salvo los avisos que no se activaron: esa nota vive en «Mi cuenta».
+  redirect(volver && aviso !== "avisos-sin-activar" ? conAviso(volver, aviso) : `/cuenta?aviso=${aviso}`);
 }
 
 /** La marca de «hoy ya se anotó la entrada» de este aparato (la misma que deja `anotarEntrada`). */

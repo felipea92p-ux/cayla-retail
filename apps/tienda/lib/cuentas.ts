@@ -308,11 +308,17 @@ export function faltanRegistro(estado: EstadoRegistro): (readonly [CampoRegistro
   return CAMPOS_REGISTRO.filter(([campo]) => estado[campo] !== "ok");
 }
 
-/** «Falta: tu correo, tu DNI y aceptar los términos» */
-export function textoFaltan(faltan: readonly (readonly [CampoRegistro, string])[]): string {
-  const nombres = faltan.map(([, nombre]) => nombre);
-  if (nombres.length <= 1) return nombres.join("");
-  return `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+/** Cuántos «Falta» se nombran en el pie del registro antes de decir «y N más». */
+const FALTAN_A_LA_VISTA = 3;
+
+/**
+ * Lo que dice el pie del registro: los primeros que faltan, por su nombre, y cuántos más. Con todo vacío eran ocho nombres en cuatro
+ * renglones ámbar, fijos sobre el formulario (un quinto de la pantalla de un celular): ahora, «tu correo, confirmar tu correo, tu
+ * contraseña y 5 más». Nunca «y 1 más»: si solo sobra uno, se nombra. El orden es el de la página: el primero es el que sigue.
+ */
+export function faltanResumidos<T>(faltan: readonly T[], max = FALTAN_A_LA_VISTA): { nombrados: T[]; mas: number } {
+  if (faltan.length <= max + 1) return { nombrados: [...faltan], mas: 0 };
+  return { nombrados: faltan.slice(0, max), mas: faltan.length - max };
 }
 
 export type MarcaCampo = "hecho" | "error" | "sigue" | "falta";
@@ -395,6 +401,10 @@ export const MENSAJES = {
   entrarMal: "El correo o la contraseña no coinciden. Revísalos o recupera tu contraseña.",
   entrarLimite: "Hiciste muchos intentos seguidos. Espera unos minutos y vuelve a intentarlo.",
   entrarNoDisponible: "No pudimos entrar ahora. Intenta de nuevo en unos minutos.",
+  // «Entrar» ya no espera con el botón apagado: al tocarlo dice qué falta, bajo su caja (lib/entrada.ts, `problemaAlEntrar`).
+  entrarSinCorreo: "Escribe el correo con el que creaste tu cuenta.",
+  entrarSinClave: "Escribe tu contraseña.",
+  entrarClaveCorta: "Tu contraseña tiene 8 caracteres o más: revísala.",
   // Su ficha se anonimizó (3 años sin comprar ni entrar, o lo pidió: en tienda o con «Eliminar mi cuenta») y la cuenta se cerró:
   // Términos del Club, 7; Privacidad, 6.
   cuentaCerrada:
@@ -470,9 +480,14 @@ export const esquemaRegistro = z.object({
 
 /**
  * «Crear mi cuenta»: el registro y la versión de la casilla de los avisos que la persona leyó (null si no se le mostró). El código
- * NO viaja aquí: se confirmó antes, bajo el correo, y lo que el servidor exige es la prueba firmada de este aparato.
+ * NO viaja aquí: se confirmó antes, bajo el correo, y lo que el servidor exige es la prueba firmada de este aparato. `volver`: la
+ * página con cuenta que quería ver (la prenda que le mandaron); el servidor la revisa con `rutaParaVolver` (lib/entrada.ts).
  */
-export const esquemaCrearCuenta = z.object({ registro: esquemaRegistro, casilla: z.number().int().positive().nullable() });
+export const esquemaCrearCuenta = z.object({
+  registro: esquemaRegistro,
+  casilla: z.number().int().positive().nullable(),
+  volver: z.string().max(300).nullable().optional(),
+});
 
 export type ProblemaRegistro = { campo: CampoProblema | null; mensaje: string };
 
@@ -692,8 +707,11 @@ export function leerBeneficios(dato: unknown): Beneficios | null {
   return { pct, escala: [...escala].sort((a, b) => a.anio - b.anio), compras, montoMinimo: monto_minimo, dias };
 }
 
-/** «S/ 20»; con céntimos, «S/ 25.50». */
-export const soles = (monto: number) => `S/ ${Number.isInteger(monto) ? String(monto) : monto.toFixed(2)}`;
+/**
+ * «S/ 20»; con céntimos, «S/ 25.50». «S/» y la cifra van con un espacio que no se parte (U+00A0, ADR-0413): en el celular, «Mi cuenta»
+ * decía «recibes un vale de S/» al final de un renglón y «20» al comienzo del siguiente.
+ */
+export const soles = (monto: number) => `S/\u00a0${Number.isInteger(monto) ? String(monto) : monto.toFixed(2)}`;
 
 const ORDINALES = ["el primer año", "el segundo", "el tercero", "el cuarto", "el quinto"];
 

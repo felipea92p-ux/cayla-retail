@@ -335,10 +335,13 @@ export function queHacerConElPedido(p: PedidoQueFrena): QueHacer {
       enlace: { texto: "Ver mi pedido", href: `/cuenta/pedidos/${p.codigo}`, externo: false },
     };
   }
-  const queEs = p.estado === "por_confirmar" ? "por confirmar" : "confirmado";
+  const porConfirmar = p.estado === "por_confirmar";
   return {
-    titulo: `Pedido ${p.codigo} · ${queEs}`,
-    texto: `Recógelo en ${tienda} o, si ya no lo quieres, escríbele a la tienda para que lo anule.`,
+    titulo: `Pedido ${p.codigo} · ${porConfirmar ? "por confirmar" : "confirmado"}`,
+    // Uno por confirmar todavía no se recoge (antes decía «Recógelo»): o la tienda lo anula, o se cierra solo si nadie lo confirma.
+    texto: porConfirmar
+      ? `${tienda} todavía no lo confirma. Si ya no lo quieres, escríbele para que lo anule; si nadie lo confirma, se cierra solo.`
+      : `Págalo y recógelo en ${tienda} o, si ya no lo quieres, escríbele a la tienda para que lo anule.`,
     enlace: p.whatsapp
       ? {
           texto: "Escribir a la tienda",

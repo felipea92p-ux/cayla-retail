@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { Fragment, useEffect, useState, useTransition } from "react";
 import { ajustarNumeroAlTipo, TIPOS_DOCUMENTO_CLIENTA, type TipoDocumentoClienta } from "@cayla-retail/shared";
 import { confirmarCodigo, consultarCorreo, consultarDocumento, crearCuenta, obtenerCodigo, type RespuestaCrear, type RespuestaDelCodigo } from "@/app/acciones/cuenta";
 import {
@@ -20,6 +20,7 @@ import {
   estadoRegistro,
   faltanCaracteres,
   faltanRegistro,
+  faltanResumidos,
   marcaDe,
   MAX_PARTE_NOMBRE,
   MENSAJES,
@@ -28,7 +29,6 @@ import {
   REGISTRO_VACIO,
   soloDigitos,
   TEXTO_MARCA,
-  textoFaltan,
   type CampoProblema,
   type CampoRegistro,
   type CasillaWhatsapp,
@@ -38,13 +38,15 @@ import {
   type Registro,
 } from "@/lib/cuentas";
 import { codigoDelCorreoActual, codigoParaProbar, type CodigoDelCorreo } from "@/lib/correo-confirmado";
+import { hrefConVolver, PARAMETRO_VOLVER, rutaParaVolver } from "@/lib/entrada";
 import { Icono } from "../Icono";
 import { Isotipo } from "../Isotipo";
 import { CajaClave } from "./CajaClave";
 import { Campo, Resultado } from "./CampoGuiado";
 
 // «Crea tu cuenta» (maqueta v4, `vRegistro` y `guiaRegistro`). Cada campo dice su estado en su título (✓ Listo · Sigue aquí ·
-// Revisa) y debajo qué le falta o qué está mal; el de abajo dice todo lo que falta y el botón se enciende cuando no falta nada.
+// Revisa) y debajo qué le falta o qué está mal; el de abajo dice lo primero que falta (cada cosa lleva a su campo) y cuánto más, y el
+// botón se enciende cuando no falta nada.
 // Mientras se escribe, el correo y el DNI se revisan en la base (si ya tienen cuenta) y el DNI trae el nombre del padrón a medias.
 // Con DNI el nombre no se escribe (Felipe 2026-10-15): si el padrón no lo encuentra o no responde, no se crea la cuenta, y el DNI
 // ofrece «Volver a intentar». Con carné de extranjería o pasaporte (Felipe 2026-10-15, «como en las tiendas»), el nombre se escribe
@@ -69,6 +71,7 @@ const ID: Record<CampoProblema, string> = {
   avisos: "registro-avisos",
 };
 const ID_CREAR = "registro-crear";
+const ID_OBTENER = "registro-obtener";
 
 /** Cuánto se espera después de la última letra antes de preguntarle a la base. */
 const ESPERA_CORREO_MS = 700;
@@ -104,6 +107,13 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
     caja?.focus();
     if (enfocar.seleccionar && caja instanceof HTMLInputElement) caja.select();
   }, [enfocar]);
+  // La página con cuenta que quería ver (`?volver=`: la prenda que le mandaron): al crear la cuenta va ahí, no a «Mi cuenta».
+  const [volver, setVolver] = useState<string | null>(null);
+  useEffect(() => {
+    // La dirección solo la sabe el navegador (esta página se guarda en caché): leerla al iniciar el estado rompería la hidratación.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- el destino vive en la dirección, que solo existe en el navegador
+    setVolver(rutaParaVolver(new URLSearchParams(window.location.search).get(PARAMETRO_VOLVER)));
+  }, []);
 
   const correo = normalizarCorreo(r.correo);
   const esDni = r.documentoTipo === "dni";
@@ -156,6 +166,7 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
 
   const estado = estadoRegistro(r, { correo: consultaCorreo, documento: consultaDocumento, codigo }, hoy);
   const faltan = faltanRegistro(estado);
+  const resumenFaltan = faltanResumidos(faltan);
   const sigue = campoQueSigue(estado, enFoco);
   const marca = (campo: CampoRegistro) => marcaDe(estado[campo], sigue === campo);
   const cambiar = (cambio: Partial<Registro>) => {
@@ -276,14 +287,31 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
     if (e.campo) setEnfocar({ id: ID[e.campo === "codigo" ? "correo" : e.campo] });
   }
 
-  /** «Crear mi cuenta»: con todo completo y el correo confirmado. Si sale bien, el servidor lleva a «Mi cuenta». */
+  /**
+   * «Crear mi cuenta»: con todo completo y el correo confirmado. Si sale bien, el servidor lleva a «Mi cuenta» (o a la página que la
+   * persona quería ver, `volver`).
+   */
   function crear() {
     if (faltan.length > 0 || enviando) return;
     setErrorGeneral(null);
     iniciar(async () => {
-      const respuesta = await crearCuenta({ registro: r, casilla: casilla?.version ?? null }).catch((): RespuestaCrear => NO_DISPONIBLE);
+      const respuesta = await crearCuenta({ registro: r, casilla: casilla?.version ?? null, volver }).catch((): RespuestaCrear => NO_DISPONIBLE);
       if (respuesta) aplicarError(respuesta);
     });
+  }
+
+  /**
+   * Un «Falta: …» del pie lleva a su campo (la guía de foco del ERP, ADR-0284): lo deja en el medio de la pantalla (el pie fijo no lo
+   * tapa) y le pone el cursor, que lo enciende con «Sigue aquí». Confirmar el correo, si el código todavía no se pidió, es tocar
+   * «Obtener código» (o, si aún no se puede, escribir bien el correo).
+   */
+  function irAlCampo(campo: CampoRegistro) {
+    const id = campo === "codigo" && codigoActual.estado !== "enviado" ? (puedeObtener ? ID_OBTENER : ID.correo) : ID[campo];
+    const destino = document.getElementById(id);
+    if (!destino) return;
+    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    destino.scrollIntoView({ block: "center", behavior: quieto ? "auto" : "smooth" });
+    destino.focus({ preventScroll: true });
   }
 
   const delClub =
@@ -291,7 +319,7 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
     consultaDocumento.delClub;
   const enlacesDeCuenta = (
     <span className="w-res-acc">
-      <Link className="w-enlace" href="/entrar">
+      <Link className="w-enlace" href={hrefConVolver("/entrar", volver)}>
         Entrar
       </Link>
       <Link className="w-enlace" href="/olvide-mi-contrasena">
@@ -325,8 +353,9 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
       </div>
 
       <Campo campo="correo" idCaja={ID.correo} etiqueta="Correo" marca={marca("correo")} {...foco("correo")}>
-        {/* «Obtener código» al lado del correo (Felipe 2026-10-15); con el correo confirmado, el botón se va y queda el ✓. */}
-        <div className="w-correo-fila">
+        {/* «Obtener código» al lado del correo (Felipe 2026-10-15); con el correo confirmado, el botón se va y queda el ✓. La misma
+            fila de «Cambiar mi correo» y «Restablecer mi acceso» (`.w-caja-con-boton`). */}
+        <div className="w-caja-con-boton">
           <input
             id={ID.correo}
             className="w-caja"
@@ -343,6 +372,7 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
           />
           {codigoActual.estado === "sin_pedir" && (
             <button
+              id={ID_OBTENER}
               type="button"
               className={`t-btn t-btn-sec w-obtener${obtenerSigue ? " w-obtener-sigue" : ""}`}
               onClick={() => pedirCodigo(false)}
@@ -680,7 +710,7 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
 
       <p className="w-texto-sec">
         ¿Ya tienes cuenta?{" "}
-        <Link className="w-enlace" href="/entrar">
+        <Link className="w-enlace" href={hrefConVolver("/entrar", volver)}>
           Entra
         </Link>
       </p>
@@ -688,8 +718,18 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
       <div className="w-pie-form">
         <p className="w-faltan" aria-live="polite">
           {faltan.length ? (
+            // Los primeros que faltan, cada uno lleva a su campo, y cuántos más (antes, los ocho en cuatro renglones fijos).
             <>
-              Falta: <b>{textoFaltan(faltan)}</b>
+              Falta:{" "}
+              {resumenFaltan.nombrados.map(([campo, nombre], i) => (
+                <Fragment key={campo}>
+                  {i > 0 && (resumenFaltan.mas === 0 && i === resumenFaltan.nombrados.length - 1 ? " y " : ", ")}
+                  <button type="button" className="w-falta-ir" onClick={() => irAlCampo(campo)}>
+                    {nombre}
+                  </button>
+                </Fragment>
+              ))}
+              {resumenFaltan.mas > 0 && <> y {resumenFaltan.mas} más</>}
             </>
           ) : (
             <>

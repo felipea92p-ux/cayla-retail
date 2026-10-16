@@ -47,16 +47,24 @@ export function FormularioOlvide({ enlaceVencido = false }: { enlaceVencido?: bo
         <p className="w-texto-sec">
           Si hay una cuenta con <b className="w-correo">{enviadoA}</b>, te llega un enlace para crear una contraseña nueva. Vence en 30 minutos.
         </p>
-        <button
-          type="button"
-          className="w-enlace"
-          onClick={() => {
-            setEnviadoA(null);
-            setCorreo("");
-          }}
-        >
-          Usar otro correo
-        </button>
+        {/* Lo que más se pregunta cuando el correo no llega (el código de «Crear cuenta» dice lo mismo). */}
+        <p className="w-ayuda">Si en unos minutos no lo ves, revisa también tu carpeta de spam o de promociones.</p>
+        <span className="w-res-acc w-acc-centro">
+          <button
+            type="button"
+            className="w-enlace"
+            onClick={() => {
+              setEnviadoA(null);
+              setCorreo("");
+            }}
+          >
+            Usar otro correo
+          </button>
+          {/* Si mientras tanto se acordó de su contraseña, no tiene que buscar «Entrar» arriba. */}
+          <Link className="w-enlace" href="/entrar">
+            Volver a entrar
+          </Link>
+        </span>
       </div>
     );
   }
