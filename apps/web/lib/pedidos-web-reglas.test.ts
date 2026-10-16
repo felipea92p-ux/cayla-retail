@@ -25,6 +25,7 @@ import {
   plazoCorto,
   problemaDelCodigo,
   rehacerDecisiones,
+  relojDelPlazo,
   sePuedeReservarYa,
   textoCierre,
   textoDisponible,
@@ -411,5 +412,25 @@ describe("Entregar con el código de 4 cifras (actividad 10)", () => {
   });
   it("en la lista, lo pagado y listo se entrega con su código", () => {
     expect(estadoVisible(pedido({ estado: "pagado", listoParaRecoger: true, pagadoEn: "2026-10-14T10:00:00Z" }), AHORA).accion).toBe("Entrégalo con su código");
+  });
+});
+
+describe("el reloj del plazo de cada pedido (Tienda web ▸ Pedidos, ADR-0430)", () => {
+  const PLAZOS = { horasParaConfirmar: 24, horasAvisoSinPagar: 48, diasAvisoSinRecoger: 7 };
+  const hace = (h: number) => new Date(AHORA - h * 3_600_000).toISOString();
+  const en = (h: number) => new Date(AHORA + h * 3_600_000).toISOString();
+  it("por confirmar: cuánto va de las 24 h, y rojo a menos de 3 h de cerrarse solo", () => {
+    expect(relojDelPlazo(pedido({ estado: "por_confirmar", creadoEn: hace(6), venceEn: en(18) }), PLAZOS, AHORA)).toEqual({ pct: 25, tono: "tinta", texto: "Lleva 25 % del plazo para confirmar" });
+    expect(relojDelPlazo(pedido({ estado: "por_confirmar", creadoEn: hace(15), venceEn: en(9) }), PLAZOS, AHORA)?.tono).toBe("ambar");
+    expect(relojDelPlazo(pedido({ estado: "por_confirmar", creadoEn: hace(22), venceEn: en(2) }), PLAZOS, AHORA)?.tono).toBe("rojo");
+  });
+  it("confirmado: de las 48 h sin pagar; rojo cuando ya está «sin pagar»", () => {
+    expect(relojDelPlazo(pedido({ estado: "confirmado", confirmadoEn: hace(12) }), PLAZOS, AHORA)).toMatchObject({ pct: 25, tono: "tinta" });
+    expect(relojDelPlazo(pedido({ estado: "confirmado", confirmadoEn: hace(60), sinPagar: true }), PLAZOS, AHORA)).toMatchObject({ pct: 100, tono: "rojo" });
+  });
+  it("pagado: de los 7 días para recoger; lo cerrado no tiene reloj", () => {
+    expect(relojDelPlazo(pedido({ estado: "pagado", pagadoEn: hace(84) }), PLAZOS, AHORA)).toMatchObject({ pct: 50, tono: "ambar" });
+    expect(relojDelPlazo(pedido({ estado: "entregado" }), PLAZOS, AHORA)).toBeNull();
+    expect(relojDelPlazo(pedido({ estado: "confirmado", confirmadoEn: null }), PLAZOS, AHORA)).toBeNull();
   });
 });

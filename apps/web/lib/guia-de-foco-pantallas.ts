@@ -46,9 +46,6 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ADR-0288 act. g (tanda 1g): una bandeja; lo único que se llena es quién envía (se enciende si falta). «Beneficios del club» es un modal.
   "/clientas/avisos": { estado: "aplicada", evidencia: ["components/clientas/AvisosClubPanel.tsx"] },
   "/clientas/cartel": { estado: "no-aplica", motivo: "Hoja de impresión del cartel del club: una hoja A4 por tienda con su QR; se revisa y se imprime, no hay campos que completar ni pasos." },
-  // ADR-0408 (Felipe 2026-10-15): la lista solo lee y filtra; lo que se llena vive en la hoja de cada recomendación (abierta desde la misma
-  // pantalla, `?r=`): la respuesta (opcional sin leer, obligatoria ya leída) y quién lo hace.
-  "/clientas/recomendaciones": { estado: "aplicada", evidencia: ["components/recomendaciones/RecomendacionHoja.tsx"] },
   // ---- colaboradores ----
   // Rediseño del 2026-10-05 (Equipo): una lista agrupada por sede con buscador y atajos; lo que se cambia vive en la ficha.
   "/colaboradores": { estado: "no-aplica", motivo: "Lista del equipo por sede, con buscador y atajos: no hay formulario que llenar. Lo que se cambia de una persona vive en su ficha (registro de modales), y las altas por aprobar se resuelven con un botón." },
@@ -186,14 +183,6 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/productos/familias": { estado: "no-aplica", motivo: "Muestra las familias como tarjetas de solo lectura; lo que se llena vive en la ventana «Nueva familia», que lleva su propia guía (registro de modales)." },
   "/productos/marcas": { estado: "aplicada", evidencia: ["components/alta-producto/NuevaMarcaForm.tsx"] },
   "/productos/nuevo": { estado: "aplicada", evidencia: ["components/NuevoProductoForm.tsx", "components/alta-producto/piezas.tsx"] },
-  // ADR-0408 (actividad 3): Catálogo ▸ Vitrina web. Lo que se llena vive en sus dos hojas: la del modelo (precio web —lo que la base
-  // rechaza: vacío, inválido o bajo el costo—, descripción opcional y quién lo cambia) y la del lote (cuánto subir o bajar, y quién).
-  "/productos/vitrina": { estado: "aplicada", evidencia: ["components/vitrina/VitrinaModeloHoja.tsx", "components/vitrina/VitrinaLoteHoja.tsx"] },
-  // ADR-0408 (actividad 12): lo que los clientes esperan con «Avísame». Solo se lee: un buscador y píldoras de tienda, nada que guardar.
-  "/productos/vitrina/esperan": { estado: "no-aplica", motivo: "Lista de solo lectura de lo que los clientes de la tienda online esperan (Esperan una talla): un buscador y píldoras de tienda para filtrar, sin campos que llenar ni pasos que seguir." },
-  // ADR-0408 (actividad 11): Vitrina web ▸ Looks. Lo que se llena vive en sus dos hojas: la del look (nombre, de 2 a 4 prendas, que se vean
-  // en la web si se va a mostrar, y quién lo cambia; la frase es opcional y el lugar viene puesto) y la de mostrar u ocultar (quién).
-  "/productos/vitrina/looks": { estado: "aplicada", evidencia: ["components/vitrina/LookHoja.tsx", "components/vitrina/LookMostrarHoja.tsx"] },
   "/productos/por-revisar": { estado: "no-aplica", motivo: "Cola de solo lectura de las prendas que alguien propuso (ADR-0371): cada fila trae sus datos y dos botones, Aprobar y Rechazar; no hay campos que llenar ni pasos que seguir. Lo único que se elige —quién firma— vive en la hoja de cada decisión (components/RevisarProductoHoja.tsx)." },
   // ---- recibir ----
   // ADR-0330: la puerta «Llegó mercadería» trae su guía (proveedor → prendas → quién recibe). La rama «contra factura»
@@ -212,13 +201,30 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/rendimiento": { estado: "no-aplica", motivo: "La pantalla solo lee: cifras, tabla, gráfico y rankings, sin campos ni pasos. El único formulario es el modal «Meta de…», que sí trae su guía." },
   // ---- sin-acceso ----
   "/sin-acceso": { estado: "no-aplica", motivo: "Solo muestra un mensaje y un enlace: no hay campos ni pasos." },
-  // ---- vender ----
-  "/vender": PENDIENTE,
-  "/vender/apartados": PENDIENTE,
+  // ---- tienda-web ----
+  // ADR-0430 (2026-10-16): lo de la tienda online se juntó aquí; antes vivía en Clientas, Productos, Vender y una pestaña de Configuración.
+  "/tienda-web": { estado: "no-aplica", motivo: "El Resumen de Tienda web (ADR-0430) solo mira: la ventana de la vitrina, las tiendas, lo que pide acción y el camino de los pedidos, cada cosa con un enlace a su pantalla. No hay campos ni pasos; sin su módulo, redirige." },
+  // Era la pestaña «Tienda web» de Configuración (ADR-0408 act. 6). Cada casilla de cada tienda se guarda al salir de ella; la guía
+  // enciende lo que le falta a una tienda para mostrarse en la web (la misma regla que la base: `faltaParaMostrar`).
+  "/tienda-web/ajustes": { estado: "aplicada", evidencia: ["components/ConfiguracionTiendaWeb.tsx"] },
   // ADR-0408 act. 8: la lista solo lee; lo que se llena vive en sus dos hojas (abiertas desde la misma pantalla, `?pedido=`). «Falta» es
   // lo que la base rechazaría: una decisión por prenda (por conseguir, con fecha de hoy a 60 días), quién lo hace, el motivo al cerrar o
   // anular y, al enviar a otra tienda, el día de llegada.
-  "/vender/pedidos-web": { estado: "aplicada", evidencia: ["components/pedidos-web/PedidoWebHoja.tsx", "components/pedidos-web/EnviarPedidoWebHoja.tsx", "components/pedidos-web/RegistrarPagoHoja.tsx", "components/pedidos-web/AnularPagoHoja.tsx", "components/pedidos-web/AnularPedidoPagadoHoja.tsx"] },
+  "/tienda-web/pedidos": { estado: "aplicada", evidencia: ["components/pedidos-web/PedidoWebHoja.tsx", "components/pedidos-web/EnviarPedidoWebHoja.tsx", "components/pedidos-web/RegistrarPagoHoja.tsx", "components/pedidos-web/AnularPagoHoja.tsx", "components/pedidos-web/AnularPedidoPagadoHoja.tsx"] },
+  // ADR-0408 (Felipe 2026-10-15): la lista solo lee y filtra; lo que se llena vive en la hoja de cada recomendación (abierta desde la misma
+  // pantalla, `?r=`): la respuesta (opcional sin leer, obligatoria ya leída) y quién lo hace.
+  "/tienda-web/recomendaciones": { estado: "aplicada", evidencia: ["components/recomendaciones/RecomendacionHoja.tsx"] },
+  // ADR-0408 (actividad 3): Tienda web ▸ Vitrina. Lo que se llena vive en sus dos hojas: la del modelo (precio web —lo que la base
+  // rechaza: vacío, inválido o bajo el costo—, descripción opcional y quién lo cambia) y la del lote (cuánto subir o bajar, y quién).
+  "/tienda-web/vitrina": { estado: "aplicada", evidencia: ["components/vitrina/VitrinaModeloHoja.tsx", "components/vitrina/VitrinaLoteHoja.tsx"] },
+  // ADR-0408 (actividad 12): lo que los clientes esperan con «Avísame». Solo se lee: un buscador y píldoras de tienda, nada que guardar.
+  "/tienda-web/vitrina/esperan": { estado: "no-aplica", motivo: "Lista de solo lectura de lo que los clientes de la tienda online esperan (Esperan una talla): un buscador y píldoras de tienda para filtrar, sin campos que llenar ni pasos que seguir." },
+  // ADR-0408 (actividad 11): Vitrina web ▸ Looks. Lo que se llena vive en sus dos hojas: la del look (nombre, de 2 a 4 prendas, que se vean
+  // en la web si se va a mostrar, y quién lo cambia; la frase es opcional y el lugar viene puesto) y la de mostrar u ocultar (quién).
+  "/tienda-web/vitrina/looks": { estado: "aplicada", evidencia: ["components/vitrina/LookHoja.tsx", "components/vitrina/LookMostrarHoja.tsx"] },
+  // ---- vender ----
+  "/vender": PENDIENTE,
+  "/vender/apartados": PENDIENTE,
   "/vender/comprobantes": PENDIENTE,
   "/vender/comprobantes/emitidos": PENDIENTE,
   "/vender/comprobantes/por-reintentar": PENDIENTE,

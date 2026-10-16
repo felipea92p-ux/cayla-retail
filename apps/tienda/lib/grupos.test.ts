@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Prenda } from "./catalogo";
-import { delGrupo, grupoDe, gruposDe, GRUPOS, leerGrupo, MENUS, tituloPartido } from "./grupos";
+import { delGrupo, delMenu, grupoDe, gruposDe, GRUPOS, leerGrupo, leerMenu, MENUS, tituloPartido } from "./grupos";
 
 const prenda = (nombre: string, prefijo: string | null, extra: Partial<Prenda> = {}): Prenda => ({
   id: nombre,
@@ -77,6 +77,16 @@ describe("los grupos de categorías", () => {
     expect(leerGrupo("bisuteria")?.nombre).toBe("Bisutería y belleza");
     expect(leerGrupo(["abajo", "arriba"])?.clave).toBe("abajo");
     for (const raro of [undefined, "", "  ", "Arriba", "otra"]) expect(leerGrupo(raro), String(raro)).toBeNull();
+  });
+
+  it("delMenu: toda la ropa (o todos los accesorios) junta; sin menú, todas; lo desconocido cae en «Ropa»; leerMenu: solo un menú que existe", () => {
+    const prendas = [prenda("Top", "TOP"), prenda("Vestido", "VES"), prenda("Aretes", "ARE"), prenda("Zapatilla", "ZAP"), prenda("Kimono", "KIM"), prenda("Sin categoría", null)];
+    expect(delMenu(prendas, "ropa").map((p) => p.nombre)).toEqual(["Top", "Vestido", "Kimono"]);
+    expect(delMenu(prendas, "accesorios").map((p) => p.nombre)).toEqual(["Aretes", "Zapatilla"]);
+    expect(delMenu(prendas, null)).toHaveLength(6);
+    expect(leerMenu("ropa")?.todo).toBe("Toda la ropa");
+    expect(leerMenu(["accesorios", "ropa"])?.titulo).toEqual(["Todos los", "accesorios"]);
+    for (const raro of [undefined, "", "  ", "Ropa", "otro"]) expect(leerMenu(raro), String(raro)).toBeNull();
   });
 
   it("el título partido: lo último en cursiva", () => {

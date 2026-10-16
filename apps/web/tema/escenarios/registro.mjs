@@ -1325,7 +1325,7 @@ ESCENARIOS.push(
   {
     id: "recomendaciones.hoja",
     soloPorId: true,
-    ruta: "/clientas/recomendaciones",
+    ruta: "/tienda-web/recomendaciones",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Recomendaciones · la hoja de una recomendación",
@@ -1335,7 +1335,7 @@ ESCENARIOS.push(
       await esperar(pagina, 1200);
     },
   },
-  { id: "recomendaciones.estado", ruta: "/clientas/recomendaciones", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Recomendaciones · el filtro «Estado»", preparar: clicRol("button", /^Estado/i) },
+  { id: "recomendaciones.estado", ruta: "/tienda-web/recomendaciones", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Recomendaciones · el filtro «Estado»", preparar: clicRol("button", /^Estado/i) },
   { id: "comercial.ayuda", ruta: "/comercial", cuentas: ["admin"], nombre: "Comercial · la ayuda «Qué cuenta como venta»", preparar: clicRol("button", /Qué es Qué cuenta como venta/i) },
   { id: "calidad.ayuda", ruta: "/comercial/calidad", cuentas: ["admin"], nombre: "Calidad de datos · la ayuda «Cómo se lee»", preparar: clicRol("button", /Qué es Cómo se lee/i) },
   { id: "buscar.resultados", ruta: "/buscar", cuentas: ["admin", "integrante", "terminal-ventas"], nombre: "Buscar · los resultados de una prenda", preparar: llenar(/SKU, referencia, talla, color/i, "Vestido") },
@@ -1343,7 +1343,7 @@ ESCENARIOS.push(
   { id: "colaboradores.terminal", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · la ficha de una terminal", preparar: clicRol("button", /^Almacén Trujillo/i) },
   { id: "colaboradores.roles", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · «Roles y accesos»", preparar: clicRol("button", /^Roles y accesos/i) },
   { id: "colaboradores.rol", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · el detalle de un rol", preparar: secuencia(clicRol("button", /^Roles y accesos/i), async (pagina) => { await pagina.getByRole("button", { name: /Integrante/i }).first().click({ timeout: 8000 }); await esperar(pagina, 1200); }) },
-  { id: "configuracion.tienda-web", ruta: "/configuracion", cuentas: ["admin"], abre: '[data-guia="config.tienda-web-sedes"]', nombre: "Configuración · «Tienda web» (ADR-0408)", preparar: clicPestana(/^Tienda web/i) },
+  { id: "tienda-web.ajustes", ruta: "/tienda-web/ajustes", cuentas: ["admin"], abre: '[data-guia="config.tienda-web-sedes"]', nombre: "Tienda web ▸ Ajustes (ADR-0430; antes la pestaña «Tienda web» de Configuración)" },
   { id: "configuracion.caja", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Caja y avisos»", preparar: clicPestana(/Caja y avisos/i) },
   { id: "configuracion.cuentas", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Cuentas y cobros»", preparar: clicPestana(/Cuentas y cobros/i) },
   { id: "configuracion.gastos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Gastos fijos»", preparar: clicPestana(/Gastos fijos/i) },
@@ -1411,7 +1411,7 @@ ESCENARIOS.push(
 ESCENARIOS.push(
   {
     id: "vitrina.hoja-modelo",
-    ruta: "/productos/vitrina",
+    ruta: "/tienda-web/vitrina",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Vitrina web · la hoja de un modelo (mostrar, Lo nuevo y lo que ve el cliente)",
@@ -1422,7 +1422,7 @@ ESCENARIOS.push(
   },
   {
     id: "vitrina.lote-mostrar",
-    ruta: "/productos/vitrina",
+    ruta: "/tienda-web/vitrina",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Vitrina web · mostrar en la web los elegidos",
@@ -1437,7 +1437,7 @@ ESCENARIOS.push(
   // búsqueda que no encuentra nada (el vacío con la lupa tachada).
   {
     id: "vitrina.esperan-llegaron",
-    ruta: "/productos/vitrina/esperan",
+    ruta: "/tienda-web/vitrina/esperan",
     cuentas: ["admin"],
     abre: '[data-guia="esperan.cifras"] button[aria-pressed=true]',
     nombre: "Esperan una talla · el filtro «Ya llegaron»",
@@ -1448,7 +1448,7 @@ ESCENARIOS.push(
   },
   {
     id: "vitrina.esperan-sin-coincidencias",
-    ruta: "/productos/vitrina/esperan",
+    ruta: "/tienda-web/vitrina/esperan",
     cuentas: ["admin"],
     abre: ".vacio",
     nombre: "Esperan una talla · una búsqueda que no encuentra nada",
@@ -1468,31 +1468,31 @@ const abrirPedidoWeb = async (pagina) => {
   await esperar(pagina, 1200);
 };
 ESCENARIOS.push(
-  { id: "pedidos-web.confirmar", soloPorId: true, ruta: "/vender/pedidos-web", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Pedidos web · la hoja de un pedido por confirmar", preparar: abrirPedidoWeb },
-  { id: "pedidos-web.no-confirmar", soloPorId: true, ruta: "/vender/pedidos-web", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Pedidos web · «No se puede confirmar» (el motivo)", preparar: secuencia(abrirPedidoWeb, clicRol("button", /^No se puede confirmar$/)) },
+  { id: "pedidos-web.confirmar", soloPorId: true, ruta: "/tienda-web/pedidos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Pedidos web · la hoja de un pedido por confirmar", preparar: abrirPedidoWeb },
+  { id: "pedidos-web.no-confirmar", soloPorId: true, ruta: "/tienda-web/pedidos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Pedidos web · «No se puede confirmar» (el motivo)", preparar: secuencia(abrirPedidoWeb, clicRol("button", /^No se puede confirmar$/)) },
   {
     id: "pedidos-web.anular",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · un pedido confirmado y «Anular» (el motivo)",
-    preparar: secuencia(irA("/vender/pedidos-web?pestana=cobrar"), abrirPedidoWeb, clicRol("button", /^Anular$/)),
+    preparar: secuencia(irA("/tienda-web/pedidos?pestana=cobrar"), abrirPedidoWeb, clicRol("button", /^Anular$/)),
   },
   {
     // Una prenda que estaba por conseguir y ya llegó a la tienda: «Reservarla» abre su paso (de dónde sale y quién).
     id: "pedidos-web.reservar",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · reservar lo que llegó",
-    preparar: secuencia(irA("/vender/pedidos-web?pestana=cobrar"), abrirPedidoWeb, clicRol("button", /^Reservarla$/)),
+    preparar: secuencia(irA("/tienda-web/pedidos?pestana=cobrar"), abrirPedidoWeb, clicRol("button", /^Reservarla$/)),
   },
   {
     id: "pedidos-web.enviar",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · enviar a la tienda del pedido",
@@ -1508,7 +1508,7 @@ ESCENARIOS.push(
 ESCENARIOS.push(
   {
     id: "looks.nuevo",
-    ruta: "/productos/vitrina/looks",
+    ruta: "/tienda-web/vitrina/looks",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Vitrina web ▸ Looks · la hoja de un look nuevo",
@@ -1519,7 +1519,7 @@ ESCENARIOS.push(
   },
   {
     id: "looks.editar",
-    ruta: "/productos/vitrina/looks",
+    ruta: "/tienda-web/vitrina/looks",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Vitrina web ▸ Looks · la hoja de un look (sus prendas, si se ve y su lugar)",
@@ -1530,7 +1530,7 @@ ESCENARIOS.push(
   },
   {
     id: "looks.mostrar",
-    ruta: "/productos/vitrina/looks",
+    ruta: "/tienda-web/vitrina/looks",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Vitrina web ▸ Looks · mostrar u ocultar un look",
@@ -1550,12 +1550,12 @@ const abrirRegistrarPago = async (pagina) => {
   await pagina.getByRole("dialog", { name: "Registrar un pago" }).waitFor({ timeout: 15000 });
   await esperar(pagina, 1000);
 };
-const conPedidoPorCobrar = secuencia(irA("/vender/pedidos-web?pestana=cobrar"), abrirPedidoWeb, abrirRegistrarPago);
+const conPedidoPorCobrar = secuencia(irA("/tienda-web/pedidos?pestana=cobrar"), abrirPedidoWeb, abrirRegistrarPago);
 ESCENARIOS.push(
   {
     id: "pedidos-web.pagar",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · registrar un pago con Yape (el n.º de operación)",
@@ -1564,7 +1564,7 @@ ESCENARIOS.push(
   {
     id: "pedidos-web.pagar-efectivo",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · registrar un pago en efectivo (entra a la caja)",
@@ -1573,11 +1573,11 @@ ESCENARIOS.push(
   {
     id: "pedidos-web.devolver",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · devolver un pago de un pedido anulado",
-    preparar: secuencia(irA("/vender/pedidos-web?pestana=cerrados"), abrirPedidoWeb, clicRol("button", /^Devolver$/)),
+    preparar: secuencia(irA("/tienda-web/pedidos?pestana=cerrados"), abrirPedidoWeb, clicRol("button", /^Devolver$/)),
   },
 );
 
@@ -1588,21 +1588,21 @@ ESCENARIOS.push(
   {
     id: "pedidos-web.entregar",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · entregar un pedido pagado (la boleta y el código)",
-    preparar: secuencia(irA("/vender/pedidos-web?pestana=entregar"), abrirPedidoWeb),
+    preparar: secuencia(irA("/tienda-web/pedidos?pestana=entregar"), abrirPedidoWeb),
   },
   {
     id: "pedidos-web.entregar-codigo",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · entregar con el código escrito",
     async preparar(pagina) {
-      await secuencia(irA("/vender/pedidos-web?pestana=entregar"), abrirPedidoWeb)(pagina);
+      await secuencia(irA("/tienda-web/pedidos?pestana=entregar"), abrirPedidoWeb)(pagina);
       await pagina.locator('[data-guia="pedido-web.codigo"] input').first().fill("1234", { timeout: 8000 });
       await esperar(pagina, 600);
     },
@@ -1622,29 +1622,29 @@ ESCENARIOS.push(
   {
     id: "pedidos-web.anular-pagado",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · anular un pedido pagado (sus prendas, su plata y su boleta)",
-    preparar: secuencia(irA("/vender/pedidos-web?pestana=entregar"), abrirPedidoWeb, abrirAnularPedido),
+    preparar: secuencia(irA("/tienda-web/pedidos?pestana=entregar"), abrirPedidoWeb, abrirAnularPedido),
   },
   {
     id: "pedidos-web.anular-pagado-motivo",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · anular un pedido pagado con su motivo elegido",
-    preparar: secuencia(irA("/vender/pedidos-web?pestana=entregar"), abrirPedidoWeb, abrirAnularPedido, clicRol("radio", /^El cliente desistió$/)),
+    preparar: secuencia(irA("/tienda-web/pedidos?pestana=entregar"), abrirPedidoWeb, abrirAnularPedido, clicRol("radio", /^El cliente desistió$/)),
   },
   {
     id: "pedidos-web.anulado-pagado",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · un pedido pagado y anulado (lo devuelto y cómo quedó su boleta)",
-    preparar: secuencia(irA("/vender/pedidos-web?pestana=cerrados"), abrirPedidoWeb),
+    preparar: secuencia(irA("/tienda-web/pedidos?pestana=cerrados"), abrirPedidoWeb),
   },
 );
 

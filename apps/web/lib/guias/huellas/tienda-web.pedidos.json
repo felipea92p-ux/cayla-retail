@@ -1,6 +1,6 @@
 {
-  "guia": "vender.pedidos-web",
-  "ruta": "/vender/pedidos-web",
+  "guia": "tienda-web.pedidos",
+  "ruta": "/tienda-web/pedidos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
   "total": 65,
   "controles": {

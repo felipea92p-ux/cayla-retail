@@ -50,6 +50,11 @@ const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const MIGRACION = "supabase/migrations/20261014225000_vitrina_web.sql";
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(process.env.APLICAR_ANTES, "utf8") : "";
+// El grupo «Tienda web» (ADR-0430, 20261016174000) pasó el módulo de Catálogo a Tienda web. La migración de la vitrina termina
+// comprobando que el módulo está en Catálogo, así que para volver a pegarla se deja el módulo como estaba el día que nació y, después
+// de pegarla, se pega encima la de Tienda web: el mismo orden que siguió producción.
+const EN_SU_DIA = "update retail.modulos set grupo = 'Catálogo', orden = 125 where clave = 'vitrina_web';";
+const TIENDA_WEB = readFileSync("supabase/migrations/20261016174000_tienda_web_modulo_resumen.sql", "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante, fija a Tienda Trujillo
 
@@ -166,7 +171,7 @@ function main() {
         (select grupo || '·' || orden from retail.modulos where clave = 'vitrina_web'));
       ${COMO_MICAELA}select retail.fn_ve_modulo('vitrina_web');
       rollback;`),
-    "t|0|Catálogo·125\nf",
+    "t|0|Tienda web·66\nf",
   );
   for (const [que, sql] of [
     ["leer la vitrina", `select retail.fn_vitrina_modelos();`],
@@ -837,9 +842,9 @@ rollback;`);
   console.log("— La migración —");
   const sql = readFileSync(MIGRACION, "utf8");
   esperarValor(
-    "se puede volver a correr (dos veces seguidas, como un segundo pegado)",
-    correr(`begin;\n${sql}\n${sql}\nselect count(*) from retail.modulos where clave = 'vitrina_web';\nrollback;`),
-    "1",
+    "se puede volver a correr (dos veces seguidas, como un segundo pegado), y la de Tienda web encima la deja en su grupo",
+    correr(`begin;\n${EN_SU_DIA}\n${sql}\n${sql}\n${TIENDA_WEB}\nselect count(*) || '|' || min(grupo) from retail.modulos where clave = 'vitrina_web';\nrollback;`),
+    "1|Tienda web",
   );
   esperarValor(
     "sobre una base con la versión vieja (precio web y sus funciones) deja todo como en una nueva, sin perder las filas",
@@ -853,7 +858,9 @@ rollback;`);
       create function retail.tienda_catalogo() returns jsonb language sql as $$ select '{}'::jsonb $$;
       create function retail.vitrina_guardar_modelo(uuid, boolean, numeric, text, text, integer) returns jsonb language sql as $$ select '{}'::jsonb $$;
       update retail.modulos set incluye = 'Elegir qué modelos se ven en la tienda online y a qué precio web' where clave = 'vitrina_web';
+      ${EN_SU_DIA}
       ${sql}
+      ${TIENDA_WEB}
       select concat_ws('|',
         (select count(*) from information_schema.columns where table_schema = 'retail' and table_name = 'vitrina_productos' and column_name = 'precio_web'),
         to_regprocedure('retail.vitrina_cambiar_precios(jsonb)') is null, to_regprocedure('retail.tienda_catalogo()') is null,
