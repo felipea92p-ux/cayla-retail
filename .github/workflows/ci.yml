@@ -113,8 +113,13 @@ jobs:
       # (si no hay node_modules, todos fallarían por la misma razón y el informe sería
       # ruido). Un push malo devuelve así el diagnóstico completo en una vuelta: sin esto,
       # arreglar el lint solo sirve para descubrir que además fallaban las pruebas.
+      # Más memoria para `tsc`: el 2026-10-16 revisar los tipos de la web pedía ~1,98 GB y Node corta en ~2 GB por defecto, así que un
+      # PR que sumaba unos pocos archivos moría con «JavaScript heap out of memory» (código 134) sin ningún error de tipos. El runner
+      # tiene memoria de sobra; 6 GB deja margen para que el ERP siga creciendo.
       - name: Tipos
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: pnpm typecheck
 
       - name: Lint
@@ -246,6 +251,8 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: clave-de-mentira-solo-para-compilar
+      # `next build` revisa los tipos con el mismo `tsc` que el paso «Tipos»: misma memoria y mismo porqué (2026-10-16).
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@v4
 
