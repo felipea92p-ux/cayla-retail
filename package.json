@@ -44,6 +44,7 @@
     "pruebas:concurrencia-linea-venta": "node scripts/pruebas/concurrencia_linea_de_venta.mjs",
     "pruebas:aprobar-devolucion-caja": "node scripts/pruebas/aprobar_devolucion_caja.mjs",
     "pruebas:caja-cierre-traslado": "node scripts/pruebas/caja_cierre_traslado.mjs",
+    "pruebas:caja-fondo-coherente": "node scripts/pruebas/caja_fondo_coherente.mjs",
     "pruebas:candado-dinero-caja-cambios-devoluciones": "node scripts/pruebas/candado_dinero_caja_cambios_devoluciones.mjs",
     "pruebas:configuracion-caja": "node scripts/pruebas/configuracion_caja_campanas.mjs",
     "pruebas:gastos": "node scripts/pruebas/gastos.mjs",

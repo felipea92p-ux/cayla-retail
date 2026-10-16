@@ -1053,6 +1053,12 @@ export const PRUEBAS = [
   // frena una escritura directa. Cada caso termina en ROLLBACK.
   "pruebas:caja-cierre-traslado",
 
+  // Una caja cerrada real cumple contado = fondo + trasladado (ADR-0186; auditoría de Finanzas 2026-10-16, G01): un candado
+  // diferido rechaza regularizar un traslado sin corregir el fondo (el caso de Trujillo: 977.20 en vez de 277.20), tocar solo
+  // el fondo o borrar un traslado; un cierre normal con traslado, una caja de prueba o una abierta no se miran; y
+  // `archivar_caja_prueba` recalcula lo esperado por la primera caja real posterior (el caso de Arequipa). ROLLBACK.
+  "pruebas:caja-fondo-coherente",
+
   // Tres candados de dinero que vivían solo en el modal, no en la base (20260922235000): `registrar_movimiento_caja`
   // decide `es_ajuste` del MOTIVO (no de lo que manda el navegador) con vocabulario cerrado y referencia exigida
   // para "Depósito bancario"/"Otro"; `registrar_cambio` con diferencia negativa no exige líder (revertido a

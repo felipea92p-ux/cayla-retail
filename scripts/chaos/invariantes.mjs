@@ -507,6 +507,23 @@ select x.id::text as diferencia_id, coalesce(pd.estado, 'sin prenda') as estado,
     corrompe: `set local session_replication_role = replica;
 update retail.despacho_diferencias set cantidad = cantidad + 1 where ctid = (select ctid from retail.despacho_diferencias where causa = 'devuelta' limit 1);`,
   },
+  {
+    id: "INV-21",
+    nombre: "caja_cerrada_cuadra_su_fondo",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Una caja cerrada real cumple contado = fondo que deja + trasladado (ADR-0186: el fondo se calcula, nunca se escribe). Si no, el cajón de esa noche sale inflado o desinflado, la apertura del día siguiente «falta» o «sobra» contra un esperado que nunca existió, y el Diario lo asienta como pérdida. Nació de la auditoría de Finanzas 2026-10-16 (G01): un traslado regularizado a mano sin tocar el fondo dejó S/ 700 de falso faltante en Trujillo. Desde `20261016211000` un candado diferido lo impide; esta invariante vigila lo que ya estaba o lo que se cuele por una puerta nueva.",
+    sql: `
+select c.id as caja_id, c.ubicacion_id, c.monto_cierre_real, c.monto_fondo,
+       coalesce((select sum(t.monto) from retail.caja_traslados t where t.caja_id = c.id), 0) as trasladado
+  from retail.cajas c
+ where c.estado = 'cerrada' and not c.es_prueba and c.monto_fondo is not null and c.monto_cierre_real is not null
+   and abs(c.monto_fondo + coalesce((select sum(t.monto) from retail.caja_traslados t where t.caja_id = c.id), 0) - c.monto_cierre_real) >= 0.005`,
+    // El candado diferido (`trg_cajas_cuadra_su_fondo`) rebotaría la corrupción al confirmar: dentro de la transacción revertida se
+    // desactivan los disparadores de usuario, y sin eso no se podría probar que el detector la ve.
+    corrompe: `set local session_replication_role = replica;
+update retail.cajas set monto_fondo = monto_fondo + 700 where ctid = (select ctid from retail.cajas where estado = 'cerrada' and not es_prueba and monto_fondo is not null limit 1);`,
+  },
 ];
 
 // ── Instrumento (Docker + psql) ─────────────────────────────────────────────────────────────────────────────────────────────

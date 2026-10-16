@@ -1,0 +1,67 @@
+# ADR-0433 · Finanzas después de la auditoría del 16-oct: se arregla de a una causa raíz, y el dinero espera el OK de Felipe
+
+- **Fecha:** 2026-10-16 · **Estado:** en construcción. Tanda 1, actividad 1 hecha en local (migración `20261016211000`, sin pegar en
+  producción; datos de tres cajas en `pegar-en-produccion-caja-fondo-2026-10.sql`, sin pegar). Rama `claude/finanzas-auditoria-arreglos`.
+- **Pedido:** Felipe, 2026-10-16: «estoy seguro que hay varios errores», analizar el módulo con todas las herramientas y revisar las maquetas
+  de un colega. Salió una auditoría de solo lectura (433 agentes: 35 revisores por eje, ~355 escépticos que intentaron refutar cada hallazgo,
+  un crítico de huecos y una síntesis) contra `main` + producción. 30 causas raíz (G01–G30); lo que salió limpio y lo que no se pudo
+  verificar está en el informe, que **no vive en el repo** porque trae hallazgos de seguridad.
+- **Decisiones de Felipe** (por pregunta, 2026-10-16):
+  1. Lo confirmado se arregla **de a una causa raíz**; lo que toque dinero, permisos, migraciones o SUNAT pide su OK antes de escribir.
+  2. El medidor de confianza deja el porcentaje y pasa a **la lista de lo que falta** (los pesos 30·20·15·10·10·10·5 no tienen base
+     estadística y un mes de datos no sostiene una cifra de dos dígitos; ADR-0214).
+  3. CAYLA tributa en **Régimen MYPE Tributario** y **lo declara el contador**: Impuestos apoya al contador, no declara.
+  4. **El margen debe ser el real**: se calcula sobre las ventas con costo conocido y dice sobre qué parte de lo vendido (hoy ~38 %); lo
+     estimado queda aparte como «costo pendiente».
+  5. Los costos cargados en el sistema **traen IGV** (total de la factura): ADR-0417 decisión 2 (todo costo sin IGV, con rastro) se
+     aplica, antes midiendo con 10 productos contra su factura.
+  6. «Hoy tienes S/ …» se muestra **provisional**, con la lista de lo que falta cargar; el IGV y la renta a cuenta **entran** a la
+     proyección de caja.
+  7. Un **gasto rápido de caja pide revisión del líder desde S/ 100**.
+  8. **Cada encargado ve solo su tienda** en Finanzas; el consolidado y la planilla, solo líder/Admin.
+- **Plan (tanda 1, antes del primer cierre ~1-nov, 14 actividades, un commit cada una):** 1 cajas cerradas con fondo coherente · 2 montos con
+  coma · 3 QR como entrada en el Flujo · 4 proyección honesta · 5 medir la base de IGV del costo · 6 costos sin IGV con rastro · 7 margen
+  real con cobertura · 8 cada encargado ve su tienda · 9 un mes cerrado se queda cerrado · 10 abonos de apartado por día de pago · 11 boleta
+  dada de baja deja de contar · 12 gasto rápido con revisión desde S/ 100 · 13 cascada del Resumen sin doble conteo · 14 medidor como lista.
+  Tanda 2, fuera hasta nueva aprobación: cargadores que confunden error con vacío, seguridad menor, Interbank y «por depositar», Taller al
+  diario, crédito fiscal sin validar al emisor, topes de los pagos de planilla y SUNAT, observabilidad y documentación, maquetas al día.
+- **PR #1127:** ya está fusionado en `main` (16-oct 19:23 UTC) y sus tres migraciones en producción; no se parte, quedan PR de seguimiento.
+
+## Actividad 1 · Una caja cerrada cuadra su fondo (G01)
+
+**El problema.** Una caja cerrada guarda tres números que se pertenecen: lo contado, lo trasladado y lo que dejó en el cajón. ADR-0186 dice
+que el fondo «se calcula, nunca se escribe», pero nada en el esquema lo exigía. El 16-oct alguien regularizó a mano un traslado de S/ 700
+de Trujillo (8-oct) sin tocar el fondo: quedó en 977.20 en vez de 277.20, el cajón se infló en 700 y el Diario asentó un «faltó al abrir» de 700
+en la 6599 contra Resultados de octubre. Segundo hilo: `archivar_caja_prueba` dejaba congelado en la caja real siguiente el «esperado» de
+una caja que ya no contaba (Arequipa: 0.00 en vez de 300.00), y el Diario leía ese número mientras el Flujo leía el fondo en vivo.
+
+DECIDÍ:
+- Un **candado diferido** (disparadores de restricción en `caja_traslados` y `cajas`, que se miran al confirmar, como una llave foránea):
+  una caja cerrada real con fondo escrito cumple contado = fondo + trasladado. Vuelve a leer la caja al confirmar (un disparador diferido
+  recibe la fila del evento, no la última), así `cerrar_caja` escribe en el orden que quiera. Cierra el estado imposible por esquema, no por
+  una validación de pantalla (principio 2).
+- `archivar_caja_prueba` recalcula, con la regla de `abrir_caja`, lo esperado por la primera caja real posterior, y deja un motivo si la
+  apertura ya no coincide (el candado `caja_apertura_explica_diferencia` lo exige).
+- Los datos de hoy no se tocan en la migración: van en un script aparte, idempotente, con su vista previa y sus comprobaciones.
+- La invariante **INV-21** de `/chaos` vigila lo que ya estaba o lo que se cuele por una puerta nueva.
+
+DESCARTÉ:
+- **Un disparador que recalcule `monto_fondo`:** esconde la discrepancia en vez de decirla y reescribe en silencio una columna que alguien
+  tecleó; el rechazo con mensaje obliga a regularizar completo.
+- **Que el Diario lea el fondo anterior en vivo** (como `fn_flujo_lineas`): toca `fn_asientos_dinero_y_caja`, muy parchada por ancla, para
+  corregir UNA fila; el recálculo al archivar corrige la causa y deja el Diario como está.
+- **Una RPC `regularizar_traslado_de_caja` con pantalla:** hoy ocurre una vez al mes a mano; sin pantalla que la llame sería una función
+  sin llamador. Si se vuelve rutina, se hace.
+
+SE ROMPE SI:
+1. Se agrega un camino nuevo que escriba `caja_traslados` o el cierre de una caja sin respetar contado = fondo + trasladado: el candado lo
+   rebota al confirmar, con el mensaje de qué corregir.
+2. Una prueba o un script confirma una caja cerrada con datos a medias dentro de una transacción de una sola sentencia: el candado se mira al
+   confirmar, no por sentencia.
+3. Se quiere regularizar un traslado de una caja cuya siguiente ya abrió: hay que corregir también el esperado de la siguiente (el mensaje lo dice).
+
+**Verificado.** `scripts/pruebas/caja_fondo_coherente.mjs` (9 casos, ROLLBACK): 5 fallaban antes de la migración y los 9 pasan después; pegada
+dos veces, sin error. 60 suites que tocan cajas contra una copia de la base local con las migraciones de `main`: las mismas 10 fallan con y
+sin esta migración (estado y fechas de la base compartida), 50 pasan. El script de datos se probó sobre una reconstrucción de las tres cajas.
+`node --test scripts/chaos/*.test.mjs` 31/31 y la autoprueba de `/chaos` detecta la INV-21. **Pendiente de Felipe:** pegar la migración y el
+script de datos, y decir si los 181.10 de Arequipa fueron al cajón fuerte sin registrarse (si sí, un traslado, no un faltante).
