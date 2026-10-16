@@ -10,6 +10,9 @@ import "../../estilos/mi-cuenta.css";
 
 export const metadata: Metadata = { title: "Cambiar mi correo · CAYLA", robots: { index: false, follow: false } };
 
+// Todavía no se arma por adelantado (ADR-0432, fase 3): lee la cuenta antes de pintar nada. Sale de aquí cuando su cáscara esté lista.
+export const instant = false;
+
 /**
  * «Cambiar mi correo» (Felipe 2026-10-15): el correo con que entra cambia recién cuando escribe el código que le llega al correo NUEVO
  * (y al de antes le llega un aviso). Pide su contraseña. La lógica, en `app/acciones/mi-cuenta.ts`; la forma, la de «Crear cuenta».

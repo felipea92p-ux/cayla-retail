@@ -11,6 +11,9 @@ import "../../estilos/bolsa.css";
 
 export const metadata: Metadata = { title: "Mis pedidos · CAYLA", robots: { index: false, follow: false } };
 
+// Todavía no se arma por adelantado (ADR-0432, fase 3): lee la cuenta antes de pintar nada. Sale de aquí cuando su cáscara esté lista.
+export const instant = false;
+
 /**
  * «Mis pedidos» (maqueta v4, `vCuenta` ▸ «Mis pedidos»): cada pedido con su número, su total, su tienda, cuándo se separó y en qué
  * está. Solo los de esta cuenta (lo decide la base: `retail.tienda_mis_pedidos`). Cada uno abre su estado. La fila es la misma de

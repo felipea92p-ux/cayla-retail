@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
+import { SegunSesion } from "@/components/cuenta/SegunSesion";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
 import { hrefDelInicio } from "@/lib/inicio";
 import { claveDeSede } from "@/lib/sede-elegida";
-import { haySesion } from "@/lib/sesion-servidor";
 import { leerSedes } from "@/lib/tiendas-servidor";
 
 // Nuestras tiendas (ADR-0408, actividad 6): la página del pie «Nuestras tiendas», con y sin cuenta. Sin cuenta, la cabecera de la portada;
 // con cuenta, la de la tienda (el menú, los favoritos, «Mi perfil» y la bolsa) y, en cada tienda, «Ver solo lo que hay aquí», que lleva al
-// Inicio con esa tienda elegida (maqueta v4, `seccionTiendas` con cuenta). Se arma en cada visita porque la cabecera depende de la sesión
-// (antes se guardaba 5 minutos): lo que el ERP cambia en Configuración ▸ Tienda web se ve al recargar; sin base, lo dice y deja volver a
-// intentar. Desde la revisión «a nivel mundial» (2026-10-16) lleva el título grande de las páginas de ayuda y las tarjetas parejas con
+// Inicio con esa tienda elegida (maqueta v4, `seccionTiendas` con cuenta). Sale armada por adelantado, igual para todos, y lo que cambia
+// con la cuenta (la cabecera, el pie y esos enlaces) llega por detrás (`SegunSesion`, ADR-0432): lo que el ERP cambia en Configuración ▸
+// Tienda web se ve en un minuto; sin base, lo dice y deja volver a intentar. Desde la revisión «a nivel mundial» (2026-10-16) lleva el título grande de las páginas de ayuda y las tarjetas parejas con
 // cualquier cantidad de tiendas (sus estilos los trae `NuestrasTiendas`).
 
 export const metadata: Metadata = {
@@ -19,13 +19,11 @@ export const metadata: Metadata = {
 };
 
 export default async function Tiendas() {
-  const [conCuenta, sedes] = await Promise.all([haySesion(), leerSedes()]);
-  const ver = conCuenta
-    ? Object.fromEntries(sedes.map((s) => [s.id, { href: hrefDelInicio(claveDeSede(s.nombre)), actual: false }]))
-    : undefined;
+  const sedes = await leerSedes();
+  const ver = Object.fromEntries(sedes.map((s) => [s.id, { href: hrefDelInicio(claveDeSede(s.nombre)), actual: false }]));
   return (
-    <MarcoCuenta conCuenta={conCuenta} conPie>
-      <NuestrasTiendas sedes={sedes} enPagina ver={ver} />
+    <MarcoCuenta segunSesion conPie>
+      <SegunSesion visitante={<NuestrasTiendas sedes={sedes} enPagina />} conCuenta={<NuestrasTiendas sedes={sedes} enPagina ver={ver} />} />
     </MarcoCuenta>
   );
 }

@@ -35,11 +35,6 @@ export const viewport: Viewport = {
   ],
 };
 
-// Fase 1 de la migración a cache components (ADR-0432): ninguna ruta se valida todavía como «instantánea». Se quita ruta por ruta
-// (el objetivo es que quede solo en las que de verdad leen la sesión). Un `new Date()` armado por adelantado sigue siendo un error
-// con o sin esto, por eso el año y el día de Lima salen de `lib/hoy-servidor.ts`.
-export const instant = false;
-
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" className={`${serif.variable} ${sans.variable}`}>

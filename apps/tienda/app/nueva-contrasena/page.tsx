@@ -9,6 +9,9 @@ import "../estilos/entrada.css";
 // La dirección trae el código de un solo uso del correo: que no la guarde ningún buscador.
 export const metadata: Metadata = { title: "Crea tu contraseña nueva · CAYLA", robots: { index: false, follow: false } };
 
+// Todavía no se arma por adelantado (ADR-0432, fase 3): lee la cuenta antes de pintar nada. Sale de aquí cuando su cáscara esté lista.
+export const instant = false;
+
 /**
  * A donde lleva el enlace de «Olvidé mi contraseña» (`?token_hash=…&type=recovery`, plantilla
  * `apps/tienda/supabase/plantillas/recuperar.html`). Abrirla no gasta el código: se canjea al guardar la contraseña nueva. El panel de

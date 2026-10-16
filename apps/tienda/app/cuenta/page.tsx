@@ -26,6 +26,9 @@ import "../estilos/perfil.css";
 
 export const metadata: Metadata = { title: "Mi perfil · CAYLA", robots: { index: false, follow: false } };
 
+// Todavía no se arma por adelantado (ADR-0432, fase 3): lee la cuenta antes de pintar nada. Sale de aquí cuando su cáscara esté lista.
+export const instant = false;
+
 /**
  * «Mi perfil» (maqueta v4, `vCuenta`; ordenada el 2026-10-15, Felipe: «podría estar mejor distribuido, más ordenado y entendible»). Arriba
  * el saludo y cuatro cuadros que dicen de un vistazo cómo están sus pedidos, su Club, sus favoritos y sus avisos, y llevan a su sección.

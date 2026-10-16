@@ -7,7 +7,6 @@ import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import type { SeccionLegal as TipoSeccion } from "@/lib/ayuda";
 import { escalaEnPalabras, soles, TEXTOS_VERSION } from "@/lib/cuentas";
 import { leerBeneficiosDelClub } from "@/lib/cuentas-servidor";
-import { haySesion } from "@/lib/sesion-servidor";
 // La lectura larga (el índice, los títulos con su número y los enlaces dentro del texto) tiene su cara en ayuda.css.
 import "../estilos/ayuda.css";
 
@@ -35,10 +34,10 @@ const [miembros, codigo, cumpleanos, aniversario, avisos, cambios, conservacion]
  * el índice fijo al costado que enciende el punto que se está leyendo; en el celular, «En esta página» arriba.
  */
 export default async function TerminosDelClub() {
-  const [conCuenta, b] = await Promise.all([haySesion(), leerBeneficiosDelClub()]);
+  const b = await leerBeneficiosDelClub();
   const pct = b ? `${Number.isInteger(b.pct) ? b.pct : b.pct.toFixed(2)} %` : "un porcentaje";
   return (
-    <MarcoCuenta conCuenta={conCuenta} conPie>
+    <MarcoCuenta segunSesion conPie>
       <div className="t-ancho">
         <article className="ay-legal">
           <EncabezadoAyuda

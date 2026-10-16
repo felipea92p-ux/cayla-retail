@@ -34,6 +34,9 @@ import "../../../estilos/bolsa.css";
 
 export const metadata: Metadata = { title: "Mi pedido · CAYLA", robots: { index: false, follow: false } };
 
+// Todavía no se arma por adelantado (ADR-0432, fase 3): lee la cuenta antes de pintar nada. Sale de aquí cuando su cáscara esté lista.
+export const instant = false;
+
 /**
  * El estado de un pedido (maqueta v4, `vPedido`): en qué va (separado → confirmado → pagado → entregado), sus prendas, cuánto falta
  * pagar y, cuando está listo para recoger, el código de 4 cifras que se muestra en caja (propuesta m). Solo si es de esta cuenta: el

@@ -11,6 +11,9 @@ import "../../estilos/mi-cuenta.css";
 
 export const metadata: Metadata = { title: "Eliminar mi cuenta · CAYLA", robots: { index: false, follow: false } };
 
+// Todavía no se arma por adelantado (ADR-0432, fase 3): lee la cuenta antes de pintar nada. Sale de aquí cuando su cáscara esté lista.
+export const instant = false;
+
 /**
  * «Eliminar mi cuenta» (Felipe 2026-10-15): borra la cuenta y sus datos de la ficha del Club (la anonimización de siempre; deja de ser
  * miembro). Con un pedido web en curso o un apartado abierto, todavía no: la página dice cuáles y qué hacer.

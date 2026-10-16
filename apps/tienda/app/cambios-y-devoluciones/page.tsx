@@ -7,7 +7,6 @@ import { Icono } from "@/components/Icono";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
 import { puntosDeCambios } from "@/lib/ayuda";
 import { leerAyuda } from "@/lib/ayuda-servidor";
-import { haySesion } from "@/lib/sesion-servidor";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../estilos/ayuda.css";
 
@@ -25,11 +24,11 @@ export const metadata: Metadata = {
  * buscarlas). Sin tiendas (o sin base), el punto «dónde» lleva a /tiendas, como antes.
  */
 export default async function CambiosYDevoluciones() {
-  const [conCuenta, plazos, sedes] = await Promise.all([haySesion(), leerAyuda(), leerSedes()]);
+  const [plazos, sedes] = await Promise.all([leerAyuda(), leerSedes()]);
   const { plazo, donde, llevar } = puntosDeCambios(plazos);
   const conTiendas = sedes.length > 0;
   return (
-    <MarcoCuenta conCuenta={conCuenta} conPie>
+    <MarcoCuenta segunSesion conPie>
       <div className="t-ancho ay-pagina">
         <EncabezadoAyuda
           ceja="Ayuda"

@@ -13,6 +13,9 @@ import { leerSesion } from "@/lib/sesion-servidor";
 // fijas. La cabecera, la franja «Ver lo que hay en» y el pie los pone cada página (`MarcoCatalogo`): dependen de la tienda elegida.
 // Lo que la cuenta guardó con el corazón se lee aquí una vez por petición y se reparte a TODA tarjeta (`ProveedorGuardados`): ninguna
 // página tiene que pasárselo. Si la base no lo da, los corazones salen vacíos (guardar otra vez no duplica nada).
+// Todavía no se arma por adelantado (ADR-0432, fase 3): lee la cuenta antes de pintar nada. Sale de aquí cuando su cáscara esté lista.
+export const instant = false;
+
 export default async function CatalogoLayout({ children }: { children: React.ReactNode }) {
   const sesion = await leerSesion();
   if (sesion.estado === "sin_sesion") redirect("/entrar");

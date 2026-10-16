@@ -14,6 +14,9 @@ import "../estilos/recomendaciones.css";
 
 export const metadata: Metadata = { title: "Recomendaciones · CAYLA", robots: { index: false, follow: false } };
 
+// Todavía no se arma por adelantado (ADR-0432, fase 3): lee la cuenta antes de pintar nada. Sale de aquí cuando su cáscara esté lista.
+export const instant = false;
+
 /**
  * «Recomendaciones» (ADR-0408, Felipe 2026-10-15): «un apartado de recomendaciones donde el cliente puede escribir libremente cualquier
  * sugerencia adicional que pueda tener para la tienda o la empresa». Con cuenta (el proxy manda a «Entrar» a quien no la tiene), porque

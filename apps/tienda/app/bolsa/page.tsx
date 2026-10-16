@@ -45,6 +45,9 @@ const CARRIL_DE_LA_BOLSA: Record<CarrilDeLaBolsaVacia["lista"], { ceja: string; 
   todo: { ceja: "Para empezar", titulo: ["Toda la", "tienda"], href: hrefLista({ categoria: null, orden: "destacado" }) },
 };
 
+// Todavía no se arma por adelantado (ADR-0432, fase 3): lee la cuenta antes de pintar nada. Sale de aquí cuando su cáscara esté lista.
+export const instant = false;
+
 /**
  * La bolsa (maqueta v4, `vBolsa`): las prendas, la tienda donde se recoge TODO (una para todo: lo que no está ahí, la tienda lo trae
  * de otra) y el total con los precios de ESA tienda (sin tienda, el mayor de la web, como el catálogo con «Todas»). «Separar» crea
