@@ -35,7 +35,23 @@ if (CANDADOS.length !== 6) throw new Error(`esperaba 6 candados y encontré ${CA
 const sinCandados = CANDADOS.map((c) => `alter table retail.${c.tabla} drop constraint if exists ${c.nombre};`).join("\n");
 const BLOQUES = [...PARTE2.matchAll(/select pg_temp\.insertar_antes\(\s*'(retail\.[^']+)',\s*\$v\$[\s\S]*?\$v\$, \d+,\s*\$v\$([\s\S]*?)\$v\$,/g)].map((m) => ({ firma: m[1], bloque: m[2] }));
 if (BLOQUES.length !== 3) throw new Error(`esperaba 3 bloques y encontré ${BLOQUES.length}`);
-const sinBloques = BLOQUES.map((b) => `do $d$ begin execute replace(pg_get_functiondef('${b.firma}'::regprocedure), $n$${b.bloque}$n$, ''); end $d$;`).join("\n");
+// `cerrar_produccion` también la reemplaza entera `20261014160000_produccion_cierre_al_stock_y_costos_del_taller.sql` (ADR-0400), que lleva el
+// MISMO techo con otro comentario de cabecera (pegarla en producción no lo quita): el control lo deshace en sus dos versiones.
+const CIERRE_DE_PRODUCCION = readFileSync(join(RAIZ, "supabase/migrations/20261014160000_produccion_cierre_al_stock_y_costos_del_taller.sql"), "utf8");
+const BLOQUE_DEL_CIERRE = BLOQUES.find((b) => b.firma.startsWith("retail.cerrar_produccion"))?.bloque ?? "";
+const COMIENZO_DEL_TECHO = CIERRE_DE_PRODUCCION.indexOf("  -- ADR-0415 (20261015153000");
+const FIN_DEL_TECHO = CIERRE_DE_PRODUCCION.indexOf("  end;\n", COMIENZO_DEL_TECHO);
+if (COMIENZO_DEL_TECHO < 0 || FIN_DEL_TECHO < 0) throw new Error("no encuentro el techo de buenas en la migración de cierre de Producción");
+const TECHO_EN_EL_CIERRE = CIERRE_DE_PRODUCCION.slice(COMIENZO_DEL_TECHO, FIN_DEL_TECHO + "  end;\n".length);
+if (TECHO_EN_EL_CIERRE.split("\n").slice(1).join("\n") !== BLOQUE_DEL_CIERRE.split("\n").slice(1).join("\n")) {
+  throw new Error("el techo de la migración de cierre ya no es el de main salvo su primera línea: actualiza este control");
+}
+const sinBloques = BLOQUES.map((b) => {
+  const variante = b.firma.startsWith("retail.cerrar_produccion") ? `, $m$${TECHO_EN_EL_CIERRE}$m$, ''` : "";
+  const deshacer = (def) => `replace(${def}, $n$${b.bloque}$n$, '')`;
+  const def = `pg_get_functiondef('${b.firma}'::regprocedure)`;
+  return `do $d$ begin execute ${variante ? `replace(${deshacer(def)}${variante})` : deshacer(def)}; end $d$;`;
+}).join("\n");
 
 function preparar({ sinPrecio = false, sinProduccion = false } = {}) {
   return `

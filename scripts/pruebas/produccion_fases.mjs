@@ -196,7 +196,7 @@ caso(
   "N1 lo que ya existía quedó numerado por fecha sin huecos ni repetidos, y el número en texto es OP-000012",
   `select concat_ws(',',
      (select count(*) = count(distinct numero) and coalesce(min(numero), 1) = 1 from retail.producciones),
-     (select bool_and(numero is not null) from retail.producciones),
+     (select coalesce(bool_and(numero is not null), true) from retail.producciones),
      retail.fn_produccion_numero_texto(12));`,
   "t,t,OP-000012"
 );
