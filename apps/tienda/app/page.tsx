@@ -52,8 +52,8 @@ export default async function Portada() {
         {/* Las tiendas que el ERP muestra en la web (Configuración ▸ Tienda web). Sin ninguna, o sin base, la sección no sale. */}
         {sedes.length > 0 && <NuestrasTiendas sedes={sedes} />}
 
-        <Pie anio={anio} />
       </main>
+      <Pie anio={anio} />
     </div>
   );
 }

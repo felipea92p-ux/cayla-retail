@@ -37,6 +37,8 @@
    (`.t-card-media`, catalogo.css), arriba a la derecha y por encima de «Agregar». ---- */
 .c-corazon { position: absolute; top: 6px; right: 6px; z-index: 3; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--t-papel-fijo) 82%, transparent); color: var(--t-tinta-fija); display: grid; place-items: center; cursor: pointer; transition: transform .2s var(--ease), background-color .2s; }
 .c-corazon:hover { transform: scale(1.08); background: var(--t-papel-fijo); }
+/* Se ve de 36 px y se toca en 44 (un dedo, en la esquina de la foto). */
+.c-corazon::before { content: ""; position: absolute; inset: -4px; border-radius: 50%; }
 .c-corazon .ic { width: 18px; height: 18px; }
 .c-corazon[aria-pressed="true"] { color: var(--t-oferta); }
 .c-corazon-grande { flex: none; width: 52px; height: 52px; padding: 0; border-radius: 50%; border: 1.5px solid var(--sand); background: var(--papel); color: var(--tinta); display: grid; place-items: center; cursor: pointer; transition: border-color .2s, color .2s; }

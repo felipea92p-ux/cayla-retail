@@ -3,9 +3,11 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { salir } from "@/app/acciones/cuenta";
 import { buscarEn, resaltar } from "@/lib/buscador";
 import type { DatosCabecera, FotoChica, MenuCabecera } from "@/lib/inicio";
+import { useGuardados } from "./club/Guardados";
 import { FotoTarjeta } from "./FotoTarjeta";
 import { Icono } from "./Icono";
 import { Isotipo } from "./Isotipo";
@@ -41,6 +43,10 @@ export function CabeceraConCuenta({
   nombre?: string | null;
 }) {
   const [hoja, setHoja] = useState<"menu" | "buscar" | null>(null);
+  // El globo del corazón, al día: dentro del catálogo lo guardado se lleva en el navegador (`ProveedorGuardados`) y baja apenas se quita
+  // un favorito; fuera de él (Mi cuenta, la bolsa), lo que contó el servidor.
+  const guardados = useGuardados();
+  const cuantosFavoritos = guardados ? guardados.cuantos : favoritos;
   const disparador = useRef<HTMLButtonElement | null>(null);
 
   function abrir(cual: "menu" | "buscar", boton: HTMLButtonElement) {
@@ -104,9 +110,9 @@ export function CabeceraConCuenta({
           <button type="button" className="t-ico" aria-label="Buscar" onClick={(e) => abrir("buscar", e.currentTarget)}>
             <Icono nombre="lupa" />
           </button>
-          <Link className="t-ico t-solo-grande" href={datos.favoritos} aria-label={etiquetaFavoritos(favoritos)} aria-current={marca("favoritos")}>
+          <Link className="t-ico t-solo-grande" href={datos.favoritos} aria-label={etiquetaFavoritos(cuantosFavoritos)} aria-current={marca("favoritos")}>
             <Icono nombre="corazon" />
-            {favoritos ? <span className="t-globo">{favoritos}</span> : null}
+            {cuantosFavoritos ? <span className="t-globo">{cuantosFavoritos}</span> : null}
           </Link>
           <MenuDeLaCuenta nombre={nombre} enCuenta={actual === "cuenta"} />
           {bolsa}
@@ -114,7 +120,7 @@ export function CabeceraConCuenta({
       </header>
 
       {hoja && <div className="t-velo" aria-hidden="true" onClick={cerrar} />}
-      {hoja === "menu" && <HojaMenu datos={datos} favoritos={favoritos} cerrar={cerrar} />}
+      {hoja === "menu" && <HojaMenu datos={datos} favoritos={cuantosFavoritos} cerrar={cerrar} />}
       {hoja === "buscar" && <HojaBuscar datos={datos} cerrar={cerrar} />}
     </>
   );
@@ -337,6 +343,7 @@ function HojaBuscar({ datos, cerrar }: { datos: DatosCabecera; cerrar: () => voi
   const [q, setQ] = useState("");
   const encontradas = buscarEn(datos.indice, q);
   const corto = q.trim().length < 2;
+  const router = useRouter();
   return (
     <div className="t-buscador" role="dialog" aria-modal="true" aria-label="Buscar en la tienda">
       <div className="t-buscador-fila">
@@ -351,6 +358,14 @@ function HojaBuscar({ datos, cerrar }: { datos: DatosCabecera; cerrar: () => voi
             autoComplete="off"
             enterKeyHint="search"
             autoFocus
+            onKeyDown={(e) => {
+              // «Buscar» del teclado del celular (o Enter): abre la primera prenda encontrada. Antes no hacía nada.
+              if (e.key === "Enter" && !corto && encontradas.length > 0) {
+                e.preventDefault();
+                cerrar();
+                router.push(encontradas[0].href);
+              }
+            }}
           />
         </label>
         <button type="button" className="t-ico" aria-label="Cerrar el buscador" onClick={cerrar}>

@@ -8,8 +8,9 @@
 
 /* ---- El pie al borde de abajo. En una página corta (Cambios y devoluciones a 1280 px, una bolsa vacía) quedaba a media pantalla con
    crema debajo. Ahora la página crece hasta el borde de la ventana y el aire que sobra va ANTES del pie (`.t-pie-aire`), que nunca baja
-   de los 40 px (64 en la computadora) que el pie siempre tuvo encima. El pie vive dentro de <main> (los tres marcos lo ponen ahí): por
-   eso la página que lo lleva crece. Si un día sale de <main>, el aire queda como hijo de `.tienda` y empuja igual. Sin `:has` (un
+   de los 40 px (64 en la computadora) que el pie siempre tuvo encima. El pie va DESPUÉS de <main> (los tres marcos lo ponen ahí, para que
+   un lector de pantalla lo reconozca como el pie de la página): el aire queda como hijo de `.tienda`, que es una columna del alto de la
+   ventana, y empuja. Si el pie estuviera dentro de <main>, la página que lo lleva crecería y empujaría igual. Sin `:has` (un
    navegador viejo), se ve como antes. ---- */
 .t-pagina:has(> .t-pie-aire) { flex-grow: 1; }
 .t-pie-aire { flex: 1 0 40px; }
