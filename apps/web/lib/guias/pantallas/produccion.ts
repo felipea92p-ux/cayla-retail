@@ -302,7 +302,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "resumen",
       ancla: "prod-orden-nueva.resumen",
       titulo: "La orden, tal como va quedando",
-      texto: "A la derecha ves la orden mientras la armas: la prenda, cuántas son, a cuánto se vende, el costo estimado (la tela y los servicios de afuera) y el margen que queda, y la fecha. Nada del costo se escribe a mano: sale de la tela y de las tarifas.",
+      texto: "A la derecha ves la orden mientras la armas: la prenda, cuántas son, a cuánto se vende, cuánto cuesta cada prenda y de qué se forma (la tela y cada servicio de afuera), el margen que queda y la fecha. Nada del costo se escribe a mano: sale de la tela y de las tarifas.",
     },
     {
       id: "entrega",
