@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 136,
+  "total": 140,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
@@ -92,14 +92,18 @@
       "ComboResponsable «)»",
       "CampoTexto «Nota (opcional)»",
       "Boton «{responsable.motivo ?? \"Vuelve al almacén de la tienda\"}»",
+      "Boton «{responsable.motivo ?? `Vuelve a ${p.devolucion.proveedor}»",
       "Boton «{responsable.motivo ?? undefined}»",
       "Boton «{responsable.motivo ?? undefined}» #2",
       "CampoTexto «{guia.etiqueta(\"arreglo\", \"¿Qué se arregló?\")}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "CampoTexto «{guia.etiqueta(\"devolucion\", \"Nota\")}»",
+      "Boton «Cancelar» #2",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2",
       "CampoMonto «0.00»",
       "CampoSelect «{guia.etiqueta(\"metodo\", \"Forma de pago\")}»",
-      "Boton «Cancelar» #2",
+      "Boton «Cancelar» #3",
       "Boton «{responsable.motivo ?? undefined}» #3"
     ],
     "components/ResumenStockOverlay.tsx": [

@@ -206,6 +206,8 @@ export function fraseDeMovimiento(m: Movimiento, n: number): string {
       return `${prenda} ${una ? "dañada botada" : "dañadas botadas"}`;
     case "cuarentena_donada":
       return `${prenda} ${una ? "dañada donada" : "dañadas donadas"}`;
+    case "cuarentena_devuelta_proveedor":
+      return `${prenda} ${una ? "dañada devuelta" : "dañadas devueltas"} al proveedor`;
     case "apartado":
       return `${prenda} ${una ? "apartada" : "apartadas"} para un cliente`;
     case "liberacion_apartado":

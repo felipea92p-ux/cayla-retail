@@ -123,6 +123,27 @@ describe("avisosInicio", () => {
     expect(avisosInicio({})).toEqual([]);
   });
 
+  // ADR-0362 fase 5b, actividad 4 (Felipe 2026-10-15): el IGV de lo que no llegó, mientras no se regularice. No se oculta.
+  it("las notas de crédito por pedir llevan a Notas de crédito, no se ocultan y se vuelven urgentes pasadas dos semanas", () => {
+    const [a] = avisosInicio({ notasPorPedir: { facturas: 2, igv: 18, dias: 3 } });
+    expect(a).toMatchObject({ clave: "notasPorPedir", grupo: "Compras", cantidad: 2, nivel: "toca", href: "/compras/notas-credito", ocultable: false });
+    expect(a!.ahora).toBe("Pide la nota de crédito de 2 facturas");
+    expect(a!.detalle).toBe("La plata ya volvió en 2 facturas, pero falta la nota del proveedor: sus S/\u00a018.00 de IGV esperan.");
+    expect(avisosInicio({ notasPorPedir: { facturas: 1, igv: 3.6, dias: 15 } })[0]!.nivel).toBe("urgente");
+    expect(avisosInicio({ notasPorPedir: { facturas: 0, igv: 0, dias: null } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ notasPorPedir: null })[0]).toMatchObject({ nivel: "sinleer", ocultable: false });
+  });
+  it("las prendas de factura que no llegaron llevan a la ficha del proveedor (o al directorio) y no se ocultan", () => {
+    const [a] = avisosInicio({ prendasSinLlegar: { prendas: 3, facturas: 1, igv: 10.8, proveedores: 1, proveedorId: "p1" } });
+    expect(a).toMatchObject({ clave: "prendasSinLlegar", grupo: "Compras", cantidad: 3, nivel: "toca", href: "/compras/proveedores/p1", ocultable: false });
+    expect(a!.ahora).toBe("Resuelve 3 prendas que te deben");
+    expect(avisosInicio({ prendasSinLlegar: { prendas: 4, facturas: 2, igv: 14.4, proveedores: 2, proveedorId: null } })[0]!.href).toBe("/compras/proveedores");
+    expect(avisosInicio({ prendasSinLlegar: { prendas: 0, facturas: 0, igv: 0, proveedores: 0, proveedorId: null } })[0]!.nivel).toBe("aldia");
+    // Ninguno de los dos se apaga desde «Ajustar».
+    const todos = avisosInicio({ notasPorPedir: { facturas: 1, igv: 3.6, dias: 1 }, prendasSinLlegar: { prendas: 1, facturas: 1, igv: 3.6, proveedores: 1, proveedorId: "p1" } });
+    expect(avisosVisibles(todos, { notasPorPedir: false, prendasSinLlegar: false }, true).activos.map((x) => x.clave)).toEqual(["notasPorPedir", "prendasSinLlegar"]);
+  });
+
   // «Por colgar» (ADR-0331 act. b) con la decisión del motor del piso (ADR-0328 act. 7): cuenta TALLAS, como «Para hoy» de
   // Existencias (`porColgarDeLaSede`), y habla como Existencias: «Baja al piso», nunca «Sube» (en Existencias «Subir» es del piso al
   // almacén). Que la cifra sea la misma que la de «Para hoy» y la del filtro «Hoy» lo prueba `inicio-almacen-reglas.test.ts`.

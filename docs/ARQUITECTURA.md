@@ -1427,6 +1427,19 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `HojaReposicion.tsx` (`lib/nos-debe-acciones.ts` → `resolver_deuda_proveedor`); la orden nueva/editar lee `fn_nos_debe_resumen`
   (`getDatosNuevaOrden`, aviso); la recepción ofrece la causa `reposicion_faltante` con `deudas_del_proveedor` de `fn_envio_detalle`, y
   `recibir_despacho` reparte la reposición entre las deudas (`proveedor_deuda_resoluciones`). Lógica pura en `lib/nos-debe-reglas.ts`.
+- **La plata de «Nos debe»** (ADR-0362, fase 5b, 2026-10-15; migraciones `20261015145000` y `20261015150000`, en producción desde el
+  2026-10-15).
+  - **La ficha del proveedor:**
+    - `HojaSaldoAFavor.tsx` y `HojaDeposito.tsx` → `lib/nos-debe-acciones.ts`: `resolver_deuda_proveedor` (forma `saldo_a_favor`),
+      `registrar_deposito_deuda` y la lectura `fn_deuda_valor`.
+    - El saldo a favor se lee con `fn_saldo_favor_visible` (`lib/saldo-favor.ts`).
+  - **Notas de crédito:** `NotaDelProveedorModal.tsx` → `lib/nota-proveedor-acciones.ts` → `adjuntar_nota_proveedor`; el tablero lee
+    `fn_notas_proveedor_tablero`.
+  - **Existencias ▸ Dañadas:** `ResolverDanadosModal.tsx` → `devolver_danada_al_proveedor`; lee `fn_danadas_devolvibles` en
+    `getPrendasDanadasPendientes`.
+  - **Inicio y Observatorio:** `fn_igv_en_espera` (`lib/igv-en-espera.ts`).
+  - **Lógica pura:** `lib/nos-debe-reglas.ts`, `lib/nota-proveedor-reglas.ts`, `lib/igv-en-espera-reglas.ts` y `lib/danadas-reglas.ts`.
+  - **Contrato:** `docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md`, sección «Fase 5b».
 - **Compras por tienda** (ADR-0184, 2026-09-23; migraciones `20260923180000`–`180400`, **no en producción todavía**). QUIÉN usa Compras
   lo dice el rol (ADR-0161, `fn_capacidad_por_modulos`); DE QUÉ TIENDAS, `fn_compras_ubicaciones()` → `uuid[]`: el líder todas; con módulo,
   su tienda (`fn_ubicacion_actual_persona`) más las extra de `compradores_de_tienda` (R-10; la tabla sola no da acceso). Cada factura tiene
