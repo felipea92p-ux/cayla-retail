@@ -9,6 +9,8 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { CierrePulso } from "@/components/finanzas/CierrePulso";
+import { pulsoCierre } from "@/lib/cierre-pulso-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraBloque, CampoFin, InputFin, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
@@ -111,6 +113,9 @@ function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre;
           </>
         }
       />
+
+      {/* Camino A (Felipe 2026-10-15): primero la respuesta; la matriz y los chequeos, después. */}
+      <CierrePulso pulso={pulsoCierre(panel)} />
 
       <div data-guia="fin-cierre.matriz" className="fin-matriz anim-sube" style={{ ["--n" as string]: Math.min(6, unidades.length + 1) } as CSSProperties}>
         {unidades.map((x, i) => {
