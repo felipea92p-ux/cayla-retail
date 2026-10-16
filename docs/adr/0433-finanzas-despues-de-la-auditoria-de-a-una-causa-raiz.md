@@ -1,7 +1,8 @@
 # ADR-0433 · Finanzas después de la auditoría del 16-oct: se arregla de a una causa raíz, y el dinero espera el OK de Felipe
 
-- **Fecha:** 2026-10-16 · **Estado:** en construcción. Tanda 1, actividad 1 hecha en local (migración `20261016211000`, sin pegar en
-  producción; datos de tres cajas en `pegar-en-produccion-caja-fondo-2026-10.sql`, sin pegar). Rama `claude/finanzas-auditoria-arreglos`.
+- **Fecha:** 2026-10-16 · **Estado:** en construcción. Tanda 1, actividad 1 hecha **y en producción** desde el 2026-10-16 con el OK de
+  Felipe: migración `20261016211000` (versión de producción `20261016212808`) y los datos de las cuatro cajas
+  (`pegar-en-produccion-caja-fondo-2026-10.sql`). Rama `claude/finanzas-auditoria-arreglos`.
 - **Pedido:** Felipe, 2026-10-16: «estoy seguro que hay varios errores», analizar el módulo con todas las herramientas y revisar las maquetas
   de un colega. Salió una auditoría de solo lectura (433 agentes: 35 revisores por eje, ~355 escépticos que intentaron refutar cada hallazgo,
   un crítico de huecos y una síntesis) contra `main` + producción. 30 causas raíz (G01–G30); lo que salió limpio y lo que no se pudo
@@ -62,6 +63,15 @@ SE ROMPE SI:
 
 **Verificado.** `scripts/pruebas/caja_fondo_coherente.mjs` (9 casos, ROLLBACK): 5 fallaban antes de la migración y los 9 pasan después; pegada
 dos veces, sin error. 60 suites que tocan cajas contra una copia de la base local con las migraciones de `main`: las mismas 10 fallan con y
-sin esta migración (estado y fechas de la base compartida), 50 pasan. El script de datos se probó sobre una reconstrucción de las tres cajas.
-`node --test scripts/chaos/*.test.mjs` 31/31 y la autoprueba de `/chaos` detecta la INV-21. **Pendiente de Felipe:** pegar la migración y el
-script de datos, y decir si los 181.10 de Arequipa fueron al cajón fuerte sin registrarse (si sí, un traslado, no un faltante).
+sin esta migración (estado y fechas de la base compartida), 50 pasan. `node --test scripts/chaos/*.test.mjs` 31/31 y la autoprueba de `/chaos`
+detecta la INV-21.
+
+**En producción (2026-10-16).** Sonda de solo lectura (md5 de `archivar_caja_prueba` igual al que reemplazaba, 0 disparadores, 1 caja
+incoherente), ensayo en un solo lote que termina en excepción (2 disparadores, 0 incoherentes, octubre mejoraba en aperturas S/ 581.10, nada
+quedó guardado), aplicación y verificación: md5 de las dos funciones iguales a los de local, los dos disparadores diferidos, 0 cajas
+incoherentes, fondo de Trujillo 277.20, esperado de Trujillo 277.20, esperado de Arequipa 118.90.
+**Arequipa, decidido por Felipe** («todo está cuadrado al día de hoy, registra el traslado»): los 181.10 que faltaban en la apertura del 1-oct
+se registraron como un traslado a la caja fuerte de Arequipa (en la caja real anterior, 285b6d7c, fechado un minuto antes de que abriera la
+siguiente; su fondo pasa de 300.00 a 118.90), no como faltante: la caja fuerte pasa de 2065.84 a 2246.94 y la suma de «sobró/faltó al abrir»
+de octubre pasa de −734.50 a −153.40 (Trujillo −700 desaparece; Arequipa +118.90 desaparece). **Pendiente, sin inventar cifras:** Felipe
+mencionó también «el depósito a cuenta»; falta el monto, la fecha y la cuenta para registrarlo.
