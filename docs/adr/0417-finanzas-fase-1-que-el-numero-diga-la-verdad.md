@@ -147,3 +147,16 @@ iguales a la pila. DESCARTÉ editar la 002000 (ya corrió en producción: dos ca
 oportunidades de que no sea el mismo) y tocar la 235000 (está en `main` y en producción). SE ROMPE SI: un parche futuro vuelve a
 meter texto DENTRO del `p_nuevo` de otro; la regla, desde hoy, es sumar antes o después y mirar quién más ancla esa función
 (`grep -ln "reemplazar('retail.<función>"` en `supabase/migrations`). `pago_planilla_y_sunat.mjs` lo vigila (caso «anclas del fondo»).
+
+## Actualización 2026-10-16 (c): la decisión 3 está construida (ADR-0429), sin pegar
+
+La decisión 3 —Interbank, las cuentas «por depositar» y la máquina que cobra— se construyó en la rama `claude/upbeat-euclid-d973d1`
+con `/construir` (lista de seis actividades aprobada por Felipe el 2026-10-16) y tiene su propio ADR con el diseño, lo descartado y
+cómo se pega: **ADR-0429** (`docs/adr/0429-cobros-con-tarjeta-y-qr-la-maquina-las-puentes-y-la-comision-real.md`). En una línea: la
+máquina (Izipay, Vendemás) es una entidad chica con su puente 1 a 1; el destino por defecto sigue en «A qué cuenta entra cada cobro»
+(ahora también para el QR); la hoja de cobro pregunta la máquina solo donde hay dos; el depósito se cruza contra los días pendientes y la
+comisión real es la diferencia; la tarifa solo estima y avisa; y lo pasado se rehace una vez, con rastro. Cinco migraciones
+(`20261016173000` … `20261016193000`) **SIN PEGAR**, en orden y con el OK de Felipe; la última toca filas y se ensaya primero. Cuando se
+peguen, el tramo «tarjeta» del medidor de confianza sube solo (lee `medios_de_cobro`, que pasa a apuntar a las puentes). Lo que Felipe
+hace después de pegar (saldo inicial de Interbank, tarifas, registrar los depósitos ya recibidos) está en el ADR-0429 y en
+`docs/backlog/2026-10-16-upbeat-euclid-d973d1.md`.
