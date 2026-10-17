@@ -20,8 +20,8 @@ Maqueta: `docs/maquetas/campanas-diseno-2026-10/` (abrir `index.html`; su README
 
 **Dónde quedó (2026-10-17, noche).** Lista de 9 actividades aprobada (ADR-0436). Hechas y commiteadas: 1 (módulo, lista, regla de la
 portada en un solo lugar), 2 (Datos y Prendas con una sola llave), 3 (la portada en una sola pieza, `packages/portada`, sin cambio
-visible), 4 (diseñar y publicar), 5 (la tienda pinta el diseño publicado), 6 (campañas sin descuento y el carrusel) y **7 (el resto del
-editor, sin migración)**:
+visible), 4 (diseñar y publicar), 5 (la tienda pinta el diseño publicado), 6 (campañas sin descuento y el carrusel), 7 (el resto del
+editor, sin migración) y **8 (el fondo con foto)**:
 - [x] **En producción desde el 2026-10-17, congeladas** (como en `d32f50113`): `20261017144000` (registro `20261017202815`),
   `20261017160000` (`20261017202943`), `20261017200000` (`20261017203014`) y `20261017151000` (`20261017203618`). No se editan (lo vigila
   `campanas-migraciones-pegadas.test.ts`); un cambio va en una migración nueva. **Faltan** `20261017204000`, `20261017210000` y
@@ -52,6 +52,10 @@ editor, sin migración)**:
   elegidas en su orden. La portada de siempre trae el % gigante (es la que el cliente ya veía).
 - [x] Actividad 7b (`6fe0af004` refactor + `7b9f87fc3`): el editor tiene los siete pasos de la maqueta, «Deshacer» y «Sorpréndeme»; la guía
   interactiva y su huella al día. `d6404503b`: sin máscaras, el dibujo no tapa la portada.
+- [x] Actividad 8 (`369e45db8` base, `8d89166e0` héroe, `2e01dabb6` editor): el fondo «Con foto». Migración `20261017231000` **sin pegar**
+  (dos partes; se pega el día de publicar, después de `212000`): la foto, su tono y el oscurecido en `campana_disenos`, y el almacén
+  `retail-campanas-fotos` donde sube quien tiene Campañas. Verificado en la pila con una foto de prueba subida desde el editor, publicada, y
+  vista en la tienda real a 1440 y 375 px, en claro y oscuro.
 - [x] ~~Visto al verificar la 4: «Internacional» se mete debajo de las polaroids~~ — arreglado en la 7a (el tamaño sale del largo del nombre,
   también sin diseño propio).
 - [ ] Visto al verificar la 5: sin foto, la polaroid de la vista previa del ERP dibuja el ícono de la categoría (`SinFoto`, la regla del ERP,
@@ -62,4 +66,6 @@ editor, sin migración)**:
   nueva (que `campanas_lista` mande primero las elegidas, hasta cuatro): mejor junto con la de la actividad 8, para pegar una sola vez.
 - [ ] Aviso de Supabase en desarrollo (`Date.now()` while prerendering en las páginas con sesión): Felipe 2026-10-17, «dejarlo así» (el
   build de producción pasa).
-- Después: actividades 8 (el fondo con foto) y 9 (el cierre con `/chaos`, `/formidable`, `tema:auditar` y el PR).
+- Después: la actividad 9 (el cierre con `/chaos`, `/formidable`, `tema:auditar` y el PR).
+- [ ] Visto en la 8: una foto subida que no se usa (se cambió por otra, o nunca se guardó) queda en el almacén sin diseño que la nombre. No
+  molesta a nadie (nadie la ve) y nada se borra solo; si un día pesa, una limpieza de las que ningún diseño nombra.

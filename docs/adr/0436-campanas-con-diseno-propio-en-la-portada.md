@@ -426,3 +426,45 @@ grande, píldora, % detrás del texto) y Bosque (mosaico con dos elegidas en su 
 «Sorpréndeme», las prendas en orden con el borrador guardado en la base; sin desborde a 375 px; contraste de la palabra en cursiva 6,1 a 1 en
 oscuro. `guias:recorrer` (14 pasos, escritorio y 375 px en oscuro) antes de aceptar la huella. Knip y las pruebas de tema, unificar y movimiento
 en verde.
+
+## Actividad 8 — El fondo con foto (`20261017231000`, se pega el día de publicar)
+
+La cuarta opción de «Fondo» en la maqueta: «Con foto · La que subas». Tres cortes: **8a** la base guarda la foto, **8b** el héroe compartido la
+dibuja con su velo y la revisión la mide, **8c** el editor la sube y la oscurece.
+
+**DECIDÍ 31 — La foto vive en un almacén propio, público (`retail-campanas-fotos`, 5 MB, JPG, PNG o WebP), donde sube quien tiene el módulo
+Campañas, y el diseño guarda su dirección pública.** La base solo acepta `…/retail-campanas-fotos/fondos/<uuid>.jpg` (el mismo candado que las
+fotos de prendas: nadie mete en la portada una imagen de otro sitio), comprueba al guardar que el archivo está en el almacén (`foto_sin_subir`) y
+pide su tono. La foto puede quedarse guardada con otro fondo: quien vuelve a «Con foto» no la sube de nuevo, y cambiar de estilo no la pierde.
+Ni update ni delete: una foto no se pisa (un diseño anterior puede seguir usándola).
+**DESCARTÉ** el almacén de las fotos de prendas (sube quien tiene Productos, otra llave) y uno privado con dirección firmada (la tienda tendría que
+firmar en cada visita, y la firma vence).
+**SE ROMPE SI** se sube una foto y no se usa (se cambió por otra o nunca se guardó): queda en el almacén sin diseño que la nombre. Nadie la ve;
+queda en el backlog por si un día pesa.
+
+**DECIDÍ 32 — Si la letra se lee sobre la foto se mide con su TONO: el promedio de su décima parte más clara (`tonoClaro`), medido por el ERP al
+subirla, tapado por el velo donde va la letra.** Ese tono se guarda con el diseño, así la revisión del ERP y la de la tienda (`disenoParaPintar`,
+DECIDÍ 14) dan lo mismo sin volver a abrir la foto. Si no se lee, «Publicar» se apaga y dice el arreglo: oscurecer la foto.
+**DESCARTÉ** el promedio de toda la foto (una foto oscura con un cielo blanco detrás del nombre pasaba por oscura) y medir en la tienda (bajar y
+analizar la foto en cada visita).
+**SE ROMPE SI** lo claro de la foto es un detalle chico (menos de un décimo, un logo blanco) justo detrás del nombre: el promedio del décimo más
+claro lo diluye y la revisión puede dar por buena una letra que ahí se lee mal. Con fotos de prenda y de campaña no pasa; si pasa, se mide solo la
+zona del texto.
+
+**DECIDÍ 33 — El velo es del color de la campaña (de noche, el de noche), más tupido donde va la letra (`veloDeLaFoto`: el oscurecido más 0,3; del
+otro lado, el oscurecido): arriba en el celular, a la izquierda en la computadora, parejo con solo letras.** Se oscurece de 0,15 a 0,90, con 0,45 de
+fábrica, como la maqueta; mover el control seguido cuenta como un solo «Deshacer». La foto se reduce en el navegador a 2000 px y la tienda la
+pide por su optimizador (`FotoDeFondo`, con un ancho de 1920 para la computadora) y de inmediato, porque está arriba de todo. Mientras carga, o si
+el almacén no responde, se ve el degradado de la campaña bajo el velo: la letra se lee igual y no se pierde nada.
+**DESCARTÉ** un velo negro: apagaba la paleta elegida, que es lo que hace a la campaña reconocible.
+
+**DECIDÍ 34 — La migración se pega en dos partes:** la 1 (las columnas, sus `check`, `fn_diseno_json` y `guardar_diseno_borrador`) y la 2 (el
+almacén y su política, sola, ADR-0195). Va después de `20261017212000`, el día de publicar (casilla 1). Una web de antes la tolera: no manda la
+foto y no pisa el oscurecido; un diseño con foto que lea una tienda de antes no lo sabe leer y sale el de siempre (DECIDÍ 14).
+
+**Verificación (8):** `campanas_diseno.mjs` 61 de 61 en la pila propia (los estados imposibles de la foto, la foto que no está en el almacén,
+guardar y leer la foto, la web de antes, publicar a la tienda, la migración pegada dos veces), `campanas_portada` 39 y `campanas_llave` 31; el
+paquete (124: leer la foto, el velo, la revisión sobre la foto, cambiar de estilo sin perderla), la tienda (450) y el ERP (el tono, los avisos de
+foto chica o vertical). En la pila, con Storage levantado: una foto de prueba subida desde el editor (llegó al almacén, el borrador la guardó con
+su tono), la revisión apagó «Publicar» en oscuro al 45 % y lo encendió al 55 %, publicada desde la hoja, y vista en la tienda real a 1440 y 375
+px, en claro y oscuro, por el optimizador. `guias:recorrer` (14 pasos, escritorio y 375 px en oscuro) antes de aceptar la huella; Knip en verde.

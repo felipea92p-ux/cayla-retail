@@ -15,17 +15,15 @@ Escrito el 2026-10-17. Sin llaves ni contraseñas (el repo es público): dice d�
 - **Las 9 actividades (lista aprobada por Felipe, método `/construir`: una por una, cada una con su commit):**
   1 menú y lista ✔ · 2 Datos y Prendas con una sola llave ✔ · 3 la portada en una sola pieza (`packages/portada`) ✔ ·
   4 diseñar y publicar ✔ · 5 la tienda pinta el diseño publicado ✔ · 6 campañas sin descuento y el carrusel ✔ ·
-  7 el resto del editor (fondo liso/degradado/dibujo, acomodos, texto, prendas, detalles, Sorpréndeme, Deshacer) ✔ · **8 fondo con foto** ·
-  9 cierre (`/chaos`, `/formidable`, `tema:auditar`, 375 px, ADR, PR con `/abrir-pr`).
+  7 el resto del editor (fondo liso/degradado/dibujo, acomodos, texto, prendas, detalles, Sorpréndeme, Deshacer) ✔ · 8 fondo con foto ✔ ·
+  **9 cierre** (`/chaos`, `/formidable`, `tema:auditar`, 375 px, ADR, PR con `/abrir-pr`).
 
-## Lo siguiente (actividad 8)
+## Lo siguiente (actividad 9)
 
-Las actividades 4 a 7 están cerradas: ADR-0436, secciones «Actividad 4» a «Actividad 7» (la 7, al final del ADR: DECIDÍ 25 a 30). La 7 no
-tiene migración: el héroe compartido (`packages/portada`) ya dibuja el fondo liso, el degradado y los ocho dibujos (una máscara pintada con el
-acento), los cuatro acomodos, el tamaño del nombre según su largo, la frase, el % gigante y el sello; y el editor tiene los siete pasos de la
-maqueta, «Deshacer» y «Sorpréndeme». Sigue la **8: el fondo con foto** (la cuarta opción de «Fondo» en la maqueta, «Con foto · La que subas»:
-subir la foto a Storage, oscurecerla para que la letra se lea, y que la revisión lo mida). Para la 8 hace falta una migración nueva (la foto
-del fondo y el oscurecido en `campana_disenos`, con su `check`): resérvala con `pnpm reservar migracion` y suma su casilla al día de publicar.
+Las actividades 4 a 8 están cerradas (ADR-0436: la 7, DECIDÍ 25 a 30; la 8, DECIDÍ 31 a 34, al final del ADR). La 8 sumó el fondo «Con foto»:
+la migración `20261017231000` (sin pegar), el héroe que dibuja la foto con su velo y el editor que la sube y la oscurece. Sigue la **9, el
+cierre**: `/chaos` (toda pantalla que guarda: el editor, la subida de la foto, publicar, volver al anterior), `/formidable` (espera el OK de
+Felipe antes de tocar nada), `tema:auditar` con sus escenarios, 375 px, y el PR con `/abrir-pr`, con las casillas del día de publicar.
 
 Lo anotado para después está en el backlog: la miniatura de la lista del ERP no sigue las prendas elegidas (sale de las tres con foto que manda
 `campanas_lista`) y la polaroid sin foto de la vista previa (`SinFoto`) distinta de la silueta de la tienda (lo decide Felipe).
@@ -47,7 +45,9 @@ todo cambio va en una migración NUEVA, reservada con `pnpm reservar migracion`.
 descuento) → `20261017210000` (el carrusel) → `20261017212000` (la puerta de Editar producto: cada campaña pide la llave de Campañas,
 también desde la ficha). Las dos primeras las tolera una web de antes (sigue leyendo `campana`, la primera); la tercera NO: la web publicada
 ofrece las campañas en la ficha a todo rol con Productos o Atributos, y a uno sin Campañas su guardado de etiquetas le fallaría, por eso va
-justo antes de fusionar. (Las dos terminales ya no frenan con ella: tienen Campañas desde el 2026-10-17, abajo.) **Volver a pegar una
+justo antes de fusionar. (Las dos terminales ya no frenan con ella: tienen Campañas desde el 2026-10-17, abajo.) Después, `20261017231000`
+(el fondo con foto) **en sus dos PARTES, por separado y en orden**: la 1 (la tabla y sus funciones) y la 2 (el almacén
+`retail-campanas-fotos` y su política, sola: ADR-0195). Una web de antes la tolera: no manda la foto y no pisa el oscurecido. **Volver a pegar una
 de las congeladas después de estas** las deshace (reescribe `tienda_portada()` y la regla como eran): se arregla pegando otra vez, en orden,
 las que siguen.
 
@@ -69,8 +69,8 @@ no se guardan esos roles desde la pantalla (y si se guardan, se vuelve a dar el 
 
 La descripción del PR (`/abrir-pr`) las lleva como casillas, en este orden. Ninguna se borra: si una no aplica, se escribe por qué.
 
-1. **Pegar las migraciones que faltan**, en el orden de arriba: `20261017204000`, `20261017210000` y `20261017212000` (la puerta de Editar producto).
-   Cada una con su sonda de huellas antes y su verificación después.
+1. **Pegar las migraciones que faltan**, en el orden de arriba: `20261017204000`, `20261017210000`, `20261017212000` (la puerta de Editar producto)
+   y `20261017231000` (el fondo con foto, en sus dos partes). Cada una con su sonda de huellas antes y su verificación después.
 2. **Fusionar el PR.**
 3. **Verificar que Terminal Almacén y Terminal de ventas siguen con «Campañas»** (se lo dieron por SQL el 2026-10-17: ver la trampa de
    arriba; si alguien guardó esos roles desde la pantalla publicada, se lo quitó). Sin el módulo, con la puerta de la ficha cerrada, se
@@ -104,8 +104,15 @@ Las llaves locales salen de `supabase status -o env` (nunca las copies a un arch
 - **Cuentas del ERP local:** `felipe@cayla.local` (líder/Admin), `micaela@cayla.local` (colaboradora, sin Campañas), `sandra@cayla.local`;
   contraseña `cayla-local`. **Cliente de la tienda:** `cliente.prueba@cayla.local`, su clave en `/Volumes/CAYLA-SSD/.pila-campanas/arnes/clave-cliente.txt`.
 - **Datos de prueba ya creados:** campañas «Día Internacional del Gato» (15 %, 1–30 oct), Halloween, Aniversario, «Día del Abuelo», con prendas.
-  Diseños: el Gato tiene publicado «Galería» (y un borrador de prueba de la actividad 7); Navidad, «Bosque». Para mirar un acomodo en la tienda
-  sin pasar por el editor, se puede cambiar a mano la fila `publicado` en `retail.campana_disenos` de la pila; la tienda la guarda 60 s.
+  Diseños: el Gato tiene publicado uno «Con foto» (la foto de prueba de la actividad 8; el anterior es «Galería», que «Volver al anterior»
+  regresa); Navidad, «Bosque». Para mirar un acomodo en la tienda sin pasar por el editor, se puede cambiar a mano la fila `publicado` en
+  `retail.campana_disenos` de la pila; la tienda la guarda 60 s.
+- **Storage en la pila (para subir fotos):** `supabase start` de esta pila no levanta Storage (choca con la pila de Dynamic, ver su
+  `config.toml`). El 2026-10-17 se levantó a mano un contenedor `supabase_storage_cayla-pila-campanas` (la imagen y la configuración del
+  Storage de la pila compartida, con la base de esta pila; Kong ya apunta a ese nombre). Si no está: `docker inspect
+  supabase_storage_cayla-retail` para su configuración, cambiar `supabase_db_cayla-retail` por `supabase_db_cayla-pila-campanas`, y
+  `docker run -d --name supabase_storage_cayla-pila-campanas --network supabase_network_cayla-pila-campanas --network-alias storage …`
+  (sin copiar las claves a ningún archivo versionado).
 - **Pruebas de base:** `node scripts/pruebas/campanas_diseno.mjs --contenedor supabase_db_cayla-pila-campanas` (43/43), igual con
   `campanas_portada.mjs` (25/25) y `campanas_llave.mjs` (26/26). Si cambias la migración, reaplícala:
   `docker exec -i supabase_db_cayla-pila-campanas psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/migrations/20261017160000_campanas_diseno.sql`
