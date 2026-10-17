@@ -2,7 +2,7 @@
   "guia": "tienda-web.campanas.id",
   "ruta": "/tienda-web/campanas/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 46,
+  "total": 59,
   "controles": {
     "app/(app)/tienda-web/campanas/[id]/page.tsx": [
       "Volver «/tienda-web/campanas»",
@@ -45,6 +45,8 @@
       "button «{i + 1}»",
       "SegmentoDeslizante «Dónde se mira»",
       "SegmentoDeslizante «Tema de la tienda»",
+      "BotonDeshacer «{historial.length === 0 ? \"Todavía no hay nada que deshacer\" : undefined}»",
+      "Boton «Sorpréndeme»",
       "Boton «Ver el último»",
       "Boton «campana.diseno-volver»",
       "Boton «campana.diseno-publicar»"
@@ -53,7 +55,18 @@
       "button «{e.nombre}»",
       "input «Elegir mi color»",
       "Boton «Usar uno un poco más oscuro»",
-      "button «{nombre}»"
+      "button «{nombre}»",
+      "button «{NOMBRES_FONDO[f].nombre}»",
+      "button «{NOMBRES_PATRON[p]}»",
+      "SegmentoDeslizante «Qué tanto se nota el dibujo»",
+      "button «{NOMBRES_ACOMODO[a].nombre}»",
+      "BotonVer «Ir a Prendas»",
+      "button «{`Cursiva desde «${w}»",
+      "button «Sin cursiva»",
+      "SegmentoDeslizante «Tamaño del nombre»",
+      "CampoTexto «Tu frase»",
+      "button «{orden >= 0 ? `${p.nombre}»",
+      "button «{NOMBRES_SELLO[s]}»"
     ],
     "components/campanas/PrendasCampana.tsx": [
       "Boton «{campana.activo ? undefined : \"Actívala en Datos para elegir sus prendas\"}»"

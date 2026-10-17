@@ -536,7 +536,7 @@
     .tw-editor-vista { position: sticky; top: 16px; }
   }
   .tw-pasos { display: grid; gap: 10px; }
-  .tw-paso { border: 1px solid var(--color-sand); border-radius: 14px; background: var(--color-papel); }
+  .tw-paso { min-width: 0; border: 1px solid var(--color-sand); border-radius: 14px; background: var(--color-papel); }
   .tw-paso[data-abierto] { border-color: var(--color-taupe); }
   .tw-paso-cab {
     width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 0; background: none; text-align: left; cursor: pointer;
@@ -560,6 +560,53 @@
   .tw-opcion:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
   .tw-opcion-nombre { display: block; padding: 8px 10px 9px; font-size: 13px; font-weight: 600; color: var(--color-tinta); }
   .tw-opcion-nombre small { display: block; font-size: 11.5px; font-weight: 400; color: var(--color-taupe); }
+
+  /* El fondo y el dibujo (paso «Fondo»): tres fondos en una fila y los ocho dibujos de a cuatro, en los colores de la campaña. */
+  .tw-opciones[data-columnas="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tw-opciones[data-columnas="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .tw-opciones[data-columnas="4"] .tw-opcion-nombre { padding: 6px 6px 7px; font-size: 11.5px; text-align: center; }
+  .tw-fondo-muestra, .tw-patron-muestra { position: relative; isolation: isolate; display: block; overflow: hidden; }
+  .tw-fondo-muestra { aspect-ratio: 1.6; }
+  .tw-patron-muestra { aspect-ratio: 1.3; }
+  .tw-estampado { position: absolute; inset: 0; -webkit-mask-repeat: repeat; mask-repeat: repeat; }
+  /* El sello en chico (paso «Detalles»): girado como en la portada. */
+  .tw-sello-muestra { display: grid; place-items: center; aspect-ratio: 1.3; }
+  .tw-sello-mini {
+    display: grid; place-items: center; width: 44px; height: 44px; padding: 4px; border-radius: 999px; text-align: center;
+    font-family: var(--font-serif); font-size: 10px; font-style: italic; font-weight: 600; line-height: 1.05; transform: rotate(-12deg);
+  }
+  .tw-sello-mini[data-vacio] { border: 1.5px dashed; opacity: 0.6; }
+
+  /* Desde qué palabra va la cursiva (paso «El texto»): la elegida y las que siguen, en cursiva y en rojo, como en la portada. */
+  .tw-palabras { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tw-palabra {
+    min-height: 32px; padding: 4px 12px; border: 1px solid var(--color-sand); border-radius: 999px; background: var(--color-papel);
+    font-family: var(--font-serif); font-size: 15px; color: var(--color-tinta); cursor: pointer;
+    transition: border-color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla);
+  }
+  .tw-palabra:last-child { font-family: inherit; font-size: 12.5px; font-weight: 600; }
+  .tw-palabra:hover { border-color: var(--color-taupe); }
+  .tw-palabra[data-cursiva] { font-style: italic; color: var(--color-rojo-profundo); background: var(--color-hueso); }
+  .tw-palabra[aria-pressed="true"] { border-color: var(--color-tinta); box-shadow: 0 0 0 1px var(--color-tinta); }
+  .tw-palabra:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+
+  /* Las prendas de la portada (paso «Las prendas»): se tocan en orden y cada una lleva su número. */
+  .tw-prendas-elegir { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 8px; }
+  .tw-prenda-op {
+    position: relative; display: flex; flex-direction: column; gap: 4px; padding: 4px 4px 6px; border: 1px solid var(--color-sand); border-radius: 10px;
+    background: var(--color-papel); text-align: left; cursor: pointer; transition: border-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla), opacity 200ms var(--ease-cayla);
+  }
+  .tw-prenda-op .portada-foto { position: relative; display: block; width: 100%; aspect-ratio: 4 / 5; overflow: hidden; border-radius: 6px; background: var(--color-hueso); }
+  .tw-prenda-op .portada-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .tw-prenda-op small { display: block; overflow: hidden; padding-inline: 2px; font-size: 11.5px; font-weight: 600; color: var(--color-tinta); white-space: nowrap; text-overflow: ellipsis; }
+  .tw-prenda-op:hover { border-color: var(--color-taupe); }
+  .tw-prenda-op[aria-pressed="true"] { border-color: var(--color-tinta); box-shadow: 0 0 0 1px var(--color-tinta); }
+  .tw-prenda-op:disabled { opacity: 0.5; cursor: not-allowed; }
+  .tw-prenda-op:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+  .tw-prenda-orden {
+    position: absolute; z-index: 1; top: 8px; left: 8px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 999px;
+    background: var(--color-tinta); color: var(--color-crema); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+  }
 
   /* Las muestras de color: el fondo con su acento en un punto. */
   .tw-muestras { display: flex; flex-wrap: wrap; gap: 8px; }

@@ -105,8 +105,8 @@ export function PortadaDeCampana({
   );
 }
 
-/** La foto de la prenda en su polaroid, o —sin foto, o si no carga— su categoría sobre su color. */
-function FotoDePolaroid({ pieza }: { pieza: PiezaDePortada }) {
+/** La foto de la prenda en su polaroid, o —sin foto, o si no carga— su categoría sobre su color. También la usa «Las prendas» del editor. */
+export function FotoDePolaroid({ pieza }: { pieza: PiezaDePortada }) {
   const sinFoto = (
     <span className="tw-pieza-sin-foto">
       <SinFoto tamano="h-full w-full !rounded-none" colorHex={pieza.colorHex} prefijo={pieza.prefijo} familia={pieza.familia} categoria={pieza.categoria} />

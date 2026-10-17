@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, Eye, Monitor, Moon, Smartphone, Sun, X } from "lucide-react";
-import { revisarDiseno, type Aviso as AvisoDeRevision, type ColoresPropios, type DisenoDeCampana, type Tema } from "@cayla-retail/portada";
+import { Check, ChevronDown, Dices, Eye, Monitor, Moon, Smartphone, Sun, X } from "lucide-react";
+import { mismoDiseno, revisarDiseno, type Aviso as AvisoDeRevision, type ColoresPropios, type DisenoDeCampana, type Tema } from "@cayla-retail/portada";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { Boton } from "@/components/ui/campos";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
@@ -20,15 +21,21 @@ import {
   disenoParaEditar,
   estadoDePasos,
   estadoDelBorrador,
+  resumenAcomodo,
   resumenColores,
+  resumenDetalles,
   resumenEstilo,
+  resumenFondo,
+  resumenPrendas,
+  resumenTexto,
+  sorprendeme,
   type CampanaDePortada,
   type ClavePaso,
   type EstadoDiseno,
   type PiezaDePortada,
 } from "@/lib/campana-diseno";
 import { Lienzo } from "./Lienzo";
-import { PasoColores, PasoEstilo } from "./PasosDelDiseno";
+import { PasoAcomodo, PasoColores, PasoDetalles, PasoEstilo, PasoFondo, PasoPrendas, PasoTexto } from "./PasosDelDiseno";
 import { PortadaDeCampana } from "./PortadaDeCampana";
 import { PublicarDiseno } from "./PublicarDiseno";
 import { VolverAlAnterior } from "./VolverAlAnterior";
@@ -36,13 +43,17 @@ import { VolverAlAnterior } from "./VolverAlAnterior";
 /** Cuánto se espera después del último toque para guardar el borrador (varios toques seguidos, un solo guardado). */
 const ESPERA_GUARDADO_MS = 450;
 
+/** Cuántos pasos atrás guarda «Deshacer» (lo de esta visita: al salir de la pantalla se olvida). */
+const DESHACER_MAX = 30;
+
 type Guardado = "al-dia" | "guardando" | "error" | "choque";
 
 /**
- * Tienda web ▸ Campañas ▸ una campaña ▸ «Diseño en la web» (ADR-0436, actividad 4; maqueta, pantalla 2). A la izquierda los pasos (un
- * estilo de partida y sus colores; los demás llegan en la actividad 7), a la derecha la portada como la verá el cliente, en computadora o
- * celular y en claro u oscuro, y abajo la revisión y «Publicar». Cada toque se guarda solo como BORRADOR (`guardar_diseno_borrador`,
- * suelto del combo «Responsable»): la web sigue mostrando lo publicado hasta que alguien publica.
+ * Tienda web ▸ Campañas ▸ una campaña ▸ «Diseño en la web» (ADR-0436, actividades 4 y 7; maqueta, pantalla 2). A la izquierda los siete
+ * pasos (un estilo de partida, los colores, el fondo, cómo se acomoda y, opcionales, el texto, las prendas y los detalles), a la derecha
+ * la portada como la verá el cliente, en computadora o celular y en claro u oscuro, con «Deshacer» y «Sorpréndeme», y abajo la revisión
+ * y «Publicar». Cada toque se guarda solo como BORRADOR (`guardar_diseno_borrador`, suelto del combo «Responsable»): la web sigue
+ * mostrando lo publicado hasta que alguien publica.
  */
 export function DisenoCampana({
   campana,
@@ -70,6 +81,9 @@ export function DisenoCampana({
   const [visitados, setVisitados] = useState<ReadonlySet<ClavePaso>>(() => new Set<ClavePaso>(["estilo"]));
   const [publicando, setPublicando] = useState(false);
   const [volviendo, setVolviendo] = useState(false);
+  // «Deshacer»: los diseños de antes de cada toque. Escribir la frase cuenta como un solo toque hasta que se toca otra cosa.
+  const [historial, setHistorial] = useState<readonly DisenoDeCampana[]>([]);
+  const escribiendo = useRef(false);
 
   // El guardado del borrador: uno a la vez, con la versión sobre la que se trabajó (si otra persona lo cambió, no se pisa).
   const version = useRef(inicial.version);
@@ -116,8 +130,23 @@ export function DisenoCampana({
     return ok ? version.current : null;
   }
 
-  function cambiar(nuevo: DisenoDeCampana) {
-    if (guardado === "choque") return;
+  /** Un toque: lo de antes queda para «Deshacer» (la frase, una vez por tanda de escritura) y se guarda el borrador. */
+  function cambiar(nuevo: DisenoDeCampana, { escritura = false }: { escritura?: boolean } = {}) {
+    if (guardado === "choque" || mismoDiseno(nuevo, diseno)) return;
+    if (!(escritura && escribiendo.current)) setHistorial((h) => [...h.slice(-(DESHACER_MAX - 1)), diseno]);
+    escribiendo.current = escritura;
+    aplicar(nuevo);
+  }
+
+  function deshacer() {
+    const anterior = historial[historial.length - 1];
+    if (!anterior || guardado === "choque") return;
+    setHistorial((h) => h.slice(0, -1));
+    escribiendo.current = false;
+    aplicar(anterior);
+  }
+
+  function aplicar(nuevo: DisenoDeCampana) {
     setDiseno(nuevo);
     pendiente.current = nuevo;
     setGuardado("guardando");
@@ -143,7 +172,33 @@ export function DisenoCampana({
   const { estados, sigue } = estadoDePasos(PASOS_DEL_DISENO, visitados, abierto);
   const revision = revisarDiseno(diseno, contextoDeRevision(piezas));
   const comoEsta = estadoDelBorrador(estado, diseno);
-  const resumen: Record<ClavePaso, string> = { estilo: resumenEstilo(diseno), colores: resumenColores(diseno) };
+  const resumen: Record<ClavePaso, string> = {
+    estilo: resumenEstilo(diseno),
+    colores: resumenColores(diseno),
+    fondo: resumenFondo(diseno),
+    acomodo: resumenAcomodo(diseno),
+    texto: resumenTexto(diseno),
+    prendas: resumenPrendas(diseno, piezas),
+    detalles: resumenDetalles(diseno, campana),
+  };
+  const cuerpo = (clave: ClavePaso) => {
+    switch (clave) {
+      case "estilo":
+        return <PasoEstilo diseno={diseno} campana={campana} piezas={piezas} ahora={ahora} onCambiar={cambiar} />;
+      case "colores":
+        return <PasoColores diseno={diseno} paletasDePrendas={paletasDePrendas} onCambiar={cambiar} />;
+      case "fondo":
+        return <PasoFondo diseno={diseno} onCambiar={cambiar} />;
+      case "acomodo":
+        return <PasoAcomodo diseno={diseno} campana={campana} piezas={piezas} ahora={ahora} onCambiar={cambiar} />;
+      case "texto":
+        return <PasoTexto diseno={diseno} campana={campana} onCambiar={cambiar} onEscribir={(d) => cambiar(d, { escritura: true })} />;
+      case "prendas":
+        return <PasoPrendas diseno={diseno} campana={campana} piezas={piezas} onCambiar={cambiar} />;
+      case "detalles":
+        return <PasoDetalles diseno={diseno} campana={campana} onCambiar={cambiar} />;
+    }
+  };
   const puedePublicar = !revision.bloquea && comoEsta === "borrador" && guardado !== "choque" && guardado !== "error";
 
   return (
@@ -165,15 +220,7 @@ export function DisenoCampana({
                 {sigue === p.clave && <EtiquetaAhora />}
                 <ChevronDown aria-hidden className="tw-paso-flecha" />
               </button>
-              {abiertoAqui && (
-                <div className="tw-paso-cuerpo">
-                  {p.clave === "estilo" ? (
-                    <PasoEstilo diseno={diseno} campana={campana} piezas={piezas} ahora={ahora} onCambiar={cambiar} />
-                  ) : (
-                    <PasoColores diseno={diseno} paletasDePrendas={paletasDePrendas} onCambiar={cambiar} />
-                  )}
-                </div>
-              )}
+              {abiertoAqui && <div className="tw-paso-cuerpo">{cuerpo(p.clave)}</div>}
             </section>
           );
         })}
@@ -201,6 +248,15 @@ export function DisenoCampana({
               { clave: "oscuro", etiqueta: "Oscuro", icono: <Moon aria-hidden className="h-4 w-4" /> },
             ]}
           />
+          <div className="ml-auto flex flex-wrap items-center gap-3" data-guia="campana.diseno-probar">
+            <BotonDeshacer onClick={deshacer} disabled={historial.length === 0} title={historial.length === 0 ? "Todavía no hay nada que deshacer" : undefined} />
+            <Boton peso="fantasma" className="btn-chico" onClick={() => cambiar(sorprendeme(diseno, { pct: campana.pct, conPrendas: piezas.length > 0 }))}>
+              <span className="flex items-center gap-2">
+                <Dices aria-hidden className="h-4 w-4 shrink-0" />
+                Sorpréndeme
+              </span>
+            </Boton>
+          </div>
         </div>
 
         <div data-guia="campana.diseno-previa">

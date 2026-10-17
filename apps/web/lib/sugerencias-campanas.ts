@@ -38,3 +38,20 @@ export function sugerirNombreCampana(existentes: readonly string[], hoy: string)
   const libre = enOrden.find((f) => !usados.has(clave(f.nombre)));
   return libre ? `Ej. ${libre.nombre}` : "El nombre que verá el cliente";
 }
+
+/* ---------------- La frase propia de la portada (Diseño en la web ▸ El texto) ---------------- */
+
+/** @internal El tope del placeholder que la prueba exige: lo que el campo de la frase muestra sin cortarse en el celular (la caja útil del panel mide ~290 px a 375). */
+export const MAX_FRASE_EJEMPLO = 40;
+
+/**
+ * El ejemplo de la frase propia: sigue lo que la campaña YA tiene. Con descuento y fecha de fin, la urgencia; con descuento sin fin, el
+ * descuento; sin descuento, que son prendas elegidas (nunca un descuento ni un plazo que no tiene). No mira el nombre (lo escribe quien la
+ * crea, sin deploy: un ejemplo por palabras del nombre se equivocaría con el primero que no esté en la lista). La fecha, el porcentaje y
+ * «Crea tu cuenta…» ya los pone la web en el héroe: el ejemplo muestra el tono, no los repite.
+ */
+export function sugerirFrase(c: { pct: number | null; hasta: string | null }): string {
+  if (c.pct && c.hasta) return "Ej. Solo por unos días, no te lo pierdas";
+  if (c.pct) return "Ej. Un descuento para estrenar algo";
+  return "Ej. Lo que elegimos para esta temporada";
+}

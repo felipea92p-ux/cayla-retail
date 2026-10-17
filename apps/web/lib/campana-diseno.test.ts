@@ -1,17 +1,48 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { ACOMODOS, DISENO_DE_SIEMPRE, FONDOS, INTENSIDADES, PALETAS, PATRONES, SELLOS, TAMANOS, paletaPropia } from "@cayla-retail/portada";
 import {
+  ACOMODOS,
+  DISENO_DE_SIEMPRE,
+  FONDOS,
+  INTENSIDADES,
+  PALETAS,
+  PATRONES,
+  SELLOS,
+  TAMANOS,
+  mismoDiseno,
+  paletaPropia,
+  partirTitulo,
+  revisarDiseno,
+  type DisenoDeCampana,
+} from "@cayla-retail/portada";
+import {
+  NOMBRES_ACOMODO,
+  NOMBRES_FONDO,
+  NOMBRES_INTENSIDAD,
+  NOMBRES_PATRON,
+  NOMBRES_SELLO,
+  NOMBRES_TAMANO,
   contextoDeRevision,
+  cortarEn,
+  corteEfectivo,
   diaSiguiente,
   disenoParaEditar,
   estadoDelBorrador,
   leerEstadoDiseno,
   paletasDeLaCampana,
   piezasDeLaCampana,
+  prendasMarcadas,
   queSaleDespues,
+  resumenAcomodo,
   resumenColores,
+  resumenDetalles,
   resumenEstilo,
+  resumenFondo,
+  resumenPrendas,
+  resumenTexto,
+  sellosDeLaCampana,
+  sorprendeme,
+  tocarPrenda,
 } from "./campana-diseno";
 import type { PrendaDeCampana } from "./campana-detalle";
 
@@ -124,14 +155,149 @@ describe("qué sale en la portada cuando la campaña termina", () => {
 });
 
 describe("la guía de foco del editor", () => {
-  it("abre en el estilo y dice que sigue Colores; al visitarlos, los dos quedan con ✓", async () => {
+  it("abre en el estilo y lleva por los cuatro pasos que arman la portada; los tres últimos son opcionales", async () => {
     const { PASOS_DEL_DISENO, estadoDePasos } = await import("./campana-diseno");
+    expect(PASOS_DEL_DISENO.map((p) => p.clave)).toEqual(["estilo", "colores", "fondo", "acomodo", "texto", "prendas", "detalles"]);
     const alAbrir = estadoDePasos(PASOS_DEL_DISENO, new Set(["estilo"]), "estilo");
-    expect(alAbrir.estados).toEqual({ estilo: "ahora", colores: "falta" });
+    expect(alAbrir.estados).toEqual({ estilo: "ahora", colores: "falta", fondo: "falta", acomodo: "falta", texto: "opcional", prendas: "opcional", detalles: "opcional" });
     expect(alAbrir.sigue).toBe("colores");
-    const enColores = estadoDePasos(PASOS_DEL_DISENO, new Set(["estilo", "colores"]), "colores");
-    expect(enColores.estados).toEqual({ estilo: "hecho", colores: "ahora" });
-    expect(enColores.sigue).toBeNull();
-    expect(estadoDePasos(PASOS_DEL_DISENO, new Set(["estilo", "colores"]), null).estados).toEqual({ estilo: "hecho", colores: "hecho" });
+    expect(estadoDePasos(PASOS_DEL_DISENO, new Set(["estilo", "colores", "fondo"]), null).sigue).toBe("acomodo");
+    // Con los cuatro visitados nada «sigue»: lo opcional no se exige.
+    const listos = estadoDePasos(PASOS_DEL_DISENO, new Set(["estilo", "colores", "fondo", "acomodo"]), "acomodo");
+    expect(listos.sigue).toBeNull();
+    expect(listos.estados.acomodo).toBe("ahora");
+    expect(estadoDePasos(PASOS_DEL_DISENO, new Set(["estilo", "texto"]), null).estados.texto).toBe("hecho");
+  });
+});
+
+describe("los nombres y los resúmenes de cada paso", () => {
+  it("cada opción de la base tiene su nombre en pantalla", () => {
+    expect(Object.keys(NOMBRES_FONDO)).toEqual([...FONDOS]);
+    expect(Object.keys(NOMBRES_PATRON)).toEqual([...PATRONES]);
+    expect(Object.keys(NOMBRES_INTENSIDAD)).toEqual([...INTENSIDADES]);
+    expect(Object.keys(NOMBRES_ACOMODO)).toEqual([...ACOMODOS]);
+    expect(Object.keys(NOMBRES_TAMANO)).toEqual([...TAMANOS]);
+    expect(Object.keys(NOMBRES_SELLO)).toEqual([...SELLOS]);
+  });
+
+  it("el sello del descuento solo se ofrece con descuento", () => {
+    expect(sellosDeLaCampana(15)).toEqual(["ninguno", "descuento", "dias", "nuevo"]);
+    expect(sellosDeLaCampana(null)).toEqual(["ninguno", "dias", "nuevo"]);
+  });
+
+  it("fondo, acomodo y texto dicen lo elegido", () => {
+    expect(resumenFondo(DISENO_DE_SIEMPRE)).toBe("Degradado");
+    expect(resumenFondo({ ...DISENO_DE_SIEMPRE, fondo: "dibujo", patron: "corazones" })).toBe("Con dibujo: corazones");
+    expect(resumenAcomodo({ ...DISENO_DE_SIEMPRE, acomodo: "letras" })).toBe("Solo letras");
+    expect(resumenTexto(DISENO_DE_SIEMPRE)).toBe("Grande · sin frase");
+    expect(resumenTexto({ ...DISENO_DE_SIEMPRE, tamano: "enorme", frase: " Mimos para tu michi " })).toBe("Enorme · «Mimos para tu michi»");
+  });
+
+  it("las prendas: sin prendas, con solo letras, las de la web o las elegidas (las que siguen en la campaña)", () => {
+    const piezas = [{ id: "a" }, { id: "b" }];
+    expect(resumenPrendas(DISENO_DE_SIEMPRE, [])).toBe("Esta campaña no tiene prendas");
+    expect(resumenPrendas({ ...DISENO_DE_SIEMPRE, acomodo: "letras" }, piezas)).toBe("Con solo letras no salen prendas");
+    expect(resumenPrendas(DISENO_DE_SIEMPRE, piezas)).toBe("Las elige la web");
+    expect(resumenPrendas({ ...DISENO_DE_SIEMPRE, prendas: ["b"] }, piezas)).toBe("1 elegida por ti");
+    expect(resumenPrendas({ ...DISENO_DE_SIEMPRE, prendas: ["b", "a", "z"] }, piezas)).toBe("2 elegidas por ti");
+    expect(resumenPrendas({ ...DISENO_DE_SIEMPRE, prendas: ["z"] }, piezas)).toBe("Las elige la web");
+  });
+
+  it("los detalles: solo los que de verdad salen", () => {
+    const conTodo = { pct: 15, hasta: "2026-10-30" };
+    expect(resumenDetalles(DISENO_DE_SIEMPRE, conTodo)).toBe("Cuenta regresiva, % gigante, colibrí");
+    // Sin fecha de fin no hay cuenta; sin descuento, ni % gigante ni sello del descuento.
+    expect(resumenDetalles({ ...DISENO_DE_SIEMPRE, sello: "descuento" }, { pct: null, hasta: null })).toBe("Colibrí");
+    expect(resumenDetalles({ ...DISENO_DE_SIEMPRE, cuenta: false, pctGigante: false, colibri: false }, conTodo)).toBe("Sin detalles");
+    expect(resumenDetalles({ ...DISENO_DE_SIEMPRE, colibri: false, cuenta: false, pctGigante: false, sello: "dias" }, conTodo)).toBe("Sello");
+  });
+});
+
+describe("el texto: desde qué palabra va la cursiva", () => {
+  const nombre = "Día Internacional del Gato";
+  it("sin elegir, la última palabra (como siempre); con una sola palabra, ninguna", () => {
+    expect(corteEfectivo(DISENO_DE_SIEMPRE, nombre)).toBe(3);
+    expect(corteEfectivo(DISENO_DE_SIEMPRE, "Navidad")).toBe(1);
+  });
+  it("elegir una palabra pone la cursiva desde ahí; elegir la última vuelve a «sin elegir»", () => {
+    const d = cortarEn(DISENO_DE_SIEMPRE, nombre, 1);
+    expect(partirTitulo(nombre, d.corte)).toEqual(["Día", "Internacional del Gato"]);
+    expect(cortarEn(d, nombre, 3).corte).toBeNull();
+    expect(mismoDiseno(cortarEn(d, nombre, 3), DISENO_DE_SIEMPRE)).toBe(true);
+    expect(partirTitulo(nombre, cortarEn(d, nombre, 4).corte)).toEqual([nombre, ""]);
+  });
+});
+
+describe("las prendas: cuáles salen y en qué orden", () => {
+  const piezas = ["a", "b", "c", "d", "e"].map((id) => ({ id }));
+  it("sin elegir, se marcan las que la web pondría (tantas como caben)", () => {
+    expect(prendasMarcadas(DISENO_DE_SIEMPRE, piezas)).toEqual(["a", "b", "c"]);
+    expect(prendasMarcadas({ ...DISENO_DE_SIEMPRE, acomodo: "mosaico" }, piezas)).toEqual(["a", "b", "c", "d"]);
+    expect(prendasMarcadas({ ...DISENO_DE_SIEMPRE, acomodo: "letras" }, piezas)).toEqual([]);
+  });
+  it("tocar saca la que estaba; tocar otra la suma al final y, si no cabe, sale la primera", () => {
+    const sinB = tocarPrenda(DISENO_DE_SIEMPRE, piezas, "b");
+    expect(sinB.prendas).toEqual(["a", "c"]);
+    const conE = tocarPrenda(sinB, piezas, "e");
+    expect(conE.prendas).toEqual(["a", "c", "e"]);
+    expect(tocarPrenda(conE, piezas, "d").prendas).toEqual(["c", "e", "d"]);
+  });
+  it("con foto grande, tocar otra la cambia; sacar la única deja que la web elija", () => {
+    const grande: DisenoDeCampana = { ...DISENO_DE_SIEMPRE, acomodo: "grande", prendas: ["c"] };
+    expect(tocarPrenda(grande, piezas, "e").prendas).toEqual(["e"]);
+    expect(tocarPrenda(grande, piezas, "c").prendas).toBeNull();
+  });
+  it("con solo letras, o una prenda que no es de la campaña, no cambia nada", () => {
+    const letras = { ...DISENO_DE_SIEMPRE, acomodo: "letras" as const };
+    expect(tocarPrenda(letras, piezas, "a")).toBe(letras);
+    expect(tocarPrenda(DISENO_DE_SIEMPRE, piezas, "z")).toBe(DISENO_DE_SIEMPRE);
+  });
+  it("nunca guarda más de las que la base admite (4)", () => {
+    let d: DisenoDeCampana = { ...DISENO_DE_SIEMPRE, acomodo: "mosaico" };
+    for (const p of [...piezas, ...piezas]) d = tocarPrenda(d, piezas, p.id);
+    expect((d.prendas ?? []).length).toBeLessThanOrEqual(4);
+  });
+});
+
+describe("«Sorpréndeme»", () => {
+  // Un azar repetible (Park-Miller): la misma semilla da el mismo diseño. Las semillas se esparcen para que la primera tirada no sea casi 0.
+  const semilla = (i: number) => {
+    let n = 1 + ((i * 2654435761) % 2147483646);
+    return () => {
+      n = (n * 16807) % 2147483647;
+      return (n - 1) / 2147483646;
+    };
+  };
+  const base: DisenoDeCampana = { ...DISENO_DE_SIEMPRE, frase: "Mimos", prendas: ["11111111-1111-4111-8111-111111111111"], corte: 1, cuenta: false };
+  const corridas = Array.from({ length: 300 }, (_, i) => sorprendeme(base, { pct: 15, conPrendas: true }, semilla(i + 1)));
+
+  it("siempre cambia algo, siempre se puede publicar y nunca dice el descuento dos veces", () => {
+    for (const d of corridas) {
+      expect(mismoDiseno(d, base)).toBe(false);
+      expect(revisarDiseno(d, { prendas: 3, prendasConFoto: 3 }).bloquea).toBe(false);
+      expect(d.pctGigante && (d.sello === "descuento" || d.acomodo === "mosaico")).toBe(false);
+    }
+  });
+
+  it("deja el texto, las prendas elegidas, la cuenta y el colibrí como estaban", () => {
+    for (const d of corridas) expect([d.frase, d.prendas, d.corte, d.cuenta, d.colibri]).toEqual([base.frase, base.prendas, base.corte, base.cuenta, base.colibri]);
+  });
+
+  it("recorre de verdad las opciones (no siempre lo mismo)", () => {
+    expect(new Set(corridas.map((d) => d.paleta)).size).toBeGreaterThan(5);
+    expect(new Set(corridas.map((d) => d.acomodo))).toEqual(new Set(ACOMODOS));
+  });
+
+  it("sin prendas, solo letras; sin descuento, ni sello del descuento ni % gigante", () => {
+    for (let i = 1; i <= 100; i++) {
+      const d = sorprendeme(base, { pct: null, conPrendas: false }, semilla(i));
+      expect(d.acomodo).toBe("letras");
+      expect(d.sello).not.toBe("descuento");
+      expect(d.pctGigante).toBe(false);
+    }
+  });
+
+  it("es repetible con la misma semilla", () => {
+    expect(sorprendeme(base, { pct: 15, conPrendas: true }, semilla(7))).toEqual(sorprendeme(base, { pct: 15, conPrendas: true }, semilla(7)));
   });
 });

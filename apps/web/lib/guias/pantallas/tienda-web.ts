@@ -1136,7 +1136,14 @@ export const GUIA_CAMPANA: Guia = {
       ancla: "campana.diseno-pasos",
       opcional: true,
       titulo: "Paso a paso",
-      texto: "Empieza con un estilo (un toque y la portada queda lista) y después elige sus colores: los que siempre se leen bien, los sacados de las prendas de la campaña o el tuyo. Cada toque se guarda solo como borrador.",
+      texto: "Empieza con un estilo (un toque y la portada queda lista); después cambia los colores, el fondo y cómo se acomodan las prendas. El texto, cuáles prendas salen y los detalles son opcionales. Cada toque se guarda solo como borrador.",
+    },
+    {
+      id: "diseno-probar",
+      ancla: "campana.diseno-probar",
+      opcional: true,
+      titulo: "Deshacer y Sorpréndeme",
+      texto: "«Deshacer» vuelve atrás el último cambio. «Sorpréndeme» arma una portada al azar con colores que siempre se leen; tu frase y tus prendas se quedan. Si no te gusta, Deshacer.",
     },
     {
       id: "diseno-mirar",
