@@ -2,7 +2,7 @@
   "guia": "inventario.resumen",
   "ruta": "/gestion/analisis",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 62,
+  "total": 61,
   "controles": {
     "components/PedirAOtraSedeModal.tsx": [
       "button «{`Una menos de ${etiqueta}»",
@@ -48,7 +48,6 @@
     "components/analisis/PestanaAcaba.tsx": [
       "SegmentoDeslizante «Cómo ver lo que se acaba»",
       "Link «Comprar todas»",
-      "button «Son de varios proveedores: ábrelas por proveedor y pide a cada uno»",
       "button «{f.texto}»",
       "Link «{`Comprar: ${nombreLargo(p)}»",
       "button «{`${textoPedirA(sede)}»"

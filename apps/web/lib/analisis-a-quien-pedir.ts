@@ -162,6 +162,13 @@ export function textoSinAQuienPedir(q: ProveedorDelModelo): { titulo: string; de
   return null;
 }
 
+/**
+ * Lo que dice el chip de un modelo dentro de «Sin proveedor» cuando SU proveedor está archivado («Lentes · proveedor archivado»): ese grupo junta a los
+ * que nunca tuvieron proveedor y a los que lo tuvieron y ya no se trabaja con él, y sin esta marca no se sabía cuál era cuál ni qué modelo arreglar primero
+ * (segundo pase visual, 2026-10-17). null si no está archivado.
+ */
+export const textoModeloConProveedorArchivado = (q: ProveedorDelModelo): string | null => (q.fuente === "archivado" ? "proveedor archivado" : null);
+
 /** Un proveedor (o el Taller, o «Sin proveedor») con los modelos que se le piden, del más urgente al menos. */
 export type GrupoProveedor<T extends PrendaAnalisis = PrendaAnalisis> = {
   /** `p:<id>` · `taller` · `ninguno`. */

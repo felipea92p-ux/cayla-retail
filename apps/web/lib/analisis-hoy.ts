@@ -13,9 +13,11 @@
 import type { PrendaAnalisis, ProveedoresAnalisis, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
 import type { FiltroAcaba } from "./analisis-acaba";
 import { agruparPorProveedor, modelosPorPedir, resumenDeGrupos, textoPidelasA } from "./analisis-a-quien-pedir";
+import { unaSolaVenta } from "./analisis-ritmo";
 import {
   DIAS_SE_ACABA,
   DIAS_TRES_MESES,
+  diasQueQuedan,
   GRUPOS_ACABA,
   GRUPOS_QUIETAS,
   ordenQuietas,
@@ -44,13 +46,21 @@ export function quietasHoy<T extends PrendaAnalisis>(prendas: readonly T[], liqu
 }
 
 /**
- * Lo que dice una fila de «¿Qué se acaba?»: «Ya no hay» en rojo; «Quedan N días» en ámbar si es una semana o menos, en pizarra
- * si queda más.
+ * Lo que dice una fila de «¿Qué se acaba?»: «Ya no hay» en rojo (en ámbar si es de UNA sola venta: `unaVenta`); «Quedan N días» en ámbar si es una
+ * semana o menos, en pizarra si queda más.
  */
-export function textoDiasQueQuedan(dias: number): { texto: string; est: Extract<EstadoHoy, "urg" | "ate" | "info">; agotada: boolean } {
-  if (dias <= 0) return { texto: "Ya no hay", est: "urg", agotada: true };
+export function textoDiasQueQuedan(dias: number, unaVenta = false): { texto: string; est: Extract<EstadoHoy, "urg" | "ate" | "info">; agotada: boolean } {
+  // Lo agotado de UNA sola venta no es una urgencia (D6, 2026-10-16): en el carril y la ficha va suave, en ámbar; aquí también (segundo pase visual, 2026-10-17).
+  if (dias <= 0) return { texto: "Ya no hay", est: unaVenta ? "ate" : "urg", agotada: true };
   return { texto: dias === 1 ? "Queda 1 día" : `Quedan ${dias} días`, est: dias <= 7 ? "ate" : "info", agotada: false };
 }
+
+/**
+ * La fila de «¿Qué se acaba?» de UNA prenda: sus días que quedan (un agotado cuenta como 0) y si su ritmo sale de UNA sola venta. Es lo que la pantalla
+ * le pasa a `textoDiasQueQuedan`; vive aquí para que el tono de la fila (el agotado de una venta, en ámbar y no en rojo) tenga prueba con una prenda de verdad.
+ */
+export const textoDeFilaAcaba = (p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasDeVentas">) =>
+  textoDiasQueQuedan(diasQueQuedan(p) ?? 0, unaSolaVenta(p.vendidas30));
 
 /**
  * El estado de una tarjeta de Hoy que no encontró nada (ADR-0357, act. 2026-10-14; tarea #2): «Va bien» SOLO con los datos de la tienda

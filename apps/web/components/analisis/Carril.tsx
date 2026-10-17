@@ -40,6 +40,7 @@ export function Carril({
   titulo,
   nota,
   herramienta,
+  franja,
   eje,
   grupos,
   pista,
@@ -50,6 +51,9 @@ export function Carril({
   nota?: ReactNode;
   /** A la derecha del título en vez de la nota: los filtros o el control «Liquidar desde». */
   herramienta?: ReactNode;
+  /** Una franja de aviso entre la cabecera y las filas («Ya pedido: 40 camisas …»): dentro de la tarjeta, así al quitarla o ponerla al cambiar de filtro
+   *  no se mueven los filtros de la cabecera de debajo del mouse (ADR-0185). */
+  franja?: ReactNode;
   /** Las marcas del eje sobre las pistas: el texto y su posición (`"50%"`). */
   eje: { texto: ReactNode; left: string }[];
   grupos: GrupoCarril[];
@@ -72,6 +76,7 @@ export function Carril({
         </div>
         <span className="b-nota">{herramienta ?? nota}</span>
       </div>
+      {franja}
       <div className="c-eje" aria-hidden>
         <span />
         <span />

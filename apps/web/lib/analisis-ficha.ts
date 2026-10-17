@@ -7,6 +7,7 @@
 
 import type { AccesoAnalisis, LlegadaPrenda, OrigenLlegada, PrendaAnalisis, SedeAnalisis } from "./analisis-tipos";
 import {
+  DIAS_MINIMOS_RITMO,
   DIAS_TRES_MESES,
   diasQueQuedan,
   type GrupoAnalisis,
@@ -17,8 +18,11 @@ import {
   porLlegar,
   sedeQueMasVende,
   totalEnTienda,
+  ventanaDe,
 } from "./analisis-reglas";
-import { lecturaDeRitmo, textoAtraso } from "./analisis-acaba";
+import { llegaTarde, lecturaDeRitmo, textoAtraso, textoDejasDeGanar, textoLlegaTarde, textoTeDura, UNA_SEMANA, type LlegaTarde } from "./analisis-acaba";
+import { ritmoReciente } from "./analisis-ritmo";
+import { notaDePedidoDeTipo, PEDIDO_SIN_MODELO, type PedidoDeTipo } from "./analisis-pedido-en-camino-reglas";
 import { FUENTE_CORTA, type ProveedorDelModelo } from "./analisis-a-quien-pedir";
 import { hrefComprar, hrefEnviar, hrefLiquidar, hrefRegistrarVentas, hrefReponerPiso, type DondeComprar } from "./analisis-acciones";
 import { estiloMosaicoColor } from "./color-prenda-reglas";
@@ -55,14 +59,28 @@ const CHIP_GRUPO: Record<GrupoAnalisis, { est: EstadoFicha; texto: string }> = {
  * piso (`sinSalir`, 20261007120000): eso no «va bien», nadie lo vio.
  *
  * `yaViene` (algo llega a tiempo, `porLlegar`): un modelo que se acaba pero YA viene en camino no es un «Cómpralas» en rojo (el carril lo pone
- * en «Ya vienen», sin rojo, y la ficha no puede contradecirlo): dice «Ya viene».
+ * en «Ya vienen», sin rojo, y la ficha no puede contradecirlo): dice «Ya viene». Si lo que viene llega DESPUÉS de que se acabe al ritmo de la
+ * cifra principal (`tarde`, de `llegaTarde`, con `unos` días sin stock), no puede decir «Ya viene» en verde junto a «Llega tarde · te quedas
+ * unos 4 días sin stock»: dice «Ya viene, pero tarde», en ámbar. Con `unos` en 0 (a ese ritmo llega a tiempo y solo el peor caso la pasa) la
+ * franja dice «Puede llegar tarde», una duda y no un hecho: el chip sigue en «Ya viene» (la duda queda en la franja y en el tooltip).
  *
  * `unaVenta` (el ritmo sale de UNA sola venta, D6 de Felipe 2026-10-16): sigue en «Cómpralas», pero en ámbar y no en rojo; el chip «Una sola
  * venta» lo acompaña. Un dato así de flaco no grita.
+ *
+ * `dias` (los que quedan, `diasQueQuedan`): el rojo es de lo que se agotó o queda una semana o menos, como la barra del carril (`colorDias`); con
+ * más días, «Cómpralas» va en ámbar (segundo pase visual, 2026-10-17: el Bolso con 13 días salía en rojo con ⚠ junto a una barra ámbar). Sin
+ * el dato (null), como siempre: rojo.
  */
-export function chipDeGrupo(grupo: GrupoAnalisis | null, sinSalir = false, yaViene = false, unaVenta = false): { est: EstadoFicha; texto: string } {
-  if (grupo === "comprar" && yaViene) return { est: "bien", texto: "Ya viene" };
-  if (grupo === "comprar" && unaVenta) return { est: "ate", texto: CHIP_GRUPO.comprar.texto };
+export function chipDeGrupo(
+  grupo: GrupoAnalisis | null,
+  sinSalir = false,
+  yaViene = false,
+  unaVenta = false,
+  dias: number | null = null,
+  tarde: Pick<LlegaTarde, "unos"> | null = null,
+): { est: EstadoFicha; texto: string } {
+  if (grupo === "comprar" && yaViene) return tarde && tarde.unos > 0 ? { est: "ate", texto: "Ya viene, pero tarde" } : { est: "bien", texto: "Ya viene" };
+  if (grupo === "comprar" && (unaVenta || (dias !== null && dias > UNA_SEMANA))) return { est: "ate", texto: CHIP_GRUPO.comprar.texto };
   if (grupo) return CHIP_GRUPO[grupo];
   return sinSalir ? { est: "ate", texto: "Nunca salió al piso" } : { est: "bien", texto: "Va bien" };
 }
@@ -132,10 +150,16 @@ function textoAntesYDespues(antes: number, despues: number, meta: string): strin
 /** La meta contra la que se mide lo que viene en camino (hoy, Navidad: `proximaNavidad`; con la meta por campaña, el fin de la campaña). */
 type MetaDeLlegada = { hasta: string; nombre: string };
 
-/** «en 30 días» o, si la tienda tiene menos días de ventas en el ERP, «en 8 días»: de qué días habla «Vendiste». */
-const enDias = (p: Pick<PrendaAnalisis, "diasDeVentas">): string => {
+/**
+ * «en 30 días» o, si la tienda tiene menos días de ventas en el ERP, «en 8 días»: de qué días habla «Vendiste». Si la prenda lleva menos días
+ * colgada que la tienda vendiendo, su ritmo se mide desde que se colgó (`ventanaDeRitmo`) y se dice: «en 23 días, desde que se colgó». Sin eso, la
+ * misma ficha decía «6 en 23 días» arriba y «6 en 30 días» abajo y no explicaba la diferencia (segundo pase visual, 2026-10-17). En el mínimo de una
+ * semana no se dice «desde que se colgó»: una colgada hace 3 días también se mide en 7.
+ */
+const enDias = (p: Pick<PrendaAnalisis, "diasDeVentas" | "diasDeVentasTienda">): string => {
   const n = p.diasDeVentas ?? 30;
-  return `en ${n} ${plural(n, "día", "días")}`;
+  const desdeQueSeColgo = n < (p.diasDeVentasTienda ?? n) && n > DIAS_MINIMOS_RITMO;
+  return `en ${n} ${plural(n, "día", "días")}${desdeQueSeColgo ? ", desde que se colgó" : ""}`;
 };
 
 /** La primera letra en mayúscula: «puede acabarse en 5 días» → «Puede acabarse en 5 días». */
@@ -162,6 +186,9 @@ export function hechosDe(
   proveedor: ProveedorDelModelo | null = null,
   /** La meta contra la que se mide lo que viene (Navidad): con ella, lo que llega después se dice («10 antes de Navidad, 6 después»). */
   meta: MetaDeLlegada | null = null,
+  /** Lo ya pedido de su TIPO (`pedidoPorTipo`): una orden es del tipo y no dice a qué modelo irá, así que la ficha de sus modelos lo dice igual que la
+   *  franja sobre el carril. Solo en lo que sigue en «Comprar» (lo que ya viene no lo pide otra vez). */
+  pedidoDelTipo: PedidoDeTipo | null = null,
 ): Hecho[] {
   const hechos: Hecho[] = [];
   const agregar = (icono: IconoHecho, tono: TonoFicha, valor: string, etiqueta: string | null = null, extra: Pick<Hecho, "mas" | "ancho"> = {}) =>
@@ -170,28 +197,35 @@ export function hechosDe(
 
   if (grupo === "comprar") {
     const d = diasQueQuedan(p) ?? 0;
-    // La base del número (A5, 2026-10-16): cuántas ventas sostienen los días, el peor caso y el rango; y, si ya no hay, lo que cuesta esperar (A15).
+    // La base del número (A5, 2026-10-16): cuántas ventas sostienen los días, el rango y, si ya no hay, lo que cuesta esperar (A15).
     const ritmo = lecturaDeRitmo(p, hoy);
-    if (d === 0) agregar("agotado", ritmo?.unaVenta ? "ambar" : "rojo", "Ya no hay", "en tu tienda");
-    else agregar("reloj", d <= 7 ? "ambar" : "pizarra", d === 1 ? "Queda 1 día" : `Quedan ${d} días`, `tienes ${tienes}`);
+    if (d === 0) {
+      // Lo que cuesta esperar va de bajada de «Ya no hay», no como una tarjeta más: con ella la cuadrícula de 4 quedaba en 5 y «TRU tiene 5» caía
+      // sola a otra fila, y «~S/ 17 por día» se partía en dos líneas (segundo pase visual, 2026-10-17).
+      agregar("agotado", ritmo?.unaVenta ? "ambar" : "rojo", "Ya no hay", ritmo && ritmo.margenDia !== null ? textoDejasDeGanar(solesFicha(ritmo.margenDia)) : "en tu tienda");
+    } else {
+      // UNA tarjeta con la cifra y su rango (antes, «Quedan 12 días» y, debajo, «Puede acabarse en 8 días · entre 8 y 17»: dos números para lo mismo).
+      const dura = textoTeDura(d, ritmo, tienes);
+      agregar("reloj", d <= UNA_SEMANA ? "ambar" : "pizarra", dura.valor, dura.etiqueta);
+    }
     agregar("check", "verde", `Vendiste ${p.vendidas30}`, enDias(p));
-    if (ritmo?.agotada) {
-      if (ritmo.hace) agregar("reloj", "pizarra", mayuscula(ritmo.hace), "fue tu última venta");
-      if (ritmo.margenDia !== null) agregar("etiqueta", "ambar", `~${solesFicha(ritmo.margenDia)} por día`, "dejas de ganar mientras no hay");
-    } else if (ritmo?.puede && ritmo.entre) {
-      // Una franja: es una frase con su detalle. El peor caso primero (quien compra decide por él); el rango, de detalle.
-      agregar("reloj", "pizarra", mayuscula(ritmo.puede), `${ritmo.unaVenta ? "Fue una sola venta" : "Según lo vendido"}: te puede durar ${ritmo.entre}`, { ancho: "completo" });
+    if (ritmo?.agotada && ritmo.hace) agregar("reloj", "pizarra", mayuscula(ritmo.hace), "fue tu última venta");
+    // Si la última semana vendió claramente más que el ritmo de la ventana, se dice junto a la cifra: el gráfico de abajo lo mostraba (1 → 2 → 4) y la
+    // cifra no. No la cambia. Una franja: es una frase.
+    const reciente = ritmo?.agotada ? null : ritmoReciente({ semanas: p.semanas, enStock: tienes, ventas: p.vendidas30, ventana: ventanaDe(p) });
+    if (reciente) {
+      agregar("reloj", "ambar", `La última semana vendiste ${reciente.vendidas}`, `a ese paso te quedan ~${reciente.dias} ${plural(reciente.dias, "día", "días")}`, { ancho: "completo" });
     }
     // A quién se le pide va en una FRANJA de ancho completo, no en la cuadrícula de cifras: un nombre largo en una tarjeta de 112 px se partía a media
     // palabra. Un proveedor archivado no se recomienda: se dice que falta elegir otro (Felipe 2026-10-16).
     const completo = { ancho: "completo" } as const;
-    // Si algo YA viene en camino a tiempo, la franja no dice «pídelo aquí» (empujaba a pedirlo dos veces, lo mismo que la fila quitó): queda el nombre
-    // y de dónde se sabe.
+    // La franja dice el nombre y de dónde se sabe, nunca «pídelo aquí» (no es un enlace y, con algo en camino, empujaba a pedirlo dos veces).
     const yaViene = porLlegar(p, hoy) > 0;
     if (proveedor && (proveedor.fuente === "taller" || proveedor.fuente === "catalogo" || proveedor.fuente === "compra")) {
       const taller = proveedor.fuente === "taller";
       const fuente = FUENTE_CORTA[proveedor.fuente];
-      const etiqueta = taller ? (yaViene ? null : "pídelo aquí") : yaViene ? fuente : `pídelo aquí · ${fuente}`;
+      // «pídelo aquí» invitaba a tocar y no era un enlace (segundo pase visual, 2026-10-17): queda de dónde se sabe, que es lo que la fila ya dice.
+      const etiqueta = taller ? null : fuente;
       agregar(taller ? "tijera" : "caja", "taupe", taller ? "Taller de CAYLA" : proveedor.nombre, etiqueta, completo);
     } else if (proveedor?.fuente === "archivado") {
       agregar("caja", "taupe", "Sin proveedor", `${proveedor.nombre} está archivado: elige otro`, completo);
@@ -201,18 +235,25 @@ export function hechosDe(
       // Se leyó y el modelo no tiene a quién: se dice (no se calla), sin inventar uno.
       agregar("caja", "taupe", "Sin proveedor", FUENTE_CORTA.ninguno, completo);
     }
-    // Lo que viene en camino: UNA franja con cada parte y su fecha («pediste 10 · llega el 20 oct.»), lo que llega después de la meta y lo
+    // Lo ya pedido de su TIPO (una orden no dice a qué modelo irá): la ficha lo dice igual que la franja sobre el carril. Con algo YA en camino a tiempo no se
+    // dice (esa prenda no se pide otra vez).
+    const pedido = !yaViene && p.categoria && pedidoDelTipo ? notaDePedidoDeTipo(p.categoria, pedidoDelTipo) : null;
+    if (pedido) agregar("llega", "pizarra", pedido.titulo, [pedido.detalle, PEDIDO_SIN_MODELO].filter(Boolean).join(" · "), completo);
+    // Lo que viene en camino: UNA franja con cada parte y su fecha («pediste 10 · llega el 20 oct.»), si llega tarde, lo que llega después de la meta y lo
     // atrasado (A3, plan verificado 2026-10-16). Antes eran dos tarjetas («Por llegar» y «Atrasada») y la segunda quedaba sola en otra fila.
     const llegadas = llegadasDe(p.llega, hoy, meta?.hasta);
     const aTiempo = p.llega.filter((x) => !llegadaAtrasada(x, hoy));
     const tardias = p.llega.filter((x) => llegadaAtrasada(x, hoy));
     const total = llegadas.vienen + llegadas.despues;
+    // Si lo que viene llega DESPUÉS de que se acabe, la franja pasa a ámbar y lo dice (segundo pase visual, 2026-10-17).
+    const tarde = llegaTarde(p, hoy);
     if (total > 0) {
       const lineas = lineasDeLlegadas(aTiempo, hoy);
+      if (tarde) lineas.push(textoLlegaTarde(tarde));
       const corte = meta ? textoAntesYDespues(llegadas.vienen, llegadas.despues, meta.nombre) : null;
       if (corte) lineas.push(corte);
       if (llegadas.atrasadas > 0) lineas.push(`${llegadas.atrasadas} ${plural(llegadas.atrasadas, "atrasada", "atrasadas")} hace ${llegadas.diasAtraso} ${plural(llegadas.diasAtraso, "día", "días")}`);
-      agregar("llega", llegadas.atrasadas > 0 ? "ambar" : "verde", `Por llegar ${total}`, lineas[0] ?? null, { ancho: "completo", mas: lineas.slice(1) });
+      agregar("llega", llegadas.atrasadas > 0 || tarde ? "ambar" : "verde", `Por llegar ${total}`, lineas[0] ?? null, { ancho: "completo", mas: lineas.slice(1) });
     } else if (llegadas.atrasadas > 0) {
       // Nada viene a tiempo: lo que debía llegar y no llegó vuelve a «Comprar» y se dice con sus fechas.
       agregar("llega", "ambar", textoAtraso(llegadas.diasAtraso), `${llegadas.atrasadas} sin llegar`, { ancho: "completo", mas: lineasDeLlegadas(tardias, hoy) });
@@ -307,11 +348,15 @@ export function barrasSemanas(semanas: readonly number[], hoy: string): BarraSem
 
 const unidades = (n: number, una: string, varias: string): string => `${n} ${plural(n, una, varias)}`;
 
-/** La frase de arriba: «Vendiste 10 en 11 días y te queda 1.» (o «no te queda ninguna», o «no vendiste ninguna»). */
+/**
+ * La frase de arriba: «Vendiste 10 en tus últimos 11 días y te queda 1.» (o «no te queda ninguna», o «no vendiste ninguna»). Dice «tus últimos N días»: son los
+ * días de ventas de la TIENDA (hasta 30), y la tarjeta de arriba cuenta desde que se colgó la prenda; sin decirlo, la misma ficha tenía «6 en 23 días» y «6 en
+ * 30 días» y no explicaba la diferencia (segundo pase visual, 2026-10-17).
+ */
 export function fraseDelModelo(m: { variantes: readonly PrendaAnalisis[] }, diasDeVentas: number): string {
   const vendio = m.variantes.reduce((s, v) => s + v.vendidas30, 0);
   const tiene = m.variantes.reduce((s, v) => s + totalEnTienda(v), 0);
-  const enDias = unidades(diasDeVentas, "día", "días");
+  const enDias = diasDeVentas === 1 ? "tu último día" : `tus últimos ${diasDeVentas} días`;
   const queda = tiene === 0 ? "no te queda ninguna" : tiene === 1 ? "te queda 1" : `te quedan ${tiene}`;
   if (vendio === 0) return `No vendiste ninguna en ${enDias}; ${queda}.`;
   return `Vendiste ${vendio} en ${enDias} y ${queda}.`;

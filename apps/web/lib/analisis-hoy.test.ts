@@ -28,6 +28,7 @@ import {
   px,
   quietasHoy,
   seAcabanHoy,
+  textoDeFilaAcaba,
   textoDiasQueQuedan,
   textoPastilla,
   TIP_PRENDAS,
@@ -116,6 +117,23 @@ describe("las cuatro tarjetas", () => {
     expect(textoDiasQueQuedan(1)).toEqual({ texto: "Queda 1 día", est: "ate", agotada: false });
     expect(textoDiasQueQuedan(7)).toEqual({ texto: "Quedan 7 días", est: "ate", agotada: false });
     expect(textoDiasQueQuedan(8)).toEqual({ texto: "Quedan 8 días", est: "info", agotada: false });
+  });
+
+  it("lo agotado de UNA sola venta no va en rojo en Hoy (en el carril y la ficha va suave, en ámbar: D6); lo demás no cambia", () => {
+    // Segundo pase visual (2026-10-17): «Ya no hay» salía en rojo para los Aretes de una venta mientras el carril y la ficha los mostraban en ámbar.
+    expect(textoDiasQueQuedan(0, true)).toEqual({ texto: "Ya no hay", est: "ate", agotada: true });
+    expect(textoDiasQueQuedan(0, false)).toEqual({ texto: "Ya no hay", est: "urg", agotada: true });
+    // Con stock, una sola venta no cambia el tono de Hoy (ya es ámbar hasta una semana).
+    expect(textoDiasQueQuedan(3, true)).toEqual(textoDiasQueQuedan(3, false));
+    expect(textoDiasQueQuedan(9, true)).toEqual(textoDiasQueQuedan(9, false));
+  });
+
+  it("la fila de «¿Qué se acaba?» usa el ritmo de la prenda: agotada de UNA venta, ámbar; agotada de varias, rojo; y los días que quedan salen de la prenda", () => {
+    // Lo que la pantalla le pasa a `textoDiasQueQuedan`: si deja de pasar `unaSolaVenta`, el Arete de una venta vuelve a salir en rojo (ya reapareció dos veces).
+    expect(textoDeFilaAcaba(prenda({ piso: 0, almacen: 0, vendidas30: 1, diasDeVentas: 30 }))).toEqual({ texto: "Ya no hay", est: "ate", agotada: true });
+    expect(textoDeFilaAcaba(prenda({ piso: 0, almacen: 0, vendidas30: 12, diasDeVentas: 30 }))).toEqual({ texto: "Ya no hay", est: "urg", agotada: true });
+    // 3 en el piso y 30 vendidas en 30 días: a 1 por día, quedan 3.
+    expect(textoDeFilaAcaba(prenda({ piso: 3, almacen: 0, vendidas30: 30, diasDeVentas: 30 }))).toEqual({ texto: "Quedan 3 días", est: "ate", agotada: false });
   });
 
   it("una quieta va en rojo desde los 3 meses", () => {

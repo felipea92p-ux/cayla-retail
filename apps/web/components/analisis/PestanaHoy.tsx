@@ -8,9 +8,9 @@ import { Ayuda, ChipEstado, COLOR_ESTADO, NombreCorto, nombreLargo, TilePrenda, 
 import type { PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
 import { variantesDe, type ModeloAnalisis } from "@/lib/analisis-modelo";
 import { hrefReponerPiso } from "@/lib/analisis-acciones";
-import { diasQueQuedan, plural, PRENDAS_EN_LISTA } from "@/lib/analisis-reglas";
+import { plural, PRENDAS_EN_LISTA } from "@/lib/analisis-reglas";
 import { diasEnAlmacen, prendasSinSalir } from "@/lib/analisis-piso";
-import { alcancePorTipo, diasANavidad, llegadasAparte, textoAlcance, textoRitmo, tieneYVienen, tipoCorto, type AlcanceTipo } from "@/lib/analisis-pedir";
+import { alcancePorTipo, diasANavidad, llegadasAparte, textoAlcance, textoRitmo, tieneYVienen, tipoCorto, titularDeLosQueNoLlegan, type AlcanceTipo } from "@/lib/analisis-pedir";
 import { pedidoAparte, yaPedidoCorto } from "@/lib/analisis-pedido-en-camino-reglas";
 import {
   caminosDeHoy,
@@ -32,7 +32,7 @@ import {
   quietasHoy,
   seAcabanHoy,
   SEGUNDOS_PUNTO,
-  textoDiasQueQuedan,
+  textoDeFilaAcaba,
   textoPastilla,
   titulosFlujo,
   todosLosCaminos,
@@ -107,32 +107,26 @@ export function PestanaHoy() {
                 <span>a Navidad</span>
               </>
             ) : (
-              <>
-                <b className="palabras">
-                  {noLlegan.length === 1 ? (
-                    tipoCorto(noLlegan[0]!.categoria)
-                  ) : (
-                    <>
-                      {tipoCorto(noLlegan[0]!.categoria)} y<br />
-                      {tipoCorto(noLlegan[1]!.categoria)}
-                    </>
-                  )}
-                </b>
-                <span>
-                  {noLlegan.length > 2 ? (
-                    <>
-                      y {noLlegan.length - 2} {plural(noLlegan.length - 2, "tipo más", "tipos más")}
-                      <br />
-                    </>
-                  ) : null}
-                  no {plural(noLlegan.length, "llega", "llegan")} a Navidad
-                </span>
-              </>
+              <TitularNoLlegan categorias={noLlegan.map((t) => t.categoria)} />
             )}
           </div>
         </Instrumento>
       </div>
       <QueHacer />
+    </>
+  );
+}
+
+/**
+ * El titular de «¿Qué pedir?»: «Casacas y Faldas» y, a su lado o debajo según quepa, «no llegan a Navidad (y 12 tipos más)». Sin saltos escritos a mano: el
+ * nombre se parte solo donde haga falta (`text-wrap: balance`) y, si no cabe en una línea, baja de tamaño (`largo`).
+ */
+function TitularNoLlegan({ categorias }: { categorias: readonly string[] }) {
+  const t = titularDeLosQueNoLlegan(categorias);
+  return (
+    <>
+      <b className={t.largo ? "palabras largo" : "palabras"}>{t.titular}</b>
+      <span>{t.resto}</span>
     </>
   );
 }
@@ -191,7 +185,8 @@ function ListaAcaba({ prendas, vacio }: { prendas: PrendaAnalisis[]; vacio: stri
     <>
       <div className="lista5">
         {prendas.slice(0, PRENDAS_EN_LISTA).map((p) => {
-          const d = textoDiasQueQuedan(diasQueQuedan(p) ?? 0);
+          // El mismo tono que el carril y la ficha: lo agotado de UNA sola venta no grita en rojo (D6; `pistaAcaba` lo hace igual).
+          const d = textoDeFilaAcaba(p);
           return (
             <FilaCinco key={p.varianteId} prenda={p}>
               <span className="es" style={{ ["--c" as string]: COLOR_ESTADO[d.est] }}>

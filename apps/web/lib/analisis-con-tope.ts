@@ -195,16 +195,18 @@ export function miTiendaSinLeer(datos: { sede: { id: string }; sedesSinLeer: rea
 /**
  * Lo que dice la pantalla en lugar de «Sin ventas»: `linea` va en el aviso grande de las pestañas (su título lleva el nombre de la tienda,
  * `tituloTiendaSinLeer`, y su botón `accion`); `corto` va en el lugar de una lista o un cuadro que salió vacío porque no se leyó (en lenguaje
- * de tienda: nada de «las listas saldrían vacías»).
+ * de tienda: nada de «las listas saldrían vacías»). UNA sola voz, la de quien avisa a la persona: «No cargaron las prendas de Tienda Lima. No decidas
+ * con esta pantalla todavía.» Antes el aviso hablaba como la máquina («no muestro listas vacías»), que explicaba cómo funciona la pantalla y no qué
+ * hacer (segundo pase visual, 2026-10-17).
  */
 export const TEXTO_TIENDA_SIN_LEER = {
-  linea: "Sin sus prendas no muestro listas vacías, que se leerían como «no hay nada». No decidas con esta pantalla hasta que se lea; si sigue igual, espera unos minutos.",
-  corto: "No se pudo leer tu tienda.",
+  linea: "No decidas con esta pantalla todavía. Si sigue igual, espera unos minutos.",
+  corto: "No cargaron las prendas de tu tienda.",
   accion: "Volver a intentar",
 } as const;
 
-/** El título del aviso: dice CUÁL tienda («No se pudo leer Tienda Lima»), para que no parezca un error de toda la pantalla. */
-export const tituloTiendaSinLeer = (nombre: string): string => `No se pudo leer ${nombre}`;
+/** El título del aviso: dice CUÁL tienda («No cargaron las prendas de Tienda Lima»), para que no parezca un error de toda la pantalla. */
+export const tituloTiendaSinLeer = (nombre: string): string => `No cargaron las prendas de ${nombre}`;
 
 /** El texto de una lista o cuadro de MI tienda que salió vacío: si la tienda no se leyó, que no se pudo leer; si no, la frase de «no hay». */
 export function textoSiVacio(datos: { sede: { id: string }; sedesSinLeer: readonly string[] }, siNoHay: string): string {
@@ -231,7 +233,7 @@ export function hayCuentas(recomienda: boolean, sinLeer: boolean): boolean {
   return recomienda && !sinLeer;
 }
 
-/** Lo que dice el chip de arriba a la derecha: no puede decir «Datos confiables» junto a «No se pudo leer tu tienda». */
+/** Lo que dice el chip de arriba a la derecha: no puede decir «Datos confiables» junto a «No cargaron las prendas de tu tienda». */
 export type ConfianzaDelDato = "sin-leer" | "confiable" | "incompleto";
 
 export function confianzaDelDato(puedeHablar: boolean, sinLeer: boolean): ConfianzaDelDato {
@@ -242,8 +244,8 @@ export function confianzaDelDato(puedeHablar: boolean, sinLeer: boolean): Confia
 type TiendasDeLaPantalla = { sede: { id: string }; sedes: readonly { id: string; nombre: string }[]; sedesSinLeer: readonly string[] };
 
 /**
- * Las fallas sin la de MI tienda: cuando el aviso grande («No se pudo leer Tienda Lima») ya la dice, la nota gris no la repite (dos cajas para
- * el mismo hecho hacían dudar de qué tan grave era). La falla de las tiendas es UNA frase con todos los nombres («No se pudieron leer las
+ * Las fallas sin la de MI tienda: cuando el aviso grande («No cargaron las prendas de Tienda Lima») ya la dice, la nota gris no la repite (dos cajas para
+ * el mismo hecho hacían dudar de qué tan grave era). La falla de las tiendas es UNA frase con todos los nombres («No cargaron las
  * prendas de Tienda Lima y Arequipa»): si falló también otra, se queda su frase sin mi tienda. Sin poder reconocerla (otro texto, un nombre
  * que no se pudo leer), la deja como está: sobra un aviso, nunca falta.
  */

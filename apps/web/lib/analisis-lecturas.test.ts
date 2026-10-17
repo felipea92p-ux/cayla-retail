@@ -123,7 +123,7 @@ describe("getPrendasPorSede", () => {
     const lectura = await espera;
 
     expect(lectura.sedesSinLeer).toEqual([AQP, LIM]);
-    expect(lectura.falla).toBe("No se pudieron leer las prendas de Tienda Arequipa y Tienda Lima");
+    expect(lectura.falla).toBe("No cargaron las prendas de Tienda Arequipa y Tienda Lima");
     expect(lectura.porSede).toEqual({ [TRU]: [], [AQP]: [], [LIM]: [] });
     expect(lectura.rebajaDe100).toEqual({ [TRU]: 12, [AQP]: null, [LIM]: null });
     expect(Object.keys(lectura.sabePiso)).toEqual([TRU]);
@@ -324,13 +324,13 @@ describe("getDatosAnalisis", () => {
     expect(miTiendaSinLeer(roto)).toBe(false);
   });
 
-  it("si mi tienda no se pudo leer, lo dice (sedesSinLeer) y la pantalla puede decir «No se pudo leer tu tienda»", async () => {
+  it("si mi tienda no se pudo leer, lo dice (sedesSinLeer) y la pantalla puede decir «No cargaron las prendas de tu tienda»", async () => {
     baseSana({ fn_analisis_sede: (a: { p_ubicacion_id: string }) => (a.p_ubicacion_id === TRU ? seCae() : sedeSana(a.p_ubicacion_id, 0)) });
     const d = await getDatosAnalisis(ACTIVA);
     expect(d.sedesSinLeer).toEqual([TRU]);
     expect(miTiendaSinLeer(d)).toBe(true);
     expect(d.prendas).toEqual([]);
-    expect(d.fallas).toContain("No se pudieron leer las prendas de Tienda Trujillo");
+    expect(d.fallas).toContain("No cargaron las prendas de Tienda Trujillo");
   });
 
   it("si es OTRA tienda la que no se lee, mi tienda sigue leída (y qué se hace con ella no cambia aquí)", async () => {

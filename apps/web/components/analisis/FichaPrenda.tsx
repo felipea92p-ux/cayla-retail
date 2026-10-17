@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono } from "@/components/analisis/iconos";
 import { ChipEstado, COLOR_ESTADO, TilePrenda } from "@/components/analisis/piezas";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
-import { grupoDe, plural, porLlegar } from "@/lib/analisis-reglas";
-import { lecturaDeRitmo, tipUnaVenta } from "@/lib/analisis-acaba";
+import { diasQueQuedan, grupoDe, plural, porLlegar } from "@/lib/analisis-reglas";
+import { llegaTarde, lecturaDeRitmo, tipUnaVenta } from "@/lib/analisis-acaba";
+import { pedidoPorTipo } from "@/lib/analisis-pedido-en-camino-reglas";
 import { proveedorDelModelo } from "@/lib/analisis-a-quien-pedir";
 import { proximaNavidad } from "@/lib/analisis-pedir";
 import { dondeComprarDe, hrefExistencias, hrefMovimientos } from "@/lib/analisis-acciones";
@@ -75,7 +76,13 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
   // El ritmo sale de UNA sola venta (D6, 2026-10-16): lo que se acaba sigue en «Cómpralas», pero sin rojo y con el chip que lo dice.
   const ritmo = grupo === "comprar" ? lecturaDeRitmo(p, datos.hoy) : null;
   const unaVenta = ritmo?.unaVenta ?? false;
-  const chip = chipDeGrupo(grupo, sinSalir, yaViene, unaVenta);
+  // Lo que viene llega DESPUÉS de que se acabe (el mismo aviso ámbar de la fila): el chip no puede decir «Ya viene» en verde junto a él, salvo que
+  // solo el peor caso la pase (`unos` en 0): ahí la franja dice «Puede llegar tarde» y el chip no afirma lo que ella duda.
+  const tarde = grupo === "comprar" ? llegaTarde(p, datos.hoy) : null;
+  // El rojo de «Cómpralas» es de lo que se agotó o queda una semana o menos, como la barra del carril.
+  const chip = chipDeGrupo(grupo, sinSalir, yaViene, unaVenta, grupo === "comprar" ? diasQueQuedan(p) : null, tarde);
+  // Lo ya pedido de su tipo: una orden es del tipo y no dice a qué modelo irá (la franja de «Se está acabando» lo dice una vez; la ficha, igual).
+  const pedidoDe = useMemo(() => pedidoPorTipo(datos.pedido ?? [], datos.hoy), [datos.pedido, datos.hoy]);
   // La meta contra la que se mide lo que viene en camino es la misma de «Qué pedir» (Navidad): lo que llega después se dice.
   const hechos = hechosDe(
     p,
@@ -85,6 +92,7 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
     sinSalir ? { dias: diasEnAlmacen(p, datos.hoy) } : null,
     datos.proveedores ? proveedorDelModelo(p, datos.proveedores) : null,
     { hasta: proximaNavidad(datos.hoy), nombre: "Navidad" },
+    p.categoria ? (pedidoDe.get(p.categoria.trim()) ?? null) : null,
   );
   // Las cifras van en la cuadrícula; lo que lleva frases (el proveedor, lo que viene en camino) va en franjas de ancho completo debajo.
   const cifras = hechos.filter((h) => h.ancho !== "completo");

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compararMargen, margenPorDia, margenPrudentePorDia, montoPorDia, rangoDeDias, unaSolaVenta } from "./analisis-ritmo";
+import { compararMargen, margenPorDia, margenPrudentePorDia, montoPorDia, rangoDeDias, ritmoReciente, unaSolaVenta, VECES_QUE_ACELERA, VENTAS_MINIMAS_ULTIMA_SEMANA } from "./analisis-ritmo";
 
 // Una Poisson contada a mano, aparte de la que usa el código: así la prueba no se cree a sí misma.
 function acumulada(k: number, lambda: number): number {
@@ -176,5 +176,51 @@ describe("A15 · lo que dejas de ganar por día", () => {
     expect(compararMargen(null, null)).toBe(0);
     // Es un orden de verdad (se puede usar en sort): ordena una lista revuelta.
     expect([null, 3, 9, null, 6].sort(compararMargen)).toEqual([9, 6, 3, null, null]);
+  });
+});
+
+// Segundo pase visual (2026-10-17): el gráfico de semanas de la ficha subía 1 → 2 → 4 y la cifra decía «te dura 13 días».
+describe("ritmoReciente: la última semana vende claramente más que la ventana", () => {
+  const SEMANAS = [0, 0, 0, 0, 0, 1, 2, 4];
+
+  it("el Bolso (1 → 2 → 4, 7 en 30 días, quedan 3): la ventana vende 1,6 por semana y la última 4 (más de 1,5 veces): a ese paso, ~5 días", () => {
+    expect(ritmoReciente({ semanas: SEMANAS, enStock: 3, ventas: 7, ventana: 30 })).toEqual({ vendidas: 4, dias: 5 });
+  });
+
+  it("la Capa (1 → 2 → 3 → 7, 13 en 30 días, quedan 5): a ese paso, 5 días", () => {
+    expect(ritmoReciente({ semanas: [0, 0, 0, 0, 1, 2, 3, 7], enStock: 5, ventas: 13, ventana: 30 })).toEqual({ vendidas: 7, dias: 5 });
+  });
+
+  it("el borde: justo 1,5 veces el ritmo de la ventana cuenta; un poco menos, no", () => {
+    // 4 ventas en 7 días = 4 por semana; 1,5 veces = 6.
+    expect(VECES_QUE_ACELERA).toBe(1.5);
+    expect(ritmoReciente({ semanas: [0, 0, 0, 0, 0, 0, 0, 6], enStock: 6, ventas: 4, ventana: 7 })).toEqual({ vendidas: 6, dias: 7 });
+    expect(ritmoReciente({ semanas: [0, 0, 0, 0, 0, 0, 0, 5], enStock: 6, ventas: 4, ventana: 7 })).toBeNull();
+  });
+
+  it("con menos de 3 ventas en la semana no habla, aunque la triplique: un día bueno no es una tendencia", () => {
+    expect(VENTAS_MINIMAS_ULTIMA_SEMANA).toBe(3);
+    expect(ritmoReciente({ semanas: [0, 0, 0, 0, 0, 0, 0, 2], enStock: 3, ventas: 2, ventana: 30 })).toBeNull();
+    expect(ritmoReciente({ semanas: [0, 0, 0, 0, 0, 0, 0, 3], enStock: 3, ventas: 3, ventana: 30 })).toEqual({ vendidas: 3, dias: 7 });
+  });
+
+  it("un ritmo parejo no se dice (la cifra principal ya lo cuenta): 4 por semana, todas las semanas", () => {
+    expect(ritmoReciente({ semanas: [4, 4, 4, 4, 4, 4, 4, 4], enStock: 3, ventas: 17, ventana: 30 })).toBeNull();
+  });
+
+  it("sin stock no hay días que contar; sin ventas o sin semanas no hay base", () => {
+    expect(ritmoReciente({ semanas: SEMANAS, enStock: 0, ventas: 7, ventana: 30 })).toBeNull();
+    expect(ritmoReciente({ semanas: SEMANAS, enStock: 3, ventas: 0, ventana: 30 })).toBeNull();
+    expect(ritmoReciente({ semanas: SEMANAS, enStock: 3, ventas: 7, ventana: 0 })).toBeNull();
+    expect(ritmoReciente({ semanas: [], enStock: 3, ventas: 7, ventana: 30 })).toBeNull();
+    expect(ritmoReciente({ semanas: [0, 0, 0, 0, 0, 0, 0, Number.NaN], enStock: 3, ventas: 7, ventana: 30 })).toBeNull();
+  });
+
+  it("nunca dice «0 días»: con mucho ritmo y casi nada en stock, 1 día", () => {
+    expect(ritmoReciente({ semanas: [0, 0, 0, 0, 0, 0, 0, 20], enStock: 1, ventas: 20, ventana: 30 })).toEqual({ vendidas: 20, dias: 1 });
+  });
+
+  it("solo mira la ÚLTIMA semana (la que termina hoy): una semana buena de hace un mes no cuenta", () => {
+    expect(ritmoReciente({ semanas: [0, 0, 9, 0, 0, 0, 0, 0], enStock: 3, ventas: 9, ventana: 30 })).toBeNull();
   });
 });

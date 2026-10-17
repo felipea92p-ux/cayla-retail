@@ -8,7 +8,7 @@ import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono } from "@/components/analisis/iconos";
 import { nombreLargo, TipRico } from "@/components/analisis/piezas";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
-import { diasQueQuedan, otraSedeQueLaTiene, porLlegar } from "@/lib/analisis-reglas";
+import { diasQueQuedan, otraSedeQueLaTiene, plural, porLlegar } from "@/lib/analisis-reglas";
 import { dondeComprarDe, hrefComprar, hrefComprarLasQueFaltan } from "@/lib/analisis-acciones";
 import {
   FUENTE_LARGA,
@@ -22,7 +22,7 @@ import {
 } from "@/lib/analisis-a-quien-pedir";
 import { textoRitmo } from "@/lib/analisis-pedir";
 import { solesFicha } from "@/lib/analisis-ficha";
-import { notaDePedidoEnFila, pedidoPorTipo, type PedidoDeTipo } from "@/lib/analisis-pedido-en-camino-reglas";
+import { franjaDePedido, NOTA_DE_LO_PEDIDO, pedidoPorTipo, type FranjaDePedido } from "@/lib/analisis-pedido-en-camino-reglas";
 import {
   atrasoDe,
   cuandoLlega,
@@ -34,7 +34,9 @@ import {
   lecturaDeRitmo,
   lineasAtrasadas,
   lineasPorLlegar,
+  llegaTarde,
   notaAtrasada,
+  notaDeRitmo,
   pasaFiltroAcaba,
   pistaAcaba,
   prendasQueSeAcaban,
@@ -42,10 +44,12 @@ import {
   TEXTO_VACIO_ACABA,
   textoAtraso,
   textoDejasDeGanar,
+  textoLlegaTarde,
   textoPedirA,
   textoProveedorGenerico,
   textoTambienSeAcaba,
   TIP_DEJAS_DE_GANAR,
+  tipLlegaTarde,
   tipOtraTienda,
   tipRitmo,
   tipTambienSeAcaba,
@@ -75,11 +79,11 @@ import { Aviso } from "@/components/ui/Aviso";
 
 const AYUDA_CARRIL: Record<FiltroAcaba, string> = {
   todos:
-    "Lo que, al ritmo que se vende, se acaba en dos semanas o menos. Lo que no viene en camino es para comprar; lo que ya viene dice «Por llegar» y cuándo, y no se pide otra vez. Si una llegada se atrasó, dice «Atrasada» y vuelve a «Comprar». «Pídelo a …» dice a quién; «Viene de …», de quién viene. Si otra tienda la tiene, verás cuántas tiene; toca la prenda para ver cuánto vende cada tienda y decide si pedirla. Bajo la barra dice cuánto vendió y en cuántos días: con pocas ventas el número es una pista, no una promesa, y «Una sola venta» lo avisa.",
+    "Lo que, al ritmo que se vende, se acaba en dos semanas o menos. Lo que no viene en camino es para comprar; lo que ya viene dice «Por llegar» y cuándo, y no se pide otra vez; si llega después de que se acabe, lo dice en ámbar («Llega tarde»). Si una llegada se atrasó, dice «Atrasada» y vuelve a «Comprar». «Pídelo a …» dice a quién; «Viene de …», de quién viene. Si son de varios proveedores, míralas POR PROVEEDOR. Si otra tienda la tiene, verás cuántas tiene; toca la prenda para ver cuánto vende cada tienda y decide si pedirla. Bajo la barra dice cuánto vendió, en cuántos días y entre cuántos días puede durar: con pocas ventas el número es una pista, no una promesa, y «Una sola venta» lo avisa.",
   comprar:
-    "Lo que se acaba y no viene nada en camino a tiempo: hay que comprarlo. «Pídelo a …» dice a quién: a quien le compraste la última vez o, si no hay compra, a quien está anotado en su ficha. Una llegada atrasada también está aquí. Si otra tienda la tiene, verás cuántas tiene y decides si pedirla.",
+    "Lo que se acaba y no viene nada en camino a tiempo: hay que comprarlo. «Pídelo a …» dice a quién: a quien le compraste la última vez o, si no hay compra, a quien está anotado en su ficha. Si son de varios proveedores, míralas POR PROVEEDOR. Una llegada atrasada también está aquí. Si otra tienda la tiene, verás cuántas tiene y decides si pedirla.",
   llega:
-    "Lo que se acaba pero ya viene en camino: no hace falta pedirlo otra vez. Cada fila dice cuántas llegan y cuándo, y de quién viene. Si la llegada se atrasa, pasa a «Comprar».",
+    "Lo que se acaba pero ya viene en camino: no hace falta pedirlo otra vez. Cada fila dice cuántas llegan y cuándo, y de quién viene; si llega después de que se acabe, lo dice en ámbar («Llega tarde»). Si la llegada se atrasa, pasa a «Comprar».",
 };
 
 type ModoAcaba = "dias" | "proveedor";
@@ -103,7 +107,8 @@ export function PestanaAcaba({ modoInicial = "dias" }: { /** Solo para las prueb
   const seAcaban = useMemo(() => prendasQueSeAcaban(prendas, liquidarDesde), [prendas, liquidarDesde]);
   // Los días de ventas de cada tienda, para saber si el modelo también se acaba en otra (con los días de ELLA, no los míos).
   const ventanas = useMemo(() => ventanasPorSede(datos.preparacion, datos.hoy), [datos.preparacion, datos.hoy]);
-  // Lo ya pedido por tipo (A4): una orden se pide por tipo y marca, así que se dice en la fila de «Comprar» de ese TIPO, nunca como «esta prenda viene».
+  // Lo ya pedido por tipo (A4): una orden se pide por tipo y marca, así que se dice UNA vez por tipo, en la franja sobre las filas de «Comprar» de ese TIPO,
+  // nunca como «esta prenda viene» (segundo pase visual, 2026-10-17: pegado a cada fila se leía como «vienen 40 de ESTE modelo»).
   const pedidoDe = useMemo(() => pedidoPorTipo(datos.pedido ?? [], datos.hoy), [datos.pedido, datos.hoy]);
 
   const vacio = vacioAcaba({ prendas: datos.prendas.length, seAcaban: enLaTienda, fallas: datos.fallas.length });
@@ -146,9 +151,9 @@ export function PestanaAcaba({ modoInicial = "dias" }: { /** Solo para las prueb
   // En «Todos» la lista incluye lo que ya viene: el botón mira solo lo que falta pedir (el mismo criterio del filtro «Comprar»).
   const comprarTodas = filtroAcaba === "llega" ? null : hrefComprarLasQueFaltan(visibles, datos.hoy, acceso, dondeComprarDe(datos));
   const yaViene = filtroAcaba === "llega";
-  // Con varios proveedores no hay UNA orden para todas (A9: no se abren N órdenes), y un botón que desaparece sin decir por qué deja al comprador sin saber
-  // dónde se pide. En su lugar, el camino: la misma lista por proveedor, donde cada uno trae su «Pedir a X». No navega ni guarda nada.
-  const pedirPorProveedor = !comprarTodas && !yaViene && acceso.ordenes && puedePorProveedor && modelosPorPedir(visibles, datos.hoy).length > 1;
+  // Con varios proveedores no hay UNA orden para todas (A9: no se abren N órdenes) y no se ofrece un botón: el camino es el segmento «Por proveedor» de la
+  // cabecera, donde cada uno trae su «Pedir a X». Un segundo botón para lo mismo hacía dudar si hacían cosas distintas (segundo pase visual, 2026-10-17;
+  // el «?» del grupo lo dice).
   const grupo: GrupoCarril = {
     clave: "comprar",
     titulo: tituloDelCarril(filtroAcaba, visibles.length),
@@ -161,20 +166,10 @@ export function PestanaAcaba({ modoInicial = "dias" }: { /** Solo para las prueb
       <Link href={comprarTodas} className="btn-cayla btn-secundario btn-s">
         Comprar todas
       </Link>
-    ) : pedirPorProveedor ? (
-      <button
-        type="button"
-        className="btn-cayla btn-secundario btn-s"
-        title="Son de varios proveedores: ábrelas por proveedor y pide a cada uno"
-        onClick={() => {
-          devolverFoco.current = true;
-          setModo("proveedor");
-        }}
-      >
-        Pídelas por proveedor
-      </button>
     ) : undefined,
   };
+  // Lo ya pedido, una vez por tipo, sobre las filas: con «Por llegar» (todo viene en camino) no hay nada que pedir y no se dice.
+  const franja = yaViene ? null : franjaDePedido(visibles, pedidoDe, datos.hoy);
 
   return (
     <Carril
@@ -186,12 +181,38 @@ export function PestanaAcaba({ modoInicial = "dias" }: { /** Solo para las prueb
           {segmento}
         </>
       }
+      franja={franja ? <YaPedido franja={franja} /> : undefined}
       eje={[...EJE_ACABA]}
       grupos={[grupo]}
       pista={(p) => <Pista p={p} />}
       pildoras={(p) => <Pildoras p={p} ventanas={ventanas} />}
-      accion={(p) => <Accion p={p} pedidoDe={pedidoDe} />}
+      accion={(p) => <Accion p={p} />}
     />
+  );
+}
+
+/**
+ * Lo ya pedido, UNA vez por tipo y encima de las filas (segundo pase visual, 2026-10-17): «Ya pedido: 40 camisas · llegan el 29 oct.». Una orden se pide por
+ * tipo y marca y no dice a qué modelo irá, así que no va pegada a un modelo. Cada línea trae su detalle al pasar el mouse. Es información: no cambia en qué
+ * grupo cae ninguna prenda ni empuja a pedir.
+ */
+function YaPedido({ franja }: { franja: FranjaDePedido }) {
+  return (
+    <div className="c-franja" data-guia="analisis.ya-pedido">
+      <Aviso tono="info">
+        {franja.lineas.map((l) => (
+          <span key={l.tipo} className="fp-linea" data-tip={l.ayuda}>
+            {l.texto}
+          </span>
+        ))}
+        {franja.mas > 0 && (
+          <span className="fp-linea">
+            y {franja.mas} {plural(franja.mas, "tipo más", "tipos más")} con algo pedido
+          </span>
+        )}
+        <span className="fp-nota">{NOTA_DE_LO_PEDIDO}</span>
+      </Aviso>
+    </div>
   );
 }
 
@@ -209,14 +230,17 @@ function Filtros({ filtro, cuentas, onFiltro }: { filtro: FiltroAcaba; cuentas: 
 }
 
 /**
- * Cuántos días le quedan: rayada si se agotó; si no, una barra de 0 a 2 semanas, con la semana punteada. Debajo, la base del número (A5): cuánto
- * vendió y en cuántos días, y lo que puede pasar: «puede acabarse en 5 días, o durar hasta 53 días» (el peor caso primero; quien compra decide
- * por él) o, si ya no hay, cuándo fue la última venta. Con una sola venta la barra no va en rojo (D6).
+ * Cuántos días le quedan: rayada si se agotó; si no, una barra de 0 a 2 semanas, con la semana punteada. Debajo, UNA sola frase con la base del número
+ * (A5): cuánto vendió y en cuántos días y entre cuántos días puede durar («Vendió 2 en 7 días · entre 1 y 13 días») o, si ya no hay, cuándo fue la última
+ * venta y lo que dejas de ganar al día («Vendió 10 en 13 días · última venta ayer · dejas de ganar ~S/ 55 al día»). Antes la fila traía tres números de
+ * días (la barra, «puede acabarse en X» en negrita y «o durar hasta Y») y no se sabía cuál usar. Con una sola venta la barra no va en rojo (D6).
  */
 function Pista({ p }: { p: ModeloAnalisis }) {
   const { datos } = useAnalisis();
   const ritmo = lecturaDeRitmo(p, datos.hoy);
   const pista = pistaAcaba(diasQueQuedan(p), ritmo?.unaVenta);
+  // Sin costo (o sin precio) no se inventa la cifra de lo que dejas de ganar.
+  const nota = ritmo ? notaDeRitmo(ritmo, ritmo.margenDia !== null ? textoDejasDeGanar(solesFicha(ritmo.margenDia)) : null) : null;
   return (
     <span className="pista-col">
       <span className={pista?.agotada && pista.suave ? "pista suave" : "pista"}>
@@ -236,17 +260,14 @@ function Pista({ p }: { p: ModeloAnalisis }) {
         )}
         <span className="linea" style={{ left: LINEA_SEMANA }} />
       </span>
-      {ritmo && (
+      {ritmo && nota && (
         <span className="pista-nota" data-tip={tipRitmo(ritmo) ?? undefined}>
-          {ritmo.vendio}
-          {ritmo.puede ? (
+          {nota.base}
+          {nota.dejas && (
             <>
               {" · "}
-              <b>{ritmo.puede}</b>
-              {ritmo.hasta && `, ${ritmo.hasta}`}
+              <span data-tip={TIP_DEJAS_DE_GANAR}>{nota.dejas}</span>
             </>
-          ) : (
-            ritmo.ultima && ` · ${ritmo.ultima}`
           )}
         </span>
       )}
@@ -271,19 +292,16 @@ function Pildoras({ p, ventanas }: { p: ModeloAnalisis; ventanas: Readonly<Recor
   const faltan = faltanDelModelo(p);
   // «Por llegar 24 · en 4 días» / «· sin fecha»: sin la fecha no se sabe si habrá días con el piso vacío (Felipe 2026-10-16).
   const cuando = cuandoLlega(p, datos.hoy);
-  // La base del número (A5) y lo que cuesta esperar (A15): «Una sola venta» (ámbar, nunca rojo: D6) y, si ya no hay y se sabe lo que deja cada una,
-  // «Dejas de ganar ~S/ 26 por día». Sin costo no se inventa la cifra.
+  // La base del número (A5): «Una sola venta» (ámbar, nunca rojo: D6). Lo que dejas de ganar (A15) ya no es una píldora: pasó a la nota bajo la barra,
+  // porque a 1280 la píldora (184 px en una columna de 150) pisaba «Pídelo a …».
   const ritmo = lecturaDeRitmo(p, datos.hoy);
+  // Lo que viene llega DESPUÉS de que se acabe: la píldora pasa a ámbar y lo dice (segundo pase visual, 2026-10-17). No cambia en qué filtro cae.
+  const tarde = llega > 0 ? llegaTarde(p, datos.hoy) : null;
   return (
     <>
       {ritmo?.unaVenta && (
         <span className="una-venta" data-tip={tipUnaVenta(ritmo)}>
           <Chip tono="ambar">Una sola venta</Chip>
-        </span>
-      )}
-      {ritmo && ritmo.margenDia !== null && (
-        <span className="pil" data-tip={TIP_DEJAS_DE_GANAR}>
-          {textoDejasDeGanar(solesFicha(ritmo.margenDia))}
         </span>
       )}
       {faltan && (
@@ -292,16 +310,20 @@ function Pildoras({ p, ventanas }: { p: ModeloAnalisis; ventanas: Readonly<Recor
         </span>
       )}
       {llega > 0 && (
-        <span className="pil llega">
-          <Icono nombre="llega" />
-          Por llegar <b>{llega}</b>
-          {cuando && <span className="cuando">· {cuando}</span>}
+        <span className={tarde ? "pil llega llega-tarde" : "pil llega"}>
+          <span className="pl-linea">
+            <Icono nombre="llega" />
+            Por llegar <b>{llega}</b>
+            {cuando && <span className="cuando">· {cuando}</span>}
+          </span>
+          {tarde && <span className="pl-tarde">{textoLlegaTarde(tarde)}</span>}
           <TipRico>
             <b>{tituloPorLlegar(p, datos.hoy)}</b>
             <span className="tl">
               {lineasPorLlegar(p, datos.hoy).map((linea, k) => (
                 <span key={k}>{linea}</span>
               ))}
+              {tarde && <span>{tipLlegaTarde(tarde)}</span>}
             </span>
           </TipRico>
         </span>
@@ -347,7 +369,7 @@ function Pildoras({ p, ventanas }: { p: ModeloAnalisis; ventanas: Readonly<Recor
  * se sabe de quién. Con un proveedor archivado o ninguno, dice que falta elegirlo. El bloque va aparte (`c-quien`) para que en una pantalla angosta
  * pase a la línea de las píldoras, junto a su barra.
  */
-function Accion({ p, pedidoDe }: { p: ModeloAnalisis; pedidoDe: ReadonlyMap<string, PedidoDeTipo> }) {
+function Accion({ p }: { p: ModeloAnalisis }) {
   const { datos, acceso, sedeDe, pedir } = useAnalisis();
   const comprar = hrefComprar(p, acceso, dondeComprarDe(datos));
   const otra = otraSedeQueLaTiene(p.otras);
@@ -362,11 +384,8 @@ function Accion({ p, pedidoDe }: { p: ModeloAnalisis; pedidoDe: ReadonlyMap<stri
   const fuente = quien && pidelo ? textoFuenteDeLaFila(quien) : null;
   const sinQuien = quien && !viene ? textoSinAQuienPedir(quien) : null;
   const vieneDe = quien && viene ? textoVieneDe(p.llega, quien, datos.hoy) : null;
-  // «Ya pedido: 40 Polos · llegan el 12 nov.» (A4): solo en lo que sigue en «Comprar». No cambia en qué grupo cae la prenda (una orden no
-  // dice a qué modelo irá); avisa que hay una orden abierta de su tipo antes de pedir otra vez.
-  const tipo = p.categoria?.trim();
-  const delTipo = tipo ? pedidoDe.get(tipo) : undefined;
-  const yaPedido = !viene && tipo && delTipo ? notaDePedidoEnFila(tipo, delTipo) : null;
+  // Lo ya pedido (A4) ya no va aquí: una orden es de un TIPO y pegada a la fila de un modelo se leía como «vienen 40 de este»; sale una vez por tipo, en la
+  // franja sobre las filas (`YaPedido`).
   return (
     <>
       {comprar && (
@@ -374,7 +393,7 @@ function Accion({ p, pedidoDe }: { p: ModeloAnalisis; pedidoDe: ReadonlyMap<stri
           Comprar
         </Link>
       )}
-      {(pidelo || sinQuien || vieneDe || yaPedido || sede) && (
+      {(pidelo || sinQuien || vieneDe || sede) && (
         <span className="c-quien">
           {quien && pidelo && pideloCompleto && (
             <span className="pidelo" role="group" aria-label={pideloCompleto} data-tip={`${pideloCompleto.endsWith(".") ? pideloCompleto : `${pideloCompleto}.`} ${FUENTE_LARGA[quien.fuente]}`}>
@@ -391,12 +410,6 @@ function Accion({ p, pedidoDe }: { p: ModeloAnalisis; pedidoDe: ReadonlyMap<stri
           {vieneDe && (
             <span className="pidelo viene" data-tip="Ya viene en camino: no hace falta pedirlo otra vez. El detalle está en «Por llegar».">
               <span className="pidelo-q">{vieneDe}</span>
-            </span>
-          )}
-          {yaPedido && (
-            <span className="pidelo viene" role="group" aria-label={`${yaPedido.titulo}${yaPedido.detalle ? `, ${yaPedido.detalle}` : ""}`} data-tip={yaPedido.ayuda}>
-              <span className="pidelo-q">{yaPedido.titulo}</span>
-              {yaPedido.detalle && <span className="pidelo-f">{yaPedido.detalle}</span>}
             </span>
           )}
           {sede && (

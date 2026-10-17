@@ -82,6 +82,8 @@
     .i-num{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:auto}
     .i-num b{font:500 44px/1 var(--font-serif);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
     .i-num b.palabras{font-size:28px;line-height:1.05;text-wrap:balance}
+    /* Si los dos nombres no caben en una línea a 28 px, bajan a 22 en vez de partirse («Casacas y / Faldas»). */
+    .i-num b.palabras.largo{font-size:22px;line-height:1.1}
     .i-num > span{font-size:13px;color:var(--color-tinta-60);line-height:1.3}
     .i-num em{font:inherit;font-style:normal}
     /* Tarjetas 1 y 2: solo prendas */

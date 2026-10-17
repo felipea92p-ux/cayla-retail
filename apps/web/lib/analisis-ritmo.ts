@@ -107,6 +107,34 @@ export function rangoDeDias(entrada: { ventas: number; ventana: number; enStock:
 /** Una sola venta: el ritmo no se puede leer (D6 de Felipe, 2026-10-16: sigue en «Comprar», pero se dice y no grita en rojo). */
 export const unaSolaVenta = (vendidas30: number): boolean => vendidas30 === 1;
 
+/** Cuántas ventas tiene que haber hecho la última semana para que se hable de ella: con menos, un día bueno parece un cambio. */
+export const VENTAS_MINIMAS_ULTIMA_SEMANA = 3;
+/** Cuántas veces el ritmo de la ventana tiene que vender la última semana para decir que «viene más rápido»: 1,5 o más. */
+export const VECES_QUE_ACELERA = 1.5;
+
+/** Lo que vendió la última semana y cuántos días le quedan a ESE paso. */
+export type RitmoReciente = { vendidas: number; dias: number };
+
+/**
+ * Si la última semana vendió CLARAMENTE más que el ritmo de la ventana, a ese paso cuántos días le quedan (segundo pase visual, 2026-10-17).
+ * El número principal («te dura ~13 días») divide lo vendido en toda la ventana: un modelo que viene en alza (1 → 2 → 4 por semana) dura menos de
+ * lo que dice, y el gráfico de semanas de la ficha, justo debajo, se lo contradecía. No cambia el número principal: lo dice al lado.
+ *
+ * Sale solo con las dos condiciones: la última semana vendió {@link VENTAS_MINIMAS_ULTIMA_SEMANA} o más (con menos es un día bueno, no una tendencia)
+ * y al menos {@link VECES_QUE_ACELERA} veces lo que vende la ventana por semana (`ventas ÷ ventana × 7`). `semanas` es la de la ficha: la última
+ * son los 7 días que terminan hoy (y hoy puede estar a medias: el paso real es igual o más rápido). null si no hay stock (ya no hay días que
+ * contar), si la ventana no tiene ventas o si la semana no acelera.
+ */
+export function ritmoReciente(entrada: { semanas: readonly number[]; enStock: number; ventas: number; ventana: number }): RitmoReciente | null {
+  const { semanas, enStock, ventas, ventana } = entrada;
+  const vendidas = semanas[semanas.length - 1];
+  if (vendidas === undefined || !Number.isFinite(vendidas) || !(vendidas >= VENTAS_MINIMAS_ULTIMA_SEMANA)) return null;
+  if (!(enStock > 0) || !(ventas > 0) || !(ventana > 0)) return null;
+  const porSemanaDeLaVentana = (ventas / ventana) * 7;
+  if (!(vendidas >= VECES_QUE_ACELERA * porSemanaDeLaVentana)) return null;
+  return { vendidas, dias: Math.max(1, Math.round((enStock * 7) / vendidas)) };
+}
+
 /**
  * Lo que queda de cada prenda vendida, sin el IGV: `precio / (1 + IGV) − costo`. El precio de venta de CAYLA lo trae incluido y el costo de
  * compra no (la misma cuenta que «Lo que más rinde», `analisis-rinde.ts`), así que restar el costo del precio entero inflaba la ganancia en el

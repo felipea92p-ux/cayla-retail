@@ -263,8 +263,8 @@ describe("la respuesta entera de una tienda", () => {
 describe("la frase de lo que no se pudo leer", () => {
   it("nombra cada tienda; sin fallas, nada", () => {
     expect(fraseFallaSedes([])).toBeNull();
-    expect(fraseFallaSedes(["Tienda Lima"])).toBe("No se pudieron leer las prendas de Tienda Lima");
-    expect(fraseFallaSedes(["Tienda Lima", "Tienda Trujillo"])).toBe("No se pudieron leer las prendas de Tienda Lima y Tienda Trujillo");
-    expect(fraseFallaSedes(["Tienda Lima", "Tienda Trujillo", "una tienda"])).toBe("No se pudieron leer las prendas de Tienda Lima, Tienda Trujillo y una tienda");
+    expect(fraseFallaSedes(["Tienda Lima"])).toBe("No cargaron las prendas de Tienda Lima");
+    expect(fraseFallaSedes(["Tienda Lima", "Tienda Trujillo"])).toBe("No cargaron las prendas de Tienda Lima y Tienda Trujillo");
+    expect(fraseFallaSedes(["Tienda Lima", "Tienda Trujillo", "una tienda"])).toBe("No cargaron las prendas de Tienda Lima, Tienda Trujillo y una tienda");
   });
 });

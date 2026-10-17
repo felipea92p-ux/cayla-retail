@@ -14,10 +14,10 @@
 // haciendo falta. Un tipo con una orden abierta con fecha no dice solo «pídelo»; uno con una orden sin fecha sigue diciéndolo y avisa que la hay.
 // La decisión 7 («Análisis no sugiere cantidades») sigue intacta: esto dice qué hay pedido, nunca cuánto pedir.
 
-import type { PartePedido } from "./analisis-tipos";
+import type { LlegadaPrenda, PartePedido } from "./analisis-tipos";
 import { diasEntreFechas } from "./fechas-lima";
 import { fechaCorta } from "./motor-demanda-reglas";
-import { plural } from "./analisis-reglas";
+import { plural, porLlegar } from "./analisis-reglas";
 import { numeroOrdenCompra } from "./ordenes-compra-reglas";
 
 /** Lo ya pedido de UN tipo, partido en lo que suma y lo que solo se muestra. Todo en unidades. */
@@ -192,20 +192,32 @@ export function pedidoAparte(p: Pick<PedidoDeTipo, "sinFecha" | "atrasadas" | "d
   return f;
 }
 
-/** «40 Polos», y «1 de Polos» cuando es una sola (el tipo va en plural: «1 Polos» no se lee). */
+/**
+ * El tipo dentro de una frase, no como un título: «Camisas y Blusas» → «camisas y blusas» («Ya pedido: 40 camisas»). Una sigla (TOP) no se toca: solo baja la
+ * mayúscula que va seguida de una minúscula.
+ */
+const enFrase = (tipo: string): string => tipo.trim().replace(/\p{Lu}(?=\p{Ll})/gu, (c) => c.toLowerCase());
+
+/** «40 camisas», y «1 de camisas» cuando es una sola (el tipo va en plural: «1 camisas» no se lee). */
 const unidadesDe = (n: number, tipo: string): string => (n === 1 ? `1 de ${tipo}` : `${n} ${tipo}`);
 
-/** Lo que dice la fila de «Comprar»: el título («Ya pedido: 40 Polos»), cuándo llega (o por qué no cuenta) y la ayuda del tooltip. */
+/** Lo que dice lo ya pedido de un tipo: el título («Ya pedido: 40 camisas»), cuándo llegan (o por qué no cuenta) y la ayuda del tooltip. */
 type NotaDePedido = { titulo: string; detalle: string | null; ayuda: string };
 
+/** Lo que no dice una orden: a qué modelo irá (se pide por tipo y marca). Va en la ficha de sus modelos y, entera, al pie de la franja de «Se está acabando». */
+export const PEDIDO_SIN_MODELO = "la orden no dice a qué modelo irá";
+export const NOTA_DE_LO_PEDIDO = `Se pide por tipo y marca: ${PEDIDO_SIN_MODELO}. Míralo antes de pedir más.`;
+
 /**
- * La nota de una fila de «Comprar» (la prenda se acaba y no viene nada): «Ya pedido: 40 Polos» + cuándo llegan, o lo que haya (sin fecha,
- * vencido, lo que el proveedor debe). Dice «Polos», no la prenda: una orden se pide por tipo y marca, y Análisis no sabe a qué modelo irá.
- * null si a mi tienda no le han pedido nada de ese tipo (lo de la red no es una orden «a tu tienda»: no se pone en la fila).
+ * Lo ya pedido de un TIPO (la prenda se acaba y no viene nada): «Ya pedido: 40 camisas» + cuándo llegan, o lo que haya (sin fecha, vencido, lo que el
+ * proveedor debe). Dice «camisas», no el modelo: una orden se pide por tipo y marca, y Análisis no sabe a qué modelo irá. Por eso se dice UNA vez por
+ * tipo, en una franja sobre las filas y en la ficha de sus modelos, y no en cada fila (segundo pase visual, 2026-10-17: «Ya pedido: 40 Camisas»
+ * repetido en dos modelos se leía como «vienen 40 de ESTE modelo»).
+ * null si a mi tienda no le han pedido nada de ese tipo (lo de la red no es una orden «a tu tienda»: no se pone).
  */
-export function notaDePedidoEnFila(tipo: string, p: PedidoDeTipo): NotaDePedido | null {
+export function notaDePedidoDeTipo(tipo: string, p: PedidoDeTipo): NotaDePedido | null {
   if (pedidoDeMiTienda(p) <= 0) return null;
-  const nombre = tipo.trim();
+  const nombre = enFrase(tipo);
   let titulo: string;
   let detalle: string | null = null;
   if (p.suma > 0) {
@@ -237,6 +249,38 @@ export function notaDePedidoEnFila(tipo: string, p: PedidoDeTipo): NotaDePedido 
     .filter((x) => x !== "")
     .join(" ");
   return { titulo, detalle, ayuda };
+}
+
+/** Cuántos tipos se nombran en la franja antes de «y N más»: con 6 tipos pedidos, la franja no debe empujar las filas fuera de la pantalla. */
+export const TIPOS_EN_LA_FRANJA = 3;
+
+/** La franja de «Se está acabando»: una línea por tipo, y cuántos tipos más quedan sin nombrar. */
+export type FranjaDePedido = { lineas: { tipo: string; texto: string; ayuda: string }[]; mas: number };
+
+/**
+ * Lo ya pedido de los tipos de las filas que SIGUEN en «Comprar» (las que ya vienen en camino a tiempo no se piden otra vez y no lo dicen), UNA vez
+ * por tipo y en el orden de la lista (el tipo del modelo más urgente primero): «Ya pedido: 40 camisas · llegan el 29 oct.». Sale encima del carril, no
+ * pegada a una fila: la orden es del TIPO y no dice a qué modelo irá. null si ninguna fila de «Comprar» tiene un tipo con algo pedido a mi tienda.
+ * NO cambia en qué grupo cae ninguna prenda (una orden no dice a qué modelo irá).
+ */
+export function franjaDePedido(
+  modelos: readonly { categoria: string | null; llega: LlegadaPrenda[] }[],
+  porTipo: ReadonlyMap<string, PedidoDeTipo>,
+  hoy: string,
+): FranjaDePedido | null {
+  const lineas: FranjaDePedido["lineas"] = [];
+  const vistos = new Set<string>();
+  for (const m of modelos) {
+    if (porLlegar(m, hoy) > 0) continue;
+    const tipo = m.categoria?.trim();
+    if (!tipo || vistos.has(tipo)) continue;
+    vistos.add(tipo);
+    const delTipo = porTipo.get(tipo);
+    const nota = delTipo ? notaDePedidoDeTipo(tipo, delTipo) : null;
+    if (nota) lineas.push({ tipo, texto: nota.detalle ? `${nota.titulo} · ${nota.detalle}` : nota.titulo, ayuda: nota.ayuda });
+  }
+  if (lineas.length === 0) return null;
+  return { lineas: lineas.slice(0, TIPOS_EN_LA_FRANJA), mas: Math.max(0, lineas.length - TIPOS_EN_LA_FRANJA) };
 }
 
 /**

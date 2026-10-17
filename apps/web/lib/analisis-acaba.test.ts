@@ -13,7 +13,9 @@ import {
   lineasAtrasadas,
   lecturaDeRitmo,
   lineasPorLlegar,
+  llegaTarde,
   notaAtrasada,
+  notaDeRitmo,
   pasaFiltroAcaba,
   pistaAcaba,
   prendasQueSeAcaban,
@@ -21,7 +23,10 @@ import {
   TEXTO_VACIO_ACABA,
   textoAtraso,
   textoDejasDeGanar,
+  textoLlegaTarde,
+  textoTeDura,
   TIP_DEJAS_DE_GANAR,
+  tipLlegaTarde,
   tipRitmo,
   tipUnaVenta,
   textoLlegada,
@@ -223,7 +228,6 @@ describe("el ritmo con su base: «Vendió N en D días» y lo que puede pasar (A
   it("2 ventas en 7 días con 4 en stock: la respuesta es el peor caso y el rango, el detalle", () => {
     const r = ritmo({ piso: 4, vendidas30: 2, diasDeVentas: 7 });
     expect(r.vendio).toBe("Vendió 2 en 7 días");
-    expect(r.puede).toBe("puede acabarse en 5 días");
     expect(r.hasta).toBe("o durar hasta 53 días");
     expect(r.entre).toBe("entre 5 y 53 días");
     expect(r.unaVenta).toBe(false);
@@ -235,14 +239,14 @@ describe("el ritmo con su base: «Vendió N en D días» y lo que puede pasar (A
   it("1 venta en 9 días con 1 en stock: lo marca como una sola venta y dice el rango (2 a 85 días)", () => {
     const r = ritmo({ piso: 1, vendidas30: 1, diasDeVentas: 9 });
     expect(r.vendio).toBe("Vendió 1 en 9 días");
-    expect(r.puede).toBe("puede acabarse en 2 días");
+    expect(r.entre).toBe("entre 2 y 85 días");
     expect(r.hasta).toBe("o durar hasta 85 días");
     expect(r.unaVenta).toBe(true);
   });
 
   it("singular: «1 día» y la talla del plural se respeta", () => {
     expect(ritmo({ piso: 1, vendidas30: 40, diasDeVentas: 1 }).vendio).toBe("Vendió 40 en 1 día");
-    expect(ritmo({ piso: 1, vendidas30: 40, diasDeVentas: 1 }).puede).toBe("puede acabarse en 1 día");
+    expect(ritmo({ piso: 1, vendidas30: 40, diasDeVentas: 1 }).entre).toBe("1 día");
   });
 
   it("sin venta no hay base que decir", () => {
@@ -263,8 +267,8 @@ describe("el ritmo con su base: «Vendió N en D días» y lo que puede pasar (A
           if (!seEstaAcabando(p)) continue;
           const r = lecturaDeRitmo(p, HOY)!;
           const barra = diasQueQuedan(p)!;
-          // «puede acabarse en N» no promete más que la barra; si el rango se abre, el «hasta» no es menos.
-          const peor = Number(r.puede!.match(/\d+/)![0]);
+          // El peor caso («entre N y …») no promete más que la barra; si el rango se abre, el «hasta» no es menos.
+          const peor = Number(r.entre!.match(/\d+/)![0]);
           expect(peor).toBeLessThanOrEqual(barra);
           if (r.hasta) expect(Number(r.hasta.match(/\d+/)![0])).toBeGreaterThanOrEqual(barra);
         }
@@ -272,9 +276,8 @@ describe("el ritmo con su base: «Vendió N en D días» y lo que puede pasar (A
     }
   });
 
-  it("si el rango no se abre, no repite el número: «puede acabarse en 1 día» y nada más", () => {
+  it("si el rango no se abre, no repite el número: «1 día» y nada más", () => {
     const r = ritmo({ piso: 1, vendidas30: 90, diasDeVentas: 7 });
-    expect(r.puede).toBe("puede acabarse en 1 día");
     expect(r.hasta).toBeNull();
     expect(r.entre).toBe("1 día");
   });
@@ -289,7 +292,7 @@ describe("el ritmo con su base: «Vendió N en D días» y lo que puede pasar (A
     // 3 ventas en 10 días a S/ 50 con costo S/ 20: 0,3 por día × (50 / 1,18 − 20 = S/ 22,37) = S/ 6,71 (~S/ 7) por día. La última, hace 3 días.
     const r = ritmo({ vendidas30: 3, diasDeVentas: 10, precio: 50, costo: 20, ultimaVenta: "2026-10-03" });
     expect(r.agotada).toBe(true);
-    expect([r.puede, r.hasta, r.entre]).toEqual([null, null, null]);
+    expect([r.hasta, r.entre]).toEqual([null, null]);
     expect(r.hace).toBe("hace 3 días");
     expect(r.ultima).toBe("última venta hace 3 días");
     expect(r.margenDia).toBe(7);
@@ -327,8 +330,8 @@ describe("el ritmo con su base: «Vendió N en D días» y lo que puede pasar (A
     expect(todo).not.toMatch(/poisson|80 ?%|intervalo|confianza|estad/i);
   });
 
-  it("«Dejas de ganar ~S/ 9 por día»: lleva «~» porque es una estimación, y el monto viene escrito aparte (S/ con espacio que no se parte)", () => {
-    expect(textoDejasDeGanar("S/\u00a09")).toBe("Dejas de ganar ~S/\u00a09 por día");
+  it("«dejas de ganar ~S/ 9 al día»: lleva «~» porque es una estimación, y el monto viene escrito aparte (S/ con espacio que no se parte)", () => {
+    expect(textoDejasDeGanar("S/\u00a09")).toBe("dejas de ganar ~S/\u00a09 al día");
   });
 });
 
@@ -525,9 +528,25 @@ describe("lo que falta de un modelo que se acaba (ADR-0357, decisión 12)", () =
       ],
       HOY,
     );
-    expect(faltanDelModelo(m)).toEqual({ texto: "Faltan 3", todas: ["S", "M", "L"] });
+    // Un solo color: se cuentan tallas («Faltan 3» a secas no decía si eran tallas, colores o unidades).
+    expect(faltanDelModelo(m)).toEqual({ texto: "Faltan 3 tallas", todas: ["S", "M", "L"] });
     const unica = modeloDe([prenda({ varianteId: "a", talla: "Única", color: "Lila" }), prenda({ varianteId: "b", talla: "Única", color: "Ocre", piso: 1 })], HOY);
     expect(faltanDelModelo(unica)?.texto).toBe("Falta Lila");
+  });
+
+  it("con varios colores y más de dos agotadas, dice «Faltan 3 tallas o colores» (no «Faltan 3» a secas) y las nombra todas aparte; con una, «Falta L Blanco»", () => {
+    const m = modeloDe(
+      [
+        prenda({ varianteId: "a", color: "Blanco", talla: "S", vendidas30: 3 }),
+        prenda({ varianteId: "b", color: "Blanco", talla: "L", vendidas30: 2 }),
+        prenda({ varianteId: "c", color: "Negro", talla: "M", vendidas30: 1 }),
+        prenda({ varianteId: "d", color: "Negro", talla: "L", piso: 2 }),
+      ],
+      HOY,
+    );
+    expect(faltanDelModelo(m)).toEqual({ texto: "Faltan 3 tallas o colores", todas: ["S Blanco", "L Blanco", "M Negro"] });
+    const una = modeloDe([prenda({ varianteId: "a", color: "Blanco", talla: "L", vendidas30: 2 }), prenda({ varianteId: "b", color: "Negro", talla: "L", piso: 2 })], HOY);
+    expect(faltanDelModelo(una)).toEqual({ texto: "Falta L Blanco", todas: ["L Blanco"] });
   });
 
   it("nada que decir si no falta ninguna o si se agotó el modelo entero (lo dice su pista)", () => {
@@ -598,5 +617,123 @@ describe("ventanasPorSede y seAcabaEnOtras: el mismo modelo falta en más de una
     expect(tipTambienSeAcaba(aqp, { dias: 1 })).toContain("le queda 1 día.");
     expect(tipTambienSeAcaba(aqp, { dias: 0 })).toBe("Arequipa ya no tiene y lo vende. Una orden de compra tiene un solo destino: piénsalo también para Arequipa.");
     expect(tipTambienSeAcaba(aqp, { dias: 5 })).not.toMatch(/\bpide\s+\d|\bcompra\s+\d|unidades/i);
+  });
+});
+
+// ───────── Segundo pase visual (2026-10-17): «Llega tarde», una sola frase por fila y «Te dura» en una tarjeta ─────────
+
+describe("«Llega tarde»: lo que viene llega DESPUÉS de que se acaba (peor caso)", () => {
+  // 6 en el piso y 30 vendidas en 30 días: la barra dice 6 días y el peor caso, 5 (rango 5 a 8, sin separarse mucho). Hoy 6 de octubre.
+  const vestido = (llega: LlegadaPrenda[], parcial: Partial<PrendaAnalisis> = {}) => prenda({ piso: 6, vendidas30: 30, diasDeVentas: 30, llega, ...parcial });
+  const en = (dias: number) => {
+    const d = new Date(Date.UTC(2026, 9, 6 + dias));
+    return d.toISOString().slice(0, 10);
+  };
+
+  it("llega DESPUÉS: dice cuántos días te quedas sin, al ritmo de la barra («unos 4») y en el peor caso («hasta 5»)", () => {
+    const t = llegaTarde(vestido([llegada({ cantidad: 15, fecha: en(10) })]), HOY);
+    expect(t).toEqual({ llegaEn: 10, peor: 5, hasta: 5, unos: 4 });
+    expect(textoLlegaTarde(t!)).toBe("Llega tarde · te quedas unos 4 días sin stock");
+  });
+
+  it("llega ANTES: no avisa nada", () => {
+    expect(llegaTarde(vestido([llegada({ fecha: en(2) })]), HOY)).toBeNull();
+    expect(llegaTarde(vestido([llegada({ fecha: en(4) })]), HOY)).toBeNull();
+  });
+
+  it("llega JUSTO el día en que se acaba (el peor caso): tampoco; un día después, sí", () => {
+    expect(llegaTarde(vestido([llegada({ fecha: en(5) })]), HOY)).toBeNull();
+    expect(llegaTarde(vestido([llegada({ fecha: en(6) })]), HOY)).toMatchObject({ llegaEn: 6, peor: 5, hasta: 1, unos: 0 });
+  });
+
+  it("llega después del peor caso pero a tiempo al ritmo de la barra: «Puede llegar tarde», sin inventar un número de días", () => {
+    // 2 en el piso, 6 vendidas en 12 días: la barra dice 4 días, el peor caso 2. Llega en 3.
+    const t = llegaTarde(prenda({ piso: 2, vendidas30: 6, diasDeVentas: 12, llega: [llegada({ fecha: en(3) })] }), HOY)!;
+    expect(t).toEqual({ llegaEn: 3, peor: 2, hasta: 1, unos: 0 });
+    expect(textoLlegaTarde(t)).toBe("Puede llegar tarde");
+    expect(tipLlegaTarde(t)).toBe("Lo que viene llega en 3 días. Al ritmo de la barra llega a tiempo, pero si se vende más rápido, se acaba en 2 días y te quedas hasta 1 día sin stock.");
+  });
+
+  it("SIN FECHA no se afirma nada: ni «tarde» ni «a tiempo» (y no se inventa una fecha)", () => {
+    expect(llegaTarde(vestido([llegada({ cantidad: 15, fecha: null })]), HOY)).toBeNull();
+    // Con una parte sin fecha y otra con fecha tampoco: no se sabe cuándo llega lo primero (quizá la que no tiene fecha llega mañana).
+    expect(llegaTarde(vestido([llegada({ fecha: null }), llegada({ fecha: en(10) })]), HOY)).toBeNull();
+  });
+
+  it("de varias partes con fecha, cuenta la PRIMERA que llega: si esa llega a tiempo, no es tarde aunque otra llegue después", () => {
+    expect(llegaTarde(vestido([llegada({ fecha: en(3) }), llegada({ fecha: en(20) })]), HOY)).toBeNull();
+    expect(llegaTarde(vestido([llegada({ fecha: en(20) }), llegada({ fecha: en(10) })]), HOY)).toMatchObject({ llegaEn: 10 });
+  });
+
+  it("AGOTADO: lo que llegue de mañana en adelante es tarde (el peor caso son 0 días); hoy, no", () => {
+    const agotado = (llega: LlegadaPrenda[]) => prenda({ vendidas30: 3, diasDeVentas: 10, llega });
+    expect(llegaTarde(agotado([llegada({ fecha: en(0) })]), HOY)).toBeNull();
+    expect(llegaTarde(agotado([llegada({ fecha: en(1) })]), HOY)).toEqual({ llegaEn: 1, peor: 0, hasta: 1, unos: 1 });
+    expect(textoLlegaTarde(llegaTarde(agotado([llegada({ fecha: en(1) })]), HOY)!)).toBe("Llega tarde · te quedas 1 día sin stock");
+    const cinco = llegaTarde(agotado([llegada({ fecha: en(5) })]), HOY)!;
+    expect(textoLlegaTarde(cinco)).toBe("Llega tarde · te quedas unos 5 días sin stock");
+    expect(tipLlegaTarde(cinco)).toBe("Ya no hay y lo que viene llega en 5 días: te quedas 5 días sin stock.");
+  });
+
+  it("lo ATRASADO no cuenta (tiene su propia píldora), sin ventas no hay ritmo, y una cantidad en cero no llega", () => {
+    expect(llegaTarde(vestido([llegada({ fecha: "2026-10-01" })]), HOY)).toBeNull();
+    expect(llegaTarde(prenda({ piso: 6, vendidas30: 0, llega: [llegada({ fecha: en(10) })] }), HOY)).toBeNull();
+    expect(llegaTarde(vestido([llegada({ cantidad: 0, fecha: en(10) })]), HOY)).toBeNull();
+    expect(llegaTarde(vestido([]), HOY)).toBeNull();
+  });
+
+  it("NO cambia en qué filtro cae la prenda: sigue en «Por llegar» (eso lo decide Felipe)", () => {
+    const p = vestido([llegada({ cantidad: 15, fecha: en(10) })]);
+    expect(llegaTarde(p, HOY)).not.toBeNull();
+    expect(pasaFiltroAcaba(p, "llega", HOY)).toBe(true);
+    expect(pasaFiltroAcaba(p, "comprar", HOY)).toBe(false);
+  });
+
+  it("el tooltip dice qué pasa al ritmo de la barra y en el peor caso, sin cantidades y sin jerga", () => {
+    const t = llegaTarde(vestido([llegada({ fecha: en(10) })]), HOY)!;
+    expect(tipLlegaTarde(t)).toBe("Lo que viene llega en 10 días, después de lo que te dura: al ritmo de la barra, unos 4 días sin stock; si se vende más rápido, se acaba en 5 días y te quedas hasta 5 días sin stock.");
+    expect(tipLlegaTarde(t)).not.toMatch(/poisson|80 ?%|intervalo|\bpide\s+\d|unidades/i);
+  });
+});
+
+describe("la nota bajo la barra: UNA sola frase (segundo pase visual, 2026-10-17)", () => {
+  const ritmo = (parcial: Partial<PrendaAnalisis>) => lecturaDeRitmo(prenda(parcial), HOY)!;
+
+  it("con el rango separado de la cifra: «Vendió 2 en 7 días · entre 5 y 53 días», sin «puede acabarse» ni «o durar hasta»", () => {
+    const n = notaDeRitmo(ritmo({ piso: 4, vendidas30: 2, diasDeVentas: 7 }), null);
+    expect(n).toEqual({ base: "Vendió 2 en 7 días · entre 5 y 53 días", dejas: null });
+    expect(n.base).not.toMatch(/puede acabarse|o durar/);
+  });
+
+  it("si el rango no se separa de la cifra, solo «Vendió 90 en 7 días» (no repite el número)", () => {
+    expect(notaDeRitmo(ritmo({ piso: 1, vendidas30: 90, diasDeVentas: 7 }), null).base).toBe("Vendió 90 en 7 días");
+  });
+
+  it("agotada: la última venta, y lo que dejas de ganar aparte (la pantalla le pone su tooltip)", () => {
+    const l = ritmo({ vendidas30: 10, diasDeVentas: 13, precio: 189, costo: 60, ultimaVenta: "2026-10-05" });
+    const n = notaDeRitmo(l, textoDejasDeGanar("S/\u00a055"));
+    expect(n).toEqual({ base: "Vendió 10 en 13 días · última venta ayer", dejas: "dejas de ganar ~S/\u00a055 al día" });
+  });
+
+  it("agotada sin última venta conocida ni costo: solo lo vendido; con stock, nunca «dejas de ganar» aunque se lo pasen", () => {
+    expect(notaDeRitmo(ritmo({ vendidas30: 4, diasDeVentas: 8 }), null)).toEqual({ base: "Vendió 4 en 8 días", dejas: null });
+    expect(notaDeRitmo(ritmo({ piso: 4, vendidas30: 2, diasDeVentas: 7 }), "dejas de ganar ~S/ 9 al día").dejas).toBeNull();
+  });
+});
+
+describe("«Te dura ~12 días · entre 8 y 17»: la cifra y su rango en UNA tarjeta de la ficha", () => {
+  const ritmo = (parcial: Partial<PrendaAnalisis>) => lecturaDeRitmo(prenda(parcial), HOY)!;
+
+  it("la cifra de la barra, el rango y lo que tienes", () => {
+    const r = ritmo({ piso: 6, vendidas30: 15, diasDeVentas: 30 });
+    expect(textoTeDura(12, r, 6)).toEqual({ valor: "Te dura ~12 días", etiqueta: "entre 8 y 17 días · tienes 6" });
+  });
+
+  it("singular, y si el rango no se separa de la cifra no lo repite", () => {
+    expect(textoTeDura(1, ritmo({ piso: 1, vendidas30: 90, diasDeVentas: 7 }), 1)).toEqual({ valor: "Te dura ~1 día", etiqueta: "tienes 1" });
+  });
+
+  it("sin lectura de ritmo, solo lo que tienes", () => {
+    expect(textoTeDura(5, null, 3)).toEqual({ valor: "Te dura ~5 días", etiqueta: "tienes 3" });
   });
 });

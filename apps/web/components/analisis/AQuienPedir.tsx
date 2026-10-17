@@ -15,11 +15,13 @@ import {
   agruparPorProveedor,
   CLAVE_SIN_PROVEEDOR,
   nombreCortoProveedor,
+  proveedorDelModelo,
   repartirGrupos,
   resumenCabecera,
   resumenDeGrupos,
   textoFuentesDelGrupo,
   textoModelosDelGrupo,
+  textoModeloConProveedorArchivado,
   type GrupoProveedor,
 } from "@/lib/analisis-a-quien-pedir";
 
@@ -127,10 +129,19 @@ function FilaProveedor({ g }: { g: GrupoProveedor<ModeloAnalisis> }) {
       <div className="qp-mods">
         {g.modelos.map((m) => {
           const pista = pistaAcaba(diasQueQuedan(m));
+          // En «Sin proveedor», el modelo cuyo proveedor está archivado lo dice en su chip: no se sabía cuál arreglar primero.
+          const archivado = sin && datos.proveedores ? textoModeloConProveedorArchivado(proveedorDelModelo(m, datos.proveedores)) : null;
           return (
-            <button key={m.varianteId} type="button" className="qp-mod" aria-label={`${nombreLargo(m)}${pista ? `, ${pista.texto}` : ""}: ver su ficha`} onClick={() => abrirFicha(m.varianteId)}>
+            <button
+              key={m.varianteId}
+              type="button"
+              className="qp-mod"
+              aria-label={`${nombreLargo(m)}${archivado ? `, ${archivado}` : ""}${pista ? `, ${pista.texto}` : ""}: ver su ficha`}
+              onClick={() => abrirFicha(m.varianteId)}
+            >
               <TilePrenda prenda={m} tamano={22} />
               <span className="n">{m.nombre}</span>
+              {archivado && <span className="a">· {archivado}</span>}
               {pista && <b className="d">{pista.texto}</b>}
             </button>
           );

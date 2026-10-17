@@ -188,14 +188,17 @@ describe("la tienda activa no se pudo leer", () => {
     expect(miTiendaSinLeer(datos(["lim", "tru"]))).toBe(true);
   });
 
-  it("el texto dice «No se pudo leer <tu tienda>», nunca «sin ventas», y manda a no decidir; el botón es «Volver a intentar»", () => {
-    expect(tituloTiendaSinLeer("Tienda Lima")).toBe("No se pudo leer Tienda Lima");
+  it("el texto dice «No cargaron las prendas de <tu tienda>», nunca «sin ventas», y manda a no decidir; el botón es «Volver a intentar»", () => {
+    expect(tituloTiendaSinLeer("Tienda Lima")).toBe("No cargaron las prendas de Tienda Lima");
     expect(TEXTO_TIENDA_SIN_LEER.accion).toBe("Volver a intentar");
     const todo = `${tituloTiendaSinLeer("Tienda Lima")} ${TEXTO_TIENDA_SIN_LEER.linea} ${TEXTO_TIENDA_SIN_LEER.corto}`.toLowerCase();
     expect(todo).not.toContain("sin ventas");
     expect(todo).toContain("no decidas");
-    // Una sola voz: ni «No pude» mezclado con «No se pudo» (Felipe 2026-10-16, prueba con una compradora).
+    // Una sola voz: ni «No pude» ni «no muestro» (la máquina hablando de sí misma) mezclados con «No cargaron» (Felipe 2026-10-16 y segundo pase visual, 2026-10-17).
     expect(todo).not.toContain("no pude");
+    expect(todo).not.toContain("no muestro");
+    expect(todo).not.toContain("listas vacías");
+    expect(todo).not.toContain("no se pudo");
   });
 
   it("una lista de mi tienda que sale vacía dice que no se pudo leer solo si la tienda no se leyó (Todavía no, Hoy)", () => {
@@ -240,7 +243,7 @@ describe("qué dice la pantalla (las decisiones de AnalisisPantalla)", () => {
     expect(hayCuentas(false, true)).toBe(false);
   });
 
-  it("el chip no dice «confiable» junto a «no se pudo leer tu tienda»", () => {
+  it("el chip no dice «confiable» junto a «No cargaron las prendas de tu tienda»", () => {
     expect(confianzaDelDato(true, false)).toBe("confiable");
     expect(confianzaDelDato(false, false)).toBe("incompleto");
     expect(confianzaDelDato(true, true)).toBe("sin-leer");
@@ -251,13 +254,13 @@ describe("qué dice la pantalla (las decisiones de AnalisisPantalla)", () => {
     expect(notaDeFallas([], false)).toBeNull();
     expect(notaDeFallas([], true)).toBeNull();
     expect(notaDeFallas(["No se pudo leer el último conteo"], false)).toBe("No se pudo leer el último conteo. Lo demás está al día.");
-    expect(notaDeFallas(["No se pudieron leer las prendas de Tienda Trujillo", "No se pudo leer el último conteo"], false)).toBe(
-      "No se pudieron leer las prendas de Tienda Trujillo. No se pudo leer el último conteo. Lo demás está al día.",
+    expect(notaDeFallas(["No cargaron las prendas de Tienda Trujillo", "No se pudo leer el último conteo"], false)).toBe(
+      "No cargaron las prendas de Tienda Trujillo. No se pudo leer el último conteo. Lo demás está al día.",
     );
-    expect(notaDeFallas(["No se pudieron leer las prendas de Tienda Trujillo"], true)).toBe("No se pudieron leer las prendas de Tienda Trujillo.");
+    expect(notaDeFallas(["No cargaron las prendas de Tienda Trujillo"], true)).toBe("No cargaron las prendas de Tienda Trujillo.");
   });
 
-  describe("la nota gris no repite lo que ya dice el aviso grande de «No se pudo leer <tu tienda>»", () => {
+  describe("la nota gris no repite lo que ya dice el aviso grande de «No cargaron las prendas de <tu tienda>»", () => {
     const sedes = [
       { id: "lim", nombre: "Tienda Lima" },
       { id: "aqp", nombre: "Tienda AQP" },
@@ -266,35 +269,35 @@ describe("qué dice la pantalla (las decisiones de AnalisisPantalla)", () => {
     const datos = (sedesSinLeer: string[]) => ({ sede: { id: "lim" }, sedes, sedesSinLeer });
 
     it("si solo falló mi tienda, su frase desaparece y la nota queda vacía (el aviso ya lo dice)", () => {
-      const fallas = ["No se pudieron leer las prendas de Tienda Lima"];
+      const fallas = ["No cargaron las prendas de Tienda Lima"];
       expect(fallasSinMiTienda(fallas, datos(["lim"]))).toEqual([]);
       expect(notaDeFallas(fallas, true, datos(["lim"]))).toBeNull();
     });
 
     it("si falló también otra tienda, queda su frase sin la mía; las demás fallas no se tocan", () => {
-      const fallas = ["No se pudieron leer las prendas de Tienda Lima y Tienda AQP", "No se pudo leer el último conteo"];
-      expect(fallasSinMiTienda(fallas, datos(["lim", "aqp"]))).toEqual(["No se pudieron leer las prendas de Tienda AQP", "No se pudo leer el último conteo"]);
-      expect(notaDeFallas(fallas, true, datos(["lim", "aqp"]))).toBe("No se pudieron leer las prendas de Tienda AQP. No se pudo leer el último conteo.");
+      const fallas = ["No cargaron las prendas de Tienda Lima y Tienda AQP", "No se pudo leer el último conteo"];
+      expect(fallasSinMiTienda(fallas, datos(["lim", "aqp"]))).toEqual(["No cargaron las prendas de Tienda AQP", "No se pudo leer el último conteo"]);
+      expect(notaDeFallas(fallas, true, datos(["lim", "aqp"]))).toBe("No cargaron las prendas de Tienda AQP. No se pudo leer el último conteo.");
       // Con tres: «A, B y C» sin la mía queda «B y C».
-      expect(fallasSinMiTienda(["No se pudieron leer las prendas de Tienda Lima, Tienda AQP y Tienda TRU"], datos(["lim", "aqp", "tru"]))).toEqual([
-        "No se pudieron leer las prendas de Tienda AQP y Tienda TRU",
+      expect(fallasSinMiTienda(["No cargaron las prendas de Tienda Lima, Tienda AQP y Tienda TRU"], datos(["lim", "aqp", "tru"]))).toEqual([
+        "No cargaron las prendas de Tienda AQP y Tienda TRU",
       ]);
     });
 
     it("sin avisar a la nota (el aviso grande no está a la vista: «Todavía no»), la falla de mi tienda se queda: es lo único que la dice", () => {
-      const fallas = ["No se pudieron leer las prendas de Tienda Lima"];
-      expect(notaDeFallas(fallas, true)).toBe("No se pudieron leer las prendas de Tienda Lima.");
+      const fallas = ["No cargaron las prendas de Tienda Lima"];
+      expect(notaDeFallas(fallas, true)).toBe("No cargaron las prendas de Tienda Lima.");
     });
 
     it("si la mía SÍ se leyó (falló otra), la nota queda tal cual: solo se quita la falla de mi propia tienda", () => {
-      const fallas = ["No se pudieron leer las prendas de Tienda AQP"];
+      const fallas = ["No cargaron las prendas de Tienda AQP"];
       expect(fallasSinMiTienda(fallas, datos(["aqp"]))).toEqual(fallas);
     });
 
     it("una frase que no se reconoce (otro texto) se deja: sobra un aviso, nunca falta", () => {
       expect(fallasSinMiTienda(["Algo raro con Tienda Lima"], datos(["lim"]))).toEqual(["Algo raro con Tienda Lima"]);
       // Con otro nombre del que armó la frase (la lectura no pudo leer el nombre: «una tienda»), tampoco se adivina.
-      expect(fallasSinMiTienda(["No se pudieron leer las prendas de una tienda"], datos(["lim"]))).toEqual(["No se pudieron leer las prendas de una tienda"]);
+      expect(fallasSinMiTienda(["No cargaron las prendas de una tienda"], datos(["lim"]))).toEqual(["No cargaron las prendas de una tienda"]);
       expect(fallasSinMiTienda([], datos([]))).toEqual([]);
     });
   });

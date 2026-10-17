@@ -36,7 +36,7 @@ export const GUIA_ANALISIS: Guia = {
       ancla: "analisis.confianza",
       opcional: true,
       titulo: "¿Puedo creerle?",
-      texto: "Dice si los datos de la tienda ya alcanzan para recomendar. Si dice «Sin leer», no se pudo leer tu tienda: no decidas con la pantalla y toca «Volver a intentar». Tócalo para ver qué falta (te lo abrimos).",
+      texto: "Dice si los datos de la tienda ya alcanzan para recomendar. Si dice «Sin leer», no cargaron las prendas de tu tienda: no decidas con la pantalla y toca «Volver a intentar». Tócalo para ver qué falta (te lo abrimos).",
     },
     {
       id: "hoja-confianza",
@@ -75,7 +75,14 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-acaba" }],
       titulo: "Se está acabando",
-      texto: "Lo que se acaba pronto. Bajo la barra dice cuánto vendió y en cuántos días, y lo peor que puede pasar; «Una sola venta» avisa que es una pista. «Cómpralas» es lo que no viene en camino; «Ya vienen», lo que sí. «Pídelo a …» dice a quién y «Ya pedido», que hay una orden abierta. «Comprar» abre una orden sin cantidades.",
+      texto: "Lo que se acaba pronto. Bajo la barra va UNA frase: cuánto vendió, en cuántos días y entre cuántos puede durar; «Una sola venta» avisa que es una pista. «Cómpralas» es lo que no viene a tiempo; «Ya vienen», lo que sí (en ámbar si llega tarde). «Pídelo a …» dice a quién. «Comprar» abre una orden sin cantidades.",
+    },
+    {
+      id: "ya-pedido",
+      ancla: "analisis.ya-pedido",
+      opcional: true,
+      titulo: "Lo que ya pediste",
+      texto: "Si ya hay una orden abierta de un tipo, aquí la ves UNA vez por tipo («Ya pedido: 40 camisas · llegan el 29 oct.»). Una orden se pide por tipo y no dice a qué modelo irá: míralo antes de pedir más. Es una demo: no se pide nada.",
     },
     {
       id: "a-quien-pedir",

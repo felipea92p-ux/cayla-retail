@@ -149,6 +149,62 @@ export function cuandoLlega(p: Pick<PrendaAnalisis, "llega">, hoy: string): stri
   return `desde el ${fechaCorta(primera)}`;
 }
 
+/**
+ * Lo que pasa cuando lo que viene en camino llega DESPUÉS de que se acaba la prenda (segundo pase visual, 2026-10-17): en «Ya vienen», el Vestido
+ * Midi tenía «6 días · puede acabarse en 4» y «Por llegar 15 · en 10 días» en verde, y nadie decía que el piso se queda vacío varios días. NO cambia
+ * en qué filtro cae la prenda (eso es de Felipe): solo avisa.
+ */
+export type LlegaTarde = {
+  /** En cuántos días llega lo primero que viene (con fecha). */
+  llegaEn: number;
+  /** Los días que quedan en el peor caso (0 si ya no hay). */
+  peor: number;
+  /** Días sin stock en el peor caso: `llegaEn − peor`, siempre 1 o más. */
+  hasta: number;
+  /** Días sin stock al ritmo de la barra: `llegaEn − diasQueQuedan`; 0 si, a ese ritmo, llega a tiempo y solo en el peor caso no. */
+  unos: number;
+};
+
+/**
+ * ¿Lo primero que viene llega DESPUÉS de los días que quedan en el peor caso? (`rangoDeDias`: quien compra decide por el peor caso, A5.) Solo se afirma
+ * cuando TODO lo que viene a tiempo tiene fecha: si una parte no la tiene (`fecha` null) no se sabe cuándo llega lo primero, y no se acusa de tarde lo que
+ * quizá llega mañana (ni se inventa una fecha); lo atrasado ya tiene su propia píldora. Llegar el mismo día en que se acaba (peor caso) no es llegar
+ * tarde. Ya agotada, todo lo que llegue de mañana en adelante lo es: el peor caso son 0 días. null si llega antes (o el mismo día), si no se sabe
+ * cuándo, o si la prenda no tiene ritmo.
+ */
+export function llegaTarde(p: Pick<PrendaAnalisis, "llega" | "piso" | "almacen" | "vendidas30" | "diasDeVentas">, hoy: string): LlegaTarde | null {
+  if (!(p.vendidas30 > 0)) return null;
+  const aTiempo = p.llega.filter((x) => x.cantidad > 0 && !llegadaAtrasada(x, hoy));
+  if (aTiempo.length === 0 || aTiempo.some((x) => x.fecha === null)) return null;
+  const fechas = aTiempo.map((x) => x.fecha!);
+  const llegaEn = Math.max(0, diasEntreFechas(hoy, [...fechas].sort()[0]!));
+  const enStock = totalEnTienda(p);
+  const peor = enStock === 0 ? 0 : (rangoDeDias({ ventas: p.vendidas30, ventana: ventanaDe(p), enStock })?.desde ?? 0);
+  if (llegaEn <= peor) return null;
+  return { llegaEn, peor, hasta: llegaEn - peor, unos: Math.max(0, llegaEn - (diasQueQuedan(p) ?? 0)) };
+}
+
+/**
+ * Lo que dice la píldora (y la franja de la ficha): «Llega tarde · te quedas unos 4 días sin stock». Si, al ritmo de la barra, llega a tiempo y solo
+ * con el ritmo más alto no (`unos` es 0), no se promete un número que no es: «Puede llegar tarde».
+ */
+export function textoLlegaTarde(t: Pick<LlegaTarde, "unos">): string {
+  if (t.unos <= 0) return "Puede llegar tarde";
+  return `Llega tarde · te quedas ${t.unos === 1 ? "1 día" : `unos ${t.unos} días`} sin stock`;
+}
+
+/** El tooltip de esa píldora: qué llega cuándo, cuánto dura, y el peor caso (que es el que importa para pedir). Sin cantidades (decisión 7). */
+export function tipLlegaTarde(t: LlegaTarde): string {
+  const dias = (n: number) => `${n} ${plural(n, "día", "días")}`;
+  // `llegaTarde` solo devuelve algo si llega DESPUÉS del peor caso, así que `llegaEn` es siempre 1 o más (nunca «hoy»).
+  const llega = `en ${dias(t.llegaEn)}`;
+  if (t.peor === 0) return `Ya no hay y lo que viene llega ${llega}: te quedas ${dias(t.hasta)} sin stock.`;
+  const peor = `si se vende más rápido, se acaba en ${dias(t.peor)} y te quedas hasta ${dias(t.hasta)} sin stock`;
+  return t.unos > 0
+    ? `Lo que viene llega ${llega}, después de lo que te dura: al ritmo de la barra, unos ${dias(t.unos)} sin stock; ${peor}.`
+    : `Lo que viene llega ${llega}. Al ritmo de la barra llega a tiempo, pero ${peor}.`;
+}
+
 /** Las líneas del tooltip «Por llegar»: solo lo que todavía se espera (lo atrasado va en su propio tooltip). */
 export const lineasPorLlegar = (p: Pick<PrendaAnalisis, "llega">, hoy: string): string[] =>
   lineasDe(p.llega.filter((x) => !llegadaAtrasada(x, hoy)), hoy);
@@ -259,13 +315,15 @@ export const TEXTO_VACIO_ACABA: Record<VacioAcaba, { titulo: string; linea: stri
   "sin-datos": { titulo: "No pude ver tus prendas", linea: "Vuelve a intentarlo en un rato." },
 };
 
-/** Hasta cuántas tallas se nombran en la píldora «Falta …»; con más, se cuentan («Faltan 3») y se nombran en su tooltip. */
+/** Hasta cuántas tallas se nombran en la píldora «Falta …»; con más, se cuentan («Faltan 3 tallas o colores») y se nombran en su tooltip. */
 const FALTAN_NOMBRADAS = 2;
 
 /**
  * Lo que ya no hay de un modelo que se acaba (ADR-0357, decisión 12): la talla y el color que se agotaron en mi tienda, de lo que más
  * se vendía a lo que menos. Se nombra la talla (no la única) y el color solo si el modelo tiene varios: «Falta S Arena», «Faltan S y
- * M», «Faltan 3» (con las tres en `todas`). null si no falta ninguna, o si se agotó el modelo entero (eso ya lo dice su pista).
+ * M»; con más de dos, se cuentan y se dice QUÉ se cuenta: «Faltan 3 tallas o colores» (si el modelo tiene un solo color, «Faltan 3 tallas»;
+ * «Faltan 3» a secas no decía si eran tallas, colores o unidades: segundo pase visual, 2026-10-17), con las tres en `todas`. null si no
+ * falta ninguna, o si se agotó el modelo entero (eso ya lo dice su pista).
  */
 export function faltanDelModelo(m: Pick<ModeloAnalisis, "variantes" | "colores">): { texto: string; todas: string[] } | null {
   const agotadas = m.variantes.filter((v) => totalEnTienda(v) === 0);
@@ -275,7 +333,8 @@ export function faltanDelModelo(m: Pick<ModeloAnalisis, "variantes" | "colores">
     .sort((a, b) => b.vendidas30 - a.vendidas30 || compararTallas(a.talla, b.talla))
     .map((v) => [esTallaUnica(v.talla) ? null : v.talla, variosColores ? v.color : null].filter(Boolean).join(" ") || v.color || v.talla);
   const verbo = todas.length === 1 ? "Falta" : "Faltan";
-  const texto = todas.length <= FALTAN_NOMBRADAS ? `${verbo} ${todas.join(" y ")}` : `${verbo} ${todas.length}`;
+  const que = variosColores ? "tallas o colores" : "tallas";
+  const texto = todas.length <= FALTAN_NOMBRADAS ? `${verbo} ${todas.join(" y ")}` : `${verbo} ${todas.length} ${que}`;
   return { texto, todas };
 }
 
@@ -310,11 +369,9 @@ type LecturaDeRitmo = {
   unaVenta: boolean;
   /** Ya no hay en la tienda: no hay días que contar, sino lo que cuesta esperar. */
   agotada: boolean;
-  /** Con stock, el peor caso: «puede acabarse en 5 días». */
-  puede: string | null;
-  /** Con stock, la otra punta: «o durar hasta 53 días» (null si no se separa de la primera). */
+  /** Con stock, la otra punta: «o durar hasta 53 días». null si el rango no se separa de la cifra: la nota de la fila no lo repite (`notaDeRitmo`). */
   hasta: string | null;
-  /** Con stock, el rango entero: «entre 5 y 53 días». */
+  /** Con stock, el rango entero, del peor caso al mejor: «entre 5 y 53 días» (o «3 días» si no se separa). Quien compra decide por el primero (A5). */
   entre: string | null;
   /** Agotada y con su última venta conocida: «hoy», «ayer» o «hace 3 días». */
   hace: string | null;
@@ -343,7 +400,6 @@ export function lecturaDeRitmo(
     vendio: `Vendió ${p.vendidas30} en ${diasEscritos(ventana)}`,
     unaVenta: unaSolaVenta(p.vendidas30),
     agotada,
-    puede: rango ? `puede acabarse en ${diasEscritos(rango.desde)}` : null,
     hasta: rango && rango.hasta > rango.desde ? (rango.hasta > DIAS_MAS_DE_UN_ANO ? "o durar más de un año" : `o durar hasta ${diasEscritos(rango.hasta)}`) : null,
     entre: rango ? textoEntre(rango) : null,
     hace,
@@ -359,11 +415,40 @@ export function tipUnaVenta(l: Pick<LecturaDeRitmo, "agotada" | "entre">): strin
     : `Solo se registró una venta de esta prenda: con tan poco no se sabe el ritmo. Te puede durar ${l.entre}.`;
 }
 
-/** El detalle del rango, a un toque: de dónde sale el «puede acabarse en 5 días». null si ya se agotó. */
+/** El detalle del rango, a un toque: de dónde sale el «entre 5 y 53 días» de la nota de la fila. null si ya se agotó. */
 export const tipRitmo = (l: Pick<LecturaDeRitmo, "entre">): string | null => (l.entre ? `Según lo vendido hasta hoy, te puede durar ${l.entre}.` : null);
 
-/** «Dejas de ganar ~S/ 26 por día», con el monto ya escrito (`solesFicha`: el espacio de «S/» no se parte, ADR-0413). Es una estimación: lleva «~». */
-export const textoDejasDeGanar = (monto: string): string => `Dejas de ganar ~${monto} por día`;
+/**
+ * «dejas de ganar ~S/ 26 al día», con el monto ya escrito (`solesFicha`: el espacio de «S/» no se parte, ADR-0413). Es una estimación: lleva «~».
+ * Va en minúscula porque siempre sigue a otra frase: la nota bajo la barra («Vendió 10 en 13 días · última venta ayer · dejas de ganar ~S/ 55 al
+ * día») y la bajada de «Ya no hay» en la ficha. Antes era una píldora de 184 px en una columna de 150: a 1280 pisaba «Pídelo a …».
+ */
+export const textoDejasDeGanar = (monto: string): string => `dejas de ganar ~${monto} al día`;
+
+/**
+ * La nota bajo la barra de una fila: UNA sola frase (segundo pase visual, 2026-10-17: la fila traía tres números de días —la barra, «puede acabarse en
+ * X» en negrita y «o durar hasta Y»— y la compradora no sabía cuál usar). La barra dice el número; esta frase, de dónde sale y entre cuánto cabe:
+ * «Vendió 2 en 7 días · entre 1 y 13 días»; si el rango no se separa de la cifra, solo «Vendió 2 en 7 días». Agotada, la última venta y, aparte (la
+ * pantalla le pone su tooltip), lo que dejas de ganar: «Vendió 10 en 13 días · última venta ayer» + «dejas de ganar ~S/ 55 al día».
+ */
+export function notaDeRitmo(l: Pick<LecturaDeRitmo, "vendio" | "entre" | "hasta" | "agotada" | "ultima">, dejas: string | null): { base: string; dejas: string | null } {
+  const partes = [l.vendio];
+  if (l.agotada) {
+    if (l.ultima) partes.push(l.ultima);
+  } else if (l.entre && l.hasta) {
+    partes.push(l.entre);
+  }
+  return { base: partes.join(" · "), dejas: l.agotada ? dejas : null };
+}
+
+/**
+ * La cifra principal de la ficha de lo que se acaba, en UNA tarjeta (antes eran dos: «Quedan 12 días» y «Puede acabarse en 8 días · entre 8 y 17»):
+ * «Te dura ~12 días» y, debajo, el rango (solo si se separa de la cifra) y lo que tienes.
+ */
+export function textoTeDura(dias: number, ritmo: Pick<LecturaDeRitmo, "entre" | "hasta"> | null, tienes: number): { valor: string; etiqueta: string } {
+  const rango = ritmo?.entre && ritmo.hasta ? ritmo.entre : null;
+  return { valor: `Te dura ~${diasEscritos(dias)}`, etiqueta: [rango, `tienes ${tienes}`].filter(Boolean).join(" · ") };
+}
 
 /** El tooltip de esa cifra: de dónde sale, sin cantidades. */
 export const TIP_DEJAS_DE_GANAR = "Lo que vendías por día multiplicado por lo que te queda en cada una sin el IGV y sin el costo. Es una estimación: mientras no hay, esa ganancia no entra.";

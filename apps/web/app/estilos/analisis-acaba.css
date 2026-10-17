@@ -3,11 +3,11 @@
    Aquí nada se mueve: no hay animación ni transición propia. */
 @layer components {
   .analisis {
-    /* A5 (2026-10-16): la barra y, debajo, con qué venta se calculó («Vendió 2 en 7 días · puede acabarse en 5 días, o durar hasta 53 días»). La columna
-       ocupa el lugar de la pista; la nota se parte en dos líneas si no cabe, sin tocar el alto de la barra. */
+    /* A5 (2026-10-16): la barra y, debajo, UNA frase con la base del número («Vendió 2 en 7 días · entre 1 y 13 días»; agotada, «Vendió 10 en 13 días ·
+       última venta ayer · dejas de ganar ~S/ 55 al día»). La columna ocupa el lugar de la pista; la nota se parte en dos líneas si no cabe, sin tocar el alto
+       de la barra. Sin negrita: la cifra es la de la barra (segundo pase visual, 2026-10-17: tres números de días por fila). */
     .pista-col{grid-area:pista;min-width:0;display:flex;flex-direction:column;gap:3px}
     .pista-nota{font-size:12px;line-height:1.3;color:var(--color-tinta-60)}
-    .pista-nota b{font-weight:600;color:var(--color-tinta)}
     /* Una sola venta (D6): el agotado no grita en rojo. Rayas y borde en ámbar; la palabra, en tinta (así no se gasta otro color en la barra). */
     .pista.suave .agot{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--color-ambar) 50%,transparent) 0 2px,transparent 2px 4px);box-shadow:inset 0 0 0 1.5px var(--color-ambar)}
     .pista.suave .agot + .d{color:var(--color-tinta)}
@@ -26,7 +26,22 @@
     .c-acc .pidelo.viene,.c-acc .pidelo.sin{color:var(--color-tinta-60)}
     /* «Por llegar 24 · en 4 días»: cuándo llega, sin negrita, dentro de la misma píldora. */
     .pil .cuando{font-weight:500}
+    /* «Llega tarde» (segundo pase visual, 2026-10-17): lo que viene llega después de que se acabe. La píldora pasa a ámbar (como «Atrasada»; sin rojo) y trae
+       su segunda línea, que puede partirse: «Llega tarde · te quedas unos 4 días sin stock» no cabe en los 150 px de la columna a 1280, y una píldora de una línea
+       que se sale de su columna fue justo el defecto de «Dejas de ganar» sobre «Pídelo a …». */
+    .pil.llega.llega-tarde{flex-direction:column;align-items:flex-start;gap:1px;white-space:normal;border-radius:12px;padding:4px 10px;line-height:1.25;
+      color:var(--color-ambar);background:color-mix(in srgb,var(--color-ambar) 12%,transparent)}
+    .pil.llega.llega-tarde b{color:var(--color-ambar)}
+    .pil.llega.llega-tarde .pl-linea{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+    .pil.llega.llega-tarde .pl-tarde{font-weight:600}
+    /* Lo ya pedido (segundo pase visual, 2026-10-17): una franja dentro de la tarjeta, entre la cabecera y las filas, UNA línea por tipo. Es una orden de un TIPO:
+       pegada a una fila se leía como «vienen 40 de este modelo». */
+    .c-franja{padding:4px 18px 8px}
+    .c-franja .fp-linea{display:block;font-weight:600;color:var(--color-tinta)}
+    .c-franja .fp-nota{display:block;margin-top:2px;font-size:12.5px;color:var(--color-tinta-60)}
     @container analisis (max-width:780px){
+      /* Sin el eje («0 · 1 semana · 2 semanas», que se esconde aquí) la raya punteada de la semana no dice nada: tampoco se dibuja (segundo pase visual, 2026-10-17). */
+      .pista .linea{display:none}
       /* Bajo la barra, en la línea de las píldoras (ver analisis.css): el nombre y de dónde se sabe en una línea que se parte donde haga falta. */
       .c-fila .c-quien{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:2px 12px}
       .c-fila .c-quien .pidelo{max-width:none;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:0 6px;text-align:left}
@@ -49,6 +64,7 @@
     .qp-mod:hover{border-color:var(--color-taupe)}
     .qp-mod:focus-visible{outline:2px solid var(--color-tinta);outline-offset:2px}
     .qp-mod .n{min-width:0;max-width:min(32ch,100%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .qp-mod .a{white-space:nowrap;color:var(--color-tinta-60);font-size:11.5px}
     .qp-mod .d{font-weight:600;white-space:nowrap;color:var(--color-tinta-60)}
     @container analisis (max-width:780px){
       .qp-fila{grid-template-columns:minmax(0,1fr);padding:10px 16px}

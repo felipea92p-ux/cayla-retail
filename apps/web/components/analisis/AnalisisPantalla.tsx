@@ -305,7 +305,17 @@ export function AnalisisPantalla({
       <div ref={raiz} className="analisis" onKeyDown={alTeclear}>
         <EncabezadoPagina sede={datos.sede.nombre} titulo="Análisis" subtitulo="Qué se acaba, qué no se mueve, qué nunca salió al piso y qué pedir.">
           {/* Filtra las prendas ya leídas, en el navegador: nunca dice «Buscando…» (ADR-0358, ronda 5). */}
-          <Buscador guia="analisis.buscador" valor={q} onCambio={setQ} placeholder="Busca una prenda" etiqueta="Busca una prenda" className="w-60 max-w-full" />
+          {/* Con la tienda sin leer no hay prendas que buscar: la caja se apaga (segundo pase visual, 2026-10-17: invitaba a buscar algo que no iba a encontrar). */}
+          <Buscador
+            guia="analisis.buscador"
+            valor={q}
+            onCambio={setQ}
+            placeholder="Busca una prenda"
+            etiqueta="Busca una prenda"
+            className="w-60 max-w-full"
+            disabled={sinLeer}
+            title={sinLeer ? "Las prendas de tu tienda no cargaron: todavía no hay qué buscar" : undefined}
+          />
         </EncabezadoPagina>
 
         <FilaPestanas
@@ -430,7 +440,7 @@ function FilaPestanas({
           Datos confiables
         </ChipEstado>
       ) : confianza === "sin-leer" ? (
-        <ChipEstado est="nd" guia="analisis.confianza" onClick={onConfianza} tip="No se pudo leer tu tienda: no decidas con esta pantalla">
+        <ChipEstado est="nd" guia="analisis.confianza" onClick={onConfianza} tip="No cargaron las prendas de tu tienda: no decidas con esta pantalla">
           Sin leer
         </ChipEstado>
       ) : (

@@ -147,11 +147,11 @@ export function leerAnalisisSede(v: unknown): LecturaDeSede | null {
 }
 
 /**
- * La frase de lo que no se pudo leer, con el nombre de cada tienda («No se pudieron leer las prendas de Tienda Lima»); null si
+ * La frase de lo que no se pudo leer, con el nombre de cada tienda («No cargaron las prendas de Tienda Lima»); null si
  * todas respondieron.
  */
 export function fraseFallaSedes(nombres: readonly string[]): string | null {
   if (nombres.length === 0) return null;
   const lista = nombres.length === 1 ? nombres[0] : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
-  return `No se pudieron leer las prendas de ${lista}`;
+  return `No cargaron las prendas de ${lista}`;
 }

@@ -327,6 +327,22 @@ export function llegadasAparte(t: Pick<AlcanceTipo, "atrasadas" | "despues">): s
 /** El nombre corto de un tipo para un lugar chico: lo de antes de « y » («Gorros y Sombreros» → «Gorros»). */
 export const tipoCorto = (categoria: string): string => categoria.split(" y ")[0] ?? categoria;
 
+/** Cuántas letras caben en una línea del titular de «¿Qué pedir?» de Hoy a 28 px (la tarjeta mide ~293 px a 1024). Con más, baja a 22 px en vez de partirse. */
+const LETRAS_DEL_TITULAR = 18;
+
+/**
+ * El titular de la tarjeta «¿Qué pedir?» de Hoy y lo que lo sigue, para que juntos se lean como UNA frase: «Casacas y Faldas» + «no llegan a Navidad (y 12 tipos
+ * más)». Antes el titular llevaba un salto de línea escrito a mano («Casacas y / Faldas»: `text-wrap: balance` no puede con un `<br>`) y «y 12 tipos más» iba
+ * pegado a él («Faldas y 12 tipos más no llegan»). Los dos primeros tipos del titular, sin nada partido (segundo pase visual, 2026-10-17); `largo`: no cabe en
+ * una línea a 28 px y la pantalla lo baja a 22.
+ */
+export function titularDeLosQueNoLlegan(categorias: readonly string[]): { titular: string; largo: boolean; resto: string } {
+  const titular = categorias.slice(0, 2).map(tipoCorto).join(" y ");
+  const mas = categorias.length - 2;
+  const verbo = `no ${plural(categorias.length, "llega", "llegan")} a Navidad`;
+  return { titular, largo: titular.length > LETRAS_DEL_TITULAR, resto: mas > 0 ? `${verbo} (y ${mas} ${plural(mas, "tipo más", "tipos más")})` : verbo };
+}
+
 /** Dónde termina el eje de «¿Para cuánto te alcanza?»: 6 meses, o más si Navidad queda más lejos (para que su línea se vea). */
 export const finEjeAlcance = (hastaNavidad: number): number => Math.max(DIAS_ALCANZA_MAX, Math.ceil(hastaNavidad * 1.15));
 

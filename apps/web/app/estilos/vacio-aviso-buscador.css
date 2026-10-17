@@ -135,6 +135,9 @@
     transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
   }
   .buscador:hover { border-color: color-mix(in srgb, var(--color-taupe) 45%, var(--color-sand)); }
+  /* Apagado (`disabled`: Análisis con la tienda sin leer): se ve que no se puede escribir, sin cambiar su caja. */
+  .buscador:has(input:disabled) { opacity: 0.55; cursor: not-allowed; }
+  .buscador:has(input:disabled) input { cursor: not-allowed; }
   .buscador:focus-within { background: var(--color-papel); border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); }
   .buscador:has(input:focus-visible) { outline: var(--foco-ancho) solid var(--foco-color); outline-offset: var(--foco-separacion); }
   /* La sombra de predicción (opt-in, `sombra`): el campo y la sombra comparten caja para que su texto empiece en el mismo punto. La

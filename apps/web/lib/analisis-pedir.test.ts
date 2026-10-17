@@ -9,6 +9,7 @@ import {
   textoAlcance,
   textoRitmo,
   tipoCorto,
+  titularDeLosQueNoLlegan,
   tiposSinRegistrar,
   notaTiposSinRegistrar,
   cuentaNavidad,
@@ -858,5 +859,36 @@ describe("el orden de «¿Para cuánto te alcanza?» (Felipe 2026-10-12)", () =>
   it("no cambia la lista que recibe", () => {
     ordenarAlcance(tipos, "vende");
     expect(tipos[0].categoria).toBe("Capas");
+  });
+});
+
+// El titular de la tarjeta «¿Qué pedir?» de Hoy (segundo pase visual, 2026-10-17): sin saltos escritos a mano y que se lea como UNA frase.
+describe("titularDeLosQueNoLlegan: «Casacas y Faldas» + «no llegan a Navidad (y 12 tipos más)»", () => {
+  it("dos tipos o más: los dos primeros juntos, sin saltos, y lo demás cuenta el resto", () => {
+    const doce = ["Casacas", "Faldas", ...Array.from({ length: 12 }, (_, i) => `Tipo ${i}`)];
+    expect(titularDeLosQueNoLlegan(doce)).toEqual({ titular: "Casacas y Faldas", largo: false, resto: "no llegan a Navidad (y 12 tipos más)" });
+    expect(titularDeLosQueNoLlegan(["Casacas", "Faldas", "Polos"])).toMatchObject({ resto: "no llegan a Navidad (y 1 tipo más)" });
+    expect(titularDeLosQueNoLlegan(["Casacas", "Faldas"])).toEqual({ titular: "Casacas y Faldas", largo: false, resto: "no llegan a Navidad" });
+  });
+
+  it("un solo tipo: el verbo en singular", () => {
+    expect(titularDeLosQueNoLlegan(["Casacas"])).toEqual({ titular: "Casacas", largo: false, resto: "no llega a Navidad" });
+  });
+
+  it("el nombre corto de cada tipo («Gorros y Sombreros» → «Gorros») y nunca un <br> ni un salto de línea", () => {
+    const t = titularDeLosQueNoLlegan(["Gorros y Sombreros", "Chalecos y Sacos"]);
+    expect(t.titular).toBe("Gorros y Chalecos");
+    expect(JSON.stringify(t)).not.toMatch(/<br|\\n/);
+  });
+
+  it("si no caben en una línea a 28 px (más de 18 letras), el titular lo dice para bajar a 22 px en vez de partirse", () => {
+    expect(titularDeLosQueNoLlegan(["Pantalones", "Chompas"]).largo).toBe(true); // «Pantalones y Chompas»: 19
+    expect(titularDeLosQueNoLlegan(["Casacas", "Faldas"]).largo).toBe(false); // 16
+    expect(titularDeLosQueNoLlegan(["Blusas", "Vestidos"]).largo).toBe(false); // 17
+  });
+
+  it("«Faldas y 12 tipos más no llegan» ya no puede leerse junto: el resto empieza por el verbo", () => {
+    const t = titularDeLosQueNoLlegan(["Casacas", "Faldas", "A", "B"]);
+    expect(`${t.titular} ${t.resto}`).toBe("Casacas y Faldas no llegan a Navidad (y 2 tipos más)");
   });
 });

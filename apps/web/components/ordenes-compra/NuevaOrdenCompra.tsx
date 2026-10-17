@@ -84,7 +84,12 @@ const TITULO = "mb-1 text-[13px] font-semibold text-tinta";
 const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-[13px] font-semibold text-tinta";
 // La fila de una línea cuando hay lugar (sección de 56 rem o más). La comparten el encabezado y cada fila: marca de la guía y número ·
 // categoría · marca · descripción · cantidad · precio · descuento (caja + «% / S/») · subtotal · quitar.
-const FILA_ANCHA = "@min-[56rem]:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_4.5rem_6rem_minmax(9rem,11rem)_6.5rem_2rem]";
+//
+// Con 62 rem o más (a 1440 la sección mide ~65), Categoría toma un ancho mínimo de 11 rem (176 px) a costa de Descripción: con `1fr` medía ~130 px y cortaba el nombre
+// a media palabra («Camisa:», «Casaca:», «Pantalo:» en vez de «Camisas y Blusas», «Casacas», «Pantalones»), justo donde el aviso de Análisis pide «Revisa la categoría
+// y la marca de cada una» (segundo pase visual de Análisis, 2026-10-17). Entre 56 y 62 rem queda como estaba: ahí no hay de dónde quitarle a las demás.
+const FILA_ANCHA =
+  "@min-[56rem]:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_4.5rem_6rem_minmax(9rem,11rem)_6.5rem_2rem] @min-[62rem]:grid-cols-[2.5rem_minmax(11rem,1.2fr)_minmax(0,1fr)_minmax(0,1.25fr)_4.5rem_6rem_minmax(9rem,11rem)_6.5rem_2rem]";
 
 /** Editar una orden «generada» en vez de crear una (actividad 4). */
 export type EdicionOrden = {
