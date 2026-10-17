@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MENSAJES } from "./cuentas";
+import { MENSAJES } from "./cuentas-mensajes";
 import {
   conAviso,
   debeAnotarEntrada,

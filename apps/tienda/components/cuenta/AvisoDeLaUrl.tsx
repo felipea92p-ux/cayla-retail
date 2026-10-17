@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
-import { MENSAJES } from "@/lib/cuentas";
+import { MENSAJES } from "@/lib/cuentas-mensajes";
 import { Icono } from "../Icono";
 
 // El aviso corto de abajo («Listo: …», maqueta `toastW`) después de una acción que cambia de página: la acción vuelve con
