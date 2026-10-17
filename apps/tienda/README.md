@@ -118,6 +118,18 @@ insiste nunca. `app/manifest.ts` y `public/sw.js` (sin caché: no toca ninguna p
 pasar sin redirigir. Un componente nuevo que ofrezca instalar usa `useInstalar()`, no escucha `beforeinstallprompt` por su cuenta (el
 aviso de Chrome llega una sola vez). Las plantillas: `docs/maquetas/tienda-instalar-2026-10/`.
 
+## La campanita de la cabecera (ADR-0448, 2026-10-17)
+
+Un ícono en la cabecera de quien tiene cuenta, con globo y panel: «las tallas que esperabas» que ya llegaron (de `tienda_mis_avisos_del_club`,
+la misma lectura del aviso al entrar, que se comparte por petición con `cache`) y «lo nuevo desde tu última visita». **Sin consulta ni migración
+nuevas:** lo nuevo se cuenta en el catálogo que la página ya leyó (`Prenda.nuevo.dias`) contra un día de Lima que vive en una cookie de este
+aparato (`tienda-campanita-<dueño>`; la base no guarda qué lee la gente). Un marco de página la pone con
+`campanita={<CampanitaConEspera prendas hrefNuevo />}` (`components/campanita/Campanita.tsx`, de servidor, tras un `Suspense`) y el esqueleto
+y el marco «mientras» con `<CampanitaApagada />`, para que la persona y la bolsa no se corran. La lógica es de `lib/campanita.ts`, con su
+prueba. **No uses `fn_tienda_novedades` desde la tienda** (131 ms con 298 modelos y no es de `tienda_web`) ni el prefijo `t-campana-` en el
+CSS (es la tarjeta de campaña de la portada): los estilos de la campanita son `t-avisos-*`. El aviso al celular (Web Push) está diseñado en el
+ADR-0448 y no construido.
+
 ## Levantarla en local
 
 1. La base local del repo arriba (`npx supabase start`) con las migraciones de la tienda (`20261014220000…`, `20261014223000…`,

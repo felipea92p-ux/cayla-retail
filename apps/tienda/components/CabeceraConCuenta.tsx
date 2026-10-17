@@ -51,6 +51,7 @@ export function CabeceraConCuenta({
   actual = null,
   favoritos = null,
   bolsa = null,
+  campanita = null,
   nombre = null,
 }: {
   datos: DatosCabecera;
@@ -59,6 +60,8 @@ export function CabeceraConCuenta({
   favoritos?: number | null;
   /** La bolsa con su globo (`components/bolsa/BotonBolsa.tsx`, de servidor: lee la cookie de la bolsa). La pone el marco. */
   bolsa?: React.ReactNode;
+  /** La campanita de los avisos (`components/campanita/`, de servidor: lee la sesión y la base). La pone el marco; va entre el corazón y la persona. */
+  campanita?: React.ReactNode;
   /** El nombre corto de la cuenta («María»), para el saludo del menú de la persona; null si no se sabe (sale sin saludo). */
   nombre?: string | null;
 }) {
@@ -157,6 +160,7 @@ export function CabeceraConCuenta({
             <Icono nombre="corazon" />
             {cuantosFavoritos ? <span className="t-globo">{cuantosFavoritos}</span> : null}
           </Link>
+          {campanita}
           <MenuDeLaCuenta nombre={nombre} enCuenta={actual === "cuenta"} />
           {bolsa}
         </div>

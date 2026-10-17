@@ -4,6 +4,7 @@ import { datosDeCabecera } from "@/lib/inicio";
 import { anioActual } from "@/lib/hoy-servidor";
 import { hayAlgoParaProbar } from "@/lib/probador-servidor";
 import { BotonBolsa } from "./bolsa/BotonBolsa";
+import { CampanitaConEspera } from "./campanita/Campanita";
 import { CabeceraConCuenta, type SeccionActual } from "./CabeceraConCuenta";
 import { EntradaDelDia } from "./cuenta/EntradaDelDia";
 import { FiltroTienda, type OpcionTienda } from "./FiltroTienda";
@@ -42,7 +43,14 @@ export async function MarcoCatalogo({
     <>
       {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
       <EntradaDelDia />
-      <CabeceraConCuenta datos={datos} actual={actual} favoritos={favoritos} nombre={nombre} bolsa={<BotonBolsa />} />
+      <CabeceraConCuenta
+        datos={datos}
+        actual={actual}
+        favoritos={favoritos}
+        nombre={nombre}
+        bolsa={<BotonBolsa />}
+        campanita={<CampanitaConEspera prendas={prendas} hrefNuevo={datos.nuevo.href} />}
+      />
       {/* Instalar CAYLA en el celular (ADR-0431): sale sola, una vez por visita y solo en el Inicio y el catálogo (lib/instalar.ts). */}
       <InstalarCayla />
       {/* Con una sola tienda en la web no hay nada que elegir. */}

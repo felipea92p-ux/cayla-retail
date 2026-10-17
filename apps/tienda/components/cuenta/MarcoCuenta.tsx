@@ -7,6 +7,8 @@ import { anioActual } from "@/lib/hoy-servidor";
 import { anuncios } from "@/lib/portada";
 import { Anuncio } from "../Anuncio";
 import { BotonBolsa } from "../bolsa/BotonBolsa";
+import { CampanitaApagada } from "../campanita/CampanitaApagada";
+import { CampanitaConEspera } from "../campanita/Campanita";
 import { Cabecera } from "../Cabecera";
 import { CabeceraConCuenta } from "../CabeceraConCuenta";
 import { Pie } from "../Pie";
@@ -66,6 +68,7 @@ export async function MarcoCuenta({
                   <CabeceraConCuenta
                     datos={datosDeCabecera([], null, undefined)}
                     actual={enPagina === "cuenta" ? "cuenta" : null}
+                    campanita={<CampanitaApagada />}
                     bolsa={
                       <Link className="t-ico" href="/bolsa" data-bolsa aria-label="Tu bolsa">
                         <Icono nombre="bolsa" />
@@ -89,18 +92,20 @@ export async function MarcoCuenta({
     conCuenta ? nombreDeLaCuenta() : Promise.resolve(null),
   ]);
   const conProbador = conCuenta ? await hayAlgoParaProbar(catalogo?.prendas ?? []) : false;
+  const datosCabecera = conCuenta ? datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN, conProbador) : null;
   return (
     <div className="tienda">
       <Anuncio frases={anuncios(campana, conCuenta)} />
       {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
       {conCuenta && <EntradaDelDia />}
-      {conCuenta ? (
+      {datosCabecera ? (
         <CabeceraConCuenta
-          datos={datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN, conProbador)}
+          datos={datosCabecera}
           actual={enPagina === "cuenta" ? "cuenta" : null}
           favoritos={favoritos}
           nombre={nombre}
           bolsa={<BotonBolsa />}
+          campanita={<CampanitaConEspera prendas={catalogo?.prendas ?? []} hrefNuevo={datosCabecera.nuevo.href} />}
         />
       ) : (
         <Cabecera enPagina={enPagina === "cuenta" ? undefined : enPagina} />
@@ -116,16 +121,18 @@ export async function MarcoCuenta({
 async function ArranqueConCuenta({ campana, enPagina }: { campana: Portada["campana"]; enPagina?: "entrar" | "crear-cuenta" | "cuenta" }) {
   const [catalogo, favoritos, nombre] = await Promise.all([leerCatalogo(null), cuantosFavoritos(), nombreDeLaCuenta()]);
   const conProbador = await hayAlgoParaProbar(catalogo?.prendas ?? []);
+  const datos = datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN, conProbador);
   return (
     <>
       <Anuncio frases={anuncios(campana, true)} />
       <EntradaDelDia />
       <CabeceraConCuenta
-        datos={datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN, conProbador)}
+        datos={datos}
         actual={enPagina === "cuenta" ? "cuenta" : null}
         favoritos={favoritos}
         nombre={nombre}
         bolsa={<BotonBolsa />}
+        campanita={<CampanitaConEspera prendas={catalogo?.prendas ?? []} hrefNuevo={datos.nuevo.href} />}
       />
     </>
   );

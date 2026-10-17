@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { FormaEsqueleto } from "@/lib/esqueleto";
 import { datosDeCabecera } from "@/lib/inicio";
 import { CabeceraConCuenta } from "./CabeceraConCuenta";
+import { CampanitaApagada } from "./campanita/CampanitaApagada";
 import { FormaDelEsqueleto } from "./FormaDelEsqueleto";
 import { Icono } from "./Icono";
 // Las formas usan las clases de su página (la ficha y «Mi perfil»): sin esto, al venir de otra página, brillarían sin su forma.
@@ -20,6 +21,7 @@ export function EsqueletoDePagina({ forma }: { forma?: FormaEsqueleto }) {
     <>
       <CabeceraConCuenta
         datos={datosDeCabecera([], null, process.env.TIENDA_FOTOS_ORIGEN)}
+        campanita={<CampanitaApagada />}
         bolsa={
           <Link className="t-ico" href="/bolsa" data-bolsa aria-label="Tu bolsa">
             <Icono nombre="bolsa" />
