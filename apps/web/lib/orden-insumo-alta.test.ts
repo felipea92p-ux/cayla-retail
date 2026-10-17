@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sePuedeConfirmar, siguienteDe } from "./guia-campos";
+import { estadosDe, faltanDe, fraseDeLoQueFalta, sePuedeConfirmar, siguienteDe } from "./guia-campos";
 import {
   argsCrearOrdenInsumo,
   argsEditarOrdenInsumo,
@@ -85,17 +85,38 @@ describe("problemaDeLineaInsumo: las reglas de una línea de `fn_orden_insumo_va
 });
 
 describe("camposDeLaOrdenInsumo: la guía de foco (CR3, E6, E7 de la base)", () => {
-  it("de arriba abajo: proveedor, entrega (sugerida), cada línea, la nota opcional; con un solo taller, «Llega a» no es un campo", () => {
+  it("de arriba abajo: proveedor, entrega (opcional), cada línea, la nota opcional; con un solo taller, «Llega a» no es un campo", () => {
     const vacia = orden({ proveedorId: "", lineas: [lineaInsumoVacia("l1")] });
     const campos = camposDeLaOrdenInsumo(vacia, CTX, SIN_COMBO);
     expect(campos.map((c) => c.id)).toEqual(["proveedor", "entrega", "linea-l1", "nota"]);
     expect(siguienteDe(campos)?.id).toBe("proveedor");
     expect(sePuedeConfirmar(campos)).toBe(false);
   });
-  it("una orden completa se puede guardar; la entrega estimada no bloquea", () => {
+  it("una orden completa se puede guardar y no queda nada por hacer: la entrega estimada es opcional (la base la acepta vacía)", () => {
     const campos = camposDeLaOrdenInsumo(orden(), CTX, SIN_COMBO);
     expect(sePuedeConfirmar(campos)).toBe(true);
-    expect(siguienteDe(campos)?.id).toBe("entrega");
+    expect(siguienteDe(campos)).toBeNull();
+    expect(faltanDe(campos)).toEqual([]);
+    expect(fraseDeLoQueFalta(campos)).toBeNull();
+  });
+  it("la entrega estimada vacía NO se lista como «falta» (regla 5 de ADR-0284, Formidable 2026-10-16): «Faltan: Proveedor, Línea 1» y ya", () => {
+    const vacia = camposDeLaOrdenInsumo(orden({ proveedorId: "", lineas: [lineaInsumoVacia("l1")] }), CTX, SIN_COMBO);
+    expect(vacia.find((c) => c.id === "entrega")).toMatchObject({ requerido: false, hecho: false });
+    expect(vacia.find((c) => c.id === "entrega")?.sugerido).toBeFalsy();
+    expect(faltanDe(vacia).map((c) => c.nombre)).toEqual(["Proveedor", "Línea 1"]);
+    expect(estadosDe(vacia).entrega).toBe("opcional");
+    // Ni la luz pasa por ella: con el proveedor y la línea hechos, la guía termina.
+    const casi = camposDeLaOrdenInsumo(orden(), CTX, SIN_COMBO);
+    expect(estadosDe(casi).entrega).toBe("opcional");
+    expect(siguienteDe(casi)).toBeNull();
+    // Con la fecha puesta (y buena) lleva su ✓ como cualquier campo hecho; la sugerida de verdad (varios talleres) sigue siendo otra cosa.
+    expect(estadosDe(camposDeLaOrdenInsumo(orden({ entrega: "2026-10-20" }), CTX, SIN_COMBO)).entrega).toBe("hecho");
+  });
+  it("lo ÚNICO que se lista como pendiente sin bloquear es «Llega a» con varios talleres (un valor de fábrica que importa); la entrega nunca", () => {
+    const dos = { ...CTX, talleres: new Set(["taller", "taller2"]), destinoElegido: false };
+    const campos = camposDeLaOrdenInsumo(orden({ proveedorId: "" }), dos, SIN_COMBO);
+    expect(faltanDe(campos).map((c) => c.nombre)).toEqual(["Proveedor", "Llega a"]);
+    expect(faltanDe(campos).some((c) => c.id === "entrega")).toBe(false);
   });
   it("proveedor (vacío o que no es de los que se pueden elegir) y destino (que no es un taller activo) bloquean", () => {
     expect(sePuedeConfirmar(camposDeLaOrdenInsumo(orden({ proveedorId: "" }), CTX, SIN_COMBO))).toBe(false);

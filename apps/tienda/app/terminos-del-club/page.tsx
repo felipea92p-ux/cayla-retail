@@ -7,7 +7,6 @@ import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import type { SeccionLegal as TipoSeccion } from "@/lib/ayuda";
 import { escalaEnPalabras, soles, TEXTOS_VERSION } from "@/lib/cuentas";
 import { leerBeneficiosDelClub } from "@/lib/cuentas-servidor";
-import { haySesion } from "@/lib/sesion-servidor";
 // La lectura larga (el índice, los títulos con su número y los enlaces dentro del texto) tiene su cara en ayuda.css.
 import "../estilos/ayuda.css";
 
@@ -21,8 +20,8 @@ const SECCIONES = [
   { id: "cumpleanos", titulo: "3. Cupón de cumpleaños" },
   { id: "aniversario", titulo: "4. Vale de aniversario" },
   { id: "avisos", titulo: "5. Avisos" },
-  { id: "cambios", titulo: "6. Cambios y fin del programa" },
-  { id: "conservacion", titulo: "7. Conservación de datos" },
+  { id: "cambios-del-club", titulo: "6. Cambios y fin del programa" },
+  { id: "conservacion-club", titulo: "7. Conservación de datos" },
 ] as const satisfies readonly TipoSeccion[];
 const [miembros, codigo, cumpleanos, aniversario, avisos, cambios, conservacion] = SECCIONES;
 
@@ -35,10 +34,10 @@ const [miembros, codigo, cumpleanos, aniversario, avisos, cambios, conservacion]
  * el índice fijo al costado que enciende el punto que se está leyendo; en el celular, «En esta página» arriba.
  */
 export default async function TerminosDelClub() {
-  const [conCuenta, b] = await Promise.all([haySesion(), leerBeneficiosDelClub()]);
+  const b = await leerBeneficiosDelClub();
   const pct = b ? `${Number.isInteger(b.pct) ? b.pct : b.pct.toFixed(2)} %` : "un porcentaje";
   return (
-    <MarcoCuenta conCuenta={conCuenta} conPie>
+    <MarcoCuenta segunSesion conPie>
       <div className="t-ancho">
         <article className="ay-legal">
           <EncabezadoAyuda
@@ -60,9 +59,10 @@ export default async function TerminosDelClub() {
             <div className="ay-legal-texto">
               <SeccionLegal {...miembros}>
                 <p>
-                  Personas mayores de 18 años, con DNI, carné de extranjería o pasaporte y un celular con WhatsApp. Unirse es gratis: al crear tu
-                  cuenta en la tienda online ya
-                  eres miembro. Si ya lo eras en tienda, tu cuenta se une a tu ficha y conservas tu código y tu fecha de miembro.
+                  Personas mayores de 18 años, con DNI, carné de extranjería o pasaporte y un celular con WhatsApp. Unirse es gratis: creas tu
+                  cuenta en la tienda online con lo mínimo (tu correo y tu nombre, o con Google) y entras al club cuando completas tu documento
+                  y tu celular, que te pedimos la primera vez que separas una prenda (o antes, desde «Mi perfil»). Si ya lo eras en tienda, tu
+                  cuenta se une a tu ficha y conservas tu código y tu fecha de miembro.
                 </p>
               </SeccionLegal>
 

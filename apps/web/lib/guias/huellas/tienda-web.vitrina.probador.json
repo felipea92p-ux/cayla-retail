@@ -1,0 +1,45 @@
+{
+  "guia": "tienda-web.vitrina.probador",
+  "ruta": "/tienda-web/vitrina/probador",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 25,
+  "controles": {
+    "components/vitrina/LargosTipicosHoja.tsx": [
+      "CampoTexto «{`${t.nombre}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/vitrina/PrepararRecortesHoja.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "Boton «Pausar»",
+      "Boton «Seguir»"
+    ],
+    "components/vitrina/ProbadorPantalla.tsx": [
+      "Boton «{paso.texto}»",
+      "FiltroPuesto «{`Quitar el filtro «${NOMBRE_DEL_FILTRO[filtro]}»",
+      "Boton «probador.tipicos»",
+      "Boton «probador.revisar»",
+      "button «{f.texto}»",
+      "button «{i === 0 ? \"probador.prenda\" : undefined}»",
+      "button «{i === 0 ? \"probador.recorte\" : undefined}»"
+    ],
+    "components/vitrina/ProbadorPrendaHoja.tsx": [
+      "CampoTexto «Largo (cm)»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/vitrina/RevisarRecorteHoja.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "Boton «{guia.frase ?? undefined}» #2"
+    ],
+    "components/vitrina/VitrinaPestanas.tsx": [
+      "Pestanas «(sin nombre)»"
+    ]
+  }
+}

@@ -3,14 +3,9 @@
 import { Percent, Trash2 } from "lucide-react";
 import { money, type ItemCarrito } from "@/components/PuntoDeVenta";
 import { filaDelTicket, type DetalleVariante, type TonoStock } from "@/lib/ticket-linea-reglas";
-
-/** El campo numérico sin las flechitas del navegador: «−» y «+» ya son eso. */
-const SIN_FLECHAS = "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 const PUNTO: Record<TonoStock, string> = { verde: "bg-verde", ambar: "bg-ambar", excedido: "bg-rojo-profundo" };
-
-/** Los dos botones del paso: los del spike (`h-7 w-6`), apagados en gris en vez de desaparecer. */
-const BOTON_PASO = "h-7 w-6 rounded-md text-base transition-colors hover:bg-sand/40 disabled:text-tinta/30 disabled:hover:bg-transparent";
 
 type Props = {
   linea: ItemCarrito;
@@ -58,38 +53,26 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
           </p>
         </div>
 
-        {/* La caja del sistema (ADR-0358, ronda 6) con el − y el + adentro. */}
+        {/* El paso de cantidad del sistema (ADR-0358, ronda 17): la caja del campo con el − y el + adentro. */}
         {f.conPaso && (
-          <div className="caja-cayla caja-campo h-8 min-h-8 shrink-0 gap-0 px-0">
-            <button
-              type="button"
-              aria-label="Reducir cantidad"
-              onClick={() => onCantidad(linea.claveLinea, linea.cantidad - 1)}
-              disabled={linea.cantidad <= 1}
-              className={BOTON_PASO}
-            >
-              −
-            </button>
-            <input
-              aria-label={`Cantidad de ${nombre}`}
-              type="number"
-              min={1}
-              max={linea.stockAqui}
-              value={linea.cantidad}
-              onChange={(e) => onCantidad(linea.claveLinea, Number(e.target.value))}
-              className={`self-stretch w-6 flex-none py-0 text-center text-sm font-semibold tabular-nums ${SIN_FLECHAS}`}
-            />
-            <button
-              type="button"
-              aria-label="Aumentar cantidad"
-              title={f.alTope ? `Máximo disponible en sede: ${linea.stockAqui}` : undefined}
-              onClick={() => onCantidad(linea.claveLinea, linea.cantidad + 1)}
-              disabled={f.alTope}
-              className={BOTON_PASO}
-            >
-              +
-            </button>
-          </div>
+          <PasoCantidad
+            className="shrink-0"
+            menos={{ onClick: () => onCantidad(linea.claveLinea, linea.cantidad - 1), deshabilitado: linea.cantidad <= 1, etiqueta: "Reducir cantidad" }}
+            mas={{
+              onClick: () => onCantidad(linea.claveLinea, linea.cantidad + 1),
+              deshabilitado: f.alTope,
+              etiqueta: "Aumentar cantidad",
+              title: f.alTope ? `Máximo disponible en sede: ${linea.stockAqui}` : undefined,
+            }}
+            campo={{
+              "aria-label": `Cantidad de ${nombre}`,
+              type: "number",
+              min: 1,
+              max: linea.stockAqui,
+              value: linea.cantidad,
+              onChange: (e) => onCantidad(linea.claveLinea, Number(e.target.value)),
+            }}
+          />
         )}
 
         {/* El importe abre el descuento de esta prenda (el ex «Desc.»): el «%» chico lo anuncia y, con descuento, se

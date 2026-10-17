@@ -55,6 +55,16 @@
   "src_table": "cambios"
  },
  {
+  "conname": "campana_disenos_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_publicado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "campana_disenos"
+ },
+ {
   "conname": "cierres_cola_arranque_cerrado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "cierres_cola_arranque"
@@ -405,6 +415,16 @@
   "src_table": "etiquetas"
  },
  {
+  "conname": "foto_recortes_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "foto_recortes"
+ },
+ {
+  "conname": "foto_recortes_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "foto_recortes"
+ },
+ {
   "conname": "frescura_decisiones_persona_id_fkey",
   "ref_table": "public.personas",
   "src_table": "frescura_decisiones"
@@ -660,6 +680,16 @@
   "src_table": "planes_compra_reparto"
  },
  {
+  "conname": "pos_maquinas_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pos_maquinas"
+ },
+ {
+  "conname": "pos_tarifas_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pos_tarifas"
+ },
+ {
   "conname": "precios_sede_archivado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "precios_sede"
@@ -710,9 +740,34 @@
   "src_table": "prendas_por_regularizar_correcciones"
  },
  {
+  "conname": "produccion_avances_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "produccion_avances"
+ },
+ {
+  "conname": "produccion_avances_operaria_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "produccion_avances"
+ },
+ {
   "conname": "produccion_etapas_historial_hecho_por_fkey",
   "ref_table": "public.personas",
   "src_table": "produccion_etapas_historial"
+ },
+ {
+  "conname": "produccion_fases_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "produccion_fases"
+ },
+ {
+  "conname": "produccion_salidas_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "produccion_salidas"
+ },
+ {
+  "conname": "produccion_vueltas_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "produccion_vueltas"
  },
  {
   "conname": "producciones_creado_por_fkey",
@@ -723,6 +778,11 @@
   "conname": "producto_color_temporadas_asignado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "producto_color_temporadas"
+ },
+ {
+  "conname": "producto_consumos_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "producto_consumos"
  },
  {
   "conname": "producto_origen_persona_id_fkey",
@@ -753,6 +813,11 @@
   "conname": "proveedor_deuda_resoluciones_creado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "proveedor_deuda_resoluciones"
+ },
+ {
+  "conname": "proveedor_tarifas_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "proveedor_tarifas"
  },
  {
   "conname": "proveedores_produccion_creado_por_fkey",
@@ -1018,6 +1083,11 @@
   "conname": "ventas_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "ventas"
+ },
+ {
+  "conname": "vitrina_largos_tipicos_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "vitrina_largos_tipicos"
  },
  {
   "conname": "vitrina_looks_actualizado_por_fkey",

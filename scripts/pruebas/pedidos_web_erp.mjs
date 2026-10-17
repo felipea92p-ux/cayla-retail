@@ -46,6 +46,11 @@ const MIGRACIONES = [
 const APLICAR_ANTES = process.env.APLICAR_ANTES
   ? process.env.APLICAR_ANTES.split(",").map((f) => readFileSync(f.trim(), "utf8")).join("\n")
   : "";
+// El grupo «Tienda web» (ADR-0430, 20261016174000) pasó el módulo de Ventas a Tienda web. La migración de Pedidos web termina
+// comprobando que el módulo está en Ventas, así que para volver a pegarla se deja el módulo como estaba el día que nació y, después
+// de los dos pegados, se pega encima la de Tienda web: el mismo orden que siguió producción.
+const EN_SU_DIA = "update retail.modulos set grupo = 'Ventas', orden = 17 where clave = 'pedidos_web';";
+const TIENDA_WEB = readFileSync("supabase/migrations/20261016174000_tienda_web_modulo_resumen.sql", "utf8");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder: ve todos los módulos y opera todas las tiendas
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo, sin el módulo «Pedidos web»
 
@@ -267,11 +272,11 @@ function main() {
   // ===================================================================================================================
   console.log("— A. El módulo —");
   escenario(
-    "«Pedidos web» nace en Ventas (entre Apartados y Caja), delegable y SIN ningún rol: solo el líder lo ve",
+    "«Pedidos web» vive en Tienda web (nació en Ventas; ADR-0430 lo movió), delegable y SIN ningún rol: solo el líder lo ve",
     `select (select grupo || '|' || orden || '|' || delegable || '|' || solo_lider from retail.modulos where clave = 'pedidos_web')
   || '|' || (select count(*) from retail.rol_modulos where modulo = 'pedidos_web')
   || '|' || retail.fn_ve_modulo('pedidos_web')::text;`,
-    "Ventas|17|true|false|0|true",
+    "Tienda web|64|true|false|0|true",
   );
   escenario(
     "las funciones nuevas: las de la pantalla, solo `authenticated` (con el candado adentro); las internas, nadie de afuera; ninguna, `anon`, `public` ni `tienda_web`",
@@ -659,9 +664,10 @@ select :'antes' || '|' || (select puede::text || '|' || razon from retail.fn_pro
 function migraciones() {
   console.log("— G. Las migraciones —");
   const sql = MIGRACIONES.map((m) => readFileSync(m, "utf8")).join("\n");
-  const dos = correr(`begin;\n${sql}\n${sql}\nselect count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('enviar_pedido_web_desde', 'fn_pedidos_web_tablero', 'fn_pedido_web_detalle', 'fn_apartados_de_pedidos_web');\nrollback;\n`);
-  esperarValor("se pueden volver a correr (dos veces seguidas, como un segundo pegado)", dos, "4");
-  const despues = correr(`${preparar(`${sql}\n${sql}`)}select pg_temp.dejar(:'v1', :'lim', :'lim_alm', 1);\n${separar("a")}\n${confirmar("a", "reservar", "lim")}\n${enviar("a")}\n${recibir("tr", "v1", 1)}\nselect (select estado from retail.pedido_web_lineas where pedido_id = :'a');\nrollback;\n`);
+  const pegados = `${EN_SU_DIA}\n${sql}\n${sql}\n${TIENDA_WEB}`;
+  const dos = correr(`begin;\n${pegados}\nselect count(*) || '|' || (select grupo from retail.modulos where clave = 'pedidos_web') from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('enviar_pedido_web_desde', 'fn_pedidos_web_tablero', 'fn_pedido_web_detalle', 'fn_apartados_de_pedidos_web');\nrollback;\n`);
+  esperarValor("se pueden volver a correr (dos veces seguidas, como un segundo pegado), y la de Tienda web encima lo deja en su grupo", dos, "4|Tienda web");
+  const despues = correr(`${preparar(pegados)}select pg_temp.dejar(:'v1', :'lim', :'lim_alm', 1);\n${separar("a")}\n${confirmar("a", "reservar", "lim")}\n${enviar("a")}\n${recibir("tr", "v1", 1)}\nselect (select estado from retail.pedido_web_lineas where pedido_id = :'a');\nrollback;\n`);
   esperarValor("y después de pegarlas dos veces, enviar y recibir siguen reservando la prenda para su pedido", despues, "reservada");
 }
 

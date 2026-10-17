@@ -1,34 +1,32 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { getCargaInicial } from "@/lib/carga-inicial";
 import { ConfiguracionCargaInicial } from "@/components/ConfiguracionCargaInicial";
-import { getConfiguracionTiendaWeb, getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from "@/lib/configuracion";
+import { getConfiguracionMetas, getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from "@/lib/configuracion";
 import { getCategoriasGasto, getContextoGastos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
 import { anioLima, hoyLima } from "@/lib/fechas-lima";
 import { esMes, mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { PestanasFin } from "@/components/finanzas/kit";
 import { ConfiguracionTiendas } from "@/components/ConfiguracionTiendas";
-import { ConfiguracionTiendaWeb } from "@/components/ConfiguracionTiendaWeb";
 import { ConfiguracionEmpresa } from "@/components/ConfiguracionEmpresa";
 import { ConfiguracionCajaAvisos } from "@/components/ConfiguracionCajaAvisos";
 import { TablaGastosFijos } from "@/components/GastosFijosYActivos";
 import { getParametrosTributarios } from "@/lib/impuestos";
 import { ConfiguracionImpuestos } from "@/components/ConfiguracionImpuestos";
 import { ConfiguracionCuentas } from "@/components/finanzas/ConfiguracionCuentas";
-import { getMediosDeCobro, getSaldos } from "@/lib/cuentas-dinero";
+import { getMaquinasPos, getMediosDeCobro, getSaldos } from "@/lib/cuentas-dinero";
 import { getPresupuestoConfig } from "@/lib/presupuesto";
 import { ConfiguracionPresupuesto } from "@/components/finanzas/ConfiguracionPresupuesto";
 
 // Configuración (ADR-0195, módulo «configuracion»; delegable desde el ADR-0253): lo que se ajusta una vez y todas las pantallas leen. Como
 // en el spike (docs/maquetas/finanzas-2026-09/, `VISTAS.config`), una sola pantalla con pestañas por URL (`?tab=`). Hoy
-// trae Empresa (solo lectura), Tiendas y caja (F1), Tienda web (la tienda online, ADR-0408 act. 6), Cuentas y cobros (F3), Caja y
-// avisos, Gastos fijos (F2b), Presupuesto (capa «para decidir», `?mes=` elige el mes) e Impuestos (F8), sin pestañas vacías.
-// «Tienda web» es una pestaña de Configuración, no un módulo (ADR-0306): quien ve Configuración la ve, y guarda lo mismo que en
-// las demás (`fn_puede_configurar`, ADR-0253).
+// trae Empresa (solo lectura), Tiendas y caja (F1), Cuentas y cobros (F3), Caja y avisos, Gastos fijos (F2b), Presupuesto (capa
+// «para decidir», `?mes=` elige el mes) e Impuestos (F8), sin pestañas vacías. «Tienda web» fue una pestaña de aquí (ADR-0408 act. 6)
+// hasta el 2026-10-16: desde ADR-0430 es Tienda web ▸ Datos y plazos (`/tienda-web/ajustes`), y desde 20261016223000 con su propio módulo
+// (`ajustes_web`, `fn_puede_ajustes_tienda_web`): Configuración ya no la abre; la dirección vieja, `?tab=tienda-web`, lleva allá (`next.config.ts`).
 const PESTANAS = [
   { clave: "empresa", etiqueta: "Empresa", href: "/configuracion?tab=empresa", guia: "config.tab-empresa" },
   { clave: "tiendas", etiqueta: "Tiendas y caja", href: "/configuracion?tab=tiendas", guia: "config.tab-tiendas" },
-  { clave: "tienda-web", etiqueta: "Tienda web", href: "/configuracion?tab=tienda-web", guia: "config.tab-tienda-web" },
   { clave: "cuentas", etiqueta: "Cuentas y cobros", href: "/configuracion?tab=cuentas", guia: "config.tab-cuentas" },
   { clave: "caja", etiqueta: "Caja y avisos", href: "/configuracion?tab=caja", guia: "config.tab-caja" },
   { clave: "fijos", etiqueta: "Gastos fijos", href: "/configuracion?tab=fijos", guia: "config.tab-fijos" },
@@ -52,7 +50,6 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
       <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...PESTANAS]} guia="config.pestanas" />
       {pestana === "empresa" && <ConfiguracionEmpresa datos={await getDatosEmpresa()} />}
       {pestana === "tiendas" && <SeccionTiendas esLider={persona.rol === "lider"} esAdmin={persona.esAdmin} />}
-      {pestana === "tienda-web" && <SeccionTiendaWeb />}
       {pestana === "cuentas" && <SeccionCuentas />}
       {pestana === "caja" && <ConfiguracionCajaAvisos parametros={await getParametrosFinanzas()} />}
       {pestana === "fijos" && <SeccionFijos />}
@@ -65,28 +62,20 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
 // La carga inicial de cada sede (ADR-0328, actividad 4) va en esta pestaña: es una fecha de la sede, como su hora de cierre. Si la
 // base todavía no tiene la función (la web salió antes que el SQL), la tarjeta no aparece y nada más cambia.
 async function SeccionTiendas({ esLider, esAdmin }: { esLider: boolean; esAdmin: boolean }) {
-  const [datos, carga] = await Promise.all([getConfiguracionTiendas(), getCargaInicial()]);
+  const [datos, carga, metas] = await Promise.all([getConfiguracionTiendas(), getCargaInicial(), getConfiguracionMetas()]);
   return (
     <ConfiguracionTiendas
       datos={datos}
+      metas={metas}
       despuesDeWhatsapp={carga && carga.sedes.length > 0 ? <ConfiguracionCargaInicial lectura={carga} esLider={esLider} esAdmin={esAdmin} /> : null}
     />
   );
 }
 
-// Tienda web (ADR-0408, act. 6): lo que la tienda online muestra de cada tienda y los plazos de los pedidos web. Si la base no la
-// puede leer (falta su migración), lo dice en una línea y el resto de Configuración sigue igual.
-async function SeccionTiendaWeb() {
-  const datos = await getConfiguracionTiendaWeb();
-  if (!datos) {
-    return <p className="nota-cayla">No se pudo leer la tienda web. Si recién se instaló, falta pegar su migración (20261014231000) en la base.</p>;
-  }
-  return <ConfiguracionTiendaWeb datos={datos} />;
-}
-
-// Cuentas y cobros (ADR-0195 F3): las cuentas con su saldo de hoy (sumado por la base) y a qué cuenta entra cada cobro.
+// Cuentas y cobros (ADR-0195 F3): las cuentas con su saldo de hoy (sumado por la base), a qué cuenta entra cada cobro y las
+// máquinas de cobro (ADR-0429; la tarjeta no se dibuja si la base todavía no las conoce).
 async function SeccionCuentas() {
-  const [cuentas, medios] = await Promise.all([getSaldos(null), getMediosDeCobro()]);
+  const [cuentas, medios, maquinas] = await Promise.all([getSaldos(null), getMediosDeCobro(), getMaquinasPos()]);
   return (
     <>
       {[cuentas.falla, medios.falla]
@@ -96,7 +85,7 @@ async function SeccionCuentas() {
             {f}
           </p>
         ))}
-      <ConfiguracionCuentas cuentas={cuentas.datos} medios={medios.datos} hoy={hoyLima()} />
+      <ConfiguracionCuentas cuentas={cuentas.datos} medios={medios.datos} maquinas={maquinas} hoy={hoyLima()} />
     </>
   );
 }

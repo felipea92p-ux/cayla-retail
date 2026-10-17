@@ -95,6 +95,7 @@ import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada, type CargaIn
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 import { MAX_DESCRIPCION_PRODUCTO, MAX_NOMBRE_PRODUCTO } from "@/lib/catalogo-topes";
+import { ArrowRight } from "lucide-react";
 
 /** Con la carga inicial de la sede cerrada, ninguna cantidad viaja (un objeto fijo: no cambia en cada render). */
 const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
@@ -654,7 +655,7 @@ export function NuevoProductoForm({
       const fotosGuardadas = await guardarFotos(
         token.current,
         nombreFinal,
-        fotosOrdenadas.map((f) => ({ archivo: f.archivo, original: f.original, colorCodigo: f.colorCodigo })),
+        fotosOrdenadas.map((f) => ({ archivo: f.archivo, colorCodigo: f.colorCodigo })),
       );
       fotos.forEach((f) => URL.revokeObjectURL(f.vista));
       setFotos([]);
@@ -703,7 +704,7 @@ export function NuevoProductoForm({
     if (fotosOrdenadas.length > 0) {
       const filas: { producto_id: string; url: string; orden: number; es_principal: boolean; color_codigo: string | null }[] = [];
       for (const f of fotosOrdenadas) {
-        const r = await subirFotoProducto(supabase, f.archivo, f.original);
+        const r = await subirFotoProducto(supabase, f.archivo);
         if ("error" in r) {
           fallidas.push(`${f.archivo.name}: ${r.error}`);
           continue;
@@ -843,7 +844,10 @@ export function NuevoProductoForm({
           disabled={Boolean(faltaDelPasoProblema(problemas, n))}
           className={`btn-cayla btn-primario ${listo ? "hilo-seguir" : ""}`}
         >
-          Seguir →
+          <span className="flex items-center gap-2">
+            Seguir
+            <ArrowRight aria-hidden className="-my-1 h-4 w-4 shrink-0" />
+          </span>
         </button>
       ) : (
         // El paso 4 cierra el alta: aquí termina la persona, así que aquí está «Crear» (la ficha conserva el suyo).

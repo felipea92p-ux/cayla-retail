@@ -159,6 +159,13 @@ describe("accionesDeVenta", () => {
     });
   });
 
+  it("anular: la venta que entrega un apartado no la ofrece (la base la rechaza; se devuelve por Devolución)", () => {
+    expect(claves(fila())).toContain("anular");
+    expect(claves(fila({ apartado: { codigo: "APT-TRU-0006", creadoEn: "2026-09-19T10:00:00Z" } }))).not.toContain("anular");
+    expect(claves(fila({ conAnticipo: true }))).not.toContain("anular");
+    expect(claves(fila({ conAnticipo: true }))).toContain("devolver");
+  });
+
   it("anular: solo el líder y solo el mismo día de la venta (PL-29)", () => {
     expect(claves(fila(), { ...todo, esLider: false })).not.toContain("anular");
     expect(claves(fila({ fecha: "2026-09-25" }))).not.toContain("anular");

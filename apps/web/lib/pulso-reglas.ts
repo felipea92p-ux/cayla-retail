@@ -73,6 +73,35 @@ export function respuestaDeFila(f: FilaER, ctx: { mes: string; vende: boolean; t
   };
 }
 
+/**
+ * Cuánto se atreve a afirmar el titular según la confianza del número (ADR-0417): el «Sí» o el «No» pelado solo sale con
+ * confianza alta. Con media dice «por ahora»; con baja, «Con lo que hay registrado, …» y la cifra va con «≈» y su chip
+ * «Provisional». Sin medida (`null`: la base no respondió) tampoco se afirma: lo que no se pudo medir no es «alta» (principio 9).
+ * No cambia ninguna cifra: solo cómo se dice. Pasa el «¿Por qué?» tal cual.
+ */
+export type Matiz = {
+  /** Lo que dice el chip: «Sí», «Sí, por ahora», «Provisional». */
+  chip: string;
+  /** El tono del chip: el del resultado si es firme; `pizarra` si es provisional. */
+  tono: "verde" | "rojo" | "ambar" | "pizarra";
+  /** La frase que precede a «te quedan»: «En lo que va de octubre,» o «Con lo que hay registrado,». */
+  intro: string;
+  /** `≈` si la cifra es provisional. */
+  aprox: string;
+  provisional: boolean;
+  /** Lo que se agrega a la explicación cuando no es firme; vacío si lo es. */
+  aviso: string;
+};
+
+export function matizarRespuesta(resp: Exclude<Respuesta, { estado: "sin_datos" }>, mes: string, nivel: "alto" | "medio" | "bajo" | null): Matiz {
+  const tonoFirme = resp.estado === "gana" ? "verde" : resp.estado === "pierde" ? "rojo" : "ambar";
+  const enElMes = `En lo que va de ${mesNombre(mes)},`;
+  if (nivel === "alto") return { chip: resp.corto, tono: tonoFirme, intro: enElMes, aprox: "", provisional: false, aviso: "" };
+  const aviso = nivel === null ? "Es provisional: no se pudo medir qué tan seguro es este número." : "Es provisional: mira «Qué tan seguro es este número» para ver qué falta cargar.";
+  if (nivel === "medio") return { chip: `${resp.corto}, por ahora`, tono: tonoFirme, intro: enElMes, aprox: "", provisional: false, aviso };
+  return { chip: "Provisional", tono: "pizarra", intro: "Con lo que hay registrado,", aprox: "≈ ", provisional: true, aviso };
+}
+
 // ---- 2. El ritmo ----------------------------------------------------------------------------------------------------------
 
 export type Ritmo = {

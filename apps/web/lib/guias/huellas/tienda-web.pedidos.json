@@ -1,0 +1,89 @@
+{
+  "guia": "tienda-web.pedidos",
+  "ruta": "/tienda-web/pedidos",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 69,
+  "controles": {
+    "components/pedidos-web/AnularPagoHoja.tsx": [
+      "BotonVer «Ir a Caja»",
+      "SegmentoDeslizante «Por qué se anula el pago»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/pedidos-web/AnularPedidoPagadoHoja.tsx": [
+      "BotonVer «Ir a Caja»",
+      "BotonVer «{irPorLaBoleta.texto}»",
+      "Boton «Revisar de nuevo»",
+      "SegmentoDeslizante «Por qué se anula el pedido»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/pedidos-web/EnviarPedidoWebHoja.tsx": [
+      "CampoFecha «{guia.etiqueta(\"llega\", \"¿Cuándo llega?\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/pedidos-web/PedidoWebHoja.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «No se puede confirmar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "BotonAncla «Escribirle por WhatsApp»",
+      "SegmentoDeslizante «Por qué no se confirma»",
+      "ComboResponsable «{responsable}» #2",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}» #2",
+      "BotonAncla «Escribirle por WhatsApp» #2",
+      "BotonAncla «Avisarle por WhatsApp»",
+      "Boton «Anular»",
+      "BotonAncla «WhatsApp»",
+      "Boton «pedido-web.pagar»",
+      "button «(sin nombre)»",
+      "ComboResponsable «{responsable}» #3",
+      "Boton «Cancelar» #2",
+      "Boton «{guia.frase ?? undefined}» #3",
+      "SegmentoDeslizante «Por qué se anula»",
+      "ComboResponsable «{responsable}» #4",
+      "Boton «Cancelar» #3",
+      "Boton «{guia.frase ?? undefined}» #4",
+      "BotonAncla «Escribirle por WhatsApp» #3",
+      "BotonAncla «WhatsApp» #2",
+      "CampoTexto «{guia.etiqueta(\"codigo\", \"Código para recoger\")}»",
+      "ComboResponsable «{responsable}» #5",
+      "BotonAncla «WhatsApp» #3",
+      "Boton «{guia.frase ?? undefined}» #5",
+      "BotonAncla «Escribirle por WhatsApp» #4",
+      "BotonAncla «WhatsApp» #4",
+      "Boton «pedido-web.anular-pagado»",
+      "BotonDeshacer «→() => onDecision(decisionDeFabrica(l, tiendaId))»",
+      "button «(sin nombre)» #2",
+      "SegmentoDeslizante «{`Qué hacer con ${l.referencia}»",
+      "button «{f.etiqueta}»",
+      "Boton «Quitar del pedido»",
+      "Boton «Reservarla»",
+      "Boton «Enviar desde»",
+      "Boton «{anulado ? \"Devolver\" : \"Anular pago\"}»"
+    ],
+    "components/pedidos-web/PedidosWebPantalla.tsx": [
+      "Boton «pedidos-web.como»",
+      "FiltroPuesto «{`Quitar el filtro «${titulo}»",
+      "button «{primera ? \"pedidos-web.abrir\" : undefined}»",
+      "Boton «{primera ? \"pedidos-web.verbo\" : undefined}»",
+      "FiltroPuesto «Quitar el filtro «Cerrados»»",
+      "BotonVerMas «{visibles.length > 0 ? `Ver ${guardados.length}»",
+      "Boton «{i === 0 ? \"pedidos-web.enviar\" : undefined}»"
+    ],
+    "components/pedidos-web/RegistrarPagoHoja.tsx": [
+      "CampoMonto «{guia.etiqueta(\"monto\", \"Monto\")}»",
+      "button «Todo lo que falta ·»",
+      "BotonVer «Ir a Caja»",
+      "BotonVer «Ir a Caja» #2",
+      "CampoTexto «{guia.etiqueta(\"operacion\", \"N.º de operación\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ]
+  }
+}

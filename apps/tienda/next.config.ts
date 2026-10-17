@@ -49,6 +49,11 @@ const CABECERAS_DE_SEGURIDAD = [
 const CACHE_DE_IMAGENES_FIJAS = "public, max-age=86400, stale-while-revalidate=604800";
 
 const nextConfig: NextConfig = {
+  // Cache components + prerender parcial (ADR-0432): la parte que es igual para todos sale armada desde el CDN y lo de la persona (la
+  // cuenta, los favoritos, la bolsa) llega por detrás, dentro de su <Suspense>. Con `partialPrefetching`, un enlace precarga la
+  // «cáscara» de la página y no una copia por prenda a la vista.
+  cacheComponents: true,
+  partialPrefetching: true,
   // Sin «X-Powered-By: Next.js»: no se anuncia con qué está hecha la tienda.
   poweredByHeader: false,
   async headers() {
@@ -73,6 +78,9 @@ const nextConfig: NextConfig = {
       : [],
     // Una foto de prenda es un archivo nuevo por cada foto (su nombre lleva un id): lo ya optimizado no envejece (31 días).
     minimumCacheTTL: 60 * 60 * 24 * 31,
+    // AVIF primero (2026-10-17): a la misma calidad pesa menos que WebP, y el navegador que no lo entiende recibe WebP. Se paga una
+    // vez por foto y ancho: la primera vez tarda más en prepararse y Vercel cuenta una conversión más; después sale de su caché 31 días.
+    formats: ["image/avif", "image/webp"],
     // Pocos anchos: la tarjeta mide de ~170 px (celular, dos columnas) a ~300 px (computadora, cuatro), y el doble en retina.
     imageSizes: [256, 384],
     deviceSizes: [640, 1080],

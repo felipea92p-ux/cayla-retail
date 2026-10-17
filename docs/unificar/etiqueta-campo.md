@@ -32,3 +32,9 @@ modal de Proveedor.
 
 **Migrada el 2026-10-13: deuda 4 → 0.** Los títulos de campo de Devoluciones, Nuevo color, el perfil y el login usan
 `campo-etiqueta` dentro de un `campo`, o la pieza `<Campo>`.
+
+## Control (2026-10-17)
+
+La firma ahora ve todo `<label>` en `label-cayla` (antes, solo con `block` y en tinta): **8 títulos más** pasaron a `campo-etiqueta` dentro
+de un `campo` (Cerrar un faltante, Bajar al piso, la nota de Recibir, Roles, Reasignar, las dos notas de Existencias, Marca y Proveedor), y
+las cantidades de Cerrar un faltante y Reasignar reparto pasaron a `<CampoTexto>`. Detalle: [control/2026-10-16.md](control/2026-10-16.md).

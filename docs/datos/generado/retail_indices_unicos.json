@@ -115,6 +115,26 @@
   "tablename": "cambios"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX campana_disenos_pkey ON retail.campana_disenos USING btree (id)",
+  "indexname": "campana_disenos_pkey",
+  "tablename": "campana_disenos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX campana_disenos_un_anterior ON retail.campana_disenos USING btree (etiqueta_id) WHERE (estado = 'anterior'::text)",
+  "indexname": "campana_disenos_un_anterior",
+  "tablename": "campana_disenos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX campana_disenos_un_borrador ON retail.campana_disenos USING btree (etiqueta_id) WHERE (estado = 'borrador'::text)",
+  "indexname": "campana_disenos_un_borrador",
+  "tablename": "campana_disenos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX campana_disenos_un_publicado ON retail.campana_disenos USING btree (etiqueta_id) WHERE (estado = 'publicado'::text)",
+  "indexname": "campana_disenos_un_publicado",
+  "tablename": "campana_disenos"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX campana_efecto_caja_pkey ON retail.campana_efecto_caja USING btree (etiqueta_id, ubicacion_id)",
   "indexname": "campana_efecto_caja_pkey",
   "tablename": "campana_efecto_caja"
@@ -268,6 +288,11 @@
   "indexdef": "CREATE UNIQUE INDEX club_textos_pkey ON retail.club_textos USING btree (tipo, version)",
   "indexname": "club_textos_pkey",
   "tablename": "club_textos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX cobros_resellados_pkey ON retail.cobros_resellados USING btree (id)",
+  "indexname": "cobros_resellados_pkey",
+  "tablename": "cobros_resellados"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX codigos_barras_codigo_key ON retail.codigos_barras USING btree (codigo)",
@@ -900,6 +925,11 @@
   "tablename": "favoritos_web"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX foto_recortes_pkey ON retail.foto_recortes USING btree (foto)",
+  "indexname": "foto_recortes_pkey",
+  "tablename": "foto_recortes"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX frescura_decisiones_pkey ON retail.frescura_decisiones USING btree (id)",
   "indexname": "frescura_decisiones_pkey",
   "tablename": "frescura_decisiones"
@@ -1058,6 +1088,26 @@
   "indexdef": "CREATE UNIQUE INDEX lider_modulos_ocultos_pkey ON retail.lider_modulos_ocultos USING btree (modulo)",
   "indexname": "lider_modulos_ocultos_pkey",
   "tablename": "lider_modulos_ocultos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX look_web_piezas_pkey ON retail.look_web_piezas USING btree (look_id, posicion)",
+  "indexname": "look_web_piezas_pkey",
+  "tablename": "look_web_piezas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX look_web_piezas_un_modelo ON retail.look_web_piezas USING btree (look_id, producto_id)",
+  "indexname": "look_web_piezas_un_modelo",
+  "tablename": "look_web_piezas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX looks_web_pkey ON retail.looks_web USING btree (id)",
+  "indexname": "looks_web_pkey",
+  "tablename": "looks_web"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX looks_web_uno_vivo_por_huella ON retail.looks_web USING btree (cuenta_web_id, huella) WHERE (quitado_en IS NULL)",
+  "indexname": "looks_web_uno_vivo_por_huella",
+  "tablename": "looks_web"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX lotes_despacho_proveedor_unico ON retail.lotes USING btree (despacho_id, proveedor_id) WHERE (despacho_id IS NOT NULL)",
@@ -1415,6 +1465,41 @@
   "tablename": "planes_compra_reparto"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX pos_abonos_lotes_movimiento_dinero_id_clave_key ON retail.pos_abonos_lotes USING btree (movimiento_dinero_id, clave)",
+  "indexname": "pos_abonos_lotes_movimiento_dinero_id_clave_key",
+  "tablename": "pos_abonos_lotes"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX pos_abonos_lotes_pkey ON retail.pos_abonos_lotes USING btree (id)",
+  "indexname": "pos_abonos_lotes_pkey",
+  "tablename": "pos_abonos_lotes"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX pos_maquinas_cuenta_id_key ON retail.pos_maquinas USING btree (cuenta_id)",
+  "indexname": "pos_maquinas_cuenta_id_key",
+  "tablename": "pos_maquinas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX pos_maquinas_nombre_uq ON retail.pos_maquinas USING btree (lower(nombre)) WHERE (archivada_en IS NULL)",
+  "indexname": "pos_maquinas_nombre_uq",
+  "tablename": "pos_maquinas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX pos_maquinas_pkey ON retail.pos_maquinas USING btree (id)",
+  "indexname": "pos_maquinas_pkey",
+  "tablename": "pos_maquinas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX pos_maquinas_sedes_pkey ON retail.pos_maquinas_sedes USING btree (maquina_id, ubicacion_id, medio)",
+  "indexname": "pos_maquinas_sedes_pkey",
+  "tablename": "pos_maquinas_sedes"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX pos_tarifas_pkey ON retail.pos_tarifas USING btree (id)",
+  "indexname": "pos_tarifas_pkey",
+  "tablename": "pos_tarifas"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX precios_sede_pkey ON retail.precios_sede USING btree (id)",
   "indexname": "precios_sede_pkey",
   "tablename": "precios_sede"
@@ -1500,9 +1585,39 @@
   "tablename": "presupuestos"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX produccion_avances_pkey ON retail.produccion_avances USING btree (id)",
+  "indexname": "produccion_avances_pkey",
+  "tablename": "produccion_avances"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX produccion_etapas_historial_pkey ON retail.produccion_etapas_historial USING btree (id)",
   "indexname": "produccion_etapas_historial_pkey",
   "tablename": "produccion_etapas_historial"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX produccion_fases_pkey ON retail.produccion_fases USING btree (id)",
+  "indexname": "produccion_fases_pkey",
+  "tablename": "produccion_fases"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX produccion_fases_secuencia_unica ON retail.produccion_fases USING btree (produccion_id, secuencia)",
+  "indexname": "produccion_fases_secuencia_unica",
+  "tablename": "produccion_fases"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX produccion_fases_una_por_orden ON retail.produccion_fases USING btree (produccion_id, clave)",
+  "indexname": "produccion_fases_una_por_orden",
+  "tablename": "produccion_fases"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX produccion_insumos_pkey ON retail.produccion_insumos USING btree (id)",
+  "indexname": "produccion_insumos_pkey",
+  "tablename": "produccion_insumos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX produccion_insumos_unico ON retail.produccion_insumos USING btree (produccion_id, insumo_id, COALESCE(color_codigo, ''::text))",
+  "indexname": "produccion_insumos_unico",
+  "tablename": "produccion_insumos"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX produccion_lineas_pkey ON retail.produccion_lineas USING btree (id)",
@@ -1513,6 +1628,51 @@
   "indexdef": "CREATE UNIQUE INDEX produccion_lineas_produccion_id_variante_id_key ON retail.produccion_lineas USING btree (produccion_id, variante_id)",
   "indexname": "produccion_lineas_produccion_id_variante_id_key",
   "tablename": "produccion_lineas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX produccion_salida_lineas_pkey ON retail.produccion_salida_lineas USING btree (id)",
+  "indexname": "produccion_salida_lineas_pkey",
+  "tablename": "produccion_salida_lineas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX produccion_salida_lineas_unica ON retail.produccion_salida_lineas USING btree (salida_id, variante_id)",
+  "indexname": "produccion_salida_lineas_unica",
+  "tablename": "produccion_salida_lineas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX produccion_salidas_anula_unico ON retail.produccion_salidas USING btree (anula_id) WHERE (anula_id IS NOT NULL)",
+  "indexname": "produccion_salidas_anula_unico",
+  "tablename": "produccion_salidas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX produccion_salidas_pkey ON retail.produccion_salidas USING btree (id)",
+  "indexname": "produccion_salidas_pkey",
+  "tablename": "produccion_salidas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX produccion_vuelta_lineas_pkey ON retail.produccion_vuelta_lineas USING btree (id)",
+  "indexname": "produccion_vuelta_lineas_pkey",
+  "tablename": "produccion_vuelta_lineas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX produccion_vuelta_lineas_unica ON retail.produccion_vuelta_lineas USING btree (vuelta_id, variante_id)",
+  "indexname": "produccion_vuelta_lineas_unica",
+  "tablename": "produccion_vuelta_lineas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX produccion_vueltas_anula_unico ON retail.produccion_vueltas USING btree (anula_id) WHERE (anula_id IS NOT NULL)",
+  "indexname": "produccion_vueltas_anula_unico",
+  "tablename": "produccion_vueltas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX produccion_vueltas_pkey ON retail.produccion_vueltas USING btree (id)",
+  "indexname": "produccion_vueltas_pkey",
+  "tablename": "produccion_vueltas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX producciones_numero_unico ON retail.producciones USING btree (numero)",
+  "indexname": "producciones_numero_unico",
+  "tablename": "producciones"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX producciones_pkey ON retail.producciones USING btree (id)",
@@ -1528,6 +1688,11 @@
   "indexdef": "CREATE UNIQUE INDEX producto_color_temporadas_pkey ON retail.producto_color_temporadas USING btree (producto_id, color_codigo)",
   "indexname": "producto_color_temporadas_pkey",
   "tablename": "producto_color_temporadas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX producto_consumos_pkey ON retail.producto_consumos USING btree (producto_id)",
+  "indexname": "producto_consumos_pkey",
+  "tablename": "producto_consumos"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX producto_fotos_pkey ON retail.producto_fotos USING btree (id)",
@@ -1588,6 +1753,16 @@
   "indexdef": "CREATE UNIQUE INDEX proveedor_deuda_resoluciones_token_key ON retail.proveedor_deuda_resoluciones USING btree (token_cliente)",
   "indexname": "proveedor_deuda_resoluciones_token_key",
   "tablename": "proveedor_deuda_resoluciones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX proveedor_tarifas_pkey ON retail.proveedor_tarifas USING btree (id)",
+  "indexname": "proveedor_tarifas_pkey",
+  "tablename": "proveedor_tarifas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX proveedor_tarifas_unica ON retail.proveedor_tarifas USING btree (proveedor_id, fase_clave, vigente_desde)",
+  "indexname": "proveedor_tarifas_unica",
+  "tablename": "proveedor_tarifas"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX proveedores_nombre_clave_unica ON retail.proveedores USING btree (retail.fn_clave_texto(nombre))",
@@ -1950,6 +2125,16 @@
   "tablename": "ubicacion_metas_dia"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX ubicacion_metas_fecha_pkey ON retail.ubicacion_metas_fecha USING btree (ubicacion_id, fecha)",
+  "indexname": "ubicacion_metas_fecha_pkey",
+  "tablename": "ubicacion_metas_fecha"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX ubicacion_metas_mes_pkey ON retail.ubicacion_metas_mes USING btree (ubicacion_id, mes, dia_semana)",
+  "indexname": "ubicacion_metas_mes_pkey",
+  "tablename": "ubicacion_metas_mes"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX ubicaciones_nombre_key ON retail.ubicaciones USING btree (nombre)",
   "indexname": "ubicaciones_nombre_key",
   "tablename": "ubicaciones"
@@ -2028,6 +2213,11 @@
   "indexdef": "CREATE UNIQUE INDEX ventas_historicas_pkey ON retail.ventas_historicas USING btree (ubicacion_id, fecha)",
   "indexname": "ventas_historicas_pkey",
   "tablename": "ventas_historicas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX vitrina_largos_tipicos_pkey ON retail.vitrina_largos_tipicos USING btree (categoria_id)",
+  "indexname": "vitrina_largos_tipicos_pkey",
+  "tablename": "vitrina_largos_tipicos"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX vitrina_look_piezas_pkey ON retail.vitrina_look_piezas USING btree (look_id, posicion)",

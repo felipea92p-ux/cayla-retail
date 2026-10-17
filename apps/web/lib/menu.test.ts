@@ -272,7 +272,10 @@ describe("las rutas del menú existen", () => {
 
 // Los topes del menú (regla de diseño, no de código): más filas o más hijas y el lateral deja de leerse de un vistazo. Si una
 // pantalla nueva no cabe, se REGRUPA (un subgrupo dentro del grupo, D-84); estos números no se suben para que la prueba pase.
-const TOPE_FILAS = 8;
+// 9 desde el 2026-10-16 (Felipe, ADR-0430): pidió el grupo «Tienda web» en el lateral, con todo lo de la tienda online junto. Antes eran
+// 8 y el líder ya llegaba a 8 en una tienda y en el Taller. SE ROMPE SI nace otro grupo de primer nivel: entonces se regrupa (un grupo
+// adentro de otro, D-84), y este número no vuelve a subir.
+const TOPE_FILAS = 9;
 const TOPE_HIJAS = 6;
 // Escape documentado para cuando un grupo necesite más margen que el tope general. Producción lo usó desde #231 hasta que
 // D-84/ADR-0155 (2026-09-21) lo regrupó (un subgrupo, «Abastecimiento», en vez de subir el tope), que es el remedio
@@ -297,11 +300,9 @@ const TOPE_HIJAS = 6;
 // «Pagos» (Por pagar + Fondos + Notas de crédito) como recomendación, y eligió no regrupar. «Órdenes de compra» entró como séptima hija
 // mientras «Recibir mercadería» vivía en Compras (decisión 38); Recibir se mudó a Inventario el 2026-10-14 (ADR-0393, 20261014210000) y
 // Compras bajó de 8 a 7: desde ese día la excepción es solo por Fondos por rendir, y no vuelve a subir.
-// VENTAS, 7 (ADR-0408, actividad 8, 2026-10-14): «Pedidos web» va DIRECTO en Ventas, junto a Apartados, como lo dibuja la maqueta
-// aprobada de la tienda online («Ventas ▸ Pedidos web»). Solo quien ve todos los módulos de Ventas (el líder) llega a 7; un rol de
-// tienda con Pedidos web y sin Comprobantes queda en 6. Si Felipe prefiere no subir el tope, el remedio es un subgrupo
-// («Separaciones»: Apartados y Pedidos web), como Posventa (D-84).
-const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7, venta: 7 };
+// VENTAS, cerrado (ADR-0430, 2026-10-16): fue 7 mientras «Pedidos web» vivió en Ventas (ADR-0408, act. 8); desde que se mudó a
+// «Tienda web», Ventas vuelve a 6 y cabe en el tope general: la excepción se borra y no vuelve.
+const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7 };
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
 
 // Todos los grupos que hay dentro de `fs`, en cualquier profundidad: un subgrupo (D-84) tiene que cumplir el mismo tope

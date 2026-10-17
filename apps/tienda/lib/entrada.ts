@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { CLAVE_MINIMA, correoValido, hoyLima, MENSAJES, normalizarCorreo } from "./cuentas";
-import { redireccionDelProxy } from "./sesion";
+import { CLAVE_MINIMA, correoValido, hoyLima, normalizarCorreo } from "./cuentas";
+import { MENSAJES } from "./cuentas-mensajes";
 
 // La entrada a la tienda online cuenta como actividad del Club (Felipe 2026-10-14): con 3 años sin comprar NI entrar, la ficha se
 // anonimiza y su cuenta web se cierra (`20261015055000`). La base la anota con `retail.tienda_anotar_entrada`; aquí, lo que no
@@ -73,12 +73,14 @@ const LARGO_MAXIMO_VOLVER = 300;
 /** Un origen de mentira para leer la dirección: si `volver` apunta a otro, es de otra web. */
 const ORIGEN_PROPIO = "https://tienda.invalid";
 
+/** Las páginas de la cuenta misma: volver a ellas daría vueltas (o no tiene sentido después de entrar). */
+const SIN_VOLVER = ["/entrar", "/crear-cuenta", "/olvide-mi-contrasena", "/nueva-contrasena", "/restablecer-acceso", "/api"];
+
 /**
- * La página con cuenta que la persona quería ver antes de entrar, o null. Pasa con un enlace a una prenda que le mandaron por WhatsApp
- * o al de su pedido: sin sesión, el proxy la lleva a «Entrar» y, al entrar (o al crear su cuenta), vuelve ahí en vez de caer en el
- * Inicio. Solo vale una dirección de ESTA tienda que pide cuenta: nunca otra web (`https://…`, `//otra.web`, con barra invertida), ni
- * «Entrar» o «Crear cuenta» (daría vueltas), ni nada con espacios o caracteres de control. Qué páginas piden cuenta lo dice el proxy
- * (`redireccionDelProxy`, lib/sesion.ts): una sola lista.
+ * La página que la persona estaba viendo antes de entrar, o null. Desde el 2026-10-17 la tienda se mira sin cuenta y la cuenta se pide
+ * en el momento (al separar, al guardar un favorito): al entrar o crearla, la persona vuelve a ESA página (la bolsa, la prenda), no al
+ * Inicio. Solo vale una dirección de ESTA tienda: nunca otra web (`https://…`, `//otra.web`, con barra invertida), ni las páginas de la
+ * cuenta misma (daría vueltas), ni nada con espacios o caracteres de control.
  */
 export function rutaParaVolver(volver: unknown): string | null {
   if (typeof volver !== "string" || volver.length === 0 || volver.length > LARGO_MAXIMO_VOLVER) return null;
@@ -90,12 +92,13 @@ export function rutaParaVolver(volver: unknown): string | null {
   } catch {
     return null;
   }
-  if (url.origin !== ORIGEN_PROPIO || redireccionDelProxy(url.pathname, "GET", "no") === null) return null;
+  if (url.origin !== ORIGEN_PROPIO) return null;
+  if (SIN_VOLVER.some((base) => url.pathname === base || url.pathname.startsWith(`${base}/`))) return null;
   return `${url.pathname}${url.search}`;
 }
 
-/** «/entrar» o «/entrar?volver=…»: los enlaces entre «Entrar» y «Crear cuenta» no pierden a dónde iba la persona. */
-export function hrefConVolver(base: "/entrar" | "/crear-cuenta", volver: string | null): string {
+/** «/entrar» o «/entrar?volver=…»: los enlaces entre «Entrar», «Crear cuenta» y «Unirme al Club» no pierden a dónde iba la persona. */
+export function hrefConVolver(base: "/entrar" | "/crear-cuenta" | "/cuenta/club", volver: string | null): string {
   return volver ? `${base}?${PARAMETRO_VOLVER}=${encodeURIComponent(volver)}` : base;
 }
 

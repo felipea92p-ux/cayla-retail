@@ -321,8 +321,11 @@ select pg_temp.huella(:'va');`);
   // `vitrina_look_piezas` (actividad 11): que una prenda salga en un look de la tienda online es configuración de la vitrina y se va
   // con su ficha (`on delete cascade`); el look guarda cuántas prendas lleva, así que le falta una, no se muestra y el ERP lo dice
   // (20261015031000).
+  // `look_web_piezas` (ADR-0434, actividad 8, 20261017044000) es SUYA como los favoritos: el look que un cliente guardó con un modelo
+  // que nunca se vendió ni se movió no es historia de la prenda; su fila se va con ella (`on delete cascade`) y el look sigue con las
+  // demás (la tienda dice «Una prenda que guardaste ya no está»).
   const SUYAS = ["variantes", "stock", "codigos_barras", "producto_fotos", "variante_etiquetas", "producto_color_temporadas", "producto_origen", "vitrina_productos",
-    "favoritos_web", "esperas_web", "vitrina_look_piezas"];
+    "favoritos_web", "esperas_web", "vitrina_look_piezas", "look_web_piezas"];
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",
@@ -347,7 +350,12 @@ select pg_temp.huella(:'va');`);
   // una línea de traslado de la misma prenda.
   // Y una prenda quitada de un apartado (`separacion_items_retirados`), del apartado de la misma prenda (renglón 7).
   // Y lo contado de más al recibir un traslado (`traslado_sobrantes`, ADR-0404), de la recepción de la misma prenda.
-  const POR_SU_MADRE = ["produccion_lineas", "transferencia_recepciones", "separacion_items_retirados", "traslado_sobrantes"];
+  // Y lo del rediseño de Producción (ADR-0400): el avance, las líneas de una Salida y de una Vuelta cuelgan de una fase de una orden y
+  // solo se anotan contra una línea de ESA orden (`registrar_avance`, `registrar_salida` y `registrar_vuelta` lo piden), así que son de
+  // la misma prenda que la orden; y `producto_consumos` solo lo escriben `abrir_orden_produccion` y `cerrar_produccion`, que ya
+  // tienen la orden. La orden (`producciones`) es historia y frena el borrado, y ninguna se borra nunca.
+  const POR_SU_MADRE = ["produccion_lineas", "transferencia_recepciones", "separacion_items_retirados", "traslado_sobrantes",
+    "produccion_avances", "produccion_salida_lineas", "produccion_vuelta_lineas", "producto_consumos"];
   const conocidas = [...SUYAS, ...HISTORIA, ...POR_SU_MADRE].map((t) => `'retail.${t}'`).join(", ");
   const r = correr(`select coalesce(string_agg(distinct c.conrelid::regclass::text, ', '), 'NINGUNA')
     from pg_constraint c

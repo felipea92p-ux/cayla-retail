@@ -1,0 +1,190 @@
+/* LA PÁGINA DE UNA ORDEN DE PRODUCCIÓN (ADR-0400, actividad 3; lámina `docs/maquetas/produccion-rediseno-2026-10/index.html`, vista D, elegida por Felipe el
+   2026-10-14). Las medidas son las de la lámina; los colores, solo tokens de globals.css (ADR-0169 / ADR-0336). Las piezas del sistema (Chip, Tabla,
+   TituloSeccion, Boton, Aviso, Vacio) se usan tal cual: aquí solo vive lo que ninguna de ellas dibuja — la ruta de fases cosida por su hilo y el hilo de la
+   línea de tiempo.
+   Movimiento (ADR-0136): las piezas entran una tras otra al abrir la página (`anim-sube`, una vez) y la pieza encendida cambia de borde al tocarla; sin
+   rebote, sin bucle. Todo se apaga con `prefers-reduced-motion`. */
+
+/* Todo en la capa `components`: una utilidad de Tailwind (`hidden`, `@min-[28rem]:hidden`) tiene que poder ganarle a `.op-sub { display: block }`. */
+@layer components {
+  /* Las columnas se deciden por el ancho de la página, no por el de la pantalla: con el lateral abierto a 1024 px quedan ~670 px. */
+  .op-pagina {
+    container: op / inline-size;
+  }
+
+  /* ---- La ruta de fases: hecha ✓ · actual encendida · pendiente ---- */
+  .op-ruta {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  @container op (min-width: 440px) {
+    .op-ruta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @container op (min-width: 620px) {
+    .op-ruta { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .op-ruta[data-n="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @container op (min-width: 1040px) {
+    .op-ruta[data-n="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+
+  .op-fase {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-xl);
+    padding: 14px 16px;
+    background: color-mix(in oklab, var(--color-hueso) 40%, transparent);
+    transition: border-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
+  }
+  .op-fase[data-estado="hecha"] { background: var(--color-papel); }
+  .op-fase[data-actual="true"] {
+    background: var(--color-papel);
+    border-color: color-mix(in srgb, var(--color-tinta) 45%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-tinta) 7%, transparent);
+  }
+  .op-fase-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  .op-glifo {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    border: 1.5px solid var(--color-taupe);
+  }
+  .op-fase[data-estado="hecha"] .op-glifo {
+    border: 0;
+    background: color-mix(in srgb, var(--color-verde) 15%, transparent);
+    color: var(--color-verde);
+  }
+  .op-fase[data-estado="hecha"] .op-glifo svg { width: 14px; height: 14px; }
+  .op-fase[data-actual="true"] .op-glifo { border: 2px solid var(--color-tinta); }
+  .op-fase[data-actual="true"] .op-glifo::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--color-tinta);
+  }
+  .op-fase-nombre { font-size: 11px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; }
+  .op-fase[data-estado="pendiente"]:not([data-actual="true"]) .op-fase-nombre { color: var(--color-taupe-profundo); }
+  .op-fase-quien {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    margin-left: auto;
+    font-size: 12.5px;
+    color: var(--color-taupe-profundo);
+  }
+  .op-fase-quien svg { flex: none; width: 14px; height: 14px; }
+  .op-fase-quien span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .op-fase-cifra { margin-top: 10px; font: 600 24px/1.1 var(--font-serif); font-variant-numeric: lining-nums tabular-nums; }
+  .op-fase-cifra small { margin-left: 6px; font: 400 13px/1.4 var(--font-sans); color: var(--color-taupe-profundo); }
+  .op-fase-detalle { margin-top: 4px; font-size: 13px; line-height: 1.5; color: var(--color-taupe-profundo); }
+  .op-fase-aviso { margin-top: 8px; }
+  .op-fase-acciones { margin-top: auto; padding-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+
+  /* El hilo entre piezas: cosido (sólido) hasta la actual, punteado después. Se dibuja entre una pieza y la siguiente de SU fila:
+     la última de cada fila no lo lleva. */
+  .op-fase:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -24px;
+    width: 24px;
+    height: 0;
+    border-top: 2px solid var(--color-taupe);
+  }
+  .op-fase[data-estado="en_curso"]:not(:last-child)::after,
+  .op-fase[data-estado="pendiente"]:not(:last-child)::after { border-top: 2px dashed var(--color-sand); }
+  /* Una sola columna: el hilo baja. */
+  @container op (max-width: 439px) {
+    .op-fase:not(:last-child)::after {
+      top: 100%;
+      right: auto;
+      left: 24px;
+      width: 0;
+      height: 24px;
+      border-top: 0;
+      border-left: 2px solid var(--color-taupe);
+    }
+    .op-fase[data-estado="en_curso"]:not(:last-child)::after,
+    .op-fase[data-estado="pendiente"]:not(:last-child)::after { border-left: 2px dashed var(--color-sand); }
+  }
+  @container op (min-width: 440px) and (max-width: 619px) {
+    .op-ruta .op-fase:nth-child(2n)::after { display: none; }
+  }
+  @container op (min-width: 620px) {
+    .op-ruta[data-n="2"] .op-fase:nth-child(2n)::after,
+    .op-ruta:not([data-n="2"]):not([data-n="4"]) .op-fase:nth-child(3n)::after { display: none; }
+    .op-ruta[data-n="4"] .op-fase:nth-child(3n)::after { display: none; }
+  }
+  @container op (min-width: 1040px) {
+    .op-ruta[data-n="4"] .op-fase:nth-child(3n)::after { display: block; }
+    .op-ruta[data-n="4"] .op-fase:nth-child(4n)::after { display: none; }
+  }
+
+  /* ---- Tela y costo: dos tablas chicas dentro de la columna izquierda ---- */
+  .op-bloques {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  @container op (min-width: 880px) {
+    .op-bloques { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
+  }
+  .op-bloque { display: grid; gap: 12px; }
+  .op-sub { display: block; margin-top: 1px; font-size: 12px; color: var(--color-taupe-profundo); }
+  .op-pendiente { color: var(--color-taupe-profundo); }
+  .op-total { font-weight: 600; }
+
+  /* ---- La línea de tiempo: el hilo vertical con sus puntos ---- */
+  .op-tiempo { position: relative; margin: 14px 0 0; padding: 0 0 0 22px; list-style: none; }
+  .op-tiempo::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background: var(--color-sand);
+  }
+  .op-tiempo li { position: relative; padding: 0 0 16px; }
+  .op-tiempo li:last-child { padding-bottom: 0; }
+  .op-tiempo li::before {
+    content: "";
+    position: absolute;
+    left: -21px;
+    top: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--color-papel);
+    border: 2px solid var(--color-taupe);
+  }
+  .op-tiempo li[data-primero="true"]::before { background: var(--color-tinta); border-color: var(--color-tinta); }
+  .op-tiempo-cuando { font-size: 12.5px; color: var(--color-taupe-profundo); }
+  .op-tiempo-que { margin-top: 2px; display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+  .op-tiempo-que b { font-weight: 500; }
+  .op-tiempo-cuanto { color: var(--color-taupe-profundo); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .op-tiempo-detalle { margin-top: 1px; font-size: 13px; color: var(--color-taupe-profundo); }
+  /* «Deshacer» (`<BotonDeshacer>`) solo se coloca: su cara es la del sistema. «Anular» es el botón de peligro del sistema en su medida compacta
+     de una fila: 32 px con el mouse y 44 con el dedo (como `parecidas-boton`; `btn-chico` mide 44 siempre y engordaría la línea de tiempo). El selector
+     lleva `.op-tiempo` para ganarle a la medida de `.btn-cayla`, que globals.css declara después de este archivo. */
+  .op-tiempo .op-tiempo-deshacer { margin-top: 2px; }
+  .op-tiempo .op-tiempo-anular { margin-top: 6px; min-height: 2rem; padding: 0.25rem 0.75rem; font-size: 12.5px; }
+  @media (pointer: coarse) {
+    .op-tiempo .op-tiempo-anular { min-height: 2.75rem; }
+  }
+  /* Una salida o una vuelta ya anulada (ADR-0400, actividad 4b): sigue en la línea de tiempo, pero se lee como "ya no cuenta". */
+  .op-tiempo li[data-anulada="true"] .op-tiempo-que b,
+  .op-tiempo li[data-anulada="true"] .op-tiempo-cuanto { color: var(--color-taupe-profundo); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--color-taupe-profundo) 55%, transparent); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .op-fase { transition: none; }
+  }
+}

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { Minus, Plus, Scissors } from "lucide-react";
+import { Scissors } from "lucide-react";
 import { RotuloAnaquel } from "@/components/RotuloAnaquel";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { useContar } from "@/lib/useContar";
 import { copiasDeTexto, MAX_COPIAS, papelDeTiraCm, quienesSalen, tiraConSalientes, type Rotulo } from "@/lib/rotulos-reglas";
 
@@ -164,35 +165,20 @@ export function TiraBrother({
                   <label htmlFor={`copias-${r.clave}`} className="rot-seg__etiqueta">
                     Copias
                   </label>
-                  <span className="etq-paso">
-                    <button
-                      type="button"
-                      aria-label={`Una copia menos de ${nombre}`}
-                      disabled={n <= 0}
-                      onClick={() => onCopias(r.clave, String(n - 1))}
-                    >
-                      <Minus aria-hidden />
-                    </button>
-                    <input
-                      id={`copias-${r.clave}`}
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      max={MAX_COPIAS}
-                      value={texto}
-                      onChange={(ev) => onCopias(r.clave, ev.target.value)}
-                      onFocus={(ev) => ev.currentTarget.select()}
-                      className="tabular-nums"
-                    />
-                    <button
-                      type="button"
-                      aria-label={`Una copia más de ${nombre}`}
-                      disabled={n >= MAX_COPIAS}
-                      onClick={() => onCopias(r.clave, String(n + 1))}
-                    >
-                      <Plus aria-hidden />
-                    </button>
-                  </span>
+                  <PasoCantidad
+                    menos={{ onClick: () => onCopias(r.clave, String(n - 1)), deshabilitado: n <= 0, etiqueta: `Una copia menos de ${nombre}` }}
+                    mas={{ onClick: () => onCopias(r.clave, String(n + 1)), deshabilitado: n >= MAX_COPIAS, etiqueta: `Una copia más de ${nombre}` }}
+                    campo={{
+                      id: `copias-${r.clave}`,
+                      type: "number",
+                      inputMode: "numeric",
+                      min: 0,
+                      max: MAX_COPIAS,
+                      value: texto,
+                      onChange: (ev) => onCopias(r.clave, ev.target.value),
+                      onFocus: (ev) => ev.currentTarget.select(),
+                    }}
+                  />
                 </div>
               </div>
             );

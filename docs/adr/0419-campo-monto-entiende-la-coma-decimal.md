@@ -62,3 +62,9 @@ propio lector) porque el del arqueo leía «1299,50» como 129 950.
 - **Porcentajes con coma** («12,5 %» en el descuento o el IGV) siguen siendo `type="number"`: no son plata, pero tienen el mismo problema.
 - **Los demás lectores de montos de `lib/`** (`leerMonto` de Precio por sede, del filtro de precio y de corregir el pago; `parsearMonto` de Gastos y
   de Configuración; `parseMontoNota`; `leerNumero` de Compras) leen texto que ya acepta la coma, cada uno a su manera: unificarlos es otro paso.
+
+## Actualización 2026-10-16 (auditoría de Finanzas, G07)
+
+La actualización (b) afirmaba que los lectores de Finanzas «ya aceptan la coma»: no era cierto para `parsearMonto` (gastos y configuración),
+`leerMontoArranque` y `parseMonto` de Por pagar, que borraban las comas o leían «1,299» como 1.30. Desde ADR-0433, actividad 2, los cuatro (y el saldo
+del banco de Cuentas y dinero) leen con `leerMontoPlata`; `lib/monto-lectores.test.ts` lo vigila.

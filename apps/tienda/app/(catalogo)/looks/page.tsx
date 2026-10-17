@@ -3,10 +3,13 @@ import Link from "next/link";
 import { Icono } from "@/components/Icono";
 import { TarjetaLook } from "@/components/looks/TarjetaLook";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
-import { hrefLista } from "@/lib/catalogo";
+import { EntradaProbador } from "@/components/probador/EntradaProbador";
+import { fotoOptimizable, hrefLista } from "@/lib/catalogo";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { hrefLooks, looksDeATres } from "@/lib/looks";
 import { leerLooks } from "@/lib/looks-servidor";
+import { armarProbador, indizar, lookInicial, presentes } from "@/lib/probador";
+import { leerProbador } from "@/lib/probador-servidor";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
 import { hayEnTienda } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
@@ -23,13 +26,23 @@ export default async function Looks({ searchParams }: { searchParams: Promise<Re
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
   const pedida = sedeDeLaUrl(sp.sede, sedes);
-  const [lectura, catalogo] = await Promise.all([leerLooks(pedida?.id ?? null), leerCatalogo(pedida?.id ?? null)]);
+  // Con los looks, el probador de la misma tienda: si tiene prendas, su tarjeta va arriba (ADR-0434, actividad 10).
+  const [lectura, catalogo, lecturaProbador] = await Promise.all([
+    leerLooks(pedida?.id ?? null),
+    leerCatalogo(pedida?.id ?? null),
+    leerProbador(pedida?.id ?? null),
+  ]);
   // La tienda cuyo precio usó la base (si la escondieron entretanto, la base ya respondió con «Todas»).
   const elegida = lectura?.sede ? sedes.find((s) => s.id === lectura.sede) ?? null : null;
   const sede = elegida ? claveDeSede(elegida.nombre) : null;
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
   // La cabecera (el menú y el buscador) dice lo mismo que el catálogo de esa tienda.
   const prendas = (catalogo?.prendas ?? []).filter((p) => hayEnTienda(p.stock, elegida?.id ?? null));
+  // Lo que el probador de esta tienda abre: si no hay nada que probar aquí, la tarjeta no se dibuja.
+  const delProbador = lecturaProbador
+    ? armarProbador(prendas, lecturaProbador, { elegida, tiendas: sedes, optimizable: (url) => fotoOptimizable(url, origenFotos) })
+    : [];
+  const lookDelProbador = lookInicial(delProbador);
 
   return (
     <MarcoCatalogo
@@ -49,6 +62,8 @@ export default async function Looks({ searchParams }: { searchParams: Promise<Re
           </h1>
           <p>Prendas que se ven bien juntas. Agrega el look completo y eliges cada talla en un solo paso.</p>
         </header>
+
+        {presentes(lookDelProbador).length > 0 && <EntradaProbador look={lookDelProbador} indice={indizar(delProbador)} sede={sede} />}
 
         {lectura === null ? (
           <div className="t-vacio" role="status">

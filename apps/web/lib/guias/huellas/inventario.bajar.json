@@ -2,7 +2,7 @@
   "guia": "inventario.bajar",
   "ruta": "/inventario/bajar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 36,
+  "total": 33,
   "controles": {
     "app/(app)/inventario/bajar/page.tsx": [
       "Volver «/inventario»"
@@ -26,9 +26,6 @@
       "button «Comprobar» #3",
       "button «Empezar otra bajada»",
       "button «Bajar otro fardo»",
-      "button «{`Una menos de ${nombre}»",
-      "input «{`Cantidad de ${nombre}»",
-      "button «{`Una más de ${nombre}»",
       "button «Quitar»",
       "ComboResponsable «{responsable}»",
       "Boton «→confirmar»"

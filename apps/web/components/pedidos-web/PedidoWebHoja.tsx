@@ -51,6 +51,7 @@ import {
   MOTIVOS_NO_CONFIRMAR,
   problemaParaConfirmar,
   rehacerDecisiones,
+  sePuedeQuitar,
   sePuedeReservarYa,
   textoCierre,
   textoDeDonde,
@@ -363,6 +364,7 @@ export function PedidoWebHoja({
                     <LineaPorConfirmar
                       linea={l}
                       decision={decisiones[l.lineaId] ?? null}
+                      puedeQuitar={sePuedeQuitar(p.lineas, decisiones, l.lineaId)}
                       onDecision={(d) => setDecisiones((ds) => ({ ...ds, [l.lineaId]: d }))}
                       tiendaId={p.ubicacionId}
                       tienda={tienda}
@@ -829,6 +831,7 @@ function BotonAnularPedido({ onClick, deshabilitado = false }: { onClick: () => 
 function LineaPorConfirmar({
   linea: l,
   decision,
+  puedeQuitar,
   onDecision,
   tiendaId,
   tienda,
@@ -837,6 +840,8 @@ function LineaPorConfirmar({
 }: {
   linea: LineaDetalle;
   decision: DecisionLinea | null;
+  /** Queda otra prenda sin quitar (`sePuedeQuitar`): con una sola, la salida es «No se puede confirmar». */
+  puedeQuitar: boolean;
   onDecision: (d: DecisionLinea | null) => void;
   tiendaId: string;
   tienda: string;
@@ -929,7 +934,7 @@ function LineaPorConfirmar({
         </Aviso>
       )}
 
-      {!quitada && (
+      {!quitada && puedeQuitar && (
         <div className="flex justify-end">
           <Boton type="button" peso="peligro" className="btn-chico" disabled={deshabilitado} onClick={() => onDecision({ tipo: "quitar" })}>
             Quitar del pedido
@@ -1003,7 +1008,7 @@ function LineasDelPedido({
         ) : (
           <p key={desdeId} className="flex items-start gap-2 text-[12.5px] text-taupe">
             <PackageSearch aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-            {x.tienda} la tiene reservada: la envía desde su «Pedidos web», en «Para enviar a otra tienda».
+            {x.tienda} la tiene reservada: la envía desde Tienda web ▸ Pedidos, en «Para enviar a otra tienda».
           </p>
         ),
       )}

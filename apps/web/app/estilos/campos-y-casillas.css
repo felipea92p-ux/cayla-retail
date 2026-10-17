@@ -125,6 +125,53 @@
   .caja-campo-baja { min-height: 2.25rem; font-size: 13px; }
   .caja-campo-texto-largo { align-items: flex-start; padding-block: 0.625rem; }
 
+  /* ---------- El paso de cantidad («− 1 +», <PasoCantidad>, ronda 17 del 2026-10-17) ----------
+     La caja del campo con el − y el + adentro: con el cursor en el número se enciende y dibuja su hilo como cualquier campo. «celda»
+     (26 px) va dentro de una matriz; «fila» (36 px) crece sola a 44 px con el dedo. */
+  .caja-campo.paso-cantidad { display: inline-flex; flex: none; gap: 0; height: 2.25rem; min-height: 0; padding: 0 3px; }
+  .caja-campo.paso-cantidad[data-tam="celda"] { height: 1.625rem; padding: 0 2px; border-radius: 7px; }
+  .caja-campo.paso-cantidad::after { left: 0.5rem; right: 0.5rem; }
+  .paso-cantidad-b {
+    display: grid; place-items: center; flex: none;
+    height: calc(100% - 6px); aspect-ratio: 1; border-radius: 8px;
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent); /* contraste: gráfico sobre hueso, papel */
+    transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla), transform 120ms var(--ease-cayla);
+  }
+  .paso-cantidad[data-tam="celda"] .paso-cantidad-b { height: calc(100% - 4px); border-radius: 5px; }
+  .paso-cantidad-b svg { width: 14px; height: 14px; }
+  .paso-cantidad[data-tam="celda"] .paso-cantidad-b svg { width: 12px; height: 12px; }
+  .paso-cantidad-b:hover { background: color-mix(in srgb, var(--color-sand) 60%, transparent); color: var(--color-tinta); }
+  .paso-cantidad-b:active { transform: scale(0.9); }
+  .paso-cantidad-b:disabled { opacity: 0.3; pointer-events: none; }
+  /* `.paso-cantidad` delante: le gana a la regla de todo control dentro de una caja (`.caja-campo :is(input)`, ancho completo). */
+  .paso-cantidad .paso-cantidad-n {
+    width: 2.25rem; flex: none; align-self: stretch; display: grid; place-items: center;
+    padding: 0; border: 0; background: transparent; outline: none;
+    text-align: center; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--color-tinta);
+    appearance: textfield;
+  }
+  .paso-cantidad-n::-webkit-inner-spin-button,
+  .paso-cantidad-n::-webkit-outer-spin-button { appearance: none; margin: 0; }
+  .paso-cantidad-n::placeholder { color: color-mix(in srgb, var(--color-tinta) 64%, transparent); } /* contraste: texto sobre hueso, papel */
+  .paso-cantidad-n:disabled { cursor: not-allowed; }
+  /* Un botón apagado (el «−» en 1) no apaga la caja entera, como haría en un campo: solo el número deshabilitado la apaga. */
+  .caja-campo.paso-cantidad:has(:disabled) { opacity: 1; }
+  .caja-campo.paso-cantidad:has(.paso-cantidad-n:disabled) { opacity: 0.55; }
+  .paso-cantidad[data-tam="celda"] .paso-cantidad-n { width: 1.75rem; font-size: 13px; }
+  /* El dato habla por el borde y el número (lo que llegó en Recibir): se pasó, está completo, falta. */
+  .caja-campo.paso-cantidad[data-tono="error"] { border-color: var(--color-rojo); background: color-mix(in srgb, var(--color-rojo) 8%, var(--color-hueso)); }
+  .caja-campo.paso-cantidad[data-tono="exito"] { border-color: var(--color-verde); background: color-mix(in srgb, var(--color-verde) 9%, var(--color-hueso)); }
+  .caja-campo.paso-cantidad[data-tono="atencion"] { border-color: var(--color-ambar); background: color-mix(in srgb, var(--color-ambar) 10%, var(--color-hueso)); }
+  .paso-cantidad[data-tono="error"] .paso-cantidad-n { color: var(--color-rojo-profundo); }
+  .paso-cantidad[data-tono="exito"] .paso-cantidad-n { color: var(--color-verde-profundo); }
+  .paso-cantidad[data-tono="atencion"] .paso-cantidad-n { color: var(--color-ambar-profundo); }
+  @media (pointer: coarse) {
+    .caja-campo.paso-cantidad[data-tam="fila"] { height: 2.75rem; }
+    /* 16 px: con menos, el iPhone agranda la pantalla al tocar el número. */
+    .paso-cantidad[data-tam="fila"] .paso-cantidad-n { width: 2.75rem; font-size: 16px; }
+    .paso-cantidad[data-tam="fila"] .paso-cantidad-b svg { width: 16px; height: 16px; }
+  }
+
   /* ---------- La lista que se abre (Desplegable, ComboBuscable, ComboResponsable, las píldoras de filtro) ----------
      La elegida lleva el hilo rojo de canto y su ✓ que se DIBUJA; con más de 8 opciones, el buscador fijo arriba con su lupa. */
   .combo-tilde { width: 15px; height: 15px; flex-shrink: 0; margin-left: 0.5rem; color: var(--color-rojo); }
@@ -403,7 +450,8 @@
   .interruptor-perilla,
   .sugerencia,
   .sugerencia-canto,
-  .sugerencia-tecla {
+  .sugerencia-tecla,
+  .paso-cantidad-b {
     transition-duration: 1ms !important;
     transition-delay: 0ms !important;
   }

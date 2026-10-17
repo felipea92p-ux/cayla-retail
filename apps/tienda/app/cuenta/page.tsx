@@ -12,8 +12,10 @@ import { TarjetaClub } from "@/components/TarjetaClub";
 import type { Prenda } from "@/lib/catalogo";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { leerMiClubEnBase } from "@/lib/club-servidor";
-import { hoyLima, MENSAJES } from "@/lib/cuentas";
+import { hoyLima } from "@/lib/cuentas";
+import { MENSAJES } from "@/lib/cuentas-mensajes";
 import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
+import { hrefConVolver } from "@/lib/entrada";
 import { conciliarCorreo } from "@/lib/mi-cuenta-servidor";
 import { leerMisPedidos } from "@/lib/pedidos-servidor";
 import { lineaDeMiembro, resumenAvisos, resumenClub, resumenFavoritos, resumenPedidos } from "@/lib/perfil";
@@ -92,6 +94,8 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
 
   const tarjeta = <TarjetaClub nombre={cuenta.nombre} desde={cuenta.clubDesde ?? anioLima()} />;
+  // Una cuenta simple (ADR-0438) todavía no es del Club: en vez de beneficios y tarjeta, la invitación a completar sus datos.
+  const esDelClub = cuenta.esDelClub;
 
   return (
     <MarcoCuenta conCuenta enPagina="cuenta" conPie>
@@ -102,7 +106,7 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
             <h1>
               Hola, <em>{cuenta.nombreCorto}.</em>
             </h1>
-            <p className="pf-cab-linea">{lineaDeMiembro(miClub?.club ?? null, cuenta.clubDesde ?? anioLima())}</p>
+            <p className="pf-cab-linea">{lineaDeMiembro(miClub?.club ?? null, esDelClub ? (cuenta.clubDesde ?? anioLima()) : null)}</p>
             {aviso === "avisos-sin-activar" && (
               // Recién creada la cuenta: marcó los avisos, pero su ficha del Club ya tenía otro celular (la web no lo cambia).
               <p className="w-nota" role="status">
@@ -114,7 +118,7 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
           <AtajosDelPerfil
             atajos={[
               { ancla: "pf-pedidos", icono: "pedido", nombre: "Mis pedidos", resumen: resumenPedidos(pedidos.estado === "ok" ? pedidos.pedidos : null) },
-              { ancla: "pf-club", icono: "regalo", nombre: "Mi Club", resumen: resumenClub(miClub?.club ?? null) },
+              { ancla: "pf-club", icono: "regalo", nombre: "Mi Club", resumen: resumenClub(miClub?.club ?? null, esDelClub) },
               { ancla: "pf-favoritos", icono: "corazon", nombre: "Favoritos", resumen: resumenFavoritos(miClub ? miClub.favoritos.length : null) },
               { ancla: "pf-avisos", icono: "campana", nombre: "Te avisamos", resumen: resumenAvisos(miClub?.esperas ?? null) },
             ]}
@@ -124,7 +128,26 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
             <MisPedidosEnLaCuenta lectura={pedidos} origenFotos={origenFotos} />
             {miClub ? (
               <>
-                <BeneficiosDelClub club={miClub.club} hoy={hoy} tarjeta={tarjeta} />
+                {esDelClub ? (
+                  <BeneficiosDelClub club={miClub.club} hoy={hoy} tarjeta={tarjeta} />
+                ) : (
+                  // Todavía no es del Club: lo que gana y el camino, sin tarjeta con un año que no es suyo.
+                  <SeccionDelPerfil id="pf-club" titulo="Mi Club CAYLA" mitad>
+                    <div className="pf-club">
+                      <div className="pf-club-fila">
+                        <div className="pf-beneficios">
+                          <p className="w-texto-sec">
+                            Con tu documento y tu celular entras al Club: descuento en tu cumpleaños y un vale de compra por cada año. Son los mismos
+                            datos que pide «Separar», y se piden una sola vez.
+                          </p>
+                          <Link className="t-btn t-btn-chico" href={hrefConVolver("/cuenta/club", null)}>
+                            Completar mis datos y entrar al Club
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </SeccionDelPerfil>
+                )}
                 <TusFavoritos
                   prendas={deIds(miClub.favoritos)}
                   cuantos={miClub.favoritos.length}

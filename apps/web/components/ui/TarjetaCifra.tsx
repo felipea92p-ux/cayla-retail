@@ -100,6 +100,8 @@ type PropsComunes = {
   /** Tarjeta que se toca: se levanta y recibe un barrido de luz al pasar el mouse. Sin `href`/`onClick` no hace nada. */
   viva?: boolean;
   id?: string;
+  /** Ancla de la guía interactiva (ADR-0389): la cifra que la demo enciende o toca. */
+  guia?: string;
   /** Clases extra (típico: `anim-entra` de la entrada escalonada, `col-span-2`). */
   className?: string;
   style?: CSSProperties;
@@ -156,6 +158,7 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
     viva = false,
     noSePudoLeer = false,
     id,
+    guia,
     className = "",
     style,
     children,
@@ -282,20 +285,20 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
 
   if (href) {
     return (
-      <Link href={href} id={id} className={clase} style={style}>
+      <Link href={href} id={id} data-guia={guia} className={clase} style={style}>
         {contenido}
       </Link>
     );
   }
   if (onClick) {
     return (
-      <button type="button" id={id} onClick={onClick} className={clase} aria-pressed={filtra ? puesta : undefined} style={style}>
+      <button type="button" id={id} data-guia={guia} onClick={onClick} className={clase} aria-pressed={filtra ? puesta : undefined} style={style}>
         {contenido}
       </button>
     );
   }
   return (
-    <div id={id} className={clase} style={style}>
+    <div id={id} data-guia={guia} className={clase} style={style}>
       {contenido}
     </div>
   );

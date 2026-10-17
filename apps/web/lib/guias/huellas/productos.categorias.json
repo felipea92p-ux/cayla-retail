@@ -2,7 +2,7 @@
   "guia": "productos.categorias",
   "ruta": "/productos/categorias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 36,
+  "total": 35,
   "controles": {
     "app/(app)/productos/categorias/page.tsx": [
       "Link «Productos · Familias»",
@@ -42,7 +42,6 @@
       "button «{abrir.titulo}»",
       "Boton «Aprobar»",
       "Boton «Rechazar»",
-      "button «{guia}»",
       "button «{cambiando ? \"Desactivando…\" : \"Desactivar\"}»",
       "Boton «Reactivar»"
     ],

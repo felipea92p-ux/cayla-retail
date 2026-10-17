@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Aviso } from "@/components/ui/Aviso";
 
 // La pregunta «¿no será uno que ya existe?» (2026-09-25): la caja ámbar que aparece mientras se escribe el nombre de
 // una marca o de un proveedor nuevo. UNA sola pieza para las tres puertas (nueva marca, proveedor nuevo desde la marca y
@@ -32,9 +33,8 @@ export function PreguntaParecido({
   deshabilitado?: boolean;
 }) {
   return (
-    <div id={id} role="status" className="anim-revelar rounded-xl border border-ambar/35 bg-ambar/[0.07] p-3.5">
-      <p className="text-sm font-semibold text-ambar-profundo">{titulo}</p>
-      <p className="mt-0.5 text-xs text-tinta/70">{bajada}</p>
+    <Aviso id={id} tono="atencion" titulo={titulo}>
+      <p>{bajada}</p>
       <ul className="mt-2.5 space-y-2">
         {opciones.map((opcion) => {
           const accion = si(opcion);
@@ -62,6 +62,6 @@ export function PreguntaParecido({
           {no.texto}
         </button>
       )}
-    </div>
+    </Aviso>
   );
 }

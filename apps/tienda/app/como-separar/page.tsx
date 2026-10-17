@@ -4,11 +4,11 @@ import { EncabezadoAyuda } from "@/components/ayuda/EncabezadoAyuda";
 import { LineaDePasos } from "@/components/ayuda/LineaDePasos";
 import { NotaAyuda } from "@/components/ayuda/NotaAyuda";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
+import { SegunSesion } from "@/components/cuenta/SegunSesion";
 import { Icono } from "@/components/Icono";
 import { avisosParaSeparar, pasosParaSeparar } from "@/lib/ayuda";
 import { leerAyuda } from "@/lib/ayuda-servidor";
 import { hrefLista } from "@/lib/catalogo";
-import { haySesion } from "@/lib/sesion-servidor";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../estilos/ayuda.css";
 
@@ -25,10 +25,11 @@ export const metadata: Metadata = {
  * y el llamado del final: sin cuenta, crearla (o entrar); con cuenta, el primer paso ya sale hecho y el llamado lleva a la ropa.
  */
 export default async function ComoSeparar() {
-  const [conCuenta, plazos, sedes] = await Promise.all([haySesion(), leerAyuda(), leerSedes()]);
+  const [plazos, sedes] = await Promise.all([leerAyuda(), leerSedes()]);
   const { confirmar, pagar, recoger } = avisosParaSeparar(plazos);
+  const nombresDeSedes = sedes.map((s) => s.nombre);
   return (
-    <MarcoCuenta conCuenta={conCuenta} conPie>
+    <MarcoCuenta segunSesion conPie>
       <div className="t-ancho ay-pagina">
         <EncabezadoAyuda
           ceja="Ayuda"
@@ -40,11 +41,10 @@ export default async function ComoSeparar() {
           bajada="En la web no pagas nada: separas tus prendas, la tienda te lo confirma por WhatsApp y lo recoges en la tienda que elijas."
         />
 
-        <LineaDePasos
-          pasos={pasosParaSeparar(
-            sedes.map((s) => s.nombre),
-            conCuenta,
-          )}
+        {/* El primer paso sale hecho para quien ya tiene cuenta. */}
+        <SegunSesion
+          visitante={<LineaDePasos pasos={pasosParaSeparar(nombresDeSedes, false)} />}
+          conCuenta={<LineaDePasos pasos={pasosParaSeparar(nombresDeSedes, true)} />}
         />
 
         <section className="ay-bloque" aria-labelledby="ay-saber">
@@ -65,9 +65,28 @@ export default async function ComoSeparar() {
           </div>
         </section>
 
-        <section className="ay-llamado" aria-labelledby="ay-llamado">
-          {conCuenta ? (
-            <>
+        <SegunSesion
+          visitante={
+            <section className="ay-llamado" aria-labelledby="ay-llamado">
+              <div className="ay-llamado-tx">
+                <span className="t-ceja">Club CAYLA</span>
+                <h2 id="ay-llamado" className="ay-h2">
+                  Crea tu cuenta y forma parte del <em>Club CAYLA.</em>
+                </h2>
+                <p className="ay-llamado-x">El catálogo es de todos: la cuenta la creas cuando quieras separar algo. Entras al Club al completar tu documento y tu celular.</p>
+              </div>
+              <div className="ay-llamado-acc">
+                <Link className="t-btn" href="/crear-cuenta">
+                  Crear mi cuenta
+                </Link>
+                <Link className="ay-enlace" href="/entrar">
+                  Ya tengo cuenta · Entrar <Icono nombre="flecha" />
+                </Link>
+              </div>
+            </section>
+          }
+          conCuenta={
+            <section className="ay-llamado" aria-labelledby="ay-llamado">
               <div className="ay-llamado-tx">
                 <span className="t-ceja">Tu cuenta está lista</span>
                 <h2 id="ay-llamado" className="ay-h2">
@@ -83,27 +102,9 @@ export default async function ComoSeparar() {
                   Ver mis pedidos <Icono nombre="flecha" />
                 </Link>
               </div>
-            </>
-          ) : (
-            <>
-              <div className="ay-llamado-tx">
-                <span className="t-ceja">Club CAYLA</span>
-                <h2 id="ay-llamado" className="ay-h2">
-                  Crea tu cuenta y forma parte del <em>Club CAYLA.</em>
-                </h2>
-                <p className="ay-llamado-x">Con tu cuenta ves el catálogo, cuánto hay en cada tienda y separas lo que te gusta.</p>
-              </div>
-              <div className="ay-llamado-acc">
-                <Link className="t-btn" href="/crear-cuenta">
-                  Crear mi cuenta
-                </Link>
-                <Link className="ay-enlace" href="/entrar">
-                  Ya tengo cuenta · Entrar <Icono nombre="flecha" />
-                </Link>
-              </div>
-            </>
-          )}
-        </section>
+            </section>
+          }
+        />
       </div>
     </MarcoCuenta>
   );

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Minus, Plus } from "lucide-react";
 import { Modal, campoTexto } from "@/components/ui/Modal";
 import { Boton, Desplegable } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
@@ -29,6 +28,7 @@ import {
   type LineaParaPedir,
   type PrendaPedible,
 } from "@/lib/pedidos-entre-sedes-reglas";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 // «Pedir a otra sede» (ADR-0242 D-7, `pedir_a_otra_sede`): la sede activa le pide prendas a otra tienda para reponer, sin
 // clienta. La otra tienda lo ve en Traslados, «Te piden» (con número en el menú, ADR-0328 act. 17), y lo envía en un solo
@@ -110,29 +110,13 @@ function usePrendasDeSede(sedeId: string) {
 
 function Contador({ etiqueta, cantidad, tope, enviando, onCambiar }: { etiqueta: string; cantidad: number; tope: number; enviando: boolean; onCambiar: (delta: number) => void }) {
   return (
-    <div className="flex shrink-0 items-center gap-1">
-      <button
-        type="button"
-        aria-label={`Una menos de ${etiqueta}`}
-        disabled={enviando || cantidad <= 0}
-        onClick={() => onCambiar(-1)}
-        className="btn-cayla btn-sutil h-9 w-9 justify-center p-0"
-      >
-        <Minus aria-hidden className="h-4 w-4" />
-      </button>
-      <span className="w-7 text-center tabular-nums font-semibold text-tinta" aria-live="polite">
-        {cantidad}
-      </span>
-      <button
-        type="button"
-        aria-label={`Una más de ${etiqueta}`}
-        disabled={enviando || cantidad >= tope}
-        onClick={() => onCambiar(1)}
-        className="btn-cayla btn-sutil h-9 w-9 justify-center p-0"
-      >
-        <Plus aria-hidden className="h-4 w-4" />
-      </button>
-    </div>
+    <PasoCantidad
+      className="shrink-0"
+      menos={{ onClick: () => onCambiar(-1), deshabilitado: enviando || cantidad <= 0, etiqueta: `Una menos de ${etiqueta}` }}
+      mas={{ onClick: () => onCambiar(1), deshabilitado: enviando || cantidad >= tope, etiqueta: `Una más de ${etiqueta}` }}
+    >
+      {cantidad}
+    </PasoCantidad>
   );
 }
 

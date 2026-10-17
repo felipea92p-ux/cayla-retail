@@ -1,4 +1,4 @@
-// La guía de foco de las hojas de Catálogo ▸ Vitrina web (ADR-0284, ADR-0408). No agrega reglas: lo único que la base exige de quien
+// La guía de foco de las hojas de Tienda web ▸ Vitrina (ADR-0284, ADR-0408). No agrega reglas: lo único que la base exige de quien
 // guarda (`vitrina_guardar_modelo`, `vitrina_mostrar`) es quién lo hace; si se ve, «Lo nuevo» y lo que se muestra ya vienen elegidos,
 // y la descripción para la web es opcional (sin ella sale la del catálogo). No hay precio que llenar: es el de cada tienda.
 

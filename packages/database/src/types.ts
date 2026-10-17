@@ -5884,6 +5884,22 @@ export type Database = {
         Args: { p_look_id: string; p_publicado: boolean; p_version: number }
         Returns: Json
       }
+      // Vitrina web ▸ Probador (ADR-0434, actividad 1; 20261017003000): los recortes de las fotos para «Arma el tuyo». Anotar y
+      // revisar firman con el responsable del combo.
+      fn_vitrina_recortes: { Args: never; Returns: Json }
+      registrar_recorte: {
+        Args: { p_foto: string; p_recorte: string; p_proporcion: number; p_motivo?: string | null }
+        Returns: Json
+      }
+      revisar_recorte: { Args: { p_foto: string; p_usar: boolean }; Returns: Json }
+      // El «Deshacer» de un recorte descartado (/chaos, 2026-10-17; 20261017183000): lo devuelve a «listo» o «por revisar» solo si sigue
+      // descartado, y queda en la Actividad.
+      deshacer_descarte_recorte: { Args: { p_foto: string; p_estado: string }; Returns: Json }
+      // Vitrina web ▸ Probador, los largos y la lista viva (ADR-0434, actividad 3; 20261017015000). Los dos guardados firman con el
+      // responsable del combo.
+      fn_vitrina_probador: { Args: never; Returns: Json }
+      vitrina_guardar_largo: { Args: { p_producto_id: string; p_largo_cm: number | null }; Returns: Json }
+      vitrina_guardar_largos_tipicos: { Args: { p_largos: Json }; Returns: Json }
       // Cobrar dentro del pedido web (ADR-0408, actividad 9; motor 20261015000000, token 20261015042000). El efectivo no lleva n.º
       // de operación (null); el token lo pone `useIntento`.
       registrar_pago_pedido_web: {

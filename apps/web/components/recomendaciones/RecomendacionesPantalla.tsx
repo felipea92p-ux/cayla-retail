@@ -32,13 +32,15 @@ import {
   type ListaRecomendaciones,
 } from "@/lib/recomendaciones-reglas";
 
-const RUTA = "/clientas/recomendaciones";
-// En el celular la fila es una tarjeta (cliente y estado arriba, la recomendación abajo); desde `sm`, columnas.
-const PLANTILLA = "grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[6.5rem_minmax(0,1fr)_8.5rem_minmax(0,1.6fr)_7rem]";
+const RUTA = "/tienda-web/recomendaciones";
+// Cada recomendación como un mensaje (ADR-0430): a la izquierda quién la escribió, sobre qué y cuándo; al centro lo que escribió, en su
+// globo (y debajo, si ya se le respondió, la respuesta de CAYLA); a la derecha en qué está. En el celular, quién y el estado arriba y el
+// mensaje debajo, a todo el ancho.
+const PLANTILLA = "grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[12rem_minmax(0,1fr)_7.5rem]";
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
 
 /**
- * Clientes ▸ Recomendaciones (ADR-0408, Felipe 2026-10-15): lo que los clientes recomiendan desde la tienda online, con su nombre. Las
+ * Tienda web ▸ Recomendaciones (ADR-0408, Felipe 2026-10-15): lo que los clientes recomiendan desde la tienda online, con su nombre. Las
  * cifras (sin leer, respondidas, del mes, archivadas: las que filtran se tocan), la lista en UNA tarjeta con su buscador y sus dos
  * filtros (en qué estado y sobre qué), y la nota. Tocar una fila abre su hoja (la URL lo recuerda: `?r=`), donde se marca como leída,
  * se responde (el cliente lo ve en su cuenta) o se archiva, siempre con el combo «Responsable». Nada se borra.
@@ -101,8 +103,32 @@ export function RecomendacionesPantalla({
   /** Una cifra que filtra: tocada otra vez, vuelve a la bandeja. */
   const filtroDeCifra = (e: FiltroEstado) => () => elegirEstado(estado === e ? ESTADO_POR_DEFECTO : e);
 
+  /** Abre otra recomendación en el mismo cajón y, si está en la lista que se ve, pasa a su página (su fila queda marcada). */
+  const irA = (id: string) => {
+    const i = visibles.findIndex((x) => x.id === id);
+    if (i >= 0) setPagina(Math.floor(i / POR_PAGINA) + 1);
+    abrir(id);
+  };
+  // ↑ ↓ y «3 de 12» recorren la lista que se ve. La que se acaba de responder puede salir de «Por responder»: entonces no hay flechas
+  // y el pie ofrece la siguiente que espera.
+  const indiceAbierta = abierta ? visibles.findIndex((x) => x.id === abierta.id) : -1;
+  const navegacion =
+    indiceAbierta >= 0
+      ? {
+          indice: indiceAbierta,
+          total: visibles.length,
+          onNavegar: (d: 1 | -1) => {
+            const otra = visibles[indiceAbierta + d];
+            if (otra) irA(otra.id);
+          },
+        }
+      : undefined;
+  const siguiente = abierta
+    ? (lista.recomendaciones.find((x) => x.id !== abierta.id && estadoDe(x) === "por_responder") ?? null)
+    : null;
+
   return (
-    <div className="space-y-6">
+    <div className="tw space-y-6">
       {abiertaInicial && !lista.recomendaciones.some((r) => r.id === abiertaInicial) && (
         <Aviso tono="atencion" titulo="No se encontró esa recomendación">
           Puede que el enlace esté mal copiado. Elige una de la lista.
@@ -111,15 +137,15 @@ export function RecomendacionesPantalla({
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-guia="recomendaciones.cifras">
         <TarjetaCifra
-          punto={cifras.sinLeer > 0 ? "ambar" : "neutro"}
-          etiqueta="Sin leer"
+          punto={cifras.porResponder > 0 ? "ambar" : "neutro"}
+          etiqueta="Por responder"
           className="anim-entra"
           style={{ ["--i" as string]: 0 }}
-          valor={<CifraQueCuenta valor={cifras.sinLeer} alMontar />}
-          activa={estado === "sin_leer"}
-          onClick={filtroDeCifra("sin_leer")}
+          valor={<CifraQueCuenta valor={cifras.porResponder} alMontar />}
+          activa={estado === "por_responder"}
+          onClick={filtroDeCifra("por_responder")}
         >
-          {cifras.sinLeer > 0 ? "Esperan que alguien las lea" : "Todas están leídas"}
+          {cifras.porResponder > 0 ? "Esperan tu respuesta" : "No queda nada por responder"}
         </TarjetaCifra>
         <TarjetaCifra
           punto={cifras.respondidas > 0 ? "verde" : "neutro"}
@@ -192,6 +218,11 @@ export function RecomendacionesPantalla({
             <Vacio icono={<MessageSquareText />} titulo="Todavía no llegó ninguna recomendación" guia="recomendaciones.vacio">
               Cuando un cliente escriba una desde su cuenta de la tienda online, aparece aquí con su nombre.
             </Vacio>
+          ) : !filtrosPuestos ? (
+            // Lo de siempre («Por responder») vacío: no hay filtro que limpiar, hay lo ya respondido o archivado por ver.
+            <Vacio tamano="chico" icono={<MessageSquareText />} accion={{ texto: "Ver todas", onClick: () => elegirEstado("todas") }}>
+              No queda nada por responder.
+            </Vacio>
           ) : (
             <Vacio
               tamano="chico"
@@ -203,10 +234,7 @@ export function RecomendacionesPantalla({
           )
         ) : (
           <>
-            <Encabezado
-              plantilla={PLANTILLA}
-              columnas={[{ titulo: "Llegó" }, { titulo: "Cliente" }, { titulo: "Sobre" }, { titulo: "Recomendación" }, { titulo: "Estado" }]}
-            />
+            <Encabezado plantilla={PLANTILLA} columnas={[{ titulo: "Quién" }, { titulo: "Lo que escribió" }, { titulo: "Estado" }]} />
             {enPagina.map((r, i) => {
               const e = estadoDe(r);
               return (
@@ -229,40 +257,50 @@ export function RecomendacionesPantalla({
                       abrir(r.id);
                     }
                   }}
-                  className={fila(PLANTILLA, "cursor-pointer items-center sm:items-center")}
+                  className={fila(PLANTILLA, "cursor-pointer items-start sm:items-start")}
                   aria-label={`Recomendación de ${deQuien(r)} sobre ${sobreQue(r)}: ${INSIGNIA[e].texto}`}
                 >
-                  <span className="hidden text-[12.5px] text-taupe sm:block">{haceCuanto(r.creadaEn, ahora)}</span>
-                  <span className="flex min-w-0 items-center gap-2">
+                  <span className="flex min-w-0 items-start gap-2.5">
                     {r.cliente ? (
-                      <AvatarPersona personaId={null} nombre={r.cliente.nombre} tamano={24} />
+                      <AvatarPersona personaId={null} nombre={r.cliente.nombre} tamano={32} />
                     ) : (
                       // Sin nombre (su ficha se anonimizó): sin iniciales que inventar.
-                      <UserX aria-hidden className="h-6 w-6 shrink-0 p-0.5 text-taupe" />
+                      <UserX aria-hidden className="h-8 w-8 shrink-0 p-1 text-taupe" />
                     )}
-                    <button
-                      type="button"
-                      onClick={(ev) => {
-                        // La fila también abre: sin esto, el clic subiría y abriría dos veces.
-                        ev.stopPropagation();
-                        abrir(r.id);
-                      }}
-                      title={r.cliente ? undefined : "Su ficha se anonimizó: la recomendación se queda, sin su nombre"}
-                      className={`min-w-0 truncate text-left hover:text-rojo-profundo ${r.cliente ? "text-tinta" : "italic text-taupe"} ${e === "sin_leer" ? "font-semibold" : ""}`}
-                    >
-                      {deQuien(r)}
-                    </button>
+                    <span className="min-w-0">
+                      <button
+                        type="button"
+                        onClick={(ev) => {
+                          // La fila también abre: sin esto, el clic subiría y abriría dos veces.
+                          ev.stopPropagation();
+                          abrir(r.id);
+                        }}
+                        title={r.cliente ? undefined : "Su ficha se anonimizó: la recomendación se queda, sin su nombre"}
+                        className={`block max-w-full truncate text-left hover:text-rojo-profundo ${r.cliente ? "text-tinta" : "italic text-taupe"} ${e === "por_responder" ? "font-semibold" : ""}`}
+                      >
+                        {deQuien(r)}
+                      </button>
+                      <span className="block truncate text-[12px] text-taupe">
+                        {sobreQue(r)} · {haceCuanto(r.creadaEn, ahora)}
+                      </span>
+                    </span>
                   </span>
-                  <span className="col-start-2 row-start-1 flex justify-end sm:col-start-auto sm:row-start-auto sm:hidden">
+                  <span className="col-start-2 row-start-1 flex justify-end sm:hidden">
                     <Chip tono={INSIGNIA[e].tono} tachado={false}>
                       {INSIGNIA[e].texto}
                     </Chip>
                   </span>
-                  <span className="col-span-2 truncate text-[13px] text-taupe sm:col-span-1">
-                    {sobreQue(r)}
-                    <span className="sm:hidden"> · {haceCuanto(r.creadaEn, ahora)}</span>
+                  <span className="col-span-2 flex min-w-0 flex-col gap-1.5 sm:col-span-1">
+                    <span className="tw-globo line-clamp-3" data-sin-leer={e === "por_responder" ? "" : undefined}>
+                      {r.texto}
+                    </span>
+                    {r.respuesta && (
+                      <span className="tw-globo-respuesta line-clamp-2">
+                        <small>CAYLA respondió</small>
+                        {r.respuesta}
+                      </span>
+                    )}
                   </span>
-                  <span className="col-span-2 line-clamp-2 min-w-0 whitespace-pre-line break-words text-[13.5px] text-tinta sm:col-span-1">{r.texto}</span>
                   <span className="hidden sm:block">
                     <Chip tono={INSIGNIA[e].tono} tachado={false}>
                       {INSIGNIA[e].texto}
@@ -286,18 +324,23 @@ export function RecomendacionesPantalla({
       <div className="nota-cayla space-y-2 text-[13px]" data-guia="recomendaciones.nota">
         <p>
           Cada recomendación llega con el nombre de quien la escribió, desde su cuenta de la tienda online: sobre una tienda o sobre CAYLA en
-          general. Tu respuesta la lee en su cuenta, en «Recomendaciones», y se escribe una sola vez. Archivar la saca de la bandeja, sin
-          borrarla. Si su ficha se anonimiza, la recomendación se queda sin su nombre ni sus datos.
+          general. Tu respuesta la lee en su cuenta, en «Recomendaciones», y se escribe una sola vez. Si no hace falta responder,
+          archívala: sale de la bandeja sin borrarse, y el cliente la ve como leída. Si su ficha se anonimiza, la recomendación se queda
+          sin su nombre ni sus datos.
           {lista.hayMas ? " Aquí se ven las 1000 más nuevas." : ""}
         </p>
       </div>
 
       {abierta && (
+        // Sin `key`: el cajón sigue abierto al pasar de una a otra (con ↑ ↓, tocando otra fila o «Siguiente por responder») y
+        // guarda lo escrito en cada una; solo cambia su contenido.
         <RecomendacionHoja
-          key={abierta.id}
           recomendacion={abierta}
           veFichas={lista.veFichas}
           ahora={ahora}
+          navegacion={navegacion}
+          siguiente={siguiente}
+          onSiguiente={irA}
           onClose={cerrar}
           onCambio={(id) => {
             setRecien(id);

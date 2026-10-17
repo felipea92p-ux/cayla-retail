@@ -243,8 +243,7 @@ ul[data-hay] .mv-tipo:not([aria-current]):hover { opacity: 1; }
 .mv-fila[data-flash] { animation: mv-destello 1.3s var(--ease-cayla); }
 @keyframes mv-destello { 0%, 100% { background: transparent; } 25% { background: color-mix(in srgb, var(--mv-c) 17%, var(--color-papel)); } }
 
-/* ── El cajón de un movimiento: cabecera con el sello de su tipo, y «Qué pasó» ── */
-.mv-cajon-cab { display: flex; align-items: flex-start; gap: 1rem; border-radius: 16px; background: color-mix(in srgb, var(--mv-c) 9%, var(--color-papel)); padding: 1.125rem 1.25rem; }
+/* ── El cajón de un movimiento: «Qué pasó» (su cabecera, con el sello del tipo, es la banda de <Cajon>, ADR-0358 ronda 17) ── */
 .mv-pasos { position: relative; display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
 .mv-pasos li { position: relative; display: grid; grid-template-columns: 1.375rem minmax(0, 1fr); gap: 0.625rem; padding-bottom: 0.875rem; }
 .mv-pasos li:last-child { padding-bottom: 0; }

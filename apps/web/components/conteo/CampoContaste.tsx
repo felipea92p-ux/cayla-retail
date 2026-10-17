@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, useState } from "react";
-import { Minus, Plus } from "lucide-react";
 import { cantidadEscrita } from "@/lib/conteo-reglas";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 /* ====================================================================
    CampoContaste · el número que la persona cuenta en UNA variante: [−] [ cantidad ] [+]
@@ -31,14 +31,15 @@ import { cantidadEscrita } from "@/lib/conteo-reglas";
    siguiente campo «Contaste» (lo decide quien arma la lista: `alEnter`); ↑ y ↓ del teclado suman y restan. Los botones
    − y + son de ratón y de dedo: no son parada de Tab, así quien cuenta con teclado no atraviesa tres controles por fila.
 
-   Medidas: compacto (26 px de alto, como la tarjeta del diseño) con puntero fino; con dedo (`pointer: coarse`) sube a
-   36 px. `text-base` en el campo con dedo para que iOS no haga zoom al enfocar. Foco que SE VE (borde tinta y contorno).
+   Medidas: el paso de cantidad del sistema (<PasoCantidad>, ADR-0358 ronda 17), tamaño «fila»: 36 px con puntero fino; con dedo
+   (`pointer: coarse`) sube a 44 px y el número a 16 px para que iOS no haga zoom al enfocar. Con el cursor en el número, la caja se
+   enciende como un campo.
    ==================================================================== */
 
 const formato = (n: number | null) => (n === null ? "" : String(n));
 
-const BOTON =
-  "grid h-[26px] w-[26px] shrink-0 place-items-center rounded-md border border-taupe/25 bg-papel text-taupe/70 transition-colors hover:border-taupe/50 hover:bg-hueso/50 hover:text-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta/60 [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:w-9";
+/** La marca con la que Contar encuentra los campos «Contaste» a la vista (`ContarConteo`, Enter → el siguiente). */
+const MARCA_CONTASTE = { "data-contaste": "" };
 
 export const CampoContaste = memo(function CampoContaste({
   varianteId,
@@ -104,47 +105,47 @@ export const CampoContaste = memo(function CampoContaste({
   }
 
   return (
-    <div className="flex items-center justify-center gap-1 @[26rem]:gap-3.5">
-      <button type="button" tabIndex={-1} aria-label={`Restar uno. ${etiqueta}`} onClick={() => paso(-1)} className={BOTON}>
-        <Minus aria-hidden strokeWidth={2} className="h-3.5 w-3.5" />
-      </button>
-      <input
-        // La caja que se enciende (ADR-0358, ronda 6), suelta y del alto de la fila: 26 px con mouse, 36 con dedo.
-        className="caja-campo-input h-[26px] min-h-0 w-11 min-w-0 scroll-my-28 px-1 text-center tabular-nums aria-[invalid=true]:border-rojo-profundo @[26rem]:w-[5.5rem] [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:text-base"
-        type="text"
-        inputMode="numeric"
-        pattern="[0-9]*"
-        enterKeyHint="next"
-        autoComplete="off"
-        autoCorrect="off"
-        spellCheck={false}
-        placeholder=""
-        aria-label={etiqueta}
-        aria-invalid={invalido || undefined}
-        data-contaste=""
-        value={texto}
-        onChange={(e) => {
-          setTexto(e.target.value);
-          setSucio(true);
-        }}
-        onFocus={(e) => e.currentTarget.select()}
-        onBlur={() => confirmar()}
-        onKeyDown={(e) => {
-          if (e.nativeEvent.isComposing) return;
-          if (e.key === "Enter") {
-            e.preventDefault();
-            // Aceptar con Enter la cifra de antes es una decisión, no una omisión: se guarda.
-            if (contada === null && sugerida !== null && !sucio) confirmar(true);
-            alEnter(e.currentTarget);
-          } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-            e.preventDefault();
-            paso(e.key === "ArrowUp" ? 1 : -1);
-          }
+    <div className="flex items-center justify-center">
+      <PasoCantidad
+        // Los botones no son parada de Tab (ver arriba); lo escrito que no vale tiñe la caja de error (antes, el borde del campo).
+        sinTab
+        tono={invalido ? "error" : undefined}
+        menos={{ onClick: () => paso(-1), etiqueta: `Restar uno. ${etiqueta}` }}
+        mas={{ onClick: () => paso(1), etiqueta: `Sumar uno. ${etiqueta}` }}
+        campo={{
+          className: "scroll-my-28",
+          type: "text",
+          inputMode: "numeric",
+          pattern: "[0-9]*",
+          enterKeyHint: "next",
+          autoComplete: "off",
+          autoCorrect: "off",
+          spellCheck: false,
+          placeholder: "",
+          "aria-label": etiqueta,
+          "aria-invalid": invalido || undefined,
+          ...MARCA_CONTASTE,
+          value: texto,
+          onChange: (e) => {
+            setTexto(e.target.value);
+            setSucio(true);
+          },
+          onFocus: (e) => e.currentTarget.select(),
+          onBlur: () => confirmar(),
+          onKeyDown: (e) => {
+            if (e.nativeEvent.isComposing) return;
+            if (e.key === "Enter") {
+              e.preventDefault();
+              // Aceptar con Enter la cifra de antes es una decisión, no una omisión: se guarda.
+              if (contada === null && sugerida !== null && !sucio) confirmar(true);
+              alEnter(e.currentTarget);
+            } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+              e.preventDefault();
+              paso(e.key === "ArrowUp" ? 1 : -1);
+            }
+          },
         }}
       />
-      <button type="button" tabIndex={-1} aria-label={`Sumar uno. ${etiqueta}`} onClick={() => paso(1)} className={BOTON}>
-        <Plus aria-hidden strokeWidth={2} className="h-3.5 w-3.5" />
-      </button>
     </div>
   );
 });

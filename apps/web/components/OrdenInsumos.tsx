@@ -176,14 +176,13 @@ export function OrdenInsumos({
   }
 
   return (
-    <section aria-label="Insumos descontados">
-      <TituloGrupo className="mb-3">Insumos descontados</TituloGrupo>
+    <section aria-label="Tela y avíos usados">
+      <TituloGrupo className="mb-3">Tela y avíos usados</TituloGrupo>
 
       {grupos.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-ambar/45 bg-ambar/[0.06] px-3.5 py-3 text-[13px] text-ambar-profundo">
-          <b className="font-semibold">Todavía no se descontó tela ni avíos.</b>{" "}
+        <Aviso tono="atencion" titulo="Todavía no se descontó tela ni avíos.">
           {esLider ? "El costo que ves es el que se anotó al abrir la orden; al descontar el primer insumo de cada tipo se reemplaza por lo real." : "Registra lo que salió del estante."}
-        </p>
+        </Aviso>
       ) : (
         <ul>
           {grupos.map((g) => {

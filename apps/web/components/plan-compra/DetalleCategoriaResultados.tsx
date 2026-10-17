@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { Shirt } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { BarraAvance } from "@/components/ui/BarraAvance";
@@ -130,9 +130,9 @@ export function DetalleCategoriaResultados({
                 : "Va 20 % o más por debajo del plan y le sobra: vitrina, combo o una rebaja chica."}
             </span>
             {veAnalisis && (
-              <Link href={enlaceAnalisis(senal.senal, categoria.nombre)} className="btn-cayla btn-enlace">
-                {senal.senal === "pedir" ? "Sus prendas que se acaban →" : "Sus prendas que no se venden →"}
-              </Link>
+              <EnlaceVer href={enlaceAnalisis(senal.senal, categoria.nombre)}>
+                {senal.senal === "pedir" ? "Sus prendas que se acaban" : "Sus prendas que no se venden"}
+              </EnlaceVer>
             )}
           </div>
         )}

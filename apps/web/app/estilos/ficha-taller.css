@@ -71,12 +71,9 @@
 }
 
 /* ---- La matriz color × talla ----
-   La tabla es la de «Unidades de hoy» del alta (`MatrizCantidades`, clases de Tailwind en `MatrizStockFicha.tsx`). Aquí solo lo que
-   Editar le suma a la caja − N + de cada celda: el borde ámbar de lo que cambió y espera a «Revisar y guardar», el punteado de una
-   variante nueva y el destello de la celda que se acaba de tocar. */
-.matriz-paso {
-  border-color: transparent;
-}
+   Cada celda es el paso de cantidad del sistema (`<PasoCantidad tamano="celda">`, ADR-0358, ronda 17). Aquí solo lo que Editar le
+   suma: el borde ámbar de lo que cambió y espera a «Revisar y guardar», el punteado de una variante nueva y el destello de la celda que
+   se acaba de tocar. */
 .matriz-paso[data-cambiada="true"] {
   border-color: var(--color-ambar);
 }
@@ -97,53 +94,7 @@
   }
 }
 
-/* El stepper: el mismo control redondo de la maqueta (y del alta), el número es el stock de HOY. */
-.taller-stepper {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--color-sand);
-  border-radius: 999px;
-  background: var(--color-papel);
-  overflow: hidden;
-}
-.taller-stepper button {
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-taupe-profundo);
-  line-height: 1;
-  transition: background-color 150ms, color 150ms;
-}
-.taller-stepper button:hover:not(:disabled) {
-  background: var(--color-hueso);
-  color: var(--color-tinta);
-}
-.taller-stepper button:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-.taller-stepper .taller-val {
-  min-width: 22px;
-  text-align: center;
-  font-size: 13px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-tinta);
-}
-.taller-stepper[data-mini="true"] {
-  background: var(--color-hueso);
-}
-.taller-stepper[data-mini="true"] button {
-  width: 18px;
-  height: 18px;
-  font-size: 12px;
-}
-.taller-stepper[data-mini="true"] button:hover:not(:disabled) {
-  background: var(--color-papel);
-}
+/* El stepper de cada talla es la pieza del sistema (<PasoCantidad tamano="celda">, ADR-0358 ronda 17). */
 .taller-fila-nueva {
   animation: anim-revelar-taller 320ms var(--ease-cayla) both;
 }

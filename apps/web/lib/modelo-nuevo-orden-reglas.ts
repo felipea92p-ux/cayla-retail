@@ -36,7 +36,7 @@ export function hrefAltaDesdeProduccion(tipo: TipoOrden): string {
   return `/productos/nuevo?desde=${VALOR_DESDE}&tipo=${tipo}`;
 }
 
-/** Nuevo producto → Nueva orden con el modelo recién creado ya elegido (`?nueva=<id>` lo abre Órdenes; ver `OrdenesTablero`). */
+/** Nuevo producto → Nueva orden con el modelo recién creado ya elegido (`?nueva=<id>` lo abre Órdenes; ver `OrdenesLista`). */
 export function hrefOrdenDesdeAlta(productoId: string, tipo: TipoOrden): string {
   return `${RUTA_ORDENES}?nueva=${encodeURIComponent(productoId)}&tipo=${tipo}`;
 }

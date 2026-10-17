@@ -27,6 +27,8 @@
 @import "./estilos/caja-cierre.css";
 @import "./estilos/caja-comparativa.css";
 @import "./estilos/ficha-taller.css";
+@import "./estilos/orden-pagina.css";
+@import "./estilos/ordenes-lista.css";
 @import "./estilos/vista-rapida.css";
 @import "./estilos/historial-prenda.css";
 @import "./estilos/vender-grilla.css";
@@ -65,6 +67,8 @@
 @import "./estilos/plan-piso.css";
 /* Historial de cierres de Caja: cada cierre como un ticket con su sello (maqueta E, Felipe 2026-10-12). */
 @import "./estilos/historial-tickets.css";
+/* Tienda web (ADR-0430): la ventana del navegador, el mosaico de prendas, el camino del pedido y su movimiento. */
+@import "./estilos/tienda-web.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
 
@@ -2948,6 +2952,24 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
   .hoja-cobro-billete.es-otro { background: var(--color-papel); border-style: dashed; box-shadow: none; cursor: text; }
   .hoja-cobro-billete.es-otro:focus-within,
   .hoja-cobro-billete.es-escrito { border-style: solid; border-color: var(--cd); }
+  /* «¿Con qué máquina?» (ADR-0429): las máquinas son baldosas como los billetes, en el color del medio (tarjeta o QR) y con el nombre
+     en versalitas; la elegida se llena, como el billete elegido. Solo aparecen donde la tienda tiene dos para ese medio. */
+  .hoja-cobro-maquinas { display: grid; gap: 0.5rem; margin-bottom: 0.75rem; }
+  /* Cada máquina en una baldosa que le dé al nombre al menos 5,5 rem: dos por fila si caben (el celular, la hoja angosta) y una
+     debajo de la otra en la columna angosta de la hoja ancha. Nunca un nombre recortado. */
+  .hoja-cobro-maquinas .hoja-cobro-billetes { grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); }
+  .hoja-cobro-billete.es-maquina {
+    --c: var(--color-metodo-tarjeta);
+    --cd: var(--color-metodo-tarjeta);
+    padding-inline: 0.375rem;
+    font-family: inherit;
+    font-size: 12px; /* 12 px: lo mínimo legible a distancia en el mostrador (oficio visual); era 11 */
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .hoja-cobro-billete.es-maquina.metodo-qr { --c: var(--color-metodo-qr); --cd: var(--color-metodo-qr); }
 
   /* Comprobante: punteado mientras no se elige; elegido, en tinta; los otros se apagan. */
   .hoja-cobro-comprobante {

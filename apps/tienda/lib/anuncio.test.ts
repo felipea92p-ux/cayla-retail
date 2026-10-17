@@ -37,4 +37,12 @@ describe("la franja de anuncios", () => {
     expect(estadoDeFrase(0, 0, 0)).toBeNull();
     expect(estadoDeFrase(5, 0, 3)).toBeNull();
   });
+
+  it("al pasar a otra página sigue en la frase que se veía, quieta, y la siguiente entra a su hora", () => {
+    const desde = (vuelta: number) => Array.from({ length: 3 }, (_, i) => estadoDeFrase(i, vuelta, 3, 4));
+    // Se veía la segunda (vuelta 4 de 3 frases): aparece fija, sin volver a la primera ni entrar con animación.
+    expect(desde(4)).toEqual([null, "fija", null]);
+    // En la vuelta siguiente, como siempre: sale la que estaba y entra la que sigue.
+    expect(desde(5)).toEqual([null, "sale", "entra"]);
+  });
 });

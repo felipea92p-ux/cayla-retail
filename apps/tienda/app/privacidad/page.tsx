@@ -5,7 +5,6 @@ import { SeccionLegal } from "@/components/ayuda/SeccionLegal";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import type { SeccionLegal as TipoSeccion } from "@/lib/ayuda";
 import { TEXTOS_VERSION } from "@/lib/cuentas";
-import { haySesion } from "@/lib/sesion-servidor";
 // La lectura larga (el índice, los títulos con su número y los enlaces dentro del texto) tiene su cara en ayuda.css.
 import "../estilos/ayuda.css";
 
@@ -35,10 +34,9 @@ const [responsable, datos, finalidades, obligatorios, compartir, conservacion, d
  * «Borrador»): el título grande, la letra de 16 px, cada título con su número aparte y, en la computadora, el índice fijo al costado
  * que enciende el punto que se está leyendo; en el celular, «En esta página» arriba.
  */
-export default async function Privacidad() {
-  const conCuenta = await haySesion();
+export default function Privacidad() {
   return (
-    <MarcoCuenta conCuenta={conCuenta} conPie>
+    <MarcoCuenta segunSesion conPie>
       <div className="t-ancho">
         <article className="ay-legal">
           <EncabezadoAyuda
@@ -70,9 +68,10 @@ export default async function Privacidad() {
               <SeccionLegal {...datos}>
                 <ul>
                   <li>
-                    Los que nos das al crear tu cuenta: tu correo y tu contraseña, tu documento (DNI, carné de extranjería o pasaporte), tus nombres
-                    y apellidos, tu celular y tu cumpleaños (día y mes; el año, si quieres). Si después cambias el correo con que entras, el nuevo
-                    reemplaza al anterior.
+                    Los que nos das al crear tu cuenta: tu correo y tu nombre, y tu contraseña (o la cuenta de Google con que entras, de la que solo
+                    tomamos tu correo y tu nombre). Los que nos das al unirte al club, la primera vez que separas: tu documento (DNI, carné de
+                    extranjería o pasaporte), tus nombres y apellidos, tu celular y, si quieres, tu cumpleaños (día y mes; el año, si quieres).
+                    Si después cambias el correo con que entras, el nuevo reemplaza al anterior.
                   </li>
                   <li>
                     Con DNI, tu nombre lo tomamos del padrón público, para que quede bien escrito. Con carné de extranjería o pasaporte, lo

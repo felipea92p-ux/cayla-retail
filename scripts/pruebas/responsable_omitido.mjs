@@ -182,8 +182,9 @@ caso(
 // rendir el propio fondo y aprobar o devolver una rendición (`fondo_rendir`, `fondo_rendicion_aprobar`, `fondo_rendicion_devolver`,
 // 20261013235000). Y dos de la deuda de un faltante (ADR-0362 fase 6 · actividad 7): registrar lo que la persona paga y anularlo
 // (`fondo_deuda_pagar`, `fondo_deuda_anular`, 20261014145000). Y una más: el comprobante de una orden de insumos del Taller
-// (`orden_insumo_comprobante`, 20261015020000; ADR-0362 fase 7 parte 2), con el trato de la orden de tienda.
-const TOTAL = EN_SECO ? "28" : "51";
+// (`orden_insumo_comprobante`, 20261015020000; ADR-0362 fase 7 parte 2), con el trato de la orden de tienda. Y una más: el recorte que el
+// ERP guarda solo al subir una foto, para el probador de la tienda online (`recorte_foto`, 20261017013000; ADR-0434, Felipe 2026-10-16).
+const TOTAL = EN_SECO ? "28" : "52";
 caso(`la lista tiene las ${TOTAL} acciones soltadas`, `select count(*) from retail.acciones_sin_responsable;`, TOTAL);
 // El gasto del viaje es la excepción con motivo: se anota en Gamarra, donde nadie marca entrada (ADR-0362 fase 6, provisional). Sumarle
 // la foto de su papel no mueve plata: es evidencia, como el adjunto de una factura (`compra_adjunto_subir`).

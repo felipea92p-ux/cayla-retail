@@ -7,7 +7,7 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { ComprobantesPanel } from "@/components/ComprobantesPanel";
 import { ComprobantesTarjetas } from "@/components/ComprobantesTarjetas";
 import { MarcaDeCarga } from "@/components/MarcaDeCarga";
-import { SelectorMesFacturacion } from "@/components/SelectorMesFacturacion";
+import { SelectorMesEnUrl } from "@/components/ui/SelectorMes";
 import { PeriodoComprobantes } from "@/components/PeriodoComprobantes";
 import { diasDelMes, montosPorTramo } from "@/lib/comprobantes-graficos-reglas";
 
@@ -38,7 +38,7 @@ export default async function EmitidosPage({ searchParams }: { searchParams: Pro
     <div className="space-y-6">
       <MarcaDeCarga en={ahora.getTime()} />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <SelectorMesFacturacion ruta="/vender/comprobantes/emitidos" mes={mes} actual={actual} />
+        <SelectorMesEnUrl ruta="/vender/comprobantes/emitidos" mes={mes} actual={actual} guia="comprobantes.mes" guiaAnterior="comprobantes.mes-anterior" />
         <PeriodoComprobantes activo="mes" />
       </div>
       <ComprobantesTarjetas

@@ -1,17 +1,17 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 660 llamadas `.rpc` de `apps/web` contra 1327 funciones del schema `retail` en producción: 471 con los parámetros leídos (se comparan uno por uno), 67 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 122 con el nombre en un ternario o una variable.
-> **Foto de producción: 2026-10-16 17:10 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
+> Comparadas 709 llamadas `.rpc` de `apps/web` contra 1428 funciones del schema `retail` en producción: 493 con los parámetros leídos (se comparan uno por uno), 69 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 147 con el nombre en un ternario o una variable.
+> **Foto de producción: 2026-10-17 20:55 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
 > creada o cambiada DESPUÉS sale como «no existe», con parámetros de más o con un aviso de un parámetro que ya no existe, aunque en
 > producción ya esté bien. Antes de dar una pantalla por rota, confirmarlo en producción; para refrescar la foto,
 > `docs/datos/generado/COMO-REFRESCAR.md`.
 
 > **Palabras de este informe.** *Foto*: la lista de funciones de producción que está en `funciones-produccion.txt`, tomada en la fecha
 > de arriba. *Aviso*: la pantalla no manda un parámetro que la función acepta (normal si tiene valor por defecto). *Sobrecarga*: dos
-> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las `fn_*` (935 en la
+> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las `fn_*` (1001 en la
 > foto: en su mayoría disparadores, candados de dinero y ayudantes que llaman otras funciones) se dejan fuera de «sin llamada» a
-> propósito; 276 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 659 no las nombra ninguna pantalla y aquí no se listan.
+> propósito; 292 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 709 no las nombra ninguna pantalla y aquí no se listan.
 
 ---
 
@@ -23,21 +23,22 @@ Nada. Todas las llamadas encajan con la firma de la foto.
 
 Ninguna. Cada función tiene una sola firma en producción.
 
-## Avisos — 46
+## Avisos — 48
 
 - `fn_temporada_efectiva` · `apps/web/app/(app)/productos/atributos/page.tsx:48` — no manda `p_producto_id` (normal si tienen valor por defecto)
 - `fn_existencias` · `apps/web/app/api/traslados/prendas-de-sede/route.ts:35` — no manda `p_producto_ids` (normal si tienen valor por defecto)
 - `registrar_pagos_compra` · `apps/web/components/CompraDetallePanel.tsx:276` — no manda `p_ubicacion_id` (normal si tienen valor por defecto)
 - `registrar_comprobante_produccion` · `apps/web/components/ComprobanteProduccionForm.tsx:121` — no manda `p_igv_porcentaje` (normal si tienen valor por defecto)
-- `registrar_movimiento_dinero` · `apps/web/components/GastosPanel.tsx:681` — no manda `p_cuenta_origen_id`, `p_fecha`, `p_comision`, `p_caja_id` (normal si tienen valor por defecto)
-- `recibir_insumo` · `apps/web/components/InsumoModales.tsx:155` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
+- `guardar_meta_fecha` · `apps/web/components/ConfiguracionMetasMes.tsx:94` — no manda `p_nota` (normal si tienen valor por defecto)
+- `registrar_movimiento_dinero` · `apps/web/components/GastosPanel.tsx:692` — no manda `p_cuenta_origen_id`, `p_fecha`, `p_comision`, `p_caja_id` (normal si tienen valor por defecto)
+- `recibir_insumo` · `apps/web/components/InsumoModales.tsx:54` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
 - `registrar_consumo_insumo` · `apps/web/components/OrdenInsumos.tsx:126` — no manda `p_nota` (normal si tienen valor por defecto)
 - `devolver_insumo_de_produccion` · `apps/web/components/OrdenInsumos.tsx:156` — no manda `p_nota` (normal si tienen valor por defecto)
 - `asignar_temporadas` · `apps/web/components/ProductoForm.tsx:946` — no manda `p_solo_sin_temporada` (normal si tienen valor por defecto)
 - `resolver_prenda_danada` · `apps/web/components/ResolverDanadosModal.tsx:147` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
 - `fn_actividad` · `apps/web/components/actividad/ListaActividad.tsx:45` — no manda `p_hasta` (normal si tienen valor por defecto)
 - `registrar_proveedor` · `apps/web/components/alta-producto/NuevaMarcaForm.tsx:228` — no manda `p_contacto`, `p_rubros`, `p_plazo_credito_dias`, `p_forma_pago_preferida`, `p_telefono`, `p_banco`, `p_cuenta_bancaria` (normal si tienen valor por defecto)
-- `buscar_separaciones` · `apps/web/components/apartados/ApartarVista.tsx:586` — no manda `p_estados`, `p_desde`, `p_hasta` (normal si tienen valor por defecto)
+- `buscar_separaciones` · `apps/web/components/apartados/ApartarVista.tsx:588` — no manda `p_estados`, `p_desde`, `p_hasta` (normal si tienen valor por defecto)
 - `buscar_separaciones` · `apps/web/components/apartados/TodosVista.tsx:146` — no manda `p_texto`, `p_estados` (normal si tienen valor por defecto)
 - `censo_crear_variante` · `apps/web/components/conteo/AltaAlVuelo.tsx:95` — no manda `p_costo`, `p_precio` (normal si tienen valor por defecto)
 - `fn_presupuesto_propuesta` · `apps/web/components/finanzas/ConfiguracionPresupuesto.tsx:116` — no manda `p_hoy` (normal si tienen valor por defecto)
@@ -50,10 +51,11 @@ Ninguna. Cada función tiene una sola firma en producción.
 - `fn_productos` · `apps/web/lib/candidatas-alta-lector.ts:173` — no manda `p_busqueda`, `p_categoria_id`, `p_color_codigo`, `p_estado`, `p_precio_min`, `p_precio_max`, `p_stock`, `p_proveedor_id` (normal si tienen valor por defecto)
 - `fn_productos` · `apps/web/lib/candidatas-alta-lector.ts:176` — no manda `p_busqueda`, `p_color_codigo`, `p_estado`, `p_precio_min`, `p_precio_max`, `p_stock`, `p_marca_id`, `p_proveedor_id` (normal si tienen valor por defecto)
 - `fn_temporada_efectiva` · `apps/web/lib/catalogo-v2.ts:692` — no manda `p_producto_id` (normal si tienen valor por defecto)
-- `fn_configuracion_tiendas` · `apps/web/lib/configuracion.ts:23` — no manda `p_mes` (normal si tienen valor por defecto)
+- `fn_configuracion_tiendas` · `apps/web/lib/configuracion.ts:25` — no manda `p_mes` (normal si tienen valor por defecto)
+- `fn_configuracion_metas` · `apps/web/lib/configuracion.ts:41` — no manda `p_desde` (normal si tienen valor por defecto)
 - `fn_igv_credito_fiscal` · `apps/web/lib/deuda-consolidada.ts:34` — no manda `p_mes` (normal si tienen valor por defecto)
-- `fn_gastos_lista` · `apps/web/lib/gastos.ts:111` — no manda `p_solo_empresa` (normal si tienen valor por defecto)
-- `fn_activos_lista` · `apps/web/lib/gastos.ts:128` — no manda `p_corte` (normal si tienen valor por defecto)
+- `fn_gastos_lista` · `apps/web/lib/gastos.ts:121` — no manda `p_solo_empresa` (normal si tienen valor por defecto)
+- `fn_activos_lista` · `apps/web/lib/gastos.ts:138` — no manda `p_corte` (normal si tienen valor por defecto)
 - `fn_mis_ventas_del_dia` · `apps/web/lib/inicio.ts:71` — no manda `p_ubicacion_id` (normal si tienen valor por defecto)
 - `fn_actividad` · `apps/web/lib/inicio.ts:208` — no manda `p_modulo`, `p_persona_id`, `p_hasta`, `p_antes_at`, `p_antes_id` (normal si tienen valor por defecto)
 - `fn_espacio_piso` · `apps/web/lib/plan-piso-servidor.ts:123` — no manda `p_desde` (normal si tienen valor por defecto)
@@ -64,7 +66,7 @@ Ninguna. Cada función tiene una sola firma en producción.
 - `fn_lineas_comprobantes_produccion` · `apps/web/lib/recibir-produccion.ts:18` — no manda `p_comprobante_id` (normal si tienen valor por defecto)
 - `fn_metas_equipo` · `apps/web/lib/rendimiento.ts:186` — no manda `p_mes` (normal si tienen valor por defecto)
 - `fn_estado_resultados` · `apps/web/lib/resultados.ts:16` — no manda `p_ubicacion_id` (normal si tienen valor por defecto)
-- `fn_campanas_reporte` · `apps/web/lib/resultados.ts:27` — no manda `p_ubicacion_id` (normal si tienen valor por defecto)
+- `fn_campanas_reporte` · `apps/web/lib/resultados.ts:38` — no manda `p_ubicacion_id` (normal si tienen valor por defecto)
 - `fn_resumen_variantes_json` · `apps/web/lib/resumen-inventario.ts:31` — no manda `p_cmp_desde`, `p_cmp_hasta` (normal si tienen valor por defecto)
 - `crear_rol` · `apps/web/lib/roles-acciones.ts:33` — no manda `p_descripcion` (normal si tienen valor por defecto)
 - `buscar_separaciones` · `apps/web/lib/separaciones.ts:54` — no manda `p_texto`, `p_estados`, `p_hasta` (normal si tienen valor por defecto)
@@ -72,9 +74,9 @@ Ninguna. Cada función tiene una sola firma en producción.
 - `buscar_separaciones` · `apps/web/lib/separaciones.ts:70` — no manda `p_texto`, `p_estados`, `p_desde`, `p_hasta` (normal si tienen valor por defecto)
 - `fn_totales_historial_ventas` · `apps/web/lib/ventas-historial.ts:251` — no manda `p_ids` (normal si tienen valor por defecto)
 
-## No analizadas — 314
+## No analizadas — 357
 
-Estas 314 entradas son **entradas, no llamadas** (un ternario da dos; una función mencionada da una aunque no haya llamada):
+Estas 357 entradas son **entradas, no llamadas** (un ternario da dos; una función mencionada da una aunque no haya llamada):
 arman sus parámetros fuera de la propia llamada, o la pantalla nombra la función sin un `.rpc("…")` directo (un ternario, un
 ayudante, una constante), o usan `.rpc` como valor (`.bind`, `const { rpc } = x`). No se pueden revisar leyendo el texto.
 **No están aprobadas: están sin revisar.** Una llamada directa o de un ternario a una función que la foto no tiene también está arriba,
@@ -91,22 +93,23 @@ foto ni ninguna migración del repo conocen.
 - `reactivar_categoria` · `apps/web/app/api/productos/categorias/route.ts:149` — el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros
 - `desactivar_categoria` · `apps/web/app/api/productos/categorias/route.ts:149` — el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros
 - `ajustar_inventario` · `apps/web/components/AjustarInventarioModal.tsx:386` — los parámetros no van escritos ahí mismo
-- `(nombre calculado)` · `apps/web/components/BajarAlPisoForm.tsx:694` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/BajarAlPisoForm.tsx:695` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/components/BajarEnManoModal.tsx:116` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `registrar_cambio` · `apps/web/components/CambiosFlujo.tsx:347` — el objeto se arma con «...», no se puede leer entero
 - `cerrar_linea_compra` · `apps/web/components/CerrarFaltanteModal.tsx:64` — el objeto se arma con «...», no se puede leer entero
 - `registrar_compra` · `apps/web/components/CompraFormV2.tsx:416` — el objeto se arma con «...», no se puede leer entero
 - `(nombre calculado)` · `apps/web/components/EliminarProductoModal.tsx:82` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `registrar_gasto` · `apps/web/components/GastoRapidoModal.tsx:290` — el objeto se arma con «...», no se puede leer entero
-- `guardar_gasto_fijo` · `apps/web/components/GastosFijosYActivos.tsx:394` — el objeto se arma con «...», no se puede leer entero
-- `registrar_gasto` · `apps/web/components/GastosPanel.tsx:678` — el objeto se arma con «...», no se puede leer entero
-- `fn_impuestos_registro_ventas` · `apps/web/components/ImpuestosPanel.tsx:73` — los parámetros no van escritos ahí mismo
-- `fn_impuestos_registro_compras` · `apps/web/components/ImpuestosPanel.tsx:75` — los parámetros no van escritos ahí mismo
+- `guardar_gasto_fijo` · `apps/web/components/GastosFijosYActivos.tsx:402` — el objeto se arma con «...», no se puede leer entero
+- `registrar_gasto` · `apps/web/components/GastosPanel.tsx:689` — el objeto se arma con «...», no se puede leer entero
+- `fn_impuestos_registro_ventas` · `apps/web/components/ImpuestosPanel.tsx:75` — los parámetros no van escritos ahí mismo
+- `fn_impuestos_registro_compras` · `apps/web/components/ImpuestosPanel.tsx:77` — los parámetros no van escritos ahí mismo
 - `registrar_ingreso_caja` · `apps/web/components/IngresoRapidoModal.tsx:150` — el objeto se arma con «...», no se puede leer entero
-- `recibir_lote` · `apps/web/components/LlegoMercaderia.tsx:296` — los parámetros no van escritos ahí mismo
+- `recibir_lote` · `apps/web/components/LlegoMercaderia.tsx:298` — los parámetros no van escritos ahí mismo
 - `registrar_movimiento_caja` · `apps/web/components/MovimientoCajaModal.tsx:98` — el objeto se arma con «...», no se puede leer entero
-- `abrir_produccion_con_modelo_nuevo` · `apps/web/components/NuevaOrdenProduccionForm.tsx:389` — los parámetros no van escritos ahí mismo
-- `crear_producto_con_stock_inicial` · `apps/web/components/NuevoProductoForm.tsx:633` — los parámetros no van escritos ahí mismo
+- `(nombre calculado)` · `apps/web/components/NuevaOrdenProduccionForm.tsx:511` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/NuevaOrdenProduccionForm.tsx:586` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `crear_producto_con_stock_inicial` · `apps/web/components/NuevoProductoForm.tsx:634` — los parámetros no van escritos ahí mismo
 - `cerrar_produccion` · `apps/web/components/OrdenCierre.tsx:95` — el objeto se arma con «...», no se puede leer entero
 - `registrar_pago_compras_medios` · `apps/web/components/PagoJuntosModal.tsx:188` — el objeto se arma con «...», no se puede leer entero
 - `registrar_pago_compras` · `apps/web/components/PagoJuntosModal.tsx:196` — el objeto se arma con «...», no se puede leer entero
@@ -116,35 +119,52 @@ foto ni ninguna migración del repo conocen.
 - `guardar_cuentas_proveedor` · `apps/web/components/ProveedorModal.tsx:320` — los parámetros no van escritos ahí mismo
 - `desactivar_proveedor` · `apps/web/components/ProveedoresPanel.tsx:165` — el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros
 - `reactivar_proveedor` · `apps/web/components/ProveedoresPanel.tsx:165` — el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros
-- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:806` — los parámetros no van escritos ahí mismo
-- `(nombre calculado)` · `apps/web/components/PuntoDeVenta.tsx:1166` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
-- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:1814` — el objeto se arma con «...», no se puede leer entero
+- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:813` — los parámetros no van escritos ahí mismo
+- `(nombre calculado)` · `apps/web/components/PuntoDeVenta.tsx:1173` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:1826` — el objeto se arma con «...», no se puede leer entero
 - `reasignar_reparto_compra` · `apps/web/components/ReasignarReparto.tsx:145` — el objeto se arma con «...», no se puede leer entero
-- `recibir_envio` · `apps/web/components/RecepcionEnvio.tsx:726` — los parámetros no van escritos ahí mismo
-- `registrar_activo` · `apps/web/components/RegistrarGastoModal.tsx:225` — el objeto se arma con «...», no se puede leer entero
-- `registrar_gasto` · `apps/web/components/RegistrarGastoModal.tsx:232` — el objeto se arma con «...», no se puede leer entero
+- `recibir_envio` · `apps/web/components/RecepcionEnvio.tsx:730` — los parámetros no van escritos ahí mismo
+- `registrar_activo` · `apps/web/components/RegistrarGastoModal.tsx:228` — el objeto se arma con «...», no se puede leer entero
+- `registrar_gasto` · `apps/web/components/RegistrarGastoModal.tsx:235` — el objeto se arma con «...», no se puede leer entero
 - `registrar_nota_credito_compra` · `apps/web/components/RegistrarNotaCreditoModal.tsx:210` — el objeto se arma con «...», no se puede leer entero
 - `(nombre calculado)` · `apps/web/components/ResolverDanadosModal.tsx:219` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/components/ResolverDanadosModal.tsx:261` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `registrar_reembolso_proveedor` · `apps/web/components/SaldoFavorAcciones.tsx:60` — el objeto se arma con «...», no se puede leer entero
 - `(nombre calculado)` · `apps/web/components/analisis/HojaLiquidarDesde.tsx:59` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
-- `separar_prendas` · `apps/web/components/apartados/ApartarVista.tsx:549` — el objeto se arma con «...», no se puede leer entero
+- `separar_prendas` · `apps/web/components/apartados/ApartarVista.tsx:551` — el objeto se arma con «...», no se puede leer entero
 - `entregar_separacion` · `apps/web/components/apartados/EntregarVista.tsx:132` — el objeto se arma con «...», no se puede leer entero
-- `abonar_separacion` · `apps/web/components/apartados/ModalesApartado.tsx:646` — el objeto se arma con «...», no se puede leer entero
-- `editar_separacion` · `apps/web/components/apartados/ModalesApartado.tsx:822` — el objeto se arma con «...», no se puede leer entero
-- `enviar_pedido_para_apartar` · `apps/web/components/apartados/ModalesApartado.tsx:1069` — el objeto se arma con «...», no se puede leer entero
+- `abonar_separacion` · `apps/web/components/apartados/ModalesApartado.tsx:647` — el objeto se arma con «...», no se puede leer entero
+- `editar_separacion` · `apps/web/components/apartados/ModalesApartado.tsx:823` — el objeto se arma con «...», no se puede leer entero
+- `enviar_pedido_para_apartar` · `apps/web/components/apartados/ModalesApartado.tsx:1071` — el objeto se arma con «...», no se puede leer entero
 - `conteo_contar` · `apps/web/components/conteo/ContarConteo.tsx:155` — el objeto se arma con «...», no se puede leer entero
 - `conteo_recontar` · `apps/web/components/conteo/RevisarConteo.tsx:138` — los parámetros no van escritos ahí mismo
 - `conteo_confirmar_diferencia` · `apps/web/components/conteo/RevisarConteo.tsx:139` — los parámetros no van escritos ahí mismo
-- `(nombre calculado)` · `apps/web/components/cuadre-piso/CuadrarPisoForm.tsx:453` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
-- `(nombre calculado)` · `apps/web/components/cuadre-piso/CuadrarPisoForm.tsx:495` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
-- `(nombre calculado)` · `apps/web/components/existencias/FlujoTalla.tsx:389` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/cuadre-piso/CuadrarPisoForm.tsx:454` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/cuadre-piso/CuadrarPisoForm.tsx:496` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/existencias/FlujoTalla.tsx:388` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `ajustar_inventario` · `apps/web/components/ficha-producto/useStockFicha.ts:282` — los parámetros no van escritos ahí mismo
 - `ajustar_inventario` · `apps/web/components/ficha-producto/useStockFicha.ts:399` — los parámetros no van escritos ahí mismo
 - `(nombre calculado)` · `apps/web/components/finanzas/CampoCuenta.tsx:39` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
-- `(nombre calculado)` · `apps/web/components/finanzas/CierreMes.tsx:280` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
-- `registrar_movimiento_dinero` · `apps/web/components/finanzas/CuentasDinero.tsx:873` — el objeto se arma con «...», no se puede leer entero
+- `(nombre calculado)` · `apps/web/components/finanzas/CierreMes.tsx:285` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `registrar_abono_pos` · `apps/web/components/finanzas/CuentasDinero.tsx:951` — el objeto se arma con «...», no se puede leer entero
+- `registrar_movimiento_dinero` · `apps/web/components/finanzas/CuentasDinero.tsx:966` — el objeto se arma con «...», no se puede leer entero
 - `editar_cuenta_dinero` · `apps/web/components/finanzas/EditarCuentaModal.tsx:92` — los parámetros no van escritos ahí mismo
+- `guardar_pos_tarifa` · `apps/web/components/finanzas/TarifaMaquinaModal.tsx:58` — los parámetros no van escritos ahí mismo
+- `(nombre calculado)` · `apps/web/components/orden-pagina/AnotarAvanceModal.tsx:94` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/orden-pagina/AnotarAvanceModal.tsx:116` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/orden-pagina/AnotarAvanceModal.tsx:128` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/orden-pagina/AnotarAvanceModal.tsx:138` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/orden-pagina/AnotarSalidaModal.tsx:79` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/orden-pagina/AnotarVueltaModal.tsx:117` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/orden-pagina/AnularLaOrdenModal.tsx:41` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/orden-pagina/AnularSalidaOVueltaModal.tsx:62` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/orden-pagina/CambiarQuienModal.tsx:104` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/orden-pagina/CambiarQuienModal.tsx:122` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/orden-pagina/DeshacerAvanceModal.tsx:40` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/orden-pagina/PasarAlStockModal.tsx:95` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/orden-pagina/RevertirLaOrdenModal.tsx:36` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/orden-pagina/TelaUsadaModal.tsx:92` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/orden-pagina/TelaUsadaModal.tsx:96` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `anular_pedido_web_pagado` · `apps/web/components/pedidos-web/AnularPedidoPagadoHoja.tsx:110` — el objeto se arma con «...», no se puede leer entero
 - `reservar_linea_pedido_web` · `apps/web/components/pedidos-web/PedidoWebHoja.tsx:190` — el objeto se arma con «...», no se puede leer entero
 - `entregar_pedido_web` · `apps/web/components/pedidos-web/PedidoWebHoja.tsx:274` — el objeto se arma con «...», no se puede leer entero
@@ -159,6 +179,8 @@ foto ni ninguna migración del repo conocen.
 - `(nombre calculado)` · `apps/web/components/plan-compra/RecuperoModal.tsx:37` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/components/plan-compra/RepartoModal.tsx:52` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/components/plan-compra/TopeModal.tsx:37` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/components/proveedores-produccion/TarifaServicioModal.tsx:92` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `deshacer_descarte_recorte` · `apps/web/components/vitrina/RevisarRecorteHoja.tsx:163` — los parámetros no van escritos ahí mismo
 - `(nombre calculado)` · `apps/web/lib/analisis-datos.ts:38` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/analisis-liquidar.ts:14` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/analisis-por-llegar.ts:23` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
@@ -197,8 +219,8 @@ foto ni ninguna migración del repo conocen.
 - `(nombre calculado)` · `apps/web/lib/gastos-viaje-fotos.ts:38` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/gastos-viaje-fotos.ts:53` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/gastos-viaje.ts:13` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
-- `fn_gastos_lista` · `apps/web/lib/gastos.ts:75` — el objeto se arma con «...», no se puede leer entero
-- `fn_gastos_igv_perdido` · `apps/web/lib/gastos.ts:77` — los parámetros no van escritos ahí mismo
+- `fn_gastos_lista` · `apps/web/lib/gastos.ts:76` — el objeto se arma con «...», no se puede leer entero
+- `fn_gastos_igv_perdido` · `apps/web/lib/gastos.ts:78` — los parámetros no van escritos ahí mismo
 - `(nombre calculado)` · `apps/web/lib/igv-en-espera.ts:14` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/inventario-v2.ts:482` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/motor-demanda.ts:16` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
@@ -214,6 +236,8 @@ foto ni ninguna migración del repo conocen.
 - `(nombre calculado)` · `apps/web/lib/nos-debe.ts:14` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/nota-proveedor-acciones.ts:13` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `fn_facturas_para_nota_credito` · `apps/web/lib/notas-credito.ts:162` — el objeto se arma con «...», no se puede leer entero
+- `(nombre calculado)` · `apps/web/lib/orden-pagina.ts:32` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/lib/orden-pagina.ts:39` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/ordenes-compra-acciones.ts:28` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/ordenes-compra-acciones.ts:43` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/ordenes-compra-acciones.ts:58` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
@@ -240,6 +264,7 @@ foto ni ninguna migración del repo conocen.
 - `(nombre calculado)` · `apps/web/lib/ordenes-insumo.ts:108` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/ordenes-insumo.ts:109` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/ordenes-insumo.ts:167` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/lib/ordenes-lista.ts:16` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `registrar_pedido_no_atendido` · `apps/web/lib/pedidos-no-atendidos-acciones.ts:25` — los parámetros no van escritos ahí mismo
 - `(nombre calculado)` · `apps/web/lib/plan-compra.ts:49` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/plan-compra.ts:52` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
@@ -253,6 +278,8 @@ foto ni ninguna migración del repo conocen.
 - `(nombre calculado)` · `apps/web/lib/plan-compra.ts:131` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/plan-compra.ts:162` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/plan-compra.ts:163` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/lib/produccion.ts:273` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/lib/produccion.ts:280` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/recepcion-conteo-acciones.ts:35` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/recepcion-conteo-acciones.ts:41` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/recepcion-conteo-acciones.ts:50` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
@@ -277,11 +304,14 @@ foto ni ninguna migración del repo conocen.
 - `(nombre calculado)` · `apps/web/lib/rendicion-acciones.ts:77` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/rendimiento.ts:218` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `asignar_rol` · `apps/web/lib/roles-acciones.ts:62` — los parámetros no van escritos ahí mismo
+- `(nombre calculado)` · `apps/web/lib/tarifas-servicios.ts:13` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `(nombre calculado)` · `apps/web/lib/tela-del-taller.ts:13` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/lib/useColaOffline.ts:110` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `fn_productos_por_categoria` · `apps/web/app/(app)/productos/categorias/page.tsx:47` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_tomar_comprobantes_para_consultar` · `apps/web/app/api/lucode/reintentar/route.ts:47` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `cerrar_periodo` · `apps/web/components/finanzas/CierreMes.tsx:300` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
-- `reabrir_periodo` · `apps/web/components/finanzas/CierreMes.tsx:378` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `abrir_orden_produccion` · `apps/web/components/NuevaOrdenProduccionForm.tsx:110` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `cerrar_periodo` · `apps/web/components/finanzas/CierreMes.tsx:305` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `reabrir_periodo` · `apps/web/components/finanzas/CierreMes.tsx:383` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `entregar_fondo` · `apps/web/components/fondos/AccionesFondos.tsx:101` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `devolver_fondo` · `apps/web/components/fondos/AccionesFondos.tsx:291` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `pagar_deuda_fondo` · `apps/web/components/fondos/AccionesFondos.tsx:609` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
@@ -325,6 +355,15 @@ foto ni ninguna migración del repo conocen.
 - `fn_deuda_valor` · `apps/web/lib/nos-debe-reglas.ts:33` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `registrar_deposito_deuda` · `apps/web/lib/nos-debe-reglas.ts:773` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `adjuntar_nota_proveedor` · `apps/web/lib/nota-proveedor-reglas.ts:12` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `fn_orden_produccion` · `apps/web/lib/orden-pagina-reglas.ts:22` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `fn_tela_pendiente_de_la_orden` · `apps/web/lib/orden-pagina-reglas.ts:23` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `registrar_avance` · `apps/web/lib/orden-pagina-reglas.ts:24` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `deshacer_avance` · `apps/web/lib/orden-pagina-reglas.ts:25` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `cambiar_quien_fase` · `apps/web/lib/orden-pagina-reglas.ts:26` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `registrar_salida` · `apps/web/lib/orden-pagina-reglas.ts:27` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `registrar_vuelta` · `apps/web/lib/orden-pagina-reglas.ts:28` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `anular_salida` · `apps/web/lib/orden-pagina-reglas.ts:29` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `anular_vuelta` · `apps/web/lib/orden-pagina-reglas.ts:30` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_ordenes_compra` · `apps/web/lib/ordenes-compra-reglas.ts:11` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_ordenes_compra_siguiente` · `apps/web/lib/ordenes-compra-reglas.ts:13` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `crear_orden_compra` · `apps/web/lib/ordenes-compra-reglas.ts:14` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
@@ -346,6 +385,7 @@ foto ni ninguna migración del repo conocen.
 - `anular_orden_insumo` · `apps/web/lib/ordenes-insumo-reglas.ts:34` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `registrar_comprobante_orden_insumo` · `apps/web/lib/ordenes-insumo-reglas.ts:36` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_ordenes_insumo_nos_debe` · `apps/web/lib/ordenes-insumo-reglas.ts:38` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `fn_ordenes_produccion_lista` · `apps/web/lib/ordenes-lista-reglas.ts:33` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `subir_para_enviar` · `apps/web/lib/para-enviar-reglas.ts:168` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_historial_ventas` · `apps/web/lib/plan-compra-historial.ts:18` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_plan_compra_pedido` · `apps/web/lib/plan-compra-pedido.ts:12` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
@@ -362,6 +402,7 @@ foto ni ninguna migración del repo conocen.
 - `restaurar_plan_compra` · `apps/web/lib/plan-compra-reglas.ts:39` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `guardar_plan_compra_minimo` · `apps/web/lib/plan-compra-reparto.ts:66` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_plan_compra_resultados` · `apps/web/lib/plan-compra-resultados.ts:14` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `fn_nueva_orden_opciones` · `apps/web/lib/produccion.ts:265` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_envio_conteos` · `apps/web/lib/recepcion-conteo-reglas.ts:38` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_recepcion_pendientes` · `apps/web/lib/recepcion-conteo-reglas.ts:39` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `guardar_conteo_envio` · `apps/web/lib/recepcion-conteo-reglas.ts:41` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
@@ -394,9 +435,13 @@ foto ni ninguna migración del repo conocen.
 - `fn_metas_historial` · `apps/web/lib/rendimiento-lectura.ts:29` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `fn_rendimiento_detalle` · `apps/web/lib/rendimiento-lectura.ts:30` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `retirar_del_piso` · `apps/web/lib/retiro-reglas.ts:21` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `fn_tarifas_de_servicios` · `apps/web/lib/tarifas-servicios-reglas.ts:16` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `guardar_tarifa_servicio` · `apps/web/lib/tarifas-servicios-reglas.ts:17` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `fn_tela_del_taller` · `apps/web/lib/tela-del-taller-reglas.ts:13` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
+- `fn_tela_en_camino` · `apps/web/lib/tela-del-taller-reglas.ts:70` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `crear_producto_con_variantes` · `apps/web/lib/useColaProductos.ts:13` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 
-## Funciones sin llamada detectada desde `apps/web` — 107
+## Funciones sin llamada detectada desde `apps/web` — 126
 
 Existen en producción y ninguna pantalla de `apps/web` las nombra entre comillas (ni con un `.rpc("…")` directo ni de otra
 forma; los comentarios y las pruebas no cuentan; las `fn_*` se descartan a propósito). **Esto NO prueba que sobren.** Cada
@@ -418,6 +463,9 @@ select p.proname from pg_proc p
  where p.pronamespace = 'retail'::regnamespace and p.proname <> '<nombre>' and p.prosrc ~ ('\m' || '<nombre>' || '\M');
 ```
 
+- `abrir_produccion`
+- `abrir_produccion_con_modelo_nuevo`
+- `activar_campana`
 - `agregar_colaborador`
 - `agregar_comprador_de_tienda`
 - `agregar_terminal`
@@ -430,21 +478,29 @@ select p.proname from pg_proc p
 - `archivar_producto_prueba`
 - `archivar_venta_prueba`
 - `cambiar_tienda_gestora_compra`
+- `campana_detalle`
+- `campana_diseno`
+- `campanas_lista`
+- `campanas_portada_dias`
 - `cargar_activo_inicial`
 - `cargar_stock_inicial`
 - `catalogo_crear_producto`
 - `club_intento`
 - `confirmar_invitacion_club`
 - `convertir_proforma_a_comprobante`
+- `crear_campana`
 - `crear_invitacion_club`
 - `crear_pedido_web`
 - `emitir_comprobante`
 - `emitir_nota`
 - `extender_separacion`
 - `fijar_capacidad_piso`
+- `guardar_campana`
+- `guardar_diseno_borrador`
 - `huellas_catalogo`
 - `mover_entre_piso_y_almacen`
 - `mover_interno`
+- `publicar_diseno_campana`
 - `quitar_comprador_de_tienda`
 - `recalcular_compras`
 - `recalcular_stock`
@@ -475,6 +531,7 @@ select p.proname from pg_proc p
 - `tienda_eliminar_mi_cuenta`
 - `tienda_favorito`
 - `tienda_ficha`
+- `tienda_guardar_look`
 - `tienda_intento_cambio_correo`
 - `tienda_intento_de_clave`
 - `tienda_intento_de_codigo`
@@ -484,14 +541,18 @@ select p.proname from pg_proc p
 - `tienda_mi_cuenta`
 - `tienda_mis_avisos_del_club`
 - `tienda_mis_favoritos_y_esperas`
+- `tienda_mis_looks`
 - `tienda_mis_pedidos`
 - `tienda_mis_recomendaciones`
 - `tienda_pedido`
 - `tienda_pedir_cambio_correo`
 - `tienda_portada`
+- `tienda_probador`
 - `tienda_quitar_avisame`
+- `tienda_quitar_look`
 - `tienda_recomendar`
 - `tienda_registrar_cuenta`
+- `tienda_renombrar_look`
 - `tienda_reservar_envio`
 - `tienda_restablecer_enviar`
 - `tienda_restablecer_intento`
@@ -524,4 +585,7 @@ select p.proname from pg_proc p
 - `trg_efectivo_en_cuenta`
 - `trg_para_enviar_al_salir`
 - `trg_pedidos_al_llegar`
+- `trg_prenda_sin_registrar_costo_estimado`
+- `trg_venta_item_costo_real`
 - `unirse_al_club`
+- `volver_al_diseno_anterior`

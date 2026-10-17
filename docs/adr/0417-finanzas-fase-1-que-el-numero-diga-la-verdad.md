@@ -147,3 +147,56 @@ iguales a la pila. DESCARTÉ editar la 002000 (ya corrió en producción: dos ca
 oportunidades de que no sea el mismo) y tocar la 235000 (está en `main` y en producción). SE ROMPE SI: un parche futuro vuelve a
 meter texto DENTRO del `p_nuevo` de otro; la regla, desde hoy, es sumar antes o después y mirar quién más ancla esa función
 (`grep -ln "reemplazar('retail.<función>"` en `supabase/migrations`). `pago_planilla_y_sunat.mjs` lo vigila (caso «anclas del fondo»).
+
+## Actualización 2026-10-17: la mitad en la base de los dos hallazgos de /chaos sobre «Registrar movimiento»
+
+/chaos del 2026-10-16 (semilla 1016, rama `claude/finanzas-revisiones-ab242a`) atacó la hoja «Registrar movimiento» con `pago_planilla` y
+`pago_sunat`: 0 estados imposibles y dos hallazgos de gravedad 2 (dato malo o invisible en silencio). La web los frena o avisa desde el
+commit `9b4575544` de esa rama; lo de abajo es su mitad en la base, la que vale también por la API, en
+`20261017143000_movimientos_dinero_desde_el_inicio_y_la_empresa_en_toda_vista.sql` (**sin pegar en producción hasta el OK de Felipe:
+dinero y RPC son suyos**).
+
+1. **Un pago de planilla con fecha 1900-01-01 entraba por la API.** `registrar_movimiento_dinero` solo frenaba la fecha futura.
+   DECIDÍ: el mismo piso que `registrar_gasto` tiene desde ADR-0412 —rechazar una fecha anterior a `parametros_finanzas.inicio_finanzas`
+   con el mismo mensaje («Finanzas cuenta desde el …: un movimiento anterior no entraría a ningún reporte. Si lo pagaste ahora, ponle la
+   fecha del pago.») y la pista `movimiento_antes_del_inicio`—, insertado justo antes del candado de la fecha futura, sobre la fecha que la
+   persona escribió. Sin inicio elegido no frena nada, como el gasto. DESCARTÉ un `check` en `movimientos_dinero`: frenaría también el
+   depósito de un egreso del cajón que la tienda registró antes del inicio (su fecha la pone la caja, no la persona), y eso es la misma
+   pregunta abierta que la factura de septiembre en ADR-0412. SE ROMPE SI: alguien registra desde la caja un egreso con fecha anterior al
+   inicio y lo deposita después: entra con la fecha de la caja, fuera de los reportes, igual que hoy (no cambia; queda anotado).
+2. **Registrado mirando una tienda, el pago bajaba el banco y no aparecía en ninguna lista.** `fn_movimientos_dinero` filtraba
+   `ubicacion_id = p_ubicacion_id`, y lo de la empresa no tiene tienda: el disparador deja `ubicacion_id` nulo cuando ni el origen ni el
+   destino son de una tienda (la planilla, SUNAT, una transferencia entre bancos, el pago de la tarjeta, la plata del dueño que entra o sale
+   de un banco). DECIDÍ: para quien ve Finanzas de todo, la lista de una tienda trae además lo sin tienda (`or d.ubicacion_id is null`);
+   «Todas» no cambia, y quien no es líder ve exactamente lo de antes. La razón es la que ya dice la pantalla: «los bancos son de CAYLA
+   entera: se ven igual en cualquier tienda» —si el saldo del banco se ve en Trujillo, el movimiento que lo bajó tiene que verse ahí—.
+   DESCARTÉ (a) dejar solo el salto a `?ver=todas` de la web: el saldo seguiría bajando a la vista sin su movimiento mientras el líder mire
+   una tienda; (b) una sección aparte «De la empresa» en cada tienda: más pantalla para decir lo mismo que una fila en la lista de siempre.
+   SE ROMPE SI: una tienda tuviera su propio banco (hoy ningún banco tiene `ubicacion_id`): sus transferencias dejarían de ser «de la
+   empresa» y volverían a verse solo en esa tienda, que es lo correcto.
+
+Prueba: `scripts/pruebas/movimientos_dinero_inicio_y_empresa.mjs` (en el CI, tanda de Postgres): el piso con 1900 y con el día anterior al
+inicio, el día del inicio, sin inicio, el cajón por egreso; el líder mirando Trujillo, Lima y todas; la colaboradora con el módulo; pegar dos
+veces; las anclas del fondo por rendir, del token y de los tipos enteras. **Cómo se pega:** una sola parte, sin políticas ni `alter`;
+los dos reemplazos anclados abortan sin tocar nada si su ancla no aparece exactamente una vez.
+
+**Pegada en producción el 2026-10-17** (con la orden de Felipe, antes de fusionar el PR #1158; `apply_migration`, registrada como
+`20261017145817` `movimientos_dinero_desde_el_inicio_y_la_empresa_en_toda_vista`). Protocolo: sonda de solo lectura (cada ancla exactamente
+una vez; el token de ADR-0412 y los tipos de ADR-0417 ya en la función; `fn_finanzas_desde` presente, inicio 2026-10-01; 0 movimientos sin
+tienda vigentes y 0 fechados antes del inicio, así que nada cambia de golpe en pantalla), ensayo en un solo lote que termina en excepción,
+aplicación, y después las dos huellas `md5(pg_get_functiondef(…))` iguales a las del ensayo: puerta `ea93db7bdf64ba3408cccc49ebe38431`,
+lista `c29de8b8835d5f720b95d843db547a4c`.
+
+## Actualización 2026-10-16 (c): la decisión 3 está construida (ADR-0429), sin pegar
+
+La decisión 3 —Interbank, las cuentas «por depositar» y la máquina que cobra— se construyó en la rama `claude/upbeat-euclid-d973d1`
+con `/construir` (lista de seis actividades aprobada por Felipe el 2026-10-16) y tiene su propio ADR con el diseño, lo descartado y
+cómo se pega: **ADR-0429** (`docs/adr/0429-cobros-con-tarjeta-y-qr-la-maquina-las-puentes-y-la-comision-real.md`). En una línea: la
+máquina (Izipay, Vendemás) es una entidad chica con su puente 1 a 1; el destino por defecto sigue en «A qué cuenta entra cada cobro»
+(ahora también para el QR); la hoja de cobro pregunta la máquina solo donde hay dos; el depósito se cruza contra los días pendientes y la
+comisión real es la diferencia; la tarifa solo estima y avisa; y lo pasado se rehace una vez, con rastro. Cinco migraciones
+(`20261016173000` … `20261016193000`), **pegadas en producción el 2026-10-17** con el OK de Felipe, en orden y con el ensayo previo de la
+última (ADR-0429, «Actualización 2026-10-17»). Cuando se
+peguen, el tramo «tarjeta» del medidor de confianza sube solo (lee `medios_de_cobro`, que pasa a apuntar a las puentes). Lo que Felipe
+hace después de pegar (saldo inicial de Interbank, tarifas, registrar los depósitos ya recibidos) está en el ADR-0429 y en
+`docs/backlog/2026-10-16-upbeat-euclid-d973d1.md`.

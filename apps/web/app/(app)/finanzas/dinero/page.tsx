@@ -1,6 +1,6 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
-import { getContextoDinero, getMediosDeCobro, getMovimientos, getSinCuenta, pendientesDeConciliar } from "@/lib/cuentas-dinero";
+import { getAlertasPos, getContextoDinero, getMediosDeCobro, getMovimientos, getSinCuenta, pendientesDeConciliar } from "@/lib/cuentas-dinero";
 import { CuentasPanel, PantallaDinero } from "@/components/finanzas/CuentasDinero";
 import { DineroPulso } from "@/components/finanzas/DineroPulso";
 import { alcanzaPulso, debesPulso, tienesPulso } from "@/lib/dinero-pulso-reglas";
@@ -17,12 +17,14 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
   const hoy = hoyLima();
   const ctx = await getContextoDinero(persona, verDeLaVista(persona.vista, sp.ver));
   // Camino A: arriba, «tienes», «¿me alcanza?» (el flujo de 6 semanas, solo el líder) y «¿qué debes?» (Por pagar de lo que se mira).
-  const [movimientos, medios, sinCuenta, proyeccion, porPagar] = await Promise.all([
+  const [movimientos, medios, sinCuenta, proyeccion, porPagar, alertas] = await Promise.all([
     getMovimientos(ctx.ver.ubicacionId),
     ctx.esLider ? getMediosDeCobro() : Promise.resolve({ datos: [], falla: null }),
     ctx.esLider && !ctx.ver.ubicacionId ? getSinCuenta() : Promise.resolve([]),
     ctx.esLider ? getProyeccion(6) : Promise.resolve({ datos: null, falla: null }),
     getPorPagarConsolidado(ctx.ver),
+    // Las máquinas que se atrasaron con su depósito (ADR-0429, act. 4): solo el líder; vacío si la base no lo sabe todavía.
+    ctx.esLider ? getAlertasPos() : Promise.resolve([]),
   ]);
   const tienes = tienesPulso(ctx.cuentas.datos, ctx.ver.ubicacionId);
 
@@ -50,6 +52,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
         medios={medios.datos}
         plata={ctx.plata}
         sinCuenta={sinCuenta}
+        alertas={alertas}
         ubicaciones={ctx.ubicaciones}
         talleres={ctx.talleres}
         ver={ctx.ver}

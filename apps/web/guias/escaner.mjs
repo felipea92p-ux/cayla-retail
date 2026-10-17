@@ -230,7 +230,8 @@ function archivosFuente() {
 }
 
 /**
- * Las anclas que el código declara: `data-guia="x"`, la prop `guia="x"` de una pieza (Pestanas) y `guia: "x"` en un objeto.
+ * Las anclas que el código declara: `data-guia="x"`, la prop `guia="x"` de una pieza (Pestanas) —o `guiaAlgo="x"`, cuando una pieza
+ * ancla dos partes (`SelectorMes guiaAnterior`)— y `guia: "x"` en un objeto.
  * Una con plantilla (`guia: \`apartados.pestana-${p.id}\``) vuelve como patrón: `apartados.pestana-*`.
  */
 export function anclasDelCodigo() {
@@ -238,13 +239,13 @@ export function anclasDelCodigo() {
   const patrones = []; // { re, fuente, archivo }
   for (const f of archivosFuente()) {
     const texto = readFileSync(f, "utf8");
-    for (const m of texto.matchAll(/(?:data-guia|\bguia)\s*[=:]\s*\{?\s*"([a-z0-9][a-z0-9._-]*)"/g)) literales.set(m[1], rel(f));
+    for (const m of texto.matchAll(/(?:data-guia|\bguia(?:[A-Z]\w*)?)\s*[=:]\s*\{?\s*"([a-z0-9][a-z0-9._-]*)"/g)) literales.set(m[1], rel(f));
     // Dentro de una expresión (`data-guia={modoCamara ? "vender.buscar-por-nombre" : "vender.camara"}`, o la prop `guia={…}` de una
     // pieza): cada texto con punto.
-    for (const m of texto.matchAll(/(?:data-guia|\bguia)=\{([^}]{1,200})\}/g)) {
+    for (const m of texto.matchAll(/(?:data-guia|\bguia(?:[A-Z]\w*)?)=\{([^}]{1,200})\}/g)) {
       for (const s of m[1].matchAll(/"([a-z0-9][a-z0-9-]*\.[a-z0-9._-]+)"/g)) literales.set(s[1], rel(f));
     }
-    for (const m of texto.matchAll(/(?:data-guia|\bguia)\s*[=:]\s*\{?\s*`([a-z0-9][a-z0-9._-]*)\$\{[^}]+\}([a-z0-9._-]*)`/g)) {
+    for (const m of texto.matchAll(/(?:data-guia|\bguia(?:[A-Z]\w*)?)\s*[=:]\s*\{?\s*`([a-z0-9][a-z0-9._-]*)\$\{[^}]+\}([a-z0-9._-]*)`/g)) {
       const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       patrones.push({ re: new RegExp(`^${esc(m[1])}[a-z0-9_-]+${esc(m[2])}$`), fuente: `${m[1]}*${m[2]}`, archivo: rel(f) });
     }

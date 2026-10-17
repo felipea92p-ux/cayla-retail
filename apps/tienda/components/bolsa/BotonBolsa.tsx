@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cuantasEnLaBolsa } from "@/lib/bolsa-servidor";
 import { Icono } from "../Icono";
+import { RecordarBolsa } from "./BolsaRecordada";
 import "@/app/estilos/bolsa.css";
 
 /**
@@ -15,6 +16,8 @@ export async function BotonBolsa() {
     <Link className="t-ico" href="/bolsa" data-bolsa aria-label={n > 0 ? `Tu bolsa: ${n} ${n === 1 ? "prenda" : "prendas"}` : "Tu bolsa"}>
       <Icono nombre="bolsa" />
       {n > 0 && <span className="t-globo">{n}</span>}
+      {/* Para el esqueleto de la bolsa: cuántas filas dibujar mientras llega (`BolsaRecordada`). */}
+      <RecordarBolsa cuantas={n} />
     </Link>
   );
 }

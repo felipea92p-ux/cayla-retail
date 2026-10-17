@@ -92,57 +92,7 @@
     color: var(--color-tinta);
   }
 
-  /* --- El paso − n +: el mismo del ticket de Vender (LineaDelTicket), a 36 px de alto. --- */
-  .etq-paso {
-    display: inline-flex;
-    align-items: center;
-    height: 2.25rem;
-    border: 1px solid var(--color-sand);
-    border-radius: 0.5rem;
-    background: var(--color-crema);
-    transition: border-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
-  }
-  .etq-paso:focus-within {
-    border-color: var(--color-rojo);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-rojo) 14%, transparent);
-  }
-  .etq-paso > button {
-    display: grid;
-    place-items: center;
-    width: 2rem;
-    height: 100%;
-    border-radius: 0.45rem;
-    color: var(--color-tinta);
-    transition: background-color 150ms, transform 150ms var(--ease-cayla), color 150ms;
-  }
-  .etq-paso > button:hover:not(:disabled) {
-    background: color-mix(in oklab, var(--color-sand) 45%, transparent);
-  }
-  .etq-paso > button:active:not(:disabled) {
-    transform: scale(0.86);
-  }
-  .etq-paso > button:disabled {
-    color: color-mix(in oklab, var(--color-tinta) 28%, transparent); /* contraste: no aplica — botón deshabilitado (WCAG lo exime) */
-  }
-  .etq-paso > button > svg {
-    width: 14px;
-    height: 14px;
-  }
-  .etq-paso > input {
-    width: 2.75rem;
-    background: transparent;
-    text-align: center;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--color-tinta);
-    outline: none;
-    appearance: textfield;
-  }
-  .etq-paso > input::-webkit-inner-spin-button,
-  .etq-paso > input::-webkit-outer-spin-button {
-    appearance: none;
-    margin: 0;
-  }
+  /* --- El paso − n + es la pieza del sistema (<PasoCantidad>, ADR-0358 ronda 17): sus estilos viven en campos-y-casillas.css. --- */
 
   /* --- El tacho: rojo desde el principio (accion.eliminar, ADR-0358). Bajo el mouse la tapa se ladea; al presionar se encoge. --- */
   .etq-tacho {
@@ -271,8 +221,7 @@
     .etq-tacho,
     .etq-tacho > svg,
     .etq-volver-a,
-    .etq-tarjeta > div,
-    .etq-paso > button {
+    .etq-tarjeta > div {
       transition: none;
     }
     .etq-tacho:hover > svg,

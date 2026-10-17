@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -242,7 +243,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
                     <span className="block text-sm text-tinta">Colaboradores</span>
                     <span className="mt-0.5 block text-xs text-tinta/55">A quién de Dynamic se le abre la puerta de retail.</span>
                   </span>
-                  <span aria-hidden className="text-tinta/45">→</span>
+                  <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/45" />
                 </Link>
                 )}
                 {/* Configuración (ADR-0195 F1): se ofrece a quien ve el módulo (ADR-0253: ya no es solo del líder). */}
@@ -256,7 +257,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
                       <span className="block text-sm text-tinta">Configuración</span>
                       <span className="mt-0.5 block text-xs text-tinta/55">Meta de cada día, fondo de caja y lo que cambia cada campaña.</span>
                     </span>
-                    <span aria-hidden className="text-tinta/45">→</span>
+                    <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/45" />
                   </Link>
                 )}
               </div>
@@ -275,7 +276,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
                     <span className="block text-sm text-tinta">Demo</span>
                     <span className="mt-0.5 block text-xs text-tinta/55">Elige un módulo y te mostramos, paso a paso, qué hace cada cosa.</span>
                   </span>
-                  <span aria-hidden className="text-tinta/45">→</span>
+                  <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/45" />
                 </button>
               </div>
             )}

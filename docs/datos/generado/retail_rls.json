@@ -64,6 +64,11 @@
   "relkind": "r",
   "rls": true
  },
+ "campana_disenos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "campana_efecto_caja": {
   "forzado": false,
   "relkind": "r",
@@ -160,6 +165,11 @@
   "rls": true
  },
  "club_textos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "cobros_resellados": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -524,6 +534,11 @@
   "relkind": "r",
   "rls": true
  },
+ "foto_recortes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "frescura_decisiones": {
   "forzado": false,
   "relkind": "r",
@@ -605,6 +620,16 @@
   "rls": true
  },
  "lider_modulos_ocultos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "look_web_piezas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "looks_web": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -789,6 +814,26 @@
   "relkind": "v",
   "rls": false
  },
+ "pos_abonos_lotes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "pos_maquinas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "pos_maquinas_sedes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "pos_tarifas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "precios_sede": {
   "forzado": false,
   "relkind": "r",
@@ -829,12 +874,47 @@
   "relkind": "r",
   "rls": true
  },
+ "produccion_avances": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "produccion_etapas_historial": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
+ "produccion_fases": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "produccion_insumos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "produccion_lineas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "produccion_salida_lineas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "produccion_salidas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "produccion_vuelta_lineas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "produccion_vueltas": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -845,6 +925,11 @@
   "rls": true
  },
  "producto_color_temporadas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "producto_consumos": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -875,6 +960,11 @@
   "rls": true
  },
  "proveedor_deuda_resoluciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "proveedor_tarifas": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -1069,6 +1159,16 @@
   "relkind": "r",
   "rls": true
  },
+ "ubicacion_metas_fecha": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "ubicacion_metas_mes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "ubicaciones": {
   "forzado": false,
   "relkind": "r",
@@ -1115,6 +1215,11 @@
   "rls": true
  },
  "ventas_historicas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "vitrina_largos_tipicos": {
   "forzado": false,
   "relkind": "r",
   "rls": true

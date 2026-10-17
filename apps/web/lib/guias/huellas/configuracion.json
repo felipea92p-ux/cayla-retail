@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 76,
+  "total": 91,
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
       "ComboResponsable «{responsable}»",
@@ -15,6 +15,9 @@
       "button «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
+    "components/ConfiguracionCasilla.tsx": [
+      "input «{etiqueta}»"
+    ],
     "components/ConfiguracionImpuestos.tsx": [
       "input «{etiqueta}»",
       "button «ya lo confirmó»",
@@ -25,6 +28,8 @@
       "button «+ UIT de un año nuevo»",
       "Casilla «{`Tope de la planilla desde el ${fechaCorta(t.vigenteDesde, true)}»",
       "button «config.nuevo-tope»",
+      "Casilla «{`Saldo a favor de IGV al empezar ${textoMes(t.vigenteDesde.slice(0, 7))}»",
+      "button «config.nuevo-saldo»",
       "button «+ Año nuevo»",
       "Casilla «{`Límite de ventas de ${anio}»",
       "Casilla «{`Pago a cuenta de renta de ${anio}»",
@@ -32,13 +37,16 @@
       "button «Cancelar»",
       "Boton «Agregar»"
     ],
-    "components/ConfiguracionTiendaWeb.tsx": [
-      "ComboResponsable «{responsable}»"
+    "components/ConfiguracionMetasMes.tsx": [
+      "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»",
+      "Casilla «{`Meta de ${que}»",
+      "Boton «Quitar»",
+      "input «Meta de la fecha especial»",
+      "Boton «+ Agregar»"
     ],
     "components/ConfiguracionTiendas.tsx": [
       "input «{etiqueta}»",
       "input «{etiqueta}» #2",
-      "input «{etiqueta}» #3",
       "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»",
       "Casilla «{`Fondo de caja de ${tienda.nombre}»",
       "Casilla «{`Cuánto sube la meta en ${campana.nombre}»",
@@ -47,6 +55,11 @@
       "BotonVer «Ver el cartel del club»",
       "BotonEnlace «+ Nueva campaña (en Catálogo ▸ Etiquetas)»",
       "Link «Ver cómo se ve en Caja»"
+    ],
+    "components/CuentasProveedor.tsx": [
+      "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
+      "LapizEditar «la cuenta»",
+      "BotonCopiar «{que}»"
     ],
     "components/GastosFijosYActivos.tsx": [
       "BotonEditar «Editar fijos»",
@@ -70,10 +83,14 @@
       "button «Se registró por error…»",
       "button «Dar de baja…»"
     ],
+    "components/ProveedorElegido.tsx": [
+      "a «{tel.texto}»"
+    ],
     "components/finanzas/ConfiguracionCuentas.tsx": [
       "ComboResponsable «{responsable}»",
       "Boton «+ Agregar cuenta»",
       "LapizEditar «{c.nombre}»",
+      "LapizEditar «{`la tarifa de ${m.nombre}»",
       "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
       "Boton «Agregar»"
@@ -97,6 +114,12 @@
       "button «{salida.accion === \"archivar\" ? \"Archivar\" : \"Reactivar\"}»",
       "button «Cancelar»",
       "Boton «Guardar cambios»"
+    ],
+    "components/finanzas/TarifaMaquinaModal.tsx": [
+      "Casilla «La tasa lleva IGV»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Guardar»"
     ]
   }
 }

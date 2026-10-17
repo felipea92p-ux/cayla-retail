@@ -153,6 +153,7 @@ describe("parámetros (Configuración ▸ Impuestos)", () => {
     expect(valorEnCasilla(fila("renta_pago_cuenta", "2026-01-01", 0.015))).toBe("1.5");
     expect(valorEnCasilla(fila("uit", "2026-01-01", 5500))).toBe("5500");
     expect(valorEnCasilla(fila("tope_planilla_movilidad", "2026-10-01", 45.2))).toBe("45.20");
+    expect(valorEnCasilla(fila("saldo_favor_igv", "2026-10-01", 12345.6))).toBe("12345.60"); // soles, con sus céntimos (ADR-0433, act. 4b)
   });
 
   it("lo tipeado se guarda como la base lo pide: la tasa como fracción", () => {
@@ -163,6 +164,16 @@ describe("parámetros (Configuración ▸ Impuestos)", () => {
     expect(parsearParametro("umbral_uit", "300")).toEqual({ ok: true, valor: 300 });
     expect(parsearParametro("tope_planilla_movilidad", "S/ 45.20")).toEqual({ ok: true, valor: 45.2 });
     expect(parsearParametro("tope_planilla_movilidad", "45,2")).toEqual({ ok: true, valor: 45.2 });
+  });
+
+  it("el saldo a favor de IGV con que CAYLA arrancó (ADR-0433, act. 4b): soles, con céntimos, miles con coma, y el cero vale", () => {
+    expect(parsearParametro("saldo_favor_igv", "S/ 12,345.67")).toEqual({ ok: true, valor: 12345.67 });
+    expect(parsearParametro("saldo_favor_igv", "12345,5")).toEqual({ ok: true, valor: 12345.5 });
+    expect(parsearParametro("saldo_favor_igv", "0")).toEqual({ ok: true, valor: 0 }); // declarar que no traía saldo es un dato
+    expect(parsearParametro("saldo_favor_igv", "-5").ok).toBe(false);
+    expect(parsearParametro("saldo_favor_igv", "10000001").ok).toBe(false);
+    expect(parsearParametro("saldo_favor_igv", "").ok).toBe(false);
+    expect(parsearParametro("saldo_favor_igv", "mucho").ok).toBe(false);
   });
 
   it("y rechaza lo que la base rechazaría, con palabras de la tienda", () => {
@@ -182,8 +193,8 @@ describe("parámetros (Configuración ▸ Impuestos)", () => {
     expect(vigenteEnAnio(ps, "uit", 2025)?.valor).toBe(5350);
     expect(vigenteEnAnio(ps, "uit", 2024)).toBeNull();
     expect(aniosDeRegimen(ps, 2026, [2027])).toEqual([2027, 2026]);
-    // El tope de la planilla rige desde cualquier fecha: no suma años a la tabla del régimen.
-    expect(aniosDeRegimen([...ps, fila("tope_planilla_movilidad", "2024-05-01", 45.2)], 2026)).toEqual([2026]);
+    // El tope de la planilla rige desde cualquier fecha: no suma años a la tabla del régimen. El saldo de IGV, tampoco (rige desde el día 1 de un mes).
+    expect(aniosDeRegimen([...ps, fila("tope_planilla_movilidad", "2024-05-01", 45.2), fila("saldo_favor_igv", "2023-03-01", 100)], 2026)).toEqual([2026]);
   });
 });
 

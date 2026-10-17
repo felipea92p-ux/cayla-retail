@@ -1,6 +1,6 @@
 import "server-only";
 import type { TipoDocumentoClienta } from "@cayla-retail/shared";
-import { unstable_cache } from "next/cache";
+import { cacheLife, unstable_cache } from "next/cache";
 import { cache } from "react";
 import { base, leerConRespaldo } from "./base";
 import {
@@ -9,7 +9,7 @@ import {
   leerIntentoDeCodigo,
   leerMiCuenta,
   leerReserva,
-  type AvisosAlCrear,
+  type AvisosAlUnirse,
   type Beneficios,
   type CasillaWhatsapp,
   type IntentoDeCodigo,
@@ -60,24 +60,42 @@ export const consultarDocumentoEnBase = (tipo: TipoDocumentoClienta, numero: str
 
 export type RespuestaRevision = {
   /** `correo_de_otra_persona`: es el correo de contacto de OTRA ficha del Club (un correo es de una sola persona, 20261015055000). */
-  estado: "ok" | "limite" | "correo_repetido" | "correo_de_otra_persona" | "dni_repetido" | "archivada" | "invalido" | "sin_respuesta";
+  estado: "ok" | "limite" | "correo_repetido" | "correo_de_otra_persona" | "invalido" | "sin_respuesta";
+};
+
+/** Lo que se pregunta al crear la cuenta, después del código (`tienda_revisar_registro_simple`, 20261017175000). Cuenta un intento de registro. */
+export const revisarRegistroSimpleEnBase = (correo: string, ipHash: string): Promise<RespuestaRevision> =>
+  leerConRespaldo<RespuestaRevision>(
+    "tienda_revisar_registro_simple_fallo",
+    async (db) => {
+      const [fila] = await db`select retail.tienda_revisar_registro_simple(${correo}::text, ${ipHash}::text) as r`;
+      const estado = ESTADO(fila?.r);
+      const conocidos = ["ok", "limite", "correo_repetido", "correo_de_otra_persona", "invalido"] as const;
+      return conocidos.includes(estado as (typeof conocidos)[number]) ? { estado: estado as (typeof conocidos)[number] } : { estado: "sin_respuesta" };
+    },
+    { estado: "sin_respuesta" },
+  );
+
+export type RevisionClub = {
+  /** `ya_es_del_club`: la persona ya completó sus datos (otra pestaña, otro aparato). `sin_cuenta`: el usuario no tiene cuenta. */
+  estado: "ok" | "limite" | "dni_repetido" | "archivada" | "invalido" | "ya_es_del_club" | "sin_cuenta" | "sin_respuesta";
   campo?: string;
 };
 
-/** Lo que se pregunta ANTES de mandar el código. Cuenta un intento de registro. */
-export const revisarRegistroEnBase = (
-  correo: string,
+/** Lo que se pregunta ANTES de consultar el padrón y unirse al Club (`tienda_revisar_club`). Cuenta un intento de registro. */
+export const revisarClubEnBase = (
+  usuarioWebId: string,
   documento: { tipo: TipoDocumentoClienta; numero: string },
   celular: string,
   ipHash: string,
   documentoHash: string,
-): Promise<RespuestaRevision> =>
-  leerConRespaldo<RespuestaRevision>(
-    "tienda_revisar_registro_fallo",
+): Promise<RevisionClub> =>
+  leerConRespaldo<RevisionClub>(
+    "tienda_revisar_club_fallo",
     async (db) => {
-      const [fila] = await db`select retail.tienda_revisar_registro(${correo}::text, ${documento.numero}::text, ${celular}::text, ${ipHash}::text, ${documentoHash}::text, ${documento.tipo}::text) as r`;
+      const [fila] = await db`select retail.tienda_revisar_club(${usuarioWebId}::uuid, ${documento.numero}::text, ${celular}::text, ${ipHash}::text, ${documentoHash}::text, ${documento.tipo}::text) as r`;
       const estado = ESTADO(fila?.r);
-      const conocidos = ["ok", "limite", "correo_repetido", "correo_de_otra_persona", "dni_repetido", "archivada", "invalido"] as const;
+      const conocidos = ["ok", "limite", "dni_repetido", "archivada", "invalido", "ya_es_del_club", "sin_cuenta"] as const;
       const campo = (fila?.r as { campo?: unknown }).campo;
       return conocidos.includes(estado as (typeof conocidos)[number])
         ? { estado: estado as (typeof conocidos)[number], ...(typeof campo === "string" ? { campo } : {}) }
@@ -135,11 +153,44 @@ export const leerCasillaDeAvisos = (): Promise<CasillaWhatsapp | null> =>
     null,
   );
 
-/* ------------------------------------------------------------------ Crear la cuenta */
+/* ------------------------------------------------------------------ Crear la cuenta y unirse al Club */
 
-export type DatosCuenta = {
+export type DatosCuentaSimple = {
   usuarioWebId: string;
   correo: string;
+  nombre: string;
+  textos: string;
+  /** `correo`: con el código ya probado. `google`: el servidor ya comprobó con el proyecto de clientes que la sesión es de Google. */
+  via: "correo" | "google";
+};
+
+export type ResultadoCuenta =
+  | { ok: true }
+  /** La base dijo que no (`hint` y `detalle`, ver `errorDeCuenta`) o no contestó (`hint` null). Nada quedó escrito. */
+  | { ok: false; hint: string | null; detalle: string | null };
+
+/** Crea la cuenta con lo mínimo y su ficha mínima, sin Club todavía, todo o nada (`retail.tienda_registrar_cuenta_simple`). */
+export async function registrarCuentaSimpleEnBase(d: DatosCuentaSimple): Promise<ResultadoCuenta> {
+  try {
+    await base()`
+      select retail.tienda_registrar_cuenta_simple(
+        ${d.usuarioWebId}::uuid, ${d.correo}::text, ${d.nombre}::text, true, ${d.textos}::text, ${d.via}::text
+      ) as r`;
+    return { ok: true };
+  } catch (error) {
+    const e = error as { hint?: unknown; detail?: unknown; code?: unknown };
+    const hint = typeof e.hint === "string" ? e.hint : null;
+    // Sin el mensaje de la base en el registro: puede traer datos de la persona. El código y el hint bastan. Un rechazo de negocio
+    // (los `cuenta_*` y el correo de otra persona, `correo_repetido`) no es una falla.
+    if (!hint?.startsWith("cuenta_") && hint !== "correo_repetido") {
+      console.error(JSON.stringify({ evento: "tienda_registrar_cuenta_simple_fallo", codigo: e.code ?? null, hint }));
+    }
+    return { ok: false, hint, detalle: typeof e.detail === "string" ? e.detail : null };
+  }
+}
+
+export type DatosClub = {
+  usuarioWebId: string;
   /** DNI, carné de extranjería o pasaporte (20261015161000). */
   documentoTipo: TipoDocumentoClienta;
   documento: string;
@@ -147,8 +198,8 @@ export type DatosCuenta = {
   /** Con DNI, true: el nombre es el del padrón. Con carné o pasaporte, false: el escrito tal cual. */
   nombreDelPadron: boolean;
   celular: string;
-  cumpleDia: number;
-  cumpleMes: number;
+  cumpleDia: number | null;
+  cumpleMes: number | null;
   cumpleAnio: number | null;
   mayorDeEdad: boolean;
   avisosWhatsapp: boolean;
@@ -157,32 +208,29 @@ export type DatosCuenta = {
   textos: string;
 };
 
-export type ResultadoRegistro =
-  | { ok: true; seUnioASuFicha: boolean; eraDelClub: boolean; avisos: AvisosAlCrear }
-  /** La base dijo que no (`hint` y `detalle`, ver `errorDeRegistro`) o no contestó (`hint` null). Nada quedó escrito. */
+export type ResultadoClub =
+  | { ok: true; yaEra: boolean; seUnioASuFicha: boolean; eraDelClub: boolean; avisos: AvisosAlUnirse }
   | { ok: false; hint: string | null; detalle: string | null };
 
-const AVISOS: readonly AvisosAlCrear[] = ["no", "activados", "ya_estaban", "celular_distinto"];
+const AVISOS: readonly AvisosAlUnirse[] = ["no", "activados", "ya_estaban", "celular_distinto"];
 
-/** Crea la cuenta y deja a la persona en el Club, todo o nada (`retail.tienda_registrar_cuenta`). */
-export async function registrarCuentaEnBase(d: DatosCuenta): Promise<ResultadoRegistro> {
+/** Da de alta en el Club a la persona de esa cuenta, todo o nada (`retail.tienda_unirse_al_club`). */
+export async function unirseAlClubEnBase(d: DatosClub): Promise<ResultadoClub> {
   try {
     const [fila] = await base()`
-      select retail.tienda_registrar_cuenta(
-        ${d.usuarioWebId}::uuid, ${d.correo}::text, ${d.documento}::text, ${d.nombre}::text, ${d.nombreDelPadron}::boolean,
-        ${d.celular}::text, ${d.cumpleDia}::integer, ${d.cumpleMes}::integer, ${d.cumpleAnio}::integer, true,
-        ${d.mayorDeEdad}::boolean, ${d.avisosWhatsapp}::boolean, ${d.casillaVersion}::integer, ${d.textos}::text, ${d.documentoTipo}::text
+      select retail.tienda_unirse_al_club(
+        ${d.usuarioWebId}::uuid, ${d.documento}::text, ${d.nombre}::text, ${d.nombreDelPadron}::boolean, ${d.celular}::text,
+        ${d.cumpleDia}::integer, ${d.cumpleMes}::integer, ${d.cumpleAnio}::integer, ${d.mayorDeEdad}::boolean, true,
+        ${d.avisosWhatsapp}::boolean, ${d.casillaVersion}::integer, ${d.textos}::text, ${d.documentoTipo}::text
       ) as r`;
-    const r = (fila?.r ?? {}) as { se_unio_a_su_ficha?: unknown; era_del_club?: unknown; avisos_whatsapp?: unknown };
+    const r = (fila?.r ?? {}) as { estado?: unknown; se_unio_a_su_ficha?: unknown; era_del_club?: unknown; avisos_whatsapp?: unknown };
     const avisos = AVISOS.find((a) => a === r.avisos_whatsapp) ?? "no";
-    return { ok: true, seUnioASuFicha: r.se_unio_a_su_ficha === true, eraDelClub: r.era_del_club === true, avisos };
+    return { ok: true, yaEra: r.estado === "ya_era", seUnioASuFicha: r.se_unio_a_su_ficha === true, eraDelClub: r.era_del_club === true, avisos };
   } catch (error) {
-    const e = error as { hint?: unknown; detail?: unknown; code?: unknown; message?: unknown };
+    const e = error as { hint?: unknown; detail?: unknown; code?: unknown };
     const hint = typeof e.hint === "string" ? e.hint : null;
-    // Sin el mensaje de la base en el registro: puede traer datos de la persona. El código y el hint bastan. Un rechazo de negocio
-    // (los `cuenta_*` y el correo de otra persona, `correo_repetido`) no es una falla.
-    if (!hint?.startsWith("cuenta_") && hint !== "correo_repetido" && hint !== "nombre_con_numeros") {
-      console.error(JSON.stringify({ evento: "tienda_registrar_cuenta_fallo", codigo: e.code ?? null, hint }));
+    if (!hint?.startsWith("cuenta_") && hint !== "correo_repetido" && hint !== "nombre_con_numeros" && hint !== "nombre_sin_padron") {
+      console.error(JSON.stringify({ evento: "tienda_unirse_al_club_fallo", codigo: e.code ?? null, hint }));
     }
     return { ok: false, hint, detalle: typeof e.detail === "string" ? e.detail : null };
   }
@@ -217,9 +265,23 @@ const beneficiosCompartidos = unstable_cache(
   { revalidate: 300 },
 );
 
+async function beneficiosGuardados(): Promise<unknown> {
+  "use cache";
+  try {
+    const cruda = await beneficiosCompartidos();
+    cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
+    return cruda;
+  } catch (error) {
+    // Sin base: no se lanza (Next daría por rota la página que se arma por adelantado) y el respaldo dura segundos, no minutos.
+    console.error(JSON.stringify({ evento: "tienda_club_beneficios_fallo", mensaje: error instanceof Error ? error.message : String(error) }));
+    cacheLife({ stale: 300, revalidate: 5, expire: 3600 });
+    return null;
+  }
+}
+
 export const leerBeneficiosDelClub = async (): Promise<Beneficios | null> => {
   try {
-    return leerBeneficios(await beneficiosCompartidos());
+    return leerBeneficios(await beneficiosGuardados());
   } catch (error) {
     console.error(JSON.stringify({ evento: "tienda_club_beneficios_fallo", mensaje: error instanceof Error ? error.message : String(error) }));
     return null;
