@@ -194,7 +194,7 @@ export const hrefLooks = (sede: string | null = null): string => conSede("/looks
 export const hrefLook = (id: string, sede: string | null = null): string => conSede(`/looks/${id}`, sede);
 
 /** La ficha de una prenda del look, con su color ya elegido y la tienda elegida. */
-export function hrefDePieza(p: Pick<PiezaLook, "prenda" | "color">, sede: string | null = null): string {
+export function hrefDePieza(p: { prenda: Pick<PiezaLook["prenda"], "id">; color: Pick<PiezaLook["color"], "codigo"> }, sede: string | null = null): string {
   const q = new URLSearchParams();
   if (sede) q.set("sede", sede);
   q.set("color", p.color.codigo);

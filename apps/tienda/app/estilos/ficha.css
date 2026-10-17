@@ -162,3 +162,9 @@
   .t-pdp-barra { display: none; }
   .t-pdp-bolsa-info [role="status"] { display: inline-flex; }
 }
+
+/* ---- «Arma un look con esta prenda» (ADR-0434, actividad 10): el probador con ella, en el color elegido ---- */
+.t-pdp-probador { display: grid; gap: 6px; margin-top: -4px; }
+.t-pdp-probador .t-btn { width: 100%; min-height: 50px; }
+.t-pdp-probador .t-btn .ic { width: 18px; height: 18px; }
+.t-pdp-probador p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--tinta-60); text-align: center; }

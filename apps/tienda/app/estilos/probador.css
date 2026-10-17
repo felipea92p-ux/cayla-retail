@@ -10,7 +10,16 @@
   width: 100%; max-width: 440px; margin-inline: auto; padding-bottom: 8px; color: var(--tinta); }
 
 /* ---- La cabecera: «Arma tu look» y el título ---- */
-.pb-cab { padding: 10px 16px 0; display: flex; flex-direction: column; gap: 5px; }
+.pb-cab { padding: 10px 16px 0; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.pb-cab-txt { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+/* El corazón del look (actividad 8): lleno y rojo cuando el look de la figura está guardado. */
+.pb-corazon { width: 44px; height: 44px; flex: none; padding: 0; border: 0; border-radius: 50%; background: var(--papel); box-shadow: inset 0 0 0 1px var(--sand); color: var(--tinta); display: grid; place-items: center; cursor: pointer; transition: transform .15s; }
+.pb-corazon .ic { width: 19px; height: 19px; transition: fill .2s, color .2s; }
+.pb-corazon[aria-pressed="true"] { color: var(--rojo); }
+.pb-corazon[aria-pressed="true"] .ic { fill: currentColor; }
+.pb-corazon[aria-busy="true"] { cursor: progress; }
+.pb-corazon:active { transform: scale(.94); }
+.pb-corazon:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
 .pb-cab h1 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 34px; line-height: .95; letter-spacing: -.01em; }
 .pb-cab h1 em { font-style: italic; color: var(--rojo); }
 .pb-cab-ayuda { display: none; margin: 0; font-size: 14px; color: var(--tinta-60); }
@@ -244,8 +253,9 @@
   .pb { max-width: 1344px; padding: 18px 32px 40px; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); column-gap: 48px;
     grid-template-rows: auto auto auto auto 1fr auto;
     grid-template-areas: "cab look" "escena look" "escena colores" "escena tira" "escena barra" ". pie"; align-items: start; }
-  .pb-cab { grid-area: cab; padding: 0; flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 16px; }
-  .pb-cab .t-ceja { flex-basis: 100%; }
+  .pb-cab { grid-area: cab; padding: 0; }
+  .pb-cab-txt { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 16px; }
+  .pb-cab-txt .t-ceja { flex-basis: 100%; }
   .pb-cab h1 { font-size: 46px; }
   .pb-cab-ayuda { display: block; }
   /* La figura se queda a la vista mientras se recorren las opciones de la derecha. */
@@ -283,6 +293,125 @@
   .pb-agregar { display: inline-flex; width: calc(50% - 9px); margin-right: 14px; }
   .pb-agregar + .pb-agregar { margin-right: 0; }
   .pb-tira-carril { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* ---- La figura quieta (actividad 8): un look guardado, sin nada que tocar, en Favoritos y en su página ---- */
+.pb-quieta { --pb-sombra-prenda: color-mix(in srgb, var(--t-tinta-fija) 15%, transparent); position: relative; aspect-ratio: 390 / 420; overflow: hidden; overflow: clip; }
+.pb-quieta-pieza { position: absolute; filter: drop-shadow(0 12px 14px var(--pb-sombra-prenda)); }
+/* Quieta, la figura va en un rectángulo con el degradado del estudio (lienzo v3): el arco es del probador, donde se juega. */
+.pb-quieta .pb-arco { left: 0; right: 0; border-radius: 0; box-shadow: none; }
+.pb-quieta .pb-arco-filo { display: none; }
+
+/* ---- Tus looks en Favoritos ---- */
+.lg-lista { padding-block: 4px 26px; }
+.lg-lista-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.lg-lista-cab h2 { margin: 0; font-family: var(--serif); font-size: 26px; font-weight: 500; line-height: 1; }
+.lg-lista-cab .t-enlace { flex: none; }
+.lg-carril { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 46%); gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: -16px; padding: 2px 16px 8px; scroll-padding-inline: 16px; }
+.lg-carril::-webkit-scrollbar { display: none; }
+.lg-tarjeta { scroll-snap-align: start; min-width: 0; display: flex; flex-direction: column; gap: 6px; color: var(--tinta); text-decoration: none; }
+.lg-tarjeta-figura { border-radius: 4px; overflow: hidden; }
+.lg-tarjeta > b { font-size: 13.5px; font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lg-tarjeta > span { font-size: 12.5px; color: var(--tinta-60); }
+.lg-tarjeta:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; border-radius: 4px; }
+@media (hover: hover) { .lg-tarjeta:hover > b { text-decoration: underline; text-underline-offset: 3px; } }
+
+/* ---- La página de un look guardado (lienzo v3, `V3TuLook`) ---- */
+.lg { padding-block: 12px 32px; display: grid; gap: 18px; }
+.lg-figura { position: relative; border-radius: 4px; overflow: hidden; }
+.lg-sello { position: absolute; left: 12px; bottom: 12px; z-index: 30; padding: 5px 10px; border-radius: 999px; background: color-mix(in srgb, var(--t-papel-fijo) 92%, transparent); color: var(--t-tinta-fija); font-size: 11px; font-weight: 700; letter-spacing: .04em; }
+.lg-info { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.lg-nombre { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.lg-nombre h1 { margin: 0; min-width: 0; font-family: var(--serif); font-weight: 500; font-size: 34px; line-height: 1; overflow-wrap: anywhere; }
+.lg-renombrar { min-height: 40px; flex: none; padding: 0; border: 0; background: transparent; display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; font-weight: 600; color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--taupe); cursor: pointer; }
+.lg-renombrar .ic { width: 14px; height: 14px; }
+.lg-renombrar-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; }
+.lg-renombrar-form input { flex: 1; min-width: 0; height: 44px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--papel); box-shadow: inset 0 0 0 1.5px var(--tinta); font: inherit; font-size: 16px; color: var(--tinta); }
+.lg-renombrar-form .t-btn { min-height: 44px; padding: 0 18px; }
+.lg-renombrar-error { flex-basis: 100%; margin: 0; font-size: 12.5px; font-weight: 600; color: var(--ambar); }
+.lg-piezas { list-style: none; margin: 4px 0 0; padding: 0; }
+.lg-pieza { display: grid; grid-template-columns: 22px 54px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--sand); }
+.lg-pieza > b:first-child { width: 22px; height: 22px; border-radius: 50%; background: var(--tinta); color: var(--crema); font-size: 12px; display: grid; place-items: center; }
+.lg-pieza-foto { position: relative; width: 54px; height: 66px; border-radius: 3px; background: var(--t-foto); overflow: hidden; }
+.lg-pieza-foto > span { position: absolute; inset: 5px; }
+.lg-pieza-txt { min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.lg-pieza-txt a { font-weight: 600; color: var(--tinta); text-decoration: none; }
+.lg-pieza-color { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--tinta-60); }
+.lg-pieza-txt small { font-size: 12px; color: var(--ambar); }
+.lg-pieza-txt small.ok { color: var(--verde); }
+.lg-pieza-txt small.no { color: var(--tinta-60); }
+.lg-pieza-precio { position: relative; display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; }
+.lg-pieza-precio s { font-size: 11.5px; color: var(--tinta-60); }
+.lg-pieza-precio b { font-size: 13.5px; }
+.lg-pieza-precio b.oferta { color: var(--rojo); }
+.lg-faltan { margin: 0; font-size: 12.5px; color: var(--taupe); }
+.lg-total { position: relative; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; }
+.lg-total b { font-family: var(--serif); font-size: 28px; font-weight: 500; font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; }
+.lg-total s { margin-right: 8px; font-size: 13px; color: var(--tinta-60); }
+.lg-acciones { display: flex; gap: 10px; margin-top: 4px; }
+.lg-acciones > * { flex: 1; min-height: 48px; padding-inline: 12px; }
+.lg-nota { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--tinta-60); }
+.lg-quitar { align-self: flex-start; min-height: 40px; cursor: pointer; }
+/* «Agregar el look a mi bolsa»: en el celular, pegado abajo mientras se mira el look; en la computadora, en su lugar, bajo el total. */
+.lg-barra { position: sticky; bottom: 0; z-index: 40; margin-inline: -16px; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--papel); box-shadow: 0 -1px 0 var(--sand), 0 -16px 30px -20px var(--sombra); }
+.lg-agregar { width: 100%; }
+@container tienda (min-width: 960px) {
+  .lg { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); column-gap: 56px; align-items: start; }
+  .lg-barra { position: static; margin: 0; padding: 0; background: none; box-shadow: none; }
+  .lg-figura { position: sticky; top: 16px; }
+  .lg-nombre h1 { font-size: 46px; }
+  .lg-carril { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-columns: auto; margin: 0; padding: 0; overflow: visible; }
+}
+
+/* ---- Compartir (actividad 9): la hoja con la imagen para estados ---- */
+.cl-previa { margin: 16px auto 0; width: min(100%, 236px); aspect-ratio: 9 / 16; border-radius: 10px; overflow: hidden; background: var(--hueso); display: grid; place-items: center; text-align: center; }
+.cl-previa img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cl-previa span { padding: 16px; font-size: 13px; line-height: 1.45; color: var(--tinta-60); }
+.cl-previa[data-estado="cargando"] { background: linear-gradient(110deg, var(--hueso) 38%, color-mix(in srgb, var(--hueso) 55%, var(--papel)) 50%, var(--hueso) 62%); background-size: 260% 100%; animation: brillo 1.4s linear infinite; }
+.cl-acciones { gap: 10px; }
+.cl-acciones .t-btn { width: 100%; }
+.cl-enlace { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--tinta-60); text-align: center; overflow-wrap: anywhere; }
+.cl-enlace span { user-select: all; color: var(--tinta); }
+@media (prefers-reduced-motion: reduce) { .cl-previa[data-estado="cargando"] { animation: none; } }
+
+/* ---- El look que alguien compartió (`/tu-look`, actividad 9): como el look guardado, sin precios ---- */
+.tl { padding-top: 22px; }
+.tl-titulo { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 40px; line-height: 1; letter-spacing: -.01em; }
+.tl-titulo em { color: var(--rojo); }
+.tl-nombre { font-weight: 600; }
+.tl-llamado { display: flex; flex-direction: column; align-items: stretch; gap: 4px; margin-top: 6px; }
+.tl-llamado .t-enlace { align-self: center; min-height: 44px; }
+@container tienda (min-width: 960px) {
+  .tl-titulo { font-size: 54px; }
+  .tl-llamado { align-items: flex-start; }
+  .tl-llamado .t-enlace { align-self: flex-start; }
+}
+
+/* ---- La entrada a «Arma el tuyo» en «Arma tu look» (actividad 10): la tarjeta de la campaña, con el probador quieto a la derecha ---- */
+.ae { display: grid; grid-template-columns: minmax(0, 1fr) 40%; grid-template-areas: "txt fig" "btn btn"; align-items: center; gap: 14px 12px; margin: 4px 0 26px; padding: 20px; border-radius: 8px; overflow: hidden; background: radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--t-hero) 82%, var(--t-oscuro)), var(--t-oscuro) 82%); color: var(--t-hero-tinta); text-decoration: none; }
+.ae-txt { grid-area: txt; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
+.ae .t-ceja { color: var(--t-hero-acento); }
+.ae-titulo { font-family: var(--serif); font-weight: 500; font-size: 36px; line-height: .95; letter-spacing: -.01em; }
+.ae-titulo em { color: var(--t-hero-acento); }
+.ae-bajada { font-size: 13px; line-height: 1.45; color: color-mix(in srgb, var(--t-hero-tinta) 80%, transparent); }
+.ae-btn { grid-area: btn; min-height: 48px; padding-inline: 18px; background: var(--t-hero-tinta); color: var(--t-tinta-fija); }
+.ae-btn .ic { width: 16px; height: 16px; transition: transform .25s var(--ease); }
+.ae-figura { grid-area: fig; min-width: 0; }
+/* Aquí la figura va en su arco, como en el probador. */
+.ae-figura .pb-quieta .pb-arco { left: 4.1%; right: 4.1%; border-radius: 50% 50% 4px 4px / 42.6% 42.6% 4px 4px; }
+.ae:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; }
+/* Sobre el oscuro, el botón no pasa al rojo profundo de los demás (su texto oscuro no se leería): pasa al rosado de la campaña. */
+@media (hover: hover) {
+  .ae:hover .ae-btn:not(:disabled) { background: var(--t-hero-acento); color: var(--t-tinta-fija); }
+  .ae:hover .ae-btn .ic { transform: translateX(4px); }
+}
+@container tienda (min-width: 960px) {
+  .ae { grid-template-columns: minmax(0, 1fr) 320px; grid-template-areas: "txt fig" "btn fig"; align-content: center; gap: 22px 40px; padding: 36px 32px 36px 48px; }
+  .ae-txt { align-self: end; }
+  .ae-btn { justify-self: start; align-self: start; }
+  .ae-titulo { font-size: 60px; }
+  .ae-bajada { font-size: 15px; max-width: 44ch; }
+  .ae-btn { min-height: 48px; padding-inline: 22px; }
 }
 
 /* ---- Mientras llega (`FormaDelEsqueleto`, el esqueleto del catálogo): el arco que brilla y la tira, donde van a caer ---- */
