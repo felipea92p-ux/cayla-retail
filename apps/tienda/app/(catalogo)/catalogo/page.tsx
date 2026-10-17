@@ -76,9 +76,11 @@ export default async function Catalogo({ searchParams }: Props) {
   const sp = await searchParams;
   const listaPedida = leerLista(sp.lista);
   // Las prendas de una campaña sin descuento (ADR-0436, actividad 6a): sus modelos los dice la portada (la misma lectura compartida de la
-  // franja). Una campaña que ya no está en la portada (un enlace viejo) se ignora como cualquier lista que no existe: se ve toda la tienda.
-  const enPortada = listaPedida === "campana" ? (await leerPortada()).campana : null;
-  const campanaSinDescuento = enPortada && enPortada.id !== null && enPortada.id === leerCampana(sp.campana) ? enPortada : null;
+  // franja; con el carrusel, cualquiera de sus campañas). Una campaña que ya no está en la portada (un enlace viejo) se ignora como
+  // cualquier lista que no existe: se ve toda la tienda.
+  const pedidaCampana = leerCampana(sp.campana);
+  const enPortada = listaPedida === "campana" && pedidaCampana ? (await leerPortada()).campanas : [];
+  const campanaSinDescuento = enPortada.find((c) => c.id !== null && c.id === pedidaCampana) ?? null;
   const lista: Lista = listaPedida === "campana" && !campanaSinDescuento ? "todo" : listaPedida;
   const modelos = campanaSinDescuento ? new Set(campanaSinDescuento.prendas) : null;
   const orden = leerOrden(sp.orden);

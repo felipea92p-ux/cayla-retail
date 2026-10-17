@@ -87,17 +87,26 @@ export function paletasDeLaCampana(prendas: readonly PrendaDeCampana[]): Colores
   );
 }
 
+/** Cómo se nombran las campañas de un carrusel: «Día del Gato y Halloween», «A, B y C». */
+export function nombresEnOrden(nombres: readonly string[]): string {
+  return nombres.length <= 1 ? (nombres[0] ?? "") : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+}
+
 /** El día siguiente a `fecha` (`AAAA-MM-DD`). */
 export const diaSiguiente = (fecha: string) => new Date(Date.parse(`${fecha}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
 
 /**
  * Qué anuncia la portada el día después de que la campaña termina, para la hoja «Publicar» («Después sale»). Lo dice la base
- * (`campanas_portada_dias`, la regla de la tienda), no esta pantalla: aquí solo se le pone nombre. `null`: no se pudo saber.
+ * (`campanas_portada_dias`, la regla de la tienda), no esta pantalla: aquí solo se le pone nombre (con varias, el carrusel en su orden).
+ * `null`: no se pudo saber.
  */
 export function queSaleDespues(dias: readonly DiaPortada[] | null, nombres: ReadonlyMap<string, string>): string | null {
   const dia = dias?.[0];
   if (!dia) return null;
-  return dia.campana ? (nombres.get(dia.campana) ?? null) : "Lo nuevo";
+  if (dia.campanas.length === 0) return "Lo nuevo";
+  const conNombre = dia.campanas.map((id) => nombres.get(id));
+  if (conNombre.some((n) => n === undefined)) return null;
+  return conNombre.length === 1 ? conNombre[0]! : `${nombresEnOrden(conNombre as string[])}, en carrusel`;
 }
 
 /**

@@ -4,6 +4,7 @@ import { CejaDeCampana, HeroeDePortada, destacadoDeCampana } from "@cayla-retail
 import { Anuncio } from "@/components/Anuncio";
 import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { Cabecera } from "@/components/Cabecera";
+import { CarruselDePortada } from "@/components/CarruselDePortada";
 import { CuentaRegresiva } from "@/components/CuentaRegresiva";
 import { Icono } from "@/components/Icono";
 import { Isotipo } from "@/components/Isotipo";
@@ -18,7 +19,7 @@ import { hrefDePrenda, hrefLista } from "@/lib/catalogo";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { leerBeneficiosDelClub } from "@/lib/cuentas-servidor";
 import { hrefConVolver } from "@/lib/entrada";
-import { heroDelInicio, hrefDeLaCampana, type Hero } from "@/lib/inicio";
+import { heroesDelInicio, hrefDeLaCampana, type Hero } from "@/lib/inicio";
 import { anioActual } from "@/lib/hoy-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
 import { anuncios, partirTitulo, pctTexto, type Campana } from "@/lib/portada";
@@ -26,6 +27,7 @@ import { leerSedes } from "@/lib/tiendas-servidor";
 import { vitrinaDePortada } from "@/lib/vitrina-portada";
 import "./estilos/tiendas.css";
 import "./estilos/portada.css";
+import "./estilos/carrusel.css";
 
 // La campaña y las prendas salen de la base (lecturas compartidas de 30 a 300 s, `lib/compartido-servidor.ts`): lo que se cambia en el
 // ERP aparece solo, sin volver a publicar la tienda. Si la base no responde, la portada sale igual, sin campaña, sin fotos ni tiendas, y
@@ -38,60 +40,32 @@ import "./estilos/portada.css";
  * su tarjeta (una sola: antes también estaba en el héroe); y nuestras tiendas. Precio, tallas y cuánto hay, solo con cuenta.
  */
 export default async function Portada() {
-  const [{ campana }, sedes, catalogo, beneficios] = await Promise.all([leerPortada(), leerSedes(), leerCatalogo(null), leerBeneficiosDelClub()]);
+  const [{ campana, campanas }, sedes, catalogo, beneficios] = await Promise.all([leerPortada(), leerSedes(), leerCatalogo(null), leerBeneficiosDelClub()]);
   const anio = await anioActual();
   const prendas = catalogo?.prendas ?? [];
-  const hero = heroDelInicio(campana, prendas);
-  const piezas = hero.tipo === "marca" ? [] : hero.piezas;
-  const vitrina = vitrinaDePortada(prendas, new Set(piezas.map((p) => p.id)));
+  // Un héroe por campaña que se puede mostrar, en el orden de la base; con más de uno, el carrusel (ADR-0436, actividad 6b). Si ninguna,
+  // «Lo nuevo» o la marca, como antes.
+  const heroes = heroesDelInicio(campanas, prendas);
+  const enLosHeroes = new Set(heroes.flatMap((h) => (h.tipo === "marca" ? [] : h.piezas.map((p) => p.id))));
+  const vitrina = vitrinaDePortada(prendas, enLosHeroes);
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
-  // El rojo de la campaña cuando el héroe la anuncia (con sus prendas o, sin ninguna publicada, solo su texto); si no, el oscuro. Si la
-  // campaña tiene su diseño publicado en el ERP (ADR-0436), con sus colores en vez del rojo de siempre.
-  const conCampana = hero.tipo === "campana" || (hero.tipo === "marca" && campana !== null);
-  // A dónde llega quien crea su cuenta desde el héroe: a la campaña (sus ofertas o, sin descuento, sus prendas), o a lo nuevo. Una
-  // campaña que sale solo por su diseño (sin prendas a la vista) no tiene lista: llega al Inicio.
-  const destino =
-    hero.tipo === "campana"
-      ? hrefDeLaCampana(hero, null)
-      : hero.tipo === "nuevo"
-        ? hrefLista({ categoria: null, orden: "destacado", lista: "nuevo" })
-        : null;
+  const dibujados = heroes.map((hero, i) => (
+    <HeroeDeLaPortada key={hero.tipo === "campana" ? (hero.campana.id ?? hero.campana.nombre) : i} hero={hero} primera={campana} anio={anio} origenFotos={origenFotos} />
+  ));
 
   return (
     <div className="tienda">
-      <Anuncio frases={anuncios(campana)} />
+      <Anuncio frases={anuncios(campanas)} />
       <Cabecera />
       <main className="t-pagina">
-        <HeroeDePortada
-          clase={`t-portada${piezas.length > 0 ? " po-hero" : ""}`}
-          sinCampana={!conCampana}
-          colibri={<Isotipo className="t-colibri" />}
-          {...textoDelHeroe(hero, campana)}
-          acciones={
-            <>
-              <Link className="t-btn t-btn-claro" href={hrefConVolver("/crear-cuenta", destino)}>
-                Crear mi cuenta
-              </Link>
-              <Link className="t-enlace" href={hrefConVolver("/entrar", destino)}>
-                Ya tengo cuenta · Entrar <Icono nombre="flecha" />
-              </Link>
-            </>
-          }
-          piezas={piezasDelHeroe(piezas, { href: (p) => hrefConVolver("/crear-cuenta", hrefDePrenda(p)), conPrecio: false, origenFotos })}
-          Enlace={Link}
-          marca={hero.tipo === "campana" && hero.campana.pct ? `−${pctTexto(hero.campana.pct)}%` : null}
-          diseno={conCampana ? (campana?.diseno ?? null) : null}
-          lado={
-            // Sin prendas para mostrar (o sin base): la tarjeta del Club, como antes.
-            <div className="t-portada-club">
-              <TarjetaClub nombre="Tu nombre aquí" desde={anio} />
-              <p>Crea tu cuenta y forma parte del Club CAYLA.</p>
-            </div>
-          }
-        />
+        {dibujados.length > 1 ? (
+          <CarruselDePortada nombres={heroes.map((h) => (h.tipo === "campana" ? h.campana.nombre : ""))}>{dibujados}</CarruselDePortada>
+        ) : (
+          dibujados[0]
+        )}
 
         <ConfianzaPortada tiendas={sedes.map((s) => s.nombre)} />
-        <VitrinaSinPrecio prendas={vitrina} total={prendas.length - piezas.length} origenFotos={origenFotos} />
+        <VitrinaSinPrecio prendas={vitrina} total={prendas.length - enLosHeroes.size} origenFotos={origenFotos} />
         <AsiSeSepara />
         <SeccionClub nombre={null} desde={anio} conCuenta={false} cumplePct={beneficios?.pct ?? null} />
 
@@ -100,6 +74,51 @@ export default async function Portada() {
       </main>
       <Pie anio={anio} />
     </div>
+  );
+}
+
+/** El héroe de una campaña (o, sin ninguna que mostrar, el de «Lo nuevo» o la marca), con sus prendas como polaroids sin precio. */
+function HeroeDeLaPortada({ hero, primera, anio, origenFotos }: { hero: Hero; primera: Campana | null; anio: number; origenFotos: string | undefined }) {
+  const piezas = hero.tipo === "marca" ? [] : hero.piezas;
+  // El color de la campaña cuando el héroe la anuncia (con sus prendas o, sin ninguna publicada, solo su texto); si no, el oscuro. Con su
+  // diseño publicado en el ERP (ADR-0436), con sus colores en vez del rojo de siempre.
+  const deCampana = hero.tipo === "campana" ? hero.campana : hero.tipo === "marca" ? primera : null;
+  // A dónde llega quien crea su cuenta desde el héroe: a la campaña (sus ofertas o, sin descuento, sus prendas), o a lo nuevo. Una
+  // campaña que sale solo por su diseño (sin prendas a la vista) no tiene lista: llega al Inicio.
+  const destino =
+    hero.tipo === "campana"
+      ? hrefDeLaCampana(hero, null)
+      : hero.tipo === "nuevo"
+        ? hrefLista({ categoria: null, orden: "destacado", lista: "nuevo" })
+        : null;
+  return (
+    <HeroeDePortada
+      clase={`t-portada${piezas.length > 0 ? " po-hero" : ""}`}
+      sinCampana={deCampana === null}
+      colibri={<Isotipo className="t-colibri" />}
+      {...textoDelHeroe(hero, primera)}
+      acciones={
+        <>
+          <Link className="t-btn t-btn-claro" href={hrefConVolver("/crear-cuenta", destino)}>
+            Crear mi cuenta
+          </Link>
+          <Link className="t-enlace" href={hrefConVolver("/entrar", destino)}>
+            Ya tengo cuenta · Entrar <Icono nombre="flecha" />
+          </Link>
+        </>
+      }
+      piezas={piezasDelHeroe(piezas, { href: (p) => hrefConVolver("/crear-cuenta", hrefDePrenda(p)), conPrecio: false, origenFotos })}
+      Enlace={Link}
+      marca={hero.tipo === "campana" && hero.campana.pct ? `−${pctTexto(hero.campana.pct)}%` : null}
+      diseno={deCampana?.diseno ?? null}
+      lado={
+        // Sin prendas para mostrar (o sin base): la tarjeta del Club, como antes.
+        <div className="t-portada-club">
+          <TarjetaClub nombre="Tu nombre aquí" desde={anio} />
+          <p>Crea tu cuenta y forma parte del Club CAYLA.</p>
+        </div>
+      }
+    />
   );
 }
 

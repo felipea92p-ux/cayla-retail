@@ -456,6 +456,15 @@
     color: var(--color-tinta);
     background: repeating-linear-gradient(135deg, var(--color-sand) 0 4px, var(--color-papel) 4px 9px);
   }
+  /* Los días en carrusel (actividad 6b): una franja por campaña, en su orden, y el nombre en una pastilla oscura que se lee sobre cualquier
+     color de diseño (los colores son dato; la pastilla, tinta y crema fijas). */
+  .tw-cal-barra[data-carrusel] { background: none; color: var(--color-crema-fija); }
+  .tw-cal-franjas { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .tw-cal-franjas > span { flex: 1; background: linear-gradient(90deg, var(--hf), var(--hf2)); }
+  .tw-cal-barra-nombre { position: relative; overflow: hidden; text-overflow: ellipsis; }
+  .tw-cal-barra[data-carrusel] .tw-cal-barra-nombre {
+    padding: 1px 6px; border-radius: 4px; background: color-mix(in srgb, var(--color-tinta-fija) 72%, transparent);
+  }
   /* La campaña que todavía sale con el rojo de siempre (sin diseño propio publicado): punteada por dentro. */
   .tw-cal-barra[data-de-siempre] { outline: 1.5px dashed color-mix(in srgb, var(--color-crema-fija) 55%, transparent); outline-offset: -3px; }
   .tw-cal-barra[data-corte-antes] { border-top-left-radius: 0; border-bottom-left-radius: 0; }

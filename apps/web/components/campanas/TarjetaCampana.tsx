@@ -31,7 +31,7 @@ function ChipDeEstado({ c, enPortada, hoy }: { c: Campana; enPortada: boolean; h
  * está, si su diseño es el de siempre o tiene un borrador sin publicar, cómo se llama y lo que trae. Dos caminos: el diseño (la pestaña
  * con que abre la campaña; también al tocar la portada) y sus Datos y prendas.
  */
-export function TarjetaCampana({ c, enPortada, hoy, i, ahora }: { c: CampanaDeLista; enPortada: Campana | null; hoy: string; i: number; ahora: number }) {
+export function TarjetaCampana({ c, enPortada, hoy, i, ahora }: { c: CampanaDeLista; enPortada: readonly Campana[]; hoy: string; i: number; ahora: number }) {
   const estado = estadoDeCampana(c, hoy);
   const apagada = estado === "termino" || estado === "desactivada";
   const razon = porQueNoSale(c, enPortada, hoy);
@@ -47,7 +47,7 @@ export function TarjetaCampana({ c, enPortada, hoy, i, ahora }: { c: CampanaDeLi
       </Link>
       <div className="flex flex-1 flex-col gap-1.5 p-4">
         <div className="flex flex-wrap gap-1.5">
-          <ChipDeEstado c={c} enPortada={enPortada?.id === c.id} hoy={hoy} />
+          <ChipDeEstado c={c} enPortada={enPortada.some((e) => e.id === c.id)} hoy={hoy} />
           {diseno === "de-siempre" ? (
             <Chip tono="neutro" title="Sale con el rojo de siempre: todavía no tiene un diseño propio publicado">
               Diseño de siempre

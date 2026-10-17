@@ -53,6 +53,16 @@ export function hrefDeLaCampana(hero: Extract<Hero, { tipo: "campana" }>, sede: 
   return hrefLista({ sede, categoria: null, orden: "destacado", lista: hero.campana.pct ? "ofertas" : "campana", campana: hero.campanaId });
 }
 
+/**
+ * Los héroes de la portada y del Inicio con el carrusel (ADR-0436, actividad 6b; Felipe 2026-10-17: «si hay dos campañas activas, eso
+ * debe convertirse en un carrusel»): uno por cada campaña de la portada que se puede mostrar aquí (`heroDelInicio`), en el orden de la base
+ * (la de descuento primero). Si ninguna se puede mostrar, uno solo: «Lo nuevo» o la marca, como antes.
+ */
+export function heroesDelInicio(campanas: readonly Campana[], prendas: readonly Prenda[]): Hero[] {
+  const deCampanas = campanas.map((c) => heroDelInicio(c, prendas)).filter((h) => h.tipo === "campana");
+  return deCampanas.length > 0 ? deCampanas : [heroDelInicio(null, prendas)];
+}
+
 export function heroDelInicio(campana: Campana | null, prendas: readonly Prenda[]): Hero {
   if (campana) {
     const modelos = new Set(campana.prendas);

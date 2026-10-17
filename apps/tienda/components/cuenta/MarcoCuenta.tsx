@@ -42,10 +42,10 @@ export async function MarcoCuenta({
   conPie?: boolean;
 }) {
   if (segunSesion) {
-    const [{ campana }, anio] = await Promise.all([leerPortada(), conPie ? anioActual() : Promise.resolve(0)]);
+    const [{ campanas }, anio] = await Promise.all([leerPortada(), conPie ? anioActual() : Promise.resolve(0)]);
     const visitante = (
       <>
-        <Anuncio frases={anuncios(campana, false)} />
+        <Anuncio frases={anuncios(campanas, false)} />
         <Cabecera enPagina={enPagina === "cuenta" ? undefined : enPagina} />
       </>
     );
@@ -53,7 +53,7 @@ export async function MarcoCuenta({
       <div className="tienda">
         <SegunSesion
           visitante={visitante}
-          conCuenta={<ArranqueConCuenta campana={campana} enPagina={enPagina} />}
+          conCuenta={<ArranqueConCuenta campanas={campanas} enPagina={enPagina} />}
           // Mientras el servidor lee la cookie: quien trae sesión ve la cabecera de siempre sin los números ni el nombre (los de él
           // llegan por detrás) y quien no, la del visitante, que es la que se queda.
           mientras={
@@ -61,7 +61,7 @@ export async function MarcoCuenta({
               visitante={visitante}
               conCuenta={
                 <>
-                  <Anuncio frases={anuncios(campana, true)} />
+                  <Anuncio frases={anuncios(campanas, true)} />
                   <CabeceraConCuenta
                     datos={datosDeCabecera([], null, undefined)}
                     actual={enPagina === "cuenta" ? "cuenta" : null}
@@ -81,7 +81,7 @@ export async function MarcoCuenta({
       </div>
     );
   }
-  const [{ campana }, catalogo, favoritos, nombre] = await Promise.all([
+  const [{ campanas }, catalogo, favoritos, nombre] = await Promise.all([
     leerPortada(),
     conCuenta ? leerCatalogo(null) : Promise.resolve(null),
     conCuenta ? cuantosFavoritos() : Promise.resolve(null),
@@ -89,7 +89,7 @@ export async function MarcoCuenta({
   ]);
   return (
     <div className="tienda">
-      <Anuncio frases={anuncios(campana, conCuenta)} />
+      <Anuncio frases={anuncios(campanas, conCuenta)} />
       {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
       {conCuenta && <EntradaDelDia />}
       {conCuenta ? (
@@ -111,11 +111,11 @@ export async function MarcoCuenta({
 
 /** La franja y la cabecera de quien tiene cuenta, para el marco `segunSesion`: lo mismo que arma el marco de las páginas con cuenta,
  *  pero leído por detrás de la página (el catálogo para el menú es compartido; los favoritos y el nombre son de la persona). */
-async function ArranqueConCuenta({ campana, enPagina }: { campana: Portada["campana"]; enPagina?: "entrar" | "crear-cuenta" | "cuenta" }) {
+async function ArranqueConCuenta({ campanas, enPagina }: { campanas: Portada["campanas"]; enPagina?: "entrar" | "crear-cuenta" | "cuenta" }) {
   const [catalogo, favoritos, nombre] = await Promise.all([leerCatalogo(null), cuantosFavoritos(), nombreDeLaCuenta()]);
   return (
     <>
-      <Anuncio frases={anuncios(campana, true)} />
+      <Anuncio frases={anuncios(campanas, true)} />
       <EntradaDelDia />
       <CabeceraConCuenta
         datos={datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN)}

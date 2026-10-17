@@ -113,8 +113,11 @@ describe("qué sale en la portada cuando la campaña termina", () => {
   const nombres = new Map([["halloween", "Halloween"]]);
   it("el día siguiente, con su nombre; sin campaña, «Lo nuevo»; sin respuesta, null", () => {
     expect(diaSiguiente("2026-10-31")).toBe("2026-11-01");
-    expect(queSaleDespues([{ dia: "2026-10-31", campana: "halloween" }], nombres)).toBe("Halloween");
-    expect(queSaleDespues([{ dia: "2026-10-31", campana: null }], nombres)).toBe("Lo nuevo");
+    expect(queSaleDespues([{ dia: "2026-10-31", campanas: ["halloween"] }], nombres)).toBe("Halloween");
+    expect(queSaleDespues([{ dia: "2026-10-31", campanas: [] }], nombres)).toBe("Lo nuevo");
+    // Con el carrusel (6b): todas, en su orden. Una que no tiene nombre (otra pestaña la borró) no se adivina.
+    expect(queSaleDespues([{ dia: "2026-10-31", campanas: ["halloween", "navidad"] }], new Map([...nombres, ["navidad", "Navidad"]]))).toBe("Halloween y Navidad, en carrusel");
+    expect(queSaleDespues([{ dia: "2026-10-31", campanas: ["otra"] }], nombres)).toBeNull();
     expect(queSaleDespues(null, nombres)).toBeNull();
     expect(queSaleDespues([], nombres)).toBeNull();
   });

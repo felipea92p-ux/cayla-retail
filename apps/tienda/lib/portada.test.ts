@@ -16,10 +16,19 @@ const BOSQUE = { ...DISENO_DE_SIEMPRE, paleta: "bosque" };
 
 describe("interpretarPortada", () => {
   it("acepta lo que devuelve retail.tienda_portada()", () => {
-    expect(interpretarPortada({ campana: ANIVERSARIO })).toEqual({ campana: ANIVERSARIO });
+    // Una base de antes del carrusel solo manda `campana`: es la única de la lista.
+    expect(interpretarPortada({ campana: ANIVERSARIO })).toEqual({ campana: ANIVERSARIO, campanas: [ANIVERSARIO] });
     expect(interpretarPortada({ campana: { ...ANIVERSARIO, diseno: BOSQUE } }).campana?.diseno).toEqual(BOSQUE);
     expect(interpretarPortada({ campana: { ...ANIVERSARIO, hasta: null } }).campana?.hasta).toBeNull();
-    expect(interpretarPortada({ campana: null })).toEqual({ campana: null });
+    expect(interpretarPortada({ campana: null })).toEqual({ campana: null, campanas: [] });
+  });
+
+  it("con el carrusel (actividad 6b): todas en orden, y una rara se salta sin tumbar a las demás", () => {
+    const navidad = { ...ANIVERSARIO, nombre: "Navidad", pct: null };
+    const leida = interpretarPortada({ campana: ANIVERSARIO, campanas: [ANIVERSARIO, { ...ANIVERSARIO, pct: "12" }, navidad] });
+    expect(leida.campanas.map((c) => c.nombre)).toEqual(["Aniversario CAYLA", "Navidad"]);
+    expect(leida.campana).toEqual(ANIVERSARIO);
+    expect(interpretarPortada({ campana: null, campanas: [] })).toEqual(PORTADA_SIN_DATOS);
   });
 
   it("si la base responde algo raro, la portada sale sin campaña (no se cae)", () => {
@@ -34,7 +43,7 @@ describe("interpretarPortada", () => {
     const modelo = "8a6f1c1e-3b55-4c8e-9a55-444444444444";
     const leida = interpretarPortada({ campana: { id, nombre: "Navidad", pct: null, hasta: "2026-12-25", diseno: null, prendas: [modelo] } }).campana;
     expect(leida).toEqual({ id, nombre: "Navidad", pct: null, hasta: "2026-12-25", diseno: null, prendas: [modelo] });
-    expect(anuncios(leida)[0]).toBe("Navidad · mira lo que elegimos");
+    expect(anuncios(leida ? [leida] : [])[0]).toBe("Navidad · mira lo que elegimos");
     expect(interpretarPortada({ campana: { ...ANIVERSARIO, prendas: ["no-es-un-id"] } }).campana?.prendas).toEqual([]);
     expect(interpretarPortada({ campana: { ...ANIVERSARIO, pct: 0 } })).toEqual(PORTADA_SIN_DATOS);
   });
@@ -65,18 +74,20 @@ describe("textos de la campaña", () => {
     expect(fechaCorta("2026-10-21")).toMatch(/^21 oct\.?$/);
   });
 
-  it("la franja de arriba: la campaña primero; sin campaña, solo las frases fijas", () => {
-    const con = anuncios(ANIVERSARIO);
+  it("la franja de arriba: las campañas primero, en su orden; sin campaña, solo las frases fijas", () => {
+    const con = anuncios([ANIVERSARIO]);
     // El «%» va pegado a su número con un espacio que no se parte.
     expect(con[0]).toMatch(/^Aniversario CAYLA · −12\u00a0% hasta el 21 oct\.?$/);
     expect(con).toHaveLength(4);
-    expect(anuncios({ ...ANIVERSARIO, hasta: null })[0]).toBe("Aniversario CAYLA · −12\u00a0%");
-    expect(anuncios(null)).toEqual(["Separa online y recoge en tu tienda", "Mira cuánto hay en cada tienda", "Crea tu cuenta y forma parte del Club CAYLA"]);
+    expect(anuncios([{ ...ANIVERSARIO, hasta: null }])[0]).toBe("Aniversario CAYLA · −12\u00a0%");
+    // Con el carrusel (actividad 6b), una frase por campaña, en el orden de la portada.
+    expect(anuncios([ANIVERSARIO, { ...ANIVERSARIO, nombre: "Navidad", pct: null }]).slice(0, 2)).toEqual([con[0], "Navidad · mira lo que elegimos"]);
+    expect(anuncios([])).toEqual(["Separa online y recoge en tu tienda", "Mira cuánto hay en cada tienda", "Crea tu cuenta y forma parte del Club CAYLA"]);
   });
 
   it("con cuenta, la franja no invita a crear la cuenta: recuerda dónde están los beneficios del Club", () => {
-    expect(anuncios(null, true)).toEqual(["Separa online y recoge en tu tienda", "Mira cuánto hay en cada tienda", "Tus beneficios del Club CAYLA están en Mi perfil"]);
-    expect(anuncios(ANIVERSARIO, true)).not.toContain("Crea tu cuenta y forma parte del Club CAYLA");
+    expect(anuncios([], true)).toEqual(["Separa online y recoge en tu tienda", "Mira cuánto hay en cada tienda", "Tus beneficios del Club CAYLA están en Mi perfil"]);
+    expect(anuncios([ANIVERSARIO], true)).not.toContain("Crea tu cuenta y forma parte del Club CAYLA");
   });
 });
 

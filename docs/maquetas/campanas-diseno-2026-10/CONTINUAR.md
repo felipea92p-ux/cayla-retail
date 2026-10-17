@@ -14,30 +14,32 @@ Escrito el 2026-10-17. Sin llaves ni contraseñas (el repo es público): dice d�
   `docs/backlog/2026-10-16-campanas-design-customization-ddbd90.md`, sección «Dónde quedó».
 - **Las 9 actividades (lista aprobada por Felipe, método `/construir`: una por una, cada una con su commit):**
   1 menú y lista ✔ · 2 Datos y Prendas con una sola llave ✔ · 3 la portada en una sola pieza (`packages/portada`) ✔ ·
-  4 diseñar y publicar ✔ · 5 la tienda pinta el diseño publicado ✔ · 6 campañas sin descuento (**6a ✔**) y cuál va primero (**6b, el carrusel**) ·
-  7 el resto del editor (fondo liso/degradado/dibujo, acomodos, texto, prendas, detalles, Sorpréndeme, Deshacer) · 8 fondo con foto ·
+  4 diseñar y publicar ✔ · 5 la tienda pinta el diseño publicado ✔ · 6 campañas sin descuento y el carrusel ✔ ·
+  **7 el resto del editor** (fondo liso/degradado/dibujo, acomodos, texto, prendas, detalles, Sorpréndeme, Deshacer) · 8 fondo con foto ·
   9 cierre (`/chaos`, `/formidable`, `tema:auditar`, 375 px, ADR, PR con `/abrir-pr`).
 
-## Lo siguiente (actividad 6b)
+## Lo siguiente (actividad 7)
 
-Las actividades 4, 5 y 6a están cerradas (ADR-0436, secciones «Actividad 4», «Actividad 5» y «Actividad 6»). Sigue la **6b: el carrusel**.
-Felipe (2026-10-17): «si hay dos campañas activas, eso debe convertirse en un carrusel que va deslizándose cada ciertos segundos». La regla
-pasa de UNA campaña a una lista en orden (la de descuento primero, luego la que termina primero): `fn_campana_en_portada` →
-una lista; `tienda_portada()` sigue mandando `campana` (la primera, para la tienda que todavía no se publicó) y suma `campanas`; la tienda
-pasa las diapositivas (con pausa y sin moverse con `prefers-reduced-motion`); el ERP dibuja en «La portada, día a día» los días con más de
-una y cambia «por qué no sale» y la nota del cruce.
+Las actividades 4, 5 y 6 (6a, campañas sin descuento; 6b, el carrusel) están cerradas: ADR-0436, secciones «Actividad 4», «Actividad 5» y
+«Actividad 6». Sigue la **7: el resto del editor** —el fondo (liso, degradado, con dibujo y su intensidad), cómo se acomoda (polaroids,
+foto grande, mosaico, solo letras), el texto (desde qué palabra va la cursiva, el tamaño y la frase propia), las prendas (cuáles y en qué
+orden), los detalles (contador, % gigante, colibrí, sello), «Sorpréndeme» y «Deshacer»—, que el héroe compartido (`packages/portada`) tiene que
+saber dibujar para la tienda y la vista previa a la vez. Lo anotado para la 7 está en el backlog (el nombre largo bajo las polaroids, la
+polaroid sin foto distinta entre el ERP y la tienda).
 
 ## El orden de pegado en producción (nada de esto está pegado)
 
-`20261017144000` → `20261017151000` → `20261017160000` → `20261017200000` → `20261017204000`, una vez cada una y en ese orden, con el OK de
-Felipe. **Volver a pegar `20261017144000` después de las otras le quita a la tienda el diseño y las campañas sin descuento** (reescribe
-`tienda_portada()` y la regla como eran en la actividad 1): se arregla pegando otra vez `20261017200000` y `20261017204000`, en orden.
+`20261017144000` → `20261017151000` → `20261017160000` → `20261017200000` → `20261017204000` → `20261017210000`, una vez cada una y en ese
+orden, con el OK de Felipe. **Volver a pegar `20261017144000` después de las otras le quita a la tienda el diseño, las campañas sin descuento
+y el carrusel** (reescribe `tienda_portada()`, la regla y los días como eran en la actividad 1): se arregla pegando otra vez, en orden,
+`20261017200000`, `20261017204000` y `20261017210000`. Pegar `20261017204000` otra vez después de `20261017210000` deja la regla de UNA
+campaña hasta pegar `20261017210000`.
 
 ## Reglas que ya costaron tiempo
 
 - **Nada se pega en producción sin el OK de Felipe.** Ninguna migración de esta rama está en producción (el orden, arriba). No uses el SQL Editor ni el MCP de Supabase de producción para escribir.
 - **No uses la base local compartida** (`supabase_db_cayla-retail`): hay otras sesiones. Usa la pila propia de esta rama (abajo).
-- Números (ADR, migración): se reservan con `pnpm reservar adr|migracion`. Los de esta rama ya están tomados (ADR-0436 y las tres migraciones).
+- Números (ADR, migración): se reservan con `pnpm reservar adr|migracion`. Los de esta rama ya están tomados (ADR-0436 y las seis migraciones del orden de pegado).
 - Colores: solo tokens; el color de la portada de una campaña es **dato** (`data-color-dato`, comentario `// tema-fijo: …`).
 - Vocabulario: «colaborador», «sede», «cliente» (nunca «clienta» en pantalla), español en comentarios de negocio.
 - Terminales Almacén y Ventas pierden la configuración de campañas hasta que el líder les dé el módulo «Campañas»: avisarle a Felipe al publicar.
@@ -54,6 +56,8 @@ Las llaves locales salen de `supabase status -o env` (nunca las copies a un arch
   tienda `TIENDA_DB_URL=postgres://tienda_web_local:tienda-local@127.0.0.1:56022/postgres NEXT_PUBLIC_TIENDA_AUTH_URL=http://127.0.0.1:56021
   NEXT_PUBLIC_TIENDA_AUTH_ANON_KEY=<publishable> TIENDA_INTENTOS_SAL=<cualquier texto> TIENDA_FOTOS_ORIGEN=http://127.0.0.1:56021 pnpm --filter tienda exec next dev --port 3048`).
   Lánzalos con `preview_start` (nunca con Bash).
+  Si el 3047 está ocupado (el 17-oct otra sesión servía una maqueta en `127.0.0.1:3047` y `localhost` le llegaba a ella), hay una entrada
+  `campanas-web-3051` igual pero en el 3051; los arneses toman `ERP=http://localhost:3051`.
 - **Cuentas del ERP local:** `felipe@cayla.local` (líder/Admin), `micaela@cayla.local` (colaboradora, sin Campañas), `sandra@cayla.local`;
   contraseña `cayla-local`. **Cliente de la tienda:** `cliente.prueba@cayla.local`, su clave en `/Volumes/CAYLA-SSD/.pila-campanas/arnes/clave-cliente.txt`.
 - **Datos de prueba ya creados:** campañas «Día Internacional del Gato» (15 %, 1–30 oct), Halloween, Aniversario, «Día del Abuelo», con prendas.

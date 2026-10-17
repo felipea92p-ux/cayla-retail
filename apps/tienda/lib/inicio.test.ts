@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Prenda } from "./catalogo";
 import { DISENO_DE_SIEMPRE } from "@cayla-retail/portada";
-import { categoriasDelInicio, datosDeCabecera, heroDelInicio, hrefDeLaCampana, hrefDelInicio } from "./inicio";
+import { categoriasDelInicio, datosDeCabecera, heroDelInicio, heroesDelInicio, hrefDeLaCampana, hrefDelInicio } from "./inicio";
 
 const FOTO = "https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/fotos/a.jpg";
 const ANIV = "8a6f1c1e-3b55-4c8e-9a55-222222222222";
@@ -87,6 +87,15 @@ describe("el héroe del Inicio", () => {
   it("con descuento, «Ver la campaña» lleva a sus ofertas", () => {
     const hero = heroDelInicio(campana, [enCampana("Blusa")]);
     if (hero.tipo === "campana") expect(hrefDeLaCampana(hero, null)).toBe(`/catalogo?lista=ofertas&campana=${ANIV}`);
+  });
+
+  it("el carrusel (actividad 6b): un héroe por campaña que se puede mostrar, en el orden de la base; sin ninguna, uno de Lo nuevo", () => {
+    const prendas = [enCampana("Blusa"), prenda("Vestido rojo"), prenda("Nueva", { nuevo: { dias: 1 } })];
+    const vacia = { ...navidad, id: "8a6f1c1e-3b55-4c8e-9a55-555555555555", nombre: "CyberWow", prendas: [] };
+    const heroes = heroesDelInicio([campana, vacia, navidad], prendas);
+    expect(heroes.map((h) => (h.tipo === "campana" ? h.campana.nombre : h.tipo))).toEqual(["Aniversario CAYLA", "Navidad"]);
+    expect(heroesDelInicio([vacia], prendas).map((h) => h.tipo)).toEqual(["nuevo"]);
+    expect(heroesDelInicio([], [prenda("Blusa")])).toEqual([{ tipo: "marca" }]);
   });
 
   it("el nombre de la campaña se compara sin tildes ni mayúsculas", () => {

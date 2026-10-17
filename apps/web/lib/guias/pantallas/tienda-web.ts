@@ -1057,7 +1057,7 @@ export const GUIA_CAMPANAS: Guia = {
       preparar: [{ tipo: "escape" }],
       opcional: true,
       titulo: "Hoy, de un vistazo",
-      texto: "Qué campaña anuncia hoy la portada de la tienda online, cuántas corren hoy, y cuál viene después.",
+      texto: "Qué campañas anuncia hoy la portada de la tienda online (con dos o más, en carrusel), cuántas corren hoy y cuál viene después.",
     },
     {
       id: "linea",
@@ -1071,14 +1071,14 @@ export const GUIA_CAMPANAS: Guia = {
       ancla: "campanas.portada",
       opcional: true,
       titulo: "Lo que sale en la portada",
-      texto: "La portada muestra una sola campaña a la vez. Esta fila dice cuál sale cada día, con la misma regla que usa la tienda; lo rayado es «Lo nuevo», lo que sale cuando no corre ninguna.",
+      texto: "Esta fila dice qué campañas salen cada día en la portada, con la misma regla que usa la tienda. Si salen dos o más, la tienda las pasa en carrusel, una tras otra (la de descuento primero). Lo rayado es «Lo nuevo», lo que sale cuando no corre ninguna.",
     },
     {
       id: "cruce",
       ancla: "campanas.cruce",
       opcional: true,
       titulo: "Cuando dos se cruzan",
-      texto: "Si corren dos a la vez, aquí se dice cuál sale en la portada y por qué.",
+      texto: "Si corren dos a la vez, aquí se dice en qué orden las pasa el carrusel de la portada.",
     },
     {
       id: "filtros",

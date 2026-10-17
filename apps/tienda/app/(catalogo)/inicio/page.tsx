@@ -29,7 +29,8 @@ import {
   type Prenda,
 } from "@/lib/catalogo";
 import { leerBeneficiosDelClub, leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
-import { categoriasDelInicio, heroDelInicio, hrefDeLaCampana, type Hero } from "@/lib/inicio";
+import { categoriasDelInicio, heroesDelInicio, hrefDeLaCampana, type Hero } from "@/lib/inicio";
+import { CarruselDePortada } from "@/components/CarruselDePortada";
 import { avisoAlEntrar } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
 import { hrefLooks } from "@/lib/looks";
@@ -44,6 +45,7 @@ import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../estilos/tiendas.css";
 import "../../estilos/looks.css";
 import "../../estilos/inicio.css";
+import "../../estilos/carrusel.css";
 
 export const metadata: Metadata = { title: "Inicio · CAYLA" };
 
@@ -69,7 +71,7 @@ export default async function Inicio({ searchParams }: Props) {
   const sedes = sedesEnOrden(await leerSedes());
   const pedida = sedeDeLaUrl(sp.sede, sedes);
   // El año, como en la portada: guardado (`anioActual`), porque Next no deja leer el reloj mientras arma la página.
-  const [catalogo, { campana }, sesion, lecturaLooks, beneficios, anio] = await Promise.all([
+  const [catalogo, { campanas: deLaPortada }, sesion, lecturaLooks, beneficios, anio] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
     leerPortada(),
     leerSesion(),
@@ -94,7 +96,8 @@ export default async function Inicio({ searchParams }: Props) {
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
   const nota = (p: Prenda) => notaDeStock(p.stock, elegida, sedes);
 
-  const hero = heroDelInicio(campana, prendas);
+  // Un héroe por campaña que se puede mostrar aquí, en el orden de la base; con más de uno, el carrusel (ADR-0436, actividad 6b).
+  const heroes = heroesDelInicio(deLaPortada, prendas);
   const categorias = categoriasDelInicio(prendas);
   const nuevos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "nuevo" });
   const ofertas = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "ofertas" });
@@ -116,13 +119,23 @@ export default async function Inicio({ searchParams }: Props) {
       ]}
     >
       {aviso && avisos && <AvisoAlEntrar aviso={aviso} activas={avisos.map((a) => a.clave)} />}
-      <Heroe
-        hero={hero}
-        sede={sede}
-        origenFotos={origenFotos}
-        verCampana={hero.tipo === "campana" ? hrefDeLaCampana(hero, sede) : null}
-        verNuevo={nuevos.length > 0 ? lista("nuevo") : null}
-      />
+      {(() => {
+        const dibujados = heroes.map((hero, i) => (
+          <Heroe
+            key={hero.tipo === "campana" ? (hero.campana.id ?? hero.campana.nombre) : i}
+            hero={hero}
+            sede={sede}
+            origenFotos={origenFotos}
+            verCampana={hero.tipo === "campana" ? hrefDeLaCampana(hero, sede) : null}
+            verNuevo={nuevos.length > 0 ? lista("nuevo") : null}
+          />
+        ));
+        return dibujados.length > 1 ? (
+          <CarruselDePortada nombres={heroes.map((h) => (h.tipo === "campana" ? h.campana.nombre : ""))}>{dibujados}</CarruselDePortada>
+        ) : (
+          dibujados[0]
+        );
+      })()}
 
       {catalogo === null ? (
         <div className="t-ancho">

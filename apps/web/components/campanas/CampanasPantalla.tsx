@@ -22,6 +22,7 @@ import {
   type Filtro,
 } from "@/lib/campanas-reglas";
 import { fechaCorta } from "@/lib/etiqueta-vigencia";
+import { nombresEnOrden } from "@/lib/campana-diseno";
 import { LineaPortada } from "./LineaPortada";
 import { TarjetaCampana } from "./TarjetaCampana";
 
@@ -55,15 +56,17 @@ export function CampanasPantalla({ campanas, dias, hoy, ahora }: { campanas: Cam
       <div className="grid gap-3 sm:grid-cols-3" data-guia="campanas.cifras">
         <TarjetaCifra
           etiqueta="En la portada hoy"
-          punto={enPortada ? "verde" : "neutro"}
-          vivo={!!enPortada}
+          punto={enPortada.length > 0 ? "verde" : "neutro"}
+          vivo={enPortada.length > 0}
           className="tw-entra"
           style={{ ["--i" as string]: 0 }}
-          valor={enPortada?.nombre ?? "Lo nuevo"}
+          valor={enPortada.length === 0 ? "Lo nuevo" : enPortada.length === 1 ? enPortada[0]!.nombre : `${enPortada.length} en carrusel`}
         >
-          {enPortada
-            ? [enPortada.pct ? `−${textoPct(enPortada.pct)} %` : null, enPortada.hasta ? hastaEl(enPortada.hasta) : null].filter(Boolean).join(" · ")
-            : dias === null
+          {enPortada.length > 1
+            ? nombresEnOrden(enPortada.map((c) => c.nombre))
+            : enPortada.length === 1
+              ? [enPortada[0]!.pct ? `−${textoPct(enPortada[0]!.pct)} %` : null, enPortada[0]!.hasta ? hastaEl(enPortada[0]!.hasta) : null].filter(Boolean).join(" · ")
+              : dias === null
               ? "No se pudo leer qué sale hoy"
               : "Hoy no corre ninguna campaña que salga en la portada"}
         </TarjetaCifra>
@@ -95,11 +98,12 @@ export function CampanasPantalla({ campanas, dias, hoy, ahora }: { campanas: Cam
           </p>
           {cruce && (
             <p className="nota-cayla" data-guia="campanas.cruce">
-              <b>{conPunto(`${cruce.nombres.join(" y ")} corren a la vez${cruce.hasta ? ` ${hastaEl(cruce.hasta)}` : ""}`)}</b>{" "}
-              La portada muestra una sola campaña:{" "}
-              {cruce.enPortada
-                ? `hoy sale «${cruce.enPortada.nombre}», ${cruce.enPortada.pct ? "la de descuento que termina primero" : "la que termina primero"}.`
-                : "hoy ninguna de ellas: todavía no tienen prendas ni diseño propio."}
+              <b>{conPunto(`${nombresEnOrden(cruce.nombres)} corren a la vez${cruce.hasta ? ` ${hastaEl(cruce.hasta)}` : ""}`)}</b>{" "}
+              {cruce.enPortada.length > 1
+                ? `La portada las pasa en carrusel, una tras otra: primero «${cruce.enPortada[0]!.nombre}»${cruce.enPortada[0]!.pct ? ", la de descuento" : ""}.`
+                : cruce.enPortada.length === 1
+                  ? `La portada muestra solo «${cruce.enPortada[0]!.nombre}»: a las demás les faltan prendas o diseño propio.`
+                  : "Hoy ninguna sale en la portada: todavía no tienen prendas ni diseño propio."}
             </p>
           )}
         </div>

@@ -252,3 +252,35 @@ campaña, `interpretarPortada` sin descuento). En la tienda local, con el Gato t
 sale con sus prendas y sin «−%», y «Ver la campaña» abre «Campaña · Halloween» con sus 4 prendas a precio normal; con Navidad traída a hoy,
 sin prendas y con su diseño publicado desde el ERP, sale en verde con la tarjeta del Club y el Inicio (375 px, oscuro) ofrece «Ver lo nuevo».
 En el ERP, la lista dice «En la web ahora» en Halloween. Las fechas se devolvieron después.
+
+### 6b — El carrusel (`20261017210000`)
+
+**DECIDÍ 19 — LA regla devuelve TODAS las campañas que salen ese día, en orden (`fn_campanas_en_portada`: la de descuento primero, luego
+la que termina primero, la de mayor descuento y el nombre), y `fn_campana_en_portada` pasa a ser su primera: una sola regla.**
+`tienda_portada()` suma `campanas` y mantiene `campana` (la primera), y `campanas_portada_dias` suma `campanas` por día y mantiene `campana`:
+una tienda o un ERP que todavía no se publicaron con el carrusel siguen mostrando la primera, como antes.
+**DESCARTÉ** que la tienda arme la lista con varias preguntas a la base (una por campaña): la regla viviría a medias en la tienda.
+**SE ROMPE SI** se vuelve a pegar `20261017144000` o `20261017204000` después de esta: la regla vuelve a ser de UNA campaña hasta pegar esta
+otra vez (la tienda muestra solo la primera, sin romperse).
+
+**DECIDÍ 20 — Con más de una campaña, la portada y el Inicio las pasan en carrusel (`components/CarruselDePortada.tsx`): una por diapositiva,
+deslizándose cada 7 segundos, en el orden de la base. Se detiene con el mouse encima, con el foco adentro o con su botón de pausa (WCAG
+2.2.2), y con `prefers-reduced-motion` no se mueve solo (se pasa con los puntos).** Cada diapositiva es el héroe de siempre
+(`HeroeDePortada`), con sus prendas, su texto y su diseño; las que no se ven no las lee el lector ni llega el teclado (`inert`). La franja de
+arriba suma la frase de cada campaña. Una campaña que la tienda no puede mostrar (sin prendas a la vista ni, sin descuento, diseño) no entra
+al carrusel; si ninguna puede, sale «Lo nuevo» o la marca, como antes.
+**DESCARTÉ** partir el héroe en dos mitades (las dos campañas a la vez): cada una perdía la mitad de su diseño, y en el celular no cabían.
+**SE ROMPE SI** corren cuatro o cinco campañas a la vez: el carrusel tarda medio minuto en dar la vuelta (no tiene tope: un tope escondería
+una campaña sin decirlo). Si pasa seguido, se decide un tope con Felipe.
+
+En el ERP, «La portada, día a día» dibuja los días en carrusel con una franja por campaña y sus nombres en una pastilla oscura; la cifra
+de hoy dice «2 en carrusel» con sus nombres; la nota del cruce dice en qué orden las pasa; «Después sale», en la hoja Publicar, nombra todas
+(«Halloween y Navidad, en carrusel»); y «por qué no sale» ya no dice «hoy la portada muestra otra»: todas las que pueden salir, salen.
+
+**Verificación (6b):** `pnpm pruebas:campanas-portada` (39: suma el carrusel —tres que salen en orden, la tienda las recibe así con la
+primera como `campana`, el ERP recibe las del día— y la migración pegada dos veces), `campanas-diseno` (49) y `campanas-llave` (26); el
+paquete (109), la tienda (449: `heroesDelInicio`, la lista de la portada con una campaña rara que se salta, la franja con varias) y el ERP
+(los días con varias campañas, la forma de antes del carrusel, los tramos). En la tienda local, con el Gato y Halloween a la vez: la
+portada abre en el Gato y a los 8 segundos pasa a Halloween; con la pausa se queda; el punto vuelve al Gato; con movimiento reducido no se
+mueve; igual en el Inicio con cuenta a 375 px en oscuro; sin desborde ni errores. En el ERP (oscuro), la línea muestra el 1 al 30 de octubre
+en carrusel y la cifra «2 en carrusel».

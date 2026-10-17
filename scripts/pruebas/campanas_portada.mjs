@@ -3,7 +3,8 @@
  * Tienda web ▸ Campañas, actividad 1 (ADR-0436) contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA. `20261017144000_campanas_modulo_y_portada_por_dia.sql`, con la regla como queda después de
- * `20261017204000_campanas_sin_descuento_en_la_portada.sql` (actividad 6a):
+ * `20261017204000_campanas_sin_descuento_en_la_portada.sql` (actividad 6a) y `20261017210000_campanas_carrusel_en_la_portada.sql` (6b: todas
+ * las que salen, en orden, para el carrusel; `fn_campana_en_portada` es la primera):
  *   1. LA regla de la portada (`fn_campana_en_portada`): ese día, de las campañas aprobadas, activas y vigentes con prendas o categorías
  *      (o, sin descuento, con su diseño publicado), primero las que tienen descuento y, entre ellas, la que termina primero; a igual fin,
  *      la de mayor descuento. Una con descuento sin prendas, una desactivada o por aprobar no sale; fuera de sus fechas, tampoco; sin
@@ -35,6 +36,7 @@ const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const MIGRACION = "supabase/migrations/20261017144000_campanas_modulo_y_portada_por_dia.sql";
 const MIGRACION_SIN_DESCUENTO = "supabase/migrations/20261017204000_campanas_sin_descuento_en_la_portada.sql";
+const MIGRACION_CARRUSEL = "supabase/migrations/20261017210000_campanas_carrusel_en_la_portada.sql";
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(process.env.APLICAR_ANTES, "utf8") : "";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora, sin «Campañas»
@@ -189,6 +191,24 @@ ${nombreEn(2)}`);
     esperar("con descuento y sin prendas no sale ni con diseño (anunciaría un % sin prendas)", conDescuentoSinPrendas === "Prueba E", conDescuentoSinPrendas);
   }
 
+  console.log("— El carrusel: todas las que salen, en orden —");
+  {
+    const lista = (dia) =>
+      `select coalesce((select string_agg(e.nombre, ' > ' order by x.n) from unnest(retail.fn_campanas_en_portada(:'h'::date + ${dia})) with ordinality x(id, n) join retail.etiquetas e on e.id = x.id), '—');`;
+    const r = correr(`${ESCENA}
+${lista(0)}
+${lista(8)}
+${lista(40)}
+select (select string_agg(x->>'nombre', ' > ') from jsonb_array_elements(retail.tienda_portada()->'campanas') x), retail.tienda_portada()->'campana'->>'nombre';
+${como(FELIPE)}select jsonb_array_length(retail.campanas_portada_dias(:'h'::date, :'h'::date)->0->'campanas'), retail.campanas_portada_dias(:'h'::date, :'h'::date)->0->>'campana' = :'b';`);
+    const [hoy, h8, h40, tienda, dias] = lineas(r);
+    esperar("hoy salen tres, primero las de descuento (B termina antes que A) y después E, sin descuento", hoy === "Prueba B > Prueba A > Prueba E", r.ok ? r.salida : r.mensaje);
+    esperar("cuando B termina, A y E", h8 === "Prueba A > Prueba E", h8);
+    esperar("pasadas todas, ninguna", h40 === "—", h40);
+    esperar("la tienda recibe las tres en ese orden y la primera como «campana»", tienda === "Prueba B > Prueba A > Prueba E|Prueba B", tienda);
+    esperar("el ERP recibe las tres del día y la primera", dias === "3|t", dias);
+  }
+
   console.log("— La tienda pregunta lo mismo —");
   {
     const r = correr(`${ESCENA}
@@ -204,7 +224,7 @@ select retail.tienda_portada()::text;`);
     esperar("tienda_portada() anuncia B, con su %, su último día y su id", hoy === "Prueba B|20.00|t|t", r.ok ? r.salida : r.mensaje);
     esperar("y sus modelos: los de su categoría", modelos === "t", modelos);
     esperar("sin descuento sale igual, con el % vacío", sinDescuento === "Prueba B|t", sinDescuento);
-    esperar("sin ninguna campaña, la portada sale sin campaña", sinNinguna === '{"campana": null}', sinNinguna);
+    esperar("sin ninguna campaña, la portada sale sin campaña (y el carrusel, vacío)", sinNinguna === '{"campana": null, "campanas": []}', sinNinguna);
   }
 
   console.log("— Día por día, para el ERP —");
@@ -273,10 +293,10 @@ select has_function_privilege('tienda_web', 'retail.tienda_portada()', 'execute'
     const r = correr(`begin;\n${migracion}\n${migracion}\nselect count(*) from retail.modulos where clave = 'campanas';`);
     esperar("dos veces seguidas, sin error y con un solo módulo", r.ok && r.salida.split("\n").at(-1) === "1", r.ok ? r.salida : r.mensaje);
   }
-  {
-    const migracion = readFileSync(MIGRACION_SIN_DESCUENTO, "utf8");
+  for (const [archivo, nombre] of [[MIGRACION_SIN_DESCUENTO, "la de la actividad 6a"], [MIGRACION_CARRUSEL, "la del carrusel (6b)"]]) {
+    const migracion = readFileSync(archivo, "utf8");
     const r = correr(`begin;\n${migracion}\n${migracion}\nselect 'ok';`);
-    esperar("la de la actividad 6a, dos veces seguidas, sin error", r.ok && r.salida.split("\n").at(-1) === "ok", r.ok ? r.salida : r.mensaje);
+    esperar(`${nombre}, dos veces seguidas, sin error`, r.ok && r.salida.split("\n").at(-1) === "ok", r.ok ? r.salida : r.mensaje);
   }
 
   console.log(`\n${total - fallos} de ${total} · contenedor: ${CONTENEDOR_LOCAL}`);

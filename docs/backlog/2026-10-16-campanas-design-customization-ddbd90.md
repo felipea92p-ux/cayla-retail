@@ -20,7 +20,7 @@ Maqueta: `docs/maquetas/campanas-diseno-2026-10/` (abrir `index.html`; su README
 
 **Dónde quedó (2026-10-17, tarde).** Lista de 9 actividades aprobada (ADR-0436). Hechas y commiteadas: 1 (módulo, lista, regla de la
 portada en un solo lugar), 2 (Datos y Prendas con una sola llave), 3 (la portada en una sola pieza, `packages/portada`, sin cambio
-visible), 4 (diseñar y publicar), 5 (la tienda pinta el diseño publicado) y **6a (campañas sin descuento)**:
+visible), 4 (diseñar y publicar), 5 (la tienda pinta el diseño publicado) y **6 (campañas sin descuento y el carrusel)**:
 - [x] Migraciones `20261017160000_campanas_diseno.sql` (la tabla del diseño, borrador con versión, publicar, volver al anterior, la lista
   con el diseño) y `20261017200000_campanas_diseno_en_la_tienda.sql` (`tienda_portada()` con el diseño publicado), con su suite
   `pnpm pruebas:campanas-diseno` (49/49). **Ninguna está en producción**: el orden de pegado, en `CONTINUAR.md`.
@@ -31,8 +31,9 @@ visible), 4 (diseñar y publicar), 5 (la tienda pinta el diseño publicado) y **
   siempre. Verificado en la tienda local con Bosque y Galería, en claro, oscuro y 375 px.
 - [x] Actividad 6a: una campaña sin descuento sale en la portada (con prendas, o sin ellas con su diseño publicado; la de descuento
   primero), con su lista de prendas en la tienda (`?lista=campana`). Migración `20261017204000`, sin pegar.
-- [ ] Actividad 6b: el carrusel (Felipe 2026-10-17: «si hay dos campañas activas, eso debe convertirse en un carrusel que va deslizándose
-  cada ciertos segundos»).
+- [x] Actividad 6b: el carrusel (Felipe 2026-10-17: «si hay dos campañas activas, eso debe convertirse en un carrusel que va deslizándose
+  cada ciertos segundos»): la regla devuelve todas en orden, la tienda las pasa cada 7 s y el ERP dibuja los días en carrusel. Migración
+  `20261017210000`, sin pegar.
 - [ ] Al publicar: avisarle a Felipe que «Terminal Almacén» y «Terminal de ventas» pierden la configuración de campañas hasta que el líder
   les dé el módulo «Campañas» (ADR-0436, DECIDÍ 1).
 - [ ] Visto al verificar la 4 (para la 7, «El texto»): en la portada de 1280 px, una palabra larga del nombre («Internacional», de Día
@@ -40,5 +41,7 @@ visible), 4 (diseñar y publicar), 5 (la tienda pinta el diseño publicado) y **
   muestra igual. El tamaño «grande/enorme» y el corte de la cursiva de la actividad 7 son el lugar para achicar la letra según el nombre.
 - [ ] Visto al verificar la 5 (para la 7, «Las prendas»): sin foto, la polaroid de la vista previa del ERP dibuja el ícono de la categoría
   (`SinFoto`) y la de la tienda dibuja la silueta de la prenda (`FotoTarjeta`); la vista previa debería usar el mismo dibujo que la tienda.
-- Después: actividades 6 a 9 (campañas sin descuento y cuál va primero, el resto del editor —fondo,
+- [ ] Aviso de Supabase en desarrollo (`Date.now()` while prerendering en las páginas con sesión): Felipe 2026-10-17, «dejarlo así» (el
+  build de producción pasa).
+- Después: actividades 7 a 9 (el resto del editor —fondo,
   acomodos, texto, prendas, detalles, Sorpréndeme, Deshacer—, la foto, el cierre con `/chaos`, `/formidable`, `tema:auditar` y el PR).

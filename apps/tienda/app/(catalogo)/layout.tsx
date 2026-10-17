@@ -18,10 +18,10 @@ import { leerSesion } from "@/lib/sesion-servidor";
 export default async function CatalogoLayout({ children }: { children: React.ReactNode }) {
   // La franja es la misma para todos (la campaña es compartida): sale en la cáscara armada por adelantado. Lo que mira la cuenta (quién
   // es, qué guardó) se lee por detrás, dentro de su <Suspense>, y mientras tanto se ve la cabecera con la página que brilla (ADR-0432).
-  const { campana } = await leerPortada();
+  const { campanas } = await leerPortada();
   return (
     <div className="tienda">
-      <Anuncio frases={anuncios(campana, true)} />
+      <Anuncio frases={anuncios(campanas, true)} />
       <Suspense fallback={<EsqueletoDePagina />}>
         <ConSesion>{children}</ConSesion>
       </Suspense>

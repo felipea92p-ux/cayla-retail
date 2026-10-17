@@ -35,7 +35,8 @@ export type CampanaDeLista = Campana & {
   piezas: PiezaDePortada[];
 };
 
-export type DiaPortada = { dia: string; campana: string | null };
+/** Las campañas que anuncia la portada ese día, en orden (vacío: «Lo nuevo»; con más de una, el carrusel de la actividad 6b). */
+export type DiaPortada = { dia: string; campanas: string[] };
 
 type Crudo = Record<string, unknown>;
 const esObjeto = (x: unknown): x is Crudo => !!x && typeof x === "object" && !Array.isArray(x);
@@ -94,9 +95,17 @@ export const disenoDeLaLista = (c: Pick<CampanaDeLista, "diseno" | "borrador">) 
 export const coloresDeLaPortada = (c: Pick<CampanaDeLista, "diseno">): Colores => coloresDelDiseno(c.diseno ?? DISENO_DE_SIEMPRE, "claro");
 
 
+/** Una base de antes del carrusel (20261017210000) manda solo `campana` por día: es la única. */
+function leerDia(x: unknown): DiaPortada | null {
+  if (!esObjeto(x) || !esFecha(x.dia)) return null;
+  if (Array.isArray(x.campanas)) return x.campanas.every((c) => typeof c === "string") ? { dia: x.dia, campanas: x.campanas as string[] } : null;
+  if (x.campana === null || typeof x.campana === "string") return { dia: x.dia, campanas: x.campana ? [x.campana] : [] };
+  return null;
+}
+
 export function leerDiasPortada(dato: unknown): DiaPortada[] | null {
   if (!Array.isArray(dato)) return null;
-  const dias = dato.map((x) => (esObjeto(x) && esFecha(x.dia) && (x.campana === null || typeof x.campana === "string") ? { dia: x.dia, campana: x.campana } : null));
+  const dias = dato.map(leerDia);
   return dias.every((d): d is DiaPortada => d !== null) ? dias : null;
 }
 
@@ -184,32 +193,32 @@ export function datosDeCampana(c: Campana): string[] {
 
 /* ---------------- Las cifras de arriba ---------------- */
 
-export type Cifras = {
-  /** La campaña que la portada anuncia hoy (la base lo decide), o null: sale «Lo nuevo». */
-  enPortada: Campana | null;
+export type Cifras<C extends Campana = Campana> = {
+  /** Las campañas que la portada anuncia hoy, en orden (la base lo decide); vacío: sale «Lo nuevo»; más de una: el carrusel. */
+  enPortada: C[];
   vigentes: Campana[];
   /** La próxima en empezar, con cuántos días faltan. */
   proxima: { campana: Campana; enDias: number } | null;
 };
 
-export function cifrasDeCampanas(campanas: readonly Campana[], dias: readonly DiaPortada[] | null, hoy: string): Cifras {
-  const idHoy = dias?.find((d) => d.dia === hoy)?.campana ?? null;
+export function cifrasDeCampanas<C extends Campana>(campanas: readonly C[], dias: readonly DiaPortada[] | null, hoy: string): Cifras<C> {
+  const idsHoy = dias?.find((d) => d.dia === hoy)?.campanas ?? [];
   const proximas = campanas
     .filter((c) => estadoDeCampana(c, hoy) === "proxima" && c.desde)
     .sort((a, b) => a.desde!.localeCompare(b.desde!));
   const primera = proximas[0];
   return {
-    enPortada: campanas.find((c) => c.id === idHoy) ?? null,
+    enPortada: idsHoy.flatMap((id) => campanas.filter((c) => c.id === id)),
     vigentes: campanas.filter((c) => estadoDeCampana(c, hoy) === "vigente"),
     proxima: primera ? { campana: primera, enDias: diasEntre(hoy, primera.desde!) } : null,
   };
 }
 
 /**
- * Si hoy corre más de una campaña, la portada igual muestra una sola: la pantalla lo dice, con cuál sale y hasta cuándo corren las dos.
- * `null` si hoy no se cruzan.
+ * Si hoy corre más de una campaña, la pantalla dice cuáles salen en la portada (en carrusel, en su orden) y hasta cuándo se cruzan. `null`
+ * si hoy no se cruzan.
  */
-export function cruceDeHoy(campanas: readonly Campana[], dias: readonly DiaPortada[] | null, hoy: string) {
+export function cruceDeHoy<C extends Campana>(campanas: readonly C[], dias: readonly DiaPortada[] | null, hoy: string) {
   const vigentes = campanas.filter((c) => estadoDeCampana(c, hoy) === "vigente");
   if (vigentes.length < 2) return null;
   const finales = vigentes.map((c) => c.hasta).filter((f): f is string => f !== null).sort();
@@ -251,15 +260,16 @@ export function barraEn(desde: string | null, hasta: string | null, rango: Rango
   };
 }
 
-export type Tramo = { desde: string; hasta: string; campana: string | null };
+export type Tramo = { desde: string; hasta: string; campanas: string[] };
 
-/** Los días seguidos con la misma campaña (o sin ninguna) se juntan en un tramo: así se dibuja la fila «En la portada». */
+/** Los días seguidos con las mismas campañas, en el mismo orden (o sin ninguna), se juntan en un tramo: así se dibuja la fila «En la
+ *  portada». Un tramo con más de una es un carrusel. */
 export function tramosDePortada(dias: readonly DiaPortada[]): Tramo[] {
   const tramos: Tramo[] = [];
   for (const d of dias) {
     const ultimo = tramos.at(-1);
-    if (ultimo && ultimo.campana === d.campana && sumarDias(ultimo.hasta, 1) === d.dia) ultimo.hasta = d.dia;
-    else tramos.push({ desde: d.dia, hasta: d.dia, campana: d.campana });
+    if (ultimo && ultimo.campanas.join() === d.campanas.join() && sumarDias(ultimo.hasta, 1) === d.dia) ultimo.hasta = d.dia;
+    else tramos.push({ desde: d.dia, hasta: d.dia, campanas: [...d.campanas] });
   }
   return tramos;
 }
@@ -276,14 +286,14 @@ export function campanasEnLaLinea<C extends Campana>(campanas: readonly C[], ran
 export const hastaEl = (f: string) => `hasta el ${fechaCorta(f)}`;
 
 /**
- * Por qué una campaña que corre hoy no es la de la portada, en palabras de tienda. La regla es de la base (`fn_campana_en_portada`):
- * aquí solo se nombra la razón que se ve en los datos, en el mismo orden en que la regla la mira. null si sí sale, o si no corre hoy.
+ * Por qué una campaña que corre hoy no sale en la portada, en palabras de tienda. La regla es de la base (`fn_campanas_en_portada`): aquí
+ * solo se nombra la razón que se ve en los datos. null si sí sale (desde el carrusel de la actividad 6b, todas las que pueden salen), o
+ * si no corre hoy. Desde la actividad 6a una campaña sin descuento también sale, con prendas o con su diseño publicado.
  */
-export function porQueNoSale(c: Campana & Pick<CampanaDeLista, "diseno">, enPortada: Campana | null, hoy: string): string | null {
-  if (estadoDeCampana(c, hoy) !== "vigente" || enPortada?.id === c.id) return null;
-  // Desde la actividad 6a una campaña sin descuento también sale, con prendas o con su diseño publicado.
+export function porQueNoSale(c: Campana & Pick<CampanaDeLista, "diseno">, enPortada: readonly Campana[], hoy: string): string | null {
+  if (estadoDeCampana(c, hoy) !== "vigente" || enPortada.some((e) => e.id === c.id)) return null;
   const sinPrendas = c.modelos === 0 && c.categorias === 0;
   if (c.pct && sinPrendas) return "No sale en la portada: todavía no tiene prendas.";
   if (!c.pct && sinPrendas && !c.diseno) return "No sale en la portada: todavía no tiene prendas ni diseño propio.";
-  return enPortada ? `Hoy la portada muestra «${enPortada.nombre}».` : null;
+  return null;
 }

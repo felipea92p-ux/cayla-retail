@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DISENO_DE_SIEMPRE, PALETA_DE_SIEMPRE } from "@cayla-retail/portada";
+import { nombresEnOrden } from "./campana-diseno";
 import {
   barraEn,
   campanasEnLaLinea,
@@ -66,7 +67,7 @@ describe("leer lo que manda la base", () => {
     expect(leerCampanas([{ ...fila, piezas: [{ id: 3 }] }])).toBeNull();
     expect(leerCampanas(null)).toBeNull();
     expect(leerDiasPortada([{ dia: "2026-10-17" }])).toBeNull();
-    expect(leerDiasPortada([{ dia: "2026-10-17", campana: null }])).toEqual([{ dia: "2026-10-17", campana: null }]);
+    expect(leerDiasPortada([{ dia: "2026-10-17", campana: null }])).toEqual([{ dia: "2026-10-17", campanas: [] }]);
   });
 });
 
@@ -122,27 +123,42 @@ describe("cómo se dice cada campaña", () => {
   });
 });
 
-// Lo que la base contestó para el 17 al 19 de octubre: el Gato los dos primeros días, ninguna el tercero.
+// Lo que la base contestó para el 17 al 20 de octubre: el Gato y Halloween en carrusel los dos primeros días, solo Halloween el tercero,
+// ninguna el cuarto.
 const DIAS: DiaPortada[] = [
-  { dia: "2026-10-17", campana: "gato" },
-  { dia: "2026-10-18", campana: "gato" },
-  { dia: "2026-10-19", campana: null },
+  { dia: "2026-10-17", campanas: ["gato", "halloween"] },
+  { dia: "2026-10-18", campanas: ["gato", "halloween"] },
+  { dia: "2026-10-19", campanas: ["halloween"] },
+  { dia: "2026-10-20", campanas: [] },
 ];
 
 describe("las cifras de arriba", () => {
   it("en la portada hoy: la que dice la base, no la que adivina la web", () => {
     const c = cifrasDeCampanas(TODAS, DIAS, HOY);
-    expect(c.enPortada?.id).toBe("gato");
+    expect(c.enPortada.map((x) => x.id)).toEqual(["gato", "halloween"]);
     expect(c.vigentes.map((x) => x.id)).toEqual(["gato", "halloween"]);
     expect(c.proxima).toEqual({ campana: BLACK, enDias: 23 });
   });
   it("sin los días (la base no respondió) o sin campaña hoy, la portada no nombra ninguna", () => {
-    expect(cifrasDeCampanas(TODAS, null, HOY).enPortada).toBeNull();
-    expect(cifrasDeCampanas(TODAS, DIAS, "2026-10-19").enPortada).toBeNull();
+    expect(cifrasDeCampanas(TODAS, null, HOY).enPortada).toEqual([]);
+    expect(cifrasDeCampanas(TODAS, DIAS, "2026-10-20").enPortada).toEqual([]);
   });
-  it("el cruce: dos corren hoy, sale una, y hasta cuándo corren juntas", () => {
-    expect(cruceDeHoy(TODAS, DIAS, HOY)).toEqual({ nombres: ["Día Internacional del Gato", "Halloween"], enPortada: GATO, hasta: "2026-10-30" });
+  it("el cruce: dos corren hoy, salen en carrusel en el orden de la base, y hasta cuándo corren juntas", () => {
+    expect(cruceDeHoy(TODAS, DIAS, HOY)).toEqual({ nombres: ["Día Internacional del Gato", "Halloween"], enPortada: [GATO, HALLOWEEN], hasta: "2026-10-30" });
     expect(cruceDeHoy([GATO, BLACK], DIAS, HOY)).toBeNull();
+  });
+  it("lee los días con varias campañas y los de una base de antes del carrusel (una sola o ninguna)", () => {
+    expect(leerDiasPortada([{ dia: "2026-10-17", campana: "gato", campanas: ["gato", "halloween"] }])).toEqual([{ dia: "2026-10-17", campanas: ["gato", "halloween"] }]);
+    expect(leerDiasPortada([{ dia: "2026-10-17", campana: "gato" }, { dia: "2026-10-18", campana: null }])).toEqual([
+      { dia: "2026-10-17", campanas: ["gato"] },
+      { dia: "2026-10-18", campanas: [] },
+    ]);
+    expect(leerDiasPortada([{ dia: "2026-10-17", campanas: [3] }])).toBeNull();
+  });
+  it("cómo se nombran las de un carrusel", () => {
+    expect(nombresEnOrden(["Gato"])).toBe("Gato");
+    expect(nombresEnOrden(["Gato", "Halloween"])).toBe("Gato y Halloween");
+    expect(nombresEnOrden(["A", "B", "C"])).toBe("A, B y C");
   });
 });
 
@@ -165,11 +181,13 @@ describe("la línea «La portada, día a día»", () => {
     expect(g.cortadaAntes).toBe(false);
     expect(barraEn("2026-08-01", "2026-08-31", rango)).toBeNull();
   });
-  it("los días seguidos con la misma campaña son un tramo", () => {
+  it("los días seguidos con las mismas campañas, en el mismo orden, son un tramo (el de varias es un carrusel)", () => {
     expect(tramosDePortada(DIAS)).toEqual([
-      { desde: "2026-10-17", hasta: "2026-10-18", campana: "gato" },
-      { desde: "2026-10-19", hasta: "2026-10-19", campana: null },
+      { desde: "2026-10-17", hasta: "2026-10-18", campanas: ["gato", "halloween"] },
+      { desde: "2026-10-19", hasta: "2026-10-19", campanas: ["halloween"] },
+      { desde: "2026-10-20", hasta: "2026-10-20", campanas: [] },
     ]);
+    expect(tramosDePortada([{ dia: "2026-10-17", campanas: ["a", "b"] }, { dia: "2026-10-18", campanas: ["b", "a"] }])).toHaveLength(2);
   });
   it("las filas: solo las aprobadas y activas con fechas que tocan la línea, por cuándo empiezan", () => {
     expect(campanasEnLaLinea(TODAS, rango).map((c) => c.id)).toEqual(["halloween", "aniversario", "gato", "black", "navidad"]);
@@ -179,16 +197,18 @@ describe("la línea «La portada, día a día»", () => {
 describe("por qué una campaña que corre hoy no sale en la portada", () => {
   const sinDiseno = (c: Campana) => ({ ...c, diseno: null });
   it("la que sale no lleva razón; las que no, dicen la suya", () => {
-    expect(porQueNoSale(sinDiseno(GATO), GATO, HOY)).toBeNull();
-    // Desde la actividad 6a, una sin descuento con prendas también sale: si hoy no es ella, es porque la de descuento va primero.
-    expect(porQueNoSale(sinDiseno(HALLOWEEN), GATO, HOY)).toBe("Hoy la portada muestra «Día Internacional del Gato».");
-    expect(porQueNoSale(sinDiseno({ ...HALLOWEEN, pct: 15, modelos: 0, categorias: 0 }), GATO, HOY)).toBe("No sale en la portada: todavía no tiene prendas.");
-    expect(porQueNoSale(sinDiseno({ ...HALLOWEEN, modelos: 0, categorias: 0 }), GATO, HOY)).toBe("No sale en la portada: todavía no tiene prendas ni diseño propio.");
-    expect(porQueNoSale({ ...HALLOWEEN, modelos: 0, categorias: 0, diseno: DISENO_DE_SIEMPRE }, GATO, HOY)).toBe("Hoy la portada muestra «Día Internacional del Gato».");
+    expect(porQueNoSale(sinDiseno(GATO), [GATO], HOY)).toBeNull();
+    // Desde el carrusel (6b), todas las que pueden salir salen: una sin descuento con prendas que no está en la lista no tiene razón que
+    // dar (la lista de hoy es la de la base).
+    expect(porQueNoSale(sinDiseno(HALLOWEEN), [GATO, HALLOWEEN], HOY)).toBeNull();
+    expect(porQueNoSale(sinDiseno(HALLOWEEN), [GATO], HOY)).toBeNull();
+    expect(porQueNoSale(sinDiseno({ ...HALLOWEEN, pct: 15, modelos: 0, categorias: 0 }), [GATO], HOY)).toBe("No sale en la portada: todavía no tiene prendas.");
+    expect(porQueNoSale(sinDiseno({ ...HALLOWEEN, modelos: 0, categorias: 0 }), [GATO], HOY)).toBe("No sale en la portada: todavía no tiene prendas ni diseño propio.");
+    expect(porQueNoSale({ ...HALLOWEEN, modelos: 0, categorias: 0, diseno: DISENO_DE_SIEMPRE }, [GATO], HOY)).toBeNull();
   });
   it("una que no corre hoy no lleva razón", () => {
-    expect(porQueNoSale(sinDiseno(BLACK), GATO, HOY)).toBeNull();
-    expect(porQueNoSale(sinDiseno(ANIVERSARIO), GATO, HOY)).toBeNull();
+    expect(porQueNoSale(sinDiseno(BLACK), [GATO], HOY)).toBeNull();
+    expect(porQueNoSale(sinDiseno(ANIVERSARIO), [GATO], HOY)).toBeNull();
   });
 });
 

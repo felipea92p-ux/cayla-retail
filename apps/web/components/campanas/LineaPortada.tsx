@@ -12,6 +12,7 @@ import {
   type Rango,
 } from "@/lib/campanas-reglas";
 import { textoRango } from "@/lib/etiqueta-vigencia";
+import { nombresEnOrden } from "@/lib/campana-diseno";
 
 /** Los colores de la barra de una campaña: los de la portada que ve el cliente (su diseño publicado, o el de siempre). Son dato, no tema. */
 function coloresDeBarra(c: CampanaDeLista): CSSProperties {
@@ -63,21 +64,38 @@ export function LineaPortada({ campanas, dias, rango, hoy }: { campanas: readonl
         <div className="tw-cal-pista" data-portada data-guia="campanas.portada">
           {tramos.map((t, i) => {
             const b = barraEn(t.desde, t.hasta, rango);
-            const c = t.campana ? porId.get(t.campana) : undefined;
             if (!b) return null;
-            const nombre = c?.nombre ?? "Lo nuevo";
+            const cs = t.campanas.flatMap((id) => {
+              const c = porId.get(id);
+              return c ? [c] : [];
+            });
+            const unaSola = cs.length === 1 ? cs[0] : undefined;
+            // Con más de una, el carrusel (ADR-0436, actividad 6b): una franja por campaña, en su orden, y el nombre en una pastilla oscura
+            // que se lee sobre cualquier color.
+            const carrusel = cs.length > 1;
+            const nombre = cs.length > 0 ? nombresEnOrden(cs.map((c) => c.nombre)) : "Lo nuevo";
             return (
               <span
                 key={t.desde}
                 className="tw-cal-barra"
-                data-nuevo={c ? undefined : ""}
-                data-color-dato={c ? "" : undefined}
-                data-de-siempre={c && !c.diseno ? "" : undefined}
-                title={`${nombre}: ${textoRango(t.desde, t.hasta)}`}
-                style={{ ...(c ? coloresDeBarra(c) : {}), left: `${b.izquierda}%`, width: `${b.ancho}%`, ["--i" as string]: i } as CSSProperties}
+                data-nuevo={cs.length === 0 ? "" : undefined}
+                data-carrusel={carrusel ? "" : undefined}
+                data-color-dato={cs.length > 0 ? "" : undefined}
+                data-de-siempre={unaSola && !unaSola.diseno ? "" : undefined}
+                title={`${carrusel ? "En carrusel: " : ""}${nombre}: ${textoRango(t.desde, t.hasta)}`}
+                style={{ ...(unaSola ? coloresDeBarra(unaSola) : {}), left: `${b.izquierda}%`, width: `${b.ancho}%`, ["--i" as string]: i } as CSSProperties}
               >
-                {nombre}
-                <span className="sr-only"> en la portada, {textoRango(t.desde, t.hasta)}</span>
+                {carrusel && (
+                  <span className="tw-cal-franjas" aria-hidden>
+                    {cs.map((c) => (
+                      <span key={c.id} style={coloresDeBarra(c)} />
+                    ))}
+                  </span>
+                )}
+                <span className="tw-cal-barra-nombre">{nombre}</span>
+                <span className="sr-only">
+                  {carrusel ? " en carrusel" : ""} en la portada, {textoRango(t.desde, t.hasta)}
+                </span>
               </span>
             );
           })}
