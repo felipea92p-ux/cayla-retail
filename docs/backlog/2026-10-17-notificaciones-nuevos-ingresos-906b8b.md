@@ -2,9 +2,10 @@
 
 - [x] **Actividad 1 y 2 — la campanita en la cabecera** (`apps/tienda`): globo + panel con «las tallas que esperabas» que ya llegaron y «lo nuevo
       desde tu última visita». Sin migración. Verificada en banco temporal (escritorio y 375 px, claro y oscuro); 548 pruebas, tipos y lint.
-- [ ] **Mirar la campanita con una cuenta real** (la parte de servidor no se vio con sesión). **La tienda no tiene publicación de prueba**
-      (ADR-0408; Vercel la omite en los PR): o en local con la pila de clientes (README «Levantarla en local») y datos de prueba, o en
-      producción justo después de fusionar, con una cuenta que tenga un «Avísame» ya llegado.
+- [x] **Mirada con una sesión real, en local y con la tienda compilada** (2026-10-17): pila de clientes arriba, cuenta de prueba, miembro del
+      Club, dos prendas publicadas y 6 «Avísame»; base restaurada idéntica con `estado.mjs` y pila apagada. Detalle en el ADR-0448.
+- [ ] **Mirarla en producción justo después de fusionar** (la tienda no tiene publicación de prueba: ADR-0408; Vercel la omite en los PR), con
+      una cuenta que tenga un «Avísame» ya llegado, en un Android y un iPhone reales.
 - [ ] **Decidir (Felipe) para seguir con el aviso al celular:** (1) dependencia `web-push` y 3 variables en Vercel (claves VAPID y contacto);
       (2) si se actualiza el texto de privacidad del Club (hoy promete solo WhatsApp); (3) la enmienda a ADR-0431: registrar `sw.js` también
       en iPhone instalado.

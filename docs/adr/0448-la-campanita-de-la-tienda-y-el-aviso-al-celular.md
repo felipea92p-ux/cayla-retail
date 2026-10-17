@@ -110,15 +110,26 @@ fuera hasta que Felipe lo decida.**
   dentro de la ventana) y 375 px (panel de 355 px, la fila no se desborda); modo claro y oscuro; el estado con tallas, vacío, con 6 tallas
   (cuatro nombradas y «Y llegaron 2 más»); globo que baja al abrir; la cookie del día se escribe al abrir y al montarse la primera vez;
   Escape cierra y devuelve el foco al botón; tocar fuera cierra.
+- **Con una sesión real, en local, con la tienda compilada para producción (2026-10-17).** Se levantó la pila de clientes
+  (README, «Levantarla en local»), se creó una cuenta de prueba, una miembro del Club, dos prendas publicadas y seis «Avísame» (todo con
+  una foto de `scripts/flujo-de-negocio/estado.mjs`, restaurada al final: la base volvió idéntica; la pila se apagó con sus datos).
+  Se vio: la campanita sale sola en una carga completa (~250 ms) y al navegar dentro de la tienda, también en «Mi perfil»; las tallas que
+  llegaron salen con su enlace a la ficha (`/catalogo/<producto_id>`, que abre al tocarlas) y con su punto si no se vieron; «Entendido» del
+  Inicio baja el globo y la talla sigue en el panel sin punto; con una cookie vieja (20-sep) cuenta 2 novedades, al abrir las deja en 0 y
+  anota hoy; con 6 esperas nombra 4 (las sin ver primero) y dice «Y llegaron 2 más» con un enlace a «Mi perfil»; a 375 px la fila no se
+  desborda y el panel mide 355 px; un visitante sin sesión no recibe el botón (y el esqueleto ya no le dibuja la campanita apagada: sale solo
+  con la cookie de sesión, `ElegirPorCookie`).
+- Dos cosas que parecían fallos y no lo eran: el aviso de Next sobre `Date.now()` en `/inicio` sale igual **sin** la campanita (viene de la
+  lectura de sesión que ya existía), y en el navegador integrado de Claude lo que llega por detrás no se revela hasta que se pinta un cuadro
+  (las transiciones de vista de la tienda, `components/Vistas.tsx`, esperan un cuadro): hasta que alguien tocaba o se sacaba una captura, la
+  campanita parecía atascada apagada. En un navegador normal no pasa.
 
 ## Lo que NO se verificó
 
-- **La campanita con una sesión real.** El proyecto de inicio de sesión de clientes no corre en local, así que la parte de servidor
-  (`Campanita.tsx`: sesión, aviso de tallas, cookies) la cubren los tipos y las pruebas de la lógica, no una pantalla vista con una cuenta.
-  **La tienda no tiene publicación de prueba** (ADR-0408: sus variables están solo en Producción, y `scripts/ci/vercel-ignorar-tienda.mjs` no
-  construye nada que no sea producción; Vercel lo mostró en el PR #1180 como «1 Skipped Deployment»). Se puede ver con sesión real de dos
-  maneras: en local, levantando la pila de clientes (README de la tienda, «Levantarla en local») con datos de prueba, o en producción justo
-  después de fusionar, con una cuenta que tenga un «Avísame» ya llegado. Fusionar publica: la campanita llega a todos los miembros con sesión.
+- **La campanita en la publicación de Vercel y en un celular de verdad.** La tienda no tiene publicación de prueba (ADR-0408: sus variables
+  están solo en Producción, y `scripts/ci/vercel-ignorar-tienda.mjs` no construye nada que no sea producción; Vercel lo mostró en el PR #1180
+  como «1 Skipped Deployment»), así que la primera vez que la ve el mundo real es justo después de fusionar: ahí hay que mirarla con una
+  cuenta que tenga un «Avísame» ya llegado, en un Android y un iPhone. Fusionar publica: la campanita llega a todos los miembros con sesión.
 - Nada del aviso al celular (no está construido) y, cuando se construya, **un Android y un iPhone reales**: es la única prueba que no se
   puede hacer en el escritorio.
 - Que la campanita se use: hoy no hay un solo «Avísame» vivo.
