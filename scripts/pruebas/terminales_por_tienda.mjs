@@ -351,14 +351,18 @@ const SIGUEN_DEL_LIDER = [
   "registrar_serie_comprobante", "liquidar_prenda_danada", "resolver_prenda_danada",
 ];
 verificar(
-  "etiquetas (ADR-0293): configurar una campaña y «Prendas» preguntan fn_puede_tocar_etiqueta (el módulo Etiquetas); la ficha de la prenda ya no tiene guardia de descuento",
+  "etiquetas (ADR-0293): configurar una campaña y «Prendas» preguntan fn_puede_tocar_etiqueta; la ficha de la prenda no tiene guardia de descuento, y desde ADR-0436 (20261017212000) pide la llave de Campañas solo para una campaña",
   correr(escena(`select (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
       and p.proname in ('etiquetar_variantes', 'actualizar_campana_etiqueta')
       and pg_get_functiondef(p.oid) ~ 'fn_puede_tocar_etiqueta\\(')
     || '|' || (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
       and p.proname = 'actualizar_variantes_etiquetas'
-      and pg_get_functiondef(p.oid) ~ 'fn_puede_(tocar_etiqueta|dar_descuento_por_etiqueta)\\(');`)),
-  /^2\|0$/
+      and pg_get_functiondef(p.oid) ~ 'fn_puede_dar_descuento_por_etiqueta\\(')
+    || '|' || (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
+      and p.proname = 'actualizar_variantes_etiquetas'
+      and pg_get_functiondef(p.oid) ~ 'fn_puede_tocar_etiqueta\\('
+      and position('ADR-0436 (20261017212000)' in pg_get_functiondef(p.oid)) > 0);`)),
+  /^2\|0\|1$/
 );
 verificar(
   `siguen del líder (${SIGUEN_DEL_LIDER.length}): devoluciones, anular comprobantes, series, prendas dañadas`,

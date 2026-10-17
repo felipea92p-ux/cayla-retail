@@ -40,24 +40,21 @@ todo cambio va en una migración NUEVA, reservada con `pnpm reservar migracion`.
 | `20261017200000_campanas_diseno_en_la_tienda.sql` | `20261017203014` |
 | `20261017151000_campanas_una_sola_llave.sql` | `20261017203618` (Felipe: «acepto que las terminales no puedan poner prendas en campañas hasta que se publique la web») |
 
-**Faltan pegar, en este orden y con el OK de Felipe:** `20261017204000` (campañas sin descuento) → `20261017210000` (el carrusel). Van con la
-web que las lee: una tienda o un ERP de antes las tolera (siguen leyendo `campana`, la primera), pero sin la web nueva una campaña sin
-descuento no se ve. **Volver a pegar una de las congeladas después de estas** las deshace (reescribe `tienda_portada()` y la regla como eran):
-se arregla pegando otra vez, en orden, las que siguen.
+**Faltan pegar, en este orden y con el OK de Felipe, EL DÍA QUE SE PUBLIQUE LA WEB (casilla 1, abajo):** `20261017204000` (campañas sin
+descuento) → `20261017210000` (el carrusel) → `20261017212000` (la puerta de Editar producto: cada campaña pide la llave de Campañas,
+también desde la ficha). Las dos primeras las tolera una web de antes (sigue leyendo `campana`, la primera); la tercera NO: la web publicada
+ofrece las campañas en la ficha a las terminales y su guardado de etiquetas fallaría, por eso va justo antes de fusionar. **Volver a pegar una
+de las congeladas después de estas** las deshace (reescribe `tienda_portada()` y la regla como eran): se arregla pegando otra vez, en orden,
+las que siguen.
 
-**La puerta de Editar producto (Felipe 2026-10-17, por construir en su propio commit):** `retail.actualizar_variantes_etiquetas(jsonb)`, la de
-Editar producto (`ProductoForm.tsx`), deja poner o quitar una campaña con Etiquetas o con Productos/Atributos, sin mirar la llave de
-Campañas; las dos terminales tienen Productos. Va en una migración NUEVA con un ancla (cada etiqueta de campaña pasa por
-`fn_puede_tocar_etiqueta`; las demás, como hoy, ADR-0293), sin que quien no tiene la llave pueda QUITAR una campaña ni que la prenda la pierda
-al guardar la ficha; antes, leer en producción la huella del cuerpo vivo (empieza con el comentario «P4 (20260923140000)») y compararla con el
-repo. Pruebas en `campanas_llave.mjs` con una terminal que tiene Productos y no Campañas, y en la web que `ProductoForm` no ofrezca (o avise
-bien) las campañas a quien no tiene la llave. **Se pega EL DÍA QUE SE PUBLIQUE LA WEB, justo antes de fusionar, no antes.**
+**Otra puerta, sin tocar (decide Felipe):** Nuevo producto (`crear_producto_con_variantes`) también deja poner una prenda nueva en una campaña
+sin la llave de Campañas (ADR-0436, sección «La puerta de Editar producto»).
 
 ## El día de publicar (casillas del PR de la actividad 9, en este orden; Felipe 2026-10-17)
 
 La descripción del PR (`/abrir-pr`) las lleva como casillas, en este orden. Ninguna se borra: si una no aplica, se escribe por qué.
 
-1. **Pegar las migraciones que faltan**, en el orden de arriba: `20261017204000`, `20261017210000` y la que cierra la puerta de Editar producto.
+1. **Pegar las migraciones que faltan**, en el orden de arriba: `20261017204000`, `20261017210000` y `20261017212000` (la puerta de Editar producto).
    Cada una con su sonda de huellas antes y su verificación después.
 2. **Fusionar el PR.**
 3. **Que el líder les dé el módulo «Campañas» a Terminal Almacén y a Terminal de ventas** en Roles y accesos. Sin eso, con la puerta de la

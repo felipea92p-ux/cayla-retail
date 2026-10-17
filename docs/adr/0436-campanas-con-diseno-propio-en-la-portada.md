@@ -307,3 +307,28 @@ portada nuevas hasta pegar otra vez las que siguen (está escrito en `CONTINUAR.
 (Felipe 2026-10-17). `actualizar_variantes_etiquetas` deja poner o quitar una campaña con Productos o Atributos, sin la llave de Campañas;
 se cierra con una migración nueva (cada etiqueta de campaña pasa por `fn_puede_tocar_etiqueta`) que se pega el día que se publique la web,
 justo antes de fusionar.
+
+## La puerta de Editar producto (`20261017212000`, se pega el día que se publique la web)
+
+**DECIDÍ 22 — `actualizar_variantes_etiquetas` (lo que guarda Editar producto) pide la llave de Campañas para una campaña: una campaña que la
+variante no lleva entra solo con la llave (sin ella, 42501 `campana_sin_llave`, «se hace en Tienda web ▸ Campañas ▸ Prendas»); una que ya
+lleva se queda si quien guarda no tiene la llave, aunque la ficha no la mande. Las demás etiquetas, como siempre (Etiquetas o Productos y
+Atributos, ADR-0293).** Felipe (2026-10-17): «que la sesión de Campañas construya la migración que cierra la puerta de Editar producto (cada
+etiqueta de campaña pide Campañas) y que se pegue el día que se publique la web». Es un parche anclado sobre el tramo que borra y pone (igual en
+producción, md5 `ce8f37f3…`, y en el repo, `e9979200…`, que solo difieren en un comentario de arriba). En la web, Editar producto ya no le
+ofrece las campañas a quien no tiene el módulo, y una línea bajo las etiquetas le dice dónde se ponen y que las que la prenda tiene se quedan.
+**DESCARTÉ** que la ficha sin la llave pudiera quitar una campaña: la ficha de quien no la ve la manda sin ella, y cada guardado sacaría la
+prenda de su campaña (y de su descuento en caja) sin que nadie lo pidiera. **DESCARTÉ** también ignorar en silencio una campaña nueva sin la
+llave: si llega, alguien la quiso poner; el error le dice dónde se hace.
+**SE ROMPE SI** se pega antes que la web: la web publicada todavía ofrece las campañas en la ficha y su guardado de etiquetas fallaría para
+las terminales. Por eso va en la casilla 1 del día de publicar, justo antes de fusionar.
+
+**Otra puerta, que decide Felipe (no se tocó):** Nuevo producto (`crear_producto_con_variantes`, `p_etiqueta_ids`) también pone etiquetas y
+ofrece las campañas a quien da de alta una prenda (Productos, o Recibir al recibir un envío): una terminal puede crear una prenda ya dentro de
+Halloween, con su descuento, sin tener Campañas.
+
+**Verificación:** `pnpm pruebas:campanas-llave` (31: suma la ficha con una cuenta con Productos y sin Campañas —no pone una campaña, sí otra
+etiqueta, guardar sin la campaña no la quita, guardar con ella no cambia nada, con Campañas la quita y la vuelve a poner— y la migración dos
+veces); `historial_prenda`, `roles_por_modulo` y `terminales_por_tienda` en la pila propia (el caso de ADR-0293 de esta última pasa a decir
+que la ficha no tiene guardia de descuento y pide la llave solo para una campaña). En el navegador, Editar producto de la Blusa Valentina
+(en el Día del Gato): Micaela no ve el grupo de campañas y lee la línea; Felipe ve el Día del Gato.

@@ -23,8 +23,8 @@ portada en un solo lugar), 2 (Datos y Prendas con una sola llave), 3 (la portada
 visible), 4 (diseñar y publicar), 5 (la tienda pinta el diseño publicado) y **6 (campañas sin descuento y el carrusel)**:
 - [x] **En producción desde el 2026-10-17, congeladas** (como en `d32f50113`): `20261017144000` (registro `20261017202815`),
   `20261017160000` (`20261017202943`), `20261017200000` (`20261017203014`) y `20261017151000` (`20261017203618`). No se editan (lo vigila
-  `campanas-migraciones-pegadas.test.ts`); un cambio va en una migración nueva. **Faltan** `20261017204000` y `20261017210000`, con la web
-  (detalle en `CONTINUAR.md`).
+  `campanas-migraciones-pegadas.test.ts`); un cambio va en una migración nueva. **Faltan** `20261017204000`, `20261017210000` y
+  `20261017212000`, el día que se publique la web (detalle en `CONTINUAR.md`).
 - [x] Actividad 4: la pestaña «Diseño en la web» (la de entrada; Nueva campaña lleva a Datos), con «Después sale» desde la base; la portada
   real en la lista, en la línea y en Datos ▸ En la web; «Borrador» solo si difiere de lo publicado; guías y huellas al día.
 - [x] Actividad 5: la tienda revisa el diseño (`disenoParaPintar`: que se sepa leer y que la letra se lea en los dos temas) y la portada y
@@ -35,10 +35,11 @@ visible), 4 (diseñar y publicar), 5 (la tienda pinta el diseño publicado) y **
 - [x] Actividad 6b: el carrusel (Felipe 2026-10-17: «si hay dos campañas activas, eso debe convertirse en un carrusel que va deslizándose
   cada ciertos segundos»): la regla devuelve todas en orden, la tienda las pasa cada 7 s y el ERP dibuja los días en carrusel. Migración
   `20261017210000`, sin pegar.
-- [ ] La puerta de Editar producto (Felipe 2026-10-17: «que la sesión de Campañas construya la migración que cierra la puerta de Editar
-  producto […] y que se pegue el día que se publique la web»): `actualizar_variantes_etiquetas` deja poner o quitar una campaña sin la llave
-  de Campañas. Migración nueva con ancla, pruebas en `campanas_llave.mjs`, `ProductoForm` sin ofrecer las campañas a quien no tiene la llave;
-  en su propio commit (detalle en `CONTINUAR.md`). Se pega el día que se publique la web.
+- [x] La puerta de Editar producto (Felipe 2026-10-17): `20261017212000`, parche anclado a `actualizar_variantes_etiquetas` (una campaña pide
+  la llave de Campañas; sin ella no entra y la que la prenda tiene se queda), Editar producto sin ofrecer las campañas a quien no tiene el
+  módulo, pruebas en `campanas_llave.mjs`. **Sin pegar: se pega el día que se publique la web**, justo antes de fusionar.
+- [ ] Nuevo producto (`crear_producto_con_variantes`) también deja poner una prenda nueva en una campaña sin la llave de Campañas: decide
+  Felipe si se cierra igual.
 - [ ] El día de publicar: los cuatro pasos de `CONTINUAR.md` (pegar lo que falta, fusionar, darles «Campañas» a las terminales, reimprimir
   etiquetas si hay descuento) van como casillas en el PR de la actividad 9.
 - [ ] Al publicar: avisarle a Felipe que «Terminal Almacén» y «Terminal de ventas» pierden la configuración de campañas hasta que el líder

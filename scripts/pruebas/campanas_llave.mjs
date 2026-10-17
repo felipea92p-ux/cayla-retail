@@ -12,7 +12,10 @@
  *   5. `guardar_campana`: nombre, descuento, fechas y categorías juntos; si algo está mal, no cambia NADA (tampoco el nombre).
  *   6. `activar_campana`: no se desactiva con prendas a mano; sin ellas sí, y se vuelve a activar.
  *   7. `campana_detalle`: sus categorías, sus variantes y sus prendas por modelo; una etiqueta que no es campaña «no existe».
- *   8. Quién: sin Campañas no se lee ni se guarda nada (42501). (La migración ya está pegada en producción y congelada: no se vuelve a
+ *   8. La ficha de la prenda (`20261017212000`, la puerta de Editar producto): con Productos y sin Campañas (como las terminales), una
+ *      campaña no se pone (42501) ni se quita —la prenda la conserva aunque la ficha no la mande—; las demás etiquetas, sí; con Campañas,
+ *      se pone y se quita.
+ *   9. Quién: sin Campañas no se lee ni se guarda nada (42501). (La migración ya está pegada en producción y congelada: no se vuelve a
  *      pegar aquí, ver `apps/web/lib/campanas-migraciones-pegadas.test.ts`.)
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK. La sesión se simula con `request.jwt.claim.sub`; los módulos de Micaela
@@ -32,6 +35,7 @@ import { readFileSync } from "node:fs";
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const MIGRACION = "supabase/migrations/20261017151000_campanas_una_sola_llave.sql";
+const MIGRACION_FICHA = "supabase/migrations/20261017212000_campanas_llave_en_editar_producto.sql";
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(process.env.APLICAR_ANTES, "utf8") : "";
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -198,6 +202,41 @@ select activo from retail.etiquetas where id = :'gato';`);
     esperar("con prendas a mano no se desactiva, y dice cuántas", conPrendas?.includes("campana_con_prendas") && conPrendas.includes("1 prenda"), r.ok ? r.salida : r.mensaje);
     esperar("sin prendas, se desactiva", sinPrendas === "SIN_ERROR" && apagada === "f", `${sinPrendas} / ${apagada}`);
     esperar("y se vuelve a activar", otraVez === "SIN_ERROR" && encendida === "t", `${otraVez} / ${encendida}`);
+  }
+
+  console.log("— La ficha de la prenda (la puerta de Editar producto) —");
+  {
+    // Como guarda la ficha: la lista completa de etiquetas de la variante (`asignacionesDeEtiquetas`).
+    const ficha = (ids) =>
+      `select pg_temp.intento(format('select retail.actualizar_variantes_etiquetas(%L::jsonb)', jsonb_build_array(jsonb_build_object('variante_id', :'variante', 'etiqueta_ids', ${ids}))));\n`;
+    const tiene = (id) => `select exists (select 1 from retail.variante_etiquetas where variante_id = :'variante' and etiqueta_id = :'${id}');\n`;
+    // Micaela, como una terminal: Productos sí, Campañas no (dentro de la transacción).
+    const terminal = `${darle("productos")}delete from retail.rol_modulos where rol_id = retail.fn_mi_rol_id() and modulo = 'campanas';\n`;
+    const r = correr(`${ESCENA}
+${configurar("gato", 15)}
+delete from retail.variante_etiquetas where variante_id = :'variante' and etiqueta_id in (:'gato', :'liquidar');
+${terminal}
+${ficha("jsonb_build_array(:'gato')")}${tiene("gato")}
+${ficha("jsonb_build_array(:'liquidar')")}${tiene("liquidar")}
+${como(FELIPE)}${etiquetar("gato")}
+${terminal}
+${ficha("'[]'::jsonb")}${tiene("gato")}${tiene("liquidar")}
+${ficha("jsonb_build_array(:'gato', :'liquidar')")}${tiene("gato")}
+${darle("campanas")}
+${ficha("jsonb_build_array(:'liquidar')")}${tiene("gato")}
+${ficha("jsonb_build_array(:'gato')")}${tiene("gato")}`);
+    // La primera línea es la de `configurar`, y la quinta la de `etiquetar` (Felipe pone la campaña).
+    const [, ponerSin, gatoSin, ponerOtra, liquidarSi, , guardarVacio, gatoSeQueda, liquidarSale, guardarConEl, gatoSigue, quitarCon, gatoSale, ponerCon, gatoVuelve] = lineas(r);
+    esperar("sin Campañas, la ficha no pone una prenda en una campaña (42501, campana_sin_llave)", ponerSin?.startsWith("42501 campana_sin_llave") && gatoSin === "f", r.ok ? `${ponerSin} / ${gatoSin}` : r.mensaje);
+    esperar("sin Campañas, la ficha sí pone una etiqueta que no es campaña (Productos, ADR-0293)", ponerOtra === "SIN_ERROR" && liquidarSi === "t", `${ponerOtra} / ${liquidarSi}`);
+    esperar("guardar la ficha sin la campaña no la quita: la prenda la conserva (y lo demás sí sale)", guardarVacio === "SIN_ERROR" && gatoSeQueda === "t" && liquidarSale === "f", `${guardarVacio} / ${gatoSeQueda} / ${liquidarSale}`);
+    esperar("guardar la ficha con la campaña que ya tenía no cambia nada", guardarConEl === "SIN_ERROR" && gatoSigue === "t", `${guardarConEl} / ${gatoSigue}`);
+    esperar("con Campañas, la ficha quita la campaña y la vuelve a poner", quitarCon === "SIN_ERROR" && gatoSale === "f" && ponerCon === "SIN_ERROR" && gatoVuelve === "t", `${quitarCon} / ${gatoSale} / ${ponerCon} / ${gatoVuelve}`);
+  }
+  {
+    const migracion = readFileSync(MIGRACION_FICHA, "utf8");
+    const r = correr(`begin;\n${migracion}\n${migracion}\nselect 'ok';`);
+    esperar("la de la ficha (20261017212000), dos veces seguidas, sin error", r.ok && r.salida.split("\n").at(-1) === "ok", r.ok ? r.salida : r.mensaje);
   }
 
   console.log("— La campaña por dentro —");

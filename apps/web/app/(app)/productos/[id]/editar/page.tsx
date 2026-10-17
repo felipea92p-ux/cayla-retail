@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { encontrarPorTipo, getSububicaciones } from "@/lib/sububicaciones";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -75,9 +75,19 @@ export default async function EditarProductoPage({
   // descuento a quien no es líder, con el aviso «las pone un líder», que ya no era cierto (revisión 2026-10-03).
   const esLider = persona.rol === "lider";
   const vocabulario = exigir(resEtiquetas, "las etiquetas del vocabulario");
+  // Una campaña se pone o se quita con el módulo Campañas, también desde aquí (ADR-0436, 20261017212000): a quien no lo tiene no se le
+  // ofrece. Las que la prenda ya lleva se quedan al guardar (la ficha las manda igual y la base no deja sacarlas sin la llave).
+  const veCampanas = veModulo(persona, "campanas");
+  const vigente = (e: { vigente_desde: string | null; vigente_hasta: string | null }) =>
+    (!e.vigente_desde || e.vigente_desde <= hoy) && (!e.vigente_hasta || e.vigente_hasta >= hoy);
   const etiquetas = vocabulario
-    .filter((e) => (!e.vigente_desde || e.vigente_desde <= hoy) && (!e.vigente_hasta || e.vigente_hasta >= hoy))
+    .filter(vigente)
+    .filter((e) => veCampanas || e.estilo !== "campana")
     .map((e) => ({ id: e.id, texto: e.nombre, estilo: e.estilo ?? "neutral" }));
+  const avisoEtiquetas =
+    !veCampanas && vocabulario.some((e) => e.estilo === "campana" && vigente(e))
+      ? "Las campañas no se eligen aquí: se ponen en Tienda web ▸ Campañas, con su módulo. Las que la prenda ya tiene se quedan."
+      : undefined;
 
   if (!producto) notFound();
 
@@ -159,6 +169,7 @@ export default async function EditarProductoPage({
         ejes={ejes}
         imagenes={imagenes}
         etiquetas={etiquetas}
+        avisoEtiquetas={avisoEtiquetas}
         marcas={marcas}
         estadoVariantes={resEstado.error ? null : leerEstadoVariantes(resEstado.data)}
         esLider={esLider}
