@@ -8,7 +8,7 @@ import { Ayuda, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/an
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { edadDelInventario, GRUPOS_QUIETAS, plural, prendasDe, totalEnTienda } from "@/lib/analisis-reglas";
 import { avisoCalidadDeDestino } from "@/lib/analisis-al-dia";
-import { modelosQueSobran, textoSobra, sobraDe } from "@/lib/analisis-sobra";
+import { modelosQueSobran, textoSobra, sobraDe, VENTAS_PARA_DECIR_SOBRA } from "@/lib/analisis-sobra";
 import { destinoDeEnvio, loQueLlevaElEnvio, razonTiendaSinLeer, textoPuedesMandar, tiendasSinLeer, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-enviar";
 import { hrefEnviar, hrefLiquidar, hrefRegistrarVentas } from "@/lib/analisis-acciones";
 import { nuncaSalio } from "@/lib/analisis-piso";
@@ -315,13 +315,13 @@ export function PestanaQuieta() {
       {sobran.length > 0 && (
         <Carril
           titulo="Lo que te sobra"
-          nota="Se vende, pero tienes para mucho más tiempo que el que importa. No se rebaja: mira antes de comprar más."
+          nota="Se vende, pero ya tienes para más tiempo del que vas a comprar. No se rebaja: mira antes de pedir más."
           eje={[]}
           grupos={[
             {
               clave: "sobra",
               titulo: "Te sobra",
-              ayuda: "Se vende (3 ventas o más) y, a ese ritmo, lo que tienes dura más que lo que te importa para comprar. Es solo para que lo tengas presente: no pide ninguna acción.",
+              ayuda: `Se vende (${VENTAS_PARA_DECIR_SOBRA} ventas o más) y, a ese ritmo, lo que tienes dura más del tiempo que vas a comprar. Es solo para que lo tengas presente: no pide ninguna acción.`,
               icono: "caja",
               est: "info",
               prendas: sobran,

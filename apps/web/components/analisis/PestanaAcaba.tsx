@@ -114,6 +114,7 @@ export function PestanaAcaba({ modoInicial = "dias" }: { /** Solo para las prueb
 
   // Los modelos que duran pero tienen una talla o un color agotado que se vendía (B3, D14): no son «Cómpralas», pero tampoco se pierden.
   const porReponer = useMemo(() => modelosPorReponer(prendas), [prendas]);
+  const faltanDe = useMemo(() => new Map(porReponer.map((f) => [f.modelo.varianteId, f.faltan])), [porReponer]);
   const reponerEnLaTienda = useMemo(() => modelosPorReponer(datos.prendas).length, [datos.prendas]);
   const vacio = vacioAcaba({ prendas: datos.prendas.length, seAcaban: enLaTienda + reponerEnLaTienda, fallas: datos.fallas.length });
   if (vacio) return <SinCarril tipo={vacio} />;
@@ -199,7 +200,7 @@ export function PestanaAcaba({ modoInicial = "dias" }: { /** Solo para las prueb
       eje={[...EJE_ACABA]}
       grupos={grupos}
       pista={(p) => <Pista p={p} />}
-      pildoras={(p) => <Pildoras p={p} ventanas={ventanas} />}
+      pildoras={(p, g) => <Pildoras p={p} ventanas={ventanas} faltan={g.clave === "reponer" ? (faltanDe.get(p.varianteId) ?? null) : undefined} />}
       accion={(p) => <Accion p={p} />}
     />
   );
@@ -293,7 +294,7 @@ function Pista({ p }: { p: ModeloAnalisis }) {
  * «Por llegar 13» (con de dónde y cuándo, al pasar el mouse), «Atrasada 26 días» si algo debía llegar y no llegó (esa prenda vuelve a
  * «Comprar»), «AQP tiene 3» o a quién se compra, y «AQP también se acaba» si el mismo modelo falta en otra tienda (A8).
  */
-function Pildoras({ p, ventanas }: { p: ModeloAnalisis; ventanas: Readonly<Record<string, number>> }) {
+function Pildoras({ p, ventanas, faltan: faltanDado }: { p: ModeloAnalisis; ventanas: Readonly<Record<string, number>>; /** En «Reponer talla o color»: las que se vendían (`modelosPorReponer`); sin esto, todas las agotadas. */ faltan?: { texto: string; todas: string[] } | null }) {
   const { datos, sedeDe } = useAnalisis();
   const llega = porLlegar(p, datos.hoy);
   const atraso = atrasoDe(p, datos.hoy);
@@ -303,7 +304,7 @@ function Pildoras({ p, ventanas }: { p: ModeloAnalisis; ventanas: Readonly<Recor
   const quien = datos.proveedores ? proveedorDelModelo(p, datos.proveedores) : null;
   const proveedor = textoProveedorGenerico(quien, p.origen);
   const tambien = seAcabaEnOtras(p.otras, ventanas);
-  const faltan = faltanDelModelo(p);
+  const faltan = faltanDado === undefined ? faltanDelModelo(p) : faltanDado;
   // «Por llegar 24 · en 4 días» / «· sin fecha»: sin la fecha no se sabe si habrá días con el piso vacío (Felipe 2026-10-16).
   const cuando = cuandoLlega(p, datos.hoy);
   // La base del número (A5): «Una sola venta» (ámbar, nunca rojo: D6). Lo que dejas de ganar (A15) ya no es una píldora: pasó a la nota bajo la barra,

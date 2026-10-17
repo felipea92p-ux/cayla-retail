@@ -35,8 +35,13 @@ export const umbralDeSobra = (horizonteDias: number): number => (Number.isFinite
  * ¿Sobra este modelo? Se vende (3 ventas o más en su ventana), no se está acabando, y lo que tiene dura más que el umbral. Devuelve los días a su ritmo
  * (los mismos de `diasQueQuedan`: una sola cuenta) o null.
  */
-export function sobraDe(p: Pick<ModeloAnalisis, "piso" | "almacen" | "vendidas30" | "diasDeVentas">, horizonteDias: number): { dias: number } | null {
+export function sobraDe(
+  p: Pick<ModeloAnalisis, "piso" | "almacen" | "vendidas30" | "diasDeVentas"> & { variantes?: readonly Pick<ModeloAnalisis, "piso" | "almacen" | "vendidas30">[] },
+  horizonteDias: number,
+): { dias: number } | null {
   if (p.vendidas30 < VENTAS_PARA_DECIR_SOBRA || totalEnTienda(p) <= 0) return null;
+  // Un modelo con una talla o un color agotado que se vendía va a «Reponer talla o color» (el stock está en lo que no se vende): no es "sobra", y no sale en las dos.
+  if (p.variantes?.some((v) => totalEnTienda(v) === 0 && v.vendidas30 >= VENTAS_PARA_REPONER)) return null;
   const dias = diasQueQuedan(p);
   return dias !== null && dias > umbralDeSobra(horizonteDias) ? { dias } : null;
 }
@@ -57,7 +62,9 @@ export function modelosQueSobran<T extends ModeloAnalisis>(modelos: readonly T[]
 
 /** «Tienes para más de 16 semanas a este ritmo: mira antes de comprar más.» Solo información: ni cantidades ni un botón de rebaja. */
 export function textoSobra(dias: number): string {
-  const tiempo = dias > DIAS_UN_ANO ? "un año" : `${Math.floor(dias / 7)} ${plural(Math.floor(dias / 7), "semana", "semanas")}`;
+  // «Más de N»: N es el entero de semanas por debajo (13 semanas justas son «más de 12»), nunca igual al valor.
+  const semanas = Math.ceil(dias / 7) - 1;
+  const tiempo = dias > DIAS_UN_ANO ? "un año" : `${semanas} ${plural(semanas, "semana", "semanas")}`;
   return `Tienes para más de ${tiempo} a este ritmo: mira antes de comprar más.`;
 }
 

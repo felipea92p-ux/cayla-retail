@@ -83,9 +83,22 @@ describe("«Sobra» (D11): lo que tienes dura más que el umbral a su propio rit
 
   it("lo dice como información: sin cantidades, sin «rebaja», sin un número fijo", () => {
     expect(textoSobra(120)).toBe("Tienes para más de 17 semanas a este ritmo: mira antes de comprar más.");
-    expect(textoSobra(91)).toBe("Tienes para más de 13 semanas a este ritmo: mira antes de comprar más.");
+    expect(textoSobra(91)).toBe("Tienes para más de 12 semanas a este ritmo: mira antes de comprar más.");
     expect(textoSobra(400)).toBe("Tienes para más de un año a este ritmo: mira antes de comprar más.");
     expect(textoSobra(120)).not.toMatch(/rebaj|liquid|pide \d/i);
+  });
+});
+
+describe("un modelo no está en «Reponer» y en «Te sobra» a la vez (revisión de B3)", () => {
+  it("S con 60 y sin ventas, M agotada con 6 ventas, L con 30: se repone la M y NO se dice que sobra", () => {
+    const m = modelo(talla({ talla: "S", piso: 60 }), talla({ talla: "M", vendidas30: 6 }), talla({ talla: "L", piso: 30 }));
+    expect(modelosPorReponer([m]).map((f) => f.modelo)).toEqual([m]);
+    expect(modelosQueSobran([m], 0)).toEqual([]);
+    expect(sobraDe(m, 0)).toBeNull();
+  });
+  it("si lo agotado nunca se vendió, el modelo sí puede sobrar", () => {
+    const m = modelo(talla({ talla: "S", piso: 200, vendidas30: 30 }), talla({ talla: "M" }));
+    expect(modelosQueSobran([m], 0)).toEqual([m]);
   });
 });
 

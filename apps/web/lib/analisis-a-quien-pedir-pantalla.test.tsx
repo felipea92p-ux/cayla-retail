@@ -28,9 +28,9 @@ vi.mock("@/components/analisis/Carril", () => ({
   }: {
     herramienta: ReactNode;
     franja?: ReactNode;
-    grupos: { titulo: string; ayuda?: string; prendas: unknown[]; lote?: ReactNode }[];
+    grupos: { clave: string; titulo: string; ayuda?: string; prendas: unknown[]; lote?: ReactNode }[];
     accion: (p: unknown) => ReactNode;
-    pildoras: (p: unknown) => ReactNode;
+    pildoras: (p: unknown, g: { clave: string }) => ReactNode;
     pista?: (p: unknown) => ReactNode;
   }) => (
     <div data-carril="">
@@ -43,10 +43,10 @@ vi.mock("@/components/analisis/Carril", () => ({
           {g.ayuda && <small data-ayuda={g.ayuda} />}
         </h4>
       ))}
-      {grupos.flatMap((g) => g.prendas).map((p, i) => (
+      {grupos.flatMap((g) => g.prendas.map((p) => ({ g, p }))).map(({ g, p }, i) => (
         <div key={i} data-fila="">
           {pista?.(p)}
-          {pildoras(p)}
+          {pildoras(p, g)}
           {accion(p)}
         </div>
       ))}
