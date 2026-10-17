@@ -3,6 +3,7 @@ import { cuantosFavoritos, nombreDeLaCuenta } from "@/lib/cabecera-servidor";
 import { datosDeCabecera } from "@/lib/inicio";
 import { anioActual } from "@/lib/hoy-servidor";
 import { hayAlgoParaProbar } from "@/lib/probador-servidor";
+import { leerSesion } from "@/lib/sesion-servidor";
 import { BotonBolsa } from "./bolsa/BotonBolsa";
 import { CabeceraConCuenta, type SeccionActual } from "./CabeceraConCuenta";
 import { EntradaDelDia } from "./cuenta/EntradaDelDia";
@@ -36,19 +37,21 @@ export async function MarcoCatalogo({
   children: React.ReactNode;
 }) {
   // «Arma el tuyo» sale solo si hay algo que probar en esta tienda (la lectura guardada del probador, como el catálogo).
-  const [favoritos, nombre, conProbador] = await Promise.all([cuantosFavoritos(), nombreDeLaCuenta(), hayAlgoParaProbar(prendas)]);
+  const [favoritos, nombre, conProbador, sesion] = await Promise.all([cuantosFavoritos(), nombreDeLaCuenta(), hayAlgoParaProbar(prendas), leerSesion()]);
+  // Sin sesión (o con una cookie ya vencida) la tienda se ve igual; solo cambia el menú de la persona y el pie.
+  const conSesion = sesion.estado !== "sin_sesion";
   const datos = datosDeCabecera(prendas, sede, process.env.TIENDA_FOTOS_ORIGEN, conProbador);
   return (
     <>
       {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
       <EntradaDelDia />
-      <CabeceraConCuenta datos={datos} actual={actual} favoritos={favoritos} nombre={nombre} bolsa={<BotonBolsa />} />
+      <CabeceraConCuenta datos={datos} actual={actual} favoritos={favoritos} nombre={nombre} bolsa={<BotonBolsa />} visitante={!conSesion} />
       {/* Instalar CAYLA en el celular (ADR-0431): sale sola, una vez por visita y solo en el Inicio y el catálogo (lib/instalar.ts). */}
       <InstalarCayla />
       {/* Con una sola tienda en la web no hay nada que elegir. */}
       {franja ?? (filtro && filtro.length > 2 && <FiltroTienda opciones={filtro} />)}
       <main className="t-pagina t-pagina-catalogo">{children}</main>
-      <Pie anio={await anioActual()} conCuenta sede={sede} />
+      <Pie anio={await anioActual()} conCuenta={conSesion} sede={sede} />
     </>
   );
 }

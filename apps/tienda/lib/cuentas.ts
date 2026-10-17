@@ -2,16 +2,18 @@ import { problemaDocumento, TIPOS_DOCUMENTO_CLIENTA, type TipoDocumentoClienta }
 import { z } from "zod";
 import { codigoDelCorreoActual, type CodigoDelCorreo } from "./correo-confirmado";
 
-// Las reglas de la cuenta de la tienda online (ADR-0408, actividades 2 y 2b). Lo que la página de registro dice de cada campo
-// (falta, mal, repetido, listo), la sugerencia de «gmial.com», el cumpleaños como lo guarda el Club, las dos casillas («Soy
-// mayor de 18 años» y los avisos por WhatsApp), el código que confirma el correo, lo que el servidor vuelve a revisar antes de
-// crear nada, y cómo se leen las respuestas de la base. Lógica pura, sin red: la usan el formulario (navegador), las acciones
+// Las reglas de la cuenta de la tienda online (ADR-0408, actividades 2 y 2b; ADR-0438: la cuenta simple y el Club al separar). Dos
+// formularios, cada uno con sus campos: CREAR LA CUENTA (correo con su código, nombre, contraseña y aceptar los términos) y UNIRSE AL
+// CLUB, que se pide al separar (documento, celular y las casillas de «Soy mayor de 18 años» y los avisos; el cumpleaños es opcional).
+// Aquí, lo que cada pantalla dice de cada campo (falta, mal, repetido, listo), la sugerencia de «gmial.com», el cumpleaños como lo
+// guarda el Club, el código que confirma el correo, lo que el servidor vuelve a revisar antes de crear nada, y cómo se leen las
+// respuestas de la base. Lógica pura, sin red: la usan el formulario (navegador), las acciones
 // (servidor) y sus pruebas. Sale de la maqueta aprobada (`docs/maquetas/tienda-online-2026-10`: `estadoRegistro`,
 // `ARREGLOS_CORREO`, `guiaRegistro`, `vEntrar`, `vOlvide`); el código y las casillas, de lo que Felipe decidió el 2026-10-14
 // (actividad 2b). Desde el 2026-10-15 el código no es un paso al final: «Obtener código» va al lado del correo y la caja del código
 // debajo, y «Crear mi cuenta» se prende recién con el correo confirmado (`lib/correo-confirmado.ts`).
 //
-// Quien decide de verdad es la base (`retail.tienda_registrar_cuenta`): esto solo evita mandar lo que la base rechazaría y dice
+// Quien decide de verdad es la base (`retail.tienda_registrar_cuenta_simple` y `retail.tienda_unirse_al_club`): esto solo evita mandar lo que la base rechazaría y dice
 // por qué, con las mismas palabras en la pantalla y en el servidor.
 
 /** La versión de la privacidad y los términos de la web que se acepta al crear la cuenta (`cuentas_web.textos_aceptados`). */
@@ -86,14 +88,24 @@ export const cumpleTexto = (dia: number, mes: number) => `${dia} de ${MESES[mes 
 
 export type Cumple = { d: string; m: string; a: string };
 
-export type Registro = {
+/** Crear la cuenta (ADR-0438): solo lo necesario. El documento, el celular y lo demás se piden después, al separar. */
+export type RegistroCuenta = {
   correo: string;
   clave: string;
-  /**
-   * DNI, carné de extranjería o pasaporte (Felipe 2026-10-15: la tienda acepta los tres, «como en las tiendas»). Con DNI el servidor
-   * trae el nombre del padrón y no se escribe: sin el padrón no hay cuenta. Con carné o pasaporte, el nombre se escribe tal cual está
-   * en el documento, en dos cajas (`nombres`, `apellidos`) que se guardan con los nombres primero.
-   */
+  /** Cómo la llama la tienda («María»): el saludo y la ficha mínima. Con el documento, el nombre del padrón lo reemplaza. */
+  nombre: string;
+  acepta: boolean;
+};
+
+export const REGISTRO_CUENTA_VACIO: RegistroCuenta = { correo: "", clave: "", nombre: "", acepta: false };
+
+/**
+ * Unirse al Club, al separar por primera vez (ADR-0438). DNI, carné de extranjería o pasaporte (Felipe 2026-10-15: la tienda acepta los
+ * tres, «como en las tiendas»). Con DNI el servidor trae el nombre del padrón y no se escribe: sin el padrón no hay Club. Con carné o
+ * pasaporte, el nombre se escribe tal cual está en el documento, en dos cajas (`nombres`, `apellidos`) que se guardan con los nombres
+ * primero. El cumpleaños es opcional (todo vacío, o día y mes con año opcional).
+ */
+export type RegistroClub = {
   documentoTipo: TipoDocumentoClienta;
   documento: string;
   /** Solo con carné o pasaporte. */
@@ -108,9 +120,7 @@ export type Registro = {
   avisos: boolean;
 };
 
-export const REGISTRO_VACIO: Registro = {
-  correo: "",
-  clave: "",
+export const REGISTRO_CLUB_VACIO: RegistroClub = {
   documentoTipo: "dni",
   documento: "",
   nombres: "",
@@ -146,25 +156,32 @@ export type ConsultaDocumento =
   | { estado: "archivada" };
 
 /**
- * Lo que la persona tiene que completar (los avisos por WhatsApp son opcionales: nunca «faltan»). El nombre no: sale del DNI. El
- * código va justo después del correo (Felipe 2026-10-15): se confirma ahí mismo, antes de lo demás.
+ * Lo que la persona tiene que completar al crear la cuenta. El código va justo después del correo (Felipe 2026-10-15): se confirma ahí
+ * mismo, antes de lo demás.
  */
-export type CampoRegistro = "correo" | "codigo" | "clave" | "documento" | "nombres" | "apellidos" | "cel" | "cumple" | "mayor" | "acepta";
-/** A dónde lleva un problema: un campo o la casilla opcional de los avisos. */
-export type CampoProblema = CampoRegistro | "avisos";
+export type CampoCuenta = "correo" | "codigo" | "nombre" | "clave" | "acepta";
+/** Lo que tiene que completar al unirse al Club: los avisos y el cumpleaños son opcionales, nunca «faltan». */
+export type CampoClub = "documento" | "nombres" | "apellidos" | "cel" | "mayor" | "acepta";
+/** A dónde lleva un problema: un campo o una casilla opcional. */
+export type CampoProblema = CampoCuenta | CampoClub | "cumple" | "avisos";
 export type EstadoCampo = "falta" | "mal" | "repetido" | "buscando" | "ok";
 
-/** El orden de la página y cómo se nombra cada campo en «Falta: …». */
-export const CAMPOS_REGISTRO: readonly (readonly [CampoRegistro, string])[] = [
+/** El orden de la página de crear la cuenta y cómo se nombra cada campo en «Falta: …». */
+export const CAMPOS_CUENTA: readonly (readonly [CampoCuenta, string])[] = [
   ["correo", "tu correo"],
   ["codigo", "confirmar tu correo"],
+  ["nombre", "tu nombre"],
   ["clave", "tu contraseña"],
+  ["acepta", "aceptar los términos"],
+];
+
+/** El orden de la página de unirse al Club. */
+export const CAMPOS_CLUB: readonly (readonly [CampoClub, string])[] = [
   ["documento", "tu documento"],
   // Solo con carné o pasaporte (con DNI el nombre sale del padrón y estos dos quedan listos solos).
   ["nombres", "tus nombres"],
   ["apellidos", "tus apellidos"],
   ["cel", "tu celular"],
-  ["cumple", "tu cumpleaños"],
   ["mayor", "confirmar que eres mayor de 18"],
   ["acepta", "aceptar los términos"],
 ];
@@ -200,6 +217,16 @@ export function estadoCumple(c: Cumple, hoy: Dia): { estado: EstadoCampo; motivo
   if (!fechaOk) return { estado: "mal", motivo: "fecha" };
   if (a !== null && !cumplio18(a, m, d, hoy)) return { estado: "mal", motivo: "menor" };
   return { estado: "ok" };
+}
+
+/**
+ * El cumpleaños al unirse al Club es OPCIONAL (Felipe 2026-10-17: pedir lo mínimo): vacío no falta; con algo escrito, las mismas
+ * reglas de siempre. `vacio`: no escribió nada (la guía lo marca «Opcional», no «Listo»).
+ */
+export function estadoCumpleOpcional(c: Cumple, hoy: Dia): { estado: EstadoCampo; vacio: boolean; motivo?: "fecha" | "menor" } {
+  if (!c.d && !c.m && !c.a) return { estado: "ok", vacio: true };
+  const e = estadoCumple(c, hoy);
+  return { estado: e.estado === "falta" ? "mal" : e.estado, vacio: false, motivo: e.estado === "falta" ? "fecha" : e.motivo };
 }
 
 const esFechaReal = (a: number, m: number, d: number) => {
@@ -265,7 +292,7 @@ export function estadoParteNombre(tipo: TipoDocumentoClienta, texto: string): Es
 }
 
 /** El nombre escrito que se guarda: los nombres primero y después los apellidos, como el del padrón («María Pérez García»). */
-export const nombreEscrito = (r: Pick<Registro, "nombres" | "apellidos">) => `${r.nombres} ${r.apellidos}`.replace(/\s+/g, " ").trim();
+export const nombreEscrito = (r: Pick<RegistroClub, "nombres" | "apellidos">) => `${r.nombres} ${r.apellidos}`.replace(/\s+/g, " ").trim();
 
 /** Lo que dice el DNI cuando el padrón no dio el nombre: por qué, y que sin él no hay cuenta. Va con «Volver a intentar». */
 export function mensajeSinNombre(motivo: "no_encontrado" | "sin_padron" | "limite"): string {
@@ -282,32 +309,52 @@ export function estadoCodigo(correo: string, codigo: CodigoDelCorreo): EstadoCam
   return actual.estado === "enviado" && actual.necesitaNuevo ? "mal" : "falta";
 }
 
-export type EstadoRegistro = Record<CampoRegistro, EstadoCampo> & { motivoCumple?: "fecha" | "menor" };
+/** El nombre de quien crea la cuenta: algo con qué saludarla. Sin tope raro: la base acepta hasta 120 letras. */
+export function estadoNombre(nombre: string): EstadoCampo {
+  const n = nombre.replace(/\s+/g, " ").trim();
+  if (n.length > MAX_NOMBRE_CUENTA) return "mal";
+  return n.length >= 2 ? "ok" : "falta";
+}
+export const MAX_NOMBRE_CUENTA = 120;
 
-export function estadoRegistro(
-  r: Registro,
-  consultas: { correo: ConsultaCorreo; documento: ConsultaDocumento; codigo: CodigoDelCorreo },
-  hoy: Dia,
-): EstadoRegistro {
-  const cumple = estadoCumple(r.cumple, hoy);
+export type EstadoCuenta = Record<CampoCuenta, EstadoCampo>;
+
+export function estadoCuenta(r: RegistroCuenta, consultas: { correo: ConsultaCorreo; codigo: CodigoDelCorreo }): EstadoCuenta {
   return {
     correo: estadoCorreo(r.correo, consultas.correo),
     codigo: estadoCodigo(r.correo, consultas.codigo),
+    nombre: estadoNombre(r.nombre),
     clave: estadoClave(r.clave),
-    documento: estadoDocumento(r.documentoTipo, r.documento, consultas.documento),
-    nombres: estadoParteNombre(r.documentoTipo, r.nombres),
-    apellidos: estadoParteNombre(r.documentoTipo, r.apellidos),
-    cel: estadoCelular(r.celular),
-    cumple: cumple.estado,
-    motivoCumple: cumple.motivo,
-    mayor: r.mayor ? "ok" : "falta",
     acepta: r.acepta ? "ok" : "falta",
   };
 }
 
-/** Lo que falta, en el orden de la página, con su nombre para «Falta: …». */
-export function faltanRegistro(estado: EstadoRegistro): (readonly [CampoRegistro, string])[] {
-  return CAMPOS_REGISTRO.filter(([campo]) => estado[campo] !== "ok");
+/** Lo que falta al crear la cuenta, en el orden de la página, con su nombre para «Falta: …». */
+export function faltanCuenta(estado: EstadoCuenta): (readonly [CampoCuenta, string])[] {
+  return CAMPOS_CUENTA.filter(([campo]) => estado[campo] !== "ok");
+}
+
+export type EstadoClub = Record<CampoClub, EstadoCampo> & { cumple: EstadoCampo; cumpleVacio: boolean; motivoCumple?: "fecha" | "menor" };
+
+export function estadoClub(r: RegistroClub, consultas: { documento: ConsultaDocumento }, hoy: Dia): EstadoClub {
+  const cumple = estadoCumpleOpcional(r.cumple, hoy);
+  return {
+    documento: estadoDocumento(r.documentoTipo, r.documento, consultas.documento),
+    nombres: estadoParteNombre(r.documentoTipo, r.nombres),
+    apellidos: estadoParteNombre(r.documentoTipo, r.apellidos),
+    cel: estadoCelular(r.celular),
+    mayor: r.mayor ? "ok" : "falta",
+    acepta: r.acepta ? "ok" : "falta",
+    cumple: cumple.estado,
+    cumpleVacio: cumple.vacio,
+    motivoCumple: cumple.motivo,
+  };
+}
+
+/** Lo que falta para unirse al Club, en el orden de la página. El cumpleaños no cuenta (opcional), salvo que lo escrito esté mal. */
+export function faltanClub(estado: EstadoClub): (readonly [CampoClub | "cumple", string])[] {
+  const faltan: (readonly [CampoClub | "cumple", string])[] = CAMPOS_CLUB.filter(([campo]) => estado[campo] !== "ok");
+  return estado.cumple === "mal" ? [...faltan.slice(0, 4), ["cumple", "tu cumpleaños"], ...faltan.slice(4)] : faltan;
 }
 
 /** Cuántos «Falta» se nombran en el pie del registro antes de decir «y N más». */
@@ -330,9 +377,13 @@ export type MarcaCampo = "hecho" | "error" | "sigue" | "falta";
  * está listo, no se enciende otro hasta que salga de él (la regla de tacto de la guía de foco del ERP, ADR-0284). Sin foco,
  * el primero que falta.
  */
-export function campoQueSigue(estado: EstadoRegistro, enFoco: CampoRegistro | null): CampoRegistro | null {
+export function campoQueSigue<C extends string>(
+  faltan: readonly (readonly [C, string])[],
+  estado: Partial<Record<C, EstadoCampo>>,
+  enFoco: C | null,
+): C | null {
   if (enFoco) return estado[enFoco] === "ok" ? null : enFoco;
-  return faltanRegistro(estado)[0]?.[0] ?? null;
+  return faltan[0]?.[0] ?? null;
 }
 
 export function marcaDe(estado: EstadoCampo, sigue: boolean): MarcaCampo {
@@ -374,12 +425,16 @@ export const MENSAJES = {
   dniLimite: "Hiciste muchas búsquedas seguidas. Espera un rato y vuelve a intentar.",
   celAyuda: "Por aquí te escribe la tienda por tus pedidos.",
   celMal: "El celular empieza en 9.",
-  cumpleAyuda: "Día y mes; el año es opcional. Es para tu descuento de cumpleaños.",
+  cumpleAyuda: "Opcional. Con tu cumpleaños te llega tu descuento: día y mes; el año es opcional.",
   cumpleMal: "Revisa el día, el mes (del 1 al 12) y el año.",
   cumpleMenor: "El Club CAYLA es para mayores de 18 años.",
   mayor: "Soy mayor de 18 años.",
-  mayorFalta: "Para crear tu cuenta, confirma que eres mayor de 18 años.",
-  aceptaFalta: "Para crear tu cuenta, acepta la política de privacidad y los términos del club.",
+  mayorFalta: "Para unirte al Club, confirma que eres mayor de 18 años.",
+  aceptaFalta: "Para crear tu cuenta, acepta la política de privacidad y los términos.",
+  clubAceptaFalta: "Para unirte al Club, acepta la política de privacidad y los términos del club.",
+  nombreAyuda: "Cómo te llamamos. Con tu nombre alcanza.",
+  nombreFalta: "Escribe tu nombre.",
+  clubNoDisponible: "No pudimos completar tus datos ahora. Intenta de nuevo en unos minutos.",
   avisosTitulo: "Avisos del Club por WhatsApp",
   avisosAyuda: "Te llegan al celular de arriba.",
   avisosCambio: "El texto de los avisos cambió. Léelo y vuelve a marcarlo si quieres recibirlos.",
@@ -405,6 +460,11 @@ export const MENSAJES = {
   entrarMal: "El correo o la contraseña no coinciden. Revísalos o recupera tu contraseña.",
   entrarLimite: "Hiciste muchos intentos seguidos. Espera unos minutos y vuelve a intentarlo.",
   entrarNoDisponible: "No pudimos entrar ahora. Intenta de nuevo en unos minutos.",
+  // Entrar con Google (ADR-0438): lo que dice «Entrar» cuando Google vuelve con un problema (`?google=`).
+  googleCancelado: "No pudimos entrar con Google. Vuelve a intentarlo, o entra con tu correo.",
+  googleNoDisponible: "No pudimos entrar con Google ahora. Intenta de nuevo en unos minutos, o entra con tu correo.",
+  googleCorreoRepetido: "Ya hay una cuenta con el correo de tu Google. Entra con tu correo y tu contraseña.",
+  googleCorreoDeOtraPersona: "El correo de tu Google ya está registrado en CAYLA con otros datos. Usa otro correo o, si es tuyo, acércate a una tienda CAYLA y lo revisamos.",
   // «Entrar» ya no espera con el botón apagado: al tocarlo dice qué falta, bajo su caja (lib/entrada.ts, `problemaAlEntrar`).
   entrarSinCorreo: "Escribe el correo con el que creaste tu cuenta.",
   entrarSinClave: "Escribe tu contraseña.",
@@ -467,10 +527,26 @@ export const mensajeCodigoEsperar = (segundos: number) => `Te mandamos uno hace 
 
 /* ------------------------------------------------------------------ Lo que el servidor vuelve a revisar */
 
-/** Lo que manda el formulario al crear la cuenta. El servidor no confía en nada de esto: lo revisa todo. */
-export const esquemaRegistro = z.object({
+/** Lo que manda el formulario de crear la cuenta. El servidor no confía en nada de esto: lo revisa todo. */
+export const esquemaCuenta = z.object({
   correo: z.string().max(400),
   clave: z.string().max(400),
+  nombre: z.string().max(400),
+  acepta: z.boolean(),
+});
+
+/**
+ * «Crear mi cuenta»: el registro. El código NO viaja aquí: se confirmó antes, bajo el correo, y lo que el servidor exige es la prueba
+ * firmada de este aparato. `volver`: la página que estaba viendo (la bolsa, una prenda); el servidor la revisa con `rutaParaVolver`
+ * (lib/entrada.ts).
+ */
+export const esquemaCrearCuenta = z.object({
+  registro: esquemaCuenta,
+  volver: z.string().max(300).nullable().optional(),
+});
+
+/** Lo que manda el formulario de unirse al Club. */
+export const esquemaClub = z.object({
   documentoTipo: z.enum(["dni", "carne_extranjeria", "pasaporte"]),
   documento: z.string().max(40),
   nombres: z.string().max(400),
@@ -482,23 +558,26 @@ export const esquemaRegistro = z.object({
   avisos: z.boolean(),
 });
 
-/**
- * «Crear mi cuenta»: el registro y la versión de la casilla de los avisos que la persona leyó (null si no se le mostró). El código
- * NO viaja aquí: se confirmó antes, bajo el correo, y lo que el servidor exige es la prueba firmada de este aparato. `volver`: la
- * página con cuenta que quería ver (la prenda que le mandaron); el servidor la revisa con `rutaParaVolver` (lib/entrada.ts).
- */
-export const esquemaCrearCuenta = z.object({
-  registro: esquemaRegistro,
+/** «Unirme al Club»: los datos y la versión de la casilla de los avisos que la persona leyó (null si no se le mostró). */
+export const esquemaUnirseAlClub = z.object({
+  registro: esquemaClub,
   casilla: z.number().int().positive().nullable(),
   volver: z.string().max(300).nullable().optional(),
 });
 
 export type ProblemaRegistro = { campo: CampoProblema | null; mensaje: string };
 
-/** La misma regla de la pantalla, para el servidor: el primer problema, o null si se puede seguir. */
-export function problemaRegistro(r: Registro, hoy: Dia): ProblemaRegistro | null {
+/** La misma regla de la pantalla de crear la cuenta, para el servidor: el primer problema, o null si se puede seguir. */
+export function problemaCuenta(r: RegistroCuenta): ProblemaRegistro | null {
   if (!correoValido(r.correo)) return { campo: "correo", mensaje: MENSAJES.correoMal };
+  if (estadoNombre(r.nombre) !== "ok") return { campo: "nombre", mensaje: MENSAJES.nombreFalta };
   if (estadoClave(r.clave) !== "ok") return { campo: "clave", mensaje: r.clave.length > CLAVE_MAXIMA ? MENSAJES.claveLarga : MENSAJES.claveAyuda };
+  if (!r.acepta) return { campo: "acepta", mensaje: MENSAJES.aceptaFalta };
+  return null;
+}
+
+/** La misma regla de la pantalla de unirse al Club, para el servidor. */
+export function problemaClub(r: RegistroClub, hoy: Dia): ProblemaRegistro | null {
   if (!documentoCompleto(r.documentoTipo, r.documento)) {
     return { campo: "documento", mensaje: problemaDocumento(r.documentoTipo, r.documento) ?? `Escribe tu ${nombreDelDocumento(r.documentoTipo)}.` };
   }
@@ -507,17 +586,39 @@ export function problemaRegistro(r: Registro, hoy: Dia): ProblemaRegistro | null
     if (e !== "ok") return { campo, mensaje: e === "mal" ? MENSAJES.nombreConNumeros : `Escribe tus ${campo}, tal cual están en tu documento.` };
   }
   if (estadoCelular(r.celular) !== "ok") return { campo: "cel", mensaje: "El celular tiene 9 dígitos y empieza en 9." };
-  const cumple = estadoCumple(r.cumple, hoy);
+  const cumple = estadoCumpleOpcional(r.cumple, hoy);
   if (cumple.estado !== "ok") return { campo: "cumple", mensaje: cumple.motivo === "menor" ? MENSAJES.cumpleMenor : MENSAJES.cumpleMal };
   if (!r.mayor) return { campo: "mayor", mensaje: MENSAJES.mayorFalta };
-  if (!r.acepta) return { campo: "acepta", mensaje: MENSAJES.aceptaFalta };
+  if (!r.acepta) return { campo: "acepta", mensaje: MENSAJES.clubAceptaFalta };
   return null;
 }
 
 /* ------------------------------------------------------------------ Lo que contesta la base */
 
-const CAMPO_DE_LA_BASE: Record<string, CampoRegistro> = {
-  correo: "correo",
+/** El rechazo de `tienda_registrar_cuenta_simple` (su hint y su detail) en palabras para la persona, con el campo al que lleva. */
+export function errorDeCuenta(hint: string | null | undefined, detalle: string | null | undefined): ProblemaRegistro {
+  switch (hint) {
+    case "cuenta_correo_repetido":
+      return { campo: "correo", mensaje: MENSAJES.correoRepetido };
+    // El correo de contacto de otra ficha (lo dice antes `tienda_revisar_registro_simple`; esto es la red si otra persona lo tomó
+    // entre el código y «Crear mi cuenta»), o el disparador de «un correo, una persona» (`correo_repetido`).
+    case "cuenta_correo_de_otra_persona":
+    case "correo_repetido":
+      return { campo: "correo", mensaje: MENSAJES.correoDeOtraPersona };
+    case "cuenta_sin_codigo":
+      return { campo: "codigo", mensaje: MENSAJES.codigoSinPedir };
+    case "cuenta_datos_invalidos": {
+      if (detalle === "correo") return { campo: "correo", mensaje: MENSAJES.correoMal };
+      if (detalle === "nombre") return { campo: "nombre", mensaje: MENSAJES.nombreFalta };
+      if (detalle === "acepta") return { campo: "acepta", mensaje: MENSAJES.aceptaFalta };
+      return { campo: null, mensaje: MENSAJES.noDisponible };
+    }
+    default:
+      return { campo: null, mensaje: MENSAJES.noDisponible };
+  }
+}
+
+const CAMPO_DE_LA_BASE: Record<string, CampoProblema> = {
   // `dni` es el documento de la cuenta, sea cual sea su tipo (20261015161000).
   dni: "documento",
   // Con DNI el nombre sale del padrón (no hay caja de nombre): lo que diga la base del nombre se dice en el documento.
@@ -529,30 +630,20 @@ const CAMPO_DE_LA_BASE: Record<string, CampoRegistro> = {
 };
 
 /**
- * El rechazo de `tienda_registrar_cuenta` (su hint y su detail) en palabras para la persona, con el campo al que lleva. `tipo`: el
+ * El rechazo de `tienda_unirse_al_club` (su hint y su detail) en palabras para la persona, con el campo al que lleva. `tipo`: el
  * documento elegido (con carné o pasaporte, un problema del nombre va a sus cajas).
  */
-export function errorDeRegistro(hint: string | null | undefined, detalle: string | null | undefined, tipo: TipoDocumentoClienta = "dni"): ProblemaRegistro {
+export function errorDeClub(hint: string | null | undefined, detalle: string | null | undefined, tipo: TipoDocumentoClienta = "dni"): ProblemaRegistro {
   if (tipo !== "dni" && (hint === "nombre_con_numeros" || (hint === "cuenta_datos_invalidos" && detalle === "nombre"))) {
     return { campo: "nombres", mensaje: MENSAJES.nombreConNumeros };
   }
   switch (hint) {
-    case "cuenta_correo_repetido":
-      return { campo: "correo", mensaje: MENSAJES.correoRepetido };
-    // El correo de otra ficha o de la cuenta web de otra ficha (el disparador `fn_correo_de_una_persona`, 20261015054000): lo dice
-    // antes `tienda_revisar_registro`; esto es la red si otra persona lo tomó entre el código y «Crear mi cuenta».
-    case "correo_repetido":
-      return { campo: "correo", mensaje: MENSAJES.correoDeOtraPersona };
     case "cuenta_dni_repetido":
       return { campo: "documento", mensaje: documentoRepetido(tipo) };
     case "cuenta_archivada":
       return { campo: "documento", mensaje: MENSAJES.dniArchivada };
-    // `cuenta_ficha_sin_tu_correo` (la regla D7) ya no existe desde 20261016154000: si llegara en los minutos en que la tienda nueva
-    // ya está publicada y la migración todavía no, cae en «No pudimos crear tu cuenta ahora», que es cierto (en un rato sí se puede).
     case "cuenta_menor":
       return { campo: "cumple", mensaje: MENSAJES.cumpleMenor };
-    case "cuenta_sin_codigo":
-      return { campo: "codigo", mensaje: MENSAJES.codigoSinPedir };
     case "cuenta_texto_cambio":
     case "cuenta_sin_texto":
       return { campo: "avisos", mensaje: MENSAJES.avisosCambio };
@@ -563,18 +654,17 @@ export function errorDeRegistro(hint: string | null | undefined, detalle: string
       // Un problema con el nombre (falta el del padrón) se dice en el DNI, con su propio mensaje.
       if (detalle === "nombre") return { campo: "documento", mensaje: MENSAJES.dniSinPadron };
       const campo = CAMPO_DE_LA_BASE[detalle ?? ""] ?? null;
-      const mensajes: Partial<Record<CampoRegistro, string>> = {
-        correo: MENSAJES.correoMal,
+      const mensajes: Partial<Record<CampoProblema, string>> = {
         documento: tipo === "dni" ? "El DNI tiene 8 dígitos." : `El ${nombreDelDocumento(tipo)} tiene de 6 a 12 letras o números, sin guiones.`,
         cel: "El celular tiene 9 dígitos y empieza en 9.",
         cumple: MENSAJES.cumpleMal,
         mayor: MENSAJES.mayorFalta,
-        acepta: MENSAJES.aceptaFalta,
+        acepta: MENSAJES.clubAceptaFalta,
       };
-      return { campo, mensaje: (campo && mensajes[campo]) || MENSAJES.noDisponible };
+      return { campo, mensaje: (campo && mensajes[campo]) || MENSAJES.clubNoDisponible };
     }
     default:
-      return { campo: null, mensaje: MENSAJES.noDisponible };
+      return { campo: null, mensaje: MENSAJES.clubNoDisponible };
   }
 }
 
@@ -647,16 +737,16 @@ export function leerCasillaWhatsapp(dato: unknown): CasillaWhatsapp | null {
   return { version: r.data.version, texto };
 }
 
-/** Cómo quedaron los avisos al crear la cuenta (`avisos_whatsapp` de `tienda_registrar_cuenta`). */
-export type AvisosAlCrear = "no" | "activados" | "ya_estaban" | "celular_distinto";
+/** Cómo quedaron los avisos al unirse al Club (`avisos_whatsapp` de `tienda_unirse_al_club`). */
+export type AvisosAlUnirse = "no" | "activados" | "ya_estaban" | "celular_distinto";
 
 /**
- * El aviso con el que llega a «Mi cuenta» (`?aviso=`), y si los avisos quedaron sin activar. «Ya eras del Club» solo para quien de
- * verdad ya era miembro (se unió en el cartel antes de que existiera la página); quien solo tenía una ficha de caja (el DNI de una
- * boleta) entra al Club recién ahora, y recibe la misma bienvenida que una persona nueva (Felipe 2026-10-16: el Club empieza con la
- * cuenta, y nadie tiene por qué saber que tenía una ficha).
+ * El aviso con el que vuelve (`?aviso=`), y si los avisos quedaron sin activar. «Ya eras del Club» solo para quien de verdad ya era
+ * miembro (se unió en el cartel antes de que existiera la página); quien solo tenía una ficha de caja (el DNI de una boleta) entra al
+ * Club recién ahora y recibe la misma bienvenida que una persona nueva (Felipe 2026-10-16: nadie tiene por qué saber que tenía una
+ * ficha).
  */
-export function avisoAlCrear(seUnioASuFicha: boolean, eraDelClub: boolean, avisos: AvisosAlCrear): string {
+export function avisoAlUnirse(seUnioASuFicha: boolean, eraDelClub: boolean, avisos: AvisosAlUnirse): string {
   if (avisos === "celular_distinto") return "avisos-sin-activar";
   return seUnioASuFicha && eraDelClub ? "unida" : "bienvenida";
 }
@@ -677,6 +767,8 @@ export type MiCuenta = {
   nombreCorto: string;
   correo: string;
   codigoClub: string | null;
+  /** ¿Ya es del Club? Una cuenta simple (ADR-0438) todavía no: se une al separar, cuando da su documento y su celular. */
+  esDelClub: boolean;
   /** El año en que se unió al club, para la tarjeta. */
   clubDesde: number | null;
   /** «14 de octubre», o null si la ficha no lo tiene. */
@@ -694,6 +786,7 @@ export function leerMiCuenta(dato: unknown): MiCuenta | null {
     nombreCorto: c.nombre_corto?.trim() || c.nombre.split(" ")[0],
     correo: c.correo,
     codigoClub: c.codigo_club,
+    esDelClub: c.club_desde !== null,
     clubDesde: c.club_desde ? Number(c.club_desde.slice(0, 4)) : null,
     cumple: c.cumple_dia && c.cumple_mes ? cumpleTexto(c.cumple_dia, c.cumple_mes) : null,
     activa: c.activa,

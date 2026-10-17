@@ -69,7 +69,7 @@ describe("lo que pide «Entrar» (el botón se toca siempre y dice qué falta)",
 });
 
 describe("a dónde vuelve quien entra (`?volver=`)", () => {
-  it("vuelve a la página con cuenta que quería ver: una prenda, su pedido, su bolsa, con lo que traía su dirección", () => {
+  it("vuelve a la página que estaba viendo: una prenda, su pedido, su bolsa, con lo que traía su dirección", () => {
     expect(rutaParaVolver("/catalogo/6e4cc783-b9d3-4aae-b8ea-c510cd692fd0")).toBe("/catalogo/6e4cc783-b9d3-4aae-b8ea-c510cd692fd0");
     expect(rutaParaVolver("/catalogo?sede=trujillo&lista=ofertas")).toBe("/catalogo?sede=trujillo&lista=ofertas");
     expect(rutaParaVolver("/cuenta/pedidos/W-0141")).toBe("/cuenta/pedidos/W-0141");
@@ -85,8 +85,8 @@ describe("a dónde vuelve quien entra (`?volver=`)", () => {
     }
   });
 
-  it("solo una página que pide cuenta: ni «Entrar» ni «Crear cuenta» (daría vueltas), ni la portada, ni algo de la tienda que no la pide", () => {
-    for (const ruta of ["/entrar", "/crear-cuenta", "/olvide-mi-contrasena", "/", "/privacidad", "/api/version", "/cuenta/../entrar"]) {
+  it("nunca las páginas de la cuenta misma (daría vueltas): «Entrar», «Crear cuenta», recuperar el acceso ni las rutas internas", () => {
+    for (const ruta of ["/entrar", "/crear-cuenta", "/olvide-mi-contrasena", "/nueva-contrasena", "/restablecer-acceso", "/api/version", "/cuenta/../entrar"]) {
       expect(rutaParaVolver(ruta)).toBeNull();
     }
   });

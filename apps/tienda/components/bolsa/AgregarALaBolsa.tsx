@@ -1,7 +1,6 @@
 "use client";
 
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { agregarALaBolsa } from "@/app/acciones/bolsa";
 import { useAvisoBreve } from "../club/useAvisoBreve";
 import { Icono } from "../Icono";
@@ -20,16 +19,11 @@ import "@/app/estilos/bolsa.css";
 type ResultadoAgregar = { bien: boolean; texto: string };
 
 function useAgregar(sedeId: string | null, alResponder?: (r: ResultadoAgregar) => void) {
-  const router = useRouter();
   const [pendiente, iniciar] = useTransition();
   const { aviso, mostrar } = useAvisoBreve();
   const agregar = (varianteId: string) =>
     iniciar(async () => {
       const r = await agregarALaBolsa(varianteId, sedeId);
-      if (r.estado === "sin_sesion") {
-        router.push("/entrar");
-        return;
-      }
       const resultado = { bien: r.estado === "agregada", texto: r.mensaje };
       if (alResponder) alResponder(resultado);
       else mostrar(resultado.texto, resultado.bien);

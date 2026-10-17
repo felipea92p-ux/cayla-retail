@@ -9,9 +9,11 @@ import { INICIO_CON_CUENTA } from "@/lib/sesion";
 import { clienteNavegador } from "@/lib/auth-navegador";
 import { MENSAJES, normalizarCorreo } from "@/lib/cuentas";
 import { hrefConVolver, PARAMETRO_VOLVER, problemaAlEntrar, rutaParaVolver, type ProblemaAlEntrar } from "@/lib/entrada";
+import { BotonGoogle } from "./BotonGoogle";
 import { CajaClave } from "./CajaClave";
 
-// «Entra para ver el catálogo» (maqueta, `vEntrar`). Entra desde el navegador, contra el proyecto de inicio de sesión de los
+// «Entra a tu cuenta» (maqueta, `vEntrar`; el catálogo se ve sin entrar desde el 2026-10-17, ADR-0438: aquí entra quien quiere separar o
+// guardar). También con Google (`BotonGoogle`, solo cuando el proveedor está encendido). Entra desde el navegador, contra el proyecto de inicio de sesión de los
 // clientes: así ese proyecto ve la ip de cada persona y le pone sus topes a cada una. Con la sesión abierta, el servidor anota la
 // entrada (entrar a la web cuenta como actividad del Club, `anotarEntrada`) y va al Inicio, o a la página que la persona quería ver
 // (`?volver=`: la prenda que le mandaron, su pedido). Si su cuenta se cerró (su ficha se anonimizó: 3 años sin comprar ni entrar, o
@@ -22,6 +24,14 @@ import { CajaClave } from "./CajaClave";
 // formulario, no solo lo que la página alcanzó a ver) y, si falta algo, se dice bajo su caja y el cursor va ahí.
 
 const ID = { correo: "entrar-correo", clave: "entrar-clave" } as const;
+
+/** Lo que dice «Entrar» según el `?google=` con que vuelve la ruta de Google. Un motivo que no está aquí dice lo más general. */
+const MENSAJES_GOOGLE: Record<string, string> = {
+  cancelado: MENSAJES.googleCancelado,
+  "no-disponible": MENSAJES.googleNoDisponible,
+  "correo-repetido": MENSAJES.googleCorreoRepetido,
+  "correo-de-otra-persona": MENSAJES.googleCorreoDeOtraPersona,
+};
 
 export function FormularioEntrar() {
   const router = useRouter();
@@ -40,6 +50,14 @@ export function FormularioEntrar() {
     const parametros = new URLSearchParams(window.location.search);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- el destino vive en la dirección, que solo existe en el navegador
     setVolver(rutaParaVolver(parametros.get(PARAMETRO_VOLVER)));
+    // Google volvió con un problema (`app/auth/google/route.ts`): se dice con palabras y se limpia de la dirección.
+    const google = parametros.get("google");
+    if (google) {
+      setError(MENSAJES_GOOGLE[google] ?? MENSAJES.googleNoDisponible);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("google");
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    }
     if (parametros.get("aviso") !== "cuenta-cerrada") return;
     setCerrada(true);
     const url = new URL(window.location.href);
@@ -116,9 +134,10 @@ export function FormularioEntrar() {
       <div>
         <span className="t-ceja">Tu cuenta</span>
         <h1 className="w-titulo">
-          Entra para ver <em>el catálogo.</em>
+          Entra a <em>tu cuenta.</em>
         </h1>
       </div>
+      <BotonGoogle volver={volver} />
       <div className="w-campo" data-estado={problema?.campo === "correo" ? "error" : undefined}>
         <label htmlFor={ID.correo}>Correo</label>
         <input

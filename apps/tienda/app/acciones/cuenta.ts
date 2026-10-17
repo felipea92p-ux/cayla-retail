@@ -1,6 +1,6 @@
 "use server";
 
-import { esTipoDocumentoClienta, type TipoDocumentoClienta } from "@cayla-retail/shared";
+import { esTipoDocumentoClienta } from "@cayla-retail/shared";
 import { isAuthApiError, isAuthRetryableFetchError, type SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -11,34 +11,27 @@ import {
   hayLlaveDeConfirmacion,
   usuarioConfirmadoDeEsteAparato,
 } from "@/lib/correo-confirmado-servidor";
-import { conAviso, COOKIE_ENTRADA, ENTRADA_DURA_S, hrefConVolver, marcaDeEntrada, rutaParaVolver } from "@/lib/entrada";
-import { anotarEntradaEnBase, usuarioBorradoEnBase } from "@/lib/entrada-servidor";
+import { conAviso, COOKIE_ENTRADA, hrefConVolver, rutaParaVolver } from "@/lib/entrada";
+import { anotarEntradaEnBase, marcarEntradaDeHoy, usuarioBorradoEnBase } from "@/lib/entrada-servidor";
 import {
-  avisoAlCrear,
   CODIGO_BLOQUEO_MIN,
   CODIGO_ESPERA_S,
-  celularNormalizado,
   codigoCompleto,
   codigoLimpio,
   correoValido,
   documentoCompleto,
-  documentoRepetido,
-  errorDeRegistro,
+  errorDeCuenta,
   esquemaCrearCuenta,
   estadoClave,
-  hoyLima,
   MENSAJES,
   mensajeCodigoBloqueado,
   mensajeCodigoEsperar,
   mensajeCodigoLimite,
   mensajeCodigoMalo,
-  mensajeSinNombre,
-  nombreEscrito,
   normalizarCorreo,
-  problemaRegistro,
+  problemaCuenta,
   TEXTOS_VERSION,
   type CampoProblema,
-  type CasillaWhatsapp,
   type ConsultaCorreo,
   type ConsultaDocumento,
 } from "@/lib/cuentas";
@@ -47,15 +40,14 @@ import {
   consultarCorreoEnBase,
   consultarDocumentoEnBase,
   intentoDeCodigoEnBase,
-  leerCasillaDeAvisos,
   leerMiCuentaEnBase,
-  registrarCuentaEnBase,
+  registrarCuentaSimpleEnBase,
   reservarEnvioEnBase,
-  revisarRegistroEnBase,
-  type DatosCuenta,
+  revisarRegistroSimpleEnBase,
+  type DatosCuentaSimple,
 } from "@/lib/cuentas-servidor";
 import { huellas } from "@/lib/intentos-servidor";
-import { anotarLecturaDelPadron, buscarNombre } from "@/lib/padron-servidor";
+import { buscarNombre } from "@/lib/padron-servidor";
 import { borrarCookiesDeSesion, clienteAdmin, clienteSesion, leerSesion } from "@/lib/sesion-servidor";
 import { borrarSiNoTieneCuenta, estaConfirmado, invitarCorreo, limpiarInvitados, ponerClave, verificarCodigo } from "@/lib/usuarios-servidor";
 
@@ -261,34 +253,32 @@ export async function confirmarCodigo(correoEscrito: unknown, codigoEscrito: unk
 
 /* ------------------------------------------------------------------ Crear la cuenta */
 
-/** Lo que dice «Crear mi cuenta» si no la crea (si la crea, lleva a «Mi cuenta»): el problema, en su campo. */
-export type RespuestaCrear = { campo: CampoProblema | null; mensaje: string; casilla?: CasillaWhatsapp | null };
+/** Lo que dice «Crear mi cuenta» si no la crea (si la crea, lleva a donde estaba): el problema, en su campo. */
+export type RespuestaCrear = { campo: CampoProblema | null; mensaje: string };
 
 const sinCrear = (campo: CampoProblema | null, mensaje: string): RespuestaCrear => ({ campo, mensaje });
 
 /**
- * «Crear mi cuenta», con el correo ya confirmado bajo el correo. El orden seguro (principio 9): (1) los datos, otra vez (nada de lo
- * que diga el navegador cuenta); (2) la prueba firmada de que ESTE aparato confirmó ESE correo con su código, y su usuario,
- * confirmado en el proyecto de clientes; (3) la base revisa el correo, el DNI y los topes (y cuenta el intento); (4) los avisos: el
- * texto que leyó sigue siendo el vigente; (5) el nombre del padrón, anotado en la base (sin él no hay ficha); (6) la contraseña que
- * eligió; (7) la cuenta en la base, todo o nada (exige el correo pendiente de ESE usuario con su código probado). Si algo dice que
- * no, la confirmación se queda: se arregla el dato y se vuelve a tocar «Crear mi cuenta», sin pedir otro código. (8) Entra y va a
- * «Mi cuenta».
+ * «Crear mi cuenta» (ADR-0438: solo correo, nombre y contraseña), con el correo ya confirmado bajo el correo. El orden seguro (principio
+ * 9): (1) los datos, otra vez (nada de lo que diga el navegador cuenta); (2) la prueba firmada de que ESTE aparato confirmó ESE correo
+ * con su código, y su usuario, confirmado en el proyecto de clientes; (3) la base revisa el correo y los topes (y cuenta el intento);
+ * (4) la contraseña que eligió; (5) la cuenta en la base, todo o nada (exige el correo pendiente de ESE usuario con su código probado).
+ * Si algo dice que no, la confirmación se queda: se arregla el dato y se vuelve a tocar «Crear mi cuenta», sin pedir otro código.
+ * (6) Entra y vuelve a donde estaba (la bolsa, una prenda) o va al Inicio. El documento y el celular se piden después, al separar.
  */
 export async function crearCuenta(entrada: unknown): Promise<RespuestaCrear> {
   const leido = esquemaCrearCuenta.safeParse(entrada);
   if (!leido.success) return sinCrear(null, MENSAJES.noDisponible);
-  const { registro: r, casilla } = leido.data;
-  // La página con cuenta que quería ver (la prenda que le mandaron): al terminar va ahí, no a «Mi cuenta». Solo una de esta tienda.
+  const { registro: r } = leido.data;
+  // La página que estaba viendo: al terminar vuelve ahí. Solo una de esta tienda.
   const volver = rutaParaVolver(leido.data.volver);
-  const problema = problemaRegistro(r, hoyLima());
+  const problema = problemaCuenta(r);
   if (problema) return problema;
 
   const admin = clienteAdmin();
   const sesion = await clienteSesion();
-  const documento = { tipo: r.documentoTipo, numero: r.documento };
-  const h = await huellas(documento);
-  if (!admin || !sesion || !h?.documento) {
+  const h = await huellas();
+  if (!admin || !sesion || !h) {
     console.error(JSON.stringify({ evento: "tienda_cuentas_sin_configurar", admin: !!admin, sesion: !!sesion, huellas: !!h }));
     return sinCrear(null, MENSAJES.noDisponible);
   }
@@ -306,108 +296,48 @@ export async function crearCuenta(entrada: unknown): Promise<RespuestaCrear> {
   }
 
   // 3. La base revisa (y cuenta el intento).
-  const revision = await revisarRegistroEnBase(correo, documento, celularNormalizado(r.celular), h.ip, h.documento);
+  const revision = await revisarRegistroSimpleEnBase(correo, h.ip);
   if (revision.estado !== "ok") {
     if (revision.estado === "limite") return sinCrear(null, MENSAJES.limite);
     if (revision.estado === "correo_repetido") return sinCrear("correo", MENSAJES.correoRepetido);
     // Un correo es de una sola persona: el de contacto de otra ficha no sirve para esta cuenta (sin decir de quién es).
     if (revision.estado === "correo_de_otra_persona") return sinCrear("correo", MENSAJES.correoDeOtraPersona);
-    if (revision.estado === "dni_repetido") return sinCrear("documento", documentoRepetido(r.documentoTipo));
-    if (revision.estado === "archivada") return sinCrear("documento", MENSAJES.dniArchivada);
-    if (revision.estado === "invalido") return errorDeRegistro("cuenta_datos_invalidos", revision.campo, r.documentoTipo);
+    if (revision.estado === "invalido") return sinCrear("correo", MENSAJES.correoMal);
     return sinCrear(null, MENSAJES.noDisponible);
   }
 
-  // 4. Los avisos citan el texto que leyó: si cambió, que lo vuelva a leer.
-  if (r.avisos) {
-    const vigente = await leerCasillaDeAvisos();
-    if (!vigente || vigente.version !== casilla) return { campo: "avisos", mensaje: MENSAJES.avisosCambio, casilla: vigente };
-  }
-
-  // 5. El nombre. Con DNI, el del padrón, anotado en la base: sin esa lectura la ficha no lo acepta. Con carné o pasaporte, el
-  //    escrito tal cual, con los nombres primero (la base vuelve a exigir que no lleve números).
-  const nombre = await nombreParaLaCuenta(r.documentoTipo, r.documento, nombreEscrito(r));
-  if (nombre.estado !== "ok") return sinCrear("documento", mensajeSinNombre(nombre.estado));
-
-  // 6. La contraseña.
+  // 4. La contraseña.
   if (!(await ponerClave(admin, usuarioWebId, r.clave))) return sinCrear(null, MENSAJES.noDisponible);
 
-  // 7. La cuenta en la base.
-  const datos: DatosCuenta = {
-    usuarioWebId,
-    correo,
-    documentoTipo: r.documentoTipo,
-    documento: r.documento,
-    nombre: nombre.nombre,
-    nombreDelPadron: r.documentoTipo === "dni",
-    celular: celularNormalizado(r.celular),
-    cumpleDia: Number(r.cumple.d),
-    cumpleMes: Number(r.cumple.m),
-    cumpleAnio: r.cumple.a ? Number(r.cumple.a) : null,
-    mayorDeEdad: r.mayor,
-    avisosWhatsapp: r.avisos,
-    casillaVersion: r.avisos ? casilla : null,
-    textos: TEXTOS_VERSION,
-  };
-  let registro = await registrarCuentaEnBase(datos);
+  // 5. La cuenta en la base.
+  const datos: DatosCuentaSimple = { usuarioWebId, correo, nombre: r.nombre.replace(/\s+/g, " ").trim(), textos: TEXTOS_VERSION, via: "correo" };
+  let registro = await registrarCuentaSimpleEnBase(datos);
   // Otro aparato pidió un código para este correo mientras esta persona llenaba lo demás: ese pedido dejó el pendiente sin su código
   // probado (no le llegó ningún código: el correo estaba confirmado aquí). Este aparato ya lo había confirmado (su prueba firmada y
   // su usuario confirmado): se vuelve a anotar el intento y se crea, una sola vez.
   if (!registro.ok && registro.hint === "cuenta_sin_codigo" && (await intentoDeCodigoEnBase(correo)).estado === "puede") {
-    registro = await registrarCuentaEnBase(datos);
+    registro = await registrarCuentaSimpleEnBase(datos);
   }
   // Un doble envío: la cuenta de este mismo usuario ya quedó creada con el primero. Se entra.
   const yaEstaba = !registro.ok && registro.hint === "cuenta_ya_existe";
   if (!registro.ok && !yaEstaba) {
-    const e = errorDeRegistro(registro.hint, registro.detalle, r.documentoTipo);
+    const e = errorDeCuenta(registro.hint, registro.detalle);
     if (e.campo === "codigo") {
       // Sin el pendiente de este usuario, su confirmación ya no sirve: el usuario se va (el correo queda libre) y se pide otro código.
       await borrarSiNoTieneCuenta(admin, usuarioWebId, { respetarRecientes: false });
       await borrarConfirmacion();
     }
-    if (e.campo === "avisos") return { ...e, casilla: await leerCasillaDeAvisos() };
     return e;
   }
-  const aviso = registro.ok ? avisoAlCrear(registro.seUnioASuFicha, registro.eraDelClub, registro.avisos) : "bienvenida";
   await borrarConfirmacion();
 
-  // 8. Entrar. Si el proyecto de clientes no contesta justo ahora, la cuenta igual quedó: que entre con su correo.
+  // 6. Entrar. Si el proyecto de clientes no contesta justo ahora, la cuenta igual quedó: que entre con su correo.
   const { error } = await sesion.auth.signInWithPassword({ email: correo, password: r.clave });
   if (error) redirect(conAviso(hrefConVolver("/entrar", volver), "cuenta-creada"));
   // Crear la cuenta también es entrar (la conservación del Club ya la cuenta por `creada_en`): se anota y se deja la marca del día,
-  // así el marco de «Mi cuenta» no vuelve a preguntar hoy.
+  // así el marco no vuelve a preguntar hoy.
   if ((await anotarEntradaEnBase(usuarioWebId)) === "anotada") await marcarEntradaDeHoy(usuarioWebId);
-  // A la prenda que quería ver, con la bienvenida al Club abajo. Salvo los avisos que no se activaron: esa nota vive en «Mi cuenta».
-  redirect(volver && aviso !== "avisos-sin-activar" ? conAviso(volver, aviso) : `/cuenta?aviso=${aviso}`);
-}
-
-/** La marca de «hoy ya se anotó la entrada» de este aparato (la misma que deja `anotarEntrada`). */
-async function marcarEntradaDeHoy(usuarioWebId: string): Promise<void> {
-  (await cookies()).set(COOKIE_ENTRADA, marcaDeEntrada(usuarioWebId), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: ENTRADA_DURA_S,
-  });
-}
-
-/**
- * El nombre que va a la cuenta. Con DNI, SOLO el del padrón, consultado aquí (lo que diga el navegador no cuenta; Felipe 2026-10-15:
- * sin la API no se registra), con los nombres primero; justo antes de crear la cuenta deja la lectura en la base
- * (`tienda_anotar_lectura_padron`), que es lo que la ficha exige para aceptar el nombre; si no se pudo anotar, se lee como que el
- * padrón no respondió (se vuelve a intentar). Con carné o pasaporte, el escrito (`problemaRegistro` ya lo revisó).
- */
-async function nombreParaLaCuenta(
-  tipo: TipoDocumentoClienta,
-  numero: string,
-  escrito: string,
-): Promise<{ estado: "ok"; nombre: string } | { estado: "no_encontrado" | "sin_padron" }> {
-  if (tipo !== "dni") return { estado: "ok", nombre: escrito };
-  const padron = await buscarNombre(numero);
-  if (padron.estado !== "encontrado") return { estado: padron.estado };
-  if (!(await anotarLecturaDelPadron(numero, padron.nombre))) return { estado: "sin_padron" };
-  return { estado: "ok", nombre: padron.nombre };
+  redirect(conAviso(volver ?? "/inicio", "cuenta-lista"));
 }
 
 /* ------------------------------------------------------------------ Salir y rehacer */

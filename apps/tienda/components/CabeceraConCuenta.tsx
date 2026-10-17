@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { salir } from "@/app/acciones/cuenta";
 import { buscarEn, resaltar } from "@/lib/buscador";
+import { hrefConVolver } from "@/lib/entrada";
 import type { DatosCabecera, FotoChica, MenuCabecera } from "@/lib/inicio";
 import { useGuardados } from "./club/Guardados";
 import { BotonCerrarSesion } from "./cuenta/BotonCerrarSesion";
@@ -15,6 +16,13 @@ import { Isotipo } from "./Isotipo";
 import "@/app/estilos/bolsa.css";
 
 export type SeccionActual = "inicio" | "nuevo" | "vendidos" | "ofertas" | "looks" | "probador" | "favoritos" | "cuenta" | null;
+
+/** «Entrar» / «Crear mi cuenta» desde donde se está: al terminar, la persona vuelve a esta misma página (con su tienda y su búsqueda). */
+function hrefDeEntrada(base: "/entrar" | "/crear-cuenta"): string {
+  if (typeof window === "undefined") return base;
+  const { pathname, search } = window.location;
+  return hrefConVolver(base, pathname + search);
+}
 
 /** «3 favoritos», «1 favorito»: lo que oye el lector en el corazón. */
 const etiquetaFavoritos = (n: number | null) => (n ? `Favoritos: ${n} ${n === 1 ? "guardado" : "guardados"}` : "Favoritos");
@@ -32,6 +40,7 @@ export function CabeceraConCuenta({
   favoritos = null,
   bolsa = null,
   nombre = null,
+  visitante = false,
 }: {
   datos: DatosCabecera;
   actual?: SeccionActual;
@@ -41,6 +50,8 @@ export function CabeceraConCuenta({
   bolsa?: React.ReactNode;
   /** El nombre corto de la cuenta («María»), para el saludo del menú de la persona; null si no se sabe (sale sin saludo). */
   nombre?: string | null;
+  /** Sin sesión (Felipe 2026-10-17: la tienda se mira sin cuenta): la persona ofrece «Entrar» y «Crear mi cuenta» en vez de «Mi perfil». */
+  visitante?: boolean;
 }) {
   const [hoja, setHoja] = useState<"menu" | "buscar" | null>(null);
   // El globo del corazón, al día: dentro del catálogo lo guardado se lleva en el navegador (`ProveedorGuardados`) y baja apenas se quita
@@ -119,13 +130,13 @@ export function CabeceraConCuenta({
             <Icono nombre="corazon" />
             {cuantosFavoritos ? <span className="t-globo">{cuantosFavoritos}</span> : null}
           </Link>
-          <MenuDeLaCuenta nombre={nombre} enCuenta={actual === "cuenta"} />
+          <MenuDeLaCuenta nombre={nombre} enCuenta={actual === "cuenta"} visitante={visitante} />
           {bolsa}
         </div>
       </header>
 
       {hoja && <div className="t-velo" aria-hidden="true" onClick={cerrar} />}
-      {hoja === "menu" && <HojaMenu datos={datos} favoritos={cuantosFavoritos} cerrar={cerrar} />}
+      {hoja === "menu" && <HojaMenu datos={datos} favoritos={cuantosFavoritos} cerrar={cerrar} visitante={visitante} />}
       {hoja === "buscar" && <HojaBuscar datos={datos} cerrar={cerrar} />}
     </>
   );
@@ -217,7 +228,7 @@ function FotoChicaDe({ foto, tamanos }: { foto: FotoChica; tamanos: string }) {
  * desplegable (el botón dice si está abierto y qué abre; se recorre con Tab), no un `role="menu"`: ese rol promete moverse con las
  * flechas, y con dos opciones no hace falta.
  */
-function MenuDeLaCuenta({ nombre, enCuenta }: { nombre: string | null; enCuenta: boolean }) {
+function MenuDeLaCuenta({ nombre, enCuenta, visitante }: { nombre: string | null; enCuenta: boolean; visitante: boolean }) {
   const [abierto, setAbierto] = useState(false);
   const caja = useRef<HTMLDivElement | null>(null);
   const boton = useRef<HTMLButtonElement | null>(null);
@@ -248,7 +259,7 @@ function MenuDeLaCuenta({ nombre, enCuenta }: { nombre: string | null; enCuenta:
         ref={boton}
         type="button"
         className="t-ico"
-        aria-label={nombre ? `Tu cuenta, ${nombre}` : "Tu cuenta"}
+        aria-label={visitante ? "Entrar o crear mi cuenta" : nombre ? `Tu cuenta, ${nombre}` : "Tu cuenta"}
         aria-expanded={abierto}
         aria-controls={abierto ? idMenu : undefined}
         onClick={() => setAbierto((a) => !a)}
@@ -257,18 +268,33 @@ function MenuDeLaCuenta({ nombre, enCuenta }: { nombre: string | null; enCuenta:
       </button>
       {abierto && (
         <div className="t-persona-menu" id={idMenu}>
-          {nombre && (
-            <p className="t-persona-hola">
-              Hola, <b>{nombre}</b>
-            </p>
+          {visitante ? (
+            <>
+              <Link className="t-persona-op" href={hrefDeEntrada("/entrar")} onClick={() => setAbierto(false)}>
+                <Icono nombre="persona" />
+                Entrar
+              </Link>
+              <Link className="t-persona-op" href={hrefDeEntrada("/crear-cuenta")} onClick={() => setAbierto(false)}>
+                <Icono nombre="persona" />
+                Crear mi cuenta
+              </Link>
+            </>
+          ) : (
+            <>
+              {nombre && (
+                <p className="t-persona-hola">
+                  Hola, <b>{nombre}</b>
+                </p>
+              )}
+              <Link className="t-persona-op" href="/cuenta" aria-current={enCuenta ? "page" : undefined} onClick={() => setAbierto(false)}>
+                <Icono nombre="persona" />
+                Mi perfil
+              </Link>
+              <form action={salir}>
+                <BotonCerrarSesion className="t-persona-op" conIcono />
+              </form>
+            </>
           )}
-          <Link className="t-persona-op" href="/cuenta" aria-current={enCuenta ? "page" : undefined} onClick={() => setAbierto(false)}>
-            <Icono nombre="persona" />
-            Mi perfil
-          </Link>
-          <form action={salir}>
-            <BotonCerrarSesion className="t-persona-op" conIcono />
-          </form>
         </div>
       )}
     </div>
@@ -277,7 +303,7 @@ function MenuDeLaCuenta({ nombre, enCuenta }: { nombre: string | null; enCuenta:
 
 /** El menú del celular (maqueta, hoja «menu»): lo grande arriba (con «Arma tu look» y los favoritos, que en el celular no van en la
  *  fila de arriba), las categorías en dos columnas bajo su menú («Ropa», «Accesorios») y la ayuda al pie. */
-function HojaMenu({ datos, favoritos, cerrar }: { datos: DatosCabecera; favoritos: number | null; cerrar: () => void }) {
+function HojaMenu({ datos, favoritos, cerrar, visitante }: { datos: DatosCabecera; favoritos: number | null; cerrar: () => void; visitante: boolean }) {
   return (
     <div className="t-menu" role="dialog" aria-modal="true" aria-label="Menú">
       <div className="t-menu-cab">
@@ -325,19 +351,27 @@ function HojaMenu({ datos, favoritos, cerrar }: { datos: DatosCabecera; favorito
         </nav>
       ))}
       <div className="t-menu-pie">
-        <Link className="t-enlace" href="/cuenta" onClick={cerrar}>
-          Mi perfil y mis pedidos
-        </Link>
+        {visitante ? (
+          <Link className="t-enlace" href={hrefDeEntrada("/entrar")} onClick={cerrar}>
+            Entrar o crear mi cuenta
+          </Link>
+        ) : (
+          <Link className="t-enlace" href="/cuenta" onClick={cerrar}>
+            Mi perfil y mis pedidos
+          </Link>
+        )}
         <Link className="t-enlace" href="/como-separar" onClick={cerrar}>
           Cómo separar
         </Link>
         <Link className="t-enlace" href="/tiendas" onClick={cerrar}>
           Nuestras tiendas
         </Link>
-        {/* Lo que el cliente le quiera recomendar a CAYLA (Felipe 2026-10-15), con su nombre. */}
-        <Link className="t-enlace" href="/recomendaciones" onClick={cerrar}>
-          Recomendaciones
-        </Link>
+        {/* Lo que el cliente le quiera recomendar a CAYLA (Felipe 2026-10-15), con su nombre: solo con cuenta. */}
+        {!visitante && (
+          <Link className="t-enlace" href="/recomendaciones" onClick={cerrar}>
+            Recomendaciones
+          </Link>
+        )}
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
 import { tiendasEnFrase } from "@/lib/vitrina-portada";
+import "@/app/estilos/portada.css";
 import { Icono, type NombreIcono } from "../Icono";
 
 /**
- * La franja de confianza bajo el héroe de la portada: lo que la tienda ya cumple, dicho de un vistazo, como las grandes marcas dicen
+ * La franja de confianza bajo el héroe del Inicio de quien todavía no tiene sesión (antes, de la portada): lo que la tienda ya cumple, dicho de un vistazo, como las grandes marcas dicen
  * «envío gratis» (Felipe 2026-10-16: «competencia de grandes empresas»). Nada nuevo ni inventado: son las mismas reglas de «Cómo
  * separar» y «Cambios y devoluciones» (sin el plazo: ese número lo dice su página, que lo lee de la base). `tiendas`: las de la web.
  */

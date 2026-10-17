@@ -73,7 +73,16 @@ const CIERRE_DE_LA_PARTE_2 = (() => {
   if (ini < 0 || fin < 0) throw new Error(`No encontré fn_cuentas_web_cerrar_al_anonimizar en ${PARTE_2}`);
   return SQL_2.slice(ini, fin + "\n$$;".length);
 })();
+// 20261017175000 (ADR-0438: la cuenta simple) le dejó a fn_cuenta_web_reglas pasar de una ficha mínima a otra. Mismo caso: el candado de la
+// PARTE 2 no pisa una versión que no es la suya; los casos de K empiezan por dejarla como la dejó la PARTE 2.
+const REGLAS_DE_LA_PARTE_2 = (() => {
+  const ini = SQL_2.indexOf("create or replace function retail.fn_cuenta_web_reglas(");
+  const fin = SQL_2.indexOf("\n$$;", ini);
+  if (ini < 0 || fin < 0) throw new Error(`No encontré fn_cuenta_web_reglas en ${PARTE_2}`);
+  return SQL_2.slice(ini, fin + "\n$$;".length);
+})();
 const COMO_LA_DEJO_LA_PARTE_2 = `${CIERRE_DE_LA_PARTE_2}
+${REGLAS_DE_LA_PARTE_2}
 `;
 const APLICAR_ANTES = process.env.APLICAR_ANTES === "1";
 const FELIPE = "22222222-2222-4222-8222-000000000001";

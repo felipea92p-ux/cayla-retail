@@ -3,7 +3,7 @@ import { nombreAMedias } from "@cayla-retail/shared";
 import { normalizarRespuestaPadron } from "@cayla-retail/shared/padron";
 import {
   arregloCorreo,
-  avisoAlCrear,
+  avisoAlUnirse,
   campoQueSigue,
   celularNormalizado,
   codigoCompleto,
@@ -12,9 +12,15 @@ import {
   cuentaRegresiva,
   cumpleTexto,
   enMinutos,
-  errorDeRegistro,
+  errorDeClub,
+  errorDeCuenta,
   escalaEnPalabras,
   esquemaCrearCuenta,
+  esquemaUnirseAlClub,
+  estadoClub,
+  estadoCuenta,
+  estadoCumpleOpcional,
+  estadoNombre,
   estadoCelular,
   estadoClave,
   estadoCodigo,
@@ -25,9 +31,9 @@ import {
   nombreEscrito,
   ayudaDelNumero,
   documentoRepetido,
-  estadoRegistro,
   faltanCaracteres,
-  faltanRegistro,
+  faltanClub,
+  faltanCuenta,
   faltanResumidos,
   hoyLima,
   ipDeLaPeticion,
@@ -43,11 +49,14 @@ import {
   mensajeCodigoLimite,
   mensajeCodigoMalo,
   mensajeSinNombre,
-  problemaRegistro,
-  REGISTRO_VACIO,
+  problemaClub,
+  problemaCuenta,
+  REGISTRO_CLUB_VACIO,
+  REGISTRO_CUENTA_VACIO,
   soles,
   type ConsultaDocumento,
-  type Registro,
+  type RegistroClub,
+  type RegistroCuenta,
 } from "./cuentas";
 import type { CodigoDelCorreo } from "./correo-confirmado";
 
@@ -67,15 +76,14 @@ const enviado = (correo: string, cambios: Partial<Extract<CodigoDelCorreo, { est
   malo: null,
   ...cambios,
 });
-const LISTO: Registro = {
-  correo: "maria.perez@gmail.com",
-  clave: "clave-segura",
+const LISTO: RegistroCuenta = { correo: "maria.perez@gmail.com", clave: "clave-segura", nombre: "María", acepta: true };
+const LISTO_CLUB: RegistroClub = {
   documentoTipo: "dni",
   documento: "45871236",
   nombres: "",
   apellidos: "",
   celular: "987654321",
-  cumple: { d: "14", m: "10", a: "" },
+  cumple: { d: "", m: "", a: "" },
   mayor: true,
   acepta: true,
   avisos: false,
@@ -193,7 +201,7 @@ describe("el DNI y el nombre", () => {
     expect(estadoDocumento("dni", "45871236", { estado: "archivada" })).toBe("mal");
   });
 
-  it("sin el nombre del padrón no hay cuenta: el DNI queda en «Revisa» y dice por qué (Felipe 2026-10-15: el nombre no se escribe)", () => {
+  it("sin el nombre del padrón no hay Club: el DNI queda en «Revisa» y dice por qué (Felipe 2026-10-15: el nombre no se escribe)", () => {
     for (const motivo of ["no_encontrado", "sin_padron", "limite"] as const) {
       expect(estadoDocumento("dni", "45871236", { estado: "sin_nombre", motivo })).toBe("mal");
     }
@@ -214,17 +222,17 @@ describe("el DNI y el nombre", () => {
     expect(nombreAMedias(leido)).toBe("Lucía P. S.");
   });
 
-  it("con DNI el nombre nunca se escribe: el registro no tiene caja de «nombre» y el servidor no la lee (lo que llegue de más se descarta)", () => {
-    expect(Object.keys(REGISTRO_VACIO)).not.toContain("nombre");
+  it("con DNI el nombre nunca se escribe: el formulario del Club no tiene caja de «nombre» y el servidor no la lee (lo que llegue de más se descarta)", () => {
+    expect(Object.keys(REGISTRO_CLUB_VACIO)).not.toContain("nombre");
     // Con DNI las cajas del nombre escrito (solo de carné y pasaporte) quedan listas solas: no son un campo que falte.
     expect(estadoParteNombre("dni", "")).toBe("ok");
-    const conNombre = esquemaCrearCuenta.safeParse({ registro: { ...LISTO, nombre: "Nombre Escrito A Mano" }, casilla: null });
+    const conNombre = esquemaUnirseAlClub.safeParse({ registro: { ...LISTO_CLUB, nombre: "Nombre Escrito A Mano" }, casilla: null });
     expect(conNombre.success && "nombre" in conNombre.data.registro).toBe(false);
   });
 });
 
 describe("carné de extranjería y pasaporte (Felipe 2026-10-15: «como en las tiendas»)", () => {
-  const CARNE: Registro = { ...LISTO, documentoTipo: "carne_extranjeria", documento: "001234567", nombres: "Ana Lucía", apellidos: "Torres Ruiz" };
+  const CARNE: RegistroClub = { ...LISTO_CLUB, documentoTipo: "carne_extranjeria", documento: "001234567", nombres: "Ana Lucía", apellidos: "Torres Ruiz" };
   const LIBRE: ConsultaDocumento = { estado: "libre" };
 
   it("el número sigue las MISMAS reglas que la caja: de 6 a 12 letras o números; la base dice si está libre", () => {
@@ -254,81 +262,64 @@ describe("carné de extranjería y pasaporte (Felipe 2026-10-15: «como en las t
   });
 
   it("la guía pide el documento y después los nombres y los apellidos; listo, no falta nada", () => {
-    const vacio = estadoRegistro({ ...CARNE, nombres: "", apellidos: "" }, { correo: "libre", documento: LIBRE, codigo: CONFIRMADO }, HOY);
-    expect(faltanRegistro(vacio).map(([campo]) => campo)).toEqual(["nombres", "apellidos"]);
-    expect(nombresDe(faltanRegistro(vacio))).toEqual(["tus nombres", "tus apellidos"]);
-    expect(faltanRegistro(estadoRegistro(CARNE, { correo: "libre", documento: LIBRE, codigo: CONFIRMADO }, HOY))).toEqual([]);
+    const vacio = estadoClub({ ...CARNE, nombres: "", apellidos: "" }, { documento: LIBRE }, HOY);
+    expect(faltanClub(vacio).map(([campo]) => campo)).toEqual(["nombres", "apellidos"]);
+    expect(nombresDe(faltanClub(vacio))).toEqual(["tus nombres", "tus apellidos"]);
+    expect(faltanClub(estadoClub(CARNE, { documento: LIBRE }, HOY))).toEqual([]);
   });
 
   it("el servidor vuelve a revisar el número y las dos cajas", () => {
-    expect(problemaRegistro(CARNE, HOY)).toBeNull();
-    expect(problemaRegistro({ ...CARNE, documento: "AB12" }, HOY)).toEqual({
+    expect(problemaClub(CARNE, HOY)).toBeNull();
+    expect(problemaClub({ ...CARNE, documento: "AB12" }, HOY)).toEqual({
       campo: "documento",
       mensaje: "El carné de extranjería tiene de 6 a 12 letras o números, sin guiones.",
     });
-    expect(problemaRegistro({ ...CARNE, apellidos: "Torres 2" }, HOY)).toEqual({ campo: "apellidos", mensaje: MENSAJES.nombreConNumeros });
-    expect(problemaRegistro({ ...CARNE, nombres: " " }, HOY)?.campo).toBe("nombres");
+    expect(problemaClub({ ...CARNE, apellidos: "Torres 2" }, HOY)).toEqual({ campo: "apellidos", mensaje: MENSAJES.nombreConNumeros });
+    expect(problemaClub({ ...CARNE, nombres: " " }, HOY)?.campo).toBe("nombres");
     // El tipo viaja y la base lo vuelve a revisar: uno que no existe no pasa el esquema.
-    expect(esquemaCrearCuenta.safeParse({ registro: { ...CARNE, documentoTipo: "ruc" }, casilla: null }).success).toBe(false);
+    expect(esquemaUnirseAlClub.safeParse({ registro: { ...CARNE, documentoTipo: "ruc" }, casilla: null }).success).toBe(false);
   });
 
   it("lo que rechaza la base del nombre escrito va a sus cajas; un documento repetido dice cuál", () => {
-    expect(errorDeRegistro("nombre_con_numeros", "nombre", "pasaporte")).toEqual({ campo: "nombres", mensaje: MENSAJES.nombreConNumeros });
-    expect(errorDeRegistro("cuenta_dni_repetido", "dni", "pasaporte")).toEqual({
+    expect(errorDeClub("nombre_con_numeros", "nombre", "pasaporte")).toEqual({ campo: "nombres", mensaje: MENSAJES.nombreConNumeros });
+    expect(errorDeClub("cuenta_dni_repetido", "dni", "pasaporte")).toEqual({
       campo: "documento",
       mensaje: `Ya hay una cuenta con este pasaporte. ${MENSAJES.cuentaNoEsTuya}`,
     });
   });
 });
 
-describe("la guía del registro", () => {
-  it("sin nada escrito falta todo menos los avisos (opcionales): el nombre no es un campo, sale del DNI", () => {
-    const e = estadoRegistro(REGISTRO_VACIO, { correo: "sin_revisar", documento: { estado: "sin_revisar" }, codigo: SIN_PEDIR }, HOY);
-    expect(faltanRegistro(e).map(([campo]) => campo)).toEqual(["correo", "codigo", "clave", "documento", "cel", "cumple", "mayor", "acepta"]);
-    expect(nombresDe(faltanRegistro(e))).toEqual([
-      "tu correo",
-      "confirmar tu correo",
-      "tu contraseña",
-      "tu documento",
-      "tu celular",
-      "tu cumpleaños",
-      "confirmar que eres mayor de 18",
-      "aceptar los términos",
-    ]);
-    // En el pie fijo se nombran los tres primeros y el resto se cuenta: «tu correo, confirmar tu correo, tu contraseña y 5 más».
-    expect(faltanResumidos(faltanRegistro(e))).toEqual({ nombrados: faltanRegistro(e).slice(0, 3), mas: 5 });
-    // Las dos casillas nuevas nacen sin marcar: el «sí» es un toque de la persona.
-    expect(REGISTRO_VACIO).toMatchObject({ mayor: false, avisos: false });
+describe("la guía de crear la cuenta (ADR-0438: solo lo necesario)", () => {
+  const consultas = (codigo: CodigoDelCorreo, correo: "libre" | "sin_revisar" | "repetido" = "libre") => ({ correo, codigo });
+
+  it("sin nada escrito falta todo: correo, su código, el nombre, la contraseña y los términos; y nada más (ni documento ni celular)", () => {
+    const e = estadoCuenta(REGISTRO_CUENTA_VACIO, consultas(SIN_PEDIR, "sin_revisar"));
+    expect(faltanCuenta(e).map(([campo]) => campo)).toEqual(["correo", "codigo", "nombre", "clave", "acepta"]);
+    expect(nombresDe(faltanCuenta(e))).toEqual(["tu correo", "confirmar tu correo", "tu nombre", "tu contraseña", "aceptar los términos"]);
+    // En el pie fijo se nombran los tres primeros y el resto se cuenta.
+    expect(faltanResumidos(faltanCuenta(e))).toEqual({ nombrados: faltanCuenta(e).slice(0, 3), mas: 2 });
+    // La casilla nace sin marcar: el «sí» es un toque de la persona.
+    expect(REGISTRO_CUENTA_VACIO.acepta).toBe(false);
+    expect(Object.keys(REGISTRO_CUENTA_VACIO).sort()).toEqual(["acepta", "clave", "correo", "nombre"]);
   });
 
-  it("«Soy mayor de 18 años» es obligatoria aunque el año diga que sí; los avisos nunca faltan", () => {
-    const sinMayor = estadoRegistro(
-      { ...LISTO, mayor: false, cumple: { d: "14", m: "10", a: "1990" } },
-      { correo: "libre", documento: ENCONTRADO, codigo: CONFIRMADO },
-      HOY,
-    );
-    expect(faltanRegistro(sinMayor).map(([campo]) => campo)).toEqual(["mayor"]);
-    expect(campoQueSigue(sinMayor, null)).toBe("mayor");
-    for (const avisos of [true, false]) {
-      expect(faltanRegistro(estadoRegistro({ ...LISTO, avisos }, { correo: "libre", documento: ENCONTRADO, codigo: CONFIRMADO }, HOY))).toEqual([]);
-    }
+  it("el nombre: con dos letras alcanza, sin tope raro (hasta 120)", () => {
+    expect(estadoNombre("")).toBe("falta");
+    expect(estadoNombre(" A ")).toBe("falta");
+    expect(estadoNombre("Ana")).toBe("ok");
+    expect(estadoNombre("x".repeat(120))).toBe("ok");
+    expect(estadoNombre("x".repeat(121))).toBe("mal");
   });
 
   it("todo listo: no falta nada (con el correo confirmado)", () => {
-    const e = estadoRegistro(LISTO, { correo: "libre", documento: ENCONTRADO, codigo: CONFIRMADO }, HOY);
-    expect(faltanRegistro(e)).toEqual([]);
-    expect(faltanResumidos(faltanRegistro(e))).toEqual({ nombrados: [], mas: 0 });
+    const e = estadoCuenta(LISTO, consultas(CONFIRMADO));
+    expect(faltanCuenta(e)).toEqual([]);
+    expect(faltanResumidos(faltanCuenta(e))).toEqual({ nombrados: [], mas: 0 });
   });
 
-  it("un correo repetido, un menor de 18 o un DNI sin el nombre del padrón aparecen en «Falta»", () => {
-    const e = estadoRegistro(
-      { ...LISTO, cumple: { d: "1", m: "1", a: "2015" } },
-      { correo: "repetido", documento: { estado: "sin_nombre", motivo: "no_encontrado" }, codigo: CONFIRMADO },
-      HOY,
-    );
-    expect(faltanRegistro(e).map(([campo]) => campo)).toEqual(["correo", "documento", "cumple"]);
-    expect(e.motivoCumple).toBe("menor");
-    expect(nombresDe(faltanRegistro(e))).toEqual(["tu correo", "tu documento", "tu cumpleaños"]);
+  it("un correo repetido aparece en «Falta»", () => {
+    const e = estadoCuenta(LISTO, consultas(CONFIRMADO, "repetido"));
+    expect(faltanCuenta(e).map(([campo]) => campo)).toEqual(["correo"]);
   });
 
   it("el pie nombra los tres primeros que faltan y cuenta el resto; nunca «y 1 más»", () => {
@@ -344,36 +335,76 @@ describe("la guía del registro", () => {
   });
 
   it("se enciende el primero que falta; mientras se escribe en uno, la luz se queda ahí (y no salta si ya está listo)", () => {
-    const e = estadoRegistro({ ...LISTO, clave: "corta", celular: "" }, { correo: "libre", documento: ENCONTRADO, codigo: CONFIRMADO }, HOY);
-    expect(campoQueSigue(e, null)).toBe("clave");
-    expect(campoQueSigue(e, "cel")).toBe("cel");
-    expect(campoQueSigue(e, "correo")).toBeNull();
+    const e = estadoCuenta({ ...LISTO, clave: "corta", nombre: "" }, consultas(CONFIRMADO));
+    const faltan = faltanCuenta(e);
+    expect(campoQueSigue(faltan, e, null)).toBe("nombre");
+    expect(campoQueSigue(faltan, e, "clave")).toBe("clave");
+    expect(campoQueSigue(faltan, e, "correo")).toBeNull();
+  });
+});
+
+describe("la guía de unirse al Club (al separar: documento, celular, casillas; el cumpleaños y los avisos, opcionales)", () => {
+  it("sin nada escrito faltan el documento, el celular, ser mayor de 18 y los términos; con DNI el nombre sale del padrón y no cuenta", () => {
+    const e = estadoClub(REGISTRO_CLUB_VACIO, { documento: { estado: "sin_revisar" } }, HOY);
+    expect(faltanClub(e).map(([campo]) => campo)).toEqual(["documento", "cel", "mayor", "acepta"]);
+    expect(nombresDe(faltanClub(e))).toEqual(["tu documento", "tu celular", "confirmar que eres mayor de 18", "aceptar los términos"]);
+    // Las casillas nacen sin marcar: el «sí» es un toque de la persona.
+    expect(REGISTRO_CLUB_VACIO).toMatchObject({ mayor: false, acepta: false, avisos: false });
+  });
+
+  it("«Soy mayor de 18 años» es obligatoria aunque el año diga que sí; los avisos nunca faltan", () => {
+    const sinMayor = estadoClub({ ...LISTO_CLUB, mayor: false, cumple: { d: "14", m: "10", a: "1990" } }, { documento: ENCONTRADO }, HOY);
+    expect(faltanClub(sinMayor).map(([campo]) => campo)).toEqual(["mayor"]);
+    expect(campoQueSigue(faltanClub(sinMayor), sinMayor, null)).toBe("mayor");
+    for (const avisos of [true, false]) {
+      expect(faltanClub(estadoClub({ ...LISTO_CLUB, avisos }, { documento: ENCONTRADO }, HOY))).toEqual([]);
+    }
+  });
+
+  it("el cumpleaños es opcional: vacío no falta; escrito a medias o imposible sí aparece, y uno de menor de 18 también", () => {
+    expect(estadoCumpleOpcional({ d: "", m: "", a: "" }, HOY)).toEqual({ estado: "ok", vacio: true });
+    expect(estadoCumpleOpcional({ d: "14", m: "10", a: "" }, HOY)).toMatchObject({ estado: "ok", vacio: false });
+    expect(estadoCumpleOpcional({ d: "14", m: "", a: "" }, HOY).estado).toBe("mal");
+    expect(estadoCumpleOpcional({ d: "", m: "", a: "1990" }, HOY).estado).toBe("mal");
+    expect(estadoCumpleOpcional({ d: "31", m: "4", a: "" }, HOY)).toMatchObject({ estado: "mal", motivo: "fecha" });
+    expect(estadoCumpleOpcional({ d: "1", m: "1", a: "2015" }, HOY)).toMatchObject({ estado: "mal", motivo: "menor" });
+    expect(faltanClub(estadoClub(LISTO_CLUB, { documento: ENCONTRADO }, HOY))).toEqual([]);
+    const mal = estadoClub({ ...LISTO_CLUB, cumple: { d: "1", m: "1", a: "2015" } }, { documento: ENCONTRADO }, HOY);
+    expect(faltanClub(mal).map(([campo]) => campo)).toEqual(["cumple"]);
+    expect(mal.motivoCumple).toBe("menor");
+  });
+
+  it("un DNI sin el nombre del padrón o de otra cuenta aparece en «Falta»", () => {
+    const e = estadoClub(LISTO_CLUB, { documento: { estado: "sin_nombre", motivo: "no_encontrado" } }, HOY);
+    expect(faltanClub(e).map(([campo]) => campo)).toEqual(["documento"]);
+    expect(faltanClub(estadoClub(LISTO_CLUB, { documento: { estado: "repetido" } }, HOY)).map(([campo]) => campo)).toEqual(["documento"]);
   });
 });
 
 describe("el código bajo el correo (Felipe 2026-10-15: «Obtener código» al lado y la caja debajo)", () => {
-  const estadoCon = (codigo: CodigoDelCorreo, r: Registro = LISTO) => estadoRegistro(r, { correo: "libre", documento: ENCONTRADO, codigo }, HOY);
+  const estadoCon = (codigo: CodigoDelCorreo, r: RegistroCuenta = LISTO) => estadoCuenta(r, { correo: "libre", codigo });
+  const campos = (e: ReturnType<typeof estadoCuenta>) => faltanCuenta(e).map(([campo]) => campo);
 
   it("el orden de la guía es correo, código y lo demás: con el correo listo, lo que sigue es pedir el código", () => {
-    const e = estadoCon(SIN_PEDIR, { ...REGISTRO_VACIO, correo: LISTO.correo });
-    expect(faltanRegistro(e).map(([campo]) => campo).slice(0, 2)).toEqual(["codigo", "clave"]);
-    expect(campoQueSigue(e, null)).toBe("codigo");
+    const e = estadoCon(SIN_PEDIR, { ...REGISTRO_CUENTA_VACIO, correo: LISTO.correo });
+    expect(campos(e).slice(0, 2)).toEqual(["codigo", "nombre"]);
+    expect(campoQueSigue(faltanCuenta(e), e, null)).toBe("codigo");
     // Mientras está en el botón «Obtener código» (o en la caja), la luz no se va de ahí.
-    expect(campoQueSigue(e, "codigo")).toBe("codigo");
+    expect(campoQueSigue(faltanCuenta(e), e, "codigo")).toBe("codigo");
   });
 
   it("«Crear mi cuenta» se prende recién con el correo confirmado: pedido o escrito no basta", () => {
-    expect(faltanRegistro(estadoCon(SIN_PEDIR)).map(([campo]) => campo)).toEqual(["codigo"]);
-    expect(faltanRegistro(estadoCon(enviado(LISTO.correo))).map(([campo]) => campo)).toEqual(["codigo"]);
-    expect(nombresDe(faltanRegistro(estadoCon(SIN_PEDIR)))).toEqual(["confirmar tu correo"]);
-    expect(faltanRegistro(estadoCon(CONFIRMADO))).toEqual([]);
+    expect(campos(estadoCon(SIN_PEDIR))).toEqual(["codigo"]);
+    expect(campos(estadoCon(enviado(LISTO.correo)))).toEqual(["codigo"]);
+    expect(nombresDe(faltanCuenta(estadoCon(SIN_PEDIR)))).toEqual(["confirmar tu correo"]);
+    expect(faltanCuenta(estadoCon(CONFIRMADO))).toEqual([]);
   });
 
   it("cambiar el correo después de pedir (o confirmar) el código lo deja sin valor: el de antes no cuenta para el nuevo", () => {
-    const otro: Registro = { ...LISTO, correo: "otra.persona@gmail.com" };
+    const otro: RegistroCuenta = { ...LISTO, correo: "otra.persona@gmail.com" };
     expect(estadoCodigo(otro.correo, CONFIRMADO)).toBe("falta");
     expect(estadoCodigo(otro.correo, enviado(LISTO.correo, { necesitaNuevo: true }))).toBe("falta");
-    expect(faltanRegistro(estadoCon(CONFIRMADO, otro)).map(([campo]) => campo)).toEqual(["codigo"]);
+    expect(campos(estadoCon(CONFIRMADO, otro))).toEqual(["codigo"]);
     // Volver al correo confirmado (sin pedir otro código) lo recupera: la confirmación era de ESE correo.
     expect(estadoCodigo(` ${LISTO.correo.toUpperCase()} `, CONFIRMADO)).toBe("ok");
   });
@@ -402,44 +433,58 @@ describe("el código bajo el correo (Felipe 2026-10-15: «Obtener código» al l
 });
 
 describe("lo que el servidor vuelve a revisar", () => {
-  it("un registro listo pasa; cada campo malo dice cuál es", () => {
-    expect(problemaRegistro(LISTO, HOY)).toBeNull();
-    expect(problemaRegistro({ ...LISTO, correo: "maria@gmail" }, HOY)?.campo).toBe("correo");
-    expect(problemaRegistro({ ...LISTO, clave: "corta" }, HOY)?.campo).toBe("clave");
-    expect(problemaRegistro({ ...LISTO, documento: "4587123" }, HOY)?.campo).toBe("documento");
-    expect(problemaRegistro({ ...LISTO, celular: "887654321" }, HOY)?.campo).toBe("cel");
-    expect(problemaRegistro({ ...LISTO, cumple: { d: "31", m: "4", a: "" } }, HOY)).toEqual({ campo: "cumple", mensaje: MENSAJES.cumpleMal });
-    expect(problemaRegistro({ ...LISTO, cumple: { d: "1", m: "1", a: "2015" } }, HOY)).toEqual({ campo: "cumple", mensaje: MENSAJES.cumpleMenor });
-    expect(problemaRegistro({ ...LISTO, mayor: false }, HOY)).toEqual({ campo: "mayor", mensaje: MENSAJES.mayorFalta });
-    expect(problemaRegistro({ ...LISTO, acepta: false }, HOY)?.campo).toBe("acepta");
-    // Los avisos son opcionales: con o sin ellos, el registro pasa.
-    expect(problemaRegistro({ ...LISTO, avisos: true }, HOY)).toBeNull();
+  it("una cuenta lista pasa; cada campo malo dice cuál es", () => {
+    expect(problemaCuenta(LISTO)).toBeNull();
+    expect(problemaCuenta({ ...LISTO, correo: "maria@gmail" })?.campo).toBe("correo");
+    expect(problemaCuenta({ ...LISTO, nombre: " " })).toEqual({ campo: "nombre", mensaje: MENSAJES.nombreFalta });
+    expect(problemaCuenta({ ...LISTO, clave: "corta" })?.campo).toBe("clave");
+    expect(problemaCuenta({ ...LISTO, acepta: false })).toEqual({ campo: "acepta", mensaje: MENSAJES.aceptaFalta });
   });
 
-  it("lo que rechaza la base, en palabras y con su campo", () => {
-    expect(errorDeRegistro("cuenta_correo_repetido", "correo")).toEqual({ campo: "correo", mensaje: MENSAJES.correoRepetido });
-    expect(errorDeRegistro("cuenta_dni_repetido", "dni")).toEqual({ campo: "documento", mensaje: documentoRepetido("dni") });
-    expect(errorDeRegistro("cuenta_archivada", "dni")).toEqual({ campo: "documento", mensaje: MENSAJES.dniArchivada });
-    // La regla D7 (el correo de la ficha) ya no existe desde 20261016154000: su rechazo, si llegara, es «no pudimos ahora».
-    expect(errorDeRegistro("cuenta_ficha_sin_tu_correo", "correo")).toEqual({ campo: null, mensaje: MENSAJES.noDisponible });
-    expect(errorDeRegistro("cuenta_menor", "cumple")).toEqual({ campo: "cumple", mensaje: MENSAJES.cumpleMenor });
-    expect(errorDeRegistro("cuenta_datos_invalidos", "celular").campo).toBe("cel");
-    expect(errorDeRegistro("cuenta_datos_invalidos", "mayor")).toEqual({ campo: "mayor", mensaje: MENSAJES.mayorFalta });
-    expect(errorDeRegistro("cuenta_sin_codigo", "codigo")).toEqual({ campo: "codigo", mensaje: MENSAJES.codigoSinPedir });
-    expect(errorDeRegistro("cuenta_texto_cambio", "avisos")).toEqual({ campo: "avisos", mensaje: MENSAJES.avisosCambio });
-    expect(errorDeRegistro("cuenta_sin_texto", "avisos").campo).toBe("avisos");
-    expect(errorDeRegistro("cuenta_datos_invalidos", "usuario")).toEqual({ campo: null, mensaje: MENSAJES.noDisponible });
-    expect(errorDeRegistro("cuenta_ya_existe", null)).toEqual({ campo: null, mensaje: MENSAJES.noDisponible });
-    expect(errorDeRegistro(undefined, undefined)).toEqual({ campo: null, mensaje: MENSAJES.noDisponible });
+  it("los datos del Club listos pasan; cada campo malo dice cuál es", () => {
+    expect(problemaClub(LISTO_CLUB, HOY)).toBeNull();
+    expect(problemaClub({ ...LISTO_CLUB, documento: "4587123" }, HOY)?.campo).toBe("documento");
+    expect(problemaClub({ ...LISTO_CLUB, celular: "887654321" }, HOY)?.campo).toBe("cel");
+    expect(problemaClub({ ...LISTO_CLUB, cumple: { d: "31", m: "4", a: "" } }, HOY)).toEqual({ campo: "cumple", mensaje: MENSAJES.cumpleMal });
+    expect(problemaClub({ ...LISTO_CLUB, cumple: { d: "1", m: "1", a: "2015" } }, HOY)).toEqual({ campo: "cumple", mensaje: MENSAJES.cumpleMenor });
+    expect(problemaClub({ ...LISTO_CLUB, mayor: false }, HOY)).toEqual({ campo: "mayor", mensaje: MENSAJES.mayorFalta });
+    expect(problemaClub({ ...LISTO_CLUB, acepta: false }, HOY)).toEqual({ campo: "acepta", mensaje: MENSAJES.clubAceptaFalta });
+    // El cumpleaños y los avisos son opcionales: con o sin ellos, pasa.
+    expect(problemaClub({ ...LISTO_CLUB, avisos: true, cumple: { d: "14", m: "10", a: "" } }, HOY)).toBeNull();
+  });
+
+  it("lo que rechaza la base al crear la cuenta, en palabras y con su campo", () => {
+    expect(errorDeCuenta("cuenta_correo_repetido", "correo")).toEqual({ campo: "correo", mensaje: MENSAJES.correoRepetido });
+    expect(errorDeCuenta("cuenta_correo_de_otra_persona", "correo")).toEqual({ campo: "correo", mensaje: MENSAJES.correoDeOtraPersona });
+    expect(errorDeCuenta("cuenta_sin_codigo", "codigo")).toEqual({ campo: "codigo", mensaje: MENSAJES.codigoSinPedir });
+    expect(errorDeCuenta("cuenta_datos_invalidos", "nombre")).toEqual({ campo: "nombre", mensaje: MENSAJES.nombreFalta });
+    expect(errorDeCuenta("cuenta_datos_invalidos", "acepta")).toEqual({ campo: "acepta", mensaje: MENSAJES.aceptaFalta });
+    expect(errorDeCuenta("cuenta_datos_invalidos", "correo").campo).toBe("correo");
+    expect(errorDeCuenta("cuenta_datos_invalidos", "usuario")).toEqual({ campo: null, mensaje: MENSAJES.noDisponible });
+    expect(errorDeCuenta("cuenta_ya_existe", null)).toEqual({ campo: null, mensaje: MENSAJES.noDisponible });
+    expect(errorDeCuenta(undefined, undefined)).toEqual({ campo: null, mensaje: MENSAJES.noDisponible });
+  });
+
+  it("lo que rechaza la base al unirse al Club, en palabras y con su campo", () => {
+    expect(errorDeClub("cuenta_dni_repetido", "dni")).toEqual({ campo: "documento", mensaje: documentoRepetido("dni") });
+    expect(errorDeClub("cuenta_archivada", "dni")).toEqual({ campo: "documento", mensaje: MENSAJES.dniArchivada });
+    expect(errorDeClub("cuenta_menor", "cumple")).toEqual({ campo: "cumple", mensaje: MENSAJES.cumpleMenor });
+    expect(errorDeClub("cuenta_datos_invalidos", "celular").campo).toBe("cel");
+    expect(errorDeClub("cuenta_datos_invalidos", "mayor")).toEqual({ campo: "mayor", mensaje: MENSAJES.mayorFalta });
+    expect(errorDeClub("cuenta_datos_invalidos", "acepta")).toEqual({ campo: "acepta", mensaje: MENSAJES.clubAceptaFalta });
+    expect(errorDeClub("cuenta_texto_cambio", "avisos")).toEqual({ campo: "avisos", mensaje: MENSAJES.avisosCambio });
+    expect(errorDeClub("cuenta_sin_texto", "avisos").campo).toBe("avisos");
+    expect(errorDeClub("cuenta_sin_cuenta", null)).toEqual({ campo: null, mensaje: MENSAJES.clubNoDisponible });
+    expect(errorDeClub(undefined, undefined)).toEqual({ campo: null, mensaje: MENSAJES.clubNoDisponible });
   });
 
   it("el nombre que la base no acepta (20261015133000) se dice en el DNI, con «Volver a intentar»: no hay caja de nombre", () => {
-    expect(errorDeRegistro("nombre_sin_padron", "nombre")).toEqual({ campo: "documento", mensaje: MENSAJES.dniSinPadron });
-    expect(errorDeRegistro("cuenta_datos_invalidos", "nombre")).toEqual({ campo: "documento", mensaje: MENSAJES.dniSinPadron });
+    expect(errorDeClub("nombre_sin_padron", "nombre")).toEqual({ campo: "documento", mensaje: MENSAJES.dniSinPadron });
+    expect(errorDeClub("cuenta_datos_invalidos", "nombre")).toEqual({ campo: "documento", mensaje: MENSAJES.dniSinPadron });
   });
 
-  it("el correo de otra persona (20261015054000): va a la caja del correo y no dice de quién es", () => {
-    expect(errorDeRegistro("correo_repetido", "correo")).toEqual({ campo: "correo", mensaje: MENSAJES.correoDeOtraPersona });
+  it("el correo de otra persona (20261015054000): no dice de quién es", () => {
+    expect(errorDeCuenta("correo_repetido", "correo")).toEqual({ campo: "correo", mensaje: MENSAJES.correoDeOtraPersona });
     // Ni un nombre, ni un DNI, ni «la ficha de…»: la tienda nunca revela de quién es un correo.
     expect(MENSAJES.correoDeOtraPersona).not.toMatch(/ficha de|DNI \d|nombre de/i);
     expect(MENSAJES.correoDeOtraPersona).not.toBe(MENSAJES.correoRepetido);
@@ -448,14 +493,20 @@ describe("lo que el servidor vuelve a revisar", () => {
     expect(MENSAJES.cuentaCerrada).toMatch(/cuenta nueva/);
   });
 
-  it("lo que manda «Crear mi cuenta»: el registro con sus casillas y la versión de la casilla que leyó; el código no viaja", () => {
-    expect(esquemaCrearCuenta.safeParse({ registro: LISTO, casilla: 2 }).success).toBe(true);
-    expect(esquemaCrearCuenta.safeParse({ registro: LISTO, casilla: null }).success).toBe(true);
-    expect(esquemaCrearCuenta.safeParse({ registro: { ...LISTO, mayor: undefined }, casilla: 2 }).success).toBe(false);
-    expect(esquemaCrearCuenta.safeParse({ registro: LISTO, casilla: 0 }).success).toBe(false);
+  it("lo que manda «Crear mi cuenta»: el registro y a dónde volver; el código no viaja", () => {
+    expect(esquemaCrearCuenta.safeParse({ registro: LISTO }).success).toBe(true);
+    expect(esquemaCrearCuenta.safeParse({ registro: LISTO, volver: "/bolsa" }).success).toBe(true);
+    expect(esquemaCrearCuenta.safeParse({ registro: { ...LISTO, acepta: undefined } }).success).toBe(false);
     // Un «código» o un «confirmado» que mande el navegador se descarta: lo que cuenta es la prueba firmada de este aparato.
-    const conCodigo = esquemaCrearCuenta.safeParse({ registro: LISTO, casilla: null, codigo: "123456", confirmado: true });
-    expect(conCodigo.success && Object.keys(conCodigo.data)).toEqual(["registro", "casilla"]);
+    const conCodigo = esquemaCrearCuenta.safeParse({ registro: LISTO, codigo: "123456", confirmado: true });
+    expect(conCodigo.success && Object.keys(conCodigo.data)).toEqual(["registro"]);
+  });
+
+  it("lo que manda «Unirme al Club»: los datos con sus casillas y la versión de la casilla que leyó", () => {
+    expect(esquemaUnirseAlClub.safeParse({ registro: LISTO_CLUB, casilla: 2 }).success).toBe(true);
+    expect(esquemaUnirseAlClub.safeParse({ registro: LISTO_CLUB, casilla: null }).success).toBe(true);
+    expect(esquemaUnirseAlClub.safeParse({ registro: { ...LISTO_CLUB, mayor: undefined }, casilla: 2 }).success).toBe(false);
+    expect(esquemaUnirseAlClub.safeParse({ registro: LISTO_CLUB, casilla: 0 }).success).toBe(false);
   });
 });
 
@@ -523,13 +574,13 @@ describe("los avisos del Club por WhatsApp", () => {
     expect(leerCasillaWhatsapp({ version: 3, texto: "Acepto los avisos de la tienda {tienda}." })).toBeNull();
   });
 
-  it("después de crear la cuenta: «ya eras del Club» solo para quien ya era miembro; la ficha de una boleta, la bienvenida de una persona nueva; y si los avisos quedaron sin activar por otro celular, lo dice «Mi cuenta»", () => {
-    expect(avisoAlCrear(false, false, "no")).toBe("bienvenida");
-    expect(avisoAlCrear(false, false, "activados")).toBe("bienvenida");
-    expect(avisoAlCrear(true, false, "no")).toBe("bienvenida");
-    expect(avisoAlCrear(true, true, "ya_estaban")).toBe("unida");
-    expect(avisoAlCrear(true, true, "celular_distinto")).toBe("avisos-sin-activar");
-    expect(avisoAlCrear(true, false, "celular_distinto")).toBe("avisos-sin-activar");
+  it("después de unirse al Club: «ya eras del Club» solo para quien ya era miembro; la ficha de una boleta, la bienvenida de una persona nueva; y si los avisos quedaron sin activar por otro celular, lo dice «Mi perfil»", () => {
+    expect(avisoAlUnirse(false, false, "no")).toBe("bienvenida");
+    expect(avisoAlUnirse(false, false, "activados")).toBe("bienvenida");
+    expect(avisoAlUnirse(true, false, "no")).toBe("bienvenida");
+    expect(avisoAlUnirse(true, true, "ya_estaban")).toBe("unida");
+    expect(avisoAlUnirse(true, true, "celular_distinto")).toBe("avisos-sin-activar");
+    expect(avisoAlUnirse(true, false, "celular_distinto")).toBe("avisos-sin-activar");
   });
 });
 
@@ -551,11 +602,14 @@ describe("lo que contesta la base", () => {
       nombreCorto: "María",
       correo: "maria.perez@gmail.com",
       codigoClub: "C-0042",
+      esDelClub: true,
       clubDesde: 2026,
       cumple: "14 de octubre",
       activa: true,
     });
     expect(leerMiCuenta({ ...CUENTA, cumple_dia: null, nombre_corto: null })).toMatchObject({ cumple: null, nombreCorto: "María" });
+    // Una cuenta simple (ADR-0438) todavía no es del Club: sin código ni fecha de miembro.
+    expect(leerMiCuenta({ ...CUENTA, codigo_club: null, club_desde: null })).toMatchObject({ esDelClub: false, codigoClub: null, clubDesde: null });
   });
 
   it("sin cuenta (null) o con una forma rara, no hay cuenta que mostrar", () => {

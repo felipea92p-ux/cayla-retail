@@ -220,6 +220,7 @@ export const PRUEBAS = [
   // consultar y al registrar, la cuenta que se une a la ficha del Club sin pisar sus datos, el menor de 18 y el cumpleaños
   // imposible rechazados sin escribir nada, y `cuentas_web` cerrada a todos. ROLLBACK.
   "pruebas:tienda-cuentas",
+  "pruebas:tienda-cuenta-simple",
 
   // La Vitrina web y el catálogo de la tienda online (ADR-0408, actividad 3): el módulo nace sin rol y sin él no se lee ni guarda;
   // la versión frena a la segunda persona, mostrar varios es todo o nada y cada cambio deja su línea en la Actividad;

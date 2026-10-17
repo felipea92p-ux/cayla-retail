@@ -2,94 +2,69 @@
 
 import Link from "next/link";
 import { Fragment, useEffect, useState, useTransition } from "react";
-import { ajustarNumeroAlTipo, TIPOS_DOCUMENTO_CLIENTA, type TipoDocumentoClienta } from "@cayla-retail/shared";
-import { confirmarCodigo, consultarCorreo, consultarDocumento, crearCuenta, obtenerCodigo, type RespuestaCrear, type RespuestaDelCodigo } from "@/app/acciones/cuenta";
+import { confirmarCodigo, consultarCorreo, crearCuenta, obtenerCodigo, type RespuestaCrear, type RespuestaDelCodigo } from "@/app/acciones/cuenta";
 import {
   arregloCorreo,
-  ayudaDelNumero,
-  cajaDelNumero,
   campoQueSigue,
   CLAVE_MAXIMA,
   CODIGO_VENCE_MIN,
   codigoLimpio,
   correoValido,
   cuentaRegresiva,
-  cumpleTexto,
-  documentoCompleto,
-  documentoRepetido,
-  estadoRegistro,
+  estadoCuenta,
   faltanCaracteres,
-  faltanRegistro,
+  faltanCuenta,
   faltanResumidos,
   marcaDe,
-  MAX_PARTE_NOMBRE,
+  MAX_NOMBRE_CUENTA,
   MENSAJES,
-  mensajeSinNombre,
   normalizarCorreo,
-  REGISTRO_VACIO,
-  soloDigitos,
+  REGISTRO_CUENTA_VACIO,
   TEXTO_MARCA,
-  type CampoProblema,
-  type CampoRegistro,
-  type CasillaWhatsapp,
+  type CampoCuenta,
   type ConsultaCorreo,
-  type ConsultaDocumento,
-  type Dia,
-  type Registro,
+  type RegistroCuenta,
 } from "@/lib/cuentas";
 import { codigoDelCorreoActual, codigoParaProbar, type CodigoDelCorreo } from "@/lib/correo-confirmado";
 import { hrefConVolver, PARAMETRO_VOLVER, rutaParaVolver } from "@/lib/entrada";
-import { avanceDelRegistro, buzonDelCorreo, nombreParaLaTarjeta } from "@/lib/panel-entrada";
+import { avanceDeLaCuenta, buzonDelCorreo, nombreParaLaTarjeta } from "@/lib/panel-entrada";
 import { Icono } from "../Icono";
+import { BotonGoogle } from "./BotonGoogle";
 import { CajaClave } from "./CajaClave";
 import { Campo, Resultado } from "./CampoGuiado";
 import { useNombreEnLaTarjeta } from "./EntradaViva";
 
-// «Crea tu cuenta» (maqueta v4, `vRegistro` y `guiaRegistro`). Cada campo dice su estado en su título (✓ Listo · Sigue aquí ·
-// Revisa) y debajo qué le falta o qué está mal; el de abajo dice lo primero que falta (cada cosa lleva a su campo) y cuánto más, y el
-// botón se enciende cuando no falta nada.
-// Mientras se escribe, el correo y el DNI se revisan en la base (si ya tienen cuenta) y el DNI trae el nombre del padrón a medias.
-// Con DNI el nombre no se escribe (Felipe 2026-10-15): si el padrón no lo encuentra o no responde, no se crea la cuenta, y el DNI
-// ofrece «Volver a intentar». Con carné de extranjería o pasaporte (Felipe 2026-10-15, «como en las tiendas»), el nombre se escribe
-// tal cual está en el documento, en dos cajas (nombres y apellidos), y se guarda con los nombres primero.
-// Actividad 2b: «Soy mayor de 18 años» (obligatoria) y «Avisos del Club por WhatsApp» (opcional, con el texto aprobado del Club).
+// «Crea tu cuenta» (maqueta v4, `vRegistro` y `guiaRegistro`; ADR-0438: solo lo necesario). Correo (con su código), nombre, contraseña y
+// aceptar los términos; o «Continuar con Google», que no pide nada más. El documento y el celular se piden después, al separar por
+// primera vez, y recién entonces se entra al Club CAYLA (`FormularioUnirseAlClub`). Cada campo dice su estado en su título (✓ Listo ·
+// Sigue aquí · Revisa) y debajo qué le falta o qué está mal; el de abajo dice lo primero que falta (cada cosa lleva a su campo) y
+// cuánto más, y el botón se enciende cuando no falta nada.
 // El código del correo (Felipe 2026-10-15: «al lado del correo debería existir un botón de obtener código y abajo un input para
 // colocarlo»): «Obtener código» al lado del correo; la caja del código aparece debajo, con «Reenviar» y su espera, y se revisa sola
 // con sus 6 números; con el bueno, «Correo confirmado». «Crear mi cuenta» se prende recién con el correo confirmado y lo demás
 // completo, y el servidor vuelve a exigir esa confirmación (`lib/correo-confirmado.ts`). Cambiar el correo deja sin valor el código.
 
-const ID: Record<CampoProblema, string> = {
+const ID: Record<CampoCuenta, string> = {
   correo: "registro-correo",
   codigo: "registro-codigo",
+  nombre: "registro-nombre",
   clave: "registro-clave",
-  documento: "registro-documento",
-  nombres: "registro-nombres",
-  apellidos: "registro-apellidos",
-  cel: "registro-cel",
-  cumple: "registro-cumple-dia",
-  mayor: "registro-mayor",
   acepta: "registro-acepta",
-  avisos: "registro-avisos",
 };
 const ID_CREAR = "registro-crear";
 const ID_OBTENER = "registro-obtener";
 
 /** Cuánto se espera después de la última letra antes de preguntarle a la base. */
 const ESPERA_CORREO_MS = 700;
-const ESPERA_DNI_MS = 250;
 
 const NO_DISPONIBLE: RespuestaCrear = { campo: null, mensaje: MENSAJES.noDisponible };
 const SIN_RESPUESTA: RespuestaDelCodigo = { estado: "codigo", enviado: false, mensaje: MENSAJES.codigoNoEnviado, tono: "error", espera: null };
 
-export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia; casilla: CasillaWhatsapp | null }) {
-  const [r, setR] = useState<Registro>(REGISTRO_VACIO);
+export function FormularioRegistro() {
+  const [r, setR] = useState<RegistroCuenta>(REGISTRO_CUENTA_VACIO);
   const [correoRevisado, setCorreoRevisado] = useState<{ valor: string; estado: ConsultaCorreo }>({ valor: "", estado: "sin_revisar" });
-  // Lo que dijo el servidor del documento escrito, con su tipo («dni:12345678»): otro tipo u otro número es otra consulta.
-  const [documentoRevisado, setDocumentoRevisado] = useState<{ valor: string; estado: ConsultaDocumento }>({ valor: "", estado: { estado: "sin_revisar" } });
-  const [enFoco, setEnFoco] = useState<CampoRegistro | null>(null);
+  const [enFoco, setEnFoco] = useState<CampoCuenta | null>(null);
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
-  const [casilla, setCasilla] = useState<CasillaWhatsapp | null>(casillaInicial);
-  const [avisoCasilla, setAvisoCasilla] = useState<string | null>(null);
   // El código del correo, bajo el correo: sin pedir, enviado (a qué correo y hasta cuándo esperar para otro) o confirmado.
   const [codigo, setCodigo] = useState<CodigoDelCorreo>({ estado: "sin_pedir" });
   const [valorCodigo, setValorCodigo] = useState("");
@@ -119,29 +94,7 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
   }, []);
 
   const correo = normalizarCorreo(r.correo);
-  const esDni = r.documentoTipo === "dni";
-  const claveDocumento = `${r.documentoTipo}:${r.documento}`;
-  const completo = documentoCompleto(r.documentoTipo, r.documento);
   const consultaCorreo: ConsultaCorreo = correoRevisado.valor === correo ? correoRevisado.estado : "sin_revisar";
-  const consultaDocumento: ConsultaDocumento =
-    documentoRevisado.valor === claveDocumento ? documentoRevisado.estado : completo ? { estado: "buscando" } : { estado: "sin_revisar" };
-
-  // El documento, apenas está completo: ¿ya tiene cuenta? y, con DNI, su nombre del padrón. Si ya tenía una ficha en la tienda no se
-  // dice: todos se registran igual (Felipe 2026-10-16). Con carné o pasaporte se espera un poco más (no tienen largo fijo: 6
-  // caracteres pueden ser el comienzo de 9).
-  useEffect(() => {
-    if (!completo || documentoRevisado.valor === claveDocumento) return;
-    const [tipo, numero, clave] = [r.documentoTipo, r.documento, claveDocumento];
-    let vigente = true;
-    const reloj = setTimeout(async () => {
-      const estado = await consultarDocumento(tipo, numero).catch((): ConsultaDocumento => ({ estado: "sin_nombre", motivo: "sin_padron" }));
-      if (vigente) setDocumentoRevisado({ valor: clave, estado });
-    }, tipo === "dni" ? ESPERA_DNI_MS : ESPERA_CORREO_MS);
-    return () => {
-      vigente = false;
-      clearTimeout(reloj);
-    };
-  }, [r.documentoTipo, r.documento, claveDocumento, completo, documentoRevisado.valor]);
 
   // El correo, cuando ya tiene forma de correo y dejó de escribirse: ¿ya tiene cuenta?
   useEffect(() => {
@@ -166,22 +119,19 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
     return () => clearInterval(reloj);
   }, [restan]);
 
-  const estado = estadoRegistro(r, { correo: consultaCorreo, documento: consultaDocumento, codigo }, hoy);
-  const faltan = faltanRegistro(estado);
+  const estado = estadoCuenta(r, { correo: consultaCorreo, codigo });
+  const faltan = faltanCuenta(estado);
   const resumenFaltan = faltanResumidos(faltan);
-  const sigue = campoQueSigue(estado, enFoco);
-  const marca = (campo: CampoRegistro) => marcaDe(estado[campo], sigue === campo);
-  // La tarjeta del Club del panel de al lado lleva su nombre apenas se sabe (con DNI, el del padrón a medias); y la línea del pie se
-  // llena con lo que ya está listo (2026-10-16).
-  useNombreEnLaTarjeta(nombreParaLaTarjeta(r, consultaDocumento));
-  const avance = avanceDelRegistro(estado, r.documentoTipo);
-  const cambiar = (cambio: Partial<Registro>) => {
+  const sigue = campoQueSigue(faltan, estado, enFoco);
+  const marca = (campo: CampoCuenta) => marcaDe(estado[campo], sigue === campo);
+  // La tarjeta del Club del panel de al lado lleva su nombre apenas se sabe; y la línea del pie se llena con lo que ya está listo.
+  useNombreEnLaTarjeta(nombreParaLaTarjeta(r.nombre));
+  const avance = avanceDeLaCuenta(estado);
+  const cambiar = (cambio: Partial<RegistroCuenta>) => {
     setErrorGeneral(null);
     setR((actual) => ({ ...actual, ...cambio }));
   };
-  const foco = (campo: CampoRegistro) => ({ alEntrar: () => setEnFoco(campo), alSalir: () => setEnFoco(null) });
-  /** Otro tipo de documento: el número se ajusta a lo que ese tipo admite (no se vacía), como en la caja del ERP. */
-  const cambiarTipo = (tipo: TipoDocumentoClienta) => cambiar({ documentoTipo: tipo, documento: ajustarNumeroAlTipo(tipo, r.documento) });
+  const foco = (campo: CampoCuenta) => ({ alEntrar: () => setEnFoco(campo), alSalir: () => setEnFoco(null) });
   // «Obtener código» se prende con un correo bien escrito que no es de otra cuenta ni de otra persona (lo que ya dijo la base).
   const puedeObtener = estado.correo === "ok" && codigoActual.estado === "sin_pedir" && !pidiendo;
 
@@ -269,35 +219,20 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
     } else if (e.campo === "correo" && e.mensaje === MENSAJES.correoRepetido) setCorreoRevisado({ valor: correo, estado: "repetido" });
     // El correo de contacto de otra ficha: bajo su campo, sin «Entrar» ni «Olvidé mi contraseña» (esa persona no tiene cuenta).
     else if (e.campo === "correo" && e.mensaje === MENSAJES.correoDeOtraPersona) setCorreoRevisado({ valor: correo, estado: "de_otra_persona" });
-    else if (e.campo === "documento" && e.mensaje === documentoRepetido(r.documentoTipo))
-      setDocumentoRevisado({ valor: claveDocumento, estado: { estado: "repetido" } });
-    else if (e.campo === "documento" && e.mensaje === MENSAJES.dniArchivada) setDocumentoRevisado({ valor: claveDocumento, estado: { estado: "archivada" } });
-    else if (e.campo === "documento" && (e.mensaje === MENSAJES.dniSinPadron || e.mensaje === MENSAJES.dniNoEncontrado))
-      // El padrón ya no dio el nombre al crear: el DNI lo dice, con «Volver a intentar» (el nombre no se escribe a mano).
-      setDocumentoRevisado({
-        valor: claveDocumento,
-        estado: { estado: "sin_nombre", motivo: e.mensaje === MENSAJES.dniNoEncontrado ? "no_encontrado" : "sin_padron" },
-      });
-    else if (e.campo === "nombres" || e.campo === "apellidos" || e.campo === "documento") setErrorGeneral(e.mensaje);
-    else if (e.campo === "avisos") {
-      // El texto de los avisos cambió: el nuevo se lee y se vuelve a marcar (nunca se da por aceptado uno que no leyó).
-      if (e.casilla !== undefined) setCasilla(e.casilla);
-      setR((actual) => ({ ...actual, avisos: false }));
-      setAvisoCasilla(e.mensaje);
-    } else setErrorGeneral(e.mensaje);
+    else setErrorGeneral(e.mensaje);
     // Al campo del problema (el del código vive en el correo: ahí está «Obtener código»).
-    if (e.campo) setEnfocar({ id: ID[e.campo === "codigo" ? "correo" : e.campo] });
+    if (e.campo) setEnfocar({ id: ID[(e.campo === "codigo" ? "correo" : e.campo) as CampoCuenta] ?? ID.correo });
   }
 
   /**
-   * «Crear mi cuenta»: con todo completo y el correo confirmado. Si sale bien, el servidor lleva a «Mi cuenta» (o a la página que la
-   * persona quería ver, `volver`).
+   * «Crear mi cuenta»: con todo completo y el correo confirmado. Si sale bien, el servidor vuelve a la página donde estaba la persona
+   * (`volver`: la bolsa, una prenda) o la lleva al Inicio.
    */
   function crear() {
     if (faltan.length > 0 || enviando) return;
     setErrorGeneral(null);
     iniciar(async () => {
-      const respuesta = await crearCuenta({ registro: r, casilla: casilla?.version ?? null, volver }).catch((): RespuestaCrear => NO_DISPONIBLE);
+      const respuesta = await crearCuenta({ registro: r, volver }).catch((): RespuestaCrear => NO_DISPONIBLE);
       if (respuesta) aplicarError(respuesta);
     });
   }
@@ -307,7 +242,7 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
    * tapa) y le pone el cursor, que lo enciende con «Sigue aquí». Confirmar el correo, si el código todavía no se pidió, es tocar
    * «Obtener código» (o, si aún no se puede, escribir bien el correo).
    */
-  function irAlCampo(campo: CampoRegistro) {
+  function irAlCampo(campo: CampoCuenta) {
     const id = campo === "codigo" && codigoActual.estado !== "enviado" ? (puedeObtener ? ID_OBTENER : ID.correo) : ID[campo];
     const destino = document.getElementById(id);
     if (!destino) return;
@@ -348,10 +283,12 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
       <div>
         <span className="t-ceja">Crea tu cuenta</span>
         <h1 className="w-titulo">
-          Entra al catálogo y <em>forma parte del club.</em>
+          Solo lo necesario. <em>Lo demás, cuando separes.</em>
         </h1>
-        <p className="w-texto-sec">Una sola vez. Con tu documento te reconocemos en cualquier tienda y sale tu boleta.</p>
+        <p className="w-texto-sec">Con tu cuenta separas, guardas tus favoritos y sigues tus pedidos. El Club CAYLA empieza cuando separas tu primera prenda.</p>
       </div>
+
+      <BotonGoogle volver={volver} texto="Crear mi cuenta con Google" />
 
       <Campo campo="correo" idCaja={ID.correo} etiqueta="Correo" marca={marca("correo")} {...foco("correo")}>
         {/* «Obtener código» al lado del correo (Felipe 2026-10-15); con el correo confirmado, el botón se va y queda el ✓. La misma
@@ -467,6 +404,23 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
         </Campo>
       )}
 
+      <Campo campo="nombre" idCaja={ID.nombre} etiqueta="Tu nombre" marca={marca("nombre")} {...foco("nombre")}>
+        <input
+          id={ID.nombre}
+          className="w-caja"
+          autoComplete="given-name"
+          autoCapitalize="words"
+          maxLength={MAX_NOMBRE_CUENTA}
+          value={r.nombre}
+          onChange={(e) => cambiar({ nombre: e.target.value })}
+          aria-describedby={`${ID.nombre}-res`}
+          aria-invalid={estado.nombre === "mal" || undefined}
+        />
+        <Resultado id={ID.nombre}>
+          <p className="w-ayuda">{MENSAJES.nombreAyuda}</p>
+        </Resultado>
+      </Campo>
+
       <Campo campo="clave" idCaja={ID.clave} etiqueta="Contraseña" marca={marca("clave")} {...foco("clave")}>
         <CajaClave
           id={ID.clave}
@@ -481,185 +435,7 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
         </Resultado>
       </Campo>
 
-      <Campo campo="documento" idCaja={ID.documento} etiqueta="Documento" marca={marca("documento")} {...foco("documento")}>
-        {/* El tipo (Felipe 2026-10-15: DNI, carné de extranjería o pasaporte, «como en las tiendas»). Cambiarlo no borra el número: se
-            ajusta a lo que ese tipo admite (la misma regla de la caja del ERP). */}
-        <div className="w-tipos" role="radiogroup" aria-label="Tipo de documento">
-          {TIPOS_DOCUMENTO_CLIENTA.map((t) => (
-            <button
-              key={t.valor}
-              type="button"
-              role="radio"
-              aria-checked={r.documentoTipo === t.valor}
-              className="w-tipo"
-              onClick={() => cambiarTipo(t.valor)}
-            >
-              {t.etiqueta}
-            </button>
-          ))}
-        </div>
-        <input
-          id={ID.documento}
-          className="w-caja num"
-          inputMode={cajaDelNumero(r.documentoTipo).teclado}
-          autoCapitalize={esDni ? "none" : "characters"}
-          autoComplete="off"
-          spellCheck={false}
-          maxLength={cajaDelNumero(r.documentoTipo).largo}
-          placeholder={ayudaDelNumero(r.documentoTipo)}
-          aria-label={`Número de ${TIPOS_DOCUMENTO_CLIENTA.find((t) => t.valor === r.documentoTipo)?.etiqueta ?? "documento"}`}
-          value={r.documento}
-          onChange={(e) => cambiar({ documento: ajustarNumeroAlTipo(r.documentoTipo, e.target.value) })}
-          aria-describedby={`${ID.documento}-res`}
-          aria-invalid={estado.documento === "mal" || estado.documento === "repetido" || undefined}
-        />
-        <Resultado id={ID.documento}>
-          {consultaDocumento.estado === "repetido" ? (
-            <>
-              <span className="w-res-error">{documentoRepetido(r.documentoTipo)}</span>
-              {enlacesDeCuenta}
-            </>
-          ) : consultaDocumento.estado === "archivada" ? (
-            <span className="w-res-error">{MENSAJES.dniArchivada}</span>
-          ) : consultaDocumento.estado === "buscando" ? (
-            <p className="w-ayuda">{esDni ? MENSAJES.dniBuscando : MENSAJES.documentoRevisando}</p>
-          ) : consultaDocumento.estado === "encontrado" ? (
-            // Su nombre del padrón, a medias (no revela el de nadie) y con su origen: no se escribe ni se cambia aquí.
-            <>
-              <span className="w-res-ok">
-                <Icono nombre="check" />
-                {consultaDocumento.aMedias}
-              </span>
-              <p className="w-ayuda">{MENSAJES.dniDelPadron}</p>
-            </>
-          ) : consultaDocumento.estado === "libre" ? (
-            <p className="w-ayuda">{MENSAJES.documentoLibre}</p>
-          ) : consultaDocumento.estado === "sin_nombre" ? (
-            // Sin el nombre del padrón no hay cuenta (Felipe 2026-10-15): el porqué y «Volver a intentar», que pregunta otra vez.
-            <>
-              <span className="w-res-error">{mensajeSinNombre(consultaDocumento.motivo)}</span>
-              <button type="button" className="w-enlace" onClick={() => setDocumentoRevisado({ valor: "", estado: { estado: "sin_revisar" } })}>
-                Volver a intentar
-              </button>
-            </>
-          ) : (
-            <p className="w-ayuda">{esDni ? MENSAJES.dniAyuda : MENSAJES.documentoAyuda}</p>
-          )}
-        </Resultado>
-      </Campo>
-
-      {/* Con carné o pasaporte, el nombre se escribe tal cual está en el documento: nombres y apellidos aparte (así el documento se
-          copia línea por línea y el saludo toma el nombre, no el apellido). Con DNI no hay caja: sale del padrón. */}
-      {!esDni &&
-        (["nombres", "apellidos"] as const).map((parte) => (
-          <Campo key={parte} campo={parte} idCaja={ID[parte]} etiqueta={parte === "nombres" ? "Nombres" : "Apellidos"} marca={marca(parte)} {...foco(parte)}>
-            <input
-              id={ID[parte]}
-              className="w-caja"
-              autoComplete={parte === "nombres" ? "given-name" : "family-name"}
-              autoCapitalize="words"
-              maxLength={MAX_PARTE_NOMBRE}
-              value={r[parte]}
-              onChange={(e) => cambiar({ [parte]: e.target.value } as Partial<Registro>)}
-              aria-describedby={`${ID[parte]}-res`}
-              aria-invalid={estado[parte] === "mal" || undefined}
-            />
-            <Resultado id={ID[parte]}>
-              {estado[parte] === "mal" ? (
-                <span className="w-res-error">{MENSAJES.nombreConNumeros}</span>
-              ) : (
-                <p className="w-ayuda">{parte === "nombres" ? MENSAJES.nombresAyuda : MENSAJES.apellidosAyuda}</p>
-              )}
-            </Resultado>
-          </Campo>
-        ))}
-
-      <Campo campo="cel" idCaja={ID.cel} etiqueta="Celular con WhatsApp" marca={marca("cel")} {...foco("cel")}>
-        <div className="w-caja-pref">
-          <span aria-hidden="true">+51</span>
-          <input
-            id={ID.cel}
-            className="w-caja num"
-            inputMode="tel"
-            autoComplete="tel-national"
-            maxLength={9}
-            placeholder="9 dígitos" // sugerir-fijo: el largo de un celular no depende de nada elegido antes
-            value={r.celular}
-            onChange={(e) => cambiar({ celular: soloDigitos(e.target.value, 9) })}
-            aria-describedby={`${ID.cel}-res`}
-            aria-invalid={estado.cel === "mal" || undefined}
-          />
-        </div>
-        <Resultado id={ID.cel}>
-          {estado.cel === "mal" ? <span className="w-res-error">{MENSAJES.celMal}</span> : <p className="w-ayuda">{MENSAJES.celAyuda}</p>}
-        </Resultado>
-      </Campo>
-
-      <Campo campo="cumple" idCaja={ID.cumple} etiqueta="Tu cumpleaños" marca={marca("cumple")} {...foco("cumple")}>
-        <div className="w-cumple">
-          <input
-            id={ID.cumple}
-            className="w-caja num"
-            inputMode="numeric"
-            maxLength={2}
-            placeholder="Día"
-            aria-label="Día"
-            value={r.cumple.d}
-            onChange={(e) => cambiar({ cumple: { ...r.cumple, d: soloDigitos(e.target.value, 2) } })}
-            aria-describedby={`${ID.cumple}-res`}
-          />
-          <input
-            className="w-caja num"
-            inputMode="numeric"
-            maxLength={2}
-            placeholder="Mes"
-            aria-label="Mes, del 1 al 12"
-            value={r.cumple.m}
-            onChange={(e) => cambiar({ cumple: { ...r.cumple, m: soloDigitos(e.target.value, 2) } })}
-            aria-describedby={`${ID.cumple}-res`}
-          />
-          <input
-            className="w-caja num"
-            inputMode="numeric"
-            maxLength={4}
-            placeholder="Año (opcional)"
-            aria-label="Año, opcional"
-            value={r.cumple.a}
-            onChange={(e) => cambiar({ cumple: { ...r.cumple, a: soloDigitos(e.target.value, 4) } })}
-            aria-describedby={`${ID.cumple}-res`}
-          />
-        </div>
-        <Resultado id={ID.cumple}>
-          {estado.cumple === "mal" ? (
-            <span className="w-res-error">{estado.motivoCumple === "menor" ? MENSAJES.cumpleMenor : MENSAJES.cumpleMal}</span>
-          ) : estado.cumple === "ok" ? (
-            <span className="w-res-ok">
-              <Icono nombre="regalo" />
-              Tu cumpleaños: {cumpleTexto(Number(r.cumple.d), Number(r.cumple.m))}
-            </span>
-          ) : (
-            <p className="w-ayuda">{MENSAJES.cumpleAyuda}</p>
-          )}
-        </Resultado>
-      </Campo>
-
       <div className="w-casillas">
-        <div className="w-campo" data-campo="mayor" data-estado={marca("mayor")}>
-          <label className="w-check" htmlFor={ID.mayor}>
-            <input
-              id={ID.mayor}
-              type="checkbox"
-              checked={r.mayor}
-              onChange={(e) => cambiar({ mayor: e.target.checked })}
-              onFocus={() => setEnFoco("mayor")}
-              onBlur={() => setEnFoco(null)}
-            />
-            <span>
-              {MENSAJES.mayor} <span className="w-marca">{TEXTO_MARCA[marca("mayor")]}</span>
-            </span>
-          </label>
-        </div>
-
         <div className="w-campo" data-campo="acepta" data-estado={marca("acepta")}>
           <label className="w-check" htmlFor={ID.acepta}>
             <input
@@ -671,42 +447,18 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
               onBlur={() => setEnFoco(null)}
             />
             <span>
-              Acepto crear mi cuenta y unirme al Club CAYLA, y que CAYLA use mis datos para mis pedidos y beneficios, como dicen la{" "}
+              Acepto crear mi cuenta y que CAYLA use mis datos para mis pedidos, como dicen la{" "}
               <Link href="/privacidad" target="_blank">
                 política de privacidad
               </Link>{" "}
               y los{" "}
               <Link href="/terminos-del-club" target="_blank">
-                términos del club
+                términos
               </Link>
               . <span className="w-marca">{TEXTO_MARCA[marca("acepta")]}</span>
             </span>
           </label>
         </div>
-
-        {casilla && (
-          <div className="w-campo w-avisos" data-campo="avisos" data-estado={r.avisos ? "hecho" : "opcional"}>
-            <span className="w-campo-t">
-              {MENSAJES.avisosTitulo} <span className="w-marca">{r.avisos ? TEXTO_MARCA.hecho : "Opcional"}</span>
-            </span>
-            <label className="w-check" htmlFor={ID.avisos}>
-              <input
-                id={ID.avisos}
-                type="checkbox"
-                checked={r.avisos}
-                onChange={(e) => {
-                  setAvisoCasilla(null);
-                  cambiar({ avisos: e.target.checked });
-                }}
-                aria-describedby={`${ID.avisos}-res`}
-              />
-              <span>{casilla.texto}</span>
-            </label>
-            <div className="w-res w-check-res" id={`${ID.avisos}-res`} aria-live="polite">
-              {avisoCasilla ? <span className="w-res-aviso">{avisoCasilla}</span> : <p className="w-ayuda">{MENSAJES.avisosAyuda}</p>}
-            </div>
-          </div>
-        )}
       </div>
 
       <p className="w-texto-sec">
@@ -722,7 +474,7 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
         </span>
         <p className="w-faltan" aria-live="polite">
           {faltan.length ? (
-            // Los primeros que faltan, cada uno lleva a su campo, y cuántos más (antes, los ocho en cuatro renglones fijos).
+            // Los primeros que faltan, cada uno lleva a su campo, y cuántos más.
             <>
               Falta:{" "}
               {resumenFaltan.nombrados.map(([campo, nombre], i) => (
