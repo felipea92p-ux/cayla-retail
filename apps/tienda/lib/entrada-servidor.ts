@@ -1,6 +1,7 @@
 import "server-only";
+import { cookies } from "next/headers";
 import { leerConRespaldo } from "./base";
-import { leerAnotacion, leerUsuariosPorBorrar, type Anotacion } from "./entrada";
+import { COOKIE_ENTRADA, ENTRADA_DURA_S, leerAnotacion, leerUsuariosPorBorrar, marcaDeEntrada, type Anotacion } from "./entrada";
 
 // La entrada a la tienda y las cuentas cerradas, en la base del ERP (ADR-0408, `20261015055000`), solo por sus funciones
 // `retail.tienda_*`. Si la base no contesta, nada se anota ni se borra: la próxima entrada lo vuelve a intentar (principio 9).
@@ -37,3 +38,17 @@ export const usuarioBorradoEnBase = (usuarioWebId: string): Promise<boolean | nu
     },
     null,
   );
+
+/**
+ * La marca de «hoy ya se anotó la entrada» de este aparato (la misma que deja `anotarEntrada`). Crear la cuenta o entrar con Google
+ * también es entrar: se anota y se deja la marca, así el marco no vuelve a preguntar hoy. Solo desde una acción o una ruta.
+ */
+export async function marcarEntradaDeHoy(usuarioWebId: string): Promise<void> {
+  (await cookies()).set(COOKIE_ENTRADA, marcaDeEntrada(usuarioWebId), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: ENTRADA_DURA_S,
+  });
+}
