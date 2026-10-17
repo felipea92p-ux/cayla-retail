@@ -213,3 +213,31 @@ solo cubre lo que lo llama).
 rechazan, las de un mes abierto o futuro no; y DOS SESIONES reales entrelazadas, con `lock_timeout`, en las dos direcciones, más el control de que un gasto de HOY no espera): 9 fallan sin la migración y las 16
 pasan con ella; la carrera con confirmaciones reales en una base desechable, arriba. **No verificado en el navegador:** la base local compartida no tiene la migración; queda para el pase final (un mes cerrado en
 Reportes ▸ Estado de resultados).
+
+## Actividad 10 · Cada pago de un apartado se asienta el día en que entró la plata (G02)
+
+**El problema.** Un apartado se separa con un adelanto y, antes de entregarse, la clienta puede abonar más. El diario (`fn_asientos`) asentaba TODO el adelanto —incluidos los abonos de días o meses
+después— el día de la separación y con el total de hoy (`separaciones.adelanto`); el Balance (`fn_bal_anticipos`), igual. Un abono de marzo aparecía en febrero; el diario de febrero CAMBIABA cuando la clienta
+abonaba (un mes cerrado divergía de su foto por una operación normal y el chequeo «huella» se ponía en rojo); la caja, el banco y el IGV quedaban mal fechados, y Cuentas y dinero (por fecha del pago) decía
+otra cosa. En producción hay UN apartado, `APT-TRU-0006` (separado el 9-oct, pagos de 30.00 el 9, 30.00 el 14 y 29.90 el 15-oct): el diario asentaba 89.90 el 9-oct y nada el 14 ni el 15. Todo dentro de
+octubre y sin mes cerrado, por eso nadie lo vio.
+
+DECIDÍ (Felipe, 2026-10-16: aprobada la actividad 10 de la tanda 1; no cambia la política contable, solo la fecha):
+- **Un asiento por pago**, con la fecha en que entró (`separacion_pagos.created_at`, hora de Lima): 101/104/105 al debe, 122 y 4011 al haber, con el IGV de ESE pago a la tasa de ESE día
+  (`fn_igv_de_adelanto`). El origen de cada línea sigue siendo la separación (el enlace «De dónde sale» no cambia).
+- **Los céntimos se redondean por pago, y todo lo que reversa usa la MISMA suma** (lente 1 de /rigor: una igualdad entre dos conjuntos de líneas que debe valer a la fracción): la devolución y la venta que
+  aplica el adelanto al entregar usan `fn_igv_de_la_separacion` (la suma de los IGV de sus pagos); si no, el 4011 quedaría huérfano por un céntimo (33.33 + 36.67: 5.08 + 5.59 = 10.67 contra los 10.68 que da
+  redondear el total). Si la venta aplica solo una parte, la parte proporcional.
+- **El Balance suma lo recibido hasta el corte** (`fn_bal_anticipos`), no el total de hoy, y sigue excluyendo lo devuelto o aplicado antes del corte.
+- **Qué pasa con producción:** la migración (`20261017014000`) mueve las líneas de `APT-TRU-0006` del 9 al 14 y 15-oct (mismo mes: ningún total mensual cambia) y su IGV pasa de 13.71 a 13.72 (un céntimo,
+  por redondear por pago).
+DESCARTÉ: dejar el asiento en la fecha de la separación y «corregir» al cerrar (la foto de un mes cerrado seguiría divergiendo); guardar la fecha del primer pago y sumar los abonos como ajuste (dos fuentes
+de verdad para lo mismo); mover aquí el 4011 a la entrega.
+**PENDIENTE DEL CONTADOR (no se decide aquí; ADR-0399):** hoy el diario asienta el IGV de cada adelanto (4011) el día que entra, como cuando cada abono emitía su comprobante de anticipo. Desde ADR-0399 un
+apartado nuevo NO emite comprobante: la boleta sale una sola vez, al entregar, por el total. Si el contador dice que el IGV nace al entregar y no al cobrar el adelanto, el 4011 de los apartados nuevos se mueve a
+la entrega: es otra migración, con su decisión. Esta corrige la FECHA, no la política.
+SE ROMPE SI: se altera `separacion_pagos.created_at` a mano (las fechas son el dato); `separaciones.adelanto` deja de ser la suma de sus pagos (`fn_verificar_separaciones` lo vigila); una migración futura
+vuelve a crear `fn_asientos` copiando su texto de un archivo viejo (revierte el asiento por pago: la prueba lo atrapa).
+**Verificado.** `pnpm pruebas:finanzas-apartados-por-pago`: 16 verificaciones con las RPC reales (`separar_prendas`, `abonar_separacion`, `registrar_devolucion_separacion`, `entregar_separacion`), 7 fallan sin la
+migración y las 16 pasan con ella; `fn_asientos` y `fn_bal_anticipos` tenían la misma huella en local y en producción (f2e74089… y b7fc4c42…), así que los reemplazos anclados caben en producción. **No verificado en
+el navegador:** la base local compartida no tiene la migración.

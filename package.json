@@ -64,6 +64,7 @@
     "pruebas:perdidas": "node scripts/pruebas/perdidas.mjs",
     "pruebas:resumen-finanzas": "node scripts/pruebas/resumen_finanzas.mjs",
     "pruebas:finanzas-alcance": "node scripts/pruebas/finanzas_alcance_coherente.mjs",
+    "pruebas:finanzas-apartados-por-pago": "node scripts/pruebas/finanzas_apartados_por_pago.mjs",
     "pruebas:finanzas-arranque": "node scripts/pruebas/finanzas_arranque.mjs",
     "pruebas:finanzas-mes-cerrado": "node scripts/pruebas/finanzas_mes_cerrado.mjs",
     "pruebas:costo-estimado-venta-sin-prenda": "node scripts/pruebas/costo_estimado_venta_sin_prenda.mjs",
