@@ -357,8 +357,8 @@ export function ProbadorPantalla({
           <p>
             Una prenda sale en el probador con su largo y un recorte listo. El recorte es el fondo transparente de la propia foto (el PNG sin fondo
             que entrega la IA): ninguna foto cambia, y una foto sin fondo transparente se queda sin recorte. Un color sin foto propia se elige igual: se ve otra
-            foto de la prenda y se avisa. Aquí solo salen las prendas que el probador usa —lo de arriba, vestidos y conjuntos, lo de abajo, lo que va
-            encima y los bolsos—: los demás accesorios, la bisutería y el calzado no entran.
+            foto de la prenda y se avisa. Un look lleva como máximo 3 prendas: una de arriba (top, blusa, polo, camisa, chaleco, casaca o blazer), una de abajo y un bolso. Aquí solo
+            salen esas: los vestidos, enterizos y conjuntos, las capas, los demás accesorios, la bisutería y el calzado no entran.
           </p>
         </div>
 

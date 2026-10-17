@@ -21,8 +21,8 @@ import { camposDeLargo } from "@/lib/vitrina-probador-guia";
 import { avisoDeRedondeo, coloresPorFotografiar, errorDeLargo, leerLargo, queHacerConLaPrenda, veredictoDelProbador, type PrendaDelProbador } from "@/lib/vitrina-probador-reglas";
 
 /**
- * Una prenda en Vitrina ▸ Probador (ADR-0434, actividad 3): su largo para el probador —vacío usa el típico de su categoría; vestidos,
- * faldas, conjuntos y enterizos no tienen típico (Felipe, 2026-10-16)—, qué colores tienen su foto y cómo van sus recortes. Las fotos se
+ * Una prenda en Vitrina ▸ Probador (ADR-0434, actividad 3): su largo para el probador —vacío usa el típico de su categoría; las
+ * faldas no tienen típico (Felipe, 2026-10-16; vestidos, enterizos y conjuntos ya no entran, ADR-0444)—, qué colores tienen su foto y cómo van sus recortes. Las fotos se
  * cambian en Editar producto (el enlace lleva ahí). Guardar firma el «Responsable» (ADR-0162).
  */
 export function ProbadorPrendaHoja({

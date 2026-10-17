@@ -110,8 +110,8 @@ export function estaLista(p: PrendaDelProbador): boolean {
 /* ---------------- Lo que entra al probador (/formidable, 2026-10-17) ---------------- */
 
 /**
- * ¿El probador de la tienda usa las prendas de esta categoría? Solo arriba, vestido, abajo, encima y el bolso: los demás accesorios, la
- * bisutería y el calzado no entran en esta versión (ADR-0434). Es la MISMA regla de la tienda (`zonaDelProbador`, en `packages/shared`),
+ * ¿El probador de la tienda usa las prendas de esta categoría? Solo arriba (con casacas, blazers y chalecos), abajo y el bolso, máximo 3 prendas por look
+ * (ADR-0444): no entran vestidos, enterizos, conjuntos ni capas, ni los demás accesorios, la bisutería y el calzado. Es la MISMA regla de la tienda (`zonaDelProbador`, en `packages/shared`),
  * por el prefijo y, sin prefijo, por el nombre, como la tienda. Sin esto la pantalla les pedía largo y recorte a aretes y cinturones que
  * nadie va a ver: 36 de las 48 prendas «sin largo» de producción el 2026-10-17.
  */
