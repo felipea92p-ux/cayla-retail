@@ -55,6 +55,7 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 | «Ver más / Ver menos» (`accion.siguiente`) | `<BotonVerMas>` + `<FilasDeMas>` (`components/ui/VerMas.tsx`): la franja al pie de la lista con la flecha que gira y las filas que bajan en su lugar; en una lista suelta, el enlace (ronda 15) | 2026-10-15 (tocando) | 0 | [accion.siguiente.md](accion.siguiente.md) |
 | «Deshacer» (`accion.deshacer`) | `<BotonDeshacer>` (`components/ui/BotonDeshacer.tsx`): el enlace con la flecha curva delante (ronda 15) | 2026-10-15 (tocando) | 0 | [accion.deshacer.md](accion.deshacer.md) |
 | «Buscar» al apretar (`accion.buscar`) | `<BotonBuscar>` (`components/ui/BotonBuscar.tsx`): el secundario con la lupa; primario solo si buscar es el paso (ronda 15) | 2026-10-15 (tocando) | 0 | [accion.buscar.md](accion.buscar.md) |
+| Elegir el mes (`mes`) | `<SelectorMes>` / `<SelectorMesEnUrl>` (`components/ui/SelectorMes.tsx`): «‹ Octubre 2026 ›» con los doce meses al tocar el nombre (ronda 17) | 2026-10-17 (mirando) | 0 | [mes.md](mes.md) |
 | Anterior y siguiente (`accion.anterior`) | `<Volver onClick>` + «Siguiente» primario con su flecha, como todo paso a paso (ronda 17) | 2026-10-17 (mirando) | 0 | [accion.anterior.md](accion.anterior.md) |
 
 ## Propuestas esperando decisión

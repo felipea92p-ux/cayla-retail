@@ -2,7 +2,7 @@
   "guia": "vender.comprobantes.emitidos",
   "ruta": "/vender/comprobantes/emitidos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 51,
+  "total": 49,
   "controles": {
     "components/ComprobantesPanel.tsx": [
       "BotonCompacto «{`Reintentar ${numero}»",
@@ -68,10 +68,6 @@
     ],
     "components/PestanasComprobantesMovil.tsx": [
       "Link «{p.etiqueta}»"
-    ],
-    "components/SelectorMesFacturacion.tsx": [
-      "Link «comprobantes.mes-anterior»",
-      "Link «{NOMBRES_MES[siguiente.mes - 1]}»"
     ],
     "components/SinCoincidencias.tsx": [
       "Boton «Borrar la búsqueda»"

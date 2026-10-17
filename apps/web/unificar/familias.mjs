@@ -275,6 +275,14 @@ const BASE = [
     gobierna: ["ADR-0169", "ADR-0136", "ADR-0322", "ADR-0357", "ADR-0355"],
   },
   {
+    id: "mes",
+    grupo: "Filtros y búsqueda",
+    nombre: "Elegir el mes",
+    funcion: "Pasar de un mes a otro en una pantalla que muestra un mes: Comprobantes, Proformas, el Historial de cierres.",
+    pieza: "`<SelectorMes>` / `<SelectorMesEnUrl>` (components/ui/SelectorMes.tsx), decidido el 2026-10-17 (ronda 17); Finanzas elige el mes con su combo (ADR-0195)",
+    gobierna: ["ADR-0195"],
+  },
+  {
     id: "titulo-pagina",
     grupo: "Textos",
     nombre: "Títulos de pantalla",
@@ -400,7 +408,6 @@ export const DECISIONES = {
     deuda: [],
     excepciones: [
       { archivo: "components/conteo/RevisarConteo.tsx", motivo: "«Volver a contar» es la acción principal de Revisar conteo (ir a contar lo pendiente), no un paso atrás (Felipe 2026-10-07)" },
-      { archivo: "components/SelectorMesFacturacion.tsx", motivo: "«← SEPTIEMBRE» pasa al mes anterior, no vuelve a una pantalla: es la familia «elegir el mes», que se decide en la ronda 17" },
       { archivo: "app/(app)/global/elige-sede/page.tsx", motivo: "Tarjeta de barrera (elegir sede): su salida es la única acción de la tarjeta y va con los botones, no es la vuelta de una pantalla interna (docs/unificar/accion.volver.md)" },
     ],
   },
@@ -452,9 +459,7 @@ export const DECISIONES = {
     // El mostrador entró en su propia pasada (2026-10-07): conserva sus altos (28–36 px los compactos, 44–56 los de cobro) con
     // letra de 12,5 px en los compactos, y toma la voz, el movimiento y la onda. Probado a 375 px (PL-105).
     "deuda": [],
-    "excepciones": [
-      { "archivo": "components/SelectorMesFacturacion.tsx", "motivo": "Es el selector de mes de la barra de vidrio de Comprobantes (ADR-0124): un filtro de período, familia de pestañas, no un botón" }
-    ]
+    "excepciones": []
   },
   "accion.eliminar": {
     "fecha": "2026-10-07",
@@ -671,8 +676,7 @@ export const DECISIONES = {
     "ventana": 4,
     "deuda": [],
     "excepciones": [
-      { "archivo": "components/RecordatorioCierreCaja.tsx", "motivo": "ADR-0359: el aviso de cierre de caja de la cabecera tiene su diseño y su movimiento por decisión (su «→» corre con él)" },
-      { "archivo": "components/SelectorMesFacturacion.tsx", "motivo": "«SEPTIEMBRE · Octubre 2026 · NOVIEMBRE →» pasa de mes: es la familia «elegir el mes», que se decide en la ronda 17" }
+      { "archivo": "components/RecordatorioCierreCaja.tsx", "motivo": "ADR-0359: el aviso de cierre de caja de la cabecera tiene su diseño y su movimiento por decisión (su «→» corre con él)" }
     ]
   },
   "tabla": {
@@ -1284,6 +1288,20 @@ export const DECISIONES = {
     "firmas": [
       // Un botón «Deshacer» escrito a mano.
       ">\\s*Deshacer\\s*</"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "mes": {
+    "fecha": "2026-10-17",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/mes.md",
+    "elegida": "P1 · «‹ Octubre 2026 ›» en todas: las flechas pasan al mes de al lado y al tocar el nombre se abren los doce meses (los que no llegan, con candado); la del Historial de cierres, que Felipe eligió el 12; elegida mirando el 2026-10-17 (ronda 17)",
+    "pieza": "components/ui/SelectorMes.tsx",
+    "firmas": [
+      // Los vecinos escritos a mano con su flecha («← SEPTIEMBRE · Octubre 2026 · NOVIEMBRE →») y la pieza que los dibujaba.
+      "[←‹]\\s*\\{\\s*NOMBRES_MES\\b|NOMBRES_MES\\[[^\\]]+\\]\\s*\\}\\s*[→›]",
+      "\\bSelectorMesFacturacion\\b"
     ],
     "deuda": [],
     "excepciones": []
