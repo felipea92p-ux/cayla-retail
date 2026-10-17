@@ -3,8 +3,10 @@
 - [x] **Actividad 4 — El probador en el celular** (`/looks/arma`): figura a escala, deslizar, colores, tira, «Tu look» con candados,
   «Sorpréndeme», el look en la dirección y su esqueleto de carga. Prueba en la base `pnpm pruebas:tienda-probador` (20/20) y reglas
   `apps/tienda/lib/probador.test.ts`; mirado a 375 px en claro y oscuro contra un banco propio.
-- [ ] **No está en producción:** `supabase/migrations/20261017025000_tienda_probador.sql` (una función y sus permisos; se pega con el OK
-  de Felipe antes de fusionar el PR 2).
+- [x] **En producción desde el 2026-10-17**, con el OK de Felipe: `supabase/migrations/20261017025000_tienda_probador.sql`, verificada
+  contra la base (md5 de `tienda_probador` `4f835fad…`, solo la llama `tienda_web`). Responde con 0 prendas hasta que alguien apriete
+  «Preparar recortes» en el ERP.
+- [ ] Refrescar el volcado (`pnpm datos:refrescar`) para que `tienda_probador` entre al diccionario.
 - [x] **Actividad 5 — Buscar una prenda y ver todas las de una zona** («Ver todas» y «Buscar otra»): hoja a pantalla completa con la
   caja, las zonas, el conteo, tarjetas con colores y «Probar», sugerencias que salen de lo que hay y su vacío; «atrás», la flecha y
   Escape la cierran (el primer Escape borra lo escrito). El «Solo en Trujillo» del lienzo es la franja «Ver lo que hay en» de toda la

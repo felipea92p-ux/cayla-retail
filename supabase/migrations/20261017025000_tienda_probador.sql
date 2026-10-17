@@ -33,8 +33,9 @@
 -- SE ROMPE SI: alguien cambia `fn_tienda_precios` o `fn_tienda_disponible` y deja esta función con otra regla: `pnpm pruebas:tienda-
 --   probador` cruza su precio y su nivel con los de la ficha y el look, de la misma prenda en la misma tienda.
 --
--- PRODUCCIÓN. NO está aplicada: se pega con el OK de Felipe antes de fusionar su PR (el probador se publica escondido, ADR-0434). Solo
--- una función y sus permisos, sin políticas ni `alter` de tablas: se pega entera y se puede volver a correr.
+-- PRODUCCIÓN. APLICADA el 2026-10-17 con el OK de Felipe, antes de fusionar su PR (el probador se publica escondido, ADR-0434); md5 de
+-- la función: 4f835fad12d85e060e2f8b82767212a8. Solo una función y sus permisos, sin políticas ni `alter` de tablas: se pega entera y
+-- se puede volver a correr.
 -- ============================================================================
 
 set search_path = retail, public, extensions;
