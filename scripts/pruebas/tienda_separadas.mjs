@@ -150,8 +150,8 @@ on conflict (producto_id) do update set publicado = true, publicado_en = now();
 ${AYUDAS}
 select pg_temp.vaciar(:'v', :'tru'), pg_temp.vaciar(:'v', :'lim'), pg_temp.vaciar(:'v2', :'tru'), pg_temp.vaciar(:'v2', :'lim');
 -- Dos clientes con cuenta web (su usuario del proyecto de clientes es un id cualquiera: aquí no se entra a ningún lado).
-insert into retail.clientas (nombre, telefono_whatsapp) values ('ZZ Cliente A separadas', '999888781') returning id as cli_a \\gset
-insert into retail.clientas (nombre, telefono_whatsapp) values ('ZZ Cliente B separadas', '999888782') returning id as cli_b \\gset
+insert into retail.clientas (nombre, telefono_whatsapp, documento_tipo, documento_numero, club_desde, codigo_club) values ('ZZ Cliente A separadas', '999888781', 'dni', '09997004', now(), retail.fn_club_codigo_nuevo()) returning id as cli_a \\gset
+insert into retail.clientas (nombre, telefono_whatsapp, documento_tipo, documento_numero, club_desde, codigo_club) values ('ZZ Cliente B separadas', '999888782', 'dni', '09997005', now(), retail.fn_club_codigo_nuevo()) returning id as cli_b \\gset
 select gen_random_uuid() as usr_a, gen_random_uuid() as usr_b \\gset
 insert into retail.cuentas_web (usuario_web_id, clienta_id, correo, textos_aceptados)
 values (:'usr_a', :'cli_a', 'zz-sep-a@prueba-tienda.test', 'prueba'), (:'usr_b', :'cli_b', 'zz-sep-b@prueba-tienda.test', 'prueba');

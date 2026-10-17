@@ -558,7 +558,7 @@ end $m$;\n`;
 
   // ---------------------------------------------------------------- 10. Lo que se ofrece
   // Una cuenta web para «Separar» y «Avísame» (su usuario del proyecto de clientes es un id cualquiera: aquí no se entra a ningún lado).
-  const CON_CUENTA = `insert into retail.clientas (nombre, telefono_whatsapp) values ('ZZ Cliente de la ficha', '999888779') returning id as cli \\gset
+  const CON_CUENTA = `insert into retail.clientas (nombre, telefono_whatsapp, documento_tipo, documento_numero, club_desde, codigo_club) values ('ZZ Cliente de la ficha', '999888779', 'dni', '09997003', now(), retail.fn_club_codigo_nuevo()) returning id as cli \\gset
 select gen_random_uuid() as usr \\gset
 insert into retail.cuentas_web (usuario_web_id, clienta_id, correo, textos_aceptados) values (:'usr', :'cli', 'zz-ficha-' || gen_random_uuid() || '@prueba-tienda.test', 'prueba');
 create function pg_temp.hint(p_sql text) returns text language plpgsql as $f$

@@ -215,6 +215,11 @@ DE_LA_TIENDA.push("tienda_mis_avisos_del_club");
 // el correo de entrada (sin datos suyos). Sin módulo a propósito, como las de arriba: solo `tienda_web` las ejecuta (lo prueba
 // tienda_puerta.mjs) y las prueba a fondo scripts/pruebas/tienda_mi_cuenta.mjs.
 DE_LA_TIENDA.push("tienda_correo_confirmado", "tienda_eliminar_mi_cuenta");
+// Y la cuenta simple y el Club al separar (ADR-0438, 20261017175000): crear la cuenta con lo mínimo, revisar y completar los datos del Club, y
+// el candado de «Separar» (`tienda_separar` ahora pregunta si la ficha es del Club). Sin módulo a propósito, como las de arriba: las llama el
+// servidor de la tienda con el rol `tienda_web` (la persona que las usa no es una cuenta del ERP) y solo `tienda_web` las ejecuta. La prueba a
+// fondo es scripts/pruebas/tienda_cuenta_simple.mjs.
+DE_LA_TIENDA.push("tienda_registrar_cuenta_simple", "tienda_revisar_registro_simple", "tienda_revisar_club", "tienda_unirse_al_club", "tienda_separar");
 
 // Las de los pedidos web (ADR-0408, 20261014235000) que muestran al cliente de un pedido: el detalle y la lista de una tienda.
 // Con el candado de SU módulo, `pedidos_web` (`fn_pedido_web_exigir`), como las de Avisos: quien atiende el pedido ve solo lo que
@@ -750,6 +755,10 @@ LISTA_BLANCA.push("fn_pedido_web_vender");
 // texto de sus recomendaciones. Devuelve `trigger` (nadie la llama por la API) y no devuelve nada de la ficha. La prueba a fondo es
 // scripts/pruebas/recomendaciones_web.mjs (sección A).
 LISTA_BLANCA.push("fn_recomendaciones_al_anonimizar");
+// Y el ayudante de la cuenta simple (ADR-0438): fn_ficha_minima_de_cuenta lee de la ficha si es una «tarjeta en blanco» de la web (origen, sin
+// documento, celular ni Club) y devuelve solo un sí o un no. Nadie de la API la ejecuta (lo prueba tienda_cuenta_simple.mjs) y solo la llama el
+// disparador de `cuentas_web`.
+LISTA_BLANCA.push("fn_ficha_minima_de_cuenta");
 /** La condición del vigilante: sin el candado del módulo (en el código, no en un comentario), salvo las de la página. */
 const SIN_EL_CANDADO = `x.src !~ 'fn_exigir_modulo\\(''clientas''\\)' and x.proname not in (${[...DE_LA_PAGINA, ...DEL_SERVIDOR, ...DE_LA_TIENDA].map((n) => `'${n}'`).join(", ")})
   and not (x.proname in (${DE_AVISOS.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''avisos_club''\\)')

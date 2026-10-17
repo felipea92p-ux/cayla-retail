@@ -115,6 +115,26 @@
   "tablename": "cambios"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX campana_disenos_pkey ON retail.campana_disenos USING btree (id)",
+  "indexname": "campana_disenos_pkey",
+  "tablename": "campana_disenos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX campana_disenos_un_anterior ON retail.campana_disenos USING btree (etiqueta_id) WHERE (estado = 'anterior'::text)",
+  "indexname": "campana_disenos_un_anterior",
+  "tablename": "campana_disenos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX campana_disenos_un_borrador ON retail.campana_disenos USING btree (etiqueta_id) WHERE (estado = 'borrador'::text)",
+  "indexname": "campana_disenos_un_borrador",
+  "tablename": "campana_disenos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX campana_disenos_un_publicado ON retail.campana_disenos USING btree (etiqueta_id) WHERE (estado = 'publicado'::text)",
+  "indexname": "campana_disenos_un_publicado",
+  "tablename": "campana_disenos"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX campana_efecto_caja_pkey ON retail.campana_efecto_caja USING btree (etiqueta_id, ubicacion_id)",
   "indexname": "campana_efecto_caja_pkey",
   "tablename": "campana_efecto_caja"
