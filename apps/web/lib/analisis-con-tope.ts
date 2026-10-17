@@ -64,6 +64,7 @@ export type PiezaAnalisis =
   | "pendientes_por_registrar"
   | "proveedores"
   | "campanas"
+  | "carga_inicial"
   | "historial_ventas";
 
 /**

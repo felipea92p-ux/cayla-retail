@@ -1,5 +1,6 @@
 "use client";
 
+import { pausaDelPisoDe } from "@/lib/analisis-al-dia";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAnalisis } from "@/components/analisis/contexto";
@@ -64,8 +65,8 @@ export function PestanaPedir() {
   const cuenta = cuentaHorizonte(h);
   const riel = useMemo(() => rielHacia(datos.hoy, h.fecha, h.nombre), [datos.hoy, h.fecha, h.nombre]);
   const tipos = useMemo(
-    () => alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, h, datos.sabePiso, datos.sinPrendaPorTipo, datos.pedido, datos.temporada),
-    [datos.prendas, diasDeVentas, datos.hoy, h, datos.sabePiso, datos.sinPrendaPorTipo, datos.pedido, datos.temporada],
+    () => alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, h, datos.sabePiso && !pausaDelPisoDe(datos), datos.sinPrendaPorTipo, datos.pedido, datos.temporada),
+    [datos.prendas, diasDeVentas, datos.hoy, h, datos.sabePiso && !pausaDelPisoDe(datos), datos.sinPrendaPorTipo, datos.pedido, datos.temporada],
   );
   // Lo pedido para mi tienda de un tipo que la lista no dibuja (la tienda no tiene ninguna prenda de ese tipo): se nombra aparte, para que
   // quien lo busca y no lo ve no lo vuelva a pedir.
@@ -424,8 +425,8 @@ function BloqueRinde() {
   const { diasDeVentas } = useAnalisis();
   // Un tipo del que casi todo se vendió sin registrar la prenda se calla (A6, d): su cifra mide una parte pequeña del tipo.
   const tiposDeMiTienda = useMemo(
-    () => alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, datos.horizonte, datos.sabePiso, datos.sinPrendaPorTipo, datos.pedido),
-    [datos.prendas, diasDeVentas, datos.hoy, datos.horizonte, datos.sabePiso, datos.sinPrendaPorTipo, datos.pedido],
+    () => alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, datos.horizonte, datos.sabePiso && !pausaDelPisoDe(datos), datos.sinPrendaPorTipo, datos.pedido),
+    [datos.prendas, diasDeVentas, datos.hoy, datos.horizonte, datos.sabePiso && !pausaDelPisoDe(datos), datos.sinPrendaPorTipo, datos.pedido],
   );
   const filas = useMemo(
     () => rindeConConfianza(datos.rinde, tiposDeMiTienda).sort((a, b) => Number(b.fiable) - Number(a.fiable) || b.porSol - a.porSol || a.categoria.localeCompare(b.categoria, "es")),

@@ -15,6 +15,8 @@ const fakes = vi.hoisted(() => ({
   getLecturaFrescuraDeTienda: vi.fn(),
 }));
 const { rpc } = fakes;
+// La carga inicial de mentira: por defecto una lectura sana sin sedes en carga; cada prueba puede cambiarla.
+let cargaFake: (...a: unknown[]) => Promise<unknown> = async () => ({ hoy: "2026-10-17", sedes: [] });
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ rpc: fakes.rpc, from: fakes.from }) }));
 vi.mock("@/lib/ubicaciones", () => ({
@@ -61,7 +63,7 @@ vi.mock("@/lib/analisis-armado", async () => await import("./analisis-armado"));
 vi.mock("@/lib/analisis-modelo", async () => await import("./analisis-modelo"));
 vi.mock("@/lib/analisis-piso", async () => await import("./analisis-piso"));
 vi.mock("@/lib/motor-demanda-reglas", async () => await import("./motor-demanda-reglas"));
-vi.mock("@/lib/carga-inicial", () => ({ getCargaInicial: async () => null }));
+vi.mock("@/lib/carga-inicial", () => ({ getCargaInicial: (...a: unknown[]) => cargaFake(...a) }));
 vi.mock("@/lib/carga-inicial-reglas", async () => await import("./carga-inicial-reglas"));
 vi.mock("@/lib/fechas-lima", async () => await import("./fechas-lima"));
 vi.mock("@/lib/registro-contable", async () => await import("./registro-contable"));
@@ -112,6 +114,7 @@ beforeEach(() => {
   vi.setSystemTime(Date.UTC(2026, 9, 16, 8) + ++prueba * 2 * 60 * 60 * 1000);
   for (const f of Object.values(fakes)) f.mockReset();
   vi.mocked(capturarError).mockClear();
+  cargaFake = async () => ({ hoy: "2026-10-17", sedes: [] });
 });
 afterEach(() => vi.useRealTimers());
 
@@ -471,5 +474,18 @@ describe("getProveedoresAnalisis (A8)", () => {
     expect(d.fallas).toEqual([FALLA_PROVEEDORES]);
     expect(d.sedesSinLeer).toEqual([]);
     expect(d.frescura).toBe("ok");
+  });
+
+  it("la carga inicial de mi tienda llega a la pantalla (B4), y si no se pudo leer se dice sin inventar un aviso", async () => {
+    baseSana();
+    fakes.from.mockImplementation(() => consulta(Promise.resolve({ data: [], error: null })));
+    cargaFake = async () => ({ hoy: "2026-10-17", sedes: [{ ubicacionId: ACTIVA.id, nombre: "Tienda", tipo: "tienda", hasta: "2026-10-21", abierta: true }] });
+    const ok = await getDatosAnalisis(ACTIVA, { conFrescura: true });
+    expect(ok.cargaInicial).toEqual({ sede: "Tienda", hasta: "2026-10-21", hoy: "2026-10-17" });
+    expect(Date.parse(ok.leidoEn)).toBe(Date.now());
+    cargaFake = async () => null;
+    const mal = await getDatosAnalisis(ACTIVA, { conFrescura: true });
+    expect(mal.cargaInicial).toBeNull();
+    expect(mal.fallas).toContain("No se pudo saber si tu stock sigue en carga");
   });
 });

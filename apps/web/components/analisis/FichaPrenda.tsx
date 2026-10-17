@@ -1,5 +1,6 @@
 "use client";
 
+import { pausaDelPisoDe } from "@/lib/analisis-al-dia";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
@@ -73,7 +74,7 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
   // El grupo de la prenda con la vara de su tipo: la ficha dice lo mismo que el carril de donde se abrió.
   const grupo = grupoConSobra(p, datos.horizonte.dias);
   // Guardada y nunca colgada (solo si la base ya lo sabe: 20261007120000): no «va bien», nadie la vio.
-  const sinSalir = datos.sabePiso && nuncaSalio(p);
+  const sinSalir = datos.sabePiso && !pausaDelPisoDe(datos) && nuncaSalio(p);
   // Algo ya llega a tiempo: la ficha dice lo mismo que el carril («Ya viene», sin rojo) y «Comprar» deja de ser el botón principal.
   const yaViene = porLlegar(p, datos.hoy) > 0;
   // El ritmo sale de UNA sola venta (D6, 2026-10-16): lo que se acaba sigue en «Cómpralas», pero sin rojo y con el chip que lo dice.

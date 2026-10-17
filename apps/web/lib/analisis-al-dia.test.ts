@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avisoCalidadDeDestino, avisoCargaInicial, lecturaVieja, MINUTOS_PARA_ACTUALIZAR, pausaDelPiso, pisoCuadradoDe, TEXTO_PAUSA_PISO, textoDatosDe } from "./analisis-al-dia";
+import { avisoCalidadDeDestino, avisoFranjaCarga, lecturaVieja, MINUTOS_PARA_ACTUALIZAR, pausaDelPiso, pisoCuadradoDe, TEXTO_PAUSA_PISO, textoDatosDe } from "./analisis-al-dia";
 import type { PreparacionAnalisis } from "./analisis-tipos";
 
 describe("la hora de la lectura (B4)", () => {
@@ -22,15 +22,15 @@ describe("la hora de la lectura (B4)", () => {
 describe("la franja de carga inicial (B4)", () => {
   const sede = (hasta: string | null) => ({ sede: "Arequipa", hasta, hoy: "2026-10-17" });
   it("abierta con fecha: dice hasta cuándo y que no pida por esta lista", () => {
-    expect(avisoCargaInicial(sede("2026-10-21"))).toBe("Tu stock sigue en carga hasta el 21-oct: no pidas por esta lista.");
+    expect(avisoFranjaCarga(sede("2026-10-21"))).toBe("Tu stock sigue en carga hasta el 21-oct: lo que ves en «Nunca salió al piso» todavía no es de ventas.");
   });
   it("el último día abierto todavía cuenta; el día siguiente ya no", () => {
-    expect(avisoCargaInicial(sede("2026-10-17"))).not.toBeNull();
-    expect(avisoCargaInicial(sede("2026-10-16"))).toBeNull();
+    expect(avisoFranjaCarga(sede("2026-10-17"))).not.toBeNull();
+    expect(avisoFranjaCarga(sede("2026-10-16"))).toBeNull();
   });
   it("sin fecha sigue abierta; sin dato no se avisa", () => {
-    expect(avisoCargaInicial(sede(null))).toContain("sin fecha de cierre");
-    expect(avisoCargaInicial(null)).toBeNull();
+    expect(avisoFranjaCarga(sede(null))).toContain("sin fecha de cierre");
+    expect(avisoFranjaCarga(null)).toBeNull();
   });
 });
 

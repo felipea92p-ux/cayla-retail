@@ -18,6 +18,7 @@ import { META_CON_PRENDA, ventasConPrendaDe100 } from "./analisis-aviso";
 import type { PreparacionAnalisis } from "./analisis-tipos";
 
 /** Pasado este tiempo desde la lectura, la pantalla ofrece «Actualizar». */
+/** @internal el límite de 30 minutos, que la prueba cruza con `lecturaVieja`. */
 export const MINUTOS_PARA_ACTUALIZAR = 30;
 
 /** «Datos de las 09:20» (hora de Lima); null si la lectura no trae una hora que se entienda: no se inventa. */
@@ -39,11 +40,11 @@ export const TITULO_CARGA_INICIAL = "Tu stock sigue en carga";
  * La frase de la franja de carga inicial: «Tu stock sigue en carga hasta el 21-oct: no pidas por esta lista.» Null si la sede no está en carga (la
  * fecha ya pasó) o no se sabe (sin dato, no se inventa un aviso). La fecha es el ÚLTIMO día abierto (`estadoCargaInicial`).
  */
-export function avisoCargaInicial(c: CargaInicialSede | null): string | null {
+export function avisoFranjaCarga(c: CargaInicialSede | null): string | null {
   const e = estadoDe(c);
   if (!e || e.tipo === "cerrada") return null;
-  if (e.tipo === "sin_fecha") return "Tu stock sigue en carga, todavía sin fecha de cierre: no pidas por esta lista.";
-  return `Tu stock sigue en carga hasta el ${fechaCorta(e.hasta)}: no pidas por esta lista.`;
+  if (e.tipo === "sin_fecha") return "Tu stock sigue en carga, todavía sin fecha de cierre: lo que ves en «Nunca salió al piso» todavía no es de ventas.";
+  return `Tu stock sigue en carga hasta el ${fechaCorta(e.hasta)}: lo que ves en «Nunca salió al piso» todavía no es de ventas.`;
 }
 
 /** Por qué «Nunca salió al piso» espera: la carga inicial de la tienda sigue abierta, o su piso todavía no se cuadró. Null: se puede saber. */
@@ -55,7 +56,7 @@ export type PausaPiso = "carga" | "sin_cuadre";
  * sabe y NO se pausa por eso (el aviso de «Datos incompletos» ya lo dice). La carga manda sobre el cuadre: es la que tiene fecha.
  */
 export function pausaDelPiso(carga: CargaInicialSede | null, pisoCuadrado: boolean | null): PausaPiso | null {
-  if (avisoCargaInicial(carga) !== null) return "carga";
+  if (avisoFranjaCarga(carga) !== null) return "carga";
   return pisoCuadrado === false ? "sin_cuadre" : null;
 }
 
@@ -63,9 +64,9 @@ export function pausaDelPiso(carga: CargaInicialSede | null, pisoCuadrado: boole
 export const pisoCuadradoDe = (p: Pick<PreparacionAnalisis, "condiciones"> | undefined): boolean | null =>
   p?.condiciones.find((c) => c.clave === "piso_cuadrado")?.cumple ?? null;
 
-export const TEXTO_PAUSA_PISO: Record<PausaPiso, { titulo: string; linea: string }> = {
-  carga: { titulo: "Todavía no se puede saber", linea: "Tu stock sigue en carga: lo guardado viene de la carga, no de una venta. Cuando cierre la carga, aquí verás lo que nunca salió al piso." },
-  sin_cuadre: { titulo: "Todavía no se puede saber", linea: "Tu piso aún no se cuadró: no se sabe qué cuelga de verdad. Cuádralo y esta lista se arma sola." },
+export const TEXTO_PAUSA_PISO: Record<PausaPiso, { titulo: string; linea: string; corto: string }> = {
+  carga: { titulo: "Todavía no se puede saber", corto: "Todavía no se puede saber: tu stock sigue en carga.", linea: "Tu stock sigue en carga: lo guardado viene de la carga, no de una venta. Cuando cierre la carga, aquí verás lo que nunca salió al piso." },
+  sin_cuadre: { titulo: "Todavía no se puede saber", corto: "Todavía no se puede saber: tu piso aún no se cuadró.", linea: "Tu piso aún no se cuadró: no se sabe qué cuelga de verdad. Cuádralo y esta lista se arma sola." },
 };
 
 /**
@@ -78,3 +79,7 @@ export function avisoCalidadDeDestino(p: PreparacionAnalisis | undefined, ciudad
   if (de100 === null || de100 >= META_CON_PRENDA) return null;
   return `${ciudad} registra pocas ventas con su prenda (${de100} de cada 100): cuenta con eso.`;
 }
+
+/** La pausa de «Nunca salió al piso» de la tienda de estos datos: UNA sola cuenta para la pestaña, Hoy, «No se vende», la ficha y el número. */
+export const pausaDelPisoDe = (d: { cargaInicial: CargaInicialSede | null; preparacion: readonly PreparacionAnalisis[]; sede: { id: string } }): PausaPiso | null =>
+  pausaDelPiso(d.cargaInicial, pisoCuadradoDe(d.preparacion.find((p) => p.ubicacionId === d.sede.id)));

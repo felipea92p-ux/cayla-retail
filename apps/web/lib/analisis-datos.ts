@@ -54,6 +54,7 @@ async function leerPreparacionDeLaRed(): Promise<{ filas: PreparacionAnalisis[];
 }
 
 /** Si no se pudo leer el precio propio de mi tienda, las cifras en soles quedan con el precio de la prenda y la pantalla lo dice. */
+const FALLA_CARGA_INICIAL = "No se pudo saber si tu stock sigue en carga";
 const FALLA_PRECIOS_DE_MI_TIENDA = "No se pudo leer el precio propio de tu tienda: las cifras en soles usan el precio de la prenda";
 
 /** Si no se pudo leer lo vendido sin registrar, «Qué pedir» cuenta solo lo vendido con su prenda y la pantalla lo dice. */
@@ -130,7 +131,7 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false,
     // Las campañas del Plan de campaña (A6): de ahí sale la meta de «Qué pedir». Sin el módulo ni se intenta; si falla, el respaldo y se dice.
     getCampanasParaAnalisis(conPlan),
     // El cierre de la carga inicial de cada sede (B4): mientras mi tienda cargue su stock, «Nunca salió al piso» espera. Si no responde, no se avisa nada (`getCargaInicial`).
-    getCargaInicial().catch(() => null),
+    leerPieza("carga_inicial", idActiva, () => getCargaInicial()).then(datosDe),
   ]);
   const preciosDeMiTienda = preciosPropios ?? undefined;
 
@@ -194,7 +195,7 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false,
     noHabia: noHabiaDe(pedidos ?? []),
     pedido: yaPedido.pedido,
     sedesSinLeer: lectura.sedesSinLeer,
-    fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, preciosDeMiTienda === undefined ? FALLA_PRECIOS_DE_MI_TIENDA : null, llegan.falla, yaPedido.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null, sinPrenda === null ? FALLA_SIN_PRENDA : null, frescura.estado === "fallo" ? FALLA_FRESCURA : null, quienPide.falla, campanas.falla, temporada.falla].filter(
+    fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, preciosDeMiTienda === undefined ? FALLA_PRECIOS_DE_MI_TIENDA : null, llegan.falla, yaPedido.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null, sinPrenda === null ? FALLA_SIN_PRENDA : null, frescura.estado === "fallo" ? FALLA_FRESCURA : null, quienPide.falla, campanas.falla, cargas === null ? FALLA_CARGA_INICIAL : null, temporada.falla].filter(
       (f): f is string => f !== null,
     ),
   };

@@ -7,7 +7,7 @@ import { Icono } from "@/components/analisis/iconos";
 import { Ayuda, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/analisis/piezas";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { edadDelInventario, GRUPOS_QUIETAS, plural, prendasDe, totalEnTienda } from "@/lib/analisis-reglas";
-import { avisoCalidadDeDestino } from "@/lib/analisis-al-dia";
+import { avisoCalidadDeDestino, pausaDelPisoDe } from "@/lib/analisis-al-dia";
 import { modelosQueSobran, textoSobra, sobraDe, VENTAS_PARA_DECIR_SOBRA } from "@/lib/analisis-sobra";
 import { destinoDeEnvio, loQueLlevaElEnvio, razonTiendaSinLeer, textoPuedesMandar, tiendasSinLeer, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-enviar";
 import { hrefEnviar, hrefLiquidar, hrefRegistrarVentas } from "@/lib/analisis-acciones";
@@ -53,7 +53,8 @@ export function PestanaQuieta() {
   // Hay carril o no, con las prendas de la tienda (sin buscar): si el buscador las deja fuera, el carril lo dice. Sin datos, la
   // pestaña solo lo dice; con «Todo se mueve» o «Todavía no», las cifras y la edad de la ropa siguen a la vista.
   const vacio = vacioQuietas(datos.prendas, datos.fallas.length, datos.hoy);
-  const sinSalir = datos.sabePiso ? datos.prendas.filter(nuncaSalio).length : 0;
+  // Con la carga abierta o el piso sin cuadrar, lo «nunca salió» espera (B4): ni se cuenta ni se enlaza.
+  const sinSalir = datos.sabePiso && !pausaDelPisoDe(datos) ? datos.prendas.filter(nuncaSalio).length : 0;
   // Quietos, pero de un tipo que no vendió nada: no hay con qué compararlos y no se juzgan; se cuentan aparte para que no desaparezcan sin decirlo.
   const sinComparar = modelosSinConQueComparar(datos.prendas);
   if (vacio === "sin-datos") return <SinCarril tipo={vacio} />;

@@ -19,17 +19,17 @@ export const GUIA_ANALISIS: Guia = {
       texto: "Análisis mira las ventas y el stock y te responde lo que importa: qué se acaba, qué no se vende, qué nunca salió al piso y qué conviene pedir. Es una demo: no se pide nada.",
     },
     {
+      id: "lectura",
+      ancla: "analisis.lectura",
+      titulo: "De qué hora son los datos",
+      texto: "Dice a qué hora se leyó la pantalla. Pasada media hora aparece «Actualizar» junto a la hora: vuelve a leer sin tapar lo que estás mirando.",
+    },
+    {
       id: "buscador",
       ancla: "analisis.buscador",
       opcional: true,
       titulo: "Busca una prenda",
       texto: "Escribe su nombre y todas las pestañas muestran solo esa prenda.",
-    },
-    {
-      id: "lectura",
-      ancla: "analisis.lectura",
-      titulo: "De qué hora son los datos",
-      texto: "Dice a qué hora se leyó la pantalla. Si pasa media hora, aparece «Actualizar»: vuelve a leer sin tapar lo que estás mirando.",
     },
     {
       id: "pestanas",

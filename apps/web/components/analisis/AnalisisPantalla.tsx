@@ -22,7 +22,7 @@ import { PestanaPiso } from "@/components/analisis/PestanaPiso";
 import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
 import { coincideBusqueda, GRUPOS_ACABA, GRUPOS_QUIETAS, prendasDe } from "@/lib/analisis-reglas";
 import { nuncaSalio } from "@/lib/analisis-piso";
-import { avisoCargaInicial, lecturaVieja, pausaDelPiso, pisoCuadradoDe, textoDatosDe, TITULO_CARGA_INICIAL } from "@/lib/analisis-al-dia";
+import { avisoFranjaCarga, lecturaVieja, pausaDelPisoDe, textoDatosDe, TITULO_CARGA_INICIAL } from "@/lib/analisis-al-dia";
 import { lineasParaPedir } from "@/lib/analisis-acciones";
 import { AVISO_QUE_FALTA, avisoDatosDeHoy, modoAnalisis, PARAM_QUE_FALTA, VALOR_QUE_FALTA } from "@/lib/analisis-aviso";
 import {
@@ -254,9 +254,9 @@ export function AnalisisPantalla({
   // Sin saber cuándo salió al piso cada prenda (la base sin 20261007120000), «—»: nunca una cuenta inventada.
   const mia = datos.preparacion.find((p) => p.ubicacionId === datos.sede.id);
   // Mientras la tienda cargue su stock o su piso no esté cuadrado, «Nunca salió al piso» espera (B4): su cuenta tampoco es un número («—»).
-  const pausaPiso = pausaDelPiso(datos.cargaInicial, pisoCuadradoDe(mia));
+  const pausaPiso = pausaDelPisoDe(datos);
   const cuentaPiso = conCuentas && datos.sabePiso && !pausaPiso ? datos.prendas.filter(nuncaSalio).length : null;
-  const avisoCarga = avisoCargaInicial(datos.cargaInicial);
+  const avisoCarga = avisoFranjaCarga(datos.cargaInicial);
   // El aviso grande de «No se pudo leer <tu tienda>» ya dice la falla de mi tienda: la nota gris no la repite (solo si el aviso está a la vista;
   // en «Todavía no» no lo está y la nota es lo único que lo dice).
   const queSeVe = contenidoDeAnalisis({ recomienda, sinLeer, vista });
@@ -301,6 +301,7 @@ export function AnalisisPantalla({
           sede={datos.sede.nombre}
           titulo="Análisis"
           subtitulo="Qué se acaba, qué no se mueve, qué nunca salió al piso y qué pedir."
+          sinHora
           detalle={<HoraDeLectura leidoEn={datos.leidoEn} />}
         >
           {/* Filtra las prendas ya leídas, en el navegador: nunca dice «Buscando…» (ADR-0358, ronda 5). */}

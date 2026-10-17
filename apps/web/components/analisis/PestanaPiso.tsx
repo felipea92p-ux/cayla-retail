@@ -25,7 +25,7 @@ import {
   type VacioPiso,
 } from "@/lib/analisis-piso";
 import { Vacio } from "@/components/ui/Vacio";
-import { pausaDelPiso, pisoCuadradoDe, TEXTO_PAUSA_PISO, type PausaPiso } from "@/lib/analisis-al-dia";
+import { pausaDelPisoDe, TEXTO_PAUSA_PISO, type PausaPiso } from "@/lib/analisis-al-dia";
 import { Check, Hourglass } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 
@@ -42,7 +42,7 @@ const nf = (n: number): string => Math.round(n).toLocaleString("es-PE");
 export function PestanaPiso() {
   const { datos, acceso, prendas, diasDeVentas } = useAnalisis();
   const sinSalir = datos.prendas.filter(nuncaSalio).length;
-  const pausa = pausaDelPiso(datos.cargaInicial, pisoCuadradoDe(datos.preparacion.find((p) => p.ubicacionId === datos.sede.id)));
+  const pausa = pausaDelPisoDe(datos);
   const vacio = vacioPiso({ sabePiso: datos.sabePiso, prendas: datos.prendas.length, sinSalir, fallas: datos.fallas.length, pausa: pausa !== null });
   if (vacio === "en-pausa" && pausa) return <PausaDelPiso pausa={pausa} />;
   if (vacio === "en-pausa") return null;

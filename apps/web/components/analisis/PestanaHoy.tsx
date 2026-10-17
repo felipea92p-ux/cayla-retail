@@ -10,7 +10,7 @@ import { variantesDe, type ModeloAnalisis } from "@/lib/analisis-modelo";
 import { hrefReponerPiso } from "@/lib/analisis-acciones";
 import { plural, PRENDAS_EN_LISTA, prendasDe } from "@/lib/analisis-reglas";
 import { diasEnAlmacen, prendasSinSalir } from "@/lib/analisis-piso";
-import { pausaDelPiso, pisoCuadradoDe } from "@/lib/analisis-al-dia";
+import { pausaDelPisoDe, TEXTO_PAUSA_PISO } from "@/lib/analisis-al-dia";
 import { alcancePorTipo, finEjeAlcance, llegadasAparte, ordenarAlcance, textoAlcanceEnEje, textoRitmo, tieneYVienen, tipoCorto, titularDeLosQueNoLlegan, type AlcanceTipo } from "@/lib/analisis-pedir";
 import { modelosQueSobran } from "@/lib/analisis-sobra";
 import { despuesDeLaMeta, hastaLaMeta, type Horizonte } from "@/lib/analisis-horizonte";
@@ -68,7 +68,7 @@ export function PestanaHoy() {
   const quietas = quietasHoy(prendas);
   // «¿Qué no ha salido al piso?»: sin saberlo (la base sin 20261007120000), la tarjeta lo dice con «Todavía no».
   // Con la carga inicial abierta o el piso sin cuadrar la lista espera (B4), igual que su pestaña.
-  const pausaPiso = pausaDelPiso(datos.cargaInicial, pisoCuadradoDe(datos.preparacion.find((x) => x.ubicacionId === datos.sede.id)));
+  const pausaPiso = pausaDelPisoDe(datos);
   const sinSalir = datos.sabePiso && !pausaPiso ? prendasSinSalir(prendas, datos.hoy) : [];
   // Ninguna tarjeta dice «Va bien» cuando no puede saberlo (tarea #2, 2026-10-14): con datos incompletos, «Para saber».
   const confiable = datos.puedeHablar;
@@ -79,7 +79,7 @@ export function PestanaHoy() {
   // «¿Qué pedir?»: para cuánto te alcanza cada tipo al ritmo de los días de ventas, contra la meta de compra (B2, Felipe 2026-10-07; A6: la campaña del
   // Plan, no Navidad fija). Los que no llegan, en el MISMO orden que «Qué pedir primero»: los que más pesan primero, no los chicos (D13).
   const h = datos.horizonte;
-  const alcance = alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, h, datos.sabePiso, datos.sinPrendaPorTipo, datos.pedido, datos.temporada);
+  const alcance = alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, h, datos.sabePiso && !pausaPiso, datos.sinPrendaPorTipo, datos.pedido, datos.temporada);
   const noLlegan = ordenarAlcance(alcance.filter((t) => t.pide), "prioridad");
   const vendioAlgo = alcance.some((t) => t.vendidas > 0);
 
@@ -241,8 +241,8 @@ function ListaQuietas({ prendas, vacio }: { prendas: PrendaAnalisis[]; vacio: st
 function ListaPiso({ prendas, vacio }: { prendas: PrendaAnalisis[]; vacio: string }) {
   const { q, datos } = useAnalisis();
   if (!datos.sabePiso) return <p className="b-nota">Todavía no lo puedo saber.</p>;
-  const pausa = pausaDelPiso(datos.cargaInicial, pisoCuadradoDe(datos.preparacion.find((x) => x.ubicacionId === datos.sede.id)));
-  if (pausa) return <p className="b-nota">{pausa === "carga" ? "Todavía no se puede saber: tu stock sigue en carga." : "Todavía no se puede saber: tu piso aún no se cuadró."}</p>;
+  const pausa = pausaDelPisoDe(datos);
+  if (pausa && !(datos.prendas.length === 0 && datos.fallas.length > 0)) return <p className="b-nota">{TEXTO_PAUSA_PISO[pausa].corto}</p>;
   if (prendas.length === 0) return <p className="b-nota">{q.trim() ? "Nada con esta búsqueda." : vacio}</p>;
   return (
     <>
