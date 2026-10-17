@@ -25,6 +25,7 @@ import {
   type Zona,
 } from "@/lib/probador";
 import { busquedaConBuscar, leerFiltroDeZona, PARAMETRO_DE_BUSCAR, type FiltroDeZona } from "@/lib/probador-buscar";
+import { AgregarTuLook } from "./AgregarTuLook";
 import { Buscador } from "./Buscador";
 import { Colores } from "./Colores";
 import { Figura, type Entrada, type TipoDeEntrada } from "./Figura";
@@ -62,11 +63,17 @@ export function Probador({
   prendas,
   combina,
   inicial,
+  sedeId,
+  origenFotos,
   pie,
 }: {
   prendas: readonly PrendaDelProbador[];
   combina: Readonly<Record<string, readonly string[]>>;
   inicial: Look;
+  /** La tienda que el cliente mira («Ver lo que hay en»; null: «Todas»): sus precios y, al llevar el look a la bolsa, la de recojo. */
+  sedeId: string | null;
+  /** El origen del almacén público de fotos (`TIENDA_FOTOS_ORIGEN`), para la hoja de tallas. */
+  origenFotos: string | undefined;
   /** Lo que la tienda ya cumple, bajo el total (lo arma el servidor con los plazos de la ayuda). */
   pie?: React.ReactNode;
 }) {
@@ -257,6 +264,7 @@ export function Probador({
             {soles(t.final)}
           </b>
         </div>
+        <AgregarTuLook look={estado.look} indice={indice} sedeId={sedeId} origenFotos={origenFotos} />
       </div>
 
       {buscar && (

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { claveCategoria, type Prenda } from "./catalogo";
 import { grupoDe } from "./grupos";
+import type { Look as LookDeCayla, TallaLook } from "./looks";
 import { esquemaStockModelo, hayAlgo, notaDeStock, type NotaStock, type StockModelo, type Tienda } from "./stock";
 
 // «Arma el tuyo», el probador de looks de la tienda (ADR-0434, actividad 4; lienzo v3, `V3Probador`). El cliente se viste prenda por
@@ -452,6 +453,67 @@ export function ayudaDeZona(prendas: readonly PrendaDelProbador[], zona: Zona): 
   const lista = nombres.slice(0, 3);
   if (lista.length === 0) return null;
   return lista.length === 1 ? lista[0] : `${lista.slice(0, -1).join(", ")} o ${lista[lista.length - 1]}`;
+}
+
+/* =============================================== 4b. Tallas y a la bolsa (actividad 6) =============================================== */
+
+/** Una prenda del look para pedir sus tallas: el modelo y su color. */
+export type PiezaParaTallas = { id: string; color: string };
+/** Lo que responde la tienda: las tallas de cada prenda en su color (las que la ficha ofrece en esa tienda; `hay`, en alguna de la web). */
+export type TallasDeTuLook = { id: string; color: string; tallas: TallaLook[] }[];
+
+const esquemaPiezas = z
+  .array(z.object({ id: z.string().uuid(), color: z.string().regex(/^[A-Za-z0-9]{1,12}$/) }))
+  .min(1)
+  .max(4);
+
+/** Lo que llega del navegador para pedir las tallas: de 1 a 4 prendas (lo que cabe en un look), cada una su modelo y su color. Lo
+ *  demás, `null`: no se lee nada. */
+export function piezasParaLasTallas(dato: unknown): PiezaParaTallas[] | null {
+  const r = esquemaPiezas.safeParse(dato);
+  return r.success ? r.data.map((p) => ({ id: p.id, color: p.color.toUpperCase() })) : null;
+}
+
+/** Las prendas puestas, para pedir sus tallas, en el orden de las zonas. */
+export function piezasDelLook(look: Look): PiezaParaTallas[] {
+  return presentes(look).map((z) => ({ id: look[z]!.id, color: look[z]!.color }));
+}
+
+/**
+ * El look del probador como la hoja de tallas de los looks (`AgregarLook`) lo dibuja: cada prenda en su color, con su recorte, lo que
+ * vale ese color y sus tallas. La hoja y la bolsa son las mismas de «Arma tu look» (ADR-0434): una sola forma de llevar un look a la bolsa.
+ */
+export function lookParaLaHoja(look: Look, indice: ReadonlyMap<string, PrendaDelProbador>, tallas: TallasDeTuLook): LookDeCayla {
+  const t = totales(look, indice);
+  return {
+    id: "tu-look",
+    nombre: "Una talla por prenda",
+    frase: null,
+    numero: 1,
+    de: 1,
+    total: t.lista,
+    totalFinal: t.final,
+    desde: t.desde,
+    piezas: presentes(look).flatMap((z, i) => {
+      const pieza = look[z]!;
+      const p = indice.get(pieza.id);
+      if (!p) return [];
+      const c = colorDeLaPieza(p, pieza);
+      return [
+        {
+          posicion: i + 1,
+          x: 0,
+          y: 0,
+          ancho: 0,
+          giro: 0,
+          prenda: { id: p.id, nombre: p.nombre, categoria: null, precio: c.precio, precioFinal: c.precioFinal, desde: c.desde, campana: null },
+          color: { codigo: c.codigo, nombre: c.nombre, hex: c.hex },
+          foto: c.foto.url,
+          tallas: tallas.find((x) => x.id === p.id && x.color === c.codigo)?.tallas ?? [],
+        },
+      ];
+    }),
+  };
 }
 
 /* =============================================== 5. El look en la dirección =============================================== */

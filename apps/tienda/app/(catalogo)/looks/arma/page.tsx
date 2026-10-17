@@ -88,7 +88,15 @@ export default async function ArmaElTuyo({ searchParams }: { searchParams: Promi
         </div>
       ) : (
         // Otra tienda es otro probador (otros precios, otro stock): vuelve a abrir con el look de la dirección.
-        <Probador key={sede ?? "todas"} prendas={prendas} combina={lectura.combina} inicial={inicial} pie={<Promesas promesas={promesasDeCompra(plazos)} />} />
+        <Probador
+          key={sede ?? "todas"}
+          prendas={prendas}
+          combina={lectura.combina}
+          inicial={inicial}
+          sedeId={elegida?.id ?? null}
+          origenFotos={origenFotos}
+          pie={<Promesas promesas={promesasDeCompra(plazos)} />}
+        />
       )}
     </MarcoCatalogo>
   );

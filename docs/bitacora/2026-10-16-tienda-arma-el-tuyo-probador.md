@@ -8,3 +8,8 @@ Qué hice: «Ver todas» (en la tira) y «Buscar otra» abren una hoja a pantall
 Por qué así: busca en lo que la página ya trajo (nada va a la base al escribir), y la hoja vive en la dirección (`?buscar=`) para que «atrás» la cierre como cualquier pantalla del celular. El «Solo en Trujillo» del lienzo ya lo hace la franja «Ver lo que hay en» de la tienda.
 Felipe se lleva: nada; sigue escondido.
 
+## 2026-10-16 («Arma el tuyo», actividad 6: tallas y a la bolsa)
+Qué hice: «Agregar a mi bolsa» en la barra de abajo del probador: pide las tallas de cada prenda en su color, abre la hoja de tallas de los looks («Una talla por prenda») y lleva lo elegido a la bolsa con la misma acción; al terminar, «Agregaste 3 prendas de tu look a tu bolsa» y el globo de la bolsa salta.
+Por qué así: una sola forma de llevar un look a la bolsa (ADR-0434); las tallas salen de la ficha que la tienda ya guarda y no viajan con la página (serían miles de filas por visita), y la bolsa vuelve a preguntarle a la base antes de agregar.
+Felipe se lleva: nada; sigue escondido.
+

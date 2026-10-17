@@ -23,10 +23,13 @@ import {
   interpretarProbador,
   LOOK_VACIO,
   lookDeLaUrl,
+  lookParaLaHoja,
   lookInicial,
   memoriaInicial,
   notaDeLaFoto,
   notaDelColor,
+  piezasDelLook,
+  piezasParaLasTallas,
   poner,
   presentes,
   puntoDe,
@@ -357,6 +360,33 @@ describe("lo que cuesta el look", () => {
       "blazers, chalecos o casacas",
     );
     expect(ayudaDeZona(TODAS, "vestido")).toBeNull();
+  });
+});
+
+describe("tallas y a la bolsa", () => {
+  const look: Look = { ...LOOK_VACIO, arriba: pieza(TOP, "NEG"), abajo: pieza(JEAN, "AZD"), bolso: pieza(CARTERA) };
+  it("lo que se pide: de 1 a 4 prendas, cada una su modelo y su color; lo demás, nada", () => {
+    expect(piezasDelLook(look)).toEqual([
+      { id: TOP.id, color: "NEG" },
+      { id: JEAN.id, color: "AZD" },
+      { id: CARTERA.id, color: "NEG" },
+    ]);
+    expect(piezasParaLasTallas([{ id: TOP.id, color: "neg" }])).toEqual([{ id: TOP.id, color: "NEG" }]);
+    for (const malo of [[], [{ id: "x", color: "NEG" }], [{ id: TOP.id, color: "N E G" }], Array.from({ length: 5 }, () => ({ id: TOP.id, color: "NEG" })), "x", null]) {
+      expect(piezasParaLasTallas(malo), JSON.stringify(malo)).toBeNull();
+    }
+  });
+  it("la hoja de los looks recibe cada prenda en su color, con su recorte, lo que vale ese color y sus tallas", () => {
+    const hoja = lookParaLaHoja(look, INDICE, [
+      { id: TOP.id, color: "NEG", tallas: [{ varianteId: id(91), talla: "M", hay: true }] },
+      { id: JEAN.id, color: "AZD", tallas: [{ varianteId: id(92), talla: "28", hay: false }] },
+    ]);
+    expect(hoja.piezas.map((p) => [p.posicion, p.prenda.nombre, p.color.codigo, p.foto, p.prenda.precioFinal, p.tallas.length])).toEqual([
+      [1, "Prenda 1", "NEG", URL_FOTO("RPA"), 50, 1],
+      [2, "Prenda 5", "AZD", URL_FOTO("AZD"), 40, 1],
+      [3, "Prenda 9", "NEG", URL_FOTO("NEG"), 50, 0],
+    ]);
+    expect(hoja).toMatchObject({ nombre: "Una talla por prenda", total: 150, totalFinal: 140, desde: true });
   });
 });
 

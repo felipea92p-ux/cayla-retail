@@ -10,7 +10,7 @@ import { AgregarLook } from "./AgregarLook";
 /** El globo de la bolsa salta una vez (maqueta, `saltaBolsa`) cuando ya dice cuántas lleva ahora: la acción escribe la cookie y Next
  *  vuelve a dibujar la cabecera; se espera ese cuadro (como mucho medio segundo) para no hacer saltar el número viejo. Sin movimiento
  *  si la persona lo pidió (bolsa.css apaga `.salta` con `prefers-reduced-motion`). */
-function saltarLaBolsa(cuantas: number) {
+export function saltarLaBolsa(cuantas: number) {
   let cuadros = 0;
   const mirar = () => {
     const globo = visible(document.querySelectorAll<HTMLElement>("[data-bolsa] .t-globo"));

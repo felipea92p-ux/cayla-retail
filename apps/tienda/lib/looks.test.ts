@@ -204,6 +204,8 @@ describe("el look a la bolsa", () => {
     expect(avisoDelLook("Fin de semana", [falda], { agregadas: [ID(6)], agotadas: [], noEstan: [] }).texto).toBe(
       "Agregaste 1 prenda del look «Fin de semana» a tu bolsa.",
     );
+    // El que armó el cliente en el probador («Arma el tuyo») no tiene nombre: «de tu look».
+    expect(avisoDelLook(null, [emma, falda], { agregadas: [ID(5), ID(6)], agotadas: [], noEstan: [] }).texto).toBe("Agregaste 2 prendas de tu look a tu bolsa.");
   });
 
   it("entraron algunas: la hoja se cierra y el aviso dice cuál quedó fuera y por qué", () => {

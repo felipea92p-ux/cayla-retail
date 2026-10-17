@@ -9,7 +9,9 @@
   caja, las zonas, el conteo, tarjetas con colores y «Probar», sugerencias que salen de lo que hay y su vacío; «atrás», la flecha y
   Escape la cierran (el primer Escape borra lo escrito). El «Solo en Trujillo» del lienzo es la franja «Ver lo que hay en» de toda la
   tienda. Reglas en `apps/tienda/lib/probador-buscar.test.ts`.
-- [ ] Actividad 6 — tallas y a la bolsa (el botón «Agregar a mi bolsa» de la barra de abajo).
+- [x] **Actividad 6 — Tallas y a la bolsa:** «Agregar a mi bolsa» en la barra de abajo pide las tallas de cada prenda en su color (la
+  ficha que la tienda ya guarda), abre la misma hoja de tallas de los looks y usa la misma acción de la bolsa. Probado de punta a punta
+  en el banco: 3 prendas a la bolsa con su color y talla, y el total de la bolsa igual al del probador.
 - [ ] Actividad 7 — el probador en la computadora (hoy, la columna del celular al centro).
 - [ ] Pendiente de revisar con prendas reales de producción: cómo se ve una prenda de más de 104 cm (la figura se achica entera) y las
   que asoman a los lados en modo oscuro (sobre el fondo oscuro se ven como sombras grises).

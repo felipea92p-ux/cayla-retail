@@ -2146,7 +2146,11 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   por la prop `franja` de `MarcoCatalogo`). «Ver todas» y «Buscar otra» (actividad 5) abren `Buscador.tsx`, una hoja a pantalla
   completa (`<dialog>`) que vive en la dirección (`?buscar=<zona>`: «atrás» la cierra) y busca en lo que la página ya trajo, con
   `lib/probador-buscar.ts` (pura, con su prueba: zonas, coincidencias sin tildes, el color de cada tarjeta, conteo y sugerencias que salen
-  de lo que hay); «Probar» pone la prenda en ese color. Su esqueleto de carga es la forma `probador` de `FormaDelEsqueleto`. Estilos en
+  de lo que hay); «Probar» pone la prenda en ese color. «Agregar a mi bolsa» (actividad 6, `AgregarTuLook.tsx`) pide las tallas de cada
+  prenda en su color con `app/acciones/probador.ts` `tallasDeTuLook` (la ficha que la tienda ya guarda, `leerFicha` + `tallasDelColor`;
+  «hay» en alguna tienda de la web), arma el look para la hoja (`lookParaLaHoja`) y abre la MISMA hoja de tallas de los looks
+  (`components/looks/AgregarLook.tsx`, con `conBoton={false}` y `abiertaAlMontar`) y la MISMA acción `agregarLookALaBolsa`; el aviso es
+  `avisoDelLook(null, …)` («de tu look»). Su esqueleto de carga es la forma `probador` de `FormaDelEsqueleto`. Estilos en
   `app/estilos/probador.css`. Prueba en la base: `pnpm pruebas:tienda-probador`.
 - **Un solo precio y una sola tienda elegida** (integración de la tienda, 2026-10-15). El precio de una prenda (talla y color) en la web
   lo dice `fn_tienda_precio_talla(prendas, tienda)` (`20261015012000`): el de la tienda elegida (`fn_precio_en_sede`) o, con «Todas», el
