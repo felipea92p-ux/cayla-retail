@@ -25,10 +25,13 @@ export function RevisarRecorteHoja({
   fotos,
   onHecho,
   onClose,
+  alCerrarEnfocar,
 }: {
   fotos: FotoDelProbador[];
   onHecho: (foto: string, recorte: RecorteDeFoto) => void;
   onClose: () => void;
+  /** Dónde vuelve el foco al cerrar: la fila o la foto que la abrió. */
+  alCerrarEnfocar?: React.RefObject<HTMLElement | null>;
 }) {
   const responsable = useResponsable();
   const guia = useGuiaCampos(camposDeRecortes({ responsableListo: responsable.listo, responsableMotivo: responsable.motivo }));
@@ -82,6 +85,7 @@ export function RevisarRecorteHoja({
       onClose={onClose}
       variante="hoja"
       tamano="mediana"
+      alCerrarEnfocar={alCerrarEnfocar}
       bloqueado={guardando !== null}
     >
       <div className="space-y-5">

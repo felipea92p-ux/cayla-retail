@@ -29,10 +29,13 @@ export function ProbadorPrendaHoja({
   prenda: p,
   onClose,
   onGuardado,
+  alCerrarEnfocar,
 }: {
   prenda: PrendaDelProbador;
   onClose: () => void;
   onGuardado: (productoId: string, largo: number | null) => void;
+  /** Dónde vuelve el foco al cerrar: la fila o la foto que la abrió. */
+  alCerrarEnfocar?: React.RefObject<HTMLElement | null>;
 }) {
   const responsable = useResponsable();
   const [escrito, setEscrito] = useState(p.largo === null ? "" : String(p.largo));
@@ -84,6 +87,7 @@ export function ProbadorPrendaHoja({
       onClose={onClose}
       variante="hoja"
       tamano="mediana"
+      alCerrarEnfocar={alCerrarEnfocar}
       bloqueado={guardando}
     >
       <form onSubmit={guardar} className="space-y-5">

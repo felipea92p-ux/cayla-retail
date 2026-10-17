@@ -114,6 +114,8 @@ export function ProbadorPantalla({
   // Las fotos que se están revisando, en orden (una sola si se tocó en la hoja de contactos).
   const [revisando, setRevisando] = useState<string[] | null>(null);
   const prendasRef = useRef<HTMLElement>(null);
+  // Al cerrar una hoja, el foco vuelve a la fila o la foto que la abrió (/chaos TEC-06, 2026-10-17: caía al principio de la página).
+  const queAbrio = useRef<HTMLButtonElement | null>(null);
   const recortesRef = useRef<HTMLElement>(null);
 
   const cifras = cifrasProbador(prendas);
@@ -143,10 +145,13 @@ export function ProbadorPantalla({
     setPagina(1);
     recortesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-  const revisarLosDudosos = () => setRevisando(porRevisar(fotos).map((f) => f.foto));
-  const hacerPaso = (p: PasoDelProbador) => {
+  const revisarLosDudosos = (el?: HTMLButtonElement | null) => {
+    queAbrio.current = el ?? null;
+    setRevisando(porRevisar(fotos).map((f) => f.foto));
+  };
+  const hacerPaso = (p: PasoDelProbador, el: HTMLButtonElement) => {
     if (p.tipo === "preparar") setPreparando(true);
-    else if (p.tipo === "revisar") revisarLosDudosos();
+    else if (p.tipo === "revisar") revisarLosDudosos(el);
     else {
       setFiltro("sin_largo");
       setPaginaPrendas(1);
@@ -177,7 +182,7 @@ export function ProbadorPantalla({
 
   // El paso que toca, uno solo y arriba (/formidable, 2026-10-17): antes «Preparar» vivía al final de la página, debajo de toda la lista.
   const botonDelPaso = paso && (
-    <Boton type="button" peso="primario" aria-haspopup={paso.tipo === "largos" ? undefined : "dialog"} data-guia={paso.tipo === "preparar" ? "probador.preparar" : paso.tipo === "revisar" ? "probador.revisar" : "probador.largos"} onClick={() => hacerPaso(paso)}>
+    <Boton type="button" peso="primario" aria-haspopup={paso.tipo === "largos" ? undefined : "dialog"} data-guia={paso.tipo === "preparar" ? "probador.preparar" : paso.tipo === "revisar" ? "probador.revisar" : "probador.largos"} onClick={(e) => hacerPaso(paso, e.currentTarget)}>
       {paso.texto}
     </Boton>
   );
@@ -280,7 +285,7 @@ export function ProbadorPantalla({
                 <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
                 <ul aria-label="Las prendas de la web, de lo que más se vende a lo que menos">
                   {prendasDeLaPagina.map((p, i) => (
-                    <FilaPrenda key={p.productoId} prenda={p} i={i} onAbrir={() => setPrendaAbierta(p.productoId)} />
+                    <FilaPrenda key={p.productoId} prenda={p} i={i} onAbrir={(el) => { queAbrio.current = el; setPrendaAbierta(p.productoId); }} />
                   ))}
                 </ul>
                 {totalPaginasPrendas > 1 && (
@@ -301,7 +306,7 @@ export function ProbadorPantalla({
                 Así sale cada prenda en el probador de «Arma el tuyo»: recortada, sin fondo. Toca una para mirarla de cerca y usarla o descartarla.
               </p>
               {revisarTambien && (
-                <Boton type="button" aria-haspopup="dialog" data-guia="probador.revisar" onClick={revisarLosDudosos}>
+                <Boton type="button" aria-haspopup="dialog" data-guia="probador.revisar" onClick={(e) => revisarLosDudosos(e.currentTarget)}>
                   {cifrasFotos.porRevisar === 1 ? "Revisar 1" : `Revisar ${cifrasFotos.porRevisar}`}
                 </Boton>
               )}
@@ -335,7 +340,7 @@ export function ProbadorPantalla({
               <>
                 <ul className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-3 p-4 sm:p-5" data-guia="probador.lista" aria-label="Las fotos de la web y sus recortes">
                   {deLaPagina.map((f, i) => (
-                    <CeldaRecorte key={f.foto} foto={f} i={i} onAbrir={() => setRevisando([f.foto])} />
+                    <CeldaRecorte key={f.foto} foto={f} i={i} onAbrir={(el) => { queAbrio.current = el; setRevisando([f.foto]); }} />
                   ))}
                 </ul>
                 {totalPaginas > 1 && (
@@ -359,13 +364,14 @@ export function ProbadorPantalla({
 
         {preparando && <PrepararRecortesHoja pendientes={porRecortar(fotos)} onRecorte={actualizarRecorte} onClose={() => setPreparando(false)} />}
         {revisando && aRevisar.length > 0 && (
-          <RevisarRecorteHoja key={revisando.join(",")} fotos={aRevisar} onHecho={actualizarRecorte} onClose={() => setRevisando(null)} />
+          <RevisarRecorteHoja key={revisando.join(",")} fotos={aRevisar} onHecho={actualizarRecorte} onClose={() => setRevisando(null)} alCerrarEnfocar={queAbrio} />
         )}
         {abierta && (
           <ProbadorPrendaHoja
             key={abierta.productoId}
             prenda={abierta}
             onClose={() => setPrendaAbierta(null)}
+            alCerrarEnfocar={queAbrio}
             onGuardado={(id, largo) => setPrendas((ps) => ps.map((p) => (p.productoId === id ? { ...p, largo } : p)))}
           />
         )}
@@ -397,7 +403,7 @@ function MiniaturaDelProbador({ prenda: p }: { prenda: PrendaDelProbador }) {
 }
 
 /** Una prenda de la lista: si sale en el probador o lo primero que le falta, con su hoja al tocarla. */
-function FilaPrenda({ prenda: p, i, onAbrir }: { prenda: PrendaDelProbador; i: number; onAbrir: () => void }) {
+function FilaPrenda({ prenda: p, i, onAbrir }: { prenda: PrendaDelProbador; i: number; onAbrir: (el: HTMLButtonElement) => void }) {
   const faltanColores = coloresPorFotografiar(p).length;
   const conFoto = p.colores.filter((c) => c.foto).length;
   const veredicto = veredictoDelProbador(p);
@@ -406,7 +412,7 @@ function FilaPrenda({ prenda: p, i, onAbrir }: { prenda: PrendaDelProbador; i: n
       <button
         type="button"
         aria-haspopup="dialog"
-        onClick={onAbrir}
+        onClick={(e) => onAbrir(e.currentTarget)}
         data-guia={i === 0 ? "probador.prenda" : undefined}
         className={`${fila(PLANTILLA, "w-full text-left sm:items-center")} anim-entra`}
         style={{ ["--i" as string]: Math.min(i, 12) } as CSSProperties}
@@ -438,7 +444,7 @@ function FilaPrenda({ prenda: p, i, onAbrir }: { prenda: PrendaDelProbador; i: n
 }
 
 /** Una foto en la hoja de contactos: su recorte sobre el fondo claro de la tienda (o la foto, si aún no tiene) y en qué está. */
-function CeldaRecorte({ foto: f, i, onAbrir }: { foto: FotoDelProbador; i: number; onAbrir: () => void }) {
+function CeldaRecorte({ foto: f, i, onAbrir }: { foto: FotoDelProbador; i: number; onAbrir: (el: HTMLButtonElement) => void }) {
   const r = f.recorte;
   const color = f.colorNombre ?? "Todos los colores";
   return (
@@ -447,7 +453,7 @@ function CeldaRecorte({ foto: f, i, onAbrir }: { foto: FotoDelProbador; i: numbe
         type="button"
         aria-haspopup={r ? "dialog" : undefined}
         disabled={!r}
-        onClick={onAbrir}
+        onClick={(e) => onAbrir(e.currentTarget)}
         data-guia={i === 0 ? "probador.recorte" : undefined}
         className="mov-boton group flex w-full flex-col gap-1.5 rounded-xl text-left disabled:cursor-default"
         aria-label={`${f.nombre} · ${color}${r ? ` · ${r.estado === "listo" ? "recortada" : r.estado === "por_revisar" ? "por revisar" : "descartada"}` : " · sin recorte"}`}
