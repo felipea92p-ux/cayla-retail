@@ -66,7 +66,6 @@ export const DEUDA = [
   "apps/web/lib/movimientos-tipos.ts: grupoDeTipo", // nunca · nació 2026-10-05 · #822
   "apps/web/lib/productos-filtro-precio.ts: montoParaUrl", // nunca · nació 2026-10-02 · #723
   "apps/web/lib/productos-orden.ts: ordenPorVentas", // nunca · nació 2026-09-29 · 781f66bcf
-  "apps/web/lib/foto-encuadre.ts: esFotoEncuadrada", // nunca · nació 2026-09-26 · #491
   "apps/web/lib/alta-producto.ts: pasoAlcanzable", // nunca · nació 2026-09-25 · #395
   "apps/web/lib/por-pagar-consolidado-reglas.ts: ordenarPorVencimiento", // nunca · nació 2026-09-25 · #396
   "apps/web/lib/presupuesto-reglas.ts: filasQueSePasan", // nunca · nació 2026-09-25 · #396

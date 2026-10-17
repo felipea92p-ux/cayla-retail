@@ -15,9 +15,8 @@ import { subirFotoProducto } from "@/lib/producto-fotos";
  * navegador sin IndexedDB degrada a «las fotos no se guardaron», nunca a perder el alta.
  */
 
-/** `original` (ADR-0228): la foto tal cual, para guardarla junto a la preparada. Opcional: un alta encolada antes de
- *  este cambio la trae sin él, y sube igual. */
-type FotoGuardada = { archivo: File; original?: Blob | null; colorCodigo: string | null };
+/** Una foto guardada sin conexión. Las altas encoladas antes del ADR-0442 traen además un `original` que ya no se usa: se ignora. */
+type FotoGuardada = { archivo: File; colorCodigo: string | null };
 type Entrada = { token: string; nombre: string; fotos: FotoGuardada[]; productoId: string | null };
 
 const BASE = "cayla-offline";
@@ -84,7 +83,7 @@ export async function subirFotosListas(supabase: ReturnType<typeof createClient>
     const fallidas: string[] = [];
     let sinRed = false;
     for (const f of e.fotos) {
-      const r = await subirFotoProducto(supabase, f.archivo, f.original);
+      const r = await subirFotoProducto(supabase, f.archivo);
       if ("error" in r) {
         if (esFalloDeRed({ message: r.error })) {
           sinRed = true;

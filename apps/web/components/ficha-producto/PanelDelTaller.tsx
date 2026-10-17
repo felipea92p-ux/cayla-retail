@@ -58,7 +58,7 @@ export function PanelDelTaller({
 }) {
   const n = ctx.nombres;
   const archivo = useRef<HTMLInputElement>(null);
-  const { elegir, ocupado, revision } = useSubirFotos({ onSubidas: onFotosSubidas });
+  const { elegir, ocupado } = useSubirFotos({ onSubidas: onFotosSubidas });
 
   const vista = vistaDeFotos(colores, fotosVista as FotoLocal[]);
   const tarjeta = vista.tarjetas.find((t) => t.codigo === colorMostrado);
@@ -245,7 +245,6 @@ export function PanelDelTaller({
       )}
 
       <p data-guia="editar.guardar" className="text-center text-[11.5px] text-tinta/45">Guardar sigue abajo, en la barra.</p>
-      {revision}
     </aside>
   );
 }
