@@ -1,8 +1,8 @@
 # ADR-0436 — Tienda web ▸ Campañas: cada campaña con su diseño en la portada, y una sola regla de cuál sale
 
 - **Fecha:** 2026-10-17 · **Estado:** aceptado (Felipe aprobó las maquetas, «implementa todo tal cual», y la lista de 9 actividades).
-  Se construye actividad por actividad (`/construir`); este ADR crece con cada una. **Nada está en producción**: cada migración se pega con
-  su OK.
+  Se construye actividad por actividad (`/construir`); este ADR crece con cada una. Cada migración se pega con su OK: lo que ya está
+  en producción, en «Lo pegado en producción», al final.
 - **Rama:** `claude/campanas-design-customization-ddbd90`.
 - **Maqueta:** `docs/maquetas/campanas-diseno-2026-10/` (con sus decisiones del 2026-10-17).
 - **Relacionados:** ADR-0408 (la tienda online y su portada), ADR-0430 (el grupo «Tienda web»), ADR-0107/0108/0302/0403 (la etiqueta de
@@ -284,3 +284,26 @@ paquete (109), la tienda (449: `heroesDelInicio`, la lista de la portada con una
 portada abre en el Gato y a los 8 segundos pasa a Halloween; con la pausa se queda; el punto vuelve al Gato; con movimiento reducido no se
 mueve; igual en el Inicio con cuenta a 375 px en oscuro; sin desborde ni errores. En el ERP (oscuro), la línea muestra el 1 al 30 de octubre
 en carrusel y la cifra «2 en carrusel».
+
+## Lo pegado en producción (2026-10-17)
+
+Felipe: «Ve pegando todas las migraciones necesarias en producción». La sesión que abrió esta rama pegó, ensayando antes cada lote en uno que
+se deshizo a propósito, `20261017144000` (registrada como `20261017202815`), `20261017160000` (`20261017202943`), `20261017200000`
+(`20261017203014`) y, con su OK aparte («acepto que las terminales no puedan poner prendas en campañas hasta que se publique la web»),
+`20261017151000` (`20261017203618`), tal como estaban en el commit `d32f50113`. Verificó en vivo que cada función tiene la huella del repo, que
+`tienda_portada()` responde lo de antes (`{"campana": null}`: ese día ninguna campaña tenía descuento), que el módulo existe sin ningún rol y que
+`campana_disenos` nació vacía, con RLS y sin políticas.
+
+**DECIDÍ 21 — Esas cuatro quedan CONGELADAS: un cambio va en una migración nueva, nunca en ellas; `campanas-migraciones-pegadas.test.ts`
+guarda la huella de cada archivo y falla si cambia; y las suites ya no las vuelven a pegar sobre la base final.** La actividad 6a había
+cambiado el bloque de comprobación del final de `144000` y `200000` después de `d32f50113` (para que las suites pudieran volver a pegarlas);
+esos dos archivos volvieron a lo pegado, y lo que hacía ese cambio pasó a las suites.
+**DESCARTÉ** dejar esos dos bloques cambiados porque las funciones son idénticas: el archivo es el registro de lo que corrió en producción,
+y `migraciones:deriva` compara funciones, no comprobaciones, así que la diferencia no la vería nadie.
+**SE ROMPE SI** alguien vuelve a pegar una de las cuatro en producción después de `20261017204000` o `20261017210000`: deshace la regla y la
+portada nuevas hasta pegar otra vez las que siguen (está escrito en `CONTINUAR.md`).
+
+**Faltan pegar:** `20261017204000` y `20261017210000`, con la web que las lee. Y una más por construir: **la puerta de Editar producto**
+(Felipe 2026-10-17). `actualizar_variantes_etiquetas` deja poner o quitar una campaña con Productos o Atributos, sin la llave de Campañas;
+se cierra con una migración nueva (cada etiqueta de campaña pasa por `fn_puede_tocar_etiqueta`) que se pega el día que se publique la web,
+justo antes de fusionar.

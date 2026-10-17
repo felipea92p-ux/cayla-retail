@@ -15,7 +15,7 @@
  *   4. `campanas_lista`: solo las de estilo campaña, sin las rechazadas y con las desactivadas; cuenta modelos, variantes y categorías.
  *   5. Quién: el líder; una colaboradora sin el módulo «Campañas» no lee nada (42501); con el módulo en su rol, sí. `authenticated` no
  *      llama a la regla directo, y `tienda_web` lee `tienda_portada` pero no las funciones del ERP.
- *   6. Las dos migraciones se pueden pegar dos veces.
+ *   6. Las migraciones de 6a y 6b se pueden pegar dos veces (la de la actividad 1 ya está pegada en producción y congelada).
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK: nunca se commitea nada. La sesión se simula con
  * `request.jwt.claim.sub`. `APLICAR_ANTES=<migración>` la mete dentro de cada transacción (que se revierte); sin la variable, prueba
@@ -287,11 +287,13 @@ select has_function_privilege('tienda_web', 'retail.tienda_portada()', 'execute'
     esperar("tienda_web lee la portada pero no la lista del ERP", web === "t|f", web);
   }
 
-  console.log("— La migración se puede pegar dos veces —");
+  console.log("— Las migraciones que faltan pegar se pueden pegar dos veces —");
+  // Las migraciones de Campañas ya pegadas en producción (144000, 151000, 160000 y 200000, el 2026-10-17) están CONGELADAS: no se vuelven
+  // a pegar aquí sobre la base final (las que siguen redefinen sus funciones, y su comprobación compara con lo que había antes de ellas).
+  // Que no cambien lo vigila `apps/web/lib/campanas-migraciones-pegadas.test.ts`. Se prueban dos veces solo las que aún no se pegaron.
   {
-    const migracion = readFileSync(MIGRACION, "utf8");
-    const r = correr(`begin;\n${migracion}\n${migracion}\nselect count(*) from retail.modulos where clave = 'campanas';`);
-    esperar("dos veces seguidas, sin error y con un solo módulo", r.ok && r.salida.split("\n").at(-1) === "1", r.ok ? r.salida : r.mensaje);
+    const r = correr("select count(*) from retail.modulos where clave = 'campanas';");
+    esperar("el módulo «Campañas» existe una sola vez", r.ok && r.salida === "1", r.ok ? r.salida : r.mensaje);
   }
   for (const [archivo, nombre] of [[MIGRACION_SIN_DESCUENTO, "la de la actividad 6a"], [MIGRACION_CARRUSEL, "la del carrusel (6b)"]]) {
     const migracion = readFileSync(archivo, "utf8");

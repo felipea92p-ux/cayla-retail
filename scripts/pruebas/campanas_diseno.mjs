@@ -14,9 +14,9 @@
  *   4. `volver_al_diseno_anterior`: cambia el publicado por el anterior y otra vez lo regresa; sin anterior, la portada vuelve a la de
  *      siempre y otra vez lo regresa; sin nada publicado, lo dice.
  *   5. `campanas_lista`: el diseño publicado, el borrador (si hay) y tres prendas con la foto primero, con su categoría y su color.
- *   6. Quién: sin Campañas, nada (42501); una etiqueta que no es campaña «no existe» aquí. La migración se puede pegar dos veces.
+ *   6. Quién: sin Campañas, nada (42501); una etiqueta que no es campaña «no existe» aquí.
  *   7. La tienda (`20261017200000`, actividad 5): `tienda_portada()` trae el diseño PUBLICADO de la campaña que sale (null sin uno); un
- *      borrador nunca llega al cliente. Esa migración también se puede pegar dos veces.
+ *      borrador nunca llega al cliente. (Las dos migraciones ya están pegadas en producción y congeladas: no se vuelven a pegar aquí.)
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK; la sesión se simula con `request.jwt.claim.sub` y los encabezados con
  * `request.headers`. Micaela recibe Campañas DENTRO de la transacción (`rol_modulos`).
@@ -34,7 +34,6 @@ import { readFileSync } from "node:fs";
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const MIGRACION = "supabase/migrations/20261017160000_campanas_diseno.sql";
-const MIGRACION_TIENDA = "supabase/migrations/20261017200000_campanas_diseno_en_la_tienda.sql";
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(process.env.APLICAR_ANTES, "utf8") : "";
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -346,12 +345,9 @@ select retail.tienda_portada() -> 'campana' -> 'diseno' ->> 'paleta';`);
     esperar("un borrador nuevo encima no cambia lo que ve el cliente", borradorEncima === "bosque", borradorEncima);
   }
 
-  console.log("— Las migraciones se pueden pegar dos veces —");
-  for (const archivo of [MIGRACION, MIGRACION_TIENDA]) {
-    const migracion = readFileSync(archivo, "utf8");
-    const r = correr(`begin;\n${migracion}\n${migracion}\nselect 'ok';`);
-    esperar(`${archivo.split("/").at(-1)}: dos veces seguidas, sin error`, r.ok && r.salida.split("\n").at(-1) === "ok", r.ok ? r.salida : r.mensaje);
-  }
+  // Las migraciones de Campañas ya pegadas en producción (144000, 151000, 160000 y 200000, el 2026-10-17) están CONGELADAS: no se vuelven
+  // a pegar aquí sobre la base final (las que siguen redefinen sus funciones, y su comprobación compara con lo que había antes de ellas).
+  // Que no cambien lo vigila `apps/web/lib/campanas-migraciones-pegadas.test.ts`. Se prueban dos veces solo las que aún no se pegaron.
 
   console.log(`\n${total - fallos} de ${total} · contenedor: ${CONTENEDOR_LOCAL}`);
   if (fallos > 0) process.exit(1);

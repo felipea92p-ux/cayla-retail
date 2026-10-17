@@ -8,7 +8,7 @@
 -- pintarlo (`disenoParaPintar` de packages/portada: que esa versión lo sepa leer y que la letra se lea en claro y en oscuro); si no pasa,
 -- sale el rojo de siempre, igual que hoy.
 --
--- QUÉ NO CAMBIA. La campaña que se anuncia, con su % y su fin: lo comprueba el final.
+-- QUÉ NO CAMBIA. Sin diseño publicado, la tienda ve exactamente lo de antes más `"diseno": null`: lo comprueba el final.
 --
 -- ORDEN. Va después de 20261017144000 (la regla de la portada) y 20261017160000 (la tabla del diseño). Si alguien vuelve a pegar
 -- 20261017144000 después de esta, `tienda_portada()` pierde el diseño (la tienda vuelve al rojo de siempre, sin romperse) hasta pegar esta
@@ -50,7 +50,7 @@ comment on function retail.tienda_portada() is
 revoke all on function retail.tienda_portada() from public, anon, authenticated;
 grant execute on function retail.tienda_portada() to tienda_web;
 
--- Comprobación: la tienda anuncia la misma campaña que antes (nombre, % y fin; 20261017204000 le suma otros campos, que esta no trae).
+-- Comprobación: sin contar el diseño, la tienda ve lo mismo que antes.
 do $$
 declare
   v_antes jsonb := nullif(current_setting('campanas.portada_antes', true), '')::jsonb;
@@ -59,9 +59,8 @@ begin
   if v_antes is null then
     raise exception 'campanas_diseno_en_la_tienda: no se pudo leer la portada de antes';
   end if;
-  if jsonb_build_object('nombre', v_antes -> 'campana' -> 'nombre', 'pct', v_antes -> 'campana' -> 'pct', 'hasta', v_antes -> 'campana' -> 'hasta')
-     is distinct from jsonb_build_object('nombre', v_ahora -> 'campana' -> 'nombre', 'pct', v_ahora -> 'campana' -> 'pct', 'hasta', v_ahora -> 'campana' -> 'hasta') then
-    raise exception 'campanas_diseno_en_la_tienda: la portada cambió de campaña (antes %, ahora %)', v_antes, v_ahora;
+  if (v_ahora #- '{campana,diseno}') is distinct from (v_antes #- '{campana,diseno}') then
+    raise exception 'campanas_diseno_en_la_tienda: la portada cambió más que el diseño (antes %, ahora %)', v_antes, v_ahora;
   end if;
   if v_ahora -> 'campana' <> 'null'::jsonb and not (v_ahora -> 'campana' ? 'diseno') then
     raise exception 'campanas_diseno_en_la_tienda: la campaña de la portada no trae su diseño';

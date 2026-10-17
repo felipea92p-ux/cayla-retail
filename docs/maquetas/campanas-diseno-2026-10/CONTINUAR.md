@@ -27,13 +27,31 @@ orden), los detalles (contador, % gigante, colibrí, sello), «Sorpréndeme» y 
 saber dibujar para la tienda y la vista previa a la vez. Lo anotado para la 7 está en el backlog (el nombre largo bajo las polaroids, la
 polaroid sin foto distinta entre el ERP y la tienda).
 
-## El orden de pegado en producción (nada de esto está pegado)
+## Lo pegado en producción y lo que falta
 
-`20261017144000` → `20261017151000` → `20261017160000` → `20261017200000` → `20261017204000` → `20261017210000`, una vez cada una y en ese
-orden, con el OK de Felipe. **Volver a pegar `20261017144000` después de las otras le quita a la tienda el diseño, las campañas sin descuento
-y el carrusel** (reescribe `tienda_portada()`, la regla y los días como eran en la actividad 1): se arregla pegando otra vez, en orden,
-`20261017200000`, `20261017204000` y `20261017210000`. Pegar `20261017204000` otra vez después de `20261017210000` deja la regla de UNA
-campaña hasta pegar `20261017210000`.
+**Pegadas el 2026-10-17 y CONGELADAS** (tal como estaban en el commit `d32f50113`; Supabase las registró con otra versión). No se editan:
+todo cambio va en una migración NUEVA, reservada con `pnpm reservar migracion`. Lo vigila `apps/web/lib/campanas-migraciones-pegadas.test.ts`
+(la huella de cada archivo), y las suites ya no las vuelven a pegar sobre la base final.
+
+| Archivo | Registro en producción |
+|---|---|
+| `20261017144000_campanas_modulo_y_portada_por_dia.sql` | `20261017202815` |
+| `20261017160000_campanas_diseno.sql` | `20261017202943` |
+| `20261017200000_campanas_diseno_en_la_tienda.sql` | `20261017203014` |
+| `20261017151000_campanas_una_sola_llave.sql` | `20261017203618` (Felipe: «acepto que las terminales no puedan poner prendas en campañas hasta que se publique la web») |
+
+**Faltan pegar, en este orden y con el OK de Felipe:** `20261017204000` (campañas sin descuento) → `20261017210000` (el carrusel). Van con la
+web que las lee: una tienda o un ERP de antes las tolera (siguen leyendo `campana`, la primera), pero sin la web nueva una campaña sin
+descuento no se ve. **Volver a pegar una de las congeladas después de estas** las deshace (reescribe `tienda_portada()` y la regla como eran):
+se arregla pegando otra vez, en orden, las que siguen.
+
+**La puerta de Editar producto (Felipe 2026-10-17, por construir en su propio commit):** `retail.actualizar_variantes_etiquetas(jsonb)`, la de
+Editar producto (`ProductoForm.tsx`), deja poner o quitar una campaña con Etiquetas o con Productos/Atributos, sin mirar la llave de
+Campañas; las dos terminales tienen Productos. Va en una migración NUEVA con un ancla (cada etiqueta de campaña pasa por
+`fn_puede_tocar_etiqueta`; las demás, como hoy, ADR-0293), sin que quien no tiene la llave pueda QUITAR una campaña ni que la prenda la pierda
+al guardar la ficha; antes, leer en producción la huella del cuerpo vivo (empieza con el comentario «P4 (20260923140000)») y compararla con el
+repo. Pruebas en `campanas_llave.mjs` con una terminal que tiene Productos y no Campañas, y en la web que `ProductoForm` no ofrezca (o avise
+bien) las campañas a quien no tiene la llave. **Se pega EL DÍA QUE SE PUBLIQUE LA WEB, justo antes de fusionar, no antes.**
 
 ## Reglas que ya costaron tiempo
 

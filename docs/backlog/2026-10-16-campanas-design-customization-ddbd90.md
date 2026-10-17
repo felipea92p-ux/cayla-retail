@@ -18,12 +18,13 @@ Maqueta: `docs/maquetas/campanas-diseno-2026-10/` (abrir `index.html`; su README
 - [ ] Mover «Configurar campaña» y «Prendas» de Atributos ▸ Etiquetas a la campaña; Atributos se queda con las etiquetas que no son
   campaña (Para liquidar, Últimas unidades, Estreno).
 
-**Dónde quedó (2026-10-17, tarde).** Lista de 9 actividades aprobada (ADR-0436). Hechas y commiteadas: 1 (módulo, lista, regla de la
+**Dónde quedó (2026-10-17, noche).** Lista de 9 actividades aprobada (ADR-0436). Hechas y commiteadas: 1 (módulo, lista, regla de la
 portada en un solo lugar), 2 (Datos y Prendas con una sola llave), 3 (la portada en una sola pieza, `packages/portada`, sin cambio
 visible), 4 (diseñar y publicar), 5 (la tienda pinta el diseño publicado) y **6 (campañas sin descuento y el carrusel)**:
-- [x] Migraciones `20261017160000_campanas_diseno.sql` (la tabla del diseño, borrador con versión, publicar, volver al anterior, la lista
-  con el diseño) y `20261017200000_campanas_diseno_en_la_tienda.sql` (`tienda_portada()` con el diseño publicado), con su suite
-  `pnpm pruebas:campanas-diseno` (49/49). **Ninguna está en producción**: el orden de pegado, en `CONTINUAR.md`.
+- [x] **En producción desde el 2026-10-17, congeladas** (como en `d32f50113`): `20261017144000` (registro `20261017202815`),
+  `20261017160000` (`20261017202943`), `20261017200000` (`20261017203014`) y `20261017151000` (`20261017203618`). No se editan (lo vigila
+  `campanas-migraciones-pegadas.test.ts`); un cambio va en una migración nueva. **Faltan** `20261017204000` y `20261017210000`, con la web
+  (detalle en `CONTINUAR.md`).
 - [x] Actividad 4: la pestaña «Diseño en la web» (la de entrada; Nueva campaña lleva a Datos), con «Después sale» desde la base; la portada
   real en la lista, en la línea y en Datos ▸ En la web; «Borrador» solo si difiere de lo publicado; guías y huellas al día.
 - [x] Actividad 5: la tienda revisa el diseño (`disenoParaPintar`: que se sepa leer y que la letra se lea en los dos temas) y la portada y
@@ -34,6 +35,10 @@ visible), 4 (diseñar y publicar), 5 (la tienda pinta el diseño publicado) y **
 - [x] Actividad 6b: el carrusel (Felipe 2026-10-17: «si hay dos campañas activas, eso debe convertirse en un carrusel que va deslizándose
   cada ciertos segundos»): la regla devuelve todas en orden, la tienda las pasa cada 7 s y el ERP dibuja los días en carrusel. Migración
   `20261017210000`, sin pegar.
+- [ ] La puerta de Editar producto (Felipe 2026-10-17: «que la sesión de Campañas construya la migración que cierra la puerta de Editar
+  producto […] y que se pegue el día que se publique la web»): `actualizar_variantes_etiquetas` deja poner o quitar una campaña sin la llave
+  de Campañas. Migración nueva con ancla, pruebas en `campanas_llave.mjs`, `ProductoForm` sin ofrecer las campañas a quien no tiene la llave;
+  en su propio commit (detalle en `CONTINUAR.md`). Se pega el día que se publique la web.
 - [ ] Al publicar: avisarle a Felipe que «Terminal Almacén» y «Terminal de ventas» pierden la configuración de campañas hasta que el líder
   les dé el módulo «Campañas» (ADR-0436, DECIDÍ 1).
 - [ ] Visto al verificar la 4 (para la 7, «El texto»): en la portada de 1280 px, una palabra larga del nombre («Internacional», de Día

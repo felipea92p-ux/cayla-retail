@@ -183,18 +183,11 @@ grant execute on function retail.campanas_portada_dias(date, date) to authentica
 
 -- 5. Comprobación: la tienda ve hoy exactamente lo mismo que antes ---------------------------------------------------------------
 
--- Se compara QUÉ campaña se anuncia (nombre, % y fin), no la forma de la respuesta: las que siguen le suman campos (el diseño,
--- 20261017200000; el id y las prendas, 20261017204000). Volver a pegar esta DESPUÉS de esas le quita a la tienda esos campos (sale el rojo
--- de siempre y, sin descuento, ninguna campaña) hasta volver a pegarlas en orden; si la de antes no tenía descuento, la regla de esta la
--- descarta a propósito, y no se compara.
+-- Sin contar el diseño de la campaña, que suma 20261017200000 (actividad 5): pegar esta otra vez DESPUÉS de esa le quita el diseño a la
+-- tienda (sale el rojo de siempre, sin romperse) hasta volver a pegar 20261017200000.
 do $$
-declare
-  v_antes jsonb := current_setting('campanas.portada_antes')::jsonb -> 'campana';
-  v_ahora jsonb := retail.tienda_portada() -> 'campana';
 begin
-  if (v_antes = 'null'::jsonb or (v_antes ->> 'pct') is not null)
-     and jsonb_build_object('nombre', v_antes -> 'nombre', 'pct', v_antes -> 'pct', 'hasta', v_antes -> 'hasta')
-         is distinct from jsonb_build_object('nombre', v_ahora -> 'nombre', 'pct', v_ahora -> 'pct', 'hasta', v_ahora -> 'hasta') then
+  if (current_setting('campanas.portada_antes')::jsonb #- '{campana,diseno}') is distinct from (retail.tienda_portada() #- '{campana,diseno}') then
     raise exception 'tienda_portada() cambió de respuesta al pasar a fn_campana_en_portada: no se aplica nada.';
   end if;
   if not exists (select 1 from retail.modulos where clave = 'campanas' and grupo = 'Tienda web' and delegable and not solo_lider) then

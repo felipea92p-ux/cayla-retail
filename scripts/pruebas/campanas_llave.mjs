@@ -12,7 +12,8 @@
  *   5. `guardar_campana`: nombre, descuento, fechas y categorías juntos; si algo está mal, no cambia NADA (tampoco el nombre).
  *   6. `activar_campana`: no se desactiva con prendas a mano; sin ellas sí, y se vuelve a activar.
  *   7. `campana_detalle`: sus categorías, sus variantes y sus prendas por modelo; una etiqueta que no es campaña «no existe».
- *   8. Quién: sin Campañas no se lee ni se guarda nada (42501). La migración se puede pegar dos veces.
+ *   8. Quién: sin Campañas no se lee ni se guarda nada (42501). (La migración ya está pegada en producción y congelada: no se vuelve a
+ *      pegar aquí, ver `apps/web/lib/campanas-migraciones-pegadas.test.ts`.)
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK. La sesión se simula con `request.jwt.claim.sub`; los módulos de Micaela
  * se le dan DENTRO de la transacción (`rol_modulos`), así que nunca queda nada.
@@ -212,12 +213,9 @@ select pg_temp.intento(format('select retail.campana_detalle(%L)', :'liquidar'))
     esperar("una etiqueta que no es campaña «no existe» aquí", noCampana?.includes("campana_no_existe"), noCampana);
   }
 
-  console.log("— La migración se puede pegar dos veces —");
-  {
-    const migracion = readFileSync(MIGRACION, "utf8");
-    const r = correr(`begin;\n${migracion}\n${migracion}\nselect 'ok';`);
-    esperar("dos veces seguidas, sin error", r.ok && r.salida.split("\n").at(-1) === "ok", r.ok ? r.salida : r.mensaje);
-  }
+  // Las migraciones de Campañas ya pegadas en producción (144000, 151000, 160000 y 200000, el 2026-10-17) están CONGELADAS: no se vuelven
+  // a pegar aquí sobre la base final (las que siguen redefinen sus funciones, y su comprobación compara con lo que había antes de ellas).
+  // Que no cambien lo vigila `apps/web/lib/campanas-migraciones-pegadas.test.ts`. Se prueban dos veces solo las que aún no se pegaron.
 
   console.log(`\n${total - fallos} de ${total} · contenedor: ${CONTENEDOR_LOCAL}`);
   if (fallos > 0) process.exit(1);
