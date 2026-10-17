@@ -203,3 +203,29 @@ abre, el precio y lo que queda se leen al día. Así un look guardado en una cam
   - Guardar la talla. La talla se elige al llevar el look a la bolsa, y lo que hay cambia todos los días.
   - Guardar el precio. Mentiría al terminar una campaña.
   - Guardar el look en el navegador, sin cuenta. Se pierde al cambiar de celular, y el Club empieza con la cuenta.
+
+## Actualización 2026-10-16 (actividad 9): compartir el look
+
+Desde el look guardado, «Compartir» abre una hoja con la imagen para estados (lienzo v3, pantalla 9) y tres caminos: la hoja de
+compartir del celular (la imagen y el enlace), «Descargar la imagen» y «Copiar el enlace». El enlace es `/tu-look?p=…`. Esa página es
+pública, como la portada: muestra la figura y cada prenda con su color, sin precio ni cuánto hay. Sin cuenta, invita a crearla («Crea
+tu cuenta y arma el tuyo») y al terminar abre el probador con ese look. Con cuenta, «Pruébatelo en el probador».
+
+- **Ninguna imagen pública lleva un texto que venga en la dirección.** Si la vista previa dijera el nombre que trae el enlace, cualquiera
+  podría armar una imagen con la marca de CAYLA y su propio texto. Por eso:
+  - la vista previa de WhatsApp (`/tu-look/vista`, 1200×630) dice «Mira este look» y los nombres de las prendas, que salen de la base;
+  - la imagen para estados lleva el nombre del look, y la arma `/looks/guardado/[id]/historia` solo para la cuenta dueña. Nunca se
+    guarda en la red.
+- **Un look, una imagen guardada:** una dirección escrita de otra forma (minúsculas, prendas de más) va con un 308 a la del mismo look
+  como la escribe el probador. La red guarda la vista previa un día.
+- **Las letras de la marca:** `next/og` no lee el WOFF2 que guarda `next/font`. Pide EB Garamond y DM Sans en TTF a Google Fonts, las
+  mismas que ya usa la tienda, una vez por servidor. Si Google no contesta en 3 s, la imagen sale con la letra de `next/og` (Geist), sin
+  caerse. Una foto que no llega deja su tarjeta con el estudio vacío.
+- **El acomodo de las polaroids** sigue el lienzo con un cambio: cada tarjeta tapa solo el borde de papel de la de arriba, no 34 px. En
+  el lienzo tapaba el nombre de la prenda de arriba.
+- **«Compartir» pide la imagen al abrir la hoja,** no al tocar el botón: el celular solo deja compartir desde el toque de la persona, y
+  esperar a la red lo rompía.
+- **Descartado:**
+  - Dibujar la imagen en el navegador (`canvas`): la vista previa de WhatsApp igual necesita el servidor, y serían dos dibujos del mismo
+    look.
+  - Guardar las letras en el repositorio: hay que bajarlas, y la tienda ya depende de Google Fonts por `next/font`.

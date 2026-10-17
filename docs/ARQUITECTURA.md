@@ -2167,7 +2167,18 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   del probador, quieta, con sus números), `NombreDelLook.tsx` (`renombrarTuLook` → `tienda_renombrar_look`), `AgregarLookGuardado.tsx`
   (el `AgregarTuLook` del probador, a lo ancho) y `QuitarLookGuardado.tsx`; «Editar en el probador» abre `/looks/arma?p=…`. Su
   esqueleto es el de la ficha. En `/catalogo?lista=favoritos`, «Tus looks» (`components/probador/TusLooks.tsx`) va arriba de las
-  prendas, solo con la lista entera. Prueba en la base: `pnpm pruebas:tienda-looks-guardados`.
+  prendas, solo con la lista entera. Prueba en la base: `pnpm pruebas:tienda-looks-guardados`. «Compartir» (actividad 9,
+  `components/probador/CompartirLook.tsx`) abre una hoja (`HojaNativa`) con la imagen para estados, que arma
+  `app/(catalogo)/looks/guardado/[id]/historia/route.tsx` (1080×1920, `next/og`, solo para la cuenta dueña: lleva el nombre del look), y
+  comparte el archivo con el enlace público por la hoja del celular (`navigator.share`), o lo descarga, o copia el enlace.
+- `/tu-look?p=…` (un look compartido, actividad 9; **público**, fuera del grupo `(catalogo)`, con `MarcoCuenta segunSesion`) →
+  `lib/compartir-servidor.ts` `prendasParaCompartir()` (el catálogo y el probador de todas las tiendas, las mismas lecturas guardadas) +
+  `lookDeLaUrl`: la figura y cada prenda con su color, SIN precio ni cuánto hay; sin cuenta, «Crea tu cuenta y arma el tuyo» (vuelve
+  al probador con este look, `hrefConVolver`) y, con cuenta, «Pruébatelo en el probador». Su vista previa para WhatsApp (`og:image`) es
+  `app/tu-look/vista/route.tsx` (1200×630, `next/og`, pública y guardada un día en la red; una dirección escrita de otra forma va a la
+  del probador, 308). Las dos imágenes salen de `lib/imagenes-del-look.tsx` (plantillas de satori), `lib/compartir-look.ts` (pura, con
+  su prueba: el enlace, dónde va cada tarjeta, el título) y `lib/fuentes-og.ts` (EB Garamond y DM Sans en TTF desde Google Fonts, en
+  memoria; si Google no contesta, la letra de `next/og`). Ninguna imagen pública lleva un texto que venga en la dirección.
 - **Un solo precio y una sola tienda elegida** (integración de la tienda, 2026-10-15). El precio de una prenda (talla y color) en la web
   lo dice `fn_tienda_precio_talla(prendas, tienda)` (`20261015012000`): el de la tienda elegida (`fn_precio_en_sede`) o, con «Todas», el
   mayor entre las de la web (sin ninguna, el de la grilla), con la campaña de la caja encima (la de mayor %, `fn_descuento_campana`,

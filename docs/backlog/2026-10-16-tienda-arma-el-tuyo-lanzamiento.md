@@ -17,5 +17,16 @@
   - Al pegarla, refrescar el volcado (`pnpm datos:refrescar`) para que `looks_web` y `look_web_piezas` entren al diccionario.
 - [ ] El PR 3 se abre recién con el PR 1 (#1151) y el PR 2 fusionados en main. Hasta entonces, `pnpm migraciones:versiones` y
   `pnpm adr:numeros` marcan en esta rama los números de esos dos PR, que todavía no están en main.
-- [ ] Actividad 9 — Compartir: el enlace sin cuenta y sin precios, la vista previa y la imagen para estados.
+- [x] **Actividad 9 — Compartir:**
+  - «Compartir» en el look guardado: la imagen para estados, la hoja del celular, descargar y copiar el enlace;
+  - `/tu-look`, la página pública sin precios, con «Crea tu cuenta y arma el tuyo»;
+  - la vista previa de WhatsApp.
+
+  Cómo se probó:
+  - las reglas: `apps/tienda/lib/compartir-look.test.ts`;
+  - en el banco, a 375 px y en la computadora: las dos imágenes mirándolas, la página con cuenta y sin ella (el HTML de un visitante,
+    sin precios y con el enlace de vuelta), la hoja de compartir, la del celular simulada (manda el PNG y el enlace) y copiar sin
+    permiso del navegador.
+- [ ] Probar «Compartir» en un iPhone y un Android de verdad. El panel de pruebas no tiene la hoja de compartir del celular. Revisar
+  también que WhatsApp muestre la vista previa del enlace de producción.
 - [ ] Actividad 10 — Las entradas (el menú, «Arma tu look» y la ficha), solo cuando Felipe diga.

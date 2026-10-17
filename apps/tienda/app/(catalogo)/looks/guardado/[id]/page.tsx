@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Icono } from "@/components/Icono";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { AgregarLookGuardado } from "@/components/probador/AgregarLookGuardado";
+import { CompartirLook } from "@/components/probador/CompartirLook";
 import { FiguraQuieta } from "@/components/probador/FiguraQuieta";
 import { NombreDelLook } from "@/components/probador/NombreDelLook";
 import { QuitarLookGuardado } from "@/components/probador/QuitarLookGuardado";
@@ -210,6 +211,8 @@ export default async function LookGuardado({ params, searchParams }: Props) {
                 <Link className="t-btn t-btn-sec" href={hrefDelProbador(sede, codificarLook(look, indice))}>
                   Editar en el probador
                 </Link>
+                {/* La imagen para estados y el enlace público, sin precios (actividad 9). */}
+                <CompartirLook id={guardado.id} codigo={codificarLook(look, indice)} />
               </div>
               <p className="lg-nota">{notaDelGuardado(elegida?.nombre ?? null)}</p>
               <QuitarLookGuardado id={guardado.id} />
