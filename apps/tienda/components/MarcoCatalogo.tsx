@@ -1,7 +1,7 @@
 import type { Prenda } from "@/lib/catalogo";
 import { cuantosFavoritos, nombreDeLaCuenta } from "@/lib/cabecera-servidor";
 import { datosDeCabecera } from "@/lib/inicio";
-import { anioLima } from "@/lib/portada";
+import { anioActual } from "@/lib/hoy-servidor";
 import { BotonBolsa } from "./bolsa/BotonBolsa";
 import { CabeceraConCuenta, type SeccionActual } from "./CabeceraConCuenta";
 import { EntradaDelDia } from "./cuenta/EntradaDelDia";
@@ -43,7 +43,7 @@ export async function MarcoCatalogo({
       {/* Con una sola tienda en la web no hay nada que elegir. */}
       {filtro && filtro.length > 2 && <FiltroTienda opciones={filtro} />}
       <main className="t-pagina t-pagina-catalogo">{children}</main>
-      <Pie anio={anioLima()} conCuenta sede={sede} />
+      <Pie anio={await anioActual()} conCuenta sede={sede} />
     </>
   );
 }

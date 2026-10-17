@@ -49,6 +49,11 @@ const CABECERAS_DE_SEGURIDAD = [
 const CACHE_DE_IMAGENES_FIJAS = "public, max-age=86400, stale-while-revalidate=604800";
 
 const nextConfig: NextConfig = {
+  // Cache components + prerender parcial (ADR-0432): la parte que es igual para todos sale armada desde el CDN y lo de la persona (la
+  // cuenta, los favoritos, la bolsa) llega por detrás, dentro de su <Suspense>. Con `partialPrefetching`, un enlace precarga la
+  // «cáscara» de la página y no una copia por prenda a la vista.
+  cacheComponents: true,
+  partialPrefetching: true,
   // Sin «X-Powered-By: Next.js»: no se anuncia con qué está hecha la tienda.
   poweredByHeader: false,
   async headers() {

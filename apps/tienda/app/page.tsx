@@ -17,17 +17,17 @@ import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { leerBeneficiosDelClub } from "@/lib/cuentas-servidor";
 import { hrefConVolver } from "@/lib/entrada";
 import { heroDelInicio, type Hero } from "@/lib/inicio";
+import { anioActual } from "@/lib/hoy-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
-import { anioLima, anuncios, fechaCorta, fechaLarga, partirTitulo, pctTexto, type Campana } from "@/lib/portada";
+import { anuncios, fechaCorta, fechaLarga, partirTitulo, pctTexto, type Campana } from "@/lib/portada";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import { vitrinaDePortada } from "@/lib/vitrina-portada";
 import "./estilos/tiendas.css";
 import "./estilos/portada.css";
 
-// La campaña y las prendas salen de la base y la página se guarda 5 minutos: lo que se cambia en el ERP aparece solo, sin volver a
-// publicar la tienda. Si la base no responde, la portada sale igual, sin campaña, sin fotos ni tiendas, y esa versión también dura
-// 5 minutos: a la vuelta siguiente se vuelve a leer la base. «Así se separa» y el Club son las mismas piezas del Inicio.
-export const revalidate = 300;
+// La campaña y las prendas salen de la base (lecturas compartidas de 30 a 300 s, `lib/compartido-servidor.ts`): lo que se cambia en el
+// ERP aparece solo, sin volver a publicar la tienda. Si la base no responde, la portada sale igual, sin campaña, sin fotos ni tiendas, y
+// a la vuelta siguiente se vuelve a leer la base. «Así se separa» y el Club son las mismas piezas del Inicio.
 
 /**
  * La portada de quien todavía no tiene cuenta (maqueta v4; Felipe 2026-10-16: «competencia de grandes empresas mundiales» y «fotos sin
@@ -37,7 +37,7 @@ export const revalidate = 300;
  */
 export default async function Portada() {
   const [{ campana }, sedes, catalogo, beneficios] = await Promise.all([leerPortada(), leerSedes(), leerCatalogo(null), leerBeneficiosDelClub()]);
-  const anio = anioLima();
+  const anio = await anioActual();
   const prendas = catalogo?.prendas ?? [];
   const hero = heroDelInicio(campana, prendas);
   const piezas = hero.tipo === "marca" ? [] : hero.piezas;

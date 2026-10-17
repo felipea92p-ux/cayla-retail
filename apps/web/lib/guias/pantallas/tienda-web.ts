@@ -706,14 +706,14 @@ export const GUIA_RECOMENDACIONES: Guia = {
       ancla: "recomendacion.texto",
       opcional: true,
       titulo: "Lo que escribió",
-      texto: "El texto tal cual lo mandó el cliente, con cuándo llegó y sobre qué tienda es.",
+      texto: "El texto tal cual lo mandó el cliente, con cuándo llegó. Si ya le respondieron, la respuesta de CAYLA va debajo, a la derecha, como en un chat.",
     },
     {
       id: "cliente",
       ancla: "recomendacion.cliente",
       opcional: true,
       titulo: "Quién la escribió",
-      texto: "Su nombre y, si tu rol ve las fichas de clientes, el camino a su ficha. Si su ficha se anonimizó, la recomendación se queda sin su nombre.",
+      texto: "Su nombre arriba y, debajo, sobre qué tienda es y, si tu rol ve las fichas de clientes, el camino a su ficha. Si su ficha se anonimizó, la recomendación se queda sin su nombre.",
     },
     {
       id: "respuesta-dada",

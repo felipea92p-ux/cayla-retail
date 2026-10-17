@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { agregarLookALaBolsa } from "@/app/acciones/bolsa";
+import { visible } from "@/lib/visible";
 import { avisoDelLook, type LineaLook, type Look } from "@/lib/looks";
 import { useAvisoBreve } from "../club/useAvisoBreve";
 import { AgregarLook } from "./AgregarLook";
@@ -12,7 +13,7 @@ import { AgregarLook } from "./AgregarLook";
 function saltarLaBolsa(cuantas: number) {
   let cuadros = 0;
   const mirar = () => {
-    const globo = document.querySelector<HTMLElement>("[data-bolsa] .t-globo");
+    const globo = visible(document.querySelectorAll<HTMLElement>("[data-bolsa] .t-globo"));
     if (globo?.textContent === String(cuantas)) {
       globo.classList.remove("salta");
       void globo.offsetWidth; // vuelve a empezar la animación si ya había saltado
