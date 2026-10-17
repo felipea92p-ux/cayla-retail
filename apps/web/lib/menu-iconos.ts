@@ -142,9 +142,18 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   club: "M18 21a8 8 0 0 0-16 0 M5 8a5 5 0 1 0 10 0a5 5 0 1 0 -10 0 M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3", // lucide «users-round»
   // Globo de conversación: Clientas ▸ Avisos, los mensajes por WhatsApp que la tienda le manda a cada socia.
   avisos: "M21 11.5a8.4 8.4 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.4 8.4 0 013.8-.9h.5a8.5 8.5 0 018 8v.5z",
-  // Foco encendido: Clientes ▸ Recomendaciones (ADR-0408), la idea que un cliente le deja a CAYLA desde la tienda online. No el globo de
+  // Foco encendido: Tienda web ▸ Recomendaciones (ADR-0408), la idea que un cliente le deja a CAYLA desde la tienda online. No el globo de
   // «Avisos» (lo que la tienda le manda a él) ni el corazón de las fichas: lo que ÉL propone.
   recomendaciones: "M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5 M9 18h6 M10 22h4", // lucide «lightbulb»
+  // Globo: la cabecera del grupo «Tienda web» (ADR-0430), la tienda que está en internet. No repite a ninguna de sus hijas (el
+  // tablero del Resumen, el celular de Pedidos, el monitor de la Vitrina, el foco de Recomendaciones, los controles de Ajustes) ni a la
+  // brújula de Gestión, que también es un círculo: este lleva sus meridianos.
+  tiendaWeb: "M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0 M12 2a14.5 14.5 0 0 0 0 20a14.5 14.5 0 0 0 0-20 M2 12h20", // lucide «globe»
+  // Tablero: Tienda web ▸ Resumen (ADR-0430), lo que la tienda online pide hoy, de un vistazo. No el velocímetro de Finanzas ▸ Resumen
+  // ni el pulso de CAYLA Global, que pueden estar en el mismo lateral.
+  resumenWeb: "M3 3h7v9H3z M14 3h7v5h-7z M14 12h7v9h-7z M3 16h7v5H3z", // lucide «layout-dashboard»
+  // Controles deslizantes: Tienda web ▸ Ajustes (ADR-0430), lo que la tienda online muestra de cada tienda y sus plazos.
+  ajustesWeb: "M21 4h-7 M10 4H3 M21 12h-9 M8 12H3 M21 20h-5 M12 20H3 M14 2v4 M8 10v4 M16 18v4", // lucide «sliders-horizontal»
 };
 
 /* ------------------------------------------------------------------

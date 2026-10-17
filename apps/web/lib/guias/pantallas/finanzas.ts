@@ -10,13 +10,13 @@
 
 import type { Guia, PasoGuia } from "../tipos";
 
-/** «Ver»: el mismo combo en casi todas las pantallas de Finanzas (solo el líder elige; los demás ven su tienda). */
+/** «Ver»: el mismo combo en casi todas las pantallas de Finanzas (lo elige quien ve todas las tiendas —el líder y, donde la pantalla lo permite, quien tiene Configuración, Cierre de mes o CAYLA Global—; los demás ven su tienda). */
 const VER: PasoGuia = {
   id: "ver",
   ancla: "fin-ver.combo",
   opcional: true,
   titulo: "Qué tienda mirar",
-  texto: "Eliges si ves todas las tiendas juntas, una sola o lo de la empresa (lo que no es de ninguna tienda, como el contador). Lo elige el líder; si no lo eres, ves tu tienda.",
+  texto: "Eliges si ves todas las tiendas juntas, una sola o lo de la empresa (lo que no es de ninguna tienda, como el contador). Lo elige quien ve todas las tiendas (el líder y, en algunas pantallas, quien tiene Configuración o Cierre de mes); si no, ves tu tienda.",
 };
 
 /** Las pestañas de Reportes: cada una es otra pantalla (se explican, no se tocan). */
@@ -431,7 +431,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       ancla: "fin-dinero.alcanza",
       opcional: true,
       titulo: "¿Me alcanza?",
-      texto: "La primera semana de las próximas seis en que la plata bajaría de tu mínimo de caja, con lo que vence y lo que esperas vender. Y qué pasa si depositas lo que está guardado en las cajas fuertes.",
+      texto: "La primera semana de las próximas seis en que la plata bajaría de tu mínimo de caja, con lo que vence y lo que esperas vender. Y qué pasa si depositas lo que está guardado en las cajas fuertes. Si falta cargar saldos o historia, dice «provisional» y qué falta.",
     },
     {
       id: "debes",
@@ -1038,7 +1038,7 @@ export const GUIA_FIN_FLUJO: Guia = {
       ancla: "fin-flujo.dias",
       opcional: true,
       titulo: "Días de caja",
-      texto: "Si mañana no vendieras nada, para cuántos días te alcanza la plata con lo que sale en un día normal.",
+      texto: "Si mañana no vendieras nada, para cuántos días te alcanza la plata con lo que sale en un día normal. Si falta cargar saldos o historia, dice «provisional» y, arriba, qué falta.",
     },
     {
       id: "que-vence",

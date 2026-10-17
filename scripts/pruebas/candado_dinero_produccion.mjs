@@ -9,7 +9,8 @@
  *   1. Un colaborador del Taller NO puede leer `costo_unitario` de lotes ni de movimientos, ni los 4 costos de una orden, ni con `select *`.
  *   2. Lo que SÍ necesita sigue legible: cantidades, lotes, códigos, fechas, estados de la orden y sus líneas.
  *   3. Recibir, descontar, devolver, abrir y cerrar órdenes siguen funcionando para ese colaborador (las funciones `security definer` leen los costos).
- *   4. El líder tampoco lee esas columnas directo, pero SÍ las recibe por las dos funciones; el colaborador recibe cero filas de ellas.
+ *   4. El líder tampoco lee esas columnas directo, pero SÍ las recibe por las dos funciones. Quien ve `produccion` parado en el Taller también (Felipe, 2026-10-15,
+ *      ADR-0400 actividad 6; antes, solo el líder); quien no ve el módulo, o no está en el Taller, recibe cero filas.
  *   5. La vista `v_insumo_saldos` (trae `valor` de todas las ubicaciones) está cerrada a cualquier sesión.
  *   6. Guardia: toda columna de esas tres tablas que NO es de dinero es legible por `authenticated` (si una migración futura agrega una y
  *      olvida darle SELECT, esta prueba lo avisa).
@@ -152,9 +153,20 @@ rollback;`,
     verificar: (c) => Number(c[0]) === 20 && Number(c[1]) === 600 && Number(c[2]) >= 1,
   },
   {
-    nombre: "4c. un colaborador del Taller recibe CERO filas de las dos funciones de costos",
+    // Antes de ADR-0400 (actividad 6) esto exigía CERO filas: solo el líder veía los costos. Felipe (2026-10-15): los ve también quien ve Producción parado en el Taller.
+    nombre: "4c. un colaborador del Taller que ve Producción recibe los costos por las dos funciones (ADR-0400, actividad 6)",
     tipo: "exito",
     sql: `${PREPARAR}${MICAELA_AL_TALLER}${CAMBIA_A(MICAELA)}${AUTENTICADO}
+select (select count(*) from retail.fn_costos_insumos_taller(:'taller')), (select count(*) from retail.fn_costos_producciones(:'taller'));
+rollback;`,
+    verificar: (c) => Number(c[0]) >= 1 && Number(c[1]) >= 1,
+  },
+  {
+    nombre: "4d. el mismo colaborador SIN el módulo Producción, o parado en otra sede, recibe CERO filas",
+    tipo: "exito",
+    sql: `${PREPARAR}${MICAELA_AL_TALLER}
+delete from retail.rol_modulos where modulo = 'produccion' and rol_id = (select c.rol_id from retail.colaboradores c where c.persona_id = (select id from public.personas where auth_user_id = '${MICAELA}'));
+${CAMBIA_A(MICAELA)}${AUTENTICADO}
 select (select count(*) from retail.fn_costos_insumos_taller(:'taller')), (select count(*) from retail.fn_costos_producciones(:'taller'));
 rollback;`,
     verificar: (c) => Number(c[0]) === 0 && Number(c[1]) === 0,
@@ -190,9 +202,13 @@ where c.table_schema = 'retail'
   {
     nombre: "7. las dos migraciones se pueden volver a pegar sin romper nada",
     tipo: "exito",
-    sql: `${readFileSync(join(RAIZ, "supabase", "migrations", "20260921150000_candado_dinero_produccion_lectura_operativa.sql"), "utf8")}
+    // Dentro de una transacción que se deshace: pegar la parte A de verdad le devolvía a la base compartida las funciones de costos de SOLO el líder, y pisaba lo que migraciones
+    // posteriores (ADR-0400, actividad 6) les cambiaron.
+    sql: `begin;
+${readFileSync(join(RAIZ, "supabase", "migrations", "20260921150000_candado_dinero_produccion_lectura_operativa.sql"), "utf8")}
 ${readFileSync(join(RAIZ, "supabase", "migrations", "20260921151000_candado_dinero_produccion_columnas.sql"), "utf8")}
-select count(*) from information_schema.columns c where c.table_schema = 'retail' and c.table_name = 'producciones' and c.column_name = 'estado' and has_column_privilege('authenticated', 'retail.producciones', 'estado', 'select');`,
+select count(*) from information_schema.columns c where c.table_schema = 'retail' and c.table_name = 'producciones' and c.column_name = 'estado' and has_column_privilege('authenticated', 'retail.producciones', 'estado', 'select');;
+rollback;`,
     verificar: (c) => Number(c[0]) === 1,
   },
 ];

@@ -1069,12 +1069,57 @@ ESCENARIOS.push(
   { id: "produccion.orden-nueva-ficha", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: 'aside[aria-label="La orden, tal como va a quedar"]', nombre: "Producción · «Nueva orden»: la ficha viva de la orden con un modelo elegido", preparar: secuencia(clicRol("button", /Nueva orden/i), async (pagina) => { await pagina.locator('[data-guia="prod-orden-nueva.modelo-fila"]').first().click({ timeout: 8000 }); await esperar(pagina, 1000); }) },
   { id: "produccion.orden-nueva-color", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: '[data-guia="prod-orden-nueva.matriz"] [role="combobox"]', nombre: "Producción · «Nueva orden» con un modelo nuevo: «+ Agregar color» abierto sobre la tabla", preparar: secuencia(clicRol("button", /Nueva orden/i), clicRol("button", /Crear un modelo nuevo/i), async (pagina) => { await pagina.getByRole("combobox", { name: /^Categoría/ }).first().click({ timeout: 8000 }); await esperar(pagina, 600); await pagina.getByRole("option").first().click({ timeout: 8000 }); await esperar(pagina, 800); }, clicRol("button", /Agregar color/i)) },
   // La hoja «Ver el modelo» del Resumen: se abre tocando la primera fila de «¿Qué producir?» (si la tienda no tiene modelos que producir, no hay fila y el escenario lo dice).
+  // /formidable (2026-10-16): «¿Por qué?» de un asunto de tela del Resumen (la cuenta: lo que piden las órdenes, lo que hay y lo que viene en camino, pedido por pedido) y el consejo de la red de Nueva orden abierto. `abre` exige el texto de la cuenta, no solo el botón.
+  { id: "produccion.resumen-porque", ruta: "/produccion", cuentas: ["admin-taller"], abre: '[data-guia="prod-resumen.porque"][aria-expanded="true"]', nombre: "Producción · Resumen · la cuenta de la tela abierta bajo «¿Por qué?»", async preparar(pagina) { await pagina.locator('[data-guia="prod-resumen.porque"]').first().click({ timeout: 8000 }); await esperar(pagina, 600); } },
+  { id: "produccion.orden-nueva-red", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: '[data-guia="prod-orden-nueva.red-abrir"][aria-expanded="true"]', nombre: "Producción · «Nueva orden» con el consejo de la red abierto («¿Por qué?»: curva, cubrir y motor de demanda)", preparar: secuencia(clicRol("button", /Nueva orden/i), async (pagina) => { await pagina.locator('[data-guia="prod-orden-nueva.modelo-fila"]').first().click({ timeout: 8000 }); await esperar(pagina, 1000); await pagina.locator('[data-guia="prod-orden-nueva.red-abrir"]').first().click({ timeout: 8000 }); await esperar(pagina, 600); }) },
   { id: "produccion.ver-modelo", ruta: "/produccion", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · Resumen · «Ver el modelo» (la hoja de un modelo)", async preparar(pagina) { await pagina.locator("#produce li button").first().click(); await esperar(pagina, 900); } },
   { id: "produccion.insumo-nuevo", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nuevo insumo»", preparar: clicRol("button", /Nuevo insumo/i) },
+  // La ficha de una tela (ADR-0400, actividad 8e): el capital pedido con un toque y la hoja «Ficha de la tela» (el primer insumo, abierto).
+  { id: "produccion.insumo-ingresar", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Ingresar insumo» (abre un lote)", preparar: clicRol("button", /Ingresar insumo/i) },
+  { id: "produccion.insumos-capital", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: '[data-guia="prod-insumos.capital"]', nombre: "Producción · Insumos con el capital pedido con un toque", preparar: clicRol("button", /Ver el capital en insumos/i) },
+  { id: "produccion.insumo-ficha", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Ficha de la tela» (tejido y color)", preparar: secuencia(async (pagina) => { await pagina.locator('[data-guia="prod-insumos.fila-cabecera"]').first().click({ timeout: 8000 }); await esperar(pagina, 600); }, clicRol("button", /Completar tejido y color|Editar la ficha/i)) },
   { id: "produccion.cotizacion", ruta: "/produccion/cotizaciones-maquila", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva cotización» de maquila", preparar: clicRol("button", /Nueva cotización/i) },
   { id: "produccion.factura-nueva", ruta: "/produccion/comprobantes", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva factura»", preparar: clicRol("button", /Nueva factura/i) },
   { id: "produccion.proveedor-nuevo", ruta: "/produccion/proveedores", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nuevo proveedor»", preparar: clicRol("button", /Nuevo proveedor/i) },
+  // «Servicios y tarifas» (ADR-0400, actividad 8c): la lista de precios de los servicios de afuera, la hoja para cargar una tarifa y la que renueva una vigente («Cambiar» necesita una tarifa ya cargada en la base local).
+  { id: "produccion.tarifas", ruta: "/produccion/proveedores", cuentas: ["admin-taller"], abre: '[data-guia="prod-tarifas.lista"]', nombre: "Producción · Proveedores ▸ «Servicios y tarifas»", preparar: clicRol("tab", /Servicios y tarifas/i) },
+  { id: "produccion.tarifa-nueva", ruta: "/produccion/proveedores", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Nueva tarifa» de un servicio", preparar: secuencia(clicRol("tab", /Servicios y tarifas/i), clicRol("button", /Nueva tarifa/i)) },
+  { id: "produccion.tarifa-cambiar", ruta: "/produccion/proveedores", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · la hoja «Cambiar la tarifa» de un servicio, con la vigente a la vista", preparar: secuencia(clicRol("tab", /Servicios y tarifas/i), clicRol("button", /^Cambiar$/, { exact: true })) },
   { id: "produccion.eficiencia-mes", ruta: "/produccion/eficiencia", cuentas: ["admin-taller"], nombre: "Producción · Eficiencia de otro mes", preparar: clicRol("radio", /Sep 2026/i) },
+);
+
+// ---------- La orden de producción en su página (ADR-0400, actividad 3) ----------
+// La página de una orden en proceso (con una fase del Taller por anotar) y sus dos hojas: «Terminé N» (la tabla de cantidades
+// precargada con lo que falta) y «Cambiar quién» (la fila de la fase). Ninguna se guarda: solo se abren.
+// La orden en proceso más reciente con fases a la que todavía le falta cortar (así «Terminé N» y «Cambiar quién» están a la vista).
+const numeroDeOrdenEnProceso = () => consultarLocal("select 'OP-' || lpad(p.numero::text, 6, '0') from retail.producciones p where p.estado = 'en_proceso' and exists (select 1 from retail.produccion_fases f where f.produccion_id = p.id) order by (coalesce((select sum(a.cantidad) from retail.produccion_avances a join retail.produccion_fases f on f.id = a.fase_id where f.produccion_id = p.id and f.clave = 'corte'), 0) < p.cantidad_plan) desc, p.numero desc limit 1");
+const irALaOrden = async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenEnProceso()}`)(pagina);
+// Una orden con prendas listas para mandar a un servicio (lo que entró a esa fase supera lo que ya salió) y otra con prendas afuera (lo que salió supera lo que ya volvió): son las que muestran «Salida» y «Vuelta».
+const SALIDAS_DE = "coalesce((select sum(sl.cantidad) from retail.produccion_salidas s join retail.produccion_salida_lineas sl on sl.salida_id = s.id where s.fase_id = f.id), 0)";
+const numeroDeOrdenConSalida = () =>
+  consultarLocal(`select 'OP-' || lpad(p.numero::text, 6, '0') from retail.producciones p where p.estado = 'en_proceso' and exists (select 1 from retail.produccion_fases f where f.produccion_id = p.id and f.quien = 'servicio' and coalesce((select sum(a.cantidad) from retail.produccion_avances a join retail.produccion_fases fa on fa.id = a.fase_id where fa.produccion_id = p.id and fa.secuencia = (select max(f2.secuencia) from retail.produccion_fases f2 where f2.produccion_id = p.id and f2.secuencia < f.secuencia)), 0) > ${SALIDAS_DE}) order by p.numero desc limit 1`);
+const numeroDeOrdenConVuelta = () =>
+  consultarLocal(`select 'OP-' || lpad(p.numero::text, 6, '0') from retail.producciones p where p.estado = 'en_proceso' and exists (select 1 from retail.produccion_fases f where f.produccion_id = p.id and f.quien = 'servicio' and ${SALIDAS_DE} > coalesce((select sum(vl.buenas + vl.segundas + vl.faltantes) from retail.produccion_vueltas v join retail.produccion_vuelta_lineas vl on vl.vuelta_id = v.id where v.fase_id = f.id), 0)) order by p.numero desc limit 1`);
+// Una orden con una salida que todavía se puede anular (la misma regla que la base: `fn_produccion_salida_anulable`).
+const numeroDeOrdenConAnulable = () =>
+  consultarLocal(`select 'OP-' || lpad(p.numero::text, 6, '0') from retail.producciones p where p.estado = 'en_proceso' and exists (select 1 from retail.produccion_salidas s join retail.produccion_fases f on f.id = s.fase_id where f.produccion_id = p.id and s.anula_id is null and retail.fn_produccion_salida_anulable(s.id) is null) order by p.numero desc limit 1`);
+// Una orden en proceso con tela declarada: es la que ofrece «Anotar lo que usaste».
+const numeroDeOrdenConTela = () =>
+  consultarLocal("select 'OP-' || lpad(p.numero::text, 6, '0') from retail.producciones p where p.estado = 'en_proceso' and exists (select 1 from retail.produccion_insumos i where i.produccion_id = p.id) and exists (select 1 from retail.produccion_fases f where f.produccion_id = p.id) order by p.numero desc limit 1");
+// Una orden con las fases todas hechas (lista para pasar al stock): la misma regla que la página (`queSigue`).
+const numeroDeOrdenLista = () =>
+  // `fn_fases_de_orden` pregunta quién es la persona: la consulta se hace como el líder (sin eso devuelve vacío y toda orden «tendría las fases hechas»).
+  consultarLocal(`select 'OP-' || lpad(p.numero::text, 6, '0') from (select set_config('request.jwt.claim.sub', '22222222-2222-4222-8222-000000000001', true)) _c, retail.producciones p where p.estado = 'en_proceso' and exists (select 1 from retail.produccion_fases f where f.produccion_id = p.id) and not exists (select 1 from jsonb_array_elements(coalesce(retail.fn_fases_de_orden(p.id), '[]'::jsonb)) f where f ->> 'estado' <> 'hecha') and jsonb_array_length(coalesce(retail.fn_fases_de_orden(p.id), '[]'::jsonb)) > 0 order by p.numero desc limit 1`);
+ESCENARIOS.push(
+  { id: "produccion.orden-pagina", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: '[data-guia="prod-orden.fases"]', nombre: "Producción · una orden en su propia página: ficha, fases, tela, costo y línea de tiempo", preparar: irALaOrden },
+  { id: "produccion.orden-terminar", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog] [data-matriz-mover]", nombre: "Producción · una orden: la hoja «Terminé» con la tabla de cantidades precargada", preparar: secuencia(irALaOrden, clicRol("button", /^Terminé \d+$/)) },
+  { id: "produccion.orden-salida", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog] [data-matriz-mover]", nombre: "Producción · una orden: la hoja «Salida» a un servicio, con lo que puede salir precargado", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenConSalida()}`)(pagina), clicRol("button", /^Salida$/, { exact: true })) },
+  { id: "produccion.orden-vuelta", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog] [data-matriz-mover]", nombre: "Producción · una orden: la hoja «Vuelta» de un servicio, con lo que está afuera precargado", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenConVuelta()}`)(pagina), clicRol("button", /^Vuelta$/, { exact: true })) },
+  { id: "produccion.orden-anular", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: '[role=dialog] [data-campo="motivo"]', nombre: "Producción · una orden: la hoja «Anular» una salida mal anotada, con su motivo", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenConAnulable()}`)(pagina), clicRol("button", /^Anular$/, { exact: true })) },
+  { id: "produccion.orden-tela-usada", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: '[role=dialog] [data-campo="cantidad"]', nombre: "Producción · una orden: la hoja «Anotar lo que usaste» de la tela, con lo que falta según el plan", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenConTela()}`)(pagina), clicRol("button", /^Anotar lo que usaste$/, { exact: true })) },
+  { id: "produccion.orden-stock", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog] [data-matriz-mover]", nombre: "Producción · una orden: la hoja «Pasar al stock» con lo terminado precargado y el costo por prenda", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenLista()}`)(pagina), clicRol("button", /^Pasar al stock$/, { exact: true })) },
+  { id: "produccion.orden-anular-orden", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · una orden: la hoja «Anular orden»", preparar: secuencia(irALaOrden, clicRol("button", /^Anular orden$/, { exact: true })) },
+  { id: "produccion.orden-cambiar-quien", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: '[role=dialog] [data-campo="fase"]', nombre: "Producción · una orden: la hoja «Cambiar quién» de una fase que no empezó", preparar: secuencia(irALaOrden, clicRol("button", /^Cambiar quién$/, { exact: true })) },
 );
 
 // ---------- Órdenes de compra (ADR-0362, fase 1) ----------
@@ -1327,7 +1372,7 @@ ESCENARIOS.push(
   {
     id: "recomendaciones.hoja",
     soloPorId: true,
-    ruta: "/clientas/recomendaciones",
+    ruta: "/tienda-web/recomendaciones",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Recomendaciones · la hoja de una recomendación",
@@ -1337,7 +1382,7 @@ ESCENARIOS.push(
       await esperar(pagina, 1200);
     },
   },
-  { id: "recomendaciones.estado", ruta: "/clientas/recomendaciones", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Recomendaciones · el filtro «Estado»", preparar: clicRol("button", /^Estado/i) },
+  { id: "recomendaciones.estado", ruta: "/tienda-web/recomendaciones", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Recomendaciones · el filtro «Estado»", preparar: clicRol("button", /^Estado/i) },
   { id: "comercial.ayuda", ruta: "/comercial", cuentas: ["admin"], nombre: "Comercial · la ayuda «Qué cuenta como venta»", preparar: clicRol("button", /Qué es Qué cuenta como venta/i) },
   { id: "calidad.ayuda", ruta: "/comercial/calidad", cuentas: ["admin"], nombre: "Calidad de datos · la ayuda «Cómo se lee»", preparar: clicRol("button", /Qué es Cómo se lee/i) },
   { id: "buscar.resultados", ruta: "/buscar", cuentas: ["admin", "integrante", "terminal-ventas"], nombre: "Buscar · los resultados de una prenda", preparar: llenar(/SKU, referencia, talla, color/i, "Vestido") },
@@ -1345,7 +1390,7 @@ ESCENARIOS.push(
   { id: "colaboradores.terminal", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · la ficha de una terminal", preparar: clicRol("button", /^Almacén Trujillo/i) },
   { id: "colaboradores.roles", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · «Roles y accesos»", preparar: clicRol("button", /^Roles y accesos/i) },
   { id: "colaboradores.rol", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · el detalle de un rol", preparar: secuencia(clicRol("button", /^Roles y accesos/i), async (pagina) => { await pagina.getByRole("button", { name: /Integrante/i }).first().click({ timeout: 8000 }); await esperar(pagina, 1200); }) },
-  { id: "configuracion.tienda-web", ruta: "/configuracion", cuentas: ["admin"], abre: '[data-guia="config.tienda-web-sedes"]', nombre: "Configuración · «Tienda web» (ADR-0408)", preparar: clicPestana(/^Tienda web/i) },
+  { id: "tienda-web.ajustes", ruta: "/tienda-web/ajustes", cuentas: ["admin"], abre: '[data-guia="config.tienda-web-sedes"]', nombre: "Tienda web ▸ Datos y plazos (ADR-0430; antes la pestaña «Tienda web» de Configuración)" },
   { id: "configuracion.caja", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Caja y avisos»", preparar: clicPestana(/Caja y avisos/i) },
   { id: "configuracion.cuentas", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Cuentas y cobros»", preparar: clicPestana(/Cuentas y cobros/i) },
   { id: "configuracion.gastos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Gastos fijos»", preparar: clicPestana(/Gastos fijos/i) },
@@ -1413,7 +1458,7 @@ ESCENARIOS.push(
 ESCENARIOS.push(
   {
     id: "vitrina.hoja-modelo",
-    ruta: "/productos/vitrina",
+    ruta: "/tienda-web/vitrina",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Vitrina web · la hoja de un modelo (mostrar, Lo nuevo y lo que ve el cliente)",
@@ -1424,7 +1469,7 @@ ESCENARIOS.push(
   },
   {
     id: "vitrina.lote-mostrar",
-    ruta: "/productos/vitrina",
+    ruta: "/tienda-web/vitrina",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Vitrina web · mostrar en la web los elegidos",
@@ -1439,7 +1484,7 @@ ESCENARIOS.push(
   // búsqueda que no encuentra nada (el vacío con la lupa tachada).
   {
     id: "vitrina.esperan-llegaron",
-    ruta: "/productos/vitrina/esperan",
+    ruta: "/tienda-web/vitrina/esperan",
     cuentas: ["admin"],
     abre: '[data-guia="esperan.cifras"] button[aria-pressed=true]',
     nombre: "Esperan una talla · el filtro «Ya llegaron»",
@@ -1450,7 +1495,7 @@ ESCENARIOS.push(
   },
   {
     id: "vitrina.esperan-sin-coincidencias",
-    ruta: "/productos/vitrina/esperan",
+    ruta: "/tienda-web/vitrina/esperan",
     cuentas: ["admin"],
     abre: ".vacio",
     nombre: "Esperan una talla · una búsqueda que no encuentra nada",
@@ -1470,31 +1515,31 @@ const abrirPedidoWeb = async (pagina) => {
   await esperar(pagina, 1200);
 };
 ESCENARIOS.push(
-  { id: "pedidos-web.confirmar", soloPorId: true, ruta: "/vender/pedidos-web", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Pedidos web · la hoja de un pedido por confirmar", preparar: abrirPedidoWeb },
-  { id: "pedidos-web.no-confirmar", soloPorId: true, ruta: "/vender/pedidos-web", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Pedidos web · «No se puede confirmar» (el motivo)", preparar: secuencia(abrirPedidoWeb, clicRol("button", /^No se puede confirmar$/)) },
+  { id: "pedidos-web.confirmar", soloPorId: true, ruta: "/tienda-web/pedidos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Pedidos web · la hoja de un pedido por confirmar", preparar: abrirPedidoWeb },
+  { id: "pedidos-web.no-confirmar", soloPorId: true, ruta: "/tienda-web/pedidos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Pedidos web · «No se puede confirmar» (el motivo)", preparar: secuencia(abrirPedidoWeb, clicRol("button", /^No se puede confirmar$/)) },
   {
     id: "pedidos-web.anular",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · un pedido confirmado y «Anular» (el motivo)",
-    preparar: secuencia(irA("/vender/pedidos-web?pestana=cobrar"), abrirPedidoWeb, clicRol("button", /^Anular$/)),
+    preparar: secuencia(irA("/tienda-web/pedidos?pestana=cobrar"), abrirPedidoWeb, clicRol("button", /^Anular$/)),
   },
   {
     // Una prenda que estaba por conseguir y ya llegó a la tienda: «Reservarla» abre su paso (de dónde sale y quién).
     id: "pedidos-web.reservar",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · reservar lo que llegó",
-    preparar: secuencia(irA("/vender/pedidos-web?pestana=cobrar"), abrirPedidoWeb, clicRol("button", /^Reservarla$/)),
+    preparar: secuencia(irA("/tienda-web/pedidos?pestana=cobrar"), abrirPedidoWeb, clicRol("button", /^Reservarla$/)),
   },
   {
     id: "pedidos-web.enviar",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · enviar a la tienda del pedido",
@@ -1510,7 +1555,7 @@ ESCENARIOS.push(
 ESCENARIOS.push(
   {
     id: "looks.nuevo",
-    ruta: "/productos/vitrina/looks",
+    ruta: "/tienda-web/vitrina/looks",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Vitrina web ▸ Looks · la hoja de un look nuevo",
@@ -1521,7 +1566,7 @@ ESCENARIOS.push(
   },
   {
     id: "looks.editar",
-    ruta: "/productos/vitrina/looks",
+    ruta: "/tienda-web/vitrina/looks",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Vitrina web ▸ Looks · la hoja de un look (sus prendas, si se ve y su lugar)",
@@ -1532,7 +1577,7 @@ ESCENARIOS.push(
   },
   {
     id: "looks.mostrar",
-    ruta: "/productos/vitrina/looks",
+    ruta: "/tienda-web/vitrina/looks",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Vitrina web ▸ Looks · mostrar u ocultar un look",
@@ -1552,12 +1597,12 @@ const abrirRegistrarPago = async (pagina) => {
   await pagina.getByRole("dialog", { name: "Registrar un pago" }).waitFor({ timeout: 15000 });
   await esperar(pagina, 1000);
 };
-const conPedidoPorCobrar = secuencia(irA("/vender/pedidos-web?pestana=cobrar"), abrirPedidoWeb, abrirRegistrarPago);
+const conPedidoPorCobrar = secuencia(irA("/tienda-web/pedidos?pestana=cobrar"), abrirPedidoWeb, abrirRegistrarPago);
 ESCENARIOS.push(
   {
     id: "pedidos-web.pagar",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · registrar un pago con Yape (el n.º de operación)",
@@ -1566,7 +1611,7 @@ ESCENARIOS.push(
   {
     id: "pedidos-web.pagar-efectivo",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · registrar un pago en efectivo (entra a la caja)",
@@ -1575,11 +1620,11 @@ ESCENARIOS.push(
   {
     id: "pedidos-web.devolver",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · devolver un pago de un pedido anulado",
-    preparar: secuencia(irA("/vender/pedidos-web?pestana=cerrados"), abrirPedidoWeb, clicRol("button", /^Devolver$/)),
+    preparar: secuencia(irA("/tienda-web/pedidos?pestana=cerrados"), abrirPedidoWeb, clicRol("button", /^Devolver$/)),
   },
 );
 
@@ -1590,21 +1635,21 @@ ESCENARIOS.push(
   {
     id: "pedidos-web.entregar",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · entregar un pedido pagado (la boleta y el código)",
-    preparar: secuencia(irA("/vender/pedidos-web?pestana=entregar"), abrirPedidoWeb),
+    preparar: secuencia(irA("/tienda-web/pedidos?pestana=entregar"), abrirPedidoWeb),
   },
   {
     id: "pedidos-web.entregar-codigo",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · entregar con el código escrito",
     async preparar(pagina) {
-      await secuencia(irA("/vender/pedidos-web?pestana=entregar"), abrirPedidoWeb)(pagina);
+      await secuencia(irA("/tienda-web/pedidos?pestana=entregar"), abrirPedidoWeb)(pagina);
       await pagina.locator('[data-guia="pedido-web.codigo"] input').first().fill("1234", { timeout: 8000 });
       await esperar(pagina, 600);
     },
@@ -1624,29 +1669,29 @@ ESCENARIOS.push(
   {
     id: "pedidos-web.anular-pagado",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · anular un pedido pagado (sus prendas, su plata y su boleta)",
-    preparar: secuencia(irA("/vender/pedidos-web?pestana=entregar"), abrirPedidoWeb, abrirAnularPedido),
+    preparar: secuencia(irA("/tienda-web/pedidos?pestana=entregar"), abrirPedidoWeb, abrirAnularPedido),
   },
   {
     id: "pedidos-web.anular-pagado-motivo",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · anular un pedido pagado con su motivo elegido",
-    preparar: secuencia(irA("/vender/pedidos-web?pestana=entregar"), abrirPedidoWeb, abrirAnularPedido, clicRol("radio", /^El cliente desistió$/)),
+    preparar: secuencia(irA("/tienda-web/pedidos?pestana=entregar"), abrirPedidoWeb, abrirAnularPedido, clicRol("radio", /^El cliente desistió$/)),
   },
   {
     id: "pedidos-web.anulado-pagado",
     soloPorId: true,
-    ruta: "/vender/pedidos-web",
+    ruta: "/tienda-web/pedidos",
     cuentas: ["admin"],
     abre: "[role=dialog]",
     nombre: "Pedidos web · un pedido pagado y anulado (lo devuelto y cómo quedó su boleta)",
-    preparar: secuencia(irA("/vender/pedidos-web?pestana=cerrados"), abrirPedidoWeb),
+    preparar: secuencia(irA("/tienda-web/pedidos?pestana=cerrados"), abrirPedidoWeb),
   },
 );
 

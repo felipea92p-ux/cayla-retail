@@ -1,4 +1,4 @@
-// La guía de foco de la hoja de una recomendación (Clientes ▸ Recomendaciones; ADR-0284, ADR-0408). No agrega reglas: cada «falta»
+// La guía de foco de la hoja de una recomendación (Tienda web ▸ Recomendaciones; ADR-0284, ADR-0408). No agrega reglas: cada «falta»
 // es lo que `responder_recomendacion`, `marcar_recomendacion_leida` y `archivar_recomendacion` rechazarían (o lo que apaga el botón):
 // sale de `problemaParaConfirmar`, y la prueba lo compara con ella en todas las combinaciones.
 

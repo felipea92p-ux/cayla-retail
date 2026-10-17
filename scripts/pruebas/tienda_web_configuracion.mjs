@@ -12,7 +12,8 @@
  *      espacios, rechaza textos largos, el Taller y una tienda cerrada, y anota cada cambio (y solo los cambios), firmado.
  *   4. `guardar_parametros_tienda_web` y la tabla: 24/48/7/3 de fábrica; nada en cero, negativo ni fuera de rango, tampoco
  *      escribiendo la tabla por fuera; el umbral nunca pasa de 3 (la cifra de 4 o más no sale a la web, ADR-0408 DECIDÍ 6).
- *   5. Quién: el líder, o quien tenga el módulo Configuración (ADR-0253); la colaboradora sin el módulo no lee ni guarda;
+ *   5. Quién: el líder, o quien tenga el módulo «Datos y plazos de la tienda web» (`ajustes_web`, 20261016223000); Configuración ya
+ *      NO abre estas funciones (sí el WhatsApp, que comparte con Tiendas y caja); la colaboradora sin el módulo no lee ni guarda;
  *      nadie lee las tablas directo; `tienda_web` solo llama a `tienda_sedes` (ni las tablas ni las funciones del ERP), y
  *      `tienda_sedes` está cerrada a public, anon y authenticated.
  *   6. La migración se puede pegar dos veces.
@@ -21,11 +22,11 @@
  * transacción, así que nunca se commitea nada en el Postgres local que comparten los worktrees. La sesión se simula con
  * `request.jwt.claim.sub`; para actuar como `tienda_web`, quien corre la prueba se da el rol dentro de la transacción.
  *
- * PROBAR ANTES DE APLICAR. `APLICAR_ANTES=supabase/migrations/20261014231000_tienda_web_sedes_y_plazos.sql` mete la migración
- * dentro de cada transacción (que se revierte). Sin la variable, prueba lo que la base ya tiene (lo que hace el CI).
+ * PROBAR ANTES DE APLICAR. `APLICAR_ANTES=<migración>[,<migración>…]` (las dos, separadas por coma: la de las sedes y plazos y la de
+ * su módulo, `20261016223000_tienda_web_modulo_ajustes.sql`) mete las migraciones dentro de cada transacción (que se revierte). Sin la variable, prueba lo que la base ya tiene (lo que hace el CI).
  *
  * DA POR SENTADO (el seed): dos tiendas abiertas, el Taller, a Felipe como líder y a Micaela como colaboradora sin el módulo
- * Configuración, y el rol `tienda_web` (20261014220000).
+ * «Datos y plazos de la tienda web», y el rol `tienda_web` (20261014220000).
  *
  * USO
  *   pnpm pruebas:tienda-web-configuracion    → necesita el stack local (`npx supabase start`)
@@ -36,7 +37,10 @@ import { readFileSync } from "node:fs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const MIGRACION = "supabase/migrations/20261014231000_tienda_web_sedes_y_plazos.sql";
-const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(process.env.APLICAR_ANTES, "utf8") : "";
+const MIGRACION_MODULO = "supabase/migrations/20261016223000_tienda_web_modulo_ajustes.sql";
+const APLICAR_ANTES = process.env.APLICAR_ANTES
+  ? process.env.APLICAR_ANTES.split(",").map((f) => readFileSync(f.trim(), "utf8")).join("\n")
+  : "";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora de Tienda Trujillo, sin Configuración
 
@@ -116,9 +120,9 @@ function main() {
     process.exit(2);
   }
   if (!APLICAR_ANTES) {
-    const hay = correr("select to_regclass('retail.ubicacion_datos_web') is not null and to_regprocedure('retail.tienda_sedes()') is not null;");
+    const hay = correr("select to_regclass('retail.ubicacion_datos_web') is not null and to_regprocedure('retail.tienda_sedes()') is not null and to_regprocedure('retail.fn_puede_ajustes_tienda_web()') is not null;");
     if (hay.salida !== "t") {
-      console.error(`Falta la migración: aplica ${MIGRACION} o corre con APLICAR_ANTES=${MIGRACION}`);
+      console.error(`Falta la migración: aplica ${MIGRACION} y ${MIGRACION_MODULO} o corre con APLICAR_ANTES=${MIGRACION},${MIGRACION_MODULO}`);
       process.exit(2);
     }
   }
@@ -328,13 +332,44 @@ reset role;
 insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'configuracion');
 ${como(MICAELA)}
 select pg_temp.intento('select retail.fn_configuracion_tienda_web()');
-${intentarGuardar("t1", "Trujillo", null, null, false)}`);
-    const [leer, guardarSede, guardarPlazos, leerConModulo, guardarConModulo] = lineas(r);
-    const sinModulo = (m) => (m ?? "").includes("necesita el módulo «Configuración»");
-    esperar("la colaboradora sin Configuración no lee la tienda web", sinModulo(leer), r);
+${intentarGuardar("t1", "Trujillo", null, null, false)}
+select pg_temp.intento('select retail.guardar_parametros_tienda_web(12, 48, 7, 3)');
+reset role;
+delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'configuracion';
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'ajustes_web');
+${como(MICAELA)}
+select pg_temp.intento('select retail.fn_configuracion_tienda_web()');
+${intentarGuardar("t1", "Trujillo", null, null, false)}
+select pg_temp.intento('select retail.guardar_parametros_tienda_web(12, 48, 7, 3)');`);
+    const [leer, guardarSede, guardarPlazos, leerConConfig, guardarSedeConConfig, guardarPlazosConConfig, leerConModulo, guardarConModulo, guardarPlazosConModulo] = lineas(r);
+    const sinModulo = (m) => (m ?? "").includes("necesita el módulo «Datos y plazos de la tienda web»");
+    esperar("la colaboradora sin el módulo no lee la tienda web", sinModulo(leer), r);
     esperar("…ni guarda una tienda", sinModulo(guardarSede), r);
     esperar("…ni los plazos", sinModulo(guardarPlazos), r);
-    esperar("con el módulo Configuración en su rol, lee y guarda (ADR-0253)", leerConModulo === "SIN_ERROR" && guardarConModulo === "SIN_ERROR", r);
+    esperar(
+      "con «Configuración» (que ya no abre esta pantalla) tampoco lee ni guarda",
+      sinModulo(leerConConfig) && sinModulo(guardarSedeConConfig) && sinModulo(guardarPlazosConConfig),
+      r,
+    );
+    esperar(
+      "con el módulo «Datos y plazos de la tienda web» en su rol, lee y guarda",
+      leerConModulo === "SIN_ERROR" && guardarConModulo === "SIN_ERROR" && guardarPlazosConModulo === "SIN_ERROR",
+      r,
+    );
+  }
+  {
+    // El WhatsApp lo comparten Tiendas y caja (módulo Configuración) y esta pantalla (módulo ajustes_web): sirve cualquiera de los dos.
+    const wa = `select pg_temp.intento(format('select retail.guardar_whatsapp_tienda(%L, ''987654321'')', :'t1'));\n`;
+    const r = correr(`${ESCENA}${como(MICAELA)}${wa}reset role;
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'configuracion');
+${como(MICAELA)}${wa}reset role;
+delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'configuracion';
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'ajustes_web');
+${como(MICAELA)}${wa}`);
+    const [sin, conConfiguracion, conAjustes] = lineas(r);
+    esperar("el WhatsApp no lo cambia quien no tiene ninguno de los dos módulos", (sin ?? "").includes("«Datos y plazos de la tienda web»"), r);
+    esperar("…lo cambia quien tiene «Configuración» (Tiendas y caja)", conConfiguracion === "SIN_ERROR", r);
+    esperar("…y quien tiene «Datos y plazos de la tienda web»", conAjustes === "SIN_ERROR", r);
   }
   {
     const r = correr(`${ESCENA}set local role authenticated;
@@ -379,7 +414,7 @@ from pg_proc p where p.oid = 'retail.tienda_sedes()'::regprocedure;`);
 
   console.log("— La migración —");
   {
-    const sql = readFileSync(MIGRACION, "utf8");
+    const sql = [MIGRACION, MIGRACION_MODULO].map((f) => readFileSync(f, "utf8")).join("\n");
     const r = correr(`begin;\n${sql}\n${sql}
 select concat_ws('|', (select count(*) from retail.configuracion_tienda_web), (select horas_para_confirmar from retail.configuracion_tienda_web), (retail.tienda_sedes() ? 'sedes'));`);
     esperar("se puede volver a correr (dos veces seguidas, como un segundo pegado), con una sola fila de plazos", r.ok && /^1\|\d+\|t$/.test(r.salida), r);

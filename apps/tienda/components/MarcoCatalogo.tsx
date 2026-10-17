@@ -1,11 +1,12 @@
 import type { Prenda } from "@/lib/catalogo";
 import { cuantosFavoritos, nombreDeLaCuenta } from "@/lib/cabecera-servidor";
 import { datosDeCabecera } from "@/lib/inicio";
-import { anioLima } from "@/lib/portada";
+import { anioActual } from "@/lib/hoy-servidor";
 import { BotonBolsa } from "./bolsa/BotonBolsa";
 import { CabeceraConCuenta, type SeccionActual } from "./CabeceraConCuenta";
 import { EntradaDelDia } from "./cuenta/EntradaDelDia";
 import { FiltroTienda, type OpcionTienda } from "./FiltroTienda";
+import { InstalarCayla } from "./instalar/InstalarCayla";
 import { Pie } from "./Pie";
 
 /**
@@ -19,6 +20,7 @@ export async function MarcoCatalogo({
   prendas,
   sede,
   filtro = null,
+  franja = null,
   actual = null,
   children,
 }: {
@@ -27,6 +29,8 @@ export async function MarcoCatalogo({
   /** La clave de la tienda elegida (`?sede=`), o null con «Todas». */
   sede: string | null;
   filtro?: OpcionTienda[] | null;
+  /** En lugar de la franja «Ver lo que hay en» de `filtro`, la que trae la página (la del probador conserva el look al cambiar de tienda). */
+  franja?: React.ReactNode;
   actual?: SeccionActual;
   children: React.ReactNode;
 }) {
@@ -37,10 +41,12 @@ export async function MarcoCatalogo({
       {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
       <EntradaDelDia />
       <CabeceraConCuenta datos={datos} actual={actual} favoritos={favoritos} nombre={nombre} bolsa={<BotonBolsa />} />
+      {/* Instalar CAYLA en el celular (ADR-0431): sale sola, una vez por visita y solo en el Inicio y el catálogo (lib/instalar.ts). */}
+      <InstalarCayla />
       {/* Con una sola tienda en la web no hay nada que elegir. */}
-      {filtro && filtro.length > 2 && <FiltroTienda opciones={filtro} />}
+      {franja ?? (filtro && filtro.length > 2 && <FiltroTienda opciones={filtro} />)}
       <main className="t-pagina t-pagina-catalogo">{children}</main>
-      <Pie anio={anioLima()} conCuenta sede={sede} />
+      <Pie anio={await anioActual()} conCuenta sede={sede} />
     </>
   );
 }

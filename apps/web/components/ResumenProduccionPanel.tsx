@@ -9,6 +9,12 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { BotonEnlace } from "@/components/ui/campos";
 import { agotadasQueSeVendian, baseDelRitmo, ETIQUETA_ESTADO_MODELO, textoAgotadas, textoDiasDeStock, type CifrasResumen, type Decision, type DecisionesOcultas, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
+import { textoDePedido } from "@/lib/orden-pagina-reglas";
+import { urlPedirInsumo } from "@/lib/pedir-insumo-reglas";
+import { PorQue } from "@/components/produccion-resumen/PorQue";
+import type { CifraDeFase } from "@/lib/ordenes-lista-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -26,6 +32,19 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 // vencido; las tarjetas usan ámbar y tinta. Es un componente de servidor: no tiene estado, solo enlaces a la pantalla donde se resuelve cada cosa.
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+
+/** ¿Alguna tarjeta anterior ya lleva su «¿Por qué?»? Solo la primera lleva el ancla de la guía. */
+const hayPorQueAntes = (ds: readonly Decision[], i: number) => ds.slice(0, i).some((d) => d.porque);
+
+/** Lo que viene a una tela, en una línea: «155 m en camino · 40 m facturados por recibir · 35 m atrasados (no los cuento)», o «nada por recibir». */
+function loQueViene(t: FilaTela): string {
+  const partes = [
+    t.enCamino > 0 ? `${cantidadTexto(t.enCamino, t.unidad)} en camino` : null,
+    t.facturado > 0 ? `${cantidadTexto(t.facturado, t.unidad)} facturados por recibir` : null,
+    t.atrasado > 0 ? `${cantidadTexto(t.atrasado, t.unidad)} atrasados (no los cuento)` : null,
+  ].filter(Boolean);
+  return partes.length > 0 ? partes.join(" · ") : "nada por recibir";
+}
 
 const BORDE_SEVERIDAD: Record<Decision["severidad"], string> = { 3: "border-l-ambar", 2: "border-l-ambar/45", 1: "border-l-tinta/20" };
 
@@ -51,6 +70,7 @@ function FotoModelo({ productoId, presentaciones, ancho, className }: { producto
 }
 
 export function ResumenProduccionPanel({
+  sede,
   presentaciones,
   decisiones,
   ocultas,
@@ -60,8 +80,8 @@ export function ResumenProduccionPanel({
   hojas,
   fichasDeColor,
   telas,
+  hoyEnElTaller,
   falloRed,
-  sede,
 }: {
   /** Cómo se dibuja cada modelo (foto, o color y categoría): por `productoId`. Vacío si el catálogo no se pudo leer: se dibuja la percha. */
   presentaciones: Record<string, PresentacionDeModelo>;
@@ -77,6 +97,8 @@ export function ResumenProduccionPanel({
   /** El vocabulario de colores con su ficha (qué transmite y con qué se combina): la hoja de cada modelo la usa bajo su foto. Una sola vez para todo el panel. Vacío si no se pudo leer: la hoja no dice nada del color. */
   fichasDeColor: ColorConFicha[];
   telas: FilaTela[];
+  /** Dónde está cada orden abierta (una tarjeta por fase) y su frase. `null`: la lectura falló (se dice y se manda a Órdenes). */
+  hoyEnElTaller: { cifras: CifraDeFase[]; dato: string } | null;
   falloRed: string | null;
   /** La sede de la línea de arriba de la cabecera (el Taller). */
   sede: string;
@@ -91,7 +113,7 @@ export function ResumenProduccionPanel({
       <EncabezadoPagina
         sede={sede}
         titulo="Resumen"
-        subtitulo="¿Qué necesita mi decisión hoy? Lo que pide acción en el Taller, del más urgente al menos."
+        subtitulo="¿Qué necesita tu decisión hoy? Lo que pide acción en el Taller, del más urgente al menos."
         acciones={
           <div data-guia="prod-resumen.acciones" className="flex items-center gap-2">
             <BotonEnlace href="/produccion/ordenes">Ver órdenes</BotonEnlace>
@@ -188,6 +210,7 @@ export function ResumenProduccionPanel({
                 <div className="min-w-0">
                   <h3 className="text-[14.5px] font-medium text-tinta">{/* unificar-fijo: el nombre de un asunto de la lista, un dato y no el título de una sección */}{d.titulo}</h3>
                   <p className="mt-0.5 text-[13px] text-tinta/70">{d.detalle}</p>
+                  <PorQue texto={d.porque} guia={d.porque && !hayPorQueAntes(decisiones, i) ? "prod-resumen.porque" : undefined} />
                 </div>
                 <Link
                   href={d.accion.href}
@@ -212,6 +235,34 @@ export function ResumenProduccionPanel({
             ))}{" "}
             más, que no caben aquí.
           </p>
+        )}
+      </section>
+
+      <section data-guia="prod-resumen.hoy" aria-label="Hoy en el Taller" className="space-y-3">
+        <TituloSeccion dato={hoyEnElTaller?.dato} accion={<EnlaceVer href="/produccion/ordenes">Ver las órdenes</EnlaceVer>}>
+          Hoy en el Taller
+        </TituloSeccion>
+        {hoyEnElTaller === null ? (
+          <Aviso tono="atencion" titulo="No pudimos leer dónde está cada orden">
+            Míralas en Órdenes. Lo demás de esta pantalla sigue en pie.
+          </Aviso>
+        ) : (
+          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(9.5rem, 1fr))" }}>
+            {hoyEnElTaller.cifras.map((c, i) => (
+              <TarjetaCifra
+                key={c.clave}
+                etiqueta={c.titulo}
+                punto={c.lotes === 0 ? "neutro" : c.atencion ? "ambar" : "verde"}
+                valor={<CifraQueCuenta valor={c.lotes} alMontar />}
+                unidad={c.lotes === 1 ? "lote" : "lotes"}
+                href="/produccion/ordenes"
+                className="anim-entra"
+                style={{ ["--i" as string]: i }}
+              >
+                {c.contexto}
+              </TarjetaCifra>
+            ))}
+          </div>
         )}
       </section>
 
@@ -310,7 +361,7 @@ export function ResumenProduccionPanel({
       </section>
 
       <section data-guia="prod-resumen.tela" aria-label="Alcanza la tela" className="space-y-2.5">
-        <TituloSeccion dato="lo que hay y lo que viene facturado, contra lo que las órdenes abiertas todavía necesitan">¿Alcanza la tela?</TituloSeccion>
+        <TituloSeccion dato="lo que hay y lo que viene en camino, contra lo que las órdenes abiertas todavía necesitan">¿Alcanza la tela?</TituloSeccion>
         {telas.length === 0 ? (
           <p className="card-cayla p-5 text-sm text-tinta/70">
             No hay telas en el catálogo.{" "}
@@ -326,8 +377,14 @@ export function ResumenProduccionPanel({
                 <span className="min-w-0">
                   <span className="block truncate text-[14px] text-tinta">{t.nombre}</span>
                   <span className="block text-xs text-tinta/65">
-                    hay {cantidadTexto(t.saldo, t.unidad)} · {t.porLlegar > 0 ? `${cantidadTexto(t.porLlegar, t.unidad)} facturados por recibir` : "nada por recibir"}
+                    hay {cantidadTexto(t.saldo, t.unidad)} · {loQueViene(t)}
                   </span>
+                  {t.pedidos.length > 0 && (
+                    <span className="block text-xs text-tinta/65">
+                      En camino: {t.pedidos.slice(0, 2).map(textoDePedido).join("; ")}
+                      {t.pedidos.length > 2 ? ` y ${t.pedidos.length - 2} más` : ""}
+                    </span>
+                  )}
                 </span>
                 <span className="hidden text-right text-[13px] tabular-nums text-tinta sm:block">{t.piden > 0 ? `piden ${cantidadTexto(t.piden, t.unidad)}` : <span className="text-tinta/65">—</span>}</span>
                 <span className="sm:justify-self-end">
@@ -336,18 +393,32 @@ export function ResumenProduccionPanel({
                   ) : t.estado === "alcanza" ? (
                     <Chip tono="verde">Alcanza</Chip>
                   ) : t.estado === "alcanza_si_llega" ? (
-                    <Chip tono="ambar">Alcanza si llega</Chip>
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:justify-end">
+                      <Chip tono="ambar">Alcanza si llega</Chip>
+                      {t.pedidos.length > 0 && (
+                        <BotonEnlace href="/ordenes-insumos" peso="discreto">
+                          Ver los pedidos
+                        </BotonEnlace>
+                      )}
+                    </span>
                   ) : (
-                    <Chip tono="ambar">Faltan {cantidadTexto(t.faltan, t.unidad)}</Chip>
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:justify-end">
+                      <Chip tono="ambar">Faltan {cantidadTexto(t.faltan, t.unidad)}</Chip>
+                      {/* La salida de «faltan» es PEDIR lo que queda; con un pedido atrasado, lo útil es ir a verlo (llamar al proveedor). Nunca registrar una factura que todavía no existe. */}
+                      <BotonEnlace href={t.atrasado > 0 ? "/ordenes-insumos" : urlPedirInsumo(t.insumoId, t.faltan)} peso="discreto">
+                        {t.atrasado > 0 ? "Ver los pedidos" : "Pedir"}
+                      </BotonEnlace>
+                    </span>
                   )}
                 </span>
               </li>
             ))}
           </ul>
         )}
-        <p className="text-xs text-tinta/65">
-          «Piden» se calcula con el consumo real medido de las órdenes cerradas de cada modelo; un modelo sin órdenes cerradas con insumos descontados todavía no aporta demanda.
-        </p>
+        <PorQue
+          guia="prod-resumen.tela-porque"
+          texto="«Piden» es lo que las órdenes abiertas todavía tienen que usar de la tela que declararon (su plan menos lo ya descontado: la misma cuenta de «Nueva orden»); una orden que no declara tela se cuenta con el consumo medido de su modelo. «En camino» es lo que falta recibir de cada pedido —lo mismo que ves en Recibir— y se suma a lo que hay; un pedido cuya fecha de entrega ya pasó no se cuenta y sale aparte como atrasado."
+        />
       </section>
     </div>
     </ProveedorFichasDeColor>

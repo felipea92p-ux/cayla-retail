@@ -8,7 +8,7 @@
 //   pendiente  DEUDA de las pantallas hechas antes de la regla. Una pantalla NUEVA no puede nacer aquí: o trae su guía o dice por qué
 //              no aplica. Al terminar una, se pasa a «aplicada» y se baja `PENDIENTES_HOY` (la cuenta es exacta: solo baja).
 
-import { GUIA_APARTADOS, GUIA_COMPROBANTES, GUIA_HISTORIAL, GUIA_PEDIDOS_WEB, GUIA_PUNTO_DE_VENTA } from "./pantallas/vender";
+import { GUIA_APARTADOS, GUIA_COMPROBANTES, GUIA_HISTORIAL, GUIA_PUNTO_DE_VENTA } from "./pantallas/vender";
 import {
   GUIA_CAJA,
   GUIA_CAMBIOS,
@@ -48,9 +48,6 @@ import {
   GUIA_POR_REVISAR,
   GUIA_PRODUCTOS,
   GUIA_ROTULOS,
-  GUIA_VITRINA,
-  GUIA_VITRINA_ESPERAN,
-  GUIA_VITRINA_LOOKS,
 } from "./pantallas/catalogo";
 import {
   GUIA_COMPROBANTE_ORDEN,
@@ -94,6 +91,7 @@ import {
   GUIA_PROD_FACTURAS,
   GUIA_PROD_INSUMOS,
   GUIA_PROD_ORDENES,
+  GUIA_PROD_ORDEN,
   GUIA_PROD_POR_PAGAR,
   GUIA_PROD_PROVEEDORES,
   GUIA_PROD_RECIBIR,
@@ -115,7 +113,17 @@ import {
   GUIA_INICIO,
 } from "./pantallas/general";
 import { GUIA_ANALISIS, GUIA_FRESCURA, GUIA_PLAN_DEL_PISO, GUIA_RENDIMIENTO } from "./pantallas/gestion";
-import { GUIA_AVISOS_CLUB, GUIA_CLIENTES, GUIA_RECOMENDACIONES } from "./pantallas/clientes";
+import { GUIA_AVISOS_CLUB, GUIA_CLIENTES } from "./pantallas/clientes";
+import {
+  GUIA_PEDIDOS_WEB,
+  GUIA_RECOMENDACIONES,
+  GUIA_TIENDA_WEB_AJUSTES,
+  GUIA_TIENDA_WEB_RESUMEN,
+  GUIA_VITRINA,
+  GUIA_VITRINA_ESPERAN,
+  GUIA_VITRINA_LOOKS,
+  GUIA_VITRINA_PROBADOR,
+} from "./pantallas/tienda-web";
 import type { Guia } from "./tipos";
 
 export type PantallaConGuia =
@@ -127,7 +135,6 @@ export type PantallaConGuia =
 export const GUIAS: readonly Guia[] = [
   GUIA_PUNTO_DE_VENTA,
   GUIA_APARTADOS,
-  GUIA_PEDIDOS_WEB,
   GUIA_HISTORIAL,
   GUIA_COMPROBANTES,
   GUIA_COMPROBANTES_MES,
@@ -167,9 +174,6 @@ export const GUIAS: readonly Guia[] = [
   GUIA_POR_REVISAR,
   GUIA_ROTULOS,
   GUIA_LIQUIDACION,
-  GUIA_VITRINA,
-  GUIA_VITRINA_ESPERAN,
-  GUIA_VITRINA_LOOKS,
   GUIA_FACTURAS,
   GUIA_FACTURA,
   GUIA_POR_PAGAR,
@@ -204,6 +208,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_FIN_CIERRE,
   GUIA_PROD_RESUMEN,
   GUIA_PROD_ORDENES,
+  GUIA_PROD_ORDEN,
   GUIA_PROD_INSUMOS,
   GUIA_PROD_RECIBIR,
   GUIA_PROD_PROVEEDORES,
@@ -221,13 +226,21 @@ export const GUIAS: readonly Guia[] = [
   GUIA_BUSCAR,
   GUIA_CLIENTES,
   GUIA_AVISOS_CLUB,
-  GUIA_RECOMENDACIONES,
   GUIA_COLABORADORES,
   GUIA_COMERCIAL,
   GUIA_CALIDAD,
   GUIA_CONFIGURACION,
   GUIA_GLOBAL,
   GUIA_RENDIMIENTO,
+  // Tienda web (ADR-0430).
+  GUIA_TIENDA_WEB_RESUMEN,
+  GUIA_PEDIDOS_WEB,
+  GUIA_VITRINA,
+  GUIA_VITRINA_ESPERAN,
+  GUIA_VITRINA_LOOKS,
+  GUIA_VITRINA_PROBADOR,
+  GUIA_RECOMENDACIONES,
+  GUIA_TIENDA_WEB_AJUSTES,
 ];
 
 /** @internal Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. Lo leen las pruebas y
@@ -252,7 +265,6 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/clientas": { estado: "aplicada", guia: GUIA_CLIENTES.id },
   "/clientas/avisos": { estado: "aplicada", guia: GUIA_AVISOS_CLUB.id },
   "/clientas/cartel": { estado: "no-aplica", motivo: "Hoja de impresión del cartel del club: se revisa y se imprime, no hay piezas que recorrer." },
-  "/clientas/recomendaciones": { estado: "aplicada", guia: GUIA_RECOMENDACIONES.id },
   // ---- colaboradores ----
   "/colaboradores": { estado: "aplicada", guia: GUIA_COLABORADORES.id },
   // ---- comercial ----
@@ -344,6 +356,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/produccion/eficiencia": { estado: "aplicada", guia: GUIA_PROD_EFICIENCIA.id },
   "/produccion/insumos": { estado: "aplicada", guia: GUIA_PROD_INSUMOS.id },
   "/produccion/ordenes": { estado: "aplicada", guia: GUIA_PROD_ORDENES.id },
+  "/produccion/ordenes/[numero]": { estado: "aplicada", guia: GUIA_PROD_ORDEN.id },
   "/produccion/por-pagar": { estado: "aplicada", guia: GUIA_PROD_POR_PAGAR.id },
   "/produccion/proveedores": { estado: "aplicada", guia: GUIA_PROD_PROVEEDORES.id },
   "/produccion/recibir": { estado: "aplicada", guia: GUIA_PROD_RECIBIR.id },
@@ -360,9 +373,6 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/productos/marcas": { estado: "aplicada", guia: GUIA_MARCAS.id },
   "/productos/nuevo": { estado: "aplicada", guia: GUIA_NUEVO_PRODUCTO.id },
   "/productos/por-revisar": { estado: "aplicada", guia: GUIA_POR_REVISAR.id },
-  "/productos/vitrina": { estado: "aplicada", guia: GUIA_VITRINA.id },
-  "/productos/vitrina/esperan": { estado: "aplicada", guia: GUIA_VITRINA_ESPERAN.id },
-  "/productos/vitrina/looks": { estado: "aplicada", guia: GUIA_VITRINA_LOOKS.id },
   // ---- recibir ----
   "/recibir": { estado: "aplicada", guia: GUIA_RECIBIR.id },
   "/recibir/envio/[id]": { estado: "aplicada", guia: GUIA_RECIBIR_ENVIO.id },
@@ -372,10 +382,18 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/rotulos": { estado: "aplicada", guia: GUIA_ROTULOS.id },
   // ---- sin-acceso ----
   "/sin-acceso": { estado: "no-aplica", motivo: "Un mensaje de una línea («no tienes acceso a esta pantalla»): no hay nada que enseñar." },
+  // ---- tienda-web ---- (ADR-0430: antes en Clientas, Productos, Vender y una pestaña de Configuración)
+  "/tienda-web": { estado: "aplicada", guia: GUIA_TIENDA_WEB_RESUMEN.id },
+  "/tienda-web/ajustes": { estado: "aplicada", guia: GUIA_TIENDA_WEB_AJUSTES.id },
+  "/tienda-web/pedidos": { estado: "aplicada", guia: GUIA_PEDIDOS_WEB.id },
+  "/tienda-web/recomendaciones": { estado: "aplicada", guia: GUIA_RECOMENDACIONES.id },
+  "/tienda-web/vitrina": { estado: "aplicada", guia: GUIA_VITRINA.id },
+  "/tienda-web/vitrina/esperan": { estado: "aplicada", guia: GUIA_VITRINA_ESPERAN.id },
+  "/tienda-web/vitrina/looks": { estado: "aplicada", guia: GUIA_VITRINA_LOOKS.id },
+  "/tienda-web/vitrina/probador": { estado: "aplicada", guia: GUIA_VITRINA_PROBADOR.id },
   // ---- vender ----
   "/vender": { estado: "aplicada", guia: GUIA_PUNTO_DE_VENTA.id },
   "/vender/apartados": { estado: "aplicada", guia: GUIA_APARTADOS.id },
-  "/vender/pedidos-web": { estado: "aplicada", guia: GUIA_PEDIDOS_WEB.id },
   "/vender/comprobantes": { estado: "aplicada", guia: GUIA_COMPROBANTES.id },
   "/vender/comprobantes/emitidos": { estado: "aplicada", guia: GUIA_COMPROBANTES_MES.id },
   "/vender/comprobantes/por-reintentar": { estado: "aplicada", guia: GUIA_POR_ENVIAR.id },

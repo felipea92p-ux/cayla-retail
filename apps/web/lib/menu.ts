@@ -120,7 +120,7 @@ export type ClaveIcono =
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
   | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso" | "liquidacion"
   | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos" | "fondos" | "vitrina" | "pedidosWeb"
-  | "recomendaciones";
+  | "recomendaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender" | "pedidosWebPorConfirmar";
@@ -326,10 +326,8 @@ export const ARBOL: readonly Nodo[] = [
       // Apartados (ADR-0166): la clienta aparta con un adelanto y recoge pagando el saldo. Junto al Punto de venta en el
       // menú, pero con módulo propio desde el ADR-0196: el líder decide aparte quién vende y quién maneja apartados.
       { id: "venta.apartados", modulo: "apartados", etiqueta: "Apartados", estado: "viva", ruta: "/vender/apartados", icono: "apartados", pajaro: "07 Colibrí" },
-      // Pedidos web (ADR-0408, actividad 8): lo que los clientes separan en la tienda online, junto a Apartados (la maqueta aprobada,
-      // «Ventas ▸ Pedidos web»). La visibilidad la da su módulo, que nace solo para el líder. Lleva a Ventas a 7 hijas: ver
-      // `EXCEPCIONES_TOPE_HIJAS` en menu.test.ts.
-      { id: "venta.pedidosWeb", modulo: "pedidos_web", etiqueta: "Pedidos web", estado: "viva", ruta: "/vender/pedidos-web", icono: "pedidosWeb", contador: "pedidosWebPorConfirmar", pajaro: "07 Colibrí" },
+      // «Pedidos web» vivió aquí, junto a Apartados, del 2026-10-14 al 2026-10-16 (ADR-0408, actividad 8): desde ADR-0430 es de
+      // «Tienda web» (abajo), y Ventas vuelve a 6 hijas.
       { id: "venta.caja", modulo: "caja", etiqueta: "Caja", estado: "viva", ruta: "/caja", icono: "caja", pajaro: "07 Colibrí" },
       // Historial de ventas (ADR-0147): el libro de todas las ventas; se lee tras cobrar y cuadrar y de ahí se pasa a corregir.
       { id: "venta.historial", modulo: "historial", etiqueta: "Historial", estado: "viva", ruta: "/vender/historial", icono: "historial", pajaro: "07 Colibrí" },
@@ -344,6 +342,34 @@ export const ARBOL: readonly Nodo[] = [
         ],
       },
       { id: "venta.facturacion", modulo: "facturacion", etiqueta: "Comprobantes", estado: "viva", ruta: "/vender/comprobantes", icono: "facturacion", pajaro: "08 Cuervo", exige: "facturar" },
+    ],
+  },
+
+  // Tienda web (ADR-0430, Felipe 2026-10-16): todo lo de la tienda online en un solo lugar. Antes estaba repartido en tres menús y una
+  // pestaña: Ventas ▸ Pedidos web, Catálogo ▸ Vitrina web, Clientes ▸ Recomendaciones y Configuración ▸ Tienda web (ADR-0408). Va
+  // justo después de Ventas porque es el otro canal de venta, y sus pedidos se atienden a diario en la tienda. Cada hija conserva SU
+  // módulo (nadie gana ni pierde un permiso al mudarse), salvo Ajustes: llegó con el de Configuración y desde 20261016223000 tiene el suyo
+  // («Datos y plazos de la tienda web», `fn_puede_ajustes_tienda_web`). Sin `conservaNombre`: un rol que ve una sola hija ve la fila «Tienda web», y la pantalla dice cuál es
+  // (su cabecera lleva «Tienda web» tras la fecha). Con este grupo el primer nivel pasa a 9 filas: `TOPE_FILAS` en menu.test.ts.
+  {
+    id: "tiendaWeb", etiqueta: "Tienda web", estado: "viva", icono: "tiendaWeb", raiz: "/tienda-web", pajaro: "07 Colibrí",
+    hijos: [
+      // «¿Qué te pide hoy la tienda web?»: la ventana de la vitrina, cómo está cada tienda, lo que pide acción y el camino de los
+      // pedidos. Su módulo nace solo para el líder (20261016174000) y no trae funciones propias: lee con las de sus hermanas, cada una
+      // con el candado de su módulo. Es la `raiz` del grupo: el riel resuelve primero la ruta exacta y luego el prefijo más largo.
+      { id: "tiendaWeb.resumen", modulo: "tienda_web", etiqueta: "Resumen", estado: "viva", ruta: "/tienda-web", icono: "resumenWeb", pajaro: "07 Colibrí" },
+      // Lo que los clientes separan en la tienda online para ESTA tienda (ADR-0408, actividad 8). El único con insignia del grupo.
+      { id: "tiendaWeb.pedidos", modulo: "pedidos_web", etiqueta: "Pedidos", estado: "viva", ruta: "/tienda-web/pedidos", icono: "pedidosWeb", contador: "pedidosWebPorConfirmar", pajaro: "07 Colibrí" },
+      // Qué modelos se ven en la web, sus looks y quién espera una talla (ADR-0408, actividades 3, 11 y 12). El dato es del Loro.
+      { id: "tiendaWeb.vitrina", modulo: "vitrina_web", etiqueta: "Vitrina", estado: "viva", ruta: "/tienda-web/vitrina", icono: "vitrina", pajaro: "02 Loro" },
+      // Lo que los clientes le recomiendan a CAYLA desde la web, con su nombre (ADR-0408, 2026-10-15). Firma con el responsable de la
+      // sede donde se está parado: en CAYLA Global no se abre (no es de la vista global).
+      { id: "tiendaWeb.recomendaciones", modulo: "recomendaciones", etiqueta: "Recomendaciones", estado: "viva", ruta: "/tienda-web/recomendaciones", icono: "recomendaciones", pajaro: "07 Colibrí" },
+      // Lo que la web muestra de cada tienda y los plazos de los pedidos (ADR-0408, actividad 6). Era la pestaña «Tienda web» de
+      // Configuración y la abría su módulo; desde 20261016223000 tiene el suyo («Datos y plazos de la tienda web»). El rótulo dice qué
+      // hay dentro: «Ajustes» a secas era demasiado general. El dato sigue siendo del Ganso, como el resto de Configuración.
+      // `soloConModulo`: antes de los roles (un perfil sin módulos) esta pantalla no existía, así que la fila no le aparece a nadie.
+      { id: "tiendaWeb.ajustes", modulo: "ajustes_web", soloConModulo: true, etiqueta: "Datos y plazos", estado: "viva", ruta: "/tienda-web/ajustes", icono: "ajustesWeb", pajaro: "01 Ganso" },
     ],
   },
 
@@ -375,9 +401,8 @@ export const ARBOL: readonly Nodo[] = [
     id: "catalogo", etiqueta: "Catálogo", estado: "viva", icono: "catalogo", raiz: "/productos", pajaro: "02 Loro",
     hijos: [
       { id: "catalogo.productos", modulo: "productos", etiqueta: "Productos", estado: "viva", ruta: "/productos", icono: "productos", pajaro: "02 Loro" },
-      // ADR-0408 (actividad 3): qué modelos se ven en la tienda online y a qué precio web. Justo después de Productos, como en la
-      // maqueta aprobada («Catálogo ▸ Vitrina web»). La visibilidad la da su módulo, que nace solo para el líder.
-      { id: "catalogo.vitrina", modulo: "vitrina_web", etiqueta: "Vitrina web", estado: "viva", ruta: "/productos/vitrina", icono: "vitrina", pajaro: "02 Loro" },
+      // «Vitrina web» vivió aquí, después de Productos, del 2026-10-14 al 2026-10-16 (ADR-0408, actividad 3): desde ADR-0430 es de
+      // «Tienda web».
       { id: "catalogo.categorias", modulo: "atributos", etiqueta: "Categorías", estado: "viva", ruta: "/productos/categorias", icono: "categorias", pajaro: "02 Loro" },
       { id: "catalogo.marcas", modulo: "atributos", etiqueta: "Marcas", estado: "viva", ruta: "/productos/marcas", icono: "marcas", pajaro: "02 Loro" },
       { id: "catalogo.atributos", modulo: "atributos", moduloAlterno: "etiquetas", etiqueta: "Atributos", estado: "viva", ruta: "/productos/atributos", icono: "atributos", pajaro: "02 Loro" },
@@ -457,10 +482,7 @@ export const ARBOL: readonly Nodo[] = [
     hijos: [
       { id: "clientas.fichas", modulo: "clientas", etiqueta: "Fichas", estado: "viva", ruta: "/clientas", icono: "clientas", pajaro: "07 Colibrí" },
       { id: "clientas.avisos", modulo: "avisos_club", etiqueta: "Avisos", estado: "viva", ruta: "/clientas/avisos", icono: "avisos", pajaro: "07 Colibrí" },
-      // Recomendaciones (ADR-0408, Felipe 2026-10-15): lo que los clientes le recomiendan a CAYLA desde la tienda online, con su nombre.
-      // La visibilidad la da su módulo, que nace solo para el líder. Trabaja parada en una sede (firma con el responsable de ahí):
-      // en CAYLA Global manda a elegir sede, como Avisos (`RUTAS_DE_SEDE_DENTRO_DE_LA_VISTA_GLOBAL`).
-      { id: "clientas.recomendaciones", modulo: "recomendaciones", etiqueta: "Recomendaciones", estado: "viva", ruta: "/clientas/recomendaciones", icono: "recomendaciones", pajaro: "07 Colibrí" },
+      // «Recomendaciones» vivió aquí del 2026-10-15 al 2026-10-16 (ADR-0408): desde ADR-0430 es de «Tienda web».
     ],
   },
   // Rendimiento (ADR-0219, respuesta 20) fue hoja suelta «al final del menú lateral» hasta el 2026-10-13: desde ADR-0392 es la

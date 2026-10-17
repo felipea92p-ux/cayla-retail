@@ -48,6 +48,9 @@ Verificado en el ERP: la onda corre en las hojas de Clientes y Caja y el botón 
 - **El selector de mes** de Comprobantes (`SelectorMesFacturacion`): es un filtro de período, familia de pestañas.
 - **«Cerrar caja»** con su candado: es una operación, no cerrar una hoja.
 - **«Aplicar todos completos» y «Completar todo»** de Conteo conservan su letra rojiza: no borran nada, es un énfasis.
+- **«Archivar» en la hoja de una recomendación** (Tienda web ▸ Recomendaciones) es el secundario con el ícono de archivo, no el rojo de
+  `accion.eliminar`: no borra nada, saca la recomendación de la bandeja y se deshace desde el aviso. Lo eligió Felipe mirando la
+  propuesta, el 2026-10-16. Va a la izquierda del pie, como lo que quita.
 - Los botones grandes de los pasos de Cambios y Devoluciones (`FlujoGuiado`, 48 px con el monto) conservan su cara: ya tienen el
   movimiento único.
 

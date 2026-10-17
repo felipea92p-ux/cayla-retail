@@ -660,6 +660,8 @@ rollback;`);
     fn_anticipo_solo_de_apartado:
       "Candado diferido del anticipo (20261013155000): relee UNA fila de venta_pagos para saber si sigue siendo 'anticipo'; no suma pagos y el redondeo no le toca.",
     fn_asientos: "Cada fila de venta_pagos genera su Debe, así que el asiento cuadra solo; el medio redondeo va a la cuenta 6598 por fn_asiento_cuenta_de_medio (20261003120000, actividad 3) y la anulación lo revierte. No se parchó.",
+    fn_bal_anticipos:
+      "El Balance (ADR-0433 act. 10, 20261017035000): suma lo recibido de cada adelanto (separacion_pagos) hasta el corte, con su IGV por pago; un adelanto no se redondea (ADR-0311 §7). No toca venta_pagos.",
     fn_bal_causas_dinero: "Solo lee separacion_pagos.",
     fn_calcular_esperado_caja: "Suma el monto de la fila de EFECTIVO: ya es lo físico (múltiplo de 0.10). No se toca.",
     fn_comparativa_caja: "Caja compara hoy contra ayer (ADR-0319): devuelve la fila de redondeo como una más, a propósito, para que el total vendido coincida con el de Vender y el historial (como fn_totales_historial_ventas); la pantalla la deja fuera de «Cómo te pagaron» (`metodosComparados`). No se parchó.",
@@ -669,6 +671,8 @@ rollback;`);
       "El medidor de confianza (ADR-0417, 20261015235000): suma solo los pagos con tarjeta y qr del mes para saber cuánto pasa por la máquina; filtra por medio, así que la fila de redondeo (que va con el efectivo) queda fuera y no suma dinero.",
     fn_dinero_libro: "Filtra por medios explícitos (yape, plin, tarjeta, transferencia, qr): el redondeo queda fuera.",
     fn_flujo_caja_proyeccion: "Filtra por medios explícitos: el redondeo queda fuera.",
+    fn_igv_de_la_separacion:
+      "El IGV de los pagos de un adelanto (ADR-0433 act. 10, 20261017035000): suma el de cada fila de separacion_pagos (el adelanto y sus abonos no se redondean, ADR-0311 §7), para que lo que reversa la devolución o la entrega sea lo mismo que entró. No suma dinero ni toca venta_pagos.",
     fn_flujo_lineas: "Efectivo = metodo 'efectivo' (lo físico), igual que fn_calcular_esperado_caja. No se toca.",
     fn_pedido_web_vender:
       "La venta de un pedido web (ADR-0408 act. 10, 20261015051000) se cobra con UNA fila «anticipo» por lo pagado: el efectivo entró antes, con cada pago del pedido (pedido_web_pagos), así que la venta no tiene efectivo ni fila de redondeo.",

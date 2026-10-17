@@ -56,7 +56,7 @@ export function AnularOrdenModal({ orden, consumos = [], onClose }: { orden: Ord
         <p className="text-sm text-tinta/75">La orden queda anulada y no toca el stock de prendas. Sigue visible abajo, para que no se pierda el registro.</p>
         {porDevolver.length > 0 && (
           <p className="rounded-lg border border-ambar/40 bg-ambar/[0.07] px-3 py-2.5 text-[13px] text-ambar-profundo">
-            <b className="font-semibold">Los insumos descontados vuelven al estante</b> ({porDevolver.map((g) => `${g.insumo} ${cantidadTexto(g.neto, g.unidad)}`).join(", ")}), cada uno a su lote y a su costo. Queda
+            <b className="font-semibold">La tela y los avíos que ya se usaron vuelven al estante</b> ({porDevolver.map((g) => `${g.insumo} ${cantidadTexto(g.neto, g.unidad)}`).join(", ")}), cada uno a su lote y a su costo. Queda
             registrado como devolución.
           </p>
         )}
@@ -64,7 +64,7 @@ export function AnularOrdenModal({ orden, consumos = [], onClose }: { orden: Ord
           <label className={campoEtiqueta} htmlFor="anular-motivo">
             Motivo (opcional)
           </label>
-          <input id="anular-motivo" type="text" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Por qué se cancela la corrida" className={campoTexto} />
+          <input id="anular-motivo" type="text" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Por qué se cancela el lote" className={campoTexto} />
         </div>
         <ComboResponsable control={responsable} deshabilitado={cargando} />
         <div className="pie-acciones pt-1">

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, FileText, Receipt, StickyNote } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
-import { lecturaDelRecibido, maquinasPara, montosSugeridos, nombreMaquina, type MaquinaDeCobro, type PagoAplicado } from "@/lib/vender-reglas";
+import { lecturaDelRecibido, type MaquinaDeCobro, maquinasPara, montosSugeridos, nombreMaquina, type PagoAplicado, preguntaMaquina } from "@/lib/vender-reglas";
 import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { CLASE_MONTO_ILEGIBLE, CampoMonto, atributosMontoTexto } from "@/components/ui/CampoMonto";
 import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
@@ -143,7 +143,7 @@ export function HojaDeCobro({
   // «¿Con qué máquina?» (ADR-0429): solo para los pagos cuyo medio tiene DOS o más máquinas en esta tienda.
   const preguntasMaquina = pagos
     .map((pago, indice) => ({ pago, indice, opciones: maquinasPara(maquinas, pago.metodo) }))
-    .filter((x) => x.opciones.length >= 2);
+    .filter((x) => preguntaMaquina(maquinas, x.pago.metodo));
   const maquinaDelPos = pagos.length === 1 && pagos[0] ? nombreMaquina(maquinas, pagos[0]) : null;
   const pagoOk = pagos.length > 0 && restante === 0 && !pagos.some((p) => varios && p.monto <= 0);
   const comprobanteOk = tipoComprobante !== null && faltaDocumento === null;

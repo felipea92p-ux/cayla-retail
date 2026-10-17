@@ -8,6 +8,9 @@ import {
   minutosDeHora,
   proyeccionAlCierre,
   leerParametrosCaja,
+  leerConfiguracionMetas,
+  validarMetaFecha,
+  validarSemanaMes,
   ordenarCampanas,
   parsearMonto,
   parsearPorcentaje,
@@ -116,5 +119,63 @@ describe("caja: meta de hoy y fondo al cerrar", () => {
     expect(validarParametrosFinanzas({ minimoCaja: "0", avisoGastoPct: "25", avisoVenceDias: "61" }).ok).toBe(false);
     expect(validarParametrosFinanzas({ minimoCaja: "", avisoGastoPct: "25 %", avisoVenceDias: "3" })).toEqual({ ok: true, valor: { minimoCaja: 0, avisoGastoPct: 25, avisoVenceDias: 3 } });
     expect(leerParametrosFinanzas({ minimo_caja: "15000.00", aviso_gasto_pct: "25.00", aviso_vence_dias: 7 })).toEqual({ minimoCaja: 15000, avisoGastoPct: 25, avisoVenceDias: 7 });
+  });
+});
+
+describe("metas por mes y por fecha (ADR-0435)", () => {
+  it("la semana de un mes: 7 montos, vacío y 0 usan la semana tipo", () => {
+    expect(validarSemanaMes(["2,730", "", "S/ 2930", "0", "3470", "4660.50", "3040"])).toEqual({ ok: true, valor: [2730, null, 2930, null, 3470, 4660.5, 3040] });
+    expect(validarSemanaMes(["", "", "", "", "", "", ""])).toEqual({ ok: true, valor: Array(7).fill(null) });
+  });
+  it("la semana de un mes rechaza lo que la base rechaza, diciendo qué día", () => {
+    expect(validarSemanaMes(["1", "2"]).ok).toBe(false);
+    expect(validarSemanaMes(["", "", "", "", "", "", "-5"])).toEqual({ ok: false, error: "Domingo: No puede ser negativo." });
+    expect(validarSemanaMes(["", "mil", "", "", "", "", ""])).toEqual({ ok: false, error: "Martes: No se entiende el monto: escríbelo así, 1299.50 o 1299,50." }); // ADR-0433 act. 2: un texto que no es número dice «no se entiende», no «escribe un monto»
+    expect(validarSemanaMes(["10000000", "", "", "", "", "", ""])).toEqual({ ok: false, error: "Lunes: Tiene que ser menor a 10 millones." });
+    expect(validarSemanaMes(["9999999.99", "", "", "", "", "", ""]).ok).toBe(true);
+  });
+  it("la meta de una fecha: desde hoy, con meta (0 = no abre) y nota de hasta 140 letras", () => {
+    const hoy = "2026-10-17";
+    expect(validarMetaFecha({ fecha: "2026-12-24", meta: "12,280", nota: "  Nochebuena " }, hoy)).toEqual({ ok: true, valor: { fecha: "2026-12-24", meta: 12280, nota: "Nochebuena" } });
+    expect(validarMetaFecha({ fecha: "2026-12-25", meta: "0", nota: "" }, hoy)).toEqual({ ok: true, valor: { fecha: "2026-12-25", meta: 0, nota: null } });
+    expect(validarMetaFecha({ fecha: hoy, meta: "100", nota: "" }, hoy).ok).toBe(true);
+    expect(validarMetaFecha({ fecha: "2026-10-16", meta: "100", nota: "" }, hoy)).toEqual({ ok: false, error: "Esa fecha ya pasó." });
+    expect(validarMetaFecha({ fecha: "", meta: "100", nota: "" }, hoy)).toEqual({ ok: false, error: "Elige la fecha." });
+    expect(validarMetaFecha({ fecha: "2026-12-24", meta: "", nota: "" }, hoy)).toEqual({ ok: false, error: "Escribe la meta de ese día (0 si la tienda no abre)." });
+    expect(validarMetaFecha({ fecha: "2026-12-24", meta: "-1", nota: "" }, hoy).ok).toBe(false);
+    expect(validarMetaFecha({ fecha: "2026-12-24", meta: "10000000", nota: "" }, hoy).ok).toBe(false);
+    expect(validarMetaFecha({ fecha: "2026-12-24", meta: "100", nota: "a".repeat(141) }, hoy)).toEqual({ ok: false, error: "La nota puede tener hasta 140 letras." });
+    expect(validarMetaFecha({ fecha: "2026-12-24", meta: "100", nota: "a".repeat(140) }, hoy).ok).toBe(true);
+  });
+  it("lee lo que devuelve fn_configuracion_metas, con los meses sin cargar vacíos", () => {
+    const data = {
+      hoy: "2026-10-17",
+      meses: ["2026-10-01", "2026-11-01"],
+      tiendas: [
+        {
+          id: "t1",
+          nombre: "Tienda TRU",
+          tipica: [2730, 2730, 2930, 3040, 3470, 4660, 3040],
+          meses: { "2026-10-01": { metas: [2730, 2730, null, null, null, null, null], total: "101570.00" }, "2026-11-01": { metas: [null, null, null, null, null, null, null], total: "96066.00" } },
+        },
+      ],
+      fechas: [{ ubicacion_id: "t1", fecha: "2026-12-24", meta: "12280.00", nota: "Nochebuena" }, { ubicacion_id: "t1", fecha: "2026-12-25", meta: "0.00", nota: null }],
+    };
+    const c = leerConfiguracionMetas(data)!;
+    expect(c.hoy).toBe("2026-10-17");
+    expect(c.tiendas[0]!.tipica[3]).toBe(3040);
+    expect(c.tiendas[0]!.meses.map((m) => m.mes)).toEqual(["2026-10-01", "2026-11-01"]);
+    expect(c.tiendas[0]!.meses[0]!.metas[0]).toBe(2730);
+    expect(c.tiendas[0]!.meses[0]!.total).toBe(101570);
+    expect(c.tiendas[0]!.meses[1]!.metas.every((m) => m === null)).toBe(true);
+    expect(c.fechas).toEqual([
+      { ubicacionId: "t1", fecha: "2026-12-24", meta: 12280, nota: "Nochebuena" },
+      { ubicacionId: "t1", fecha: "2026-12-25", meta: 0, nota: null },
+    ]);
+  });
+  it("sin la forma esperada (la base todavía no tiene la migración) no se cae: devuelve null", () => {
+    expect(leerConfiguracionMetas(null)).toBeNull();
+    expect(leerConfiguracionMetas({})).toBeNull();
+    expect(leerConfiguracionMetas("x")).toBeNull();
   });
 });

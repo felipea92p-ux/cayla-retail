@@ -48,6 +48,10 @@ export const PRUEBAS = [
   // meta del mes es la suma de los días, solo el líder guarda y el cierre anota el fondo que regía. ROLLBACK.
   "pruebas:configuracion-caja",
 
+  // Metas por mes y por fecha (ADR-0435): fn_parametros_caja envuelve a su base; fecha (final) > semana del mes > semana
+  // tipo; la campaña sube la del mes; nada en el pasado, NaN ni más de 18 meses; solo Configuración. ROLLBACK.
+  "pruebas:metas-mes-y-fecha",
+
   "pruebas:gastos",
 
   "pruebas:activos-y-fijos",
@@ -243,6 +247,14 @@ export const PRUEBAS = [
   // para las tallas de SU color en esa tienda (y el ERP muestra el mismo total), sus tallas son las que ofrece la ficha (ninguna a
   // S/ 0) y dicen «hay», nunca la cifra (con mutantes que lo prueban). ROLLBACK.
   "pruebas:vitrina-looks",
+  // Vitrina ▸ Probador (ADR-0434, actividades 1 a 3): los recortes (leer y revisar son de la Vitrina, anotar también de quien edita el
+  // catálogo; el PNG tiene que estar en el almacén; el recorte al subir una foto va sin el combo) y los largos (el propio y el típico,
+  // de 5 a 250 cm, sin típico para vestidos, conjuntos, enterizos y faldas; no sube la versión de la vitrina) y la lista viva. ROLLBACK.
+  "pruebas:vitrina-probador",
+  // «Arma el tuyo» en la tienda (ADR-0434, actividad 4): entra lo publicado con largo (el propio manda) y un recorte LISTO del almacén
+  // público; cada COLOR con su precio (el del look de CAYLA, con una campaña solo en el negro la beige no baja) y su nivel por tienda
+  // (sin Cuarentena, apartado ni Taller; nunca la cifra de 4 o más); con qué colores combina; solo tienda_web; un mutante. ROLLBACK.
+  "pruebas:tienda-probador",
 
   // El motor del pedido web (ADR-0408, actividades 7-9): separar no toca el stock; confirmar reserva con el motor de Apartados
   // (almacén primero) y Vender ya no la vende; dos por la última (uno reserva, el otro sin stock, y quién separó antes, también
@@ -1058,6 +1070,28 @@ export const PRUEBAS = [
   // frena una escritura directa. Cada caso termina en ROLLBACK.
   "pruebas:caja-cierre-traslado",
 
+  // Una caja cerrada real cumple contado = fondo + trasladado (ADR-0186; auditoría de Finanzas 2026-10-16, G01): un candado
+  // diferido rechaza regularizar un traslado sin corregir el fondo (el caso de Trujillo: 977.20 en vez de 277.20), tocar solo
+  // el fondo o borrar un traslado; un cierre normal con traslado, una caja de prueba o una abierta no se miran; y
+  // `archivar_caja_prueba` recalcula lo esperado por la primera caja real posterior (el caso de Arequipa). ROLLBACK.
+  "pruebas:caja-fondo-coherente",
+
+  // Una sola regla de «quién ve todas las tiendas y la empresa» en Finanzas (auditoría 2026-10-16, G16; ADR-0433 act. 8): el diario
+  // (también el congelado), el Estado de resultados, el Balance, el Balance por tienda y los gastos fuera de lo normal preguntan
+  // `fn_ve_finanzas_de_todo()` como `fn_asientos`; un candado estructural exige que ninguna función que reparta el alcance con
+  // `fn_diario_ubicaciones()` pregunte `fn_es_lider()` por su cuenta. Un encargado sigue viendo solo su tienda (42501 en otra). ROLLBACK.
+  "pruebas:finanzas-alcance",
+
+  // Un mes cerrado se queda cerrado (auditoría 2026-10-16, G09; ADR-0433 act. 9): el Estado de resultados lee el diario congelado, archivar una
+  // caja de prueba y una vigencia retroactiva del IGV o del tope de planilla de un mes cerrado se rechazan, y DOS SESIONES reales prueban el
+  // entrelazado del cerrojo de cierre (quien registra espera al cierre y el cierre espera a quien registra; lo de hoy no espera). ROLLBACK.
+  "pruebas:finanzas-mes-cerrado",
+
+  // Cada pago de un apartado se asienta el día en que entró la plata (auditoría 2026-10-16, G02; ADR-0433 act. 10): el diario trae un asiento por pago
+  // (el primero y cada abono) con su IGV por pago; agregar un abono no cambia el diario de un mes anterior; devolver el adelanto o entregar el apartado
+  // reversan exactamente lo que entró (122 y 4011 en cero, con los céntimos por pago) y el Balance suma lo recibido hasta el corte. ROLLBACK.
+  "pruebas:finanzas-apartados-por-pago",
+
   // Tres candados de dinero que vivían solo en el modal, no en la base (20260922235000): `registrar_movimiento_caja`
   // decide `es_ajuste` del MOTIVO (no de lo que manda el navegador) con vocabulario cerrado y referencia exigida
   // para "Depósito bancario"/"Otro"; `registrar_cambio` con diferencia negativa no exige líder (revertido a
@@ -1265,6 +1299,38 @@ export const PRUEBAS = [
   // tablas de plata), más de 2 decimales, diez mil millones, fechas de antes del 13/10/2026, textos invisibles, y el token que sigue al
   // contenido en las cinco funciones del fondo con su revisión en fn_resolver_intento. ROLLBACK siempre.
   "pruebas:fondos-entradas",
+
+  // La orden con sus fases, quién hace cada una y su tela (ADR-0400, actividad 1): la espina obligatoria, el servicio con
+  // proveedor y tarifa congelados, la tela por color con su plan, el estado derivado, cambiar quién solo antes de empezar,
+  // lo anotado inmutable y las puertas (módulo + Taller). ROLLBACK.
+  "pruebas:produccion-fases",
+
+  // El avance de una fase, la Salida a un servicio, su Vuelta y la orden en una lectura (ADR-0400, actividades 3 y 4): «Terminé N» dentro
+  // de lo que de verdad entró (por talla y color; plan × 1,10 en el corte), Deshacer solo del último y mientras nadie lo use, Salida y
+  // Vuelta que no pasan de lo que hay, faltantes con motivo, devengado, nada que toque movimientos ni stock, lo rechazado no deja nada,
+  // las puertas (módulo + Taller) y la forma de fn_orden_produccion. ROLLBACK.
+  "pruebas:produccion-avances",
+
+  // Anular una Salida o una Vuelta mal anotada (ADR-0400, actividad 4b): fila contraria con su motivo, solo si nada avanzó después, las sumas cuadran
+  // sin saberlo, la fase vuelve a «no empezó» y la anulación no se anula. ROLLBACK.
+  "pruebas:produccion-anulaciones",
+
+  // La lista de Órdenes del Taller en una lectura (ADR-0400, actividad 5): lo mismo que la página de cada orden, sin costos, con su tope de históricas y
+  // «al stock este mes» exacto. ROLLBACK.
+  "pruebas:produccion-lista",
+
+  // Pasar la orden al stock (ADR-0400, actividad 6): el candado de las buenas, no cerrar ni anular con prendas afuera, el costo de servicios devengado, lo medido en el
+  // modelo, las órdenes de antes de las fases como siempre y quién ve los costos del Taller. ROLLBACK.
+  "pruebas:produccion-cierre",
+
+  // La tela pendiente de la orden (ADR-0400, actividad 7): lo que otras órdenes ya reservan, lo pedido, y que la lista diga lo mismo que la página. ROLLBACK.
+  "pruebas:produccion-tela",
+
+  // La lista de precios de los servicios de afuera (ADR-0400, actividad 8): tarifa nueva desde hoy, historia, solo el líder, sin monto en la actividad. ROLLBACK.
+  "pruebas:produccion-tarifas",
+
+  // La tela del Taller (ADR-0400, actividad 8d): lo comprometido (la cuenta de Nueva orden y de la página), lo pedido y las órdenes sin tela declarada. ROLLBACK.
+  "pruebas:produccion-tela-del-taller",
 
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y

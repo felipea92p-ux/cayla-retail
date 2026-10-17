@@ -7,6 +7,7 @@ import { proveedoresParecidos } from "./proveedores-reglas";
 import { soles } from "./compras-reglas";
 import { UMBRAL_BANCARIZACION } from "./no-deducible-reglas";
 import { MAX_MONTO_FINANZAS } from "./finanzas-topes";
+import { leerMontoPlata, MONTO_ILEGIBLE } from "./monto-plata-reglas";
 
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
@@ -72,12 +73,11 @@ export function sugerenciaParaEgreso(motivo: string): "gasto" | TipoNoGasto {
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
 
-/** "1,500", "1500.50", "S/ 300" → número. */
+/** "1,500", "1500.50", "648,50", "S/ 300" → número, con la regla única de `leerMontoPlata` (la coma de los céntimos se entiende). */
 export function parsearMonto(texto: string): Resultado<number> {
-  const limpio = texto.replace(/s\/|\s/gi, "").replace(/,/g, "");
-  if (limpio === "") return { ok: false, error: "Escribe el monto." };
-  if (!/^\d+(\.\d{1,2})?$/.test(limpio)) return { ok: false, error: "Escribe un monto, por ejemplo 648.50." };
-  const n = Number(limpio);
+  if (texto.trim() === "") return { ok: false, error: "Escribe el monto." };
+  const n = leerMontoPlata(texto);
+  if (n === null) return { ok: false, error: MONTO_ILEGIBLE };
   if (n <= 0) return { ok: false, error: "El monto tiene que ser mayor que cero." };
   return { ok: true, valor: n };
 }

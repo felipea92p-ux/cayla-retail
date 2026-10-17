@@ -43,6 +43,7 @@ describe("tienesPulso", () => {
 const PROY: Proyeccion = {
   hoy: "2026-10-15", desde: "2026-10-16", hasta: "2026-11-26", saldoHoy: 28280, minimoCaja: 15000, salidasDiarias: 1800, diasDeCaja: 16,
   salidas30: { conCuenta: 50000, sinCuenta: 0, planilla: 25400 }, planillaVisible: true, cobros: [], salidas: [],
+  historiaDias: null, saldoInicialDeclarado: null, hayFacturasDeProveedor: null, incluyeImpuestos: null, diasDeCajaConfiable: null,
   semanas: [
     { desde: "2026-10-19", hasta: "2026-10-25", entra: 24000, sale: 18000, saldo: 34280, bajoMinimo: false },
     { desde: "2026-10-26", hasta: "2026-11-01", entra: 24000, sale: 47000, saldo: 11280, bajoMinimo: true },
@@ -67,6 +68,20 @@ describe("alcanzaPulso", () => {
   });
   it("sin proyección (no es líder), lo dice", () => {
     expect(alcanzaPulso(null, 0).estado).toBe("sin_dato");
+  });
+  it("provisional (ADR-0433): no se pinta como «dentro del mínimo» en verde y lleva lo que falta", () => {
+    const provisional = { ...PROY, historiaDias: 16, saldoInicialDeclarado: false, hayFacturasDeProveedor: false, incluyeImpuestos: true, diasDeCajaConfiable: false };
+    const a = alcanzaPulso({ ...provisional, semanas: PROY.semanas.map((s) => ({ ...s, saldo: s.saldo + 10000, bajoMinimo: false })) }, 0);
+    expect(a.estado).toBe("bien");
+    if (a.estado === "sin_dato") return;
+    expect(a.provisional).toBe(true);
+    expect(a.faltan.map((f) => f.clave)).toEqual(["saldos", "historia", "facturas"]);
+  });
+  it("con una base que no dice nada de su base (más vieja que la web), no es provisional", () => {
+    const a = alcanzaPulso(PROY, 0);
+    if (a.estado === "sin_dato") return;
+    expect(a.provisional).toBe(false);
+    expect(a.faltan).toEqual([]);
   });
 });
 

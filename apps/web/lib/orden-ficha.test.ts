@@ -76,3 +76,20 @@ describe("la ficha: presentacional y accesible", () => {
     expect(ficha).not.toMatch(/<h[1-6]/);
   });
 });
+
+describe("el costo se lee por prenda y se parte en lo que lo forma", () => {
+  it("la ficha dice «Costo por prenda» arriba, lista la tela y cada servicio cuando hay dos partes o más, y deja «Toda la orden» debajo", () => {
+    expect(ficha).toContain("Costo por prenda");
+    expect(ficha).toContain("Toda la orden");
+    expect(ficha).toContain('aria-label="De qué se forma el costo de cada prenda"');
+    expect(ficha.indexOf("Costo por prenda")).toBeLessThan(ficha.indexOf("Toda la orden"));
+    expect(ficha).toMatch(/costo\.partes && costo\.partes\.length > 1/);
+  });
+
+  it("el formulario no calcula el reparto en el JSX: lo pide a `partesDelCostoPorPrenda` con el MISMO costo por prenda que mide el margen, y las fases de afuera sin listar siguen en «Afuera»", () => {
+    expect(form).toContain("partesDelCostoPorPrenda({");
+    expect(form).toMatch(/porPrenda: unitario,/);
+    expect(form).toMatch(/partes: partesDelCosto\.map\(/);
+    expect(form).toMatch(/afuera=\{serviciosSinListar\.map\(/);
+  });
+});

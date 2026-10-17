@@ -78,6 +78,7 @@
  */
 
 import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -182,6 +183,18 @@ const VERSIONES_FICHA = [...CORREO_FICHA.matchAll(/\('(retail\.[a-z_]+\([^']*\))
   (m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }),
 );
 const REHECHAS_FICHA = { "retail.editar_clienta": "create or replace function" };
+// Y 20261016223000 (Felipe 2026-10-16: «Datos y plazos de la tienda web» es un módulo) rehízo guardar_whatsapp_tienda: la llave pasó de
+// `fn_puede_configurar()` a `fn_puede_configurar() or fn_puede_ajustes_tienda_web()`. No trae tabla de versiones (se reescribió desde
+// la definición viva): su cuerpo vivo es el de ese archivo, y su md5 «después» se calcula de él.
+const AJUSTES_WEB = readFileSync(join(RAIZ, "supabase", "migrations", "20261016223000_tienda_web_modulo_ajustes.sql"), "utf8");
+const REHECHAS_AJUSTES = { "retail.guardar_whatsapp_tienda": "create or replace function" };
+const cuerpoAjustes = (nombre) => {
+  const ini = AJUSTES_WEB.indexOf(`create or replace function ${nombre}(`);
+  const a = AJUSTES_WEB.indexOf("$$", ini) + 2;
+  return AJUSTES_WEB.slice(a, AJUSTES_WEB.indexOf("$$", a));
+};
+const md5Cuerpo = (cuerpo) =>
+  createHash("md5").update(cuerpo.replace(/\/\*[\s\S]*?\*\//g, "").replace(/--[^\n]*/g, "").replace(/\s+/g, "")).digest("hex");
 /** La firma de editar_clienta que vive HOY: la que creó 20261015123000 (la de 11, con p_correo). */
 const EDITAR_HOY = VERSIONES_FICHA.find((w) => w.firma.startsWith("retail.editar_clienta(") && w.antes === null)?.firma;
 const editarEnLaFicha = VERSIONES_FICHA.find((w) => w.firma === EDITAR);
@@ -195,11 +208,14 @@ const despuesHoy = (firma, despues) => {
   const f = VERSIONES_FICHA.find((x) => x.firma === firma);
   const k = VERSIONES_CORREO.find((x) => x.firma === firma);
   const g = VERSIONES_1G.find((x) => x.firma === firma);
+  const nombreAjustes = firma.slice(0, firma.indexOf("("));
+  if (nombreAjustes in REHECHAS_AJUSTES) return md5Cuerpo(cuerpoAjustes(nombreAjustes));
   return (f ? f.despues : k ? k.despues : g ? g.despues : despues) ?? "NO_EXISTE";
 };
 /** El cuerpo (lo que queda entre `$$` y `$$`) con que el archivo crea una función: es su `prosrc` vivo (el de la 1g, el de
  *  20261015054000 o el de 20261015123000, si la rehicieron). */
 const cuerpoDe = (nombre) => {
+  if (nombre in REHECHAS_AJUSTES) return cuerpoAjustes(nombre);
   const [texto, crea] =
     nombre in REHECHAS_FICHA
       ? [CORREO_FICHA, REHECHAS_FICHA[nombre]]
@@ -921,7 +937,7 @@ caso(
     intentoCon(`select retail.guardar_whatsapp_tienda(%L, '812345678')`, ":'ubic'") +
     intentoCon(`select retail.guardar_whatsapp_tienda(%L, '987654321')`, ":'taller'") +
     como(MICAELA) + intentoCon(`select retail.guardar_whatsapp_tienda(%L, '987654321')`, ":'tru'"),
-  "22023|whatsapp_tienda_invalido\n22023|whatsapp_tienda_invalido\nP0001|Solo una tienda tiene WhatsApp del club.\nP0001|Cambiar el WhatsApp de la tienda necesita el módulo «Configuración» en tu rol."
+  "22023|whatsapp_tienda_invalido\n22023|whatsapp_tienda_invalido\nP0001|Solo una tienda tiene WhatsApp del club.\nP0001|Cambiar el WhatsApp de la tienda necesita el módulo «Configuración» o «Datos y plazos de la tienda web» en tu rol."
 );
 caso(
   "(j) el candado de la tabla: un update directo fuera de formato lo rechaza ubicaciones_whatsapp_numero_formato",
@@ -1469,7 +1485,7 @@ caso(
 select regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g')
          ~ '^declare.*?beginifnot\\(retail\\.fn_ve_modulo\\(''clientas''\\)orretail\\.fn_ve_modulo\\(''avisos_club''\\)\\)thenperformretail\\.fn_exigir_modulo\\(''clientas''\\);endif;v_persona:=retail\\.fn_actor_persona_id\\(true\\);'
   from pg_proc p where p.oid = 'retail.registrar_baja_whatsapp(text,uuid)'::regprocedure;
-select prosrc ~ 'if not retail\\.fn_puede_configurar\\(\\) then' and prosrc ~ 'fn_actor_persona_id\\(true\\)' from pg_proc where oid = 'retail.guardar_whatsapp_tienda(uuid,text)'::regprocedure;
+select prosrc ~ 'if not \\(retail\\.fn_puede_configurar\\(\\) or retail\\.fn_puede_ajustes_tienda_web\\(\\)\\) then' and prosrc ~ 'fn_actor_persona_id\\(true\\)' from pg_proc where oid = 'retail.guardar_whatsapp_tienda(uuid,text)'::regprocedure;
 select prosrc !~ 'fn_exigir_modulo' from pg_proc where oid = 'retail.fn_club_textos_vigentes()'::regprocedure;
 `,
   "archivar_clienta:true,crear_invitacion_club:true,editar_clienta:true,registrar_clienta:true,registrar_desde_whatsapp:true,registrar_mensaje_publicidad:true,unirse_al_club:true\nt\nt\nt"

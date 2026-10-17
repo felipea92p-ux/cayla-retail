@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { agregarLookALaBolsa } from "@/app/acciones/bolsa";
+import { visible } from "@/lib/visible";
 import { avisoDelLook, type LineaLook, type Look } from "@/lib/looks";
 import { useAvisoBreve } from "../club/useAvisoBreve";
 import { AgregarLook } from "./AgregarLook";
@@ -9,10 +10,10 @@ import { AgregarLook } from "./AgregarLook";
 /** El globo de la bolsa salta una vez (maqueta, `saltaBolsa`) cuando ya dice cuántas lleva ahora: la acción escribe la cookie y Next
  *  vuelve a dibujar la cabecera; se espera ese cuadro (como mucho medio segundo) para no hacer saltar el número viejo. Sin movimiento
  *  si la persona lo pidió (bolsa.css apaga `.salta` con `prefers-reduced-motion`). */
-function saltarLaBolsa(cuantas: number) {
+export function saltarLaBolsa(cuantas: number) {
   let cuadros = 0;
   const mirar = () => {
-    const globo = document.querySelector<HTMLElement>("[data-bolsa] .t-globo");
+    const globo = visible(document.querySelectorAll<HTMLElement>("[data-bolsa] .t-globo"));
     if (globo?.textContent === String(cuantas)) {
       globo.classList.remove("salta");
       void globo.offsetWidth; // vuelve a empezar la animación si ya había saltado

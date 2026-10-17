@@ -1,9 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useLayoutEffect } from "react";
+import { Suspense, useLayoutEffect } from "react";
 import { formaDeLaRuta, type FormaEsqueleto } from "@/lib/esqueleto";
 import { Icono } from "./Icono";
+import "@/app/estilos/probador.css";
 
 /**
  * Lo que brilla mientras llega una página (lo arma `EsqueletoDePagina`, debajo de la cabecera). Sin `forma`, la saca de la dirección a
@@ -12,8 +13,22 @@ import { Icono } from "./Icono";
  * la foto, el título y los botones caen donde van a caer y nada salta al llegar.
  */
 export function FormaDelEsqueleto({ forma }: { forma?: FormaEsqueleto }) {
+  // Leer la dirección en una página que se arma por adelantado (una ficha cuyo id aún no se sabe) frena el armado: se lee en su propio
+  // <Suspense>, con la grilla mientras tanto (ADR-0432). Con la forma dicha de antemano no se lee nada.
+  if (forma) return <FormaDicha la={forma} />;
+  return (
+    <Suspense fallback={<FormaDicha la="grilla" />}>
+      <FormaSegunLaRuta />
+    </Suspense>
+  );
+}
+
+function FormaSegunLaRuta() {
   const ruta = usePathname();
-  const la = forma ?? formaDeLaRuta(ruta ?? "");
+  return <FormaDicha la={formaDeLaRuta(ruta ?? "")} />;
+}
+
+function FormaDicha({ la }: { la: FormaEsqueleto }) {
   // La página que viene empieza arriba. Next sube la página al llegar a otra, pero con el esqueleto propio de la ficha (un segmento
   // adentro del catálogo) dejaba de hacerlo: tocada una prenda de abajo del Inicio o de «Mi perfil», la ficha llegaba con la página
   // bajada, sin la cabecera ni la foto. El esqueleto solo sale al ir a otra página (cambiar la tienda o el color de una ficha no lo
@@ -24,7 +39,7 @@ export function FormaDelEsqueleto({ forma }: { forma?: FormaEsqueleto }) {
   return (
     <>
       {/* La franja «Ver lo que hay en» de las páginas del catálogo: su alto, para que la página no baje al llegar. */}
-      {(la === "grilla" || la === "ficha") && (
+      {(la === "grilla" || la === "ficha" || la === "probador") && (
         <div className="t-ubic t-esqueleto-ubic" aria-hidden="true">
           <Icono nombre="tienda" />
           <span className="t-pildoras-tienda">
@@ -36,7 +51,7 @@ export function FormaDelEsqueleto({ forma }: { forma?: FormaEsqueleto }) {
       )}
       <div className="t-ancho t-esqueleto" data-forma={la} role="status">
         <span className="t-solo-lector">Cargando…</span>
-        {la === "ficha" ? <Ficha /> : la === "perfil" ? <Perfil /> : la === "lista" ? <Lista /> : <Grilla />}
+        {la === "ficha" ? <Ficha /> : la === "perfil" ? <Perfil /> : la === "lista" ? <Lista /> : la === "probador" ? <Probador /> : <Grilla />}
       </div>
     </>
   );
@@ -63,6 +78,26 @@ function Lista() {
       {Array.from({ length: 4 }, (_, i) => (
         <Fila key={i} />
       ))}
+    </div>
+  );
+}
+
+/** «Arma el tuyo» (`Probador`): el título, el arco del estudio donde va la figura y la tira de opciones, con las clases del probador. */
+function Probador() {
+  return (
+    <div className="pb" aria-hidden="true">
+      <div className="pb-cab">
+        <i className="pb-esq-ceja" />
+        <i className="pb-esq-titulo" />
+      </div>
+      <div className="pb-escena">
+        <div className="pb-arco pb-esq-arco" />
+      </div>
+      <div className="pb-tira-carril pb-esq-tira">
+        {Array.from({ length: 5 }, (_, i) => (
+          <i key={i} className="pb-esq-tarjeta" />
+        ))}
+      </div>
     </div>
   );
 }

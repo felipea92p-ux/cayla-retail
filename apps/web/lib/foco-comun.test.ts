@@ -88,7 +88,10 @@ describe("los anillos propios con transparencia (rojo o tinta) solo bajan", () =
   // 44 → 32 el 2026-10-13 (ADR-0358, rondas 6–8): las cajas, casillas, enlaces y filtros dibujados a mano pasan a sus piezas.
   // 32 → 31 el 2026-10-13 (ADR-0358, verificación de la ronda 9): la casilla propia de Por pagar y el «Es un regalo» de Recepción pasan a
   // <Casilla> e <Interruptor>, con el anillo del sistema.
-  const PENDIENTES_HOY = 31;
+  // 32 → 31 el 2026-10-14: Nueva orden perdió los dos botones a mano de «¿Alcanza la tela?» (ADR-0400, actividad 2). Las dos bajadas son de
+  // archivos distintos y se suman al fusionar: 30.
+  // 30 → 29 el 2026-10-16: el consejo de la red de Nueva orden dejó su botón «Usar la sugerencia» dibujado a mano y pasó a <Boton> (ADR-0400, Formidable).
+  const PENDIENTES_HOY = 29;
   it("la cuenta de afuera de components/ui es exacta y solo baja", () => {
     const total = porArchivo.reduce((s, a) => s + a.n, 0);
     expect(total).toBe(PENDIENTES_HOY);
