@@ -1136,7 +1136,7 @@ export const GUIA_CAMPANA: Guia = {
       ancla: "campana.diseno-pasos",
       opcional: true,
       titulo: "Paso a paso",
-      texto: "Empieza con un estilo (un toque y la portada queda lista); después cambia los colores, el fondo y cómo se acomodan las prendas. El texto, cuáles prendas salen y los detalles son opcionales. Cada toque se guarda solo como borrador.",
+      texto: "Empieza con un estilo (un toque y la portada queda lista); después cambia los colores, el fondo (también una foto tuya, que oscureces para que la letra se lea) y cómo se acomodan las prendas. Lo demás es opcional. Cada toque se guarda solo como borrador.",
     },
     {
       id: "diseno-probar",

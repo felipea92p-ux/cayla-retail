@@ -2,7 +2,7 @@
   "guia": "tienda-web.campanas.id",
   "ruta": "/tienda-web/campanas/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 59,
+  "total": 62,
   "controles": {
     "app/(app)/tienda-web/campanas/[id]/page.tsx": [
       "Volver «/tienda-web/campanas»",
@@ -59,6 +59,9 @@
       "button «{NOMBRES_FONDO[f].nombre}»",
       "button «{NOMBRES_PATRON[p]}»",
       "SegmentoDeslizante «Qué tanto se nota el dibujo»",
+      "input «→(e) => void usar(e.target.files?.[0])»",
+      "Boton «{diseno.foto ? \"Cambiar foto\" : \"Elegir foto\"}»",
+      "input «Oscurecer la foto»",
       "button «{NOMBRES_ACOMODO[a].nombre}»",
       "BotonVer «Ir a Prendas»",
       "button «{`Cursiva desde «${w}»",

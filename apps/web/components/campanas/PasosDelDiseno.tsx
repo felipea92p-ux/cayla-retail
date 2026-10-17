@@ -1,6 +1,7 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useRef, useState, type CSSProperties } from "react";
+import { ImagePlus } from "lucide-react";
 import {
   ACOMODOS,
   COLOR_PROPIO_DE_PARTIDA,
@@ -9,6 +10,8 @@ import {
   FRASE_MAX,
   INTENSIDAD,
   INTENSIDADES,
+  OSCURO_MAX,
+  OSCURO_MIN,
   PALETAS,
   PATRONES,
   TAMANOS,
@@ -21,6 +24,7 @@ import {
   pctTexto,
   piezasQueCaben,
   seLee,
+  veloDeLaFoto,
   type Colores,
   type ColoresPropios,
   type DisenoDeCampana,
@@ -52,6 +56,8 @@ import {
   type PiezaDePortada,
 } from "@/lib/campana-diseno";
 import { sugerirFrase } from "@/lib/sugerencias-campanas";
+import { createClient } from "@/lib/supabase/client";
+import { prepararFotoDeFondo, subirFotoDeFondo } from "@/lib/foto-de-campana";
 import { Lienzo } from "./Lienzo";
 import { FotoDePolaroid, PortadaDeCampana } from "./PortadaDeCampana";
 
@@ -180,12 +186,29 @@ function Muestra({ nombre, fondo, acento, elegida, onClick }: { nombre: string; 
 
 /* ---------------- Paso 3: el fondo ---------------- */
 
-/** El fondo en chico, con los colores de la campaña: liso, el degradado de siempre o el degradado con el dibujo encima. */
-function MuestraDeFondo({ fondo, colores, patron, intensidad }: { fondo: Fondo; colores: Colores; patron: Patron; intensidad: Intensidad }) {
+/** El fondo en chico, con los colores de la campaña: liso, el degradado de siempre, el degradado con el dibujo encima o la foto con su velo. */
+function MuestraDeFondo({ diseno, fondo, colores }: { diseno: DisenoDeCampana; fondo: Fondo; colores: Colores }) {
   const degradado = `radial-gradient(120% 90% at 88% 6%, ${colores.fondo2}, ${colores.fondo} 58%)`;
+  if (fondo === "foto") {
+    if (!diseno.foto) {
+      return (
+        <span className="tw-fondo-muestra tw-fondo-sin-foto">
+          <ImagePlus aria-hidden className="h-5 w-5" />
+        </span>
+      );
+    }
+    const { cerca } = veloDeLaFoto(diseno.oscuro);
+    return (
+      <span className="tw-fondo-muestra" data-color-dato>
+        {/* eslint-disable-next-line @next/next/no-img-element -- la foto del almacén de la campaña, en chico: no pasa por el optimizador */}
+        <img src={diseno.foto} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <span className="absolute inset-0" style={{ background: colores.fondo, opacity: cerca }} />
+      </span>
+    );
+  }
   return (
     <span className="tw-fondo-muestra" data-color-dato style={{ background: fondo === "liso" ? colores.fondo : degradado }}>
-      {fondo === "dibujo" && <Estampado patron={patron} color={colores.acento} opacidad={Math.max(INTENSIDAD[intensidad], 0.3)} />}
+      {fondo === "dibujo" && <Estampado patron={diseno.patron} color={colores.acento} opacidad={Math.max(INTENSIDAD[diseno.intensidad], 0.3)} />}
     </span>
   );
 }
@@ -198,14 +221,38 @@ function Estampado({ patron, color, opacidad }: { patron: Patron; color: string;
   return <span className="tw-estampado" aria-hidden style={estilo} />;
 }
 
-export function PasoFondo({ diseno, onCambiar }: { diseno: DisenoDeCampana; onCambiar: (d: DisenoDeCampana) => void }) {
+/**
+ * Paso 3: el fondo. «Con foto» sin foto todavía abre la subida (el diseño no cambia hasta que la foto está en el almacén); con una ya
+ * subida (aunque se haya elegido otro fondo después), vuelve a ella. `onArrastrar` agrupa el oscurecido en un solo «Deshacer».
+ */
+export function PasoFondo({
+  diseno,
+  onCambiar,
+  onArrastrar,
+  onFoto,
+}: {
+  diseno: DisenoDeCampana;
+  onCambiar: (d: DisenoDeCampana) => void;
+  onArrastrar: (d: DisenoDeCampana) => void;
+  /** La foto ya subida y su tono: el editor la pone en el diseño que esté a la vista cuando termina la subida. */
+  onFoto: (foto: string, tono: string) => void;
+}) {
   const colores = coloresDelDiseno(diseno, "claro");
+  const [pidiendoFoto, setPidiendoFoto] = useState(false);
+  const elegir = (f: Fondo) => {
+    if (f === "foto" && !diseno.foto) {
+      setPidiendoFoto(true);
+      return;
+    }
+    setPidiendoFoto(false);
+    onCambiar({ ...diseno, fondo: f });
+  };
   return (
     <div className="space-y-4">
-      <div className="tw-opciones" data-columnas="3">
-        {FONDOS.filter((f) => f !== "foto").map((f) => (
-          <button key={f} type="button" className="tw-opcion" aria-pressed={diseno.fondo === f} onClick={() => onCambiar({ ...diseno, fondo: f })}>
-            <MuestraDeFondo fondo={f} colores={colores} patron={diseno.patron} intensidad={diseno.intensidad} />
+      <div className="tw-opciones">
+        {FONDOS.map((f) => (
+          <button key={f} type="button" className="tw-opcion" aria-pressed={diseno.fondo === f || (f === "foto" && pidiendoFoto)} onClick={() => elegir(f)}>
+            <MuestraDeFondo diseno={diseno} fondo={f} colores={colores} />
             <span className="tw-opcion-nombre">
               {NOMBRES_FONDO[f].nombre}
               <small>{NOMBRES_FONDO[f].nota}</small>
@@ -213,6 +260,7 @@ export function PasoFondo({ diseno, onCambiar }: { diseno: DisenoDeCampana; onCa
           </button>
         ))}
       </div>
+      {(diseno.fondo === "foto" || pidiendoFoto) && <FotoDelFondo diseno={diseno} onArrastrar={onArrastrar} onFoto={onFoto} />}
       {diseno.fondo === "dibujo" && (
         <>
           <div className="space-y-2">
@@ -238,6 +286,107 @@ export function PasoFondo({ diseno, onCambiar }: { diseno: DisenoDeCampana; onCa
             />
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+/** Subir la foto (arrastrándola o eligiéndola) y oscurecerla. Lo que no se pudo, lo dice en su lugar; los avisos no impiden usarla. */
+function FotoDelFondo({
+  diseno,
+  onArrastrar,
+  onFoto,
+}: {
+  diseno: DisenoDeCampana;
+  onArrastrar: (d: DisenoDeCampana) => void;
+  onFoto: (foto: string, tono: string) => void;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const [arrastrando, setArrastrando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [avisos, setAvisos] = useState<readonly string[]>([]);
+
+  async function usar(archivo: File | undefined) {
+    if (!archivo || subiendo) return;
+    setError(null);
+    setSubiendo(true);
+    try {
+      const lista = await prepararFotoDeFondo(archivo);
+      if ("error" in lista) return setError(lista.error);
+      const subida = await subirFotoDeFondo(createClient(), lista.archivo);
+      if ("error" in subida) return setError(subida.error);
+      setAvisos(lista.avisos);
+      onFoto(subida.url, lista.tono);
+    } finally {
+      setSubiendo(false);
+      if (input.current) input.current.value = "";
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div
+        className="tw-subir"
+        data-arrastrando={arrastrando ? "" : undefined}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setArrastrando(true);
+        }}
+        onDragLeave={() => setArrastrando(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setArrastrando(false);
+          void usar(e.dataTransfer.files[0]);
+        }}
+      >
+        <ImagePlus aria-hidden className="h-5 w-5 shrink-0 text-taupe" />
+        <span className="min-w-0 flex-1 text-[12.5px] text-tinta/70">
+          <b className="block text-[13px] font-semibold text-tinta">{diseno.foto ? "Arrastra otra foto o elige una" : "Arrastra tu foto o elígela"}</b>
+          JPG o PNG, mejor horizontal. En el celular se recorta sola.
+        </span>
+        <input
+          ref={input}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden
+          onChange={(e) => void usar(e.target.files?.[0])}
+        />
+        <Boton peso="fantasma" className="btn-chico" cargando={subiendo} textoCargando="Subiendo…" onClick={() => input.current?.click()}>
+          {diseno.foto ? "Cambiar foto" : "Elegir foto"}
+        </Boton>
+      </div>
+      {error && (
+        <Aviso tono="error" chico>
+          {error}
+        </Aviso>
+      )}
+      {avisos.map((a) => (
+        <Aviso key={a} tono="atencion" chico>
+          {a}
+        </Aviso>
+      ))}
+      {diseno.foto && diseno.fondo === "foto" && (
+        <div className="space-y-2">
+          <TituloGrupo>Oscurecer la foto para que la letra se lea</TituloGrupo>
+          <input
+            type="range"
+            min={Math.round(OSCURO_MIN * 100)}
+            max={Math.round(OSCURO_MAX * 100)}
+            step={5}
+            value={Math.round(diseno.oscuro * 100)}
+            onChange={(e) => onArrastrar({ ...diseno, oscuro: Number(e.target.value) / 100 })}
+            aria-label="Oscurecer la foto"
+            aria-valuetext={`${Math.round(diseno.oscuro * 100)} %`}
+            className="block w-full accent-tinta"
+          />
+          <span className="flex justify-between gap-3 text-[12px] text-taupe">
+            <span>Se ve más la foto</span>
+            <span>Se lee más la letra</span>
+          </span>
+        </div>
       )}
     </div>
   );

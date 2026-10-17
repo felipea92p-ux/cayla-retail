@@ -69,7 +69,8 @@ export async function svgAArchivo(url: string): Promise<{ archivo: File } | { er
   return { archivo: new File([blob], "dibujo.jpg", { type: "image/jpeg" }) };
 }
 
-function leerErrorStorage(mensaje: string): string {
+/** El error del almacén de fotos dicho para la persona (también lo usa la foto del fondo de una campaña). */
+export function leerErrorStorage(mensaje: string): string {
   const m = mensaje.toLowerCase();
   if (m.includes("bucket not found")) return "El almacén de fotos no está configurado en este entorno.";
   if (m.includes("failed to fetch") || m.includes("networkerror") || m.includes("load failed"))

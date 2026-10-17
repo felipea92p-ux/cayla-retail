@@ -81,9 +81,12 @@ export function DisenoCampana({
   const [visitados, setVisitados] = useState<ReadonlySet<ClavePaso>>(() => new Set<ClavePaso>(["estilo"]));
   const [publicando, setPublicando] = useState(false);
   const [volviendo, setVolviendo] = useState(false);
-  // «Deshacer»: los diseños de antes de cada toque. Escribir la frase cuenta como un solo toque hasta que se toca otra cosa.
+  // «Deshacer»: los diseños de antes de cada toque. Escribir la frase (o mover el oscurecido de la foto) cuenta como un solo toque hasta
+  // que se toca otra cosa.
   const [historial, setHistorial] = useState<readonly DisenoDeCampana[]>([]);
-  const escribiendo = useRef(false);
+  const grupo = useRef<string | null>(null);
+  // El diseño a la vista, también para lo que termina después (la foto, que se sube por detrás): nunca se pisa un toque de mientras tanto.
+  const actual = useRef(inicial.diseno);
 
   // El guardado del borrador: uno a la vez, con la versión sobre la que se trabajó (si otra persona lo cambió, no se pisa).
   const version = useRef(inicial.version);
@@ -130,11 +133,12 @@ export function DisenoCampana({
     return ok ? version.current : null;
   }
 
-  /** Un toque: lo de antes queda para «Deshacer» (la frase, una vez por tanda de escritura) y se guarda el borrador. */
-  function cambiar(nuevo: DisenoDeCampana, { escritura = false }: { escritura?: boolean } = {}) {
-    if (guardado === "choque" || mismoDiseno(nuevo, diseno)) return;
-    if (!(escritura && escribiendo.current)) setHistorial((h) => [...h.slice(-(DESHACER_MAX - 1)), diseno]);
-    escribiendo.current = escritura;
+  /** Un toque: lo de antes queda para «Deshacer» (los de un mismo `grupo` seguidos, una sola vez) y se guarda el borrador. */
+  function cambiar(nuevo: DisenoDeCampana, { grupo: g = null }: { grupo?: "frase" | "oscuro" | null } = {}) {
+    const antes = actual.current;
+    if (guardado === "choque" || mismoDiseno(nuevo, antes)) return;
+    if (!(g && grupo.current === g)) setHistorial((h) => [...h.slice(-(DESHACER_MAX - 1)), antes]);
+    grupo.current = g;
     aplicar(nuevo);
   }
 
@@ -142,11 +146,12 @@ export function DisenoCampana({
     const anterior = historial[historial.length - 1];
     if (!anterior || guardado === "choque") return;
     setHistorial((h) => h.slice(0, -1));
-    escribiendo.current = false;
+    grupo.current = null;
     aplicar(anterior);
   }
 
   function aplicar(nuevo: DisenoDeCampana) {
+    actual.current = nuevo;
     setDiseno(nuevo);
     pendiente.current = nuevo;
     setGuardado("guardando");
@@ -188,17 +193,26 @@ export function DisenoCampana({
       case "colores":
         return <PasoColores diseno={diseno} paletasDePrendas={paletasDePrendas} onCambiar={cambiar} />;
       case "fondo":
-        return <PasoFondo diseno={diseno} onCambiar={cambiar} />;
+        return (
+          <PasoFondo
+            diseno={diseno}
+            onCambiar={cambiar}
+            onArrastrar={(d) => cambiar(d, { grupo: "oscuro" })}
+            onFoto={(foto, tono) => cambiar({ ...actual.current, fondo: "foto", foto, fotoTono: tono })}
+          />
+        );
       case "acomodo":
         return <PasoAcomodo diseno={diseno} campana={campana} piezas={piezas} ahora={ahora} onCambiar={cambiar} />;
       case "texto":
-        return <PasoTexto diseno={diseno} campana={campana} onCambiar={cambiar} onEscribir={(d) => cambiar(d, { escritura: true })} />;
+        return <PasoTexto diseno={diseno} campana={campana} onCambiar={cambiar} onEscribir={(d) => cambiar(d, { grupo: "frase" })} />;
       case "prendas":
         return <PasoPrendas diseno={diseno} campana={campana} piezas={piezas} onCambiar={cambiar} />;
       case "detalles":
         return <PasoDetalles diseno={diseno} campana={campana} onCambiar={cambiar} />;
     }
   };
+  // Lo que falta para publicar, con su arreglo a mano: con foto, oscurecerla (paso «Fondo»); con color, otro color.
+  const faltaParaPublicar = diseno.fondo === "foto" ? "que la letra se lea sobre la foto (oscurécela en «Fondo»)" : "que la letra se lea sobre el fondo";
   const puedePublicar = !revision.bloquea && comoEsta === "borrador" && guardado !== "choque" && guardado !== "error";
 
   return (
@@ -321,11 +335,11 @@ export function DisenoCampana({
             onClick={() => setPublicando(true)}
             disabled={!puedePublicar}
             data-guia="campana.diseno-publicar"
-            title={revision.bloquea ? "Para publicar falta que la letra se lea sobre el fondo." : undefined}
+            title={revision.bloquea ? `Para publicar falta ${faltaParaPublicar}.` : undefined}
           >
             Publicar diseño
           </Boton>
-          {revision.bloquea && <p className="w-full text-right text-[12.5px] text-tinta/70">Para publicar falta: que la letra se lea sobre el fondo.</p>}
+          {revision.bloquea && <p className="w-full text-right text-[12.5px] text-tinta/70">Para publicar falta: {faltaParaPublicar}.</p>}
         </div>
       </div>
 
