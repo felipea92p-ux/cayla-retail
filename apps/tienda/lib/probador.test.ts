@@ -4,6 +4,7 @@ import type { StockModelo } from "./stock";
 import {
   agotada,
   armarProbador,
+  hayParaProbar,
   ayudaDeZona,
   azarDesde,
   busquedaConLook,
@@ -230,6 +231,14 @@ describe("armarProbador: el catálogo y lo del probador, juntos", () => {
     expect(agotada(enLima[1])).toBe(true);
     // Sin el dato del stock, sí hay (no se esconde lo que no se sabe).
     expect(enLima[2].colores[0].hay).toBe(true);
+  });
+
+  it("¿hay algo que probar? (la cabecera muestra «Arma el tuyo» solo entonces): la misma regla que arma el probador", () => {
+    expect(hayParaProbar(catalogo, lectura)).toBe(true);
+    // Sin recortes listos (la base no trae la prenda), en una zona que el probador no dibuja o sin un color con foto: nada que probar.
+    expect(hayParaProbar([delCatalogo(5, "TOP", ["NEG"]), delCatalogo(3, "ZAP", ["NEG"])], lectura)).toBe(false);
+    expect(hayParaProbar([delCatalogo(1, "CMS", ["VER"])], lectura)).toBe(false);
+    expect(hayParaProbar([], lectura)).toBe(false);
   });
 });
 

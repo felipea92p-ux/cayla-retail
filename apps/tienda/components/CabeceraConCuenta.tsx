@@ -99,9 +99,11 @@ export function CabeceraConCuenta({
             <Link className="t-nav-b" href={datos.looks} aria-current={marca("looks")}>
               Arma tu look
             </Link>
-            <Link className="t-nav-b" href={datos.probador} aria-current={marca("probador")}>
-              Arma el tuyo
-            </Link>
+            {datos.probador && (
+              <Link className="t-nav-b" href={datos.probador} aria-current={marca("probador")}>
+                Arma el tuyo
+              </Link>
+            )}
             <Link className="t-nav-b" href={datos.vendidos.href} aria-current={marca("vendidos")}>
               Más vendidos
             </Link>
@@ -294,9 +296,11 @@ function HojaMenu({ datos, favoritos, cerrar }: { datos: DatosCabecera; favorito
         <Link href={datos.looks} onClick={cerrar}>
           Arma tu look
         </Link>
-        <Link href={datos.probador} onClick={cerrar}>
-          Arma el tuyo
-        </Link>
+        {datos.probador && (
+          <Link href={datos.probador} onClick={cerrar}>
+            Arma el tuyo
+          </Link>
+        )}
         <Link href={datos.vendidos.href} onClick={cerrar}>
           Más vendidos
         </Link>

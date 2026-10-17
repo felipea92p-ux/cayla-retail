@@ -237,6 +237,10 @@ PR. Son tres:
 
 - **La cabecera:** «Arma el tuyo» justo después de «Arma tu look», en la computadora y en el menú del celular. Está marcado cuando se
   está en el probador (`actual="probador"`). Antes, el probador marcaba «Arma tu look».
+  - Sale solo si el probador tiene algo que probar con lo que se ve en esa tienda (Felipe 2026-10-17). Así, fusionar antes de «Preparar
+    recortes» no lleva a nadie a un probador vacío; la entrada aparece sola cuando hay prendas listas.
+  - Lo decide `hayParaProbar`, la misma regla que arma el probador, sobre la lectura guardada de «Todas». Si la base no responde, la
+    entrada no sale.
 - **«Arma tu look»:** arriba de los looks de CAYLA, una tarjeta en el oscuro de la campaña con el probador quieto (lo primero que hay en
   la tienda elegida, con prendas de verdad) y «Abrir el probador». Si el probador de esa tienda no tiene nada, no se dibuja.
 - **La ficha:** «Arma un look con esta prenda» bajo el botón de la bolsa. Abre el probador con esa prenda en el color elegido, y lo

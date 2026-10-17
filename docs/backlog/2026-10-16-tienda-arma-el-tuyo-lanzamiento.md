@@ -35,12 +35,13 @@
 - [ ] Probar «Compartir» en un iPhone y un Android de verdad. El panel de pruebas no tiene la hoja de compartir del celular. Revisar
   también que WhatsApp muestre la vista previa del enlace de producción.
 - [x] **Actividad 10 — Las entradas** (Felipe pidió construirlas en el PR 3, 2026-10-17):
-  - «Arma el tuyo» en la cabecera y en el menú del celular;
+  - «Arma el tuyo» en la cabecera y en el menú del celular, solo si el probador tiene algo que probar en esa tienda (Felipe 2026-10-17);
   - la tarjeta arriba de «Arma tu look»;
   - «Arma un look con esta prenda» en la ficha, que sigue el color elegido y solo sale si la prenda se puede probar.
 
   Probado en el banco a 375 px y en la computadora.
-- [ ] **Al fusionar el PR 3, el probador queda a la vista de todos.** Antes, en producción:
+- [ ] **Al fusionar el PR 3, el probador queda a la vista de todos los que tienen algo que probar.** Las tres entradas se esconden
+  solas mientras no haya prendas listas, pero para que las haya, en producción:
   - pegar la migración `20261017044000`;
   - apretar «Preparar recortes» en el ERP (si no, casi ninguna prenda entra al probador y la tarjeta de «Arma tu look» no sale);
   - cargar los largos de vestidos, faldas, conjuntos y enterizos.
