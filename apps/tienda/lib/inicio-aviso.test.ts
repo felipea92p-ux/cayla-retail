@@ -187,7 +187,7 @@ describe("«CAYLA te respondió» (hoja nueva de Recomendaciones, decisión #8 A
       icono: "chat",
       titulo: "CAYLA te respondió",
       texto: "Sobre CAYLA en general: «Hola, Lucía. Gracias por escribirnos: se lo vamos a contar al taller.»",
-      enlace: { href: "/recomendaciones" },
+      href: "/recomendaciones",
     });
     expect(a[1]!.texto).toMatch(/^Sobre CAYLA Trujillo: «/);
   });

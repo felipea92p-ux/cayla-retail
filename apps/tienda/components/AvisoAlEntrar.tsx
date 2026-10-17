@@ -3,7 +3,7 @@
 import { useId, useState, useTransition } from "react";
 import Link from "next/link";
 import { entendiElAviso } from "@/app/acciones/inicio";
-import { presentacionDelAviso, textoDeMas, type AvisoAlEntrar as Aviso } from "@/lib/inicio-aviso";
+import { TEXTO_ENLACE_RESPUESTA, presentacionDelAviso, textoDeMas, type AvisoAlEntrar as Aviso } from "@/lib/inicio-aviso";
 import { Icono } from "./Icono";
 
 /**
@@ -43,9 +43,9 @@ export function AvisoAlEntrar({ aviso, activas }: { aviso: Aviso; activas: strin
                     <span>
                       <b>{l.titulo}</b>
                       <small>{l.texto}</small>
-                      {enlaceEnCadaLinea && l.enlace && (
-                        <Link className="t-enlace" href={l.enlace.href}>
-                          {l.enlace.texto}
+                      {enlaceEnCadaLinea && l.tipo === "respuesta" && l.href && (
+                        <Link className="t-enlace" href={l.href}>
+                          {TEXTO_ENLACE_RESPUESTA}
                         </Link>
                       )}
                     </span>

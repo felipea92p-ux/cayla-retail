@@ -37,14 +37,15 @@ const esquemaLlego = z.object({
 
 export type IconoAviso = "regalo" | "ticket" | "campana" | "chat";
 /** Un beneficio a favor de la persona (o una respuesta de CAYLA), como se dice en el aviso. `clave`: cómo se llama su cookie (sin el
- *  prefijo). `enlace`: adónde se lee entero, cuando no es «Mi perfil». */
+ *  prefijo). `href`: adónde lleva, si no es «Mi perfil» (una respuesta, a «Recomendaciones»). Es el mismo campo que usa la campanita
+ *  del #1180 para «llegó tu talla»: un aviso dice adónde lleva de una sola forma. */
 export type AvisoClub = {
   clave: string;
   tipo: "cumple" | "vale" | "llego" | "respuesta";
   icono: IconoAviso;
   titulo: string;
   texto: string;
-  enlace?: { texto: string; href: string };
+  href?: string;
 };
 
 /** «Blusa Emma ya llegó», «Negro · Talla M. Hay en Trujillo: sepárala antes de que se acabe.» */
@@ -141,7 +142,7 @@ export function avisosDeRespuestas(mias: readonly MiRecomendacion[], usuarioId: 
       icono: "chat",
       titulo: "CAYLA te respondió",
       texto: `Sobre ${r.sobre ? nombreTienda(r.sobre) : "CAYLA en general"}: «${recortar(r.respuesta)}»`,
-      enlace: { texto: "Leerla en Recomendaciones", href: "/recomendaciones" },
+      href: "/recomendaciones",
     }));
 }
 
@@ -184,6 +185,9 @@ export function presentacionDelAviso(aviso: AvisoAlEntrar): { ceja: string; enla
     enlaceEnCadaLinea: hayClub && hayRespuesta,
   };
 }
+
+/** Lo que dice el enlace de una respuesta dentro del aviso (cuando viene junto a algo del Club). */
+export const TEXTO_ENLACE_RESPUESTA = "Leerla en Recomendaciones";
 
 /** «Y llegó 1 talla más que esperabas: mírala en Mi perfil.» */
 export const textoDeMas = (n: number) =>
