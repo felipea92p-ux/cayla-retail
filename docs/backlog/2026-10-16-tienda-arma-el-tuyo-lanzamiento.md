@@ -15,8 +15,13 @@
   - Trae dos tablas, cuatro funciones y una línea anclada en `fn_cuentas_web_cerrar_al_anonimizar`.
   - Se pega con el OK de Felipe antes de fusionar el PR 3.
   - Al pegarla, refrescar el volcado (`pnpm datos:refrescar`) para que `looks_web` y `look_web_piezas` entren al diccionario.
-- [ ] El PR 3 se abre recién con el PR 1 (#1151) y el PR 2 fusionados en main. Hasta entonces, `pnpm migraciones:versiones` y
-  `pnpm adr:numeros` marcan en esta rama los números de esos dos PR, que todavía no están en main.
+- [x] El PR 3 se abrió el 2026-10-17, con el PR 1 (#1151) y el PR 2 (#1155) ya en main.
+- [x] Dos pruebas de base conocen ahora los looks guardados, porque la migración cambia el disparador del cierre de cuentas y suma una
+  función que lee la ficha:
+  - `pruebas:clientas-correo`: antes de volver a pegar la migración del cierre (`20261015055000`), deja el disparador como lo dejó esa
+    migración, igual que ya hacía con `editar_clienta`;
+  - `pruebas:clientas-modulo`: `tienda_guardar_look` entra a la lista de las que solo preguntan si la ficha está archivada, como
+    `tienda_favorito`.
 - [x] **Actividad 9 — Compartir:**
   - «Compartir» en el look guardado: la imagen para estados, la hoja del celular, descargar y copiar el enlace;
   - `/tu-look`, la página pública sin precios, con «Crea tu cuenta y arma el tuyo»;
