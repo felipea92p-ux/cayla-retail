@@ -9,6 +9,7 @@ import { EntradaDelDia } from "./cuenta/EntradaDelDia";
 import { FiltroTienda, type OpcionTienda } from "./FiltroTienda";
 import { InstalarCayla } from "./instalar/InstalarCayla";
 import { Pie } from "./Pie";
+import { MarcaDeVista } from "./Vistas";
 
 /**
  * El marco de las páginas de quien tiene cuenta (el Inicio, el catálogo, la ficha, «Arma tu look»): la cabecera con el buscador, el
@@ -40,6 +41,8 @@ export async function MarcoCatalogo({
   const datos = datosDeCabecera(prendas, sede, process.env.TIENDA_FOTOS_ORIGEN, conProbador);
   return (
     <>
+      {/* Otra página, otra lista u otro menú: la pantalla se funde a la nueva. Primera, antes de todo elemento (components/Vistas.tsx). */}
+      <MarcaDeVista />
       {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
       <EntradaDelDia />
       <CabeceraConCuenta datos={datos} actual={actual} favoritos={favoritos} nombre={nombre} bolsa={<BotonBolsa />} />
