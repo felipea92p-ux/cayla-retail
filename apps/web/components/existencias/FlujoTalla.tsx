@@ -137,8 +137,8 @@ function LadoDelViaje({ lado, destino = false }: { lado: LadoMovido; destino?: b
 function NotaSubida({ valor, onValor }: { valor: string; onValor: (v: string) => void }) {
   return (
     <>
-      <label htmlFor="flujo-nota-subida" className="label-cayla mb-1.5 mt-4 block text-[11px] text-taupe">
-        Por qué la subes · opcional
+      <label htmlFor="flujo-nota-subida" className="campo-etiqueta mb-1.5 mt-4">
+        Por qué la subes <span className="font-normal normal-case text-tinta/45">· opcional</span>
       </label>
       <textarea
         id="flujo-nota-subida"
@@ -980,7 +980,7 @@ export function FlujoTalla({
                 )}
                 {motivoPideNotaFlujo(d.motivo) && (
                   <>
-                    <label htmlFor="flujo-nota" className="label-cayla mb-1.5 mt-3 block text-[11px] text-taupe">
+                    <label htmlFor="flujo-nota" className="campo-etiqueta mb-1.5 mt-3">
                       {d.motivo === "encontre" ? "¿Dónde estaban?" : "Cuéntalo en una línea"}
                     </label>
                     <textarea

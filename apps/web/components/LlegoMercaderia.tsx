@@ -54,6 +54,7 @@ import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerenc
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
 import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 export type ProveedorLlegada = { id: string; nombre: string; ruc: string | null; marcas: string[] };
 
@@ -407,9 +408,9 @@ export function LlegoMercaderia({
           </div>
 
           {mismaCaja && (
-            <p role="status" className="-mt-2 rounded-lg border border-ambar/30 bg-ambar/[0.07] px-3.5 py-2.5 text-[13px] text-ambar-profundo">
+            <Aviso tono="atencion" className="-mt-2">
               {mismaCaja}
-            </p>
+            </Aviso>
           )}
 
           {susFacturas.length > 0 &&

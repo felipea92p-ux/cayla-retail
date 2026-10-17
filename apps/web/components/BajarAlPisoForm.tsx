@@ -2,7 +2,7 @@
 
 import { useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Check, Hand, Info, Minus, Plus, ScanBarcode, ScanLine } from "lucide-react";
+import { Camera, Check, Minus, Plus, ScanBarcode, ScanLine } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { ErrorEscritura } from "@/lib/error-escritura";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
@@ -835,8 +835,8 @@ export function BajarAlPisoForm({
         </div>
       )}
 
-      <section data-guia="bajar.escaner" className="card-cayla p-4 sm:p-5">
-        <label htmlFor="bajar-escaner" className="label-cayla text-[11px] text-taupe">
+      <section data-guia="bajar.escaner" className="campo card-cayla p-4 sm:p-5">
+        <label htmlFor="bajar-escaner" className="campo-etiqueta">
           Escanear prenda
         </label>
         <div className="mt-2 flex gap-2">
@@ -929,12 +929,8 @@ export function BajarAlPisoForm({
           </div>
         )}
         {prendaEnMano && ofertaVisible && (
-          <div role="alert" className="anim-revelar mt-3 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3 py-3 text-sm text-ambar-profundo">
-            <p className="flex items-start gap-2">
-              <Hand aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{textoDeOferta(ofertaVisible, prendaEnMano, sede)}</span>
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+          <Aviso tono="atencion" className="mt-3" titulo={textoDeOferta(ofertaVisible, prendaEnMano, sede)}>
+            <div className="mt-2 flex flex-wrap gap-2">
               {ofertaVisible.tipo === "comprobar" ? (
                 <button type="button" className="btn-cayla btn-primario h-11" onClick={() => abrirEnMano(prendaEnMano, 0)}>
                   Comprobar
@@ -965,13 +961,12 @@ export function BajarAlPisoForm({
                 Ahora no
               </button>
             </div>
-          </div>
+          </Aviso>
         )}
         {aviso && !enMano && (
-          <p role="alert" className="anim-revelar mt-3 flex items-start gap-2 rounded-lg border border-ambar/35 bg-ambar/[0.07] px-3 py-2.5 text-sm text-ambar-profundo">
-            <Info aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{aviso}</span>
-          </p>
+          <Aviso tono="atencion" className="mt-3">
+            {aviso}
+          </Aviso>
         )}
         <p className="sr-only" aria-live="polite">
           {anuncio}
@@ -1139,9 +1134,7 @@ export function BajarAlPisoForm({
 
           {hayLineas && <p className="nota-cayla">{textoNotaDelPie(congelada)}</p>}
           {sinGuardado && hayEscaneadas && (
-            <p role="status" className="rounded-xl border border-ambar/35 bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo">
-              Este navegador no puede guardar tu lista: confirma antes de salir de la pantalla.
-            </p>
+            <Aviso tono="atencion">Este navegador no puede guardar tu lista: confirma antes de salir de la pantalla.</Aviso>
           )}
 
           {/* Pie pegajoso al fondo: desde ADR-0206 el celular no tiene barra abajo (mismo patrón que FichaPrevia). */}

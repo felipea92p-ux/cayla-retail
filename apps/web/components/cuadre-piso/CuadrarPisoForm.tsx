@@ -607,15 +607,9 @@ export function CuadrarPisoForm({
       )}
 
       {conteo && (
-        <div
-          role="status"
-          className="anim-revelar flex flex-wrap items-start justify-between gap-x-3 gap-y-2 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo"
-        >
-          <p className="min-w-0 flex-1 basis-64">{textoConteoAbierto(conteo, sede)}</p>
-          <Link href={`/inventario/conteo/${conteo.conteoId}`} className="btn-cayla btn-enlace shrink-0 text-[13px]">
-            Ir al conteo
-          </Link>
-        </div>
+        <Aviso tono="atencion" accion={<Link href={`/inventario/conteo/${conteo.conteoId}`}>Ir al conteo</Link>}>
+          {textoConteoAbierto(conteo, sede)}
+        </Aviso>
       )}
 
       {borrador && (
@@ -819,9 +813,7 @@ export function CuadrarPisoForm({
           )}
 
           {sinGuardado && datos.lineas.length > 0 && (
-            <p role="status" className="rounded-xl border border-ambar/35 bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo">
-              Este navegador no puede guardar lo escaneado: termina el cuadre antes de salir de la pantalla.
-            </p>
+            <Aviso tono="atencion">Este navegador no puede guardar lo escaneado: termina el cuadre antes de salir de la pantalla.</Aviso>
           )}
 
           <BarraFija

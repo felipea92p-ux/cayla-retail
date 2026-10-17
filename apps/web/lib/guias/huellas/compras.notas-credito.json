@@ -38,7 +38,7 @@
       "Boton «Borrar la búsqueda»",
       "Boton «Ver todas las que faltan»",
       "Link «{p.nombre}»",
-      "Link «Usar en un pago →»",
+      "BotonVer «Usar en un pago»",
       "button «De qué viene ·»"
     ],
     "components/RegistrarNotaCreditoModal.tsx": [

@@ -17,7 +17,7 @@
       "Pestanas «(sin nombre)»"
     ],
     "components/FacturacionShell.tsx": [
-      "Link «comprobantes.aviso-sunat»"
+      "Link «Ver Por enviar»"
     ],
     "components/PestanasComprobantesMovil.tsx": [
       "Link «{p.etiqueta}»"

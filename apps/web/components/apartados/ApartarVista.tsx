@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Volver } from "@/components/ui/Volver";
 import { BotonBuscar } from "@/components/ui/BotonBuscar";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
@@ -861,9 +862,11 @@ export function ApartarVista({
         ) : (
           <>
             <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
-              <button type="button" onClick={() => irAPaso(apilado && paso === "adelanto" ? "clienta" : "ticket")} className="label-cayla -ml-2 h-8 shrink-0 rounded-md px-2 text-[11px] whitespace-nowrap text-tinta/70 hover:bg-sand/40 hover:text-tinta">
-                ← {apilado ? "Atrás" : "Ticket"}
-              </button>
+              <Volver
+                onClick={() => irAPaso(apilado && paso === "adelanto" ? "clienta" : "ticket")}
+                a={apilado && paso === "adelanto" ? "Volver a los datos del cliente" : "Volver al ticket"}
+                className="-ml-2 shrink-0"
+              />
               <div className="anim-revelar text-right">
                 <TituloSeccion className="justify-end">
                   <span className="inline-flex items-center gap-2.5">

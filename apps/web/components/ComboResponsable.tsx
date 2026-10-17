@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, Clock, RefreshCw, Search, ShieldCheck, UserRound, SearchX } from "lucide-react";
+import { Check, ChevronDown, RefreshCw, Search, ShieldCheck, UserRound, SearchX } from "lucide-react";
 import { nombresCortos } from "@/lib/nombre-integrante";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import type { PersonaDeTurno } from "@/lib/responsable-reglas";
@@ -14,6 +14,7 @@ import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { Vacio } from "@/components/ui/Vacio";
 import { Boton } from "@/components/ui/campos";
+import { Aviso } from "@/components/ui/Aviso";
 
 type Props = {
   control: ControlResponsable;
@@ -105,36 +106,29 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
 
   if (estado === "admin") {
     return (
-      <p role="status" className={`flex items-center gap-2 rounded-lg border border-pizarra/25 bg-pizarra/[0.06] px-3 py-2.5 text-[13px] text-tinta/80 ${className}`}>
-        <ShieldCheck className="h-4 w-4 shrink-0 text-pizarra" aria-hidden />
-        <span>
-          <b className="font-semibold text-tinta">Eres admin:</b> no necesitas autorización. Lo que guardes queda a tu nombre.
-        </span>
-      </p>
+      <Aviso tono="info" chico className={className} titulo="Eres admin">
+        No necesitas autorización. Lo que guardes queda a tu nombre.
+      </Aviso>
     );
   }
 
   if (estado === "nadie" || estado === "sin_lectura") {
     const nadie = estado === "nadie";
     return (
-      <div role="alert" className={`anim-revelar rounded-xl border border-ambar/35 bg-ambar/[0.07] p-3.5 ${className}`}>
-        <p className="flex items-center gap-2 text-sm font-semibold text-ambar-profundo">
-          <Clock className="h-4 w-4 shrink-0" aria-hidden />
-          {nadie ? `Nadie de turno en ${sede}` : "No se pudo leer quién está de turno"}
-        </p>
+      <Aviso tono="atencion" className={className} titulo={nadie ? `Nadie de turno en ${sede}` : "No se pudo leer quién está de turno"}>
         {nadie ? (
           <>
-            <p className="mt-1.5 text-[13px] text-tinta/80">
+            <p>
               Para guardar, quien atiende tiene que haber marcado su <b className="font-semibold">entrada</b> hoy en esta tienda. Nadie lo
               ha hecho todavía (la regla es la misma para los líderes).
             </p>
-            <ol className="ml-[18px] mt-2 list-decimal text-[13px] text-tinta/80">
+            <ol className="ml-[18px] mt-2 list-decimal">
               <li>Marca tu entrada en el kiosco de asistencia de la tienda.</li>
               <li>Vuelve aquí y toca «Actualizar lista».</li>
             </ol>
           </>
         ) : (
-          <p className="mt-1.5 text-[13px] text-tinta/80">Revisa la conexión y vuelve a intentar. Sin esa lista no se puede elegir quién hace la operación.</p>
+          <p>Revisa la conexión y vuelve a intentar. Sin esa lista no se puede elegir quién hace la operación.</p>
         )}
         <Boton type="button" onClick={() => void control.recargar()} cargando={control.recargando} textoCargando="Actualizando…" className="mt-3 h-9">
           <span className="flex items-center gap-2">
@@ -142,7 +136,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
             Actualizar lista
           </span>
         </Boton>
-      </div>
+      </Aviso>
     );
   }
 

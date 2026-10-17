@@ -1540,8 +1540,8 @@ export function RecepcionEnvio({
 
                 {/* ---------------- notas del envío ---------------- */}
                 {pestana === "notas" && (
-                  <div className="anim-asentar space-y-2 p-5">
-                    <label htmlFor="recibir-nota" className="label-cayla text-[11px] text-tinta/65">
+                  <div className="campo anim-asentar space-y-2 p-5">
+                    <label htmlFor="recibir-nota" className="campo-etiqueta">
                       Nota del envío (opcional)
                     </label>
                     <textarea

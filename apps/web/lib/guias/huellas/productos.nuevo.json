@@ -16,7 +16,7 @@
     ],
     "components/NuevoProductoForm.tsx": [
       "Volver «→() => irAPaso((n - 1) as NumeroPaso)»",
-      "button «Seguir →»",
+      "button «Seguir»",
       "button «{responsable.motivo ?? undefined}»",
       "CampoTexto «Nombre»",
       "CampoTexto «Descripción»",
@@ -173,7 +173,7 @@
     ],
     "components/alta-producto/TarjetaParecida.tsx": [
       "button «{FRASE.deshacerAria(t.nombre)}»",
-      "Link «{FRASE.esElMismoAria(t.nombre)}»",
+      "BotonVer «{FRASE.esElMismoAria(t.nombre)}»",
       "button «{FRASE.noEsOtroAria(t.nombre)}»",
       "button «?»"
     ],

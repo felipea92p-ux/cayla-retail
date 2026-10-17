@@ -346,8 +346,8 @@ export function RolesPanel({
             </Aviso>
           )}
           {editable && (
-            <div className="flex flex-wrap items-center gap-2 px-5 pt-4" data-guia="roles.pantalla">
-              <label id={`pantalla-principal-${rol.id}-etiqueta`} htmlFor={`pantalla-principal-${rol.id}`} className="label-cayla shrink-0 text-[11px] text-tinta/65">
+            <div className="campo flex flex-wrap items-center gap-2 px-5 pt-4" data-guia="roles.pantalla">
+              <label id={`pantalla-principal-${rol.id}-etiqueta`} htmlFor={`pantalla-principal-${rol.id}`} className="campo-etiqueta shrink-0">
                 Pantalla al entrar
               </label>
               {/* Combo del sistema (ADR-0209), no el <select> del navegador: misma caja y misma lista que el resto del ERP. */}
