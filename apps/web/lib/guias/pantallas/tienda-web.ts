@@ -904,7 +904,7 @@ export const GUIA_RECOMENDACIONES: Guia = {
       id: "lista",
       ancla: "recomendaciones.lista",
       titulo: "La bandeja",
-      texto: "Cada fila dice quién la escribió, sobre qué tienda es, lo que escribió y en qué está. Toca una para leerla entera y responder.",
+      texto: "Cada fila dice quién la escribió, sobre qué tienda es, lo que escribió y en qué está. Toca una y se abre al costado, con la lista a la vista.",
     },
     {
       id: "vacio",
@@ -933,7 +933,7 @@ export const GUIA_RECOMENDACIONES: Guia = {
       ancla: "recomendacion.cliente",
       opcional: true,
       titulo: "Quién la escribió",
-      texto: "Su nombre arriba y, debajo, sobre qué tienda es y, si tu rol ve las fichas de clientes, el camino a su ficha. Si su ficha se anonimizó, la recomendación se queda sin su nombre.",
+      texto: "Arriba del cajón: sobre qué tienda es, su nombre y, si tu rol ve las fichas de clientes, el camino a su ficha. Si su ficha se anonimizó, la recomendación se queda sin su nombre.",
     },
     {
       id: "respuesta-dada",
@@ -962,7 +962,7 @@ export const GUIA_RECOMENDACIONES: Guia = {
       ancla: "recomendacion.acciones",
       opcional: true,
       titulo: "Responder o archivar",
-      texto: "«Enviar respuesta» se la manda a su cuenta. Si no hace falta responder, «Archivar sin responder» la saca de la bandeja sin borrarla, el cliente la ve como leída y se puede deshacer. En la demo no tocamos ninguno.",
+      texto: "«Enviar respuesta» se la manda a su cuenta. Si no hace falta responder, «Archivar sin responder» la saca de la bandeja sin borrarla y el cliente la ve como leída. Después, «Siguiente por responder» o ↑ ↓ te llevan a otra sin cerrar. En la demo no tocamos ninguno.",
     },
     {
       id: "nota",

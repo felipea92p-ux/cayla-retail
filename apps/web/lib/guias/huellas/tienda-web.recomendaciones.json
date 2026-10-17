@@ -5,13 +5,13 @@
   "total": 11,
   "controles": {
     "components/recomendaciones/RecomendacionHoja.tsx": [
-      "Link «ver su ficha»",
-      "textarea «Escribe una respuesta corta y cálida…»",
+      "Link «Ver su ficha»",
       "ComboResponsable «{responsable}»",
+      "Boton «{responsable.motivo ?? undefined}»",
       "Boton «{puedeResponder ? \"Archivar sin responder\" : \"Archivar\"}»",
-      "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
-      "Boton «{responsable.motivo ?? undefined}»"
+      "Boton «Siguiente por responder»",
+      "textarea «Escribe una respuesta corta y cálida…»"
     ],
     "components/recomendaciones/RecomendacionesPantalla.tsx": [
       "DesplegablePildora «Estado»",

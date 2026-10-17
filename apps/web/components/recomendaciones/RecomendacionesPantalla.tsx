@@ -103,6 +103,30 @@ export function RecomendacionesPantalla({
   /** Una cifra que filtra: tocada otra vez, vuelve a la bandeja. */
   const filtroDeCifra = (e: FiltroEstado) => () => elegirEstado(estado === e ? ESTADO_POR_DEFECTO : e);
 
+  /** Abre otra recomendación en el mismo cajón y, si está en la lista que se ve, pasa a su página (su fila queda marcada). */
+  const irA = (id: string) => {
+    const i = visibles.findIndex((x) => x.id === id);
+    if (i >= 0) setPagina(Math.floor(i / POR_PAGINA) + 1);
+    abrir(id);
+  };
+  // ↑ ↓ y «3 de 12» recorren la lista que se ve. La que se acaba de responder puede salir de «Por responder»: entonces no hay flechas
+  // y el pie ofrece la siguiente que espera.
+  const indiceAbierta = abierta ? visibles.findIndex((x) => x.id === abierta.id) : -1;
+  const navegacion =
+    indiceAbierta >= 0
+      ? {
+          indice: indiceAbierta,
+          total: visibles.length,
+          onNavegar: (d: 1 | -1) => {
+            const otra = visibles[indiceAbierta + d];
+            if (otra) irA(otra.id);
+          },
+        }
+      : undefined;
+  const siguiente = abierta
+    ? (lista.recomendaciones.find((x) => x.id !== abierta.id && estadoDe(x) === "por_responder") ?? null)
+    : null;
+
   return (
     <div className="tw space-y-6">
       {abiertaInicial && !lista.recomendaciones.some((r) => r.id === abiertaInicial) && (
@@ -308,11 +332,15 @@ export function RecomendacionesPantalla({
       </div>
 
       {abierta && (
+        // Sin `key`: el cajón sigue abierto al pasar de una a otra (con ↑ ↓, tocando otra fila o «Siguiente por responder») y
+        // guarda lo escrito en cada una; solo cambia su contenido.
         <RecomendacionHoja
-          key={abierta.id}
           recomendacion={abierta}
           veFichas={lista.veFichas}
           ahora={ahora}
+          navegacion={navegacion}
+          siguiente={siguiente}
+          onSiguiente={irA}
           onClose={cerrar}
           onCambio={(id) => {
             setRecien(id);
