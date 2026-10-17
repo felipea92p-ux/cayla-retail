@@ -58,6 +58,7 @@ const CHICA: Proyeccion = {
   saldoInicialDeclarado: null,
   hayFacturasDeProveedor: null,
   incluyeImpuestos: null,
+  saldoFavorIgvDeclarado: null,
   diasDeCajaConfiable: null,
   planillaVisible: true,
   semanas: [
@@ -405,6 +406,22 @@ describe("La proyección dice con qué se apoya (ADR-0433, actividad 4)", () => 
     const q = queFaltaEnLaProyeccion(leerProyeccion({ ...base, historia_dias: 40, saldo_inicial_declarado: true, hay_facturas_de_proveedor: false, incluye_impuestos: true, dias_de_caja_confiable: true }));
     expect(q.provisional).toBe(false);
     expect(q.faltan.map((f) => f.clave)).toEqual(["facturas"]);
+  });
+  it("ADR-0433, actividad 4b: sin el saldo a favor de IGV declarado lo lista (si el IGV entra a la proyección), con ruta a Configuración ▸ Impuestos", () => {
+    const completo = { ...base, historia_dias: 40, saldo_inicial_declarado: true, hay_facturas_de_proveedor: true, incluye_impuestos: true, dias_de_caja_confiable: true };
+    const sin = queFaltaEnLaProyeccion(leerProyeccion({ ...completo, saldo_favor_igv_declarado: false }));
+    expect(sin.provisional).toBe(false);
+    expect(sin.faltan.map((f) => f.clave)).toEqual(["saldo_igv"]);
+    expect(sin.faltan[0]!.href).toBe("/configuracion?tab=impuestos");
+    expect(sin.faltan[0]!.texto).toMatch(/contador/);
+    expect(queFaltaEnLaProyeccion(leerProyeccion({ ...completo, saldo_favor_igv_declarado: true })).faltan).toEqual([]);
+  });
+  it("y no lo pide si la proyección ni incluye el IGV (la cuenta no ve Impuestos) ni si la base es más vieja que la web (no dice nada)", () => {
+    const sinImpuestos = { ...base, historia_dias: 40, saldo_inicial_declarado: true, hay_facturas_de_proveedor: true, incluye_impuestos: false, dias_de_caja_confiable: true, saldo_favor_igv_declarado: false };
+    expect(queFaltaEnLaProyeccion(leerProyeccion(sinImpuestos)).faltan.map((f) => f.clave)).toEqual(["impuestos"]);
+    const vieja = { ...base, historia_dias: 40, saldo_inicial_declarado: true, hay_facturas_de_proveedor: true, incluye_impuestos: true, dias_de_caja_confiable: true };
+    expect(leerProyeccion(vieja).saldoFavorIgvDeclarado).toBeNull();
+    expect(queFaltaEnLaProyeccion(leerProyeccion(vieja)).faltan).toEqual([]);
   });
   it("lee el IGV y la renta como salidas «impuesto», los cobros de pocos días como «promedio_corto», y los nombra en «qué vence»", () => {
     const p = leerProyeccion({

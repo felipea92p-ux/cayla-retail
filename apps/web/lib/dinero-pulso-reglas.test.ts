@@ -43,7 +43,7 @@ describe("tienesPulso", () => {
 const PROY: Proyeccion = {
   hoy: "2026-10-15", desde: "2026-10-16", hasta: "2026-11-26", saldoHoy: 28280, minimoCaja: 15000, salidasDiarias: 1800, diasDeCaja: 16,
   salidas30: { conCuenta: 50000, sinCuenta: 0, planilla: 25400 }, planillaVisible: true, cobros: [], salidas: [],
-  historiaDias: null, saldoInicialDeclarado: null, hayFacturasDeProveedor: null, incluyeImpuestos: null, diasDeCajaConfiable: null,
+  historiaDias: null, saldoInicialDeclarado: null, hayFacturasDeProveedor: null, incluyeImpuestos: null, saldoFavorIgvDeclarado: null, diasDeCajaConfiable: null,
   semanas: [
     { desde: "2026-10-19", hasta: "2026-10-25", entra: 24000, sale: 18000, saldo: 34280, bajoMinimo: false },
     { desde: "2026-10-26", hasta: "2026-11-01", entra: 24000, sale: 47000, saldo: 11280, bajoMinimo: true },
