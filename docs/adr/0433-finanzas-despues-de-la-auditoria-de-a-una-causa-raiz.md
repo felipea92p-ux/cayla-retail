@@ -142,3 +142,120 @@ que no sea el día 15 (hoy es un punto medio); se vuelve a ver un mes cerrado…
 migraciones sobre la proyección y el flujo incluidas) pasan; `lib/flujo-caja-reglas.test.ts` y `lib/dinero-pulso-reglas.test.ts` (los literales viejos son
 «base vieja»: no dicen nada); la guía de Cuentas y dinero y la del Flujo dicen «provisional» y sus huellas se aceptaron tras revisarlas. vitest 160 297, `tsc`
 y Knip limpios. **No verificado en el navegador:** la base local compartida no tiene la migración (probé la función y la regla pura); queda para el pase final.
+
+## Actividad 8 · Una sola regla de «quién ve todas las tiendas y la empresa» (G16)
+
+**El problema.** Dos funciones hermanas que leen el MISMO diario decidían distinto quién ve «todo». ADR-0253 (Felipe, 2026-09-28) dijo que quien tiene Configuración,
+Cierre de mes (y, desde ADR-0275, CAYLA Global) ve las finanzas «todo, como el líder», y la migración `20260928220000` lo aplicó a `fn_asientos`,
+`fn_diario_ubicaciones`, `fn_campanas_reporte`, `fn_presupuesto_vs_real`… pero dejó con `fn_es_lider()` a `fn_diario`, `fn_estado_resultados`, `fn_balance_por_tienda`,
+`fn_balance_general` y `fn_gastos_fuera_de_lo_normal`. Quien cierra el mes congela el diario ENTERO (la empresa incluida) pero, al abrir el mes cerrado, `fn_diario` le
+deja fuera las líneas de la empresa (`null = any(…)` es nulo), el Estado de resultados no le muestra «De la empresa» ni el consolidado, y el Balance por tienda mide la
+utilidad de UNA sola tienda (le pasa `v_ubics[1]`). Números distintos para el mismo mes según quién mira, sin ningún error. La web agravaba lo mismo: preguntaba
+`persona.rol === "lider"`, otra regla. Hoy no se nota (el rol «Producción» tiene Cierre de mes, 1 persona activa, y ningún mes está cerrado); se nota en cuanto se cierre el
+primero, y la actividad 9 —que hace que el Estado de resultados lea el diario congelado— lo necesita resuelto.
+
+DECIDÍ (cumple una decisión que Felipe ya tomó en ADR-0253; no es una decisión nueva):
+- **Un solo predicado, `fn_ve_finanzas_de_todo()`, en las cinco funciones** (`20261017010000`, reemplazos anclados sobre la definición viva; si el ancla no aparece exactamente
+  una vez, la migración aborta; idempotente). Para el LÍDER nada cambia. Para un rol con Configuración, Cierre de mes o CAYLA Global, el Estado de resultados trae las mismas
+  unidades que el líder (tiendas, «De la empresa», consolidado), el diario congelado trae las mismas líneas y el Balance por tienda mide cada tienda igual.
+- **Un encargado con solo «Reportes financieros» sigue viendo SOLO su tienda** (`fn_diario_ubicaciones()` le devuelve su sede) y recibe 42501 al pedir otra, en cada una de
+  las funciones (casos C de la prueba).
+- **En la web, la misma pregunta una sola vez:** `veFinanzasDeTodo(rol, modulos)` (`lib/modulos.ts`) espeja la función de la base y una prueba la cruza con la ÚLTIMA migración que
+  la define (`lib/modulos.test.ts`: si alguien le suma un módulo a la base y no a la web, falla). El Estado de resultados la usa en vez de `rol === "lider"`.
+- **El candado es estructural, no una lista** (`scripts/pruebas/finanzas_alcance_coherente.mjs`, caso A1): ninguna función que reparta el alcance con `fn_diario_ubicaciones()`
+  puede preguntar `fn_es_lider()` por su cuenta. Así lo encontró: `fn_gastos_fuera_de_lo_normal` era una quinta hermana que el informe no listaba.
+DESCARTÉ: arreglar solo las tres funciones del informe (la quinta seguía igual y una futura hermana volvería a nacer con `fn_es_lider()`); un predicado nuevo `fn_alcance_finanzas()` (ya
+existe uno con el significado exacto; otro nombre es otra cosa que mantener); llevar también a `fn_resumen_finanzas` y `fn_por_pagar_consolidado` (no leen el diario ni usan
+`fn_diario_ubicaciones()`; es otra decisión de Felipe y queda en el backlog).
+EFECTO QUE HAY QUE NOMBRAR (lo midió la revisión adversarial): `fn_presupuesto_vs_real` y `fn_presupuesto_propuesta` leen `fn_estado_resultados`; para quien ve todo, «Presupuesto vs real» deja de
+mostrar en cero el gasto real de la empresa y de CAYLA, y «Proponer desde el promedio» recibe la línea de la empresa (caso B5b). Medido en producción (solo lectura, 2026-10-16): un solo rol tiene
+alguno de los tres módulos —Cierre de mes—, con 1 persona y 0 terminales.
+NO CAMBIA, a propósito: `fn_exigir_lider_balance()` —«el Balance de CAYLA entera y sus saldos de arranque los ve el líder»— sigue siendo solo del líder (no entró en ADR-0253); por eso la
+página del Balance y las de Presupuesto y Campañas conservan su `esLider` (en las dos últimas mezcla el alcance con el enlace a Configuración, que exige ese módulo; separar las dos
+cosas queda para el seguimiento).
+SE ROMPE SI: una migración futura vuelve a crear una de estas funciones copiando su texto de un archivo VIEJO del repo (le devuelve `fn_es_lider()`; el caso A1 y los B/E lo atrapan); se
+agrega un módulo a `fn_ve_finanzas_de_todo()` sin sumarlo a `MODULOS_QUE_VEN_TODO_FINANZAS` (lo atrapa la prueba cruzada).
+**Verificado.** `pnpm pruebas:finanzas-alcance`: 24 verificaciones, 7 fallan sin la migración (A1, A2, B2, B3, B4 y los dos del mes CERRADO, E1 y E2: el síntoma real del informe) y las 24
+pasan con ella; las 13 suites vecinas (balance, cierre de mes, estado de resultados, presupuesto, resumen, roles…) dan lo mismo con y sin la migración (3 fallos que ya existían en la base local
+y no son de este cambio: `cierre_mes` G, `redondeo_efectivo` y `roles_cobertura_modulos`); vitest 160 826 pruebas, `tsc`, ESLint y Knip limpios; prueba de mutación de la web (quitar un módulo de
+`MODULOS_QUE_VEN_TODO_FINANZAS` rompe la prueba cruzada). **No verificado en el navegador:** el rol «Producción» no tiene cuenta de prueba local; queda para el pase final.
+
+## Actividad 9 · Un mes cerrado se queda cerrado (G09)
+
+**El problema.** Cerrar un mes congela su diario (`diario_cerrado`) y le saca una huella: es lo que el contador recibe. Tres grietas dejaban que ese número cambiara DESPUÉS, o que un
+registro se colara sin que nadie lo supiera. (1) El Estado de resultados leía el diario VIVO (`fn_asientos`) y no el congelado (`fn_diario`, que ya existía y solo usaba el Balance): lo que cambiara
+en el diario vivo de un mes cerrado —una planilla corregida en Dynamic, un cambio por fuera del sistema— movía el Estado de un mes que el contador ya tiene, y el Balance y el Estado del mismo mes dejaban de
+cuadrar entre sí. (2) `archivar_caja_prueba` y `guardar_parametro_tributario` (el IGV y el tope de la planilla de movilidad rigen hacia atrás) cambiaban el diario vivo de un mes cerrado sin pasar por el
+candado de mes. (3) El candado (`fn_exigir_mes_abierto`) miraba `periodos` con la foto de la sentencia que lo llama y sin ningún cerrojo compartido con `cerrar_periodo` (que sí toma `cierre_mes:<mes>`):
+un gasto con fecha del mes que se cierra, registrado mientras el cierre se confirmaba, pasaba el candado y quedaba FUERA del diario congelado. **Reproducido con confirmaciones reales** en una copia
+desechable de la base (dos sesiones; sin el arreglo): el gasto de noviembre se guardó, el diario congelado quedó con 0 líneas y el vivo con 2; con el arreglo, el gasto esperó, vio el mes cerrado y se
+rechazó con «Noviembre 2024 de Tienda Trujillo está cerrado» (0 gastos guardados).
+
+DECIDÍ (Felipe, 2026-10-16: aprobada la actividad 9 de la tanda 1, antes del primer cierre):
+- **El Estado de resultados lee `fn_diario`** (reemplazo anclado de una línea, `20261017012000`): un mes abierto sale idéntico (`fn_diario` llama a `fn_asientos`); uno cerrado, de su foto. Los contadores
+  de «prendas y mermas sin costo» siguen vivos A PROPÓSITO: son avisos de qué falta cargar, no cifras del cierre. La web marca «cerrado» bajo cada columna cerrada (`fn_periodos_mes`) con una nota
+  («no cambian aunque después se corrija algo; se reabre en Cierre de mes»), y «De dónde sale» lee la misma foto, así que las líneas detrás de una cifra son las de la cifra.
+- **El candado de mes toma el cerrojo compartido del cierre** (lente 5 de /rigor, resiliencia): `fn_exigir_mes_abierto` pasa de STABLE a VOLATILE y, antes de mirar `periodos`, toma
+  `pg_advisory_xact_lock_shared('cierre_mes:<mes>')` de cada mes cerrable del rango (solo meses ya terminados; un rango largo, como un activo fijo de 2014, se cubre desde el mes MÁS RECIENTE hacia atrás, hasta 120 meses: la revisión encontró que cubrirlo desde el más viejo dejaba sin cerrojo justo los que se cierran; una venta de hoy no paga nada). Así quien registra espera a que termine un cierre
+  en marcha, y un cierre espera a quien está registrando. **Lo que cambió el diseño:** ser VOLATILE no es un detalle: una función STABLE lee con la foto de la sentencia que la llamó, de modo que aun
+  tomando el cerrojo habría seguido viendo `periodos` sin el cierre confirmado. Con VOLATILE la lectura que sigue al cerrojo toma una foto nueva.
+- **`archivar_caja_prueba` pasa por el candado** con las fechas de la caja (el cierre de una caja y su diferencia entran al diario por su fecha); **`guardar_parametro_tributario` rechaza una vigencia
+  del IGV o del tope de planilla que alcance un mes cerrado** (`fn_exigir_vigencia_sin_meses_cerrados`, errcode `P0001`, hint `periodo_cerrado`). La UIT, el régimen y el pago a cuenta no entran al diario y
+  no se guardan. Un re-guardado del mismo valor ya confirmado sigue siendo un no-op.
+- **Dynamic puede volver a congelar períodos ya pagados** (hasta 7 versiones en 7 semanas; la vista toma siempre la última): `14-DYNAMIC.md` §7.1 decía lo contrario y se corrigió; el chequeo «huella» del
+  cierre ya lo avisa sin bloquear y su texto ya no culpa solo a Dynamic.
+- **La llave del cerrojo no depende del formato de fecha de la sesión** (`to_char(mes, 'YYYY-MM-DD')` en el candado y en `cerrar_periodo`; con `::text` dos sesiones con otro `DateStyle` dejaban de esperarse en silencio), y `fn_exigir_venta_abierta`, que llama al candado, deja de declararse STABLE.
+- **La forma del candado se vigila** (casos E1 a E4 de la suite): VOLATILE, cerrojo antes de leer `periodos`, llave con `to_char`, la puerta de las ventas también VOLATILE; D4 y D5 prueban el rango largo y el `DateStyle` distinto con dos sesiones reales.
+DESCARTÉ: `FOR SHARE` sobre `periodos` (bloquea filas que el cierre también actualiza); un cerrojo por cada mes de una vigencia de IGV desde 2011 (180 cerrojos por una acción rara de Configuración); bloquear
+a Dynamic (no es nuestro sistema: se avisa); recomputar la huella viva dentro de `cerrar_periodo` tras congelar (el chequeo «huella» ya lo hace después, y el cerrojo cierra la carrera que lo motivaba).
+**Lo que la revisión adversarial dejó dicho, sin arreglar aquí (información para Felipe).** El candado de mes solo cubre las tablas cuyo disparador lo llama (activos fijos, notas de crédito y pagos de compras, compras, gastos, movimientos de dinero, créditos de proveedor, ítems y
+estado de venta). Fuentes del diario SIN candado de mes: cambios, devoluciones, `venta_pagos`, anulaciones, separaciones y sus pagos, pedidos web y sus pagos, cajas (salvo archivar), traspasos de caja, movimientos de inventario con costo (mermas y traslados), transferencias, `costo_historial`,
+`categorias_gasto`, `tipos_activo`, `parametros_finanzas`, `cuentas_dinero` (salvo editar) y la planilla de Dynamic. Ninguna RPC deja a una persona fechar hacia atrás en ellas (sus fechas son el `now()` de la transacción), así que solo se mueven por SQL directo, la ventana de medianoche o un cambio de
+catálogo; el Estado de resultados y el Balance están a salvo porque leen lo congelado, y el chequeo «huella» lo avisa. Además `guardar_inicio_finanzas` mira si hay un período cerrado sin tomar el cerrojo, y puede cruzarse con un cierre. Y el Estado de resultados de un mes cerrado mezcla cifras
+congeladas con los avisos de costos de HOY («prendas y mermas sin costo»): si alguien carga el costo después, el aviso se apaga y la cifra queda como se congeló.
+SE ROMPE SI: una vigencia retroactiva se guarda en el mismo instante en que se cierra el mes (el cerrojo no cubre los parámetros; el chequeo «huella» lo avisaría); una migración futura vuelve a crear
+`fn_exigir_mes_abierto` como STABLE (la prueba de dos sesiones, D1 y D2, lo atrapa); alguien registra con una fecha de un mes cerrado a través de una vía que no pasa por un `fn_candado_*` (el candado de mes
+solo cubre lo que lo llama: ver la lista de arriba). **Orden de pegado:** la 9 se pega después de la 8 y ANTES de cerrar el primer mes (un mes cerrado antes de pegarla se lee, en el Estado de resultados, del diario vivo).
+**Contra producción** (solo lectura, 2026-10-16): `fn_exigir_mes_abierto` y `fn_primer_mes_cerrado` son idénticas a las de local (md5 `66ee8ad2…` y `f95be278…`), cada anclaje aparece exactamente una vez y hay 0 filas en `periodos`.
+**Verificado.** `pnpm pruebas:finanzas-mes-cerrado`: 16 verificaciones (el Estado de resultados no cambia una cifra tras una deriva en el diario vivo; archivar una caja de un mes cerrado y las vigencias retroactivas se
+rechazan, las de un mes abierto o futuro no; y DOS SESIONES reales entrelazadas, con `lock_timeout`, en las dos direcciones, más el control de que un gasto de HOY no espera): 9 fallan sin la migración y las 16
+pasan con ella; la carrera con confirmaciones reales en una base desechable, arriba. **No verificado en el navegador:** la base local compartida no tiene la migración; queda para el pase final (un mes cerrado en
+Reportes ▸ Estado de resultados).
+
+## Actividad 10 · Cada pago de un apartado se asienta el día en que entró la plata (G02)
+
+**El problema.** Un apartado se separa con un adelanto y, antes de entregarse, la clienta puede abonar más. El diario (`fn_asientos`) asentaba TODO el adelanto —incluidos los abonos de días o meses
+después— el día de la separación y con el total de hoy (`separaciones.adelanto`); el Balance (`fn_bal_anticipos`), igual. Un abono de marzo aparecía en febrero; el diario de febrero CAMBIABA cuando la clienta
+abonaba (un mes cerrado divergía de su foto por una operación normal y el chequeo «huella» se ponía en rojo); la caja, el banco y el IGV quedaban mal fechados, y Cuentas y dinero (por fecha del pago) decía
+otra cosa. En producción hay UN apartado, `APT-TRU-0006` (separado el 9-oct, pagos de 30.00 el 9, 30.00 el 14 y 29.90 el 15-oct): el diario asentaba 89.90 el 9-oct y nada el 14 ni el 15. Todo dentro de
+octubre y sin mes cerrado, por eso nadie lo vio.
+
+DECIDÍ (Felipe, 2026-10-16: aprobada la actividad 10 de la tanda 1; no cambia la política contable, solo la fecha):
+- **Un asiento por pago**, con la fecha en que entró (`separacion_pagos.created_at`, hora de Lima): 101/104/105 al debe, 122 y 4011 al haber, con el IGV de ESE pago a la tasa de ESE día
+  (`fn_igv_de_adelanto`). El origen de cada línea sigue siendo la separación (el enlace «De dónde sale» no cambia).
+- **Los céntimos se redondean por pago, y todo lo que reversa usa la MISMA suma** (lente 1 de /rigor: una igualdad entre dos conjuntos de líneas que debe valer a la fracción): la devolución y la venta que
+  aplica el adelanto al entregar usan `fn_igv_de_la_separacion` (la suma de los IGV de sus pagos); si no, el 4011 quedaría huérfano por un céntimo (33.33 + 36.67: 5.08 + 5.59 = 10.67 contra los 10.68 que da
+  redondear el total). Si la venta aplica solo una parte, la parte proporcional.
+- **El Balance suma lo recibido hasta el corte** (`fn_bal_anticipos`), no el total de hoy, y sigue excluyendo lo devuelto o aplicado antes del corte.
+- **Qué pasa con producción:** la migración (`20261017014000`) mueve las líneas de `APT-TRU-0006` del 9 al 14 y 15-oct (mismo mes: ningún total mensual cambia) y su IGV pasa de 13.71 a 13.72 (un céntimo,
+  por redondear por pago).
+DESCARTÉ: dejar el asiento en la fecha de la separación y «corregir» al cerrar (la foto de un mes cerrado seguiría divergiendo); guardar la fecha del primer pago y sumar los abonos como ajuste (dos fuentes
+de verdad para lo mismo); mover aquí el 4011 a la entrega.
+**PENDIENTE DEL CONTADOR (no se decide aquí; ADR-0399):** hoy el diario asienta el IGV de cada adelanto (4011) el día que entra, como cuando cada abono emitía su comprobante de anticipo. Desde ADR-0399 un
+apartado nuevo NO emite comprobante: la boleta sale una sola vez, al entregar, por el total. Si el contador dice que el IGV nace al entregar y no al cobrar el adelanto, el 4011 de los apartados nuevos se mueve a
+la entrega: es otra migración, con su decisión. Esta corrige la FECHA, no la política.
+**Orden de pegado:** la 10 se pega ANTES de cerrar el primer mes que tenga apartados: el id del asiento pasa de `anticipo:<separación>` a `anticipo:<pago>`, y un mes cerrado antes de pegarla pondría su huella en rojo al pegarla (hoy el único apartado de producción es de octubre, que no se puede cerrar antes de noviembre).
+**Encontrado de paso (preexistente; la actividad 10 no lo toca; decisión de Felipe, dinero):** anular la venta de la entrega de un apartado deja la 122 y el 4011 del adelanto colgados en el diario (la anulación «devuelve el cobro (anticipo)» a la 122), mientras el Balance los da en cero (`fn_bal_anticipos`
+excluye por «hay una venta» sin mirar si se anuló) y la conciliación de la 122 queda en `no_cuadra`. Opciones: que anular una venta con pago `anticipo` devuelva el apartado a «liberada» (para devolver el adelanto por el flujo normal), que la rechace con un mensaje, o que el Balance cuente como pendiente el
+adelanto de una venta anulada. Y un detalle menor: `separar_prendas` y `abonar_separacion` llamadas directamente con montos de 3 decimales pueden dejar `separaciones.adelanto` distinto de la suma de sus pagos; con el diario por pago, eso aparece como 0.01 en la 122 al devolver o entregar (antes saltaba como asiento descuadrado).
+SE ROMPE SI: se altera `separacion_pagos.created_at` a mano (las fechas son el dato); `separaciones.adelanto` deja de ser la suma de sus pagos (`fn_verificar_separaciones` lo vigila); una migración futura
+vuelve a crear `fn_asientos` copiando su texto de un archivo viejo (revierte el asiento por pago: la prueba lo atrapa).
+**Verificado.** `pnpm pruebas:finanzas-apartados-por-pago`: 16 verificaciones con las RPC reales (`separar_prendas`, `abonar_separacion`, `registrar_devolucion_separacion`, `entregar_separacion`), 7 fallan sin la
+migración y las 16 pasan con ella; `fn_asientos` y `fn_bal_anticipos` tenían la misma huella en local y en producción (f2e74089… y b7fc4c42…), así que los reemplazos anclados caben en producción. **No verificado en
+el navegador:** la base local compartida no tiene la migración.
+
+## En producción: actividades 8, 9 y 10 (2026-10-16, con el OK de Felipe)
+
+Felipe respondió «Sí, las tres ahora». Cada una con sonda de huellas antes, un ensayo en un lote que termina en `1/0` (llegó al final sin abortar ningún ancla: nada se confirmó) y el pegado con `apply_migration`, en este orden: `20261017010000_finanzas_una_regla_de_alcance` → versión de producción
+`20261017021648`; `20261017012000_finanzas_mes_cerrado_se_queda_cerrado` → `20261017021745`; `20261017014000_finanzas_apartados_por_dia_de_pago` → `20261017021836`. **Las 15 funciones tocadas quedaron con el md5 de su cuerpo, la volatilidad y los permisos idénticos a los de local** (las funciones nuevas, solo `postgres`).
+Humo como líder (solo lectura, en una transacción que se revierte): octubre trae 4 469 líneas en el diario vivo y en el congelado (`fn_diario`, sin mes cerrado), 0 asientos descuadrados, el Estado de resultados 6 filas, el Balance por tienda 4 filas, y `APT-TRU-0006` se asienta por pago: 9-oct 30.00 (122 25.42, IGV 4.58), 14-oct 30.00 (25.42, 4.58) y 15-oct 29.90 (25.34, 4.56). Por pegar quedan, de este PR, solo el aviso al contador y la decisión sobre anular la entrega de un apartado.

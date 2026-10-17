@@ -1063,6 +1063,22 @@ export const PRUEBAS = [
   // `archivar_caja_prueba` recalcula lo esperado por la primera caja real posterior (el caso de Arequipa). ROLLBACK.
   "pruebas:caja-fondo-coherente",
 
+  // Una sola regla de «quién ve todas las tiendas y la empresa» en Finanzas (auditoría 2026-10-16, G16; ADR-0433 act. 8): el diario
+  // (también el congelado), el Estado de resultados, el Balance, el Balance por tienda y los gastos fuera de lo normal preguntan
+  // `fn_ve_finanzas_de_todo()` como `fn_asientos`; un candado estructural exige que ninguna función que reparta el alcance con
+  // `fn_diario_ubicaciones()` pregunte `fn_es_lider()` por su cuenta. Un encargado sigue viendo solo su tienda (42501 en otra). ROLLBACK.
+  "pruebas:finanzas-alcance",
+
+  // Un mes cerrado se queda cerrado (auditoría 2026-10-16, G09; ADR-0433 act. 9): el Estado de resultados lee el diario congelado, archivar una
+  // caja de prueba y una vigencia retroactiva del IGV o del tope de planilla de un mes cerrado se rechazan, y DOS SESIONES reales prueban el
+  // entrelazado del cerrojo de cierre (quien registra espera al cierre y el cierre espera a quien registra; lo de hoy no espera). ROLLBACK.
+  "pruebas:finanzas-mes-cerrado",
+
+  // Cada pago de un apartado se asienta el día en que entró la plata (auditoría 2026-10-16, G02; ADR-0433 act. 10): el diario trae un asiento por pago
+  // (el primero y cada abono) con su IGV por pago; agregar un abono no cambia el diario de un mes anterior; devolver el adelanto o entregar el apartado
+  // reversan exactamente lo que entró (122 y 4011 en cero, con los céntimos por pago) y el Balance suma lo recibido hasta el corte. ROLLBACK.
+  "pruebas:finanzas-apartados-por-pago",
+
   // Tres candados de dinero que vivían solo en el modal, no en la base (20260922235000): `registrar_movimiento_caja`
   // decide `es_ajuste` del MOTIVO (no de lo que manda el navegador) con vocabulario cerrado y referencia exigida
   // para "Depósito bancario"/"Otro"; `registrar_cambio` con diferencia negativa no exige líder (revertido a
