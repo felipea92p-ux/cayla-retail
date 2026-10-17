@@ -702,7 +702,7 @@ export const GUIA_VITRINA_PROBADOR: Guia = {
       ancla: "recortes.empezar",
       opcional: true,
       titulo: "Empezar y pausar",
-      texto: "«Empezar» recorta una foto tras otra (un par de segundos cada una) y puedes pausar cuando quieras: lo hecho queda guardado. Deja la pestaña abierta mientras recorta. En la demo cerramos sin empezar.",
+      texto: "«Empezar» saca el recorte de una foto tras otra (solo de las que traen fondo transparente) y puedes pausar cuando quieras: lo hecho queda guardado. Deja la pestaña abierta mientras recorta. En la demo cerramos sin empezar.",
     },
     {
       id: "revisar",
@@ -711,7 +711,7 @@ export const GUIA_VITRINA_PROBADOR: Guia = {
       preparar: [{ tipo: "escape" }],
       prepararSoloAlAvanzar: true,
       titulo: "Las dudosas, antes de usarlas",
-      texto: "Un recorte con huecos o de una foto que se subió con su fondo queda por revisar: no sale en el probador hasta que alguien lo mira. Aquí los revisas uno por uno; si descartas uno por error, el aviso trae «Deshacer».",
+      texto: "Un recorte con huecos (una abertura del diseño, como un ojal, o un defecto de la imagen) queda por revisar: no sale en el probador hasta que alguien lo mira. Aquí los revisas uno por uno; si descartas uno por error, el aviso trae «Deshacer».",
     },
     {
       id: "largos",
