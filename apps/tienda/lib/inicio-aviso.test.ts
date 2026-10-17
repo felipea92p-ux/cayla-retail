@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { beneficioAniversario, beneficioCumple } from "./club";
-import { avisoAlEntrar, avisosDelClub, claveDeCookie, clavesDelNavegador, cookiesQueSobran, nombreCookieAviso, textoDeMas, vidaDeLaCookie } from "./inicio-aviso";
+import {
+  avisoAlEntrar,
+  avisosDeRespuestas,
+  avisosDelClub,
+  claveDeCookie,
+  clavesDelNavegador,
+  cookiesQueSobran,
+  nombreCookieAviso,
+  presentacionDelAviso,
+  textoDeMas,
+  vidaDeLaCookie,
+} from "./inicio-aviso";
+import type { MiRecomendacion } from "./recomendaciones";
 
 const HOY = { anio: 2026, mes: 10, dia: 14 };
 const USUARIO = "abcdef12-3456-4789-8abc-def012345678";
@@ -121,9 +133,9 @@ describe("la cookie de cada aviso cerrado", () => {
     }
   });
 
-  it("del navegador solo pasan de 1 a 40 claves con forma de aviso (sin repetir); cualquier otra cosa no escribe nada", () => {
+  it("del navegador solo pasan de 1 a 80 claves con forma de aviso (sin repetir); cualquier otra cosa no escribe nada", () => {
     expect(clavesDelNavegador(["cumple-abcdef12-2026-10-31", "cumple-abcdef12-2026-10-31"])).toEqual(["cumple-abcdef12-2026-10-31"]);
-    for (const malo of [[], "cumple-abcdef12-2026-10-31", ["tienda-sesion"], ["cumple-abcdef12-2026-10-31", 3], null, Array(41).fill("cumple-abcdef12-2026-10-31")]) {
+    for (const malo of [[], "cumple-abcdef12-2026-10-31", ["tienda-sesion"], ["cumple-abcdef12-2026-10-31", 3], null, Array.from({ length: 81 }, (_, i) => `respuesta-abcdef12-00000000-0000-4000-8000-${String(i).padStart(12, "0")}`)]) {
       expect(clavesDelNavegador(malo), JSON.stringify(malo)).toBeNull();
     }
   });
@@ -142,5 +154,87 @@ describe("la cookie de cada aviso cerrado", () => {
     expect(vidaDeLaCookie("cumple-abcdef12-2026-10-01", HOY)).toBe(DIA);
     expect(vidaDeLaCookie("vale-abcdef12-2030-01-01", HOY)).toBe(400 * DIA);
     expect(vidaDeLaCookie(`llego-abcdef12-${E(1)}`, HOY)).toBe(180 * DIA);
+  });
+});
+
+describe("«CAYLA te respondió» (hoja nueva de Recomendaciones, decisión #8 A)", () => {
+  const mia = (n: number, extra: Partial<MiRecomendacion> = {}): MiRecomendacion => ({
+    id: E(n),
+    texto: "Podrían tener más tallas grandes",
+    creadaEn: "2026-10-01T15:00:00Z",
+    sobre: "Trujillo",
+    estado: "respondida",
+    respuesta: "Hola, Lucía. Gracias por escribirnos: se lo vamos a contar al taller.",
+    respondidaEn: "2026-10-13T20:00:00Z",
+    ...extra,
+  });
+
+  it("las respondidas de los últimos 30 días de Lima, la más nueva primero, con su clave (con dueño) y el camino a leerla", () => {
+    const a = avisosDeRespuestas(
+      [
+        mia(1, { respondidaEn: "2026-10-10T15:00:00Z" }),
+        mia(2, { respondidaEn: "2026-10-14T02:00:00Z", sobre: null }), // la noche del 13 en Lima
+        mia(3, { respondidaEn: "2026-09-13T15:00:00Z" }), // hace 31 días: ya no
+        mia(4, { estado: "leida", respuesta: null, respondidaEn: null }),
+        mia(5, { respondidaEn: "2026-09-14T15:00:00Z" }), // hace 30 días: todavía
+      ],
+      USUARIO,
+      HOY,
+    );
+    expect(a.map((x) => x.clave)).toEqual([`respuesta-abcdef12-${E(2)}`, `respuesta-abcdef12-${E(1)}`, `respuesta-abcdef12-${E(5)}`]);
+    expect(a[0]).toMatchObject({
+      tipo: "respuesta",
+      icono: "chat",
+      titulo: "CAYLA te respondió",
+      texto: "Sobre CAYLA en general: «Hola, Lucía. Gracias por escribirnos: se lo vamos a contar al taller.»",
+      enlace: { href: "/recomendaciones" },
+    });
+    expect(a[1]!.texto).toMatch(/^Sobre CAYLA Trujillo: «/);
+  });
+
+  it("una respuesta larga se corta en una palabra, con «…»; una sin fecha legible no sale", () => {
+    const larga = "Gracias por escribirnos. ".repeat(12);
+    const [a] = avisosDeRespuestas([mia(1, { respuesta: larga })], USUARIO, HOY);
+    expect(a!.texto.endsWith("…»")).toBe(true);
+    expect([...a!.texto].length).toBeLessThan(190);
+    expect(avisosDeRespuestas([mia(1, { respondidaEn: "ayer" })], USUARIO, HOY)).toEqual([]);
+  });
+
+  it("su clave se acepta como cookie de aviso y dura 60 días; en el aviso va después del Club y antes de lo que llegó", () => {
+    const clave = `respuesta-abcdef12-${E(1)}`;
+    expect(claveDeCookie(nombreCookieAviso(clave))).toBe(clave);
+    expect(clavesDelNavegador([clave])).toEqual([clave]);
+    expect(vidaDeLaCookie(clave, HOY)).toBe(60 * 24 * 60 * 60);
+    const club = avisosDelClub(RESPUESTA, USUARIO, HOY)!;
+    const respuestas = avisosDeRespuestas([mia(1)], USUARIO, HOY);
+    const aviso = avisoAlEntrar([...club, ...respuestas], new Set())!;
+    expect(aviso.lineas.map((l) => l.tipo)).toEqual(["cumple", "vale", "respuesta", "llego", "llego"]);
+  });
+
+  it("la ceja y el enlace siguen lo que trae: solo Club, solo respuestas, o las dos cosas", () => {
+    const club = avisosDelClub(RESPUESTA, USUARIO, HOY)!;
+    const respuestas = avisosDeRespuestas([mia(1)], USUARIO, HOY);
+    expect(presentacionDelAviso(avisoAlEntrar(club, new Set())!)).toEqual({
+      ceja: "Club CAYLA · Para ti",
+      enlace: { texto: "Ver en Mi perfil", href: "/cuenta" },
+      enlaceEnCadaLinea: false,
+    });
+    expect(presentacionDelAviso(avisoAlEntrar(respuestas, new Set())!)).toEqual({
+      ceja: "Para ti",
+      enlace: { texto: "Leer en Recomendaciones", href: "/recomendaciones" },
+      enlaceEnCadaLinea: false,
+    });
+    expect(presentacionDelAviso(avisoAlEntrar([...club, ...respuestas], new Set())!)).toMatchObject({
+      ceja: "Para ti",
+      enlace: { href: "/cuenta" },
+      enlaceEnCadaLinea: true,
+    });
+  });
+
+  it("cerrada con «Entendido», no vuelve; y «Entendido» no borra la cookie de una respuesta que sigue vigente", () => {
+    const clave = `respuesta-abcdef12-${E(1)}`;
+    expect(avisoAlEntrar(avisosDeRespuestas([mia(1)], USUARIO, HOY), new Set([clave]))).toBeNull();
+    const cumple = "cumple-abcdef12-2026-10-31";
+    expect(cookiesQueSobran([nombreCookieAviso(clave)], [cumple], [cumple, clave])).toEqual([]);
   });
 });
