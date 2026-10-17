@@ -73,7 +73,7 @@ export default async function ComoSeparar() {
                 <h2 id="ay-llamado" className="ay-h2">
                   Crea tu cuenta y forma parte del <em>Club CAYLA.</em>
                 </h2>
-                <p className="ay-llamado-x">Con tu cuenta ves el catálogo, cuánto hay en cada tienda y separas lo que te gusta.</p>
+                <p className="ay-llamado-x">El catálogo es de todos: la cuenta la creas cuando quieras separar algo. Entras al Club al completar tu documento y tu celular.</p>
               </div>
               <div className="ay-llamado-acc">
                 <Link className="t-btn" href="/crear-cuenta">

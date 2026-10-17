@@ -1,5 +1,4 @@
-import { nombreAMedias } from "@cayla-retail/shared";
-import { CAMPOS_REGISTRO, estadoParteNombre, type CampoRegistro, type ConsultaDocumento, type EstadoRegistro, type Registro } from "./cuentas";
+import { CAMPOS_CUENTA, estadoNombre, type EstadoCuenta } from "./cuentas";
 
 // El panel de marca de «Entrar», «Crear cuenta» y las páginas para volver a entrar (revisión «a nivel mundial», 2026-10-16): desde
 // 960 px va a la izquierda, con los colores de la campaña de la portada; en el celular, debajo del formulario (el formulario va
@@ -27,8 +26,8 @@ export const CONFIANZA_CLUB = "Cambias o devuelves en cualquier tienda CAYLA.";
 
 /** El texto bajo la tarjeta de «Crear cuenta»: antes de saber el nombre, y con el nombre ya puesto. */
 export const PIE_DE_TARJETA = {
-  sin: "Con tu documento, tu tarjeta lleva tu nombre.",
-  con: "Así queda tu tarjeta del Club.",
+  sin: "Tu tarjeta del Club se activa cuando separas tu primera prenda.",
+  con: "Así será tu tarjeta del Club cuando separes.",
 } as const;
 
 /* ------------------------------------------------------------------ Volver a entrar */
@@ -70,24 +69,17 @@ export function estadoDelPaso(i: number, actual: number): EstadoDelPaso {
 /* ------------------------------------------------------------------ La tarjeta y el avance de «Crear cuenta» */
 
 /**
- * El nombre que lleva la tarjeta del Club del panel apenas el formulario lo sabe. Con DNI, el del padrón a medias («María P. S.»):
- * lo mismo que ya dice el DNI, nunca más (el nombre completo no llega al navegador). Con carné o pasaporte, el que ella escribe, con la
- * misma forma: el primer nombre y la inicial de cada apellido. null mientras no hay un nombre que poner («Tu nombre aquí»).
+ * El nombre que lleva la tarjeta del Club del panel apenas el formulario lo sabe: el que la persona escribe al crear la cuenta (ADR-0438),
+ * sin espacios de más. null mientras no hay un nombre que poner («Tu nombre aquí»). Al unirse al Club, el del padrón lo reemplaza.
  */
-export function nombreParaLaTarjeta(r: Pick<Registro, "documentoTipo" | "nombres" | "apellidos">, consulta: ConsultaDocumento): string | null {
-  if (r.documentoTipo === "dni") return consulta.estado === "encontrado" ? consulta.aMedias : null;
-  if (estadoParteNombre(r.documentoTipo, r.nombres) !== "ok") return null;
-  const apellidos = estadoParteNombre(r.documentoTipo, r.apellidos) === "ok" ? r.apellidos : "";
-  return nombreAMedias({ nombres: r.nombres, apellidos });
+export function nombreParaLaTarjeta(nombre: string): string | null {
+  const n = nombre.replace(/\s+/g, " ").trim();
+  return estadoNombre(n) === "ok" ? n : null;
 }
 
-/**
- * Cuánto del registro está listo, para la línea que se llena en el pie: los campos que se le piden a ella (con DNI, el nombre no se
- * escribe: sale del padrón, y no cuenta). Los avisos por WhatsApp son opcionales y no cuentan nunca.
- */
-export function avanceDelRegistro(estado: EstadoRegistro, tipo: Registro["documentoTipo"]): { listos: number; total: number } {
-  const campos: CampoRegistro[] = CAMPOS_REGISTRO.map(([campo]) => campo).filter((c) => tipo !== "dni" || (c !== "nombres" && c !== "apellidos"));
-  return { listos: campos.filter((c) => estado[c] === "ok").length, total: campos.length };
+/** Cuánto de crear la cuenta está listo, para la línea que se llena en el pie. */
+export function avanceDeLaCuenta(estado: EstadoCuenta): { listos: number; total: number } {
+  return { listos: CAMPOS_CUENTA.filter(([campo]) => estado[campo] === "ok").length, total: CAMPOS_CUENTA.length };
 }
 
 /* ------------------------------------------------------------------ Abrir el correo */

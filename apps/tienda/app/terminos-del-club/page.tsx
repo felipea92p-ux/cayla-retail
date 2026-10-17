@@ -59,9 +59,10 @@ export default async function TerminosDelClub() {
             <div className="ay-legal-texto">
               <SeccionLegal {...miembros}>
                 <p>
-                  Personas mayores de 18 años, con DNI, carné de extranjería o pasaporte y un celular con WhatsApp. Unirse es gratis: al crear tu
-                  cuenta en la tienda online ya
-                  eres miembro. Si ya lo eras en tienda, tu cuenta se une a tu ficha y conservas tu código y tu fecha de miembro.
+                  Personas mayores de 18 años, con DNI, carné de extranjería o pasaporte y un celular con WhatsApp. Unirse es gratis: creas tu
+                  cuenta en la tienda online con lo mínimo (tu correo y tu nombre, o con Google) y entras al club cuando completas tu documento
+                  y tu celular, que te pedimos la primera vez que separas una prenda (o antes, desde «Mi perfil»). Si ya lo eras en tienda, tu
+                  cuenta se une a tu ficha y conservas tu código y tu fecha de miembro.
                 </p>
               </SeccionLegal>
 
