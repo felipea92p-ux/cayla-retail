@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { fechaCorta, pctTexto } from "@cayla-retail/portada";
+import { disenoParaPintar, fechaCorta, pctTexto } from "@cayla-retail/portada";
 
 // Lo que la portada pública muestra sin cuenta (ADR-0408): la campaña vigente que termina primero.
 // La base lo arma en `retail.tienda_portada()`; aquí solo se valida la forma y se preparan los textos.
@@ -10,6 +10,9 @@ const esquemaPortada = z.object({
       pct: z.number().positive(),
       // Último día de la campaña (fecha de Lima, «2026-10-21»); null si no tiene fecha de término.
       hasta: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+      // Su diseño publicado en el ERP (ADR-0436, actividad 5). Nunca tumba la campaña: si falta, esta versión no lo sabe leer o su letra
+      // no se lee, queda null y la portada sale con el rojo de siempre (`disenoParaPintar`, la misma revisión que apaga «Publicar»).
+      diseno: z.unknown().optional().transform(disenoParaPintar),
     })
     .nullable(),
 });

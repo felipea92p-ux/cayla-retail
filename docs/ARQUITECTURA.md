@@ -1990,8 +1990,11 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
 `tienda_web` (sin permiso sobre ninguna tabla). La conexión vive en `apps/tienda/lib/base.ts` y cada tema la usa desde su
 `lib/<tema>-servidor.ts`; lo vigila `lib/candados.test.ts` y, en la base, `pnpm pruebas:tienda-puerta`.
 
-- `/` (portada sin cuenta) → `lib/portada-servidor.ts` `leerPortada()` → `retail.tienda_portada()`: la campaña vigente que
-  termina primero. Si la base no responde, la portada sale sin campaña.
+- `/` (portada sin cuenta) → `lib/portada-servidor.ts` `leerPortada()` → `retail.tienda_portada()`: la campaña que anuncia la
+  portada (LA regla `fn_campana_en_portada`, ADR-0436) con su diseño publicado en el ERP (`20261017200000`). `lib/portada.ts` lo revisa
+  con `disenoParaPintar` de `@cayla-retail/portada` (que se sepa leer y que la letra se lea en claro y en oscuro; si no, null) y la
+  portada y el héroe del Inicio lo pasan a `HeroeDePortada`, que escribe sus colores de día y de noche (`--t-dia*`, `--t-noche*`) y
+  `heroe.css` elige según el tema. Sin diseño, o si no pasa, el rojo de siempre. Si la base no responde, la portada sale sin campaña.
 - `/` («Nuestras tiendas», después del Club) y `/tiendas` (actividad 6) → `lib/tiendas-servidor.ts` `leerSedes()` →
   `retail.tienda_sedes()`: las tiendas encendidas en Tienda web ▸ Ajustes, abiertas y con nombre web, dirección y WhatsApp
   (el del QR del club, `ubicaciones.whatsapp_numero`), por nombre web; el enlace abre un chat sin mensaje. Sin base, la portada sale

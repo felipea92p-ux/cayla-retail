@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CONTRASTE_MINIMO, contraste } from "./contraste";
 import {
@@ -12,8 +13,8 @@ import {
   paletaPropia,
   type DisenoDeCampana,
 } from "./diseno";
-import { PALETAS, variablesDePaleta } from "./paletas";
-import { revisarDiseno, seLee } from "./revision";
+import { PALETAS, coloresEnTema, paletaPorId, variablesDeLosDosTemas, variablesDePaleta } from "./paletas";
+import { disenoParaPintar, revisarDiseno, seLee } from "./revision";
 
 const conPrendas = { prendas: 3, prendasConFoto: 2 };
 const UNO = "11111111-1111-4111-8111-111111111111";
@@ -166,6 +167,46 @@ describe("las paletas sacadas de las prendas de la campaña", () => {
     for (const x of p) {
       const d = { ...DISENO_DE_SIEMPRE, paleta: "propia", colores: x };
       expect(seLee(d, "claro") && seLee(d, "oscuro")).toBe(true);
+    }
+  });
+});
+
+describe("lo que la tienda pinta (actividad 5)", () => {
+  it("un diseño que se lee y esta versión sabe leer pasa tal cual", () => {
+    const bosque = { ...DISENO_DE_SIEMPRE, paleta: "bosque" };
+    expect(disenoParaPintar(bosque)).toEqual(bosque);
+  });
+  it("sin diseño, uno con una opción que esta versión no conoce, o uno cuya letra no se lee: la portada de siempre (null)", () => {
+    expect(disenoParaPintar(null)).toBeNull();
+    expect(disenoParaPintar({ ...DISENO_DE_SIEMPRE, acomodo: "video" })).toBeNull();
+    const ilegible = { ...DISENO_DE_SIEMPRE, paleta: "propia", colores: { nombre: "Mi color", fondo: "#f6efe6", fondo2: "#ffffff", letra: "#f5f0e8", acento: "#ffffff" } };
+    expect(leerDiseno(ilegible)).not.toBeNull();
+    expect(disenoParaPintar(ilegible)).toBeNull();
+  });
+
+  it("lleva los colores de día y de noche, con los mismos nombres que el héroe lee", () => {
+    const arena = paletaPorId("arena");
+    const v = variablesDeLosDosTemas(arena);
+    const dia = variablesDePaleta(coloresEnTema(arena, "claro"));
+    const noche = variablesDePaleta(coloresEnTema(arena, "oscuro"));
+    for (const k of Object.keys(dia)) {
+      expect(v[k.replace("--t-hero", "--t-dia")]).toBe(dia[k as keyof typeof dia]);
+      expect(v[k.replace("--t-hero", "--t-noche")]).toBe(noche[k as keyof typeof noche]);
+    }
+    expect(v["--t-noche"]).not.toBe(v["--t-dia"]);
+  });
+
+  // heroe.css es el que elige, según el tema de la tienda, qué colores se pintan: si falta una variable en un tema, ese tema mezclaría
+  // los colores de siempre con los del diseño.
+  it("heroe.css pasa cada variable del diseño a las del héroe, de día y de noche (en los dos selectores del tema oscuro)", () => {
+    const css = readFileSync(new URL("./heroe.css", import.meta.url), "utf8");
+    const bloques = [...css.matchAll(/\.t-hero\[data-diseno\] \{([^}]*)\}/g)].map((m) => m[1]!);
+    expect(bloques).toHaveLength(3);
+    const nombres = Object.keys(variablesDePaleta(coloresEnTema(paletaPorId("cayla"), "claro")));
+    const [dia, ...noches] = bloques;
+    for (const k of nombres) {
+      expect(dia).toContain(`${k}: var(${k.replace("--t-hero", "--t-dia")});`);
+      for (const n of noches) expect(n).toContain(`${k}: var(${k.replace("--t-hero", "--t-noche")});`);
     }
   });
 });

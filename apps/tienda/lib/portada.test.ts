@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DISENO_DE_SIEMPRE } from "@cayla-retail/portada";
 import {
   anioLima,
   anuncios,
@@ -10,11 +11,13 @@ import {
   PORTADA_SIN_DATOS,
 } from "./portada";
 
-const ANIVERSARIO = { nombre: "Aniversario CAYLA", pct: 12, hasta: "2026-10-21" };
+const ANIVERSARIO = { nombre: "Aniversario CAYLA", pct: 12, hasta: "2026-10-21", diseno: null };
+const BOSQUE = { ...DISENO_DE_SIEMPRE, paleta: "bosque" };
 
 describe("interpretarPortada", () => {
   it("acepta lo que devuelve retail.tienda_portada()", () => {
     expect(interpretarPortada({ campana: ANIVERSARIO })).toEqual({ campana: ANIVERSARIO });
+    expect(interpretarPortada({ campana: { ...ANIVERSARIO, diseno: BOSQUE } }).campana?.diseno).toEqual(BOSQUE);
     expect(interpretarPortada({ campana: { ...ANIVERSARIO, hasta: null } }).campana?.hasta).toBeNull();
     expect(interpretarPortada({ campana: null })).toEqual({ campana: null });
   });
@@ -24,6 +27,13 @@ describe("interpretarPortada", () => {
       { campana: { ...ANIVERSARIO, pct: "12" } }, { campana: { ...ANIVERSARIO, hasta: "21/10/2026" } }]) {
       expect(interpretarPortada(raro)).toEqual(PORTADA_SIN_DATOS);
     }
+  });
+
+  it("un diseño que no se puede pintar no tumba la campaña: sale con el rojo de siempre", () => {
+    const sinDiseno = { nombre: ANIVERSARIO.nombre, pct: ANIVERSARIO.pct, hasta: ANIVERSARIO.hasta };
+    expect(interpretarPortada({ campana: sinDiseno }).campana).toEqual(ANIVERSARIO); // una base de antes, sin el campo
+    expect(interpretarPortada({ campana: { ...ANIVERSARIO, diseno: { ...BOSQUE, fondo: "video" } } }).campana).toEqual(ANIVERSARIO);
+    expect(interpretarPortada({ campana: { ...ANIVERSARIO, diseno: "rojo" } }).campana).toEqual(ANIVERSARIO);
   });
 });
 

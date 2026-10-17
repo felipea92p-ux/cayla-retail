@@ -15,6 +15,8 @@
  *      siempre y otra vez lo regresa; sin nada publicado, lo dice.
  *   5. `campanas_lista`: el diseño publicado, el borrador (si hay) y tres prendas con la foto primero, con su categoría y su color.
  *   6. Quién: sin Campañas, nada (42501); una etiqueta que no es campaña «no existe» aquí. La migración se puede pegar dos veces.
+ *   7. La tienda (`20261017200000`, actividad 5): `tienda_portada()` trae el diseño PUBLICADO de la campaña que sale (null sin uno); un
+ *      borrador nunca llega al cliente. Esa migración también se puede pegar dos veces.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK; la sesión se simula con `request.jwt.claim.sub` y los encabezados con
  * `request.headers`. Micaela recibe Campañas DENTRO de la transacción (`rol_modulos`).
@@ -32,6 +34,7 @@ import { readFileSync } from "node:fs";
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const MIGRACION = "supabase/migrations/20261017160000_campanas_diseno.sql";
+const MIGRACION_TIENDA = "supabase/migrations/20261017200000_campanas_diseno_en_la_tienda.sql";
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(process.env.APLICAR_ANTES, "utf8") : "";
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -320,11 +323,34 @@ select pg_temp.intento(format('select retail.campana_diseno(%L)', :'liquidar'));
     esperar("una etiqueta que no es campaña «no existe» aquí", ls[4]?.includes("campana_no_existe"), ls[4]);
   }
 
-  console.log("— La migración se puede pegar dos veces —");
+  console.log("— La tienda —");
   {
-    const migracion = readFileSync(MIGRACION, "utf8");
+    // La campaña de la escena sale en la portada: con descuento, prendas y la que termina primero (hoy) con el mayor descuento.
+    const r = correr(`${ESCENA}
+reset role;
+update retail.etiquetas set descuento_pct = 99, vigente_hasta = retail.fn_hoy_lima() where id = :'camp';
+select retail.tienda_portada() -> 'campana' ->> 'nombre', (retail.tienda_portada() -> 'campana' ->> 'diseno') is null;
+${como(MICAELA)}${soltado}select retail.guardar_diseno_borrador(:'camp', ${j({ ...DISENO, paleta: "bosque" })}, 0) as _v \\gset
+reset role;
+select (retail.tienda_portada() -> 'campana' ->> 'diseno') is null;
+${como(FELIPE)}select retail.publicar_diseno_campana(:'camp', 1) as _p \\gset
+reset role;
+select retail.tienda_portada() -> 'campana' -> 'diseno' ->> 'paleta';
+${como(MICAELA)}${soltado}select retail.guardar_diseno_borrador(:'camp', ${j({ ...DISENO, paleta: "oliva" })}, 0) as _v \\gset
+reset role;
+select retail.tienda_portada() -> 'campana' -> 'diseno' ->> 'paleta';`);
+    const [sale, borradorNoLlega, publicado, borradorEncima] = lineas(r);
+    esperar("sin diseño publicado, la campaña sale con «diseno» vacío (el rojo de siempre)", sale === "Prueba Diseño|t", r.ok ? sale : r.mensaje);
+    esperar("un borrador no llega a la tienda", borradorNoLlega === "t", borradorNoLlega);
+    esperar("al publicar, la tienda trae ese diseño", publicado === "bosque", publicado);
+    esperar("un borrador nuevo encima no cambia lo que ve el cliente", borradorEncima === "bosque", borradorEncima);
+  }
+
+  console.log("— Las migraciones se pueden pegar dos veces —");
+  for (const archivo of [MIGRACION, MIGRACION_TIENDA]) {
+    const migracion = readFileSync(archivo, "utf8");
     const r = correr(`begin;\n${migracion}\n${migracion}\nselect 'ok';`);
-    esperar("dos veces seguidas, sin error", r.ok && r.salida.split("\n").at(-1) === "ok", r.ok ? r.salida : r.mensaje);
+    esperar(`${archivo.split("/").at(-1)}: dos veces seguidas, sin error`, r.ok && r.salida.split("\n").at(-1) === "ok", r.ok ? r.salida : r.mensaje);
   }
 
   console.log(`\n${total - fallos} de ${total} · contenedor: ${CONTENEDOR_LOCAL}`);

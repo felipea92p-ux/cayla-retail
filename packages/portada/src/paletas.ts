@@ -101,3 +101,13 @@ export function variablesDePaleta(c: Colores): Record<`--t-hero${string}`, strin
     "--t-hero-boton-letra": letraOscura ? "#fbf8f2" : "#1a1a18", // tema-fijo: el papel y la tinta de la tienda (`--t-papel-fijo`, `--t-tinta-fija`)
   };
 }
+
+/**
+ * Las variables del héroe en los DOS temas, para la tienda, que no sabe en el servidor si el cliente la ve en claro o en oscuro: las de
+ * día como `--t-dia*` y las de noche como `--t-noche*` (`--t-hero-2` → `--t-dia-2` y `--t-noche-2`). `heroe.css` elige, según el tema de
+ * la tienda, cuáles pasan a ser las `--t-hero*` (`.t-hero[data-diseno]`). La vista previa del ERP no las usa: elige el tema con su botón.
+ */
+export function variablesDeLosDosTemas(p: Paleta): Record<string, string> {
+  const renombrar = (v: Record<string, string>, a: string) => Object.fromEntries(Object.entries(v).map(([k, x]) => [k.replace("--t-hero", a), x]));
+  return { ...renombrar(variablesDePaleta(coloresEnTema(p, "claro")), "--t-dia"), ...renombrar(variablesDePaleta(coloresEnTema(p, "oscuro")), "--t-noche") };
+}

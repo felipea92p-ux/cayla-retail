@@ -1,5 +1,5 @@
 import { CONTRASTE_MINIMO, contraste, mezclar } from "./contraste";
-import { coloresDelDiseno, type DisenoDeCampana } from "./diseno";
+import { coloresDelDiseno, leerDiseno, type DisenoDeCampana } from "./diseno";
 import type { Colores, Tema } from "./paletas";
 
 // LA REVISIÓN DE UN DISEÑO antes de publicarlo (ADR-0436): lo que el ERP muestra bajo la vista previa y en la hoja «Publicar». Solo dice
@@ -26,6 +26,16 @@ export function seLee(d: DisenoDeCampana, tema: Tema): boolean {
   const c = coloresDelDiseno(d, tema);
   const detras = fondoDelTexto(d, c);
   return contraste(c.letra, detras) >= CONTRASTE_MINIMO && contraste(c.acento, detras) >= CONTRASTE_MINIMO;
+}
+
+/**
+ * El diseño publicado que la tienda pinta (ADR-0436, actividad 5): uno que esta versión sabe leer y cuya letra se lee en claro y en oscuro.
+ * Si no (uno que el ERP de una versión más nueva guardó, o uno que hoy ya no pasaría la revisión), `null`: sale la portada de siempre, nunca
+ * una portada rota ni una que no se lee. Es la misma pregunta que apaga «Publicar» en el ERP (`revisarDiseno` → `bloquea`).
+ */
+export function disenoParaPintar(x: unknown): DisenoDeCampana | null {
+  const d = leerDiseno(x);
+  return d && seLee(d, "claro") && seLee(d, "oscuro") ? d : null;
 }
 
 export function revisarDiseno(d: DisenoDeCampana, ctx: ContextoRevision): { avisos: Aviso[]; bloquea: boolean } {

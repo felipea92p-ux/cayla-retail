@@ -315,7 +315,7 @@ function Heroe({
       <HeroeDePortada
         {...comun}
         ceja={<CejaDeCampana hasta={hero.campana.hasta} />}
-        titulo={partirTitulo(hero.campana.nombre)}
+        titulo={partirTitulo(hero.campana.nombre, hero.campana.diseno?.corte)}
         descripcion={
           <>
             <b>−{pctTexto(hero.campana.pct)} % en prendas elegidas.</b> Sepáralas online, confírmalas por WhatsApp y recógelas en tu tienda.
@@ -335,6 +335,8 @@ function Heroe({
           </>
         }
         marca={`−${pctTexto(hero.campana.pct)}%`}
+        // Con su diseño publicado en el ERP (ADR-0436), sus colores; sin él, el rojo de siempre.
+        diseno={hero.campana.diseno}
       />
     );
   }

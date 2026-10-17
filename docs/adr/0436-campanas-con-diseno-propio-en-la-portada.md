@@ -169,3 +169,42 @@ borrador (versión 1); «Publicar diseño» lo publicó a nombre de Felipe y la 
 «Volver al anterior» dejaron el publicado como anterior y la portada de siempre, y el siguiente toque guardó la versión 2 sin choque. La lista,
 Datos y el diseño en 1440 px claro y oscuro y a 375 px, sin desborde ni errores de consola. Las guías de la lista (10 pasos) y de la campaña
 (13) recorren en escritorio y a 375 px en oscuro sin escribir en la base (el piloto no toca un estilo ni un color: cada toque guarda).
+
+## Actividad 5 — La tienda pinta el diseño publicado (`20261017200000`)
+
+**DECIDÍ 13 — `tienda_portada()` trae, dentro de la campaña que sale, su diseño PUBLICADO (`fn_diseno_json`, la misma forma que lee el
+ERP; null sin uno).** Cuál campaña sale no cambia: sigue siendo LA regla `fn_campana_en_portada`. Un borrador nunca llega al cliente. La
+migración comprueba al final que, sin contar el diseño, la tienda ve lo mismo que antes; por eso la de la actividad 1 (`20261017144000`)
+ahora compara sin el diseño: pegarla otra vez después le quita el diseño a la tienda (sale el rojo de siempre) hasta volver a pegar esta.
+**DESCARTÉ** una función aparte para el diseño: la tienda haría dos preguntas que pueden responder campañas distintas si la regla cambia
+entre una y otra (la actividad 6 la cambia).
+**SE ROMPE SI** se pega `20261017200000` en producción sin `20261017160000`: la función no encuentra `campana_disenos` y el pegado falla
+entero (no se aplica nada: el orden es 144000 → 151000 → 160000 → 200000).
+
+**DECIDÍ 14 — La tienda pinta un diseño solo si pasa `disenoParaPintar` (`packages/portada/src/revision.ts`): que esta versión lo sepa
+leer (`leerDiseno`) y que la letra se lea en claro y en oscuro (`seLee`, la misma medida que apaga «Publicar» en el ERP).** Si no, `null`
+y la portada sale con el rojo de siempre; nunca tumba la campaña (la validación de `lib/portada.ts` lo transforma, no lo rechaza).
+**DESCARTÉ** confiar en que el ERP ya lo revisó: un diseño guardado por un ERP más nuevo (una opción que esta tienda no conoce) o publicado
+antes de un cambio de la regla del contraste llegaría igual, y el primer cliente lo vería roto.
+**SE ROMPE SI** se cambia `seLee` para que sea más estricto: un diseño que ya estaba publicado deja de pintarse en la tienda (sale el rojo)
+mientras el ERP lo sigue mostrando como publicado. Se ve en la revisión del editor, que lo marca en rojo.
+
+**DECIDÍ 15 — La tienda no sabe en el servidor si el cliente la ve en claro o en oscuro, así que el héroe lleva los colores del diseño en
+los dos temas (`variablesDeLosDosTemas`: `--t-dia*` y `--t-noche*`) y `heroe.css` elige con el tema de la tienda (`prefers-color-scheme` o
+`:root[data-theme]`, como sus tokens).** La vista previa del ERP sigue pasando `tema` (lo elige con su botón) y recibe los colores ya
+resueltos: el modo oscuro del ERP nunca cambia la portada que se diseña. La mezcla vive en el paquete, no en la tienda (DECIDÍ 7: el héroe
+tiene un solo dueño), y `diseno.test.ts` exige que cada variable del héroe tenga su par de día y de noche en los tres bloques.
+**DESCARTÉ** un `<style>` armado con los colores de la base: sería CSS escrito desde datos (aunque los colores vengan revisados) y dejaría
+de funcionar el día que la tienda prohíba los estilos en línea; las variables en el atributo `style` ya las usaba el héroe.
+
+Lo demás del diseño que el héroe ya sabe hacer llega igual a la tienda: el colibrí (Galería lo apaga), el contador y desde qué palabra va
+la cursiva. Lo que todavía no dibuja (el fondo con dibujo, los acomodos, la frase, el sello, el % gigante) es de la actividad 7, y llegará a
+los dos lados a la vez porque es la misma pieza.
+
+**Verificación:** `pnpm pruebas:campanas-diseno` (49: suma la tienda —sin diseño sale vacío, un borrador no llega, al publicar llega y
+un borrador nuevo encima no lo cambia— y las dos migraciones pegadas dos veces), `campanas-portada` (25) y `campanas-llave` (26); las pruebas
+del paquete (107: `disenoParaPintar`, las variables de los dos temas y su paso en `heroe.css`) y de la tienda (`interpretarPortada` con
+diseño, sin él, con uno que no se sabe leer). En la tienda local (3048), con Día Internacional del Gato publicado desde el ERP: antes, el
+rojo de siempre; con «Bosque», verde en claro y más oscuro en oscuro, también a 375 px; con «Galería» (una paleta clara), letra y botón
+oscuros y sin colibrí en claro, y su versión de noche en oscuro; el Inicio con cuenta, igual. La portada cambió en menos de un minuto
+después de publicar.

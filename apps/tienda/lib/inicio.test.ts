@@ -33,7 +33,7 @@ const enCampana = (nombre: string, extra: Partial<Prenda> = {}) =>
 const nombres = (ps: Prenda[]) => ps.map((p) => p.nombre);
 
 describe("el héroe del Inicio", () => {
-  const campana = { nombre: "Aniversario CAYLA", pct: 20, hasta: "2026-10-21" };
+  const campana = { nombre: "Aniversario CAYLA", pct: 20, hasta: "2026-10-21", diseno: null };
 
   it("con campaña: hasta tres prendas suyas que bajan de precio, las que tienen foto primero", () => {
     const prendas = [

@@ -183,9 +183,11 @@ grant execute on function retail.campanas_portada_dias(date, date) to authentica
 
 -- 5. Comprobación: la tienda ve hoy exactamente lo mismo que antes ---------------------------------------------------------------
 
+-- Sin contar el diseño de la campaña, que suma 20261017200000 (actividad 5): pegar esta otra vez DESPUÉS de esa le quita el diseño a la
+-- tienda (sale el rojo de siempre, sin romperse) hasta volver a pegar 20261017200000.
 do $$
 begin
-  if current_setting('campanas.portada_antes')::jsonb is distinct from retail.tienda_portada() then
+  if (current_setting('campanas.portada_antes')::jsonb #- '{campana,diseno}') is distinct from (retail.tienda_portada() #- '{campana,diseno}') then
     raise exception 'tienda_portada() cambió de respuesta al pasar a fn_campana_en_portada: no se aplica nada.';
   end if;
   if not exists (select 1 from retail.modulos where clave = 'campanas' and grupo = 'Tienda web' and delegable and not solo_lider) then

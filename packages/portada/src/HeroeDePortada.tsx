@@ -1,6 +1,6 @@
 import type { ComponentType, CSSProperties, ReactNode } from "react";
-import { coloresDelDiseno, type DisenoDeCampana } from "./diseno";
-import { variablesDePaleta, type Tema } from "./paletas";
+import { coloresDelDiseno, paletaDelDiseno, type DisenoDeCampana } from "./diseno";
+import { variablesDeLosDosTemas, variablesDePaleta, type Tema } from "./paletas";
 
 /**
  * Una prenda del héroe, como polaroid: su foto (o su dibujo, si no tiene), su nombre y, al pie, lo que va a la derecha (el precio, o
@@ -26,6 +26,8 @@ type Enlace = ComponentType<{ href: string; className?: string; "aria-label"?: s
  * portada sin cuenta).
  *
  * Con `diseno` (ADR-0436), la campaña se pinta con el suyo: sus colores y si lleva colibrí y contador. Sin él, la portada de siempre.
+ * Con `tema` (la vista previa del ERP, que lo elige con su botón) los colores van ya resueltos para ese tema; sin `tema` (la tienda, que
+ * no sabe en el servidor cómo la ve el cliente) van los de los dos temas y `heroe.css` elige según el tema de la tienda.
  *
  * No guarda estado ni lee nada: se puede dibujar en el servidor (la tienda) o dentro de un componente del navegador (la vista previa).
  */
@@ -63,13 +65,19 @@ export function HeroeDePortada({
   marca?: string | null;
   lado?: ReactNode;
   diseno?: DisenoDeCampana | null;
-  /** El tema de los colores del diseño: la vista previa del ERP lo elige con su botón «Claro / Oscuro». */
+  /** El tema de los colores del diseño: la vista previa del ERP lo elige con su botón «Claro / Oscuro». Sin él, los dos (la tienda). */
   tema?: Tema;
 }) {
   const [linea, cursiva] = titulo;
-  const estilo = diseno && tema ? (variablesDePaleta(coloresDelDiseno(diseno, tema)) as CSSProperties) : undefined;
+  const estilo = !diseno
+    ? undefined
+    : ((tema ? variablesDePaleta(coloresDelDiseno(diseno, tema)) : variablesDeLosDosTemas(paletaDelDiseno(diseno))) as CSSProperties);
   return (
-    <section className={`t-hero${clase ? ` ${clase}` : ""}${sinCampana ? " sin-campana" : ""}`} style={estilo}>
+    <section
+      className={`t-hero${clase ? ` ${clase}` : ""}${sinCampana ? " sin-campana" : ""}`}
+      style={estilo}
+      data-diseno={diseno && !tema ? "" : undefined}
+    >
       {(diseno?.colibri ?? true) && colibri}
       <div className="t-hero-texto">
         <span className="t-hero-ceja">{ceja}</span>

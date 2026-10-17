@@ -38,5 +38,15 @@ export {
   type Sello,
   type Tamano,
 } from "./diseno";
-export { fondoDelTexto, revisarDiseno, seLee, type Aviso, type ContextoRevision, type Tono } from "./revision";
-export { PALETAS, PALETA_DE_SIEMPRE, coloresEnTema, paletaPorId, variablesDePaleta, type Colores, type Paleta, type Tema } from "./paletas";
+export { disenoParaPintar, fondoDelTexto, revisarDiseno, seLee, type Aviso, type ContextoRevision, type Tono } from "./revision";
+export {
+  PALETAS,
+  PALETA_DE_SIEMPRE,
+  coloresEnTema,
+  paletaPorId,
+  variablesDeLosDosTemas,
+  variablesDePaleta,
+  type Colores,
+  type Paleta,
+  type Tema,
+} from "./paletas";

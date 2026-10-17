@@ -45,7 +45,8 @@ export default async function Portada() {
   const piezas = hero.tipo === "marca" ? [] : hero.piezas;
   const vitrina = vitrinaDePortada(prendas, new Set(piezas.map((p) => p.id)));
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
-  // El rojo de la campaña cuando el héroe la anuncia (con sus prendas o, sin ninguna publicada, solo su texto); si no, el oscuro.
+  // El rojo de la campaña cuando el héroe la anuncia (con sus prendas o, sin ninguna publicada, solo su texto); si no, el oscuro. Si la
+  // campaña tiene su diseño publicado en el ERP (ADR-0436), con sus colores en vez del rojo de siempre.
   const conCampana = hero.tipo === "campana" || (hero.tipo === "marca" && campana !== null);
   // A dónde llega quien crea su cuenta desde el héroe: a la campaña, o a lo nuevo.
   const destino =
@@ -78,6 +79,7 @@ export default async function Portada() {
           piezas={piezasDelHeroe(piezas, { href: (p) => hrefConVolver("/crear-cuenta", hrefDePrenda(p)), conPrecio: false, origenFotos })}
           Enlace={Link}
           marca={hero.tipo === "campana" ? `−${pctTexto(hero.campana.pct)}%` : null}
+          diseno={conCampana ? (campana?.diseno ?? null) : null}
           lado={
             // Sin prendas para mostrar (o sin base): la tarjeta del Club, como antes.
             <div className="t-portada-club">
@@ -130,7 +132,7 @@ function textoDelHeroe(hero: Hero, campana: Campana | null): TextoDelHeroe {
 function textoCampana(campana: Campana): TextoDelHeroe {
   return {
     ceja: <CejaDeCampana hasta={campana.hasta} />,
-    titulo: partirTitulo(campana.nombre),
+    titulo: partirTitulo(campana.nombre, campana.diseno?.corte),
     descripcion: (
       <>
         <b>−{pctTexto(campana.pct)} % en prendas elegidas.</b> Crea tu cuenta para ver los precios, cuánto hay en cada tienda y separar.

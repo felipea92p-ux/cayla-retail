@@ -14,21 +14,23 @@ Escrito el 2026-10-17. Sin llaves ni contraseñas (el repo es público): dice d�
   `docs/backlog/2026-10-16-campanas-design-customization-ddbd90.md`, sección «Dónde quedó».
 - **Las 9 actividades (lista aprobada por Felipe, método `/construir`: una por una, cada una con su commit):**
   1 menú y lista ✔ · 2 Datos y Prendas con una sola llave ✔ · 3 la portada en una sola pieza (`packages/portada`) ✔ ·
-  4 diseñar y publicar ✔ · **5 la tienda pinta el diseño publicado** · 6 campañas sin descuento y cuál va primero ·
+  4 diseñar y publicar ✔ · 5 la tienda pinta el diseño publicado ✔ · **6 campañas sin descuento y cuál va primero** ·
   7 el resto del editor (fondo liso/degradado/dibujo, acomodos, texto, prendas, detalles, Sorpréndeme, Deshacer) · 8 fondo con foto ·
   9 cierre (`/chaos`, `/formidable`, `tema:auditar`, 375 px, ADR, PR con `/abrir-pr`).
 
-## Lo siguiente (actividad 5)
+## Lo siguiente (actividad 6)
 
-La actividad 4 está cerrada (ver la sección «Actividad 4» del ADR-0436 y el backlog). Sigue la **5: la tienda pinta el diseño publicado**:
-`retail.tienda_portada()` devuelve el `diseno` publicado de la campaña que sale; `apps/tienda/lib/portada.ts` lo valida (`leerDiseno` del
-paquete) y la portada y el Inicio lo pintan con `HeroeDePortada` + `variablesDePaleta`; si falta, no pasa o no se lee (`revisarDiseno`),
-sale el rojo de siempre. Se verifica en la tienda local (puerto 3048) sin cuenta y con cuenta, en claro, oscuro y 375 px.
+Las actividades 4 y 5 están cerradas (secciones «Actividad 4» y «Actividad 5» del ADR-0436, y el backlog). Sigue la **6: campañas sin
+descuento y cuál va primero** (decisión 2 de Felipe): una campaña sin descuento sale en la portada si tiene prendas o diseño propio; con dos
+a la vez, la de descuento primero salvo que se cambie a mano. La regla vive en UN lugar, `retail.fn_campana_en_portada(dia)`
+(`20261017144000`); la leen `tienda_portada()` (`20261017200000`) y `campanas_portada_dias`. Cambia la regla ahí, con su migración reservada
+(`pnpm reservar migracion`), «cuál va primero» a mano, y lo que la pantalla dice (`porQueNoSale`, la nota del cruce). Ojo: `tienda_portada`
+y la tienda (`apps/tienda/lib/portada.ts`, `pct: z.number().positive()`) hoy exigen descuento, y el héroe y la franja de arriba dicen «−N %».
 
 ## Reglas que ya costaron tiempo
 
-- **Nada se pega en producción sin el OK de Felipe.** Las migraciones `20261017144000`, `20261017151000` y `20261017160000` NO están en
-  producción. No uses el SQL Editor ni el MCP de Supabase de producción para escribir.
+- **Nada se pega en producción sin el OK de Felipe.** Las migraciones `20261017144000`, `20261017151000`, `20261017160000` y
+  `20261017200000` NO están en producción (se pegan en ese orden). No uses el SQL Editor ni el MCP de Supabase de producción para escribir.
 - **No uses la base local compartida** (`supabase_db_cayla-retail`): hay otras sesiones. Usa la pila propia de esta rama (abajo).
 - Números (ADR, migración): se reservan con `pnpm reservar adr|migracion`. Los de esta rama ya están tomados (ADR-0436 y las tres migraciones).
 - Colores: solo tokens; el color de la portada de una campaña es **dato** (`data-color-dato`, comentario `// tema-fijo: …`).
