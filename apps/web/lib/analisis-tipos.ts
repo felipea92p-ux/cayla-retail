@@ -8,6 +8,8 @@
 
 import type { DiaVenta, PreparacionSede } from "./motor-demanda-reglas";
 import type { ModeloAnalisis } from "./analisis-modelo";
+import type { CampanaDelRitmo, Horizonte } from "./analisis-horizonte";
+import type { TemporadaDatos } from "./analisis-temporada";
 
 /** Las pestañas, en el orden de la pantalla. «Nunca salió al piso» (`piso`) va entre «No se vende» y «Qué pedir» (Felipe, 2026-10-07). */
 export const VISTAS_ANALISIS = ["hoy", "acaba", "nose", "piso", "pedir"] as const;
@@ -243,6 +245,16 @@ export type DatosAnalisis = {
    *  dice qué prenda fue pero sí de qué tipo (`lib/vendido-sin-registrar.ts`). «Qué pedir» la suma a lo vendido de su tipo (ADR-0357,
    *  act. 2026-10-14). Vacío si no se pudo leer (y se dice en `fallas`). */
   sinPrendaPorTipo: Record<string, number>;
+  /** Lo mismo, partido por talla (tipo → talla → ventas): la curva de tallas de «Qué pedir» suma lo vendido sin registrar a la talla que se anotó en
+   *  caja (A6, ADR-0357 act. 2026-10-16). Vacío si no se pudo leer. */
+  sinPrendaPorTalla: Record<string, Record<string, number>>;
+  /** Contra qué día se mide «¿Para cuánto te alcanza?» (D3): el fin de la próxima campaña del Plan de campaña, el 25-dic o el plazo + 30. Siempre
+   *  trae uno: sin el Plan se mide con el respaldo y la pantalla lo dice (`nota`). */
+  horizonte: Horizonte;
+  /** La temporada de mi tienda (D5): cuánto más se vende de aquí a la meta que en los días del ritmo, o por qué no se sabe. */
+  temporada: TemporadaDatos;
+  /** La campaña del Plan en la que cae casi toda la ventana del ritmo («16 de estos 17 días cayeron en Aniversario»); null si ninguna. */
+  campanaDelRitmo: CampanaDelRitmo | null;
   /** Las ventas sin su prenda que todavía se pueden registrar (pendientes, sin tope de fechas) y las que se cerraron sin prenda en los
    *  mismos 30 días: lo que dice «Ver qué falta» (ADR-0357, act. 2026-10-14). Null la que no se pudo leer. */
   porRegistrar: { pendientes: number | null; cerradas30: number | null };

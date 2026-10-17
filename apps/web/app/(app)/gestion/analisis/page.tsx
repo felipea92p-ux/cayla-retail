@@ -46,6 +46,8 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Pro
     catalogo: veModulo(persona, "productos") && puede(persona, "editarCatalogo"),
   };
 
-  const datos = await getDatosAnalisis(ubicacionActiva, { conFrescura: acceso.frescura });
+  // Las campañas del Plan y el historial de ventas (la meta y la temporada de «Qué pedir», A6) los deja leer la base con el módulo «Plan de campaña»,
+  // sin pedir además ver el dinero de Compras (`acceso.planCompra` sí lo pide, para el botón que lleva al Plan).
+  const datos = await getDatosAnalisis(ubicacionActiva, { conFrescura: acceso.frescura, conPlan: veModulo(persona, "plan_compra") });
   return <AnalisisPantalla datos={datos} acceso={acceso} vistaInicial={leerVista(params.vista)} busquedaInicial={leerBusqueda(params.q)} queFaltaInicial={leerQueFalta(params[PARAM_QUE_FALTA])} />;
 }

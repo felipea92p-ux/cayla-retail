@@ -32,8 +32,15 @@ vi.mock("@/lib/vendido-sin-registrar", () => ({
   leerVendidoSinRegistrar: fakes.leerVendidoSinRegistrar,
   contarPendientes: fakes.contarPendientes,
   sinRegistrarPorTipo: () => ({}),
+  sinRegistrarPorTipoYTalla: () => ({}),
 }));
 vi.mock("@/lib/frescura", () => ({ getLecturaFrescuraDeTienda: fakes.getLecturaFrescuraDeTienda }));
+// A6 (en curso): las lecturas del Plan de campaña y del historial no se ejercen aquí (sin módulo); las reglas puras sí.
+vi.mock("@/lib/analisis-campanas", () => ({
+  getCampanasParaAnalisis: async () => ({ lectura: { estado: "sin_modulo" }, falla: null }),
+  getTemporada: async () => ({ temporada: { estado: "sin_modulo" }, falla: null }),
+}));
+vi.mock("@/lib/analisis-campanas-reglas", async () => await import("./analisis-campanas-reglas"));
 vi.mock("./errores", () => ({ capturarError: vi.fn() }));
 vi.mock("@/lib/analisis-con-tope", async () => await import("./analisis-con-tope"));
 vi.mock("@/lib/analisis-lectura", async () => await import("./analisis-lectura"));

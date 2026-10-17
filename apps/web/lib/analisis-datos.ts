@@ -18,7 +18,9 @@ import { getConteosResumen } from "@/lib/conteos";
 import { leerPreparacion, preparacionDeSede, RPC_PREPARACION } from "@/lib/motor-demanda-reglas";
 import { getPedidosNoAtendidos } from "@/lib/pedidos-no-atendidos";
 import { getUbicaciones, type Ubicacion } from "@/lib/ubicaciones";
-import { contarPendientes, leerVendidoSinRegistrar, sinRegistrarPorTipo } from "@/lib/vendido-sin-registrar";
+import { contarPendientes, leerVendidoSinRegistrar, sinRegistrarPorTipo, sinRegistrarPorTipoYTalla } from "@/lib/vendido-sin-registrar";
+import { getCampanasParaAnalisis, getTemporada } from "@/lib/analisis-campanas";
+import { campanaDelRitmo, horizonteDeCompra } from "@/lib/analisis-campanas-reglas";
 import { getLecturaFrescuraDeTienda } from "@/lib/frescura";
 import { hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { datosDe } from "@/lib/analisis-con-tope";
@@ -87,15 +89,19 @@ async function leerFrescura(
   return { estado: "ok", dudas, umbrales: umbralesPorTipo(datos.categorias) };
 }
 
-/** `conFrescura`: si quien mira ve Frescura del piso (la base no le deja leerla sin el módulo). */
-export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false }: { conFrescura?: boolean } = {}): Promise<DatosAnalisis> {
+/**
+ * `conFrescura`: si quien mira ve Frescura del piso (la base no le deja leerla sin el módulo).
+ * `conPlan`: si quien mira ve el Plan de campaña (A6): solo entonces se leen sus campañas y el historial de ventas (la base pide ese módulo);
+ * sin él, «Qué pedir» mide hasta el respaldo y lo dice.
+ */
+export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false, conPlan = false }: { conFrescura?: boolean; conPlan?: boolean } = {}): Promise<DatosAnalisis> {
   const tiendas = (await getUbicaciones()).filter((u) => u.tipo === "tienda" && u.activo);
   const ordenadas = [activa, ...tiendas.filter((u) => u.id !== activa.id)];
   const sedes: SedeAnalisis[] = ordenadas.map(sedeDeAnalisis);
   const ids = sedes.map((s) => s.id);
 
   const idActiva = { ubicacion_id: activa.id };
-  const [motor, lectura, llegan, yaPedido, liquidar, rinde, conteos, pedidos, preciosPropios, sinPrenda, frescura, pendientes, quienPide] = await Promise.all([
+  const [motor, lectura, llegan, yaPedido, liquidar, rinde, conteos, pedidos, preciosPropios, sinPrenda, frescura, pendientes, quienPide, campanas] = await Promise.all([
     leerPreparacionDeLaRed(),
     getPrendasPorSede(ids),
     getPorLlegar(activa.id),
@@ -120,6 +126,8 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false 
     leerPieza("pendientes_por_registrar", idActiva, async () => contarPendientes(await createClient(), activa.id)).then(datosDe),
     // A quién se le pide cada modelo (A8): el proveedor del catálogo y los nombres. Si falla, no se dibuja «Pídelo a …» y se dice.
     getProveedoresAnalisis(),
+    // Las campañas del Plan de campaña (A6): de ahí sale la meta de «Qué pedir». Sin el módulo ni se intenta; si falla, el respaldo y se dice.
+    getCampanasParaAnalisis(conPlan),
   ]);
   const preciosDeMiTienda = preciosPropios ?? undefined;
 
@@ -140,6 +148,11 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false 
   }));
   // Lo que miden y listan las pestañas: el MODELO entero, con todas sus tallas y colores (ADR-0357, decisión 12).
   const prendas = armarModelos(tallas, hoy);
+  // La meta de «Qué pedir» (D3), la campaña en la que cae casi toda la ventana del ritmo y la temporada de mi tienda hasta esa meta (D5). La
+  // temporada va DESPUÉS: necesita la meta y los días de ventas; son pocas lecturas del historial en paralelo, y solo para quien ve el Plan.
+  const horizonte = horizonteDeCompra(hoy, campanas.lectura);
+  const delRitmo = campanaDelRitmo(hoy, ventana, campanas.lectura);
+  const temporada = await getTemporada({ conPlan, ubicacionId: activa.id, hoy, ventana, hasta: horizonte.modo === "plazo" ? null : horizonte.fecha });
   const sabeUltimaVenta = lectura.sabeUltimaVenta[activa.id] === true;
   const fallaUltima = lectura.sabeUltimaVenta[activa.id] === false ? FALLA_ULTIMA_VENTA : null;
 
@@ -164,6 +177,10 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false 
     sabeUltimaVenta,
     liquidarDesde,
     sinPrendaPorTipo: sinPrenda ? sinRegistrarPorTipo(sinPrenda) : {},
+    sinPrendaPorTalla: sinPrenda ? sinRegistrarPorTipoYTalla(sinPrenda) : {},
+    horizonte,
+    temporada: temporada.temporada,
+    campanaDelRitmo: delRitmo,
     frescura: frescura.estado,
     porRegistrar: { pendientes, cerradas30: sinPrenda ? sinPrenda.filter((v) => v.estado === "cerrada_sin_prenda").length : null },
     rebajaDe100: lectura.rebajaDe100[activa.id] ?? null,
@@ -174,7 +191,7 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false 
     noHabia: noHabiaDe(pedidos ?? []),
     pedido: yaPedido.pedido,
     sedesSinLeer: lectura.sedesSinLeer,
-    fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, preciosDeMiTienda === undefined ? FALLA_PRECIOS_DE_MI_TIENDA : null, llegan.falla, yaPedido.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null, sinPrenda === null ? FALLA_SIN_PRENDA : null, frescura.estado === "fallo" ? FALLA_FRESCURA : null, quienPide.falla].filter(
+    fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, preciosDeMiTienda === undefined ? FALLA_PRECIOS_DE_MI_TIENDA : null, llegan.falla, yaPedido.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null, sinPrenda === null ? FALLA_SIN_PRENDA : null, frescura.estado === "fallo" ? FALLA_FRESCURA : null, quienPide.falla, campanas.falla, temporada.falla].filter(
       (f): f is string => f !== null,
     ),
   };

@@ -20,18 +20,20 @@ export type VentaSinRegistrar = {
   categoria: string;
   vendidoEn: string;
   estado: "pendiente" | "cerrada_sin_prenda";
+  /** La talla que se anotó en caja (`tallas.valor`: «S», «M», «28»); null si la base no la dice. */
+  talla: string | null;
 };
 
 const PAGINA = 1000;
 const TOPE = 20_000;
 
 export async function leerVendidoSinRegistrar(supabase: Supabase, sedeId: string, desde: string): Promise<VentaSinRegistrar[]> {
-  const filas: { categoria_id: string; vendido_en: string; estado: VentaSinRegistrar["estado"]; categoria: { nombre: string } | null }[] = [];
+  const filas: { categoria_id: string; vendido_en: string; estado: VentaSinRegistrar["estado"]; categoria: { nombre: string } | null; talla: { valor: string } | null }[] = [];
   // Paginado y ordenado: PostgREST corta en 1.000 filas sin avisar, y una tienda en diciembre puede pasar de eso en 30 días.
   for (let inicio = 0; inicio < TOPE; inicio += PAGINA) {
     const { data, error } = await supabase
       .from("prendas_por_regularizar")
-      .select("categoria_id, vendido_en, estado, categoria:categorias ( nombre )")
+      .select("categoria_id, vendido_en, estado, categoria:categorias ( nombre ), talla:tallas ( valor )")
       .eq("ubicacion_id", sedeId)
       .in("estado", ["pendiente", "cerrada_sin_prenda"])
       .gte("vendido_en", desde)
@@ -48,6 +50,7 @@ export async function leerVendidoSinRegistrar(supabase: Supabase, sedeId: string
     categoria: f.categoria?.nombre?.trim() || "Sin categoría",
     vendidoEn: f.vendido_en,
     estado: f.estado,
+    talla: f.talla?.valor?.trim() || null,
   }));
 }
 
@@ -55,6 +58,20 @@ export async function leerVendidoSinRegistrar(supabase: Supabase, sedeId: string
 export function sinRegistrarPorTipo(ventas: readonly Pick<VentaSinRegistrar, "categoria">[]): Record<string, number> {
   const porTipo: Record<string, number> = {};
   for (const v of ventas) porTipo[v.categoria] = (porTipo[v.categoria] ?? 0) + 1;
+  return porTipo;
+}
+
+/**
+ * Lo mismo, partido por la talla que se anotó en caja (tipo → talla → ventas): la curva de tallas de «Qué pedir» las suma a la talla de su
+ * barra (A6). Una venta sin talla legible no entra (no hay barra a la que sumarla).
+ */
+export function sinRegistrarPorTipoYTalla(ventas: readonly Pick<VentaSinRegistrar, "categoria" | "talla">[]): Record<string, Record<string, number>> {
+  const porTipo: Record<string, Record<string, number>> = {};
+  for (const v of ventas) {
+    if (!v.talla) continue;
+    const tallas = (porTipo[v.categoria] ??= {});
+    tallas[v.talla] = (tallas[v.talla] ?? 0) + 1;
+  }
   return porTipo;
 }
 
