@@ -5,6 +5,7 @@ import { useAnalisis } from "@/components/analisis/contexto";
 import { Anillo, ChipEstado, pct, Racha, TilePrenda, NombreCorto } from "@/components/analisis/piezas";
 import type { PreparacionAnalisis } from "@/lib/analisis-tipos";
 import { esTallaUnica } from "@/lib/analisis-reglas";
+import { textoSiVacio } from "@/lib/analisis-con-tope";
 import { lineasDeLoQueFalta, META_CON_PRENDA as META, pasoParaHablar, ventas30, ventasConPrendaDe100 } from "@/lib/analisis-aviso";
 import { DIAS_SOSTENIDOS, fechaCorta } from "@/lib/motor-demanda-reglas";
 import { Vacio } from "@/components/ui/Vacio";
@@ -152,7 +153,7 @@ export function HoyTodaviaNo() {
         <div className="tarjeta sabe entra" style={{ ["--i" as string]: 3 }}>
           <h4>Lo más vendido con su prenda</h4>
           {top.length === 0 ? (
-            <p className="b-nota">Sin ventas con su prenda en 30 días.</p>
+            <p className="b-nota">{textoSiVacio(datos, "Sin ventas con su prenda en 30 días.")}</p>
           ) : (
             top.map((t, k) => (
               <button key={t.varianteId} type="button" className="top-f" onClick={() => abrirFicha(t.varianteId)}>
@@ -187,7 +188,7 @@ export function HoyTodaviaNo() {
         <div className="tarjeta sabe entra" style={{ ["--i" as string]: 5 }}>
           <h4>Modelos de {datos.sede.ciudad}</h4>
           {modelos.size === 0 ? (
-            <p className="b-nota">Sin prendas en el sistema.</p>
+            <p className="b-nota">{textoSiVacio(datos, "Sin prendas en el sistema.")}</p>
           ) : (
             <>
               <div className="modelos-barra" data-tip={`${unica} de talla única o estándar · ${conTallas} con varias tallas`}>

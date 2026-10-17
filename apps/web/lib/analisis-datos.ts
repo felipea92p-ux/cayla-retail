@@ -18,9 +18,12 @@ import { getUbicaciones, type Ubicacion } from "@/lib/ubicaciones";
 import { contarPendientes, leerVendidoSinRegistrar, sinRegistrarPorTipo } from "@/lib/vendido-sin-registrar";
 import { getLecturaFrescuraDeTienda } from "@/lib/frescura";
 import { hoyLima, sumarDias } from "@/lib/fechas-lima";
+import { datosDe } from "@/lib/analisis-con-tope";
+import { leerPieza } from "@/lib/analisis-lectura";
 
 // Análisis v4 (ADR-0357): todo lo que la pantalla lee, una vez por visita, desde el servidor. Cada parte que falla se dice en
-// `fallas` y deja su sección callada (principio 9): nunca «sin ventas» por un error.
+// `fallas` y deja su sección callada (principio 9): nunca «sin ventas» por un error. Ninguna lectura espera más de `TOPE_LECTURA_MS` ni
+// lanza, y lo que se degrada se avisa a Sentry por pieza (`analisis-lectura.ts`, `analisis-con-tope.ts`); aquí no hay `console.error`.
 //
 // La encargada y el líder ven lo mismo (decisión 3): el dinero y el costo por prenda. Todo es de la tienda elegida arriba; las
 // otras tiendas se leen solo para lo que se hace con una prenda de la mía («AQP tiene 3», «Mándalas a Arequipa», «Dónde hay»).
@@ -33,14 +36,15 @@ import { hoyLima, sumarDias } from "@/lib/fechas-lima";
 const sinCandado = (): boolean => process.env.NODE_ENV !== "production" && process.env.ANALISIS_SIN_CANDADO === "1";
 
 async function leerPreparacionDeLaRed(): Promise<{ filas: PreparacionAnalisis[]; falla: string | null }> {
-  const supabase = await createClient();
-  // Sin sede: todas las tiendas que la cuenta puede leer (con 20261006213000, todas para quien analiza).
-  const { data, error } = await supabase.rpc(RPC_PREPARACION as never, {} as never);
-  if (error) {
-    console.error(`${RPC_PREPARACION}: ${error.message}`);
-    return { filas: [], falla: "No se pudo leer si el sistema ya puede recomendar en cada tienda" };
-  }
-  return { filas: leerPreparacion(data).map((f) => ({ ...preparacionDeSede(f), dias: f.dias, hoy: f.hoy, primeraVenta: f.primeraVenta })), falla: null };
+  const lectura = await leerPieza("preparacion", {}, async () => {
+    const supabase = await createClient();
+    // Sin sede: todas las tiendas que la cuenta puede leer (con 20261006213000, todas para quien analiza).
+    const { data, error } = await supabase.rpc(RPC_PREPARACION as never, {} as never);
+    if (error) throw error;
+    return leerPreparacion(data).map((f) => ({ ...preparacionDeSede(f), dias: f.dias, hoy: f.hoy, primeraVenta: f.primeraVenta }));
+  });
+  const filas = datosDe(lectura);
+  return filas ? { filas, falla: null } : { filas: [], falla: "No se pudo leer si el sistema ya puede recomendar en cada tienda" };
 }
 
 /** Si no se pudo leer el precio propio de mi tienda, las cifras en soles quedan con el precio de la prenda y la pantalla lo dice. */
@@ -64,14 +68,20 @@ async function leerFrescura(
   const umbrales = new Map<string, UmbralesQuieta>();
   if (!conFrescura) return { estado: "sin_modulo", dudas, umbrales };
   if (activa.tipo !== "tienda") return { estado: "no_aplica", dudas, umbrales };
-  const lectura = await getLecturaFrescuraDeTienda({ id: activa.id, nombre: activa.nombre });
-  if (lectura.fallo !== null || lectura.datos === null) {
-    console.error(`Frescura de Análisis: ${lectura.fallo ?? "sin datos"}`);
-    return { estado: "fallo", dudas, umbrales };
-  }
-  if (!lectura.datos.separaPiso) return { estado: "no_aplica", dudas, umbrales };
-  for (const prenda of lectura.datos.prendas) for (const t of prenda.tallas) if ((t.dudadas ?? 0) > 0) dudas.set(t.varianteId, t.dudadas!);
-  return { estado: "ok", dudas, umbrales: umbralesPorTipo(lectura.datos.categorias) };
+  // Frescura no lanza: su falla vuelve en `fallo`, que puede traer el nombre de la sede. Una falla se relanza para que cuente como error
+  // (no como «sin datos»); `avisoDeFalla` solo copia el código del error, nunca su mensaje: a Sentry llega el id de la tienda y no su
+  // texto. Los caminos de adentro de Frescura escriben sus propios logs (`frescura-reglas.ts`); si falla lo de afuera (el cliente, el
+  // respaldo de CAYLA), el texto solo se ve en la terminal de desarrollo (`leerPieza`).
+  const frescura = await leerPieza("frescura", { ubicacion_id: activa.id }, async () => {
+    const lectura = await getLecturaFrescuraDeTienda({ id: activa.id, nombre: activa.nombre });
+    if (lectura.fallo !== null) throw new Error(lectura.fallo);
+    return lectura.datos;
+  });
+  const datos = datosDe(frescura);
+  if (datos === null) return { estado: "fallo", dudas, umbrales };
+  if (!datos.separaPiso) return { estado: "no_aplica", dudas, umbrales };
+  for (const prenda of datos.prendas) for (const t of prenda.tallas) if ((t.dudadas ?? 0) > 0) dudas.set(t.varianteId, t.dudadas!);
+  return { estado: "ok", dudas, umbrales: umbralesPorTipo(datos.categorias) };
 }
 
 /** `conFrescura`: si quien mira ve Frescura del piso (la base no le deja leerla sin el módulo). */
@@ -81,36 +91,30 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false 
   const sedes: SedeAnalisis[] = ordenadas.map(sedeDeAnalisis);
   const ids = sedes.map((s) => s.id);
 
+  const idActiva = { ubicacion_id: activa.id };
   const [motor, lectura, llegan, liquidar, rinde, conteos, pedidos, preciosPropios, sinPrenda, frescura, pendientes] = await Promise.all([
     leerPreparacionDeLaRed(),
     getPrendasPorSede(ids),
     getPorLlegar(activa.id),
     getLiquidarDesde(),
     getRindePorCategoria(activa.id),
-    getConteosResumen(activa.id, 5).catch((e: unknown) => {
-      console.error(`conteos de Análisis: ${e instanceof Error ? e.message : String(e)}`);
-      return null;
-    }),
-    getPedidosNoAtendidos(activa.id).catch((e: unknown) => {
-      console.error(`pedidos no atendidos de Análisis: ${e instanceof Error ? e.message : String(e)}`);
-      return null;
-    }),
-    // El precio de MI tienda (su precio propio, si lo tiene): solo la mía, de las otras no se lee precio. No lanza; si falla, mi
-    // tienda no aparece en el mapa y se dice (más abajo) en vez de mostrar el precio de la prenda como si fuera el de la caja.
-    getPreciosPorSede([activa.id]),
+    leerPieza("conteos", idActiva, () => getConteosResumen(activa.id, 5)).then(datosDe),
+    leerPieza("pedidos_no_atendidos", idActiva, () => getPedidosNoAtendidos(activa.id)).then(datosDe),
+    // El precio de MI tienda (su precio propio, si lo tiene): solo la mía, de las otras no se lee precio. Si falla, mi tienda no
+    // aparece en el mapa (`getPreciosPorSede` no lanza) y se dice (más abajo) en vez de mostrar el precio de la prenda como si fuera
+    // el de la caja.
+    leerPieza("precios_de_mi_tienda", idActiva, async () => (await getPreciosPorSede([activa.id]))[activa.id] ?? null).then(datosDe),
     // Lo vendido sin registrar de mi tienda en los mismos 30 días de Lima que `vendidas30` (hoy incluido): cuenta en «Qué pedir» por tipo.
     // Si falla, «Qué pedir» cuenta solo lo vendido con su prenda, como antes, y se dice.
-    createClient()
-      .then((supabase) => leerVendidoSinRegistrar(supabase, activa.id, `${sumarDias(hoyLima(), -(VENTANA_VENTAS - 1))}T00:00:00-05:00`))
-      .catch((e: unknown) => {
-        console.error(`vendido sin registrar de Análisis: ${e instanceof Error ? e.message : String(e)}`);
-        return null;
-      }),
+    leerPieza("vendido_sin_registrar", idActiva, async () => {
+      const supabase = await createClient();
+      return leerVendidoSinRegistrar(supabase, activa.id, `${sumarDias(hoyLima(), -(VENTANA_VENTAS - 1))}T00:00:00-05:00`);
+    }).then(datosDe),
     leerFrescura(activa, conFrescura),
     // Las ventas sin prenda que todavía se pueden registrar: el número del botón «Registrar N» (las cerradas ya no vuelven).
-    createClient().then((supabase) => contarPendientes(supabase, activa.id)),
+    leerPieza("pendientes_por_registrar", idActiva, async () => contarPendientes(await createClient(), activa.id)).then(datosDe),
   ]);
-  const preciosDeMiTienda = preciosPropios[activa.id];
+  const preciosDeMiTienda = preciosPropios ?? undefined;
 
   const liquidarDesde = liquidarDesdeValido(liquidar.dias);
   const prepDe = (id: string) => motor.filas.find((f) => f.ubicacionId === id) ?? null;
@@ -159,6 +163,7 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false 
     rinde: rinde.rinde,
     conteo: ultimoConteo ? { contadas: ultimoConteo.lineas, coinciden: Math.max(0, ultimoConteo.lineas - ultimoConteo.lineasConDiferencia) } : null,
     noHabia: noHabiaDe(pedidos ?? []),
+    sedesSinLeer: lectura.sedesSinLeer,
     fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, preciosDeMiTienda === undefined ? FALLA_PRECIOS_DE_MI_TIENDA : null, llegan.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null, sinPrenda === null ? FALLA_SIN_PRENDA : null, frescura.estado === "fallo" ? FALLA_FRESCURA : null].filter(
       (f): f is string => f !== null,
     ),

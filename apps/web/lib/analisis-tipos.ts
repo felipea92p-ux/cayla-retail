@@ -208,6 +208,10 @@ export type DatosAnalisis = {
   conteo: { contadas: number; coinciden: number } | null;
   /** «Te pidieron y no había», sin resolver: qué se pidió y el día de Lima en que se anotó (YYYY-MM-DD; null si no se lee). */
   noHabia: { que: string; dia: string | null }[];
+  /** Los ids de las tiendas cuya lectura no respondió (error, sin datos o tope vencido; `getPrendasPorSede`). Si está la mía
+   *  (`miTiendaSinLeer`), las listas vienen vacías porque no se leyeron, no porque no haya nada: la pantalla lo dice en vez de «sin
+   *  ventas». Qué hace cada regla con una OTRA tienda sin leer (hoy cuenta 0) lo decide A11, no este campo. */
+  sedesSinLeer: string[];
   /** Lo que no se pudo leer (principio 9): cada parte que falló, en una frase. Vacío si todo respondió. */
   fallas: string[];
 };

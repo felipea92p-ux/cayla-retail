@@ -411,3 +411,56 @@ se puede saber» hasta que algún modelo cumpla su umbral; «Ver qué falta» di
 **Queda abierto.** Probar con una encargada real y pasar `/formidable` y `/chaos` (la hoja «Liquidar desde» sigue siendo la única escritura);
 «Qué pedir» contra Navidad fija o contra el Plan de campaña (tarea #5, decide Felipe); la curva de tallas de «Qué pedir» todavía no suma la talla
 de lo vendido sin registrar.
+
+## Actualización 2026-10-16 — Análisis para decidir compras
+
+Cuatro cosas que se tocan para que quien COMPRA decida con acierto (qué comprar o producir, cuándo, qué mandar, qué rebajar). Cada actividad
+agrega su viñeta aquí; la decisión 7 («Análisis no sugiere cantidades») sigue intacta.
+
+- **A14 · Lo que se degrada avisa, y las 11 lecturas de Análisis no esperan más de 7 s** (solo web, sin migración).
+  - **El problema.** Cada visita lanza de 11 a 17 lecturas a la vez y ninguna tenía tope de espera: el 16-oct a las 21:54 hubo unas 100
+    respuestas 520, 522 y 525 de Supabase, y `fn_mis_modulos` y `fn_es_admin` llegaron a 40 s. Cuando una pieza se degradaba con gracia
+    (principio 9) el único rastro era un `console.error` que no llega a Sentry (unos 15 en la ruta de Análisis; 0 issues de Análisis en 30 días):
+    nadie se enteraba. Y si fallaba la lectura de LA TIENDA ACTIVA, sus listas venían vacías y «Qué pedir» decía «Sin ventas en N días»: se lee
+    «no se vendió, no pidas».
+  - **Un resultado común** (`lib/analisis-con-tope.ts`, `ResultadoLectura<T>`): ok · sin módulo · no se pudo · tope vencido. Cada lector lo
+    consume por dentro y devuelve lo de siempre (`{ …, falla }`): `fallas` no cambia de significado. **`leerPieza` produce tres de las cuatro**
+    (ok, no se pudo, tope vencido): `sin_modulo` queda RESERVADO en el tipo, porque hoy lo decide `leerFrescura` antes de leer y lo guarda en su
+    propio `estado` (Frescura es la única pieza que depende de un módulo). A `DatosAnalisis` no sube el resultado crudo sino lo que las pestañas
+    usan: **`sedesSinLeer`** (ids, de `getPrendasPorSede`), `frescura` y `fallas`; si A2, A7 o A11 necesitan el motivo por pieza (tope o error),
+    se sube entonces. Qué hace `grupoDe` con una tienda sin leer sigue como hoy (cuenta 0): es A11.
+  - **Tope de espera de 7 s** (`conTope`, `TOPE_LECTURA_MS`), por lectura y sin reintentos. Es MENOR que los 8 s del `statement_timeout` del rol
+    `authenticated` a propósito: la base ya corta sola una consulta lenta, así que el tope web solo cubre lo que la base no puede cortar (la red
+    entre Vercel y Supabase colgada, como el 16-oct) y de paso deja de esperar una consulta que va a morir igual. No corta una lectura sana pero
+    lenta: lo más lento medido en Análisis fue 3,8 s. No cancela la petición (solo deja de esperarla). **Sin reintentos propios**; ojo, el cliente de
+    Supabase (postgrest-js) SÍ reintenta por dentro las lecturas GET y HEAD (`.from().select()`, `head: true`: pendientes por registrar, vendido
+    sin registrar) hasta 3 veces, con 1, 2 y 4 s de espera, ante un 520, un 503 o un corte de red; las RPC son POST y no se reintentan. El tope
+    acota la espera de la pantalla igual (a los 7 s deja de esperar), pero esas peticiones siguen en segundo plano. Si se quiere que una caída
+    520 no las cuente, `.retry(false)` en esas lecturas (son de otro módulo: pide OK). **No cubre** las lecturas del layout (`fn_mis_modulos`,
+    `fn_es_admin`), que fueron las de 40 s, ni `exigirModulo` y `getUbicaciones` de la página: una caída como la del 16-oct puede colgar la
+    página ANTES de llegar a las 11 lecturas.
+  - **Aviso a Sentry por pieza** (`lib/analisis-lectura.ts:leerPieza` → `capturarError`, ADR-0424): `analisis.<pieza>`, **a lo más uno por pieza
+    y por hora** por instancia del servidor (11 lecturas fallando son UN aviso), sin Sentry no sale nada. Lleva ids con forma de uuid, el motivo
+    (error, sin datos, tope vencido), los ms y el código del error (SQLSTATE; o el de red cuando `fetch` falla, que postgrest-js deja entre
+    paréntesis en `details`: `(ENOTFOUND)`); **el mensaje de quien falló NO viaja** (puede traer lo que devolvió la base) ni el texto de Frescura
+    (trae el nombre de la sede; una Frescura que devuelve su `fallo` avisa como error, con mensaje fijo). Un 520, 522 o 525 de afuera llega con
+    el cuerpo de la respuesta y sin código: de esos solo viajan el motivo y los ms. Para quien programa, en `next dev` la terminal sí escribe el
+    mensaje real (`console.warn`, solo con `NODE_ENV = development`): sin eso, una RPC que falta en la base local quedaba sin explicación. Una lectura SANA de `fn_analisis_sede` que tarde 3 s o más se
+    avisa aparte (`analisis.sede.lenta`, con su propia hora de freno para que no calle una falla real): es la única que crece con toda la historia (~2,3 ms por día; llegaría a 8 s entre mediados de 2027 y
+    2028) y es el disparador de guardar un resumen por tienda y prenda, aplazado hasta entonces.
+  - **«No se pudo leer tu tienda»** (`miTiendaSinLeer`, `AnalisisPantalla`): si la mía está en `sedesSinLeer`, las cinco pestañas dicen eso (con
+    `<Aviso tono="error">`, como el «No pude ver tus prendas» de Se está acabando) y las cuentas de las pestañas pasan a «—». También en
+    «Todavía no» (cuando la tienda no cumple las tres condiciones): sus cuadros «Lo más vendido con su prenda» y «Modelos de …» dicen que no se
+    pudo leer en vez de «Sin ventas…» y «Sin prendas…». El chip de arriba pasa a «Sin leer» (no puede decir «Datos confiables» al lado) y la nota
+    gris de las fallas ya no cierra con «Lo demás está al día». Las decisiones son puras y están probadas (`contenidoDeAnalisis`, `hayCuentas`,
+    `confianzaDelDato`, `notaDeFallas`, `textoSiVacio`: las 5 pestañas × tienda leída o no × se recomienda o no).
+  - **Lo descartado.** `captureConsole` de Sentry (manda cada `console.error` de todo el ERP, con lo que traiga); copiar el mensaje del error al
+    aviso; un botón «Volver a leer» en el aviso (un control nuevo, cambia la huella de la guía y la frase ya dice qué hacer); un tope de ~10 s (mayor que los 8 s de la base: nunca sería el que corta); un `AbortSignal` (los lectores compartidos crean su propio
+    cliente); dividir `loading.tsx`, `Suspense` por pieza, `next/dynamic` y una RPC liviana para las otras tiendas (aplazados: sin medición no se
+    justifican); editar `lib/frescura.ts` (es de Frescura: sus `console.error` se quedan en los logs; el `console.error` del Inicio, lo mismo).
+  - **Cómo se verifica.** `pnpm --filter web exec vitest run lib/analisis-con-tope lib/analisis-lectura lib/analisis-lecturas`: el tope
+    (resuelve, vence, falla), el freno de una hora, que el aviso no lleva nombres ni DNI, `sedesSinLeer` con una tienda caída y otra colgada,
+    que las `fallas` son las mismas frases de siempre y que una caída total arma la pantalla al vencer el tope. En producción solo se ve
+    cuando algo se degrada de verdad: aparece el issue `analisis.<pieza>` en Sentry (si Felipe ya lo encendió, ADR-0424); sin Sentry queda la
+    línea JSON en los logs de Vercel. **Sin confirmar:** que el aviso salga desde el render de una pantalla (hasta hoy todo `capturarError` del
+    repo corre en rutas de API); al encender Sentry se provoca una degradación en una vista previa y se mira que llegue (backlog de este día).

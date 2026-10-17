@@ -22,6 +22,7 @@ import { coincideBusqueda, GRUPOS_ACABA, GRUPOS_QUIETAS, prendasDe } from "@/lib
 import { nuncaSalio } from "@/lib/analisis-piso";
 import { lineasParaPedir } from "@/lib/analisis-acciones";
 import { AVISO_QUE_FALTA, avisoDatosDeHoy, modoAnalisis, PARAM_QUE_FALTA, VALOR_QUE_FALTA } from "@/lib/analisis-aviso";
+import { confianzaDelDato, contenidoDeAnalisis, hayCuentas, miTiendaSinLeer, notaDeFallas, TEXTO_TIENDA_SIN_LEER, type ConfianzaDelDato } from "@/lib/analisis-con-tope";
 import { Buscador } from "@/components/ui/Buscador";
 import { Aviso } from "@/components/ui/Aviso";
 
@@ -226,19 +227,49 @@ export function AnalisisPantalla({
     }
   };
 
-  const cuentaAcaba = recomienda ? prendasDe(datos.prendas, GRUPOS_ACABA, liquidarDesde).length : null;
-  const cuentaQuietas = recomienda ? prendasDe(datos.prendas, GRUPOS_QUIETAS, liquidarDesde).length : null;
+  // Si mi tienda no se pudo leer, sus listas vienen vacías por eso y no por falta de prendas: ninguna cuenta («—») ni pestaña dice
+  // «sin ventas» o «nada se acaba» (se leería «no se vendió, no pidas»). Dice que no se pudo leer (principio 9). Las decisiones son puras y
+  // están probadas en `lib/analisis-con-tope.ts`; «Todavía no» (la tienda no cumple) lleva el mismo cuidado por dentro (`textoSiVacio`).
+  const sinLeer = miTiendaSinLeer(datos);
+  const conCuentas = hayCuentas(recomienda, sinLeer);
+  const cuentaAcaba = conCuentas ? prendasDe(datos.prendas, GRUPOS_ACABA, liquidarDesde).length : null;
+  const cuentaQuietas = conCuentas ? prendasDe(datos.prendas, GRUPOS_QUIETAS, liquidarDesde).length : null;
   // Sin saber cuándo salió al piso cada prenda (la base sin 20261007120000), «—»: nunca una cuenta inventada.
-  const cuentaPiso = recomienda && datos.sabePiso ? datos.prendas.filter(nuncaSalio).length : null;
+  const cuentaPiso = conCuentas && datos.sabePiso ? datos.prendas.filter(nuncaSalio).length : null;
   const mia = datos.preparacion.find((p) => p.ubicacionId === datos.sede.id);
+  const notaFallas = notaDeFallas(datos.fallas, sinLeer);
 
   let contenido;
-  if (!recomienda) contenido = vista === "hoy" ? <HoyTodaviaNo /> : <VistaTodaviaNo />;
-  else if (vista === "hoy") contenido = <PestanaHoy />;
-  else if (vista === "acaba") contenido = <PestanaAcaba />;
-  else if (vista === "nose") contenido = <PestanaQuieta />;
-  else if (vista === "piso") contenido = <PestanaPiso />;
-  else contenido = <PestanaPedir />;
+  switch (contenidoDeAnalisis({ recomienda, sinLeer, vista })) {
+    case "todavia-no-hoy":
+      contenido = <HoyTodaviaNo />;
+      break;
+    case "todavia-no-otra":
+      contenido = <VistaTodaviaNo />;
+      break;
+    case "tienda-sin-leer":
+      contenido = (
+        <Aviso tono="error" titulo={TEXTO_TIENDA_SIN_LEER.titulo}>
+          {TEXTO_TIENDA_SIN_LEER.linea}
+        </Aviso>
+      );
+      break;
+    case "hoy":
+      contenido = <PestanaHoy />;
+      break;
+    case "acaba":
+      contenido = <PestanaAcaba />;
+      break;
+    case "nose":
+      contenido = <PestanaQuieta />;
+      break;
+    case "piso":
+      contenido = <PestanaPiso />;
+      break;
+    case "pedir":
+      contenido = <PestanaPedir />;
+      break;
+  }
 
   return (
     <Contexto.Provider value={contexto}>
@@ -254,7 +285,7 @@ export function AnalisisPantalla({
           cuentaAcaba={cuentaAcaba}
           cuentaQuietas={cuentaQuietas}
           cuentaPiso={cuentaPiso}
-          puedeHablar={datos.puedeHablar}
+          confianza={confianzaDelDato(datos.puedeHablar, sinLeer)}
           onConfianza={() => setConfianza(true)}
         />
 
@@ -274,9 +305,9 @@ export function AnalisisPantalla({
           </Aviso>
         )}
 
-        {datos.fallas.length > 0 && (
+        {notaFallas && (
           <p className="nota-cayla mt-4" role="status">
-            {datos.fallas.join(". ")}. Lo demás está al día.
+            {notaFallas}
           </p>
         )}
 
@@ -315,7 +346,7 @@ function FilaPestanas({
   cuentaAcaba,
   cuentaQuietas,
   cuentaPiso,
-  puedeHablar,
+  confianza,
   onConfianza,
 }: {
   vista: VistaAnalisis;
@@ -323,7 +354,7 @@ function FilaPestanas({
   cuentaAcaba: number | null;
   cuentaQuietas: number | null;
   cuentaPiso: number | null;
-  puedeHablar: boolean;
+  confianza: ConfianzaDelDato;
   onConfianza: () => void;
 }) {
   const items: Pestana[] = PESTANAS.map((p) => {
@@ -339,9 +370,13 @@ function FilaPestanas({
   return (
     <div className="tabs-fila">
       <Pestanas items={items} activa={vista} guia="analisis.pestanas" etiquetaAccesible="Preguntas de Análisis" onCambio={(c) => irA(c as VistaAnalisis)} idIndicador="analisis" />
-      {puedeHablar ? (
+      {confianza === "confiable" ? (
         <ChipEstado est="bien" guia="analisis.confianza" onClick={onConfianza} tip="14 días cobrando con la prenda · piso cuadrado · almacén contado">
           Datos confiables
+        </ChipEstado>
+      ) : confianza === "sin-leer" ? (
+        <ChipEstado est="nd" guia="analisis.confianza" onClick={onConfianza} tip="No se pudo leer tu tienda: no decidas con esta pantalla">
+          Sin leer
         </ChipEstado>
       ) : (
         <ChipEstado est="nd" guia="analisis.confianza" onClick={onConfianza} tip="Todavía no se cumplen las 3 condiciones para recomendar">

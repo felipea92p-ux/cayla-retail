@@ -588,6 +588,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`getLecturaFrescuraDeTienda`, `lib/frescura.ts`): `dudadas` por talla (el grupo «Aún no se sabe») y la vara de cada categoría
   (`lib/analisis-vara.ts`: p75 y p90 de `varaQueJuzgo` como umbrales de «Vigílalas» y «Liquidar»). El cruce es puro:
   `lib/analisis-armado.ts` (`armarPrendas`: cada prenda de mi tienda con lo que tienen y venden las otras y lo que viene en camino).
+  **Cómo se lee y qué pasa si falla (2026-10-16):** toda lectura pasa por `lib/analisis-lectura.ts:leerPieza` (servidor): tope de espera de 7 s
+  (`TOPE_LECTURA_MS`), nunca lanza, devuelve un `ResultadoLectura` (ok · no se pudo · tope vencido; «sin módulo» queda reservado en el tipo: hoy lo
+  decide `leerFrescura` antes de leer) y avisa a Sentry por pieza, a lo más una vez por hora, con ids y códigos (`capturarError`, ADR-0424). Las
+  reglas puras (tope, freno, qué se manda, `miTiendaSinLeer`, y lo que dice la pantalla: `contenidoDeAnalisis`, `hayCuentas`, `confianzaDelDato`,
+  `notaDeFallas`, `textoSiVacio`) están en `lib/analisis-con-tope.ts`; `getPrendasPorSede` suma `sedesSinLeer` y, si falta la MÍA, `AnalisisPantalla`
+  dice «No se pudo leer tu tienda» (también «Todavía no») en vez de «sin ventas».
   · **Contrato y reglas:** `lib/analisis-tipos.ts` (`DatosAnalisis`; `PrendaAnalisis` es una talla de un color) y `lib/analisis-reglas.ts`
   (puro: `grupoDe` decide comprar · enviar · liquidar · vigila · duda, una prenda en un solo grupo, con los umbrales de su tipo o «Liquidar
   desde» de respaldo; `diasQueQuedan` —al ritmo de su ventana, `diasDeVentas`—, `seEstaAcabando`, `nuncaSalio`, `porLlegar`, `otraSedeQueLaTiene`, `sedeQueMasVende`, `edadDelInventario`,
