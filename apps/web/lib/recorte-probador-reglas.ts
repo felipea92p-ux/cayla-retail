@@ -223,6 +223,21 @@ export function recorteDeRespuesta(data: unknown, urlFoto: string): RecorteDeFot
   return recorteDe({ url: base + ruta, proporcion: r.proporcion, estado: r.estado, motivo: r.motivo });
 }
 
+/**
+ * Cómo dejar un recorte recién descartado tal como estaba (/formidable, 2026-10-17: «Descartar» no traía «Deshacer» y un descarte por
+ * error obligaba a buscar la foto entre cientos). Se vuelve a anotar el MISMO archivo con su motivo de antes (`registrar_recorte`): con
+ * motivo vuelve a «por revisar», sin él a «listo». `null` si la dirección no es la de un recorte del almacén (no se adivina).
+ */
+export function paraDeshacerElDescarte(
+  foto: string,
+  antes: RecorteDeFoto,
+): { p_foto: string; p_recorte: string; p_proporcion: number; p_motivo: MotivoRecorte | null } | null {
+  if (antes.estado === "descartado") return null;
+  const ruta = /\/storage\/v1\/object\/public\/retail-productos-fotos\/(recortes\/[^/?#]+\.png)(?:[?#].*)?$/.exec(antes.url)?.[1];
+  if (!ruta) return null;
+  return { p_foto: foto, p_recorte: ruta, p_proporcion: antes.proporcion, p_motivo: antes.estado === "por_revisar" ? antes.motivo : null };
+}
+
 /** El motivo de un error de las funciones de recortes, en palabras de la pantalla (`null` si no es uno de ellas). */
 export function errorDeRecorte(texto: string): string | null {
   if (texto.includes("recorte_sin_permiso")) return "Para guardar recortes necesitas la Vitrina web o poder editar el catálogo.";

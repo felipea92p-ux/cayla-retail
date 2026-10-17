@@ -11,6 +11,7 @@ import {
   esFondoBlanco,
   leerRecortes,
   motivoDelRecorte,
+  paraDeshacerElDescarte,
   porRecortar,
   porRevisar,
   recorteDeRespuesta,
@@ -201,5 +202,24 @@ describe("errorDeRecorte", () => {
     expect(errorDeRecorte("ERROR: recorte_archivo_no_existe")).toMatch(/almacén/);
     expect(errorDeRecorte("recorte_no_existe")).toMatch(/todavía no tiene recorte/);
     expect(errorDeRecorte("otra cosa")).toBeNull();
+  });
+});
+
+describe("paraDeshacerElDescarte: el recorte vuelve tal como estaba", () => {
+  const url = "https://abc.supabase.co/storage/v1/object/public/retail-productos-fotos/recortes/f1-a1b2c3.png";
+
+  it("uno por revisar vuelve a por revisar, con su motivo; uno listo vuelve a listo", () => {
+    expect(paraDeshacerElDescarte("fotos/f1.jpg", { url, proporcion: 0.62, estado: "por_revisar", motivo: "huecos" })).toEqual({
+      p_foto: "fotos/f1.jpg",
+      p_recorte: "recortes/f1-a1b2c3.png",
+      p_proporcion: 0.62,
+      p_motivo: "huecos",
+    });
+    expect(paraDeshacerElDescarte("fotos/f1.jpg", { url: `${url}?v=2`, proporcion: 0.62, estado: "listo", motivo: null })?.p_motivo).toBeNull();
+  });
+
+  it("no adivina: una dirección que no es de un recorte del almacén, o uno ya descartado, no se deshace", () => {
+    expect(paraDeshacerElDescarte("fotos/f1.jpg", { url: "https://otro.com/x.png", proporcion: 1, estado: "listo", motivo: null })).toBeNull();
+    expect(paraDeshacerElDescarte("fotos/f1.jpg", { url, proporcion: 1, estado: "descartado", motivo: null })).toBeNull();
   });
 });
