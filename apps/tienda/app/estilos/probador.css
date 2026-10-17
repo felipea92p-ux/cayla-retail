@@ -82,10 +82,15 @@
 
 /* ---- La tira de opciones de la zona elegida ---- */
 .pb-tira { padding-top: 4px; }
-.pb-tira-cab { margin: 0; padding: 0 16px; min-height: 40px; display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; overflow: hidden; }
+.pb-tira-cabeza { padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pb-tira-cab { margin: 0; min-width: 0; min-height: 40px; display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; overflow: hidden; }
 .pb-tira-num { width: 22px; height: 22px; flex: none; border-radius: 50%; background: var(--rojo); color: var(--papel); font-size: 11px; letter-spacing: 0; display: inline-flex; align-items: center; justify-content: center; }
 .pb-tira-num .ic { width: 12px; height: 12px; stroke-width: 2.4; }
 .pb-tira-ayuda { font-weight: 500; letter-spacing: 0; text-transform: none; font-size: 12.5px; color: var(--tinta-60); }
+.pb-tira-todas { min-height: 40px; flex: none; padding: 0; border: 0; background: transparent; display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--tinta); cursor: pointer; }
+.pb-tira-todas .ic { width: 14px; height: 14px; transition: transform .2s var(--ease); }
+@media (hover: hover) { .pb-tira-todas:hover .ic { transform: translateX(3px); } }
+.pb-tira-todas:focus-visible, .pb-buscar-otra:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
 .pb-tira-carril { padding: 2px 16px 6px; display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-left: 16px; scrollbar-width: none; }
 .pb-tira-carril::-webkit-scrollbar { display: none; }
 .pb-opcion { flex: none; width: 72px; border: 0; background: transparent; padding: 0; display: flex; flex-direction: column; gap: 5px; text-align: left; font: inherit; color: var(--tinta); cursor: pointer; scroll-snap-align: start; }
@@ -110,6 +115,8 @@
 .pb-ninguna-caja { width: 72px; height: 84px; box-sizing: border-box; border-radius: 4px; border: 1.5px dashed var(--pb-filo); display: grid; place-items: center; color: var(--taupe); transition: box-shadow .2s; }
 .pb-ninguna[aria-pressed="true"] .pb-ninguna-caja { box-shadow: inset 0 0 0 1.5px var(--tinta); border-color: transparent; }
 .pb-ninguna-caja .ic { width: 22px; height: 22px; }
+.pb-buscar-otra { flex: none; width: 72px; height: 84px; box-sizing: border-box; padding: 0; border-radius: 4px; border: 1.5px dashed var(--pb-filo); background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font: inherit; font-size: 11.5px; font-weight: 600; line-height: 1.2; text-align: center; color: var(--tinta); cursor: pointer; scroll-snap-align: start; }
+.pb-buscar-otra .ic { width: 20px; height: 20px; }
 .pb-separador { flex: none; width: 56px; height: 84px; display: flex; align-items: center; justify-content: center; border-left: 1px solid var(--sand); margin-left: 2px; font-family: var(--serif); font-style: italic; font-size: 15px; line-height: 1.1; color: var(--taupe); text-align: center; }
 
 /* ---- «Tu look» ---- */
@@ -161,6 +168,71 @@
 .pb-aviso-zona { position: fixed; left: 0; right: 0; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 50; display: flex; justify-content: center; pointer-events: none; }
 .pb-aviso { max-width: calc(100% - 32px); padding: 11px 18px; border-radius: 999px; background: var(--tinta); color: var(--crema); font-size: 13px; font-weight: 600; text-align: center; box-shadow: 0 12px 26px var(--sombra); animation: pb-aviso .35s var(--ease) both; }
 
+/* ---- Buscar una prenda y ver todas las de una zona (actividad 5, lienzo `V3Buscar`): una hoja a pantalla completa ---- */
+.pb-buscar { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: var(--crema); color: var(--tinta); overflow-y: auto; overscroll-behavior: contain; }
+.pb-buscar[open] { animation: pb-bus-entra .3s var(--ease) both; }
+.pb-buscar::backdrop { background: transparent; }
+.pb-bus { width: 100%; max-width: 440px; margin-inline: auto; padding-bottom: 110px; }
+.pb-bus-cab { position: sticky; top: 0; z-index: 2; padding: 8px 16px 0; display: flex; align-items: center; gap: 10px; background: var(--crema); }
+.pb-bus-volver { width: 44px; height: 44px; flex: none; padding: 0; border: 0; border-radius: 50%; background: transparent; box-shadow: inset 0 0 0 1px var(--sand); color: var(--tinta); display: grid; place-items: center; cursor: pointer; }
+.pb-bus-volver .ic { width: 16px; height: 16px; }
+.pb-bus-caja { flex: 1; min-width: 0; height: 48px; box-sizing: border-box; padding: 0 6px 0 16px; border-radius: 999px; background: var(--papel); box-shadow: inset 0 0 0 1.5px var(--tinta); display: flex; align-items: center; gap: 10px; }
+.pb-bus-caja > .ic { width: 17px; height: 17px; flex: none; }
+.pb-bus-caja input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; background: transparent; outline: none; font: inherit; font-size: 16px; color: var(--tinta); }
+.pb-bus-caja input::placeholder { color: var(--tinta-60); }
+.pb-bus-caja input::-webkit-search-cancel-button { display: none; }
+.pb-bus-borrar { width: 36px; height: 36px; flex: none; padding: 0; border: 0; border-radius: 50%; background: var(--hueso); color: var(--tinta); display: grid; place-items: center; cursor: pointer; }
+.pb-bus-borrar .ic { width: 12px; height: 12px; stroke-width: 2.2; }
+.pb-bus-zonas { margin-top: 12px; padding: 0 16px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.pb-bus-zonas::-webkit-scrollbar { display: none; }
+.pb-bus-zona { height: 36px; flex: none; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; box-shadow: inset 0 0 0 1px var(--pb-filo); color: var(--tinta); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background-color .2s, color .2s; }
+.pb-bus-zona[aria-pressed="true"] { background: var(--tinta); color: var(--crema); box-shadow: none; }
+.pb-bus-conteo { margin: 14px 16px 0; min-height: 44px; display: flex; align-items: center; border-bottom: 1px solid var(--sand); font-size: 13px; color: var(--tinta-60); }
+.pb-bus-cuerpo { padding: 18px 16px 0; display: flex; flex-direction: column; gap: 26px; }
+.pb-bus-portada { display: flex; flex-direction: column; gap: 10px; }
+.pb-bus-portada h1, .pb-bus-vacio h1 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 32px; line-height: 1; }
+.pb-bus-portada p, .pb-bus-vacio p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--tinta-60); }
+.pb-bus-sugeridas { display: flex; flex-wrap: wrap; gap: 8px; }
+.pb-bus-sugerida { height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--papel); box-shadow: inset 0 0 0 1px var(--sand); font: inherit; font-size: 14px; font-weight: 500; color: var(--tinta); cursor: pointer; }
+.pb-bus-grupo { display: flex; flex-direction: column; gap: 12px; }
+.pb-bus-grupo h2 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); }
+.pb-bus-cuantas { min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: var(--hueso); color: var(--tinta); font-size: 11px; letter-spacing: 0; display: inline-flex; align-items: center; justify-content: center; }
+.pb-bus-nota { font-weight: 500; letter-spacing: 0; text-transform: none; font-size: 12.5px; color: var(--tinta-60); }
+.pb-bus-grilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; }
+.pb-bus-tarjeta { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.pb-bus-foto { position: relative; height: 216px; border-radius: 4px; background: radial-gradient(90% 70% at 50% 40%, var(--t-foto), var(--t-lamina)); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.pb-bus-recorte { position: relative; width: 78%; height: 80%; filter: drop-shadow(0 10px 12px color-mix(in srgb, var(--t-tinta-fija) 14%, transparent)); transition: opacity .25s; }
+.pb-bus-foto[data-agotada] .pb-bus-recorte { opacity: .42; }
+.pb-bus-foto .pb-chip { left: 8px; top: 8px; padding: 3px 8px; font-size: 10.5px; }
+.pb-bus-probar { position: absolute; right: 8px; bottom: 8px; height: 40px; padding: 0 14px 0 12px; border: 0; border-radius: 999px; background: var(--t-tinta-fija); color: var(--t-papel-fijo); box-shadow: 0 6px 14px color-mix(in srgb, var(--t-tinta-fija) 16%, transparent); display: flex; align-items: center; gap: 6px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; transition: background-color .2s, color .2s, transform .15s; }
+.pb-bus-probar:active { transform: scale(.97); }
+.pb-bus-probar .ic { width: 13px; height: 13px; stroke-width: 2.4; }
+/* Ya puesta: la píldora clara del estudio, con la tinta fija (con `--verde` quedaba verde claro sobre claro en oscuro). */
+.pb-bus-probar[data-estado="en-tu-look"] { background: var(--t-papel-fijo); color: var(--t-tinta-fija); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--t-tinta-fija) 22%, var(--t-papel-fijo)), 0 4px 12px color-mix(in srgb, var(--t-tinta-fija) 12%, transparent); }
+.pb-bus-probar[data-estado="agotada"] { background: var(--sand); color: var(--tinta-60); box-shadow: none; cursor: not-allowed; }
+.pb-bus-probar:focus-visible, .pb-bus-zona:focus-visible, .pb-bus-sugerida:focus-visible, .pb-bus-volver:focus-visible, .pb-bus-borrar:focus-visible, .pb-bus-aviso-ir:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.pb-bus-colores { display: flex; gap: 2px; margin: 0 -4px; }
+.pb-muestra-chica { width: 30px; height: 30px; }
+.pb-muestra-chica > span { width: 20px; height: 20px; }
+.pb-bus-nombre { font-size: 13.5px; font-weight: 600; line-height: 1.3; }
+.pb-bus-precio { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.pb-bus-precio b { font-size: 13.5px; }
+.pb-bus-precio b.oferta { color: var(--rojo); }
+.pb-bus-precio s { font-size: 12px; color: var(--tinta-60); }
+.pb-bus-hay { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.pb-bus-hay::before { content: ""; width: 6px; height: 6px; flex: none; border-radius: 50%; background: currentColor; }
+.pb-bus-sin-foto { font-size: 11.5px; line-height: 1.35; color: var(--taupe); }
+.pb-bus-vacio { padding: 30px 8px 0; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.pb-bus-vacio h1 { margin-top: 6px; font-size: 25px; line-height: 1.15; }
+.pb-bus-vacio .pb-bus-sugeridas { justify-content: center; margin-top: 6px; }
+.pb-bus-vacio-ic { width: 64px; height: 64px; border-radius: 50%; background: var(--hueso); display: grid; place-items: center; }
+.pb-bus-vacio-ic .ic { width: 26px; height: 26px; }
+.pb-bus-aviso { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 5; width: min(408px, calc(100% - 32px)); box-sizing: border-box; transform: translateX(-50%); padding: 10px 8px 10px 18px; border-radius: 22px; background: var(--tinta); color: var(--crema); display: flex; align-items: center; gap: 12px; box-shadow: 0 14px 30px var(--sombra); animation: pb-bus-aviso .35s var(--ease) both; }
+.pb-bus-aviso-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pb-bus-aviso-txt b { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pb-bus-aviso-txt span { font-size: 12.5px; color: color-mix(in srgb, var(--crema) 78%, var(--tinta)); }
+.pb-bus-aviso-ir { height: 44px; flex: none; padding: 0 16px; border: 0; border-radius: 999px; background: var(--crema); color: var(--tinta); font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+
 /* ---- Mientras llega (`FormaDelEsqueleto`, el esqueleto del catálogo): el arco que brilla y la tira, donde van a caer ---- */
 .t-esqueleto[data-forma="probador"] { padding: 0; }
 .pb-esq-ceja { display: block; width: 92px; height: 10px; border-radius: 3px; background: var(--hueso); }
@@ -178,9 +250,11 @@
 @keyframes pb-tinte { from { opacity: .2; } }
 @keyframes pb-tinte-2 { from { opacity: .2; } }
 @keyframes pb-aviso { from { opacity: 0; transform: translateY(10px); } }
+@keyframes pb-bus-entra { from { opacity: 0; transform: translateY(18px); } }
+@keyframes pb-bus-aviso { from { opacity: 0; transform: translate(-50%, 10px); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .pb, .pb * { animation: none !important; transition: none !important; }
+  .pb, .pb *, .pb-buscar, .pb-buscar * { animation: none !important; transition: none !important; }
   /* Quieto, el arco que brilla es liso: el degradado detenido dejaba una franja. */
   .pb-esq-arco { background: var(--t-foto); }
 }

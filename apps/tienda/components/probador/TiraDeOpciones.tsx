@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { soles } from "@/lib/catalogo";
 import { pctTexto } from "@/lib/portada";
 import { agotada, colorPara, deLaZona, NOMBRE_ZONA, OPCIONAL, type Look, type PrendaDelProbador, type Zona } from "@/lib/probador";
+import type { FiltroDeZona } from "@/lib/probador-buscar";
 import { Icono } from "../Icono";
 import { Recorte } from "./Recorte";
 
@@ -23,6 +24,7 @@ export function TiraDeOpciones({
   numero,
   onPoner,
   onQuitar,
+  onBuscar,
 }: {
   prendas: readonly PrendaDelProbador[];
   look: Look;
@@ -31,6 +33,8 @@ export function TiraDeOpciones({
   numero: Readonly<Partial<Record<Zona, number>>>;
   onPoner: (p: PrendaDelProbador) => void;
   onQuitar: (zona: Zona) => void;
+  /** Abre la búsqueda: «Ver todas» en esta zona, «Buscar otra» en toda la tienda. */
+  onBuscar: (zona: FiltroDeZona) => void;
 }) {
   const carril = useRef<HTMLDivElement>(null);
   const puesta = look[zona]?.id ?? null;
@@ -101,11 +105,17 @@ export function TiraDeOpciones({
 
   return (
     <section className="pb-tira" aria-label={`Opciones para ${nombre}`}>
-      <p className="pb-tira-cab">
-        <span className="pb-tira-num">{numero[zona] ?? <Icono nombre="mas" />}</span>
-        {NOMBRE_ZONA[zona]}
-        <span className="pb-tira-ayuda">· Desliza o elige</span>
-      </p>
+      <div className="pb-tira-cabeza">
+        <p className="pb-tira-cab">
+          <span className="pb-tira-num">{numero[zona] ?? <Icono nombre="mas" />}</span>
+          {NOMBRE_ZONA[zona]}
+          <span className="pb-tira-ayuda">· Desliza o elige</span>
+        </p>
+        <button type="button" className="pb-tira-todas" onClick={() => onBuscar(zona)} aria-label={`Ver todas las de ${nombre}`}>
+          Ver todas
+          <Icono nombre="flecha" />
+        </button>
+      </div>
       <div className="pb-tira-carril" ref={carril}>
         {OPCIONAL[zona] && (
           <button type="button" className="pb-opcion pb-ninguna" aria-pressed={!puesta} onClick={() => onQuitar(zona)}>
@@ -124,6 +134,14 @@ export function TiraDeOpciones({
             {deLaOtra.map(opcion)}
           </>
         )}
+        <button type="button" className="pb-buscar-otra" onClick={() => onBuscar("todo")}>
+          <Icono nombre="lupa" />
+          <span>
+            Buscar
+            <br />
+            otra
+          </span>
+        </button>
       </div>
     </section>
   );

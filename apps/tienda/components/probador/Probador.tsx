@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cuantasPrendas, soles } from "@/lib/catalogo";
 import {
@@ -23,6 +24,8 @@ import {
   type PrendaDelProbador,
   type Zona,
 } from "@/lib/probador";
+import { busquedaConBuscar, leerFiltroDeZona, PARAMETRO_DE_BUSCAR, type FiltroDeZona } from "@/lib/probador-buscar";
+import { Buscador } from "./Buscador";
 import { Colores } from "./Colores";
 import { Figura, type Entrada, type TipoDeEntrada } from "./Figura";
 import { TiraDeOpciones } from "./TiraDeOpciones";
@@ -85,22 +88,55 @@ export function Probador({
   }, []);
   useEffect(() => () => window.clearTimeout(reloj.current), []);
 
-  // El look en la dirección, sin recargar nada: recargar o compartir deja el mismo, y la franja de tiendas lo conserva.
+  // La búsqueda abierta vive en la dirección (`?buscar=arriba`): «atrás» la cierra, como cualquier pantalla del celular.
+  const buscar = leerFiltroDeZona(useSearchParams().get(PARAMETRO_DE_BUSCAR));
+  const abiertaAqui = useRef(false);
+  useEffect(() => {
+    if (!buscar) abiertaAqui.current = false;
+  }, [buscar]);
+  function abrirBuscar(zona: FiltroDeZona) {
+    window.history.pushState(null, "", `${window.location.pathname}${busquedaConBuscar(window.location.search, zona)}`);
+    abiertaAqui.current = true;
+  }
+  function cerrarBuscar() {
+    if (abiertaAqui.current) {
+      abiertaAqui.current = false;
+      window.history.back();
+    } else {
+      window.history.replaceState(null, "", `${window.location.pathname}${busquedaConBuscar(window.location.search, null)}`);
+    }
+  }
+
+  // El look en la dirección, sin recargar nada: recargar o compartir deja el mismo, y la franja de tiendas lo conserva. También al
+  // cerrar la búsqueda con «atrás»: la página de antes tenía el look de antes.
   const codigo = codificarLook(estado.look, indice);
   useEffect(() => {
     const busqueda = busquedaConLook(window.location.search, codigo || null);
     if (busqueda !== window.location.search) window.history.replaceState(null, "", `${window.location.pathname}${busqueda}`);
-  }, [codigo]);
+  }, [codigo, buscar]);
 
-  function ponerPrenda(p: PrendaDelProbador, dir: -1 | 0 | 1) {
+  /** Poner una prenda en su zona: en el color que se diga (desde la búsqueda) o en el que el cliente ya le eligió. */
+  function ponerPrenda(p: PrendaDelProbador, dir: -1 | 0 | 1, colorPedido?: string) {
     if (agotada(p)) return;
-    if (estado.look[p.zona]?.id === p.id) {
+    const puesta = estado.look[p.zona];
+    if (puesta?.id === p.id && (!colorPedido || colorPedido === puesta.color)) {
       setEstado((s) => (s.zona === p.zona ? s : { ...s, zona: p.zona }));
+      return;
+    }
+    if (puesta?.id === p.id && colorPedido) {
+      // La misma prenda en otro color: solo cambia el color.
+      setEstado((s) => ({
+        ...s,
+        zona: p.zona,
+        look: { ...s.look, [p.zona]: { id: p.id, color: colorPedido } },
+        entradas: entrar(s.entradas, p.zona, "tinte"),
+        recordados: { ...s.recordados, [p.id]: colorPedido },
+      }));
       return;
     }
     const ponesVestido = p.zona === "vestido" && estado.look.vestido === null;
     setEstado((s) => {
-      const color = colorPara(p, s.recordados).codigo;
+      const color = colorPedido ?? colorPara(p, s.recordados).codigo;
       const r = poner(s.look, s.memoria, p, color);
       let entradas = entrar(s.entradas, p.zona, dir > 0 ? "der" : dir < 0 ? "izq" : "asoma");
       if (r.restaurada) entradas = entrar(entradas, r.restaurada, "asoma");
@@ -197,6 +233,7 @@ export function Probador({
         numero={numero}
         onPoner={(p) => ponerPrenda(p, 0)}
         onQuitar={(zona) => setEstado((s) => ({ ...s, look: quitar(s.look, zona), zona }))}
+        onBuscar={abrirBuscar}
       />
 
       <TuLook
@@ -221,6 +258,17 @@ export function Probador({
           </b>
         </div>
       </div>
+
+      {buscar && (
+        <Buscador
+          prendas={prendas}
+          look={estado.look}
+          recordados={estado.recordados}
+          zonaInicial={buscar}
+          onProbar={(p, color) => ponerPrenda(p, 0, color)}
+          onCerrar={cerrarBuscar}
+        />
+      )}
 
       {/* Siempre está: un lector de pantalla oye el aviso apenas cambia. */}
       <div className="pb-aviso-zona" role="status" aria-live="polite">
