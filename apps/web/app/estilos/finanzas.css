@@ -1947,6 +1947,9 @@
     font-variant-numeric: tabular-nums;
     font-weight: 600;
     white-space: nowrap;
+  }
+}
+
 /* ---- El medidor de confianza (ADR-0417, Fase 1): un arco que se dibuja hasta el porcentaje, la frase y las piezas. ---- */
 @layer components {
   .fin-confianza {
