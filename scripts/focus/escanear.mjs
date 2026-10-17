@@ -36,15 +36,17 @@ const PANTALLAS = `${RAIZ_WEB}app/(app)/`;
 export const REGISTRO = `${RAIZ_WEB}lib/guia-de-foco-pantallas.ts`;
 
 /** Campos o pasos: un control donde alguien escribe o elige. Solo JSX (`<`), para no contar comentarios. */
-const CAMPOS = /<(input|textarea|form|Campo\w*|Select\w*|Combo\w*|Desplegable|Segmentado|Interruptor)\b/;
+const CAMPOS = /<(input|textarea|form|Campo\w*|Select\w*|Combo\w*|Desplegable|Segmentado|Interruptor|Buscador)\b/;
 /**
  * El USO de las piezas de la guía —una etiqueta JSX o una llamada— o el import de una lógica `lib/<pantalla>-guia`. Ojo con lo que NO
  * es: `fin-guia` (una clase de Finanzas) y `recepcion-guia` (la guía de remisión) no son la guía de foco; por eso se exige la forma.
  */
 const GUIA = /<(MarcaCampo|ConMarca|EtiquetaAhora|FaltanDelPaso|CampoGuiado|PieGuia)\b|\b(useGuiaAlta|useGuiaCampos|irAlIdCampo|useRetenerLuz)\(|\bdata-campo=|from\s*["']@\/lib\/[\w-]+-guia["']/;
 
-/** Un modal: el archivo dibuja un `<Modal>` / `<ModalRuta>` (o un `Dialog.Content` propio). Con campos, pide su guía. */
-const MODAL = /<Modal\b|<ModalRuta\b|Dialog\.Content/;
+/** Un modal: el archivo dibuja un `<Modal>` / `<ModalRuta>` / `<Cajon>` (o un `Dialog.Content` propio). Con campos, pide su guía. El
+ *  `<Cajon>` arma su `Dialog.Content` dentro de `components/ui/`, así que se nombra aparte. Espejo de `ES_MODAL` y `TIENE_CAMPOS` en
+ *  `apps/web/lib/guia-de-foco.test.ts`: si se cambia una, se cambia la otra. */
+const MODAL = /<Modal\b|<ModalRuta\b|<Cajon\b|Dialog\.Content/;
 export const esModal = (texto) => MODAL.test(texto);
 /** Cuántos controles trae un archivo (una pista para decidir «no-aplica»: un modal de UN solo campo no tiene camino que indicar). */
 export const contarControles = (texto) => (texto.match(new RegExp(CAMPOS.source, "g")) ?? []).length;
