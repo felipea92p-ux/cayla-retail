@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261017014000_finanzas_apartados_por_dia_de_pago.sql — CAYLA V2 (auditoría de Finanzas 2026-10-16, G02; ADR-0433, actividad 10)
+-- 20261017035000_finanzas_apartados_por_dia_de_pago.sql — CAYLA V2 (auditoría de Finanzas 2026-10-16, G02; ADR-0433, actividad 10)
 --
 -- EL PROBLEMA PRIMERO. Un apartado se separa con un adelanto y, antes de entregarse, la clienta puede abonar más. El diario (`fn_asientos`)
 -- asentaba TODO el adelanto —incluidos los abonos de días o meses después— el día de la separación, con el total de hoy

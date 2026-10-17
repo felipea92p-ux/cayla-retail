@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261017012000_finanzas_mes_cerrado_se_queda_cerrado.sql — CAYLA V2 (auditoría de Finanzas 2026-10-16, G09; ADR-0433, actividad 9)
+-- 20261017034000_finanzas_mes_cerrado_se_queda_cerrado.sql — CAYLA V2 (auditoría de Finanzas 2026-10-16, G09; ADR-0433, actividad 9)
 --
 -- EL PROBLEMA PRIMERO. Cerrar un mes congela su diario (`diario_cerrado`) y le saca una huella: es lo que el contador recibe. Cuatro grietas
 -- dejaban que ese número cambiara DESPUÉS, o que un registro se colara a media confirmación sin que nadie lo supiera:
