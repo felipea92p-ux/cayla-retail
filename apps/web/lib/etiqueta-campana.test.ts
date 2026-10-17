@@ -1,5 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { nombreBajoCosto, objecionVigencia, parsearDescuento, parsearFecha, prendasBajoCosto, type PrendaConCosto } from "./etiqueta-campana";
+import {
+  alcanceCampana,
+  chipDeTarjeta,
+  conteoDeTarjeta,
+  DESCUENTOS_RAPIDOS,
+  nombreBajoCosto,
+  objecionVigencia,
+  parsearDescuento,
+  parsearFecha,
+  prendasBajoCosto,
+  prendasPorCategoria,
+  textoConteoTarjeta,
+  type PrendaConCosto,
+} from "./etiqueta-campana";
 import { descuentoDeCampana } from "./vender-reglas";
 
 describe("parsearDescuento", () => {
@@ -113,5 +126,77 @@ describe("el aviso mide el peor caso entre las tiendas (precio propio, Felipe 20
         anterior = cobrado;
       }
     }
+  });
+});
+
+describe("cuánto alcanza una campaña, antes de guardar", () => {
+  const prendas = [
+    { id: "jean-28", categoriaId: "jeans" },
+    { id: "jean-30", categoriaId: "jeans" },
+    { id: "polo-s", categoriaId: "polos" },
+    { id: "collar", categoriaId: null },
+  ];
+
+  it("cuenta las prendas a la venta de cada categoría; una prenda sin categoría no suma a ninguna", () => {
+    const cuenta = prendasPorCategoria(prendas);
+    expect(cuenta.get("jeans")).toBe(2);
+    expect(cuenta.get("polos")).toBe(1);
+    expect(cuenta.size).toBe(2);
+  });
+
+  it("suma las de sus categorías y las marcadas a mano, sin contar dos veces la que entra por las dos vías", () => {
+    expect(alcanceCampana(prendas, new Set(["jeans"]), new Set(["jean-28", "polo-s"]))).toEqual({ porCategoria: 2, aMano: 1, total: 3 });
+  });
+
+  it("una marcada a mano que ya no está a la venta (talla desactivada) no cuenta", () => {
+    expect(alcanceCampana(prendas, new Set(), new Set(["talla-desactivada", "collar"]))).toEqual({ porCategoria: 0, aMano: 1, total: 1 });
+  });
+
+  it("sin categorías ni prendas a mano, no alcanza a ninguna", () => {
+    expect(alcanceCampana(prendas, new Set(), new Set())).toEqual({ porCategoria: 0, aMano: 0, total: 0 });
+  });
+
+  it("los descuentos de un toque son todos válidos para la base: entre 0 y 100", () => {
+    for (const v of DESCUENTOS_RAPIDOS) expect(parsearDescuento(String(v))).toEqual({ ok: true, valor: v });
+  });
+});
+
+describe("la tarjeta cuenta lo mismo que su hoja", () => {
+  const aLaVenta = [
+    { id: "jean-28", categoriaId: "jeans" },
+    { id: "jean-30", categoriaId: "jeans" },
+    { id: "polo-s", categoriaId: "polos" },
+  ];
+
+  it("una marca en una talla que ya no se vende no suma, pero se dice (Nuevo: 186 marcas, 164 a la venta)", () => {
+    const c = conteoDeTarjeta(aLaVenta, new Set(), ["jean-28", "polo-s", "talla-desactivada"]);
+    expect(c).toEqual({ porCategoria: 0, aMano: 2, total: 2, fueraDeVenta: 1 });
+    expect(textoConteoTarjeta(c)).toEqual({ texto: "2 prendas a la venta", fuera: "1 marcada que ya no se vende" });
+  });
+
+  it("con categorías, dice cuántas entran por ellas; sin nada, «Sin prendas a la venta»", () => {
+    expect(textoConteoTarjeta(conteoDeTarjeta(aLaVenta, new Set(["jeans"]), ["polo-s"])).texto).toBe("3 prendas a la venta · 2 por categoría");
+    expect(textoConteoTarjeta(conteoDeTarjeta(aLaVenta, new Set(), []))).toEqual({ texto: "Sin prendas a la venta", fuera: null });
+  });
+
+  it("todas las marcas fuera de venta dan cero (Aniversario CAYLA: 8 marcas en tallas desactivadas)", () => {
+    const c = conteoDeTarjeta(aLaVenta, new Set(), Array.from({ length: 8 }, (_, i) => `vieja-${i}`));
+    expect(textoConteoTarjeta(c)).toEqual({ texto: "Sin prendas a la venta", fuera: "8 marcadas que ya no se venden" });
+  });
+});
+
+describe("el chip de la temporada", () => {
+  it("vigente y sin prendas va en ámbar; vigente con prendas, en verde", () => {
+    expect(chipDeTarjeta({ estado: "vigente", hasta: "2026-12-31" }, 0)).toMatchObject({ texto: "Vigente, sin prendas", tono: "ambar" });
+    expect(chipDeTarjeta({ estado: "vigente", hasta: "2026-12-31" }, 164)).toEqual({ texto: "Vigente", tono: "verde" });
+  });
+  it("quien no ve los conteos ve «Vigente», como antes", () => {
+    expect(chipDeTarjeta({ estado: "vigente", hasta: null }, null)).toEqual({ texto: "Vigente", tono: "verde" });
+  });
+  it("próxima y terminada no cambian; sin fechas no hay chip", () => {
+    expect(chipDeTarjeta({ estado: "proxima", desde: "2026-11-09", enDias: 1 }, 0)).toEqual({ texto: "Mañana", tono: "ambar" });
+    expect(chipDeTarjeta({ estado: "proxima", desde: "2026-11-09", enDias: 23 }, 5)).toEqual({ texto: "En 23 días", tono: "ambar" });
+    expect(chipDeTarjeta({ estado: "terminada", hasta: "2026-10-14" }, 0)).toEqual({ texto: "Fuera de temporada", tono: "neutro" });
+    expect(chipDeTarjeta(null, 0)).toBeNull();
   });
 });
