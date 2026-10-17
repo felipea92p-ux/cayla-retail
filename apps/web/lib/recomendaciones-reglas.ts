@@ -7,6 +7,7 @@
 import { hrefLista, leerParamsLista } from "./clientas-lista-reglas";
 import { diaLima, diaYHoraLima } from "./fechas-lima";
 import { sinTildes } from "./marcas";
+import { temaQueSeRepite, type TemaId } from "./recomendaciones-temas";
 import { TODOS } from "./pildora-reglas";
 
 /** El largo de una respuesta: el mismo de `responder_recomendacion` (de 2 a 400 letras, ya limpias). */
@@ -115,19 +116,24 @@ export function leerRecomendaciones(dato: unknown): ListaRecomendaciones | null 
 
 /* ------------------------------------------------------------------ El estado de cada una */
 
-export type EstadoRecomendacion = "sin_leer" | "leida" | "respondida" | "archivada";
+// Desde la hoja de 2026-10-17 (decisión #2 A) ya no se «marca como leída»: una recomendación espera hasta que alguien le responde o la
+// archiva sin responder. Leerla no la saca de los pendientes, porque el cliente no recibe nada por haber sido leído (antes, «Leída»
+// apagaba la cifra y el aviso del Resumen mientras el cliente seguía esperando). Una vieja que alguien marcó leída sin responder vuelve
+// a «Por responder»: es lo que es.
+export type EstadoRecomendacion = "por_responder" | "sin_nombre" | "respondida" | "archivada";
 
-/** Archivada manda (ya no pide nada); si no, respondida, leída o sin leer. */
-export function estadoDe(r: Pick<Recomendacion, "leidaEn" | "respuesta" | "archivadaEn">): EstadoRecomendacion {
+/** Archivada manda (ya no pide nada); si no, respondida; si no, por responder, salvo que su ficha se haya anonimizado: a esa ya no se
+ *  le responde (solo se archiva), así que no cuenta como pendiente. */
+export function estadoDe(r: Pick<Recomendacion, "respuesta" | "archivadaEn" | "cliente">): EstadoRecomendacion {
   if (r.archivadaEn) return "archivada";
   if (r.respuesta !== null) return "respondida";
-  return r.leidaEn ? "leida" : "sin_leer";
+  return r.cliente ? "por_responder" : "sin_nombre";
 }
 
-/** La insignia de cada estado (`<Chip>`): sin leer en ámbar (pide que alguien la lea), respondida en verde, archivada apagada. */
+/** La insignia de cada estado (`<Chip>`): por responder en ámbar (espera algo de CAYLA), respondida en verde, archivada apagada. */
 export const INSIGNIA: Record<EstadoRecomendacion, { texto: string; tono: "ambar" | "neutro" | "verde" | "apagado" }> = {
-  sin_leer: { texto: "Sin leer", tono: "ambar" },
-  leida: { texto: "Leída", tono: "neutro" },
+  por_responder: { texto: "Por responder", tono: "ambar" },
+  sin_nombre: { texto: "Sin respuesta", tono: "neutro" },
   respondida: { texto: "Respondida", tono: "verde" },
   archivada: { texto: "Archivada", tono: "apagado" },
 };
@@ -149,32 +155,45 @@ export const hrefFicha = (nombre: string) => hrefLista(leerParamsLista({}), { te
 
 /* ------------------------------------------------------------------ Las cifras */
 
-export type CifrasRecomendaciones = { sinLeer: number; respondidas: number; delMes: number; archivadas: number; enBandeja: number };
+export type CifrasRecomendaciones = {
+  porResponder: number;
+  respondidas: number;
+  delMes: number;
+  archivadas: number;
+  enBandeja: number;
+  /** Lo que más piden este mes, si dos o más lo nombran (para el Resumen de Tienda web, actividad 4); null si nada se repite. */
+  temaDelMes: { id: TemaId; nombre: string; veces: number } | null;
+};
 
-/** Lo que dicen las tarjetas. «Del mes»: las que llegaron en el mes de Lima de `hoy` (aaaa-mm-dd), archivadas o no. */
+/** Lo que dicen las tarjetas (y el aviso del Resumen de Tienda web). «Del mes»: las que llegaron en el mes de Lima de `hoy`
+ *  (aaaa-mm-dd), archivadas o no. */
 export function cifrasDe(lista: readonly Recomendacion[], hoy: string): CifrasRecomendaciones {
   const mes = hoy.slice(0, 7);
-  const c: CifrasRecomendaciones = { sinLeer: 0, respondidas: 0, delMes: 0, archivadas: 0, enBandeja: 0 };
+  const c: CifrasRecomendaciones = { porResponder: 0, respondidas: 0, delMes: 0, archivadas: 0, enBandeja: 0, temaDelMes: null };
+  const textosDelMes: string[] = [];
   for (const r of lista) {
     const e = estadoDe(r);
-    if (e === "sin_leer") c.sinLeer++;
+    if (e === "por_responder") c.porResponder++;
     if (r.respuesta !== null) c.respondidas++;
     if (e === "archivada") c.archivadas++;
     else c.enBandeja++;
-    if (diaLima(r.creadaEn)?.slice(0, 7) === mes) c.delMes++;
+    if (diaLima(r.creadaEn)?.slice(0, 7) === mes) {
+      c.delMes++;
+      textosDelMes.push(r.texto);
+    }
   }
+  c.temaDelMes = temaQueSeRepite(textosDelMes);
   return c;
 }
 
 /* ------------------------------------------------------------------ Los filtros y la búsqueda */
 
-/** Qué estado se mira. «En la bandeja» (lo de siempre): todo lo que no se archivó. */
-export type FiltroEstado = "bandeja" | "sin_leer" | "leidas" | "respondidas" | "archivadas" | "todas";
-export const ESTADO_POR_DEFECTO: FiltroEstado = "bandeja";
+/** Qué estado se mira. Lo de siempre es «Por responder»: lo que espera algo de CAYLA. «En la bandeja»: todo lo que no se archivó. */
+export type FiltroEstado = "por_responder" | "bandeja" | "respondidas" | "archivadas" | "todas";
+export const ESTADO_POR_DEFECTO: FiltroEstado = "por_responder";
 export const OPCIONES_ESTADO: readonly { valor: FiltroEstado; texto: string }[] = [
+  { valor: "por_responder", texto: "Por responder" },
   { valor: "bandeja", texto: "En la bandeja" },
-  { valor: "sin_leer", texto: "Sin leer" },
-  { valor: "leidas", texto: "Leídas sin responder" },
   { valor: "respondidas", texto: "Respondidas" },
   { valor: "archivadas", texto: "Archivadas" },
   { valor: "todas", texto: "Todas" },
@@ -190,12 +209,10 @@ export function opcionesSobre(tiendas: readonly TiendaRecomendacion[]): { valor:
 const pasaEstado = (r: Recomendacion, f: FiltroEstado): boolean => {
   const e = estadoDe(r);
   switch (f) {
+    case "por_responder":
+      return e === "por_responder";
     case "bandeja":
       return e !== "archivada";
-    case "sin_leer":
-      return e === "sin_leer";
-    case "leidas":
-      return e === "leida";
     case "respondidas":
       return r.respuesta !== null;
     case "archivadas":
@@ -235,34 +252,35 @@ export function textoLimpio(texto: string): string {
 /** Cuántas letras cuenta la base (por carácter, no por unidad de JavaScript: un emoji es una). */
 export const letras = (texto: string) => [...textoLimpio(texto)].length;
 
-/** Qué le falta a la respuesta (null: nada). `requerida`: la única salida es responder (ya está leída); si no, vacía también vale
- *  (la hoja la marca como leída sin responder). */
-function problemaDeRespuesta(texto: string, requerida: boolean): string | null {
+/** Qué le falta a la respuesta (null: nada). Vacía también falta: la otra salida de la hoja es archivarla sin responder, a la vista. */
+function problemaDeRespuesta(texto: string): string | null {
   const n = letras(texto);
-  if (n === 0) return requerida ? "Escribe tu respuesta, o archívala si no hace falta responder." : null;
+  if (n === 0) return "Escribe tu respuesta, o archívala si no hace falta responder.";
   if (n < MIN_RESPUESTA) return "Escribe tu respuesta.";
   if (n > MAX_RESPUESTA) return `Te pasaste por ${n - MAX_RESPUESTA} ${n - MAX_RESPUESTA === 1 ? "letra" : "letras"}: acórtala un poco.`;
   return null;
-}
-
-/** Lo que hace el botón principal de la hoja: responder (con texto), marcarla leída (sin texto y sin leer) o nada (ya respondida, sin
- *  nombre o archivada: ahí solo se archiva o se saca del archivo). */
-export type AccionHoja = "responder" | "leer" | null;
-export function accionPrincipal(r: Pick<Recomendacion, "leidaEn" | "respuesta" | "archivadaEn" | "cliente">, respuesta: string): AccionHoja {
-  if (r.archivadaEn || r.respuesta !== null || r.cliente === null) return null;
-  if (letras(respuesta) > 0) return "responder";
-  return r.leidaEn ? "responder" : "leer";
 }
 
 /** ¿Se puede responder esta? Solo una sin respuesta, en la bandeja y con nombre (a una ficha anonimizada ya no se le responde). */
 export const sePuedeResponder = (r: Pick<Recomendacion, "respuesta" | "archivadaEn" | "cliente">) =>
   r.respuesta === null && !r.archivadaEn && r.cliente !== null;
 
-/** Lo que le falta al botón principal de la hoja, sin contar quién lo hace: la respuesta, si todavía se puede responder (vacía vale
- *  solo mientras está sin leer: el botón la marca leída). Archivar o sacar del archivo no piden más. Es la regla que la guía refleja. */
-export function problemaParaConfirmar(r: Pick<Recomendacion, "leidaEn" | "respuesta" | "archivadaEn" | "cliente">, respuesta: string): string | null {
-  return sePuedeResponder(r) ? problemaDeRespuesta(respuesta, r.leidaEn !== null) : null;
+/** Lo que le falta al botón principal de la hoja («Enviar respuesta»), sin contar quién lo hace: la respuesta, si todavía se puede
+ *  responder. Archivar o sacar del archivo no piden más. Es la regla que la guía refleja. */
+export function problemaParaConfirmar(r: Pick<Recomendacion, "respuesta" | "archivadaEn" | "cliente">, respuesta: string): string | null {
+  return sePuedeResponder(r) ? problemaDeRespuesta(respuesta) : null;
 }
+
+/** Cuánto espera una respuesta antes de salir, para poder deshacerla (Felipe 2026-10-17, actividad 3): la base no deja corregirla
+ *  después, así que este es el único momento para arrepentirse de una falta o de un tono. */
+export const SEGUNDOS_PARA_DESHACER = 8;
+
+/** Los segundos que le quedan a un envío que vence en `venceMs` (redondeados hacia arriba: «Se envía en 1 s» hasta el final). */
+export const segundosQueFaltan = (venceMs: number, ahoraMs: number) => Math.max(0, Math.ceil((venceMs - ahoraMs) / 1000));
+
+const FECHA_TIENDA = new Intl.DateTimeFormat("es-PE", { day: "numeric", month: "short", timeZone: "America/Lima" });
+/** La fecha como la muestra la tienda online en «Lo que nos escribiste»: «17 oct», en hora de Lima. */
+export const fechaDeLaTienda = (instanteIso: string) => FECHA_TIENDA.format(new Date(instanteIso)).replace(/\.$/, "");
 
 /** El aviso de un error que esta pantalla sabe decir mejor que el mensaje general: sin red (marcar, responder lo mismo y archivar no se
  *  repiten, así que reintentar es seguro) y otra persona que respondió mientras tanto (la hoja ya muestra su respuesta). null: el de
