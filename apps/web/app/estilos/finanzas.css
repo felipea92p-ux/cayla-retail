@@ -751,9 +751,10 @@
   }
   .fin-cuenta-cab {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 8px;
+    gap: 4px 8px;
   }
   .fin-cuenta-cab b {
     font-size: 13.5px;
@@ -1907,6 +1908,70 @@
   @media (max-width: 480px) {
     .fin-cifras.fin-cinco {
       grid-template-columns: 1fr;
+    }
+  }
+}
+
+/* Los días que cubre un depósito de la máquina (ADR-0429): una lista de renglones con su casilla, el día y la tienda, hace
+   cuánto esperan y lo cobrado. Solo tokens; el modo oscuro los invierte solos. */
+@layer components {
+  .fin-lotes {
+    display: grid;
+    gap: 0.375rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .fin-lote {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 0.625rem;
+    align-items: center;
+    padding: 0.375rem 0.625rem;
+    border: 1px solid var(--color-sand);
+    border-radius: 0.5rem;
+    background: var(--color-papel);
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-lote-texto {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .fin-lote-dias {
+    font-size: 12px;
+    color: var(--color-taupe);
+    white-space: nowrap;
+  }
+  .fin-lote-monto {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  /* En el celular el día no cabe en una línea con su chip «atrasado»: el texto baja a dos líneas (día y hace cuánto) en vez de cortarse. */
+  @media (max-width: 560px) {
+    .fin-lote {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: start;
+    }
+    .fin-lote > :first-child,
+    .fin-lote-monto {
+      align-self: center;
+      grid-row: 1 / span 2;
+    }
+    .fin-lote-texto {
+      grid-column: 2;
+      grid-row: 1;
+      overflow: visible;
+      white-space: normal;
+    }
+    .fin-lote-dias {
+      grid-column: 2;
+      grid-row: 2;
+    }
+    .fin-lote-monto {
+      grid-column: 3;
     }
   }
 }

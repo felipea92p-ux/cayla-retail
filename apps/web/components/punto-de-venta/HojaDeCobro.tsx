@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, FileText, Receipt, StickyNote } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
-import { lecturaDelRecibido, montosSugeridos, type PagoAplicado } from "@/lib/vender-reglas";
+import { lecturaDelRecibido, type MaquinaDeCobro, maquinasPara, montosSugeridos, nombreMaquina, type PagoAplicado, preguntaMaquina } from "@/lib/vender-reglas";
 import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { CLASE_MONTO_ILEGIBLE, CampoMonto, atributosMontoTexto } from "@/components/ui/CampoMonto";
 import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
@@ -24,6 +24,7 @@ const TIPOS: { tipo: TipoVenta; icono: ReactNode }[] = [
  *  tamaño legible. Los dos nombres van en la ficha y el CSS (`.hoja-cobro-nombre-corto`) muestra solo uno; el `title` sigue diciendo el
  *  nombre entero. */
 const NOMBRE_CORTO: Partial<Record<MetodoPagoVenta, string>> = { transferencia: "Transf." };
+const SIN_MAQUINAS: readonly MaquinaDeCobro[] = [];
 
 /** Los colores de la línea bajo los billetes: lo exacto va en verde, lo que falta en rojo y el vuelto neutro (Felipe 2026-10-05). */
 const COLOR_RECIBIDO = {
@@ -68,6 +69,8 @@ export function HojaDeCobro({
   vuelto,
   cobroEfectivo,
   onTocarMedio,
+  maquinas = SIN_MAQUINAS,
+  onMaquina,
   onMontoPago,
   onRecibido,
   tipoComprobante,
@@ -94,6 +97,11 @@ export function HojaDeCobro({
   cobroEfectivo: { deuda: number; aCobrar: number; redondeo: number } | null;
   /** Tocar un medio: si no está, lo agrega con lo que falta; si está, lo quita (su monto pasa al siguiente). */
   onTocarMedio: (metodo: MetodoPagoVenta) => void;
+  /** Las máquinas de cobro de la tienda (ADR-0429). Donde hay dos para un medio (la tarjeta en TRU y AQP), a la derecha aparece
+   *  «¿Con qué máquina?» con la de defecto marcada; donde hay una, nada se pregunta. */
+  maquinas?: readonly MaquinaDeCobro[];
+  /** La cajera marcó la otra máquina para ese pago. */
+  onMaquina?: (indice: number, cuentaId: string) => void;
   onMontoPago: (indice: number, monto: number) => void;
   onRecibido: (monto: number | null) => void;
   tipoComprobante: TipoVenta | null;
@@ -132,7 +140,25 @@ export function HojaDeCobro({
 
   const varios = pagos.length > 1;
   const efectivo = pagos.find((p) => p.metodo === "efectivo");
+  // «¿Con qué máquina?» (ADR-0429): solo para los pagos cuyo medio tiene DOS o más máquinas en esta tienda.
+  const preguntasMaquina = pagos
+    .map((pago, indice) => ({ pago, indice, opciones: maquinasPara(maquinas, pago.metodo) }))
+    .filter((x) => preguntaMaquina(maquinas, x.pago.metodo));
+  const maquinaDelPos = pagos.length === 1 && pagos[0] ? nombreMaquina(maquinas, pagos[0]) : null;
   const pagoOk = pagos.length > 0 && restante === 0 && !pagos.some((p) => varios && p.monto <= 0);
+  // En el celular (`compacta`) el comprobante queda bajo el pliegue de la hoja: en cuanto el pago queda cubierto y falta elegirlo,
+  // la hoja baja lo justo para mostrarlo. Lo dispara un toque (un medio, un monto sugerido), nunca una tecla en un campo de texto
+  // (guía de foco, regla 6), y sin movimiento con `prefers-reduced-motion`.
+  useEffect(() => {
+    if (!compacta || !pagoOk || tipoComprobante) return;
+    const fotograma = requestAnimationFrame(() => {
+      const activo = document.activeElement;
+      if (activo instanceof HTMLInputElement || activo instanceof HTMLTextAreaElement) return;
+      const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      cuerpoRef.current?.querySelector("[data-paso-comprobante]")?.scrollIntoView({ block: "center", behavior: reducido ? "auto" : "smooth" });
+    });
+    return () => cancelAnimationFrame(fotograma);
+  }, [compacta, pagoOk, tipoComprobante]);
   const comprobanteOk = tipoComprobante !== null && faltaDocumento === null;
   // El que no se escribió a mano se queda con el resto: con dos medios, el otro del editado; con más, el primero libre.
   const libre = varios ? pagos.findIndex((p) => !p.fijo) : -1;
@@ -240,8 +266,36 @@ export function HojaDeCobro({
               })}
             </div>
 
-            {/* A la derecha, solo lo que el medio pide: con efectivo, los billetes y el vuelto; sin efectivo, una pista. */}
+            {/* A la derecha, solo lo que el medio pide: con efectivo, los billetes y el vuelto; sin efectivo, una pista. Y, donde la
+                tienda tiene dos máquinas para la tarjeta o el QR, con cuál se cobró (ADR-0429), con la de defecto ya marcada. */}
             <div className="hoja-cobro-extra min-w-0">
+              {preguntasMaquina.length > 0 && (
+                <div className="hoja-cobro-maquinas anim-revelar" data-maquinas>
+                  {preguntasMaquina.map(({ pago, indice, opciones }) => (
+                    <div key={pago.metodo} role="radiogroup" aria-label={`Máquina con la que se cobró ${NOMBRE_METODO[pago.metodo]}`}>
+                      <p className="hoja-cobro-pregunta label-cayla font-bold text-tinta">{pago.metodo === "qr" ? "¿Con qué máquina el QR?" : "¿Con qué máquina la tarjeta?"}</p>
+                      <div className="hoja-cobro-billetes grid">
+                        {opciones.map((m) => (
+                          <button
+                            key={m.cuentaId}
+                            type="button"
+                            role="radio"
+                            aria-checked={pago.cuentaId === m.cuentaId}
+                            disabled={bloqueado}
+                            onClick={() => onMaquina?.(indice, m.cuentaId)}
+                            className={`hoja-cobro-billete es-maquina metodo-${pago.metodo} ${pago.cuentaId === m.cuentaId ? "es-elegido" : ""}`}
+                          >
+                            {pago.cuentaId === m.cuentaId && (
+                              <Check /* unificar-fijo: la marca sobre un relleno lleva trazo 3, como la de los medios y la casilla (ronda 15) */ className="h-3.5 w-3.5 shrink-0" strokeWidth={3} aria-hidden />
+                            )}
+                            {m.nombre}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               {efectivo && efectivo.monto <= 0 ? (
                 <p className="hoja-cobro-pista text-tinta/60">
                   Escribe cuánto paga <br />en efectivo.
@@ -316,7 +370,7 @@ export function HojaDeCobro({
                   {!pagos.length ? (
                     <>¿Pagó con dos? <br />Toca los dos.</>
                   ) : pagos.every((p) => p.metodo === "tarjeta") ? (
-                    <>Cobra en el POS <br />y confirma.</>
+                    <>Cobra en {maquinaDelPos ?? "el POS"} <br />y confirma.</>
                   ) : (
                     <>Confirma cuando <br />veas el pago.</>
                   )}
@@ -327,7 +381,7 @@ export function HojaDeCobro({
         </section>
 
         {/* 2 · Comprobante: ninguno marcado al empezar */}
-        <section className={`hoja-cobro-paso ${comprobanteOk ? "es-hecho" : pagoOk ? "sigue-aqui" : ""}`}>
+        <section data-paso-comprobante className={`hoja-cobro-paso ${comprobanteOk ? "es-hecho" : pagoOk ? "sigue-aqui" : ""}`}>
           <CabezaPaso
             numero={2}
             titulo="Comprobante"
