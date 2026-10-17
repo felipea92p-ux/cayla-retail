@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import { filaDeVer, leerResumen, type ResumenFinanzas } from "./resumen-finanzas-reglas";
 import type { FilaER } from "./resultados-reglas";
-import { cascadaDeFila, cascadaPulso, lugaresPulso, nombreDia, respuestaDeFila, respuestaPulso, ritmoPulso } from "./pulso-reglas";
+import { cascadaDeFila, cascadaPulso, lugaresPulso, matizarRespuesta, nombreDia, respuestaDeFila, respuestaPulso, ritmoPulso } from "./pulso-reglas";
 
 const todas = leerResumen(fixture.todas);
 const tru = leerResumen(fixture.tru);
@@ -168,5 +168,46 @@ describe("respuestaDeFila y cascadaDeFila (la misma pieza para Reportes)", () =>
     const f = (r.resultadosMes.estado === "ok" ? r.resultadosMes.datos : [])[0]!;
     expect(respuestaDeFila(f, { mes: "2026-10", vende: true, taller: false })).toEqual(respuestaPulso(r));
     expect(cascadaDeFila(f)).toEqual(cascadaPulso(r));
+  });
+});
+
+describe("matizarRespuesta (el «Sí» solo con confianza alta, ADR-0417)", () => {
+  const gana = respuestaPulso(conMes([{ ventas: 10000, costo: 4000, margen: 6000, gastos: 1000, resultado: 5000 }]));
+  const pierde = respuestaPulso(conMes([{ ventas: 10000, costo: 6000, margen: 4000, gastos: 7000, resultado: -3000 }]));
+  if (gana.estado === "sin_datos" || pierde.estado === "sin_datos") throw new Error("la fixture debe dar respuesta");
+
+  it("con confianza alta dice «Sí» a secas, con el mes y sin marcas de provisional", () => {
+    const m = matizarRespuesta(gana, "2026-10", "alto");
+    expect(m).toMatchObject({ chip: "Sí", tono: "verde", intro: "En lo que va de octubre,", aprox: "", provisional: false, aviso: "" });
+  });
+
+  it("con confianza baja NO dice «Sí»: «Con lo que hay registrado», cifra con ≈ y chip «Provisional»", () => {
+    const m = matizarRespuesta(gana, "2026-10", "bajo");
+    expect(m).toMatchObject({ chip: "Provisional", tono: "pizarra", intro: "Con lo que hay registrado,", aprox: "≈ ", provisional: true });
+    expect(m.aviso).toContain("Qué tan seguro es este número");
+    expect(m.chip).not.toMatch(/^Sí$/);
+  });
+
+  it("tampoco afirma un «No» pelado con confianza baja", () => {
+    const m = matizarRespuesta(pierde, "2026-10", "bajo");
+    expect(m.chip).toBe("Provisional");
+    expect(m.provisional).toBe(true);
+  });
+
+  it("con confianza media dice «Sí, por ahora» y avisa, sin tapar la cifra", () => {
+    const m = matizarRespuesta(gana, "2026-10", "medio");
+    expect(m).toMatchObject({ chip: "Sí, por ahora", tono: "verde", provisional: false, aprox: "" });
+    expect(m.aviso).not.toBe("");
+  });
+
+  it("sin medida de confianza (la base no respondió) tampoco afirma: lo que no se midió no es «alta»", () => {
+    const m = matizarRespuesta(gana, "2026-10", null);
+    expect(m).toMatchObject({ chip: "Provisional", intro: "Con lo que hay registrado,", aprox: "≈ ", provisional: true });
+    expect(m.aviso).toContain("no se pudo medir");
+  });
+
+  it("no cambia la cifra ni el verbo: solo cómo se dice", () => {
+    expect(gana.monto).toBe(5000);
+    expect(gana.verbo).toBe("te quedan");
   });
 });
