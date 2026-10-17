@@ -34,14 +34,6 @@ export function partirTitulo(nombre: string): [string, string] {
 /** «12» o «12.5»: el porcentaje sin ceros de más. */
 export const pctTexto = (pct: number) => String(Number(pct.toFixed(2)));
 
-/** La campaña rige todo su último día en Lima: termina a las 23:59:59 (UTC−5). */
-export const finDeCampana = (hasta: string) => new Date(`${hasta}T23:59:59-05:00`).getTime();
-
-export function partesCuenta(ms: number) {
-  const s = Math.max(0, Math.floor(ms / 1000));
-  return { d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 };
-}
-
 const fecha = (hasta: string, opciones: Intl.DateTimeFormatOptions) =>
   new Date(`${hasta}T12:00:00-05:00`).toLocaleDateString("es-PE", { ...opciones, timeZone: "America/Lima" });
 

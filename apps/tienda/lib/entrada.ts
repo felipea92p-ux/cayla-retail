@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { CLAVE_MINIMA, correoValido, hoyLima, MENSAJES, normalizarCorreo } from "./cuentas";
+import { CLAVE_MINIMA, correoValido, hoyLima, normalizarCorreo } from "./cuentas";
+import { MENSAJES } from "./cuentas-mensajes";
 import { redireccionDelProxy } from "./sesion";
 
 // La entrada a la tienda online cuenta como actividad del Club (Felipe 2026-10-14): con 3 años sin comprar NI entrar, la ficha se
