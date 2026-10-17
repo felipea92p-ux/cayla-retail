@@ -1956,6 +1956,14 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   con `requirePersonaActualV2`, la misma regla del Inicio). La llama el login antes de navegar, para ir directo sin pintar `/` (Felipe 2026-10-13,
   «se ve el inicio»). Sin sesión o sin acceso responde con la redirección de `requirePersonaActualV2`; el login no la sigue y, como con cualquier
   fallo o una espera de más de 5 s, entra por `/`, el camino de siempre. `Cache-Control: private, no-store`. ADR-0136 act. 2026-10-13 (e).
+- `/api/salud` → `GET`, **pública** (`lib/rutas-publicas.ts`, exacta): `{ ok: true }` (200) o `{ ok: false, motivo }` (503), ¿responde la base AHORA? Llama a
+  `retail.fn_salud()` (`select true`, migración 20261017225000) por la llave pública con tope de 4 s y la respuesta guardada 10 s por instancia
+  (`lib/salud-reglas.ts`); el motivo es de una lista fija, nunca un mensaje de la base. La repite `/sin-base` y el vigía de GitHub. La tienda tiene la suya
+  (`apps/tienda/app/api/salud`, `select 1` por `base()`). ADR-0450.
+- `/sin-base?desde=<ruta>` → pantalla pública (`app/sin-base/page.tsx`, `components/SinBase.tsx`): «No logramos conectar con el sistema. Tu sesión sigue abierta».
+  A ella va, en vez de al login, quien tiene la sesión abierta cuando la base no responde: `requirePersonaActualV2` (`esFalloDeLaBase`, `lib/base-caida-reglas.ts`) y
+  `proxy.ts` (`noSePudoComprobar`: Auth sin responder al renovar la sesión; una API recibe 503, una acción de servidor sigue de largo). El proxy anota la pantalla
+  pedida en la cabecera `x-cayla-ruta` para volver a ella cuando `/api/salud` responde. ADR-0450.
 - `/api/version` → `GET`, con sesión: `{ id }`, la versión (el commit de Vercel) con la que se armó la compilación que atiende, grabada en
   `NEXT_PUBLIC_BUILD_ID` por `next.config.ts` (fuera de Vercel, «desarrollo»). La pregunta `<VersionNueva />` (`components/VersionNueva.tsx`,
   montado una vez en `app/(app)/layout.tsx`, reglas en `lib/version-nueva-reglas.ts`) cada 5 min con la pestaña a la vista: si la de producción es
