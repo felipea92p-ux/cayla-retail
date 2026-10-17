@@ -79,3 +79,11 @@ nota de 13 px, según en qué píxel cayera el renglón.
 en el mismo lugar que antes y la letra no se mueve: medido en los 8 contextos y en tres componentes reales (A favor con proveedores, el aviso
 de «Agregar en su ficha» y «Todo el historial» de Movimientos) a 1440 y 375 px, con las mismas posiciones y los mismos altos antes y después.
 Un `mb-*` en el mismo elemento le gana al margen negativo: ahí se descuenta a mano (`FiltrosMovimientos`, `mb-[calc(0.5rem_-_0.25em)]`).
+
+## Control (2026-10-17)
+
+Firma nueva: la «→» escrita al final del texto de lo que lleva a otra parte, «Ver … ›» y la «→» sola en su `<span>` antes de cerrar el
+enlace. Migrados: Comprobantes, el Historial de ventas, el plan de compra, la muestra, «Ver tallas», el perfil, «Es el mismo diseño» y «Usar
+en un pago» (`<BotonVer>`, que suma `etiqueta`), dos subrayados a mano de Conteo (`btn-enlace`), «Seguir» de Nuevo producto y el Inicio de
+Almacén. Excepciones: el aviso de cierre de Caja (ADR-0359) y, hasta la ronda 17, el selector de mes de Comprobantes y la guía de impresión.
+Detalle: [control/2026-10-16.md](control/2026-10-16.md).

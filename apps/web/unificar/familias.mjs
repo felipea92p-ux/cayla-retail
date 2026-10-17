@@ -393,10 +393,14 @@ export const DECISIONES = {
       // «Volver a contar / a revisar / a editar…» como texto de un botón. No cuentan los que NO vuelven a un paso: reintentar,
       // restablecer, la salida de una pantalla de error ni el enlace dentro de una frase.
       "^\\s*Volver (?:a|al) (?!intentar|lo predeterminado|la predeterminada|como está|la que propone|inicio|período)[^<{}\"]+\\s*$",
+      // El glifo seguido de una expresión («← {apilado ? "Atrás" : "Ticket"}»): la vuelta escrita a mano que las de arriba no veían
+      // porque el texto va entre llaves (Apartados en el celular; control 2026-10-17).
+      "←\\s*\\{",
     ],
     deuda: [],
     excepciones: [
       { archivo: "components/conteo/RevisarConteo.tsx", motivo: "«Volver a contar» es la acción principal de Revisar conteo (ir a contar lo pendiente), no un paso atrás (Felipe 2026-10-07)" },
+      { archivo: "components/SelectorMesFacturacion.tsx", motivo: "«← SEPTIEMBRE» pasa al mes anterior, no vuelve a una pantalla: es la familia «elegir el mes», que se decide en la ronda 17" },
       { archivo: "app/(app)/global/elige-sede/page.tsx", motivo: "Tarjeta de barrera (elegir sede): su salida es la única acción de la tarjeta y va con los botones, no es la vuelta de una pantalla interna (docs/unificar/accion.volver.md)" },
     ],
   },
@@ -540,8 +544,12 @@ export const DECISIONES = {
     "tambien": ["app/estilos/vacio-aviso-buscador.css", "components/ui/campos.tsx", "components/ui/Avisos.tsx"],
     "firmas": [
       // Un recuadro de tono pintado a mano: fondo suave de ámbar, rojo o verde con su texto profundo, esquinas de caja y relleno
-      // de recuadro (una insignia o un chip, redondos y chicos, no cuentan).
-      "[\"'`](?=[^\"'`]*\\bbg-(?:ambar|rojo|verde)\\/(?:\\[0\\.0\\d+\\]|5|10)\\b)(?=[^\"'`]*\\btext-(?:ambar|rojo|verde)-profundo\\b)(?=[^\"'`]*\\brounded-(?:md|lg|xl|2xl)\\b)(?=[^\"'`]*\\bpy-(?:2|2\\.5|3)\\b)",
+      // de recuadro (una insignia o un chip, redondos y chicos, no cuentan). Tras el «]» de `bg-ambar/[0.07]` no hay un \b: la
+      // frontera es `(?![\w-])` (con \b, ningún fondo entre corchetes coincidía y ~25 recuadros se escaparon de la ronda 5; control 2026-10-17).
+      "[\"'`](?=[^\"'`]*\\bbg-(?:ambar|rojo|verde)\\/(?:\\[0\\.0\\d+\\]|5|10)(?![\\w-]))(?=[^\"'`]*\\btext-(?:ambar|rojo|verde)-profundo\\b)(?=[^\"'`]*\\brounded-(?:md|lg|xl|2xl)\\b)(?=[^\"'`]*\\bpy-(?:2|2\\.5|3)\\b)",
+      // El recuadro con borde de tono, sin importar el color del texto (el texto en tinta, el role=alert o status): esquinas, borde,
+      // fondo y relleno del tono en la MISMA clase. Un mapa de tonos («ok: "border-verde/35 bg-verde/15"») o un hover no cuentan.
+      "[\"'`](?=[^\"'`]*\\brounded-(?:md|lg|xl|2xl|\\[\\d+px\\])(?![\\w-]))(?=[^\"'`]*(?<![:\\w-])border-(?:ambar|rojo|verde|pizarra)\\/\\d+(?![\\w-]))(?=[^\"'`]*(?<![:\\w-])bg-(?:ambar|rojo|verde|pizarra)\\/(?:\\[0\\.\\d+\\]|\\d+)(?![\\w-]))(?=[^\"'`]*\\bp[xy]?-[\\d.]+(?![\\w-]))",
       // La franja copiada (con su fondo de tono; el acento de una tarjeta de cifra no es un aviso).
       "\\bborder-l-(?:ambar|rojo)\\b[^\"'`]*\\bbg-(?:ambar|rojo)\\/",
       // Los de Finanzas y Análisis, que se suman (Felipe 2026-10-08).
@@ -650,11 +658,23 @@ export const DECISIONES = {
       // La flecha escrita a mano al final de un `btn-enlace` («Ver traslados →»): un enlace que lleva a ver más es <EnlaceVer>.
       "\\bbtn-enlace\\b[^\\n]*(?:\\n[^\\n]*){0,3}?[^\\n]*→\\s*(?:\\{|<\\/)",
       // Lo mismo en versalitas a mano («Ver los 11 →», «Ver todas las sedes →»): encontradas por el censo de después (2026-10-13).
-      "\\blabel-cayla\\b[^\\n]*(?:\\n[^\\n]*){0,3}?[^\\n]*→\\s*(?:\\{|<\\/|\\n|$)"
+      "\\blabel-cayla\\b[^\\n]*(?:\\n[^\\n]*){0,3}?[^\\n]*→\\s*(?:\\{|<\\/|\\n|$)",
+      // La «→» escrita al final del texto de lo que lleva a otra parte, sea cual sea su clase («Ver Por enviar →», la insignia
+      // «Pendiente de enviar →», «Seguir →»): la pieza trae su flecha (<EnlaceVer>, <BotonVer>) o el ícono de lucide. «A → B», que
+      // muestra un cambio, no cuenta: después de la flecha sigue algo (control 2026-10-17).
+      "[\\wáéíóúñ})]\\s+→\\s*(?:<\\/|[\"'`]\\s*(?:[:})\\]]|$))",
+      // «Ver ›» y «Ver tallas ›»: el «›» al final de un «Ver…». El «›» suelto de una fila o de un desplegable es otra cosa.
+      "\\bVer\\b[^<>{}\"'`\\n]*\\s›\\s*(?:<\\/|[\"'`]|$)",
+      // La «→» sola en su <span> justo antes de cerrar el enlace o el botón (las tarjetas del perfil).
+      "<span\\b[^>]*>\\s*→\\s*<\\/span>\\s*<\\/(?:Link|a|button)>"
     ],
     "ventana": 4,
     "deuda": [],
-    "excepciones": []
+    "excepciones": [
+      { "archivo": "components/RecordatorioCierreCaja.tsx", "motivo": "ADR-0359: el aviso de cierre de caja de la cabecera tiene su diseño y su movimiento por decisión (su «→» corre con él)" },
+      { "archivo": "components/SelectorMesFacturacion.tsx", "motivo": "«SEPTIEMBRE · Octubre 2026 · NOVIEMBRE →» pasa de mes: es la familia «elegir el mes», que se decide en la ronda 17" },
+      { "archivo": "components/GuiaImpresion.tsx", "motivo": "«← Anterior · Siguiente →» de la guía de impresión: es la familia «anterior y siguiente de un paso a paso», que se decide en la ronda 17" }
+    ]
   },
   "tabla": {
     "fecha": "2026-10-13",
@@ -821,6 +841,8 @@ export const DECISIONES = {
     "firmas": [
       // El título de Campo copiado a mano (versalitas sobre una caja): es <Campo> o la clase `campo-etiqueta`.
       "\\blabel-cayla block text-\\[11px\\] text-tinta\\/(?:6\\d|7\\d)\\b",
+      // Cualquier <label> en versalitas a mano (con o sin `block`, en tinta o en taupe): el título es `campo-etiqueta` (control 2026-10-17).
+      "<label\\b[^>]*className=\\{?[\"'`][^\"'`]*\\blabel-cayla\\b",
       // Un título de campo en letra normal hecho a mano: un <label> de 12 a 14 px con peso.
       "<label\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:xs|sm|\\[1[234](?:\\.5)?px\\])(?![\\w-])[^\"'`]*\\bfont-(?:medium|semibold)\\b"
     ],
