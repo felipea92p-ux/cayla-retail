@@ -456,8 +456,8 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
       {
         pedidos: [
           pedido({ venceEn: en(2) }),
-          pedido({ estado: "confirmado", falta: 79, sinPagar: true }),
-          pedido({ estado: "confirmado", falta: 100 }),
+          pedido({ estado: "confirmado", falta: 79, pagado: 80, sinPagar: true, confirmadoEn: hace(60) }),
+          pedido({ estado: "confirmado", falta: 100, confirmadoEn: hace(46) }),
           pedido({ estado: "pagado", listoParaRecoger: true }),
           pedido({ estado: "pagado", listoParaRecoger: false }),
           pedido({ estado: "entregado" }),
@@ -469,7 +469,7 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
     );
     const [confirmar, cobrar, entregar, cerrados] = estacionesDe(c, PLAZOS);
     expect(confirmar).toMatchObject({ valor: 1, pie: "El primero se cierra en 2 h", punto: "rojo", vivo: true });
-    expect(cobrar).toMatchObject({ valor: 2, pie: "Faltan S/\u00a0179.00 · 1 sin pagar hace más de 48 h", punto: "rojo" });
+    expect(cobrar).toMatchObject({ valor: 2, pie: "Faltan S/\u00a0179.00 · el primero sin pago se anula en 2 h · 1 sin pagar hace más de 48 h", punto: "rojo", vivo: true });
     expect(entregar).toMatchObject({ valor: 2, pie: "1 listo para recoger · 1 espera una prenda", punto: "verde" });
     expect(cerrados).toMatchObject({ valor: 2, pie: "S/\u00a030.00 por devolver", punto: "rojo" });
     const vacio = estacionesDe(cifrasDe({ pedidos: [], cobradoHoy: 0 }, AHORA), PLAZOS);
@@ -481,13 +481,15 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
     ]);
   });
 
-  it("los tramos dicen cuál cierra el pedido y cuáles solo avisan, con los plazos de Datos y plazos", () => {
+  // Sin confirmar se cierra solo y sin ningún pago se anula solo (`fn_anular_pedidos_web_sin_pagar`): los dos pierden la venta.
+  it("los tramos dicen cuál pierde la venta y cuál solo avisa, con los plazos de Datos y plazos", () => {
     expect(tramosDelCamino({ horasParaConfirmar: 12, horasAvisoSinPagar: 36, diasAvisoSinRecoger: 5 })).toEqual([
       { verbo: "Confirmas", plazo: "se cierra a las 12 h", cierra: true },
-      { verbo: "Te paga", plazo: "aviso a las 36 h", cierra: false },
+      { verbo: "Te paga", plazo: "sin pago, se anula a las 36 h", cierra: true },
       { verbo: "Lo recoge", plazo: "aviso a los 5 días", cierra: false },
     ]);
     expect(reglasDelCamino({ ...PLAZOS, horasParaConfirmar: 12 }).confirmar).toContain("en 12 h, se cierra solo");
+    expect(reglasDelCamino({ ...PLAZOS, horasAvisoSinPagar: 36 }).cobrar).toContain("Si no paga nada en 36 h, se anula solo");
   });
 
   it("«Lo que te toca»: lo que se pierde arriba; lo cerrado sin plata no aparece", () => {
@@ -497,7 +499,8 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
         pedido({ id: "listo", estado: "pagado", pagadoEn: hace(24), listoParaRecoger: true }),
         pedido({ id: "confirmado", estado: "confirmado", confirmadoEn: hace(6) }),
         pedido({ id: "confirmar-19h", venceEn: en(19) }),
-        pedido({ id: "sin-pagar", estado: "confirmado", confirmadoEn: hace(50), sinPagar: true }),
+        pedido({ id: "sin-pagar", estado: "confirmado", confirmadoEn: hace(50), sinPagar: true, pagado: 30 }),
+        pedido({ id: "sin-pago-1h", estado: "confirmado", confirmadoEn: hace(47) }),
         pedido({ id: "devolver", estado: "anulado", pagado: 30, cerradoEn: hace(1) }),
         pedido({ id: "confirmar-2h", venceEn: en(2) }),
         pedido({ id: "entregado", estado: "entregado" }),
@@ -506,7 +509,8 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
       PLAZOS,
       AHORA,
     );
-    expect(lista.map((p) => p.id)).toEqual(["confirmar-2h", "sin-pagar", "devolver", "confirmar-19h", "confirmado", "listo", "espera"]);
+    // El confirmado sin ningún pago a 1 h de anularse va con lo que se cierra pronto; el que pagó una parte solo avisa.
+    expect(lista.map((p) => p.id)).toEqual(["sin-pago-1h", "confirmar-2h", "sin-pagar", "devolver", "confirmar-19h", "confirmado", "listo", "espera"]);
   });
 
   it("el reloj de cada fila: qué pasa y cuándo, una sola vez", () => {
@@ -521,13 +525,28 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
       tono: "tinta",
       barra: { pct: 25, tono: "tinta" },
     });
+    // Sin ningún pago: se anula solo a las 48 h (pierde la venta). Con un pago parcial: solo avisa.
+    expect(relojDeFila(pedido({ estado: "confirmado", confirmadoEn: hace(6) }), PLAZOS, AHORA)).toMatchObject({
+      texto: "Sin pago, se anula en 42 h",
+      detalle: "Si no paga nada hasta el 16 oct a las 04:00",
+      tono: "tinta",
+    });
+    expect(relojDeFila(pedido({ estado: "confirmado", confirmadoEn: hace(46) }), PLAZOS, AHORA)).toMatchObject({
+      texto: "Sin pago, se anula en 2 h",
+      detalle: "Si no paga nada, se pierde",
+      tono: "rojo",
+    });
+    expect(relojDeFila(pedido({ estado: "confirmado", confirmadoEn: hace(49), sinPagar: true }), PLAZOS, AHORA)).toMatchObject({
+      texto: "Se anula en minutos",
+      tono: "rojo",
+    });
     expect(relojDeFila(pedido({ estado: "confirmado", confirmadoEn: hace(6), total: 159, pagado: 80 }), PLAZOS, AHORA)).toMatchObject({
       texto: "Pagó S/\u00a080.00 de S/\u00a0159.00",
-      detalle: "Aviso si no paga en 42 h",
+      detalle: "Pagó una parte: no se anula solo",
+      barra: null,
     });
-    expect(relojDeFila(pedido({ estado: "confirmado", confirmadoEn: hace(50), sinPagar: true }), PLAZOS, AHORA)).toMatchObject({
-      texto: "Sin pagar · confirmado hace 2 días",
-      detalle: "Ya pasó el aviso de 48 h",
+    expect(relojDeFila(pedido({ estado: "confirmado", confirmadoEn: hace(50), sinPagar: true, total: 159, pagado: 80 }), PLAZOS, AHORA)).toMatchObject({
+      texto: "Falta S/\u00a079.00 · confirmado hace 2 días",
       tono: "rojo",
     });
     expect(relojDeFila(pedido({ estado: "pagado", pagadoEn: hace(24), listoParaRecoger: true }), PLAZOS, AHORA)).toMatchObject({ texto: "Listo para recoger", tono: "verde" });
@@ -542,7 +561,8 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
   it("el verbo de la fila: lo que toca ahora; lo cerrado no tiene", () => {
     expect(verboDe(pedido({}))).toBe("Confirmar");
     expect(verboDe(pedido({ estado: "confirmado" }))).toBe("Registrar pago");
-    expect(verboDe(pedido({ estado: "confirmado", sinPagar: true }))).toBe("Escribirle");
+    expect(verboDe(pedido({ estado: "confirmado", sinPagar: true, pagado: 30 }))).toBe("Escribirle");
+    expect(verboDe(pedido({ estado: "confirmado", sinPagar: true, pagado: 0 }))).toBe("Registrar pago");
     expect(verboDe(pedido({ estado: "pagado", listoParaRecoger: true }))).toBe("Entregar");
     expect(verboDe(pedido({ estado: "pagado", listoParaRecoger: false }))).toBe("Ver pedido");
     expect(verboDe(pedido({ estado: "pagado", listoParaRecoger: true, sinRecoger: true }))).toBe("Escribirle");
