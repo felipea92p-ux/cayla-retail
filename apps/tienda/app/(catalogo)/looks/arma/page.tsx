@@ -10,12 +10,14 @@ import { Probador } from "@/components/probador/Probador";
 import { leerAyuda } from "@/lib/ayuda-servidor";
 import { fotoOptimizable, hrefLista } from "@/lib/catalogo";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
+import { leerMisLooksEnBase } from "@/lib/looks-guardados-servidor";
 import { promesasDeCompra } from "@/lib/ficha";
 import { hrefLooks } from "@/lib/looks";
 import { armarProbador, completarLook, hrefDelProbador, lookDeLaUrl, lookInicial, PARAMETRO_DEL_LOOK } from "@/lib/probador";
 import { leerProbador } from "@/lib/probador-servidor";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
 import { hayEnTienda } from "@/lib/stock";
+import { leerSesion } from "@/lib/sesion-servidor";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../../estilos/probador.css";
 
@@ -24,12 +26,20 @@ export const metadata: Metadata = { title: "Arma el tuyo · CAYLA" };
 // «Arma el tuyo» (ADR-0434, actividad 4; lienzo v3, `V3Probador`): el probador de looks. Junta el catálogo de la tienda elegida (qué se
 // ve, su nombre y sus colores; con «Ver lo que hay en», solo lo que hay ahí) con lo del probador (el largo, los recortes y el precio y el
 // stock de cada color) y abre con el look de la dirección (`?p=`) o, si no trae uno, con lo primero que hay. Pide cuenta como todo el
-// catálogo (el layout del grupo). Escondido hasta que Felipe diga: ninguna página lleva aquí todavía (actividad 10).
+// catálogo (el layout del grupo). Se llega desde la cabecera, la tarjeta de «Arma tu look» y la ficha de cada prenda que se puede probar
+// («Arma un look con esta prenda», que abre con ella en su color: actividad 10), y desde un look guardado o compartido.
 export default async function ArmaElTuyo({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
   const pedida = sedeDeLaUrl(sp.sede, sedes);
-  const [catalogo, lectura, plazos] = await Promise.all([leerCatalogo(pedida?.id ?? null), leerProbador(pedida?.id ?? null), leerAyuda()]);
+  const sesion = await leerSesion();
+  // Lo de todos (el catálogo, el probador y los plazos) y lo de la persona (sus looks guardados, para el corazón), a la vez.
+  const [catalogo, lectura, plazos, guardados] = await Promise.all([
+    leerCatalogo(pedida?.id ?? null),
+    leerProbador(pedida?.id ?? null),
+    leerAyuda(),
+    sesion.estado === "con_sesion" ? leerMisLooksEnBase(sesion.usuarioId) : null,
+  ]);
   // La tienda cuyo precio usó la base (si la escondieron entretanto, la base ya respondió con «Todas»).
   const elegida = catalogo?.sede ? (sedes.find((s) => s.id === catalogo.sede) ?? null) : null;
   const sede = elegida ? claveDeSede(elegida.nombre) : null;
@@ -51,7 +61,7 @@ export default async function ArmaElTuyo({ searchParams }: { searchParams: Promi
     <MarcoCatalogo
       prendas={deLaTienda}
       sede={sede}
-      actual="looks"
+      actual="probador"
       franja={
         tiendas.length > 2 ? (
           // Mientras llega lo de la dirección, la franja con el look con que se abrió la página.
@@ -95,6 +105,7 @@ export default async function ArmaElTuyo({ searchParams }: { searchParams: Promi
           inicial={inicial}
           sedeId={elegida?.id ?? null}
           origenFotos={origenFotos}
+          guardados={guardados}
           pie={<Promesas promesas={promesasDeCompra(plazos)} />}
         />
       )}

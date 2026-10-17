@@ -2,6 +2,7 @@ import { cuantosFavoritos, nombreDeLaCuenta } from "@/lib/cabecera-servidor";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { datosDeCabecera } from "@/lib/inicio";
 import { leerPortada } from "@/lib/portada-servidor";
+import { hayAlgoParaProbar } from "@/lib/probador-servidor";
 import { anioActual } from "@/lib/hoy-servidor";
 import { anuncios } from "@/lib/portada";
 import { Anuncio } from "../Anuncio";
@@ -87,6 +88,7 @@ export async function MarcoCuenta({
     conCuenta ? cuantosFavoritos() : Promise.resolve(null),
     conCuenta ? nombreDeLaCuenta() : Promise.resolve(null),
   ]);
+  const conProbador = conCuenta ? await hayAlgoParaProbar(catalogo?.prendas ?? []) : false;
   return (
     <div className="tienda">
       <Anuncio frases={anuncios(campana, conCuenta)} />
@@ -94,7 +96,7 @@ export async function MarcoCuenta({
       {conCuenta && <EntradaDelDia />}
       {conCuenta ? (
         <CabeceraConCuenta
-          datos={datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN)}
+          datos={datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN, conProbador)}
           actual={enPagina === "cuenta" ? "cuenta" : null}
           favoritos={favoritos}
           nombre={nombre}
@@ -113,12 +115,13 @@ export async function MarcoCuenta({
  *  pero leído por detrás de la página (el catálogo para el menú es compartido; los favoritos y el nombre son de la persona). */
 async function ArranqueConCuenta({ campana, enPagina }: { campana: Portada["campana"]; enPagina?: "entrar" | "crear-cuenta" | "cuenta" }) {
   const [catalogo, favoritos, nombre] = await Promise.all([leerCatalogo(null), cuantosFavoritos(), nombreDeLaCuenta()]);
+  const conProbador = await hayAlgoParaProbar(catalogo?.prendas ?? []);
   return (
     <>
       <Anuncio frases={anuncios(campana, true)} />
       <EntradaDelDia />
       <CabeceraConCuenta
-        datos={datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN)}
+        datos={datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN, conProbador)}
         actual={enPagina === "cuenta" ? "cuenta" : null}
         favoritos={favoritos}
         nombre={nombre}

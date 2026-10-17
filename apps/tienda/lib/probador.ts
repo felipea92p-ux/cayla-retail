@@ -256,6 +256,14 @@ export function armarProbador(
   });
 }
 
+/**
+ * ¿El probador tiene algo que probar entre estas prendas (las que se ven en la tienda elegida)? Lo pregunta la cabecera para mostrar
+ * «Arma el tuyo» (ADR-0434, actividad 10; Felipe 2026-10-17): mientras no haya recortes listos, la entrada no sale y nadie llega a un
+ * probador vacío. Es la misma regla que lo arma, así que la entrada y el probador nunca dicen cosas distintas.
+ */
+export const hayParaProbar = (catalogo: readonly Prenda[], lectura: LecturaProbador): boolean =>
+  armarProbador(catalogo, lectura, { elegida: null, tiendas: [], optimizable: () => false }).length > 0;
+
 /* =============================================== 4. El look =============================================== */
 
 /** Una prenda puesta, en un color. */

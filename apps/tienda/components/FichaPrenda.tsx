@@ -22,6 +22,7 @@ import {
   type Ficha,
   type Promesa,
 } from "@/lib/ficha";
+import { hrefDelProbador } from "@/lib/probador";
 import { leyendaNiveles, textoNivel, tonoNivel } from "@/lib/stock";
 import { AgregarALaBolsa } from "./bolsa/AgregarALaBolsa";
 import { Promesas } from "./bolsa/Promesas";
@@ -58,6 +59,7 @@ export function FichaPrenda({
   esperasIds = {},
   enLaBolsa = 0,
   separadas = [],
+  probador = null,
   children,
 }: {
   ficha: Ficha;
@@ -81,6 +83,9 @@ export function FichaPrenda({
   enLaBolsa?: number;
   /** Las tallas cuyo resto en la tienda elegida ya separaron otros clientes (propuesta k; solo con una tienda elegida). */
   separadas?: readonly string[];
+  /** Si la prenda está en el probador de esta tienda («Arma el tuyo», ADR-0434, actividad 10): su código y la tienda elegida, para
+   *  «Arma un look con esta prenda», que lo abre con ella en el color elegido. null si no se puede probar (sin recorte o sin largo). */
+  probador?: { codigo: string; sede: string | null } | null;
   /** Lo que va debajo de la ficha: la barra del celular queda pegada abajo mientras se ve. */
   children?: React.ReactNode;
 }) {
@@ -310,6 +315,17 @@ export function FichaPrenda({
           {botones("t-cta-linea t-pdp-cta")}
           {/* En el celular esta línea solo lleva a la bolsa: lo que pasó al agregar se dice en la barra de abajo. */}
           {lineaDeLaBolsa("t-pdp-bolsa t-pdp-bolsa-info", true)}
+
+          {/* «Arma un look con esta prenda» (actividad 10; lienzo v1, «Entrada desde la ficha»): el probador con ella, en este color. */}
+          {probador && (
+            <div className="t-pdp-probador">
+              <Link className="t-btn t-btn-sec" href={hrefDelProbador(probador.sede, `${probador.codigo}.${color}`)}>
+                <Icono nombre="chispas" />
+                Arma un look con esta prenda
+              </Link>
+              <p>Pruébala con otras prendas de la tienda, a su tamaño y en el color que elijas.</p>
+            </div>
+          )}
 
           {promesas.length > 0 && <Promesas promesas={promesas} />}
 

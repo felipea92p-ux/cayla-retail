@@ -25,9 +25,11 @@ import {
   type Zona,
 } from "@/lib/probador";
 import { busquedaConBuscar, leerFiltroDeZona, PARAMETRO_DE_BUSCAR, type FiltroDeZona } from "@/lib/probador-buscar";
+import type { LookGuardado } from "@/lib/looks-guardados";
 import { AgregarTuLook } from "./AgregarTuLook";
 import { Buscador } from "./Buscador";
 import { Colores } from "./Colores";
+import { CorazonDelLook } from "./CorazonDelLook";
 import { Figura, type Entrada, type TipoDeEntrada } from "./Figura";
 import { TiraDeOpciones } from "./TiraDeOpciones";
 import { TuLook } from "./TuLook";
@@ -65,6 +67,7 @@ export function Probador({
   inicial,
   sedeId,
   origenFotos,
+  guardados: guardadosIniciales,
   pie,
 }: {
   prendas: readonly PrendaDelProbador[];
@@ -74,6 +77,8 @@ export function Probador({
   sedeId: string | null;
   /** El origen del almacén público de fotos (`TIENDA_FOTOS_ORIGEN`), para la hoja de tallas. */
   origenFotos: string | undefined;
+  /** Los looks que la cuenta ya guardó (el corazón va lleno si el de la figura es uno de ellos); null si la base no los dio. */
+  guardados: readonly LookGuardado[] | null;
   /** Lo que la tienda ya cumple, bajo el total (lo arma el servidor con los plazos de la ayuda). */
   pie?: React.ReactNode;
 }) {
@@ -87,6 +92,7 @@ export function Probador({
     entradas: {},
   }));
   const [aviso, setAviso] = useState<string | null>(null);
+  const [guardados, setGuardados] = useState<LookGuardado[]>(() => [...(guardadosIniciales ?? [])]);
   const reloj = useRef<number | undefined>(undefined);
   const avisar = useCallback((texto: string) => {
     window.clearTimeout(reloj.current);
@@ -210,12 +216,15 @@ export function Probador({
   return (
     <div className="pb">
       <header className="pb-cab">
-        <span className="t-ceja">Arma tu look</span>
-        <h1>
-          Arma el <em>tuyo</em>
-        </h1>
-        {/* En la computadora, junto al título (lienzo `V3Escritorio`); en el celular, la figura ya lo dice sola. */}
-        <p className="pb-cab-ayuda">Arrastra una prenda hacia un lado o elige a la derecha.</p>
+        <div className="pb-cab-txt">
+          <span className="t-ceja">Arma tu look</span>
+          <h1>
+            Arma el <em>tuyo</em>
+          </h1>
+          {/* En la computadora, junto al título (lienzo `V3Escritorio`); en el celular, la figura ya lo dice sola. */}
+          <p className="pb-cab-ayuda">Arrastra una prenda hacia un lado o elige a la derecha.</p>
+        </div>
+        <CorazonDelLook look={estado.look} guardados={guardados} onGuardados={setGuardados} avisar={avisar} />
       </header>
 
       <Figura
