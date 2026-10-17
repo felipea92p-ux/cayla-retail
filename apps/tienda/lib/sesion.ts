@@ -23,16 +23,27 @@ export function configAuth(): ConfigAuth | null {
   return url && llavePublica ? { url, llavePublica } : null;
 }
 
+/**
+ * ¿Se ofrece «Continuar con Google»? Solo cuando el proyecto de clientes ya tiene el proveedor encendido (a mano en su panel, con el
+ * cliente de Google Cloud): `NEXT_PUBLIC_TIENDA_GOOGLE=si`. Sin eso, el botón no sale (no hay un camino roto a la vista). Escrita entera:
+ * Next solo lleva al navegador las variables NEXT_PUBLIC_ que ve escritas así.
+ */
+export const googleDisponible = () => process.env.NEXT_PUBLIC_TIENDA_GOOGLE?.trim() === "si";
+
 /** ¿Trae la cookie de una sesión? No la valida: sirve para elegir la cabecera y para no preguntarle al proyecto en vano. */
 export const tieneCookieDeSesion = (nombres: readonly string[]) =>
   nombres.some((nombre) => nombre === COOKIE_SESION || /^tienda-sesion\.\d+$/.test(nombre));
 
-/** Las páginas de quien no tiene cuenta. Con sesión, el proxy lleva al Inicio (maqueta v4: entrar o crear la cuenta lleva ahí). */
-const SOLO_SIN_CUENTA = new Set(["/", "/entrar", "/crear-cuenta", "/olvide-mi-contrasena"]);
-/** Las que piden cuenta: el Inicio, «Mi cuenta» (con sus pedidos), todo el catálogo, «Arma tu look» y la bolsa (sin cuenta solo se ve
- * la portada, maqueta v4); y «Recomendaciones» (Felipe 2026-10-15: va siempre con su nombre, así que se escribe con cuenta). */
+/** Las páginas de quien todavía no tiene cuenta: con sesión, el proxy lleva al Inicio. */
+const SOLO_SIN_CUENTA = new Set(["/entrar", "/crear-cuenta", "/olvide-mi-contrasena"]);
+/**
+ * Las que piden cuenta: lo que es DE la persona (su perfil con sus pedidos, un pedido ya separado, las recomendaciones que se escriben
+ * con su nombre). El catálogo, los precios, cuánto hay en cada tienda, los looks, «Arma el tuyo» y la bolsa son de todos (Felipe
+ * 2026-10-17: «no sea obligatorio que inicie sesión para ver los productos, ni los precios ni el stock»): la cuenta se pide al
+ * SEPARAR, o cuando la persona quiere guardar algo suyo (un favorito, un aviso), no antes.
+ */
 const soloConCuenta = (ruta: string) =>
-  ["/inicio", "/cuenta", "/catalogo", "/looks", "/bolsa", "/recomendaciones"].some((base) => ruta === base || ruta.startsWith(`${base}/`));
+  ["/cuenta", "/bolsa/separado", "/recomendaciones"].some((base) => ruta === base || ruta.startsWith(`${base}/`));
 export const INICIO_CON_CUENTA = "/inicio";
 
 /**
@@ -44,12 +55,18 @@ export const INICIO_CON_CUENTA = "/inicio";
  */
 export function redireccionDelProxy(ruta: string, metodo: string, usuario: "si" | "no" | "no_se", busqueda = ""): string | null {
   if (metodo !== "GET" && metodo !== "HEAD") return null;
+  // La portada ya no es otra pantalla: la tienda se ve igual con o sin cuenta, y su puerta es el Inicio.
+  if (ruta === "/") return INICIO_CON_CUENTA;
   if (usuario === "si" && SOLO_SIN_CUENTA.has(ruta)) return INICIO_CON_CUENTA;
-  if (usuario === "no" && soloConCuenta(ruta)) {
-    return ruta === INICIO_CON_CUENTA ? "/entrar" : `/entrar?${PARAMETRO_VOLVER_DEL_PROXY}=${encodeURIComponent(ruta + busqueda)}`;
+  if (usuario === "no" && (soloConCuenta(ruta) || esListaDeFavoritos(ruta, busqueda))) {
+    return `/entrar?${PARAMETRO_VOLVER_DEL_PROXY}=${encodeURIComponent(ruta + busqueda)}`;
   }
   return null;
 }
+
+/** Los favoritos son de la persona: la lista de todos no (`/catalogo?lista=favoritos`). */
+const esListaDeFavoritos = (ruta: string, busqueda: string) =>
+  ruta === "/catalogo" && new URLSearchParams(busqueda).get("lista") === "favoritos";
 
 /** El parámetro de «Entrar» con la página a la que se vuelve: el mismo `PARAMETRO_VOLVER` de lib/entrada.ts (que importa este
  *  archivo: importarlo de allá sería circular; `sesion.test.ts` exige que sean iguales). */

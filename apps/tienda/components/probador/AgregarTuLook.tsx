@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { agregarLookALaBolsa } from "@/app/acciones/bolsa";
 import { tallasDeTuLook } from "@/app/acciones/probador";
@@ -36,7 +35,6 @@ export function AgregarTuLook({
   className?: string;
   texto?: string;
 }) {
-  const router = useRouter();
   const { aviso, mostrar } = useAvisoBreve();
   // Cada vez que se abre, una hoja nueva con las tallas recién pedidas (`vuelta`: la vuelve a montar).
   const [hoja, setHoja] = useState<{ vuelta: number; look: LookDeCayla } | null>(null);
@@ -61,10 +59,6 @@ export function AgregarTuLook({
       lineas.map((l) => l.varianteId),
       sedeId,
     );
-    if (r.estado === "sin_sesion") {
-      router.push("/entrar");
-      return null;
-    }
     if (r.estado === "no") return r.mensaje;
     const dicho = avisoDelLook(null, lineas, r);
     if (!dicho.cerrar) return dicho.texto;

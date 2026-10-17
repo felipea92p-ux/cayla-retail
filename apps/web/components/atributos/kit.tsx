@@ -223,20 +223,6 @@ export function PieTarjeta({ children }: { children: ReactNode }) {
   return <div className="flex flex-wrap items-center gap-x-3 gap-y-1">{children}</div>;
 }
 
-/** Un enlace del pie. Cada uno en una sola línea: «Configurar campaña» partido en dos se leía como dos acciones. */
-export function AccionTarjeta({ onClick, children, guia }: { onClick: () => void; children: ReactNode; /** Ancla de la guía interactiva (`data-guia`, ADR-0389). */ guia?: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      data-guia={guia}
-      className="label-cayla whitespace-nowrap text-[10px] text-tinta/75 underline-offset-4 transition-colors hover:text-tinta hover:underline"
-    >
-      {children}
-    </button>
-  );
-}
-
 /**
  * «Desactivar» no es lo que se hace a diario: aparece al pasar el mouse o al enfocarlo con el teclado, y en pantallas
  * táctiles (sin hover) se ve siempre. Reserva su lugar para que la tarjeta no salte de alto.

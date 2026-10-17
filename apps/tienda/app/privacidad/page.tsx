@@ -68,9 +68,10 @@ export default function Privacidad() {
               <SeccionLegal {...datos}>
                 <ul>
                   <li>
-                    Los que nos das al crear tu cuenta: tu correo y tu contraseña, tu documento (DNI, carné de extranjería o pasaporte), tus nombres
-                    y apellidos, tu celular y tu cumpleaños (día y mes; el año, si quieres). Si después cambias el correo con que entras, el nuevo
-                    reemplaza al anterior.
+                    Los que nos das al crear tu cuenta: tu correo y tu nombre, y tu contraseña (o la cuenta de Google con que entras, de la que solo
+                    tomamos tu correo y tu nombre). Los que nos das al unirte al club, la primera vez que separas: tu documento (DNI, carné de
+                    extranjería o pasaporte), tus nombres y apellidos, tu celular y, si quieres, tu cumpleaños (día y mes; el año, si quieres).
+                    Si después cambias el correo con que entras, el nuevo reemplaza al anterior.
                   </li>
                   <li>
                     Con DNI, tu nombre lo tomamos del padrón público, para que quede bien escrito. Con carné de extranjería o pasaporte, lo

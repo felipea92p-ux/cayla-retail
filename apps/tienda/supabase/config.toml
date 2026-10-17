@@ -69,9 +69,14 @@ additional_redirect_urls = ["http://localhost:3100/**", "http://127.0.0.1:3100/*
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
-# Nadie crea su cuenta por la puerta pública de Supabase: la crea el servidor de la tienda (`crearCuenta`), después de que la
-# base del ERP revisó el correo, el DNI y los topes. Si no, cualquiera ocuparía correos sin pasar por esa revisión.
-enable_signup = false
+# Crear la cuenta con correo la hace el servidor de la tienda (`crearCuenta`), después de que la base del ERP revisó el correo y los
+# topes; la cuenta de Google se crea en `app/auth/google/route.ts`. Para que Google pueda crear un usuario nuevo este interruptor tiene
+# que estar ENCENDIDO (el proyecto lo aplica a todos los proveedores: apagado, un Google nuevo recibe «Signups not allowed»). Lo que
+# eso abre: alguien podría pedir por la puerta pública un usuario con correo y contraseña, pero con «Confirm email» encendido
+# (más abajo) no entra sin confirmar ese correo, y si ocupa el correo de otra persona, la invitación de la tienda lo borra y lo
+# vuelve a invitar (`invitarCorreo`); sin su cuenta en la base del ERP, un usuario del proyecto no ve ni separa nada. ADR-0438.
+# En producción es el mismo ajuste, a mano: «Allow new users to sign up» ENCENDIDO, junto con «Confirm email».
+enable_signup = true
 enable_anonymous_sign_ins = false
 enable_manual_linking = false
 # Como la maqueta: «8 caracteres o más».
@@ -91,8 +96,8 @@ sign_in_sign_ups = 30
 token_verifications = 30
 
 [auth.email]
-# El correo con contraseña está encendido (para entrar y recuperar); crear cuentas por la puerta pública, no (`enable_signup`
-# de arriba).
+# El correo con contraseña está encendido (para entrar y recuperar). Crear cuentas por la puerta pública quedó abierta solo porque
+# Google lo necesita (`enable_signup` de arriba); el correo sin confirmar no entra (`enable_confirmations` de abajo).
 enable_signup = true
 # «Cambiar mi correo» y «Restablecer acceso» (Felipe 2026-10-15): el código va SOLO al correo nuevo (plantilla de abajo) y al anterior
 # le llega un aviso (`[auth.email.notification.email_changed]`). Con esto encendido iría un código a cada correo, y el anterior es justo
@@ -131,6 +136,16 @@ content_path = "./supabase/plantillas/correo-nuevo.html"
 enabled = true
 subject = "Cambió el correo de tu cuenta · CAYLA"
 content_path = "./supabase/plantillas/correo-cambiado.html"
+
+# Entrar con Google (ADR-0438). Apagado en local: encenderlo pide un cliente de Google Cloud propio (ver el README de la tienda). En
+# producción se enciende a mano en el panel del proyecto de clientes (Authentication ▸ Providers ▸ Google), con la dirección de vuelta
+# `https://<proyecto>.supabase.co/auth/v1/callback` en Google Cloud y `https://<dominio>/auth/google` en las direcciones permitidas del
+# proyecto; y la tienda lo ofrece cuando `NEXT_PUBLIC_TIENDA_GOOGLE=si`.
+[auth.external.google]
+enabled = false
+client_id = "env(TIENDA_GOOGLE_CLIENT_ID)"
+secret = "env(TIENDA_GOOGLE_SECRET)"
+skip_nonce_check = false
 
 [auth.sms]
 enable_signup = false

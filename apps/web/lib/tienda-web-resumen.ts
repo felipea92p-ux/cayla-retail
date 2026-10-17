@@ -131,18 +131,34 @@ export function pendientesDe(e: EntradaResumen): Pendiente[] {
     }
   }
 
-  if (e.recomendaciones.estado === "ok" && e.recomendaciones.dato.sinLeer > 0) {
-    const n = e.recomendaciones.dato.sinLeer;
+  // Lo que espera respuesta, no lo que nadie abrió: leerla no le da nada al cliente (decisión #2 A, 2026-10-17).
+  if (e.recomendaciones.estado === "ok" && e.recomendaciones.dato.porResponder > 0) {
+    const n = e.recomendaciones.dato.porResponder;
     p.push({
       clave: "recomendaciones",
       tono: "atencion",
       icono: "recomendacion",
       cifra: n,
       formato: "entero",
-      titulo: `${plural(n, "recomendación", "recomendaciones")} sin leer`,
-      detalle: "Un cliente se tomó el tiempo de escribirle a CAYLA: léela y, si puedes, respóndele.",
+      titulo: `${plural(n, "recomendación", "recomendaciones")} por responder`,
+      detalle: "Un cliente se tomó el tiempo de escribirle a CAYLA: respóndele, o archívala si no hace falta.",
       href: "/tienda-web/recomendaciones",
-      accion: "Leer",
+      accion: "Responder",
+    });
+  }
+  // Lo que más piden este mes, si dos o más lo nombran (actividad 4): no es un pendiente, es lo que dicen los propios clientes.
+  if (e.recomendaciones.estado === "ok" && e.recomendaciones.dato.temaDelMes) {
+    const t = e.recomendaciones.dato.temaDelMes;
+    p.push({
+      clave: "recomendaciones-tema",
+      tono: "info",
+      icono: "recomendacion",
+      cifra: t.veces,
+      formato: "entero",
+      titulo: `recomendaciones de este mes piden ${t.nombre}`,
+      detalle: "Lo dicen los propios clientes: vale contárselo a quien decide el próximo pedido.",
+      href: "/tienda-web/recomendaciones",
+      accion: "Leerlas",
     });
   }
 

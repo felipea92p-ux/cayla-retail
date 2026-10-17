@@ -35,6 +35,7 @@ export async function MarcoCuenta({
   segunSesion = false,
   enPagina,
   conPie = false,
+  visitante = false,
 }: {
   children: React.ReactNode;
   conCuenta?: boolean;
@@ -42,6 +43,9 @@ export async function MarcoCuenta({
   segunSesion?: boolean;
   enPagina?: "entrar" | "crear-cuenta" | "cuenta";
   conPie?: boolean;
+  /** Con `conCuenta`: la página de la tienda (la bolsa) la ve también quien NO tiene sesión. Lleva la misma cabecera, pero su persona
+   *  ofrece «Entrar» y «Crear mi cuenta», sin nombre, sin anotar la entrada y con el pie de quien aún no tiene cuenta. */
+  visitante?: boolean;
 }) {
   if (segunSesion) {
     const [{ campana }, anio] = await Promise.all([leerPortada(), conPie ? anioActual() : Promise.resolve(0)]);
@@ -91,18 +95,19 @@ export async function MarcoCuenta({
   const [{ campana }, catalogo, favoritos, nombre] = await Promise.all([
     leerPortada(),
     conCuenta ? leerCatalogo(null) : Promise.resolve(null),
-    conCuenta ? cuantosFavoritos() : Promise.resolve(null),
-    conCuenta ? nombreDeLaCuenta() : Promise.resolve(null),
+    conCuenta && !visitante ? cuantosFavoritos() : Promise.resolve(null),
+    conCuenta && !visitante ? nombreDeLaCuenta() : Promise.resolve(null),
   ]);
   const conProbador = conCuenta ? await hayAlgoParaProbar(catalogo?.prendas ?? []) : false;
+  const conSesion = conCuenta && !visitante;
   return (
     <>
       {/* Otra página: la pantalla se funde a la nueva. Antes de la caja, sin elementos encima (components/Vistas.tsx). */}
       <MarcaDeVista />
       <div className="tienda">
-        <Anuncio frases={anuncios(campana, conCuenta)} />
+        <Anuncio frases={anuncios(campana, conSesion)} />
         {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
-        {conCuenta && <EntradaDelDia />}
+        {conSesion && <EntradaDelDia />}
         {conCuenta ? (
           <CabeceraConCuenta
             datos={datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN, conProbador)}
@@ -110,12 +115,13 @@ export async function MarcoCuenta({
             favoritos={favoritos}
             nombre={nombre}
             bolsa={<BotonBolsa />}
+            visitante={visitante}
           />
         ) : (
           <Cabecera enPagina={enPagina === "cuenta" ? undefined : enPagina} />
         )}
         <main className="t-pagina">{children}</main>
-        {conPie && <Pie anio={await anioActual()} conCuenta={conCuenta} />}
+        {conPie && <Pie anio={await anioActual()} conCuenta={conSesion} />}
       </div>
     </>
   );

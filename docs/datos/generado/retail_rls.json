@@ -64,6 +64,11 @@
   "relkind": "r",
   "rls": true
  },
+ "campana_disenos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "campana_efecto_caja": {
   "forzado": false,
   "relkind": "r",
