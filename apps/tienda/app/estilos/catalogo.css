@@ -124,6 +124,9 @@
 .t-card-foto { position: relative; display: block; width: 100%; aspect-ratio: 4 / 5; background: var(--t-foto); border-radius: 3px; overflow: hidden; }
 .t-card-foto img { object-fit: contain; mix-blend-mode: multiply; transition: opacity .5s var(--ease), transform .8s var(--ease); }
 .t-card-foto .f2 { opacity: 0; }
+/* La foto que todavía baja (`FotoTarjeta`, `data-esperando`): invisible sobre la silueta de su color y, al llegar, aparece con el fundido
+   de .5 s de arriba. Con «reducir movimiento», la regla general de globals.css la muestra de una vez. */
+.t-card-foto img[data-esperando] { opacity: 0; }
 @media (hover: hover) {
   .t-card:hover .t-card-foto .f2 { opacity: 1; }
   .t-card:hover .t-card-foto .f1.con-f2 { opacity: 0; }
