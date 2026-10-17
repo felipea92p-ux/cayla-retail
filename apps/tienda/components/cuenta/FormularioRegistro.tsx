@@ -23,7 +23,6 @@ import {
   faltanResumidos,
   marcaDe,
   MAX_PARTE_NOMBRE,
-  MENSAJES,
   mensajeSinNombre,
   normalizarCorreo,
   REGISTRO_VACIO,
@@ -37,6 +36,7 @@ import {
   type Dia,
   type Registro,
 } from "@/lib/cuentas";
+import { MENSAJES } from "@/lib/cuentas-mensajes";
 import { codigoDelCorreoActual, codigoParaProbar, type CodigoDelCorreo } from "@/lib/correo-confirmado";
 import { hrefConVolver, PARAMETRO_VOLVER, rutaParaVolver } from "@/lib/entrada";
 import { avanceDelRegistro, buzonDelCorreo, nombreParaLaTarjeta } from "@/lib/panel-entrada";

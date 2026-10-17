@@ -6,7 +6,7 @@
 - [x] **En producción desde el 2026-10-17**, con el OK de Felipe: `supabase/migrations/20261017025000_tienda_probador.sql`, verificada
   contra la base (md5 de `tienda_probador` `4f835fad…`, solo la llama `tienda_web`). Responde con 0 prendas hasta que alguien apriete
   «Preparar recortes» en el ERP.
-- [ ] Refrescar el volcado (`pnpm datos:refrescar`) para que `tienda_probador` entre al diccionario.
+- [x] El volcado se refrescó el 2026-10-17: `tienda_probador` ya está en el diccionario.
 - [x] **Actividad 5 — Buscar una prenda y ver todas las de una zona** («Ver todas» y «Buscar otra»): hoja a pantalla completa con la
   caja, las zonas, el conteo, tarjetas con colores y «Probar», sugerencias que salen de lo que hay y su vacío; «atrás», la flecha y
   Escape la cierran (el primer Escape borra lo escrito). El «Solo en Trujillo» del lienzo es la franja «Ver lo que hay en» de toda la

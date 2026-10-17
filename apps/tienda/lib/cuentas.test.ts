@@ -37,7 +37,6 @@ import {
   leerMiCuenta,
   leerReserva,
   marcaDe,
-  MENSAJES,
   mensajeCodigoBloqueado,
   mensajeCodigoEsperar,
   mensajeCodigoLimite,
@@ -49,6 +48,7 @@ import {
   type ConsultaDocumento,
   type Registro,
 } from "./cuentas";
+import { MENSAJES } from "./cuentas-mensajes";
 import type { CodigoDelCorreo } from "./correo-confirmado";
 
 const HOY = { anio: 2026, mes: 10, dia: 14 };

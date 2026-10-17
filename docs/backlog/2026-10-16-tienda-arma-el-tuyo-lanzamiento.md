@@ -14,7 +14,7 @@
 - [x] **En producción desde el 2026-10-17**, con el OK de Felipe y el CI del PR 3 en verde:
   `supabase/migrations/20261017044000_tienda_looks_guardados.sql`, verificada contra la base (las seis huellas, la línea de los looks en
   el cierre de cuentas, solo `tienda_web` y las tablas sin lectura directa).
-- [ ] Refrescar el volcado (`pnpm datos:refrescar`) para que `looks_web` y `look_web_piezas` entren al diccionario.
+- [x] El volcado se refrescó el 2026-10-17: `looks_web` y `look_web_piezas` ya están en el diccionario, con su pájaro (Colibrí).
 - [x] El PR 3 se abrió el 2026-10-17, con el PR 1 (#1151) y el PR 2 (#1155) ya en main.
 - [x] Dos pruebas de base conocen ahora los looks guardados, porque la migración cambia el disparador del cierre de cuentas y suma una
   función que lee la ficha:
