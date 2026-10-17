@@ -2133,6 +2133,18 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   `app/acciones/bolsa.ts` `agregarLookALaBolsa` (sin precios: la bolsa los pide a la base con la tienda de recojo); al terminar, el aviso
   de abajo y el salto del globo de la bolsa. Las dos páginas llevan el marco de la tienda (`MarcoCatalogo`, con «Arma tu look» marcado) y
   piden cuenta en el proxy (`lib/sesion.ts`). Estilos en `app/estilos/looks.css`.
+- `/looks/arma` («Arma el tuyo», el probador de looks, ADR-0434 actividad 4; grupo `(catalogo)`, con cuenta; **escondido**: ninguna página
+  lleva ahí hasta la actividad 10) → `lib/catalogo-servidor.ts` `leerCatalogo(sede)` (qué se ve, su nombre y sus colores; con una tienda
+  elegida, solo lo que hay ahí) + `lib/probador-servidor.ts` `leerProbador(sede)` → `retail.tienda_probador(p_sede)` (`20261017025000`: por
+  prenda publicada con largo —propio o típico— y algún recorte LISTO, su largo, sus recortes con el color de su foto, y por COLOR su precio
+  —`fn_tienda_precios` por color, el de la bolsa— y su nivel por tienda —`fn_tienda_disponible`—; y `combina`, de `colores.combina_con`),
+  guardada medio minuto como el catálogo. `lib/probador.ts` (pura, con su prueba) junta las dos (`armarProbador`: la zona de cada
+  categoría sale de `lib/grupos.ts`; el bolso es Bolsos y Carteras), arma el look (`poner`, `quitar`, `sorprender`, `completarLook`), lo
+  pone en la dirección (`?p=CÓDIGO.COLOR~…`, `codificarLook`/`lookDeLaUrl`) y dibuja la figura a 2,5 px por cm (`cajaDe`). Lo dibujan
+  `components/probador/Probador.tsx` (el estado), `Figura.tsx` (la escena: prendas, las que asoman, números, flechas, deslizar, teclado,
+  «Sorpréndeme»), `Colores.tsx`, `TiraDeOpciones.tsx` y `TuLook.tsx`; la franja de tiendas es `FiltroDelProbador.tsx` (conserva el look,
+  por la prop `franja` de `MarcoCatalogo`). Su esqueleto de carga es la forma `probador` de `FormaDelEsqueleto`. Estilos en
+  `app/estilos/probador.css`. Prueba en la base: `pnpm pruebas:tienda-probador`.
 - **Un solo precio y una sola tienda elegida** (integración de la tienda, 2026-10-15). El precio de una prenda (talla y color) en la web
   lo dice `fn_tienda_precio_talla(prendas, tienda)` (`20261015012000`): el de la tienda elegida (`fn_precio_en_sede`) o, con «Todas», el
   mayor entre las de la web (sin ninguna, el de la grilla), con la campaña de la caja encima (la de mayor %, `fn_descuento_campana`,
