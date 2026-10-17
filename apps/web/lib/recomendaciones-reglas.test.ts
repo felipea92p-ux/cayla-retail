@@ -9,6 +9,7 @@ import {
   deQuien,
   esFiltroEstado,
   estadoDe,
+  fechaDeLaTienda,
   filtrar,
   hrefFicha,
   leerRecomendaciones,
@@ -16,6 +17,8 @@ import {
   opcionesSobre,
   pideReleer,
   problemaParaConfirmar,
+  SEGUNDOS_PARA_DESHACER,
+  segundosQueFaltan,
   sePuedeResponder,
   sobreQue,
   textoLimpio,
@@ -223,5 +226,23 @@ describe("la respuesta", () => {
 describe("la ficha del cliente", () => {
   it("lleva a Clientes buscando su nombre (como desde el Historial de ventas)", () => {
     expect(hrefFicha("Ana María Pérez")).toBe("/clientas?q=Ana+Mar%C3%ADa+P%C3%A9rez");
+  });
+});
+
+describe("el envío con tiempo para deshacer", () => {
+  it("espera 8 segundos y cuenta hacia abajo sin pasar de cero (redondea hacia arriba: «1 s» hasta el final)", () => {
+    expect(SEGUNDOS_PARA_DESHACER).toBe(8);
+    const vence = 10_000 + SEGUNDOS_PARA_DESHACER * 1000;
+    expect(segundosQueFaltan(vence, 10_000)).toBe(8);
+    expect(segundosQueFaltan(vence, 10_001)).toBe(8);
+    expect(segundosQueFaltan(vence, 17_100)).toBe(1);
+    expect(segundosQueFaltan(vence, vence)).toBe(0);
+    expect(segundosQueFaltan(vence, vence + 5_000)).toBe(0);
+  });
+
+  it("la fecha como la ve el cliente en su cuenta, en hora de Lima (la madrugada UTC del 18 todavía es 17 en Lima)", () => {
+    expect(fechaDeLaTienda("2026-10-17T15:02:00Z")).toBe("17 oct");
+    expect(fechaDeLaTienda("2026-10-18T03:30:00Z")).toBe("17 oct");
+    expect(fechaDeLaTienda("2026-09-05T15:00:00Z")).toBe("5 set");
   });
 });

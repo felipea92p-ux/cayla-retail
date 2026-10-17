@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Archive, ArrowRight, UserX } from "lucide-react";
 import { Cajon } from "@/components/ui/Cajon";
 import { Boton, Campo } from "@/components/ui/campos";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { VistaDelCliente } from "@/components/recomendaciones/VistaDelCliente";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { createClient } from "@/lib/supabase/client";
@@ -18,11 +20,13 @@ import { haceCuanto } from "@/lib/vender-hoy-reglas";
 import { camposRecomendacion } from "@/lib/recomendaciones-guia";
 import {
   MAX_RESPUESTA,
+  SEGUNDOS_PARA_DESHACER,
   avisoDelError,
   cuando,
   hrefFicha,
   letras,
   pideReleer,
+  segundosQueFaltan,
   sePuedeResponder,
   sobreQue,
   textoLimpio,
@@ -30,6 +34,9 @@ import {
 } from "@/lib/recomendaciones-reglas";
 
 type Hecho = "respondida" | "archivada" | "en_bandeja";
+
+/** Una respuesta que espera sus 8 segundos para salir (actividad 3): con quién firmó al tocar «Enviar», no al salir. */
+type Envio = { id: string; nombre: string | null; texto: string; firma: Parameters<typeof firmar>[1]; vence: number };
 
 /** Lo que la base ya confirmó y la lista todavía no trae (`router.refresh` tarda un momento): se muestra en su lugar para que la
  *  respuesta enviada no desaparezca ni vuelva la caja de escribir. Se olvida apenas la lista lo trae. */
@@ -84,6 +91,11 @@ export function RecomendacionHoja({
   const [confirmados, setConfirmados] = useState<Record<string, Confirmado>>({});
   const [guardando, setGuardando] = useState<Hecho | null>(null);
   const enVuelo = useRef(false);
+  // La respuesta que espera para salir (una a la vez). La base no deja corregir una respuesta: estos 8 segundos son para arrepentirse.
+  const [envio, setEnvio] = useState<Envio | null>(null);
+  const envioRef = useRef<Envio | null>(null);
+  // La hora con que se dibuja la cuenta regresiva (la pone el clic en «Enviar» y la avanza el reloj: el dibujo no lee la hora).
+  const [ahoraMs, setAhoraMs] = useState(0);
 
   // Cuando la lista ya trae lo que la base confirmó, manda la lista (y su «quién y cuándo» de verdad). «Deshacer» un archivo borra
   // su confirmado; lo demás se olvida al cerrar el cajón.
@@ -108,45 +120,117 @@ export function RecomendacionHoja({
   const verResponsable = !(!puedeResponder && responsable.estado === "admin");
   const n = letras(respuesta);
 
-  async function guardar(que: Hecho) {
-    if (enVuelo.current) return;
-    if (que === "respondida" && !guia.puedeConfirmar) return;
-    if (!responsable.listo) return;
+  /** Manda una respuesta que esperaba (al vencer sus 8 s, con «Enviar ahora» o al salir de ella). Si falla, lo escrito se queda para
+   *  volver a intentarlo. Va con `x-espera: no`: puede salir mientras se lee otra, y el loader de pantalla completa la taparía. */
+  async function mandar(e: Envio) {
+    if (envioRef.current?.id !== e.id) return; // ya se deshizo, o ya salió
+    envioRef.current = null;
+    setEnvio((x) => (x?.id === e.id ? null : x));
     enVuelo.current = true;
-    setGuardando(que);
-    const id = r.id;
-    const texto = textoLimpio(respuesta);
-    const base = createClient();
-    const firma = responsable.firma();
-    const consulta =
-      que === "respondida"
-        ? base.rpc("responder_recomendacion", { p_id: id, p_respuesta: texto })
-        : base.rpc("archivar_recomendacion", { p_id: id, p_archivar: que === "archivada" });
-    const { error } = await firmar(consulta, firma);
+    setGuardando("respondida");
+    const consulta = createClient().rpc("responder_recomendacion", { p_id: e.id, p_respuesta: e.texto }).setHeader("x-espera", "no");
+    const { error } = await firmar(consulta, e.firma);
     enVuelo.current = false;
     setGuardando(null);
     responsable.despues(error);
     if (error) {
       const propio = avisoDelError(error, esFalloDeRed(error));
       if (propio) avisar.error(propio.titulo, { detalle: propio.detalle });
-      else avisar.error(traducirError(error, que === "respondida" ? "enviar la respuesta" : "archivarla"));
+      else avisar.error(traducirError(error, "enviar la respuesta"));
       // Otra persona ya la respondió (o ya no está): la lista se relee para que se vea lo que hay de verdad.
+      if (pideReleer(error.hint)) onCambio(e.id);
+      return;
+    }
+    setConfirmados((c) => ({ ...c, [e.id]: { tipo: "respondida", texto: e.texto, en: new Date().toISOString() } }));
+    setBorradores((b) => sinClave(b, e.id));
+    onCambio(e.id);
+    avisar.exito("Respuesta enviada", { detalle: `${e.nombre ?? "El cliente"} la lee en su cuenta de la tienda online.` });
+  }
+  // El reloj y el cierre del cajón llaman a la última versión de `mandar` (la de la última vuelta, con su `onCambio`).
+  const mandarRef = useRef(mandar);
+  useEffect(() => {
+    mandarRef.current = mandar;
+  });
+
+  // Los 8 segundos: al vencer, sale; mientras, la cuenta regresiva se repinta.
+  useEffect(() => {
+    if (!envio) return;
+    const salir = window.setTimeout(() => void mandarRef.current(envio), Math.max(0, envio.vence - Date.now()));
+    const tic = window.setInterval(() => setAhoraMs(Date.now()), 250);
+    return () => {
+      window.clearTimeout(salir);
+      window.clearInterval(tic);
+    };
+  }, [envio]);
+  // Cerrar la pestaña con una respuesta esperando: el navegador pregunta antes (si se va igual, no sale y lo escrito se pierde).
+  useEffect(() => {
+    if (!envio) return;
+    const alSalir = (ev: BeforeUnloadEvent) => {
+      ev.preventDefault();
+      ev.returnValue = "";
+    };
+    window.addEventListener("beforeunload", alSalir);
+    return () => window.removeEventListener("beforeunload", alSalir);
+  }, [envio]);
+  // Irse a otra pantalla con una respuesta esperando: sale en ese momento.
+  useEffect(
+    () => () => {
+      const e = envioRef.current;
+      if (e) void mandarRef.current(e);
+    },
+    [],
+  );
+
+  /** Lo que espera, si espera, sale ya: al cerrar el cajón o al pasar a otra recomendación no se pierde. */
+  const sacarLoQueEspera = () => {
+    const e = envioRef.current;
+    if (e) void mandar(e);
+  };
+  function enviar() {
+    if (enVuelo.current || !guia.puedeConfirmar || !responsable.listo) return;
+    if (envioRef.current) {
+      if (envioRef.current.id === r.id) return; // un segundo toque no programa otra
+      sacarLoQueEspera(); // la de otra recomendación sale ya, para que esta tenga sus propios 8 s
+    }
+    const ya = Date.now();
+    const e: Envio = {
+      id: r.id,
+      nombre: r.cliente?.nombre ?? null,
+      texto: textoLimpio(respuesta),
+      firma: responsable.firma(),
+      vence: ya + SEGUNDOS_PARA_DESHACER * 1000,
+    };
+    envioRef.current = e;
+    setAhoraMs(ya);
+    setEnvio(e);
+  }
+  function deshacerEnvio() {
+    envioRef.current = null;
+    setEnvio(null);
+  }
+
+  /** Archivar o sacar del archivo: van directo (se deshacen con «Deshacer» o «Sacar del archivo»). */
+  async function archivar(que: "archivada" | "en_bandeja") {
+    if (enVuelo.current || !responsable.listo) return;
+    enVuelo.current = true;
+    setGuardando(que);
+    const id = r.id;
+    const firma = responsable.firma();
+    const { error } = await firmar(createClient().rpc("archivar_recomendacion", { p_id: id, p_archivar: que === "archivada" }), firma);
+    enVuelo.current = false;
+    setGuardando(null);
+    responsable.despues(error);
+    if (error) {
+      const propio = avisoDelError(error, esFalloDeRed(error));
+      if (propio) avisar.error(propio.titulo, { detalle: propio.detalle });
+      else avisar.error(traducirError(error, que === "archivada" ? "archivarla" : "sacarla del archivo"));
       if (pideReleer(error.hint)) onCambio(id);
       return;
     }
-    const en = new Date().toISOString();
-    if (que === "respondida") {
-      setConfirmados((c) => ({ ...c, [id]: { tipo: "respondida", texto, en } }));
-      setBorradores((b) => sinClave(b, id));
-    } else if (que === "archivada") {
-      setConfirmados((c) => ({ ...c, [id]: { tipo: "archivada", en } }));
-    } else {
-      setConfirmados((c) => sinClave(c, id));
-    }
+    if (que === "archivada") setConfirmados((c) => ({ ...c, [id]: { tipo: "archivada", en: new Date().toISOString() } }));
+    else setConfirmados((c) => sinClave(c, id));
     onCambio(id);
-    if (que === "respondida") {
-      avisar.exito("Respuesta enviada", { detalle: `${r.cliente?.nombre ?? "El cliente"} la lee en su cuenta de la tienda online.` });
-    } else if (que === "archivada") {
+    if (que === "archivada") {
       // Archivar se deshace (ADR-0350, ley 7: perdonar antes que preguntar): sale de la bandeja y se puede traer de vuelta.
       avisar.exito("Archivada", {
         detalle: r.respuesta === null ? "Sale de la bandeja y el cliente la ve como leída; la encuentras en «Archivadas»." : "Sale de la bandeja; la encuentras en «Archivadas».",
@@ -170,9 +254,15 @@ export function RecomendacionHoja({
 
   const nombre = r.cliente?.nombre ?? null;
   const ocupado = guardando !== null;
+  // La respuesta de ESTA recomendación que espera para salir (la de otra, si la hay, sigue su reloj aunque no se vea).
+  const pendiente = envio?.id === r.id ? envio : null;
+  const cerrarHoja = () => {
+    sacarLoQueEspera();
+    onClose();
+  };
   return (
     <Cajon
-      onCerrar={onClose}
+      onCerrar={cerrarHoja}
       velo={false}
       ancho="ancho"
       clave={r.id}
@@ -181,13 +271,23 @@ export function RecomendacionHoja({
       titulo={nombre ?? "Recomendación sin nombre"}
       frase={
         nombre && veFichas ? (
-          <Link href={hrefFicha(nombre)} onClick={onClose} className="btn-enlace">
+          <Link href={hrefFicha(nombre)} onClick={cerrarHoja} className="btn-enlace">
             Ver su ficha
           </Link>
         ) : undefined
       }
       guiaCabecera="recomendacion.cliente"
-      navegacion={navegacion && { ...navegacion, onNavegar: (d) => !ocupado && navegacion.onNavegar(d), que: "Recomendación" }}
+      navegacion={
+        navegacion && {
+          ...navegacion,
+          onNavegar: (d) => {
+            if (ocupado) return;
+            sacarLoQueEspera();
+            navegacion.onNavegar(d);
+          },
+          que: "Recomendación",
+        }
+      }
       claseCuerpo="space-y-4"
       encimaDelPie={
         verResponsable ? (
@@ -197,13 +297,25 @@ export function RecomendacionHoja({
                 <ComboResponsable control={responsable} deshabilitado={ocupado} compacto />
               </div>
             </CampoGuiado>
-            {puedeResponder && <PieGuia guia={guia} listo="Lista para enviar." />}
+            {puedeResponder && !pendiente && <PieGuia guia={guia} listo="Lista para enviar." />}
           </div>
         ) : undefined
       }
       pie={
         <span className="flex flex-wrap items-center gap-2.5" data-guia="recomendacion.acciones">
-          {v.archivadaEn ? (
+          {pendiente ? (
+            // Mientras espera sus 8 s: «Deshacer» va junto a la respuesta; aquí, salir ya sin esperar.
+            <Boton
+              type="button"
+              peso="primario"
+              cargando={guardando === "respondida"}
+              textoCargando="Enviando…"
+              disabled={ocupado}
+              onClick={() => void mandar(pendiente)}
+            >
+              Enviar ahora
+            </Boton>
+          ) : v.archivadaEn ? (
             <Boton
               type="button"
               peso="fantasma"
@@ -211,7 +323,7 @@ export function RecomendacionHoja({
               textoCargando="Sacando…"
               disabled={ocupado || !responsable.listo}
               title={responsable.motivo ?? undefined}
-              onClick={() => guardar("en_bandeja")}
+              onClick={() => void archivar("en_bandeja")}
             >
               Sacar del archivo
             </Boton>
@@ -225,7 +337,7 @@ export function RecomendacionHoja({
               textoCargando="Archivando…"
               disabled={ocupado || !responsable.listo}
               title={responsable.motivo ?? (puedeResponder ? "Si no hace falta responder: sale de la bandeja y el cliente la ve como leída" : undefined)}
-              onClick={() => guardar("archivada")}
+              onClick={() => void archivar("archivada")}
             >
               <span className="flex items-center gap-2">
                 <Archive aria-hidden className="-my-1 h-4 w-4 shrink-0" />
@@ -233,7 +345,7 @@ export function RecomendacionHoja({
               </span>
             </Boton>
           )}
-          {puedeResponder ? (
+          {pendiente ? null : puedeResponder ? (
             <Boton
               type="button"
               peso="primario"
@@ -242,13 +354,21 @@ export function RecomendacionHoja({
               disabled={!guia.puedeConfirmar || ocupado}
               title={guia.frase ?? undefined}
               className={guia.claseConfirmar}
-              onClick={() => guardar("respondida")}
+              onClick={enviar}
             >
               Enviar respuesta
             </Boton>
           ) : siguiente ? (
             // Ya no queda nada que hacer con esta: el paso que sigue es la próxima que espera (como «Seguir» de un paso a paso).
-            <Boton type="button" peso="primario" disabled={ocupado} onClick={() => onSiguiente(siguiente.id)}>
+            <Boton
+              type="button"
+              peso="primario"
+              disabled={ocupado}
+              onClick={() => {
+                sacarLoQueEspera();
+                onSiguiente(siguiente.id);
+              }}
+            >
               <span className="flex items-center gap-2">
                 Siguiente por responder
                 <ArrowRight aria-hidden className="-my-1 h-4 w-4 shrink-0" />
@@ -287,6 +407,19 @@ export function RecomendacionHoja({
           </div>
         )}
 
+        {pendiente && (
+          // Lo que va a salir, ya en su lugar de la conversación pero tenue: todavía se puede deshacer.
+          <div className="ml-auto max-w-[88%]" data-guia="recomendacion.por-salir">
+            <p className="whitespace-pre-line break-words rounded-2xl rounded-tr-md bg-tinta px-4 py-3 text-[14.5px] leading-snug text-crema opacity-60">
+              {pendiente.texto}
+            </p>
+            <p className="mt-1.5 flex flex-wrap items-center justify-end gap-x-2 pr-1 text-right text-[12px] text-taupe" role="status">
+              Se envía en {segundosQueFaltan(pendiente.vence, ahoraMs)} s
+              <BotonDeshacer onClick={deshacerEnvio} disabled={ocupado} />
+            </p>
+          </div>
+        )}
+
         {!r.cliente && (
           <p className="flex items-center gap-2 text-[13px] text-taupe">
             <UserX aria-hidden className="h-5 w-5 shrink-0" />
@@ -303,7 +436,7 @@ export function RecomendacionHoja({
         )}
       </div>
 
-      {puedeResponder && (
+      {puedeResponder && !pendiente && (
         <CampoGuiado id="respuesta" guia={guia}>
           <div data-guia="recomendacion.respuesta">
             <Campo
@@ -321,6 +454,9 @@ export function RecomendacionHoja({
               <div className="caja-cayla caja-campo caja-campo-texto-largo">
                 <textarea
                   id={`respuesta-${r.id}`}
+                  // El corrector del navegador en español: subraya «tenderemos» antes de que salga una respuesta que no se corrige.
+                  lang="es"
+                  spellCheck
                   className="self-stretch resize-none"
                   rows={4}
                   value={respuesta}
@@ -333,6 +469,8 @@ export function RecomendacionHoja({
           </div>
         </CampoGuiado>
       )}
+
+      {puedeResponder && !pendiente && <VistaDelCliente recomendacion={r} respuesta={respuesta} ahoraIso={new Date(ahora).toISOString()} />}
     </Cajon>
   );
 }

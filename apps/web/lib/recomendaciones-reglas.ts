@@ -257,6 +257,17 @@ export function problemaParaConfirmar(r: Pick<Recomendacion, "respuesta" | "arch
   return sePuedeResponder(r) ? problemaDeRespuesta(respuesta) : null;
 }
 
+/** Cuánto espera una respuesta antes de salir, para poder deshacerla (Felipe 2026-10-17, actividad 3): la base no deja corregirla
+ *  después, así que este es el único momento para arrepentirse de una falta o de un tono. */
+export const SEGUNDOS_PARA_DESHACER = 8;
+
+/** Los segundos que le quedan a un envío que vence en `venceMs` (redondeados hacia arriba: «Se envía en 1 s» hasta el final). */
+export const segundosQueFaltan = (venceMs: number, ahoraMs: number) => Math.max(0, Math.ceil((venceMs - ahoraMs) / 1000));
+
+const FECHA_TIENDA = new Intl.DateTimeFormat("es-PE", { day: "numeric", month: "short", timeZone: "America/Lima" });
+/** La fecha como la muestra la tienda online en «Lo que nos escribiste»: «17 oct», en hora de Lima. */
+export const fechaDeLaTienda = (instanteIso: string) => FECHA_TIENDA.format(new Date(instanteIso)).replace(/\.$/, "");
+
 /** El aviso de un error que esta pantalla sabe decir mejor que el mensaje general: sin red (marcar, responder lo mismo y archivar no se
  *  repiten, así que reintentar es seguro) y otra persona que respondió mientras tanto (la hoja ya muestra su respuesta). null: el de
  *  siempre (`traducirError`). */

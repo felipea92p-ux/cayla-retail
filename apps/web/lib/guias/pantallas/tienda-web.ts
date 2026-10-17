@@ -947,8 +947,15 @@ export const GUIA_RECOMENDACIONES: Guia = {
       ancla: "recomendacion.respuesta",
       opcional: true,
       titulo: "Tu respuesta",
-      texto: "Un texto corto que el cliente lee en su cuenta de la tienda online. Se escribe una sola vez: revísalo antes de enviarlo.",
+      texto: "Un texto corto que el cliente lee en su cuenta de la tienda online. Se escribe una sola vez: el corrector subraya las faltas y abajo ves cómo le llega.",
       demostrar: [{ tipo: "escribir", ancla: "recomendacion.respuesta", texto: "¡Gracias por escribirnos! Ya lo estamos viendo." }],
+    },
+    {
+      id: "vista-cliente",
+      ancla: "recomendacion.vista-cliente",
+      opcional: true,
+      titulo: "Así le llega",
+      texto: "Es la misma tarjeta que el cliente ve en su cuenta de la tienda online, con tu respuesta mientras la escribes. Revísala aquí: después de enviada ya no se corrige.",
     },
     {
       id: "responsable",
@@ -963,6 +970,13 @@ export const GUIA_RECOMENDACIONES: Guia = {
       opcional: true,
       titulo: "Responder o archivar",
       texto: "«Enviar respuesta» se la manda a su cuenta. Si no hace falta responder, «Archivar sin responder» la saca de la bandeja sin borrarla y el cliente la ve como leída. Después, «Siguiente por responder» o ↑ ↓ te llevan a otra sin cerrar. En la demo no tocamos ninguno.",
+    },
+    {
+      id: "por-salir",
+      ancla: "recomendacion.por-salir",
+      opcional: true,
+      titulo: "Ocho segundos para deshacer",
+      texto: "Al enviar, tu respuesta espera 8 segundos antes de salir: «Deshacer» la devuelve a la caja para corregirla. Si cierras el cajón o pasas a otra, sale en ese momento.",
     },
     {
       id: "nota",
