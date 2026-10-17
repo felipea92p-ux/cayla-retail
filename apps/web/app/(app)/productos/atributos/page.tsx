@@ -2,6 +2,7 @@ import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import { getCostosVariantes } from "@/lib/catalogo-v2";
+import { getLecturaRotacion } from "@/lib/etiqueta-rotacion-datos";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { precioMasBajoEnTiendas } from "@/lib/precio-sede-reglas";
 
@@ -137,6 +138,13 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   // cobra su precio, así que el peor caso es el más bajo entre la prenda y las tiendas. Solo si el aviso puede salir: sin costos (la
   // cuenta no ve el dinero) no hay aviso y no se piden. Nunca lanza: si una lectura falla, esa tienda no entra y el aviso queda como
   // antes (con el precio de la prenda).
+  // Lo que dicen los datos al lado de las etiquetas de Rotación (actividad 6, ADR-0441): unidades que quedan y vendidas en 30 días, con
+  // la lectura de Análisis. Solo para quien edita etiquetas Y puede analizar (la misma puerta de `fn_analisis_sede`). Nunca lanza ni
+  // hace esperar la pestaña más de 4 s: sin lectura, las tarjetas se ven como antes.
+  const cargaRotacion =
+    tipo === "etiquetas" && puedeEditarEtiquetas && (persona.rol === "lider" || veModulo(persona, "analisis"))
+      ? getLecturaRotacion(persona.rol === "lider")
+      : Promise.resolve(null);
   const cargaPreciosTiendas =
     tipo === "etiquetas" && puedeDarDescuento
       ? cargaCostos.then((c) => (c === null ? sinPreciosDeTiendas() : getPreciosDeLasTiendas()))
@@ -166,11 +174,19 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
       ? supabase.from("etiqueta_categorias").select("etiqueta_id, categoria_id")
       : Promise.resolve({ data: [], error: null }),
     tipo === "etiquetas" ? supabase.from("familias").select("codigo, nombre") : Promise.resolve({ data: [], error: null }),
-    // Precios de las prendas, para el aviso de «por debajo del costo» al configurar una campaña y para elegir prendas en
-    // «Prendas». El COSTO no viaja a quien no tiene permiso de dinero: `getCostosVariantes` lo pide por la puerta que lo revisa.
+    // Las prendas a la venta con su precio: para el aviso de «por debajo del costo», el alcance de una campaña y lo que cuenta
+    // cada tarjeta. «A la venta» es una sola regla en toda la pestaña, la de la hoja «Prendas»: talla activa de un producto que no
+    // está descontinuado (2026-10-17: antes la tarjeta decía 186 y su hoja 164). El COSTO no viaja a quien no tiene permiso de
+    // dinero: `getCostosVariantes` lo pide por la puerta que lo revisa.
     tipo === "etiquetas" && puedeDarDescuento
       ? leerTodas((desde, hasta) =>
-          supabase.from("variantes").select("id, sku, precio, producto:productos ( referencia, categoria_id )").eq("activo", true).order("id").range(desde, hasta)
+          supabase
+            .from("variantes")
+            .select("id, sku, precio, producto:productos!inner ( referencia, categoria_id )")
+            .eq("activo", true)
+            .eq("producto.estado", "activo")
+            .order("id")
+            .range(desde, hasta)
         )
       : Promise.resolve({ data: [], error: null }),
     // Cuántas prendas lleva cada etiqueta «a mano»: para quien edita etiquetas (el líder o un rol con el módulo).
@@ -269,6 +285,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   }
   const nombreFamilia = new Map(exigir(resFamilias, "las familias").map((f) => [f.codigo, f.nombre]));
   const temporadas = await cargaTemporadas;
+  const rotacion = await cargaRotacion;
   const categorias = exigir(resCategorias, "las categorías").map((c) => ({
     id: c.id,
     nombre: c.nombre,
@@ -310,6 +327,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
         categorias={categorias}
         prendasConCosto={prendasConCosto}
         variantesManuales={variantesManuales}
+        rotacion={rotacion}
         puedeEditar={puede(persona, "editarCatalogo")}
         puedeEditarEtiquetas={puedeEditarEtiquetas}
         puedeDarDescuento={puedeDarDescuento}
