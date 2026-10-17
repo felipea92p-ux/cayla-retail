@@ -37,6 +37,16 @@ por `lib/unificar.test.ts`. **Todas las que tienen candado están en deuda 0** d
 
 Lo mismo, en corto, está en la tabla «Piezas únicas» de `CLAUDE.md`, que es lo que lee cualquier sesión que construya una pantalla.
 
+## Control y ronda 17 (2026-10-17, rama `claude/unificar-control`)
+
+El censo de control del 16 (Admin, `terminal-ventas` e `integrante`) encontró deuda que las firmas no veían. La gorda: una firma del
+`aviso` terminaba en `\b` después de `bg-ambar/[0.07]`, y tras un «]» no hay frontera de palabra, así que **ningún fondo entre corchetes
+coincidía**: 31 recuadros se habían escapado de la ronda 5. **Lección: una firma nueva se prueba contra el código de ANTES de migrar**
+(que atrape lo viejo), no solo contra el de después (que dé 0). Se migraron 45 archivos y se reforzaron cuatro firmas. La ronda 17 (el
+mes, el cajón lateral, el paso de cantidad y el anterior/siguiente) está armada en [rondas/17](rondas/17/README.md) y espera a Felipe; sus
+dos excepciones temporales en `familias.mjs` (`SelectorMesFacturacion.tsx` en `accion.volver` y `enlace`, `GuiaImpresion.tsx` en
+`enlace`) se sacan al migrarla.
+
 ## Ronda 16 (2026-10-15): el cierre — el marco, las píldoras y los cierres del mes
 
 Tres preguntas con lo que quedaba afuera. Felipe eligió: **el marco se queda en trazo 1,5** (P2) con sus tamaños en la escala; **las 12

@@ -1,0 +1,9 @@
+## 🧩 /unificar: control del 2026-10-16, deuda escondida y ronda 17 (2026-10-17, ADR-0358) — solo web, sin migración; rama `claude/unificar-control`
+
+- [x] **Censo de control** (Admin 255 vistas, terminal de ventas 61, integrante 105) e informe en `docs/unificar/control/2026-10-16.md` (con su corrección: `SalidasDeCaja` no era deuda).
+- [x] **Deuda escondida migrada** (45 archivos): 25 recuadros de tono a `<Aviso>` (6 que no son avisos, con `unificar-fijo`); la «→» escrita a mano fuera (`<BotonVer>` suma `etiqueta`); 8 títulos de campo a `campo-etiqueta`; Cerrar un faltante y Reasignar reparto a `<CampoTexto>`; Apartados en el celular a `<Volver>`.
+- [x] **Firmas reforzadas** (`aviso`, `enlace`, `accion.volver`, `etiqueta-campo`), probadas contra el código de antes; deuda de todas las familias decididas: 0. Excepciones nuevas con motivo: el aviso de cierre de Caja (ADR-0359) y, hasta la ronda 17, el selector de mes de Comprobantes y la guía de impresión.
+- [x] **Verificado en local:** `tema:auditar` de Comprobantes, Series, Conteo, Cuadrar, Bajar al piso, Nuevo producto, Roles, Notas de crédito, Plan, Cambios, Apartados e Historial (claro y oscuro, 0 hallazgos solo en oscuro); Apartados, Cambios y Vender a 375 px; la flecha de Apartados lleva al ticket.
+- [x] **Ronda 17 armada** (`docs/unificar/rondas/17/`): elegir el mes, el cajón lateral, el paso de cantidad y el anterior/siguiente de un paso a paso, con fotos en vivo y demos con el CSS real.
+- [ ] **Felipe elige** la ronda 17 (página `apps/web/unificar/.salida/elegir-ronda17/elegir.html`); después: piezas `<Cajon>` y `<PasoCantidad>` si las elige, migrar (23 pasos de cantidad, 7 cajones, 3 pantallas del mes, la guía de impresión) y sacar las dos excepciones temporales de `familias.mjs`.
+- [ ] **Base local atrás de `main`:** faltan `fn_sobrantes_por_revisar` y `familias.entra_a_motores` (Editar producto se cae en local). Aplicarlas lo decide Felipe (la base local es compartida).
