@@ -69,3 +69,9 @@ nada; con un campo en uso no sale. Las herramientas de Chrome (`Page.getInstalla
 Sin la regla de quietud, la hoja subiría en medio de un desplazamiento y la persona tocaría «Ahora no» sin querer; sin el silencio de 30
 días, el aviso volvería en cada visita y la tienda parecería insistente; sin el service worker sin caché (o con uno que cachea), Chrome no
 la ofrecería o la tienda mostraría un stock viejo.
+
+## Actualización 2026-10-17 (ADR-0446)
+
+Los íconos (`public/cayla-app-*.png`, `cayla-apple-180.png`) se rehicieron con el colibrí del logo oficial, en la misma caja que
+ocupaba el de antes y en su rojo (`#d13730`) sobre `#f5f0e8`. `public/cayla-isotipo.png` ya no existe: el colibrí de la tienda es
+`<Isotipo>` (`components/Isotipo.tsx`), que dibuja el trazo de `lib/marca.ts`.

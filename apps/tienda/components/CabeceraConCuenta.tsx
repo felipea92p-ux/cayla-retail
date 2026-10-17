@@ -12,7 +12,7 @@ import { useGuardados } from "./club/Guardados";
 import { BotonCerrarSesion } from "./cuenta/BotonCerrarSesion";
 import { FotoTarjeta } from "./FotoTarjeta";
 import { Icono } from "./Icono";
-import { Isotipo } from "./Isotipo";
+import { Logo } from "./Marca";
 // El globo rojo de la bolsa y del corazón (`.t-globo`).
 import "@/app/estilos/bolsa.css";
 
@@ -174,8 +174,7 @@ export function CabeceraConCuenta({
             <Icono nombre="menu" />
           </button>
           <Link className="t-logo" href={datos.inicio} aria-label="CAYLA, ir al inicio">
-            <Isotipo />
-            <span>CAYLA</span>
+            <Logo />
           </Link>
           <nav className="t-nav" aria-label="Secciones">
             <Link className="t-nav-b" href={datos.nuevo.href} aria-current={marca("nuevo")}>
@@ -396,8 +395,7 @@ function HojaMenu({ datos, favoritos, cerrar, visitante }: { datos: DatosCabecer
     <div className="t-menu" role="dialog" aria-modal="true" aria-label="Menú">
       <div className="t-menu-cab">
         <span className="t-logo">
-          <Isotipo />
-          <span>CAYLA</span>
+          <Logo />
         </span>
         <button type="button" className="t-ico" aria-label="Cerrar el menú" onClick={cerrar} autoFocus>
           <Icono nombre="cerrar" />

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { EB_Garamond, DM_Sans } from "next/font/google";
+import { EB_Garamond, Heebo } from "next/font/google";
 import { Suspense } from "react";
 import { AvisoDeLaUrl } from "@/components/cuenta/AvisoDeLaUrl";
 import { ProveedorInstalar } from "@/components/instalar/ProveedorInstalar";
@@ -18,9 +18,12 @@ import "./estilos/instalar.css";
 // El paso de una vista a otra: el fundido, lo fijo que no se mueve y la foto que viaja a la ficha (components/Vistas.tsx).
 import "./estilos/vistas.css";
 
-// Las mismas dos letras del ERP y de la marca: EB Garamond para títulos, DM Sans para el texto.
+// Las letras de la tienda (ADR-0446, variante B, elegida por Felipe el 2026-10-17): Heebo para el texto, los botones, los formularios y los precios
+// —sus cifras tienen todas el mismo ancho, así que los montos quedan en columna— y EB Garamond para los títulos, hasta que el autor de
+// Ahellya (la letra elegida para la marca y los títulos) dé su permiso por escrito. La palabra CAYLA no va con ninguna: es el dibujo del
+// logo (`components/Marca.tsx`).
 const serif = EB_Garamond({ subsets: ["latin"], variable: "--font-eb-garamond", display: "swap" });
-const sans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
+const sans = Heebo({ subsets: ["latin"], variable: "--font-heebo", display: "swap" });
 
 export const metadata: Metadata = {
   title: "CAYLA · Tienda online",
