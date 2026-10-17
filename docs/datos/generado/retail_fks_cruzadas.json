@@ -55,6 +55,16 @@
   "src_table": "cambios"
  },
  {
+  "conname": "campana_disenos_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_publicado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "campana_disenos"
+ },
+ {
   "conname": "cierres_cola_arranque_cerrado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "cierres_cola_arranque"

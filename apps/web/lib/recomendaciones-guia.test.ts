@@ -38,17 +38,18 @@ describe("la hoja de una recomendación: la guía", () => {
     }
   });
 
-  it("sin leer, la respuesta es opcional (no se lista como falta); ya leída, falta con su frase", () => {
-    const [sinLeer, leida] = ESTADOS;
-    const opcional = camposRecomendacion({ recomendacion: sinLeer!, respuesta: "", ...RESPONSABLES[0]! });
-    expect(opcional.map((c) => c.id)).toEqual(["respuesta", "responsable"]);
-    expect(opcional[0]).toMatchObject({ requerido: false, hecho: false });
-    const falta = camposRecomendacion({ recomendacion: leida!, respuesta: "", ...RESPONSABLES[0]! });
-    expect(falta[0]).toMatchObject({ requerido: true, hecho: false });
-    expect(falta[0]!.pendiente).toMatch(/Escribe tu respuesta, o archívala/);
+  it("la respuesta falta con su frase, leída o no: ya no es opcional (la otra salida es archivarla sin responder)", () => {
+    for (const recomendacion of ESTADOS.slice(0, 2)) {
+      const campos = camposRecomendacion({ recomendacion, respuesta: "", ...RESPONSABLES[0]! });
+      expect(campos.map((c) => c.id)).toEqual(["respuesta", "responsable"]);
+      expect(campos[0]).toMatchObject({ requerido: true, hecho: false });
+      expect(campos[0]!.pendiente).toMatch(/Escribe tu respuesta, o archívala/);
+    }
+    const escrita = camposRecomendacion({ recomendacion: ESTADOS[0]!, respuesta: "Gracias por escribirnos", ...RESPONSABLES[0]! });
+    expect(escrita[0]).toMatchObject({ requerido: true, hecho: true, pendiente: "" });
   });
 
-  it("escrita de más, la respuesta falta aunque esté sin leer (la luz se queda en ella)", () => {
+  it("escrita de más, la respuesta falta (la luz se queda en ella)", () => {
     const campos = camposRecomendacion({ recomendacion: ESTADOS[0]!, respuesta: "b".repeat(MAX_RESPUESTA + 2), ...RESPONSABLES[0]! });
     expect(campos[0]).toMatchObject({ requerido: true, hecho: false, pendiente: "Te pasaste por 2 letras: acórtala un poco." });
   });

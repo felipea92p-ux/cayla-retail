@@ -31,6 +31,7 @@ import {
   TOPE_PRENDAS,
   unidades,
 } from "@/lib/bolsa";
+import { hrefConVolver } from "@/lib/entrada";
 import { guardarBolsa, leerBolsaDeLaCookie, leerBolsaEnBase, separarEnBase } from "@/lib/bolsa-servidor";
 import { variantesParaLaBolsa } from "@/lib/looks";
 import { codigoDeLaUrl, vivas } from "@/lib/pedidos";
@@ -41,8 +42,7 @@ import { leerSesion } from "@/lib/sesion-servidor";
 // la tienda solo tocan la cookie de este aparato (agregar no separa nada: propuesta f); «Separar» es lo único que escribe en la
 // base, y lo decide la base (`retail.tienda_separar`). Cada cambio de la bolsa le pone una marca nueva: la del próximo «Separar».
 
-export type RespuestaAgregar =
-  { estado: "agregada"; mensaje: string; cuantas: number } | { estado: "sin_sesion" } | { estado: "no"; mensaje: string };
+export type RespuestaAgregar = { estado: "agregada"; mensaje: string; cuantas: number } | { estado: "no"; mensaje: string };
 
 /**
  * «Agregar a la bolsa» de la ficha, «Agregar» con la talla de las tarjetas y el «+» de la cantidad en la bolsa
@@ -54,10 +54,7 @@ export type RespuestaAgregar =
  */
 export async function agregarALaBolsa(varianteId: unknown, sedeId: unknown): Promise<RespuestaAgregar> {
   if (!esId(varianteId)) return { estado: "no", mensaje: AGREGAR_NO_ESTA };
-  const sesion = await leerSesion();
-  if (sesion.estado === "sin_sesion") return { estado: "sin_sesion" };
-  if (sesion.estado === "sin_respuesta") return { estado: "no", mensaje: AGREGAR_SIN_RESPUESTA };
-
+  // Sin pedir cuenta (Felipe 2026-10-17): la bolsa vive en la cookie de este aparato y agregar no separa nada; la cuenta se pide al «Separar».
   const bolsa = await leerBolsaDeLaCookie();
   if (cuantasDe(bolsa, varianteId) >= TOPE_POR_PRENDA) return { estado: "no", mensaje: AGREGAR_TOPE_PRENDA };
   const nueva = agregarUna(bolsa, varianteId, { marca: randomUUID() });
@@ -79,7 +76,6 @@ export async function agregarALaBolsa(varianteId: unknown, sedeId: unknown): Pro
 export type RespuestaAgregarLook =
   /** `agregadas`: las variantes que entraron (puede ser ninguna); `agotadas` y `noEstan`: las que no, y por qué. */
   | { estado: "listo"; agregadas: string[]; agotadas: string[]; noEstan: string[]; cuantas: number }
-  | { estado: "sin_sesion" }
   | { estado: "no"; mensaje: string };
 
 /**
@@ -92,9 +88,6 @@ export type RespuestaAgregarLook =
 export async function agregarLookALaBolsa(varianteIds: unknown, sedeId: unknown): Promise<RespuestaAgregarLook> {
   const ids = variantesParaLaBolsa(varianteIds);
   if (!ids) return { estado: "no", mensaje: AGREGAR_NO_ESTA };
-  const sesion = await leerSesion();
-  if (sesion.estado === "sin_sesion") return { estado: "sin_sesion" };
-  if (sesion.estado === "sin_respuesta") return { estado: "no", mensaje: AGREGAR_SIN_RESPUESTA };
 
   const bolsa = await leerBolsaDeLaCookie();
   if (pasaElTopePorPrenda(bolsa, ids)) return { estado: "no", mensaje: AGREGAR_TOPE_PRENDA_LOOK };
@@ -160,7 +153,8 @@ const esquemaVistas = z
  */
 export async function separar(_previo: EstadoSeparar, datos: FormData): Promise<EstadoSeparar> {
   const sesion = await leerSesion();
-  if (sesion.estado === "sin_sesion") redirect("/entrar");
+  // La cuenta se pide AQUÍ, al separar (Felipe 2026-10-17): la bolsa queda en la cookie y la persona vuelve a ella al entrar.
+  if (sesion.estado === "sin_sesion") redirect(hrefConVolver("/entrar", "/bolsa"));
   const bolsa = await leerBolsaDeLaCookie();
   if (sesion.estado === "sin_respuesta") return { mensaje: SEPARAR_SIN_RESPUESTA, marca: bolsa.marca };
 

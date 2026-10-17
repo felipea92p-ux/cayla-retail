@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { AvisoAlEntrar } from "@/components/AvisoAlEntrar";
 import { CarrilConFlechas } from "@/components/CarrilConFlechas";
+import { ConfianzaPortada } from "@/components/portada/ConfianzaPortada";
 import { FotoTarjeta } from "@/components/FotoTarjeta";
 import { HeroeDelInicio } from "@/components/HeroeDelInicio";
 import { Icono } from "@/components/Icono";
@@ -53,7 +54,7 @@ const hrefInicio = (sede: string | null, oferta: string | null = null) => {
   return s ? `/inicio?${s}` : "/inicio";
 };
 
-// El Inicio de quien tiene cuenta (maqueta v4, `vInicio`): arriba, si tiene algo del Club a su favor que todavía no cerró, el aviso al
+// El Inicio de la tienda, para todos (maqueta v4, `vInicio`; sin cuenta desde el 2026-10-17): arriba, si tiene algo del Club a su favor que todavía no cerró, el aviso al
 // entrar (Felipe, 2026-10-14: es adonde se llega al iniciar sesión); el héroe de la campaña vigente (o «Lo nuevo» si no hay), las
 // categorías, Lo nuevo, «Arma tu look» (si hay looks), las ofertas de cada campaña, los más vendidos (sin cifras), cómo se separa, el Club
 // y nuestras tiendas. Todo respeta la tienda elegida en «Ver lo que hay en»: el precio es el de esa tienda y, si hay una elegida, solo
@@ -75,6 +76,8 @@ export default async function Inicio({ searchParams }: Props) {
       ? await Promise.all([leerMiCuentaEnBase(sesion.usuarioId), leerAvisosDelClub(sesion.usuarioId), avisosVistos()])
       : [null, null, new Set<string>()];
   const cuenta = lectura?.estado === "cuenta" ? lectura.cuenta : null;
+  // Sin sesión el Inicio es el mismo (Felipe 2026-10-17): lo que cambia es que «Así se separa» y el Club invitan a crear la cuenta.
+  const conSesion = sesion.estado !== "sin_sesion";
   const aviso = avisos ? avisoAlEntrar(avisos, vistos) : null;
   // Sin looks (o si la base no los dio), la sección no sale.
   const looks = lecturaLooks?.looks ?? [];
@@ -110,6 +113,8 @@ export default async function Inicio({ searchParams }: Props) {
     >
       {aviso && avisos && <AvisoAlEntrar aviso={aviso} activas={avisos.map((a) => a.clave)} />}
       <HeroeDelInicio hero={hero} sede={sede} origenFotos={origenFotos} verCampana={lista("ofertas", hero.tipo === "campana" ? hero.campanaId : null)} verNuevo={nuevos.length > 0 ? lista("nuevo") : null} />
+      {/* Quien todavía no tiene sesión ve de un vistazo lo que la tienda cumple (la franja que era de la portada). */}
+      {!conSesion && <ConfianzaPortada tiendas={sedes.map((s) => s.nombre)} />}
 
       {catalogo === null ? (
         <div className="t-ancho">
@@ -272,8 +277,14 @@ export default async function Inicio({ searchParams }: Props) {
         </>
       )}
 
-      <AsiSeSepara conCuenta />
-      <SeccionClub nombre={cuenta?.nombre ?? null} desde={cuenta?.clubDesde ?? anioLima()} conCuenta cumplePct={beneficios?.pct ?? null} />
+      <AsiSeSepara conCuenta={conSesion} />
+      <SeccionClub
+        nombre={cuenta?.nombre ?? null}
+        desde={cuenta?.clubDesde ?? anioLima()}
+        conCuenta={conSesion}
+        esDelClub={cuenta?.esDelClub ?? conSesion}
+        cumplePct={beneficios?.pct ?? null}
+      />
       {sedes.length > 0 && (
         <NuestrasTiendas
           sedes={sedes}
