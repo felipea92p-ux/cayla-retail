@@ -4,6 +4,7 @@ import {
   avisoReimprimir,
   chipDeTarjeta,
   conteoDeTarjeta,
+  destinoReimprimir,
   DESCUENTOS_RAPIDOS,
   nombreBajoCosto,
   objecionVigencia,
@@ -222,7 +223,10 @@ describe("prendasQueCambianDePrecioHoy — el papel que queda viejo al guardar u
   const manuales = new Set(["polo"]);
   type Campana = Parameters<typeof prendasQueCambianDePrecioHoy>[0];
   const vigente: Campana = { descuentoPct: 20, vigenteDesde: "2026-09-01", vigenteHasta: "2026-12-31", categoriaIds: ["c-blusas"] };
-  const cambian = (antes: Campana, despues: Campana) => prendasQueCambianDePrecioHoy(antes, despues, aLaVenta, manuales, HOY_).sort();
+  const cambian = (antes: Campana, despues: Campana) => {
+    const r = prendasQueCambianDePrecioHoy(antes, despues, aLaVenta, manuales, HOY_);
+    return [...r.quedan, ...r.salen].sort();
+  };
 
   it("otro % en una campaña vigente: todas las que alcanza (por categoría y a mano)", () => {
     expect(cambian(vigente, { ...vigente, descuentoPct: 30 })).toEqual(["blusa", "polo"]);
@@ -246,13 +250,41 @@ describe("prendasQueCambianDePrecioHoy — el papel que queda viejo al guardar u
     const viene = { ...vigente, vigenteDesde: "2026-11-09", vigenteHasta: "2026-11-30" };
     expect(cambian(viene, { ...viene, descuentoPct: 40 })).toEqual([]);
   });
+  it("separa las que quedan rebajadas de las que vuelven a su precio", () => {
+    expect(prendasQueCambianDePrecioHoy(vigente, { ...vigente, categoriaIds: ["c-faldas"] }, aLaVenta, manuales, HOY_)).toEqual({ quedan: ["falda"], salen: ["blusa"] });
+    expect(prendasQueCambianDePrecioHoy(vigente, { ...vigente, descuentoPct: null }, aLaVenta, manuales, HOY_)).toEqual({ quedan: [], salen: ["blusa", "polo"] });
+  });
   it("sin fechas rige siempre", () => {
     const siempre: Campana = { ...vigente, vigenteDesde: null, vigenteHasta: null };
     expect(cambian(siempre, { ...siempre, descuentoPct: 25 })).toEqual(["blusa", "polo"]);
   });
 });
 
+describe("destinoReimprimir — un enlace que el servidor acepte", () => {
+  const ids = (n: number, letra: string) => Array.from({ length: n }, (_, i) => `${letra}${i}`);
+  it("hasta 150 tallas, las exactas", () => {
+    expect(destinoReimprimir({ quedan: ["a"], salen: ["b"] }, "bf")).toBe("/etiquetas-de-precio?variantes=a,b");
+    expect(destinoReimprimir({ quedan: ids(150, "q"), salen: [] }, "bf")).toContain("?variantes=");
+  });
+  it("más de 150 que siguen en la campaña (354 de «Camisas y Blusas»): la impresión por campaña", () => {
+    expect(destinoReimprimir({ quedan: ids(354, "q"), salen: [] }, "bf")).toBe("/etiquetas-de-precio?campana=bf");
+  });
+  it("más de 150 con algunas que salieron: ningún enlace sirve (la impresión por campaña no las ve)", () => {
+    expect(destinoReimprimir({ quedan: ids(200, "q"), salen: ["s"] }, "bf")).toBeNull();
+    expect(destinoReimprimir({ quedan: [], salen: ids(354, "s") }, "bf")).toBeNull();
+  });
+  it("sin nada que imprimir, nada", () => {
+    expect(destinoReimprimir({ quedan: [], salen: [] }, "bf")).toBeNull();
+  });
+});
+
 describe("avisoReimprimir", () => {
+  it("sin enlace, dice por dónde imprimirlas y no ofrece botón", () => {
+    expect(avisoReimprimir(354, false)).toEqual({
+      detalle: "Cambió el precio en caja de 354 prendas: sus etiquetas de papel dicen el de antes. Son muchas para abrirlas juntas: imprímelas por categoría desde Existencias.",
+      boton: null,
+    });
+  });
   it("sin prendas que cambien, no hay nada que imprimir", () => {
     expect(avisoReimprimir(0)).toBeNull();
   });

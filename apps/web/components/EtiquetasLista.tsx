@@ -34,6 +34,7 @@ import {
   alcanceCampana,
   avisoReimprimir,
   chipDeTarjeta,
+  destinoReimprimir,
   conteoDeTarjeta,
   DESCUENTOS_RAPIDOS,
   nombreBajoCosto,
@@ -739,10 +740,13 @@ function CampanaModal({
         new Set(variantesManuales),
         hoyLima(),
       );
-      const reimprimir = avisoReimprimir(cambian.length);
+      const destino = destinoReimprimir(cambian, etiqueta.id);
+      const reimprimir = avisoReimprimir(cambian.quedan.length + cambian.salen.length, destino !== null);
       avisar.exito(
         `${etiqueta.nombre} actualizada`,
-        reimprimir ? { detalle: reimprimir.detalle, accion: { texto: reimprimir.boton, onClick: () => router.push(urlEtiquetasDePrecio({ variantes: cambian })) } } : undefined,
+        reimprimir
+          ? { detalle: reimprimir.detalle, accion: destino && reimprimir.boton ? { texto: reimprimir.boton, onClick: () => router.push(destino) } : undefined }
+          : undefined,
       );
       onGuardado({ descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds });
     } catch {
