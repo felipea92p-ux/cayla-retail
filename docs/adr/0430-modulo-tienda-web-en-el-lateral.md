@@ -35,7 +35,7 @@ la abre `configuracion`, el mismo que guardaba esa pestaña (`fn_puede_configura
 antes de los roles, Configuración tampoco estaba en el lateral. Ajustes se abre en CAYLA Global, como Configuración.
 **DESCARTÉ** un módulo propio para Ajustes: cambiaría quién puede guardar los datos de cada tienda, y eso es de Felipe.
 **SE ROMPE SI** Felipe quiere que una encargada edite la tienda web sin poder tocar metas ni fondo de caja: entonces sí, un módulo aparte
-y sus funciones preguntando por él.
+y sus funciones preguntando por él. **→ Pasó el mismo día: ver «Actualización 2026-10-16 (b)».**
 
 **DECIDÍ 3 — El lateral pasa de 8 a 9 filas de primer nivel** (`TOPE_FILAS` en `menu.test.ts`). Lo pidió Felipe: un grupo nuevo en el
 lateral. Ventas vuelve a 6 hijas y su excepción se borra. **SE ROMPE SI** nace otro grupo de primer nivel: entonces se regrupa (D-84) y
@@ -100,3 +100,22 @@ Mismas funciones de la base, mismas hojas, mismas reglas: cambia cómo se ve y d
 
 `pnpm --filter web test` (menú, módulos, roles, guías, foco, vuelta, tema y `tienda-web-*`), y en el navegador contra una base local con
 datos de ejemplo: el lateral, las siete pantallas a 1366 y 375 px, claro y oscuro, y las redirecciones de las direcciones viejas.
+
+## Actualización 2026-10-16 (b) — «Ajustes» pasa a ser el módulo «Datos y plazos de la tienda web»
+
+Felipe lo pidió al ver el grupo en Roles y accesos: «debe ser un módulo, y "Ajustes" es muy general». Es justo el «se rompe si» de la
+DECIDÍ 2, así que se hizo (migración `20261016223000_tienda_web_modulo_ajustes.sql`):
+
+- **Módulo `ajustes_web`** («Datos y plazos de la tienda web», grupo «Tienda web», orden 69, delegable). Nace SIN rol: solo el líder. La
+  fila del lateral y el título de la pantalla dicen «Datos y plazos» (la ruta sigue siendo `/tienda-web/ajustes`: cambiarla rompería
+  enlaces guardados sin ganar nada).
+- **Una sola llave nueva, `fn_puede_ajustes_tienda_web()`** (el líder o el módulo), para las tres funciones propias de la pantalla:
+  `fn_configuracion_tienda_web`, `guardar_sede_tienda_web` y `guardar_parametros_tienda_web`. **Configuración ya NO las abre.**
+- **`guardar_whatsapp_tienda` acepta las dos llaves** (`fn_puede_configurar()` o la nueva): la comparte Configuración ▸ Tiendas y caja con
+  esta pantalla, y el WhatsApp es parte de lo que la web muestra de cada tienda.
+- **Nadie pierde nada hoy:** medido en producción el 2026-10-16, ningún rol activo tiene «Configuración» (solo el líder, que pasa por
+  `fn_es_lider()`). Mañana, quien reciba Configuración ya no ve «Datos y plazos» a menos que también se le dé el módulo nuevo.
+- El Resumen pide `ajustes_web` (no `configuracion`) para la tarjeta «Tiendas en la web» y el aviso «no se ven»; el aviso «Completar» lleva
+  a la misma pantalla.
+- **Se rompe si:** alguien con Configuración abre un enlace viejo `/configuracion?tab=tienda-web` (redirige a `/tienda-web/ajustes`): sin el
+  módulo nuevo ve «Sin acceso».
