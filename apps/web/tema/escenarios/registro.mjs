@@ -1366,7 +1366,7 @@ ESCENARIOS.push(
   { id: "clientas.buscar", ruta: "/clientas", cuentas: ["admin", "terminal-ventas"], nombre: "Clientes · una búsqueda", async preparar(pagina) { await pagina.getByPlaceholder(/DNI, celular/i).first().fill("Rosa"); await esperar(pagina, 1800); } },
   { id: "avisos.beneficios", ruta: "/clientas/avisos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Avisos · «Beneficios del club»", preparar: clicRol("button", /Beneficios del club/i) },
   { id: "avisos.cumpleanos", ruta: "/clientas/avisos", cuentas: ["admin"], nombre: "Avisos · la pestaña «Cumpleaños»", preparar: clicRol("button", /^Cumpleaños/i) },
-  // Clientes ▸ Recomendaciones (ADR-0408): la hoja de la primera de la lista (sin leer: con la respuesta y «Marcar como leída») y el filtro
+  // Clientes ▸ Recomendaciones (ADR-0408): la hoja de la primera de la lista (por responder: con la respuesta y «Archivar sin responder») y el filtro
   // «Estado» abierto. La base local no trae recomendaciones (las escribe un cliente desde la tienda online): quien audita las crea con
   // `tienda_recomendar` y las deja como estaban. Ninguno guarda: abren y eligen.
   {
