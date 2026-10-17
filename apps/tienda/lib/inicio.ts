@@ -16,6 +16,7 @@ import {
   type Forma,
   type Prenda,
 } from "./catalogo";
+import { piezasQueCaben, prendasElegidas } from "@cayla-retail/portada";
 import { hrefLooks } from "./looks";
 import { gruposDe, MENUS, type Menu } from "./grupos";
 import type { Campana } from "./portada";
@@ -27,9 +28,11 @@ import type { Campana } from "./portada";
 /* ---------------- El héroe ---------------- */
 
 export type Hero =
-  /** La campaña que anuncia la portada (la misma de la franja), con hasta 3 prendas suyas que hay en la tienda elegida (ninguna: sale
-   *  por su diseño, sin fotos; `campanaId` null). */
-  | { tipo: "campana"; campana: Campana; piezas: Prenda[]; campanaId: string | null }
+  /** La campaña que anuncia la portada (la misma de la franja), con las prendas suyas que hay en la tienda elegida y que caben en el
+   *  acomodo de su diseño (tres polaroids, una grande, cuatro en mosaico, ninguna con solo letras), en el orden elegido en el ERP.
+   *  `conPrendas`: tiene prendas a la vista aquí, aunque el acomodo no muestre ninguna (con solo letras, «Ver la campaña» igual lleva a su
+   *  lista). Sin ninguna, sale por su diseño, sin fotos (`campanaId` null). */
+  | { tipo: "campana"; campana: Campana; piezas: Prenda[]; conPrendas: boolean; campanaId: string | null }
   /** Sin campaña: lo que llegó hace menos. */
   | { tipo: "nuevo"; piezas: Prenda[] }
   /** Sin campaña ni nada nuevo: la frase de la marca. */
@@ -49,7 +52,7 @@ export type Hero =
  * prendas a la vista (sale por su diseño), `null`: la página ofrece «Lo nuevo» en su lugar.
  */
 export function hrefDeLaCampana(hero: Extract<Hero, { tipo: "campana" }>, sede: string | null): string | null {
-  if (hero.piezas.length === 0) return null;
+  if (!hero.conPrendas) return null;
   return hrefLista({ sede, categoria: null, orden: "destacado", lista: hero.campana.pct ? "ofertas" : "campana", campana: hero.campanaId });
 }
 
@@ -73,12 +76,13 @@ export function heroDelInicio(campana: Campana | null, prendas: readonly Prenda[
       return {
         tipo: "campana",
         campana,
-        piezas: [...suyas].sort(conFotoPrimero).slice(0, 3),
+        piezas: prendasElegidas([...suyas].sort(conFotoPrimero), campana.diseno).slice(0, piezasQueCaben(campana.diseno)),
+        conPrendas: true,
         campanaId: campana.pct ? (suyas.find((p) => p.campana?.id)?.campana?.id ?? null) : campana.id,
       };
     }
     // Solo sin descuento: una con descuento sin prendas a la vista anunciaría «−N %» sin mostrar en qué (la regla del 15-oct sigue).
-    if (!campana.pct && campana.diseno) return { tipo: "campana", campana, piezas: [], campanaId: null };
+    if (!campana.pct && campana.diseno) return { tipo: "campana", campana, piezas: [], conPrendas: false, campanaId: null };
   }
   const nuevas = prendas.filter((p) => p.nuevo);
   if (nuevas.length > 0) return { tipo: "nuevo", piezas: [...nuevas].sort((a, b) => conFotoPrimero(a, b) || porLlegada(a, b)).slice(0, 3) };

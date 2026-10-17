@@ -11,11 +11,14 @@ export {
   fechaCorta,
   fechaLarga,
   finDeCampana,
+  largoDelNombre,
   partesCuenta,
   partirTitulo,
   pctTexto,
   type AnuncioDeCampana,
+  type Largo,
 } from "./textos";
+export { INTENSIDAD, mascaraDePatron } from "./patrones";
 export { CONTRASTE_MINIMO, contraste, luminancia, mezclar } from "./contraste";
 export {
   ACOMODOS,
@@ -38,6 +41,8 @@ export {
   paletaDePrenda,
   paletaDelDiseno,
   paletaPropia,
+  piezasQueCaben,
+  prendasElegidas,
   type Acomodo,
   type ColoresPropios,
   type DisenoDeCampana,

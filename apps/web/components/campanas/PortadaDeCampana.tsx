@@ -9,6 +9,7 @@ import {
   partesCuenta,
   partirTitulo,
   pctTexto,
+  prendasElegidas,
   type DisenoDeCampana,
   type PiezaDeHeroe,
   type Tema,
@@ -17,9 +18,6 @@ import type { CampanaDePortada, PiezaDePortada } from "@/lib/campana-diseno";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { IsotipoCayla } from "@/components/ui/IsotipoCayla";
 import { SinFoto } from "@/components/ui/PrendaCelda";
-
-/** Hasta tres polaroids, como la tienda (`heroDelInicio`): la vista previa muestra las que de verdad pueden salir. */
-const POLAROIDS = 3;
 
 /**
  * La portada de la tienda online con una campaña, como la ve el cliente SIN cuenta (lo que ve casi todo el que llega): la franja de
@@ -44,7 +42,9 @@ export function PortadaDeCampana({
   ahora: number;
 }) {
   const { nombre, pct, hasta } = campana;
-  const fotos = piezas.slice(0, POLAROIDS).map(
+  // Las prendas en el orden de la tienda (`heroDelInicio`): las elegidas en el diseño o, si no, las que tienen foto primero. El héroe toma
+  // las que caben en el acomodo (tres polaroids, una grande, cuatro en mosaico).
+  const fotos = prendasElegidas(piezas, diseno).map(
     (p): PiezaDeHeroe => ({
       id: p.id,
       nombre: p.nombre,

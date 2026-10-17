@@ -47,7 +47,10 @@ export type DisenoDeCampana = {
   sello: Sello;
 };
 
-/** La portada de siempre: el rojo CAYLA en degradado con tres polaroids. Una campaña sin diseño se ve así. */
+/**
+ * La portada de siempre: el rojo CAYLA en degradado con tres polaroids y, si hay descuento, el «−15%» calado detrás de las fotos. Una
+ * campaña sin diseño se ve así (es la portada que ya veía el cliente antes de ADR-0436: por eso el % gigante viene puesto).
+ */
 export const DISENO_DE_SIEMPRE: DisenoDeCampana = {
   paleta: "cayla",
   colores: null,
@@ -60,7 +63,7 @@ export const DISENO_DE_SIEMPRE: DisenoDeCampana = {
   frase: "",
   prendas: null,
   cuenta: true,
-  pctGigante: false,
+  pctGigante: true,
   colibri: true,
   sello: "ninguno",
 };
@@ -70,8 +73,15 @@ export type Estilo = { id: string; nombre: string; nota: string; cambia: Partial
 /** Los ocho puntos de partida: un toque y la portada queda lista; después se cambia lo que se quiera. */
 export const ESTILOS: readonly Estilo[] = [
   { id: "hoy", nombre: "Clásico CAYLA", nota: "El de hoy", cambia: {} },
-  { id: "huellitas", nombre: "Huellitas", nota: "Dibujo y sello", cambia: { paleta: "caramelo", fondo: "dibujo", patron: "huellitas", sello: "descuento" } },
-  { id: "galeria", nombre: "Galería", nota: "Claro y ordenado", cambia: { paleta: "arena", fondo: "liso", acomodo: "mosaico", colibri: false } },
+  // Los que ya dicen el descuento de otra forma (el sello, la teja del mosaico) o lo dejan de lado no llevan además el % gigante: dos «−15%»
+  // en la misma portada se pelean (maqueta, `ESTILOS`).
+  {
+    id: "huellitas",
+    nombre: "Huellitas",
+    nota: "Dibujo y sello",
+    cambia: { paleta: "caramelo", fondo: "dibujo", patron: "huellitas", sello: "descuento", pctGigante: false },
+  },
+  { id: "galeria", nombre: "Galería", nota: "Claro y ordenado", cambia: { paleta: "arena", fondo: "liso", acomodo: "mosaico", colibri: false, pctGigante: false } },
   { id: "gala", nombre: "Noche de gala", nota: "Una foto grande", cambia: { paleta: "noche", acomodo: "grande", pctGigante: true } },
   {
     id: "cartel",
@@ -79,9 +89,14 @@ export const ESTILOS: readonly Estilo[] = [
     nota: "Solo letras",
     cambia: { paleta: "negro-rojo", fondo: "liso", acomodo: "letras", tamano: "enorme", pctGigante: true, sello: "dias", colibri: false },
   },
-  { id: "suave", nombre: "Suave", nota: "Corazones", cambia: { paleta: "rosa", fondo: "dibujo", patron: "corazones", intensidad: "suave", acomodo: "grande" } },
-  { id: "bosque", nombre: "Bosque", nota: "Estrellas", cambia: { paleta: "bosque", fondo: "dibujo", patron: "estrellas", acomodo: "mosaico" } },
-  { id: "fiesta", nombre: "Fiesta", nota: "Confeti", cambia: { paleta: "terracota", fondo: "dibujo", patron: "confeti", sello: "nuevo" } },
+  {
+    id: "suave",
+    nombre: "Suave",
+    nota: "Corazones",
+    cambia: { paleta: "rosa", fondo: "dibujo", patron: "corazones", intensidad: "suave", acomodo: "grande", pctGigante: false },
+  },
+  { id: "bosque", nombre: "Bosque", nota: "Estrellas", cambia: { paleta: "bosque", fondo: "dibujo", patron: "estrellas", acomodo: "mosaico", pctGigante: false } },
+  { id: "fiesta", nombre: "Fiesta", nota: "Confeti", cambia: { paleta: "terracota", fondo: "dibujo", patron: "confeti", sello: "nuevo", pctGigante: false } },
 ];
 
 /** Empezar con un estilo: todo vuelve al de siempre más lo del estilo; el texto y las prendas que ya se eligieron se quedan. */
@@ -105,6 +120,26 @@ export function estiloDelDiseno(d: DisenoDeCampana): Estilo | null {
       );
     }) ?? null
   );
+}
+
+/* ---------------- Las prendas de la portada ---------------- */
+
+/** Cuántas prendas muestra cada acomodo: tres polaroids, una foto grande, cuatro en mosaico (tres en el celular), ninguna con solo letras. */
+const CABEN: Readonly<Record<Acomodo, number>> = { polaroids: 3, grande: 1, mosaico: PRENDAS_MAX, letras: 0 };
+
+export function piezasQueCaben(d: DisenoDeCampana | null): number {
+  return CABEN[d?.acomodo ?? "polaroids"];
+}
+
+/**
+ * Las prendas que salen en la portada, en su orden: las que se eligieron en el diseño («Las prendas»), las que de ellas se pueden mostrar
+ * aquí, en el orden en que se tocaron; si no se eligió ninguna, o ninguna de las elegidas se puede mostrar (no tiene foto publicada, no
+ * está en la tienda elegida), las que la web elige sola (`disponibles`, ya en su orden). La usan la tienda y la vista previa del ERP.
+ */
+export function prendasElegidas<T extends { id: string }>(disponibles: readonly T[], d: DisenoDeCampana | null): T[] {
+  const porId = new Map(disponibles.map((p) => [p.id, p]));
+  const elegidas = (d?.prendas ?? []).flatMap((id) => porId.get(id) ?? []);
+  return elegidas.length > 0 ? elegidas : [...disponibles];
 }
 
 /* ---------------- Los colores ---------------- */

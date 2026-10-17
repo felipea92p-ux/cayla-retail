@@ -89,6 +89,20 @@ describe("el héroe del Inicio", () => {
     if (hero.tipo === "campana") expect(hrefDeLaCampana(hero, null)).toBe(`/catalogo?lista=ofertas&campana=${ANIV}`);
   });
 
+  it("con su diseño (actividad 7): las prendas elegidas en su orden, y las que caben en su acomodo", () => {
+    const prendas = ["A", "B", "C", "D", "E"].map((n) => enCampana(n, { fotos: [FOTO] }));
+    const con = (cambia: Partial<typeof DISENO_DE_SIEMPRE>) => heroDelInicio({ ...campana, diseno: { ...DISENO_DE_SIEMPRE, ...cambia } }, prendas);
+    const piezas = (h: ReturnType<typeof heroDelInicio>) => (h.tipo === "campana" ? nombres(h.piezas) : null);
+    expect(piezas(con({ prendas: ["D", "B"] }))).toEqual(["D", "B"]);
+    expect(piezas(con({}))).toEqual(["A", "B", "C"]);
+    expect(piezas(con({ acomodo: "mosaico" }))).toEqual(["A", "B", "C", "D"]);
+    expect(piezas(con({ acomodo: "grande", prendas: ["C", "A"] }))).toEqual(["C"]);
+    // Con solo letras no se ve ninguna, pero la campaña tiene su lista: «Ver la campaña» lleva a sus ofertas.
+    const letras = con({ acomodo: "letras" });
+    expect(piezas(letras)).toEqual([]);
+    expect(letras.tipo === "campana" && hrefDeLaCampana(letras, null)).toBe(`/catalogo?lista=ofertas&campana=${ANIV}`);
+  });
+
   it("el carrusel (actividad 6b): un héroe por campaña que se puede mostrar, en el orden de la base; sin ninguna, uno de Lo nuevo", () => {
     const prendas = [enCampana("Blusa"), prenda("Vestido rojo"), prenda("Nueva", { nuevo: { dias: 1 } })];
     const vacia = { ...navidad, id: "8a6f1c1e-3b55-4c8e-9a55-555555555555", nombre: "CyberWow", prendas: [] };

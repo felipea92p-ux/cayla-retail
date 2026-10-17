@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { anuncioDeCampana, destacadoDeCampana, finDeCampana, partesCuenta, partirTitulo } from "./textos";
+import { anuncioDeCampana, destacadoDeCampana, finDeCampana, largoDelNombre, partesCuenta, partirTitulo } from "./textos";
 
 describe("partir el nombre de la campaña", () => {
   it("sin corte, la última palabra en cursiva (como siempre)", () => {
@@ -11,6 +11,20 @@ describe("partir el nombre de la campaña", () => {
     expect(partirTitulo("Día Internacional del Gato", 0)).toEqual(["", "Día Internacional del Gato"]);
     expect(partirTitulo("Día Internacional del Gato", 4)).toEqual(["Día Internacional del Gato", ""]);
     expect(partirTitulo("Navidad", 9)).toEqual(["Navidad", ""]);
+  });
+});
+
+describe("el largo del nombre (el tamaño de la letra)", () => {
+  it("corto, medio o largo por las letras del nombre y por su palabra más larga, que no se parte", () => {
+    expect(largoDelNombre("Navidad")).toBe("corto");
+    expect(largoDelNombre("Día del Gato")).toBe("corto");
+    expect(largoDelNombre("Black Friday")).toBe("corto");
+    expect(largoDelNombre("Aniversario CAYLA")).toBe("medio");
+    expect(largoDelNombre("Liquidación")).toBe("medio");
+    expect(largoDelNombre("Día Internacional del Gato")).toBe("largo");
+    // Una sola palabra de 13 letras ya es «largo»: a 124 px, «Internacional» se metía debajo de las polaroids.
+    expect(largoDelNombre("Internacional")).toBe("largo");
+    expect(largoDelNombre("  Navidad  ")).toBe("corto");
   });
 });
 

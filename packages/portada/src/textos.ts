@@ -14,6 +14,21 @@ export function partirTitulo(nombre: string, corte: number | null = null): [stri
   return [palabras.slice(0, corte).join(" "), palabras.slice(corte).join(" ")];
 }
 
+export type Largo = "corto" | "medio" | "largo";
+
+/**
+ * Qué tan largo es el nombre, para elegir el tamaño de la letra (ADR-0436, actividad 7; maqueta: hasta 12 letras, hasta 20, más): «Navidad»
+ * enorme, «Día Internacional del Gato» más chico. Cuenta también la palabra más larga, porque una palabra no se parte: a 124 px,
+ * «Internacional» se metía debajo de las polaroids.
+ */
+export function largoDelNombre(nombre: string): Largo {
+  const limpio = nombre.trim();
+  const palabra = Math.max(0, ...limpio.split(/\s+/).map((p) => p.length));
+  if (limpio.length <= 12 && palabra <= 9) return "corto";
+  if (limpio.length <= 20 && palabra <= 11) return "medio";
+  return "largo";
+}
+
 /** «12» o «12.5»: el porcentaje sin ceros de más. */
 export const pctTexto = (pct: number) => String(Number(pct.toFixed(2)));
 

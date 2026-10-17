@@ -11,6 +11,8 @@ import {
   mismoDiseno,
   paletaDePrenda,
   paletaPropia,
+  piezasQueCaben,
+  prendasElegidas,
   type DisenoDeCampana,
 } from "./diseno";
 import { PALETAS, coloresEnTema, paletaPorId, variablesDeLosDosTemas, variablesDePaleta } from "./paletas";
@@ -18,6 +20,34 @@ import { disenoParaPintar, revisarDiseno, seLee } from "./revision";
 
 const conPrendas = { prendas: 3, prendasConFoto: 2 };
 const UNO = "11111111-1111-4111-8111-111111111111";
+
+describe("las prendas de la portada", () => {
+  const p = (id: string) => ({ id, nombre: id });
+  const disponibles = [p("a"), p("b"), p("c"), p("d"), p("e")];
+
+  it("cada acomodo muestra las suyas: tres polaroids, una grande, cuatro en mosaico, ninguna con solo letras", () => {
+    expect(piezasQueCaben(null)).toBe(3);
+    expect(piezasQueCaben(DISENO_DE_SIEMPRE)).toBe(3);
+    expect(piezasQueCaben({ ...DISENO_DE_SIEMPRE, acomodo: "grande" })).toBe(1);
+    expect(piezasQueCaben({ ...DISENO_DE_SIEMPRE, acomodo: "mosaico" })).toBe(4);
+    expect(piezasQueCaben({ ...DISENO_DE_SIEMPRE, acomodo: "letras" })).toBe(0);
+  });
+
+  it("las elegidas salen en el orden en que se tocaron, y solo ellas", () => {
+    expect(prendasElegidas(disponibles, { ...DISENO_DE_SIEMPRE, prendas: ["d", "a"] }).map((x) => x.id)).toEqual(["d", "a"]);
+  });
+
+  it("una elegida que aquí no se puede mostrar se salta; si no queda ninguna, la web elige sola", () => {
+    expect(prendasElegidas(disponibles, { ...DISENO_DE_SIEMPRE, prendas: ["z", "c"] }).map((x) => x.id)).toEqual(["c"]);
+    expect(prendasElegidas(disponibles, { ...DISENO_DE_SIEMPRE, prendas: ["z"] }).map((x) => x.id)).toEqual(["a", "b", "c", "d", "e"]);
+  });
+
+  it("sin elegir (o sin diseño), las de la web en su orden", () => {
+    expect(prendasElegidas(disponibles, DISENO_DE_SIEMPRE).map((x) => x.id)).toEqual(["a", "b", "c", "d", "e"]);
+    expect(prendasElegidas(disponibles, null)).toEqual(disponibles);
+    expect(prendasElegidas(disponibles, null)).not.toBe(disponibles);
+  });
+});
 
 describe("los estilos de partida", () => {
   for (const e of ESTILOS) {
@@ -36,6 +66,18 @@ describe("los estilos de partida", () => {
   it("el de siempre es el «Clásico CAYLA», y un id que no existe no cambia nada", () => {
     expect(estiloDelDiseno(DISENO_DE_SIEMPRE)?.id).toBe("hoy");
     expect(aplicarEstilo(DISENO_DE_SIEMPRE, "no-existe")).toBe(DISENO_DE_SIEMPRE);
+  });
+
+  it("el de siempre es la portada de antes: con el «−15%» calado detrás de las fotos", () => {
+    expect(DISENO_DE_SIEMPRE.pctGigante).toBe(true);
+    expect([DISENO_DE_SIEMPRE.acomodo, DISENO_DE_SIEMPRE.fondo, DISENO_DE_SIEMPRE.sello]).toEqual(["polaroids", "degradado", "ninguno"]);
+  });
+
+  it("ningún estilo dice el descuento dos veces (el % gigante con el sello o con la teja del mosaico)", () => {
+    for (const e of ESTILOS) {
+      const d = aplicarEstilo(DISENO_DE_SIEMPRE, e.id);
+      expect(d.pctGigante && (d.sello === "descuento" || d.acomodo === "mosaico"), e.nombre).toBe(false);
+    }
   });
 
   it("con otros colores ya es «Personalizado»", () => {
