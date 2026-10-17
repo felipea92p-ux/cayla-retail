@@ -41,8 +41,12 @@ ERP cada cuenta es una fila de `cuentas_web` unida a su ficha del Club, y la tie
 - **Entrar** y **pedir el enlace de «Olvidé mi contraseña»** se hacen desde el navegador (`lib/auth-navegador.ts`): así el
   proyecto de clientes pone sus topes a la ip de cada persona. El enlace del correo lleva a `/nueva-contrasena`, que canjea su
   código recién al guardar (un lector de correos que abre enlaces solo no lo gasta).
-- `proxy.ts` refresca la sesión y lleva a cada uno a su lado (con sesión, de la portada y de «Entrar» al Inicio, `/inicio`; sin
-  sesión, del Inicio, el catálogo y «Mi perfil» a «Entrar»).
+- `proxy.ts` refresca la sesión y lleva a cada uno a su lado (con sesión, de «Entrar» y «Crear mi cuenta» al Inicio, `/inicio`; sin
+  sesión, solo lo que es DE la persona —`/cuenta`, un pedido ya separado, `/recomendaciones` y sus favoritos— a «Entrar»). **El catálogo,
+  los precios, cuánto hay en cada tienda, los looks, «Arma el tuyo» y la bolsa se ven SIN cuenta** (Felipe 2026-10-17): la cuenta se pide
+  al «Separar» (el botón dice «Entra para separar» y vuelve a la bolsa, que vive en la cookie del aparato) o al guardar algo suyo (un
+  favorito, un aviso, un look). `/` ya no es una portada aparte: lleva al Inicio, que sin sesión muestra la franja de confianza y
+  la invitación al Club (`SegunSesion`, `MarcoCatalogo`).
 - La llave secreta del proyecto de clientes solo la lee `lib/sesion-servidor.ts`; la cookie se llama `tienda-sesion` (en local
   el ERP también vive en `localhost` y no deben pisarse).
 - **Un correo es de una sola persona** (Felipe 2026-10-14, `20261015054000`): el correo de contacto de OTRA ficha del Club no sirve

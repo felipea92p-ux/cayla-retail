@@ -18,6 +18,7 @@ import { Icono } from "../Icono";
 import { ElegirPorCookie } from "./ElegirPorCookie";
 import { EntradaDelDia } from "./EntradaDelDia";
 import { SegunSesion } from "./SegunSesion";
+import { MarcaDeVista } from "../Vistas";
 
 /**
  * El marco de las páginas de la cuenta y de ayuda, el mismo de la portada: la franja de arriba (con la campaña vigente), la cabecera,
@@ -36,6 +37,7 @@ export async function MarcoCuenta({
   segunSesion = false,
   enPagina,
   conPie = false,
+  visitante = false,
 }: {
   children: React.ReactNode;
   conCuenta?: boolean;
@@ -43,6 +45,9 @@ export async function MarcoCuenta({
   segunSesion?: boolean;
   enPagina?: "entrar" | "crear-cuenta" | "cuenta";
   conPie?: boolean;
+  /** Con `conCuenta`: la página de la tienda (la bolsa) la ve también quien NO tiene sesión. Lleva la misma cabecera, pero su persona
+   *  ofrece «Entrar» y «Crear mi cuenta», sin nombre, sin anotar la entrada y con el pie de quien aún no tiene cuenta. */
+  visitante?: boolean;
 }) {
   if (segunSesion) {
     const [{ campana }, anio] = await Promise.all([leerPortada(), conPie ? anioActual() : Promise.resolve(0)]);
@@ -53,66 +58,77 @@ export async function MarcoCuenta({
       </>
     );
     return (
-      <div className="tienda">
-        <SegunSesion
-          visitante={visitante}
-          conCuenta={<ArranqueConCuenta campana={campana} enPagina={enPagina} />}
-          // Mientras el servidor lee la cookie: quien trae sesión ve la cabecera de siempre sin los números ni el nombre (los de él
-          // llegan por detrás) y quien no, la del visitante, que es la que se queda.
-          mientras={
-            <ElegirPorCookie
-              visitante={visitante}
-              conCuenta={
-                <>
-                  <Anuncio frases={anuncios(campana, true)} />
-                  <CabeceraConCuenta
-                    datos={datosDeCabecera([], null, undefined)}
-                    actual={enPagina === "cuenta" ? "cuenta" : null}
-                    campanita={<CampanitaApagada />}
-                    bolsa={
-                      <Link className="t-ico" href="/bolsa" data-bolsa aria-label="Tu bolsa">
-                        <Icono nombre="bolsa" />
-                      </Link>
-                    }
-                  />
-                </>
-              }
-            />
-          }
-        />
-        <main className="t-pagina">{children}</main>
-        {conPie && <SegunSesion visitante={<Pie anio={anio} />} conCuenta={<Pie anio={anio} conCuenta />} />}
-      </div>
+      <>
+        {/* Otra página: la pantalla se funde a la nueva. Antes de la caja, sin elementos encima (components/Vistas.tsx). */}
+        <MarcaDeVista />
+        <div className="tienda">
+          <SegunSesion
+            visitante={visitante}
+            conCuenta={<ArranqueConCuenta campana={campana} enPagina={enPagina} />}
+            // Mientras el servidor lee la cookie: quien trae sesión ve la cabecera de siempre sin los números ni el nombre (los de él
+            // llegan por detrás) y quien no, la del visitante, que es la que se queda.
+            mientras={
+              <ElegirPorCookie
+                visitante={visitante}
+                conCuenta={
+                  <>
+                    <Anuncio frases={anuncios(campana, true)} />
+                    <CabeceraConCuenta
+                      datos={datosDeCabecera([], null, undefined)}
+                      actual={enPagina === "cuenta" ? "cuenta" : null}
+                      deEspera
+                      campanita={<CampanitaApagada />}
+                      bolsa={
+                        <Link className="t-ico" href="/bolsa" data-bolsa aria-label="Tu bolsa">
+                          <Icono nombre="bolsa" />
+                        </Link>
+                      }
+                    />
+                  </>
+                }
+              />
+            }
+          />
+          <main className="t-pagina">{children}</main>
+          {conPie && <SegunSesion visitante={<Pie anio={anio} />} conCuenta={<Pie anio={anio} conCuenta />} />}
+        </div>
+      </>
     );
   }
   const [{ campana }, catalogo, favoritos, nombre] = await Promise.all([
     leerPortada(),
     conCuenta ? leerCatalogo(null) : Promise.resolve(null),
-    conCuenta ? cuantosFavoritos() : Promise.resolve(null),
-    conCuenta ? nombreDeLaCuenta() : Promise.resolve(null),
+    conCuenta && !visitante ? cuantosFavoritos() : Promise.resolve(null),
+    conCuenta && !visitante ? nombreDeLaCuenta() : Promise.resolve(null),
   ]);
   const conProbador = conCuenta ? await hayAlgoParaProbar(catalogo?.prendas ?? []) : false;
+  const conSesion = conCuenta && !visitante;
   const datosCabecera = conCuenta ? datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN, conProbador) : null;
   return (
-    <div className="tienda">
-      <Anuncio frases={anuncios(campana, conCuenta)} />
-      {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
-      {conCuenta && <EntradaDelDia />}
-      {datosCabecera ? (
-        <CabeceraConCuenta
-          datos={datosCabecera}
-          actual={enPagina === "cuenta" ? "cuenta" : null}
-          favoritos={favoritos}
-          nombre={nombre}
-          bolsa={<BotonBolsa />}
-          campanita={<CampanitaConEspera prendas={catalogo?.prendas ?? []} hrefNuevo={datosCabecera.nuevo.href} />}
-        />
-      ) : (
-        <Cabecera enPagina={enPagina === "cuenta" ? undefined : enPagina} />
-      )}
-      <main className="t-pagina">{children}</main>
-      {conPie && <Pie anio={await anioActual()} conCuenta={conCuenta} />}
-    </div>
+    <>
+      {/* Otra página: la pantalla se funde a la nueva. Antes de la caja, sin elementos encima (components/Vistas.tsx). */}
+      <MarcaDeVista />
+      <div className="tienda">
+        <Anuncio frases={anuncios(campana, conSesion)} />
+        {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
+        {conSesion && <EntradaDelDia />}
+        {datosCabecera ? (
+          <CabeceraConCuenta
+            datos={datosCabecera}
+            actual={enPagina === "cuenta" ? "cuenta" : null}
+            favoritos={favoritos}
+            nombre={nombre}
+            bolsa={<BotonBolsa />}
+            campanita={conSesion ? <CampanitaConEspera prendas={catalogo?.prendas ?? []} hrefNuevo={datosCabecera.nuevo.href} /> : null}
+            visitante={visitante}
+          />
+        ) : (
+          <Cabecera enPagina={enPagina === "cuenta" ? undefined : enPagina} />
+        )}
+        <main className="t-pagina">{children}</main>
+        {conPie && <Pie anio={await anioActual()} conCuenta={conSesion} />}
+      </div>
+    </>
   );
 }
 

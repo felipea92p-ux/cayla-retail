@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { pctTexto } from "./portada";
 import { esquemaStockModelo, type StockModelo } from "./stock";
+import type { Lista } from "./listas";
+
+// Las listas y lo de arriba de cada una viven en `listas.ts`, sin zod: el esqueleto de la lista (del navegador) escribe su título real.
+export { cabeceraDeLista, leerLista, type Lista } from "./listas";
 
 // El catálogo de la tienda (ADR-0408, actividades 3 a 5): lo que se publicó en Catálogo ▸ Vitrina web, tal como lo devuelve
 // `retail.tienda_catalogo(p_sede)`. La base decide qué se ve y a qué precio: el de la tienda elegida o, con «Todas», el mayor entre las
@@ -179,21 +183,10 @@ export function fotoOptimizable(url: string, origen: string | undefined): boolea
 
 /* ---------------- La lista: cuál, categorías y orden ---------------- */
 
-/** Las listas de la maqueta (`vLista`): toda la tienda, Lo nuevo, las ofertas, los más vendidos y «Tus favoritos» (lo que el cliente
- *  marcó con el corazón: el corazón de la cabecera lleva a `/catalogo?lista=favoritos`). */
-export type Lista = "todo" | "nuevo" | "ofertas" | "vendidos" | "favoritos";
-const LISTAS: readonly Lista[] = ["todo", "nuevo", "ofertas", "vendidos", "favoritos"];
-
 export type Orden = "destacado" | "precio-asc" | "precio-desc";
 export const ORDENES: readonly Orden[] = ["destacado", "precio-asc", "precio-desc"];
 
 const unValor = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
-
-/** La lista de la URL (`?lista=`); cualquier otra cosa, toda la tienda. */
-export const leerLista = (v: string | string[] | undefined): Lista => {
-  const l = unValor(v);
-  return LISTAS.includes(l as Lista) ? (l as Lista) : "todo";
-};
 
 /** La campaña elegida en las ofertas (`?campana=`, su id); cualquier otra cosa, todas. */
 export const leerCampana = (v: string | string[] | undefined): string | null => {
@@ -215,51 +208,6 @@ export function nombreOrden(o: Orden, lista: Lista = "todo"): string {
   if (o === "precio-asc") return "Menor precio";
   if (o === "precio-desc") return "Mayor precio";
   return lista === "nuevo" ? "Más reciente" : lista === "vendidos" ? "Ranking" : "Destacado";
-}
-
-export type CabeceraLista = {
-  ceja: string;
-  titulo: [string, string];
-  frase: string | null;
-  /** Lo que dice la lista cuando no tiene nada (qué aparecería aquí y qué hacer mientras tanto). Toda la tienda no lo necesita: sin
-   *  nada publicado, la página dice «Pronto verás aquí nuestras prendas». */
-  vacio: { titulo: string; texto: string } | null;
-};
-
-/** Lo de arriba de cada lista (maqueta, `vLista`): la ceja, el título (lo segundo en cursiva) y la frase; y lo que dice vacía. */
-export function cabeceraDeLista(lista: Lista): CabeceraLista {
-  switch (lista) {
-    case "nuevo":
-      return {
-        ceja: "Recién llegado",
-        titulo: ["Lo", "nuevo"],
-        frase: "Lo que llegó a nuestras tiendas en los últimos 30 días.",
-        vacio: { titulo: "Por ahora no hay nada nuevo", texto: "Lo que llega a nuestras tiendas aparece aquí durante 30 días. Mientras tanto, mira toda la tienda." },
-      };
-    case "ofertas":
-      return {
-        ceja: "Campañas vigentes",
-        titulo: ["Las", "ofertas"],
-        frase: "El descuento de cada campaña, sobre el precio de tu tienda, hasta su último día.",
-        vacio: { titulo: "Por ahora no hay ofertas", texto: "Cuando empiece una campaña, sus prendas aparecen aquí. Mientras tanto, mira toda la tienda." },
-      };
-    case "vendidos":
-      return {
-        ceja: "Lo que más se llevan",
-        titulo: ["Más", "vendidos"],
-        frase: "Los modelos que más se vendieron en los últimos 30 días, en todas nuestras tiendas.",
-        vacio: { titulo: "Todavía no hay más vendidos", texto: "Aquí aparece lo que más se vende en nuestras tiendas en 30 días. Mientras tanto, mira toda la tienda." },
-      };
-    case "favoritos":
-      return {
-        ceja: "Guardado por ti",
-        titulo: ["Tus", "favoritos"],
-        frase: "Lo que marcaste con el corazón.",
-        vacio: { titulo: "Aún no guardas nada", texto: "Toca el corazón de una prenda para guardarla." },
-      };
-    default:
-      return { ceja: "Catálogo", titulo: ["Toda la", "tienda"], frase: null, vacio: null };
-  }
 }
 
 /** ¿Tiene descuento? (la campaña baja lo que se paga). */
