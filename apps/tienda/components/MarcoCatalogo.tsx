@@ -9,6 +9,7 @@ import { EntradaDelDia } from "./cuenta/EntradaDelDia";
 import { FiltroTienda, type OpcionTienda } from "./FiltroTienda";
 import { InstalarCayla } from "./instalar/InstalarCayla";
 import { Pie } from "./Pie";
+import { EnCamino } from "./EnCamino";
 import { MarcaDeVista } from "./Vistas";
 
 /**
@@ -50,7 +51,10 @@ export async function MarcoCatalogo({
       <InstalarCayla />
       {/* Con una sola tienda en la web no hay nada que elegir. */}
       {franja ?? (filtro && filtro.length > 2 && <FiltroTienda opciones={filtro} />)}
-      <main className="t-pagina t-pagina-catalogo">{children}</main>
+      {/* Mientras se va a otra lista de esta misma página (de Lo nuevo a Más vendidos), su esqueleto (`EnCamino`). */}
+      <main className="t-pagina t-pagina-catalogo">
+        <EnCamino>{children}</EnCamino>
+      </main>
       <Pie anio={await anioActual()} conCuenta sede={sede} />
     </>
   );
