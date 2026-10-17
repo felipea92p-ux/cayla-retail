@@ -13,7 +13,8 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { fechaCorta, solesRedondo, textoMes } from "@/lib/gastos-reglas";
+import { fechaCorta, mesesRecientes, solesRedondo, textoMes } from "@/lib/gastos-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import {
   REGIMENES,
   TEXTO_REGIMEN,
@@ -389,7 +390,7 @@ function FilaAnio({
 
 type VigenciaNueva = "igv" | "tope_planilla_movilidad" | "saldo_favor_igv";
 
-const HOJA: Record<VigenciaNueva, { titulo: string; subtitulo: string; etiqueta: string; ayuda: string; ejemplo: string; pendiente: string; listo: (desde: string, t: string) => string }> = {
+const HOJA: Record<VigenciaNueva, { titulo: string; subtitulo: string; etiqueta: string; ayuda: string; ejemplo: string; pendiente: string; listo: (desde: string, t: string, valor: number) => string }> = {
   igv: {
     titulo: "Nueva tasa de IGV",
     subtitulo: "Desde esa fecha, los gastos con factura calculan su IGV con esta tasa. Lo registrado antes no cambia.",
@@ -417,7 +418,7 @@ const HOJA: Record<VigenciaNueva, { titulo: string; subtitulo: string; etiqueta:
     ayuda: "De la última declaración: «saldo a favor del periodo anterior». Pon 0 si no traía.",
     ejemplo: "0.00", // sugerir-fijo: el formato de un monto en soles, no depende de nada elegido en la hoja
     pendiente: "Escribe el saldo en soles (0 si no traía).",
-    listo: (desde, t) => `Saldo a favor de IGV al empezar ${textoMes(desde.slice(0, 7))}: S/\u00a0${Number(t.replace(/[S/\s]/g, "").replace(/,(?=\d{3}\b)/g, "").replace(",", ".")).toFixed(2)}.`, // coma-fija: solo quita la coma de miles; la de céntimos pasa a punto
+    listo: (desde, _t, valor) => `Saldo a favor de IGV al empezar ${textoMes(desde.slice(0, 7))}: S/\u00a0${valor.toFixed(2)}.`,
   },
 };
 
@@ -440,7 +441,8 @@ function NuevaVigencia({
   const v = parsearParametro(nombre, valor);
   // El saldo de IGV rige desde el día 1 de un mes: se elige el MES y la fecha que se guarda es su día 1.
   const esMes = nombre === "saldo_favor_igv";
-  const desde = esMes && /^\d{4}-\d{2}$/.test(desdeTipeado) ? `${desdeTipeado}-01` : esMes ? "" : desdeTipeado;
+  const desde = esMes && /^\d{4}-(0[1-9]|1[0-2])$/.test(desdeTipeado) ? `${desdeTipeado}-01` : esMes ? "" : desdeTipeado;
+  const opcionesMes = esMes ? mesesRecientes(hoyLima(), 36).map((m) => ({ valor: m, texto: textoMes(m) })) : [];
   const fechaLista = /^\d{4}-\d{2}-\d{2}$/.test(desde);
   const listo = fechaLista && v.ok;
   // Guía de foco (ADR-0284): sale de lo mismo que habilita «Agregar».
@@ -454,7 +456,11 @@ function NuevaVigencia({
       <div className="fin-dos-campos" data-guia="config.nueva-tasa-campos">
         <CampoGuiado id="desde" guia={guia}>
           <CampoFin etiqueta={esMes ? "Al empezar el mes" : "Desde"} htmlFor="vigencia-desde">
-            <InputFin id="vigencia-desde" type={esMes ? "month" : "date"} value={desdeTipeado} onChange={(e) => setDesde(e.target.value)} />
+            {esMes ? (
+              <SelectFin id="vigencia-desde" valor={desdeTipeado} onValor={setDesde} opciones={opcionesMes} marcador="Elige el mes…" />
+            ) : (
+              <InputFin id="vigencia-desde" type="date" value={desdeTipeado} onChange={(e) => setDesde(e.target.value)} />
+            )}
           </CampoFin>
         </CampoGuiado>
         <CampoGuiado id="valor" guia={guia}>
@@ -476,7 +482,7 @@ function NuevaVigencia({
           disabled={!listo || guardando || !responsable.listo}
           onClick={async () => {
             if (!v.ok) return;
-            if (await guardar(nombre, desde, v.valor, null, h.listo(desde, valor))) onCerrar();
+            if (await guardar(nombre, desde, v.valor, null, h.listo(desde, valor, v.valor))) onCerrar();
           }}
         >
           Agregar
