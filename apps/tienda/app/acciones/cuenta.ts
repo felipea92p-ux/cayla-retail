@@ -27,7 +27,6 @@ import {
   esquemaCrearCuenta,
   estadoClave,
   hoyLima,
-  MENSAJES,
   mensajeCodigoBloqueado,
   mensajeCodigoEsperar,
   mensajeCodigoLimite,
@@ -42,6 +41,7 @@ import {
   type ConsultaCorreo,
   type ConsultaDocumento,
 } from "@/lib/cuentas";
+import { MENSAJES } from "@/lib/cuentas-mensajes";
 import {
   anotarInvitadoEnBase,
   consultarCorreoEnBase,

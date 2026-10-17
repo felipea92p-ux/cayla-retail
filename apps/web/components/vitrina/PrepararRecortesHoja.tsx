@@ -150,8 +150,8 @@ export function PrepararRecortesHoja({
         {fase === "antes" ? (
           <>
             <p className="rounded-xl border border-sand bg-papel px-3.5 py-2.5 text-[13px] text-tinta">
-              Tarda un par de segundos por foto y la primera vez baja el recortador (26 MB). Deja esta pestaña abierta; si la pausas, lo hecho
-              queda guardado y sigues otro día.
+              Tarda un par de segundos por foto; la primera vez en este equipo, un poco más mientras se prepara el recortador. Deja esta pestaña
+              abierta; si la pausas, lo hecho queda guardado y sigues otro día.
             </p>
             <CampoGuiado id="responsable" guia={guia}>
               <div data-guia="recortes.responsable">
@@ -166,7 +166,7 @@ export function PrepararRecortesHoja({
               {fase === "terminado"
                 ? "Listo."
                 : descarga !== null
-                  ? `Bajando el recortador… ${descarga} %`
+                  ? `Preparando el recortador… ${descarga} %`
                   : actual
                     ? `Recortando ${Math.min(vistas + 1, total)} de ${total} · ${actual}`
                     : fase === "pausado"

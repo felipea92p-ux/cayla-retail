@@ -225,6 +225,39 @@ select count(*) from retail.fn_gastos_fijos_mes('2026-09-01', :'tru') where id =
   esperar("archivado, deja de aparecer", r.ok && Number(archivado) === 0, r);
 }
 
+// 6b. Cuándo llega (20261017190000, ADR-0440): primera semana, quincena y fin de mes.
+{
+  const r = correr(`${ESCENA}
+select retail.guardar_gasto_fijo(null, :'tru', 'alquileres', 'Alquiler', :'prov', 'factura', 2500, false, 1, 'fin_de_mes') as fm \\gset
+select retail.guardar_gasto_fijo(null, :'tru', 'asesoria', 'Contador', null, 'recibo_por_honorarios', 800, false, 1, 'quincena') as q \\gset
+select retail.guardar_gasto_fijo(null, :'tru', 'servicios_basicos', 'Internet', null, 'factura', 120, false, 1, 'primera_semana') as ps \\gset
+select momento, dia_del_mes, fecha_esperada, estado from retail.fn_gastos_fijos_mes('2026-02-01', :'tru') where id = :'fm';
+select fecha_esperada from retail.fn_gastos_fijos_mes('2028-02-01', :'tru') where id = :'fm';
+select fecha_esperada, estado from retail.fn_gastos_fijos_mes('2026-09-01', :'tru') where id = :'fm';
+select fecha_esperada, estado from retail.fn_gastos_fijos_mes('2026-09-01', :'tru') where id = :'q';
+select fecha_esperada, estado from retail.fn_gastos_fijos_mes('2026-09-01', :'tru') where id = :'ps';
+select fecha_esperada, estado from retail.fn_gastos_fijos_mes(date_trunc('month', retail.fn_hoy_lima())::date, :'tru') where id = :'fm';
+select retail.guardar_gasto_fijo(null, :'tru', 'asesoria', 'Antiguo', null, 'boleta', 10, false, 5) as v \\gset
+select momento, dia_del_mes from retail.fn_gastos_fijos_mes('2026-09-01', :'tru') where id = :'v';
+select pg_temp.intento(format('select retail.guardar_gasto_fijo(null, %L, ''asesoria'', ''x'', null, ''boleta'', 10, false, 5, ''el_30'')', :'tru'));
+select pg_temp.intento(format('select retail.guardar_gasto_fijo(null, %L, ''asesoria'', ''x'', null, ''boleta'', 10, false, 31, ''dia'')', :'tru'));
+select pg_temp.intento(format('update retail.gastos_fijos set dia_del_mes = 3 where id = %L', :'fm'));
+select retail.guardar_gasto_fijo(:'fm', :'tru', 'alquileres', 'Alquiler', :'prov', 'factura', 2500, false, 12, 'dia') as _x \\gset
+select momento, dia_del_mes from retail.fn_gastos_fijos_mes('2026-09-01', :'tru') where id = :'fm';`);
+  const [feb, bisiesto, sep, quincena, semana, esteMes, viejo, momentoInvalido, dia31, incoherente, vuelveADia] = lineas(r);
+  esperar("fin de mes en febrero de 2026: el 28, queda en 28 como orden", r.ok && feb.startsWith("fin_de_mes|28|2026-02-28|"), r);
+  esperar("fin de mes en febrero bisiesto: el 29", r.ok && bisiesto === "2028-02-29", r);
+  esperar("fin de mes en un mes de 30 días: el 30, y ya pasó: falta", r.ok && sep === "2026-09-30|falta", r);
+  esperar("quincena: el 15", r.ok && quincena === "2026-09-15|falta", r);
+  esperar("primera semana: el 7", r.ok && semana === "2026-09-07|falta", r);
+  esperar("fin de este mes: se espera el último día y todavía no falta", r.ok && /^\d{4}-\d{2}-\d{2}\|(por_llegar|registrado)$/.test(esteMes), r);
+  esperar("la llamada vieja de 9 argumentos sigue siendo «un día fijo»", r.ok && viejo === "dia|5", r);
+  esperar("un momento que no existe se rechaza", r.ok && momentoInvalido.includes("Elige cuándo llega"), r);
+  esperar("el día 31 con «un día fijo» se rechaza y manda a «Fin de mes»", r.ok && dia31.includes("Fin de mes"), r);
+  esperar("la base no deja «fin de mes, día 3»", r.ok && incoherente.includes("gastos_fijos_momento_coherente"), r);
+  esperar("se puede volver de fin de mes a un día fijo", r.ok && vuelveADia === "dia|12", r);
+}
+
 // 7. Lo que se repite se propone como fijo; ya guardado, deja de proponerse. Permisos de fijos.
 {
   const r = correr(`${ESCENA}${TRES_MESES_ATRAS}

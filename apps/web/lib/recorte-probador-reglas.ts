@@ -223,12 +223,23 @@ export function recorteDeRespuesta(data: unknown, urlFoto: string): RecorteDeFot
   return recorteDe({ url: base + ruta, proporcion: r.proporcion, estado: r.estado, motivo: r.motivo });
 }
 
+/**
+ * Cómo deshacer un recorte recién descartado (/formidable y /chaos, 2026-10-17): la pantalla recuerda cómo estaba —«listo» o «por
+ * revisar»— y `deshacer_descarte_recorte` lo devuelve a eso solo si sigue descartado (si alguien ya decidió, responde
+ * `recorte_ya_cambio` y no pisa nada) y lo anota en la Actividad. `null` si no hay nada que deshacer (ya estaba descartado).
+ */
+export function paraDeshacerElDescarte(foto: string, antes: RecorteDeFoto): { p_foto: string; p_estado: "listo" | "por_revisar" } | null {
+  if (antes.estado === "descartado") return null;
+  return { p_foto: foto, p_estado: antes.estado };
+}
+
 /** El motivo de un error de las funciones de recortes, en palabras de la pantalla (`null` si no es uno de ellas). */
 export function errorDeRecorte(texto: string): string | null {
   if (texto.includes("recorte_sin_permiso")) return "Para guardar recortes necesitas la Vitrina web o poder editar el catálogo.";
   if (texto.includes("recorte_foto_no_existe")) return "Esa foto ya no está. Recarga la pantalla.";
   if (texto.includes("recorte_archivo_no_existe")) return "El recorte no llegó al almacén. Vuelve a intentarlo.";
   if (texto.includes("recorte_no_existe")) return "Esa foto todavía no tiene recorte. Recarga la pantalla.";
+  if (texto.includes("recorte_ya_cambio")) return "No se deshizo: alguien ya decidió ese recorte. Recarga para verlo.";
   if (texto.includes("recorte_datos_invalidos")) return "El recorte no salió bien. Vuelve a intentarlo.";
   return null;
 }

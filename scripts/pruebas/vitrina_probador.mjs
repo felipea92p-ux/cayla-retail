@@ -21,6 +21,9 @@
  *      y se anota en la Actividad con su nombre; los típicos se cambian y se quitan, y lo que no cambia no escribe; es de la Vitrina.
  *   8. La lista viva: cada prenda publicada con su largo y su típico, sus colores con o sin foto propia, cómo van sus recortes y su
  *      miniatura (el recorte listo antes que la foto).
+ *   9. El «Deshacer» y el recorte de cada foto (2026-10-17, `20261017183000`): el recorte es el de su foto; una foto con recorte la
+ *      cambia quien ve la Vitrina (el mismo archivo otra vez es un reintento); deshacer un descarte lo deja como estaba, se anota, no
+ *      pisa a quien ya decidió, es de la Vitrina y no vuelve a «por revisar» sin motivo.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK, como Felipe (líder), Micaela (integrante) o una cuenta sin colaborador:
  * nunca se commitea nada. Los archivos del almacén se simulan con filas en `storage.objects` dentro de la misma transacción.
@@ -45,6 +48,7 @@ const MIGRACIONES = [
   "supabase/migrations/20261017003000_foto_recortes.sql",
   "supabase/migrations/20261017013000_recorte_foto_sin_responsable.sql",
   "supabase/migrations/20261017015000_vitrina_largos_del_probador.sql",
+  "supabase/migrations/20261017183000_recortes_deshacer_y_candado.sql",
 ];
 const APLICAR_ANTES = process.env.APLICAR_ANTES
   ? process.env.APLICAR_ANTES.split(",")
@@ -316,6 +320,57 @@ esperarError(
   correr(`${PREPARAR}select id as ves from retail.categorias where prefijo = 'VES' \\gset
 select retail.vitrina_guardar_largos_tipicos(jsonb_build_array(jsonb_build_object('categoria_id', :'ves', 'largo_cm', 300)));\n${FIN}`),
   "vitrina_largo_invalido",
+);
+
+console.log("9. El «Deshacer» y el recorte de cada foto (2026-10-17)");
+esperarError(
+  "el recorte tiene que ser el de esa foto",
+  correr(`${PREPARAR}select retail.registrar_recorte('${FOTO_A}', '${RECORTE_SUBIDA}', 0.8);\n${FIN}`),
+  "recorte_datos_invalidos",
+);
+esperarError(
+  "una foto con recorte la cambia quien ve la Vitrina (Micaela edita el catálogo y no la ve)",
+  correr(`${PREPARAR}select retail.registrar_recorte('${FOTO_A}', '${RECORTE_A}', 0.8, 'huecos') is not null;
+${COMO(MICAELA)}${SIN_COMBO}select retail.registrar_recorte('${FOTO_A}', '${RECORTE_A2}', 0.8);\n${FIN}`),
+  "recorte_sin_permiso",
+);
+esperarValor(
+  "volver a anotar el MISMO archivo es un reintento: no cambia la revisión",
+  correr(`${PREPARAR}select retail.registrar_recorte('${FOTO_A}', '${RECORTE_A}', 0.8, 'huecos') is not null;
+${COMO(MICAELA)}${SIN_COMBO}select retail.registrar_recorte('${FOTO_A}', '${RECORTE_A}', 0.8) ->> 'estado';
+select estado || '|' || motivo from retail.foto_recortes where foto = '${FOTO_A}';\n${FIN}`),
+  "t\npor_revisar\npor_revisar|huecos",
+);
+esperarValor(
+  "deshacer un descarte lo deja como estaba y queda en la Actividad",
+  correr(`${PREPARAR}select retail.registrar_recorte('${FOTO_A}', '${RECORTE_A}', 0.8, 'huecos') is not null;
+select retail.revisar_recorte('${FOTO_A}', false) ->> 'estado';
+select retail.deshacer_descarte_recorte('${FOTO_A}', 'por_revisar') ->> 'estado';
+select count(*) from retail.actividad where tabla = 'foto_recortes' and registro_id = '${FOTO_A}' and accion = 'vitrina_recorte_descarte_deshecho';\n${FIN}`),
+  "t\ndescartado\npor_revisar\n1",
+);
+esperarValor(
+  "si alguien ya decidió después del descarte, deshacer no lo pisa",
+  correr(`${PREPARAR}select retail.registrar_recorte('${FOTO_A}', '${RECORTE_A}', 0.8, 'huecos') is not null;
+select retail.revisar_recorte('${FOTO_A}', false) is not null;
+select retail.revisar_recorte('${FOTO_A}', true) is not null;
+do $$ begin perform retail.deshacer_descarte_recorte('${FOTO_A}', 'por_revisar'); raise exception 'no frenó'; exception when others then if sqlerrm not like '%recorte_ya_cambio%' then raise; end if; end $$;
+select estado from retail.foto_recortes where foto = '${FOTO_A}';\n${FIN}`),
+  "t\nt\nt\nlisto",
+);
+esperarError(
+  "deshacer es de la Vitrina (Micaela)",
+  correr(`${PREPARAR}select retail.registrar_recorte('${FOTO_A}', '${RECORTE_A}', 0.8) is not null;
+select retail.revisar_recorte('${FOTO_A}', false) is not null;
+${COMO(MICAELA)}select retail.deshacer_descarte_recorte('${FOTO_A}', 'listo');\n${FIN}`),
+  "vitrina_web_sin_modulo",
+);
+esperarError(
+  "no vuelve a «por revisar» un recorte que no dice por qué",
+  correr(`${PREPARAR}select retail.registrar_recorte('${FOTO_A}', '${RECORTE_A}', 0.8) is not null;
+select retail.revisar_recorte('${FOTO_A}', false) is not null;
+select retail.deshacer_descarte_recorte('${FOTO_A}', 'por_revisar');\n${FIN}`),
+  "recorte_datos_invalidos",
 );
 
 console.log("8. La lista viva");

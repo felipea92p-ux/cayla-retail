@@ -11,17 +11,23 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ProveedorGasto } from "@/components/RegistrarGastoModal";
 import { CabeceraBloque, CampoFin, InputFin, ListaDatos, PieTabla, RadiosFin, SelectFin, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
+import { ProveedorElegido } from "@/components/ProveedorElegido";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
 import {
+  AYUDA_MOMENTO_FIJO,
+  MOMENTOS_FIJO,
   TEXTO_COMPROBANTE,
   TEXTO_ESTADO_ACTIVO,
+  TEXTO_MOMENTO_FIJO,
   TIPOS_COMPROBANTE,
   fechaCorta,
   puedeAnularActivo,
   resumenActivosPorSede,
   solesRedondo,
+  textoColumnaCuando,
+  textoCuandoLlega,
   textoVidaUtil,
   totalesActivos,
   validarFijo,
@@ -30,6 +36,7 @@ import {
   type CategoriaGasto,
   type FijoSugerido,
   type GastoFijoMes,
+  type MomentoFijo,
   type UbicacionGastos,
 } from "@/lib/gastos-reglas";
 import { Boton, BotonEnlace } from "@/components/ui/campos";
@@ -79,7 +86,7 @@ export function FijosDelMes({
   const faltan = fijos.filter((f) => f.estado === "falta");
   const registrados = fijos.filter((f) => f.estado === "registrado");
   const nombre = (f: { descripcion: string; ubicacionNombre: string }) => (verTodas ? `${f.descripcion} · ${f.ubicacionNombre}` : f.descripcion);
-  const detalle = (f: GastoFijoMes) => `${f.proveedorNombre ?? "Sin proveedor"} · día ${f.diaDelMes}${f.montoVariable ? " · monto variable" : ""}`;
+  const detalle = (f: GastoFijoMes) => `${f.proveedorNombre ?? "Sin proveedor"} · ${textoCuandoLlega(f.momento, f.diaDelMes)}${f.montoVariable ? " · monto variable" : ""}`;
   const monto = (f: GastoFijoMes) => `${f.montoVariable ? "~" : ""}${solesRedondo(f.monto)}`;
   const editar = puedeConfigurar ? (
     <BotonEditar chico href="/configuracion?tab=fijos">
@@ -287,7 +294,7 @@ export function TablaGastosFijos({
                   <th>Proveedor</th>
                   <th>Llega con</th>
                   <th className="fin-num">Monto</th>
-                  <th className="fin-num">Día</th>
+                  <th className="fin-num">Llega</th>
                   <th />
                 </tr>
               </thead>
@@ -308,8 +315,8 @@ export function TablaGastosFijos({
                       {f.montoVariable ? "~" : ""}
                       {solesRedondo(f.monto)}
                     </td>
-                    <td className="fin-num" data-l="Día">
-                      {f.diaDelMes}
+                    <td className="fin-num" data-l="Llega">
+                      {textoColumnaCuando(f.momento, f.diaDelMes)}
                     </td>
                     <td className="fin-num">
                       <LapizEditar que={f.descripcion} onClick={() => setEditar({ fijo: f })} className="ml-auto" />
@@ -375,6 +382,7 @@ export function GastoFijoModal({
     monto: base ? String(base.monto) : "",
     variable: fijo?.montoVariable ?? false,
     dia: base ? String(base.diaDelMes) : "",
+    momento: fijo?.momento ?? "dia",
   }));
   const poner = <K extends keyof BorradorFijo>(k: K, v: BorradorFijo[K]) => setB((x) => ({ ...x, [k]: v }));
   const cat = categorias.find((c) => c.codigo === b.categoria) ?? null;
@@ -448,14 +456,25 @@ export function GastoFijoModal({
           />
         </CampoFin>
       </div>
+      <ProveedorElegido proveedor={proveedores.find((p) => p.id === b.proveedorId)} />
       <div className="fin-dos-campos">
         <CampoFin etiqueta="Monto de siempre (con IGV)" htmlFor="fijo-monto">
           <InputFin id="fijo-monto" inputMode="decimal" value={b.monto} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" />
         </CampoFin>
-        <CampoFin etiqueta="Día del mes en que llega" htmlFor="fijo-dia" ayuda="Del 1 al 28.">
-          <InputFin id="fijo-dia" inputMode="numeric" value={b.dia} onChange={(e) => poner("dia", e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="10" />
+        <CampoFin etiqueta="Cuándo llega" htmlFor="fijo-momento" ayuda={AYUDA_MOMENTO_FIJO[b.momento]}>
+          <SelectFin<MomentoFijo>
+            id="fijo-momento"
+            valor={b.momento}
+            onValor={(v) => poner("momento", v)}
+            opciones={MOMENTOS_FIJO.map((m) => ({ valor: m, texto: TEXTO_MOMENTO_FIJO[m] }))}
+          />
         </CampoFin>
       </div>
+      {b.momento === "dia" && (
+        <CampoFin etiqueta="Día del mes en que llega" htmlFor="fijo-dia" ayuda="Del 1 al 28. Para el 29, 30 o 31, elige «A fin de mes».">
+          <InputFin id="fijo-dia" inputMode="numeric" value={b.dia} onChange={(e) => poner("dia", e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="10" />
+        </CampoFin>
+      )}
       <CampoFin etiqueta="¿El monto cambia cada mes?" ayuda={b.variable ? "Como la luz o el agua: se muestra con «~» y se escribe el del recibo al registrarlo." : undefined}>
         <RadiosFin
           nombre="fijo-variable"
