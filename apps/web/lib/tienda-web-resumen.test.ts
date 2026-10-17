@@ -17,6 +17,7 @@ const CIFRAS_EN_CERO: CifrasPedidosWeb = {
   porDevolver: 0,
   pedidosPorDevolver: 0,
   esperanPrenda: 0,
+  proximoAnulaEnMs: null,
   cerrados: 0,
 };
 const NADA: EntradaResumen = {
