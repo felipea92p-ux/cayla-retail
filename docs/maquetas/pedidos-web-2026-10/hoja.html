@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hoja del pedido · propuesta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Maqueta de Tienda web ▸ Pedidos ▸ la hoja de un pedido POR CONFIRMAR (2026-10-17): crítica y propuesta, con la hoja de HOY rehecha
+   al lado. Datos inventados (el pedido de la captura, con otro nombre). Paleta y letras: la guía «CAYLA Dynamic». Lo que se propone se
+   arma con piezas que ya existen (Modal, Chip, Aviso, pildora-cayla, SegmentoDeslizante, ComboResponsable, PieAcciones, Boton). */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0; --tinta: #1a1a18; --taupe: #805c4c;
+  --rojo: #b8412d; --rojo-profundo: #8b2a1f; --verde: #48603f; --ambar: #74501a; --pizarra: #4c5d6e;
+  --lienzo: #e6ddcd; --velo: rgba(26, 26, 24, .28); --sombra: rgba(26, 26, 24, .16);
+  --tinta-60: color-mix(in srgb, var(--tinta) 64%, transparent);
+  --serif: "EB Garamond", ui-serif, Georgia, serif;
+  --sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --crema: #1a1a18; --papel: #242422; --hueso: #31302d; --sand: #3d3c38; --tinta: #f5f0e8; --taupe: #c4a898;
+    --rojo: #e8806a; --rojo-profundo: #f29a86; --verde: #9ccb8d; --ambar: #e4b968; --pizarra: #a2b8cd;
+    --lienzo: #121211; --velo: rgba(0, 0, 0, .55); --sombra: rgba(0, 0, 0, .55);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --crema: #1a1a18; --papel: #242422; --hueso: #31302d; --sand: #3d3c38; --tinta: #f5f0e8; --taupe: #c4a898;
+  --rojo: #e8806a; --rojo-profundo: #f29a86; --verde: #9ccb8d; --ambar: #e4b968; --pizarra: #a2b8cd;
+  --lienzo: #121211; --velo: rgba(0, 0, 0, .55); --sombra: rgba(0, 0, 0, .55);
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--lienzo); color: var(--tinta); font-family: var(--sans); font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; padding: 0; }
+button:disabled { cursor: not-allowed; opacity: .5; }
+:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.ic { width: 16px; height: 16px; flex: none; }
+.ic-14 { width: 14px; height: 14px; flex: none; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Marco de la maqueta */
+.barra { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 16px; background: color-mix(in srgb, var(--lienzo) 90%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--sand); }
+@media (max-width: 719px) { .barra { position: static; } }
+.barra-titulo { display: flex; flex-direction: column; margin-right: auto; min-width: 0; }
+.barra-titulo b { font-family: var(--serif); font-size: 21px; font-weight: 500; line-height: 1.1; }
+.barra-titulo span { font-size: 12px; color: var(--taupe); }
+.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--hueso); border: 1px solid var(--sand); }
+.seg button { height: 30px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: var(--taupe); white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--tinta); color: var(--crema); }
+.seg-etq { font-size: 10.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); margin-right: 4px; }
+.grupo { display: inline-flex; align-items: center; gap: 6px; }
+.lienzo { max-width: 1400px; margin: 0 auto; padding: 20px 16px 64px; display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1180px) { .lienzo { grid-template-columns: minmax(0, 1fr) 380px; align-items: start; } }
+
+/* El fondo con el velo y la hoja (Modal variante hoja, mediana: 576 px) */
+.escena { position: relative; border-radius: 22px; background: var(--crema); border: 1px solid var(--sand); padding: 28px 12px 40px; overflow: hidden; }
+.escena::before { content: ""; position: absolute; inset: 0; background: var(--velo); backdrop-filter: blur(2px); }
+.etq-vista { position: relative; z-index: 1; display: inline-flex; align-items: center; height: 26px; padding: 0 12px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; margin: 0 auto 14px; }
+.etq-vista.hoy { background: var(--hueso); color: var(--taupe); }
+.etq-vista.prop { background: var(--tinta); color: var(--crema); }
+.centro { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
+.hoja { position: relative; width: 100%; max-width: 576px; background: var(--papel); border-radius: 22px; padding: 26px 24px 22px; animation: sube .4s var(--ease) both; }
+@media (min-width: 640px) { .hoja { padding: 30px 32px 24px; } }
+.hoja > * + * { margin-top: 18px; }
+@keyframes sube { from { opacity: 0; transform: translateY(18px) scale(.985); } }
+.hoja-cab { display: flex; gap: 12px; align-items: flex-start; }
+.hoja-cab h2 { font-family: var(--serif); font-size: 26px; font-weight: 500; line-height: 1.15; margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; flex: 1; }
+.hoja-cab .cerrar { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; color: var(--taupe); }
+.bajada { margin: 4px 0 0; color: var(--taupe); font-size: 14px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 999px; font-family: var(--sans); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.chip .punto { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip.ambar { background: color-mix(in srgb, var(--ambar) 14%, transparent); color: var(--ambar); }
+.chip.rojo { background: color-mix(in srgb, var(--rojo) 11%, transparent); color: var(--rojo-profundo); }
+.chip.verde { background: color-mix(in srgb, var(--verde) 14%, transparent); color: var(--verde); }
+.chip.pizarra { background: color-mix(in srgb, var(--pizarra) 14%, transparent); color: var(--pizarra); }
+.cliente { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid var(--sand); border-radius: 14px; background: color-mix(in srgb, var(--hueso) 40%, transparent); }
+.avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--sand); display: grid; place-items: center; font-family: var(--serif); font-size: 15px; flex: none; }
+.cliente-txt { flex: 1; min-width: 12rem; }
+.cliente-txt b { display: block; font-weight: 500; }
+.cliente-txt span { display: block; font-size: 12.5px; color: var(--taupe); }
+.cliente-txt .pista { margin-top: 2px; display: flex; gap: 5px; align-items: flex-start; color: var(--tinta-60); }
+.cliente-txt .pista svg { margin-top: 2px; }
+.cliente-txt .pista span, .cliente-txt .pista b { display: inline; }
+.parrafo { display: flex; gap: 8px; font-size: 13px; color: var(--tinta-60); margin: 0; }
+.parrafo svg { margin-top: 2px; color: var(--taupe); }
+.titulo-grupo { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); }
+.titulo-grupo::after { content: ""; flex: 1; height: 1px; background: var(--sand); }
+.globito { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--hueso); color: var(--taupe); font-size: 11px; font-weight: 600; letter-spacing: 0; }
+.prendas > * + * { margin-top: 10px; }
+.linea { position: relative; border: 1px solid var(--sand); border-radius: 14px; padding: 12px 16px; }
+.linea.falta { border-color: color-mix(in srgb, var(--ambar) 40%, transparent); }
+.linea.quitada { background: color-mix(in srgb, var(--hueso) 40%, transparent); }
+.linea > * + * { margin-top: 10px; }
+.linea-cab { display: flex; gap: 12px; align-items: flex-start; }
+.foto { width: 48px; height: 60px; border-radius: 8px; display: grid; place-items: center; flex: none; border: 1px solid color-mix(in srgb, var(--tinta) 10%, transparent); }
+.foto svg { width: 22px; height: 22px; }
+.linea-txt { flex: 1; min-width: 0; }
+.linea-txt b { display: block; font-weight: 500; }
+.linea-txt span { display: block; font-size: 12.5px; color: var(--taupe); }
+.linea.quitada .linea-txt b { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--tinta) 40%, transparent); }
+.precio { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.de-donde { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13px; }
+.verde { color: var(--verde); }
+.enlace { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--taupe) 50%, transparent); text-underline-offset: 3px; }
+.enlace:hover { color: var(--rojo-profundo); }
+.pildoras { display: flex; flex-wrap: wrap; gap: 6px; }
+.pildora { height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--taupe) 40%, transparent); background: var(--papel); font-size: 12.5px; font-weight: 500; }
+.pildora[aria-pressed="true"] { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+.etq-campo { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); margin-bottom: 6px; display: block; }
+.pista { font-size: 12.5px; color: var(--taupe); margin: 0; }
+.aviso { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-radius: 12px; border-left: 3px solid var(--ambar); background: color-mix(in srgb, var(--ambar) 7%, var(--papel)); font-size: 13px; }
+.aviso svg { color: var(--ambar); margin-top: 1px; }
+.aviso.exito { border-left-color: var(--verde); background: color-mix(in srgb, var(--verde) 8%, var(--papel)); }
+.aviso.exito svg { color: var(--verde); }
+.aviso b { display: block; }
+.fila-der { display: flex; justify-content: flex-end; }
+.quitar-ligero { font-size: 12.5px; color: var(--rojo-profundo); text-decoration: underline; text-underline-offset: 3px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 500; white-space: nowrap; transition: background .2s var(--ease), transform .2s var(--ease); }
+.btn:hover { transform: translateY(-1px); }
+.btn-prim { background: var(--tinta); color: var(--crema); }
+.btn-prim:hover { background: var(--rojo-profundo); }
+.btn-sec { background: var(--papel); border: 1px solid color-mix(in srgb, var(--taupe) 45%, transparent); }
+.btn-peligro { background: var(--papel); border: 1px solid color-mix(in srgb, var(--rojo) 40%, transparent); color: var(--rojo-profundo); }
+.btn-chico { height: 34px; padding: 0 12px; font-size: 13px; }
+.responsable { display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 14px; border-radius: 12px; background: var(--hueso); }
+.responsable .avatar { width: 32px; height: 32px; font-size: 12px; background: var(--sand); }
+.responsable > span:not(.avatar) { flex: 1; }
+.resumen { border: 1px solid var(--sand); border-radius: 14px; padding: 12px 16px; }
+.resumen b.titulo { display: block; font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); margin-bottom: 6px; }
+.resumen ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-size: 13px; }
+.resumen li { display: flex; gap: 8px; align-items: flex-start; }
+.resumen li svg { margin-top: 2px; color: var(--taupe); }
+.resumen li.plazo { color: var(--rojo-profundo); }
+.resumen li.plazo svg { color: var(--rojo-profundo); }
+.pie { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding-top: 4px; }
+.pie .derecha { display: flex; gap: 10px; margin-left: auto; }
+@media (max-width: 639px) { .pie { flex-direction: column-reverse; align-items: stretch; } .pie .btn, .pie .derecha { width: 100%; } .pie .derecha .btn { flex: 1; } }
+.listo { font-size: 13px; color: var(--verde); margin: 0; }
+.mensaje { background: color-mix(in srgb, var(--verde) 9%, var(--papel)); border: 1px solid color-mix(in srgb, var(--verde) 25%, transparent); border-radius: 14px 14px 14px 4px; padding: 10px 14px; font-size: 13.5px; }
+.mensaje mark { background: color-mix(in srgb, var(--ambar) 22%, transparent); color: inherit; border-radius: 4px; padding: 0 2px; }
+
+/* Notas (pines) */
+.con-notas [data-pin] { position: relative; }
+.con-notas [data-pin]::before { content: attr(data-pin); position: absolute; z-index: 3; top: -11px; right: -11px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--rojo); color: var(--crema); font-size: 12px; font-weight: 700; font-family: var(--sans); letter-spacing: 0; text-transform: none; text-decoration: none; box-shadow: 0 0 0 3px var(--papel); pointer-events: none; }
+.destello { animation: destello 1.4s var(--ease); }
+@keyframes destello { 0%, 60% { box-shadow: 0 0 0 3px var(--rojo); } 100% { box-shadow: 0 0 0 3px transparent; } }
+
+/* Panel de crítica */
+.panel { display: flex; flex-direction: column; gap: 12px; }
+@media (min-width: 1180px) { .panel { position: sticky; top: 76px; max-height: calc(100vh - 92px); overflow: auto; padding-right: 4px; } }
+.panel-cab h2 { font-family: var(--serif); font-size: 24px; font-weight: 500; margin: 0 0 4px; }
+.panel-cab p { margin: 0; font-size: 13px; color: var(--taupe); }
+.item { text-align: left; display: block; width: 100%; padding: 14px 16px; background: var(--papel); border: 1px solid var(--sand); border-radius: 14px; }
+.item:hover { border-color: color-mix(in srgb, var(--tinta) 30%, transparent); }
+.item-cab { display: flex; align-items: flex-start; gap: 10px; }
+.item-n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--rojo); color: var(--crema); font-size: 12px; font-weight: 700; flex: none; }
+.item-t { font-weight: 600; font-size: 14px; line-height: 1.3; }
+.etqs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.etq { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; background: var(--hueso); color: var(--taupe); }
+.etq.medido { background: color-mix(in srgb, var(--verde) 14%, transparent); color: var(--verde); }
+.etq.observado { background: color-mix(in srgb, var(--pizarra) 14%, transparent); color: var(--pizarra); }
+.etq.opinion { background: color-mix(in srgb, var(--ambar) 14%, transparent); color: var(--ambar); }
+.item dl { margin: 10px 0 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; font-size: 13px; }
+.item dt { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); padding-top: 2px; }
+.item dd { margin: 0; color: var(--tinta-60); }
+.item.estrella { border-color: var(--tinta); }
+.item.estrella .item-n { background: var(--tinta); }
+.panel-pie { font-size: 12.5px; color: var(--taupe); padding: 4px 4px 0; }
+.tostada { position: fixed; z-index: 80; right: 16px; top: 76px; max-width: min(420px, calc(100vw - 32px)); padding: 12px 16px; border-radius: 12px; background: var(--tinta); color: var(--crema); font-size: 13px; box-shadow: 0 12px 32px var(--sombra); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="barra">
+  <div class="barra-titulo"><b>Pedidos ▸ la hoja del pedido</b><span>Por confirmar · crítica y propuesta · 17 oct 2026 · datos inventados</span></div>
+  <div class="grupo"><span class="seg-etq">Pedido</span><div class="seg" id="seg-escenario">
+    <button type="button" data-v="uno">1 prenda (tu captura)</button><button type="button" data-v="tres">3 prendas</button></div></div>
+  <div class="grupo"><span class="seg-etq">Vista</span><div class="seg" id="seg-vista">
+    <button type="button" data-v="hoy">Hoy</button><button type="button" data-v="prop">Propuesta</button></div></div>
+  <div class="grupo"><div class="seg" id="seg-notas"><button type="button" data-v="si">Notas</button></div></div>
+  <div class="grupo"><div class="seg" id="seg-tema"><button type="button" data-v="light">Claro</button><button type="button" data-v="dark">Oscuro</button></div></div>
+</div>
+
+<div class="lienzo">
+  <main class="escena con-notas" id="escena"></main>
+  <aside class="panel" id="panel" aria-label="Crítica"></aside>
+</div>
+
+<script>
+const I = {
+  x: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  wa: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>',
+  alerta: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></svg>',
+  ok: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>',
+  abajo: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+  caja: '<svg class="ic-14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>',
+  camion: '<svg class="ic-14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62L18.3 8.38A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>',
+  percha: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6a2 2 0 1 1 2 2c-1 0-2 .5-2 1.5v1"/><path d="M12 10.5 3.5 16a1 1 0 0 0 .5 2h16a1 1 0 0 0 .5-2Z"/></svg>',
+  reloj: '<svg class="ic-14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3 2 6M22 6l-3-3"/></svg>',
+  ojo: '<svg class="ic-14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg>',
+  quitar: '<svg class="ic-14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg>',
+};
+
+// ── Los datos (inventados). Ahora: sábado 17 de octubre, 16:40. El pedido se separó a las 16:38: se cierra el domingo 18 a las 16:38.
+const COLOR = { celeste: "#a9c4dd", crema: "#efe6d6", arena: "#d8c3a0" };
+const PRENDAS = {
+  palazo: { id: "palazo", nombre: "Palazo Tiana · Celeste · 30", precio: 109, color: "celeste", almacen: 1, piso: 1, otras: [] },
+  blusa: { id: "blusa", nombre: "Blusa Emma · Crema · M", precio: 89, color: "crema", almacen: 0, piso: 0, otras: [{ tienda: "Tienda LIM", libres: 1 }] },
+  casaca: { id: "casaca", nombre: "Casaca Lluvia · Arena · S", precio: 159, color: "arena", almacen: 0, piso: 1, otras: [] },
+};
+const ESCENARIOS = { uno: ["palazo"], tres: ["palazo", "blusa", "casaca"] };
+const FECHAS = [["2026-10-20", "20 oct · en 3 días"], ["2026-10-24", "24 oct · en 7 días"], ["2026-10-31", "31 oct · en 14 días"]];
+
+const leer = (k, d) => { try { return localStorage.getItem("ph-" + k) ?? d; } catch { return d; } };
+const guardar = (k, v) => { try { localStorage.setItem("ph-" + k, v); } catch {} };
+const S = { escenario: leer("escenario", "uno"), vista: leer("vista", "prop"), notas: leer("notas", "si") === "si", tema: leer("tema", ""), decisiones: {}, confirmado: false };
+function decisionesDeFabrica() {
+  S.decisiones = {};
+  for (const id of ESCENARIOS[S.escenario]) {
+    const p = PRENDAS[id];
+    S.decisiones[id] = p.almacen + p.piso > 0 ? { tipo: "reservar", lugar: p.almacen > 0 ? "almacen" : "piso" } : null;
+  }
+  S.confirmado = false;
+}
+decisionesDeFabrica();
+
+const soles = (n) => "S/ " + n.toFixed(2);
+const foto = (p) => `<span class="foto" data-color-dato style="background:${COLOR[p.color]};color:#1a1a18">${I.percha}</span>`;
+const lineas = () => ESCENARIOS[S.escenario].map((id) => PRENDAS[id]);
+const vivas = () => lineas().filter((p) => S.decisiones[p.id]?.tipo !== "quitar");
+
+function clienteHtml(prop) {
+  return `<div class="cliente"><span class="avatar">AL</span><span class="cliente-txt"><b>Ana Lucía Torres Ramos</b><span>DNI ••••4415 · Cel. 900 000 440 · Miembro del club</span>${prop ? `<span class="pista">${I.wa}<span>Te escribirá por WhatsApp con el número <b>W-0012</b></span></span>` : ""}</span><button type="button" class="btn btn-sec btn-chico" data-toast="Abre WhatsApp con el cliente.">${I.wa}WhatsApp</button></div>`;
+}
+
+// ── HOY: la hoja como está en main (PedidoWebHoja.tsx, modo «revisar» de un pedido por confirmar)
+function hoy() {
+  const ls = lineas();
+  const prendas = ls.map((p, i) => {
+    const aqui = p.almacen + p.piso;
+    const d = S.decisiones[p.id];
+    let disp = aqui > 0 ? `Hay ${aqui} en Tienda TRU (${[p.almacen ? `${p.almacen} en almacén` : null, p.piso ? `${p.piso} en piso` : null].filter(Boolean).join(", ")})` : `No hay en Tienda TRU. Hay ${p.otras[0].libres} en ${p.otras[0].tienda}.`;
+    let cuerpo;
+    if (aqui > 0) {
+      const textoDonde = d.lugar === "almacen" ? "Sácala del almacén." : "Está en el piso: retírala del colgador.";
+      cuerpo = `<div class="de-donde" ${i === 0 ? 'data-pin="5"' : ""}><span class="verde">${textoDonde}</span>${p.almacen && p.piso ? `<button type="button" class="enlace" data-hoy-lugar="${p.id}">${d.lugar === "almacen" ? "Mejor la del piso" : "Mejor la del almacén"}</button>` : ""}</div>`;
+      // La regla de hoy (avisosDeLinea): cuenta lo libre en el LUGAR elegido, pero nombra a la TIENDA.
+      const libresLugar = d.lugar === "almacen" ? p.almacen : p.piso;
+      if (libresLugar === 1) cuerpo += `<div class="aviso" ${i === 0 ? 'data-pin="1"' : ""}>${I.alerta}<span>Es la última en Tienda TRU.</span></div>`;
+    } else {
+      cuerpo = `<div class="pildoras" role="group"><button type="button" class="pildora" aria-pressed="false">Traer de ${p.otras[0].tienda} (${p.otras[0].libres})</button><button type="button" class="pildora" aria-pressed="false">Conseguirla</button></div>`;
+    }
+    const quitar = `<div class="fila-der"><button type="button" class="btn btn-peligro btn-chico" ${i === 0 ? 'data-pin="2"' : ""} data-toast="${ls.length === 1 ? "Hoy: la prenda se tacha y «Confirmar» queda bloqueado: «Si quitas todas las prendas, ciérralo con «No se puede confirmar»»." : "Hoy: la prenda se tacha y sale del total."}">Quitar del pedido</button></div>`;
+    return `<div class="linea ${aqui ? "" : "falta"}"><div class="linea-cab">${foto(p)}<span class="linea-txt"><b>${p.nombre}</b><span>${disp}</span></span><span class="precio">${soles(p.precio)}</span></div>${cuerpo}${quitar}</div>`;
+  }).join("");
+  const listo = ls.every((p) => S.decisiones[p.id]);
+  return `<span class="etq-vista hoy">Hoy · como está en main</span>
+  <div class="hoja">
+    <div class="hoja-cab"><h2>Pedido W-0012 <span class="chip ambar" data-pin="3"><span class="punto"></span>Por confirmar · vence en 23 h</span></h2><button type="button" class="cerrar" aria-label="Cerrar">${I.x}</button></div>
+    <p class="bajada" style="margin-top:-12px">Separado recién · lo recoge en Trujillo</p>
+    ${clienteHtml(false)}
+    <p class="parrafo" data-pin="4">${I.wa}<span>Llega por WhatsApp con el número <b>W-0012</b>. Revisa que esté todo y confírmalo; por el chat coordinan el pago y cuándo lo recoge.</span></p>
+    <div><div class="titulo-grupo">Lo que pidió <span class="globito">${ls.length}</span></div></div>
+    <div class="prendas">${prendas}</div>
+    <div><span class="etq-campo">Responsable <span style="color:var(--rojo)">*</span></span><div class="responsable" data-pin="7"><span class="avatar">LV</span><span>Lucía</span>${I.abajo}</div></div>
+    <p class="pista" style="color:var(--rojo-profundo)">Al confirmar, cada prenda queda reservada para el cliente (primero la del almacén) y deja de ofrecerse en la web y en Vender. Sale del stock recién al entregarla. Si después se anula, vuelve a estar disponible.</p>
+    <p class="listo">${listo ? "Todo listo." : "Falta: elegir qué hacer con «Blusa Emma»."}</p>
+    <div class="pie" data-pin="6"><button type="button" class="btn btn-sec">No se puede confirmar</button><div class="derecha"><button type="button" class="btn btn-prim" ${listo ? "" : "disabled"} data-toast="Hoy: reserva y muestra «Confirmado» con «Avisarle por WhatsApp».">Confirmar · reserva las prendas</button></div></div>
+  </div>`;
+}
+
+// ── PROPUESTA
+function prop() {
+  if (S.confirmado) return confirmadoHtml();
+  const ls = lineas();
+  const nVivas = vivas().length;
+  const prendas = ls.map((p) => {
+    const aqui = p.almacen + p.piso;
+    const d = S.decisiones[p.id];
+    const quitada = d?.tipo === "quitar";
+    let cuerpo = "";
+    if (quitada) {
+      cuerpo = `<p class="pista">Se quita del pedido al confirmar: el total baja a ${soles(totalVivo())}. Avísale por WhatsApp. <button type="button" class="enlace" data-deshacer="${p.id}">Deshacer</button></p>`;
+    } else if (aqui > 0) {
+      // De dónde sale: las dos opciones a la vista, con cuántas hay en cada lugar (antes: una frase y un enlace que cambiaba de texto).
+      const ops = [p.almacen ? ["almacen", `Del almacén · ${p.almacen}`] : null, p.piso ? ["piso", `Del piso · ${p.piso}`] : null].filter(Boolean);
+      cuerpo = `<div><span class="etq-campo">Sale</span><div class="pildoras" role="group" aria-label="De dónde sale ${p.nombre}" ${p.id === "palazo" ? 'data-pin="5"' : ""}>${ops.map(([k, t]) => `<button type="button" class="pildora" aria-pressed="${d.lugar === k}" data-lugar="${p.id}:${k}">${t}</button>`).join("")}</div>
+        ${d.lugar === "piso" ? `<p class="pista" style="margin-top:6px">Retírala del colgador al confirmar.</p>` : ""}</div>`;
+      // El aviso solo si es la ÚLTIMA DE LA TIENDA (no del lugar), y dice qué significa.
+      if (aqui === 1) cuerpo += `<div class="aviso">${I.alerta}<span><b>Es la última de Tienda TRU</b>Al confirmar, ya no se puede vender en la tienda ni en la web.</span></div>`;
+    } else {
+      const o = p.otras[0];
+      cuerpo = `<div><span class="etq-campo">No hay en Tienda TRU · elige</span><div class="pildoras" role="group">
+          <button type="button" class="pildora" aria-pressed="${d?.tipo === "traer"}" data-otra="${p.id}:traer">Traer de ${o.tienda} · ${o.libres}</button>
+          <button type="button" class="pildora" aria-pressed="${d?.tipo === "conseguir"}" data-otra="${p.id}:conseguir">Conseguirla</button></div>
+        ${d?.tipo === "traer" ? `<p class="pista" style="margin-top:6px">Se reserva en ${o.tienda} y la envían por traslado; al llegar queda reservada aquí sola.</p>` : ""}
+        ${d?.tipo === "conseguir" ? `<p class="pista" style="margin:6px 0">¿Para cuándo? Lo coordinas con el cliente.</p><div class="pildoras">${FECHAS.map(([f, t]) => `<button type="button" class="pildora" aria-pressed="${d.fecha === f}" data-fecha="${p.id}:${f}">${t}</button>`).join("")}</div>` : ""}</div>`;
+    }
+    // Quitar solo cuando queda otra prenda: con una sola, la salida es «No se puede confirmar».
+    const quitar = !quitada && nVivas > 1 ? `<div class="fila-der"><button type="button" class="btn btn-peligro btn-chico" data-quitar="${p.id}">${I.quitar}Quitar del pedido</button></div>` : "";
+    return `<div class="linea ${quitada ? "quitada" : aqui ? "" : "falta"}"><div class="linea-cab">${foto(p)}<span class="linea-txt"><b>${p.nombre}</b><span>${aqui ? `Hay ${aqui} en Tienda TRU` : "No hay en Tienda TRU"}</span></span><span class="precio">${soles(p.precio)}</span></div>${cuerpo}${quitar}</div>`;
+  }).join("");
+  const falta = vivas().find((p) => !decisionLista(S.decisiones[p.id]));
+  const n = vivas().length;
+  return `<span class="etq-vista prop">Propuesta</span>
+  <div class="hoja">
+    <div class="hoja-cab"><h2>Pedido W-0012 <span class="chip ambar" data-pin="3"><span class="punto"></span>Se cierra solo en 23 h</span></h2><button type="button" class="cerrar" aria-label="Cerrar">${I.x}</button></div>
+    <p class="bajada" style="margin-top:-12px">Separado recién · lo recoge en Trujillo · si nadie lo confirma, se cierra mañana a las 16:38</p>
+    ${clienteHtml(true)}
+    <div><div class="titulo-grupo">Lo que pidió <span class="globito">${ls.length}</span></div></div>
+    <div class="prendas" ${ls.length === 1 ? 'data-pin="2"' : ""}>${prendas}</div>
+    <div><span class="etq-campo">Responsable <span style="color:var(--rojo)">*</span></span><div class="responsable" data-pin="7"><span class="avatar">LV</span><span>Lucía</span>${I.abajo}</div></div>
+    ${resumenHtml()}
+    <p class="listo" ${falta ? 'style="color:var(--taupe)"' : ""}>${falta ? `Falta: elegir qué hacer con «${falta.nombre.split(" · ")[0]}».` : "Todo listo."}</p>
+    <div class="pie" data-pin="6"><button type="button" class="btn btn-sec">No se puede confirmar</button><div class="derecha"><button type="button" class="btn btn-prim" id="b-confirmar" ${falta ? "disabled" : ""}>Confirmar y reservar ${n} ${n === 1 ? "prenda" : "prendas"}</button></div></div>
+  </div>`;
+}
+const decisionLista = (d) => d && (d.tipo === "reservar" || d.tipo === "traer" || (d.tipo === "conseguir" && d.fecha));
+const totalVivo = () => vivas().reduce((a, p) => a + p.precio, 0);
+
+// «Al confirmar»: lo que va a pasar, prenda por prenda, sacado de lo elegido (reemplaza el párrafo fijo de tres frases).
+function resumenHtml() {
+  const filas = [];
+  for (const p of lineas()) {
+    const d = S.decisiones[p.id];
+    const corto = p.nombre.split(" · ")[0];
+    if (!d) continue;
+    if (d.tipo === "reservar") filas.push(`<li>${I.caja}<span>${corto}: se reserva ${d.lugar === "almacen" ? "la del almacén" : "la del piso"}.</span></li>`);
+    if (d.tipo === "traer") filas.push(`<li>${I.camion}<span>${corto}: se reserva en ${p.otras[0].tienda}, que la envía.</span></li>`);
+    if (d.tipo === "conseguir" && d.fecha) filas.push(`<li>${I.reloj}<span>${corto}: queda por conseguir para el ${FECHAS.find((f) => f[0] === d.fecha)[1].split(" · ")[0]}.</span></li>`);
+    if (d.tipo === "quitar") filas.push(`<li>${I.quitar}<span>${corto}: sale del pedido.</span></li>`);
+  }
+  filas.push(`<li>${I.ojo}<span>Lo reservado deja de venderse en la web y en Vender; sale del stock al entregarlo.</span></li>`);
+  filas.push(`<li class="plazo">${I.reloj}<span>El cliente tiene 48 h para pagar ${soles(totalVivo())}: si no paga nada, el pedido se anula solo.</span></li>`);
+  return `<div class="resumen" data-pin="4"><b class="titulo">Al confirmar</b><ul>${filas.join("")}</ul></div>`;
+}
+
+// Confirmado: el aviso de siempre y, lo nuevo, el mensaje para el cliente con su plazo para pagar.
+function confirmadoHtml() {
+  return `<span class="etq-vista prop">Propuesta · recién confirmado</span>
+  <div class="hoja">
+    <div class="hoja-cab"><h2>Pedido W-0012 <span class="chip ambar"><span class="punto"></span>Sin pago, se anula en 48 h</span></h2><button type="button" class="cerrar" aria-label="Cerrar">${I.x}</button></div>
+    <p class="bajada" style="margin-top:-12px">Confirmado recién · lo recoge en Trujillo</p>
+    <div class="aviso exito">${I.ok}<span><b>Confirmado: sus prendas quedaron reservadas</b>Avísale y dile hasta cuándo puede pagar.</span></div>
+    <div data-pin="★"><span class="etq-campo">Lo que le llega por WhatsApp</span>
+      <div class="mensaje">Hola Ana Lucía, confirmamos tu pedido W-0012 en CAYLA Trujillo (${soles(totalVivo())}). <mark>Tienes hasta el lunes 19 a las 16:41 para pagarlo; si no, se anula y la prenda vuelve a la tienda.</mark> ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda?</div>
+    </div>
+    <div class="pie"><button type="button" class="enlace" id="b-volver">Volver a la hoja sin confirmar</button><div class="derecha"><button type="button" class="btn btn-prim" data-toast="Abre WhatsApp con este mensaje.">${I.wa}Avisarle por WhatsApp</button></div></div>
+  </div>`;
+}
+
+// ── Panel de crítica
+const ITEMS = [
+  { n: 1, t: "«Es la última en Tienda TRU» es falso", etq: ["medido", "Medido en tu captura"], esc: "uno", vista: "hoy",
+    hoy: "Dice «Hay 2 en Tienda TRU (1 en almacén, 1 en piso)» y, debajo, «Es la última en Tienda TRU». La regla cuenta lo que queda en el lugar elegido, pero nombra a la tienda.",
+    prop: "El aviso solo sale si es la última DE LA TIENDA, y dice qué significa: «al confirmar, ya no se puede vender en la tienda ni en la web». Mira el pedido de 3 prendas: la casaca." },
+  { n: 2, t: "«Quitar del pedido» lleva a un callejón con una sola prenda", etq: ["observado", "Observado en código"], esc: "uno",
+    hoy: "Con una prenda, quitarla la tacha y deja «Confirmar» bloqueado («si quitas todas, ciérralo con «No se puede confirmar»»). Es además lo más rojo de la hoja, al lado de cada prenda.",
+    prop: "Solo aparece si queda otra prenda. Con una sola, la salida es «No se puede confirmar», que ya está en el pie." },
+  { n: 3, t: "La hoja y la lista hablan distinto del plazo", etq: ["medido", "Medido"],
+    hoy: "La insignia dice «vence en 23 h»; la lista, desde hoy, «se cierra solo en 23 h». Y no dice cuándo exactamente.",
+    prop: "La misma frase que la lista, con la hora: «Se cierra solo en 23 h · si nadie lo confirma, se cierra mañana a las 16:38»." },
+  { n: 4, t: "60 palabras de manual alrededor de una prenda", etq: ["medido", "Medido · 23 + 37 palabras"], vista: "hoy",
+    hoy: "Un párrafo antes de las prendas y otro antes de los botones. El segundo dice «primero la del almacén» aunque hayas elegido la del piso, y no menciona que sin pago se anula a las 48 h.",
+    prop: "«Al confirmar»: lo que va a pasar con CADA prenda según lo elegido (del almacén, del piso, se trae de LIM, se consigue para el 24), que deja de venderse y el plazo para pagar." },
+  { n: 5, t: "De dónde sale la prenda está escondido", etq: ["observado", "Observado"],
+    hoy: "«Sácala del almacén.» suena a orden, y la otra opción es un enlace que cambia de texto («Mejor la del piso»). No se ve cuántas hay en cada lugar.",
+    prop: "Las dos opciones a la vista, como píldoras: «Del almacén · 1» y «Del piso · 1». Si eliges el piso, dice qué hacer: retirarla del colgador." },
+  { n: 6, t: "El botón no dice cuánto reserva", etq: ["opinion", "Opinión"],
+    hoy: "«Confirmar · reserva las prendas»: con una prenda o con tres, el mismo texto, y toca stock.",
+    prop: "«Confirmar y reservar 1 prenda» (o 3, o 2 si quitaste una). Lo que toca stock dice cuánto antes de tocarlo." },
+  { n: 7, t: "En tu captura, la responsable y el cliente son la misma persona", etq: ["opinion", "Opinión · decisión tuya"],
+    hoy: "Una colaboradora puede confirmar su propio pedido, también si es la última prenda de la tienda, y nada lo nota.",
+    prop: "Si quieres una regla («que lo confirme otra persona»), es tuya: la hoja puede avisarlo al elegir al responsable." },
+];
+function panel() {
+  return `<div class="panel-cab"><h2>Lo que veo en la hoja</h2><p>Toca una crítica para ver dónde está. Los números rojos de la hoja son las mismas notas.</p></div>
+  ${ITEMS.map((it) => `<button type="button" class="item" data-item="${it.n}"><span class="item-cab"><span class="item-n">${it.n}</span><span><span class="item-t">${it.t}</span><span class="etqs"><span class="etq ${it.etq[0]}">${it.etq[1]}</span></span></span></span><dl><dt>Hoy</dt><dd>${it.hoy}</dd><dt>Propuesta</dt><dd>${it.prop}</dd></dl></button>`).join("")}
+  <button type="button" class="item estrella" data-item="★"><span class="item-cab"><span class="item-n">★</span><span><span class="item-t">Lo que no pediste: nadie le dice al cliente que tiene 48 h para pagar</span><span class="etqs"><span class="etq medido">Medido en código y en producción</span></span></span></span>
+    <dl><dt>Hoy</dt><dd>Desde el 16-oct, un pedido confirmado sin ningún pago se anula solo a las 48 h. El WhatsApp que se manda al confirmar dice «confirmamos tu pedido… ¿cómo prefieres pagar?», sin plazo. El cliente que paga al tercer día encuentra su pedido anulado.</dd>
+    <dt>Propuesta</dt><dd>El mensaje dice hasta cuándo: «Tienes hasta el lunes 19 a las 16:41 para pagarlo». Confirma el pedido para verlo.</dd></dl></button>
+  <p class="panel-pie">Ya arreglado aparte (rama <code>claude/pedidos-web-anula-sin-pago</code>): el camino de Pedidos decía «Te paga · aviso a las 48 h», como si solo avisara.</p>`;
+}
+
+const $e = document.getElementById("escena");
+function render() {
+  if (S.tema) document.documentElement.setAttribute("data-theme", S.tema); else document.documentElement.removeAttribute("data-theme");
+  $e.classList.toggle("con-notas", S.notas);
+  $e.innerHTML = `<div class="centro">${S.vista === "hoy" ? hoy() : prop()}</div>`;
+  for (const [id, v] of [["seg-escenario", S.escenario], ["seg-vista", S.vista]]) document.querySelectorAll(`#${id} button`).forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
+  document.querySelector("#seg-notas button").setAttribute("aria-pressed", String(S.notas));
+  const t = S.tema || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  document.querySelectorAll("#seg-tema button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === t)));
+}
+let tt;
+function tostada(t) { document.querySelector(".tostada")?.remove(); const d = document.createElement("div"); d.className = "tostada"; d.setAttribute("role", "status"); d.textContent = t; document.body.appendChild(d); clearTimeout(tt); tt = setTimeout(() => d.remove(), 3800); }
+document.querySelector(".barra").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  const seg = b.parentElement.id;
+  if (seg === "seg-escenario") { S.escenario = b.dataset.v; guardar("escenario", S.escenario); decisionesDeFabrica(); }
+  if (seg === "seg-vista") { S.vista = b.dataset.v; guardar("vista", S.vista); decisionesDeFabrica(); }
+  if (seg === "seg-notas") { S.notas = !S.notas; guardar("notas", S.notas ? "si" : "no"); }
+  if (seg === "seg-tema") { S.tema = b.dataset.v; guardar("tema", S.tema); }
+  render();
+});
+$e.addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.toast) return tostada(b.dataset.toast);
+  if (b.dataset.lugar) { const [id, l] = b.dataset.lugar.split(":"); S.decisiones[id] = { tipo: "reservar", lugar: l }; }
+  else if (b.dataset.hoyLugar) { const d = S.decisiones[b.dataset.hoyLugar]; d.lugar = d.lugar === "almacen" ? "piso" : "almacen"; }
+  else if (b.dataset.otra) { const [id, t] = b.dataset.otra.split(":"); S.decisiones[id] = t === "traer" ? { tipo: "traer" } : { tipo: "conseguir", fecha: null }; }
+  else if (b.dataset.fecha) { const [id, f] = b.dataset.fecha.split(":"); S.decisiones[id] = { tipo: "conseguir", fecha: f }; }
+  else if (b.dataset.quitar) { S.decisiones[b.dataset.quitar] = { tipo: "quitar", antes: S.decisiones[b.dataset.quitar] }; }
+  else if (b.dataset.deshacer) { S.decisiones[b.dataset.deshacer] = S.decisiones[b.dataset.deshacer].antes; }
+  else if (b.id === "b-confirmar") { S.confirmado = true; }
+  else if (b.id === "b-volver") { S.confirmado = false; }
+  else return;
+  render();
+});
+document.getElementById("panel").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-item]"); if (!b) return;
+  const n = b.dataset.item;
+  const it = ITEMS.find((x) => String(x.n) === n);
+  if (n === "★") { S.vista = "prop"; S.confirmado = true; }
+  else {
+    if (it.esc && it.esc !== S.escenario) { S.escenario = it.esc; decisionesDeFabrica(); }
+    if (it.vista && it.vista !== S.vista) S.vista = it.vista;
+    S.confirmado = false;
+  }
+  S.notas = true; render();
+  const el = $e.querySelector(`[data-pin="${n}"]`);
+  if (!el) return tostada("Esta nota no está en esta vista: cambia de vista o de pedido.");
+  el.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+  el.classList.remove("destello"); void el.offsetWidth; el.classList.add("destello");
+});
+document.getElementById("panel").innerHTML = panel();
+render();
+</script>
+</body>
+</html>

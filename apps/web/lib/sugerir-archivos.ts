@@ -16,7 +16,7 @@
 // «por ejemplo») se resuelve con `sugerir-fijo`, no agregando el archivo a la deuda.
 
 /** Cuántos archivos siguen con un ejemplo estático sin resolver. Baja a medida que se hacen; subir es romper la regla. */
-export const PENDIENTES_HOY = 59;
+export const PENDIENTES_HOY = 58;
 
 /** Rutas relativas a `apps/web/`. */
 export const ARCHIVOS_PENDIENTES: readonly string[] = [
@@ -51,7 +51,6 @@ export const ARCHIVOS_PENDIENTES: readonly string[] = [
   "components/NuevaProformaModal.tsx",
   "components/PagoPiezas.tsx",
   "components/PatronesLista.tsx",
-  "components/PrendasDeEtiquetaModal.tsx",
   "components/ProductoForm.tsx",
   "components/ProveedorModal.tsx",
   "components/ProveedorProduccionModal.tsx",

@@ -38,6 +38,7 @@ test("tieneCampos: un control en JSX cuenta; un comentario o un texto no", () =>
   assert.equal(tieneCampos("<input type='text' />"), true);
   assert.equal(tieneCampos("<ComboBuscable valor={v} />"), true);
   assert.equal(tieneCampos("<form onSubmit={x}>"), true);
+  assert.equal(tieneCampos("<Buscador valor={q} onCambio={setQ} />"), true);
   assert.equal(tieneCampos("// un Campo de texto y un input, sin JSX"), false);
   assert.equal(tieneCampos("<Tabla filas={f} />"), false);
 });
@@ -90,6 +91,8 @@ test("esModal y contarControles", () => {
   assert.equal(esModal('<Modal titulo="x" onClose={c}>'), true);
   assert.equal(esModal("<ModalRuta titulo='x' />"), true);
   assert.equal(esModal("<Dialog.Content>"), true);
+  assert.equal(esModal('<Cajon titulo="x" onCerrar={c}>'), true);
+  assert.equal(esModal("<CajonMovimiento mov={m} />"), false);
   assert.equal(esModal("// un modal cualquiera, sin JSX"), false);
   assert.equal(contarControles('<CampoTexto etiqueta="a" /><CampoSelect /><input /><Tabla />'), 3);
   assert.equal(contarControles("<Tabla />"), 0);

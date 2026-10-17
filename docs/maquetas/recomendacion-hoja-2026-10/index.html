@@ -1,0 +1,924 @@
+<title>Recomendaciones</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@400;500&display=swap">
+<style>
+/* Maqueta de Tienda web ▸ Recomendaciones, la hoja que se abre al leer una (2026-10-17). Los colores son los tokens de
+   apps/web/app/globals.css (claro) y apps/web/app/estilos/tema.css (oscuro), con los mismos nombres. La página: a la izquierda,
+   el ERP de mentira (la bandeja y la hoja); a la derecha, lo que cambia y por qué, numerado como las marcas sobre la pantalla. */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0;
+  --tinta: #1a1a18; --taupe: #805c4c; --rojo: #b8412d; --rojo-profundo: #8b2a1f;
+  --verde: #48603f; --ambar: #74501a; --pizarra: #4c5d6e; --sombra: #1a1a18;
+  /* Colores de prenda: son dato, iguales en los dos temas (ADR-0336, regla 3). */
+  --dato-negro: #222222; --dato-beige: #d8c3a5; --dato-vino: #6b1f2a; --dato-azul: #2f4a6d; --dato-verde: #5b6b45;
+  --dato-rosa: #e3a9a3; --dato-mostaza: #c9962e; --dato-blanco: #f4f1ea; --dato-gris: #8d8a85; --dato-terracota: #b0603f;
+  --serif: "EB Garamond", ui-serif, Georgia, serif;
+  --sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --ease: cubic-bezier(0.32, 0.72, 0.24, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --crema: #1a1a18; --papel: #242422; --hueso: #31302d; --sand: #3d3c38;
+    --tinta: #f5f0e8; --taupe: #c4a898; --rojo: #e8806a; --rojo-profundo: #f29a86;
+    --verde: #9ccb8d; --ambar: #e4b968; --pizarra: #a2b8cd; --sombra: #000000;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --crema: #1a1a18; --papel: #242422; --hueso: #31302d; --sand: #3d3c38;
+  --tinta: #f5f0e8; --taupe: #c4a898; --rojo: #e8806a; --rojo-profundo: #f29a86;
+  --verde: #9ccb8d; --ambar: #e4b968; --pizarra: #a2b8cd; --sombra: #000000;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--crema); color: var(--tinta); font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 6px; }
+
+.pagina {
+  max-width: 1480px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 40px;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px;
+}
+
+/* ---------- Cabecera de la demo (la de EncabezadoPagina, en chico) ---------- */
+.cab { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.sobre { display: flex; align-items: center; gap: 12px; margin: 0; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); font-weight: 500; }
+.sobre::before { content: ""; width: 34px; height: 1px; background: var(--taupe); }
+.cab h1 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: clamp(32px, 4vw, 44px); line-height: 1.05; text-wrap: balance; }
+.cab .frase { margin: 0; max-width: 64ch; color: color-mix(in srgb, var(--tinta) 72%, transparent); font-size: 15px; }
+.controles { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-top: 6px; }
+.segmento { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--hueso); border: 1px solid var(--sand); }
+.segmento button { border: 0; background: transparent; padding: 7px 16px; border-radius: 999px; font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; color: var(--taupe); cursor: pointer; transition: background .2s var(--ease), color .2s var(--ease); }
+.segmento button[aria-pressed="true"] { background: var(--tinta); color: var(--crema); }
+.etiqueta-ctl { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); font-weight: 500; }
+.ctl { display: inline-flex; align-items: center; gap: 8px; }
+.interruptor { width: 34px; height: 20px; border-radius: 999px; border: 0; background: var(--sand); position: relative; cursor: pointer; transition: background .2s var(--ease); padding: 0; }
+.interruptor::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--papel); transition: transform .25s var(--ease); }
+.interruptor[aria-checked="true"] { background: var(--tinta); }
+.interruptor[aria-checked="true"]::after { transform: translateX(14px); background: var(--crema); }
+
+.escena { display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+@media (max-width: 1180px) { .escena { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- El ERP de mentira ---------- */
+.erp { position: relative; border: 1px solid var(--sand); border-radius: 18px; background: var(--crema); overflow: hidden; min-width: 0; }
+.erp-barra { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--sand); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); }
+.erp-barra b { color: var(--tinta); font-weight: 600; letter-spacing: .2em; }
+.erp-barra .ruta { margin-left: auto; letter-spacing: .08em; text-transform: none; font-size: 12px; }
+.erp-cuerpo { position: relative; display: grid; grid-template-columns: 300px minmax(0, 1fr); min-height: 760px; }
+.erp[data-modo="hoy"] .erp-cuerpo { grid-template-columns: minmax(0, 1fr); }
+
+.versal { margin: 0; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); font-weight: 500; }
+.globito { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: color-mix(in srgb, var(--ambar) 16%, transparent); color: var(--ambar); font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* La bandeja */
+.bandeja { border-right: 1px solid var(--sand); background: var(--crema); min-width: 0; display: flex; flex-direction: column; }
+.erp[data-modo="hoy"] .bandeja { border-right: 0; padding: 24px; filter: blur(3px); opacity: .55; pointer-events: none; }
+.bandeja-cab { display: flex; align-items: center; gap: 8px; padding: 16px 18px 10px; }
+.lista { list-style: none; margin: 0; padding: 0 8px 12px; display: grid; gap: 2px; }
+.fila { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 10px; padding: 12px 12px 12px 14px; border-radius: 12px; cursor: pointer; border: 0; background: transparent; text-align: left; width: 100%; transition: background .2s var(--ease); }
+.fila:hover { background: color-mix(in srgb, var(--hueso) 60%, transparent); }
+.fila[aria-current="true"] { background: var(--papel); }
+.fila[aria-current="true"]::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 3px; background: var(--rojo); }
+.fila-nombre { display: flex; align-items: baseline; gap: 8px; justify-content: space-between; }
+.fila-nombre b { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fila[data-sin-leer] .fila-nombre b { font-weight: 600; }
+.fila-sobre { display: block; font-size: 12px; color: var(--taupe); }
+.fila-texto { margin-top: 4px; font-size: 13px; color: color-mix(in srgb, var(--tinta) 78%, transparent); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fila-pie { display: block; margin-top: 6px; }
+.fila[data-recien] { animation: respira 1.4s var(--ease) 1; }
+@keyframes respira { 0%, 100% { background: var(--papel); } 40% { background: color-mix(in srgb, var(--verde) 14%, var(--papel)); } }
+
+.avatar { flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--sand); color: var(--tinta); font-family: var(--serif); font-weight: 500; }
+.avatar.a32 { width: 32px; height: 32px; font-size: 13px; }
+.avatar.a40 { width: 44px; height: 44px; font-size: 17px; }
+.avatar.a22 { width: 22px; height: 22px; font-size: 10px; }
+
+/* Chip (insignia con punto) */
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip.ambar { color: var(--ambar); background: color-mix(in srgb, var(--ambar) 12%, transparent); }
+.chip.verde { color: var(--verde); background: color-mix(in srgb, var(--verde) 13%, transparent); }
+.chip.neutro { color: var(--taupe); background: color-mix(in srgb, var(--taupe) 10%, transparent); }
+.chip.pizarra { color: var(--pizarra); background: color-mix(in srgb, var(--pizarra) 12%, transparent); }
+.chip.sin-punto::before { display: none; }
+
+/* ---------- La hoja de HOY (réplica de la captura) ---------- */
+.velo { position: absolute; inset: 0; background: color-mix(in srgb, var(--sombra) 22%, transparent); }
+.modal-hoy { position: absolute; left: 50%; top: 40px; transform: translateX(-50%); width: min(576px, calc(100% - 32px)); background: var(--papel); border: 1px solid var(--sand); border-radius: 22px; padding: 26px 28px 24px; display: grid; gap: 16px; }
+.erp[data-modo="propuesta"] .velo, .erp[data-modo="propuesta"] .modal-hoy { display: none; }
+.velo .velo-nota { position: absolute; left: 18px; bottom: 18px; padding: 6px 12px; border-radius: 999px; background: var(--papel); border: 1px solid var(--sand); font-size: 12px; color: var(--taupe); }
+.erp[data-modo="hoy"] .cajon { display: none; }
+.hoy-titulo { display: flex; align-items: center; gap: 14px; }
+.hoy-titulo h3 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 26px; line-height: 1.1; }
+.hoy-sub { margin: -8px 0 0; color: var(--taupe); font-size: 14px; }
+.globo { margin: 0; padding: 14px 18px; border-radius: 20px 20px 20px 6px; background: color-mix(in srgb, var(--hueso) 70%, transparent); border: 1px solid var(--sand); font-family: var(--serif); font-size: 19px; line-height: 1.3; white-space: pre-line; overflow-wrap: anywhere; }
+.meta { margin: 6px 0 0 4px; font-size: 12px; color: var(--taupe); }
+.campo-etiqueta { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; color: var(--tinta); }
+.campo-etiqueta .opcional { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--taupe); font-size: 12.5px; }
+.marca-hecho { width: 18px; height: 18px; border-radius: 50%; background: var(--verde); display: grid; place-items: center; }
+.marca-hecho svg { width: 11px; height: 11px; stroke: var(--papel); }
+.caja { position: relative; border-radius: 12px; background: var(--hueso); border: 1px solid transparent; transition: background .2s var(--ease), border-color .2s var(--ease); }
+.caja:focus-within { background: var(--papel); border-color: var(--sand); }
+.caja textarea { display: block; width: 100%; min-height: 104px; resize: none; border: 0; background: transparent; padding: 14px 16px 16px; font: inherit; font-size: 15px; line-height: 1.5; color: var(--tinta); outline: none; }
+.caja .hilo { position: absolute; left: 14px; right: 14px; bottom: 6px; height: 2px; border-radius: 2px; background: var(--rojo); transform: scaleX(0); transition: transform .35s var(--ease); }
+.caja:focus-within .hilo { transform: scaleX(1); }
+.pie-campo { font-size: 12.5px; color: var(--taupe); margin-top: -8px; }
+.combo-hoy { display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 16px; border-radius: 12px; background: var(--hueso); }
+.combo-hoy span:last-child { margin-left: auto; color: var(--taupe); }
+.lista-para { margin: 0; color: var(--verde); font-size: 13.5px; }
+.pie-hoy { display: flex; gap: 10px; align-items: center; }
+.pie-hoy .der { margin-left: auto; display: flex; gap: 10px; }
+
+/* Botones (btn-cayla) */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 10px; font-size: 13.5px; font-weight: 500; cursor: pointer; border: 1px solid var(--sand); background: var(--papel); color: var(--tinta); transition: transform .2s var(--ease), background .2s var(--ease), border-color .2s var(--ease), color .2s var(--ease); white-space: nowrap; }
+.btn:hover { transform: translateY(-1px); border-color: var(--taupe); }
+.btn:active { transform: scale(.98); }
+.btn.primario { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+.btn.primario:hover { background: var(--rojo-profundo); border-color: var(--rojo-profundo); color: var(--crema); }
+.btn[disabled] { opacity: .45; cursor: not-allowed; transform: none; }
+.btn.chico { height: 32px; padding: 0 12px; font-size: 12.5px; border-radius: 9px; }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.enlace { background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--tinta) 30%, transparent); text-underline-offset: 3px; cursor: pointer; }
+.enlace:hover { color: var(--rojo-profundo); text-decoration-color: var(--rojo); }
+.icono-btn { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--sand); background: var(--papel); cursor: pointer; transition: border-color .2s var(--ease); }
+.icono-btn:hover { border-color: var(--taupe); }
+.icono-btn[disabled] { opacity: .35; cursor: not-allowed; }
+.icono-btn svg { width: 16px; height: 16px; }
+
+/* ---------- La hoja PROPUESTA: el cajón lateral ---------- */
+.cajon { display: flex; flex-direction: column; background: var(--papel); min-width: 0; }
+.cajon-banda { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 20px 22px 16px; border-bottom: 1px solid var(--sand); }
+.cajon-titulo { margin: 2px 0 2px; font-family: var(--serif); font-weight: 500; font-size: 25px; line-height: 1.1; text-wrap: balance; }
+.banda-frase { margin: 0; font-size: 13px; color: var(--taupe); padding-right: 26px; }
+.banda-nav { display: flex; align-items: center; gap: 6px; }
+.banda-nav .cuantos { font-size: 12px; color: var(--taupe); margin-right: 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cajon-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 20px 22px 24px; align-content: start; flex: 1; }
+.cajon-pie { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 22px; border-top: 1px solid var(--sand); background: var(--papel); }
+.cajon-pie .der { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+
+.entra > * { animation: sube .42s var(--ease) both; animation-delay: calc(var(--i, 0) * 55ms); }
+@keyframes sube { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+.conversa { display: grid; gap: 14px; }
+.msg-cli { max-width: 92%; }
+.globo mark { background: none; color: inherit; text-decoration: underline; text-decoration-color: var(--taupe); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
+.msg-caya { justify-self: end; max-width: 88%; }
+.globo-caya { margin: 0; padding: 12px 16px; border-radius: 20px 20px 6px 20px; background: var(--tinta); color: var(--crema); font-size: 14.5px; line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere; transition: opacity .3s var(--ease); }
+.msg-caya[data-pendiente] .globo-caya { opacity: .62; }
+.msg-caya .meta { text-align: right; margin-right: 4px; display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
+.anillo { width: 20px; height: 20px; transform: rotate(-90deg); flex: none; }
+.anillo circle { fill: none; stroke-width: 2.5; }
+.anillo .fondo { stroke: var(--sand); }
+.anillo .arco { stroke: var(--tinta); stroke-linecap: round; stroke-dasharray: 50.27; stroke-dashoffset: 0; }
+.anillo.corre .arco { stroke-dashoffset: 50.27; transition: stroke-dashoffset 8s linear; }
+
+/* Lo que pide */
+.pide { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; border: 1px solid var(--sand); border-radius: 16px; padding: 14px 16px 16px; background: var(--crema); }
+.pide-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ejemplo { font-size: 11px; color: var(--pizarra); border: 1px dashed color-mix(in srgb, var(--pizarra) 50%, transparent); border-radius: 999px; padding: 2px 8px; }
+.temas { display: flex; flex-wrap: wrap; gap: 8px; }
+.tema { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--sand); background: var(--papel); cursor: pointer; font-size: 13px; transition: background .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease); }
+.tema svg { width: 14px; height: 14px; }
+.tema[aria-pressed="true"] { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+.ctx { display: grid; gap: 10px; animation: aparece .3s var(--ease) both; }
+@keyframes aparece { from { opacity: 0; } to { opacity: 1; } }
+.ctx-t { margin: 0; font-weight: 600; font-size: 13.5px; }
+.ctx-nota { margin: 0; font-size: 13px; color: color-mix(in srgb, var(--tinta) 76%, transparent); }
+.barras { display: grid; gap: 7px; }
+.barra-fila { display: grid; grid-template-columns: 44px minmax(0, 1fr) 82px; gap: 10px; align-items: center; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.barra-fila .talla { font-weight: 600; }
+.pista { height: 6px; border-radius: 6px; background: var(--sand); overflow: hidden; }
+.pista span { display: block; height: 100%; border-radius: 6px; background: var(--tinta); transform-origin: left; animation: llena .6s var(--ease) both; }
+@keyframes llena { from { transform: scaleX(0); } }
+.barra-fila .cuanto { text-align: right; color: var(--taupe); }
+.barra-fila .cuanto.falta { color: var(--ambar); font-weight: 600; }
+.muestras { display: flex; flex-wrap: wrap; gap: 6px; }
+.muestra { width: 22px; height: 22px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--tinta) 18%, transparent); }
+.renglones { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.renglones li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 10px; border-radius: 9px; background: var(--papel); }
+.accion-pedido { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 4px; }
+.hecho-linea { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--verde); }
+.hecho-linea svg { width: 16px; height: 16px; flex: none; margin-top: 1px; }
+.hecho-linea small { display: block; color: var(--taupe); font-size: 12px; }
+
+/* Redactar */
+.redactar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.accion-pedido .btn { white-space: normal; height: auto; min-height: 32px; padding-block: 6px; text-align: left; }
+.inicios { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.inicios .mini { font-size: 12px; color: var(--taupe); margin-right: 2px; }
+.inicio { height: 30px; padding: 0 12px; border-radius: 999px; border: 1px dashed color-mix(in srgb, var(--taupe) 60%, transparent); background: transparent; cursor: pointer; font-size: 12.5px; color: var(--tinta); transition: background .2s var(--ease), border-color .2s var(--ease); }
+.inicio:hover { background: var(--hueso); border-style: solid; }
+.bajo-caja { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; font-size: 12.5px; color: var(--taupe); min-height: 20px; }
+.falta-orto { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; color: var(--ambar); }
+.contador { font-variant-numeric: tabular-nums; margin-left: auto; }
+.chequeo { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; }
+.chequeo li { display: inline-flex; align-items: center; gap: 6px; color: var(--taupe); transition: color .2s var(--ease); }
+.chequeo .punto { width: 16px; height: 16px; border-radius: 50%; border: 1.5px dashed color-mix(in srgb, var(--taupe) 70%, transparent); display: grid; place-items: center; transition: background .25s var(--ease), border-color .25s var(--ease); }
+.chequeo .punto svg { width: 10px; height: 10px; stroke: var(--papel); opacity: 0; transition: opacity .2s var(--ease); }
+.chequeo li[data-si] { color: var(--tinta); }
+.chequeo li[data-si] .punto { background: var(--verde); border: 1.5px solid var(--verde); }
+.chequeo li[data-si] .punto svg { opacity: 1; }
+
+/* Así lo verá el cliente: la tienda online, en chico */
+.previa { border: 1px solid var(--sand); border-radius: 14px; overflow: hidden; }
+.previa > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 10px 14px; font-size: 13px; font-weight: 500; background: var(--crema); }
+.previa > summary::-webkit-details-marker { display: none; }
+.previa > summary svg { width: 16px; height: 16px; transition: transform .25s var(--ease); }
+.previa[open] > summary svg.flecha { transform: rotate(180deg); }
+.previa > summary .flecha { margin-left: auto; }
+.tienda { padding: 14px; display: grid; gap: 10px; background: var(--papel); border-top: 1px solid var(--sand); }
+.tienda-nav { display: flex; gap: 16px; font-size: 12px; color: var(--taupe); align-items: center; flex-wrap: wrap; }
+.tienda-nav b { font-family: var(--serif); font-size: 15px; letter-spacing: .18em; color: var(--tinta); font-weight: 500; margin-right: auto; }
+.tienda-nav .con-punto { position: relative; color: var(--tinta); font-weight: 500; }
+.tienda-nav .con-punto::after { content: ""; position: absolute; top: -2px; right: -8px; width: 7px; height: 7px; border-radius: 50%; background: var(--rojo); }
+.tienda-item { border: 1px solid var(--sand); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; background: var(--crema); }
+.tienda-item-cab { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--taupe); flex-wrap: wrap; }
+.tienda-item p { margin: 0; font-size: 13.5px; }
+.tienda-resp { border-left: 2px solid var(--tinta); padding-left: 10px; display: grid; gap: 3px; }
+.tienda-resp small { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+.tienda-resp p.vacia { color: var(--taupe); font-style: italic; }
+.nota-prop { font-size: 12px; color: var(--pizarra); display: flex; gap: 6px; align-items: flex-start; }
+.nota-prop svg { width: 14px; height: 14px; flex: none; margin-top: 1px; }
+
+/* Responsable compacto en el pie */
+.responsable { position: relative; }
+.responsable > button { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px 0 8px; border-radius: 999px; border: 1px solid var(--sand); background: var(--hueso); cursor: pointer; font-size: 13px; }
+.responsable > button span.quien { color: var(--taupe); }
+.responsable > button svg { width: 14px; height: 14px; color: var(--taupe); }
+.menu-resp { position: absolute; bottom: calc(100% + 6px); left: 0; min-width: 190px; background: var(--papel); border: 1px solid var(--sand); border-radius: 12px; padding: 6px; display: grid; gap: 2px; box-shadow: 0 10px 30px color-mix(in srgb, var(--sombra) 18%, transparent); z-index: 5; }
+.menu-resp button { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 0; background: transparent; border-radius: 8px; cursor: pointer; text-align: left; font-size: 13px; }
+.menu-resp button:hover, .menu-resp button[aria-selected="true"] { background: var(--hueso); }
+
+.aviso-hoja { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; background: var(--hueso); font-size: 13px; border-left: 3px solid var(--verde); animation: sube .3s var(--ease) both; }
+.aviso-hoja .enlace { margin-left: auto; }
+
+/* Marcas numeradas sobre la pantalla (se apagan con «Números») */
+[data-num] { position: relative; }
+.erp[data-numeros="si"] [data-num]::after {
+  content: attr(data-num); position: absolute; top: -9px; right: -9px; z-index: 4;
+  width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--tinta); color: var(--crema); font: 600 11.5px/1 var(--sans);
+  box-shadow: 0 0 0 3px var(--crema);
+}
+.erp[data-numeros="si"] .modal-hoy [data-num]::after, .erp[data-numeros="si"] .cajon [data-num]::after { box-shadow: 0 0 0 3px var(--papel); }
+.erp[data-numeros="si"] .banda-nav[data-num]::after { right: auto; left: -32px; top: 5px; }
+[data-num].destello { animation: destello 1.3s var(--ease) 1; border-radius: 14px; }
+@keyframes destello { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 30% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--rojo) 45%, transparent); } }
+
+/* ---------- Qué cambia (el costado) ---------- */
+.cambios { display: grid; gap: 10px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); max-height: calc(100vh - 32px); overflow-y: auto; padding-right: 4px; scrollbar-width: thin; }
+@media (max-width: 1180px) { .cambios { position: static; max-height: none; overflow: visible; } }
+.cambios h2 { margin: 0 0 2px; font-family: var(--serif); font-weight: 500; font-size: 22px; }
+.cambios > p { margin: 0 0 4px; font-size: 13px; color: color-mix(in srgb, var(--tinta) 72%, transparent); }
+.cambio { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; padding: 12px 12px 12px 10px; border-radius: 14px; border: 1px solid var(--sand); background: var(--papel); text-align: left; cursor: pointer; width: 100%; transition: border-color .2s var(--ease), transform .2s var(--ease); }
+.cambio:hover { border-color: var(--taupe); }
+.cambio[aria-current="true"] { border-color: var(--tinta); }
+.cambio .n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--tinta); color: var(--crema); font-size: 11.5px; font-weight: 600; }
+.cambio-t { display: block; margin: 1px 0 4px; font-size: 13.5px; font-weight: 600; line-height: 1.3; }
+.cambio .linea { display: block; margin: 0; font-size: 12.5px; color: color-mix(in srgb, var(--tinta) 78%, transparent); }
+.cambio .linea + .linea { margin-top: 3px; }
+.cambio .linea b { font-weight: 600; color: var(--taupe); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; margin-right: 4px; }
+.cambio .quien { margin-top: 7px; display: inline-flex; }
+.cambio.fuera { background: var(--hueso); border-style: dashed; }
+.cambio.fuera .n { background: var(--rojo); }
+
+.pie-demo { margin: 0; font-size: 12px; color: var(--taupe); max-width: 80ch; }
+
+/* ---------- Celular y tablet ---------- */
+@media (max-width: 860px) {
+  .erp-cuerpo { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+  .bandeja { border-right: 0; border-bottom: 1px solid var(--sand); }
+  .lista { display: flex; overflow-x: auto; gap: 8px; padding: 0 12px 12px; scroll-snap-type: x mandatory; }
+  .lista li { flex: 0 0 min(260px, 78%); scroll-snap-align: start; }
+  .fila { border: 1px solid var(--sand); }
+  .erp[data-modo="hoy"] .erp-cuerpo { min-height: 860px; }
+  .modal-hoy { top: 16px; padding: 20px; }
+  .cajon-banda { grid-template-columns: auto minmax(0, 1fr); }
+  .banda-nav { grid-column: 1 / -1; justify-content: flex-end; }
+  .erp[data-numeros="si"] .banda-nav[data-num]::after { left: 0; }
+  .cajon-pie .der { width: 100%; margin-left: 0; }
+  .cajon-pie .der .btn { flex: 1; }
+  .responsable, .responsable > button { width: 100%; }
+}
+@media (max-width: 520px) {
+  .pie-hoy { flex-wrap: wrap; }
+  .pie-hoy .der { width: 100%; margin-left: 0; }
+  .pie-hoy .der .btn { flex: 1; }
+  .msg-cli, .msg-caya { max-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="pagina">
+  <header class="cab">
+    <p class="sobre">Tienda web · Recomendaciones · demo</p>
+    <h1>Recomendaciones</h1>
+    <p class="frase">Lo que ve quien atiende cuando un cliente le escribe a CAYLA. Compara la hoja de hoy con la propuesta: en la propuesta todo se puede tocar, y nada se guarda.</p>
+    <div class="controles">
+      <div class="segmento" role="group" aria-label="Qué hoja ver">
+        <button type="button" id="ver-hoy" aria-pressed="false">Hoy</button>
+        <button type="button" id="ver-propuesta" aria-pressed="true">Propuesta</button>
+      </div>
+      <span class="ctl"><span class="etiqueta-ctl" id="et-numeros">Números</span><button type="button" class="interruptor" id="numeros" role="switch" aria-checked="true" aria-labelledby="et-numeros"></button></span>
+      <div class="segmento" role="group" aria-label="Tema">
+        <button type="button" id="tema-claro" aria-pressed="false">Claro</button>
+        <button type="button" id="tema-oscuro" aria-pressed="false">Oscuro</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="escena">
+    <section class="erp" id="erp" data-modo="propuesta" data-numeros="si" aria-label="Pantalla de ejemplo">
+      <div class="erp-barra"><b>CAYLA</b><span>Tienda web</span><span class="ruta">Recomendaciones</span></div>
+      <div class="erp-cuerpo">
+        <div class="bandeja" id="bandeja">
+          <div class="bandeja-cab"><p class="versal">Por responder</p><span class="globito" id="cuantas">3</span></div>
+          <ul class="lista" id="lista"></ul>
+        </div>
+
+        <div class="cajon" id="cajon" aria-live="polite"></div>
+
+        <div class="velo"><span class="velo-nota" data-num="6">La bandeja queda detrás del velo</span></div>
+        <div class="modal-hoy" role="dialog" aria-label="La hoja de hoy">
+          <div class="hoy-titulo" data-num="5"><span class="avatar a40">LP</span><h3>Lucía Paredes</h3></div>
+          <p class="hoy-sub">Sobre Tienda TRU</p>
+          <div data-num="3">
+            <p class="globo">Podrían tener más tallas grandes, XXXL, y más variedad de colores.</p>
+            <p class="meta" data-num="4">Llegó hace 2 min · 17/10 · 15:02</p>
+          </div>
+          <div class="campo-etiqueta" data-num="2"><span class="marca-hecho"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.5 9.5 3.8"/></svg></span>Tu respuesta <span class="opcional">· opcional</span></div>
+          <div class="caja" data-num="1"><textarea id="hoy-texto" aria-label="Tu respuesta (hoy)">Lo tenderemos en cuenta, muchas gracias.</textarea><span class="hilo"></span></div>
+          <p class="pie-campo">40 de 400 letras. La lee en su cuenta de la tienda online.</p>
+          <div><p class="versal" style="margin-bottom:8px">Responsable *</p><div class="combo-hoy"><span class="avatar a32">M</span><span>Milagros</span><span>▾</span></div></div>
+          <p class="lista-para">Lista para enviar.</p>
+          <div class="pie-hoy">
+            <button type="button" class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>Archivar</button>
+            <div class="der"><button type="button" class="btn">Cancelar</button><button type="button" class="btn primario">Enviar respuesta</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="cambios" aria-label="Qué cambia">
+      <h2>Qué cambia y por qué</h2>
+      <p>Toca un punto para ver dónde está en la pantalla. «Lo hago yo» es diseño; «Necesita tu OK» cambia lo que ve el cliente o los datos.</p>
+      <div id="lista-cambios" style="display:grid; gap:8px"></div>
+    </aside>
+  </div>
+
+  <p class="pie-demo">Nombres, mensajes y cifras de ejemplo: ninguno sale de la base. Las cifras de «Lo que pide» muestran el tipo de dato que el ERP ya tiene (catálogo por talla, colores por tienda, Pedidos no atendidos, la tienda online con recojo en tienda); hoy la hoja no los lee.</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------------------------------------------------------------- Los íconos (lucide, dibujados a mano en chico)
+  const I = {
+    check: '<svg viewBox="0 0 12 12" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.5 9.5 3.8"/></svg>',
+    arriba: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
+    abajo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+    cerrar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+    regla: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2M11.5 9.5l2-2M8.5 6.5l2-2M17.5 15.5l2-2"/></svg>',
+    paleta: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.6-.7 1.6-1.7 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1a1.6 1.6 0 0 1 1.6-1.7h2c3 0 5.6-2.5 5.6-5.6C22 6 17.5 2 12 2z"/></svg>',
+    camion: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>',
+    corazon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.1 3 5.5l7 7Z"/></svg>',
+    ojo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>',
+    info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
+    lista: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 14h6M9 18h4M9 10h6"/></svg>',
+    archivo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>',
+    flecha: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+    hecho: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12.5 2.5 2.5L16 9.5"/></svg>',
+  };
+
+  // ---------------------------------------------------------------- Las recomendaciones de ejemplo
+  // Cada una trae lo que la hoja propuesta lee: de qué habla (temas), el dato del ERP que sirve para responder, cómo empezar
+  // (coherente con lo que escribió, ADR-0290) y, si lo hay, qué se puede hacer con lo que pidió.
+  const RECS = [
+    {
+      id: "lucia", nombre: "Lucía Paredes", primer: "Lucía", ini: "LP", sobre: "Tienda TRU", corto: "TRU",
+      cuando: "hace 2 min", llego: "Llegó hace 2 min · 17/10 · 15:02",
+      quien: "Miembro del club · 4 compras · la última en TRU hace 12 días",
+      texto: "Podrían tener más tallas grandes, XXXL, y más variedad de colores.",
+      marcas: ["tallas grandes", "XXXL", "colores"],
+      estado: "sin_leer",
+      borrador: "Lo tenderemos en cuenta, muchas gracias.",
+      temas: [
+        { id: "tallas", icono: "regla", nombre: "Tallas grandes · XXXL" },
+        { id: "colores", icono: "paleta", nombre: "Más colores" },
+      ],
+      inicios: {
+        tallas: [
+          ["Contar qué haremos", (anotado) => anotado
+            ? "Hola, Lucía. Gracias por escribirnos. Hoy no tenemos XXXL: ya lo anotamos para el taller y, cuando llegue tu talla, te avisamos aquí."
+            : "Hola, Lucía. Gracias por escribirnos. Hoy no tenemos XXXL; se lo vamos a contar al taller para los próximos modelos."],
+          ["Preguntar qué prenda busca", "Hola, Lucía, gracias por contarnos. ¿Qué prenda buscabas en XXXL? Así se la pedimos al taller con el modelo exacto."],
+        ],
+        colores: [
+          ["Contar los colores que llegan", "Hola, Lucía. ¡Gracias! Esta semana llegan 6 colores nuevos a la tienda de Trujillo. Si buscas uno en especial, cuéntanos cuál y te decimos si viene."],
+          ["Preguntar qué color busca", "Hola, Lucía, gracias por escribirnos. ¿Qué colores te gustaría encontrar? Nos ayuda a elegir los del próximo pedido."],
+        ],
+      },
+      pedido: { texto: "Anotar XXXL en Pedidos no atendidos", hecho: "Anotado en Pedidos no atendidos · TRU", detalle: "Con su ficha: cuenta para la demanda del taller y para avisarle «Llegó tu talla»." },
+    },
+    {
+      id: "jorge", nombre: "Jorge Salas", primer: "Jorge", ini: "JS", sobre: "CAYLA en general", corto: "CAYLA en general",
+      cuando: "hace 3 h", llego: "Llegó hace 3 h · 17/10 · 12:10",
+      quien: "Cuenta de la tienda online · 2 pedidos web, los dos recogidos en TRU",
+      texto: "Me encantaría que la tienda online haga envíos a provincia. Vivo en Chiclayo y siempre tengo que esperar a viajar a Trujillo para recoger.",
+      marcas: ["envíos a provincia", "Chiclayo"],
+      estado: "sin_leer",
+      borrador: "",
+      temas: [{ id: "envio", icono: "camion", nombre: "Envío a provincia" }],
+      inicios: {
+        envio: [
+          ["Contar cómo funciona hoy", "Hola, Jorge. Gracias por escribirnos. Hoy la tienda online es solo con recojo en Trujillo, Arequipa o Lima; el envío a provincia todavía no lo tenemos, y tu mensaje nos ayuda a decidirlo."],
+          ["Agradecer sin prometer fecha", "Hola, Jorge, gracias por contarnos. Lo estamos evaluando y no queremos darte una fecha que no podamos cumplir: cuando haya envío a Chiclayo, te avisamos aquí."],
+        ],
+      },
+      pedido: null,
+    },
+    {
+      id: "andrea", nombre: "Andrea Ríos", primer: "Andrea", ini: "AR", sobre: "Tienda AQP", corto: "AQP",
+      cuando: "hace 2 días", llego: "Llegó hace 2 días · 15/10 · 18:40 · vista por Rosa",
+      quien: "Miembro del club · 11 compras · casi siempre en AQP",
+      texto: "La chica que me atendió el sábado fue súper amable y me ayudó a combinar todo. ¡Gracias!",
+      marcas: ["me atendió", "amable"],
+      estado: "leida",
+      borrador: "",
+      temas: [{ id: "elogio", icono: "corazon", nombre: "Elogio a la atención" }],
+      inicios: {
+        elogio: [
+          ["Agradecer", "¡Gracias, Andrea! Se lo vamos a contar al equipo de Arequipa: les va a alegrar el día."],
+          ["Invitar a volver", "Gracias por escribirnos, Andrea. Qué bueno que encontraste todo lo que buscabas. Te esperamos otra vez en Arequipa."],
+        ],
+      },
+      pedido: null,
+    },
+  ];
+
+  // Lo que el ERP ya sabe y sirve para responder (de ejemplo).
+  function htmlContexto(r, tema) {
+    if (tema === "tallas") {
+      const filas = [["XL", 31, "31 modelos"], ["XXL", 9, "9 modelos"], ["XXXL", 0, "ninguno"]];
+      return `<div class="ctx">
+        <p class="ctx-t">Tallas grandes en el catálogo hoy</p>
+        <div class="barras">${filas.map(([t, n, txt]) => `
+          <div class="barra-fila"><span class="talla">${t}</span><span class="pista"><span style="width:${Math.round((n / 31) * 100)}%"></span></span><span class="cuanto${n === 0 ? " falta" : ""}">${txt}</span></div>`).join("")}
+        </div>
+        <p class="ctx-nota">En lo que va del año, 3 clientes pidieron XXXL en tienda y no había.</p>
+      </div>`;
+    }
+    if (tema === "colores") {
+      const colores = ["negro", "beige", "vino", "azul", "verde", "rosa", "mostaza", "blanco", "gris", "terracota"];
+      return `<div class="ctx">
+        <p class="ctx-t">Colores a la venta en Tienda TRU</p>
+        <div class="muestras">${colores.map((c) => `<span class="muestra" style="background:var(--dato-${c})" title="${c}"></span>`).join("")}</div>
+        <p class="ctx-nota">18 colores; los que más salen son negro, beige y vino. Esta semana llegan 6 nuevos con la mercadería del 14/10.</p>
+      </div>`;
+    }
+    if (tema === "envio") {
+      return `<div class="ctx">
+        <p class="ctx-t">Cómo entrega hoy la tienda online</p>
+        <ul class="renglones">
+          <li>Recojo en Tienda TRU <span class="chip verde">Sí</span></li>
+          <li>Recojo en Tienda AQP y LIM <span class="chip verde">Sí</span></li>
+          <li>Envío a domicilio o a provincia <span class="chip neutro">Todavía no</span></li>
+        </ul>
+        <p class="ctx-nota">Este año llegaron 7 pedidos web de Chiclayo y Piura: todos se recogieron en Trujillo.</p>
+      </div>`;
+    }
+    return `<div class="ctx">
+      <p class="ctx-t">Es un elogio</p>
+      <p class="ctx-nota">No hay nada que corregir: basta con agradecer y contarle que se lo dirás al equipo de Arequipa.</p>
+    </div>`;
+  }
+
+  // Faltas comunes que el corrector del navegador marca (aquí, una lista corta para la demo).
+  const FALTAS = { tenderemos: "tendremos", porfavor: "por favor", enserio: "en serio", aver: "a ver", travez: "a través", aserca: "acerca" };
+  const sinTildes = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const faltasDe = (t) => (t.match(/[A-Za-zÁÉÍÓÚáéíóúÑñ]+/g) || []).filter((p) => FALTAS[sinTildes(p)]).map((p) => [p, FALTAS[sinTildes(p)]]);
+  const DICE_QUE_SIGUE = /(anotamos|anotado|te avisamos|te avisaremos|vamos a|se lo (vamos a |)(contar|decir|pasar)|pedimos|llega|llegan|evaluando|cuéntanos|cuentanos|\?|te esperamos|te decimos)/i;
+  const letras = (t) => [...t.trim()].length;
+  const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+  // ---------------------------------------------------------------- El estado de la demo
+  const estado = {
+    abierta: "lucia",
+    tema: {},            // tema elegido por recomendación
+    pedido: {},          // pedido anotado por recomendación
+    responde: "Milagros",
+    envio: null,         // { id, texto, t } mientras corren los 8 s de «Deshacer»
+  };
+  RECS.forEach((r) => { estado.tema[r.id] = r.temas[0].id; });
+  const PERSONAS = [["Milagros", "M"], ["Rosa", "R"], ["Kevin", "K"]];
+
+  const $ = (s, el = document) => el.querySelector(s);
+  const erp = $("#erp");
+  const lista = $("#lista");
+  const cajon = $("#cajon");
+
+  const CHIP = {
+    sin_leer: ["ambar", "Sin leer"],
+    leida: ["neutro", "Leída, sin respuesta"],
+    respondida: ["verde", "Respondida"],
+    archivada: ["neutro", "Archivada"],
+  };
+  const porResponder = () => RECS.filter((r) => r.estado === "sin_leer" || r.estado === "leida");
+
+  // ---------------------------------------------------------------- La bandeja
+  function pintarLista(recien) {
+    lista.innerHTML = RECS.map((r) => {
+      const [tono, txt] = CHIP[r.estado];
+      return `<li><button type="button" class="fila" data-id="${r.id}" ${r.estado === "sin_leer" ? "data-sin-leer" : ""} ${estado.abierta === r.id && erp.dataset.modo === "propuesta" ? 'aria-current="true"' : ""} ${recien === r.id ? "data-recien" : ""}>
+        <span class="avatar a32">${r.ini}</span>
+        <span style="min-width:0">
+          <span class="fila-nombre"><b>${esc(r.nombre)}</b></span>
+          <span class="fila-sobre">${esc(r.corto)} · ${r.cuando}</span>
+          <span class="fila-texto">${esc(r.texto)}</span>
+          <span class="fila-pie"><span class="chip ${tono}">${txt}</span></span>
+        </span>
+      </button></li>`;
+    }).join("");
+    $("#cuantas").textContent = porResponder().length;
+  }
+  lista.addEventListener("click", (e) => {
+    const b = e.target.closest(".fila");
+    if (b) abrir(b.dataset.id);
+  });
+
+  // ---------------------------------------------------------------- El cajón
+  function conMarcas(r) {
+    let t = esc(r.texto);
+    r.marcas.forEach((m) => { t = t.replace(new RegExp(m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), (x) => `<mark>${x}</mark>`); });
+    return t;
+  }
+
+  function abrir(id) {
+    if (estado.envio && estado.envio.id !== id) confirmarEnvio(); // cambiar de recomendación no deshace lo que ya se mandó
+    estado.abierta = id;
+    pintarLista();
+    pintarCajon(true);
+  }
+
+  function pintarCajon(entrando) {
+    const r = RECS.find((x) => x.id === estado.abierta);
+    const i = RECS.indexOf(r);
+    const tema = estado.tema[r.id];
+    const sePuedeResponder = r.estado === "sin_leer" || r.estado === "leida";
+    const pendiente = estado.envio && estado.envio.id === r.id;
+    const resp = r.respuesta;
+
+    cajon.innerHTML = `
+      <div class="cajon-banda">
+        <span class="avatar a40">${r.ini}</span>
+        <div style="min-width:0">
+          <p class="versal">Recomendación · ${esc(r.sobre)}</p>
+          <h2 class="cajon-titulo">${esc(r.nombre)}</h2>
+          <p class="banda-frase" data-num="5">${esc(r.quien)} · <button type="button" class="enlace">ver su ficha</button></p>
+        </div>
+        <div class="banda-nav" data-num="6">
+          <span class="cuantos">${i + 1} de ${RECS.length}</span>
+          <button type="button" class="icono-btn" id="ant" aria-label="Recomendación anterior" ${i === 0 ? "disabled" : ""}>${I.arriba}</button>
+          <button type="button" class="icono-btn" id="sig" aria-label="Recomendación siguiente" ${i === RECS.length - 1 ? "disabled" : ""}>${I.abajo}</button>
+          <button type="button" class="icono-btn" aria-label="Cerrar" style="margin-left:6px">${I.cerrar}</button>
+        </div>
+      </div>
+
+      <div class="cajon-cuerpo${entrando ? " entra" : ""}">
+        <div class="conversa" style="--i:0">
+          <div class="msg-cli">
+            <p class="globo">${conMarcas(r)}</p>
+            <p class="meta">${r.llego}</p>
+          </div>
+          <div id="hilo-caya">${resp ? htmlRespuesta(r, false) : pendiente ? htmlRespuesta(r, true) : ""}</div>
+          ${r.estado === "archivada" ? `<p class="meta" style="margin:0">Archivada sin respuesta: ${esc(r.primer)} ve «Leída» en su cuenta.</p>` : ""}
+        </div>
+
+        <section class="pide" data-num="3" style="--i:1" aria-label="Lo que pide">
+          <div class="pide-cab"><p class="versal">Lo que pide</p><span class="ejemplo">datos de ejemplo</span></div>
+          <div class="temas" role="group" aria-label="Temas del mensaje">
+            ${r.temas.map((t) => `<button type="button" class="tema" data-tema="${t.id}" aria-pressed="${t.id === tema}">${I[t.icono]}${esc(t.nombre)}</button>`).join("")}
+          </div>
+          <div id="ctx">${htmlContexto(r, tema)}</div>
+          ${r.pedido ? `<div class="accion-pedido" data-num="4" id="accion-pedido">${htmlPedido(r)}</div>` : ""}
+        </section>
+
+        ${sePuedeResponder && !pendiente ? `
+        <section class="redactar" style="--i:2" aria-label="Responder">
+          <label class="campo-etiqueta" for="resp">Tu respuesta para ${esc(r.primer)}</label>
+          <div class="inicios" data-num="7" id="inicios">${htmlInicios(r, tema)}</div>
+          <div class="caja" data-num="1"><textarea id="resp" lang="es" spellcheck="true" rows="4" maxlength="600" placeholder="Escribe lo que le dirías por su nombre: qué vas a hacer con lo que pidió.">${esc(r.borradorVivo ?? r.borrador)}</textarea><span class="hilo"></span></div>
+          <div class="bajo-caja"><span id="faltas"></span><span class="contador" id="contador"></span></div>
+          <ul class="chequeo" id="chequeo" aria-label="Lo que hace buena una respuesta (no bloquea)"></ul>
+          <details class="previa" open>
+            <summary>${I.ojo}<span>Así lo verá ${esc(r.primer)} en su cuenta</span><svg class="flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
+            ${htmlTienda(r)}
+          </details>
+        </section>` : ""}
+        <div id="aviso-hoja"></div>
+      </div>
+
+      <div class="cajon-pie">
+        ${htmlPie(r, sePuedeResponder, pendiente)}
+      </div>`;
+
+    if (sePuedeResponder && !pendiente) revisar();
+  }
+
+  function htmlInicios(r, tema) {
+    return `<span class="mini">Empieza con</span>${(r.inicios[tema] || []).map(([et], k) => `<button type="button" class="inicio" data-inicio="${k}">${esc(et)}</button>`).join("")}`;
+  }
+
+  function htmlPedido(r) {
+    if (estado.pedido[r.id]) {
+      return `<p class="hecho-linea">${I.hecho}<span>${esc(r.pedido.hecho)}<small>${esc(r.pedido.detalle)}</small></span></p>
+        <button type="button" class="enlace" id="deshacer-pedido" style="font-size:12.5px">Deshacer</button>`;
+    }
+    return `<button type="button" class="btn chico" id="anotar">${I.lista}${esc(r.pedido.texto)}</button>
+      <span style="font-size:12px;color:var(--taupe)">Para que lo que pidió no se quede en la bandeja.</span>`;
+  }
+
+  function htmlTienda(r) {
+    return `<div class="tienda">
+      <div class="tienda-nav"><b>CAYLA</b><span>Mis pedidos</span><span>Favoritos</span><span class="con-punto">Recomendaciones</span></div>
+      <div class="tienda-item">
+        <div class="tienda-item-cab"><span><b style="color:var(--tinta)">${esc(r.sobre)}</b> · 17 oct</span><span class="chip verde" id="previa-chip">Respondida</span></div>
+        <p>${esc(r.texto)}</p>
+        <div class="tienda-resp"><small>CAYLA te respondió · 17 oct</small><p id="previa-texto"></p></div>
+      </div>
+      <p class="nota-prop">${I.info}<span>Propuesta: el punto en «Recomendaciones» le avisa que hay una respuesta nueva. Hoy no se entera hasta que vuelve a entrar.</span></p>
+    </div>`;
+  }
+
+  function htmlRespuesta(r, pendiente) {
+    const texto = pendiente ? estado.envio.texto : r.respuesta;
+    return `<div class="msg-caya" ${pendiente ? "data-pendiente" : ""}>
+      <p class="globo-caya">${esc(texto)}</p>
+      <p class="meta">${pendiente
+        ? `<svg class="anillo" viewBox="0 0 20 20" aria-hidden="true"><circle class="fondo" cx="10" cy="10" r="8"/><circle class="arco" id="arco" cx="10" cy="10" r="8"/></svg><span id="cuenta">Se envía en 8 s</span> · <button type="button" class="enlace" id="deshacer-envio">Deshacer</button>`
+        : `Respondió ${esc(r.respondio)} · 15:07 · ${esc(r.primer)} la verá en su cuenta`}</p>
+    </div>`;
+  }
+
+  function htmlPie(r, sePuedeResponder, pendiente) {
+    const persona = PERSONAS.find((p) => p[0] === estado.responde);
+    const responsable = `<div class="responsable">
+        <button type="button" id="btn-resp" aria-haspopup="listbox" aria-expanded="false"><span class="avatar a22">${persona[1]}</span><span><span class="quien">Responde</span> ${esc(persona[0])}</span>${I.abajo}</button>
+      </div>`;
+    if (pendiente) {
+      return `${responsable}<div class="der"><button type="button" class="btn" id="deshacer-pie">Deshacer el envío</button></div>`;
+    }
+    if (!sePuedeResponder) {
+      const sig = porResponder()[0];
+      return `${responsable}<div class="der">${sig ? `<button type="button" class="btn primario" id="ir-siguiente" data-id="${sig.id}">Siguiente por responder${I.flecha}</button>` : `<span style="font-size:13px;color:var(--verde)">No queda nada por responder.</span>`}</div>`;
+    }
+    return `${responsable}
+      <div class="der" data-num="2">
+        <button type="button" class="btn" id="archivar">${I.archivo}Archivar sin responder</button>
+        <button type="button" class="btn primario" id="enviar">Enviar a ${esc(r.primer)}</button>
+      </div>`;
+  }
+
+  // Lo que se revisa mientras se escribe: faltas, el contador, lo que hace buena la respuesta y la vista del cliente.
+  function revisar() {
+    const r = RECS.find((x) => x.id === estado.abierta);
+    const ta = $("#resp");
+    if (!ta) return;
+    const t = ta.value;
+    r.borradorVivo = t;
+    const n = letras(t);
+    const faltas = faltasDe(t);
+    $("#contador").textContent = `${n} de 400`;
+    $("#contador").style.color = n > 400 ? "var(--ambar)" : "";
+    $("#faltas").innerHTML = faltas.length
+      ? `<span class="falta-orto">¿Quisiste decir «${esc(faltas[0][1])}»? <button type="button" class="enlace" id="corregir">Corregir «${esc(faltas[0][0])}»</button></span>`
+      : "";
+    const items = [
+      ["La llamas por su nombre", sinTildes(t).includes(sinTildes(r.primer))],
+      ["Le dices qué sigue", n > 0 && DICE_QUE_SIGUE.test(t)],
+      ["Sin faltas", n > 0 && faltas.length === 0],
+    ];
+    $("#chequeo").innerHTML = items.map(([txt, si]) => `<li ${si ? "data-si" : ""}><span class="punto">${I.check}</span>${txt}</li>`).join("");
+    const previa = $("#previa-texto");
+    if (previa) {
+      previa.textContent = n ? t.trim() : "Aquí aparece tu respuesta, tal cual la escribas.";
+      previa.className = n ? "" : "vacia";
+    }
+    const enviar = $("#enviar");
+    if (enviar) enviar.disabled = n < 2 || n > 400;
+  }
+
+  const sinMovimiento = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function alaVista(sel) {
+    const el = $(sel, cajon);
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.top < 0 || r.bottom > innerHeight) el.scrollIntoView({ block: "center", behavior: sinMovimiento() ? "auto" : "smooth" });
+  }
+
+  // ---------------------------------------------------------------- Enviar con 8 s para deshacer (la respuesta no se edita después)
+  let reloj = null;
+  function enviar() {
+    const r = RECS.find((x) => x.id === estado.abierta);
+    const texto = $("#resp").value.trim();
+    estado.envio = { id: r.id, texto, t: 8 };
+    pintarCajon(false);
+    alaVista("#hilo-caya");
+    requestAnimationFrame(() => requestAnimationFrame(() => { const a = $("#arco"); if (a) a.parentElement.classList.add("corre"); }));
+    clearInterval(reloj);
+    reloj = setInterval(() => {
+      if (!estado.envio) return clearInterval(reloj);
+      estado.envio.t -= 1;
+      const c = $("#cuenta");
+      if (c) c.textContent = `Se envía en ${estado.envio.t} s`;
+      if (estado.envio.t <= 0) confirmarEnvio();
+    }, 1000);
+  }
+  function deshacerEnvio() {
+    clearInterval(reloj);
+    estado.envio = null;
+    pintarCajon(false);
+    const ta = $("#resp");
+    if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+  }
+  function confirmarEnvio() {
+    clearInterval(reloj);
+    const e = estado.envio;
+    if (!e) return;
+    const r = RECS.find((x) => x.id === e.id);
+    r.respuesta = e.texto;
+    r.respondio = estado.responde;
+    r.estado = "respondida";
+    estado.envio = null;
+    pintarLista(r.id);
+    if (estado.abierta === r.id) {
+      pintarCajon(false);
+      alaVista("#hilo-caya");
+      $("#aviso-hoja").innerHTML = `<div class="aviso-hoja">${I.hecho.replace("<svg", '<svg style="width:16px;height:16px;color:var(--verde)"')}<span>Respuesta enviada. ${esc(r.primer)} la verá en su cuenta.</span></div>`;
+    }
+  }
+
+  // ---------------------------------------------------------------- Todo lo que se toca dentro del cajón
+  cajon.addEventListener("click", (e) => {
+    const r = RECS.find((x) => x.id === estado.abierta);
+    const el = e.target.closest("button");
+    if (!el) return;
+    if (el.dataset.tema) {
+      estado.tema[r.id] = el.dataset.tema;
+      cajon.querySelectorAll(".tema").forEach((b) => b.setAttribute("aria-pressed", String(b === el)));
+      $("#ctx").innerHTML = htmlContexto(r, el.dataset.tema);
+      const ini = $("#inicios");
+      if (ini) ini.innerHTML = htmlInicios(r, el.dataset.tema);
+      return;
+    }
+    if (el.dataset.inicio !== undefined) {
+      const ta = $("#resp");
+      const ini = r.inicios[estado.tema[r.id]][Number(el.dataset.inicio)][1];
+      ta.value = typeof ini === "function" ? ini(!!estado.pedido[r.id]) : ini;
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+      revisar();
+      return;
+    }
+    if (el.id === "corregir") {
+      const ta = $("#resp");
+      const [mal, bien] = faltasDe(ta.value)[0];
+      ta.value = ta.value.replace(mal, bien);
+      revisar();
+      ta.focus();
+      return;
+    }
+    if (el.id === "anotar" || el.id === "deshacer-pedido") {
+      estado.pedido[r.id] = el.id === "anotar";
+      $("#accion-pedido").innerHTML = htmlPedido(r);
+      const ini = $("#inicios");
+      if (ini) ini.innerHTML = htmlInicios(r, estado.tema[r.id]);
+      return;
+    }
+    if (el.id === "enviar") return enviar();
+    if (el.id === "deshacer-envio" || el.id === "deshacer-pie") return deshacerEnvio();
+    if (el.id === "archivar") {
+      r.estado = "archivada";
+      pintarLista(r.id);
+      pintarCajon(false);
+      alaVista(".conversa");
+      $("#aviso-hoja").innerHTML = `<div class="aviso-hoja" style="border-left-color:var(--taupe)">${I.archivo.replace("<svg", '<svg style="width:16px;height:16px"')}<span>Archivada. Sale de la bandeja y no se borra.</span><button type="button" class="enlace" id="desarchivar">Deshacer</button></div>`;
+      return;
+    }
+    if (el.id === "desarchivar") {
+      r.estado = "leida";
+      pintarLista();
+      pintarCajon(false);
+      return;
+    }
+    if (el.id === "ir-siguiente") return abrir(el.dataset.id);
+    if (el.id === "ant" || el.id === "sig") {
+      const i = RECS.indexOf(r) + (el.id === "sig" ? 1 : -1);
+      if (RECS[i]) abrir(RECS[i].id);
+      return;
+    }
+    if (el.id === "btn-resp") return abrirMenuResponsable(el);
+  });
+  cajon.addEventListener("input", (e) => { if (e.target.id === "resp") revisar(); });
+
+  // El responsable, en chico, junto a los botones (sigue firmando cada acción, ADR-0162).
+  function abrirMenuResponsable(boton) {
+    const caja = boton.parentElement;
+    const viejo = $(".menu-resp", caja);
+    if (viejo) { viejo.remove(); boton.setAttribute("aria-expanded", "false"); return; }
+    const menu = document.createElement("div");
+    menu.className = "menu-resp";
+    menu.setAttribute("role", "listbox");
+    menu.innerHTML = PERSONAS.map(([n, i]) => `<button type="button" role="option" data-persona="${n}" aria-selected="${n === estado.responde}"><span class="avatar a22">${i}</span>${n}</button>`).join("");
+    caja.appendChild(menu);
+    boton.setAttribute("aria-expanded", "true");
+    menu.addEventListener("click", (ev) => {
+      const b = ev.target.closest("[data-persona]");
+      if (!b) return;
+      estado.responde = b.dataset.persona;
+      const r = RECS.find((x) => x.id === estado.abierta);
+      $(".cajon-pie").innerHTML = htmlPie(r, r.estado === "sin_leer" || r.estado === "leida", !!(estado.envio && estado.envio.id === r.id));
+      if ($("#resp")) revisar();
+    });
+  }
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".responsable")) document.querySelectorAll(".menu-resp").forEach((m) => { m.remove(); });
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") document.querySelectorAll(".menu-resp").forEach((m) => m.remove());
+  });
+
+  // ---------------------------------------------------------------- Qué cambia (el costado)
+  const CAMBIOS = [
+    { n: 1, t: "«Lista para enviar» con una falta adentro", hoy: "la respuesta no se puede corregir después y se manda sin red: sin corrector, sin vista previa y sin deshacer.", prop: "corrector en español, la vista de cómo le llega y 8 s para deshacer antes de que salga.", quien: "Lo hago yo" },
+    { n: 2, t: "La hoja invita a no responder", hoy: "«Tu respuesta · opcional», y el botón principal cambia de «Marcar como leída» a «Enviar respuesta» según haya texto.", prop: "responder es el camino; la otra salida, a la vista, es «Archivar sin responder».", quien: "Necesita tu OK: el cliente deja de ver «Leída» solo porque alguien abrió la hoja." },
+    { n: 3, t: "No hay con qué responder", hoy: "pidió XXXL y colores, y la hoja no sabe si CAYLA tiene XXXL. Sale «lo tendremos en cuenta».", prop: "«Lo que pide» reconoce el tema y trae el dato del ERP: tallas del catálogo, colores de la tienda, cómo entrega la web.", quien: "Lo hago yo: solo lee" },
+    { n: 4, t: "Lo que pidió se queda en la bandeja", hoy: "un pedido de talla no llega a la demanda ni al aviso «Llegó tu talla».", prop: "un toque lo anota en Pedidos no atendidos, con su ficha y su tienda.", quien: "Necesita tu OK: escribe en la demanda y en el Club" },
+    { n: 5, t: "Solo un nombre", hoy: "quien responde no sabe si es miembro, si compra ni en qué tienda.", prop: "una línea bajo el nombre: miembro, compras, su tienda.", quien: "Necesita tu OK: hoy el módulo muestra el nombre, no las compras" },
+    { n: 6, t: "Para pasar a la siguiente hay que cerrar y abrir", hoy: "la hoja tapa la bandeja con un velo.", prop: "el cajón lateral (la pieza elegida el 17/10): la bandeja sigue a la vista, ↑ ↓ y «Siguiente por responder».", quien: "Lo hago yo" },
+    { n: 7, t: "El mismo ejemplo para todo", hoy: "«Escribe una respuesta corta y cálida…», igual para un elogio que para un reclamo.", prop: "maneras de empezar que siguen lo que escribió: saludan por su nombre y dejan el cursor donde va lo concreto.", quien: "Lo hago yo" },
+    { n: 8, t: "Fuera de la hoja: no se entera de que le respondiste", hoy: "la respuesta espera en su cuenta y nada le avisa.", prop: "un punto en «Recomendaciones» de la tienda online hasta que la lea.", quien: "Necesita tu OK: una columna nueva y un cambio en la tienda online", fuera: true },
+  ];
+  $("#lista-cambios").innerHTML = CAMBIOS.map((c) => `
+    <button type="button" class="cambio${c.fuera ? " fuera" : ""}" data-n="${c.n}">
+      <span class="n">${c.n}</span>
+      <span>
+        <span class="cambio-t">${c.t}</span>
+        <span class="linea"><b>Hoy</b>${c.hoy}</span>
+        <span class="linea"><b>Propuesta</b>${c.prop}</span>
+        <span class="chip ${c.quien.startsWith("Lo hago") ? "pizarra" : "ambar"} sin-punto quien" style="text-transform:none;letter-spacing:0;font-weight:500;height:auto;padding:3px 9px;white-space:normal">${c.quien}</span>
+      </span>
+    </button>`).join("");
+  $("#lista-cambios").addEventListener("click", (e) => {
+    const b = e.target.closest(".cambio");
+    if (!b) return;
+    document.querySelectorAll(".cambio").forEach((x) => x.removeAttribute("aria-current"));
+    b.setAttribute("aria-current", "true");
+    const n = b.dataset.n;
+    const zona = erp.dataset.modo === "hoy" ? $(`.modal-hoy [data-num="${n}"], .velo [data-num="${n}"]`) : $(`.cajon [data-num="${n}"]`, erp);
+    if (!zona) return;
+    zona.scrollIntoView({ block: "nearest", behavior: sinMovimiento() ? "auto" : "smooth" });
+    zona.classList.remove("destello");
+    void zona.offsetWidth;
+    zona.classList.add("destello");
+  });
+
+  // ---------------------------------------------------------------- Controles de la demo
+  function verModo(m) {
+    erp.dataset.modo = m;
+    $("#ver-hoy").setAttribute("aria-pressed", String(m === "hoy"));
+    $("#ver-propuesta").setAttribute("aria-pressed", String(m === "propuesta"));
+    pintarLista();
+  }
+  $("#ver-hoy").addEventListener("click", () => verModo("hoy"));
+  $("#ver-propuesta").addEventListener("click", () => verModo("propuesta"));
+  $("#numeros").addEventListener("click", (e) => {
+    const si = e.currentTarget.getAttribute("aria-checked") !== "true";
+    e.currentTarget.setAttribute("aria-checked", String(si));
+    erp.dataset.numeros = si ? "si" : "no";
+  });
+  const oscuroDelSistema = matchMedia("(prefers-color-scheme: dark)");
+  function marcarTema() {
+    const t = document.documentElement.dataset.theme || (oscuroDelSistema.matches ? "dark" : "light");
+    $("#tema-claro").setAttribute("aria-pressed", String(t === "light"));
+    $("#tema-oscuro").setAttribute("aria-pressed", String(t === "dark"));
+  }
+  $("#tema-claro").addEventListener("click", () => { document.documentElement.dataset.theme = "light"; marcarTema(); });
+  $("#tema-oscuro").addEventListener("click", () => { document.documentElement.dataset.theme = "dark"; marcarTema(); });
+  oscuroDelSistema.addEventListener?.("change", marcarTema);
+
+  marcarTema();
+  pintarLista();
+  pintarCajon(true);
+})();
+</script>

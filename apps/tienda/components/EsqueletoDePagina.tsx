@@ -3,6 +3,8 @@ import type { FormaEsqueleto } from "@/lib/esqueleto";
 import { datosDeCabecera } from "@/lib/inicio";
 import type { Campana } from "@/lib/portada";
 import { CabeceraDeEspera } from "./CabeceraConCuenta";
+import { CampanitaApagada } from "./campanita/CampanitaApagada";
+import { ElegirPorCookie } from "./cuenta/ElegirPorCookie";
 import { FormaDelEsqueleto } from "./FormaDelEsqueleto";
 import { HeroeDelInicio } from "./HeroeDelInicio";
 import { Icono } from "./Icono";
@@ -34,6 +36,8 @@ export function EsqueletoDePagina({ forma, campana = null }: { forma?: FormaEsqu
       {/* La última cabecera que se vio, igual (`CabeceraDeEspera`); recién abierta la pestaña, la vacía de siempre. */}
       <CabeceraDeEspera
         datos={datosDeCabecera([], null, process.env.TIENDA_FOTOS_ORIGEN)}
+        // Solo con la cookie de sesión: un visitante no tiene campanita y no debe ver su dibujo un instante (ElegirPorCookie, ADR-0432).
+        campanita={<ElegirPorCookie visitante={null} conCuenta={<CampanitaApagada />} />}
         bolsa={
           <Link className="t-ico" href="/bolsa" data-bolsa aria-label="Tu bolsa">
             <Icono nombre="bolsa" />
