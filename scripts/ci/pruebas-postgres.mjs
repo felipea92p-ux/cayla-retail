@@ -246,6 +246,10 @@ export const PRUEBAS = [
   // público; cada COLOR con su precio (el del look de CAYLA, con una campaña solo en el negro la beige no baja) y su nivel por tienda
   // (sin Cuarentena, apartado ni Taller; nunca la cifra de 4 o más); con qué colores combina; solo tienda_web; un mutante. ROLLBACK.
   "pruebas:tienda-probador",
+  // Los looks que el cliente guarda desde el probador (ADR-0434, actividad 8): de 2 a 4 prendas que se ven en la web, el mismo look una
+  // sola vez (su huella), nombre del día, tope de 30, quitar sin borrar, renombrar, leer con «ya no está», y cerrar o eliminar la cuenta
+  // los quita como a los favoritos; solo tienda_web. ROLLBACK.
+  "pruebas:tienda-looks-guardados",
 
   // El motor del pedido web (ADR-0408, actividades 7-9): separar no toca el stock; confirmar reserva con el motor de Apartados
   // (almacén primero) y Vender ya no la vende; dos por la última (uno reserva, el otro sin stock, y quién separó antes, también

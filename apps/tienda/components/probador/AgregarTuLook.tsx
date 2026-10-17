@@ -24,12 +24,17 @@ export function AgregarTuLook({
   indice,
   sedeId,
   origenFotos,
+  className = "pb-agregar-bolsa",
+  texto = "Agregar a mi bolsa",
 }: {
   look: Look;
   indice: ReadonlyMap<string, PrendaDelProbador>;
   /** La tienda que el cliente venía mirando: queda elegida para recoger si todavía no eligió otra. */
   sedeId: string | null;
   origenFotos: string | undefined;
+  /** Dónde va el botón: en la barra del probador (por omisión) o a lo ancho, en la página de un look guardado. */
+  className?: string;
+  texto?: string;
 }) {
   const router = useRouter();
   const { aviso, mostrar } = useAvisoBreve();
@@ -72,14 +77,14 @@ export function AgregarTuLook({
     <>
       <button
         type="button"
-        className="t-btn pb-agregar-bolsa"
+        className={`t-btn ${className}`}
         aria-haspopup="dialog"
         aria-busy={pidiendo}
         disabled={pidiendo || presentes(look).length === 0}
         onClick={abrir}
       >
         <Icono nombre="bolsa" />
-        {pidiendo ? "Buscando tallas…" : "Agregar a mi bolsa"}
+        {pidiendo ? "Buscando tallas…" : texto}
       </button>
       {hoja && (
         <AgregarLook

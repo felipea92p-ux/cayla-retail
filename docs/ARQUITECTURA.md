@@ -2154,6 +2154,20 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   `probador.css` (`@container tienda (min-width: 960px)`): la figura a la izquierda, fija al bajar, y a la derecha «Tu look», los colores,
   las opciones en grilla, el total y las promesas. Su esqueleto de carga es la forma `probador` de `FormaDelEsqueleto`. Estilos en
   `app/estilos/probador.css`. Prueba en la base: `pnpm pruebas:tienda-probador`.
+  **Guardar el look** (actividad 8): el corazón de la cabecera del probador (`components/probador/CorazonDelLook.tsx`) llama a
+  `app/acciones/probador.ts` `guardarTuLook` / `quitarTuLook` → `lib/looks-guardados-servidor.ts` → `retail.tienda_guardar_look` /
+  `tienda_quitar_look` (`20261017044000`: tablas `looks_web` + `look_web_piezas`, de 2 a 4 prendas por modelo y color, una vez por look
+  —la huella, sin importar el orden—, hasta 30 vivos por cuenta, quitar marca `quitado_en` y no borra; cerrar o eliminar la cuenta los
+  quita en `fn_cuentas_web_cerrar_al_anonimizar`). Va lleno si el look de la figura es uno guardado (`lib/looks-guardados.ts`
+  `buscarGuardado`, con los de `tienda_mis_looks` que la página lee junto con lo demás).
+- `/looks/guardado/[id]` (un look guardado, actividad 8; grupo `(catalogo)`, con cuenta) → `leerMisLooksEnBase(cuenta)` →
+  `retail.tienda_mis_looks` (solo los de la cuenta que pregunta: otro, con el enlace, ve «Este look ya no está») + `leerCatalogo` y
+  `leerProbador` (las prendas de TODAS las tiendas, como los favoritos: cada color dice dónde hay). `lookDelGuardado` lo pone en su lugar
+  y aparta lo que ya no está; el precio y el stock son los de hoy (no se guarda ninguno). Lo dibujan `FiguraQuieta.tsx` (la misma figura
+  del probador, quieta, con sus números), `NombreDelLook.tsx` (`renombrarTuLook` → `tienda_renombrar_look`), `AgregarLookGuardado.tsx`
+  (el `AgregarTuLook` del probador, a lo ancho) y `QuitarLookGuardado.tsx`; «Editar en el probador» abre `/looks/arma?p=…`. Su
+  esqueleto es el de la ficha. En `/catalogo?lista=favoritos`, «Tus looks» (`components/probador/TusLooks.tsx`) va arriba de las
+  prendas, solo con la lista entera. Prueba en la base: `pnpm pruebas:tienda-looks-guardados`.
 - **Un solo precio y una sola tienda elegida** (integración de la tienda, 2026-10-15). El precio de una prenda (talla y color) en la web
   lo dice `fn_tienda_precio_talla(prendas, tienda)` (`20261015012000`): el de la tienda elegida (`fn_precio_en_sede`) o, con «Todas», el
   mayor entre las de la web (sin ninguna, el de la grilla), con la campaña de la caja encima (la de mayor %, `fn_descuento_campana`,

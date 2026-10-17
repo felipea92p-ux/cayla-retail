@@ -10,12 +10,14 @@ import { Probador } from "@/components/probador/Probador";
 import { leerAyuda } from "@/lib/ayuda-servidor";
 import { fotoOptimizable, hrefLista } from "@/lib/catalogo";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
+import { leerMisLooksEnBase } from "@/lib/looks-guardados-servidor";
 import { promesasDeCompra } from "@/lib/ficha";
 import { hrefLooks } from "@/lib/looks";
 import { armarProbador, completarLook, hrefDelProbador, lookDeLaUrl, lookInicial, PARAMETRO_DEL_LOOK } from "@/lib/probador";
 import { leerProbador } from "@/lib/probador-servidor";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
 import { hayEnTienda } from "@/lib/stock";
+import { leerSesion } from "@/lib/sesion-servidor";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../../estilos/probador.css";
 
@@ -29,7 +31,14 @@ export default async function ArmaElTuyo({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
   const pedida = sedeDeLaUrl(sp.sede, sedes);
-  const [catalogo, lectura, plazos] = await Promise.all([leerCatalogo(pedida?.id ?? null), leerProbador(pedida?.id ?? null), leerAyuda()]);
+  const sesion = await leerSesion();
+  // Lo de todos (el catálogo, el probador y los plazos) y lo de la persona (sus looks guardados, para el corazón), a la vez.
+  const [catalogo, lectura, plazos, guardados] = await Promise.all([
+    leerCatalogo(pedida?.id ?? null),
+    leerProbador(pedida?.id ?? null),
+    leerAyuda(),
+    sesion.estado === "con_sesion" ? leerMisLooksEnBase(sesion.usuarioId) : null,
+  ]);
   // La tienda cuyo precio usó la base (si la escondieron entretanto, la base ya respondió con «Todas»).
   const elegida = catalogo?.sede ? (sedes.find((s) => s.id === catalogo.sede) ?? null) : null;
   const sede = elegida ? claveDeSede(elegida.nombre) : null;
@@ -95,6 +104,7 @@ export default async function ArmaElTuyo({ searchParams }: { searchParams: Promi
           inicial={inicial}
           sedeId={elegida?.id ?? null}
           origenFotos={origenFotos}
+          guardados={guardados}
           pie={<Promesas promesas={promesasDeCompra(plazos)} />}
         />
       )}
