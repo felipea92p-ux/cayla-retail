@@ -7,6 +7,7 @@ import { Icono } from "@/components/analisis/iconos";
 import { Ayuda, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/analisis/piezas";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { edadDelInventario, GRUPOS_QUIETAS, plural, prendasDe, totalEnTienda } from "@/lib/analisis-reglas";
+import { avisoCalidadDeDestino } from "@/lib/analisis-al-dia";
 import { modelosQueSobran, textoSobra, sobraDe } from "@/lib/analisis-sobra";
 import { destinoDeEnvio, loQueLlevaElEnvio, razonTiendaSinLeer, textoPuedesMandar, tiendasSinLeer, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-enviar";
 import { hrefEnviar, hrefLiquidar, hrefRegistrarVentas } from "@/lib/analisis-acciones";
@@ -304,7 +305,9 @@ export function PestanaQuieta() {
             if (g.clave !== "enviar") return null;
             const vende = destinoDeEnvio(p);
             const l = vende ? loQueLlevaElEnvio([p], vende.sedeId) : null;
-            return l ? textoPuedesMandar(l.movibles, l.deLoVendido) || null : null;
+            // La calidad de registro de ESA tienda se dice aquí, donde una acción la usa (B4): no hay anillos por tienda.
+            const calidad = vende ? avisoCalidadDeDestino(datos.preparacion.find((x) => x.ubicacionId === vende.sedeId), sedeDe(vende.sedeId)?.ciudad ?? "Esa tienda") : null;
+            return [l ? textoPuedesMandar(l.movibles, l.deLoVendido) : "", calidad ?? ""].filter(Boolean).join(" ") || null;
           }}
         />
       )}

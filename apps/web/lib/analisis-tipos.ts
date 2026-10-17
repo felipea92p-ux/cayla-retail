@@ -10,6 +10,7 @@ import type { DiaVenta, PreparacionSede } from "./motor-demanda-reglas";
 import type { ModeloAnalisis } from "./analisis-modelo";
 import type { CampanaDelRitmo, Horizonte } from "./analisis-horizonte";
 import type { TemporadaDatos } from "./analisis-temporada";
+import type { CargaInicialSede } from "./carga-inicial-reglas";
 
 /** Las pestañas, en el orden de la pantalla. «Nunca salió al piso» (`piso`) va entre «No se vende» y «Qué pedir» (Felipe, 2026-10-07). */
 export const VISTAS_ANALISIS = ["hoy", "acaba", "nose", "piso", "pedir"] as const;
@@ -231,6 +232,10 @@ export type SinRitmo =
 export type DatosAnalisis = {
   /** Hoy en Lima (YYYY-MM-DD). */
   hoy: string;
+  /** El instante (ISO) en que se leyeron estos datos: «Datos de las 09:20» y el botón «Actualizar» pasados 30 minutos (B4, `analisis-al-dia.ts`). */
+  leidoEn: string;
+  /** La carga inicial de mi tienda (su cierre y el «hoy» de la base); null si no se pudo leer: entonces no se avisa nada, igual que en el resto del ERP. */
+  cargaInicial: CargaInicialSede | null;
   /** Mi tienda (la del selector de sede). */
   sede: SedeAnalisis;
   /** Las tiendas activas de la red, la mía primero. */

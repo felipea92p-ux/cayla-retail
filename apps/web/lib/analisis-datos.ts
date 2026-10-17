@@ -24,6 +24,8 @@ import { getLecturaFrescuraDeTienda } from "@/lib/frescura";
 import { hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { datosDe } from "@/lib/analisis-con-tope";
 import { leerPieza } from "@/lib/analisis-lectura";
+import { getCargaInicial } from "@/lib/carga-inicial";
+import { cargaInicialDe } from "@/lib/carga-inicial-reglas";
 
 // Análisis v4 (ADR-0357): todo lo que la pantalla lee, una vez por visita, desde el servidor. Cada parte que falla se dice en
 // `fallas` y deja su sección callada (principio 9): nunca «sin ventas» por un error. Ninguna lectura espera más de `TOPE_LECTURA_MS` ni
@@ -101,7 +103,7 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false,
   const ids = sedes.map((s) => s.id);
 
   const idActiva = { ubicacion_id: activa.id };
-  const [motor, lectura, llegan, yaPedido, rinde, conteos, pedidos, preciosPropios, sinPrenda, frescura, pendientes, quienPide, campanas] = await Promise.all([
+  const [motor, lectura, llegan, yaPedido, rinde, conteos, pedidos, preciosPropios, sinPrenda, frescura, pendientes, quienPide, campanas, cargas] = await Promise.all([
     leerPreparacionDeLaRed(),
     getPrendasPorSede(ids),
     getPorLlegar(activa.id),
@@ -127,6 +129,8 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false,
     getProveedoresAnalisis(),
     // Las campañas del Plan de campaña (A6): de ahí sale la meta de «Qué pedir». Sin el módulo ni se intenta; si falla, el respaldo y se dice.
     getCampanasParaAnalisis(conPlan),
+    // El cierre de la carga inicial de cada sede (B4): mientras mi tienda cargue su stock, «Nunca salió al piso» espera. Si no responde, no se avisa nada (`getCargaInicial`).
+    getCargaInicial().catch(() => null),
   ]);
   const preciosDeMiTienda = preciosPropios ?? undefined;
 
@@ -164,6 +168,8 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false,
 
   return {
     hoy,
+    leidoEn: new Date().toISOString(),
+    cargaInicial: cargaInicialDe(cargas, activa.id),
     sede: sedes[0]!,
     sedes,
     preparacion: motor.filas,

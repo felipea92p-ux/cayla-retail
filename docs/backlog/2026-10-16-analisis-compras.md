@@ -182,3 +182,8 @@
 - [ ] **Sin correr en la nube:** pase visual de las dos tarjetas nuevas (1440, 1024, claro y oscuro), `guias:recorrer`, `tema:auditar`.
 - [ ] **Decisión de Felipe:** el 90 de `SOBRA_DIAS`; si «Te sobra» debe contar en el número de la pestaña «No se vende»; si «Reponer talla o color» debe verse también en «Cómpralas» y «Ya vienen».
 - [ ] **Cobertura de «Te sobra»:** hoy es solo lo que tienes; no suma lo que viene en camino ni lo ya pedido. Si Felipe lo quiere («Tienes 60 días y vienen 100»), es sumar `llegadasDe(...).vienen` en `sobraDe`.
+
+## B4 · Cuán fresco y completo es lo que lees (2026-10-17)
+- [x] `analisis-al-dia.ts`: hora de lectura + «Actualizar» a los 30 min, franja de carga inicial (junta con «Datos incompletos»), «Nunca salió al piso» en pausa (carga o piso sin cuadrar) en su pestaña, en Hoy y en el número, y la calidad de registro del destino en la fila de «Mándalas»; guía al día (pasos «lectura» y «carga»).
+- [ ] **Sin correr en la nube:** pase visual de la cabecera, la franja y la pausa (1440, 1024, claro y oscuro, 375 px no aplica), `guias:recorrer`, `tema:auditar`.
+- [ ] **Pendiente:** la calidad del destino no está en la ficha del modelo (solo en la fila del carril). «Qué pedir» usa `sabePiso` para «nunca salió» y no se pausa con la carga: pregunta de Felipe.

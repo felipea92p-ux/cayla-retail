@@ -61,6 +61,8 @@ vi.mock("@/lib/analisis-armado", async () => await import("./analisis-armado"));
 vi.mock("@/lib/analisis-modelo", async () => await import("./analisis-modelo"));
 vi.mock("@/lib/analisis-piso", async () => await import("./analisis-piso"));
 vi.mock("@/lib/motor-demanda-reglas", async () => await import("./motor-demanda-reglas"));
+vi.mock("@/lib/carga-inicial", () => ({ getCargaInicial: async () => null }));
+vi.mock("@/lib/carga-inicial-reglas", async () => await import("./carga-inicial-reglas"));
 vi.mock("@/lib/fechas-lima", async () => await import("./fechas-lima"));
 vi.mock("@/lib/registro-contable", async () => await import("./registro-contable"));
 

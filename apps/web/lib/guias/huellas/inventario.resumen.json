@@ -2,7 +2,7 @@
   "guia": "inventario.resumen",
   "ruta": "/gestion/analisis",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 54,
+  "total": 56,
   "controles": {
     "components/PedirAOtraSedeModal.tsx": [
       "button «{`Una menos de ${etiqueta}»",
@@ -24,6 +24,7 @@
     ],
     "components/analisis/AnalisisPantalla.tsx": [
       "button «→() => verConDatosDeHoy(modo === \"que-falta\")»",
+      "button «{leyendo ? \"Leyendo…\" : \"Actualizar\"}»",
       "Boton «{TEXTO_TIENDA_SIN_LEER.accion}»",
       "Pestanas «{items}»"
     ],
@@ -63,7 +64,8 @@
     ],
     "components/analisis/PestanaPiso.tsx": [
       "Link «{`Bájalas al piso: ${cuantas}»",
-      "Link «{`Bajar al piso: ${nombreLargo(p)}»"
+      "Link «{`Bajar al piso: ${nombreLargo(p)}»",
+      "Link «Cuadrar el piso»"
     ],
     "components/analisis/PestanaQuieta.tsx": [
       "Link «{etiqueta}»",

@@ -125,15 +125,20 @@ export function lugarDeLoQueTienes(todas: readonly PrendaAnalisis[]): LugarDeLoQ
 }
 
 /** Sin carril: la base todavía no lo sabe, no se pudieron leer las prendas, o todo salió al piso (la respuesta corta y buena). */
-export type VacioPiso = "sin-saber" | "sin-datos" | "todo-salio";
+export type VacioPiso = "sin-saber" | "sin-datos" | "todo-salio" | "en-pausa";
 
-export function vacioPiso(c: { sabePiso: boolean; prendas: number; sinSalir: number; fallas: number }): VacioPiso | null {
+/**
+ * `pausa` (B4, `analisis-al-dia.ts`): la tienda carga su stock o su piso no está cuadrado: lo que «nunca salió» no es confiable y la lista espera, con su razón.
+ * Va antes de «sin-saber» y de «todo-salio»: no se dice que todo salió ni que falta una actualización cuando lo que falta es cuadrar el piso.
+ */
+export function vacioPiso(c: { sabePiso: boolean; prendas: number; sinSalir: number; fallas: number; pausa?: boolean }): VacioPiso | null {
   if (c.prendas === 0 && c.fallas > 0) return "sin-datos";
+  if (c.pausa) return "en-pausa";
   if (!c.sabePiso) return "sin-saber";
   return c.sinSalir === 0 ? "todo-salio" : null;
 }
 
-export const TEXTO_VACIO_PISO: Record<VacioPiso, { titulo: string; linea: string }> = {
+export const TEXTO_VACIO_PISO: Record<Exclude<VacioPiso, "en-pausa">, { titulo: string; linea: string }> = {
   "sin-saber": { titulo: "Todavía no lo puedo saber", linea: "Falta una actualización de la base para saber qué nunca salió al piso. Avisa a Felipe." },
   "sin-datos": { titulo: "No pude ver tus prendas", linea: "Vuelve a intentarlo en un rato." },
   "todo-salio": { titulo: "Todo salió al piso", linea: "De cada modelo que tienes guardado, algo ya estuvo colgado alguna vez." },

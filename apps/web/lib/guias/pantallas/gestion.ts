@@ -26,6 +26,12 @@ export const GUIA_ANALISIS: Guia = {
       texto: "Escribe su nombre y todas las pestañas muestran solo esa prenda.",
     },
     {
+      id: "lectura",
+      ancla: "analisis.lectura",
+      titulo: "De qué hora son los datos",
+      texto: "Dice a qué hora se leyó la pantalla. Si pasa media hora, aparece «Actualizar»: vuelve a leer sin tapar lo que estás mirando.",
+    },
+    {
       id: "pestanas",
       ancla: "analisis.pestanas",
       titulo: "Una pestaña por pregunta",
@@ -53,6 +59,13 @@ export const GUIA_ANALISIS: Guia = {
       preparar: [{ tipo: "escape" }],
       titulo: "Datos incompletos",
       texto: "Mientras falte algo, este aviso te lo recuerda: las cifras pueden fallar. El botón cambia entre ver qué falta y ver lo que dicen los datos de hoy.",
+    },
+    {
+      id: "carga",
+      ancla: "analisis.carga",
+      opcional: true,
+      titulo: "Tu stock sigue en carga",
+      texto: "Mientras la tienda carga su stock inicial, lo guardado viene de la carga y no de ventas: no pidas por esta lista. «Nunca salió al piso» espera hasta que cierre la carga y el piso esté cuadrado.",
     },
     {
       id: "preguntas",

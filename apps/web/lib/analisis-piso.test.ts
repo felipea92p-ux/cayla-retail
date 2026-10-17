@@ -145,6 +145,14 @@ describe("cuándo no hay carril", () => {
     expect(vacioPiso({ sabePiso: true, prendas: 40, sinSalir: 0, fallas: 0 })).toBe("todo-salio");
     expect(vacioPiso({ sabePiso: true, prendas: 40, sinSalir: 3, fallas: 0 })).toBeNull();
   });
+  it("en carga inicial o con el piso sin cuadrar la lista espera (B4), aunque haya prendas o todo parezca haber salido", () => {
+    expect(vacioPiso({ sabePiso: true, prendas: 40, sinSalir: 3, fallas: 0, pausa: true })).toBe("en-pausa");
+    expect(vacioPiso({ sabePiso: true, prendas: 40, sinSalir: 0, fallas: 0, pausa: true })).toBe("en-pausa");
+    expect(vacioPiso({ sabePiso: false, prendas: 40, sinSalir: 40, fallas: 0, pausa: true })).toBe("en-pausa");
+  });
+  it("una lectura que falló sigue ganándole a la pausa: no se dice «espera» cuando lo que pasó es que no cargó", () => {
+    expect(vacioPiso({ sabePiso: true, prendas: 0, sinSalir: 0, fallas: 1, pausa: true })).toBe("sin-datos");
+  });
 });
 
 describe("el eje y las palabras", () => {

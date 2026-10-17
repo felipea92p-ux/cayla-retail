@@ -10,6 +10,7 @@ import { variantesDe, type ModeloAnalisis } from "@/lib/analisis-modelo";
 import { hrefReponerPiso } from "@/lib/analisis-acciones";
 import { plural, PRENDAS_EN_LISTA, prendasDe } from "@/lib/analisis-reglas";
 import { diasEnAlmacen, prendasSinSalir } from "@/lib/analisis-piso";
+import { pausaDelPiso, pisoCuadradoDe } from "@/lib/analisis-al-dia";
 import { alcancePorTipo, finEjeAlcance, llegadasAparte, ordenarAlcance, textoAlcanceEnEje, textoRitmo, tieneYVienen, tipoCorto, titularDeLosQueNoLlegan, type AlcanceTipo } from "@/lib/analisis-pedir";
 import { modelosQueSobran } from "@/lib/analisis-sobra";
 import { despuesDeLaMeta, hastaLaMeta, type Horizonte } from "@/lib/analisis-horizonte";
@@ -66,11 +67,13 @@ export function PestanaHoy() {
   const acaba = seAcabanHoy(prendas);
   const quietas = quietasHoy(prendas);
   // «¿Qué no ha salido al piso?»: sin saberlo (la base sin 20261007120000), la tarjeta lo dice con «Todavía no».
-  const sinSalir = datos.sabePiso ? prendasSinSalir(prendas, datos.hoy) : [];
+  // Con la carga inicial abierta o el piso sin cuadrar la lista espera (B4), igual que su pestaña.
+  const pausaPiso = pausaDelPiso(datos.cargaInicial, pisoCuadradoDe(datos.preparacion.find((x) => x.ubicacionId === datos.sede.id)));
+  const sinSalir = datos.sabePiso && !pausaPiso ? prendasSinSalir(prendas, datos.hoy) : [];
   // Ninguna tarjeta dice «Va bien» cuando no puede saberlo (tarea #2, 2026-10-14): con datos incompletos, «Para saber».
   const confiable = datos.puedeHablar;
   const sinNada = estadoSinNada(confiable);
-  const estPiso: Estado | null = !datos.sabePiso ? "nd" : sinSalir.length ? "ate" : buscando ? null : sinNada;
+  const estPiso: Estado | null = !datos.sabePiso || pausaPiso ? "nd" : sinSalir.length ? "ate" : buscando ? null : sinNada;
   // «¿Qué no se mueve?» sin quietas: «Todavía no se puede saber» si ningún modelo lleva aún en el piso lo que se espera para juzgarlo.
   const vacioQuietas = vacioQuietasHoy(datos.prendas, datos.hoy, confiable, prendasDe(datos.prendas, ["sin_ritmo"]).length, datos.frescura, modelosQueSobran(datos.prendas, datos.horizonte.dias).length);
   // «¿Qué pedir?»: para cuánto te alcanza cada tipo al ritmo de los días de ventas, contra la meta de compra (B2, Felipe 2026-10-07; A6: la campaña del
@@ -238,6 +241,8 @@ function ListaQuietas({ prendas, vacio }: { prendas: PrendaAnalisis[]; vacio: st
 function ListaPiso({ prendas, vacio }: { prendas: PrendaAnalisis[]; vacio: string }) {
   const { q, datos } = useAnalisis();
   if (!datos.sabePiso) return <p className="b-nota">Todavía no lo puedo saber.</p>;
+  const pausa = pausaDelPiso(datos.cargaInicial, pisoCuadradoDe(datos.preparacion.find((x) => x.ubicacionId === datos.sede.id)));
+  if (pausa) return <p className="b-nota">{pausa === "carga" ? "Todavía no se puede saber: tu stock sigue en carga." : "Todavía no se puede saber: tu piso aún no se cuadró."}</p>;
   if (prendas.length === 0) return <p className="b-nota">{q.trim() ? "Nada con esta búsqueda." : vacio}</p>;
   return (
     <>

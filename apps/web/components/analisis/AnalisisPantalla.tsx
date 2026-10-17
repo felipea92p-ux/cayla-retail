@@ -22,6 +22,7 @@ import { PestanaPiso } from "@/components/analisis/PestanaPiso";
 import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
 import { coincideBusqueda, GRUPOS_ACABA, GRUPOS_QUIETAS, prendasDe } from "@/lib/analisis-reglas";
 import { nuncaSalio } from "@/lib/analisis-piso";
+import { avisoCargaInicial, lecturaVieja, pausaDelPiso, pisoCuadradoDe, textoDatosDe, TITULO_CARGA_INICIAL } from "@/lib/analisis-al-dia";
 import { lineasParaPedir } from "@/lib/analisis-acciones";
 import { AVISO_QUE_FALTA, avisoDatosDeHoy, modoAnalisis, PARAM_QUE_FALTA, VALOR_QUE_FALTA } from "@/lib/analisis-aviso";
 import {
@@ -251,8 +252,11 @@ export function AnalisisPantalla({
   const cuentaAcaba = conCuentas ? prendasDe(datos.prendas, GRUPOS_ACABA).length : null;
   const cuentaQuietas = conCuentas ? prendasDe(datos.prendas, GRUPOS_QUIETAS).length : null;
   // Sin saber cuándo salió al piso cada prenda (la base sin 20261007120000), «—»: nunca una cuenta inventada.
-  const cuentaPiso = conCuentas && datos.sabePiso ? datos.prendas.filter(nuncaSalio).length : null;
   const mia = datos.preparacion.find((p) => p.ubicacionId === datos.sede.id);
+  // Mientras la tienda cargue su stock o su piso no esté cuadrado, «Nunca salió al piso» espera (B4): su cuenta tampoco es un número («—»).
+  const pausaPiso = pausaDelPiso(datos.cargaInicial, pisoCuadradoDe(mia));
+  const cuentaPiso = conCuentas && datos.sabePiso && !pausaPiso ? datos.prendas.filter(nuncaSalio).length : null;
+  const avisoCarga = avisoCargaInicial(datos.cargaInicial);
   // El aviso grande de «No se pudo leer <tu tienda>» ya dice la falla de mi tienda: la nota gris no la repite (solo si el aviso está a la vista;
   // en «Todavía no» no lo está y la nota es lo único que lo dice).
   const queSeVe = contenidoDeAnalisis({ recomienda, sinLeer, vista });
@@ -293,7 +297,12 @@ export function AnalisisPantalla({
   return (
     <Contexto.Provider value={contexto}>
       <div ref={raiz} className="analisis" onKeyDown={alTeclear}>
-        <EncabezadoPagina sede={datos.sede.nombre} titulo="Análisis" subtitulo="Qué se acaba, qué no se mueve, qué nunca salió al piso y qué pedir.">
+        <EncabezadoPagina
+          sede={datos.sede.nombre}
+          titulo="Análisis"
+          subtitulo="Qué se acaba, qué no se mueve, qué nunca salió al piso y qué pedir."
+          detalle={<HoraDeLectura leidoEn={datos.leidoEn} />}
+        >
           {/* Filtra las prendas ya leídas, en el navegador: nunca dice «Buscando…» (ADR-0358, ronda 5). */}
           {/* Con la tienda sin leer no hay prendas que buscar: la caja se apaga (segundo pase visual, 2026-10-17: invitaba a buscar algo que no iba a encontrar). */}
           <Buscador
@@ -331,6 +340,13 @@ export function AnalisisPantalla({
             }
           >
             {modo === "datos-de-hoy" ? avisoDatosDeHoy(mia) : AVISO_QUE_FALTA}
+            {/* La carga inicial se junta con este aviso en vez de abrir otro (B4): no hay un quinto aviso grande. */}
+            {avisoCarga && ` ${avisoCarga}`}
+          </Aviso>
+        )}
+        {modo === "confiable" && avisoCarga && (
+          <Aviso guia="analisis.carga" tono="atencion" titulo={TITULO_CARGA_INICIAL} className="mt-3.5">
+            {avisoCarga}
           </Aviso>
         )}
 
@@ -364,6 +380,51 @@ export function AnalisisPantalla({
         />
       )}
     </Contexto.Provider>
+  );
+}
+
+/**
+ * «Datos de las 09:20» junto a la fecha de la cabecera y, pasados 30 minutos, «Actualizar»: relee la pantalla SIN el loader a pantalla completa
+ * (`navegacionSinEspera`, ADR-0149: es una lectura, y lo que se está mirando no desaparece). La hora de ahora se toma en el navegador, después
+ * de montar y cada minuto: el servidor no sabe cuánto va a tardar la persona en volver a mirar.
+ */
+function HoraDeLectura({ leidoEn }: { leidoEn: string }) {
+  const router = useRouter();
+  const [leyendo, empezar] = useTransition();
+  const [ahora, setAhora] = useState<number | null>(null);
+  useEffect(() => {
+    const primero = window.setTimeout(() => setAhora(Date.now()), 0);
+    const t = window.setInterval(() => setAhora(Date.now()), 60_000);
+    return () => {
+      window.clearTimeout(primero);
+      window.clearInterval(t);
+    };
+  }, [leidoEn]);
+  const texto = textoDatosDe(leidoEn);
+  if (!texto) return null;
+  return (
+    <>
+      <span data-guia="analisis.lectura">{texto}</span>
+      {ahora !== null && lecturaVieja(leidoEn, ahora) && (
+        <>
+          {" · "}
+          <button
+            type="button"
+            className="btn-cayla btn-enlace"
+            disabled={leyendo}
+            aria-busy={leyendo || undefined}
+            onClick={() =>
+              empezar(() => {
+                navegacionSinEspera(window.location.href);
+                router.refresh();
+              })
+            }
+          >
+            {leyendo ? "Leyendo…" : "Actualizar"}
+          </button>
+        </>
+      )}
+    </>
   );
 }
 

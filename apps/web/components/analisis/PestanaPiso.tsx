@@ -25,6 +25,7 @@ import {
   type VacioPiso,
 } from "@/lib/analisis-piso";
 import { Vacio } from "@/components/ui/Vacio";
+import { pausaDelPiso, pisoCuadradoDe, TEXTO_PAUSA_PISO, type PausaPiso } from "@/lib/analisis-al-dia";
 import { Check, Hourglass } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 
@@ -41,7 +42,10 @@ const nf = (n: number): string => Math.round(n).toLocaleString("es-PE");
 export function PestanaPiso() {
   const { datos, acceso, prendas, diasDeVentas } = useAnalisis();
   const sinSalir = datos.prendas.filter(nuncaSalio).length;
-  const vacio = vacioPiso({ sabePiso: datos.sabePiso, prendas: datos.prendas.length, sinSalir, fallas: datos.fallas.length });
+  const pausa = pausaDelPiso(datos.cargaInicial, pisoCuadradoDe(datos.preparacion.find((p) => p.ubicacionId === datos.sede.id)));
+  const vacio = vacioPiso({ sabePiso: datos.sabePiso, prendas: datos.prendas.length, sinSalir, fallas: datos.fallas.length, pausa: pausa !== null });
+  if (vacio === "en-pausa" && pausa) return <PausaDelPiso pausa={pausa} />;
+  if (vacio === "en-pausa") return null;
   if (vacio === "sin-saber" || vacio === "sin-datos") return <SinCarril tipo={vacio} />;
 
   const cifras = cifrasPiso(datos.prendas);
@@ -207,8 +211,35 @@ function DondeEstaLoQueTienes() {
   );
 }
 
+/**
+ * La pestaña en pausa (B4): la tienda todavía carga su stock o su piso no se cuadró, y lo «guardado que nunca salió» sería de carga y no de venta. No se
+ * inventa una lista: dice por qué no se puede saber todavía y, si el piso es lo que falta y la cuenta ve Cuadrar, lleva a hacerlo (la misma regla de
+ * `decidirTalla`, `piso-plan.ts`).
+ */
+function PausaDelPiso({ pausa }: { pausa: PausaPiso }) {
+  const { acceso } = useAnalisis();
+  const texto = TEXTO_PAUSA_PISO[pausa];
+  return (
+    <section className="tarjeta entra" style={{ ["--i" as string]: 0 }}>
+      <Vacio
+        icono={<Hourglass />}
+        titulo={texto.titulo}
+        acciones={
+          pausa === "sin_cuadre" && acceso.cuadrar ? (
+            <Link href="/inventario/cuadrar" className="btn-cayla btn-primario">
+              Cuadrar el piso
+            </Link>
+          ) : undefined
+        }
+      >
+        {texto.linea}
+      </Vacio>
+    </section>
+  );
+}
+
 /** Sin carril: la base todavía no lo sabe, no se pudieron leer las prendas, o todo salió al piso (la respuesta corta y buena). */
-function SinCarril({ tipo, dentro = false }: { tipo: VacioPiso; /** Dentro de la tarjeta del carril, sin tarjeta propia. */ dentro?: boolean }) {
+function SinCarril({ tipo, dentro = false }: { tipo: Exclude<VacioPiso, "en-pausa">; /** Dentro de la tarjeta del carril, sin tarjeta propia. */ dentro?: boolean }) {
   const texto = TEXTO_VACIO_PISO[tipo];
   // «No pude ver tus prendas» no es un vacío sino una lectura que falló: va como aviso de error (Felipe 2026-10-08).
   if (tipo === "sin-datos")
