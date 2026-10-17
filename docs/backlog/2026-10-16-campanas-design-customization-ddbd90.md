@@ -38,12 +38,14 @@ visible), 4 (diseñar y publicar), 5 (la tienda pinta el diseño publicado) y **
 - [x] La puerta de Editar producto (Felipe 2026-10-17): `20261017212000`, parche anclado a `actualizar_variantes_etiquetas` (una campaña pide
   la llave de Campañas; sin ella no entra y la que la prenda tiene se queda), Editar producto sin ofrecer las campañas a quien no tiene el
   módulo, pruebas en `campanas_llave.mjs`. **Sin pegar: se pega el día que se publique la web**, justo antes de fusionar.
-- [ ] Nuevo producto (`crear_producto_con_variantes`) también deja poner una prenda nueva en una campaña sin la llave de Campañas: decide
-  Felipe si se cierra igual.
-- [ ] El día de publicar: los cuatro pasos de `CONTINUAR.md` (pegar lo que falta, fusionar, darles «Campañas» a las terminales, reimprimir
-  etiquetas si hay descuento) van como casillas en el PR de la actividad 9.
-- [ ] Al publicar: avisarle a Felipe que «Terminal Almacén» y «Terminal de ventas» pierden la configuración de campañas hasta que el líder
-  les dé el módulo «Campañas» (ADR-0436, DECIDÍ 1).
+- [x] ~~Nuevo producto (`crear_producto_con_variantes`) también deja poner una prenda nueva en una campaña sin la llave de Campañas~~ —
+  Felipe 2026-10-17: «no lo limites»: queda abierto, no se construye nada ahí.
+- [ ] El día de publicar: los cuatro pasos de `CONTINUAR.md` (pegar lo que falta, fusionar, verificar que las terminales siguen con
+  «Campañas», reimprimir etiquetas si hay descuento) van como casillas en el PR de la actividad 9.
+- [x] ~~Al publicar: avisarle a Felipe que las terminales pierden la configuración de campañas~~ — Felipe 2026-10-17: «quiero que los
+  terminales de almacén y de tienda puedan editar eso»: Terminal Almacén y Terminal de ventas tienen «Campañas» en producción desde las 16:44
+  (por SQL, con su historial). **Trampa hasta publicar la web:** guardar esos roles desde la pantalla de Roles publicada les borra
+  «Campañas» sin aviso (detalle en `CONTINUAR.md`).
 - [ ] Visto al verificar la 4 (para la 7, «El texto»): en la portada de 1280 px, una palabra larga del nombre («Internacional», de Día
   Internacional del Gato) se mete debajo de las polaroids; es el héroe compartido (`packages/portada/src/heroe.css`), así que la tienda lo
   muestra igual. El tamaño «grande/enorme» y el corte de la cursiva de la actividad 7 son el lugar para achicar la letra según el nombre.

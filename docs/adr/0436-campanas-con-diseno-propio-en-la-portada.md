@@ -323,12 +323,33 @@ llave: si llega, alguien la quiso poner; el error le dice dónde se hace.
 **SE ROMPE SI** se pega antes que la web: la web publicada todavía ofrece las campañas en la ficha y su guardado de etiquetas fallaría para
 las terminales. Por eso va en la casilla 1 del día de publicar, justo antes de fusionar.
 
-**Otra puerta, que decide Felipe (no se tocó):** Nuevo producto (`crear_producto_con_variantes`, `p_etiqueta_ids`) también pone etiquetas y
-ofrece las campañas a quien da de alta una prenda (Productos, o Recibir al recibir un envío): una terminal puede crear una prenda ya dentro de
-Halloween, con su descuento, sin tener Campañas.
+**Otra puerta, que decidió Felipe dejar abierta (ver la sección siguiente):** Nuevo producto (`crear_producto_con_variantes`,
+`p_etiqueta_ids`) también pone etiquetas y ofrece las campañas a quien da de alta una prenda (Productos, o Recibir al recibir un envío).
 
 **Verificación:** `pnpm pruebas:campanas-llave` (31: suma la ficha con una cuenta con Productos y sin Campañas —no pone una campaña, sí otra
 etiqueta, guardar sin la campaña no la quita, guardar con ella no cambia nada, con Campañas la quita y la vuelve a poner— y la migración dos
 veces); `historial_prenda`, `roles_por_modulo` y `terminales_por_tienda` en la pila propia (el caso de ADR-0293 de esta última pasa a decir
 que la ficha no tiene guardia de descuento y pide la llave solo para una campaña). En el navegador, Editar producto de la Blusa Valentina
 (en el Día del Gato): Micaela no ve el grupo de campañas y lee la línea; Felipe ve el Día del Gato.
+
+## Las terminales tienen Campañas (2026-10-17, 16:44 de Lima)
+
+Felipe cambió el rumbo: «Quiero que los terminales de almacén y de tienda puedan editar eso, no lo limites. Ahora incluso no deja editar el
+porcentaje de descuento de las campañas y quiero que cambie para que puedan hacer eso.»
+
+**DECIDÍ 23 — Terminal Almacén y Terminal de ventas tienen el módulo «Campañas»: configuran el porcentaje, las fechas y las prendas de una
+campaña.** La sesión que abrió esta rama se lo dio en producción a los dos roles (`711464fb…`, versión 20; `15fb08fe…`, versión 37) por SQL,
+porque la pantalla de Roles publicada no conoce el módulo, con su fila en `rol_modulos` y en `roles_historial` (el antes y el después,
+firmadas por Felipe). No es una migración y no va en el repo (ADR-0161: un módulo nunca se le asigna a un rol desde el código). Probado como
+cada una de las 6 terminales: `fn_puede_campanas()` y `fn_puede_tocar_etiqueta(Halloween)` dan `true`. Con eso, la consecuencia aceptada en
+DECIDÍ 1 (las terminales perdían la configuración de campañas) ya no corre, y la casilla 3 del día de publicar pasa a «verificar que siguen con
+Campañas».
+**SE ROMPE SI** alguien guarda uno de esos dos roles desde Colaboradores ▸ Roles y accesos antes de que se publique la web: la pantalla
+publicada no conoce la clave `campanas`, no la manda, y `guardar_modulos_rol` borra lo que no viene en la lista; «Campañas» se va sin aviso.
+Está escrito en `CONTINUAR.md` y en la casilla 3.
+
+**DECIDÍ 24 — Nuevo producto queda abierto** (Felipe: «no lo limites»): `crear_producto_con_variantes` sigue dejando poner una prenda nueva en
+una campaña a quien da de alta, sin pedir Campañas. No se construye ninguna puerta ahí.
+
+**La puerta de Editar producto (`20261017212000`) se queda como se decidió:** ya no frena a las terminales (tienen la llave), y sigue frenando a
+cualquier otro rol con Productos o Atributos que no tenga Campañas. Se pega el día de publicar, salvo que Felipe la quiera fuera.

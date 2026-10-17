@@ -43,12 +43,24 @@ todo cambio va en una migración NUEVA, reservada con `pnpm reservar migracion`.
 **Faltan pegar, en este orden y con el OK de Felipe, EL DÍA QUE SE PUBLIQUE LA WEB (casilla 1, abajo):** `20261017204000` (campañas sin
 descuento) → `20261017210000` (el carrusel) → `20261017212000` (la puerta de Editar producto: cada campaña pide la llave de Campañas,
 también desde la ficha). Las dos primeras las tolera una web de antes (sigue leyendo `campana`, la primera); la tercera NO: la web publicada
-ofrece las campañas en la ficha a las terminales y su guardado de etiquetas fallaría, por eso va justo antes de fusionar. **Volver a pegar una
+ofrece las campañas en la ficha a todo rol con Productos o Atributos, y a uno sin Campañas su guardado de etiquetas le fallaría, por eso va
+justo antes de fusionar. (Las dos terminales ya no frenan con ella: tienen Campañas desde el 2026-10-17, abajo.) **Volver a pegar una
 de las congeladas después de estas** las deshace (reescribe `tienda_portada()` y la regla como eran): se arregla pegando otra vez, en orden,
 las que siguen.
 
-**Otra puerta, sin tocar (decide Felipe):** Nuevo producto (`crear_producto_con_variantes`) también deja poner una prenda nueva en una campaña
-sin la llave de Campañas (ADR-0436, sección «La puerta de Editar producto»).
+**Nuevo producto queda ABIERTO, por decisión de Felipe** (2026-10-17, «no lo limites»): `crear_producto_con_variantes` sigue dejando poner una
+prenda nueva en una campaña a quien da de alta (Productos, o Recibir). No se construye ninguna puerta ahí.
+
+**Las terminales ya tienen «Campañas» en producción** (Felipe 2026-10-17: «quiero que los terminales de almacén y de tienda puedan editar
+eso, no lo limites»). A las 16:44 de Lima, la sesión que abrió esta rama les dio el módulo a los roles Terminal Almacén (`711464fb…`, versión
+20) y Terminal de ventas (`15fb08fe…`, versión 37), por SQL —la pantalla de Roles publicada no conoce el módulo—, con su fila en
+`rol_modulos` y en `roles_historial` (el antes y el después, firmadas por Felipe). No es una migración: no va en el repo. Probado como cada
+una de las 6 terminales: `fn_puede_campanas()` y `fn_puede_tocar_etiqueta(Halloween)` dan `true`; ya cambian el porcentaje, las fechas y las
+prendas.
+
+**TRAMPA, hasta que se publique la web:** si alguien guarda uno de esos dos roles desde Colaboradores ▸ Roles y accesos, «Campañas» se borra
+SIN AVISO: la pantalla publicada no conoce la clave y no la manda, y `guardar_modulos_rol` borra lo que no viene en la lista. Mientras tanto,
+no se guardan esos roles desde la pantalla (y si se guardan, se vuelve a dar el módulo y se verifica).
 
 ## El día de publicar (casillas del PR de la actividad 9, en este orden; Felipe 2026-10-17)
 
@@ -57,8 +69,9 @@ La descripción del PR (`/abrir-pr`) las lleva como casillas, en este orden. Nin
 1. **Pegar las migraciones que faltan**, en el orden de arriba: `20261017204000`, `20261017210000` y `20261017212000` (la puerta de Editar producto).
    Cada una con su sonda de huellas antes y su verificación después.
 2. **Fusionar el PR.**
-3. **Que el líder les dé el módulo «Campañas» a Terminal Almacén y a Terminal de ventas** en Roles y accesos. Sin eso, con la puerta de la
-   ficha cerrada, se quedan sin ninguna forma de tocar campañas.
+3. **Verificar que Terminal Almacén y Terminal de ventas siguen con «Campañas»** (se lo dieron por SQL el 2026-10-17: ver la trampa de
+   arriba; si alguien guardó esos roles desde la pantalla publicada, se lo quitó). Sin el módulo, con la puerta de la ficha cerrada, se
+   quedan sin ninguna forma de tocar campañas.
 4. **Reimprimir las etiquetas de precio**, si alguna campaña tiene descuento ese día (si ninguna tiene, se escribe así en la casilla).
 
 ## Reglas que ya costaron tiempo
@@ -68,7 +81,8 @@ La descripción del PR (`/abrir-pr`) las lleva como casillas, en este orden. Nin
 - Números (ADR, migración): se reservan con `pnpm reservar adr|migracion`. Los de esta rama ya están tomados (ADR-0436 y las seis migraciones del orden de pegado).
 - Colores: solo tokens; el color de la portada de una campaña es **dato** (`data-color-dato`, comentario `// tema-fijo: …`).
 - Vocabulario: «colaborador», «sede», «cliente» (nunca «clienta» en pantalla), español en comentarios de negocio.
-- Terminales Almacén y Ventas pierden la configuración de campañas hasta que el líder les dé el módulo «Campañas»: avisarle a Felipe al publicar.
+- Terminal Almacén y Terminal de ventas tienen «Campañas» desde el 2026-10-17 (por SQL): no guardes esos roles desde la pantalla de Roles publicada
+  (lo borra sin aviso, ver «Lo pegado en producción»).
 - Los botones «Volver al anterior» llevan `unificar-fijo` (no son la vuelta de una pantalla); no los cambies a `<Volver>`.
 
 ## La pila local (base + servidores)
