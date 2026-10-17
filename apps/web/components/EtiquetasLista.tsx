@@ -535,6 +535,7 @@ export function EtiquetasLista({
         <PrendasDeEtiquetaModal
           etiqueta={etiquetando}
           prendasConCosto={prendasConCosto}
+          marcasManuales={manuales[etiquetando.id] ?? []}
           onClose={() => setEtiquetando(null)}
           onAplicado={(finales) => {
             setManuales((actual) => ({ ...actual, [etiquetando.id]: finales }));

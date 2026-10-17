@@ -35,11 +35,15 @@ import {
   textoCambio,
   textoTallas,
   vistaPrevia,
+  vistaPreviaQuitar,
+  avisoFueraDeVenta,
   type FiltroMarca,
   type ProductoEtiquetable,
 } from "@/lib/etiquetar-prendas";
 import { Casilla as CasillaSistema } from "@/components/ui/Casilla";
 import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 
 /**
  * «Prendas de una etiqueta»: elegir qué prendas llevan, por ejemplo, «Black Friday».
@@ -49,7 +53,12 @@ import { Vacio } from "@/components/ui/Vacio";
  *
  * Una etiqueta con descuento cambia el precio en caja (ADR-0108), así que antes de
  * guardar se muestra QUÉ va a pasar: cuántas prendas, cuánto baja, desde cuándo y, si
- * el descuento las deja por debajo de su costo, cuáles. Sin descuento se guarda directo.
+ * el descuento las deja por debajo de su costo, cuáles. Quitarla también cambia el precio
+ * (sube), y también se confirma. Sin descuento se guarda directo.
+ *
+ * Las marcas de prendas que ya no se venden (una talla desactivada, un producto
+ * descontinuado) no salen en la lista, pero se dicen: si la prenda vuelve a la venta, vuelve
+ * con la etiqueta. «Quitárselas» las suma a lo que se quita.
  *
  * Los productos que ya entran por CATEGORÍA (regla de la campaña) aparecen marcados y
  * bloqueados: etiquetarlos a mano sería redundante.
@@ -73,10 +82,13 @@ type Cargado = { productos: ProductoEtiquetable[]; iniciales: Set<string> };
 export function PrendasDeEtiquetaModal({
   etiqueta,
   prendasConCosto,
+  marcasManuales,
   onClose,
   onAplicado,
 }: {
   etiqueta: EtiquetaParaPrendas;
+  /** Todas las prendas que llevan la etiqueta a mano, también las que ya no se venden: las mismas con las que cuenta la tarjeta. */
+  marcasManuales: readonly string[];
   /** Solo un Líder recibe costos; con la lista vacía simplemente no hay aviso de costo. */
   prendasConCosto: PrendaConCosto[];
   onClose: () => void;
@@ -92,6 +104,7 @@ export function PrendasDeEtiquetaModal({
   const [marca, setMarca] = useState<{ filtro: FiltroMarca; ids: Set<string> | null }>({ filtro: "todas", ids: null });
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
   const [confirmando, setConfirmando] = useState(false);
+  const [quitarFuera, setQuitarFuera] = useState(false);
   const [guardando, setGuardando] = useState(false);
   // Etiquetar prendas es Catálogo (ADR-0161): el combo está junto al botón desde que se abre la hoja, para que quien
   // registra se vea antes de empezar y no aparezca de golpe al primer clic (la confirmación usa el mismo).
@@ -161,6 +174,12 @@ export function PrendasDeEtiquetaModal({
     [productos, texto, categoriaId],
   );
   const visibles = marca.ids ? buscados.filter((p) => marca.ids!.has(p.id)) : buscados;
+  // Las marcas de prendas que ya no se venden: las de la tarjeta que no están en la lista (que es lo que está a la venta).
+  const fueraDeVenta = useMemo(() => {
+    if (carga.estado !== "listo") return [];
+    const enVenta = new Set(carga.productos.flatMap((p) => p.variantes.map((v) => v.id)));
+    return marcasManuales.filter((id) => !enVenta.has(id));
+  }, [carga, marcasManuales]);
   const cuentas = cuentaPorMarca(buscados, marcadas, porCategoria);
   // Lo que se puede tocar: los que NO entran ya por categoría.
   const editables = visibles.filter((p) => !(p.categoriaId && porCategoria.has(p.categoriaId)));
@@ -179,15 +198,22 @@ export function PrendasDeEtiquetaModal({
   }, [productos]);
 
   const cambio = cambioEntre(iniciales, marcadas);
-  const hayCambio = cambio.agregar.length + cambio.quitar.length > 0;
-  const vista = vistaPrevia(etiqueta, cambio.agregar.length, hoyLima());
+  const quitadasFuera = quitarFuera ? fueraDeVenta : [];
+  const hayCambio = cambio.agregar.length + cambio.quitar.length + quitadasFuera.length > 0;
+  // Lo que se confirma antes de aplicar: con descuento, todo cambio que mueve un precio en caja, al agregar Y al quitar. Las que ya
+  // no se venden no mueven ninguno, así que no piden confirmación por sí solas.
+  const hoy = hoyLima();
+  const vista = vistaPrevia(etiqueta, cambio.agregar.length, hoy);
+  const vistaQuitar = vistaPreviaQuitar(etiqueta, cambio.quitar.length, hoy);
+  const requiereRevision = !!vista || !!vistaQuitar;
+  const aviso = fueraDeVenta.length > 0 ? avisoFueraDeVenta(fueraDeVenta.length, etiqueta.descuentoPct !== null, quitarFuera) : null;
   const bajoCosto = etiqueta.descuentoPct !== null && cambio.agregar.length > 0
     ? prendasBajoCosto(etiqueta.descuentoPct, prendasConCosto, new Set(), new Set(cambio.agregar))
     : [];
 
   // Guía de foco (CLAUDE.md «Guía de foco»): sale de lo que ya apaga el botón: sin un cambio no hay qué aplicar, y sin quien
   // registra tampoco. En la confirmación, quien registra ya se eligió; si su candado cambió en el camino, el combo vuelve ahí.
-  const enConfirmacion = confirmando && !!vista;
+  const enConfirmacion = confirmando && requiereRevision;
   const campoResponsable = { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." };
   const guia = useGuiaCampos(
     enConfirmacion
@@ -201,7 +227,7 @@ export function PrendasDeEtiquetaModal({
     try {
       const { data, error } = await firmar(
         createClient().rpc("etiquetar_variantes", {
-          p_cambios: [{ etiqueta_id: etiqueta.id, agregar: cambio.agregar, quitar: cambio.quitar }],
+          p_cambios: [{ etiqueta_id: etiqueta.id, agregar: cambio.agregar, quitar: [...cambio.quitar, ...quitadasFuera] }],
         }),
         responsable.firma(),
       );
@@ -217,7 +243,8 @@ export function PrendasDeEtiquetaModal({
         r.quitadas > 0 ? `${r.quitadas} ${r.quitadas === 1 ? "prenda liberada" : "prendas liberadas"}` : null,
       ].filter(Boolean);
       avisar.exito(`«${etiqueta.nombre}»: ${partes.join(" y ") || "sin cambios"}`);
-      onAplicado([...marcadas], r);
+      // Las que ya no se venden siguen puestas si no se quitaron: la tarjeta tiene que seguir contándolas.
+      onAplicado([...marcadas, ...(quitarFuera ? [] : fueraDeVenta)], r);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
       setConfirmando(false);
@@ -234,18 +261,34 @@ export function PrendasDeEtiquetaModal({
   return (
     <Modal titulo={`Prendas de «${etiqueta.nombre}»`} subtitulo={subtitulo} tamano="ancha" onClose={onClose}>
       {(cerrar) =>
-        confirmando && vista ? (
+        enConfirmacion ? (
           <div className="mt-5 space-y-4">
-            <div className={`rounded-lg border p-4 ${vista.sinEfectoHoy ? "border-tinta/15 bg-tinta/[0.03]" : "border-ambar/40 bg-ambar/10"}`}>
-              <p className="text-sm font-medium text-tinta">{vista.titulo}</p>
-              <p className="mt-1 text-sm text-tinta/75">{vista.detalle}</p>
-              {bajoCosto.length > 0 && (
-                <p className="mt-2 text-sm text-ambar">
-                  Por debajo del costo: {bajoCosto.length} {bajoCosto.length === 1 ? "prenda" : "prendas"}
-                  {bajoCosto.length <= 3 ? ` (${bajoCosto.map(nombreBajoCosto).join(", ")})` : ""}.
+            <div
+              className={`space-y-3 rounded-lg border p-4 ${vista?.sinEfectoHoy === false || vistaQuitar?.sinEfectoHoy === false ? "border-ambar/40 bg-ambar/10" : "border-tinta/15 bg-tinta/[0.03]"}`}
+            >
+              {vista && (
+                <div>
+                  <p className="text-sm font-medium text-tinta">{vista.titulo}</p>
+                  <p className="mt-1 text-sm text-tinta/75">{vista.detalle}</p>
+                  {bajoCosto.length > 0 && (
+                    <p className="mt-2 text-sm text-ambar">
+                      Por debajo del costo: {bajoCosto.length} {bajoCosto.length === 1 ? "prenda" : "prendas"}
+                      {bajoCosto.length <= 3 ? ` (${bajoCosto.map(nombreBajoCosto).join(", ")})` : ""}.
+                    </p>
+                  )}
+                </div>
+              )}
+              {vistaQuitar && (
+                <div>
+                  <p className="text-sm font-medium text-tinta">{vistaQuitar.titulo}</p>
+                  <p className="mt-1 text-sm text-tinta/75">{vistaQuitar.detalle}</p>
+                </div>
+              )}
+              {quitadasFuera.length > 0 && (
+                <p className="text-xs text-tinta/65">
+                  Además se la quitarás a {quitadasFuera.length} {quitadasFuera.length === 1 ? "prenda que ya no se vende" : "prendas que ya no se venden"}.
                 </p>
               )}
-              {cambio.quitar.length > 0 && <p className="mt-2 text-xs text-tinta/65">Además liberarás {cambio.quitar.length} {cambio.quitar.length === 1 ? "prenda" : "prendas"}.</p>}
             </div>
             {!responsable.listo && (
               <CampoGuiado id="responsable" guia={guia}>
@@ -308,6 +351,25 @@ export function PrendasDeEtiquetaModal({
                   </button>
                 </span>
               </div>
+
+              {aviso && (
+                <Aviso
+                  tono="info"
+                  chico
+                  titulo={aviso.titulo}
+                  accion={
+                    quitarFuera ? (
+                      <BotonDeshacer onClick={() => setQuitarFuera(false)} disabled={guardando} />
+                    ) : (
+                      <button type="button" onClick={() => setQuitarFuera(true)} disabled={guardando} className="btn-cayla btn-sutil btn-chico">
+                        Quitárselas
+                      </button>
+                    )
+                  }
+                >
+                  {aviso.detalle}
+                </Aviso>
+              )}
 
               {/* Alto fijo: lo que se filtra cambia el contenido, no el tamaño de la hoja. Toma lo que la pantalla deja libre (de
                   13 a 26 rem) para que el botón quede a la vista en un laptop; si igual no cabe, el pie se queda pegado abajo. */}
@@ -405,7 +467,7 @@ export function PrendasDeEtiquetaModal({
             <div className="pie-hoja-fijo">
               <div className="space-y-3 border-t border-tinta/10 pt-4">
                 <p className="text-sm text-tinta/75" aria-live="polite">
-                  {hayCambio ? textoCambio(cambio, productos) : "Marca o quita prendas en la lista: aquí verás el cambio antes de aplicarlo."}
+                  {hayCambio ? textoCambio(cambio, productos, quitadasFuera.length) : "Marca o quita prendas en la lista: aquí verás el cambio antes de aplicarlo."}
                 </p>
                 <CampoGuiado id="responsable" guia={guia}>
                   <ComboResponsable control={responsable} deshabilitado={guardando} />
@@ -422,9 +484,9 @@ export function PrendasDeEtiquetaModal({
                     disabled={!hayCambio || carga.estado !== "listo" || !responsable.listo}
                     title={!hayCambio ? "Marca o quita una prenda para aplicar." : (responsable.motivo ?? guia.frase ?? undefined)}
                     cargando={guardando}
-                    onClick={() => (vista ? setConfirmando(true) : aplicar())}
+                    onClick={() => (requiereRevision ? setConfirmando(true) : aplicar())}
                   >
-                    {vista ? "Revisar y aplicar" : "Aplicar"}
+                    {requiereRevision ? "Revisar y aplicar" : "Aplicar"}
                   </Boton>
                 </div>
               </div>

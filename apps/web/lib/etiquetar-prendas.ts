@@ -150,7 +150,8 @@ export function productosTocados(ids: string[], productos: ProductoEtiquetable[]
   return productos.filter((p) => p.variantes.some((v) => s.has(v.id))).length;
 }
 
-export function textoCambio(cambio: { agregar: string[]; quitar: string[] }, productos: ProductoEtiquetable[]): string {
+/** `fueraDeVenta`: cuántas marcas de prendas que ya no se venden se quitan además (no están en `productos`, que son las de la lista). */
+export function textoCambio(cambio: { agregar: string[]; quitar: string[] }, productos: ProductoEtiquetable[], fueraDeVenta = 0): string {
   const partes: string[] = [];
   if (cambio.agregar.length > 0) {
     const np = productosTocados(cambio.agregar, productos);
@@ -158,9 +159,25 @@ export function textoCambio(cambio: { agregar: string[]; quitar: string[] }, pro
   }
   if (cambio.quitar.length > 0) {
     const np = productosTocados(cambio.quitar, productos);
-    partes.push(`Quitarás la etiqueta de ${plural(cambio.quitar.length, "prenda", "prendas")} (${plural(np, "producto", "productos")})`);
+    const fuera = fueraDeVenta > 0 ? ` y de ${fueraDeVenta} que ya no se ${fueraDeVenta === 1 ? "vende" : "venden"}` : "";
+    partes.push(`Quitarás la etiqueta de ${plural(cambio.quitar.length, "prenda", "prendas")} (${plural(np, "producto", "productos")})${fuera}`);
+  } else if (fueraDeVenta > 0) {
+    partes.push(`Quitarás la etiqueta de ${plural(fueraDeVenta, "prenda que ya no se vende", "prendas que ya no se venden")}`);
   }
   return partes.length > 0 ? partes.join(" · ") : "Sin cambios";
+}
+
+/** El aviso de la hoja cuando la etiqueta sigue puesta en prendas que ya no se venden (una talla desactivada, un producto
+ *  descontinuado). No cambia ningún precio hoy, pero si la prenda vuelve a la venta vuelve con la etiqueta, y con el descuento si
+ *  lo lleva: eso es lo que se dice, no la causa técnica. `quitando`: ya se tocó «Quitárselas» y falta aplicar. */
+export function avisoFueraDeVenta(n: number, conDescuento: boolean, quitando: boolean): { titulo: string; detalle: string } {
+  // Con su frase también al quitar: el aviso no cambia de alto al tocar «Quitárselas» (ADR-0185).
+  if (quitando) return { titulo: `Al aplicar, se la quitarás a ${plural(n, "prenda que ya no se vende", "prendas que ya no se venden")}`, detalle: "Hoy no cambia ningún precio: no están a la venta." };
+  const vuelve = n === 1 ? "Si vuelve a la venta, vuelve" : "Si vuelven a la venta, vuelven";
+  return {
+    titulo: `${plural(n, "prenda que ya no se vende sigue marcada", "prendas que ya no se venden siguen marcadas")}`,
+    detalle: `${n === 1 ? "Es una talla desactivada o un producto descontinuado" : "Son tallas desactivadas o productos descontinuados"}. ${vuelve} ${conDescuento ? "con este descuento" : "con la etiqueta"}.`,
+  };
 }
 
 const formatoFecha = new Intl.DateTimeFormat("es-PE", { day: "numeric", month: "short" });
@@ -188,7 +205,7 @@ export type VistaPrevia = {
  *  una campaña que empieza en dos meses no toca ningún precio hoy y hay que decirlo. */
 export function vistaPrevia(c: CampanaParaVistaPrevia, prendasAgregadas: number, hoy: string): VistaPrevia | null {
   if (c.descuentoPct === null || prendasAgregadas <= 0) return null;
-  const pct = `${c.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %`;
+  const pct = textoPct(c.descuentoPct);
   const titulo = `«${c.nombre}» baja el precio ${pct} a ${plural(prendasAgregadas, "prenda", "prendas")}`;
   const v = vigenciaDe(c.vigenteDesde, c.vigenteHasta, hoy);
 
@@ -201,3 +218,23 @@ export function vistaPrevia(c: CampanaParaVistaPrevia, prendasAgregadas: number,
   const hasta = c.vigenteHasta ? `hasta el ${fecha(c.vigenteHasta)}` : "sin fecha de fin";
   return { titulo, detalle: `Rige desde hoy, ${hasta}. En Vender se aplica solo, sin pedir código.`, sinEfectoHoy: false };
 }
+
+/** Lo mismo al QUITAR la etiqueta: con descuento, quitarla sube el precio en caja, y eso también se confirma. Antes se aplicaba
+ *  directo: «Quitar todos» en «Para liquidar» devolvía 40 prendas a su precio sin una pregunta. Dice «sin este 30 %», no «a su
+ *  precio normal»: la prenda puede seguir en otra campaña. `null` sin descuento o sin prendas quitadas (las que ya no se venden
+ *  no cuentan: no cambian ningún precio). */
+export function vistaPreviaQuitar(c: CampanaParaVistaPrevia, prendasQuitadas: number, hoy: string): VistaPrevia | null {
+  if (c.descuentoPct === null || prendasQuitadas <= 0) return null;
+  const prendas = plural(prendasQuitadas, "prenda", "prendas");
+  const v = vigenciaDe(c.vigenteDesde, c.vigenteHasta, hoy);
+
+  if (v?.estado === "proxima") {
+    return { titulo: `«${c.nombre}» ya no rebajará ${prendas}`, detalle: `La campaña empieza el ${fecha(v.desde)}: hoy su precio no cambia.`, sinEfectoHoy: true };
+  }
+  if (v?.estado === "terminada") {
+    return { titulo: `«${c.nombre}» se quita de ${prendas}`, detalle: `Esta campaña terminó el ${fecha(v.hasta)}: no cambia ningún precio.`, sinEfectoHoy: true };
+  }
+  return { titulo: `«${c.nombre}» deja de rebajar ${prendas}`, detalle: `Desde hoy, en Vender se cobran sin este ${textoPct(c.descuentoPct)}.`, sinEfectoHoy: false };
+}
+
+const textoPct = (pct: number) => `${pct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %`;
