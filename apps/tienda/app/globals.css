@@ -97,25 +97,6 @@
 .t-enlace { border: 0; background: none; padding: 6px 0; font-size: 13px; font-weight: 600; color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--taupe); }
 .t-enlace:hover { color: var(--rojo-profundo); }
 .t-ceja { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--taupe); }
-.t-hero { position: relative; isolation: isolate; overflow: hidden; color: var(--t-hero-tinta); background: radial-gradient(120% 90% at 88% 6%, var(--t-hero-2), var(--t-hero) 58%); padding: 26px 20px 30px; display: grid; gap: 18px; }
-.t-hero::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .22; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E"); }
-.t-hero-texto { position: relative; z-index: 3; display: flex; flex-direction: column; }
-.t-hero-ceja { display: flex; align-items: center; gap: 10px; font-size: 10.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--t-hero-acento); }
-.t-hero-ceja::before { content: ""; width: 26px; height: 1px; background: currentColor; }
-.t-hero-tit { margin: 12px 0 0; font-family: var(--serif); font-weight: 500; font-size: clamp(48px, 15cqi, 124px); line-height: .86; letter-spacing: -.02em; }
-.t-hero-tit span { display: block; animation: subirLinea .9s var(--ease) both; }
-.t-hero-tit em { display: block; font-style: italic; color: var(--t-hero-acento); animation: subirLinea .9s var(--ease) .12s both; }
-.t-hero-desc { margin: 16px 0 0; font-size: 15px; line-height: 1.5; max-width: 36ch; color: rgba(246, 239, 230, .86); }
-.t-hero-desc b { color: var(--t-hero-tinta); }
-.t-cuenta { display: flex; gap: 6px; margin-top: 18px; }
-.t-cuenta > span { min-width: 52px; padding: 8px 6px 6px; border-radius: 12px; background: var(--t-hero-vidrio); border: 1px solid var(--t-hero-filo); display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.t-cuenta b { font-family: var(--serif); font-size: 26px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
-.t-cuenta small { font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; opacity: .72; }
-.t-hero-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; margin-top: 22px; }
-.t-hero-acciones .t-enlace { color: var(--t-hero-tinta); text-decoration-color: var(--t-hero-acento); display: inline-flex; gap: 6px; align-items: center; }
-.t-hero-acciones .t-enlace .ic { width: 16px; height: 16px; }
-.t-colibri { position: absolute; z-index: 4; width: 42px; top: 20px; right: 20px; filter: brightness(0) invert(1); opacity: .9; animation: volar 2.6s cubic-bezier(.25, .8, .25, 1) .2s both; pointer-events: none; }
-.t-hero.sin-campana { background: radial-gradient(120% 90% at 88% 6%, #3a3430, #1d1b19 58%); }
 .t-sec { padding-block: 34px 6px; }
 .t-sec-cab { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
 .t-sec-cab h2 { margin: 6px 0 0; font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 8cqi, 60px); line-height: .94; letter-spacing: -.015em; }
@@ -172,8 +153,6 @@
   .t-logo span { font-size: 26px; }
   .t-solo-movil { display: none !important; }
   .t-solo-grande { display: flex; }
-  .t-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); align-items: center; gap: 30px; padding: 60px 64px 64px 72px; min-height: 580px; }
-  .t-colibri { width: 56px; top: 42px; right: auto; left: 46%; }
   .t-sec { padding-block: 56px 10px; }
   .t-sec-cab { margin-bottom: 26px; }
   .t-club { margin-top: 64px; padding-block: 88px; }
@@ -181,13 +160,6 @@
   .t-club-in { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); align-items: center; gap: 60px; }
   .t-pie { margin-top: 64px; }
   .t-pie-in { grid-template-columns: 1.4fr repeat(3, 1fr); }
-}
-@keyframes subirLinea { from { opacity: 0; transform: translateY(40%); } }
-@keyframes volar {
-  0% { opacity: 0; transform: translate(-340px, 160px) rotate(-18deg) scale(.7); }
-  35% { opacity: 1; transform: translate(-180px, 40px) rotate(-6deg) scale(.9); }
-  70% { transform: translate(-40px, -10px) rotate(6deg) scale(1.05); }
-  100% { opacity: .9; transform: translate(0, 0) rotate(0) scale(1); }
 }
 .t-btn.t-btn-chico { min-height: 38px; height: 38px; padding: 0 16px; font-size: 13px; margin-left: 6px; }
 /* Con el dedo, el botón chico también mide 44 px: en el celular medía 38 («Entrar» de la cabecera, «Entendido», «Ver toda la tienda»),
@@ -211,11 +183,6 @@ button, input, textarea { font: inherit; color: inherit; }
 .ic { width: 20px; height: 20px; flex: none; }
 /* La página crece hasta el pie: en una página corta el pie queda abajo de todo, no a media pantalla. */
 .t-pagina { flex: 1; display: flex; flex-direction: column; min-height: 100%; }
-.t-fecha-larga { display: none; }
-@container tienda (min-width: 700px) {
-  .t-fecha-larga { display: inline; }
-  .t-fecha-corta { display: none; }
-}
 /* Revelar al bajar (si el navegador lo sabe hacer; si no, todo queda quieto y visible). */
 @supports (animation-timeline: view()) {
   .t-revela { animation: revela linear both; animation-timeline: view(); animation-range: entry 0% entry 55%; }
@@ -229,7 +196,7 @@ button, input, textarea { font: inherit; color: inherit; }
   .t-club .t-tarjeta-club::after { animation: none !important; }
 }
 /* El colibrí es una imagen de Next con su alto escrito: el alto sigue al ancho que pone cada lugar. */
-.t-logo img, .t-colibri, .t-tarjeta-club img { height: auto; }
+.t-logo img, .t-tarjeta-club img { height: auto; }
 /* El vacío de la maqueta: una página que no está (y, más adelante, la bolsa o los pedidos sin nada). */
 .t-vacio { padding: 50px 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
 .t-vacio .ic { width: 40px; height: 40px; color: var(--taupe); }

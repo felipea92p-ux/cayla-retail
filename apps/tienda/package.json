@@ -12,6 +12,7 @@
     "rol-local": "node scripts/rol-local.mjs"
   },
   "dependencies": {
+    "@cayla-retail/portada": "workspace:*",
     "@cayla-retail/shared": "workspace:*",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.45.0",

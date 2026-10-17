@@ -1,8 +1,9 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 
-// La tienda online (ADR-0408) es una app aparte del ERP: se publica sola, con su dominio. No comparte llaves ni código con
-// apps/web; habla con la base del ERP solo por las funciones `retail.tienda_*` (lib/base.ts).
+// La tienda online (ADR-0408) es una app aparte del ERP: se publica sola, con su dominio. No comparte llaves con apps/web, y
+// código solo por los paquetes de `packages/` (el héroe de la portada, `@cayla-retail/portada`, ADR-0436); habla con la base del ERP
+// solo por las funciones `retail.tienda_*` (lib/base.ts).
 
 // Las fotos de las prendas viven en el almacén PÚBLICO de fotos del ERP (`retail-productos-fotos`): se ven sin ninguna llave. El
 // optimizador de imágenes solo acepta las de ese almacén y de ese origen (`TIENDA_FOTOS_ORIGEN`, la dirección del proyecto donde vive,

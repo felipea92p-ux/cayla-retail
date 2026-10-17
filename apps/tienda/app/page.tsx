@@ -1,12 +1,15 @@
+import type { ComponentProps } from "react";
 import Link from "next/link";
+import { HeroeDePortada } from "@cayla-retail/portada";
 import { Anuncio } from "@/components/Anuncio";
 import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { Cabecera } from "@/components/Cabecera";
-import { CollageDePrendas } from "@/components/CollageDePrendas";
+import { CejaDeCampana } from "@/components/CejaDeCampana";
 import { CuentaRegresiva } from "@/components/CuentaRegresiva";
 import { Icono } from "@/components/Icono";
 import { Isotipo } from "@/components/Isotipo";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
+import { piezasDelHeroe } from "@/components/PiezasDelHeroe";
 import { Pie } from "@/components/Pie";
 import { ConfianzaPortada } from "@/components/portada/ConfianzaPortada";
 import { VitrinaSinPrecio } from "@/components/portada/VitrinaSinPrecio";
@@ -19,7 +22,7 @@ import { hrefConVolver } from "@/lib/entrada";
 import { heroDelInicio, type Hero } from "@/lib/inicio";
 import { anioActual } from "@/lib/hoy-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
-import { anuncios, fechaCorta, fechaLarga, partirTitulo, pctTexto, type Campana } from "@/lib/portada";
+import { anuncios, partirTitulo, pctTexto, type Campana } from "@/lib/portada";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import { vitrinaDePortada } from "@/lib/vitrina-portada";
 import "./estilos/tiendas.css";
@@ -58,35 +61,32 @@ export default async function Portada() {
       <Anuncio frases={anuncios(campana)} />
       <Cabecera />
       <main className="t-pagina">
-        <section className={`t-hero t-portada${piezas.length > 0 ? " po-hero" : ""}${conCampana ? "" : " sin-campana"}`}>
-          <Isotipo className="t-colibri" />
-          <div className="t-hero-texto">
-            <TextoDelHeroe hero={hero} campana={campana} />
-            <div className="t-hero-acciones">
+        <HeroeDePortada
+          clase={`t-portada${piezas.length > 0 ? " po-hero" : ""}`}
+          sinCampana={!conCampana}
+          colibri={<Isotipo className="t-colibri" />}
+          {...textoDelHeroe(hero, campana)}
+          acciones={
+            <>
               <Link className="t-btn t-btn-claro" href={hrefConVolver("/crear-cuenta", destino)}>
                 Crear mi cuenta
               </Link>
               <Link className="t-enlace" href={hrefConVolver("/entrar", destino)}>
                 Ya tengo cuenta · Entrar <Icono nombre="flecha" />
               </Link>
-            </div>
-          </div>
-          {piezas.length > 0 ? (
-            <CollageDePrendas
-              piezas={piezas}
-              href={(p) => hrefConVolver("/crear-cuenta", hrefDePrenda(p))}
-              conPrecio={false}
-              origenFotos={origenFotos}
-              marca={hero.tipo === "campana" ? `−${pctTexto(hero.campana.pct)}%` : null}
-            />
-          ) : (
+            </>
+          }
+          piezas={piezasDelHeroe(piezas, { href: (p) => hrefConVolver("/crear-cuenta", hrefDePrenda(p)), conPrecio: false, origenFotos })}
+          Enlace={Link}
+          marca={hero.tipo === "campana" ? `−${pctTexto(hero.campana.pct)}%` : null}
+          lado={
             // Sin prendas para mostrar (o sin base): la tarjeta del Club, como antes.
             <div className="t-portada-club">
               <TarjetaClub nombre="Tu nombre aquí" desde={anio} />
               <p>Crea tu cuenta y forma parte del Club CAYLA.</p>
             </div>
-          )}
-        </section>
+          }
+        />
 
         <ConfianzaPortada tiendas={sedes.map((s) => s.nombre)} />
         <VitrinaSinPrecio prendas={vitrina} total={prendas.length - piezas.length} origenFotos={origenFotos} />
@@ -101,65 +101,42 @@ export default async function Portada() {
   );
 }
 
+type TextoDelHeroe = Pick<ComponentProps<typeof HeroeDePortada>, "ceja" | "titulo" | "descripcion" | "cuenta">;
+
 /** El texto del héroe: la campaña con sus prendas, lo nuevo, o la frase de la marca (sin nada que mostrar). */
-function TextoDelHeroe({ hero, campana }: { hero: Hero; campana: Campana | null }) {
-  if (hero.tipo === "campana") return <TextoCampana campana={hero.campana} />;
+function textoDelHeroe(hero: Hero, campana: Campana | null): TextoDelHeroe {
+  if (hero.tipo === "campana") return textoCampana(hero.campana);
   if (hero.tipo === "nuevo") {
-    return (
-      <>
-        <span className="t-hero-ceja">Recién llegado</span>
-        <h1 className="t-hero-tit">
-          <span>Lo nuevo</span>
-          <em>de CAYLA</em>
-        </h1>
-        <p className="t-hero-desc">
+    return {
+      ceja: "Recién llegado",
+      titulo: ["Lo nuevo", "de CAYLA"],
+      descripcion: (
+        <>
           <b>Lo que llegó a nuestras tiendas en los últimos 30 días.</b> Crea tu cuenta para ver precios, tallas y cuánto hay en cada tienda.
-        </p>
-      </>
-    );
+        </>
+      ),
+    };
   }
   // Una campaña sin prendas publicadas igual se anuncia (la franja de arriba ya la nombra), sin fotos.
-  return campana ? <TextoCampana campana={campana} /> : <TextoBienvenida />;
+  if (campana) return textoCampana(campana);
+  // Sin campaña ni prendas, la frase de la marca. Le habla igual a todos: la maqueta decía «Bienvenido a CAYLA», y un texto para el
+  // cliente no lleva género (ADR-0288 act. k).
+  return {
+    ceja: "Tienda online",
+    titulo: ["Donde el estilo", "transforma"],
+    descripcion: "Crea tu cuenta para ver el catálogo, cuánto hay en cada tienda y separar.",
+  };
 }
 
-function TextoCampana({ campana }: { campana: Campana }) {
-  const [linea, cursiva] = partirTitulo(campana.nombre);
-  return (
-    <>
-      <span className="t-hero-ceja">
-        {campana.hasta ? (
-          // En el celular, la fecha corta: la larga llega hasta el colibrí.
-          <span>
-            Campaña · hasta el <span className="t-fecha-larga">{fechaLarga(campana.hasta)}</span>
-            <span className="t-fecha-corta">{fechaCorta(campana.hasta)}</span>
-          </span>
-        ) : (
-          "Campaña vigente"
-        )}
-      </span>
-      <h1 className="t-hero-tit">
-        <span>{linea}</span>
-        {cursiva && <em>{cursiva}</em>}
-      </h1>
-      <p className="t-hero-desc">
+function textoCampana(campana: Campana): TextoDelHeroe {
+  return {
+    ceja: <CejaDeCampana hasta={campana.hasta} />,
+    titulo: partirTitulo(campana.nombre),
+    descripcion: (
+      <>
         <b>−{pctTexto(campana.pct)} % en prendas elegidas.</b> Crea tu cuenta para ver los precios, cuánto hay en cada tienda y separar.
-      </p>
-      {campana.hasta && <CuentaRegresiva hasta={campana.hasta} />}
-    </>
-  );
-}
-
-// Sin campaña ni prendas, la frase de la marca. Le habla igual a todos: la maqueta decía «Bienvenido a CAYLA», y un texto para el
-// cliente no lleva género (ADR-0288 act. k).
-function TextoBienvenida() {
-  return (
-    <>
-      <span className="t-hero-ceja">Tienda online</span>
-      <h1 className="t-hero-tit">
-        <span>Donde el estilo</span>
-        <em>transforma</em>
-      </h1>
-      <p className="t-hero-desc">Crea tu cuenta para ver el catálogo, cuánto hay en cada tienda y separar.</p>
-    </>
-  );
+      </>
+    ),
+    cuenta: campana.hasta ? <CuentaRegresiva hasta={campana.hasta} /> : null,
+  };
 }

@@ -100,7 +100,7 @@ const config: KnipConfig = {
       ],
     },
     "packages/*": {
-      project: ["src/**/*.{ts,css}!"],
+      project: ["src/**/*.{ts,tsx,css}!"],
     },
   },
 };

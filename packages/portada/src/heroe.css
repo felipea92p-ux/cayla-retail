@@ -1,0 +1,82 @@
+/* =====================================================================================================
+   LA PORTADA EN UNA SOLA PIEZA (ADR-0436, actividad 3) · los estilos del héroe de la portada de la tienda online (ADR-0408, maqueta v4):
+   el fondo de la campaña con su grano, la ceja, el nombre en dos líneas, la descripción, el contador, los botones, el colibrí que llega
+   volando y las prendas como polaroids que caen una vez. Los usan la tienda (`apps/tienda/app/layout.tsx`) y la vista previa del ERP
+   (Tienda web ▸ Campañas): una sola copia, para que la portada que se diseña en el ERP sea la que el cliente ve.
+
+   Lo que pide de quien la usa:
+   - los colores de la campaña: `--t-hero`, `--t-hero-2`, `--t-hero-tinta`, `--t-hero-acento`, `--t-hero-vidrio`, `--t-hero-filo` (la
+     tienda los tiene en sus tokens; una paleta los cambia con `variablesDePaleta`, src/paletas.ts);
+   - las letras y el ritmo de la tienda: `--serif`, `--ease`;
+   - el papel de la polaroid: `--t-papel-fijo`, `--t-tinta-fija` (iguales en claro y en oscuro: son parte de la foto);
+   - un contenedor llamado `tienda` (`container: tienda / inline-size`): el héroe cambia de forma a los 960 px DE ESE contenedor, no
+     de la pantalla, para que la vista previa del celular en el ERP se acomode como un celular.
+   ===================================================================================================== */
+.t-hero { position: relative; isolation: isolate; overflow: hidden; color: var(--t-hero-tinta); background: radial-gradient(120% 90% at 88% 6%, var(--t-hero-2), var(--t-hero) 58%); padding: 26px 20px 30px; display: grid; gap: 18px; }
+.t-hero::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .22; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E"); }
+.t-hero-texto { position: relative; z-index: 3; display: flex; flex-direction: column; }
+.t-hero-ceja { display: flex; align-items: center; gap: 10px; font-size: 10.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--t-hero-acento); }
+.t-hero-ceja::before { content: ""; width: 26px; height: 1px; background: currentColor; }
+.t-hero-tit { margin: 12px 0 0; font-family: var(--serif); font-weight: 500; font-size: clamp(48px, 15cqi, 124px); line-height: .86; letter-spacing: -.02em; }
+.t-hero-tit span { display: block; animation: subirLinea .9s var(--ease) both; }
+.t-hero-tit em { display: block; font-style: italic; color: var(--t-hero-acento); animation: subirLinea .9s var(--ease) .12s both; }
+.t-hero-desc { margin: 16px 0 0; font-size: 15px; line-height: 1.5; max-width: 36ch; color: color-mix(in srgb, var(--t-hero-tinta) 86%, transparent); }
+.t-hero-desc b { color: var(--t-hero-tinta); }
+.t-cuenta { display: flex; gap: 6px; margin-top: 18px; }
+.t-cuenta > span { min-width: 52px; padding: 8px 6px 6px; border-radius: 12px; background: var(--t-hero-vidrio); border: 1px solid var(--t-hero-filo); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.t-cuenta b { font-family: var(--serif); font-size: 26px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
+.t-cuenta small { font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; opacity: .72; }
+.t-hero-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; margin-top: 22px; }
+.t-hero-acciones .t-enlace { color: var(--t-hero-tinta); text-decoration-color: var(--t-hero-acento); display: inline-flex; gap: 6px; align-items: center; }
+.t-hero-acciones .t-enlace .ic { width: 16px; height: 16px; }
+.t-colibri { position: absolute; z-index: 4; width: 42px; height: auto; top: 20px; right: 20px; filter: brightness(0) invert(1); opacity: .9; animation: volar 2.6s cubic-bezier(.25, .8, .25, 1) .2s both; pointer-events: none; }
+.t-hero.sin-campana { background: radial-gradient(120% 90% at 88% 6%, #3a3430, #1d1b19 58%); } /* tema-fijo: el fondo de la marca sin campaña, un dato de la portada */
+/* La fecha de la ceja: en el celular, la corta (la larga llega hasta el colibrí). */
+.t-fecha-larga { display: none; }
+@container tienda (min-width: 700px) {
+  .t-fecha-larga { display: inline; }
+  .t-fecha-corta { display: none; }
+}
+@container tienda (min-width: 960px) {
+  .t-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); align-items: center; gap: 30px; padding: 60px 64px 64px 72px; min-height: 580px; }
+  .t-colibri { width: 56px; top: 42px; right: auto; left: 46%; }
+}
+@keyframes subirLinea { from { opacity: 0; transform: translateY(40%); } }
+@keyframes volar {
+  0% { opacity: 0; transform: translate(-340px, 160px) rotate(-18deg) scale(.7); }
+  35% { opacity: 1; transform: translate(-180px, 40px) rotate(-6deg) scale(.9); }
+  70% { transform: translate(-40px, -10px) rotate(6deg) scale(1.05); }
+  100% { opacity: .9; transform: translate(0, 0) rotate(0) scale(1); }
+}
+@keyframes po-aparecer { from { opacity: 0; } }
+
+/* ---- Las prendas como polaroids que caen una vez (antes `apps/tienda/app/estilos/collage.css`): el Inicio (con su precio) y la
+   portada sin cuenta (sin precio: Felipe 2026-10-16, «fotos sin precio»). El papel de una polaroid y el estudio de la foto son fijos
+   (son parte de la foto), igual en claro y en oscuro. ---- */
+.t-collage { position: relative; height: 330px; z-index: 2; }
+.t-polaroid { position: absolute; width: 47%; padding: 8px 8px 34px; background: var(--t-papel-fijo); border-radius: 5px; box-shadow: 0 26px 40px -18px color-mix(in srgb, var(--t-tinta-fija) 55%, transparent); transform: rotate(var(--r)); transition: transform .45s var(--ease), box-shadow .45s; animation: t-caer 1s var(--ease) both; animation-delay: calc(var(--i) * 140ms + 260ms); color: var(--t-tinta-fija); }
+.t-polaroid .t-card-foto { border-radius: 0; }
+.t-polaroid-pie { position: absolute; left: 10px; right: 10px; bottom: 8px; display: flex; justify-content: space-between; gap: 6px; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; }
+.t-polaroid-pie > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.t-polaroid:hover { transform: rotate(0deg) translateY(-8px) scale(1.04); z-index: 6; box-shadow: 0 40px 50px -20px color-mix(in srgb, var(--t-tinta-fija) 60%, transparent); }
+.t-polaroid.p1 { left: 0; top: 7%; --r: -7deg; --i: 0; z-index: 2; }
+.t-polaroid.p2 { left: 27%; top: 0; --r: 3deg; --i: 1; z-index: 3; }
+.t-polaroid.p3 { right: 0; top: 16%; --r: 8deg; --i: 2; z-index: 2; }
+.t-polaroid:focus-visible { outline: 2px solid var(--t-hero-acento); outline-offset: 3px; }
+.t-hero-pct { position: absolute; right: -10px; bottom: -36px; z-index: 0; font-family: var(--serif); font-style: italic; font-weight: 500; font-size: clamp(150px, 46cqi, 300px); line-height: 1; letter-spacing: -.04em; color: transparent; -webkit-text-stroke: 1.4px var(--t-hero-filo); pointer-events: none; animation: po-aparecer 1.4s var(--ease) .5s both; }
+/* En la portada no hay precio: en su lugar, «Ver precio», que lleva a crear la cuenta. */
+.t-polaroid-pie .t-polaroid-ver { flex: none; color: color-mix(in srgb, var(--t-tinta-fija) 62%, transparent); font-weight: 600; }
+
+@container tienda (min-width: 960px) {
+  .t-collage { height: 480px; }
+  .t-polaroid { width: 44%; }
+}
+@keyframes t-caer { from { opacity: 0; transform: translateY(-70px) rotate(calc(var(--r) * -2.2)) scale(.92); } }
+
+/* Quieto con `prefers-reduced-motion`: el colibrí ya está en su lugar, las fotos ya cayeron y el nombre ya subió. Se acorta la animación
+   en vez de quitarla, igual que la regla general de la tienda: así lo que se ve al final es exactamente lo mismo (con `animation: none`
+   el navegador dibuja los bordes de las fotos giradas de otra forma). La vista previa del ERP no tiene esa regla general: por eso va aquí. */
+@media (prefers-reduced-motion: reduce) {
+  .t-hero-tit span, .t-hero-tit em, .t-colibri, .t-polaroid, .t-hero-pct { animation-duration: .01ms; }
+  .t-polaroid { transition-duration: .01ms; }
+}

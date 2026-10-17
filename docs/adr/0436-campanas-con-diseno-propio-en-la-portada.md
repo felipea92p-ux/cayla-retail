@@ -85,3 +85,31 @@ crear con sus reglas de nombre y fechas, guardar todo o nada, activar y el detal
 en el navegador, el Gato pasó de −10 % a −15 % desde su pestaña Datos y quedó así en la base, «Nueva campaña» creó «Día del Abuelo» aprobada
 con sus fechas y llevó a ella, el ejemplo del nombre propuso «Cyber Days» (la próxima fecha que no existe) y Atributos ▸ Etiquetas ya no
 muestra Halloween pero sí Para liquidar; las guías recorren sus pasos en escritorio y a 375 px.
+
+## Actividad 3 — La portada en una sola pieza (`packages/portada`), sin cambio visible
+
+**DECIDÍ 7 — El héroe de la portada vive en un paquete, `@cayla-retail/portada`, que usan la tienda y (desde la actividad 4) el ERP.**
+Trae la estructura (`HeroeDePortada`: ceja, nombre en dos partes, descripción, contador, botones, polaroids y el descuento calado), sus
+estilos (`heroe.css`, movidos tal cual desde `apps/tienda/app/globals.css` y `estilos/collage.css`) y el modelo de colores (`PALETAS`, la
+aritmética del contraste y `variablesDePaleta`, que escribe las seis `--t-hero*` que el héroe ya leía). Lo que cambia de un lugar a otro
+llega de afuera: el colibrí (una imagen de Next), el contador (un reloj que corre), los botones y cómo lleva cada polaroid a su prenda
+(`Enlace`). La tienda arma sus polaroids con `piezasDelHeroe` (la foto optimizada o la silueta de su categoría) y la ceja con
+`CejaDeCampana`, que antes estaba escrita dos veces (portada e Inicio).
+**DESCARTÉ** copiar el héroe en el ERP para la vista previa: es exactamente el problema que esta pantalla viene a resolver (lo que se ve en el
+ERP y lo que ve el cliente se separan el primer día que alguien toca uno solo). **DESCARTÉ** también meter la tienda en un marco dentro del
+ERP: no puede mostrar un diseño sin publicar sin guardarlo antes en la base, y su `frame-ancestors 'none'` lo prohíbe a propósito.
+**SE ROMPE SI** alguien vuelve a escribir reglas `.t-hero*` en los estilos de la tienda en vez de en el paquete: habría dos dueños del mismo
+héroe y la vista previa dejaría de ser la portada. Y si alguien cambia los `--t-hero*` de la tienda sin cambiar la paleta «Rojo CAYLA»: lo
+detiene `apps/tienda/lib/heroe.test.ts`, que exige que sean iguales en claro y en oscuro.
+
+Lo que el paquete pide de quien lo usa está escrito al principio de `heroe.css`: los colores, `--serif`, `--ease`, el papel de la
+polaroid y un contenedor llamado `tienda` (el héroe cambia de forma a los 960 px de ese contenedor, no de la pantalla: así la vista previa
+del celular en el ERP se acomoda como un celular). Las catorce paletas de la maqueta pasan el contraste de texto chico (4,5) en claro y en
+oscuro: letra sobre los dos tonos del fondo, acento y descripción sobre el fondo (`paletas.test.ts`, 28 casos).
+
+**Verificación (sin cambio visible):** capturas de la portada sin cuenta y del Inicio con cuenta, antes y después, a 1440 px en claro y
+en oscuro y a 375 px, comparadas píxel por píxel. El Inicio sale idéntico (diferencia máxima 1 de 255, el redondeo de pasar
+`rgba(246, 239, 230, .86)` a `color-mix`); la portada también, salvo el suavizado de los bordes del colibrí (unos 100 píxeles, que cambian
+entre corridas según cuándo el navegador decodifica la imagen: con el código de antes también). Una primera versión del paquete apagaba
+las animaciones con `animation: none` bajo `prefers-reduced-motion` y cambiaba el suavizado de los bordes de las polaroids: ahora las acorta,
+como la regla general de la tienda. `next build` de la tienda pasa; el lockfile solo suma el paquete (sin re-resolver lo demás).
