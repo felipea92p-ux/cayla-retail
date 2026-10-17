@@ -225,7 +225,7 @@ select count(*) from retail.fn_gastos_fijos_mes('2026-09-01', :'tru') where id =
   esperar("archivado, deja de aparecer", r.ok && Number(archivado) === 0, r);
 }
 
-// 6b. Cuándo llega (20261017155000, ADR-0437): primera semana, quincena y fin de mes.
+// 6b. Cuándo llega (20261017190000, ADR-0440): primera semana, quincena y fin de mes.
 {
   const r = correr(`${ESCENA}
 select retail.guardar_gasto_fijo(null, :'tru', 'alquileres', 'Alquiler', :'prov', 'factura', 2500, false, 1, 'fin_de_mes') as fm \\gset

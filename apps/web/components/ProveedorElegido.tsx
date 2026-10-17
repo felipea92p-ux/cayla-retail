@@ -7,7 +7,7 @@ import { faltaDelProveedor, telefonoDelProveedor, type DatosBancariosLeidos } fr
 import type { ProveedorGasto } from "@/lib/gastos-reglas";
 import type { DatosPagoProveedor } from "@/lib/proveedores-reglas";
 
-// Al elegir un proveedor en un gasto (fijo o suelto) se ve cómo contactarlo y cómo pagarle, sin ir a Compras (ADR-0437): que otra
+// Al elegir un proveedor en un gasto (fijo o suelto) se ve cómo contactarlo y cómo pagarle, sin ir a Compras (ADR-0440): que otra
 // persona pueda gestionar CAYLA si Felipe falta. Reutiliza `CuentasProveedor` (la misma pieza de Por pagar). Lo bancario NO viene
 // en la lista de proveedores: se pide al elegir con `fn_proveedor_datos_bancarios`, que devuelve cero filas a quien no lo puede ver
 // (entonces no se dice «sin cuenta»: no se sabe). Es solo lectura: no guarda nada.

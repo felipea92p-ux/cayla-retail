@@ -906,8 +906,8 @@ export function puedeAnularActivo(a: Pick<ActivoFila, "estado" | "compraId" | "t
 
 export type EstadoFijo = "registrado" | "por_llegar" | "falta";
 
-/** Cuándo llega un gasto fijo cada mes (ADR-0437): un día fijo (1 al 28), la primera semana, la quincena o fin de mes. */
-/** Un proveedor para elegir en un gasto, con cómo contactarlo (ADR-0437). Lo bancario no va aquí: se pide al elegir. */
+/** Cuándo llega un gasto fijo cada mes (ADR-0440): un día fijo (1 al 28), la primera semana, la quincena o fin de mes. */
+/** Un proveedor para elegir en un gasto, con cómo contactarlo (ADR-0440). Lo bancario no va aquí: se pide al elegir. */
 export type ProveedorGasto = {
   id: string;
   nombre: string;
@@ -929,7 +929,7 @@ export const TEXTO_MOMENTO_FIJO: Record<MomentoFijo, string> = {
   fin_de_mes: "A fin de mes",
 };
 
-/** La ayuda bajo «Cuándo llega»: qué día se espera en cada opción (ADR-0437). */
+/** La ayuda bajo «Cuándo llega»: qué día se espera en cada opción (ADR-0440). */
 export const AYUDA_MOMENTO_FIJO: Record<MomentoFijo, string | undefined> = {
   dia: undefined,
   primera_semana: "Se espera el 7 de cada mes; recién falta si pasa el 7.",
@@ -971,7 +971,7 @@ export type GastoFijoMes = {
   monto: number;
   montoVariable: boolean;
   diaDelMes: number;
-  /** Cuándo llega (ADR-0437). Una base sin la migración no lo trae: se lee como «dia». */
+  /** Cuándo llega (ADR-0440). Una base sin la migración no lo trae: se lee como «dia». */
   momento: MomentoFijo;
   fechaEsperada: string;
   estado: EstadoFijo;
@@ -1073,7 +1073,7 @@ export function validarFijo(b: BorradorFijo): Resultado<ParamsFijo> {
       p_monto: m.valor,
       p_monto_variable: b.variable,
       p_dia_del_mes: dia,
-      // Solo si no es «un día fijo»: así la web sirve también antes de que la base tenga la migración (ADR-0437).
+      // Solo si no es «un día fijo»: así la web sirve también antes de que la base tenga la migración (ADR-0440).
       ...(b.momento === "dia" ? {} : { p_momento: b.momento }),
     },
   };

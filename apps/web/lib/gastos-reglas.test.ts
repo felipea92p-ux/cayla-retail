@@ -345,7 +345,7 @@ describe("F2b: gastos fijos", () => {
     expect(validarFijo({ ...b, monto: "" }).ok).toBe(false);
     expect(validarFijo({ ...b, ubicacion: "empresa" }).ok && validarFijo({ ...b, ubicacion: "empresa" })).toMatchObject({ valor: { p_ubicacion_id: null } });
   });
-  it("cuándo llega (ADR-0437): un día fijo no manda p_momento; los otros tres mandan su momento y su día de respaldo", () => {
+  it("cuándo llega (ADR-0440): un día fijo no manda p_momento; los otros tres mandan su momento y su día de respaldo", () => {
     const b = { ubicacion: "tru", categoria: "alquileres", descripcion: "Alquiler", proveedorId: "", comprobante: "factura" as const, monto: "2500", variable: false, dia: "", momento: "dia" as const };
     expect(validarFijo(b).ok).toBe(false); // «un día fijo» sin día
     const conDia = validarFijo({ ...b, dia: "12" });

@@ -102,7 +102,7 @@ export async function getMarcasNoGasto(ver: Ver): Promise<MarcaNoGasto[]> {
 /** Los proveedores activos, para elegir el del comprobante (el directorio lo lee cualquier cuenta con acceso). */
 export async function getProveedoresParaGasto(): Promise<ProveedorGasto[]> {
   const supabase = await createClient();
-  // Con su contacto (ADR-0437). Lo bancario NO se lee de la tabla: la pantalla lo pide al elegir (`fn_proveedor_datos_bancarios`).
+  // Con su contacto (ADR-0440). Lo bancario NO se lee de la tabla: la pantalla lo pide al elegir (`fn_proveedor_datos_bancarios`).
   const { data } = await supabase.from("proveedores").select("id, nombre, ruc, contacto, telefono, forma_pago_preferida, plazo_credito_dias").eq("activo", true).order("nombre");
   return ((data ?? []) as ProveedorGasto[]).map((p) => ({
     id: p.id,

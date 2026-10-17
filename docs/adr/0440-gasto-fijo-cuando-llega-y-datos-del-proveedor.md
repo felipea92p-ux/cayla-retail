@@ -1,6 +1,6 @@
-# ADR-0437 · Gasto fijo que llega «la primera semana», «en la quincena» o «a fin de mes», y el proveedor a la vista
+# ADR-0440 · Gasto fijo que llega «la primera semana», «en la quincena» o «a fin de mes», y el proveedor a la vista
 
-- **Fecha:** 2026-10-17 · **Estado:** escrito, **la migración `20261017155000` NO está probada ni en producción**. La nube de esta sesión no tenía
+- **Fecha:** 2026-10-17 · **Estado:** escrito, **la migración `20261017190000` NO está probada ni en producción**. La nube de esta sesión no tenía
   Docker ni Postgres, así que ni la migración ni `pnpm pruebas:activos-y-fijos` corrieron; las pruebas SQL nuevas están escritas y sin ejecutar.
   Las pruebas de la web (vitest) sí corren. Rama `claude/cayla-config-data-errors-35e9da-duw4wu`.
 - **Pedido:** Felipe, 2026-10-17, sobre el modal «Nuevo gasto fijo»: elegir primera semana, quincena o fin de mes en vez de «Día del mes»;

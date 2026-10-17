@@ -1,5 +1,5 @@
 -- ============================================================================
--- Gasto fijo que llega «la primera semana», «en la quincena» o «a fin de mes» (ADR-0437, Felipe 2026-10-17)
+-- Gasto fijo que llega «la primera semana», «en la quincena» o «a fin de mes» (ADR-0440, Felipe 2026-10-17)
 --
 -- EL PROBLEMA PRIMERO. Un gasto fijo solo sabía decir «llega el día N», con N entre 1 y 28 (`gastos_fijos_dia_del_mes_check`:
 -- «para que exista en todos los meses»). Pero el alquiler, la planilla de un contador o el servicio de internet no se pagan «el
@@ -49,7 +49,7 @@ end;
 $$;
 
 comment on column retail.gastos_fijos.momento is
-  'Cuándo llega cada mes: un día fijo (dia), la primera semana, la quincena o fin de mes (ADR-0437). La fecha esperada sale de aquí (fn_fecha_esperada_fijo); dia_del_mes queda como orden (7, 15 y 28 para los tres últimos).';
+  'Cuándo llega cada mes: un día fijo (dia), la primera semana, la quincena o fin de mes (ADR-0440). La fecha esperada sale de aquí (fn_fecha_esperada_fijo); dia_del_mes queda como orden (7, 15 y 28 para los tres últimos).';
 
 -- 2. La fecha en que se espera, en un solo lugar. -----------------------------------------------------------------------------
 
@@ -67,7 +67,7 @@ as $$
          end;
 $$;
 comment on function retail.fn_fecha_esperada_fijo(date, text, integer) is
-  'ADR-0437: la fecha en que se espera un gasto fijo en el mes que empieza en p_mes_ini. Día N, el 7 (primera semana), el 15 (quincena) o el último día del mes (fin de mes: 28, 29, 30 o 31).';
+  'ADR-0440: la fecha en que se espera un gasto fijo en el mes que empieza en p_mes_ini. Día N, el 7 (primera semana), el 15 (quincena) o el último día del mes (fin de mes: 28, 29, 30 o 31).';
 revoke all on function retail.fn_fecha_esperada_fijo(date, text, integer) from public, anon;
 grant execute on function retail.fn_fecha_esperada_fijo(date, text, integer) to authenticated;
 
@@ -161,7 +161,7 @@ begin
     if position('retail.fn_ve_finanzas_de_todo()' in v_def) = 0
        or position('(v_ini + (f.dia_del_mes - 1))::date' in v_def) = 0
        or position('order by (g.id is not null), f.dia_del_mes, f.descripcion' in v_def) = 0 then
-      raise exception 'fn_gastos_fijos_mes cambió en la base: revisar antes de pegar (ADR-0437 espera la de 20260925000000 + 20260928220000).';
+      raise exception 'fn_gastos_fijos_mes cambió en la base: revisar antes de pegar (ADR-0440 espera la de 20260925000000 + 20260928220000).';
     end if;
   end if;
 end;

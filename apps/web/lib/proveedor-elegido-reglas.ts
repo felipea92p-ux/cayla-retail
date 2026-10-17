@@ -1,4 +1,4 @@
-// Lo que se muestra al elegir un proveedor en un gasto (ADR-0437): su teléfono y cómo se le paga. Lógica pura; la pantalla es
+// Lo que se muestra al elegir un proveedor en un gasto (ADR-0440): su teléfono y cómo se le paga. Lógica pura; la pantalla es
 // `components/ProveedorElegido.tsx`.
 import { urlWhatsApp } from "./proveedores-reglas";
 
