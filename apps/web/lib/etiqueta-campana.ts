@@ -5,6 +5,7 @@
 // de ir a la base, y sirve igual en el navegador y en la API.
 
 import { descuentoDeCampana, totalDeLineas } from "./vender-reglas";
+import type { Vigencia } from "./etiqueta-vigencia";
 
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
@@ -88,6 +89,52 @@ export function alcanceCampana(
     else if (varianteIdsManuales.has(p.id)) aMano++;
   }
   return { porCategoria, aMano, total: porCategoria + aMano };
+}
+
+// ---- Lo que dice la tarjeta de una etiqueta -------------------------------------------------------------------------------
+// La tarjeta cuenta con la MISMA regla que la hoja «Prendas» y la de campaña: una prenda a la venta es una talla activa de un
+// producto que no está descontinuado (`prendas`, la lista que trae la página). Antes contaba las filas de `variante_etiquetas`
+// tal cual: «Nuevo» decía 186 y su hoja mostraba 164, porque 22 marcas eran de tallas desactivadas (producción, 2026-10-17).
+
+export type ConteoTarjeta = AlcanceCampana & {
+  /** Marcadas a mano que ya no se venden (una talla desactivada, un producto descontinuado): no cuentan, pero se dicen. */
+  fueraDeVenta: number;
+};
+
+export function conteoDeTarjeta(
+  prendas: readonly Pick<PrendaConCosto, "id" | "categoriaId">[],
+  categoriaIds: ReadonlySet<string>,
+  manuales: readonly string[],
+): ConteoTarjeta {
+  const enVenta = new Set(prendas.map((p) => p.id));
+  return { ...alcanceCampana(prendas, categoriaIds, new Set(manuales)), fueraDeVenta: manuales.filter((id) => !enVenta.has(id)).length };
+}
+
+const prendas = (n: number) => `${n} ${n === 1 ? "prenda" : "prendas"}`;
+
+/** «164 prendas a la venta», «230 prendas a la venta · 200 por categoría» o «Sin prendas a la venta»; y, aparte, «22 marcadas
+ *  que ya no se venden» si las hay (la razón de un número que bajó, o de un cero). */
+export function textoConteoTarjeta(c: ConteoTarjeta): { texto: string; fuera: string | null } {
+  const texto =
+    c.total === 0 ? "Sin prendas a la venta" : c.porCategoria === 0 ? `${prendas(c.total)} a la venta` : `${prendas(c.total)} a la venta · ${c.porCategoria} por categoría`;
+  const fuera = c.fueraDeVenta === 0 ? null : c.fueraDeVenta === 1 ? "1 marcada que ya no se vende" : `${c.fueraDeVenta} marcadas que ya no se venden`;
+  return { texto, fuera };
+}
+
+export type ChipTarjeta = { texto: string; tono: "verde" | "ambar" | "neutro"; title?: string };
+
+/** El chip de la temporada. Una campaña vigente que no llega a ninguna prenda a la venta va en ámbar: en verde parecía que
+ *  bajaba precios y no tocaba ninguno («Para liquidar», vigente del 1 set. al 31 dic. con 0 prendas, producción 2026-10-17).
+ *  `alcance` es `null` cuando quien mira no ve los conteos: ahí dice solo «Vigente», como antes. */
+export function chipDeTarjeta(v: Vigencia | null, alcance: number | null): ChipTarjeta | null {
+  if (!v) return null;
+  if (v.estado === "vigente") {
+    return alcance === 0
+      ? { texto: "Vigente, sin prendas", tono: "ambar", title: "Rige hoy, pero no llega a ninguna prenda a la venta: no cambia ningún precio." }
+      : { texto: "Vigente", tono: "verde" };
+  }
+  if (v.estado === "proxima") return { texto: v.enDias === 1 ? "Mañana" : `En ${v.enDias} días`, tono: "ambar" };
+  return { texto: "Fuera de temporada", tono: "neutro" };
 }
 
 /** Las prendas del alcance de una campaña que quedarían con precio menor que su costo.

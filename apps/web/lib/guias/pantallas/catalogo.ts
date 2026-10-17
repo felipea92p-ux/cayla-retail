@@ -550,8 +550,8 @@ export const GUIA_ATRIBUTOS: Guia = {
       id: "campana",
       ancla: "atributos.campana",
       opcional: true,
-      titulo: "Configurar campaña",
-      texto: "Para una etiqueta de campaña, como Black Friday: el descuento, las fechas y a qué categorías se aplica (te la abrimos).",
+      titulo: "La campaña",
+      texto: "«Campaña» es para una etiqueta como Black Friday: el descuento, las fechas y a qué categorías se aplica (te la abrimos). Si la tarjeta dice «Vigente, sin prendas» en ámbar, rige pero no baja ningún precio todavía.",
     },
     {
       id: "campana-form",

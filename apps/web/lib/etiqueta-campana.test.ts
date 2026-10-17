@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   alcanceCampana,
+  chipDeTarjeta,
+  conteoDeTarjeta,
   DESCUENTOS_RAPIDOS,
   nombreBajoCosto,
   objecionVigencia,
@@ -8,6 +10,7 @@ import {
   parsearFecha,
   prendasBajoCosto,
   prendasPorCategoria,
+  textoConteoTarjeta,
   type PrendaConCosto,
 } from "./etiqueta-campana";
 import { descuentoDeCampana } from "./vender-reglas";
@@ -155,5 +158,45 @@ describe("cuánto alcanza una campaña, antes de guardar", () => {
 
   it("los descuentos de un toque son todos válidos para la base: entre 0 y 100", () => {
     for (const v of DESCUENTOS_RAPIDOS) expect(parsearDescuento(String(v))).toEqual({ ok: true, valor: v });
+  });
+});
+
+describe("la tarjeta cuenta lo mismo que su hoja", () => {
+  const aLaVenta = [
+    { id: "jean-28", categoriaId: "jeans" },
+    { id: "jean-30", categoriaId: "jeans" },
+    { id: "polo-s", categoriaId: "polos" },
+  ];
+
+  it("una marca en una talla que ya no se vende no suma, pero se dice (Nuevo: 186 marcas, 164 a la venta)", () => {
+    const c = conteoDeTarjeta(aLaVenta, new Set(), ["jean-28", "polo-s", "talla-desactivada"]);
+    expect(c).toEqual({ porCategoria: 0, aMano: 2, total: 2, fueraDeVenta: 1 });
+    expect(textoConteoTarjeta(c)).toEqual({ texto: "2 prendas a la venta", fuera: "1 marcada que ya no se vende" });
+  });
+
+  it("con categorías, dice cuántas entran por ellas; sin nada, «Sin prendas a la venta»", () => {
+    expect(textoConteoTarjeta(conteoDeTarjeta(aLaVenta, new Set(["jeans"]), ["polo-s"])).texto).toBe("3 prendas a la venta · 2 por categoría");
+    expect(textoConteoTarjeta(conteoDeTarjeta(aLaVenta, new Set(), []))).toEqual({ texto: "Sin prendas a la venta", fuera: null });
+  });
+
+  it("todas las marcas fuera de venta dan cero (Aniversario CAYLA: 8 marcas en tallas desactivadas)", () => {
+    const c = conteoDeTarjeta(aLaVenta, new Set(), Array.from({ length: 8 }, (_, i) => `vieja-${i}`));
+    expect(textoConteoTarjeta(c)).toEqual({ texto: "Sin prendas a la venta", fuera: "8 marcadas que ya no se venden" });
+  });
+});
+
+describe("el chip de la temporada", () => {
+  it("vigente y sin prendas va en ámbar; vigente con prendas, en verde", () => {
+    expect(chipDeTarjeta({ estado: "vigente", hasta: "2026-12-31" }, 0)).toMatchObject({ texto: "Vigente, sin prendas", tono: "ambar" });
+    expect(chipDeTarjeta({ estado: "vigente", hasta: "2026-12-31" }, 164)).toEqual({ texto: "Vigente", tono: "verde" });
+  });
+  it("quien no ve los conteos ve «Vigente», como antes", () => {
+    expect(chipDeTarjeta({ estado: "vigente", hasta: null }, null)).toEqual({ texto: "Vigente", tono: "verde" });
+  });
+  it("próxima y terminada no cambian; sin fechas no hay chip", () => {
+    expect(chipDeTarjeta({ estado: "proxima", desde: "2026-11-09", enDias: 1 }, 0)).toEqual({ texto: "Mañana", tono: "ambar" });
+    expect(chipDeTarjeta({ estado: "proxima", desde: "2026-11-09", enDias: 23 }, 5)).toEqual({ texto: "En 23 días", tono: "ambar" });
+    expect(chipDeTarjeta({ estado: "terminada", hasta: "2026-10-14" }, 0)).toEqual({ texto: "Fuera de temporada", tono: "neutro" });
+    expect(chipDeTarjeta(null, 0)).toBeNull();
   });
 });

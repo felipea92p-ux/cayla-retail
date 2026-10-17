@@ -16,7 +16,6 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { campanaValida, camposDeCampana } from "@/lib/etiqueta-campana-guia";
 import {
-  AccionTarjeta,
   BarraAtributos,
   BotonesPendiente,
   BotonReactivar,
@@ -32,6 +31,8 @@ import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import { AYUDA_COMENTARIO_APROBAR, avisoEtiquetaAgregada, cuerpoAprobarEtiqueta, verboAprobacion } from "@/lib/etiqueta-aprobacion-reglas";
 import {
   alcanceCampana,
+  chipDeTarjeta,
+  conteoDeTarjeta,
   DESCUENTOS_RAPIDOS,
   nombreBajoCosto,
   objecionVigencia,
@@ -39,6 +40,8 @@ import {
   parsearFecha,
   prendasBajoCosto,
   prendasPorCategoria,
+  textoConteoTarjeta,
+  type ConteoTarjeta,
   type PrendaConCosto,
 } from "@/lib/etiqueta-campana";
 import { textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
@@ -113,30 +116,24 @@ function ordenar(lista: Etiqueta[]) {
   return [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
-/** Lo que dice la etiqueta sobre su temporada: un chip (se lee sin abrir nada)
- *  y el rango de fechas, juntos debajo del nombre. */
-function chipDeVigencia(v: Vigencia | null) {
-  if (!v) return null;
-  if (v.estado === "vigente") return <Chip tono="verde">Vigente</Chip>;
-  if (v.estado === "proxima") return <Chip tono="ambar">{v.enDias === 1 ? "Mañana" : `En ${v.enDias} días`}</Chip>;
-  return <Chip tono="neutro">Fuera de temporada</Chip>;
-}
-
 function TarjetaEtiqueta({
   e,
   vigencia,
   apagada = false,
-  prendas = null,
+  conteo = null,
   children,
 }: {
   e: Etiqueta;
   vigencia: Vigencia | null;
   apagada?: boolean;
-  /** Prendas etiquetadas a mano con ella (solo un Líder lo sabe); `null` = no mostrar. */
-  prendas?: number | null;
+  /** A cuántas prendas a la venta llega, con la regla de su hoja (`conteoDeTarjeta`); `null` = quien mira no lo ve. */
+  conteo?: ConteoTarjeta | null;
   children?: ReactNode;
 }) {
   const rango = textoRango(e.vigenteDesde, e.vigenteHasta);
+  // Lo que dice su temporada (un chip que se lee sin abrir nada) y, si se ve el conteo, si de verdad llega a alguna prenda.
+  const chip = chipDeTarjeta(vigencia, conteo?.total ?? null);
+  const textos = conteo ? textoConteoTarjeta(conteo) : null;
   return (
     <TarjetaAtributo
       muestra={<MuestraEtiqueta nombre={e.nombre} estilo={e.estilo} />}
@@ -148,7 +145,11 @@ function TarjetaEtiqueta({
         <>
           {(vigencia || rango) && (
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              {chipDeVigencia(vigencia)}
+              {chip && (
+                <Chip tono={chip.tono} title={chip.title}>
+                  {chip.texto}
+                </Chip>
+              )}
               {rango && <p className="text-[11px] tabular-nums text-tinta/60">{rango}</p>}
             </div>
           )}
@@ -161,9 +162,10 @@ function TarjetaEtiqueta({
                 : `${e.categoriaIds.length} categoría${e.categoriaIds.length === 1 ? "" : "s"}`}
             </p>
           )}
-          {prendas !== null && (
+          {textos && (
             <p className="text-[11px] tabular-nums text-tinta/60">
-              {prendas === 0 ? "Sin prendas etiquetadas" : `${prendas} ${prendas === 1 ? "prenda etiquetada" : "prendas etiquetadas"} a mano`}
+              {textos.texto}
+              {textos.fuera && <span className="block text-tinta/45">{textos.fuera}</span>}
             </p>
           )}
           {e.descuentoPct !== null && !DESCUENTO_YA_SE_APLICA && <p className="text-[10.5px] text-tinta/50">Aún no se aplica en Vender</p>} {/* unificar-fijo: dice el estado del descuento, no que falte algo */}
@@ -465,7 +467,12 @@ export function EtiquetasLista({
               </TituloGrupo>
               <div className={GRILLA_ATRIBUTOS}>
                 {delGrupo.map((e) => (
-                  <TarjetaEtiqueta key={e.id} e={e} vigencia={vigenciaEn(e)} prendas={puedeEditar ? (manuales[e.id]?.length ?? 0) : null}>
+                  <TarjetaEtiqueta
+                    key={e.id}
+                    e={e}
+                    vigencia={vigenciaEn(e)}
+                    conteo={puedeEditar ? conteoDeTarjeta(prendasConCosto, new Set(e.categoriaIds), manuales[e.id] ?? []) : null}
+                  >
                     {/* Una etiqueta CON descuento cambia el precio en caja; quien tiene el módulo Etiquetas también la configura (ADR-0293). */}
                     {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) &&
                       (e.estado === "pendiente" ? (
@@ -478,8 +485,16 @@ export function EtiquetasLista({
                         />
                       ) : (
                         <PieTarjeta>
-                          <AccionTarjeta onClick={() => setEtiquetando(e)} guia="atributos.prendas">Prendas</AccionTarjeta>
-                          <AccionTarjeta onClick={() => setConfigurando(e)} guia="atributos.campana">Configurar campaña</AccionTarjeta>
+                          {/* Los botones chicos del sistema (ADR-0358), a lo ancho de la tarjeta como «Reactivar»: a 1024 px el pie
+                              mide 88 px y dos lado a lado no caben (ni un ícono al lado del texto). Cambian varias cosas de un toque: no son enlaces. */}
+                          <div className="grid w-full gap-1.5">
+                            <button type="button" onClick={() => setEtiquetando(e)} data-guia="atributos.prendas" className="btn-cayla btn-sutil btn-chico w-full whitespace-nowrap">
+                              Prendas
+                            </button>
+                            <button type="button" onClick={() => setConfigurando(e)} data-guia="atributos.campana" className="btn-cayla btn-sutil btn-chico w-full whitespace-nowrap">
+                              Campaña
+                            </button>
+                          </div>
                           <DesactivarTarjeta
                             cambiando={cambiandoId === e.id}
                             onClick={() => setConfirmando(confirmacionCatalogo("desactivar", e.nombre, () => desactivar(e)))}
