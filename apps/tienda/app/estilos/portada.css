@@ -1,12 +1,8 @@
 /* =====================================================================================================
-   TIENDA ONLINE CAYLA (ADR-0408) · la portada de quien todavía no tiene cuenta (Felipe 2026-10-16: «competencia de grandes empresas
-   mundiales» y «fotos sin precio»). Lo que suma a las piezas de siempre (el héroe de globals.css, las polaroids de collage.css, la
-   tarjeta del catálogo de catalogo.css): la franja de confianza bajo el héroe y la vitrina sin precio. Prefijo propio `po-` (las hojas de
-   la tienda son globales). Solo tokens: en oscuro se invierten solos.
+   TIENDA ONLINE CAYLA (ADR-0408) · la franja de confianza que sale en el Inicio para quien todavía no tiene sesión (Felipe 2026-10-16:
+   «competencia de grandes empresas mundiales»). Prefijo propio `po-` (las hojas de la tienda son globales). Solo tokens: en oscuro se
+   invierten solos.
    ===================================================================================================== */
-
-/* ---- El héroe con sus polaroids: el texto un poco más angosto, para que las fotos respiren ---- */
-.po-hero .t-hero-desc { max-width: 40ch; }
 
 /* ---- La franja de confianza: lo que la tienda ya cumple, de un vistazo (como «envío gratis» en una marca grande) ---- */
 .po-confianza { background: var(--papel); border-bottom: 1px solid var(--sand); }
@@ -17,25 +13,6 @@
 .po-confianza b { display: block; font-size: 13px; font-weight: 700; line-height: 1.25; }
 .po-confianza small { display: block; margin-top: 3px; font-size: 12px; line-height: 1.4; color: var(--tinta-60); }
 
-/* ---- La vitrina sin precio: las tarjetas del catálogo con «Ver precio» donde iría el precio ---- */
-.po-carril { --flecha-y: 38%; }
-.po-tarjeta { color: var(--tinta); }
-.po-tarjeta .t-card-media { display: block; }
-.po-ver-precio { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; color: var(--rojo-profundo); }
-.po-ver-precio .ic { width: 14px; height: 14px; transition: transform .25s var(--ease); }
-.po-tarjeta:hover .po-ver-precio .ic { transform: translateX(3px); }
-.po-tarjeta:hover .t-card-nom { text-decoration: underline; text-underline-offset: 3px; }
-.po-tarjeta:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; border-radius: 4px; }
-/* Al final del carril, cuántas más hay adentro: del alto de una foto, en hueso, con su botón. */
-.po-mas { align-self: start; aspect-ratio: 4 / 5; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 10px; padding: 22px; border-radius: 3px; background: var(--hueso); color: var(--tinta); }
-.po-mas-n { font-family: var(--serif); font-style: italic; font-weight: 500; font-size: clamp(44px, 12cqi, 64px); line-height: 1; color: var(--rojo); }
-.po-mas > span:nth-child(2) { font-size: 14px; line-height: 1.4; max-width: 18ch; }
-.po-mas .t-btn.t-btn-chico { margin: 6px 0 0; }
-@media (hover: hover) {
-  .po-mas:hover .t-btn { background: var(--rojo-profundo); }
-}
-.po-mas:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; }
-
 @container tienda (min-width: 700px) {
   .po-confianza ul { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
 }
@@ -44,8 +21,4 @@
   .po-confianza li { padding-inline: 24px; }
   .po-confianza li:first-child { padding-left: 0; }
   .po-confianza li + li { border-left: 1px solid var(--sand); }
-  .po-carril { --flecha-borde: -20px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .po-ver-precio .ic { transition: none; }
 }

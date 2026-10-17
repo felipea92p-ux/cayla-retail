@@ -555,6 +555,101 @@
   "tabla": "retail.cambios"
  },
  {
+  "conname": "campana_disenos_acomodo",
+  "definicion": "CHECK ((acomodo = ANY (ARRAY['polaroids'::text, 'grande'::text, 'mosaico'::text, 'letras'::text])))",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_actualizado_por_fkey",
+  "definicion": "FOREIGN KEY (actualizado_por) REFERENCES personas(id)",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_colores_de_la_paleta",
+  "definicion": "CHECK (((paleta = 'propia'::text) = (colores IS NOT NULL)))",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_colores_validos",
+  "definicion": "CHECK (((colores IS NULL) OR retail.fn_colores_de_portada_validos(colores)))",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_corte",
+  "definicion": "CHECK (((corte IS NULL) OR (corte >= 0)))",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_estado",
+  "definicion": "CHECK ((estado = ANY (ARRAY['borrador'::text, 'publicado'::text, 'anterior'::text, 'archivado'::text])))",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_etiqueta_id_fkey",
+  "definicion": "FOREIGN KEY (etiqueta_id) REFERENCES retail.etiquetas(id)",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_fondo",
+  "definicion": "CHECK ((fondo = ANY (ARRAY['degradado'::text, 'liso'::text, 'dibujo'::text])))",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_frase",
+  "definicion": "CHECK (((char_length(frase) <= 60) AND (frase = btrim(frase))))",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_intensidad",
+  "definicion": "CHECK ((intensidad = ANY (ARRAY['suave'::text, 'medio'::text, 'fuerte'::text])))",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_paleta",
+  "definicion": "CHECK ((paleta = ANY (ARRAY['cayla'::text, 'noche'::text, 'caramelo'::text, 'calabaza'::text, 'bosque'::text, 'medianoche'::text, 'oliva'::text, 'terracota'::text, 'negro-rojo'::text, 'patria'::text, 'arena'::text, 'rosa'::text, 'lavanda'::text, 'menta'::text, 'propia'::text])))",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_patron",
+  "definicion": "CHECK ((patron = ANY (ARRAY['huellitas'::text, 'rayas'::text, 'puntos'::text, 'cuadros'::text, 'corazones'::text, 'estrellas'::text, 'confeti'::text, 'ondas'::text])))",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_prendas",
+  "definicion": "CHECK (((prendas IS NULL) OR ((cardinality(prendas) >= 1) AND (cardinality(prendas) <= 4))))",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_publicado_con_fecha",
+  "definicion": "CHECK (((estado = 'borrador'::text) = (publicado_en IS NULL)))",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_publicado_por_fkey",
+  "definicion": "FOREIGN KEY (publicado_por) REFERENCES personas(id)",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_sello",
+  "definicion": "CHECK ((sello = ANY (ARRAY['ninguno'::text, 'descuento'::text, 'dias'::text, 'nuevo'::text])))",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_tamano",
+  "definicion": "CHECK ((tamano = ANY (ARRAY['grande'::text, 'enorme'::text])))",
+  "tabla": "retail.campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_version",
+  "definicion": "CHECK ((version >= 1))",
+  "tabla": "retail.campana_disenos"
+ },
+ {
   "conname": "campana_efecto_caja_etiqueta_id_fkey",
   "definicion": "FOREIGN KEY (etiqueta_id) REFERENCES retail.etiquetas(id)",
   "tabla": "retail.campana_efecto_caja"
