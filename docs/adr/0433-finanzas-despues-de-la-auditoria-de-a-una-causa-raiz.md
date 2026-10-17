@@ -209,6 +209,7 @@ a Dynamic (no es nuestro sistema: se avisa); recomputar la huella viva dentro de
 SE ROMPE SI: una vigencia retroactiva se guarda en el mismo instante en que se cierra el mes (el cerrojo no cubre los parámetros; el chequeo «huella» lo avisaría); una migración futura vuelve a crear
 `fn_exigir_mes_abierto` como STABLE (la prueba de dos sesiones, D1 y D2, lo atrapa); alguien registra con una fecha de un mes cerrado a través de una vía que no pasa por un `fn_candado_*` (el candado de mes
 solo cubre lo que lo llama).
+**Contra producción** (solo lectura, 2026-10-16): `fn_exigir_mes_abierto` y `fn_primer_mes_cerrado` son idénticas a las de local (md5 `66ee8ad2…` y `f95be278…`), cada anclaje aparece exactamente una vez y hay 0 filas en `periodos`.
 **Verificado.** `pnpm pruebas:finanzas-mes-cerrado`: 16 verificaciones (el Estado de resultados no cambia una cifra tras una deriva en el diario vivo; archivar una caja de un mes cerrado y las vigencias retroactivas se
 rechazan, las de un mes abierto o futuro no; y DOS SESIONES reales entrelazadas, con `lock_timeout`, en las dos direcciones, más el control de que un gasto de HOY no espera): 9 fallan sin la migración y las 16
 pasan con ella; la carrera con confirmaciones reales en una base desechable, arriba. **No verificado en el navegador:** la base local compartida no tiene la migración; queda para el pase final (un mes cerrado en

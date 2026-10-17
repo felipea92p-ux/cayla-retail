@@ -30,6 +30,8 @@
 --     pago a cuenta no entran al diario, no se guardan. Un re-guardado del mismo valor ya confirmado sigue siendo un no-op.
 -- Reemplazos anclados sobre la función VIVA (cada texto ancla aparece una vez o la migración aborta; si el texto nuevo ya está, no toca nada).
 -- Verificado: `scripts/pruebas/finanzas_mes_cerrado.mjs` (incluye dos sesiones reales entrelazadas) y las suites de cierre de mes y de gastos.
+-- Contra producción (solo lectura, 2026-10-16): `fn_exigir_mes_abierto` (md5 66ee8ad2…) y `fn_primer_mes_cerrado` (f95be278…) son idénticas a las de local, y los
+-- anclajes de `fn_estado_resultados`, `archivar_caja_prueba` y `guardar_parametro_tributario` aparecen exactamente una vez; hoy hay 0 filas en `periodos`.
 --
 -- SE ROMPE SI: una vigencia retroactiva se guarda en el mismo instante en que se cierra el mes (el cerrojo no cubre los parámetros: son una
 -- acción rara de Configuración y tomar 180 cerrojos por un IGV desde 2011 no se justifica; el chequeo «huella» del cierre lo avisaría).
