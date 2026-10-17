@@ -1,5 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { nombreBajoCosto, objecionVigencia, parsearDescuento, parsearFecha, prendasBajoCosto, type PrendaConCosto } from "./etiqueta-campana";
+import {
+  alcanceCampana,
+  DESCUENTOS_RAPIDOS,
+  nombreBajoCosto,
+  objecionVigencia,
+  parsearDescuento,
+  parsearFecha,
+  prendasBajoCosto,
+  prendasPorCategoria,
+  type PrendaConCosto,
+} from "./etiqueta-campana";
 import { descuentoDeCampana } from "./vender-reglas";
 
 describe("parsearDescuento", () => {
@@ -113,5 +123,37 @@ describe("el aviso mide el peor caso entre las tiendas (precio propio, Felipe 20
         anterior = cobrado;
       }
     }
+  });
+});
+
+describe("cuánto alcanza una campaña, antes de guardar", () => {
+  const prendas = [
+    { id: "jean-28", categoriaId: "jeans" },
+    { id: "jean-30", categoriaId: "jeans" },
+    { id: "polo-s", categoriaId: "polos" },
+    { id: "collar", categoriaId: null },
+  ];
+
+  it("cuenta las prendas a la venta de cada categoría; una prenda sin categoría no suma a ninguna", () => {
+    const cuenta = prendasPorCategoria(prendas);
+    expect(cuenta.get("jeans")).toBe(2);
+    expect(cuenta.get("polos")).toBe(1);
+    expect(cuenta.size).toBe(2);
+  });
+
+  it("suma las de sus categorías y las marcadas a mano, sin contar dos veces la que entra por las dos vías", () => {
+    expect(alcanceCampana(prendas, new Set(["jeans"]), new Set(["jean-28", "polo-s"]))).toEqual({ porCategoria: 2, aMano: 1, total: 3 });
+  });
+
+  it("una marcada a mano que ya no está a la venta (talla desactivada) no cuenta", () => {
+    expect(alcanceCampana(prendas, new Set(), new Set(["talla-desactivada", "collar"]))).toEqual({ porCategoria: 0, aMano: 1, total: 1 });
+  });
+
+  it("sin categorías ni prendas a mano, no alcanza a ninguna", () => {
+    expect(alcanceCampana(prendas, new Set(), new Set())).toEqual({ porCategoria: 0, aMano: 0, total: 0 });
+  });
+
+  it("los descuentos de un toque son todos válidos para la base: entre 0 y 100", () => {
+    for (const v of DESCUENTOS_RAPIDOS) expect(parsearDescuento(String(v))).toEqual({ ok: true, valor: v });
   });
 });

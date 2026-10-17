@@ -1,0 +1,6 @@
+# Bitácora — 2026-10-17 · Etiquetas: la hoja de campaña y la pantalla de trabajo (ADR-0441, reservado)
+
+## 2026-10-17 (Actividad 1 de 9: la hoja «Campaña» sin errores de armado)
+Qué hice: la hoja de campaña de una etiqueta pasó de 448 px a la hoja ancha, con dos columnas. A la izquierda va el descuento, con los de siempre a un toque (Sin descuento, 10, 15, 20, 25, 30 y 50 %), y debajo Desde y Hasta en una fila con `CampoFecha`. A la derecha van las categorías completas, sin la caja de 224 px con scroll propio, cada una con cuántas prendas a la venta trae (las que no tienen ninguna van plegadas al final). Antes de guardar, la hoja dice a cuántas prendas llega. Sin migración.
+Por qué así: el título «Fechas» vivía dentro de la grilla y partía Desde y Hasta en dos filas, y Safari pintaba la fecha vacía con la de hoy («17/10/2026 – 17/10/2026» parecía una campaña de un día cuando vacío es «rige siempre»). Las piezas (`prendasPorCategoria`, `alcanceCampana`, `DESCUENTOS_RAPIDOS` en `lib/etiqueta-campana.ts`, con pruebas) las reusa la pantalla de trabajo de la actividad 7.
+Felipe se lleva: abre «Configurar campaña» de cualquier etiqueta. Toca «20 %» y una categoría: el pie dice «Baja 20 % el precio en Vender» y arriba dice a cuántas prendas llega. Verificado en local a 1440 y a 1024 px, en claro y oscuro; no se guardó nada en la base compartida.

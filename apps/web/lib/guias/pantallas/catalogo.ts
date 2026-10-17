@@ -559,7 +559,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "atributos.campana" }],
       titulo: "Descuento, fechas y categorías",
-      texto: "El porcentaje de descuento, desde cuándo y hasta cuándo (sin fechas, es permanente) y las categorías que entran. Cada campo dice si está listo o falta, y «Sigue aquí» te marca el próximo.",
+      texto: "El descuento (los de siempre a un toque, o escribe otro), desde y hasta cuándo rige (sin fechas, rige siempre) y las categorías, cada una con cuántas prendas trae. Abajo dice a cuántas prendas llega antes de guardar.",
     },
     {
       id: "campana-pie",

@@ -58,6 +58,38 @@ export function nombreBajoCosto(p: Pick<PrendaConCosto, "nombre" | "enSede" | "p
   return p.enSede ? `${p.nombre} · precio más bajo: S/\u00a0${p.precio.toFixed(2)} en ${p.enSede}` : p.nombre;
 }
 
+// ---- Cuánto alcanza una campaña, dicho ANTES de guardar --------------------------------
+// La regla es la de la base (`fn_campanas_por_variante`): una prenda entra si está marcada a mano o si su categoría está
+// elegida. Aquí solo se cuenta, con las prendas a la venta (variantes activas) que ya trae la página: sin ir a la base.
+
+/** Los descuentos de siempre, a un toque en la hoja de campaña. El campo sigue para cualquier otro. */
+export const DESCUENTOS_RAPIDOS = [10, 15, 20, 25, 30, 50] as const;
+
+/** Cuántas prendas a la venta trae cada categoría: lo que dice cada chip de la hoja de campaña. */
+export function prendasPorCategoria(prendas: readonly Pick<PrendaConCosto, "categoriaId">[]): Map<string, number> {
+  const cuenta = new Map<string, number>();
+  for (const p of prendas) if (p.categoriaId !== null) cuenta.set(p.categoriaId, (cuenta.get(p.categoriaId) ?? 0) + 1);
+  return cuenta;
+}
+
+export type AlcanceCampana = { porCategoria: number; aMano: number; total: number };
+
+/** A cuántas prendas a la venta llega una campaña: las de sus categorías, más las marcadas a mano que no entran ya por su
+ *  categoría. Una marcada a mano que ya no está a la venta (una talla desactivada) no cuenta: en caja no se puede cobrar. */
+export function alcanceCampana(
+  prendas: readonly Pick<PrendaConCosto, "id" | "categoriaId">[],
+  categoriaIds: ReadonlySet<string>,
+  varianteIdsManuales: ReadonlySet<string>,
+): AlcanceCampana {
+  let porCategoria = 0;
+  let aMano = 0;
+  for (const p of prendas) {
+    if (p.categoriaId !== null && categoriaIds.has(p.categoriaId)) porCategoria++;
+    else if (varianteIdsManuales.has(p.id)) aMano++;
+  }
+  return { porCategoria, aMano, total: porCategoria + aMano };
+}
+
 /** Las prendas del alcance de una campaña que quedarían con precio menor que su costo.
  *  El alcance es el que aplica la base: las etiquetadas a mano MÁS todas las de las
  *  categorías elegidas. El precio es el que de verdad se cobra: el % exacto, con la misma
