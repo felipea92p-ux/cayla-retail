@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -50,6 +50,7 @@ import {
 } from "@/lib/etiqueta-campana";
 import { avisoDiaDeSemana, ordenarPorTemporada, repetirTemporada, textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
 import { hoyLima } from "@/lib/fechas-lima";
+import { notaSinRegistrar, rotacionDeEtiqueta, textoRotacion, type LecturaRotacion } from "@/lib/etiqueta-rotacion";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { GRUPOS_ETIQUETA, ORDEN_GRUPOS_ETIQUETA, type EstiloEtiqueta } from "@/lib/etiqueta-grupos";
@@ -135,6 +136,7 @@ function TarjetaEtiqueta({
   hoy,
   apagada = false,
   conteo = null,
+  rotacion = null,
   children,
 }: {
   e: Etiqueta;
@@ -143,6 +145,8 @@ function TarjetaEtiqueta({
   apagada?: boolean;
   /** A cuántas prendas a la venta llega, con la regla de su hoja (`conteoDeTarjeta`); `null` = quien mira no lo ve. */
   conteo?: ConteoTarjeta | null;
+  /** Rotación: lo que dicen los datos («Quedan 1 unidad · 2 vendidas en 30 días»), `textoRotacion`. */
+  rotacion?: string | null;
   children?: ReactNode;
 }) {
   const rango = textoRango(e.vigenteDesde, e.vigenteHasta);
@@ -188,6 +192,7 @@ function TarjetaEtiqueta({
               {textos.fuera && <span className="block text-tinta/45">{textos.fuera}</span>}
             </p>
           )}
+          {rotacion && <p className="text-[11px] tabular-nums text-tinta/75">{rotacion}</p>}
           {e.descuentoPct !== null && !DESCUENTO_YA_SE_APLICA && <p className="text-[10.5px] text-tinta/50">Aún no se aplica en Vender</p>} {/* unificar-fijo: dice el estado del descuento, no que falte algo */}
           {/* ADR-0180 paso 2: con la campaña vigente se imprimen sus etiquetas (precio rebajado); al terminar, las mismas
               prendas vuelven al precio normal. Antes de empezar no hay nada que imprimir: la etiqueta diría el precio de hoy. */}
@@ -209,6 +214,7 @@ export function EtiquetasLista({
   categorias,
   prendasConCosto,
   variantesManuales,
+  rotacion = null,
   puedeEditar,
   puedeDarDescuento = false,
 }: {
@@ -218,6 +224,8 @@ export function EtiquetasLista({
   prendasConCosto: PrendaConCosto[];
   /** etiqueta_id → variantes etiquetadas a mano con ella. */
   variantesManuales: Record<string, string[]>;
+  /** Unidades y ventas de 30 días por talla, de todas las tiendas (actividad 6): solo para quien puede analizar; `null`, sin la línea. */
+  rotacion?: LecturaRotacion | null;
   /** Crear, editar, aprobar y archivar etiquetas: el líder o un rol con el módulo Etiquetas. */
   puedeEditar: boolean;
   /** Tocar una etiqueta CON descuento o ponerle uno: el líder o un rol con el módulo Etiquetas, igual que `puedeEditar` (ADR-0293; la base lo vuelve a exigir). */
@@ -258,6 +266,11 @@ export function EtiquetasLista({
 
   const hoy = hoyLima();
   const vigenciaEn = (e: Etiqueta) => vigenciaDe(e.vigenteDesde, e.vigenteHasta, hoy);
+  // Rotación (Nuevo, Top ventas, Últimas unidades, Para liquidar): al lado de lo marcado, lo que dicen los datos, en unidades.
+  const porTalla = useMemo(() => new Map(Object.entries(rotacion?.porTalla ?? {})), [rotacion]);
+  const lineaRotacion = (e: Etiqueta) =>
+    rotacion && e.estilo === "urgencia" ? textoRotacion(rotacionDeEtiqueta(prendasConCosto, new Set(e.categoriaIds), new Set(manuales[e.id] ?? []), porTalla)) : null;
+  const notaRotacion = rotacion ? notaSinRegistrar(rotacion.registradas, rotacion.sinRegistrar) : null;
   const q = normalizarNombre(busqueda);
   const pasaFiltros = (e: Etiqueta) =>
     (grupo === "todas" || e.estilo === grupo) &&
@@ -486,6 +499,8 @@ export function EtiquetasLista({
               <TituloGrupo punto={dot} cuenta={delGrupo.length}>
                 {nombreGrupo}
               </TituloGrupo>
+              {/* Con cuántos datos se juzga: si buena parte de lo vendido no dice qué prenda fue, las cifras de Rotación miran solo una parte. */}
+              {clave === "urgencia" && notaRotacion && <p className="nota-cayla text-xs">{notaRotacion}</p>}
               <div className={GRILLA_ATRIBUTOS}>
                 {delGrupo.map((e) => (
                   <TarjetaEtiqueta
@@ -494,6 +509,7 @@ export function EtiquetasLista({
                     vigencia={vigenciaEn(e)}
                     hoy={hoy}
                     conteo={puedeEditar ? conteoDeTarjeta(prendasConCosto, new Set(e.categoriaIds), manuales[e.id] ?? []) : null}
+                    rotacion={lineaRotacion(e)}
                   >
                     {/* Una etiqueta CON descuento cambia el precio en caja; quien tiene el módulo Etiquetas también la configura (ADR-0293). */}
                     {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) &&
