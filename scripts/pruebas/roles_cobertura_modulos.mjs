@@ -146,7 +146,7 @@ const SOLO_PANTALLA = {
   tienda_web:
     "es un tablero, no un candado (ADR-0430): el Resumen de la tienda web no guarda nada y no tiene lectura propia. Cada " +
     "parte la lee la función de SU módulo, que ya lo exige (fn_pedidos_web_tablero → fn_pedido_web_exigir, fn_vitrina_* → " +
-    "vitrina_web, fn_recomendaciones → recomendaciones, fn_configuracion_tienda_web → configuracion), y la página solo pide " +
+    "vitrina_web, fn_recomendaciones → recomendaciones, fn_configuracion_tienda_web → ajustes_web), y la página solo pide " +
     "la parte cuyo módulo ve la cuenta. Apagarlo esconde la vista de conjunto; no abre ni cierra ningún dato.",
   // recibir salió el 2026-10-12: fn_ve_costos_al_recibir lo pide para confirmar un costo fuera de lo normal al recibir
   // (20261012202000, ADR-0387: «el módulo es la llave»); recibir_lote, recibir_compras y recibir_insumo siguen mirando solo la sede.
