@@ -20,7 +20,8 @@ Maqueta: `docs/maquetas/campanas-diseno-2026-10/` (abrir `index.html`; su README
 
 **Dónde quedó (2026-10-17, noche).** Lista de 9 actividades aprobada (ADR-0436). Hechas y commiteadas: 1 (módulo, lista, regla de la
 portada en un solo lugar), 2 (Datos y Prendas con una sola llave), 3 (la portada en una sola pieza, `packages/portada`, sin cambio
-visible), 4 (diseñar y publicar), 5 (la tienda pinta el diseño publicado) y **6 (campañas sin descuento y el carrusel)**:
+visible), 4 (diseñar y publicar), 5 (la tienda pinta el diseño publicado), 6 (campañas sin descuento y el carrusel) y **7 (el resto del
+editor, sin migración)**:
 - [x] **En producción desde el 2026-10-17, congeladas** (como en `d32f50113`): `20261017144000` (registro `20261017202815`),
   `20261017160000` (`20261017202943`), `20261017200000` (`20261017203014`) y `20261017151000` (`20261017203618`). No se editan (lo vigila
   `campanas-migraciones-pegadas.test.ts`); un cambio va en una migración nueva. **Faltan** `20261017204000`, `20261017210000` y
@@ -46,12 +47,19 @@ visible), 4 (diseñar y publicar), 5 (la tienda pinta el diseño publicado) y **
   terminales de almacén y de tienda puedan editar eso»: Terminal Almacén y Terminal de ventas tienen «Campañas» en producción desde las 16:44
   (por SQL, con su historial). **Trampa hasta publicar la web:** guardar esos roles desde la pantalla de Roles publicada les borra
   «Campañas» sin aviso (detalle en `CONTINUAR.md`).
-- [ ] Visto al verificar la 4 (para la 7, «El texto»): en la portada de 1280 px, una palabra larga del nombre («Internacional», de Día
-  Internacional del Gato) se mete debajo de las polaroids; es el héroe compartido (`packages/portada/src/heroe.css`), así que la tienda lo
-  muestra igual. El tamaño «grande/enorme» y el corte de la cursiva de la actividad 7 son el lugar para achicar la letra según el nombre.
-- [ ] Visto al verificar la 5 (para la 7, «Las prendas»): sin foto, la polaroid de la vista previa del ERP dibuja el ícono de la categoría
-  (`SinFoto`) y la de la tienda dibuja la silueta de la prenda (`FotoTarjeta`); la vista previa debería usar el mismo dibujo que la tienda.
+- [x] Actividad 7a (`3fc61355d`): el héroe compartido dibuja el fondo liso, el degradado y los ocho dibujos (máscara con el acento), los cuatro
+  acomodos, el tamaño del nombre según su largo, «Enorme», la frase, el % gigante y el sello; la tienda y la vista previa muestran las prendas
+  elegidas en su orden. La portada de siempre trae el % gigante (es la que el cliente ya veía).
+- [x] Actividad 7b (`6fe0af004` refactor + `7b9f87fc3`): el editor tiene los siete pasos de la maqueta, «Deshacer» y «Sorpréndeme»; la guía
+  interactiva y su huella al día. `d6404503b`: sin máscaras, el dibujo no tapa la portada.
+- [x] ~~Visto al verificar la 4: «Internacional» se mete debajo de las polaroids~~ — arreglado en la 7a (el tamaño sale del largo del nombre,
+  también sin diseño propio).
+- [ ] Visto al verificar la 5: sin foto, la polaroid de la vista previa del ERP dibuja el ícono de la categoría (`SinFoto`, la regla del ERP,
+  ADR-0333) y la de la tienda dibuja la silueta de la prenda (`FotoTarjeta`). **Decisión de Felipe:** ¿la vista previa copia a la tienda?
+  Si no responde, se queda la regla del ERP (está escrito en la «Actividad 7» del ADR).
+- [ ] Visto en la 7: la miniatura de cada campaña en la lista del ERP sale de las tres prendas con foto que manda `campanas_lista`; si el diseño
+  eligió otras, la miniatura muestra esas tres (la tienda y la vista previa del editor sí siguen las elegidas). Arreglarlo pide una migración
+  nueva (que `campanas_lista` mande primero las elegidas, hasta cuatro): mejor junto con la de la actividad 8, para pegar una sola vez.
 - [ ] Aviso de Supabase en desarrollo (`Date.now()` while prerendering en las páginas con sesión): Felipe 2026-10-17, «dejarlo así» (el
   build de producción pasa).
-- Después: actividades 7 a 9 (el resto del editor —fondo,
-  acomodos, texto, prendas, detalles, Sorpréndeme, Deshacer—, la foto, el cierre con `/chaos`, `/formidable`, `tema:auditar` y el PR).
+- Después: actividades 8 (el fondo con foto) y 9 (el cierre con `/chaos`, `/formidable`, `tema:auditar` y el PR).

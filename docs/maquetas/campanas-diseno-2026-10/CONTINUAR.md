@@ -15,17 +15,20 @@ Escrito el 2026-10-17. Sin llaves ni contraseñas (el repo es público): dice d�
 - **Las 9 actividades (lista aprobada por Felipe, método `/construir`: una por una, cada una con su commit):**
   1 menú y lista ✔ · 2 Datos y Prendas con una sola llave ✔ · 3 la portada en una sola pieza (`packages/portada`) ✔ ·
   4 diseñar y publicar ✔ · 5 la tienda pinta el diseño publicado ✔ · 6 campañas sin descuento y el carrusel ✔ ·
-  **7 el resto del editor** (fondo liso/degradado/dibujo, acomodos, texto, prendas, detalles, Sorpréndeme, Deshacer) · 8 fondo con foto ·
+  7 el resto del editor (fondo liso/degradado/dibujo, acomodos, texto, prendas, detalles, Sorpréndeme, Deshacer) ✔ · **8 fondo con foto** ·
   9 cierre (`/chaos`, `/formidable`, `tema:auditar`, 375 px, ADR, PR con `/abrir-pr`).
 
-## Lo siguiente (actividad 7)
+## Lo siguiente (actividad 8)
 
-Las actividades 4, 5 y 6 (6a, campañas sin descuento; 6b, el carrusel) están cerradas: ADR-0436, secciones «Actividad 4», «Actividad 5» y
-«Actividad 6». Sigue la **7: el resto del editor** —el fondo (liso, degradado, con dibujo y su intensidad), cómo se acomoda (polaroids,
-foto grande, mosaico, solo letras), el texto (desde qué palabra va la cursiva, el tamaño y la frase propia), las prendas (cuáles y en qué
-orden), los detalles (contador, % gigante, colibrí, sello), «Sorpréndeme» y «Deshacer»—, que el héroe compartido (`packages/portada`) tiene que
-saber dibujar para la tienda y la vista previa a la vez. Lo anotado para la 7 está en el backlog (el nombre largo bajo las polaroids, la
-polaroid sin foto distinta entre el ERP y la tienda).
+Las actividades 4 a 7 están cerradas: ADR-0436, secciones «Actividad 4» a «Actividad 7» (la 7, al final del ADR: DECIDÍ 25 a 30). La 7 no
+tiene migración: el héroe compartido (`packages/portada`) ya dibuja el fondo liso, el degradado y los ocho dibujos (una máscara pintada con el
+acento), los cuatro acomodos, el tamaño del nombre según su largo, la frase, el % gigante y el sello; y el editor tiene los siete pasos de la
+maqueta, «Deshacer» y «Sorpréndeme». Sigue la **8: el fondo con foto** (la cuarta opción de «Fondo» en la maqueta, «Con foto · La que subas»:
+subir la foto a Storage, oscurecerla para que la letra se lea, y que la revisión lo mida). Para la 8 hace falta una migración nueva (la foto
+del fondo y el oscurecido en `campana_disenos`, con su `check`): resérvala con `pnpm reservar migracion` y suma su casilla al día de publicar.
+
+Lo anotado para después está en el backlog: la miniatura de la lista del ERP no sigue las prendas elegidas (sale de las tres con foto que manda
+`campanas_lista`) y la polaroid sin foto de la vista previa (`SinFoto`) distinta de la silueta de la tienda (lo decide Felipe).
 
 ## Lo pegado en producción y lo que falta
 
@@ -101,6 +104,8 @@ Las llaves locales salen de `supabase status -o env` (nunca las copies a un arch
 - **Cuentas del ERP local:** `felipe@cayla.local` (líder/Admin), `micaela@cayla.local` (colaboradora, sin Campañas), `sandra@cayla.local`;
   contraseña `cayla-local`. **Cliente de la tienda:** `cliente.prueba@cayla.local`, su clave en `/Volumes/CAYLA-SSD/.pila-campanas/arnes/clave-cliente.txt`.
 - **Datos de prueba ya creados:** campañas «Día Internacional del Gato» (15 %, 1–30 oct), Halloween, Aniversario, «Día del Abuelo», con prendas.
+  Diseños: el Gato tiene publicado «Galería» (y un borrador de prueba de la actividad 7); Navidad, «Bosque». Para mirar un acomodo en la tienda
+  sin pasar por el editor, se puede cambiar a mano la fila `publicado` en `retail.campana_disenos` de la pila; la tienda la guarda 60 s.
 - **Pruebas de base:** `node scripts/pruebas/campanas_diseno.mjs --contenedor supabase_db_cayla-pila-campanas` (43/43), igual con
   `campanas_portada.mjs` (25/25) y `campanas_llave.mjs` (26/26). Si cambias la migración, reaplícala:
   `docker exec -i supabase_db_cayla-pila-campanas psql -U postgres -v ON_ERROR_STOP=1 -q < supabase/migrations/20261017160000_campanas_diseno.sql`
@@ -110,9 +115,10 @@ Las llaves locales salen de `supabase status -o env` (nunca las copies a un arch
   (`tienda.mjs`, `inicio.mjs`, `erp.mjs`). Importan Playwright de `…/worktrees/agent-acf8ddc739e377514/node_modules/.pnpm/playwright@1.63.0/…`;
   si esa carpeta ya no existe, cambia la ruta a cualquier `node_modules/.pnpm/playwright@*` del repo y usa Chrome del sistema (`channel: "chrome"`).
   `erp.mjs` guarda la sesión como `sesion-<correo>.json` junto al script (no versionar).
-- **Guías interactivas en local:** `pnpm --filter web guias:recorrer -- --base-url http://localhost:3047`. El modo desarrollo tiene un bug
-  de Strict Mode con `?demo=1`; parche temporal (NO commitear): mover `ultimaDemo.current = {…}` dentro del timeout en
-  `components/guias/MotorGuias.tsx`, correr, y `git checkout -- components/guias/MotorGuias.tsx`.
+- **Guías interactivas en local:** `NAVEGADOR_CANAL=chrome TEMA_DB_CONTENEDOR=supabase_db_cayla-pila-campanas pnpm --filter web guias:recorrer --
+  --base-url http://localhost:3051 --guia tienda-web.campanas.id --cuenta admin` (sin `TEMA_DB_CONTENEDOR` mira la base compartida, dice «sin
+  datos» y se salta la guía). El modo desarrollo tiene un bug de Strict Mode con `?demo=1` («la guía no arrancó»); parche temporal (NO
+  commitear): `git cherry-pick -n 9fd4d991a`, correr, y `git restore --staged components/guias/MotorGuias.tsx && git checkout -- components/guias/MotorGuias.tsx`.
 
 ## Prompt para pegar en la otra cuenta
 

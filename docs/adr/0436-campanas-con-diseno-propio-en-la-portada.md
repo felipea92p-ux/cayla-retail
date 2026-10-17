@@ -160,7 +160,8 @@ regla de «igual» al lado de `mismoDiseno`.
 **Lo que se apartó de la maqueta, a propósito:** la cuarta cifra «Sin diseño propio» no entró: con los nombres reales («Día Internacional
 del Gato») cortaba la cifra que importa, «En la portada hoy»; cada tarjeta ya dice «Diseño de siempre» y la línea la puntea. El editor pasa a
 dos columnas desde un contenedor de 840 px (un laptop de 1280 con el lateral abierto), para ver cada toque sin bajar. Los pasos 3 a 7, «Deshacer»
-y «Sorpréndeme» son de la actividad 7: hasta entonces, un estilo con otro fondo o acomodo (Huellitas, Galería) solo cambia los colores.
+y «Sorpréndeme» son de la actividad 7: hasta entonces, un estilo con otro fondo o acomodo (Huellitas, Galería) solo cambia los colores
+(hechos: «Actividad 7», al final).
 
 **Verificación:** `pnpm pruebas:campanas-diseno` (44 casos: los estados imposibles, guardar con su versión, publicar, volver al anterior,
 la lista con el borrador y las prendas con su categoría, quién y la migración dos veces), `campanas-portada` (25) y las pruebas de
@@ -199,7 +200,7 @@ de funcionar el día que la tienda prohíba los estilos en línea; las variables
 
 Lo demás del diseño que el héroe ya sabe hacer llega igual a la tienda: el colibrí (Galería lo apaga), el contador y desde qué palabra va
 la cursiva. Lo que todavía no dibuja (el fondo con dibujo, los acomodos, la frase, el sello, el % gigante) es de la actividad 7, y llegará a
-los dos lados a la vez porque es la misma pieza.
+los dos lados a la vez porque es la misma pieza (llegó: DECIDÍ 25).
 
 **Verificación:** `pnpm pruebas:campanas-diseno` (49: suma la tienda —sin diseño sale vacío, un borrador no llega, al publicar llega y
 un borrador nuevo encima no lo cambia— y las dos migraciones pegadas dos veces), `campanas-portada` (25) y `campanas-llave` (26); las pruebas
@@ -236,7 +237,7 @@ precio; para una lista que solo se abre desde el héroe bastan los modelos de la
 Club, y en el Inicio el botón lleva a «Lo nuevo» (o a toda la tienda), nunca a una lista vacía** (Felipe 2026-10-17: «sí, sin fotos»). Una
 CON descuento sin prendas a la vista sigue la regla del 15-oct: sale «Lo nuevo» (anunciaría un descuento sin mostrar en qué).
 **SE ROMPE SI** el texto del Inicio («Sepáralas online…») se lee raro sin prendas: con fotos se entiende; sin ellas, la frase invita a
-separar algo que no se ve. Si molesta, la actividad 7 (el texto propio) le da otra frase.
+separar algo que no se ve. Si molesta, la actividad 7 (el texto propio) le da otra frase (ya puede: «El texto ▸ Tu frase»).
 
 La franja de arriba y la frase en negrita del héroe salen de una sola pieza del paquete (`anuncioDeCampana`, `destacadoDeCampana`): «Navidad
 · mira lo que elegimos» y «Prendas elegidas para Navidad.», iguales en la tienda y en la vista previa del ERP. En el ERP, «por qué no sale»
@@ -353,3 +354,75 @@ una campaña a quien da de alta, sin pedir Campañas. No se construye ninguna pu
 
 **La puerta de Editar producto (`20261017212000`) se queda como se decidió:** ya no frena a las terminales (tienen la llave), y sigue frenando a
 cualquier otro rol con Productos o Atributos que no tenga Campañas. Se pega el día de publicar, salvo que Felipe la quiera fuera.
+
+## Actividad 7 — El resto del editor y el héroe que lo dibuja (sin migración)
+
+Felipe (2026-10-17): «Sigue con la 7». Dos cortes: **7a**, el héroe compartido (`packages/portada`, el mismo de la tienda y de la vista previa)
+aprende a dibujar todo lo que `retail.campana_disenos` ya guardaba; **7b**, el editor suma los pasos que faltaban. La base no cambia: la tabla, sus
+`check` y `guardar_diseno_borrador` (que ya exige que las prendas sean de la campaña) son los de `20261017160000`.
+
+**DECIDÍ 25 — El héroe dibuja el diseño entero con atributos (`data-fondo`, `data-acomodo`, `data-tamano`, `data-largo`) y una sola hoja,
+`heroe.css`:** fondo liso (sin degradado ni grano), degradado o con uno de los ocho dibujos y su intensidad; los cuatro acomodos (tres polaroids,
+una foto grande hasta el borde con su píldora, un mosaico de cuatro —tres en el celular— con la teja del «−15%» si faltan, solo letras centradas);
+la frase bajo el nombre; el % gigante y el sello. El tamaño del nombre sale de su largo (`largoDelNombre`: hasta 12 letras y palabras de hasta 9,
+hasta 20 y 11, más), en tres tramos para el celular (60 · 50 · 44 px a 375) y tres para la computadora (116 · 96 · 82 px a 1280), y «Enorme» lo
+agranda menos cuanto más largo es (×1,18 · ×1,12 · ×1,06; ×1,3 con solo letras, que tiene todo el ancho). Sin diseño, la portada de siempre;
+lo único que cambia también ahí es el tamaño del nombre de una campaña: «Internacional» ya no se mete debajo de las polaroids (lo anotado en la
+actividad 4). Los títulos de la tienda sin campaña («Lo nuevo de CAYLA») conservan su tamaño de siempre.
+**DESCARTÉ** un tamaño libre (un deslizador de px): cada nombre largo necesitaría que alguien lo pruebe a mano en dos anchos; con tres tramos la
+regla se prueba una vez (`textos.test.ts`).
+**SE ROMPE SI** una campaña tiene una palabra de 16 letras o más («Internacionalmente»): en el tramo largo, a 82 px, todavía no cabe junto a las
+fotos y se monta un poco; una palabra no se parte. Hoy no hay ninguna así.
+
+**DECIDÍ 26 — El dibujo del fondo es una MÁSCARA pintada con el acento (`mascaraDePatron`, `packages/portada/src/patrones.ts`), no una imagen con
+el color adentro.** La tienda no sabe en el servidor si el cliente la ve en claro o en oscuro (DECIDÍ 15); la máscara toma `--t-hero-acento`, que
+`heroe.css` ya cambia con el tema, así el dibujo de noche sale en el acento de noche sin dibujarlo dos veces. Si un navegador no supiera de
+máscaras, el dibujo no sale y queda el degradado (`@supports`), nunca un velo de color encima.
+**DESCARTÉ** el SVG con el color escrito, como la maqueta: habría que mandar dos (día y noche) y elegir con CSS, el doble de peso por portada.
+**SE ROMPE SI** se suma un dibujo con colores propios (dos tonos): la máscara solo sabe «hay tinta o no hay»; un dibujo así necesita otra pieza.
+
+**DECIDÍ 27 — La portada de siempre trae el % gigante (`DISENO_DE_SIEMPRE.pctGigante = true`): es la que el cliente ya veía, con el «−15%»
+calado detrás de las polaroids.** Los estilos que dicen el descuento de otra forma (Huellitas con su sello, Galería y Bosque con la teja del mosaico)
+o que lo dejan de lado (Suave, Fiesta) lo apagan, como en la maqueta; ningún estilo ni «Sorpréndeme» dice el descuento dos veces (lo prueban
+`diseno.test.ts` y `campana-diseno.test.ts`).
+**DESCARTÉ** dejarlo apagado como en la maqueta: publicar el «Clásico CAYLA» sin tocar nada borraba el «−15%» de la tienda, y la vista previa de
+una campaña sin diseño mostraba una portada distinta de la que veía el cliente.
+**SE ROMPE SI** había un borrador guardado con el «Clásico» antes de este cambio: queda con el % apagado y se ve como «Borrador», no como «de
+siempre». En producción no hay ninguno (el editor no está publicado); en la pila local, sí puede.
+
+**DECIDÍ 28 — Las prendas elegidas salen solas y en el orden en que se tocaron (`prendasElegidas`), cada acomodo toma las que le caben
+(`piezasQueCaben`: 3 · 1 · 4 · 0), y con solo letras «Ver la campaña» igual lleva a su lista (`conPrendas`).** Si ninguna de las elegidas se puede
+mostrar aquí (sin foto publicada, sin stock en la tienda elegida del Inicio), las elige la web (las de foto primero), como antes. En el editor,
+tocar una prenda la suma al final y, si ya no cabe, sale la primera (con «Foto grande», tocar otra la cambia); el interruptor «Que las elija la
+web» vuelve a dejarlo en sus manos.
+**DESCARTÉ** completar con las de la web cuando se eligen menos de las que caben: elegir dos es decir «estas dos».
+**SE ROMPE SI** las elegidas no tienen stock en la tienda que el cliente eligió: ve las de la web en esa tienda (bien para el cliente), distintas
+de la vista previa del ERP, que no sabe de tiendas. La miniatura de la lista del ERP sale de las tres con foto que manda `campanas_lista`: si las
+elegidas no están entre ellas, la miniatura muestra otras (pendiente en el backlog; arreglarlo pide una migración).
+
+**DECIDÍ 29 — Con solo letras, el sello va arriba del texto y centrado, no en una esquina.** En la maqueta iba arriba a la derecha; con «Día
+Internacional del Gato» en Enorme, tapaba «del». Arriba del texto nunca choca, con cualquier largo. Con fotos, sigue contra ellas (arriba a la
+derecha), como en la maqueta.
+
+**DECIDÍ 30 — «Deshacer» es de la visita (los últimos 30 toques; escribir la frase cuenta como uno) y «Sorpréndeme» arma un diseño al azar
+dentro del marco (`sorprendeme`): una paleta curada, un fondo, un dibujo suave o medio, un acomodo (solo letras si no hay prendas), a veces
+un sello y a veces el % gigante; deja la frase, las prendas, la cuenta y el colibrí, y la revisión siempre queda en verde.** Cada toque sigue
+guardándose como borrador (DECIDÍ 9), y «Deshacer» guarda el de antes del mismo modo.
+**DESCARTÉ** un «Deshacer» guardado en la base (el historial de borradores): una tabla más que nadie pidió; lo publicado ya tiene «Volver al
+anterior».
+**SE ROMPE SI** se recarga la página: lo que se podía deshacer se olvida (el borrador queda como estaba).
+
+Menores, sin decisión de negocio: el sello del editor se elige con cuatro tarjetas que lo dibujan en los colores de la campaña (el segmento no
+cabía en el panel); el ejemplo de la frase sigue lo que la campaña tiene (con descuento y fin, «Solo por unos días…»; sin descuento, nunca un
+descuento ni un plazo), no su nombre (`sugerirFrase`, `/sugerir`). La polaroid sin foto de la vista previa sigue con la categoría sobre el color
+(`SinFoto`, ADR-0333), distinta de la silueta de la tienda: es la regla del ERP; que la vista previa copie a la tienda lo decide Felipe.
+
+**Verificación (7):** el paquete (120 pruebas: el largo del nombre, los ocho dibujos sin color, las prendas por acomodo, el % de siempre y que
+ningún estilo diga el descuento dos veces), la tienda (450: el Inicio con prendas elegidas, mosaico, grande y solo letras con su enlace) y el ERP
+(los resúmenes de los siete pasos, la cursiva, tocar prendas, «Sorpréndeme» con 300 semillas, el ejemplo de la frase). En la pila propia, con el
+diseño publicado del Gato cambiado a mano: Huellitas (dibujo, frase, sello), Cartel (solo letras, Enorme, sello y % al centro), Noche de gala (foto
+grande, píldora, % detrás del texto) y Bosque (mosaico con dos elegidas en su orden y la teja del −15 %), en la vista previa y en la tienda real a
+1440 y a 375 px, en claro y en oscuro. En el editor: los siete pasos, «Deshacer» (la frase entera de un toque, luego la cursiva),
+«Sorpréndeme», las prendas en orden con el borrador guardado en la base; sin desborde a 375 px; contraste de la palabra en cursiva 6,1 a 1 en
+oscuro. `guias:recorrer` (14 pasos, escritorio y 375 px en oscuro) antes de aceptar la huella. Knip y las pruebas de tema, unificar y movimiento
+en verde.
