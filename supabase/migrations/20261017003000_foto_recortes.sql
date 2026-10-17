@@ -36,7 +36,7 @@
 --   existe y no sabría su proporción ni si se descartó); anotar cada recorte en la Actividad (la tabla ya dice quién y cuándo, y
 --   «Preparar recortes» haría cientos de filas iguales: se anota solo lo que decide una persona, usar o descartar).
 --
--- PRODUCCIÓN. NO está aplicada (actividad 1 del ADR-0434, con el OK de Felipe). Una sola parte, re-ejecutable: una tabla NUEVA sin
+-- PRODUCCIÓN. APLICADA el 2026-10-16 con el OK de Felipe (actividad 1 del ADR-0434). Una sola parte, re-ejecutable: una tabla NUEVA sin
 -- políticas y funciones; no altera tablas en uso, no crea políticas ni toca disparadores (ADR-0195). La llave foránea a
 -- `public.personas` toma un instante esa tabla en modo SHARE ROW EXCLUSIVE (`lock_timeout` lo corta a los 3 s). Dentro de los textos
 -- entre comillas no hay ningún `select … into` (ADR-0288). Prueba: `pnpm pruebas:vitrina-probador`.

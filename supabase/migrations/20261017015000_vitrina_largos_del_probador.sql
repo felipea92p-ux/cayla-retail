@@ -30,7 +30,7 @@
 --   el típico en `categorias` (es un dato de la web, como el resto de la vitrina, y lo edita quien ve la Vitrina, no quien edita el
 --   catálogo).
 --
--- PRODUCCIÓN. NO está aplicada (actividad 3 del ADR-0434, con el OK de Felipe), después de 20261017003000. Una sola parte,
+-- PRODUCCIÓN. APLICADA el 2026-10-16 con el OK de Felipe (actividad 3 del ADR-0434), después de 20261017003000. Una sola parte,
 -- re-ejecutable: agrega una columna a `vitrina_productos` (ACCESS EXCLUSIVE un instante: una columna nula sin valor por defecto y un
 -- CHECK sobre ~300 filas; `lock_timeout` lo corta a los 3 s) y crea una tabla NUEVA sin políticas; no crea políticas ni toca
 -- disparadores (ADR-0195), así que no se mezcla un `alter` de una tabla en uso con políticas. Dentro de los textos entre comillas no hay
