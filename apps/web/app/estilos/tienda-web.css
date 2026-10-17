@@ -569,6 +569,9 @@
   .tw-fondo-muestra { aspect-ratio: 1.6; }
   .tw-patron-muestra { aspect-ratio: 1.3; }
   .tw-estampado { position: absolute; inset: 0; -webkit-mask-repeat: repeat; mask-repeat: repeat; }
+  @supports not ((mask-image: none) or (-webkit-mask-image: none)) {
+    .tw-estampado { display: none; }
+  }
   /* El sello en chico (paso «Detalles»): girado como en la portada. */
   .tw-sello-muestra { display: grid; place-items: center; aspect-ratio: 1.3; }
   .tw-sello-mini {

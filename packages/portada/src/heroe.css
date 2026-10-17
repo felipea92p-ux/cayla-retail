@@ -103,6 +103,10 @@
 .t-hero[data-fondo="liso"] { background: var(--t-hero); }
 .t-hero[data-fondo="liso"]::before { display: none; }
 .t-hero-patron { position: absolute; inset: 0; z-index: -2; pointer-events: none; background: var(--t-hero-acento); -webkit-mask-repeat: repeat; mask-repeat: repeat; }
+/* Un navegador que no sabe de máscaras pintaría el acento entero encima del fondo: ahí el dibujo no sale y queda el degradado. */
+@supports not ((mask-image: none) or (-webkit-mask-image: none)) {
+  .t-hero-patron { display: none; }
+}
 
 /* El nombre se achica si es largo (`largoDelNombre`): en el celular, 60 · 50 · 44 px a 375 de ancho; «Enorme» lo agranda. */
 .t-hero[data-largo] .t-hero-tit { font-size: calc(var(--t-tit) * var(--t-tit-x, 1)); }
