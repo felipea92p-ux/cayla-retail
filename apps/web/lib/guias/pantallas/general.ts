@@ -1135,6 +1135,20 @@ export const GUIA_CONFIGURACION: Guia = {
       texto: "Cuando el contador lo fije o cambie, se agrega desde una fecha, como una tasa nueva. Lo de antes de esa fecha no se marca.",
     },
     {
+      id: "impuestos-saldo",
+      ancla: "config.impuestos-saldo",
+      opcional: true,
+      titulo: "El saldo a favor de IGV",
+      texto: "El crédito fiscal con que CAYLA arrancó, de la última declaración. Te lo da el contador. El IGV de cada mes parte de aquí en vez de cero; mientras no esté, sale de más.",
+    },
+    {
+      id: "nuevo-saldo",
+      ancla: "config.nuevo-saldo",
+      opcional: true,
+      titulo: "Declarar un saldo",
+      texto: "Eliges el mes en que CAYLA traía ese saldo y su monto. Una corrección es otra fila nueva: la historia guarda las dos.",
+    },
+    {
       id: "impuestos-regimen",
       ancla: "config.impuestos-regimen",
       opcional: true,

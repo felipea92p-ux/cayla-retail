@@ -13,7 +13,9 @@
  *   · parámetros con vigencia: se agregan, se corrigen con una fila nueva (gana la más reciente), se validan, quedan en la
  *     historia de Configuración y nunca se editan ni se borran;
  *   · permisos: el líder o quien tiene el módulo (Impuestos; los parámetros, Configuración — ADR-0253); nadie lee la tabla directo;
- *   · los registros de ventas y de compras para el contador, con sus columnas.
+ *   · los registros de ventas y de compras para el contador, con sus columnas;
+ *   · el saldo a favor de IGV con que CAYLA arrancó (ADR-0433, act. 4b; lo declara el contador): el IGV mensual parte de él, un saldo declarado a mitad de
+ *     la cadena la reemplaza, uno anterior a los primeros datos la alarga hacia atrás, una corrección es una fila nueva, y se valida.
  *
  * CÓMO. Igual que `activos_y_gastos_fijos.mjs`: cada escenario en su transacción con ROLLBACK (la base local es
  * compartida), sesión simulada con `request.jwt.claim.sub`. Los meses de prueba son de 2024: no hay datos reales ahí, así
@@ -331,6 +333,68 @@ select tienda, proveedor_ruc from retail.fn_impuestos_registro_compras('2024-01-
   esperar("la nota de crédito del proveedor va en negativo, con la factura que modifica", r.ok && nc === "FC01|7|-100.00|-18.00|-118.00|factura|F100|1", r);
   esperar("el gasto dice su tienda", r.ok && tiendaGasto === "Tienda Trujillo", r);
   esperar("el Taller, con el RUC de su proveedor", r.ok && taller === "Taller|20987650983", r);
+}
+
+
+// 10. El saldo a favor de IGV con que CAYLA arrancó (ADR-0433, act. 4b): el contador lo declara y el IGV mensual parte de él.
+{
+  // Sin nada declarado la cadena es la de siempre (caso 3): 234 → 72 → se pagan 108.
+  const r = correr(`${ESCENA}
+select retail.guardar_parametro_tributario('saldo_favor_igv', '2024-01-01', 500) as _g \\gset
+select to_char(mes, 'YYYY-MM') || '|' || saldo_anterior || '|' || a_pagar || '|' || saldo_a_favor from retail.fn_impuestos_igv_meses('2024-01-01', '2024-04-30') order by mes;`);
+  const [ene, feb, mar, abr] = lineas(r);
+  esperar("saldo declarado de 500 al arrancar enero: enero parte de 500 y deja S/ 734 a favor (63 − 297 − 500)", r.ok && ene === "2024-01|500.00|0|734.00", r);
+  esperar("febrero arrastra 734 y deja 572 (180 − 18 − 734)", r.ok && feb === "2024-02|734.00|0|572.00", r);
+  esperar("marzo arrastra 572 y deja 392 a favor: ya no se paga nada", r.ok && mar === "2024-03|572.00|0|392.00", r);
+  esperar("abril sin movimiento conserva los 392", r.ok && abr === "2024-04|392.00|0|392.00", r);
+}
+{
+  // Un saldo declarado a mitad de la cadena REEMPLAZA lo que venía arrastrando (lo oficial manda sobre lo calculado con datos incompletos).
+  const r = correr(`${ESCENA}
+select retail.guardar_parametro_tributario('saldo_favor_igv', '2024-02-01', 100) as _g \\gset
+select to_char(mes, 'YYYY-MM') || '|' || saldo_anterior || '|' || a_pagar || '|' || saldo_a_favor from retail.fn_impuestos_igv_meses('2024-01-01', '2024-03-31') order by mes;`);
+  const [ene, feb, mar] = lineas(r);
+  esperar("declarado en febrero: enero queda como era (234 a favor)", r.ok && ene === "2024-01|0|0|234.00", r);
+  esperar("febrero parte de los 100 declarados, no de los 234 calculados: se pagan 62", r.ok && feb === "2024-02|100.00|62.00|0", r);
+  esperar("y marzo ya no trae saldo: se pagan 180", r.ok && mar === "2024-03|0|180.00|0", r);
+}
+{
+  // Declarado ANTES del primer mes con datos: la cadena se alarga hacia atrás y lo arrastra.
+  const r = correr(`${ESCENA}
+select retail.guardar_parametro_tributario('saldo_favor_igv', '2023-12-01', 1000) as _g \\gset
+select to_char(mes, 'YYYY-MM') || '|' || saldo_anterior || '|' || a_pagar || '|' || saldo_a_favor from retail.fn_impuestos_igv_meses('2024-01-01', '2024-01-31');
+select to_char(mes, 'YYYY-MM') || '|' || saldo_anterior || '|' || a_pagar || '|' || saldo_a_favor from retail.fn_impuestos_igv_meses('2023-12-01', '2023-12-31');`);
+  const [soloEne, soloDic] = lineas(r);
+  esperar("declarado en diciembre de 2023, antes de los datos: pedir solo enero parte de los 1000 (1000 + 63 − 297 → 1234 a favor)", r.ok && soloEne === "2024-01|1000.00|0|1234.00", r);
+  esperar("y pedir diciembre lo muestra: 1000 de entrada y 1000 a favor", r.ok && soloDic === "2023-12|1000.00|0|1000.00", r);
+}
+{
+  // Una corrección es una fila nueva: gana la más reciente, y la historia de Configuración guarda las dos.
+  const r = correr(`${ESCENA}
+select retail.guardar_parametro_tributario('saldo_favor_igv', '2024-01-01', 500) as _g1 \\gset
+select retail.guardar_parametro_tributario('saldo_favor_igv', '2024-01-01', 700) as _g2 \\gset
+select to_char(mes, 'YYYY-MM') || '|' || saldo_anterior || '|' || saldo_a_favor from retail.fn_impuestos_igv_meses('2024-01-01', '2024-01-31');
+select count(*) from retail.parametros_tributarios where nombre = 'saldo_favor_igv';
+select count(*) from retail.configuracion_historial where que = 'parametro_tributario' and detalle ->> 'nombre' = 'saldo_favor_igv';`);
+  const [ene, filas, historia] = lineas(r);
+  esperar("corregido de 500 a 700 el mismo mes: gana el último (enero parte de 700 y deja 934)", r.ok && ene === "2024-01|700.00|934.00", r);
+  esperar("las dos filas quedan en la tabla, y en la historia de Configuración", r.ok && filas === "2" && historia === "2", r);
+}
+{
+  const r = correr(`${ESCENA}
+select pg_temp.intento($q$select retail.guardar_parametro_tributario('saldo_favor_igv', '2024-01-15', 500)$q$);
+select pg_temp.intento($q$select retail.guardar_parametro_tributario('saldo_favor_igv', '2024-01-01', -1)$q$);
+select pg_temp.intento($q$select retail.guardar_parametro_tributario('saldo_favor_igv', '2024-01-01', 10000001)$q$);
+select pg_temp.intento($q$select retail.guardar_parametro_tributario('saldo_favor_igv', '2024-01-01', null)$q$);
+select pg_temp.intento($q$select retail.guardar_parametro_tributario('saldo_favor_igv', '2024-01-01', 0)$q$);
+select count(*) from retail.parametros_tributarios where nombre = 'saldo_favor_igv';
+${cambiaA(MICAELA)}
+select pg_temp.intento($q$select retail.guardar_parametro_tributario('saldo_favor_igv', '2024-01-01', 500)$q$);`);
+  const [dia, negativo, enorme, nulo, cero, filas, sinModulo] = lineas(r);
+  esperar("solo rige desde el día 1 de un mes", r.ok && /día 1 de un mes/.test(dia ?? ""), r);
+  esperar("no puede ser negativo, ni de más de S/ 10 millones, ni faltar", r.ok && [negativo, enorme, nulo].every((m) => /de 0 a 10/.test(m ?? "")), r);
+  esperar("cero se acepta (declarar que no hay saldo es un dato) y es la única fila que quedó", r.ok && cero === "SIN_ERROR" && filas === "1", r);
+  esperar("una colaboradora sin el módulo Configuración no lo guarda", r.ok && /necesita el módulo «Configuración»/.test(sinModulo ?? ""), r);
 }
 
 console.log(fallos ? `\n${fallos} prueba(s) fallaron` : "\nTodo en orden");

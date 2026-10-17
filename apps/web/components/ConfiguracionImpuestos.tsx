@@ -13,7 +13,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { fechaCorta, solesRedondo } from "@/lib/gastos-reglas";
+import { fechaCorta, solesRedondo, textoMes } from "@/lib/gastos-reglas";
 import {
   REGIMENES,
   TEXTO_REGIMEN,
@@ -139,13 +139,16 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
           ? solesRedondo(v.valor)
           : nombre === "tope_planilla_movilidad"
             ? `S/\u00a0${v.valor.toFixed(2)} por persona y día`
-            : `${v.valor} UIT`;
+            : nombre === "saldo_favor_igv"
+              ? `S/\u00a0${v.valor.toFixed(2)} a favor`
+              : `${v.valor} UIT`;
     return guardar(nombre, vigenteDesde, v.valor, null, `${que}: ${legible}.`);
   };
   const confirmar = (p: ParametroFila, que: string) => () => void guardar(p.nombre, p.vigenteDesde, p.valor, p.texto, `${que}: confirmado.`);
 
   const tasas = parametros.filter((p) => p.nombre === "igv").sort((a, b) => (a.vigenteDesde < b.vigenteDesde ? 1 : -1));
   const topes = parametros.filter((p) => p.nombre === "tope_planilla_movilidad").sort((a, b) => (a.vigenteDesde < b.vigenteDesde ? 1 : -1));
+  const saldos = parametros.filter((p) => p.nombre === "saldo_favor_igv").sort((a, b) => (a.vigenteDesde < b.vigenteDesde ? 1 : -1));
   const uits = parametros.filter((p) => p.nombre === "uit");
   const aniosUit = [...new Set([...uits.map((u) => Number(u.vigenteDesde.slice(0, 4))), ...aniosUitExtra])].sort((a, b) => b - a);
   const anios = aniosDeRegimen(parametros, anioActual, aniosRegimenExtra);
@@ -233,6 +236,41 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
           )}
           <button type="button" className="btn-cayla btn-sutil btn-chico mt-3" onClick={() => setNueva("tope_planilla_movilidad")} aria-haspopup="dialog" data-guia="config.nuevo-tope">
             + Tope desde una fecha
+          </button>
+        </Superficie>
+
+        <Superficie pad className="anim-sube" guia="config.impuestos-saldo">
+          <CabeceraBloque
+            titulo="Saldo a favor de IGV al empezar"
+            bajada="El crédito fiscal con que CAYLA arrancó, de la última declaración. El IGV de cada mes parte de aquí en vez de cero."
+          />
+          {saldos.length === 0 ? (
+            <p className="fin-tenue text-[13px]">
+              Todavía no hay uno: tu contador lo ve en la última declaración («saldo a favor del periodo anterior»). Mientras no esté, el IGV de Impuestos y de la proyección se calcula desde cero y puede salir de más.
+            </p>
+          ) : (
+            <ul className="fin-vigencias">
+              {saldos.map((t) => (
+                <li key={t.vigenteDesde}>
+                  <span>
+                    Al empezar {textoMes(t.vigenteDesde.slice(0, 7))}
+                    <Quien p={t} onConfirmar={confirmar(t, "Saldo a favor de IGV")} />
+                  </span>
+                  <span className="fin-con-unidad">
+                    S/
+                    <Casilla
+                      valor={valorEnCasilla(t)}
+                      etiqueta={`Saldo a favor de IGV al empezar ${textoMes(t.vigenteDesde.slice(0, 7))}, en soles`}
+                      ancho="w-28"
+                      alGuardar={guardarCasilla("saldo_favor_igv", t.vigenteDesde, `Saldo a favor de IGV al empezar ${textoMes(t.vigenteDesde.slice(0, 7))}`)}
+                    />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <button type="button" className="btn-cayla btn-sutil btn-chico mt-3" onClick={() => setNueva("saldo_favor_igv")} aria-haspopup="dialog" data-guia="config.nuevo-saldo">
+            + Saldo de un mes
           </button>
         </Superficie>
       </section>
@@ -349,7 +387,7 @@ function FilaAnio({
   );
 }
 
-type VigenciaNueva = "igv" | "tope_planilla_movilidad";
+type VigenciaNueva = "igv" | "tope_planilla_movilidad" | "saldo_favor_igv";
 
 const HOJA: Record<VigenciaNueva, { titulo: string; subtitulo: string; etiqueta: string; ayuda: string; ejemplo: string; pendiente: string; listo: (desde: string, t: string) => string }> = {
   igv: {
@@ -371,6 +409,16 @@ const HOJA: Record<VigenciaNueva, { titulo: string; subtitulo: string; etiqueta:
     pendiente: "Escribe el tope en soles, por ejemplo 45.20.",
     listo: (desde, t) => `Tope de la planilla desde el ${fechaCorta(desde, true)}: S/\u00a0${Number(t.replace(",", ".")).toFixed(2)} por persona y día.`,
   },
+  saldo_favor_igv: {
+    titulo: "Saldo a favor de IGV",
+    subtitulo:
+      "Lo que CAYLA traía a favor al empezar ese mes. Ese mes el IGV parte de este monto (reemplaza lo que venía calculando) y lo de antes no cambia. Si hay uno ya declarado en ese mes, este lo corrige.",
+    etiqueta: "Saldo a favor (S/)",
+    ayuda: "De la última declaración: «saldo a favor del periodo anterior». Pon 0 si no traía.",
+    ejemplo: "0.00", // sugerir-fijo: el formato de un monto en soles, no depende de nada elegido en la hoja
+    pendiente: "Escribe el saldo en soles (0 si no traía).",
+    listo: (desde, t) => `Saldo a favor de IGV al empezar ${textoMes(desde.slice(0, 7))}: S/\u00a0${Number(t.replace(/[S/\s]/g, "").replace(/,(?=\d{3}\b)/g, "").replace(",", ".")).toFixed(2)}.`, // coma-fija: solo quita la coma de miles; la de céntimos pasa a punto
+  },
 };
 
 function NuevaVigencia({
@@ -386,15 +434,18 @@ function NuevaVigencia({
   guardando: boolean;
   responsable: ReturnType<typeof useResponsable>;
 }) {
-  const [desde, setDesde] = useState("");
+  const [desdeTipeado, setDesde] = useState("");
   const [valor, setValor] = useState("");
   const h = HOJA[nombre];
   const v = parsearParametro(nombre, valor);
+  // El saldo de IGV rige desde el día 1 de un mes: se elige el MES y la fecha que se guarda es su día 1.
+  const esMes = nombre === "saldo_favor_igv";
+  const desde = esMes && /^\d{4}-\d{2}$/.test(desdeTipeado) ? `${desdeTipeado}-01` : esMes ? "" : desdeTipeado;
   const fechaLista = /^\d{4}-\d{2}-\d{2}$/.test(desde);
   const listo = fechaLista && v.ok;
   // Guía de foco (ADR-0284): sale de lo mismo que habilita «Agregar».
   const guia = useGuiaCampos([
-    { id: "desde", nombre: "Desde", requerido: true, hecho: fechaLista, pendiente: "Elige desde qué fecha rige." },
+    { id: "desde", nombre: esMes ? "Mes" : "Desde", requerido: true, hecho: fechaLista, pendiente: esMes ? "Elige el mes en que CAYLA traía ese saldo." : "Elige desde qué fecha rige." },
     { id: "valor", nombre: h.etiqueta, requerido: true, hecho: v.ok, pendiente: valor && !v.ok ? v.error : h.pendiente },
     { id: "responsable", nombre: "Quién hace el cambio", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién hace el cambio." },
   ]);
@@ -402,8 +453,8 @@ function NuevaVigencia({
     <Modal variante="hoja" titulo={h.titulo} subtitulo={h.subtitulo} onClose={onCerrar}>
       <div className="fin-dos-campos" data-guia="config.nueva-tasa-campos">
         <CampoGuiado id="desde" guia={guia}>
-          <CampoFin etiqueta="Desde" htmlFor="vigencia-desde">
-            <InputFin id="vigencia-desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
+          <CampoFin etiqueta={esMes ? "Al empezar el mes" : "Desde"} htmlFor="vigencia-desde">
+            <InputFin id="vigencia-desde" type={esMes ? "month" : "date"} value={desdeTipeado} onChange={(e) => setDesde(e.target.value)} />
           </CampoFin>
         </CampoGuiado>
         <CampoGuiado id="valor" guia={guia}>
