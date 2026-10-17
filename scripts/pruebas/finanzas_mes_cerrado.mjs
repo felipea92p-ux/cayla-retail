@@ -18,7 +18,8 @@
  *
  * CÓMO. Las partes de una sesión terminan en ROLLBACK. Las de dos sesiones también: nada se confirma en el Postgres local, y se prueba
  * el ENTRELAZADO (quién espera a quién, con `lock_timeout`), no el resultado de una confirmación. Se usa un mes que ninguna otra suite
- * usa (noviembre de 2024) porque el cerrojo de cierre es por mes.
+ * usa (noviembre de 2024) porque el cerrojo de cierre es por mes. NO corras dos copias de esta suite a la vez contra la MISMA base: el cerrojo es
+ * por mes y una copia haría esperar a la otra (falsos rojos y falsos verdes en D1 a D5).
  *
  * USO
  *   pnpm pruebas:finanzas-mes-cerrado                       → contra el Postgres local del contenedor
@@ -134,7 +135,7 @@ select 'A3 el Estado de resultados de marzo NO cambia una cifra después de la d
      select ubicacion_id, unidad, ventas_netas, costo_ventas, mermas, gastos_operacion, resultado, detalle_gastos::text from retail.fn_estado_resultados('2025-03-01', '2025-03-31')
      except select ubicacion_id, unidad, ventas_netas, costo_ventas, mermas, gastos_operacion, resultado, detalle from er_antes) f) = 0
   and (select gastos_operacion from retail.fn_estado_resultados('2025-03-01', '2025-03-31', :'tru') where ubicacion_id = :'tru') = 150;
-select 'A4 un mes ABIERTO sigue leyendo el diario vivo (el mes en curso trae su gasto de hoy)',
+select 'A4 control (lo cubre estado_resultados.mjs): un mes ABIERTO sigue leyendo el diario vivo (el mes en curso trae su gasto de hoy)',
   (select gastos_operacion from retail.fn_estado_resultados(retail.fn_hoy_lima(), retail.fn_hoy_lima(), :'tru') where ubicacion_id = :'tru') is not null
   and (select pg_temp.intento(format('select * from retail.fn_estado_resultados(%L, %L, %L)', retail.fn_hoy_lima(), retail.fn_hoy_lima(), :'tru'))) = 'SIN_ERROR';
 `;
@@ -174,6 +175,24 @@ select 'C5 y no se escribió nada de lo rechazado en la historia de parámetros'
 verificar("El Estado de resultados lee lo congelado", correr(`${ESCENA}${CASOS_FOTO}`), casosDe(CASOS_FOTO));
 verificar("Archivar una caja de prueba", correr(`${ESCENA}${CASOS_CAJA}`), casosDe(CASOS_CAJA));
 verificar("Parámetros tributarios retroactivos", correr(`${ESCENA}${CASOS_PARAMETROS}`), casosDe(CASOS_PARAMETROS));
+
+
+// ── E · La forma del candado: lo que, si se pierde, la carrera vuelve sin que nada falle ──────────────────────────────────────
+const CASOS_ESTRUCTURA = `
+begin;
+select 'E1 fn_exigir_mes_abierto es VOLATILE (si fuera STABLE leería periodos con la foto de antes de esperar el cerrojo)',
+  (select provolatile = 'v' from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_exigir_mes_abierto');
+select 'E2 y la puerta de las ventas, que la llama, tampoco se declara STABLE',
+  (select provolatile = 'v' from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_exigir_venta_abierta');
+select 'E3 el cerrojo se toma ANTES de leer periodos',
+  (select position('pg_advisory_xact_lock_shared' in p.prosrc) > 0 and position('pg_advisory_xact_lock_shared' in p.prosrc) < position('fn_primer_mes_cerrado' in p.prosrc)
+     from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_exigir_mes_abierto');
+select 'E4 la llave del cerrojo se escribe con to_char en el candado y en el cierre (no con ::text, que cambia con el DateStyle)',
+  (select count(*) = 2 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'retail' and p.proname in ('fn_exigir_mes_abierto', 'cerrar_periodo')
+      and p.prosrc ~ 'cierre_mes:'' \\|\\| to_char\\(v_m');
+`;
+verificar("La forma del candado", correr(CASOS_ESTRUCTURA), casosDe(CASOS_ESTRUCTURA));
 
 // ── D · DOS SESIONES: quién espera a quién ───────────────────────────────────────────────────────────────────────────────────
 // Se prueba el entrelazado, no una confirmación: las dos sesiones terminan en ROLLBACK. La que «sostiene» imprime LISTO cuando ya tiene
@@ -255,7 +274,44 @@ select 'D3|' || pg_temp.intento($$insert into retail.gastos (ubicacion_id, categ
 rollback;`);
   const [, sal] = await Promise.all([cierra.fin, registra.fin]);
   const r = resultado(sal, "D3");
-  esperar("D3 mientras se cierra noviembre, un gasto de HOY entra sin esperar", r === "SIN_ERROR", { visto: r || sal.slice(-400) });
+  esperar("D3 control: mientras se cierra noviembre, un gasto de HOY entra sin esperar", r === "SIN_ERROR", { visto: r || sal.slice(-400) });
+}
+
+
+// D4 · un rango LARGO (un activo fijo de 2010) cubre los meses más recientes, que son los que se cierran.
+{
+  const registra = sesion(`${PREAMBULO}
+select retail.fn_exigir_mes_abierto(null, date '2010-01-01', retail.fn_hoy_lima());
+select 'LISTO';
+select pg_sleep(6);
+rollback;`);
+  await registra.listo;
+  const cierra = sesion(`${PREAMBULO}
+set local lock_timeout = '1500ms';
+select 'D4|' || pg_temp.intento(format('select retail.cerrar_periodo(%L, ''ubicacion'', %L)', '${MES}', :'tru'));
+rollback;`);
+  const [, sal] = await Promise.all([registra.fin, cierra.fin]);
+  const r = resultado(sal, "D4");
+  esperar("D4 con un rango de 2010 a hoy, el cierre de noviembre de 2024 espera (el tope de 120 meses cubre los más recientes)", r.startsWith("55P03"), { visto: r || sal.slice(-400) });
+}
+
+// D5 · una sesión con OTRO formato de fecha (DateStyle) espera igual: la llave del cerrojo no depende del texto de la fecha.
+{
+  const registra = sesion(`${PREAMBULO}
+insert into retail.gastos (ubicacion_id, categoria, descripcion, fecha, monto_total, igv, medio_pago, estado)
+  values (:'tru', 'publicidad', 'Carrera D5', '${MES.slice(0, 8)}11', 50, 0, 'yape', 'vigente');
+select 'LISTO';
+select pg_sleep(6);
+rollback;`);
+  await registra.listo;
+  const cierra = sesion(`${PREAMBULO}
+set local datestyle to 'German, DMY';
+set local lock_timeout = '1500ms';
+select 'D5|' || pg_temp.intento(format('select retail.cerrar_periodo(%L, ''ubicacion'', %L)', '${MES}', :'tru'));
+rollback;`);
+  const [, sal] = await Promise.all([registra.fin, cierra.fin]);
+  const r = resultado(sal, "D5");
+  esperar("D5 con otro DateStyle, el cierre espera igual a quien registra", r.startsWith("55P03"), { visto: r || sal.slice(-400) });
 }
 
 console.log(fallos ? `\n${fallos} de ${casos} verificaciones fallaron` : `\nLas ${casos} verificaciones pasaron`);

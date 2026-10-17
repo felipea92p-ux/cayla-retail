@@ -23,12 +23,13 @@
 --     espera a quien está registrando. Al ser VOLATILE, la lectura de `periodos` que sigue toma una foto NUEVA (ya con el cierre confirmado:
 --     el registro se rechaza) y `cerrar_periodo`, al despertar, ve el registro confirmado (queda dentro de lo congelado). Antes era una función
 --     STABLE: aunque hubiera tomado el cerrojo, habría leído con la foto vieja. Solo se toma para meses YA terminados: una venta de hoy no
---     paga nada. El rango se acota a 120 meses (un activo fijo llega a 60).
+--     paga nada. El rango se acota a los 120 meses más recientes (un activo fijo llega a 60).
 --   · `archivar_caja_prueba` llama al candado con las fechas de la caja (reemplazo anclado; abrir y cerrar la caja de hoy no se ve afectado).
 --   · `guardar_parametro_tributario` llama a `fn_exigir_vigencia_sin_meses_cerrados` (nueva): el IGV y el tope de la planilla de movilidad rigen
 --     desde su fecha hacia adelante, así que se rechaza una vigencia que alcance un mes ya cerrado (cualquier alcance). La UIT, el régimen y el
 --     pago a cuenta no entran al diario, no se guardan. Un re-guardado del mismo valor ya confirmado sigue siendo un no-op.
 -- Reemplazos anclados sobre la función VIVA (cada texto ancla aparece una vez o la migración aborta; si el texto nuevo ya está, no toca nada).
+-- ORDEN: se pega después de la 8 (alcance) y ANTES de cerrar el primer mes: un mes cerrado antes de pegarla se lee, en el Estado de resultados, del diario vivo.
 -- Verificado: `scripts/pruebas/finanzas_mes_cerrado.mjs` (incluye dos sesiones reales entrelazadas) y las suites de cierre de mes y de gastos.
 -- Contra producción (solo lectura, 2026-10-16): `fn_exigir_mes_abierto` (md5 66ee8ad2…) y `fn_primer_mes_cerrado` (f95be278…) son idénticas a las de local, y los
 -- anclajes de `fn_estado_resultados`, `archivar_caja_prueba` y `guardar_parametro_tributario` aparecen exactamente una vez; hoy hay 0 filas en `periodos`.
@@ -72,20 +73,21 @@ set search_path = retail, public, extensions
 as $fn$
 declare
   v_mes date;
-  v_m date := date_trunc('month', p_desde)::date;
   v_ult date := (date_trunc('month', retail.fn_hoy_lima()) - interval '1 month')::date;
   v_tope date := least(date_trunc('month', coalesce(p_hasta, p_desde))::date, v_ult);
-  v_n integer := 0;
+  -- Un rango largo (un activo fijo de 2014) se cubre desde el mes MÁS RECIENTE hacia atrás, hasta 120 meses: son los que se cierran.
+  v_m date := greatest(date_trunc('month', p_desde)::date, (v_tope - interval '119 months')::date);
 begin
   if p_desde is null then
     return;
   end if;
   -- El mismo cerrojo que toma `cerrar_periodo`, pero compartido: quien registra espera a que un cierre en marcha termine, y un cierre
   -- espera a quien está registrando. Solo los meses que ya pueden estar cerrados (un mes en curso no se cierra): lo de hoy no espera a nadie.
-  while v_m <= v_tope and v_n < 120 loop
-    perform pg_advisory_xact_lock_shared(hashtextextended('cierre_mes:' || v_m::text, 0));
+  -- La llave se escribe con to_char y no con `::text`: el texto de una fecha depende del DateStyle de la sesión, y dos sesiones con otro
+  -- formato dejarían de esperarse en silencio.
+  while v_m <= v_tope loop
+    perform pg_advisory_xact_lock_shared(hashtextextended('cierre_mes:' || to_char(v_m, 'YYYY-MM-DD'), 0));
     v_m := (v_m + interval '1 month')::date;
-    v_n := v_n + 1;
   end loop;
   -- DESPUÉS del cerrojo: esta lectura toma una foto nueva (la función es VOLATILE) y ve un cierre que se confirmó mientras esperábamos.
   v_mes := retail.fn_primer_mes_cerrado(p_ubicacion_id, p_desde, p_hasta);
@@ -101,6 +103,15 @@ begin
     using errcode = 'P0001', hint = 'periodo_cerrado', detail = to_char(v_mes, 'YYYY-MM');
 end
 $fn$;
+
+-- ── 1b. La misma llave en el cierre, y la puerta de las ventas, que llama al candado, deja de decirse STABLE ──────────────
+select pg_temp.anclar('retail.cerrar_periodo(date, text, uuid)',
+  $v$perform pg_advisory_xact_lock(hashtextextended('cierre_mes:' || v_mes::text, 0));$v$,
+  $n$perform pg_advisory_xact_lock(hashtextextended('cierre_mes:' || to_char(v_mes, 'YYYY-MM-DD'), 0));$n$);
+
+-- Se declaraba STABLE y desde ahora llama a una función VOLATILE que toma cerrojos: dicha STABLE, un SELECT que la evaluara por fila podría
+-- correrla una sola vez o quitarla, y el cerrojo se perdería sin error. Solo la llaman disparadores por `perform`: no cambia nada más.
+alter function retail.fn_exigir_venta_abierta(uuid, text) volatile;
 
 -- ── 2. Una vigencia que alcanza un mes cerrado no se guarda ─────────────────────────────────────────────────────────────
 create or replace function retail.fn_exigir_vigencia_sin_meses_cerrados(p_nombre text, p_desde date)
