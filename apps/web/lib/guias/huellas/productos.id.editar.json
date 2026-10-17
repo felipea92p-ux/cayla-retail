@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 134,
+  "total": 128,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{volverA}»"
@@ -44,14 +44,6 @@
       "button «editar.agregar-color»",
       "button «editar.agregar-talla»",
       "button «Ir a»"
-    ],
-    "components/RevisarFotosModal.tsx": [
-      "button «Todas sin fondo»",
-      "button «Todas con fondo»",
-      "Boton «Cancelar»",
-      "Boton «→() => confirmar(cerrar)»",
-      "button «{TEXTO_ELECCION[o]}»",
-      "button «{l ? \"Luz corregida\" : \"Luz original\"}»"
     ],
     "components/SelectorColor.tsx": [
       "input «Elegir color con el selector»",

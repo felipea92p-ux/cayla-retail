@@ -1,17 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  cajaDeContenido,
-  encuadrar,
-  esFotoEncuadrada,
-  fraccionDeHuecos,
-  HUECOS_MAXIMOS,
-  recorteAgujereado,
-  LIENZO_FOTO,
-  MARGEN_PRENDA,
-  recorteUtil,
-  reducirA,
-  rutasFotoPrenda,
-} from "./foto-encuadre";
+import { cajaDeContenido, fraccionDeHuecos, HUECOS_MAXIMOS, recorteAgujereado, rutaDeLaFoto, soloLaPrenda } from "./foto-encuadre";
 
 /** Una imagen RGBA transparente de `ancho × alto` con un rectángulo opaco (o de la opacidad pedida). */
 function imagen(ancho: number, alto: number, rect: { x: number; y: number; ancho: number; alto: number } | null, alfa = 255) {
@@ -39,74 +27,16 @@ describe("cajaDeContenido", () => {
   });
 });
 
-describe("recorteUtil", () => {
-  it("una prenda que ocupa buena parte de la foto y llena su caja sirve", () => {
-    const d = imagen(100, 100, { x: 20, y: 10, ancho: 50, alto: 70 });
-    expect(recorteUtil(cajaDeContenido(d, 100, 100), 100, 100)).toBe(true);
+describe("rutaDeLaFoto: la foto se guarda con la extensión de lo que es", () => {
+  it("un PNG sin fondo no se llama .jpg", () => {
+    expect(rutaDeLaFoto("abc", "image/png")).toBe("fotos/abc.png");
+    expect(rutaDeLaFoto("abc", "image/jpeg")).toBe("fotos/abc.jpg");
+    expect(rutaDeLaFoto("abc", "image/webp")).toBe("fotos/abc.webp");
   });
 
-  it("un puntito suelto (el modelo no encontró la prenda) no sirve", () => {
-    const d = imagen(100, 100, { x: 0, y: 0, ancho: 5, alto: 5 });
-    expect(recorteUtil(cajaDeContenido(d, 100, 100), 100, 100)).toBe(false);
-    expect(recorteUtil(null, 100, 100)).toBe(false);
-  });
-
-  it("pedazos desparramados por toda la foto no son una prenda, aunque su caja sea grande", () => {
-    // Lo que pasó con la foto de una tienda llena de ropa: dos manchas en esquinas opuestas.
-    const d = imagen(100, 100, { x: 5, y: 5, ancho: 15, alto: 15 });
-    for (let y = 75; y < 95; y++) for (let x = 75; x < 95; x++) d[(y * 100 + x) * 4 + 3] = 255;
-    const c = cajaDeContenido(d, 100, 100);
-    expect(c && c.ancho * c.alto).toBeGreaterThan(0.5 * 100 * 100);
-    expect(recorteUtil(c, 100, 100)).toBe(false);
-  });
-});
-
-describe("encuadrar", () => {
-  it("una prenda alta queda limitada por el alto, con el margen, y centrada a lo ancho", () => {
-    const r = encuadrar({ ancho: 400, alto: 1000 });
-    expect(r.alto).toBe(Math.round(LIENZO_FOTO.alto * (1 - 2 * MARGEN_PRENDA)));
-    expect(r.y).toBe(Math.round((LIENZO_FOTO.alto - r.alto) / 2));
-    expect(r.x).toBe(Math.round((LIENZO_FOTO.ancho - r.ancho) / 2));
-    expect(r.ancho / r.alto).toBeCloseTo(0.4, 2);
-  });
-
-  it("una prenda ancha queda limitada por el ancho", () => {
-    const r = encuadrar({ ancho: 1000, alto: 300 });
-    expect(r.ancho).toBe(Math.round(LIENZO_FOTO.ancho * (1 - 2 * MARGEN_PRENDA)));
-    expect(r.alto).toBeLessThan(LIENZO_FOTO.alto);
-  });
-
-  it("dos prendas de tamaños distintos en la foto salen del mismo tamaño en el lienzo", () => {
-    // La misma blusa fotografiada de lejos (chica) y de cerca (grande): mismo resultado.
-    expect(encuadrar({ ancho: 120, alto: 160 })).toEqual(encuadrar({ ancho: 1200, alto: 1600 }));
-  });
-
-  it("sin margen, la foto entera ocupa el lado que la limita (el resto queda en blanco)", () => {
-    const r = encuadrar({ ancho: 1920, alto: 1280 }, LIENZO_FOTO, 0);
-    expect(r).toEqual({ x: 0, y: 350, ancho: 1200, alto: 800 });
-  });
-});
-
-describe("reducirA", () => {
-  it("achica la foto de celular a 2400 en el lado largo", () => {
-    expect(reducirA(4032, 3024)).toEqual({ ancho: 2400, alto: 1800 });
-  });
-
-  it("nunca agranda una foto chica", () => {
-    expect(reducirA(900, 1200)).toEqual({ ancho: 900, alto: 1200 });
-  });
-});
-
-describe("rutas de la foto y su original", () => {
-  it("comparten el id", () => {
-    expect(rutasFotoPrenda("abc")).toEqual({ foto: "fotos/abc.jpg", original: "originales/abc.jpg" });
-  });
-
-  it("reconoce las fotos ya encuadradas y no las de antes", () => {
-    const base = "https://x.supabase.co/storage/v1/object/public/retail-productos-fotos";
-    expect(esFotoEncuadrada(`${base}/fotos/abc.jpg`)).toBe(true);
-    expect(esFotoEncuadrada(`${base}/0d9c-blusa.jpg`)).toBe(false);
-    expect(esFotoEncuadrada(`${base}/originales/abc.jpg`)).toBe(false);
+  it("un tipo que el almacén no acepta no tiene ruta", () => {
+    expect(rutaDeLaFoto("abc", "image/gif")).toBeNull();
+    expect(rutaDeLaFoto("abc", "")).toBeNull();
   });
 });
 
@@ -145,10 +75,26 @@ describe("fraccionDeHuecos", () => {
 });
 
 describe("recorteAgujereado", () => {
-  it("sugiere con fondo solo por encima del umbral medido", () => {
+  it("pide revisión solo por encima del umbral medido", () => {
     expect(recorteAgujereado(0.0007)).toBe(false); // «Apple Bottom», limpia
     expect(recorteAgujereado(0.0138)).toBe(true); // jean Levi's agujereado
     expect(recorteAgujereado(HUECOS_MAXIMOS)).toBe(false);
     expect(recorteAgujereado(null)).toBe(false);
+  });
+});
+
+describe("soloLaPrenda", () => {
+  it("borra la mota suelta y deja la prenda", () => {
+    const d = imagen(100, 100, { x: 20, y: 20, ancho: 50, alto: 50 });
+    d[(5 * 100 + 90) * 4 + 3] = 255; // una mota
+    expect(soloLaPrenda(d, 100, 100)).toBe(1);
+    expect(d[(5 * 100 + 90) * 4 + 3]).toBe(0);
+    expect(d[(30 * 100 + 30) * 4 + 3]).toBe(255);
+  });
+
+  it("un conjunto de dos piezas grandes se conserva", () => {
+    const d = imagen(100, 100, { x: 5, y: 20, ancho: 40, alto: 50 });
+    for (let y = 20; y < 70; y++) for (let x = 55; x < 95; x++) d[(y * 100 + x) * 4 + 3] = 255;
+    expect(soloLaPrenda(d, 100, 100)).toBe(0);
   });
 });
