@@ -166,11 +166,19 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
       ? supabase.from("etiqueta_categorias").select("etiqueta_id, categoria_id")
       : Promise.resolve({ data: [], error: null }),
     tipo === "etiquetas" ? supabase.from("familias").select("codigo, nombre") : Promise.resolve({ data: [], error: null }),
-    // Precios de las prendas, para el aviso de «por debajo del costo» al configurar una campaña y para elegir prendas en
-    // «Prendas». El COSTO no viaja a quien no tiene permiso de dinero: `getCostosVariantes` lo pide por la puerta que lo revisa.
+    // Las prendas a la venta con su precio: para el aviso de «por debajo del costo», el alcance de una campaña y lo que cuenta
+    // cada tarjeta. «A la venta» es una sola regla en toda la pestaña, la de la hoja «Prendas»: talla activa de un producto que no
+    // está descontinuado (2026-10-17: antes la tarjeta decía 186 y su hoja 164). El COSTO no viaja a quien no tiene permiso de
+    // dinero: `getCostosVariantes` lo pide por la puerta que lo revisa.
     tipo === "etiquetas" && puedeDarDescuento
       ? leerTodas((desde, hasta) =>
-          supabase.from("variantes").select("id, sku, precio, producto:productos ( referencia, categoria_id )").eq("activo", true).order("id").range(desde, hasta)
+          supabase
+            .from("variantes")
+            .select("id, sku, precio, producto:productos!inner ( referencia, categoria_id )")
+            .eq("activo", true)
+            .eq("producto.estado", "activo")
+            .order("id")
+            .range(desde, hasta)
         )
       : Promise.resolve({ data: [], error: null }),
     // Cuántas prendas lleva cada etiqueta «a mano»: para quien edita etiquetas (el líder o un rol con el módulo).
