@@ -15,9 +15,10 @@
 --     Vitrina web (los demás, con el MISMO archivo, reciben lo que ya está: es un reintento). Subir una foto nueva no cambia: cada foto
 --     nueva es un archivo nuevo, todavía sin recorte.
 --
--- PRODUCCIÓN. **POR PEGAR**, con el OK de Felipe, ANTES de fusionar el PR #1164 (la pantalla de ese PR llama a la función nueva). Una sola
--- parte, re-ejecutable: dos funciones y sus permisos; no altera tablas, no crea políticas ni toca disparadores (ADR-0195). Comprobación al
--- pie. Pruebas: `pnpm pruebas:vitrina-probador` (sección 9).
+-- PRODUCCIÓN. **APLICADA el 2026-10-17** con el OK de Felipe y el CI en verde, antes de fusionar el PR #1164 (la pantalla de ese PR llama a
+-- la función nueva): huellas `d06caffc4fe3d6c5d0b1fd478ca73b3d` (registrar_recorte) y `9302fe9523162ece22d9cc889d78d7c7`
+-- (deshacer_descarte_recorte). Una sola parte, re-ejecutable: dos funciones y sus permisos; no altera tablas, no crea políticas ni toca
+-- disparadores (ADR-0195). Comprobación al pie. Pruebas: `pnpm pruebas:vitrina-probador` (sección 9).
 -- ============================================================================
 
 set search_path = retail, public, extensions;

@@ -9,8 +9,9 @@
 - [ ] Repetir la prueba ciega sobre la pantalla nueva y hacer la pasada con una colaboradora real.
 - [x] `/chaos` de la pantalla (semilla 1017, `docs/chaos/README.md`): 20 ataques, 15 resisten; arreglados con su prueba el «Deshacer» que
   pisaba otra decisión, el foco al cerrar y el aviso de redondeo.
-- [ ] **POR PEGAR (2026-10-17), con el OK de Felipe, ANTES de fusionar el #1164:** `supabase/migrations/20261017183000_recortes_deshacer_y_candado.sql`
-  (una parte; huellas esperadas en la descripción del PR). Después, refrescar el volcado (`deshacer_descarte_recorte` es nueva).
+- [x] `supabase/migrations/20261017183000_recortes_deshacer_y_candado.sql` **pegada en producción el 2026-10-17** con el OK de Felipe y
+  el CI en verde; las dos huellas dieron lo esperado.
+- [ ] Refrescar el volcado (`deshacer_descarte_recorte` es nueva y `registrar_recorte` cambió).
 - [ ] «Preparar recortes» en dos equipos a la vez hace el trabajo dos veces y deja archivos de más en el almacén (gravedad 4): avisar que
   otra persona ya prepara, o saltar la foto que ya tiene recorte al llegar a ella.
 - [ ] `guias:recorrer` no arranca ninguna demo en este entorno (`.guia-tarjeta` no aparece con `?demo=1`, tampoco en Looks, que no se tocó).

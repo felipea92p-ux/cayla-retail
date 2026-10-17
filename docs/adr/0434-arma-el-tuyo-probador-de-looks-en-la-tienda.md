@@ -273,5 +273,5 @@ anotar el recorte con `registrar_recorte`, le pisaba la decisión a quien lo hub
 La migración `20261017183000` trae `deshacer_descarte_recorte(p_foto, p_estado)`: devuelve el recorte a como estaba solo si sigue
 descartado (si no, `recorte_ya_cambio`) y lo anota. Además, `registrar_recorte` exige que el archivo sea el de esa foto
 (`recortes/<foto>.png` o `recortes/<foto>-<sello>.png`) y que una foto con recorte la cambie quien ve la Vitrina web; el mismo archivo otra
-vez es un reintento. Se pega en producción con el OK de Felipe antes de fusionar el PR #1164.
+vez es un reintento. Pegada en producción el 2026-10-17 con el OK de Felipe, antes de fusionar el PR #1164.
 
