@@ -168,8 +168,8 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     tipo === "etiquetas" ? supabase.from("familias").select("codigo, nombre") : Promise.resolve({ data: [], error: null }),
     // Las prendas a la venta con su precio: para el aviso de «por debajo del costo», el alcance de una campaña y lo que cuenta
     // cada tarjeta. «A la venta» es una sola regla en toda la pestaña, la de la hoja «Prendas»: talla activa de un producto que no
-    // está descontinuado (ADR-0441, actividad 3). El COSTO no viaja a quien no tiene permiso de dinero: `getCostosVariantes` lo
-    // pide por la puerta que lo revisa.
+    // está descontinuado (2026-10-17: antes la tarjeta decía 186 y su hoja 164). El COSTO no viaja a quien no tiene permiso de
+    // dinero: `getCostosVariantes` lo pide por la puerta que lo revisa.
     tipo === "etiquetas" && puedeDarDescuento
       ? leerTodas((desde, hasta) =>
           supabase
