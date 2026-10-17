@@ -21,6 +21,7 @@ import {
   leerVerER,
   mesNombre,
   mesTitulo,
+  NOTA_MES_CERRADO,
   montoNatural,
   nombreCorto,
   origenDeCifra,
@@ -50,24 +51,27 @@ type Origen = { concepto: ConceptoER; columna: FilaER };
 export function EstadoResultadosPanel({
   filas,
   anteriores,
-  esLider,
+  veTodo,
   sedeActual,
   verParam,
   mes,
   mesPrevio,
   hoy,
   comparar,
+  cerradas,
   fallas,
 }: {
   filas: FilaER[];
   anteriores: FilaER[] | null;
-  esLider: boolean;
+  veTodo: boolean;
   sedeActual: string | null;
   verParam: string | undefined;
   mes: string;
   mesPrevio: string;
   hoy: string;
   comparar: boolean;
+  /** Las unidades de este mes que ya están cerradas (llave de `claveUnidad`): su columna es la foto congelada. */
+  cerradas: string[];
   fallas: string[];
 }) {
   const router = useRouter();
@@ -75,12 +79,13 @@ export function EstadoResultadosPanel({
   const params = useSearchParams();
   const [origen, setOrigen] = useState<Origen | null>(null);
 
-  const ver = leerVerER(verParam, filas, esLider, sedeActual);
+  const ver = leerVerER(verParam, filas, veTodo, sedeActual);
   const columnas = useMemo(() => columnasER(filas, ver), [filas, ver]);
   const conceptos = useMemo(() => conceptosER(columnas), [columnas]);
   const previas = useMemo(() => new Map((anteriores ?? []).map((f) => [claveUnidad(f), f])), [anteriores]);
   const enCurso = mes === mesDe(hoy);
-  const avisos = avisosER(columnas, enCurso);
+  const cerrada = (c: FilaER) => cerradas.includes(claveUnidad(c));
+  const avisos = [...avisosER(columnas, enCurso), ...(columnas.some(cerrada) ? [{ tono: "pizarra" as const, texto: NOTA_MES_CERRADO }] : [])];
   const unidades = filas.filter((f) => f.unidad !== "consolidado");
   const ventasDe = (f: FilaER) => f.ventas;
 
@@ -114,7 +119,7 @@ export function EstadoResultadosPanel({
         bajada="Salen solos del diario que arma el sistema con cada venta, compra, gasto y movimiento de caja (ADR-0198). Nadie escribe un asiento."
         acciones={
           <>
-            {esLider ? (
+            {veTodo ? (
               <label className="fin-ver" data-guia="fin-ver.combo">
                 <span className="label-cayla text-[11px] text-taupe">Ver</span>
                 <SelectFin
@@ -175,7 +180,7 @@ export function EstadoResultadosPanel({
                     {columnas.map((c) => (
                       <th key={claveUnidad(c)} scope="col" className={c.unidad === "consolidado" ? "fin-eerr-cons" : undefined}>
                         {nombreCorto(c)}
-                        <span className="fin-delta">{subtituloColumna(c, enCurso)}</span>
+                        <span className="fin-delta">{[subtituloColumna(c, enCurso), cerrada(c) ? "cerrado" : ""].filter(Boolean).join(" · ")}</span>
                       </th>
                     ))}
                   </tr>
@@ -237,7 +242,7 @@ export function EstadoResultadosPanel({
         </Superficie>
       </div>
 
-      {esLider ? (
+      {veTodo ? (
         <div {...entra(2, "fin-dos-col")} data-guia="fin-resultados.notas">
           <div className="nota-cayla">
             <b>El Taller no le vende a las tiendas</b> (D-31): lo que cuesta la tela, los avíos y la maquila de cada prenda entra en el
@@ -324,7 +329,7 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
     const { desde, hasta } = rangoMes(mes);
     createClient()
       .rpc(
-        "fn_asientos" as never,
+        "fn_diario" as never,
         {
           p_desde: desde,
           p_hasta: hasta,

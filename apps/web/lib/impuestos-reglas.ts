@@ -314,7 +314,7 @@ type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
 /** Lo tipeado en una casilla → lo que se guarda (la tasa, como fracción). Mismos límites que la base, con otras palabras. */
 export function parsearParametro(nombre: Exclude<NombreParametro, "regimen">, tipeado: string): Resultado<number> {
-  const limpio = tipeado.replace(/[S/%\s]/g, "").replace(/,(?=\d{3}\b)/g, "").replace(",", ".");
+  const limpio = tipeado.replace(/[S/%\s]/g, "").replace(/,(?=\d{3}\b)/g, "").replace(",", "."); // coma-fija: solo quita la coma de miles (3 cifras detrás); la de céntimos pasa a punto
   if (!limpio) return { ok: false, error: "Escribe un valor." };
   const n = Number(limpio);
   if (!Number.isFinite(n)) return { ok: false, error: "Escribe solo el número." };
