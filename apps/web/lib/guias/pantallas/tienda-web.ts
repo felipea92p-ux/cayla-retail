@@ -943,6 +943,20 @@ export const GUIA_RECOMENDACIONES: Guia = {
       texto: "Si alguien ya le respondió, aquí ves qué le dijo, quién y cuándo. El cliente la lee en su cuenta.",
     },
     {
+      id: "lo-que-pide",
+      ancla: "recomendacion.lo-que-pide",
+      opcional: true,
+      titulo: "Lo que pide",
+      texto: "De qué habla lo que escribió y el dato del ERP para responderle: cuántos modelos hay en su talla, cuántos colores, cómo entrega la tienda online. Tocar otro tema cambia las formas de empezar.",
+    },
+    {
+      id: "inicios",
+      ancla: "recomendacion.inicios",
+      opcional: true,
+      titulo: "Formas de empezar",
+      texto: "Un comienzo que lo saluda por su nombre y dice qué se hará con lo que contó. Tócalo y sigue escribiendo; si ya tenías algo, «Recuperar lo que escribí» lo trae de vuelta.",
+    },
+    {
       id: "respuesta",
       ancla: "recomendacion.respuesta",
       opcional: true,

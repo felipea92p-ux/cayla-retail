@@ -146,6 +146,21 @@ export function pendientesDe(e: EntradaResumen): Pendiente[] {
       accion: "Responder",
     });
   }
+  // Lo que más piden este mes, si dos o más lo nombran (actividad 4): no es un pendiente, es lo que dicen los propios clientes.
+  if (e.recomendaciones.estado === "ok" && e.recomendaciones.dato.temaDelMes) {
+    const t = e.recomendaciones.dato.temaDelMes;
+    p.push({
+      clave: "recomendaciones-tema",
+      tono: "info",
+      icono: "recomendacion",
+      cifra: t.veces,
+      formato: "entero",
+      titulo: `recomendaciones de este mes piden ${t.nombre}`,
+      detalle: "Lo dicen los propios clientes: vale contárselo a quien decide el próximo pedido.",
+      href: "/tienda-web/recomendaciones",
+      accion: "Leerlas",
+    });
+  }
 
   if (e.vitrina.estado === "ok") {
     const v = e.vitrina.dato;

@@ -130,8 +130,16 @@ describe("las cifras", () => {
       rec({ cliente: null }, 7), // anonimizada sin responder: en la bandeja, pero no por responder
     ];
     // La leída sin respuesta (2) cuenta como por responder: antes desaparecía de la cifra y del aviso del Resumen.
-    expect(cifrasDe(lista, "2026-10-15")).toEqual({ porResponder: 3, respondidas: 2, delMes: 5, archivadas: 2, enBandeja: 5 });
-    expect(cifrasDe([], "2026-10-15")).toEqual({ porResponder: 0, respondidas: 0, delMes: 0, archivadas: 0, enBandeja: 0 });
+    // Las cinco del mes dicen «Pongan más tallas grandes»: lo que más piden este mes, para el Resumen.
+    expect(cifrasDe(lista, "2026-10-15")).toEqual({
+      porResponder: 3,
+      respondidas: 2,
+      delMes: 5,
+      archivadas: 2,
+      enBandeja: 5,
+      temaDelMes: { id: "tallas", nombre: "tallas grandes", veces: 5 },
+    });
+    expect(cifrasDe([], "2026-10-15")).toEqual({ porResponder: 0, respondidas: 0, delMes: 0, archivadas: 0, enBandeja: 0, temaDelMes: null });
   });
 });
 

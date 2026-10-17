@@ -7,6 +7,7 @@
 import { hrefLista, leerParamsLista } from "./clientas-lista-reglas";
 import { diaLima, diaYHoraLima } from "./fechas-lima";
 import { sinTildes } from "./marcas";
+import { temaQueSeRepite, type TemaId } from "./recomendaciones-temas";
 import { TODOS } from "./pildora-reglas";
 
 /** El largo de una respuesta: el mismo de `responder_recomendacion` (de 2 a 400 letras, ya limpias). */
@@ -154,21 +155,34 @@ export const hrefFicha = (nombre: string) => hrefLista(leerParamsLista({}), { te
 
 /* ------------------------------------------------------------------ Las cifras */
 
-export type CifrasRecomendaciones = { porResponder: number; respondidas: number; delMes: number; archivadas: number; enBandeja: number };
+export type CifrasRecomendaciones = {
+  porResponder: number;
+  respondidas: number;
+  delMes: number;
+  archivadas: number;
+  enBandeja: number;
+  /** Lo que más piden este mes, si dos o más lo nombran (para el Resumen de Tienda web, actividad 4); null si nada se repite. */
+  temaDelMes: { id: TemaId; nombre: string; veces: number } | null;
+};
 
 /** Lo que dicen las tarjetas (y el aviso del Resumen de Tienda web). «Del mes»: las que llegaron en el mes de Lima de `hoy`
  *  (aaaa-mm-dd), archivadas o no. */
 export function cifrasDe(lista: readonly Recomendacion[], hoy: string): CifrasRecomendaciones {
   const mes = hoy.slice(0, 7);
-  const c: CifrasRecomendaciones = { porResponder: 0, respondidas: 0, delMes: 0, archivadas: 0, enBandeja: 0 };
+  const c: CifrasRecomendaciones = { porResponder: 0, respondidas: 0, delMes: 0, archivadas: 0, enBandeja: 0, temaDelMes: null };
+  const textosDelMes: string[] = [];
   for (const r of lista) {
     const e = estadoDe(r);
     if (e === "por_responder") c.porResponder++;
     if (r.respuesta !== null) c.respondidas++;
     if (e === "archivada") c.archivadas++;
     else c.enBandeja++;
-    if (diaLima(r.creadaEn)?.slice(0, 7) === mes) c.delMes++;
+    if (diaLima(r.creadaEn)?.slice(0, 7) === mes) {
+      c.delMes++;
+      textosDelMes.push(r.texto);
+    }
   }
+  c.temaDelMes = temaQueSeRepite(textosDelMes);
   return c;
 }
 

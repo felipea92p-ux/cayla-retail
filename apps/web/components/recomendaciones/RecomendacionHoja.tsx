@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Archive, ArrowRight, UserX } from "lucide-react";
 import { Cajon } from "@/components/ui/Cajon";
 import { Boton, Campo } from "@/components/ui/campos";
@@ -10,6 +10,8 @@ import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { VistaDelCliente } from "@/components/recomendaciones/VistaDelCliente";
+import { LoQuePide } from "@/components/recomendaciones/LoQuePide";
+import { useCatalogoParaResponder } from "@/components/recomendaciones/useCatalogoParaResponder";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { createClient } from "@/lib/supabase/client";
@@ -18,6 +20,8 @@ import { useResponsable } from "@/lib/useResponsable";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { haceCuanto } from "@/lib/vender-hoy-reglas";
 import { camposRecomendacion } from "@/lib/recomendaciones-guia";
+import { necesitaCatalogo, temasDe, type TemaId } from "@/lib/recomendaciones-temas";
+import { ayudaDeLaCaja, iniciosDe } from "@/lib/sugerencias-recomendaciones";
 import {
   MAX_RESPUESTA,
   SEGUNDOS_PARA_DESHACER,
@@ -112,6 +116,28 @@ export function RecomendacionHoja({
 
   const respuesta = borradores[r.id] ?? "";
   const escribir = (texto: string) => setBorradores((b) => ({ ...b, [r.id]: texto }));
+
+  // «Lo que pide» (actividad 4): de qué habla, el tema elegido en cada una y el catálogo, solo si algún tema lo necesita.
+  const temas = useMemo(() => temasDe(r.texto), [r.texto]);
+  const [temasElegidos, setTemasElegidos] = useState<Record<string, TemaId>>({});
+  const tema = temas.find((t) => t.id === temasElegidos[r.id]) ?? temas[0] ?? null;
+  const catalogo = useCatalogoParaResponder(necesitaCatalogo(temas));
+  const primerNombre = r.cliente?.nombre.split(" ")[0] ?? null;
+  const inicios = iniciosDe(tema, { nombre: primerNombre, tienda: r.tienda?.nombre ?? null, datos: catalogo.estado === "ok" ? catalogo.datos : null });
+  // Lo que había escrito antes de tocar una forma de empezar, para «Deshacer» (se olvida apenas vuelve a escribir).
+  const [antesDelInicio, setAntesDelInicio] = useState<Record<string, string>>({});
+  const caja = useRef<HTMLTextAreaElement>(null);
+  function usarInicio(texto: string) {
+    if (respuesta.trim() && respuesta !== texto) setAntesDelInicio((a) => ({ ...a, [r.id]: respuesta }));
+    else setAntesDelInicio((a) => sinClave(a, r.id));
+    escribir(texto);
+    requestAnimationFrame(() => {
+      const c = caja.current;
+      if (!c) return;
+      c.focus();
+      c.setSelectionRange(c.value.length, c.value.length);
+    });
+  }
   const guia = useGuiaCampos(
     camposRecomendacion({ recomendacion: v, respuesta, responsableListo: responsable.listo, responsableMotivo: responsable.motivo }),
   );
@@ -436,6 +462,38 @@ export function RecomendacionHoja({
         )}
       </div>
 
+      {puedeResponder && !pendiente && temas.length > 0 && tema && (
+        <LoQuePide
+          temas={temas}
+          elegido={tema.id}
+          onElegir={(id) => setTemasElegidos((t) => ({ ...t, [r.id]: id }))}
+          lectura={catalogo}
+          tienda={r.tienda?.nombre ?? null}
+        />
+      )}
+
+      {puedeResponder && !pendiente && (
+        // Formas de empezar que siguen lo que escribió (ADR-0290): saludan por su nombre y dicen qué se hará; el resto lo escribe quien responde.
+        <div className="flex flex-wrap items-center gap-1.5" data-guia="recomendacion.inicios">
+          <span className="mr-0.5 text-[12px] text-taupe">Empieza con</span>
+          {inicios.map((i) => (
+            <button key={i.etiqueta} type="button" className="pildora-cayla" disabled={ocupado} onClick={() => usarInicio(i.texto)}>
+              {i.etiqueta}
+            </button>
+          ))}
+          {antesDelInicio[r.id] !== undefined && (
+            <BotonDeshacer
+              onClick={() => {
+                escribir(antesDelInicio[r.id]!);
+                setAntesDelInicio((a) => sinClave(a, r.id));
+              }}
+            >
+              Recuperar lo que escribí
+            </BotonDeshacer>
+          )}
+        </div>
+      )}
+
       {puedeResponder && !pendiente && (
         <CampoGuiado id="respuesta" guia={guia}>
           <div data-guia="recomendacion.respuesta">
@@ -453,6 +511,7 @@ export function RecomendacionHoja({
             >
               <div className="caja-cayla caja-campo caja-campo-texto-largo">
                 <textarea
+                  ref={caja}
                   id={`respuesta-${r.id}`}
                   // El corrector del navegador en español: subraya «tenderemos» antes de que salga una respuesta que no se corrige.
                   lang="es"
@@ -460,8 +519,11 @@ export function RecomendacionHoja({
                   className="self-stretch resize-none"
                   rows={4}
                   value={respuesta}
-                  onChange={(e) => escribir(e.target.value)}
-                  placeholder="Escribe una respuesta corta y cálida…"
+                  onChange={(e) => {
+                    escribir(e.target.value);
+                    if (antesDelInicio[r.id] !== undefined) setAntesDelInicio((a) => sinClave(a, r.id));
+                  }}
+                  placeholder={ayudaDeLaCaja(tema, primerNombre)}
                   disabled={ocupado}
                 />
               </div>
