@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   alternarTalla,
   faltaTalla,
@@ -14,6 +14,8 @@ import {
 } from "@/lib/looks";
 import { Icono } from "../Icono";
 import { Foto } from "./Lamina";
+// La hoja trae sus estilos: también la abre «Arma el tuyo», que no es una página de looks.
+import "@/app/estilos/looks.css";
 
 /**
  * «Agregar el look a mi bolsa» (maqueta v4, `t-look-bolsa` y la hoja `look-tallas`; propuesta h): abre una hoja con cada prenda del look y
@@ -26,6 +28,9 @@ export function AgregarLook({
   look,
   origenFotos,
   alAgregar,
+  titulo = look.nombre,
+  conBoton = true,
+  abiertaAlMontar = false,
 }: {
   look: Look;
   /** El origen del almacén público de fotos (`TIENDA_FOTOS_ORIGEN`): solo esas fotos pasan por el optimizador. */
@@ -33,6 +38,11 @@ export function AgregarLook({
   /** Agrega las líneas a la bolsa (`AgregarLookALaBolsa`). Devuelve null si salió bien (la hoja se cierra) o el porqué en una o dos
    *  frases (la hoja sigue abierta y lo muestra). */
   alAgregar: (lineas: LineaLook[]) => Promise<string | null>;
+  /** El título de la hoja (el nombre del look; en «Arma el tuyo», «Una talla por prenda»). */
+  titulo?: string;
+  /** Sin su botón: la abre otro (la barra de «Arma el tuyo», que primero pide las tallas) con `abiertaAlMontar`. */
+  conBoton?: boolean;
+  abiertaAlMontar?: boolean;
 }) {
   const hoja = useRef<HTMLDialogElement>(null);
   const idTitulo = useId();
@@ -49,6 +59,11 @@ export function AgregarLook({
     hoja.current?.showModal();
   };
   const cerrar = () => hoja.current?.close();
+  // La abre quien la monta (con las tallas recién pedidas): una vez, al aparecer.
+  useEffect(() => {
+    if (abiertaAlMontar) hoja.current?.showModal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montarse
+  }, []);
   const agregar = async () => {
     if (lineas.length === 0 || enviando) return;
     setEnviando(true);
@@ -64,10 +79,12 @@ export function AgregarLook({
 
   return (
     <>
-      <button className="t-btn t-btn-ancho" type="button" aria-haspopup="dialog" onClick={abrir}>
-        <Icono nombre="bolsa" />
-        Agregar el look a mi bolsa
-      </button>
+      {conBoton && (
+        <button className="t-btn t-btn-ancho" type="button" aria-haspopup="dialog" onClick={abrir}>
+          <Icono nombre="bolsa" />
+          Agregar el look a mi bolsa
+        </button>
+      )}
       {/* `<dialog>` con showModal: el navegador atrapa el foco, cierra con Escape y deja inerte lo de atrás. Tocar el velo también cierra. */}
       <dialog
         ref={hoja}
@@ -79,7 +96,7 @@ export function AgregarLook({
       >
         <div className="t-look-hoja-in">
           <div className="t-look-hoja-cab">
-            <h2 id={idTitulo}>{look.nombre}</h2>
+            <h2 id={idTitulo}>{titulo}</h2>
             <button type="button" className="t-look-cerrar" onClick={cerrar} aria-label="Cerrar">
               <Icono nombre="cerrar" />
             </button>
