@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   alcanceCampana,
+  avisoReimprimir,
   chipDeTarjeta,
   conteoDeTarjeta,
   DESCUENTOS_RAPIDOS,
@@ -10,6 +11,7 @@ import {
   parsearFecha,
   prendasBajoCosto,
   prendasPorCategoria,
+  prendasQueCambianDePrecioHoy,
   textoConteoTarjeta,
   type PrendaConCosto,
 } from "./etiqueta-campana";
@@ -207,5 +209,55 @@ describe("el chip de la temporada", () => {
   });
   it("sin fechas no hay chip", () => {
     expect(chipDeTarjeta(null, 0, HOY)).toBeNull();
+  });
+});
+
+describe("prendasQueCambianDePrecioHoy — el papel que queda viejo al guardar una campaña", () => {
+  const HOY_ = "2026-10-17";
+  const aLaVenta = [
+    { id: "blusa", categoriaId: "c-blusas" },
+    { id: "falda", categoriaId: "c-faldas" },
+    { id: "polo", categoriaId: "c-polos" },
+  ];
+  const manuales = new Set(["polo"]);
+  type Campana = Parameters<typeof prendasQueCambianDePrecioHoy>[0];
+  const vigente: Campana = { descuentoPct: 20, vigenteDesde: "2026-09-01", vigenteHasta: "2026-12-31", categoriaIds: ["c-blusas"] };
+  const cambian = (antes: Campana, despues: Campana) => prendasQueCambianDePrecioHoy(antes, despues, aLaVenta, manuales, HOY_).sort();
+
+  it("otro % en una campaña vigente: todas las que alcanza (por categoría y a mano)", () => {
+    expect(cambian(vigente, { ...vigente, descuentoPct: 30 })).toEqual(["blusa", "polo"]);
+  });
+  it("guardar sin cambiar nada que mueva un precio: ninguna", () => {
+    expect(cambian(vigente, { ...vigente, vigenteHasta: "2027-01-15" })).toEqual([]);
+  });
+  it("correr las fechas al futuro: dejan de rebajar hoy", () => {
+    expect(cambian(vigente, { ...vigente, vigenteDesde: "2026-11-01" })).toEqual(["blusa", "polo"]);
+  });
+  it("una que venía y ahora rige desde hoy: empiezan a rebajar", () => {
+    expect(cambian({ ...vigente, vigenteDesde: "2026-11-01" }, { ...vigente, vigenteDesde: "2026-10-17" })).toEqual(["blusa", "polo"]);
+  });
+  it("quitar el descuento: vuelven a su precio", () => {
+    expect(cambian(vigente, { ...vigente, descuentoPct: null })).toEqual(["blusa", "polo"]);
+  });
+  it("sumar una categoría: solo las que entran", () => {
+    expect(cambian(vigente, { ...vigente, categoriaIds: ["c-blusas", "c-faldas"] })).toEqual(["falda"]);
+  });
+  it("una campaña que viene no toca ningún precio hoy, aunque cambie su %", () => {
+    const viene = { ...vigente, vigenteDesde: "2026-11-09", vigenteHasta: "2026-11-30" };
+    expect(cambian(viene, { ...viene, descuentoPct: 40 })).toEqual([]);
+  });
+  it("sin fechas rige siempre", () => {
+    const siempre: Campana = { ...vigente, vigenteDesde: null, vigenteHasta: null };
+    expect(cambian(siempre, { ...siempre, descuentoPct: 25 })).toEqual(["blusa", "polo"]);
+  });
+});
+
+describe("avisoReimprimir", () => {
+  it("sin prendas que cambien, no hay nada que imprimir", () => {
+    expect(avisoReimprimir(0)).toBeNull();
+  });
+  it("dice cuántas prendas y ofrece imprimir sus etiquetas, sin prometer un número de etiquetas", () => {
+    expect(avisoReimprimir(12)).toEqual({ detalle: "Cambió el precio en caja de 12 prendas: sus etiquetas de papel dicen el de antes.", boton: "Imprimir sus etiquetas" });
+    expect(avisoReimprimir(1)).toEqual({ detalle: "Cambió el precio en caja de 1 prenda: su etiqueta de papel dice el de antes.", boton: "Imprimir su etiqueta" });
   });
 });

@@ -5,7 +5,7 @@
 // de ir a la base, y sirve igual en el navegador y en la API.
 
 import { descuentoDeCampana, totalDeLineas } from "./vender-reglas";
-import { fechaCorta, type Vigencia } from "./etiqueta-vigencia";
+import { fechaCorta, vigenciaDe, type Vigencia } from "./etiqueta-vigencia";
 
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
@@ -151,6 +151,47 @@ export function chipDeTarjeta(v: Vigencia | null, alcance: number | null, hoy: s
   }
   const anio = v.hasta.slice(0, 4) === hoy.slice(0, 4) ? "" : ` de ${v.hasta.slice(0, 4)}`;
   return { texto: `Pasó el ${fechaCorta(v.hasta)}${anio}`, tono: "neutro" };
+}
+
+// ---- Reimprimir al guardar una campaña (actividad 5, ADR-0441) ---------------------------------------------------------------
+// La etiqueta de papel dice el precio que cobra la caja el día que se imprime (ADR-0180). Si al guardar una campaña cambia ese
+// precio HOY —otro %, fechas que la hacen regir o dejar de regir, categorías que entran o salen—, el papel queda mintiendo hasta
+// que alguien lo cambia. Una sola regla para las tres cosas: la prenda cuyo descuento de hoy no es el mismo antes y después.
+
+type CampanaParaImprimir = { descuentoPct: number | null; vigenteDesde: string | null; vigenteHasta: string | null; categoriaIds: readonly string[] };
+
+/** Las prendas a la venta (de `aLaVenta`) a las que guardar la campaña les cambia el precio en caja HOY. Sin fechas rige siempre;
+ *  una que viene o que ya pasó no rebaja hoy. No mira otras campañas: si una prenda sigue rebajada por otra mayor, se imprime
+ *  igual y la etiqueta sale con lo que cobra la caja (no hace daño). */
+export function prendasQueCambianDePrecioHoy(
+  antes: CampanaParaImprimir,
+  despues: CampanaParaImprimir,
+  aLaVenta: readonly Pick<PrendaConCosto, "id" | "categoriaId">[],
+  manuales: ReadonlySet<string>,
+  hoy: string,
+): string[] {
+  const pctHoy = (c: CampanaParaImprimir, p: Pick<PrendaConCosto, "id" | "categoriaId">) => {
+    if (c.descuentoPct === null) return 0;
+    const v = vigenciaDe(c.vigenteDesde, c.vigenteHasta, hoy);
+    if (v && v.estado !== "vigente") return 0;
+    const alcanzada = manuales.has(p.id) || (p.categoriaId !== null && c.categoriaIds.includes(p.categoriaId));
+    return alcanzada ? c.descuentoPct : 0;
+  };
+  return aLaVenta.filter((p) => pctHoy(antes, p) !== pctHoy(despues, p)).map((p) => p.id);
+}
+
+/** El aviso de éxito al guardar, con un botón para imprimir si el papel quedó viejo. El botón no lleva número: la pantalla de
+ *  impresión saca una etiqueta por UNIDAD en la tienda (14 tallas y colores pueden ser 32 etiquetas), y un «Imprimir las 14»
+ *  que abre «Imprimir 32 etiquetas» hace dudar. */
+export function avisoReimprimir(cambian: number): { detalle: string; boton: string } | null {
+  if (cambian === 0) return null;
+  return {
+    detalle:
+      cambian === 1
+        ? "Cambió el precio en caja de 1 prenda: su etiqueta de papel dice el de antes."
+        : `Cambió el precio en caja de ${prendas(cambian)}: sus etiquetas de papel dicen el de antes.`,
+    boton: cambian === 1 ? "Imprimir su etiqueta" : "Imprimir sus etiquetas",
+  };
 }
 
 /** Las prendas del alcance de una campaña que quedarían con precio menor que su costo.
