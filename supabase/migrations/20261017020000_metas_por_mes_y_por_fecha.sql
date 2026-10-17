@@ -108,6 +108,9 @@ begin
 end $$;
 revoke all on function retail.fn_parametros_caja_normal(uuid, date) from public, anon, authenticated;
 
+-- Cuerpo: (1) la misma guardia que 20261015222000, repetida aquí para no depender de qué versión haya debajo; (2) una FECHA concreta gana y es
+-- final (0 = sin meta ese día); (3) la semana de ese MES reemplaza la base y la campaña la sube igual que antes; (4) si no, la semana tipo.
+-- Los comentarios van aquí, no dentro del cuerpo: lo pegado en producción el 2026-10-17 no los llevaba y la huella de la función tiene que coincidir.
 create or replace function retail.fn_parametros_caja(p_ubicacion_id uuid, p_fecha date)
 returns table (meta numeric, meta_base numeric, meta_pct numeric, fondo numeric, fondo_base numeric, campanas jsonb)
 language plpgsql stable security definer
@@ -115,14 +118,12 @@ set search_path = retail, public, extensions
 as $$
 declare n record; v_fecha numeric; v_mes numeric;
 begin
-  -- La misma guardia que el cuerpo de 20261015222000, repetida aquí: no depende de qué versión haya debajo.
   if auth.uid() is not null and not retail.fn_tiene_acceso_retail() then
     raise exception 'Esta cuenta no es del equipo de retail.' using errcode = '42501', hint = 'sin_acceso_retail';
   end if;
 
   select * into n from retail.fn_parametros_caja_normal(p_ubicacion_id, p_fecha);
 
-  -- 1. Una fecha concreta: gana y es final (0 = sin meta ese día).
   select f.meta into v_fecha from retail.ubicacion_metas_fecha f where f.ubicacion_id = p_ubicacion_id and f.fecha = p_fecha;
   if found then
     return query select case when v_fecha = 0 then null::numeric else v_fecha end,
@@ -131,7 +132,6 @@ begin
     return;
   end if;
 
-  -- 2. La semana de ese mes: reemplaza la base de la semana tipo; la campaña la sube igual que antes.
   select m.meta into v_mes from retail.ubicacion_metas_mes m
    where m.ubicacion_id = p_ubicacion_id and m.mes = date_trunc('month', p_fecha)::date
      and m.dia_semana = extract(isodow from p_fecha)::int - 1;
@@ -140,7 +140,6 @@ begin
     return;
   end if;
 
-  -- 3. La semana tipo (o meta_venta_diaria): lo de siempre.
   return query select n.meta, n.meta_base, n.meta_pct, n.fondo, n.fondo_base, n.campanas;
 end $$;
 comment on function retail.fn_parametros_caja(uuid, date) is
@@ -151,6 +150,8 @@ grant execute on function retail.fn_parametros_caja(uuid, date) to authenticated
 
 -- ---------- 4a. Escribir la semana de un mes ----------
 -- p_metas: 7 valores, lunes a domingo; null o 0 = ese día usa la semana tipo. p_mes: cualquier día del mes (se toma el mes).
+-- Dentro del cuerpo, el candado de la tienda (`for update`) evita que dos personas guardando a la vez se mezclen. Sin comentarios adentro:
+-- así quedó pegada en producción el 2026-10-17 y la huella tiene que coincidir.
 create or replace function retail.guardar_metas_mes(p_ubicacion_id uuid, p_mes date, p_metas numeric[])
 returns void language plpgsql security definer set search_path = retail, public, extensions as $$
 declare v_actor uuid := retail.fn_actor_persona_id(true); v_mes date; v_hoy date := (now() at time zone 'America/Lima')::date;
@@ -176,7 +177,6 @@ begin
     end if;
   end loop;
 
-  -- Candado de la tienda: dos personas guardando a la vez no se mezclan.
   perform 1 from retail.ubicaciones where id = p_ubicacion_id for update;
   if not found then raise exception 'Esa tienda no existe.' using errcode = 'P0001'; end if;
 
