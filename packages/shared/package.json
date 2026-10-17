@@ -6,7 +6,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./padron": "./src/padron.ts"
+    "./padron": "./src/padron.ts",
+    "./categorias-de-la-tienda": "./src/categorias-de-la-tienda.ts"
   },
   "dependencies": {
     "zod": "^3.23.0"
