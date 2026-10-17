@@ -123,6 +123,33 @@ export function escucharDescargaModelo(f: (porcentaje: number) => void): () => v
   return () => oyentesProgreso.delete(f);
 }
 
+/** La prenda que encontró el recortador: la imagen con su transparencia (RGBA, del tamaño de la que se le pasó) y la caja de la
+ *  prenda adentro. */
+export type MascaraDePrenda = { rgba: Uint8ClampedArray; ancho: number; alto: number; caja: Caja };
+
+/**
+ * Pasa una imagen por el recortador y deja solo la prenda: la misma cuenta que se hace al subir una foto, y la que usa «Preparar
+ * recortes» del probador (ADR-0434) sobre el original guardado, para que el recorte sea idéntico. Nunca lanza: si no encontró UNA
+ * prenda o el recortador falló, `mascara` es `null` y `motivo` lo dice para la pantalla.
+ */
+export async function mascaraDePrenda(imagen: Blob): Promise<{ mascara: MascaraDePrenda | null; motivo: string | null }> {
+  try {
+    const r = await recortar(imagen);
+    // Primero se decide si encontró UNA prenda, con el recorte tal como salió; recién después se limpian los pedazos.
+    // Al revés, en una foto de tienda llena de ropa el pedazo más grande quedaría solo y pasaría por prenda.
+    if (!recorteUtil(cajaDeContenido(r.rgba, r.ancho, r.alto), r.ancho, r.alto)) return { mascara: null, motivo: "No se reconoció la prenda en esta foto." };
+    soloLaPrenda(r.rgba, r.ancho, r.alto);
+    const caja = cajaDeContenido(r.rgba, r.ancho, r.alto);
+    return { mascara: caja ? { ...r, caja } : null, motivo: null };
+  } catch (err) {
+    console.warn("[preparar-foto] no se pudo quitar el fondo", err);
+    return {
+      mascara: null,
+      motivo: navigator.onLine ? "No se pudo quitar el fondo en este equipo." : "Sin conexión: el recortador se descarga la primera vez.",
+    };
+  }
+}
+
 /** Prepara una foto: original, con fondo y —si el modelo encuentra la prenda— sin fondo, cada una también con la luz
  *  corregida si hace falta. Solo lanza si la imagen no se puede leer; si falla el recorte, devuelve igual la versión con
  *  fondo y el motivo. */
@@ -138,23 +165,7 @@ export async function prepararFotoPrenda(archivo: Blob): Promise<FotoPreparada> 
     const original = await aBlob(base, 0.92);
     const fotoEntera: Caja = { x: 0, y: 0, ancho: tam.ancho, alto: tam.alto };
 
-    let recorte: { rgba: Uint8ClampedArray; ancho: number; alto: number; caja: Caja } | null = null;
-    let motivoSinRecorte: string | null = null;
-    try {
-      const r = await recortar(original);
-      // Primero se decide si encontró UNA prenda, con el recorte tal como salió; recién después se limpian los pedazos.
-      // Al revés, en una foto de tienda llena de ropa el pedazo más grande quedaría solo y pasaría por prenda.
-      if (recorteUtil(cajaDeContenido(r.rgba, r.ancho, r.alto), r.ancho, r.alto)) {
-        soloLaPrenda(r.rgba, r.ancho, r.alto);
-        const caja = cajaDeContenido(r.rgba, r.ancho, r.alto);
-        if (caja) recorte = { ...r, caja };
-      } else {
-        motivoSinRecorte = "No se reconoció la prenda en esta foto.";
-      }
-    } catch (err) {
-      console.warn("[preparar-foto] no se pudo quitar el fondo", err);
-      motivoSinRecorte = navigator.onLine ? "No se pudo quitar el fondo en este equipo." : "Sin conexión: el recortador se descarga la primera vez.";
-    }
+    const { mascara: recorte, motivo: motivoSinRecorte } = await mascaraDePrenda(original);
 
     // La luz se mide en la PRENDA cuando hay recorte (el fondo de la tienda no decide), y en la foto entera si no.
     const pixelesBase = g.getImageData(0, 0, tam.ancho, tam.alto).data;
