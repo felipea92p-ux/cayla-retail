@@ -288,10 +288,12 @@ function lasQueNoEntraron(lineas: readonly LineaLook[], r: ResultadoDelLook): st
  * cierra y el aviso de abajo dice cuántas («Agregaste 3 prendas del look «Fin de semana» a tu bolsa.») y, si alguna no entró, cuál y por
  * qué. Si no entró ninguna, la hoja sigue abierta y lo dice ahí, para que elija otra talla.
  */
-export function avisoDelLook(nombreLook: string, lineas: readonly LineaLook[], r: ResultadoDelLook): { cerrar: boolean; texto: string } {
+export function avisoDelLook(nombreLook: string | null, lineas: readonly LineaLook[], r: ResultadoDelLook): { cerrar: boolean; texto: string } {
   const faltan = lasQueNoEntraron(lineas, r);
   if (r.agregadas.length === 0) {
     return { cerrar: false, texto: `${faltan || "No pudimos agregar las prendas."} Elige otra talla o vuelve a intentarlo.` };
   }
-  return { cerrar: true, texto: `Agregaste ${cuantasPrendas(r.agregadas.length)} del look «${nombreLook}» a tu bolsa.${faltan ? ` ${faltan}` : ""}` };
+  // Sin nombre, el look que el cliente armó en el probador («Arma el tuyo», ADR-0434): «de tu look».
+  const deQue = nombreLook ? `del look «${nombreLook}»` : "de tu look";
+  return { cerrar: true, texto: `Agregaste ${cuantasPrendas(r.agregadas.length)} ${deQue} a tu bolsa.${faltan ? ` ${faltan}` : ""}` };
 }

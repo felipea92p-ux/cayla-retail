@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { Suspense, useLayoutEffect } from "react";
 import { formaDeLaRuta, type FormaEsqueleto } from "@/lib/esqueleto";
 import { Icono } from "./Icono";
+import "@/app/estilos/probador.css";
 
 /**
  * Lo que brilla mientras llega una página (lo arma `EsqueletoDePagina`, debajo de la cabecera). Sin `forma`, la saca de la dirección a
@@ -38,7 +39,7 @@ function FormaDicha({ la }: { la: FormaEsqueleto }) {
   return (
     <>
       {/* La franja «Ver lo que hay en» de las páginas del catálogo: su alto, para que la página no baje al llegar. */}
-      {(la === "grilla" || la === "ficha") && (
+      {(la === "grilla" || la === "ficha" || la === "probador") && (
         <div className="t-ubic t-esqueleto-ubic" aria-hidden="true">
           <Icono nombre="tienda" />
           <span className="t-pildoras-tienda">
@@ -50,7 +51,7 @@ function FormaDicha({ la }: { la: FormaEsqueleto }) {
       )}
       <div className="t-ancho t-esqueleto" data-forma={la} role="status">
         <span className="t-solo-lector">Cargando…</span>
-        {la === "ficha" ? <Ficha /> : la === "perfil" ? <Perfil /> : la === "lista" ? <Lista /> : <Grilla />}
+        {la === "ficha" ? <Ficha /> : la === "perfil" ? <Perfil /> : la === "lista" ? <Lista /> : la === "probador" ? <Probador /> : <Grilla />}
       </div>
     </>
   );
@@ -77,6 +78,26 @@ function Lista() {
       {Array.from({ length: 4 }, (_, i) => (
         <Fila key={i} />
       ))}
+    </div>
+  );
+}
+
+/** «Arma el tuyo» (`Probador`): el título, el arco del estudio donde va la figura y la tira de opciones, con las clases del probador. */
+function Probador() {
+  return (
+    <div className="pb" aria-hidden="true">
+      <div className="pb-cab">
+        <i className="pb-esq-ceja" />
+        <i className="pb-esq-titulo" />
+      </div>
+      <div className="pb-escena">
+        <div className="pb-arco pb-esq-arco" />
+      </div>
+      <div className="pb-tira-carril pb-esq-tira">
+        {Array.from({ length: 5 }, (_, i) => (
+          <i key={i} className="pb-esq-tarjeta" />
+        ))}
+      </div>
     </div>
   );
 }
