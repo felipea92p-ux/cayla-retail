@@ -1479,6 +1479,14 @@ const PASOS_FORMULARIO_ORDEN = {
     titulo: "Si el proveedor te debe algo",
     texto: "Si este proveedor todavía te debe prendas de otra compra, aquí te lo recuerda, con cuántas y cuánto valen: pídeselas en esta orden o márcalas cuando lleguen.",
   },
+  // Solo en «Nueva orden»: aparece si se llegó con «Comprar» o «Pedir a X» desde Análisis (A9, decisión D8).
+  deAnalisis: {
+    id: "de-analisis",
+    ancla: "orden-form.de-analisis",
+    opcional: true,
+    titulo: "Si llegaste desde Análisis",
+    texto: "Con «Comprar» o «Pedir a …», el proveedor, la tienda y las prendas ya vienen puestos. Cada línea dice «Por revisar» hasta que la tocas: revisa su categoría y su marca, y escribe cuántas pides y a qué precio. La orden no se guarda sola.",
+  },
   lineas: {
     id: "lineas",
     ancla: "orden-form.lineas",
@@ -1520,6 +1528,7 @@ export const GUIA_NUEVA_ORDEN: Guia = {
     },
     PASOS_FORMULARIO_ORDEN.datos,
     PASOS_FORMULARIO_ORDEN.nosDebe,
+    PASOS_FORMULARIO_ORDEN.deAnalisis,
     PASOS_FORMULARIO_ORDEN.lineas,
     PASOS_FORMULARIO_ORDEN.linea,
     PASOS_FORMULARIO_ORDEN.agregar,
@@ -1533,7 +1542,7 @@ export const GUIA_NUEVA_ORDEN: Guia = {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes armar una orden de compra. La flecha de arriba te devuelve a la lista. Para repasarlo: Mi perfil ▸ Demo ▸ Nueva orden de compra.",
+      texto: "Ya sabes armar una orden de compra. La flecha de arriba te devuelve a la lista, o a Análisis si llegaste de ahí. Para repasarlo: Mi perfil ▸ Demo ▸ Nueva orden de compra.",
     },
   ],
 };

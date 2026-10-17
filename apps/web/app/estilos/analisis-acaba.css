@@ -31,6 +31,8 @@
     .qp-quien > .qp-arch{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:3px}
     .qp-arch-n{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--color-tinta)}
     .qp-elegir{margin-top:6px}
+    /* «Pedir a X» (A9): bajo el nombre y de dónde se sabe; el nombre largo se parte donde haga falta en vez de ensanchar la columna. */
+    .qp-pedir{margin-top:8px;max-width:100%;white-space:normal;text-align:left;line-height:1.25}
     .qp-mods{display:flex;flex-wrap:wrap;gap:6px}
     .qp-mod{display:inline-flex;align-items:center;gap:7px;max-width:100%;min-height:32px;padding:4px 11px 4px 4px;border:1px solid var(--color-sand);border-radius:999px;
       background:var(--color-papel);color:var(--color-tinta);font-size:12.5px}

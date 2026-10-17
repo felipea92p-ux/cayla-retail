@@ -9,7 +9,7 @@ import { Icono } from "@/components/analisis/iconos";
 import { nombreLargo, TipRico } from "@/components/analisis/piezas";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { diasQueQuedan, otraSedeQueLaTiene, porLlegar } from "@/lib/analisis-reglas";
-import { hrefComprar, hrefComprarLasQueFaltan } from "@/lib/analisis-acciones";
+import { dondeComprarDe, hrefComprar, hrefComprarLasQueFaltan } from "@/lib/analisis-acciones";
 import {
   FUENTE_LARGA,
   modelosPorPedir,
@@ -137,8 +137,11 @@ export function PestanaAcaba({ modoInicial = "dias" }: { /** Solo para las prueb
 
   // «Comprar todas» es para lo que hay que comprar: sobre lo que ya viene en camino no se ofrece.
   // En «Todos» la lista incluye lo que ya viene: el botón mira solo lo que falta pedir (el mismo criterio del filtro «Comprar»).
-  const comprarTodas = filtroAcaba === "llega" ? null : hrefComprarLasQueFaltan(visibles, datos.hoy, acceso);
+  const comprarTodas = filtroAcaba === "llega" ? null : hrefComprarLasQueFaltan(visibles, datos.hoy, acceso, dondeComprarDe(datos));
   const yaViene = filtroAcaba === "llega";
+  // Con varios proveedores no hay UNA orden para todas (A9: no se abren N órdenes), y un botón que desaparece sin decir por qué deja al comprador sin saber
+  // dónde se pide. En su lugar, el camino: la misma lista por proveedor, donde cada uno trae su «Pedir a X». No navega ni guarda nada.
+  const pedirPorProveedor = !comprarTodas && !yaViene && acceso.ordenes && puedePorProveedor && modelosPorPedir(visibles, datos.hoy).length > 1;
   const grupo: GrupoCarril = {
     clave: "comprar",
     titulo: tituloDelCarril(filtroAcaba, visibles.length),
@@ -151,6 +154,18 @@ export function PestanaAcaba({ modoInicial = "dias" }: { /** Solo para las prueb
       <Link href={comprarTodas} className="btn-cayla btn-secundario btn-s">
         Comprar todas
       </Link>
+    ) : pedirPorProveedor ? (
+      <button
+        type="button"
+        className="btn-cayla btn-secundario btn-s"
+        title="Son de varios proveedores: ábrelas por proveedor y pide a cada uno"
+        onClick={() => {
+          devolverFoco.current = true;
+          setModo("proveedor");
+        }}
+      >
+        Pídelas por proveedor
+      </button>
     ) : undefined,
   };
 
@@ -292,13 +307,13 @@ function Pildoras({ p, ventanas }: { p: ModeloAnalisis; ventanas: Readonly<Recor
  */
 function Accion({ p, pedidoDe }: { p: ModeloAnalisis; pedidoDe: ReadonlyMap<string, PedidoDeTipo> }) {
   const { datos, acceso, sedeDe, pedir } = useAnalisis();
-  const comprar = hrefComprar(p, acceso);
+  const comprar = hrefComprar(p, acceso, dondeComprarDe(datos));
   const otra = otraSedeQueLaTiene(p.otras);
   const sede = otra && acceso.pedir ? sedeDe(otra.sedeId) : undefined;
   const quien = datos.proveedores ? proveedorDelModelo(p, datos.proveedores) : null;
   const viene = porLlegar(p, datos.hoy) > 0;
-  // «Pídelo a Textil Andino» (sin su sufijo legal; el nombre completo va en el tooltip y el `aria-label`). Solo informa: a dónde lleva «Comprar» no
-  // cambia con esto (eso es A9). La fuente se dice siempre («le compraste la última vez» o «anotado en su ficha»): un tooltip no se alcanza con el
+  // «Pídelo a Textil Andino» (sin su sufijo legal; el nombre completo va en el tooltip y el `aria-label`). «Comprar» abre la orden con ESE mismo
+  // proveedor (A9: `hrefComprar` usa `proveedorDelModelo`), así que lo que dice la fila es lo que llega al formulario. La fuente se dice siempre («le compraste la última vez» o «anotado en su ficha»): un tooltip no se alcanza con el
   // dedo ni con el teclado.
   const pidelo = quien && !viene ? textoPidelo(quien) : null;
   const pideloCompleto = quien && !viene ? textoPideloCompleto(quien) : null;

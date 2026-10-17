@@ -122,6 +122,9 @@ taller» o «Proveedor terceros».
 - *(Act. 2026-10-16, A8: «con su proveedor a la vista» deja de ser la etiqueta genérica «Proveedor taller / terceros» y pasa a decir a quién por
   su nombre —«Pídelo a Textil Andino»— y de dónde se sabe: la última compra o, sin ninguna, el catálogo. Ver «Actualización 2026-10-16», viñeta A8.
   «Comprar» sigue abriendo lo mismo: a dónde lleva es A9.)*
+- *(Act. 2026-10-16, A9, decisión D8 de Felipe: «Comprar» de terceros ya no abre «Registrar factura» (una compra ya hecha) sino una **orden de compra
+  nueva** (`/compras/ordenes/nueva`) con el proveedor, la tienda y el modelo, sin cantidades; «Registrar factura» queda solo para quien ve Facturas y no
+  Órdenes de compra. Ver «Actualización 2026-10-16», viñeta A9. La decisión 7 sigue intacta.)*
 
 **5. Un solo grupo «Liquidar», sin oferta y remate aparte.** «Liquidar desde» se mueve en «No se vende», de 30 a 85 días (60 de fábrica);
 desde el 2026-10-07, de 1 a 999 y con una caja con − y + (actualización 2, abajo).
@@ -344,7 +347,7 @@ calla (principio 9).
 
 ## Lo que queda abierto
 
-- **Compras recibe prendas por URL** y **Etiquetas recibe la rebaja con las prendas marcadas** (decisión 7).
+- ~~**Compras recibe prendas por URL**~~ Hecho el 2026-10-16 (A9): la orden de compra nueva recibe proveedor, tienda y modelos por URL, sin cantidades. **Etiquetas recibe la rebaja con las prendas marcadas** (decisión 7) sigue abierto.
 - **Limpiar el Análisis viejo que quedó en `lib/`**: ver el backlog del día.
 - **Probar con una encargada real.** La prueba ciega fue con lectoras simuladas.
 - ~~**¿Las tarjetas «Por tienda» cambian de sede al tocarlas?**~~ Ya no aplica: «Por tienda» salió de Análisis (decisión 3, act.).
@@ -699,3 +702,48 @@ agrega su viñeta aquí; la decisión 7 («Análisis no sugiere cantidades») si
     En el navegador local: crear una orden de Polos para la tienda (Compras ▸ Órdenes de compra) y ver «Ya pedido» en «Qué pedir»; hacer un envío y verlo pasar a
     «en camino»; recibirlo y verlo desaparecer. En producción, tras pegar: `select retail.fn_analisis_pedido_en_camino(<tienda>)` con sesión (hoy `[]`) y el volcado
     refrescado.
+
+- **A9 · «Comprar» abre una orden de compra con el proveedor y los modelos, no una factura** (decisión D8 de Felipe, 2026-10-16; solo web, sin migración).
+  - **El problema.** «Comprar» y «Comprar todas» abrían `/compras/nueva`, que es «Registrar factura de proveedor»: una compra YA HECHA, con serie y número. Quien
+    decide qué pedir llegaba a un formulario para anotar algo que todavía no existe. Y el botón se escondía si la cuenta no tenía Facturas y el dinero de Compras, aunque
+    tuviera Órdenes de compra (el módulo de pedir). Con «A quién pedir» (A8) la cosa empeoró: la tarjeta agrupa por proveedor y no había cómo abrir una orden con él.
+  - **La decisión.** «Comprar» de terceros abre **Compras ▸ Nueva orden de compra** con `?prov=<proveedor>&destino=<la tienda que analizas>&modelos=<ids>&desde=analisis`:
+    **solo ids** (de proveedor, tienda y modelo); la categoría, la marca y el nombre del modelo los lee Compras de `productos` (`getModelosParaOrden`), así un enlace viejo o
+    armado a mano no puede traer una marca que ya no existe ni un texto inventado. La página lo trata como dato de afuera (`lib/orden-compra-desde-analisis.ts`): ids con forma
+    de id, sin repetir, a lo más 100 (las líneas que cabe una orden); un modelo se acepta si EXISTE en `productos` (Análisis también lista los descontinuados, así que no se filtra
+    por estado) y un proveedor, una tienda, una categoría o una marca que ya no están activos quedan vacíos para elegirlos; lo que se ignora se DICE («1 prenda de Análisis ya no
+    está en el catálogo», «El proveedor que traía Análisis ya no está activo»), nunca en silencio. Arma un **borrador**: una línea por modelo con su categoría, su marca (si no tiene, la única marca de ese proveedor) y su nombre como
+    descripción, **sin cantidad ni precio**; no guarda nada (`crear_orden_compra` no se tocó). El proveedor es el MISMO que dice la fila en «Pídelo a …» (`proveedorDelModelo`:
+    la última compra o, sin ninguna, el catálogo); uno archivado o ninguno deja el campo vacío.
+  - **Quién ve qué botón.** El módulo que realmente se abre: `ordenes_compra` (su layout no pide el dinero de Compras). Quien ve Facturas y NO Órdenes cae en «Registrar factura»
+    como hoy (con el proveedor de una compra real, nunca el del catálogo: una factura no es una conjetura). Hoy 2 roles tienen Facturas, 1 Producción y ninguno Órdenes sin ser
+    líder (consultado en producción el 2026-10-16): el cambio de puerta es de diseño, no un hueco de hoy. El Taller no cambia: Producción, si la cuenta la ve.
+  - **«Comprar todas» y «Pedir a X».** «Comprar todas» abre UNA orden con todos los modelos cuando todos se piden al MISMO proveedor (o todos están sin proveedor); con varios
+    proveedores no abre N órdenes (N pestañas sin saber cuál se guardó) y «Comprar todas» no sale: **cada proveedor de «A quién pedir» trae su botón «Pedir a X»**, con sus modelos, solo con Órdenes de compra (con Facturas sola
+    diría «Pedir» y abriría una factura). El Taller y «Sin proveedor» no lo traen. **Para que «Comprar todas» no se esfume sin decir por qué**, cuando hay varios proveedores y la
+    cuenta ve Órdenes, en su lugar sale **«Pídelas por proveedor»**: un botón (no navega ni guarda) que abre el modo «Por proveedor», donde cada uno trae su «Pedir a X». Una orden tiene UN destino y Análisis ve UNA tienda: la píldora «AQP también se acaba» (A8) es
+    lo que avisa de las otras; no hay pedido único para la red.
+  - **Guía de foco (ADR-0284, regla 4).** Lo que llega armado no lleva ✓. El proveedor y la tienda los eligió la persona al apretar el botón (llegan completos y sin ✓, como al
+    editar); cada línea armada dice **«Por revisar»** hasta que se REVISA —toca su categoría, su marca o su descripción— o queda completa (`lineaPorRevisar`; escribir solo la cantidad o el
+    precio no la revisa: la marca que puso Análisis, o el proveedor si el modelo no tenía, sigue sin mirar), y la luz va a **la primera cantidad** («Vino de Análisis: revisa la
+    categoría y la marca, y escribe la cantidad»; la descripción, que ya viene escrita, lleva `data-sin-cursor` para que el cursor no caiga ahí): para eso, y solo con una orden armada,
+    la entrega estimada —que solo se sugiere— espera detrás de las líneas (`lineasPrimero`). Un aviso arriba dice de dónde
+    vinieron y que Análisis no sugiere cantidades. «Volver» y «Cancelar» regresan a Análisis (a «Se está acabando») si vino de ahí y la cuenta ve ese módulo; cualquier otro `desde`
+    se ignora, así la URL nunca decide un destino libre.
+  - **Lo descartado.** Llevar la categoría, la marca y el nombre en la URL (más largo, y desactualizado o falsificable: los lee Compras); abrir N órdenes con «Comprar todas»
+    (N pestañas sin saber cuál se guardó; por eso «Pedir a X»); sugerir cantidades (decisión 7); prellenar el precio con el último costo (es dinero: pide el OK de Felipe); una
+    columna de «lo que tienes en fondo y lo que debes a este proveedor» en el borrador (omisión de la crítica: toca dinero y dos módulos, queda para Felipe); decir «Pídelo en el
+    Taller» desde una tienda (lo decide D9, Producción contra Análisis); guardar la orden sola.
+  - **Pendiente (Felipe).** (1) **D9:** hoy un modelo de origen Taller, visto desde una tienda, sigue llevando a Producción, que solo se trabaja desde el Taller (a quien no es líder lo
+    manda al inicio sin explicar); nadie lo dispara aún (0 producciones en producción). (2) El modo «Por proveedor» todavía no dice lo ya pedido por proveedor (la función de A4 no
+    devuelve el proveedor de cada orden: pide migración). (3) 96 de 361 modelos no tienen marca en el catálogo: su línea llega sin marca, a menos que el proveedor traiga una sola.
+    (4) **«CAYLA SAC» (D9, de A8):** la fila dice «Pídelo a CAYLA SAC · anotado en su ficha» para 26 modelos que apuntan a la marca propia (puede ser el Taller o una maquila), y como el
+    proveedor de la orden es el que dice la fila, **«Comprar» y «Pedir a CAYLA SAC» ahora abren una orden de compra a la propia empresa** (antes, «Registrar factura» sin proveedor;
+    A8 descartó pasar el proveedor del catálogo al botón justamente porque cambiaría a dónde lleva). La orden no se guarda sola y no se decidió por el nombre del proveedor (regla de
+    Felipe); Felipe decide si eso tiene sentido o si esos modelos van a Producción. (5) «Volver» regresa a «Se está acabando» en «Por días»: el modo «Por proveedor» vive en el
+    estado de la pantalla, no en la URL; quien pide a un proveedor tras otro lo vuelve a elegir. (6) «Llega a» viaja como ya elegido (la tienda que se analiza) y sin ✓: quien compra
+    para repartir desde otra sede debe notarlo; si se prefiere «sugerido», la luz iría primero al destino y no a la línea.
+  - **Cómo se verifica.** `pnpm --filter web exec vitest run lib/orden-compra-desde-analisis lib/analisis-acciones lib/analisis-ficha lib/analisis-a-quien-pedir lib/orden-compra-alta lib/guias`
+    (el enlace y su lectura, ids ajenos, repetidos, enormes y mal formados, una orden armada que no se puede guardar sin cantidad, la guía de foco, el cableado entre las dos
+    pantallas —lee el código de la página, el formulario y Análisis— y la matriz de módulos por origen por proveedor). En el navegador local: Análisis ▸ Se está acabando ▸ «Comprar» → la orden con el proveedor, la tienda y la línea «Por revisar» sin cantidad → «Volver» regresa a
+    Análisis; «Por proveedor» ▸ «Pedir a X»; una cuenta con solo Órdenes ve el botón, una con solo Facturas cae en «Registrar factura», una sin ninguna no lo ve; a 1440 y 1024 px, claro y oscuro.

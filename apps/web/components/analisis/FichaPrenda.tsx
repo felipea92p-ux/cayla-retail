@@ -10,7 +10,7 @@ import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { grupoDe, plural, porLlegar } from "@/lib/analisis-reglas";
 import { proveedorDelModelo } from "@/lib/analisis-a-quien-pedir";
 import { proximaNavidad } from "@/lib/analisis-pedir";
-import { hrefExistencias, hrefMovimientos } from "@/lib/analisis-acciones";
+import { dondeComprarDe, hrefExistencias, hrefMovimientos } from "@/lib/analisis-acciones";
 import {
   accionPrincipal,
   barrasSemanas,
@@ -90,7 +90,7 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
   const otras = lineaOtrasTiendas(p, datos.sedes, datos.sede.id);
   const dinero = dineroDe(p);
   // Un botón cuyo destino la cuenta no ve no se dibuja (cada función devuelve null).
-  const principal = accionPrincipal(p, grupo, datos.sedes, acceso, sinSalir, yaViene);
+  const principal = accionPrincipal(p, grupo, datos.sedes, acceso, dondeComprarDe(datos), sinSalir, yaViene);
   const pedirA = sedeParaPedir(p, grupo, datos.sedes, acceso);
   const existencias = hrefExistencias(p, acceso);
   const movimientos = hrefMovimientos(p, acceso);

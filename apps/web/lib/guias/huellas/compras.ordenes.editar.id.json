@@ -11,7 +11,7 @@
       "BotonEnlace «Ver la orden» #2"
     ],
     "components/ordenes-compra/NuevaOrdenCompra.tsx": [
-      "Volver «/compras/ordenes»",
+      "Volver «{volver.href}»",
       "ComboBuscable «oc-proveedor»",
       "CampoSelect «Llega a»",
       "CampoFecha «Entrega estimada»",

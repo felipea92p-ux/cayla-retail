@@ -34,6 +34,7 @@ const TODO: AccesoAnalisis = {
   existencias: true,
   traslados: true,
   pedir: true,
+  ordenes: true,
   compras: true,
   produccion: true,
   etiquetas: true,
@@ -45,6 +46,9 @@ const TODO: AccesoAnalisis = {
   planCompra: true,
   catalogo: true,
 };
+
+// A dónde llega la orden de «Comprar» (la tienda que se analiza) y a quién se le pide cada modelo (sin los proveedores leídos: el de la última compra).
+const DONDE = { destinoId: "s1", proveedores: null };
 
 function prenda(parcial: Partial<PrendaAnalisis>): PrendaAnalisis {
   return {
@@ -334,29 +338,31 @@ describe("las semanas: las mismas 8 que cuenta la lectura, la última termina ho
 describe("los botones del pie", () => {
   it("se acaba: Comprar (lo mismo que su carril); sin el módulo, sin botón", () => {
     const p = prenda({ vendidas30: 4, origen: "terceros", proveedorId: "prov-1" });
-    expect(accionPrincipal(p, "comprar", SEDES, TODO)).toEqual({ texto: "Comprar", href: hrefComprar(p, TODO)! });
+    expect(accionPrincipal(p, "comprar", SEDES, TODO, DONDE)).toEqual({ texto: "Comprar", href: hrefComprar(p, TODO, DONDE)! });
     // Si ya viene algo a tiempo, «Comprar» sigue ahí pero no es el botón principal (la fila lo dibuja secundario).
-    expect(accionPrincipal(p, "comprar", SEDES, TODO, false, true)).toEqual({ texto: "Comprar", href: hrefComprar(p, TODO)!, secundaria: true });
+    expect(accionPrincipal(p, "comprar", SEDES, TODO, DONDE, false, true)).toEqual({ texto: "Comprar", href: hrefComprar(p, TODO, DONDE)!, secundaria: true });
     // Y solo en «comprar»: «Liquidar» sigue siendo el paso aunque algo viniera.
-    expect(accionPrincipal(prenda({ piso: 3, diasSinVender: 100 }), "liquidar", SEDES, TODO, false, true)?.secundaria).toBeUndefined();
-    expect(accionPrincipal(p, "comprar", SEDES, { ...TODO, compras: false })).toBeNull();
+    expect(accionPrincipal(prenda({ piso: 3, diasSinVender: 100 }), "liquidar", SEDES, TODO, DONDE, false, true)?.secundaria).toBeUndefined();
+    // Con Órdenes de compra, «Comprar» es la orden con su proveedor, la tienda y el modelo (A9); sin ellas ni Facturas, sin botón.
+    expect(accionPrincipal(p, "comprar", SEDES, TODO, DONDE)?.href).toBe("/compras/ordenes/nueva?prov=prov-1&destino=s1&modelos=p1&desde=analisis");
+    expect(accionPrincipal(p, "comprar", SEDES, { ...TODO, ordenes: false, compras: false }, DONDE)).toBeNull();
   });
 
   it("para mandar: a la ciudad que más la vende, con ella ya elegida", () => {
     const p = prenda({ piso: 2, diasSinVender: 70, otras: [{ sedeId: "s2", stock: 0, vendidas30: 1 }, { sedeId: "s3", stock: 0, vendidas30: 4 }] });
-    const a = accionPrincipal(p, "enviar", SEDES, TODO)!;
+    const a = accionPrincipal(p, "enviar", SEDES, TODO, DONDE)!;
     expect(a.texto).toBe("Enviar a Lima");
     expect(a.href).toContain("destino=s3");
-    expect(accionPrincipal(p, "enviar", SEDES, { ...TODO, traslados: false })).toBeNull();
-    expect(accionPrincipal(p, "enviar", [SEDES[0]], TODO)).toBeNull(); // la tienda que la vende ya no está en la red
+    expect(accionPrincipal(p, "enviar", SEDES, { ...TODO, traslados: false }, DONDE)).toBeNull();
+    expect(accionPrincipal(p, "enviar", [SEDES[0]], TODO, DONDE)).toBeNull(); // la tienda que la vende ya no está en la red
   });
 
   it("para liquidar: sus etiquetas; vigilar o ir bien no tienen botón principal", () => {
     const p = prenda({ piso: 2, diasSinVender: 80 });
-    expect(accionPrincipal(p, "liquidar", SEDES, TODO)).toEqual({ texto: "Liquidar", href: hrefLiquidar([p], TODO)! });
-    expect(accionPrincipal(p, "liquidar", SEDES, { ...TODO, etiquetas: false })).toBeNull();
-    expect(accionPrincipal(p, "vigila", SEDES, TODO)).toBeNull();
-    expect(accionPrincipal(p, null, SEDES, TODO)).toBeNull();
+    expect(accionPrincipal(p, "liquidar", SEDES, TODO, DONDE)).toEqual({ texto: "Liquidar", href: hrefLiquidar([p], TODO)! });
+    expect(accionPrincipal(p, "liquidar", SEDES, { ...TODO, etiquetas: false }, DONDE)).toBeNull();
+    expect(accionPrincipal(p, "vigila", SEDES, TODO, DONDE)).toBeNull();
+    expect(accionPrincipal(p, null, SEDES, TODO, DONDE)).toBeNull();
   });
 
   it("lo quieto con la vara de su tipo dice contra qué se juzgó (ADR-0357, act. 2026-10-14)", () => {
@@ -371,15 +377,15 @@ describe("los botones del pie", () => {
 
   it("lo que puede haberse vendido sin registrar: «Registrar ventas» (Por regularizar), y sus tarjetitas lo dicen; sin Existencias, sin botón", () => {
     const p = prenda({ piso: 2, diasSinVender: 80, enDuda: 1 });
-    expect(accionPrincipal(p, "duda", SEDES, TODO)).toEqual({ texto: "Registrar ventas", href: "/inventario/por-regularizar" });
-    expect(accionPrincipal(p, "duda", SEDES, { ...TODO, regularizar: false })).toBeNull();
+    expect(accionPrincipal(p, "duda", SEDES, TODO, DONDE)).toEqual({ texto: "Registrar ventas", href: "/inventario/por-regularizar" });
+    expect(accionPrincipal(p, "duda", SEDES, { ...TODO, regularizar: false }, DONDE)).toBeNull();
     expect(leer(p)).toEqual(["80 días · sin una venta registrada", "1 en duda · puede ser una venta sin registrar", "Tienes 2 · 2 en el piso"]);
   });
 
   it("nunca salió al piso: «Bajar al piso» (Reponer a piso con ella); sin Existencias, sin botón", () => {
     const p = prenda({ varianteId: "g44", piso: 0, almacen: 2, salioAlPiso: null });
-    expect(accionPrincipal(p, null, SEDES, TODO, true)).toEqual({ texto: "Bajar al piso", href: "/inventario/bajar?lineas=g44:1" });
-    expect(accionPrincipal(p, null, SEDES, { ...TODO, existencias: false }, true)).toBeNull();
+    expect(accionPrincipal(p, null, SEDES, TODO, DONDE, true)).toEqual({ texto: "Bajar al piso", href: "/inventario/bajar?lineas=g44:1" });
+    expect(accionPrincipal(p, null, SEDES, { ...TODO, existencias: false }, DONDE, true)).toBeNull();
   });
 
   it("«Pedir a …»: solo si se acaba, otra tienda la tiene y la cuenta puede pedir (la que más tiene)", () => {

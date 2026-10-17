@@ -5,14 +5,16 @@ import { useAnalisis } from "@/components/analisis/contexto";
 import { Ayuda, nombreLargo, TilePrenda } from "@/components/analisis/piezas";
 import { Chip } from "@/components/ui/Chip";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { BotonEnlace } from "@/components/ui/campos";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { diasQueQuedan } from "@/lib/analisis-reglas";
 import { pistaAcaba } from "@/lib/analisis-acaba";
-import { hrefElegirProveedor } from "@/lib/analisis-acciones";
+import { dondeComprarDe, hrefElegirProveedor, hrefPedirAProveedor } from "@/lib/analisis-acciones";
 import {
   agruparPorProveedor,
   CLAVE_SIN_PROVEEDOR,
+  nombreCortoProveedor,
   repartirGrupos,
   resumenCabecera,
   resumenDeGrupos,
@@ -28,8 +30,8 @@ import {
 // modelo en el catálogo, y la fila lo dice (`lib/analisis-a-quien-pedir.ts`). «Sin proveedor» no cuenta para el tope de 4 y, si trae un agotado,
 // siempre se ve, con la salida a donde se elige; un proveedor archivado no se recomienda: sus modelos caen ahí con su motivo.
 //
-// Solo muestra: no tiene un botón por proveedor porque «Comprar» todavía abre «Registrar factura» (una compra ya hecha) y no una orden de
-// compra; ese botón llega con A9, cuando el destino sea el correcto. Tampoco dice cuántas pedir (decisión 7).
+// Cada proveedor trae su «Pedir a X» (A9, decisión D8): abre una orden de compra nueva con ese proveedor, esta tienda y SUS modelos, sin cantidades (no
+// dice cuántas pedir: decisión 7). Solo con el módulo Órdenes de compra; el Taller y «Sin proveedor» no lo traen (a ellos no se les abre una orden de compra).
 
 const AYUDA =
   "Lo que se acaba y todavía no viene en camino, junto por a quién pedírselo, empezando por quien tiene lo más urgente. El proveedor es al que le compraste la última vez; si el modelo no tiene ninguna compra, el que está anotado en su ficha (y lo dice). Si su proveedor está archivado, no se le pide: aparece en «Sin proveedor» para que elijas otro. Toca un modelo para ver su ficha.";
@@ -81,10 +83,12 @@ export function AQuienPedir({ modelos, herramienta }: { modelos: ModeloAnalisis[
 
 /** Un proveedor: su nombre, cuántos modelos y de dónde se sabe; y sus modelos, cada uno con lo que le queda (tocarlo abre su ficha). */
 function FilaProveedor({ g }: { g: GrupoProveedor<ModeloAnalisis> }) {
-  const { abrirFicha, acceso } = useAnalisis();
+  const { abrirFicha, acceso, datos } = useAnalisis();
   const sin = g.clave === CLAVE_SIN_PROVEEDOR;
   // Solo «Sin proveedor» lleva a elegirlo: ahí no hay nadie a quien pedirle, y un enlace que cae en «Sin acceso» no se dibuja.
   const elegir = sin ? hrefElegirProveedor(g.modelos, acceso) : null;
+  // A quien SÍ se le pide (no el Taller ni «Sin proveedor»): una orden de compra con sus modelos. Sin el módulo, el botón no se dibuja.
+  const pedir = g.proveedorId ? hrefPedirAProveedor(g.modelos, g.proveedorId, acceso, dondeComprarDe(datos)) : null;
   return (
     <div className={`qp-fila ${sin ? "sin" : ""}`} role="group" aria-label={g.nombre}>
       <div className="qp-quien">
@@ -108,6 +112,16 @@ function FilaProveedor({ g }: { g: GrupoProveedor<ModeloAnalisis> }) {
           <EnlaceVer href={elegir} className="qp-elegir">
             Elegir proveedor
           </EnlaceVer>
+        )}
+        {pedir && (
+          <BotonEnlace
+            href={pedir}
+            className="qp-pedir btn-s"
+            aria-label={`Pedir a ${g.nombre}: abre una orden de compra con ${g.modelos.length} ${g.modelos.length === 1 ? "modelo" : "modelos"}, sin cantidades`}
+            title="Abre una orden de compra con estos modelos. Las cantidades las pones tú."
+          >
+            Pedir a {nombreCortoProveedor(g.nombre)}
+          </BotonEnlace>
         )}
       </div>
       <div className="qp-mods">

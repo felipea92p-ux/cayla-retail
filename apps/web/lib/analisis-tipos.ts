@@ -160,7 +160,10 @@ export type AccesoAnalisis = {
   traslados: boolean;
   /** «Pedir a otra tienda»: lo acepta la base con Traslados o con Análisis. */
   pedir: boolean;
-  /** Compras con su dinero a la vista (Nueva compra). */
+  /** Compras ▸ Órdenes de compra: «Comprar» y «Pedir a X» abren una orden nueva con el proveedor y los modelos (A9, decisión D8). Es el módulo
+   *  `ordenes_compra`, que no pide ver el dinero de Compras. */
+  ordenes: boolean;
+  /** Compras con su dinero a la vista (Registrar factura). Solo es el destino de «Comprar» para quien ve Facturas y NO Órdenes de compra. */
   compras: boolean;
   produccion: boolean;
   etiquetas: boolean;

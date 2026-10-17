@@ -2,11 +2,14 @@
 // existe, con las prendas marcadas (ADR-0245), y quien lo termina es esa pantalla. Un botón cuyo destino la cuenta no ve no se
 // dibuja (ADR-0161): cada función devuelve null en ese caso, y la pantalla no muestra el botón.
 //
-// Lo que todavía no existe (2026-10-06): Compras no recibe prendas por URL (solo `?prov=`) y la rebaja de Etiquetas no recibe
-// prendas marcadas: «Comprar» abre la compra con su proveedor y «Liquidar» abre las etiquetas de esas prendas.
+// «Comprar» (A9, ADR-0357 act. 2026-10-16, decisión D8 de Felipe): abre una ORDEN DE COMPRA nueva (`/compras/ordenes/nueva`) con el proveedor, la
+// tienda y el modelo, SIN cantidades; la orden se arma y se guarda allá (`lib/orden-compra-desde-analisis.ts` es el contrato). Quien ve Facturas y no
+// Órdenes de compra cae en «Registrar factura», como antes. La rebaja de Etiquetas todavía no recibe prendas marcadas: «Liquidar» abre las
+// etiquetas de esas prendas.
 
-import type { AccesoAnalisis, PrendaAnalisis, SedeAnalisis } from "./analisis-tipos";
-import { modelosPorPedir } from "./analisis-a-quien-pedir";
+import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, ProveedoresAnalisis, SedeAnalisis } from "./analisis-tipos";
+import { modelosPorPedir, proveedorDelModelo } from "./analisis-a-quien-pedir";
+import { urlOrdenNueva } from "./orden-compra-desde-analisis";
 import { totalEnTienda } from "./analisis-reglas";
 import { lineasEnUrl, MAX_VARIANTES_EN_URL } from "./existencias-prendas";
 import { urlEtiquetasDePrecio } from "./etiqueta-precio-reglas";
@@ -25,30 +28,62 @@ function tallasDe<T extends object>(filas: readonly T[]): T[] {
 export const RUTA_ANALISIS = "/gestion/analisis";
 
 /**
- * «Comprar»: del Taller, una orden de Producción con el modelo ya elegido; de terceros, una compra nueva con su proveedor.
- * Sin origen conocido, la compra (lo más común); null si la cuenta no ve ese módulo.
+ * Lo que «Comprar» necesita saber de la tienda: a dónde llega la orden (la tienda que se está analizando, `?destino=`) y a quién se le pide cada
+ * modelo (`datos.proveedores`: la última compra o, sin ninguna, el proveedor anotado en su ficha). Sin los proveedores leídos (null) no se
+ * adivina: se usa el de la última compra, como antes de A8.
  */
-export function hrefComprar(p: Pick<PrendaAnalisis, "origen" | "productoId" | "proveedorId">, a: Pick<AccesoAnalisis, "produccion" | "compras">): string | null {
-  if (p.origen === "taller") return a.produccion ? `/produccion/ordenes?nueva=${encodeURIComponent(p.productoId)}` : null;
+export type DondeComprar = { destinoId: string; proveedores: ProveedoresAnalisis | null };
+export const dondeComprarDe = (datos: Pick<DatosAnalisis, "sede" | "proveedores">): DondeComprar => ({ destinoId: datos.sede.id, proveedores: datos.proveedores });
+
+type ParaComprar = Pick<PrendaAnalisis, "origen" | "productoId" | "proveedorId">;
+type AccesoComprar = Pick<AccesoAnalisis, "produccion" | "compras" | "ordenes">;
+
+/** A quién va la orden: el proveedor del modelo si es uno a quien se le pide (de su última compra o de su ficha); un proveedor archivado o ninguno
+ *  deja el campo vacío para que lo elija quien compra. */
+function proveedorParaLaOrden(p: ParaComprar, donde: DondeComprar): string | null {
+  if (!donde.proveedores) return p.proveedorId;
+  const q = proveedorDelModelo(p, donde.proveedores);
+  return q.fuente === "compra" || q.fuente === "catalogo" ? q.id : null;
+}
+
+/** Adónde lleva «Comprar» un modelo, y con qué se junta en «Comprar todas»: el Taller, una orden de compra (con su proveedor) o, sin Órdenes, la factura. */
+type Destino = { tipo: "taller"; href: string } | { tipo: "orden"; proveedorId: string | null } | { tipo: "factura"; href: string };
+
+function destinoDe(p: ParaComprar, a: AccesoComprar, donde: DondeComprar): Destino | null {
+  if (p.origen === "taller") return a.produccion ? { tipo: "taller", href: `/produccion/ordenes?nueva=${encodeURIComponent(p.productoId)}` } : null;
+  if (a.ordenes) return { tipo: "orden", proveedorId: proveedorParaLaOrden(p, donde) };
+  // Sin Órdenes de compra, «Registrar factura» como hoy: con el proveedor de una compra REAL (el de la ficha del catálogo no es una factura).
   if (!a.compras) return null;
-  return p.proveedorId ? `/compras/nueva?prov=${encodeURIComponent(p.proveedorId)}` : "/compras/nueva";
+  return { tipo: "factura", href: p.proveedorId ? `/compras/nueva?prov=${encodeURIComponent(p.proveedorId)}` : "/compras/nueva" };
+}
+
+const claveDeDestino = (d: Destino): string => (d.tipo === "orden" ? `orden:${d.proveedorId ?? ""}` : d.tipo === "taller" ? "taller" : d.href);
+
+/**
+ * «Comprar»: del Taller, una orden de Producción con el modelo ya elegido; de terceros, una orden de compra nueva con su proveedor, la tienda y el modelo,
+ * sin cantidades (A9, D8). Sin Órdenes de compra pero con Facturas, «Registrar factura». null si la cuenta no ve el módulo.
+ */
+export function hrefComprar(p: ParaComprar, a: AccesoComprar, donde: DondeComprar): string | null {
+  const d = destinoDe(p, a, donde);
+  if (!d) return null;
+  return d.tipo === "orden" ? urlOrdenNueva({ proveedorId: d.proveedorId, destinoId: donde.destinoId, productoIds: [p.productoId] }) : d.href;
 }
 
 /**
- * «Comprar todas»: si todas salen del mismo sitio, ese (del Taller y de varios modelos, la lista de órdenes sin elegir uno);
- * si salen de sitios distintos, null: cada fila tiene el suyo.
+ * «Comprar todas»: si todas salen del mismo sitio, ese (del Taller y de varios modelos, la lista de órdenes sin elegir uno; de terceros, UNA orden de compra
+ * con todos los modelos); si salen de sitios distintos —o de proveedores distintos—, null: no se abren N órdenes, cada proveedor tiene su «Pedir a X» en «A quién
+ * pedir» (A9).
  */
-export function hrefComprarTodas(prendas: readonly Pick<PrendaAnalisis, "origen" | "productoId" | "proveedorId">[], a: Pick<AccesoAnalisis, "produccion" | "compras">): string | null {
+export function hrefComprarTodas(prendas: readonly ParaComprar[], a: AccesoComprar, donde: DondeComprar): string | null {
   if (prendas.length === 0) return null;
-  const destinos = new Set(
-    prendas.map((p) => {
-      const href = hrefComprar(p, a);
-      return href?.startsWith("/produccion/ordenes") ? "/produccion/ordenes" : href;
-    }),
-  );
-  if (destinos.size !== 1) return null;
-  const unico = [...destinos][0] ?? null;
-  return unico === "/produccion/ordenes" && prendas.length === 1 ? hrefComprar(prendas[0]!, a) : unico;
+  const destinos = prendas.map((p) => destinoDe(p, a, donde));
+  if (destinos.some((d) => d === null)) return null;
+  const unicos = new Map(destinos.map((d) => [claveDeDestino(d!), d!]));
+  if (unicos.size !== 1) return null;
+  const d = [...unicos.values()][0]!;
+  if (d.tipo === "orden") return urlOrdenNueva({ proveedorId: d.proveedorId, destinoId: donde.destinoId, productoIds: prendas.map((p) => p.productoId) });
+  if (d.tipo === "taller") return prendas.length === 1 ? d.href : "/produccion/ordenes";
+  return d.href;
 }
 
 /**
@@ -59,9 +94,19 @@ export function hrefComprarTodas(prendas: readonly Pick<PrendaAnalisis, "origen"
 export function hrefComprarLasQueFaltan<T extends Pick<PrendaAnalisis, "origen" | "productoId" | "proveedorId" | "llega">>(
   prendas: readonly T[],
   hoy: string,
-  a: Pick<AccesoAnalisis, "produccion" | "compras">,
+  a: AccesoComprar,
+  donde: DondeComprar,
 ): string | null {
-  return hrefComprarTodas(modelosPorPedir(prendas, hoy), a);
+  return hrefComprarTodas(modelosPorPedir(prendas, hoy), a, donde);
+}
+
+/**
+ * «Pedir a X» (la fila de un proveedor en «A quién pedir»): una orden de compra nueva con ESE proveedor, la tienda y todos los modelos que se le piden,
+ * sin cantidades (A9, D8). Solo con el módulo Órdenes de compra: abrir «Registrar factura» desde un botón que dice «Pedir» sería mentir (una factura es una
+ * compra ya hecha). null si no hay modelos, son más de los que caben en una orden o la cuenta no ve Órdenes.
+ */
+export function hrefPedirAProveedor(modelos: readonly Pick<PrendaAnalisis, "productoId">[], proveedorId: string, a: Pick<AccesoAnalisis, "ordenes">, donde: Pick<DondeComprar, "destinoId">): string | null {
+  return a.ordenes ? urlOrdenNueva({ proveedorId, destinoId: donde.destinoId, productoIds: modelos.map((m) => m.productoId) }) : null;
 }
 
 /**

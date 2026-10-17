@@ -48,6 +48,14 @@ vi.mock("@/components/analisis/Carril", () => ({
 }));
 vi.mock("@/components/analisis/iconos", () => ({ Icono: () => <i /> }));
 vi.mock("@/components/ui/Vacio", () => ({ Vacio: () => null }));
+// El botón «Pedir a X» (A9): un enlace con su clase; el real arrastra combos y posicionamiento que aquí no importan.
+vi.mock("@/components/ui/campos", () => ({
+  BotonEnlace: ({ href, className, children, ...resto }: { href: string; className?: string; children: ReactNode }) => (
+    <a href={href} className={className} {...resto}>
+      {children}
+    </a>
+  ),
+}));
 vi.mock("@/components/ui/Aviso", () => ({ Aviso: () => null }));
 vi.mock("@/components/ui/Chip", async () => await import("../components/ui/Chip"));
 vi.mock("@/components/ui/EnlaceVer", async () => await import("../components/ui/EnlaceVer"));
@@ -75,10 +83,12 @@ function modelo(productoId: string, dias: number, parcial: Partial<PrendaAnalisi
   return modeloDe([p], "2026-10-16");
 }
 
-const ACCESO = { compras: false, produccion: false, pedir: false, catalogo: true };
+const ACCESO = { compras: false, ordenes: false, produccion: false, pedir: false, catalogo: true };
+// La tienda que se analiza: a ella llega la orden que abre «Comprar» (`?destino=`).
+const SEDE = { id: "tru", codigo: "TRU", nombre: "Tienda TRU", ciudad: "Trujillo" };
 
 function conProveedores(proveedores: ProveedoresAnalisis | null, acceso: Record<string, boolean> = ACCESO) {
-  pantalla.valor = { datos: { proveedores }, abrirFicha: () => {}, acceso };
+  pantalla.valor = { datos: { proveedores, sede: SEDE }, abrirFicha: () => {}, acceso };
 }
 
 const SEIS: ProveedoresAnalisis = {
@@ -166,6 +176,40 @@ describe("la tarjeta «A quién pedir» (el modo «Por proveedor»)", () => {
     expect(html).not.toContain("Pídelo a");
   });
 
+  // «Pedir a X» (A9, decisión D8): una orden de compra nueva con ese proveedor y SUS modelos, sin cantidades.
+  describe("«Pedir a X»", () => {
+    const CON_ORDENES = { ...ACCESO, ordenes: true };
+    const sinEscape = (html: string) => html.replace(/&amp;/g, "&");
+
+    it("cada proveedor trae su botón, con sus modelos y la tienda; «Sin proveedor» no (a nadie se le pide)", () => {
+      conProveedores(
+        { nombres: { ...SEIS.nombres, sa: { nombre: "Textil Andino S.A.C.", activo: true } }, delCatalogo: { ...SEIS.delCatalogo, a1: "sa", a2: "sa" } },
+        CON_ORDENES,
+      );
+      const html = sinEscape(limpio(renderToStaticMarkup(<AQuienPedir modelos={[modelo("a1", 2), modelo("a2", 4), modelo("m1", 3), modelo("suelto", 0)]} />)));
+      // Un solo botón por proveedor, con todos sus modelos y sin repetir; el nombre sin su sufijo legal y completo en el aria-label.
+      expect(html).toContain('href="/compras/ordenes/nueva?prov=sa&destino=tru&modelos=a1,a2&desde=analisis"');
+      expect(html).toContain("Pedir a Textil Andino</a>");
+      expect(html).toContain('aria-label="Pedir a Textil Andino S.A.C.: abre una orden de compra con 2 modelos, sin cantidades"');
+      expect(html).toContain('href="/compras/ordenes/nueva?prov=pr1&destino=tru&modelos=m1&desde=analisis"');
+      expect(html.match(/Pedir a /g)).toHaveLength(2 + 2); // dos botones, cada uno con su texto y su aria-label
+      expect(html).not.toContain("Pedir a Sin proveedor");
+      // No dice cuántas pedir (decisión 7).
+      expect(html).not.toMatch(/cantidad=|unidades=/);
+    });
+
+    it("sin el módulo Órdenes de compra no hay botón (con Facturas sola abriría «Registrar factura» bajo un «Pedir»)", () => {
+      conProveedores(SEIS, { ...CON_ORDENES, ordenes: false, compras: true });
+      expect(renderToStaticMarkup(<AQuienPedir modelos={[modelo("m1", 3)]} />)).not.toContain("Pedir a");
+    });
+
+    it("el proveedor archivado no se recomienda: sus modelos van a «Sin proveedor» y no traen «Pedir a …»", () => {
+      conProveedores({ nombres: { viejo: { nombre: "Tejidos Wari", activo: false } }, delCatalogo: { mv: "viejo" } }, CON_ORDENES);
+      const html = renderToStaticMarkup(<AQuienPedir modelos={[modelo("mv", 10)]} />);
+      expect(html).not.toContain("Pedir a");
+    });
+  });
+
   it("dibuja la herramienta que le pasan (el segmento «Por días / Por proveedor») en su cabecera", () => {
     conProveedores(SEIS);
     const html = renderToStaticMarkup(<AQuienPedir modelos={[modelo("m0", 3)]} herramienta={<b data-herramienta="">segmento</b>} />);
@@ -199,7 +243,7 @@ describe("«A quién pedir» dentro de la pestaña «Se está acabando»", () =>
 
   function pestana(filtro: "todos" | "comprar" | "llega", proveedores: ProveedoresAnalisis | null = SEIS, modoInicial?: "dias" | "proveedor", prendas = [viene, sinNada], acceso = ACCESO, pedido: PartePedido[] | null = null) {
     pantalla.valor = {
-      datos: { prendas, fallas: [], preparacion: [], hoy: HOY, proveedores, pedido },
+      datos: { prendas, fallas: [], preparacion: [], hoy: HOY, proveedores, pedido, sede: SEDE },
       acceso: { ...acceso, pedir: false },
       prendas,
       liquidarDesde: 60,
@@ -397,7 +441,7 @@ describe("«A quién pedir» dentro de la pestaña «Se está acabando»", () =>
 
   it("en «Por llegar» no se ofrece «Comprar todas»; el botón de cada fila sigue siendo el secundario (nunca el negro principal)", () => {
     pantalla.valor = {
-      datos: { prendas: [viene], fallas: [], preparacion: [], hoy: HOY, proveedores: SEIS },
+      datos: { prendas: [viene], fallas: [], preparacion: [], hoy: HOY, proveedores: SEIS, sede: SEDE },
       acceso: { ...ACCESO, pedir: false, compras: true },
       prendas: [viene],
       liquidarDesde: 60,
@@ -411,6 +455,69 @@ describe("«A quién pedir» dentro de la pestaña «Se está acabando»", () =>
     expect(html).not.toContain("Comprar todas");
     expect(html).toContain("btn-cayla btn-secundario btn-s");
     expect(html).not.toContain("btn-primario");
+  });
+
+  // «Comprar» abre una ORDEN DE COMPRA con el proveedor que la fila dice en «Pídelo a …» (A9, decisión D8).
+  describe("«Comprar» y «Comprar todas» abren una orden de compra", () => {
+    const CON_ORDENES = { ...ACCESO, ordenes: true };
+    const sinEscape = (html: string) => html.replace(/&amp;/g, "&");
+    const dos = (a: string, b: string) => [modelo(a, 2), modelo(b, 3)];
+
+    it("«Comprar» de una fila: la orden con el proveedor de la fila (el mismo de «Pídelo a …»), la tienda y el modelo", () => {
+      const html = sinEscape(pestana("comprar", SEIS, "dias", [sinNada], CON_ORDENES));
+      expect(html).toContain("Pídelo a Proveedor 1");
+      expect(html).toContain('href="/compras/ordenes/nueva?prov=pr1&destino=tru&modelos=m1&desde=analisis"');
+    });
+
+    it("«Comprar todas»: mismo proveedor, UNA orden con todos los modelos; proveedores distintos, no se abren N órdenes", () => {
+      const mismo: ProveedoresAnalisis = { nombres: { pr: { nombre: "Proveedor", activo: true } }, delCatalogo: { a: "pr", b: "pr" } };
+      const unica = sinEscape(pestana("comprar", mismo, "dias", dos("a", "b"), CON_ORDENES));
+      expect(unica).toContain('href="/compras/ordenes/nueva?prov=pr&destino=tru&modelos=a,b&desde=analisis">Comprar todas</a>');
+      // Con una sola orden posible no hay nada que mandar a «Por proveedor».
+      expect(unica).not.toContain("Pídelas por proveedor");
+      const varios = pestana("comprar", SEIS, "dias", dos("m0", "m1"), CON_ORDENES);
+      expect(varios).not.toContain("Comprar todas");
+    });
+
+    // El botón que desaparecía sin decir por qué: con varios proveedores no hay UNA orden, y quien compra no sabía dónde se pide a cada uno.
+    it("con proveedores distintos, en el lugar de «Comprar todas» sale «Pídelas por proveedor»: un botón (no un enlace) que abre «Por proveedor»", () => {
+      for (const f of ["todos", "comprar"] as const) {
+        const html = pestana(f, SEIS, "dias", dos("m0", "m1"), CON_ORDENES);
+        expect(html).toContain('<button type="button" class="btn-cayla btn-secundario btn-s" title="Son de varios proveedores: ábrelas por proveedor y pide a cada uno">Pídelas por proveedor</button>');
+        expect(html).not.toContain("Comprar todas");
+      }
+      // Es un cambio de forma, no navega ni guarda: ningún enlace junta los dos modelos en una orden (cada fila abre la suya).
+      expect(sinEscape(pestana("comprar", SEIS, "dias", dos("m0", "m1"), CON_ORDENES))).not.toContain("modelos=m0,m1");
+    });
+
+    it("«Pídelas por proveedor» solo sale donde «Por proveedor» sirve: con Órdenes, con más de un modelo por pedir, con proveedores leídos y fuera de «Ya vienen»", () => {
+      const con = (filtro: "todos" | "comprar" | "llega", prov: ProveedoresAnalisis | null, prendas: ReturnType<typeof modelo>[], acceso: typeof ACCESO = CON_ORDENES) =>
+        pestana(filtro, prov, "dias", prendas, acceso).includes("Pídelas por proveedor");
+      expect(con("comprar", SEIS, dos("m0", "m1"))).toBe(true);
+      // Sin Órdenes, «Pedir a X» no existe: no hay a dónde mandarlo (con Facturas sola, tampoco).
+      expect(con("comprar", SEIS, dos("m0", "m1"), ACCESO)).toBe(false);
+      expect(con("comprar", SEIS, dos("m0", "m1"), { ...ACCESO, compras: true })).toBe(false);
+      // Un solo modelo por pedir: «Comprar» de su fila basta.
+      expect(con("comprar", SEIS, [modelo("m0", 2)])).toBe(false);
+      // Sin proveedores leídos «Por proveedor» no se puede elegir.
+      expect(con("comprar", null, dos("m0", "m1"))).toBe(false);
+      // Sobre lo que ya viene en camino no se ofrece nada para pedir.
+      expect(con("llega", SEIS, dos("m0", "m1"))).toBe(false);
+      // Lo que ya viene no cuenta: de dos modelos, uno viene y uno falta, hay uno por pedir.
+      expect(con("todos", SEIS, [viene, sinNada])).toBe(false);
+    });
+
+    it("la cuenta que ve Facturas y no Órdenes cae en «Registrar factura», como hoy", () => {
+      const html = sinEscape(pestana("comprar", SEIS, "dias", [{ ...sinNada, origen: "terceros" as const, proveedorId: "pr1" }], { ...ACCESO, compras: true }));
+      expect(html).toContain('href="/compras/nueva?prov=pr1"');
+      expect(html).not.toContain("/compras/ordenes/nueva");
+    });
+
+    it("sin Órdenes ni Facturas no hay «Comprar»", () => {
+      const html = pestana("comprar", SEIS, "dias", [sinNada], ACCESO);
+      expect(html).not.toContain(">Comprar<");
+      expect(html).not.toContain("Comprar todas");
+    });
   });
 
   it("sin leer los proveedores no hay «Pídelo a …», con ningún filtro", () => {

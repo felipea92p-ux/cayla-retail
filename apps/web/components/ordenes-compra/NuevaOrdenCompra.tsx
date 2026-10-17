@@ -10,6 +10,7 @@ import { Boton, BotonEnlace, CampoSelect, CampoTexto } from "@/components/ui/cam
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Aviso } from "@/components/ui/Aviso";
+import { Chip } from "@/components/ui/Chip";
 import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -23,6 +24,7 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import type { EstadoCampo } from "@/lib/guia-campos";
 import { opcionesDeMarca } from "@/lib/marca-proveedor-reglas";
+import { lineaPorRevisar, revisaLaLinea, type OrdenDeAnalisis } from "@/lib/orden-compra-desde-analisis";
 import { sugerirDescripcion } from "@/lib/sugerencias-alta-producto";
 import { soles } from "@/lib/compras-reglas";
 import { TEXTO_AVISO_ORDEN, tituloAvisoOrden } from "@/lib/nos-debe-reglas";
@@ -70,6 +72,11 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 // cambios») y lo que se guarda (`editar_orden_compra`, con la versión que se vio al abrir). Lo que ya venía completo no se llena de ✓
 // (regla 4 de la guía): solo lleva marca lo que llegó pendiente o lo que se deja pendiente al editar. Si otra persona guardó la orden
 // mientras tanto, el aviso lo dice y ofrece «Recargar»: la página trae la orden nueva y el formulario vuelve a empezar con ella.
+//
+// DESDE ANÁLISIS (ADR-0357, «Actualización 2026-10-16», A9; decisión D8): «Comprar» y «Pedir a X» abren esta pantalla con el proveedor, la tienda y una
+// línea por modelo que se acaba (`deAnalisis`, `lib/orden-compra-desde-analisis.ts`). Es un BORRADOR: no se guarda solo y Análisis no pone cantidades (ADR-0357,
+// decisión 7). El proveedor y la tienda los eligió la persona al apretar el botón (llegan completos, sin ✓, como al editar); las líneas llegaron armadas
+// y dicen «Por revisar» hasta que las toca (regla 4 de la guía), y la luz va a la primera cantidad: la entrega estimada, que solo se sugiere, espera detrás.
 
 const TITULO = "mb-1 text-[13px] font-semibold text-tinta";
 // El título de un campo de la cabecera de la orden: una sola línea de alto fijo, así las cajas de al lado quedan alineadas en cualquier
@@ -97,19 +104,26 @@ type Props = {
   /** La sede donde se trabaja, si es una tienda o un almacén: «Llega a» arranca ahí (decisión por defecto de la fase 1). */
   destinoInicial: string;
   editar?: EdicionOrden;
+  /** La orden que armó Análisis (el proveedor, la tienda y las prendas que se acaban, sin cantidades); solo al crear. */
+  deAnalisis?: OrdenDeAnalisis;
+  /** A dónde regresan «Volver» y «Cancelar»: a la lista de órdenes, o a Análisis si la orden salió de ahí. */
+  volver?: { href: string; a: string };
 };
 
-export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: Props) {
+const VOLVER_A_LA_LISTA = { href: "/compras/ordenes", a: "Órdenes de compra" };
+
+export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar, deAnalisis, volver = VOLVER_A_LA_LISTA }: Props) {
   const router = useRouter();
   const [orden, setOrden] = useState<OrdenBorrador>(
-    () => editar?.inicial ?? { proveedorId: "", destino: destinoInicial, entrega: "", nota: "", lineas: [lineaVacia("l1")] },
+    () => editar?.inicial ?? deAnalisis?.orden ?? { proveedorId: "", destino: destinoInicial, entrega: "", nota: "", lineas: [lineaVacia("l1")] },
   );
   const [guardando, setGuardando] = useState(false);
   // «Llega a» viene puesto con la sede donde se trabaja: hasta que la persona lo elige (aunque elija la misma), la guía lo trata como
   // sugerido y no lo marca con ✓ (ADR-0284 act. h). Al editar, el destino es el que la orden ya tenía: cuenta como elegido.
-  const [destinoElegido, setDestinoElegido] = useState(Boolean(editar));
+  // Si la tienda vino de Análisis, la eligió la persona al apretar el botón: cuenta como elegida.
+  const [destinoElegido, setDestinoElegido] = useState(Boolean(editar) || Boolean(deAnalisis?.destinoDeAnalisis));
   // Las claves de línea siguen desde las que ya tiene la orden (l1…lN).
-  const contador = useRef(editar ? editar.inicial.lineas.length : 1);
+  const contador = useRef(editar ? editar.inicial.lineas.length : (deAnalisis?.orden.lineas.length ?? 1));
   // El id de la orden se genera al primer «Guardar» y se reusa en cada reintento: la base devuelve la misma orden si llega dos veces.
   const idOrden = useRef<string | null>(null);
   // El candado contra dos clics en el mismo instante (ver `guardar`).
@@ -127,15 +141,17 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
       destinos: new Set(datos.destinos.map((d) => d.id)),
       entregaOriginal: editar?.entregaOriginal,
       destinoElegido,
+      lineasPrimero: Boolean(deAnalisis),
     }),
-    [datos, hoy, editar?.entregaOriginal, destinoElegido],
+    [datos, hoy, editar?.entregaOriginal, destinoElegido, deAnalisis],
   );
   const campos = camposDeLaOrden(orden, ctx, { pide: !esPersona, listo: responsable.listo, motivo: responsable.motivo });
   const guia = useGuiaCampos(campos, { enModal: false });
 
   // Al editar, lo que llegó completo no se marca con ✓ (regla 4 de la guía): quien entra a corregir un precio no necesita leer diez
-  // tildes. Si se deja pendiente al editar (se borra, se agrega una línea), vuelve a llevar su marca.
-  const [completosAlAbrir] = useState(() => new Set(editar ? campos.filter((c) => c.hecho).map((c) => c.id) : []));
+  // tildes. Si se deja pendiente al editar (se borra, se agrega una línea), vuelve a llevar su marca. Lo mismo desde Análisis: el proveedor y la
+  // tienda llegan completos y sin ✓; las líneas llegan sin cantidad, así que ellas sí llevan marca.
+  const [completosAlAbrir] = useState(() => new Set(editar || deAnalisis ? campos.filter((c) => c.hecho).map((c) => c.id) : []));
   const estadoVisible = (id: string): EstadoCampo | null => {
     const estado = guia.estado(id);
     return estado === "hecho" && completosAlAbrir.has(id) ? null : estado;
@@ -195,7 +211,10 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
     setOrden((o) => ({ ...o, proveedorId, lineas: o.lineas.map((l) => (l.marcaId || !unica ? l : { ...l, marcaId: unica })) }));
   }
   function cambiarLinea(clave: string, cambios: Partial<LineaBorrador>) {
-    setOrden((o) => ({ ...o, lineas: o.lineas.map((l) => (l.clave === clave ? { ...l, ...cambios } : l)) }));
+    // Revisar lo que llegó armado (su categoría, su marca o su descripción) la saca de «Por revisar»; escribir la cantidad o el precio, no: la marca
+    // que Análisis (o el proveedor) puso sigue sin mirar hasta que se toca o la línea queda completa (`lineaPorRevisar`). Una línea común no gana ninguna
+    // marca (su edición y su vuelta atrás siguen siendo «sin cambios» para el aviso de «¿Salir sin guardar?»).
+    setOrden((o) => ({ ...o, lineas: o.lineas.map((l) => (l.clave === clave ? { ...l, ...cambios, ...(l.prellenada && revisaLaLinea(cambios) ? { prellenada: false } : {}) } : l)) }));
   }
   function agregarLinea() {
     contador.current += 1;
@@ -326,7 +345,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
             ? "Corrige lo que haga falta y guarda. El número y la fecha de emisión no cambian."
             : "Lo que le pides al proveedor. La factura y el envío vienen después."
         }
-        volver={<Volver href="/compras/ordenes" a="Órdenes de compra" />}
+        volver={<Volver href={volver.href} a={volver.a} />}
       >
         <div data-guia="orden-form.cifras" className="anim-sube flex items-end gap-6 text-right" style={{ ["--i" as string]: 1 }}>
           {/* Al editar, el número ya está en el título. */}
@@ -428,6 +447,14 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
           </Aviso>
         )}
 
+        {/* Lo que Análisis dejó armado: se dice de dónde vino y qué falta, y lo que no se pudo traer (principio 9). Nada de esto se guarda solo. */}
+        {deAnalisis && deAnalisis.prellenadas > 0 && (
+          <Aviso tono="info" guia="orden-form.de-analisis" titulo="Estas prendas las trajo Análisis">
+            Revisa la categoría y la marca de cada una, y escribe cuántas pides y a qué precio: Análisis no sugiere cantidades. Esta orden no se guarda sola.
+          </Aviso>
+        )}
+        {deAnalisis?.sinTraer && <Aviso tono="atencion">{deAnalisis.sinTraer}</Aviso>}
+
         <section data-guia="orden-form.lineas" className="@container card-cayla space-y-3 p-4 sm:p-5" aria-label="Lo que pides">
           <TituloSeccion
             dato={
@@ -500,7 +527,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
           )}
           <PieGuia guia={guia} listo="Todo listo para guardar." />
           <div className="pie-acciones">
-            <BotonEnlace href="/compras/ordenes">Cancelar</BotonEnlace>
+            <BotonEnlace href={volver.href}>Cancelar</BotonEnlace>
             <Boton type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               {editar ? "Guardar cambios" : "Guardar orden"}
             </Boton>
@@ -588,7 +615,17 @@ function LineaOrden({
           <p className={`${TITULO} @min-[56rem]:hidden`}>
             Descripción <span className="text-[12px] font-normal text-taupe">opcional</span>
           </p>
-          <CampoTexto caja sinPie etiqueta={`Descripción de la línea ${numero}`} maxLength={TOPES.descripcion} placeholder={placeholderDescripcion} value={l.descripcion} onChange={(e) => onCambio({ descripcion: e.target.value })} />
+          {/* En una línea que trajo Análisis la descripción ya viene escrita (el nombre del modelo): el cursor de la guía va a la cantidad (`data-sin-cursor`). */}
+          <CampoTexto
+            caja
+            sinPie
+            etiqueta={`Descripción de la línea ${numero}`}
+            maxLength={TOPES.descripcion}
+            placeholder={placeholderDescripcion}
+            value={l.descripcion}
+            onChange={(e) => onCambio({ descripcion: e.target.value })}
+            data-sin-cursor={l.prellenada ? "" : undefined}
+          />
         </div>
         <div>
           <p className={`${TITULO} @min-[56rem]:hidden`}>Cantidad</p>
@@ -638,6 +675,13 @@ function LineaOrden({
         </div>
         <div className="hidden justify-end @min-[56rem]:flex">{quitar("")}</div>
       </div>
+      {lineaPorRevisar(l, guia.estado(id) === "hecho") && (
+        <p className="mt-2">
+          <Chip tono="pizarra" title="Vino de Análisis: revisa la categoría y la marca, y escribe la cantidad.">
+            Por revisar
+          </Chip>
+        </p>
+      )}
       {duda && (
         <Aviso tono="atencion" chico className="mt-2">
           {duda}

@@ -20,7 +20,7 @@ import {
 } from "./analisis-reglas";
 import { textoAtraso } from "./analisis-acaba";
 import { FUENTE_CORTA, type ProveedorDelModelo } from "./analisis-a-quien-pedir";
-import { hrefComprar, hrefEnviar, hrefLiquidar, hrefRegistrarVentas, hrefReponerPiso } from "./analisis-acciones";
+import { hrefComprar, hrefEnviar, hrefLiquidar, hrefRegistrarVentas, hrefReponerPiso, type DondeComprar } from "./analisis-acciones";
 import { estiloMosaicoColor } from "./color-prenda-reglas";
 import { queTiene } from "./analisis-modelo";
 import { diaAntes, fechaCorta } from "./motor-demanda-reglas";
@@ -428,6 +428,8 @@ export function accionPrincipal(
   grupo: GrupoAnalisis | null,
   sedes: readonly SedeAnalisis[],
   acceso: AccesoAnalisis,
+  /** A dónde llega la orden y a quién se le pide («Comprar» abre una orden de compra con eso, A9). */
+  donde: DondeComprar,
   sinSalir = false,
   /** Algo llega a tiempo (`porLlegar`): «Comprar» sigue ahí, pero ya no es el botón principal (lo hace el carril, que lo dibuja secundario). */
   yaViene = false,
@@ -437,7 +439,7 @@ export function accionPrincipal(
     return href ? { texto: "Bajar al piso", href } : null;
   }
   if (grupo === "comprar") {
-    const href = hrefComprar(p, acceso);
+    const href = hrefComprar(p, acceso, donde);
     return href ? { texto: "Comprar", href, ...(yaViene ? { secundaria: true } : {}) } : null;
   }
   if (grupo === "enviar") {

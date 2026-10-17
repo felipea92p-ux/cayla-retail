@@ -29,6 +29,9 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Pro
     existencias: veModulo(persona, "existencias"),
     traslados: veModulo(persona, "traslados"),
     pedir: veModulo(persona, "traslados") || veModulo(persona, "analisis"),
+    // «Comprar» abre una orden de compra (D8): lo que decide el botón es el módulo `ordenes_compra`, que no pide el dinero de Compras (su layout solo
+    // exige el módulo). Quien ve Facturas y no Órdenes cae en «Registrar factura», como antes.
+    ordenes: veModulo(persona, "ordenes_compra"),
     compras: veModulo(persona, "facturas_compra") && puede(persona, "verDineroCompras"),
     produccion: veModulo(persona, "produccion"),
     etiquetas: true,

@@ -280,6 +280,11 @@ describe("agruparPorProveedor", () => {
     expect(resumenDeGrupos(agruparPorProveedor([quedan("p4", 3)], proveedores))).toEqual({ proveedores: 0, sinProveedor: 1, modelos: 1 });
   });
 
+  it("cada grupo trae el id del proveedor a quien se le pide (para «Pedir a X»); el Taller y «Sin proveedor» no, y uno archivado tampoco", () => {
+    const grupos = agruparPorProveedor([quedan("p1", 2), quedan("sin-1", 0), quedan("p4", 3), quedan("t1", 5, { origen: "taller" }), quedan("pX", 7, { origen: "terceros", proveedorId: TEXTIL })], proveedores);
+    expect(Object.fromEntries(grupos.map((g) => [g.clave, g.proveedorId]))).toEqual({ [`p:${TEXTIL}`]: TEXTIL, taller: null, [CLAVE_SIN_PROVEEDOR]: null });
+  });
+
   it("a igual urgencia, el que tiene más modelos; después, por nombre", () => {
     const modelos = [quedan("p2", 4), quedan("p1", 4), quedan("p1", 8, { varianteId: "v-p1-b" }), quedan("p3", 4)];
     expect(agruparPorProveedor(modelos, proveedores).map((g) => g.nombre)).toEqual(["Textil Andino", "CAYLA SAC", "Hilos del Sur"]);

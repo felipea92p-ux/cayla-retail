@@ -75,7 +75,7 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-acaba" }],
       titulo: "Se está acabando",
-      texto: "Las prendas que se acaban pronto, con los días que les quedan. «Cómpralas» es lo que no viene en camino y «Ya vienen», lo que sí. «Pídelo a …» dice a quién; «Ya pedido» avisa que ya hay una orden abierta de su tipo. Si otra sede la tiene, puedes pedírsela. Arriba eliges «Por días» o «Por proveedor».",
+      texto: "Las prendas que se acaban pronto, con los días que les quedan. «Cómpralas» es lo que no viene en camino y «Ya vienen», lo que sí. «Pídelo a …» dice a quién y «Comprar» abre una orden de compra con ese proveedor y el modelo, sin cantidades: las pones tú. «Ya pedido» avisa que ya hay una orden abierta.",
     },
     {
       id: "a-quien-pedir",
@@ -83,7 +83,7 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.acaba-modo-proveedor" }],
       titulo: "Por proveedor: a quién pedir",
-      texto: "«Por proveedor» muestra lo que todavía hay que comprar, junto por proveedor y de lo más urgente a lo menos: así sabes a quién llamar primero. Sin proveedor, o con uno archivado, no hay a quién pedirle: ahí lo eliges. Toca un modelo para ver su ficha. Es una demo: no se pide nada.",
+      texto: "«Por proveedor» muestra lo que todavía hay que comprar, junto por proveedor y de lo más urgente a lo menos. «Pedir a …» abre una orden de compra con los modelos de ese proveedor, sin cantidades. Sin proveedor, o con uno archivado, ahí lo eliges. Toca un modelo para ver su ficha. Es una demo: no se pide nada.",
     },
     {
       id: "nose",

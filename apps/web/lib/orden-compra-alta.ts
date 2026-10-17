@@ -39,6 +39,9 @@ export type LineaBorrador = {
   /** Lo que se tipeó en el modo activo (`modoDescuento`). */
   descuento: string;
   modoDescuento: ModoDescuento;
+  /** La línea llegó armada desde Análisis (categoría, marca y nombre; sin cantidad ni precio) y la persona todavía no la ha tocado: la guía la
+   *  llama «Por revisar», no la marca con ✓ (ADR-0284, regla 4). En cuanto cambia cualquier campo de la línea, se apaga. */
+  prellenada?: boolean;
 };
 
 export type OrdenBorrador = {
@@ -188,6 +191,10 @@ export type ContextoValidacion = {
   /** `false` = «Llega a» todavía tiene el valor de fábrica (la sede donde se trabaja) y la persona no lo eligió. Sin dato, cuenta como
    *  elegido (al editar, el destino es el que la orden ya tenía). */
   destinoElegido?: boolean;
+  /** La orden llegó con sus prendas puestas (la abrió Análisis): lo que sigue es la cantidad de cada una, así que la entrega estimada
+   *  —que es solo una sugerencia— espera DESPUÉS de las líneas. Sin esto, la luz se detendría en la entrega antes de llegar a la primera
+   *  cantidad. */
+  lineasPrimero?: boolean;
 };
 
 /** Lo que se le dice a quien escribió miles con punto: las dos lecturas y cómo escribir la que quiso. */
@@ -216,13 +223,16 @@ export function dudaDeLinea(l: LineaBorrador): string | null {
   return null;
 }
 
+/** Lo que se le dice a quien dejó la cantidad vacía (la guía lo reconoce para decir algo más a una línea que llegó armada). */
+const SIN_CANTIDAD = "Escribe la cantidad.";
+
 /** El primer problema de una línea, en una frase para quien la llena; null si la línea está lista. */
 export function problemaDeLinea(l: LineaBorrador, ctx: ContextoValidacion): string | null {
   if (!l.categoriaId || !ctx.categoriasActivas.has(l.categoriaId)) return "Elige la categoría.";
   if (!l.marcaId || !ctx.marcasActivas.has(l.marcaId)) return "Elige la marca.";
   if (l.descripcion.trim().length > TOPES.descripcion) return `La descripción va hasta ${TOPES.descripcion} letras.`;
   const cant = leerNumero(l.cantidad, 0);
-  if (cant.tipo === "vacio") return "Escribe la cantidad.";
+  if (cant.tipo === "vacio") return SIN_CANTIDAD;
   if (cant.tipo === "mal" && cant.motivo === "ambiguo") return dudaDeCantidad(l.cantidad);
   if (cant.tipo === "mal" || cant.escalado < 1 || cant.escalado > TOPES.cantidad) return "La cantidad va de 1 a 99 999 unidades, sin decimales.";
   const precio = leerNumero(l.precio, 2);
@@ -307,18 +317,23 @@ export function camposDeLaOrden(
   ctx: ContextoValidacion,
   responsable: { pide: boolean; listo: boolean; motivo: string | null },
 ): CampoDeGuia[] {
+  const entrega = campoEntrega(o, ctx);
   const campos: CampoDeGuia[] = [
     { id: "proveedor", nombre: "Proveedor", requerido: true, hecho: !!o.proveedorId && ctx.proveedoresActivos.has(o.proveedorId), pendiente: "Elige el proveedor." },
     campoDestino(o, ctx),
-    campoEntrega(o, ctx),
   ];
+  if (!ctx.lineasPrimero) campos.push(entrega);
   if (o.lineas.length === 0) {
     campos.push({ id: "lineas", nombre: "Prendas", requerido: true, hecho: false, pendiente: "Agrega al menos una prenda." });
   }
   o.lineas.forEach((l, i) => {
     const problema = problemaDeLinea(l, ctx);
-    campos.push({ id: `linea-${l.clave}`, nombre: `Línea ${i + 1}`, requerido: true, hecho: problema === null, pendiente: problema ?? "" });
+    // Una línea que trajo Análisis ya tiene categoría y marca, y lo único que le falta es lo que la persona decide: se lo dice, y que revise
+    // lo que vino armado (ADR-0284, regla 4). Si lo armado no sirve (una categoría archivada), manda el problema de siempre.
+    const pendiente = l.prellenada && problema === SIN_CANTIDAD ? "Vino de Análisis: revisa la categoría y la marca, y escribe la cantidad." : (problema ?? "");
+    campos.push({ id: `linea-${l.clave}`, nombre: `Línea ${i + 1}`, requerido: true, hecho: problema === null, pendiente });
   });
+  if (ctx.lineasPrimero) campos.push(entrega);
   // La nota es opcional; solo pasa a bloquear si se pasa del tope (la base la rechazaría).
   const notaLarga = o.nota.trim().length > TOPES.nota;
   campos.push({

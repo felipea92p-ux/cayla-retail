@@ -5,6 +5,7 @@ import { getProveedor } from "@/lib/proveedores";
 import { getSaldosFavor } from "@/lib/saldo-favor";
 import { getNosDebeResumen } from "@/lib/nos-debe";
 import { datosPagoDe } from "@/lib/proveedores-reglas";
+import { leerModelosParaOrden, type ModeloParaOrden } from "@/lib/orden-compra-desde-analisis";
 import type { DatosDelComprobante, ProveedorDelComprobante } from "@/lib/comprobante-orden-reglas";
 import {
   argsLista,
@@ -153,6 +154,20 @@ export async function getDatosNuevaOrden(): Promise<DatosNuevaOrden> {
     falla,
     nosDebe,
   };
+}
+
+/** Los modelos que Análisis mandó a «Nueva orden de compra» (`?modelos=`): su nombre, su categoría y su marca, leídos de `productos` (la base manda,
+ *  no la URL). Es un adorno de la orden: si no responde devuelve `null` y la orden se abre vacía con un aviso, nunca un error ni una orden a medias
+ *  (principio 9). Los ids ya vienen validados y sin repetir (`leerPedidoDeLaUrl`); un id que no existe, simplemente no vuelve. */
+export async function getModelosParaOrden(ids: readonly string[]): Promise<ModeloParaOrden[] | null> {
+  if (ids.length === 0) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("productos").select("id, referencia, categoria_id, marca_id").in("id", [...ids]);
+  if (error) {
+    console.error(`[ordenes-compra] modelos de Análisis: ${error.message}`);
+    return null;
+  }
+  return leerModelosParaOrden(data);
 }
 
 /** Lo que necesita «Editar orden de compra» (actividad 4): lo de «Nueva orden» y la orden como está. A las listas se suma lo que la orden

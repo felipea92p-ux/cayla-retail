@@ -166,6 +166,8 @@ export function textoSinAQuienPedir(q: ProveedorDelModelo): { titulo: string; de
 export type GrupoProveedor<T extends PrendaAnalisis = PrendaAnalisis> = {
   /** `p:<id>` · `taller` · `ninguno`. */
   clave: string;
+  /** El id del proveedor a quien se le pide (el de `p:<id>`); null en el Taller y en «Sin proveedor», a quienes no se les abre una orden de compra. */
+  proveedorId: string | null;
   nombre: string;
   /** De dónde se sabe, sin repetir y en este orden: compra, catálogo, Taller, ninguno, archivado. Un mismo proveedor puede salir de las dos primeras. */
   fuentes: FuenteProveedor[];
@@ -190,13 +192,13 @@ export const CLAVE_SIN_PROVEEDOR = "ninguno";
  * (con `archivados` diciendo cuál): no se le recomienda «Pídelo a …» a quien ya no se le pide.
  */
 export function agruparPorProveedor<T extends PrendaAnalisis>(modelos: readonly T[], p: ProveedoresAnalisis): GrupoProveedor<T>[] {
-  const grupos = new Map<string, { nombre: string; fuentes: Set<FuenteProveedor>; modelos: T[]; archivados: Set<string> }>();
+  const grupos = new Map<string, { proveedorId: string | null; nombre: string; fuentes: Set<FuenteProveedor>; modelos: T[]; archivados: Set<string> }>();
   for (const m of modelos) {
     const q = proveedorDelModelo(m, p);
     const sin = q.fuente === "ninguno" || q.fuente === "archivado";
     const clave = q.fuente === "taller" ? "taller" : sin ? CLAVE_SIN_PROVEEDOR : `p:${q.id}`;
     const nombre = q.fuente === "taller" ? TEXTO_TALLER : sin ? TEXTO_SIN_PROVEEDOR : q.nombre;
-    const g = grupos.get(clave) ?? { nombre, fuentes: new Set<FuenteProveedor>(), modelos: [], archivados: new Set<string>() };
+    const g = grupos.get(clave) ?? { proveedorId: q.fuente === "compra" || q.fuente === "catalogo" ? q.id : null, nombre, fuentes: new Set<FuenteProveedor>(), modelos: [], archivados: new Set<string>() };
     g.fuentes.add(q.fuente);
     if (q.fuente === "archivado") g.archivados.add(q.nombre);
     g.modelos.push(m);
@@ -208,6 +210,7 @@ export function agruparPorProveedor<T extends PrendaAnalisis>(modelos: readonly 
       const dias = ordenados.map((m) => diasQueQuedan(m)).filter((d): d is number => d !== null);
       return {
         clave,
+        proveedorId: g.proveedorId,
         nombre: g.nombre,
         fuentes: ORDEN_FUENTES.filter((f) => g.fuentes.has(f)),
         modelos: ordenados,
