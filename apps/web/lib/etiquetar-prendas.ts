@@ -8,15 +8,26 @@
 
 import { vigenciaDe } from "./etiqueta-vigencia";
 import { normalizarNombre } from "./patron-visual";
+import { descuentoDeCampana, totalDeLineas } from "./vender-reglas";
 
-export type VarianteEtiquetable = { id: string; talla: string | null; color: string | null };
+/** `colorHex` y `precio` son para que la hoja muestre la prenda como es (su color, su precio de etiqueta); la lógica de marcar
+ *  no los usa. */
+export type VarianteEtiquetable = { id: string; talla: string | null; color: string | null; colorHex?: string | null; precio?: number | null };
 
+/** La foto y el prefijo y la familia de la categoría son para la miniatura (`MiniaturaPrenda`, ADR-0333): sin foto, el ícono de
+ *  su categoría sobre su color. */
 export type ProductoEtiquetable = {
   id: string;
+  /** El nombre de la prenda para la gente («Blusa Aurora»); `codigo` es el corto del modelo (BLU-0042). */
   referencia: string;
+  codigo?: string | null;
   descripcion: string | null;
   categoriaId: string | null;
   categoria: string;
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
+  fotoUrl?: string | null;
+  colorHex?: string | null;
   variantes: VarianteEtiquetable[];
 };
 
@@ -70,11 +81,68 @@ export function filtrarProductos(productos: ProductoEtiquetable[], filtro: { tex
   return productos.filter((p) => {
     if (filtro.categoriaId && p.categoriaId !== filtro.categoriaId) return false;
     if (!t) return true;
-    return normalizarNombre(`${p.referencia} ${p.descripcion ?? ""} ${p.categoria}`).includes(t);
+    return normalizarNombre(`${p.referencia} ${p.codigo ?? ""} ${p.descripcion ?? ""} ${p.categoria}`).includes(t);
   });
 }
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+
+// ---- Lo que la hoja dice de cada producto ---------------------------------------------------------------------------
+
+/** ¿Lleva la etiqueta? Por su categoría (la regla de la campaña) o con al menos una talla marcada a mano. */
+export function llevaEtiqueta(p: ProductoEtiquetable, marcadas: ReadonlySet<string>, porCategoria: ReadonlySet<string>): boolean {
+  return (p.categoriaId !== null && porCategoria.has(p.categoriaId)) || p.variantes.some((v) => marcadas.has(v.id));
+}
+
+/** Las tres píldoras de la hoja: todas, las que llevan la etiqueta y las que no. */
+export type FiltroMarca = "todas" | "con" | "sin";
+
+export function cuentaPorMarca(
+  productos: readonly ProductoEtiquetable[],
+  marcadas: ReadonlySet<string>,
+  porCategoria: ReadonlySet<string>,
+): Record<FiltroMarca, number> {
+  const con = productos.filter((p) => llevaEtiqueta(p, marcadas, porCategoria)).length;
+  return { todas: productos.length, con, sin: productos.length - con };
+}
+
+/** Los productos que entran en una píldora. La hoja guarda este conjunto al tocar la píldora y no lo recalcula con cada casilla:
+ *  si «Con la etiqueta» se recalculara, la prenda que la persona suelta se iría de la lista bajo su mouse y no podría
+ *  arrepentirse. El número de la píldora sí sigue vivo. */
+export function idsPorMarca(
+  productos: readonly ProductoEtiquetable[],
+  filtro: FiltroMarca,
+  marcadas: ReadonlySet<string>,
+  porCategoria: ReadonlySet<string>,
+): Set<string> | null {
+  if (filtro === "todas") return null;
+  const quiereCon = filtro === "con";
+  return new Set(productos.filter((p) => llevaEtiqueta(p, marcadas, porCategoria) === quiereCon).map((p) => p.id));
+}
+
+/** «5 tallas y colores» o, si solo una parte lleva la etiqueta, «2 de 5 tallas y colores». Si entra por su categoría, las lleva
+ *  todas. */
+export function textoTallas(p: ProductoEtiquetable, marcadas: ReadonlySet<string>, heredada: boolean): string {
+  const total = p.variantes.length;
+  const n = heredada ? total : p.variantes.filter((v) => marcadas.has(v.id)).length;
+  const todas = total === 1 ? "1 talla y color" : `${total} tallas y colores`;
+  return n === 0 || n === total ? todas : `${n} de ${todas}`;
+}
+
+/** El precio de etiqueta del producto antes y después del descuento, con la cuenta de la caja (`descuentoDeCampana`, ADR-0403).
+ *  Si sus tallas tienen precios distintos, el más bajo y `desde`. `null` sin descuento o sin un precio mayor que 0. Es el precio
+ *  de la prenda: una tienda con precio propio baja desde el suyo. */
+export type PrecioConCampana = { antes: number; despues: number; desde: boolean };
+
+export function precioConCampana(p: ProductoEtiquetable, pct: number | null): PrecioConCampana | null {
+  if (pct === null || pct <= 0) return null;
+  const precios = p.variantes.map((v) => v.precio).filter((x): x is number => typeof x === "number" && x > 0);
+  if (precios.length === 0) return null;
+  // El más bajo antes es el más bajo después: lo que se cobra no baja cuando el precio sube (lo prueba etiqueta-campana.test).
+  const antes = Math.min(...precios);
+  const despues = totalDeLineas([{ cantidad: 1, precioUnitario: antes, descuentoUnitario: descuentoDeCampana(antes, pct) }]);
+  return { antes, despues, desde: new Set(precios).size > 1 };
+}
 
 /** Cuántos productos distintos tocan estos ids de variante. */
 export function productosTocados(ids: string[], productos: ProductoEtiquetable[]): number {
