@@ -20,6 +20,9 @@ import {
 } from "./analisis-ficha";
 import { modeloDe } from "./analisis-modelo";
 
+/** El día de las pruebas (7 de octubre de 2026). */
+const HOY = "2026-10-07";
+
 // Datos inventados para la prueba (no son de producción): una red de tres tiendas y prendas de un modelo de ensayo.
 const SEDES: SedeAnalisis[] = [
   { id: "s1", codigo: "TRU", nombre: "Tienda TRU", ciudad: "Trujillo" },
@@ -77,7 +80,7 @@ function prenda(parcial: Partial<PrendaAnalisis>): PrendaAnalisis {
 }
 
 /** Lo que se lee de una tarjetita: «valor · etiqueta». */
-const leer = (p: PrendaAnalisis) => hechosDe(p, grupoDe(p, LIQUIDAR_DEFECTO), SEDES).map((h) => [h.valor, h.etiqueta].filter(Boolean).join(" · "));
+const leer = (p: PrendaAnalisis) => hechosDe(p, grupoDe(p, LIQUIDAR_DEFECTO), SEDES, HOY).map((h) => [h.valor, h.etiqueta].filter(Boolean).join(" · "));
 
 describe("el chip de la prenda (el título de su grupo)", () => {
   it("cada grupo con su estado; sin grupo, «Va bien»", () => {
@@ -136,17 +139,17 @@ describe("las tarjetitas de la ficha (como `hechos()` de la maqueta)", () => {
   it("se acaba y ya no hay: rojo, lo vendido, de dónde se repone y qué otra tienda la tiene", () => {
     const p = prenda({ vendidas30: 6, otras: [{ sedeId: "s2", stock: 3, vendidas30: 0 }, { sedeId: "s3", stock: 0, vendidas30: 0 }] });
     expect(leer(p)).toEqual(["Ya no hay · en tu tienda", "Vendiste 6 · en 30 días", "Proveedor taller", "AQP tiene 3 · se podría pedir"]);
-    const [agotada] = hechosDe(p, "comprar", SEDES);
+    const [agotada] = hechosDe(p, "comprar", SEDES, HOY);
     expect(agotada).toMatchObject({ icono: "agotado", tono: "rojo" });
   });
 
   it("se acaba con días: ámbar hasta una semana, pizarra después; «Queda 1 día» en singular", () => {
     const seis = prenda({ piso: 1, vendidas30: 5 });
     expect(leer(seis)[0]).toBe("Quedan 6 días · tienes 1");
-    expect(hechosDe(seis, "comprar", SEDES)[0]).toMatchObject({ icono: "reloj", tono: "ambar" });
+    expect(hechosDe(seis, "comprar", SEDES, HOY)[0]).toMatchObject({ icono: "reloj", tono: "ambar" });
     const diez = prenda({ piso: 2, almacen: 1, vendidas30: 9 });
     expect(leer(diez)[0]).toBe("Quedan 10 días · tienes 3");
-    expect(hechosDe(diez, "comprar", SEDES)[0]).toMatchObject({ tono: "pizarra" });
+    expect(hechosDe(diez, "comprar", SEDES, HOY)[0]).toMatchObject({ tono: "pizarra" });
     expect(leer(prenda({ piso: 1, vendidas30: 30 }))[0]).toBe("Queda 1 día · tienes 1");
   });
 
@@ -158,24 +161,43 @@ describe("las tarjetitas de la ficha (como `hechos()` de la maqueta)", () => {
     ];
     const p = prenda({ vendidas30: 5, origen: "terceros", llega });
     expect(leer(p)).toEqual(["Ya no hay · en tu tienda", "Vendiste 5 · en 30 días", "Proveedor terceros", "Por llegar 13 · compra 10 · almacén 2 · taller 1"]);
-    expect(hechosDe(p, "comprar", SEDES)[2]).toMatchObject({ icono: "caja", tono: "taupe" });
+    expect(hechosDe(p, "comprar", SEDES, HOY)[2]).toMatchObject({ icono: "caja", tono: "taupe" });
     expect(leer(prenda({ vendidas30: 5, origen: null }))).toEqual(["Ya no hay · en tu tienda", "Vendiste 5 · en 30 días"]);
+  });
+
+  it("lo que debía llegar y no llegó es «Atrasada» (ámbar), aparte de «Por llegar»: sigue por comprar (A3)", () => {
+    const llega = [
+      { de: "compra" as const, cantidad: 10, fecha: "2026-10-15" },
+      { de: "taller" as const, cantidad: 8, fecha: "2026-09-20" },
+    ];
+    const p = prenda({ vendidas30: 5, origen: "terceros", llega });
+    expect(leer(p)).toEqual([
+      "Ya no hay · en tu tienda",
+      "Vendiste 5 · en 30 días",
+      "Proveedor terceros",
+      "Por llegar 10 · compra 10",
+      "Atrasada 17 días · 8 sin llegar · taller 8",
+    ]);
+    expect(hechosDe(p, "comprar", SEDES, HOY).slice(-2).map((h) => [h.icono, h.tono])).toEqual([["llega", "verde"], ["llega", "ambar"]]);
+    // Solo atrasada: no hay «Por llegar» verde que prometa nada.
+    const sola = prenda({ vendidas30: 5, origen: null, llega: [llega[1]!] });
+    expect(leer(sola)).toEqual(["Ya no hay · en tu tienda", "Vendiste 5 · en 30 días", "Atrasada 17 días · 8 sin llegar · taller 8"]);
   });
 
   it("quieta para mandar: días en el piso sin venderse, cuánto hay y qué tienda sí la vende", () => {
     const p = prenda({ piso: 4, almacen: 2, diasSinVender: 64, otras: [{ sedeId: "s2", stock: 0, vendidas30: 3 }, { sedeId: "s3", stock: 1, vendidas30: 0 }] });
     expect(grupoDe(p, LIQUIDAR_DEFECTO)).toBe("enviar");
     expect(leer(p)).toEqual(["64 días · en el piso sin venderse", "Tienes 6 · 4 en el piso", "AQP vendió 3 · este mes"]);
-    expect(hechosDe(p, "enviar", SEDES).map((h) => h.icono)).toEqual(["reloj", "caja", "camion"]);
+    expect(hechosDe(p, "enviar", SEDES, HOY).map((h) => h.icono)).toEqual(["reloj", "caja", "camion"]);
   });
 
   it("para liquidar: desde 3 meses todo va en rojo; antes, en ámbar", () => {
     const vieja = prenda({ piso: 3, almacen: 2, diasSinVender: 104 });
     expect(leer(vieja)).toEqual(["104 días · en el piso sin venderse", "Tienes 5 · 3 en el piso", "Liquidar · tú eliges cuánto"]);
-    expect(hechosDe(vieja, "liquidar", SEDES).map((h) => h.tono)).toEqual(["rojo", "taupe", "rojo"]);
-    expect(hechosDe(vieja, "liquidar", SEDES)[0]).toMatchObject({ icono: "urg" });
+    expect(hechosDe(vieja, "liquidar", SEDES, HOY).map((h) => h.tono)).toEqual(["rojo", "taupe", "rojo"]);
+    expect(hechosDe(vieja, "liquidar", SEDES, HOY)[0]).toMatchObject({ icono: "urg" });
     const menos = prenda({ piso: 2, diasSinVender: 72 });
-    expect(hechosDe(menos, "liquidar", SEDES).map((h) => h.tono)).toEqual(["ambar", "taupe", "ambar"]);
+    expect(hechosDe(menos, "liquidar", SEDES, HOY).map((h) => h.tono)).toEqual(["ambar", "taupe", "ambar"]);
   });
 
   it("para vigilar: solo los días y cuánto hay", () => {
@@ -194,9 +216,9 @@ describe("las tarjetitas de la ficha (como `hechos()` de la maqueta)", () => {
   it("nunca salió al piso: los días que lleva guardada y que no hay nada colgado; sin fecha de llegada, solo que nunca salió", () => {
     const p = prenda({ piso: 0, almacen: 3, salioAlPiso: null, llego: "2026-09-29" });
     const texto = (h: { valor: string; etiqueta: string | null }) => [h.valor, h.etiqueta].filter(Boolean).join(" · ");
-    expect(hechosDe(p, null, SEDES, { dias: 8 }).map(texto)).toEqual(["8 días · en el almacén, sin salir al piso", "Tienes 3 · 0 en el piso"]);
-    expect(hechosDe(p, null, SEDES, { dias: 8 })[0]).toMatchObject({ icono: "reloj", tono: "ambar" });
-    expect(hechosDe(p, null, SEDES, { dias: null }).map(texto)).toEqual(["Nunca salió al piso", "Tienes 3 · 0 en el piso"]);
+    expect(hechosDe(p, null, SEDES, HOY, { dias: 8 }).map(texto)).toEqual(["8 días · en el almacén, sin salir al piso", "Tienes 3 · 0 en el piso"]);
+    expect(hechosDe(p, null, SEDES, HOY, { dias: 8 })[0]).toMatchObject({ icono: "reloj", tono: "ambar" });
+    expect(hechosDe(p, null, SEDES, HOY, { dias: null }).map(texto)).toEqual(["Nunca salió al piso", "Tienes 3 · 0 en el piso"]);
   });
 
   it("una tienda que no está en la red se nombra «Otra tienda» (no se cae)", () => {
@@ -260,7 +282,7 @@ describe("los botones del pie", () => {
 
   it("lo quieto con la vara de su tipo dice contra qué se juzgó (ADR-0357, act. 2026-10-14)", () => {
     const p = prenda({ piso: 2, diasSinVender: 8, umbrales: { vigila: 3, liquidar: 6, vara: "hoy", vendidas: 30 } });
-    expect(hechosDe(p, "liquidar", SEDES).map((h) => [h.valor, h.etiqueta].join(" · "))).toEqual([
+    expect(hechosDe(p, "liquidar", SEDES, HOY).map((h) => [h.valor, h.etiqueta].join(" · "))).toEqual([
       "8 días · en el piso sin venderse",
       "6 días · tardan 9 de cada 10 de su tipo",
       "Tienes 2 · 2 en el piso",

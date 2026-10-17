@@ -37,6 +37,9 @@ import {
   type GeometriaFlujo,
 } from "./analisis-hoy";
 
+/** El día de las pruebas de los caminos (6 de octubre de 2026). */
+const HOY = "2026-10-06";
+
 // Datos inventados para la prueba (no son de producción ni del catálogo).
 let siguiente = 0;
 function prenda(parcial: Partial<PrendaAnalisis> = {}): PrendaAnalisis {
@@ -169,7 +172,7 @@ describe("Qué hacer hoy: los caminos", () => {
       paraLiquidar({ nombre: "Rebaja" }),
       prenda({ nombre: "Se vende bien", piso: 20, vendidas30: 10 }),
     ];
-    const c = caminosDeHoy(prendas, 60, sedes);
+    const c = caminosDeHoy(prendas, 60, sedes, HOY);
     expect(c.compra).toMatchObject({ verbo: "Compra", grupo: "comprar", vista: "acaba", est: "urg", motivo: "1 agotada · 1 por llegar", primero: true });
     expect(c.compra!.prendas.map((p) => p.nombre)).toEqual(["Agotada", "Llega"]);
     // Un camino por tienda destino, en el orden de las tiendas; adentro, la que más espera primero.
@@ -185,16 +188,23 @@ describe("Qué hacer hoy: los caminos", () => {
   });
 
   it("los motivos: plural, sin partes vacías, y un respaldo si no hay agotadas ni por llegar", () => {
-    expect(caminosDeHoy([agotada(), agotada()], 60, sedes).compra!.motivo).toBe("2 agotadas");
-    expect(caminosDeHoy([seAcaba()], 60, sedes).compra!.motivo).toBe("Quedan 14 días o menos");
+    expect(caminosDeHoy([agotada(), agotada()], 60, sedes, HOY).compra!.motivo).toBe("2 agotadas");
+    expect(caminosDeHoy([seAcaba()], 60, sedes, HOY).compra!.motivo).toBe("Quedan 14 días o menos");
     // Liquidar es urgente si alguna lleva 3 meses o más, y lo dice.
-    const c = caminosDeHoy([paraLiquidar({ diasSinVender: 95 }), paraLiquidar({ diasSinVender: 120 }), paraLiquidar()], 60, sedes);
+    const c = caminosDeHoy([paraLiquidar({ diasSinVender: 95 }), paraLiquidar({ diasSinVender: 120 }), paraLiquidar()], 60, sedes, HOY);
     expect(c.reb[0]).toMatchObject({ est: "urg", motivo: "2 con más de 3 meses" });
     expect(estadosDelFlujo(c)).toEqual(["urg"]);
   });
 
+  it("«por llegar» cuenta lo que todavía se espera: una llegada atrasada vuelve a ser algo por comprar (A3)", () => {
+    const aTiempo = seAcaba({ nombre: "A tiempo", llega: [{ de: "compra", cantidad: 4, fecha: "2026-10-12" }] });
+    const atrasada = seAcaba({ nombre: "Atrasada", llega: [{ de: "taller", cantidad: 4, fecha: "2026-09-20" }] });
+    expect(caminosDeHoy([agotada(), aTiempo, atrasada], 60, sedes, HOY).compra!.motivo).toBe("1 agotada · 1 por llegar");
+    expect(caminosDeHoy([atrasada], 60, sedes, HOY).compra!.motivo).toBe("Quedan 14 días o menos");
+  });
+
   it("sin nada que hacer, no hay caminos", () => {
-    const c = caminosDeHoy([prenda({ piso: 10, vendidas30: 3 })], 60, sedes);
+    const c = caminosDeHoy([prenda({ piso: 10, vendidas30: 3 })], 60, sedes, HOY);
     expect(c).toEqual({ compra: null, manda: [], reb: [] });
     expect(estadosDelFlujo(c)).toEqual([]);
     expect(todosLosCaminos(c)).toEqual([]);
@@ -287,7 +297,7 @@ describe("Qué hacer hoy: el flujo mide lo mismo con 1, 20 o 300 prendas", () =>
       [0.3, () => paraLiquidar({ diasSinVender: 100 })],
     ] as const;
     for (const [parte, crear] of reparto) for (let i = 0; i < Math.max(1, Math.round(total * parte)); i++) prendas.push(crear());
-    return caminosDeHoy(total === 1 ? prendas.slice(0, 1) : prendas, 60, sedes);
+    return caminosDeHoy(total === 1 ? prendas.slice(0, 1) : prendas, 60, sedes, HOY);
   };
 
   for (const total of [1, 20, 300]) {

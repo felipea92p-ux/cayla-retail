@@ -15,6 +15,8 @@ import {
   leerBusqueda,
   leerVista,
   liquidarDesdeValido,
+  llegadaAtrasada,
+  llegadasDe,
   noHabiaDe,
   ordenSeAcaba,
   otraSedeQueLaTiene,
@@ -24,6 +26,9 @@ import {
   sedeQueMasVende,
   seEstaAcabando,
 } from "./analisis-reglas";
+
+/** El día de las pruebas de lo que llega (16 de octubre de 2026). */
+const HOY = "2026-10-16";
 
 // Datos inventados para la prueba (no son de producción).
 function prenda(parcial: Partial<PrendaAnalisis>): PrendaAnalisis {
@@ -163,7 +168,44 @@ describe("otras tiendas", () => {
 
 describe("por llegar, edad y lo que llega", () => {
   it("suma compra, almacén y taller", () => {
-    expect(porLlegar(prenda({ llega: [{ de: "compra", cantidad: 10, fecha: null }, { de: "almacen", cantidad: 2, fecha: null }, { de: "taller", cantidad: 1, fecha: null }] }))).toBe(13);
+    expect(porLlegar(prenda({ llega: [{ de: "compra", cantidad: 10, fecha: null }, { de: "almacen", cantidad: 2, fecha: null }, { de: "taller", cantidad: 1, fecha: null }] }), HOY)).toBe(13);
+  });
+  // A3 (plan verificado 2026-10-16): lo que viene se parte en lo que se espera y lo que ya se atrasó; solo lo primero es «viene».
+  it("una llegada está atrasada cuando su fecha ya pasó: hoy todavía se espera y sin fecha no se sabe", () => {
+    expect(llegadaAtrasada({ fecha: "2026-10-15" }, HOY)).toBe(true);
+    expect(llegadaAtrasada({ fecha: HOY }, HOY)).toBe(false);
+    expect(llegadaAtrasada({ fecha: "2026-10-17" }, HOY)).toBe(false);
+    expect(llegadaAtrasada({ fecha: null }, HOY)).toBe(false);
+  });
+  it("parte lo que viene: lo que se espera (con lo que no tiene fecha) y lo atrasado, con los días de la que más se atrasó", () => {
+    const llega = [
+      { de: "compra" as const, cantidad: 10, fecha: "2026-10-20" },
+      { de: "almacen" as const, cantidad: 2, fecha: null },
+      { de: "taller" as const, cantidad: 8, fecha: "2026-09-20" },
+      { de: "tienda" as const, cantidad: 3, fecha: "2026-10-10" },
+    ];
+    expect(llegadasDe(llega, HOY)).toEqual({ vienen: 12, sinFecha: 2, atrasadas: 11, diasAtraso: 26, despues: 0 });
+    expect(porLlegar(prenda({ llega }), HOY)).toBe(12);
+    expect(llegadasDe([], HOY)).toEqual({ vienen: 0, sinFecha: 0, atrasadas: 0, diasAtraso: 0, despues: 0 });
+  });
+  it("con una meta («hasta»), lo que llega después se aparta: no es «viene» para esa meta, pero tampoco desaparece", () => {
+    const llega = [
+      { de: "compra" as const, cantidad: 10, fecha: "2026-12-25" }, // el día de la meta todavía cuenta
+      { de: "compra" as const, cantidad: 20, fecha: "2027-01-05" }, // llega después de la meta
+      { de: "almacen" as const, cantidad: 2, fecha: null }, // sin fecha: no se sabe, cuenta y se dice
+      { de: "taller" as const, cantidad: 8, fecha: "2026-09-20" }, // atrasada: su propia cuenta, nunca «después»
+    ];
+    expect(llegadasDe(llega, HOY, "2026-12-25")).toEqual({ vienen: 12, sinFecha: 2, atrasadas: 8, diasAtraso: 26, despues: 20 });
+    // Sin meta no se corta por arriba (Se está acabando no mide contra una campaña).
+    expect(llegadasDe(llega, HOY)).toEqual({ vienen: 32, sinFecha: 2, atrasadas: 8, diasAtraso: 26, despues: 0 });
+    expect(porLlegar(prenda({ llega }), HOY)).toBe(32);
+  });
+  it("una parte sin unidades no cuenta en ninguna (un traslado en tránsito sin líneas no infla ni esconde nada)", () => {
+    const vacio = [{ de: "taller" as const, cantidad: 0, fecha: "2026-09-20" }, { de: "compra" as const, cantidad: -3, fecha: null }, { de: "tienda" as const, cantidad: Number.NaN, fecha: null }];
+    expect(llegadasDe(vacio, HOY, "2026-12-25")).toEqual({ vienen: 0, sinFecha: 0, atrasadas: 0, diasAtraso: 0, despues: 0 });
+  });
+  it("lo atrasado no es «por llegar»", () => {
+    expect(porLlegar(prenda({ llega: [{ de: "taller", cantidad: 8, fecha: "2026-09-20" }] }), HOY)).toBe(0);
   });
   it("las unidades por tramo de días sin venderse", () => {
     const e = edadDelInventario([prenda({ piso: 2, diasSinVender: 10 }), prenda({ almacen: 3, diasSinVender: 61 }), prenda({ piso: 1, diasSinVender: 120 }), prenda({ piso: 5 })]);

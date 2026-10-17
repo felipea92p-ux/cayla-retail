@@ -10,7 +10,7 @@ import { variantesDe, type ModeloAnalisis } from "@/lib/analisis-modelo";
 import { hrefReponerPiso } from "@/lib/analisis-acciones";
 import { diasQueQuedan, plural, PRENDAS_EN_LISTA } from "@/lib/analisis-reglas";
 import { diasEnAlmacen, prendasSinSalir } from "@/lib/analisis-piso";
-import { alcancePorTipo, diasANavidad, textoAlcance, textoRitmo, tipoCorto, type AlcanceTipo } from "@/lib/analisis-pedir";
+import { alcancePorTipo, diasANavidad, llegadasAparte, textoAlcance, textoRitmo, tieneYVienen, tipoCorto, type AlcanceTipo } from "@/lib/analisis-pedir";
 import {
   caminosDeHoy,
   carrilesDeCinta,
@@ -71,7 +71,7 @@ export function PestanaHoy() {
   const vacioQuietas = vacioQuietasHoy(datos.prendas, liquidarDesde, datos.hoy, confiable);
   // «¿Qué pedir?»: para cuánto te alcanza cada tipo al ritmo de los días de ventas, contra Navidad (B2, Felipe 2026-10-07).
   const hastaNavidad = diasANavidad(datos.hoy);
-  const alcance = alcancePorTipo(datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo);
+  const alcance = alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo);
   const noLlegan = alcance.filter((t) => t.pide);
   const vendioAlgo = alcance.some((t) => t.vendidas > 0);
 
@@ -274,7 +274,7 @@ function MiniAlcance({ tipos, hastaNavidad }: { tipos: AlcanceTipo[]; hastaNavid
   return (
     <div className="mini-al">
       {tipos.map((t, k) => (
-        <div key={t.categoria} className="al" data-tip={`${t.categoria}: te alcanza para ${textoAlcance(t.dias).toLowerCase()} · vendiste ${t.vendidas}, tienes ${t.tiene}`}>
+        <div key={t.categoria} className="al" data-tip={`${t.categoria}: te alcanza para ${textoAlcance(t.dias).toLowerCase()} · vendiste ${t.vendidas}, ${tieneYVienen(t)}${llegadasAparte(t) ? ` · ${llegadasAparte(t)}` : ""}`}>
           <span className="n">{tipoCorto(t.categoria)}</span>
           <span className="p">
             <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: Math.min(1, (t.dias ?? 0) / fin) }} />
@@ -336,7 +336,7 @@ const teclaSvg = (accion: (el: Element) => void) => (e: KeyboardEvent<SVGGElemen
 
 function QueHacer() {
   const { prendas, q, liquidarDesde, irA, datos } = useAnalisis();
-  const caminos = caminosDeHoy(prendas, liquidarDesde, datos.sedes);
+  const caminos = caminosDeHoy(prendas, liquidarDesde, datos.sedes, datos.hoy);
   const hay = todosLosCaminos(caminos).length > 0;
   const buscando = q.trim() !== "";
   const reponer = paraReponerPiso(prendas);

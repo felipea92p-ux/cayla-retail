@@ -156,6 +156,9 @@ desde el 2026-10-07, de 1 a 999 y con una caja con − y + (actualización 2, ab
 - En «Se está acabando», los filtros Todos · Comprar · Por llegar separan lo que ya viene de lo que falta pedir. No es una regla nueva: el botón
   sigue siendo «Comprar».
 - *Por qué:* sin eso, la tienda vuelve a pedir lo que ya viene en camino.
+- *(Act. 2026-10-16, A3: una llegada ATRASADA —su fecha estimada ya pasó— deja de contar como «viene» y la prenda vuelve a «Comprar»; en «Qué
+  pedir» lo que llega DESPUÉS de la meta tampoco suma. Ver «Actualización 2026-10-16», viñeta A3. Es un cambio a esta decisión que el plan
+  marca como «requiere el OK de Felipe»: está hecho en la rama y queda por confirmar con él.)*
 
 **7. Se calla la cantidad.** Análisis no sugiere cuántas (ADR-0231). Cada botón abre el flujo que ya existe con las prendas marcadas (ADR-0245), y
 ahí se elige cuántas, a quién y a qué precio.
@@ -464,3 +467,44 @@ agrega su viñeta aquí; la decisión 7 («Análisis no sugiere cantidades») si
     cuando algo se degrada de verdad: aparece el issue `analisis.<pieza>` en Sentry (si Felipe ya lo encendió, ADR-0424); sin Sentry queda la
     línea JSON en los logs de Vercel. **Sin confirmar:** que el aviso salga desde el render de una pantalla (hasta hoy todo `capturarError` del
     repo corre en rutas de API); al encender Sentry se provoca una degradación en una vista previa y se mira que llegue (backlog de este día).
+
+- **A3 · Lo que ya viene cuenta, y la llegada atrasada vuelve a «Comprar»** (solo web, sin migración).
+  - **El problema.** `alcancePorTipo` medía «para cuánto te alcanza» solo con el piso y el almacén de la tienda: con 2 en el piso, 6 vendidas en
+    30 días y 20 por llegar decía 10 días (con lo que viene serían 110), así que apenas llegara el primer pedido para Navidad seguiría diciendo
+    «pídelo». Y la lectura de lo que viene (`fn_analisis_por_llegar`) no pone límite de fecha: una llegada cuya fecha estimada ya pasó seguía
+    contando como «Por llegar» y sacaba la prenda del filtro «Comprar», escondiendo una compra que sigue haciendo falta. Sumar lo que viene a
+    «tiene» y, a la vez, mantener lo atrasado en «viene» se contradicen.
+  - **La decisión.** Una sola regla (`llegadasDe`, `analisis-reglas.ts`): se ESPERA lo que llega hoy o después, o lo que no tiene fecha (se dice
+    «sin fecha»; no se inventa una); está ATRASADO lo que tiene fecha pasada. Solo lo que se espera cuenta como «viene». En «Qué pedir»
+    (`AlcanceTipo.vienen`, `vienenSinFecha`, `atrasadas`, `despues`) los días son `(tiene + vienen) / ritmo` y la fila dice «tienes 12 y vienen
+    20»; `tiene` sigue siendo lo que hay hoy (la frase «Tienes 92» no miente). Lo atrasado no suma y se dice aparte en una segunda línea de la fila
+    («8 atrasadas aparte»; en el panel, «no cuentan hasta que lleguen»). **Lo que llega DESPUÉS de la meta tampoco suma** (revisión
+    independiente, 2026-10-16): `alcancePorTipo` pasa a `llegadasDe` el último día que importa (`hoy + hastaNavidad`, Navidad hoy) y lo que llega
+    después va en `despues` («20 llegan después de Navidad»), porque un pedido del 5 de enero no cubre el 25 de diciembre y apagaría un «pídelo»
+    que sigue haciendo falta; el día de la meta todavía cuenta. Cuando la meta sea el fin de la campaña (D3, A6) cambia `hastaNavidad`, no esta
+    regla (ni el texto «después de Navidad»: A6 lo rotula con la campaña). En «Se está acabando» NO hay meta, así que ahí solo se aparta lo
+    atrasado. La prenda atrasada vuelve a «Comprar» **solo si no viene nada más a tiempo**: con una parte a tiempo y otra atrasada queda en «Por
+    llegar» (con las dos píldoras) y el tooltip de «Atrasada» solo dice que esa parte no cuenta (`notaAtrasada`); decir «sigue en Comprar» ahí
+    mandaba a una lista donde la prenda no está. Lleva «Atrasada N días» (los de la parte que más se atrasó) en ámbar, con su tooltip. El mismo criterio sale en el «N por llegar» de Qué hacer hoy y en la ficha. `diasQueQuedan` NO se toca:
+    los días de «Se está acabando» siguen siendo del stock en tienda y el filtro Todos/Comprar/Por llegar sigue separando lo que falta pedir de
+    lo que viene (decisión 6). Es un cambio a la decisión 6 en un solo punto: una llegada vencida deja de contar como «viene».
+  - **Lo descartado.** Que `tiene` incluyera lo que viene (la fila diría «tienes 32» y la ficha «Tienes 92» mentiría); contar la llegada atrasada
+    «con un descuento» (inventa una probabilidad que nadie midió); inventar una fecha para lo que no la tiene (la compra sin fecha de llegada se
+    queda en «sin fecha»); sumar órdenes de compra, despachos o producción en proceso (A4, que además debe deduplicar contra esto). Lo que se
+    descartó al revisar: cortar lo que llega después de Navidad «hasta A6» (A3 sale antes y es justo cuando se hacen los primeros pedidos), y
+    una tolerancia de N días antes de llamar «atrasada» a una llegada (decisión de Felipe, ver abajo).
+  - **Lo que NO es igual que en Compras (pendiente de Felipe).** Compras trata una factura sin fecha estimada como esperada para su emisión + 7
+    días (`fechaEsperada`, «misma regla que la base») y la marca atrasada pasado ese día; Análisis recibe `fecha = null` de
+    `fn_analisis_por_llegar` y la cuenta como «viene (sin fecha)» sin tope de antigüedad. Hoy casi no se nota (la hoja de compra pide la fecha y
+    en producción no hay compras con prenda por recibir), pero una factura vieja sin fecha apagaría un «pídelo» para siempre. El arreglo es de la
+    base (`coalesce(c.fecha_estimada_llegada, c.fecha_emision + 7)` en las compras de `fn_analisis_por_llegar`, un `create or replace`) y de
+    Felipe: no se hizo aquí. También de Felipe: con la regla de hoy un pedido con fecha de AYER cuenta como atrasado y el «pídelo» vuelve de un
+    día para otro (acantilado); una tolerancia de N días es un solo valor en `llegadaAtrasada`.
+  - **Un traslado sin líneas no cuenta, ni siquiera llega.** En producción hay un solo traslado de Taller a tienda en tránsito (estimado el
+    20-sep) y tiene 0 líneas y 0 unidades: la base emite una parte por prenda, así que no emite nada para él. Se fija con pruebas para que un día
+    una parte en cero tampoco infle ni esconda; el traslado mismo se cierra en su origen (Traslados), no en Análisis.
+  - **Cómo se verifica.** `pnpm --filter web exec vitest run lib/analisis-reglas lib/analisis-pedir lib/analisis-acaba lib/analisis-hoy lib/analisis-ficha`
+    (el caso de 2 / 6 / 20 → 10 y 110 días; fecha pasada → atrasada y de vuelta en «Comprar»; hoy, mañana y sin fecha cuentan; 20 que llegan el
+    5-ene con Navidad a 79 días → 10 días y se pide; el 25-dic cuenta y el 26 no; una parte a tiempo y otra atrasada → «Por llegar» y la nota no
+    nombra «Comprar»; el traslado de 0 líneas no cambia nada). En el navegador local: crear un traslado en tránsito y una compra repartida con prenda, ver la píldora «Por llegar»
+    y el «vienen» de la fila de su tipo; cambiar la fecha estimada al pasado y ver «Atrasada», el filtro «Comprar» y que «vienen» baje.

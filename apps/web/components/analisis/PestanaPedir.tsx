@@ -33,6 +33,8 @@ import {
   tipRinde,
   textoAlcance,
   textoRitmo,
+  llegadasAparte,
+  tieneYVienen,
   tiposSinRegistrar,
   notaTiposSinRegistrar,
   ventaMaxima,
@@ -57,8 +59,8 @@ export function PestanaPedir() {
   const riel = useMemo(() => rielNavidad(datos.hoy), [datos.hoy]);
   const hastaNavidad = diasANavidad(datos.hoy);
   const tipos = useMemo(
-    () => alcancePorTipo(datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo),
-    [datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo],
+    () => alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo),
+    [datos.prendas, diasDeVentas, datos.hoy, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo],
   );
   // Lo vendido sin registrar de tipos que la tienda no tiene en el sistema: no se sabe para cuánto alcanzan, pero no se calla.
   const sinRegistro = useMemo(() => tiposSinRegistrar(datos.prendas, datos.sinPrendaPorTipo), [datos.prendas, datos.sinPrendaPorTipo]);
@@ -276,8 +278,10 @@ function TablaAlcance({ tipos, hastaNavidad, categoria, onElegir }: { tipos: Alc
               <b>{t.categoria}</b>
               <small>
                 vendiste {t.vendidas}
-                {t.sinPrenda > 0 ? ` (${t.sinPrenda} sin su prenda)` : ""} · tienes {t.tiene}
+                {t.sinPrenda > 0 ? ` (${t.sinPrenda} sin su prenda)` : ""} · {tieneYVienen(t)}
               </small>
+              {/* Lo atrasado y lo que llega después de Navidad, en su propia línea: no ensancha la principal (la columna es angosta). */}
+              {llegadasAparte(t) && <small className="aparte">{llegadasAparte(t)}</small>}
             </span>
             <span className="p">
               {t.dias !== null && <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: Math.min(1, t.dias / fin) }} />}

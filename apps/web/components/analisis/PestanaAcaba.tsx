@@ -11,19 +11,24 @@ import { diasQueQuedan, otraSedeQueLaTiene, porLlegar } from "@/lib/analisis-reg
 import { hrefComprar, hrefComprarTodas } from "@/lib/analisis-acciones";
 import { textoRitmo } from "@/lib/analisis-pedir";
 import {
+  atrasoDe,
   cuentasFiltroAcaba,
   EJE_ACABA,
   faltanDelModelo,
   FILTROS_ACABA,
   LINEA_SEMANA,
+  lineasAtrasadas,
   lineasPorLlegar,
+  notaAtrasada,
   pasaFiltroAcaba,
   pistaAcaba,
   prendasQueSeAcaban,
   TEXTO_VACIO_ACABA,
+  textoAtraso,
   textoPedirA,
   textoProveedor,
   tipOtraTienda,
+  tituloAtrasada,
   tituloPorLlegar,
   vacioAcaba,
   type FiltroAcaba,
@@ -40,7 +45,7 @@ import { Aviso } from "@/components/ui/Aviso";
 // `lib/analisis-acaba.ts`; los destinos de los botones, en `lib/analisis-acciones.ts` (un destino que la cuenta no ve, no se dibuja).
 
 const AYUDA_COMPRAR =
-  "Por defecto, todo lo que se acaba se compra al proveedor: el taller o terceros. Si otra tienda la tiene, verás cuántas tiene; toca la prenda para ver cuánto vende cada tienda y decide si pedirla.";
+  "Por defecto, todo lo que se acaba se compra al proveedor: el taller o terceros. Si otra tienda la tiene, verás cuántas tiene; toca la prenda para ver cuánto vende cada tienda y decide si pedirla. Lo que ya viene en camino dice «Por llegar»; si se atrasó, dice «Atrasada», y si no viene nada más vuelve a «Comprar».";
 
 export function PestanaAcaba() {
   const { datos, acceso, prendas, liquidarDesde, filtroAcaba, setFiltroAcaba, diasDeVentas } = useAnalisis();
@@ -51,7 +56,7 @@ export function PestanaAcaba() {
   const vacio = vacioAcaba({ prendas: datos.prendas.length, seAcaban: enLaTienda, fallas: datos.fallas.length });
   if (vacio) return <SinCarril tipo={vacio} />;
 
-  const visibles = seAcaban.filter((p) => pasaFiltroAcaba(p, filtroAcaba));
+  const visibles = seAcaban.filter((p) => pasaFiltroAcaba(p, filtroAcaba, datos.hoy));
   const comprarTodas = hrefComprarTodas(visibles, acceso);
   const grupo: GrupoCarril = {
     clave: "comprar",
@@ -71,7 +76,7 @@ export function PestanaAcaba() {
     <Carril
       titulo="Cuántos días te quedan"
       nota={textoRitmo(diasDeVentas)}
-      herramienta={<Filtros filtro={filtroAcaba} cuentas={cuentasFiltroAcaba(seAcaban)} onFiltro={setFiltroAcaba} />}
+      herramienta={<Filtros filtro={filtroAcaba} cuentas={cuentasFiltroAcaba(seAcaban, datos.hoy)} onFiltro={setFiltroAcaba} />}
       eje={[...EJE_ACABA]}
       grupos={[grupo]}
       pista={(p) => <Pista p={p} />}
@@ -118,10 +123,14 @@ function Pista({ p }: { p: ModeloAnalisis }) {
   );
 }
 
-/** «Por llegar 13» (con de dónde y cuándo, al pasar el mouse), y «AQP tiene 3» o a quién se compra. */
+/**
+ * «Por llegar 13» (con de dónde y cuándo, al pasar el mouse), «Atrasada 26 días» si algo debía llegar y no llegó (esa prenda vuelve a
+ * «Comprar»), y «AQP tiene 3» o a quién se compra.
+ */
 function Pildoras({ p }: { p: ModeloAnalisis }) {
   const { datos, sedeDe } = useAnalisis();
-  const llega = porLlegar(p);
+  const llega = porLlegar(p, datos.hoy);
+  const atraso = atrasoDe(p, datos.hoy);
   const otra = otraSedeQueLaTiene(p.otras);
   const sede = otra ? sedeDe(otra.sedeId) : undefined;
   const proveedor = textoProveedor(p.origen);
@@ -138,11 +147,26 @@ function Pildoras({ p }: { p: ModeloAnalisis }) {
           <Icono nombre="llega" />
           Por llegar <b>{llega}</b>
           <TipRico>
-            <b>{tituloPorLlegar(p)}</b>
+            <b>{tituloPorLlegar(p, datos.hoy)}</b>
             <span className="tl">
               {lineasPorLlegar(p, datos.hoy).map((linea, k) => (
                 <span key={k}>{linea}</span>
               ))}
+            </span>
+          </TipRico>
+        </span>
+      )}
+      {atraso && (
+        <span className="pil tarde">
+          <Icono nombre="reloj" />
+          {textoAtraso(atraso.dias)}
+          <TipRico>
+            <b>{tituloAtrasada(atraso.unidades)}</b>
+            <span className="tl">
+              {lineasAtrasadas(p, datos.hoy).map((linea, k) => (
+                <span key={k}>{linea}</span>
+              ))}
+              <span>{notaAtrasada(atraso.unidades, llega > 0)}</span>
             </span>
           </TipRico>
         </span>

@@ -67,7 +67,7 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
   // Guardada y nunca colgada (solo si la base ya lo sabe: 20261007120000): no «va bien», nadie la vio.
   const sinSalir = datos.sabePiso && nuncaSalio(p);
   const chip = chipDeGrupo(grupo, sinSalir);
-  const hechos = hechosDe(p, grupo, datos.sedes, sinSalir ? { dias: diasEnAlmacen(p, datos.hoy) } : null);
+  const hechos = hechosDe(p, grupo, datos.sedes, datos.hoy, sinSalir ? { dias: diasEnAlmacen(p, datos.hoy) } : null);
   const barras = barrasSemanas(p.semanas, datos.hoy);
   const frase = fraseDelModelo(p, datos.diasDeVentas);
   const tabla = tablaDelModelo(p);

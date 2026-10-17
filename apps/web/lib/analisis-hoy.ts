@@ -106,10 +106,11 @@ export type CaminosHoy = { compra: CaminoHoy | null; manda: CaminoHoy[]; reb: Ca
  * aquí no se vende y en otra tienda sí, un camino por tienda destino (la que más lo vendió), en el orden de `sedes`. «Liquidar»:
  * lo quieto que no se vende en ninguna; urgente si alguna lleva 3 meses o más.
  */
-export function caminosDeHoy(prendas: readonly PrendaAnalisis[], liquidarDesde: number, sedes: readonly Pick<SedeAnalisis, "id" | "ciudad">[]): CaminosHoy {
+export function caminosDeHoy(prendas: readonly PrendaAnalisis[], liquidarDesde: number, sedes: readonly Pick<SedeAnalisis, "id" | "ciudad">[], hoy: string): CaminosHoy {
   const comp = prendasDe(prendas, ["comprar"], liquidarDesde).sort(ordenSeAcaba);
   const agotadas = comp.filter((p) => totalEnTienda(p) === 0).length;
-  const llegan = comp.filter((p) => porLlegar(p) > 0).length;
+  // «Por llegar» es lo que todavía se espera: una llegada atrasada vuelve a ser algo por comprar (A3, 2026-10-16), igual que en el filtro.
+  const llegan = comp.filter((p) => porLlegar(p, hoy) > 0).length;
   const motivoCompra =
     [agotadas ? `${agotadas} ${plural(agotadas, "agotada", "agotadas")}` : "", llegan ? `${llegan} por llegar` : ""].filter(Boolean).join(" · ") ||
     `Quedan ${DIAS_SE_ACABA} días o menos`;

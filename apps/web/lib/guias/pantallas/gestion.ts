@@ -75,7 +75,7 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-acaba" }],
       titulo: "Se está acabando",
-      texto: "Las prendas que, al ritmo que se venden desde que se colgaron, se acaban pronto, con los días que les quedan. Desde aquí puedes pedirlas a otra sede antes de quedarte sin nada.",
+      texto: "Las prendas que, al ritmo que se venden desde que se colgaron, se acaban pronto, con los días que les quedan. Si algo ya viene en camino dice «Por llegar»; si se atrasó, dice «Atrasada», y si no viene nada más vuelve a «Comprar». Puedes pedirlas a otra sede antes de quedarte sin nada.",
     },
     {
       id: "nose",
@@ -99,7 +99,7 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-pedir" }],
       titulo: "Qué pedir",
-      texto: "Arriba, cuánto falta para la campaña, con un atajo al Plan de campaña. «¿Para cuánto te alcanza?»: cada tipo de prenda, para cuánto alcanza lo que tienes (contando también lo vendido sin registrar); lo que no llega va en ámbar y conviene pedirlo. Toca un tipo y al lado ves lo que más se vende.",
+      texto: "Arriba, cuánto falta para la campaña, con un atajo al Plan de campaña. «¿Para cuánto te alcanza?»: cada tipo, con lo que tienes y lo que viene a tiempo para Navidad (lo atrasado no cuenta) y lo vendido sin registrar; lo que no llega va en ámbar: conviene pedirlo. Toca un tipo y ves lo que más se vende.",
     },
     {
       id: "pedir-orden",

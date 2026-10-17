@@ -6,7 +6,7 @@
 
 import type { LlegadaPrenda, OrigenLlegada, OrigenPrenda, PrendaAnalisis, SedeAnalisis } from "./analisis-tipos";
 import type { ModeloAnalisis } from "./analisis-modelo";
-import { DIAS_SE_ACABA, esTallaUnica, GRUPOS_ACABA, ordenSeAcaba, plural, porLlegar, prendasDe, totalEnTienda } from "./analisis-reglas";
+import { DIAS_SE_ACABA, esTallaUnica, GRUPOS_ACABA, llegadaAtrasada, llegadasDe, ordenSeAcaba, plural, porLlegar, prendasDe, totalEnTienda } from "./analisis-reglas";
 import { compararTallas } from "./tallas";
 import { fechaCorta } from "./motor-demanda-reglas";
 
@@ -22,10 +22,14 @@ export const FILTROS_ACABA: readonly { clave: FiltroAcaba; texto: string }[] = [
   { clave: "llega", texto: "Por llegar" },
 ];
 
-/** Si una prenda que se acaba pasa el filtro: «Comprar» = no viene nada en camino; «Por llegar» = algo ya viene. */
-export function pasaFiltroAcaba(p: Pick<PrendaAnalisis, "llega">, filtro: FiltroAcaba): boolean {
+/**
+ * Si una prenda que se acaba pasa el filtro: «Comprar» = no viene nada en camino a tiempo; «Por llegar» = algo ya viene. Una llegada
+ * ATRASADA (su fecha estimada ya pasó) no cuenta como «viene»: la prenda vuelve a «Comprar», con su etiqueta «Atrasada N días»
+ * (A3, plan verificado 2026-10-16). Antes una llegada vencida la sacaba del filtro y escondía una compra que seguía haciendo falta.
+ */
+export function pasaFiltroAcaba(p: Pick<PrendaAnalisis, "llega">, filtro: FiltroAcaba, hoy: string): boolean {
   if (filtro === "todos") return true;
-  const viene = porLlegar(p) > 0;
+  const viene = porLlegar(p, hoy) > 0;
   return filtro === "llega" ? viene : !viene;
 }
 
@@ -35,8 +39,8 @@ export function prendasQueSeAcaban<T extends PrendaAnalisis>(prendas: readonly T
 }
 
 /** Cuántas caen en cada filtro (las tres píldoras): «Comprar» y «Por llegar» se reparten «Todos» sin repetir ninguna. */
-export function cuentasFiltroAcaba(seAcaban: readonly Pick<PrendaAnalisis, "llega">[]): Record<FiltroAcaba, number> {
-  const llega = seAcaban.filter((p) => porLlegar(p) > 0).length;
+export function cuentasFiltroAcaba(seAcaban: readonly Pick<PrendaAnalisis, "llega">[], hoy: string): Record<FiltroAcaba, number> {
+  const llega = seAcaban.filter((p) => porLlegar(p, hoy) > 0).length;
   return { todos: seAcaban.length, comprar: seAcaban.length - llega, llega };
 }
 
@@ -94,14 +98,46 @@ export function textoLlegada(x: LlegadaPrenda, hoy: string): string {
   return `${NOMBRE_LLEGADA[x.de]}: ${x.cantidad} · ${cuando}`;
 }
 
-/** Las líneas del tooltip «Por llegar», de lo que llega antes a lo que llega después (lo que no tiene fecha, al final). */
-export function lineasPorLlegar(p: Pick<PrendaAnalisis, "llega">, hoy: string): string[] {
+/** Las líneas de un tooltip, de lo que llega antes a lo que llega después (lo que no tiene fecha, al final). */
+function lineasDe(partes: readonly LlegadaPrenda[], hoy: string): string[] {
   const orden = (f: string | null) => f ?? "9999-12-31";
-  return [...p.llega].sort((a, b) => orden(a.fecha).localeCompare(orden(b.fecha))).map((x) => textoLlegada(x, hoy));
+  return [...partes]
+    .filter((x) => x.cantidad > 0)
+    .sort((a, b) => orden(a.fecha).localeCompare(orden(b.fecha)))
+    .map((x) => textoLlegada(x, hoy));
 }
 
+/** Las líneas del tooltip «Por llegar»: solo lo que todavía se espera (lo atrasado va en su propio tooltip). */
+export const lineasPorLlegar = (p: Pick<PrendaAnalisis, "llega">, hoy: string): string[] =>
+  lineasDe(p.llega.filter((x) => !llegadaAtrasada(x, hoy)), hoy);
+
 /** El título del tooltip: «Por llegar: 13». */
-export const tituloPorLlegar = (p: Pick<PrendaAnalisis, "llega">): string => `Por llegar: ${porLlegar(p)}`;
+export const tituloPorLlegar = (p: Pick<PrendaAnalisis, "llega">, hoy: string): string => `Por llegar: ${porLlegar(p, hoy)}`;
+
+/** Lo que debía llegar y no llegó: cuántas unidades y cuántos días lleva la más atrasada; null si nada está atrasado. */
+export function atrasoDe(p: Pick<PrendaAnalisis, "llega">, hoy: string): { unidades: number; dias: number } | null {
+  const l = llegadasDe(p.llega, hoy);
+  return l.atrasadas > 0 ? { unidades: l.atrasadas, dias: l.diasAtraso } : null;
+}
+
+/** La etiqueta de la píldora: «Atrasada 26 días» (los de la parte que más se atrasó). */
+export const textoAtraso = (dias: number): string => `Atrasada ${dias} ${plural(dias, "día", "días")}`;
+
+/** El título del tooltip «Atrasada»: «Atrasada: 8 sin llegar». */
+export const tituloAtrasada = (unidades: number): string => `Atrasada: ${unidades} sin llegar`;
+
+/**
+ * Lo que dice el tooltip «Atrasada» al final. Si no viene nada más, la prenda sigue en «Comprar» y se dice; si además llega algo a
+ * tiempo, la prenda está en «Por llegar» y la nota solo dice que lo atrasado no cuenta (no puede mandar a una lista donde no está).
+ */
+export function notaAtrasada(unidades: number, vieneAlgoMas: boolean): string {
+  if (vieneAlgoMas) return `${plural(unidades, "Esta no la cuento", "Estas no las cuento")} como que ${plural(unidades, "viene", "vienen")} hasta que ${plural(unidades, "llegue", "lleguen")}.`;
+  return "No la cuento como que viene: sigue en «Comprar» hasta que llegue.";
+}
+
+/** Las líneas del tooltip «Atrasada», de la que más se atrasó a la que menos: «Taller: 8 · debía llegar el 20 sep.». */
+export const lineasAtrasadas = (p: Pick<PrendaAnalisis, "llega">, hoy: string): string[] =>
+  lineasDe(p.llega.filter((x) => llegadaAtrasada(x, hoy)), hoy);
 
 /** Si ninguna otra tienda la tiene: a quién se compra («Proveedor taller» / «Proveedor terceros»); null si no se sabe. */
 export function textoProveedor(origen: OrigenPrenda | null): string | null {

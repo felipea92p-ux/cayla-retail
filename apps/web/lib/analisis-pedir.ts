@@ -5,9 +5,9 @@
 // `analisis-rinde.ts` (servidor); la cuenta, aquí, para poder probarla.
 
 import type { PrendaAnalisis } from "./analisis-tipos";
-import { DIAS_MINIMOS_RITMO, esTallaUnica, nuncaSalio, plural, totalEnTienda } from "./analisis-reglas";
+import { DIAS_MINIMOS_RITMO, esTallaUnica, llegadasDe, nuncaSalio, plural, totalEnTienda } from "./analisis-reglas";
 import { compararTallas, tipoDeTalla, type TipoTalla } from "./tallas";
-import { diasEntreFechas } from "./fechas-lima";
+import { diasEntreFechas, sumarDias } from "./fechas-lima";
 
 /* ───────── Tipo de prenda ───────── */
 
@@ -124,11 +124,24 @@ export type AlcanceTipo = {
   vendidas: number;
   /** De lo vendido, cuántas se cobraron sin su prenda (anotadas en caja con su tipo): ya están dentro de `vendidas`. */
   sinPrenda: number;
-  /** Lo que tienes del tipo hoy (libre, piso + almacén). */
+  /** Lo que tienes del tipo hoy (libre, piso + almacén): lo que hay, sin lo que viene. */
   tiene: number;
+  /**
+   * Lo que viene en camino al tipo y todavía se espera a tiempo (llega hoy o hasta la meta, o nadie anotó cuándo): se suma a `tiene`
+   * para saber para cuánto te alcanza (`dias`), pero no es lo que hay. Las llegadas ATRASADAS (su fecha estimada ya pasó), las que
+   * llegan DESPUÉS de la meta y las partes sin unidades no cuentan (A3, plan verificado 2026-10-16): un pedido vencido no es stock, uno
+   * que llega tarde no cubre la campaña, y si contaran apagarían un «pídelo» que sigue haciendo falta.
+   */
+  vienen: number;
+  /** De `vienen`, las que no tienen fecha anotada (se dicen así; no se inventa una). */
+  vienenSinFecha: number;
+  /** Lo que debía llegar y no llegó (fecha ya pasada): NO está en `vienen`; se dice aparte. */
+  atrasadas: number;
+  /** Lo que llega DESPUÉS de la meta (hoy, Navidad): un pedido del 5 de enero no cubre el 25 de diciembre. NO está en `vienen`; se dice aparte. */
+  despues: number;
   /** De lo que tienes, cuántas unidades nunca salieron al piso; null si la base todavía no lo sabe. */
   nunca: number | null;
-  /** Para cuántos días te alcanza al ritmo de los días de ventas (0 = ya no hay); null si no se vendió: no tiene ritmo. */
+  /** Para cuántos días te alcanza lo que tienes MÁS lo que viene, al ritmo de los días de ventas (0 = ya no hay); null si no se vendió: no tiene ritmo. */
   dias: number | null;
   /** No llega a Navidad: pídelo. */
   pide: boolean;
@@ -136,14 +149,18 @@ export type AlcanceTipo = {
 
 /**
  * Por tipo de prenda, para cuánto te alcanza lo que tienes al ritmo de lo vendido en los días de ventas de la tienda (hasta 30):
- * lo que tienes entre lo que vendes por día. Pide lo que no llega a Navidad. Del que menos dura al que más; lo que no se vendió, al
+ * lo que tienes MÁS lo que ya viene en camino a tiempo (no lo atrasado ni lo que llega después de la meta: `AlcanceTipo.vienen`) entre lo
+ * que vendes por día. Pide lo que no
+ * llega a Navidad. Del que menos dura al que más; lo que no se vendió, al
  * final (sin ritmo no se sabe para cuánto alcanza). Reemplaza a la mariposa «de cada 100» (Felipe, 2026-10-07: «no sé si es de los
  * últimos 30 días o desde siempre»): habla en semanas y dice de qué días. Con los MODELOS (ADR-0357, decisión 12), «nunca salió»
  * cuenta solo lo del modelo del que nada se colgó: la talla guardada de un modelo colgado ya está presentada.
  */
 export function alcancePorTipo(
-  prendas: readonly Pick<PrendaAnalisis, "categoria" | "categoriaPrefijo" | "categoriaFamilia" | "vendidas30" | "piso" | "almacen" | "salioAlPiso" | "diasDeVentas">[],
+  prendas: readonly Pick<PrendaAnalisis, "categoria" | "categoriaPrefijo" | "categoriaFamilia" | "vendidas30" | "piso" | "almacen" | "salioAlPiso" | "diasDeVentas" | "llega">[],
   diasDeVentas: number,
+  /** El día de hoy en Lima (YYYY-MM-DD): con él se sabe qué llegada ya se atrasó. */
+  hoy: string,
   hastaNavidad: number,
   sabePiso: boolean,
   sinPrenda: Readonly<Record<string, number>> = {},
@@ -153,9 +170,16 @@ export function alcancePorTipo(
   const ventana = Math.min(30, Math.max(1, Math.round(diasDeVentas)));
   const ventanaDe = (p: { diasDeVentas?: number }) => Math.min(30, Math.max(1, Math.round(p.diasDeVentas ?? ventana)));
   const ritmo = new Map<string, number>();
+  // Lo atrasado y lo que llega después de la meta de cada tipo, de TODAS sus prendas (también las que hoy no tienen ni venta ni stock):
+  // se dicen aparte, no suman.
+  const atrasadasDe = new Map<string, number>();
+  const despuesDe = new Map<string, number>();
+  // El último día que importa: se llega a la meta (Navidad hoy) o no. Con la meta por campaña (D3) cambia `hastaNavidad`, no esta regla.
+  // Sin un día válido o una meta que sea número no hay tope (como antes): una fecha rara no debe tumbar la pantalla (principio 9).
+  const limite = Number.isFinite(hastaNavidad) && /^\d{4}-\d{2}-\d{2}/.test(hoy) ? sumarDias(hoy, Math.max(0, Math.round(hastaNavidad))) : undefined;
   const porTipo = new Map<string, AlcanceTipo>();
   const nuevo = (c: string, p: (typeof prendas)[number]): AlcanceTipo =>
-    ({ categoria: c, prefijo: p.categoriaPrefijo, familia: p.categoriaFamilia, vendidas: 0, sinPrenda: 0, tiene: 0, nunca: sabePiso ? 0 : null, dias: null, pide: false });
+    ({ categoria: c, prefijo: p.categoriaPrefijo, familia: p.categoriaFamilia, vendidas: 0, sinPrenda: 0, tiene: 0, vienen: 0, vienenSinFecha: 0, atrasadas: 0, despues: 0, nunca: sabePiso ? 0 : null, dias: null, pide: false });
   // Una prenda de cada tipo que la tienda tiene, aunque hoy no tenga ni venta ni stock: el tipo existe para sumarle lo vendido sin registrar.
   const delTipo = new Map<string, (typeof prendas)[number]>();
   for (const p of prendas) {
@@ -163,11 +187,18 @@ export function alcancePorTipo(
     if (!delTipo.has(c)) delTipo.set(c, p);
     const vend = Math.max(0, p.vendidas30);
     const tiene = Math.max(0, totalEnTienda(p));
-    if (vend === 0 && tiene === 0) continue;
+    const ll = llegadasDe(p.llega, hoy, limite);
+    if (ll.atrasadas > 0) atrasadasDe.set(c, (atrasadasDe.get(c) ?? 0) + ll.atrasadas);
+    if (ll.despues > 0) despuesDe.set(c, (despuesDe.get(c) ?? 0) + ll.despues);
+    // Una prenda sin venta ni stock pero con algo que viene a tiempo también cuenta: lo que llega es del tipo. Lo atrasado o lo que llega
+    // después de la meta, solo, no abre el tipo.
+    if (vend === 0 && tiene === 0 && ll.vienen === 0) continue;
     const a = porTipo.get(c) ?? nuevo(c, p);
     a.vendidas += vend;
     ritmo.set(c, (ritmo.get(c) ?? 0) + vend / ventanaDe(p));
     a.tiene += tiene;
+    a.vienen += ll.vienen;
+    a.vienenSinFecha += ll.sinFecha;
     if (a.nunca !== null && nuncaSalio(p)) a.nunca += p.almacen;
     porTipo.set(c, a);
   }
@@ -188,8 +219,8 @@ export function alcancePorTipo(
   return [...porTipo.values()]
     .map((a) => {
       const porDia = ritmo.get(a.categoria) ?? 0;
-      const dias = a.vendidas > 0 && porDia > 0 ? a.tiene / porDia : null;
-      return { ...a, dias, pide: dias !== null && dias < hastaNavidad };
+      const dias = a.vendidas > 0 && porDia > 0 ? (a.tiene + a.vienen) / porDia : null;
+      return { ...a, atrasadas: atrasadasDe.get(a.categoria) ?? 0, despues: despuesDe.get(a.categoria) ?? 0, dias, pide: dias !== null && dias < hastaNavidad };
     })
     .sort((a, b) => (a.dias ?? Infinity) - (b.dias ?? Infinity) || b.tiene - a.tiene || a.categoria.localeCompare(b.categoria, "es"));
 }
@@ -247,6 +278,27 @@ export function textoAlcance(dias: number | null): string {
   if (dias >= DIAS_ALCANZA_MAX) return "Más de 6 meses";
   const s = Math.round(dias / 7);
   return `${s} ${plural(s, "semana", "semanas")}`;
+}
+
+/**
+ * Lo que tienes y lo que viene a tiempo, como se dice en tienda: «tienes 12 y vienen 20». Lo que no tiene fecha se dice («vienen 20
+ * (5 sin fecha)»). Sin nada que viene, solo «tienes 12». Lo atrasado y lo que llega tarde van aparte (`llegadasAparte`).
+ */
+export function tieneYVienen(t: Pick<AlcanceTipo, "tiene" | "vienen" | "vienenSinFecha">): string {
+  const sinFecha = t.vienenSinFecha > 0 ? ` (${t.vienenSinFecha} sin fecha)` : "";
+  const viene = t.vienen > 0 ? ` y ${plural(t.vienen, "viene", "vienen")} ${t.vienen}${sinFecha}` : "";
+  return `tienes ${t.tiene}${viene}`;
+}
+
+/**
+ * Lo que viene en camino y NO cuenta para la meta, dicho aparte para que no se pierda en silencio: «8 atrasadas aparte · 10 llegan
+ * después de Navidad». Vacío si no hay nada de eso.
+ */
+export function llegadasAparte(t: Pick<AlcanceTipo, "atrasadas" | "despues">): string {
+  const partes: string[] = [];
+  if (t.atrasadas > 0) partes.push(`${t.atrasadas} ${plural(t.atrasadas, "atrasada", "atrasadas")} aparte`);
+  if (t.despues > 0) partes.push(`${t.despues} ${plural(t.despues, "llega", "llegan")} después de Navidad`);
+  return partes.join(" · ");
 }
 
 /** El nombre corto de un tipo para un lugar chico: lo de antes de « y » («Gorros y Sombreros» → «Gorros»). */
@@ -403,25 +455,35 @@ export function topsPosibles(vendidos: number): Top[] {
 
 /**
  * La frase del panel de un tipo (opción A): para cuánto te alcanza contra Navidad y lo que tienes, o, sin tipo elegido, lo de toda la
- * tienda. Ejemplos inventados: «Te alcanza para 7 semanas: no llega a Navidad. Tienes 92 · 39 nunca salieron al piso.»
+ * tienda. Ejemplos inventados: «Te alcanza para 7 semanas: no llega a Navidad. Tienes 92 · 39 nunca salieron al piso.»; con algo en
+ * camino, «Con lo que viene, te alcanza para 9 semanas: llega a Navidad. Tienes 92 y vienen 40.», y lo atrasado no cuenta y se dice.
  */
 export function fraseDelTipo(t: AlcanceTipo | null, todos: readonly AlcanceTipo[], diasDeVentas: number): string {
   const enDias = `${diasDeVentas} ${plural(diasDeVentas, "día", "días")}`;
   if (!t) {
     const vendidas = todos.reduce((s, x) => s + x.vendidas, 0);
-    const tiene = todos.reduce((s, x) => s + x.tiene, 0);
+    const suma = (campo: "tiene" | "vienen" | "vienenSinFecha" | "atrasadas" | "despues") => todos.reduce((s, x) => s + x[campo], 0);
     const pide = todos.filter((x) => x.pide).length;
-    const base = `Vendiste ${vendidas} en ${enDias} y tienes ${tiene}.`;
+    const vienen = suma("vienen");
+    const tieneVienen = tieneYVienen({ tiene: suma("tiene"), vienen, vienenSinFecha: suma("vienenSinFecha") });
+    const aparte = llegadasAparte({ atrasadas: suma("atrasadas"), despues: suma("despues") });
+    // «…y tienes 102.» o, con algo en camino, «…, tienes 102 y vienen 20.» (dos «y» seguidas no se leen).
+    const base = `Vendiste ${vendidas} en ${enDias}${vienen > 0 ? "," : " y"} ${tieneVienen}${aparte ? ` · ${aparte}` : ""}.`;
     return pide > 0 ? `${base} ${pide} ${plural(pide, "tipo no llega", "tipos no llegan")} a Navidad.` : base;
   }
+  // Con algo en camino, el plazo cuenta lo que viene y la frase lo dice: «Con lo que viene, te alcanza para…».
+  const alcanza = t.vienen > 0 ? "Con lo que viene, te alcanza" : "Te alcanza";
   const alcance =
     t.dias === null
       ? `No se vendió en ${enDias}.`
       : t.dias <= 0
         ? "Ya no te queda: no llega a Navidad."
-        : `Te alcanza para ${textoAlcance(t.dias).toLowerCase()}: ${t.pide ? "no llega" : "llega"} a Navidad.`;
+        : `${alcanza} para ${textoAlcance(t.dias).toLowerCase()}: ${t.pide ? "no llega" : "llega"} a Navidad.`;
   const nunca = t.nunca ? ` · ${t.nunca} nunca ${plural(t.nunca, "salió", "salieron")} al piso` : "";
-  return `${alcance} Tienes ${t.tiene}${nunca}.`;
+  const tarde = t.atrasadas > 0 ? ` ${t.atrasadas} ${plural(t.atrasadas, "atrasada no cuenta", "atrasadas no cuentan")} hasta que ${plural(t.atrasadas, "llegue", "lleguen")}.` : "";
+  const lejos = t.despues > 0 ? ` ${t.despues} ${plural(t.despues, "llega", "llegan")} después de Navidad y no ${plural(t.despues, "cuenta", "cuentan")}.` : "";
+  const tieneVienen = tieneYVienen(t);
+  return `${alcance} ${tieneVienen.charAt(0).toUpperCase()}${tieneVienen.slice(1)}${nunca}.${tarde}${lejos}`;
 }
 
 /** La venta más alta de la tienda: el ranking se mide contra ella, aunque haya un filtro (así un tipo no parece vender más). */

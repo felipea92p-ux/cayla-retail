@@ -7,7 +7,7 @@
 // (60 días por defecto, uno para todos); en rojo, lo de más de 3 meses. El sistema NO decide si pedirla a otra tienda o
 // comprarla (decisión 7): todo lo que se acaba aparece para comprar y, si otra tienda la tiene, se dice cuántas tiene.
 
-import type { DatosAnalisis, EdadInventario, PrendaAnalisis, PrendaEnOtraSede, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
+import type { DatosAnalisis, EdadInventario, LlegadaPrenda, PrendaAnalisis, PrendaEnOtraSede, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
 import { VISTAS_ANALISIS } from "./analisis-tipos";
 import { diaLima, diasEntreFechas } from "./fechas-lima";
 import { esPedidoDeTalla, type MotivoPedido } from "./se-probo-reglas";
@@ -85,8 +85,55 @@ export const nuncaSalio = (p: Pick<PrendaAnalisis, "salioAlPiso" | "almacen" | "
 /** Lo libre en mi tienda. */
 export const totalEnTienda = (p: Pick<PrendaAnalisis, "piso" | "almacen">): number => p.piso + p.almacen;
 
-/** Lo que viene en camino, sume de donde sume (compra, almacén, taller, otra tienda). */
-export const porLlegar = (p: Pick<PrendaAnalisis, "llega">): number => p.llega.reduce((s, x) => s + x.cantidad, 0);
+/**
+ * Una llegada está atrasada cuando su fecha estimada ya pasó (el mismo día todavía se espera). Sin fecha no se sabe cuándo debía llegar:
+ * no se llama atrasada, y tampoco se le inventa una fecha.
+ */
+export const llegadaAtrasada = (x: Pick<LlegadaPrenda, "fecha">, hoy: string): boolean => x.fecha !== null && x.fecha < hoy;
+
+/** Lo que viene en camino, partido en lo que todavía se espera y lo que ya se atrasó (A3, plan verificado 2026-10-16). */
+export type LlegadasDe = {
+  /** Unidades que se esperan: llegan hoy o después (hasta `hasta`, si se pide), o nadie anotó cuándo. Es lo único que cuenta como «viene». */
+  vienen: number;
+  /** De `vienen`, las que no tienen fecha (se dicen así; no se inventa una). */
+  sinFecha: number;
+  /** Unidades cuya fecha estimada ya pasó: NO cuentan como «viene» (una llegada vencida no es stock y no debe esconder una compra). */
+  atrasadas: number;
+  /** Los días de la más atrasada (0 si ninguna lo está). */
+  diasAtraso: number;
+  /** Unidades que llegan DESPUÉS de `hasta` (la meta): no cuentan como «viene» para esa meta, pero se dicen; 0 si no se pidió `hasta`. */
+  despues: number;
+};
+
+/**
+ * Parte lo que viene en camino a mi tienda según `hoy`. Una parte sin unidades (cero, negativa o que no es número) no cuenta en ninguna.
+ * Con `hasta` (el último día que importa: Navidad hoy, el fin de la campaña con A6), lo que llega después se aparta en `despues`: un
+ * pedido del 5 de enero no cubre el 25 de diciembre. Sin `hasta` no se corta por arriba (Se está acabando no mide contra una meta).
+ * Un traslado en tránsito SIN líneas ni siquiera llega aquí: `fn_analisis_por_llegar` emite una parte por prenda y ese traslado no
+ * tiene ninguna, así que no infla ni esconde nada (el de Taller a tienda del 20-sep de producción se cierra en su origen, Traslados).
+ */
+export function llegadasDe(llega: readonly LlegadaPrenda[], hoy: string, hasta?: string): LlegadasDe {
+  const r: LlegadasDe = { vienen: 0, sinFecha: 0, atrasadas: 0, diasAtraso: 0, despues: 0 };
+  for (const x of llega) {
+    if (!(x.cantidad > 0)) continue;
+    if (llegadaAtrasada(x, hoy)) {
+      r.atrasadas += x.cantidad;
+      r.diasAtraso = Math.max(r.diasAtraso, diasEntreFechas(x.fecha!, hoy));
+    } else if (hasta !== undefined && x.fecha !== null && x.fecha > hasta) {
+      r.despues += x.cantidad;
+    } else {
+      r.vienen += x.cantidad;
+      if (x.fecha === null) r.sinFecha += x.cantidad;
+    }
+  }
+  return r;
+}
+
+/**
+ * Lo que viene en camino y todavía se espera, sume de donde sume (compra, almacén, taller, otra tienda). Lo atrasado NO suma: sigue
+ * pendiente en el papel, pero no es stock ni lo será hasta que llegue (`llegadasDe` lo dice aparte).
+ */
+export const porLlegar = (p: Pick<PrendaAnalisis, "llega">, hoy: string): number => llegadasDe(p.llega, hoy).vienen;
 
 /**
  * Cuántos días le quedan al ritmo de lo vendido en su ventana (`diasDeVentas`: los días que estuvo colgada, de 7 a los días de ventas
