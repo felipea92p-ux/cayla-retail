@@ -9,7 +9,10 @@ import {
   cuentasVisibles,
   deudaConDueno,
   diaYNumero,
+  ejemploMontoDeposito,
   ejemploReferenciaDeposito,
+  saldoConCentimos,
+  tituloDelMovimiento,
   explicacionCuenta,
   hoyEnPalabras,
   insigniaCuenta,
@@ -466,5 +469,25 @@ describe("el ejemplo del voucher de un depósito de máquina sigue a la máquina
     expect(ejemploReferenciaDeposito(null)).toBe("Depósito de la máquina 15-oct");
     expect(ejemploReferenciaDeposito(undefined)).toBe("Depósito de la máquina 15-oct");
     expect(ejemploReferenciaDeposito("")).toBe("Depósito de la máquina 15-oct");
+  });
+});
+
+describe("el depósito de una máquina se explica solo (/formidable, ADR-0429)", () => {
+  it("el título dice de qué máquina es cuando se abre desde el aviso, y si no, el de siempre", () => {
+    expect(tituloDelMovimiento("Por depositar Vendemás")).toBe("Depósito de Vendemás");
+    expect(tituloDelMovimiento(null)).toBe("Registrar movimiento");
+    expect(tituloDelMovimiento(undefined)).toBe("Registrar movimiento");
+  });
+  it("el ejemplo del monto es lo cobrado menos la comisión esperada, y sin tarifa o sin días no inventa un número", () => {
+    expect(ejemploMontoDeposito(149.9, 4.9, 1)).toBe("145.00");
+    expect(ejemploMontoDeposito(1200.5, 41.25, 2)).toBe("1,159.25");
+    expect(ejemploMontoDeposito(149.9, null, 1)).toBe("Lo que dice tu banco");
+    expect(ejemploMontoDeposito(0, null, 0)).toBe("Lo que dice tu banco");
+    expect(ejemploMontoDeposito(149.9, 4.9, 0)).toBe("Lo que dice tu banco");
+    expect(ejemploMontoDeposito(10, 12, 1)).toBe("Lo que dice tu banco");
+  });
+  it("solo «Por depositar» se ve con céntimos", () => {
+    expect(saldoConCentimos("por_abonar")).toBe(true);
+    for (const t of ["cajon", "caja_fuerte", "por_rendir", "banco", "tarjeta_credito"] as const) expect(saldoConCentimos(t)).toBe(false);
   });
 });

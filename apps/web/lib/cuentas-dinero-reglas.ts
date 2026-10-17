@@ -68,12 +68,30 @@ export function leerTarifa(f: Fila): TarifaPos | null {
   if (f.tasa_pct === null || f.tasa_pct === undefined) return null;
   return { tasaPct: num(f.tasa_pct), igvSobreTasa: f.igv_sobre_tasa !== false, cargoFijo: num(f.cargo_fijo), diasAbono: num(f.dias_abono), desde: texto(f.tarifa_desde) };
 }
+/** El nombre de la máquina de una cuenta puente: «Por depositar Vendemás» → «Vendemás»; sin nombre, nulo. */
+export function nombreDeMaquinaDeLaPuente(nombreCuentaPuente: string | null | undefined): string | null {
+  const maquina = (nombreCuentaPuente ?? "").replace(/^por depositar\s+/i, "").trim();
+  return maquina || null;
+}
 /** El ejemplo del voucher de un depósito de máquina sigue a la máquina elegida (ADR-0290): «Por depositar Vendemás» → «Depósito Vendemás 15-oct».
  *  Sin máquina elegida, un texto neutro que no nombra a ninguna. */
 export function ejemploReferenciaDeposito(nombreCuentaPuente: string | null | undefined): string {
-  const maquina = (nombreCuentaPuente ?? "").replace(/^por depositar\s+/i, "").trim();
-  return `Depósito ${maquina || "de la máquina"} 15-oct`;
+  return `Depósito ${nombreDeMaquinaDeLaPuente(nombreCuentaPuente) ?? "de la máquina"} 15-oct`;
 }
+/** El título del depósito cuando se abre desde el aviso de una máquina («Depósito de Vendemás»); sin máquina, el de siempre. */
+export function tituloDelMovimiento(nombreCuentaPuenteDelAviso: string | null | undefined): string {
+  const maquina = nombreDeMaquinaDeLaPuente(nombreCuentaPuenteDelAviso);
+  return maquina ? `Depósito de ${maquina}` : "Registrar movimiento";
+}
+/** El ejemplo de «Monto que llegó al banco»: lo cobrado de los días marcados menos la comisión que se espera, si todos tienen tarifa
+ *  (es lo que debería decir el banco); si no, un texto que no inventa ningún número (ADR-0290). */
+export function ejemploMontoDeposito(bruto: number, esperado: number | null, dias: number): string {
+  if (dias <= 0 || esperado === null || !(bruto > esperado)) return "Lo que dice tu banco";
+  return (Math.round((bruto - esperado) * 100) / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+/** «Por depositar» es plata de una máquina que se cruza contra un depósito centavo a centavo: su saldo se ve con céntimos (S/ 149.90),
+ *  no redondeado como el resto de las cuentas (S/ 150). */
+export const saldoConCentimos = (tipo: TipoCuenta): boolean => tipo === "por_abonar";
 /** «3,5 % + IGV + S/ 0.20 por pago · deposita en 2 días hábiles»; sin tarifa, lo dice (y cuántos días se esperan antes de avisar). */
 export function textoTarifa(t: TarifaPos | null): string {
   if (!t) return "Sin tarifa: solo avisa pasados 3 días hábiles";

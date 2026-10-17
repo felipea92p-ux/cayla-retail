@@ -146,6 +146,19 @@ export function HojaDeCobro({
     .filter((x) => preguntaMaquina(maquinas, x.pago.metodo));
   const maquinaDelPos = pagos.length === 1 && pagos[0] ? nombreMaquina(maquinas, pagos[0]) : null;
   const pagoOk = pagos.length > 0 && restante === 0 && !pagos.some((p) => varios && p.monto <= 0);
+  // En el celular (`compacta`) el comprobante queda bajo el pliegue de la hoja: en cuanto el pago queda cubierto y falta elegirlo,
+  // la hoja baja lo justo para mostrarlo. Lo dispara un toque (un medio, un monto sugerido), nunca una tecla en un campo de texto
+  // (guía de foco, regla 6), y sin movimiento con `prefers-reduced-motion`.
+  useEffect(() => {
+    if (!compacta || !pagoOk || tipoComprobante) return;
+    const fotograma = requestAnimationFrame(() => {
+      const activo = document.activeElement;
+      if (activo instanceof HTMLInputElement || activo instanceof HTMLTextAreaElement) return;
+      const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      cuerpoRef.current?.querySelector("[data-paso-comprobante]")?.scrollIntoView({ block: "center", behavior: reducido ? "auto" : "smooth" });
+    });
+    return () => cancelAnimationFrame(fotograma);
+  }, [compacta, pagoOk, tipoComprobante]);
   const comprobanteOk = tipoComprobante !== null && faltaDocumento === null;
   // El que no se escribió a mano se queda con el resto: con dos medios, el otro del editado; con más, el primero libre.
   const libre = varios ? pagos.findIndex((p) => !p.fijo) : -1;
@@ -272,6 +285,9 @@ export function HojaDeCobro({
                             onClick={() => onMaquina?.(indice, m.cuentaId)}
                             className={`hoja-cobro-billete es-maquina metodo-${pago.metodo} ${pago.cuentaId === m.cuentaId ? "es-elegido" : ""}`}
                           >
+                            {pago.cuentaId === m.cuentaId && (
+                              <Check /* unificar-fijo: la marca sobre un relleno lleva trazo 3, como la de los medios y la casilla (ronda 15) */ className="h-3.5 w-3.5 shrink-0" strokeWidth={3} aria-hidden />
+                            )}
                             {m.nombre}
                           </button>
                         ))}
@@ -365,7 +381,7 @@ export function HojaDeCobro({
         </section>
 
         {/* 2 · Comprobante: ninguno marcado al empezar */}
-        <section className={`hoja-cobro-paso ${comprobanteOk ? "es-hecho" : pagoOk ? "sigue-aqui" : ""}`}>
+        <section data-paso-comprobante className={`hoja-cobro-paso ${comprobanteOk ? "es-hecho" : pagoOk ? "sigue-aqui" : ""}`}>
           <CabezaPaso
             numero={2}
             titulo="Comprobante"

@@ -194,7 +194,7 @@
     "components/punto-de-venta/HojaDeCobro.tsx": [
       "Volver «→onVolver»",
       "CampoMonto «{`Monto en ${NOMBRE_METODO[m]}»",
-      "button «{m.nombre}»",
+      "button «→() => onMaquina?.(indice, m.cuentaId)»",
       "button «{i === 0 ? \"Exacto\" : undefined}»",
       "input «Otro monto recibido»",
       "button «{icono}»",
