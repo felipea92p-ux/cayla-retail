@@ -65,6 +65,16 @@ select 'Tienda Lima', 'tienda', id from public.sedes where codigo = 'LIM'
 union all
 select 'Tienda Trujillo', 'tienda', id from public.sedes where codigo = 'TRU';
 
+-- ADR-0429: las máquinas de cobro (Izipay, Vendemás) se enganchan a las tiendas recién creadas, como en producción, ANTES de
+-- las ventas de más abajo: el cobro con tarjeta se sella con la cuenta del momento (`fn_cuenta_sellada`), y si las máquinas
+-- se sembraran después, la venta con tarjeta de Trujillo quedaría «sin cuenta» (2026-10-17). Idempotente.
+-- Con guarda: en el CI de un PR el seed corre con la base de MAIN y las migraciones del PR se aplican después (la 173000 siembra ahí).
+do $$ begin
+  if to_regprocedure('retail.fn_pos_sembrar_maquinas_en_tiendas()') is not null then
+    perform retail.fn_pos_sembrar_maquinas_en_tiendas();
+  end if;
+end $$;
+
 -- Plazo para cerrar la cola de arranque de ventas sin registrar (ADR-0334). En producción la migración 20261005100000 lo siembra
 -- hasta el 15-oct; aquí las tiendas nacen DESPUÉS de las migraciones, así que se siembra de nuevo, siempre vigente (hoy + 30 días)
 -- para que quien levante el sistema local vea el botón «Cerrar la cola de arranque» como en producción.

@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 80,
+  "total": 85,
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
       "ComboResponsable «{responsable}»",
@@ -80,6 +80,7 @@
       "ComboResponsable «{responsable}»",
       "Boton «+ Agregar cuenta»",
       "LapizEditar «{c.nombre}»",
+      "LapizEditar «{`la tarifa de ${m.nombre}»",
       "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
       "Boton «Agregar»"
@@ -103,6 +104,12 @@
       "button «{salida.accion === \"archivar\" ? \"Archivar\" : \"Reactivar\"}»",
       "button «Cancelar»",
       "Boton «Guardar cambios»"
+    ],
+    "components/finanzas/TarifaMaquinaModal.tsx": [
+      "Casilla «La tasa lleva IGV»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Guardar»"
     ]
   }
 }
