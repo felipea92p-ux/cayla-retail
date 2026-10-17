@@ -527,7 +527,7 @@ caso(
      (select c.relrowsecurity || ':' || has_table_privilege('authenticated', c.oid, 'select') from pg_class c where c.oid = 'retail.despacho_cierres'::regclass),
      has_table_privilege('authenticated', 'retail.despacho_diferencias_vigentes', 'select'),
      (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-       where n.nspname = 'retail' and p.prokind = 'f' and position('from retail.despacho_diferencias x' in pg_get_functiondef(p.oid)) > 0));`,
+       where n.nspname = 'retail' and p.prokind = 'f' and pg_get_functiondef(p.oid) ~ '(from|join) retail\\.despacho_diferencias [a-z]+ '));`,
   "true:true:false / true:false / f / 0",
 );
 

@@ -317,6 +317,7 @@ una con el OK de Felipe, antes de publicar la web:
 | `20261007120000_analisis_salio_al_piso.sql` | `fn_analisis_sede` devuelve `salio_al_piso` (la primera vez en un piso de venta de la tienda, o su primera venta; NULL si nunca salió) y `llego` (la primera entrada), y `dias_sin_vender` cuenta desde el piso (NULL si nunca salió). Mismo cuerpo de `20261006214000` (huella verificada contra producción) con esos cambios: un `create or replace` con la misma firma, sin políticas ni `alter`, una sola parte. **Pegada en producción el 2026-10-07** (antes de fusionar la web; huella verificada). Sin ella, la pestaña diría que todavía no lo puede saber. Prueba: `scripts/pruebas/analisis_lecturas.mjs` (casos F3, D1, D2 y D3). Decisión 11. |
 | `20261010120000_analisis_ultima_venta.sql` | `fn_analisis_sede` suma `ultima_venta` a cada fila (la última venta en la tienda, sin tope; NULL si nunca se vendió): con ella se cuentan los días sin venderse del modelo (decisión 12). Mismo cuerpo de `20261007120000` (huella `874919d9…` verificada contra producción el 2026-10-10) más una clave; huella nueva `15598f29697b4a6229ba3d78d8630d5a`. Un `create or replace` con la misma firma, sin políticas ni `alter`, una sola parte. **Pegada en producción el 2026-10-10** (antes de fusionar la web; huella verificada). Prueba: `scripts/pruebas/analisis_lecturas.mjs` (casos F3, D4 y M1). |
 | `20261006216000_analisis_liquidar_desde.sql` | «Liquidar desde»: la tabla `parametros_analisis` (una sola fila, de 30 a 85 días, 60 de fábrica), `fn_liquidar_desde()` (la lee toda cuenta de retail) y `guardar_liquidar_desde(p_dias)` (lo cambia quien ve Análisis, firma con el responsable y deja el antes y el después en `configuracion_historial`). Sin `alter` de tablas en uso ni políticas: una sola ejecución (decisión 5). |
+| `20261017043000_analisis_pedido_en_camino.sql` | (2026-10-16, A4) `fn_analisis_pedido_en_camino(p_ubicacion_id)`: lo YA PEDIDO que no llegó, por tipo y marca, sin dinero: órdenes de compra abiertas que llegan directo a la tienda, envíos del proveedor en camino, lo que «No vino» y, de la red, lo por repartir y la producción del Taller en proceso. Las mismas dos puertas que `fn_analisis_por_llegar`; un `create or replace`, sin políticas, una sola parte. **Se pega ANTES de fusionar la web que la llama.** Prueba: `scripts/pruebas/analisis_lecturas.mjs` (casos Y) y `motores_familias_apagadas.mjs` (H). |
 
 «Lo que más rinde» no necesita migración: lee `fn_resumen_comparacion_json`, la misma del Análisis viejo, con los últimos 90 días de la tienda
 (`lib/analisis-rinde.ts`).
@@ -633,3 +634,68 @@ agrega su viñeta aquí; la decisión 7 («Análisis no sugiere cantidades») si
     navegador local (lo mira el orquestador): «Se está acabando» a 1440 y 1024 px, claro y oscuro, con los tres filtros y los dos modos (el carril
     empieza arriba y el segmento no se mueve); la ficha de la capa, la camisa y el bolso; la fila de pestañas a 1024 y 1280 px con las cinco
     visibles; la tienda sin leer con su botón; y `pnpm --filter web tema:auditar` sobre `/gestion/analisis`.
+
+- **A4 · Lo ya pedido (órdenes de compra, envíos del proveedor, producción en proceso) cuenta como «ya pedido»** (lectura NUEVA y aditiva en la
+  base + web; migración `20261017043000_analisis_pedido_en_camino.sql`, que pega Felipe).
+  - **El problema.** `fn_analisis_por_llegar` exige `variante_id`: solo ve traslados y compras con su talla y color. Una orden de compra se pide por
+    «tipo + marca» (la prenda se crea al recibir), el envío del proveedor y la producción del Taller tampoco son una prenda. El día del primer pedido
+    real para Navidad, Análisis seguiría diciendo «pídelo» y el comprador lo pediría dos veces (el Plan de campaña sí resta las órdenes, ADR-0372;
+    Análisis no). Hoy (2026-10-16, solo lectura en producción) hay 0 órdenes, 0 líneas y 1 envío abierto SIN líneas: el riesgo empieza con el primer pedido.
+  - **La lectura** (`fn_analisis_pedido_en_camino(p_ubicacion_id)`, `security definer`, `fn_tiene_acceso_retail()` y `fn_puede_analizar()`, sin dinero:
+    ni precio, ni descuento, ni subtotal, ADR-0126; el nombre lleva `fn_` para que no abra el loader). Devuelve partes `{de, categoria, prefijo, marca,
+    cantidad, fecha, numeros}` con cinco orígenes: `orden` (orden abierta directa a mi tienda, sin enviar), `envio` (en un envío a mi tienda, en camino
+    o abierto), `reposicion` (lo que el proveedor debe reponer de un envío cerrado, «No vino» o devuelto por llegar dañado, solo las diferencias VIGENTES, menos lo
+    que «Nos debe» ya saldó; las mismas que cuenta el Plan), `por_repartir` (orden sin destino, o a un almacén, sin enviar) y
+    `taller` (producción `en_proceso`, sin muestras). Las dos últimas son de la RED. Una orden que llega directo a OTRA tienda, una anulada y una familia
+    fuera de los motores (`fn_categoria_entra_a_motores`, ADR-0377; caso H1/H2 de `pruebas:motores-familias-apagadas`) no salen. **Paso 0:** las seis tablas
+    (`ordenes_compra`, `orden_compra_items`, `despachos`, `despacho_items`, `despacho_diferencias`, `proveedor_deuda_resoluciones`) tienen RLS encendido y
+    CERO políticas en producción (las viejas `ordenes_compra_select*` ya no existen), así que una cuenta con solo Análisis no puede leerlas: la función
+    `security definer` es obligatoria.
+  - **Sin doble conteo.** La misma unidad es línea de la orden, línea de un envío y, al llegar, entrada al stock. Se cuenta UNA vez, donde está ahora, con la
+    cuenta del Plan de campaña (`fn_plan_compra_pedido`, 20261013213000): `pedido = por enviar + en camino + por reponer` y `por enviar = pedido − lo que
+    ya salió en un envío vigente` (nunca < 0). Una orden de 100 que pasa por «sin enviar» → «40 en un envío en camino» → «recibido» se lee 100 → 60 + 40 → 60
+    (caso Y2). Y no se cruza con `fn_analisis_por_llegar`: el papel de una orden se guarda sin prenda (`compra_items.variante_id` nulo; nada lo actualiza) y
+    esa lectura exige prenda, así que la compra de una orden jamás aparece allí (caso Y8). Lo que ningún dato une: alguien que registre a mano, por el camino
+    viejo de «Registrar factura», una compra con prendas de lo MISMO que ya tiene su orden.
+  - **La regla de qué suma** (la fija `pedidoPorTipo`, `lib/analisis-pedido-en-camino-reglas.ts`; Felipe puede cambiarla ahí sin tocar la base). SUMA a «tienes /
+    vienen» del TIPO (`AlcanceTipo.pedido.suma`, cuenta para `dias`): lo que ya va en un envío hacia mi tienda (ya salió: suma aunque la fecha de la orden haya
+    pasado o falte) y lo pedido en una orden con entrega de hoy en adelante y hasta la meta. SE MUESTRA y NO SUMA: lo pedido sin fecha, con la entrega vencida,
+    después de la meta (el 25-dic cuenta, como en A3) y lo que el proveedor debe reponer; y, de la red, lo por repartir y lo que el Taller tiene en proceso. Así un
+    tipo con una orden abierta con fecha ya no dice solo «pídelo», y uno con una orden sin fecha sigue diciéndolo y avisa que la hay. Es la idea de A3 para las
+    llegadas por prenda: lo atrasado y lo tardío no esconden una compra que sigue haciendo falta.
+  - **La producción en proceso va SOLO a nivel red** (decisión 6 de ADR-0357 intacta): mientras se cose no dice a qué tienda irá. Se dice («el Taller tiene 40 en
+    proceso») y nunca suma a una tienda; recién cuenta, por prenda, cuando sale como traslado. Lo pedido «por repartir» es igual: no es de ninguna tienda hasta
+    que sale en un envío; el pedazo que sale en un envío a mi tienda sí es de mi tienda.
+  - **Dónde se ve.** «Qué pedir»: bajo cada tipo, «Ya pedido 40 · llegan el 12 nov.» y, aparte, lo que no cuenta («15 pedidas sin fecha: no las cuento», «el proveedor
+    debe 10», «el Taller tiene 40 en proceso»); el panel del tipo lo dice completo («Ya pedido 40: 30 van en un envío y 10 llegan el 12 nov.»); un tipo con algo
+    pedido para mi tienda y SIN prendas aquí se nombra bajo la tabla (si no, quien lo busca y no lo ve lo vuelve a pedir). La tarjeta «¿Qué pedir?» de Hoy usa
+    la misma cuenta. «Se está acabando»: la fila que sigue en «Comprar» dice «Ya pedido: 40 Blusas» (o «Pedido atrasado», «sin fecha de entrega», «El proveedor
+    debe»), con la marca y los números de orden en su tooltip. **No cambia en qué grupo cae una prenda**: una orden no dice a qué modelo irá y se habla del TIPO,
+    nunca de «esta prenda viene». La lectura que falla es `pedido: null` y se dice en `fallas`; nunca «no hay nada pedido» por un error.
+  - **Lo descartado.** Atribuir la producción en proceso (o lo «por repartir») a una tienda; sumar la orden SIN fecha (no es una promesa que se pueda contar,
+    pasa lo mismo con la vencida); sumar el envío solo si la orden tiene fecha vigente (un envío en camino con una orden de fecha pasada es lo más probable en
+    la vida real y daría un «pídelo» falso sobre mercadería en el camión); reemplazar o parchar `fn_analisis_por_llegar` (aditiva: sin candado de md5 ni riesgo
+    para las suites que la leen); devolver precio o proveedor de la orden (sin dinero; el proveedor lo pedirá A9); atribuir la nota de «Comprar» a una marca
+    (la prenda no trae su marca: la nota dice el tipo y, en el tooltip, las marcas de la orden); abrir un tipo por algo que no suma.
+  - **Revisión de A4 (dos revisores, 2026-10-16; lo real se corrigió en el mismo commit).** (1) «Lo que debe el proveedor» leía la tabla `despacho_diferencias` entera y solo
+    la causa «No vino»: tras reabrir un envío contaba la diferencia vieja (`vigente = false`) y la nueva (10 + 4 = 14 en vez de 4) y no veía lo devuelto por llegar dañado
+    (`devuelta`); ahora lee `despacho_diferencias_vigentes` con las dos causas, como `fn_plan_compra_pedido` (casos Y10, Y11), la guarda de la migración exige la vista, y la
+    prueba F1 de `reabrir_envio.mjs` ahora también atrapa un `join` (solo miraba `from`, por eso no vio esta función). (2) Una orden con destino un ALMACÉN
+    (`crear_orden_compra` admite tienda o almacén) no era de ninguna tienda y desaparecía; ahora es de la red, como la que no tiene destino (caso Y12; producción hoy
+    no tiene ningún almacén: es una defensa). (3) La prueba Y5 usaba `saldo_a_favor`, que desde 20261015145000 exige una nota de crédito: pasó solo porque la base local
+    estaba atrasada; usa `repuesta` y todas las pruebas de A4 se corrieron contra una copia con TODAS las migraciones. (4) Textos: con un envío y una orden con fecha la
+    fila dice «Ya pedido 40 · 30 en camino y 10 el 12 nov.» (antes parecía que los 40 llegaban el 12); «1 de Polos» en vez de «1 Polos»; la nota del tipo sin fila ya no
+    dice «no tiene prendas» (puede tenerlas sin stock ni ventas); lo pedido con entrega tras Navidad dice «pedidas con entrega después de Navidad» para no repetir la
+    frase de las prendas. **Se rechazó:** contar el envío solo si tiene fecha (sin cambio, ver «Lo descartado»); y reabrir como no-suma (ver pendientes).
+  - **Pendiente (Felipe).** Que una orden `generada` nunca se cierra sola: una vieja sin enviar sigue contando como «sin fecha» o «vencida» para siempre (hace falta
+    una regla para darla por cerrada); si un envío en camino de muchos días debe seguir sumando; y qué hacer con el modo «Por proveedor», que aún no dice lo ya pedido
+    (A9, que necesita el proveedor de cada orden); un envío REABIERTO (cerrado → abierto) cuenta entero como «va en camino» aunque lo que entró ya está en el stock
+    (igual que hace el Plan): la ventana es corta, pero la regla correcta depende de cómo se cuenta una reapertura y es de Compras; y lo que un envío cerrado por
+    conteo dejó «sin tallas» (en el almacén, no en el stock libre) lo da por recibido.
+  - **Cómo se verifica.** `node scripts/pruebas/analisis_lecturas.mjs` (F4, P6, P7, Y1 a Y12, M1) y `pnpm pruebas:motores-familias-apagadas` (H1, H2, R1) contra un Postgres
+    local **con todas las migraciones del repo** (como el del CI: la función lee envíos, «Nos debe» y la vista de diferencias vigentes; en la base local compartida, atrasada,
+    se detiene en su guarda); `pnpm pruebas:roles-cobertura`; `pnpm pruebas:reabrir-envio` (F1 vigila que ninguna función lea `despacho_diferencias` sin filtrar, con `from` o `join`); `pnpm --filter web exec vitest run lib/analisis-pedido-en-camino lib/analisis-pedir lib/analisis-lecturas
+    lib/analisis-a-quien-pedir-pantalla lib/guias` (la regla en cada borde, los textos, la fila de «Comprar», la lectura que falla o se cuelga, el tipo sin prendas).
+    En el navegador local: crear una orden de Polos para la tienda (Compras ▸ Órdenes de compra) y ver «Ya pedido» en «Qué pedir»; hacer un envío y verlo pasar a
+    «en camino»; recibirlo y verlo desaparecer. En producción, tras pegar: `select retail.fn_analisis_pedido_en_camino(<tienda>)` con sesión (hoy `[]`) y el volcado
+    refrescado.

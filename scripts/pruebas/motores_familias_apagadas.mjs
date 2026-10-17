@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
- * Pruebas de que los motores del piso, la demanda, el plan de campaña, Análisis, Frescura y la preparación del motor de demanda IGNORAN una
- * familia apagada (Bolsas de despacho, actividades 2 y 3) contra el Postgres local — CAYLA V2. Migraciones:
+ * Pruebas de que los motores del piso, la demanda, el plan de campaña, Análisis (también lo ya pedido), Frescura y la preparación del motor de
+ * demanda IGNORAN una familia apagada (Bolsas de despacho, actividades 2 y 3) contra el Postgres local — CAYLA V2. Migraciones:
  * `20261010232000_piso_demanda_y_plan_ignoran_familias_apagadas.sql`, `20261010233000_analisis_y_frescura_ignoran_familias_apagadas.sql`,
- * `20261012220000_preparacion_motor_ignora_familias_apagadas.sql` y `20261013130000_plan_del_piso_grupos_ignoran_familias_apagadas.sql`.
+ * `20261012220000_preparacion_motor_ignora_familias_apagadas.sql`, `20261013130000_plan_del_piso_grupos_ignoran_familias_apagadas.sql` y
+ * `20261017043000_analisis_pedido_en_camino.sql` (nace con la pregunta ya escrita).
  *
  * LO QUE VIGILA. `familias.entra_a_motores = false` (la familia «Empaque» de las bolsas) tiene que sacar de TRES lecturas todo lo de sus
  * categorías: prendas con stock, ventas escaneadas, ventas «sin registrar» y lo que se pidió y no había. El error caro es que la bolsa de
@@ -17,6 +18,8 @@
  *   M  PLAN (`fn_plan_compra`): `categorias`, `stock`, `stock_sedes`, `curvas`, `vendido`, `vendido_30` y `catalogo` traen el polo y no la bolsa.
  *   A  ANÁLISIS (`fn_analisis_sede`): `prendas` trae el polo y no la bolsa, y la cifra «rebaja_de_100» solo mira mercadería (la bolsa, a precio de
  *      lista, no la diluye).
+ *   H  LO YA PEDIDO (`fn_analisis_pedido_en_camino`, 20261017043000): una orden de compra, un envío y una producción del Taller de bolsas no
+ *      cuentan como «ya pedido» (pediría de menos un tipo que sí se necesita); los del polo sí. El interruptor es en vivo.
  *   F  FRESCURA (`fn_frescura_sede`): `prendas` trae el polo y no la bolsa.
  *   E  PREPARACIÓN DEL MOTOR (`fn_motor_demanda_preparacion`, 20261012220000): «¿ya puede recomendar?» no cuenta la bolsa ni en las
  *      unidades ni en las identificadas (una bolsa por ticket inflaba el % de venta identificada).
@@ -45,6 +48,7 @@ const MOTORES = leer("20261010232000_piso_demanda_y_plan_ignoran_familias_apagad
 const ANALISIS_FRESCURA = leer("20261010233000_analisis_y_frescura_ignoran_familias_apagadas.sql");
 const PREPARACION = leer("20261012220000_preparacion_motor_ignora_familias_apagadas.sql");
 const GRUPOS = leer("20261013130000_plan_del_piso_grupos_ignoran_familias_apagadas.sql");
+const PEDIDO = leer("20261017043000_analisis_pedido_en_camino.sql");
 const sinControl = (sql) => sql.replace(/^set lock_timeout.*$/m, "").replace(/^reset lock_timeout;$/m, "").replace(/^notify pgrst.*$/m, "");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
@@ -78,6 +82,8 @@ set local search_path = retail, public, extensions;
 ${sinControl(PREPARACION)}
 set local search_path = retail, public, extensions;
 ${sinControl(GRUPOS)}
+set local search_path = retail, public, extensions;
+${sinControl(PEDIDO)}
 set local search_path = retail, public, extensions;
 create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz, fecha_jornada date, anulada_at timestamptz);
 create table if not exists public.jornadas (persona_id uuid, sede_id uuid, fecha date, estado text);
@@ -148,6 +154,31 @@ begin
     values (li, u, 'Anotada', p_cat, (select id from retail.tallas where valor = 'M'), current_setting('bf.neutro'), 60, cuando);
   return li;
 end $$;
+-- Una orden de compra de UNA línea de la categoría dada que llega directo a la sede, y un envío de la mitad a la sede (en camino).
+create function pg_temp.pide(p_cat uuid, n int) returns void language plpgsql as $$
+declare o uuid; li uuid; d uuid; per uuid := (select id from public.personas where auth_user_id = '${FELIPE}');
+begin
+  insert into retail.ordenes_compra (proveedor_id, ubicacion_destino_id, creada_por)
+    values ((select id from retail.proveedores where activo order by created_at limit 1), current_setting('bf.sede')::uuid, per) returning id into o;
+  insert into retail.orden_compra_items (orden_compra_id, posicion, categoria_id, marca_id, cantidad, precio_unitario)
+    values (o, 1, p_cat, (select marca_id from retail.marca_proveedores order by created_at limit 1), n, 25) returning id into li;
+  insert into retail.despachos (ubicacion_destino_id, despachado_por) values (current_setting('bf.sede')::uuid, per) returning id into d;
+  insert into retail.despacho_items (despacho_id, orden_compra_item_id, cantidad, categoria_id, marca_id, precio_unitario)
+    select d, i.id, n / 2, i.categoria_id, i.marca_id, 25 from retail.orden_compra_items i where i.id = li;
+end $$;
+-- Una producción del Taller en proceso de una prenda de la categoría dada.
+create function pg_temp.produce(p_cat uuid, p_sku text, n int) returns void language plpgsql as $$
+declare v uuid := pg_temp.prenda(p_cat, p_sku);
+begin
+  insert into retail.producciones (ubicacion_id, producto_id, estado, cantidad_plan)
+    values ((select id from retail.ubicaciones where tipo = 'taller' order by nombre limit 1),
+            (select producto_id from retail.variantes where id = v), 'en_proceso', n);
+end $$;
+-- Cuántas unidades de una categoría trae lo ya pedido (de cualquier origen), por el nombre del tipo.
+create function pg_temp.pedidas(p_nombre text) returns integer language sql as $$
+  select coalesce(sum((x ->> 'cantidad')::int), 0)::integer
+    from jsonb_array_elements(retail.fn_analisis_pedido_en_camino(current_setting('bf.sede')::uuid)) x where x ->> 'categoria' = p_nombre
+$$;
 -- Cuántas veces aparece una categoría en una lista de la lectura (por la clave que la nombra).
 create function pg_temp.veces(p_lista jsonb, p_clave text, p_cat uuid) returns integer language sql immutable as $$
   select count(*)::integer from jsonb_array_elements(coalesce(p_lista, '[]'::jsonb)) e where e ->> p_clave = p_cat::text
@@ -297,6 +328,28 @@ caso(
   "100",
 );
 
+// H. LO YA PEDIDO ---------------------------------------------------------------------------------------------------------
+caso(
+  "H1 lo ya pedido cuenta la orden, el envío y la producción del polo y NO los de la bolsa (orden de 10 con 5 ya en un envío + producción de 7 = 17 contra 0)",
+  `select pg_temp.pide(:'cat_b', 10);
+   select pg_temp.pide(:'cat_p', 10);
+   select pg_temp.produce(:'cat_b', 'BF-PB', 7);
+   select pg_temp.produce(:'cat_p', 'BF-PP', 7);
+   select concat_ws(',', pg_temp.pedidas('BF Polos'), pg_temp.pedidas('BF Bolsas'));`,
+  "17,0"
+);
+caso(
+  "H2 el interruptor es en vivo: al encender la familia, lo ya pedido de la bolsa vuelve (0 → 17); al apagarla, se va",
+  `select pg_temp.pide(:'cat_b', 10);
+   select pg_temp.produce(:'cat_b', 'BF-PB', 7);
+   select pg_temp.pedidas('BF Bolsas') as apagada \\gset
+   update retail.familias set entra_a_motores = true where codigo = 'zz_empaque';
+   select pg_temp.pedidas('BF Bolsas') as encendida \\gset
+   update retail.familias set entra_a_motores = false where codigo = 'zz_empaque';
+   select concat_ws(',', :'apagada', :'encendida', pg_temp.pedidas('BF Bolsas'));`,
+  "0,17,0"
+);
+
 // F. FRESCURA -------------------------------------------------------------------------------------------------------------
 caso(
   "F1 Frescura trae la prenda del polo y NO la de la bolsa (su universo es el de todas sus lecturas)",
@@ -357,11 +410,12 @@ caso(
 
 // R. RE-EJECUTABLE --------------------------------------------------------------------------------------------------------
 caso(
-  "R1 cargar las migraciones otra vez no falla ni agrega preguntas de más (5 / 3 / 10 · 2 / 1 · 1 · 1 / 1)",
+  "R1 cargar las migraciones otra vez no falla ni agrega preguntas de más (5 / 3 / 10 · 2 / 1 · 1 · 1 / 1 · 2)",
   `${sinControl(MOTORES)}
    ${sinControl(ANALISIS_FRESCURA)}
    ${sinControl(PREPARACION)}
    ${sinControl(GRUPOS)}
+   ${sinControl(PEDIDO)}
    select concat_ws(',',
      (length(pg_get_functiondef('retail.fn_piso_plan_lectura(uuid)'::regprocedure)) - length(replace(pg_get_functiondef('retail.fn_piso_plan_lectura(uuid)'::regprocedure), 'fn_categoria_entra_a_motores', ''))) / length('fn_categoria_entra_a_motores'),
      (length(pg_get_functiondef('retail.fn_demanda_sede(uuid, integer)'::regprocedure)) - length(replace(pg_get_functiondef('retail.fn_demanda_sede(uuid, integer)'::regprocedure), 'fn_categoria_entra_a_motores', ''))) / length('fn_categoria_entra_a_motores'),
@@ -370,8 +424,9 @@ caso(
      (length(pg_get_functiondef('retail.fn_frescura_sede(uuid, integer)'::regprocedure)) - length(replace(pg_get_functiondef('retail.fn_frescura_sede(uuid, integer)'::regprocedure), 'fn_categoria_entra_a_motores', ''))) / length('fn_categoria_entra_a_motores'),
      (length(pg_get_functiondef('retail.fn_motor_demanda_preparacion(uuid)'::regprocedure)) - length(replace(pg_get_functiondef('retail.fn_motor_demanda_preparacion(uuid)'::regprocedure), 'fn_categoria_entra_a_motores', ''))) / length('fn_categoria_entra_a_motores'),
      (length(pg_get_functiondef('retail.fn_categorias_grupo_mix()'::regprocedure)) - length(replace(pg_get_functiondef('retail.fn_categorias_grupo_mix()'::regprocedure), 'fn_categoria_entra_a_motores', ''))) / length('fn_categoria_entra_a_motores'),
-     (length(pg_get_functiondef('retail.fijar_grupos_de_categorias(jsonb)'::regprocedure)) - length(replace(pg_get_functiondef('retail.fijar_grupos_de_categorias(jsonb)'::regprocedure), 'fn_categoria_entra_a_motores', ''))) / length('fn_categoria_entra_a_motores'));`,
-  "5,3,10,2,1,1,1,1",
+     (length(pg_get_functiondef('retail.fijar_grupos_de_categorias(jsonb)'::regprocedure)) - length(replace(pg_get_functiondef('retail.fijar_grupos_de_categorias(jsonb)'::regprocedure), 'fn_categoria_entra_a_motores', ''))) / length('fn_categoria_entra_a_motores'),
+     (length(pg_get_functiondef('retail.fn_analisis_pedido_en_camino(uuid)'::regprocedure)) - length(replace(pg_get_functiondef('retail.fn_analisis_pedido_en_camino(uuid)'::regprocedure), 'fn_categoria_entra_a_motores', ''))) / length('fn_categoria_entra_a_motores'));`,
+  "5,3,10,2,1,1,1,1,2",
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien.`);

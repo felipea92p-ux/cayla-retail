@@ -1130,9 +1130,10 @@ export const PRUEBAS = [
   // días, y que lo vendido sea EXACTAMENTE lo que cuenta el motor del piso. ROLLBACK siempre.
   "pruebas:motor-demanda-lectura",
 
-  // Análisis v4 (ADR-0357): las dos lecturas de la pantalla, `fn_analisis_sede` (las prendas de una tienda: libre, vendido en 30
-  // días y por semana, días sin venderse, lo que llegó, origen y rebaja) y `fn_analisis_por_llegar` (compras y traslados en
-  // camino). Vigila las puertas (quien analiza lee las tres tiendas; sin Análisis, nada), que lo vendido cuente igual que el
+  // Análisis v4 (ADR-0357): las tres lecturas de la pantalla, `fn_analisis_sede` (las prendas de una tienda: libre, vendido en 30
+  // días y por semana, días sin venderse, lo que llegó, origen y rebaja), `fn_analisis_por_llegar` (compras y traslados en
+  // camino) y `fn_analisis_pedido_en_camino` (lo ya pedido: órdenes abiertas, envíos del proveedor, producción en proceso; cada
+  // unidad se cuenta una vez, sin dinero). Vigila las puertas (quien analiza lee las tres tiendas; sin Análisis, nada), que lo vendido cuente igual que el
   // motor del piso (cambios y devoluciones aprobadas) y que una sede de 200 prendas responda rápido. ROLLBACK siempre.
   "pruebas:analisis-lecturas",
 

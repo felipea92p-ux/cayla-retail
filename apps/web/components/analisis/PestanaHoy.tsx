@@ -11,6 +11,7 @@ import { hrefReponerPiso } from "@/lib/analisis-acciones";
 import { diasQueQuedan, plural, PRENDAS_EN_LISTA } from "@/lib/analisis-reglas";
 import { diasEnAlmacen, prendasSinSalir } from "@/lib/analisis-piso";
 import { alcancePorTipo, diasANavidad, llegadasAparte, textoAlcance, textoRitmo, tieneYVienen, tipoCorto, type AlcanceTipo } from "@/lib/analisis-pedir";
+import { pedidoAparte, yaPedidoCorto } from "@/lib/analisis-pedido-en-camino-reglas";
 import {
   caminosDeHoy,
   carrilesDeCinta,
@@ -72,7 +73,7 @@ export function PestanaHoy() {
   const vacioQuietas = vacioQuietasHoy(datos.prendas, liquidarDesde, datos.hoy, confiable);
   // «¿Qué pedir?»: para cuánto te alcanza cada tipo al ritmo de los días de ventas, contra Navidad (B2, Felipe 2026-10-07).
   const hastaNavidad = diasANavidad(datos.hoy);
-  const alcance = alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo);
+  const alcance = alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo, datos.pedido);
   const noLlegan = alcance.filter((t) => t.pide);
   const vendioAlgo = alcance.some((t) => t.vendidas > 0);
 
@@ -275,7 +276,7 @@ function MiniAlcance({ tipos, hastaNavidad }: { tipos: AlcanceTipo[]; hastaNavid
   return (
     <div className="mini-al">
       {tipos.map((t, k) => (
-        <div key={t.categoria} className="al" data-tip={`${t.categoria}: te alcanza para ${textoAlcance(t.dias).toLowerCase()} · vendiste ${t.vendidas}, ${tieneYVienen(t)}${llegadasAparte(t) ? ` · ${llegadasAparte(t)}` : ""}`}>
+        <div key={t.categoria} className="al" data-tip={`${t.categoria}: te alcanza para ${textoAlcance(t.dias).toLowerCase()} · vendiste ${t.vendidas}, ${tieneYVienen(t)}${yaPedidoCorto(t.pedido) ? ` · ${yaPedidoCorto(t.pedido)}` : ""}${[llegadasAparte(t), ...pedidoAparte(t.pedido)].filter((x) => x !== "").map((x) => ` · ${x}`).join("")}`}>
           <span className="n">{tipoCorto(t.categoria)}</span>
           <span className="p">
             <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: Math.min(1, (t.dias ?? 0) / fin) }} />

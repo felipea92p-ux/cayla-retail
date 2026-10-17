@@ -43,6 +43,8 @@ vi.mock("@/lib/analisis-liquidar-reglas", async () => await import("./analisis-l
 vi.mock("@/lib/analisis-reglas", async () => await import("./analisis-reglas"));
 vi.mock("@/lib/analisis-sede", async () => await import("./analisis-sede"));
 vi.mock("@/lib/analisis-por-llegar", async () => await import("./analisis-por-llegar"));
+vi.mock("@/lib/analisis-pedido-en-camino-lectura", async () => await import("./analisis-pedido-en-camino-lectura"));
+vi.mock("@/lib/analisis-pedido-en-camino", async () => await import("./analisis-pedido-en-camino"));
 vi.mock("@/lib/analisis-proveedores", async () => await import("./analisis-proveedores"));
 vi.mock("@/lib/analisis-proveedores-lectura", async () => await import("./analisis-proveedores-lectura"));
 vi.mock("@/lib/resultado", async () => await import("./resultado"));
@@ -64,6 +66,7 @@ import { FALLA_LEER_LIQUIDAR } from "./analisis-liquidar-reglas";
 import { FALLA_RINDE } from "./analisis-pedir";
 import { getPrendasPorSede } from "./analisis-sede";
 import { getPorLlegar } from "./analisis-por-llegar";
+import { FALLA_PEDIDO, getPedidoEnCamino } from "./analisis-pedido-en-camino";
 import { FALLA_PROVEEDORES, getProveedoresAnalisis } from "./analisis-proveedores";
 import { getLiquidarDesde } from "./analisis-liquidar";
 import { getRindePorCategoria } from "./analisis-rinde";
@@ -182,6 +185,42 @@ describe("las demás lecturas dicen lo mismo de siempre cuando fallan", () => {
     expect(await getPorLlegar(TRU)).toEqual({ porVariante: {}, falla: null });
   });
 
+  it("lo ya pedido (A4): error, tope, respuesta rara y NULL dan «no se pudo leer», nunca «no hay nada pedido»; vacío SÍ es un dato", async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { code: "42883", message: "function does not exist" } });
+    expect(await getPedidoEnCamino(TRU)).toEqual({ pedido: null, falla: FALLA_PEDIDO });
+
+    // NULL: la base lo da cuando la cuenta no puede analizar.
+    rpc.mockResolvedValueOnce({ data: null, error: null });
+    expect(await getPedidoEnCamino(TRU)).toEqual({ pedido: null, falla: FALLA_PEDIDO });
+
+    rpc.mockResolvedValueOnce({ data: { no: "es un arreglo" }, error: null });
+    expect(await getPedidoEnCamino(TRU)).toEqual({ pedido: null, falla: FALLA_PEDIDO });
+
+    rpc.mockImplementationOnce(seCuelga);
+    const espera = getPedidoEnCamino(TRU);
+    await vi.advanceTimersByTimeAsync(TOPE_LECTURA_MS);
+    expect(await espera).toEqual({ pedido: null, falla: FALLA_PEDIDO });
+
+    rpc.mockResolvedValueOnce({ data: [], error: null });
+    expect(await getPedidoEnCamino(TRU)).toEqual({ pedido: [], falla: null });
+
+    rpc.mockResolvedValueOnce({ data: [{ de: "orden", categoria: "Polos", prefijo: "POL", marca: "Marca Uno", cantidad: 40, fecha: "2026-11-12", numeros: [12] }], error: null });
+    expect(await getPedidoEnCamino(TRU)).toEqual({
+      pedido: [{ de: "orden", categoria: "Polos", prefijo: "POL", marca: "Marca Uno", cantidad: 40, fecha: "2026-11-12", numeros: [12] }],
+      falla: null,
+    });
+  });
+
+  it("lo ya pedido: pide la función de la tienda y avisa a Sentry sin el texto de la base ni nombres", async () => {
+    rpc.mockResolvedValueOnce(seCae());
+    await getPedidoEnCamino(TRU);
+    expect(rpc).toHaveBeenCalledWith("fn_analisis_pedido_en_camino", { p_ubicacion_id: TRU });
+    const [donde, , contexto] = vi.mocked(capturarError).mock.calls[0]!;
+    expect(donde).toBe("analisis.pedido_en_camino");
+    expect(contexto).toMatchObject({ pieza: "pedido_en_camino", motivo: "error", ubicacion_id: TRU });
+    expect(JSON.stringify(vi.mocked(capturarError).mock.calls)).not.toMatch(/Tienda|canceling/);
+  });
+
   it("«Liquidar desde»: si falla o se cuelga, sigue con el de fábrica y lo dice", async () => {
     rpc.mockResolvedValueOnce({ data: null, error: { code: "42883", message: "no existe" } });
     expect(await getLiquidarDesde()).toEqual({ dias: LIQUIDAR_DEFECTO, falla: FALLA_LEER_LIQUIDAR });
@@ -210,11 +249,11 @@ describe("las demás lecturas dicen lo mismo de siempre cuando fallan", () => {
 
   it("una caída de Supabase (todo se cuelga) no manda un aviso por lectura: uno por pieza", async () => {
     rpc.mockImplementation(seCuelga);
-    const espera = Promise.all([getPorLlegar(TRU), getLiquidarDesde(), getRindePorCategoria(TRU), getPrendasPorSede([TRU, AQP, LIM])]);
+    const espera = Promise.all([getPorLlegar(TRU), getPedidoEnCamino(TRU), getLiquidarDesde(), getRindePorCategoria(TRU), getPrendasPorSede([TRU, AQP, LIM])]);
     await vi.advanceTimersByTimeAsync(TOPE_LECTURA_MS);
     await espera;
     const dondes = vi.mocked(capturarError).mock.calls.map((c) => c[0]).sort();
-    expect(dondes).toEqual(["analisis.liquidar_desde", "analisis.por_llegar", "analisis.rinde", "analisis.sede"]);
+    expect(dondes).toEqual(["analisis.liquidar_desde", "analisis.pedido_en_camino", "analisis.por_llegar", "analisis.rinde", "analisis.sede"]);
   });
 });
 
@@ -231,6 +270,7 @@ function baseSana(cambia: Record<string, unknown> = {}) {
     }
     if (nombre === "fn_analisis_sede") return sedeSana(args.p_ubicacion_id!, 0);
     if (nombre === "fn_analisis_por_llegar") return { data: [], error: null };
+    if (nombre === "fn_analisis_pedido_en_camino") return { data: [], error: null };
     if (nombre === "fn_liquidar_desde") return { data: 60, error: null };
     if (nombre === "fn_resumen_comparacion_json") return { data: [], error: null };
     if (nombre === "fn_motor_demanda_preparacion") return { data: [], error: null };
@@ -255,6 +295,7 @@ describe("getDatosAnalisis", () => {
     baseSana({ fn_analisis_sede: (a: { p_ubicacion_id: string }) => unaPrenda(a.p_ubicacion_id) });
     const d = await getDatosAnalisis(ACTIVA, { conFrescura: true });
     expect(d.fallas).toEqual([]);
+    expect(d.pedido).toEqual([]);
     expect(d.sedesSinLeer).toEqual([]);
     expect(d.frescura).toBe("ok");
     expect(d.porRegistrar.pendientes).toBe(3);
@@ -266,6 +307,21 @@ describe("getDatosAnalisis", () => {
       delCatalogo: { [MODELO_1]: PROV_A },
     });
     expect(capturarError).not.toHaveBeenCalled();
+  });
+
+  it("lo ya pedido llega a la pantalla (A4); si no se pudo leer es null y se dice, nunca una lista vacía que parezca «no hay nada pedido»", async () => {
+    const parteOrden = { de: "orden", categoria: "Polos", prefijo: "POL", marca: "Marca Uno", cantidad: 40, fecha: "2026-11-12", numeros: [12] };
+    baseSana({ fn_analisis_pedido_en_camino: { data: [parteOrden], error: null } });
+    const sano = await getDatosAnalisis(ACTIVA);
+    expect(sano.pedido).toEqual([parteOrden]);
+    expect(sano.fallas).not.toContain(FALLA_PEDIDO);
+
+    baseSana({ fn_analisis_pedido_en_camino: seCae() });
+    const roto = await getDatosAnalisis(ACTIVA);
+    expect(roto.pedido).toBeNull();
+    expect(roto.fallas).toContain(FALLA_PEDIDO);
+    // Lo demás sigue: una orden que no se lee no tumba la pantalla.
+    expect(miTiendaSinLeer(roto)).toBe(false);
   });
 
   it("si mi tienda no se pudo leer, lo dice (sedesSinLeer) y la pantalla puede decir «No se pudo leer tu tienda»", async () => {
@@ -288,6 +344,7 @@ describe("getDatosAnalisis", () => {
     baseSana({
       fn_motor_demanda_preparacion: seCae(),
       fn_analisis_por_llegar: seCae(),
+      fn_analisis_pedido_en_camino: seCae(),
       fn_liquidar_desde: seCae(),
       fn_resumen_comparacion_json: seCae(),
     });
@@ -302,6 +359,7 @@ describe("getDatosAnalisis", () => {
       "No se pudo leer si el sistema ya puede recomendar en cada tienda",
       "No se pudo leer el precio propio de tu tienda: las cifras en soles usan el precio de la prenda",
       "No se pudo leer lo que viene en camino",
+      FALLA_PEDIDO,
       FALLA_LEER_LIQUIDAR,
       FALLA_RINDE,
       "No se pudo leer el último conteo",
@@ -315,7 +373,7 @@ describe("getDatosAnalisis", () => {
     // Una pieza que cae es UN aviso, con su pieza como dónde; el nombre de la sede que traía el texto de Frescura no sale.
     const dondes = vi.mocked(capturarError).mock.calls.map((c) => c[0]);
     expect(new Set(dondes).size).toBe(dondes.length);
-    expect(dondes).toEqual(expect.arrayContaining(["analisis.preparacion", "analisis.por_llegar", "analisis.liquidar_desde", "analisis.rinde", "analisis.conteos"]));
+    expect(dondes).toEqual(expect.arrayContaining(["analisis.preparacion", "analisis.por_llegar", "analisis.pedido_en_camino", "analisis.liquidar_desde", "analisis.rinde", "analisis.conteos"]));
     expect(dondes).toEqual(expect.arrayContaining(["analisis.pedidos_no_atendidos", "analisis.precios_de_mi_tienda", "analisis.vendido_sin_registrar", "analisis.pendientes_por_registrar", "analisis.frescura"]));
     expect(JSON.stringify(vi.mocked(capturarError).mock.calls)).not.toMatch(/Trujillo|TEXTO-DE-LA-BASE|Juana/);
     // Frescura que devuelve su `fallo` cuenta como ERROR (con su motivo), no como «sin datos»: se distingue en Sentry de una respuesta vacía.

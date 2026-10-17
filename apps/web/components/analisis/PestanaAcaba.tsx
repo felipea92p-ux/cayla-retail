@@ -21,6 +21,7 @@ import {
   textoVieneDe,
 } from "@/lib/analisis-a-quien-pedir";
 import { textoRitmo } from "@/lib/analisis-pedir";
+import { notaDePedidoEnFila, pedidoPorTipo, type PedidoDeTipo } from "@/lib/analisis-pedido-en-camino-reglas";
 import {
   atrasoDe,
   cuandoLlega,
@@ -95,6 +96,8 @@ export function PestanaAcaba({ modoInicial = "dias" }: { /** Solo para las prueb
   const seAcaban = useMemo(() => prendasQueSeAcaban(prendas, liquidarDesde), [prendas, liquidarDesde]);
   // Los días de ventas de cada tienda, para saber si el modelo también se acaba en otra (con los días de ELLA, no los míos).
   const ventanas = useMemo(() => ventanasPorSede(datos.preparacion, datos.hoy), [datos.preparacion, datos.hoy]);
+  // Lo ya pedido por tipo (A4): una orden se pide por tipo y marca, así que se dice en la fila de «Comprar» de ese TIPO, nunca como «esta prenda viene».
+  const pedidoDe = useMemo(() => pedidoPorTipo(datos.pedido ?? [], datos.hoy), [datos.pedido, datos.hoy]);
 
   const vacio = vacioAcaba({ prendas: datos.prendas.length, seAcaban: enLaTienda, fallas: datos.fallas.length });
   if (vacio) return <SinCarril tipo={vacio} />;
@@ -165,7 +168,7 @@ export function PestanaAcaba({ modoInicial = "dias" }: { /** Solo para las prueb
       grupos={[grupo]}
       pista={(p) => <Pista p={p} />}
       pildoras={(p) => <Pildoras p={p} ventanas={ventanas} />}
-      accion={(p) => <Accion p={p} />}
+      accion={(p) => <Accion p={p} pedidoDe={pedidoDe} />}
     />
   );
 }
@@ -287,7 +290,7 @@ function Pildoras({ p, ventanas }: { p: ModeloAnalisis; ventanas: Readonly<Recor
  * se sabe de quién. Con un proveedor archivado o ninguno, dice que falta elegirlo. El bloque va aparte (`c-quien`) para que en una pantalla angosta
  * pase a la línea de las píldoras, junto a su barra.
  */
-function Accion({ p }: { p: ModeloAnalisis }) {
+function Accion({ p, pedidoDe }: { p: ModeloAnalisis; pedidoDe: ReadonlyMap<string, PedidoDeTipo> }) {
   const { datos, acceso, sedeDe, pedir } = useAnalisis();
   const comprar = hrefComprar(p, acceso);
   const otra = otraSedeQueLaTiene(p.otras);
@@ -302,6 +305,11 @@ function Accion({ p }: { p: ModeloAnalisis }) {
   const fuente = quien && pidelo ? textoFuenteDeLaFila(quien) : null;
   const sinQuien = quien && !viene ? textoSinAQuienPedir(quien) : null;
   const vieneDe = quien && viene ? textoVieneDe(p.llega, quien, datos.hoy) : null;
+  // «Ya pedido: 40 Polos · llegan el 12 nov.» (A4): solo en lo que sigue en «Comprar». No cambia en qué grupo cae la prenda (una orden no
+  // dice a qué modelo irá); avisa que hay una orden abierta de su tipo antes de pedir otra vez.
+  const tipo = p.categoria?.trim();
+  const delTipo = tipo ? pedidoDe.get(tipo) : undefined;
+  const yaPedido = !viene && tipo && delTipo ? notaDePedidoEnFila(tipo, delTipo) : null;
   return (
     <>
       {comprar && (
@@ -309,7 +317,7 @@ function Accion({ p }: { p: ModeloAnalisis }) {
           Comprar
         </Link>
       )}
-      {(pidelo || sinQuien || vieneDe || sede) && (
+      {(pidelo || sinQuien || vieneDe || yaPedido || sede) && (
         <span className="c-quien">
           {quien && pidelo && pideloCompleto && (
             <span className="pidelo" role="group" aria-label={pideloCompleto} data-tip={`${pideloCompleto.endsWith(".") ? pideloCompleto : `${pideloCompleto}.`} ${FUENTE_LARGA[quien.fuente]}`}>
@@ -326,6 +334,12 @@ function Accion({ p }: { p: ModeloAnalisis }) {
           {vieneDe && (
             <span className="pidelo viene" data-tip="Ya viene en camino: no hace falta pedirlo otra vez. El detalle está en «Por llegar».">
               <span className="pidelo-q">{vieneDe}</span>
+            </span>
+          )}
+          {yaPedido && (
+            <span className="pidelo viene" role="group" aria-label={`${yaPedido.titulo}${yaPedido.detalle ? `, ${yaPedido.detalle}` : ""}`} data-tip={yaPedido.ayuda}>
+              <span className="pidelo-q">{yaPedido.titulo}</span>
+              {yaPedido.detalle && <span className="pidelo-f">{yaPedido.detalle}</span>}
             </span>
           )}
           {sede && (

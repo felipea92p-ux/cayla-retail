@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Pruebas de las dos lecturas nuevas de Análisis v4 (ADR-0357) — `retail.fn_analisis_sede(p_ubicacion_id)` (migración
- * `20261006214000_analisis_prendas_de_sede.sql`, actividad 2) y `retail.fn_analisis_por_llegar(p_ubicacion_id)` (migración
- * `20261006215000_analisis_por_llegar.sql`, actividad 3). CAYLA V2.
+ * Pruebas de las tres lecturas de Análisis v4 (ADR-0357) — `retail.fn_analisis_sede(p_ubicacion_id)` (migración
+ * `20261006214000_analisis_prendas_de_sede.sql`, actividad 2), `retail.fn_analisis_por_llegar(p_ubicacion_id)` (migración
+ * `20261006215000_analisis_por_llegar.sql`, actividad 3) y `retail.fn_analisis_pedido_en_camino(p_ubicacion_id)` (migración
+ * `20261017043000_analisis_pedido_en_camino.sql`, «Análisis para decidir compras», A4). CAYLA V2.
  *
  * LO QUE VIGILA. Análisis decide con estas cifras qué se compra, qué se manda a otra tienda y qué se liquida. El error caro es
  * contar mal: una venta devuelta que sigue contando hace «acabarse» una prenda que no se vende; un día sin venderse que se corta
@@ -34,13 +35,20 @@
  *      recibir (lo recibido y lo cerrado restan); no cuentan traslados recibidos, cerrados ni de otra tienda, compras anuladas,
  *      agrupadas (sin talla) ni repartidas a otra tienda, ni la producción que no salió del Taller. Toda prenda por llegar es
  *      también una fila de `fn_analisis_sede`.
+ *   Y  LO YA PEDIDO (`fn_analisis_pedido_en_camino`, A4): órdenes de compra abiertas directas a la tienda, envíos del proveedor en
+ *      camino o abiertos, lo que «No vino» y la producción del Taller en proceso. Una orden que pasa por sus tres estados (sin enviar,
+ *      en un envío, recibida) cuenta cada unidad UNA vez; la orden «por repartir» es de la red hasta que sale en un envío; lo del
+ *      Taller nunca es de una tienda; sin dinero; con las mismas puertas que las otras dos lecturas. Un envío reabierto solo debe lo que
+ *      vale hoy (`despacho_diferencias_vigentes`), lo devuelto por llegar dañado también es deuda, y una orden a un almacén es de la red.
  *   M  LAS MIGRACIONES: se pueden pegar dos veces.
  *   N  NÚMEROS: 200 prendas con stock y 600 ventas en la sede; mediana de 5 lecturas.
  *
  * USO
  *   node scripts/pruebas/analisis_lecturas.mjs                → contra la base `postgres` del stack local
  *   node scripts/pruebas/analisis_lecturas.mjs --base otra    → contra otra base del mismo contenedor
- * Las migraciones se cargan dentro de cada caso (son `create or replace`): corre igual con la base al día o sin ellas.
+ * Las migraciones se cargan dentro de cada caso (son `create or replace`). Las de Análisis de antes corren con la base al día o sin ellas;
+ * la de A4 (`fn_analisis_pedido_en_camino`) lee tablas de envíos, «Nos debe» y la vista de diferencias vigentes, así que NECESITA una base
+ * con TODAS las migraciones del repo (como la del CI): contra una base local atrasada se detiene en su guarda y pide la migración que falta.
  */
 
 import { execFileSync } from "node:child_process";
@@ -58,6 +66,7 @@ const MIGRACION_SEDE = leerMigracion("20261006214000_analisis_prendas_de_sede.sq
 const MIGRACION_LLEGAR = leerMigracion("20261006215000_analisis_por_llegar.sql");
 const MIGRACION_PISO = leerMigracion("20261007120000_analisis_salio_al_piso.sql");
 const MIGRACION_ULTIMA = leerMigracion("20261010120000_analisis_ultima_venta.sql");
+const MIGRACION_PEDIDO = leerMigracion("20261017043000_analisis_pedido_en_camino.sql");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed), su rol sin Análisis
@@ -93,6 +102,7 @@ ${MIGRACION_SEDE}
 ${MIGRACION_LLEGAR}
 ${MIGRACION_PISO}
 ${MIGRACION_ULTIMA}
+${MIGRACION_PEDIDO}
 set local search_path = retail, public, extensions;
 
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
@@ -232,6 +242,66 @@ begin
   return li;
 end $$;
 
+-- Una orden de compra de UNA línea (n unidades de la categoría AN, o de p_cat) que llega directo a p_destino (null = por repartir), con su
+-- entrega estimada y su estado; devuelve la línea pedida.
+create function pg_temp.orden(p_destino uuid, n int, p_entrega date default null, p_estado text default 'generada', p_cat uuid default null)
+returns uuid language plpgsql as $$
+declare o uuid; li uuid; per uuid := (select id from public.personas where auth_user_id = '${FELIPE}');
+begin
+  insert into retail.ordenes_compra (proveedor_id, ubicacion_destino_id, fecha_emision, fecha_entrega_estimada, estado, creada_por,
+                                     anulada_por, anulada_en, motivo_anulacion)
+    values (current_setting('an.prov')::uuid, p_destino, retail.fn_hoy_lima(), p_entrega, p_estado, per,
+            case when p_estado = 'anulada' then per end, case when p_estado = 'anulada' then now() end,
+            case when p_estado = 'anulada' then 'prueba' end)
+    returning id into o;
+  insert into retail.orden_compra_items (orden_compra_id, posicion, categoria_id, marca_id, cantidad, precio_unitario)
+    values (o, 1, coalesce(p_cat, current_setting('an.cat')::uuid), (select marca_id from retail.marca_proveedores order by created_at limit 1), n, 25)
+    returning id into li;
+  return li;
+end $$;
+-- Un envío de n unidades de una línea pedida a p_sede, en el estado pedido (recorre en_camino → abierto → cerrado como en la vida real);
+-- con p_falta > 0 anota que esas unidades «No vinieron» (se anota con el envío abierto, como la recepción); devuelve el envío.
+create function pg_temp.envio(p_linea uuid, p_sede uuid, n int, p_estado text default 'en_camino', p_falta int default 0)
+returns uuid language plpgsql as $$
+declare d uuid; per uuid := (select id from public.personas where auth_user_id = '${FELIPE}');
+begin
+  insert into retail.despachos (ubicacion_destino_id, despachado_por) values (p_sede, per) returning id into d;
+  insert into retail.despacho_items (despacho_id, orden_compra_item_id, cantidad, categoria_id, marca_id, precio_unitario)
+    select d, i.id, n, i.categoria_id, i.marca_id, 25 from retail.orden_compra_items i where i.id = p_linea;
+  if p_estado = 'anulado' then
+    update retail.despachos set estado = 'anulado', anulado_por = per, anulado_en = now(), motivo_anulacion = 'prueba' where id = d;
+    return d;
+  end if;
+  if p_estado in ('abierto', 'cerrado') then
+    update retail.despachos set estado = 'abierto', abierto_por = per, abierto_en = now() where id = d;
+  end if;
+  if p_falta > 0 then
+    insert into retail.despacho_diferencias (despacho_id, despacho_item_id, proveedor_id, categoria_id, marca_id, tipo, causa, cantidad, costo_unitario, creado_por)
+      select d, di.id, current_setting('an.prov')::uuid, di.categoria_id, di.marca_id, 'faltante', 'no_vino', p_falta, 25, per
+        from retail.despacho_items di where di.despacho_id = d;
+  end if;
+  if p_estado = 'cerrado' then
+    update retail.despachos set estado = 'cerrado', cerrado_por = per, cerrado_en = now() where id = d;
+  end if;
+  return d;
+end $$;
+-- Una producción del Taller de n unidades de la categoría AN (de una prenda nueva), en el estado pedido.
+create function pg_temp.produce(p_nombre text, n int, p_estado text default 'en_proceso', p_muestra boolean default false,
+                                p_entrega date default null) returns void language plpgsql as $$
+declare v uuid := pg_temp.prenda(p_nombre);
+begin
+  insert into retail.producciones (ubicacion_id, producto_id, estado, es_muestra, cantidad_plan, cantidad_buenas, inventariado_at, fecha_entrega)
+    values (current_setting('an.taller')::uuid, pg_temp.producto(v), p_estado, p_muestra, n,
+            case when p_estado = 'terminada' then n end, case when p_estado = 'terminada' then now() end, p_entrega);
+end $$;
+-- Lo ya pedido a la tienda, compacto: «de:cantidad:fecha:marca:numeros» por parte, en el orden que devuelve la base.
+create function pg_temp.pedido(u uuid default null) returns text language sql as $$
+  select coalesce(string_agg((x ->> 'de') || ':' || (x ->> 'cantidad') || ':' || coalesce(x ->> 'fecha', '-'), ';'
+                             order by x ->> 'de', x ->> 'fecha' nulls last), 'nada')
+    from jsonb_array_elements(retail.fn_analisis_pedido_en_camino(coalesce(u, current_setting('an.sede')::uuid))) x
+   where x ->> 'categoria' = 'AN Polos'
+$$;
+
 -- La lectura y sus pedazos.
 create function pg_temp.lee(u uuid default null) returns jsonb language sql as $$
   select retail.fn_analisis_sede(coalesce(u, current_setting('an.sede')::uuid))
@@ -279,6 +349,7 @@ const iguales = (o) => {
 
 const OID_SEDE = `'retail.fn_analisis_sede(uuid)'::regprocedure`;
 const OID_LLEGAR = `'retail.fn_analisis_por_llegar(uuid)'::regprocedure`;
+const OID_PEDIDO = `'retail.fn_analisis_pedido_en_camino(uuid)'::regprocedure`;
 const forma = (oid, nombre) => `select concat_ws(',',
    (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = '${nombre}'),
    (select prosecdef from pg_proc where oid = ${oid}),
@@ -291,6 +362,7 @@ const forma = (oid, nombre) => `select concat_ws(',',
 // F. FORMA ---------------------------------------------------------------------------------------------------------------
 caso("F1 fn_analisis_sede: una firma, SECURITY DEFINER, STABLE, search_path fijo, jsonb; anon no la ejecuta y authenticated sí", forma(OID_SEDE, "fn_analisis_sede"), "1,t,t,t,jsonb,f,t");
 caso("F2 fn_analisis_por_llegar: lo mismo", forma(OID_LLEGAR, "fn_analisis_por_llegar"), "1,t,t,t,jsonb,f,t");
+caso("F4 fn_analisis_pedido_en_camino: lo mismo", forma(OID_PEDIDO, "fn_analisis_pedido_en_camino"), "1,t,t,t,jsonb,f,t");
 const CLAVES_FILA = [
   "variante_id", "producto_id", "nombre", "color", "color_hex", "talla", "categoria", "categoria_prefijo", "categoria_familia",
   "foto_url", "precio", "costo", "origen", "proveedor_id", "piso", "almacen", "vendidas_30", "semanas", "dias_sin_vender",
@@ -343,6 +415,29 @@ caso(
   `select split_part(pg_temp.intento('select retail.fn_analisis_sede(null)'), '|', 1) || ',' ||
           split_part(pg_temp.intento('select retail.fn_analisis_por_llegar(null)'), '|', 1);`,
   "22004,22004"
+);
+
+caso(
+  "P6 lo ya pedido tiene las mismas puertas: sin Análisis, NULL (también sin sesión); sin tienda, 22004; el líder lee (vacío si nada se pidió)",
+  `select pg_temp.orden(:'sede', 10, null);
+   select retail.fn_analisis_pedido_en_camino(:'sede') -> 0 ->> 'cantidad' as lider \\gset
+   select pg_temp.intento(format('select retail.fn_analisis_pedido_en_camino(%L)', null::uuid)) as sin_sede \\gset
+   ${como(MICAELA)}
+   select retail.fn_analisis_pedido_en_camino(:'sede') is null as integrante \\gset
+   ${SIN_SESION}
+   select retail.fn_analisis_pedido_en_camino(:'sede') is null as anonimo \\gset
+   select concat_ws(',', :'lider', split_part(:'sin_sede', '|', 1), :'integrante', :'anonimo');`,
+  "10,22004,t,t"
+);
+caso(
+  "P7 con Análisis en su rol (encargada) lee lo ya pedido de una tienda que NO opera: decisión 8, la encargada ve lo mismo que el líder",
+  `insert into retail.rol_modulos (rol_id, modulo)
+     select c.rol_id, 'analisis' from retail.colaboradores c join public.personas p on p.id = c.persona_id
+      where p.auth_user_id = '${MICAELA}' on conflict do nothing;
+   select pg_temp.orden(:'sede', 7, null);
+   ${como(MICAELA)}
+   select retail.fn_analisis_pedido_en_camino(:'sede') -> 0 ->> 'cantidad';`,
+  "7"
 );
 
 // V. VENTAS --------------------------------------------------------------------------------------------------------------
@@ -602,13 +697,167 @@ caso(
   "0,0,0,null,1,3"
 );
 
-// M. LAS MIGRACIONES -----------------------------------------------------------------------------------------------------
+// Y. LO YA PEDIDO (fn_analisis_pedido_en_camino, A4) --------------------------------------------------------------------
 caso(
-  "M1 las cuatro migraciones se pueden pegar dos veces: una sola firma de cada función",
-  `${MIGRACION_SEDE}\n${MIGRACION_LLEGAR}\n${MIGRACION_PISO}\n${MIGRACION_ULTIMA}\nset local search_path = retail, public, extensions;
+  "Y1 una orden abierta que llega directo a la tienda: sus unidades, su entrega estimada, su número, su tipo y su marca; sin fecha, la fecha va vacía",
+  `select pg_temp.orden(:'sede', 100, retail.fn_hoy_lima() + 20);
+   select pg_temp.orden(:'sede', 8, null);
+   select (select concat_ws(';', pg_temp.pedido(), jsonb_array_length(retail.fn_analisis_pedido_en_camino(:'sede')),
+             (select x ->> 'marca' from jsonb_array_elements(retail.fn_analisis_pedido_en_camino(:'sede')) x limit 1),
+             (select x ->> 'prefijo' from jsonb_array_elements(retail.fn_analisis_pedido_en_camino(:'sede')) x limit 1),
+             (select jsonb_array_length(x -> 'numeros') from jsonb_array_elements(retail.fn_analisis_pedido_en_camino(:'sede')) x limit 1)))
+          || '|' || format('orden:100:%s;orden:8:-;2;CAYLA;ZQX;1', retail.fn_hoy_lima() + 20);`,
+  iguales
+);
+caso(
+  "Y2 una orden de 100 que pasa por sus tres estados cuenta cada unidad UNA vez: sin enviar 100 → 60 sin enviar + 40 en camino → igual con el envío abierto → recibido, 60",
+  `select pg_temp.orden(:'sede', 100) as li \\gset
+   select pg_temp.pedido() as a \\gset
+   select pg_temp.envio(:'li', :'sede', 40) as d \\gset
+   select pg_temp.pedido() as b \\gset
+   update retail.despachos set estado = 'abierto', abierto_por = (select id from public.personas where auth_user_id = '${FELIPE}'), abierto_en = now() where id = :'d';
+   select pg_temp.pedido() as c \\gset
+   update retail.despachos set estado = 'cerrado', cerrado_por = (select id from public.personas where auth_user_id = '${FELIPE}'), cerrado_en = now() where id = :'d';
+   select pg_temp.pedido() as e \\gset
+   select concat_ws(',', :'a', :'b', :'c', :'e');`,
+  "orden:100:-,envio:40:-;orden:60:-,envio:40:-;orden:60:-,orden:60:-"
+);
+caso(
+  "Y3 no cuentan: una orden anulada, un envío anulado (lo que llevaba vuelve a «sin enviar»), una orden que llega directo a OTRA tienda ni su envío; sí cuenta lo pedido sin fecha",
+  `select pg_temp.orden(:'sede', 30, null, 'anulada');
+   select pg_temp.orden(:'otra', 25) as lo \\gset
+   select pg_temp.envio(:'lo', :'otra', 25);
+   select pg_temp.orden(:'sede', 100) as li \\gset
+   select pg_temp.envio(:'li', :'sede', 40, 'anulado');
+   select pg_temp.pedido() || ',' || pg_temp.pedido(:'otra');`,
+  "orden:100:-,envio:25:-"
+);
+caso(
+  "Y4 una orden por repartir (sin destino) es de la RED: sin enviar, todas las tiendas ven lo mismo; lo que sale en un envío a una tienda es de ESA tienda y baja lo que queda por repartir",
+  `select pg_temp.orden(null, 100, retail.fn_hoy_lima() + 15) as li \\gset
+   select pg_temp.pedido() as antes \\gset
+   select pg_temp.envio(:'li', :'sede', 30) as d \\gset
+   select concat_ws(',', :'antes' = 'por_repartir:100:' || (retail.fn_hoy_lima() + 15), pg_temp.pedido() = format('envio:30:%1$s;por_repartir:70:%1$s', retail.fn_hoy_lima() + 15),
+     pg_temp.pedido(:'otra') = format('por_repartir:70:%s', retail.fn_hoy_lima() + 15));`,
+  "t,t,t"
+);
+caso(
+  "Y5 lo que el proveedor NO mandó («No vino») en un envío ya cerrado se debe, sin fecha: la orden de 50 enviada entera y cerrada con 10 faltantes deja 10 por reponer; lo que ya se repuso baja la deuda; lo repuesto del todo, nada",
+  `select pg_temp.orden(:'sede', 50, retail.fn_hoy_lima() + 10) as li \\gset
+   select pg_temp.envio(:'li', :'sede', 50, 'cerrado', 10) as d \\gset
+   select pg_temp.pedido() as debe \\gset
+   select id as x from retail.despacho_diferencias where despacho_id = :'d' \\gset
+   insert into retail.proveedor_deuda_resoluciones (diferencia_id, forma, cantidad, creado_por)
+     values (:'x', 'repuesta', 4, (select id from public.personas where auth_user_id = '${FELIPE}'));
+   select pg_temp.pedido() as menos \\gset
+   insert into retail.proveedor_deuda_resoluciones (diferencia_id, forma, cantidad, creado_por)
+     values (:'x', 'repuesta', 6, (select id from public.personas where auth_user_id = '${FELIPE}'));
+   select concat_ws(',', :'debe', :'menos', pg_temp.pedido());`,
+  "reposicion:10:-,reposicion:6:-,nada"
+);
+caso(
+  "Y6 la producción del Taller en proceso es de la RED (cada tienda ve lo mismo, con la fecha de entrega de la producción); terminada, anulada, muestra y producto de prueba no cuentan",
+  `select pg_temp.produce('Y6A', 40, 'en_proceso', false, retail.fn_hoy_lima() + 12);
+   select pg_temp.produce('Y6B', 15, 'en_proceso');
+   select pg_temp.produce('Y6C', 99, 'terminada');
+   select pg_temp.produce('Y6D', 77, 'anulada');
+   select pg_temp.produce('Y6E', 55, 'en_proceso', true);
+   select pg_temp.produce('Y6F', 33, 'en_proceso');
+   update retail.productos set es_prueba = true where referencia ilike 'ZZ AN Y6F';
+   select pg_temp.pedido() || '|' || format('taller:40:%s;taller:15:-', retail.fn_hoy_lima() + 12) || ',' || (pg_temp.pedido(:'otra') = pg_temp.pedido());`,
+  (o) => {
+    const [a, b] = o.split("|");
+    return a !== undefined && b !== undefined && b === `${a},true`;
+  }
+);
+caso(
+  "Y7 sin dinero: cada parte trae solo tipo, marca, unidades, fecha y números, nunca un precio, un descuento, un subtotal ni un costo",
+  `select pg_temp.orden(:'sede', 12, retail.fn_hoy_lima() + 5) as li \\gset
+   select pg_temp.envio(:'li', :'sede', 5);
+   select (select string_agg(k, ',' order by k collate "C") from (select distinct jsonb_object_keys(x) k from jsonb_array_elements(retail.fn_analisis_pedido_en_camino(:'sede')) x) t);`,
+  "cantidad,categoria,de,fecha,marca,numeros,prefijo"
+);
+caso(
+  "Y8 la compra de una orden se guarda SIN prenda y por eso NUNCA aparece en lo que viene por prenda: la orden se cuenta una vez, aquí, y no otra vez en `fn_analisis_por_llegar`",
+  `select pg_temp.orden(:'sede', 20) as li \\gset
+   insert into retail.compras (proveedor_id, tipo, serie, numero, fecha_emision, condicion, fecha_vencimiento, subtotal, igv, total,
+                               estado, ubicacion_gestion_id, naturaleza, fecha_estimada_llegada)
+     values (current_setting('an.prov')::uuid, 'factura', 'ZAN', 'Y8' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 8),
+             retail.fn_hoy_lima(), 'credito', retail.fn_hoy_lima() + 30, 100, 18, 118, 'vigente', :'sede', 'mercaderia', retail.fn_hoy_lima() + 9)
+     returning id as c \\gset
+   insert into retail.compra_items (compra_id, producto_id, variante_id, cantidad, costo_unitario, categoria_id, marca_id, orden_compra_item_id)
+     select :'c', null, null, 20, 25, i.categoria_id, i.marca_id, i.id from retail.orden_compra_items i where i.id = :'li' returning id as ci \\gset
+   insert into retail.compra_item_destinos (compra_item_id, ubicacion_id, cantidad) values (:'ci', :'sede', 20);
+   select jsonb_array_length(retail.fn_analisis_por_llegar(:'sede')) || ',' || pg_temp.pedido();`,
+  "0,orden:20:-"
+);
+caso(
+  "Y9 dos órdenes del mismo tipo con fechas distintas son dos partes; la misma fecha se suma en una y junta los números de orden",
+  `select pg_temp.orden(:'sede', 10, retail.fn_hoy_lima() + 7);
+   select pg_temp.orden(:'sede', 5, retail.fn_hoy_lima() + 7);
+   select pg_temp.orden(:'sede', 3, retail.fn_hoy_lima() + 30);
+   select concat_ws(',',
+     pg_temp.pedido() = format('orden:15:%s;orden:3:%s', retail.fn_hoy_lima() + 7, retail.fn_hoy_lima() + 30),
+     (select jsonb_array_length(x -> 'numeros') from jsonb_array_elements(retail.fn_analisis_pedido_en_camino(:'sede')) x
+       where (x ->> 'cantidad')::int = 15));`,
+  "t,2"
+);
+
+caso(
+  "Y10 un envío REABIERTO: la diferencia vieja (vigente = false) queda de historia y no se cuenta; solo debe lo que vale hoy (el Plan de campaña lee lo mismo)",
+  `select pg_temp.orden(:'sede', 50, retail.fn_hoy_lima() + 10) as li \\gset
+   select pg_temp.envio(:'li', :'sede', 50, 'cerrado', 10) as d \\gset
+   select pg_temp.pedido() as antes \\gset
+   -- Lo que hace reabrir_envio y volver a cerrar: el faltante del primer cierre queda de historia y el cierre siguiente anota el suyo.
+   -- Las dos escrituras van sin disparadores (réplica): los candados del envío cerrado las frenarían, y esta prueba solo mira la lectura.
+   set local session_replication_role = replica;
+   update retail.despacho_diferencias set vigente = false where despacho_id = :'d';
+   insert into retail.despacho_diferencias (despacho_id, despacho_item_id, proveedor_id, categoria_id, marca_id, tipo, causa, cantidad, costo_unitario, creado_por)
+     select :'d', di.id, current_setting('an.prov')::uuid, di.categoria_id, di.marca_id, 'faltante', 'no_vino', 4, 25,
+            (select id from public.personas where auth_user_id = '${FELIPE}')
+       from retail.despacho_items di where di.despacho_id = :'d';
+   set local session_replication_role = origin;
+   select pg_temp.pedido() as despues \\gset
+   -- Y si el segundo cierre no deja faltante, no debe nada.
+   set local session_replication_role = replica;
+   update retail.despacho_diferencias set vigente = false where despacho_id = :'d';
+   set local session_replication_role = origin;
+   select concat_ws(',', :'antes', :'despues', pg_temp.pedido());`,
+  "reposicion:10:-,reposicion:4:-,nada"
+);
+caso(
+  "Y11 lo que se le DEVOLVIÓ al proveedor por llegar dañado (causa «devuelta») también es deuda por reponer, como cuenta el Plan de campaña",
+  `select pg_temp.orden(:'sede', 20, retail.fn_hoy_lima() + 10) as li \\gset
+   select pg_temp.envio(:'li', :'sede', 20, 'cerrado') as d \\gset
+   set local session_replication_role = replica;
+   insert into retail.despacho_diferencias (despacho_id, despacho_item_id, proveedor_id, categoria_id, marca_id, tipo, causa, cantidad, costo_unitario, creado_por,
+                                            prenda_danada_id)
+     select :'d', di.id, current_setting('an.prov')::uuid, di.categoria_id, di.marca_id, 'faltante', 'devuelta', 3, 25,
+            (select id from public.personas where auth_user_id = '${FELIPE}'), gen_random_uuid()
+       from retail.despacho_items di where di.despacho_id = :'d';
+   set local session_replication_role = origin;
+   select pg_temp.pedido();`,
+  "reposicion:3:-"
+);
+caso(
+  "Y12 una orden con destino un ALMACÉN (no una tienda) es de la red: ninguna tienda la ve como suya, pero tampoco desaparece (por repartir); lo que sale de ella hacia el almacén ya no está «sin enviar»",
+  `insert into retail.ubicaciones (nombre, tipo, activo) values ('Almacén AN', 'almacen', true);
+   select id as alm from retail.ubicaciones where nombre = 'Almacén AN' \\gset
+   select pg_temp.orden(:'alm', 50, retail.fn_hoy_lima() + 10) as li \\gset
+   select pg_temp.pedido() as antes, pg_temp.pedido(:'otra') as antes_otra \\gset
+   select pg_temp.envio(:'li', :'alm', 20) as d \\gset
+   select concat_ws(',', :'antes' = format('por_repartir:50:%s', retail.fn_hoy_lima() + 10), :'antes_otra' = :'antes',
+     pg_temp.pedido() = format('por_repartir:30:%s', retail.fn_hoy_lima() + 10));`,
+  "t,t,t"
+);
+
+caso(
+  "M1 las cinco migraciones se pueden pegar dos veces: una sola firma de cada función",
+  `${MIGRACION_SEDE}\n${MIGRACION_LLEGAR}\n${MIGRACION_PISO}\n${MIGRACION_ULTIMA}\n${MIGRACION_PEDIDO}\nset local search_path = retail, public, extensions;
    select (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'fn_analisis_sede') || ',' ||
-          (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'fn_analisis_por_llegar');`,
-  "1,1"
+          (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'fn_analisis_por_llegar') || ',' ||
+          (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'fn_analisis_pedido_en_camino');`,
+  "1,1,1"
 );
 
 // N. NÚMEROS -------------------------------------------------------------------------------------------------------------

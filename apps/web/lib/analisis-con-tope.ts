@@ -53,6 +53,7 @@ export const AVISOS_CADA_MS = 60 * 60 * 1000;
 export type PiezaAnalisis =
   | "sede"
   | "por_llegar"
+  | "pedido_en_camino"
   | "liquidar_desde"
   | "rinde"
   | "preparacion"

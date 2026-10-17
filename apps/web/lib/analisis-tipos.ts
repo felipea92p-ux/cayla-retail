@@ -47,6 +47,32 @@ export type LlegadaPrenda = {
   fecha: string | null;
 };
 
+/**
+ * De dónde sale lo YA PEDIDO que todavía no llegó (A4, `fn_analisis_pedido_en_camino`). No es una prenda: una orden de compra se pide por
+ * «tipo + marca» y la prenda se crea al recibir, así que esto se cuenta por tipo y nunca se le atribuye a una prenda.
+ *   · `orden`: una orden abierta que llega DIRECTO a mi tienda y todavía no salió en un envío.
+ *   · `envio`: lo que va en un envío (guía) hacia mi tienda y todavía no se recibe: ya salió, aún no es stock.
+ *   · `reposicion`: lo que el proveedor no mandó («No vino») en un envío ya cerrado a mi tienda y todavía debe.
+ *   · `por_repartir`: una orden SIN destino (llega a Lima y se reparte después), sin enviar: de la RED, no de mi tienda.
+ *   · `taller`: lo que el Taller tiene EN PROCESO: de la RED, nunca de una tienda (decisión 6 de ADR-0357).
+ */
+export type OrigenPedido = "orden" | "envio" | "reposicion" | "por_repartir" | "taller";
+
+/** Una parte de lo ya pedido: «40 Polos de CAYLA, entrega el 12 nov, orden OC-000012». Sin dinero (ADR-0126). */
+export type PartePedido = {
+  de: OrigenPedido;
+  /** El tipo (`categorias.nombre`) y su prefijo: con eso se junta con el tipo de «Qué pedir». */
+  categoria: string;
+  prefijo: string | null;
+  /** La marca de la orden; null en lo que produce el Taller (no tiene). */
+  marca: string | null;
+  cantidad: number;
+  /** La entrega estimada de la ORDEN, o la fecha de entrega de la producción (YYYY-MM-DD); null si nadie la anotó. */
+  fecha: string | null;
+  /** Los números de las órdenes (o de las producciones) que suman esta parte. */
+  numeros: number[];
+};
+
 /** Una prenda (variante) vista desde MI tienda, con lo que se sabe de ella en la red. */
 export type PrendaAnalisis = {
   varianteId: string;
@@ -225,6 +251,9 @@ export type DatosAnalisis = {
   conteo: { contadas: number; coinciden: number } | null;
   /** «Te pidieron y no había», sin resolver: qué se pidió y el día de Lima en que se anotó (YYYY-MM-DD; null si no se lee). */
   noHabia: { que: string; dia: string | null }[];
+  /** Lo ya pedido y que todavía no llegó (órdenes de compra abiertas, envíos del proveedor, producción en proceso), por tipo y marca. null =
+   *  no se pudo leer (y se dice en `fallas`): la pantalla no lo cuenta y NUNCA dice «no hay nada pedido» por un error. */
+  pedido: PartePedido[] | null;
   /** A quién se le pide cada modelo (nombres de proveedor y proveedor del catálogo de cada modelo). null = no se pudo leer (y se dice en
    *  `fallas`): ni «Pídelo a …» ni «A quién pedir» se dibujan, y nunca se dice «Sin proveedor» por un error. */
   proveedores: ProveedoresAnalisis | null;

@@ -9,6 +9,7 @@ import { conVentanaDeRitmo, diasDeVentas, liquidarDesdeValido, noHabiaDe, sedeDe
 import { FALLA_PISO } from "@/lib/analisis-piso";
 import { getPrendasPorSede } from "@/lib/analisis-sede";
 import { getPorLlegar } from "@/lib/analisis-por-llegar";
+import { getPedidoEnCamino } from "@/lib/analisis-pedido-en-camino";
 import { getProveedoresAnalisis } from "@/lib/analisis-proveedores";
 import { recortarProveedores } from "@/lib/analisis-proveedores-lectura";
 import { getLiquidarDesde } from "@/lib/analisis-liquidar";
@@ -94,10 +95,12 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false 
   const ids = sedes.map((s) => s.id);
 
   const idActiva = { ubicacion_id: activa.id };
-  const [motor, lectura, llegan, liquidar, rinde, conteos, pedidos, preciosPropios, sinPrenda, frescura, pendientes, quienPide] = await Promise.all([
+  const [motor, lectura, llegan, yaPedido, liquidar, rinde, conteos, pedidos, preciosPropios, sinPrenda, frescura, pendientes, quienPide] = await Promise.all([
     leerPreparacionDeLaRed(),
     getPrendasPorSede(ids),
     getPorLlegar(activa.id),
+    // Lo ya pedido (A4): órdenes de compra abiertas, envíos del proveedor y producción en proceso, por tipo y marca. Si falla, no se cuenta y se dice.
+    getPedidoEnCamino(activa.id),
     getLiquidarDesde(),
     getRindePorCategoria(activa.id),
     leerPieza("conteos", idActiva, () => getConteosResumen(activa.id, 5)).then(datosDe),
@@ -169,8 +172,9 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false 
     rinde: rinde.rinde,
     conteo: ultimoConteo ? { contadas: ultimoConteo.lineas, coinciden: Math.max(0, ultimoConteo.lineas - ultimoConteo.lineasConDiferencia) } : null,
     noHabia: noHabiaDe(pedidos ?? []),
+    pedido: yaPedido.pedido,
     sedesSinLeer: lectura.sedesSinLeer,
-    fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, preciosDeMiTienda === undefined ? FALLA_PRECIOS_DE_MI_TIENDA : null, llegan.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null, sinPrenda === null ? FALLA_SIN_PRENDA : null, frescura.estado === "fallo" ? FALLA_FRESCURA : null, quienPide.falla].filter(
+    fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, preciosDeMiTienda === undefined ? FALLA_PRECIOS_DE_MI_TIENDA : null, llegan.falla, yaPedido.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null, sinPrenda === null ? FALLA_SIN_PRENDA : null, frescura.estado === "fallo" ? FALLA_FRESCURA : null, quienPide.falla].filter(
       (f): f is string => f !== null,
     ),
   };

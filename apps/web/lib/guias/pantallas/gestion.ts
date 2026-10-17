@@ -75,7 +75,7 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-acaba" }],
       titulo: "Se está acabando",
-      texto: "Las prendas que se acaban pronto, con los días que les quedan. El título sigue al filtro: «Cómpralas» es lo que no viene en camino y «Ya vienen», lo que sí, con cuándo llega. «Pídelo a …» dice a quién comprarle; si otra sede la tiene, puedes pedírsela. Arriba eliges verlas «Por días» o «Por proveedor».",
+      texto: "Las prendas que se acaban pronto, con los días que les quedan. «Cómpralas» es lo que no viene en camino y «Ya vienen», lo que sí. «Pídelo a …» dice a quién; «Ya pedido» avisa que ya hay una orden abierta de su tipo. Si otra sede la tiene, puedes pedírsela. Arriba eliges «Por días» o «Por proveedor».",
     },
     {
       id: "a-quien-pedir",
@@ -108,7 +108,7 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-pedir" }],
       titulo: "Qué pedir",
-      texto: "Arriba, cuánto falta para la campaña, con un atajo al Plan de campaña. «¿Para cuánto te alcanza?»: cada tipo, con lo que tienes y lo que viene a tiempo para Navidad (lo atrasado no cuenta) y lo vendido sin registrar; lo que no llega va en ámbar: conviene pedirlo. Toca un tipo y ves lo que más se vende.",
+      texto: "Arriba, cuánto falta para la campaña, con un atajo al Plan de campaña. «¿Para cuánto te alcanza?»: cada tipo, con lo que tienes, lo que viene a tiempo y lo ya pedido en órdenes y envíos (lo atrasado o sin fecha no cuenta); lo que no llega va en ámbar: conviene pedirlo. Toca un tipo y ves sus tallas.",
     },
     {
       id: "pedir-orden",

@@ -44,6 +44,7 @@ import {
   type RielNavidad,
 } from "@/lib/analisis-pedir";
 import { plural } from "@/lib/analisis-reglas";
+import { notaPedidoSinTipo, pedidoAparte, pedidoPorTipo, pedidoSinTipo, yaPedidoCorto } from "@/lib/analisis-pedido-en-camino-reglas";
 import { IconoCategoria } from "@/components/IconoCategoria";
 
 // Análisis v4 (ADR-0357): «Qué pedir», como la maqueta aprobada (2026-10-06) y su cambio del 2026-10-07 (B2): cuánto falta para
@@ -60,8 +61,14 @@ export function PestanaPedir() {
   const riel = useMemo(() => rielNavidad(datos.hoy), [datos.hoy]);
   const hastaNavidad = diasANavidad(datos.hoy);
   const tipos = useMemo(
-    () => alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo),
-    [datos.prendas, diasDeVentas, datos.hoy, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo],
+    () => alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo, datos.pedido),
+    [datos.prendas, diasDeVentas, datos.hoy, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo, datos.pedido],
+  );
+  // Lo pedido para mi tienda de un tipo que la lista no dibuja (la tienda no tiene ninguna prenda de ese tipo): se nombra aparte, para que
+  // quien lo busca y no lo ve no lo vuelva a pedir.
+  const pedidoSinFila = useMemo(
+    () => pedidoSinTipo(pedidoPorTipo(datos.pedido ?? [], datos.hoy), new Set(tipos.map((t) => t.categoria))),
+    [datos.pedido, datos.hoy, tipos],
   );
   // Lo vendido sin registrar de tipos que la tienda no tiene en el sistema: no se sabe para cuánto alcanzan, pero no se calla.
   const sinRegistro = useMemo(() => tiposSinRegistrar(datos.prendas, datos.sinPrendaPorTipo), [datos.prendas, datos.sinPrendaPorTipo]);
@@ -132,6 +139,7 @@ export function PestanaPedir() {
           </p>
           <TablaAlcance tipos={tiposOrdenados} hastaNavidad={hastaNavidad} categoria={categoria} onElegir={elegir} />
           {sinRegistro.length > 0 && <p className="b-nota al-sin-registro">{notaTiposSinRegistrar(sinRegistro)}</p>}
+          {pedidoSinFila.length > 0 && <p className="b-nota al-sin-registro">{notaPedidoSinTipo(pedidoSinFila)}</p>}
         </section>
 
         {/* El panel del tipo elegido (o de toda la tienda): siempre a la vista junto a la lista mientras se recorre. */}
@@ -230,6 +238,9 @@ function Riel({ r }: { r: RielNavidad }) {
   );
 }
 
+/** Lo que viene o está pedido y NO cuenta, junto: «8 atrasadas: no las cuento · 15 pedidas sin fecha: no las cuento · el Taller tiene 40 en proceso». */
+const aparteDe = (t: AlcanceTipo): string => [llegadasAparte(t), ...pedidoAparte(t.pedido)].filter((x) => x !== "").join(" · ");
+
 /**
  * «¿Para cuánto te alcanza?»: cada tipo, para cuánto te alcanza lo que tienes al ritmo de los días de ventas, con la línea de
  * Navidad: lo que no llega va en ámbar con su ▲ (pídelo). Cada tipo es un botón que cambia el panel de al lado (opción A, Felipe
@@ -280,8 +291,10 @@ function TablaAlcance({ tipos, hastaNavidad, categoria, onElegir }: { tipos: Alc
               <small>
                 {textoVendiste(t)} · {tieneYVienen(t)}
               </small>
-              {/* Lo atrasado y lo que llega después de Navidad, en su propia línea: no ensancha la principal (la columna es angosta). */}
-              {llegadasAparte(t) && <small className="aparte">{llegadasAparte(t)}</small>}
+              {/* Lo ya pedido que cuenta (A4), en su propia línea: no ensancha la principal (la columna es angosta). */}
+              {yaPedidoCorto(t.pedido) && <small>{yaPedidoCorto(t.pedido)}</small>}
+              {/* Lo atrasado, lo que llega después de Navidad y lo pedido que no cuenta o es de la red, en su propia línea. */}
+              {aparteDe(t) && <small className="aparte">{aparteDe(t)}</small>}
             </span>
             <span className="p">
               {t.dias !== null && <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: Math.min(1, t.dias / fin) }} />}

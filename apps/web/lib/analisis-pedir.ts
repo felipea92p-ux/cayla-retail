@@ -4,8 +4,9 @@
 // cuenta y se dibuja lo de la maqueta aprobada por Felipe (2026-10-06). La lectura de «Lo que más rinde» vive en
 // `analisis-rinde.ts` (servidor); la cuenta, aquí, para poder probarla.
 
-import type { PrendaAnalisis } from "./analisis-tipos";
+import type { PartePedido, PrendaAnalisis } from "./analisis-tipos";
 import { DIAS_MINIMOS_RITMO, esTallaUnica, llegadasDe, nuncaSalio, plural, totalEnTienda } from "./analisis-reglas";
+import { pedidoAparte, pedidoPorTipo, sinPedido, yaPedidoDetalle, type PedidoDeTipo } from "./analisis-pedido-en-camino-reglas";
 import { compararTallas, tipoDeTalla, type TipoTalla } from "./tallas";
 import { diasEntreFechas, sumarDias } from "./fechas-lima";
 
@@ -139,6 +140,13 @@ export type AlcanceTipo = {
   atrasadas: number;
   /** Lo que llega DESPUÉS de la meta (hoy, Navidad): un pedido del 5 de enero no cubre el 25 de diciembre. NO está en `vienen`; se dice aparte. */
   despues: number;
+  /**
+   * Lo YA PEDIDO del tipo (A4, `analisis-pedido-en-camino-reglas.ts`): órdenes de compra abiertas, envíos del proveedor, lo que el proveedor
+   * debe, y, de la red, lo por repartir y lo que el Taller tiene en proceso. Solo `pedido.suma` cuenta para saber para cuánto te alcanza
+   * (`dias`); el resto se dice aparte. NO está dentro de `vienen`: `vienen` son las llegadas por prenda (traslados y compras con su talla y
+   * color), y una orden se pide por tipo y marca. Las dos cuentas no se pisan.
+   */
+  pedido: PedidoDeTipo;
   /** De lo que tienes, cuántas unidades nunca salieron al piso; null si la base todavía no lo sabe. */
   nunca: number | null;
   /** Para cuántos días te alcanza lo que tienes MÁS lo que viene, al ritmo de los días de ventas (0 = ya no hay); null si no se vendió: no tiene ritmo. */
@@ -149,8 +157,8 @@ export type AlcanceTipo = {
 
 /**
  * Por tipo de prenda, para cuánto te alcanza lo que tienes al ritmo de lo vendido en los días de ventas de la tienda (hasta 30):
- * lo que tienes MÁS lo que ya viene en camino a tiempo (no lo atrasado ni lo que llega después de la meta: `AlcanceTipo.vienen`) entre lo
- * que vendes por día. Pide lo que no
+ * lo que tienes MÁS lo que ya viene en camino a tiempo (no lo atrasado ni lo que llega después de la meta: `AlcanceTipo.vienen`) MÁS lo ya
+ * pedido que cuenta (órdenes con fecha y envíos del proveedor: `AlcanceTipo.pedido.suma`, A4) entre lo que vendes por día. Pide lo que no
  * llega a Navidad. Del que menos dura al que más; lo que no se vendió, al
  * final (sin ritmo no se sabe para cuánto alcanza). Reemplaza a la mariposa «de cada 100» (Felipe, 2026-10-07: «no sé si es de los
  * últimos 30 días o desde siempre»): habla en semanas y dice de qué días. Con los MODELOS (ADR-0357, decisión 12), «nunca salió»
@@ -164,6 +172,8 @@ export function alcancePorTipo(
   hastaNavidad: number,
   sabePiso: boolean,
   sinPrenda: Readonly<Record<string, number>> = {},
+  /** Lo ya pedido y que todavía no llegó (A4); `null` o vacío = no se contó (no se pudo leer, o no hay nada pedido). */
+  pedido: readonly PartePedido[] | null = null,
 ): AlcanceTipo[] {
   // El ritmo del tipo es la suma del de sus prendas, cada una en su ventana (2026-10-14: los días que estuvo colgada, `ventanaDeRitmo`);
   // lo vendido sin registrar no tiene prenda ni ventana propia: va en los días de ventas de la tienda. Sin ventana propia, la de la tienda.
@@ -177,9 +187,11 @@ export function alcancePorTipo(
   // El último día que importa: se llega a la meta (Navidad hoy) o no. Con la meta por campaña (D3) cambia `hastaNavidad`, no esta regla.
   // Sin un día válido o una meta que sea número no hay tope (como antes): una fecha rara no debe tumbar la pantalla (principio 9).
   const limite = Number.isFinite(hastaNavidad) && /^\d{4}-\d{2}-\d{2}/.test(hoy) ? sumarDias(hoy, Math.max(0, Math.round(hastaNavidad))) : undefined;
+  // Lo ya pedido por tipo, con la misma meta que las llegadas (A4): lo que llega después de ella no suma.
+  const pedidoDe = pedidoPorTipo(pedido ?? [], hoy, limite);
   const porTipo = new Map<string, AlcanceTipo>();
   const nuevo = (c: string, p: (typeof prendas)[number]): AlcanceTipo =>
-    ({ categoria: c, prefijo: p.categoriaPrefijo, familia: p.categoriaFamilia, vendidas: 0, sinPrenda: 0, tiene: 0, vienen: 0, vienenSinFecha: 0, atrasadas: 0, despues: 0, nunca: sabePiso ? 0 : null, dias: null, pide: false });
+    ({ categoria: c, prefijo: p.categoriaPrefijo, familia: p.categoriaFamilia, vendidas: 0, sinPrenda: 0, tiene: 0, vienen: 0, vienenSinFecha: 0, atrasadas: 0, despues: 0, pedido: sinPedido(), nunca: sabePiso ? 0 : null, dias: null, pide: false });
   // Una prenda de cada tipo que la tienda tiene, aunque hoy no tenga ni venta ni stock: el tipo existe para sumarle lo vendido sin registrar.
   const delTipo = new Map<string, (typeof prendas)[number]>();
   for (const p of prendas) {
@@ -202,6 +214,11 @@ export function alcancePorTipo(
     if (a.nunca !== null && nuncaSalio(p)) a.nunca += p.almacen;
     porTipo.set(c, a);
   }
+  // Un tipo que la tienda tiene pero hoy no tiene ni venta ni stock ni llegadas, y al que ya le pidieron algo que cuenta: existe en la lista
+  // (lo pedido es del tipo). Lo pedido que NO suma (sin fecha, vencido, lo de la red) solo se dice en un tipo que ya está, como lo atrasado.
+  for (const [c, muestra] of delTipo) {
+    if (!porTipo.has(c) && (pedidoDe.get(c)?.suma ?? 0) > 0) porTipo.set(c, nuevo(c, muestra));
+  }
   // Lo vendido sin registrar de cada tipo (ADR-0357, act. 2026-10-14): la venta no dice qué prenda fue, pero sí de qué tipo, así que
   // cuenta en el ritmo del tipo. Sin esto, un tipo que se registra poco (un tercio de sus ventas) parecía durar el triple y «llegaba» a
   // Navidad sin llegar. Solo en los tipos que la tienda tiene: de un tipo sin ninguna prenda registrada no se sabe cuánto hay
@@ -219,8 +236,9 @@ export function alcancePorTipo(
   return [...porTipo.values()]
     .map((a) => {
       const porDia = ritmo.get(a.categoria) ?? 0;
-      const dias = a.vendidas > 0 && porDia > 0 ? (a.tiene + a.vienen) / porDia : null;
-      return { ...a, atrasadas: atrasadasDe.get(a.categoria) ?? 0, despues: despuesDe.get(a.categoria) ?? 0, dias, pide: dias !== null && dias < hastaNavidad };
+      const ya = pedidoDe.get(a.categoria) ?? sinPedido();
+      const dias = a.vendidas > 0 && porDia > 0 ? (a.tiene + a.vienen + ya.suma) / porDia : null;
+      return { ...a, atrasadas: atrasadasDe.get(a.categoria) ?? 0, despues: despuesDe.get(a.categoria) ?? 0, pedido: ya, dias, pide: dias !== null && dias < hastaNavidad };
     })
     .sort((a, b) => (a.dias ?? Infinity) - (b.dias ?? Infinity) || b.tiene - a.tiene || a.categoria.localeCompare(b.categoria, "es"));
 }
@@ -474,10 +492,20 @@ export function fraseDelTipo(t: AlcanceTipo | null, todos: readonly AlcanceTipo[
     const aparte = llegadasAparte({ atrasadas: suma("atrasadas"), despues: suma("despues") });
     // «…y tienes 102.» o, con algo en camino, «…, tienes 102 y vienen 20.» (dos «y» seguidas no se leen).
     const base = `Vendiste ${vendidas} en ${enDias}${vienen > 0 ? "," : " y"} ${tieneVienen}${aparte ? ` · ${aparte}` : ""}.`;
-    return pide > 0 ? `${base} ${pide} ${plural(pide, "tipo no llega", "tipos no llegan")} a Navidad.` : base;
+    // Lo ya pedido que cuenta (A4), de todos los tipos: «Ya pedido 40.»
+    const yaPedido = todos.reduce((n, x) => n + x.pedido.suma, 0);
+    const conPedido = yaPedido > 0 ? `${base} Ya pedido ${yaPedido}.` : base;
+    return pide > 0 ? `${conPedido} ${pide} ${plural(pide, "tipo no llega", "tipos no llegan")} a Navidad.` : conPedido;
   }
-  // Con algo en camino, el plazo cuenta lo que viene y la frase lo dice: «Con lo que viene, te alcanza para…».
-  const alcanza = t.vienen > 0 ? "Con lo que viene, te alcanza" : "Te alcanza";
+  // Con algo en camino o ya pedido, el plazo lo cuenta y la frase lo dice: «Con lo que viene, te alcanza para…», «Con lo que viene y lo ya pedido…».
+  const alcanza =
+    t.vienen > 0 && t.pedido.suma > 0
+      ? "Con lo que viene y lo ya pedido, te alcanza"
+      : t.vienen > 0
+        ? "Con lo que viene, te alcanza"
+        : t.pedido.suma > 0
+          ? "Con lo ya pedido, te alcanza"
+          : "Te alcanza";
   const alcance =
     t.dias === null
       ? `No se vendió en ${enDias}.`
@@ -488,7 +516,10 @@ export function fraseDelTipo(t: AlcanceTipo | null, todos: readonly AlcanceTipo[
   const tarde = t.atrasadas > 0 ? ` ${t.atrasadas} ${plural(t.atrasadas, "atrasada no cuenta", "atrasadas no cuentan")} hasta que ${plural(t.atrasadas, "llegue", "lleguen")}.` : "";
   const lejos = t.despues > 0 ? ` ${t.despues} ${plural(t.despues, "llega", "llegan")} después de Navidad y no ${plural(t.despues, "cuenta", "cuentan")}.` : "";
   const tieneVienen = tieneYVienen(t);
-  return `${alcance} ${tieneVienen.charAt(0).toUpperCase()}${tieneVienen.slice(1)}${nunca}.${tarde}${lejos}`;
+  // Lo ya pedido (A4): lo que cuenta con su detalle, y lo que no cuenta (sin fecha, vencido, lo que debe el proveedor, la red) cada cosa en su frase.
+  const yaPedido = yaPedidoDetalle(t.pedido);
+  const sinContar = pedidoAparte(t.pedido).map((f) => ` ${f.charAt(0).toUpperCase()}${f.slice(1)}.`);
+  return `${alcance} ${tieneVienen.charAt(0).toUpperCase()}${tieneVienen.slice(1)}${nunca}.${tarde}${lejos}${yaPedido ? ` ${yaPedido}` : ""}${sinContar.join("")}`;
 }
 
 /** La venta más alta de la tienda: el ranking se mide contra ella, aunque haya un filtro (así un tipo no parece vender más). */

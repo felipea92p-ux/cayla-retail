@@ -24,8 +24,8 @@ function unidades(v: unknown): number {
   return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
 }
 
-/** Una fecha de calendario de verdad (YYYY-MM-DD), o null. */
-function fecha(v: unknown): string | null {
+/** Una fecha de calendario de verdad (YYYY-MM-DD), o null. También la lee `analisis-pedido-en-camino-lectura.ts`. */
+export function fechaDeCalendario(v: unknown): string | null {
   if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
   const [a, m, d] = v.split("-").map(Number);
   const f = new Date(Date.UTC(a, m - 1, d));
@@ -55,7 +55,7 @@ export function leerPorLlegar(v: unknown): Record<string, LlegadaPrenda[]> | nul
     const varianteId = texto(crudo.variante_id);
     const cantidad = unidades(crudo.cantidad);
     if (!varianteId || !esOrigen(crudo.de) || cantidad === 0) continue;
-    const parte: LlegadaPrenda = { de: crudo.de, cantidad, fecha: fecha(crudo.fecha) };
+    const parte: LlegadaPrenda = { de: crudo.de, cantidad, fecha: fechaDeCalendario(crudo.fecha) };
     const partes = porVariante.get(varianteId) ?? [];
     const igual = partes.find((p) => p.de === parte.de && p.fecha === parte.fecha);
     if (igual) igual.cantidad += parte.cantidad;

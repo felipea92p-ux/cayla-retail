@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import type { PrendaAnalisis, ProveedoresAnalisis } from "./analisis-tipos";
+import type { PartePedido, PrendaAnalisis, ProveedoresAnalisis } from "./analisis-tipos";
 
 // «A quién pedir» (A8, F1) como sale del servidor: es el modo «Por proveedor» de la pestaña «Se está acabando» (otra forma de ver la misma lista, no una
 // tarjeta encima del carril). Qué dibuja y, sobre todo, cuándo NO dibuja nada. Vitest no resuelve el alias `@/`: las piezas puras se entregan por ruta
@@ -58,6 +58,7 @@ vi.mock("@/components/ui/VerMas", async () => await import("../components/ui/Ver
 vi.mock("@/lib/analisis-reglas", async () => await import("./analisis-reglas"));
 vi.mock("@/lib/analisis-acaba", async () => await import("./analisis-acaba"));
 vi.mock("@/lib/analisis-a-quien-pedir", async () => await import("./analisis-a-quien-pedir"));
+vi.mock("@/lib/analisis-pedido-en-camino-reglas", async () => await import("./analisis-pedido-en-camino-reglas"));
 
 import { AQuienPedir } from "../components/analisis/AQuienPedir";
 import { PestanaAcaba } from "../components/analisis/PestanaAcaba";
@@ -196,9 +197,9 @@ describe("«A quién pedir» dentro de la pestaña «Se está acabando»", () =>
   })();
   const sinNada = modelo("m1", 2);
 
-  function pestana(filtro: "todos" | "comprar" | "llega", proveedores: ProveedoresAnalisis | null = SEIS, modoInicial?: "dias" | "proveedor", prendas = [viene, sinNada], acceso = ACCESO) {
+  function pestana(filtro: "todos" | "comprar" | "llega", proveedores: ProveedoresAnalisis | null = SEIS, modoInicial?: "dias" | "proveedor", prendas = [viene, sinNada], acceso = ACCESO, pedido: PartePedido[] | null = null) {
     pantalla.valor = {
-      datos: { prendas, fallas: [], preparacion: [], hoy: HOY, proveedores },
+      datos: { prendas, fallas: [], preparacion: [], hoy: HOY, proveedores, pedido },
       acceso: { ...acceso, pedir: false },
       prendas,
       liquidarDesde: 60,
@@ -222,6 +223,40 @@ describe("«A quién pedir» dentro de la pestaña «Se está acabando»", () =>
     expect(html).toMatch(/<button[^>]*role="radio" aria-checked="true"[^>]*data-guia="analisis.acaba-modo-dias"/);
     // Los filtros y el segmento comparten la cabecera; el segmento va a la derecha de todo (no se mueve al cambiar de forma).
     expect(html.indexOf("filtro-a")).toBeLessThan(html.indexOf("segmento-cayla"));
+  });
+
+  // Lo ya pedido (A4): una orden se pide por tipo y marca, así que se dice en la fila de «Comprar» de ese TIPO; nunca cambia dónde cae la prenda.
+  describe("lo ya pedido en la fila de «Comprar»", () => {
+    const orden = (parcial: Partial<PartePedido> = {}): PartePedido => ({ de: "orden", categoria: "Blusas", prefijo: "BLU", marca: "Marca Uno", cantidad: 40, fecha: "2026-11-12", numeros: [12], ...parcial });
+    const notas = (html: string) => [...html.matchAll(/<span class="pidelo-q">(Ya pedido[^<]*|Pedido atrasado[^<]*|El proveedor debe[^<]*)<\/span>/g)].map((m) => m[1]);
+
+    it("dice «Ya pedido: 40 Blusas» y cuándo llegan, solo en la fila que sigue en «Comprar»; la que ya viene no lo lleva", () => {
+      const html = pestana("todos", SEIS, "dias", [viene, sinNada], ACCESO, [orden()]);
+      expect(notas(html)).toEqual(["Ya pedido: 40 Blusas"]);
+      expect(html).toContain('<span class="pidelo-f">llegan el 12 nov.</span>');
+      expect(html).toContain("Hay una orden abierta de Blusas (de Marca Uno · OC-000012).");
+    });
+
+    it("NO cambia en qué grupo cae la prenda: el filtro «Comprar» sigue teniendo la misma fila y la de «Por llegar» la misma", () => {
+      const sin = pestana("comprar", SEIS, "dias", [viene, sinNada], ACCESO, null);
+      const con = pestana("comprar", SEIS, "dias", [viene, sinNada], ACCESO, [orden()]);
+      expect(sin).toContain("<h4>Cómprala <i>1</i></h4>");
+      expect(con).toContain("<h4>Cómprala <i>1</i></h4>");
+      expect(pestana("llega", SEIS, "dias", [viene, sinNada], ACCESO, [orden()])).toContain("<h4>Ya viene <i>1</i></h4>");
+    });
+
+    it("lo que no suma también se dice, sin prometer que llega: sin fecha, atrasado y lo que el proveedor debe", () => {
+      expect(notas(pestana("comprar", SEIS, "dias", [sinNada], ACCESO, [orden({ fecha: null })]))).toEqual(["Ya pedido: 40 Blusas"]);
+      expect(pestana("comprar", SEIS, "dias", [sinNada], ACCESO, [orden({ fecha: null })])).toContain("sin fecha de entrega");
+      expect(notas(pestana("comprar", SEIS, "dias", [sinNada], ACCESO, [orden({ fecha: "2026-10-10" })]))).toEqual(["Pedido atrasado: 40 Blusas"]);
+      expect(notas(pestana("comprar", SEIS, "dias", [sinNada], ACCESO, [orden({ de: "reposicion", fecha: null })]))).toEqual(["El proveedor debe 40 Blusas"]);
+    });
+
+    it("no dice nada si no hay nada pedido de su tipo, si es de otro tipo, si es solo de la red, o si no se pudo leer (null)", () => {
+      for (const pedido of [null, [], [orden({ categoria: "Polos" })], [orden({ de: "taller", marca: null }), orden({ de: "por_repartir" })]]) {
+        expect(notas(pestana("comprar", SEIS, "dias", [sinNada], ACCESO, pedido))).toEqual([]);
+      }
+    });
   });
 
   it("el título del carril sale del FILTRO y su número es el del filtro: Todos «Se están acabando», Comprar «Cómpralas», Por llegar «Ya vienen»", () => {

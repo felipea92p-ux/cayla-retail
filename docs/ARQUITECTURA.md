@@ -576,7 +576,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   tienda (las prendas de cada una, en un jsonb; pide Análisis, no operar la sede; migración `20261006214000`, y `20261007120000` le suma
   `salio_al_piso` y `llego` y cuenta los días desde el piso; se lee con `lib/analisis-sede-lectura.ts`, que marca `sabePiso` si la base ya
   trae los campos nuevos); `lib/analisis-por-llegar.ts:getPorLlegar` → RPC `fn_analisis_por_llegar` (lo que viene en camino, por
-  prenda, `20261006215000`); `lib/analisis-liquidar.ts:getLiquidarDesde` → RPC `fn_liquidar_desde` («Liquidar desde», uno para todos: tabla
+  prenda, `20261006215000`); `lib/analisis-pedido-en-camino.ts:getPedidoEnCamino` → RPC `fn_analisis_pedido_en_camino` (lo YA PEDIDO que no llegó, por tipo y marca y sin
+  dinero: órdenes de compra abiertas, envíos del proveedor, lo que el proveedor debe reponer («No vino» o devuelto, solo diferencias vigentes) y, de la red, lo por repartir y la producción del Taller en proceso;
+  `20261017043000`, A4; se lee con `lib/analisis-pedido-en-camino-lectura.ts` y lo que suma lo decide `lib/analisis-pedido-en-camino-reglas.ts`); `lib/analisis-liquidar.ts:getLiquidarDesde` → RPC `fn_liquidar_desde` («Liquidar desde», uno para todos: tabla
   `parametros_analisis`, `20261006216000`); `lib/analisis-rinde.ts:getRindePorCategoria` → RPC `fn_resumen_comparacion_json` con A = B = los
   últimos 90 días de mi tienda (lo que más rinde por tipo, sin migración; la cuenta es `rindePorCategoria`, `lib/analisis-pedir.ts`);
   `getConteosResumen` (`fn_conteos_resumen`: el último conteo cerrado) y `getPedidosNoAtendidos` («Te pidieron y no había»). Los días de
