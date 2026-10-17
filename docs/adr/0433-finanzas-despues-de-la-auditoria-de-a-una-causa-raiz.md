@@ -253,3 +253,9 @@ vuelve a crear `fn_asientos` copiando su texto de un archivo viejo (revierte el 
 **Verificado.** `pnpm pruebas:finanzas-apartados-por-pago`: 16 verificaciones con las RPC reales (`separar_prendas`, `abonar_separacion`, `registrar_devolucion_separacion`, `entregar_separacion`), 7 fallan sin la
 migración y las 16 pasan con ella; `fn_asientos` y `fn_bal_anticipos` tenían la misma huella en local y en producción (f2e74089… y b7fc4c42…), así que los reemplazos anclados caben en producción. **No verificado en
 el navegador:** la base local compartida no tiene la migración.
+
+## En producción: actividades 8, 9 y 10 (2026-10-16, con el OK de Felipe)
+
+Felipe respondió «Sí, las tres ahora». Cada una con sonda de huellas antes, un ensayo en un lote que termina en `1/0` (llegó al final sin abortar ningún ancla: nada se confirmó) y el pegado con `apply_migration`, en este orden: `20261017010000_finanzas_una_regla_de_alcance` → versión de producción
+`20261017021648`; `20261017012000_finanzas_mes_cerrado_se_queda_cerrado` → `20261017021745`; `20261017014000_finanzas_apartados_por_dia_de_pago` → `20261017021836`. **Las 15 funciones tocadas quedaron con el md5 de su cuerpo, la volatilidad y los permisos idénticos a los de local** (las funciones nuevas, solo `postgres`).
+Humo como líder (solo lectura, en una transacción que se revierte): octubre trae 4 469 líneas en el diario vivo y en el congelado (`fn_diario`, sin mes cerrado), 0 asientos descuadrados, el Estado de resultados 6 filas, el Balance por tienda 4 filas, y `APT-TRU-0006` se asienta por pago: 9-oct 30.00 (122 25.42, IGV 4.58), 14-oct 30.00 (25.42, 4.58) y 15-oct 29.90 (25.34, 4.56). Por pegar quedan, de este PR, solo el aviso al contador y la decisión sobre anular la entrega de un apartado.
