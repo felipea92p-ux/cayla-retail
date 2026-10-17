@@ -16,14 +16,19 @@ Felipe se lleva: una migración (`20261017035000`) **pegada en producción el 16
 ## 2026-10-16 (Finanzas: la venta que entrega un apartado ya no se puede anular)
 Qué hice: la revisión de los abonos de apartado encontró que anular la venta de la entrega de un apartado dejaba el adelanto de la clienta colgado en el libro (la 122) y bloqueaba la conciliación; con tu regla («que la rechace con un mensaje») `anular_venta` ahora dice «esta venta es la entrega del apartado APT-…, usa Devolución», y el historial deja de ofrecer «Anular venta» en esas ventas.
 Por qué así: rechazar es lo más barato y lo más seguro para algo que casi nunca es legítimo; devolver el apartado a «liberada» habría tocado stock apartado y estados.
-Felipe se lleva: una migración (`20261017040000`, un reemplazo anclado) **lista y probada en local, sin pegar en producción: espera tu OK**.
+Felipe se lleva: una migración (`20261017040000`, un reemplazo anclado) **pegada en producción el 17-oct con tu OK** (`20261017153410`).
 
 ## 2026-10-16 (Finanzas: el saldo a favor de IGV con que CAYLA arrancó tiene dónde cargarse)
 Qué hice: Impuestos y «¿Me alcanza?» partían de cero y decían que se pagan S/ 9 322 de IGV, ignorando el crédito fiscal con que CAYLA ya arrancó. Ahora hay un campo en Configuración ▸ Impuestos, «Saldo a favor de IGV al empezar» (el contador te da el número, de la última declaración), y el IGV de cada mes parte de ahí; mientras no esté cargado, «lo que falta» de la proyección lo pide.
 Por qué así: lo oficial manda sobre lo calculado con datos incompletos, y mientras las facturas de antes no estén en Compras, este campo es el único lugar donde el escudo fiscal puede entrar. Sin nada cargado, las pantallas dicen exactamente lo de hoy.
-Felipe se lleva: una migración (`20261017041000`) **lista y probada en local, sin pegar en producción: espera tu OK**; y una tarea tuya: pedirle al contador el saldo a favor de la última declaración y el mes en que empieza, para cargarlo en Configuración ▸ Impuestos.
+Felipe se lleva: una migración (`20261017041000`) **pegada en producción el 17-oct con tu OK** (`20261017153429`); y una tarea tuya: pedirle al contador el saldo a favor de la última declaración y el mes en que empieza, para cargarlo en Configuración ▸ Impuestos.
 
 ## 2026-10-17 (Finanzas: la revisión de 10b y 4b encontró tres cosas, arregladas)
 Qué hice: 43 agentes revisaron 10b (anular la venta de un apartado) y 4b (saldo a favor de IGV); sobrevivieron 3 hallazgos. El de fondo: la venta de un pedido web ya ENTREGADO también se podía anular y dejaba su pago colgado en los adelantos de clientes, igual que el apartado; la misma migración 10b ahora la rechaza y manda a Devolución. En la hoja del saldo de IGV, el mes se elige de una lista (en Safari de escritorio era una caja de texto que aceptaba «2026-13») y el aviso ya no dice «S/ NaN».
 Por qué así: es la misma regla que Felipe decidió para los apartados, aplicada a su gemelo; la migración sigue sin pegar, así que se ajusta en el mismo archivo y se prueba desde cero y dos veces.
-Felipe se lleva: nada nuevo que decidir; el OK para pegar 10b (`20261017040000`, ahora con los dos rechazos) y 4b (`20261017041000`) sigue pendiente.
+Felipe se lleva: nada nuevo que decidir; 10b (`20261017040000`, ahora con los dos rechazos) y 4b (`20261017041000`) se pegaron el 17-oct con tu OK.
+
+## 2026-10-17 (Finanzas: 10b y 4b pegadas en producción, y lo que el CI enseñó)
+Qué hice: con tu OK («cuando el CI esté verde»), pegué en producción la 10b (anular la venta de un apartado o de un pedido web entregado ya se rechaza) y la 4b (el campo del saldo a favor de IGV). Antes: sonda de las 8 anclas por huella sacada de los archivos, ensayo con `1/0`; después: cada bloque nuevo aparece una vez, las huellas de tres de las cuatro funciones son las de local y un humo como líder, revertido, mostró el saldo partiendo el IGV de octubre y a `APT-TRU-0006` rechazada. El CI de #1154 había fallado una vez por mí: la suite `no_deducible` volvía a pegar una migración vieja y mi 4b cambió el texto que su ancla reconoce; la arreglé. #1145 se fusionó con squash, así que #1154 se resolvió sin rebase ni force.
+Por qué así: en mis corridas locales di por «preexistente» una suite que fallaba igual en las dos bases sin mirar por qué fallaba; era la misma que el CI puso en rojo.
+Felipe se lleva: cargar en Configuración ▸ Impuestos el saldo a favor de IGV de la última declaración (hay que pedírselo al contador, con el mes en que empieza); mientras no esté cargado, «¿Me alcanza?» lo lista en «lo que falta».
