@@ -175,3 +175,53 @@ construyen **adaptados a lo que hoy existe en producción**. Lo de arriba queda 
 - **Pruebas:** `scripts/pruebas/estado_resultados.mjs` (73 verificaciones en la base local, con ROLLBACK). Porta las del PR
   #170 y mide el volumen con un año de datos.
 - Detalle, las reglas de posteo una por una para el contador y lo que queda pendiente: `docs/finanzas/fases/F5.md`.
+
+## Actualización 2026-10-17 — la reversa de un cobro sale por su cuenta; `'sale'` no quiere decir «reembolso»
+
+**El problema primero.** La sesión de las máquinas de cobro (ADR-0429, PR #1138) leyó la migración original del diario
+(`20260925130000`) y vio que las cuatro devoluciones de plata a un cliente —la anulación de una venta («Se devuelve el cobro»),
+el reembolso de una devolución aprobada, la diferencia que se le devuelve en un cambio y el adelanto devuelto de un apartado—
+llamaban a `fn_asiento_cuenta_de_medio(medio, 'sale')`, que con tarjeta da **451** (la tarjeta de crédito de CAYLA): una
+devolución a un cliente que pagó con tarjeta se asentaría como una deuda nueva de CAYLA con el banco, no como plata que sale del
+POS. Se propuso como defecto y como tarea aparte.
+
+**Lo verificado el 2026-10-17 (producción, solo lectura): ese defecto ya no existe.** F7 (`20260925170000_finanzas_balance.sql`,
+ADR-0195) lo arregló el mismo 25 de septiembre con un reemplazo anclado sobre la función viva: las cuatro reversas llaman con
+`'entra'` desde entonces. En la función viva de producción ninguna de esas líneas tiene `'sale'`, y ninguna migración
+posterior la recreó entera (las de octubre parchan por ancla, así que el arreglo sobrevivió). `docs/finanzas/fases/F7.md` ya lo
+contaba; lo que engañó fue el comentario que la propia función guarda en la base —«'sale' (pagos, reembolsos a la clienta)»—,
+que es de antes de F7 y dice lo contrario del convenio. En producción, al 2026-10-17, no hay ninguna anulación, devolución ni
+cambio con tarjeta: no hay nada que corregir.
+
+**El convenio (manda esto):**
+- **`'entra'` es el lado de caja o banco de un cobro Y de su reversa.** La plata vuelve por donde entró. Con tarjeta, la 105 (por
+  abonar): el POS descuenta la anulación o la devolución del siguiente abono, y la puente se netea sola con el `abono_tarjeta`
+  (104 | 105). Con QR, desde ADR-0429, igual. El diario no necesita saber si el POS ya abonó: cuando la devolución se paga de otra
+  forma (efectivo del cajón, Yape, una transferencia desde el banco), ese medio ya viene en `reembolso_metodo`,
+  `metodo_pago_diferencia` o `devolucion_medio_real`, y la reversa va por él.
+- **`'sale'` es SOLO lo que CAYLA paga con un medio propio:** gastos, activos, pagos a proveedor. Con tarjeta, la 451: la tarjeta de
+  crédito de CAYLA, una deuda.
+- Una regla nueva de `fn_asientos` que devuelva plata a un cliente llama con `'entra'` (así lo hizo `fn_asientos_pedidos_web`,
+  `20261015053000`). Nunca con `'sale'`.
+
+DECIDÍ: no tocar `fn_asiento_cuenta_de_medio` ni `fn_asientos`; dejar el convenio escrito aquí y ponerle un candado en el CI.
+DESCARTÉ: (a) cambiar `('tarjeta', 'sale')` a 105 — rompería los gastos, activos y pagos a proveedor pagados con la tarjeta de
+crédito de CAYLA, que pasarían a verse como cobros por abonar; (b) un tercer sentido (`'devuelve'`) — agrega un valor a una
+función que ya tiene el convenio resuelto y usado dos veces (F7 y pedidos web), y obligaría a parchar otra vez las cuatro líneas
+de `fn_asientos` en producción sin cambiar ningún número; (c) «si el POS ya abonó, al banco» — el diario es derivado y no tiene
+cómo saberlo línea por línea, y además el POS no devuelve desde el banco: descuenta del próximo abono.
+SE ROMPE SI: alguien recrea `fn_asientos` desde el archivo original (`create or replace` con el texto de `20260925130000`) en vez
+de parchar la viva: el arreglo de F7 se pierde sin ruido y la reversa con tarjeta vuelve a la 451. Por eso el candado de abajo.
+
+**El candado.** `scripts/pruebas/reversa_de_cobro_por_su_cuenta.mjs` (`pnpm pruebas:reversa-de-cobro`, en las tandas de
+Postgres del CI): por cada medio (efectivo, tarjeta, Yape, Plin, transferencia; QR en la anulación, la única reversa que hoy lo
+acepta), la anulación, la devolución, la diferencia devuelta del cambio y el adelanto devuelto salen por la cuenta del cobro y
+nunca por la 451; con tarjeta, esa cuenta es la 105; el contraste (un gasto con la tarjeta de CAYLA sí va a la 451); cada asiento
+cuadra; y una **autoprueba** que vuelve `fn_asientos` a su versión original dentro de la misma transacción y exige que los casos
+de tarjeta se pongan rojos (si no, la prueba estaría ciega). 28 verificaciones, con ROLLBACK, en mayo de 2034. Se corrió también
+con el parche `qr → 105` de ADR-0429 puesto: los dos conviven en cualquier orden, porque esta prueba no toca
+`fn_asiento_cuenta_de_medio` y exige «la misma cuenta que el cobro», no un código.
+
+**Pendiente (una línea, sin migración propia):** el comentario de `fn_asiento_cuenta_de_medio` en la base (`comment on
+function`) sigue con el texto viejo. Conviene corregirlo en la migración de ADR-0429, que ya parcha esa misma función, en vez de
+una migración aparte que Felipe tendría que pegar sola.
