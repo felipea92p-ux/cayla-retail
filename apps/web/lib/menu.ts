@@ -348,8 +348,8 @@ export const ARBOL: readonly Nodo[] = [
   // Tienda web (ADR-0430, Felipe 2026-10-16): todo lo de la tienda online en un solo lugar. Antes estaba repartido en tres menús y una
   // pestaña: Ventas ▸ Pedidos web, Catálogo ▸ Vitrina web, Clientes ▸ Recomendaciones y Configuración ▸ Tienda web (ADR-0408). Va
   // justo después de Ventas porque es el otro canal de venta, y sus pedidos se atienden a diario en la tienda. Cada hija conserva SU
-  // módulo (nadie gana ni pierde un permiso al mudarse): Ajustes lo abre el módulo Configuración, el mismo que guardaba esa pestaña
-  // (`fn_puede_configurar`). Sin `conservaNombre`: un rol que ve una sola hija ve la fila «Tienda web», y la pantalla dice cuál es
+  // módulo (nadie gana ni pierde un permiso al mudarse), salvo Ajustes: llegó con el de Configuración y desde 20261016223000 tiene el suyo
+  // («Datos y plazos de la tienda web», `fn_puede_ajustes_tienda_web`). Sin `conservaNombre`: un rol que ve una sola hija ve la fila «Tienda web», y la pantalla dice cuál es
   // (su cabecera lleva «Tienda web» tras la fecha). Con este grupo el primer nivel pasa a 9 filas: `TOPE_FILAS` en menu.test.ts.
   {
     id: "tiendaWeb", etiqueta: "Tienda web", estado: "viva", icono: "tiendaWeb", raiz: "/tienda-web", pajaro: "07 Colibrí",
@@ -366,9 +366,10 @@ export const ARBOL: readonly Nodo[] = [
       // sede donde se está parado: en CAYLA Global no se abre (no es de la vista global).
       { id: "tiendaWeb.recomendaciones", modulo: "recomendaciones", etiqueta: "Recomendaciones", estado: "viva", ruta: "/tienda-web/recomendaciones", icono: "recomendaciones", pajaro: "07 Colibrí" },
       // Lo que la web muestra de cada tienda y los plazos de los pedidos (ADR-0408, actividad 6). Era la pestaña «Tienda web» de
-      // Configuración; la abre el mismo módulo. El dato es del Ganso, como el resto de Configuración. `soloConModulo`: con la regla fija de
-      // antes de los roles (un perfil sin módulos) Configuración tampoco estaba en el lateral, así que esta fila no le aparece a nadie.
-      { id: "tiendaWeb.ajustes", modulo: "configuracion", soloConModulo: true, etiqueta: "Ajustes", estado: "viva", ruta: "/tienda-web/ajustes", icono: "ajustesWeb", pajaro: "01 Ganso" },
+      // Configuración y la abría su módulo; desde 20261016223000 tiene el suyo («Datos y plazos de la tienda web»). El rótulo dice qué
+      // hay dentro: «Ajustes» a secas era demasiado general. El dato sigue siendo del Ganso, como el resto de Configuración.
+      // `soloConModulo`: antes de los roles (un perfil sin módulos) esta pantalla no existía, así que la fila no le aparece a nadie.
+      { id: "tiendaWeb.ajustes", modulo: "ajustes_web", soloConModulo: true, etiqueta: "Datos y plazos", estado: "viva", ruta: "/tienda-web/ajustes", icono: "ajustesWeb", pajaro: "01 Ganso" },
     ],
   },
 

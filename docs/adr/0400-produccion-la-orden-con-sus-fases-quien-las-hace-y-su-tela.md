@@ -415,3 +415,60 @@ de cada rechazo) y la guía recorrida en navegador a 1440 px y a 375 px (22 paso
 **Para producción (con tu OK, en este orden; todas son `create or replace function`/tablas nuevas, sin políticas, idempotentes):** `20261014154000`, `20261014155000`, `20261014160000`, `20261015005000`, `20261015160000`, `20261015165000`, `20261015172000`, `20261015173000`. Verificado en solo lectura el 2026-10-16: producción no tiene ninguna de las tablas ni funciones nuevas, y sí todo lo que necesitan (19 funciones y 16 tablas que usan sin crear, la recepción de `main` incluida).
 
 **Pendiente aparte (Felipe, 2026-10-15):** retirar el cajón viejo de las órdenes de antes de las fases (~1 270 líneas) en un PR propio, después del despliegue y recontando las órdenes abiertas sin fases (hoy `retail.producciones` tiene 0 filas).
+
+## Actualización 2026-10-16 (k) · la ronda de 36 preguntas: lo que Felipe contestó y qué cambia de lo construido
+
+**Contexto.** El rediseño se fusionó a `main` el 2026-10-16 (PR #1140) y sus 8 migraciones están en producción, donde **todas las tablas de Producción siguen en 0 filas**
+(verificado con `SELECT` después de la fusión). Felipe pidió «investigar bien en lugar de diseñar a ciegas»: una investigación de 11 agentes sobre cómo se produce de verdad
+una prenda y una ronda de 36 preguntas en 10 llamadas (35 del banco y 5 de seguimiento; P-12 diferida). Todo está en
+`docs/investigacion/2026-10-16-ordenes-de-produccion-proceso-real/`: `README.md` (informe), `13-respuestas-de-felipe.md` (cada respuesta) y `14-lo-que-cambia-en-adr-0400.md`.
+**Lo de abajo sustituye o matiza lo indicado; el resto de este ADR sigue en pie.**
+
+**Lo que se sustituye o se matiza (decisiones de Felipe; no re-preguntar):**
+1. **d.2 · las fases.** Cada orden: **Ploteo · Corte · Costura · Ojales y botones · Limpiar hilos y revisar · Planchado · Etiquetar y embolsar**; cada paso lo hace el Taller o un
+   servicio («depende»). **Patronaje y Muestreo** viven en el modelo, una sola vez, no en la orden. **Bordado, estampado y lavandería no se usan por ahora** («luego podemos
+   ampliar»). Antes: Corte · Costura · Acabado más tres opcionales (P-13, N-1).
+2. **d.4 y A6 · «las segundas no entran al stock».** Una prenda con falla chica **se arregla y cuenta como buena**; la arregla el Taller, también la que devuelve un servicio, y
+   el arreglo no se costea (P-06, P-06b).
+3. **d.6 · la tela.** Se compra **también por kilo** (el punto); Audaces da un número por marcada, en metros, y se convierte a kilos con el gramaje y el ancho de cada tela
+   (P-19, P-20, N-2). **Lo medido manda sobre Audaces solo desde la tercera orden cerrada del modelo**, no desde la primera (P-21). La tela se revisa y mide al llegar; reposo y
+   lote de tinte no se anotan (P-23, P-24).
+4. **d.7 · el avance.** El tope de cortar de más es de **3 prendas por talla y color**, no 10 % (P-22, N-3). **Una fase puede cerrar corta, con su motivo, si la encargada la da por
+   terminada** (P-04); quien hace «Limpiar hilos y revisar» declara «buena» con su visto (P-26); el lote pasa al stock una sola vez, sin entregas por tandas (P-27).
+5. **D-31 y d.5 · el costo.** La prenda queda con costo limpio (tela, avíos y servicios). El costo del Taller por prenda (planilla y gastos ÷ prendas terminadas del mes) se ve
+   **aparte, por mes**, sin anotar horas; el cierre muestra primero costo, metros y buenas (P-07, P-31, P-32). El contador debe confirmar cómo cierra el costo de ventas.
+6. **d.1 · quién anota.** El sistema es el **único registro** (P-08); anota la encargada (P-11); la gente del Taller cobra sueldo mensual, así que el dato por persona no hace
+   falta (P-07; P-12 diferida).
+7. **Anular.** Anular una orden con tela ya cortada **pregunta qué se hace** con lo cortado (otra orden, liquidar o botar, con motivo); ya no vuelve toda al estante (P-05).
+
+**Se confirma sin cambios:** d.3 (una fase, un solo «quién»; para partir, dos órdenes, P-16); d.5 (tarifa por prenda, aviso del mínimo que no bloquea, P-36; sin adelantos,
+P-15); la fecha que importa al abrir es la que sale del Taller (P-33); la tela la pone CAYLA y la manda cortada (P-01); la guía de remisión sigue como un comentario breve
+(P-02: el riesgo —SUNAT pide guía antes de mover mercadería— se le informó y la decisión de diferirlo es de Felipe; el contador sigue con la lista de `04` §8).
+
+**Lo nuevo (decidido, no construido):** cada orden guarda si es **reposición o novedad y a qué tienda va** (P-34); marca **«urgente»** con su fecha (P-35); **cambiar una orden
+abierta con motivo** (P-29); **quién aprobó la muestra** de un modelo nuevo (P-28); papeles del servicio: factura, boleta, recibo o nada, y «sin factura» marcado (P-14, P-17);
+señal de atraso del servicio (P-30); la dirección del Taller (declarado ante SUNAT, P-03); y la rúbrica o contrato simple para servicios (P-18; borrador aparte).
+
+**Supuestos míos (cada uno cambia en una línea):** «Limpiar hilos y revisar» va antes de «Planchado»; **Ojales y botones es opcional según el modelo y los otros seis pasos van
+siempre**; Ploteo no cuenta prendas y se marca con un toque «hecho», los demás con «Terminé N de M»; bordado, estampado y lavandería **siguen en el catálogo de la base y se apagan
+en pantalla**; Patronaje y Muestreo se registran en el modelo (quién y cuándo), sin tarifa, hasta que haga falta.
+
+**Cómo se aplica a lo ya construido y pegado.** Tres hechos mandan: la web del rediseño **ya está desplegada** y habla con las seis claves de fase actuales; producción tiene
+**0 filas** en todas las tablas de Producción, así que cambiar el esquema ahora **no migra datos** (esa ventana se cierra con la primera orden real); y un cambio de esquema en
+producción **lo confirma Felipe**. Regla: **expandir, cambiar la web y recién entonces contraer** (la base acepta las claves viejas y las nuevas, la web pasa a las nuevas; no se
+borra nada). El orden y el detalle por objeto están en `docs/investigacion/2026-10-16-ordenes-de-produccion-proceso-real/16-como-aplicarlo-a-lo-ya-pegado.md`:
+- **R1** las fases nuevas (`produccion_fases_clave_check`, `proveedor_tarifas_fase_clave_check`, `fn_fase_secuencia`, `fn_fase_nombre`, `fn_produccion_fases_normalizar`,
+  `fn_fases_de_orden` y la web): **va primero y en un solo pegado con las columnas nuevas de R3, R4 y R5**, antes de la primera orden real.
+- **R2** el tope de 3 (`fn_produccion_entrada_variante`, hoy ×1,10); el techo de cierre de ADR-0415 queda como segunda red.
+- **R3** fase corta con motivo y «se arregla y cuenta» (función nueva; hoy una fase del Taller que termina corta nunca queda «hecha»).
+- **R4** kilos y «lo medido manda con 3 órdenes» (`insumos`, `cerrar_produccion`): **toca stock y dinero, OK aparte de Felipe**; antes, un reporte real de Audaces y una factura
+  de punto para fijar la conversión.
+- **R5** datos al abrir (reposición o novedad, tienda, urgente, quién aprobó).
+- **R6** anular con tela cortada (`anular_produccion`): **toca stock y dinero, OK aparte**.
+- **R7** cambiar una orden abierta con motivo · **R8** costo del Taller por mes, cifras del cierre y señal de atraso (lecturas) · **R9** papeles del servicio
+  (`comprobantes_produccion.tipo` hoy solo admite factura, boleta y nota de venta) · **R10** dirección del Taller en `ubicaciones` (un dato; no se versiona).
+Cada una con `/construir` (un commit por actividad), las suites de base de Producción (los parches por md5 se suman a sus `DESHACER_*`), `/chaos` en lo que guarda, y la guía, la
+huella y los escenarios de tema que toque.
+
+**Qué se rompe si** se cambia la web antes que la base: la hoja «Nueva orden» manda claves que `produccion_fases_clave_check` rechaza. Y si se contrae primero (quitando
+`acabado`) con la web vieja desplegada, esa misma hoja deja de abrir órdenes. Por eso: expandir, web, contraer.

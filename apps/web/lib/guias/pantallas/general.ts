@@ -977,7 +977,21 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.tiendas-normal",
       opcional: true,
       titulo: "Lo normal de cada tienda",
-      texto: "La meta de venta de cada día de la semana, el fondo que queda en el cajón al cerrar y la hora de cierre. De aquí salen la meta del Inicio, la de Rendimiento y el aviso de cierre de caja.",
+      texto: "La semana tipo: la meta de venta de cada día de la semana, el fondo que queda en el cajón al cerrar y la hora de cierre. De aquí salen la meta del Inicio, la de Rendimiento y el aviso de cierre de caja, salvo que el mes o la fecha tengan la suya.",
+    },
+    {
+      id: "tiendas-meses",
+      ancla: "config.tiendas-meses",
+      opcional: true,
+      titulo: "Una meta distinta cada mes",
+      texto: "La semana tipo vale todo el año, pero diciembre vende casi el doble que octubre. Aquí cada mes tiene su propia semana, de lunes a domingo; lo que dejas vacío usa la semana tipo, que se ve en gris. La meta del mes es la suma de los días.",
+    },
+    {
+      id: "tiendas-fechas",
+      ancla: "config.tiendas-fechas",
+      opcional: true,
+      titulo: "Un día con su propia meta",
+      texto: "Para Nochebuena, Año Nuevo o un feriado: la meta de una fecha gana sobre la semana del mes y sobre la campaña. Con 0, esa tienda no abre ese día. «+ Agregar» pide la fecha, la tienda y la meta; la nota es opcional.",
     },
     {
       id: "tiendas-whatsapp",
