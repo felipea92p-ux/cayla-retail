@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /**
  * Pruebas de la lectura del motor del piso (ADR-0328, actividad 7) — `retail.fn_piso_plan_lectura(p_ubicacion_id)`,
- * migración `20261004213000_piso_plan_lectura.sql`. CAYLA V2.
+ * migraciones `20261004213000_piso_plan_lectura.sql` (la lectura) y `20261005160100_piso_plan_cuenta_cerradas_sin_prenda.sql`
+ * (el contrato con ADR-0334: la anotada cuenta mientras no tenga prenda, también si se cerró sin prenda). CAYLA V2.
  *
  * LO QUE VIGILA. La lectura junta, en UN jsonb, lo que el motor puro de la web (`apps/web/lib/piso-plan.ts`) necesita de una sede:
  * lo libre en piso y almacén de cada talla, lo vendido escaneado de cada prenda (hoy, ayer, 14 días) y lo vendido en 14 días por
- * categoría × talla × familia de color, contando también las ventas «sin registrar» que siguen pendientes. El error caro es
+ * categoría × talla × familia de color, contando también las ventas «sin registrar» que siguen sin prenda (pendientes o
+ * cerradas sin prenda por el cierre de arranque, ADR-0334). El error caro es
  * contar una venta dos veces —en la cola y como escaneada— o en el día en que se regularizó: Polos parecería vender el doble esa
  * semana y el Taller produciría de más (ADR-0328, decisión técnica 1, «SE ROMPE SI»).
  *
@@ -23,7 +25,11 @@
  *       son hoy en UTC); anulada, de prueba o de otra sede no cuentan, ni un producto de prueba vendido en una venta normal.
  *   A   ANOTADAS: la «sin registrar» pendiente suma en su categoría × talla × familia y no en ninguna talla de la sede; anulada
  *       o fuera de la ventana, no. Y las de hoy y ayer, por categoría × talla × color exacto (el reloj rápido de lo anotado),
- *       hasta que se regularizan y pasan a su prenda.
+ *       hasta que se regularizan y pasan a su prenda. Y las CERRADAS sin prenda (ADR-0334, con las funciones reales
+ *       `cerrar_cola_arranque` y `reabrir_prenda_cerrada`): la venta fue real y sigue sin prenda, así que cuenta igual que una
+ *       pendiente, una sola vez (A8), prende el reloj rápido (A9), reabrirla no cambia nada y regularizarla después la pasa a
+ *       escaneada sin duplicar (A10). A11 es el control: con el filtro viejo (solo 'pendiente', el cuerpo de 20261004213000) la
+ *       misma cerrada desaparece de la cuenta y del reloj, así que A8 y A9 no pasan por casualidad.
  *   U   UNA SOLA VEZ: al regularizarla con la función real (`regularizar_prenda`), la venta pasa de «anotada» a «escaneada» en el
  *       día en que se COBRÓ (hace 5 días), no hoy: el total de la sede no cambia, `vendidas_hoy` tampoco. Y la lectura asume
  *       que `regularizar_prenda` mueve la línea de venta a la prenda real: si alguien lo cambia, el caso lo dice.
@@ -37,8 +43,11 @@
  *   V   TALLAS DE LA BASE = la lista que recorre `apps/web/lib/piso-plan.test.ts` (TALLAS_DE_LA_BASE): si una migración o el seed
  *       agregan una talla, esta prueba pide sumarla allí, y así la regla de talla central la clasifica antes de que llegue a
  *       una tienda.
- *   M   LA MIGRACIÓN: se puede pegar dos veces; su guarda se detiene si la puerta todavía no conoce a las terminales; y la
- *       huella (md5) que su cabecera manda verificar en producción es la del cuerpo.
+ *   M   LAS MIGRACIONES: la de 20261004213000 se detiene si la puerta todavía no conoce a las terminales (M2). La que cuenta las
+ *       cerradas (20261005160100) es ANCLADA: se puede pegar dos veces (M1); sobre el cuerpo de 20261004213000 deja la huella de
+ *       su cabecera, la que se pegó el 2026-10-05 (M3); conserva lo que la función tenga en otro lugar (M4); sobre la de hoy no
+ *       cambia nada (M5); se detiene sin tocar nada si alguien cambió justo un filtro (M6); y antes o después del parche de
+ *       familias de 20261010232000 deja la misma función (M7: el CI aplica las migraciones de un PR después de las de main).
  *   N   NÚMEROS: ~800 unidades y ~150 ventas en una sede; se mide la lectura (mediana de 7) y `fn_existencias_base` se llama
  *       UNA sola vez por lectura (la CTE materializada; memoria «CTE con función cara»).
  *
@@ -57,7 +66,13 @@ const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const i = process.argv.indexOf("--base");
 const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 const leerMigracion = (nombre) => readFileSync(join(RAIZ, "supabase", "migrations", nombre), "utf8");
-const MIGRACION = leerMigracion("20261004213000_piso_plan_lectura.sql");
+// La que cuenta las anotadas pendientes Y las cerradas sin prenda (ADR-0334), anclada. La vigilan M1 y M3–M7.
+const MIGRACION = leerMigracion("20261005160100_piso_plan_cuenta_cerradas_sin_prenda.sql");
+// La de antes (PR #787, en producción desde el 2026-10-04): solo las pendientes. El control de A11, la guarda de M2 y el punto de partida de M1, M3, M4, M6 y M7.
+const MIGRACION_ANTERIOR = leerMigracion("20261004213000_piso_plan_lectura.sql");
+const HUELLA_ANTERIOR = "faff73d2a6db4c0692775c1f6d6e284d";
+// El parche por ancla de las bolsas de despacho, que también toca esta función: M7 prueba que el orden entre los dos no importa.
+const MIGRACION_FAMILIAS = leerMigracion("20261010232000_piso_demanda_y_plan_ignoran_familias_apagadas.sql");
 // La puerta ANTES de que ADR-0289 le enseñara la terminal (20260922170000): para probar la guarda.
 const PUERTA_SIN_TERMINAL = leerMigracion("20260922170000_alta_colaborador_requiere_aprobacion.sql").match(
   /create or replace function retail\.fn_tiene_acceso_retail\(\)[\s\S]*?\$\$;/
@@ -258,10 +273,11 @@ caso(
   "1,t,t,t,jsonb"
 );
 caso(
-  "F2 anon sin EXECUTE, authenticated con EXECUTE, y un comentario que dice qué es",
+  "F2 anon sin EXECUTE, authenticated con EXECUTE, y un comentario que dice qué es (y que la anotada cuenta mientras no tenga prenda)",
   `select concat_ws(',', has_function_privilege('anon', ${OID}, 'execute'), has_function_privilege('authenticated', ${OID}, 'execute'),
-     coalesce(obj_description(${OID}, 'pg_proc'), '') like 'ADR-0328 act. 7%');`,
-  "f,t,t"
+     coalesce(obj_description(${OID}, 'pg_proc'), '') like 'ADR-0328 act. 7%',
+     coalesce(obj_description(${OID}, 'pg_proc'), '') like '%la anotada cuenta mientras no tenga prenda%');`,
+  "f,t,t,t"
 );
 caso(
   "F3 las claves del contrato; hoy = día de Lima, desde = hoy − 13 (14 días, hoy incluido), separa_piso y tipo de la sede",
@@ -541,6 +557,79 @@ caso(
   "0,1;nada;1"
 );
 
+// Las CERRADAS sin prenda (ADR-0334): un líder cierra en bloque las anotadas de arranque de una tienda con la función real. La
+// Sede PP no tiene plazo (la siembra de 20261005100000 solo ve las tiendas que ya existían): se le abre uno aquí, como hace
+// `pnpm pruebas:cola-arranque`. `pg_temp.cierra(hasta)` cierra todas las pendientes de la Sede PP vendidas hasta ese momento.
+const CON_COLA = `
+insert into retail.cola_arranque_plazo (ubicacion_id, hasta) values (:'sede', retail.fn_hoy_lima() + 11);
+create function pg_temp.cierra(p_hasta timestamptz) returns uuid language sql as $$
+  select retail.cerrar_cola_arranque(current_setting('pp.sede')::uuid, p_hasta, 'no_se_sabe', 'Prueba del motor del piso')
+$$;
+`;
+caso(
+  "A8 una venta CERRADA SIN PRENDA sigue sumando como «anotada» en su categoría × talla × familia, una sola vez: el cierre no le pone prenda (la línea sigue en la centinela) ni escribe en el libro",
+  CON_COLA +
+    `select pg_temp.prenda('PP-A8', :'cat', 'M', :'neutro') as v \\gset
+     select pg_temp.stock(:'v', 1, 1);
+     select pg_temp.vende(:'v', 1, pg_temp.dia(3)) as _ \\gset
+     select pg_temp.anota(:'cat', :'t_m', :'neutro', pg_temp.dia(3)) as li \\gset
+     select pg_temp.atributo(:'sede', :'cat', 'M', 'neutro') as antes \\gset
+     select pg_temp.cierra(now()) as _cierre \\gset
+     select concat_ws(';', :'antes', pg_temp.atributo(:'sede', :'cat', 'M', 'neutro'), pg_temp.total_ventas(:'sede'),
+       (select estado from retail.prendas_por_regularizar where venta_item_id = :'li'),
+       (select (variante_id = '${CENTINELA}')::text from retail.venta_items where id = :'li'),
+       (select count(*) from retail.movimientos where venta_item_id = :'li'));`,
+  "1,1;1,1;2;cerrada_sin_prenda;true;0"
+);
+caso(
+  "A9 una cerrada de AYER prende el reloj rápido igual que una pendiente de ayer: cerrar la cola no cambia lo que se vendió ayer",
+  CON_COLA +
+    `select pg_temp.anota(:'cat', :'t_m', :'neutro', pg_temp.dia(1)) as _ \\gset
+     select pg_temp.reciente(:'sede', :'cat', :'t_m', :'neutro') as antes \\gset
+     select pg_temp.cierra(now()) as _cierre \\gset
+     select pg_temp.anota(:'cat', :'t_s', :'neutro', pg_temp.dia(1)) as _ \\gset
+     select concat_ws(';', :'antes', pg_temp.reciente(:'sede', :'cat', :'t_m', :'neutro'), pg_temp.reciente(:'sede', :'cat', :'t_s', :'neutro'),
+       (select string_agg(p.estado, '·' order by p.talla_id = :'t_m' desc) from retail.prendas_por_regularizar p where p.ubicacion_id = :'sede'));`,
+  "0,1;0,1;0,1;cerrada_sin_prenda·pendiente"
+);
+{
+  // La foto de cada paso: llave (escaneadas,anotadas) · reloj (hoy,ayer) · total de la sede · vendidas_ayer de la prenda · estado.
+  const foto = (nombre) =>
+    `select concat_ws(' ', pg_temp.atributo(:'sede', :'cat', 'M', 'neutro'), pg_temp.reciente(:'sede', :'cat', :'t_m', :'neutro'),
+       pg_temp.total_ventas(:'sede'), pg_temp.talla(:'sede', :'v') ->> 'vendidas_ayer',
+       (select estado from retail.prendas_por_regularizar where venta_item_id = :'li')) as ${nombre} \\gset\n`;
+  caso(
+    "A10 reabrir una cerrada no cambia la cifra (vuelve a pendiente: sigue contando una vez), y regularizarla después la pasa a escaneada en el día en que se cobró, sin duplicar",
+    CON_COLA +
+      `select pg_temp.prenda('PP-A10', :'cat', 'M', :'neutro') as v \\gset
+       select pg_temp.stock(:'v', 1, 1);
+       select pg_temp.anota(:'cat', :'t_m', :'neutro', pg_temp.dia(1)) as li \\gset
+       select id as pid from retail.prendas_por_regularizar where venta_item_id = :'li' \\gset
+` +
+      foto("pendiente") +
+      `select pg_temp.cierra(now()) as _cierre \\gset\n` +
+      foto("cerrada") +
+      `select retail.reabrir_prenda_cerrada(:'pid', 'ya_se_sabe') as _reabre \\gset\n` +
+      foto("reabierta") +
+      `select retail.regularizar_prenda(:'pid', :'v', 'llego_nueva') as _dif \\gset\n` +
+      foto("regularizada") +
+      `select concat_ws(' → ', :'pendiente', :'cerrada', :'reabierta', :'regularizada');`,
+    "0,1 0,1 1 0 pendiente → 0,1 0,1 1 0 cerrada_sin_prenda → 0,1 0,1 1 0 pendiente → 1,0 nada 1 1 regularizada"
+  );
+}
+caso(
+  "A11 EL CONTROL (la prueba muerde): con el cuerpo de 20261004213000 (solo 'pendiente'), la MISMA cerrada desaparece de la cuenta y del reloj — A8 y A9 estarían en rojo",
+  CON_COLA +
+    `${MIGRACION_ANTERIOR}
+     select md5(prosrc) = '${HUELLA_ANTERIOR}' as es_la_anterior from pg_proc where oid = ${OID} \\gset
+     select pg_temp.anota(:'cat', :'t_m', :'neutro', pg_temp.dia(1)) as _ \\gset
+     select pg_temp.atributo(:'sede', :'cat', 'M', 'neutro') || '|' || pg_temp.reciente(:'sede', :'cat', :'t_m', :'neutro') as antes \\gset
+     select pg_temp.cierra(now()) as _cierre \\gset
+     select concat_ws(';', :'es_la_anterior', :'antes', pg_temp.atributo(:'sede', :'cat', 'M', 'neutro'),
+                      pg_temp.reciente(:'sede', :'cat', :'t_m', :'neutro'), pg_temp.total_ventas(:'sede'));`,
+  "t;0,1|0,1;nada;nada;0"
+);
+
 // ===========================================================================
 // U. UNA SOLA VEZ (lo que ADR-0328 pide que «una prueba vigile»)
 // ===========================================================================
@@ -746,15 +835,15 @@ caso(
 
 caso(
   "M1 se puede pegar dos veces: el cuerpo no cambia",
-  `${MIGRACION}\nselect md5(prosrc) as m1 from pg_proc where oid = ${OID} \\gset\n${MIGRACION}\n` +
+  `${MIGRACION_ANTERIOR}\n${MIGRACION}\nselect md5(prosrc) as m1 from pg_proc where oid = ${OID} \\gset\n${MIGRACION}\n` +
     `select (md5(prosrc) = :'m1')::text from pg_proc where oid = ${OID};`,
   "true"
 );
 caso(
-  "M2 la guarda se detiene si la puerta todavía NO conoce a las terminales (la lectura les daría NULL), sin tocar la función",
+  "M2 la guarda de 20261004213000 se detiene si la puerta todavía NO conoce a las terminales (la lectura les daría NULL), sin tocar la función",
   `${PUERTA_SIN_TERMINAL}
    select md5(prosrc) as m0 from pg_proc where oid = ${OID} \\gset
-   select pg_temp.intento($migracion$${MIGRACION}$migracion$) as intento \\gset
+   select pg_temp.intento($migracion$${MIGRACION_ANTERIOR}$migracion$) as intento \\gset
    select (:'intento' like 'P0001|La puerta retail.fn_tiene_acceso_retail() todavía no reconoce a las terminales%') || ',' ||
           (select md5(prosrc) = :'m0' from pg_proc where oid = ${OID});`,
   "true,true"
@@ -763,13 +852,51 @@ caso(
 {
   const md5Cabecera = MIGRACION.match(/→ `([0-9a-f]{32})` \(el cuerpo de este archivo/)?.[1] ?? "(sin md5 en la cabecera)";
   caso(
-    "M3 la huella que la cabecera manda verificar en producción es la del cuerpo de la función (si cambia el cuerpo, cambia la cabecera)",
-    // Se carga ANTES la migración: la huella es la del cuerpo de ESTE archivo, no la de lo que cualquier migración posterior le haya parchado
-    // (20261010232000 le suma el filtro de familias apagadas y, sin esto, este caso se ponía en rojo con cada parche nuevo).
-    `${MIGRACION}\nselect md5(prosrc) from pg_proc where oid = ${OID};`,
+    "M3 la huella que la cabecera manda verificar es la que deja este archivo sobre el cuerpo de 20261004213000 (la que se pegó el 2026-10-05)",
+    // Primero el cuerpo de 20261004213000: la huella es la de ESTE archivo sobre él, no la de lo que cualquier migración posterior le
+    // haya parchado (20261010232000 le suma el filtro de familias apagadas; sin esto, este caso se ponía en rojo con cada parche nuevo).
+    `${MIGRACION_ANTERIOR}\n${MIGRACION}\nselect md5(prosrc) from pg_proc where oid = ${OID};`,
     md5Cabecera
   );
 }
+caso(
+  "M4 es anclada: un cambio que la función viva tiene en OTRO lugar (a mano, u otra migración) se conserva, y los dos filtros quedan",
+  `${MIGRACION_ANTERIOR.split("c_dias constant integer := 14;").join("c_dias constant integer := 14;  -- cambio hecho a mano en la base viva")}
+   ${MIGRACION}
+   select concat_ws(',', prosrc like '%-- cambio hecho a mano en la base viva%',
+     (length(prosrc) - length(replace(prosrc, $t$p.estado in ('pendiente', 'cerrada_sin_prenda')$t$, ''))) / length($t$p.estado in ('pendiente', 'cerrada_sin_prenda')$t$),
+     position($t$p.estado = 'pendiente'$t$ in prosrc) = 0)
+     from pg_proc where oid = ${OID};`,
+  "t,2,t"
+);
+caso(
+  "M5 sobre la función de HOY (con los parches posteriores, como el filtro de familias apagadas de 20261010232000), volver a pegar este archivo no cambia nada",
+  `select md5(prosrc) as m0 from pg_proc where oid = ${OID} \\gset
+   ${MIGRACION}
+   select concat_ws(',', (select md5(prosrc) = :'m0' from pg_proc where oid = ${OID}),
+     (select prosrc like '%fn_categoria_entra_a_motores%' from pg_proc where oid = ${OID}));`,
+  "t,t"
+);
+caso(
+  "M6 si la función cambió JUSTO donde se ancla (alguien tocó un filtro), se detiene sin tocar nada: hay que mirarla antes",
+  `${MIGRACION_ANTERIOR.replace("        and p.estado = 'pendiente'", "        and p.estado = any (array['pendiente'])")}
+   select md5(prosrc) as m0 from pg_proc where oid = ${OID} \\gset
+   select pg_temp.intento($migracion$${MIGRACION}$migracion$) as intento \\gset
+   select concat_ws(',', :'intento' like 'P0001|retail.fn_piso_plan_lectura(uuid) cambió desde que se escribió esta migración%',
+     (select md5(prosrc) = :'m0' from pg_proc where oid = ${OID}));`,
+  "t,t"
+);
+caso(
+  "M7 el orden con el parche de familias (20261010232000) no importa: antes o después de él, la función queda letra por letra igual (el CI aplica las migraciones de un PR después de las de main)",
+  `${MIGRACION_ANTERIOR}\n${MIGRACION}\n${MIGRACION_FAMILIAS}
+   select md5(prosrc) as primero_esta from pg_proc where oid = ${OID} \\gset
+   ${MIGRACION_ANTERIOR}\n${MIGRACION_FAMILIAS}\n${MIGRACION}
+   select concat_ws(',', (select md5(prosrc) = :'primero_esta' from pg_proc where oid = ${OID}),
+     (select prosrc like '%fn_categoria_entra_a_motores%' from pg_proc where oid = ${OID}),
+     (select (length(prosrc) - length(replace(prosrc, $t$p.estado in ('pendiente', 'cerrada_sin_prenda')$t$, ''))) / length($t$p.estado in ('pendiente', 'cerrada_sin_prenda')$t$)
+        from pg_proc where oid = ${OID}));`,
+  "t,t,2"
+);
 
 // ===========================================================================
 // N. NÚMEROS: ~800 unidades y ~150 ventas
