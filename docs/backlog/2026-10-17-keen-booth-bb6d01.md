@@ -7,7 +7,7 @@
   sede, «Todo listo para cambiar el rol.» y el botón con su aro. No se guardó nada.
 - [x] La guía interactiva de Colaboradores, recorrida a mano en el navegador (arrancada con «Demo»): 31 pasos y ninguna hoja abierta al terminar.
   El texto del paso «Cambiar rol, sede o suspender» suma que se enciende lo que sigue; huella aceptada.
-- [ ] **Decisión de Felipe:** el motivo de «Suspender», ¿opcional (lo que hay hoy y lo aplicado) o sugerido?
+- [x] **Decisión de Felipe (2026-10-17):** el motivo de «Suspender» es SUGERIDO: se enciende y sale en «Falta», pero nunca apaga el botón.
 - [ ] **`?demo=1` no arranca ninguna guía con `next dev`** (probado en `/colaboradores` y `/clientas`): la URL se limpia y la tarjeta nunca
   sale, así que `pnpm --filter web guias:recorrer` falla en local («la guía no arrancó con ?demo=1»). Causa probable: el modo estricto de
   React, que en desarrollo monta dos veces `components/guias/MotorGuias.tsx`. La limpieza al desmontar cancela el temporizador del arranque,

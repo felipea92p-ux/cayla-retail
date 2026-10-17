@@ -40,13 +40,19 @@ describe("guía de la ficha de una persona del Equipo", () => {
     expect(camposFicha({ ...base, panel: "rol", rolElegido: true }).map((c) => c.id)).toEqual(["ficha-responsable", "ficha-rol"]);
   });
 
-  it("«Suspender»: el motivo es opcional y nunca bloquea", () => {
+  // Felipe 2026-10-17: el motivo es SUGERIDO. Se enciende y sale en «Falta», pero nunca es un candado (ADR-0284): «Suspender» se puede
+  // pulsar sin escribirlo, igual que hoy, y la frase del botón apagado nunca lo nombra.
+  it("«Suspender»: el motivo se enciende y sale en «Falta», pero nunca apaga el botón", () => {
     const campos = camposFicha({ ...base, panel: "suspender" });
-    expect(estadosDe(campos)).toEqual({ "ficha-responsable": "hecho", "ficha-motivo": "opcional" });
-    expect(faltanDe(campos)).toEqual([]);
+    expect(estadosDe(campos)).toEqual({ "ficha-responsable": "hecho", "ficha-motivo": "ahora" });
+    expect(faltanDe(campos).map((c) => c.id)).toEqual(["ficha-motivo"]);
     expect(sePuedeConfirmar(campos)).toBe(true);
+    expect(fraseDeLoQueFalta(campos)).toBeNull();
+    // Sin quién lo hace, la frase del botón nombra solo eso: el motivo no bloquea ni ahí.
+    expect(fraseDeLoQueFalta(camposFicha({ ...base, panel: "suspender", responsableListo: false }))).toBe("Falta: quién lo hace");
     expect(estadosDe(camposFicha({ ...base, panel: "suspender", motivo: "Licencia" }))["ficha-motivo"]).toBe("hecho");
-    expect(estadosDe(camposFicha({ ...base, panel: "suspender", motivo: "   " }))["ficha-motivo"]).toBe("opcional");
+    // Solo espacios no cuenta como motivo: sigue encendido.
+    expect(estadosDe(camposFicha({ ...base, panel: "suspender", motivo: "   " }))["ficha-motivo"]).toBe("ahora");
   });
 
   it("cambiar la sede, reactivar y quitar el acceso solo piden quién lo hace", () => {
@@ -68,6 +74,7 @@ describe("guía de la ficha de una persona del Equipo", () => {
             for (const sedeElegida of si)
               for (const motivo of ["", "Licencia"]) {
                 const f: EstadoFicha = { ...base, panel, responsableListo, rolElegido, pideSede, sedeElegida, motivo };
+                // Fuera de «Cambiar rol», el botón solo pide quién lo hace: en «Suspender», con motivo o sin él.
                 const boton = panel === "rol" ? puedeCambiarRol(f) : responsableListo;
                 expect(sePuedeConfirmar(camposFicha(f)), JSON.stringify(f)).toBe(boton);
               }

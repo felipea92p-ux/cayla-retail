@@ -4,8 +4,9 @@
 // `p_ubicacion_id` (check `rol = 'lider' or ubicacion_asignada_id is not null`, `pideUbicacion` en `roles-reglas.ts`). La prueba compara
 // la guía con `puedeCambiarRol` en todas las combinaciones.
 //
-// Cada panel pide lo suyo: «Cambiar rol», el rol y (a veces) la sede; «Suspender», un motivo que nunca bloquea. Cambiar la sede,
-// reactivar y quitar el acceso son un toque: solo piden quién lo hace. Sin panel abierto no hay nada que llenar.
+// Cada panel pide lo suyo: «Cambiar rol», el rol y (a veces) la sede; «Suspender», el motivo como SUGERIDO (Felipe 2026-10-17): se
+// enciende y sale en «Falta», pero nunca apaga el botón, igual que hoy la base acepta suspender sin motivo. Cambiar la sede, reactivar y
+// quitar el acceso son un toque: solo piden quién lo hace. Sin panel abierto no hay nada que llenar.
 
 import type { CampoDeGuia } from "./guia-campos";
 
@@ -50,7 +51,14 @@ export function camposFicha(f: EstadoFicha): CampoDeGuia[] {
     }
   }
   if (f.panel === "suspender") {
-    campos.push({ id: "ficha-motivo", nombre: "Motivo", requerido: false, hecho: f.motivo.trim() !== "", pendiente: "" });
+    campos.push({
+      id: "ficha-motivo",
+      nombre: "Motivo",
+      requerido: false,
+      sugerido: true,
+      hecho: f.motivo.trim() !== "",
+      pendiente: "Escribe por qué se suspende; no es obligatorio.",
+    });
   }
   return campos;
 }

@@ -402,7 +402,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/colaboradores/DarAccesoModal.tsx": { estado: "aplicada", evidencia: ["components/colaboradores/DarAccesoModal.tsx"] },
   // ADR-0340: la ficha de una persona del Equipo, en su `<Cajon>`. La guía vive en el panel abierto (`lib/ficha-colaborador-guia.ts`): «Cambiar
   // rol» pide quién lo hace, el rol nuevo y, solo al bajar a un líder sin sede, la sede donde queda (lo que exige `asignar_rol`); «Suspender»,
-  // quién lo hace y un motivo opcional que nunca bloquea; cambiar la sede, reactivar y quitar el acceso son un toque y solo piden quién lo hace.
+  // quién lo hace y el motivo como sugerido (Felipe 2026-10-17: se enciende y sale en «Falta», pero nunca bloquea); cambiar la sede, reactivar y quitar el acceso son un toque y solo piden quién lo hace.
   "components/colaboradores/FichaColaborador.tsx": { estado: "aplicada", evidencia: ["components/colaboradores/FichaColaborador.tsx"] },
   "components/clientas/BeneficiosClubModal.tsx": { estado: "aplicada", evidencia: ["components/clientas/BeneficiosClubModal.tsx"] },
   // Recomendaciones (ADR-0408): la respuesta se enciende si todavía se puede responder (sin leer, opcional: sin ella la hoja la marca

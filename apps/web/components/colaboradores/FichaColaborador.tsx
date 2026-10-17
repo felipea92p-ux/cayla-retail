@@ -31,7 +31,8 @@ import { camposFicha, puedeCambiarRol } from "@/lib/ficha-colaborador-guia";
 // (suspender, reactivar, cambiar rol o sede) se hace al confirmar y el aviso trae «Deshacer»; solo «Quitar acceso» pregunta.
 // Las decisiones de permisos son las de siempre: llegan ya resueltas en `persona.acciones` y en `rolesAsignables`.
 // La guía de foco (ADR-0284) enciende lo que sigue en el panel abierto y dice qué falta sobre su botón: quién lo hace, el rol nuevo y,
-// al bajar a un líder sin sede, la sede donde queda (`lib/ficha-colaborador-guia.ts`).
+// al bajar a un líder sin sede, la sede donde queda; al suspender, el motivo, que es sugerido y nunca apaga el botón
+// (`lib/ficha-colaborador-guia.ts`).
 
 type Panel = "rol" | "sede" | "suspender" | "quitar" | null;
 
