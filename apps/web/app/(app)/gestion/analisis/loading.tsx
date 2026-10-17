@@ -1,4 +1,4 @@
-// Esqueleto de carga de Análisis (ADR-0357): la silueta de la pantalla —cabecera, las cuatro pestañas y las tarjetas de
+// Esqueleto de carga de Análisis (ADR-0357): la silueta de la pantalla —cabecera, las cinco pestañas y las tarjetas de
 // «Hoy»— para que no salte de «pantalla vacía» a «todo de golpe». El loader único (ADR-0149) va encima.
 import { EsperaPantalla } from "@/components/ui/Espera";
 
@@ -17,7 +17,7 @@ export default function LoadingAnalisis() {
           <div className="h-9 w-60 max-w-full rounded-[10px] bg-sand/70" />
         </div>
         <div className="flex items-center gap-4 border-b border-sand pb-3">
-          {[48, 120, 92, 80].map((w, i) => (
+          {[48, 120, 92, 130, 80].map((w, i) => (
             <div key={i} className="h-3.5 rounded bg-sand" style={{ width: w }} />
           ))}
           <div className="ml-auto h-6 w-32 rounded-full bg-sand/70" />

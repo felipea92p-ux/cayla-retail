@@ -189,3 +189,8 @@
 - [ ] **Pendiente:** la calidad del destino no está en la ficha del modelo (solo en la fila del carril). «Qué pedir» usa `sabePiso` para «nunca salió» y no se pausa con la carga: pregunta de Felipe.
 - [ ] **Revisión de B3, para Felipe:** (a) «sobra» con el peor caso del rango (más estricto) o con la estimación puntual (hoy); (b) el 90 como vara por tipo; (c) la ficha de un modelo en «Reponer talla o color» dice «Va bien» (falta un grupo `reponer` en `GrupoAnalisis`/`CHIP_GRUPO`); (d) los contadores «Todos N» y la frase de Hoy no cuentan las filas de «Reponer»; (e) «Reponer» no frena si ya viene un pedido del modelo.
 - [ ] **Revisión de B4, sin hacer:** pausa por cuadre sin mirar `separaPiso` (una sede que no separa piso y almacén vería «tu piso aún no se cuadró» para siempre, si el motor la devuelve); «Actualizar» compara contra el reloj del aparato; «Datos de las 09:20» no dice el día; un hook `useReleer` compartido con «Volver a intentar»; el botón en la cabecera pide captura a 1440 y 1024 px (claro y oscuro).
+
+## B5 · Cierre (2026-10-17)
+- [x] Guía y huella al día; motivo del registro de foco; escáner con `<Buscador>`; `loading.tsx` con 5 pestañas.
+- [ ] **Decisión de Felipe:** el rojo y la escala de urgencia única (A13): ¿rojo solo para «Se agotó» y ≤3 días, ámbar de 4 a 13?
+- [ ] **Sesión local (no se puede en la nube):** pruebas contra Postgres (`scripts/pruebas`), capturas con datos inventados (1440, 1024; claro y oscuro), `tema:auditar`, `guias:recorrer` (escritorio y 375 px), `/chaos` sobre «Enviar»; `pnpm pruebas:roles-cobertura` puede marcar `guardar_liquidar_desde`/`fn_liquidar_desde` sin llamador (limpieza con migración, de Felipe).

@@ -36,7 +36,7 @@ const PANTALLAS = `${RAIZ_WEB}app/(app)/`;
 export const REGISTRO = `${RAIZ_WEB}lib/guia-de-foco-pantallas.ts`;
 
 /** Campos o pasos: un control donde alguien escribe o elige. Solo JSX (`<`), para no contar comentarios. */
-const CAMPOS = /<(input|textarea|form|Campo\w*|Select\w*|Combo\w*|Desplegable|Segmentado|Interruptor)\b/;
+const CAMPOS = /<(input|textarea|form|Campo\w*|Select\w*|Combo\w*|Desplegable|Segmentado|Interruptor|Buscador)\b/;
 /**
  * El USO de las piezas de la guía —una etiqueta JSX o una llamada— o el import de una lógica `lib/<pantalla>-guia`. Ojo con lo que NO
  * es: `fin-guia` (una clase de Finanzas) y `recepcion-guia` (la guía de remisión) no son la guía de foco; por eso se exige la forma.

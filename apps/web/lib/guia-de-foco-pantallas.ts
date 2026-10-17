@@ -137,7 +137,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // pantalla (ADR-0245), con su propia guía.
   "/gestion/analisis": {
     estado: "no-aplica",
-    motivo: "Pantalla de lectura (Análisis v4, ADR-0357): no se llena ningún campo ni se avanza por pasos; cada botón abre el flujo de su acción en su propia pantalla.",
+    motivo: "Pantalla de lectura (Análisis v4, ADR-0357): su único campo es el buscador, que filtra lo ya leído (no hay nada que llenar), y «Actualizar» solo vuelve a leer; no se avanza por pasos y cada botón abre el flujo de su acción en su propia pantalla.",
   },
   // ADR-0355: la billetera de pases. Abre el pase de lo primero que te toca, con su reverso (contar, revisar, anular): la misma guía
   // que «/inventario/traslados/(billetera)/[id]».

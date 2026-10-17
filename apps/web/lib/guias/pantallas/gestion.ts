@@ -65,7 +65,7 @@ export const GUIA_ANALISIS: Guia = {
       ancla: "analisis.carga",
       opcional: true,
       titulo: "Tu stock sigue en carga",
-      texto: "Mientras la tienda carga su stock inicial, lo guardado viene de la carga y no de ventas: no pidas por esta lista. «Nunca salió al piso» espera hasta que cierre la carga y el piso esté cuadrado.",
+      texto: "Mientras la tienda carga su stock inicial, lo guardado viene de la carga y no de ventas. «Nunca salió al piso» espera hasta que cierre la carga y el piso esté cuadrado.",
     },
     {
       id: "preguntas",
@@ -120,7 +120,7 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-piso" }],
       titulo: "Nunca salió al piso",
-      texto: "Lo que está guardado en el almacén y nunca se colgó: si no se ve, no se vende.",
+      texto: "Lo que está guardado en el almacén y nunca se colgó: si no se ve, no se vende. Mientras tu stock sigue en carga o el piso no está cuadrado, dice «Todavía no se puede saber» y te lleva a cuadrarlo.",
     },
     {
       id: "pedir",

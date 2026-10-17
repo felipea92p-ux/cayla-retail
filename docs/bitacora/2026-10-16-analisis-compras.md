@@ -66,3 +66,8 @@ Felipe se lleva: ver dónde ya tiene de sobra antes de pedir, y qué talla pedir
 Qué hice: la cabecera dice «Datos de las 09:20» y, a los 30 minutos, ofrece «Actualizar» (relee sin el loader a pantalla completa). Si la tienda sigue en carga inicial, una franja dice «Tu stock sigue en carga hasta el 21-oct: no pidas por esta lista» (se junta con el aviso de datos incompletos si ya está). «Nunca salió al piso» se pausa con la carga abierta o el piso sin cuadrar: dice por qué y lleva a Cuadrar. «Mándalas» dice si la tienda de destino registra pocas ventas con su prenda.
 Por qué así: quien compra decidía con cifras viejas sin saberlo, y AQP y LIM verían «nunca salió» con lo que solo se cargó. La calidad de las otras tiendas se dice solo donde una acción las usa; los anillos por tienda siguen en CAYLA Global.
 Felipe se lleva: saber de cuándo son los datos y no pedir por una lista que no es de ventas. Sin correr aquí: pase visual de la cabecera, la franja y la pausa (1440, 1024, claro y oscuro), `guias:recorrer`, `tema:auditar`.
+
+## 2026-10-17 (Cierre de la tanda: B5)
+Qué hice: la guía de Análisis, el motivo del registro de guía de foco, el escáner (cuenta `<Buscador>`) y el esqueleto de carga (cinco pestañas) quedaron al día con lo que cambió en A6, B1–B4.
+Por qué así: lo que la guía dice tiene que ser cierto el día que alguien nueva la repase. El rojo y la escala de urgencia no se tocaron: son de Felipe.
+Felipe se lleva: A6 y B1–B4 en la rama, con dos revisiones independientes cada una (B5 sin revisores: solo textos, registro y esqueleto). Falta de su lado: pegar la migración de A4 antes de fusionar la web, y una sesión local para pruebas de Postgres, capturas, `tema:auditar`, `guias:recorrer` y `/chaos`.
