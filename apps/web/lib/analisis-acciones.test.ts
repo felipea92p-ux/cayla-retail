@@ -113,13 +113,26 @@ describe("a dónde lleva cada botón (ADR-0245: abre el flujo que ya existe)", (
     // Las dos rutas existen: un enlace que cae en un 404 (como el de Inicio de almacén, 2026-09-30) no ayuda a elegir nada.
     for (const ruta of ["productos/[id]/editar/page.tsx", "productos/page.tsx"]) expect(existsSync(new URL(`../app/(app)/${ruta}`, import.meta.url)), ruta).toBe(true);
   });
-  it("Enviar: una de cada una de las que tienen algo libre, con el destino ya elegido", () => {
-    const href = hrefEnviar([{ varianteId: "v1", piso: 2, almacen: 1 }, { varianteId: "v2", piso: 0, almacen: 0 }], { id: "aqp" }, todo);
+  it("Enviar: una de cada una de las que el destino vendió y están en el almacén, con el destino ya elegido", () => {
+    const otras = (aqp: number) => [{ sedeId: "aqp", stock: 0, vendidas30: aqp }];
+    const href = hrefEnviar(
+      [
+        { varianteId: "v1", piso: 2, almacen: 1, otras: otras(3) },
+        { varianteId: "v2", piso: 0, almacen: 0, otras: otras(3) },
+        // Allá no se vendió esta talla: no viaja (antes iba «una de cada talla»).
+        { varianteId: "v3", piso: 0, almacen: 4, otras: otras(0) },
+        // Allá se vendió pero aquí está en el piso: el traslado la descartaría en silencio, así que no se pide.
+        { varianteId: "v4", piso: 5, almacen: 0, otras: otras(2) },
+      ],
+      { id: "aqp" },
+      todo,
+    );
     expect(href).toContain("/inventario/traslados/nuevo?lineas=");
     expect(href).toContain("destino=aqp");
     expect(decodeURIComponent(href!)).toContain("v1:1");
-    expect(decodeURIComponent(href!)).not.toContain("v2");
-    expect(hrefEnviar([{ varianteId: "v1", piso: 1, almacen: 0 }], { id: "aqp" }, { traslados: false })).toBeNull();
+    for (const fuera of ["v2", "v3", "v4"]) expect(decodeURIComponent(href!)).not.toContain(fuera);
+    expect(hrefEnviar([{ varianteId: "v1", piso: 1, almacen: 0, otras: otras(3) }], { id: "aqp" }, todo)).toBeNull();
+    expect(hrefEnviar([{ varianteId: "v1", piso: 0, almacen: 2, otras: otras(3) }], { id: "aqp" }, { traslados: false })).toBeNull();
   });
   it("Liquidar abre las etiquetas de esas prendas; Reponer baja solo lo que tiene almacén", () => {
     expect(hrefLiquidar([{ varianteId: "v1" }], todo)).toContain("/etiquetas-de-precio?variantes=");

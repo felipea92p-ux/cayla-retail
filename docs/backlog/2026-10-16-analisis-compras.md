@@ -170,3 +170,9 @@
 - [ ] **Sin correr en la nube:** `pnpm pruebas:analisis-lecturas`, `pruebas:roles-cobertura`, pase visual del carril y de Hoy (¿cabe la razón de «Todavía sin ritmo» en dos renglones?, ¿se lee «Liquidar» vacío?), `tema:auditar` (el escenario de la hoja retirada no existía), `guias:recorrer`.
 - [ ] **Decisión para el 30-oct:** la regla «vendió algo en 30 días no está quieta» (`grupoDe`).
 - [ ] **Aproximación a vigilar:** cuando ni la mitad de un tipo se vendió, «la última venta vista» sale del instante más largo con una venta de la curva de Frescura; si Felipe prefiere otra medida (p. ej. el promedio de lo vendido), es una línea en `sinRitmoDeVara`.
+
+## B2 · «Mándalas» y «Enviar» (2026-10-17)
+- [x] Destino con poca cobertura (`analisis-enviar.ts`), empate por menos stock, el envío con solo lo que allá se vendió y está en el almacén, «Puedes mandar N de M», tienda sin leer → «Aún no se sabe», texto de Etiquetas corregido, guía al día.
+- [ ] **Falta leer lo que viene en camino a la tienda de destino** (hoy solo se lee lo que llega a la mía): con eso, la cobertura del destino restaría lo que ya le viene (A3/A4 del destino). Pide una lectura nueva por tienda.
+- [ ] **Sin correr en la nube:** `/chaos` sobre «Enviar» (la URL con `lineas=` abre un traslado), pase visual del carril, `guias:recorrer`.
+- [ ] **Pendiente de Felipe:** las constantes (`VENDIDAS_PARA_ENVIAR` 2, `COBERTURA_DESTINO_DIAS` 30) y el verbo «pedir» contra «traer» entre tiendas.

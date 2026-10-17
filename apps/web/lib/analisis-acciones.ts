@@ -10,10 +10,10 @@
 import type { AccesoAnalisis, DatosAnalisis, PrendaAnalisis, ProveedoresAnalisis, SedeAnalisis } from "./analisis-tipos";
 import { modelosPorPedir, proveedorDelModelo } from "./analisis-a-quien-pedir";
 import { urlOrdenNueva } from "./orden-compra-desde-analisis";
-import { totalEnTienda } from "./analisis-reglas";
 import { lineasEnUrl, MAX_VARIANTES_EN_URL } from "./existencias-prendas";
 import { urlEtiquetasDePrecio } from "./etiqueta-precio-reglas";
 import { RUTA_NUEVO_TRASLADO } from "./traslados-reglas";
+import { loQueLlevaElEnvio } from "./analisis-enviar";
 
 /**
  * Lo que se hace prenda por prenda (bajar, mandar, liquidar, pedir) con lo que muestra Análisis: desde la decisión 12 de ADR-0357,
@@ -121,14 +121,14 @@ export function hrefElegirProveedor(modelos: readonly Pick<PrendaAnalisis, "prod
 }
 
 /**
- * «Enviar a Arequipa»: un traslado nuevo desde mi tienda con esas prendas (una de cada una, la persona ajusta) y el destino ya
- * elegido. Solo lo libre se puede mover; null si no hay nada que mover, si son más de las que caben en la URL o si la cuenta no
- * ve Traslados.
+ * «Enviar a Arequipa»: un traslado nuevo desde mi tienda con las tallas y colores que ESE destino vendió y que están en el ALMACÉN (B2: antes «una de cada
+ * talla», y lo que estaba en el piso lo descartaba Traslados en silencio, abriendo un traslado vacío), con el destino ya elegido. null si no hay nada que
+ * mandar hoy, si son más de las que caben en la URL o si la cuenta no ve Traslados.
  */
-export function hrefEnviar(prendas: readonly Pick<PrendaAnalisis, "varianteId" | "piso" | "almacen">[], destino: Pick<SedeAnalisis, "id">, a: Pick<AccesoAnalisis, "traslados">): string | null {
+export function hrefEnviar(prendas: readonly Pick<PrendaAnalisis, "varianteId" | "piso" | "almacen" | "otras">[], destino: Pick<SedeAnalisis, "id">, a: Pick<AccesoAnalisis, "traslados">): string | null {
   if (!a.traslados) return null;
   // Una de cada una, como «Pedir» y «Reponer»: Análisis no sugiere cantidades (ADR-0231); cuántas, se elige en el traslado.
-  const lineas = tallasDe(prendas).filter((p) => totalEnTienda(p) > 0).map((p) => ({ varianteId: p.varianteId, cantidad: 1 }));
+  const lineas = loQueLlevaElEnvio(prendas, destino.id).tallas.map((p) => ({ varianteId: p.varianteId, cantidad: 1 }));
   if (lineas.length === 0 || lineas.length > MAX_VARIANTES_EN_URL) return null;
   return `${RUTA_NUEVO_TRASLADO}?lineas=${lineasEnUrl(lineas)}&destino=${encodeURIComponent(destino.id)}&desde=analisis`;
 }

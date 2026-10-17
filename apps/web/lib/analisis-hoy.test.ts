@@ -232,6 +232,15 @@ describe("Qué hacer hoy: los caminos", () => {
     expect(todosLosCaminos(c).map((x) => x.clave)).toEqual(["comprar", "manda-aqp", "manda-lim", "liquidar"]);
   });
 
+  it("«Manda a …» solo a una tienda que vendió y a la que le queda poco; si ya tiene de sobra o no se pudo leer, no hay camino a ella (B2)", () => {
+    const cubierta = paraEnviar("aqp", { nombre: "Cubierta", otras: otras({ vendidas30: 3, stock: 50 }) });
+    const sinLeer = paraLiquidar({ nombre: "Sin leer", otras: otras({ vendidas30: 0, sinLeer: true }) });
+    const c = caminosDeHoy([cubierta, sinLeer, paraEnviar("lim", { nombre: "A Lima" })], sedes, HOY);
+    expect(c.manda.map((m) => m.verbo)).toEqual(["Manda a Lima"]);
+    // La cubierta (allá tienen de sobra) se liquida aquí; la de la tienda sin leer NO se liquida: queda en «Aún no se sabe».
+    expect(c.reb[0]!.prendas.map((p) => p.nombre)).toEqual(["Cubierta"]);
+  });
+
   it("los motivos: plural, sin partes vacías, y un respaldo si no hay agotadas ni por llegar", () => {
     expect(caminosDeHoy([agotada(), agotada()], sedes, HOY).compra!.motivo).toBe("2 agotadas");
     expect(caminosDeHoy([seAcaba()], sedes, HOY).compra!.motivo).toBe("Quedan 14 días o menos");

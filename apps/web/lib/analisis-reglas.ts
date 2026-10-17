@@ -13,6 +13,7 @@ import { VISTAS_ANALISIS } from "./analisis-tipos";
 import { compararMargen, margenPrudentePorDia } from "./analisis-ritmo";
 import { diaLima, diasEntreFechas } from "./fechas-lima";
 import { esPedidoDeTalla, type MotivoPedido } from "./se-probo-reglas";
+import { destinoParaEnviar, tiendasSinLeer } from "./analisis-enviar";
 
 /** Hasta cuántos días de stock «se está acabando» (el eje del carril llega a 2 semanas). */
 export const DIAS_SE_ACABA = 14;
@@ -20,8 +21,6 @@ export const DIAS_SE_ACABA = 14;
 export const DIAS_TRES_MESES = 90;
 /** El largo mínimo del carril «Días sin venderse» (4 meses): se alarga si el escalón de «Liquidar» de algún tipo pasa de ahí (`finDelEje`). */
 export const DIAS_EJE_QUIETAS = 120;
-/** Cuánto tiene que haber vendido otra tienda en 30 días para proponer mandársela («Mándalas a donde sí se venden»). */
-export const VENDIDAS_PARA_ENVIAR = 2;
 /** La ventana de ventas de Análisis: el ritmo de lo que se vende se mide en hasta 30 días. */
 export const VENTANA_VENTAS = 30;
 
@@ -157,13 +156,6 @@ export function seEstaAcabando(p: Pick<PrendaAnalisis, "piso" | "almacen" | "ven
   return d !== null && d <= DIAS_SE_ACABA;
 }
 
-/** La otra tienda que más vendió esta prenda en 30 días (para «Mándalas»); null si ninguna vendió. */
-export function sedeQueMasVende(otras: readonly PrendaEnOtraSede[]): PrendaEnOtraSede | null {
-  const conVenta = otras.filter((o) => o.vendidas30 > 0);
-  if (conVenta.length === 0) return null;
-  return [...conVenta].sort((a, b) => b.vendidas30 - a.vendidas30 || b.stock - a.stock || a.sedeId.localeCompare(b.sedeId))[0];
-}
-
 /**
  * Otra tienda que la tiene (cualquier cantidad): la que más tiene. Solo es un dato a la vista («AQP tiene 3» y «o pedir a
  * Arequipa»): la persona decide si pedirla o comprarla (decisión 7). null si ninguna la tiene.
@@ -192,7 +184,8 @@ export function rotuladaSinRitmo(p: Pick<PrendaAnalisis, "sinRitmo" | "diasSinVe
  * o más) o se liquida; lo quieto desde el P75, se vigila. Los umbrales son SOLO los de la vara de su tipo (`analisis-vara.ts`; ADR-0357, act.
  * 2026-10-14) y existen solo si el tipo vendió lo suficiente: sin vara no hay número de días de respaldo, y lo quieto queda en «Todavía sin ritmo» si
  * ya toca rotularlo (`rotuladaSinRitmo`). Lo quieto con una unidad que puede ser una venta sin registrar (`enDuda`, la cuenta de Frescura) no se
- * manda ni se liquida: va a «duda» hasta que se registre esa venta.
+ * manda ni se liquida: va a «duda» hasta que se registre esa venta. Lo mismo si una de las otras tiendas no se pudo leer y por eso no se sabe si allá se
+ * vende (B2, D7): «duda», nunca «Liquidar».
  *
  * DECISIÓN PENDIENTE (Felipe, 2026-10-17): una prenda que vendió algo en los últimos 30 días (`vendidas30 > 0`) nunca cuenta como quieta. Se queda
  * así por ahora y se decide con 30 días de historia (~30-oct), cuando haya con qué medir si esa regla esconde modelos que sí están lentos.
@@ -210,9 +203,10 @@ export function grupoDe(
   if (p.diasSinVender < liquidar && p.diasSinVender < vigila) return null;
   if ((p.enDuda ?? 0) > 0) return "duda";
   if (p.diasSinVender < liquidar) return "vigila";
-  const vende = sedeQueMasVende(p.otras);
-  if (vende && vende.vendidas30 >= VENDIDAS_PARA_ENVIAR) return "enviar";
-  return "liquidar";
+  // Mándalas: a una tienda que LEÍMOS, que vendió y a la que le queda poca cobertura (`analisis-enviar.ts`, B2). Si no hay a quién, liquidar solo cuando se
+  // sabe que en NINGUNA otra tienda se vende: con una tienda sin leer no se sabe, y queda en «Aún no se sabe» con su razón (D7).
+  if (destinoParaEnviar(p.otras)) return "enviar";
+  return tiendasSinLeer(p.otras).length > 0 ? "duda" : "liquidar";
 }
 
 /** Las prendas de unos grupos, en el orden en que se atienden. */

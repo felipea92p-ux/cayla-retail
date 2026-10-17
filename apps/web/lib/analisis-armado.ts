@@ -18,19 +18,20 @@ export function conPreciosDeMiTienda(mias: PrendaSede[], propios: Readonly<Recor
 
 /**
  * Las prendas de mi tienda con su red: cada una sabe cuánto tiene y vendió cada otra tienda (una fila por tienda, aunque sea
- * 0) y lo que viene en camino. Una prenda que no está en las filas de otra tienda tiene 0 allá.
+ * 0) y lo que viene en camino. Una prenda que no está en las filas de otra tienda tiene 0 allá, salvo si esa tienda no se pudo leer (`sinLeer`): entonces no se sabe.
  */
 export function armarPrendas(
   mias: readonly PrendaSede[],
-  otrasSedes: readonly { sede: SedeAnalisis; filas: readonly PrendaSede[] }[],
+  otrasSedes: readonly { sede: SedeAnalisis; filas: readonly PrendaSede[]; sinLeer?: boolean }[],
   llega: Readonly<Record<string, readonly LlegadaPrenda[]>>,
 ): PrendaAnalisis[] {
-  const indices = otrasSedes.map(({ sede, filas }) => ({ sede, porVariante: new Map(filas.map((f) => [f.varianteId, f])) }));
+  const indices = otrasSedes.map(({ sede, filas, sinLeer }) => ({ sede, sinLeer: sinLeer === true, porVariante: new Map(filas.map((f) => [f.varianteId, f])) }));
   return mias.map((p) => ({
     ...p,
-    otras: indices.map(({ sede, porVariante }) => {
+    otras: indices.map(({ sede, sinLeer, porVariante }) => {
       const alla = porVariante.get(p.varianteId);
-      return { sedeId: sede.id, stock: alla ? totalEnTienda(alla) : 0, vendidas30: alla?.vendidas30 ?? 0 };
+      // Una tienda que no se pudo leer no tiene filas: sus 0 son «no se sabe», y se marca para que nadie los lea como «allá no se vende» (B2, D7).
+      return { sedeId: sede.id, stock: alla ? totalEnTienda(alla) : 0, vendidas30: alla?.vendidas30 ?? 0, ...(sinLeer ? { sinLeer: true } : {}) };
     }),
     llega: [...(llega[p.varianteId] ?? [])],
   }));

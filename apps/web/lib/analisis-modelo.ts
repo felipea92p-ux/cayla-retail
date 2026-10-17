@@ -80,7 +80,8 @@ function otrasDelModelo(vs: readonly PrendaAnalisis[]): PrendaEnOtraSede[] {
   for (const v of vs) {
     for (const o of v.otras) {
       const a = porSede.get(o.sedeId) ?? { sedeId: o.sedeId, stock: 0, vendidas30: 0 };
-      porSede.set(o.sedeId, { sedeId: o.sedeId, stock: a.stock + o.stock, vendidas30: a.vendidas30 + o.vendidas30 });
+      // Una tienda sin leer lo está para todas sus tallas: el modelo hereda la marca.
+      porSede.set(o.sedeId, { sedeId: o.sedeId, stock: a.stock + o.stock, vendidas30: a.vendidas30 + o.vendidas30, ...(a.sinLeer || o.sinLeer ? { sinLeer: true } : {}) });
     }
   }
   return [...porSede.values()];

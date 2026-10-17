@@ -36,6 +36,9 @@ export type PrendaEnOtraSede = {
   stock: number;
   /** Vendidas con su prenda en los últimos 30 días, en esa tienda. */
   vendidas30: number;
+  /** La lectura de esa tienda falló: `stock` y `vendidas30` son 0 porque NO se sabe, no porque no tenga ni venda. Nunca cuenta como destino de un
+   *  envío ni como «allá no se vende» (B2, ADR-0357 act. 2026-10-17). */
+  sinLeer?: boolean;
 };
 
 /** De dónde llega lo que viene en camino a MI tienda. */

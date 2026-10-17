@@ -99,7 +99,7 @@ export const GUIA_ANALISIS: Guia = {
       // La guía deja «Se está acabando» como la encontró: de vuelta «Por días», y recién ahí a la otra pestaña.
       preparar: [{ tipo: "clic", ancla: "analisis.acaba-modo-dias", siEsta: true }, { tipo: "clic", ancla: "analisis.pestana-nose" }],
       titulo: "No se vende",
-      texto: "Lo que lleva sin venderse más de lo que tardan las de su tipo en tu piso: de ahí sale «Mándalas» o «Liquidar». Si su tipo aún no vendió lo suficiente para saberlo, queda en «Todavía sin ritmo»: ni se rebaja ni se manda por ahora. Lo que puede estar vendido sin registrar va en «Aún no se sabe».",
+      texto: "Lo que lleva sin venderse más de lo que tardan las de su tipo en tu piso: «Mándalas» (a una tienda que lo vende y ya tiene poco) o «Liquidar». Si su tipo aún no vendió lo suficiente para saberlo queda en «Todavía sin ritmo»; si algo no se pudo leer o registrar, en «Aún no se sabe».",
     },
     {
       id: "piso",

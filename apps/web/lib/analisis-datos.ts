@@ -134,7 +134,7 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false,
   const hablaSede = (id: string) => sinCandado() || prepDe(id)?.puedeHablar === true;
 
   const filasDe = (id: string) => lectura.porSede[id] ?? [];
-  const otrasDe = (id: string) => sedes.filter((s) => s.id !== id).map((sede) => ({ sede, filas: filasDe(sede.id) }));
+  const otrasDe = (id: string) => sedes.filter((s) => s.id !== id).map((sede) => ({ sede, filas: filasDe(sede.id), sinLeer: lectura.sedesSinLeer.includes(sede.id) }));
   const hoy = motor.filas[0]?.hoy ?? hoyLima();
   // Los días de ventas que mi tienda tiene en el ERP, hasta 30: el techo del ritmo de cada prenda y de qué días habla «Vendiste».
   const ventana = diasDeVentas(prepDe(activa.id)?.primeraVenta, hoy);

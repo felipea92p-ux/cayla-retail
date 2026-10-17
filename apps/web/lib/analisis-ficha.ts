@@ -16,7 +16,6 @@ import {
   otraSedeQueLaTiene,
   plural,
   porLlegar,
-  sedeQueMasVende,
   totalEnTienda,
   ventanaDe,
 } from "./analisis-reglas";
@@ -25,6 +24,7 @@ import { ritmoReciente } from "./analisis-ritmo";
 import { notaDePedidoDeTipo, PEDIDO_SIN_MODELO, type PedidoDeTipo } from "./analisis-pedido-en-camino-reglas";
 import { FUENTE_CORTA, type ProveedorDelModelo } from "./analisis-a-quien-pedir";
 import { razonSinRitmo } from "./analisis-quietas";
+import { destinoParaEnviar, loQueLlevaElEnvio, razonTiendaSinLeer, textoPuedesMandar, tiendasSinLeer } from "./analisis-enviar";
 import { hrefComprar, hrefEnviar, hrefLiquidar, hrefRegistrarVentas, hrefReponerPiso, type DondeComprar } from "./analisis-acciones";
 import { estiloMosaicoColor } from "./color-prenda-reglas";
 import { queTiene } from "./analisis-modelo";
@@ -272,9 +272,16 @@ export function hechosDe(
     // Contra qué se juzgó (ADR-0357, act. 2026-10-14): lo que tardan los de su tipo que sí se vendieron en el piso de la tienda.
     if (p.umbrales) agregar("reloj", "pizarra", `${p.umbrales.liquidar} ${plural(p.umbrales.liquidar, "día", "días")}`, "tardan 9 de cada 10 de su tipo");
     agregar("caja", "taupe", `Tienes ${tienes}`, `${p.piso} en el piso`);
-    const vende = grupo === "enviar" ? sedeQueMasVende(p.otras) : null;
-    if (vende) agregar("camion", "ambar", `${codigoDe(sedes, vende.sedeId)} vendió ${vende.vendidas30}`, "este mes");
-    if (grupo === "liquidar") agregar("etiqueta", grave ? "rojo" : "ambar", "Liquidar", "tú eliges cuánto");
+    // Mándalas (B2): la tienda con poca cobertura que más vendió, y lo que de verdad lleva el envío: solo las tallas y colores que allá se vendieron y que están
+    // en el almacén (lo que está en el piso no se manda: se dice cuántas se pueden mandar hoy).
+    const vende = grupo === "enviar" ? destinoParaEnviar(p.otras) : null;
+    if (vende) {
+      const lleva = loQueLlevaElEnvio([p], vende.sedeId);
+      const ciudad = sedes.find((s) => s.id === vende.sedeId)?.ciudad ?? "esa tienda";
+      const mas = [`Lleva solo las tallas y colores que ${ciudad} vendió`, textoPuedesMandar(lleva.movibles, lleva.deLoVendido)].filter(Boolean);
+      agregar("camion", "ambar", `${codigoDe(sedes, vende.sedeId)} vendió ${vende.vendidas30}`, vende.stock <= 0 ? "este mes · se quedó sin stock" : `este mes · le ${plural(vende.stock, "queda", "quedan")} ${vende.stock}`, { mas });
+    }
+    if (grupo === "liquidar") agregar("etiqueta", grave ? "rojo" : "ambar", "Liquidar", "el precio lo fijas en Etiquetas");
     return hechos;
   }
 
@@ -293,9 +300,12 @@ export function hechosDe(
   if (grupo === "duda") {
     const dias = p.diasSinVender ?? 0;
     const n = p.enDuda ?? 0;
-    agregar("reloj", "pizarra", `${dias} ${plural(dias, "día", "días")}`, "sin una venta registrada");
-    agregar("flechas", "pizarra", `${n} en duda`, plural(n, "puede ser una venta sin registrar", "pueden ser ventas sin registrar"));
+    agregar("reloj", "pizarra", `${dias} ${plural(dias, "día", "días")}`, n > 0 ? "sin una venta registrada" : "en el piso sin venderse");
+    if (n > 0) agregar("flechas", "pizarra", `${n} en duda`, plural(n, "puede ser una venta sin registrar", "pueden ser ventas sin registrar"));
     agregar("caja", "taupe", `Tienes ${tienes}`, `${p.piso} en el piso`);
+    // Una tienda que no se pudo leer: no se sabe si allá se vende, así que no se liquida (B2, D7).
+    const sinLeer = tiendasSinLeer(p.otras);
+    if (sinLeer.length > 0) agregar("flechas", "pizarra", "Aún no se sabe", razonTiendaSinLeer(sinLeer, (id) => sedes.find((s) => s.id === id)?.ciudad ?? "otra tienda"), { ancho: "completo" });
     return hechos;
   }
 
@@ -472,19 +482,24 @@ export function tablaDelModelo(m: { variantes: readonly PrendaAnalisis[] }): Tab
  * qué referirse y no concordaba con un Polo o un Chaleco. «No tiene este modelo» queda para la que nunca lo tuvo ni lo vendió.
  */
 export function lineaOtrasTiendas(p: Pick<PrendaAnalisis, "otras" | "piso" | "almacen">, sedes: readonly SedeAnalisis[], miSedeId: string): string | null {
-  const otras = sedes.filter((s) => s.id !== miSedeId).map((s) => ({ ciudad: s.ciudad, o: p.otras.find((x) => x.sedeId === s.id) }));
-  if (otras.length === 0) return null;
+  const todas = sedes.filter((s) => s.id !== miSedeId).map((s) => ({ ciudad: s.ciudad, o: p.otras.find((x) => x.sedeId === s.id) }));
+  if (todas.length === 0) return null;
+  // Una tienda que no se pudo leer no «no tiene» ni «no vende»: no se sabe (B2, D7). Se dice aparte y no entra en ninguna cuenta.
+  const sinLeer = todas.filter((x) => x.o?.sinLeer).map((x) => x.ciudad);
+  const otras = todas.filter((x) => !x.o?.sinLeer);
   const tiene = (x: (typeof otras)[number]) => (x.o?.stock ?? 0) > 0;
   const vendio = (x: (typeof otras)[number]) => x.o?.vendidas30 ?? 0;
   const con = otras.filter(tiene);
   const sinStock = otras.filter((x) => !tiene(x) && vendio(x) > 0);
   const sin = otras.filter((x) => !tiene(x) && vendio(x) <= 0).map((x) => x.ciudad);
   const lista = (xs: string[]) => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}`);
-  if (con.length === 0 && sinStock.length === 0) return `${lista(sin)} no ${sin.length === 1 ? "tiene" : "tienen"} este modelo.`;
+  const noSeLeyo = sinLeer.length > 0 ? `No se pudo leer ${lista(sinLeer)}.` : null;
+  if (otras.length === 0) return noSeLeyo;
+  if (con.length === 0 && sinStock.length === 0) return [`${lista(sin)} no ${sin.length === 1 ? "tiene" : "tienen"} este modelo.`, noSeLeyo].filter(Boolean).join(" ");
   const tienen = con.map((x) => `${x.ciudad} tiene ${x.o?.stock ?? 0}${vendio(x) > 0 ? ` (vendió ${vendio(x)} en sus últimos 30 días)` : ""}`);
   const tambien = totalEnTienda(p) === 0 ? " también" : "";
   const sinSu = sinStock.map((x) => `${x.ciudad}${tambien} se quedó sin stock (vendió ${vendio(x)} en sus últimos 30 días)`);
-  return [[...tienen, ...sinSu].join(". ") + ".", sin.length > 0 ? `${lista(sin)} no ${sin.length === 1 ? "tiene" : "tienen"}.` : null].filter(Boolean).join(" ");
+  return [[...tienen, ...sinSu].join(". ") + ".", sin.length > 0 ? `${lista(sin)} no ${sin.length === 1 ? "tiene" : "tienen"}.` : null, noSeLeyo].filter(Boolean).join(" ");
 }
 
 // ───────── Los botones del pie ─────────
@@ -517,7 +532,7 @@ export function accionPrincipal(
     return href ? { texto: "Comprar", href, ...(yaViene ? { secundaria: true } : {}) } : null;
   }
   if (grupo === "enviar") {
-    const vende = sedeQueMasVende(p.otras);
+    const vende = destinoParaEnviar(p.otras);
     const destino = vende ? sedes.find((s) => s.id === vende.sedeId) : undefined;
     const href = destino ? hrefEnviar([p], destino, acceso) : null;
     return destino && href ? { texto: `Enviar a ${destino.ciudad}`, href } : null;
@@ -527,6 +542,8 @@ export function accionPrincipal(
     return href ? { texto: "Liquidar", href } : null;
   }
   if (grupo === "duda") {
+    // «Registrar ventas» solo si hay una venta sin registrar que lo explique: una tienda sin leer no se arregla registrando nada.
+    if ((p.enDuda ?? 0) <= 0) return null;
     const href = hrefRegistrarVentas(acceso);
     return href ? { texto: "Registrar ventas", href } : null;
   }

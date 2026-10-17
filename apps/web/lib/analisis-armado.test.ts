@@ -46,6 +46,13 @@ describe("las prendas de mi tienda con su red", () => {
     ]);
     expect(p!.llega).toEqual([]);
   });
+  it("una tienda que no se pudo leer se marca: sus 0 son «no se sabe», no «allá no se vende» (B2, D7)", () => {
+    const [p] = armarPrendas([fila({})], [{ sede: aqp, filas: [], sinLeer: true }, { sede: lim, filas: [] }], {});
+    expect(p!.otras).toEqual([
+      { sedeId: "aqp", stock: 0, vendidas30: 0, sinLeer: true },
+      { sedeId: "lim", stock: 0, vendidas30: 0 },
+    ]);
+  });
   it("trae lo que viene en camino de esa prenda", () => {
     const [p] = armarPrendas([fila({})], [], { v1: [{ de: "compra", cantidad: 10, fecha: "2026-10-15" }] });
     expect(p!.llega).toEqual([{ de: "compra", cantidad: 10, fecha: "2026-10-15" }]);

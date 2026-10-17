@@ -20,7 +20,6 @@ import {
   prendasDe,
   rotuladaSinRitmo,
   sedeDeAnalisis,
-  sedeQueMasVende,
   seEstaAcabando,
   ventanaDe,
 } from "./analisis-reglas";
@@ -172,6 +171,32 @@ describe("el grupo de cada prenda (una sola)", () => {
       expect(grupoDe(con({ piso: 30, diasSinVender: 100, vendidas30: 1 }))).toBeNull();
     });
   });
+  describe("«Mándalas» exige un destino con poca cobertura y una tienda sin leer no cuenta como «allá no se vende» (B2)", () => {
+    const quieta = (otrasFilas: PrendaAnalisis["otras"]) => con({ piso: 3, diasSinVender: 64, otras: otrasFilas });
+    it("se manda a una tienda que vendió 2 o más y a la que le queda poco; si ya tiene de sobra, no se le manda y se liquida", () => {
+      expect(grupoDe(quieta([{ sedeId: "aqp", stock: 1, vendidas30: 3 }]))).toBe("enviar");
+      // Vendió 3 en 30 días (0,1 por día) y tiene 30: son 300 días de stock — nada que mandarle.
+      expect(grupoDe(quieta([{ sedeId: "aqp", stock: 30, vendidas30: 3 }]))).toBe("liquidar");
+      // Vendió 2: es el mínimo; vendió 1: no.
+      expect(grupoDe(quieta([{ sedeId: "aqp", stock: 0, vendidas30: 2 }]))).toBe("enviar");
+      expect(grupoDe(quieta([{ sedeId: "aqp", stock: 0, vendidas30: 1 }]))).toBe("liquidar");
+    });
+    it("con dos destinos, vale uno que sirva aunque el otro ya esté cubierto", () => {
+      expect(grupoDe(quieta([{ sedeId: "aqp", stock: 99, vendidas30: 9 }, { sedeId: "lim", stock: 0, vendidas30: 2 }]))).toBe("enviar");
+    });
+    it("una tienda sin leer NO es «allá no se vende»: lo que iba a «Liquidar» queda en «Aún no se sabe» (D7)", () => {
+      expect(grupoDe(quieta([{ sedeId: "aqp", stock: 0, vendidas30: 0, sinLeer: true }, { sedeId: "lim", stock: 0, vendidas30: 0 }]))).toBe("duda");
+      // …pero si OTRA tienda ya es un buen destino, se manda a esa: lo que no se leyó no cambia lo que sí se sabe.
+      expect(grupoDe(quieta([{ sedeId: "aqp", stock: 0, vendidas30: 0, sinLeer: true }, { sedeId: "lim", stock: 0, vendidas30: 4 }]))).toBe("enviar");
+    });
+    it("una tienda sin leer nunca es destino, aunque diga que vendió", () => {
+      expect(grupoDe(quieta([{ sedeId: "aqp", stock: 0, vendidas30: 9, sinLeer: true }]))).toBe("duda");
+    });
+    it("sin leer no cambia lo que no estaba quieto", () => {
+      expect(grupoDe(con({ piso: 3, diasSinVender: 20, otras: [{ sedeId: "aqp", stock: 0, vendidas30: 0, sinLeer: true }] }))).toBeNull();
+      expect(grupoDe(con({ vendidas30: 4, otras: [{ sedeId: "aqp", stock: 0, vendidas30: 0, sinLeer: true }] }))).toBe("comprar");
+    });
+  });
   // ADR-0357, act. 2026-10-14: una venta pendiente anotada en caja de su tipo, talla y color puede ser una de sus unidades colgadas.
   it("lo quieto con una unidad que puede ser una venta sin registrar no se manda ni se liquida: «duda»", () => {
     expect(grupoDe(con({ piso: 3, diasSinVender: 64, otras: otras(3), enDuda: 1 }))).toBe("duda");
@@ -276,7 +301,6 @@ describe("otras tiendas", () => {
       { sedeId: "lim", stock: 1, vendidas30: 2 },
     ];
     expect(otraSedeQueLaTiene(o)?.sedeId).toBe("aqp");
-    expect(sedeQueMasVende(o)?.sedeId).toBe("lim");
     expect(otraSedeQueLaTiene([{ sedeId: "aqp", stock: 0, vendidas30: 4 }])).toBeNull();
   });
 });

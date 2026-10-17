@@ -346,13 +346,13 @@ describe("las tarjetitas de la ficha (como `hechos()` de la maqueta)", () => {
   it("quieta para mandar: días en el piso sin venderse, cuánto hay y qué tienda sí la vende", () => {
     const p = prenda({ piso: 4, almacen: 2, diasSinVender: 64, otras: [{ sedeId: "s2", stock: 0, vendidas30: 3 }, { sedeId: "s3", stock: 1, vendidas30: 0 }] });
     expect(grupoDe(p)).toBe("enviar");
-    expect(leer(p)).toEqual(["64 días · en el piso sin venderse", "60 días · tardan 9 de cada 10 de su tipo", "Tienes 6 · 4 en el piso", "AQP vendió 3 · este mes"]);
+    expect(leer(p)).toEqual(["64 días · en el piso sin venderse", "60 días · tardan 9 de cada 10 de su tipo", "Tienes 6 · 4 en el piso", "AQP vendió 3 · este mes · se quedó sin stock · Lleva solo las tallas y colores que Arequipa vendió · Puedes mandar 2 de 6: las otras están en el piso, sácalas primero."]);
     expect(hechosDe(p, "enviar", SEDES, HOY).map((h) => h.icono)).toEqual(["reloj", "reloj", "caja", "camion"]);
   });
 
   it("para liquidar: desde 3 meses todo va en rojo; antes, en ámbar", () => {
     const vieja = prenda({ piso: 3, almacen: 2, diasSinVender: 104 });
-    expect(leer(vieja)).toEqual(["104 días · en el piso sin venderse", "60 días · tardan 9 de cada 10 de su tipo", "Tienes 5 · 3 en el piso", "Liquidar · tú eliges cuánto"]);
+    expect(leer(vieja)).toEqual(["104 días · en el piso sin venderse", "60 días · tardan 9 de cada 10 de su tipo", "Tienes 5 · 3 en el piso", "Liquidar · el precio lo fijas en Etiquetas"]);
     expect(hechosDe(vieja, "liquidar", SEDES, HOY).map((h) => h.tono)).toEqual(["rojo", "pizarra", "taupe", "rojo"]);
     expect(hechosDe(vieja, "liquidar", SEDES, HOY)[0]).toMatchObject({ icono: "urg" });
     const menos = prenda({ piso: 2, diasSinVender: 72 });
@@ -447,10 +447,12 @@ describe("los botones del pie", () => {
   });
 
   it("para mandar: a la ciudad que más la vende, con ella ya elegida", () => {
-    const p = prenda({ piso: 2, diasSinVender: 70, otras: [{ sedeId: "s2", stock: 0, vendidas30: 1 }, { sedeId: "s3", stock: 0, vendidas30: 4 }] });
+    const p = prenda({ piso: 2, almacen: 2, diasSinVender: 70, otras: [{ sedeId: "s2", stock: 0, vendidas30: 1 }, { sedeId: "s3", stock: 0, vendidas30: 4 }] });
     const a = accionPrincipal(p, "enviar", SEDES, TODO, DONDE)!;
     expect(a.texto).toBe("Enviar a Lima");
     expect(a.href).toContain("destino=s3");
+    // Todo lo que allá se vendió está en el piso: el botón abriría un traslado vacío, así que no se dibuja.
+    expect(accionPrincipal({ ...p, piso: 2, almacen: 0 }, "enviar", SEDES, TODO, DONDE)).toBeNull();
     expect(accionPrincipal(p, "enviar", SEDES, { ...TODO, traslados: false }, DONDE)).toBeNull();
     expect(accionPrincipal(p, "enviar", [SEDES[0]], TODO, DONDE)).toBeNull(); // la tienda que la vende ya no está en la red
   });
@@ -469,7 +471,7 @@ describe("los botones del pie", () => {
       "8 días · en el piso sin venderse",
       "6 días · tardan 9 de cada 10 de su tipo",
       "Tienes 2 · 2 en el piso",
-      "Liquidar · tú eliges cuánto",
+      "Liquidar · el precio lo fijas en Etiquetas",
     ]);
   });
 
@@ -574,6 +576,25 @@ describe("el modelo en tu tienda: frase, tabla y otras tiendas (opción B, Felip
     const conOtras = { piso: 0, almacen: 0, otras: [{ sedeId: "s2", stock: 3, vendidas30: 2 }, { sedeId: "s3", stock: 0, vendidas30: 0 }] };
     expect(lineaOtrasTiendas(conOtras, SEDES, "s1")).toBe("Arequipa tiene 3 (vendió 2 en sus últimos 30 días). Lima no tiene.");
     expect(lineaOtrasTiendas({ piso: 0, almacen: 0, otras: [] }, [SEDES[0]], "s1")).toBeNull();
+  });
+
+  it("una tienda que no se pudo leer no es «no tiene este modelo»: se dice que no se pudo leer (B2, D7)", () => {
+    const sinLeer = { piso: 0, almacen: 0, otras: [{ sedeId: "s2", stock: 0, vendidas30: 0, sinLeer: true }, { sedeId: "s3", stock: 0, vendidas30: 0 }] };
+    expect(lineaOtrasTiendas(sinLeer, SEDES, "s1")).toBe("Lima no tiene este modelo. No se pudo leer Arequipa.");
+    expect(lineaOtrasTiendas({ piso: 0, almacen: 0, otras: [{ sedeId: "s2", stock: 0, vendidas30: 0, sinLeer: true }] }, [SEDES[0], SEDES[1]!], "s1")).toBe("No se pudo leer Arequipa.");
+    const conStock = { piso: 0, almacen: 0, otras: [{ sedeId: "s2", stock: 0, vendidas30: 0, sinLeer: true }, { sedeId: "s3", stock: 2, vendidas30: 1 }] };
+    expect(lineaOtrasTiendas(conStock, SEDES, "s1")).toBe("Lima tiene 2 (vendió 1 en sus últimos 30 días). No se pudo leer Arequipa.");
+  });
+
+  it("«Aún no se sabe» por una tienda sin leer: lo dice con su razón y no ofrece «Registrar ventas» (no hay nada que registrar)", () => {
+    const p = prenda({ piso: 3, diasSinVender: 80, otras: [{ sedeId: "s2", stock: 0, vendidas30: 0, sinLeer: true }, { sedeId: "s3", stock: 0, vendidas30: 0 }] });
+    expect(grupoDe(p)).toBe("duda");
+    expect(leer(p)).toEqual(["80 días · en el piso sin venderse", "Tienes 3 · 3 en el piso", "Aún no se sabe · No se pudo leer Arequipa: no se sabe si allá se vende."]);
+    expect(accionPrincipal(p, "duda", SEDES, TODO, DONDE)).toBeNull();
+    // Con una venta sin registrar, sí.
+    const conVenta = { ...p, enDuda: 1 };
+    expect(accionPrincipal(conVenta, "duda", SEDES, TODO, DONDE)?.texto).toBe("Registrar ventas");
+    expect(leer(conVenta)[1]).toBe("1 en duda · puede ser una venta sin registrar");
   });
 
   it("una tienda que lo vendió y quedó en cero no «no tiene este modelo»: «se quedó sin stock»; «no tiene» solo si nunca lo tuvo", () => {

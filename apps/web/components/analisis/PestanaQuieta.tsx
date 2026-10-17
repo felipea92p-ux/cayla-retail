@@ -6,7 +6,8 @@ import { Carril, type GrupoCarril } from "@/components/analisis/Carril";
 import { Icono } from "@/components/analisis/iconos";
 import { Ayuda, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/analisis/piezas";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
-import { edadDelInventario, GRUPOS_QUIETAS, plural, prendasDe, sedeQueMasVende, totalEnTienda, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-reglas";
+import { edadDelInventario, GRUPOS_QUIETAS, plural, prendasDe, totalEnTienda } from "@/lib/analisis-reglas";
+import { destinoParaEnviar, loQueLlevaElEnvio, razonTiendaSinLeer, textoPuedesMandar, tiendasSinLeer } from "@/lib/analisis-enviar";
 import { hrefEnviar, hrefLiquidar, hrefRegistrarVentas } from "@/lib/analisis-acciones";
 import { nuncaSalio } from "@/lib/analisis-piso";
 import {
@@ -72,7 +73,17 @@ export function PestanaQuieta() {
 
   // Los botones de todo el grupo: «Enviar todas» solo si todas van a la misma tienda (si no, cada fila tiene la suya).
   const destino = destinoDeTodas(enviar);
-  const enviarTodas = destino ? hrefEnviar(enviar, { id: destino }, acceso) : null;
+  // Lo que de verdad se puede mandar hoy: solo lo que el destino vendió y está en el almacén. Con 0, el botón no se ofrece (abriría un traslado vacío) y se dice por qué.
+  const lleva = destino ? loQueLlevaElEnvio(enviar, destino) : null;
+  const enviarTodas = destino && lleva && lleva.movibles > 0 ? hrefEnviar(enviar, { id: destino }, acceso) : null;
+  const nombreDeSede = (id: string) => sedeDe(id)?.ciudad ?? "otra tienda";
+  // Por qué una fila está en «Aún no se sabe»: una venta sin registrar, o una tienda que no se pudo leer (y por eso no se sabe si allá se vende).
+  const razonDuda = (p: ModeloAnalisis): string | null => {
+    const sinLeer = tiendasSinLeer(p.otras);
+    const partes = [(p.enDuda ?? 0) > 0 ? "Hay una venta anotada en caja de su tipo, talla y color que nadie registró." : null, sinLeer.length > 0 ? razonTiendaSinLeer(sinLeer, nombreDeSede) : null];
+    return partes.filter(Boolean).join(" ") || null;
+  };
+  const algunaEnDuda = duda.some((p) => (p.enDuda ?? 0) > 0);
   const liquidarTodas = hrefLiquidar(liquidar, acceso);
   const lote = (href: string | null, texto: string, etiqueta: string) =>
     href ? (
@@ -86,10 +97,11 @@ export function PestanaQuieta() {
     {
       clave: "enviar",
       titulo: "Mándalas a donde sí se venden",
-      ayuda: `Aquí no se venden; en otra tienda se vendieron ${VENDIDAS_PARA_ENVIAR} o más este mes.`,
+      ayuda: "Aquí no se venden; en otra tienda se vendieron 2 o más este mes y ya les queda poco stock. Se manda solo lo que allá se vendió y lo que está en el almacén.",
       icono: "camion",
       est: "ate",
       prendas: enviar,
+      detalle: lleva && lleva.deLoVendido > 0 && lleva.movibles < lleva.deLoVendido ? <span className="b-nota">{textoPuedesMandar(lleva.movibles, lleva.deLoVendido)}</span> : undefined,
       lote: lote(enviarTodas, "Enviar todos", `Enviar todos a ${sedeDestino?.ciudad ?? "otra tienda"}`),
     },
     {
@@ -106,11 +118,12 @@ export function PestanaQuieta() {
       // Frescura). No se mandan ni se liquidan hasta saberlo: el botón lleva a registrar esas ventas.
       clave: "duda",
       titulo: "Aún no se sabe",
-      ayuda: "Puede que ya se hayan vendido: hay una venta anotada en caja de su tipo, talla y color que nadie registró. Regístrala antes de mandarlas o liquidarlas.",
+      ayuda: "No se sabe todavía qué hacer con ellas: puede que ya se hayan vendido (hay una venta anotada en caja que nadie registró) o no se pudo leer otra tienda y no se sabe si allá se vende. Cada fila dice cuál.",
       icono: "info",
       est: "info",
       prendas: duda,
-      lote: lote(hrefRegistrarVentas(acceso), "Registrar ventas", "Registrar las ventas sin su prenda"),
+      // «Registrar ventas» solo si alguna fila lo necesita: una tienda sin leer no se arregla registrando nada.
+      lote: algunaEnDuda ? lote(hrefRegistrarVentas(acceso), "Registrar ventas", "Registrar las ventas sin su prenda") : undefined,
     },
     {
       clave: "vigila",
@@ -153,7 +166,7 @@ export function PestanaQuieta() {
   };
 
   const pildoras = (p: ModeloAnalisis, g: GrupoCarril) => {
-    const vende = g.clave === "enviar" ? sedeQueMasVende(p.otras) : null;
+    const vende = g.clave === "enviar" ? destinoParaEnviar(p.otras) : null;
     const sede = vende ? sedeDe(vende.sedeId) : undefined;
     if (vende && sede) {
       return (
@@ -171,9 +184,12 @@ export function PestanaQuieta() {
 
   const accion = (p: ModeloAnalisis, g: GrupoCarril) => {
     if (g.clave === "enviar") {
-      const vende = sedeQueMasVende(p.otras);
+      const vende = destinoParaEnviar(p.otras);
       const href = vende ? hrefEnviar([p], { id: vende.sedeId }, acceso) : null;
-      if (!vende || !href) return null;
+      if (!vende) return null;
+      // Todo lo que allá se vendió está en el piso: el botón abriría un traslado vacío. Se dice qué hacer en vez de dibujarlo.
+      if (!href && acceso.traslados) return <span className="b-nota">Sácala del piso primero</span>;
+      if (!href) return null;
       const texto = `Enviar a ${sedeDe(vende.sedeId)?.ciudad ?? "otra tienda"}`;
       return (
         <Link href={href} className="btn-cayla btn-secundario btn-s" aria-label={`${texto}: ${nombreLargo(p)}`}>
@@ -279,7 +295,14 @@ export function PestanaQuieta() {
           pista={pista}
           pildoras={pildoras}
           accion={accion}
-          notaDeFila={(p, g) => (g.clave === "sin_ritmo" ? razonSinRitmo(p, "fila") : null)}
+          notaDeFila={(p, g) => {
+            if (g.clave === "sin_ritmo") return razonSinRitmo(p, "fila");
+            if (g.clave === "duda") return razonDuda(p);
+            if (g.clave !== "enviar") return null;
+            const vende = destinoParaEnviar(p.otras);
+            const l = vende ? loQueLlevaElEnvio([p], vende.sedeId) : null;
+            return l ? textoPuedesMandar(l.movibles, l.deLoVendido) || null : null;
+          }}
         />
       )}
 

@@ -24,11 +24,11 @@ import {
   ordenSeAcaba,
   plural,
   prendasDe,
-  sedeQueMasVende,
   totalEnTienda,
   type GrupoAnalisis,
 } from "./analisis-reglas";
 import { lineaTodaviaNoQuietas, puedeJuzgarQuietas } from "./analisis-quietas";
+import { destinoParaEnviar } from "./analisis-enviar";
 
 /** Los estados que usa Hoy (los mismos cinco de la maqueta: urgente, atención, va bien, para saber, todavía no). */
 export type EstadoHoy = "urg" | "ate" | "bien" | "info" | "nd";
@@ -161,7 +161,7 @@ export function caminosDeHoy(
 
   const porDestino = new Map<string, PrendaAnalisis[]>();
   for (const p of prendasDe(prendas, ["enviar"]).sort(ordenQuietas)) {
-    const destino = sedeQueMasVende(p.otras)?.sedeId ?? "";
+    const destino = destinoParaEnviar(p.otras)?.sedeId ?? "";
     porDestino.set(destino, [...(porDestino.get(destino) ?? []), p]);
   }
   const lugar = (id: string) => {
