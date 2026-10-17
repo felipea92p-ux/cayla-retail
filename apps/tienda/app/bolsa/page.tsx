@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { elegirTiendaDeRecojo, quitarDeLaBolsa } from "@/app/acciones/bolsa";
 import { CantidadEnLaBolsa } from "@/components/bolsa/CantidadEnLaBolsa";
 import { FormularioSeparar } from "@/components/bolsa/FormularioSeparar";
@@ -30,6 +29,7 @@ import { leerGuardadosEnBase } from "@/lib/club-servidor";
 import { promesasDeCompra } from "@/lib/ficha";
 import { detalleDeLaPrenda, nombreTienda } from "@/lib/pedidos";
 import { claveDeSede, sedesEnOrden } from "@/lib/sede-elegida";
+import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
@@ -54,7 +54,11 @@ const CARRIL_DE_LA_BOLSA: Record<CarrilDeLaBolsaVacia["lista"], { ceja: string; 
  */
 export default async function Bolsa() {
   const sesion = await leerSesion();
-  if (sesion.estado === "sin_sesion") redirect("/entrar");
+  // La bolsa se arma sin cuenta (vive en la cookie de este aparato); la cuenta se pide al «Separar» (Felipe 2026-10-17).
+  const visitante = sesion.estado === "sin_sesion";
+  // Con cuenta pero sin Club (ADR-0438), «Separar» pide completar el documento y el celular antes: se sabe aquí, sin esperar a que la base diga que no.
+  const lectura = sesion.estado === "con_sesion" ? await leerMiCuentaEnBase(sesion.usuarioId) : null;
+  const sinClub = lectura?.estado === "cuenta" && !lectura.cuenta.esDelClub;
   if (sesion.estado === "sin_respuesta")
     return <Aviso titulo="No pudimos revisar tu sesión" texto="Vuelve a intentarlo en unos minutos." />;
 
@@ -62,13 +66,13 @@ export default async function Bolsa() {
   if (bolsa.lineas.length === 0) {
     // Vacía no es un callejón (2026-10-16): sus favoritos y Lo nuevo, en carriles, para llenarla desde aquí. El catálogo es la misma
     // lectura de la cabecera (`MarcoCuenta`, con «Todas»); si la base no responde, solo queda el vacío con sus dos caminos.
-    const [catalogo, guardados, sedes] = await Promise.all([leerCatalogo(null), leerGuardadosEnBase(sesion.usuarioId), leerSedes()]);
+    const [catalogo, guardados, sedes] = await Promise.all([leerCatalogo(null), sesion.estado === "con_sesion" ? leerGuardadosEnBase(sesion.usuarioId) : null, leerSedes()]);
     const tiendas = sedesEnOrden(sedes);
     const favoritos = guardados?.favoritos ?? new Set<string>();
     const carriles = carrilesDeLaBolsaVacia(catalogo?.prendas ?? [], favoritos);
     const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
     return (
-      <MarcoCuenta conCuenta conPie>
+      <MarcoCuenta conCuenta conPie visitante={visitante}>
         <div className="t-ancho cp-bolsa-vacia">
           <SubirAlLlenar />
           <div className="t-vacio">
@@ -109,6 +113,7 @@ export default async function Bolsa() {
         titulo="No pudimos cargar tu bolsa"
         texto="Es un problema de conexión de nuestro lado. Tu bolsa sigue aquí: vuelve a intentarlo en un momento."
         reintentar
+        visitante={visitante}
       />
     );
   const v = vistaBolsa(enBase);
@@ -118,7 +123,7 @@ export default async function Bolsa() {
   const totalPrendas = bolsa.lineas.reduce((n, l) => n + l.cantidad, 0);
 
   return (
-    <MarcoCuenta conCuenta conPie>
+    <MarcoCuenta conCuenta conPie visitante={visitante}>
       <div className="t-ancho">
         <header className="t-lista-cab t-bolsa-cab cp-sec-cab">
           <span className="t-ceja">Tu bolsa</span>
@@ -278,6 +283,8 @@ export default async function Bolsa() {
               marca={bolsa.marca}
               sedeId={v.sede?.id ?? null}
               listo={v.listo}
+              sinCuenta={visitante}
+              sinClub={sinClub}
               faltaTienda={v.faltaTienda}
               boton={v.boton}
               nota={
@@ -295,9 +302,9 @@ export default async function Bolsa() {
   );
 }
 
-function Aviso({ titulo, texto, reintentar = false }: { titulo: string; texto: string; reintentar?: boolean }) {
+function Aviso({ titulo, texto, reintentar = false, visitante = false }: { titulo: string; texto: string; reintentar?: boolean; visitante?: boolean }) {
   return (
-    <MarcoCuenta conCuenta conPie>
+    <MarcoCuenta conCuenta conPie visitante={visitante}>
       <div className="t-ancho">
         <div className="t-vacio" role="status">
           <Icono nombre="bolsa" />
