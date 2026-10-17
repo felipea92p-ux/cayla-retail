@@ -341,6 +341,28 @@ export function leerLineaDiario(r: Fila): LineaDiario {
   };
 }
 
+/** Un período de un mes (`fn_periodos_mes`): qué unidad es y en qué estado está. */
+export type PeriodoMes = { alcance: string; ubicacionId: string | null; estado: string };
+
+export function leerPeriodoMes(r: Fila): PeriodoMes {
+  return { alcance: String(r.alcance ?? ""), ubicacionId: texto(r.ubicacion_id), estado: String(r.estado ?? "") };
+}
+
+/**
+ * Las unidades de un mes que ya están CERRADAS, con la misma llave que `claveUnidad` (la tienda por su id; «empresa» y «consolidado» por su
+ * nombre). Sus columnas muestran lo que se congeló al cerrar (auditoría de Finanzas 2026-10-16, G09): no cambian aunque después se corrija algo.
+ */
+export function clavesCerradas(periodos: readonly PeriodoMes[]): string[] {
+  return periodos
+    .filter((p) => p.estado === "cerrado")
+    .map((p) => (p.alcance === "ubicacion" ? p.ubicacionId : p.alcance))
+    .filter((k): k is string => !!k);
+}
+
+/** La nota que acompaña a un cuadro con columnas cerradas. */
+export const NOTA_MES_CERRADO =
+  "Las columnas «cerrado» muestran lo que se congeló al cerrar el mes: no cambian aunque después se corrija algo. Si hay que corregirlo, se reabre en Cierre de mes.";
+
 /** Qué operación generó cada línea, en palabras de la tienda. */
 export const TEXTO_REGLA: Record<string, string> = {
   venta: "Ventas",

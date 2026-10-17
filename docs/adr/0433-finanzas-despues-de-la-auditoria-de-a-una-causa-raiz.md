@@ -179,3 +179,37 @@ agrega un módulo a `fn_ve_finanzas_de_todo()` sin sumarlo a `MODULOS_QUE_VEN_TO
 pasan con ella; las 13 suites vecinas (balance, cierre de mes, estado de resultados, presupuesto, resumen, roles…) dan lo mismo con y sin la migración (3 fallos que ya existían en la base local
 y no son de este cambio: `cierre_mes` G, `redondeo_efectivo` y `roles_cobertura_modulos`); vitest 160 826 pruebas, `tsc`, ESLint y Knip limpios; prueba de mutación de la web (quitar un módulo de
 `MODULOS_QUE_VEN_TODO_FINANZAS` rompe la prueba cruzada). **No verificado en el navegador:** el rol «Producción» no tiene cuenta de prueba local; queda para el pase final.
+
+## Actividad 9 · Un mes cerrado se queda cerrado (G09)
+
+**El problema.** Cerrar un mes congela su diario (`diario_cerrado`) y le saca una huella: es lo que el contador recibe. Tres grietas dejaban que ese número cambiara DESPUÉS, o que un
+registro se colara sin que nadie lo supiera. (1) El Estado de resultados leía el diario VIVO (`fn_asientos`) y no el congelado (`fn_diario`, que ya existía y solo usaba el Balance): lo que cambiara
+en el diario vivo de un mes cerrado —una planilla corregida en Dynamic, un cambio por fuera del sistema— movía el Estado de un mes que el contador ya tiene, y el Balance y el Estado del mismo mes dejaban de
+cuadrar entre sí. (2) `archivar_caja_prueba` y `guardar_parametro_tributario` (el IGV y el tope de la planilla de movilidad rigen hacia atrás) cambiaban el diario vivo de un mes cerrado sin pasar por el
+candado de mes. (3) El candado (`fn_exigir_mes_abierto`) miraba `periodos` con la foto de la sentencia que lo llama y sin ningún cerrojo compartido con `cerrar_periodo` (que sí toma `cierre_mes:<mes>`):
+un gasto con fecha del mes que se cierra, registrado mientras el cierre se confirmaba, pasaba el candado y quedaba FUERA del diario congelado. **Reproducido con confirmaciones reales** en una copia
+desechable de la base (dos sesiones; sin el arreglo): el gasto de noviembre se guardó, el diario congelado quedó con 0 líneas y el vivo con 2; con el arreglo, el gasto esperó, vio el mes cerrado y se
+rechazó con «Noviembre 2024 de Tienda Trujillo está cerrado» (0 gastos guardados).
+
+DECIDÍ (Felipe, 2026-10-16: aprobada la actividad 9 de la tanda 1, antes del primer cierre):
+- **El Estado de resultados lee `fn_diario`** (reemplazo anclado de una línea, `20261017012000`): un mes abierto sale idéntico (`fn_diario` llama a `fn_asientos`); uno cerrado, de su foto. Los contadores
+  de «prendas y mermas sin costo» siguen vivos A PROPÓSITO: son avisos de qué falta cargar, no cifras del cierre. La web marca «cerrado» bajo cada columna cerrada (`fn_periodos_mes`) con una nota
+  («no cambian aunque después se corrija algo; se reabre en Cierre de mes»), y «De dónde sale» lee la misma foto, así que las líneas detrás de una cifra son las de la cifra.
+- **El candado de mes toma el cerrojo compartido del cierre** (lente 5 de /rigor, resiliencia): `fn_exigir_mes_abierto` pasa de STABLE a VOLATILE y, antes de mirar `periodos`, toma
+  `pg_advisory_xact_lock_shared('cierre_mes:<mes>')` de cada mes cerrable del rango (solo meses ya terminados, tope 120; una venta de hoy no paga nada). Así quien registra espera a que termine un cierre
+  en marcha, y un cierre espera a quien está registrando. **Lo que cambió el diseño:** ser VOLATILE no es un detalle: una función STABLE lee con la foto de la sentencia que la llamó, de modo que aun
+  tomando el cerrojo habría seguido viendo `periodos` sin el cierre confirmado. Con VOLATILE la lectura que sigue al cerrojo toma una foto nueva.
+- **`archivar_caja_prueba` pasa por el candado** con las fechas de la caja (el cierre de una caja y su diferencia entran al diario por su fecha); **`guardar_parametro_tributario` rechaza una vigencia
+  del IGV o del tope de planilla que alcance un mes cerrado** (`fn_exigir_vigencia_sin_meses_cerrados`, errcode `P0001`, hint `periodo_cerrado`). La UIT, el régimen y el pago a cuenta no entran al diario y
+  no se guardan. Un re-guardado del mismo valor ya confirmado sigue siendo un no-op.
+- **Dynamic puede volver a congelar períodos ya pagados** (hasta 7 versiones en 7 semanas; la vista toma siempre la última): `14-DYNAMIC.md` §7.1 decía lo contrario y se corrigió; el chequeo «huella» del
+  cierre ya lo avisa sin bloquear y su texto ya no culpa solo a Dynamic.
+DESCARTÉ: `FOR SHARE` sobre `periodos` (bloquea filas que el cierre también actualiza); un cerrojo por cada mes de una vigencia de IGV desde 2011 (180 cerrojos por una acción rara de Configuración); bloquear
+a Dynamic (no es nuestro sistema: se avisa); recomputar la huella viva dentro de `cerrar_periodo` tras congelar (el chequeo «huella» ya lo hace después, y el cerrojo cierra la carrera que lo motivaba).
+SE ROMPE SI: una vigencia retroactiva se guarda en el mismo instante en que se cierra el mes (el cerrojo no cubre los parámetros; el chequeo «huella» lo avisaría); una migración futura vuelve a crear
+`fn_exigir_mes_abierto` como STABLE (la prueba de dos sesiones, D1 y D2, lo atrapa); alguien registra con una fecha de un mes cerrado a través de una vía que no pasa por un `fn_candado_*` (el candado de mes
+solo cubre lo que lo llama).
+**Verificado.** `pnpm pruebas:finanzas-mes-cerrado`: 16 verificaciones (el Estado de resultados no cambia una cifra tras una deriva en el diario vivo; archivar una caja de un mes cerrado y las vigencias retroactivas se
+rechazan, las de un mes abierto o futuro no; y DOS SESIONES reales entrelazadas, con `lock_timeout`, en las dos direcciones, más el control de que un gasto de HOY no espera): 9 fallan sin la migración y las 16
+pasan con ella; la carrera con confirmaciones reales en una base desechable, arriba. **No verificado en el navegador:** la base local compartida no tiene la migración; queda para el pase final (un mes cerrado en
+Reportes ▸ Estado de resultados).
