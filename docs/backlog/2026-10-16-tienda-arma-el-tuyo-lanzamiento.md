@@ -11,10 +11,10 @@
   - las reglas: `apps/tienda/lib/looks-guardados.test.ts`;
   - en un banco propio, a 375 px y en la computadora, en claro y oscuro: guardar, cambiar el nombre, abrir en el probador, la hoja de
     tallas, quitar y volver a guardar.
-- [ ] **No está en producción:** `supabase/migrations/20261017044000_tienda_looks_guardados.sql`.
-  - Trae dos tablas, cuatro funciones y una línea anclada en `fn_cuentas_web_cerrar_al_anonimizar`.
-  - Se pega con el OK de Felipe antes de fusionar el PR 3.
-  - Al pegarla, refrescar el volcado (`pnpm datos:refrescar`) para que `looks_web` y `look_web_piezas` entren al diccionario.
+- [x] **En producción desde el 2026-10-17**, con el OK de Felipe y el CI del PR 3 en verde:
+  `supabase/migrations/20261017044000_tienda_looks_guardados.sql`, verificada contra la base (las seis huellas, la línea de los looks en
+  el cierre de cuentas, solo `tienda_web` y las tablas sin lectura directa).
+- [ ] Refrescar el volcado (`pnpm datos:refrescar`) para que `looks_web` y `look_web_piezas` entren al diccionario.
 - [x] El PR 3 se abrió el 2026-10-17, con el PR 1 (#1151) y el PR 2 (#1155) ya en main.
 - [x] Dos pruebas de base conocen ahora los looks guardados, porque la migración cambia el disparador del cierre de cuentas y suma una
   función que lee la ficha:

@@ -32,9 +32,9 @@
 -- SE ROMPE SI: alguien reescribe `fn_cuentas_web_cerrar_al_anonimizar` sin la línea de los looks (quedarían vivos looks de una
 --   cuenta cerrada, aunque nadie pueda abrirlos): `pnpm pruebas:tienda-looks-guardados` lo vigila.
 --
--- PRODUCCIÓN. NO está aplicada: se pega con el OK de Felipe antes de fusionar su PR (ADR-0434, PR 3). Tablas nuevas, funciones y
--- permisos, sin políticas: se pega entera y se puede volver a correr. El reemplazo anclado se detiene sin tocar nada si su ancla no
--- aparece exactamente una vez (verificada en producción el 2026-10-16: md5 7d44e90da23e4d089eca65ec1603c5b5).
+-- PRODUCCIÓN. APLICADA el 2026-10-17 con el OK de Felipe, antes de fusionar su PR (ADR-0434, PR 3), con las seis huellas esperadas.
+-- Tablas nuevas, funciones y permisos, sin políticas: se pega entera y se puede volver a correr. El reemplazo anclado se detiene sin
+-- tocar nada si su ancla no aparece exactamente una vez (en producción, antes de pegarla: md5 7d44e90da23e4d089eca65ec1603c5b5).
 -- ============================================================================
 
 set search_path = retail, public, extensions;
