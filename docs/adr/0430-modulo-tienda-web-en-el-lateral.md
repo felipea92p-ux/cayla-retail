@@ -194,3 +194,15 @@ tienda. Datos y plazos ya lo decía bien; el camino lo contradecía. El error fu
 - La estación «Por cobrar» dice cuándo se anula el primero sin pago (y late a menos de 3 h); la regla de «¿Cómo funciona?» lo explica.
 - **SE ROMPE SI** cambia la regla de la base (por ejemplo, que también se anule con un pago parcial): `relojDeFila`, `loQueTeToca` y
   `tramosDelCamino` en `lib/pedidos-web-reglas.ts` repiten lo que decide `fn_anular_pedidos_web_sin_pagar`, y sus pruebas lo nombran.
+
+## Corrección 2026-10-17 (c) — la hoja del pedido: «Es la última» cuenta la tienda, y «Quitar» no se ofrece sin salida
+
+Dos errores de la hoja de un pedido por confirmar, vistos en una captura de producción (maqueta con los demás puntos de la hoja, sin
+construir: `docs/maquetas/pedidos-web-2026-10/hoja.html`):
+
+- **«Es la última en Tienda TRU» era falso** justo debajo de «Hay 2 en Tienda TRU (1 en almacén, 1 en piso)». `avisosDeLinea` contaba lo
+  libre en el LUGAR elegido pero nombraba a la tienda. Ahora cuenta la tienda entera y dice qué significa: «Es la última en Tienda TRU: al
+  confirmar, ya no se puede vender en la tienda». En otra tienda, cuenta esa tienda, como antes.
+- **«Quitar del pedido» con una sola prenda llevaba a un callejón**: la prenda se tachaba y «Confirmar» quedaba bloqueado («si quitas
+  todas, ciérralo con «No se puede confirmar»»). Ahora el botón sale solo si queda otra prenda sin quitar (`sePuedeQuitar`); con una sola,
+  la salida es «No se puede confirmar», que ya está en el pie. `problemaParaConfirmar` sigue de red.

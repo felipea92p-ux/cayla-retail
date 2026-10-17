@@ -996,26 +996,32 @@ export function textoDeDonde(lugar: LugarWeb | null): string {
   return "Sepárala para el pedido.";
 }
 
-/** Los avisos de la prenda: si es la última del lugar elegido y quién más la pidió (propuesta k). Lo decide la tienda. */
+/** Los avisos de la prenda: si es la última DE LA TIENDA donde se reserva y quién más la pidió (propuesta k). Lo decide la tienda.
+ *  Cuenta la tienda entera, no el lugar elegido: con 1 en el almacén y 1 en el piso no es la última (antes decía «Es la última en
+ *  Tienda TRU» justo debajo de «Hay 2 en Tienda TRU»; ADR-0430, corrección 2026-10-17 c). */
 export function avisosDeLinea(l: Pick<LineaDetalle, "disponible" | "compiten">, d: DecisionLinea | null | undefined, tiendaPedidoId: string, tienda: string): string[] {
   const avisos: string[] = [];
   if (d?.tipo === "reservar") {
-    const libres =
-      d.ubicacionId === tiendaPedidoId
-        ? d.lugar === "almacen"
-          ? l.disponible.almacen
-          : d.lugar === "piso"
-            ? l.disponible.piso
-            : libresAqui(l)
-        : (l.disponible.otras.find((o) => o.ubicacionId === d.ubicacionId)?.libres ?? 0);
-    const donde = d.ubicacionId === tiendaPedidoId ? tienda : (l.disponible.otras.find((o) => o.ubicacionId === d.ubicacionId)?.tienda ?? "esa tienda");
-    if (libres === 1) avisos.push(`Es la última en ${donde}.`);
+    const aqui = d.ubicacionId === tiendaPedidoId;
+    const otra = aqui ? null : l.disponible.otras.find((o) => o.ubicacionId === d.ubicacionId);
+    const libres = aqui ? libresAqui(l) : (otra?.libres ?? 0);
+    if (libres === 1) avisos.push(aqui ? `Es la última en ${tienda}: al confirmar, ya no se puede vender en la tienda.` : `Es la última en ${otra?.tienda ?? "esa tienda"}.`);
     if (l.compiten.length > 0) {
       const quienes = l.compiten.map((c) => `${c.codigo}${c.separoAntes ? " (la separó antes)" : ""}`).join(", ");
       avisos.push(`También la ${l.compiten.length === 1 ? "pidió" : "pidieron"} ${quienes}. Tú decides a quién confirmarla.`);
     }
   }
   return avisos;
+}
+
+/** ¿Se ofrece «Quitar del pedido» en esta prenda? Solo si queda otra sin quitar: si se quitan todas no se puede confirmar (es «No se
+ *  puede confirmar», `problemaParaConfirmar`), así que en un pedido de una sola prenda el botón llevaba a un callejón. */
+export function sePuedeQuitar(
+  lineas: readonly Pick<LineaDetalle, "lineaId">[],
+  decisiones: Readonly<Record<string, DecisionLinea | null>>,
+  lineaId: string,
+): boolean {
+  return lineas.some((l) => l.lineaId !== lineaId && decisiones[l.lineaId]?.tipo !== "quitar");
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------

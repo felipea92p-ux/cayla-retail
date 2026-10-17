@@ -32,6 +32,7 @@ import {
   relojDeFila,
   relojDelPlazo,
   reglasDelCamino,
+  sePuedeQuitar,
   sePuedeReservarYa,
   textoCierre,
   textoDisponible,
@@ -260,14 +261,27 @@ describe("Confirmar: la decisión de cada prenda", () => {
     expect(textoDisponible(disponible(0, 0), "Tienda Trujillo")).toBe("No hay en ninguna tienda.");
   });
 
-  it("avisa la última del lugar elegido y quién más la pidió (quién la separó antes)", () => {
+  // Cuenta la tienda entera, no el lugar: con 1 en el almacén y 3 en el piso no es la última (antes lo decía, ADR-0430 corrección c).
+  it("avisa la última de la tienda (no del lugar elegido) y quién más la pidió (quién la separó antes)", () => {
     const l = { ...disponible(1, 3), compiten: [{ codigo: "W-0003", separoAntes: true }] };
     expect(avisosDeLinea(l, { tipo: "reservar", ubicacionId: TRU, lugar: "almacen" }, TRU, "Tienda Trujillo")).toEqual([
-      "Es la última en Tienda Trujillo.",
       "También la pidió W-0003 (la separó antes). Tú decides a quién confirmarla.",
     ]);
-    expect(avisosDeLinea(l, { tipo: "reservar", ubicacionId: TRU, lugar: "piso" }, TRU, "Tienda Trujillo")).toHaveLength(1);
+    expect(avisosDeLinea({ ...disponible(1, 1), compiten: [] }, { tipo: "reservar", ubicacionId: TRU, lugar: "almacen" }, TRU, "Tienda Trujillo")).toEqual([]);
+    expect(avisosDeLinea({ ...disponible(0, 1), compiten: [] }, { tipo: "reservar", ubicacionId: TRU, lugar: "piso" }, TRU, "Tienda Trujillo")).toEqual([
+      "Es la última en Tienda Trujillo: al confirmar, ya no se puede vender en la tienda.",
+    ]);
+    const enLima = { ...disponible(0, 0, [{ ubicacionId: LIM, tienda: "Tienda Lima", libres: 1 }]), compiten: [] };
+    expect(avisosDeLinea(enLima, { tipo: "reservar", ubicacionId: LIM, lugar: null }, TRU, "Tienda Trujillo")).toEqual(["Es la última en Tienda Lima."]);
     expect(avisosDeLinea(l, { tipo: "quitar" }, TRU, "Tienda Trujillo")).toEqual([]);
+  });
+
+  it("«Quitar del pedido» solo si queda otra prenda sin quitar (quitarlas todas no se puede confirmar)", () => {
+    const lineas = [{ lineaId: "a" }, { lineaId: "b" }];
+    expect(sePuedeQuitar([{ lineaId: "a" }], { a: null }, "a")).toBe(false);
+    expect(sePuedeQuitar(lineas, { a: null, b: null }, "a")).toBe(true);
+    expect(sePuedeQuitar(lineas, { a: null, b: { tipo: "quitar" } }, "a")).toBe(false);
+    expect(sePuedeQuitar(lineas, { a: { tipo: "quitar" }, b: null }, "b")).toBe(false);
   });
 
   it("fechas para conseguirla: en 3, 7 y 14 días", () => {
