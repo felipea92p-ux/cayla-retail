@@ -20,6 +20,12 @@
 -- Contra producción (solo lectura, 2026-10-16): el ancla aparece exactamente una vez en `anular_venta`.
 --
 -- Producción: sin `alter` de tablas en uso y sin políticas (ADR-0195, «Políticas y deadlocks»): se pega entera.
+--
+-- LO QUE TRAE DE #1094 (ADR-0251, «producción tiene otra versión de algo que el PR toca»). Producción ya tiene el cambio de `20261014165000_anular_venta_con_la_baja_pedida`
+-- (PR #1094, ADR-0016 act. 2026-10-14: un comprobante aceptado cuya baja ya se pidió a SUNAT no sostiene la venta), que todavía no está en `main`: sin él, el `anular_venta`
+-- que arma el CI desde cero es distinto del de producción y el check «SQL pegado» sale rojo para esta migración (verificado el 2026-10-17: es UNA línea de código). Se trae aquí,
+-- con el mismo reemplazo anclado de esa migración (idéntico): en producción no hace nada (el texto nuevo ya está) y, cuando #1094 se fusione, su migración (de versión anterior)
+-- corre primero y esto tampoco hace nada.
 -- ============================================================================
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
@@ -44,6 +50,15 @@ begin
   execute replace(v_def, p_viejo, p_nuevo);
 end;
 $f$;
+
+-- Lo de #1094: la baja pedida a SUNAT no sostiene la venta (mismo texto que `20261014165000_anular_venta_con_la_baja_pedida`).
+select pg_temp.anclar('retail.anular_venta(uuid, text, jsonb)',
+  $v$    select 1 from comprobantes where venta_id = p_venta_id and estado in ('enviado', 'aceptado')
+$v$,
+  $n$    -- ADR-0016 (act. 2026-10-14): la baja de un comprobante anula la venta en el mismo acto. Uno aceptado cuya baja ya se pidió a
+    -- SUNAT (anulacion_solicitada_at) no sostiene la venta: /api/lucode/anular llama aquí justo después de pedirla.
+    select 1 from comprobantes where venta_id = p_venta_id and estado in ('enviado', 'aceptado') and anulacion_solicitada_at is null
+$n$);
 
 select pg_temp.anclar('retail.anular_venta(uuid, text, jsonb)',
   $v$-- ADR-0408 act. 10: la venta de un pedido web que todavía no se entrega no se anula: sus prendas siguen reservadas en la tienda (nunca$v$,
