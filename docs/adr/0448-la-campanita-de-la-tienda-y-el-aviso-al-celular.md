@@ -115,7 +115,10 @@ fuera hasta que Felipe lo decida.**
 
 - **La campanita con una sesión real.** El proyecto de inicio de sesión de clientes no corre en local, así que la parte de servidor
   (`Campanita.tsx`: sesión, aviso de tallas, cookies) la cubren los tipos y las pruebas de la lógica, no una pantalla vista con una cuenta.
-  Hay que mirarla en la publicación de prueba del PR con una cuenta que tenga un «Avísame» ya llegado.
+  **La tienda no tiene publicación de prueba** (ADR-0408: sus variables están solo en Producción, y `scripts/ci/vercel-ignorar-tienda.mjs` no
+  construye nada que no sea producción; Vercel lo mostró en el PR #1180 como «1 Skipped Deployment»). Se puede ver con sesión real de dos
+  maneras: en local, levantando la pila de clientes (README de la tienda, «Levantarla en local») con datos de prueba, o en producción justo
+  después de fusionar, con una cuenta que tenga un «Avísame» ya llegado. Fusionar publica: la campanita llega a todos los miembros con sesión.
 - Nada del aviso al celular (no está construido) y, cuando se construya, **un Android y un iPhone reales**: es la única prueba que no se
   puede hacer en el escritorio.
 - Que la campanita se use: hoy no hay un solo «Avísame» vivo.
