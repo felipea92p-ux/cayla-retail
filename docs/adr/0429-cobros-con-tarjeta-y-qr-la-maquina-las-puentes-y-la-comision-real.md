@@ -125,3 +125,22 @@ movería 0. Las cifras exactas (cobros y soles por tienda y medio) quedan fuera 
 Lo que sigue es de Felipe, en pantalla (paso 6 de «Cómo se pega»): el saldo inicial de Interbank, las tarifas de Vendemás y de la tarjeta de
 Izipay, y registrar los depósitos ya recibidos desde el 30-sep con «Depósito de la máquina». Hasta entonces las puentes muestran todo como
 pendiente y el aviso de atraso se prende: es lo correcto.
+
+### Lo que el CI del PR enseñó después de pegar (2026-10-17, tarde)
+
+Tres suites viejas cayeron, ninguna por producción: (1) `pruebas:redondeo-efectivo` y `pruebas:club-registro-cartel` vuelven a pegar las
+migraciones del redondeo (ADR-0311) sobre su punto de partida y comparan huellas exactas; los parches por ancla de la 173000 (ocho, sobre
+`fn_cuenta_sellada`, `fn_cuenta_sirve`, `fn_asiento_cuenta_de_medio`, `fn_medios_de_cobro_validar`, `guardar_medio_de_cobro` y
+`fn_medios_de_cobro`) y el de la 182000 (`registrar_venta`) no estaban en sus listas de «deshacer y rehacer». Entraron:
+`scripts/pruebas/registrar-venta-antes-de-precio-sede.mjs` (la máquina es el parche más nuevo de la cadena de `registrar_venta`) y el nuevo
+`scripts/pruebas/sello-antes-de-maquinas.mjs` (las otras seis funciones). Un parche futuro a cualquiera de esas funciones se suma ahí.
+(2) El mismo redondeo afirmaba que el QR asienta en la 104 como Yape: desde esta decisión asienta en la 105 (espera en la máquina), y la
+prueba lo dice así. Y sus dos funciones nuevas que leen `venta_pagos` (`fn_pos_pendientes`, `fn_resellar_cobros_a_maquinas`) entraron a la
+auditoría del redondeo con lo que hacen con la fila «redondeo» (nada: filtran por tarjeta y QR). (3) `pruebas:configuracion-caja` contaba
+toda fila de `configuracion_historial` del último minuto, y en el CI las que siembra la 173000 (tres cuentas, los medios de cobro) caían
+dentro: ahora cuenta solo las claves de su escenario.
+
+**Una limitación que quedó a la vista:** pegada la 191000, la 173000 **ya no se vuelve a pegar entera** —`fn_pos_maquinas` cambió de forma
+(más columnas) y `create or replace` no puede cambiar el tipo de retorno—. Sus ocho reemplazos anclados sí son re-ejecutables, y eso es lo
+que las pruebas rehacen. En producción no cambia nada (cada migración se pegó una vez, en orden); «idempotente» en el encabezado de la 173000
+vale hasta la 191000.
