@@ -18,7 +18,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { useResponsable } from "@/lib/useResponsable";
 import { sugerirLargo } from "@/lib/sugerencias-largo-probador";
 import { camposDeLargo } from "@/lib/vitrina-probador-guia";
-import { coloresPorFotografiar, errorDeLargo, leerLargo, queHacerConLaPrenda, veredictoDelProbador, type PrendaDelProbador } from "@/lib/vitrina-probador-reglas";
+import { avisoDeRedondeo, coloresPorFotografiar, errorDeLargo, leerLargo, queHacerConLaPrenda, veredictoDelProbador, type PrendaDelProbador } from "@/lib/vitrina-probador-reglas";
 
 /**
  * Una prenda en Vitrina ▸ Probador (ADR-0434, actividad 3): su largo para el probador —vacío usa el típico de su categoría; vestidos,
@@ -143,7 +143,7 @@ export function ProbadorPrendaHoja({
               pie={
                 "error" in leido
                   ? leido.error
-                  : `${p.tipico === null ? `${p.categoria ? `La categoría ${p.categoria.nombre}` : "Su categoría"} no tiene largo típico: sin el suyo, no sale en el probador.` : `Vacío: usa el típico de ${categoria}, ${p.tipico} cm.`} Se mide de arriba abajo, como cae puesta.`
+                  : `${avisoDeRedondeo(escrito) ? `${avisoDeRedondeo(escrito)} ` : ""}${p.tipico === null ? `${p.categoria ? `La categoría ${p.categoria.nombre}` : "Su categoría"} no tiene largo típico: sin el suyo, no sale en el probador.` : `Vacío: usa el típico de ${categoria}, ${p.tipico} cm.`} Se mide de arriba abajo, como cae puesta.`
               }
               disabled={guardando}
             />

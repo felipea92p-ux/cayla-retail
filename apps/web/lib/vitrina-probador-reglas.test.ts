@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { GRUPOS_DE_LA_TIENDA, zonaDelProbador } from "@cayla-retail/shared/categorias-de-la-tienda";
 import {
+  avisoDeRedondeo,
   cifrasProbador,
   coloresPorFotografiar,
   entraAlProbador,
@@ -245,5 +246,15 @@ describe("el paso que sigue, arriba", () => {
     expect(siguientePaso({ sinRecorte: 1, porRevisar: 0, sinLargo: 0 })?.texto).toBe("Preparar 1 recorte");
     expect(siguientePaso({ sinRecorte: 0, porRevisar: 1, sinLargo: 0 })?.texto).toBe("Revisar 1 recorte");
     expect(siguientePaso({ sinRecorte: 0, porRevisar: 0, sinLargo: 1 })?.texto).toBe("Anotar 1 largo");
+  });
+});
+
+describe("avisoDeRedondeo: la caja dice antes de guardar que el largo va en cm enteros (/chaos ENT-06, 2026-10-17)", () => {
+  it("un decimal que cambia al redondear avisa con el número que se va a guardar", () => {
+    expect(avisoDeRedondeo("62,5")).toBe("Se guarda en centímetros enteros: 63.");
+    expect(avisoDeRedondeo("62.4 cm")).toBe("Se guarda en centímetros enteros: 62.");
+  });
+  it("un entero, un decimal que no cambia, lo vacío o lo que no sirve no avisan (lo inválido ya tiene su error)", () => {
+    for (const v of ["62", "62,0", "", "abc", "300,5", "4,2"]) expect(avisoDeRedondeo(v)).toBeNull();
   });
 });

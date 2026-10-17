@@ -12,7 +12,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
 import { useResponsable } from "@/lib/useResponsable";
 import { camposDeTipicos } from "@/lib/vitrina-probador-guia";
-import { errorDeLargo, leerLargo, type TipicoDeCategoria } from "@/lib/vitrina-probador-reglas";
+import { avisoDeRedondeo, errorDeLargo, leerLargo, type TipicoDeCategoria } from "@/lib/vitrina-probador-reglas";
 
 /**
  * Los largos típicos de Vitrina ▸ Probador (ADR-0434, actividad 3): el largo con que el probador dibuja una prenda de cada categoría
@@ -88,7 +88,7 @@ export function LargosTipicosHoja({
                   onChange={(e) => setEscritos((m) => ({ ...m, [t.categoriaId]: e.target.value }))}
                   placeholder="Sin típico" // sugerir-fijo: dice qué pasa con la caja vacía; un «Ej.» invitaba a ponerles típico a vestidos y faldas (/formidable)
                   tono={"error" in leido ? "error" : undefined}
-                  pie={"error" in leido ? leido.error : undefined}
+                  pie={"error" in leido ? leido.error : (avisoDeRedondeo(escritos[t.categoriaId] ?? "") ?? undefined)}
                   disabled={guardando}
                 />
               </li>

@@ -227,6 +227,15 @@ export function leerLargo(escrito: string): { valor: number | null } | { error: 
   return { valor: n };
 }
 
+/** Si lo escrito lleva un decimal que cambia al redondear, la caja lo dice ANTES de guardar: «62,5» se guardaba como 63 sin que nadie lo
+ *  viera hasta el aviso de después (/chaos ENT-06, 2026-10-17). `null`: un entero, un decimal que no cambia o algo que ya tiene su error. */
+export function avisoDeRedondeo(escrito: string): string | null {
+  const leido = leerLargo(escrito);
+  if ("error" in leido || leido.valor === null) return null;
+  const limpio = escrito.trim().toLowerCase().replace(/\s*cm$/, "").replace(",", ".");
+  return Number(limpio) === leido.valor ? null : `Se guarda en centímetros enteros: ${leido.valor}.`;
+}
+
 /** El largo de una prenda en palabras de la lista: «62 cm», «45 cm · el típico» o «Falta». */
 export function textoDelLargo(p: Pick<PrendaDelProbador, "largo" | "tipico">): string {
   if (p.largo !== null) return `${p.largo} cm`;
