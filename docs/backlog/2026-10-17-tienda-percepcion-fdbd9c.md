@@ -26,7 +26,7 @@ Sigue a `docs/backlog/2026-10-17-cayla-tienda-optimizacion-fdbd9c.md` («Más me
 
 - [ ] **Medir a los clientes reales** (fila 1): Vercel Speed Insights o `useReportWebVitals`. Felipe decide (costo).
 - [ ] **El probador** (fila 7): de la obra «Arma el tuyo»; propuesto como sesión aparte.
-- [ ] **Transición de la tarjeta a la ficha** (fila 8, View Transitions): Felipe decide (movimiento de marca).
+- [x] ~~**Transición de la tarjeta a la ficha** (fila 8, View Transitions)~~: hecha, Felipe la pidió («cuando cambia de vista es muy abrupto»). Ver `docs/backlog/2026-10-17-tienda-vistas-fdbd9c.md` y ADR-0445.
 - [ ] **Calentar la caché del catálogo** (fila 9): Felipe decide (en el plan gratis de Vercel las tareas programadas corren una vez al día).
 - [ ] **`fn_precio_en_sede`** (fila 10): no se toca sin una razón más fuerte (es la regla del precio de la caja).
 - [ ] **El buscador por palabras sueltas** (nueva, no es velocidad): hoy busca la frase tal cual, así que «blusa ray» no encuentra «Blusa Alba

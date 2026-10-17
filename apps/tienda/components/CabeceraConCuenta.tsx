@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { Suspense, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { salir } from "@/app/acciones/cuenta";
 import { buscarEn, leerRespuestaDelBuscador, resaltar, type RespuestaBuscador } from "@/lib/buscador";
+import { seccionDeLaRuta, type SeccionActual } from "@/lib/esqueleto";
 import type { DatosCabecera, FotoChica, MenuCabecera } from "@/lib/inicio";
 import { useGuardados } from "./club/Guardados";
 import { BotonCerrarSesion } from "./cuenta/BotonCerrarSesion";
@@ -14,7 +15,24 @@ import { Logo } from "./Marca";
 // El globo rojo de la bolsa y del corazón (`.t-globo`).
 import "@/app/estilos/bolsa.css";
 
-export type SeccionActual = "inicio" | "nuevo" | "vendidos" | "ofertas" | "looks" | "probador" | "favoritos" | "cuenta" | null;
+export type { SeccionActual };
+
+// La cabecera de la última página que llegó (2026-10-17, Felipe: «cuando cambia de vista es muy abrupto»). Mientras llega la siguiente,
+// el esqueleto dibujaba una cabecera vacía: sin «Ropa», «Accesorios» ni «Arma el tuyo», sin el nombre y sin los globos, que volvían al
+// llegar la página; en cada toque la cabecera se encogía y se volvía a estirar. Ahora la cabecera que espera (`deEspera`) es la última
+// que se vio, con lo mismo, y sus enlaces funcionan. Vive en la memoria de esta pestaña: la primera espera después de recargar va con la
+// cabecera vacía de siempre (es la que mandó el servidor, así que hidrata igual).
+type CabeceraVista = { datos: DatosCabecera; favoritos: number | null; nombre: string | null; bolsa: React.ReactNode };
+let ultimaVista: CabeceraVista | null = null;
+const sinAvisos = () => () => {};
+const laUltima = () => ultimaVista;
+const ninguna = () => null;
+
+/** Lo que dijo la última cabecera vista (sus menús con los nombres de cada grupo y categoría): el esqueleto de una lista escribe con eso
+ *  el título de la categoría que viene. null sin ninguna vista. */
+export function useCabeceraVista(): DatosCabecera | null {
+  return useSyncExternalStore(sinAvisos, laUltima, ninguna)?.datos ?? null;
+}
 
 /** «3 favoritos», «1 favorito»: lo que oye el lector en el corazón. */
 const etiquetaFavoritos = (n: number | null) => (n ? `Favoritos: ${n} ${n === 1 ? "guardado" : "guardados"}` : "Favoritos");
@@ -40,6 +58,25 @@ function pedirIndice(sede: string | null): Promise<RespuestaBuscador> {
 }
 
 /**
+ * La cabecera de una página que todavía carga (el esqueleto): la última vista (`deEspera`), con la sección de la página que viene ya
+ * marcada (la raya bajo «Lo nuevo» no se apaga mientras llega Lo nuevo). Leer la dirección en una página armada por adelantado frena el
+ * armado: se lee en su propio <Suspense>, con la cabecera sin marca mientras tanto (ADR-0432).
+ */
+export function CabeceraDeEspera(props: { datos: DatosCabecera; bolsa?: React.ReactNode }) {
+  return (
+    <Suspense fallback={<CabeceraConCuenta {...props} deEspera />}>
+      <CabeceraConLaSeccion {...props} />
+    </Suspense>
+  );
+}
+
+function CabeceraConLaSeccion(props: { datos: DatosCabecera; bolsa?: React.ReactNode }) {
+  const ruta = usePathname();
+  const buscar = useSearchParams();
+  return <CabeceraConCuenta {...props} deEspera actual={seccionDeLaRuta(ruta ?? "", new URLSearchParams(buscar.toString()))} />;
+}
+
+/**
  * La cabecera de quien tiene cuenta (maqueta v4, `cabT`): en el celular, el menú a la izquierda; en la computadora, «Lo nuevo», «Ropa» y
  * «Accesorios» (cada uno abre sus grupos de categorías con fotos y lo último que llegó), «Arma tu look», «Más vendidos» y «Ofertas». A la derecha, el
  * buscador (busca mientras se escribe, por nombre, categoría o color, sin tildes ni mayúsculas), el corazón de los favoritos con cuántos
@@ -47,11 +84,12 @@ function pedirIndice(sede: string | null): Promise<RespuestaBuscador> {
  * bolsa con su globo. Todos los enlaces llevan la tienda elegida, menos los favoritos (son de la persona, no de una tienda).
  */
 export function CabeceraConCuenta({
-  datos,
+  datos: propios,
   actual = null,
-  favoritos = null,
-  bolsa = null,
-  nombre = null,
+  favoritos: favoritosPropios = null,
+  bolsa: bolsaPropia = null,
+  nombre: nombrePropio = null,
+  deEspera = false,
 }: {
   datos: DatosCabecera;
   actual?: SeccionActual;
@@ -61,7 +99,17 @@ export function CabeceraConCuenta({
   bolsa?: React.ReactNode;
   /** El nombre corto de la cuenta («María»), para el saludo del menú de la persona; null si no se sabe (sale sin saludo). */
   nombre?: string | null;
+  /** La cabecera de una página que todavía carga (el esqueleto): repite la última que se vio; sin ninguna vista, la que le pasan. */
+  deEspera?: boolean;
 }) {
+  const vista = useSyncExternalStore(sinAvisos, deEspera ? laUltima : ninguna, ninguna);
+  const datos = vista?.datos ?? propios;
+  const favoritos = vista ? vista.favoritos : favoritosPropios;
+  const nombre = vista ? vista.nombre : nombrePropio;
+  const bolsa = vista ? vista.bolsa : bolsaPropia;
+  useEffect(() => {
+    if (!deEspera) ultimaVista = { datos: propios, favoritos: favoritosPropios, nombre: nombrePropio, bolsa: bolsaPropia };
+  }, [deEspera, propios, favoritosPropios, nombrePropio, bolsaPropia]);
   const [hoja, setHoja] = useState<"menu" | "buscar" | null>(null);
   // La lista del buscador de ESTA tienda, cuando llega (null mientras tanto, o si es de otra tienda: la persona cambió de tienda).
   const [indice, setIndice] = useState<{ sede: string | null; respuesta: RespuestaBuscador } | null>(null);

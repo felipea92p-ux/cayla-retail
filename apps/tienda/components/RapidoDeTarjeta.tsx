@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { tallasParaAgregar, type Rapido } from "@/app/acciones/tarjeta";
+import { leerRespuestaRapido, type Rapido } from "@/lib/rapido";
 import { AgregarRapido } from "./bolsa/AgregarALaBolsa";
 
 /**
@@ -27,10 +27,14 @@ export function RapidoDeTarjeta({ productoId, sede }: { productoId: string; sede
     const cargar = () => {
       if (pedido || !seVe()) return;
       pedido = true;
-      tallasParaAgregar(productoId, sede)
+      // Una ruta GET y no una acción del servidor: las acciones van de a una y las de varias tarjetas se hacían esperar (`app/api/tallas`).
+      const q = new URLSearchParams({ producto: productoId, sede: sede ?? "" });
+      fetch(`/api/tallas?${q}`, { headers: { accept: "application/json" } })
+        .then((r) => r.json())
+        .then(leerRespuestaRapido)
         .then((r) => {
           if (!vivo) return;
-          if (r) setRapido({ clave: `${productoId}|${sede ?? ""}`, datos: r });
+          if (r.estado === "ok") setRapido({ clave: `${productoId}|${sede ?? ""}`, datos: r.rapido });
           else pedido = false; // sin respuesta: la próxima pasada del mouse vuelve a intentar
         })
         .catch(() => {
