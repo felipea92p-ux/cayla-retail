@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
@@ -31,7 +32,9 @@ import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import { AYUDA_COMENTARIO_APROBAR, avisoEtiquetaAgregada, cuerpoAprobarEtiqueta, verboAprobacion } from "@/lib/etiqueta-aprobacion-reglas";
 import {
   alcanceCampana,
+  avisoReimprimir,
   chipDeTarjeta,
+  destinoReimprimir,
   conteoDeTarjeta,
   DESCUENTOS_RAPIDOS,
   nombreBajoCosto,
@@ -40,6 +43,7 @@ import {
   parsearFecha,
   prendasBajoCosto,
   prendasPorCategoria,
+  prendasQueCambianDePrecioHoy,
   textoConteoTarjeta,
   type ConteoTarjeta,
   type PrendaConCosto,
@@ -673,6 +677,7 @@ function CampanaModal({
   const avisoDia = repetir ? avisoDiaDeSemana(repetir, { desde, hasta }) : null;
   const [elegidas, setElegidas] = useState(() => new Set(etiqueta.categoriaIds));
   const [guardando, setGuardando] = useState(false);
+  const router = useRouter();
 
   // Guía de foco: sale de la misma regla que apaga «Guardar» (`campanaValida`, y su prueba exige que coincidan); todo es opcional,
   // así que solo «sigue» lo mal escrito.
@@ -726,7 +731,23 @@ function CampanaModal({
         avisar.error(datos.error ?? "No se pudo guardar la campaña.");
         return;
       }
-      avisar.exito(`${etiqueta.nombre} actualizada`);
+      // Si guardar cambió HOY el precio en caja de alguna prenda (otro %, fechas que la hacen regir o dejar de regir, categorías
+      // que entran o salen), su etiqueta de papel quedó vieja: el aviso lo dice y lleva a imprimir solo esas (ADR-0180).
+      const cambian = prendasQueCambianDePrecioHoy(
+        etiqueta,
+        { descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds },
+        prendasConCosto,
+        new Set(variantesManuales),
+        hoyLima(),
+      );
+      const destino = destinoReimprimir(cambian, etiqueta.id);
+      const reimprimir = avisoReimprimir(cambian.quedan.length + cambian.salen.length, destino !== null);
+      avisar.exito(
+        `${etiqueta.nombre} actualizada`,
+        reimprimir
+          ? { detalle: reimprimir.detalle, accion: destino && reimprimir.boton ? { texto: reimprimir.boton, onClick: () => router.push(destino) } : undefined }
+          : undefined,
+      );
       onGuardado({ descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");

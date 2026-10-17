@@ -5,7 +5,8 @@
 // de ir a la base, y sirve igual en el navegador y en la API.
 
 import { descuentoDeCampana, totalDeLineas } from "./vender-reglas";
-import { fechaCorta, type Vigencia } from "./etiqueta-vigencia";
+import { urlEtiquetasDePrecio } from "./etiqueta-precio-reglas";
+import { fechaCorta, vigenciaDe, type Vigencia } from "./etiqueta-vigencia";
 
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
@@ -151,6 +152,67 @@ export function chipDeTarjeta(v: Vigencia | null, alcance: number | null, hoy: s
   }
   const anio = v.hasta.slice(0, 4) === hoy.slice(0, 4) ? "" : ` de ${v.hasta.slice(0, 4)}`;
   return { texto: `Pasó el ${fechaCorta(v.hasta)}${anio}`, tono: "neutro" };
+}
+
+// ---- Reimprimir al guardar una campaña (actividad 5, ADR-0441) ---------------------------------------------------------------
+// La etiqueta de papel dice el precio que cobra la caja el día que se imprime (ADR-0180). Si al guardar una campaña cambia ese
+// precio HOY —otro %, fechas que la hacen regir o dejar de regir, categorías que entran o salen—, el papel queda mintiendo hasta
+// que alguien lo cambia. Una sola regla para las tres cosas: la prenda cuyo descuento de hoy no es el mismo antes y después.
+
+type CampanaParaImprimir = { descuentoPct: number | null; vigenteDesde: string | null; vigenteHasta: string | null; categoriaIds: readonly string[] };
+
+/** Las prendas a la venta (de `aLaVenta`) a las que guardar la campaña les cambia el precio en caja HOY: las que `quedan` con un
+ *  descuento de esta campaña (otro %, o entran) y las que `salen` sin él (vuelven a su precio). Sin fechas rige siempre; una que
+ *  viene o que ya pasó no rebaja hoy. No mira otras campañas: si una prenda sigue rebajada por otra mayor, se imprime igual y la
+ *  etiqueta sale con lo que cobra la caja (no hace daño). */
+export function prendasQueCambianDePrecioHoy(
+  antes: CampanaParaImprimir,
+  despues: CampanaParaImprimir,
+  aLaVenta: readonly Pick<PrendaConCosto, "id" | "categoriaId">[],
+  manuales: ReadonlySet<string>,
+  hoy: string,
+): { quedan: string[]; salen: string[] } {
+  const pctHoy = (c: CampanaParaImprimir, p: Pick<PrendaConCosto, "id" | "categoriaId">) => {
+    if (c.descuentoPct === null) return 0;
+    const v = vigenciaDe(c.vigenteDesde, c.vigenteHasta, hoy);
+    if (v && v.estado !== "vigente") return 0;
+    const alcanzada = manuales.has(p.id) || (p.categoriaId !== null && c.categoriaIds.includes(p.categoriaId));
+    return alcanzada ? c.descuentoPct : 0;
+  };
+  const quedan: string[] = [];
+  const salen: string[] = [];
+  for (const p of aLaVenta) {
+    const ahora = pctHoy(despues, p);
+    if (pctHoy(antes, p) !== ahora) (ahora > 0 ? quedan : salen).push(p.id);
+  }
+  return { quedan, salen };
+}
+
+// Cuántas tallas caben en un enlace a la impresión: cada id son 37 letras, y la pantalla vuelve a pedirlas a la base en otra URL.
+// «Camisas y Blusas» tiene 354 tallas a la venta (producción, 2026-10-17): unos 13 KB, que el servidor o la base pueden rechazar.
+const TOPE_TALLAS_EN_ENLACE = 150;
+
+/** Adónde lleva «Imprimir sus etiquetas»: las tallas exactas si caben en un enlace; si son más, la impresión por campaña (la arma
+ *  la pantalla con lo que la campaña alcanza HOY), siempre que ninguna haya salido de la campaña, porque esa impresión no las ve.
+ *  `null` si no hay un enlace que sirva: entonces el aviso dice que se impriman por categoría desde Existencias. */
+export function destinoReimprimir(cambian: { quedan: readonly string[]; salen: readonly string[] }, campanaId: string): string | null {
+  const todas = [...cambian.quedan, ...cambian.salen];
+  if (todas.length === 0) return null;
+  if (todas.length <= TOPE_TALLAS_EN_ENLACE) return urlEtiquetasDePrecio({ variantes: todas });
+  return cambian.salen.length === 0 ? urlEtiquetasDePrecio({ campana: campanaId }) : null;
+}
+
+/** El aviso de éxito al guardar, con un botón para imprimir si el papel quedó viejo. El botón no lleva número: la pantalla de
+ *  impresión saca una etiqueta por UNIDAD en la tienda (14 tallas y colores pueden ser 32 etiquetas), y un «Imprimir las 14»
+ *  que abre «Imprimir 32 etiquetas» hace dudar. */
+export function avisoReimprimir(cambian: number, conEnlace = true): { detalle: string; boton: string | null } | null {
+  if (cambian === 0) return null;
+  const detalle =
+    cambian === 1
+      ? "Cambió el precio en caja de 1 prenda: su etiqueta de papel dice el de antes."
+      : `Cambió el precio en caja de ${prendas(cambian)}: sus etiquetas de papel dicen el de antes.`;
+  if (!conEnlace) return { detalle: `${detalle} Son muchas para abrirlas juntas: imprímelas por categoría desde Existencias.`, boton: null };
+  return { detalle, boton: cambian === 1 ? "Imprimir su etiqueta" : "Imprimir sus etiquetas" };
 }
 
 /** Las prendas del alcance de una campaña que quedarían con precio menor que su costo.
