@@ -275,3 +275,10 @@ descartado (si no, `recorte_ya_cambio`) y lo anota. Además, `registrar_recorte`
 (`recortes/<foto>.png` o `recortes/<foto>-<sello>.png`) y que una foto con recorte la cambie quien ve la Vitrina web; el mismo archivo otra
 vez es un reintento. Pegada en producción el 2026-10-17 con el OK de Felipe, antes de fusionar el PR #1164.
 
+
+
+## Actualización 2026-10-17 (ADR-0442): el recorte sale del PNG de la IA
+
+El recorte ya no se calcula con MODNet sobre `originales/<id>.jpg`: es la transparencia de la propia foto, que la IA del equipo entrega como PNG sin fondo,
+limpiada y cortada a la prenda. Una foto sin fondo transparente (un JPG) queda «sin recorte». El resto de este ADR no cambia (la tabla `foto_recortes`, el largo, el
+probador). Ver ADR-0442.

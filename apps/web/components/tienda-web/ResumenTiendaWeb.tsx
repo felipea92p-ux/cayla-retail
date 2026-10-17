@@ -17,15 +17,14 @@ import { Aviso } from "@/components/ui/Aviso";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { SinFoto } from "@/components/ui/PrendaCelda";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
-import { Camino } from "@/components/tienda-web/Camino";
+import { CaminoDePedidos } from "@/components/tienda-web/CaminoDePedidos";
 import { MarcoWeb } from "@/components/tienda-web/MarcoWeb";
 import { DIRECCION_TIENDA_ONLINE } from "@/lib/club-qr-reglas";
-import { plazoCorto, URGENTE_MS } from "@/lib/pedidos-web-reglas";
+import { soles } from "@/lib/precio-sede-reglas";
 import {
   fraseVentana,
   lecturasCaidas,
@@ -162,7 +161,7 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
       </section>
 
       {entrada.pedidos.estado === "ok" ? (
-        <CaminoDePedidos pedidos={entrada.pedidos.dato} tienda={tienda} />
+        <CaminoDePedidosResumen pedidos={entrada.pedidos.dato} tienda={tienda} />
       ) : entrada.pedidos.estado === "no_tienda" ? (
         <Aviso tono="info" titulo="Los pedidos web se atienden en una tienda">
           Cambia a una tienda desde el selector de arriba para ver el camino de sus pedidos.
@@ -217,66 +216,14 @@ function FilaPendiente({ pendiente: p, i }: { pendiente: Pendiente; i: number })
   );
 }
 
-/** Los pedidos de esta tienda en su camino: confirmar → cobrar → entregar, y lo cobrado hoy aparte. Cada cifra lleva a su pestaña. */
-function CaminoDePedidos({ pedidos, tienda }: { pedidos: Extract<EntradaResumen["pedidos"], { estado: "ok" }>["dato"]; tienda: string }) {
+/** Los pedidos de esta tienda en su camino: las mismas cuatro estaciones que Pedidos, y cada una lleva ahí con su filtro puesto. Lo
+ *  cobrado hoy va en el título: no es un paso del pedido (ADR-0430, act. 2026-10-17). */
+function CaminoDePedidosResumen({ pedidos, tienda }: { pedidos: Extract<EntradaResumen["pedidos"], { estado: "ok" }>["dato"]; tienda: string }) {
   const { cifras: c, plazos } = pedidos;
-  const urgente = c.proximoVenceEnMs !== null && c.proximoVenceEnMs < URGENTE_MS;
   return (
     <section className="space-y-3" data-guia="tienda-web.camino">
-      <TituloSeccion dato={<>En {tienda}</>}>El camino de los pedidos</TituloSeccion>
-      <Camino
-        etiqueta={`El camino de los pedidos web de ${tienda}`}
-        tramos={[
-          { verbo: "Confirmas", plazo: `en ${plazos.horasParaConfirmar} h` },
-          { verbo: "Paga", plazo: `en ${plazos.horasAvisoSinPagar} h` },
-        ]}
-        pasos={[
-          <TarjetaCifra
-            key="confirmar"
-            punto={c.porConfirmar > 0 ? (urgente ? "rojo" : "ambar") : "neutro"}
-            etiqueta="Por confirmar"
-            className="anim-entra"
-            style={{ ["--i" as string]: 0 }}
-            valor={<CifraQueCuenta valor={c.porConfirmar} alMontar />}
-            href="/tienda-web/pedidos?pestana=confirmar"
-          >
-            {c.proximoVenceEnMs !== null ? `El próximo vence en ${plazoCorto(c.proximoVenceEnMs)}` : "Nada esperando"}
-          </TarjetaCifra>,
-          <TarjetaCifra
-            key="cobrar"
-            punto={c.sinPagar > 0 ? "rojo" : c.confirmados > 0 ? "ambar" : "neutro"}
-            etiqueta="Por cobrar"
-            className="anim-entra"
-            style={{ ["--i" as string]: 1 }}
-            valor={<CifraQueCuenta valor={c.porCobrar} formato="soles" alMontar />}
-            href="/tienda-web/pedidos?pestana=cobrar"
-          >
-            {c.confirmados === 0 ? "Nada por cobrar" : `${c.confirmados} ${c.confirmados === 1 ? "pedido confirmado" : "pedidos confirmados"}`}
-          </TarjetaCifra>,
-          <TarjetaCifra
-            key="entregar"
-            punto={c.sinRecoger > 0 ? "rojo" : c.porEntregar > 0 ? "verde" : "neutro"}
-            etiqueta="Por entregar"
-            className="anim-entra"
-            style={{ ["--i" as string]: 2 }}
-            valor={<CifraQueCuenta valor={c.porEntregar} alMontar />}
-            href="/tienda-web/pedidos?pestana=entregar"
-          >
-            {`Recoge en ${plazos.diasAvisoSinRecoger} días, con su código`}
-          </TarjetaCifra>,
-        ]}
-        cierre={
-          <TarjetaCifra
-            punto="neutro"
-            etiqueta="Cobrado hoy"
-            className="anim-entra"
-            style={{ ["--i" as string]: 3 }}
-            valor={<CifraQueCuenta valor={c.cobradoHoy} formato="soles" alMontar />}
-          >
-            En pedidos web
-          </TarjetaCifra>
-        }
-      />
+      <TituloSeccion dato={c.cobradoHoy > 0 ? <>En {tienda} · cobrado hoy {soles(c.cobradoHoy)}</> : <>En {tienda}</>}>El camino de los pedidos</TituloSeccion>
+      <CaminoDePedidos cifras={c} plazos={plazos} etiqueta={`El camino de los pedidos web de ${tienda}: cada estación lleva a sus pedidos`} />
     </section>
   );
 }

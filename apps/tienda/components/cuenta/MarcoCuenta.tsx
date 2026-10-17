@@ -16,6 +16,7 @@ import { Icono } from "../Icono";
 import { ElegirPorCookie } from "./ElegirPorCookie";
 import { EntradaDelDia } from "./EntradaDelDia";
 import { SegunSesion } from "./SegunSesion";
+import { MarcaDeVista } from "../Vistas";
 
 /**
  * El marco de las páginas de la cuenta y de ayuda, el mismo de la portada: la franja de arriba (con la campaña vigente), la cabecera,
@@ -55,35 +56,40 @@ export async function MarcoCuenta({
       </>
     );
     return (
-      <div className="tienda">
-        <SegunSesion
-          visitante={visitante}
-          conCuenta={<ArranqueConCuenta campana={campana} enPagina={enPagina} />}
-          // Mientras el servidor lee la cookie: quien trae sesión ve la cabecera de siempre sin los números ni el nombre (los de él
-          // llegan por detrás) y quien no, la del visitante, que es la que se queda.
-          mientras={
-            <ElegirPorCookie
-              visitante={visitante}
-              conCuenta={
-                <>
-                  <Anuncio frases={anuncios(campana, true)} />
-                  <CabeceraConCuenta
-                    datos={datosDeCabecera([], null, undefined)}
-                    actual={enPagina === "cuenta" ? "cuenta" : null}
-                    bolsa={
-                      <Link className="t-ico" href="/bolsa" data-bolsa aria-label="Tu bolsa">
-                        <Icono nombre="bolsa" />
-                      </Link>
-                    }
-                  />
-                </>
-              }
-            />
-          }
-        />
-        <main className="t-pagina">{children}</main>
-        {conPie && <SegunSesion visitante={<Pie anio={anio} />} conCuenta={<Pie anio={anio} conCuenta />} />}
-      </div>
+      <>
+        {/* Otra página: la pantalla se funde a la nueva. Antes de la caja, sin elementos encima (components/Vistas.tsx). */}
+        <MarcaDeVista />
+        <div className="tienda">
+          <SegunSesion
+            visitante={visitante}
+            conCuenta={<ArranqueConCuenta campana={campana} enPagina={enPagina} />}
+            // Mientras el servidor lee la cookie: quien trae sesión ve la cabecera de siempre sin los números ni el nombre (los de él
+            // llegan por detrás) y quien no, la del visitante, que es la que se queda.
+            mientras={
+              <ElegirPorCookie
+                visitante={visitante}
+                conCuenta={
+                  <>
+                    <Anuncio frases={anuncios(campana, true)} />
+                    <CabeceraConCuenta
+                      datos={datosDeCabecera([], null, undefined)}
+                      actual={enPagina === "cuenta" ? "cuenta" : null}
+                      deEspera
+                      bolsa={
+                        <Link className="t-ico" href="/bolsa" data-bolsa aria-label="Tu bolsa">
+                          <Icono nombre="bolsa" />
+                        </Link>
+                      }
+                    />
+                  </>
+                }
+              />
+            }
+          />
+          <main className="t-pagina">{children}</main>
+          {conPie && <SegunSesion visitante={<Pie anio={anio} />} conCuenta={<Pie anio={anio} conCuenta />} />}
+        </div>
+      </>
     );
   }
   const [{ campana }, catalogo, favoritos, nombre] = await Promise.all([
@@ -95,25 +101,29 @@ export async function MarcoCuenta({
   const conProbador = conCuenta ? await hayAlgoParaProbar(catalogo?.prendas ?? []) : false;
   const conSesion = conCuenta && !visitante;
   return (
-    <div className="tienda">
-      <Anuncio frases={anuncios(campana, conSesion)} />
-      {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
-      {conSesion && <EntradaDelDia />}
-      {conCuenta ? (
-        <CabeceraConCuenta
-          datos={datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN, conProbador)}
-          actual={enPagina === "cuenta" ? "cuenta" : null}
-          favoritos={favoritos}
-          nombre={nombre}
-          bolsa={<BotonBolsa />}
-          visitante={visitante}
-        />
-      ) : (
-        <Cabecera enPagina={enPagina === "cuenta" ? undefined : enPagina} />
-      )}
-      <main className="t-pagina">{children}</main>
-      {conPie && <Pie anio={await anioActual()} conCuenta={conSesion} />}
-    </div>
+    <>
+      {/* Otra página: la pantalla se funde a la nueva. Antes de la caja, sin elementos encima (components/Vistas.tsx). */}
+      <MarcaDeVista />
+      <div className="tienda">
+        <Anuncio frases={anuncios(campana, conSesion)} />
+        {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
+        {conSesion && <EntradaDelDia />}
+        {conCuenta ? (
+          <CabeceraConCuenta
+            datos={datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN, conProbador)}
+            actual={enPagina === "cuenta" ? "cuenta" : null}
+            favoritos={favoritos}
+            nombre={nombre}
+            bolsa={<BotonBolsa />}
+            visitante={visitante}
+          />
+        ) : (
+          <Cabecera enPagina={enPagina === "cuenta" ? undefined : enPagina} />
+        )}
+        <main className="t-pagina">{children}</main>
+        {conPie && <Pie anio={await anioActual()} conCuenta={conSesion} />}
+      </div>
+    </>
   );
 }
 

@@ -55,7 +55,16 @@ export function TarjetaPrenda({
   // Las insignias van dentro de la foto, que el lector salta: el nombre las dice también («Falda Luna, −12 %, nuevo»).
   const insigniasDichas = [puesto ? `N.º ${puesto} en más vendidos` : null, oferta, nueva ? "nuevo" : null].filter(Boolean).join(", ");
   return (
-    <article className="t-card">
+    // Lo que la tarjeta ya muestra, para que la ficha llegue con eso mismo mientras carga (`RecordarPrendaTocada`, lib/prenda-tocada.ts).
+    <article
+      className="t-card"
+      data-prenda={prenda.id}
+      data-nombre={prenda.nombre}
+      data-precio={precio.principal}
+      data-antes={precio.anterior ?? undefined}
+      data-oferta={precio.oferta ? "si" : undefined}
+      data-categoria={prenda.categoria?.nombre ?? undefined}
+    >
       <div className="t-card-media">
         {/* La foto repite el enlace del nombre: fuera del Tab y del lector, para que la prenda sea UNA parada con el teclado. */}
         <Link href={href} className="t-card-enlace" tabIndex={-1} aria-hidden="true">

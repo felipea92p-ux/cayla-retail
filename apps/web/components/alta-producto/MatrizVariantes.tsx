@@ -60,7 +60,7 @@ export function MatrizVariantes({
     tallas.map((t) => t.texto)
   );
 
-  const { agregar, quitar, revision } = useFotosPendientes({ fotos, onFotos });
+  const { agregar, quitar } = useFotosPendientes({ fotos, onFotos });
   // De qué color se están mirando las fotos (para quitar alguna). `undefined` = ninguna hoja abierta; `null` = las de
   // «Todos los colores» (o de la prenda, si no tiene colores).
   const [viendo, setViendo] = useState<string | null | undefined>(undefined);
@@ -232,7 +232,6 @@ export function MatrizVariantes({
           }}
         </Modal>
       )}
-      {revision}
     </div>
   );
 }
