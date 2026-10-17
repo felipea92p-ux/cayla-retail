@@ -23,10 +23,12 @@ cuando entre la decisión estructural (actividad 7: guardar campaña y prendas e
   `/etiquetas-de-precio?variantes=` con solo esas. El botón no lleva número: la impresión saca una por unidad en la tienda.
 - [ ] **La pantalla de impresión habla de Existencias** cuando llega desde una campaña («Existencias · Prendas marcadas», «entre las que
   marcaste»): que diga de dónde viene es un cambio de esa pantalla (ADR-0180), no de Etiquetas.
+- [x] **6. Lectura de rotación, sin migración**: las cuatro tarjetas de Rotación dicen «Quedan N unidades · M vendidas en 30 días» (y
+  las tallas agotadas) de todas las tiendas, con la lectura de Análisis (`fn_analisis_sede`), y una nota arriba dice qué parte de lo vendido
+  salió sin registrar (solo al líder). La lista aprobada decía «migración de solo lectura»: no hizo falta, la base ya lo calculaba.
 
 ### Sigue pendiente
 
-- [ ] **6. Lectura de rotación** (migración: ensayo y OK de Felipe antes de producción).
 - [ ] **7. Pantalla de trabajo con un solo Guardar** (RPC nueva que guarda campaña y prendas juntas; aquí se escribe el ADR-0441).
 - [ ] **8. Sugeridas dentro de la pantalla** (antes: Felipe fija los números de las reglas).
 - [ ] **9. `/chaos`, `/formidable` y la guía** de la pantalla nueva.

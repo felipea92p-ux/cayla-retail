@@ -826,6 +826,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (lee `productos` + `producto_fotos` del tejido al abrir; sube la foto con `lib/muestra-atributo.ts` al bucket
   `retail-colores-muestras` y la guarda con PATCH `/api/productos/{tejidos,patrones}` → `imagenMuestraUrl`, validada por
   `lib/muestra-atributo-reglas.ts:leerUrlMuestra`). ADR-0256.
+- `/productos/atributos?tipo=etiquetas` → las tarjetas de Rotación (Nuevo, Top ventas, Últimas unidades, Para liquidar) dicen
+  cuántas unidades quedan y cuántas se vendieron en 30 días en todas las tiendas (`lib/etiqueta-rotacion-datos.ts`: `getPrendasPorSede` →
+  RPC `fn_analisis_sede` por tienda, y `leerVendidoSinRegistrar` para la nota de lo vendido sin registrar, solo al líder; lógica pura en
+  `lib/etiqueta-rotacion.ts`). Solo para quien edita etiquetas y puede analizar; sin respuesta en 4 s, las tarjetas salen sin esa línea.
+  ADR-0441, actividad 6, sin migración.
 - Las seis pestañas de `/productos/atributos` (`AtributosHub`) se arman con las mismas piezas de
   `components/atributos/kit.tsx` (barra de píldoras + buscador + «+ Agregar», título de grupo, tarjeta, estados vacíos):
   cada `*Lista.tsx` conserva su lógica y solo comparte cómo se ve. Los filtros son puros: `lib/atributos-buscar.ts`
