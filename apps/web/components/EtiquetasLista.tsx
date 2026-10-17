@@ -29,7 +29,8 @@ import {
 import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
 import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import { AYUDA_COMENTARIO_APROBAR, avisoEtiquetaAgregada, cuerpoAprobarEtiqueta, verboAprobacion } from "@/lib/etiqueta-aprobacion-reglas";
-import { nombreBajoCosto, objecionVigencia, parsearDescuento, parsearFecha, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
+import { prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
+import { CamposDeCampana, leerCamposDeCampana, type CategoriaDeCampana } from "@/components/campanas/CamposDeCampana";
 import { textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
 import { hoyLima } from "@/lib/fechas-lima";
 import { GRUPOS_ETIQUETA, ORDEN_GRUPOS_ETIQUETA, type EstiloEtiqueta } from "@/lib/etiqueta-grupos";
@@ -87,7 +88,7 @@ type Etiqueta = {
   categoriaIds: string[];
 };
 
-type CategoriaOpcion = { id: string; nombre: string; familia: string };
+type CategoriaOpcion = CategoriaDeCampana;
 
 // `true` desde que `registrar_venta` lee `etiquetas.descuento_pct`
 // (20260918170000_venta_aplica_descuento_de_campana.sql, paso 3 de ADR-0107). Vuelve a
@@ -623,25 +624,11 @@ function CampanaModal({
   // así que solo «sigue» lo mal escrito.
   const guia = useGuiaCampos(camposDeCampana({ descuento, desde, hasta, categorias: elegidas.size, puedeDarDescuento }));
 
-  const pct = parsearDescuento(descuento);
-  const fDesde = parsearFecha(desde);
-  const fHasta = parsearFecha(hasta);
-  const objecion = fDesde.ok && fHasta.ok ? objecionVigencia(fDesde.valor, fHasta.valor) : null;
+  const { pct, fDesde, fHasta } = leerCamposDeCampana({ descuento, desde, hasta });
   const valido = campanaValida({ descuento, desde, hasta });
   // La campaña no se bloquea por bajar del costo (puede ser una liquidación a propósito),
   // pero quien la configura se entera: número en rojo y cuántas prendas serían.
   const bajoCosto = prendasBajoCosto(pct.ok ? pct.valor : null, prendasConCosto, elegidas, new Set(variantesManuales));
-
-  const porFamilia = new Map<string, CategoriaOpcion[]>();
-  for (const c of categorias) porFamilia.set(c.familia, [...(porFamilia.get(c.familia) ?? []), c]);
-
-  const alternar = (id: string) =>
-    setElegidas((actual) => {
-      const nuevo = new Set(actual);
-      if (nuevo.has(id)) nuevo.delete(id);
-      else nuevo.add(id);
-      return nuevo;
-    });
 
   async function guardar() {
     if (!pct.ok || !fDesde.ok || !fHasta.ok) return;
@@ -674,85 +661,20 @@ function CampanaModal({
     <Modal titulo={`Campaña «${etiqueta.nombre}»`} onClose={onClose}>
       {(cerrar) => (
         <div data-guia="atributos.campana-form" className="mt-5 space-y-5">
-          <CampoGuiado id="descuento" guia={guia}>
-          <CampoTexto
-            etiqueta={guia.etiqueta("descuento", "Descuento (%)")}
-            mono
-            inputMode="decimal"
-            value={descuento}
-            onChange={(e) => setDescuento(e.target.value)}
-            disabled={!puedeDarDescuento}
-            placeholder={puedeDarDescuento ? "Ej. 20" : "Tu rol no pone descuento"}
-            tono={!pct.ok || bajoCosto.length > 0 ? "error" : undefined}
-            className={bajoCosto.length > 0 ? "!text-rojo-profundo" : ""}
-            pie={
-              !pct.ok
-                ? pct.error
-                : bajoCosto.length > 0
-                  ? `Por debajo del costo: ${bajoCosto.length} prenda${bajoCosto.length === 1 ? "" : "s"} (${bajoCosto
-                      .slice(0, 2)
-                      .map(nombreBajoCosto)
-                      .join(", ")}${bajoCosto.length > 2 ? "…" : ""}). Se puede guardar igual.`
-                  : "Vacío = solo informativa, sin descuento."
-            }
-            autoComplete="off"
+          <CamposDeCampana
+            guia={guia}
+            descuento={descuento}
+            setDescuento={setDescuento}
+            desde={desde}
+            setDesde={setDesde}
+            hasta={hasta}
+            setHasta={setHasta}
+            elegidas={elegidas}
+            setElegidas={setElegidas}
+            categorias={categorias}
+            puedeDarDescuento={puedeDarDescuento}
+            bajoCosto={bajoCosto}
           />
-          </CampoGuiado>
-
-          <CampoGuiado id="vigencia" guia={guia} titulo="Fechas" ayuda="Opcional: sin fechas, la etiqueta es permanente" className="grid gap-4 sm:grid-cols-2">
-            <CampoTexto etiqueta="Desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} tono={fDesde.ok ? undefined : "error"} />
-            <CampoTexto
-              etiqueta="Hasta"
-              type="date"
-              value={hasta}
-              onChange={(e) => setHasta(e.target.value)}
-              tono={fHasta.ok && !objecion ? undefined : "error"}
-              pie={objecion ?? undefined}
-            />
-          </CampoGuiado>
-
-          <CampoGuiado id="categorias" guia={guia}>
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="label-cayla text-[11px] text-tinta/65">
-                {guia.etiqueta("categorias", "Categorías")} <span className="font-normal normal-case text-tinta/45">· opcional</span>
-              </p>
-              {elegidas.size > 0 && (
-                <button type="button" onClick={() => setElegidas(new Set())} className="btn-cayla btn-enlace text-xs">
-                  Quitar todas
-                </button>
-              )}
-            </div>
-            <p className="mt-1 text-xs text-tinta/55">
-              {elegidas.size === 0
-                ? "Sin categorías, la campaña solo alcanza a las prendas que etiquetes a mano."
-                : `Alcanza a todas las prendas de ${elegidas.size} categoría${elegidas.size === 1 ? "" : "s"}, además de las etiquetadas a mano.`}
-            </p>
-            <div className="mt-3 max-h-56 space-y-3 overflow-y-auto pr-1">
-              {[...porFamilia.entries()].map(([familia, lista]) => (
-                <div key={familia}>
-                  <p className="text-[11px] text-tinta/55">{familia}</p>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {lista.map((c) => {
-                      const activa = elegidas.has(c.id);
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          aria-pressed={activa}
-                          onClick={() => alternar(c.id)}
-                          className={`rounded-full border px-2.5 py-1 text-[12px] transition-colors ${
-                            activa ? "border-tinta bg-tinta text-crema" : "border-tinta/15 text-tinta/70 hover:border-tinta/30 hover:text-tinta"
-                          }`}
-                        >
-                          {c.nombre}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CampoGuiado>
 
           <p className="rounded-md bg-tinta/[0.04] px-3 py-2 text-xs text-tinta/65">
             {DESCUENTO_YA_SE_APLICA

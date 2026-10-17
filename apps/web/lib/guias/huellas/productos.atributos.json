@@ -65,11 +65,6 @@
       "CampoTexto «Motivo (opcional)»",
       "Boton «Cancelar» #2",
       "Boton «Confirmar rechazo»",
-      "CampoTexto «{guia.etiqueta(\"descuento\", \"Descuento (%)\")}»",
-      "CampoTexto «Desde»",
-      "CampoTexto «Hasta»",
-      "button «Quitar todas»",
-      "button «{c.nombre}»",
       "Boton «Cancelar» #3",
       "Boton «{guia.frase ?? undefined}»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la etiqueta\")}»",
@@ -197,6 +192,13 @@
       "button «{guia}»",
       "button «{cambiando ? \"Desactivando…\" : \"Desactivar\"}»",
       "Boton «Reactivar»"
+    ],
+    "components/campanas/CamposDeCampana.tsx": [
+      "CampoTexto «{guia.etiqueta(\"descuento\", \"Descuento (%)\")}»",
+      "CampoTexto «Desde»",
+      "CampoTexto «Hasta»",
+      "button «Quitar todas»",
+      "button «{c.nombre}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",
