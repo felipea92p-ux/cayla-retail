@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hrefDePrenda } from "./catalogo";
 import { beneficioAniversario, beneficioCumple, listaDicha, type Aniversario } from "./club";
 import { hoyLima, type Dia } from "./cuentas";
 import { nombreTienda } from "./pedidos";
@@ -28,6 +29,8 @@ const esquema = z.object({
 });
 const esquemaLlego = z.object({
   id: z.string().uuid(),
+  // El modelo que llegó: con él la campanita lleva a su ficha. Sin él (una base anterior), lleva a «Mi perfil».
+  producto_id: z.string().uuid().optional(),
   producto: z.string().min(1),
   color: z.string().nullable(),
   talla: z.string().nullable(),
@@ -59,6 +62,7 @@ function avisoDeLlegada(e: z.infer<typeof esquemaLlego>, dueno: string): AvisoCl
     icono: "campana",
     titulo: `${e.producto} ya llegó`,
     texto: detalle ? `${detalle}. ${hay}` : hay,
+    ...(e.producto_id ? { href: hrefDePrenda({ id: e.producto_id }) } : {}),
   };
 }
 
