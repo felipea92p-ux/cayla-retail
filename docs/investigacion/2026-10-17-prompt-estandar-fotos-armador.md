@@ -9,7 +9,7 @@
 - **El armador de looks usa máximo 3 prendas**, una por zona: ARRIBA (top, blusa, polo, camisa, chaleco o casaca; una sola), PANTALÓN (pantalón, jean, falda o short) y CARTERA.
 - Lo que no es de esos tres tipos (vestido, enterizo, conjunto, correa, máscara, calzado…) se limpia igual para la página, pero la IA lo marca **OTRO**: no entra al armador.
 
-Hoy el probador construido (ADR-0434) todavía acepta vestido y «encima». Alinearlo con esta regla es un cambio aparte, con el OK de Felipe.
+El probador de la tienda y la lista de Vitrina ▸ Probador ya cumplen esta regla (ADR-0444): una casaca o un chaleco es la prenda de arriba, y los vestidos, enterizos, conjuntos y capas no entran.
 
 ## Por qué el encuadre es tan estricto
 

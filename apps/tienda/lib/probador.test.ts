@@ -108,21 +108,30 @@ describe("interpretarProbador: lo que dice la base", () => {
   });
 });
 
-describe("zonaDe: la zona de cada categoría, por su prefijo", () => {
+describe("zonaDe: la zona de cada categoría, por su prefijo (máximo 3 prendas: arriba, abajo y bolso; ADR-0444)", () => {
   const de = (prefijo: string | null, nombre = "X") => zonaDe({ nombre, prefijo });
-  it("arriba, vestido, abajo, encima y el bolso (Bolsos y Carteras)", () => {
+  it("arriba, abajo y el bolso (Bolsos y Carteras)", () => {
     expect(["CMS", "TOP", "BOD", "POL"].map((p) => de(p))).toEqual(["arriba", "arriba", "arriba", "arriba"]);
-    expect(["VES", "CON", "ENT"].map((p) => de(p))).toEqual(["vestido", "vestido", "vestido"]);
     expect(["PAN", "JEA", "FAL", "SHO"].map((p) => de(p))).toEqual(["abajo", "abajo", "abajo", "abajo"]);
-    expect(["BLZ", "CHA", "CAS", "CAP"].map((p) => de(p))).toEqual(["encima", "encima", "encima", "encima"]);
     expect(de("CAR")).toBe("bolso");
+  });
+  it("una casaca, un chaleco, un blazer o un abrigo ES la prenda de arriba: no va encima de otra", () => {
+    expect(["BLZ", "CHA", "CAS", "ABR"].map((p) => de(p))).toEqual(["arriba", "arriba", "arriba", "arriba"]);
+  });
+  it("los vestidos, enterizos y conjuntos, y las capas, no entran", () => {
+    expect(["VES", "CON", "ENT", "TBA", "CAP"].map((p) => de(p))).toEqual([null, null, null, null, null]);
+  });
+  it("ninguna categoría cae en las zonas «vestido» ni «encima»", () => {
+    for (const p of ["CMS", "TOP", "BOD", "POL", "VES", "CON", "ENT", "PAN", "JEA", "FAL", "SHO", "BLZ", "CHA", "CAS", "CAP", "ABR", "CAR", "KIM"]) {
+      expect(["vestido", "encima"]).not.toContain(de(p));
+    }
   });
   it("los demás accesorios, la bisutería, el calzado y el empaque no entran", () => {
     expect(["MOC", "ARE", "ZAP", "BOL", "MAQ"].map((p) => de(p))).toEqual([null, null, null, null, null]);
     expect(zonaDe(null)).toBeNull();
   });
-  it("una categoría nueva que nadie ordenó cae en «Encima y más», como en el menú de la tienda", () => {
-    expect(de("KIM")).toBe("encima");
+  it("una categoría nueva que nadie ordenó cae en «Encima y más» del menú, y en el armador es prenda de arriba", () => {
+    expect(de("KIM")).toBe("arriba");
   });
 });
 
