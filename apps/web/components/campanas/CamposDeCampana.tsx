@@ -92,16 +92,20 @@ export function CamposDeCampana({
         />
       </CampoGuiado>
 
-      <CampoGuiado id="vigencia" guia={guia} titulo="Fechas" ayuda="Opcional: sin fechas, la etiqueta es permanente" className="grid gap-4 sm:grid-cols-2">
-        <CampoTexto etiqueta="Desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} tono={fDesde.ok ? undefined : "error"} />
-        <CampoTexto
-          etiqueta="Hasta"
-          type="date"
-          value={hasta}
-          onChange={(e) => setHasta(e.target.value)}
-          tono={fHasta.ok && !objecion ? undefined : "error"}
-          pie={objecion ?? undefined}
-        />
+      {/* El título del grupo va arriba y las dos fechas en su propia cuadrícula: con la cuadrícula en el grupo, el título ocupaba una
+          columna y «Hasta» bajaba a otra fila. */}
+      <CampoGuiado id="vigencia" guia={guia} titulo="Fechas" ayuda="Opcional: sin fechas, la etiqueta es permanente">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <CampoTexto etiqueta="Desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} tono={fDesde.ok ? undefined : "error"} />
+          <CampoTexto
+            etiqueta="Hasta"
+            type="date"
+            value={hasta}
+            onChange={(e) => setHasta(e.target.value)}
+            tono={fHasta.ok && !objecion ? undefined : "error"}
+            pie={objecion ?? undefined}
+          />
+        </div>
       </CampoGuiado>
 
       <CampoGuiado id="categorias" guia={guia}>

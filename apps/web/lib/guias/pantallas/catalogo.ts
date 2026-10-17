@@ -537,7 +537,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       ancla: "vocabulario.tarjeta",
       opcional: true,
       titulo: "Cada tarjeta",
-      texto: "Su dibujo, su nombre y cuántas prendas lo usan. En una etiqueta de campaña, además, si está vigente, cuándo empieza y cuándo termina. El «!» junto al nombre guarda una nota interna: tócalo para leerla.",
+      texto: "Su dibujo, su nombre y cuántas prendas lo usan. En una etiqueta con fechas, además, si está vigente, cuándo empieza y cuándo termina. El «!» junto al nombre guarda una nota interna: tócalo para leerla.",
     },
     {
       id: "prendas",
@@ -550,8 +550,8 @@ export const GUIA_ATRIBUTOS: Guia = {
       id: "campana",
       ancla: "atributos.campana",
       opcional: true,
-      titulo: "Configurar campaña",
-      texto: "Para una etiqueta de campaña, como Black Friday: el descuento, las fechas y a qué categorías se aplica (te la abrimos).",
+      titulo: "Descuento y fechas",
+      texto: "Para una etiqueta con descuento, como Para liquidar: el descuento, las fechas y a qué categorías se aplica (te la abrimos). Las campañas, como Black Friday, se configuran en Tienda web ▸ Campañas.",
     },
     {
       id: "campana-form",

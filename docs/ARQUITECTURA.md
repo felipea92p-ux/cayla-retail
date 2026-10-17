@@ -894,7 +894,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`20261017144000`) → `lib/campanas-reglas.ts` (puro: lectura, estado de cada campaña, filtros, cifras, el cruce de hoy y los tramos de
   la línea) → `components/campanas/CampanasPantalla.tsx` (cifras, `LineaPortada.tsx` «La portada, día a día», `TarjetaCampana.tsx` con
   `PortadaMini.tsx`). Estilos `tw-portada-mini`, `tw-campana` y `tw-cal-*` en `app/estilos/tienda-web.css`. Prueba en la base:
-  `pnpm pruebas:campanas-portada`.
+  `pnpm pruebas:campanas-portada`. «Nueva campaña» (`NuevaCampana.tsx`) → `crear_campana` (nombre y fechas; el ejemplo del nombre,
+  `lib/sugerencias-campanas.ts`) y lleva a la campaña.
+- `/tienda-web/campanas/[id]` (una campaña por dentro, ADR-0436 act. 2; pestañas por URL `?pestana=prendas`) → `page.tsx` lee
+  `campana_detalle` (fechas, descuento, categorías, variantes y prendas por modelo), las categorías, las tiendas y las prendas con su costo
+  para el aviso (`aPrendasConCosto` de `lib/etiqueta-campana.ts`, la misma que Atributos) → `DatosCampana.tsx` (nombre +
+  `CamposDeCampana.tsx`, la pieza compartida con la ventana «Campaña» de Atributos; guarda `guardar_campana`, todo o nada; desactiva o
+  activa con `activar_campana`; imprime las etiquetas de precio; reglas y guía en `lib/campana-detalle.ts`) y `PrendasCampana.tsx`
+  (`PrendasDeEtiquetaModal` → `etiquetar_variantes`). La llave de una campaña es el módulo Campañas: `fn_puede_tocar_etiqueta` mira si la
+  etiqueta es campaña (`20261017151000`), y Atributos ya no lista campañas. Prueba en la base: `pnpm pruebas:campanas-llave`.
 - `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
   `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
   `MarcasLista.tsx` (ADR-0373, 2026-10-10: cabecera de Productos con «!», resumen colapsado `components/marcas/ResumenMarcas.tsx` +

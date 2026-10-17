@@ -208,10 +208,12 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // Era la pestaña «Tienda web» de Configuración (ADR-0408 act. 6). Cada casilla de cada tienda se guarda al salir de ella; la guía
   // enciende lo que le falta a una tienda para mostrarse en la web (la misma regla que la base: `faltaParaMostrar`).
   "/tienda-web/ajustes": { estado: "aplicada", evidencia: ["components/ConfiguracionTiendaWeb.tsx"] },
+  // ADR-0436 (2026-10-17): la lista solo mira; lo que se llena es la pestaña Datos de cada campaña y la hoja «Nueva campaña».
+  "/tienda-web/campanas": { estado: "no-aplica", motivo: "La lista de Campañas (ADR-0436, actividad 1) solo mira: las cifras de hoy, la línea de qué anuncia la portada cada día y las campañas con un filtro de píldoras. No hay campos ni pasos." },
+  "/tienda-web/campanas/[id]": { estado: "aplicada", evidencia: ["components/campanas/DatosCampana.tsx"] },
   // ADR-0408 act. 8: la lista solo lee; lo que se llena vive en sus dos hojas (abiertas desde la misma pantalla, `?pedido=`). «Falta» es
   // lo que la base rechazaría: una decisión por prenda (por conseguir, con fecha de hoy a 60 días), quién lo hace, el motivo al cerrar o
   // anular y, al enviar a otra tienda, el día de llegada.
-  "/tienda-web/campanas": { estado: "no-aplica", motivo: "La lista de Campañas (ADR-0436, actividad 1) solo mira: las cifras de hoy, la línea de qué anuncia la portada cada día y las campañas con un filtro de píldoras. No hay campos ni pasos." },
   "/tienda-web/pedidos": { estado: "aplicada", evidencia: ["components/pedidos-web/PedidoWebHoja.tsx", "components/pedidos-web/EnviarPedidoWebHoja.tsx", "components/pedidos-web/RegistrarPagoHoja.tsx", "components/pedidos-web/AnularPagoHoja.tsx", "components/pedidos-web/AnularPedidoPagadoHoja.tsx"] },
   // ADR-0408 (Felipe 2026-10-15): la lista solo lee y filtra; lo que se llena vive en la hoja de cada recomendación (abierta desde la misma
   // pantalla, `?r=`): la respuesta (opcional sin leer, obligatoria ya leída) y quién lo hace.
@@ -269,6 +271,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // bajo el combo y el botón espera hasta que haya alguien de turno.
   "components/ConfirmarCambios.tsx": { estado: "no-aplica", motivo: "Hoja de confirmación con un solo control obligatorio (Responsable): el botón dice por qué espera. Las casillas «Igualar … al precio nuevo» (precio por tienda, 2026-10-10) son opcionales y no bloquean." },
   "components/ConfiguracionCargaInicial.tsx": { estado: "aplicada", evidencia: ["components/ConfiguracionCargaInicial.tsx"] },
+  "components/campanas/NuevaCampana.tsx": { estado: "aplicada", evidencia: ["components/campanas/NuevaCampana.tsx"] },
   "components/plan-piso/GruposDelMix.tsx": { estado: "aplicada", evidencia: ["components/plan-piso/GruposDelMix.tsx"] },
   // ADR-0288 tanda 1b: la ficha ganó las acciones del club y, con ellas, la guía en cada acción que se llena. Tanda 1g: se fueron «Unirse al
   // club», su QR y «Llegó su mensaje» (ella se une desde el cartel); quedan editar, archivar y «Registrar su BAJA» (un solo control:

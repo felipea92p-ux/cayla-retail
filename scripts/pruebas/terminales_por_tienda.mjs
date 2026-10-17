@@ -311,8 +311,9 @@ const PUERTAS = [
   { nombre: "crear_marca", previo: "", intento: LLAMADA(`select retail.crear_marca('Marca de prueba', gen_random_uuid())`), mensaje: /Solo un Líder puede agregar marcas/, pasan: ["admin", "micaela"] },
   { nombre: "desactivar_categoria", previo: "", intento: LLAMADA(`select retail.desactivar_categoria(gen_random_uuid())`), mensaje: /Solo un Líder puede desactivar una categoría/, pasan: ["admin", "micaela"] },
   { nombre: "actualizar_categoria_ejes", previo: "", intento: LLAMADA(`select retail.actualizar_categoria_ejes(gen_random_uuid(), '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[])`), mensaje: /Solo un Líder puede editar qué tallas/, pasan: ["admin", "micaela"] },
-  // Etiquetas (20260923130000): se abren a quien ve el módulo Etiquetas; ninguna de estas cuentas lo ve.
-  { nombre: "etiquetar_variantes (sin el módulo Etiquetas)", previo: "", intento: LLAMADA(`select retail.etiquetar_variantes('[]'::jsonb)`), mensaje: /Etiquetar prendas necesita el módulo Etiquetas/, pasan: [] },
+  // Etiquetas (20260923130000): se abren a quien ve el módulo Etiquetas; ninguna de estas cuentas lo ve. Desde ADR-0436 también entra
+  // quien ve Campañas (para las prendas de una campaña), y el mensaje nombra los dos.
+  { nombre: "etiquetar_variantes (sin el módulo Etiquetas)", previo: "", intento: LLAMADA(`select retail.etiquetar_variantes('[]'::jsonb)`), mensaje: /Poner o quitar prendas necesita el módulo Etiquetas o Campañas/, pasan: [] },
   { nombre: "actualizar_variantes_etiquetas (P4: también con Productos o Categorías y atributos)", previo: "", intento: LLAMADA(`select retail.actualizar_variantes_etiquetas('[]'::jsonb)`), mensaje: /Cambiar las etiquetas de una prenda necesita el módulo Productos/, pasan: ["admin", "micaela"] },
   // Anular una venta (20261009182413, Felipe 2026-10-09): quien ve Devoluciones. La terminal administrativa no lo ve.
   { nombre: "anular_venta", previo: "", intento: LLAMADA(`select retail.anular_venta(gen_random_uuid(), 'x', '[]'::jsonb)`), mensaje: /Para anular una venta necesitas el módulo Devoluciones/, pasan: ["ventas", "micaela"] },

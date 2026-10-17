@@ -429,7 +429,12 @@
     border: 1px solid var(--color-sand);
     border-radius: 16px;
     background: var(--color-papel);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 200ms var(--ease-cayla), transform 260ms var(--ease-cayla);
   }
+  .tw-campana:hover { border-color: var(--color-taupe); transform: translateY(-2px); }
+  .tw-campana:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
   .tw-campana[data-apagada] .tw-portada-mini { filter: grayscale(0.85); opacity: 0.72; }
 
   /* La línea: una columna para el nombre y otra para los tres meses, una pista por fila. */
@@ -506,8 +511,10 @@
   .tw-carta[data-oculta] .tw-look-collage,
   .tw-previa[data-apagada],
   .tw-previa-nombre,
-  .tw-previa-boton {
+  .tw-previa-boton,
+  .tw-campana {
     transition: none;
   }
+  .tw-campana:hover { transform: none; }
   .tw-camino-linea { stroke-dashoffset: 0; }
 }

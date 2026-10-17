@@ -56,3 +56,32 @@ la lee y la migración dos veces); en el navegador, el líder la ve y una colabo
 oscuro y 375 px sin desborde; la guía recorre sus 8 pasos en escritorio y celular. Las suites `tienda_puerta` e `tienda_inicio` pasan sus
 casos de la regla; sus casos «como tienda_web» no corren en la imagen local `supabase/postgres:17.6.1.143`, que se cae con
 `grant tienda_web to current_user with set true` aunque sea lo único de la transacción (no es de esta rama).
+
+## Actividad 2 — Datos y Prendas, mudados de Atributos, con una sola llave (`20261017151000`)
+
+**DECIDÍ 4 — La llave de cada etiqueta la decide una sola pregunta, `fn_puede_tocar_etiqueta(id)`: una campaña pide Campañas; cualquier
+otra etiqueta, Etiquetas.** Ya la hacían `actualizar_campana_etiqueta` y `etiquetar_variantes` por cada etiqueta; ahora mira el estilo.
+Con eso, el disparador del alta (`fn_etiquetas_estado_trigger`) aprueba una campaña nueva si quien la crea tiene Campañas, y
+`etiquetar_variantes` deja entrar con cualquiera de las dos llaves (cada etiqueta se sigue mirando con la suya). Los cuatro cambios son
+reemplazos anclados sobre los cuerpos verificados iguales en producción el 2026-10-17.
+**DESCARTÉ** funciones nuevas que copiaran lo que hacen `actualizar_campana_etiqueta` y `etiquetar_variantes` solo para Campañas: dos
+caminos para escribir lo mismo (el descuento de una campaña), y el día que uno cambie, el otro queda atrás.
+**SE ROMPE SI** alguien cambia el estilo de una etiqueta de «campaña» a otro (o al revés): su llave cambia con él. Hoy el estilo no se cambia
+desde ninguna pantalla.
+
+**DECIDÍ 5 — Cuatro funciones de la pantalla, todas con `fn_puede_campanas()`:** `campana_detalle`, `crear_campana`, `guardar_campana`
+(el nombre aquí y lo demás por `actualizar_campana_etiqueta`, todo o nada, con la fila tomada para que dos personas se turnen) y
+`activar_campana` (la misma regla de Atributos: no se desactiva con prendas a mano).
+**DESCARTÉ** seguir guardando por la API de Atributos (`/api/productos/etiquetas`): pide el permiso de Etiquetas y guarda el nombre y la
+configuración en dos llamadas, que pueden quedar a medias.
+
+**DECIDÍ 6 — Un solo formulario de campaña: `CamposDeCampana`** (descuento, fechas, categorías), que usan la pestaña Datos y la ventana
+«Campaña» de Atributos, que se queda para las etiquetas con descuento que no son campaña (Para liquidar, Estreno). Se separó primero sin
+cambiar nada (commit de refactor) y después se usó; al usarlo se vio que el título «Fechas» ocupaba una columna de la cuadrícula y bajaba
+«Hasta» a otra fila, y se corrigió en la pieza (los dos lugares lo heredan).
+
+**Verificación:** `pnpm pruebas:campanas-llave` (26 casos: la llave de cada etiqueta en las cuatro combinaciones, el alta aprobada,
+crear con sus reglas de nombre y fechas, guardar todo o nada, activar y el detalle); `terminales_por_tienda` en verde con el mensaje nuevo;
+en el navegador, el Gato pasó de −10 % a −15 % desde su pestaña Datos y quedó así en la base, «Nueva campaña» creó «Día del Abuelo» aprobada
+con sus fechas y llevó a ella, el ejemplo del nombre propuso «Cyber Days» (la próxima fecha que no existe) y Atributos ▸ Etiquetas ya no
+muestra Halloween pero sí Para liquidar; las guías recorren sus pasos en escritorio y a 375 px.

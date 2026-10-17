@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import { getCostosVariantes } from "@/lib/catalogo-v2";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
-import { precioMasBajoEnTiendas } from "@/lib/precio-sede-reglas";
+import { aPrendasConCosto } from "@/lib/etiqueta-campana";
 
 /** «Ninguna tienda con precio propio»: lo que se usa cuando no hace falta leerlos (la forma de `getPreciosDeLasTiendas`). */
 const sinPreciosDeTiendas = () => ({ nombres: new Map<string, string>(), porSede: {} as Record<string, Record<string, number>> });
@@ -157,6 +157,8 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
       ? supabase
           .from("etiquetas")
           .select("id, nombre, activo, notas, estado, estilo, vigente_desde, vigente_hasta, descuento_pct")
+          // Las campañas se configuran en Tienda web ▸ Campañas, con su propia llave (ADR-0436): aquí quedan las demás etiquetas.
+          .neq("estilo", "campana")
           .order("nombre")
       : Promise.resolve({ data: [], error: null }),
     tipo === "etiquetas"
@@ -251,18 +253,8 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     categoriaIds: (etiquetaCategorias.get(e.id) ?? []) as string[],
   }));
   const costos = await cargaCostos;
-  const prendasConCosto = exigir(resPrendas, "las prendas para el aviso de costo").map((v) => {
-    // El precio más bajo al que se cobra en cualquier tienda (el de la prenda o el propio de una), y cuál tienda lo fija.
-    const bajo = precioMasBajoEnTiendas(Number(v.precio), v.id, preciosTiendas.porSede, preciosTiendas.nombres);
-    return {
-      id: v.id,
-      categoriaId: v.producto?.categoria_id ?? null,
-      precio: bajo.precio,
-      enSede: bajo.sede,
-      costo: costos?.get(v.id) ?? 0,
-      nombre: `${v.producto?.referencia ?? "Prenda"} (${v.sku})`,
-    };
-  });
+  // El precio más bajo al que se cobra en cualquier tienda (el de la prenda o el propio de una), y cuál tienda lo fija.
+  const prendasConCosto = aPrendasConCosto(exigir(resPrendas, "las prendas para el aviso de costo"), costos, preciosTiendas);
   const variantesManuales: Record<string, string[]> = {};
   for (const f of exigir(resManuales, "las prendas etiquetadas a mano")) {
     (variantesManuales[f.etiqueta_id] ??= []).push(f.variante_id);

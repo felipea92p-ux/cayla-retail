@@ -5,6 +5,7 @@ import { leerCampanas, leerDiasPortada, rangoDeLaLinea } from "@/lib/campanas-re
 import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { CampanasPantalla } from "@/components/campanas/CampanasPantalla";
+import { NuevaCampana } from "@/components/campanas/NuevaCampana";
 
 // Tienda web ▸ Campañas (ADR-0436, Felipe 2026-10-16/17; maqueta docs/maquetas/campanas-diseno-2026-10, pantalla 1): las campañas y qué
 // campaña anuncia la portada de la tienda online cada día. Es de CAYLA entera, no de una sede: la web es una sola, y una campaña rige en
@@ -17,9 +18,11 @@ export default async function CampanasPage() {
   const hoy = hoyLima();
   const rango = rangoDeLaLinea(hoy);
   // Las dos funciones son nuevas (20261017144000): aún no están en los tipos generados.
-  const [lista, dias] = await Promise.all([
+  const [lista, dias, nombres] = await Promise.all([
     supabase.rpc("campanas_lista" as never),
     supabase.rpc("campanas_portada_dias" as never, { p_desde: rango.desde, p_hasta: rango.hasta } as never),
+    // Todos los nombres de etiquetas: el ejemplo del nombre de una campaña nueva nunca propone uno que ya existe.
+    supabase.from("etiquetas").select("nombre"),
   ]);
   const campanas = lista.error ? null : leerCampanas(lista.data);
 
@@ -30,6 +33,7 @@ export default async function CampanasPage() {
         detalle="Tienda web"
         titulo="Campañas"
         subtitulo="Lo que celebras, cuándo y con qué descuento, y qué campaña anuncia la portada de la tienda online cada día."
+        acciones={<NuevaCampana nombresUsados={(nombres.data ?? []).map((e) => e.nombre)} hoy={hoy} />}
       />
       {campanas === null ? (
         <Aviso tono="error" titulo="No se pudieron leer las campañas">

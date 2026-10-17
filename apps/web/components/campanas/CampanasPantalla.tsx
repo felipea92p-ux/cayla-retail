@@ -129,11 +129,11 @@ export function CampanasPantalla({ campanas, dias, hoy }: { campanas: Campana[];
         )}
       </section>
 
-      {/* Hasta la actividad 2, la configuración de cada campaña sigue donde siempre: se dice dónde, con su enlace. */}
       <p className="nota-cayla">
-        Por ahora, el descuento, las fechas y las prendas de una campaña se cambian en{" "}
+        Toca una campaña para cambiar su descuento, sus fechas y sus prendas. Las etiquetas que no son campaña (Para liquidar, Estreno…)
+        siguen en{" "}
         <Link href="/productos/atributos?tipo=etiquetas" className="btn-enlace">
-          Catálogo ▸ Atributos ▸ Etiquetas
+          Catálogo ▸ Atributos
         </Link>
         .
       </p>

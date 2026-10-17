@@ -1,0 +1,47 @@
+{
+  "guia": "tienda-web.campanas.id",
+  "ruta": "/tienda-web/campanas/[id]",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 29,
+  "controles": {
+    "app/(app)/tienda-web/campanas/[id]/page.tsx": [
+      "Volver «/tienda-web/campanas»",
+      "Pestanas «(sin nombre)»"
+    ],
+    "components/PrendasDeEtiquetaModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Volver»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "CampoTexto «Buscar»",
+      "CampoSelect «Categoría»",
+      "Boton «Reintentar»",
+      "button «Marcar visibles»",
+      "button «Soltar visibles»",
+      "Casilla «{`${p.referencia}»",
+      "button «{p.referencia}»",
+      "Casilla «{[v.talla, v.color].filter(Boolean).join(\" · \") || \"Única\"}»",
+      "ComboResponsable «{responsable}» #2",
+      "Boton «Cancelar»",
+      "Boton «{vista ? \"Revisar y aplicar\" : \"Aplicar\"}»"
+    ],
+    "components/campanas/CamposDeCampana.tsx": [
+      "CampoTexto «{guia.etiqueta(\"descuento\", \"Descuento (%)\")}»",
+      "CampoTexto «Desde»",
+      "CampoTexto «Hasta»",
+      "button «Quitar todas»",
+      "button «{c.nombre}»"
+    ],
+    "components/campanas/DatosCampana.tsx": [
+      "Boton «Activarla de nuevo»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Desactivar campaña»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "BotonImprimir «(sin nombre)»"
+    ],
+    "components/campanas/PrendasCampana.tsx": [
+      "Boton «{campana.activo ? undefined : \"Actívala en Datos para elegir sus prendas\"}»"
+    ]
+  }
+}

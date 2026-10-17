@@ -215,5 +215,10 @@ export const EJEMPLOS = {
   "/ordenes-insumos/nueva": { cuenta: "admin-taller", sinDatos: SIN_MODULO_OI },
   "/ordenes-insumos/ver/[id]": { cuenta: "admin-taller", sinDatos: SIN_ORDEN_INSUMO, url: () => `/ordenes-insumos/ver/${id(ORDEN_INSUMO_QUE_ENSENA)}` },
   "/ordenes-insumos/editar/[id]": { cuenta: "admin-taller", sinDatos: SIN_ORDEN_INSUMO, url: () => `/ordenes-insumos/editar/${id(ORDEN_INSUMO_QUE_ENSENA)}` },
+  // Una campaña por dentro (ADR-0436): la que tiene descuento y la fecha más reciente primero, que es la que más enseña.
+  "/tienda-web/campanas/[id]": {
+    sinDatos: "select case when to_regprocedure('retail.campana_detalle(uuid)') is null then 'la base local no tiene Campañas (migración 20261017151000)' when query_to_xml('select 1 from retail.etiquetas where estilo = ''campana'' and estado = ''aprobado'' limit 1', false, true, '')::text = '' then 'no hay ninguna campaña en la base local' end",
+    url: () => `/tienda-web/campanas/${id("select id from retail.etiquetas where estilo = 'campana' and estado = 'aprobado' order by activo desc, (descuento_pct is not null) desc, vigente_hasta desc nulls last limit 1")}`,
+  },
   "/ordenes-insumos/comprobante/[id]": { cuenta: "admin-taller", sinDatos: SIN_PAPEL_OI, url: () => `/ordenes-insumos/comprobante/${id(ORDEN_INSUMO_PARA_PAPEL)}` },
 };

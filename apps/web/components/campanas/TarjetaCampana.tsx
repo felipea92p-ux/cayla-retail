@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Chip } from "@/components/ui/Chip";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { datosDeCampana, diasEntre, estadoDeCampana, porQueNoSale, type Campana } from "@/lib/campanas-reglas";
@@ -21,12 +22,13 @@ function ChipDeEstado({ c, enPortada, hoy }: { c: Campana; enPortada: boolean; h
   );
 }
 
-/** Una campaña de la lista: su portada en chico, en qué está, cómo se llama y lo que trae (fechas, descuento, prendas). */
+/** Una campaña de la lista: su portada en chico, en qué está, cómo se llama y lo que trae (fechas, descuento, prendas). Toda la tarjeta
+ *  lleva a la campaña por dentro (sus Datos y sus Prendas). */
 export function TarjetaCampana({ c, enPortada, hoy, i }: { c: Campana; enPortada: Campana | null; hoy: string; i: number }) {
   const apagada = ["termino", "desactivada"].includes(estadoDeCampana(c, hoy));
   const razon = porQueNoSale(c, enPortada, hoy);
   return (
-    <article className="tw-campana tw-entra" data-apagada={apagada ? "" : undefined} style={{ ["--i" as string]: i }}>
+    <Link href={`/tienda-web/campanas/${c.id}`} className="tw-campana tw-entra" data-apagada={apagada ? "" : undefined} style={{ ["--i" as string]: i }}>
       <PortadaMini nombre={c.nombre} hasta={c.hasta} />
       <div className="flex flex-1 flex-col gap-1.5 p-4">
         <div>
@@ -36,6 +38,6 @@ export function TarjetaCampana({ c, enPortada, hoy, i }: { c: Campana; enPortada
         <p className="text-[13px] text-tinta/70">{datosDeCampana(c).join(" · ")}</p>
         {razon && <p className="text-[13px] text-ambar-profundo">{razon}</p>}
       </div>
-    </article>
+    </Link>
   );
 }
