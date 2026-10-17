@@ -1,7 +1,7 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { getCargaInicial } from "@/lib/carga-inicial";
 import { ConfiguracionCargaInicial } from "@/components/ConfiguracionCargaInicial";
-import { getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from "@/lib/configuracion";
+import { getConfiguracionMetas, getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from "@/lib/configuracion";
 import { getCategoriasGasto, getContextoGastos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
 import { anioLima, hoyLima } from "@/lib/fechas-lima";
 import { esMes, mesDe, rangoMes } from "@/lib/gastos-reglas";
@@ -62,10 +62,11 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
 // La carga inicial de cada sede (ADR-0328, actividad 4) va en esta pestaña: es una fecha de la sede, como su hora de cierre. Si la
 // base todavía no tiene la función (la web salió antes que el SQL), la tarjeta no aparece y nada más cambia.
 async function SeccionTiendas({ esLider, esAdmin }: { esLider: boolean; esAdmin: boolean }) {
-  const [datos, carga] = await Promise.all([getConfiguracionTiendas(), getCargaInicial()]);
+  const [datos, carga, metas] = await Promise.all([getConfiguracionTiendas(), getCargaInicial(), getConfiguracionMetas()]);
   return (
     <ConfiguracionTiendas
       datos={datos}
+      metas={metas}
       despuesDeWhatsapp={carga && carga.sedes.length > 0 ? <ConfiguracionCargaInicial lectura={carga} esLider={esLider} esAdmin={esAdmin} /> : null}
     />
   );

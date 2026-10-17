@@ -48,6 +48,10 @@ export const PRUEBAS = [
   // meta del mes es la suma de los días, solo el líder guarda y el cierre anota el fondo que regía. ROLLBACK.
   "pruebas:configuracion-caja",
 
+  // Metas por mes y por fecha (ADR-0435): fn_parametros_caja envuelve a su base; fecha (final) > semana del mes > semana
+  // tipo; la campaña sube la del mes; nada en el pasado, NaN ni más de 18 meses; solo Configuración. ROLLBACK.
+  "pruebas:metas-mes-y-fecha",
+
   "pruebas:gastos",
 
   "pruebas:activos-y-fijos",
