@@ -4,7 +4,6 @@ import {
   ESTADO_POR_DEFECTO,
   MAX_RESPUESTA,
   OPCIONES_ESTADO,
-  accionPrincipal,
   avisoDelError,
   cifrasDe,
   deQuien,
@@ -95,11 +94,17 @@ describe("lo que devuelve fn_recomendaciones", () => {
 });
 
 describe("el estado de cada una", () => {
-  it("archivada manda; si no, respondida, leída o sin leer", () => {
-    expect(estadoDe(rec())).toBe("sin_leer");
-    expect(estadoDe(rec({ leidaEn: "2026-10-15T16:00:00Z" }))).toBe("leida");
+  it("archivada manda; si no, respondida; si no, por responder (leída o no: leerla no le da nada al cliente)", () => {
+    expect(estadoDe(rec())).toBe("por_responder");
+    expect(estadoDe(rec({ leidaEn: "2026-10-15T16:00:00Z" }))).toBe("por_responder");
     expect(estadoDe(rec({ leidaEn: "2026-10-15T16:00:00Z", respuesta: "Gracias" }))).toBe("respondida");
     expect(estadoDe(rec({ leidaEn: "2026-10-15T16:00:00Z", respuesta: "Gracias", archivadaEn: "2026-10-15T17:00:00Z" }))).toBe("archivada");
+  });
+
+  it("una sin respuesta cuya ficha se anonimizó no es «por responder»: ya no se le responde, solo se archiva", () => {
+    expect(estadoDe(rec({ cliente: null }))).toBe("sin_nombre");
+    expect(estadoDe(rec({ cliente: null, respuesta: "Gracias" }))).toBe("respondida");
+    expect(estadoDe(rec({ cliente: null, archivadaEn: "2026-10-15T17:00:00Z" }))).toBe("archivada");
   });
 
   it("solo se responde una sin respuesta, en la bandeja y con nombre", () => {
@@ -111,7 +116,7 @@ describe("el estado de cada una", () => {
 });
 
 describe("las cifras", () => {
-  it("sin leer, respondidas, archivadas y las del mes de Lima (un instante de la madrugada UTC del 1 es del mes anterior en Lima)", () => {
+  it("por responder, respondidas, archivadas y las del mes de Lima (un instante de la madrugada UTC del 1 es del mes anterior en Lima)", () => {
     const lista = [
       rec({}, 1),
       rec({ leidaEn: "2026-10-02T10:00:00Z" }, 2),
@@ -119,9 +124,11 @@ describe("las cifras", () => {
       rec({ leidaEn: "2026-10-02T10:00:00Z", respuesta: "Gracias", archivadaEn: "2026-10-03T10:00:00Z" }, 4),
       rec({ creadaEn: "2026-10-01T03:00:00Z" }, 5), // 30 de setiembre a las 22:00 en Lima
       rec({ creadaEn: "2026-09-20T15:00:00Z", leidaEn: "2026-09-21T10:00:00Z", archivadaEn: "2026-09-22T10:00:00Z" }, 6),
+      rec({ cliente: null }, 7), // anonimizada sin responder: en la bandeja, pero no por responder
     ];
-    expect(cifrasDe(lista, "2026-10-15")).toEqual({ sinLeer: 2, respondidas: 2, delMes: 4, archivadas: 2, enBandeja: 4 });
-    expect(cifrasDe([], "2026-10-15")).toEqual({ sinLeer: 0, respondidas: 0, delMes: 0, archivadas: 0, enBandeja: 0 });
+    // La leída sin respuesta (2) cuenta como por responder: antes desaparecía de la cifra y del aviso del Resumen.
+    expect(cifrasDe(lista, "2026-10-15")).toEqual({ porResponder: 3, respondidas: 2, delMes: 5, archivadas: 2, enBandeja: 5 });
+    expect(cifrasDe([], "2026-10-15")).toEqual({ porResponder: 0, respondidas: 0, delMes: 0, archivadas: 0, enBandeja: 0 });
   });
 });
 
@@ -136,11 +143,10 @@ describe("los filtros y la búsqueda", () => {
   const ids = (l: Recomendacion[]) => l.map((r) => Number(r.id.slice(-1)));
   const sin = (estado: Parameters<typeof filtrar>[1]["estado"], sobre = TODOS, q = "") => ids(filtrar(lista, { estado, sobre, q }));
 
-  it("por estado: la bandeja (lo de siempre) es todo lo no archivado", () => {
-    expect(ESTADO_POR_DEFECTO).toBe("bandeja");
+  it("por estado: lo de siempre es «por responder» (leída o no, con nombre); la bandeja, todo lo no archivado", () => {
+    expect(ESTADO_POR_DEFECTO).toBe("por_responder");
+    expect(sin("por_responder")).toEqual([1, 2]);
     expect(sin("bandeja")).toEqual([1, 2, 3, 5]);
-    expect(sin("sin_leer")).toEqual([1, 5]);
-    expect(sin("leidas")).toEqual([2]);
     expect(sin("respondidas")).toEqual([3]);
     expect(sin("archivadas")).toEqual([4]);
     expect(sin("todas")).toEqual([1, 2, 3, 4, 5]);
@@ -180,13 +186,14 @@ describe("la respuesta", () => {
     expect(letras("a   b")).toBe(3);
   });
 
-  it("lo que falta para confirmar: sin leer, vacía vale (la marca leída); ya leída, falta; de 2 a 400 letras", () => {
-    const sinLeer = rec();
+  it("lo que falta para enviar: la respuesta siempre (leída o no; la otra salida es archivarla), de 2 a 400 letras", () => {
+    const nueva = rec();
     const leida = rec({ leidaEn: "2026-10-15T16:00:00Z" });
-    expect(problemaParaConfirmar(sinLeer, "")).toBeNull();
+    expect(problemaParaConfirmar(nueva, "")).toBe("Escribe tu respuesta, o archívala si no hace falta responder.");
+    expect(problemaParaConfirmar(nueva, "​")).toBe("Escribe tu respuesta, o archívala si no hace falta responder.");
     expect(problemaParaConfirmar(leida, "")).toMatch(/Escribe tu respuesta/);
-    expect(problemaParaConfirmar(sinLeer, "a")).toBe("Escribe tu respuesta.");
-    expect(problemaParaConfirmar(sinLeer, "ok")).toBeNull();
+    expect(problemaParaConfirmar(nueva, "a")).toBe("Escribe tu respuesta.");
+    expect(problemaParaConfirmar(nueva, "ok")).toBeNull();
     expect(problemaParaConfirmar(leida, "b".repeat(MAX_RESPUESTA))).toBeNull();
     expect(problemaParaConfirmar(leida, "b".repeat(MAX_RESPUESTA + 1))).toBe("Te pasaste por 1 letra: acórtala un poco.");
     expect(problemaParaConfirmar(leida, "b".repeat(MAX_RESPUESTA + 3))).toBe("Te pasaste por 3 letras: acórtala un poco.");
@@ -196,15 +203,6 @@ describe("la respuesta", () => {
     expect(problemaParaConfirmar(rec({ cliente: null }), "")).toBeNull();
   });
 
-  it("el botón principal: responder con texto, marcar leída sin texto y sin leer, nada si ya no se responde", () => {
-    expect(accionPrincipal(rec(), "")).toBe("leer");
-    expect(accionPrincipal(rec(), "Gracias")).toBe("responder");
-    expect(accionPrincipal(rec({ leidaEn: "2026-10-15T16:00:00Z" }), "")).toBe("responder");
-    expect(accionPrincipal(rec(), "​")).toBe("leer");
-    expect(accionPrincipal(rec({ respuesta: "Ya" }), "Otra")).toBeNull();
-    expect(accionPrincipal(rec({ archivadaEn: "2026-10-15T17:00:00Z" }), "Hola")).toBeNull();
-    expect(accionPrincipal(rec({ cliente: null }), "Hola")).toBeNull();
-  });
 
   it("los avisos propios: sin red (reintentar es seguro) y otra persona que respondió antes; lo demás, el mensaje de siempre", () => {
     expect(avisoDelError({ hint: null }, true)).toEqual({ titulo: "Se cortó la conexión", detalle: "Vuelve a intentarlo: si ya había llegado, no se repite." });

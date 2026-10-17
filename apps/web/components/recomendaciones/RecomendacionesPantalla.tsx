@@ -113,15 +113,15 @@ export function RecomendacionesPantalla({
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-guia="recomendaciones.cifras">
         <TarjetaCifra
-          punto={cifras.sinLeer > 0 ? "ambar" : "neutro"}
-          etiqueta="Sin leer"
+          punto={cifras.porResponder > 0 ? "ambar" : "neutro"}
+          etiqueta="Por responder"
           className="anim-entra"
           style={{ ["--i" as string]: 0 }}
-          valor={<CifraQueCuenta valor={cifras.sinLeer} alMontar />}
-          activa={estado === "sin_leer"}
-          onClick={filtroDeCifra("sin_leer")}
+          valor={<CifraQueCuenta valor={cifras.porResponder} alMontar />}
+          activa={estado === "por_responder"}
+          onClick={filtroDeCifra("por_responder")}
         >
-          {cifras.sinLeer > 0 ? "Esperan que alguien las lea" : "Todas están leídas"}
+          {cifras.porResponder > 0 ? "Esperan tu respuesta" : "No queda nada por responder"}
         </TarjetaCifra>
         <TarjetaCifra
           punto={cifras.respondidas > 0 ? "verde" : "neutro"}
@@ -194,6 +194,11 @@ export function RecomendacionesPantalla({
             <Vacio icono={<MessageSquareText />} titulo="Todavía no llegó ninguna recomendación" guia="recomendaciones.vacio">
               Cuando un cliente escriba una desde su cuenta de la tienda online, aparece aquí con su nombre.
             </Vacio>
+          ) : !filtrosPuestos ? (
+            // Lo de siempre («Por responder») vacío: no hay filtro que limpiar, hay lo ya respondido o archivado por ver.
+            <Vacio tamano="chico" icono={<MessageSquareText />} accion={{ texto: "Ver todas", onClick: () => elegirEstado("todas") }}>
+              No queda nada por responder.
+            </Vacio>
           ) : (
             <Vacio
               tamano="chico"
@@ -247,7 +252,7 @@ export function RecomendacionesPantalla({
                           abrir(r.id);
                         }}
                         title={r.cliente ? undefined : "Su ficha se anonimizó: la recomendación se queda, sin su nombre"}
-                        className={`block max-w-full truncate text-left hover:text-rojo-profundo ${r.cliente ? "text-tinta" : "italic text-taupe"} ${e === "sin_leer" ? "font-semibold" : ""}`}
+                        className={`block max-w-full truncate text-left hover:text-rojo-profundo ${r.cliente ? "text-tinta" : "italic text-taupe"} ${e === "por_responder" ? "font-semibold" : ""}`}
                       >
                         {deQuien(r)}
                       </button>
@@ -262,7 +267,7 @@ export function RecomendacionesPantalla({
                     </Chip>
                   </span>
                   <span className="col-span-2 flex min-w-0 flex-col gap-1.5 sm:col-span-1">
-                    <span className="tw-globo line-clamp-3" data-sin-leer={e === "sin_leer" ? "" : undefined}>
+                    <span className="tw-globo line-clamp-3" data-sin-leer={e === "por_responder" ? "" : undefined}>
                       {r.texto}
                     </span>
                     {r.respuesta && (
@@ -295,8 +300,9 @@ export function RecomendacionesPantalla({
       <div className="nota-cayla space-y-2 text-[13px]" data-guia="recomendaciones.nota">
         <p>
           Cada recomendación llega con el nombre de quien la escribió, desde su cuenta de la tienda online: sobre una tienda o sobre CAYLA en
-          general. Tu respuesta la lee en su cuenta, en «Recomendaciones», y se escribe una sola vez. Archivar la saca de la bandeja, sin
-          borrarla. Si su ficha se anonimiza, la recomendación se queda sin su nombre ni sus datos.
+          general. Tu respuesta la lee en su cuenta, en «Recomendaciones», y se escribe una sola vez. Si no hace falta responder,
+          archívala: sale de la bandeja sin borrarse, y el cliente la ve como leída. Si su ficha se anonimiza, la recomendación se queda
+          sin su nombre ni sus datos.
           {lista.hayMas ? " Aquí se ven las 1000 más nuevas." : ""}
         </p>
       </div>

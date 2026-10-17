@@ -20,7 +20,7 @@ const CIFRAS_EN_CERO: CifrasPedidosWeb = {
 const NADA: EntradaResumen = {
   pedidos: { estado: "ok", dato: { cifras: CIFRAS_EN_CERO, plazos: PLAZOS } },
   vitrina: { estado: "ok", dato: { cifras: { seVen: 10, total: 12, sinStock: 0 }, encendidosSinPrecio: 0, looks: { seVen: 2, total: 2, noSeVen: 0 }, esperan: { personas: 0, faltan: 0, llegaron: 0 } } },
-  recomendaciones: { estado: "ok", dato: { sinLeer: 0, respondidas: 0, delMes: 0, archivadas: 0, enBandeja: 0 } },
+  recomendaciones: { estado: "ok", dato: { porResponder: 0, respondidas: 0, delMes: 0, archivadas: 0, enBandeja: 0 } },
   ajustes: { estado: "ok", dato: [{ id: "t", nombre: "Trujillo", tono: "verde", texto: "Se ve en la web" }] },
 };
 const conPedidos = (c: Partial<CifrasPedidosWeb>): EntradaResumen => ({ ...NADA, pedidos: { estado: "ok", dato: { cifras: { ...CIFRAS_EN_CERO, ...c }, plazos: PLAZOS } } });
@@ -51,7 +51,7 @@ describe("Tienda web ▸ Resumen: lo que pide la tienda online hoy", () => {
     const e: EntradaResumen = {
       ...conPedidos({ porConfirmar: 1, proximoVenceEnMs: 1 * HORA, sinPagar: 1 }),
       vitrina: { estado: "ok", dato: { cifras: { seVen: 5, total: 9, sinStock: 2 }, encendidosSinPrecio: 1, looks: { seVen: 0, total: 1, noSeVen: 1 }, esperan: { personas: 3, faltan: 1, llegaron: 2 } } },
-      recomendaciones: { estado: "ok", dato: { sinLeer: 4, respondidas: 0, delMes: 4, archivadas: 0, enBandeja: 4 } },
+      recomendaciones: { estado: "ok", dato: { porResponder: 4, respondidas: 0, delMes: 4, archivadas: 0, enBandeja: 4 } },
       ajustes: { estado: "ok", dato: [{ id: "l", nombre: "Lima", tono: "ambar", texto: "No se ve: falta el WhatsApp" }] },
     };
     const p = pendientesDe(e);

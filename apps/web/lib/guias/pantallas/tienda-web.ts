@@ -38,7 +38,7 @@ export const GUIA_TIENDA_WEB_RESUMEN: Guia = {
       id: "pendientes",
       ancla: "tienda-web.pendientes",
       titulo: "Lo que te pide hoy",
-      texto: "De lo urgente a lo que solo informa: pedidos por confirmar, plata por devolver, recomendaciones sin leer, tallas que llegaron. Tocas una y te lleva a la pantalla donde se resuelve.",
+      texto: "De lo urgente a lo que solo informa: pedidos por confirmar, plata por devolver, recomendaciones por responder, tallas que llegaron. Tocas una y te lleva a la pantalla donde se resuelve.",
     },
     {
       id: "camino",
@@ -874,8 +874,8 @@ export const GUIA_VITRINA_PROBADOR: Guia = {
 };
 
 // Tienda web ▸ Recomendaciones (ADR-0408, Felipe 2026-10-15): lo que los clientes le recomiendan a CAYLA desde la tienda online, con su
-// nombre. El piloto abre la primera recomendación de la lista, escribe un ejemplo de respuesta (que no envía) y cierra la hoja. Marcar
-// como leída, Enviar respuesta y Archivar se EXPLICAN.
+// nombre. El piloto abre la primera recomendación de la lista, escribe un ejemplo de respuesta (que no envía) y cierra la hoja. Enviar
+// respuesta y Archivar sin responder se EXPLICAN.
 export const GUIA_RECOMENDACIONES: Guia = {
   id: "tienda-web.recomendaciones",
   ruta: "/tienda-web/recomendaciones",
@@ -892,13 +892,13 @@ export const GUIA_RECOMENDACIONES: Guia = {
       id: "cifras",
       ancla: "recomendaciones.cifras",
       titulo: "Cuántas hay",
-      texto: "«Sin leer» son las que nadie abrió todavía. Toca una cifra para ver solo esas en la lista; tócala otra vez para volver a la bandeja.",
+      texto: "«Por responder» son las que esperan algo de CAYLA: la lista las muestra de entrada. Toca otra cifra para ver solo esas; tócala otra vez para volver a las que esperan.",
     },
     {
       id: "filtros",
       ancla: "recomendaciones.filtros",
       titulo: "Buscar y filtrar",
-      texto: "Busca una palabra de lo que escribieron o el nombre del cliente. «Estado» cambia entre la bandeja, las sin leer, las respondidas y las archivadas; «Sobre» deja las de una tienda o las de CAYLA en general.",
+      texto: "Busca una palabra de lo que escribieron o el nombre del cliente. «Estado» cambia entre las por responder, toda la bandeja, las respondidas y las archivadas; «Sobre» deja las de una tienda o las de CAYLA en general.",
     },
     {
       id: "lista",
@@ -947,7 +947,7 @@ export const GUIA_RECOMENDACIONES: Guia = {
       ancla: "recomendacion.respuesta",
       opcional: true,
       titulo: "Tu respuesta",
-      texto: "Un texto corto que el cliente lee en su cuenta de la tienda online. Se escribe una sola vez. Si no hace falta responder, déjala vacía: el botón la marca como leída.",
+      texto: "Un texto corto que el cliente lee en su cuenta de la tienda online. Se escribe una sola vez: revísalo antes de enviarlo.",
       demostrar: [{ tipo: "escribir", ancla: "recomendacion.respuesta", texto: "¡Gracias por escribirnos! Ya lo estamos viendo." }],
     },
     {
@@ -955,21 +955,21 @@ export const GUIA_RECOMENDACIONES: Guia = {
       ancla: "recomendacion.responsable",
       opcional: true,
       titulo: "Quién lo hace",
-      texto: "La persona del equipo que la lee o la responde. Queda anotado con su nombre.",
+      texto: "La persona del equipo que la responde o la archiva. Queda anotado con su nombre.",
     },
     {
       id: "acciones",
       ancla: "recomendacion.acciones",
       opcional: true,
-      titulo: "Responder, leída o archivar",
-      texto: "«Enviar respuesta» se la manda a su cuenta; sin respuesta, «Marcar como leída». «Archivar» la saca de la bandeja sin borrarla y se puede deshacer. En la demo no tocamos ninguno.",
+      titulo: "Responder o archivar",
+      texto: "«Enviar respuesta» se la manda a su cuenta. Si no hace falta responder, «Archivar sin responder» la saca de la bandeja sin borrarla, el cliente la ve como leída y se puede deshacer. En la demo no tocamos ninguno.",
     },
     {
       id: "nota",
       ancla: "recomendaciones.nota",
       preparar: [{ tipo: "escape" }],
       titulo: "Lo que conviene saber",
-      texto: "Las recomendaciones no se borran: se archivan. Cada lectura, respuesta y archivo queda anotado en la Actividad con quién lo hizo.",
+      texto: "Las recomendaciones no se borran: se archivan. Cada respuesta y cada archivo queda anotado en la Actividad con quién lo hizo.",
     },
     {
       id: "fin",

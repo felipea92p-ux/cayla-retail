@@ -19,7 +19,6 @@ import { haceCuanto } from "@/lib/vender-hoy-reglas";
 import { camposRecomendacion } from "@/lib/recomendaciones-guia";
 import {
   MAX_RESPUESTA,
-  accionPrincipal,
   avisoDelError,
   cuando,
   hrefFicha,
@@ -31,13 +30,14 @@ import {
   type Recomendacion,
 } from "@/lib/recomendaciones-reglas";
 
-type Hecho = "leida" | "respondida" | "archivada" | "en_bandeja";
+type Hecho = "respondida" | "archivada" | "en_bandeja";
 
 /**
  * La hoja de una recomendación (Tienda web ▸ Recomendaciones): lo que escribió el cliente, quién es (con su ficha, si quien mira ve las
- * fichas) y sobre qué; lo que ya se hizo con ella (quién la leyó, la respondió o la archivó, y cuándo); y lo que falta: responderle (lo
- * lee en su cuenta de la tienda online; una sola vez), o solo marcarla como leída, o archivarla. Todo firmado con el combo
- * «Responsable» (ADR-0162). Un doble toque no manda dos veces: el botón se apaga mientras la base responde y la base no repite (la
+ * fichas) y sobre qué; lo que ya se hizo con ella (quién la respondió o la archivó, y cuándo); y lo que falta: responderle (lo lee en
+ * su cuenta de la tienda online; una sola vez) o, si no hace falta, archivarla sin responder. Desde el 2026-10-17 (decisión #2 A) ya no
+ * se «marca como leída»: leerla no le daba nada al cliente y la sacaba de los pendientes. Todo firmado con el combo «Responsable»
+ * (ADR-0162). Un doble toque no manda dos veces: el botón se apaga mientras la base responde y la base no repite (la
  * misma respuesta otra vez es «ya estaba»; otra encima de una que ya está se rechaza y la lista se relee).
  *
  * Se lee como una conversación (Felipe 2026-10-16: «muy saturada y poco intuitiva»): quién y sobre qué una sola vez arriba; el mensaje
@@ -71,7 +71,6 @@ export function RecomendacionHoja({
   const soloSeLee = !sePuedeResponder(r);
   // Un Admin no elige responsable (todo queda a su nombre): en una hoja que solo se lee, ese aviso no le dice nada que hacer.
   const verResponsable = !(soloSeLee && responsable.estado === "admin");
-  const accion = accionPrincipal(r, respuesta);
   const puedeResponder = sePuedeResponder(r);
   const n = letras(respuesta);
 
@@ -84,11 +83,9 @@ export function RecomendacionHoja({
     const base = createClient();
     const firma = responsable.firma();
     const consulta =
-      que === "leida"
-        ? base.rpc("marcar_recomendacion_leida", { p_id: r.id })
-        : que === "respondida"
-          ? base.rpc("responder_recomendacion", { p_id: r.id, p_respuesta: textoLimpio(respuesta) })
-          : base.rpc("archivar_recomendacion", { p_id: r.id, p_archivar: que === "archivada" });
+      que === "respondida"
+        ? base.rpc("responder_recomendacion", { p_id: r.id, p_respuesta: textoLimpio(respuesta) })
+        : base.rpc("archivar_recomendacion", { p_id: r.id, p_archivar: que === "archivada" });
     const { error } = await firmar(consulta, firma);
     enVuelo.current = false;
     setGuardando(null);
@@ -96,7 +93,7 @@ export function RecomendacionHoja({
     if (error) {
       const propio = avisoDelError(error, esFalloDeRed(error));
       if (propio) avisar.error(propio.titulo, { detalle: propio.detalle });
-      else avisar.error(traducirError(error, que === "respondida" ? "enviar la respuesta" : que === "leida" ? "marcarla como leída" : "archivarla"));
+      else avisar.error(traducirError(error, que === "respondida" ? "enviar la respuesta" : "archivarla"));
       // Otra persona ya la respondió (o ya no está): la lista se relee para que se vea lo que hay de verdad.
       if (pideReleer(error.hint)) onCambio(r.id);
       return;
@@ -105,12 +102,10 @@ export function RecomendacionHoja({
     cerrar();
     if (que === "respondida") {
       avisar.exito("Respuesta enviada", { detalle: `${r.cliente?.nombre ?? "El cliente"} la lee en su cuenta de la tienda online.` });
-    } else if (que === "leida") {
-      avisar.exito("Marcada como leída");
     } else if (que === "archivada") {
       // Archivar se deshace (ADR-0350, ley 7: perdonar antes que preguntar): sale de la bandeja y se puede traer de vuelta.
       avisar.exito("Archivada", {
-        detalle: "Sale de la bandeja; la encuentras en «Archivadas».",
+        detalle: r.respuesta === null ? "Sale de la bandeja y el cliente la ve como leída; la encuentras en «Archivadas»." : "Sale de la bandeja; la encuentras en «Archivadas».",
         accion: {
           texto: "Deshacer",
           onClick: async () => {
@@ -213,7 +208,6 @@ export function RecomendacionHoja({
                 <Campo
                   etiqueta={guia.etiqueta("respuesta", "Tu respuesta")}
                   htmlFor={`respuesta-${r.id}`}
-                  ayuda={r.leidaEn ? null : <span className="font-normal normal-case tracking-normal text-taupe"> · opcional</span>}
                   tono={n > MAX_RESPUESTA ? "error" : "neutro"}
                   pie={
                     n > MAX_RESPUESTA
@@ -248,7 +242,7 @@ export function RecomendacionHoja({
           )}
 
           <div className={`space-y-2 ${soloSeLee ? "border-t border-sand pt-4" : "pt-1"}`}>
-            {!soloSeLee && <PieGuia guia={guia} listo={accion === "responder" ? "Lista para enviar." : "Todo listo."} />}
+            {!soloSeLee && <PieGuia guia={guia} listo="Lista para enviar." />}
             <PieAcciones
               guia="recomendacion.acciones"
               izquierda={
@@ -261,12 +255,12 @@ export function RecomendacionHoja({
                     cargando={guardando === "archivada"}
                     textoCargando="Archivando…"
                     disabled={guardando !== null || !responsable.listo}
-                    title={responsable.motivo ?? undefined}
+                    title={responsable.motivo ?? (puedeResponder ? "Si no hace falta responder: sale de la bandeja y el cliente la ve como leída" : undefined)}
                     onClick={() => guardar("archivada", cerrar)}
                   >
                     <span className="flex items-center gap-2">
                       <Archive aria-hidden className="-my-1 h-4 w-4 shrink-0" />
-                      Archivar
+                      {puedeResponder ? "Archivar sin responder" : "Archivar"}
                     </span>
                   </Boton>
                 )
@@ -277,21 +271,7 @@ export function RecomendacionHoja({
                   Cancelar
                 </Boton>
               )}
-              {accion === "leer" && (
-                <Boton
-                  type="button"
-                  peso="primario"
-                  cargando={guardando === "leida"}
-                  textoCargando="Marcando…"
-                  disabled={!guia.puedeConfirmar || guardando !== null}
-                  title={guia.frase ?? undefined}
-                  className={guia.claseConfirmar}
-                  onClick={() => guardar("leida", cerrar)}
-                >
-                  Marcar como leída
-                </Boton>
-              )}
-              {accion === "responder" && (
+              {puedeResponder && (
                 <Boton
                   type="button"
                   peso="primario"
