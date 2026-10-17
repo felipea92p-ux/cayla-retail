@@ -428,6 +428,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (sinPajaro.length) errores.push(`${sinPajaro.length} tabla(s) de producción sin pájaro: ${sinPajaro.join(", ")}\n    → Dales pájaro en scripts/datos/aviario.mjs. Si nace una tabla nueva, nace con dueño o no nace.`);
   if (dobles.length) errores.push(`${dobles.length} tabla(s) con más de un pájaro: ${dobles.join("; ")}\n    → Cada tabla tiene un solo dueño; deja una.`);
   if (difGobierno.length) errores.push(`Los pájaros de acá y los de 07-GOBIERNO.md §1 no coinciden:\n    - ${difGobierno.join("\n    - ")}`);
+  // El diccionario se ordena con este mapa: si se generó antes de darle pájaro a una tabla, ella sigue en «Sin módulo
+  // asignado» aunque aquí ya tenga dueño, y nada más lo notaba (pasó el 2026-10-17 con 20 tablas).
+  const diccionario = join(GENERADO, "DICCIONARIO-RETAIL.md");
+  if (!sinPajaro.length && existsSync(diccionario) && readFileSync(diccionario, "utf8").includes("\n## Sin módulo asignado\n")) {
+    errores.push("DICCIONARIO-RETAIL.md tiene tablas en «Sin módulo asignado» que ya tienen pájaro.\n    → Corre `pnpm datos:generar:produccion` y commitea el diccionario que sale.");
+  }
 
   const md = aviarioMd(reales);
   const ruta = join(GENERADO, "AVIARIO.md");

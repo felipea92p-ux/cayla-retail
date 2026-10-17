@@ -190,8 +190,9 @@ haber creado, alguien pegó SQL en producción sin anotarlo — que es exactamen
 Si `datos:aviario` falla, la tabla nueva necesita pájaro antes de commitear el volcado:
 se agrega a su lista en `scripts/datos/aviario.mjs` y se vuelven a correr `pnpm datos:generar:produccion` y
 `pnpm datos:aviario`, en ese orden. El diccionario se ordena por pájaro: si no se regenera, la tabla sigue en «Sin
-módulo asignado» aunque el aviario ya pase (pasó el 2026-10-17 con 20 tablas). El CI corre la misma revisión del
-aviario en cada push, así que un volcado commiteado sin pájaro sale en rojo.
+módulo asignado» y `datos:aviario` falla (desde el 2026-10-17; antes no lo notaba nada, y pasó con 20 tablas). El CI
+corre la misma revisión del aviario en cada push, así que un volcado commiteado sin pájaro, o un diccionario que no se
+regeneró después de dárselo, sale en rojo.
 
 ## Refresco por diferencia: `pnpm datos:refrescar` (lo normal)
 
