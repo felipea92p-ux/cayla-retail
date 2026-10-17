@@ -75,13 +75,21 @@ const nextConfig: NextConfig = {
             port: origen.port,
             pathname: "/storage/v1/object/public/retail-productos-fotos/**",
           },
+          // La foto del fondo de una campaña (ADR-0436, actividad 8), del mismo almacén.
+          {
+            protocol: origen.protocol === "http:" ? "http" : "https",
+            hostname: origen.hostname,
+            port: origen.port,
+            pathname: "/storage/v1/object/public/retail-campanas-fotos/**",
+          },
         ]
       : [],
     // Una foto de prenda es un archivo nuevo por cada foto (su nombre lleva un id): lo ya optimizado no envejece (31 días).
     minimumCacheTTL: 60 * 60 * 24 * 31,
-    // Pocos anchos: la tarjeta mide de ~170 px (celular, dos columnas) a ~300 px (computadora, cuatro), y el doble en retina.
+    // Pocos anchos: la tarjeta mide de ~170 px (celular, dos columnas) a ~300 px (computadora, cuatro), y el doble en retina. 1920: la
+    // foto del fondo de una campaña, a todo el ancho de una computadora (ADR-0436, actividad 8); una tarjeta nunca lo pide.
     imageSizes: [256, 384],
-    deviceSizes: [640, 1080],
+    deviceSizes: [640, 1080, 1920],
     // Solo en `next dev`: el almacén local vive en localhost, que Next bloquea por defecto. Nunca en producción.
     dangerouslyAllowLocalIP: process.env.NODE_ENV === "development",
   },

@@ -2,6 +2,7 @@ import type { ComponentType, CSSProperties, ReactNode } from "react";
 import { PRENDAS_MAX, coloresDelDiseno, paletaDelDiseno, piezasQueCaben, type DisenoDeCampana, type Sello } from "./diseno";
 import { variablesDeLosDosTemas, variablesDePaleta, type Tema } from "./paletas";
 import { INTENSIDAD, mascaraDePatron } from "./patrones";
+import { veloDeLaFoto } from "./revision";
 import { largoDelNombre } from "./textos";
 
 /**
@@ -20,6 +21,9 @@ export type PiezaDeHeroe = {
 
 type Enlace = ComponentType<{ href: string; className?: string; style?: CSSProperties; "aria-label"?: string; children?: ReactNode }>;
 
+/** Cómo dibuja cada lugar la foto del fondo: la tienda, con su optimizador de imágenes (`next/image`, a lo ancho de la pantalla). */
+export type FotoDeFondo = ComponentType<{ src: string }>;
+
 /**
  * El héroe de la portada (ADR-0408, maqueta v4; en una sola pieza desde ADR-0436): el texto de la campaña a la izquierda y sus prendas
  * como polaroids que caen una vez a la derecha. La estructura y los estilos son de aquí; lo que cambia de un lugar a otro llega de
@@ -29,7 +33,8 @@ type Enlace = ComponentType<{ href: string; className?: string; style?: CSSPrope
  *
  * Con `diseno` (ADR-0436), la campaña se pinta con el suyo: sus colores, su fondo (liso, degradado o con un dibujo), cómo se acomodan las
  * prendas (tres polaroids, una foto grande, un mosaico de cuatro o solo letras), el tamaño del nombre, su frase y sus detalles (colibrí,
- * contador, el % gigante, el sello). Sin él, la portada de siempre. Las prendas llegan en su orden (`prendasElegidas`) y aquí se toman las
+ * contador, el % gigante, el sello) y, con fondo «Con foto», su foto tapada por un velo del color de la campaña (más tupido donde va la
+ * letra: `veloDeLaFoto`, el mismo número con que la revisión mide si se lee). Sin él, la portada de siempre. Las prendas llegan en su orden (`prendasElegidas`) y aquí se toman las
  * que caben en el acomodo (`piezasQueCaben`). El tamaño del nombre se elige por su largo (`largoDelNombre`), salvo sin campaña, donde los
  * títulos de la tienda («Lo nuevo de CAYLA») conservan el de siempre.
  * Con `tema` (la vista previa del ERP, que lo elige con su botón) los colores van ya resueltos para ese tema; sin `tema` (la tienda, que
@@ -52,6 +57,7 @@ export function HeroeDePortada({
   lado = null,
   diseno = null,
   tema,
+  FotoDeFondo,
 }: {
   /** Lo que la página le agrega al héroe (`t-portada`, `t-hero-inicio`): sus ajustes de lugar viven en sus propios estilos. */
   clase?: string;
@@ -73,6 +79,8 @@ export function HeroeDePortada({
   diseno?: DisenoDeCampana | null;
   /** El tema de los colores del diseño: la vista previa del ERP lo elige con su botón «Claro / Oscuro». Sin él, los dos (la tienda). */
   tema?: Tema;
+  /** Cómo se dibuja la foto del fondo; sin él, una imagen simple (la vista previa del ERP). */
+  FotoDeFondo?: FotoDeFondo;
 }) {
   const [linea, cursiva] = titulo;
   const estilo = !diseno
@@ -103,6 +111,7 @@ export function HeroeDePortada({
       data-largo={sinCampana ? undefined : largoDelNombre(`${linea} ${cursiva}`)}
     >
       {diseno?.fondo === "dibujo" && <PatronDelFondo diseno={diseno} />}
+      {diseno?.fondo === "foto" && diseno.foto && <FotoDelFondo src={diseno.foto} oscuro={diseno.oscuro} Foto={FotoDeFondo} />}
       {pctSuelto && (
         <span className="t-hero-pct" data-suelto="" aria-hidden="true">
           {pctSuelto}
@@ -144,6 +153,21 @@ export function HeroeDePortada({
 function PatronDelFondo({ diseno }: { diseno: DisenoDeCampana }) {
   const mascara = mascaraDePatron(diseno.patron);
   return <span className="t-hero-patron" aria-hidden="true" style={{ maskImage: mascara, WebkitMaskImage: mascara, opacity: INTENSIDAD[diseno.intensidad] }} />;
+}
+
+/** La foto del fondo y su velo. Mientras carga (o si no carga), se ve el degradado de la campaña: la letra se lee igual. */
+function FotoDelFondo({ src, oscuro, Foto }: { src: string; oscuro: number; Foto: FotoDeFondo | undefined }) {
+  const { cerca, lejos } = veloDeLaFoto(oscuro);
+  const velo = { ["--t-velo-cerca" as string]: `${Math.round(cerca * 100)}%`, ["--t-velo-lejos" as string]: `${Math.round(lejos * 100)}%` } as CSSProperties;
+  return (
+    <>
+      <span className="t-hero-foto" aria-hidden="true">
+        {/* La pieza no conoce Next: la tienda pasa `FotoDeFondo` con su optimizador; la vista previa del ERP usa la imagen simple. */}
+        {Foto ? <Foto src={src} /> : <img src={src} alt="" decoding="async" />}
+      </span>
+      <span className="t-hero-velo" aria-hidden="true" style={velo} />
+    </>
+  );
 }
 
 /** El sello girado: el descuento («−15% · Web y tiendas»), «Solo por días» o «Lo nuevo». Sin descuento, el del descuento no sale. */

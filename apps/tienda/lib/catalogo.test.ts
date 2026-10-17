@@ -181,6 +181,11 @@ describe("la tarjeta", () => {
     expect(fotoOptimizable(FOTO, "https://otro.supabase.co")).toBe(false);
     expect(fotoOptimizable("https://x.supabase.co/storage/v1/object/public/retail-colores-muestras/a.jpg", "https://x.supabase.co")).toBe(false);
     expect(fotoOptimizable(FOTO, undefined)).toBe(false);
+    // La foto del fondo de una campaña (ADR-0436, actividad 8): solo de su almacén, y una de prenda no pasa por él.
+    const FONDO = "https://x.supabase.co/storage/v1/object/public/retail-campanas-fotos/fondos/0f0f0f0f-1111-4222-8333-444455556666.jpg";
+    expect(fotoOptimizable(FONDO, "https://x.supabase.co", "retail-campanas-fotos")).toBe(true);
+    expect(fotoOptimizable(FONDO, "https://x.supabase.co")).toBe(false);
+    expect(fotoOptimizable(FOTO, "https://x.supabase.co", "retail-campanas-fotos")).toBe(false);
     expect(fotoOptimizable("no es url", "https://x.supabase.co")).toBe(false);
   });
 });

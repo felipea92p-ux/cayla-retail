@@ -6,7 +6,7 @@ import { PALETAS, coloresEnTema, paletaPorId, type Colores, type Paleta, type Te
 // opción sale de una lista curada (colores con su contraste medido, estampados dibujados por CAYLA, cuatro acomodos), así la primera
 // portada con letra amarilla sobre crema no llega a ningún cliente.
 
-export const FONDOS = ["degradado", "liso", "dibujo"] as const;
+export const FONDOS = ["degradado", "liso", "dibujo", "foto"] as const;
 export const PATRONES = ["huellitas", "rayas", "puntos", "cuadros", "corazones", "estrellas", "confeti", "ondas"] as const;
 export const INTENSIDADES = ["suave", "medio", "fuerte"] as const;
 export const ACOMODOS = ["polaroids", "grande", "mosaico", "letras"] as const;
@@ -16,6 +16,10 @@ export const SELLOS = ["ninguno", "descuento", "dias", "nuevo"] as const;
 export const FRASE_MAX = 60;
 /** Cuántas prendas caben en la portada (el mosaico es el que más lleva). */
 export const PRENDAS_MAX = 4;
+/** Cuánto se puede oscurecer la foto del fondo (y con cuánto empieza): por debajo la letra casi nunca se lee, por encima la foto no se ve. */
+export const OSCURO_MIN = 0.15;
+export const OSCURO_MAX = 0.9;
+export const OSCURO_DE_FABRICA = 0.45;
 
 export type Fondo = (typeof FONDOS)[number];
 export type Patron = (typeof PATRONES)[number];
@@ -45,6 +49,12 @@ export type DisenoDeCampana = {
   pctGigante: boolean;
   colibri: boolean;
   sello: Sello;
+  /** La foto del fondo «Con foto» (su dirección pública en el almacén de la campaña); puede quedarse con otro fondo. */
+  foto: string | null;
+  /** El color de lo más claro de la foto, medido al subirla: con él la revisión sabe si la letra se lee sin abrir la foto. */
+  fotoTono: string | null;
+  /** Cuánto se oscurece la foto con el color de la campaña (`OSCURO_MIN` a `OSCURO_MAX`). */
+  oscuro: number;
 };
 
 /**
@@ -66,6 +76,9 @@ export const DISENO_DE_SIEMPRE: DisenoDeCampana = {
   pctGigante: true,
   colibri: true,
   sello: "ninguno",
+  foto: null,
+  fotoTono: null,
+  oscuro: OSCURO_DE_FABRICA,
 };
 
 export type Estilo = { id: string; nombre: string; nota: string; cambia: Partial<DisenoDeCampana> };
@@ -99,11 +112,11 @@ export const ESTILOS: readonly Estilo[] = [
   { id: "fiesta", nombre: "Fiesta", nota: "Confeti", cambia: { paleta: "terracota", fondo: "dibujo", patron: "confeti", sello: "nuevo", pctGigante: false } },
 ];
 
-/** Empezar con un estilo: todo vuelve al de siempre más lo del estilo; el texto y las prendas que ya se eligieron se quedan. */
+/** Empezar con un estilo: todo vuelve al de siempre más lo del estilo; el texto, las prendas y la foto que ya se eligieron se quedan. */
 export function aplicarEstilo(d: DisenoDeCampana, id: string): DisenoDeCampana {
   const estilo = ESTILOS.find((e) => e.id === id);
   if (!estilo) return d;
-  return { ...DISENO_DE_SIEMPRE, ...estilo.cambia, frase: d.frase, prendas: d.prendas, corte: d.corte };
+  return { ...DISENO_DE_SIEMPRE, ...estilo.cambia, frase: d.frase, prendas: d.prendas, corte: d.corte, foto: d.foto, fotoTono: d.fotoTono, oscuro: d.oscuro };
 }
 
 /** El estilo del que parece salir el diseño (mismos colores, fondo y acomodo); `null` si ya es otro («Personalizado»). */
@@ -201,6 +214,8 @@ export function paletaDePrenda(nombre: string, hex: string, acento: string | nul
 /* ---------------- Leer un diseño guardado ---------------- */
 
 const HEX = /^#[0-9a-f]{6}$/;
+/** Solo una foto de nuestro almacén de campañas (la base lo exige igual: `campana_disenos_foto_url`). */
+const FOTO = /^https?:\/\/[^/?#\s"'<>]+\/storage\/v1\/object\/public\/retail-campanas-fotos\/fondos\/[0-9a-f-]{36}\.jpg$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const esDe = <T extends string>(lista: readonly T[], v: unknown): v is T => typeof v === "string" && (lista as readonly string[]).includes(v);
 
@@ -246,6 +261,14 @@ export function leerDiseno(x: unknown): DisenoDeCampana | null {
     return null;
   }
   if (typeof o.cuenta !== "boolean" || typeof o.pctGigante !== "boolean" || typeof o.colibri !== "boolean") return null;
+  // La foto (actividad 8). Un diseño guardado antes de ella no trae estos datos: sin foto y con el oscurecido de fábrica.
+  const foto = o.foto ?? null;
+  const fotoTono = o.fotoTono ?? null;
+  const oscuro = o.oscuro ?? OSCURO_DE_FABRICA;
+  if (!(foto === null || (typeof foto === "string" && FOTO.test(foto)))) return null;
+  if (!(fotoTono === null || (typeof fotoTono === "string" && HEX.test(fotoTono)))) return null;
+  if ((foto === null) !== (fotoTono === null) || (o.fondo === "foto" && foto === null)) return null;
+  if (typeof oscuro !== "number" || !(oscuro >= OSCURO_MIN && oscuro <= OSCURO_MAX)) return null;
   return {
     paleta: o.paleta as string,
     colores,
@@ -261,6 +284,9 @@ export function leerDiseno(x: unknown): DisenoDeCampana | null {
     pctGigante: o.pctGigante,
     colibri: o.colibri,
     sello: o.sello,
+    foto: foto as string | null,
+    fotoTono: fotoTono as string | null,
+    oscuro,
   };
 }
 

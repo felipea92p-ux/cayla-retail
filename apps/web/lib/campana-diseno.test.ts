@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   ACOMODOS,
@@ -46,13 +46,19 @@ import {
 } from "./campana-diseno";
 import type { PrendaDeCampana } from "./campana-detalle";
 
-// La base impide los valores que no están en las listas curadas (`check` de 20261017160000_campanas_diseno.sql) y el código las ofrece
-// desde @cayla-retail/portada: si una crece y la otra no, la pantalla ofrecería algo que la base rechaza (o al revés).
-const MIGRACION = readFileSync(new URL("../../../supabase/migrations/20261017160000_campanas_diseno.sql", import.meta.url), "utf8");
+// La base impide los valores que no están en las listas curadas (`check` de 20261017160000_campanas_diseno.sql; el de `fondo`, desde la
+// actividad 8, el de 20261017231000_campanas_fondo_con_foto.sql) y el código las ofrece desde @cayla-retail/portada: si una crece y la otra
+// no, la pantalla ofrecería algo que la base rechaza (o al revés). Vale la ÚLTIMA migración que define cada `check`.
+const CARPETA = new URL("../../../supabase/migrations/", import.meta.url);
+const MIGRACIONES = readdirSync(CARPETA)
+  .filter((f) => f.endsWith(".sql"))
+  .sort()
+  .map((f) => readFileSync(new URL(f, CARPETA), "utf8"));
 function listaDelCheck(columna: string): string[] {
-  const m = MIGRACION.match(new RegExp(`constraint campana_disenos_${columna} check \\(${columna} in \\(([^)]*)\\)\\)`));
-  if (!m) throw new Error(`No encuentro el check de ${columna}`);
-  return [...m[1]!.matchAll(/'([^']+)'/g)].map((x) => x[1]!);
+  const patron = new RegExp(`constraint campana_disenos_${columna} check \\(${columna} in \\(([^)]*)\\)\\)`, "g");
+  const ultima = MIGRACIONES.flatMap((sql) => [...sql.matchAll(patron)]).pop();
+  if (!ultima) throw new Error(`No encuentro el check de ${columna}`);
+  return [...ultima[1]!.matchAll(/'([^']+)'/g)].map((x) => x[1]!);
 }
 
 describe("las listas del diseño son las mismas en la base y en el código", () => {

@@ -4,6 +4,7 @@ import { CONTRASTE_MINIMO, contraste } from "./contraste";
 import {
   DISENO_DE_SIEMPRE,
   ESTILOS,
+  OSCURO_MIN,
   aplicarEstilo,
   colorQueSeLee,
   estiloDelDiseno,
@@ -16,7 +17,7 @@ import {
   type DisenoDeCampana,
 } from "./diseno";
 import { PALETAS, coloresEnTema, paletaPorId, variablesDeLosDosTemas, variablesDePaleta } from "./paletas";
-import { disenoParaPintar, revisarDiseno, seLee } from "./revision";
+import { disenoParaPintar, revisarDiseno, seLee, veloDeLaFoto } from "./revision";
 
 const conPrendas = { prendas: 3, prendasConFoto: 2 };
 const UNO = "11111111-1111-4111-8111-111111111111";
@@ -250,5 +251,46 @@ describe("lo que la tienda pinta (actividad 5)", () => {
       expect(dia).toContain(`${k}: var(${k.replace("--t-hero", "--t-dia")});`);
       for (const n of noches) expect(n).toContain(`${k}: var(${k.replace("--t-hero", "--t-noche")});`);
     }
+  });
+});
+
+describe("el fondo con foto (actividad 8)", () => {
+  const FOTO = "https://abc.supabase.co/storage/v1/object/public/retail-campanas-fotos/fondos/0f0f0f0f-1111-4222-8333-444455556666.jpg";
+  const conFoto = (cambia: Partial<DisenoDeCampana> = {}): DisenoDeCampana => ({ ...DISENO_DE_SIEMPRE, fondo: "foto", foto: FOTO, fotoTono: "#e8dcc8", oscuro: 0.45, ...cambia });
+
+  it("un diseño con foto se lee tal cual; uno guardado antes de la foto, sin foto y con el oscurecido de fábrica", () => {
+    expect(leerDiseno(JSON.parse(JSON.stringify(conFoto())))).toEqual(conFoto());
+    const deAntes = Object.fromEntries(Object.entries(DISENO_DE_SIEMPRE).filter(([k]) => !["foto", "fotoTono", "oscuro"].includes(k)));
+    expect(leerDiseno(deAntes)).toEqual(DISENO_DE_SIEMPRE);
+  });
+
+  it("no se lee una foto de otro lugar, una foto sin su tono, un fondo con foto sin foto ni un oscurecido fuera de rango", () => {
+    expect(leerDiseno(conFoto({ foto: "https://otro.com/storage/v1/object/public/retail-productos-fotos/fotos/a.jpg" }))).toBeNull();
+    expect(leerDiseno(conFoto({ foto: `${FOTO}"><script>` }))).toBeNull();
+    expect(leerDiseno(conFoto({ fotoTono: null }))).toBeNull();
+    expect(leerDiseno(conFoto({ fotoTono: "beige" }))).toBeNull();
+    expect(leerDiseno(conFoto({ foto: null, fotoTono: null }))).toBeNull();
+    expect(leerDiseno(conFoto({ oscuro: 0.95 }))).toBeNull();
+    expect(leerDiseno(conFoto({ oscuro: 0.1 }))).toBeNull();
+    // La foto puede quedarse guardada con otro fondo.
+    expect(leerDiseno(conFoto({ fondo: "degradado" }))?.foto).toBe(FOTO);
+  });
+
+  it("el velo tapa más donde va la letra, y la revisión mide la letra sobre la foto tapada", () => {
+    expect(veloDeLaFoto(0.45)).toEqual({ cerca: 0.75, lejos: 0.45 });
+    expect(veloDeLaFoto(0.9).cerca).toBe(1);
+    // Una foto muy clara apenas oscurecida: la letra clara no se lee y «Publicar» se apaga, diciendo cómo arreglarlo.
+    const clara = revisarDiseno(conFoto({ fotoTono: "#ffffff", oscuro: OSCURO_MIN }), conPrendas);
+    expect(clara.bloquea).toBe(true);
+    expect(clara.avisos.some((a) => a.tono === "mal" && a.texto.includes("oscurece la foto"))).toBe(true);
+    // Oscureciéndola, se lee.
+    expect(revisarDiseno(conFoto({ fotoTono: "#ffffff", oscuro: 0.6 }), conPrendas).bloquea).toBe(false);
+    expect(revisarDiseno(conFoto({ oscuro: 0.8 }), conPrendas).avisos.some((a) => a.tono === "ojo" && a.texto.includes("casi no se ve"))).toBe(true);
+  });
+
+  it("cambiar de estilo no pierde la foto subida", () => {
+    const d = aplicarEstilo(conFoto({ oscuro: 0.6 }), "gala");
+    expect([d.foto, d.fotoTono, d.oscuro]).toEqual([FOTO, "#e8dcc8", 0.6]);
+    expect(d.fondo).toBe("degradado");
   });
 });

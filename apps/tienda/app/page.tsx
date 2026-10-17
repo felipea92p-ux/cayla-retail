@@ -6,6 +6,7 @@ import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { Cabecera } from "@/components/Cabecera";
 import { CarruselDePortada } from "@/components/CarruselDePortada";
 import { CuentaRegresiva } from "@/components/CuentaRegresiva";
+import { FotoDeFondo } from "@/components/FotoDeFondo";
 import { Icono } from "@/components/Icono";
 import { Isotipo } from "@/components/Isotipo";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
@@ -111,6 +112,7 @@ function HeroeDeLaPortada({ hero, primera, anio, origenFotos }: { hero: Hero; pr
       Enlace={Link}
       marca={hero.tipo === "campana" && hero.campana.pct ? `−${pctTexto(hero.campana.pct)}%` : null}
       diseno={deCampana?.diseno ?? null}
+      FotoDeFondo={FotoDeFondo}
       lado={
         // Sin prendas para mostrar (o sin base): la tarjeta del Club, como antes.
         <div className="t-portada-club">

@@ -161,6 +161,7 @@ export const NOMBRES_FONDO: Readonly<Record<Fondo, { nombre: string; nota: strin
   degradado: { nombre: "Degradado", nota: "Como hoy" },
   liso: { nombre: "Liso", nota: "Un solo color" },
   dibujo: { nombre: "Con dibujo", nota: "Un estampado suave" },
+  foto: { nombre: "Con foto", nota: "La que subas" },
 };
 export const NOMBRES_PATRON: Readonly<Record<Patron, string>> = {
   huellitas: "Huellitas",

@@ -1,7 +1,7 @@
 // La portada de la tienda online en una sola pieza (ADR-0436, actividad 3): la tienda la dibuja para el cliente y el ERP la dibuja en
 // la vista previa de Tienda web ▸ Campañas, con la misma estructura, los mismos estilos (`@cayla-retail/portada/heroe.css`) y los
 // mismos colores. Si una de las dos cambia el héroe, cambia en las dos.
-export { HeroeDePortada, type PiezaDeHeroe } from "./HeroeDePortada";
+export { HeroeDePortada, type FotoDeFondo, type PiezaDeHeroe } from "./HeroeDePortada";
 export { CejaDeCampana } from "./CejaDeCampana";
 export { paletasDeLasPrendas, type PrendaConColores } from "./colores-de-prendas";
 export { CuentaDeCampana } from "./CuentaDeCampana";
@@ -28,6 +28,9 @@ export {
   FONDOS,
   FRASE_MAX,
   INTENSIDADES,
+  OSCURO_DE_FABRICA,
+  OSCURO_MAX,
+  OSCURO_MIN,
   PATRONES,
   PRENDAS_MAX,
   SELLOS,
@@ -53,7 +56,7 @@ export {
   type Sello,
   type Tamano,
 } from "./diseno";
-export { disenoParaPintar, fondoDelTexto, revisarDiseno, seLee, type Aviso, type ContextoRevision, type Tono } from "./revision";
+export { disenoParaPintar, fondoDelTexto, revisarDiseno, seLee, veloDeLaFoto, type Aviso, type ContextoRevision, type Tono } from "./revision";
 export {
   PALETAS,
   PALETA_DE_SIEMPRE,

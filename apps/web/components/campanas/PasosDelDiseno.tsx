@@ -203,7 +203,7 @@ export function PasoFondo({ diseno, onCambiar }: { diseno: DisenoDeCampana; onCa
   return (
     <div className="space-y-4">
       <div className="tw-opciones" data-columnas="3">
-        {FONDOS.map((f) => (
+        {FONDOS.filter((f) => f !== "foto").map((f) => (
           <button key={f} type="button" className="tw-opcion" aria-pressed={diseno.fondo === f} onClick={() => onCambiar({ ...diseno, fondo: f })}>
             <MuestraDeFondo fondo={f} colores={colores} patron={diseno.patron} intensidad={diseno.intensidad} />
             <span className="tw-opcion-nombre">

@@ -164,14 +164,14 @@ export const formaDe = (prefijo: string | null | undefined): Forma => (prefijo ?
 /** A dónde lleva una tarjeta: la ficha de la prenda, con la tienda elegida si hay una. */
 export const hrefDePrenda = (p: Pick<Prenda, "id">, sede: string | null = null) => `/catalogo/${p.id}${sede ? `?sede=${encodeURIComponent(sede)}` : ""}`;
 
-/** ¿El optimizador de imágenes de Next puede achicar esta foto? Solo si vive en el almacén PÚBLICO de fotos de prendas del origen
- *  que permite `next.config.ts` (`TIENDA_FOTOS_ORIGEN`). Cualquier otra se muestra tal cual: con un host no permitido, `next/image`
- *  no falla en silencio, tumba la página. */
-export function fotoOptimizable(url: string, origen: string | undefined): boolean {
+/** ¿El optimizador de imágenes de Next puede achicar esta foto? Solo si vive en un almacén PÚBLICO del origen que permite
+ *  `next.config.ts` (`TIENDA_FOTOS_ORIGEN`): el de fotos de prendas o, con `almacen`, el de fotos de campañas. Cualquier otra se muestra
+ *  tal cual: con un host no permitido, `next/image` no falla en silencio, tumba la página. */
+export function fotoOptimizable(url: string, origen: string | undefined, almacen = "retail-productos-fotos"): boolean {
   if (!origen) return false;
   try {
     const foto = new URL(url);
-    return foto.origin === new URL(origen).origin && foto.pathname.startsWith("/storage/v1/object/public/retail-productos-fotos/");
+    return foto.origin === new URL(origen).origin && foto.pathname.startsWith(`/storage/v1/object/public/${almacen}/`);
   } catch {
     return false;
   }

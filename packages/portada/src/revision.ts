@@ -16,8 +16,20 @@ export type ContextoRevision = {
   prendasConFoto: number;
 };
 
-/** El color detrás del texto: el fondo liso, o el degradado donde está la letra (casi el fondo, apenas hacia el segundo tono). */
+/**
+ * Cuánto tapa el velo de la foto (el color de la campaña encima de ella): donde va la letra, el oscurecido más 0,3; del otro lado, el
+ * oscurecido. `heroe.css` lo dibuja con estos mismos números (`--t-velo-cerca`, `--t-velo-lejos`).
+ */
+export function veloDeLaFoto(oscuro: number): { cerca: number; lejos: number } {
+  return { cerca: Math.min(1, oscuro + 0.3), lejos: oscuro };
+}
+
+/**
+ * El color detrás del texto: el fondo liso; el degradado donde está la letra (casi el fondo, apenas hacia el segundo tono); o, con foto,
+ * lo más claro de la foto tapado por el velo del color de la campaña.
+ */
 export function fondoDelTexto(d: DisenoDeCampana, c: Colores): string {
+  if (d.fondo === "foto" && d.fotoTono) return mezclar(d.fotoTono, c.fondo, veloDeLaFoto(d.oscuro).cerca);
   return d.fondo === "liso" ? c.fondo : mezclar(c.fondo, c.fondo2, 0.22);
 }
 
@@ -42,8 +54,12 @@ export function revisarDiseno(d: DisenoDeCampana, ctx: ContextoRevision): { avis
   const avisos: Aviso[] = [];
   const claro = seLee(d, "claro");
   const oscuro = seLee(d, "oscuro");
-  avisos.push(claro ? { tono: "ok", texto: "La letra se lee bien" } : { tono: "mal", texto: "La letra no se lee bien sobre este fondo: elige otro color." });
-  avisos.push(oscuro ? { tono: "ok", texto: "También se lee en modo oscuro" } : { tono: "mal", texto: "En modo oscuro la letra no se lee: elige otro color." });
+  const conFoto = d.fondo === "foto";
+  // Con foto, el arreglo está a mano: oscurecerla. Con color, otro color.
+  const arreglo = conFoto ? "oscurece la foto un poco más." : "elige otro color.";
+  avisos.push(claro ? { tono: "ok", texto: "La letra se lee bien" } : { tono: "mal", texto: `La letra no se lee bien sobre ${conFoto ? "la foto" : "este fondo"}: ${arreglo}` });
+  avisos.push(oscuro ? { tono: "ok", texto: "También se lee en modo oscuro" } : { tono: "mal", texto: `En modo oscuro la letra no se lee: ${arreglo}` });
+  if (conFoto && d.oscuro > 0.75) avisos.push({ tono: "ojo", texto: "Con tanto oscuro la foto casi no se ve. Prueba aclararla un poco." });
   if (d.fondo === "dibujo" && d.intensidad === "fuerte") avisos.push({ tono: "ojo", texto: "El dibujo está fuerte y compite con el nombre. Prueba «Medio»." });
   if (d.frase.length > 42) avisos.push({ tono: "ojo", texto: "Tu frase es larga: en el celular ocupa tres líneas." });
   if (d.acomodo !== "letras") {

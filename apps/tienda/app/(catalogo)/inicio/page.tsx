@@ -5,6 +5,7 @@ import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { AvisoAlEntrar } from "@/components/AvisoAlEntrar";
 import { CarrilConFlechas } from "@/components/CarrilConFlechas";
 import { CuentaRegresiva } from "@/components/CuentaRegresiva";
+import { FotoDeFondo } from "@/components/FotoDeFondo";
 import { FotoTarjeta } from "@/components/FotoTarjeta";
 import { Icono } from "@/components/Icono";
 import { Isotipo } from "@/components/Isotipo";
@@ -366,6 +367,7 @@ function Heroe({
         marca={hero.campana.pct ? `−${pctTexto(hero.campana.pct)}%` : null}
         // Con su diseño publicado en el ERP (ADR-0436), sus colores; sin él, el rojo de siempre.
         diseno={hero.campana.diseno}
+        FotoDeFondo={FotoDeFondo}
       />
     );
   }
