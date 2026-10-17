@@ -23,8 +23,3 @@ export function sugerirLargo(h: { prefijo: string | null; tipico: number | null 
   return { texto: "En cm", origen: "neutro" };
 }
 
-/** El ejemplo de la caja del típico de una categoría: su referencia si tiene; si no, ninguno («Sin típico» dice lo que pasa). */
-export function sugerirTipico(prefijo: string | null): string {
-  const referencia = prefijo ? REFERENCIA_SIN_TIPICO[prefijo] : undefined;
-  return referencia !== undefined ? `Ej. ${referencia}` : "Sin típico";
-}
