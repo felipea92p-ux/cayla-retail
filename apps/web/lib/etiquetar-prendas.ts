@@ -220,7 +220,7 @@ export function vistaPrevia(c: CampanaParaVistaPrevia, prendasAgregadas: number,
 }
 
 /** Lo mismo al QUITAR la etiqueta: con descuento, quitarla sube el precio en caja, y eso también se confirma. Antes se aplicaba
- *  directo: «Quitar todos» en «Para liquidar» devolvía 40 prendas a su precio sin una pregunta. Dice «sin este 30 %», no «a su
+ *  directo: «Quitar todos» devolvía todas las prendas de la etiqueta a su precio sin una pregunta. Dice «sin este 30 %», no «a su
  *  precio normal»: la prenda puede seguir en otra campaña. `null` sin descuento o sin prendas quitadas (las que ya no se venden
  *  no cuentan: no cambian ningún precio). */
 export function vistaPreviaQuitar(c: CampanaParaVistaPrevia, prendasQuitadas: number, hoy: string): VistaPrevia | null {

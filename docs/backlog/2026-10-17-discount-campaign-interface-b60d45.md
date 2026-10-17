@@ -12,7 +12,7 @@ cuando entre la decisión estructural (actividad 7: guardar campaña y prendas e
 - [x] **3. Las tarjetas**: cuentan las prendas a la venta con la regla de su hoja (Nuevo: 164, no 186), dicen aparte las marcadas que ya no se
   venden, «Vigente, sin prendas» en ámbar, y «Prendas» / «Campaña» con los botones del sistema.
 - [x] **3b. Quitar también se revisa** (Felipe lo aprobó el 2026-10-17): con descuento, quitar prendas pasa por «Revisar y aplicar»
-  («deja de rebajar 3 prendas: desde hoy se cobran sin este 40 %»), y la hoja «Prendas» dice las marcas de prendas que ya no se venden
+  («deja de rebajar N prendas: desde hoy se cobran sin este N %»), y la hoja «Prendas» dice las marcas de prendas que ya no se venden
   con «Quitárselas» / «Deshacer». Al aplicar, la tarjeta sigue contando las que no se quitaron.
 
 ### Sigue pendiente
