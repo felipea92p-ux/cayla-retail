@@ -9,9 +9,9 @@
       "button «{children}»",
       "Pestanas «{[ { clave: \"windows\", etiqueta: \"Windows\"}»",
       "button «{p.titulo}»",
-      "button «← Anterior»",
+      "Volver «→() => ir(indice - 1)»",
       "button «Listo, ya salió bien»",
-      "button «Siguiente →»"
+      "button «Siguiente»"
     ],
     "components/GuiaImpresionVisuales.tsx": [
       "button «{`Clic ${n}»",

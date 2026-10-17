@@ -55,6 +55,7 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 | «Ver más / Ver menos» (`accion.siguiente`) | `<BotonVerMas>` + `<FilasDeMas>` (`components/ui/VerMas.tsx`): la franja al pie de la lista con la flecha que gira y las filas que bajan en su lugar; en una lista suelta, el enlace (ronda 15) | 2026-10-15 (tocando) | 0 | [accion.siguiente.md](accion.siguiente.md) |
 | «Deshacer» (`accion.deshacer`) | `<BotonDeshacer>` (`components/ui/BotonDeshacer.tsx`): el enlace con la flecha curva delante (ronda 15) | 2026-10-15 (tocando) | 0 | [accion.deshacer.md](accion.deshacer.md) |
 | «Buscar» al apretar (`accion.buscar`) | `<BotonBuscar>` (`components/ui/BotonBuscar.tsx`): el secundario con la lupa; primario solo si buscar es el paso (ronda 15) | 2026-10-15 (tocando) | 0 | [accion.buscar.md](accion.buscar.md) |
+| Anterior y siguiente (`accion.anterior`) | `<Volver onClick>` + «Siguiente» primario con su flecha, como todo paso a paso (ronda 17) | 2026-10-17 (mirando) | 0 | [accion.anterior.md](accion.anterior.md) |
 
 ## Propuestas esperando decisión
 
@@ -115,7 +116,7 @@ en la página de elegir, nunca por una descripción.
 
 Las otras cinco no salían en el censo del 2026-10-06: `filtro` quedó decidida en la ronda 9; `contador` (el globito con número),
 `accion.siguiente` («Ver más»), `accion.deshacer` y `accion.buscar` se decidieron y migraron en la ronda 15 (2026-10-15); `accion.anterior`
-no tiene nada que decidir: lo resuelven la paginación (ronda 8) y la flecha de los pasos a paso (`<Volver>`).
+se decidió en la ronda 17 (2026-10-17): la guía de impresión se había escapado con sus flechas escritas.
 
 ## Censos
 

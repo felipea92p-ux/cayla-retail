@@ -672,8 +672,7 @@ export const DECISIONES = {
     "deuda": [],
     "excepciones": [
       { "archivo": "components/RecordatorioCierreCaja.tsx", "motivo": "ADR-0359: el aviso de cierre de caja de la cabecera tiene su diseño y su movimiento por decisión (su «→» corre con él)" },
-      { "archivo": "components/SelectorMesFacturacion.tsx", "motivo": "«SEPTIEMBRE · Octubre 2026 · NOVIEMBRE →» pasa de mes: es la familia «elegir el mes», que se decide en la ronda 17" },
-      { "archivo": "components/GuiaImpresion.tsx", "motivo": "«← Anterior · Siguiente →» de la guía de impresión: es la familia «anterior y siguiente de un paso a paso», que se decide en la ronda 17" }
+      { "archivo": "components/SelectorMesFacturacion.tsx", "motivo": "«SEPTIEMBRE · Octubre 2026 · NOVIEMBRE →» pasa de mes: es la familia «elegir el mes», que se decide en la ronda 17" }
     ]
   },
   "tabla": {
@@ -1285,6 +1284,20 @@ export const DECISIONES = {
     "firmas": [
       // Un botón «Deshacer» escrito a mano.
       ">\\s*Deshacer\\s*</"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.anterior": {
+    "fecha": "2026-10-17",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.anterior.md",
+    "elegida": "P1 · como todo paso a paso: la flecha redonda de volver (<Volver onClick a>, que no se dibuja en el primer paso) y «Siguiente» negro con su flecha que avanza; elegida mirando el 2026-10-17 (ronda 17)",
+    "pieza": "components/ui/Volver.tsx",
+    "firmas": [
+      // «← Anterior», «‹ Anterior» o «Siguiente →» escritos a mano: volver a un paso es la flecha redonda y «Siguiente» lleva su ícono.
+      // Una paginación con números es <Paginas>, que dibuja sus flechas. (Las comillas «» de un texto no son flechas: no cuentan.)
+      "[←‹]\\s*Anterior\\b|\\bSiguiente\\s*[→›]"
     ],
     "deuda": [],
     "excepciones": []
