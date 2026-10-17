@@ -44,6 +44,7 @@ import {
   argsCrearOrdenInsumo,
   argsEditarOrdenInsumo,
   avisoDeUnidadCambiada,
+  borradorNuevoDeOrdenInsumo,
   camposDeLaOrdenInsumo,
   cantidadesDelBorrador,
   dudaDeLineaInsumo,
@@ -56,6 +57,7 @@ import {
   type OrdenInsumoBorrador,
 } from "@/lib/orden-insumo-alta";
 import { crearOrdenInsumo, editarOrdenInsumo } from "@/lib/ordenes-insumo-acciones";
+import type { PrecargaDePedido } from "@/lib/pedir-insumo-reglas";
 
 // Nueva orden de insumos del Taller (ADR-0362, fase 7 · actividad 2): la gemela de «Nueva orden de compra» (fase 1, aprobada por Felipe),
 // con la línea del Taller. Arriba, a quién se le pide, a qué taller llega, cuándo y una nota; abajo, lo que se pide, una línea por
@@ -70,9 +72,13 @@ import { crearOrdenInsumo, editarOrdenInsumo } from "@/lib/ordenes-insumo-accion
 // mismo instante.
 //
 // La guía de foco (CLAUDE.md «Guía de foco»): cada bloque se enciende cuando es lo que sigue y «Falta: …» sobre el botón lleva a cada cosa.
-// Sale de `camposDeLaOrdenInsumo`, que son las reglas de `fn_orden_insumo_validar` (la entrega estimada es sugerida: nunca bloquea).
+// Sale de `camposDeLaOrdenInsumo`, que son las reglas de `fn_orden_insumo_validar` (la entrega estimada es opcional: ni bloquea ni se lista como «falta»).
 // Lo que la base rechace igual (alguien desactivó al proveedor un momento antes) se dice donde corresponde: bajo su campo, bajo su línea o
 // en el aviso de la hoja, sobre los botones (ADR-0358).
+//
+// «Pedir N m» (Resumen, página de una orden, «Qué hacer hoy») llega con el insumo y la cantidad que falta: la primera línea abre con ellos
+// (`precarga`, ya validada por la página; solo al abrir, lo que la persona escriba después no se pisa). Al abrir, el cursor queda en lo primero
+// que falta —el proveedor— para que se pueda escribir de una vez (la prueba ciega escribía sin campo enfocado).
 //
 // EDITAR: la misma pantalla con la orden como está (`editar`): el título, el botón («Guardar cambios») y lo que se guarda
 // (`editar_orden_insumo`, con la versión que se vio al abrir). Lo que ya venía completo no se llena de ✓. Si una línea trae un insumo cuya
@@ -104,17 +110,17 @@ type Props = {
   hoy: string;
   /** El taller con el que arranca «Llega a»: el único, o el taller donde se trabaja; «» si hay que elegir. */
   destinoInicial: string;
+  /** Viene de un «Pedir N m»: el insumo y la cantidad de la primera línea. Solo la toma «Nueva» (al editar, la orden manda). */
+  precarga?: PrecargaDePedido | null;
   editar?: EdicionOrdenInsumo;
 };
 
 /** Un rechazo de la base, dicho en su lugar (ver `lugarDelError`). */
 type ErrorEnPantalla = { lugar: LugarDelError; titulo?: string; texto: string; tono: "error" | "atencion"; accion?: { texto: string; onClick: () => void } };
 
-export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, editar }: Props) {
+export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, precarga, editar }: Props) {
   const router = useRouter();
-  const [orden, setOrden] = useState<OrdenInsumoBorrador>(
-    () => editar?.inicial ?? { proveedorId: "", destinoId: destinoInicial, entrega: "", nota: "", lineas: [lineaInsumoVacia("l1")] },
-  );
+  const [orden, setOrden] = useState<OrdenInsumoBorrador>(() => editar?.inicial ?? borradorNuevoDeOrdenInsumo(destinoInicial, precarga ?? null));
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<ErrorEnPantalla | null>(null);
   // Con varios talleres, «Llega a» viene puesto con el taller donde se trabaja: hasta que la persona lo elige, la guía lo trata como
@@ -144,6 +150,9 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, editar }: P
   );
   const campos = camposDeLaOrdenInsumo(orden, ctx, { pide: !esPersona, listo: responsable.listo, motivo: responsable.motivo });
   const guia = useGuiaCampos(campos, { enModal: false });
+  // Al abrir, el cursor queda en lo primero que falta cuando eso es el proveedor (su lista se abre para escribir y buscar). Con el dedo no: el
+  // teclado taparía la hoja. Se decide una sola vez, al abrir; el mismo campo después no vuelve a pedir el foco.
+  const [enfocarProveedor] = useState(() => guia.ahora === "proveedor" && !(typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches));
 
   // Al editar, lo que llegó completo no se marca con ✓ (regla 4 de la guía); si se deja pendiente al editar, vuelve a llevar su marca.
   const [completosAlAbrir] = useState(() => new Set(editar ? campos.filter((c) => c.hecho).map((c) => c.id) : []));
@@ -357,6 +366,7 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, editar }: P
                   id="oi-proveedor"
                   caja
                   etiquetaAccesible="Proveedor"
+                  autoFocus={enfocarProveedor}
                   marcador="Nombre o RUC…"
                   valor={orden.proveedorId}
                   onValor={(proveedorId) => cambiar((o) => ({ ...o, proveedorId }))}
@@ -534,7 +544,7 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, editar }: P
           <div className="pie-acciones">
             <BotonEnlace href={RUTA_ORDENES_INSUMO}>Cancelar</BotonEnlace>
             <Boton type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Guardando…" : editar ? "Guardar cambios" : "Guardar orden"}
+              {editar ? "Guardar cambios" : "Guardar orden"}
             </Boton>
           </div>
         </section>

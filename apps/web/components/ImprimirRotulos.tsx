@@ -164,8 +164,8 @@ export function ImprimirRotulos({
     // La guía interactiva enciende los dos botones juntos (ADR-0389): el mismo flex que pone la cabecera, para que se vean igual.
     <div data-guia="rotulos.imprimir" className="flex flex-wrap items-center gap-x-3 gap-y-2.5">
       <BotonGuiaImpresion />
-      <BotonImprimir peso="primario" disabled={total === 0 || enviando || recorriendo !== null} onClick={mandar}>
-        {total === 0 ? "Nada que imprimir" : recorriendo || enviando ? "Imprimiendo…" : `Imprimir ${plural(total, "rótulo", "rótulos")}`}
+      <BotonImprimir peso="primario" cargando={Boolean(recorriendo || enviando)} disabled={total === 0} onClick={mandar}>
+        {total === 0 ? "Nada que imprimir" : `Imprimir ${plural(total, "rótulo", "rótulos")}`}
       </BotonImprimir>
     </div>
   );

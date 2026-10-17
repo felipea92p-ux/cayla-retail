@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { Copy, X } from "lucide-react";
-import { avisar } from "@/components/ui/Avisos";
+import { useEffect, type ReactNode } from "react";
+import { X } from "lucide-react";
 import { BarraApilada } from "@/components/ui/BarraApilada";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
@@ -60,17 +60,6 @@ export function Tilde() {
       <path pathLength={1} d="M20 6 9 17l-5-5" className="trazo-linea anim-tilde" />
     </svg>
   );
-}
-
-// El acuse de que se copió es el propio botón (✓ Copiado, `DatoCopiable`); solo un fallo merece un aviso.
-async function copiarAlPortapapeles(valor: string, que: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(valor);
-    return true;
-  } catch {
-    avisar.error(`No se pudo copiar ${que.toLowerCase()}`, { detalle: "Selecciónalo y cópialo a mano." });
-    return false;
-  }
 }
 
 /**
@@ -147,8 +136,8 @@ export function DatosDelMedio({ medio, datos, saldoFavor = 0 }: { medio: string;
       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
         {datos?.banco && <DatoSimple etiqueta="Banco" valor={datos.banco} />}
         {datos?.titular && <DatoSimple etiqueta="Titular" valor={datos.titular} nota="Compáralo con el nombre que muestra el banco antes de confirmar." />}
-        {cuenta && <DatoCopiable etiqueta="Cuenta" valor={cuenta} onCopiar={() => copiarAlPortapapeles(cuenta, "Cuenta")} />}
-        {cci && <DatoCopiable etiqueta="CCI" valor={cciConGuiones(cci)} onCopiar={() => copiarAlPortapapeles(cci, "CCI")} />}
+        {cuenta && <DatoCopiable etiqueta="Cuenta" que="la cuenta" valor={cuenta} copiar={cuenta} />}
+        {cci && <DatoCopiable etiqueta="CCI" que="el CCI" valor={cciConGuiones(cci)} copiar={cci} />}
       </div>
     ) : (
       falta(medio === "transferencia" ? "la cuenta ni el CCI" : "el número de cuenta")
@@ -159,7 +148,7 @@ export function DatosDelMedio({ medio, datos, saldoFavor = 0 }: { medio: string;
     const otra = medio === "yape" ? "plin" : "yape";
     cuerpo = tiene ? (
       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-        <DatoCopiable etiqueta={`Celular ${ETIQUETA_METODO_PAGO[medio]}`} valor={celularConEspacios(celular!)} onCopiar={() => copiarAlPortapapeles(celular!, "Celular")} />
+        <DatoCopiable etiqueta={`Celular ${ETIQUETA_METODO_PAGO[medio]}`} que="el celular" valor={celularConEspacios(celular!)} copiar={celular!} />
         {datos?.titular && <DatoSimple etiqueta="Titular" valor={datos.titular} nota={`Compáralo con el nombre que muestra ${ETIQUETA_METODO_PAGO[medio]} antes de confirmar.`} />}
       </div>
     ) : celular && datos?.billeteras?.includes(otra) ? (
@@ -185,33 +174,14 @@ export function DatosDelMedio({ medio, datos, saldoFavor = 0 }: { medio: string;
   );
 }
 
-function DatoCopiable({ etiqueta, valor, onCopiar }: { etiqueta: string; valor: string; onCopiar: () => Promise<boolean> }) {
-  // «✓ Copiado» durante un momento y vuelve el ícono: el gesto se confirma donde se hizo, sin un aviso aparte.
-  const [copiado, setCopiado] = useState(false);
-  useEffect(() => {
-    if (!copiado) return;
-    const t = setTimeout(() => setCopiado(false), 1700);
-    return () => clearTimeout(t);
-  }, [copiado]);
+// Copiar es la pieza del sistema (<BotonCopiar>, ronda 13): el ícono junto al dato, que se vuelve ✓ y dice «Copiado» donde se tocó.
+function DatoCopiable({ etiqueta, que, valor, copiar }: { etiqueta: string; que: string; valor: string; copiar: string }) {
   return (
     <div className="min-w-0">
       <p className="label-cayla text-[10px] text-tinta/55">{etiqueta}</p>
       <p className="mt-1 flex items-center gap-2 text-sm tabular-nums text-tinta">
         <span className="truncate">{valor}</span>
-        <button
-          type="button"
-          onClick={async () => setCopiado(await onCopiar())}
-          aria-label={`Copiar ${etiqueta.toLowerCase()}`}
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-md px-1 py-0.5 text-[11px] transition-colors duration-200 ${copiado ? "bg-verde/10 text-verde-profundo" : "text-tinta/55 hover:text-rojo"}`}
-        >
-          {copiado ? (
-            <>
-              <Tilde /> Copiado
-            </>
-          ) : (
-            <Copy aria-hidden className="h-3.5 w-3.5" />
-          )}
-        </button>
+        <BotonCopiar forma="icono" texto={copiar} que={que} className="-my-1.5" />
       </p>
     </div>
   );

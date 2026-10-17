@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { Globito } from "@/components/ui/Globito";
 import Link from "next/link";
 import { ArrowUpDown, Bookmark, FileText, History, LayoutGrid, Undo2, Wallet, type LucideIcon } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -36,7 +37,7 @@ export function MasDeLaTienda({ accesos, arriba, pie }: { accesos: readonly Acce
       </button>
 
       {abierto && (
-        <Modal titulo="Más de la tienda" subtitulo="Lo que trabaja de la mano con la venta." variante="hoja" ancho="max-w-md" onClose={() => setAbierto(false)}>
+        <Modal conCerrar titulo="Más de la tienda" subtitulo="Lo que trabaja de la mano con la venta." variante="hoja" onClose={() => setAbierto(false)}>
           {(cerrar) => (
             <div data-guia="vender.mas-panel">
               {arriba}
@@ -85,7 +86,7 @@ export function BotonApartados({ prendas, onApartar, deshabilitado }: { prendas:
       >
         <Bookmark className="h-4 w-4" aria-hidden />
         Apartar
-        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-crema px-1 text-[10.5px] font-semibold text-tinta tabular-nums">{prendas}</span>
+        <Globito n={prendas} sobreOscuro />
       </button>
     );
   }

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ImagePlus, RotateCcw, Wand2, Shirt } from "lucide-react";
+import { ImagePlus, RotateCcw, Wand2, Shirt, ChevronRight } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
@@ -106,7 +106,7 @@ export function DetalleMuestraModal({
         .order("referencia");
       if (!vigente) return;
       if (error) {
-        setCarga({ estado: "error", mensaje: traducirError(error, "cargar las prendas") });
+        setCarga({ estado: "error", mensaje: traducirError(error, "cargar las prendas", { lectura: true }) });
         return;
       }
       const prendas = (data ?? []).map((p) => ({
@@ -194,7 +194,7 @@ export function DetalleMuestraModal({
     <Modal
       titulo={muestra.nombre}
       subtitulo={cantidad === null ? (tipo === "tejido" ? "Tejido" : "Patrón") : `${tipo === "tejido" ? "Tejido" : "Patrón"} · ${textoPrendas(cantidad)}`}
-      ancho="max-w-lg"
+      tamano="mediana"
       bloqueado={guardando}
       onClose={onClose}
     >
@@ -230,7 +230,7 @@ export function DetalleMuestraModal({
 
           {puedeEditar && !pendiente && generador === null && (
             <div className="flex flex-wrap gap-2">
-              <Boton peso="fantasma" className="px-3 py-2 text-[11px]" cargando={preparando} onClick={() => selector.current?.click()}>
+              <Boton textoCargando="Subiendo…" peso="fantasma" className="px-3 py-2 text-[11px]" cargando={preparando} onClick={() => selector.current?.click()}>
                 <span className="inline-flex items-center gap-1.5">
                   <ImagePlus className="h-3.5 w-3.5" aria-hidden />
                   Subir foto
@@ -364,7 +364,10 @@ export function PieTarjetaMuestra({ prendas }: { prendas: number }) {
   return (
     <span className="flex flex-wrap items-center justify-between gap-x-2 text-xs text-tinta/60">
       <span className="whitespace-nowrap">{textoPrendas(prendas)}</span>
-      <span className="whitespace-nowrap transition-colors group-hover/muestra:text-rojo-profundo">Ver ›</span>
+      <span className="inline-flex items-center gap-0.5 whitespace-nowrap transition-colors group-hover/muestra:text-rojo-profundo">
+        Ver
+        <ChevronRight aria-hidden className="h-3 w-3" />
+      </span>
     </span>
   );
 }

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { puedeVerProduccion } from "@/lib/produccion-menu";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
+import { ProduccionSoloLider } from "@/components/ProduccionSoloLider";
 import { getTaller, getOrdenesProduccion } from "@/lib/produccion";
 import { getGastosDelTaller, getPlanillaDelTaller } from "@/lib/eficiencia";
 import { eficienciaDePeriodo, ventanasDePeriodos } from "@/lib/eficiencia-reglas";
@@ -16,7 +17,7 @@ export default async function EficienciaPage() {
     if (!persona.puedeCambiarUbicacion) redirect("/");
     return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} />;
   }
-  if (persona.rol !== "lider") redirect("/produccion/ordenes");
+  if (persona.rol !== "lider") return <ProduccionSoloLider titulo="Eficiencia" />;
 
   const taller = await getTaller();
   if (!taller) redirect("/produccion/ordenes");
@@ -39,7 +40,7 @@ export default async function EficienciaPage() {
 
   return (
     <div className="space-y-6">
-      <EficienciaTallerPanel periodos={periodos} estadoPlanilla={planilla.estado} hayGastos={gastos.length > 0} />
+      <EficienciaTallerPanel sede={persona.ubicacionEtiqueta} periodos={periodos} estadoPlanilla={planilla.estado} hayGastos={gastos.length > 0} />
     </div>
   );
 }

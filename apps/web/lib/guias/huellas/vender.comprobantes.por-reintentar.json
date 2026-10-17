@@ -9,15 +9,15 @@
       "BotonCompacto «por-enviar.reintentar»"
     ],
     "components/ConfirmarTransmision.tsx": [
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "button «{responsable.motivo ?? undefined}»"
     ],
     "components/FacturacionPestanas.tsx": [
-      "Pestanas «);»"
+      "Pestanas «(sin nombre)»"
     ],
     "components/FacturacionShell.tsx": [
-      "Link «comprobantes.aviso-sunat»"
+      "Link «Ver Por enviar»"
     ],
     "components/PestanasComprobantesMovil.tsx": [
       "Link «{p.etiqueta}»"

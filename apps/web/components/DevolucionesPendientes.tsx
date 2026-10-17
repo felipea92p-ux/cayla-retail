@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Check, Clock, Loader2 } from "lucide-react";
+import { AlertTriangle, Check, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -24,6 +24,8 @@ import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 /**
  * «Por aprobar» (2026-09-18): las devoluciones que una colaboradora registró y un líder
@@ -217,7 +219,7 @@ function PanelResolver({
   const cuentas = useCuentasParaElegir("cobro", ubicacion.ubicacionId, modo === "aprobar");
   const [cuentaElegida, setCuentaElegida] = useState<string | null>(null);
 
-  const montoNumero = monto.trim() === "" ? null : Number(monto);
+  const montoNumero = monto.trim() === "" ? null : numeroDeMonto(monto);
   const hayReembolso = montoNumero !== null && montoNumero > 0;
   const conCuenta = hayReembolso && metodo !== "efectivo";
   const hayCuentas = cuentas.listo && hayCuentasPara(cuentas.cuentas, "cobro", metodo);
@@ -316,15 +318,12 @@ function PanelResolver({
               <div className="mt-1 flex items-center gap-2">
                 <input
                   id={`monto-${d.id}`}
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  inputMode="decimal"
+                  {...atributosMontoTexto(monto)}
                   autoFocus
                   value={monto}
                   onChange={(e) => setMonto(e.target.value)}
                   placeholder="S/ 0.00"
-                  className="caja-campo-input w-36 text-sm tabular-nums"
+                  className={`caja-campo-input w-36 text-sm tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
                 />
                 <button
                   type="button"
@@ -391,9 +390,9 @@ function PanelResolver({
             <BotonSecundario onClick={cancelar} disabled={cargando}>
               Cancelar
             </BotonSecundario>
-            <BotonRojo onClick={aprobar} disabled={cargando || !!revision.bloqueo || !responsable.listo}>
-              {cargando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
-              {cargando ? "Aprobando…" : "Aprobar devolución"}
+            <BotonRojo onClick={aprobar} cargando={cargando} textoCargando="Aprobando…" disabled={!!revision.bloqueo || !responsable.listo}>
+              <Check className="h-4 w-4" aria-hidden />
+              Aprobar devolución
             </BotonRojo>
           </div>
         </div>
@@ -425,9 +424,8 @@ function PanelResolver({
             <BotonSecundario onClick={cancelar} disabled={cargando}>
               Cancelar
             </BotonSecundario>
-            <BotonPrincipal onClick={rechazar} disabled={cargando || !responsable.listo}>
-              {cargando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-              {cargando ? "Rechazando…" : "Rechazar devolución"}
+            <BotonPrincipal onClick={rechazar} cargando={cargando} textoCargando="Rechazando…" disabled={!responsable.listo}>
+              Rechazar devolución
             </BotonPrincipal>
           </div>
         </div>

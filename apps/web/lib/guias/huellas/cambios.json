@@ -2,39 +2,40 @@
   "guia": "cambios",
   "ruta": "/cambios",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 38,
+  "total": 39,
   "controles": {
     "components/BuscadorVentas.tsx": [
-      "button «Buscar»",
+      "BotonBuscar «(sin nombre)»",
       "button «posventa.escanear»",
       "button «posventa.sin-comprobante»",
-      "Desplegable «)»"
+      "Desplegable «{todas ? \"todas\" : \"aqui\"}»"
     ],
     "components/CambioReemplazo.tsx": [
       "button «{m.etiqueta}»",
-      "ComboBuscable «Escanear»",
+      "ComboBuscable «{`${idBase}»",
       "button «Escanear»",
       "Link «¿Nada de su agrado? Pasar a devolución»",
       "button «{hay ? `Talla ${t}»",
       "button «{hay ? `Color ${nombre}»",
       "button «{o.titulo}»",
-      "input «)»",
-      "Desplegable «)»"
+      "input «{`${idBase}»",
+      "Desplegable «{`${idBase}»"
     ],
     "components/CambioSalidas.tsx": [
       "Link «{cuerpo}»"
     ],
     "components/CambioTicket.tsx": [
       "a «(sin nombre)»",
+      "BotonImprimir «Imprimir ticket»",
       "Link «Se lleva algo más: seguir vendiendo»",
       "button «Nuevo cambio»"
     ],
     "components/CambiosFlujo.tsx": [
-      "input «{l.referencia}»",
-      "Volver «Continuar»",
-      "Volver «Revisar el cambio»",
-      "ComboResponsable «{envio.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
-      "Volver «Cancelar»"
+      "input «prenda-a-cambiar»",
+      "Volver «→onCerrar»",
+      "Volver «→retroceder»",
+      "ComboResponsable «{responsable}»",
+      "Volver «→retroceder» #2"
     ],
     "components/CambiosPanel.tsx": [
       "button «Escanear prenda o boleta»"
@@ -53,16 +54,16 @@
       "button «Mejor buscar escribiendo»"
     ],
     "components/FlujoGuiado.tsx": [
-      "Volver «Paso»",
+      "Volver «→onVolver»",
       "button «{hecho ? `Volver a «${nombre}»",
       "button «{guia}»",
       "button «{children}»",
       "button «{children}» #2"
     ],
     "components/punto-de-venta/AnotarNoHabia.tsx": [
-      "button «→anotar»",
+      "Boton «→anotar»",
       "button «{t}»",
-      "ComboResponsable «(sin nombre)»"
+      "ComboResponsable «{responsable}»"
     ]
   }
 }

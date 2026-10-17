@@ -20,7 +20,7 @@ import {
   camposReposicion,
   cantidadAnotada,
   detalleDeReposicion,
-  dondeFalto,
+  porQueDebeEnFrase,
   leerCantidadReposicion,
   limpiarCantidadReposicion,
   mensajeDeNosDebe,
@@ -132,7 +132,7 @@ function HojaReposicion({
   }
 
   return (
-    <Modal titulo="Llegó la reposición" subtitulo={`${proveedorNombre} · ${nombreDeDeuda(deuda)}`} bloqueado={guardando} onClose={onCerrar} alCerrarEnfocar={volverA} ancho="max-w-md">
+    <Modal titulo="Llegó la reposición" subtitulo={`${proveedorNombre} · ${nombreDeDeuda(deuda)}`} bloqueado={guardando} onClose={onCerrar} alCerrarEnfocar={volverA}>
       {(cerrar) => (
         <form
           // La demo (ADR-0389) abre esta hoja para mostrarla y la cierra sin anotar nada.
@@ -145,7 +145,7 @@ function HojaReposicion({
           className="space-y-4"
         >
           <p className="text-sm text-tinta/80">
-            Te debe <b className="font-semibold text-tinta">{queDebe(deuda)}</b> ({soles(deuda.montoPendiente)}): faltaron en {dondeFalto(deuda, hoy)}.
+            Te debe <b className="font-semibold text-tinta">{queDebe(deuda)}</b> ({soles(deuda.montoPendiente)}): {porQueDebeEnFrase(deuda, hoy)}.
           </p>
           <p className="nota-cayla text-[13px]">
             Esto solo anota que el proveedor cumplió: no suma prendas al stock. Si llegaron en un envío que todavía no recibiste, márcalas al
@@ -222,8 +222,8 @@ function HojaReposicion({
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Anotando…" : textoBotonReposicion(n)}
+            <Boton textoCargando="Anotando…" type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              {textoBotonReposicion(n)}
             </Boton>
           </div>
         </form>

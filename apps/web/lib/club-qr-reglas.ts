@@ -1,28 +1,28 @@
-// El QR del Club CAYLA desde la tanda 1g (ADR-0288 act. g, G-1): UNO solo por tienda, el del cartel del mostrador, que abre la
-// página de registro de esa tienda (`/club/<uuid>`, `app/club/[tienda]/page.tsx`). Reemplaza al QR personal de la caja (camino B)
-// y al del WhatsApp de la tienda (camino A). El ticket impreso ya no lleva QR del club (Felipe 2026-10-01, ADR-0288 act. j).
+// El QR del Club CAYLA desde la tanda 1g (ADR-0288 act. g, G-1): UNO solo por tienda, el del cartel del mostrador. Reemplaza al QR
+// personal de la caja (camino B) y al del WhatsApp de la tienda (camino A). El ticket impreso ya no lleva QR del club (Felipe
+// 2026-10-01, ADR-0288 act. j).
 //
-// Lógica pura: la usa el cartel (`components/clientas/CartelClub.tsx`). Un QR que lleva a la página no depende del WhatsApp de
-// la tienda: una tienda sin número igual tiene cartel; lo que no tiene es el saludo final de la página.
+// Desde el 2026-10-16 el Club empieza al crear la cuenta en la tienda online (Felipe: «al escanear el cartel lleva al link
+// tienda.cayla.pe»; 20261016154000): el QR abre la tienda, la misma para todas las tiendas. Los carteles impresos antes llevan a
+// `/club/<uuid>` del ERP, que ahora redirige ahí (`app/club/[tienda]/page.tsx`), así no hay que reimprimirlos.
+//
+// Lógica pura: la usan el cartel (`components/clientas/CartelClub.tsx`) y esa página vieja del cartel. El WhatsApp de cada tienda
+// sigue en la vista previa del cartel, para que el líder vea cuál le falta cargar.
 
-import { celularValido, enlacePaginaClub } from "./club-reglas";
-import { esUuid } from "./club-registro-reglas";
+import { celularValido } from "./club-reglas";
 
-/** El origen tiene que ser una dirección web completa: un QR con una ruta suelta no abre nada en el celular de ella. */
-const origenValido = (origen: string) => /^https?:\/\/[^/\s]+/.test(origen);
+/** La tienda online, donde se crea la cuenta y se entra al Club: la abren el QR del cartel y la página vieja del cartel. */
+export const DIRECCION_TIENDA_ONLINE = "https://tienda.cayla.pe";
 
 /* ------------------------------------------------------------------ El cartel del mostrador */
 
-/** Un cartel por tienda activa. `numero`: su WhatsApp (9 dígitos) para el pie, o null si no lo tiene cargado. */
+/** Un cartel por tienda activa. `numero`: su WhatsApp (9 dígitos) para la vista previa, o null si no lo tiene cargado. */
 export type CartelDeTienda = { id: string; tienda: string; numero: string | null; enlace: string };
 
-/** Los carteles de las tiendas activas: cada QR abre el registro de SU tienda. Sin un origen completo, ninguno. */
-export function cartelesDelClub(origen: string, tiendas: readonly { id: string; nombre: string; whatsappNumero: string | null }[]): CartelDeTienda[] {
-  if (!origenValido(origen)) return [];
-  return tiendas
-    .filter((t) => esUuid(t.id))
-    .map((t) => {
-      const numero = (t.whatsappNumero ?? "").replace(/\s/g, "");
-      return { id: t.id, tienda: t.nombre, numero: celularValido(numero) ? numero : null, enlace: enlacePaginaClub(origen, t.id) };
-    });
+/** Los carteles de las tiendas activas: cada QR abre la tienda online. */
+export function cartelesDelClub(tiendas: readonly { id: string; nombre: string; whatsappNumero: string | null }[]): CartelDeTienda[] {
+  return tiendas.map((t) => {
+    const numero = (t.whatsappNumero ?? "").replace(/\s/g, "");
+    return { id: t.id, tienda: t.nombre, numero: celularValido(numero) ? numero : null, enlace: DIRECCION_TIENDA_ONLINE };
+  });
 }

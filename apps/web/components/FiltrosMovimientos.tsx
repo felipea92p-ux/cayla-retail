@@ -96,7 +96,7 @@ function Pastilla({
     >
       {children}
       {cuenta !== undefined && <span className="pildora-cayla__n">{cuenta.toLocaleString("es-PE")}</span>}
-      {activa && quitable && <X aria-label="quitar" strokeWidth={1.75} className="-mr-1 h-3.5 w-3.5 opacity-70" />}
+      {activa && quitable && <X aria-label="quitar" className="-mr-1 h-3.5 w-3.5 opacity-70" />}
     </button>
   );
 }
@@ -322,7 +322,7 @@ export function FiltrosMovimientos({
           aria-label="Escanear una etiqueta"
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-sand bg-papel text-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo sm:hidden"
         >
-          <Camera aria-hidden strokeWidth={1.5} className="h-[18px] w-[18px]" />
+          <Camera aria-hidden className="h-4 w-4" />
         </button>
         {/* El botón de los filtros del sistema (ADR-0358, ronda 10): una píldora más, con cuántos hay puestos en su globito. */}
         <span className="flex shrink-0 sm:hidden">

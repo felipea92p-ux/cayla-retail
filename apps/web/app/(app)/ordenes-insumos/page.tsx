@@ -162,6 +162,12 @@ export default async function OrdenesInsumoPage({ searchParams }: { searchParams
                             <span className="@min-[40rem]:hidden">
                               <Chip tono={estado.tono}>{estado.texto}</Chip>
                             </span>
+                            {/* Lo que no llegó (fase 7 parte 2, actividad 4): el proveedor nos debe. */}
+                            {f.nosDebe && (
+                              <span className="@min-[40rem]:hidden">
+                                <Chip tono="ambar">Nos debe</Chip>
+                              </span>
+                            )}
                           </span>
                           {esRecien ? (
                             <span className="block text-xs font-medium text-verde">Recién guardada</span>
@@ -196,9 +202,15 @@ export default async function OrdenesInsumoPage({ searchParams }: { searchParams
                         <span className={`${CIFRA} cmp-total font-medium`}>
                           <span className={anulada ? "text-tinta/45 line-through" : "text-tinta"}>{soles(f.total)}</span>
                           <span className={`${SEGUNDA_LINEA} font-normal`}>{lineas}</span>
+                          {f.nosDebe && <span data-guia="oi-lista.nos-debe" className="block text-xs font-normal text-ambar">nos debe {soles(f.nosDebe.monto)}</span>}
                         </span>
-                        <span className={celda("izq", CON_COLUMNAS)}>
+                        <span className={celda("izq", `${CON_COLUMNAS} space-y-1`)}>
                           <Chip tono={estado.tono}>{estado.texto}</Chip>
+                          {f.nosDebe && (
+                            <span className="block">
+                              <Chip tono="ambar">Nos debe</Chip>
+                            </span>
+                          )}
                         </span>
                         <span aria-hidden className={`cmp-flecha-fila text-right text-base leading-none ${CON_COLUMNAS}`}>
                           ›

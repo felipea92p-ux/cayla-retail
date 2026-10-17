@@ -2,21 +2,22 @@
   "guia": "productos.atributos",
   "ruta": "/productos/atributos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 159,
+  "total": 162,
   "controles": {
     "components/AtributosHub.tsx": [
-      "Pestanas «{AYUDA[tipo]}»"
+      "Pestanas «(sin nombre)»"
     ],
     "components/ColoresLista.tsx": [
       "BotonFiltro «Todos»",
       "BotonFiltro «{g.texto}»",
+      "LapizEditar «{c.nombre}»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
       "CampoTexto «{guia.etiqueta(\"codigo\", \"Código (3 letras)\")}»",
       "CampoSelect «{guia.etiqueta(\"familia\", \"Familia\")}»",
       "CampoTexto «Notas»",
       "CampoTexto «{guia.etiqueta(\"pantone\", \"Pantone (TCX)\")}»",
       "CampoTexto «Sinónimos»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
       "CampoTexto «Motivo (opcional)»",
@@ -28,18 +29,18 @@
       "CampoTexto «{guia.etiqueta(\"pantone\", \"Pantone (TCX)\")}» #2",
       "CampoTexto «Sinónimos» #2",
       "button «Cambiar color»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}» #2",
       "Boton «{responsable.motivo ?? undefined}»",
       "Boton «Cancelar» #3",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2"
     ],
     "components/CombinaConCampo.tsx": [
       "button «{`Quitar ${nombre}»",
-      "ComboBuscable «)»",
+      "ComboBuscable «{opciones}»",
       "textarea «Descripción del color»"
     ],
     "components/ConfirmarConResponsable.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{control}»",
       "Boton «Cancelar»",
       "Boton «{control?.motivo ?? undefined}»"
     ],
@@ -47,13 +48,14 @@
       "Boton «Subir foto»",
       "Boton «Generar dibujo»",
       "Boton «Quitar imagen»",
-      "input «)»",
+      "input «(sin nombre)»",
       "Boton «Cancelar»",
       "Boton «→guardar»",
       "Boton «Reintentar»",
       "Link «{p.referencia}»"
     ],
     "components/EtiquetasLista.tsx": [
+      "BotonImprimir «(sin nombre)»",
       "BotonFiltro «Todas»",
       "BotonFiltro «{ESTILOS[g].grupo}»",
       "BotonFiltro «Vigentes hoy»",
@@ -71,7 +73,7 @@
       "Boton «Cancelar» #3",
       "Boton «{guia.frase ?? undefined}»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la etiqueta\")}»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #4",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
@@ -90,12 +92,12 @@
       "Boton «Confirmar rechazo»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del patrón\")}»",
       "CampoTexto «{guia.etiqueta(\"descripcion\", \"Cómo se ve (opcional)\")}»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #2",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/PrendasDeEtiquetaModal.tsx": [
-      "ComboResponsable «setConfirmando(false)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Volver»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
       "CampoTexto «Buscar»",
@@ -106,7 +108,7 @@
       "Casilla «{`${p.referencia}»",
       "button «{p.referencia}»",
       "Casilla «{[v.talla, v.color].filter(Boolean).join(\" · \") || \"Única\"}»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}» #2",
       "Boton «Cancelar»",
       "Boton «{vista ? \"Revisar y aplicar\" : \"Aplicar\"}»"
     ],
@@ -124,7 +126,7 @@
       "Boton «Cancelar» #2",
       "Boton «Confirmar rechazo»",
       "CampoTexto «{guia.etiqueta(\"valor\", \"Valor de la talla\")}»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #3",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
@@ -136,7 +138,7 @@
       "Boton «Confirmar rechazo»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del tejido\")}»",
       "CampoTexto «{guia.etiqueta(\"descripcion\", \"Cómo se ve (opcional)\")}»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #2",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
@@ -150,39 +152,39 @@
       "button «Ver»",
       "CampoTexto «{`${etiqueta}»",
       "CampoTexto «Hora de Perú»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? revision.error ?? guia.frase ?? undefined}»",
       "Boton «Cancelar» #2",
       "Boton «{guia.frase ?? undefined}»",
       "button «Con prendas ·»",
       "button «Todas ·»",
-      "Desplegable «) : (»",
+      "Desplegable «{valor}»",
       "button «→alternarTodas»",
-      "Desplegable «Asignar a»",
+      "Desplegable «{temporada}»",
       "button «{motivo ?? undefined}»",
       "button «Desmarcar»",
-      "Desplegable «Ponérsela a la categoría»",
+      "Desplegable «{eleccion}»",
       "button «{eleccion ? undefined : \"Elige primero la temporada.\"}»",
       "Link «{p.nombre}»",
       "Casilla «{`Marcar ${p.nombre}»"
     ],
     "components/alta-producto/ElegirColores.tsx": [
       "button «{`Quitar ${c.nombre}»",
-      "ComboBuscable «setCarta((v) => !v)»",
+      "ComboBuscable «(sin nombre)»",
       "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
       "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
       "button «{c.nombre}»"
     ],
     "components/alta-producto/IdentidadAlta.tsx": [
-      "ComboResponsable «);»",
+      "ComboResponsable «{control}»",
       "button «Ir a elegir»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
       "CampoTexto «Nombre del color»",
-      "Desplegable «setCodigoEscrito(normaliz»",
+      "Desplegable «{familia}»",
       "CampoTexto «Código»",
-      "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
       "button «Elegir»"
     ],
@@ -197,6 +199,7 @@
       "Boton «Reactivar»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ]
   }

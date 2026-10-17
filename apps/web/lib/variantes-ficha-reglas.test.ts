@@ -64,6 +64,7 @@ import {
   type NombresFicha,
   type TemporadaElegida,
   type VarianteOrigen,
+  avisoCostoSobrePrecio,
 } from "./variantes-ficha-reglas";
 import {
   agruparCambios,
@@ -577,6 +578,19 @@ describe("precio y costo en bloque", () => {
     expect(aplicarEnBloque(filas, "precio", "todas", "0").error).toBe("Escribe un precio mayor que 0.");
   });
 
+  it("el monto con coma decimal se entiende y viaja como número (ADR-0419); «12.500» no se adivina", () => {
+    const filas = filasDeProducto([variante("a", "NEG", "t-s"), variante("b", "NEG", "t-m")], N);
+    const r = aplicarEnBloque(filas, "precio", "todas", "65,50");
+    expect({ aplicadas: r.aplicadas, error: r.error }).toEqual({ aplicadas: 2, error: null });
+    expect(payloadVariantes(r.filas).map((v) => v.precio)).toEqual([65.5, 65.5]);
+    expect(aplicarEnBloque(filas, "costo", "todas", "12.500").error).toBe("Escribe un costo de 0 o más.");
+  });
+
+  it("el aviso de costo sobre precio y el tope del catálogo leen la coma igual (ADR-0419 con ADR-0415)", () => {
+    expect(avisoCostoSobrePrecio("59,90", "70,00")).toMatch(/pierdes S\/\u00a010\.10/);
+    expect(avisoCostoSobrePrecio("59,90", "50,00")).toBeNull();
+  });
+
   it("en Empaque (fuera de los motores) el precio puede ser 0, nunca negativo", () => {
     const filas = filasDeProducto([variante("a", "ARN", "t-s"), variante("b", "ARN", "t-m")], N);
     const r = aplicarEnBloque(filas, "precio", "todas", "0", true);
@@ -601,6 +615,18 @@ describe("precio y costo en bloque", () => {
     });
     it("una talla desactivada no cuenta (la base mira solo las activas)", () => {
       expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 20 }), variante("b", "NEG", "t-m", { costo: 99, activo: false })))).toBe(20);
+    });
+    it("la talla de OBSEQUIO (0 guardado en una categoría que admite el 0) no cuenta: el precio de la tienda no la alcanza (2026-10-15)", () => {
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 1 }), variante("b", "NEG", "t-m", { costo: 9, precio: 0 })), true)).toBe(1);
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 9, precio: 0 })), true)).toBeNull();
+    });
+    it("la talla de ROPA en 0 sí cuenta: en esa tienda se vende al precio de la tienda (2026-10-15); sin decir la categoría, es ropa", () => {
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 1 }), variante("b", "NEG", "t-m", { costo: 9, precio: 0 })), false)).toBe(9);
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 9, precio: 0 })))).toBe(9);
+    });
+    it("el precio que se está escribiendo no cambia qué talla es de obsequio: manda el guardado", () => {
+      const [f] = filas(variante("a", "NEG", "t-s", { costo: 9, precio: 0 }));
+      expect(costoMaximoGuardado([{ ...f!, precio: "50" }], true)).toBeNull();
     });
     it("lo que se está escribiendo no cuenta: manda lo guardado", () => {
       const [f] = filas(variante("a", "NEG", "t-s", { costo: 20 }));
@@ -794,7 +820,7 @@ describe("variantesParaResumen — la barra y la hoja cuentan la sección con UN
     expect(r.frases).toEqual(["1 variante se desactiva", "2 variantes se agregan", "3 variantes cambian de color o talla", "1 precio cambia"]);
     expect(agruparCambios(r.cambios)).toEqual([
       { clave: "desactivan", titulo: "Se desactivan", lineas: [{ texto: "Negro S", detalle: "8 u. en stock" }], cantidad: 1, nota: NOTA_DESACTIVADAS_CON_STOCK },
-      { clave: "agregan", titulo: "Se agregan", lineas: [{ texto: "2 variantes: Azul S, Azul M", detalle: "S/ 59.90" }], cantidad: 2, nota: NACEN_SIN_UNIDADES },
+      { clave: "agregan", titulo: "Se agregan", lineas: [{ texto: "2 variantes: Azul S, Azul M", detalle: "S/\u00a059.90" }], cantidad: 2, nota: NACEN_SIN_UNIDADES },
       {
         clave: "identidad",
         titulo: "Color o talla corregidos",
@@ -802,7 +828,7 @@ describe("variantesParaResumen — la barra y la hoja cuentan la sección con UN
         cantidad: 3,
         nota: NOTA_CORREGIDAS,
       },
-      { clave: "precios", titulo: "Precios", lineas: [{ texto: "Negro M", antes: "S/ 59.90", despues: "S/ 64.90" }], cantidad: 1 },
+      { clave: "precios", titulo: "Precios", lineas: [{ texto: "Negro M", antes: "S/\u00a059.90", despues: "S/\u00a064.90" }], cantidad: 1 },
     ]);
   });
 
@@ -922,5 +948,28 @@ describe("conUnReintentoSiChoca — el círculo de candados que T8 no cierra (AD
     }
     expect(esChoqueDeCandados(null)).toBe(false);
     expect(esChoqueDeCandados({ code: "55P03" })).toBe(false);
+  });
+});
+
+// ADR-0415: el precio y el costo de una prenda llegan hasta S/ 5 000, y vender por debajo del costo es un aviso, no un candado.
+describe("el aviso de costo sobre precio", () => {
+  it("dice cuánto se pierde por prenda, con el espacio que no se parte", () => {
+    expect(avisoCostoSobrePrecio("59.90", "70")).toBe(
+      "el costo (S/ 70.00) es mayor que el precio (S/ 59.90): pierdes S/ 10.10 en cada venta. Si es a propósito (para liquidarla), guarda igual.",
+    );
+  });
+  it("sin aviso si el costo no pasa al precio, si falta un dato o si alguno ya pasa del tope", () => {
+    for (const [precio, costo] of [["59.90", "30"], ["59.90", "59.90"], ["", "70"], ["59.90", ""], ["5990", "6000"], ["0", "10"]]) {
+      expect(avisoCostoSobrePrecio(precio, costo)).toBeNull();
+    }
+  });
+});
+
+describe("el tope del precio en la ficha (ADR-0415)", () => {
+  it("un precio o un costo de más de S/ 5 000 bloquea; costo sobre precio solo avisa", () => {
+    const filas = filasDeProducto([variante("a", "NEG", "t-s", { precio: 5990 }), variante("b", "NEG", "t-m", { precio: 59.9, costo: 70 })], N);
+    const p = problemasVariantes(filas, N);
+    expect(p.some((x) => x.clave === "a" && x.bloquea && /pasa de S\/ 5000/.test(x.texto))).toBe(true);
+    expect(p.some((x) => x.clave === "b" && !x.bloquea && /pierdes S\/ 10\.10/.test(x.texto))).toBe(true);
   });
 });

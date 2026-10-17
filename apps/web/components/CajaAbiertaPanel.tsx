@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { CircleCheck, FunnelX, Receipt, ShoppingBag, TriangleAlert } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { avisar } from "@/components/ui/Avisos";
@@ -441,9 +442,7 @@ export function CajaAbiertaPanel({
             <div data-guia="caja.meta" className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 4 } as CSSProperties}>
               <TituloSeccion dato={<b>{soles0(metaVentaDiaria)}</b>}>Meta de hoy</TituloSeccion>
               <p className="mt-1 text-[13px] text-taupe">{explicacionMeta}</p>
-              <div className="mb-1 mt-4 h-3 overflow-hidden rounded-full bg-sand">
-                <div className="h-full rounded-full bg-tinta transition-[width] duration-1000 [transition-timing-function:var(--ease-cayla)]" style={{ width: `${metaPct}%` }} />
-              </div>
+              <BarraAvance pct={metaPct} alto="gruesa" etiqueta="Meta de hoy" className="mb-1 mt-4" />
               <dl className="mt-auto grid grid-cols-3 gap-4 pt-4">
                 <DatoMeta etiqueta="Llevas" valor={soles0(totalVentas)} />
                 <DatoMeta etiqueta="Te faltan" valor={faltaMeta > 0 ? soles0(faltaMeta) : "—"} detalle={faltaMeta > 0 ? undefined : <b className="font-semibold text-verde-profundo">Meta cumplida.</b>} />
@@ -640,9 +639,9 @@ function EstadoSync({ pendientes }: { pendientes: number }) {
           ok ? "bg-verde/15 text-verde-profundo" : "bg-ambar/15 text-ambar-profundo"
         }`}
       >
-        <span aria-hidden className="relative flex h-[15px] w-[15px] items-center justify-center">
+        <span aria-hidden className="relative flex h-3.5 w-3.5 items-center justify-center">
           <span className={`anim-caja-ping absolute inset-0 rounded-full ${ok ? "bg-verde" : "bg-ambar"}`} />
-          <Icono size={15} className={`relative ${ok ? "anim-caja-check" : ""}`} />
+          <Icono size={14} className={`relative ${ok ? "anim-caja-check" : ""}`} />
         </span>
         <span className="relative">{ok ? "Todo sincronizado" : `${pendientes} venta${pendientes === 1 ? "" : "s"} sin sincronizar`}</span>
       </span>
@@ -803,7 +802,7 @@ function RitmoDelDia({ ventas, abiertaEn, idsNuevos }: { ventas: VentaDelDia[]; 
 
 /** «S/ 1,700»: las cifras de la tarjeta de meta van redondas (spike de Finanzas). */
 function soles0(n: number): string {
-  return `S/ ${Math.round(n).toLocaleString("es-PE")}`;
+  return `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
 }
 
 function DatoMeta({ etiqueta, valor, detalle }: { etiqueta: string; valor: string; detalle?: ReactNode }) {

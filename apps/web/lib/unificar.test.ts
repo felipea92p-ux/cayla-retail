@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 // prueba las importa en vez de copiarlas.
 import { problemasDe, deudaDe } from "../unificar/deuda.mjs";
 import { DECISIONES, FAMILIAS, FUNCIONES, funcionDe, ICONO_A_FUNCION } from "../unificar/familias.mjs";
+import { TAMANOS_ICONO } from "./iconos";
 
 // REGLA (ADR-0358, Felipe 2026-10-06): una función, una pieza. Cuando Felipe elige con `/unificar` cómo se ve una familia (las
 // pestañas, el botón «Cancelar», la insignia de estado), esa pieza es la única de ahí en adelante, en todos los módulos y en las
@@ -84,5 +85,28 @@ describe("decisiones de Felipe: una función, una pieza", () => {
       .filter(Boolean)
       .join("\n");
     expect(hoy, mensaje).toEqual(declarada);
+  });
+});
+
+describe("los íconos: la escala que las firmas dejan pasar (ronda 15)", () => {
+  const firmas = DECISIONES.icono.firmas.map((f) => new RegExp(f));
+  const reconoce = (codigo: string) => firmas.some((f) => f.test(codigo));
+  const CLASE: Record<number, string> = { 12: "3", 14: "3.5", 16: "4", 20: "5" };
+
+  it("cada tamaño de la escala pasa, por `size` y por su clase; uno fuera de ella no", () => {
+    for (const px of Object.values(TAMANOS_ICONO)) {
+      expect(reconoce(`<Truck size={${px}} aria-hidden />`), `size ${px}`).toBe(false);
+      expect(reconoce(`<Truck aria-hidden className="h-${CLASE[px]} w-${CLASE[px]}" />`), `clase ${px}`).toBe(false);
+    }
+    for (const px of [13, 15, 17, 18, 19]) {
+      expect(reconoce(`<Truck size={${px}} aria-hidden />`), `size ${px}`).toBe(true);
+      expect(reconoce(`<Truck aria-hidden className="h-[${px}px] w-[${px}px]" />`), `clase ${px}`).toBe(true);
+    }
+  });
+
+  it("el grosor de fábrica pasa; cualquier otro no", () => {
+    expect(reconoce(`<Truck aria-hidden />`)).toBe(false);
+    expect(reconoce(`<Truck aria-hidden strokeWidth={2} />`)).toBe(false);
+    for (const g of ["1.5", "1.75", "2.25", "3"]) expect(reconoce(`<Truck aria-hidden strokeWidth={${g}} />`), g).toBe(true);
   });
 });

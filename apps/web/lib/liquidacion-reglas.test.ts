@@ -137,7 +137,7 @@ describe("los errores", () => {
     expect(errorDeLiquidacion("liquidacion_etiqueta_vieja Esa etiqueta ya no vale: la pieza cuesta ahora S/ 20.00")).toEqual({
       titulo: "Esa etiqueta ya no vale",
       // En pantalla se dice «prenda» aunque la base, ya en producción, diga «pieza» (/formidable, ley 4).
-      detalle: "Esa etiqueta ya no vale: la prenda cuesta ahora S/ 20.00",
+      detalle: "Esa etiqueta ya no vale: la prenda cuesta ahora S/\u00a020.00",
       releer: true,
     });
     expect(errorDeLiquidacion("liquidacion_bajo_minimo x")?.titulo).toBe("Ese precio necesita un líder");

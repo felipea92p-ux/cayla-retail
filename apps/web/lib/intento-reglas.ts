@@ -40,6 +40,12 @@ export const OPERACIONES_CON_MARCA = [
   "pagar_deuda_fondo",
   "registrar_gasto_viaje",
   "rendir_fondo",
+  // El pago de un pedido web (ADR-0408, actividad 9; 20261015042000).
+  "registrar_pago_pedido_web",
+  // La entrega de un pedido web con su código (ADR-0408, actividad 10; 20261015052000).
+  "entregar_pedido_web",
+  // Anular un pedido web pagado: devuelve la plata y anula su venta y su boleta (ADR-0408; 20261015114000).
+  "anular_pedido_web_pagado",
 ] as const;
 export type OperacionConMarca = (typeof OPERACIONES_CON_MARCA)[number];
 
@@ -191,7 +197,7 @@ export function avisoDeTraslado(res: Resolucion, t: TrasladoEnCurso): { tono: "e
   };
 }
 
-const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
 /** El aviso que da Vender al resolver un cobro que quedó en el aire. */
 export function avisoDeResolucion(res: Resolucion, cobro: CobroEnCurso): { tono: "exito" | "info"; titulo: string; detalle: string } {

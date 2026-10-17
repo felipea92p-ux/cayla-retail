@@ -47,7 +47,7 @@ export function FichaPrenda({ varianteId, onCerrar }: { varianteId: string; onCe
   const prenda = datos.prendas.find((p) => p.varianteId === varianteId);
   if (!prenda) {
     return (
-      <Modal titulo="Esta prenda ya no está en tu tienda" onClose={onCerrar} variante="hoja" ancho="max-w-xl" conCerrar tituloGrande>
+      <Modal titulo="Esta prenda ya no está en tu tienda" onClose={onCerrar} variante="hoja" tamano="mediana" conCerrar>
         {null}
       </Modal>
     );
@@ -81,7 +81,7 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
   const conAcciones = Boolean(principal || pedirA || existencias || movimientos);
 
   return (
-    <Modal titulo={p.nombre} subtitulo={subtituloFicha(p)} onClose={onCerrar} variante="hoja" ancho="max-w-xl" conCerrar tituloGrande>
+    <Modal titulo={p.nombre} subtitulo={subtituloFicha(p)} onClose={onCerrar} variante="hoja" tamano="mediana" conCerrar>
       <div ref={setRaiz} className="analisis analisis-hoja">
         <div className="anim">
           <div className="h-cab">

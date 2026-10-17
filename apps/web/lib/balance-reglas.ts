@@ -5,6 +5,8 @@
 // que se manda al registrar el arranque. La única cuenta es la del modal: sumar lo que el líder escribe para decirle, antes
 // de guardar, si cuadra (la base vuelve a comprobarlo y no deja guardar un arranque que no cuadra).
 
+import { leerMontoPlata } from "./monto-plata-reglas";
+
 type Fila = Record<string, unknown>;
 const n = (v: unknown): number => (v == null || v === "" ? 0 : Number(v));
 const nulo = (v: unknown): number | null => (v == null || v === "" ? null : Number(v));
@@ -284,7 +286,7 @@ export function solesBalance(v: number): string {
     ? abs.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : Math.round(abs).toLocaleString("es-PE");
   const cero = conCentimos ? abs === 0 : Math.round(abs) === 0;
-  return `${v < 0 && !cero ? "−" : ""}S/ ${cuerpo}`;
+  return `${v < 0 && !cero ? "−" : ""}S/\u00a0${cuerpo}`;
 }
 
 /** «7,2 % al mes» (coma decimal, como el resto de Reportes). */
@@ -446,12 +448,11 @@ export function cuadreArranque(lineas: readonly { cuenta: string; tipo: string; 
   return { tiene: r(tiene), debe: r(debe), tuyo: r(tuyo), diferencia, cuadra: Math.abs(diferencia) < 0.005 };
 }
 
-/** Un monto escrito por el líder («1,250.50», «−300», vacío = 0). `null` si no es un número. */
+/** Un monto escrito por el líder («1,250.50», «648,50», «−300», vacío = 0), con la regla única de `leerMontoPlata`. `null` si no se entiende. */
 export function leerMontoArranque(texto: string): number | null {
-  const limpio = texto.replace(/\s/g, "").replace(/−/g, "-").replace(/,/g, "");
+  const limpio = texto.replace(/\s/g, "").replace(/−/g, "-");
   if (limpio === "" || limpio === "-") return 0;
-  if (!/^-?\d+(\.\d{1,2})?$/.test(limpio)) return null;
-  return Number(limpio);
+  return leerMontoPlata(limpio);
 }
 
 export type LineaArranque = { cuenta: string; monto: number; origen: "sistema" | "manual"; nota?: string };

@@ -12,6 +12,7 @@
 
 import { soles } from "./compras-reglas";
 import { estadoDelReparto, textoDelReparto } from "./reparto-reglas";
+import { MONTO_ILEGIBLE, montoIlegible, numeroDeMonto } from "./monto-plata-reglas";
 
 /** Un requisito por cada cosa que hace falta, en el orden en que se piden. */
 export type ClaveRequisito = "proveedor" | "documento" | "lineas" | "pago";
@@ -82,7 +83,11 @@ export function requisitosDeCompra(e: EntradaRequisitos): Requisito[] {
   // 3 · Al menos una línea con producto y costo. Una línea sin producto se ignora (es un renglón de más);
   // una con producto pero sin costo bloquea: «costo 0» es válido, «costo sin escribir» no.
   const validas = e.lineas.filter((l) => l.productoId && l.cantidad > 0);
-  const sinCosto = e.lineas.findIndex((l) => l.productoId && l.cantidad > 0 && (l.costoUnitario === "" || Number(l.costoUnitario) < 0));
+  // Un costo que no se entiende («12.500») frena igual que uno sin escribir: no se adivina (ADR-0419).
+  const sinCosto = e.lineas.findIndex(
+    (l) => l.productoId && l.cantidad > 0 && (l.costoUnitario === "" || montoIlegible(l.costoUnitario) || numeroDeMonto(l.costoUnitario) < 0),
+  );
+  const costoIlegible = sinCosto >= 0 && montoIlegible(e.lineas[sinCosto].costoUnitario);
   // Repartido entre tiendas (ADR-0139): la base exige que lo repartido de cada línea sume lo facturado (candado diferido
   // en `compra_item_destinos`); acá se dice QUÉ línea y CUÁNTO falta o sobra antes de que la RPC lo rechace.
   const sinReparto = e.repartir ? e.lineas.findIndex((l) => l.productoId && l.cantidad > 0 && !estadoDelReparto(l.cantidad, l.reparto ?? {}).cuadra) : -1;
@@ -92,13 +97,13 @@ export function requisitosDeCompra(e: EntradaRequisitos): Requisito[] {
     clave: "lineas",
     ok: lineasOk,
     texto: e.repartir ? "Líneas con producto, costo y su reparto entre tiendas" : "Al menos una línea con producto y costo",
-    falta: sinCosto >= 0 ? `Falta el costo de la línea ${sinCosto + 1}` : sinReparto >= 0 ? `Línea ${sinReparto + 1}: ${textoReparto.charAt(0).toLowerCase()}${textoReparto.slice(1)}` : null,
+    falta: sinCosto >= 0 ? (costoIlegible ? `La línea ${sinCosto + 1} tiene un costo que no se entiende` : `Falta el costo de la línea ${sinCosto + 1}`) : sinReparto >= 0 ? `Línea ${sinReparto + 1}: ${textoReparto.charAt(0).toLowerCase()}${textoReparto.slice(1)}` : null,
     error: lineasOk
       ? null
       : validas.length === 0
         ? { mensaje: "Agrega al menos una línea con producto y cantidad.", enfocar: "compra-linea-0-producto" }
         : sinCosto >= 0
-          ? { mensaje: `Cada línea necesita su costo unitario (${e.conIgv ? "con" : "sin"} IGV).`, enfocar: `compra-linea-${sinCosto}-costo` }
+          ? { mensaje: costoIlegible ? MONTO_ILEGIBLE : `Cada línea necesita su costo unitario (${e.conIgv ? "con" : "sin"} IGV).`, enfocar: `compra-linea-${sinCosto}-costo` }
           : {
               mensaje: `La línea ${sinReparto + 1} no está bien repartida: ${textoReparto.charAt(0).toLowerCase()}${textoReparto.slice(1)} (las unidades de cada tienda deben sumar ${e.lineas[sinReparto].cantidad}).`,
               enfocar: `compra-linea-${sinReparto}-reparto`,
@@ -181,7 +186,7 @@ export type AyudaCosto =
  */
 export function ayudaDeCosto(ultimo: number | null, tipeado: string): AyudaCosto | null {
   if (ultimo === null || !(ultimo > 0)) return null;
-  const c = Number(tipeado);
+  const c = numeroDeMonto(tipeado);
   if (tipeado.trim() === "" || !Number.isFinite(c)) return { tipo: "usar", ultimo };
   const razon = (c - ultimo) / ultimo;
   if (Math.abs(razon) < 0.05) return { tipo: "igual", ultimo };

@@ -95,6 +95,7 @@ import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada, type CargaIn
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 import { MAX_DESCRIPCION_PRODUCTO, MAX_NOMBRE_PRODUCTO } from "@/lib/catalogo-topes";
+import { ArrowRight } from "lucide-react";
 
 /** Con la carga inicial de la sede cerrada, ninguna cantidad viaja (un objeto fijo: no cambia en cada render). */
 const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
@@ -805,7 +806,7 @@ export function NuevoProductoForm({
           .join(" · ")
       : "",
     4: [
-      precioNum > 0 ? `S/ ${precioNum.toFixed(2)}` : null,
+      precioNum > 0 ? `S/\u00a0${precioNum.toFixed(2)}` : null,
       stock.total > 0 ? `${plural(stock.total, "unidad", "unidades")} · ${destinoTexto}` : sinStockVigente ? "Sin stock todavía" : null,
     ]
       .filter(Boolean)
@@ -843,7 +844,10 @@ export function NuevoProductoForm({
           disabled={Boolean(faltaDelPasoProblema(problemas, n))}
           className={`btn-cayla btn-primario ${listo ? "hilo-seguir" : ""}`}
         >
-          Seguir →
+          <span className="flex items-center gap-2">
+            Seguir
+            <ArrowRight aria-hidden className="-my-1 h-4 w-4 shrink-0" />
+          </span>
         </button>
       ) : (
         // El paso 4 cierra el alta: aquí termina la persona, así que aquí está «Crear» (la ficha conserva el suyo).

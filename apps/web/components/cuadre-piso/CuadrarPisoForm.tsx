@@ -3,14 +3,14 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Camera, Info, Loader2, Minus, Plus, ScanBarcode, Undo2 } from "lucide-react";
+import { Camera, Info, ScanBarcode, Undo2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { ErrorEscritura } from "@/lib/error-escritura";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
 import { avisar } from "@/components/ui/Avisos";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Chip } from "@/components/ui/Chip";
-import { CampoTexto, Interruptor } from "@/components/ui/campos";
+import { CampoTexto, Interruptor, Boton } from "@/components/ui/campos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { EsqueletoTabla, EsqueletoTarjetas } from "@/components/Esqueleto";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -74,6 +74,7 @@ import {
 import { CifrasCuadre, AntesDespues, ListasCuadre } from "./RevisarCuadre";
 import { ResultadoCuadre } from "./ResultadoCuadre";
 import { Aviso } from "@/components/ui/Aviso";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 /*
  * «Cuadrar el piso» (ADR-0328, decisión técnica 4). Tres pasos y el resultado:
@@ -607,15 +608,9 @@ export function CuadrarPisoForm({
       )}
 
       {conteo && (
-        <div
-          role="status"
-          className="anim-revelar flex flex-wrap items-start justify-between gap-x-3 gap-y-2 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo"
-        >
-          <p className="min-w-0 flex-1 basis-64">{textoConteoAbierto(conteo, sede)}</p>
-          <Link href={`/inventario/conteo/${conteo.conteoId}`} className="btn-cayla btn-enlace shrink-0 text-[13px]">
-            Ir al conteo
-          </Link>
-        </div>
+        <Aviso tono="atencion" accion={<Link href={`/inventario/conteo/${conteo.conteoId}`}>Ir al conteo</Link>}>
+          {textoConteoAbierto(conteo, sede)}
+        </Aviso>
       )}
 
       {borrador && (
@@ -770,43 +765,28 @@ export function CuadrarPisoForm({
                         </div>
                       </div>
                       <div className="relative ml-auto flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          aria-label={`Una menos de ${nombre}`}
-                          disabled={congelada}
-                          onClick={() => cambiarCantidad(l.varianteId, l.cantidad - 1)}
-                          className="btn-cayla btn-secundario h-11 w-11 p-0"
-                        >
-                          <Minus aria-hidden className="h-4 w-4" />
-                        </button>
-                        <input
-                          className="caja-campo-input h-11 w-14 px-1 text-center text-base tabular-nums"
-                          type="text"
-                          inputMode="numeric"
-                          aria-label={`Cantidad de ${nombre}`}
-                          disabled={congelada}
-                          value={edicion[l.varianteId] ?? String(l.cantidad)}
-                          onFocus={(e) => e.currentTarget.select()}
-                          onChange={(e) => {
-                            const valor = e.target.value;
-                            setEdicion((m) => ({ ...m, [l.varianteId]: valor }));
-                          }}
-                          onBlur={(e) => confirmarNumero(l.varianteId, e.currentTarget.value)}
-                          onKeyDown={(e) => {
-                            if (e.key !== "Enter") return;
-                            e.preventDefault();
-                            volverAlEscaner();
+                        <PasoCantidad
+                          menos={{ onClick: () => cambiarCantidad(l.varianteId, l.cantidad - 1), deshabilitado: congelada, etiqueta: `Una menos de ${nombre}` }}
+                          mas={{ onClick: () => cambiarCantidad(l.varianteId, l.cantidad + 1), deshabilitado: congelada, etiqueta: `Una más de ${nombre}` }}
+                          campo={{
+                            type: "text",
+                            inputMode: "numeric",
+                            "aria-label": `Cantidad de ${nombre}`,
+                            disabled: congelada,
+                            value: edicion[l.varianteId] ?? String(l.cantidad),
+                            onFocus: (e) => e.currentTarget.select(),
+                            onChange: (e) => {
+                              const valor = e.target.value;
+                              setEdicion((m) => ({ ...m, [l.varianteId]: valor }));
+                            },
+                            onBlur: (e) => confirmarNumero(l.varianteId, e.currentTarget.value),
+                            onKeyDown: (e) => {
+                              if (e.key !== "Enter") return;
+                              e.preventDefault();
+                              volverAlEscaner();
+                            },
                           }}
                         />
-                        <button
-                          type="button"
-                          aria-label={`Una más de ${nombre}`}
-                          disabled={congelada}
-                          onClick={() => cambiarCantidad(l.varianteId, l.cantidad + 1)}
-                          className="btn-cayla btn-secundario h-11 w-11 p-0"
-                        >
-                          <Plus aria-hidden className="h-4 w-4" />
-                        </button>
                         <button type="button" disabled={congelada} onClick={() => quitar(l.varianteId)} className="btn-cayla btn-sutil ml-1 h-11">
                           Quitar
                         </button>
@@ -819,9 +799,7 @@ export function CuadrarPisoForm({
           )}
 
           {sinGuardado && datos.lineas.length > 0 && (
-            <p role="status" className="rounded-xl border border-ambar/35 bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo">
-              Este navegador no puede guardar lo escaneado: termina el cuadre antes de salir de la pantalla.
-            </p>
+            <Aviso tono="atencion">Este navegador no puede guardar lo escaneado: termina el cuadre antes de salir de la pantalla.</Aviso>
           )}
 
           <BarraFija
@@ -943,19 +921,17 @@ export function CuadrarPisoForm({
                     Sigue: confirmar
                   </button>
                 ) : (
-                  <button
+                  <Boton
                     type="button"
-                    className={`btn-cayla btn-primario h-11 flex-1 sm:flex-none ${motivoConfirmar ? "" : guiaConfirmar.claseConfirmar}`}
-                    disabled={enviando || (!congelada && (motivoConfirmar !== null || vista?.estado !== "lista"))}
+                    peso="primario"
+                    cargando={enviando}
+                    textoCargando="Cuadrando…"
+                    className={`h-11 flex-1 sm:flex-none ${motivoConfirmar ? "" : guiaConfirmar.claseConfirmar}`}
+                    disabled={!congelada && (motivoConfirmar !== null || vista?.estado !== "lista")}
                     title={motivoConfirmar ?? undefined}
                     onClick={() => void confirmar()}
                   >
-                    {enviando ? (
-                      <>
-                        <Loader2 aria-hidden className="h-4 w-4 motion-safe:animate-spin" />
-                        Cuadrando…
-                      </>
-                    ) : congelada ? (
+                    {congelada ? (
                       BOTON_COMPROBAR_CUADRE
                     ) : (
                       // En el celular, sin la sede (la barra ya la dice arriba): el nombre largo de una sede no cabe junto a «Volver».
@@ -964,7 +940,7 @@ export function CuadrarPisoForm({
                         <span className="max-sm:hidden">Cuadrar el piso de {sede}</span>
                       </>
                     )}
-                  </button>
+                  </Boton>
                 )}
               </div>
             }

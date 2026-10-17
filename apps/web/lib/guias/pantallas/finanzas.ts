@@ -10,13 +10,13 @@
 
 import type { Guia, PasoGuia } from "../tipos";
 
-/** «Ver»: el mismo combo en casi todas las pantallas de Finanzas (solo el líder elige; los demás ven su tienda). */
+/** «Ver»: el mismo combo en casi todas las pantallas de Finanzas (lo elige quien ve todas las tiendas —el líder y, donde la pantalla lo permite, quien tiene Configuración, Cierre de mes o CAYLA Global—; los demás ven su tienda). */
 const VER: PasoGuia = {
   id: "ver",
   ancla: "fin-ver.combo",
   opcional: true,
   titulo: "Qué tienda mirar",
-  texto: "Eliges si ves todas las tiendas juntas, una sola o lo de la empresa (lo que no es de ninguna tienda, como el contador). Lo elige el líder; si no lo eres, ves tu tienda.",
+  texto: "Eliges si ves todas las tiendas juntas, una sola o lo de la empresa (lo que no es de ninguna tienda, como el contador). Lo elige quien ve todas las tiendas (el líder y, en algunas pantallas, quien tiene Configuración o Cierre de mes); si no, ves tu tienda.",
 };
 
 /** Las pestañas de Reportes: cada una es otra pantalla (se explican, no se tocan). */
@@ -63,11 +63,31 @@ export const GUIA_FIN_RESUMEN: Guia = {
     },
     VER,
     {
-      id: "salud",
-      ancla: "fin-resumen.salud",
+      id: "respuesta",
+      ancla: "fin-resumen.respuesta",
+      titulo: "¿Estoy ganando plata?",
+      texto: "La respuesta grande: lo que queda tuyo en lo que va del mes, después de pagar la ropa, los sueldos, los alquileres y los servicios. «¿Por qué?» abre la cuenta paso a paso: lo que vendiste, lo que costó, lo que se pagó y lo que queda.",
+    },
+    {
+      id: "ritmo",
+      ancla: "fin-resumen.ritmo",
       opcional: true,
-      titulo: "Cómo está, en tres frases",
-      texto: "Para cuántos días alcanza tu plata si mañana no vendieras nada, qué día del mes CAYLA ya cubrió sus costos y cómo vas contra la meta de ventas. El color de la línea dice si va bien o pide atención.",
+      titulo: "Tu ritmo",
+      texto: "Lo que vendes por día contra lo que hace falta por día para cubrir lo fijo del mes (sueldos, alquileres, servicios). La marca es lo necesario; la barra, lo tuyo. Debajo dice con qué cerrarías el mes si sigues así y qué día ya habrás cubierto todo.",
+    },
+    {
+      id: "confianza",
+      ancla: "fin-resumen.confianza",
+      opcional: true,
+      titulo: "Qué tan seguro es el número",
+      texto: "Un número de Finanzas solo es tan cierto como lo que los otros módulos registraron. Este medidor dice cuánto confiar en él y qué falta: el costo de las prendas sin registrar, los alquileres cargados, las facturas, el banco cuadrado. Cada cosa que falta lleva a la pantalla donde se arregla.",
+    },
+    {
+      id: "lugares",
+      ancla: "fin-resumen.lugares",
+      opcional: true,
+      titulo: "Qué deja cada lugar",
+      texto: "Cada tienda y el Taller, después de pagar lo que ellos mismos causan. «Lo de toda la empresa» (contador, publicidad, oficina) va aparte y no se reparte entre las tiendas: así una tienda que deja plata no parece perder por cargar gastos que no son suyos.",
     },
     {
       id: "cifras",
@@ -194,6 +214,27 @@ export const GUIA_FIN_GASTOS: Guia = {
       opcional: true,
       titulo: "Registrar o cancelar",
       texto: "Arriba de los botones eliges quién lo está registrando. «Registrar gasto» lo guarda y ya suma en las cifras del mes. En la demo no registramos: cerramos la ventana.",
+    },
+    {
+      id: "pulso",
+      ancla: "fin-gastos.pulso",
+      preparar: [{ tipo: "escape" }],
+      titulo: "¿En qué se fue la plata?",
+      texto: "Lo gastado en el mes y, en una frase, qué pesó más: «7 de cada 10 soles fueron alquileres». Debajo, las tres categorías que más pesaron.",
+    },
+    {
+      id: "bandeja",
+      ancla: "fin-gastos.bandeja",
+      opcional: true,
+      titulo: "Lo que falta revisar, de a uno",
+      texto: "Una salida de caja que nadie dijo qué fue, o un gasto fijo del mes que ya pasó sin registrarse. Aparece una cosa a la vez, con su botón: Clasificar o Registrar. Cuando no queda nada, lo dice.",
+    },
+    {
+      id: "resolver",
+      ancla: "fin-gastos.resolver",
+      opcional: true,
+      titulo: "Resolverlo desde aquí",
+      texto: "El botón abre la misma hoja de siempre: «¿Qué fue esta salida?» para una salida de caja, o el formulario del gasto ya armado con el fijo. En la demo no se guarda nada.",
     },
     {
       id: "cifras",
@@ -355,14 +396,14 @@ export const GUIA_FIN_CUENTAS: Guia = {
       ancla: "fin-dinero.mov-monto",
       opcional: true,
       titulo: "Monto y voucher",
-      texto: "Cuánto se movió y el número del voucher o una nota, para encontrarlo después en el banco.",
+      texto: "Cuánto se movió y el número del voucher o una nota, para encontrarlo después en el banco. En un depósito de la máquina es lo que LLEGÓ al banco, ya sin su comisión.",
     },
     {
       id: "mov-fecha",
       ancla: "fin-dinero.mov-fecha",
       opcional: true,
       titulo: "La fecha",
-      texto: "El día en que la plata se movió de verdad (el del voucher), aunque lo anotes después. Si no sale de un cajón te la pide; un abono de tarjeta pide además la comisión del POS, que queda como gasto.",
+      texto: "El día en que la plata se movió de verdad (el del voucher), aunque lo anotes después. Si no sale de un cajón te la pide. En un depósito de la máquina, al lado ves la comisión real que salió de la cuenta.",
     },
     {
       id: "mov-botones",
@@ -373,8 +414,44 @@ export const GUIA_FIN_CUENTAS: Guia = {
     },
     { ...PESTANAS_DINERO, preparar: [{ tipo: "escape" }] },
     {
+      id: "pulso",
+      ancla: "fin-dinero.pulso",
+      titulo: "¿Dónde está mi plata?",
+      texto: "La respuesta grande: todo lo que tienes, sumado de los bancos, lo que la máquina de tarjeta todavía no deposita y el efectivo de cajones y cajas fuertes. La tarjeta de crédito va aparte, porque es deuda. Nada se escribe a mano: sale de los movimientos.",
+    },
+    {
+      id: "alcanza",
+      ancla: "fin-dinero.alcanza",
+      opcional: true,
+      titulo: "¿Me alcanza?",
+      texto: "La primera semana de las próximas seis en que la plata bajaría de tu mínimo de caja, con lo que vence y lo que esperas vender. Y qué pasa si depositas lo que está guardado en las cajas fuertes. Si falta cargar saldos o historia, dice «provisional» y qué falta.",
+    },
+    {
+      id: "debes",
+      ancla: "fin-dinero.debes",
+      opcional: true,
+      titulo: "¿Qué debes?",
+      texto: "Lo vencido primero y lo próximo que vence, de todas las facturas por pagar. Si hay una factura sin anotar, no está aquí: por eso el medidor de confianza del Resumen las cuenta.",
+    },
+    {
+      id: "aviso-maquina",
+      ancla: "fin-dinero.aviso-maquina",
+      opcional: true,
+      titulo: "Una máquina se atrasó",
+      texto: "Si Izipay o Vendemás no depositó un día dentro de su plazo (el de su tarifa; sin tarifa, 3 días hábiles), aparece aquí: cuántos días esperan, cuánto suman y desde cuándo. «Registrar el depósito» abre el movimiento con esa máquina.",
+    },
+    {
+      id: "mov-lotes",
+      ancla: "fin-dinero.mov-lotes",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "fin-dinero.aviso-registrar", siEsta: true }],
+      titulo: "Qué días cubre el depósito",
+      texto: "Te abrimos el depósito desde el aviso. Son los días cobrados con tarjeta o QR que la máquina todavía no depositó, marcados hasta la fecha del depósito. Lo cobrado esos días menos lo que llegó al banco es la comisión real: sale sola y queda como gasto. En la demo no registramos.",
+    },
+    {
       id: "cuentas",
       ancla: "fin-dinero.cuentas",
+      preparar: [{ tipo: "escape" }],
       titulo: "Cada lugar con su saldo",
       texto: "Una tarjeta por lugar: cuánto hay y de dónde sale. Los cajones suben con las ventas en efectivo y bajan con los egresos y depósitos. El saldo del cajón solo lo ve quien puede cerrar la caja.",
     },
@@ -608,6 +685,12 @@ export const GUIA_FIN_RESULTADOS: Guia = {
     PESTANAS_REPORTES,
     VER,
     EXCEL,
+    {
+      id: "pulso",
+      ancla: "fin-resultados.pulso",
+      titulo: "¿Cuánto ganó?",
+      texto: "La respuesta grande para lo que estás mirando: lo que quedó (o faltó) en el mes después de pagar la ropa, los sueldos, los alquileres y los servicios. «¿Por qué?» abre la cuenta paso a paso, la misma que en el Resumen. El cuadro de abajo es el detalle.",
+    },
     {
       id: "herramientas",
       ancla: "fin-resultados.herramientas",
@@ -957,7 +1040,7 @@ export const GUIA_FIN_FLUJO: Guia = {
       ancla: "fin-flujo.dias",
       opcional: true,
       titulo: "Días de caja",
-      texto: "Si mañana no vendieras nada, para cuántos días te alcanza la plata con lo que sale en un día normal.",
+      texto: "Si mañana no vendieras nada, para cuántos días te alcanza la plata con lo que sale en un día normal. Si falta cargar saldos o historia, dice «provisional» y, arriba, qué falta.",
     },
     {
       id: "que-vence",
@@ -1126,6 +1209,19 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       texto: "Lo que cobraste de IGV al vender, menos lo que pagaste de IGV al comprar con factura. El contador presenta los libros a SUNAT con lo que sale de aquí. Es una demo: no se declara ni se paga nada.",
     },
     {
+      id: "pulso",
+      ancla: "fin-impuestos.pulso",
+      titulo: "¿Cuánto le debo a SUNAT?",
+      texto: "La respuesta grande: lo que le pagas a SUNAT por el mes que se declara, IGV más la renta a cuenta. «¿Por qué?» abre la cuenta: el IGV que cobraste al vender, menos el que descuentas por tus compras con factura. El día exacto depende del último dígito de tu RUC.",
+    },
+    {
+      id: "por-hacer",
+      ancla: "fin-impuestos.por-hacer",
+      opcional: true,
+      titulo: "Antes de declarar",
+      texto: "Lo que puede hacer que pagues de más o que SUNAT te observe: comprobantes rechazados o sin aceptar, ventas sin comprobante, compras con boleta (ese IGV no se descuenta) y facturas grandes pagadas en efectivo.",
+    },
+    {
       id: "registro-ventas",
       ancla: "fin-impuestos.registro-ventas",
       titulo: "Registro de ventas",
@@ -1216,6 +1312,19 @@ export const GUIA_FIN_CIERRE: Guia = {
       ancla: null,
       titulo: "Cerrar el mes",
       texto: "Cerrar un mes lo congela: nadie puede registrar ni cambiar nada con fecha de ese mes, y sus números ya no se mueven. Se cierra cada tienda, el Taller y lo de la empresa; al final, CAYLA entera. Es una demo: no se cierra nada.",
+    },
+    {
+      id: "pulso",
+      ancla: "fin-cierre.pulso",
+      titulo: "¿Puedo cerrar el mes?",
+      texto: "La respuesta en una cifra: cuántas cosas faltan para cerrar el mes, y el anillo con lo que ya pasó. Cuando no falta nada, dice «puedes cerrar»; cuando el mes ya está cerrado, lo dice.",
+    },
+    {
+      id: "cosas",
+      ancla: "fin-cierre.cosas",
+      opcional: true,
+      titulo: "Lo primero que falta",
+      texto: "Las primeras cosas por resolver, de todas las unidades: lo que frena el cierre va primero y cada una lleva a la pantalla donde se arregla. Abajo están todos los chequeos, unidad por unidad.",
     },
     {
       id: "matriz",

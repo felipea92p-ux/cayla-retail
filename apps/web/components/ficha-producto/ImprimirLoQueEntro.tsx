@@ -75,7 +75,7 @@ export function ImprimirLoQueEntro({
   return (
     <Modal
       variante="hoja"
-      ancho="max-w-2xl"
+      tamano="ancha"
       titulo="Etiquetas de lo que entró"
       subtitulo={`${prenda} quedó guardado. Imprime una etiqueta por cada prenda que entró: las que ya estaban en la tienda ya tienen la suya.`}
       onClose={onDespues}
@@ -136,7 +136,7 @@ export function ImprimirLoQueEntro({
                     </span>
                     <span className="mt-2 flex items-end justify-between gap-2">
                       <span className="font-serif text-[26px] leading-none text-tinta">{l.talla}</span>
-                      <span className="text-[13px] font-semibold tabular-nums text-tinta">{l.precio !== null ? `S/ ${precioEtiqueta(l.precio)}` : "—"}</span>
+                      <span className="text-[13px] font-semibold tabular-nums text-tinta">{l.precio !== null ? `S/\u00a0${precioEtiqueta(l.precio)}` : "—"}</span>
                     </span>
                     {iconos.length > 0 && (
                       <span className="mt-2 flex items-center gap-1.5 border-t border-dashed border-sand pt-1.5 [&_svg]:h-3.5 [&_svg]:w-3.5">

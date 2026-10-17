@@ -9,6 +9,8 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { CierrePulso } from "@/components/finanzas/CierrePulso";
+import { pulsoCierre } from "@/lib/cierre-pulso-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraBloque, CampoFin, InputFin, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
@@ -40,6 +42,7 @@ import {
   type PanelCierre,
   type Unidad,
 } from "@/lib/cierre-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Finanzas ▸ Cierre de mes (ADR-0195 F9, ADR-0198), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/,
 // `vista-cierre.js`): cabecera con «CAYLA entera» y el mes → la matriz de unidades con su estado y su huella → los chequeos
@@ -110,6 +113,9 @@ function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre;
           </>
         }
       />
+
+      {/* Camino A (Felipe 2026-10-15): primero la respuesta; la matriz y los chequeos, después. */}
+      <CierrePulso pulso={pulsoCierre(panel)} />
 
       <div data-guia="fin-cierre.matriz" className="fin-matriz anim-sube" style={{ ["--n" as string]: Math.min(6, unidades.length + 1) } as CSSProperties}>
         {unidades.map((x, i) => {
@@ -312,7 +318,7 @@ function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad:
       titulo={titulo}
       subtitulo={`Desde ahora nadie podrá registrar ni cambiar gastos, facturas, pagos ni movimientos ${deUnidad(unidad)} con fecha de ese mes. Se guarda el diario con su huella.`}
       onClose={onCerrar}
-      ancho="max-w-[520px]"
+      tamano="mediana"
     >
       {avisos.length > 0 && (
         <div className="nota-cayla mb-4">
@@ -325,9 +331,9 @@ function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad:
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={cerrar} disabled={guardando || !responsable.listo}>
-          {guardando ? "Cerrando…" : "Cerrar el mes"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Cerrando…" type="button" onClick={cerrar} disabled={guardando || !responsable.listo}>
+          Cerrar el mes
+        </Boton>
       </div>
     </Modal>
   );
@@ -350,16 +356,16 @@ function CerrarConsolidadoModal({ mes, onCerrar }: { mes: string; onCerrar: () =
       titulo={`Cerrar ${nombreMes(mes)} ${mes.slice(0, 4)} de CAYLA entera`}
       subtitulo="Todas las unidades ya cerraron. El consolidado queda congelado con su huella y es el que se le entrega al contador."
       onClose={onCerrar}
-      ancho="max-w-[520px]"
+      tamano="mediana"
     >
       <ComboResponsable control={responsable} deshabilitado={guardando} />
       <div className="fin-botones mt-4">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={cerrar} disabled={guardando || !responsable.listo}>
-          {guardando ? "Cerrando…" : "Cerrar consolidado"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Cerrando…" type="button" onClick={cerrar} disabled={guardando || !responsable.listo}>
+          Cerrar consolidado
+        </Boton>
       </div>
     </Modal>
   );
@@ -387,7 +393,7 @@ function ReabrirModal({ mes, unidad, onCerrar }: { mes: string; unidad: Unidad; 
       titulo={`Reabrir ${nombreMes(mes)} ${mes.slice(0, 4)} ${deUnidadLarga(unidad)}`}
       subtitulo="Los números de ese mes pueden volver a cambiar. Queda en la historia quién, cuándo y por qué; CAYLA entera también se reabre."
       onClose={onCerrar}
-      ancho="max-w-[520px]"
+      tamano="mediana"
     >
       <CampoFin etiqueta="Motivo (obligatorio)" htmlFor="reabrir-motivo" ayuda={tocado && error ? error : undefined} tono={tocado && error ? "aviso" : undefined}>
         <InputFin id="reabrir-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder={`Ej. llegó una factura de ${nombreMes(mes)} tarde`} />
@@ -397,9 +403,9 @@ function ReabrirModal({ mes, unidad, onCerrar }: { mes: string; unidad: Unidad; 
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={reabrir} disabled={guardando || !responsable.listo}>
-          {guardando ? "Reabriendo…" : "Reabrir"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Reabriendo…" type="button" onClick={reabrir} disabled={guardando || !responsable.listo}>
+          Reabrir
+        </Boton>
       </div>
     </Modal>
   );

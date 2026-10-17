@@ -12,6 +12,8 @@ import { cuentaEfectiva, usadoDelFondo, type CuentaElegible } from "@/lib/cuenta
 import { CampoSaleDe } from "@/components/finanzas/CampoCuenta";
 import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
 import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
+import { atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { MONTO_ILEGIBLE, montoIlegible, numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 /* ====================================================================
    LineasPago · un pago repartido en varios medios (2026-09-14)
@@ -57,7 +59,7 @@ export function lineaPagoVacia(monto = ""): LineaPago {
 }
 
 export function sumaLineasPago(lineas: readonly LineaPago[]): number {
-  return Math.round(lineas.reduce((acc, l) => acc + (Number(l.monto) || 0), 0) * 100) / 100;
+  return Math.round(lineas.reduce((acc, l) => acc + (numeroDeMonto(l.monto) || 0), 0) * 100) / 100;
 }
 
 /** Las líneas listas para la RPC. `null` si alguna no tiene monto válido. Con `cuentas` (F3b), cada línea lleva la
@@ -66,10 +68,10 @@ export function lineasPagoParaRpc(
   lineas: readonly LineaPago[],
   cuentas?: readonly CuentaElegible[],
 ): { monto: number; metodo: string; referencia?: string; cuenta_id?: string }[] | null {
-  if (lineas.some((l) => !(Number(l.monto) > 0))) return null;
+  if (lineas.some((l) => !(numeroDeMonto(l.monto) > 0))) return null;
   return lineas.map((l) => {
     const cuenta = cuentas && l.metodo !== METODO_SALDO_A_FAVOR ? cuentaEfectiva(cuentas, "pago", l.metodo, l.cuentaId) : null;
-    return { monto: Number(l.monto), metodo: l.metodo, ...(l.referencia.trim() ? { referencia: l.referencia.trim() } : {}), ...(cuenta ? { cuenta_id: cuenta } : {}) };
+    return { monto: numeroDeMonto(l.monto), metodo: l.metodo, ...(l.referencia.trim() ? { referencia: l.referencia.trim() } : {}), ...(cuenta ? { cuenta_id: cuenta } : {}) };
   });
 }
 
@@ -201,7 +203,7 @@ export function LineasPago({
   return (
     <div id={id}>
       {saldoFavor > 0 && (
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-verde/40 bg-verde/[0.06] px-4 py-2.5">
+        <div /* unificar-fijo: el saldo a favor que se usa de un toque (btn-sutil, ronda 9), no un aviso */ className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-verde/40 bg-verde/[0.06] px-4 py-2.5">
           <p className="text-sm text-tinta">
             Tienes <b className="font-semibold">{soles(saldoFavor)}</b> a favor con este proveedor.
           </p>
@@ -227,7 +229,8 @@ export function LineasPago({
                       type="button"
                       role="radio"
                       aria-checked={l.metodo === m}
-                      tabIndex={l.metodo === m ? 0 : -1}
+                      // Sin medio elegido (una pantalla que no lo trae puesto), la primera ficha recibe el Tab: si no, el grupo no se alcanza.
+                      tabIndex={l.metodo === m || (!metodos.includes(l.metodo) && m === metodos[0]) ? 0 : -1}
                       data-preferido={preferido === m}
                       onClick={() => actualizar(i, { metodo: m })}
                       onKeyDown={(e) => alTeclado(e, i, actual)}
@@ -243,9 +246,9 @@ export function LineasPago({
                     etiqueta={i === 0 ? "Monto" : `Monto ${i + 1}`}
                     id={`${id}-monto-${i}`}
                     mono
-                    type="number"
-                    min={0.01}
-                    step="0.01"
+                    {...atributosMontoTexto(l.monto)}
+                    tono={montoIlegible(l.monto) ? "error" : undefined}
+                    pie={montoIlegible(l.monto) ? MONTO_ILEGIBLE : undefined}
                     value={l.monto}
                     onChange={(e) => actualizar(i, { monto: e.target.value })}
                     placeholder="0.00"

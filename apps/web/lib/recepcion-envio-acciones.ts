@@ -59,7 +59,7 @@ export async function recibirDespacho(args: ArgsRecibirDespacho, firma: Firma | 
 }
 
 /** «Ya la tengo»: las prendas activas de esa categoría y marca, las que coinciden con lo escrito primero. Es lectura (`fn_`): no abre el loader. */
-export async function buscarPrendasParaRecibir(categoriaId: string, marcaId: string, busqueda: string): Promise<{ prendas: PrendaRecepcion[]; error: ErrorDeBase }> {
+export async function buscarPrendasParaRecibir(categoriaId: string, marcaId: string | null, busqueda: string): Promise<{ prendas: PrendaRecepcion[]; error: ErrorDeBase }> {
   const { data, error } = (await createClient().rpc(
     RPC_PRENDAS_PARA_RECIBIR as never,
     { p_categoria_id: categoriaId, p_marca_id: marcaId, p_busqueda: busqueda.trim() || null } as never,

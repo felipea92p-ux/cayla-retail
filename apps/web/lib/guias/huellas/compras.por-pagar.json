@@ -2,7 +2,7 @@
   "guia": "compras.por-pagar",
   "ruta": "/compras/por-pagar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 70,
+  "total": 69,
   "controles": {
     "app/(app)/compras/por-pagar/page.tsx": [
       "BotonEnlace «Limpiar filtros»",
@@ -17,19 +17,19 @@
       "input «{`Monto a pagar de ${compra.documento}»",
       "input «Total del pago»",
       "button «Todo ·»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
-      "Boton «{loading ? \"Registrando…\" : `Registrar pago de ${soles(suma)}»",
+      "Boton «{`Registrar pago de ${soles(suma)}»",
       "CampoTexto «Motivo»",
-      "ComboResponsable «Volver»",
+      "ComboResponsable «{responsable}» #2",
       "button «Volver»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/DeudaPorVencimiento.tsx": [
       "button «{TITULO[f.k]}»"
     ],
     "components/FiltrosCompras.tsx": [
-      "BotonFiltros «, accionesDespues, ].map( (contr»",
+      "BotonFiltros «→() => setPanelAbierto((v) => !v)»",
       "DesplegablePildora «Proveedor»",
       "DesplegablePildora «Pago»",
       "DesplegablePildora «Recepción»",
@@ -37,6 +37,8 @@
       "DesplegablePildora «Tipo de documento»",
       "DesplegablePildora «Destino»",
       "DesplegablePildora «Vencimiento»",
+      "FiltroPuesto «{`Quitar filtro ${c.texto}»",
+      "BotonLimpiar «Limpiar todo»",
       "button «{texto}»",
       "CampoFecha «Emitida desde»",
       "CampoFecha «Emitida hasta»"
@@ -53,12 +55,12 @@
       "button «Solo lo vencido ·»",
       "button «{`Descontar mi saldo a favor con ${proveedorNombre}»",
       "CampoFecha «Fecha del pago»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
-      "Boton «(sin nombre)»"
+      "Boton «{credito > 0 ? `Registrar pago de ${soles(total)}»"
     ],
     "components/PagoPiezas.tsx": [
-      "button «{`Copiar ${etiqueta.toLowerCase()}»",
+      "BotonCopiar «{que}»",
       "Boton «Listo»",
       "button «{ETIQUETA_METODO_PAGO[v] ?? v}»",
       "CampoFecha «Fecha del pago»",
@@ -75,6 +77,7 @@
       "button «Solo vencidas»"
     ],
     "components/PorPagarLista.tsx": [
+      "FiltroPuesto «{`Quitar filtro ${filtroLocal.etiqueta}»",
       "Boton «Quitar el filtro»",
       "button «Marcar todo»",
       "button «Limpiar»",
@@ -85,17 +88,13 @@
       "Link «)»"
     ],
     "components/PorPagarVistaRapida.tsx": [
-      "button «Cerrar»",
-      "Link «Abrir comprobante»",
-      "button «Comprobante anterior»",
-      "button «Comprobante siguiente»"
+      "Link «Abrir comprobante»"
     ],
     "components/SaldosAFavor.tsx": [
       "Link «{s.nombre}»"
     ],
     "components/SalidasDeCaja.tsx": [
-      "input «Caja disponible, para ver hasta dónde alcanza»",
-      "button «{`${s.etiqueta}»"
+      "input «Caja disponible, para ver hasta dónde alcanza»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"

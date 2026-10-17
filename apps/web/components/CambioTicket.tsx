@@ -74,7 +74,7 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
   return (
     <Modal
       variante="hoja"
-      ancho="max-w-lg"
+      tamano="mediana"
       titulo="Cambio registrado"
       subtitulo={
         ticket.vaACuarentena

@@ -2,11 +2,11 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 119,
+  "total": 121,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
-      "Volver «:»",
-      "Volver «(sin nombre)»",
+      "Volver «{RUTA_ORDENES}»",
+      "Volver «/productos»",
       "BotonEnlace «Ir a Categorías»"
     ],
     "components/ColaOfflineAviso.tsx": [
@@ -15,8 +15,8 @@
       "button «Descartar»"
     ],
     "components/NuevoProductoForm.tsx": [
-      "Volver «); const cierre = n»",
-      "button «Seguir →»",
+      "Volver «→() => irAPaso((n - 1) as NumeroPaso)»",
+      "button «Seguir»",
       "button «{responsable.motivo ?? undefined}»",
       "CampoTexto «Nombre»",
       "CampoTexto «Descripción»",
@@ -55,11 +55,11 @@
       "Link «{p.referencia}» #2"
     ],
     "components/alta-producto/ConfigurarCategoria.tsx": [
-      "button «{firma.motivo ?? undefined}»"
+      "Boton «{firma.motivo ?? undefined}»"
     ],
     "components/alta-producto/ElegirColores.tsx": [
       "button «{`Quitar ${c.nombre}»",
-      "ComboBuscable «setCarta((v) => !v)»",
+      "ComboBuscable «(sin nombre)»",
       "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
       "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
       "button «{c.nombre}»"
@@ -68,14 +68,14 @@
       "Boton «{enLinea ? undefined : \"Crear una etiqueta necesita internet\"}»",
       "Boton «+ Crear «»",
       "CampoTexto «Nombre de la etiqueta»",
-      "button «{firma.motivo ?? undefined}»",
+      "Boton «{firma.motivo ?? undefined}»",
       "button «Cancelar»"
     ],
     "components/alta-producto/ElegirMarcaProveedor.tsx": [
       "button «Quitar»",
-      "ComboBuscable «Proveedor»",
+      "ComboBuscable «buscar-marca»",
       "button «Quitar» #2",
-      "ComboBuscable «(sin nombre)»",
+      "ComboBuscable «buscar-proveedor»",
       "button «+ Registrar una marca o un proveedor nuevo»"
     ],
     "components/alta-producto/ElegirMuestra.tsx": [
@@ -87,18 +87,19 @@
       "button «+ Otra talla»",
       "CampoTexto «Buscar talla»",
       "button «Cancelar»",
-      "button «{nuevas.length > 0 ? (firma.motivo ?? undefined) : undefined}»"
+      "Boton «{nuevas.length > 0 ? (firma.motivo ?? undefined) : undefined}»"
     ],
     "components/alta-producto/FichaPrevia.tsx": [
       "button «{g.bloquea ? `Siguiente: ${g.texto}»",
       "button «Cancelar»",
       "button «{datos.siguiente ?? undefined}»",
       "button «{verMovil ? \"Ocultar\" : \"Ver\"}»",
-      "button «{datos.siguiente ?? undefined}» #2"
+      "Boton «{datos.siguiente ?? undefined}»"
     ],
     "components/alta-producto/FotosAlta.tsx": [
-      "input «input.current?.click()»",
-      "button «{etiqueta}»"
+      "button «{etiqueta}»",
+      "input «(sin nombre)»",
+      "button «{etiqueta}» #2"
     ],
     "components/alta-producto/GrillaMuestras.tsx": [
       "button «{title}»",
@@ -109,15 +110,13 @@
       "button «{vista.pie.boton}»"
     ],
     "components/alta-producto/IdentidadAlta.tsx": [
-      "ComboResponsable «);»",
+      "ComboResponsable «{control}»",
       "button «Ir a elegir»"
     ],
     "components/alta-producto/MatrizCantidades.tsx": [
       "SegmentoDeslizante «Qué escribes en la tabla»",
       "input «1»",
-      "button «{`Restar a ${etiqueta}»",
-      "input «{`${preguntaCelda}»",
-      "button «{`Sumar a ${etiqueta}»",
+      "input «(sin nombre)»",
       "input «{`${enCostos ? \"Costo\" : \"Precio\"}»"
     ],
     "components/alta-producto/MatrizVariantes.tsx": [
@@ -129,21 +128,21 @@
     ],
     "components/alta-producto/NuevaMarcaForm.tsx": [
       "button «Cambiar»",
-      "ComboBuscable «)»",
+      "ComboBuscable «nm-marca»",
       "button «+ Proveedor nuevo»",
       "button «Cambiar» #2",
       "CampoTexto «Razón social»",
       "CampoTexto «11 dígitos»",
       "button «Mejor elijo uno que ya existe»",
-      "ComboBuscable «)» #2",
+      "ComboBuscable «nm-prov»",
       "button «Cancelar»",
-      "button «{firma.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
       "CampoTexto «Nombre del color»",
-      "Desplegable «setCodigoEscrito(normaliz»",
+      "Desplegable «{familia}»",
       "CampoTexto «Código»",
-      "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
       "button «Elegir»"
     ],
@@ -157,12 +156,14 @@
       "Link «Editar el producto»",
       "Link «{abrirOrden.boton}»",
       "Link «{completas ? \"Ver las fotos\" : \"Agregar fotos\"}»",
-      "button «Crear otro parecido»"
+      "BotonImprimir «Imprimir etiquetas»",
+      "button «Crear otro parecido»",
+      "BotonVer «Ir a productos»"
     ],
     "components/alta-producto/ProponerValor.tsx": [
       "button «{t.boton}»",
       "CampoTexto «{`Nombre ${tipo === \"tallas\" ? \"de la\" : \"del\"}»",
-      "button «{firma.motivo ?? undefined}»",
+      "Boton «{firma.motivo ?? undefined}»",
       "button «Cancelar»"
     ],
     "components/alta-producto/PuntosAvance.tsx": [
@@ -170,7 +171,7 @@
     ],
     "components/alta-producto/TarjetaParecida.tsx": [
       "button «{FRASE.deshacerAria(t.nombre)}»",
-      "Link «{FRASE.esElMismoAria(t.nombre)}»",
+      "BotonVer «{FRASE.esElMismoAria(t.nombre)}»",
       "button «{FRASE.noEsOtroAria(t.nombre)}»",
       "button «?»"
     ],
@@ -183,6 +184,7 @@
       "button «›»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ]
   }

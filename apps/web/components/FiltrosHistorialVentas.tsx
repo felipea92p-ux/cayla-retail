@@ -332,7 +332,7 @@ export function FiltrosHistorialVentas({
       )}
 
       {eligiendo && (
-        <Modal titulo="Tus atajos" subtitulo="Los de fábrica siempre están. Los que marques quedan guardados en este equipo." onClose={() => setEligiendo(false)} ancho="max-w-sm" variante="hoja">
+        <Modal conCerrar titulo="Tus atajos" subtitulo="Los de fábrica siempre están. Los que marques quedan guardados en este equipo." onClose={() => setEligiendo(false)} variante="hoja">
           <ul data-guia="historial.atajos-modal" className="divide-y divide-dashed divide-tinta/10">
             {ATAJOS.filter((a) => puedeMias || a.clave !== "mias").map((a) => (
               <li key={a.clave} className="py-1.5">

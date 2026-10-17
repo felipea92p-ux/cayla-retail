@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { Globito } from "@/components/ui/Globito";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { METODOS_PAGO, METODOS_PAGO_VENTA, type MetodoPagoVenta } from "@cayla-retail/shared";
@@ -26,6 +27,7 @@ import {
   metodoDeAtajo,
   cobroEnEfectivo,
   motivoBloqueoCobro,
+  pagoNuevo,
   pagosCobrados,
   pagosParaRpc,
   pagosTrasEditarMonto,
@@ -39,6 +41,7 @@ import {
   conDescuentoDeCampana,
   type CampanaLinea,
   type DetalleDescuento,
+  type MaquinaDeCobro,
   type ModoDescuento,
   type MomentoTicket,
   type PagoAplicado,
@@ -116,7 +119,7 @@ import {
   type CelularEnFicha,
 } from "@/lib/celular-ficha-reglas";
 import { problemaDocumentoComprobante } from "@/lib/documento-comprobante-reglas";
-import { clientaDeTicketGuardado } from "@/lib/clienta-ticket-reglas";
+import { clientaDeTicketGuardado, nombreDeFichaParaComprobante } from "@/lib/clienta-ticket-reglas";
 import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/AccesosVenta";
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
 import { ClientaDelTicket } from "@/components/punto-de-venta/ClientaDelTicket";
@@ -146,6 +149,7 @@ import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
 import { codigoDeLiquidacion, errorDeLiquidacion, nombreEnVenta, piezaLeidaDeJson, soles as solesLiquidacion } from "@/lib/liquidacion-reglas";
 import { Casilla } from "@/components/ui/Casilla";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 /**
  * Variante centinela de la «Prenda sin registrar» (ADR-0179; antes «Monto manual»): una
@@ -159,6 +163,7 @@ export { ID_CARGO_ESPECIAL };
 
 /** Sin fichas de color: una sola referencia vacía, para que el `useMemo` de la ficha no se rearme en cada render. */
 const SIN_COLORES: ColorConFicha[] = [];
+const SIN_MAQUINAS: readonly MaquinaDeCobro[] = [];
 
 export type VarianteBusqueda = PrendaBuscableV2 & {
   /** De qué modelo es (`productos.id`): «Combina bien con» no sugiere la misma prenda ni una que ya está en el ticket. Ausente = se
@@ -360,6 +365,10 @@ type Props = {
   /** La base ya acepta el QR como medio de una venta (`fn_acepta_pago_qr`, 20261002130000). Hasta que la migración esté en
    *  producción, la hoja de cobro muestra los cinco medios de siempre: un cobro con QR ahí se rechazaría entero. */
   qrDisponible?: boolean;
+  /** Las máquinas de cobro de esta tienda (`fn_pos_maquinas_de_sede`, ADR-0429): con tarjeta o QR el pago nace con la máquina por
+   *  defecto y, donde hay dos para un mismo medio (Vendemás e Izipay en TRU y AQP), la hoja de cobro deja cambiarla con un toque.
+   *  Vacío (la base todavía no las conoce, o la tienda no tiene) = la hoja no pregunta y la base sella sola, como antes. */
+  maquinasCobro?: readonly MaquinaDeCobro[];
   /** Los comprobantes que esta sede puede emitir (los que tienen serie activa, `tiposDeComprobanteDeLaSede`). Sin el dato, los tres. */
   tiposComprobante?: readonly ("boleta" | "factura" | "nota_venta")[];
   /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, 20261003140000, ADR-0311): el efectivo se cobra al
@@ -395,7 +404,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, colores = SIN_COLORES, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, colores = SIN_COLORES, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -1271,7 +1280,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     }
     if (!leida.vigente) {
       avisar.error("Esa etiqueta ya no vale", {
-        detalle: `La prenda cuesta ahora S/ ${solesLiquidacion(pieza.precio)} (etiqueta ${pieza.codigo ?? "nueva"}). Pídele a quien la etiquetó que le pegue la nueva.`,
+        detalle: `La prenda cuesta ahora S/\u00a0${solesLiquidacion(pieza.precio)} (etiqueta ${pieza.codigo ?? "nueva"}). Pídele a quien la etiquetó que le pegue la nueva.`,
       });
       return;
     }
@@ -1370,7 +1379,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // descuento «no entró».
     const cedieron = carrito.filter((it) => {
       if (!it.campana || (claves.length > 0 && !claves.includes(it.claveLinea))) return false;
-      const monto = descuentoPedido(descuento.modo, Number(descuento.modo === "monto" ? descuento.monto : descuento.pct), it.precioUnitario);
+      const monto = descuentoPedido(descuento.modo, descuento.modo === "monto" ? numeroDeMonto(descuento.monto) : Number(descuento.pct), it.precioUnitario);
       return Number(monto) > 0 && descuentoResultante(it, monto).prevaleceCampana;
     });
     if (cedieron.length > 0) {
@@ -1381,7 +1390,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // ADR-0379: una pieza de liquidación tiene precio final; el descuento del ticket no la toca.
     setCarrito((actual) =>
       (descuento.modo === "monto"
-        ? aplicarDescuentoMonto(actual, Number(descuento.monto), claves, detalle)
+        ? aplicarDescuentoMonto(actual, numeroDeMonto(descuento.monto), claves, detalle)
         : aplicarDescuento(actual, Number(descuento.pct), claves, detalle)
       ).map((it, i) => (actual[i]?.liquidacion ? actual[i]! : it)),
     );
@@ -1627,7 +1636,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // tocar otro medio. Una fila por medio: tocar uno que ya está no duplica.
   function agregarPago(metodo: MetodoPagoVenta) {
     if (pagos.some((p) => p.metodo === metodo)) return;
-    setPagos((actual) => [...actual, { metodo, monto: Math.max(0, restante) }]);
+    // Con tarjeta o QR el pago nace con la máquina por defecto de la tienda (ADR-0429); la cajera la cambia en la hoja si fue la otra.
+    setPagos((actual) => [...actual, pagoNuevo(metodo, Math.max(0, restante), maquinasCobro)]);
+  }
+  // Con qué máquina se cobró la tarjeta o el QR (ADR-0429): cambia solo la cuenta de ESE pago; el monto y el resto quedan.
+  function cambiarMaquina(indice: number, cuentaId: string) {
+    setPagos((actual) => actual.map((p, i) => (i === indice ? { ...p, cuentaId } : p)));
   }
   // Con dos medios, al editar uno el otro toma lo que falta (`pagosTrasEditarMonto`).
   function cambiarMontoPago(indice: number, monto: number) {
@@ -1673,7 +1687,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         tocarMedio(metodo);
       } else if (momento === "armar" && prendas > 0) {
         e.preventDefault();
-        setPagos([{ metodo, monto: Math.max(0, total) }]);
+        setPagos([pagoNuevo(metodo, Math.max(0, total), maquinasCobro)]);
         setMomento("cobrar");
       }
     }
@@ -2087,6 +2101,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       vuelto={vuelto}
       cobroEfectivo={cobroEfectivo}
       onTocarMedio={tocarMedio}
+      maquinas={maquinasCobro}
+      onMaquina={cambiarMaquina}
       onMontoPago={cambiarMontoPago}
       onRecibido={cambiarRecibido}
       tipoComprobante={tipoComprobante}
@@ -2103,6 +2119,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               nombre={clienteNombre}
               onNombre={setClienteNombre}
               sinNumero={tipoComprobante === "factura" ? undefined : "Sin documento sale a «Cliente varios»."}
+              nombreDeFicha={nombreDeFichaParaComprobante(clienta, clienteDocIdentidad, clienteNumDoc)}
             />
             {/* Un solo hijo a propósito: `.hoja-cobro-doc > fieldset > div:has(> :nth-child(2))` (globals.css) acomoda en dos columnas
                 todo `div` con dos hijos, y esta caja va en su propia fila. */}
@@ -2390,9 +2407,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         >
           <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-crema/10">
             <ShoppingBag className="h-5 w-5" aria-hidden />
-            {prendas > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1 text-[10px] font-semibold tabular-nums">{prendas}</span>
-            )}
+            <Globito n={prendas} esquina sobreOscuro late className="absolute -right-1.5 -top-1.5" />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[11px] text-crema/70">
@@ -2410,7 +2425,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       )}
 
       {apilado && hojaTicket && (
-        <Modal titulo="Ticket actual" variante="ticket" ancho="max-w-xl" onClose={() => setHojaTicket(false)} alCerrarEnfocar={buscador}>
+        <Modal titulo="Ticket actual" variante="ticket" tamano="mediana" onClose={() => setHojaTicket(false)} alCerrarEnfocar={buscador}>
           {ticketNodo(true)}
         </Modal>
       )}
@@ -2554,8 +2569,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
       {modalAbrirVisible && (
         // Ancha (`max-w-xl`): angosta, con el aviso «Nadie de turno» pasaba los 800 px de alto (Felipe 2026-10-01).
-        <Modal titulo="Abrir caja" ancho="max-w-xl" onClose={() => setModalCaja(null)} alCerrarEnfocar={focoTrasAbrirCaja}>
-          <AbrirCajaFormV2 ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} esperado={fondoUltimoCierre} enHoja />
+        <Modal titulo="Abrir caja" tamano="mediana" onClose={() => setModalCaja(null)} alCerrarEnfocar={focoTrasAbrirCaja}>
+          {(cerrar) => <AbrirCajaFormV2 ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} esperado={fondoUltimoCierre} enHoja onCancelar={cerrar} />}
         </Modal>
       )}
       {modalCerrarVisible && cajaId && (

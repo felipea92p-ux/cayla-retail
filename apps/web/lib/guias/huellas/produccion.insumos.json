@@ -2,34 +2,50 @@
   "guia": "produccion.insumos",
   "ruta": "/produccion/insumos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 23,
+  "total": 33,
   "controles": {
     "components/InsumoModales.tsx": [
-      "CampoSelect «Tipo»",
-      "CampoSelect «Se mide en»",
-      "CampoTexto «Código»",
-      "CampoTexto «Nombre»",
-      "CampoTexto «Mínimo»",
-      "CampoTexto «Merma al cortar (%)»",
-      "CampoTexto «Nota»",
-      "ComboResponsable «{cargando ? \"Guardando…\" : \"Agregar al catálogo\"}»",
-      "Boton «{responsable.motivo ?? undefined}»",
-      "CampoSelect «¿Qué llegó?»",
-      "CampoTexto «{`Cantidad (${UNIDADES_INSUMO[unidad].corta}»",
-      "CampoMonto «{`Costo por ${UNIDADES_INSUMO[unidad].corta}»",
+      "CampoSelect «{guia.etiqueta(\"insumo\", \"¿Qué llegó?\")}»",
+      "CampoTexto «{guia.etiqueta(\"cantidad\", `Cantidad (${UNIDADES_INSUMO[unidad].corta}»",
+      "CampoMonto «{guia.etiqueta(\"costo\", `Costo por ${UNIDADES_INSUMO[unidad].corta}»",
       "CampoTexto «Código de lote»",
       "CampoTexto «Documento»",
       "CampoSelect «Origen»",
-      "CampoTexto «Nota» #2",
-      "ComboResponsable «{cargando ? \"Ingresando…\" : \"Abrir lote y sumar al saldo\"}»",
-      "Boton «{responsable.motivo ?? undefined}» #2"
+      "CampoTexto «Nota»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/InsumosPanel.tsx": [
       "Boton «prod-insumos.nuevo»",
       "Boton «prod-insumos.ingresar»",
+      "button «Ocultar»",
+      "button «Ver el capital en insumos»",
       "Boton «Agregar el primero»",
-      "button «{i.nombre}»",
-      "Boton «+ Ingresar lote»"
+      "button «{indice === 0 ? \"prod-insumos.fila-cabecera\" : undefined}»",
+      "Boton «+ Ingresar lote»",
+      "Boton «{indice === 0 ? \"prod-insumos.editar-ficha\" : undefined}»"
+    ],
+    "components/insumos-taller/CamposDeLaFicha.tsx": [
+      "CampoSelect «{foco.etiqueta(\"tejido\", \"Tejido\")}»",
+      "CampoSelect «{foco.etiqueta(\"color\", \"Color\")}»"
+    ],
+    "components/insumos-taller/FichaDeLaTelaModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/insumos-taller/NuevoInsumoModal.tsx": [
+      "CampoSelect «Tipo»",
+      "CampoSelect «Se mide en»",
+      "CampoTexto «{guia.etiqueta(\"codigo\", \"Código\")}»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
+      "CampoTexto «{guia.etiqueta(\"minimo\", \"Mínimo\")}»",
+      "CampoTexto «{guia.etiqueta(\"merma\", \"Merma al cortar (%)\")}»",
+      "CampoTexto «Nota»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ]
   }
 }

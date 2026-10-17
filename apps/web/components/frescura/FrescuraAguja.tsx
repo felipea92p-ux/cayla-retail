@@ -100,7 +100,7 @@ export function FrescuraAguja({
           </p>
         </>
       ) : senales.length === 0 ? (
-        <Vacio tamano="chico" alinear="izquierda" icono={<Gauge strokeWidth={1.5} />} className="mt-2">
+        <Vacio tamano="chico" alinear="izquierda" icono={<Gauge />} className="mt-2">
           Esta semana ninguna categoría se sale de lo normal.
         </Vacio>
       ) : (
@@ -112,7 +112,7 @@ export function FrescuraAguja({
       )}
       {pisoCuadrado && estrenar.prendas > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-sand pt-3">
-          <Sparkles aria-hidden strokeWidth={1.5} className="h-5 w-5 shrink-0 text-taupe" />
+          <Sparkles aria-hidden className="h-5 w-5 shrink-0 text-taupe" />
           <p className="min-w-0 flex-1 text-[13.5px] leading-snug">
             <span className="font-semibold">
               Sin estrenar: {estrenar.prendas} {estrenar.prendas === 1 ? "prenda" : "prendas"}

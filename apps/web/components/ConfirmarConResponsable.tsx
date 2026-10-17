@@ -25,7 +25,7 @@ export function ConfirmarConResponsable({
 }) {
   const [enCurso, setEnCurso] = useState(false);
   return (
-    <Modal titulo={confirmacion.titulo} subtitulo={confirmacion.bajada} ancho="max-w-sm" onClose={onClose}>
+    <Modal titulo={confirmacion.titulo} subtitulo={confirmacion.bajada} onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           {control && <ComboResponsable control={control} deshabilitado={enCurso} />}

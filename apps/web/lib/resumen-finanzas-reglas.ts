@@ -5,13 +5,13 @@
 // fase (F2b, F3, F4, F5, F6, F8, F9, Presupuesto) con sus mismas columnas, y aquí se leen con los MISMOS lectores de cada
 // fase (`leerFilaER`, `leerCuenta`, `leerFilaPorPagar`, `leerProyeccion`, `leerPanelImpuestos`, `leerCampana`,
 // `leerFilaPpto`). Las reglas que ya viven en una fase se llaman, no se copian: el punto de equilibrio (`puntoDeEquilibrio`,
-// F5), el veredicto de una campaña (`veredictoCampana`, F5), el tono de los días de caja (`tonoDiasDeCaja`, F6), lo que vence
+// F5), el veredicto de una campaña (`veredictoCampana`, F5), lo que vence
 // en una semana (`queVence`, F6), el límite del régimen (`proyectarUmbral`, `tonoAvance`, F8) y el chip del presupuesto
 // (`chipPpto`). Lo propio del Resumen es decidir QUÉ se dice primero: las frases de la salud, las cinco cifras, los avisos de
 // «Para decidir hoy» con su origen y su enlace, y el orden («primero lo que más cuesta si se deja pasar»).
 
 import { leerCuenta, type CuentaDinero, type SinCuenta } from "./cuentas-dinero-reglas";
-import { avisoAntesDelCorte, leerInicioFinanzas, mesAntesDelCorte, mesDelCorte } from "./finanzas-arranque-reglas";
+import { leerInicioFinanzas, mesAntesDelCorte, mesDelCorte } from "./finanzas-arranque-reglas";
 import { diasHasta, leerFilaPorPagar, textoVence, type FilaPorPagar } from "./por-pagar-consolidado-reglas";
 import {
   etiquetaSemana,
@@ -20,7 +20,6 @@ import {
   queVence,
   soles,
   TEXTO_SIN_CUENTA,
-  tonoDiasDeCaja,
   type Proyeccion,
 } from "./flujo-caja-reglas";
 import { leerPanelImpuestos, nombreMes, proyectarUmbral, sumarMeses, tonoAvance, type PanelImpuestos } from "./impuestos-reglas";
@@ -318,157 +317,12 @@ function ventasPpto(r: ResumenFinanzas): FilaPpto | undefined {
   return ps.find((f) => f.ubicacionId === r.ver.ubicacionId);
 }
 
-/** La cuenta 635 (alquileres) del mes: cuánto de lo vendido se va en alquiler. */
-export function pesoAlquiler(f: FilaER | undefined): number | null {
-  if (!f || f.ventas <= 0) return null;
-  const alquiler = f.detalleGastos.filter((g) => g.cuenta === "635").reduce((a, g) => a + g.monto, 0);
-  return alquiler > 0 ? alquiler / f.ventas : null;
-}
-
 // ---- Por qué falta una parte (lo que es de otro módulo o solo del líder se explica, no se esconde) ----------------------------
 
 export function motivoAusencia(p: Parte<unknown>, modulo?: string): string | null {
   if (p.estado === "sin_permiso") return modulo ? `Lo ve quien tiene ${modulo}` : p.mensaje;
   if (p.estado === "falla") return "No se pudo leer";
   return null;
-}
-
-// ---- 1. La salud, en frases (lo primero que se lee) --------------------------------------------------------------------------
-
-export type Tono = "rojo" | "ambar" | "verde" | "pizarra";
-export type Frase = { clave: string; n: string; t: string; d: string; tono: Tono; origen: string };
-
-const tonoDe = (t: "rojo" | "ambar" | "verde" | "neutro"): Tono => (t === "neutro" ? "pizarra" : t);
-
-function fraseDiasDeCaja(r: ResumenFinanzas): Frase {
-  const origen = "Reportes ▸ Flujo de caja";
-  if (r.flujo.estado !== "ok")
-    return { clave: "dias", n: "—", t: "Días de caja", d: motivoAusencia(r.flujo) ?? "El flujo de caja es de CAYLA entera.", tono: "pizarra", origen };
-  const p = r.flujo.datos;
-  if (p.diasDeCaja === null || p.salidasDiarias <= 0)
-    return { clave: "dias", n: "—", t: "Días de caja", d: `${soles(p.saldoHoy)} disponibles; todavía no hay salidas de los últimos 30 días para medir un día normal.`, tono: "pizarra", origen };
-  const bajo = p.semanas.find((w) => w.bajoMinimo);
-  const cola = p.saldoHoy < p.minimoCaja ? ` Hoy ya estás bajo tu mínimo de ${soles(p.minimoCaja)}.` : bajo ? ` La semana del ${etiquetaSemana(bajo.desde, bajo.hasta)} bajas de tu mínimo.` : "";
-  return {
-    clave: "dias",
-    n: `${p.diasDeCaja} ${p.diasDeCaja === 1 ? "día" : "días"}`,
-    t: "Si mañana no vendieras nada, tu plata alcanza para pagar esto",
-    d: `${soles(p.saldoHoy)} disponibles contra ${soles(p.salidasDiarias)} que salen en un día normal.${cola}`,
-    tono: tonoDe(tonoDiasDeCaja(p.diasDeCaja)),
-    origen,
-  };
-}
-
-function fraseEquilibrio(r: ResumenFinanzas, quien: string, holgura: number): Frase | null {
-  const origen = "Reportes ▸ Estado de resultados";
-  if (r.antesDelCorte) return { clave: "equilibrio", n: "—", t: `Cuándo ${quien} cubre sus costos`, d: avisoAntesDelCorte(r.antesDelCorte), tono: "pizarra", origen };
-  if (r.resultadosAnterior.estado !== "ok") return null;
-  const f = filaDeVer(r.resultadosAnterior.datos, r.ver);
-  const mes = mesNombre(r.mesAnterior);
-  const eq = equilibrio(f, diasDelMes(r.mesAnterior));
-  if (!f || !eq) {
-    const ventas = f?.ventas ?? 0;
-    return {
-      clave: "equilibrio",
-      n: "—",
-      t: `Cuándo ${quien} cubre sus costos`,
-      d: ventas > 0 ? `En ${mes} vendió ${soles(ventas)} sin margen: vender más no cubre nada.` : `Sin ventas en ${mes} para calcularlo.`,
-      tono: ventas > 0 ? "rojo" : "pizarra",
-      origen,
-    };
-  }
-  if (eq.dia === null)
-    return {
-      clave: "equilibrio",
-      n: porcentaje(eq.cubre, 1) ?? "—",
-      t: `${quien} no llegó a cubrir sus costos en ${mes}`,
-      d: `Necesita vender ${soles(eq.pe)} al mes para no perder; vendió ${soles(eq.ventas)}: le faltaron ${soles(eq.pe - eq.ventas)}.`,
-      tono: "rojo",
-      origen,
-    };
-  const resto = eq.diasMes - eq.dia;
-  const despues = resto <= 0 ? "No le sobró ningún día." : `Lo que vende después ${resto === 1 ? `del día ${eq.dia} (solo 1 día)` : `(los últimos ${resto} días)`} es la ganancia.`;
-  return {
-    clave: "equilibrio",
-    n: `día ${eq.dia}`,
-    t: `${quien} cubre sus costos del mes ese día`,
-    d: `Necesita vender ${soles(eq.pe)} al mes; en ${mes} vendió ${soles(eq.ventas)}. ${despues}`,
-    tono: eq.dia > eq.diasMes - holgura ? "ambar" : "verde",
-    origen,
-  };
-}
-
-function fraseMeta(r: ResumenFinanzas): Frase | null {
-  const origen = "Reportes ▸ Presupuesto";
-  const v = ventasPpto(r);
-  if (!v || v.proyeccion === null) return null;
-  const mes = mesNombre(r.mes);
-  if (!v.presupuesto)
-    return {
-      clave: "meta",
-      n: "sin meta",
-      t: `Las tiendas no tienen meta de ventas para ${mes}`,
-      d: `Vas en ${soles(v.aLaFecha)} y al ritmo de hoy cerrarías en ${soles(v.proyeccion)}. La meta de cada día se pone en Configuración ▸ Tiendas y caja.`,
-      tono: "pizarra",
-      origen,
-    };
-  const avance = v.proyeccion / v.presupuesto;
-  return {
-    clave: "meta",
-    n: porcentaje(v.proyeccion, v.presupuesto) ?? "—",
-    t: `de la meta de ventas de ${mes}, al ritmo de hoy`,
-    d: `Meta ${soles(v.presupuesto)}; vas en ${soles(v.aLaFecha)} y al cierre llegarías a ${soles(v.proyeccion)}.`,
-    tono: avance < 0.9 ? "ambar" : "verde",
-    origen,
-  };
-}
-
-/** «Planilla S/ 9,600 · Alquileres S/ 1,800 · Servicios básicos S/ 710»: en qué se fue lo que costó una unidad sin ventas. */
-function mayores(f: FilaER | undefined): string | null {
-  const ds = (f?.detalleGastos ?? []).filter((g) => g.monto > 0).sort((a, b) => b.monto - a.monto);
-  if (!ds.length) return null;
-  const resto = ds.slice(3).reduce((a, g) => a + g.monto, 0);
-  return `${ds
-    .slice(0, 3)
-    .map((g) => `${g.nombre} ${soles(g.monto)}`)
-    .join(" · ")}${resto > 0 ? ` · lo demás ${soles(resto)}` : ""}.`;
-}
-
-/** Las frases de arriba: qué tan sano está lo que se mira, en palabras (spike). */
-export function frasesSalud(r: ResumenFinanzas): Frase[] {
-  const fs: (Frase | null)[] = [];
-  if (r.ver.todas) {
-    fs.push(fraseDiasDeCaja(r), fraseEquilibrio(r, "CAYLA", 4), fraseMeta(r));
-  } else if (r.ver.tipo === "tienda") {
-    fs.push(fraseEquilibrio(r, r.ver.nombre, 6));
-    const f = r.resultadosAnterior.estado === "ok" ? filaDeVer(r.resultadosAnterior.datos, r.ver) : undefined;
-    const alq = pesoAlquiler(f);
-    if (alq !== null)
-      fs.push({
-        clave: "alquiler",
-        n: porcentaje(alq, 1) ?? "—",
-        t: "de lo que vende se va en alquiler",
-        d:
-          alq > 0.15
-            ? "Por encima de lo que suele considerarse sano en tiendas de ropa (alrededor de 10–15 %). Es la palanca más grande que tiene."
-            : "Dentro de lo que suele considerarse sano en tiendas de ropa (alrededor de 10–15 %).",
-        tono: alq > 0.2 ? "rojo" : alq > 0.15 ? "ambar" : "verde",
-        origen: "Reportes ▸ Estado de resultados",
-      });
-  } else if (r.resultadosAnterior.estado === "ok") {
-    const f = filaDeVer(r.resultadosAnterior.datos, r.ver);
-    const mes = mesNombre(r.mesAnterior);
-    const taller = r.ver.tipo === "taller";
-    fs.push({
-      clave: "costo",
-      n: soles(f?.gastos ?? 0),
-      t: taller ? `costó el Taller en ${mes}` : `costó lo de la empresa en ${mes}`,
-      d: mayores(f) ?? (taller ? "Sin gastos registrados ese mes." : "Sin gastos de la empresa ese mes."),
-      tono: "pizarra",
-      origen: "Reportes ▸ Estado de resultados",
-    });
-  }
-  return fs.filter((f): f is Frase => f !== null);
 }
 
 // ---- 2. Las cinco cifras ---------------------------------------------------------------------------------------------------
@@ -830,7 +684,7 @@ export function avisosParaDecidir(r: ResumenFinanzas, acceso: Acceso): Aviso[] {
         orden: CLASE.fijo,
         tono: "ambar",
         titulo: `Falta registrar: ${f.descripcion} ${deUnidad(f.ubicacionNombre ?? "De la empresa")}`,
-        detalle: `Suele llegar el día ${f.dia} por unos ${soles(f.monto)}. Si no está, el resultado del mes sale mejor de lo que es.`,
+        detalle: `Se esperaba el día ${Number(f.fechaEsperada.slice(8, 10)) || f.dia} por unos ${soles(f.monto)}. Si no está, el resultado del mes sale mejor de lo que es.`,
         impacto: `~${soles(f.monto)}`,
         href: enlace("gastos", conQuery("/finanzas/gastos", "tab=fijos", `mes=${r.mes}`, verParam(r))),
         boton: "Ver fijos",

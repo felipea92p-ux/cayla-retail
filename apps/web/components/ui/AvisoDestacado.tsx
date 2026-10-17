@@ -70,7 +70,7 @@ export function AvisoDestacado() {
 
 function Hoja({ d }: { d: Destacado }) {
   return (
-    <Modal titulo={d.titulo} tituloGrande conCerrar ancho="max-w-sm" onClose={() => cerrarDestacado(d.id)}>
+    <Modal titulo={d.titulo} conCerrar onClose={() => cerrarDestacado(d.id)}>
       {(cerrar) => (
         <>
           <div role="status" className="destacado-cuerpo mt-4 flex flex-col items-center text-center">

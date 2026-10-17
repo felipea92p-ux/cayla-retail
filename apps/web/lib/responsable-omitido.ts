@@ -80,6 +80,8 @@ export const ACCIONES_SIN_RESPONSABLE = {
   orden_insumo_crear: "Crear una orden de insumos del Taller (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   orden_insumo_editar: "Editar una orden de insumos del Taller (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   orden_insumo_anular: "Anular una orden de insumos del Taller (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // ADR-0362 fase 7 parte 2 (20261015020000): el papel del proveedor de una orden de insumos.
+  orden_insumo_comprobante: "Registrar el comprobante de una orden de insumos del Taller (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // Fondos por rendir (ADR-0362, fase 6; migración 20261013182000): quien entrega plata, recibe lo devuelto o anula un error firma con su
   // cuenta; una terminal elige quién. La base además impide que la persona mueva su propio fondo desde ahí.
   fondo_entregar: "Entregar plata al fondo de una persona (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
@@ -97,6 +99,9 @@ export const ACCIONES_SIN_RESPONSABLE = {
   // ADR-0362 fase 6 · actividad 7 (20261014145000): la deuda de un faltante se salda cuando la persona devuelve la plata.
   fondo_deuda_pagar: "Registrar lo que una persona paga de la deuda de un faltante de su fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   fondo_deuda_anular: "Anular el pago de la deuda de un faltante de fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // «Arma el tuyo» (ADR-0434, actividad 2; migración 20261017013000; Felipe 2026-10-16): el recorte que el ERP guarda solo al subir una
+  // foto, para el probador de la tienda online. Nadie hace una operación aparte: solo subió la foto.
+  recorte_foto: "Guardar el recorte de una foto para el probador de la tienda online al subirla (lo hace el ERP solo, y con la cuenta de una persona firma ella)",
 } as const;
 
 export type ClaveSinResponsable = keyof typeof ACCIONES_SIN_RESPONSABLE;

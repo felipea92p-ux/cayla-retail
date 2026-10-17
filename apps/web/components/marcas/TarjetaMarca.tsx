@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { estadoDeMarca, monogramaDeMarca, sePuedeEliminarMarca, textoEstadoMarca, type EstadoMarca, type MarcaFila } from "@/lib/marcas";
+import { LapizEditar } from "@/components/ui/BotonEditar";
 
 /** El cuadrito de la marca. Su color DICE EL ESTADO (no decora): verde = la usamos, hueso = nadie la ha usado, ámbar = no se puede
  *  usar (sin proveedor), punteado = desactivada. Solo tokens: es estado, no color de una prenda. */
@@ -125,9 +126,13 @@ export function TarjetaMarca({
                 Reactivar
               </button>
             ) : (
-              <button type="button" data-guia="marcas.editar" onClick={onEditar} className={`btn-cayla ${estado === "sin-proveedor" ? "btn-primario" : "btn-secundario"}`}>
-                {estado === "sin-proveedor" ? "Agregar proveedor" : "Editar"}
-              </button>
+              estado === "sin-proveedor" ? (
+                <button type="button" data-guia="marcas.editar" onClick={onEditar} className="btn-cayla btn-primario">
+                  Agregar proveedor
+                </button>
+              ) : (
+                <LapizEditar que={m.nombre} guia="marcas.editar" onClick={onEditar} />
+              )
             )}
             {(estado !== "desactivada" || puedeEliminar) && <MenuAcciones etiqueta={`Más acciones de ${m.nombre}`} texto="Más" items={estado === "desactivada" ? items.filter((i) => i.clave === "eliminar") : items} deshabilitado={trabajando} />}
           </div>

@@ -32,7 +32,9 @@ export function useContar(valor: number, ms = 800, alMontar = false): number {
     }
     const t0 = performance.now();
     const paso = (t: number) => {
-      const k = Math.min(1, (t - t0) / ms);
+      // El primer cuadro llega con la hora de inicio del cuadro, que puede ser anterior a `t0`: sin el piso en 0, la cifra
+      // arrancaba un pelo bajo cero y se leía «-0» (visto en Tienda web ▸ Resumen, 2026-10-16).
+      const k = Math.min(1, Math.max(0, (t - t0) / ms));
       const v = k === 1 ? valor : desde + (valor - desde) * (1 - Math.pow(1 - k, 3.5));
       enPantalla.current = v;
       setMostrado(v);

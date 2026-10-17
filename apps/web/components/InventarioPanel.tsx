@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Globito } from "@/components/ui/Globito";
 import { useMemo, useRef, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, ListChecks, Moon, Package, PackageX, ScanLine, ShoppingBag, SignpostBig, Tag, TriangleAlert, X } from "lucide-react";
@@ -828,9 +829,9 @@ export function InventarioPanel({
                   title="Lo pendiente de la sede, en el orden en que conviene hacerlo"
                   className="btn-cayla btn-secundario h-10 shrink-0 gap-2 px-3 py-1 text-[13px] text-taupe"
                 >
-                  <ListChecks aria-hidden className="h-4 w-4" strokeWidth={1.5} />
+                  <ListChecks aria-hidden className="h-4 w-4" />
                   <span className="max-sm:sr-only">Pendientes</span>
-                  {tareasHoy.length > 0 && <b className="rounded-full bg-ambar/[0.13] px-1.5 text-[11px] font-semibold tabular-nums text-ambar-profundo">{tareasHoy.length}</b>}
+                  <Globito n={tareasHoy.length} pide />
                 </button>
               )
             }
@@ -1404,7 +1405,7 @@ export function InventarioPanel({
       )}
 
       {viendoPendientes && (
-        <Modal titulo="Pendientes de hoy" subtitulo="Lo de la sede, en el orden en que conviene hacerlo" onClose={() => setViendoPendientes(false)} ancho="max-w-2xl">
+        <Modal conCerrar titulo="Pendientes de hoy" subtitulo="Lo de la sede, en el orden en que conviene hacerlo" onClose={() => setViendoPendientes(false)} tamano="ancha">
           {/* Cada botón de una tarea cierra la ventana (`alElegir`) y hace lo suyo: filtrar, abrir Dañadas o Apartados, o ir a otra pantalla. */}
           <ParaHoy
             tareas={tareasHoy}
@@ -1513,7 +1514,7 @@ export function InventarioPanel({
             onClick={() => setCamara(true)}
             className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.99]"
           >
-            <ScanLine size={19} aria-hidden />
+            <ScanLine size={20} aria-hidden />
             Escanear prenda
           </button>
         </div>

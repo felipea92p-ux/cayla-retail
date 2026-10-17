@@ -16,6 +16,8 @@ import { chipDeCotizacion, detalleDeCotizacion, masRecientePorCategoria, ordenar
 import { sumarDias } from "@/lib/fechas-lima";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { MONTO_ILEGIBLE, montoIlegible, numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 // D-82: cotización real de un taller externo para maquilar cada tipo de prenda — sin RPC de
 // escritura, mismo criterio que `codigos_descuento` (CodigosDescuentoPanel.tsx): la RLS de la
@@ -36,13 +38,13 @@ export function CotizacionesMaquilaPanel({ cotizaciones, categorias, hoy }: { co
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 px-5 pt-[18px] pb-3.5">
           <div className="min-w-0 flex-1 basis-80">
             <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
-            <TituloSeccion className="mt-0.5">Cotizaciones de maquila externa</TituloSeccion>
+            <TituloSeccion className="mt-0.5">Cotizaciones de servicios de afuera</TituloSeccion>
             <p className="mt-0.5 max-w-[46rem] text-xs text-tinta/65">
               Lo que cobraría un taller externo por maquilar cada tipo de prenda — la referencia contra la que se mide el Taller (D-31). Una fila por tipo de
               prenda: la más reciente. Renovar es cargar una cotización nueva; ninguna se edita para &ldquo;actualizarla&rdquo;.
             </p>
           </div>
-          <BotonCompacto variante="primario" data-guia="prod-cotizaciones.nueva" icono={<Plus aria-hidden strokeWidth={1.75} />} onClick={() => setCreando(true)}>
+          <BotonCompacto variante="primario" data-guia="prod-cotizaciones.nueva" icono={<Plus aria-hidden />} onClick={() => setCreando(true)}>
             Nueva cotización
           </BotonCompacto>
         </div>
@@ -96,7 +98,7 @@ function FilaCotizacion({ cotizacion: c, hoy }: { cotizacion: CotizacionMaquila;
         <p className="mt-0.5 truncate text-[13px] text-tinta/65 @min-[900px]:hidden">{c.proveedorReferencia ?? "Sin proveedor anotado"}</p>
       </div>
 
-      <p className="font-display text-lg leading-tight tabular-nums text-tinta @min-[640px]:text-right">S/ {c.precioMaquila.toFixed(2)}</p>
+      <p className="font-display text-lg leading-tight tabular-nums text-tinta @min-[640px]:text-right">S/&nbsp;{c.precioMaquila.toFixed(2)}</p>
 
       <p className="text-[13px] text-tinta/75">{textoDeVigencia(c)}</p>
 
@@ -135,7 +137,7 @@ function NuevaCotizacionModal({ categorias, onClose }: { categorias: CategoriaPa
       avisar.error("Elige el tipo de prenda.");
       return;
     }
-    const monto = Number(precio);
+    const monto = numeroDeMonto(precio);
     if (!precio || Number.isNaN(monto) || monto < 0) {
       avisar.error("El precio de maquila no puede ser negativo.", { enfocar: "cotizacion-precio" });
       return;
@@ -188,10 +190,9 @@ function NuevaCotizacionModal({ categorias, onClose }: { categorias: CategoriaPa
           <CampoTexto
             id="cotizacion-precio"
             etiqueta="Precio de maquila (S/, por prenda)"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="0.01"
+            {...atributosMontoTexto(precio)}
+            tono={montoIlegible(precio) ? "error" : undefined}
+            pie={montoIlegible(precio) ? MONTO_ILEGIBLE : undefined}
             value={precio}
             onChange={(e) => setPrecio(e.target.value)}
             placeholder="22.50"
@@ -223,9 +224,9 @@ function NuevaCotizacionModal({ categorias, onClose }: { categorias: CategoriaPa
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button type="submit" disabled={loading} className="btn-cayla btn-primario">
-              {loading ? "Cargando…" : "Cargar cotización"}
-            </button>
+            <Boton peso="primario" cargando={loading} textoCargando="Cargando…" type="submit" disabled={loading}>
+              Cargar cotización
+            </Boton>
           </div>
         </form>
       )}

@@ -50,7 +50,7 @@ export function DeudaPorVencimiento({ tramos, indice = 0 }: { tramos: Tramo[]; /
     <div data-guia="por-pagar.vencimiento" className="card-cayla anim-entra min-w-0 p-5" style={{ ["--i" as string]: indice }}>
       <p className="label-cayla flex items-baseline justify-between gap-3 text-[11px] text-tinta/65">
         Deuda por vencimiento
-        {total > 0 && <span className="text-[12px] font-normal normal-case tracking-normal text-tinta/55">clic para filtrar la lista</span>}
+        {total > 0 && <span className="text-[12px] font-normal normal-case tracking-normal text-tinta/70">clic para filtrar la lista</span>}
       </p>
       {total <= 0 ? (
         <Vacio tamano="chico" alinear="izquierda" className="mt-2 px-0" icono={<Receipt />}>No hay deuda pendiente con proveedores.</Vacio>
@@ -84,7 +84,7 @@ export function DeudaPorVencimiento({ tramos, indice = 0 }: { tramos: Tramo[]; /
                 <span className="font-display mt-0.5 block text-[19px] tabular-nums text-tinta">
                   <CifraQueCuenta valor={f.monto} formato="soles" alMontar />
                 </span>
-                <span className="block text-xs tabular-nums text-tinta/55">{Math.round((f.monto / total) * 100)} %</span>
+                <span className="block text-xs tabular-nums text-tinta/70">{Math.round((f.monto / total) * 100)} %</span>
               </button>
             ))}
           </div>
@@ -92,7 +92,7 @@ export function DeudaPorVencimiento({ tramos, indice = 0 }: { tramos: Tramo[]; /
       )}
       <div className="mt-3.5 flex flex-wrap justify-between gap-x-4 gap-y-1 rounded-[10px] border border-dashed border-tinta/25 px-3 py-2 text-xs">
         <span className="text-tinta/65">Días promedio de pago · % pagado a tiempo</span>
-        <span className="text-tinta/55">Aparecen con el primer comprobante pagado</span>
+        <span className="text-tinta/70">Aparecen con el primer comprobante pagado</span>
       </div>
     </div>
   );

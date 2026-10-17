@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState, type CSSProperties } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Check, ChevronRight, FunnelX } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { Encabezado, Tabla, fila, celda, type Columna } from "@/components/ui/Tabla";
@@ -125,13 +126,12 @@ export function RecepcionesCompraLista({
         <span className={celda("der", "text-sm text-tinta")}>
           {r.unidadesLlegaron} / {r.unidadesFacturadas}
           {/* cuánto de lo facturado llegó, sin leer el número */}
-          <span aria-hidden className="mt-1 block h-[3px] overflow-hidden rounded-full bg-sand">
-            <span className={`anim-crece-x block h-full rounded-full ${completa ? "bg-verde" : "bg-ambar"}`} style={{ width: `${pct}%`, "--i": i } as CSSProperties} />
-          </span>
+          {/* Llegó menos de lo facturado: el ámbar lo pone la pantalla (un faltante); completa, la barra pasa sola a verde. */}
+          <BarraAvance pct={pct} alto="fina" tono={completa ? undefined : "ambar"} decorativa indice={i} className="mt-1" />
         </span>
         <span className={celda("izq", "overflow-visible")}>
           <Chip tono={completa ? "verde" : "ambar"}>
-            {completa && <Check aria-hidden className="check-trazo -ml-0.5 mr-1 inline h-3 w-3" strokeWidth={2.4} style={{ "--d": "0ms" } as CSSProperties} />}
+            {completa && <Check aria-hidden className="check-trazo -ml-0.5 mr-1 inline h-3 w-3" style={{ "--d": "0ms" } as CSSProperties} />}
             {completa ? "Completa" : `Faltan ${r.faltante}`}
           </Chip>
         </span>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
+import { BarrasTiempo, type TonoBarraTiempo } from "@/components/ui/BarrasTiempo";
 import { usePorPagar } from "@/components/PorPagarContexto";
 import { soles } from "@/lib/compras-reglas";
 import type { SalidaCaja } from "@/lib/compras-indicadores";
@@ -21,14 +22,12 @@ import { Vacio } from "@/components/ui/Vacio";
 // Colores: rojo lo vencido (hay que actuar), ámbar la semana en curso, tinta el resto. Los montos van sobre cada barra porque el gráfico
 // es chico y el dato es el punto.
 
-const ALTO_MAX = 96; // px de la barra más alta
-
 // `salidas_caja_30d()` numera desde 0: 0 = vencido, 1 = la semana en curso, 2–4 = las que siguen y 5 = «Después» (el único sin `hasta`).
-function colorDe(s: SalidaCaja): string {
-  if (s.esVencido) return "bg-rojo";
-  if (s.orden === 1) return "bg-ambar"; // la semana actual
-  if (s.hasta === null) return "bg-tinta/25"; // «Después»
-  return "bg-tinta/55";
+// El color lo pone la pantalla: lo vencido en rojo y la semana en curso en ámbar; las demás, en la arena de la pieza.
+function tonoDe(s: SalidaCaja): TonoBarraTiempo | undefined {
+  if (s.esVencido) return "rojo";
+  if (s.orden === 1) return "ambar"; // la semana actual
+  return undefined;
 }
 
 function comoSeDice(s: SalidaCaja): string {
@@ -80,7 +79,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
             Tengo
             {/* La caja que se enciende, baja (ADR-0358, ronda 6): antes una raya con su propio hilo. */}
             <span className="caja-cayla caja-campo caja-campo-baja min-h-8 w-[7.5rem] gap-1 px-2">
-              <span aria-hidden className="text-tinta/55">S/</span>
+              <span aria-hidden className="text-tinta/70">S/</span>
               <input
                 inputMode="decimal"
                 value={cajaTxt}
@@ -97,62 +96,53 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
         <Vacio tamano="chico" alinear="izquierda" className="mt-2 px-0" icono={<CalendarClock />}>No hay pagos que venzan en los próximos 30 días.</Vacio>
       ) : (
         <>
-          <div className="mt-3 flex h-[158px] items-end gap-1.5 border-b border-tinta/10 sm:gap-2.5">
-            {salidas.map((s, i) => {
-              const activa = filtroLocal?.clave === `caja:${s.orden}`;
-              const cubierta = hayCaja ? cobertura.fracciones[i] : 0;
-              return (
-                <button
-                  key={s.orden}
-                  type="button"
-                  aria-pressed={activa}
-                  aria-label={`${s.etiqueta}: ${s.monto.toFixed(2)} soles en ${s.comprobantes} comprobantes. Filtrar la lista`}
-                  onMouseEnter={() => apuntar({ tipo: "caja", cubeta: { desde: s.desde, hasta: s.hasta } })}
-                  onMouseLeave={() => apuntar(null)}
-                  onFocus={() => apuntar({ tipo: "caja", cubeta: { desde: s.desde, hasta: s.hasta } })}
-                  onBlur={() => apuntar(null)}
-                  onClick={() =>
-                    alternarFiltro({
-                      clave: `caja:${s.orden}`,
-                      etiqueta: s.esVencido ? "Salidas: lo vencido" : `Salidas: ${s.etiqueta}`,
-                      coincide: (c) => enCubetaCaja(c, { desde: s.desde, hasta: s.hasta }),
-                    })
-                  }
-                  className={`group relative flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-[5px] transition-opacity duration-200 ${hayFiltro && !activa ? "opacity-40" : ""}`}
-                >
-                  <span
-                    role="tooltip"
-                    className={`pointer-events-none absolute bottom-[calc(100%+4px)] z-10 w-max max-w-[11rem] rounded-[10px] bg-tinta px-2.5 py-2 text-left text-xs text-crema opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100 ${i < 3 ? "left-0" : "right-0"}`}
-                  >
-                    <b className="block font-semibold">
-                      {s.esVencido ? "Vencido" : s.etiqueta} · {s.comprobantes} {s.comprobantes === 1 ? "comprobante" : "comprobantes"}
-                    </b>
-                    <span className="mt-1 block border-t border-crema/20 pt-1 tabular-nums">Acumulado {soles(acumulados[i])}</span>
-                  </span>
-                  <span className="text-[10px] tabular-nums tracking-tight text-tinta/75 sm:text-xs sm:tracking-normal">
-                    <CifraQueCuenta valor={s.monto} formato="monto" alMontar />
-                  </span>
-                  <span
-                    className={`anim-crece-y block w-full max-w-[58px] rounded-b-sm rounded-t-md transition-[height,transform] duration-700 ease-cayla group-hover:scale-x-[1.06] group-focus-visible:scale-x-[1.06] ${colorDe(s)}`}
-                    style={{ height: `${s.monto > 0 ? Math.max(8, Math.round((s.monto / max) * ALTO_MAX)) : 0}px`, ["--i" as string]: i * 2 }}
-                  />
-                  <span
-                    aria-hidden
-                    className="absolute -bottom-[9px] left-[12%] right-[12%] h-[3px] origin-left rounded-full bg-verde transition-transform duration-700 ease-cayla"
-                    style={{ transform: `scaleX(${cubierta})` }}
-                  />
-                </button>
-              );
-            })}
-          </div>
-          <div className="mt-3.5 flex gap-1.5 sm:gap-2.5">
-            {salidas.map((s) => (
-              <span key={s.orden} className="min-w-0 flex-1 text-center text-[10.5px] leading-tight text-tinta/65 sm:whitespace-nowrap sm:text-xs">
-                {s.etiqueta}
-              </span>
-            ))}
-          </div>
-          <p className="mt-2 min-h-5 text-xs text-tinta/60" aria-live="polite">
+          {/* Las barras por tiempo del sistema (ronda 14 de /unificar), con la cifra sobre cada semana: tocar una filtra la lista, pasar el
+              mouse resalta lo suyo, y la raya verde de abajo es lo que cubre la caja que escribiste. */}
+          <BarrasTiempo
+            className="mt-3"
+            alto={150}
+            cifras="todas"
+            barras={salidas.map((s, i) => ({
+              clave: String(s.orden),
+              valor: s.monto,
+              etiqueta: s.etiqueta,
+              tono: tonoDe(s),
+              aria: `${s.etiqueta}: ${s.monto.toFixed(2)} soles en ${s.comprobantes} comprobantes. Filtrar la lista`,
+              cifra: <CifraQueCuenta valor={s.monto} formato="monto" alMontar />,
+              tip: (
+                <>
+                  <b className="block font-semibold">
+                    {s.esVencido ? "Vencido" : s.etiqueta} · {s.comprobantes} {s.comprobantes === 1 ? "comprobante" : "comprobantes"}
+                  </b>
+                  <span className="mt-1 block border-t border-crema/20 pt-1">Acumulado {soles(acumulados[i])}</span>
+                </>
+              ),
+              debajo: (
+                <span
+                  aria-hidden
+                  className="absolute -bottom-[9px] left-[12%] right-[12%] h-[3px] origin-left rounded-full bg-verde transition-transform duration-700 ease-cayla"
+                  style={{ transform: `scaleX(${hayCaja ? cobertura.fracciones[i] : 0})` }}
+                />
+              ),
+            }))}
+            respuesta={{
+              elegida: hayFiltro ? (filtroLocal?.clave.slice("caja:".length) ?? null) : null,
+              onApuntar: (clave) => {
+                const s = clave === null ? null : salidas.find((x) => String(x.orden) === clave);
+                apuntar(s ? { tipo: "caja", cubeta: { desde: s.desde, hasta: s.hasta } } : null);
+              },
+              onElegir: (clave) => {
+                const s = salidas.find((x) => String(x.orden) === clave)!;
+                alternarFiltro({
+                  clave: `caja:${s.orden}`,
+                  etiqueta: s.esVencido ? "Salidas: lo vencido" : `Salidas: ${s.etiqueta}`,
+                  coincide: (c) => enCubetaCaja(c, { desde: s.desde, hasta: s.hasta }),
+                });
+              },
+            }}
+            etiqueta="Salidas de caja de los próximos 30 días, por semana"
+          />
+          <p className="mt-2 min-h-5 text-xs text-tinta/70" aria-live="polite">
             {veredicto}
           </p>
         </>

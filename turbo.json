@@ -12,6 +12,9 @@
       "outputs": [
         ".next/**",
         "!.next/cache/**"
+      ],
+      "passThroughEnv": [
+        "SENTRY_AUTH_TOKEN"
       ]
     },
     "lint": {},

@@ -1,0 +1,73 @@
+/* Demos de la ronda 15: íconos y globitos. Solo tokens del ERP. */
+.r15-tarjeta { padding: 20px 22px; display: grid; gap: 16px; max-width: 640px; }
+.r15-ic { flex-shrink: 0; }
+.r15-abs * { vector-effect: non-scaling-stroke; }
+.r15-tenue { color: color-mix(in srgb, var(--color-tinta) 55%, transparent); }
+.r15-titulo { display: flex; align-items: center; gap: 10px; }
+.r15-titulo .font-display { font-size: 21px; line-height: 1.2; }
+.r15-botones { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.r15-botones .btn-cayla { gap: 8px; }
+.r15-campo { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; min-width: 210px; font-size: 13.5px; }
+.r15-ph { color: color-mix(in srgb, var(--color-tinta) 55%, transparent); }
+.r15-filas { display: grid; border-top: 1px solid var(--color-sand); }
+.r15-fila { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--color-sand); font-size: 13.5px; }
+.r15-fila > span:first-of-type { flex: 1; }
+.r15-dato { display: inline-flex; align-items: center; gap: 6px; color: var(--color-taupe); font-size: 13px; }
+.r15-nota { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 0; }
+.r15-chips { display: flex; gap: 8px; }
+.r15-escala { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; max-width: 640px; }
+.r15-esc { display: grid; justify-items: start; gap: 4px; padding: 12px; border: 1px solid var(--color-sand); border-radius: 12px; background: var(--color-papel); font-size: 12px; color: var(--color-taupe); }
+.r15-esc b { color: var(--color-tinta); font-size: 13px; }
+
+/* El globito */
+.r15-globos { gap: 14px; }
+.r15-glugar { display: grid; gap: 8px; }
+.r15-gfila { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; }
+.r15-gn { display: inline-flex; align-items: center; gap: 0; font-size: 13.5px; }
+.r15-gtit { font-size: 21px; }
+.r15-gmenu { display: inline-flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--color-hueso); font-size: 13.5px; }
+.r15-gbolsa, .r15-gacceso, .r15-gavisos { position: relative; display: inline-grid; place-items: center; }
+.r15-gbolsa { width: 44px; height: 44px; border-radius: 14px; background: var(--color-tinta); color: var(--color-crema); }
+.r15-gacceso { gap: 6px; width: 92px; padding: 14px 4px; border: 1px solid var(--color-sand); border-radius: 12px; background: var(--color-papel); font-size: 12px; }
+/* P1 y P2: una sola pieza */
+.r15-g { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 10.5px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; font-family: var(--font-sans); letter-spacing: 0; }
+.r15-g-linea { margin-left: 8px; background: color-mix(in srgb, var(--color-tinta) 10%, transparent); color: var(--color-tinta); }
+.r15-gtit .r15-g-linea { vertical-align: middle; }
+.r15-g-pide { background: color-mix(in srgb, var(--color-ambar) 15%, transparent); color: var(--color-ambar-profundo); }
+.r15-g-esquina { position: absolute; top: -7px; right: -7px; min-width: 18px; height: 18px; padding: 0 5px; font-size: 10px; background: var(--color-tinta); color: var(--color-crema); box-shadow: 0 0 0 2px var(--color-papel); }
+.r15-gbolsa .r15-g-esquina:not(.r15-g-pide-lleno) { background: var(--color-crema); color: var(--color-tinta); box-shadow: 0 0 0 2px var(--color-tinta); }
+.r15-g-pide-lleno { background: var(--color-ambar); color: var(--color-crema); }
+.r15-g-oscuro { background: color-mix(in srgb, var(--color-crema) 18%, transparent); color: var(--color-crema); }
+/* Hoy, como está dibujado en cada pantalla */
+.r15-hoy-pestana, .r15-hoy-titulo { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 8px; border-radius: 999px; background: color-mix(in srgb, var(--color-tinta) 10%, transparent); font-size: 10.5px; font-weight: 600; font-family: var(--font-sans); vertical-align: middle; }
+.r15-hoy-pestana-pide { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 8px; border-radius: 999px; background: color-mix(in srgb, var(--color-ambar) 15%, transparent); color: var(--color-ambar-profundo); font-size: 10.5px; font-weight: 600; }
+.r15-hoy-menu { display: inline-grid; place-items: center; height: 20px; min-width: 20px; padding: 0 6px; margin-left: 8px; border-radius: 999px; background: var(--color-ambar); color: var(--color-crema); font-size: 11px; font-weight: 500; }
+.r15-hoy-inv { margin-left: 6px; padding: 0 6px; border-radius: 999px; background: color-mix(in srgb, var(--color-ambar) 13%, transparent); color: var(--color-ambar-profundo); font-size: 11px; font-weight: 600; }
+.r15-hoy-esq-rojo { position: absolute; top: -6px; right: -6px; display: grid; place-items: center; height: 20px; min-width: 20px; padding: 0 4px; border-radius: 999px; background: var(--color-rojo); color: var(--color-crema); font-size: 10px; font-weight: 600; }
+.r15-anillo { box-shadow: 0 0 0 2px var(--color-crema); top: -8px; right: -8px; }
+.r15-hoy-esq-ambar { position: absolute; top: 6px; right: 6px; display: grid; place-items: center; height: 18px; min-width: 18px; padding: 0 4px; border-radius: 999px; background: var(--color-ambar); color: var(--color-crema); font-size: 10px; font-weight: 700; }
+.r15-hoy-crema { display: grid; place-items: center; height: 20px; min-width: 20px; padding: 0 4px; margin-left: 6px; border-radius: 999px; background: var(--color-crema); color: var(--color-tinta); font-size: 10.5px; font-weight: 600; }
+.btn-primario .r15-g-oscuro, .btn-primario .r15-hoy-crema { margin-left: 6px; }
+/* Ver más */
+.r15-vm-hoy { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.r15-vm-tarjeta { padding: 14px 18px 0; display: grid; gap: 8px; max-width: 520px; overflow: hidden; }
+.r15-vm-tarjeta > .btn-cayla { margin-bottom: 14px; }
+.r15-vm-mas { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 400ms var(--ease-cayla); }
+.r15-vm-mas.abierto { grid-template-rows: 1fr; }
+.r15-vm-mas > div { overflow: hidden; }
+.r15-vm-pie { display: flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% + 36px); margin: 0 -18px; padding: 13px; border: 0; border-top: 1px solid var(--color-sand); background: transparent; color: var(--color-taupe); font: inherit; font-size: 13.5px; font-weight: 500; cursor: pointer; transition: background 260ms var(--ease-cayla), color 260ms var(--ease-cayla); }
+.r15-vm-pie:hover { background: color-mix(in srgb, var(--color-tinta) 5%, transparent); color: var(--color-tinta); }
+.r15-vm-flecha { transition: transform 400ms var(--ease-cayla); }
+[aria-expanded="true"] .r15-vm-flecha { transform: rotate(180deg); }
+.r15-vm-suelto { padding: 4px 0 14px; }
+.r15-vm-enlace { gap: 6px; }
+.r15-vm-borde { margin: 0 -18px; padding: 10px 20px; border-top: 1px solid var(--color-sand); }
+.r15-vm-texto { border: 0; background: none; padding: 0; font: inherit; font-size: 13px; font-weight: 500; color: var(--color-taupe); cursor: pointer; }
+.r15-vm-texto:hover { color: var(--color-tinta); }
+/* Deshacer */
+.r15-cambios { display: grid; gap: 8px; font-size: 13px; color: var(--color-ambar-profundo); }
+.r15-cambio { display: inline-flex; align-items: center; gap: 10px; }
+.r15-deshacer { gap: 4px; font-size: 13px; }
+.r15-lupa { display: grid; gap: 6px; margin-top: 12px; }
+.r15-lupa-fila { display: flex; align-items: center; gap: 14px; zoom: 3; color: var(--color-tinta); }
+.r15-lupa-fila > span { width: 30px; font-size: 5px; color: var(--color-taupe); }

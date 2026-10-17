@@ -2,12 +2,13 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { AlertTriangle, Bookmark, ChevronRight, Truck, Undo2 } from "lucide-react";
+import { Bookmark, ChevronRight, Truck, Undo2 } from "lucide-react";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { hrefPedirTraslado, sedesDeOrigen, type SedeConId } from "@/lib/cambios-atajos-reglas";
 import type { SedeConStock } from "@/lib/stock-por-sede";
 import { descripcionDePrenda } from "@/lib/se-probo-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 
 /* ====================================================================
    CambioSalidas · qué hacer cuando la talla elegida no está en esta sede (spike 2026-09-26,
@@ -77,12 +78,8 @@ export function CambioSalidas({
   const origenes = sedesDeOrigen(otrasSedes, sedes).slice(0, 2);
 
   return (
-    <div className="anim-revelar mt-4 rounded-2xl border border-ambar/35 bg-ambar/[0.06] px-4 py-4 sm:px-5" role="status">
-      <p className="flex items-start gap-2 text-sm font-semibold text-ambar-profundo">
-        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-        {aviso}
-      </p>
-      <p className="mt-1 text-[13px] text-tinta/75">Elige cómo seguir con el cliente:</p>
+    <Aviso tono="atencion" className="mt-4" titulo={aviso}>
+      <p>Elige cómo seguir con el cliente:</p>
 
       <div className="mt-3 grid gap-2">
         {origenes.map((o, i) =>
@@ -128,6 +125,6 @@ export function CambioSalidas({
         clientaId={null}
         responsable={responsable}
       />
-    </div>
+    </Aviso>
   );
 }

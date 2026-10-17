@@ -2,27 +2,32 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 42,
+  "total": 48,
   "controles": {
+    "components/CuentasProveedor.tsx": [
+      "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
+      "LapizEditar «la cuenta»",
+      "BotonCopiar «{que}»"
+    ],
     "components/GastosFijosYActivos.tsx": [
-      "Link «Editar fijos»",
+      "BotonEditar «Editar fijos»",
       "BotonEnlace «Agregar el primero»",
       "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}»",
       "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}» #2",
       "button «Marcar fijo»",
       "button «No es fijo»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
-      "button «{guardando ? \"Guardando…\" : \"No es fijo\"}»",
+      "Boton «No es fijo»",
       "Boton «+ Agregar fijo»",
-      "button «Editar»",
-      "ComboResponsable «(sin nombre)»",
+      "LapizEditar «{f.descripcion}»",
+      "ComboResponsable «{responsable}» #2",
       "button «Ya no se paga: archivar»",
       "button «Cancelar» #2",
-      "button «{guardando ? \"Guardando…\" : fijo ? \"Guardar\" : \"Agregar fijo\"}»",
-      "ComboResponsable «setAccion(null)»",
+      "Boton «{fijo ? \"Guardar\" : \"Agregar fijo\"}»",
+      "ComboResponsable «{responsable}» #3",
       "button «Volver»",
-      "button «→confirmar»",
+      "Boton «{accion === \"baja\" ? \"Dar de baja\" : \"Anular activo\"}»",
       "button «Se registró por error…»",
       "button «Dar de baja…»"
     ],
@@ -30,29 +35,36 @@
       "Boton «fin-gastos.registrar»",
       "Boton «fin-gastos.registrar» #2",
       "button «fin-gastos.clasificar»",
-      "ComboResponsable «setAnulando(false)»",
+      "ComboResponsable «{responsable}»",
       "button «Volver»",
-      "button «{guardando ? \"Anulando…\" : \"Anular gasto\"}»",
+      "Boton «Anular gasto»",
       "Link «Impuestos»",
       "button «Anular…»",
       "button «Regístralo con su comprobante»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
-      "button «→guardar»",
+      "Boton «{que === \"activo\" ? \"Seguir: registrar el activo\" : \"Guardar\"}»",
       "button «{abierto ? \"Ocultar\" : \"Ver\"}»",
-      "ComboResponsable «{marcas.map((m) => ( <li key={m.id}»",
-      "button «{revirtiendo === m.id ? \"Revirtiendo…\" : \"Revertir\"}»"
+      "ComboResponsable «{responsable}» #3",
+      "Boton «Revertir»"
+    ],
+    "components/ProveedorElegido.tsx": [
+      "a «{tel.texto}»"
     ],
     "components/RegistrarGastoModal.tsx": [
       "button «¿No está? Súmalo»",
-      "button «Sumar proveedor»",
       "button «Cancelar»",
-      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
+      "button «Sumar proveedor»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar» #2",
-      "button «→guardar»"
+      "Boton «→guardar»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"
+    ],
+    "components/finanzas/GastosPulso.tsx": [
+      "button «fin-gastos.resolver»",
+      "button «Ver todas»"
     ]
   }
 }

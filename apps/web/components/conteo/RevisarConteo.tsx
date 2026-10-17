@@ -20,6 +20,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { claveResponsableConteo } from "@/lib/responsable-conteo";
 import { Aviso } from "@/components/ui/Aviso";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Boton } from "@/components/ui/campos";
 
 /* ====================================================================
    Revisar conteo · lo que no coincide, antes de tocar las existencias
@@ -208,9 +209,7 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
 
       {conPendientes && (
         <>
-          <p role="status" className="rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm text-ambar-profundo">
-            {textoFaltanPorContar(resumen.pendientes)}
-          </p>
+          <Aviso tono="atencion">{textoFaltanPorContar(resumen.pendientes)}</Aviso>
 
           <section ref={tarjetaPend} data-guia="revisar.pendientes" className="card-cayla @container scroll-mt-24 overflow-hidden">
             <div className="space-y-1 border-b border-sand px-4 py-4 @[36rem]:px-5">
@@ -319,15 +318,15 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
                         {ocupada === "recontar" ? "Un momento…" : "Volver a contar"}
                       </button>
                       {f.estado === "con_diferencia" && (
-                        <button
+                        <Boton peso="primario" cargando={ocupada === "confirmar"} textoCargando="Confirmando…"
                           type="button"
                           disabled={!puedeActuar}
                           title={responsable.motivo ?? undefined}
                           onClick={() => void actuar(f.varianteId, "confirmar")}
-                          className="btn-cayla btn-chico btn-primario min-w-0 flex-1 @[36rem]:flex-none"
+                          className="btn-chico min-w-0 flex-1 @[36rem]:flex-none"
                         >
-                          {ocupada === "confirmar" ? "Confirmando…" : `Confirmar ${f.contada}`}
-                        </button>
+                          {`Confirmar ${f.contada}`}
+                        </Boton>
                       )}
                     </div>
                   </div>

@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { useDestinoFlotante, usePosicionAnclada } from "@/components/ui/useAnclaje";
-import { esMismoMes, mesAnterior, mesSiguiente, type Mes } from "@/lib/facturacion-reglas";
+import { esMismoMes, mesAnterior, mesSiguiente, paramDeMes, type Mes } from "@/lib/facturacion-reglas";
 import { mesesDelSelector, nombreDelMes } from "@/lib/historial-cierres-reglas";
 
 const ANCHO = 268;
@@ -22,6 +23,8 @@ export function SelectorMes({
   actual,
   onCambiar,
   anioMinimo = actual.anio - 3,
+  guia,
+  guiaAnterior,
 }: {
   valor: Mes;
   /** El mes de hoy: el último que se puede elegir. */
@@ -29,6 +32,9 @@ export function SelectorMes({
   onCambiar: (mes: Mes) => void;
   /** El año más antiguo al que se puede ir. */
   anioMinimo?: number;
+  /** Anclas de la guía interactiva (ADR-0389): la píldora entera y la flecha al mes anterior. */
+  guia?: string;
+  guiaAnterior?: string;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [anio, setAnio] = useState(valor.anio);
@@ -82,9 +88,10 @@ export function SelectorMes({
   }, [abierto]);
 
   return (
-    <div ref={grupo} className="inline-flex items-center gap-0.5 rounded-full border border-sand bg-papel p-[3px]">
+    <div ref={grupo} data-guia={guia} className="inline-flex items-center gap-0.5 rounded-full border border-sand bg-papel p-[3px]">
       <button
         type="button"
+        data-guia={guiaAnterior}
         aria-label={`Ir a ${nombreDelMes(previo)}`}
         disabled={!hayPrevio}
         onClick={() => onCambiar(previo)}
@@ -183,5 +190,23 @@ export function SelectorMes({
           destino,
         )}
     </div>
+  );
+}
+
+/**
+ * El mismo selector en una pantalla que lee el mes de la URL (`?m=2026-09`): Comprobantes ▸ Emitidos y Proformas (ADR-0358, ronda
+ * 17, en lugar de los vecinos en versalitas). Elegir un mes navega a esa dirección, como hacían sus enlaces, y la pantalla de
+ * servidor vuelve a leer con el mes nuevo.
+ */
+export function SelectorMesEnUrl({ ruta, mes, actual, guia, guiaAnterior }: { ruta: string; mes: Mes; actual: Mes; guia?: string; guiaAnterior?: string }) {
+  const router = useRouter();
+  return (
+    <SelectorMes
+      valor={mes}
+      actual={actual}
+      onCambiar={(m) => router.push(`${ruta}?m=${paramDeMes(m)}`)}
+      guia={guia}
+      guiaAnterior={guiaAnterior}
+    />
   );
 }

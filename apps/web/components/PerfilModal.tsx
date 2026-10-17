@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -10,6 +11,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
+import { Boton } from "@/components/ui/campos";
 
 // "Mi perfil" (0014_perfil.sql, 2026-09-14): casi todo acá es de solo lectura
 // a propósito — nombres/apellidos/correo/rol/estado/ubicación son de Dynamic
@@ -76,7 +78,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
       .maybeSingle()
       .then(({ data, error: errCarga }) => {
         if (!vigente) return;
-        if (errCarga) avisar.error(traducirError(errCarga, "cargar tu perfil"));
+        if (errCarga) avisar.error(traducirError(errCarga, "cargar tu perfil", { lectura: true }));
         else if (data) {
           const miPerfil = data as MiPerfil;
           setPerfil(miPerfil);
@@ -161,7 +163,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
   }
 
   return (
-    <Modal conCerrar titulo="Mi perfil" subtitulo="Tu información personal y de cuenta." onClose={alCerrar} ancho="max-w-lg">
+    <Modal conCerrar titulo="Mi perfil" subtitulo="Tu información personal y de cuenta." onClose={alCerrar} tamano="mediana">
       {(cerrar) => {
         void cerrar; // el cierre animado de Modal no distingue "en vuelo" — se controla acá, con alCerrar
         if (cargando) return <p className="py-8 text-center text-sm text-tinta/65">Cargando…</p>;
@@ -183,14 +185,13 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
               <div className="space-y-2">
                 <input ref={inputRef} type="file" accept="image/jpeg" onChange={onArchivo} className="hidden" />
                 <div className="pie-acciones">
-                  <button
+                  <Boton cargando={subiendo} textoCargando="Subiendo…"
                     type="button"
                     onClick={() => inputRef.current?.click()}
                     disabled={subiendo}
-                    className="btn-cayla btn-secundario"
                   >
-                    {subiendo ? "Subiendo…" : perfil.foto_url ? "Cambiar foto" : "Subir foto"}
-                  </button>
+                    {perfil.foto_url ? "Cambiar foto" : "Subir foto"}
+                  </Boton>
                   {perfil.foto_url && (
                     <button type="button" onClick={onEliminarFoto} disabled={subiendo} className="btn-cayla btn-peligro">
                       Eliminar
@@ -242,7 +243,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
                     <span className="block text-sm text-tinta">Colaboradores</span>
                     <span className="mt-0.5 block text-xs text-tinta/55">A quién de Dynamic se le abre la puerta de retail.</span>
                   </span>
-                  <span aria-hidden className="text-tinta/45">→</span>
+                  <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/45" />
                 </Link>
                 )}
                 {/* Configuración (ADR-0195 F1): se ofrece a quien ve el módulo (ADR-0253: ya no es solo del líder). */}
@@ -256,7 +257,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
                       <span className="block text-sm text-tinta">Configuración</span>
                       <span className="mt-0.5 block text-xs text-tinta/55">Meta de cada día, fondo de caja y lo que cambia cada campaña.</span>
                     </span>
-                    <span aria-hidden className="text-tinta/45">→</span>
+                    <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/45" />
                   </Link>
                 )}
               </div>
@@ -275,7 +276,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
                     <span className="block text-sm text-tinta">Demo</span>
                     <span className="mt-0.5 block text-xs text-tinta/55">Elige un módulo y te mostramos, paso a paso, qué hace cada cosa.</span>
                   </span>
-                  <span aria-hidden className="text-tinta/45">→</span>
+                  <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/45" />
                 </button>
               </div>
             )}
@@ -364,9 +365,9 @@ function CambiarClave({ onListo }: { onListo: () => void }) {
         <button type="button" onClick={onListo} className="btn-cayla btn-secundario">
           Cancelar
         </button>
-        <button type="submit" disabled={guardando} className="btn-cayla btn-primario">
-          {guardando ? "Guardando…" : "Guardar contraseña"}
-        </button>
+        <Boton peso="primario" cargando={guardando} type="submit" disabled={guardando}>
+          Guardar contraseña
+        </Boton>
       </div>
     </form>
   );

@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Minus, Plus } from "lucide-react";
+import { useRef, useState, type InputHTMLAttributes, type KeyboardEvent, type ReactNode, type Ref } from "react";
 import { Punto } from "./Punto";
 import { SegmentoDeslizante } from "../ui/SegmentoDeslizante";
+import { PasoCantidad } from "../ui/PasoCantidad";
 import { RAYADO_FUERA } from "./rayado";
 import { limpiarCantidad, type CeldaAlta } from "../../lib/alta-producto";
 import { fondoDeMuestra } from "../../lib/colores-familias";
@@ -51,8 +51,8 @@ import {
 
 type Modo = "cantidades" | "precios" | "costos";
 
-const BOTON_PASO =
-  "grid h-6 w-5 shrink-0 place-items-center rounded-[5px] text-taupe/70 transition-colors hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25";
+/** Las props del número de una celda de cantidades (con − y + en Nuevo producto, sola en la orden de producción). */
+type CampoNumero = InputHTMLAttributes<HTMLInputElement> & { ref?: Ref<HTMLInputElement> };
 
 type Comunes = {
   celdas: CeldaAlta[];
@@ -281,6 +281,27 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                     const propio = (enCostos ? costos[cel.clave] : precios[cel.clave]) ?? "";
                     const distinto = enCostos ? costoDistinto(propio, costoBase) : precioDistinto(propio, precioBase);
                     const valorCelda = cantidades[cel.clave] ?? "";
+                    // El número de la celda: el mismo con − y + (Nuevo producto) que sin ellos (la orden de producción, que se carga tecleando).
+                    const numero: CampoNumero = {
+                      ref: teclado
+                        ? (el) => {
+                            if (el) campos.current.set(cel.clave, el);
+                            else campos.current.delete(cel.clave);
+                          }
+                        : undefined,
+                      type: "text",
+                      inputMode: "numeric",
+                      pattern: "[0-9]*",
+                      maxLength: 4,
+                      autoComplete: "off",
+                      "aria-label": `${preguntaCelda} ${etiqueta}`,
+                      title: tituloDe?.(cel.clave),
+                      placeholder: fantasma ? fantasma(cel.clave) : "0",
+                      value: valorCelda,
+                      onChange: (e) => onCantidad(cel.clave, limpiarCantidad(e.target.value)),
+                      onFocus: (e) => e.currentTarget.select(),
+                      onKeyDown: teclado ? (e) => alTeclear(e, cel.clave) : undefined,
+                    };
                     return (
                       <td key={cel.clave} className={`border-t border-sand p-0 ${fondoFila}`}>
                         <span
@@ -288,60 +309,24 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                             enCantidades ? (solo ? "min-w-[64px] sm:min-w-[72px]" : "min-w-[88px] sm:min-w-[98px]") : "min-w-11 sm:min-w-[54px]"
                           }`}
                         >
-                          {enCantidades ? (
+                          {enCantidades && !solo ? (
+                            <PasoCantidad
+                              tamano="celda"
+                              sinTab
+                              menos={{ onClick: () => onCantidad(cel.clave, pasoCantidad(valorCelda, -1)), deshabilitado: valorCelda === "", etiqueta: `Restar a ${etiqueta}` }}
+                              mas={{ onClick: () => onCantidad(cel.clave, pasoCantidad(valorCelda, 1)), etiqueta: `Sumar a ${etiqueta}` }}
+                              // El «0» de una celda vacía es un fantasma a propósito (25 %): la tabla se lee por lo que SÍ se cargó.
+                              campo={{ ...numero, className: "placeholder:text-tinta/25" }}
+                            />
+                          ) : enCantidades ? (
+                            // La orden de producción no lleva − ni +: es una caja para escribir, no un paso de cantidad.
                             <span className="inline-flex items-center gap-0.5 rounded-[7px] border border-transparent bg-hueso pl-0.5 pr-0.5 focus-within:border-taupe focus-within:bg-papel">
-                              {!solo && (
-                                <button
-                                  type="button"
-                                  tabIndex={-1}
-                                  disabled={valorCelda === ""}
-                                  aria-label={`Restar a ${etiqueta}`}
-                                  onClick={() => onCantidad(cel.clave, pasoCantidad(valorCelda, -1))}
-                                  className={BOTON_PASO}
-                                >
-                                  <Minus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
-                                </button>
-                              )}
                               <input
-                                ref={
-                                  teclado
-                                    ? (el) => {
-                                        if (el) campos.current.set(cel.clave, el);
-                                        else campos.current.delete(cel.clave);
-                                      }
-                                    : undefined
-                                }
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                maxLength={4}
-                                autoComplete="off"
-                                aria-label={`${preguntaCelda} ${etiqueta}`}
-                                title={tituloDe?.(cel.clave)}
-                                placeholder={fantasma ? fantasma(cel.clave) : "0"}
-                                value={valorCelda}
-                                onChange={(e) => onCantidad(cel.clave, limpiarCantidad(e.target.value))}
-                                onFocus={(e) => e.currentTarget.select()}
-                                onKeyDown={teclado ? (e) => alTeclear(e, cel.clave) : undefined}
-                                className={`${solo ? "w-12" : "w-8"} border-0 bg-transparent py-1.5 text-center text-sm tabular-nums text-tinta outline-none ${
-                                  // En la orden el número gris DICE algo (lo que sugiere la red): más legible que el «0» de siempre (3,6:1 en claro y 4,7:1 en oscuro, antes 1,7 y 2,1).
-                                  solo ? "placeholder:text-tinta/55" : "placeholder:text-tinta/25"
-                                } ${
-                                  // Con scroll interno, el encabezado, el «Total» y la columna del color van pegados: la celda enfocada no debe quedar debajo de ellos.
-                                  solo ? "sm:w-14 scroll-mt-14 scroll-mb-12 scroll-ml-32" : "sm:w-9"
-                                }`}
+                                {...numero}
+                                // El número gris DICE algo (lo que sugiere la red): más legible que el «0» de siempre (3,6:1 en claro y 4,7:1 en oscuro, antes 1,7 y 2,1).
+                                // Con scroll interno, el encabezado, el «Total» y la columna del color van pegados: la celda enfocada no debe quedar debajo de ellos.
+                                className="w-12 border-0 bg-transparent py-1.5 text-center text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/55 sm:w-14 scroll-mt-14 scroll-mb-12 scroll-ml-32"
                               />
-                              {!solo && (
-                                <button
-                                  type="button"
-                                  tabIndex={-1}
-                                  aria-label={`Sumar a ${etiqueta}`}
-                                  onClick={() => onCantidad(cel.clave, pasoCantidad(valorCelda, 1))}
-                                  className={BOTON_PASO}
-                                >
-                                  <Plus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
-                                </button>
-                              )}
                             </span>
                           ) : (
                             <input

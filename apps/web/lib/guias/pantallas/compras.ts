@@ -556,7 +556,7 @@ export const GUIA_NOTAS_CREDITO: Guia = {
       ancla: "notas-credito.estados",
       preparar: [{ tipo: "vaciar", ancla: "notas-credito.buscador" }],
       titulo: "Por reclamar, emitidas, aplicadas",
-      texto: "«Por reclamar»: el proveedor te debe una nota (por un faltante) y todavía no llega. «Emitidas»: ya llegaron. «Aplicadas»: ya bajaron deuda o te devolvieron la plata. «Todas» las junta (te la mostramos).",
+      texto: "«Por reclamar»: el proveedor te debe una nota (por un faltante) y todavía no llega; también la de una factura cuya plata ya volvió con un documento interno, y solo falta el papel. «Emitidas»: ya llegaron. «Aplicadas»: ya bajaron deuda o te devolvieron la plata. «Todas» las junta (te la mostramos).",
     },
     {
       id: "estado-todas",
@@ -601,7 +601,7 @@ export const GUIA_NOTAS_CREDITO: Guia = {
       ancla: "notas-credito.vista-acciones",
       opcional: true,
       titulo: "Registrar, ver o ir a la factura",
-      texto: "Cuando por fin llega una nota que esperabas, la registras desde aquí y ya viene con su factura elegida. También ves su detalle o abres la factura de origen. Con las flechas pasas a la siguiente.",
+      texto: "Cuando por fin llega una nota que esperabas, la registras desde aquí y ya viene con su factura elegida; si era de un documento interno, «Llegó su nota de crédito» la adjunta sin mover plata. También ves su detalle o abres la factura de origen. Con las flechas pasas a la siguiente.",
     },
     {
       id: "atajos",
@@ -824,6 +824,13 @@ export const GUIA_PROVEEDOR: Guia = {
       texto: "Su cuenta, CCI, Yape o Plin y el titular, cada uno con su «Copiar». Salen tapados a medias porque son datos de otra persona; «Ver completos» los muestra.",
     },
     {
+      id: "cambios-cuenta",
+      ancla: "proveedor-ficha.cambios-cuenta",
+      titulo: "Cambios de la cuenta",
+      texto: "Cada vez que alguien cambió la cuenta, el CCI, el Yape o el titular: qué cambió, cuándo y quién. Antes de pagar a una cuenta que cambió, confírmala con el proveedor por teléfono.",
+      opcional: true,
+    },
+    {
       id: "editar",
       ancla: "proveedor-ficha.editar",
       titulo: "Corregir sus datos",
@@ -894,7 +901,7 @@ export const GUIA_PROVEEDOR: Guia = {
       ancla: "proveedor-ficha.deuda",
       opcional: true,
       titulo: "Cada prenda por reponer",
-      texto: "Cada faltante que en una recepción se marcó «No vino» es una deuda: cuántas y de qué, en qué envío y sede faltaron, hace cuánto y cuánto valen. Se cierra cuando llegan.",
+      texto: "Cada faltante que en una recepción se marcó «No vino» es una deuda, y también lo que le devuelves desde Dañadas por llegar dañado: cuántas y de qué, en qué envío y sede, hace cuánto y cuánto valen. Se cierra cuando llegan o vuelve la plata.",
     },
     {
       id: "reposicion",
@@ -912,13 +919,47 @@ export const GUIA_PROVEEDOR: Guia = {
       texto: "Cuántas llegaron (viene puesto todo lo que debía), cómo llegaron y quién lo anota. Solo anota que el proveedor cumplió: no suma prendas al stock. Al anotarlo, queda en el historial de la deuda. En la demo no lo tocamos.",
     },
     {
+      // Cierra la hoja de la reposición antes de mostrar el otro camino.
+      id: "saldo-a-favor",
+      ancla: "proveedor-ficha.saldo-a-favor",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Pasar a saldo a favor",
+      texto: "Si el proveedor no va a mandar lo que faltó o lo que le devolviste, pásalo a saldo a favor: un documento interno por lo que pagaste baja lo que le debes por ese comprobante o, si ya lo pagaste, queda a favor para tu próximo pago. Lo que no se facturó no se pasa.",
+    },
+    {
+      id: "hoja-saldo-a-favor",
+      ancla: "proveedor-ficha.hoja-saldo-a-favor",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "proveedor-ficha.saldo-a-favor", siEsta: true }],
+      titulo: "Cuánto vale y adónde va",
+      texto: "Cuántas pasan (viene puesto todo lo que se puede), cuánto valen al costo de su comprobante y cuánto baja de tu deuda o queda a favor. La nota es opcional. Al pasarlo nace el documento interno DI-…, que queda en el historial. En la demo no lo tocamos.",
+    },
+    {
+      // Cierra la hoja de pasar a saldo a favor antes de mostrar el depósito.
+      id: "deposito",
+      ancla: "proveedor-ficha.deposito",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Depositó",
+      texto: "Si el proveedor no va a mandar lo que faltó y ya te devolvió la plata, lo registras aquí: el documento interno y el depósito que entró, en un solo paso. Solo si ya pagaste ese comprobante.",
+    },
+    {
+      id: "hoja-deposito",
+      ancla: "proveedor-ficha.hoja-deposito",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "proveedor-ficha.deposito", siEsta: true }],
+      titulo: "Lo que te devolvió",
+      texto: "Cuántas pagó con el depósito, cuánto te depositó (tiene que ser lo que quedó a tu favor), cuándo, cómo y a qué cuenta entró. La referencia y la nota son opcionales. En la demo no lo tocamos.",
+    },
+    {
       // Cierra la hoja aunque este paso se salte (no hay cerradas): `preparar` corre antes de ver si el paso aplica.
       id: "cerradas",
       ancla: "proveedor-ficha.nos-debe-cerradas",
       opcional: true,
       preparar: [{ tipo: "escape" }],
-      titulo: "Ya repuestas",
-      texto: "Las deudas que se cerraron en los últimos 90 días, con cuándo y cómo llegó cada reposición. Si son muchas, se pliegan: tócalas para verlas.",
+      titulo: "Ya saldadas",
+      texto: "Las deudas que se cerraron en los últimos 90 días, con cuándo y cómo se saldó cada parte: la reposición que llegó, lo que pasó a saldo a favor o lo que te devolvió con un depósito. Si son muchas, se pliegan: tócalas para verlas.",
     },
     {
       id: "saldo-favor",
@@ -1215,7 +1256,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan.reparto",
       opcional: true,
       titulo: "Cuánto le toca a cada tienda",
-      texto: "Lo que conviene tener se reparte según lo que vendió cada tienda en 90 días y se manda todo al inicio. A una tienda que vende poco (como Lima al empezar) un líder le fija un mínimo con el botón de al lado.",
+      texto: "Lo que conviene tener se reparte según lo que vendió cada tienda en 90 días y se manda todo al inicio. A una tienda que vende poco (como Lima al empezar) le fijas un mínimo con el botón de al lado.",
     },
     {
       id: "simulador",
@@ -1673,7 +1714,7 @@ export const GUIA_EDITAR_ORDEN: Guia = {
   ],
 };
 
-// Registrar el comprobante de una orden (ADR-0362, fase 2). Pantalla interna: se llega desde «Registrar comprobante» en la orden abierta y
+// Registrar el comprobante de una orden (ADR-0362, fase 2). Pantalla interna: se llega desde «Registrar la compra» en la orden abierta y
 // no se ofrece sola. Es dinero (deja una deuda por pagar, o un pago si es al contado), así que la guía solo EXPLICA: el único toque del
 // piloto es cambiar «Crédito» ↔ «Contado» para mostrar el bloque del pago, que es de pantalla y se deshace al salir. Nunca escribe un
 // ejemplo (ADR-0290: serie y número son los del papel de cada proveedor, no hay uno que valga para todos).
@@ -1683,7 +1724,7 @@ export const GUIA_EDITAR_ORDEN: Guia = {
 export const GUIA_COMPROBANTE_ORDEN: Guia = {
   id: "compras.ordenes.comprobante.id",
   ruta: "/compras/ordenes/comprobante/[id]",
-  titulo: "Registrar comprobante de orden",
+  titulo: "Registrar la compra de una orden",
   resumen: "Copiar el papel que dio el proveedor por lo que le pediste, o registrar la compra sin comprobante: lo que falta de la orden ya viene puesto.",
   pasos: [
     {
@@ -1762,9 +1803,9 @@ export const GUIA_COMPROBANTE_ORDEN: Guia = {
       id: "registrar",
       ancla: "comprobante.registrar",
       preparar: [{ tipo: "clic", ancla: "comprobante.credito" }],
-      titulo: "Registrar el comprobante",
+      titulo: "Registrar la compra",
       // Al registrar, la pantalla vuelve a la LISTA de órdenes con la orden marcada (`hrefOrdenGuardada`), no a la orden.
-      texto: "Una nota si hace falta; desde una terminal, quién lo registra. Encima del botón ves lo que falta. «Registrar comprobante» (o «Registrar sin comprobante») deja la compra por pagar, o pagada si fue al contado, y vuelves a la lista. «Cancelar» sale sin guardar. En la demo no lo tocamos.",
+      texto: "Una nota si hace falta; desde una terminal, quién lo registra. Encima del botón ves lo que falta. «Registrar la compra» (o «Registrar sin comprobante») deja la compra por pagar, o pagada si fue al contado, y vuelves a la lista. «Cancelar» sale sin guardar. En la demo no lo tocamos.",
     },
     {
       id: "fin",
@@ -2086,28 +2127,28 @@ export const GUIA_FONDOS: Guia = {
       ancla: "fondos.revisar",
       opcional: true,
       titulo: "Revisar una rendición",
-      texto: "Abre cada pago y gasto con su foto. Si falta plata y la persona explicó qué pasó, eliges si lo asume CAYLA o queda como su deuda; sin explicación es deuda. No aprueba quien le entregó la plata ni la dueña. En la demo no la aprobamos.",
+      texto: "Abre cada pago y gasto con su foto. Si falta plata y explicó qué pasó, eliges si lo asume CAYLA o queda como su deuda; sin explicación es deuda, y la hoja dice en cuánto queda la suya. Quien le entregó la plata no la aprueba: puede revisarla y devolverla para que la corrija. En la demo no la aprobamos.",
     },
     {
       id: "cifras",
       ancla: "fondos.cifras",
       opcional: true,
       titulo: "Toda la empresa",
-      texto: "Cuánto tienen en la mano todas las personas juntas, cuánto les entregaste desde el primer fondo y cuánto devolvieron.",
+      texto: "Cuánto tienen en la mano todas las personas juntas, cuánto se entregó desde el primer fondo y cuánto devolvieron.",
     },
     {
       id: "lista",
       ancla: "fondos.lista",
       opcional: true,
       titulo: "Quién tiene plata",
-      texto: "Una fila por persona: su sede, para qué fue la última entrega, cuánto le entregaste, cuánto devolvió y lo que tiene en la mano. Si rindió y espera, o si debe por un faltante, lo dice debajo de su nombre.",
+      texto: "Una fila por persona: su sede, para qué fue la última entrega, cuánto se le entregó, cuánto devolvió y lo que tiene en la mano. Si rindió y espera, lo que dijo tener sale bajo su cifra; si debe por un faltante, lo dice bajo su nombre.",
     },
     {
       id: "devolver",
       ancla: "fondos.devolver",
       opcional: true,
       titulo: "Lo que devuelve",
-      texto: "Cuando te devuelve lo que sobró, lo registra quien recibe la plata (nunca quien la devuelve): a qué banco o caja fuerte volvió y cuánto. No puede devolver más de lo que tiene.",
+      texto: "Cuando te devuelve lo que sobró, lo registra quien recibe la plata (nunca quien la devuelve): a qué banco o caja fuerte volvió y cuánto. Si su rendición espera aprobación, la hoja dice cuánto le falta y hasta cuánto puede devolver.",
     },
     {
       id: "pagar-deuda",

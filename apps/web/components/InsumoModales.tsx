@@ -8,118 +8,16 @@ import { soles } from "@/lib/compras-reglas";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
-import { TIPOS_INSUMO, UNIDADES_INSUMO, cantidadTexto, type TipoInsumo, type UnidadInsumo } from "@/lib/insumos-reglas";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { camposDeIngresoDeInsumo, ingresoListo } from "@/lib/insumos-guia";
+import { UNIDADES_INSUMO, cantidadTexto } from "@/lib/insumos-reglas";
 import type { InsumoVista } from "@/lib/insumos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 
-// Dos formularios de Insumos (ADR-0133, F3). Los dos son solo de líder: uno crea el catálogo, el otro mete dinero
-// (el costo del lote). Con `<Modal>` del sistema (ADR-0136): no se define otra animación ni otro overlay.
-
-/** Unidad que se propone según el tipo: la tela se compra por metro; un avío casi siempre por unidad. */
-const UNIDAD_SUGERIDA: Record<TipoInsumo, UnidadInsumo> = { tela: "metro", avio: "unidad" };
-
-export function NuevoInsumoModal({ onClose }: { onClose: () => void }) {
-  const router = useRouter();
-  const [tipo, setTipo] = useState<TipoInsumo>("tela");
-  const [unidad, setUnidad] = useState<UnidadInsumo>("metro");
-  const [codigo, setCodigo] = useState("");
-  const [nombre, setNombre] = useState("");
-  const [merma, setMerma] = useState("");
-  const [minimo, setMinimo] = useState("");
-  const [nota, setNota] = useState("");
-  const [cargando, setCargando] = useState(false);
-  // Responsable (ADR-0161 act. d): el alta queda en `insumos.creado_por` (lo pone un disparador leyendo el combo).
-  const responsable = useResponsable();
-
-  function cambiarTipo(t: TipoInsumo) {
-    setTipo(t);
-    setUnidad(UNIDAD_SUGERIDA[t]);
-  }
-
-  async function guardar(e: React.FormEvent) {
-    e.preventDefault();
-    const mermaPct = merma.trim() === "" ? 0 : Number(merma) / 100;
-    if (!codigo.trim() || !nombre.trim()) {
-      avisar.error("Ponle un código y un nombre al insumo.");
-      return;
-    }
-    if (!(mermaPct >= 0 && mermaPct < 0.5)) {
-      avisar.error("La merma va de 0 % a menos de 50 %.");
-      return;
-    }
-    if (!responsable.listo) {
-      if (responsable.motivo) avisar.error(responsable.motivo);
-      return;
-    }
-    setCargando(true);
-    const { error } = await firmar(
-      createClient()
-        .from("insumos")
-        .insert({
-          codigo: codigo.trim().toUpperCase(),
-          nombre: nombre.trim(),
-          tipo,
-          unidad_medida: unidad,
-          merma_pct: mermaPct,
-          stock_minimo: minimo.trim() === "" ? null : Number(minimo),
-          nota: nota.trim() || null,
-        }),
-      responsable.firma(),
-    );
-    setCargando(false);
-    responsable.despues(error);
-    if (error) {
-      // 23505 = código repetido: la base lo impide con su restricción única.
-      avisar.error(error.code === "23505" ? "Ya hay un insumo con ese código." : traducirError(error, "crear el insumo"));
-      return;
-    }
-    avisar.exito(`${nombre.trim()} entró al catálogo`, { detalle: "Ahora puedes ingresar su primer lote." });
-    router.refresh();
-    onClose();
-  }
-
-  return (
-    <Modal titulo="Nuevo insumo" subtitulo="Tela o avío que el Taller compra" onClose={onClose} ancho="max-w-md">
-      <form onSubmit={guardar} className="space-y-4">
-        <div data-guia="prod-insumo-nuevo.tipo" className="grid grid-cols-2 gap-3">
-          <CampoSelect etiqueta="Tipo" valor={tipo} onValor={(v) => cambiarTipo(v)} opciones={TIPOS_INSUMO.map((t) => ({ valor: t.valor, texto: t.etiqueta }))} />
-          <CampoSelect
-            etiqueta="Se mide en"
-            valor={unidad}
-            onValor={(v) => setUnidad(v)}
-            opciones={Object.entries(UNIDADES_INSUMO).map(([k, u]) => ({ valor: k as UnidadInsumo, texto: u.larga }))}
-          />
-        </div>
-        <div data-guia="prod-insumo-nuevo.nombre" className="grid grid-cols-[7rem_1fr] gap-3">
-          <CampoTexto etiqueta="Código" mono placeholder="LIN-01" value={codigo} onChange={(e) => setCodigo(e.target.value)} maxLength={20} />
-          <CampoTexto etiqueta="Nombre" placeholder="Lino lavado crudo" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-        </div>
-        <div data-guia="prod-insumo-nuevo.minimo" className="grid grid-cols-2 gap-3">
-          <CampoTexto
-            etiqueta="Mínimo"
-            pie={`Avisa cuando quede menos de esto (${UNIDADES_INSUMO[unidad].corta})`}
-            inputMode="decimal"
-            placeholder="Sin mínimo"
-            value={minimo}
-            onChange={(e) => setMinimo(e.target.value)}
-          />
-          <CampoTexto etiqueta="Merma al cortar (%)" pie="Lo que se pierde de cada corte" inputMode="decimal" placeholder="0" value={merma} onChange={(e) => setMerma(e.target.value)} />
-        </div>
-        <div data-guia="prod-insumo-nuevo.nota">
-          <CampoTexto etiqueta="Nota" placeholder="Ancho, composición, proveedor habitual…" value={nota} onChange={(e) => setNota(e.target.value)} />
-        </div>
-        <div data-guia="prod-insumo-nuevo.cierre" className="space-y-4">
-          <ComboResponsable control={responsable} deshabilitado={cargando} />
-          <Boton peso="primario" type="submit" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
-            {cargando ? "Guardando…" : "Agregar al catálogo"}
-          </Boton>
-        </div>
-      </form>
-    </Modal>
-  );
-}
+// Ingresar un lote de insumo (ADR-0133, F3): solo del líder, mete dinero (el costo del lote). «Nuevo insumo» vive en `components/insumos-taller/` desde la actividad 8e. Con `<Modal>` del sistema (ADR-0136): no se define otra animación ni otro overlay.
 
 export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClose }: { insumos: InsumoVista[]; insumoInicialId: string | null; tallerId: string; onClose: () => void }) {
   const router = useRouter();
@@ -142,7 +40,8 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
   const c = Number(costo) || 0;
   const total = q * c;
   const unidad = insumo?.unidad ?? "unidad";
-  const listo = !!insumo && q > 0 && c >= 0 && costo.trim() !== "";
+  const listo = ingresoListo({ tieneInsumo: !!insumo, cantidad, costo });
+  const guia = useGuiaCampos(camposDeIngresoDeInsumo({ tieneInsumo: !!insumo, cantidad, costo, responsableListo: responsable.listo }));
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -166,7 +65,7 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
     responsable.despues(error);
     setCargando(false);
     if (error) {
-      avisar.error(traducirError(error, "ingresar el insumo"));
+      avisar.error(traducirError(error, "ingresar el insumo", { confirmarAntesDeRepetir: true }));
       return;
     }
     avisar.exito(`${cantidadTexto(q, unidad)} de ${insumo.nombre} entraron`, {
@@ -177,21 +76,27 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
   }
 
   return (
-    <Modal titulo="Ingresar insumo" subtitulo="Cada ingreso abre un lote con su propio costo" onClose={onClose} ancho="max-w-md">
-      <form onSubmit={guardar} className="space-y-4">
-        <CampoSelect
-          etiqueta="¿Qué llegó?"
-          valor={insumoId}
-          onValor={(v) => setInsumoId(v)}
-          opciones={insumos.map((i) => ({ valor: i.id, texto: `${i.nombre} · hay ${cantidadTexto(i.saldo, i.unidad)}` }))}
-        />
+    <Modal titulo="Ingresar insumo" subtitulo="Cada ingreso abre un lote con su propio costo" variante="hoja" onClose={onClose}>
+      <form onSubmit={guardar} className="mt-3.5 space-y-4">
+        <CampoGuiado id="insumo" guia={guia}>
+          <CampoSelect
+            etiqueta={guia.etiqueta("insumo", "¿Qué llegó?")}
+            valor={insumoId}
+            onValor={(v) => setInsumoId(v)}
+            opciones={insumos.map((i) => ({ valor: i.id, texto: `${i.nombre} · hay ${cantidadTexto(i.saldo, i.unidad)}` }))}
+          />
+        </CampoGuiado>
         <div className="grid grid-cols-2 gap-3">
-          <CampoTexto etiqueta={`Cantidad (${UNIDADES_INSUMO[unidad].corta})`} inputMode="decimal" placeholder="0" value={cantidad} onChange={(e) => setCantidad(e.target.value)} />
-          <CampoMonto etiqueta={`Costo por ${UNIDADES_INSUMO[unidad].corta}`} pie="sin IGV" inputMode="decimal" placeholder="0.00" value={costo} onChange={(e) => setCosto(e.target.value)} />
+          <CampoGuiado id="cantidad" guia={guia}>
+            <CampoTexto etiqueta={guia.etiqueta("cantidad", `Cantidad (${UNIDADES_INSUMO[unidad].corta})`)} inputMode="decimal" placeholder="0" value={cantidad} onChange={(e) => setCantidad(e.target.value)} />
+          </CampoGuiado>
+          <CampoGuiado id="costo" guia={guia}>
+            <CampoMonto etiqueta={guia.etiqueta("costo", `Costo por ${UNIDADES_INSUMO[unidad].corta}`)} pie="sin IGV" inputMode="decimal" placeholder="0.00" value={costo} onChange={(e) => setCosto(e.target.value)} />
+          </CampoGuiado>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <CampoTexto etiqueta="Código de lote" mono placeholder="Opcional" value={codigoLote} onChange={(e) => setCodigoLote(e.target.value)} />
-          <CampoTexto etiqueta="Documento" mono placeholder="F001-0000" value={documento} onChange={(e) => setDocumento(e.target.value)} />
+          <CampoTexto etiqueta="Código de lote" mono placeholder="Opcional" value={codigoLote} onChange={(e) => setCodigoLote(e.target.value)} maxLength={40} />
+          <CampoTexto etiqueta="Documento" mono placeholder="F001-0000" value={documento} onChange={(e) => setDocumento(e.target.value)} maxLength={40} />
         </div>
         <CampoSelect
           etiqueta="Origen"
@@ -205,16 +110,28 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
             ] as const
           }
         />
-        <CampoTexto etiqueta="Nota" placeholder="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} />
+        <CampoTexto etiqueta="Nota" placeholder="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300} />
 
         <div className="flex items-baseline justify-between rounded-md bg-sand/60 px-3 py-2 text-sm">
           <span className="text-tinta/70">Valor del lote</span>
           <span className="font-display text-lg tabular-nums text-tinta">{listo ? soles(total) : "—"}</span>
         </div>
-        <ComboResponsable control={responsable} deshabilitado={cargando} />
-        <Boton peso="primario" type="submit" cargando={cargando} disabled={!listo || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
-          {cargando ? "Ingresando…" : "Abrir lote y sumar al saldo"}
-        </Boton>
+        <div className="space-y-3">
+          <CampoGuiado id="quien" guia={guia}>
+            <ComboResponsable control={responsable} deshabilitado={cargando} compacto />
+          </CampoGuiado>
+          <PieGuia guia={guia} listo="Todo listo para abrir el lote." conFrase />
+        </div>
+        <div className="pie-hoja-fijo">
+          <div className="pie-acciones border-t border-sand pt-3">
+            <Boton type="button" onClick={onClose}>
+              Cancelar
+            </Boton>
+            <Boton textoCargando="Ingresando…" peso="primario" type="submit" cargando={cargando} disabled={!guia.puedeConfirmar} title={guia.frase ?? responsable.motivo ?? undefined} className={guia.claseConfirmar}>
+              Abrir lote y sumar al saldo
+            </Boton>
+          </div>
+        </div>
       </form>
     </Modal>
   );

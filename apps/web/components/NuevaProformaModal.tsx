@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, Shirt, X } from "lucide-react";
+import { Shirt, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { lineasDeLaProforma, numeroDeProforma, TOPE_DESCUENTO_PROFORMA, totalesDeLineas, type Proforma } from "@/lib/proformas-reglas";
@@ -22,6 +22,7 @@ import { Buscador } from "@/components/ui/Buscador";
 import { usePistola } from "@/components/ui/usePistola";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { conPrecioDeLaSede } from "@/lib/precio-sede-reglas";
 
 /** Una prenda del catálogo que se puede poner en una proforma (la arma la página Proformas desde `getCatalogo`). */
@@ -159,7 +160,7 @@ export function NuevaProformaModal({
   const titulo = !inicial ? "Nueva proforma" : inicial.vencida ? `Renovar ${numeroDeProforma(inicial.numero)}` : `Copia de ${numeroDeProforma(inicial.numero)}`;
 
   return (
-    <Modal titulo={titulo} subtitulo={inicial ? "Con los precios de hoy. Revisa y guarda como una proforma nueva." : undefined} ancho="max-w-3xl" onClose={onCerrar}>
+    <Modal titulo={titulo} subtitulo={inicial ? "Con los precios de hoy. Revisa y guarda como una proforma nueva." : undefined} tamano="ancha" onClose={onCerrar}>
       {(cerrar) => (
         <form onSubmit={onCrear} className="mt-5 space-y-4">
           {noCopiadas.length > 0 && (
@@ -229,15 +230,12 @@ export function NuevaProformaModal({
                       <p className="text-sm font-semibold text-tinta">{f.prenda.referencia}</p>
                       <p className="text-xs text-tinta/60">{[f.prenda.talla, f.prenda.color, f.prenda.codigo].filter(Boolean).join(" · ")}</p>
                     </div>
-                    <div className="flex items-center gap-0.5">
-                      <button type="button" aria-label={`Una ${f.prenda.referencia} menos`} onClick={() => (f.cantidad > 1 ? cambiar(id, { cantidad: f.cantidad - 1 }) : quitar(id))} className="grid h-7 w-7 place-items-center rounded-md hover:bg-tinta/10">
-                        <Minus aria-hidden className="h-3.5 w-3.5" />
-                      </button>
-                      <span className="w-6 text-center tabular-nums" aria-label="Cantidad">{f.cantidad}</span>
-                      <button type="button" aria-label={`Una ${f.prenda.referencia} más`} onClick={() => cambiar(id, { cantidad: f.cantidad + 1 })} className="grid h-7 w-7 place-items-center rounded-md hover:bg-tinta/10">
-                        <Plus aria-hidden className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                    <PasoCantidad
+                      menos={{ onClick: () => (f.cantidad > 1 ? cambiar(id, { cantidad: f.cantidad - 1 }) : quitar(id)), etiqueta: `Una ${f.prenda.referencia} menos` }}
+                      mas={{ onClick: () => cambiar(id, { cantidad: f.cantidad + 1 }), etiqueta: `Una ${f.prenda.referencia} más` }}
+                    >
+                      <span aria-label="Cantidad">{f.cantidad}</span>
+                    </PasoCantidad>
                     <label className="flex items-center gap-1 text-xs text-tinta/70">
                       Dscto.
                       <input
@@ -334,7 +332,7 @@ export function NuevaProformaModal({
               disabled={filas.length === 0 || !responsable.listo}
               title={responsable.motivo ?? undefined}
             >
-              {loading ? "Guardando…" : "Crear proforma"}
+              Crear proforma
             </Boton>
           </div>
         </form>

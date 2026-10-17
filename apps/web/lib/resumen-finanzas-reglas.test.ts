@@ -13,7 +13,6 @@ import {
   deUnidad,
   diasDelMes,
   equilibrio,
-  frasesSalud,
   leerResumen,
   leerVerResumen,
   miniPresupuesto,
@@ -97,66 +96,35 @@ describe("punto de equilibrio (la regla de F5) y el día en que se cubre", () =>
   });
 });
 
-describe("la salud, en frases", () => {
-  it("CAYLA entera: días de caja, el día en que cubre sus costos y la meta del mes (spike)", () => {
-    const fs = frasesSalud(todas());
-    expect(fs.map((f) => f.n)).toEqual(["14 días", "día 30", "97,2 %"]);
-    expect(fs.map((f) => f.tono)).toEqual(["ambar", "ambar", "verde"]);
-    expect(fs[0]!.d).toBe("S/ 60,410 disponibles contra S/ 4,092 que salen en un día normal. La semana del 12 – 18 oct bajas de tu mínimo.");
-    expect(fs[1]!.d).toContain("Lo que vende después del día 30 (solo 1 día) es la ganancia.");
-    expect(fs[2]!.d).toBe("Meta S/ 103,958; vas en S/ 80,851 y al cierre llegarías a S/ 101,064.");
-  });
-
-  it("una tienda: cuándo cubre sus costos y cuánto se va en alquiler", () => {
-    const fs = frasesSalud(tru());
-    expect(fs.map((f) => [f.n, f.tono])).toEqual([
-      ["día 18", "verde"],
-      ["10,2 %", "verde"],
-    ]);
-  });
-
-  it("el Taller y la empresa: lo que costaron y en qué se fue", () => {
-    const [f] = frasesSalud(leerResumen(fixture.taller));
-    expect(f!.n).toBe("S/ 1,170");
-    expect(f!.t).toBe("costó el Taller en agosto");
-    expect(f!.d).toMatch(/^Alquileres S\/ 1,800 · Servicios básicos S\/ 710 · Suministros S\/ 520 · lo demás/);
-    expect(frasesSalud(leerResumen(fixture.empresa))[0]!.t).toBe("costó lo de la empresa en agosto");
-  });
-
-  it("sin datos, se dice por qué, sin inventar un número", () => {
-    const r = leerResumen(fixture.colaboradora);
-    const [f] = frasesSalud(r);
-    expect(f!.n).toBe("—");
-    expect(f!.d).toBe("Sin ventas en agosto para calcularlo.");
-  });
-});
+// Las frases de salud del spike («14 días de caja», «cubre sus costos el día 30») salieron del Resumen con el camino A
+// (ADR-0417, 2026-10-15): lo que decían lo dice ahora El Pulso (`pulso-reglas.ts`), con su propia prueba.
 
 describe("las cinco cifras", () => {
   it("CAYLA entera, con los números del spike", () => {
     const cs = cifrasResumen(todas());
     expect(cs.map((c) => c.etiqueta)).toEqual(["Vendido en el mes", "Plata disponible", "Debes en 7 días", "Utilidad de agosto", "IGV estimado de sept."]);
-    expect(cs.map((c) => c.valor)).toEqual(["S/ 80,851", "S/ 60,410", "S/ 43,012", "S/ 3,060", "S/ 5,400"]);
-    expect(cs[0]!.detalle).toBe("TRU S/ 35,280 · AQP S/ 26,880 · LIM S/ 18,691");
-    expect(cs[1]!.detalle).toBe("Bancos S/ 51,300 · cajones y cajas fuertes S/ 6,800 · tarjeta por abonar S/ 2,310");
+    expect(cs.map((c) => c.valor)).toEqual(["S/\u00a080,851", "S/\u00a060,410", "S/\u00a043,012", "S/\u00a03,060", "S/\u00a05,400"]);
+    expect(cs[0]!.detalle).toBe("TRU S/\u00a035,280 · AQP S/\u00a026,880 · LIM S/\u00a018,691");
+    expect(cs[1]!.detalle).toBe("Bancos S/\u00a051,300 · cajones y cajas fuertes S/\u00a06,800 · tarjeta por abonar S/\u00a02,310");
     expect(cs[2]).toMatchObject({ rojo: true, detalle: "Incluye la planilla del 30. 1 vencida" });
     expect(cs[3]!.detalle).toBe("Margen bruto 52,3 %");
-    expect(cs[4]!.detalle).toBe("Se declara en octubre · agosto: S/ 6,840 por declarar");
+    expect(cs[4]!.detalle).toBe("Se declara en octubre · agosto: S/\u00a06,840 por declarar");
     for (const c of cs) expect(c.origen).not.toBe("");
   });
 
   it("una tienda: su efectivo, su parte de lo que se debe (sin planilla) y su meta", () => {
     const cs = cifrasResumen(tru());
-    expect(cs.map((c) => c.valor)).toEqual(["S/ 35,280", "S/ 2,830", "S/ 7,012", "S/ 10,163", "95,8 %"]);
+    expect(cs.map((c) => c.valor)).toEqual(["S/\u00a035,280", "S/\u00a02,830", "S/\u00a07,012", "S/\u00a010,163", "95,8 %"]);
     expect(cs.map((c) => c.etiqueta)).toEqual(["Vendido en el mes", "Efectivo en la tienda", "Debes en 7 días", "Utilidad de agosto", "Meta de ventas"]);
-    expect(cs[4]!.detalle).toBe("Proyección al cierre S/ 44,100 de S/ 46,017");
+    expect(cs[4]!.detalle).toBe("Proyección al cierre S/\u00a044,100 de S/\u00a046,017");
   });
 
   it("el Taller no vende; la empresa suma sus bancos sin la tarjeta de crédito", () => {
     const t = cifrasResumen(leerResumen(fixture.taller));
-    expect(t.map((c) => c.valor)).toEqual(["—", "S/ 630", "S/ 0", "−S/ 1,170", "S/ 1,170"]);
+    expect(t.map((c) => c.valor)).toEqual(["—", "S/\u00a0630", "S/\u00a00", "−S/\u00a01,170", "S/\u00a01,170"]);
     expect(t[0]!.detalle).toBe("El Taller no vende");
     const e = cifrasResumen(leerResumen(fixture.empresa));
-    expect(e[1]).toMatchObject({ etiqueta: "Bancos y cuentas", valor: "S/ 53,610" });
+    expect(e[1]).toMatchObject({ etiqueta: "Bancos y cuentas", valor: "S/\u00a053,610" });
   });
 
   it("lo que la cuenta no ve se explica en la cifra, no se esconde ni se vuelve cero", () => {
@@ -183,15 +151,15 @@ describe("Para decidir hoy", () => {
     expect(as[0]).toMatchObject({
       tono: "rojo",
       titulo: "Factura vencida: Confecciones Andina SAC",
-      detalle: "Saldo S/ 6,400, venció hace 2 días.",
-      impacto: "S/ 6,400 en juego",
+      detalle: "Saldo S/\u00a06,400, venció hace 2 días.",
+      impacto: "S/\u00a06,400 en juego",
       boton: "Pagar",
       origen: "Cuentas y dinero ▸ Por pagar",
     });
     expect(as[0]!.href).toMatch(/^\/finanzas\/dinero\/por-pagar\?ver=todas&pagar=/);
-    expect(as[1]).toMatchObject({ tono: "ambar", titulo: "La semana del 12 – 18 oct quedas bajo tu mínimo de caja", impacto: "faltan S/ 490", href: "/finanzas/reportes/escenarios" });
-    expect(as[1]!.detalle).toContain("Distribuidora Norte S/ 15,300");
-    expect(as[3]).toMatchObject({ titulo: "LIM perdió S/ 2,484 en agosto", detalle: "Necesita vender S/ 24,763 al mes y vendió S/ 19,800." });
+    expect(as[1]).toMatchObject({ tono: "ambar", titulo: "La semana del 12 – 18 oct quedas bajo tu mínimo de caja", impacto: "faltan S/\u00a0490", href: "/finanzas/reportes/escenarios" });
+    expect(as[1]!.detalle).toContain("Distribuidora Norte S/\u00a015,300");
+    expect(as[3]).toMatchObject({ titulo: "LIM perdió S/\u00a02,484 en agosto", detalle: "Necesita vender S/\u00a024,763 al mes y vendió S/\u00a019,800." });
   });
 
   it("cada aviso dice de dónde sale y a dónde ir", () => {
@@ -216,8 +184,8 @@ describe("Para decidir hoy", () => {
   it("el gasto fuera de lo normal lleva su insignia y el umbral de Configuración", () => {
     const g = avisosParaDecidir(todas(), LIDER).find((a) => a.raro)!;
     expect(g.titulo).toBe("SEAL de AQP vino 37,9 % más alto que su promedio");
-    expect(g.detalle).toContain("S/ 662 en septiembre contra S/ 480 de promedio en 6 meses");
-    expect(g.impacto).toBe("S/ 182 más de lo normal (avisa desde +25 %)");
+    expect(g.detalle).toContain("S/\u00a0662 en septiembre contra S/\u00a0480 de promedio en 6 meses");
+    expect(g.impacto).toBe("S/\u00a0182 más de lo normal (avisa desde +25 %)");
     expect(g.href).toBe("/finanzas/gastos?mes=2026-09&ver=00000000-0000-4000-8000-000000000002");
   });
 
@@ -239,7 +207,7 @@ describe("Para decidir hoy", () => {
       "Suministros y útiles de TRU va a pasarse de su tope",
       "Servicios básicos de LIM va a pasarse de su tope",
     ]);
-    expect(ps[1]!.detalle).toBe("Al cierre llegaría en S/ 380 contra un tope de S/ 320 (te pasas 18,8 %); lleva S/ 304.");
+    expect(ps[1]!.detalle).toBe("Al cierre llegaría en S/\u00a0380 contra un tope de S/\u00a0320 (te pasas 18,8 %); lleva S/\u00a0304.");
   });
 
   it("más de tres vencidas: las tres más grandes y el resto juntas", () => {
@@ -249,7 +217,7 @@ describe("Para decidir hoy", () => {
     r.porPagar.datos.filas = [100, 900, 300, 500, 700].map((saldo, i) => ({ ...base, id: `v${i}`, saldo, vence: "2026-09-20" }));
     const vs = avisosParaDecidir(r, LIDER).filter((a) => a.clave.startsWith("vencida"));
     expect(vs.map((a) => a.peso)).toEqual([900, 700, 500, 400]);
-    expect(vs[3]).toMatchObject({ titulo: "2 deudas vencidas más", detalle: "Por S/ 400 en total." });
+    expect(vs[3]).toMatchObject({ titulo: "2 deudas vencidas más", detalle: "Por S/\u00a0400 en total." });
   });
 
   it("sin nada pendiente no hay avisos (la pantalla dice «Nada urgente»)", () => {
@@ -322,7 +290,7 @@ describe("la columna derecha", () => {
       ["AQP", 155, false],
       ["LIM", 80, true],
     ]);
-    expect(barras[2]!.lineas).toEqual(["Necesita S/ 24,763 · vendió S/ 19,800", "Le faltan S/ 4,963 al mes"]);
+    expect(barras[2]!.lineas).toEqual(["Necesita S/\u00a024,763 · vendió S/\u00a019,800", "Le faltan S/\u00a04,963 al mes"]);
     expect(sinDatos).toEqual([]);
   });
 
@@ -341,7 +309,7 @@ describe("la columna derecha", () => {
     const lim = leerResumen(fixture.todas);
     // Mirando LIM (con sus filas): le falta, y dice cuánto por día.
     lim.ver = { ubicacionId: "00000000-0000-4000-8000-000000000003", soloEmpresa: false, todas: false, tipo: "tienda", nombre: "Tienda LIM" };
-    expect(caminoEquilibrio(lim)!.texto).toBe("Le faltan S/ 6,072 en 6 días: unos S/ 1,012 diarios. Hoy vende S/ 779 al día.");
+    expect(caminoEquilibrio(lim)!.texto).toBe("Le faltan S/\u00a06,072 en 6 días: unos S/\u00a01,012 diarios. Hoy vende S/\u00a0779 al día.");
     expect(miniPresupuesto(tru()).map((f) => [f.nombre, f.pct, f.tono])).toEqual([
       ["Alquileres", "100,0 %", "verde"],
       ["Servicios básicos", "95,4 %", "verde"],
@@ -403,13 +371,6 @@ describe("Finanzas cuenta desde una fecha", () => {
     const r = conCorte(fixture.todas, "2026-09-01", "2026-08");
     const u = cifrasResumen(r).find((c) => c.clave === "utilidad")!;
     expect(u).toMatchObject({ etiqueta: "Utilidad de septiembre", valor: "—", detalle: "Se mide cuando el mes termine", rojo: false });
-  });
-
-  it("la frase de cuándo se cubren los costos explica el corte en vez de desaparecer", () => {
-    const r = conCorte(fixture.todas, "2026-09-01", "2026-08");
-    const f = frasesSalud(r).find((x) => x.clave === "equilibrio")!;
-    expect(f).toMatchObject({ n: "—", tono: "pizarra" });
-    expect(f.d).toContain("1 de septiembre de 2026");
   });
 
   it("el gráfico de cobertura queda sin barras y sin 'sin ventas' inventados", () => {

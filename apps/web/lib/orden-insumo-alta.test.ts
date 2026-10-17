@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sePuedeConfirmar, siguienteDe } from "./guia-campos";
+import { estadosDe, faltanDe, fraseDeLoQueFalta, sePuedeConfirmar, siguienteDe } from "./guia-campos";
 import {
   argsCrearOrdenInsumo,
   argsEditarOrdenInsumo,
@@ -56,8 +56,8 @@ describe("problemaDeLineaInsumo: las reglas de una línea de `fn_orden_insumo_va
     ["el máximo, 99 999.999 conos a S/ 99 999.9999", { insumoId: "hilo", cantidad: "99999.999", precio: "99999.9999" }, null],
     ["la cantidad dice su unidad (conos)", { insumoId: "hilo", cantidad: "1.2345" }, "La cantidad va de 0.001 a 99 999.999 conos, con hasta tres decimales."],
     ["sin precio: lo pide por la unidad", { precio: "" }, "Escribe el precio por metro."],
-    ["precio con cinco decimales", { precio: "10.55555" }, "El precio va de S/ 0 a S/ 99 999.9999, con hasta cuatro decimales."],
-    ["precio en letras", { precio: "diez" }, "El precio va de S/ 0 a S/ 99 999.9999, con hasta cuatro decimales."],
+    ["precio con cinco decimales", { precio: "10.55555" }, "El precio va de S/\u00a00 a S/\u00a099 999.9999, con hasta cuatro decimales."],
+    ["precio en letras", { precio: "diez" }, "El precio va de S/\u00a00 a S/\u00a099 999.9999, con hasta cuatro decimales."],
     ["precio 0 (un regalo del proveedor)", { precio: "0" }, null],
     ["un botón a S/ 0.0350", { insumoId: "boton", cantidad: "1000", precio: "0.0350" }, null],
     ["descuento en soles mayor que la línea", { cantidad: "2", precio: "10", descuento: "20.01", modoDescuento: "soles" }, "El descuento no puede pasar de lo que cuesta la línea."],
@@ -76,8 +76,8 @@ describe("problemaDeLineaInsumo: las reglas de una línea de `fn_orden_insumo_va
   it("miles con punto: la línea dice cómo escribirlo (a la vista, bajo la línea), con la unidad", () => {
     expect(problemaDeLineaInsumo(linea({ cantidad: "1.500" }), CTX)).toBe("¿«1.500» son 1500 metros o 1.5 metros? Escríbelo sin punto (1500) o así: 1.5.");
     expect(dudaDeLineaInsumo(linea({ insumoId: "boton", cantidad: "1.000" }), "unidad")).toBe("¿«1.000» son 1000 unidades o 1 unidad? Escríbelo sin punto (1000) o así: 1.");
-    expect(dudaDeLineaInsumo(linea({ precio: "1.500" }), "metro")).toContain("¿«1.500» es S/ 1500 o S/ 1.50?");
-    expect(dudaDeLineaInsumo(linea({ modoDescuento: "soles", descuento: "1.000", cantidad: "2000", precio: "5" }), "metro")).toContain("¿«1.000» es S/ 1000 o S/ 1.00?");
+    expect(dudaDeLineaInsumo(linea({ precio: "1.500" }), "metro")).toContain("¿«1.500» es S/\u00a01500 o S/\u00a01.50?");
+    expect(dudaDeLineaInsumo(linea({ modoDescuento: "soles", descuento: "1.000", cantidad: "2000", precio: "5" }), "metro")).toContain("¿«1.000» es S/\u00a01000 o S/\u00a01.00?");
     // En % no hay duda: «1.000» es 1 %.
     expect(dudaDeLineaInsumo(linea({ descuento: "1.000" }), "metro")).toBeNull();
     expect(dudaDeLineaInsumo(linea(), "metro")).toBeNull();
@@ -85,17 +85,38 @@ describe("problemaDeLineaInsumo: las reglas de una línea de `fn_orden_insumo_va
 });
 
 describe("camposDeLaOrdenInsumo: la guía de foco (CR3, E6, E7 de la base)", () => {
-  it("de arriba abajo: proveedor, entrega (sugerida), cada línea, la nota opcional; con un solo taller, «Llega a» no es un campo", () => {
+  it("de arriba abajo: proveedor, entrega (opcional), cada línea, la nota opcional; con un solo taller, «Llega a» no es un campo", () => {
     const vacia = orden({ proveedorId: "", lineas: [lineaInsumoVacia("l1")] });
     const campos = camposDeLaOrdenInsumo(vacia, CTX, SIN_COMBO);
     expect(campos.map((c) => c.id)).toEqual(["proveedor", "entrega", "linea-l1", "nota"]);
     expect(siguienteDe(campos)?.id).toBe("proveedor");
     expect(sePuedeConfirmar(campos)).toBe(false);
   });
-  it("una orden completa se puede guardar; la entrega estimada no bloquea", () => {
+  it("una orden completa se puede guardar y no queda nada por hacer: la entrega estimada es opcional (la base la acepta vacía)", () => {
     const campos = camposDeLaOrdenInsumo(orden(), CTX, SIN_COMBO);
     expect(sePuedeConfirmar(campos)).toBe(true);
-    expect(siguienteDe(campos)?.id).toBe("entrega");
+    expect(siguienteDe(campos)).toBeNull();
+    expect(faltanDe(campos)).toEqual([]);
+    expect(fraseDeLoQueFalta(campos)).toBeNull();
+  });
+  it("la entrega estimada vacía NO se lista como «falta» (regla 5 de ADR-0284, Formidable 2026-10-16): «Faltan: Proveedor, Línea 1» y ya", () => {
+    const vacia = camposDeLaOrdenInsumo(orden({ proveedorId: "", lineas: [lineaInsumoVacia("l1")] }), CTX, SIN_COMBO);
+    expect(vacia.find((c) => c.id === "entrega")).toMatchObject({ requerido: false, hecho: false });
+    expect(vacia.find((c) => c.id === "entrega")?.sugerido).toBeFalsy();
+    expect(faltanDe(vacia).map((c) => c.nombre)).toEqual(["Proveedor", "Línea 1"]);
+    expect(estadosDe(vacia).entrega).toBe("opcional");
+    // Ni la luz pasa por ella: con el proveedor y la línea hechos, la guía termina.
+    const casi = camposDeLaOrdenInsumo(orden(), CTX, SIN_COMBO);
+    expect(estadosDe(casi).entrega).toBe("opcional");
+    expect(siguienteDe(casi)).toBeNull();
+    // Con la fecha puesta (y buena) lleva su ✓ como cualquier campo hecho; la sugerida de verdad (varios talleres) sigue siendo otra cosa.
+    expect(estadosDe(camposDeLaOrdenInsumo(orden({ entrega: "2026-10-20" }), CTX, SIN_COMBO)).entrega).toBe("hecho");
+  });
+  it("lo ÚNICO que se lista como pendiente sin bloquear es «Llega a» con varios talleres (un valor de fábrica que importa); la entrega nunca", () => {
+    const dos = { ...CTX, talleres: new Set(["taller", "taller2"]), destinoElegido: false };
+    const campos = camposDeLaOrdenInsumo(orden({ proveedorId: "" }), dos, SIN_COMBO);
+    expect(faltanDe(campos).map((c) => c.nombre)).toEqual(["Proveedor", "Llega a"]);
+    expect(faltanDe(campos).some((c) => c.id === "entrega")).toBe(false);
   });
   it("proveedor (vacío o que no es de los que se pueden elegir) y destino (que no es un taller activo) bloquean", () => {
     expect(sePuedeConfirmar(camposDeLaOrdenInsumo(orden({ proveedorId: "" }), CTX, SIN_COMBO))).toBe(false);
@@ -192,6 +213,11 @@ describe("editar: la orden guardada vuelve al formulario", () => {
     cantidades: [],
     total: 197.17,
     versiones: [],
+    facturacion: [],
+    comprobantes: [],
+    plazoCreditoDias: null,
+    cierres: [],
+    fueraDeOrden: [],
   };
 
   it("el descuento vuelve como se escribió (en % si la línea lo recuerda, si no en soles) y el precio con sus decimales", () => {

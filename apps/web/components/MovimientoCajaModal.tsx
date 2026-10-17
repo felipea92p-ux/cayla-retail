@@ -7,13 +7,15 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { esMotivoDeAjuste, motivosDeMovimiento, referenciaObligatoria } from "@/lib/caja-panel-reglas";
 import { Modal, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
-import { Desplegable } from "@/components/ui/campos";
+import { Desplegable, Boton } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 // En pantalla se dice «entrada» y «salida» (Felipe, 2026-09-22): es plata que entra o sale del cajón, y así lo dice el
 // mostrador. En la base el tipo sigue siendo 'ingreso' | 'egreso' — solo cambian las palabras, no el dato.
@@ -86,7 +88,7 @@ export function MovimientoCajaModal({
     const params = {
       p_caja_id: cajaId,
       p_tipo: tipo,
-      p_monto: Number(monto) || 0,
+      p_monto: numeroDeMonto(monto) || 0,
       p_motivo: motivo,
       p_nota: nota.trim() || undefined,
       p_es_ajuste: esAjuste,
@@ -107,7 +109,7 @@ export function MovimientoCajaModal({
   }
 
   function registrado(t: "ingreso" | "egreso") {
-    avisar.exito(`${TEXTO_TIPO[t]} de caja registrada`, { detalle: `S/ ${(Number(monto) || 0).toFixed(2)} · ${motivo}` });
+    avisar.exito(`${TEXTO_TIPO[t]} de caja registrada`, { detalle: `S/\u00a0${(numeroDeMonto(monto) || 0).toFixed(2)} · ${motivo}` });
     router.refresh();
     onClose();
   }
@@ -162,16 +164,13 @@ export function MovimientoCajaModal({
             </span>
             <input
               id="mov-monto"
-              type="number"
-              inputMode="decimal"
-              min={0.01}
-              step="0.01"
+              {...atributosMontoTexto(monto)}
               required
               autoFocus
               placeholder="0.00"
               value={monto}
               onChange={(e) => setMonto(e.target.value)}
-              className="font-display self-stretch py-0 text-2xl tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className={`font-display self-stretch py-0 text-2xl tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
             />
           </div>
         </div>
@@ -233,9 +232,9 @@ export function MovimientoCajaModal({
           <button type="button" onClick={cerrar} disabled={intento.incierto} className="btn-cayla btn-secundario">
             Cancelar
           </button>
-          <button type="submit" disabled={loading || revisando || !tipo || !motivoRapido || !responsable.listo} title={responsable.motivo ?? undefined} className="btn-cayla btn-primario">
-            {loading ? "Guardando…" : intento.incierto ? "Volver a intentar" : "Registrar"}
-          </button>
+          <Boton peso="primario" cargando={loading} type="submit" disabled={loading || revisando || !tipo || !motivoRapido || !responsable.listo} title={responsable.motivo ?? undefined}>
+            {intento.incierto ? "Volver a intentar" : "Registrar"}
+          </Boton>
         </div>
       </form>
       )}

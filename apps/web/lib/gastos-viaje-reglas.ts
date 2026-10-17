@@ -313,7 +313,7 @@ export function pistaDelPapel(v: Pick<ValoresGastoViaje, "papel" | "ruc">, monto
   if (v.papel === "planilla_movilidad") return "Va en la planilla de movilidad: sin boleta, solo taxi y cargador.";
   if (v.papel !== "factura") return "Sin comprobante solo se acepta taxi o cargador (planilla de movilidad).";
   if (!/^\d{11}$/.test(v.ruc.trim())) return "Con el RUC de quien te la dio, su IGV se descuenta de los impuestos.";
-  if (igvSePierde) return "Es de S/ 2,000 o más y no se paga por el banco: su IGV no se descuenta.";
+  if (igvSePierde) return "Es de S/\u00a02,000 o más y no se paga por el banco: su IGV no se descuenta.";
   return monto != null && monto > 0 ? `Su IGV (${soles(igvDeFactura(monto))}) se descuenta de los impuestos.` : "Su IGV se descuenta de los impuestos.";
 }
 

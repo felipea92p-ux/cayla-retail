@@ -2,7 +2,7 @@
   "guia": "compras.fondos",
   "ruta": "/compras/fondos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 39,
+  "total": 40,
   "controles": {
     "components/fondos/AccionesFondos.tsx": [
       "Boton «fondos.entregar»",
@@ -10,19 +10,19 @@
       "CampoSelect «¿De dónde sale la plata?»",
       "CampoMonto «¿Cuánto?»",
       "CampoTexto «¿Para qué es?»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
       "Boton «fondos.devolver»",
       "CampoSelect «¿A dónde vuelve la plata?»",
       "CampoMonto «¿Cuánto devuelve?»",
       "CampoTexto «Nota»",
-      "ComboResponsable «)» #2",
+      "ComboResponsable «{responsable}» #2",
       "Boton «Cancelar» #2",
       "Boton «{guia.frase ?? undefined}» #2",
       "Boton «fondos.anular»",
       "CampoTexto «Por qué se anula»",
-      "ComboResponsable «)» #3",
+      "ComboResponsable «{responsable}» #3",
       "Boton «Cancelar» #3",
       "Boton «{guia.frase ?? undefined}» #3",
       "Boton «fondos.pagar-deuda»",
@@ -30,24 +30,25 @@
       "button «Pagó todo:»",
       "CampoSelect «¿A dónde entró la plata?»",
       "CampoTexto «Nota» #2",
-      "ComboResponsable «)» #4",
+      "ComboResponsable «{responsable}» #4",
       "Boton «Cancelar» #4",
       "Boton «{guia.frase ?? undefined}» #4"
     ],
     "components/fondos/FotoDelGasto.tsx": [
       "button «{abriendo ? \"Abriendo…\" : \"Ver foto\"}»",
-      "input «);»"
+      "input «(sin nombre)»"
     ],
     "components/fondos/RevisarRendicion.tsx": [
       "Boton «fondos.revisar»",
+      "button «Volver a intentar»",
       "SegmentoDeslizante «Quién asume lo que falta»",
       "CampoTexto «Nota · opcional»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "CampoTexto «¿Qué tiene que corregir?»",
       "Boton «Cancelar»",
-      "Boton «{guardando ? \"Devolviendo…\" : \"Devolver para corregir\"}»",
       "Boton «Devolver para corregir»",
-      "Boton «{guia.frase ?? undefined}»"
+      "Boton «Devolver para corregir» #2",
+      "Boton «{pieListaRevisar(lectura) ?? guia.frase ?? undefined}»"
     ]
   }
 }

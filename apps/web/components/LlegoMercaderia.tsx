@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, X } from "lucide-react";
+import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { debeEncolarse, traducirError } from "@/lib/error-escritura";
 import { leerCostosAtipicos, type CostoAtipico } from "@/lib/costo-atipico-reglas";
@@ -40,7 +41,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { avisoConteoGuardado, avisoConteoRetomado, llegadaContada, mensajeDeSalida, unidadesDeLaLlegada } from "@/lib/recibir-cambio-de-sede";
-import { Desplegable } from "@/components/ui/campos";
+import { Desplegable, Boton } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -51,6 +52,10 @@ import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje
 import { Buscador } from "@/components/ui/Buscador";
 import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 export type ProveedorLlegada = { id: string; nombre: string; ruc: string | null; marcas: string[] };
 
@@ -93,6 +98,7 @@ export function LlegoMercaderia({
   recientes,
   verMontos,
   veExistencias,
+  guiaEnEspera = false,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
@@ -109,6 +115,9 @@ export function LlegoMercaderia({
   /** Quien ve el dinero de Compras escribe el costo (ADR-0126); los demás reciben sin costo. */
   verMontos: boolean;
   veExistencias: boolean;
+  /** Arriba hay envíos de órdenes de compra esperando (Felipe 2026-10-13, /formidable): la guía de este formulario a mano no se
+   *  enciende sola («Sigue aquí» y «Falta: …» competían con la tarjeta de envíos). Despierta en cuanto la persona lo toca. */
+  guiaEnEspera?: boolean;
 }) {
   const router = useRouter();
   // Lo escaneado es de SU sede (Felipe, 2026-10-11): la página monta esta pantalla con la sede en la key, y lo que se escaneó en
@@ -163,6 +172,12 @@ export function LlegoMercaderia({
     facturaRespondida: susFacturas.length > 0 ? sinFactura.includes(proveedorId) : null,
   });
   const guia = useGuiaCampos(campos, { enModal: false });
+  // Dormida, la guía no marca «Sigue aquí» ni pinta el «Falta: …» del pie: lo que falta sigue diciendo «falta» en cada título. Recibir
+  // usa siempre la guía de verdad (`guia`): si se pulsa sin completar, despierta y lleva a lo que falta.
+  const [despierta, setDespierta] = useState(!guiaEnEspera);
+  const guiaVista: typeof guia = despierta
+    ? guia
+    : { ...guia, ahora: null, estado: (id: string) => (guia.estado(id) === "ahora" ? "falta" : guia.estado(id)) };
 
   // «¿Salir sin guardar?» (2026-10-11): lo escaneado se perdía en silencio al tocar el menú. Llegó junto con guardar lo de cada
   // sede: lo guardado en otra sede solo vive mientras se siga en Recibir, así que salir también lo pierde y también pregunta.
@@ -270,6 +285,13 @@ export function LlegoMercaderia({
       if (falta?.id === "llegada-responsable" && responsable.motivo) avisar.error(responsable.motivo);
       return;
     }
+    // Un costo que no se entiende no viaja adivinado: se dice y se lleva al campo (ADR-0419).
+    const ilegible = lineas.find((l) => montoIlegible(l.costo));
+    if (ilegible) {
+      avisar.error(MONTO_ILEGIBLE);
+      formulario.current?.querySelector<HTMLInputElement>(`[data-campo="llegada-costo-${ilegible.varianteId}"]`)?.focus();
+      return;
+    }
     setLoading(true);
     const params = pedidoRecibirLote({ ubicacionId, proveedorId, lineas, numeroGuia, token: token.current, confirmadas });
     const firma = responsable.firma();
@@ -327,7 +349,7 @@ export function LlegoMercaderia({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" onFocusCapture={() => setDespierta(true)} onPointerDownCapture={() => setDespierta(true)}>
       {/* Lo que se recibió sin red y espera subir (ADR-0210): a la vista aunque no se esté recibiendo nada. */}
       <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="llegada" varias="llegadas" />
 
@@ -357,7 +379,7 @@ export function LlegoMercaderia({
         <form ref={formulario} onSubmit={onSubmit} className="card-cayla space-y-6 p-5 sm:p-6">
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
             <div data-guia="recibir.proveedor">
-            <CampoGuiado id="llegada-proveedor" guia={guia} titulo="¿De quién es?" ayuda="El proveedor que la mandó">
+            <CampoGuiado id="llegada-proveedor" guia={guiaVista} titulo="¿De quién es?" ayuda="El proveedor que la mandó">
               <Desplegable
                 forma="campo"
                 etiquetaAccesible="Proveedor"
@@ -387,9 +409,9 @@ export function LlegoMercaderia({
           </div>
 
           {mismaCaja && (
-            <p role="status" className="-mt-2 rounded-lg border border-ambar/30 bg-ambar/[0.07] px-3.5 py-2.5 text-[13px] text-ambar-profundo">
+            <Aviso tono="atencion" className="-mt-2">
               {mismaCaja}
-            </p>
+            </Aviso>
           )}
 
           {susFacturas.length > 0 &&
@@ -401,7 +423,7 @@ export function LlegoMercaderia({
                 </button>
               </p>
             ) : (
-              <CampoGuiado id="llegada-factura" guia={guia} titulo="¿Viene con su factura?" ayuda="Si no la trae, igual se recibe">
+              <CampoGuiado id="llegada-factura" guia={guiaVista} titulo="¿Viene con su factura?" ayuda="Si no la trae, igual se recibe">
                 <div className="nota-cayla space-y-3">
                   <p>
                     {proveedor?.nombre} tiene {susFacturas.length === 1 ? "una factura" : `${susFacturas.length} facturas`} por recibir en {ubicacionEtiqueta}. Si
@@ -434,7 +456,7 @@ export function LlegoMercaderia({
             ))}
 
           <div data-guia="recibir.prendas">
-          <CampoGuiado id="llegada-prendas" guia={guia} titulo="¿Qué llegó?" ayuda={ayudaDelBuscador(proveedor)}>
+          <CampoGuiado id="llegada-prendas" guia={guiaVista} titulo="¿Qué llegó?" ayuda={ayudaDelBuscador(proveedor)}>
             <div className="relative">
               {/* El buscador de la pistola (<Buscador icono="barras">, ADR-0358, como el de «Contra factura») y, debajo, la lista de
                   sugerencias del sistema (ronda 9). */}
@@ -491,9 +513,7 @@ export function LlegoMercaderia({
                   {lectura.bueno ? "✓ " : ""}
                   {lectura.texto}{" "}
                   {lectura.varianteId && (
-                    <button type="button" onClick={deshacer} className="btn-enlace">
-                      Deshacer
-                    </button>
+                    <BotonDeshacer onClick={deshacer} />
                   )}
                   {lectura.crear && (
                     <Link href="/productos/nuevo" target="_blank" onClick={() => (fueACrear.current = true)} className="btn-enlace">
@@ -524,35 +544,29 @@ export function LlegoMercaderia({
                           {detalle(p)} · {p.sku}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1" role="group" aria-label={`Cantidad de ${p.referencia}`}>
-                        <button type="button" aria-label="Una menos" onClick={() => cambiarLineas(sumarPrenda(lineas, l.varianteId, -1))} className="btn-cayla btn-sutil h-8 w-8 p-0">
-                          <Minus aria-hidden className="h-3.5 w-3.5" />
-                        </button>
-                        <input
-                          type="number"
-                          min={0}
-                          inputMode="numeric"
-                          aria-label="Cantidad"
-                          value={l.cantidad}
-                          onChange={(e) => cambiarLineas(fijarCantidad(lineas, l.varianteId, Number(e.target.value)))}
-                          className="caja-campo-input h-8 min-h-8 w-14 px-1 text-center tabular-nums"
-                        />
-                        <button type="button" aria-label="Una más" onClick={() => cambiarLineas(sumarPrenda(lineas, l.varianteId, 1))} className="btn-cayla btn-sutil h-8 w-8 p-0">
-                          <Plus aria-hidden className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                      <PasoCantidad
+                        role="group"
+                        aria-label={`Cantidad de ${p.referencia}`}
+                        menos={{ onClick: () => cambiarLineas(sumarPrenda(lineas, l.varianteId, -1)), etiqueta: "Una menos" }}
+                        mas={{ onClick: () => cambiarLineas(sumarPrenda(lineas, l.varianteId, 1)), etiqueta: "Una más" }}
+                        campo={{
+                          type: "number",
+                          min: 0,
+                          inputMode: "numeric",
+                          "aria-label": "Cantidad",
+                          value: l.cantidad,
+                          onChange: (e) => cambiarLineas(fijarCantidad(lineas, l.varianteId, Number(e.target.value))),
+                        }}
+                      />
                       {verMontos && (
                         <input
-                          type="number"
-                          min={0}
-                          step="0.10"
-                          inputMode="decimal"
+                          {...atributosMontoTexto(l.costo)}
                           aria-label={`Costo por prenda de ${p.referencia}`}
                           placeholder="Costo S/" // sugerir-fijo: nombra el campo y la moneda, no da un costo de ejemplo
                           data-campo={`llegada-costo-${l.varianteId}`}
                           value={l.costo}
                           onChange={(e) => cambiarLineas(fijarCosto(lineas, l.varianteId, e.target.value))}
-                          className="caja-campo-input h-8 min-h-8 w-32 px-2 text-right tabular-nums"
+                          className={`caja-campo-input h-8 min-h-8 w-32 px-2 text-right tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
                         />
                       )}
                       <button type="button" aria-label={`Quitar ${p.referencia}`} onClick={() => cambiarLineas(fijarCantidad(lineas, l.varianteId, 0))} className="text-taupe hover:text-rojo">
@@ -567,13 +581,13 @@ export function LlegoMercaderia({
           </div>
 
           <div data-guia="recibir.responsable">
-            <CampoGuiado id="llegada-responsable" guia={guia}>
+            <CampoGuiado id="llegada-responsable" guia={guiaVista}>
               <ComboResponsable control={responsable} deshabilitado={loading} />
             </CampoGuiado>
           </div>
 
           <div data-guia="recibir.confirmar" className="space-y-3">
-            <PieGuia guia={guia} listo="Todo listo para recibir." />
+            {despierta && <PieGuia guia={guia} listo="Todo listo para recibir." />}
             {atipicos ? (
               <AvisoCostoAtipico
                 costos={atipicos}
@@ -587,9 +601,9 @@ export function LlegoMercaderia({
                 onConfirmar={() => recibir(atipicos.flatMap((a) => (a.linea === null ? [] : [a.linea])))}
               />
             ) : (
-              <button type="submit" disabled={loading} title={guia.frase ?? undefined} className={`btn-cayla btn-primario w-full sm:w-auto ${guia.claseConfirmar}`}>
-                {loading ? "Recibiendo…" : unidades > 0 ? `Recibir ${unidades} ${unidades === 1 ? "prenda" : "prendas"} en ${ubicacionEtiqueta}` : `Recibir en ${ubicacionEtiqueta}`}
-              </button>
+              <Boton peso="primario" cargando={loading} textoCargando="Recibiendo…" type="submit" disabled={loading} title={guia.frase ?? undefined} className={`w-full sm:w-auto ${guia.claseConfirmar}`}>
+                {unidades > 0 ? `Recibir ${unidades} ${unidades === 1 ? "prenda" : "prendas"} en ${ubicacionEtiqueta}` : `Recibir en ${ubicacionEtiqueta}`}
+              </Boton>
             )}
           </div>
         </form>

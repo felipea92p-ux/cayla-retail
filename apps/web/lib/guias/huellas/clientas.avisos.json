@@ -5,14 +5,14 @@
   "total": 16,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{control}»",
       "Boton «Cancelar»",
       "Boton «{control?.motivo ?? undefined}»"
     ],
     "components/clientas/AvisosClubPanel.tsx": [
       "Boton «avisos.beneficios»",
       "button «{t === \"todos\" ? \"Todos\" : INFO_TIPO_AVISO[t].titulo}»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "button «{motivoResponsable ?? \"Vuelve a la lista de por mandar\"}»",
       "Boton «{motivoResponsable ?? undefined}»",
       "button «Abrir WhatsApp de nuevo»",
@@ -21,9 +21,9 @@
     ],
     "components/clientas/BeneficiosClubModal.tsx": [
       "input «{i === ANIOS_ESCALA - 1 ? `Vale del año ${i + 1}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «{guardando ? \"Guardando…\" : \"Guardar\"}»",
+      "Boton «Guardar»",
       "input «{etiqueta}»"
     ]
   }

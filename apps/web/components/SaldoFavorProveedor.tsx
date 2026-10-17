@@ -1,7 +1,7 @@
 import { BotonReembolso } from "@/components/SaldoFavorAcciones";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras-reglas";
-import { ETIQUETA_MOVIMIENTO_CREDITO, type MovimientoCredito } from "@/lib/saldo-favor";
+import { etiquetaMovimientoCredito, type MovimientoCredito } from "@/lib/saldo-favor";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // «Saldo a favor» en la ficha del proveedor (ADR-0111, corrección 2026-09-18): lo que el proveedor le debe a
@@ -35,8 +35,8 @@ export function SaldoFavorProveedor({
       <TarjetaCifra etiqueta="Saldo a favor" punto={hay ? "verde" : "neutro"} valor={soles(saldo)} tono={hay ? "text-verde-profundo" : undefined}>
         <p className="mt-1 max-w-xl text-sm leading-relaxed text-tinta/70">
           {hay
-            ? `Es plata que ${proveedorNombre} te debe: una nota de crédito superó lo que se le debía de su comprobante. Se descuenta de tu próximo pago (viene activado al pagar) o, si te la devuelve, lo registras como reembolso.`
-            : "Sin saldo a favor. Aparece cuando una nota de crédito supera lo que se le debía al proveedor, por ejemplo un faltante en una factura al contado, que ya estaba pagada."}
+            ? `Es plata que ${proveedorNombre} te debe: una nota de crédito, o lo que pasaste a saldo a favor, superó lo que se le debía de su comprobante. Se descuenta de tu próximo pago (viene activado al pagar) o, si te la devuelve, lo registras como reembolso.`
+            : "Sin saldo a favor. Aparece cuando una nota de crédito, o lo que pasas a saldo a favor desde «Nos debe», supera lo que se le debía al proveedor: por ejemplo, un faltante de una factura que ya pagaste."}
         </p>
         {hay && (tieneDeuda || puedeReembolsar) && (
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -61,7 +61,7 @@ export function SaldoFavorProveedor({
                 return (
                   <li key={m.id} className="flex items-baseline justify-between gap-4 py-2">
                     <span className="min-w-0">
-                      <span className="text-sm text-tinta">{ETIQUETA_MOVIMIENTO_CREDITO[m.tipo]}</span>
+                      <span className="text-sm text-tinta">{etiquetaMovimientoCredito(m)}</span>
                       {detalle && <span className="block truncate text-xs text-tinta/60">{detalle}</span>}
                     </span>
                     <span className="shrink-0 text-right">

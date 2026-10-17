@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -35,7 +36,7 @@ function Boton({ accion, alElegir }: { accion: AccionTarea; alElegir?: () => voi
   const contenido = (
     <>
       {accion.texto}
-      <ArrowRight aria-hidden className="h-3.5 w-3.5" strokeWidth={1.75} />
+      <ArrowRight aria-hidden className="h-3.5 w-3.5" />
     </>
   );
   return accion.href ? (
@@ -76,8 +77,49 @@ export function ParaHoy({
   const [todas, setTodas] = useState(false);
   const [abiertoMovil, setAbiertoMovil] = useState(false);
   const plegado = resumenPlegado(tareas);
-  const visibles = todas ? tareas : tareas.slice(0, TAREAS_A_LA_VISTA);
-  const ocultas = tareas.length - visibles.length;
+  // Las primeras a la vista; las demás bajan en su lugar con «Ver N más» (ronda 15 de /unificar).
+  const aLaVista = tareas.slice(0, TAREAS_A_LA_VISTA);
+  const guardadas = tareas.slice(TAREAS_A_LA_VISTA);
+  const fila = (t: TareaHoy) => {
+    const accion = acciones[t.tipo];
+    const alVer = verCuales?.[t.tipo];
+    return (
+      <li
+        key={t.tipo}
+        className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 border-t border-sand/70 px-5 py-3 max-sm:grid-cols-[auto_minmax(0,1fr)] max-sm:px-4"
+      >
+        <span aria-hidden className={`h-2.5 w-2.5 shrink-0 self-start rounded-full ring-4 max-sm:mt-2.5 sm:self-center ${PUNTO[t.tono]}`} />
+        <div className="min-w-0">
+          <p className="flex flex-wrap items-baseline gap-x-2 text-[15px] leading-6 text-tinta">
+            {t.cifra !== null && <span className="font-display text-[26px] leading-none tabular-nums">{t.cifra.toLocaleString("es-PE")}</span>}
+            <span className="font-medium">{t.texto}</span>
+          </p>
+          <p className="mt-0.5 text-[13px] leading-5 text-taupe">
+            {t.detalle}
+            {alVer && (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    alElegir?.();
+                    alVer();
+                  }}
+                  className="btn-enlace font-medium">
+                  Ver cuáles
+                </button>
+              </>
+            )}
+          </p>
+        </div>
+        {accion && (
+          <div className="max-sm:col-start-2">
+            <Boton accion={accion} alElegir={alElegir} />
+          </div>
+        )}
+      </li>
+    );
+  };
 
   return (
     <section data-guia="existencias.pendientes-lista" aria-labelledby="para-hoy-titulo" className="card-cayla anim-sube overflow-hidden" style={{ "--i": 2 } as CSSProperties}>
@@ -119,57 +161,23 @@ export function ParaHoy({
           </p>
         </div>
       ) : (
-        <ol id="para-hoy-lista" className={abiertoMovil ? "" : "max-sm:hidden"}>
-          {visibles.map((t) => {
-            const accion = acciones[t.tipo];
-            const alVer = verCuales?.[t.tipo];
-            return (
-              <li
-                key={t.tipo}
-                className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 border-t border-sand/70 px-5 py-3 max-sm:grid-cols-[auto_minmax(0,1fr)] max-sm:px-4"
-              >
-                <span aria-hidden className={`h-2.5 w-2.5 shrink-0 self-start rounded-full ring-4 max-sm:mt-2.5 sm:self-center ${PUNTO[t.tono]}`} />
-                <div className="min-w-0">
-                  <p className="flex flex-wrap items-baseline gap-x-2 text-[15px] leading-6 text-tinta">
-                    {t.cifra !== null && <span className="font-display text-[26px] leading-none tabular-nums">{t.cifra.toLocaleString("es-PE")}</span>}
-                    <span className="font-medium">{t.texto}</span>
-                  </p>
-                  <p className="mt-0.5 text-[13px] leading-5 text-taupe">
-                    {t.detalle}
-                    {alVer && (
-                      <>
-                        {" "}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            alElegir?.();
-                            alVer();
-                          }}
-                          className="btn-enlace font-medium">
-                          Ver cuáles
-                        </button>
-                      </>
-                    )}
-                  </p>
-                </div>
-                {accion && (
-                  <div className="max-sm:col-start-2">
-                    <Boton accion={accion} alElegir={alElegir} />
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ol>
-      )}
-
-      {(ocultas > 0 || (todas && tareas.length > TAREAS_A_LA_VISTA)) && (
-        <div className={`border-t border-sand/70 px-5 py-2.5 max-sm:px-4 ${abiertoMovil ? "" : "max-sm:hidden"}`}>
-          <button type="button" onClick={() => setTodas((v) => !v)} aria-expanded={todas} className="text-[13px] font-medium text-taupe hover:text-tinta">
-            {todas ? "Ver menos" : `Ver ${ocultas} ${ocultas === 1 ? "pendiente más" : "pendientes más"}`}
-          </button>
+        <div id="para-hoy-lista" className={abiertoMovil ? "" : "max-sm:hidden"}>
+          <ol>{aLaVista.map(fila)}</ol>
+          {guardadas.length > 0 && (
+            <>
+              <FilasDeMas abierto={todas}>
+                <ol>{guardadas.map(fila)}</ol>
+              </FilasDeMas>
+              <BotonVerMas
+                abierto={todas}
+                onCambiar={setTodas}
+                texto={`Ver ${guardadas.length} ${guardadas.length === 1 ? "pendiente más" : "pendientes más"}`}
+              />
+            </>
+          )}
         </div>
       )}
+
     </section>
   );
 }

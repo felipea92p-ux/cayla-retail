@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Pencil, Receipt, SearchX, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
+import { Archive, Receipt, SearchX, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -31,6 +31,7 @@ import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
@@ -233,9 +234,9 @@ export function EntregarVista({
             </ul>
             {conEditar && (
               <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={() => setEditar(true)} className="btn-cayla btn-secundario inline-flex h-9 items-center gap-1.5 px-2.5 text-[12.5px]">
-                  <Pencil className="h-3.5 w-3.5" aria-hidden /> Editar prendas
-                </button>
+                <BotonEditar chico onClick={() => setEditar(true)}>
+                  Editar prendas
+                </BotonEditar>
                 <span className="text-xs text-tinta/55">Sumar otra, quitar una o cambiar la talla, sin liberar.</span>
               </div>
             )}
@@ -369,7 +370,7 @@ export function EntregarVista({
                     {/* Menos de la moneda más chica: no hay con qué entregarlo. Lo mismo que dice el botón apagado. */}
                     {cobro.sinMoneda && (
                       <p className="rounded-lg bg-hueso px-3 py-2 text-[12.5px] leading-snug text-ambar-profundo" data-redondeo-sin-moneda>
-                        No hay moneda para <b className="font-semibold tabular-nums">{money(cobro.efectivo?.deuda ?? 0)}</b>: la más chica es S/ 0.10. Cóbralo con otro medio.
+                        No hay moneda para <b className="font-semibold tabular-nums">{money(cobro.efectivo?.deuda ?? 0)}</b>: la más chica es S/&nbsp;0.10. Cóbralo con otro medio.
                       </p>
                     )}
                     {efectivo && (cobro.efectivo?.aCobrar ?? 0) > 0 && (
@@ -390,7 +391,7 @@ export function EntregarVista({
                     {cobro.excede && <Aviso tono="error" chico>Con esos medios no hay vuelto: cobra justo {money(saldo)}.</Aviso>}
                     {cobro.falta > 0 && pagos.length > 0 && <Aviso tono="error" chico>Falta {money(cobro.falta)}</Aviso>}
                     {cobro.noAlcanza && <Aviso tono="error" chico>Lo recibido no alcanza.</Aviso>}
-                    {cobro.vueltoExcede && <Aviso tono="error" chico>El vuelto pasa de S/ 500: revisa cuánto entregó.</Aviso>}
+                    {cobro.vueltoExcede && <Aviso tono="error" chico>El vuelto pasa de S/&nbsp;500: revisa cuánto entregó.</Aviso>}
                   </fieldset>
                 )}
                 {cobro.vuelto > 0 && (
@@ -442,7 +443,7 @@ export function EntregarVista({
                 onClick={entregar}
                 className={`${BOTON_PRINCIPAL} max-lg:hidden`}
               >
-                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar"}</span>
+                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
                 <span className="font-display text-xl tabular-nums">{money(saldo)}</span>
               </button>
               <p className="text-center text-xs text-tinta/55">{!cajaAbierta ? "Abre la caja para poder entregar." : cobro.sinMoneda ? AVISO_EFECTIVO_SIN_MONEDA : !cobro.listo ? "Elige cómo paga el saldo." : (responsable.motivo ?? "Listo: entrega la prenda y la boleta.")}</p>
@@ -455,7 +456,7 @@ export function EntregarVista({
         <BarraMovil
           etiqueta={`Saldo · ${a.nombres}`}
           monto={saldo}
-          accion={enviando ? "Guardando…" : saldo > 0 ? "Cobrar" : "Entregar"}
+          accion={enviando ? "Guardando…" : saldo > 0 ? "Cobrar" : "Entregar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}
           icono={<ShoppingBag className="h-4 w-4" aria-hidden />}
           deshabilitado={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || cobro.noAlcanza}
           onClick={entregar}

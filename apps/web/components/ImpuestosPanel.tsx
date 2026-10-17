@@ -9,6 +9,8 @@ import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { CabeceraBloque, Herramientas, SelectFin, Superficie } from "@/components/finanzas/kit";
+import { ImpuestosPulso } from "@/components/finanzas/ImpuestosPulso";
+import { pulsoImpuestos } from "@/lib/impuestos-pulso-reglas";
 import { descargarBlob, descargarCsv, textoCsv } from "@/lib/exportar-csv";
 import { crearZip } from "@/lib/zip-simple";
 import { mesesRecientes, solesRedondo, textoMes } from "@/lib/gastos-reglas";
@@ -33,6 +35,7 @@ import {
 import { Vacio } from "@/components/ui/Vacio";
 import { Settings2 } from "lucide-react";
 import { BotonVer } from "@/components/ui/BotonDescargar";
+import { Boton } from "@/components/ui/campos";
 
 // Finanzas ▸ Impuestos (ADR-0195 F8), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, `vista-impuestos.js`):
 // cabecera con «CAYLA entera» y las descargas → cuatro cifras → el límite del régimen y lo que conviene revisar → los
@@ -114,20 +117,23 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
         acciones={
           <>
             <Chip versalitas={false}>CAYLA entera</Chip>
-            <button type="button" className="btn-cayla btn-secundario" disabled={bajando !== null} onClick={() => bajar("ventas")} data-guia="fin-impuestos.registro-ventas">
-              {bajando === "ventas" ? "Armando…" : "Registro de ventas"}
-            </button>
-            <button type="button" className="btn-cayla btn-secundario" disabled={bajando !== null} onClick={() => bajar("compras")} data-guia="fin-impuestos.registro-compras">
-              {bajando === "compras" ? "Armando…" : "Registro de compras"}
-            </button>
-            <button type="button" className="btn-cayla btn-primario" disabled={bajando !== null} onClick={() => bajar("paquete")} data-guia="fin-impuestos.paquete">
-              {bajando === "paquete" ? "Armando…" : "Paquete para el contador"}
-            </button>
+            <Boton cargando={bajando === "ventas"} textoCargando="Armando…" type="button" disabled={bajando !== null} onClick={() => bajar("ventas")} data-guia="fin-impuestos.registro-ventas">
+              Registro de ventas
+            </Boton>
+            <Boton cargando={bajando === "compras"} textoCargando="Armando…" type="button" disabled={bajando !== null} onClick={() => bajar("compras")} data-guia="fin-impuestos.registro-compras">
+              Registro de compras
+            </Boton>
+            <Boton peso="primario" cargando={bajando === "paquete"} textoCargando="Armando…" type="button" disabled={bajando !== null} onClick={() => bajar("paquete")} data-guia="fin-impuestos.paquete">
+              Paquete para el contador
+            </Boton>
           </>
         }
       />
 
       {falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>}
+
+      {/* Camino A (Felipe 2026-10-15): primero la respuesta, después las cifras. */}
+      <ImpuestosPulso pulso={pulsoImpuestos(panel)} />
 
       <section className="fin-cifras" data-guia="fin-impuestos.cifras">
         <TarjetaCifra etiqueta="IGV cobrado al vender" valor={foco ? solesRedondo(foco.debito) : null} {...entra(1)}>
@@ -208,7 +214,10 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
       </Superficie>
 
       <p className="nota-cayla" data-guia="fin-impuestos.nota">
-        El pago a SUNAT todavía no se registra aquí: llega con Cuentas y dinero, porque sale de una cuenta de CAYLA. Mientras tanto, «sin pago registrado» solo dice que el sistema no lo sabe.
+        El pago a SUNAT se registra en Cuentas y dinero («Pagar a SUNAT (el IGV)», sale de un banco): baja lo que debes de IGV y el banco. El 1 % de renta a cuenta va como gasto de «Tributos». Mientras no se registre, «sin pago registrado» solo dice que el sistema no lo sabe.{" "}
+        <Link href="/finanzas/dinero" className="btn-cayla btn-enlace">
+          Registrar el pago
+        </Link>
       </p>
     </div>
   );
@@ -291,7 +300,7 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
         <i style={{ width: `${Math.min(1, avance) * 100}%` }} />
       </div>
       <div className="fin-marcas">
-        <span>S/ 0</span>
+        <span>S/&nbsp;0</span>
         <span>
           Vendido en 12 meses: <b>{solesRedondo(umbral.ventas12m)}</b>
         </span>
@@ -344,7 +353,7 @@ function ParaRevisar({ panel }: { panel: PanelImpuestos }) {
     puntos.push({
       tono: "ambar",
       titulo: `${solesRedondo(r.igvPerdido.igv)} de IGV que no se descuenta`,
-      detalle: `${plural(r.igvPerdido.n, "pago", "pagos")} en efectivo o desde un fondo de facturas de S/ 2,000 o más. SUNAT pide pagarlas por el banco: ese IGV ya está restado de lo que descuentas.`,
+      detalle: `${plural(r.igvPerdido.n, "pago", "pagos")} en efectivo o desde un fondo de facturas de S/\u00a02,000 o más. SUNAT pide pagarlas por el banco: ese IGV ya está restado de lo que descuentas.`,
     });
   }
   if (r.rechazados.n > 0) {
@@ -373,7 +382,7 @@ function ParaRevisar({ panel }: { panel: PanelImpuestos }) {
   puntos.push({
     tono: "pizarra",
     titulo: "Recibos por honorarios: retención del 8 %",
-    detalle: `${r.honorarios.n > 0 ? `${plural(r.honorarios.n, "recibo", "recibos")} este mes${r.honorarios.mayores ? `, ${r.honorarios.mayores} de más de S/ 1,500` : ""}. ` : ""}El contador define si CAYLA debe retener. Mientras tanto, se paga el total.`,
+    detalle: `${r.honorarios.n > 0 ? `${plural(r.honorarios.n, "recibo", "recibos")} este mes${r.honorarios.mayores ? `, ${r.honorarios.mayores} de más de S/\u00a01,500` : ""}. ` : ""}El contador define si CAYLA debe retener. Mientras tanto, se paga el total.`,
   });
   return (
     <Superficie pad className="anim-sube" guia="fin-impuestos.revisar">

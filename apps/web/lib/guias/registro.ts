@@ -91,6 +91,7 @@ import {
   GUIA_PROD_FACTURAS,
   GUIA_PROD_INSUMOS,
   GUIA_PROD_ORDENES,
+  GUIA_PROD_ORDEN,
   GUIA_PROD_POR_PAGAR,
   GUIA_PROD_PROVEEDORES,
   GUIA_PROD_RECIBIR,
@@ -99,6 +100,7 @@ import {
   GUIA_NUEVA_ORDEN_INSUMO,
   GUIA_ORDEN_INSUMO,
   GUIA_EDITAR_ORDEN_INSUMO,
+  GUIA_COMPROBANTE_ORDEN_INSUMO,
 } from "./pantallas/produccion";
 import {
   GUIA_ACTIVIDAD,
@@ -112,6 +114,16 @@ import {
 } from "./pantallas/general";
 import { GUIA_ANALISIS, GUIA_FRESCURA, GUIA_PLAN_DEL_PISO, GUIA_RENDIMIENTO } from "./pantallas/gestion";
 import { GUIA_AVISOS_CLUB, GUIA_CLIENTES } from "./pantallas/clientes";
+import {
+  GUIA_PEDIDOS_WEB,
+  GUIA_RECOMENDACIONES,
+  GUIA_TIENDA_WEB_AJUSTES,
+  GUIA_TIENDA_WEB_RESUMEN,
+  GUIA_VITRINA,
+  GUIA_VITRINA_ESPERAN,
+  GUIA_VITRINA_LOOKS,
+  GUIA_VITRINA_PROBADOR,
+} from "./pantallas/tienda-web";
 import type { Guia } from "./tipos";
 
 export type PantallaConGuia =
@@ -196,6 +208,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_FIN_CIERRE,
   GUIA_PROD_RESUMEN,
   GUIA_PROD_ORDENES,
+  GUIA_PROD_ORDEN,
   GUIA_PROD_INSUMOS,
   GUIA_PROD_RECIBIR,
   GUIA_PROD_PROVEEDORES,
@@ -207,6 +220,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_NUEVA_ORDEN_INSUMO,
   GUIA_ORDEN_INSUMO,
   GUIA_EDITAR_ORDEN_INSUMO,
+  GUIA_COMPROBANTE_ORDEN_INSUMO,
   GUIA_INICIO,
   GUIA_ACTIVIDAD,
   GUIA_BUSCAR,
@@ -218,6 +232,15 @@ export const GUIAS: readonly Guia[] = [
   GUIA_CONFIGURACION,
   GUIA_GLOBAL,
   GUIA_RENDIMIENTO,
+  // Tienda web (ADR-0430).
+  GUIA_TIENDA_WEB_RESUMEN,
+  GUIA_PEDIDOS_WEB,
+  GUIA_VITRINA,
+  GUIA_VITRINA_ESPERAN,
+  GUIA_VITRINA_LOOKS,
+  GUIA_VITRINA_PROBADOR,
+  GUIA_RECOMENDACIONES,
+  GUIA_TIENDA_WEB_AJUSTES,
 ];
 
 /** @internal Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. Lo leen las pruebas y
@@ -320,6 +343,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/ordenes-insumos": { estado: "aplicada", guia: GUIA_ORDENES_INSUMO.id },
   "/ordenes-insumos/@modal/(.)ver/[id]": { estado: "no-aplica", motivo: "La misma vista que /ordenes-insumos/ver/[id] abierta como hoja sobre la lista: comparte su guía." },
   "/ordenes-insumos/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar la ventana, no dibuja nada." },
+  "/ordenes-insumos/comprobante/[id]": { estado: "aplicada", guia: GUIA_COMPROBANTE_ORDEN_INSUMO.id },
   "/ordenes-insumos/editar/[id]": { estado: "aplicada", guia: GUIA_EDITAR_ORDEN_INSUMO.id },
   "/ordenes-insumos/nueva": { estado: "aplicada", guia: GUIA_NUEVA_ORDEN_INSUMO.id },
   "/ordenes-insumos/ver/[id]": { estado: "aplicada", guia: GUIA_ORDEN_INSUMO.id },
@@ -332,6 +356,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/produccion/eficiencia": { estado: "aplicada", guia: GUIA_PROD_EFICIENCIA.id },
   "/produccion/insumos": { estado: "aplicada", guia: GUIA_PROD_INSUMOS.id },
   "/produccion/ordenes": { estado: "aplicada", guia: GUIA_PROD_ORDENES.id },
+  "/produccion/ordenes/[numero]": { estado: "aplicada", guia: GUIA_PROD_ORDEN.id },
   "/produccion/por-pagar": { estado: "aplicada", guia: GUIA_PROD_POR_PAGAR.id },
   "/produccion/proveedores": { estado: "aplicada", guia: GUIA_PROD_PROVEEDORES.id },
   "/produccion/recibir": { estado: "aplicada", guia: GUIA_PROD_RECIBIR.id },
@@ -357,6 +382,15 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/rotulos": { estado: "aplicada", guia: GUIA_ROTULOS.id },
   // ---- sin-acceso ----
   "/sin-acceso": { estado: "no-aplica", motivo: "Un mensaje de una línea («no tienes acceso a esta pantalla»): no hay nada que enseñar." },
+  // ---- tienda-web ---- (ADR-0430: antes en Clientas, Productos, Vender y una pestaña de Configuración)
+  "/tienda-web": { estado: "aplicada", guia: GUIA_TIENDA_WEB_RESUMEN.id },
+  "/tienda-web/ajustes": { estado: "aplicada", guia: GUIA_TIENDA_WEB_AJUSTES.id },
+  "/tienda-web/pedidos": { estado: "aplicada", guia: GUIA_PEDIDOS_WEB.id },
+  "/tienda-web/recomendaciones": { estado: "aplicada", guia: GUIA_RECOMENDACIONES.id },
+  "/tienda-web/vitrina": { estado: "aplicada", guia: GUIA_VITRINA.id },
+  "/tienda-web/vitrina/esperan": { estado: "aplicada", guia: GUIA_VITRINA_ESPERAN.id },
+  "/tienda-web/vitrina/looks": { estado: "aplicada", guia: GUIA_VITRINA_LOOKS.id },
+  "/tienda-web/vitrina/probador": { estado: "aplicada", guia: GUIA_VITRINA_PROBADOR.id },
   // ---- vender ----
   "/vender": { estado: "aplicada", guia: GUIA_PUNTO_DE_VENTA.id },
   "/vender/apartados": { estado: "aplicada", guia: GUIA_APARTADOS.id },

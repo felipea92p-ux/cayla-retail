@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -28,7 +29,7 @@ import { ICONO_DEL_ACCESO, TRAZOS_MENU } from "@/lib/menu-iconos";
 import { formatoSoles } from "@/lib/resumen-formato";
 import { contarVencidas } from "@/lib/por-regularizar";
 import { contarComprobantesAtascados } from "@/lib/comprobantes";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { AjustarInicio } from "@/components/inicio/AjustarInicio";
 import { InicioAlmacen } from "@/components/inicio-almacen/InicioAlmacen";
 import { accesosAlmacen, esPerfilAlmacen, fuentesDeAlmacen } from "@/lib/inicio-almacen-reglas";
@@ -160,7 +161,6 @@ export default async function InicioPage() {
         : persona.ubicacionTipo === "taller"
           ? "Taller"
           : "Integrante";
-  const fecha = new Intl.DateTimeFormat("es-PE", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Lima" }).format(new Date());
 
   const ajustar =
     avisos.length > 0 ? (
@@ -176,7 +176,7 @@ export default async function InicioPage() {
   if (datosAlmacen) {
     return (
       <div className="space-y-6 pb-24 sm:pb-0">
-        <CabeceraPantalla sobretitulo={fecha} titulo={saludo} bajada={`${etiquetaRol} · ${persona.ubicacionEtiqueta}`} />
+        <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo={saludo} subtitulo={etiquetaRol} />
         <InicioAlmacen
           datos={datosAlmacen}
           visibles={visibles}
@@ -201,10 +201,11 @@ export default async function InicioPage() {
 
   return (
     <div className={`space-y-6 ${fijo ? "pb-24 sm:pb-0" : ""}`}>
-      <CabeceraPantalla
-        sobretitulo={fecha}
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): la sede y la fecha arriba, el saludo de título. */}
+      <EncabezadoPagina
+        sede={persona.ubicacionEtiqueta}
         titulo={saludo}
-        bajada={`${etiquetaRol} · ${persona.ubicacionEtiqueta}`}
+        subtitulo={etiquetaRol}
         acciones={
           vende ? (
             <Link href="/vender" className="btn-cayla btn-primario hidden items-center gap-2 sm:inline-flex" data-guia="inicio.vender">
@@ -285,7 +286,7 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
       <section data-guia="inicio.hoy">
         <Etiqueta>{titulo}</Etiqueta>
         <div className="card-cayla flex items-start gap-3 px-4 py-3.5 text-sm text-tinta/80 sm:px-5">
-          <Icono clave="caja" className="mt-0.5 size-[18px] text-tinta/60" />
+          <Icono clave="caja" className="mt-0.5 size-4 text-tinta/60" />
           <p>
             <span className="font-semibold text-tinta">{esLider ? "Aún sin ventas hoy." : "Aún no tienes ventas hoy."}</span> {caja}
             {esLider && r.meta ? ` · meta ${formatoSoles(r.meta.meta)}` : ""}.
@@ -318,9 +319,7 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
           r.meta ? (
             <TarjetaCifra etiqueta="Meta del día" valor={`${r.meta.pct} %`}>
               Faltan {formatoSoles(r.meta.falta)} de {formatoSoles(r.meta.meta)}
-              <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-tinta/10" aria-hidden>
-                <span className="block h-full rounded-full bg-verde" style={{ width: `${r.meta.barra}%` }} />
-              </span>
+              <BarraAvance pct={r.meta.barra} decorativa className="mt-2" />
             </TarjetaCifra>
           ) : (
             <TarjetaCifra etiqueta="Meta del día" valor={null}>
@@ -430,7 +429,7 @@ function Accesos({ accesos }: { accesos: AccesoRapido[] }) {
             href={a.href}
             className="card-cayla flex flex-col items-center gap-1.5 px-1.5 py-3 text-center text-xs text-tinta transition-colors hover:bg-tinta/5 hover:text-rojo"
           >
-            <Icono clave={a.icono} className="size-[22px]" />
+            <Icono clave={a.icono} className="size-5" />
             {a.etiqueta}
           </Link>
         ))}

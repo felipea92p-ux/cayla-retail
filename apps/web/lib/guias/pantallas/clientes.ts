@@ -29,7 +29,14 @@ export const GUIA_CLIENTES: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "clientas.nuevo" }],
       titulo: "Su documento",
-      texto: "Eliges DNI, carné de extranjería o pasaporte y escribes el número. Con un DNI de 8 dígitos el nombre se llena solo; con los otros, lo escribes tú.",
+      texto: "Eliges DNI, carné de extranjería o pasaporte y escribes el número. Si ese documento ya tiene ficha, te lo dice y te deja abrirla: no se crea otra.",
+    },
+    {
+      id: "nuevo-nombre",
+      ancla: "clientas.nuevo-nombre",
+      opcional: true,
+      titulo: "Su nombre",
+      texto: "Con DNI, el nombre lo trae el padrón y no se escribe: si el padrón no responde o no encuentra el DNI, no se registra y tocas «Volver a intentar». Con carné o pasaporte, lo escribes tal cual está en su documento, sin números.",
     },
     {
       id: "nuevo-responsable",
@@ -112,7 +119,7 @@ export const GUIA_CLIENTES: Guia = {
       ancla: "clientas.ficha-editar",
       opcional: true,
       titulo: "Editar",
-      texto: "Para corregir su nombre, documento, celular o cumpleaños. En la demo no lo tocamos.",
+      texto: "Para corregir su documento, celular, correo o cumpleaños. El nombre de un DNI no se escribe: si cambió, «Actualizar desde el padrón» lo vuelve a leer. Si el correo ya es de otra ficha, te dice de cuál. En la demo no lo tocamos.",
     },
     {
       id: "ficha-club",
@@ -144,11 +151,18 @@ export const GUIA_CLIENTES: Guia = {
       texto: "Sus compras en todas las tiendas, sus cambios, devoluciones y apartados, y la talla que suele llevar.",
     },
     {
+      id: "ficha-tienda-online",
+      ancla: "clientas.ficha-tienda-online",
+      opcional: true,
+      titulo: "Su cuenta de la tienda online",
+      texto: "Si tiene cuenta en la tienda online, aquí lo ves. Si perdió su correo y ya no puede entrar, «Restablecer acceso» le manda un código a su correo nuevo: con él lo confirma y crea su contraseña. Hasta entonces nada cambia. En la demo no lo tocamos.",
+    },
+    {
       id: "ficha-acciones",
       ancla: "clientas.ficha-acciones",
       opcional: true,
-      titulo: "Unir o archivar",
-      texto: "«Unir con otra ficha» junta dos fichas de la misma persona; «Archivar» la saca de la libreta sin borrar su historia. En la demo no tocamos ninguna.",
+      titulo: "Archivar",
+      texto: "«Archivar» la saca de la libreta sin borrar su historia; si vuelve y la registras con su documento, se reactiva sola. Si tiene un pedido de la tienda online en curso, te avisa antes; con uno pagado, sus datos no se borran hasta que lo recoja. En la demo no la tocamos.",
     },
     {
       id: "pie",

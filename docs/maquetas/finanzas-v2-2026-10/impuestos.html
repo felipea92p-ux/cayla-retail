@@ -1,0 +1,1157 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Impuestos · Finanzas · maquetas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="base.css"><style>
+/* Finanzas ▸ Impuestos — maquetas A, B y C. Solo tokens de base.css (ADR-0169/0336); movimiento de ADR-0136:
+   una sola vez, sin rebote; el único bucle es el punto de «faltan 5 días» (.chip.late). */
+
+/* ---------- Comunes de la página ---------- */
+.enc-izq{display:flex;flex-direction:column;gap:8px;min-width:0}
+.enc-der{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cab-sec{display:flex;flex-direction:column;gap:6px;margin-bottom:18px}
+.cab-sec h2{font-size:clamp(22px,2.4vw,27px);line-height:1.15}
+.cab-sec .bajada{font-size:14px;max-width:64ch}
+.cab-fila{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.porque-caja{padding-top:12px;font-size:14px;max-width:64ch;display:flex;flex-direction:column;gap:8px}
+.porque-caja b{font-weight:600}
+.visto-ico{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--verde);color:var(--crema);font-size:11px;font-weight:700;flex:none}
+.hilo{position:absolute;left:0;bottom:0;height:2px;width:0;background:currentColor;opacity:.75;pointer-events:none}
+.btn.cargando .hilo{width:100%;transition:width 1.3s var(--ease-cayla)}
+.btn svg{flex:none}
+a.btn{color:var(--tinta);text-decoration:none}
+#b-paquete:not(.abierto){margin-top:-22px}
+.oculto-lector{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* =====================================================================================
+   A · La respuesta
+   ===================================================================================== */
+.a-respuesta{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:28px 44px;padding:34px 38px;align-items:center}
+@media (max-width:880px){.a-respuesta{grid-template-columns:minmax(0,1fr);padding:24px 20px}}
+.a-pregunta{font-family:var(--serif);font-style:italic;font-size:19px;color:var(--taupe)}
+.a-grande{font-size:clamp(25px,3vw,34px);line-height:1.12;margin-top:6px}
+.a-monto{display:block;font-family:var(--serif);font-size:clamp(62px,9vw,108px);line-height:.95;letter-spacing:-.02em;margin-top:12px}
+.a-vence{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px;font-size:14px}
+.a-lado{display:flex;flex-direction:column;gap:18px;min-width:0}
+.a-dias{width:100%;height:auto;display:block;max-width:420px}
+.a-dias .riel{stroke:var(--sand);stroke-width:2;fill:none}
+.a-dias .avance{stroke:var(--taupe);stroke-width:2;fill:none}
+.a-dias .dia{fill:var(--papel);stroke:var(--taupe);stroke-width:1.5}
+.a-dias .dia.hoy{fill:var(--tinta);stroke:var(--tinta)}
+.a-dias .dia.paga{fill:var(--rojo);stroke:var(--rojo)}
+.a-dias .aro{fill:none;stroke:var(--rojo);stroke-width:1.6}
+.a-dias text{font-family:var(--sans);font-size:11.5px;fill:color-mix(in srgb,var(--tinta) 70%,transparent);text-anchor:middle}
+.a-dias text.fuerte{fill:var(--tinta);font-weight:600}
+.a-explica{font-size:16px;line-height:1.5}
+.a-explica b{font-weight:600}
+.a-billete{display:flex;height:46px;border-radius:10px;overflow:hidden;border:1px solid var(--sand);background:var(--hueso)}
+.a-billete>i{display:flex;align-items:center;width:var(--w);font-style:normal;font-size:12.5px;white-space:nowrap;overflow:hidden;padding:0 12px}
+.a-billete .b-tuyo{background:var(--hueso);color:var(--tinta)}
+.a-billete .b-sunat{background:color-mix(in srgb,var(--ambar) 24%,var(--papel));color:var(--ambar);font-weight:600;justify-content:center;padding:0 4px;border-left:1px dashed var(--ambar)}
+.a-billete-pie{display:flex;justify-content:space-between;gap:10px;font-size:12px;margin-top:6px}
+
+.a-ecuacion .ecu{display:flex;flex-wrap:wrap;align-items:stretch;gap:12px}
+.term{flex:1 1 150px;min-width:132px;background:var(--crema);border:1px solid var(--sand);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:5px;
+  transition:transform .25s var(--ease-cayla),border-color .2s var(--ease-cayla)}
+.term:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--taupe) 50%,var(--sand))}
+.term .t-et{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.term b{font-family:var(--serif);font-weight:500;font-size:clamp(26px,2.6vw,32px);line-height:1;font-variant-numeric:tabular-nums}
+.term .t-pie{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 68%,transparent)}
+.term.parcial{background:var(--hueso);border-color:transparent}
+.term.total{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.term.total .t-et,.term.total .t-pie{color:color-mix(in srgb,var(--crema) 78%,transparent)}
+.op{align-self:center;font-family:var(--serif);font-size:32px;line-height:1;color:var(--taupe);min-width:18px;text-align:center}
+.animar .ecu [data-entra]{animation-delay:calc(var(--i,0) * 150ms + 250ms)}
+@media (max-width:620px){.term{flex-basis:40%}.op{min-width:12px;font-size:26px}}
+
+.a-hacer .a-listo{display:flex;align-items:center;gap:10px;font-size:14px;padding:12px 14px;border-radius:12px;background:color-mix(in srgb,var(--verde) 9%,transparent);margin-bottom:6px}
+.a-lista{list-style:none;margin:0;padding:0}
+.a-item{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:14px;align-items:start;padding:16px 0;border-bottom:1px solid var(--sand)}
+.a-item:last-child{border-bottom:0}
+.a-check{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--taupe);background:transparent;cursor:pointer;display:grid;place-items:center;padding:0;
+  transition:background .25s var(--ease-cayla),border-color .25s var(--ease-cayla),transform .2s var(--ease-cayla)}
+.a-check:hover{transform:scale(1.06)}
+.a-check path{fill:none;stroke:var(--crema);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .45s var(--ease-cayla) .08s}
+.a-item.hecho .a-check{background:var(--verde);border-color:var(--verde)}
+.a-item.hecho .a-check path{stroke-dashoffset:0}
+.a-item .a-titulo{font-weight:600;font-size:15.5px;transition:color .3s}
+.a-item.hecho .a-titulo{text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--tinta) 45%,transparent);color:color-mix(in srgb,var(--tinta) 64%,transparent)}
+.a-item .a-txt{display:flex;flex-direction:column;gap:4px;min-width:0}
+.a-item .a-det{font-size:13.5px}
+.a-hacer-pie{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--sand);font-size:13px}
+@media (max-width:560px){.a-item{grid-template-columns:36px minmax(0,1fr)}.a-item>.btn{grid-column:2;justify-self:start}}
+
+.a-dos{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:960px){.a-dos{grid-template-columns:minmax(0,1fr)}}
+.u-medida{position:relative;padding:34px 0 40px}
+.u-pista{position:relative;height:16px;border-radius:999px;background:var(--hueso)}
+.u-pista>i{position:absolute;top:0;bottom:0;left:0;width:var(--w);font-style:normal}
+.u-pista .u-hecho{background:var(--tinta);border-radius:999px}
+.u-pista .u-proy{border-radius:0 999px 999px 0;
+  background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--taupe) 45%,transparent) 0 5px,transparent 5px 10px)}
+.u-raya{position:absolute;top:-12px;bottom:-12px;width:2px;background:var(--tinta);left:91.7%}
+.u-et{position:absolute;font-size:12px;white-space:nowrap;line-height:1.2}
+.u-et b{font-weight:600}
+.u-et.a-fin{transform:translateX(-100%);padding-right:8px}
+.u-et.arriba{bottom:calc(100% + 16px)}
+.u-et.abajo{top:calc(100% + 16px)}
+.u-cambia{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px;margin-top:6px}
+.u-cambia>div{background:var(--crema);border:1px solid var(--sand);border-radius:12px;padding:12px 14px;font-size:13.5px;display:flex;flex-direction:column;gap:4px}
+.u-cambia .de-a{font-family:var(--serif);font-size:22px;line-height:1.1}
+.u-cambia .de-a s{color:color-mix(in srgb,var(--tinta) 55%,transparent);text-decoration-thickness:1px}
+
+/* =====================================================================================
+   B · La mesa de trabajo
+   ===================================================================================== */
+.b-dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:start}
+.b-dos.al-reves{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
+@media (max-width:980px){.b-dos,.b-dos.al-reves{grid-template-columns:minmax(0,1fr)}}
+.b-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.cifra .et{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.cifra.destacada{border-color:color-mix(in srgb,var(--tinta) 30%,var(--sand))}
+
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal .dsem{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);text-align:center;font-weight:600;padding-bottom:4px}
+.cal .dia{position:relative;min-height:52px;border-radius:10px;padding:6px 7px;display:flex;flex-direction:column;justify-content:space-between;font-size:13px;font-variant-numeric:tabular-nums;
+  transition:background .2s var(--ease-cayla),transform .2s var(--ease-cayla)}
+.cal .dia.finde{color:color-mix(in srgb,var(--tinta) 50%,transparent)}
+.cal .dia.pasado .n{color:color-mix(in srgb,var(--tinta) 50%,transparent)}
+.cal .dia.vence{background:var(--hueso);cursor:default}
+.cal .dia.vence:hover{transform:translateY(-2px)}
+.cal .dia .dig{font-size:10px;line-height:1.15;color:var(--taupe);font-weight:600}
+.cal .dia.tuyo{background:color-mix(in srgb,var(--rojo) 11%,var(--papel));box-shadow:inset 0 0 0 1.5px var(--rojo)}
+.cal .dia.tuyo .dig{color:var(--rojo-p)}
+.cal .dia.hoy{box-shadow:inset 0 0 0 1.5px var(--tinta)}
+.cal .dia .hoy-et{position:absolute;top:5px;right:7px;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+.cal-ley{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;margin-top:12px}
+.cal-ley span{display:inline-flex;align-items:center;gap:6px}
+.cal-ley i{width:12px;height:12px;border-radius:4px;display:inline-block}
+.cal-ley .l-vence{background:var(--hueso)}
+.cal-ley .l-tuyo{box-shadow:inset 0 0 0 1.5px var(--rojo);background:color-mix(in srgb,var(--rojo) 11%,var(--papel))}
+.cal-ley .l-hoy{box-shadow:inset 0 0 0 1.5px var(--tinta)}
+@media (max-width:420px){.cal .dia{min-height:46px;padding:5px}.cal .dia .dig{font-size:9px}}
+
+.sire-fila{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--sand)}
+.sire-fila b{font-weight:600}
+.sire-fila .d{font-size:12.5px}
+.b-sire .pista{margin:14px 0 6px}
+.b-sire .pista>i{transition:width .5s var(--ease-cayla)}
+.sire-faltan{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.sire-faltan li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;background:var(--crema);border:1px solid var(--sand);border-radius:12px;padding:10px 12px;
+  transition:opacity .35s var(--ease-cayla),background .35s var(--ease-cayla)}
+.sire-faltan li .fac{display:flex;flex-direction:column;min-width:0}
+.sire-faltan li .fac b{font-weight:600;font-size:14px}
+.sire-faltan li .fac span{font-size:12px}
+.sire-faltan li .falta{font-size:11.5px;color:var(--ambar);font-weight:600}
+.sire-faltan li.completa{background:color-mix(in srgb,var(--verde) 8%,var(--papel))}
+.sire-faltan li.completa .falta{color:var(--verde)}
+@media (max-width:560px){.sire-faltan li{grid-template-columns:minmax(0,1fr) auto}.sire-faltan li .btn{grid-column:1 / -1;justify-self:start}}
+.sello-texto{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--verde);color:var(--verde);border-radius:8px;padding:5px 10px;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;transform:rotate(-3deg)}
+.estampa{animation:c-estampa .55s var(--ease-cayla) both}
+
+.b-tabla .pildoras{display:inline-flex;gap:6px;flex-wrap:wrap}
+.pildora{border:1px solid var(--sand);border-radius:999px;padding:5px 12px;font-size:12.5px;background:var(--papel);cursor:pointer;transition:background .2s var(--ease-cayla),color .2s,border-color .2s}
+.pildora:hover{border-color:var(--taupe)}
+.pildora[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.b-tabla tbody tr.fila{cursor:pointer}
+.b-tabla tbody tr.fila td:first-child{position:relative}
+.b-tabla tbody tr.fila td:first-child::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;border-radius:2px;background:var(--rojo-p);transform:scaleY(0);transition:transform .25s var(--ease-cayla)}
+.b-tabla tbody tr.fila[aria-expanded="true"] td:first-child::before{transform:scaleY(1)}
+.b-tabla .flecha{display:inline-block;transition:transform .25s var(--ease-cayla);color:var(--taupe);margin-left:6px}
+.b-tabla tr[aria-expanded="true"] .flecha{transform:rotate(90deg)}
+.b-tabla tr.det td{padding:0;border-bottom:0}
+.b-tabla tr.det .det-in{padding:4px 12px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px;font-size:13px}
+.b-tabla tr.det .det-in>div{background:var(--crema);border-radius:10px;padding:10px 12px}
+.b-tabla tr.det .det-in b{display:block;font-family:var(--serif);font-weight:500;font-size:19px}
+.b-tabla tr[hidden]{display:none}
+.mini-barra{display:block;width:110px;height:6px;border-radius:999px;background:var(--hueso);overflow:hidden}
+.mini-barra>i{display:block;height:100%;width:var(--w);border-radius:999px;background:var(--tinta)}
+.mini-barra.curso>i{background:color-mix(in srgb,var(--tinta) 35%,transparent)}
+@media (max-width:640px){.b-tabla .col-barra{display:none}}
+
+.detr-fila{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--sand);font-size:13.5px}
+.detr-fila:last-child{border-bottom:0}
+.detr-fila .der{display:flex;align-items:center;gap:10px;justify-self:end}
+.revisar-fila{display:grid;grid-template-columns:10px minmax(0,1fr);gap:12px;padding:11px 0;border-bottom:1px solid var(--sand);font-size:13.5px}
+.revisar-fila:last-child{border-bottom:0}
+.revisar-fila .punto{width:8px;height:8px;border-radius:50%;margin-top:7px;background:var(--c,var(--pizarra))}
+.revisar-fila b{font-weight:600}
+
+.b-graf{width:100%;height:auto;display:block;min-width:520px}
+.b-graf .rej{stroke:var(--sand);stroke-width:1}
+.b-graf .eje{font-family:var(--sans);font-size:11px;fill:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.b-graf .area{fill:color-mix(in srgb,var(--tinta) 8%,transparent)}
+.b-graf .real{fill:none;stroke:var(--tinta);stroke-width:2.4;stroke-linejoin:round;stroke-linecap:round}
+.b-graf .proy{fill:none;stroke:var(--taupe);stroke-width:2.2;stroke-dasharray:5 6;stroke-linecap:round}
+.b-graf .pto{fill:var(--papel);stroke:var(--tinta);stroke-width:2;transition:r .2s var(--ease-cayla)}
+.b-graf .pto:hover{r:6}
+.b-graf .pto.p{stroke:var(--taupe)}
+.b-graf .umbral{stroke:var(--tinta);stroke-width:1.4}
+.b-graf .umbral-et{font-family:var(--sans);font-size:11.5px;font-weight:600;fill:var(--tinta)}
+.b-graf .cruce{fill:var(--rojo)}
+.b-graf .cruce-aro{fill:none;stroke:var(--rojo);stroke-width:1.4}
+.b-graf .cruce-et{font-family:var(--sans);font-size:11.5px;fill:var(--rojo-p);font-weight:600}
+.b-graf .hoy{stroke:var(--taupe);stroke-width:1;stroke-dasharray:2 4}
+.b-libros{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--sand);font-size:13.5px}
+
+.b-paq{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start}
+@media (max-width:700px){.b-paq{grid-template-columns:minmax(0,1fr)}}
+.paq-lista{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:8px}
+.paq-lista li{display:flex;align-items:center;gap:10px;background:var(--crema);border:1px solid var(--sand);border-radius:12px;padding:10px 12px;font-size:13px}
+.paq-lista li .doc{width:26px;height:32px;border-radius:4px;border:1px solid var(--taupe);display:grid;place-items:center;font-size:8.5px;font-weight:700;letter-spacing:.06em;color:var(--taupe);flex:none;background:var(--papel)}
+.paq-lista li .txt{display:flex;flex-direction:column;min-width:0;flex:1}
+.paq-lista li .txt b{font-weight:600}
+
+/* =====================================================================================
+   C · Las cosas de la tienda
+   ===================================================================================== */
+.escena{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,290px) minmax(0,1fr);gap:24px;align-items:center;padding:8px 0 4px}
+@media (max-width:860px){.escena{grid-template-columns:minmax(0,1fr);gap:20px}}
+.c-col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.c-col .versalita{margin-bottom:2px}
+.c-ticket,.c-factura,.c-renta{display:flex;align-items:center;gap:10px;border-radius:10px;padding:8px 12px;font-size:12.5px;transition:opacity .4s var(--ease-cayla),background .4s var(--ease-cayla)}
+.c-ticket{background:var(--crema);border:1px dashed color-mix(in srgb,var(--taupe) 55%,var(--sand))}
+.c-ticket .que,.c-factura .que,.c-renta .que{flex:1;min-width:0}
+.c-ticket .cuanto,.c-factura .cuanto,.c-renta .cuanto{font-variant-numeric:tabular-nums;font-weight:600}
+.c-ticket.dio{opacity:.55}
+.c-factura{background:var(--papel);border:1px solid var(--sand)}
+.c-factura.saco{background:color-mix(in srgb,var(--verde) 9%,var(--papel));border-color:color-mix(in srgb,var(--verde) 40%,var(--sand))}
+.c-renta{background:color-mix(in srgb,var(--pizarra) 9%,var(--papel));border:1px dashed color-mix(in srgb,var(--pizarra) 45%,var(--sand))}
+.c-renta.dio{opacity:.55}
+.mf{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;font-family:var(--serif);font-size:9.5px;
+  background:color-mix(in srgb,var(--ambar) 20%,var(--papel));border:1.5px solid var(--ambar);color:var(--ambar);transition:opacity .25s var(--ease-cayla),transform .25s var(--ease-cayla)}
+.mf.renta{background:color-mix(in srgb,var(--pizarra) 18%,var(--papel));border-color:var(--pizarra);color:var(--pizarra)}
+.dio .mf{opacity:0;transform:scale(.5)}
+.c-factura .mf{opacity:0;transform:scale(.5)}
+.c-factura.saco .mf{opacity:1;transform:none}
+.moneda{position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-family:var(--serif);font-size:11px;pointer-events:none;z-index:4;
+  background:color-mix(in srgb,var(--ambar) 22%,var(--papel));border:1.5px solid var(--ambar);color:var(--ambar)}
+.moneda.renta{background:color-mix(in srgb,var(--pizarra) 20%,var(--papel));border-color:var(--pizarra);color:var(--pizarra)}
+
+.c-sobre{position:relative;width:100%;max-width:280px;margin:0 auto}
+.c-sobre svg{width:100%;height:auto;display:block;overflow:visible}
+.c-sobre .fondo{fill:var(--hueso);stroke:var(--taupe);stroke-width:1.4}
+.c-sobre .cuerpo{fill:var(--papel);stroke:var(--taupe);stroke-width:1.4}
+.c-sobre .pliegue{fill:none;stroke:color-mix(in srgb,var(--taupe) 45%,transparent);stroke-width:1.2}
+.c-sobre .flap-abierta{fill:var(--hueso);stroke:var(--taupe);stroke-width:1.4;transform-origin:130px 62px;transition:transform .5s var(--ease-cayla)}
+.c-sobre .flap-cerrada{fill:var(--papel);stroke:var(--taupe);stroke-width:1.4;transform-origin:130px 62px;transform:scaleY(0);transition:transform .5s var(--ease-cayla) .2s}
+.c-sobre.cerrado .flap-abierta{transform:scaleY(0)}
+.c-sobre.cerrado .flap-cerrada{transform:scaleY(1)}
+.c-sobre .rotulo{font-family:var(--sans);font-size:10px;letter-spacing:.16em;font-weight:700;fill:var(--taupe);text-anchor:middle}
+.c-boca{position:absolute;left:50%;top:34%;width:2px;height:2px}
+.c-sobre-cifra{position:absolute;left:0;right:0;top:67%;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none}
+.c-sobre-cifra b{font-family:var(--serif);font-weight:500;font-size:clamp(28px,3vw,34px);line-height:1;font-variant-numeric:tabular-nums}
+.c-sobre-cifra span{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.c-sello{position:absolute;right:-26px;bottom:-26px;width:90px;height:90px;border-radius:50%;border:2px solid var(--pizarra);color:var(--pizarra);display:grid;place-items:center;text-align:center;
+  font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;line-height:1.3;opacity:0;transform:rotate(-12deg);
+  background:color-mix(in srgb,var(--pizarra) 7%,var(--papel));box-shadow:inset 0 0 0 4px var(--papel),inset 0 0 0 5px color-mix(in srgb,var(--pizarra) 60%,transparent)}
+.c-sello b{display:block;font-family:var(--serif);font-size:22px;letter-spacing:0;font-weight:500;line-height:1}
+.c-sobre.sellado .c-sello{opacity:1;animation:c-estampa .6s var(--ease-cayla) both}
+@keyframes c-estampa{from{opacity:0;transform:scale(1.4) rotate(-4deg)}to{opacity:1;transform:scale(1) rotate(-12deg)}}
+.c-final{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:22px;padding-top:18px;border-top:1px solid var(--sand);
+  opacity:0;transform:translateY(8px);transition:opacity .5s var(--ease-cayla),transform .5s var(--ease-cayla)}
+.c-final.ver{opacity:1;transform:none}
+.c-final .cuenta{font-size:14px}
+.c-final .cuenta b{font-weight:600}
+
+.c-dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:14px;align-items:start}
+@media (max-width:900px){.c-dos{grid-template-columns:minmax(0,1fr)}}
+.c-taco-tarjeta{display:flex;flex-direction:column}
+.taco-zona{display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;align-items:center;flex:1}
+@media (max-width:520px){.taco-zona{grid-template-columns:minmax(0,1fr)}}
+.taco{position:relative;width:200px;height:236px;margin:0 auto}
+.taco::before{content:"";position:absolute;left:10px;right:10px;top:0;height:22px;border-radius:8px 8px 3px 3px;background:var(--tinta);z-index:9}
+.taco::after{content:"";position:absolute;left:0;right:0;top:26px;bottom:-6px;border-radius:8px 8px 14px 14px;background:var(--sand);z-index:0}
+.c-hoja{position:absolute;left:4px;right:4px;top:18px;bottom:0;background:var(--papel);border:1px solid var(--sand);border-radius:4px 4px 12px 12px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding-top:30px;transform-origin:50% 0;
+  transition:transform .85s var(--ease-cayla),opacity .85s var(--ease-cayla)}
+.c-hoja .mes{position:absolute;top:0;left:0;right:0;height:30px;display:grid;place-items:center;font-size:10.5px;letter-spacing:.18em;font-weight:700;color:var(--crema);
+  background:color-mix(in srgb,var(--tinta) 82%,var(--taupe));border-bottom:1px dashed var(--sand);border-radius:4px 4px 0 0}
+.c-hoja .n{font-family:var(--serif);font-size:92px;line-height:.9;font-variant-numeric:tabular-nums}
+.c-hoja .sem{font-size:13px;color:var(--taupe);text-transform:lowercase}
+.c-hoja.finde .n{color:color-mix(in srgb,var(--tinta) 55%,transparent)}
+.c-hoja.arrancada{transform:translate(46px,150px) rotate(18deg);opacity:0;pointer-events:none}
+.c-hoja .paga{font-size:12px;font-weight:600;margin-top:4px}
+.c-hoja .aro{position:absolute;left:50%;top:42%;width:124px;height:124px;transform:translate(-50%,-50%);overflow:visible;pointer-events:none}
+.c-hoja .aro circle{fill:none;stroke:var(--rojo);stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1s var(--ease-cayla)}
+.c-hoja.marcado .aro circle{stroke-dashoffset:0}
+.taco-texto{display:flex;flex-direction:column;gap:10px;font-size:14.5px;min-width:0}
+.taco-texto .grande{font-family:var(--serif);font-size:30px;line-height:1.1}
+
+.c-notas-lista{display:grid;gap:14px}
+.notita{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 14px;align-items:center;padding:16px 16px 14px;border-radius:3px 3px 16px 3px;
+  background:color-mix(in srgb,var(--ambar) 11%,var(--papel));border:1px solid color-mix(in srgb,var(--ambar) 22%,var(--sand));transform:rotate(var(--r,0deg));
+  transition:transform .3s var(--ease-cayla),background .4s var(--ease-cayla)}
+.notita:hover{transform:rotate(0deg) translateY(-2px)}
+.notita::before{content:"";position:absolute;top:-5px;left:50%;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:var(--taupe);box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--sombra) 25%,transparent)}
+.notita .t{font-weight:600;font-size:15px}
+.notita .d{font-size:13px;grid-column:1 / -1}
+.notita .tx{display:flex;flex-direction:column;gap:4px;min-width:0}
+.notita .hecho-sello{display:none}
+.notita.hecha{background:color-mix(in srgb,var(--verde) 8%,var(--papel));border-color:color-mix(in srgb,var(--verde) 30%,var(--sand))}
+.notita.hecha .t{text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--tinta) 45%,transparent)}
+.notita.hecha .btn{display:none}
+.notita.hecha .hecho-sello{display:inline-flex}
+.notita.lista{background:color-mix(in srgb,var(--verde) 8%,var(--papel));border-color:color-mix(in srgb,var(--verde) 30%,var(--sand))}
+
+.c-camino svg{width:100%;height:auto;display:block;overflow:visible}
+.c-camino .ruta-base{fill:none;stroke:var(--sand);stroke-width:3;stroke-dasharray:1 9;stroke-linecap:round}
+.c-camino .ruta-proy{fill:none;stroke:color-mix(in srgb,var(--taupe) 55%,transparent);stroke-width:5;stroke-linecap:round}
+.c-camino .ruta-hecha{fill:none;stroke:var(--tinta);stroke-width:3.5;stroke-linecap:round}
+.c-camino .hito line{stroke:var(--tinta);stroke-width:1.4}
+.c-camino .hito .bandera{fill:var(--tinta)}
+.c-camino .hito.lejos .bandera{fill:var(--taupe)}
+.c-camino .hito.lejos line{stroke:var(--taupe)}
+.c-camino .hito .pt{fill:var(--papel);stroke:var(--tinta);stroke-width:2}
+.c-camino .etq{font-family:var(--sans);font-size:14px;font-weight:600;fill:var(--tinta)}
+.c-camino .etq.sub{font-size:12.5px;font-weight:400;fill:var(--taupe)}
+.c-camino .ave-cuerpo{fill:var(--rojo)}
+.c-camino .ave-ala{fill:var(--rojo-p)}
+.c-camino .ave-cola{fill:var(--rojo-p)}
+.c-camino .ave-pico{stroke:var(--tinta);stroke-width:1.6;stroke-linecap:round;fill:none}
+.c-camino .ave-ojo{fill:var(--crema)}
+.c-camino #c-hoy{opacity:0;transition:opacity .5s var(--ease-cayla)}
+.c-camino #c-hoy.ver{opacity:1}
+.c-camino #c-hoy rect{fill:var(--tinta)}
+.c-camino #c-hoy text{font-family:var(--sans);font-size:12.5px;font-weight:600;fill:var(--crema);text-anchor:middle}
+.hitos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px;margin-top:10px}
+.hitos>div{border-top:2px solid var(--tinta);padding-top:12px;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.hitos>div.lejos{border-top-color:var(--taupe)}
+.hitos>div.hoy{border-top-color:var(--sand)}
+.hitos .h-t{font-family:var(--serif);font-size:21px;line-height:1.15}
+@media (max-width:600px){.c-camino .etq{display:none}}
+
+.c-carpeta-hojas{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px}
+.papel{position:relative;background:var(--papel);border:1px solid var(--sand);border-radius:4px 4px 12px 4px;padding:16px 16px 52px;min-height:150px;display:flex;flex-direction:column;gap:6px;font-size:13px;
+  transition:transform .25s var(--ease-cayla)}
+.papel:hover{transform:translateY(-3px) rotate(-.4deg)}
+.papel .t{font-family:var(--serif);font-size:19px;line-height:1.15}
+.papel .marca{position:absolute;right:12px;bottom:12px;border:1.5px solid var(--c);color:var(--c);border-radius:6px;padding:4px 8px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;transform:rotate(-5deg);background:var(--papel)}
+.c-carpeta-pie{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}
+</style></head><body>
+<header class="mq-barra"><a class="mq-volver" href="index.html" aria-label="Volver a las maquetas"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></a>
+<div class="mq-titulo"><span class="versalita">Finanzas · maquetas</span><b>Impuestos</b></div><span class="mq-espacio"></span>
+<div class="mq-selector" role="group" aria-label="Camino"><button data-ver="a">A · La respuesta</button><button data-ver="b">B · La mesa</button><button data-ver="c">C · Las cosas</button></div>
+<span class="mq-ejemplo">Cifras de ejemplo</span><button class="mq-tema" type="button">Oscuro</button></header>
+<main class="pagina">
+
+<!-- ================================================================================================
+     A · LA RESPUESTA
+     ================================================================================================ -->
+<section class="variante" data-variante="a">
+  <div class="variante-cab"><span class="versalita">Camino A · La respuesta</span><p class="idea tenue">Una pregunta, una respuesta grande: cuánto, cuándo y por qué, en cinco segundos. Lo demás se abre con «¿Por qué?».</p></div>
+
+  <div class="encabezado" data-entra style="--i:0">
+    <div class="enc-izq">
+      <div class="linea-sede"><span class="versalita">CAYLA SAC · septiembre 2026, vence el martes 20</span></div>
+      <h1>Impuestos</h1>
+      <p class="frase tenue">Cuánto le debes a SUNAT por lo que vendiste en septiembre, cuándo se paga y qué falta para dejarlo listo.</p>
+    </div>
+  </div>
+
+  <article class="tarjeta a-respuesta" data-sube style="--i:1">
+    <div>
+      <p class="a-pregunta">¿Cuánto le debo a SUNAT y cuándo?</p>
+      <h2 class="a-grande">El martes 20 le pagas a SUNAT
+        <span class="a-monto num" data-cuenta="9290" data-pre="S/ " data-dur="1500">S/ 9,290</span></h2>
+      <div class="a-vence"><span class="chip c-ambar late">faltan 5 días</span><span class="tenue">Tu RUC termina en 3: a ti te toca el martes 20.</span></div>
+    </div>
+    <div class="a-lado">
+      <svg class="a-dias" viewBox="0 0 360 76" role="img" aria-label="Hoy es jueves 15. Pagas el martes 20: faltan 5 días.">
+        <path class="riel" d="M30 28H330"/>
+        <path class="avance" d="M30 28H330" pathLength="1" data-dibuja style="--i:3"/>
+        <circle class="dia hoy" cx="30" cy="28" r="8"/>
+        <circle class="dia" cx="90" cy="28" r="5.5" data-aparece style="--i:2"/>
+        <circle class="dia" cx="150" cy="28" r="5.5" data-aparece style="--i:3"/>
+        <circle class="dia" cx="210" cy="28" r="5.5" data-aparece style="--i:4"/>
+        <circle class="dia" cx="270" cy="28" r="5.5" data-aparece style="--i:5"/>
+        <circle class="dia paga" cx="330" cy="28" r="8" data-aparece style="--i:6"/>
+        <circle class="aro" cx="330" cy="28" r="16" pathLength="1" data-dibuja style="--i:8"/>
+        <text x="30" y="62" class="fuerte">hoy 15</text><text x="90" y="62">vie 16</text><text x="150" y="62">sáb 17</text>
+        <text x="210" y="62">dom 18</text><text x="270" y="62">lun 19</text><text x="330" y="62" class="fuerte">mar 20</text>
+      </svg>
+      <p class="a-explica">De cada <b>S/ 118</b> que cobras, <b>S/ 18</b> son de SUNAT; te devuelven lo que pagaste de IGV en tus compras.</p>
+      <div>
+        <div class="a-billete" data-crece role="img" aria-label="De S/ 118: S/ 100 son tuyos y S/ 18 son de SUNAT">
+          <i class="b-tuyo" style="--w:84.75%;--i:1">S/ 100 · tuyo</i><i class="b-sunat" style="--w:15.25%;--i:4">S/ 18</i>
+        </div>
+        <div class="a-billete-pie tenue"><span>Lo que te paga un cliente: S/ 118</span><span>de SUNAT</span></div>
+      </div>
+      <div>
+        <button class="porque" type="button" data-porque="a-pq-igv" aria-expanded="false">¿Por qué? · el IGV</button>
+        <div class="desplegable" id="a-pq-igv"><div><div class="porque-caja">
+          <p>El <b>IGV</b> es un impuesto que va metido dentro de cada precio. Cuando un cliente paga S/ 118 por una blusa, S/ 100 son de la blusa y S/ 18 los cobras <b>por encargo de SUNAT</b>.</p>
+          <p>Lo mismo te pasa a ti al comprar tela con factura: pagas IGV. SUNAT te deja restarlo, así que solo le entregas la diferencia. No te llega plata: se descuenta.</p>
+        </div></div></div>
+      </div>
+    </div>
+  </article>
+
+  <section class="tarjeta a-ecuacion" data-sube style="--i:2">
+    <div class="cab-sec">
+      <span class="versalita">¿Qué parte de lo que vendí no es mío?</span>
+      <h2>De lo que vendiste en septiembre, S/ 9,290 no es tuyo</h2>
+      <p class="bajada tenue">Así sale la cuenta: lo que cobraste para SUNAT, menos lo que ya le pagaste al comprar, más un adelanto de tu renta.</p>
+    </div>
+    <div class="ecu" role="group" aria-label="15,300 menos 6,900 igual 8,400; más 890 igual 9,290">
+      <div class="term" data-entra style="--i:0"><span class="t-et">IGV de tus ventas</span><b data-cuenta="15300">15,300</b><span class="t-pie">Lo cobraste dentro de cada precio</span></div>
+      <span class="op" data-entra style="--i:1" aria-hidden="true">−</span>
+      <div class="term" data-entra style="--i:2"><span class="t-et">El de tus compras</span><b data-cuenta="6900">6,900</b><span class="t-pie">Lo pagaste al comprar con factura</span></div>
+      <span class="op" data-entra style="--i:3" aria-hidden="true">=</span>
+      <div class="term parcial" data-entra style="--i:4"><span class="t-et">IGV a pagar</span><b data-cuenta="8400">8,400</b><span class="t-pie">La diferencia</span></div>
+      <span class="op" data-entra style="--i:5" aria-hidden="true">+</span>
+      <div class="term" data-entra style="--i:6"><span class="t-et">1 % de renta</span><b data-cuenta="890">890</b><span class="t-pie">Adelanto del año, sobre S/ 89,000</span></div>
+      <span class="op" data-entra style="--i:7" aria-hidden="true">=</span>
+      <div class="term total" data-entra style="--i:8"><span class="t-et">A SUNAT el martes 20</span><b data-cuenta="9290" data-pre="S/ ">S/ 9,290</b><span class="t-pie">En soles</span></div>
+    </div>
+    <div style="margin-top:14px">
+      <button class="porque" type="button" data-porque="a-pq-renta" aria-expanded="false">¿Por qué? · el 1 % de renta</button>
+      <div class="desplegable" id="a-pq-renta"><div><div class="porque-caja">
+        <p>Además del IGV, cada mes adelantas un poquito del impuesto a lo que ganas en el año: el <b>1 %</b> de lo que vendiste (S/ 89,000 en septiembre).</p>
+        <p>En marzo del próximo año se hace la cuenta final, y todo lo adelantado se descuenta.</p>
+      </div></div></div>
+    </div>
+  </section>
+
+  <div class="a-dos">
+    <section class="tarjeta a-hacer" data-sube style="--i:3">
+      <div class="cab-sec">
+        <div class="cab-fila"><span class="versalita">¿Está todo listo para el contador y el SIRE?</span><span class="chip c-ambar" id="a-faltan">Te faltan 3</span></div>
+        <h2>Antes del 20, tres cosas</h2>
+      </div>
+      <p class="a-listo"><span class="visto-ico" aria-hidden="true">✓</span><span>Tus ventas ya están en el SIRE: las aceptaste el 6 de octubre.</span></p>
+      <ol class="a-lista" id="a-lista">
+        <li class="a-item" data-entra style="--i:4">
+          <button class="a-check" type="button" aria-pressed="false" aria-label="Marcar como hecho: completar 3 facturas"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M6 12.5l4 4L18 8.5" pathLength="1"/></svg></button>
+          <div class="a-txt">
+            <span class="a-titulo">Completa 3 facturas en el SIRE de compras</span>
+            <span class="a-det tenue">Textiles del Norte, SEAL y Grafinort. SUNAT ya las tiene, pero les falta un dato tuyo. Si no las completas, pagas S/ 477 de más.</span>
+            <div>
+              <button class="porque" type="button" data-porque="a-pq-sire" aria-expanded="false">¿Por qué? · el SIRE</button>
+              <div class="desplegable" id="a-pq-sire"><div><div class="porque-caja">
+                <p>El <b>SIRE</b> es la página de SUNAT donde ya están armadas tus ventas y tus compras del mes, con los comprobantes electrónicos que se emitieron a tu nombre.</p>
+                <p>Tú las revisas y las aceptas. Si a una factura le falta un dato (qué compraste o para qué sede), su IGV no se descuenta.</p>
+              </div></div></div>
+            </div>
+          </div>
+          <a class="btn chico sutil" href="#b">Completar</a>
+        </li>
+        <li class="a-item" data-entra style="--i:5">
+          <button class="a-check" type="button" aria-pressed="false" aria-label="Marcar como hecho: depositar la detracción"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M6 12.5l4 4L18 8.5" pathLength="1"/></svg></button>
+          <div class="a-txt">
+            <span class="a-titulo">Deposita la detracción del alquiler de Arequipa</span>
+            <span class="a-det tenue">S/ 320 (el 10 %) en la cuenta del dueño en el Banco de la Nación. El resto se lo pagas directo.</span>
+            <div>
+              <button class="porque" type="button" data-porque="a-pq-detr" aria-expanded="false">¿Por qué? · la detracción</button>
+              <div class="desplegable" id="a-pq-detr"><div><div class="porque-caja">
+                <p>En algunos servicios, como el alquiler, SUNAT pide que una parte no vaya directo al dueño del local: va a una cuenta suya en el Banco de la Nación, que solo sirve para pagar impuestos.</p>
+              </div></div></div>
+            </div>
+          </div>
+          <button class="btn chico sutil" type="button" data-marca="Depositada ✓">Ya la deposité</button>
+        </li>
+        <li class="a-item" data-entra style="--i:6">
+          <button class="a-check" type="button" aria-pressed="false" aria-label="Marcar como hecho: preguntarle al contador"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M6 12.5l4 4L18 8.5" pathLength="1"/></svg></button>
+          <div class="a-txt">
+            <span class="a-titulo">Pregúntale al contador por los libros</span>
+            <span class="a-det tenue">En 2025 vendiste más de 300 UIT. Él confirma si este año llevas el Libro Diario y el Mayor completos.</span>
+          </div>
+          <button class="btn chico sutil" type="button" data-marca="Pregunta copiada ✓">Copiar la pregunta</button>
+        </li>
+      </ol>
+      <div class="a-hacer-pie">
+        <button class="btn" type="button"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v8m-3.5-3.5L8 10l3.5-3.5M3 13.5h10"/></svg>Descargar el paquete para el contador</button>
+        <span class="tenue">Sale con lo que haya. Lo que falte va marcado.</span>
+      </div>
+    </section>
+
+    <section class="tarjeta a-umbral" data-sube style="--i:4">
+      <div class="cab-sec">
+        <span class="versalita">¿Cuánto me falta para el límite de 300 UIT?</span>
+        <h2>Llevas el 68 %; lo cruzas en diciembre</h2>
+      </div>
+      <div class="u-medida" role="img" aria-label="Llevas S/ 1.12 millones de S/ 1.65 millones, el 68 %. Al ritmo del año lo cruzas en diciembre.">
+        <div class="u-pista" data-crece>
+          <i class="u-hecho" style="--w:62.2%;--i:1"></i>
+          <i class="u-proy" style="left:62.2%;--w:30.2%;--i:6"></i>
+          <span class="u-raya" data-aparece style="--i:3"></span>
+          <span class="u-et arriba a-fin" style="left:62.2%" data-aparece><b>Hoy · 68 %</b></span>
+          <span class="u-et arriba a-fin" style="left:91.7%" data-aparece><b>300 UIT</b></span>
+          <span class="u-et abajo tenue" style="left:0">1 de enero</span>
+          <span class="u-et abajo tenue a-fin" style="left:62.2%">S/ 1.12 M</span>
+          <span class="u-et abajo a-fin" style="left:91.7%">S/ 1.65 M</span>
+        </div>
+      </div>
+      <p style="font-size:14.5px">Llevas <b>S/ 1.12 millones</b> vendidos este año, sin IGV. Al ritmo del año cruzas la raya en diciembre. <b>Ese mes la renta sube de 1 % a 1.5 %.</b></p>
+      <div class="u-cambia" style="margin-top:14px">
+        <div><span class="versalita">Qué cambia · la renta</span><span class="de-a"><s>1 %</s> → 1.5 %</span><span class="tenue">Desde el mes en que lo cruzas.</span></div>
+        <div><span class="versalita">Qué cambia · los libros</span><span class="de-a">Diario y Mayor</span><span class="tenue">Completos. En 2025 ya lo cruzaste: el contador confirma si te toca desde este año.</span></div>
+      </div>
+      <div style="margin-top:14px">
+        <button class="porque" type="button" data-porque="a-pq-uit" aria-expanded="false">¿Por qué? · la UIT</button>
+        <div class="desplegable" id="a-pq-uit"><div><div class="porque-caja">
+          <p>La <b>UIT</b> es la regla que usa SUNAT para poner límites. En 2026 vale <b>S/ 5,500</b>.</p>
+          <p>300 UIT son S/ 1.65 millones de ventas en el año, sin IGV. Pasarlas no es malo: es que la tienda creció, y SUNAT te pide un poco más de orden.</p>
+        </div></div></div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ================================================================================================
+     B · LA MESA DE TRABAJO
+     ================================================================================================ -->
+<section class="variante" data-variante="b" hidden>
+  <div class="variante-cab"><span class="versalita">Camino B · La mesa de trabajo</span><p class="idea tenue">Todo a la vista para quien declara: el calendario, el IGV de cada mes, el SIRE, las detracciones y el límite del año.</p></div>
+
+  <div class="encabezado" data-entra style="--i:0">
+    <div class="enc-izq">
+      <div class="linea-sede"><span class="versalita">CAYLA SAC · septiembre 2026, vence el martes 20</span></div>
+      <h1>Impuestos</h1>
+      <p class="frase tenue">Septiembre se declara en octubre. Revisa, completa el SIRE y descarga el paquete para el contador.</p>
+    </div>
+    <div class="enc-der">
+      <button class="btn sutil chico" type="button">Registro de ventas</button>
+      <button class="btn sutil chico" type="button">Registro de compras</button>
+      <button class="btn primario" type="button" id="b-bajar"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v8m-3.5-3.5L8 10l3.5-3.5M3 13.5h10"/></svg><span class="txt">Descargar el paquete para el contador</span><span class="hilo"></span></button>
+    </div>
+  </div>
+
+  <div class="desplegable" id="b-paquete"><div>
+    <div class="tarjeta b-paq">
+      <div>
+        <div class="cab-sec" style="margin-bottom:12px"><span class="versalita">Paquete de septiembre 2026</span><h2>Listo para el contador</h2></div>
+        <ul class="paq-lista">
+          <li data-entra style="--i:1"><span class="doc">TXT</span><span class="txt"><b>Registro de ventas</b><span class="tenue">Del SIRE, aceptado</span></span><span class="visto-ico">✓</span></li>
+          <li data-entra style="--i:2"><span class="doc">TXT</span><span class="txt"><b>Registro de compras</b><span class="tenue">Del SIRE · va con 3 por completar</span></span><span class="chip c-ambar">3</span></li>
+          <li data-entra style="--i:3"><span class="doc">XLS</span><span class="txt"><b>Libro Diario</b><span class="tenue">Septiembre, asiento por asiento</span></span><span class="visto-ico">✓</span></li>
+          <li data-entra style="--i:4"><span class="doc">XLS</span><span class="txt"><b>Libro Mayor</b><span class="tenue">Cada cuenta, con su saldo</span></span><span class="visto-ico">✓</span></li>
+          <li data-entra style="--i:5"><span class="doc">PDF</span><span class="txt"><b>Resumen de IGV y renta</b><span class="tenue">S/ 9,290 a pagar</span></span><span class="visto-ico">✓</span></li>
+          <li data-entra style="--i:6"><span class="doc">PDF</span><span class="txt"><b>Detracciones</b><span class="tenue">3 constancias · falta Arequipa</span></span><span class="chip c-ambar">1</span></li>
+        </ul>
+      </div>
+      <p class="nota" style="max-width:260px">Maqueta: no descarga nada. En el sistema, el paquete sale con lo que haya, y lo que falte va marcado para que el contador lo vea.</p>
+    </div>
+  </div></div>
+
+  <div class="rejilla r4">
+    <div class="cifra" data-sube style="--i:1"><span class="et">IGV de tus ventas</span><span class="valor" data-cuenta="15300" data-pre="S/ ">S/ 15,300</span><span class="pie">18 % de S/ 85,000 vendidos en 1,284 comprobantes</span></div>
+    <div class="cifra" data-sube style="--i:2"><span class="et">IGV de tus compras</span><span class="valor" data-cuenta="6900" data-pre="S/ ">S/ 6,900</span><span class="pie">Lo descuentas: mercadería 4,950 · gastos 1,450 · Taller 500</span></div>
+    <div class="cifra destacada" data-sube style="--i:3"><span class="et">A pagar el martes 20</span><span class="valor" data-cuenta="9290" data-pre="S/ ">S/ 9,290</span><span class="pie">IGV 8,400 + renta 890 (1 % de S/ 89,000)</span><span><span class="chip c-ambar late">faltan 5 días</span></span></div>
+    <div class="cifra" data-sube style="--i:4"><span class="et">Límite de 300 UIT</span><span class="valor" data-cuenta="68" data-suf=" %">68 %</span><span class="pie">S/ 1.12 M de S/ 1.65 M · lo cruzas en diciembre</span></div>
+  </div>
+
+  <div class="b-dos">
+    <article class="tarjeta" data-sube style="--i:5">
+      <div class="cab-sec">
+        <div class="cab-fila"><span class="versalita">Octubre 2026 · cuándo vence</span><span class="tenue" style="font-size:12.5px">Según el último dígito del RUC</span></div>
+        <h2>Tu RUC termina en 3: martes 20</h2>
+      </div>
+      <div class="cal" id="b-cal" role="group" aria-label="Calendario de octubre de 2026 con los vencimientos"></div>
+      <div class="cal-ley tenue"><span><i class="l-vence"></i>Vence según el dígito</span><span><i class="l-tuyo"></i>Te toca a ti</span><span><i class="l-hoy"></i>Hoy</span><span>«Buenos»: buenos contribuyentes</span></div>
+    </article>
+
+    <article class="tarjeta b-sire" data-sube style="--i:6">
+      <div class="cab-sec">
+        <span class="versalita">SIRE de septiembre</span>
+        <h2>Ventas listas; compras, casi</h2>
+        <p class="bajada tenue">El SIRE es la página de SUNAT que ya trae tus ventas y compras armadas con los comprobantes electrónicos. Se aceptan o se completan.</p>
+      </div>
+      <div class="sire-fila"><div><b>Ventas</b><div class="d tenue">1,284 comprobantes · S/ 100,300 con IGV · aceptada el 6 de octubre</div></div><span class="chip c-verde">Propuesta aceptada ✓</span></div>
+      <div class="sire-fila" style="border-bottom:0"><div><b>Compras</b><div class="d tenue">212 comprobantes en la propuesta · <span id="b-sire-listos" class="num">209</span> listos</div></div><span class="chip c-ambar" id="b-sire-chip">3 por completar</span></div>
+      <div class="pista" role="progressbar" aria-label="Compras listas" aria-valuemin="0" aria-valuemax="212" aria-valuenow="209"><i id="b-sire-pista" style="--w:98.6%;--c:var(--verde)"></i></div>
+      <p class="tenue" style="font-size:12.5px">Si no completas estas 3, su IGV (S/ 477) no se descuenta y pagas de más.</p>
+      <ul class="sire-faltan" id="b-sire-lista">
+        <li data-entra style="--i:7"><div class="fac"><b>Textiles del Norte SAC</b><span class="tenue">F001-2318 · 26 sep · S/ 2,360</span></div><span class="falta">Falta: qué compraste</span><button class="btn chico" type="button">Completar</button></li>
+        <li data-entra style="--i:8"><div class="fac"><b>SEAL</b><span class="tenue">S001-88412 · 30 sep · S/ 295</span></div><span class="falta">Falta: la sede</span><button class="btn chico" type="button">Completar</button></li>
+        <li data-entra style="--i:9"><div class="fac"><b>Grafinort EIRL</b><span class="tenue">F002-0907 · 18 sep · S/ 472</span></div><span class="falta">Falta: qué compraste</span><button class="btn chico" type="button">Completar</button></li>
+      </ul>
+      <div id="b-sire-aceptar" style="margin-top:14px" hidden><button class="btn primario" type="button">Aceptar la propuesta de compras</button></div>
+    </article>
+  </div>
+
+  <article class="tarjeta b-tabla" data-sube style="--i:7">
+    <div class="cab-sec">
+      <div class="cab-fila">
+        <div style="display:flex;flex-direction:column;gap:6px"><span class="versalita">El IGV mes a mes</span><h2>Lo que cobraste, lo que descontaste y lo que pagaste</h2></div>
+        <div class="pildoras" role="group" aria-label="Período"><button class="pildora" type="button" aria-pressed="true" data-periodo="6">Últimos 6 meses</button><button class="pildora" type="button" aria-pressed="false" data-periodo="todo">Todo 2026</button></div>
+      </div>
+      <p class="bajada tenue">Toca un mes para ver de dónde sale. Octubre va a la fecha y todavía cambia.</p>
+    </div>
+    <div class="desliza">
+      <table class="tabla" style="min-width:600px">
+        <thead><tr><th>Mes</th><th class="m">IGV de ventas</th><th class="m">IGV de compras</th><th class="m">A pagar</th><th class="col-barra"></th><th>Estado</th></tr></thead>
+        <tbody id="b-meses"></tbody>
+      </table>
+    </div>
+  </article>
+
+  <div class="b-dos al-reves">
+    <article class="tarjeta" data-sube style="--i:8">
+      <div class="cab-sec">
+        <div class="cab-fila"><span class="versalita">Límite de 300 UIT · 2026</span><span class="chip c-ambar">Lo cruzas en diciembre</span></div>
+        <h2>Lo vendido en el año, mes a mes</h2>
+        <p class="bajada tenue">UIT 2026: S/ 5,500 · 300 UIT = S/ 1.65 millones sin IGV. Al cruzarlo, el pago a cuenta de renta sube de 1 % a 1.5 % ese mes.</p>
+      </div>
+      <div class="desliza">
+        <svg class="b-graf" viewBox="0 0 640 236" role="img" aria-label="Acumulado del año: S/ 1.12 millones a septiembre; proyectado S/ 1.66 millones a diciembre, por encima de los S/ 1.65 millones de las 300 UIT">
+          <line class="rej" x1="50" y1="200" x2="630" y2="200"/><line class="rej" x1="50" y1="152.8" x2="630" y2="152.8"/><line class="rej" x1="50" y1="105.6" x2="630" y2="105.6"/><line class="rej" x1="50" y1="58.3" x2="630" y2="58.3"/>
+          <text class="eje" x="44" y="204" text-anchor="end">0</text><text class="eje" x="44" y="156.8" text-anchor="end">0.5 M</text><text class="eje" x="44" y="109.6" text-anchor="end">1 M</text><text class="eje" x="44" y="62.3" text-anchor="end">1.5 M</text>
+          <path class="area" d="M60,200 L60,187.9 L110,177.5 L160,166.4 L210,155.5 L260,142.3 L310,129.8 L360,114.7 L410,102.6 L460,94.2 L460,200 Z" data-aparece style="--i:6"/>
+          <line class="umbral" x1="50" y1="44.2" x2="630" y2="44.2" data-aparece style="--i:2"/>
+          <text class="umbral-et" x="54" y="36">300 UIT · S/ 1.65 M</text>
+          <line class="hoy" x1="460" y1="20" x2="460" y2="200"/>
+          <text class="eje" x="452" y="82" text-anchor="end">a septiembre: S/ 1.12 M · 68 %</text>
+          <polyline class="real" points="60,187.9 110,177.5 160,166.4 210,155.5 260,142.3 310,129.8 360,114.7 410,102.6 460,94.2" pathLength="1" data-dibuja style="--i:2"/>
+          <polyline class="proy" points="460,94.2 510,83.8 560,68.7 610,43.2" data-aparece style="--i:12"/>
+          <g data-aparece style="--i:5">
+            <circle class="pto" cx="60" cy="187.9" r="4"><title>Enero: S/ 128 mil · acumulado S/ 128 mil</title></circle>
+            <circle class="pto" cx="110" cy="177.5" r="4"><title>Febrero: S/ 110 mil · acumulado S/ 238 mil</title></circle>
+            <circle class="pto" cx="160" cy="166.4" r="4"><title>Marzo: S/ 118 mil · acumulado S/ 356 mil</title></circle>
+            <circle class="pto" cx="210" cy="155.5" r="4"><title>Abril: S/ 115 mil · acumulado S/ 471 mil</title></circle>
+            <circle class="pto" cx="260" cy="142.3" r="4"><title>Mayo: S/ 140 mil · acumulado S/ 611 mil</title></circle>
+            <circle class="pto" cx="310" cy="129.8" r="4"><title>Junio: S/ 132 mil · acumulado S/ 743 mil</title></circle>
+            <circle class="pto" cx="360" cy="114.7" r="4"><title>Julio: S/ 160 mil · acumulado S/ 903 mil</title></circle>
+            <circle class="pto" cx="410" cy="102.6" r="4"><title>Agosto: S/ 128 mil · acumulado S/ 1.03 millones</title></circle>
+            <circle class="pto" cx="460" cy="94.2" r="4"><title>Septiembre: S/ 89 mil · acumulado S/ 1.12 millones</title></circle>
+            <circle class="pto p" cx="510" cy="83.8" r="3.5"><title>Octubre (proyectado): S/ 110 mil · acumulado S/ 1.23 millones</title></circle>
+            <circle class="pto p" cx="560" cy="68.7" r="3.5"><title>Noviembre (proyectado): S/ 160 mil · acumulado S/ 1.39 millones</title></circle>
+          </g>
+          <g data-sello style="--i:8">
+            <circle class="cruce-aro" cx="608" cy="44.2" r="10"/><circle class="cruce" cx="608" cy="44.2" r="4.5"/>
+            <text class="cruce-et" x="594" y="31" text-anchor="end">lo cruzas en diciembre</text>
+          </g>
+          <g class="eje"><text x="60" y="222" text-anchor="middle">ene</text><text x="110" y="222" text-anchor="middle">feb</text><text x="160" y="222" text-anchor="middle">mar</text><text x="210" y="222" text-anchor="middle">abr</text><text x="260" y="222" text-anchor="middle">may</text><text x="310" y="222" text-anchor="middle">jun</text><text x="360" y="222" text-anchor="middle">jul</text><text x="410" y="222" text-anchor="middle">ago</text><text x="460" y="222" text-anchor="middle">sep</text><text x="510" y="222" text-anchor="middle">oct</text><text x="560" y="222" text-anchor="middle">nov</text><text x="610" y="222" text-anchor="middle">dic</text></g>
+        </svg>
+      </div>
+      <p class="tenue" style="font-size:12.5px;margin-top:6px">Línea llena: lo vendido. Punteada: lo que viene si el año sigue como el anterior (diciembre vende el doble). 500 UIT (S/ 2.75 M) queda fuera del gráfico: ahí te piden el inventario en unidades.</p>
+      <div class="b-libros">
+        <div><b style="font-weight:600">Libros de 2026</b><div class="tenue" style="font-size:12.5px">Ventas y compras: por el SIRE ✓ · Diario y Mayor completos: en 2025 pasaste las 300 UIT</div></div>
+        <span class="chip c-pizarra">El contador lo confirma</span>
+      </div>
+    </article>
+
+    <div class="b-col">
+      <article class="tarjeta" data-sube style="--i:9">
+        <div class="cab-sec" style="margin-bottom:8px">
+          <div class="cab-fila"><span class="versalita">Detracciones de octubre</span><span class="chip c-ambar" id="b-detr-chip">1 pendiente</span></div>
+          <h2>El 10 % del alquiler, al Banco de la Nación</h2>
+          <p class="bajada tenue">Una parte del alquiler va a la cuenta de detracciones del dueño, no a él. Tú la depositas y le pagas el resto.</p>
+        </div>
+        <div class="detr-fila" id="b-detr-aqp"><div><b style="font-weight:600">Arequipa</b><div class="tenue" style="font-size:12.5px">Alquiler de S/ 3,200 · 10 %</div></div><div class="der"><span class="num" style="font-weight:600">S/ 320</span><button class="btn chico" type="button">Ya la deposité</button></div></div>
+        <div class="detr-fila"><div>Trujillo<div class="tenue" style="font-size:12.5px">Depositada el 2 de octubre</div></div><div class="der"><span class="num">S/ 400</span><span class="chip c-verde">Al día</span></div></div>
+        <div class="detr-fila"><div>Lima<div class="tenue" style="font-size:12.5px">Depositada el 2 de octubre</div></div><div class="der"><span class="num">S/ 280</span><span class="chip c-verde">Al día</span></div></div>
+        <div class="detr-fila"><div>Taller<div class="tenue" style="font-size:12.5px">Depositada el 3 de octubre</div></div><div class="der"><span class="num">S/ 250</span><span class="chip c-verde">Al día</span></div></div>
+      </article>
+
+      <article class="tarjeta" data-sube style="--i:10">
+        <div class="cab-sec" style="margin-bottom:6px"><span class="versalita">Para revisar antes de declarar</span><h2>Lo que puede hacerte pagar de más</h2></div>
+        <div class="revisar-fila c-ambar"><span class="punto"></span><div><b>2 compras con boleta, S/ 340</b><div class="tenue">Movilidad y útiles. Una boleta no deja IGV que descontar: si el proveedor da factura, pídela.</div></div></div>
+        <div class="revisar-fila c-verde"><span class="punto"></span><div><b>IGV perdido por pagar sin banco: S/ 0</b><div class="tenue">Toda factura de S/ 2,000 o más se pagó por el banco.</div></div></div>
+        <div class="revisar-fila c-pizarra"><span class="punto"></span><div><b>Recibos por honorarios: retención del 8 %</b><div class="tenue">El contador define si CAYLA debe retener. Mientras tanto, se paga el total.</div></div></div>
+      </article>
+    </div>
+  </div>
+
+  <p class="nota" data-entra style="--i:11">El pago a SUNAT todavía no se registra aquí: llega con Dinero, porque sale de una cuenta de CAYLA. Mientras tanto, «Vence el 20» solo dice que el sistema no sabe si ya pagaste.</p>
+</section>
+
+<!-- ================================================================================================
+     C · LAS COSAS DE LA TIENDA
+     ================================================================================================ -->
+<section class="variante" data-variante="c" hidden>
+  <div class="variante-cab"><span class="versalita">Camino C · Las cosas de la tienda</span><p class="idea tenue">La plata se ve moverse: un sobre que se llena con cada venta, un taco que se arranca hasta el 20 y un camino hacia el límite del año.</p></div>
+
+  <div class="encabezado" data-entra style="--i:0">
+    <div class="enc-izq">
+      <div class="linea-sede"><span class="versalita">CAYLA SAC · septiembre 2026, vence el martes 20</span></div>
+      <h1>Impuestos</h1>
+      <p class="frase tenue">Lo que cobraste para SUNAT, guardado en un sobre hasta el martes 20.</p>
+    </div>
+  </div>
+
+  <article class="tarjeta" data-sube style="--i:1">
+    <div class="cab-sec">
+      <span class="versalita">El sobre de SUNAT · septiembre</span>
+      <h2>Lo que va en el sobre no es tuyo</h2>
+      <p class="bajada tenue">Cada venta deja caer una monedita al sobre: el IGV. Cada compra con factura saca una de vuelta. Lo que queda, se entrega.</p>
+    </div>
+    <div class="escena" id="c-escena">
+      <div class="c-col" id="c-ventas">
+        <span class="versalita">Lo que vendiste · entra</span>
+        <div class="c-ticket"><span class="mf">S/</span><span class="que">Del 1 al 5</span><span class="cuanto">+2,550</span></div>
+        <div class="c-ticket"><span class="mf">S/</span><span class="que">Del 6 al 10</span><span class="cuanto">+2,550</span></div>
+        <div class="c-ticket"><span class="mf">S/</span><span class="que">Del 11 al 15</span><span class="cuanto">+2,550</span></div>
+        <div class="c-ticket"><span class="mf">S/</span><span class="que">Del 16 al 20</span><span class="cuanto">+2,550</span></div>
+        <div class="c-ticket"><span class="mf">S/</span><span class="que">Del 21 al 25</span><span class="cuanto">+2,550</span></div>
+        <div class="c-ticket"><span class="mf">S/</span><span class="que">Del 26 al 30</span><span class="cuanto">+2,550</span></div>
+        <div class="c-renta" id="c-renta"><span class="mf renta">1 %</span><span class="que">Adelanto de renta</span><span class="cuanto">+890</span></div>
+      </div>
+      <div>
+        <div class="c-sobre" id="c-sobre">
+          <svg viewBox="0 0 260 190" aria-hidden="true">
+            <rect class="fondo" x="18" y="62" width="224" height="118" rx="8"/>
+            <path class="flap-abierta" d="M18 62 L130 6 L242 62 Z"/>
+            <rect class="cuerpo" x="18" y="62" width="224" height="118" rx="8"/>
+            <path class="pliegue" d="M20 178 L78 143 M240 178 L182 143"/>
+            <path class="flap-cerrada" d="M18 62 L130 128 L242 62 Z"/>
+            <text class="rotulo" x="130" y="84">SUNAT</text>
+          </svg>
+          <span class="c-boca" id="c-boca"></span>
+          <div class="c-sobre-cifra"><b id="c-cifra">S/ 0</b><span>en el sobre</span></div>
+          <div class="c-sello" aria-hidden="true"><span>Vence<b>20</b>oct · lun</span></div>
+        </div>
+      </div>
+      <div class="c-col" id="c-compras">
+        <span class="versalita">Lo que compraste con factura · sale</span>
+        <div class="c-factura" data-v="4950"><span class="mf">S/</span><span class="que">Tela y mercadería</span><span class="cuanto">−4,950</span></div>
+        <div class="c-factura" data-v="1450"><span class="mf">S/</span><span class="que">Luz, internet y gastos</span><span class="cuanto">−1,450</span></div>
+        <div class="c-factura" data-v="500"><span class="mf">S/</span><span class="que">Insumos del Taller</span><span class="cuanto">−500</span></div>
+        <p class="tenue" style="font-size:12.5px;margin-top:4px">Con boleta no sale nada: la boleta no trae IGV que puedas restar.</p>
+      </div>
+    </div>
+    <div class="c-final" id="c-final" aria-live="polite">
+      <p class="cuenta">Entraron <b>15,300</b> · salieron <b>6,900</b> · adelanto de renta <b>890</b>. Quedan <b>S/ 9,290</b>, y se entregan el martes 20.</p>
+      <button class="btn sutil chico" type="button" id="c-otra-vez">Ver otra vez</button>
+    </div>
+    <div style="margin-top:12px">
+      <button class="porque" type="button" data-porque="c-pq-igv" aria-expanded="false">¿Por qué? · el IGV</button>
+      <div class="desplegable" id="c-pq-igv"><div><div class="porque-caja">
+        <p>El <b>IGV</b> va metido dentro de cada precio: de cada S/ 118 que te paga un cliente, S/ 18 son de SUNAT. Tú solo los guardas.</p>
+        <p>Cuando compras tela con factura, pagas IGV tú también, y SUNAT te deja restarlo. Por eso las facturas sacan monedas del sobre.</p>
+      </div></div></div>
+    </div>
+  </article>
+
+  <div class="c-dos">
+    <article class="tarjeta c-taco-tarjeta" data-sube style="--i:2">
+      <div class="cab-sec"><span class="versalita">¿Cuándo?</span><h2>Cinco hojas y llegas al 20</h2></div>
+      <div class="taco-zona">
+        <div class="taco" id="c-taco" role="img" aria-label="Taco de calendario: de hoy, jueves 15, al martes 20, cuando pagas a SUNAT">
+          <div class="c-hoja" data-dia="20" style="z-index:1"><span class="mes">OCTUBRE</span><span class="n">20</span><span class="sem">lunes</span><span class="paga">Pagas S/ 9,290</span>
+            <svg class="aro" viewBox="0 0 124 124"><circle cx="62" cy="62" r="56" pathLength="1"/></svg></div>
+          <div class="c-hoja finde" data-dia="19" style="z-index:2"><span class="mes">OCTUBRE</span><span class="n">19</span><span class="sem">domingo</span></div>
+          <div class="c-hoja finde" data-dia="18" style="z-index:3"><span class="mes">OCTUBRE</span><span class="n">18</span><span class="sem">sábado</span></div>
+          <div class="c-hoja" data-dia="17" style="z-index:4"><span class="mes">OCTUBRE</span><span class="n">17</span><span class="sem">viernes</span></div>
+          <div class="c-hoja" data-dia="16" style="z-index:5"><span class="mes">OCTUBRE</span><span class="n">16</span><span class="sem">jueves</span></div>
+          <div class="c-hoja" data-dia="15" style="z-index:6"><span class="mes">OCTUBRE</span><span class="n">15</span><span class="sem">miércoles · hoy</span></div>
+        </div>
+        <div class="taco-texto">
+          <span><span class="chip c-ambar late">faltan 5 días</span></span>
+          <span class="grande">El martes 20 entregas el sobre</span>
+          <span class="tenue">Cada RUC tiene su día, según su último número. El tuyo termina en 3: a ti te toca el martes 20.</span>
+          <span><button class="btn sutil chico" type="button" id="c-taco-otra">Arrancar otra vez</button></span>
+        </div>
+      </div>
+    </article>
+
+    <article class="tarjeta" data-sube style="--i:3">
+      <div class="cab-sec">
+        <span class="versalita">¿Está todo listo para el contador y el SIRE?</span>
+        <h2>Tres notitas por despegar</h2>
+      </div>
+      <div class="c-notas-lista">
+        <div class="notita lista" style="--r:.6deg;--i:4" data-entra><div class="tx"><span class="t">Ventas en el SIRE</span></div><span class="sello-texto">Aceptadas ✓</span>
+          <span class="d tenue">SUNAT ya tenía tus 1,284 comprobantes de septiembre y los aceptaste el 6 de octubre.</span></div>
+        <div class="notita" style="--r:-1deg;--i:5" data-entra><div class="tx"><span class="t">Completa 3 facturas de compra en el SIRE</span></div><button class="btn chico" type="button">Completar</button><span class="sello-texto hecho-sello">Hecho ✓</span>
+          <span class="d tenue">Textiles del Norte, SEAL y Grafinort: les falta decir qué compraste o para qué tienda. Si no, sus S/ 477 no salen del sobre.</span></div>
+        <div class="notita" style="--r:.8deg;--i:6" data-entra><div class="tx"><span class="t">Deposita S/ 320 en el Banco de la Nación</span></div><button class="btn chico" type="button">Ya lo hice</button><span class="sello-texto hecho-sello">Hecho ✓</span>
+          <span class="d tenue">Es la detracción del alquiler de Arequipa: el 10 % va a la cuenta del dueño para sus impuestos, y el resto se lo pagas a él.</span></div>
+        <div class="notita" style="--r:-.5deg;--i:7" data-entra><div class="tx"><span class="t">Pregúntale al contador por los libros</span></div><button class="btn chico" type="button">Ya le pregunté</button><span class="sello-texto hecho-sello">Hecho ✓</span>
+          <span class="d tenue">En 2025 pasaste las 300 UIT. Él confirma si este año llevas el Libro Diario y el Mayor completos.</span></div>
+      </div>
+      <div style="margin-top:14px">
+        <button class="porque" type="button" data-porque="c-pq-sire" aria-expanded="false">¿Por qué? · el SIRE</button>
+        <div class="desplegable" id="c-pq-sire"><div><div class="porque-caja">
+          <p>El <b>SIRE</b> es la página de SUNAT donde ya están armadas tus ventas y tus compras del mes. Tú las revisas: lo que está bien se acepta, y a lo que le falta un dato se le completa.</p>
+        </div></div></div>
+      </div>
+    </article>
+  </div>
+
+  <article class="tarjeta c-camino" data-sube style="--i:4">
+    <div class="cab-sec">
+      <span class="versalita">El camino del año · 2026</span>
+      <h2>Vas por el 68 % del camino al primer hito</h2>
+      <p class="bajada tenue">Lo que vendes en el año, sin IGV, te lleva por este camino. Cada hito es una raya de SUNAT: al cruzarla, te pide un poco más.</p>
+    </div>
+    <svg id="c-camino-svg" viewBox="0 0 900 236" role="img" aria-label="Camino del año: llevas S/ 1.12 millones, el 68 % de las 300 UIT. Las cruzas en diciembre. Más allá están las 500 UIT.">
+      <path id="c-ruta" class="ruta-base" d="M24 176 C 150 176, 190 96, 310 104 S 480 196, 580 132 S 770 64, 880 84"/>
+      <path id="c-ruta-proy" class="ruta-proy" d="M24 176 C 150 176, 190 96, 310 104 S 480 196, 580 132 S 770 64, 880 84"/>
+      <path id="c-ruta-hecha" class="ruta-hecha" d="M24 176 C 150 176, 190 96, 310 104 S 480 196, 580 132 S 770 64, 880 84"/>
+      <g class="hito" data-f="0"><circle class="pt" r="5"/><text class="etq sub" x="0" y="28" text-anchor="start">1 de enero</text></g>
+      <g class="hito" data-f="0.6"><line x1="0" y1="0" x2="0" y2="-52"/><path class="bandera" d="M0 -52 L24 -45 L0 -38 Z"/><circle class="pt" r="5"/>
+        <text class="etq" x="0" y="26" text-anchor="middle">300 UIT</text><text class="etq sub" x="0" y="43" text-anchor="middle">S/ 1.65 M · diciembre</text></g>
+      <g class="hito lejos" data-f="1"><line x1="0" y1="0" x2="0" y2="-52"/><path class="bandera" d="M0 -52 L24 -45 L0 -38 Z"/><circle class="pt" r="5"/>
+        <text class="etq" x="0" y="26" text-anchor="end">500 UIT</text><text class="etq sub" x="0" y="43" text-anchor="end">S/ 2.75 M</text></g>
+      <g id="c-hoy"><rect x="-52" y="-74" width="104" height="24" rx="12"/><text x="0" y="-57">Hoy · 68 %</text></g>
+      <g id="c-ave" class="ave">
+        <g transform="translate(0,-16)">
+          <path class="ave-cola" d="M-11 3 L-27 11 L-23 2 L-28 -5 Z"/>
+          <ellipse class="ave-cuerpo" cx="0" cy="0" rx="13" ry="6.5" transform="rotate(-12)"/>
+          <circle class="ave-cuerpo" cx="11" cy="-5" r="5.4"/>
+          <path class="ave-pico" d="M16 -6.5 L34 -10.5"/>
+          <path class="ave-ala" d="M-4 -3 C -9 -25, 9 -31, 12 -9 Z"/>
+          <circle class="ave-ojo" cx="12.6" cy="-6" r="1.2"/>
+        </g>
+      </g>
+    </svg>
+    <div class="hitos">
+      <div class="hoy" data-entra style="--i:2"><span class="versalita">Hoy</span><span class="h-t">S/ 1.12 millones</span><span class="tenue">El 68 % del camino a las 300 UIT. Al ritmo del año, llegas en diciembre.</span></div>
+      <div data-entra style="--i:3"><span class="versalita">Hito 1 · 300 UIT</span><span class="h-t">S/ 1.65 millones</span><span class="tenue">Ese mes, el adelanto de renta sube de 1 % a 1.5 %. Y como en 2025 ya lo cruzaste, el contador confirma si llevas el Diario y el Mayor completos.</span></div>
+      <div class="lejos" data-entra style="--i:4"><span class="versalita">Hito 2 · 500 UIT</span><span class="h-t">S/ 2.75 millones</span><span class="tenue">Te piden llevar el inventario en unidades, prenda por prenda. El sistema ya lo hace con cada movimiento; el contador lo confirma.</span></div>
+    </div>
+    <div style="margin-top:14px">
+      <button class="porque" type="button" data-porque="c-pq-uit" aria-expanded="false">¿Por qué? · la UIT</button>
+      <div class="desplegable" id="c-pq-uit"><div><div class="porque-caja">
+        <p>La <b>UIT</b> es la regla con la que SUNAT mide. En 2026 vale <b>S/ 5,500</b>: 300 UIT son S/ 1.65 millones de ventas en el año, sin IGV.</p>
+        <p>Cruzar un hito no es malo: la tienda creció, y SUNAT te pide un poco más de orden.</p>
+      </div></div></div>
+    </div>
+  </article>
+
+  <article class="tarjeta" data-sube style="--i:5">
+    <div class="cab-sec"><span class="versalita">La carpeta del contador</span><h2>Lo que se lleva el contador</h2></div>
+    <div class="c-carpeta-hojas">
+      <div class="papel" data-sube style="--i:2"><span class="t">Ventas</span><span class="tenue">Registro del SIRE de septiembre</span><span class="marca c-verde" data-sello style="--i:2">Aceptado</span></div>
+      <div class="papel" data-sube style="--i:3"><span class="t">Compras</span><span class="tenue">Registro del SIRE · 209 de 212</span><span class="marca c-ambar" data-sello style="--i:3">Faltan 3</span></div>
+      <div class="papel" data-sube style="--i:4"><span class="t">Detracción</span><span class="tenue">Constancia del alquiler de Arequipa</span><span class="marca c-ambar" data-sello style="--i:4">Por depositar</span></div>
+      <div class="papel" data-sube style="--i:5"><span class="t">Diario y Mayor</span><span class="tenue">Septiembre, completos</span><span class="marca c-pizarra" data-sello style="--i:5">Que confirme</span></div>
+    </div>
+    <div class="c-carpeta-pie">
+      <span class="tenue" style="font-size:13px">La carpeta sale con lo que haya. Lo que falte va marcado, para que el contador lo vea.</span>
+      <button class="btn primario" type="button"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v8m-3.5-3.5L8 10l3.5-3.5M3 13.5h10"/></svg>Descargar la carpeta</button>
+    </div>
+  </article>
+</section>
+
+</main><script src="base.js"></script><script>
+/* Impuestos — comportamiento propio de las tres maquetas. Nada se guarda. */
+(function () {
+  const R = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const EASE = "cubic-bezier(0.32,0.72,0.24,1)";
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const fmt = (n) => Math.round(n).toLocaleString("es-PE");
+  const esperar = (ms) => new Promise((ok) => setTimeout(ok, ms));
+  let corrida = 0; // cada vez que cambia la variante, lo que corría en C se detiene
+
+  /* ---------------- A · lo que falta ---------------- */
+  function contarFaltanA() {
+    const n = $$("#a-lista .a-item:not(.hecho)").length;
+    const chip = $("#a-faltan");
+    chip.textContent = n === 0 ? "Todo listo ✓" : n === 1 ? "Te falta 1" : `Te faltan ${n}`;
+    chip.className = "chip " + (n === 0 ? "c-verde" : "c-ambar");
+  }
+  $$("#a-lista .a-check").forEach((b) => b.addEventListener("click", () => {
+    const li = b.closest(".a-item");
+    const hecho = li.classList.toggle("hecho");
+    b.setAttribute("aria-pressed", String(hecho));
+    contarFaltanA();
+  }));
+  $$("#a-lista [data-marca]").forEach((b) => b.addEventListener("click", () => {
+    const li = b.closest(".a-item");
+    li.classList.add("hecho");
+    $(".a-check", li).setAttribute("aria-pressed", "true");
+    b.textContent = b.dataset.marca;
+    contarFaltanA();
+  }));
+
+  /* ---------------- B · calendario de octubre (el 1 de octubre de 2026 cae jueves) ---------------- */
+  const VENCE = { 16: "RUC 0", 19: "RUC 1", 20: "RUC 2 · 3", 21: "RUC 4 · 5", 22: "RUC 6 · 7", 23: "RUC 8 · 9", 26: "Buenos" }; // cronograma SUNAT 2026, período set-26
+  const cal = $("#b-cal");
+  if (cal) {
+    let html = ["L", "M", "M", "J", "V", "S", "D"].map((d) => `<span class="dsem" aria-hidden="true">${d}</span>`).join("");
+    html += '<span></span><span></span><span></span>';
+    for (let d = 1; d <= 31; d++) {
+      const col = (d + 2) % 7; // 0 = lunes
+      const cls = ["dia"];
+      if (col >= 5) cls.push("finde");
+      if (d < 15) cls.push("pasado");
+      if (VENCE[d]) cls.push("vence");
+      if (d === 20) cls.push("tuyo");
+      if (d === 15) cls.push("hoy");
+      const titulo = !VENCE[d] ? "" : d === 22 ? ' title="Vencen los buenos contribuyentes"' : ` title="Vencen los ${VENCE[d].replace("RUC", "RUC que terminan en").replace("·", "y")}"`;
+      const tag = VENCE[d] ? `<span class="dig">${d === 20 ? "Tú · 6 · 7" : VENCE[d]}</span>` : "";
+      const hoy = d === 15 ? '<span class="hoy-et">hoy</span>' : "";
+      html += `<span class="${cls.join(" ")}" data-entra style="--i:${Math.floor(d / 3)}"${titulo}><span class="n">${d}</span>${tag}${hoy}</span>`;
+    }
+    cal.innerHTML = html;
+  }
+
+  /* ---------------- B · el IGV mes a mes ---------------- */
+  const MESES = [
+    { m: "Enero", v: 23040, k: 11800, p: 11240, e: "pagado" },
+    { m: "Febrero", v: 19800, k: 10300, p: 9500, e: "pagado" },
+    { m: "Marzo", v: 21240, k: 11700, p: 9540, e: "pagado" },
+    { m: "Abril", v: 20700, k: 9800, p: 10900, e: "pagado" },
+    { m: "Mayo", v: 25200, k: 11400, p: 13800, e: "pagado" },
+    { m: "Junio", v: 23760, k: 12100, p: 11660, e: "pagado" },
+    { m: "Julio", v: 28800, k: 14900, p: 13900, e: "pagado" },
+    { m: "Agosto", v: 23040, k: 10200, p: 12840, e: "pagado" },
+    { m: "Septiembre", v: 15300, k: 6900, p: 8400, e: "vence", base: 85000, renta: 890, rentaBase: 89000, merc: 4950, gas: 1450, tal: 500 },
+    { m: "Octubre", v: 8440, k: 3100, p: 5340, e: "curso" },
+  ];
+  const MAX = 13900;
+  const ESTADO = {
+    pagado: '<span class="chip c-verde">Pagado</span>',
+    vence: '<span class="chip c-ambar late">Vence mar 20</span>',
+    curso: '<span class="chip c-pizarra">Va a la fecha</span>',
+  };
+  const cuerpo = $("#b-meses");
+  if (cuerpo) {
+    cuerpo.innerHTML = MESES.map((x, i) => {
+      const base = x.base || Math.round(x.v / 0.18 / 100) * 100;
+      const merc = x.merc || Math.round((x.k * 0.7) / 10) * 10;
+      const gas = x.gas || Math.round((x.k * 0.22) / 10) * 10;
+      const tal = x.tal || x.k - merc - gas;
+      const renta = x.renta || Math.round((base * 0.01) / 10) * 10;
+      const rentaBase = x.rentaBase || base;
+      const viejo = i < MESES.length - 6;
+      const mes = x.m + (x.e === "curso" ? " *" : "");
+      return `<tr class="fila" tabindex="0" aria-expanded="false" data-viejo="${viejo}"${viejo ? " hidden" : ""} data-entra style="--i:${i % 6}">
+          <td>${mes}<span class="flecha" aria-hidden="true">›</span></td>
+          <td class="m">${fmt(x.v)}</td><td class="m">${fmt(x.k)}</td><td class="m"><b style="font-weight:600">${fmt(x.p)}</b></td>
+          <td class="col-barra"><span class="mini-barra${x.e === "curso" ? " curso" : ""}" data-crece><i style="--w:${(x.p / MAX) * 100}%;--i:${i % 6}"></i></span></td>
+          <td>${ESTADO[x.e]}</td></tr>
+        <tr class="det" data-viejo="${viejo}"${viejo ? " hidden" : ""}><td colspan="6"><div class="desplegable"><div><div class="det-in">
+          <div><span class="tenue">Vendiste, sin IGV</span><b>S/ ${fmt(base)}</b>× 18 % = ${fmt(x.v)}</div>
+          <div><span class="tenue">Descontaste</span><b>S/ ${fmt(x.k)}</b>Mercadería ${fmt(merc)} · gastos ${fmt(gas)} · Taller ${fmt(tal)}</div>
+          <div><span class="tenue">Renta del mes (1 %)</span><b>S/ ${fmt(renta)}</b>Sobre S/ ${fmt(rentaBase)}</div>
+          <div><span class="tenue">Total a SUNAT</span><b>S/ ${fmt(x.p + renta)}</b>${x.e === "pagado" ? "Pagado a tiempo" : x.e === "vence" ? "Vence el martes 20" : "Se declara en noviembre"}</div>
+        </div></div></div></td></tr>`;
+    }).join("");
+    const abrir = (tr) => {
+      const det = tr.nextElementSibling;
+      const caja = $(".desplegable", det);
+      const abierto = caja.classList.toggle("abierto");
+      tr.setAttribute("aria-expanded", String(abierto));
+    };
+    $$("tr.fila", cuerpo).forEach((tr) => {
+      tr.addEventListener("click", () => abrir(tr));
+      tr.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(tr); } });
+    });
+    $$(".b-tabla .pildora").forEach((p) => p.addEventListener("click", () => {
+      $$(".b-tabla .pildora").forEach((q) => q.setAttribute("aria-pressed", String(q === p)));
+      const todo = p.dataset.periodo === "todo";
+      $$('tr[data-viejo="true"]', cuerpo).forEach((tr) => {
+        tr.hidden = !todo;
+        if (todo && tr.classList.contains("fila") && !R) tr.animate([{ opacity: 0, transform: "translateY(-6px)" }, { opacity: 1, transform: "none" }], { duration: 420, easing: EASE });
+      });
+    }));
+  }
+
+  /* ---------------- B · SIRE de compras ---------------- */
+  let faltanSire = 3;
+  $$("#b-sire-lista .btn").forEach((b) => b.addEventListener("click", () => {
+    const li = b.closest("li");
+    if (li.classList.contains("completa")) return;
+    li.classList.add("completa");
+    $(".falta", li).textContent = "Completada ✓";
+    b.textContent = "Listo";
+    b.disabled = true;
+    faltanSire--;
+    const listos = 212 - faltanSire;
+    $("#b-sire-listos").textContent = listos;
+    $("#b-sire-pista").style.setProperty("--w", ((listos / 212) * 100).toFixed(1) + "%");
+    $("#b-sire-pista").parentElement.setAttribute("aria-valuenow", String(listos));
+    const chip = $("#b-sire-chip");
+    if (faltanSire === 0) {
+      chip.className = "chip c-verde";
+      chip.textContent = "Lista para aceptar";
+      $("#b-sire-aceptar").hidden = false;
+    } else chip.textContent = `${faltanSire} por completar`;
+  }));
+  $("#b-sire-aceptar .btn")?.addEventListener("click", (e) => {
+    const caja = $("#b-sire-aceptar");
+    $("#b-sire-chip").textContent = "Propuesta aceptada ✓";
+    setTimeout(() => { caja.innerHTML = '<span class="sello-texto estampa">Compras aceptadas · hoy</span>'; }, R ? 0 : 260);
+    e.currentTarget.disabled = true;
+  });
+
+  /* ---------------- B · detracción de Arequipa ---------------- */
+  $("#b-detr-aqp .btn")?.addEventListener("click", (e) => {
+    const b = e.currentTarget;
+    b.outerHTML = '<span class="chip c-verde estampa">Depositada hoy ✓</span>';
+    const chip = $("#b-detr-chip");
+    chip.className = "chip c-verde";
+    chip.textContent = "Todas al día";
+  });
+
+  /* ---------------- B · el paquete para el contador ---------------- */
+  $("#b-bajar")?.addEventListener("click", async (e) => {
+    const b = e.currentTarget;
+    if (b.classList.contains("cargando")) return;
+    const txt = $(".txt", b);
+    const antes = txt.textContent;
+    b.classList.add("cargando");
+    txt.textContent = "Armando el paquete…";
+    await esperar(R ? 0 : 1300);
+    b.classList.remove("cargando");
+    txt.textContent = "Paquete listo ✓";
+    const caja = $("#b-paquete");
+    caja.classList.add("abierto");
+    if (window.mqAnimar) window.mqAnimar(caja);
+    setTimeout(() => { txt.textContent = antes; }, 2600);
+  });
+
+  /* ---------------- C · el sobre de SUNAT ---------------- */
+  const escena = $("#c-escena");
+  const cifra = $("#c-cifra");
+  let enSobre = 0;
+  function mostrarCifra(hasta) {
+    const desde = enSobre;
+    enSobre = hasta;
+    if (R) { cifra.textContent = "S/ " + fmt(hasta); return; }
+    const t0 = performance.now();
+    const paso = (t) => {
+      const p = Math.min(1, (t - t0) / 380);
+      const e = 1 - Math.pow(1 - p, 3);
+      cifra.textContent = "S/ " + fmt(desde + (hasta - desde) * e);
+      if (p < 1) requestAnimationFrame(paso);
+    };
+    requestAnimationFrame(paso);
+  }
+  function centro(el) {
+    const s = escena.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2 - s.left - 14, y: r.top + r.height / 2 - s.top - 14 };
+  }
+  function volar(desde, hasta, renta) {
+    const a = centro(desde), b = centro(hasta);
+    const m = document.createElement("span");
+    m.className = "moneda" + (renta ? " renta" : "");
+    m.textContent = renta ? "1 %" : "S/";
+    escena.appendChild(m);
+    const alto = Math.min(a.y, b.y) - 46;
+    const anim = m.animate([
+      { transform: `translate(${a.x}px,${a.y}px) scale(.7)`, opacity: 0 },
+      { transform: `translate(${a.x}px,${a.y - 8}px) scale(1)`, opacity: 1, offset: 0.12 },
+      { transform: `translate(${(a.x + b.x) / 2}px,${alto}px) scale(1)`, opacity: 1, offset: 0.55 },
+      { transform: `translate(${b.x}px,${b.y}px) scale(.85)`, opacity: 1, offset: 0.92 },
+      { transform: `translate(${b.x}px,${b.y + 4}px) scale(.6)`, opacity: 0 },
+    ], { duration: 980, easing: EASE, fill: "forwards" });
+    return anim.finished.then(() => m.remove(), () => m.remove());
+  }
+  async function sobre() {
+    const id = corrida;
+    const caja = $("#c-sobre"), boca = $("#c-boca"), final = $("#c-final");
+    const tickets = $$("#c-ventas .c-ticket"), facturas = $$("#c-compras .c-factura"), renta = $("#c-renta");
+    $$(".moneda", escena).forEach((m) => m.remove());
+    caja.classList.remove("cerrado", "sellado");
+    final.classList.remove("ver");
+    tickets.concat([renta]).forEach((t) => t.classList.remove("dio"));
+    facturas.forEach((f) => f.classList.remove("saco"));
+    enSobre = 0; cifra.textContent = "S/ 0";
+    if (R) {
+      tickets.concat([renta]).forEach((t) => t.classList.add("dio"));
+      facturas.forEach((f) => f.classList.add("saco"));
+      mostrarCifra(9290); caja.classList.add("cerrado", "sellado"); final.classList.add("ver");
+      return;
+    }
+    await esperar(650);
+    if (id !== corrida) return;
+    // Entran las ventas: cada tanda deja caer su IGV.
+    for (const t of tickets) {
+      if (id !== corrida) return;
+      t.classList.add("dio");
+      volar(t, boca).then(() => { if (id === corrida) mostrarCifra(enSobre + 2550); });
+      await esperar(240);
+    }
+    await esperar(1150);
+    // Salen las compras con factura: el IGV que ya pagaste vuelve.
+    for (const f of facturas) {
+      if (id !== corrida) return;
+      mostrarCifra(enSobre - Number(f.dataset.v));
+      volar(boca, f).then(() => { if (id === corrida) f.classList.add("saco"); });
+      await esperar(420);
+    }
+    await esperar(1150);
+    if (id !== corrida) return;
+    // El adelanto de renta.
+    renta.classList.add("dio");
+    await volar(renta, boca, true);
+    if (id !== corrida) return;
+    mostrarCifra(9290);
+    await esperar(500);
+    if (id !== corrida) return;
+    caja.classList.add("cerrado");
+    await esperar(750);
+    if (id !== corrida) return;
+    caja.classList.add("sellado");
+    await esperar(400);
+    final.classList.add("ver");
+  }
+  $("#c-otra-vez")?.addEventListener("click", () => { corrida++; sobre(); });
+
+  /* ---------------- C · el taco que se arranca ---------------- */
+  function taco() {
+    const id = corrida;
+    const hojas = $$("#c-taco .c-hoja").filter((h) => h.dataset.dia !== "20").reverse(); // 15 primero
+    const veinte = $('#c-taco .c-hoja[data-dia="20"]');
+    hojas.forEach((h) => { h.style.transition = "none"; h.classList.remove("arrancada"); });
+    veinte.style.transition = "none"; veinte.classList.remove("marcado");
+    $$("circle", veinte).forEach((c) => { c.style.transition = "none"; });
+    void veinte.offsetWidth;
+    hojas.forEach((h) => { h.style.transition = ""; });
+    veinte.style.transition = "";
+    $$("circle", veinte).forEach((c) => { c.style.transition = ""; });
+    if (R) { hojas.forEach((h) => h.classList.add("arrancada")); veinte.classList.add("marcado"); return; }
+    hojas.forEach((h, i) => setTimeout(() => { if (id === corrida) h.classList.add("arrancada"); }, 900 + i * 430));
+    setTimeout(() => { if (id === corrida) veinte.classList.add("marcado"); }, 900 + hojas.length * 430 + 250);
+  }
+  $("#c-taco-otra")?.addEventListener("click", () => { corrida++; taco(); });
+
+  /* ---------------- C · las notitas ---------------- */
+  $$(".c-notas-lista .notita .btn").forEach((b) => b.addEventListener("click", () => {
+    const n = b.closest(".notita");
+    n.classList.add("hecha");
+    const s = $(".hecho-sello", n);
+    s.classList.remove("estampa"); void s.offsetWidth; s.classList.add("estampa");
+  }));
+
+  /* ---------------- C · el camino y el colibrí ---------------- */
+  const HOY = 1.12 / 2.75; // 68 % de 300 UIT; el camino entero llega a 500 UIT
+  const DIC = 1.66 / 2.75; // la proyección cruza las 300 UIT en diciembre
+  function camino() {
+    const id = corrida;
+    const svg = $("#c-camino-svg");
+    const ruta = $("#c-ruta", svg);
+    const L = ruta.getTotalLength ? ruta.getTotalLength() : 0;
+    if (!L) return;
+    $$(".hito", svg).forEach((g) => {
+      const p = ruta.getPointAtLength(L * Math.min(0.9995, Number(g.dataset.f)));
+      g.setAttribute("transform", `translate(${p.x.toFixed(1)},${p.y.toFixed(1)})`);
+    });
+    const hecha = $("#c-ruta-hecha", svg), proy = $("#c-ruta-proy", svg), ave = $("#c-ave", svg), hoy = $("#c-hoy", svg);
+    proy.style.strokeDasharray = `0 ${(L * HOY).toFixed(1)} ${(L * (DIC - HOY)).toFixed(1)} ${L.toFixed(1)}`;
+    hoy.classList.remove("ver");
+    const poner = (f) => {
+      const d = L * f;
+      const p = ruta.getPointAtLength(d);
+      const q = ruta.getPointAtLength(Math.min(L, d + 2));
+      const ang = (Math.atan2(q.y - p.y, q.x - p.x) * 180) / Math.PI;
+      ave.setAttribute("transform", `translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) rotate(${(ang * 0.45).toFixed(1)})`);
+      hecha.style.strokeDasharray = `${d.toFixed(1)} ${L.toFixed(1)}`;
+      return p;
+    };
+    const fijarHoy = () => { const p = ruta.getPointAtLength(L * HOY); hoy.setAttribute("transform", `translate(${p.x.toFixed(1)},${p.y.toFixed(1)})`); hoy.classList.add("ver"); };
+    if (R) { poner(HOY); fijarHoy(); return; }
+    poner(0);
+    const t0 = performance.now() + 700, dur = 2600;
+    const paso = (t) => {
+      if (id !== corrida) return;
+      const p = Math.max(0, Math.min(1, (t - t0) / dur));
+      const e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; // entra suave y se posa, sin rebote
+      poner(HOY * e);
+      if (p < 1) requestAnimationFrame(paso); else fijarHoy();
+    };
+    requestAnimationFrame(paso);
+  }
+
+  document.addEventListener("variante", (e) => {
+    corrida++;
+    if (e.detail === "c") requestAnimationFrame(() => { sobre(); taco(); camino(); });
+  });
+})();
+</script></body></html>

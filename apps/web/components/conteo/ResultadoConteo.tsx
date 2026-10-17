@@ -137,8 +137,8 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
           {filas.length > visibles.length && (
             <p className="border-t border-sand px-4 py-3 text-sm text-taupe @[36rem]:px-5">
               Y {filas.length - visibles.length} {filas.length - visibles.length === 1 ? "variante más" : "variantes más"}.{" "}
-              <Link href={hrefMovimientos} className="text-tinta underline underline-offset-2 hover:text-taupe">
-                Míralas todas en Movimientos →
+              <Link href={hrefMovimientos} className="btn-cayla btn-enlace">
+                Míralas todas en Movimientos
               </Link>
             </p>
           )}

@@ -12,10 +12,12 @@ import { PERMISOS, type Permiso } from "./menu";
 
 export const CLAVES_MODULO = [
   "inicio",
-  "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas", "avisos_club",
-  "existencias", "conteos", "traslados", "movimientos",
+  "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion",
+  "tienda_web", "pedidos_web", "vitrina_web", "recomendaciones", "ajustes_web",
+  "clientas", "avisos_club",
+  "existencias", "conteos", "traslados", "movimientos", "recibir",
   "productos", "atributos", "etiquetas", "liquidacion",
-  "ordenes_compra", "facturas_compra", "recibir", "por_pagar", "fondos", "proveedores", "notas_credito", "plan_compra",
+  "ordenes_compra", "facturas_compra", "por_pagar", "fondos", "proveedores", "notas_credito", "plan_compra",
   "produccion", "ordenes_insumos",
   "analisis", "frescura", "plan_piso", "colaboradores", "roles",
   "configuracion",
@@ -28,7 +30,7 @@ export type ClaveModulo = (typeof CLAVES_MODULO)[number];
 
 export type Modulo = {
   clave: ClaveModulo;
-  grupo: "General" | "Ventas" | "Clientes" | "Inventario" | "Catálogo" | "Compras" | "Producción" | "Gestión" | "Finanzas";
+  grupo: "General" | "Ventas" | "Tienda web" | "Clientes" | "Inventario" | "Catálogo" | "Compras" | "Producción" | "Gestión" | "Finanzas";
   nombre: string;
   /** Lo que se da al encenderlo: quien ve el módulo hace todo esto. */
   incluye: string;
@@ -57,6 +59,27 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "devoluciones", grupo: "Ventas", nombre: "Devoluciones", incluye: "Solicitar devoluciones" },
   { clave: "historial", grupo: "Ventas", nombre: "Historial de ventas", incluye: "Consultar, reimprimir, exportar y corregir el pago mientras la caja siga abierta" },
   { clave: "facturacion", grupo: "Ventas", nombre: "Facturación", incluye: "Emitir boletas, facturas y notas; reenviar a SUNAT" },
+  // Tienda web (ADR-0430, Felipe 2026-10-16; 20261016174000): el grupo de lo de la tienda online, justo después de Ventas (el mismo
+  // lugar que en el lateral). Su Resumen nace SIN rol (solo el líder) y delegable; no trae funciones propias: lee con las lecturas de las
+  // otras tres pantallas, y cada una pide SU módulo. Pedidos web, Vitrina web y Recomendaciones llegaron de Ventas, Catálogo y Clientes
+  // sin cambiar quién los ve. Su quinta pantalla, Ajustes («Datos y plazos»), tiene su módulo desde 20261016223000 (abajo): antes la abría Configuración.
+  { clave: "tienda_web", grupo: "Tienda web", nombre: "Resumen de la tienda web", incluye: "Ver de un vistazo lo que la tienda online pide hoy: los pedidos por atender de su tienda, las recomendaciones sin responder, quién espera una talla, qué modelos no se ven en la web y qué le falta a cada tienda para mostrarse (cada cosa, solo si también tiene su pantalla)" },
+  // Pedidos web (ADR-0408, actividad 8; 20261015010000): lo que los clientes separan en la tienda online para esta tienda. Nace SIN rol
+  // (solo el líder) y delegable: sus funciones piden este módulo (`fn_pedido_web_exigir`) y la tienda que se opera. Quien lo tiene ve
+  // del cliente solo lo necesario para coordinar por WhatsApp (nombre, celular, el DNI a medias y si es del club), tenga o no «Clientes».
+  { clave: "pedidos_web", grupo: "Tienda web", nombre: "Pedidos web", incluye: "Ver los pedidos que los clientes separan en la tienda online para su tienda, confirmarlos (de dónde sale cada prenda, conseguirla para una fecha o quitarla), no confirmarlos o anularlos con su motivo, cobrarlos, entregarlos con su código y, si ya pagó, anularlos devolviéndole su plata (el efectivo sale de la caja abierta de hoy) y anulando su boleta, y enviar a la tienda del pedido las prendas que se reservaron aquí" },
+  // Vitrina web (ADR-0408, actividad 3; 20261014225000): qué modelos se ven en la tienda online y a qué precio web. Nace SIN rol
+  // (solo el líder) y delegable: sus funciones piden este módulo. El costo y el margen siguen siendo del líder (la base no los manda).
+  { clave: "vitrina_web", grupo: "Tienda web", nombre: "Vitrina web", incluye: "Elegir qué modelos se ven en la tienda online, mostrar u ocultar varios a la vez, fijarlos o quitarlos de Lo nuevo y armar los looks de «Arma tu look»" },
+  // Recomendaciones (ADR-0408, Felipe 2026-10-15; 20261015135000): lo que los clientes recomiendan desde la tienda online, SIEMPRE con
+  // su nombre. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo. Quien lo tiene ve las de TODAS las tiendas y
+  // las de CAYLA en general, con el nombre del cliente aunque no tenga «Clientes» (la ficha, solo si la ve).
+  { clave: "recomendaciones", grupo: "Tienda web", nombre: "Recomendaciones", incluye: "Leer lo que los clientes recomiendan desde la tienda online, con su nombre y sobre qué tienda es, marcarlo como leído, responderles con un texto corto que ven en su cuenta y archivarlo" },
+  // Datos y plazos (Felipe 2026-10-16; 20261016223000): Tienda web ▸ Ajustes. Antes la abría Configuración, que es mucho más (metas, fondo
+  // de caja, gastos fijos, parámetros tributarios): para dar esta pantalla había que dar todo eso. Nace SIN rol (solo el líder) y delegable:
+  // sus tres funciones propias piden este módulo (`fn_puede_ajustes_tienda_web`); `guardar_whatsapp_tienda`, compartida con Tiendas y
+  // caja, acepta cualquiera de los dos. Configuración ya no abre esta pantalla.
+  { clave: "ajustes_web", grupo: "Tienda web", nombre: "Datos y plazos de la tienda web", incluye: "Cambiar lo que la tienda online le muestra al cliente de cada tienda (nombre, WhatsApp, dirección, horario y si se ve en la web) y los plazos de los pedidos web (cuánto espera un pedido sin confirmar o sin pagar, cuánto sin recoger y desde cuántas unidades se muestra cuánto queda)" },
   { clave: "clientas", grupo: "Clientes", nombre: "Fichas de clientes", incluye: "Registrar, editar y archivar clientes; ver sus compras" },
   // Avisos del club (ADR-0288 act. g, G-8; 20261001210500): Clientas ▸ Avisos, los mensajes del club por mandar a las socias
   // con publicidad. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo, no al líder.
@@ -68,6 +91,8 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "conteos", grupo: "Inventario", nombre: "Conteos", incluye: "Iniciar, registrar y cerrar conteos" },
   { clave: "traslados", grupo: "Inventario", nombre: "Traslados", incluye: "Enviar, recibir, cancelar y cerrar con diferencia" },
   { clave: "movimientos", grupo: "Inventario", nombre: "Movimientos", incluye: "Consultar y exportar" },
+  // ADR-0393 (Felipe, 2026-10-14): Recibir vive en Inventario, para todos (20261014210000; la base de producción ya lo tenía ahí).
+  { clave: "recibir", grupo: "Inventario", nombre: "Recibir mercadería", incluye: "Recibir envíos de proveedores" },
   { clave: "productos", grupo: "Catálogo", nombre: "Productos", incluye: "Crear, editar y archivar prendas; precios, fotos y códigos" },
   { clave: "atributos", grupo: "Catálogo", nombre: "Categorías, marcas y atributos", incluye: "Crear, editar, desactivar y aprobar propuestas" },
   { clave: "etiquetas", grupo: "Catálogo", nombre: "Etiquetas", incluye: "Crear, editar, aprobar y archivar etiquetas, configurar su campaña y descuento, y ponérselas a las prendas" },
@@ -79,7 +104,6 @@ export const MODULOS: readonly Modulo[] = [
   // (decisiones 34 y 37): no pasa por la regla de Compras por tienda (ADR-0184).
   { clave: "ordenes_compra", grupo: "Compras", nombre: "Órdenes de compra", incluye: "Crear, ver, editar y anular las órdenes de compra a proveedores de todas las sedes, con sus precios, y descargar su PDF" },
   { clave: "facturas_compra", grupo: "Compras", nombre: "Facturas de compra", incluye: "Registrar, corregir y anular facturas" },
-  { clave: "recibir", grupo: "Compras", nombre: "Recibir mercadería", incluye: "Recibir envíos de proveedores" },
   { clave: "por_pagar", grupo: "Compras", nombre: "Por pagar", incluye: "Ver lo que se debe y registrar pagos" },
   // Fondos por rendir (ADR-0362, fase 6; 20261013181000): la plata que se le entrega a quien compra. Nace SIN rol (solo el líder) y
   // delegable: sus funciones piden este módulo, no al líder (decisión 35).
@@ -284,6 +308,24 @@ export const PERMISOS_SIN_MODULO: readonly Permiso[] = ["administrar", "verDiner
  */
 export function usaModulo(rol: "lider" | "integrante", modulos: readonly ModuloDeCuenta[], clave: ClaveModulo): boolean {
   return rol === "lider" || modulos.some((m) => m.clave === clave && m.completo);
+}
+
+/**
+ * Los módulos que, además del líder, abren «todas las tiendas y la empresa» en Finanzas (ADR-0253: Configuración y Cierre de mes,
+ * «todo, como el líder»; ADR-0275: CAYLA Global). ESPEJA `retail.fn_ve_finanzas_de_todo()`: `lib/modulos.test.ts` la cruza con la
+ * migración que la define, así la pantalla y el candado no pueden decir cosas distintas (auditoría de Finanzas 2026-10-16, G16).
+ * @internal La usa la prueba que la cruza con la migración.
+ */
+export const MODULOS_QUE_VEN_TODO_FINANZAS: readonly ClaveModulo[] = ["configuracion", "cierre_mes", "cayla_global"];
+
+/**
+ * ¿Esta cuenta ve las finanzas de TODAS las tiendas y de la empresa (no solo las de su tienda)? Es la ÚNICA pregunta de alcance
+ * de Finanzas en la web: espeja `fn_ve_finanzas_de_todo()` («`fn_es_lider()` o `fn_capacidad_por_modulos(…)`»). Una pantalla que
+ * reparte columnas por tienda la usa en vez de `rol === "lider"`. No decide lo que es «solo del líder» de verdad (el Balance de
+ * CAYLA entera, el Resumen): eso lo siguen decidiendo sus funciones con `fn_es_lider()`.
+ */
+export function veFinanzasDeTodo(rol: "lider" | "integrante", modulos: readonly ModuloDeCuenta[]): boolean {
+  return rol === "lider" || modulos.some((m) => m.completo && MODULOS_QUE_VEN_TODO_FINANZAS.includes(m.clave));
 }
 
 /** Qué hace cada cuenta con un comprobante de compra (ADR-0161 P1): cada acción es de UN módulo. */

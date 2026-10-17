@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { ChevronDown, ChevronRight, CircleCheck, FileMinus, FunnelX, SearchX, ShieldCheck, Wallet, X } from "lucide-react";
 import { BarraApilada } from "@/components/ui/BarraApilada";
@@ -15,6 +16,7 @@ import { BotonReembolso } from "@/components/SaldoFavorAcciones";
 import { NotaCreditoVistaRapida } from "@/components/NotaCreditoVistaRapida";
 import { NotaCreditoDetalle } from "@/components/NotaCreditoDetalle";
 import { RegistrarNotaCreditoModal } from "@/components/RegistrarNotaCreditoModal";
+import { NotaDelProveedorModal } from "@/components/NotaDelProveedorModal";
 import { Boton } from "@/components/ui/campos";
 import { ETIQUETA_METODO, soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
@@ -28,6 +30,7 @@ import {
   cifrasTablero,
   destinoTexto,
   diaDelCierre,
+  esDocumentoInterno,
   filtrarTablero,
   hace,
   type Banda,
@@ -40,6 +43,8 @@ import {
 } from "@/lib/notas-credito-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 /* ====================================================================
    Notas de crédito · el tablero (2026-09-19)
@@ -102,6 +107,8 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
   const [seleccionada, setSeleccionada] = useState<string | null>(null);
   const [detalle, setDetalle] = useState<string | null>(null);
   const [registrar, setRegistrar] = useState<{ compraId: string | null } | null>(null);
+  // «Llegó su nota de crédito» (ADR-0362, fase 5b, actividad 3): el documento interno al que se le adjunta la nota del proveedor.
+  const [adjuntar, setAdjuntar] = useState<string | null>(null);
 
   const filas = useMemo(() => armarFilas(crudas, { hoy, saldoPorProveedor, movimientos }), [crudas, hoy, saldoPorProveedor, movimientos]);
   const cifras = useMemo(() => cifrasTablero(filas, { mes: hoy.slice(0, 7), saldoPorProveedor, movimientos }), [filas, hoy, saldoPorProveedor, movimientos]);
@@ -119,6 +126,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
   const refFlip = useFlip(`${pestana}|${banda ?? ""}|${agrupar}|${orden.join(",")}`);
   const abierta = seleccionada ? (filas.find((f) => f.id === seleccionada) ?? null) : null;
   const laDetalle = detalle ? (filas.find((f) => f.id === detalle) ?? null) : null;
+  const laAdjuntar = adjuntar ? (filas.find((f) => f.id === adjuntar) ?? null) : null;
   // El reclamo MÁS viejo, y solo si ya pasó el plazo: un rojo por pantalla, no uno por fila.
   const idUrgente = useMemo(() => {
     const cand = filas.filter((f) => f.estado === "por_reclamar" && f.tramo === "urgente").sort((a, b) => b.edadDias - a.edadDias)[0];
@@ -167,19 +175,17 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
 
   return (
     <div className="space-y-6">
-      <div data-voz="cabecera" {...entra(0)} className="anim-entra flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Notas de crédito de proveedor</h1>
-          <p className="mt-1 max-w-[42rem] text-sm text-tinta/65">
-            Lo que los proveedores le acreditan a CAYLA por faltantes, devoluciones o descuentos: qué falta reclamar, qué ya llegó y a dónde fue el dinero.
-          </p>
-        </div>
-        <Boton type="button" peso="primario" onClick={() => setRegistrar({ compraId: null })} aria-haspopup="dialog" data-guia="notas-credito.registrar">
-          + Registrar nota
-          <kbd className="ml-2 rounded border border-crema/35 px-1.5 text-[10px] text-crema/75">N</kbd>
-        </Boton>
-      </div>
+      <EncabezadoPagina
+        sede="Todas las tiendas"
+        titulo="Notas de crédito de proveedor"
+        subtitulo="Lo que los proveedores le acreditan a CAYLA por faltantes, devoluciones o descuentos: qué falta reclamar, qué ya llegó y a dónde fue el dinero."
+        acciones={
+          <Boton type="button" peso="primario" onClick={() => setRegistrar({ compraId: null })} aria-haspopup="dialog" data-guia="notas-credito.registrar">
+            + Registrar nota
+            <kbd className="ml-2 rounded border border-crema/35 px-1.5 text-[10px] text-crema/75">N</kbd>
+          </Boton>
+        }
+      />
 
       <div {...entra(1)}>
         {/* Dos secciones con otras columnas y otras acciones: la pestaña de vista del sistema (ADR-0358). */}
@@ -217,6 +223,13 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
               style={{ ["--i" as string]: 2 }}
             >
               {cifras.porReclamar.cantidad > 0 ? `${cifras.porReclamar.cantidad === 1 ? "1 nota" : `${cifras.porReclamar.cantidad} notas`} · la más antigua ${hace(cifras.porReclamar.masVieja).toLowerCase()}` : "Nada por reclamar"}
+              {/* Las de un documento interno de una factura no suman plata (ya volvió): falta el papel, y su IGV espera (fase 5b). */}
+              {cifras.porReclamar.porPedir.cantidad > 0 && (
+                <span className="block">
+                  {cifras.porReclamar.porPedir.cantidad === 1 ? "1 ya devolvió su plata" : `${cifras.porReclamar.porPedir.cantidad} ya devolvieron su plata`}: falta el
+                  papel (su IGV, {soles(cifras.porReclamar.porPedir.igv)})
+                </span>
+              )}
               {cifras.porReclamar.cantidad > 0 && (
                 // La barra es `<BarraApilada>` (ADR-0358): cada tramo es una antigüedad; tocarlo lleva a «Por reclamar» y filtra por ella (el
                 // segundo toque la suelta). Con una puesta, las demás bajan.
@@ -320,7 +333,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
               <span className="anim-entra inline-flex items-center gap-2 rounded-full border border-tinta/25 py-1 pl-3 pr-1.5 text-[12.5px] text-tinta">
                 {ETIQUETA_BANDA[banda]}
                 <button type="button" onClick={() => setBanda(null)} aria-label="Quitar filtro de antigüedad" className="grid h-[18px] w-[18px] place-items-center rounded-full text-tinta/55 transition-colors hover:bg-tinta hover:text-crema">
-                  <X aria-hidden className="h-2.5 w-2.5" />
+                  <X aria-hidden className="h-3 w-3" />
                 </button>
               </span>
             </div>
@@ -333,7 +346,11 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
                   <b className="font-semibold tabular-nums text-tinta">{visibles.length}</b> {pestana === "por_reclamar" ? (visibles.length === 1 ? "nota por reclamar" : "notas por reclamar") : visibles.length === 1 ? "nota" : "notas"}
                 </span>
                 <span>
-                  <b className="font-semibold tabular-nums text-tinta">{soles(Math.round(visibles.reduce((a, f) => a + f.monto, 0) * 100) / 100)}</b> {pestana === "por_reclamar" ? "esperados en total" : "en total"}
+                  {/* «Esperados» es plata por cobrar: no cuenta un documento interno que espera su nota, cuya plata ya volvió (fase 5b). */}
+                  <b className="font-semibold tabular-nums text-tinta">
+                    {soles(Math.round(visibles.reduce((a, f) => a + (pestana === "por_reclamar" && f.clase !== "pendiente" ? 0 : f.monto), 0) * 100) / 100)}
+                  </b>{" "}
+                  {pestana === "por_reclamar" ? "esperados en total" : "en total"}
                 </span>
                 {pestana === "por_reclamar" && (
                   <span>
@@ -394,6 +411,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
           onCerrar={() => setSeleccionada(null)}
           onNavegar={navegar}
           onRegistrar={(compraId) => { setSeleccionada(null); setRegistrar({ compraId }); }}
+          onAdjuntar={(id) => { setSeleccionada(null); setAdjuntar(id); }}
           onDetalle={(id) => { setSeleccionada(null); setDetalle(id); }}
         />
       )}
@@ -403,8 +421,10 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
           movimientos={movimientos.filter((m) => m.proveedorId === laDetalle.proveedorId)}
           onCerrar={() => setDetalle(null)}
           onRegistrar={(compraId) => { setDetalle(null); setRegistrar({ compraId }); }}
+          onAdjuntar={(id) => { setDetalle(null); setAdjuntar(id); }}
         />
       )}
+      {laAdjuntar && <NotaDelProveedorModal nota={laAdjuntar} filas={filas} hoy={hoy} onCerrar={() => setAdjuntar(null)} />}
       {registrar && <RegistrarNotaCreditoModal facturas={facturas} fallaFacturas={fallaFacturas} filas={filas} compraIdInicial={registrar.compraId} hoy={hoy} onCerrar={() => setRegistrar(null)} />}
     </div>
   );
@@ -460,7 +480,7 @@ function FilaNota({
             <Resaltado texto={f.documento} busqueda={busqueda} />
           </span>
           {" · "}
-          {f.clase === "pendiente" ? `${f.unidadesCerradas.toLocaleString("es-PE")} ${f.unidadesCerradas === 1 ? "unidad cerrada" : "unidades cerradas"} sin llegar` : <>{<Resaltado texto={f.serieNumero ?? ""} busqueda={busqueda} />}{f.nota ? ` · ${f.nota}` : ""}</>}
+          {f.clase === "pendiente" ? `${f.unidadesCerradas.toLocaleString("es-PE")} ${f.unidadesCerradas === 1 ? "unidad cerrada" : "unidades cerradas"} sin llegar` : <>{<Resaltado texto={f.serieNumero ?? ""} busqueda={busqueda} />}{esDocumentoInterno(f.serieNumero) ? " · documento interno" : ""}{f.nota ? ` · ${f.nota}` : ""}</>}
         </span>
         {/* En celular las columnas de motivo/estado no existen: sus chips bajan acá. */}
         <span className="mt-1.5 flex flex-wrap items-center gap-1.5 sm:hidden">
@@ -488,9 +508,7 @@ function FilaNota({
         <span className="font-display block text-[18px] tabular-nums text-tinta">{soles(f.monto)}</span>
         <span className={`block text-xs ${f.estado === "emitida" || f.devuelto ? "text-verde-profundo" : "text-tinta/55"}`}>{destinoTexto(f)}</span>
         {f.clase === "nota" && f.monto > 0 && (
-          <span aria-hidden className="ml-auto mt-1 block h-[3px] w-[5.5rem] overflow-hidden rounded-full bg-sand">
-            <i className="anim-crece-x block h-full origin-left rounded-full bg-verde" style={{ width: `${Math.min(100, (f.aplicado / f.monto) * 100)}%` }} />
-          </span>
+          <BarraAvance pct={(f.aplicado / f.monto) * 100} alto="fina" decorativa className="ml-auto mt-1 w-[5.5rem]" />
         )}
       </span>
       <span className={celda("izq", "hidden overflow-visible whitespace-normal sm:block")}>
@@ -629,18 +647,14 @@ function SaldosAFavorTablero({ proveedores, movimientos, total, puedeReembolsar 
                   {p.deuda > 0 ? `Le debes ${soles(p.deuda)} · con tu saldo solo transferirías ${soles(Math.max(0, Math.round((p.deuda - cubre) * 100) / 100))}` : "Sin deuda pendiente: queda a tu favor para su próxima compra, o pide el reembolso."}
                 </p>
                 {p.deuda > 0 && (
-                  <div aria-hidden className="mt-2 h-[5px] max-w-[21rem] overflow-hidden rounded-full bg-sand">
-                    <div className="anim-crece-x h-full origin-left rounded-full bg-verde" style={{ width: `${Math.min(100, Math.round((cubre / p.deuda) * 100))}%` }} />
-                  </div>
+                  <BarraAvance pct={(cubre / p.deuda) * 100} decorativa className="mt-2 max-w-[21rem]" />
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-4">
                 <span className="font-display text-[26px] tabular-nums text-verde-profundo">{soles(p.saldoFavor)}</span>
                 <div className="flex flex-wrap gap-2">
                   {p.deuda > 0 && (
-                    <Link href={`/compras/por-pagar?prov=${p.id}&marcar=1`} className="btn-cayla btn-secundario">
-                      Usar en un pago →
-                    </Link>
+                    <BotonVer href={`/compras/por-pagar?prov=${p.id}&marcar=1`}>Usar en un pago</BotonVer>
                   )}
                   {/* La misma pieza que la ficha del proveedor: una sola forma de registrar un reembolso. */}
                   {puedeReembolsar && <BotonReembolso proveedorId={p.id} proveedorNombre={p.nombre} saldoFavor={p.saldoFavor} />}

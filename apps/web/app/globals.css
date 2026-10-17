@@ -27,6 +27,8 @@
 @import "./estilos/caja-cierre.css";
 @import "./estilos/caja-comparativa.css";
 @import "./estilos/ficha-taller.css";
+@import "./estilos/orden-pagina.css";
+@import "./estilos/ordenes-lista.css";
 @import "./estilos/vista-rapida.css";
 @import "./estilos/historial-prenda.css";
 @import "./estilos/vender-grilla.css";
@@ -45,6 +47,7 @@
 @import "./estilos/marcas.css";
 @import "./estilos/analisis.css";
 @import "./estilos/gasto-rapido.css";
+@import "./estilos/recepcion-conteo.css";
 @import "./estilos/login.css";
 @import "./estilos/analisis-hoy.css";
 @import "./estilos/analisis-acaba.css";
@@ -54,11 +57,18 @@
 @import "./estilos/analisis-ficha.css";
 @import "./estilos/vacio-aviso-buscador.css";
 @import "./estilos/barra-apilada.css";
+@import "./estilos/avance-anillo-copiar.css";
+@import "./estilos/graficos-tiempo.css";
+@import "./estilos/globito-vermas.css";
 @import "./estilos/liquidacion.css";
+/* Aventurero, el gato del meme en «Sin acceso» y en las barreras de error (2026-10-15). También la importa global-error.tsx. */
+@import "./estilos/aventurero.css";
 /* Plan del piso ▸ Propuesta: el riel de perchas (maqueta A, ADR-0352 act. 2026-10-11) y el color de cada grupo (--grupo-N). */
 @import "./estilos/plan-piso.css";
 /* Historial de cierres de Caja: cada cierre como un ticket con su sello (maqueta E, Felipe 2026-10-12). */
 @import "./estilos/historial-tickets.css";
+/* Tienda web (ADR-0430): la ventana del navegador, el mosaico de prendas, el camino del pedido y su movimiento. */
+@import "./estilos/tienda-web.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
 
@@ -1515,9 +1525,6 @@ html[data-buscando] [data-resultados] {
 @keyframes cayla-trazo {
   from { stroke-dashoffset: 24; }
 }
-@keyframes cayla-anillo {
-  from { stroke-dasharray: 0 100; }
-}
 @keyframes cayla-pop {
   40% { transform: scale(1.07); }
 }
@@ -1542,7 +1549,6 @@ html[data-buscando] [data-resultados] {
   .anim-pop { animation: cayla-pop 500ms var(--ease-cayla); }
   /* El tilde de un check que se traza (solo el último trazo del ícono: el círculo queda). */
   .check-trazo path:last-child { stroke-dasharray: 24; animation: cayla-trazo 550ms var(--ease-cayla) backwards; animation-delay: var(--d, 700ms); }
-  .anillo-progreso .rg { transition: stroke-dasharray 900ms var(--ease-cayla); animation: cayla-anillo 1.3s var(--ease-cayla) 300ms backwards; }
   /* El MOVIMIENTO ÚNICO de un botón (ADR-0358, ronda 3: Felipe eligió la D tocándola, 2026-10-07). Lo usan `<Boton>`,
      `<BotonEnlace>`, `<BotonAncla>`, la barra de vidrio de Comprobantes (`BotonCompacto`) y los botones de los pasos de
      Cambios y Devoluciones (`FlujoGuiado`); antes eran tres movimientos distintos.
@@ -2248,7 +2254,7 @@ html[data-buscando] [data-resultados] {
   .hilo-n--apagado {
     border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent);
   }
-  .hilo-n svg {
+  .hilo-n svg { /* unificar-fijo: el círculo punteado de un campo opcional (guía de foco), no un ícono */
     position: absolute;
     inset: 1px;
     width: calc(100% - 2px);
@@ -2540,8 +2546,7 @@ html[data-buscando] [data-resultados] {
     .hilo-dibuja,
     .hilo-vertical,
     .anim-pop,
-    .check-trazo path:last-child,
-    .anillo-progreso .rg {
+    .check-trazo path:last-child {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }
@@ -2716,14 +2721,15 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
       /* La hoja nunca es más baja que la foto (3:4) con su relleno: una hoja de pocas filas no la recorta. */
       min-height: calc(var(--ancho-lateral) * 4 / 3 + 3rem);
     }
-    .hoja-con-lateral.cascada-modal.max-w-sm {
-      max-width: calc(24rem + var(--ancho-lateral) + var(--separacion-lateral));
-    }
+    /* Los tres anchos de una hoja (ADR-0358, ronda 12): angosta, mediana y ancha. */
     .hoja-con-lateral.cascada-modal.max-w-md {
       max-width: calc(28rem + var(--ancho-lateral) + var(--separacion-lateral));
     }
-    .hoja-con-lateral.cascada-modal.max-w-lg {
-      max-width: calc(32rem + var(--ancho-lateral) + var(--separacion-lateral));
+    .hoja-con-lateral.cascada-modal.max-w-xl {
+      max-width: calc(36rem + var(--ancho-lateral) + var(--separacion-lateral));
+    }
+    .hoja-con-lateral.cascada-modal.max-w-3xl {
+      max-width: calc(48rem + var(--ancho-lateral) + var(--separacion-lateral));
     }
     .hoja-con-lateral.cascada-modal > [data-lateral] {
       display: block;
@@ -2854,7 +2860,7 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
     .hoja-cobro-nombre-corto { display: inline; }
   }
   .hoja-cobro-icono { display: block; width: 52%; height: 52%; color: var(--cd); transition: color 300ms, width 350ms var(--ease-cayla), height 350ms var(--ease-cayla); }
-  .hoja-cobro-icono svg { stroke-width: 1.25; }
+  .hoja-cobro-icono svg { stroke-width: 1.5; } /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */
   .hoja-cobro-medio.es-elegido { background: var(--cd); border-color: var(--cd); color: var(--color-crema); }
   .hoja-cobro-medio.es-elegido .hoja-cobro-icono { color: var(--color-crema); }
   /* Las letras de adentro de las burbujas, elegido el medio. Yape: la burbuja va RELLENA (crema), así que su «S/» va en
@@ -2946,6 +2952,24 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
   .hoja-cobro-billete.es-otro { background: var(--color-papel); border-style: dashed; box-shadow: none; cursor: text; }
   .hoja-cobro-billete.es-otro:focus-within,
   .hoja-cobro-billete.es-escrito { border-style: solid; border-color: var(--cd); }
+  /* «¿Con qué máquina?» (ADR-0429): las máquinas son baldosas como los billetes, en el color del medio (tarjeta o QR) y con el nombre
+     en versalitas; la elegida se llena, como el billete elegido. Solo aparecen donde la tienda tiene dos para ese medio. */
+  .hoja-cobro-maquinas { display: grid; gap: 0.5rem; margin-bottom: 0.75rem; }
+  /* Cada máquina en una baldosa que le dé al nombre al menos 5,5 rem: dos por fila si caben (el celular, la hoja angosta) y una
+     debajo de la otra en la columna angosta de la hoja ancha. Nunca un nombre recortado. */
+  .hoja-cobro-maquinas .hoja-cobro-billetes { grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); }
+  .hoja-cobro-billete.es-maquina {
+    --c: var(--color-metodo-tarjeta);
+    --cd: var(--color-metodo-tarjeta);
+    padding-inline: 0.375rem;
+    font-family: inherit;
+    font-size: 12px; /* 12 px: lo mínimo legible a distancia en el mostrador (oficio visual); era 11 */
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .hoja-cobro-billete.es-maquina.metodo-qr { --c: var(--color-metodo-qr); --cd: var(--color-metodo-qr); }
 
   /* Comprobante: punteado mientras no se elige; elegido, en tinta; los otros se apagan. */
   .hoja-cobro-comprobante {

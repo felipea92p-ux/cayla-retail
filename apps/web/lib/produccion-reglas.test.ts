@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { conPreciosMasBajos, esProducible, conPreciosMasBajosDeModelos, costoUnitario, parsearLineasPrellenadas, precioParaMargen, semaforoMargen, urlLlevarATiendas, ETAPAS_MUESTRA, ETAPAS_PRODUCCION, LEYENDA_SEMAFORO, TEXTO_SEMAFORO } from "./produccion-reglas";
+import { conPreciosMasBajos, esProducible, problemaDeBuenas, problemaDeEntrega, topeDeBuenas, conPreciosMasBajosDeModelos, costoUnitario, parsearLineasPrellenadas, precioParaMargen, semaforoMargen, urlLlevarATiendas, ETAPAS_MUESTRA, ETAPAS_PRODUCCION, LEYENDA_SEMAFORO, TEXTO_SEMAFORO } from "./produccion-reglas";
 
 describe("semaforoMargen", () => {
   it("gana con 60% o más de margen", () => {
@@ -91,7 +91,7 @@ describe("el margen se mide con el precio más bajo de cualquier tienda (ADR-037
 
   it("nadie vuelve a medir el margen con el precio de la grilla a secas: todo `semaforoMargen(` de una pantalla pasa por `precioParaMargen`", () => {
     const leer = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8");
-    for (const ruta of ["components/NuevaOrdenProduccionForm.tsx", "components/OrdenTarjeta.tsx", "components/OrdenPanel.tsx", "components/OrdenesTablero.tsx", "lib/produccion-reglas.ts"]) {
+    for (const ruta of ["components/NuevaOrdenProduccionForm.tsx", "components/OrdenTarjeta.tsx", "components/OrdenPanel.tsx", "lib/produccion-reglas.ts"]) {
       const llamadas = leer(ruta).match(/semaforoMargen\([^)]*\)\)?/g) ?? [];
       // La definición (`export function semaforoMargen(precioVenta: number, ...)`) no es una llamada.
       for (const l of llamadas.filter((x) => !x.includes("precioVenta: number"))) expect(l, `${ruta}: ${l}`).toMatch(/precioParaMargen/);
@@ -120,7 +120,6 @@ describe("etapas", () => {
 });
 
 import {
-  COLUMNAS_TABLERO,
   DIAS_ENTREGA_PRONTO,
   claveCelda,
   datosDeVariante,
@@ -153,9 +152,6 @@ describe("etapaActual", () => {
     expect(etapaActual({ patronaje: "hecho", muestra: "hecho", escalado: "hecho" }, true)).toBe("listo");
     expect(etapasDe(true)).toBe(ETAPAS_MUESTRA);
     expect(etapasDe(false)).toBe(ETAPAS_PRODUCCION);
-  });
-  it("las columnas del tablero son las etapas de producción más «listo», en orden", () => {
-    expect(COLUMNAS_TABLERO.map((c) => c.clave)).toEqual([...ETAPAS_PRODUCCION.map((e) => e.clave), "listo"]);
   });
 });
 
@@ -232,11 +228,11 @@ describe("datosDeVariante: cómo se nombra una prenda de la orden", () => {
     expect(datosDeVariante({ sku: null, codigo: null }).sku).toBe("");
   });
   it("una variante que no llegó no rompe la orden: todo vacío", () => {
-    expect(datosDeVariante(null)).toEqual({ sku: "", talla: null, color: null, colorHex: null });
+    expect(datosDeVariante(null)).toEqual({ sku: "", talla: null, color: null, colorHex: null, colorCodigo: null });
     expect(datosDeVariante(undefined).sku).toBe("");
   });
   it("sin talla o sin color deja null, para que la matriz pinte «Única» / «Sin color»", () => {
-    expect(datosDeVariante({ codigo: "X-1", talla: null, color: null })).toEqual({ sku: "X-1", talla: null, color: null, colorHex: null });
+    expect(datosDeVariante({ codigo: "X-1", talla: null, color: null })).toEqual({ sku: "X-1", talla: null, color: null, colorHex: null, colorCodigo: null });
   });
 });
 
@@ -369,5 +365,28 @@ describe("esProducible (Resumen de Producción: qué se le ofrece a la líder pa
   });
   it("cualquiera de los motivos basta: un descontinuado de prueba y de bolsas sigue fuera", () => {
     expect(esProducible({ estado: "descontinuado", estado_alta: "pendiente", es_prueba: true, categoria_id: "bolsas" }, apagadas)).toBe(false);
+  });
+});
+
+// ADR-0415 (recomendaciones de /chaos): hasta el doble de lo pedido por talla, y una entrega que no es anterior a hoy.
+describe("las buenas de una talla tienen techo", () => {
+  it("el doble de lo pedido, o 5 más si la talla es chica", () => {
+    expect([topeDeBuenas(6), topeDeBuenas(10), topeDeBuenas(1), topeDeBuenas(0)]).toEqual([12, 20, 6, 5]);
+  });
+  it("dice la primera talla que se pasa; si todas caben, nada", () => {
+    const lineas = [{ varianteId: "a", cantidadPlan: 6 }, { varianteId: "b", cantidadPlan: 1 }];
+    expect(problemaDeBuenas(lineas, { a: 12, b: 6 })).toBeNull();
+    expect(problemaDeBuenas(lineas, { a: "9", b: "2" })).toBeNull();
+    expect(problemaDeBuenas(lineas, { a: 60, b: 1 })).toMatch(/se pidieron 6 y anotaste 60 buenas.*hasta 12/);
+    expect(problemaDeBuenas(lineas, { a: 6, b: 7 })).toMatch(/se pidieron 1 y anotaste 7/);
+  });
+});
+
+describe("la entrega no es anterior a hoy", () => {
+  it("ayer o 1990 no; hoy, más adelante o en blanco sí", () => {
+    const hoy = "2026-10-15";
+    expect(problemaDeEntrega("1990-01-01", hoy)).toMatch(/no puede ser antes de hoy/);
+    expect(problemaDeEntrega("2026-10-14", hoy)).not.toBeNull();
+    for (const f of ["2026-10-15", "2026-11-01", ""]) expect(problemaDeEntrega(f, hoy)).toBeNull();
   });
 });

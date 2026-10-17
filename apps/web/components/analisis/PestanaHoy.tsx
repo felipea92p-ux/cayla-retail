@@ -34,6 +34,9 @@ import {
   textoPastilla,
   titulosFlujo,
   todosLosCaminos,
+  conLoRegistrado,
+  estadoSinNada,
+  vacioQuietasHoy,
   type BandaFlujo,
   type CaminoHoy,
   type CaminosHoy,
@@ -60,26 +63,31 @@ export function PestanaHoy() {
   const quietas = quietasHoy(prendas, liquidarDesde);
   // «¿Qué no ha salido al piso?»: sin saberlo (la base sin 20261007120000), la tarjeta lo dice con «Todavía no».
   const sinSalir = datos.sabePiso ? prendasSinSalir(prendas, datos.hoy) : [];
-  const estPiso: Estado | null = !datos.sabePiso ? "nd" : sinSalir.length ? "ate" : buscando ? null : "bien";
+  // Ninguna tarjeta dice «Va bien» cuando no puede saberlo (tarea #2, 2026-10-14): con datos incompletos, «Para saber».
+  const confiable = datos.puedeHablar;
+  const sinNada = estadoSinNada(confiable);
+  const estPiso: Estado | null = !datos.sabePiso ? "nd" : sinSalir.length ? "ate" : buscando ? null : sinNada;
+  // «¿Qué no se mueve?» sin quietas: «Todavía no se puede saber» si ningún modelo lleva aún en el piso lo que se espera para juzgarlo.
+  const vacioQuietas = vacioQuietasHoy(datos.prendas, liquidarDesde, datos.hoy, confiable);
   // «¿Qué pedir?»: para cuánto te alcanza cada tipo al ritmo de los días de ventas, contra Navidad (B2, Felipe 2026-10-07).
   const hastaNavidad = diasANavidad(datos.hoy);
-  const alcance = alcancePorTipo(datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso);
+  const alcance = alcancePorTipo(datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo);
   const noLlegan = alcance.filter((t) => t.pide);
   const vendioAlgo = alcance.some((t) => t.vendidas > 0);
 
   return (
     <>
       <div className="instrumentos" data-guia="analisis.preguntas">
-        <Instrumento i={0} vista="acaba" pregunta="¿Qué se acaba?" est={acaba.length ? "urg" : buscando ? null : "bien"}>
-          <ListaAcaba prendas={acaba} />
+        <Instrumento i={0} vista="acaba" pregunta="¿Qué se acaba?" est={acaba.length ? "urg" : buscando ? null : sinNada}>
+          <ListaAcaba prendas={acaba} vacio={conLoRegistrado("Nada se está acabando.", confiable)} />
         </Instrumento>
-        <Instrumento i={1} vista="nose" pregunta="¿Qué no se mueve?" est={quietas.length ? "ate" : buscando ? null : "bien"}>
-          <ListaQuietas prendas={quietas} />
+        <Instrumento i={1} vista="nose" pregunta="¿Qué no se mueve?" est={quietas.length ? "ate" : buscando ? null : vacioQuietas.est}>
+          <ListaQuietas prendas={quietas} vacio={vacioQuietas.texto} />
         </Instrumento>
         <Instrumento i={2} vista="piso" pregunta="¿Qué no ha salido al piso?" est={estPiso}>
-          <ListaPiso prendas={sinSalir} />
+          <ListaPiso prendas={sinSalir} vacio={conLoRegistrado("Todo salió al piso.", confiable)} />
         </Instrumento>
-        <Instrumento i={3} vista="pedir" pregunta="¿Qué pedir?" est={noLlegan.length > 0 ? "ate" : vendioAlgo ? "bien" : "info"}>
+        <Instrumento i={3} vista="pedir" pregunta="¿Qué pedir?" est={noLlegan.length > 0 ? "ate" : vendioAlgo ? sinNada : "info"}>
           <div className="i-per">
             <Icono nombre="reloj" />
             {textoRitmo(diasDeVentas)}
@@ -174,9 +182,9 @@ const VerTodas = ({ n }: { n: number }) => (
 );
 
 /** «¿Qué se acaba?»: las 5 más urgentes con su plazo; con 7 o con 700 mide lo mismo. */
-function ListaAcaba({ prendas }: { prendas: PrendaAnalisis[] }) {
+function ListaAcaba({ prendas, vacio }: { prendas: PrendaAnalisis[]; vacio: string }) {
   const { q } = useAnalisis();
-  if (prendas.length === 0) return <p className="b-nota">{q.trim() ? "Nada con esta búsqueda." : "Nada se está acabando."}</p>;
+  if (prendas.length === 0) return <p className="b-nota">{q.trim() ? "Nada con esta búsqueda." : vacio}</p>;
   return (
     <>
       <div className="lista5">
@@ -198,9 +206,9 @@ function ListaAcaba({ prendas }: { prendas: PrendaAnalisis[] }) {
 }
 
 /** «¿Qué no se mueve?»: las 5 que más esperan, con sus días (en rojo desde los 3 meses). */
-function ListaQuietas({ prendas }: { prendas: PrendaAnalisis[] }) {
-  const { q, liquidarDesde } = useAnalisis();
-  if (prendas.length === 0) return <p className="b-nota">{q.trim() ? "Nada con esta búsqueda." : `Nada lleva ${liquidarDesde} días sin venderse.`}</p>;
+function ListaQuietas({ prendas, vacio }: { prendas: PrendaAnalisis[]; vacio: string }) {
+  const { q } = useAnalisis();
+  if (prendas.length === 0) return <p className="b-nota">{q.trim() ? "Nada con esta búsqueda." : vacio}</p>;
   return (
     <>
       <div className="lista5">
@@ -227,10 +235,10 @@ function ListaQuietas({ prendas }: { prendas: PrendaAnalisis[] }) {
  * «¿Se vende lo que llega?», que contaba como llegado lo que nadie había visto). Sin saber cuándo salió al piso cada prenda (la
  * base sin 20261007120000), lo dice y no inventa una lista.
  */
-function ListaPiso({ prendas }: { prendas: PrendaAnalisis[] }) {
+function ListaPiso({ prendas, vacio }: { prendas: PrendaAnalisis[]; vacio: string }) {
   const { q, datos } = useAnalisis();
   if (!datos.sabePiso) return <p className="b-nota">Todavía no lo puedo saber.</p>;
-  if (prendas.length === 0) return <p className="b-nota">{q.trim() ? "Nada con esta búsqueda." : "Todo salió al piso."}</p>;
+  if (prendas.length === 0) return <p className="b-nota">{q.trim() ? "Nada con esta búsqueda." : vacio}</p>;
   return (
     <>
       <div className="lista5">
@@ -332,6 +340,7 @@ function QueHacer() {
   const hay = todosLosCaminos(caminos).length > 0;
   const buscando = q.trim() !== "";
   const reponer = paraReponerPiso(prendas);
+  const confiable = datos.puedeHablar;
 
   // Tocar un camino lleva a su grupo en el carril. Antes, suelta el resaltado y el tooltip: la pieza tocada desaparece al cambiar
   // de pestaña y ya no avisaría que el mouse salió de ella.
@@ -356,7 +365,7 @@ function QueHacer() {
         ) : (
           !buscando && (
             <span className="b-nota">
-              <ChipEstado est="bien" />
+              <ChipEstado est={estadoSinNada(confiable)} />
             </span>
           )
         )}
@@ -367,9 +376,11 @@ function QueHacer() {
           <FlujoLista caminos={caminos} alIr={alIr} />
         </div>
       ) : (
-        <p className={`hoy-nada${buscando ? "" : " bien"}`}>
-          <Icono nombre={buscando ? "lupa" : "check"} />
-          {buscando ? "Nada urgente con esta búsqueda." : reponer.length ? "Nada que comprar, mandar ni liquidar." : "Hoy no hay nada urgente."}
+        <p className={`hoy-nada${buscando || !confiable ? "" : " bien"}`}>
+          <Icono nombre={buscando ? "lupa" : confiable ? "check" : "info"} />
+          {buscando
+            ? "Nada urgente con esta búsqueda."
+            : conLoRegistrado(reponer.length ? "Nada que comprar, mandar ni liquidar." : "Hoy no hay nada urgente.", confiable)}
         </p>
       )}
       <ReponerPiso lista={reponer} />

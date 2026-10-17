@@ -4,7 +4,9 @@
  * EL PROBLEMA. `leerMonto` (el de Caja, `caja-cierre-reglas.ts`) borra las comas: en Entregar plata, «1299,50» se leía S/ 129,950.00 y,
  * en el gasto del viaje, «150,5» se leía S/ 1,505.00, con la casilla en ✓ y el pie en «Todo listo» (solo el botón lo delataba). También
  * leía «1e3» (S/ 1,000) y «0x10» (S/ 16). Felipe decidió: en las hojas del fondo la coma decimal se entiende; Caja sigue con su lector
- * hasta que él lo decida.
+ * hasta que él lo decida. Desde el 2026-10-15 (ADR-0419, Felipe: «arregla lo de la coma decimal») también la usa `CampoMonto`, el campo
+ * de plata de 20 pantallas (el cobro de Vender, abonos y entregas de Apartados, Producción, Compras…): su `type="number"` borraba la coma
+ * y «2,5» se guardaba como S/ 25 (/chaos de Apartados, 2026-10-15).
  *
  * LA REGLA. Solo cifras, puntos y comas (más «S/» al inicio y espacios, que no cuentan, y un «-» adelante, que la hoja rechaza).
  *   · El ÚLTIMO separador es de céntimos si le siguen 1 o 2 cifras: «1299,50», «1299.5», «1.299,50», «1,299.50», «150,5».
@@ -50,4 +52,24 @@ export function leerMontoPlata(texto: string): number | null {
   }
   const n = Number(`${entera.replace(/[.,]/g, "") || "0"}${centimos ? `.${centimos}` : ""}`);
   return Number.isFinite(n) ? (negativo ? -n : n) : null;
+}
+
+/** Lo que `CampoMonto` le avisa al padre por cada tecla: el monto leído, o 0 si no se entiende (así ningún botón guarda un monto
+ *  adivinado) y la marca `ilegible` para que el campo lo diga. Vacío es 0 y no es un error. */
+export function lecturaCampoMonto(texto: string): { valor: number; ilegible: boolean } {
+  if (texto.trim() === "") return { valor: 0, ilegible: false };
+  const n = leerMontoPlata(texto);
+  return n === null ? { valor: 0, ilegible: true } : { valor: n, ilegible: false };
+}
+
+/** El reemplazo de `Number(texto)` en un campo de plata que guarda lo escrito como texto: vacío es 0 (como `Number`), lo que no se
+ *  entiende es `NaN` (así `> 0` es falso y `|| 0` da 0: ningún botón guarda un monto adivinado), y lo demás se lee con `leerMontoPlata`. */
+export function numeroDeMonto(texto: string): number {
+  if (texto.trim() === "") return 0;
+  return leerMontoPlata(texto) ?? Number.NaN;
+}
+
+/** El campo dice que no entendió lo escrito: hay algo y no se lee. */
+export function montoIlegible(texto: string): boolean {
+  return lecturaCampoMonto(texto).ilegible;
 }

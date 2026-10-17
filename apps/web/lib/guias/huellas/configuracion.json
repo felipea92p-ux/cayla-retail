@@ -2,97 +2,124 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 74,
+  "total": 91,
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
-      "ComboResponsable «(sin nombre)»",
-      "button «{guardando ? \"Guardando…\" : \"Guardar\"}»"
+      "ComboResponsable «{responsable}»",
+      "Boton «Guardar»"
     ],
     "components/ConfiguracionCargaInicial.tsx": [
       "button «→() => setAbierta(s)»",
       "button «(sin nombre)»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
-      "button «{responsable.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/ConfiguracionCasilla.tsx": [
+      "input «{etiqueta}»"
     ],
     "components/ConfiguracionImpuestos.tsx": [
       "input «{etiqueta}»",
       "button «ya lo confirmó»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Casilla «{`Tasa de IGV desde el ${fechaCorta(t.vigenteDesde, true)}»",
       "button «config.nueva-tasa»",
       "Casilla «{`UIT de ${anio}»",
       "button «+ UIT de un año nuevo»",
       "Casilla «{`Tope de la planilla desde el ${fechaCorta(t.vigenteDesde, true)}»",
       "button «config.nuevo-tope»",
+      "Casilla «{`Saldo a favor de IGV al empezar ${textoMes(t.vigenteDesde.slice(0, 7))}»",
+      "button «config.nuevo-saldo»",
       "button «+ Año nuevo»",
       "Casilla «{`Límite de ventas de ${anio}»",
       "Casilla «{`Pago a cuenta de renta de ${anio}»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
-      "button «{guardando ? \"Guardando…\" : \"Agregar\"}»"
+      "Boton «Agregar»"
+    ],
+    "components/ConfiguracionMetasMes.tsx": [
+      "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»",
+      "Casilla «{`Meta de ${que}»",
+      "Boton «Quitar»",
+      "input «Meta de la fecha especial»",
+      "Boton «+ Agregar»"
     ],
     "components/ConfiguracionTiendas.tsx": [
       "input «{etiqueta}»",
       "input «{etiqueta}» #2",
-      "input «{etiqueta}» #3",
       "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»",
       "Casilla «{`Fondo de caja de ${tienda.nombre}»",
       "Casilla «{`Cuánto sube la meta en ${campana.nombre}»",
       "Casilla «{`Fondo de caja en ${campana.nombre}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
+      "BotonVer «Ver el cartel del club»",
       "BotonEnlace «+ Nueva campaña (en Catálogo ▸ Etiquetas)»",
       "Link «Ver cómo se ve en Caja»"
     ],
+    "components/CuentasProveedor.tsx": [
+      "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
+      "LapizEditar «la cuenta»",
+      "BotonCopiar «{que}»"
+    ],
     "components/GastosFijosYActivos.tsx": [
-      "Link «Editar fijos»",
+      "BotonEditar «Editar fijos»",
       "BotonEnlace «Agregar el primero»",
       "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}»",
       "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}» #2",
       "button «Marcar fijo»",
       "button «No es fijo»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
-      "button «{guardando ? \"Guardando…\" : \"No es fijo\"}»",
+      "Boton «No es fijo»",
       "Boton «+ Agregar fijo»",
-      "button «Editar»",
-      "ComboResponsable «(sin nombre)»",
+      "LapizEditar «{f.descripcion}»",
+      "ComboResponsable «{responsable}» #2",
       "button «Ya no se paga: archivar»",
       "button «Cancelar» #2",
-      "button «{guardando ? \"Guardando…\" : fijo ? \"Guardar\" : \"Agregar fijo\"}»",
-      "ComboResponsable «setAccion(null)»",
+      "Boton «{fijo ? \"Guardar\" : \"Agregar fijo\"}»",
+      "ComboResponsable «{responsable}» #3",
       "button «Volver»",
-      "button «→confirmar»",
+      "Boton «{accion === \"baja\" ? \"Dar de baja\" : \"Anular activo\"}»",
       "button «Se registró por error…»",
       "button «Dar de baja…»"
     ],
+    "components/ProveedorElegido.tsx": [
+      "a «{tel.texto}»"
+    ],
     "components/finanzas/ConfiguracionCuentas.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «+ Agregar cuenta»",
-      "button «{`Editar ${c.nombre}»",
-      "ComboResponsable «Cancelar»",
+      "LapizEditar «{c.nombre}»",
+      "LapizEditar «{`la tarifa de ${m.nombre}»",
+      "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
-      "button «{guardando ? \"Agregando…\" : \"Agregar\"}»"
+      "Boton «Agregar»"
     ],
     "components/finanzas/ConfiguracionPresupuesto.tsx": [
       "input «{etiqueta}»",
-      "ComboResponsable «{mesTitulo(mes)}»",
+      "ComboResponsable «{responsable}»",
       "Link «Reportes ▸ Presupuesto»",
-      "button «{datos.anterior === 0 ? `${mesTitulo(mesAnterior(mes))}»",
-      "button «config.presupuesto-sugerir»",
+      "Boton «{datos.anterior === 0 ? `${mesTitulo(mesAnterior(mes))}»",
+      "Boton «config.presupuesto-sugerir»",
       "Link «Se cambia en Tiendas y caja»",
-      "ComboResponsable «(sin nombre)»",
-      "button «{cambios.length ? \"Cancelar\" : \"Cerrar\"}»",
-      "button «{guardando ? \"Guardando…\" : `Aplicar ${cambios.length}»"
+      "ComboResponsable «{responsable}» #2",
+      "button «Cancelar»",
+      "Boton «{`Aplicar ${cambios.length}»"
     ],
     "components/finanzas/EditarCuentaModal.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «No, volver»",
-      "button «{guardando ? \"Eliminando…\" : \"Sí, eliminar\"}»",
+      "Boton «Sí, eliminar»",
       "button «Eliminar cuenta»",
       "button «{salida.accion === \"archivar\" ? \"Archivar\" : \"Reactivar\"}»",
       "button «Cancelar»",
-      "button «{guardando ? \"Guardando…\" : \"Guardar cambios\"}»"
+      "Boton «Guardar cambios»"
+    ],
+    "components/finanzas/TarifaMaquinaModal.tsx": [
+      "Casilla «La tasa lleva IGV»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Guardar»"
     ]
   }
 }

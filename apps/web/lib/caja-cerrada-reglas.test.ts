@@ -35,7 +35,7 @@ describe("lineaUltimoCierre", () => {
   it("cuándo, quién y cuánto quedó en el cajón", () => {
     expect(lineaUltimoCierre({ cerradaEn: "2026-10-01T02:04:00Z", cerradaPorNombre: "Rosa", montoFondo: 200 }, AHORA)).toEqual([
       "Último cierre ayer, 21:04 · Rosa",
-      "En el cajón S/ 200.00",
+      "En el cajón S/\u00a0200.00",
     ]);
   });
   it("sin nombre de quién cerró y sin fondo (cierres anteriores a ADR-0186): no inventa nada", () => {
@@ -44,7 +44,7 @@ describe("lineaUltimoCierre", () => {
     ]);
   });
   it("un fondo de cero sí se dice: quedó el cajón vacío", () => {
-    expect(lineaUltimoCierre({ cerradaEn: "2026-10-01T02:04:00Z", cerradaPorNombre: "Rosa", montoFondo: 0 }, AHORA)[1]).toBe("En el cajón S/ 0.00");
+    expect(lineaUltimoCierre({ cerradaEn: "2026-10-01T02:04:00Z", cerradaPorNombre: "Rosa", montoFondo: 0 }, AHORA)[1]).toBe("En el cajón S/\u00a00.00");
   });
   it("sede sin ningún cierre: avisa que la primera apertura se escribe", () => {
     expect(lineaUltimoCierre(null, AHORA)).toEqual(["Primera apertura de la sede: escribes con cuánto abres"]);

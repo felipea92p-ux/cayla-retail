@@ -10,9 +10,10 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Boton } from "@/components/ui/campos";
 
 function money(n: number) {
-  return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "S/\u00a0" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function cuando(iso: string) {
@@ -76,15 +77,15 @@ export function AperturasPorRevisar({ aperturas }: { aperturas: AperturaPorRevis
                 </p>
                 <p className="text-xs italic text-tinta/60">«{a.motivo}»</p>
               </div>
-              <button
+              <Boton cargando={revisando === a.cajaId}
                 type="button"
                 onClick={() => revisar(a.cajaId)}
                 disabled={revisando !== null || !responsable.listo}
                 title={responsable.motivo ?? undefined}
-                className="btn-cayla btn-secundario shrink-0"
+                className="shrink-0"
               >
-                {revisando === a.cajaId ? "Guardando…" : "Marcar como revisada"}
-              </button>
+                Marcar como revisada
+              </Boton>
             </li>
           );
         })}

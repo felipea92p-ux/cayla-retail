@@ -269,7 +269,7 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
       onClose={onClose}
       variante="hoja"
       // Ancha como Registrar gasto: con 5 conceptos y 4 papeles a la vista se elige de un toque, sin abrir desplegables.
-      ancho="max-w-xl"
+      tamano="mediana"
       alCerrarEnfocar={volverA}
       bloqueado={guardando || congelada}
     >
@@ -536,8 +536,8 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
             <Boton type="button" onClick={cerrar} disabled={guardando || congelada}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} disabled={!congelada && !guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Registrando…" : congelada ? "Volver a intentar" : fraseRegistrarGasto(montoLeido)}
+            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={guardando} disabled={!congelada && !guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              {congelada ? "Volver a intentar" : fraseRegistrarGasto(montoLeido)}
             </Boton>
           </div>
         </form>

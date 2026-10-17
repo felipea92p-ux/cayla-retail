@@ -188,7 +188,7 @@ export function bajadaUnidad(u: Unidad): string {
   return "Lo que el sistema revisa antes de dejarte cerrar.";
 }
 
-const soles = (n: number): string => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: n % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
+const soles = (n: number): string => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: n % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 /** «a, b y c». */
 export function enumerar(items: readonly string[]): string {
@@ -283,7 +283,7 @@ export function textoChequeo(c: Chequeo, mes: string): { titulo: string; detalle
     case "huella":
       return c.ok
         ? { titulo, detalle: "El diario de hoy da la misma huella que el congelado" }
-        : { titulo, detalle: "El diario de hoy ya no da la misma huella: algo con fecha de ese mes cambió fuera del sistema (¿la planilla en Dynamic?). Lo congelado no cambió; si hay que corregirlo, reábrelo" };
+        : { titulo, detalle: "El diario de hoy ya no da la misma huella: algo con fecha de ese mes cambió después del cierre (una planilla corregida en Dynamic, una caja de prueba archivada, una tasa de IGV…). Lo congelado no cambió y es lo que leen los reportes; si hay que corregirlo, reábrelo" };
     default:
       return { titulo, detalle: "" };
   }

@@ -2,9 +2,10 @@
   "guia": "finanzas.reportes.campanas",
   "ruta": "/finanzas/reportes/campanas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 1,
+  "total": 2,
   "controles": {
     "components/finanzas/CampanasPanel.tsx": [
+      "BotonDescargar «Descargar Excel»",
       "Link «Configuración ▸ Tiendas y caja»"
     ]
   }

@@ -2,9 +2,10 @@
   "guia": "compras",
   "ruta": "/compras",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 19,
+  "total": 22,
   "controles": {
     "app/(app)/compras/page.tsx": [
+      "BotonDescargar «Descargar el mes»",
       "BotonEnlace «compras.registrar»",
       "Link «{`compras.vista-${p.clave}»",
       "SegmentoEnlaces «(sin nombre)»",
@@ -15,7 +16,7 @@
       "BotonEnlace «Registrar el primero»"
     ],
     "components/FiltrosCompras.tsx": [
-      "BotonFiltros «, accionesDespues, ].map( (contr»",
+      "BotonFiltros «→() => setPanelAbierto((v) => !v)»",
       "DesplegablePildora «Proveedor»",
       "DesplegablePildora «Pago»",
       "DesplegablePildora «Recepción»",
@@ -23,6 +24,8 @@
       "DesplegablePildora «Tipo de documento»",
       "DesplegablePildora «Destino»",
       "DesplegablePildora «Vencimiento»",
+      "FiltroPuesto «{`Quitar filtro ${c.texto}»",
+      "BotonLimpiar «Limpiar todo»",
       "button «{texto}»",
       "CampoFecha «Emitida desde»",
       "CampoFecha «Emitida hasta»"

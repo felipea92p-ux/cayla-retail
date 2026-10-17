@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Chip } from "@/components/ui/Chip";
 import { precargarFotoFija, precargarMiniaturas } from "@/components/ui/precargar-miniaturas";
 import { FOTO_PANEL_TALLA, SIZES_MINIATURA_EXISTENCIAS } from "@/lib/fotos-tamanos";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
@@ -125,7 +126,7 @@ function ColumnasTallas({
               {(marca === "cumple" || marca === "principal") &&
                 (Simbolo ? (
                   <span aria-hidden className={`grid h-3.5 w-3.5 place-items-center rounded-full bg-papel shadow-[0_0_0_1.25px_currentColor] ${TONO_INSIGNIA[tono]}`}>
-                    <Simbolo aria-hidden className="h-2.5 w-2.5" strokeWidth={2.6} />
+                    <Simbolo /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ aria-hidden className="h-2.5 w-2.5" strokeWidth={3} />
                   </span>
                 ) : (
                   <i aria-hidden className={`h-1.5 w-1.5 rounded-full ${TONO_PUNTO[tono]}`} />
@@ -366,13 +367,13 @@ export function ExistenciasTarjetas({
                 })}
               </div>
                   <span className="min-w-0 truncate text-xs font-semibold text-tinta">{p.color ?? "Sin color"}</span>
-                  {p.danado > 0 && <span className="shrink-0 rounded-full bg-rojo/[0.11] px-1.5 text-[11px] font-semibold text-rojo-profundo">{p.danado} {p.danado === 1 ? "dañada" : "dañadas"}</span>}
-                  {p.apartado > 0 && <span className="shrink-0 rounded-full bg-pizarra/[0.12] px-1.5 text-[11px] font-semibold text-pizarra">{p.apartado} {p.apartado === 1 ? "apartada" : "apartadas"}</span>}
+                  {p.danado > 0 && <Chip tono="rojo" className="shrink-0">{p.danado} {p.danado === 1 ? "dañada" : "dañadas"}</Chip>}
+                  {p.apartado > 0 && <Chip tono="pizarra" className="shrink-0">{p.apartado} {p.apartado === 1 ? "apartada" : "apartadas"}</Chip>}
                 </span>
               </span>
               {p.precio != null && (
                 <span className="flex flex-col items-end self-start">
-                  <span className="font-display text-[15px] tabular-nums text-tinta">S/ {p.precio.toFixed(2)}</span>
+                  <span className="font-display text-[15px] tabular-nums text-tinta">S/&nbsp;{p.precio.toFixed(2)}</span>
                   {/* Precio propio de esta sede (Felipe 2026-10-09): distinto del de las demás tiendas. */}
                   {p.precioDeSede && <span className="whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">Precio de esta tienda</span>}
                 </span>

@@ -21,12 +21,15 @@ import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
+import { ProveedorElegido } from "@/components/ProveedorElegido";
 import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
 import {
   TEXTO_COMPROBANTE,
   TEXTO_MEDIO,
   TIPOS_COMPROBANTE,
   borradorDesdeFijo,
+  textoCuandoLlega,
+  type ProveedorGasto,
   igvDeFactura,
   mediosPara,
   parsearMonto,
@@ -43,6 +46,8 @@ import {
   type TipoComprobante,
   type UbicacionGastos,
 } from "@/lib/gastos-reglas";
+import { MAX_DESCRIPCION_GASTO, MAX_NOMBRE_ACTIVO } from "@/lib/finanzas-topes";
+import { Boton } from "@/components/ui/campos";
 
 // Registrar un gasto o un activo fijo (ADR-0195 F2). Una sola ventana para los casos de la vida real:
 //  · sin comprobante (mototaxi, bolsas): cómo se pagó; si fue efectivo, sale del cajón abierto de esa tienda;
@@ -55,7 +60,7 @@ import {
 // elige aquí mismo; «No, es otro» deja sumar; sumar sin contestar no suma. Si es el mismo RUC o el mismo nombre, se elige
 // el que ya está: es lo que haría la base (`registrar_proveedor_de_gasto`), dicho antes y sin viaje.
 
-export type ProveedorGasto = { id: string; nombre: string; ruc: string | null };
+export type { ProveedorGasto };
 
 export function RegistrarGastoModal({
   categorias,
@@ -286,7 +291,7 @@ export function RegistrarGastoModal({
     : esActivo
       ? "Algo que sirve varios años: muebles, equipos, remodelación, máquinas del Taller."
       : fijo
-        ? `Gasto fijo de ${fijo.ubicacionNombre}: llega cerca del día ${fijo.diaDelMes}${fijo.montoVariable ? ". Escribe el monto del recibo." : "."}`
+        ? `Gasto fijo de ${fijo.ubicacionNombre}: llega ${textoCuandoLlega(fijo.momento, fijo.diaDelMes)}${fijo.montoVariable ? ". Escribe el monto del recibo." : "."}`
         : "Lo que se paga para que el negocio funcione. La planilla no va aquí: viene de Dynamic.";
 
   const bloqueComprobante = (
@@ -338,6 +343,7 @@ export function RegistrarGastoModal({
                 />
               </CampoFin>
             </div>
+            <ProveedorElegido proveedor={proveedores.find((p) => p.id === b.proveedorId)} />
             {nuevoProveedor && (
               <div className="nota-cayla mb-4">
                 <div className="grid gap-3 sm:grid-cols-[1fr_11rem]">
@@ -391,7 +397,7 @@ export function RegistrarGastoModal({
   );
 
   return (
-    <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={onCerrar} antesDeCerrar={avisoSalida.pedirAccion} ancho="max-w-[620px]" bloqueado={guardando || intento.incierto}>
+    <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={onCerrar} antesDeCerrar={avisoSalida.pedirAccion} tamano="mediana" bloqueado={guardando || intento.incierto}>
       {/* Los campos se congelan mientras no se sabe si el gasto se guardó (la cascada de la hoja sigue igual: globals.css). */}
       <fieldset disabled={intento.incierto} className="campos-congelables min-w-0">
         {/* Orden del spike: un gasto empieza por su comprobante; un activo, por qué es, dónde está y cuánto dura. */}
@@ -399,11 +405,11 @@ export function RegistrarGastoModal({
         <div className="grid gap-x-3 sm:grid-cols-[1fr_10.5rem]" data-guia="fin-gastos.form-que">
           {esActivo ? (
             <CampoFin etiqueta="Qué es" htmlFor="gasto-descripcion">
-              <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Estante de exhibición en L" />
+              <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Estante de exhibición en L" maxLength={MAX_NOMBRE_ACTIVO} />
             </CampoFin>
           ) : (
             <CampoFin etiqueta="Qué se pagó" htmlFor="gasto-descripcion">
-              <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Luz de septiembre" />
+              <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Luz de septiembre" maxLength={MAX_DESCRIPCION_GASTO} />
             </CampoFin>
           )}
           <CampoFin etiqueta={conComprobante ? "Fecha del comprobante" : "Fecha"} htmlFor="gasto-fecha">
@@ -470,7 +476,7 @@ export function RegistrarGastoModal({
             <InputFin id="gasto-monto" inputMode="decimal" value={b.monto} readOnly={!!egreso} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" />
           </CampoFin>
           <CampoFin etiqueta="IGV" ayuda={b.comprobante === "factura" ? "Descontable: sale del total (18 %)." : "Solo la factura da IGV descontable."}>
-            <SalidaFin>{b.comprobante === "factura" ? soles(igv) : "S/ 0.00"}</SalidaFin>
+            <SalidaFin>{b.comprobante === "factura" ? soles(igv) : "S/\u00a00.00"}</SalidaFin>
           </CampoFin>
         </div>
 
@@ -564,10 +570,8 @@ export function RegistrarGastoModal({
         <button type="button" className="btn-cayla btn-secundario" onClick={() => avisoSalida.pedirAccion(onCerrar)} disabled={guardando || intento.incierto}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || revisando || !responsable.listo}>
-          {guardando
-            ? "Guardando…"
-            : intento.incierto
+        <Boton peso="primario" cargando={guardando} type="button" onClick={guardar} disabled={guardando || revisando || !responsable.listo}>
+          {intento.incierto
               ? "Volver a intentar"
               : egreso
                 ? esActivo
@@ -576,7 +580,7 @@ export function RegistrarGastoModal({
                 : esActivo
                   ? "Registrar activo"
                   : "Registrar gasto"}
-        </button>
+        </Boton>
       </div>
       {avisoSalida.aviso}
     </Modal>

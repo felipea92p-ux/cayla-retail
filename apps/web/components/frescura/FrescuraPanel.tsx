@@ -299,7 +299,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
       onClick={() => setComoSeLee((v) => !v)}
     >
       ¿Cómo se lee esto?
-      <ChevronDown aria-hidden strokeWidth={1.8} className={`ml-1 h-3.5 w-3.5 transition-transform ${comoSeLee ? "rotate-180" : ""}`} />
+      <ChevronDown aria-hidden className={`ml-1 h-3.5 w-3.5 transition-transform ${comoSeLee ? "rotate-180" : ""}`} />
     </button>
   );
 
@@ -394,7 +394,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
             )}
             {sede.decisiones.estado === "sin_lectura" && sede.decisiones.aviso && (
               <p role="status" className="mx-4 mb-3.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-[13px] leading-normal sm:mx-5">
-                <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
+                <Info aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{sede.decisiones.aviso}</span>
               </p>
             )}

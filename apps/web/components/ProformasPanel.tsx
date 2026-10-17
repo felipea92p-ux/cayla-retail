@@ -130,7 +130,7 @@ export function ProformasPanel({
               </p>
             )}
           </div>
-          <BotonCompacto variante="primario" data-guia="proformas.nueva" icono={<Plus aria-hidden strokeWidth={1.75} />} onClick={() => setNueva(true)}>
+          <BotonCompacto variante="primario" data-guia="proformas.nueva" icono={<Plus aria-hidden />} onClick={() => setNueva(true)}>
             Nueva proforma
           </BotonCompacto>
         </div>
@@ -280,7 +280,7 @@ export function ProformasPanel({
 
       {/* Ver / imprimir: la hoja A4 a escala y el botón que la manda a la impresora (o a «Guardar como PDF»). */}
       {viendo && (
-        <Modal conCerrar titulo={numeroDeProforma(viendo.numero)} subtitulo={viendo.cliente_nombre ?? "Cliente varios"} ancho="max-w-3xl" onClose={() => setViendo(null)}>
+        <Modal conCerrar titulo={numeroDeProforma(viendo.numero)} subtitulo={viendo.cliente_nombre ?? "Cliente varios"} tamano="ancha" onClose={() => setViendo(null)}>
           {(cerrar) => (
             <div className="mt-4 space-y-4">
               <div className="h-[62vh] overflow-auto rounded-[10px] border border-tinta/10 bg-sand/30 p-3" data-sin-cascada>

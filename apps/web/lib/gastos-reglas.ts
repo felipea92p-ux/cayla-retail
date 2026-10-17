@@ -6,6 +6,8 @@ import { claveTexto, type MotivoParecido } from "./nombres-parecidos";
 import { proveedoresParecidos } from "./proveedores-reglas";
 import { soles } from "./compras-reglas";
 import { UMBRAL_BANCARIZACION } from "./no-deducible-reglas";
+import { MAX_MONTO_FINANZAS } from "./finanzas-topes";
+import { leerMontoPlata, MONTO_ILEGIBLE } from "./monto-plata-reglas";
 
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
@@ -71,14 +73,19 @@ export function sugerenciaParaEgreso(motivo: string): "gasto" | TipoNoGasto {
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
 
-/** "1,500", "1500.50", "S/ 300" → número. */
+/** "1,500", "1500.50", "648,50", "S/ 300" → número, con la regla única de `leerMontoPlata` (la coma de los céntimos se entiende). */
 export function parsearMonto(texto: string): Resultado<number> {
-  const limpio = texto.replace(/s\/|\s/gi, "").replace(/,/g, "");
-  if (limpio === "") return { ok: false, error: "Escribe el monto." };
-  if (!/^\d+(\.\d{1,2})?$/.test(limpio)) return { ok: false, error: "Escribe un monto, por ejemplo 648.50." };
-  const n = Number(limpio);
+  if (texto.trim() === "") return { ok: false, error: "Escribe el monto." };
+  const n = leerMontoPlata(texto);
+  if (n === null) return { ok: false, error: MONTO_ILEGIBLE };
   if (n <= 0) return { ok: false, error: "El monto tiene que ser mayor que cero." };
   return { ok: true, valor: n };
+}
+
+/** Un gasto o un movimiento de dinero llega hasta S/ 1 000 000 (ADR-0412): la base lo rechaza con `<tabla>_monto_con_tope`. */
+export function montoDentroDelTope(m: Resultado<number>): Resultado<number> {
+  if (m.ok && m.valor > MAX_MONTO_FINANZAS) return { ok: false, error: "El monto pasa de S/\u00a01 000 000: revisa que no sobre un cero." };
+  return m;
 }
 
 /** El IGV que trae una factura por su total (18 % hoy): total − total ÷ 1.18. La base hace la misma cuenta. */
@@ -374,7 +381,7 @@ export function papelEnUnaLinea(g: Pick<GastoFila, "comprobanteTipo" | "comproba
 export function solesRedondo(n: number): string {
   // `|| 0`: un negativo de céntimos redondea a -0 y se escribiría «S/ -0» (el IGV del mes menos lo perdido, partido en pagos que
   // redondean cada uno, puede quedar en -0.01).
-  return `S/ ${(Math.round(n) || 0).toLocaleString("es-PE")}`;
+  return `S/\u00a0${(Math.round(n) || 0).toLocaleString("es-PE")}`;
 }
 
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -484,7 +491,7 @@ export function notaIgvPerdido(
   if (perdido <= 0 || pagos.length === 0) return null;
   const meses = [...new Set(pagos.map((p) => p.fecha.slice(0, 7)))].sort();
   const menores = pagos.every((p) => p.monto < UMBRAL_BANCARIZACION);
-  const tope = `S/ ${UMBRAL_BANCARIZACION.toLocaleString("es-PE")}`;
+  const tope = `S/\u00a0${UMBRAL_BANCARIZACION.toLocaleString("es-PE")}`;
   const aunque = !menores ? "" : pagos.length === 1 ? `, aunque ese pago sea de menos de ${tope}` : `, aunque cada pago sea de menos de ${tope}`;
   const texto =
     `Esta factura es de ${solesRedondo(g.montoTotal)}: desde ${tope} se paga por el banco, y SUNAT ` +
@@ -630,7 +637,7 @@ export function validarGasto(b: BorradorGasto, hoy: string): Resultado<PayloadGa
   if (!b.descripcion.trim()) return { ok: false, error: "Escribe qué se pagó." };
   if (!b.fecha) return { ok: false, error: "Falta la fecha." };
   if (b.fecha > hoy) return { ok: false, error: "La fecha no puede ser futura." };
-  const monto = parsearMonto(b.monto);
+  const monto = montoDentroDelTope(parsearMonto(b.monto));
   if (!monto.ok) return monto;
 
   const conComprobante = b.comprobante !== "sin_comprobante";
@@ -899,6 +906,58 @@ export function puedeAnularActivo(a: Pick<ActivoFila, "estado" | "compraId" | "t
 
 export type EstadoFijo = "registrado" | "por_llegar" | "falta";
 
+/** Cuándo llega un gasto fijo cada mes (ADR-0440): un día fijo (1 al 28), la primera semana, la quincena o fin de mes. */
+/** Un proveedor para elegir en un gasto, con cómo contactarlo (ADR-0440). Lo bancario no va aquí: se pide al elegir. */
+export type ProveedorGasto = {
+  id: string;
+  nombre: string;
+  ruc: string | null;
+  contacto?: string | null;
+  telefono?: string | null;
+  forma_pago_preferida?: string | null;
+  plazo_credito_dias?: number | null;
+};
+
+export type MomentoFijo = "dia" | "primera_semana" | "quincena" | "fin_de_mes";
+
+export const MOMENTOS_FIJO: readonly MomentoFijo[] = ["dia", "primera_semana", "quincena", "fin_de_mes"];
+
+export const TEXTO_MOMENTO_FIJO: Record<MomentoFijo, string> = {
+  dia: "Un día fijo del mes",
+  primera_semana: "La primera semana",
+  quincena: "La quincena",
+  fin_de_mes: "A fin de mes",
+};
+
+/** La ayuda bajo «Cuándo llega»: qué día se espera en cada opción (ADR-0440). */
+export const AYUDA_MOMENTO_FIJO: Record<MomentoFijo, string | undefined> = {
+  dia: undefined,
+  primera_semana: "Se espera el 7 de cada mes; recién falta si pasa el 7.",
+  quincena: "Se espera el 15 de cada mes.",
+  fin_de_mes: "Se espera el último día de cada mes (28, 29, 30 o 31). Recién falta al día siguiente.",
+};
+
+/** Lee el momento que trae la base; una base sin la migración (o un valor raro) cuenta como «un día fijo». */
+export function leerMomentoFijo(v: unknown): MomentoFijo {
+  return MOMENTOS_FIJO.includes(v as MomentoFijo) ? (v as MomentoFijo) : "dia";
+}
+
+/** «el día 10», «la primera semana», «la quincena», «a fin de mes»: cuándo llega un fijo, para leerlo en una frase. */
+export function textoCuandoLlega(momento: MomentoFijo, dia: number): string {
+  if (momento === "primera_semana") return "la primera semana";
+  if (momento === "quincena") return "la quincena";
+  if (momento === "fin_de_mes") return "a fin de mes";
+  return `el día ${dia}`;
+}
+
+/** Lo que va en la columna «Día» de la lista de fijos: el número o la palabra. */
+export function textoColumnaCuando(momento: MomentoFijo, dia: number): string {
+  if (momento === "primera_semana") return "1.ª semana";
+  if (momento === "quincena") return "Quincena";
+  if (momento === "fin_de_mes") return "Fin de mes";
+  return String(dia);
+}
+
 export type GastoFijoMes = {
   id: string;
   ubicacionId: string | null;
@@ -912,6 +971,8 @@ export type GastoFijoMes = {
   monto: number;
   montoVariable: boolean;
   diaDelMes: number;
+  /** Cuándo llega (ADR-0440). Una base sin la migración no lo trae: se lee como «dia». */
+  momento: MomentoFijo;
   fechaEsperada: string;
   estado: EstadoFijo;
   gastoId: string | null;
@@ -946,6 +1007,7 @@ export function leerFijoMes(f: Fila): GastoFijoMes {
     monto: num(f.monto),
     montoVariable: !!f.monto_variable,
     diaDelMes: num(f.dia_del_mes),
+    momento: leerMomentoFijo(f.momento),
     fechaEsperada: String(f.fecha_esperada),
     estado: (String(f.estado) as EstadoFijo) ?? "por_llegar",
     gastoId: txt(f.gasto_id),
@@ -980,16 +1042,26 @@ export function resumenFijos(fijos: readonly GastoFijoMes[]): { faltan: number; 
   };
 }
 
-export type BorradorFijo = { ubicacion: string; categoria: string; descripcion: string; proveedorId: string; comprobante: TipoComprobante; monto: string; variable: boolean; dia: string };
+export type BorradorFijo = { ubicacion: string; categoria: string; descripcion: string; proveedorId: string; comprobante: TipoComprobante; monto: string; variable: boolean; dia: string; momento: MomentoFijo };
 
-export function validarFijo(b: BorradorFijo): Resultado<{ p_ubicacion_id: string | null; p_categoria: string; p_descripcion: string; p_proveedor_id: string | null; p_comprobante_tipo: TipoComprobante; p_monto: number; p_monto_variable: boolean; p_dia_del_mes: number }> {
+export type ParamsFijo = { p_ubicacion_id: string | null; p_categoria: string; p_descripcion: string; p_proveedor_id: string | null; p_comprobante_tipo: TipoComprobante; p_monto: number; p_monto_variable: boolean; p_dia_del_mes: number; p_momento?: MomentoFijo };
+
+/** El día que respalda a cada momento (el mismo que exige la base: 7, 15 y 28 son solo el orden). */
+const DIA_DE_RESPALDO: Record<Exclude<MomentoFijo, "dia">, number> = { primera_semana: 7, quincena: 15, fin_de_mes: 28 };
+
+export function validarFijo(b: BorradorFijo): Resultado<ParamsFijo> {
   if (!b.ubicacion) return { ok: false, error: "Elige a qué tienda se le carga." };
   if (!b.categoria) return { ok: false, error: "Elige la categoría." };
   if (!b.descripcion.trim()) return { ok: false, error: "Escribe qué se paga." };
   const m = parsearMonto(b.monto);
   if (!m.ok) return m;
-  const dia = Number(b.dia);
-  if (!Number.isInteger(dia) || dia < 1 || dia > 28) return { ok: false, error: "El día va del 1 al 28 (para que exista en todos los meses)." };
+  let dia: number;
+  if (b.momento === "dia") {
+    dia = Number(b.dia);
+    if (!Number.isInteger(dia) || dia < 1 || dia > 28) return { ok: false, error: "El día va del 1 al 28. Si llega el 29, 30 o 31, elige «A fin de mes»." };
+  } else {
+    dia = DIA_DE_RESPALDO[b.momento];
+  }
   return {
     ok: true,
     valor: {
@@ -1001,6 +1073,8 @@ export function validarFijo(b: BorradorFijo): Resultado<{ p_ubicacion_id: string
       p_monto: m.valor,
       p_monto_variable: b.variable,
       p_dia_del_mes: dia,
+      // Solo si no es «un día fijo»: así la web sirve también antes de que la base tenga la migración (ADR-0440).
+      ...(b.momento === "dia" ? {} : { p_momento: b.momento }),
     },
   };
 }

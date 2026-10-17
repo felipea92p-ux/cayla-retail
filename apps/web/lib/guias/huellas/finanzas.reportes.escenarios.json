@@ -2,14 +2,15 @@
   "guia": "finanzas.reportes.escenarios",
   "ruta": "/finanzas/reportes/escenarios",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 5,
+  "total": 6,
   "controles": {
     "components/finanzas/EscenariosPanel.tsx": [
+      "BotonDescargar «Descargar Excel»",
       "button «fin-escenarios.volver»",
-      "input «Pasar un pago a otra semana»",
-      "input «Cerrar»",
-      "input «Un gasto nuevo»",
-      "input «);»"
+      "input «(sin nombre)»",
+      "input «→(e) => cambiar({ cerrarTienda: e.target.checked»",
+      "input «(sin nombre)» #2",
+      "input «{id}»"
     ]
   }
 }

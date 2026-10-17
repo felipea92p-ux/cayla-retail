@@ -349,7 +349,7 @@ export function PatronesLista({
       )}
 
       {rechazandoPatron && (
-        <Modal titulo={`Rechazar «${rechazandoPatron.nombre}»`} ancho="max-w-sm" onClose={() => setRechazandoAbierto(null)}>
+        <Modal titulo={`Rechazar «${rechazandoPatron.nombre}»`} onClose={() => setRechazandoAbierto(null)}>
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
@@ -452,7 +452,7 @@ function NuevoPatronModal({
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
   ]);
   return (
-    <Modal titulo="Nuevo patrón" subtitulo="Queda disponible de inmediato para cualquier producto nuevo." ancho="max-w-sm" onClose={onClose}>
+    <Modal titulo="Nuevo patrón" subtitulo="Queda disponible de inmediato para cualquier producto nuevo." onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           <CampoGuiado id="nombre" guia={guia}>

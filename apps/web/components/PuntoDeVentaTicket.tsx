@@ -31,6 +31,8 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Volver } from "@/components/ui/Volver";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
  *  verdad cuenta lo calcula `registrar_venta` en el servidor. */
@@ -348,7 +350,7 @@ export function PuntoDeVentaTicket({
   const porMonto = descuento.modo === "monto";
   const pct = Number(descuento.pct);
   const pctValido = Number.isFinite(pct) && pct > 0 && pct <= 100;
-  const monto = Number(descuento.monto);
+  const monto = numeroDeMonto(descuento.monto);
   const montoValido = Number.isFinite(monto) && monto > 0;
   const valorValido = porMonto ? montoValido : pctValido;
   const elegidas = descuento.elegidas;
@@ -601,16 +603,13 @@ export function PuntoDeVentaTicket({
                       <span className="ml-auto text-sm text-tinta/60">S/</span>
                       <input
                         aria-label="Monto de descuento por prenda"
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        step="0.10"
+                        {...atributosMontoTexto(descuento.monto)}
                         value={descuento.monto}
                         onChange={(e) => onDescuento({ monto: e.target.value })}
                         onKeyDown={siguienteConEnter}
                         placeholder="0.00"
                         disabled={bloqueado}
-                        className={`w-24 self-stretch py-0 text-right text-lg font-semibold ${SIN_FLECHAS}`}
+                        className={`w-24 self-stretch py-0 text-right text-lg font-semibold ${CLASE_MONTO_ILEGIBLE}`}
                       />
                     </label>
                   </>

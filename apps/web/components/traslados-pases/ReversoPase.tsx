@@ -54,6 +54,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { Boton } from "@/components/ui/campos";
 import { SobrantesPase } from "@/components/traslados-pases/SobrantesPase";
 
 // El reverso del pase (ADR-0355, maqueta D): lo que se hace con la caja al darle vuelta.
@@ -477,22 +478,22 @@ export function ReversoPase({
             )}
             <div className="tp-fila">
               <Volver onClick={() => setTermino(false)} deshabilitado={ocupado} a="Volver a contar" className="self-center" />
-              <button type="button" onClick={() => void alConfirmar()} disabled={ocupado || r.resumenGuardado.errores > 0} className="btn-cayla btn-primario tp-grande">
-                {r.trabajando === "confirmar" ? "Confirmando…" : que ? "Confirmar lo que llegó" : "Confirmar"}
-              </button>
+              <Boton peso="primario" cargando={r.trabajando === "confirmar"} textoCargando="Confirmando…" type="button" onClick={() => void alConfirmar()} disabled={ocupado || r.resumenGuardado.errores > 0} className="tp-grande">
+                {que ? "Confirmar lo que llegó" : "Confirmar"}
+              </Boton>
             </div>
           </>
         ) : cierraLider ? (
           <>
             <PieGuia guia={guiaCerrar} listo="Listo: ya puedes cerrarla." />
-            <button
+            <Boton peso="primario" cargando={r.trabajando === "cerrar"} textoCargando="Cerrando…"
               type="button"
               onClick={() => void alCerrar()}
               disabled={ocupado || !textoObligatorioValido(nota) || r.resumenGuardado.errores > 0 || f.sinNombre}
-              className="btn-cayla btn-primario tp-grande"
+              className="tp-grande"
             >
-              {r.trabajando === "cerrar" ? "Cerrando…" : "Cerrar con la diferencia"}
-            </button>
+              Cerrar con la diferencia
+            </Boton>
           </>
         ) : modo === "envio" && esOrigen && anulando ? (
           <>
@@ -501,14 +502,14 @@ export function ReversoPase({
               <button type="button" onClick={() => setAnulando(false)} disabled={ocupado} className="btn-cayla btn-secundario">
                 No anular
               </button>
-              <button
+              <Boton peso="peligro" cargando={anulandoAhora} textoCargando="Anulando…"
                 type="button"
                 onClick={() => void alAnular()}
                 disabled={ocupado || !textoObligatorioValido(motivo) || !responsable.listo}
-                className="btn-cayla btn-peligro tp-grande"
+                className="tp-grande"
               >
-                {anulandoAhora ? "Anulando…" : "Anular · vuelve a tu stock"}
-              </button>
+                Anular · vuelve a tu stock
+              </Boton>
             </div>
           </>
         ) : modo === "envio" && (esOrigen || anular.mostrar) ? (

@@ -20,7 +20,7 @@ export function ProformasTarjetas({ resumen, montoPorVencer }: { resumen: Resume
       <TarjetaKpiVidrio
         etiqueta="Vigentes"
         tono="taupe"
-        icono={<FileText size={15} strokeWidth={1.75} />}
+        icono={<FileText size={16} />}
         indice={2}
         valor={<CifraAnimada valor={resumen.vigentes} />}
         contexto={resumen.vigentes === 0 ? "Ninguna en pie." : "Siguen valiendo, de cualquier mes."}
@@ -31,7 +31,7 @@ export function ProformasTarjetas({ resumen, montoPorVencer }: { resumen: Resume
       <TarjetaKpiVidrio
         etiqueta="Monto cotizado"
         tono="taupe"
-        icono={<Banknote size={15} strokeWidth={1.75} />}
+        icono={<Banknote size={16} />}
         indice={3}
         valor={<CifraAnimada valor={resumen.monto} formato="soles" />}
         contexto={resumen.vigentes === 0 ? "Nada cotizado en pie." : "Lo que suman las vigentes, sin contar las vencidas."}
@@ -49,7 +49,7 @@ export function ProformasTarjetas({ resumen, montoPorVencer }: { resumen: Resume
       <TarjetaKpiVidrio
         etiqueta={`Por vencer (${HORAS_PROFORMA_POR_VENCER} h)`}
         tono={resumen.porVencer > 0 ? "ambar" : "verde"}
-        icono={<Hourglass size={15} strokeWidth={1.75} />}
+        icono={<Hourglass size={16} />}
         indice={4}
         colorearCifra
         valor={<CifraAnimada valor={resumen.porVencer} />}
@@ -61,7 +61,7 @@ export function ProformasTarjetas({ resumen, montoPorVencer }: { resumen: Resume
       <TarjetaKpiVidrio
         etiqueta="Vencidas"
         tono={resumen.vencidas > 0 ? "ambar" : "verde"}
-        icono={<CalendarX size={15} strokeWidth={1.75} />}
+        icono={<CalendarX size={16} />}
         indice={5}
         colorearCifra
         valor={<CifraAnimada valor={resumen.vencidas} />}

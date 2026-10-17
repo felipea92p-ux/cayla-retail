@@ -68,7 +68,7 @@ export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepcion
                 {costos[r.loteId]?.sinCosto ? (
                   <Chip tono="ambar">Sin costo</Chip>
                 ) : costos[r.loteId]?.costo != null ? (
-                  <Chip tono="verde">{`S/ ${costos[r.loteId].costo!.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} c/u`}</Chip>
+                  <Chip tono="verde">{`S/\u00a0${costos[r.loteId].costo!.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} c/u`}</Chip>
                 ) : (
                   <span className="text-xs text-tinta/45">—</span>
                 )}
@@ -80,11 +80,12 @@ export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepcion
 
       {abierta && (
         <Modal
+          conCerrar
           titulo={abierta.proveedorNombre}
           subtitulo={`${fechaCorta(abierta.fecha)} · ${abierta.numeroGuia ? `Guía ${abierta.numeroGuia}` : "Sin guía"} · ${abierta.ubicacion}${
             abierta.recibidoPor ? ` · Recibido por ${abierta.recibidoPor}` : ""
           }`}
-          ancho="max-w-lg"
+          tamano="mediana"
           onClose={() => setAbierta(null)}
         >
           <div data-guia="recibir.detalle" className="mt-4 space-y-4">

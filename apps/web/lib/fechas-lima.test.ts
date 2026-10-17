@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { anioLima, diaLima, diaMes, diasEntreFechas, diasHastaLima, diaYHoraLima, horaLima, hoyLima, hoyLimaUTC, mesActualLima, mesLimaUTC, sumarDias } from "./fechas-lima";
+import { anioLima, diaLima, esFechaQueExiste, diaMes, diasEntreFechas, diasHastaLima, diaYHoraLima, horaLima, hoyLima, hoyLimaUTC, mesActualLima, mesLimaUTC, sumarDias } from "./fechas-lima";
 
 describe("hoyLima", () => {
   it("a las 19:30 de Lima todavía es el mismo día (en UTC ya es mañana)", () => {
@@ -155,5 +155,13 @@ describe("diaYHoraLima", () => {
 
   it("acepta el offset explícito que devuelve Postgres", () => {
     expect(diaYHoraLima("2026-09-19T16:34:00-05:00")).toEqual({ dia: "19/09", hora: "16:34" });
+  });
+});
+
+describe("esFechaQueExiste (Compras y Movimientos: una fecha de la URL que no existe no tumba la pantalla)", () => {
+  it("una fecha real sí; con la forma pero que no existe, no", () => {
+    expect(esFechaQueExiste("2026-10-15")).toBe(true);
+    expect(esFechaQueExiste("2024-02-29")).toBe(true);
+    for (const v of ["2026-02-31", "2025-02-29", "2026-13-01", "2026-10-1", "abc", "", null, undefined]) expect(esFechaQueExiste(v)).toBe(false);
   });
 });

@@ -290,7 +290,7 @@ export function MesaRegularizar({
       </div>
       {modo !== "hoja" && <div className="vsr-der">{derecha}</div>}
       {modo === "hoja" && hojaAbierta && sel && pendiente && (
-        <Modal titulo="Regularizar prenda" subtitulo={`${sel.descripcion} · cobrada a S/ ${sel.precioCobrado.toFixed(2)}`} onClose={() => setHojaAbierta(false)} ancho="max-w-lg" bloqueado={guardando} alCerrarEnfocar={retornoFoco}>
+        <Modal conCerrar titulo="Regularizar prenda" subtitulo={`${sel.descripcion} · cobrada a S/\u00a0${sel.precioCobrado.toFixed(2)}`} onClose={() => setHojaAbierta(false)} tamano="mediana" bloqueado={guardando} alCerrarEnfocar={retornoFoco}>
           <div className="vsr-hoja">
             {panelPrendas}
             {puente}

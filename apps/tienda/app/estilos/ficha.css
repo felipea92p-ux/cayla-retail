@@ -1,0 +1,170 @@
+/* =====================================================================================================
+   TIENDA ONLINE CAYLA (ADR-0408) · actividad 4: la ficha de la prenda, con cuánto hay en cada tienda.
+   Sale de la maqueta aprobada (docs/maquetas/tienda-online-2026-10, `vProducto` y `tablaStock`). Solo tokens de app/globals.css: el
+   color de una prenda (su muestra y su silueta) es un DATO y va en línea (`data-color-dato`), igual en claro y en oscuro.
+   ===================================================================================================== */
+
+/* ---- Fotos y datos: una columna en el celular; en la computadora, las fotos a la izquierda y los datos pegados a la derecha ---- */
+.t-pdp { display: grid; gap: 4px; padding-top: 10px; }
+
+/* La tira de fotos: en el celular se desliza de lado, una foto a la vez, con sus puntos. */
+.t-galeria { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: -16px; }
+.t-galeria::-webkit-scrollbar { display: none; }
+.t-foto-g { position: relative; margin: 0; aspect-ratio: 4 / 5; background: var(--t-foto); scroll-snap-align: start; overflow: hidden; }
+.t-foto-g img { object-fit: contain; mix-blend-mode: multiply; }
+.t-foto-g figcaption { position: absolute; left: 12px; bottom: 10px; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: color-mix(in srgb, var(--t-tinta-fija) 62%, transparent); }
+.t-foto-g.sin-foto .t-dibujo { display: grid; }
+.t-foto-g .pz { width: 62%; }
+/* Los puntos van SOBRE la foto, abajo (2026-10-16): debajo empujaban el nombre y el precio fuera de la primera pantalla del celular. La
+   foto es clara en los dos temas (el «estudio», `--t-foto`), así que los puntos usan la tinta fija. */
+.cp-galeria { position: relative; }
+.t-gal-puntos { position: absolute; left: 0; right: 0; bottom: 12px; z-index: 2; display: flex; justify-content: center; gap: 6px; pointer-events: none; }
+.t-gal-puntos i { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in srgb, var(--t-tinta-fija) 24%, transparent); transition: width .3s var(--ease), background-color .3s; }
+.t-gal-puntos i[data-on] { width: 18px; border-radius: 3px; background: var(--t-tinta-fija); }
+
+/* ---- La lupa de la computadora (2026-10-16): con el mouse encima, la foto se acerca al doble donde está el mouse y lo sigue; la foto
+   grande (`.cp-lupa`) se pide al entrar y reemplaza a la que ya se ve apenas llega. Con el dedo, nada nuevo. ---- */
+.cp-lupa { opacity: 0; pointer-events: none; }
+@media (hover: hover) and (pointer: fine) {
+  @container tienda (min-width: 960px) {
+    .t-galeria .t-foto-g:not(.sin-foto) { cursor: zoom-in; }
+    .t-galeria .t-foto-g img { transform-origin: var(--cp-lupa-x, 50%) var(--cp-lupa-y, 50%); transition: transform .45s var(--ease), opacity .2s var(--ease); }
+    .t-galeria .t-foto-g[data-cp-lupa] img { transform: scale(2); }
+    .t-galeria .t-foto-g[data-cp-lupa="lista"] .cp-lupa { opacity: 1; }
+    .t-galeria .t-foto-g[data-cp-lupa="lista"] img:not(.cp-lupa) { opacity: 0; }
+    .t-galeria .t-foto-g[data-cp-lupa] figcaption { opacity: 0; transition: opacity .2s var(--ease); }
+  }
+}
+
+/* ---- Los datos ---- */
+.t-pdp-info { display: flex; flex-direction: column; gap: 18px; padding-top: 12px; min-width: 0; }
+.t-pdp-info h1 { margin: 6px 0 0; font-family: var(--serif); font-weight: 500; font-size: clamp(30px, 7cqi, 48px); line-height: 1; letter-spacing: -.01em; text-wrap: balance; }
+/* En el celular la caja del nombre se deshace: el nombre y el precio quedan pegados a la foto (en la primera pantalla) y los chips
+   («Nuevo», la campaña) bajan bajo el precio. En la computadora, los chips van sobre el nombre. */
+.cp-pdp-cab { display: contents; }
+.cp-pdp-cab h1 { order: -2; margin-top: 2px; }
+.t-pdp-info > .t-bloque-precio { order: -1; margin-top: -8px; }
+.t-pdp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.t-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; padding: 5px 10px; border-radius: 999px; background: var(--hueso); color: var(--tinta); }
+.t-chip.oferta { background: color-mix(in srgb, var(--rojo) 13%, transparent); color: var(--rojo-profundo); }
+.t-chip.nuevo { background: var(--tinta); color: var(--crema); }
+.t-chip .ic { width: 14px; height: 14px; }
+
+.t-bloque { display: flex; flex-direction: column; gap: 10px; }
+.t-bloque-precio { gap: 6px; }
+.t-precio.grande { font-size: 20px; gap: 10px; }
+.t-precio.grande s { font-size: 15px; }
+.t-precio-nota { font-size: 12px; color: var(--tinta-60); }
+.t-cuenta-linea { font-size: 12.5px; color: var(--rojo-profundo); font-weight: 600; display: flex; gap: 6px; align-items: center; font-variant-numeric: tabular-nums; }
+.t-cuenta-linea .ic { width: 15px; height: 15px; }
+.t-etq { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); }
+.t-etq b { font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--tinta); font-weight: 600; margin-left: 4px; }
+
+/* Los colores: un círculo con el color de la prenda (dato). El filo sigue al tema para que un color oscuro se vea sobre el oscuro. */
+.t-swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.t-swatch { position: relative; width: 32px; height: 32px; border-radius: 50%; border: 0; padding: 0; cursor: pointer; background: var(--sand); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tinta) 30%, transparent); transition: transform .2s var(--ease), box-shadow .2s; }
+.t-swatch:hover { transform: scale(1.1); }
+/* Se ve de 32 px, pero se toca en 44 px (el dedo). */
+.t-swatch::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; }
+.t-swatch[aria-pressed="true"] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tinta) 30%, transparent), 0 0 0 2px var(--crema), 0 0 0 3.5px var(--tinta); }
+.t-swatch-nota { font-size: 12px; color: var(--tinta-60); }
+
+/* Las tallas: botones de 48 px de alto (el dedo); una sin stock en la tienda elegida, punteada y con su nota. De 76 px de ancho como
+   mínimo: con 64, en la columna de la computadora «Otra tienda» se partía en dos renglones dentro del botón. */
+.t-tallas { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+.t-talla { height: 48px; border: 1px solid var(--sand); border-radius: 6px; background: var(--papel); font: inherit; font-weight: 600; font-size: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--tinta); cursor: pointer; transition: border-color .15s, background-color .15s; }
+.t-talla small { font-size: 10px; font-weight: 600; color: var(--tinta-60); letter-spacing: .02em; white-space: nowrap; }
+.t-talla:hover { border-color: var(--tinta); }
+.t-talla[data-agotada] { background: transparent; border-style: dashed; color: var(--tinta-60); }
+.t-talla[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); border-style: solid; }
+.t-talla[aria-pressed="true"] small { color: color-mix(in srgb, var(--crema) 80%, transparent); }
+/* «Elige tu talla» trae hasta aquí: las tallas se resaltan (el mismo halo ámbar de «Sigue aquí» en la bolsa) hasta que elija una. */
+.t-bloque[data-pide] .t-tallas { border-radius: 10px; background: color-mix(in srgb, var(--ambar) 12%, transparent); box-shadow: 0 0 0 6px color-mix(in srgb, var(--ambar) 12%, transparent); }
+.t-etq-pide { font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ambar); }
+
+/* ---- Cuánto hay por tienda: la tienda elegida y la talla elegida, resaltadas ---- */
+.t-stock-envol { overflow-x: auto; border: 1px solid var(--sand); border-radius: 10px; background: var(--papel); }
+.t-stock { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.t-stock th, .t-stock td { padding: 9px 8px; text-align: center; border-top: 1px solid var(--sand); }
+.t-stock thead th { border-top: 0; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); }
+.t-stock tbody th { text-align: left; font-weight: 600; color: var(--tinta); padding-left: 12px; white-space: nowrap; }
+.t-stock td.hay { color: var(--verde); font-weight: 600; }
+.t-stock td.poco { color: var(--rojo-profundo); font-weight: 700; }
+.t-stock td.cero { color: var(--tinta-60); }
+.t-stock tr.elegida th, .t-stock tr.elegida td { background: color-mix(in srgb, var(--tinta) 6%, transparent); }
+.t-stock tr.elegida th { box-shadow: inset 3px 0 0 var(--tinta); }
+.t-stock th.talla-elegida { color: var(--tinta); }
+.t-stock td.talla-elegida { background: color-mix(in srgb, var(--rojo) 7%, transparent); }
+/* El cruce de la tienda elegida con la talla elegida: la respuesta que se busca. */
+.t-stock tr.elegida td.talla-elegida { background: color-mix(in srgb, var(--rojo) 13%, transparent); }
+.t-stock-nota { margin: 0; font-size: 12px; color: var(--tinta-60); }
+
+/* ---- La propuesta k: otros ya separaron lo que queda en esa tienda. Un aviso suave (ámbar, como «por confirmar»), no un error. ---- */
+.t-aviso-suave { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--ambar) 10%, var(--papel)); font-size: 13px; line-height: 1.45; }
+.t-aviso-suave .ic { flex: none; width: 16px; height: 16px; color: var(--ambar); margin-top: 2px; }
+/* La talla elegida no está en la tienda elegida, sí en otra: no es una advertencia, es cómo funciona (pizarra, como «la tienda puede
+   traerla» en la bolsa). */
+.t-pdp-nota { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--pizarra) 10%, var(--papel)); font-size: 13px; line-height: 1.45; }
+.t-pdp-nota .ic { flex: none; width: 16px; height: 16px; color: var(--pizarra); margin-top: 2px; }
+
+/* ---- El botón principal y el corazón (maqueta, `.t-cta-linea`): el botón a lo ancho y el corazón de 52 px a su derecha. En la
+   computadora, bajo la tabla; en el celular, en la barra de abajo, que queda pegada al borde mientras se ve la prenda y lo que va
+   debajo («Combínalo con», «También te puede gustar») y se suelta antes del pie. ---- */
+.t-cta-linea { display: grid; grid-template-columns: minmax(0, 1fr) 52px; gap: 10px; align-items: center; }
+.t-pdp-cta { display: none; }
+.t-pdp-barra { position: sticky; bottom: 0; z-index: 5; margin: 26px -16px 0; padding: 10px 14px calc(14px + env(safe-area-inset-bottom, 0px)); background: var(--crema); border-top: 1px solid var(--sand); }
+/* A 375 px, «Te avisaremos cuando llegue» cabe en una línea con menos aire a los lados. */
+.t-pdp-barra .t-btn { padding-inline: 14px; }
+
+/* Lo que pasó al agregar («✓ La talla M ya está en tu bolsa» o por qué no) y «Ver mi bolsa (N)». Bajo el botón en la computadora; en
+   el celular, arriba del botón en la barra de abajo (la línea de la columna solo lleva a la bolsa). Sin nada que decir, no ocupa
+   lugar: su región de voz queda dibujada, vacía, para que lo que diga después se lea en voz alta. */
+.t-pdp-bolsa { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px 14px; font-size: 13px; line-height: 1.4; }
+.t-pdp-bolsa [role="status"] { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.t-pdp-bolsa [role="status"].bien { color: var(--verde); }
+/* Si no entró («Ya tienes en tu bolsa todas las que quedan»), lo dice sin alarma: no es un error de quien compra. */
+.t-pdp-bolsa [role="status"].mal { color: var(--tinta); }
+.t-pdp-bolsa .ic { flex: none; width: 16px; height: 16px; }
+.t-pdp-bolsa .t-enlace { padding-block: 10px; }
+.t-pdp-bolsa-info:not([data-lleno]):not(:has(a)) { margin-top: -18px; }
+.t-pdp-bolsa-info [role="status"] { display: none; }
+.t-pdp-bolsa-barra { justify-content: space-between; }
+.t-pdp-bolsa-barra[data-lleno] { margin: -4px 2px 6px; }
+.t-pdp-bolsa-barra .t-enlace { padding-block: 8px; }
+/* En el celular, después de agregar, lo que pasó y «Ver mi bolsa» ya van en la barra de abajo: la línea de la columna no lo repite (salían
+   dos «Ver mi bolsa (1)» a la vez). */
+@container tienda (max-width: 959.98px) {
+  .t-pdp:has(~ .t-pdp-barra .t-pdp-bolsa-barra[data-lleno]) .t-pdp-bolsa-info { display: none; }
+}
+
+/* ---- El acordeón ---- */
+.t-acordeon details { border-top: 1px solid var(--sand); }
+.t-acordeon details:last-child { border-bottom: 1px solid var(--sand); }
+.t-acordeon summary { padding: 15px 0; font-weight: 600; font-size: 14px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+.t-acordeon summary::-webkit-details-marker { display: none; }
+.t-acordeon summary .ic { width: 16px; height: 16px; transition: transform .25s var(--ease); }
+.t-acordeon details[open] summary .ic { transform: rotate(180deg); }
+.t-acordeon p { margin: 0 0 16px; color: var(--tinta-60); font-size: 13.5px; line-height: 1.55; }
+
+/* El foco del teclado, visible sobre crema y sobre el oscuro. */
+.t-swatch:focus-visible, .t-talla:focus-visible, .t-acordeon summary:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; }
+
+@container tienda (min-width: 960px) {
+  .cp-pdp-cab { display: block; }
+  .cp-pdp-cab h1 { margin-top: 6px; }
+  .t-pdp-info > .t-bloque-precio { order: 0; margin-top: 0; }
+  .t-pdp { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 54px; align-items: start; padding-top: 16px; }
+  .t-galeria { grid-auto-flow: row; grid-template-columns: 1fr 1fr; grid-auto-columns: auto; overflow: visible; margin-inline: 0; gap: 8px; }
+  .t-galeria .t-foto-g:first-child { grid-column: 1 / -1; }
+  .t-gal-puntos { display: none; }
+  .t-pdp-info { position: sticky; top: 18px; padding-top: 0; }
+  .t-pdp-cta { display: grid; }
+  .t-pdp-barra { display: none; }
+  .t-pdp-bolsa-info [role="status"] { display: inline-flex; }
+}
+
+/* ---- «Arma un look con esta prenda» (ADR-0434, actividad 10): el probador con ella, en el color elegido ---- */
+.t-pdp-probador { display: grid; gap: 6px; margin-top: -4px; }
+.t-pdp-probador .t-btn { width: 100%; min-height: 50px; }
+.t-pdp-probador .t-btn .ic { width: 18px; height: 18px; }
+.t-pdp-probador p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--tinta-60); text-align: center; }

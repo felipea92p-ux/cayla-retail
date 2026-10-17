@@ -7,7 +7,6 @@
 
    Qué se mueve aquí y por qué (todo RESPONDE a algo que la persona hizo; nada anima un campo mientras se escribe):
      · `cr-num`       el círculo numerado de cada tramo se vuelve un «visto» verde cuando el tramo queda completo.
-     · `cr-progreso`  la barra fina «Listo N de 4» se llena con suavidad al cumplirse un requisito.
      · `cr-pt`        cada punto de la lista de pendientes hace un pop suave SOLO cuando ese requisito pasa a cumplido.
      · `cr-linea-*`   la línea agregada entra con un desliz corto; al quitarla se colapsa en vez de desaparecer de golpe.
      · `cr-revela`    el bloque de pago se revela al pasar de contado a crédito (o al marcar «registrar un pago ahora»).
@@ -57,23 +56,6 @@
   @keyframes cr-trazo {
     from { stroke-dashoffset: 1; }
     to { stroke-dashoffset: 0; }
-  }
-
-  /* ---------- Barra «Listo N de 4» ---------- */
-  .cr-progreso {
-    height: 3px;
-    overflow: hidden;
-    border-radius: 9999px;
-    background-color: var(--color-sand);
-  }
-  .cr-progreso > i {
-    display: block;
-    width: 100%;
-    height: 100%;
-    background-color: var(--color-verde);
-    transform-origin: left;
-    transform: scaleX(var(--p, 0));
-    transition: transform 500ms var(--ease-cayla);
   }
 
   /* ---------- Lista de pendientes junto al botón ---------- */
@@ -215,7 +197,6 @@
     animation-delay: 0ms;
     transition-duration: 1ms;
   }
-  .cr-progreso > i,
   .cr-boton-txt {
     transition-duration: 1ms;
   }

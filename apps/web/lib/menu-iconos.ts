@@ -125,6 +125,12 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // Mano con monedas: la plata que se le entrega en la mano a quien viaja a comprar (Fondos por rendir, ADR-0362 fase 6).
   fondos: "M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17M7 21l1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9M2 16l6 6M13.1 9a2.9 2.9 0 1 0 5.8 0a2.9 2.9 0 1 0-5.8 0M3 5a3 3 0 1 0 6 0a3 3 0 1 0-6 0", // lucide «hand-coins»
   rendimiento: "M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3M4 22h16M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zM6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3", // lucide «trophy»
+  // Monitor con su percha: la tienda online, donde el cliente ve la prenda desde su pantalla (Vitrina web, ADR-0408). No la tienda
+  // con toldo de «Inicio» (la puerta física) ni la polera de «Productos» (lo que ES la prenda): lo que se MUESTRA en la web.
+  vitrina: "M2 5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z M8 21h8 M12 17v4 M10.8 6.8a1.2 1.2 0 1 1 1.2 1.2v.9l4 3H8l4-3",
+  // Un celular con su visto: el pedido que el cliente separó desde su teléfono y la tienda confirma (Pedidos web, ADR-0408). No la
+  // bolsa de «Ventas» ni el monitor con percha de la Vitrina: lo que llega de la web para atender.
+  pedidosWeb: "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z M12 18h.01 M9 10l2 2 4-4",
   // Insignia con «%»: la prenda que se liquida con su etiqueta, sin pasar a Productos (ADR-0379). Antes una etiqueta
   // con una flecha que baja.
   liquidacion: "M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z M15 9l-6 6 M9 9h.01 M15 15h.01", // lucide «badge-percent»
@@ -136,6 +142,18 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   club: "M18 21a8 8 0 0 0-16 0 M5 8a5 5 0 1 0 10 0a5 5 0 1 0 -10 0 M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3", // lucide «users-round»
   // Globo de conversación: Clientas ▸ Avisos, los mensajes por WhatsApp que la tienda le manda a cada socia.
   avisos: "M21 11.5a8.4 8.4 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.4 8.4 0 013.8-.9h.5a8.5 8.5 0 018 8v.5z",
+  // Foco encendido: Tienda web ▸ Recomendaciones (ADR-0408), la idea que un cliente le deja a CAYLA desde la tienda online. No el globo de
+  // «Avisos» (lo que la tienda le manda a él) ni el corazón de las fichas: lo que ÉL propone.
+  recomendaciones: "M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5 M9 18h6 M10 22h4", // lucide «lightbulb»
+  // Globo: la cabecera del grupo «Tienda web» (ADR-0430), la tienda que está en internet. No repite a ninguna de sus hijas (el
+  // tablero del Resumen, el celular de Pedidos, el monitor de la Vitrina, el foco de Recomendaciones, los controles de Ajustes) ni a la
+  // brújula de Gestión, que también es un círculo: este lleva sus meridianos.
+  tiendaWeb: "M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0 M12 2a14.5 14.5 0 0 0 0 20a14.5 14.5 0 0 0 0-20 M2 12h20", // lucide «globe»
+  // Tablero: Tienda web ▸ Resumen (ADR-0430), lo que la tienda online pide hoy, de un vistazo. No el velocímetro de Finanzas ▸ Resumen
+  // ni el pulso de CAYLA Global, que pueden estar en el mismo lateral.
+  resumenWeb: "M3 3h7v9H3z M14 3h7v5h-7z M14 12h7v9h-7z M3 16h7v5H3z", // lucide «layout-dashboard»
+  // Controles deslizantes: Tienda web ▸ Ajustes (ADR-0430), lo que la tienda online muestra de cada tienda y sus plazos.
+  ajustesWeb: "M21 4h-7 M10 4H3 M21 12h-9 M8 12H3 M21 20h-5 M12 20H3 M14 2v4 M8 10v4 M16 18v4", // lucide «sliders-horizontal»
 };
 
 /* ------------------------------------------------------------------

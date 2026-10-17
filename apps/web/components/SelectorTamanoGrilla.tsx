@@ -52,7 +52,7 @@ export function SelectorTamanoGrilla({ inicial }: { inicial: TamanoGrilla }) {
           const Icono = ICONO_TAMANO[t];
           return {
             clave: t,
-            icono: <Icono aria-hidden strokeWidth={1.75} className="sm:hidden" />,
+            icono: <Icono aria-hidden className="sm:hidden" />,
             etiqueta: <span className="max-sm:sr-only">{ROTULO_TAMANO_GRILLA[t]}</span>,
           };
         })}

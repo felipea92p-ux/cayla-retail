@@ -13,6 +13,7 @@ import {
   type ClaveModulo,
   type ModuloDeCuenta,
   type TipoTerminalLegado,
+  veFinanzasDeTodo,
 } from "@/lib/modulos";
 import { funcionaEnVistaGlobal, modulosEnLaVista, NOMBRE_VISTA_GLOBAL, RUTA_ELEGIR_SEDE, VALOR_VISTA_GLOBAL, type Vista } from "@/lib/vista-global";
 
@@ -225,6 +226,13 @@ export function veModulo(persona: Pick<PersonaActualV2, "modulos">, clave: Clave
 /** Qué puede hacer esta cuenta con un comprobante de compra, módulo por módulo (ADR-0161 P1): facturas, pagos, notas. */
 export function accionesDeCompraDe(persona: Pick<PersonaActualV2, "rol" | "modulos">): AccionesDeCompra {
   return accionesDeCompra(persona.rol, persona.modulos);
+}
+
+/** ¿Ve las finanzas de todas las tiendas y de la empresa? La única pregunta de alcance de Finanzas (`veFinanzasDeTodo`, G16).
+ *  `persona.modulos` ya viene filtrado por la vista (en la de sede se quita CAYLA Global), pero la base no mira la vista: quien tiene
+ *  CAYLA Global ve todo estando donde esté, y eso lo dice `puedeVerGlobal`. */
+export function veFinanzasDeTodoDe(persona: Pick<PersonaActualV2, "rol" | "modulos" | "puedeVerGlobal">): boolean {
+  return veFinanzasDeTodo(persona.rol, persona.modulos) || persona.puedeVerGlobal;
 }
 
 /** La puerta de pantalla por MÓDULO (ADR-0161 B2): quien llega por URL directa a un módulo que su rol no ve, cae en

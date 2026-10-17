@@ -8,6 +8,7 @@ import { codigoDeTienda, NOMBRE_MAX, nombreOcupado, nombrePropuesto, rolesParaTe
 import type { RolVista } from "@/lib/roles-reglas";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { avisar } from "@/components/ui/Avisos";
@@ -24,17 +25,6 @@ type Cerrar = () => void;
 
 /** El segundo paso: lo que hay que escribir en el aparato. No se guarda en ningún lado; al cerrar, se pierde. */
 function ClaveUnaVez({ resultado, onListo }: { resultado: Extract<ResultadoClave, { ok: true }>; onListo: () => void }) {
-  const [copiado, setCopiado] = useState<"si" | "no" | null>(null);
-
-  async function copiar() {
-    try {
-      await navigator.clipboard.writeText(`Correo: ${resultado.correo}\nClave: ${resultado.clave}`);
-      setCopiado("si");
-    } catch {
-      setCopiado("no");
-    }
-  }
-
   return (
     <div className="mt-5 space-y-4">
       <dl className="card-cayla divide-y divide-tinta/10 text-sm">
@@ -47,26 +37,20 @@ function ClaveUnaVez({ resultado, onListo }: { resultado: Extract<ResultadoClave
           <dd className="font-mono text-[15px] tracking-wide text-tinta tabular-nums">{resultado.clave}</dd>
         </div>
       </dl>
-      <p role="alert" className="rounded-md border border-ambar/40 bg-ambar/10 px-3 py-2.5 text-sm font-medium text-tinta">
-        Anótala: no se vuelve a mostrar.
-      </p>
+      <Aviso tono="atencion" chico titulo="Anótala: no se vuelve a mostrar." />
       <p className="text-xs leading-relaxed text-tinta/70">
         En el aparato de {resultado.tienda}, abre retail e inicia sesión con este correo y esta clave. No la dejes escrita junto al aparato ni la mandes
         por chat. Si se pierde, aquí mismo: «Cambiar clave».
       </p>
       <div className="flex gap-2">
-        <Boton type="button" peso="fantasma" className="flex-1" onClick={copiar}>
-          {copiado === "si" ? "Copiado" : "Copiar"}
-        </Boton>
+        {/* Copiar es la pieza del sistema (ronda 13): dice «✓ Copiado» y, si el navegador no deja, avisa. */}
+        <BotonCopiar texto={`Correo: ${resultado.correo}\nClave: ${resultado.clave}`} que="el correo y la clave" className="flex-1">
+          Copiar correo y clave
+        </BotonCopiar>
         <Boton type="button" peso="primario" className="flex-1" onClick={onListo}>
           Listo
         </Boton>
       </div>
-      {copiado === "no" && (
-        <Aviso tono="error" chico>
-          No se pudo copiar: selecciónala y cópiala a mano.
-        </Aviso>
-      )}
 
     </div>
   );
@@ -140,7 +124,6 @@ export function NuevaTerminalModal({
           ? "La cuenta del aparato ya existe. Esta es su clave."
           : "Un aparato compartido de una tienda, con su propia cuenta y sin persona. Lo que ve lo decide su rol; lo que hace lo firma quien se elige como responsable."
       }
-      ancho="max-w-md"
       onClose={onClose}
     >
       {(cerrar: Cerrar) =>
@@ -182,7 +165,7 @@ export function NuevaTerminalModal({
             <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton
+            <Boton textoCargando="Creando…"
               type="submit"
               peso="primario"
              
@@ -190,7 +173,7 @@ export function NuevaTerminalModal({
               disabled={!ubicacionId || !rolId || !nombre.trim() || repetido || !roles || !responsable.listo}
               title={responsable.motivo ?? undefined}
             >
-              {enviando ? "Creando…" : "Crear terminal"}
+              Crear terminal
             </Boton>
           </div>
         </form>
@@ -240,7 +223,6 @@ export function CambiarClaveModal({
     <Modal
       titulo={resultado ? `Clave nueva de ${resultado.nombre}` : `Cambiar la clave de ${terminal.nombre}`}
       subtitulo={resultado ? "La clave anterior ya no sirve." : undefined}
-      ancho="max-w-md"
       onClose={onClose}
     >
       {(cerrar: Cerrar) =>
@@ -258,7 +240,7 @@ export function CambiarClaveModal({
             <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton
+            <Boton textoCargando="Cambiando…"
               type="button"
               peso="primario"
              
@@ -267,7 +249,7 @@ export function CambiarClaveModal({
               title={responsable.motivo ?? undefined}
               onClick={confirmar}
             >
-              {enviando ? "Cambiando…" : "Cambiar clave"}
+              Cambiar clave
             </Boton>
           </div>
         </div>

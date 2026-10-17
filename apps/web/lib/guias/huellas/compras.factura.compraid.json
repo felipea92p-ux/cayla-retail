@@ -5,27 +5,27 @@
   "total": 53,
   "controles": {
     "app/(app)/compras/factura/[compraId]/page.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «/compras»"
     ],
     "components/AccionesFaltantes.tsx": [
       "button «factura.cerrar-faltante»"
     ],
     "components/AdjuntosCompra.tsx": [
-      "input «input.current?.click()»",
+      "input «(sin nombre)»",
       "Boton «{texto}»",
       "button «{`Quitar ${f.name}»",
       "a «{a.nombre}»",
       "a «Ver»",
       "button «Quitar»",
       "button «Cancelar»",
-      "button «{loading ? \"Quitando…\" : \"Quitar\"}»"
+      "Boton «Quitar»"
     ],
     "components/CerrarFaltanteModal.tsx": [
       "CampoSelect «¿En qué tienda faltó?»",
-      "input «de»",
+      "CampoTexto «¿Cuántas unidades se cierran?»",
       "button «{texto}»",
-      "ComboResponsable «{loading ? \"Cerrando…\" : \"Cerrar línea con faltante\"}»",
-      "button «{loading ? \"Cerrando…\" : \"Cerrar línea con faltante\"}»"
+      "ComboResponsable «{responsable}»",
+      "Boton «Cerrar línea con faltante»"
     ],
     "components/CompraDetalle.tsx": [
       "a «Finanzas ▸ Gastos»"
@@ -39,19 +39,19 @@
       "input «{`Monto a pagar de ${compra.documento}»",
       "input «Total del pago»",
       "button «Todo ·»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
-      "Boton «{loading ? \"Registrando…\" : `Registrar pago de ${soles(suma)}»",
+      "Boton «{`Registrar pago de ${soles(suma)}»",
       "CampoTexto «Motivo»",
-      "ComboResponsable «Volver»",
+      "ComboResponsable «{responsable}» #2",
       "button «Volver»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/NotasCreditoCompra.tsx": [
       "Link «Notas de crédito»"
     ],
     "components/PagoPiezas.tsx": [
-      "button «{`Copiar ${etiqueta.toLowerCase()}»",
+      "BotonCopiar «{que}»",
       "Boton «Listo»",
       "button «{ETIQUETA_METODO_PAGO[v] ?? v}»",
       "CampoFecha «Fecha del pago»",
@@ -68,11 +68,11 @@
       "CampoSelect «¿De qué línea?»",
       "CampoSelect «Sale de»",
       "CampoSelect «Va a»",
-      "input «de»",
-      "input «{ETIQUETA_MOTIVO_REASIGNACION[m]}»",
+      "CampoTexto «¿Cuántas unidades se mueven?»",
+      "input «motivo-reasignacion»",
       "CampoTexto «{motivo === \"otro\" ? \"Nota (cuenta el motivo)\" : \"Nota (opcional)\"}»",
-      "ComboResponsable «{loading ? \"Moviendo…\" : cantidadOk && haciaId ? `Mover ${n}»",
-      "button «{error ?? undefined}»"
+      "ComboResponsable «{responsable}»",
+      "Boton «{error ?? undefined}»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"

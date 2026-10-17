@@ -2,7 +2,7 @@
   "guia": "caja",
   "ruta": "/caja",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 98,
+  "total": 106,
   "controles": {
     "app/(app)/caja/page.tsx": [
       "BotonEnlace «caja.historial-todas»"
@@ -10,8 +10,10 @@
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
       "input «Ej.: se usó para vuelto antes de abrir»",
-      "ComboResponsable «(sin nombre)»",
-      "button «{responsable.motivo ?? undefined}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «{responsable.motivo ?? undefined}» #2",
       "button «→onElegir»"
     ],
     "components/BarraCierreCaja.tsx": [
@@ -28,14 +30,14 @@
     "components/CajaTablero.tsx": [
       "Link «{contenido}»",
       "button «{contenido}»",
-      "Link «(sin nombre)»",
+      "Link «{a.n ? <Globito n={a.n}»",
       "Link «Vender»",
       "button «Registrar gasto»",
       "button «Registrar ingreso»",
       "button «Cerrar caja»",
-      "button «{on ? <Check size={13}»",
+      "button «{on ? <Check size={12}»",
       "button «Volver a lo predeterminado»",
-      "Link «Ver»",
+      "Link «{`Ver ${p.cantidad}»",
       "SegmentoDeslizante «(predeterminada)»",
       "Link «Ver historial completo»",
       "button «Volver a la predeterminada»"
@@ -52,9 +54,9 @@
       "CampoTexto «{destinoElegido.referencia}»",
       "button «Volver y dejar»",
       "button «Cerrar igual»",
-      "ComboResponsable «setPaso(\"contar\")»",
+      "ComboResponsable «{responsable}»",
       "Volver «→() => setPaso(\"contar\")»",
-      "button «{responsable.motivo ?? invalido ?? undefined}»"
+      "Boton «{responsable.motivo ?? invalido ?? undefined}»"
     ],
     "components/CierreCajaDetalle.tsx": [
       "button «{texto}»"
@@ -63,13 +65,20 @@
       "button «{NOMBRE_METODO[m]}»",
       "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
       "CampoTexto «Qué pasó»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
+    "components/CuentasProveedor.tsx": [
+      "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
+      "LapizEditar «la cuenta»",
+      "BotonCopiar «{que}»"
+    ],
     "components/DetalleVentaModal.tsx": [
       "button «Reintentar»",
-      "Boton «Corregir pago»"
+      "Boton «Corregir pago»",
+      "BotonImprimir «Imprimir ticket»",
+      "BotonImprimir «Imprimir»"
     ],
     "components/FilaMovimientoCaja.tsx": [
       "button «{`Ver el detalle de ${e.titulo}»"
@@ -87,7 +96,7 @@
       "CampoTexto «Serie y número»",
       "button «Usa el formulario completo»",
       "button «Retiro o depósito»",
-      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -95,7 +104,7 @@
       "button «{`${titulo}»"
     ],
     "components/HistorialCierresModal.tsx": [
-      "Volver «Historial de cierres»",
+      "Volver «→volver»",
       "button «Historial de cierres»",
       "button «Reintentar»",
       "button «{f.valor === \"falto\" ? \"caja.historial-falto\" : undefined}»",
@@ -111,27 +120,30 @@
       "Link «Apartados»",
       "Link «Vender»",
       "button «Retiro o depósito»",
-      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/MovimientoCajaModal.tsx": [
       "button «{TEXTO_TIPO[t]}»",
       "input «0.00»",
-      "Desplegable «(sin nombre)»",
+      "Desplegable «{motivoRapido}»",
       "input «Describe el motivo»",
       "input «N° de operación, voucher, u otra nota»",
-      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/ProveedorElegido.tsx": [
+      "a «{tel.texto}»"
     ],
     "components/RegistrarGastoModal.tsx": [
       "button «¿No está? Súmalo»",
       "button «Cancelar»",
       "button «Sumar proveedor»",
-      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar» #2",
-      "button «→guardar»"
+      "Boton «→guardar»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"

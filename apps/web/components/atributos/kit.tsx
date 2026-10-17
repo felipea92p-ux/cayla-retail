@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
+import { Chip } from "@/components/ui/Chip";
 import { FunnelX, Shapes } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { Boton } from "@/components/ui/campos";
@@ -131,7 +132,7 @@ export function VocabularioVacio({ children, icono = <Shapes /> }: { children: R
 
 /** La insignia de estado junto al nombre: «Pendiente», «Rechazada». */
 function Insignia({ children }: { children: ReactNode }) {
-  return <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">{children}</span>;
+  return <Chip tono="rojo" className="shrink-0">{children}</Chip>;
 }
 
 /** La parte de arriba de la tarjeta que abre un detalle (Tejidos y Patrones: su foto y sus prendas). Las acciones del pie
@@ -256,7 +257,7 @@ export function DesactivarTarjeta({ onClick, cambiando = false }: { onClick: () 
 /** «Reactivar» de una tarjeta desactivada. */
 export function BotonReactivar({ onClick, cambiando = false }: { onClick: () => void; cambiando?: boolean }) {
   return (
-    <Boton peso="discreto" className="w-full px-2.5! py-1.5 text-[11px] whitespace-nowrap" cargando={cambiando} onClick={onClick}>
+    <Boton textoCargando="Reactivando…" peso="discreto" className="w-full px-2.5! py-1.5 text-[11px] whitespace-nowrap" cargando={cambiando} onClick={onClick}>
       Reactivar
     </Boton>
   );

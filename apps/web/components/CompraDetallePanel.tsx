@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Banknote, Check, Package } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -307,7 +308,7 @@ export function RegistrarPagoModal({
 
   return (
     <Modal
-      variante="papel"
+      variante="hoja"
       titulo={
         hecho ? (
           <span className="sr-only">Pago registrado</span>
@@ -319,7 +320,7 @@ export function RegistrarPagoModal({
         )
       }
       subtitulo={hecho ? undefined : `1 comprobante · ${compra.documento}`}
-      ancho="max-w-2xl"
+      tamano="ancha"
       onClose={terminar}
     >
       {(cerrar) =>
@@ -373,12 +374,7 @@ export function RegistrarPagoModal({
                     </span>
                   )}
                   {/* La cascada: cuánto del saldo cubre este pago. Se llena al abrir. Verde = queda en cero; rojo = se pasa del saldo. */}
-                  <div aria-hidden className="mt-1.5 h-1 overflow-hidden rounded-full bg-sand sm:col-span-3">
-                    <div
-                      className={`h-full origin-left rounded-full transition-[transform,background-color] duration-500 ease-cayla ${excede ? "bg-rojo" : llena ? "bg-verde" : "bg-tinta"}`}
-                      style={{ transform: `scaleX(${armada && compra.saldo > 0 ? Math.min(1, suma / compra.saldo) : 0})` }}
-                    />
-                  </div>
+                  <BarraAvance pct={armada && compra.saldo > 0 ? (suma / compra.saldo) * 100 : 0} alto="fina" tono={excede ? "rojo" : llena ? "verde" : "tinta"} decorativa className="mt-1.5 sm:col-span-3" />
                   <span className={`mt-1 flex min-h-[18px] items-center gap-1.5 text-xs sm:col-start-4 sm:justify-end ${excede ? "text-rojo" : llena ? "text-verde-profundo" : "text-tinta/55"}`} aria-live="polite">
                     {excede ? (
                       "Supera el saldo"
@@ -467,8 +463,8 @@ export function RegistrarPagoModal({
                 <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
                   Cancelar
                 </button>
-                <Boton type="submit" peso="primario" cargando={loading} disabled={loading || excede || favorExcedido || suma <= 0}>
-                  {loading ? "Registrando…" : `Registrar pago de ${soles(suma)}`}
+                <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={loading || excede || favorExcedido || suma <= 0}>
+                  {`Registrar pago de ${soles(suma)}`}
                 </Boton>
               </div>
             </div>
@@ -520,9 +516,9 @@ function AnularCompraModal({ compra, onClose }: { compra: CompraResumen; onClose
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={loading}>
               Volver
             </button>
-            <button type="submit" className="btn-cayla btn-primario" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined}>
-              {loading ? "Anulando…" : "Anular"}
-            </button>
+            <Boton peso="primario" cargando={loading} textoCargando="Anulando…" type="submit" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined}>
+              Anular
+            </Boton>
           </div>
         </form>
       )}

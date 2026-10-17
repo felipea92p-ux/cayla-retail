@@ -24,6 +24,8 @@ type Comun = {
   chico?: boolean;
   className?: string;
   title?: string;
+  /** El nombre para el lector de pantalla, si el texto solo no alcanza («Es el mismo diseño: Blusa Emma»). */
+  etiqueta?: string;
   /** Ancla de la guía (ADR-0389). */
   guia?: string;
 };
@@ -50,14 +52,14 @@ export function BotonDescargar(
     );
   }
   return (
-    <Boton type="button" onClick={props.onClick} cargando={props.cargando} disabled={props.disabled} peso={peso} className={clase} title={title} data-guia={guia}>
+    <Boton type="button" onClick={props.onClick} cargando={props.cargando} textoCargando="Preparando…" disabled={props.disabled} peso={peso} className={clase} title={title} data-guia={guia}>
       {contenido}
     </Boton>
   );
 }
 
 export function BotonVer(props: Omit<Comun, "peso"> & ({ href: string; onClick?: never; alNavegar?: () => void } | { onClick: () => void; href?: never; alNavegar?: never })) {
-  const { children, chico = false, className = "", title, guia } = props;
+  const { children, chico = false, className = "", title, etiqueta, guia } = props;
   const clase = `${chico ? "btn-chico" : ""} ${className}`;
   const contenido = (
     <span className="flex items-center gap-2">
@@ -67,13 +69,13 @@ export function BotonVer(props: Omit<Comun, "peso"> & ({ href: string; onClick?:
   );
   if (props.href !== undefined) {
     return (
-      <BotonEnlace href={props.href} onClick={props.alNavegar} className={clase} title={title} data-guia={guia}>
+      <BotonEnlace href={props.href} onClick={props.alNavegar} className={clase} title={title} aria-label={etiqueta} data-guia={guia}>
         {contenido}
       </BotonEnlace>
     );
   }
   return (
-    <Boton type="button" onClick={props.onClick} className={clase} title={title} data-guia={guia}>
+    <Boton type="button" onClick={props.onClick} className={clase} title={title} aria-label={etiqueta} data-guia={guia}>
       {contenido}
     </Boton>
   );

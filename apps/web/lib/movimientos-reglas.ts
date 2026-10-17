@@ -1,7 +1,7 @@
 // Relativo, no `@/`: vitest no resuelve el alias y este archivo tiene pruebas.
 import { ETIQUETA_TIPO, type EstadoComprobante, type TipoComprobante } from "./comprobantes-reglas";
 import type { Cantidades } from "./inventario-reglas";
-import { hoyLima } from "./fechas-lima";
+import { esFechaQueExiste, hoyLima } from "./fechas-lima";
 
 // Reglas de lectura de Movimientos, sin nada de servidor: las importan los
 // componentes cliente (lista, filtros, detalle). Las lecturas contra Postgres
@@ -119,6 +119,8 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   cuarentena_liquidada: "Dañado · liquidada",
   cuarentena_se_boto: "Dañado · se botó",
   cuarentena_donada: "Dañado · donada",
+  // ADR-0362, fase 5b, actividad 6a: lo que llegó dañado en una recepción y se le devolvió al proveedor (queda como deuda «por reponer»).
+  cuarentena_devuelta_proveedor: "Dañado · devuelta al proveedor",
 };
 
 /** Qué procesos caben en cada tipo, para el filtro en dos pasos de Movimientos (2026-09-22,
@@ -129,7 +131,7 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
 export const PROCESOS_POR_CATEGORIA: Record<CategoriaFiltro, string[]> = {
   // Desde la tienda (ADR-0234): el traslado recibido es una entrada y el enviado, una salida — y los dos siguen en «Traslados».
   entrada: ["traslado_entrada", "traslado_anulado", "recepcion", "devolucion", "cambio", "anulacion_venta", "produccion", "carga_inicial", "ingreso_regularizado"],
-  salida: ["venta", "traslado_salida", "cambio", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada"],
+  salida: ["venta", "traslado_salida", "cambio", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada", "cuarentena_devuelta_proveedor"],
   interno: ["movimiento_interno", "activacion_piso_almacen"],
   transferencia: ["traslado_entrada", "traslado_salida", "traslado_anulado"],
   ajuste: ["conteo", "conteo_arranque", "conteo_fisico", "hallazgo_conteo", "merma", "reposicion", "otro"],
@@ -328,6 +330,8 @@ export function partesOrigenDestino(m: Movimiento): { origen: string; destino: s
     case "venta":
     case "cuarentena_liquidada":
       return { origen: aqui, destino: "Cliente" };
+    case "cuarentena_devuelta_proveedor":
+      return { origen: aqui, destino: "Proveedor" };
     case "anulacion_venta":
     case "devolucion":
       return { origen: "Cliente", destino: aqui };
@@ -488,13 +492,8 @@ export type FiltrosResueltos = FiltrosMovimientos & {
   sub: TokenSububicacion | null;
 };
 
-// Una fecha con la forma `aaaa-mm-dd` Y que existe: «2026-02-31» tiene la forma pero no existe, y Postgres la rechazaba con la
-// pantalla caída (/chaos 2026-10-14). Se comprueba que el día vuelva igual después de pasar por el calendario.
-const esFecha = (v?: string) => {
-  if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
-  const t = Date.parse(`${v}T00:00:00Z`);
-  return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === v;
-};
+// Una fecha con la forma `aaaa-mm-dd` Y que existe (/chaos 2026-10-14): la regla vive en `fechas-lima.ts`, la misma de Compras.
+const esFecha = (v?: string) => esFechaQueExiste(v);
 const esUuid = (v?: string) => !!v && /^[0-9a-f-]{36}$/i.test(v);
 // Un motivo es texto libre en la base, pero lo que llega por URL se acota a lo que un
 // motivo puede ser: minúsculas, dígitos y guion bajo.
@@ -830,6 +829,7 @@ export const FRASE_PROCESO: Record<string, string | readonly [string, string]> =
   cuarentena_liquidada: ["dañada, liquidada", "dañadas, liquidadas"],
   cuarentena_se_boto: ["dañada, botada", "dañadas, botadas"],
   cuarentena_donada: ["dañada, donada", "dañadas, donadas"],
+  cuarentena_devuelta_proveedor: ["dañada, devuelta al proveedor", "dañadas, devueltas al proveedor"],
   siembra_cargo_especial: "por cargo especial",
 };
 

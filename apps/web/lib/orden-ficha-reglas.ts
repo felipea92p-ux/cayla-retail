@@ -12,7 +12,7 @@ import { totalesCantidades } from "./tabla-alta-reglas";
 
 /** «S/ 1,234.50»: el formato de dinero de las pantallas de Producción. */
 export function soles(n: number): string {
-  return `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -48,6 +48,43 @@ export function nombreDeLaFicha(o: { esNuevo: boolean; hayModelo: boolean; nombr
   const nombre = o.nombre.trim();
   if (nombre) return { texto: nombre, vacio: false };
   return { texto: o.esNuevo ? "Sin nombre todavía" : "Sin modelo todavía", vacio: true };
+}
+
+/** Una parte del costo de cada prenda: la tela o una fase que sale afuera. `porPrenda` en soles, a dos decimales. */
+export type ParteDelCosto = { clave: string; nombre: string; detalle: string | null; porPrenda: number };
+
+/**
+ * El costo por prenda partido en lo que lo forma: la tela y cada servicio de afuera (lo que cuesta cada una en toda la orden ÷ las prendas). Es lo que la
+ * colaboradora lee como «cada prenda me sale tanto: tanto de tela, tanto de costura». Las partes SUMAN EXACTAMENTE `porPrenda` (el mismo número que la ficha
+ * dice arriba y con el que se mide el margen): se reparten los céntimos por el resto mayor, así que nunca una línea queda una moneda corrida. Una parte en 0 no
+ * se lista, y sin prendas o sin nada que costar no hay desglose (`[]`).
+ */
+export function partesDelCostoPorPrenda(o: {
+  totalPrendas: number;
+  /** El costo por prenda que dice la ficha (`costoUnitario` de `produccion-reglas.ts`): las partes cuadran con él. */
+  porPrenda: number;
+  partes: readonly { clave: string; nombre: string; detalle: string | null; costo: number }[];
+}): ParteDelCosto[] {
+  const conCosto = o.partes.filter((p) => p.costo > 0);
+  if (o.totalPrendas <= 0 || o.porPrenda <= 0 || conCosto.length === 0) return [];
+  const crudo = conCosto.map((p) => (p.costo / o.totalPrendas) * 100);
+  const centimos = crudo.map((c) => Math.floor(c));
+  // Mayor fracción primero: a quien más le falta se le da la moneda que sobra (o, si hubiera que quitar, se le quita a quien menos le tocaba).
+  const orden = crudo.map((_, i) => i).sort((a, b) => crudo[b] - centimos[b] - (crudo[a] - centimos[a]) || a - b);
+  let resto = Math.round(o.porPrenda * 100) - centimos.reduce((s, c) => s + c, 0);
+  for (let paso = 0; resto !== 0 && paso < 1000; paso++) {
+    if (resto > 0) {
+      centimos[orden[paso % orden.length]] += 1;
+      resto -= 1;
+    } else {
+      const i = orden[orden.length - 1 - (paso % orden.length)];
+      if (centimos[i] > 0) {
+        centimos[i] -= 1;
+        resto += 1;
+      }
+    }
+  }
+  return conCosto.map((p, i) => ({ clave: p.clave, nombre: p.nombre, detalle: p.detalle, porPrenda: centimos[i] / 100 }));
 }
 
 /** «Se vende a»: el precio si lo hay; una muestra nueva sin precio dice «al aprobarla»; un lote nuevo sin precio, «—»; un modelo que existe sin precio no muestra la fila (la nota de abajo explica). */

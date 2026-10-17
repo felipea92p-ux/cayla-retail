@@ -14,6 +14,7 @@ import {
   type Periodo,
 } from "@/lib/actividad-reglas";
 import { SeparadorDia } from "@/components/ui/TituloSeccion";
+import { montosSinCorte } from "@/lib/montos-sin-corte";
 
 // La lista de la actividad (ADR-0207), la misma en el panel de la cabecera y en la pantalla completa. El alcance lo pone
 // la base (`fn_actividad`): aunque se le pida otra sede, una cuenta que no es líder recibe solo la suya.
@@ -126,7 +127,7 @@ export function ListaActividad({
                 <AvatarPersona personaId={f.persona_id} nombre={quien(f)} tamano={32} className="mt-0.5" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm leading-snug text-tinta">
-                    <span className="font-semibold">{quien(f)}</span> {f.descripcion}
+                    <span className="font-semibold">{quien(f)}</span> {montosSinCorte(f.descripcion) /* la escribe Postgres: «por S/ 189» */}
                   </p>
                   <p className="mt-0.5 text-xs text-taupe">
                     {pieDeFila(f, { conSede })}

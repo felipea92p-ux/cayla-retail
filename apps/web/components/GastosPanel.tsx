@@ -56,8 +56,11 @@ import {
   type Ver,
 } from "@/lib/gastos-reglas";
 import { Boton } from "@/components/ui/campos";
+import { GastosPulso } from "@/components/finanzas/GastosPulso";
+import { bandejaPulso, gastastePulso } from "@/lib/gastos-pulso-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { Check, FunnelX, Receipt, SearchX } from "lucide-react";
+import { MAX_MOTIVO_ANULAR_GASTO } from "@/lib/finanzas-topes";
 
 // Finanzas ▸ Gastos (ADR-0195 F2), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, vista «Gastos»):
 // cabecera con «Ver» y la acción principal → cuatro cifras → pestañas → la tarjeta de la tabla con sus filtros → nota.
@@ -185,6 +188,15 @@ export function GastosPanel({
           {f}
         </p>
       ))}
+
+      {/* Camino A (Felipe 2026-10-15): primero la respuesta y la bandeja; las cifras, después. */}
+      <GastosPulso
+        gastaste={gastastePulso(panel)}
+        bandeja={bandejaPulso(egresos, fijos)}
+        nombreCorto={nombreCorto}
+        onResolver={(cosa) => (cosa.tipo === "egreso" ? setClasificar(cosa.egreso) : setRegistrar({ fijo: cosa.fijo }))}
+        onVerTodas={() => setPestana(bandejaPulso(egresos, fijos).cosas[0]?.tipo === "fijo" ? "fijos" : "egresos")}
+      />
 
       <section className="fin-cifras" data-guia="fin-gastos.cifras">
         {/* Sin `panel` es porque la lectura falló (la falla se dice arriba): «no se pudo leer», no «sin dato» (ADR-0358). */}
@@ -524,18 +536,18 @@ function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: G
 
   if (anulando) {
     return (
-      <Modal variante="hoja" titulo="Anular gasto" subtitulo={`No se borra: queda a la vista como anulado, con el motivo y quién lo hizo.${g.cajaMovimientoId ? " Si salió de un cajón, la plata no vuelve sola: se corrige en la caja." : ""}`} onClose={onCerrar} ancho="max-w-[520px]">
+      <Modal variante="hoja" titulo="Anular gasto" subtitulo={`No se borra: queda a la vista como anulado, con el motivo y quién lo hizo.${g.cajaMovimientoId ? " Si salió de un cajón, la plata no vuelve sola: se corrige en la caja." : ""}`} onClose={onCerrar} tamano="mediana">
         <CampoFin etiqueta="Motivo" htmlFor="anular-motivo">
-          <InputFin id="anular-motivo" value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Ej. se registró dos veces" />
+          <InputFin id="anular-motivo" value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Ej. se registró dos veces" maxLength={MAX_MOTIVO_ANULAR_GASTO} />
         </CampoFin>
         <ComboResponsable control={responsable} deshabilitado={guardando} />
         <div className="fin-botones mt-4">
           <button type="button" className="btn-cayla btn-secundario" onClick={() => setAnulando(false)} disabled={guardando}>
             Volver
           </button>
-          <button type="button" className="btn-cayla btn-primario" onClick={anular} disabled={guardando || !responsable.listo}>
-            {guardando ? "Anulando…" : "Anular gasto"}
-          </button>
+          <Boton peso="primario" cargando={guardando} textoCargando="Anulando…" type="button" onClick={anular} disabled={guardando || !responsable.listo}>
+            Anular gasto
+          </Boton>
         </div>
       </Modal>
     );
@@ -554,7 +566,7 @@ function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: G
       }
       subtitulo={bajada}
       onClose={onCerrar}
-      ancho="max-w-[520px]"
+      tamano="mediana"
     >
       <ListaDatos
         guia="fin-gastos.detalle"
@@ -716,7 +728,7 @@ function ClasificarEgresoModal({
         </>
       }
       onClose={onCerrar}
-      ancho="max-w-[560px]"
+      tamano="mediana"
     >
       <OpcionesFin nombre="que-fue" etiqueta="Qué fue" valor={que} onValor={setQue} opciones={opciones} guia="fin-gastos.clasificar-opciones" />
       {que === "gasto" && (
@@ -762,9 +774,9 @@ function ClasificarEgresoModal({
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || (que !== "activo" && !responsable.listo)}>
-          {que === "activo" ? "Seguir: registrar el activo" : guardando ? "Guardando…" : "Guardar"}
-        </button>
+        <Boton type="button" peso="primario" cargando={guardando} onClick={guardar} disabled={que !== "activo" && !responsable.listo}>
+          {que === "activo" ? "Seguir: registrar el activo" : "Guardar"}
+        </Boton>
       </div>
     </Modal>
   );
@@ -814,9 +826,9 @@ function MarcasNoGasto({ marcas }: { marcas: MarcaNoGasto[] }) {
                   </span>
                 </div>
                 <span className="fin-monto">{soles(m.monto)}</span>
-                <button type="button" className="btn-cayla btn-sutil btn-chico" disabled={revirtiendo !== null} onClick={() => revertir(m)}>
-                  {revirtiendo === m.id ? "Revirtiendo…" : "Revertir"}
-                </button>
+                <Boton peso="discreto" cargando={revirtiendo === m.id} textoCargando="Revirtiendo…" type="button" className="btn-chico" disabled={revirtiendo !== null} onClick={() => revertir(m)}>
+                  Revertir
+                </Boton>
               </li>
             ))}
           </ul>

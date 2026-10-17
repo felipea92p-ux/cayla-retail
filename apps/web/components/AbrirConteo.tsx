@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Flag, Package, SearchX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -26,9 +27,9 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { ElegirPrendas } from "@/components/conteo/ElegirPrendas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
-import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
+import { Boton } from "@/components/ui/campos";
 
 /* ====================================================================
    AbrirConteo · «Abrir un conteo» (Inventario ▸ Conteo). Maqueta: `docs/maquetas/conteo-abrir-2026-09/abrir-conteo.html`.
@@ -269,13 +270,15 @@ export function AbrirConteo({
           {/* Antes de contar: lo que viene en camino y no se recibió no está en el stock de esta sede. Si ya está en el rack, sale
               «de más»; si no, se recibe después y descuadra lo contado. */}
           {!!trasladosPorAtender && trasladosPorAtender > 0 && (
-            <div data-guia="conteo.aviso-traslados" className="flex flex-col items-start gap-1.5 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm @[36rem]:flex-row @[36rem]:items-center @[36rem]:gap-3">
-              <span className="min-w-0 flex-1 text-tinta">
-                <b className="font-semibold">Antes de contar:</b> hay {trasladosPorAtender === 1 ? "1 traslado" : `${trasladosPorAtender} traslados`} hacia esta sede por
-                atender. Recíbelos primero, o esas prendas saldrán como diferencia.
-              </span>
-              <EnlaceVer href="/inventario/traslados">Ver traslados</EnlaceVer>
-            </div>
+            <Aviso
+              tono="atencion"
+              guia="conteo.aviso-traslados"
+              titulo="Antes de contar"
+              accion={<Link href="/inventario/traslados">Ver traslados</Link>}
+            >
+              Hay {trasladosPorAtender === 1 ? "1 traslado" : `${trasladosPorAtender} traslados`} hacia esta sede por atender. Recíbelos
+              primero, o esas prendas saldrán como diferencia.
+            </Aviso>
           )}
 
           {separaPisoAlmacen && (
@@ -289,7 +292,7 @@ export function AbrirConteo({
                 opciones={lugares.map((l) => ({
                   valor: l.id,
                   titulo: textoLugar({ sububicacionTipo: l.tipo, sububicacionNombre: l.nombre }),
-                  icono: l.tipo === "piso_venta" ? <IconoPercha className="h-6 w-6" /> : <Package className="h-6 w-6" strokeWidth={1.5} aria-hidden />,
+                  icono: l.tipo === "piso_venta" ? <IconoPercha className="h-6 w-6" /> : <Package /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ className="h-6 w-6" strokeWidth={1.5} aria-hidden />,
                   linea: ultimoPorLugar[l.id] ?? "Nunca se contó",
                   cifra: alcance ? textoVariantesRegistradas(variantesDelConteo(alcance, l.id, null) ?? 0) : null,
                 }))}
@@ -368,7 +371,7 @@ export function AbrirConteo({
                       a.tipo === "arranque" ? "border-sand bg-hueso text-tinta" : "border-ambar/35 bg-ambar/[0.07] text-tinta"
                     } ${visible ? "" : "invisible"}`}
                   >
-                    <Flag aria-hidden strokeWidth={1.5} className={`mt-0.5 h-4 w-4 shrink-0 ${a.tipo === "arranque" ? "text-taupe" : "text-ambar-profundo"}`} />
+                    <Flag aria-hidden className={`mt-0.5 h-4 w-4 shrink-0 ${a.tipo === "arranque" ? "text-taupe" : "text-ambar-profundo"}`} />
                     <span className="min-w-0">
                       <b className="font-semibold">{a.titulo}.</b> {a.texto}
                     </span>
@@ -436,15 +439,15 @@ export function AbrirConteo({
           <div className="col-span-2 row-start-2 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:mt-auto">
             <PieGuia guia={guia} listo="Todo listo para empezar." />
           </div>
-          <button
+          <Boton peso="primario" cargando={abriendo} textoCargando="Abriendo…"
             type="button"
             onClick={() => void abrir()}
             disabled={!listo || abriendo}
             title={guia.frase ?? undefined}
-            className={`btn-cayla btn-primario col-start-2 row-start-1 h-11 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:h-12 @[46rem]:w-full ${guia.claseConfirmar}`}
+            className={`col-start-2 row-start-1 h-11 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:h-12 @[46rem]:w-full ${guia.claseConfirmar}`}
           >
-            {abriendo ? "Abriendo…" : "Empezar conteo"}
-          </button>
+            Empezar conteo
+          </Boton>
         </aside>
       </div>
     </section>

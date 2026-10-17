@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { avisarDestacado } from "@/components/ui/AvisoDestacado";
 import { IconoPercha } from "@/components/ui/IconoPercha";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -55,6 +56,7 @@ import type { FilaExistencias } from "@/lib/inventario-v2";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
+import { Boton } from "@/components/ui/campos";
 
 type Prenda = PrendaAgrupada<FilaExistencias>;
 
@@ -123,7 +125,7 @@ function LadoDelViaje({ lado, destino = false }: { lado: LadoMovido; destino?: b
   return (
     <div className={`rounded-2xl border px-3 py-2.5 text-center ${destino ? "border-verde/40 bg-verde/[0.08]" : "border-sand bg-crema"}`}>
       <p className="flex items-center justify-center gap-1.5 text-[12.5px] text-taupe">
-        <Ico aria-hidden className="h-3.5 w-3.5" strokeWidth={1.6} />
+        <Ico aria-hidden className="h-3.5 w-3.5" />
         {lado.lugar === "piso" ? "En el piso" : "Almacén"}
       </p>
       <b className={`block font-display text-[38px] font-medium leading-[1.05] tabular-nums ${destino ? "text-verde" : "text-tinta"}`}>{lado.despues}</b>
@@ -136,8 +138,8 @@ function LadoDelViaje({ lado, destino = false }: { lado: LadoMovido; destino?: b
 function NotaSubida({ valor, onValor }: { valor: string; onValor: (v: string) => void }) {
   return (
     <>
-      <label htmlFor="flujo-nota-subida" className="label-cayla mb-1.5 mt-4 block text-[11px] text-taupe">
-        Por qué la subes · opcional
+      <label htmlFor="flujo-nota-subida" className="campo-etiqueta mb-1.5 mt-4">
+        Por qué la subes <span className="font-normal normal-case text-tinta/45">· opcional</span>
       </label>
       <textarea
         id="flujo-nota-subida"
@@ -167,23 +169,21 @@ function CeldaSubir({ celda, n, etiqueta, fondo, onValor }: { celda: ReturnType<
     );
   return (
     <td className={`border-t border-sand px-1 py-2 text-center ${fondo}`}>
-      <span className="inline-flex items-center gap-px rounded-lg border border-transparent bg-hueso px-0.5 focus-within:border-taupe focus-within:bg-papel">
-        <button type="button" aria-label={`Una menos de ${etiqueta}`} disabled={n <= 0} onClick={() => onValor(n - 1, celda.piso)} className="grid h-8 w-6 place-items-center rounded-md text-taupe hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25">
-          −
-        </button>
-        <input
-          inputMode="numeric"
-          aria-label={`Cuántas descuelgas de ${etiqueta}: hay ${celda.piso} colgada${celda.piso === 1 ? "" : "s"}`}
-          value={n === 0 ? "" : n}
-          placeholder="0"
-          onFocus={(e) => e.currentTarget.select()}
-          onChange={(e) => onValor(leerCantidadTecleada(e.target.value, celda.piso), celda.piso)}
-          className={`h-8 w-8 bg-transparent text-center text-[15px] font-bold tabular-nums outline-none placeholder:font-medium placeholder:text-tinta/30 ${n > 0 ? "text-verde" : "text-tinta"}`}
-        />
-        <button type="button" aria-label={`Una más de ${etiqueta}`} disabled={n >= celda.piso} onClick={() => onValor(n + 1, celda.piso)} className="grid h-8 w-6 place-items-center rounded-md text-taupe hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25">
-          +
-        </button>
-      </span>
+      <PasoCantidad
+        tamano="celda"
+        menos={{ onClick: () => onValor(n - 1, celda.piso), deshabilitado: n <= 0, etiqueta: `Una menos de ${etiqueta}` }}
+        mas={{ onClick: () => onValor(n + 1, celda.piso), deshabilitado: n >= celda.piso, etiqueta: `Una más de ${etiqueta}` }}
+        campo={{
+          inputMode: "numeric",
+          "aria-label": `Cuántas descuelgas de ${etiqueta}: hay ${celda.piso} colgada${celda.piso === 1 ? "" : "s"}`,
+          value: n === 0 ? "" : n,
+          placeholder: "0",
+          onFocus: (e) => e.currentTarget.select(),
+          onChange: (e) => onValor(leerCantidadTecleada(e.target.value, celda.piso), celda.piso),
+          // Con algo elegido, el número va en verde.
+          className: n > 0 ? "text-verde" : "",
+        }}
+      />
       <small className="mt-1 block text-[10.5px] text-taupe">{celda.piso} colgada{celda.piso === 1 ? "" : "s"}</small>
       <small className="block text-[10.5px] text-taupe/75">{celda.almacen} en almacén</small>
     </td>
@@ -649,7 +649,7 @@ export function FlujoTalla({
                   <LadoDelViaje lado={viaje.de} />
                   <span aria-hidden className="flex flex-col items-center gap-1 text-taupe">
                     <b className="rounded-full bg-tinta px-2.5 py-0.5 text-[13px] text-papel tabular-nums">{d.n ?? 0}</b>
-                    <ArrowRight className="h-4 w-4" strokeWidth={1.8} />
+                    <ArrowRight className="h-4 w-4" />
                   </span>
                   <LadoDelViaje lado={viaje.a} destino />
                 </div>
@@ -771,23 +771,23 @@ export function FlujoTalla({
                           const etiqueta = `${c.color ?? ""} ${nombre}`;
                           return (
                             <td key={nombre} className={`border-t border-sand px-1 py-2 text-center ${fondo}`}>
-                              <span className={`inline-flex items-center gap-px rounded-lg border px-0.5 focus-within:border-taupe focus-within:bg-papel ${celda.falta ? "border-ambar/40 bg-ambar/[0.14]" : "border-transparent bg-hueso"}`}>
-                                <button type="button" aria-label={`Una menos de ${etiqueta}`} disabled={n <= 0} onClick={() => poner1(t.varianteId, n - 1, celda.almacen)} className="grid h-8 w-6 place-items-center rounded-md text-taupe hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25">
-                                  −
-                                </button>
-                                <input
-                                  inputMode="numeric"
-                                  aria-label={`Cuántas cuelgas de ${etiqueta}: hay ${celda.almacen} en almacén`}
-                                  value={n === 0 ? "" : n}
-                                  placeholder="0"
-                                  onFocus={(e) => e.currentTarget.select()}
-                                  onChange={(e) => poner({ cant: { ...cant, [t.varianteId]: leerCantidadTecleada(e.target.value, celda.almacen) } })}
-                                  className={`h-8 w-8 bg-transparent text-center text-[15px] font-bold tabular-nums outline-none placeholder:font-medium placeholder:text-tinta/30 ${n > 0 ? "text-verde" : "text-tinta"}`}
-                                />
-                                <button type="button" aria-label={`Una más de ${etiqueta}`} disabled={n >= celda.almacen} onClick={() => poner1(t.varianteId, n + 1, celda.almacen)} className="grid h-8 w-6 place-items-center rounded-md text-taupe hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25">
-                                  +
-                                </button>
-                              </span>
+                              <PasoCantidad
+                                tamano="celda"
+                                // La talla que falta en el piso se tiñe de ámbar (como su «falta» de abajo).
+                                tono={celda.falta ? "atencion" : undefined}
+                                menos={{ onClick: () => poner1(t.varianteId, n - 1, celda.almacen), deshabilitado: n <= 0, etiqueta: `Una menos de ${etiqueta}` }}
+                                mas={{ onClick: () => poner1(t.varianteId, n + 1, celda.almacen), deshabilitado: n >= celda.almacen, etiqueta: `Una más de ${etiqueta}` }}
+                                campo={{
+                                  inputMode: "numeric",
+                                  "aria-label": `Cuántas cuelgas de ${etiqueta}: hay ${celda.almacen} en almacén`,
+                                  value: n === 0 ? "" : n,
+                                  placeholder: "0",
+                                  onFocus: (e) => e.currentTarget.select(),
+                                  onChange: (e) => poner({ cant: { ...cant, [t.varianteId]: leerCantidadTecleada(e.target.value, celda.almacen) } }),
+                                  // Con algo elegido, el número va en verde (también en una talla que falta).
+                                  className: n > 0 ? "text-verde" : "",
+                                }}
+                              />
                               <small className={`mt-1 block text-[10.5px] ${celda.falta ? "font-semibold text-ambar-profundo" : "text-taupe"}`}>
                                 {celda.falta ? "falta" : celda.piso === 0 ? "nada colgado" : `${celda.piso} colgada${celda.piso === 1 ? "" : "s"}`}
                               </small>
@@ -979,7 +979,7 @@ export function FlujoTalla({
                 )}
                 {motivoPideNotaFlujo(d.motivo) && (
                   <>
-                    <label htmlFor="flujo-nota" className="label-cayla mb-1.5 mt-3 block text-[11px] text-taupe">
+                    <label htmlFor="flujo-nota" className="campo-etiqueta mb-1.5 mt-3">
                       {d.motivo === "encontre" ? "¿Dónde estaban?" : "Cuéntalo en una línea"}
                     </label>
                     <textarea
@@ -1090,18 +1090,22 @@ export function FlujoTalla({
           ) : (
             <Volver onClick={atras} deshabilitado={enviando} a="Volver al paso anterior" className="self-center" />
           )}
-          <button
+          <Boton
             type="button"
+            peso="primario"
+            cargando={enviando}
             onClick={seguir}
-            disabled={!completo || enviando}
+            disabled={!completo}
             title={completo ? undefined : (guia.frase ?? responsable.motivo ?? undefined)}
-            className={`btn-cayla btn-primario flex-[2] gap-2 ${completo ? "hilo-seguir" : ""}`}
+            className={`flex-[2] ${completo ? "hilo-seguir" : ""}`}
           >
-            {ultimo && <IconoFinal aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />}
-            {enviando ? "Guardando…" : ultimo ? (tipo === "danada" ? textoBotonReportar(d.n ?? 0, incierto) : incierto ? "Confirmar de nuevo" : verboFinal(tipo, d, nombreSede(d.sedeId))) : "Continuar"}
-            {!ultimo && <ArrowRight aria-hidden className="h-4 w-4" />}
-            <kbd className="ml-1 hidden rounded border border-crema/30 px-1 text-[11px] font-normal text-crema/80 sm:inline">↵</kbd>
-          </button>
+            <span className="flex items-center justify-center gap-2">
+              {ultimo && <IconoFinal aria-hidden className="-my-1 h-4 w-4" />}
+              {ultimo ? (tipo === "danada" ? textoBotonReportar(d.n ?? 0, incierto) : incierto ? "Confirmar de nuevo" : verboFinal(tipo, d, nombreSede(d.sedeId))) : "Continuar"}
+              {!ultimo && <ArrowRight aria-hidden className="-my-1 h-4 w-4" />}
+              <kbd className="ml-1 hidden rounded border border-crema/30 px-1 text-[11px] font-normal text-crema/80 sm:inline">↵</kbd>
+            </span>
+          </Boton>
         </div>
       </div>
     </div>

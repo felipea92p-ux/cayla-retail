@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
+import { esRespuestaIncierta, traducirError } from "@/lib/error-escritura";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -127,10 +127,16 @@ export function DevolucionesFlujo({
   const [detalle, setDetalle] = useState(guardado?.detalle ?? "");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // El último error fue un corte (la respuesta no llegó): no se sabe si la devolución se guardó, y el título no puede decir que no.
+  const [errorIncierto, setErrorIncierto] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [avisoContinuar, setAvisoContinuar] = useState<string | null>(null);
   // Doble clic: el estado `enviando` tarda un render en apagar el botón; el ref es inmediato.
   const enviandoAhora = useRef(false);
+  // La marca de ESTA devolución (20261015162000): el navegador puede reenviar el envío por su cuenta si la conexión se corta, y la
+  // persona puede reintentar tras un corte. Con la misma marca, la base devuelve la devolución que ya guardó en vez de crear otra;
+  // con otra devolución, la rechaza (`token_reusado`). Una por cada devolución que se arma: «Registrar otra» monta el flujo de nuevo.
+  const token = useRef<string>(guardado?.token ?? crypto.randomUUID());
 
   // Lo armado, al día, para `TrabajoPorSede`: si la sede cambia, la devolución queda guardada en ESTA sede. Registrada, ya no hay nada
   // que guardar.
@@ -140,7 +146,7 @@ export function DevolucionesFlujo({
         ? {
             etiqueta: sede,
             unidades: Object.values(elegidas).reduce((a, i) => a + i.cantidad, 0),
-            trabajo: { venta, lineaInicialId, paso, elegidas, motivo, detalle },
+            trabajo: { venta, lineaInicialId, paso, elegidas, motivo, detalle, token: token.current },
             ...avisosDeLaDevolucion({ etiqueta: sede, clienta: compra.clienta, comprobante: compra.comprobante }),
           }
         : null,
@@ -242,6 +248,7 @@ export function DevolucionesFlujo({
       return;
     }
     if (!responsable.listo) {
+      setErrorIncierto(false);
       setError(responsable.motivo);
       return;
     }
@@ -262,6 +269,7 @@ export function DevolucionesFlujo({
         // D-79: el código cerrado va aparte del texto libre de arriba — ver
         // devoluciones-reglas.ts. `bloqueo || !motivo` ya frenó más arriba si faltara.
         p_motivo_codigo: motivo,
+        p_token: token.current,
       }),
       responsable.firma(),
     );
@@ -269,6 +277,7 @@ export function DevolucionesFlujo({
     setEnviando(false);
     responsable.despues(fallo);
     if (fallo) {
+      setErrorIncierto(esRespuestaIncierta(fallo));
       setError(traducirError(fallo, "registrar la devolución"));
       return;
     }
@@ -508,7 +517,7 @@ export function DevolucionesFlujo({
           {error && (
             // La base rechazó la operación: el aviso recibe el foco para que se lea y se oiga sin buscarlo. `traducirError` abre con
             // «No se pudo …» cuando no reconoce el error; con un mensaje de la base hay que decir además que no se guardó nada.
-            <Aviso tono="error" ref={errorRef} enfocable titulo={error.startsWith("No se pudo") ? undefined : "No se registró la devolución."}>
+            <Aviso tono="error" ref={errorRef} enfocable titulo={errorIncierto ? "No sabemos si se registró." : error.startsWith("No se pudo") ? undefined : "No se registró la devolución."}>
               {error}
             </Aviso>
           )}
@@ -519,9 +528,9 @@ export function DevolucionesFlujo({
               <BotonSecundario onClick={onCerrar} disabled={enviando}>
                 Cancelar
               </BotonSecundario>
-              <BotonRojo onClick={registrar} disabled={enviando || !responsable.listo} monto={soles(valorTotal)}>
-                {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
-                {enviando ? "Registrando…" : "Registrar devolución"}
+              <BotonRojo onClick={registrar} cargando={enviando} textoCargando="Registrando…" disabled={!responsable.listo} monto={soles(valorTotal)}>
+                <Check className="h-4 w-4" aria-hidden />
+                Registrar devolución
               </BotonRojo>
             </div>
           </PieDelPaso>
