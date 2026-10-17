@@ -44,7 +44,7 @@
 .c-corazon:focus-visible, .c-corazon-grande:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
 
 /* ---- «Avísame cuando llegue»: el botón ancho de la ficha (`t-btn t-btn-ancho t-btn-sec`). Un <button> no hereda la letra solo
-   (`.t-btn` no la pide): sin esto sale en la del sistema y no en DM Sans. ---- */
+   (`.t-btn` no la pide): sin esto sale en la del sistema y no en Heebo. ---- */
 .c-avisame { font-family: inherit; }
 /* Ya pedido y con su espera conocida: el mismo botón lo quita (el ✓ en verde dice que está anotado; la × al final, que se quita). */
 .c-avisame-pedido > .ic:first-child { color: var(--verde); }

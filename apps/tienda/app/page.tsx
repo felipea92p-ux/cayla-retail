@@ -5,7 +5,7 @@ import { Cabecera } from "@/components/Cabecera";
 import { CollageDePrendas } from "@/components/CollageDePrendas";
 import { CuentaRegresiva } from "@/components/CuentaRegresiva";
 import { Icono } from "@/components/Icono";
-import { Isotipo } from "@/components/Isotipo";
+import { Isotipo, TextoConMarca } from "@/components/Marca";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
 import { Pie } from "@/components/Pie";
 import { ConfianzaPortada } from "@/components/portada/ConfianzaPortada";
@@ -110,7 +110,9 @@ function TextoDelHeroe({ hero, campana }: { hero: Hero; campana: Campana | null 
         <span className="t-hero-ceja">Recién llegado</span>
         <h1 className="t-hero-tit">
           <span>Lo nuevo</span>
-          <em>de CAYLA</em>
+          <em>
+            <TextoConMarca texto="de CAYLA" />
+          </em>
         </h1>
         <p className="t-hero-desc">
           <b>Lo que llegó a nuestras tiendas en los últimos 30 días.</b> Crea tu cuenta para ver precios, tallas y cuánto hay en cada tienda.
@@ -138,8 +140,14 @@ function TextoCampana({ campana }: { campana: Campana }) {
         )}
       </span>
       <h1 className="t-hero-tit">
-        <span>{linea}</span>
-        {cursiva && <em>{cursiva}</em>}
+        <span>
+          <TextoConMarca texto={linea} />
+        </span>
+        {cursiva && (
+          <em>
+            <TextoConMarca texto={cursiva} />
+          </em>
+        )}
       </h1>
       <p className="t-hero-desc">
         <b>−{pctTexto(campana.pct)} % en prendas elegidas.</b> Crea tu cuenta para ver los precios, cuánto hay en cada tienda y separar.

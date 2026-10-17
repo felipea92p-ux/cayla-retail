@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Isotipo } from "./Isotipo";
+import { Logo } from "./Marca";
 
 /**
  * La cabecera de quien no tiene cuenta (la portada, entrar, crear la cuenta, las páginas públicas): en la computadora, por dónde
@@ -12,8 +12,7 @@ export function Cabecera({ enPagina }: { enPagina?: "entrar" | "crear-cuenta" })
     <header className="t-cab">
       <div className="t-cab-fila">
         <Link className="t-logo" href="/" aria-label="CAYLA, ir a la portada">
-          <Isotipo />
-          <span>CAYLA</span>
+          <Logo />
         </Link>
         <nav className="t-nav" aria-label="Conoce CAYLA">
           <Link className="t-nav-b" href="/como-separar">

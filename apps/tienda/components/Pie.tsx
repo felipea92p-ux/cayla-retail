@@ -3,7 +3,7 @@ import { hrefLista } from "@/lib/catalogo";
 import { hrefLooks } from "@/lib/looks";
 import { TEMAS_DE_AYUDA } from "./ayuda/temas";
 import { Icono } from "./Icono";
-import { Isotipo } from "./Isotipo";
+import { Logo } from "./Marca";
 import "@/app/estilos/pie.css";
 
 type Columna = { titulo: string; enlaces: [string, string][] };
@@ -77,8 +77,7 @@ export function Pie({ anio, conCuenta = false, sede = null }: { anio: number; co
           <div className="t-pie-in">
             <div className="t-pie-marca">
               <Link className="t-logo" href={conCuenta ? "/inicio" : "/"} aria-label={conCuenta ? "CAYLA, ir al inicio" : "CAYLA, ir a la portada"}>
-                <Isotipo />
-                <span>CAYLA</span>
+                <Logo />
               </Link>
               <p>Separa online, confirma por WhatsApp y recoge en tu tienda.</p>
             </div>

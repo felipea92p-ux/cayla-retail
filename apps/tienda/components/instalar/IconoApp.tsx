@@ -1,4 +1,4 @@
-import { Isotipo } from "../Isotipo";
+import { Isotipo } from "../Marca";
 
 /** El ícono de CAYLA como queda en la pantalla de inicio: el colibrí rojo sobre el crema del archivo (`public/cayla-app-*.png`). */
 export function IconoApp({ className = "" }: { className?: string }) {

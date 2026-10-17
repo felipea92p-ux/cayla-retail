@@ -7,7 +7,7 @@ import { CollageDePrendas } from "@/components/CollageDePrendas";
 import { CuentaRegresiva } from "@/components/CuentaRegresiva";
 import { FotoTarjeta } from "@/components/FotoTarjeta";
 import { Icono } from "@/components/Icono";
-import { Isotipo } from "@/components/Isotipo";
+import { Isotipo, TextoConMarca } from "@/components/Marca";
 import { TarjetaLook } from "@/components/looks/TarjetaLook";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
@@ -338,7 +338,10 @@ function Heroe({
           <>
             <span className="t-hero-ceja">Recién llegado</span>
             <h1 className="t-hero-tit">
-              <span>Lo nuevo</span> <em>de CAYLA</em>
+              <span>Lo nuevo</span>{" "}
+              <em>
+                <TextoConMarca texto="de CAYLA" />
+              </em>
             </h1>
             <p className="t-hero-desc">Lo que llegó a nuestras tiendas en los últimos 30 días.</p>
             <div className="t-hero-acciones">
@@ -380,11 +383,15 @@ function TituloHeroe({ texto }: { texto: string }) {
   const [linea, cursiva] = partirTitulo(texto);
   return (
     <h1 className="t-hero-tit">
-      <span>{linea}</span>
+      <span>
+        <TextoConMarca texto={linea} />
+      </span>
       {cursiva && (
         <>
           {" "}
-          <em>{cursiva}</em>
+          <em>
+            <TextoConMarca texto={cursiva} />
+          </em>
         </>
       )}
     </h1>

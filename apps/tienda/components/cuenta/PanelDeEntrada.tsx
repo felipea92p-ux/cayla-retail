@@ -9,7 +9,7 @@ import {
   type CaminoDeAcceso,
 } from "@/lib/panel-entrada";
 import { Icono } from "../Icono";
-import { Isotipo } from "../Isotipo";
+import { Isotipo } from "../Marca";
 import { TarjetaClub } from "../TarjetaClub";
 import { EntradaViva, PasosDeAcceso, TarjetaConTuNombre } from "./EntradaViva";
 
