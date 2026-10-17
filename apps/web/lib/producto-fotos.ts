@@ -1,5 +1,5 @@
 import type { createClient } from "@/lib/supabase/client";
-import { rutasFotoPrenda } from "@/lib/foto-encuadre";
+import { rutaDeLaFoto } from "@/lib/foto-encuadre";
 import { rutaDelRecorte } from "@/lib/recorte-probador-reglas";
 
 // Subida de fotos de producto desde el NAVEGADOR
@@ -17,28 +17,15 @@ import { rutaDelRecorte } from "@/lib/recorte-probador-reglas";
 // como `p_fotos`) — este archivo sube bytes y devuelve la URL. Desde el
 // ADR-0434, además le pide por detrás su recorte al probador de la tienda.
 //
-// Desde el ADR-0228 (2026-09-26) lo que llega acá ya viene preparado en el
-// navegador (`preparar-foto.ts`): encuadrado en 1200×1500 sobre blanco, con o
-// sin fondo según eligió quien la sube. Se guarda en `fotos/<id>.jpg` y, si
-// viene, su original en `originales/<id>.jpg` —mismo id—, para poder volver a
-// procesar el catálogo sin volver a fotografiar nada.
+// Desde el ADR-0442 (Felipe, 2026-10-17) la foto se sube TAL CUAL la entrega la IA del equipo: sin quitar el fondo, sin corregir la luz,
+// sin encuadrarla ni reducirla. Se guarda en `fotos/<id>.<jpg|png|webp>` con la extensión de lo que es (un PNG con fondo transparente
+// es lo que alimenta el armador de looks) y ya no hay `originales/`: la foto ES el original.
 
 type Cliente = ReturnType<typeof createClient>;
 
 export const PRODUCTO_FOTOS_BUCKET = "retail-productos-fotos";
 export const PRODUCTO_FOTOS_MAX_BYTES = 5 * 1024 * 1024;
 const TIPOS_ACEPTADOS = ["image/jpeg", "image/png", "image/webp"] as const;
-
-/** Lo que se puede ELEGIR para subir (ADR-0228): la foto no se sube tal cual —se reduce y encuadra antes—, así que
- *  aguanta la foto entera de un celular. Lo que llega al almacén lo vuelve a validar `objecionFotoProducto`. */
-export const FOTO_ELEGIDA_MAX_BYTES = 25 * 1024 * 1024;
-
-export function objecionFotoElegida(f: File): string | null {
-  if (!(TIPOS_ACEPTADOS as readonly string[]).includes(f.type)) return "Solo se aceptan JPG, PNG o WebP.";
-  if (f.size <= 0) return "El archivo está vacío.";
-  if (f.size > FOTO_ELEGIDA_MAX_BYTES) return `Pesa ${(f.size / (1024 * 1024)).toFixed(1)} MB; el máximo es 25 MB.`;
-  return null;
-}
 
 export function objecionFotoProducto(f: File): string | null {
   if (!(TIPOS_ACEPTADOS as readonly string[]).includes(f.type)) return "Solo se aceptan JPG, PNG o WebP.";
@@ -61,28 +48,24 @@ function leerErrorStorage(mensaje: string): string {
 export type ResultadoSubidaFoto = { url: string } | { error: string };
 
 /**
- * Sube UNA foto y devuelve su URL pública, o el motivo por el que no se pudo. `original` es la foto tal cual la tomaron
- * (ADR-0228): si no sube, la foto elegida sigue siendo válida y se sube igual —perder el original solo quita la opción
- * de reprocesarla, no la foto del producto—.
+ * Sube UNA foto tal cual y devuelve su URL pública, o el motivo por el que no se pudo (ADR-0442). Después, por detrás, intenta su
+ * recorte para el armador de looks: solo lo logra si la imagen trae fondo transparente.
  */
-export async function subirFotoProducto(supabase: Cliente, archivo: File, original?: Blob | null): Promise<ResultadoSubidaFoto> {
+export async function subirFotoProducto(supabase: Cliente, archivo: File): Promise<ResultadoSubidaFoto> {
   const objecion = objecionFotoProducto(archivo);
   if (objecion) return { error: objecion };
 
+  const ruta = rutaDeLaFoto(crypto.randomUUID(), archivo.type);
+  if (!ruta) return { error: "Solo se aceptan JPG, PNG o WebP." };
   const almacen = supabase.storage.from(PRODUCTO_FOTOS_BUCKET);
-  const rutas = rutasFotoPrenda(crypto.randomUUID());
-  if (original) {
-    const subidaOriginal = await almacen.upload(rutas.original, original, { contentType: original.type || "image/jpeg", upsert: false });
-    if (subidaOriginal.error) console.warn("[producto-fotos] el original no subió", subidaOriginal.error.message);
-  }
-  const subida = await almacen.upload(rutas.foto, archivo, { contentType: archivo.type, upsert: false });
+  const subida = await almacen.upload(ruta, archivo, { contentType: archivo.type, upsert: false });
   if (subida.error) return { error: leerErrorStorage(subida.error.message) };
 
-  const url = almacen.getPublicUrl(rutas.foto).data.publicUrl;
+  const url = almacen.getPublicUrl(ruta).data.publicUrl;
   // El recorte para el probador de la tienda online (ADR-0434, actividad 2), por detrás: no hace esperar a quien sube la foto y, si
   // falla, la foto queda «sin recorte» para «Preparar recortes». Se carga recién aquí: casi ninguna pantalla lo necesita.
   void import("@/lib/recorte-probador")
-    .then((m) => m.recortarAlSubir(supabase, { foto: rutas.foto, url }, archivo, original ?? null))
+    .then((m) => m.recortarAlSubir(supabase, { foto: ruta, url }, archivo))
     .catch((err) => console.warn("[producto-fotos] no se pudo empezar el recorte", err));
   return { url };
 }

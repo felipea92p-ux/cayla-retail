@@ -803,8 +803,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (reemplazó a `components/FotosProducto.tsx`, la galería suelta con un combo de los 71 colores): un rectángulo por cada color
   que la prenda vende (`coloresFicha`, las variantes activas), con su portada o «Agregar foto de Beige», más «Todos los colores»
   y un bloque para las fotos de un color sin variantes activas. Las reglas —qué ve cada color, la principal, el orden, pasar de
-  color— son de `lib/fotos-por-color-reglas.ts` (pura, con `.test.ts`); elegir → revisar (`RevisarFotosModal`, ADR-0228) → subir
-  es el hook `components/ficha-producto/useSubirFotos.tsx`, que también usa `AgregarColoresModal` (casilla «Foto de cada
+  color— son de `lib/fotos-por-color-reglas.ts` (pura, con `.test.ts`); elegir → subir tal cual (ADR-0442; antes pasaba por `RevisarFotosModal`, ADR-0228)
+  es el hook `components/ficha-producto/useSubirFotos.ts`, que también usa `AgregarColoresModal` (casilla «Foto de cada
   color»; sus fotos suben a la ficha por `ProductoForm.agregarColores` → `sumarFotosDeColores`). Recibe las
   fotos como se ven (`fotosComoSeVen`) y devuelve la lista; el anclaje al color de origen (`anclarFotos`) y `p_fotos` de
   `catalogo_actualizar_producto` siguen en `ProductoForm`. Sin migración.
@@ -879,8 +879,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   recortes; y los largos típicos) y `fn_vitrina_recortes` (cada foto con su original y su recorte) → `ProbadorPantalla.tsx` (cifras, la
   lista de prendas y la hoja de contactos de recortes) + `ProbadorPrendaHoja.tsx` (`vitrina_guardar_largo`; reglas en
   `lib/vitrina-probador-reglas.ts`, ejemplo del largo en `lib/sugerencias-largo-probador.ts`) + `LargosTipicosHoja.tsx`
-  (`vitrina_guardar_largos_tipicos`; `vitrina_productos.largo_cm` y `retail.vitrina_largos_tipicos`, `20261017015000`) + `PrepararRecortesHoja.tsx` (recorta EN EL NAVEGADOR con MODNet sobre el original, `lib/recorte-probador.ts`:
-  los colores de la foto de la tienda y la transparencia de `mascaraDePrenda` de `lib/preparar-foto.ts`; sube `recortes/<id>-<sello>.png`
+  (`vitrina_guardar_largos_tipicos`; `vitrina_productos.largo_cm` y `retail.vitrina_largos_tipicos`, `20261017015000`) + `PrepararRecortesHoja.tsx` (saca EN EL NAVEGADOR el recorte de la propia foto, `lib/recorte-probador.ts`:
+  el color y la transparencia del PNG sin fondo que entrega la IA, limpiados con `limpiarAlfa` (ADR-0442; antes MODNet); una foto sin transparencia queda sin recorte; sube `recortes/<id>-<sello>.png`
   con `subirRecorteDeFoto` y anota con `registrar_recorte`) + `RevisarRecorteHoja.tsx` (`revisar_recorte`: usar o descartar; el «Deshacer»
   de un descarte es `deshacer_descarte_recorte`, solo si sigue descartado, `20261017183000`). Ninguna
   foto se modifica. Reglas puras en `lib/recorte-probador-reglas.ts`, guía de foco en `lib/vitrina-probador-guia.ts`; tabla

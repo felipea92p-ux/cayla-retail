@@ -1,11 +1,9 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
-import { objecionFotoElegida } from "@/lib/producto-fotos";
-import { comoArchivo } from "@/lib/preparar-foto";
-import { RevisarFotosModal, type FotoElegida } from "@/components/RevisarFotosModal";
+import { objecionFotoProducto } from "@/lib/producto-fotos";
 
 // Las fotos del alta, POR COLOR, sin subir nada todavía (spike Nuevo producto, 2026-09-24).
 //
@@ -18,43 +16,34 @@ import { RevisarFotosModal, type FotoElegida } from "@/components/RevisarFotosMo
 // producto sigue siendo una sola transacción: si una foto no sube, el producto ya existe y la pantalla de éxito dice
 // cuál faltó (principio 9: se degrada, no pierde el producto).
 //
-// Desde el ADR-0228 cada foto pasa antes por la revisión (`RevisarFotosModal`): lo que queda acá ya es la foto
-// preparada —1200×1500 sobre blanco, sin fondo o con su fondo— y su original, que se suben juntos al crear.
+// Desde el ADR-0442 (Felipe, 2026-10-17) la foto no pasa por ninguna revisión ni preparación: queda aquí TAL CUAL la entrega la IA del
+// equipo (un PNG con fondo transparente, por ejemplo) y se sube igual al crear. Antes, `RevisarFotosModal` la preparaba (ADR-0228).
 
 export type FotoPendiente = {
   clave: string;
-  /** La foto preparada (encuadrada, con o sin fondo): la que se sube y se muestra. */
+  /** La foto tal cual la eligieron: la que se sube y se muestra. */
   archivo: File;
-  /** La foto tal cual la tomaron, reducida: se guarda al lado para poder reprocesarla (ADR-0228). */
-  original: Blob | null;
   /** URL local (blob:) solo para mostrarla; se libera al quitarla o al salir. */
   vista: string;
   colorCodigo: string | null;
 };
 
 /** Agregar y quitar fotos pendientes, compartido por esta grilla y por la tabla de la prenda (`MatrizVariantes`, spike
- *  v2 2026-09-28: la foto va en la fila de su color). Cada archivo elegido pasa primero por `RevisarFotosModal`
- *  (ADR-0228); `revision` es ese modal, y quien use el hook lo pinta donde quiera. */
+ *  v2 2026-09-28: la foto va en la fila de su color). Cada archivo elegido se valida y queda pendiente tal cual (ADR-0442). */
 export function useFotosPendientes({ fotos, onFotos }: { fotos: FotoPendiente[]; onFotos: (f: FotoPendiente[]) => void }) {
-  const [porRevisar, setPorRevisar] = useState<{ archivos: File[]; colorCodigo: string | null } | null>(null);
   function agregar(archivos: File[], colorCodigo: string | null) {
     const buenas: File[] = [];
     const malas: string[] = [];
     for (const archivo of archivos) {
-      const objecion = objecionFotoElegida(archivo);
+      const objecion = objecionFotoProducto(archivo);
       if (objecion) malas.push(`${archivo.name}: ${objecion}`);
       else buenas.push(archivo);
     }
     if (malas.length) avisar.error(malas.length === 1 ? "Una foto no se puede usar" : `${malas.length} fotos no se pueden usar`, { detalle: malas.join(" · ") });
-    if (buenas.length) setPorRevisar({ archivos: buenas, colorCodigo });
-  }
-
-  function usar(elegidas: FotoElegida[], colorCodigo: string | null) {
-    const nuevas: FotoPendiente[] = elegidas.map((e) => {
-      const archivo = comoArchivo(e.foto, "foto.jpg");
-      return { clave: crypto.randomUUID(), archivo, original: e.original, vista: URL.createObjectURL(archivo), colorCodigo };
-    });
-    onFotos([...fotos, ...nuevas]);
+    if (buenas.length) {
+      const nuevas: FotoPendiente[] = buenas.map((archivo) => ({ clave: crypto.randomUUID(), archivo, vista: URL.createObjectURL(archivo), colorCodigo }));
+      onFotos([...fotos, ...nuevas]);
+    }
   }
 
   function quitar(clave: string) {
@@ -63,18 +52,7 @@ export function useFotosPendientes({ fotos, onFotos }: { fotos: FotoPendiente[];
     onFotos(fotos.filter((x) => x.clave !== clave));
   }
 
-  const revision = porRevisar ? (
-    <RevisarFotosModal
-      fuentes={porRevisar.archivos.map((a, i) => ({ clave: String(i), etiqueta: a.name, blob: a }))}
-      onListo={(elegidas, cerrar) => {
-        usar(elegidas, porRevisar.colorCodigo);
-        cerrar();
-      }}
-      onClose={() => setPorRevisar(null)}
-    />
-  ) : null;
-
-  return { agregar, quitar, revision };
+  return { agregar, quitar };
 }
 
 /** La × que va sobre la miniatura de una foto y dice, sin abrir nada, «aquí se quita». Antes «Quitar» solo vivía dentro de la

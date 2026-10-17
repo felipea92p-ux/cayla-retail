@@ -52,10 +52,8 @@ const config: KnipConfig = {
     "apps/web": {
       // Las rutas de Next (`app/**`, `proxy.ts`), las pruebas de Vitest y los CLI de `package.json` los encuentra Knip solo. Estos no:
       entry: [
-        // Se cargan por URL desde el navegador: `navigator.serviceWorker.register("/sw.js")` (ADR-0210) y
-        // `new Worker("/quitar-fondo.worker.js")` (ADR-0228). Llegan a la tienda: llevan `!`.
+        // Se carga por URL desde el navegador: `navigator.serviceWorker.register("/sw.js")` (ADR-0210). Llega a la tienda: lleva `!`.
         "public/sw.js!",
-        "public/quitar-fondo.worker.js!",
         // Se leen como texto y se inyectan en la página que se mide (`tema/cli.mjs`, `unificar/cli.mjs`, `unificar/fotos.mjs`).
         "tema/motor/escaner-en-pagina.js",
         "unificar/motor/censo-en-pagina.js",
