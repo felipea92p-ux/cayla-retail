@@ -25,6 +25,7 @@ import {
 } from "@/lib/fotos-por-color-reglas";
 import { PuntoColor } from "./piezas";
 import { useSubirFotos } from "./useSubirFotos";
+import { Aviso } from "@/components/ui/Aviso";
 
 // La sección «Fotos por color» de la ficha de una prenda (ADR-0279; spike docs/maquetas/producto-fotos-por-color-2026-09/,
 // versión C que eligió Felipe el 2026-09-29). Un rectángulo por cada color que la prenda vende: la portada de ese color, o
@@ -157,15 +158,13 @@ export function FotosPorColor({
       </ul>
 
       {vista.huerfanas.length > 0 && (
-        <div className="space-y-3 rounded-xl border border-dashed border-ambar/60 bg-ambar/5 p-3.5">
-          <p className="text-[13px] text-tinta">
-            <b className="font-semibold text-ambar-profundo">
-              {vista.huerfanas.length === 1 ? "1 foto es de un color sin variantes activas." : `${vista.huerfanas.length} fotos son de colores sin variantes activas.`}
-            </b>{" "}
-            Se guardan igual y vuelven a su tarjeta si ese color se activa. Pásala a otro color o quítala si ya no sirve.
-          </p>
+        <Aviso
+          tono="atencion"
+          titulo={vista.huerfanas.length === 1 ? "1 foto es de un color sin variantes activas." : `${vista.huerfanas.length} fotos son de colores sin variantes activas.`}
+        >
+          <p>Se guardan igual y vuelven a su tarjeta si ese color se activa. Pásala a otro color o quítala si ya no sirve.</p>
           {vista.huerfanas.map((f) => (
-            <div key={f.clientKey} className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <div key={f.clientKey} className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
               <Miniatura foto={f} ancho="w-14" />
               <p className="min-w-0 flex-1 basis-32 text-[13px] text-tinta">
                 Era de <b className="font-semibold">{nombreColor(f.colorCodigo)}</b>
@@ -185,7 +184,7 @@ export function FotosPorColor({
               </button>
             </div>
           ))}
-        </div>
+        </Aviso>
       )}
 
       <p className="text-xs text-tinta/45">JPG, PNG o WebP, hasta 25 MB. Cada foto sale del mismo tamaño, sobre blanco; antes de subirla eliges si va sin fondo.</p>

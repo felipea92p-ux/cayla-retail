@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Flag, Package, SearchX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -26,7 +27,6 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { ElegirPrendas } from "@/components/conteo/ElegirPrendas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
-import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { Boton } from "@/components/ui/campos";
@@ -270,13 +270,15 @@ export function AbrirConteo({
           {/* Antes de contar: lo que viene en camino y no se recibió no está en el stock de esta sede. Si ya está en el rack, sale
               «de más»; si no, se recibe después y descuadra lo contado. */}
           {!!trasladosPorAtender && trasladosPorAtender > 0 && (
-            <div data-guia="conteo.aviso-traslados" className="flex flex-col items-start gap-1.5 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm @[36rem]:flex-row @[36rem]:items-center @[36rem]:gap-3">
-              <span className="min-w-0 flex-1 text-tinta">
-                <b className="font-semibold">Antes de contar:</b> hay {trasladosPorAtender === 1 ? "1 traslado" : `${trasladosPorAtender} traslados`} hacia esta sede por
-                atender. Recíbelos primero, o esas prendas saldrán como diferencia.
-              </span>
-              <EnlaceVer href="/inventario/traslados">Ver traslados</EnlaceVer>
-            </div>
+            <Aviso
+              tono="atencion"
+              guia="conteo.aviso-traslados"
+              titulo="Antes de contar"
+              accion={<Link href="/inventario/traslados">Ver traslados</Link>}
+            >
+              Hay {trasladosPorAtender === 1 ? "1 traslado" : `${trasladosPorAtender} traslados`} hacia esta sede por atender. Recíbelos
+              primero, o esas prendas saldrán como diferencia.
+            </Aviso>
           )}
 
           {separaPisoAlmacen && (

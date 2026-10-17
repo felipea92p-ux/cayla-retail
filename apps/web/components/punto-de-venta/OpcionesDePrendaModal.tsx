@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, ChevronDown } from "lucide-react";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { Chip } from "@/components/ui/Chip";
@@ -317,7 +317,11 @@ function CombinaBienCon({
                       <span className="block truncate text-[13.5px] font-semibold text-tinta">{t.referencia}</span>
                       <span className="block truncate text-[12px] text-tinta/70">
                         {t.colorNombre ?? "Sin color"}
-                        <span className="text-taupe"> · {abierta === clave ? "Ocultar tallas" : "Ver tallas ›"}</span>
+                        <span className="inline-flex items-center gap-0.5 text-taupe">
+                          {" · "}
+                          {abierta === clave ? "Ocultar tallas" : "Ver tallas"}
+                          <ChevronDown aria-hidden className={`h-3 w-3 transition-transform duration-300 ease-cayla motion-reduce:transition-none ${abierta === clave ? "rotate-180" : ""}`} />
+                        </span>
                       </span>
                     </span>
                   </button>

@@ -57,3 +57,12 @@ suman** (ya no son excepción: el kit de Finanzas dejó `GuiaVacia`, `.fin-guia`
 Migrado entero en un commit por módulo (mostrador, Inventario y Caja, Compras y Producción, Catálogo/Colaboradores/Clientes, Finanzas y
 Análisis). Deuda: **0**. Lo que las firmas no veían y se migró igual: el vacío de Existencias (ahora con su lista de «no recibido» en
 el `detalle` de la pieza), los buscadores y vacíos de Apartados (Apartar, Entregar, Todos) y el «Nada coincide» de los combos.
+
+## Control (2026-10-17)
+
+La primera firma terminaba en `\b` después de `bg-ambar/[0.07]`: tras un «]» no hay frontera de palabra, así que ningún fondo entre
+corchetes coincidía y **31 recuadros quedaron sin migrar** (la deuda decía 0). Se corrigió la frontera (`(?![\w-])`), se agregó una firma
+por el recuadro con borde de tono y **25 pasaron a `<Aviso>`** (Conteo, Cuadrar el piso, Bajar al piso, Cambios, Compras, Producción,
+Series, Terminales, el candado de turno, «Sin conexión», la cola sin conexión, `PreguntaParecido`, Fotos por color y el de Comprobantes);
+los botones que traían van adentro, como en Cerrar caja. Seis que no eran avisos llevan `unificar-fijo`. Detalle:
+[control/2026-10-16.md](control/2026-10-16.md).

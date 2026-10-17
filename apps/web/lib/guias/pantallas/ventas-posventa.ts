@@ -52,7 +52,7 @@ export const GUIA_COMPROBANTES_MES: Guia = {
       id: "mes",
       ancla: "comprobantes.mes",
       titulo: "El mes que miras",
-      texto: "Con la flecha vas al mes anterior; si estás en uno pasado, aparece la flecha al siguiente. Todo lo de abajo cambia con el mes (te llevamos al mes pasado en el paso siguiente).",
+      texto: "Con las flechas pasas al mes de al lado y, si tocas el nombre, eliges cualquier mes del año. Todo lo de abajo cambia con el mes (te llevamos al mes pasado en el paso siguiente).",
     },
     {
       id: "mes-pasado",
@@ -60,7 +60,7 @@ export const GUIA_COMPROBANTES_MES: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "comprobantes.mes-anterior" }],
       titulo: "Un mes atrás",
-      texto: "Ahora las cifras y la lista son del mes pasado, y a la derecha apareció la flecha para volver. Sirve para revisar un cierre de mes o encontrar una boleta vieja.",
+      texto: "Ahora las cifras y la lista son del mes pasado, y la flecha de la derecha se encendió para volver. Sirve para revisar un cierre de mes o encontrar una boleta vieja.",
     },
     {
       id: "mes-volver",
@@ -216,7 +216,7 @@ export const GUIA_PROFORMAS: Guia = {
       id: "mes",
       ancla: "comprobantes.mes",
       titulo: "El mes",
-      texto: "Con la flecha ves las proformas de meses anteriores. Las que siguen vigentes aparecen siempre, sean del mes que sean.",
+      texto: "Con las flechas, o tocando el nombre del mes, ves las proformas de meses anteriores. Las que siguen vigentes aparecen siempre, sean del mes que sean.",
     },
     {
       id: "cifras",

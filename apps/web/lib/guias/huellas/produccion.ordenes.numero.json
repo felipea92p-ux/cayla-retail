@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 94,
+  "total": 92,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -30,9 +30,7 @@
     "components/alta-producto/MatrizCantidades.tsx": [
       "SegmentoDeslizante «Qué escribes en la tabla»",
       "input «1»",
-      "button «{`Restar a ${etiqueta}»",
-      "input «{`${preguntaCelda}»",
-      "button «{`Sumar a ${etiqueta}»",
+      "input «(sin nombre)»",
       "input «{`${enCostos ? \"Costo\" : \"Precio\"}»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [

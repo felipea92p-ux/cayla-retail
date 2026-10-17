@@ -49,7 +49,7 @@
       "Pestanas «(sin nombre)»"
     ],
     "components/FacturacionShell.tsx": [
-      "Link «comprobantes.aviso-sunat»"
+      "Link «Ver Por enviar»"
     ],
     "components/OpcionesComprobante.tsx": [
       "a «{tieneNumero && primerNombre ? `WhatsApp a ${primerNombre}»",

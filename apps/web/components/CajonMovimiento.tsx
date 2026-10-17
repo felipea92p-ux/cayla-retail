@@ -2,19 +2,15 @@
 
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, FileText, History, ListChecks, X } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, FileText, History, ListChecks } from "lucide-react";
 import { MiniaturaPrenda, SinFoto } from "@/components/ui/PrendaCelda";
-import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
+import { Cajon } from "@/components/ui/Cajon";
 import { SelloTipo } from "@/components/movimientos/SelloTipo";
 import { TrayectoMovimiento } from "@/components/movimientos/TrayectoMovimiento";
 import type { ConsultarLink, DetalleBajadas, DetalleCajon, ItemPrenda, PasoCajon, RutaCajon, TonoCifra, VistaCajon } from "@/lib/movimientos-cajon";
 import { TIPOS_VISUALES, type TipoVisual } from "@/lib/movimientos-tipos";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
-
-/** Debe coincidir con `.anim-cajon-salida` en globals.css (mismo contrato que `PanelTalla`). */
-const MS_SALIDA = 240;
 
 /* ====================================================================
    Cajón de detalle de Movimientos (diseño aprobado por Felipe, 2026-09-28; simplificado el 2026-10-01)
@@ -43,22 +39,6 @@ const TONO_TEXTO: Record<TonoCifra, string> = {
   rojo: "text-rojo",
   neutro: "text-tinta",
 };
-
-/** Nombre del movimiento y cuándo, en una cabecera con el color y el sello de su tipo (ADR-0353): el mismo ícono y color que
- *  la fila de la lista, así se reconoce al abrirlo. El título es el mismo texto que la lista dice para esa fila. */
-function Encabezado({ titulo, cuando, tipo }: { titulo: string; cuando: string; tipo: TipoVisual }) {
-  return (
-    <div className="mv-cajon-cab" data-mv-tono={TIPOS_VISUALES[tipo].tono}>
-      <SelloTipo tipo={tipo} tamano={56} />
-      <div className="min-w-0 pr-9">
-        <Dialog.Title asChild>
-          <h2 className="font-display text-[26px] leading-tight text-tinta">{titulo}</h2>
-        </Dialog.Title>
-        <Dialog.Description className="mt-1 text-[15px] tabular-nums text-taupe">{cuando}</Dialog.Description>
-      </div>
-    </div>
-  );
-}
 
 /** De dónde a dónde fue, con la prenda que viaja: el mismo trayecto de la fila. */
 function BloqueRuta({ ruta, tipo }: { ruta: RutaCajon; tipo: TipoVisual }) {
@@ -229,7 +209,6 @@ function FilaEnlace({ link, onVerVenta }: { link: ConsultarLink; onVerVenta?: ()
 function ContenidoBajadas({ b }: { b: DetalleBajadas }) {
   return (
     <>
-      <Encabezado titulo={b.titulo} cuando={b.cuando} tipo={b.tipo} />
       <Hero cifra={b.cifra} frase={b.frase} quien={b.quien} />
       <p className="mt-3 text-[13.5px] leading-snug text-taupe">{b.nota}</p>
       {b.ruta && <BloqueRuta ruta={b.ruta} tipo={b.tipo} />}
@@ -264,7 +243,6 @@ function ContenidoBajadas({ b }: { b: DetalleBajadas }) {
 function ContenidoOperacion({ d, onVerVenta }: { d: DetalleCajon; onVerVenta?: () => void }) {
   return (
     <>
-      <Encabezado titulo={d.titulo} cuando={d.cuando} tipo={d.tipo} />
       {d.prenda && <BloquePrenda prenda={d.prenda} />}
       <Hero cifra={d.cifra} frase={d.frase} donde={d.donde} quien={d.quien} />
       {d.ruta && <BloqueRuta ruta={d.ruta} tipo={d.tipo} />}
@@ -326,43 +304,20 @@ export function CajonMovimiento({
   onVerVenta?: () => void;
   onCerrar: () => void;
 }) {
-  const [cerrando, setCerrando] = useState(false);
-  const pedirCierre = useCallback(() => setCerrando(true), []);
-  useEffect(() => {
-    if (!cerrando) return;
-    const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const t = setTimeout(onCerrar, reducido ? 0 : MS_SALIDA);
-    return () => clearTimeout(t);
-  }, [cerrando, onCerrar]);
-  const alEscape = useEscapeLibre(pedirCierre);
-
+  // La cabecera del cajón lleva el sello y el nombre del movimiento (ADR-0353), en la banda de la pieza (ADR-0358, ronda 17). Sin
+  // velo: la página sigue viva detrás, y pasar de un movimiento a otro (`clave`) re-asienta el contenido sin cerrar el cajón.
+  const d = vista.detalle;
   return (
-    <Dialog.Root open modal={false} onOpenChange={(abierto) => !abierto && pedirCierre()}>
-      <Dialog.Portal>
-        <Dialog.Content
-          data-guia="movimientos.cajon"
-          onEscapeKeyDown={alEscape}
-          onInteractOutside={(e) => e.preventDefault()}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-[29.5rem] flex-col border-l border-sand bg-papel outline-none ${cerrando ? "anim-cajon-salida" : "anim-cajon"}`}
-        >
-          {/* `key`: pasar de un movimiento a otro re-asienta el contenido sin cerrar/reabrir el cajón (mismo patrón que PanelTalla). */}
-          <div key={vista.detalle.clave} className="anim-asentar flex min-h-0 flex-1 flex-col">
-            <button
-              type="button"
-              onClick={pedirCierre}
-              aria-label="Cerrar"
-              className="absolute right-5 top-5 z-10 rounded-full p-1.5 text-tinta transition-colors hover:bg-tinta/[0.05] hover:text-rojo"
-            >
-              <X aria-hidden className="h-5 w-5" />
-            </button>
-
-            <div className="scroll-cayla min-h-0 flex-1 overflow-y-auto px-[30px] pb-8 pt-8">
-              {vista.tipo === "bajadas" ? <ContenidoBajadas b={vista.detalle} /> : <ContenidoOperacion d={vista.detalle} onVerVenta={onVerVenta} />}
-            </div>
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <Cajon
+      onCerrar={onCerrar}
+      velo={false}
+      clave={d.clave}
+      guia="movimientos.cajon"
+      marca={<SelloTipo tipo={d.tipo} tamano={40} />}
+      titulo={d.titulo}
+      frase={<span className="tabular-nums">{d.cuando}</span>}
+    >
+      {vista.tipo === "bajadas" ? <ContenidoBajadas b={vista.detalle} /> : <ContenidoOperacion d={vista.detalle} onVerVenta={onVerVenta} />}
+    </Cajon>
   );
 }

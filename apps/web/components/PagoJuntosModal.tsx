@@ -359,7 +359,7 @@ export function PagoJuntosModal({
           </section>
 
           {saldoFavor > 0 && (
-            <div className="rounded-xl border border-verde/40 bg-verde/[0.06] p-4">
+            <div /* unificar-fijo: el saldo a favor con su interruptor para usarlo, no un aviso */ className="rounded-xl border border-verde/40 bg-verde/[0.06] p-4">
               <div className="flex items-center gap-3">
                 <button
                   type="button"

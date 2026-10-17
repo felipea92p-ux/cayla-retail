@@ -117,12 +117,17 @@ export function ElegirPrendas({
       )}
 
       {hayLugar && estado === "fallo" && (
-        <div role="alert" className="flex flex-col items-start gap-1.5 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm @[36rem]:flex-row @[36rem]:items-center @[36rem]:gap-3">
-          <span className="min-w-0 flex-1 text-tinta">No pudimos cargar las prendas. Puedes reintentar, o contar «Todo» o «Una categoría», que no las necesitan.</span>
-          <button type="button" onClick={reintentar} className="btn-cayla btn-secundario text-sm">
-            Reintentar
-          </button>
-        </div>
+        <Aviso
+          tono="atencion"
+          titulo="No pudimos cargar las prendas."
+          accion={
+            <button type="button" onClick={reintentar}>
+              Reintentar
+            </button>
+          }
+        >
+          Puedes reintentar, o contar «Todo» o «Una categoría», que no las necesitan.
+        </Aviso>
       )}
 
       {listo && (

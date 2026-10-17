@@ -2,7 +2,7 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 130,
+  "total": 121,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «/recibir»",
@@ -62,9 +62,6 @@
       "button «No, recibir sin factura»",
       "BotonDeshacer «→deshacer»",
       "Link «Crearla en Nuevo producto»",
-      "button «Una menos»",
-      "input «Cantidad»",
-      "button «Una más»",
       "input «{`Costo por prenda de ${p.referencia}»",
       "button «{`Quitar ${p.referencia}»",
       "ComboResponsable «{responsable}»",
@@ -95,9 +92,6 @@
       "Boton «(sin nombre)»"
     ],
     "components/RecepcionEnvio.tsx": [
-      "button «Una unidad menos»",
-      "input «{`Llegó de ${l.referencia}»",
-      "button «Una unidad más»",
       "button «Nada llegó»",
       "button «{listaPlegada ? \"Cambiar\" : \"Ocultar\"}»",
       "button «{f.etiqueta}»",
@@ -135,11 +129,6 @@
       "button «Seguir aquí»",
       "button «Quitar y descartar»",
       "input «{`${referencia}»"
-    ],
-    "components/RecepcionVistaRapida.tsx": [
-      "button «Cerrar»",
-      "button «Recepción anterior»",
-      "button «Recepción siguiente»"
     ],
     "components/RecepcionesCompraLista.tsx": [
       "button «recibidas.fila»",

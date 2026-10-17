@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ImagePlus, RotateCcw, Wand2, Shirt } from "lucide-react";
+import { ImagePlus, RotateCcw, Wand2, Shirt, ChevronRight } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
@@ -364,7 +364,10 @@ export function PieTarjetaMuestra({ prendas }: { prendas: number }) {
   return (
     <span className="flex flex-wrap items-center justify-between gap-x-2 text-xs text-tinta/60">
       <span className="whitespace-nowrap">{textoPrendas(prendas)}</span>
-      <span className="whitespace-nowrap transition-colors group-hover/muestra:text-rojo-profundo">Ver ›</span>
+      <span className="inline-flex items-center gap-0.5 whitespace-nowrap transition-colors group-hover/muestra:text-rojo-profundo">
+        Ver
+        <ChevronRight aria-hidden className="h-3 w-3" />
+      </span>
     </span>
   );
 }

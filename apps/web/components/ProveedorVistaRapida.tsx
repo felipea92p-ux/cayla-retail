@@ -1,9 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
 import type { Proveedor } from "@/lib/proveedores";
 import { soles } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -12,13 +9,10 @@ import { BarrasMensuales } from "@/components/ui/BarrasMensuales";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { PasoSugerido } from "@/components/ui/PasoSugerido";
-import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
-import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
+import { Cajon } from "@/components/ui/Cajon";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { BotonVer } from "@/components/ui/BotonDescargar";
-
-/** Debe coincidir con `.anim-cajon-salida` en globals.css. */
-const MS_SALIDA = 240;
 
 // Vista rápida de un proveedor (ADR-0128, spike 2026-09-19): al tocar una fila se abre un cajón desde el
 // borde derecho en vez de saltar a la ficha. El problema que resuelve: comparar cinco proveedores
@@ -50,120 +44,80 @@ export function ProveedorVistaRapida({
   onNavegar: (delta: 1 | -1) => void;
   onCambiarEstado: () => void;
 }) {
-  const [cerrando, setCerrando] = useState(false);
-  const pedirCierre = useCallback(() => setCerrando(true), []);
-  useEffect(() => {
-    if (!cerrando) return;
-    const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const t = setTimeout(onCerrar, reducido ? 0 : MS_SALIDA);
-    return () => clearTimeout(t);
-  }, [cerrando, onCerrar]);
-  // Escape cierra el cajón solo si ningún control de adentro lo usó (useEscapeLibre.ts).
-  const alEscape = useEscapeLibre(pedirCierre);
-  // ↑ ↓ pasan de proveedor solo con teclas del cajón: no con las de un modal abierto desde aquí (useFlechasDelCajon.ts).
-  const alFlecha = useFlechasDelCajon(onNavegar);
 
   const paso = siguientePaso(estadoDeProveedor(p));
   const sinCompras90 = p.dias_desde_ultima_compra != null && p.dias_desde_ultima_compra > 90;
 
   return (
-    <Dialog.Root open onOpenChange={(abierto) => !abierto && pedirCierre()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className={`fixed inset-0 z-50 bg-sombra/25 dark:bg-sombra/55 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />
-        <Dialog.Content
-          onEscapeKeyDown={alEscape}
-          onKeyDown={alFlecha}
-          className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-[28.5rem] flex-col border-l border-sand bg-papel outline-none ${cerrando ? "anim-cajon-salida" : "anim-cajon"}`}
-        >
-          {/* `key`: al pasar de un proveedor a otro el contenido se re-asienta, el cajón no se cierra ni se vuelve a abrir. */}
-          <div key={p.id} className="anim-asentar flex min-h-0 flex-1 flex-col">
-            <div className="flex items-start gap-3.5 border-b border-tinta/10 px-6 pb-4 pt-5">
-              <span aria-hidden className="font-display grid h-14 w-14 shrink-0 place-items-center rounded-full bg-sand text-2xl text-tinta">
-                {p.nombre.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
-              </span>
-              <div className="min-w-0 flex-1">
-                <Dialog.Title asChild>
-                  <h2 className="font-display text-[23px] leading-tight text-tinta">{/* unificar-fijo: es el título de la hoja (Dialog.Title), no de un bloque */}{p.nombre}</h2>
-                </Dialog.Title>
-                <Dialog.Description className="mt-0.5 text-[13px] text-tinta/65">
-                  {p.ruc ?? "Sin RUC"} · {p.contacto ?? "Sin contacto"}
-                </Dialog.Description>
-                <div className="mt-2.5 flex flex-wrap gap-1.5">
-                  {p.rubros.map((r) => (
-                    <Chip key={r} className="normal-case tracking-normal font-medium text-xs">
-                      {r}
-                    </Chip>
-                  ))}
-                  {marcas.map((m) => (
-                    <Chip key={m} className="normal-case tracking-normal font-medium text-xs">
-                      {m}
-                    </Chip>
-                  ))}
-                  {p.plazo_credito_dias != null && <Chip className="normal-case tracking-normal font-medium text-xs">Crédito a {p.plazo_credito_dias} días</Chip>}
-                  {p.activo && sinDatosDePago(p) && <Chip tono="ambar" className="normal-case tracking-normal font-medium text-xs">Sin datos de pago</Chip>}
-                  {!p.activo && <Chip tono="rojo" className="normal-case tracking-normal font-medium text-xs">Desactivado</Chip>}
-                </div>
-              </div>
-              <button type="button" onClick={pedirCierre} aria-label="Cerrar" className="-mr-1 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo">
-                <X aria-hidden className="h-4 w-4" />
-              </button>
-            </div>
+    <Cajon
+      onCerrar={onCerrar}
+      clave={p.id}
+      guiaCuerpo="proveedor-vista.resumen"
+      guiaPie="proveedor-vista.acciones"
+      marca={<AvatarPersona personaId={null} nombre={p.nombre} tamano={40} />}
+      titulo={p.nombre}
+      frase={`${p.ruc ?? "Sin RUC"} · ${p.contacto ?? "Sin contacto"}`}
+      debajo={
+        <div className="flex flex-wrap gap-1.5">
+          {p.rubros.map((r) => (
+            <Chip key={r} className="normal-case tracking-normal font-medium text-xs">
+              {r}
+            </Chip>
+          ))}
+          {marcas.map((m) => (
+            <Chip key={m} className="normal-case tracking-normal font-medium text-xs">
+              {m}
+            </Chip>
+          ))}
+          {p.plazo_credito_dias != null && <Chip className="normal-case tracking-normal font-medium text-xs">Crédito a {p.plazo_credito_dias} días</Chip>}
+          {p.activo && sinDatosDePago(p) && <Chip tono="ambar" className="normal-case tracking-normal font-medium text-xs">Sin datos de pago</Chip>}
+          {!p.activo && <Chip tono="rojo" className="normal-case tracking-normal font-medium text-xs">Desactivado</Chip>}
+        </div>
+      }
+      navegacion={{ indice: posicion.indice, total: posicion.total, onNavegar, que: "Proveedor", circular: true }}
+      pie={
+        <>
+          {p.activo && (
+            <Link
+              href={`/compras/nueva?prov=${p.id}`}
+              className="btn-cayla btn-secundario"
+            >
+              + Comprobante
+            </Link>
+          )}
+          {/* Desactivar es lo peligroso (rojo desde el principio, ADR-0358 ronda 7, como en la vista rápida de un producto); reactivar, no. */}
+          <Boton textoCargando={p.activo ? "Desactivando…" : "Reactivando…"} type="button" peso={p.activo ? "peligro" : "discreto"} cargando={cambiando} onClick={onCambiarEstado} className="px-3 py-2">
+            {p.activo ? "Desactivar" : "Reactivar"}
+          </Boton>
+          <BotonVer href={`/compras/proveedores/${p.id}`} className="order-last basis-full">
+            Abrir ficha completa
+          </BotonVer>
+        </>
+      }
+    >
+      <PasoSugerido paso={paso} proveedorId={p.id} animar />
 
-            <div className="scroll-cayla min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-5" data-guia="proveedor-vista.resumen">
-              <PasoSugerido paso={paso} proveedorId={p.id} animar />
+      <dl className="mt-5 grid grid-cols-3 divide-x divide-sand overflow-hidden rounded-xl border border-sand">
+        <div className="px-3.5 py-3">
+          <dt className="label-cayla text-[10px] text-tinta/65">Facturado 12 m</dt>
+          <dd className="font-display mt-0.5 text-[21px] leading-tight tabular-nums text-tinta">{soles(p.facturado_12m ?? 0).replace(/\.00$/, "")}</dd>
+        </div>
+        <div className="px-3.5 py-3">
+          <dt className="label-cayla text-[10px] text-tinta/65">Saldo</dt>
+          <dd className={`font-display mt-0.5 text-[21px] leading-tight tabular-nums ${(p.saldo_vencido ?? 0) > 0 ? "text-rojo" : "text-tinta"}`}>{soles(p.saldo ?? 0).replace(/\.00$/, "")}</dd>
+        </div>
+        <div className="px-3.5 py-3">
+          <dt className="label-cayla text-[10px] text-tinta/65">Última compra</dt>
+          <dd className={`font-display mt-1 text-lg leading-tight ${sinCompras90 && p.activo ? "text-ambar-profundo" : "text-tinta"}`}>{haceCuanto(p.dias_desde_ultima_compra)}</dd>
+        </div>
+      </dl>
 
-              <dl className="mt-5 grid grid-cols-3 divide-x divide-sand overflow-hidden rounded-xl border border-sand">
-                <div className="px-3.5 py-3">
-                  <dt className="label-cayla text-[10px] text-tinta/65">Facturado 12 m</dt>
-                  <dd className="font-display mt-0.5 text-[21px] leading-tight tabular-nums text-tinta">{soles(p.facturado_12m ?? 0).replace(/\.00$/, "")}</dd>
-                </div>
-                <div className="px-3.5 py-3">
-                  <dt className="label-cayla text-[10px] text-tinta/65">Saldo</dt>
-                  <dd className={`font-display mt-0.5 text-[21px] leading-tight tabular-nums ${(p.saldo_vencido ?? 0) > 0 ? "text-rojo" : "text-tinta"}`}>{soles(p.saldo ?? 0).replace(/\.00$/, "")}</dd>
-                </div>
-                <div className="px-3.5 py-3">
-                  <dt className="label-cayla text-[10px] text-tinta/65">Última compra</dt>
-                  <dd className={`font-display mt-1 text-lg leading-tight ${sinCompras90 && p.activo ? "text-ambar-profundo" : "text-tinta"}`}>{haceCuanto(p.dias_desde_ultima_compra)}</dd>
-                </div>
-              </dl>
-
-              {serie && serie.some((v) => v > 0) && (
-                <section className="mt-6">
-                  <TituloGrupo className="mb-2.5">Facturado por mes</TituloGrupo>
-                  <BarrasMensuales serie={serie} iniciales={inicialesMeses(hoyLima())} />
-                </section>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5 border-t border-tinta/10 px-6 py-4" data-guia="proveedor-vista.acciones">
-              {p.activo && (
-                <Link
-                  href={`/compras/nueva?prov=${p.id}`}
-                  className="btn-cayla btn-secundario"
-                >
-                  + Comprobante
-                </Link>
-              )}
-              {/* Desactivar es lo peligroso (rojo desde el principio, ADR-0358 ronda 7, como en la vista rápida de un producto); reactivar, no. */}
-              <Boton textoCargando={p.activo ? "Desactivando…" : "Reactivando…"} type="button" peso={p.activo ? "peligro" : "discreto"} cargando={cambiando} onClick={onCambiarEstado} className="px-3 py-2">
-                {p.activo ? "Desactivar" : "Reactivar"}
-              </Boton>
-              <span className="ml-auto flex items-center gap-1.5 text-xs tabular-nums text-tinta/55">
-                {posicion.indice + 1} de {posicion.total}
-                <button type="button" onClick={() => onNavegar(-1)} aria-label="Proveedor anterior" className="rounded-md border border-tinta/15 p-1.5 transition-colors hover:border-rojo hover:text-rojo">
-                  <ChevronUp aria-hidden className="h-3.5 w-3.5" />
-                </button>
-                <button type="button" onClick={() => onNavegar(1)} aria-label="Proveedor siguiente" className="rounded-md border border-tinta/15 p-1.5 transition-colors hover:border-rojo hover:text-rojo">
-                  <ChevronDown aria-hidden className="h-3.5 w-3.5" />
-                </button>
-              </span>
-              <BotonVer href={`/compras/proveedores/${p.id}`} className="basis-full">
-                Abrir ficha completa
-              </BotonVer>
-            </div>
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+      {serie && serie.some((v) => v > 0) && (
+        <section className="mt-6">
+          <TituloGrupo className="mb-2.5">Facturado por mes</TituloGrupo>
+          <BarrasMensuales serie={serie} iniciales={inicialesMeses(hoyLima())} />
+        </section>
+      )}
+    </Cajon>
   );
 }

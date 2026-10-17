@@ -44,6 +44,7 @@ import {
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 /* ====================================================================
    Notas de crédito · el tablero (2026-09-19)
@@ -653,9 +654,7 @@ function SaldosAFavorTablero({ proveedores, movimientos, total, puedeReembolsar 
                 <span className="font-display text-[26px] tabular-nums text-verde-profundo">{soles(p.saldoFavor)}</span>
                 <div className="flex flex-wrap gap-2">
                   {p.deuda > 0 && (
-                    <Link href={`/compras/por-pagar?prov=${p.id}&marcar=1`} className="btn-cayla btn-secundario">
-                      Usar en un pago →
-                    </Link>
+                    <BotonVer href={`/compras/por-pagar?prov=${p.id}&marcar=1`}>Usar en un pago</BotonVer>
                   )}
                   {/* La misma pieza que la ficha del proveedor: una sola forma de registrar un reembolso. */}
                   {puedeReembolsar && <BotonReembolso proveedorId={p.id} proveedorNombre={p.nombre} saldoFavor={p.saldoFavor} />}

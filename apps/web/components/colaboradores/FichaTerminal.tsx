@@ -1,12 +1,11 @@
 "use client";
 
-import * as Dialog from "@radix-ui/react-dialog";
 import { ArrowLeftRight, KeyRound, MapPin, PauseCircle, PlayCircle } from "lucide-react";
 import type { Terminal } from "@/lib/colaboradores";
 import { cuandoEntro } from "@/lib/equipo-reglas";
 import { Chip } from "@/components/ui/Chip";
 import { IconoAparato } from "@/components/ui/IconoAparato";
-import { CajonFicha } from "@/components/colaboradores/CajonFicha";
+import { Cajon } from "@/components/ui/Cajon";
 import { PildoraRol } from "@/components/colaboradores/EquipoLista";
 
 // La ficha de una terminal (Felipe 2026-10-05: «Terminales» se ve igual que «Todas»; antes era otra pantalla con su tabla y dos
@@ -47,26 +46,27 @@ export function FichaTerminal({
 }) {
   const t = terminal;
   return (
-    <CajonFicha clave={t.id} onCerrar={onCerrar}>
-      <div className="flex items-center gap-4 pr-9">
-        <span className={`grid h-[72px] w-[72px] shrink-0 place-items-center rounded-2xl bg-tinta text-crema ${t.activo ? "" : "opacity-60"}`}>
-          <IconoAparato className="h-8 w-8" />
+    <Cajon
+      onCerrar={onCerrar}
+      velo={false}
+      clave={t.id}
+      marca={
+        <span className={`grid h-10 w-10 place-items-center rounded-xl bg-tinta text-crema ${t.activo ? "" : "opacity-60"}`}>
+          <IconoAparato className="h-5 w-5" />
         </span>
-        <div className="min-w-0">
-          <Dialog.Title asChild>
-            <h2 className="font-display text-[26px] leading-tight text-tinta">{t.nombre}</h2>
-          </Dialog.Title>
-          <Dialog.Description asChild>
-            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px] text-tinta/65">
-              <MapPin aria-hidden className="h-3.5 w-3.5" />
-              {t.ubicacion_nombre}
-              <PildoraRol nombre={t.rol_nombre} lider={false} />
-              {!t.activo && <Chip tono="apagado" tachado={false}>Desactivada</Chip>}
-            </p>
-          </Dialog.Description>
-          {t.correo && <p className="mt-1 truncate text-xs text-tinta/55">{t.correo}</p>}
-        </div>
-      </div>
+      }
+      titulo={t.nombre}
+      frase={
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <MapPin aria-hidden className="h-3.5 w-3.5" />
+          {t.ubicacion_nombre}
+          <PildoraRol nombre={t.rol_nombre} lider={false} />
+          {!t.activo && <Chip tono="apagado" tachado={false}>Desactivada</Chip>}
+        </span>
+      }
+      debajo={t.correo ? <p className="truncate text-xs text-tinta/55">{t.correo}</p> : undefined}
+      claseCuerpo="space-y-5"
+    >
 
       <p className="rounded-xl bg-hueso px-4 py-3 text-[15px] leading-snug text-tinta" data-guia="colaboradores.terminal-frase">
         {!t.activo ? (
@@ -93,6 +93,6 @@ export function FichaTerminal({
           <BotonAccion icono={PlayCircle} texto="Reactivar" onClick={onAlternar} />
         )}
       </div>
-    </CajonFicha>
+    </Cajon>
   );
 }
