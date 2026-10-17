@@ -5884,6 +5884,14 @@ export type Database = {
         Args: { p_look_id: string; p_publicado: boolean; p_version: number }
         Returns: Json
       }
+      // Vitrina web ▸ Probador (ADR-0434, actividad 1; 20261017003000): los recortes de las fotos para «Arma el tuyo». Anotar y
+      // revisar firman con el responsable del combo.
+      fn_vitrina_recortes: { Args: never; Returns: Json }
+      registrar_recorte: {
+        Args: { p_foto: string; p_recorte: string; p_proporcion: number; p_motivo?: string | null }
+        Returns: Json
+      }
+      revisar_recorte: { Args: { p_foto: string; p_usar: boolean }; Returns: Json }
       // Cobrar dentro del pedido web (ADR-0408, actividad 9; motor 20261015000000, token 20261015042000). El efectivo no lleva n.º
       // de operación (null); el token lo pone `useIntento`.
       registrar_pago_pedido_web: {

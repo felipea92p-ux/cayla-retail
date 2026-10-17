@@ -866,13 +866,21 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   llegó» y «dónde hay» con la regla de «hay» de la ficha de la tienda (`fn_tienda_disponible` en las tiendas de la web). Una espera
   anotada en una tienda que después se escondió de la web cuenta como «cualquier tienda» (`fn_tienda_sede_elegida`, la regla con que se
   anota).
-- `/tienda-web/vitrina/looks` (Vitrina ▸ Looks, el mismo módulo `vitrina_web`, ADR-0408 act. 11; las dos vistas van en
+- `/tienda-web/vitrina/looks` (Vitrina ▸ Looks, el mismo módulo `vitrina_web`, ADR-0408 act. 11; las vistas van en
   `components/vitrina/VitrinaPestanas.tsx`) → `page.tsx` lee `fn_vitrina_looks` (los looks con sus prendas, si se ven y por qué no, el
   total con «Todas» —cada prenda, lo que vale en SU color: `fn_tienda_precios` por color, el mismo total de «Arma tu look»—, y los
   modelos que se ven en la web) → `LooksPantalla.tsx` (cifras, la lista en su orden con su interruptor) +
   `LookHoja.tsx` (`vitrina_guardar_look`: nombre, frase, 2 a 4 prendas con su color, si se ve y su lugar) + `LookMostrarHoja.tsx`
   (`vitrina_mostrar_look`); reglas en `lib/vitrina-looks-reglas.ts`, guía de foco en `lib/vitrina-looks-guia.ts`. Qué se ve en la web
   lo decide `tienda_catalogo(null)` (la misma regla del cliente). Prueba en la base: `pnpm pruebas:vitrina-looks`.
+- `/tienda-web/vitrina/probador` (Vitrina ▸ Probador, el mismo módulo `vitrina_web`, ADR-0434 act. 1: lo que necesita «Arma el tuyo»,
+  el probador de looks de la tienda online) → `page.tsx` lee `fn_vitrina_recortes` (cada foto de un modelo publicado, de lo que más
+  vendió en 90 días a lo que menos, con su original si está en el almacén y su recorte) → `ProbadorPantalla.tsx` (cifras, la hoja de
+  contactos de recortes) + `PrepararRecortesHoja.tsx` (recorta EN EL NAVEGADOR con MODNet sobre el original, `lib/recorte-probador.ts`:
+  los colores de la foto de la tienda y la transparencia de `mascaraDePrenda` de `lib/preparar-foto.ts`; sube `recortes/<id>-<sello>.png`
+  con `subirRecorteDeFoto` y anota con `registrar_recorte`) + `RevisarRecorteHoja.tsx` (`revisar_recorte`: usar o descartar). Ninguna
+  foto se modifica. Reglas puras en `lib/recorte-probador-reglas.ts`, guía de foco en `lib/vitrina-probador-guia.ts`; tabla
+  `retail.foto_recortes` (`20261017003000`). Prueba en la base: `pnpm pruebas:vitrina-recortes`.
 - `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
   `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
   `MarcasLista.tsx` (ADR-0373, 2026-10-10: cabecera de Productos con «!», resumen colapsado `components/marcas/ResumenMarcas.tsx` +
