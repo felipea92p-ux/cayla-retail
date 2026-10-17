@@ -228,20 +228,20 @@ function ReasignarRepartoModal({
             </div>
 
             <div data-guia="reasignar-modal.cantidad">
-              <label htmlFor="reasignar-cantidad" className="label-cayla text-[11px] text-tinta/65">
-                ¿Cuántas unidades se mueven?
-              </label>
-              <input
-                id="reasignar-cantidad"
-                type="number"
-                min={1}
-                max={origen?.pendiente ?? 1}
-                value={cantidad}
-                onChange={(e) => setCantidad(e.target.value)}
-                onFocus={(e) => e.target.select()}
-                className="caja-campo-input ml-3 w-20 text-center tabular-nums"
-              />
-              <span className="ml-2 text-xs text-tinta/55">de {origen?.pendiente ?? 0} pendientes en {nombreDe(desdeId)}</span>
+              <div className="max-w-[16rem]">
+                <CampoTexto
+                  etiqueta="¿Cuántas unidades se mueven?"
+                  id="reasignar-cantidad"
+                  type="number"
+                  min={1}
+                  max={origen?.pendiente ?? 1}
+                  value={cantidad}
+                  onChange={(e) => setCantidad(e.target.value)}
+                  onFocus={(e) => e.target.select()}
+                  className="tabular-nums"
+                  pie={`de ${origen?.pendiente ?? 0} pendientes en ${nombreDe(desdeId)}`}
+                />
+              </div>
               {/* El efecto, antes de confirmar: cómo queda lo que le toca a cada tienda. */}
               {cantidadOk && haciaId && (
                 <p className="mt-2 text-xs tabular-nums text-tinta/70" aria-live="polite">

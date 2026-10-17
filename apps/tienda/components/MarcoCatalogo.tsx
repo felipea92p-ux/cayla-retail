@@ -2,6 +2,7 @@ import type { Prenda } from "@/lib/catalogo";
 import { cuantosFavoritos, nombreDeLaCuenta } from "@/lib/cabecera-servidor";
 import { datosDeCabecera } from "@/lib/inicio";
 import { anioActual } from "@/lib/hoy-servidor";
+import { hayAlgoParaProbar } from "@/lib/probador-servidor";
 import { BotonBolsa } from "./bolsa/BotonBolsa";
 import { CabeceraConCuenta, type SeccionActual } from "./CabeceraConCuenta";
 import { EntradaDelDia } from "./cuenta/EntradaDelDia";
@@ -34,8 +35,9 @@ export async function MarcoCatalogo({
   actual?: SeccionActual;
   children: React.ReactNode;
 }) {
-  const datos = datosDeCabecera(prendas, sede, process.env.TIENDA_FOTOS_ORIGEN);
-  const [favoritos, nombre] = await Promise.all([cuantosFavoritos(), nombreDeLaCuenta()]);
+  // «Arma el tuyo» sale solo si hay algo que probar en esta tienda (la lectura guardada del probador, como el catálogo).
+  const [favoritos, nombre, conProbador] = await Promise.all([cuantosFavoritos(), nombreDeLaCuenta(), hayAlgoParaProbar(prendas)]);
+  const datos = datosDeCabecera(prendas, sede, process.env.TIENDA_FOTOS_ORIGEN, conProbador);
   return (
     <>
       {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}

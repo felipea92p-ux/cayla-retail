@@ -321,8 +321,11 @@ select pg_temp.huella(:'va');`);
   // `vitrina_look_piezas` (actividad 11): que una prenda salga en un look de la tienda online es configuración de la vitrina y se va
   // con su ficha (`on delete cascade`); el look guarda cuántas prendas lleva, así que le falta una, no se muestra y el ERP lo dice
   // (20261015031000).
+  // `look_web_piezas` (ADR-0434, actividad 8, 20261017044000) es SUYA como los favoritos: el look que un cliente guardó con un modelo
+  // que nunca se vendió ni se movió no es historia de la prenda; su fila se va con ella (`on delete cascade`) y el look sigue con las
+  // demás (la tienda dice «Una prenda que guardaste ya no está»).
   const SUYAS = ["variantes", "stock", "codigos_barras", "producto_fotos", "variante_etiquetas", "producto_color_temporadas", "producto_origen", "vitrina_productos",
-    "favoritos_web", "esperas_web", "vitrina_look_piezas"];
+    "favoritos_web", "esperas_web", "vitrina_look_piezas", "look_web_piezas"];
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",

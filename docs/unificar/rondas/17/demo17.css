@@ -1,0 +1,44 @@
+/* Demos de la ronda 17. Solo tokens del ERP. */
+.r17-mes { display: grid; justify-items: start; gap: 12px; padding: 16px 18px; border: 1px solid var(--color-sand); border-radius: 16px; background: var(--color-papel); max-width: 640px; }
+.r17-guia { padding: 18px 22px 14px; max-width: 560px; }
+.r17-guia-tit { margin: 0; font-family: var(--font-display, serif); font-size: 21px; line-height: 1.2; color: var(--color-tinta); }
+.r17-guia-txt { margin: 6px 0 0; font-size: 13.5px; color: color-mix(in srgb, var(--color-tinta) 78%, transparent); }
+
+/* El paso de cantidad · P1: la caja del campo con − y + adentro (el hilo se enciende con el cursor en el número) */
+.r17-paso.caja-campo { display: inline-flex; gap: 0; padding: 0 3px; min-height: 0; }
+.r17-paso[data-tam="celda"] { height: 26px; border-radius: 7px; }
+.r17-paso[data-tam="fila"] { height: 36px; }
+.r17-paso[data-tam="mostrador"] { height: 44px; }
+.r17-paso-b { display: grid; place-items: center; height: calc(100% - 6px); aspect-ratio: 1; border-radius: 8px; color: color-mix(in srgb, var(--color-tinta) 70%, transparent); transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla), transform 120ms var(--ease-cayla); }
+.r17-paso[data-tam="celda"] .r17-paso-b { border-radius: 5px; }
+.r17-paso-b:hover { background: color-mix(in srgb, var(--color-sand) 60%, transparent); color: var(--color-tinta); }
+.r17-paso-b:active { transform: scale(0.9); }
+.r17-paso-n { width: 2.25rem; background: transparent; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; outline: none; color: var(--color-tinta); }
+.r17-paso[data-tam="celda"] .r17-paso-n { width: 1.75rem; font-size: 13px; }
+.r17-paso[data-tam="mostrador"] .r17-paso-n { width: 2.75rem; font-size: 16px; }
+/* P2: los botones sueltos */
+.r17-paso2 { display: inline-flex; align-items: center; gap: 6px; }
+.r17-paso2-b.btn-cayla { padding: 0; aspect-ratio: 1; }
+.r17-paso2[data-tam="celda"] .r17-paso2-b { height: 26px; border-radius: 7px; }
+.r17-paso2[data-tam="fila"] .r17-paso2-b { height: 36px; }
+.r17-paso2[data-tam="mostrador"] .r17-paso2-b { height: 44px; }
+.r17-paso2-n.caja-campo-input { width: 3rem; padding: 0 4px; text-align: center; font-variant-numeric: tabular-nums; }
+.r17-paso2[data-tam="celda"] .r17-paso2-n { height: 26px; width: 2.25rem; font-size: 13px; }
+.r17-paso2[data-tam="fila"] .r17-paso2-n { height: 36px; }
+.r17-paso2[data-tam="mostrador"] .r17-paso2-n { height: 44px; font-size: 16px; }
+.r17-pasos { display: grid; padding: 8px 18px; max-width: 640px; }
+.r17-pfila { display: grid; grid-template-columns: 250px 1fr; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--color-sand); }
+.r17-pfila:last-child { border-bottom: 0; }
+.r17-pdonde { color: var(--color-taupe); font-size: 12.5px; }
+.r17-pvan { display: flex; align-items: center; gap: 8px; }
+
+/* El cajón lateral, en miniatura (el de verdad va pegado al borde derecho) */
+.r17-cajon { position: relative; display: flex; flex-direction: column; width: 456px; max-width: 100%; border: 1px solid var(--color-sand); border-radius: 0; background: var(--color-papel); text-align: left; }
+.r17-cajon-cab2 { position: relative; padding: 22px 24px 0; }
+.r17-cajon-cuerpo { padding: 20px 24px 22px; }
+.r17-cajon-pie { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; border-top: 1px solid color-mix(in srgb, var(--color-tinta) 10%, transparent); padding: 14px 24px; }
+/* En una pantalla táctil, la fila crece sola a 44 px (lo que se toca con el dedo). */
+@media (pointer: coarse) {
+  .r17-paso[data-tam="fila"] { height: 44px; }
+  .r17-paso2[data-tam="fila"] .r17-paso2-b, .r17-paso2[data-tam="fila"] .r17-paso2-n { height: 44px; }
+}

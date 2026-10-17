@@ -41,6 +41,8 @@ const TRAZOS = {
   derecha: <path d="M9 5l7 7-7 7" />,
   mas: <path d="M12 5v14M5 12h14" />,
   ninguna: <><circle cx="12" cy="12" r="8" /><path d="M6.5 17.5l11-11" /></>,
+  // El look guardado (actividad 8): «Cambiar el nombre».
+  lapiz: <path d="M16.5 3.5l4 4L8 20H4v-4z" />,
 };
 
 export type NombreIcono = keyof typeof TRAZOS;

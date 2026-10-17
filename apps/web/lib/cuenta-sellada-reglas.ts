@@ -138,7 +138,7 @@ export const GRUPOS_CUENTA: readonly { tipo: TipoCuentaElegible; titulo: string 
   { tipo: "por_rendir", titulo: "Efectivo por rendir" },
   { tipo: "cajon", titulo: "Cajones (resta del cierre de esa caja)" },
   { tipo: "tarjeta_credito", titulo: "Tarjeta de crédito" },
-  { tipo: "por_abonar", titulo: "Por abonar (POS)" },
+  { tipo: "por_abonar", titulo: "Por depositar (máquina de cobro)" },
 ];
 
 export function agruparCuentas(cuentas: readonly CuentaElegible[]): { tipo: TipoCuentaElegible; titulo: string; cuentas: CuentaElegible[] }[] {

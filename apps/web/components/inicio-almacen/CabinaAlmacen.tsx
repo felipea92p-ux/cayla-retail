@@ -10,6 +10,7 @@ import { CifraAlVer } from "./CifraAlVer";
 import { EnVista } from "./EnVista";
 import { Ico } from "./iconos";
 import { ReintentarLectura } from "./ReintentarLectura";
+import { ChevronRight } from "lucide-react";
 
 // La cabina del Inicio de Almacén (Felipe, 2026-09-30, maqueta docs/maquetas/inicio-almacen-2026-09/): «Nuevo producto» con
 // su botón, debajo lo último que se registró (para mirar antes de crear otro igual), y al lado «Sigue ahora».
@@ -110,7 +111,10 @@ function FilaReciente({ p }: { p: NuevoProducto }) {
           </span>
         </p>
       </div>
-      <span className="ia-ya">Ver →</span>
+      <span className="ia-ya inline-flex items-center gap-0.5">
+        Ver
+        <ChevronRight aria-hidden className="h-3.5 w-3.5" />
+      </span>
     </Link>
   );
 }

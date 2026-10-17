@@ -74,3 +74,8 @@ más ese texto, colocado con la prop `arriba` de `<Modal>`; no es otra cara de l
 
 **0.** Las firmas (`apps/web/unificar/familias.mjs`) vigilan que no vuelva la línea de 11 px copiada a mano, una `forma=` en `<Volver>` ni una
 vuelta escrita con el glifo («← Volver a …»). Un comentario que nombra la forma vieja no cuenta.
+
+## Control (2026-10-17)
+
+La firma ve el glifo seguido de una expresión («← {apilado ? "Atrás" : "Ticket"}»): Apartados en el celular pasó a `<Volver onClick a>`.
+`SelectorMesFacturacion.tsx` queda como excepción hasta la ronda 17 (pasa de mes, no vuelve). Detalle: [control/2026-10-16.md](control/2026-10-16.md).

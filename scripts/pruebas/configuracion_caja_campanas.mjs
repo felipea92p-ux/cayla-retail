@@ -133,7 +133,7 @@ select pg_temp.intento('insert into retail.campana_efecto_caja (etiqueta_id, ubi
   const r = correr(`${ESCENA}
 select retail.guardar_efecto_campana(:'gato', :'tru', 0, null) as _c \\gset
 select count(*) from retail.campana_efecto_caja where etiqueta_id = :'gato';
-select count(*) from retail.configuracion_historial where hecho_en >= now() - interval '1 minute';`);
+select count(*) from retail.configuracion_historial where hecho_en >= now() - interval '1 minute' and que in ('metas_tienda', 'efecto_campana');`);
   const [quedan, hist] = r.ok ? r.salida.split("\n") : [];
   esperar("0 % y sin fondo = volver a lo normal: la fila se quita", r.ok && Number(quedan) === 0, r);
   esperar("los 4 cambios quedan en el historial", r.ok && Number(hist) === 4, r);

@@ -465,7 +465,7 @@ export function CerrarCajaModalV2({
             <span className="font-display text-2xl tabular-nums">{money(contado ?? 0)}</span>
           </div>
           {fondoPedido && (
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-pizarra/30 bg-pizarra/10 px-3.5 py-2.5">
+            <div /* unificar-fijo: el fondo que pide la campaña, un dato del cierre junto a «Contaste» y «Queda en el cajón», no un aviso */ className="flex items-center justify-between gap-3 rounded-xl border border-pizarra/30 bg-pizarra/10 px-3.5 py-2.5">
               <span className="text-sm font-semibold text-tinta">Deja {money(fondoPedido.monto)} para el próximo turno</span>
               <span className="text-xs text-pizarra">{fondoPedido.motivo}</span>
             </div>
@@ -523,7 +523,7 @@ export function CerrarCajaModalV2({
               )}
             </div>
           )}
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-ambar/35 bg-ambar/10 px-3.5 py-2.5">
+          <div /* unificar-fijo: la cifra de lo que queda en el cajón, no un aviso */ className="flex items-center justify-between gap-3 rounded-xl border border-ambar/35 bg-ambar/10 px-3.5 py-2.5">
             <span className="label-cayla text-[10px] leading-snug text-ambar-profundo">
               Queda en el cajón
               <br />

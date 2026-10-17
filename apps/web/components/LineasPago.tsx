@@ -203,7 +203,7 @@ export function LineasPago({
   return (
     <div id={id}>
       {saldoFavor > 0 && (
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-verde/40 bg-verde/[0.06] px-4 py-2.5">
+        <div /* unificar-fijo: el saldo a favor que se usa de un toque (btn-sutil, ronda 9), no un aviso */ className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-verde/40 bg-verde/[0.06] px-4 py-2.5">
           <p className="text-sm text-tinta">
             Tienes <b className="font-semibold">{soles(saldoFavor)}</b> a favor con este proveedor.
           </p>

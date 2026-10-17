@@ -15,7 +15,8 @@
  *   · agregar un abono NO cambia el diario de un mes anterior (la foto de un mes cerrado no diverge por una operación normal);
  *   · devolver el adelanto saca EXACTAMENTE lo que entró (122 y 4011 quedan en cero, con los céntimos por pago);
  *   · entregar el apartado aplica el adelanto (122 y el IGV ya asentado quedan en cero);
- *   · el Balance (`fn_bal_anticipos`) a una fecha suma solo lo recibido hasta esa fecha.
+ *   · el Balance (`fn_bal_anticipos`) a una fecha suma solo lo recibido hasta esa fecha;
+ *   · la venta que entrega un apartado NO se anula (decisión de Felipe, 2026-10-16): su adelanto quedaría sin devolver en la 122.
  *
  * CÓMO. La suite arma el apartado con las RPC reales (`separar_prendas`, `abonar_separacion`, `entregar_separacion`,
  * `registrar_devolucion_separacion`) y lleva las fechas de lo creado a febrero y marzo de 2025 con los disparadores apagados. Todo termina en
@@ -75,6 +76,20 @@ function verificar(titulo, r, esperados) {
   for (const caso of esperados) esperar(caso, lineas.get(caso) === "t", lineas.has(caso) ? { valor: lineas.get(caso) } : { falta: caso, salida: r.salida.slice(-600) });
 }
 const casosDe = (sql) => [...sql.matchAll(/^select '([^']+)',/gm)].map((m) => m[1]);
+
+// «SQLSTATE|mensaje|hint» de lo que falla, o 'SIN_ERROR'.
+const INTENTO = `
+create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
+declare v_estado text; v_msg text; v_hint text;
+begin
+  execute p_sql;
+  return 'SIN_ERROR';
+exception when others then
+  get stacked diagnostics v_estado = returned_sqlstate, v_msg = message_text, v_hint = pg_exception_hint;
+  return v_estado || '|' || v_msg || '|' || coalesce(v_hint, '');
+end;
+$f$;
+`;
 
 // Preparación como la de `separaciones.mjs`: una caja propia en Trujillo, stock de sobra y una serie propia (en el seed local Lima y Trujillo
 // comparten la B001). La prenda cuesta 79.90: el adelanto de 70 (33.33 + 36.67) deja un saldo de 9.90 para la entrega.
@@ -197,10 +212,35 @@ select 'D4 el diario de todo el rango sigue cuadrando',
   (select count(*) = 0 from retail.fn_asientos_descuadrados('2025-02-01', '2025-03-31'));
 `;
 
+
+// ── E · La venta que entrega un apartado no se anula ───────────────────────────────────────────────────────────────────────
+// Sin fechas llevadas a 2025: el apartado, el abono y la entrega son de hoy, como lo haría una encargada que se equivoca el mismo día.
+const APARTAR_Y_ENTREGAR_HOY = `
+${INTENTO}
+select retail.separar_prendas(
+  p_ubicacion_id => :'ubic', p_items => jsonb_build_array(jsonb_build_object('variante_id', :'v', 'cantidad', 1, 'precio_unitario', :'precio'::numeric)),
+  p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', 33.33, 'recibido', 33.33)),
+  p_clienta_nombres => 'Ana', p_clienta_apellidos => 'Lozano Vera', p_clienta_celular => '987 111 222', p_devolucion_medio => 'yape') as sep \\gset
+select retail.abonar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 36.67))) as _abono \\gset
+select retail.entregar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', round(:'precio'::numeric - 70, 2)))) as venta \\gset
+`;
+const CASOS_ANULAR = `
+select 'G1 anular la venta que entrega un apartado se rechaza, con el código del apartado y el aviso de usar Devolución',
+  (select pg_temp.intento(format('select retail.anular_venta(%L, ''prueba'', %L::jsonb)', :'venta', (select jsonb_agg(jsonb_build_object('venta_item_id', vi.id, 'condicion', 'vendible'))::text from retail.venta_items vi where vi.venta_id = :'venta'))))
+    like 'P0001|Esta venta es la entrega del apartado APT-TRU-%: su adelanto%Devolución%|venta_de_apartado';
+select 'G2 y no se movió nada: la venta sigue completada y el apartado, entregado',
+  (select estado = 'completada' from retail.ventas where id = :'venta') and (select estado = 'entregada' from retail.separaciones where id = :'sep');
+select 'G3 el diario sigue cuadrando (la 122 y el 4011 del apartado quedan en cero con su entrega)',
+  (select count(*) = 0 from retail.fn_asientos_descuadrados(retail.fn_hoy_lima(), retail.fn_hoy_lima()))
+  and (select round(sum(haber - debe), 2) = 0 from retail.fn_asientos(retail.fn_hoy_lima(), retail.fn_hoy_lima()) a
+        where a.cuenta = '122' and ((a.origen_tabla = 'separaciones' and a.origen_id = :'sep') or (a.origen_tabla = 'ventas' and a.origen_id = :'venta')));
+`;
+
 verificar("Cada pago en su día", correr(`${PREPARAR}${APARTAR}${CASOS_FECHAS}`), casosDe(CASOS_FECHAS));
 verificar("El Balance a una fecha", correr(`${PREPARAR}${APARTAR}${CASOS_BALANCE}`), casosDe(CASOS_BALANCE));
 verificar("Devolver el adelanto", correr(`${PREPARAR}${APARTAR}${CASOS_DEVOLUCION}`), casosDe(CASOS_DEVOLUCION));
 verificar("Entregar el apartado", correr(`${PREPARAR}${APARTAR}${CASOS_ENTREGA}`), casosDe(CASOS_ENTREGA));
+verificar("Anular la venta de un apartado", correr(`${PREPARAR}${APARTAR_Y_ENTREGAR_HOY}${CASOS_ANULAR}`), casosDe(CASOS_ANULAR));
 
 console.log(fallos ? `\n${fallos} de ${casos} verificaciones fallaron` : `\nLas ${casos} verificaciones pasaron`);
 process.exit(fallos ? 1 : 0);

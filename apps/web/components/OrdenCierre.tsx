@@ -126,7 +126,7 @@ export function OrdenCierre({
   }
 
   return (
-    <section ref={seccion} aria-label="Cierre" className="anim-asentar rounded-2xl border border-verde/40 bg-verde/[0.07] p-4">
+    <section /* unificar-fijo: la caja del cierre de la orden, con su matriz de tallas: no un aviso */ ref={seccion} aria-label="Cierre" className="anim-asentar rounded-2xl border border-verde/40 bg-verde/[0.07] p-4">
       <TituloGrupo>Cuántas salieron buenas · talla × color</TituloGrupo>
       <div className="mt-3">
         <MatrizOrdenTabla

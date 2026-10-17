@@ -244,8 +244,8 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // Un archivo que es a la vez el formulario principal de una pantalla y dibuja un `<Modal>` cuenta como modal: sepáralo si hace falta.
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-/** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. (55 → 54 con «Ingresar insumo» del rediseño de Producción y 54 → 53 con la ficha de la clienta de `main`: dos archivos distintos que se suman al fusionar.) */
-export const MODALES_PENDIENTES_HOY = 53;
+/** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. (55 → 54 con «Ingresar insumo» del rediseño de Producción y 54 → 53 con la ficha de la clienta de `main`: dos archivos distintos que se suman al fusionar; 53 → 52 el 2026-10-17: la orden de Producción pasó a `<Cajon>` y ya no arma su propia hoja, ADR-0358 ronda 17.) */
+export const MODALES_PENDIENTES_HOY = 52;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -346,7 +346,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   // Actividad 7: anotar lo que se usó de la tela (o devolver lo que sobró): cuánto —con lo que hay en el estante o lo ya descontado— y quién lo anota.
   "components/orden-pagina/TelaUsadaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/TelaUsadaModal.tsx"] },
   "components/orden-pagina/DeshacerAvanceModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién lo deshace): el título dice qué anotación se deshace y cuántas prendas vuelven a quedar por terminar; no hay camino que indicar." },
-  "components/OrdenPanel.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/PagarComprobanteProduccionModal.tsx": PENDIENTE, // 3 controles
   "components/PagoJuntosModal.tsx": PENDIENTE, // 5 controles
   "components/PatronesLista.tsx": { estado: "aplicada", evidencia: ["components/PatronesLista.tsx"] },
@@ -419,6 +418,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/finanzas/ConfiguracionPresupuesto.tsx": PENDIENTE, // 4 controles
   "components/finanzas/CuentasDinero.tsx": PENDIENTE, // 20 controles
   "components/finanzas/EditarCuentaModal.tsx": PENDIENTE, // 9 controles
+  // ADR-0429 (act. 4): «Cambiar la tarifa» de una máquina de cobro. Falta = lo mismo que apaga «Guardar» (`validarTarifa`): la tasa, los
+  // días de abono y quién hace el cambio; el cargo fijo es opcional y el IGV viene marcado (lo usual en Perú).
+  "components/finanzas/TarifaMaquinaModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/TarifaMaquinaModal.tsx"] },
   "components/finanzas/EstadoResultadosPanel.tsx": PENDIENTE, // 3 controles
   "components/finanzas/PagosSinCuenta.tsx": PENDIENTE, // 2 controles
   "components/finanzas/SaldosArranqueModal.tsx": PENDIENTE, // 3 controles

@@ -2,7 +2,7 @@
   "guia": "inventario.cuadrar",
   "ruta": "/inventario/cuadrar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 29,
+  "total": 26,
   "controles": {
     "app/(app)/inventario/cuadrar/page.tsx": [
       "Volver «/inventario»"
@@ -26,9 +26,6 @@
       "input «Escanea o escribe el código»",
       "button «cuadrar.camara»",
       "button «Deshacer la última»",
-      "button «{`Una menos de ${nombre}»",
-      "input «{`Cantidad de ${nombre}»",
-      "button «{`Una más de ${nombre}»",
       "button «Quitar»",
       "button «Escanear con la cámara»",
       "button «{motivoRevisar ?? undefined}»",

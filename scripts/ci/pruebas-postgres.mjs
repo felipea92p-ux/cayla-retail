@@ -72,6 +72,11 @@ export const PRUEBAS = [
   // salida de caja y restando del cierre; un egreso respalda una sola cosa; los saldos usan lo sellado. ROLLBACK.
   "pruebas:cuenta-sellada",
 
+  // Las máquinas de cobro (ADR-0429, decisión 3 del ADR-0417): Interbank y las cuentas «por depositar»; la tarjeta y el QR se
+  // sellan en la máquina de su tienda (Vendemás donde opera, Izipay donde no); la hoja puede elegir solo una máquina de esa
+  // tienda; el QR asienta en 105; los candados de máquinas y de «A qué cuenta entra cada cobro». ROLLBACK.
+  "pruebas:pos-maquinas",
+
   // Registrar ingreso con su origen (ADR-0375): caja fuerte, líder y préstamo de otra sede bajan su cuenta en la misma
   // operación; el flujo y el balance los leen entre cuentas o como aporte; los motivos de sistema no se tipean. ROLLBACK.
   "pruebas:caja-ingresos",
@@ -260,6 +265,10 @@ export const PRUEBAS = [
   // público; cada COLOR con su precio (el del look de CAYLA, con una campaña solo en el negro la beige no baja) y su nivel por tienda
   // (sin Cuarentena, apartado ni Taller; nunca la cifra de 4 o más); con qué colores combina; solo tienda_web; un mutante. ROLLBACK.
   "pruebas:tienda-probador",
+  // Los looks que el cliente guarda desde el probador (ADR-0434, actividad 8): de 2 a 4 prendas que se ven en la web, el mismo look una
+  // sola vez (su huella), nombre del día, tope de 30, quitar sin borrar, renombrar, leer con «ya no está», y cerrar o eliminar la cuenta
+  // los quita como a los favoritos; solo tienda_web. ROLLBACK.
+  "pruebas:tienda-looks-guardados",
 
   // El motor del pedido web (ADR-0408, actividades 7-9): separar no toca el stock; confirmar reserva con el motor de Apartados
   // (almacén primero) y Vender ya no la vende; dos por la última (uno reserva, el otro sin stock, y quién separó antes, también

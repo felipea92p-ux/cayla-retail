@@ -6,8 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { ArrowRight, CalendarDays, PanelRightOpen } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Ayuda } from "@/components/Ayuda";
-import * as Dialog from "@radix-ui/react-dialog";
-import { CajonFicha } from "@/components/colaboradores/CajonFicha";
+import { Cajon } from "@/components/ui/Cajon";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Chip } from "@/components/ui/Chip";
 import { Aviso } from "@/components/ui/Aviso";
@@ -413,14 +412,14 @@ export function PlanCampana({
           sigue viva detrás (tocar una cifra que filtra, filtra la tabla). De arriba abajo: lo que avisa, las cifras de toda CAYLA, lo que
           sobra, el reparto entre tiendas y, antes de la campaña, el simulador. */}
       {resumenAbierto && (
-        <CajonFicha clave="resumen" conVelo onCerrar={() => setResumenAbierto(false)}>
-          <div className="pr-8">
-            <Dialog.Title className="font-display text-2xl leading-tight text-tinta">Resumen y avisos</Dialog.Title>
-            <Dialog.Description className="mt-1 text-[13.5px] text-taupe">
-              {plan.plan.nombre} · toda CAYLA{sedesDelPlan.length > 0 ? ` (${sedesDelPlan.join(", ")})` : ""}. La sede elegida arriba no filtra esta pantalla.
-            </Dialog.Description>
-          </div>
-
+        <Cajon
+          onCerrar={() => setResumenAbierto(false)}
+          clave="resumen"
+          sinFocoInicial
+          titulo="Resumen y avisos"
+          frase={<>{plan.plan.nombre} · toda CAYLA{sedesDelPlan.length > 0 ? ` (${sedesDelPlan.join(", ")})` : ""}. La sede elegida arriba no filtra esta pantalla.</>}
+          claseCuerpo="space-y-5"
+        >
           <AvisoStock confianza={confianza} puedeContar={puedeContar} />
 
           <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => irAVista("guiado")} tope={plan.tope} onTope={() => setEditandoTope(true)} />
@@ -492,7 +491,7 @@ export function PlanCampana({
           {momento.estado === "antes" && (
             <SimuladorPlan filas={filas} tope={plan.tope.valor} recuperoDefecto={hechos?.recupero.pct ?? null} veAnalisis={veAnalisis} />
           )}
-        </CajonFicha>
+        </Cajon>
       )}
 
       <ListaCategorias

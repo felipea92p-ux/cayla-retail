@@ -1088,7 +1088,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   prenda, que viaja como `descuento_unitario` por línea; «cobrar» = desde ADR-0307 la
   `punto-de-venta/HojaDeCobro.tsx` entra sobre el catálogo (en el celular, dentro de la hoja del
   ticket): seis medios con QR solo si `page.tsx` lee `fn_acepta_pago_qr` = true, billetes sugeridos
-  (`montosSugeridos`), comprobante sin valor por defecto y el documento (`DocumentoDelComprobante`);
+  (`montosSugeridos`), «¿Con qué máquina?» para la tarjeta o el QR solo donde la tienda tiene dos (ADR-0429: `fn_pos_maquinas_de_sede`,
+  `maquinasPara`/`pagoNuevo` de `lib/vender-reglas.ts`; lo marcado viaja como `cuenta_id`), comprobante sin valor por defecto y el
+  documento (`DocumentoDelComprobante`);
   su botón envía el formulario del ticket (`form="ticket-pos"`) y vive FUERA del cuerpo que scrollea (la hoja se compacta sola por su
   alto, ADR-0307 act. 2026-10-05), Confirmar cobro → RPC `registrar_venta`,
   que emite el comprobante en la misma transacción y, desde ADR-0048, rechaza precios
@@ -1751,6 +1753,17 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `fn_por_pagar_consolidado`. Tablas `cuentas_dinero`, `medios_de_cobro`, `movimientos_dinero`, `conciliaciones`,
     `dinero_revisados`. La cuenta sellada (F3b): `cuenta_dinero_id` en los pagos de venta, separación, cambio,
     devolución, traslado de caja y compra, llenada por disparador (cobros) o elegida con la cuenta propuesta (pagos).
+  - **Las máquinas de cobro y la comisión real (ADR-0429, 2026-10-16; decisión 3 del ADR-0417):** tablas `pos_maquinas` (Izipay,
+    Vendemás, cada una con su cuenta «por depositar» 1 a 1), `pos_maquinas_sedes`, `pos_tarifas` (con vigencia), `pos_abonos_lotes`
+    (qué días cubrió cada depósito) y `cobros_resellados` (el rastro de la corrección del histórico). El destino por defecto sigue en
+    `medios_de_cobro` (ahora con `qr`); el sello (`fn_cuenta_sellada`) valida la máquina elegida con `fn_pos_cuenta_sirve_en_sede`.
+    Vender: `vender/page.tsx` lee `fn_pos_maquinas_de_sede` → `PuntoDeVenta` (`pagoNuevo`, `cuentaPorDefecto` de `lib/vender-reglas.ts`)
+    → `HojaDeCobro` pregunta «¿Con qué máquina?» donde hay dos → `p_pagos[].cuenta_id` → `registrar_venta`. Cuentas y dinero: el
+    «Depósito de la máquina» del modal de movimientos lee `fn_pos_pendientes` y llama `registrar_abono_pos` (`validarAbonoPos`,
+    `resumenAbono`); el aviso de atraso sale de `fn_pos_alertas` (`avisosDeMaquinas`). Configuración ▸ Cuentas y cobros: la tarjeta
+    «Máquinas de cobro» (`fn_pos_maquinas`) y `TarifaMaquinaModal.tsx` → `guardar_pos_tarifa`. Migraciones `20261016173000` (con
+    `fn_pos_sembrar_maquinas_en_tiendas`, que también llama `seed.sql`), `182000`, `190000`, `191000` y la de datos `193000`
+    (`fn_resellar_cobros_a_maquinas`, solo desde una migración).
   - Configuración ▸ Cuentas y cobros ▸ «Editar» (`components/finanzas/EditarCuentaModal.tsx`, `lib/cuenta-editar-reglas.ts`;
     migración `20260925210100`) → `fn_cuenta_dinero_detalle` (qué se puede cambiar y quién la usa, leído de las llaves
     foráneas con `fn_usos_cuenta_dinero`), `editar_cuenta_dinero`, `eliminar_cuenta_dinero` (borra solo una cuenta que
@@ -2138,8 +2151,12 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   `app/acciones/bolsa.ts` `agregarLookALaBolsa` (sin precios: la bolsa los pide a la base con la tienda de recojo); al terminar, el aviso
   de abajo y el salto del globo de la bolsa. Las dos páginas llevan el marco de la tienda (`MarcoCatalogo`, con «Arma tu look» marcado) y
   piden cuenta en el proxy (`lib/sesion.ts`). Estilos en `app/estilos/looks.css`.
-- `/looks/arma` («Arma el tuyo», el probador de looks, ADR-0434 actividad 4; grupo `(catalogo)`, con cuenta; **escondido**: ninguna página
-  lleva ahí hasta la actividad 10) → `lib/catalogo-servidor.ts` `leerCatalogo(sede)` (qué se ve, su nombre y sus colores; con una tienda
+- `/looks/arma` («Arma el tuyo», el probador de looks, ADR-0434 actividad 4; grupo `(catalogo)`, con cuenta; se llega desde la
+  cabecera —«Arma el tuyo» tras «Arma tu look», `lib/inicio.ts` `datos.probador`, marcado con `actual="probador"`, solo si
+  `lib/probador-servidor.ts` `hayAlgoParaProbar` dice que hay algo que probar en esa tienda—, la tarjeta de arriba
+  de «Arma tu look» —`components/probador/EntradaProbador.tsx`, con el probador quieto en lo primero que hay— y la ficha —«Arma un look
+  con esta prenda», `FichaPrenda` prop `probador`, solo si `armarProbador` la acepta en esa tienda: abre con ella en el color elegido—;
+  actividad 10) → `lib/catalogo-servidor.ts` `leerCatalogo(sede)` (qué se ve, su nombre y sus colores; con una tienda
   elegida, solo lo que hay ahí) + `lib/probador-servidor.ts` `leerProbador(sede)` → `retail.tienda_probador(p_sede)` (`20261017025000`: por
   prenda publicada con largo —propio o típico— y algún recorte LISTO, su largo, sus recortes con el color de su foto, y por COLOR su precio
   —`fn_tienda_precios` por color, el de la bolsa— y su nivel por tienda —`fn_tienda_disponible`—; y `combina`, de `colores.combina_con`),
@@ -2159,6 +2176,31 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   `probador.css` (`@container tienda (min-width: 960px)`): la figura a la izquierda, fija al bajar, y a la derecha «Tu look», los colores,
   las opciones en grilla, el total y las promesas. Su esqueleto de carga es la forma `probador` de `FormaDelEsqueleto`. Estilos en
   `app/estilos/probador.css`. Prueba en la base: `pnpm pruebas:tienda-probador`.
+  **Guardar el look** (actividad 8): el corazón de la cabecera del probador (`components/probador/CorazonDelLook.tsx`) llama a
+  `app/acciones/probador.ts` `guardarTuLook` / `quitarTuLook` → `lib/looks-guardados-servidor.ts` → `retail.tienda_guardar_look` /
+  `tienda_quitar_look` (`20261017044000`: tablas `looks_web` + `look_web_piezas`, de 2 a 4 prendas por modelo y color, una vez por look
+  —la huella, sin importar el orden—, hasta 30 vivos por cuenta, quitar marca `quitado_en` y no borra; cerrar o eliminar la cuenta los
+  quita en `fn_cuentas_web_cerrar_al_anonimizar`). Va lleno si el look de la figura es uno guardado (`lib/looks-guardados.ts`
+  `buscarGuardado`, con los de `tienda_mis_looks` que la página lee junto con lo demás).
+- `/looks/guardado/[id]` (un look guardado, actividad 8; grupo `(catalogo)`, con cuenta) → `leerMisLooksEnBase(cuenta)` →
+  `retail.tienda_mis_looks` (solo los de la cuenta que pregunta: otro, con el enlace, ve «Este look ya no está») + `leerCatalogo` y
+  `leerProbador` (las prendas de TODAS las tiendas, como los favoritos: cada color dice dónde hay). `lookDelGuardado` lo pone en su lugar
+  y aparta lo que ya no está; el precio y el stock son los de hoy (no se guarda ninguno). Lo dibujan `FiguraQuieta.tsx` (la misma figura
+  del probador, quieta, con sus números), `NombreDelLook.tsx` (`renombrarTuLook` → `tienda_renombrar_look`), `AgregarLookGuardado.tsx`
+  (el `AgregarTuLook` del probador, a lo ancho) y `QuitarLookGuardado.tsx`; «Editar en el probador» abre `/looks/arma?p=…`. Su
+  esqueleto es el de la ficha. En `/catalogo?lista=favoritos`, «Tus looks» (`components/probador/TusLooks.tsx`) va arriba de las
+  prendas, solo con la lista entera. Prueba en la base: `pnpm pruebas:tienda-looks-guardados`. «Compartir» (actividad 9,
+  `components/probador/CompartirLook.tsx`) abre una hoja (`HojaNativa`) con la imagen para estados, que arma
+  `app/(catalogo)/looks/guardado/[id]/historia/route.tsx` (1080×1920, `next/og`, solo para la cuenta dueña: lleva el nombre del look), y
+  comparte el archivo con el enlace público por la hoja del celular (`navigator.share`), o lo descarga, o copia el enlace.
+- `/tu-look?p=…` (un look compartido, actividad 9; **público**, fuera del grupo `(catalogo)`, con `MarcoCuenta segunSesion`) →
+  `lib/compartir-servidor.ts` `prendasParaCompartir()` (el catálogo y el probador de todas las tiendas, las mismas lecturas guardadas) +
+  `lookDeLaUrl`: la figura y cada prenda con su color, SIN precio ni cuánto hay; sin cuenta, «Crea tu cuenta y arma el tuyo» (vuelve
+  al probador con este look, `hrefConVolver`) y, con cuenta, «Pruébatelo en el probador». Su vista previa para WhatsApp (`og:image`) es
+  `app/tu-look/vista/route.tsx` (1200×630, `next/og`, pública y guardada un día en la red; una dirección escrita de otra forma va a la
+  del probador, 308). Las dos imágenes salen de `lib/imagenes-del-look.tsx` (plantillas de satori), `lib/compartir-look.ts` (pura, con
+  su prueba: el enlace, dónde va cada tarjeta, el título) y `lib/fuentes-og.ts` (EB Garamond y DM Sans en TTF desde Google Fonts, en
+  memoria; si Google no contesta, la letra de `next/og`). Ninguna imagen pública lleva un texto que venga en la dirección.
 - **Un solo precio y una sola tienda elegida** (integración de la tienda, 2026-10-15). El precio de una prenda (talla y color) en la web
   lo dice `fn_tienda_precio_talla(prendas, tienda)` (`20261015012000`): el de la tienda elegida (`fn_precio_en_sede`) o, con «Todas», el
   mayor entre las de la web (sin ninguna, el de la grilla), con la campaña de la caja encima (la de mayor %, `fn_descuento_campana`,

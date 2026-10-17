@@ -186,3 +186,17 @@ una vez; el token de ADR-0412 y los tipos de ADR-0417 ya en la función; `fn_fin
 tienda vigentes y 0 fechados antes del inicio, así que nada cambia de golpe en pantalla), ensayo en un solo lote que termina en excepción,
 aplicación, y después las dos huellas `md5(pg_get_functiondef(…))` iguales a las del ensayo: puerta `ea93db7bdf64ba3408cccc49ebe38431`,
 lista `c29de8b8835d5f720b95d843db547a4c`.
+
+## Actualización 2026-10-16 (c): la decisión 3 está construida (ADR-0429), sin pegar
+
+La decisión 3 —Interbank, las cuentas «por depositar» y la máquina que cobra— se construyó en la rama `claude/upbeat-euclid-d973d1`
+con `/construir` (lista de seis actividades aprobada por Felipe el 2026-10-16) y tiene su propio ADR con el diseño, lo descartado y
+cómo se pega: **ADR-0429** (`docs/adr/0429-cobros-con-tarjeta-y-qr-la-maquina-las-puentes-y-la-comision-real.md`). En una línea: la
+máquina (Izipay, Vendemás) es una entidad chica con su puente 1 a 1; el destino por defecto sigue en «A qué cuenta entra cada cobro»
+(ahora también para el QR); la hoja de cobro pregunta la máquina solo donde hay dos; el depósito se cruza contra los días pendientes y la
+comisión real es la diferencia; la tarifa solo estima y avisa; y lo pasado se rehace una vez, con rastro. Cinco migraciones
+(`20261016173000` … `20261016193000`), **pegadas en producción el 2026-10-17** con el OK de Felipe, en orden y con el ensayo previo de la
+última (ADR-0429, «Actualización 2026-10-17»). Cuando se
+peguen, el tramo «tarjeta» del medidor de confianza sube solo (lee `medios_de_cobro`, que pasa a apuntar a las puentes). Lo que Felipe
+hace después de pegar (saldo inicial de Interbank, tarifas, registrar los depósitos ya recibidos) está en el ADR-0429 y en
+`docs/backlog/2026-10-16-upbeat-euclid-d973d1.md`.

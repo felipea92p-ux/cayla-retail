@@ -2,7 +2,7 @@
   "guia": "inventario.traslados.id",
   "ruta": "/inventario/traslados/(billetera)/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 91,
+  "total": 89,
   "controles": {
     "app/(app)/inventario/traslados/(billetera)/layout.tsx": [
       "BotonEnlace «traslados.nuevo»"
@@ -37,8 +37,6 @@
       "Boton «{responsable.motivo ?? undefined}» #4"
     ],
     "components/PedirAOtraSedeModal.tsx": [
-      "button «{`Una menos de ${etiqueta}»",
-      "button «{`Una más de ${etiqueta}»",
       "Desplegable «pedir-sede»",
       "button «Reintentar»",
       "Desplegable «{`pedir-prenda-${i}»",

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { CampoSelect, Boton } from "@/components/ui/campos";
+import { CampoSelect, CampoTexto, Boton } from "@/components/ui/campos";
 import { ETIQUETA_MOTIVO_CIERRE, type CompraResumen, type LineaCompra, type MotivoCierre } from "@/lib/compras-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -117,11 +117,9 @@ export function CerrarFaltanteModal({
             />
           )}
 
-          <div data-guia="faltante-modal.cantidad">
-            <label htmlFor="cierre-cantidad" className="label-cayla text-[11px] text-tinta/65">
-              ¿Cuántas unidades se cierran?
-            </label>
-            <input
+          <div data-guia="faltante-modal.cantidad" className="max-w-[16rem]">
+            <CampoTexto
+              etiqueta="¿Cuántas unidades se cierran?"
               id="cierre-cantidad"
               type="number"
               min={1}
@@ -129,11 +127,9 @@ export function CerrarFaltanteModal({
               value={cantidad}
               onChange={(e) => setCantidad(e.target.value)}
               onFocus={(e) => e.target.select()}
-              className="caja-campo-input ml-3 w-20 text-center tabular-nums"
+              className="tabular-nums"
+              pie={`de ${tope} pendientes${tienda ? ` en ${tienda.nombre}` : ""}`}
             />
-            <span className="ml-2 text-xs text-tinta/55">
-              de {tope} pendientes{tienda ? ` en ${tienda.nombre}` : ""}
-            </span>
           </div>
 
           <div data-guia="faltante-modal.motivo">

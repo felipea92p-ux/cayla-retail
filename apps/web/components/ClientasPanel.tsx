@@ -42,6 +42,7 @@ import { FunnelX, SearchX, Users } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { Paginas } from "@/components/ui/Paginas";
 
 // Clientas ▸ Fichas, como el spike del club (docs/maquetas/club-clientas-spike-2026-09/, `fichasHTML` de 50-clientas.js; ADR-0288
 // «Actualización 2026-09-30 (f)»): cabecera con Exportar, «Más» y «+ Nuevo cliente» en una fila; cuatro cifras (identificadas,
@@ -230,23 +231,8 @@ export function ClientasPanel({
           {!falla && (
             <div className={`${TABLA.pie} flex flex-wrap items-center justify-between gap-x-4 gap-y-2`} data-guia="clientas.pie">
               <span>{pieLista(total, params.filtro, cifras)}</span>
-              {paginas > 1 && (
-                <nav className="flex items-center gap-3" aria-label="Páginas">
-                  {params.pagina > 1 ? (
-                    <Link href={hrefLista(params, { pagina: params.pagina - 1 })} className="label-cayla text-[11px] text-tinta hover:text-rojo">
-                      ‹ Anterior
-                    </Link>
-                  ) : null}
-                  <span className="tabular-nums">
-                    Página {params.pagina} de {paginas}
-                  </span>
-                  {params.pagina < paginas ? (
-                    <Link href={hrefLista(params, { pagina: params.pagina + 1 })} className="label-cayla text-[11px] text-tinta hover:text-rojo">
-                      Siguiente ›
-                    </Link>
-                  ) : null}
-                </nav>
-              )}
+              {/* La paginación del sistema (ADR-0358, ronda 8), por URL como antes. */}
+              <Paginas pagina={params.pagina} totalPaginas={paginas} hrefDe={(n) => hrefLista(params, { pagina: n })} />
             </div>
           )}
         </Tabla>

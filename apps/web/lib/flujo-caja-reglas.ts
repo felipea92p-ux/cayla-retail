@@ -239,6 +239,8 @@ export type Proyeccion = {
   saldoInicialDeclarado: boolean | null;
   hayFacturasDeProveedor: boolean | null;
   incluyeImpuestos: boolean | null;
+  /** ADR-0433, actividad 4b: ¿el contador ya declaró el saldo a favor de IGV con que CAYLA arrancó? `null` si la base es más vieja que esta web. */
+  saldoFavorIgvDeclarado: boolean | null;
   /** El veredicto de la base: 28 días de ventas y algún saldo de arranque declarado. */
   diasDeCajaConfiable: boolean | null;
   semanas: SemanaProy[];
@@ -265,6 +267,7 @@ export function leerProyeccion(data: unknown): Proyeccion {
     saldoInicialDeclarado: booleano(d.saldo_inicial_declarado),
     hayFacturasDeProveedor: booleano(d.hay_facturas_de_proveedor),
     incluyeImpuestos: booleano(d.incluye_impuestos),
+    saldoFavorIgvDeclarado: booleano(d.saldo_favor_igv_declarado),
     diasDeCajaConfiable: booleano(d.dias_de_caja_confiable),
     semanas: lista(d.semanas).map((s) => ({
       desde: fecha(s.desde),
@@ -476,7 +479,7 @@ export function puntoMasBajo(semanas: readonly SemanaProy[]): SemanaProy | null 
 
 /** «Si mañana no vendieras nada…»: el tono del spike (rojo bajo 10 días, ámbar bajo 20). */
 export const DIAS_DE_HISTORIA_MINIMOS = 28;
-export type FaltaProy = { clave: "saldos" | "historia" | "facturas" | "impuestos"; texto: string; href: string | null };
+export type FaltaProy = { clave: "saldos" | "historia" | "facturas" | "impuestos" | "saldo_igv"; texto: string; href: string | null };
 
 /**
  * Lo que falta para que «Hoy tienes» y los días de caja dejen de ser provisionales (ADR-0433, actividad 4; decisión de Felipe 2026-10-16:
@@ -485,7 +488,7 @@ export type FaltaProy = { clave: "saldos" | "historia" | "facturas" | "impuestos
  * campos: no se inventa nada.
  */
 export function queFaltaEnLaProyeccion(
-  p: Pick<Proyeccion, "historiaDias" | "saldoInicialDeclarado" | "hayFacturasDeProveedor" | "incluyeImpuestos" | "diasDeCajaConfiable">,
+  p: Pick<Proyeccion, "historiaDias" | "saldoInicialDeclarado" | "hayFacturasDeProveedor" | "incluyeImpuestos" | "saldoFavorIgvDeclarado" | "diasDeCajaConfiable">,
 ): { provisional: boolean; faltan: FaltaProy[] } {
   if (p.diasDeCajaConfiable === null) return { provisional: false, faltan: [] };
   const faltan: FaltaProy[] = [];
@@ -510,6 +513,14 @@ export function queFaltaEnLaProyeccion(
   }
   if (p.incluyeImpuestos === false) {
     faltan.push({ clave: "impuestos", texto: "Esta proyección no incluye el IGV ni el pago a cuenta de renta: tu cuenta no ve Impuestos.", href: null });
+  }
+  // Solo si el IGV entra a la proyección: con el saldo en 0 se muestra de más (CAYLA arrancó con crédito fiscal de antes del sistema; lo da el contador).
+  if (p.incluyeImpuestos === true && p.saldoFavorIgvDeclarado === false) {
+    faltan.push({
+      clave: "saldo_igv",
+      texto: "Cargar el saldo a favor de IGV con que CAYLA arrancó (te lo da el contador, de la última declaración): hoy se parte de cero y el IGV de la proyección puede estar de más.",
+      href: "/configuracion?tab=impuestos",
+    });
   }
   return { provisional: p.diasDeCajaConfiable === false, faltan };
 }

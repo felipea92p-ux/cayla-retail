@@ -6,6 +6,7 @@ import { estadoNotaFaltante, montoDeCierres, tasaIgv } from "@/lib/recepciones-r
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { FileMinus } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Sección «Notas de crédito» del detalle de un comprobante (D2, ADR-0111): lo que el proveedor
 // ya nos reconoció (faltantes, devoluciones, descuentos). Cada nota dice qué hizo: cuánto bajó lo que se
@@ -34,13 +35,11 @@ export function NotasCreditoCompra({ compra, notas, cerrados }: { compra: Compra
         )}
       </div>
       {(disp.estado === "disponible" || (disp.estado === "bloqueada" && unidadesCerradas > 0)) && (
-        <p className="rounded-xl border border-ambar/40 bg-ambar/[0.06] px-4 py-3 text-sm leading-relaxed text-tinta">
-          <b className="font-semibold text-ambar-profundo">Esperando nota de crédito · {soles(esperado)}</b>
-          <br />
+        <Aviso tono="atencion" titulo={`Esperando nota de crédito · ${soles(esperado)}`}>
           {disp.estado === "disponible"
             ? `Cerraste ${unidadesCerradas} ${unidadesCerradas === 1 ? "unidad" : "unidades"} que no llegaron y el comprobante ya está resuelto. Cuando ${compra.proveedorNombre} emita la nota de crédito, se registra en Notas de crédito: ${compra.saldo > 0 ? "no pagues esa parte." : "como ya está pagado, quedará a tu favor."}`
             : `Cerraste ${unidadesCerradas} ${unidadesCerradas === 1 ? "unidad" : "unidades"} que no llegaron, pero quedan ${disp.quedan} sin recibir ni cerrar. La nota por faltante se registra cuando el comprobante quede al 100 %.`}
-        </p>
+        </Aviso>
       )}
       {notas.length === 0 ? (
         <div className="card-cayla">
