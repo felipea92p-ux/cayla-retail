@@ -1,6 +1,9 @@
 import { z } from "zod";
+import { hrefDePrenda } from "./catalogo";
 import { beneficioAniversario, beneficioCumple, listaDicha, type Aniversario } from "./club";
-import type { Dia } from "./cuentas";
+import { hoyLima, type Dia } from "./cuentas";
+import { nombreTienda } from "./pedidos";
+import type { MiRecomendacion } from "./recomendaciones";
 
 // El aviso al entrar (ADR-0408; Felipe, 2026-10-14: «Si no le llegan los avisos por WhatsApp, cuando inicie sesión igual le debe salir
 // algún mensaje»). Al entrar se llega al Inicio, y ahí arriba sale lo que la persona tiene a su favor en el Club: su descuento de
@@ -11,6 +14,10 @@ import type { Dia } from "./cuentas";
 // La base dice qué hay (`retail.tienda_mis_avisos_del_club`, con las reglas que cobra la caja); aquí, qué se dice, cómo se llama cada
 // aviso y cuánto dura su cookie. Lógica pura, con su prueba al lado. Los textos del cumpleaños y del vale son los MISMOS de «Mi cuenta»
 // (`beneficioCumple`, `beneficioAniversario`): un beneficio se dice igual en los dos lugares.
+//
+// Desde el 2026-10-17 (hoja nueva de Recomendaciones, decisión #8 A) también sale aquí «CAYLA te respondió»: la respuesta del equipo a
+// una recomendación suya, los 30 días siguientes a que se respondió. Antes la respuesta esperaba en «Recomendaciones» y nada le avisaba.
+// Se lee de `retail.tienda_mis_recomendaciones` (la misma de su página: sin migración) y se cierra igual, con su cookie.
 
 /* ---------------- Lo que devuelve la base ---------------- */
 
@@ -22,6 +29,8 @@ const esquema = z.object({
 });
 const esquemaLlego = z.object({
   id: z.string().uuid(),
+  // El modelo que llegó: con él la campanita lleva a su ficha. Sin él (una base anterior), lleva a «Mi perfil».
+  producto_id: z.string().uuid().optional(),
   producto: z.string().min(1),
   color: z.string().nullable(),
   talla: z.string().nullable(),
@@ -29,9 +38,18 @@ const esquemaLlego = z.object({
   hay_en: z.array(z.string()),
 });
 
-export type IconoAviso = "regalo" | "ticket" | "campana";
-/** Un beneficio a favor de la persona, como se dice en el aviso. `clave`: cómo se llama su cookie (sin el prefijo). */
-export type AvisoClub = { clave: string; tipo: "cumple" | "vale" | "llego"; icono: IconoAviso; titulo: string; texto: string };
+export type IconoAviso = "regalo" | "ticket" | "campana" | "chat";
+/** Un beneficio a favor de la persona (o una respuesta de CAYLA), como se dice en el aviso. `clave`: cómo se llama su cookie (sin el
+ *  prefijo). `href`: adónde lleva, si no es «Mi perfil» (una respuesta, a «Recomendaciones»). Es el mismo campo que usa la campanita
+ *  del #1180 para «llegó tu talla»: un aviso dice adónde lleva de una sola forma. */
+export type AvisoClub = {
+  clave: string;
+  tipo: "cumple" | "vale" | "llego" | "respuesta";
+  icono: IconoAviso;
+  titulo: string;
+  texto: string;
+  href?: string;
+};
 
 /** «Blusa Emma ya llegó», «Negro · Talla M. Hay en Trujillo: sepárala antes de que se acabe.» */
 function avisoDeLlegada(e: z.infer<typeof esquemaLlego>, dueno: string): AvisoClub {
@@ -44,6 +62,7 @@ function avisoDeLlegada(e: z.infer<typeof esquemaLlego>, dueno: string): AvisoCl
     icono: "campana",
     titulo: `${e.producto} ya llegó`,
     texto: detalle ? `${detalle}. ${hay}` : hay,
+    ...(e.producto_id ? { href: hrefDePrenda({ id: e.producto_id }) } : {}),
   };
 }
 
@@ -90,6 +109,47 @@ export function avisosDelClub(dato: unknown, usuarioId: string, hoy: Dia): Aviso
   return avisos;
 }
 
+/* ---------------- «CAYLA te respondió» ---------------- */
+
+/** Cuántos días después de respondida sale el aviso. Pasado eso, la respuesta sigue en «Recomendaciones», sin aviso. */
+const DIAS_DE_UNA_RESPUESTA = 30;
+/** Cuánto de la respuesta se lee en el aviso; entera, en «Recomendaciones». */
+const RECORTE_DE_RESPUESTA = 140;
+
+const recortar = (t: string) => {
+  const limpio = t.replace(/\s+/g, " ").trim();
+  if ([...limpio].length <= RECORTE_DE_RESPUESTA) return limpio;
+  const corte = [...limpio].slice(0, RECORTE_DE_RESPUESTA).join("");
+  return `${corte.slice(0, Math.max(corte.lastIndexOf(" "), 1)).replace(/[,.;:]$/, "")}…`;
+};
+const diasDesde = (instanteIso: string, hoy: Dia) => {
+  const d = hoyLima(new Date(instanteIso));
+  return Math.round((Date.UTC(hoy.anio, hoy.mes - 1, hoy.dia) - Date.UTC(d.anio, d.mes - 1, d.dia)) / 86_400_000);
+};
+
+/**
+ * Las respuestas de CAYLA a sus recomendaciones, respondidas en los últimos 30 días (de Lima), la más nueva primero. Cada una con su
+ * clave (con dueño, como los beneficios) y el camino a leerla entera. Una sin respuesta, o con una fecha que no se lee, no sale.
+ */
+export function avisosDeRespuestas(mias: readonly MiRecomendacion[], usuarioId: string, hoy: Dia): AvisoClub[] {
+  const dueno = usuarioId.toLowerCase().slice(0, 8);
+  return mias
+    .filter((r): r is MiRecomendacion & { respuesta: string; respondidaEn: string } => {
+      if (r.estado !== "respondida" || !r.respuesta?.trim() || !r.respondidaEn || Number.isNaN(Date.parse(r.respondidaEn))) return false;
+      const dias = diasDesde(r.respondidaEn, hoy);
+      return dias >= 0 && dias <= DIAS_DE_UNA_RESPUESTA;
+    })
+    .sort((a, b) => Date.parse(b.respondidaEn) - Date.parse(a.respondidaEn))
+    .map((r) => ({
+      clave: `respuesta-${dueno}-${r.id}`,
+      tipo: "respuesta",
+      icono: "chat",
+      titulo: "CAYLA te respondió",
+      texto: `Sobre ${r.sobre ? nombreTienda(r.sobre) : "CAYLA en general"}: «${recortar(r.respuesta)}»`,
+      href: "/recomendaciones",
+    }));
+}
+
 /* ---------------- Qué sale y cuándo ---------------- */
 
 /** Cuántas tallas que llegaron se nombran una por una; las demás van en una línea («Y llegaron 2 más…»). */
@@ -117,6 +177,22 @@ export function avisoAlEntrar(avisos: readonly AvisoClub[], vistos: ReadonlySet<
   };
 }
 
+/** Cómo se presenta el aviso según lo que trae: solo del Club, «Club CAYLA · Para ti» y el camino a «Mi perfil»; con una respuesta de
+ *  CAYLA, «Para ti» (una respuesta no es del Club). Si trae las dos cosas, el enlace grande va a «Mi perfil» y cada respuesta lleva el
+ *  suyo; si solo trae respuestas, el enlace grande ya lleva a «Recomendaciones» y no se repite en cada línea. */
+export function presentacionDelAviso(aviso: AvisoAlEntrar): { ceja: string; enlace: { texto: string; href: string }; enlaceEnCadaLinea: boolean } {
+  const hayClub = aviso.mas > 0 || aviso.lineas.some((l) => l.tipo !== "respuesta");
+  const hayRespuesta = aviso.lineas.some((l) => l.tipo === "respuesta");
+  return {
+    ceja: hayRespuesta ? "Para ti" : "Club CAYLA · Para ti",
+    enlace: hayClub ? { texto: "Ver en Mi perfil", href: "/cuenta" } : { texto: "Leer en Recomendaciones", href: "/recomendaciones" },
+    enlaceEnCadaLinea: hayClub && hayRespuesta,
+  };
+}
+
+/** Lo que dice el enlace de una respuesta dentro del aviso (cuando viene junto a algo del Club). */
+export const TEXTO_ENLACE_RESPUESTA = "Leerla en Recomendaciones";
+
 /** «Y llegó 1 talla más que esperabas: mírala en Mi perfil.» */
 export const textoDeMas = (n: number) =>
   n === 1 ? "Y llegó 1 talla más que esperabas: mírala en Mi perfil." : `Y llegaron ${n} tallas más que esperabas: míralas en Mi perfil.`;
@@ -125,8 +201,8 @@ export const textoDeMas = (n: number) =>
 
 /** El prefijo de las cookies de los avisos cerrados (una por beneficio). */
 const COOKIE_AVISO = "tienda-aviso-";
-// tipo-dueño-qué: el cumpleaños y el vale, con su último día; lo que llegó, con su espera.
-const CLAVE = /^(?:(?:cumple|vale)-[0-9a-f]{8}-\d{4}-\d{2}-\d{2}|llego-[0-9a-f]{8}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
+// tipo-dueño-qué: el cumpleaños y el vale, con su último día; lo que llegó, con su espera; una respuesta, con su recomendación.
+const CLAVE = /^(?:(?:cumple|vale)-[0-9a-f]{8}-\d{4}-\d{2}-\d{2}|(?:llego|respuesta)-[0-9a-f]{8}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
 
 /** ¿Tiene la forma de la clave de un aviso? (lo que llega del navegador se revisa antes de escribir una cookie con ella). */
 const esClaveDeAviso = (v: unknown): v is string => typeof v === "string" && CLAVE.test(v);
@@ -154,15 +230,18 @@ export function cookiesQueSobran(nombres: readonly string[], cerradas: readonly 
   });
 }
 
-/** Lo que manda «Entendido»: de 1 a 40 claves de aviso (un aviso tiene a lo más el cumpleaños, el vale y 30 esperas). Si no, null. */
+/** Lo que manda «Entendido»: de 1 a 80 claves de aviso (un aviso tiene a lo más el cumpleaños, el vale, 30 esperas y las respuestas de un
+ *  mes, con un tope de 3 recomendaciones por día). Si no, null. */
 export function clavesDelNavegador(dato: unknown): string[] | null {
-  if (!Array.isArray(dato) || dato.length === 0 || dato.length > 40 || !dato.every(esClaveDeAviso)) return null;
+  if (!Array.isArray(dato) || dato.length === 0 || dato.length > 80 || !dato.every(esClaveDeAviso)) return null;
   return [...new Set(dato)];
 }
 
 const DIA_S = 24 * 60 * 60;
 /** Lo que más dura una cookie en los navegadores (Chrome la corta a 400 días). Una talla que llegó no tiene fecha: medio año. */
 const DIAS_DE_UNA_LLEGADA = 180;
+/** Una respuesta sale 30 días: su cookie dura el doble, y para entonces ya no sale aunque se borre. */
+const DIAS_DE_UNA_RESPUESTA_CERRADA = 60;
 
 /** Cuántos segundos dura la cookie de un aviso cerrado: el cumpleaños y el vale, hasta un día después de su último día (después ya no
  *  salen); lo que llegó, medio año (si la talla se vuelve a acabar y a llegar, `Entendido` borra la cookie vieja y vuelve a avisar). */
@@ -174,5 +253,5 @@ export function vidaDeLaCookie(clave: string, hoy: Dia): number {
     const dias = Math.round((hasta - desde) / (DIA_S * 1000)) + 2;
     return Math.min(400, Math.max(1, dias)) * DIA_S;
   }
-  return DIAS_DE_UNA_LLEGADA * DIA_S;
+  return (clave.startsWith("respuesta-") ? DIAS_DE_UNA_RESPUESTA_CERRADA : DIAS_DE_UNA_LLEGADA) * DIA_S;
 }
