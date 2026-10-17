@@ -75,6 +75,10 @@ export const AVIARIO = [
       // Vitrina ▸ Probador, como `vitrina_productos` (el largo propio vive ahí). Están en producción desde el 2026-10-17 (PR #1151);
       // las asignó el refresco del volcado de ese día.
       "foto_recortes", "vitrina_largos_tipicos",
+      // El diseño de la portada de una campaña en la tienda online (una por etiqueta de campaña: borrador, publicado, anterior):
+      // es de la misma vitrina y de la etiqueta, que son de Loro. En producción desde el 2026-10-17 (migraciones `campanas_*` de
+      // otra sesión, todavía fuera de main); la asignó el refresco del volcado de ese día.
+      "campana_disenos",
     ] },
   // Tucán es la traducción al estándar de Shopify (ADR-0030); sus tablas no existen en V2.
   { n: "03", pajaro: "Tucán", modulo: "Taxonomía universal", tablas: [] },
