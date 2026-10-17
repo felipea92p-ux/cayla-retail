@@ -244,8 +244,8 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // Un archivo que es a la vez el formulario principal de una pantalla y dibuja un `<Modal>` cuenta como modal: sepáralo si hace falta.
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-/** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. (55 → 54 con «Ingresar insumo» del rediseño de Producción y 54 → 53 con la ficha de la clienta de `main`: dos archivos distintos que se suman al fusionar; 53 → 52 el 2026-10-17: la orden de Producción pasó a `<Cajon>` y ya no arma su propia hoja, ADR-0358 ronda 17; 52 → 54 ese mismo día, cuando la prueba aprendió a ver el `<Cajon>`: la orden de Producción vuelve —su cajón sigue llevando el cierre y los insumos, sin guía— y entra la ficha de una persona del Equipo, que nació el 2026-10-05 en un cajón hecho a mano que la prueba no veía. Ninguno es un modal nuevo: es deuda que estaba escondida.) */
-export const MODALES_PENDIENTES_HOY = 54;
+/** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. (55 → 54 con «Ingresar insumo» del rediseño de Producción y 54 → 53 con la ficha de la clienta de `main`: dos archivos distintos que se suman al fusionar; 53 → 52 el 2026-10-17: la orden de Producción pasó a `<Cajon>` y ya no arma su propia hoja, ADR-0358 ronda 17; 52 → 54 ese mismo día, cuando la prueba aprendió a ver el `<Cajon>`: la orden de Producción vuelve —su cajón sigue llevando el cierre y los insumos, sin guía— y entra la ficha de una persona del Equipo, que nació el 2026-10-05 en un cajón hecho a mano que la prueba no veía. Ninguno es un modal nuevo: es deuda que estaba escondida; 54 → 53 ese mismo día, con la guía de la ficha del Equipo.) */
+export const MODALES_PENDIENTES_HOY = 53;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -400,9 +400,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   // se borra o se escribe mal (`lib/club-beneficios-guia.ts`, la misma regla que apaga «Guardar»).
   // ADR-0341: Dar acceso en una hoja. Falta = lo mismo que apaga el botón: a quién, la sede, el rol (si se leyeron los roles) y quién lo da.
   "components/colaboradores/DarAccesoModal.tsx": { estado: "aplicada", evidencia: ["components/colaboradores/DarAccesoModal.tsx"] },
-  // ADR-0340: la ficha de una persona del Equipo, en su `<Cajon>`. «Cambiar rol» pide quién lo hace, el rol nuevo y, si deja de ser líder,
-  // la sede donde queda: el botón se apaga sin decir que falta la sede. «Suspender» suma un motivo opcional; «Cambiar sede» es un toque.
-  "components/colaboradores/FichaColaborador.tsx": PENDIENTE, // 3 controles + elegir rol y sede con botones
+  // ADR-0340: la ficha de una persona del Equipo, en su `<Cajon>`. La guía vive en el panel abierto (`lib/ficha-colaborador-guia.ts`): «Cambiar
+  // rol» pide quién lo hace, el rol nuevo y, solo al bajar a un líder sin sede, la sede donde queda (lo que exige `asignar_rol`); «Suspender»,
+  // quién lo hace y un motivo opcional que nunca bloquea; cambiar la sede, reactivar y quitar el acceso son un toque y solo piden quién lo hace.
+  "components/colaboradores/FichaColaborador.tsx": { estado: "aplicada", evidencia: ["components/colaboradores/FichaColaborador.tsx"] },
   "components/clientas/BeneficiosClubModal.tsx": { estado: "aplicada", evidencia: ["components/clientas/BeneficiosClubModal.tsx"] },
   // Recomendaciones (ADR-0408): la respuesta se enciende si todavía se puede responder (sin leer, opcional: sin ella la hoja la marca
   // leída; ya leída, falta) y después quién lo hace. «Falta» = lo que `responder_recomendacion` rechazaría (`lib/recomendaciones-guia.ts`).

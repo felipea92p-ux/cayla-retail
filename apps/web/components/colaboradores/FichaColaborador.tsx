@@ -22,11 +22,16 @@ import { CaraPersona, EstadoPersona, PildoraRol } from "@/components/colaborador
 import { Cajon } from "@/components/ui/Cajon";
 import { Aviso } from "@/components/ui/Aviso";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { camposFicha, puedeCambiarRol } from "@/lib/ficha-colaborador-guia";
 
 // La ficha de una persona del equipo (propuesta del 2026-10-05): lo que hoy estaba en un menú «⋯» pasa a botones a la
 // vista, y cada uno abre su panel aquí mismo, sin otra ventana encima. Abajo, su menú tal como lo ve. Lo reversible
 // (suspender, reactivar, cambiar rol o sede) se hace al confirmar y el aviso trae «Deshacer»; solo «Quitar acceso» pregunta.
 // Las decisiones de permisos son las de siempre: llegan ya resueltas en `persona.acciones` y en `rolesAsignables`.
+// La guía de foco (ADR-0284) enciende lo que sigue en el panel abierto y dice qué falta sobre su botón: quién lo hace, el rol nuevo y,
+// al bajar a un líder sin sede, la sede donde queda (`lib/ficha-colaborador-guia.ts`).
 
 type Panel = "rol" | "sede" | "suspender" | "quitar" | null;
 
@@ -140,6 +145,13 @@ export function FichaColaborador({
   const tocable = persona.estado === "activa" ? persona.acciones.length > 0 : persona.puedeReactivar;
   const alternar = (p: Panel) => setPanel((actual) => (actual === p ? null : p));
   const listo = responsable.listo && !ocupado;
+  const sedeElegida = sedeDelLider !== null && ubicaciones.some((u) => u.id === sedeDelLider);
+  const estadoRol = { responsableListo: responsable.listo, rolElegido: !!destino, pideSede: conSede, sedeElegida };
+  // Alguien suspendido no abre panel: su ficha es «Reactivar» (o «Quitar acceso», que sí lo abre).
+  const panelGuia = !tocable ? null : (panel ?? (persona.estado === "activa" ? null : "reactivar"));
+  const guia = useGuiaCampos(camposFicha({ ...estadoRol, panel: panelGuia, responsableMotivo: responsable.motivo, motivo }));
+  // En los paneles de un toque (cambiar la sede, reactivar, quitar) el pie solo aparece si algo falta: con todo listo, el toque es el paso.
+  const pieSiFalta = guia.faltan.length > 0 && <PieGuia guia={guia} />;
 
   const frase = fraseFicha(persona, ahoraIso);
 
@@ -175,7 +187,9 @@ export function FichaColaborador({
 
       {tocable && (
         <div className="space-y-3">
-          <ComboResponsable control={responsable} compacto deshabilitado={ocupado} />
+          <CampoGuiado id="ficha-responsable" guia={guia}>
+            <ComboResponsable control={responsable} compacto deshabilitado={ocupado} />
+          </CampoGuiado>
 
           {persona.estado === "activa" ? (
             <div className="grid grid-cols-3 gap-2" data-guia="colaboradores.ficha-acciones">
@@ -184,68 +198,72 @@ export function FichaColaborador({
               {puede("suspender") && <BotonAccion icono={PauseCircle} texto="Suspender" activo={panel === "suspender"} onClick={() => alternar("suspender")} />}
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
-              <BotonAccion icono={PlayCircle} texto="Reactivar" disabled={!listo} onClick={() => void acciones.reactivar()} />
+            <div className="space-y-1">
+              <div className="grid grid-cols-3 gap-2">
+                <BotonAccion icono={PlayCircle} texto="Reactivar" disabled={!listo} onClick={() => void acciones.reactivar()} />
+              </div>
+              {panel === null && pieSiFalta}
             </div>
           )}
 
           {panel === "rol" && (
             <div className="anim-revelar space-y-2.5 rounded-xl border border-sand p-3">
-              <ul className="space-y-2" aria-label="Elige el nuevo rol">
-                {destinos.map((r) => {
-                  const d = rolActual ? diferenciaDeModulos(rolActual.modulos, r.modulos) : { suma: [], quita: [] };
-                  const elegido = r.id === rolElegido;
-                  return (
-                    <li key={r.id}>
-                      <button
-                        type="button"
-                        aria-pressed={elegido}
-                        onClick={() => setRolElegido(r.id)}
-                        className={`w-full rounded-lg border px-3 py-2.5 text-left transition-colors duration-200 ease-cayla ${elegido ? "border-tinta bg-hueso" : "border-sand hover:border-taupe"}`}
-                      >
-                        <span className="block text-[14.5px] font-semibold text-tinta">{r.nombre}</span>
-                        {(d.suma.length > 0 || d.quita.length > 0) && (
-                          <span className="mt-1 flex flex-wrap gap-1">
-                            {d.suma.slice(0, 3).map((m) => (
-                              <Chip key={m} tono="verde" versalitas={false}>+ {nombreModulo(m)}</Chip>
-                            ))}
-                            {d.suma.length > 3 && <Chip tono="verde" versalitas={false}>+{d.suma.length - 3}</Chip>}
-                            {d.quita.slice(0, 3).map((m) => (
-                              <Chip key={m} tono="rojo" versalitas={false} className="line-through">{nombreModulo(m)}</Chip>
-                            ))}
-                            {d.quita.length > 3 && <Chip tono="rojo" versalitas={false}>−{d.quita.length - 3}</Chip>}
-                          </span>
-                        )}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+              <CampoGuiado id="ficha-rol" guia={guia} titulo="Rol nuevo">
+                <ul className="space-y-2" aria-label="Elige el nuevo rol">
+                  {destinos.map((r) => {
+                    const d = rolActual ? diferenciaDeModulos(rolActual.modulos, r.modulos) : { suma: [], quita: [] };
+                    const elegido = r.id === rolElegido;
+                    return (
+                      <li key={r.id}>
+                        <button
+                          type="button"
+                          aria-pressed={elegido}
+                          onClick={() => setRolElegido(r.id)}
+                          className={`w-full rounded-lg border px-3 py-2.5 text-left transition-colors duration-200 ease-cayla ${elegido ? "border-tinta bg-hueso" : "border-sand hover:border-taupe"}`}
+                        >
+                          <span className="block text-[14.5px] font-semibold text-tinta">{r.nombre}</span>
+                          {(d.suma.length > 0 || d.quita.length > 0) && (
+                            <span className="mt-1 flex flex-wrap gap-1">
+                              {d.suma.slice(0, 3).map((m) => (
+                                <Chip key={m} tono="verde" versalitas={false}>+ {nombreModulo(m)}</Chip>
+                              ))}
+                              {d.suma.length > 3 && <Chip tono="verde" versalitas={false}>+{d.suma.length - 3}</Chip>}
+                              {d.quita.slice(0, 3).map((m) => (
+                                <Chip key={m} tono="rojo" versalitas={false} className="line-through">{nombreModulo(m)}</Chip>
+                              ))}
+                              {d.quita.length > 3 && <Chip tono="rojo" versalitas={false}>−{d.quita.length - 3}</Chip>}
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </CampoGuiado>
               {destino && conSede && (
-                <div role="group" aria-label="Sede donde queda" className="space-y-1.5">
-                  <p className="text-[13px] text-tinta/70">Deja de ser líder: elige la sede donde queda.</p>
-                  <div className="flex flex-wrap gap-1.5">
+                <CampoGuiado id="ficha-sede" guia={guia} titulo="Sede donde queda" ayuda="Deja de ser líder: va a trabajar en una sola.">
+                  <div role="group" aria-label="Sede donde queda" className="flex flex-wrap gap-1.5">
                     {ubicaciones.map((u) => (
                       <button key={u.id} type="button" className="pildora-cayla" aria-pressed={sedeDelLider === u.id} onClick={() => setSedeDelLider(u.id)}>
                         {u.nombre}
                       </button>
                     ))}
                   </div>
-                </div>
+                </CampoGuiado>
               )}
               {destino && persona.nivel === "lider" && !destino.fijo && debeAvisarPerdidaAdmin(persona.esAdmin, destino) && (
                 <Aviso tono="atencion" chico titulo="También deja de ser Admin">
                   No podrá administrar líderes hasta que otro Admin se lo devuelva.
                 </Aviso>
-
               )}
               {destino?.fijo && <p className="text-[13px] text-tinta/70">Como líder verá y hará todo en todas las sedes.</p>}
+              <PieGuia guia={guia} listo="Todo listo para cambiar el rol." />
               {destino && cuenta && (
                 <button
                   type="button"
-                  className="btn-cayla btn-primario w-full"
-                  disabled={!listo || (conSede && !sedeDelLider)}
-                  title={responsable.motivo ?? undefined}
+                  className={`btn-cayla btn-primario w-full ${guia.claseConfirmar}`}
+                  disabled={ocupado || !puedeCambiarRol(estadoRol)}
+                  title={responsable.motivo ?? guia.frase ?? undefined}
                   onClick={() => void acciones.cambiarRol(destino.id, cuenta, conSede ? (sedeDelLider ?? undefined) : undefined)}
                 >
                   Cambiar a {destino.nombre}
@@ -276,6 +294,7 @@ export function FichaColaborador({
                   );
                 })}
               </div>
+              {pieSiFalta}
             </div>
           )}
 
@@ -287,20 +306,23 @@ export function FichaColaborador({
                 if (listo) void acciones.suspender(motivo);
               }}
             >
-              <label className="campo block space-y-1" htmlFor={`motivo-${persona.id}`}>
-                <span className="campo-etiqueta">Motivo (opcional)</span>
-                <span className="caja-cayla caja-campo">
-                  <input
-                    id={`motivo-${persona.id}`}
-                    value={motivo}
-                    onChange={(e) => setMotivo(e.target.value)}
-                    maxLength={200}
-                    autoComplete="off"
-                    className="self-stretch py-0 text-sm"
-                  />
-                </span>
-              </label>
-              <button type="submit" className="btn-cayla btn-primario w-full" disabled={!listo} title={responsable.motivo ?? undefined}>
+              <CampoGuiado id="ficha-motivo" guia={guia}>
+                <label className="campo block space-y-1" htmlFor={`motivo-${persona.id}`}>
+                  <span className="campo-etiqueta">{guia.etiqueta("ficha-motivo", "Motivo (opcional)")}</span>
+                  <span className="caja-cayla caja-campo">
+                    <input
+                      id={`motivo-${persona.id}`}
+                      value={motivo}
+                      onChange={(e) => setMotivo(e.target.value)}
+                      maxLength={200}
+                      autoComplete="off"
+                      className="self-stretch py-0 text-sm"
+                    />
+                  </span>
+                </label>
+              </CampoGuiado>
+              <PieGuia guia={guia} />
+              <button type="submit" className={`btn-cayla btn-primario w-full ${guia.claseConfirmar}`} disabled={!listo} title={responsable.motivo ?? guia.frase ?? undefined}>
                 Suspender a {persona.nombre.split(" ")[0]}
               </button>
             </form>
@@ -330,6 +352,7 @@ export function FichaColaborador({
               <p>
                 <strong className="font-semibold">¿Quitar el acceso de {persona.nombre}?</strong> Ya no podrá entrar a retail. Su historial se conserva.
               </p>
+              {pieSiFalta}
               <div className="flex flex-wrap gap-2">
                 <button type="button" className="btn-cayla btn-chico btn-peligro" disabled={!listo} onClick={() => void acciones.quitar()}>
                   Sí, quitar acceso
