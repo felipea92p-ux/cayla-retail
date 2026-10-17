@@ -176,3 +176,9 @@
 - [ ] **Falta leer lo que viene en camino a la tienda de destino** (hoy solo se lee lo que llega a la mía): con eso, la cobertura del destino restaría lo que ya le viene (A3/A4 del destino). Pide una lectura nueva por tienda.
 - [ ] **Sin correr en la nube:** `/chaos` sobre «Enviar» (la URL con `lineas=` abre un traslado), pase visual del carril, `guias:recorrer`.
 - [ ] **Pendiente de Felipe:** las constantes (`VENDIDAS_PARA_ENVIAR` 2, `COBERTURA_DESTINO_DIAS` 30) y el verbo «pedir» contra «traer» entre tiendas.
+
+## B3 · Lo que hoy no se ve (2026-10-17)
+- [x] «Te sobra» (`analisis-sobra.ts`: `SOBRA_DIAS` 90, 3 ventas, contra el horizonte de «Qué pedir»), su tarjeta en «No se vende», la ficha («Te sobra»), la frase en Hoy; «Reponer talla o color» en «Se está acabando ▸ Todos» (2 o más ventas, sin cantidades); guía al día.
+- [ ] **Sin correr en la nube:** pase visual de las dos tarjetas nuevas (1440, 1024, claro y oscuro), `guias:recorrer`, `tema:auditar`.
+- [ ] **Decisión de Felipe:** el 90 de `SOBRA_DIAS`; si «Te sobra» debe contar en el número de la pestaña «No se vende»; si «Reponer talla o color» debe verse también en «Cómpralas» y «Ya vienen».
+- [ ] **Cobertura de «Te sobra»:** hoy es solo lo que tienes; no suma lo que viene en camino ni lo ya pedido. Si Felipe lo quiere («Tienes 60 días y vienen 100»), es sumar `llegadasDe(...).vienen` en `sobraDe`.

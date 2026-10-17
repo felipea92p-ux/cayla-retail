@@ -13,7 +13,7 @@ import { VISTAS_ANALISIS } from "./analisis-tipos";
 import { compararMargen, margenPrudentePorDia } from "./analisis-ritmo";
 import { diaLima, diasEntreFechas } from "./fechas-lima";
 import { esPedidoDeTalla, type MotivoPedido } from "./se-probo-reglas";
-import { destinoParaEnviar, tiendasSinLeer } from "./analisis-enviar";
+import { destinoDeEnvio, tiendasSinLeer } from "./analisis-enviar";
 
 /** Hasta cuántos días de stock «se está acabando» (el eje del carril llega a 2 semanas). */
 export const DIAS_SE_ACABA = 14;
@@ -67,9 +67,10 @@ export const PRENDAS_EN_LISTA = 5;
 /**
  * «duda»: quieta, pero alguna unidad colgada puede ser una venta sin registrar (ADR-0357, act. 2026-10-14): no se sabe, no se liquida.
  * «sin_ritmo»: quieta, pero su tipo todavía no tiene ventas suficientes para saber cuánto tarda en venderse (act. 2026-10-17, B1): ni se rebaja, ni se
- * manda, ni se vigila por ahora.
+ * manda, ni se vigila por ahora. «sobra» (B3): se vende, pero lo que tiene dura más que el umbral y el horizonte de «Qué pedir»: solo información. NO lo
+ * devuelve `grupoDe` (depende de la meta de «Qué pedir», que `grupoDe` no conoce): lo decide `analisis-sobra.ts` y lo suma la ficha.
  */
-export type GrupoAnalisis = "comprar" | "enviar" | "liquidar" | "vigila" | "duda" | "sin_ritmo";
+export type GrupoAnalisis = "comprar" | "enviar" | "liquidar" | "vigila" | "duda" | "sin_ritmo" | "sobra";
 /** Los grupos de «Se está acabando» y de «No se vende», en el orden de su carril. */
 export const GRUPOS_ACABA: readonly GrupoAnalisis[] = ["comprar"];
 export const GRUPOS_QUIETAS: readonly GrupoAnalisis[] = ["enviar", "liquidar"];
@@ -191,7 +192,7 @@ export function rotuladaSinRitmo(p: Pick<PrendaAnalisis, "sinRitmo" | "diasSinVe
  * así por ahora y se decide con 30 días de historia (~30-oct), cuando haya con qué medir si esa regla esconde modelos que sí están lentos.
  */
 export function grupoDe(
-  p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasSinVender" | "otras" | "diasDeVentas" | "enDuda" | "umbrales" | "sinRitmo">,
+  p: Pick<PrendaAnalisis, "varianteId" | "piso" | "almacen" | "vendidas30" | "diasSinVender" | "otras" | "diasDeVentas" | "enDuda" | "umbrales" | "sinRitmo">,
 ): GrupoAnalisis | null {
   if (seEstaAcabando(p)) return "comprar";
   if (p.vendidas30 > 0 || p.diasSinVender === null || totalEnTienda(p) === 0) return null;
@@ -205,7 +206,7 @@ export function grupoDe(
   if (p.diasSinVender < liquidar) return "vigila";
   // Mándalas: a una tienda que LEÍMOS, que vendió y a la que le queda poca cobertura (`analisis-enviar.ts`, B2). Si no hay a quién, liquidar solo cuando se
   // sabe que en NINGUNA otra tienda se vende: con una tienda sin leer no se sabe, y queda en «Aún no se sabe» con su razón (D7).
-  if (destinoParaEnviar(p.otras)) return "enviar";
+  if (destinoDeEnvio(p)) return "enviar";
   return tiendasSinLeer(p.otras).length > 0 ? "duda" : "liquidar";
 }
 

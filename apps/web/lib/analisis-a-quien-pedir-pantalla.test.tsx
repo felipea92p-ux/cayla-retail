@@ -76,6 +76,7 @@ vi.mock("@/lib/analisis-acaba", async () => await import("./analisis-acaba"));
 vi.mock("@/lib/analisis-ficha", async () => await import("./analisis-ficha"));
 vi.mock("@/lib/analisis-a-quien-pedir", async () => await import("./analisis-a-quien-pedir"));
 vi.mock("@/lib/analisis-pedido-en-camino-reglas", async () => await import("./analisis-pedido-en-camino-reglas"));
+vi.mock("@/lib/analisis-sobra", async () => await import("./analisis-sobra"));
 
 import { AQuienPedir } from "../components/analisis/AQuienPedir";
 import { PestanaAcaba } from "../components/analisis/PestanaAcaba";

@@ -5,7 +5,7 @@
 
 import type { EdadInventario, PrendaAnalisis } from "./analisis-tipos";
 import { diasEntreFechas } from "./fechas-lima";
-import { destinoParaEnviar, razonTiendaSinLeer, tiendasSinLeer } from "./analisis-enviar";
+import { destinoDeEnvio } from "./analisis-enviar";
 import { DIAS_EJE_QUIETAS, DIAS_TRES_MESES, GRUPOS_CARRIL_QUIETAS, grupoDe, ordenQuietas, plural, prendasDe, totalEnTienda } from "./analisis-reglas";
 
 /** Las cifras grandes de arriba: cuántos modelos están quietos y cuánta plata hay en ellos. */
@@ -166,8 +166,8 @@ export function gruposQuietas<T extends PrendaAnalisis>(prendas: readonly T[]): 
  * «Enviar todas»: la tienda a la que van todas (la que más las vende), si es la misma para todas; null si van a tiendas
  * distintas (cada fila tiene la suya) o si no hay ninguna.
  */
-export function destinoDeTodas(prendas: readonly Pick<PrendaAnalisis, "otras">[]): string | null {
-  const destinos = new Set(prendas.map((p) => destinoParaEnviar(p.otras)?.sedeId ?? null));
+export function destinoDeTodas(prendas: readonly Pick<PrendaAnalisis, "varianteId" | "piso" | "almacen" | "otras">[]): string | null {
+  const destinos = new Set(prendas.map((p) => destinoDeEnvio(p)?.sedeId ?? null));
   if (destinos.size !== 1) return null;
   return [...destinos][0] ?? null;
 }

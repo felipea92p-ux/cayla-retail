@@ -24,7 +24,8 @@ import { ritmoReciente } from "./analisis-ritmo";
 import { notaDePedidoDeTipo, PEDIDO_SIN_MODELO, type PedidoDeTipo } from "./analisis-pedido-en-camino-reglas";
 import { FUENTE_CORTA, type ProveedorDelModelo } from "./analisis-a-quien-pedir";
 import { razonSinRitmo } from "./analisis-quietas";
-import { destinoParaEnviar, loQueLlevaElEnvio, razonTiendaSinLeer, textoPuedesMandar, tiendasSinLeer } from "./analisis-enviar";
+import { textoSobra } from "./analisis-sobra";
+import { destinoDeEnvio, loQueLlevaElEnvio, razonTiendaSinLeer, textoPuedesMandar, tiendasSinLeer } from "./analisis-enviar";
 import { hrefComprar, hrefEnviar, hrefLiquidar, hrefRegistrarVentas, hrefReponerPiso, type DondeComprar } from "./analisis-acciones";
 import { estiloMosaicoColor } from "./color-prenda-reglas";
 import { queTiene } from "./analisis-modelo";
@@ -54,6 +55,7 @@ const CHIP_GRUPO: Record<GrupoAnalisis, { est: EstadoFicha; texto: string }> = {
   vigila: { est: "nd", texto: "Vigílalas" },
   duda: { est: "nd", texto: "Aún no se sabe" },
   sin_ritmo: { est: "nd", texto: "Todavía sin ritmo" },
+  sobra: { est: "nd", texto: "Te sobra" },
 };
 
 /**
@@ -274,7 +276,7 @@ export function hechosDe(
     agregar("caja", "taupe", `Tienes ${tienes}`, `${p.piso} en el piso`);
     // Mándalas (B2): la tienda con poca cobertura que más vendió, y lo que de verdad lleva el envío: solo las tallas y colores que allá se vendieron y que están
     // en el almacén (lo que está en el piso no se manda: se dice cuántas se pueden mandar hoy).
-    const vende = grupo === "enviar" ? destinoParaEnviar(p.otras) : null;
+    const vende = grupo === "enviar" ? destinoDeEnvio(p) : null;
     if (vende) {
       const lleva = loQueLlevaElEnvio([p], vende.sedeId);
       const ciudad = sedes.find((s) => s.id === vende.sedeId)?.ciudad ?? "esa tienda";
@@ -282,6 +284,15 @@ export function hechosDe(
       agregar("camion", "ambar", `${codigoDe(sedes, vende.sedeId)} vendió ${vende.vendidas30}`, vende.stock <= 0 ? "este mes · se quedó sin stock" : `este mes · le ${plural(vende.stock, "queda", "quedan")} ${vende.stock}`, { mas });
     }
     if (grupo === "liquidar") agregar("etiqueta", grave ? "rojo" : "ambar", "Liquidar", "el precio lo fijas en Etiquetas");
+    return hechos;
+  }
+
+  // Se vende, pero tienes para mucho más tiempo que el que importa (B3): solo información. Nada de rebajar ni de cantidades.
+  if (grupo === "sobra") {
+    agregar("check", "verde", `Vendiste ${p.vendidas30}`, enDias(p));
+    agregar("caja", "taupe", `Tienes ${tienes}`, `${p.piso} en el piso`);
+    const dias = diasQueQuedan(p);
+    if (dias !== null) agregar("reloj", "pizarra", "Te sobra", textoSobra(dias), { ancho: "completo" });
     return hechos;
   }
 
@@ -532,7 +543,7 @@ export function accionPrincipal(
     return href ? { texto: "Comprar", href, ...(yaViene ? { secundaria: true } : {}) } : null;
   }
   if (grupo === "enviar") {
-    const vende = destinoParaEnviar(p.otras);
+    const vende = destinoDeEnvio(p);
     const destino = vende ? sedes.find((s) => s.id === vende.sedeId) : undefined;
     const href = destino ? hrefEnviar([p], destino, acceso) : null;
     return destino && href ? { texto: `Enviar a ${destino.ciudad}`, href } : null;

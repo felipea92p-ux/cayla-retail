@@ -184,6 +184,13 @@ describe("el grupo de cada prenda (una sola)", () => {
     it("con dos destinos, vale uno que sirva aunque el otro ya esté cubierto", () => {
       expect(grupoDe(quieta([{ sedeId: "aqp", stock: 99, vendidas30: 9 }, { sedeId: "lim", stock: 0, vendidas30: 2 }]))).toBe("enviar");
     });
+    it("lo que el destino vendió tiene que estar aquí: si es una talla que no tengo, no hay a quién mandarla (se liquida) (revisión de B2)", () => {
+      const modelo = { ...con({ piso: 3, diasSinVender: 64 }), otras: [{ sedeId: "aqp", stock: 0, vendidas30: 4 }], variantes: [con({ piso: 3, otras: [{ sedeId: "aqp", stock: 0, vendidas30: 0 }] }), con({ piso: 0, almacen: 0, otras: [{ sedeId: "aqp", stock: 0, vendidas30: 4 }] })] };
+      expect(grupoDe(modelo as unknown as PrendaAnalisis)).toBe("liquidar");
+    });
+    it("todo lo que el destino vendió está en el piso: sigue en «Mándalas» (hay a quién, aunque hoy no se pueda mandar y la fila lo diga)", () => {
+      expect(grupoDe(quieta([{ sedeId: "aqp", stock: 0, vendidas30: 4 }]))).toBe("enviar");
+    });
     it("una tienda sin leer NO es «allá no se vende»: lo que iba a «Liquidar» queda en «Aún no se sabe» (D7)", () => {
       expect(grupoDe(quieta([{ sedeId: "aqp", stock: 0, vendidas30: 0, sinLeer: true }, { sedeId: "lim", stock: 0, vendidas30: 0 }]))).toBe("duda");
       // …pero si OTRA tienda ya es un buen destino, se manda a esa: lo que no se leyó no cambia lo que sí se sabe.

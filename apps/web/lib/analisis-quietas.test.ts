@@ -304,15 +304,17 @@ describe("«Todavía no se puede saber» en vez de «Todo se mueve» (tarea #2, 
 });
 
 describe("«Enviar todas»", () => {
+  /** Una fila con algo en el almacén y lo que vendieron las otras tiendas (stock 0: les queda poco). */
+  const fila = (id: string, ...otras: ReturnType<typeof vendioAlla>[]) => ({ varianteId: id, piso: 0, almacen: 2, otras });
   it("si todas van a la misma tienda, esa", () => {
-    expect(destinoDeTodas([{ otras: [vendioAlla("tienda-b", 3), vendioAlla("tienda-c", 0)] }, { otras: [vendioAlla("tienda-b", 2)] }])).toBe("tienda-b");
+    expect(destinoDeTodas([fila("a", vendioAlla("tienda-b", 3, 0), vendioAlla("tienda-c", 0, 0)), fila("b", vendioAlla("tienda-b", 2, 0))])).toBe("tienda-b");
   });
   it("si van a tiendas distintas, ninguna (cada fila tiene la suya)", () => {
-    expect(destinoDeTodas([{ otras: [vendioAlla("tienda-b", 3)] }, { otras: [vendioAlla("tienda-c", 4), vendioAlla("tienda-b", 1)] }])).toBeNull();
+    expect(destinoDeTodas([fila("a", vendioAlla("tienda-b", 3, 0)), fila("b", vendioAlla("tienda-c", 4, 0), vendioAlla("tienda-b", 1, 0))])).toBeNull();
   });
   it("sin prendas, o con una que ninguna tienda vende, ninguna", () => {
     expect(destinoDeTodas([])).toBeNull();
-    expect(destinoDeTodas([{ otras: [vendioAlla("tienda-b", 3)] }, { otras: [] }])).toBeNull();
+    expect(destinoDeTodas([fila("a", vendioAlla("tienda-b", 3, 0)), fila("b")])).toBeNull();
   });
 });
 

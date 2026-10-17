@@ -19,6 +19,7 @@ import {
   tablaDelModelo,
 } from "./analisis-ficha";
 import { llegaTarde, textoLlegaTarde } from "./analisis-acaba";
+import { grupoConSobra } from "./analisis-sobra";
 import { modeloDe } from "./analisis-modelo";
 import { pedidoPorTipo } from "./analisis-pedido-en-camino-reglas";
 
@@ -379,6 +380,21 @@ describe("las tarjetitas de la ficha (como `hechos()` de la maqueta)", () => {
     expect(leer(sinLeer).at(-1)).toContain("No se pudo leer cuánto tarda en venderse su tipo");
     // No tiene botón: no hay nada que rebajar ni mandar por ahora.
     expect(accionPrincipal(p, "sin_ritmo", SEDES, TODO, DONDE, false)).toBeNull();
+  });
+
+  it("te sobra (B3): lo vendido, cuánto hay y cuánto dura — solo información, sin botón ni cantidades", () => {
+    const p = prenda({ piso: 100, almacen: 20, vendidas30: 30, diasDeVentas: 30 });
+    expect(grupoConSobra(p, 69)).toBe("sobra");
+    expect(grupoConSobra(p, 200)).toBeNull();
+    expect(hechosDe(p, "sobra", SEDES, HOY).map(textoDe)).toEqual([
+      "Vendiste 30 · en 30 días",
+      "Tienes 120 · 100 en el piso",
+      "Te sobra · Tienes para más de 17 semanas a este ritmo: mira antes de comprar más.",
+    ]);
+    expect(chipDeGrupo("sobra")).toEqual({ est: "nd", texto: "Te sobra" });
+    expect(accionPrincipal(p, "sobra", SEDES, TODO, DONDE)).toBeNull();
+    // Lo que se acaba o pide algo manda sobre «sobra».
+    expect(grupoConSobra(prenda({ piso: 2, vendidas30: 30 }), 69)).toBe("comprar");
   });
 
   it("si va bien: lo vendido y cuánto hay", () => {

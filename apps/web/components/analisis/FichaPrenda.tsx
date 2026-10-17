@@ -8,7 +8,8 @@ import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono } from "@/components/analisis/iconos";
 import { ChipEstado, COLOR_ESTADO, TilePrenda } from "@/components/analisis/piezas";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
-import { diasQueQuedan, grupoDe, plural, porLlegar } from "@/lib/analisis-reglas";
+import { diasQueQuedan, plural, porLlegar } from "@/lib/analisis-reglas";
+import { grupoConSobra } from "@/lib/analisis-sobra";
 import { llegaTarde, lecturaDeRitmo, tipUnaVenta } from "@/lib/analisis-acaba";
 import { pedidoPorTipo } from "@/lib/analisis-pedido-en-camino-reglas";
 import { proveedorDelModelo } from "@/lib/analisis-a-quien-pedir";
@@ -70,7 +71,7 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
   useTipDeLaFicha(raiz, tip);
 
   // El grupo de la prenda con la vara de su tipo: la ficha dice lo mismo que el carril de donde se abrió.
-  const grupo = grupoDe(p);
+  const grupo = grupoConSobra(p, datos.horizonte.dias);
   // Guardada y nunca colgada (solo si la base ya lo sabe: 20261007120000): no «va bien», nadie la vio.
   const sinSalir = datos.sabePiso && nuncaSalio(p);
   // Algo ya llega a tiempo: la ficha dice lo mismo que el carril («Ya viene», sin rojo) y «Comprar» deja de ser el botón principal.

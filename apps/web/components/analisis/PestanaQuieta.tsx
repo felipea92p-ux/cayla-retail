@@ -7,7 +7,8 @@ import { Icono } from "@/components/analisis/iconos";
 import { Ayuda, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/analisis/piezas";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { edadDelInventario, GRUPOS_QUIETAS, plural, prendasDe, totalEnTienda } from "@/lib/analisis-reglas";
-import { destinoParaEnviar, loQueLlevaElEnvio, razonTiendaSinLeer, textoPuedesMandar, tiendasSinLeer } from "@/lib/analisis-enviar";
+import { modelosQueSobran, textoSobra, sobraDe } from "@/lib/analisis-sobra";
+import { destinoDeEnvio, loQueLlevaElEnvio, razonTiendaSinLeer, textoPuedesMandar, tiendasSinLeer, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-enviar";
 import { hrefEnviar, hrefLiquidar, hrefRegistrarVentas } from "@/lib/analisis-acciones";
 import { nuncaSalio } from "@/lib/analisis-piso";
 import {
@@ -84,6 +85,8 @@ export function PestanaQuieta() {
     return partes.filter(Boolean).join(" ") || null;
   };
   const algunaEnDuda = duda.some((p) => (p.enDuda ?? 0) > 0);
+  // Lo que se vende pero ya tienes para mucho tiempo (B3): solo información, en su propia tarjeta y sin botones. Se mide contra el horizonte de «Qué pedir».
+  const sobran = modelosQueSobran(prendas, datos.horizonte.dias);
   const liquidarTodas = hrefLiquidar(liquidar, acceso);
   const lote = (href: string | null, texto: string, etiqueta: string) =>
     href ? (
@@ -97,7 +100,7 @@ export function PestanaQuieta() {
     {
       clave: "enviar",
       titulo: "Mándalas a donde sí se venden",
-      ayuda: "Aquí no se venden; en otra tienda se vendieron 2 o más este mes y ya les queda poco stock. Se manda solo lo que allá se vendió y lo que está en el almacén.",
+      ayuda: `Aquí no se venden; en otra tienda se vendieron ${VENDIDAS_PARA_ENVIAR} o más este mes y ya les queda poco stock. Se manda solo lo que allá se vendió y lo que está en el almacén.`,
       icono: "camion",
       est: "ate",
       prendas: enviar,
@@ -107,7 +110,7 @@ export function PestanaQuieta() {
     {
       clave: "liquidar",
       titulo: "Liquidar",
-      ayuda: "Llevan en el piso sin venderse más de lo que tardan 9 de cada 10 de su tipo que sí se vendieron, aquí y sin que otra tienda las venda. En rojo, las de más de 3 meses. Los precios los fijas en Catálogo ▸ Etiquetas.",
+      ayuda: "Llevan en el piso sin venderse más de lo que tardan 9 de cada 10 de su tipo que sí se vendieron, y ninguna otra tienda las necesita (no las vende, o ya le sobran). En rojo, las de más de 3 meses. Los precios los fijas en Catálogo ▸ Etiquetas.",
       icono: "etiqueta",
       est: "ate",
       prendas: liquidar,
@@ -166,7 +169,7 @@ export function PestanaQuieta() {
   };
 
   const pildoras = (p: ModeloAnalisis, g: GrupoCarril) => {
-    const vende = g.clave === "enviar" ? destinoParaEnviar(p.otras) : null;
+    const vende = g.clave === "enviar" ? destinoDeEnvio(p) : null;
     const sede = vende ? sedeDe(vende.sedeId) : undefined;
     if (vende && sede) {
       return (
@@ -184,11 +187,11 @@ export function PestanaQuieta() {
 
   const accion = (p: ModeloAnalisis, g: GrupoCarril) => {
     if (g.clave === "enviar") {
-      const vende = destinoParaEnviar(p.otras);
+      const vende = destinoDeEnvio(p);
       const href = vende ? hrefEnviar([p], { id: vende.sedeId }, acceso) : null;
       if (!vende) return null;
-      // Todo lo que allá se vendió está en el piso: el botón abriría un traslado vacío. Se dice qué hacer en vez de dibujarlo.
-      if (!href && acceso.traslados) return <span className="b-nota">Sácala del piso primero</span>;
+      // Todo lo que allá se vendió está en el piso: el botón abriría un traslado vacío y no se dibuja; la nota de la fila ya dice por qué
+      // («No puedes mandar esa prenda hoy: está en el piso…»). Tampoco se dibuja si la cuenta no ve Traslados.
       if (!href) return null;
       const texto = `Enviar a ${sedeDe(vende.sedeId)?.ciudad ?? "otra tienda"}`;
       return (
@@ -299,9 +302,42 @@ export function PestanaQuieta() {
             if (g.clave === "sin_ritmo") return razonSinRitmo(p, "fila");
             if (g.clave === "duda") return razonDuda(p);
             if (g.clave !== "enviar") return null;
-            const vende = destinoParaEnviar(p.otras);
+            const vende = destinoDeEnvio(p);
             const l = vende ? loQueLlevaElEnvio([p], vende.sedeId) : null;
             return l ? textoPuedesMandar(l.movibles, l.deLoVendido) || null : null;
+          }}
+        />
+      )}
+
+      {sobran.length > 0 && (
+        <Carril
+          titulo="Lo que te sobra"
+          nota="Se vende, pero tienes para mucho más tiempo que el que importa. No se rebaja: mira antes de comprar más."
+          eje={[]}
+          grupos={[
+            {
+              clave: "sobra",
+              titulo: "Te sobra",
+              ayuda: "Se vende (3 ventas o más) y, a ese ritmo, lo que tienes dura más que lo que te importa para comprar. Es solo para que lo tengas presente: no pide ninguna acción.",
+              icono: "caja",
+              est: "info",
+              prendas: sobran,
+            },
+          ]}
+          pista={(p) => (
+            <span className="b-nota">
+              Vendió {p.vendidas30} en {p.diasDeVentas ?? datos.diasDeVentas} {plural(p.diasDeVentas ?? datos.diasDeVentas, "día", "días")}
+            </span>
+          )}
+          pildoras={(p) => (
+            <span className="pil">
+              Tienes <b>{totalEnTienda(p)}</b>
+            </span>
+          )}
+          accion={() => null}
+          notaDeFila={(p) => {
+            const s = sobraDe(p, datos.horizonte.dias);
+            return s ? textoSobra(s.dias) : null;
           }}
         />
       )}

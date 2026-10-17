@@ -75,7 +75,7 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-acaba" }],
       titulo: "Se está acabando",
-      texto: "Lo que se acaba pronto. Bajo la barra va UNA frase: cuánto vendió, en cuántos días y entre cuántos puede durar; «Una sola venta» avisa que es una pista. «Cómpralas» es lo que no viene a tiempo; «Ya vienen», lo que sí (en ámbar si llega tarde). «Pídelo a …» dice a quién. «Comprar» abre una orden sin cantidades.",
+      texto: "Lo que se acaba pronto, con UNA frase bajo la barra: cuánto vendió y entre cuántos días puede durar. «Cómpralas» no viene a tiempo; «Ya vienen», sí (en ámbar si llega tarde). «Comprar» abre una orden sin cantidades. Abajo, «Reponer talla o color»: modelos que duran, con una talla o color agotado.",
     },
     {
       id: "ya-pedido",
@@ -99,7 +99,7 @@ export const GUIA_ANALISIS: Guia = {
       // La guía deja «Se está acabando» como la encontró: de vuelta «Por días», y recién ahí a la otra pestaña.
       preparar: [{ tipo: "clic", ancla: "analisis.acaba-modo-dias", siEsta: true }, { tipo: "clic", ancla: "analisis.pestana-nose" }],
       titulo: "No se vende",
-      texto: "Lo que lleva sin venderse más de lo que tardan las de su tipo en tu piso: «Mándalas» (a una tienda que lo vende y ya tiene poco) o «Liquidar». Si su tipo aún no vendió lo suficiente para saberlo queda en «Todavía sin ritmo»; si algo no se pudo leer o registrar, en «Aún no se sabe».",
+      texto: "Lo que lleva sin venderse más de lo que tardan las de su tipo en tu piso: «Mándalas» o «Liquidar». Si su tipo aún no vendió lo suficiente queda en «Todavía sin ritmo»; si algo no se pudo leer o registrar, en «Aún no se sabe». Abajo, «Te sobra»: se vende, pero ya tienes para mucho tiempo.",
     },
     {
       id: "piso",

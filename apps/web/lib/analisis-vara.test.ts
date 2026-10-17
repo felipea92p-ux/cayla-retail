@@ -63,9 +63,9 @@ describe("los escalones de un tipo salen de la vara que juzgó (la de Frescura)"
 
 describe("el grupo con los escalones de su tipo (ADR-0357, act. 2026-10-14; B1, 2026-10-17)", () => {
   const quieta = (dias: number, extra: Partial<PrendaAnalisis> = {}) =>
-    ({ piso: 2, almacen: 1, vendidas30: 0, diasSinVender: dias, otras: [], ...extra }) as Pick<
+    ({ piso: 2, almacen: 1, vendidas30: 0, diasSinVender: dias, otras: [], varianteId: "v1", ...extra }) as Pick<
       PrendaAnalisis,
-      "piso" | "almacen" | "vendidas30" | "diasSinVender" | "otras" | "diasDeVentas" | "enDuda" | "umbrales" | "sinRitmo"
+      "varianteId" | "piso" | "almacen" | "vendidas30" | "diasSinVender" | "otras" | "diasDeVentas" | "enDuda" | "umbrales" | "sinRitmo"
     >;
   const polos = { vigila: 3, liquidar: 5, vara: "hoy" as const, vendidas: 30 };
 
@@ -168,7 +168,7 @@ describe("un tipo SIN vara suficiente: «Todavía sin ritmo» (B1, 2026-10-17)",
     const todas = [polos, jeans()];
     const u = umbralesPorTipo(todas);
     const s = sinRitmoPorTipo(todas);
-    const pieza = (categoria: string, dias: number) => ({ categoria, piso: 2, almacen: 1, vendidas30: 0, diasSinVender: dias, otras: [] });
+    const pieza = (categoria: string, dias: number) => ({ categoria, varianteId: `v-${categoria}`, piso: 2, almacen: 1, vendidas30: 0, diasSinVender: dias, otras: [] });
     const [polo, jean] = conSinRitmo(conUmbrales([pieza("Polos", 15), pieza("Jeans", 15)], u), s, "ok");
     // 15 días quieto: el polo ya pasó su P75 (13) y se vigila; el jean no se vigila ni se liquida: ya pasó la última venta de su tipo (6) y queda sin ritmo.
     expect(grupoDe(polo!)).toBe("vigila");

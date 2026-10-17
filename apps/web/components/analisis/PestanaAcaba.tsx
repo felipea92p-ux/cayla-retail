@@ -21,6 +21,7 @@ import {
   textoVieneDe,
 } from "@/lib/analisis-a-quien-pedir";
 import { textoRitmo } from "@/lib/analisis-pedir";
+import { modelosPorReponer } from "@/lib/analisis-sobra";
 import { solesFicha } from "@/lib/analisis-ficha";
 import { franjaDePedido, NOTA_DE_LO_PEDIDO, pedidoPorTipo, type FranjaDePedido } from "@/lib/analisis-pedido-en-camino-reglas";
 import {
@@ -111,7 +112,10 @@ export function PestanaAcaba({ modoInicial = "dias" }: { /** Solo para las prueb
   // nunca como «esta prenda viene» (segundo pase visual, 2026-10-17: pegado a cada fila se leía como «vienen 40 de ESTE modelo»).
   const pedidoDe = useMemo(() => pedidoPorTipo(datos.pedido ?? [], datos.hoy), [datos.pedido, datos.hoy]);
 
-  const vacio = vacioAcaba({ prendas: datos.prendas.length, seAcaban: enLaTienda, fallas: datos.fallas.length });
+  // Los modelos que duran pero tienen una talla o un color agotado que se vendía (B3, D14): no son «Cómpralas», pero tampoco se pierden.
+  const porReponer = useMemo(() => modelosPorReponer(prendas), [prendas]);
+  const reponerEnLaTienda = useMemo(() => modelosPorReponer(datos.prendas).length, [datos.prendas]);
+  const vacio = vacioAcaba({ prendas: datos.prendas.length, seAcaban: enLaTienda + reponerEnLaTienda, fallas: datos.fallas.length });
   if (vacio) return <SinCarril tipo={vacio} />;
 
   const visibles = seAcaban.filter((p) => pasaFiltroAcaba(p, filtroAcaba, datos.hoy));
@@ -170,6 +174,16 @@ export function PestanaAcaba({ modoInicial = "dias" }: { /** Solo para las prueb
   };
   // Lo ya pedido, una vez por tipo, sobre las filas: con «Por llegar» (todo viene en camino) no hay nada que pedir y no se dice.
   const franja = yaViene ? null : franjaDePedido(visibles, pedidoDe, datos.hoy);
+  // «Reponer talla o color»: solo en «Todos», debajo de lo que se acaba. Sin cantidades ni «al menos 1»; «Comprar» abre la misma orden sin cantidades.
+  const reponer: GrupoCarril = {
+    clave: "reponer",
+    titulo: "Reponer talla o color",
+    ayuda: "El modelo todavía dura, pero una talla o un color que se vendía ya no hay. Cada fila dice cuál falta. No es lo más urgente: míralo cuando pidas ese modelo.",
+    icono: "caja",
+    est: "ate",
+    prendas: porReponer.map((f) => f.modelo),
+  };
+  const grupos = filtroAcaba === "todos" && porReponer.length > 0 ? [grupo, reponer] : [grupo];
 
   return (
     <Carril
@@ -183,7 +197,7 @@ export function PestanaAcaba({ modoInicial = "dias" }: { /** Solo para las prueb
       }
       franja={franja ? <YaPedido franja={franja} /> : undefined}
       eje={[...EJE_ACABA]}
-      grupos={[grupo]}
+      grupos={grupos}
       pista={(p) => <Pista p={p} />}
       pildoras={(p) => <Pildoras p={p} ventanas={ventanas} />}
       accion={(p) => <Accion p={p} />}

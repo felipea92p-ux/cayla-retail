@@ -11,6 +11,7 @@ import { hrefReponerPiso } from "@/lib/analisis-acciones";
 import { plural, PRENDAS_EN_LISTA, prendasDe } from "@/lib/analisis-reglas";
 import { diasEnAlmacen, prendasSinSalir } from "@/lib/analisis-piso";
 import { alcancePorTipo, finEjeAlcance, llegadasAparte, ordenarAlcance, textoAlcanceEnEje, textoRitmo, tieneYVienen, tipoCorto, titularDeLosQueNoLlegan, type AlcanceTipo } from "@/lib/analisis-pedir";
+import { modelosQueSobran } from "@/lib/analisis-sobra";
 import { despuesDeLaMeta, hastaLaMeta, type Horizonte } from "@/lib/analisis-horizonte";
 import { pedidoAparte, yaPedidoCorto } from "@/lib/analisis-pedido-en-camino-reglas";
 import {
@@ -71,7 +72,7 @@ export function PestanaHoy() {
   const sinNada = estadoSinNada(confiable);
   const estPiso: Estado | null = !datos.sabePiso ? "nd" : sinSalir.length ? "ate" : buscando ? null : sinNada;
   // «¿Qué no se mueve?» sin quietas: «Todavía no se puede saber» si ningún modelo lleva aún en el piso lo que se espera para juzgarlo.
-  const vacioQuietas = vacioQuietasHoy(datos.prendas, datos.hoy, confiable, prendasDe(datos.prendas, ["sin_ritmo"]).length, datos.frescura);
+  const vacioQuietas = vacioQuietasHoy(datos.prendas, datos.hoy, confiable, prendasDe(datos.prendas, ["sin_ritmo"]).length, datos.frescura, modelosQueSobran(datos.prendas, datos.horizonte.dias).length);
   // «¿Qué pedir?»: para cuánto te alcanza cada tipo al ritmo de los días de ventas, contra la meta de compra (B2, Felipe 2026-10-07; A6: la campaña del
   // Plan, no Navidad fija). Los que no llegan, en el MISMO orden que «Qué pedir primero»: los que más pesan primero, no los chicos (D13).
   const h = datos.horizonte;

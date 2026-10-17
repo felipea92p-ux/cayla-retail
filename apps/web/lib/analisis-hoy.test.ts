@@ -196,6 +196,13 @@ describe("una tarjeta sin nada no dice «Va bien» si no puede saberlo", () => {
     expect(vacioQuietasHoy([colgada("2026-10-10", { umbrales: undefined })], HOY14, true, 2).texto).toBe("Todavía no se puede saber. Ningún tipo vendió todavía lo suficiente para saber cuánto tarda en venderse.");
   });
 
+  it("dice cuántos modelos sobran (B3), sin cambiar el estado de la tarjeta", () => {
+    const tienda = [colgada("2026-08-01"), colgada("2026-10-10")];
+    expect(vacioQuietasHoy(tienda, HOY14, true, 0, "ok", 2)).toEqual({ est: "bien", texto: "Nada está quieto para lo que tarda su tipo. Te sobra stock en 2 modelos: míralos en «No se vende»." });
+    expect(vacioQuietasHoy(tienda, HOY14, true, 0, "ok", 1).texto).toContain("Te sobra stock en 1 modelo: míralo en");
+    expect(vacioQuietasHoy(tienda, HOY14, true, 0, "ok", 0).texto).not.toContain("sobra");
+  });
+
   it("con Frescura sin leer dice que no se pudo ver — no que el tipo vendió poco", () => {
     expect(vacioQuietasHoy([colgada("2026-10-10", { umbrales: undefined })], HOY14, true, 4, "fallo").texto).toBe("Todavía no se puede saber. No se pudo ver cuánto tarda en venderse cada tipo.");
   });

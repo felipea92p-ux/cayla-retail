@@ -28,7 +28,7 @@ import {
   type GrupoAnalisis,
 } from "./analisis-reglas";
 import { lineaTodaviaNoQuietas, puedeJuzgarQuietas } from "./analisis-quietas";
-import { destinoParaEnviar } from "./analisis-enviar";
+import { destinoDeEnvio } from "./analisis-enviar";
 
 /** Los estados que usa Hoy (los mismos cinco de la maqueta: urgente, atención, va bien, para saber, todavía no). */
 export type EstadoHoy = "urg" | "ate" | "bien" | "info" | "nd";
@@ -81,14 +81,17 @@ export function vacioQuietasHoy(
   confiable: boolean,
   sinRitmo = 0,
   frescura: "ok" | "sin_modulo" | "fallo" | "no_aplica" = "ok",
+  /** Cuántos modelos sobran (B3): se vende, pero tienes para mucho tiempo. Solo se dice; no cambia el estado de la tarjeta. */
+  sobran = 0,
 ): { est: Extract<EstadoHoy, "bien" | "info">; texto: string } {
   const aparte = sinRitmo > 0 ? ` ${sinRitmo} ${plural(sinRitmo, "modelo", "modelos")} ${plural(sinRitmo, "queda", "quedan")} en «Todavía sin ritmo».` : "";
+  const sobra = sobran > 0 ? ` Te sobra stock en ${sobran} ${plural(sobran, "modelo", "modelos")}: míral${plural(sobran, "o", "os")} en «No se vende».` : "";
   if (!puedeJuzgarQuietas(prendas, hoy)) {
     // Si ningún tipo tiene ritmo, la línea ya lo dijo: no se repite que hay modelos sin ritmo.
     const repite = prendas.some((p) => p.umbrales) ? aparte : "";
-    return { est: "info", texto: `Todavía no se puede saber. ${lineaTodaviaNoQuietas(prendas, frescura)}${repite}` };
+    return { est: "info", texto: `Todavía no se puede saber. ${lineaTodaviaNoQuietas(prendas, frescura)}${repite}${sobra}` };
   }
-  return { est: estadoSinNada(confiable && sinRitmo === 0), texto: `${conLoRegistrado("Nada está quieto para lo que tarda su tipo.", confiable)}${aparte}` };
+  return { est: estadoSinNada(confiable && sinRitmo === 0), texto: `${conLoRegistrado("Nada está quieto para lo que tarda su tipo.", confiable)}${aparte}${sobra}` };
 }
 
 /** Una fila de «¿Qué no se mueve?»: en rojo desde los 3 meses quieta; antes, en ámbar. */
@@ -161,7 +164,7 @@ export function caminosDeHoy(
 
   const porDestino = new Map<string, PrendaAnalisis[]>();
   for (const p of prendasDe(prendas, ["enviar"]).sort(ordenQuietas)) {
-    const destino = destinoParaEnviar(p.otras)?.sedeId ?? "";
+    const destino = destinoDeEnvio(p)?.sedeId ?? "";
     porDestino.set(destino, [...(porDestino.get(destino) ?? []), p]);
   }
   const lugar = (id: string) => {
