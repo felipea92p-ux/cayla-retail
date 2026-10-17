@@ -119,3 +119,10 @@ museo, ropa interior, camisa en gancho) entre 1,38 % y 1,86 %.
 **Descartado por ahora (Felipe):** el recorte por color para fotos de fondo liso, que evitaría el agujero en vez de
 solo detectarlo. Queda como la siguiente mejora si los agujeros se vuelven frecuentes con fotos reales de tienda.
 
+
+## Actualización 2026-10-17 (ADR-0442): reemplazado
+
+Felipe quitó todo esto: el ERP ya no quita el fondo (MODNet), no corrige la luz, no enfoca, no encuadra en 1200×1500 ni guarda `originales/`, y la revisión «Sin
+fondo / Con fondo» desapareció (`RevisarFotosModal`). La foto se sube tal cual la entrega la IA del equipo. Motivo: la preparación guardaba la imagen como JPEG, la
+transparencia se perdía y MODNet dejaba manchas. Lo que sigue vigente de este ADR: el 4:5 de la grilla (ahora lo pide el prompt, no el ERP) y las 463 fotos ya
+encuadradas. Ver `docs/adr/0442-la-foto-se-sube-tal-cual-y-el-recorte-sale-del-png-de-la-ia.md`.

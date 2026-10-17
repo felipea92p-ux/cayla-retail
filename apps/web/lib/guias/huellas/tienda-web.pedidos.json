@@ -2,7 +2,7 @@
   "guia": "tienda-web.pedidos",
   "ruta": "/tienda-web/pedidos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 65,
+  "total": 69,
   "controles": {
     "components/pedidos-web/AnularPagoHoja.tsx": [
       "BotonVer «Ir a Caja»",
@@ -67,8 +67,12 @@
       "Boton «{anulado ? \"Devolver\" : \"Anular pago\"}»"
     ],
     "components/pedidos-web/PedidosWebPantalla.tsx": [
-      "Pestanas «→(c) => cambiarPestana(c as PestanaPedidos)»",
+      "Boton «pedidos-web.como»",
+      "FiltroPuesto «{`Quitar el filtro «${titulo}»",
       "button «{primera ? \"pedidos-web.abrir\" : undefined}»",
+      "Boton «{primera ? \"pedidos-web.verbo\" : undefined}»",
+      "FiltroPuesto «Quitar el filtro «Cerrados»»",
+      "BotonVerMas «{visibles.length > 0 ? `Ver ${guardados.length}»",
       "Boton «{i === 0 ? \"pedidos-web.enviar\" : undefined}»"
     ],
     "components/pedidos-web/RegistrarPagoHoja.tsx": [

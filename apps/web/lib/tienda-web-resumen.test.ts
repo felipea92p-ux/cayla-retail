@@ -16,6 +16,8 @@ const CIFRAS_EN_CERO: CifrasPedidosWeb = {
   cobradoHoy: 0,
   porDevolver: 0,
   pedidosPorDevolver: 0,
+  esperanPrenda: 0,
+  cerrados: 0,
 };
 const NADA: EntradaResumen = {
   pedidos: { estado: "ok", dato: { cifras: CIFRAS_EN_CERO, plazos: PLAZOS } },

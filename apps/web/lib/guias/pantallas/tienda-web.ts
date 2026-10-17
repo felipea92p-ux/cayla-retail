@@ -45,7 +45,7 @@ export const GUIA_TIENDA_WEB_RESUMEN: Guia = {
       ancla: "tienda-web.camino",
       opcional: true,
       titulo: "El camino de los pedidos",
-      texto: "Un pedido web pasa por tres pasos: lo confirmas, el cliente paga y lo recoge. Entre cada paso va su plazo. Toca un paso para ver sus pedidos.",
+      texto: "Cuántos pedidos hay en cada paso: por confirmar, por cobrar, por entregar y cerrados. El tramo con el reloj en rojo cierra el pedido solo si no lo confirmas a tiempo; los de la campana solo avisan. Toca uno para ver esos pedidos.",
     },
     {
       id: "nota",
@@ -62,9 +62,10 @@ export const GUIA_TIENDA_WEB_RESUMEN: Guia = {
   ],
 };
 
-// Tienda web ▸ Pedidos (ADR-0408, act. 8, 9 y 10). El piloto abre el primer pedido de la lista y, si hay algo para enviar a otra tienda, su
-// hoja; si el pedido ya está confirmado, abre «Registrar un pago», elige Yape y escribe un n.º de ejemplo; y si hay algo pagado, pasa a
-// «Por entregar», abre el primero, escribe un código de ejemplo y abre «Anular el pedido» (lo que pasaría con sus prendas, su plata y su
+// Tienda web ▸ Pedidos (ADR-0408, act. 8, 9 y 10; ADR-0430 act. 2026-10-17: el camino es el único filtro y la lista abre con «Lo que te
+// toca»). El piloto abre el primer pedido de la lista y, si hay algo para enviar a otra tienda, su
+// hoja; si el pedido ya está confirmado, abre «Registrar un pago», elige Yape y escribe un n.º de ejemplo; y si hay algo pagado, toca la
+// estación «Por entregar», abre el primero, escribe un código de ejemplo y abre «Anular el pedido» (lo que pasaría con sus prendas, su plata y su
 // boleta) y elige un motivo. Nunca confirma, cierra, anula, envía, registra, devuelve ni entrega: esos botones se explican encendidos. Lo que se ve depende del pedido que abre (por confirmar o ya
 // confirmado), por eso los pasos de la hoja son opcionales.
 export const GUIA_PEDIDOS_WEB: Guia = {
@@ -80,10 +81,24 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       texto: "Cuando un cliente toca «Separar» en la web, su pedido llega aquí y te escribe por WhatsApp con su número. Tú revisas el stock y lo confirmas: recién ahí se reservan sus prendas. Es una demo: no se confirma ni se anula nada.",
     },
     {
+      id: "todo-al-dia",
+      ancla: "pedidos-web.todo-al-dia",
+      opcional: true,
+      titulo: "Todo al día",
+      texto: "Cuando no queda nada por hacer, te lo dice en una línea, con lo último que pasó. Abajo quedan los pedidos cerrados de los últimos 30 días.",
+    },
+    {
+      id: "como",
+      ancla: "pedidos-web.como",
+      titulo: "¿Cómo funciona?",
+      texto: "Abre, bajo cada paso del camino, lo que conviene saber de él: cuándo se reserva la prenda, a dónde va el efectivo, con qué se entrega y cuánto se guarda lo cerrado. Tócalo otra vez para cerrarlo.",
+    },
+    {
       id: "cifras",
       ancla: "pedidos-web.cifras",
+      opcional: true,
       titulo: "El camino de un pedido",
-      texto: "Un pedido pasa por tres pasos: lo confirmas, el cliente paga y lo recoge; entre cada paso va su plazo. Cada cifra dice cuántos hay en ese paso y toca para ver la lista. Aparte, lo cobrado hoy (o lo que falta devolver de un anulado).",
+      texto: "Cuántos pedidos hay en cada paso: por confirmar, por cobrar, por entregar y cerrados. El tramo con el reloj en rojo cierra el pedido solo si no lo confirmas a tiempo; los de la campana solo avisan. Toca un paso para ver solo esos pedidos, y otra vez para volver a todo.",
     },
     {
       id: "para-enviar",
@@ -116,17 +131,26 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       texto: "«Enviar por traslado» suelta la reserva de aquí y arma el traslado en el mismo paso: nadie puede venderla mientras viaja. En la demo no se envía nada.",
     },
     {
-      id: "pestanas",
-      ancla: "pedidos-web.pestanas",
-      preparar: [{ tipo: "escape" }],
-      titulo: "En qué paso va cada uno",
-      texto: "«Por confirmar» espera que revises el stock (si nadie lo confirma a tiempo, se cierra solo). «Por cobrar» ya tiene sus prendas reservadas, «Por entregar» está pagado y «Cerrados» guarda lo entregado, lo anulado y lo que venció.",
-    },
-    {
       id: "lista",
       ancla: "pedidos-web.lista",
-      titulo: "Cada pedido",
-      texto: "Su número es el mismo que el cliente te manda por WhatsApp. Ves quién lo separó, sus prendas, el total y qué toca hacer ahora. Tócalo para abrirlo.",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Lo que te toca",
+      texto: "Todo lo que pide algo, junto: arriba lo que se pierde si no actúas (lo que se cierra solo en menos de 3 horas), después lo que ya pasó su aviso y la plata por devolver. Su número es el mismo que el cliente te manda por WhatsApp.",
+    },
+    {
+      id: "plazo",
+      ancla: "pedidos-web.plazo",
+      opcional: true,
+      titulo: "Su plazo",
+      texto: "Qué pasa y cuándo, una sola vez: «se cierra solo en 2 h», «sin pagar hace 2 días», «listo para recoger». En rojo, lo que se pierde o ya pasó su aviso. La barra dice cuánto va del tiempo de ese paso.",
+    },
+    {
+      id: "verbo",
+      ancla: "pedidos-web.verbo",
+      opcional: true,
+      titulo: "Lo que toca ahora",
+      texto: "Confirmar, registrar un pago, entregar, escribirle o devolver: abre el pedido en ese paso. Nada se hace con este botón solo; se hace dentro del pedido, a nombre de quien está de turno.",
     },
     {
       id: "cliente",
@@ -218,12 +242,13 @@ export const GUIA_PEDIDOS_WEB: Guia = {
     },
     {
       id: "por-entregar",
-      ancla: "pedidos-web.pestana-entregar",
+      ancla: "pedidos-web.estacion-entregar",
       opcional: true,
-      // Dos: la hoja de pagar (si se abrió) y la del pedido. Un Escape sin nada que cerrar no hace nada.
-      preparar: [{ tipo: "escape" }, { tipo: "escape" }, { tipo: "clic", ancla: "pedidos-web.pestana-entregar" }],
+      // Dos: la hoja de pagar (si se abrió) y la del pedido. Un Escape sin nada que cerrar no hace nada. Tocar la estación deja solo lo
+      // pagado en la lista.
+      preparar: [{ tipo: "escape" }, { tipo: "escape" }, { tipo: "clic", ancla: "pedidos-web.estacion-entregar" }],
       titulo: "Lo pagado, por entregar",
-      texto: "Cuando un pedido queda pagado completo, su boleta sale sola y el pedido pasa aquí hasta que el cliente venga a recogerlo. Si pasan los días y no viene, se marca en rojo.",
+      texto: "Cuando un pedido queda pagado completo, su boleta sale sola y el pedido queda aquí hasta que el cliente venga a recogerlo. Si pasan los días y no viene, se marca en rojo.",
     },
     {
       id: "boleta",
@@ -294,12 +319,14 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       texto: "«Anular y devolver» lo hace todo junto, a nombre de quien está de turno: o queda todo anulado o no cambia nada. En la demo no se anula nada.",
     },
     {
-      id: "nota",
-      ancla: "pedidos-web.nota",
-      // Dos: la de anular el pedido (si se abrió) y la del pedido. Un Escape sin nada que cerrar no hace nada.
-      preparar: [{ tipo: "escape" }, { tipo: "escape" }],
-      titulo: "Lo que conviene saber",
-      texto: "Separar no toca el stock: la prenda se reserva al confirmar y sale del stock al entregarla. Los pagos se anotan dentro de cada pedido (el efectivo, en la caja abierta) y con el que lo completa sale su boleta. Se entrega con el código del cliente. Los pedidos web van aparte de los apartados de la tienda.",
+      id: "cerrados",
+      ancla: "pedidos-web.cerrados",
+      opcional: true,
+      // Dos: la de anular el pedido (si se abrió) y la del pedido. Después se quita el filtro «Por entregar» (si quedó puesto), porque
+      // lo cerrado se ve con la lista entera.
+      preparar: [{ tipo: "escape" }, { tipo: "escape" }, { tipo: "clic", ancla: "pedidos-web.quitar-filtro", siEsta: true }],
+      titulo: "Lo cerrado y por qué",
+      texto: "Lo entregado, lo anulado y lo que nadie confirmó de los últimos 30 días, con por qué se cerró cada uno. «Nadie lo confirmó a tiempo» es una venta perdida; si «no hay stock» crece, la vitrina está mostrando lo que esta tienda no tiene. «Ver los …» despliega sus filas.",
     },
     {
       id: "fin",
@@ -702,7 +729,7 @@ export const GUIA_VITRINA_PROBADOR: Guia = {
       ancla: "recortes.empezar",
       opcional: true,
       titulo: "Empezar y pausar",
-      texto: "«Empezar» recorta una foto tras otra (un par de segundos cada una) y puedes pausar cuando quieras: lo hecho queda guardado. Deja la pestaña abierta mientras recorta. En la demo cerramos sin empezar.",
+      texto: "«Empezar» saca el recorte de una foto tras otra (solo de las que traen fondo transparente) y puedes pausar cuando quieras: lo hecho queda guardado. Deja la pestaña abierta mientras recorta. En la demo cerramos sin empezar.",
     },
     {
       id: "revisar",
@@ -711,7 +738,7 @@ export const GUIA_VITRINA_PROBADOR: Guia = {
       preparar: [{ tipo: "escape" }],
       prepararSoloAlAvanzar: true,
       titulo: "Las dudosas, antes de usarlas",
-      texto: "Un recorte con huecos o de una foto que se subió con su fondo queda por revisar: no sale en el probador hasta que alguien lo mira. Aquí los revisas uno por uno; si descartas uno por error, el aviso trae «Deshacer».",
+      texto: "Un recorte con huecos (una abertura del diseño, como un ojal, o un defecto de la imagen) queda por revisar: no sale en el probador hasta que alguien lo mira. Aquí los revisas uno por uno; si descartas uno por error, el aviso trae «Deshacer».",
     },
     {
       id: "largos",
