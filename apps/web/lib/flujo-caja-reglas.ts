@@ -15,6 +15,8 @@ const num = (v: unknown) => (v === null || v === undefined || v === "" ? 0 : Num
 const txt = (v: unknown) => (v === null || v === undefined || v === "" ? null : String(v));
 const fecha = (v: unknown) => String(v ?? "").slice(0, 10);
 const lista = (v: unknown): Fila[] => (Array.isArray(v) ? (v as Fila[]) : []);
+/** `true`/`false` si la base lo dijo; `null` si no (una base más vieja que esta web). */
+const booleano = (v: unknown): boolean | null => (v === true || v === false ? v : null);
 /** Céntimos exactos: la suma de muchos montos con decimales no arrastra error de coma flotante. */
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -33,7 +35,7 @@ export function solesConSigno(n: number): string {
 export type Lado = "entra" | "sale" | "ajuste";
 
 /** El orden del spike: primero cómo se cobró, después la plata del dueño y lo demás. */
-const ORDEN_ENTRA = ["efectivo", "yape", "plin", "tarjeta", "transferencia", "dueno_pone", "otros_ingresos"];
+const ORDEN_ENTRA = ["efectivo", "yape", "plin", "tarjeta", "transferencia", "qr", "dueno_pone", "otros_ingresos"];
 
 export const TEXTO_CATEGORIA: Record<string, string> = {
   efectivo: "Efectivo",
@@ -41,6 +43,7 @@ export const TEXTO_CATEGORIA: Record<string, string> = {
   plin: "Plin",
   tarjeta: "Tarjeta",
   transferencia: "Transferencia",
+  qr: "QR",
   dueno_pone: "Plata del dueño (aporte o préstamo)",
   otros_ingresos: "Otros ingresos de caja",
   mercaderia: "Proveedores de mercadería",
@@ -48,6 +51,8 @@ export const TEXTO_CATEGORIA: Record<string, string> = {
   activos: "Muebles y equipos",
   dueno_saca: "Retiro del dueño",
   pago_tarjeta: "Pago de la tarjeta de crédito",
+  planilla: "Pago de la planilla",
+  impuestos: "Pago a SUNAT (IGV)",
   comision_pos: "Comisión del POS",
   deposito_sin_cuenta: "Llevado al banco sin decir a cuál",
   por_clasificar: "Egresos de caja por clasificar",
@@ -195,12 +200,13 @@ export type CobroEsperado = {
   ubicacionId: string;
   tienda: string;
   monto: number;
-  /** `meta` = la meta del día de Configuración (con su campaña); `promedio` = la tienda no tiene meta. */
-  origen: "meta" | "promedio";
+  /** `meta` = la meta del día de Configuración (con su campaña); `promedio` = la tienda no tiene meta y hay 4 o más días de ese día de la
+   *  semana; `promedio_corto` = menos de 4: se acerca al promedio diario de la tienda (ADR-0433, actividad 4). */
+  origen: "meta" | "promedio" | "promedio_corto";
   metaPct: number;
   campanas: CampanaDia[];
 };
-export type TipoSalida = "vencimiento" | "fijo" | "planilla" | "nuevo";
+export type TipoSalida = "vencimiento" | "fijo" | "planilla" | "impuesto" | "nuevo";
 export type SalidaProy = {
   tipo: TipoSalida;
   id: string;
@@ -228,12 +234,19 @@ export type Proyeccion = {
   diasDeCaja: number | null;
   salidas30: { conCuenta: number; sinCuenta: number; planilla: number };
   planillaVisible: boolean;
+  /** Con qué se proyecta (ADR-0433, actividad 4). `null` = una base más vieja que esta web: no dice nada y no se inventa. */
+  historiaDias: number | null;
+  saldoInicialDeclarado: boolean | null;
+  hayFacturasDeProveedor: boolean | null;
+  incluyeImpuestos: boolean | null;
+  /** El veredicto de la base: 28 días de ventas y algún saldo de arranque declarado. */
+  diasDeCajaConfiable: boolean | null;
   semanas: SemanaProy[];
   cobros: CobroEsperado[];
   salidas: SalidaProy[];
 };
 
-const TIPOS_SALIDA: readonly TipoSalida[] = ["vencimiento", "fijo", "planilla", "nuevo"];
+const TIPOS_SALIDA: readonly TipoSalida[] = ["vencimiento", "fijo", "planilla", "impuesto", "nuevo"];
 
 export function leerProyeccion(data: unknown): Proyeccion {
   const d = (data ?? {}) as Fila;
@@ -248,6 +261,11 @@ export function leerProyeccion(data: unknown): Proyeccion {
     diasDeCaja: d.dias_de_caja === null || d.dias_de_caja === undefined ? null : num(d.dias_de_caja),
     salidas30: { conCuenta: num(s30.con_cuenta), sinCuenta: num(s30.sin_cuenta), planilla: num(s30.planilla) },
     planillaVisible: d.planilla_visible === true,
+    historiaDias: d.historia_dias === undefined || d.historia_dias === null ? null : num(d.historia_dias),
+    saldoInicialDeclarado: booleano(d.saldo_inicial_declarado),
+    hayFacturasDeProveedor: booleano(d.hay_facturas_de_proveedor),
+    incluyeImpuestos: booleano(d.incluye_impuestos),
+    diasDeCajaConfiable: booleano(d.dias_de_caja_confiable),
     semanas: lista(d.semanas).map((s) => ({
       desde: fecha(s.desde),
       hasta: fecha(s.hasta),
@@ -261,7 +279,7 @@ export function leerProyeccion(data: unknown): Proyeccion {
       ubicacionId: String(c.ubicacion_id),
       tienda: String(c.tienda ?? ""),
       monto: num(c.monto),
-      origen: c.origen === "meta" ? "meta" : "promedio",
+      origen: c.origen === "meta" ? "meta" : c.origen === "promedio_corto" ? "promedio_corto" : "promedio",
       metaPct: num(c.meta_pct),
       campanas: lista(c.campanas).map((k) => ({ nombre: String(k.nombre ?? ""), desde: txt(k.desde), hasta: txt(k.hasta), metaPct: num(k.meta_pct) })),
     })),
@@ -282,15 +300,17 @@ export function leerProyeccion(data: unknown): Proyeccion {
 }
 
 /** Las tiendas de la proyección y de dónde sale lo que se espera cobrar de cada una (la meta o el promedio). */
-export function tiendasDeLaProyeccion(p: Pick<Proyeccion, "cobros">): { id: string; nombre: string; origen: "meta" | "promedio" | "mixto" }[] {
-  const m = new Map<string, { id: string; nombre: string; origenes: Set<string> }>();
+export function tiendasDeLaProyeccion(p: Pick<Proyeccion, "cobros">): { id: string; nombre: string; origen: "meta" | "promedio" | "mixto"; corto: boolean }[] {
+  const m = new Map<string, { id: string; nombre: string; origenes: Set<string>; corto: boolean }>();
   for (const c of p.cobros) {
-    const t = m.get(c.ubicacionId) ?? { id: c.ubicacionId, nombre: c.tienda, origenes: new Set<string>() };
-    t.origenes.add(c.origen);
+    const t = m.get(c.ubicacionId) ?? { id: c.ubicacionId, nombre: c.tienda, origenes: new Set<string>(), corto: false };
+    // «promedio» y «promedio_corto» son lo mismo para la nota «no tiene meta»; el corto se anota aparte.
+    t.origenes.add(c.origen === "meta" ? "meta" : "promedio");
+    if (c.origen === "promedio_corto") t.corto = true;
     m.set(c.ubicacionId, t);
   }
   return [...m.values()]
-    .map((t) => ({ id: t.id, nombre: t.nombre, origen: (t.origenes.size > 1 ? "mixto" : [...t.origenes][0]) as "meta" | "promedio" | "mixto" }))
+    .map((t) => ({ id: t.id, nombre: t.nombre, origen: (t.origenes.size > 1 ? "mixto" : [...t.origenes][0]) as "meta" | "promedio" | "mixto", corto: t.corto }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
@@ -455,6 +475,45 @@ export function puntoMasBajo(semanas: readonly SemanaProy[]): SemanaProy | null 
 }
 
 /** «Si mañana no vendieras nada…»: el tono del spike (rojo bajo 10 días, ámbar bajo 20). */
+export const DIAS_DE_HISTORIA_MINIMOS = 28;
+export type FaltaProy = { clave: "saldos" | "historia" | "facturas" | "impuestos"; texto: string; href: string | null };
+
+/**
+ * Lo que falta para que «Hoy tienes» y los días de caja dejen de ser provisionales (ADR-0433, actividad 4; decisión de Felipe 2026-10-16:
+ * se muestran marcados «provisional» con la lista de lo que falta cargar, en vez de ocultarlos mientras el sistema se completa).
+ * El veredicto lo da la base (`dias_de_caja_confiable`); aquí solo se dice qué falta. Una base más vieja que esta web no trae esos
+ * campos: no se inventa nada.
+ */
+export function queFaltaEnLaProyeccion(
+  p: Pick<Proyeccion, "historiaDias" | "saldoInicialDeclarado" | "hayFacturasDeProveedor" | "incluyeImpuestos" | "diasDeCajaConfiable">,
+): { provisional: boolean; faltan: FaltaProy[] } {
+  if (p.diasDeCajaConfiable === null) return { provisional: false, faltan: [] };
+  const faltan: FaltaProy[] = [];
+  if (p.saldoInicialDeclarado === false) {
+    faltan.push({
+      clave: "saldos",
+      texto: "Cargar con cuánto empezó cada banco y caja fuerte: hoy arrancaron en 0, así que «Hoy tienes» es lo que entró y salió desde entonces, no el saldo del banco.",
+      href: "/finanzas/dinero",
+    });
+  }
+  const dias = p.historiaDias ?? 0;
+  if (dias < DIAS_DE_HISTORIA_MINIMOS) {
+    const n = DIAS_DE_HISTORIA_MINIMOS - dias;
+    faltan.push({
+      clave: "historia",
+      texto: `${n === 1 ? "Falta 1 día" : `Faltan ${n} días`} de ventas: con menos de 4 semanas el promedio de cada día se apoya en pocos datos.`,
+      href: null,
+    });
+  }
+  if (p.hayFacturasDeProveedor === false) {
+    faltan.push({ clave: "facturas", texto: "Anotar las facturas de los proveedores: sin ellas no se ve lo que se paga.", href: "/finanzas/dinero/por-pagar" });
+  }
+  if (p.incluyeImpuestos === false) {
+    faltan.push({ clave: "impuestos", texto: "Esta proyección no incluye el IGV ni el pago a cuenta de renta: tu cuenta no ve Impuestos.", href: null });
+  }
+  return { provisional: p.diasDeCajaConfiable === false, faltan };
+}
+
 export function tonoDiasDeCaja(dias: number | null): "rojo" | "ambar" | "verde" | "neutro" {
   if (dias === null) return "neutro";
   if (dias < 10) return "rojo";

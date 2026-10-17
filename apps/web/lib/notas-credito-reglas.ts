@@ -714,7 +714,7 @@ export type FiltroFacturas = "todas" | "con_saldo" | "pagadas";
 
 /** Sin espacios, comas, guiones ni «S/»: así «2360» encuentra «S/ 2,360.00» y «f003771» encuentra «F003-000771». */
 export function aplanar(texto: string): string {
-  return base(texto).replace(/s\//g, "").replace(/[\s,.\-]/g, "");
+  return base(texto).replace(/s\//g, "").replace(/[\s,.\-]/g, ""); // coma-fija: aplana una clave de búsqueda (serie-número), no lee un monto
 }
 
 export function coincideFactura(f: FacturaParaNota, q: string): boolean {

@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { leerCampana, leerFilaER, type CampanaFila, type FilaER } from "@/lib/resultados-reglas";
+import { clavesCerradas, leerCampana, leerFilaER, leerPeriodoMes, type CampanaFila, type FilaER } from "@/lib/resultados-reglas";
 
 // Finanzas ▸ Reportes (ADR-0195 F5; contrato en 20260925130000_finanzas_diario_y_estado_de_resultados.sql). Solo LEE: toda
 // la plata se calcula en Postgres, sobre el diario `fn_asientos`, y la base ya filtra por cuenta (el líder, todo y el
@@ -19,6 +19,17 @@ export async function getEstadoResultados(desde: string, hasta: string): Promise
     datos: ((data ?? []) as Record<string, unknown>[]).map(leerFilaER),
     falla: null,
   };
+}
+
+/**
+ * Qué unidades del mes ya están cerradas (`fn_periodos_mes`): su columna del Estado de resultados lee lo congelado y la pantalla lo dice.
+ * Es información de apoyo: si la lectura falla, las cifras se ven igual, sin la marca (principio 9: se degrada, no se cae).
+ */
+export async function getUnidadesCerradas(mes: string): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_periodos_mes" as never, { p_mes: `${mes}-01` } as never);
+  if (error) return [];
+  return clavesCerradas(((data ?? []) as Record<string, unknown>[]).map(leerPeriodoMes));
 }
 
 /** Las campañas pasadas, en curso y por venir de las tiendas que la cuenta ve. */
