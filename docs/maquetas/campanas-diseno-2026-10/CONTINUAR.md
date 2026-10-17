@@ -53,6 +53,17 @@ al guardar la ficha; antes, leer en producción la huella del cuerpo vivo (empie
 repo. Pruebas en `campanas_llave.mjs` con una terminal que tiene Productos y no Campañas, y en la web que `ProductoForm` no ofrezca (o avise
 bien) las campañas a quien no tiene la llave. **Se pega EL DÍA QUE SE PUBLIQUE LA WEB, justo antes de fusionar, no antes.**
 
+## El día de publicar (casillas del PR de la actividad 9, en este orden; Felipe 2026-10-17)
+
+La descripción del PR (`/abrir-pr`) las lleva como casillas, en este orden. Ninguna se borra: si una no aplica, se escribe por qué.
+
+1. **Pegar las migraciones que faltan**, en el orden de arriba: `20261017204000`, `20261017210000` y la que cierra la puerta de Editar producto.
+   Cada una con su sonda de huellas antes y su verificación después.
+2. **Fusionar el PR.**
+3. **Que el líder les dé el módulo «Campañas» a Terminal Almacén y a Terminal de ventas** en Roles y accesos. Sin eso, con la puerta de la
+   ficha cerrada, se quedan sin ninguna forma de tocar campañas.
+4. **Reimprimir las etiquetas de precio**, si alguna campaña tiene descuento ese día (si ninguna tiene, se escribe así en la casilla).
+
 ## Reglas que ya costaron tiempo
 
 - **Nada se pega en producción sin el OK de Felipe.** Ninguna migración de esta rama está en producción (el orden, arriba). No uses el SQL Editor ni el MCP de Supabase de producción para escribir.

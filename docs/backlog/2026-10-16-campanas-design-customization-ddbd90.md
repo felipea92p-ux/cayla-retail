@@ -39,6 +39,8 @@ visible), 4 (diseñar y publicar), 5 (la tienda pinta el diseño publicado) y **
   producto […] y que se pegue el día que se publique la web»): `actualizar_variantes_etiquetas` deja poner o quitar una campaña sin la llave
   de Campañas. Migración nueva con ancla, pruebas en `campanas_llave.mjs`, `ProductoForm` sin ofrecer las campañas a quien no tiene la llave;
   en su propio commit (detalle en `CONTINUAR.md`). Se pega el día que se publique la web.
+- [ ] El día de publicar: los cuatro pasos de `CONTINUAR.md` (pegar lo que falta, fusionar, darles «Campañas» a las terminales, reimprimir
+  etiquetas si hay descuento) van como casillas en el PR de la actividad 9.
 - [ ] Al publicar: avisarle a Felipe que «Terminal Almacén» y «Terminal de ventas» pierden la configuración de campañas hasta que el líder
   les dé el módulo «Campañas» (ADR-0436, DECIDÍ 1).
 - [ ] Visto al verificar la 4 (para la 7, «El texto»): en la portada de 1280 px, una palabra larga del nombre («Internacional», de Día
