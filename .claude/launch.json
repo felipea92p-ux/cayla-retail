@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "maqueta-referentes",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "3031", "--directory", "docs/maquetas"],
-      "port": 3031
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "python3 -m http.server ${PORT:-3031} --directory docs/maquetas"],
+      "port": 3031,
+      "autoPort": true
     },
     {
       "name": "investigacion-docs",
