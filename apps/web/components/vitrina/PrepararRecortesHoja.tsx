@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { BarraAvance } from "@/components/ui/BarraAvance";
@@ -10,7 +10,6 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { createClient } from "@/lib/supabase/client";
-import { escucharDescargaModelo } from "@/lib/preparar-foto";
 import { guardarRecorte, prepararRecorte } from "@/lib/recorte-probador";
 import type { FotoDelProbador, RecorteDeFoto } from "@/lib/recorte-probador-reglas";
 import { esErrorDeResponsable } from "@/lib/responsable-reglas";
@@ -24,8 +23,9 @@ type Fallo = { foto: string; nombre: string; motivo: string };
 const FALLAS_SEGUIDAS_PARA_PAUSAR = 3;
 
 /**
- * «Preparar recortes» de Vitrina ▸ Probador (ADR-0434, actividad 1): recorta EN ESTE EQUIPO las fotos que todavía no tienen recorte, de lo
- * que más se vende a lo que menos, una por una (el recortador corre en el navegador, ~1 s por foto). Pide quién lo hace una vez (ADR-0162)
+ * «Preparar recortes» de Vitrina ▸ Probador (ADR-0434, actividad 1; ADR-0442): saca EN ESTE EQUIPO el recorte de las fotos que todavía no lo tienen,
+ * de lo que más se vende a lo que menos, una por una. El recorte es la transparencia de la propia foto (no se quita ningún fondo): una foto sin
+ * fondo transparente queda en la lista de las que no se pudieron. Pide quién lo hace una vez (ADR-0162)
  * y firma con eso cada recorte. Se puede pausar: lo hecho queda guardado y se sigue otro día. Mientras recorta, la hoja no se cierra
  * (se pausa con su botón y recién ahí sale la ×): cerrarla a la mitad de una subida dejaría un archivo sin anotar.
  */
@@ -47,19 +47,11 @@ export function PrepararRecortesHoja({
   const [dudosas, setDudosas] = useState(0);
   const [fallos, setFallos] = useState<Fallo[]>([]);
   const [actual, setActual] = useState<string | null>(null);
-  const [descarga, setDescarga] = useState<number | null>(null);
   const pausar = useRef(false);
   const siguiente = useRef(0);
   // Un doble clic en «Empezar» o «Seguir» no arranca dos vueltas a la vez (el estado recién cambia en el próximo dibujo).
   const enCurso = useRef(false);
   const [pausaPorFallas, setPausaPorFallas] = useState(false);
-
-  useEffect(() => {
-    const dejar = escucharDescargaModelo((p) => setDescarga(p < 100 ? Math.round(p) : null));
-    return () => {
-      dejar();
-    };
-  }, []);
 
   const total = lista.length;
   const vistas = hechas + fallos.length;
@@ -137,8 +129,8 @@ export function PrepararRecortesHoja({
       titulo="Preparar recortes"
       subtitulo={
         total === 1
-          ? "Recorta en este equipo la foto que falta. Ninguna foto cambia: el recorte es un archivo aparte."
-          : `Recorta en este equipo las ${total} fotos que faltan, de lo que más se vende a lo que menos. Ninguna foto cambia: el recorte es un archivo aparte.`
+          ? "Saca en este equipo el recorte de la foto que falta. Ninguna foto cambia: el recorte es un archivo aparte."
+          : `Saca en este equipo el recorte de las ${total} fotos que faltan, de lo que más se vende a lo que menos. Ninguna foto cambia: el recorte es un archivo aparte.`
       }
       onClose={onClose}
       variante="hoja"
@@ -150,8 +142,8 @@ export function PrepararRecortesHoja({
         {fase === "antes" ? (
           <>
             <p className="rounded-xl border border-sand bg-papel px-3.5 py-2.5 text-[13px] text-tinta">
-              Tarda un par de segundos por foto; la primera vez en este equipo, un poco más mientras se prepara el recortador. Deja esta pestaña
-              abierta; si la pausas, lo hecho queda guardado y sigues otro día.
+              Solo entran al armador las fotos con fondo transparente (el PNG sin fondo que entrega la IA). Una foto con fondo, o un JPG, se queda sin
+              recorte: cámbiala en Editar producto. Deja esta pestaña abierta; si la pausas, lo hecho queda guardado y sigues otro día.
             </p>
             <CampoGuiado id="responsable" guia={guia}>
               <div data-guia="recortes.responsable">
@@ -165,13 +157,11 @@ export function PrepararRecortesHoja({
             <p className="text-[13px] text-tinta">
               {fase === "terminado"
                 ? "Listo."
-                : descarga !== null
-                  ? `Preparando el recortador… ${descarga} %`
-                  : actual
-                    ? `Recortando ${Math.min(vistas + 1, total)} de ${total} · ${actual}`
-                    : fase === "pausado"
-                      ? `Pausado en ${vistas} de ${total}.`
-                      : "Empezando…"}
+                : actual
+                  ? `Recortando ${Math.min(vistas + 1, total)} de ${total} · ${actual}`
+                  : fase === "pausado"
+                    ? `Pausado en ${vistas} de ${total}.`
+                    : "Empezando…"}
             </p>
             <p className="text-[12.5px] text-taupe">{resumen}</p>
           </div>
@@ -185,7 +175,7 @@ export function PrepararRecortesHoja({
         {fase === "terminado" && (
           <Aviso tono={fallos.length ? "atencion" : "exito"} titulo={fallos.length ? "Terminó, con fotos que no se pudieron" : "Terminó"} chico>
             {fallos.length
-              ? "Las que no se pudieron siguen sin recorte: vuelve a intentarlas, o cambia la foto en Editar producto."
+              ? "Las que no se pudieron siguen sin recorte: casi siempre la foto no trae fondo transparente. Cámbiala en Editar producto por el PNG sin fondo."
               : dudosas
                 ? "Revisa las dudosas antes de que salgan en el probador."
                 : "Todas quedaron listas para el probador."}
