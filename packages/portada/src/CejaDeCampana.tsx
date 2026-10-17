@@ -1,6 +1,6 @@
-import { fechaCorta, fechaLarga } from "@/lib/portada";
+import { fechaCorta, fechaLarga } from "./textos";
 
-/** La ceja del héroe de una campaña, igual en la portada y en el Inicio: hasta cuándo rige o, sin fecha de fin, «Campaña vigente». */
+/** La ceja del héroe de una campaña: hasta cuándo rige o, sin fecha de fin, «Campaña vigente». */
 export function CejaDeCampana({ hasta }: { hasta: string | null }) {
   if (!hasta) return "Campaña vigente";
   // En el celular, la fecha corta: la larga llega hasta el colibrí.

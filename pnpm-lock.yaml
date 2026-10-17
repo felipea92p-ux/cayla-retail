@@ -236,6 +236,9 @@ importers:
       '@cayla-retail/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@cayla-retail/portada':
+        specifier: workspace:*
+        version: link:../../packages/portada
       '@cayla-retail/shared':
         specifier: workspace:*
         version: link:../../packages/shared

@@ -102,6 +102,9 @@ export const ACCIONES_SIN_RESPONSABLE = {
   // «Arma el tuyo» (ADR-0434, actividad 2; migración 20261017013000; Felipe 2026-10-16): el recorte que el ERP guarda solo al subir una
   // foto, para el probador de la tienda online. Nadie hace una operación aparte: solo subió la foto.
   recorte_foto: "Guardar el recorte de una foto para el probador de la tienda online al subirla (lo hace el ERP solo, y con la cuenta de una persona firma ella)",
+  // Tienda web ▸ Campañas (ADR-0436, actividad 4; migración 20261017160000): el borrador del diseño de una campaña se guarda solo a cada
+  // toque mientras se prueba (así lo aprobó Felipe en la maqueta). Publicarlo y volver al anterior sí piden quién.
+  campana_diseno_borrador: "Guardar el borrador del diseño de una campaña mientras se prueba (lo hace el ERP solo: publicarlo sí pide quién)",
 } as const;
 
 export type ClaveSinResponsable = keyof typeof ACCIONES_SIN_RESPONSABLE;

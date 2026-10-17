@@ -1,4 +1,4 @@
-import { conAlfa, mezclar } from "./contraste";
+import { conAlfa, luminancia, mezclar } from "./contraste";
 
 // Los colores de la portada de una campaña (ADR-0436; maqueta docs/maquetas/campanas-diseno-2026-10). Una paleta trae su fondo, el
 // segundo tono del degradado, la letra y el acento, con el contraste ya medido (`paletas.test.ts` lo exige en claro y en oscuro). Son
@@ -84,10 +84,12 @@ export function coloresEnTema(p: Paleta, tema: Tema): Colores {
 }
 
 /**
- * Las variables CSS que lee el héroe (`heroe.css`): las mismas `--t-hero*` que la tienda define en sus tokens, escritas igual (el vidrio
- * y el filo son la letra al 10 % y al 22 %). Así, poner una paleta es solo cambiar estas seis variables en el héroe.
+ * Las variables CSS que lee el héroe (`heroe.css`): las seis `--t-hero*` que la tienda define en sus tokens, escritas igual (el vidrio
+ * y el filo son la letra al 10 % y al 22 %), y dos que solo cambian con una letra oscura (una paleta clara): el colibrí pasa de blanco a
+ * negro y la letra del botón claro (que se pinta con el color de la letra) pasa a papel. Sin ellas, `heroe.css` usa las de siempre.
  */
 export function variablesDePaleta(c: Colores): Record<`--t-hero${string}`, string> {
+  const letraOscura = luminancia(c.letra) < 0.5;
   return {
     "--t-hero": c.fondo,
     "--t-hero-2": c.fondo2,
@@ -95,5 +97,7 @@ export function variablesDePaleta(c: Colores): Record<`--t-hero${string}`, strin
     "--t-hero-acento": c.acento,
     "--t-hero-vidrio": conAlfa(c.letra, 0.1),
     "--t-hero-filo": conAlfa(c.letra, 0.22),
+    "--t-hero-colibri": letraOscura ? "brightness(0)" : "brightness(0) invert(1)",
+    "--t-hero-boton-letra": letraOscura ? "#fbf8f2" : "#1a1a18", // tema-fijo: el papel y la tinta de la tienda (`--t-papel-fijo`, `--t-tinta-fija`)
   };
 }

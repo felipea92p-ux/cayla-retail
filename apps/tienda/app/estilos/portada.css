@@ -5,8 +5,7 @@
    la tienda son globales). Solo tokens: en oscuro se invierten solos.
    ===================================================================================================== */
 
-/* ---- El héroe con sus polaroids: el texto un poco más angosto, para que las fotos respiren ---- */
-.po-hero .t-hero-desc { max-width: 40ch; }
+/* ---- El héroe con sus polaroids (`.po-hero`): sus estilos viven con el héroe, en @cayla-retail/portada/heroe.css (ADR-0436) ---- */
 
 /* ---- La franja de confianza: lo que la tienda ya cumple, de un vistazo (como «envío gratis» en una marca grande) ---- */
 .po-confianza { background: var(--papel); border-bottom: 1px solid var(--sand); }

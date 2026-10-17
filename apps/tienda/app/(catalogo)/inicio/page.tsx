@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { HeroeDePortada } from "@cayla-retail/portada";
+import { CejaDeCampana, HeroeDePortada } from "@cayla-retail/portada";
 import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { AvisoAlEntrar } from "@/components/AvisoAlEntrar";
 import { CarrilConFlechas } from "@/components/CarrilConFlechas";
-import { CejaDeCampana } from "@/components/CejaDeCampana";
 import { CuentaRegresiva } from "@/components/CuentaRegresiva";
 import { FotoTarjeta } from "@/components/FotoTarjeta";
 import { Icono } from "@/components/Icono";

@@ -272,6 +272,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/ConfirmarCambios.tsx": { estado: "no-aplica", motivo: "Hoja de confirmación con un solo control obligatorio (Responsable): el botón dice por qué espera. Las casillas «Igualar … al precio nuevo» (precio por tienda, 2026-10-10) son opcionales y no bloquean." },
   "components/ConfiguracionCargaInicial.tsx": { estado: "aplicada", evidencia: ["components/ConfiguracionCargaInicial.tsx"] },
   "components/campanas/NuevaCampana.tsx": { estado: "aplicada", evidencia: ["components/campanas/NuevaCampana.tsx"] },
+  "components/campanas/PublicarDiseno.tsx": { estado: "aplicada", evidencia: ["components/campanas/PublicarDiseno.tsx"] },
+  "components/campanas/VolverAlAnterior.tsx": { estado: "aplicada", evidencia: ["components/campanas/VolverAlAnterior.tsx"] },
   "components/plan-piso/GruposDelMix.tsx": { estado: "aplicada", evidencia: ["components/plan-piso/GruposDelMix.tsx"] },
   // ADR-0288 tanda 1b: la ficha ganó las acciones del club y, con ellas, la guía en cada acción que se llena. Tanda 1g: se fueron «Unirse al
   // club», su QR y «Llegó su mensaje» (ella se une desde el cartel); quedan editar, archivar y «Registrar su BAJA» (un solo control:

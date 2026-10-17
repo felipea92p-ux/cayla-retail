@@ -1,10 +1,9 @@
 import type { ComponentProps } from "react";
 import Link from "next/link";
-import { HeroeDePortada } from "@cayla-retail/portada";
+import { CejaDeCampana, HeroeDePortada } from "@cayla-retail/portada";
 import { Anuncio } from "@/components/Anuncio";
 import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { Cabecera } from "@/components/Cabecera";
-import { CejaDeCampana } from "@/components/CejaDeCampana";
 import { CuentaRegresiva } from "@/components/CuentaRegresiva";
 import { Icono } from "@/components/Icono";
 import { Isotipo } from "@/components/Isotipo";

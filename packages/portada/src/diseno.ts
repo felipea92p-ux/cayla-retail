@@ -1,0 +1,247 @@
+import { contraste, luminancia, mezclar } from "./contraste";
+import { PALETAS, coloresEnTema, paletaPorId, type Colores, type Paleta, type Tema } from "./paletas";
+
+// EL DISEÑO DE LA PORTADA DE UNA CAMPAÑA (ADR-0436; maqueta docs/maquetas/campanas-diseno-2026-10). Es el contrato entre el ERP, que lo
+// arma y lo guarda (`retail.campana_disenos`), y la tienda, que lo pinta (`retail.tienda_portada()`). Libertad dentro de un marco: cada
+// opción sale de una lista curada (colores con su contraste medido, estampados dibujados por CAYLA, cuatro acomodos), así la primera
+// portada con letra amarilla sobre crema no llega a ningún cliente.
+
+export const FONDOS = ["degradado", "liso", "dibujo"] as const;
+export const PATRONES = ["huellitas", "rayas", "puntos", "cuadros", "corazones", "estrellas", "confeti", "ondas"] as const;
+export const INTENSIDADES = ["suave", "medio", "fuerte"] as const;
+export const ACOMODOS = ["polaroids", "grande", "mosaico", "letras"] as const;
+export const TAMANOS = ["grande", "enorme"] as const;
+export const SELLOS = ["ninguno", "descuento", "dias", "nuevo"] as const;
+/** La frase propia: una línea en la computadora, dos en el celular. */
+export const FRASE_MAX = 60;
+/** Cuántas prendas caben en la portada (el mosaico es el que más lleva). */
+export const PRENDAS_MAX = 4;
+
+export type Fondo = (typeof FONDOS)[number];
+export type Patron = (typeof PATRONES)[number];
+export type Intensidad = (typeof INTENSIDADES)[number];
+export type Acomodo = (typeof ACOMODOS)[number];
+export type Tamano = (typeof TAMANOS)[number];
+export type Sello = (typeof SELLOS)[number];
+
+/** Los colores de una paleta propia («Mi color», o sacada de una prenda): una paleta sin id. */
+export type ColoresPropios = Omit<Paleta, "id">;
+
+export type DisenoDeCampana = {
+  /** El id de una paleta curada, o «propia» (sus colores van en `colores`). */
+  paleta: string;
+  colores: ColoresPropios | null;
+  fondo: Fondo;
+  patron: Patron;
+  intensidad: Intensidad;
+  acomodo: Acomodo;
+  /** Desde qué palabra del nombre va la cursiva; `null`: la última (como hoy). */
+  corte: number | null;
+  tamano: Tamano;
+  frase: string;
+  /** Los modelos que salen en la portada, en orden; `null`: los elige la web. */
+  prendas: string[] | null;
+  cuenta: boolean;
+  pctGigante: boolean;
+  colibri: boolean;
+  sello: Sello;
+};
+
+/** La portada de siempre: el rojo CAYLA en degradado con tres polaroids. Una campaña sin diseño se ve así. */
+export const DISENO_DE_SIEMPRE: DisenoDeCampana = {
+  paleta: "cayla",
+  colores: null,
+  fondo: "degradado",
+  patron: "huellitas",
+  intensidad: "medio",
+  acomodo: "polaroids",
+  corte: null,
+  tamano: "grande",
+  frase: "",
+  prendas: null,
+  cuenta: true,
+  pctGigante: false,
+  colibri: true,
+  sello: "ninguno",
+};
+
+export type Estilo = { id: string; nombre: string; nota: string; cambia: Partial<DisenoDeCampana> };
+
+/** Los ocho puntos de partida: un toque y la portada queda lista; después se cambia lo que se quiera. */
+export const ESTILOS: readonly Estilo[] = [
+  { id: "hoy", nombre: "Clásico CAYLA", nota: "El de hoy", cambia: {} },
+  { id: "huellitas", nombre: "Huellitas", nota: "Dibujo y sello", cambia: { paleta: "caramelo", fondo: "dibujo", patron: "huellitas", sello: "descuento" } },
+  { id: "galeria", nombre: "Galería", nota: "Claro y ordenado", cambia: { paleta: "arena", fondo: "liso", acomodo: "mosaico", colibri: false } },
+  { id: "gala", nombre: "Noche de gala", nota: "Una foto grande", cambia: { paleta: "noche", acomodo: "grande", pctGigante: true } },
+  {
+    id: "cartel",
+    nombre: "Cartel",
+    nota: "Solo letras",
+    cambia: { paleta: "negro-rojo", fondo: "liso", acomodo: "letras", tamano: "enorme", pctGigante: true, sello: "dias", colibri: false },
+  },
+  { id: "suave", nombre: "Suave", nota: "Corazones", cambia: { paleta: "rosa", fondo: "dibujo", patron: "corazones", intensidad: "suave", acomodo: "grande" } },
+  { id: "bosque", nombre: "Bosque", nota: "Estrellas", cambia: { paleta: "bosque", fondo: "dibujo", patron: "estrellas", acomodo: "mosaico" } },
+  { id: "fiesta", nombre: "Fiesta", nota: "Confeti", cambia: { paleta: "terracota", fondo: "dibujo", patron: "confeti", sello: "nuevo" } },
+];
+
+/** Empezar con un estilo: todo vuelve al de siempre más lo del estilo; el texto y las prendas que ya se eligieron se quedan. */
+export function aplicarEstilo(d: DisenoDeCampana, id: string): DisenoDeCampana {
+  const estilo = ESTILOS.find((e) => e.id === id);
+  if (!estilo) return d;
+  return { ...DISENO_DE_SIEMPRE, ...estilo.cambia, frase: d.frase, prendas: d.prendas, corte: d.corte };
+}
+
+/** El estilo del que parece salir el diseño (mismos colores, fondo y acomodo); `null` si ya es otro («Personalizado»). */
+export function estiloDelDiseno(d: DisenoDeCampana): Estilo | null {
+  return (
+    ESTILOS.find((e) => {
+      const base = { ...DISENO_DE_SIEMPRE, ...e.cambia };
+      return (
+        d.colores === null &&
+        base.paleta === d.paleta &&
+        base.fondo === d.fondo &&
+        base.acomodo === d.acomodo &&
+        (d.fondo !== "dibujo" || base.patron === d.patron)
+      );
+    }) ?? null
+  );
+}
+
+/* ---------------- Los colores ---------------- */
+
+const CREMA = "#f6efe6"; // tema-fijo: la letra clara de la portada (la de los tokens de la tienda)
+const TINTA = "#1a1a18"; // tema-fijo: la letra oscura de la portada
+const NEGRO = "#000000"; // tema-fijo: para oscurecer un color
+const BLANCO = "#ffffff"; // tema-fijo: para aclarar un color
+
+/** El color con que abre el selector de «Mi color» antes de elegir uno (un verde azulado que se lee con la letra clara). */
+export const COLOR_PROPIO_DE_PARTIDA = "#2f6f73"; // tema-fijo: un dato de la portada, no del tema
+
+/** La paleta con que se pinta el diseño: la curada por su id o la propia con sus colores. */
+export function paletaDelDiseno(d: DisenoDeCampana): Paleta {
+  if (d.paleta === "propia" && d.colores) return { id: "propia", ...d.colores };
+  return paletaPorId(d.paleta);
+}
+
+export function coloresDelDiseno(d: DisenoDeCampana, tema: Tema): Colores {
+  return coloresEnTema(paletaDelDiseno(d), tema);
+}
+
+/**
+ * «Mi color»: la letra (crema o tinta) se elige sola, la que más se lee; el segundo tono y el acento salen del mismo color. Un color claro
+ * trae su versión de noche, para no encandilar en modo oscuro.
+ */
+export function paletaPropia(hex: string): ColoresPropios {
+  const fondo = hex.toLowerCase();
+  const letra = contraste(CREMA, fondo) >= contraste(TINTA, fondo) ? CREMA : TINTA;
+  const clara = letra === TINTA;
+  return {
+    nombre: "Mi color",
+    fondo,
+    fondo2: mezclar(fondo, BLANCO, clara ? 0.4 : 0.16),
+    letra,
+    acento: clara ? mezclar(fondo, NEGRO, 0.62) : mezclar(fondo, BLANCO, 0.7),
+    ...(clara ? { noche: { fondo: mezclar(fondo, NEGRO, 0.78), fondo2: mezclar(fondo, NEGRO, 0.7), letra: CREMA, acento: mezclar(fondo, BLANCO, 0.35) } } : {}),
+  };
+}
+
+/** Si ni la letra clara ni la oscura se leen sobre un color: el mismo color, apenas más oscuro, que sí se lee con la letra clara. */
+export function colorQueSeLee(hex: string): string {
+  for (let q = 0.1; q <= 0.9; q += 0.05) {
+    const h = mezclar(hex, NEGRO, q);
+    if (contraste(CREMA, h) >= 4.5) return h;
+  }
+  return TINTA;
+}
+
+/**
+ * Una paleta sacada del color de una prenda de la campaña: el fondo es ese color (oscurecido si es claro), la letra crema y el acento,
+ * el color de otra prenda clara de la campaña si la hay (o el mismo, aclarado).
+ */
+export function paletaDePrenda(nombre: string, hex: string, acento: string | null): ColoresPropios {
+  const fondo = luminancia(hex) < 0.2 ? hex.toLowerCase() : mezclar(hex, NEGRO, 0.6);
+  return { nombre, fondo, fondo2: mezclar(fondo, BLANCO, 0.14), letra: CREMA, acento: (acento ?? mezclar(hex, BLANCO, 0.66)).toLowerCase() };
+}
+
+/* ---------------- Leer un diseño guardado ---------------- */
+
+const HEX = /^#[0-9a-f]{6}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const esDe = <T extends string>(lista: readonly T[], v: unknown): v is T => typeof v === "string" && (lista as readonly string[]).includes(v);
+
+function leerColores(x: unknown, completos: boolean): Partial<Colores> | null {
+  if (typeof x !== "object" || x === null) return null;
+  const o = x as Record<string, unknown>;
+  const fuera: Partial<Colores> = {};
+  for (const k of ["fondo", "fondo2", "letra", "acento"] as const) {
+    if (o[k] === undefined && !completos) continue;
+    if (typeof o[k] !== "string" || !HEX.test(o[k])) return null;
+    fuera[k] = o[k];
+  }
+  return fuera;
+}
+
+function leerColoresPropios(x: unknown): ColoresPropios | null {
+  if (typeof x !== "object" || x === null) return null;
+  const o = x as Record<string, unknown>;
+  const base = leerColores(o, true) as Colores | null;
+  if (!base || typeof o.nombre !== "string" || o.nombre.trim() === "" || o.nombre.length > 60) return null;
+  if (o.noche === undefined || o.noche === null) return { nombre: o.nombre, ...base };
+  const noche = leerColores(o.noche, false);
+  return noche ? { nombre: o.nombre, ...base, noche } : null;
+}
+
+/**
+ * El diseño que llega de la base, revisado campo por campo. Si algo no calza (un valor que esta versión no conoce, un color mal escrito),
+ * `null`: quien lo usa cae en el diseño de siempre, nunca en una portada rota (principio 9). La base ya lo impide con sus `check`;
+ * esto cubre la versión de la tienda que todavía no conoce una opción nueva.
+ */
+export function leerDiseno(x: unknown): DisenoDeCampana | null {
+  if (typeof x !== "object" || x === null) return null;
+  const o = x as Record<string, unknown>;
+  const colores = o.colores === null || o.colores === undefined ? null : leerColoresPropios(o.colores);
+  const paletaValida = o.paleta === "propia" ? colores !== null : typeof o.paleta === "string" && PALETAS.some((p) => p.id === o.paleta) && colores === null;
+  if (!paletaValida || (o.colores != null && colores === null)) return null;
+  if (!esDe(FONDOS, o.fondo) || !esDe(PATRONES, o.patron) || !esDe(INTENSIDADES, o.intensidad) || !esDe(ACOMODOS, o.acomodo)) return null;
+  if (!esDe(TAMANOS, o.tamano) || !esDe(SELLOS, o.sello)) return null;
+  if (!(o.corte === null || (Number.isInteger(o.corte) && (o.corte as number) >= 0))) return null;
+  if (typeof o.frase !== "string" || o.frase.length > FRASE_MAX) return null;
+  const prendas = o.prendas;
+  if (!(prendas === null || (Array.isArray(prendas) && prendas.length >= 1 && prendas.length <= PRENDAS_MAX && prendas.every((p) => typeof p === "string" && UUID.test(p))))) {
+    return null;
+  }
+  if (typeof o.cuenta !== "boolean" || typeof o.pctGigante !== "boolean" || typeof o.colibri !== "boolean") return null;
+  return {
+    paleta: o.paleta as string,
+    colores,
+    fondo: o.fondo,
+    patron: o.patron,
+    intensidad: o.intensidad,
+    acomodo: o.acomodo,
+    corte: o.corte as number | null,
+    tamano: o.tamano,
+    frase: o.frase,
+    prendas: prendas as string[] | null,
+    cuenta: o.cuenta,
+    pctGigante: o.pctGigante,
+    colibri: o.colibri,
+    sello: o.sello,
+  };
+}
+
+/** Dos diseños iguales en todo (para saber si el borrador ya está publicado). */
+export function mismoDiseno(a: DisenoDeCampana, b: DisenoDeCampana): boolean {
+  return JSON.stringify(ordenado(a)) === JSON.stringify(ordenado(b));
+}
+
+function ordenado(x: unknown): unknown {
+  if (Array.isArray(x)) return x.map(ordenado);
+  if (typeof x === "object" && x !== null) {
+    return Object.fromEntries(
+      Object.keys(x)
+        .sort()
+        .map((k) => [k, ordenado((x as Record<string, unknown>)[k])]),
+    );
+  }
+  return x;
+}

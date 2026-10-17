@@ -209,6 +209,9 @@ export const PRUEBAS = [
   // Tienda web ▸ Campañas (ADR-0436, actividad 2): una sola llave por etiqueta (una campaña, Campañas; otra, Etiquetas), la campaña nace
   // aprobada si quien la crea tiene su llave, y crear, guardar (todo o nada), activar y el detalle de una campaña. ROLLBACK.
   "pruebas:campanas-llave",
+  // Tienda web ▸ Campañas (ADR-0436, actividad 4): el diseño de la portada de cada campaña: los estados imposibles que impide la base,
+  // el borrador con su versión (no se pisa el trabajo de otra persona), publicar todo o nada, volver al anterior y quién. ROLLBACK.
+  "pruebas:campanas-diseno",
 
   // Las cuentas de la tienda online (ADR-0408, actividad 2): correo y DNI únicos, los topes del cartel (club_intento) al
   // consultar y al registrar, la cuenta que se une a la ficha del Club sin pisar sus datos, el menor de 18 y el cumpleaños

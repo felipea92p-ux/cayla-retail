@@ -1,4 +1,6 @@
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, CSSProperties, ReactNode } from "react";
+import { coloresDelDiseno, type DisenoDeCampana } from "./diseno";
+import { variablesDePaleta, type Tema } from "./paletas";
 
 /**
  * Una prenda del héroe, como polaroid: su foto (o su dibujo, si no tiene), su nombre y, al pie, lo que va a la derecha (el precio, o
@@ -23,6 +25,8 @@ type Enlace = ComponentType<{ href: string; className?: string; "aria-label"?: s
  * polaroid a su prenda (`Enlace`: el `Link` de Next en la tienda). Sin prendas, a la derecha va `lado` (la tarjeta del Club, en la
  * portada sin cuenta).
  *
+ * Con `diseno` (ADR-0436), la campaña se pinta con el suyo: sus colores y si lleva colibrí y contador. Sin él, la portada de siempre.
+ *
  * No guarda estado ni lee nada: se puede dibujar en el servidor (la tienda) o dentro de un componente del navegador (la vista previa).
  */
 export function HeroeDePortada({
@@ -38,6 +42,8 @@ export function HeroeDePortada({
   Enlace,
   marca = null,
   lado = null,
+  diseno = null,
+  tema,
 }: {
   /** Lo que la página le agrega al héroe (`t-portada`, `t-hero-inicio`): sus ajustes de lugar viven en sus propios estilos. */
   clase?: string;
@@ -56,16 +62,20 @@ export function HeroeDePortada({
   /** El «−15%» calado detrás de las fotos. */
   marca?: string | null;
   lado?: ReactNode;
+  diseno?: DisenoDeCampana | null;
+  /** El tema de los colores del diseño: la vista previa del ERP lo elige con su botón «Claro / Oscuro». */
+  tema?: Tema;
 }) {
   const [linea, cursiva] = titulo;
+  const estilo = diseno && tema ? (variablesDePaleta(coloresDelDiseno(diseno, tema)) as CSSProperties) : undefined;
   return (
-    <section className={`t-hero${clase ? ` ${clase}` : ""}${sinCampana ? " sin-campana" : ""}`}>
-      {colibri}
+    <section className={`t-hero${clase ? ` ${clase}` : ""}${sinCampana ? " sin-campana" : ""}`} style={estilo}>
+      {(diseno?.colibri ?? true) && colibri}
       <div className="t-hero-texto">
         <span className="t-hero-ceja">{ceja}</span>
         {/* Las dos partes son bloques: el espacio entre ellas no se ve, pero el lector de pantalla lee «Día del Gato», no «Día delGato». */}
         <h1 className="t-hero-tit">
-          <span>{linea}</span>
+          {linea && <span>{linea}</span>}
           {cursiva && (
             <>
               {" "}
@@ -74,7 +84,7 @@ export function HeroeDePortada({
           )}
         </h1>
         <p className="t-hero-desc">{descripcion}</p>
-        {cuenta}
+        {(diseno?.cuenta ?? true) && cuenta}
         {acciones !== undefined && <div className="t-hero-acciones">{acciones}</div>}
       </div>
       {piezas.length > 0 ? <Collage piezas={piezas} Enlace={Enlace} marca={marca} /> : lado}

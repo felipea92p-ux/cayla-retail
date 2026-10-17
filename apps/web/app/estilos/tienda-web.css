@@ -480,6 +480,127 @@
   .tw-cal-pasado { position: absolute; inset: 0 auto 0 0; border-radius: 8px 0 0 8px; background: color-mix(in srgb, var(--color-papel) 55%, transparent); pointer-events: none; }
   .tw-cal-hoy { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; border-radius: 2px; background: var(--color-rojo); pointer-events: none; }
   .tw-cal-hoy-rotulo { position: absolute; top: -19px; left: 50%; transform: translateX(-50%); padding: 0 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-rojo-profundo); background: var(--color-papel); }
+
+  /* ───────── Campañas ▸ Diseño en la web (ADR-0436, actividad 4) ───────── */
+  /* El escenario: la portada de la tienda se dibuja a su ancho real (1280 o 375 px) con la MISMA pieza que la tienda
+     (`@cayla-retail/portada`) y se achica entera para caber (`Lienzo.tsx`). Es un DATO (`data-color-dato`): sus colores son los de la
+     campaña, no los del tema del ERP. Aquí no se mueve nada: el colibrí ya llegó y las fotos ya cayeron (el vuelo es de la tienda). */
+  .tw-lienzo { position: relative; overflow: hidden; width: 100%; }
+  .tw-lienzo-hoja { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+  .tw-lienzo-hoja *,
+  .tw-lienzo-hoja *::before,
+  .tw-lienzo-hoja *::after { animation: none !important; transition: none !important; }
+
+  /* La franja de arriba y la cabecera de la tienda, como las ve el cliente sin cuenta (en claro o en oscuro: lo elige la vista previa). */
+  .tw-web { background: var(--color-crema-fija); color: var(--color-tinta-fija); }
+  .tw-web[data-tema="oscuro"] { background: var(--color-tinta-fija); color: var(--color-crema-fija); }
+  .tw-web-anuncio {
+    height: 30px; display: grid; place-items: center; padding: 0 12px; overflow: hidden; white-space: nowrap;
+    background: var(--color-tinta-fija); color: var(--color-crema-fija);
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  }
+  .tw-web-cab {
+    height: 70px; display: flex; align-items: center; gap: 10px; padding: 0 26px;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  }
+  .tw-web[data-celular] .tw-web-cab { height: 56px; padding: 0 14px; }
+  .tw-web-logo { display: flex; align-items: center; gap: 8px; font-family: var(--font-serif); font-size: 26px; font-weight: 500; letter-spacing: 0.22em; }
+  .tw-web[data-celular] .tw-web-logo { font-size: 21px; }
+  .tw-web-logo svg { width: 30px; height: auto; }
+  .tw-web-nav { display: flex; gap: 22px; margin-left: 18px; font-size: 13.5px; font-weight: 500; }
+  .tw-web-pildora { display: inline-flex; align-items: center; height: 38px; padding: 0 16px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+  .tw-web-pildora[data-llena] { background: currentColor; }
+  .tw-web-pildora[data-llena] > span { color: var(--color-crema-fija); }
+  .tw-web[data-tema="oscuro"] .tw-web-pildora[data-llena] > span { color: var(--color-tinta-fija); }
+
+  /* Las polaroids sin foto: la prenda con el ícono de su categoría sobre su color (`MosaicoPrenda`), como en todo el ERP. */
+  .tw-pieza-sin-foto { position: absolute; inset: 0; }
+
+  /* La tarjeta del Club que la tienda pone a la derecha cuando la campaña no tiene prendas (`.t-portada-club` de la tienda). */
+  .tw-club-mini { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .tw-club-mini-tarjeta {
+    width: min(100%, 420px); aspect-ratio: 1.6; padding: 22px 24px; border-radius: 18px; transform: rotate(-4deg);
+    display: flex; flex-direction: column; justify-content: space-between;
+    background: var(--color-tinta-fija); color: var(--color-crema-fija);
+  }
+  .tw-club-mini-tarjeta b { font-family: var(--font-serif); font-size: 26px; font-weight: 500; letter-spacing: 0.22em; }
+  .tw-club-mini-tarjeta small { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.7; }
+  .tw-club-mini p { margin: 0; font-size: 13px; opacity: 0.85; text-align: center; }
+
+  /* El celular de la vista previa: un marco redondo, oscuro en los dos temas (es un aparato). */
+  .tw-celular {
+    width: min(100%, 300px); margin-inline: auto; padding: 10px; border-radius: 34px;
+    background: var(--color-tinta-fija);
+  }
+  .tw-celular > .tw-lienzo { border-radius: 26px; }
+
+  /* El editor: los pasos a la izquierda y la vista previa a la derecha (pegada arriba mientras se baja). En angosto, uno sobre otro. */
+  .tw-editor { display: grid; gap: 20px; }
+  @container tw (min-width: 1080px) {
+    .tw-editor { grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); align-items: start; }
+    .tw-editor-vista { position: sticky; top: 16px; }
+  }
+  .tw-pasos { display: grid; gap: 10px; }
+  .tw-paso { border: 1px solid var(--color-sand); border-radius: 14px; background: var(--color-papel); }
+  .tw-paso[data-abierto] { border-color: var(--color-taupe); }
+  .tw-paso-cab {
+    width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 0; background: none; text-align: left; cursor: pointer;
+    border-radius: 14px;
+  }
+  .tw-paso-cab:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+  .tw-paso-cab b { display: block; font-size: 14px; font-weight: 600; color: var(--color-tinta); }
+  .tw-paso-cab small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--color-taupe); }
+  .tw-paso-flecha { margin-left: auto; width: 16px; height: 16px; flex: none; color: var(--color-taupe); transition: transform 240ms var(--ease-cayla); }
+  .tw-paso[data-abierto] .tw-paso-flecha { transform: rotate(180deg); }
+  .tw-paso-cuerpo { padding: 0 16px 16px; }
+
+  /* Los estilos de partida: cada uno es su portada en chico. */
+  .tw-opciones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tw-opcion {
+    display: block; overflow: hidden; padding: 0; border: 1px solid var(--color-sand); border-radius: 12px; background: var(--color-papel);
+    text-align: left; cursor: pointer; transition: border-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
+  }
+  .tw-opcion:hover { border-color: var(--color-taupe); }
+  .tw-opcion[aria-pressed="true"] { border-color: var(--color-tinta); box-shadow: 0 0 0 1px var(--color-tinta); }
+  .tw-opcion:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+  .tw-opcion-nombre { display: block; padding: 8px 10px 9px; font-size: 13px; font-weight: 600; color: var(--color-tinta); }
+  .tw-opcion-nombre small { display: block; font-size: 11.5px; font-weight: 400; color: var(--color-taupe); }
+
+  /* Las muestras de color: el fondo con su acento en un punto. */
+  .tw-muestras { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tw-muestra {
+    position: relative; width: 36px; height: 36px; padding: 0; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--color-tinta) 18%, transparent);
+    cursor: pointer; transition: transform 200ms var(--ease-cayla);
+  }
+  .tw-muestra i { position: absolute; right: 3px; bottom: 3px; width: 11px; height: 11px; border-radius: 999px; border: 1.5px solid var(--color-papel); }
+  .tw-muestra:hover { transform: scale(1.06); }
+  .tw-muestra[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--color-papel), 0 0 0 4px var(--color-tinta); }
+  .tw-muestra:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 4px; }
+  .tw-mi-color { display: flex; align-items: center; gap: 12px; }
+  .tw-mi-color input[type="color"] {
+    width: 44px; height: 44px; padding: 0; border: 1px solid var(--color-sand); border-radius: 999px; background: none; cursor: pointer;
+  }
+  .tw-mi-color input[type="color"]::-webkit-color-swatch-wrapper { padding: 3px; }
+  .tw-mi-color input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 999px; }
+
+  /* La revisión: lo que se mide de la portada, en una línea cada cosa. */
+  .tw-revision { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0; padding: 0; list-style: none; }
+  .tw-revision li { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-tinta); }
+  .tw-revision li svg { width: 16px; height: 16px; flex: none; }
+  .tw-revision li[data-tono="ok"] svg { color: var(--color-verde); }
+  .tw-revision li[data-tono="ojo"] svg { color: var(--color-ambar); }
+  .tw-revision li[data-tono="mal"] { color: var(--color-rojo-profundo); }
+  .tw-revision li[data-tono="mal"] svg { color: var(--color-rojo); }
+
+  /* Cuándo se ve, cuándo se quita y qué sale después (la hoja «Publicar»). */
+  .tw-cuando { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .tw-cuando > div { padding: 10px 12px; border-radius: 12px; background: var(--color-hueso); }
+  .tw-cuando small { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-taupe); }
+  .tw-cuando b { display: block; margin-top: 3px; font-size: 13.5px; font-weight: 600; color: var(--color-tinta); }
+  @container (max-width: 520px) { .tw-cuando { grid-template-columns: minmax(0, 1fr); } }
+  .tw-dos-vistas { display: grid; grid-template-columns: minmax(0, 1fr) 132px; gap: 14px; align-items: end; }
+  .tw-dos-vistas .tw-celular { width: 132px; padding: 5px; border-radius: 18px; }
+  .tw-dos-vistas .tw-celular > .tw-lienzo { border-radius: 13px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

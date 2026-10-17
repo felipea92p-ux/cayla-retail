@@ -127,6 +127,7 @@
     "pruebas:tienda-web-configuracion": "node scripts/pruebas/tienda_web_configuracion.mjs",
     "pruebas:campanas-portada": "node scripts/pruebas/campanas_portada.mjs",
     "pruebas:campanas-llave": "node scripts/pruebas/campanas_llave.mjs",
+    "pruebas:campanas-diseno": "node scripts/pruebas/campanas_diseno.mjs",
     "pruebas:tienda-cuentas": "node scripts/pruebas/tienda_cuentas.mjs",
     "pruebas:vitrina-web": "node scripts/pruebas/vitrina_web.mjs",
     "pruebas:tienda-ficha": "node scripts/pruebas/tienda_ficha.mjs",

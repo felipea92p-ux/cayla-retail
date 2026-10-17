@@ -36,7 +36,7 @@ describe("las paletas de la portada", () => {
     expect(PALETA_DE_SIEMPRE.id).toBe("cayla");
   });
 
-  it("las variables son las seis `--t-hero*` del héroe, con el vidrio y el filo hechos de la letra", () => {
+  it("las variables son las `--t-hero*` del héroe, con el vidrio y el filo hechos de la letra", () => {
     expect(variablesDePaleta(coloresEnTema(PALETA_DE_SIEMPRE, "claro"))).toEqual({
       "--t-hero": "#6a2118",
       "--t-hero-2": "#92301f",
@@ -44,6 +44,8 @@ describe("las paletas de la portada", () => {
       "--t-hero-acento": "#f4c3b3",
       "--t-hero-vidrio": "rgba(246, 239, 230, .10)",
       "--t-hero-filo": "rgba(246, 239, 230, .22)",
+      "--t-hero-colibri": "brightness(0) invert(1)",
+      "--t-hero-boton-letra": "#1a1a18",
     });
   });
 });
