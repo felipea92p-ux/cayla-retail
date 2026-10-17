@@ -21,6 +21,18 @@ export type ItemBusqueda = {
   color: string | null;
 };
 
+/** Lo que contesta `GET /api/buscador` (la lista llega aparte de la página, 2026-10-17). */
+export type RespuestaBuscador = { estado: "ok"; indice: ItemBusqueda[] } | { estado: "sin_sesion" | "sin_respuesta" };
+
+/** La respuesta de `GET /api/buscador`, leída sin confiar en ella: si no tiene la forma, es como si la base no hubiera contestado. */
+export function leerRespuestaDelBuscador(dato: unknown): RespuestaBuscador {
+  if (typeof dato !== "object" || dato === null) return { estado: "sin_respuesta" };
+  const r = dato as { estado?: unknown; indice?: unknown };
+  if (r.estado === "ok" && Array.isArray(r.indice)) return { estado: "ok", indice: r.indice as ItemBusqueda[] };
+  if (r.estado === "sin_sesion") return { estado: "sin_sesion" };
+  return { estado: "sin_respuesta" };
+}
+
 /** Sin tildes ni mayúsculas: «Camisas y Blusas» → «camisas y blusas», «Pantalón» → «pantalon». */
 export const normalizar = (texto: string): string => texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
