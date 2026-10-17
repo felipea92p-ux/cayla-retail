@@ -21,12 +21,15 @@ import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
+import { ProveedorElegido } from "@/components/ProveedorElegido";
 import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
 import {
   TEXTO_COMPROBANTE,
   TEXTO_MEDIO,
   TIPOS_COMPROBANTE,
   borradorDesdeFijo,
+  textoCuandoLlega,
+  type ProveedorGasto,
   igvDeFactura,
   mediosPara,
   parsearMonto,
@@ -57,7 +60,7 @@ import { Boton } from "@/components/ui/campos";
 // elige aquí mismo; «No, es otro» deja sumar; sumar sin contestar no suma. Si es el mismo RUC o el mismo nombre, se elige
 // el que ya está: es lo que haría la base (`registrar_proveedor_de_gasto`), dicho antes y sin viaje.
 
-export type ProveedorGasto = { id: string; nombre: string; ruc: string | null };
+export type { ProveedorGasto };
 
 export function RegistrarGastoModal({
   categorias,
@@ -288,7 +291,7 @@ export function RegistrarGastoModal({
     : esActivo
       ? "Algo que sirve varios años: muebles, equipos, remodelación, máquinas del Taller."
       : fijo
-        ? `Gasto fijo de ${fijo.ubicacionNombre}: llega cerca del día ${fijo.diaDelMes}${fijo.montoVariable ? ". Escribe el monto del recibo." : "."}`
+        ? `Gasto fijo de ${fijo.ubicacionNombre}: llega ${textoCuandoLlega(fijo.momento, fijo.diaDelMes)}${fijo.montoVariable ? ". Escribe el monto del recibo." : "."}`
         : "Lo que se paga para que el negocio funcione. La planilla no va aquí: viene de Dynamic.";
 
   const bloqueComprobante = (
@@ -340,6 +343,7 @@ export function RegistrarGastoModal({
                 />
               </CampoFin>
             </div>
+            <ProveedorElegido proveedor={proveedores.find((p) => p.id === b.proveedorId)} />
             {nuevoProveedor && (
               <div className="nota-cayla mb-4">
                 <div className="grid gap-3 sm:grid-cols-[1fr_11rem]">

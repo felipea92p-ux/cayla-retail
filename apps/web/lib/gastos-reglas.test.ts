@@ -24,6 +24,12 @@ import {
   totalesActivos,
   validarActivo,
   validarFijo,
+  leerFijoMes,
+  AYUDA_MOMENTO_FIJO,
+  MOMENTOS_FIJO,
+  TEXTO_MOMENTO_FIJO,
+  textoCuandoLlega,
+  textoColumnaCuando,
   validarGasto,
   leerGasto,
   papelDelGasto,
@@ -316,7 +322,7 @@ describe("F2b: gastos fijos", () => {
   const fijo = {
     id: "f1", ubicacionId: "tru", ubicacionNombre: "Tienda Trujillo", categoria: "servicios_basicos", categoriaNombre: "Servicios básicos",
     descripcion: "Luz", proveedorId: "p1", proveedorNombre: "Hidrandina", comprobanteTipo: "boleta" as const, monto: 180, montoVariable: true,
-    diaDelMes: 10, fechaEsperada: "2026-09-10", estado: "falta" as const, gastoId: null, gastoMonto: null,
+    diaDelMes: 10, momento: "dia" as const, fechaEsperada: "2026-09-10", estado: "falta" as const, gastoId: null, gastoMonto: null,
   };
   it("un gasto que nace de un fijo trae su tienda, categoría, proveedor y comprobante; si el monto varía, no lo inventa", () => {
     expect(borradorDesdeFijo(fijo, HOY)).toEqual({ gastoFijoId: "f1", ubicacion: "tru", categoria: "servicios_basicos", descripcion: "Luz", comprobante: "boleta", proveedorId: "p1", monto: "", fecha: "2026-09-10" });
@@ -333,11 +339,41 @@ describe("F2b: gastos fijos", () => {
     expect(resumenFijos([fijo, vienen, listo])).toEqual({ faltan: 1, vienen: 1, registrados: 1, montoPendiente: 2680 });
   });
   it("el día va del 1 al 28 y el monto es obligatorio", () => {
-    const b = { ubicacion: "tru", categoria: "alquileres", descripcion: "Alquiler", proveedorId: "", comprobante: "factura" as const, monto: "2500", variable: false, dia: "1" };
+    const b = { ubicacion: "tru", categoria: "alquileres", descripcion: "Alquiler", proveedorId: "", comprobante: "factura" as const, monto: "2500", variable: false, dia: "1", momento: "dia" as const };
     expect(validarFijo(b).ok && validarFijo(b)).toMatchObject({ valor: { p_ubicacion_id: "tru", p_proveedor_id: null, p_dia_del_mes: 1, p_monto: 2500 } });
     expect(validarFijo({ ...b, dia: "31" }).ok).toBe(false);
     expect(validarFijo({ ...b, monto: "" }).ok).toBe(false);
     expect(validarFijo({ ...b, ubicacion: "empresa" }).ok && validarFijo({ ...b, ubicacion: "empresa" })).toMatchObject({ valor: { p_ubicacion_id: null } });
+  });
+  it("cuándo llega (ADR-0437): un día fijo no manda p_momento; los otros tres mandan su momento y su día de respaldo", () => {
+    const b = { ubicacion: "tru", categoria: "alquileres", descripcion: "Alquiler", proveedorId: "", comprobante: "factura" as const, monto: "2500", variable: false, dia: "", momento: "dia" as const };
+    expect(validarFijo(b).ok).toBe(false); // «un día fijo» sin día
+    const conDia = validarFijo({ ...b, dia: "12" });
+    expect(conDia.ok && "p_momento" in conDia.valor).toBe(false);
+    for (const [momento, dia] of [["primera_semana", 7], ["quincena", 15], ["fin_de_mes", 28]] as const) {
+      // el día escrito antes de cambiar de opción se ignora
+      expect(validarFijo({ ...b, momento, dia: "3" })).toMatchObject({ ok: true, valor: { p_momento: momento, p_dia_del_mes: dia } });
+    }
+    expect(validarFijo({ ...b, dia: "31" })).toMatchObject({ ok: false, error: expect.stringContaining("A fin de mes") });
+  });
+  it("cada momento tiene su texto y su ayuda", () => {
+    for (const m of MOMENTOS_FIJO) expect(TEXTO_MOMENTO_FIJO[m]).toBeTruthy();
+    expect(AYUDA_MOMENTO_FIJO.dia).toBeUndefined();
+    expect(AYUDA_MOMENTO_FIJO.fin_de_mes).toContain("28, 29, 30 o 31");
+  });
+  it("lee el momento de la base y, sin la columna o con un valor raro, cuenta como un día fijo", () => {
+    const fila = { id: "f1", categoria: "alquileres", categoria_nombre: "Alquileres", descripcion: "Alquiler", comprobante_tipo: "factura", monto: "2500", dia_del_mes: 28, fecha_esperada: "2026-09-30", estado: "por_llegar" };
+    expect(leerFijoMes({ ...fila, momento: "fin_de_mes" }).momento).toBe("fin_de_mes");
+    expect(leerFijoMes(fila).momento).toBe("dia");
+    expect(leerFijoMes({ ...fila, momento: "el_30" }).momento).toBe("dia");
+  });
+  it("dice cuándo llega con palabras de tienda", () => {
+    expect(textoCuandoLlega("dia", 10)).toBe("el día 10");
+    expect(textoCuandoLlega("primera_semana", 7)).toBe("la primera semana");
+    expect(textoCuandoLlega("quincena", 15)).toBe("la quincena");
+    expect(textoCuandoLlega("fin_de_mes", 28)).toBe("a fin de mes");
+    expect(textoColumnaCuando("dia", 10)).toBe("10");
+    expect(textoColumnaCuando("fin_de_mes", 28)).toBe("Fin de mes");
   });
 });
 

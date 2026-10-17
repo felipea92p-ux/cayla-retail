@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 80,
+  "total": 84,
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
       "ComboResponsable «{responsable}»",
@@ -54,6 +54,11 @@
       "BotonEnlace «+ Nueva campaña (en Catálogo ▸ Etiquetas)»",
       "Link «Ver cómo se ve en Caja»"
     ],
+    "components/CuentasProveedor.tsx": [
+      "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
+      "LapizEditar «la cuenta»",
+      "BotonCopiar «{que}»"
+    ],
     "components/GastosFijosYActivos.tsx": [
       "BotonEditar «Editar fijos»",
       "BotonEnlace «Agregar el primero»",
@@ -75,6 +80,9 @@
       "Boton «{accion === \"baja\" ? \"Dar de baja\" : \"Anular activo\"}»",
       "button «Se registró por error…»",
       "button «Dar de baja…»"
+    ],
+    "components/ProveedorElegido.tsx": [
+      "a «{tel.texto}»"
     ],
     "components/finanzas/ConfiguracionCuentas.tsx": [
       "ComboResponsable «{responsable}»",
