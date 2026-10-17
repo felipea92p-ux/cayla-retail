@@ -17,6 +17,10 @@
  *   6. Quién: sin Campañas, nada (42501); una etiqueta que no es campaña «no existe» aquí.
  *   7. La tienda (`20261017200000`, actividad 5): `tienda_portada()` trae el diseño PUBLICADO de la campaña que sale (null sin uno); un
  *      borrador nunca llega al cliente. (Las dos migraciones ya están pegadas en producción y congeladas: no se vuelven a pegar aquí.)
+ *   8. El fondo con foto (`20261017231000`, actividad 8): la base impide un fondo con foto sin foto, una foto de otro almacén o sin su
+ *      tono, un tono mal escrito y un oscurecido fuera de 0,15–0,90; una foto puede quedarse con otro fondo. `guardar_diseno_borrador`
+ *      no guarda una foto que no está en el almacén (donde hay Storage), guarda la foto, su tono y el oscurecido, y una web de antes (sin
+ *      esos datos) no pisa el oscurecido; publicar lleva la foto a la tienda. La migración pegada dos veces no cambia nada.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK; la sesión se simula con `request.jwt.claim.sub` y los encabezados con
  * `request.headers`. Micaela recibe Campañas DENTRO de la transacción (`rol_modulos`).
@@ -34,6 +38,7 @@ import { readFileSync } from "node:fs";
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const MIGRACION = "supabase/migrations/20261017160000_campanas_diseno.sql";
+const MIGRACION_FOTO = "supabase/migrations/20261017231000_campanas_fondo_con_foto.sql";
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(process.env.APLICAR_ANTES, "utf8") : "";
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -343,6 +348,54 @@ select retail.tienda_portada() -> 'campana' -> 'diseno' ->> 'paleta';`);
     esperar("un borrador no llega a la tienda", borradorNoLlega === "t", borradorNoLlega);
     esperar("al publicar, la tienda trae ese diseño", publicado === "bosque", publicado);
     esperar("un borrador nuevo encima no cambia lo que ve el cliente", borradorEncima === "bosque", borradorEncima);
+  }
+
+  console.log("— El fondo con foto (actividad 8) —");
+  {
+    const conStorage = correr("select to_regclass('storage.objects') is not null;").salida === "t";
+    const archivo = "fondos/0f0f0f0f-1111-4222-8333-444455556666.jpg";
+    const URL_FOTO = `http://127.0.0.1:56021/storage/v1/object/public/retail-campanas-fotos/${archivo}`;
+    const conFoto = { ...DISENO, fondo: "foto", foto: URL_FOTO, fotoTono: "#d6c8b3", oscuro: 0.6 };
+    const fotoSubida = conStorage
+      ? `reset role;\ninsert into storage.objects (bucket_id, name) values ('retail-campanas-fotos', '${archivo}') on conflict do nothing;\n${como(MICAELA)}${soltado}`
+      : "";
+
+    const casos = [
+      ["un fondo con foto sin su foto", { fondo: "'foto'" }, "23514"],
+      ["una foto de otro almacén", { foto: "'https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/fotos/a.jpg'", foto_tono: "'#d6c8b3'" }, "23514"],
+      ["una foto sin su tono", { foto: `'${URL_FOTO}'` }, "23514"],
+      ["un tono mal escrito", { foto: `'${URL_FOTO}'`, foto_tono: "'beige'" }, "23514"],
+      ["un oscurecido de más (0,95)", { oscuro: "0.95" }, "23514"],
+      ["un oscurecido de menos (0,10)", { oscuro: "0.10" }, "23514"],
+    ];
+    const r = correr(`${ESCENA}reset role;\n${casos.map(([, c]) => fila(c)).join("")}${fila({ foto: `'${URL_FOTO}'`, foto_tono: "'#d6c8b3'" })}`);
+    const ls = lineas(r);
+    casos.forEach(([nombre, , codigo], i) => esperar(`la base impide ${nombre}`, ls[i]?.startsWith(codigo), r.ok ? ls[i] : r.mensaje));
+    esperar("una foto puede quedarse guardada con otro fondo (quien vuelve a «Con foto» no la sube de nuevo)", ls[casos.length] === "SIN_ERROR", ls[casos.length]);
+
+    const g = correr(`${ESCENA}
+${conStorage ? guardar(conFoto, 0) : "select 'P0001 foto_sin_subir (sin Storage)';\n"}${fotoSubida}${guardar(conFoto, 0)}
+select retail.fn_diseno_json(d) ->> 'fondo', retail.fn_diseno_json(d) ->> 'foto' = '${URL_FOTO}', retail.fn_diseno_json(d) ->> 'fotoTono', retail.fn_diseno_json(d) ->> 'oscuro'
+  from retail.campana_disenos d where d.etiqueta_id = :'camp' and d.estado = 'borrador';
+${guardar(DISENO, 1)}
+select foto is null, oscuro from retail.campana_disenos where etiqueta_id = :'camp' and estado = 'borrador';
+${guardar({ ...conFoto, oscuro: "mucho" }, 2)}${guardar({ ...conFoto, oscuro: 1.5 }, 2)}
+${como(FELIPE)}${guardar(conFoto, 2)}${publicar(3)}
+reset role;
+update retail.etiquetas set descuento_pct = 99, vigente_hasta = retail.fn_hoy_lima() where id = :'camp';
+select retail.tienda_portada() -> 'campana' -> 'diseno' ->> 'fondo', retail.tienda_portada() -> 'campana' -> 'diseno' ->> 'oscuro';`);
+    const [sinSubir, primero, leido, deAntes, viejo, mucho, demas, segundo, publicado, tienda] = lineas(g);
+    esperar("una foto que no está en el almacén no se guarda (foto_sin_subir)", sinSubir?.includes("foto_sin_subir"), g.ok ? sinSubir : g.mensaje);
+    esperar("con la foto subida, el borrador se guarda", primero === "SIN_ERROR", primero);
+    esperar("el diseño que leen el ERP y la tienda trae la foto, su tono y el oscurecido", leido === "foto|t|#d6c8b3|0.60", leido);
+    esperar("una web de antes (sin foto ni oscurecido) no pisa el oscurecido", deAntes === "SIN_ERROR" && viejo === "t|0.60", `${deAntes} · ${viejo}`);
+    esperar("un oscurecido que no es número, o fuera de rango, es un diseño inválido", mucho?.includes("diseno_invalido") && demas?.includes("diseno_invalido"), `${mucho} · ${demas}`);
+    esperar("publicar lleva la foto a la tienda", segundo === "SIN_ERROR" && publicado === "SIN_ERROR" && tienda === "foto|0.60", `${segundo} · ${publicado} · ${tienda}`);
+
+    // Aún no está en producción: se pega dos veces sobre la base final y todo sigue igual.
+    const dos = readFileSync(MIGRACION_FOTO, "utf8");
+    const v = correr(`begin;\n${dos}\n${dos}\nselect retail.fn_diseno_json(d) ? 'oscuro' from retail.campana_disenos d limit 1;`);
+    esperar("la migración de la foto, pegada dos veces, no cambia nada", v.ok && (v.salida.split("\n").pop() === "t" || v.salida === ""), v.ok ? v.salida : v.mensaje);
   }
 
   // Las migraciones de Campañas ya pegadas en producción (144000, 151000, 160000 y 200000, el 2026-10-17) están CONGELADAS: no se vuelven
