@@ -86,10 +86,10 @@ Tiene «Preparar recortes» y la hoja de cada prenda, con su largo y sus recorte
 
 ### 4. La tienda
 
-- **Datos:** `retail.tienda_probador()` devuelve, por prenda publicada, su largo (el propio o el típico) y sus recortes listos, cada uno
-  con su color (o «todos los colores») y su proporción. Es igual para todos: se guarda como el catálogo (`lecturaCompartida` y
-  `"use cache"`). Precios, colores y stock salen del catálogo y de la ficha que ya existen (una sola fuente). Una prenda sin largo o sin
-  ningún recorte no entra al probador.
+- **Datos:** `retail.tienda_probador(p_sede)` devuelve, por prenda publicada, su largo (el propio o el típico) y sus recortes listos, cada
+  uno con su color (o «todos los colores») y su proporción; y, por color, su precio y su stock en esa tienda (ver la actualización de
+  abajo). Es igual para todos los que miran la misma tienda: se guarda como el catálogo (`lecturaCompartida`). El nombre, la categoría,
+  los colores y si la prenda se ve salen del catálogo que ya existe. Una prenda sin largo o sin ningún recorte no entra al probador.
 - **El probador:** `/looks/arma`, con cuenta como todo el catálogo. La figura apila cada prenda a escala (2,5 px por cm en el celular)
   desde su línea:
   - arriba, el vestido y lo de encima, desde los hombros;
@@ -97,8 +97,9 @@ Tiene «Preparar recortes» y la hoja de cada prenda, con su largo y sus recorte
   - el bolso, a un costado.
 
   Capas: el body va metido. Un vestido ocupa arriba y abajo y, al sacarlo, vuelven las que había.
-- **Un color sin foto propia** se elige igual. La figura muestra la foto de «todos los colores» o la de otro color y dice «Aún no hay
-  foto en negro: ves otro color de esta prenda». Nunca nombra un color que el sistema no sabe.
+- **Un color sin foto propia** se elige igual. La figura muestra la foto de «todos los colores» o la de otro color y lo dice: «Aún no hay
+  foto en negro: ves la del rosa pálido» si la foto que se ve es de otro color, o «ves otra foto de esta prenda» si es una foto sin color
+  marcado. Nunca nombra un color que el sistema no sabe.
 - **«Sorpréndeme»** cambia lo que no tiene candado y prefiere colores que combinan con lo fijo (`colores.combina_con`, ya cargado en
   93 de 104 colores).
 - **Tallas y bolsa:** la misma hoja de tallas de los looks (`AgregarLook`) y la misma acción (`agregarLookALaBolsa`, hasta 4 prendas,
@@ -155,3 +156,93 @@ PR 1 = actividades 1 a 3 (ERP); PR 2 = 4 a 7 (tienda, probador escondido); PR 3 
    guardados.
 2. Una persona del equipo aprieta «Preparar recortes» en el ERP de producción y revisa las dudosas.
 3. Felipe fusiona cada PR. La tienda se publica al fusionar; las entradas, solo en el último.
+
+## Actualización 2026-10-16 (actividad 4): el precio y el stock de cada color vienen con el probador
+
+Al construir la actividad 4 se vio que el catálogo trae el precio y el stock del MODELO (todas sus tallas y colores juntos), y el probador
+pone cada prenda en UN color. Con el precio del modelo, una campaña solo en el negro haría que la falda beige dijera el precio del negro
+y que la bolsa cobrara el del beige: el mismo error que ya se corrigió en los looks de CAYLA (`20261015032000`). Por eso
+`retail.tienda_probador` recibe la tienda (`p_sede`) y trae, por cada color que se ofrece ahí, lo que vale (`fn_tienda_precios` por
+color, la regla única del precio, la misma de la ficha, los looks y la bolsa) y su nivel en cada tienda de la web (`fn_tienda_disponible`
+con `fn_tienda_nivel`: nunca la cifra de 4 o más), y `combina` (los colores con que se lleva cada color, para «Sorpréndeme»).
+
+- **Una sola fuente, igual:** el precio y el stock salen de las MISMAS piezas de la ficha y la bolsa; la prueba
+  (`pnpm pruebas:tienda-probador`) cruza el precio de cada color con el del look de CAYLA de la misma prenda en la misma tienda.
+- **Descartado:** preguntar la ficha (`tienda_ficha`) de cada prenda que el cliente se pone (un viaje a la base por toque, desde el
+  celular); y armar el catálogo entero por dentro, como `tienda_looks` (1,6 s de media en producción): la tienda junta en la página el
+  catálogo que ya guarda con lo del probador, y lo que una de las dos no trae no entra.
+- **El look vive en la dirección** (`/looks/arma?p=<código de prenda>.<código de color>~…`, el mismo formato de compartir): recargar, cambiar de tienda o
+  mandar el enlace deja el mismo look. Lo que ya no está (se agotó, o en esa tienda no hay) se salta y, si faltó lo de arriba o lo de
+  abajo, se completa con lo primero que hay.
+
+
+## Actualización 2026-10-16 (actividad 8): guardar el look en Favoritos
+
+El corazón del probador guarda el look que se está armando: sus prendas y sus colores, nunca las tallas ni el precio. Cada vez que se
+abre, el precio y lo que queda se leen al día. Así un look guardado en una campaña no promete el precio de la campaña cuando ya terminó.
+
+- **La base decide qué se guarda** (`20261017044000`, `retail.tienda_guardar_look`):
+  - de 2 a 4 prendas, sin repetir modelo, cada una visible en la web y en un color que tiene activo;
+  - una vez por look: la huella son las prendas y sus colores ordenados, y un índice único sobre los vivos lo hace cumplir. Guardar el
+    mismo look en otro orden devuelve el que ya estaba;
+  - hasta 30 vivos por cuenta, con la fila de la cuenta bloqueada para que dos pestañas no pasen el tope a la vez.
+- **El nombre por omisión es el día de Lima** («Look de viernes»). Se cambia en la página del look, de 1 a 40 letras.
+- **Quitar no borra:** marca `quitado_en`, como `favoritos_web`. Cerrar o eliminar la cuenta quita sus looks vivos en el mismo
+  disparador que ya quitaba sus favoritos (`fn_cuentas_web_cerrar_al_anonimizar`, con un reemplazo anclado).
+- **Se abre como los looks de CAYLA** (`/looks/guardado/[id]`, lienzo v3, pantalla 8):
+  - la figura quieta con el número de cada prenda y «Armado por ti»;
+  - cada prenda con su color, cuánto queda y su precio en la tienda elegida;
+  - el total, «Agregar el look a mi bolsa» (la misma hoja de tallas) y «Editar en el probador».
+- **Las prendas que ya no están se dicen aparte** («Una prenda que guardaste ya no está: el look sigue con las demás»). Una prenda está
+  en ese caso si dejó de verse en la web o ya no se puede probar. Si no queda ninguna, la página lo dice y ofrece quitar el look.
+- **Es solo de su cuenta:** `tienda_mis_looks` devuelve únicamente los looks de quien pregunta. Otra persona con el enlace ve «Este look
+  ya no está». El enlace para compartir, sin cuenta y sin precios, es la actividad 9.
+- **En Favoritos**, «Tus looks» va arriba de las prendas guardadas: en el celular, un carril que se desliza; en la computadora, de a
+  cuatro. Solo se muestra con la lista entera: con una categoría elegida se buscan prendas.
+- **Descartado:**
+  - Guardar la talla. La talla se elige al llevar el look a la bolsa, y lo que hay cambia todos los días.
+  - Guardar el precio. Mentiría al terminar una campaña.
+  - Guardar el look en el navegador, sin cuenta. Se pierde al cambiar de celular, y el Club empieza con la cuenta.
+
+## Actualización 2026-10-16 (actividad 9): compartir el look
+
+Desde el look guardado, «Compartir» abre una hoja con la imagen para estados (lienzo v3, pantalla 9) y tres caminos: la hoja de
+compartir del celular (la imagen y el enlace), «Descargar la imagen» y «Copiar el enlace». El enlace es `/tu-look?p=…`. Esa página es
+pública, como la portada: muestra la figura y cada prenda con su color, sin precio ni cuánto hay. Sin cuenta, invita a crearla («Crea
+tu cuenta y arma el tuyo») y al terminar abre el probador con ese look. Con cuenta, «Pruébatelo en el probador».
+
+- **Ninguna imagen pública lleva un texto que venga en la dirección.** Si la vista previa dijera el nombre que trae el enlace, cualquiera
+  podría armar una imagen con la marca de CAYLA y su propio texto. Por eso:
+  - la vista previa de WhatsApp (`/tu-look/vista`, 1200×630) dice «Mira este look» y los nombres de las prendas, que salen de la base;
+  - la imagen para estados lleva el nombre del look, y la arma `/looks/guardado/[id]/historia` solo para la cuenta dueña. Nunca se
+    guarda en la red.
+- **Un look, una imagen guardada:** una dirección escrita de otra forma (minúsculas, prendas de más) va con un 308 a la del mismo look
+  como la escribe el probador. La red guarda la vista previa un día.
+- **Las letras de la marca:** `next/og` no lee el WOFF2 que guarda `next/font`. Pide EB Garamond y DM Sans en TTF a Google Fonts, las
+  mismas que ya usa la tienda, una vez por servidor. Si Google no contesta en 3 s, la imagen sale con la letra de `next/og` (Geist), sin
+  caerse. Una foto que no llega deja su tarjeta con el estudio vacío.
+- **El acomodo de las polaroids** sigue el lienzo con un cambio: cada tarjeta tapa solo el borde de papel de la de arriba, no 34 px. En
+  el lienzo tapaba el nombre de la prenda de arriba.
+- **«Compartir» pide la imagen al abrir la hoja,** no al tocar el botón: el celular solo deja compartir desde el toque de la persona, y
+  esperar a la red lo rompía.
+- **Descartado:**
+  - Dibujar la imagen en el navegador (`canvas`): la vista previa de WhatsApp igual necesita el servidor, y serían dos dibujos del mismo
+    look.
+  - Guardar las letras en el repositorio: hay que bajarlas, y la tienda ya depende de Google Fonts por `next/font`.
+
+## Actualización 2026-10-17 (actividad 10): las entradas
+
+Felipe pidió construirlas en el PR 3, junto con guardar y compartir (2026-10-17): el probador queda a la vista el día que se fusione ese
+PR. Son tres:
+
+- **La cabecera:** «Arma el tuyo» justo después de «Arma tu look», en la computadora y en el menú del celular. Está marcado cuando se
+  está en el probador (`actual="probador"`). Antes, el probador marcaba «Arma tu look».
+  - Sale solo si el probador tiene algo que probar con lo que se ve en esa tienda (Felipe 2026-10-17). Así, fusionar antes de «Preparar
+    recortes» no lleva a nadie a un probador vacío; la entrada aparece sola cuando hay prendas listas.
+  - Lo decide `hayParaProbar`, la misma regla que arma el probador, sobre la lectura guardada de «Todas». Si la base no responde, la
+    entrada no sale.
+- **«Arma tu look»:** arriba de los looks de CAYLA, una tarjeta en el oscuro de la campaña con el probador quieto (lo primero que hay en
+  la tienda elegida, con prendas de verdad) y «Abrir el probador». Si el probador de esa tienda no tiene nada, no se dibuja.
+- **La ficha:** «Arma un look con esta prenda» bajo el botón de la bolsa. Abre el probador con esa prenda en el color elegido, y lo
+  demás se completa con lo primero que hay. Solo sale si el probador de esa tienda la tiene: la decisión usa las mismas reglas que lo
+  arman (`armarProbador`: con su recorte, con su largo y con algo en esa tienda). Así el botón nunca abre un probador sin ella.

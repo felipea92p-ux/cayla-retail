@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 80,
+  "total": 87,
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
       "ComboResponsable «{responsable}»",
@@ -28,6 +28,8 @@
       "button «+ UIT de un año nuevo»",
       "Casilla «{`Tope de la planilla desde el ${fechaCorta(t.vigenteDesde, true)}»",
       "button «config.nuevo-tope»",
+      "Casilla «{`Saldo a favor de IGV al empezar ${textoMes(t.vigenteDesde.slice(0, 7))}»",
+      "button «config.nuevo-saldo»",
       "button «+ Año nuevo»",
       "Casilla «{`Límite de ventas de ${anio}»",
       "Casilla «{`Pago a cuenta de renta de ${anio}»",
@@ -80,6 +82,7 @@
       "ComboResponsable «{responsable}»",
       "Boton «+ Agregar cuenta»",
       "LapizEditar «{c.nombre}»",
+      "LapizEditar «{`la tarifa de ${m.nombre}»",
       "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
       "Boton «Agregar»"
@@ -103,6 +106,12 @@
       "button «{salida.accion === \"archivar\" ? \"Archivar\" : \"Reactivar\"}»",
       "button «Cancelar»",
       "Boton «Guardar cambios»"
+    ],
+    "components/finanzas/TarifaMaquinaModal.tsx": [
+      "Casilla «La tasa lleva IGV»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Guardar»"
     ]
   }
 }

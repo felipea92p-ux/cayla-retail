@@ -283,7 +283,7 @@ export function textoChequeo(c: Chequeo, mes: string): { titulo: string; detalle
     case "huella":
       return c.ok
         ? { titulo, detalle: "El diario de hoy da la misma huella que el congelado" }
-        : { titulo, detalle: "El diario de hoy ya no da la misma huella: algo con fecha de ese mes cambió fuera del sistema (¿la planilla en Dynamic?). Lo congelado no cambió; si hay que corregirlo, reábrelo" };
+        : { titulo, detalle: "El diario de hoy ya no da la misma huella: algo con fecha de ese mes cambió después del cierre (una planilla corregida en Dynamic, una caja de prueba archivada, una tasa de IGV…). Lo congelado no cambió y es lo que leen los reportes; si hay que corregirlo, reábrelo" };
     default:
       return { titulo, detalle: "" };
   }

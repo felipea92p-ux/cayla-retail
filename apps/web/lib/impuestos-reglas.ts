@@ -261,7 +261,10 @@ export function porcentaje(fraccion: number, decimales = 1): string {
 
 // `tope_planilla_movilidad` (ADR-0362, fase 6 · actividad 6, decisión 68): soles por persona y por día; rige desde cualquier fecha, como el
 // IGV. Sin fila no hay tope: lo fija el contador (SUNAT: el 4 % de la remuneración mínima vital).
-export type NombreParametro = "igv" | "uit" | "umbral_uit" | "renta_pago_cuenta" | "regimen" | "tope_planilla_movilidad";
+//
+// `saldo_favor_igv` (ADR-0433, actividad 4b): el saldo a favor de IGV con que CAYLA arrancó, que da el contador de la última declaración («saldo a favor del
+// periodo anterior»). Rige desde el DÍA 1 de un mes («al empezar octubre traíamos S/ X»): ese mes, el IGV mensual parte de ese monto en vez de arrastrar lo calculado.
+export type NombreParametro = "igv" | "uit" | "umbral_uit" | "renta_pago_cuenta" | "regimen" | "tope_planilla_movilidad" | "saldo_favor_igv";
 
 /** Los que rigen por año (desde el 1 de enero): la tabla del régimen. La tasa de IGV y el tope de la planilla, desde cualquier fecha. */
 const POR_ANIO: readonly NombreParametro[] = ["regimen", "umbral_uit", "renta_pago_cuenta"];
@@ -305,7 +308,7 @@ export function diaDelRegistro(registradoEn: string | null): string | null {
 export function valorEnCasilla(p: Pick<ParametroFila, "nombre" | "valor">): string {
   if (p.valor === null) return "";
   // El tope de la planilla es un monto en soles: con sus dos decimales («45.20»).
-  if (p.nombre === "tope_planilla_movilidad") return p.valor.toFixed(2);
+  if (p.nombre === "tope_planilla_movilidad" || p.nombre === "saldo_favor_igv") return p.valor.toFixed(2);
   const v = p.nombre === "igv" || p.nombre === "renta_pago_cuenta" ? p.valor * 100 : p.valor;
   return String(Number(v.toFixed(4)));
 }
@@ -314,7 +317,7 @@ type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
 /** Lo tipeado en una casilla → lo que se guarda (la tasa, como fracción). Mismos límites que la base, con otras palabras. */
 export function parsearParametro(nombre: Exclude<NombreParametro, "regimen">, tipeado: string): Resultado<number> {
-  const limpio = tipeado.replace(/[S/%\s]/g, "").replace(/,(?=\d{3}\b)/g, "").replace(",", ".");
+  const limpio = tipeado.replace(/[S/%\s]/g, "").replace(/,(?=\d{3}\b)/g, "").replace(",", "."); // coma-fija: solo quita la coma de miles (3 cifras detrás); la de céntimos pasa a punto
   if (!limpio) return { ok: false, error: "Escribe un valor." };
   const n = Number(limpio);
   if (!Number.isFinite(n)) return { ok: false, error: "Escribe solo el número." };
@@ -332,6 +335,11 @@ export function parsearParametro(nombre: Exclude<NombreParametro, "regimen">, ti
   }
   if (nombre === "tope_planilla_movilidad") {
     if (n <= 0 || n > 1000) return { ok: false, error: "El tope va en soles por persona y por día (45.20), mayor que cero y hasta 1,000." };
+    return { ok: true, valor: Math.round(n * 100) / 100 };
+  }
+  if (nombre === "saldo_favor_igv") {
+    // Cero vale: declarar que CAYLA no traía saldo es un dato (y deja de aparecer en «lo que falta»).
+    if (n < 0 || n > 10000000) return { ok: false, error: "El saldo a favor va en soles (cero si no traía), hasta 10 millones." };
     return { ok: true, valor: Math.round(n * 100) / 100 };
   }
   if (n <= 0 || n > 100000) return { ok: false, error: "El límite va en UIT (300), no en soles." };

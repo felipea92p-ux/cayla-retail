@@ -10,13 +10,13 @@
 
 import type { Guia, PasoGuia } from "../tipos";
 
-/** «Ver»: el mismo combo en casi todas las pantallas de Finanzas (solo el líder elige; los demás ven su tienda). */
+/** «Ver»: el mismo combo en casi todas las pantallas de Finanzas (lo elige quien ve todas las tiendas —el líder y, donde la pantalla lo permite, quien tiene Configuración, Cierre de mes o CAYLA Global—; los demás ven su tienda). */
 const VER: PasoGuia = {
   id: "ver",
   ancla: "fin-ver.combo",
   opcional: true,
   titulo: "Qué tienda mirar",
-  texto: "Eliges si ves todas las tiendas juntas, una sola o lo de la empresa (lo que no es de ninguna tienda, como el contador). Lo elige el líder; si no lo eres, ves tu tienda.",
+  texto: "Eliges si ves todas las tiendas juntas, una sola o lo de la empresa (lo que no es de ninguna tienda, como el contador). Lo elige quien ve todas las tiendas (el líder y, en algunas pantallas, quien tiene Configuración o Cierre de mes); si no, ves tu tienda.",
 };
 
 /** Las pestañas de Reportes: cada una es otra pantalla (se explican, no se tocan). */
@@ -396,14 +396,14 @@ export const GUIA_FIN_CUENTAS: Guia = {
       ancla: "fin-dinero.mov-monto",
       opcional: true,
       titulo: "Monto y voucher",
-      texto: "Cuánto se movió y el número del voucher o una nota, para encontrarlo después en el banco.",
+      texto: "Cuánto se movió y el número del voucher o una nota, para encontrarlo después en el banco. En un depósito de la máquina es lo que LLEGÓ al banco, ya sin su comisión.",
     },
     {
       id: "mov-fecha",
       ancla: "fin-dinero.mov-fecha",
       opcional: true,
       titulo: "La fecha",
-      texto: "El día en que la plata se movió de verdad (el del voucher), aunque lo anotes después. Si no sale de un cajón te la pide; un abono de tarjeta pide además la comisión del POS, que queda como gasto.",
+      texto: "El día en que la plata se movió de verdad (el del voucher), aunque lo anotes después. Si no sale de un cajón te la pide. En un depósito de la máquina, al lado ves la comisión real que salió de la cuenta.",
     },
     {
       id: "mov-botones",
@@ -424,7 +424,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       ancla: "fin-dinero.alcanza",
       opcional: true,
       titulo: "¿Me alcanza?",
-      texto: "La primera semana de las próximas seis en que la plata bajaría de tu mínimo de caja, con lo que vence y lo que esperas vender. Y qué pasa si depositas lo que está guardado en las cajas fuertes.",
+      texto: "La primera semana de las próximas seis en que la plata bajaría de tu mínimo de caja, con lo que vence y lo que esperas vender. Y qué pasa si depositas lo que está guardado en las cajas fuertes. Si falta cargar saldos o historia, dice «provisional» y qué falta.",
     },
     {
       id: "debes",
@@ -434,8 +434,24 @@ export const GUIA_FIN_CUENTAS: Guia = {
       texto: "Lo vencido primero y lo próximo que vence, de todas las facturas por pagar. Si hay una factura sin anotar, no está aquí: por eso el medidor de confianza del Resumen las cuenta.",
     },
     {
+      id: "aviso-maquina",
+      ancla: "fin-dinero.aviso-maquina",
+      opcional: true,
+      titulo: "Una máquina se atrasó",
+      texto: "Si Izipay o Vendemás no depositó un día dentro de su plazo (el de su tarifa; sin tarifa, 3 días hábiles), aparece aquí: cuántos días esperan, cuánto suman y desde cuándo. «Registrar el depósito» abre el movimiento con esa máquina.",
+    },
+    {
+      id: "mov-lotes",
+      ancla: "fin-dinero.mov-lotes",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "fin-dinero.aviso-registrar", siEsta: true }],
+      titulo: "Qué días cubre el depósito",
+      texto: "Te abrimos el depósito desde el aviso. Son los días cobrados con tarjeta o QR que la máquina todavía no depositó, marcados hasta la fecha del depósito. Lo cobrado esos días menos lo que llegó al banco es la comisión real: sale sola y queda como gasto. En la demo no registramos.",
+    },
+    {
       id: "cuentas",
       ancla: "fin-dinero.cuentas",
+      preparar: [{ tipo: "escape" }],
       titulo: "Cada lugar con su saldo",
       texto: "Una tarjeta por lugar: cuánto hay y de dónde sale. Los cajones suben con las ventas en efectivo y bajan con los egresos y depósitos. El saldo del cajón solo lo ve quien puede cerrar la caja.",
     },
@@ -1024,7 +1040,7 @@ export const GUIA_FIN_FLUJO: Guia = {
       ancla: "fin-flujo.dias",
       opcional: true,
       titulo: "Días de caja",
-      texto: "Si mañana no vendieras nada, para cuántos días te alcanza la plata con lo que sale en un día normal.",
+      texto: "Si mañana no vendieras nada, para cuántos días te alcanza la plata con lo que sale en un día normal. Si falta cargar saldos o historia, dice «provisional» y, arriba, qué falta.",
     },
     {
       id: "que-vence",

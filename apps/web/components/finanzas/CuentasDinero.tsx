@@ -11,12 +11,13 @@ import { Chip } from "@/components/ui/Chip";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraDinero, type PestanaDinero } from "@/components/finanzas/CabeceraDinero";
 import { PagosSinCuentaModal } from "@/components/finanzas/PagosSinCuenta";
-import { CabeceraBloque, CampoFin, Herramientas, InputFin, ListaDatos, OpcionesFin, PieTabla, RadiosFin, SelectFin, Superficie } from "@/components/finanzas/kit";
+import { CabeceraBloque, CampoFin, Herramientas, InputFin, ListaDatos, OpcionesFin, PieTabla, RadiosFin, SalidaFin, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { fechaCorta, solesRedondo, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
 import { horaLima } from "@/lib/fechas-lima";
+import { leerMontoPlata, MONTO_ILEGIBLE } from "@/lib/monto-plata-reglas";
 import {
   MEDIOS_COBRO,
   OPCIONES_QUE_PASO,
@@ -24,22 +25,34 @@ import {
   TEXTO_MOVIMIENTO,
   TEXTO_SIN_CUENTA,
   agruparCuentas,
+  avisosDeMaquinas,
   cuadra,
   cuentasPara,
   cuentasVisibles,
   deudaConDueno,
   diaYNumero,
+  ejemploMontoDeposito,
+  ejemploReferenciaDeposito,
   explicacionCuenta,
   hoyEnPalabras,
   insigniaCuenta,
   leerEgresoParaMovimiento,
+  leerLotePendiente,
+  lotesPorDefecto,
   nombreCorto,
+  nombreDeMaquinaDeLaPuente,
+  saldoConCentimos,
+  tituloDelMovimiento,
   opcionQuePaso,
   otrosDelCajon,
+  resumenAbono,
   resumenConciliacion,
+  textoLote,
   textoSalida,
   tipoDeMovimiento,
+  validarAbonoPos,
   validarMovimiento,
+  type AlertaPos,
   type BorradorMovimiento,
   type CierreConDiferencia,
   type Conciliacion,
@@ -48,12 +61,15 @@ import {
   type EfectivoFila,
   type EgresoParaMovimiento,
   type FilaMedio,
+  type LotePendiente,
   type MovimientoDinero,
   type MovimientoDueno,
   type QuePaso,
   type SinCuenta,
 } from "@/lib/cuentas-dinero-reglas";
 import { Boton } from "@/components/ui/campos";
+import { Casilla } from "@/components/ui/Casilla";
+import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { ArrowLeftRight, Landmark, Store } from "lucide-react";
 import { MAX_REFERENCIA_MOVIMIENTO } from "@/lib/finanzas-topes";
@@ -69,7 +85,8 @@ const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as stri
 
 // ---- La pantalla: cabecera, «Ver» y el modal de registrar, compartidos por las tres pestañas ------------------------------
 
-type AbrirMovimiento = (que?: QuePaso) => void;
+/** `origenId`: la cuenta de la que sale la plata, si quien abre ya lo sabe (el aviso de una máquina atrasada abre SU depósito). */
+type AbrirMovimiento = (que?: QuePaso, origenId?: string) => void;
 const ContextoMovimiento = createContext<AbrirMovimiento>(() => {});
 
 export function PantallaDinero({
@@ -103,7 +120,7 @@ export function PantallaDinero({
   const router = useRouter();
   const ruta = usePathname();
   const params = useSearchParams();
-  const [modal, setModal] = useState<QuePaso | null>(null);
+  const [modal, setModal] = useState<{ que: QuePaso; origenId?: string } | null>(null);
   const nombreSede = ver.ubicacionId ? (ubicaciones.find((u) => u.id === ver.ubicacionId)?.nombre ?? "tu tienda") : "Todas las tiendas";
 
   const irA = (v: string) => {
@@ -113,7 +130,7 @@ export function PantallaDinero({
   };
 
   return (
-    <ContextoMovimiento.Provider value={(que) => setModal(que ?? "deposito")}>
+    <ContextoMovimiento.Provider value={(que, origenId) => setModal({ que: que ?? "deposito", origenId })}>
       <div className="space-y-6">
         <CabeceraDinero
           pestana={pestana}
@@ -138,7 +155,7 @@ export function PantallaDinero({
               ) : (
                 <Chip versalitas={false}>{nombreSede}</Chip>
               )}
-              <Boton type="button" peso="primario" onClick={() => setModal("deposito")} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
+              <Boton type="button" peso="primario" onClick={() => setModal({ que: "deposito" })} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
                 + Registrar movimiento
               </Boton>
             </>
@@ -153,7 +170,8 @@ export function PantallaDinero({
       </div>
       {modal && (
         <RegistrarMovimientoModal
-          inicial={modal}
+          inicial={modal.que}
+          origenInicial={modal.origenId}
           cuentas={cuentas}
           esLider={esLider}
           ubicacionId={ver.ubicacionId}
@@ -174,6 +192,7 @@ export function CuentasPanel({
   medios,
   plata,
   sinCuenta,
+  alertas,
   ubicaciones,
   talleres,
   ver,
@@ -185,6 +204,8 @@ export function CuentasPanel({
   medios: FilaMedio[];
   plata: MovimientoDueno[];
   sinCuenta: SinCuenta[];
+  /** Por máquina de cobro, cuánto espera depósito y cuánto ya está atrasado (ADR-0429, act. 4; solo el líder). */
+  alertas?: AlertaPos[];
   ubicaciones: UbicacionGastos[];
   /** Las sedes que son el Taller (su cajón es un fondo fijo). */
   talleres: string[];
@@ -193,6 +214,7 @@ export function CuentasPanel({
   hoy: string;
 }) {
   const abrir = useContext(ContextoMovimiento);
+  const avisosMaquinas = avisosDeMaquinas(alertas ?? []);
   const [detalle, setDetalle] = useState<MovimientoDinero | null>(null);
   // F3b: lo pasado que no dice su cuenta se completa una vez, desde el aviso.
   const [decirCuenta, setDecirCuenta] = useState(false);
@@ -210,6 +232,22 @@ export function CuentasPanel({
           Los bancos son de CAYLA entera: se ven igual en cualquier tienda. El cajón y la caja fuerte son los de {nombreSede}.
         </p>
       )}
+      {/* La máquina que no depositó a tiempo (ADR-0429, act. 4): se dice arriba de las cuentas, con el camino para registrarlo. */}
+      {avisosMaquinas.map((a) => (
+        <Aviso
+          key={a.maquina.maquinaId}
+          tono="atencion"
+          titulo={a.titulo}
+          guia="fin-dinero.aviso-maquina"
+          accion={
+            <button type="button" className="btn-cayla btn-enlace" onClick={() => abrir("abono_tarjeta", a.maquina.cuentaId)} aria-haspopup="dialog" data-guia="fin-dinero.aviso-registrar">
+              Registrar el depósito
+            </button>
+          }
+        >
+          {a.detalle}
+        </Aviso>
+      ))}
 
       {grupos.length === 0 ? (
         <Superficie>
@@ -238,7 +276,7 @@ export function CuentasPanel({
                       </div>
                     ) : (
                       <div className="fin-cuenta-saldo" data-debe={c.saldo < 0 ? "" : undefined}>
-                        {c.saldo < 0 ? `−${solesRedondo(-c.saldo)}` : solesRedondo(c.saldo)}
+                        {c.saldo < 0 ? `−${verSaldo(c, -c.saldo)}` : verSaldo(c, c.saldo)}
                       </div>
                     )}
                     <p>{explicacionCuenta(c, medios, c.ubicacionId !== null && talleres.includes(c.ubicacionId))}</p>
@@ -366,7 +404,7 @@ export function CuentasPanel({
         </Herramientas>
         {movimientos.length === 0 ? (
           <Vacio tamano="chico" icono={<ArrowLeftRight />}>
-            Sin movimientos todavía. Un depósito del cajón o un abono de tarjeta se registra con «+ Registrar movimiento».
+            Sin movimientos todavía. Un depósito del cajón o el depósito de una máquina se registra con «+ Registrar movimiento».
           </Vacio>
         ) : (
           <div className="fin-tabla-wrap">
@@ -403,7 +441,7 @@ export function CuentasPanel({
                     <td className="fin-ancha" data-l="Qué">
                       <b>{TEXTO_MOVIMIENTO[m.tipo]}</b>
                       <span className="fin-sub">
-                        {[m.referencia, m.comision > 0 ? `comisión ${soles(m.comision)} → gasto 639` : null, m.estado === "anulado" ? `anulado: ${m.motivoAnulacion}` : null].filter(Boolean).join(" · ") || " "}
+                        {[m.referencia, m.comision > 0 ? `comisión ${soles(m.comision)} → gasto` : null, m.estado === "anulado" ? `anulado: ${m.motivoAnulacion}` : null].filter(Boolean).join(" · ") || " "}
                       </span>
                     </td>
                     <td data-l="De">{m.origenNombre ? nombreCorto(m.origenNombre) : <span className="fin-tenue">El dueño</span>}</td>
@@ -612,8 +650,9 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
     );
 
   async function anotar() {
-    const n = Number(saldo.replace(/s\/|\s|,/gi, ""));
-    if (saldo.trim() === "" || !Number.isFinite(n)) return avisar.error("Escribe el saldo que dice el banco, por ejemplo 38420.50.");
+    if (saldo.trim() === "") return avisar.error("Escribe el saldo que dice el banco, por ejemplo 38420.50.");
+    const n = leerMontoPlata(saldo);
+    if (n === null) return avisar.error(MONTO_ILEGIBLE);
     if (fecha > hoy) return avisar.error("La fecha no puede ser futura.");
     const ok = await ejecutar(
       () => createClient().rpc("registrar_conciliacion" as never, { p_cuenta_id: actual!.cuenta.id, p_fecha: fecha, p_saldo_banco: n, p_nota: null } as never),
@@ -812,6 +851,7 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
 
 function RegistrarMovimientoModal({
   inicial,
+  origenInicial,
   cuentas,
   esLider,
   ubicacionId,
@@ -820,6 +860,8 @@ function RegistrarMovimientoModal({
   onCerrar,
 }: {
   inicial: QuePaso;
+  /** La cuenta de origen con que arranca, si una pantalla ya la sabe (solo vale si es una de las que este movimiento ofrece). */
+  origenInicial?: string;
   cuentas: CuentaDinero[];
   esLider: boolean;
   ubicacionId: string | null;
@@ -833,7 +875,13 @@ function RegistrarMovimientoModal({
   const [token] = useState(() => crypto.randomUUID());
   const [guardando, setGuardando] = useState(false);
   const [egresos, setEgresos] = useState<EgresoParaMovimiento[]>([]);
-  const [b, setB] = useState<BorradorMovimiento>(() => inicialDe(inicial, cuentas, ubicacionId, deuda, hoy));
+  const [b, setB] = useState<BorradorMovimiento>(() => {
+    const base = inicialDe(inicial, cuentas, ubicacionId, deuda, hoy);
+    const origenDelAviso = origenDeArranque(inicial, origenInicial, cuentas);
+    return origenDelAviso ? { ...base, origen: origenDelAviso.id, fuente: fuenteInicial(origenDelAviso) } : base;
+  });
+  // Abierto desde el aviso de una máquina atrasada, el título dice de cuál es el depósito; si no, el de siempre.
+  const [titulo] = useState(() => tituloDelMovimiento(origenDeArranque(inicial, origenInicial, cuentas)?.nombre));
   const op = opcionQuePaso(b.que);
   const origenes = cuentasPara(cuentas, op.origen, "origen");
   const destinos = cuentasPara(cuentas, op.destino, "destino");
@@ -858,17 +906,62 @@ function RegistrarMovimientoModal({
   }, [ubicacionCajon]);
   const egresosDelTipo = egresos.filter((e) => (tipo === "deposito" ? e.marca !== "retiro" : e.marca !== "deposito"));
 
+  // El depósito de una máquina (ADR-0429) se cruza contra los días que todavía no depositó: la lista llega de la base
+  // (`fn_pos_pendientes`), se marcan de entrada los días hasta la fecha del depósito y la comisión sale sola.
+  const esDepositoMaquina = tipo === "abono_tarjeta";
+  const maquinaId = esDepositoMaquina ? b.origen || null : null;
+  // Lo leído va con la máquina de la que se leyó: si la persona cambia de máquina, la lista anterior deja de valer sola
+  // (sin tocar el estado dentro del efecto) mientras llega la nueva.
+  const [leido, setLeido] = useState<{ maquinaId: string; lotes: LotePendiente[]; marcados: string[] } | null>(null);
+  useEffect(() => {
+    if (!maquinaId) return;
+    let vivo = true;
+    createClient()
+      .rpc("fn_pos_pendientes" as never, { p_cuenta_id: maquinaId } as never)
+      .then(({ data, error }) => {
+        if (!vivo) return;
+        const lista = error ? [] : ((data ?? []) as Record<string, unknown>[]).map(leerLotePendiente);
+        setLeido({ maquinaId, lotes: lista, marcados: lotesPorDefecto(lista, b.fecha) });
+      });
+    return () => {
+      vivo = false;
+    };
+    // La fecha no vuelve a cargar la lista: solo decide qué se marca de entrada al llegar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maquinaId]);
+  const lotes = leido && leido.maquinaId === maquinaId ? leido.lotes : null;
+  const marcados = leido && leido.maquinaId === maquinaId ? leido.marcados : [];
+  const marcar = (clave: string, si: boolean) =>
+    setLeido((l) => (l && l.maquinaId === maquinaId ? { ...l, marcados: si ? [...l.marcados.filter((c) => c !== clave), clave] : l.marcados.filter((c) => c !== clave) } : l));
+  const cuentaAbono = esDepositoMaquina ? resumenAbono(lotes ?? [], marcados, b.monto) : null;
+
   function elegirQue(que: QuePaso) {
     setB(inicialDe(que, cuentas, ubicacionId, deuda, hoy, b));
   }
 
   async function guardar() {
-    const v = validarMovimiento(b, { cuentas, egresos, deuda, hoy });
-    if (!v.ok) return avisar.error(v.error);
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
     }
+    if (esDepositoMaquina) {
+      const v = validarAbonoPos(b, lotes ?? [], marcados, { cuentas, hoy });
+      if (!v.ok) return avisar.error(v.error);
+      setGuardando(true);
+      const { error } = await firmar(createClient().rpc("registrar_abono_pos" as never, { ...v.valor, p_token: token } as never), responsable.firma());
+      setGuardando(false);
+      responsable.despues(error);
+      if (error) return avisar.error(traducirError(error, "registrar el depósito de la máquina"));
+      const r = resumenAbono(lotes ?? [], marcados, b.monto);
+      avisar.exito("Depósito de la máquina registrado", {
+        detalle: r.comision && r.comision > 0 ? `La comisión real, ${soles(r.comision)}, quedó como gasto bancario de la empresa.` : "Llegó completo: sin comisión.",
+      });
+      onCerrar();
+      router.refresh();
+      return;
+    }
+    const v = validarMovimiento(b, { cuentas, egresos, deuda, hoy });
+    if (!v.ok) return avisar.error(v.error);
     setGuardando(true);
     const { error } = await firmar(createClient().rpc("registrar_movimiento_dinero" as never, { ...v.valor, p_token: token } as never), responsable.firma());
     setGuardando(false);
@@ -881,10 +974,12 @@ function RegistrarMovimientoModal({
     router.refresh();
   }
 
-  const conSaldo = (c: CuentaDinero) => (c.saldo === null ? c.nombre : `${c.nombre} · ${solesRedondo(c.saldo)}`);
+  // En el combo, una máquina se nombra sin «Por depositar» (el campo ya lo dice y con los céntimos no cabría): «Vendemás · S/ 149.90».
+  const nombreEnCombo = (c: CuentaDinero) => (saldoConCentimos(c.tipo) ? nombreDeMaquinaDeLaPuente(c.nombre) ?? c.nombre : c.nombre);
+  const conSaldo = (c: CuentaDinero) => (c.saldo === null ? nombreEnCombo(c) : `${nombreEnCombo(c)} · ${verSaldo(c, c.saldo)}`);
 
   return (
-    <Modal variante="hoja" titulo="Registrar movimiento" subtitulo={`La plata cambia de lugar: no es venta ni gasto.${esLider ? "" : " Tu rol registra los depósitos de tu tienda al banco."}`} onClose={onCerrar} tamano="mediana">
+    <Modal variante="hoja" titulo={titulo} subtitulo={`La plata cambia de lugar: no es venta ni gasto.${esLider ? "" : " Tu rol registra los depósitos de tu tienda al banco."}`} onClose={onCerrar} tamano="mediana">
       <CampoFin etiqueta="Qué pasó" htmlFor="mov-que" guia="fin-dinero.mov-que">
         <SelectFin<QuePaso> id="mov-que" valor={b.que} onValor={elegirQue} opciones={opciones} />
       </CampoFin>
@@ -981,16 +1076,56 @@ function RegistrarMovimientoModal({
         </div>
       )}
 
+      {esDepositoMaquina && (
+        <div data-sin-cascada data-guia="fin-dinero.mov-lotes">
+          <CampoFin
+            etiqueta="Qué días cubre este depósito"
+            ayuda={
+              lotes === null
+                ? "Leyendo lo que la máquina todavía no depositó…"
+                : lotes.length === 0
+                  ? "Esta máquina no tiene nada por depositar."
+                  : "Lo cobrado con la máquina que ningún depósito cubre todavía. Vienen marcados los días hasta la fecha del depósito."
+            }
+            tono={lotes !== null && lotes.length === 0 ? "aviso" : undefined}
+          >
+            {lotes && lotes.length > 0 && (
+              <ul className="fin-lotes">
+                {lotes.map((l) => (
+                  <li key={l.clave} className="fin-lote">
+                    <Casilla marcada={marcados.includes(l.clave)} onCambio={() => marcar(l.clave, !marcados.includes(l.clave))} etiqueta={`${textoLote(l)} · ${soles(l.bruto)}`} />
+                    <span className="fin-lote-texto">
+                      {textoLote(l)}
+                      {l.atrasado && (
+                        <>
+                          {" "}
+                          <Chip tono="ambar">atrasado</Chip>
+                        </>
+                      )}
+                    </span>
+                    <span className="fin-lote-dias">
+                      {l.dias === 0 ? "hoy" : l.dias === 1 ? "ayer" : `hace ${l.dias} días`}
+                      {l.esperado !== null && ` · comisión ≈ ${soles(l.esperado)}`}
+                    </span>
+                    <span className="fin-lote-monto">{soles(l.bruto)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CampoFin>
+        </div>
+      )}
+
       <div className="fin-dos-campos" data-guia="fin-dinero.mov-monto">
         <CampoFin etiqueta={tipo === "abono_tarjeta" ? "Monto que llegó al banco" : "Monto"} htmlFor="mov-monto">
           {esCajon && b.fuente === "egreso" ? (
             <InputFin id="mov-monto" readOnly value={egresos.find((e) => e.id === b.egresoId) ? soles(egresos.find((e) => e.id === b.egresoId)!.monto) : "—"} />
           ) : (
-            <InputFin id="mov-monto" inputMode="decimal" value={b.monto} onChange={(e) => cambiar({ monto: e.target.value })} placeholder="1,500.00" />
+            <InputFin id="mov-monto" inputMode="decimal" value={b.monto} onChange={(e) => cambiar({ monto: e.target.value })} placeholder={esDepositoMaquina ? ejemploMontoDeposito(cuentaAbono?.bruto ?? 0, cuentaAbono?.esperado ?? null, cuentaAbono?.dias ?? 0) : "1,500.00" /* sugerir-fijo: el formato de un monto, no depende de nada elegido */} />
           )}
         </CampoFin>
-        <CampoFin etiqueta="Voucher o nota" htmlFor="mov-ref">
-          <InputFin id="mov-ref" value={b.referencia} onChange={(e) => cambiar({ referencia: e.target.value })} placeholder={tipo === "abono_tarjeta" ? "Liquidación Niubiz 20-sep" : "Voucher 120441"} maxLength={MAX_REFERENCIA_MOVIMIENTO} />
+        <CampoFin etiqueta={esDepositoMaquina ? "Número de operación o nota" : "Voucher o nota"} htmlFor="mov-ref">
+          <InputFin id="mov-ref" value={b.referencia} onChange={(e) => cambiar({ referencia: e.target.value })} placeholder={tipo === "abono_tarjeta" ? ejemploReferenciaDeposito(origen?.nombre) : "Voucher 120441" /* sugerir-fijo: el formato de un voucher, no depende de nada elegido */} maxLength={MAX_REFERENCIA_MOVIMIENTO} />
         </CampoFin>
       </div>
 
@@ -999,12 +1134,23 @@ function RegistrarMovimientoModal({
           <CampoFin etiqueta="Fecha" htmlFor="mov-fecha">
             <InputFin id="mov-fecha" type="date" max={hoy} value={b.fecha} onChange={(e) => cambiar({ fecha: e.target.value })} />
           </CampoFin>
-          {tipo === "abono_tarjeta" && (
-            <CampoFin etiqueta="Comisión del POS" htmlFor="mov-comision" ayuda="Queda como gasto bancario (639) de la empresa.">
-              <InputFin id="mov-comision" inputMode="decimal" value={b.comision} onChange={(e) => cambiar({ comision: e.target.value })} placeholder="0.00" />
+          {esDepositoMaquina && cuentaAbono && (
+            <CampoFin etiqueta="Comisión real" ayuda="Lo cobrado esos días menos lo que llegó. Queda anotada como gasto de la empresa.">
+              <SalidaFin>
+                {cuentaAbono.dias === 0
+                  ? "Marca los días"
+                  : cuentaAbono.comision === null
+                    ? `${soles(cuentaAbono.bruto)} cobrados en ${cuentaAbono.dias === 1 ? "1 día" : `${cuentaAbono.dias} días`} · escribe lo que llegó y verás la comisión`
+                    : `${soles(cuentaAbono.comision)} · ${soles(cuentaAbono.bruto)} cobrados − ${soles(cuentaAbono.neto ?? 0)} llegaron${cuentaAbono.esperado !== null ? ` · esperada ≈ ${soles(cuentaAbono.esperado)}` : ""}`}
+              </SalidaFin>
             </CampoFin>
           )}
         </div>
+      )}
+      {esDepositoMaquina && cuentaAbono?.comision !== null && cuentaAbono?.comision !== undefined && cuentaAbono.comision < 0 && (
+        <Aviso tono="atencion" titulo="Llegó más de lo cobrado en los días marcados" chico>
+          Marca los días que faltan (¿la máquina depositó la tarjeta y el QR juntos?) o revisa el monto.
+        </Aviso>
       )}
 
       <ComboResponsable control={responsable} deshabilitado={guardando} />
@@ -1025,6 +1171,17 @@ function fuenteInicial(c: CuentaDinero | undefined): "caja" | "egreso" {
 }
 
 /** El borrador de cada «Qué pasó»: propone el cajón de la sede que se mira (o el primero abierto) y el primer banco. */
+/** La cuenta de origen que una pantalla ya sabía al abrir el movimiento (el aviso de una máquina), si de verdad es una de las que ese movimiento ofrece. */
+function origenDeArranque(que: QuePaso, origenId: string | undefined, cuentas: CuentaDinero[]): CuentaDinero | null {
+  if (!origenId) return null;
+  return cuentasPara(cuentas, opcionQuePaso(que).origen, "origen").find((c) => c.id === origenId) ?? null;
+}
+
+/** El saldo de una cuenta como lo ve la persona: con céntimos en «Por depositar» (se cruza contra un depósito), redondeado en las demás. */
+function verSaldo(c: CuentaDinero, n: number): string {
+  return saldoConCentimos(c.tipo) ? soles(n) : solesRedondo(n);
+}
+
 function inicialDe(que: QuePaso, cuentas: CuentaDinero[], ubicacionId: string | null, deuda: number, hoy: string, antes?: BorradorMovimiento): BorradorMovimiento {
   const op = opcionQuePaso(que);
   const origenes = cuentasPara(cuentas, op.origen, "origen");
@@ -1078,7 +1235,7 @@ function MovimientoDetalleModal({ movimiento: m, onCerrar }: { movimiento: Movim
           { dato: "De", valor: m.origenNombre ?? "El dueño" },
           { dato: "A", valor: m.destinoNombre ?? "Sale del negocio" },
           { dato: m.tipo === "abono_tarjeta" ? "Llegó al banco" : "Monto", valor: soles(m.monto) },
-          ...(m.comision > 0 ? [{ dato: "Comisión del POS (gasto 639)", valor: soles(m.comision) }] : []),
+          ...(m.comision > 0 ? [{ dato: "Comisión de la máquina (queda como gasto)", valor: soles(m.comision) }] : []),
           { dato: "Estado", valor: <Chip tono={m.estado === "anulado" ? "apagado" : "verde"}>{m.estado === "anulado" ? "Anulado" : "Vigente"}</Chip> },
           ...(m.registradoPor ? [{ dato: "Lo registró", valor: m.registradoPor, tenue: true }] : []),
           ...(m.motivoAnulacion ? [{ dato: "Anulado", valor: `${m.motivoAnulacion}${m.anuladoPor ? ` · ${m.anuladoPor}` : ""}`, tenue: true }] : []),

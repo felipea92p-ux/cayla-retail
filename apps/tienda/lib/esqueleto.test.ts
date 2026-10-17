@@ -23,6 +23,15 @@ describe("la forma del esqueleto según la página que viene", () => {
     expect(formaDeLaRuta("/bolsa/separado/W-0008")).toBe("lista");
   });
 
+  it("«Arma el tuyo», con el arco del probador", () => {
+    expect(formaDeLaRuta("/looks/arma")).toBe("probador");
+    expect(formaDeLaRuta("/looks/arma/")).toBe("probador");
+  });
+  it("un look guardado, con su figura y sus datos (como una ficha)", () => {
+    expect(formaDeLaRuta(`/looks/guardado/${PRENDA}`)).toBe("ficha");
+    expect(formaDeLaRuta("/looks/guardado/otra-cosa")).toBe("grilla");
+  });
+
   it("lo demás (el Inicio, la lista, los looks), con la grilla de prendas", () => {
     expect(formaDeLaRuta("/inicio")).toBe("grilla");
     expect(formaDeLaRuta("/catalogo")).toBe("grilla");

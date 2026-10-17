@@ -17,6 +17,7 @@ import {
   type Prenda,
 } from "./catalogo";
 import { hrefLooks } from "./looks";
+import { hrefDelProbador } from "./probador";
 import { gruposDe, MENUS, type Menu } from "./grupos";
 import type { Campana } from "./portada";
 
@@ -133,6 +134,9 @@ export type DatosCabecera = {
   ofertas: Enlace;
   /** «Arma tu look», con la tienda elegida (maqueta, `cabT`: entre «Ropa» y «Más vendidos»). */
   looks: string;
+  /** «Arma el tuyo», el probador (ADR-0434, actividad 10), con la tienda elegida: justo después de «Arma tu look». null mientras el
+   *  probador no tenga nada que probar (Felipe 2026-10-17: sin recortes, la entrada no sale). */
+  probador: string | null;
   /** Los favoritos: el corazón de la computadora y el menú del celular. */
   favoritos: string;
   /** Los menús «Ropa» y «Accesorios» (lib/grupos.ts): solo los que tienen algo, con sus grupos y categorías. Los usan la computadora
@@ -144,8 +148,9 @@ export type DatosCabecera = {
   sugerencias: string[];
 };
 
-/** Lo que la cabecera necesita, del catálogo ya leído y filtrado por la tienda elegida (`sede`: su clave, o null con «Todas»). */
-export function datosDeCabecera(prendas: readonly Prenda[], sede: string | null, origenFotos: string | undefined): DatosCabecera {
+/** Lo que la cabecera necesita, del catálogo ya leído y filtrado por la tienda elegida (`sede`: su clave, o null con «Todas»).
+ *  `conProbador`: si el probador tiene algo que probar ahí (`hayAlgoParaProbar`); sin eso, «Arma el tuyo» no sale. */
+export function datosDeCabecera(prendas: readonly Prenda[], sede: string | null, origenFotos: string | undefined, conProbador = false): DatosCabecera {
   const lista = (l: "nuevo" | "vendidos" | "ofertas") => hrefLista({ sede, categoria: null, orden: "destacado", lista: l });
   const categorias = categoriasDelInicio(prendas);
   const fotoChica = (p: Prenda): FotoChica => {
@@ -185,6 +190,7 @@ export function datosDeCabecera(prendas: readonly Prenda[], sede: string | null,
     vendidos: { href: lista("vendidos"), cuantas: prendas.filter((p) => p.vendidos !== null).length },
     ofertas: { href: lista("ofertas"), cuantas: prendas.filter(enOferta).length },
     looks: hrefLooks(sede),
+    probador: conProbador ? hrefDelProbador(sede) : null,
     favoritos: HREF_FAVORITOS,
     menus,
     indice: prendas.map((p) => {

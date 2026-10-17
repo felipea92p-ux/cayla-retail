@@ -135,7 +135,7 @@ describe("cómo se dibuja", () => {
       "Efectivo por rendir",
       "Cajones (resta del cierre de esa caja)",
       "Tarjeta de crédito",
-      "Por abonar (POS)",
+      "Por depositar (máquina de cobro)",
     ]);
     expect(agruparCuentas([c("bcp", "banco")]).length).toBe(1);
   });

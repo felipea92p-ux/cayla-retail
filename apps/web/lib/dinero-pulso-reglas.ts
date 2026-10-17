@@ -4,7 +4,7 @@
 // próximo de Por pagar). Lógica pura: no suma plata que la base no haya sumado; solo decide qué se dice primero.
 
 import { cuentasVisibles, type CuentaDinero } from "./cuentas-dinero-reglas";
-import { etiquetaSemana, soles, type Proyeccion, type SemanaProy } from "./flujo-caja-reglas";
+import { etiquetaSemana, queFaltaEnLaProyeccion, soles, type FaltaProy, type Proyeccion, type SemanaProy } from "./flujo-caja-reglas";
 import { diasHasta, type FilaPorPagar } from "./por-pagar-consolidado-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -57,6 +57,9 @@ export type Alcanza =
       semana: SemanaProy;
       minimo: number;
       diasDeCaja: number | null;
+      /** La proyección se apoya en pocos datos (ADR-0433, actividad 4): no se pinta como una respuesta firme, y dice qué falta. */
+      provisional: boolean;
+      faltan: FaltaProy[];
       /** Si depositas lo guardado (cajas fuertes y lo del líder): cuánto y en qué queda esa semana. */
       siDepositas: { monto: number; saldo: number; alcanza: boolean; frase: string } | null;
     };
@@ -66,6 +69,7 @@ export function alcanzaPulso(p: Proyeccion | null, guardado: number): Alcanza {
   const baja = p.semanas.find((s) => s.bajoMinimo) ?? null;
   const masBaja = p.semanas.reduce((m, s) => (s.saldo < m.saldo ? s : m), p.semanas[0]!);
   const semana = baja ?? masBaja;
+  const { provisional, faltan } = queFaltaEnLaProyeccion(p);
   const siDepositas =
     guardado > 0
       ? (() => {
@@ -86,6 +90,8 @@ export function alcanzaPulso(p: Proyeccion | null, guardado: number): Alcanza {
       semana: baja,
       minimo: p.minimoCaja,
       diasDeCaja: p.diasDeCaja,
+      provisional,
+      faltan,
       siDepositas,
     };
   }
@@ -95,6 +101,8 @@ export function alcanzaPulso(p: Proyeccion | null, guardado: number): Alcanza {
     semana: masBaja,
     minimo: p.minimoCaja,
     diasDeCaja: p.diasDeCaja,
+    provisional,
+    faltan,
     siDepositas: null,
   };
 }
