@@ -47,7 +47,9 @@
       "SegmentoDeslizante «Tema de la tienda»",
       "Boton «Ver el último»",
       "Boton «campana.diseno-volver»",
-      "Boton «campana.diseno-publicar»",
+      "Boton «campana.diseno-publicar»"
+    ],
+    "components/campanas/PasosDelDiseno.tsx": [
       "button «{e.nombre}»",
       "input «Elegir mi color»",
       "Boton «Usar uno un poco más oscuro»",
