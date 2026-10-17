@@ -20,6 +20,7 @@ import {
   estadoQuieta,
   estadosDelFlujo,
   etiquetaFlujo,
+  filtroAcabaDelCamino,
   FLUJO,
   geometriaFlujo,
   listaTip,
@@ -54,7 +55,7 @@ import { MAX_VARIANTES_EN_URL } from "@/lib/existencias-prendas";
 const ids = (prendas: readonly Pick<PrendaAnalisis, "varianteId">[]): string => prendas.map((p) => p.varianteId).join(" ");
 
 const AYUDA_FLUJO =
-  "Lo que se acaba aparece para comprar. Si otra tienda la tiene, verás cuántas están en otra tienda; en la ficha de cada modelo ves cuánto vende cada tienda y decides si pedirlo. El número es cuántos modelos son.";
+  "Lo que se acaba y todavía no viene en camino aparece para comprar; lo que ya viene se dice aparte («4 más ya vienen»). Si otra tienda la tiene, verás cuántas están en otra tienda; en la ficha de cada modelo ves cuánto vende cada tienda y decides si pedirlo. El número es cuántos modelos son.";
 
 export function PestanaHoy() {
   const { datos, prendas, q, liquidarDesde, diasDeVentas } = useAnalisis();
@@ -337,7 +338,7 @@ const teclaSvg = (accion: (el: Element) => void) => (e: KeyboardEvent<SVGGElemen
 };
 
 function QueHacer() {
-  const { prendas, q, liquidarDesde, irA, datos } = useAnalisis();
+  const { prendas, q, liquidarDesde, irA, datos, setFiltroAcaba } = useAnalisis();
   const caminos = caminosDeHoy(prendas, liquidarDesde, datos.sedes, datos.hoy, datos.proveedores);
   const hay = todosLosCaminos(caminos).length > 0;
   const buscando = q.trim() !== "";
@@ -348,6 +349,9 @@ function QueHacer() {
   // de pestaña y ya no avisaría que el mouse salió de ella.
   const alIr: AlIr = (camino, el) => {
     el.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+    // «Compra 8» cuenta lo que falta pedir: el carril abre ya en «Comprar» (8), no en «Todos» (12).
+    const filtro = filtroAcabaDelCamino(camino);
+    if (filtro) setFiltroAcaba(filtro);
     irA(camino.vista, { foco: camino.grupo });
   };
 

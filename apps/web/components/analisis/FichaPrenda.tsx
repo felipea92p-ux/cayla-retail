@@ -7,8 +7,9 @@ import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono } from "@/components/analisis/iconos";
 import { ChipEstado, COLOR_ESTADO, TilePrenda } from "@/components/analisis/piezas";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
-import { grupoDe, plural } from "@/lib/analisis-reglas";
+import { grupoDe, plural, porLlegar } from "@/lib/analisis-reglas";
 import { proveedorDelModelo } from "@/lib/analisis-a-quien-pedir";
+import { proximaNavidad } from "@/lib/analisis-pedir";
 import { hrefExistencias, hrefMovimientos } from "@/lib/analisis-acciones";
 import {
   accionPrincipal,
@@ -67,15 +68,29 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
   const grupo = grupoDe(p, liquidarDesde);
   // Guardada y nunca colgada (solo si la base ya lo sabe: 20261007120000): no «va bien», nadie la vio.
   const sinSalir = datos.sabePiso && nuncaSalio(p);
-  const chip = chipDeGrupo(grupo, sinSalir);
-  const hechos = hechosDe(p, grupo, datos.sedes, datos.hoy, sinSalir ? { dias: diasEnAlmacen(p, datos.hoy) } : null, datos.proveedores ? proveedorDelModelo(p, datos.proveedores) : null);
+  // Algo ya llega a tiempo: la ficha dice lo mismo que el carril («Ya viene», sin rojo) y «Comprar» deja de ser el botón principal.
+  const yaViene = porLlegar(p, datos.hoy) > 0;
+  const chip = chipDeGrupo(grupo, sinSalir, yaViene);
+  // La meta contra la que se mide lo que viene en camino es la misma de «Qué pedir» (Navidad): lo que llega después se dice.
+  const hechos = hechosDe(
+    p,
+    grupo,
+    datos.sedes,
+    datos.hoy,
+    sinSalir ? { dias: diasEnAlmacen(p, datos.hoy) } : null,
+    datos.proveedores ? proveedorDelModelo(p, datos.proveedores) : null,
+    { hasta: proximaNavidad(datos.hoy), nombre: "Navidad" },
+  );
+  // Las cifras van en la cuadrícula; lo que lleva frases (el proveedor, lo que viene en camino) va en franjas de ancho completo debajo.
+  const cifras = hechos.filter((h) => h.ancho !== "completo");
+  const franjas = hechos.filter((h) => h.ancho === "completo");
   const barras = barrasSemanas(p.semanas, datos.hoy);
   const frase = fraseDelModelo(p, datos.diasDeVentas);
   const tabla = tablaDelModelo(p);
   const otras = lineaOtrasTiendas(p, datos.sedes, datos.sede.id);
   const dinero = dineroDe(p);
   // Un botón cuyo destino la cuenta no ve no se dibuja (cada función devuelve null).
-  const principal = accionPrincipal(p, grupo, datos.sedes, acceso, sinSalir);
+  const principal = accionPrincipal(p, grupo, datos.sedes, acceso, sinSalir, yaViene);
   const pedirA = sedeParaPedir(p, grupo, datos.sedes, acceso);
   const existencias = hrefExistencias(p, acceso);
   const movimientos = hrefMovimientos(p, acceso);
@@ -92,7 +107,7 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
 
           <div className="h-sec">
             <div className="hechos">
-              {hechos.map((h, k) => (
+              {cifras.map((h, k) => (
                 <div key={`${h.icono}-${k}`} className="hecho" style={{ ["--c" as string]: COLOR_TONO[h.tono] }}>
                   <Icono nombre={h.icono} />
                   <b>{h.valor}</b>
@@ -100,6 +115,18 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
                 </div>
               ))}
             </div>
+            {franjas.map((h, k) => (
+              <div key={`${h.icono}-${k}`} className="hecho franja" style={{ ["--c" as string]: COLOR_TONO[h.tono] }}>
+                <Icono nombre={h.icono} />
+                <span className="f-txt">
+                  <b>{h.valor}</b>
+                  {h.etiqueta && <small>{h.etiqueta}</small>}
+                  {h.mas?.map((linea, j) => (
+                    <small key={j}>{linea}</small>
+                  ))}
+                </span>
+              </div>
+            ))}
           </div>
 
           <div className="h-sec">
@@ -200,7 +227,7 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
           {conAcciones && (
             <div className="h-acciones">
               {principal && (
-                <Link href={principal.href} className="btn-cayla btn-primario">
+                <Link href={principal.href} className={`btn-cayla ${principal.secundaria ? "btn-secundario" : "btn-primario"}`}>
                   {principal.texto}
                 </Link>
               )}

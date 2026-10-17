@@ -1,4 +1,5 @@
 import type { VistaAnalisis } from "./analisis-tipos";
+import { fraseFallaSedes } from "./analisis-sede-lectura";
 
 // Análisis v4 (ADR-0357, «Actualización 2026-10-16 — Análisis para decidir compras»): la BASE DE FALLAS de las lecturas de la pantalla.
 // Lógica pura, sin Sentry ni base: la usan `analisis-lectura.ts` (el que lee de verdad), los lectores de `analisis-*.ts` y la pantalla.
@@ -191,14 +192,18 @@ export function miTiendaSinLeer(datos: { sede: { id: string }; sedesSinLeer: rea
 }
 
 /**
- * Lo que dice la pantalla en lugar de «Sin ventas»: `titulo` y `linea` van en el aviso grande de las pestañas; `corto` va en el lugar de
- * una lista o un cuadro que salió vacío porque no se leyó (en lenguaje de tienda: nada de «las listas saldrían vacías»).
+ * Lo que dice la pantalla en lugar de «Sin ventas»: `linea` va en el aviso grande de las pestañas (su título lleva el nombre de la tienda,
+ * `tituloTiendaSinLeer`, y su botón `accion`); `corto` va en el lugar de una lista o un cuadro que salió vacío porque no se leyó (en lenguaje
+ * de tienda: nada de «las listas saldrían vacías»).
  */
 export const TEXTO_TIENDA_SIN_LEER = {
-  titulo: "No se pudo leer tu tienda",
-  linea: "No pude traer las prendas, así que no muestro nada en vez de mostrarte listas vacías. No decidas con esta pantalla: vuelve a intentarlo en un rato.",
+  linea: "Sin sus prendas no muestro listas vacías, que se leerían como «no hay nada». No decidas con esta pantalla hasta que se lea; si sigue igual, espera unos minutos.",
   corto: "No se pudo leer tu tienda.",
+  accion: "Volver a intentar",
 } as const;
+
+/** El título del aviso: dice CUÁL tienda («No se pudo leer Tienda Lima»), para que no parezca un error de toda la pantalla. */
+export const tituloTiendaSinLeer = (nombre: string): string => `No se pudo leer ${nombre}`;
 
 /** El texto de una lista o cuadro de MI tienda que salió vacío: si la tienda no se leyó, que no se pudo leer; si no, la frase de «no hay». */
 export function textoSiVacio(datos: { sede: { id: string }; sedesSinLeer: readonly string[] }, siNoHay: string): string {
@@ -233,12 +238,29 @@ export function confianzaDelDato(puedeHablar: boolean, sinLeer: boolean): Confia
   return puedeHablar ? "confiable" : "incompleto";
 }
 
+type TiendasDeLaPantalla = { sede: { id: string }; sedes: readonly { id: string; nombre: string }[]; sedesSinLeer: readonly string[] };
+
+/**
+ * Las fallas sin la de MI tienda: cuando el aviso grande («No se pudo leer Tienda Lima») ya la dice, la nota gris no la repite (dos cajas para
+ * el mismo hecho hacían dudar de qué tan grave era). La falla de las tiendas es UNA frase con todos los nombres («No se pudieron leer las
+ * prendas de Tienda Lima y Arequipa»): si falló también otra, se queda su frase sin mi tienda. Sin poder reconocerla (otro texto, un nombre
+ * que no se pudo leer), la deja como está: sobra un aviso, nunca falta.
+ */
+export function fallasSinMiTienda(fallas: readonly string[], datos: TiendasDeLaPantalla): string[] {
+  const nombres = (ids: readonly string[]) => ids.map((id) => datos.sedes.find((s) => s.id === id)?.nombre ?? "una tienda");
+  const completa = fraseFallaSedes(nombres(datos.sedesSinLeer));
+  const sinLaMia = fraseFallaSedes(nombres(datos.sedesSinLeer.filter((id) => id !== datos.sede.id)));
+  return fallas.flatMap((f) => (f === completa ? (sinLaMia ? [sinLaMia] : []) : [f]));
+}
+
 /**
  * La nota gris con lo que no se pudo leer (`fallas`); null si todo respondió. Cierra con «Lo demás está al día» salvo que falte la tienda
- * activa: ahí no se puede decir, y el aviso de arriba dice que no se decida con la pantalla.
+ * activa: ahí no se puede decir, y el aviso de arriba dice que no se decida con la pantalla. Con `miTienda` (solo cuando ese aviso grande está a
+ * la vista) y la tienda sin leer, la falla de la propia tienda no se repite aquí (`fallasSinMiTienda`); sin él, la nota la dice, porque es lo único que la dice.
  */
-export function notaDeFallas(fallas: readonly string[], sinLeer: boolean): string | null {
-  if (fallas.length === 0) return null;
-  const frase = `${fallas.join(". ")}.`;
+export function notaDeFallas(fallas: readonly string[], sinLeer: boolean, miTienda?: TiendasDeLaPantalla): string | null {
+  const quedan = sinLeer && miTienda ? fallasSinMiTienda(fallas, miTienda) : fallas;
+  if (quedan.length === 0) return null;
+  const frase = `${quedan.join(". ")}.`;
   return sinLeer ? frase : `${frase} Lo demás está al día.`;
 }

@@ -26,6 +26,7 @@ import {
   ordenarAlcance,
   ORDEN_ALCANCE_DEFECTO,
   llegadasAparte,
+  textoVendiste,
   ORDENES_ALCANCE,
   proximaNavidad,
   rielNavidad,
@@ -284,7 +285,7 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
       expect(a).toMatchObject({ tiene: 2, vienen: 0, atrasadas: 20, pide: true });
       expect(Math.round(a.dias!)).toBe(10);
       expect(tieneYVienen(a)).toBe("tienes 2");
-      expect(llegadasAparte(a)).toBe("20 atrasadas aparte");
+      expect(llegadasAparte(a)).toBe("20 atrasadas: no las cuento");
     });
 
     it("una parte en plazo y otra atrasada: solo la primera es «vienen», la otra se dice aparte", () => {
@@ -292,7 +293,7 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
       expect(a).toMatchObject({ vienen: 5, atrasadas: 8 });
       expect(Math.round(a.dias!)).toBe(35);
       expect(tieneYVienen(a)).toBe("tienes 2 y vienen 5");
-      expect(llegadasAparte(a)).toBe("8 atrasadas aparte");
+      expect(llegadasAparte(a)).toBe("8 atrasadas: no las cuento");
     });
 
     // Navidad queda a 79 días del 7 de octubre (el 25 de diciembre): un pedido del 5 de enero no la cubre.
@@ -313,7 +314,7 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
       const a = alcancePorTipo(sola({ llega: [llega(5, "2026-10-12"), llega(8, "2026-09-20", "taller"), llega(30, "2027-02-01")] }), 30, HOY, 79, true)[0]!;
       expect(a).toMatchObject({ vienen: 5, atrasadas: 8, despues: 30 });
       expect(Math.round(a.dias!)).toBe(35);
-      expect(llegadasAparte(a)).toBe("8 atrasadas aparte · 30 llegan después de Navidad");
+      expect(llegadasAparte(a)).toBe("8 atrasadas: no las cuento · 30 llegan después de Navidad");
       expect(llegadasAparte({ atrasadas: 0, despues: 1 })).toBe("1 llega después de Navidad");
       expect(llegadasAparte({ atrasadas: 0, despues: 0 })).toBe("");
     });
@@ -386,7 +387,10 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
     const base: AlcanceTipo = { categoria: "Tops", prefijo: null, familia: null, vendidas: 21, sinPrenda: 0, tiene: 92, vienen: 0, vienenSinFecha: 0, atrasadas: 0, despues: 0, nunca: 39, dias: 49, pide: true };
     expect(tieneYVienen({ ...base, vienen: 1 })).toBe("tienes 92 y viene 1");
     expect(tieneYVienen(base)).toBe("tienes 92");
-    expect(llegadasAparte({ ...base, atrasadas: 1 })).toBe("1 atrasada aparte");
+    expect(llegadasAparte({ ...base, atrasadas: 1 })).toBe("1 atrasada: no la cuento");
+    // Lo vendido y, de eso, lo que se cobró sin que nadie registrara la prenda: «sin su prenda» no se entendía.
+    expect(textoVendiste({ vendidas: 56, sinPrenda: 6 })).toBe("vendiste 56 · 6 sin registrar la prenda");
+    expect(textoVendiste({ vendidas: 56, sinPrenda: 0 })).toBe("vendiste 56");
     expect(fraseDelTipo({ ...base, vienen: 40, dias: 126, pide: false }, [], 11)).toBe(
       "Con lo que viene, te alcanza para 18 semanas: llega a Navidad. Tienes 92 y vienen 40 · 39 nunca salieron al piso.",
     );
@@ -406,7 +410,7 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
     );
     // Lo que no cuenta (atrasado o muy tarde) también se dice en la frase de toda la tienda.
     expect(fraseDelTipo(null, [{ ...base, atrasadas: 8, despues: 20 }], 11)).toBe(
-      "Vendiste 21 en 11 días y tienes 92 · 8 atrasadas aparte · 20 llegan después de Navidad. 1 tipo no llega a Navidad.",
+      "Vendiste 21 en 11 días y tienes 92 · 8 atrasadas: no las cuento · 20 llegan después de Navidad. 1 tipo no llega a Navidad.",
     );
   });
 

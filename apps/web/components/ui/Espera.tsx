@@ -122,8 +122,9 @@ const sinEspera = new Map<string, number>();
  * Anuncia que la próxima navegación a `href` es la de un buscador que filtra por URL: el loader no la cubre.
  * La usa `useBusquedaEnUrl`; una pantalla no la llama suelta. Las otras excepciones: el refresco que sigue a bajar al piso o subir
  * al almacén desde el panel de Existencias (`PanelTalla`, Felipe 2026-10-08), que ya confirma con el aviso destacado y no debe tapar la
- * lista, y los dos refrescos que nadie pidió: el de un precio que cambió (`PreciosEnVivo`) y el que sigue a un guardado sin respuesta
- * (`RefrescoTrasCorte`, ADR-0411), que no deben dejar `inert` la pantalla bajo quien escribe.
+ * lista, y los tres refrescos que nadie pidió: el de un precio que cambió (`PreciosEnVivo`), el que sigue a un guardado sin respuesta
+ * (`RefrescoTrasCorte`, ADR-0411) y el «Volver a intentar» de Análisis cuando una tienda no se pudo leer (`AnalisisPantalla`, ADR-0357 act.
+ * 2026-10-16: el botón ya dice «Leyendo…» y la pantalla sigue a la vista), que no deben dejar `inert` la pantalla bajo quien la usa.
  */
 export function navegacionSinEspera(href: string) {
   sinEspera.set(claveNavegacion(new URL(href, window.location.href)), Date.now() + MS_ANUNCIO);

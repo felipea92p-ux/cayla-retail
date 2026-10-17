@@ -6,6 +6,7 @@
 // prendas marcadas: «Comprar» abre la compra con su proveedor y «Liquidar» abre las etiquetas de esas prendas.
 
 import type { AccesoAnalisis, PrendaAnalisis, SedeAnalisis } from "./analisis-tipos";
+import { modelosPorPedir } from "./analisis-a-quien-pedir";
 import { totalEnTienda } from "./analisis-reglas";
 import { lineasEnUrl, MAX_VARIANTES_EN_URL } from "./existencias-prendas";
 import { urlEtiquetasDePrecio } from "./etiqueta-precio-reglas";
@@ -48,6 +49,30 @@ export function hrefComprarTodas(prendas: readonly Pick<PrendaAnalisis, "origen"
   if (destinos.size !== 1) return null;
   const unico = [...destinos][0] ?? null;
   return unico === "/produccion/ordenes" && prendas.length === 1 ? hrefComprar(prendas[0]!, a) : unico;
+}
+
+/**
+ * «Comprar todas» sobre una lista que mezcla lo que falta pedir con lo que YA viene en camino (el filtro «Todos» de «Se está acabando»): el destino
+ * se calcula solo con lo que falta pedir (`modelosPorPedir`, la regla única), porque lo que ya viene no se compra otra vez ni debe decidir adónde
+ * lleva el botón. null si nada falta pedir.
+ */
+export function hrefComprarLasQueFaltan<T extends Pick<PrendaAnalisis, "origen" | "productoId" | "proveedorId" | "llega">>(
+  prendas: readonly T[],
+  hoy: string,
+  a: Pick<AccesoAnalisis, "produccion" | "compras">,
+): string | null {
+  return hrefComprarTodas(modelosPorPedir(prendas, hoy), a);
+}
+
+/**
+ * «Elegir proveedor» (el grupo «Sin proveedor» de «A quién pedir»): la ficha del producto en Catálogo ▸ Productos, donde se anota su proveedor; con
+ * varios modelos, la lista de Productos (cada uno se abre desde ella). Un modelo sin proveedor nunca entra en una compra a su nombre, así que la
+ * tarjeta no se queda en «falta elegirlo»: lleva al lugar donde se elige. null si no hay modelos o la cuenta no puede editar el catálogo (la ficha
+ * la mandaría a «Sin acceso»).
+ */
+export function hrefElegirProveedor(modelos: readonly Pick<PrendaAnalisis, "productoId">[], a: Pick<AccesoAnalisis, "catalogo">): string | null {
+  if (!a.catalogo || modelos.length === 0) return null;
+  return modelos.length === 1 ? `/productos/${encodeURIComponent(modelos[0]!.productoId)}/editar` : "/productos";
 }
 
 /**

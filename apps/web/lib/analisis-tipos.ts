@@ -149,6 +149,9 @@ export type AccesoAnalisis = {
   frescura: boolean;
   /** Compras ▸ Plan de campaña. */
   planCompra: boolean;
+  /** Catálogo ▸ Productos, para ELEGIR el proveedor de un modelo («Sin proveedor» de «A quién pedir»): la ficha del producto pide poder editar
+   *  el catálogo (`editarCatalogo`) y, sin eso, lleva a «Sin acceso». */
+  catalogo: boolean;
 };
 
 /**
@@ -158,7 +161,7 @@ export type AccesoAnalisis = {
  * existe; esto es su respaldo y solo se usa cuando el modelo no tiene origen (`analisis-a-quien-pedir.ts`).
  */
 export type ProveedoresAnalisis = {
-  /** Por id de proveedor: su nombre y si sigue activo (uno archivado se nombra como tal). */
+  /** Por id de proveedor: su nombre y si sigue activo (a uno archivado no se le recomienda «Pídelo a …»: sus modelos van a «Sin proveedor»). */
   nombres: Record<string, { nombre: string; activo: boolean }>;
   /** Por id de modelo (`productos.id`, el `productoId`): el proveedor del catálogo. Solo los modelos que tienen uno. */
   delCatalogo: Record<string, string>;

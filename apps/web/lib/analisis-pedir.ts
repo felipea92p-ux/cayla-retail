@@ -290,13 +290,18 @@ export function tieneYVienen(t: Pick<AlcanceTipo, "tiene" | "vienen" | "vienenSi
   return `tienes ${t.tiene}${viene}`;
 }
 
+/** «vendiste 56 · 6 sin registrar la prenda»: lo vendido y, de eso, lo que se cobró sin que nadie registrara qué prenda era («sin su prenda» no se entendía). */
+export function textoVendiste(t: Pick<AlcanceTipo, "vendidas" | "sinPrenda">): string {
+  return `vendiste ${t.vendidas}${t.sinPrenda > 0 ? ` · ${t.sinPrenda} sin registrar la prenda` : ""}`;
+}
+
 /**
- * Lo que viene en camino y NO cuenta para la meta, dicho aparte para que no se pierda en silencio: «8 atrasadas aparte · 10 llegan
- * después de Navidad». Vacío si no hay nada de eso.
+ * Lo que viene en camino y NO cuenta para la meta, dicho para que no se pierda en silencio: «8 atrasadas: no las cuento · 10 llegan después
+ * de Navidad». («aparte» no se entendía: no decía que esas unidades quedan fuera de la cuenta.) Vacío si no hay nada de eso.
  */
 export function llegadasAparte(t: Pick<AlcanceTipo, "atrasadas" | "despues">): string {
   const partes: string[] = [];
-  if (t.atrasadas > 0) partes.push(`${t.atrasadas} ${plural(t.atrasadas, "atrasada", "atrasadas")} aparte`);
+  if (t.atrasadas > 0) partes.push(`${t.atrasadas} ${plural(t.atrasadas, "atrasada", "atrasadas")}: no ${plural(t.atrasadas, "la cuento", "las cuento")}`);
   if (t.despues > 0) partes.push(`${t.despues} ${plural(t.despues, "llega", "llegan")} después de Navidad`);
   return partes.join(" · ");
 }

@@ -38,6 +38,9 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Pro
     conteo: veModulo(persona, "conteos"),
     frescura: veModulo(persona, "frescura"),
     planCompra: veModulo(persona, "plan_compra") && puede(persona, "verDineroCompras"),
+    // La ficha del producto (`/productos/[id]/editar`) exige el módulo «productos» (su layout) Y poder editar el catálogo (`editarCatalogo` también sale de
+    // «atributos»): un enlace que lleva a «Sin acceso» no se dibuja.
+    catalogo: veModulo(persona, "productos") && puede(persona, "editarCatalogo"),
   };
 
   const datos = await getDatosAnalisis(ubicacionActiva, { conFrescura: acceso.frescura });

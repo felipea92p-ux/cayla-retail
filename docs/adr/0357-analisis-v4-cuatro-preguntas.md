@@ -563,3 +563,73 @@ agrega su viñeta aquí; la decisión 7 («Análisis no sugiere cantidades») si
     en «Se está acabando» con los tres filtros (el carril no debe saltar al cambiar de uno a otro), a 1440, 1024 y 375 px, claro y oscuro;
     «Pídelo a …» con un nombre largo y su «proveedor del catálogo» debajo; el tooltip de «Compra» en Hoy. En producción, con la base real: la fila dice «proveedor del catálogo» (no hay ninguna compra).
 
+
+- **F1 · Lo que se vio en pantalla: «Se está acabando» claro, «A quién pedir» como modo, la ficha y los avisos sin contradicciones** (solo web, sin
+  migración; corrige lo que mostraron las capturas de A14, A3 y A8 con datos inventados, 1440 y 1024 px, claro y oscuro, miradas por una compradora
+  sin formación técnica y por un control de calidad visual).
+  - **El problema.** Con las capturas a la vista, una compradora ciega entendía «qué se acaba» en 5 segundos pero no «a quién pedírselo»: en el filtro
+    «Por llegar» el título seguía diciendo «Cómpralas» y cada fila «Pídelo a X» (invita a pedir dos veces lo que ya viene); «Compra 12 · 4 por llegar»
+    en Hoy no cuadraba con el filtro «Comprar 8»; la tarjeta «A quién pedir» empujaba el carril 381 px (a 1024 px lo dejaba bajo el pliegue) y dejaba
+    «Sin proveedor», con un agotado, tras «Ver 2 más»; a un proveedor archivado se le seguía diciendo «Pídelo a»; «compra 16» en la ficha se leía como
+    una orden; el nombre del proveedor se partía a media palabra; y a 1024 px «Qué pedir» ni se veía.
+  - **Qué se decidió** (todo dentro de Análisis; cada regla pura tiene su prueba):
+    - **El título del carril sale del filtro** (`tituloDelCarril`): «Se están acabando» · «Cómpralas» · «Ya vienen»; su cuenta es la del filtro. Sobre
+      «Ya vienen» no se ofrece «Comprar todas» y su ícono pasa a «llega» en verde (no es una urgencia). El botón de cada fila ya era el secundario
+      (`btn-secundario`): se fijó con una prueba. La píldora dice cuándo (`cuandoLlega`): «Por llegar 24 · en 4 días», «· sin fecha».
+    - **«Pídelo a X» solo para lo que falta pedir.** Lo que ya viene a tiempo dice «Viene de X» (`textoVieneDe`: el origen de lo que llega, el de más
+      unidades; «de Textil Andino» solo si se sabe cuál —el proveedor de su última compra—, nunca inventado: la llegada no trae el proveedor de su orden,
+      así que el solo ANOTADO en la ficha del catálogo no se nombra) en tinta tenue. El nombre va sin el sufijo legal (`nombreCortoProveedor`:
+      SAC, S.A.C., S.A., E.I.R.L., EIRL, S.R.L.) y entero en el `aria-label` y el tooltip; la fuente se dice SIEMPRE y en palabras de tienda: «le
+      compraste la última vez» o «anotado en su ficha» (antes, «proveedor del catálogo», que se leía como el catálogo de ventas). Sin proveedor o con
+      uno archivado la fila lo dice («Sin proveedor / falta elegirlo en el catálogo», «Sin proveedor activo / su proveedor está archivado: elige
+      otro»). A ≤ 780 px el bloque pasa a la línea de las píldoras, bajo la barra (`.c-quien`), para que el nombre no quede separado de su barra.
+    - **Compra en Hoy cuenta lo mismo que «Comprar»** (`caminosDeHoy` usa `modelosPorPedir`, la regla única): «Compra 8 · 2 agotadas · 4 más ya
+      vienen». Si todo lo que se acaba ya viene, no hay camino de compra. La lista del tooltip y su pie («Pídelas a 5 proveedores») hablan de lo mismo.
+    - **«A quién pedir» deja de ser una tarjeta encima del carril y pasa a ser OTRA FORMA de ver la misma lista**: el segmento «POR DÍAS / POR
+      PROVEEDOR» (`SegmentoDeslizante forma="modo"`, la pieza que /unificar decidió para «lo mismo de otra forma») en la cabecera. «Por proveedor» dice
+      de qué habla («Lo que aún no viene: 7 modelos de 5 proveedores y 1 sin proveedor», cada cifra cierta) y muestra lo que todavía no viene
+      (`modelosPorPedir`). Los filtros viven a la izquierda del segmento y solo «por días»: el segmento no se mueve de debajo del mouse (ADR-0185).
+      Si no se leyeron los proveedores o todo ya viene, «Por proveedor» no se puede elegir y dice por qué. «Sin proveedor» no cuenta para el tope de
+      4 grupos y, si trae un agotado, siempre se ve (`repartirGrupos`: `fijo`, al final aunque «Ver más» esté cerrado); lleva `<EnlaceVer>` «Elegir
+      proveedor» a la ficha del producto en Catálogo (`/productos/[id]/editar`; con varios modelos, a `/productos`), solo si la cuenta puede editar el
+      catálogo (`AccesoAnalisis.catalogo`). Un proveedor ARCHIVADO no se recomienda: sus modelos caen en «Sin proveedor» con su motivo y su nombre con
+      un `<Chip>` «Archivado» (`proveedorDelModelo` ya no devuelve «(archivado)» como si fuera una indicación). El modo no cambia qué se pide ni
+      propone cantidades (decisión 7).
+    - **La ficha**: el proveedor y lo que viene en camino van en franjas de ancho completo (`Hecho.ancho`), no en la cuadrícula de 4 cifras; se quita
+      `overflow-wrap: anywhere`. «Por llegar» y «Atrasada» son UNA franja con cada parte y su fecha («pediste 10 · llega el 20 oct.», «· sin fecha»; ya
+      no «compra 16»), lo que llega antes y después de la meta («10 antes de Navidad, 6 después», `meta` de `hechosDe`: la misma Navidad de «Qué
+      pedir») y lo atrasado. Lo que dice de las otras tiendas coincide con la lista: la que lo vendió y quedó en 0 «se quedó sin stock (vendió N en sus últimos
+      30 días)», con «también» solo si la tuya TAMBIÉN está en cero (en un modelo que mandas o liquidas, tu tienda sí lo tiene); «no tiene este
+      modelo» solo si nunca lo tuvo. Si algo ya viene en camino a tiempo, la ficha dice lo mismo que el carril: el chip es «Ya viene» (sin rojo,
+      no «Cómpralas»), «Comprar» queda como botón secundario y la franja del proveedor no dice «pídelo aquí».
+    - **Un solo número y un solo destino de «Comprar»** (revisión independiente de F1): tocar «Compra 8» en Hoy abre «Se está acabando» ya en el
+      filtro «Comprar» (`filtroAcabaDelCamino`, que `irA` no necesita conocer), así el 8 de la tarjeta es el del título del carril y no un 12;
+      y «Comprar todas» en «Todos» calcula su destino solo con lo que falta pedir (`hrefComprarLasQueFaltan` → `modelosPorPedir`), porque lo que
+      ya viene no se compra otra vez ni debe decidir adónde lleva el botón. «Elegir proveedor» pide además el módulo «Productos» (el layout de
+      `/productos/[id]` lo exige; `editarCatalogo` también sale de «Categorías y atributos»). Al cambiar «Por días / Por proveedor» el segmento se
+      vuelve a montar (cada forma dibuja su tarjeta) y quien lo manejaba con ← → perdía el foco: si quedó en la nada, vuelve a la opción elegida.
+    - **Tienda sin leer**: desaparece la nota gris que repetía lo mismo (`fallasSinMiTienda`, solo cuando el aviso grande está a la vista); el aviso
+      lleva el nombre de la tienda («No se pudo leer Tienda Lima») y «Volver a intentar», que relee con `router.refresh()` anunciado con
+      `navegacionSinEspera` (ADR-0149: es una lectura, no abre el loader a pantalla completa; el botón dice «Leyendo…» y no se puede apretar dos veces).
+    - **«Qué pedir», solo texto y CSS**: «vendiste 56 · 6 sin registrar la prenda»; «12 atrasadas: no las cuento»; el mismo interlineado en las dos
+      líneas de la fila; sin las «→» sueltas; titular de la tarjeta de Hoy con `text-wrap: balance`. El orden por defecto y el ✓ verde del ranking
+      siguen igual (A6, D13).
+    - **CSS puntual**: la fila de pestañas pasa el chip de confianza a su propia línea a ≤ 900 px de contenedor y usa etiquetas cortas a ≤ 760 px
+      («Se acaba», «Nunca salió», «Pedir»): a 1024 px la píldora medía 742 px y el contenedor 672, y «Qué pedir» no se veía; la cifra dentro de la barra
+      de días usa `--color-tinta-fija` en oscuro (crema sobre ámbar claro, ~1,5:1); la columna de píldoras toma hasta 260 px en contenedores de más
+      de 1000 px y las píldoras se acomodan en fila.
+  - **Lo descartado.** Seguir con la tarjeta arriba pero plegada («Pídeselo a 5 proveedores · 8 modelos»): sigue siendo una pregunta distinta puesta
+    sobre la lista, y a 1024 px lo primero que se ve no es lo urgente. Que «Por proveedor» siga al filtro del carril (la lista de «Comprar» ya es la
+    suya). Una página nueva por proveedor, o el botón de compra por proveedor (A9, tras A4). Un enlace por modelo en «Sin proveedor» (con varios,
+    lleva a la lista de Productos; un enlace directo por modelo queda pendiente). Decir «Viene de X» con el proveedor ANOTADO en la ficha del
+    catálogo (no se sabe de quién es la orden en tránsito; nombrarlo pide que la lectura traiga el proveedor de cada llegada). Que un modelo cuya
+    última compra fue a un proveedor ARCHIVADO caiga al proveedor activo que su ficha ya anota (hoy sale «Sin proveedor activo… elige otro»): cambia
+    la regla «el origen real manda» y queda por decidir con Felipe; hoy ningún modelo tiene compras. Un título del carril que no cambie con el filtro. Cambiar el filtro «Comprar» para que la
+    prenda con una parte a tiempo y otra atrasada (la capa) vuelva a «Comprar»: sigue en «Por llegar» a propósito (algo viene a tiempo) y su
+    píldora «Atrasada» lo dice.
+  - **Cómo se verifica.** `pnpm --filter web exec vitest run lib/analisis-a-quien-pedir lib/analisis-acaba lib/analisis-hoy lib/analisis-ficha
+    lib/analisis-con-tope lib/analisis-reintentar lib/analisis-pedir lib/analisis-acciones lib/guias`. La pestaña entera con los tres filtros y los dos
+    modos —y «Viene de» solo con una compra, «Comprar todas» solo sobre lo que falta— está en `analisis-a-quien-pedir-pantalla.test.tsx`; que «Volver a intentar» no abre el loader, en `analisis-reintentar.test.ts`. En el
+    navegador local (lo mira el orquestador): «Se está acabando» a 1440 y 1024 px, claro y oscuro, con los tres filtros y los dos modos (el carril
+    empieza arriba y el segmento no se mueve); la ficha de la capa, la camisa y el bolso; la fila de pestañas a 1024 y 1280 px con las cinco
+    visibles; la tienda sin leer con su botón; y `pnpm --filter web tema:auditar` sobre `/gestion/analisis`.

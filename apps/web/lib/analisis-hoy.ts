@@ -11,6 +11,7 @@
 // en los carriles; aquí solo se reparten en caminos y se mide el dibujo.
 
 import type { PrendaAnalisis, ProveedoresAnalisis, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
+import type { FiltroAcaba } from "./analisis-acaba";
 import { agruparPorProveedor, modelosPorPedir, resumenDeGrupos, textoPidelasA } from "./analisis-a-quien-pedir";
 import {
   DIAS_SE_ACABA,
@@ -20,7 +21,6 @@ import {
   ordenQuietas,
   ordenSeAcaba,
   plural,
-  porLlegar,
   prendasDe,
   sedeQueMasVende,
   totalEnTienda,
@@ -93,7 +93,7 @@ export type CaminoHoy = {
   icono: "caja" | "camion" | "etiqueta";
   est: Extract<EstadoHoy, "urg" | "ate">;
   prendas: PrendaAnalisis[];
-  /** La segunda línea de la etiqueta: «2 agotadas · 3 por llegar». */
+  /** La segunda línea de la etiqueta: «2 agotadas · 3 más ya vienen» (lo que ya viene en camino se dice aparte y no cuenta en el camino). */
   motivo: string;
   /** El camino por donde empezar («empieza aquí»): el de comprar, como en la maqueta. */
   primero: boolean;
@@ -102,13 +102,22 @@ export type CaminoHoy = {
   pie?: string;
 };
 
+/**
+ * El filtro de «Se está acabando» con el que abre un camino al tocarlo. «Compra» cuenta lo que falta pedir (`modelosPorPedir`): abre en «Comprar»
+ * (8), no en «Todos» (12), para que el número de la tarjeta sea el del título del carril. Los demás caminos son de «No se vende», que no tiene
+ * ese filtro: null = el filtro queda como estaba.
+ */
+export const filtroAcabaDelCamino = (c: Pick<CaminoHoy, "clave">): FiltroAcaba | null => (c.clave === "comprar" ? "comprar" : null);
+
 /** Izquierda: lo que llega a la tienda (se compra). Derecha: lo que sale a otra tienda y lo que se queda y se rebaja. */
 export type CaminosHoy = { compra: CaminoHoy | null; manda: CaminoHoy[]; reb: CaminoHoy[] };
 
 /**
- * Los caminos de hoy. «Compra»: todo lo que se acaba (el sistema no decide pedirlo a otra tienda: decisión 7). «Manda a …»: lo que
- * aquí no se vende y en otra tienda sí, un camino por tienda destino (la que más lo vendió), en el orden de `sedes`. «Liquidar»:
- * lo quieto que no se vende en ninguna; urgente si alguna lleva 3 meses o más.
+ * Los caminos de hoy. «Compra»: lo que se acaba y TODAVÍA NO viene en camino (`modelosPorPedir`, la misma regla del filtro «Comprar» de «Se está
+ * acabando» y de «A quién pedir»: nada de dos cuentas), porque lo que ya viene no se pide otra vez; el sistema no decide pedirlo a otra tienda
+ * (decisión 7). Lo que ya viene se dice aparte en su segunda línea («4 más ya vienen»). Si todo lo que se acaba ya viene, no hay camino de
+ * compra: no hay nada que comprar hoy. «Manda a …»: lo que aquí no se vende y en otra tienda sí, un camino por tienda destino (la que
+ * más lo vendió), en el orden de `sedes`. «Liquidar»: lo quieto que no se vende en ninguna; urgente si alguna lleva 3 meses o más.
  *
  * `proveedores` (A8): con ellos, el camino de comprar dice a cuántos proveedores se pide lo que todavía no viene en camino (`pie`). Sin
  * ellos (no se pudieron leer), no dice nada: nunca «sin proveedor» por un error.
@@ -120,16 +129,17 @@ export function caminosDeHoy(
   hoy: string,
   proveedores: ProveedoresAnalisis | null = null,
 ): CaminosHoy {
-  const comp = prendasDe(prendas, ["comprar"], liquidarDesde).sort(ordenSeAcaba);
+  const seAcaban = prendasDe(prendas, ["comprar"], liquidarDesde).sort(ordenSeAcaba);
+  // Lo que hay que comprar es lo que no viene en camino a tiempo: una llegada atrasada vuelve a ser algo por comprar (A3, 2026-10-16), igual
+  // que en el filtro «Comprar».
+  const comp = modelosPorPedir(seAcaban, hoy);
+  const yaVienen = seAcaban.length - comp.length;
   const agotadas = comp.filter((p) => totalEnTienda(p) === 0).length;
-  // «Por llegar» es lo que todavía se espera: una llegada atrasada vuelve a ser algo por comprar (A3, 2026-10-16), igual que en el filtro.
-  const llegan = comp.filter((p) => porLlegar(p, hoy) > 0).length;
   const motivoCompra =
-    [agotadas ? `${agotadas} ${plural(agotadas, "agotada", "agotadas")}` : "", llegan ? `${llegan} por llegar` : ""].filter(Boolean).join(" · ") ||
+    [agotadas ? `${agotadas} ${plural(agotadas, "agotada", "agotadas")}` : "", yaVienen ? `${yaVienen} más ya ${plural(yaVienen, "viene", "vienen")}` : ""].filter(Boolean).join(" · ") ||
     `Quedan ${DIAS_SE_ACABA} días o menos`;
-  // A quién se le pide lo que todavía hay que comprar (lo que ya viene en camino no se pide otra vez).
-  // Si parte de la lista ya viene en camino, el pie lo dice (habla solo de las que faltan).
-  const pie = proveedores ? textoPidelasA(resumenDeGrupos(agruparPorProveedor(modelosPorPedir(comp, hoy), proveedores)), llegan > 0) : null;
+  // A quién se le pide lo que todavía hay que comprar: la lista del camino es esa misma, así que el pie habla de toda ella.
+  const pie = proveedores ? textoPidelasA(resumenDeGrupos(agruparPorProveedor(comp, proveedores))) : null;
   const compra: CaminoHoy | null = comp.length
     ? { clave: "comprar", grupo: "comprar", vista: "acaba", verbo: "Compra", icono: "caja", est: "urg", prendas: comp, motivo: motivoCompra, primero: true, ...(pie ? { pie } : {}) }
     : null;

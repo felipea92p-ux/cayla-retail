@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AQuienPedir } from "@/components/analisis/AQuienPedir";
 import { Carril, type GrupoCarril } from "@/components/analisis/Carril";
 import { useAnalisis } from "@/components/analisis/contexto";
@@ -9,11 +9,21 @@ import { Icono } from "@/components/analisis/iconos";
 import { nombreLargo, TipRico } from "@/components/analisis/piezas";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { diasQueQuedan, otraSedeQueLaTiene, porLlegar } from "@/lib/analisis-reglas";
-import { hrefComprar, hrefComprarTodas } from "@/lib/analisis-acciones";
-import { FUENTE_LARGA, modelosPorPedir, proveedorDelModelo, textoFuenteDeLaFila, textoPidelo } from "@/lib/analisis-a-quien-pedir";
+import { hrefComprar, hrefComprarLasQueFaltan } from "@/lib/analisis-acciones";
+import {
+  FUENTE_LARGA,
+  modelosPorPedir,
+  proveedorDelModelo,
+  textoFuenteDeLaFila,
+  textoPidelo,
+  textoPideloCompleto,
+  textoSinAQuienPedir,
+  textoVieneDe,
+} from "@/lib/analisis-a-quien-pedir";
 import { textoRitmo } from "@/lib/analisis-pedir";
 import {
   atrasoDe,
+  cuandoLlega,
   cuentasFiltroAcaba,
   EJE_ACABA,
   faltanDelModelo,
@@ -34,27 +44,52 @@ import {
   tipOtraTienda,
   tipTambienSeAcaba,
   tituloAtrasada,
+  tituloDelCarril,
   tituloPorLlegar,
   vacioAcaba,
   ventanasPorSede,
   type FiltroAcaba,
   type VacioAcaba,
 } from "@/lib/analisis-acaba";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Vacio } from "@/components/ui/Vacio";
 import { Check } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 
-// Análisis v4 (ADR-0357): «Se está acabando», la maqueta aprobada (vistaAcaba, filtrosAcaba y el carril). Un solo grupo,
-// «Cómpralas»: todo lo que se acaba se compra por defecto (decisión 7); si otra tienda la tiene, se dice cuántas tiene y se
-// ofrece pedírsela, y la persona decide. Cada fila: cuántos días le quedan, si ya viene algo en camino y su botón. Los
-// filtros reparten lo mismo en «Comprar» (no viene nada) y «Por llegar» (ya viene). La lógica pura vive en
-// `lib/analisis-acaba.ts`; los destinos de los botones, en `lib/analisis-acciones.ts` (un destino que la cuenta no ve, no se dibuja).
+// Análisis v4 (ADR-0357): «Se está acabando», la maqueta aprobada (vistaAcaba, filtrosAcaba y el carril). Un solo grupo, cuyo título sale del
+// filtro («Se están acabando», «Cómpralas», «Ya vienen»): todo lo que se acaba se compra por defecto (decisión 7) salvo lo que ya viene en camino;
+// si otra tienda la tiene, se dice cuántas tiene y se ofrece pedírsela, y la persona decide. Cada fila: cuántos días le quedan, si ya viene algo en
+// camino y cuándo, y su botón. Los filtros reparten lo mismo en «Comprar» (no viene nada) y «Por llegar» (ya viene).
+//
+// Dos formas de ver la MISMA lista (el segmento «Por días / Por proveedor» de la cabecera, F1): por días, el carril; por proveedor, «A quién pedir»
+// (lo que todavía no viene, junto por a quién se le pide). La lógica pura vive en `lib/analisis-acaba.ts` y `lib/analisis-a-quien-pedir.ts`; los
+// destinos de los botones, en `lib/analisis-acciones.ts` (un destino que la cuenta no ve, no se dibuja).
 
-const AYUDA_COMPRAR =
-  "Por defecto, todo lo que se acaba se compra al proveedor: el taller o terceros. «Pídelo a …» dice a quién: al de tu última compra o, si el modelo no tiene ninguna, al del catálogo. Si otra tienda la tiene, verás cuántas tiene, y si también se le acaba, te lo dice; toca la prenda para ver cuánto vende cada tienda y decide si pedirla. Lo que ya viene en camino dice «Por llegar»; si se atrasó, dice «Atrasada», y si no viene nada más vuelve a «Comprar».";
+const AYUDA_CARRIL: Record<FiltroAcaba, string> = {
+  todos:
+    "Lo que, al ritmo que se vende, se acaba en dos semanas o menos. Lo que no viene en camino es para comprar; lo que ya viene dice «Por llegar» y cuándo, y no se pide otra vez. Si una llegada se atrasó, dice «Atrasada» y vuelve a «Comprar». «Pídelo a …» dice a quién; «Viene de …», de quién viene. Si otra tienda la tiene, verás cuántas tiene; toca la prenda para ver cuánto vende cada tienda y decide si pedirla.",
+  comprar:
+    "Lo que se acaba y no viene nada en camino a tiempo: hay que comprarlo. «Pídelo a …» dice a quién: a quien le compraste la última vez o, si no hay compra, a quien está anotado en su ficha. Una llegada atrasada también está aquí. Si otra tienda la tiene, verás cuántas tiene y decides si pedirla.",
+  llega:
+    "Lo que se acaba pero ya viene en camino: no hace falta pedirlo otra vez. Cada fila dice cuántas llegan y cuándo, y de quién viene. Si la llegada se atrasa, pasa a «Comprar».",
+};
 
-export function PestanaAcaba() {
+type ModoAcaba = "dias" | "proveedor";
+
+export function PestanaAcaba({ modoInicial = "dias" }: { /** Solo para las pruebas (no hay clic en un render de servidor): con qué forma abre. La pantalla no lo pasa. */ modoInicial?: ModoAcaba }) {
   const { datos, acceso, prendas, liquidarDesde, filtroAcaba, setFiltroAcaba, diasDeVentas } = useAnalisis();
+  // Cómo se ve la lista: por días (el carril) o por proveedor («A quién pedir»). Es de esta pestaña: al salir y volver, vuelve a «Por días».
+  const [modo, setModo] = useState<ModoAcaba>(modoInicial);
+  // Cada forma dibuja su propia tarjeta, y el segmento (en su cabecera) se vuelve a montar al pasar de una a otra: quien lo maneja con el
+  // teclado (← →) perdería el foco. Tras el cambio, si el foco quedó en la nada, vuelve a la opción que eligió.
+  const devolverFoco = useRef(false);
+  useEffect(() => {
+    if (!devolverFoco.current) return;
+    devolverFoco.current = false;
+    if (document.activeElement && document.activeElement !== document.body) return;
+    // El nombre del segmento (su `etiqueta`, más abajo): la huella de la guía lo lee escrito en el JSX, por eso va repetido y no en una constante.
+    document.querySelector<HTMLElement>('[role="radiogroup"][aria-label="Cómo ver lo que se acaba"] [role="radio"][aria-checked="true"]')?.focus({ preventScroll: true });
+  }, [modo]);
   // En la tienda (sin buscar): decide si hay carril. Con lo buscado: las filas y las cuentas de cada filtro.
   const enLaTienda = useMemo(() => prendasQueSeAcaban(datos.prendas, liquidarDesde).length, [datos.prendas, liquidarDesde]);
   const seAcaban = useMemo(() => prendasQueSeAcaban(prendas, liquidarDesde), [prendas, liquidarDesde]);
@@ -65,17 +100,49 @@ export function PestanaAcaba() {
   if (vacio) return <SinCarril tipo={vacio} />;
 
   const visibles = seAcaban.filter((p) => pasaFiltroAcaba(p, filtroAcaba, datos.hoy));
-  const comprarTodas = hrefComprarTodas(visibles, acceso);
-  // «A quién pedir» junta lo que todavía hay que comprar (lo que ya viene en camino no se pide otra vez). NO depende del filtro del carril:
-  // los botones del filtro viven debajo de la tarjeta, y una tarjeta que aparece y desaparece al elegir «Por llegar» los correría de
-  // debajo del mouse (ADR-0185). Sí sigue al buscador, que está arriba de todo y no se mueve.
+  // «Por proveedor» muestra lo que todavía hay que comprar (lo que ya viene en camino no se pide otra vez): la misma regla del filtro «Comprar»
+  // (`modelosPorPedir`). Sin proveedores leídos o sin nada que pedir no hay nada que agrupar, y el modo no se puede elegir.
   const porPedir = modelosPorPedir(seAcaban, datos.hoy);
+  const sinProveedoresLeidos = datos.proveedores === null;
+  const puedePorProveedor = !sinProveedoresLeidos && porPedir.length > 0;
+  const enProveedor = modo === "proveedor" && puedePorProveedor;
+
+  // El segmento vive en la cabecera de las dos formas y a la derecha de todo (los filtros, solo «por días», quedan a su izquierda): al cambiar de
+  // forma no se mueve de debajo del mouse (ADR-0185).
+  const segmento = (
+    <SegmentoDeslizante
+      forma="modo"
+      etiqueta="Cómo ver lo que se acaba"
+      valor={enProveedor ? "proveedor" : "dias"}
+      onCambio={(c) => {
+        devolverFoco.current = true;
+        setModo(c === "proveedor" ? "proveedor" : "dias");
+      }}
+      opciones={[
+        { clave: "dias", etiqueta: "Por días", guia: "analisis.acaba-modo-dias" },
+        {
+          clave: "proveedor",
+          etiqueta: "Por proveedor",
+          guia: "analisis.acaba-modo-proveedor",
+          deshabilitada: !puedePorProveedor,
+          ayuda: sinProveedoresLeidos ? "No se pudo leer a qué proveedor se le pide" : porPedir.length === 0 ? "Todo lo que se acaba ya viene en camino: no hay nada que pedir" : undefined,
+        },
+      ]}
+    />
+  );
+  if (enProveedor) return <AQuienPedir modelos={porPedir} herramienta={segmento} />;
+
+  // «Comprar todas» es para lo que hay que comprar: sobre lo que ya viene en camino no se ofrece.
+  // En «Todos» la lista incluye lo que ya viene: el botón mira solo lo que falta pedir (el mismo criterio del filtro «Comprar»).
+  const comprarTodas = filtroAcaba === "llega" ? null : hrefComprarLasQueFaltan(visibles, datos.hoy, acceso);
+  const yaViene = filtroAcaba === "llega";
   const grupo: GrupoCarril = {
     clave: "comprar",
-    titulo: "Cómpralas",
-    ayuda: AYUDA_COMPRAR,
-    icono: "caja",
-    est: "urg",
+    titulo: tituloDelCarril(filtroAcaba, visibles.length),
+    ayuda: AYUDA_CARRIL[filtroAcaba],
+    // Lo que ya viene no es una urgencia: ni el ícono de comprar ni su rojo.
+    icono: yaViene ? "llega" : "caja",
+    est: yaViene ? "bien" : "urg",
     prendas: visibles,
     lote: comprarTodas ? (
       <Link href={comprarTodas} className="btn-cayla btn-secundario btn-s">
@@ -85,19 +152,21 @@ export function PestanaAcaba() {
   };
 
   return (
-    <>
-      <AQuienPedir modelos={porPedir} />
-      <Carril
-        titulo="Cuántos días te quedan"
-        nota={textoRitmo(diasDeVentas)}
-        herramienta={<Filtros filtro={filtroAcaba} cuentas={cuentasFiltroAcaba(seAcaban, datos.hoy)} onFiltro={setFiltroAcaba} />}
-        eje={[...EJE_ACABA]}
-        grupos={[grupo]}
-        pista={(p) => <Pista p={p} />}
-        pildoras={(p) => <Pildoras p={p} ventanas={ventanas} />}
-        accion={(p) => <Accion p={p} />}
-      />
-    </>
+    <Carril
+      titulo="Cuántos días te quedan"
+      nota={textoRitmo(diasDeVentas)}
+      herramienta={
+        <>
+          <Filtros filtro={filtroAcaba} cuentas={cuentasFiltroAcaba(seAcaban, datos.hoy)} onFiltro={setFiltroAcaba} />
+          {segmento}
+        </>
+      }
+      eje={[...EJE_ACABA]}
+      grupos={[grupo]}
+      pista={(p) => <Pista p={p} />}
+      pildoras={(p) => <Pildoras p={p} ventanas={ventanas} />}
+      accion={(p) => <Accion p={p} />}
+    />
   );
 }
 
@@ -153,6 +222,8 @@ function Pildoras({ p, ventanas }: { p: ModeloAnalisis; ventanas: Readonly<Recor
   const proveedor = textoProveedorGenerico(quien, p.origen);
   const tambien = seAcabaEnOtras(p.otras, ventanas);
   const faltan = faltanDelModelo(p);
+  // «Por llegar 24 · en 4 días» / «· sin fecha»: sin la fecha no se sabe si habrá días con el piso vacío (Felipe 2026-10-16).
+  const cuando = cuandoLlega(p, datos.hoy);
   return (
     <>
       {faltan && (
@@ -164,6 +235,7 @@ function Pildoras({ p, ventanas }: { p: ModeloAnalisis; ventanas: Readonly<Recor
         <span className="pil llega">
           <Icono nombre="llega" />
           Por llegar <b>{llega}</b>
+          {cuando && <span className="cuando">· {cuando}</span>}
           <TipRico>
             <b>{tituloPorLlegar(p, datos.hoy)}</b>
             <span className="tl">
@@ -209,17 +281,27 @@ function Pildoras({ p, ventanas }: { p: ModeloAnalisis; ventanas: Readonly<Recor
   );
 }
 
-/** «Comprar» (Compras o Producción, según de dónde viene), a quién pedirlo («Pídelo a …») y, si otra tienda la tiene, «o pedir a Arequipa». */
+/**
+ * «Comprar» (Compras o Producción, según de dónde viene), a quién pedirlo y, si otra tienda la tiene, «o pedir a Arequipa». Lo que YA viene en
+ * camino a tiempo no dice «Pídelo a …» (eso es para lo que falta pedir y empujaba a pedirlo dos veces): dice «Viene de …», más tenue, o nada si no
+ * se sabe de quién. Con un proveedor archivado o ninguno, dice que falta elegirlo. El bloque va aparte (`c-quien`) para que en una pantalla angosta
+ * pase a la línea de las píldoras, junto a su barra.
+ */
 function Accion({ p }: { p: ModeloAnalisis }) {
   const { datos, acceso, sedeDe, pedir } = useAnalisis();
   const comprar = hrefComprar(p, acceso);
   const otra = otraSedeQueLaTiene(p.otras);
   const sede = otra && acceso.pedir ? sedeDe(otra.sedeId) : undefined;
-  // «Pídelo a Textil Andino»: a quién. Solo informa: a dónde lleva «Comprar» no cambia con esto (eso es A9).
   const quien = datos.proveedores ? proveedorDelModelo(p, datos.proveedores) : null;
-  const pidelo = quien ? textoPidelo(quien) : null;
-  // Si el nombre sale del catálogo, la fila lo dice a la vista (un tooltip no se alcanza con el dedo ni con el teclado).
-  const fuente = quien ? textoFuenteDeLaFila(quien) : null;
+  const viene = porLlegar(p, datos.hoy) > 0;
+  // «Pídelo a Textil Andino» (sin su sufijo legal; el nombre completo va en el tooltip y el `aria-label`). Solo informa: a dónde lleva «Comprar» no
+  // cambia con esto (eso es A9). La fuente se dice siempre («le compraste la última vez» o «anotado en su ficha»): un tooltip no se alcanza con el
+  // dedo ni con el teclado.
+  const pidelo = quien && !viene ? textoPidelo(quien) : null;
+  const pideloCompleto = quien && !viene ? textoPideloCompleto(quien) : null;
+  const fuente = quien && pidelo ? textoFuenteDeLaFila(quien) : null;
+  const sinQuien = quien && !viene ? textoSinAQuienPedir(quien) : null;
+  const vieneDe = quien && viene ? textoVieneDe(p.llega, quien, datos.hoy) : null;
   return (
     <>
       {comprar && (
@@ -227,16 +309,31 @@ function Accion({ p }: { p: ModeloAnalisis }) {
           Comprar
         </Link>
       )}
-      {quien && pidelo && (
-        <span className="pidelo" data-tip={`${pidelo}. ${FUENTE_LARGA[quien.fuente]}`}>
-          <span className="pidelo-q">{pidelo}</span>
-          {fuente && <span className="pidelo-f">{fuente}</span>}
+      {(pidelo || sinQuien || vieneDe || sede) && (
+        <span className="c-quien">
+          {quien && pidelo && pideloCompleto && (
+            <span className="pidelo" role="group" aria-label={pideloCompleto} data-tip={`${pideloCompleto.endsWith(".") ? pideloCompleto : `${pideloCompleto}.`} ${FUENTE_LARGA[quien.fuente]}`}>
+              <span className="pidelo-q">{pidelo}</span>
+              {fuente && <span className="pidelo-f">{fuente}</span>}
+            </span>
+          )}
+          {sinQuien && quien && (
+            <span className="pidelo sin" data-tip={FUENTE_LARGA[quien.fuente]}>
+              <span className="pidelo-q">{sinQuien.titulo}</span>
+              <span className="pidelo-f">{sinQuien.detalle}</span>
+            </span>
+          )}
+          {vieneDe && (
+            <span className="pidelo viene" data-tip="Ya viene en camino: no hace falta pedirlo otra vez. El detalle está en «Por llegar».">
+              <span className="pidelo-q">{vieneDe}</span>
+            </span>
+          )}
+          {sede && (
+            <button type="button" className="alt" aria-label={`${textoPedirA(sede)}: ${nombreLargo(p)}`} onClick={() => pedir([p], sede.id)}>
+              {textoPedirA(sede)}
+            </button>
+          )}
         </span>
-      )}
-      {sede && (
-        <button type="button" className="alt" aria-label={`${textoPedirA(sede)}: ${nombreLargo(p)}`} onClick={() => pedir([p], sede.id)}>
-          {textoPedirA(sede)}
-        </button>
       )}
     </>
   );

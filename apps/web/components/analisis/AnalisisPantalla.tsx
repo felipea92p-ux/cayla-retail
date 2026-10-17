@@ -1,12 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type KeyboardEvent, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Pestanas, type Pestana } from "@/components/ui/Pestanas";
 import { PedirAOtraSedeModal } from "@/components/PedirAOtraSedeModal";
 import { avisar } from "@/components/ui/Avisos";
+import { Boton } from "@/components/ui/campos";
+import { navegacionSinEspera } from "@/components/ui/Espera";
 import { Contexto, type ContextoAnalisis, type FiltroAcaba } from "@/components/analisis/contexto";
 import { ChipEstado } from "@/components/analisis/piezas";
 import { HoyTodaviaNo, VistaTodaviaNo } from "@/components/analisis/TodaviaNo";
@@ -22,7 +24,16 @@ import { coincideBusqueda, GRUPOS_ACABA, GRUPOS_QUIETAS, prendasDe } from "@/lib
 import { nuncaSalio } from "@/lib/analisis-piso";
 import { lineasParaPedir } from "@/lib/analisis-acciones";
 import { AVISO_QUE_FALTA, avisoDatosDeHoy, modoAnalisis, PARAM_QUE_FALTA, VALOR_QUE_FALTA } from "@/lib/analisis-aviso";
-import { confianzaDelDato, contenidoDeAnalisis, hayCuentas, miTiendaSinLeer, notaDeFallas, TEXTO_TIENDA_SIN_LEER, type ConfianzaDelDato } from "@/lib/analisis-con-tope";
+import {
+  confianzaDelDato,
+  contenidoDeAnalisis,
+  hayCuentas,
+  miTiendaSinLeer,
+  notaDeFallas,
+  TEXTO_TIENDA_SIN_LEER,
+  tituloTiendaSinLeer,
+  type ConfianzaDelDato,
+} from "@/lib/analisis-con-tope";
 import { Buscador } from "@/components/ui/Buscador";
 import { Aviso } from "@/components/ui/Aviso";
 
@@ -35,13 +46,28 @@ import { Aviso } from "@/components/ui/Aviso";
 // Movimiento (ADR-0136, excepción de Análisis): al entrar a una pestaña, sus piezas suben en cascada, las barras crecen, las
 // perchas y los puntos asoman y las cifras cuentan, UNA vez; con «reducir movimiento», nada se mueve.
 
-const PESTANAS: { clave: VistaAnalisis; texto: string }[] = [
+// `corto`: la etiqueta de una pantalla angosta (a 1024 de ventana las cinco pestañas medían 742 px y el contenedor 672: «Qué pedir» quedaba fuera de
+// la vista). La hoja de estilos cambia una por otra con la consulta de ancho (`.et-larga` / `.et-corta`, `analisis.css`).
+const PESTANAS: { clave: VistaAnalisis; texto: string; corto?: string }[] = [
   { clave: "hoy", texto: "Hoy" },
-  { clave: "acaba", texto: "Se está acabando" },
+  { clave: "acaba", texto: "Se está acabando", corto: "Se acaba" },
   { clave: "nose", texto: "No se vende" },
-  { clave: "piso", texto: "Nunca salió al piso" },
-  { clave: "pedir", texto: "Qué pedir" },
+  { clave: "piso", texto: "Nunca salió al piso", corto: "Nunca salió" },
+  { clave: "pedir", texto: "Qué pedir", corto: "Pedir" },
 ];
+
+/** La etiqueta de una pestaña: la larga y, si la tiene, la corta (una de las dos se oculta según el ancho; la oculta no la lee ningún lector). */
+function etiquetaDe(p: { texto: string; corto?: string }) {
+  if (!p.corto) return p.texto;
+  return (
+    <>
+      <span className="et-larga">{p.texto}</span>
+      <span className="et-corta">
+        {p.corto}
+      </span>
+    </>
+  );
+}
 
 /** Las marcas de los gráficos que encienden su prenda en toda la pantalla (no las filas: esas abren la ficha). */
 const MARCA = "[data-ps]:not(.c-fila):not(.rank-f):not(.modelo)";
@@ -237,10 +263,13 @@ export function AnalisisPantalla({
   // Sin saber cuándo salió al piso cada prenda (la base sin 20261007120000), «—»: nunca una cuenta inventada.
   const cuentaPiso = conCuentas && datos.sabePiso ? datos.prendas.filter(nuncaSalio).length : null;
   const mia = datos.preparacion.find((p) => p.ubicacionId === datos.sede.id);
-  const notaFallas = notaDeFallas(datos.fallas, sinLeer);
+  // El aviso grande de «No se pudo leer <tu tienda>» ya dice la falla de mi tienda: la nota gris no la repite (solo si el aviso está a la vista;
+  // en «Todavía no» no lo está y la nota es lo único que lo dice).
+  const queSeVe = contenidoDeAnalisis({ recomienda, sinLeer, vista });
+  const notaFallas = notaDeFallas(datos.fallas, sinLeer, queSeVe === "tienda-sin-leer" ? datos : undefined);
 
   let contenido;
-  switch (contenidoDeAnalisis({ recomienda, sinLeer, vista })) {
+  switch (queSeVe) {
     case "todavia-no-hoy":
       contenido = <HoyTodaviaNo />;
       break;
@@ -249,7 +278,7 @@ export function AnalisisPantalla({
       break;
     case "tienda-sin-leer":
       contenido = (
-        <Aviso tono="error" titulo={TEXTO_TIENDA_SIN_LEER.titulo}>
+        <Aviso tono="error" titulo={tituloTiendaSinLeer(datos.sede.nombre)} accion={<VolverAIntentar />}>
           {TEXTO_TIENDA_SIN_LEER.linea}
         </Aviso>
       );
@@ -338,6 +367,32 @@ export function AnalisisPantalla({
   );
 }
 
+/**
+ * «Volver a intentar» (la tienda no se pudo leer): vuelve a leer la pantalla con `router.refresh()`, sin el loader a pantalla completa
+ * (`navegacionSinEspera`, ADR-0149): es una LECTURA, no un guardado, y el aviso queda a la vista mientras se lee. La señal de que algo pasa
+ * es el propio botón («Leyendo…» con su hilo), que no se puede apretar dos veces. Si vuelve a fallar, el aviso sigue ahí.
+ */
+function VolverAIntentar() {
+  const router = useRouter();
+  const [leyendo, empezar] = useTransition();
+  return (
+    <Boton
+      type="button"
+      peso="fantasma"
+      cargando={leyendo}
+      textoCargando="Leyendo…"
+      onClick={() =>
+        empezar(() => {
+          navegacionSinEspera(window.location.href);
+          router.refresh();
+        })
+      }
+    >
+      {TEXTO_TIENDA_SIN_LEER.accion}
+    </Boton>
+  );
+}
+
 // Las cinco preguntas son pestañas de vista (cambian de sección): la pieza única del ERP, el vidrio en mayúsculas (ADR-0358,
 // Felipe 2026-10-06: «incluye lo de Análisis»). La vista es estado de la pantalla, no URL: `tablist` con flechas.
 function FilaPestanas({
@@ -361,10 +416,10 @@ function FilaPestanas({
     // «Se está acabando» con prendas avisa (rojo, como antes); «No se vende» solo informa. Sin datos, «—».
     // El texto para lector va solo con un número: «— se están acabando» no dice nada.
     const guia = `analisis.pestana-${p.clave}`;
-    if (p.clave === "acaba") return { clave: p.clave, guia, etiqueta: p.texto, conteo: cuentaAcaba ?? "—", pide: cuentaAcaba == null ? undefined : "se están acabando", tono: cuentaAcaba ? "rojo" : "neutro" };
-    if (p.clave === "nose") return { clave: p.clave, guia, etiqueta: p.texto, conteo: cuentaQuietas ?? "—", pide: cuentaQuietas == null ? undefined : "no se venden", tono: "neutro" };
-    if (p.clave === "piso") return { clave: p.clave, guia, etiqueta: p.texto, conteo: cuentaPiso ?? "—", pide: cuentaPiso == null ? undefined : "nunca salieron al piso", tono: "neutro" };
-    return { clave: p.clave, guia, etiqueta: p.texto };
+    if (p.clave === "acaba") return { clave: p.clave, guia, etiqueta: etiquetaDe(p), conteo: cuentaAcaba ?? "—", pide: cuentaAcaba == null ? undefined : "se están acabando", tono: cuentaAcaba ? "rojo" : "neutro" };
+    if (p.clave === "nose") return { clave: p.clave, guia, etiqueta: etiquetaDe(p), conteo: cuentaQuietas ?? "—", pide: cuentaQuietas == null ? undefined : "no se venden", tono: "neutro" };
+    if (p.clave === "piso") return { clave: p.clave, guia, etiqueta: etiquetaDe(p), conteo: cuentaPiso ?? "—", pide: cuentaPiso == null ? undefined : "nunca salieron al piso", tono: "neutro" };
+    return { clave: p.clave, guia, etiqueta: etiquetaDe(p) };
   });
 
   return (

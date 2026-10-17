@@ -40,7 +40,12 @@
     .sello i{font-style:normal;font-size:10px}
     /* ───────── Pestañas ───────── */
     .tabs-fila{display:flex;align-items:center;gap:12px;margin-top:20px}
-    @container analisis (max-width:620px){ .tabs-fila{flex-direction:column;align-items:stretch;gap:8px} .tabs-fila > .chip{align-self:flex-start;order:-1} }
+    /* La fila no cabe (F1, a 1024 de ventana el contenedor mide 672 px y las cinco pestañas 742): el chip de confianza sube a su propia línea y la píldora
+       toma todo el ancho (cabe hasta ~760 px); más angosto, las etiquetas se acortan («Se acaba», «No se vende», «Nunca salió», «Pedir») y caben hasta
+       ~580. Así «Qué pedir» se alcanza en una laptop. Antes el quiebre era a 620 px y la píldora se desplazaba sin avisar que había más. */
+    .et-corta{display:none}
+    @container analisis (max-width:900px){ .tabs-fila{flex-direction:column;align-items:stretch;gap:8px} .tabs-fila > .chip{align-self:flex-start;order:-1} }
+    @container analisis (max-width:760px){ .et-larga{display:none} .et-corta{display:inline} }
     /* ───────── Contenido y movimiento ───────── */
     .vista{padding-top:22px;display:flex;flex-direction:column;gap:16px}
     .anim .entra{animation:an-entra 380ms var(--ease-cayla) both;animation-delay:calc(min(var(--i,0), 8) * 55ms)}
@@ -76,7 +81,7 @@
     .i-vis{min-height:74px;display:flex;align-items:center}
     .i-num{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:auto}
     .i-num b{font:500 44px/1 var(--font-serif);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-    .i-num b.palabras{font-size:28px;line-height:1.05}
+    .i-num b.palabras{font-size:28px;line-height:1.05;text-wrap:balance}
     .i-num > span{font-size:13px;color:var(--color-tinta-60);line-height:1.3}
     .i-num em{font:inherit;font-style:normal}
     /* Tarjetas 1 y 2: solo prendas */
@@ -196,9 +201,20 @@
     .pista.zonas{background:linear-gradient(to right,var(--color-hueso) 0 var(--u),color-mix(in srgb,var(--color-ambar) 26%,var(--color-hueso)) var(--u) var(--r),color-mix(in srgb,var(--color-rojo-profundo) 26%,var(--color-hueso)) var(--r) 100%)}
     .pista.zonas .barra{background:color-mix(in srgb,var(--color-taupe) 40%,transparent)}
     .c-eje .zona{font-weight:600}
+    /* En un contenedor ancho (más de 1000 px) la columna de las píldoras toma hasta 260 px: dos píldoras cortas comparten línea en vez de apilarse
+       y la fila no crece (F1). `.c-eje` comparte las columnas con las filas: las marcas siguen sobre las pistas. */
+    @container analisis (min-width:1000px){
+      .c-eje,.c-fila{grid-template-columns:36px minmax(120px,210px) minmax(140px,1fr) minmax(150px,260px) 140px}
+    }
     @container analisis (max-width:780px){
       .c-eje{display:none}
       .c-fila{grid-template-columns:36px minmax(0,1fr) auto;grid-template-areas:"tile nom acc" "tile pista pista" "tile pil pil";row-gap:6px;padding:10px 16px}
+      /* «Pídelo a …» (A8) pasa a la línea de las píldoras, bajo la barra: junto a su prenda y no separado de ella, a la derecha, 3 o 4 líneas
+         más abajo. La fila que lo trae (`.c-quien`) gana una cuarta línea; `.c-acc` se deshace para que el botón siga en su lugar. */
+      .c-fila:has(.c-quien){grid-template-areas:"tile nom acc" "tile pista pista" "tile pil pil" "tile quien quien"}
+      .c-fila:has(.c-quien) .c-acc{display:contents}
+      .c-fila:has(.c-quien) .c-acc > .btn-cayla{grid-area:acc;justify-self:end}
+      .c-fila:has(.c-quien) .c-quien{grid-area:quien}
       .c-pil{margin-top:2px}
       /* Sin ancho, el encabezado del grupo se reparte: el detalle baja a su línea, bajo el título, y el botón cabe entero. */
       .c-grupo{flex-wrap:wrap;row-gap:4px}
@@ -338,8 +354,13 @@
     .hechos{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}
     .hecho{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--c) 9%,var(--color-crema));border:1px solid color-mix(in srgb,var(--c) 22%,transparent)}
     .hecho svg{width:18px;height:18px;color:var(--c);margin-bottom:4px}
-    .hecho b{font:500 19px/1.1 var(--font-serif);overflow-wrap:anywhere}
+    .hecho b{font:500 19px/1.1 var(--font-serif)}
     .hecho small{font-size:11.5px;color:var(--color-tinta-60)}
+    /* Una franja de ancho completo (F1): el proveedor y lo que viene en camino llevan frases, y en una tarjeta de 112 px un nombre largo se partía a
+       media palabra («Confeccione|s»). Va bajo la cuadrícula de cifras, con su ícono a la izquierda y las líneas una debajo de otra. */
+    .hecho.franja{flex-direction:row;align-items:flex-start;gap:12px;margin-top:8px}
+    .hecho.franja svg{margin:2px 0 0;flex:none}
+    .hecho .f-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
     .h-acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;padding-top:16px;border-top:1px solid var(--color-sand)}
     .h-nota{font-size:12.5px;color:var(--color-tinta-60);margin-top:10px}
     .dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;margin:0;font-size:13.5px}
@@ -377,9 +398,11 @@
   /* El pie de un tooltip de lista (A8): «Pídelas a 12 proveedores» bajo las prendas del camino de comprar. */
   .an-tip .tip-pie{display:block;margin-top:7px;padding-top:6px;border-top:1px solid color-mix(in srgb,var(--color-crema) 24%,transparent)}
 
-  /* La edad del inventario: los dos tramos más viejos van sobre rojo; en oscuro el rojo se aclara y la cifra pasa a tinta fija. */
+  /* La edad del inventario: los dos tramos más viejos van sobre rojo; en oscuro el rojo se aclara y la cifra pasa a tinta fija. Lo mismo la
+     cifra que cae DENTRO de la barra de días: sobre el ámbar, que en oscuro se aclara, la crema fija quedaba a ~1,5:1 (F1). */
   :root[data-tema="oscuro"] .analisis .e3,
-  :root[data-tema="oscuro"] .analisis .e4{color:var(--color-tinta-fija)}
+  :root[data-tema="oscuro"] .analisis .e4,
+  :root[data-tema="oscuro"] .analisis .pista .d.dentro{color:var(--color-tinta-fija)}
 }
 
 /* Movimiento reducido: nada entra, crece, asoma ni se desliza. */

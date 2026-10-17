@@ -14,6 +14,7 @@ import {
   llegadasDe,
   otraSedeQueLaTiene,
   plural,
+  porLlegar,
   sedeQueMasVende,
   totalEnTienda,
 } from "./analisis-reglas";
@@ -31,8 +32,12 @@ export type TonoFicha = "rojo" | "ambar" | "verde" | "pizarra" | "taupe";
 /** Los íconos que usan las tarjetitas (todos existen en `components/analisis/iconos.tsx`). */
 export type IconoHecho = "agotado" | "reloj" | "check" | "tijera" | "caja" | "llega" | "flechas" | "urg" | "camion" | "etiqueta";
 
-/** Una tarjetita: el dato grande y, debajo, de qué es («Quedan 9 días · tienes 2»). */
-export type Hecho = { icono: IconoHecho; tono: TonoFicha; valor: string; etiqueta: string | null };
+/**
+ * Una tarjetita: el dato grande y, debajo, de qué es («Quedan 9 días · tienes 2»). `mas`: más líneas chicas bajo la primera (lo que llega, parte
+ * por parte). `ancho: "completo"`: una franja de todo el ancho, no una tarjeta de la cuadrícula de cifras: el proveedor y lo que viene en camino
+ * llevan frases, y un nombre largo en una tarjeta de 112 px se partía a media palabra («Confeccione|s»).
+ */
+export type Hecho = { icono: IconoHecho; tono: TonoFicha; valor: string; etiqueta: string | null; mas?: string[]; ancho?: "completo" };
 
 /** El estado del chip de arriba: los de Análisis (urgente, atención, va bien, todavía no). */
 export type EstadoFicha = "urg" | "ate" | "bien" | "nd";
@@ -48,8 +53,12 @@ const CHIP_GRUPO: Record<GrupoAnalisis, { est: EstadoFicha; texto: string }> = {
 /**
  * El chip de la prenda: el título de su grupo, con el estado del grupo; sin grupo, «Va bien», salvo lo guardado que nunca salió al
  * piso (`sinSalir`, 20261007120000): eso no «va bien», nadie lo vio.
+ *
+ * `yaViene` (algo llega a tiempo, `porLlegar`): un modelo que se acaba pero YA viene en camino no es un «Cómpralas» en rojo (el carril lo pone
+ * en «Ya vienen», sin rojo, y la ficha no puede contradecirlo): dice «Ya viene».
  */
-export function chipDeGrupo(grupo: GrupoAnalisis | null, sinSalir = false): { est: EstadoFicha; texto: string } {
+export function chipDeGrupo(grupo: GrupoAnalisis | null, sinSalir = false, yaViene = false): { est: EstadoFicha; texto: string } {
+  if (grupo === "comprar" && yaViene) return { est: "bien", texto: "Ya viene" };
   if (grupo) return CHIP_GRUPO[grupo];
   return sinSalir ? { est: "ate", texto: "Nunca salió al piso" } : { est: "bien", texto: "Va bien" };
 }
@@ -80,15 +89,44 @@ export function dineroDe(p: Pick<PrendaAnalisis, "precio" | "costo">): { costo: 
   return { costo: solesFicha(p.costo), ganas: p.precio === null || p.costo === null ? "—" : solesFicha(p.precio - p.costo) };
 }
 
-/** De dónde viene lo que llega, en minúscula para ir detrás de la cifra («compra 10 · almacén 2»). */
-export const TEXTO_LLEGADA: Record<OrigenLlegada, string> = { compra: "compra", almacen: "almacén", taller: "taller", tienda: "otra tienda" };
+/** De dónde viene cada parte de lo que llega, como se dice en tienda: «pediste 10» (una compra), «del almacén 2», «del taller 1», «de otra tienda 3». */
+const PARTE_DE_LLEGADA: Record<OrigenLlegada, (n: number) => string> = {
+  compra: (n) => `pediste ${n}`,
+  almacen: (n) => `del almacén ${n}`,
+  taller: (n) => `del taller ${n}`,
+  tienda: (n) => `de otra tienda ${n}`,
+};
 
-/** «compra 10 · almacén 2 · taller 1»: lo que viene en camino, sumado por origen, en el orden en que aparece. */
-export function detalleLlegada(llega: readonly LlegadaPrenda[]): string {
-  const porOrigen = new Map<OrigenLlegada, number>();
-  for (const x of llega) if (x.cantidad > 0) porOrigen.set(x.de, (porOrigen.get(x.de) ?? 0) + x.cantidad);
-  return [...porOrigen].map(([de, n]) => `${TEXTO_LLEGADA[de]} ${n}`).join(" · ");
+/**
+ * Una parte de lo que viene, en una línea con su fecha: «pediste 10 · llega el 20 oct.», «pediste 6 · sin fecha» (nadie anotó cuándo; no se
+ * inventa una) y, si ya pasó, «pediste 8 · debía llegar el 20 sep.». Antes decía «compra 16», que se leía como una orden («compra 16 unidades»).
+ */
+function lineaDeLlegada(x: LlegadaPrenda, hoy: string): string {
+  const cuando =
+    x.fecha === null ? "sin fecha" : x.fecha === hoy ? "llega hoy" : x.fecha < hoy ? `debía llegar el ${fechaCorta(x.fecha)}` : `llega el ${fechaCorta(x.fecha)}`;
+  return `${PARTE_DE_LLEGADA[x.de](x.cantidad)} · ${cuando}`;
 }
+
+/** Las líneas de varias partes, de la que llega antes a la que llega después (lo que no tiene fecha, al final). */
+function lineasDeLlegadas(partes: readonly LlegadaPrenda[], hoy: string): string[] {
+  const orden = (f: string | null) => f ?? "9999-12-31";
+  return [...partes]
+    .filter((x) => x.cantidad > 0)
+    .sort((a, b) => orden(a.fecha).localeCompare(orden(b.fecha)))
+    .map((x) => lineaDeLlegada(x, hoy));
+}
+
+/**
+ * Lo que llega antes y después de la meta, para que quien compra sepa si lo que viene alcanza: «10 antes de Navidad, 6 después» o, si nada
+ * llega antes, «6 llegan después de Navidad». null si nada llega después (no hay qué decir).
+ */
+function textoAntesYDespues(antes: number, despues: number, meta: string): string | null {
+  if (despues <= 0) return null;
+  return antes > 0 ? `${antes} antes de ${meta}, ${despues} después` : `${despues} ${plural(despues, "llega", "llegan")} después de ${meta}`;
+}
+
+/** La meta contra la que se mide lo que viene en camino (hoy, Navidad: `proximaNavidad`; con la meta por campaña, el fin de la campaña). */
+type MetaDeLlegada = { hasta: string; nombre: string };
 
 /** «en 30 días» o, si la tienda tiene menos días de ventas en el ERP, «en 8 días»: de qué días habla «Vendiste». */
 const enDias = (p: Pick<PrendaAnalisis, "diasDeVentas">): string => {
@@ -112,12 +150,15 @@ export function hechosDe(
   /** El día de hoy en Lima (YYYY-MM-DD): con él, lo que ya se atrasó no se cuenta como «Por llegar» (A3). */
   hoy: string,
   sinSalir: { dias: number | null } | null = null,
-  /** A quién se le pide (A8, `proveedorDelModelo`): con él la tarjetita dice el proveedor por su nombre y de dónde se sabe. Sin él (no se
+  /** A quién se le pide (A8, `proveedorDelModelo`): con él la franja dice el proveedor por su nombre y de dónde se sabe. Sin él (no se
    *  pudo leer), «Proveedor taller» o «Proveedor terceros», como antes. */
   proveedor: ProveedorDelModelo | null = null,
+  /** La meta contra la que se mide lo que viene (Navidad): con ella, lo que llega después se dice («10 antes de Navidad, 6 después»). */
+  meta: MetaDeLlegada | null = null,
 ): Hecho[] {
   const hechos: Hecho[] = [];
-  const agregar = (icono: IconoHecho, tono: TonoFicha, valor: string, etiqueta: string | null = null) => hechos.push({ icono, tono, valor, etiqueta });
+  const agregar = (icono: IconoHecho, tono: TonoFicha, valor: string, etiqueta: string | null = null, extra: Pick<Hecho, "mas" | "ancho"> = {}) =>
+    hechos.push({ icono, tono, valor, etiqueta, ...extra });
   const tienes = totalEnTienda(p);
 
   if (grupo === "comprar") {
@@ -125,19 +166,41 @@ export function hechosDe(
     if (d === 0) agregar("agotado", "rojo", "Ya no hay", "en tu tienda");
     else agregar("reloj", d <= 7 ? "ambar" : "pizarra", d === 1 ? "Queda 1 día" : `Quedan ${d} días`, `tienes ${tienes}`);
     agregar("check", "verde", `Vendiste ${p.vendidas30}`, enDias(p));
-    if (proveedor && proveedor.fuente !== "ninguno") {
+    // A quién se le pide va en una FRANJA de ancho completo, no en la cuadrícula de cifras: un nombre largo en una tarjeta de 112 px se partía a media
+    // palabra. Un proveedor archivado no se recomienda: se dice que falta elegir otro (Felipe 2026-10-16).
+    const completo = { ancho: "completo" } as const;
+    // Si algo YA viene en camino a tiempo, la franja no dice «pídelo aquí» (empujaba a pedirlo dos veces, lo mismo que la fila quitó): queda el nombre
+    // y de dónde se sabe.
+    const yaViene = porLlegar(p, hoy) > 0;
+    if (proveedor && (proveedor.fuente === "taller" || proveedor.fuente === "catalogo" || proveedor.fuente === "compra")) {
       const taller = proveedor.fuente === "taller";
-      agregar(taller ? "tijera" : "caja", "taupe", taller ? "Taller de CAYLA" : proveedor.nombre, taller ? "pídelo aquí" : `pídelo aquí · ${FUENTE_CORTA[proveedor.fuente]}`);
+      const fuente = FUENTE_CORTA[proveedor.fuente];
+      const etiqueta = taller ? (yaViene ? null : "pídelo aquí") : yaViene ? fuente : `pídelo aquí · ${fuente}`;
+      agregar(taller ? "tijera" : "caja", "taupe", taller ? "Taller de CAYLA" : proveedor.nombre, etiqueta, completo);
+    } else if (proveedor?.fuente === "archivado") {
+      agregar("caja", "taupe", "Sin proveedor", `${proveedor.nombre} está archivado: elige otro`, completo);
     } else if (p.origen) {
-      agregar(p.origen === "taller" ? "tijera" : "caja", "taupe", p.origen === "taller" ? "Proveedor taller" : "Proveedor terceros");
+      agregar(p.origen === "taller" ? "tijera" : "caja", "taupe", p.origen === "taller" ? "Proveedor taller" : "Proveedor terceros", null, completo);
     } else if (proveedor) {
       // Se leyó y el modelo no tiene a quién: se dice (no se calla), sin inventar uno.
-      agregar("caja", "taupe", "Sin proveedor", FUENTE_CORTA.ninguno);
+      agregar("caja", "taupe", "Sin proveedor", FUENTE_CORTA.ninguno, completo);
     }
-    // Lo que se espera es «Por llegar»; lo que debía llegar y no llegó, «Atrasada» (ámbar): sigue por comprar (A3, plan verificado 2026-10-16). El ícono es el de «llega» en ámbar, no el reloj de «Quedan N días»: dos tarjetas con reloj ámbar se confundían.
-    const llegadas = llegadasDe(p.llega, hoy);
-    if (llegadas.vienen > 0) agregar("llega", "verde", `Por llegar ${llegadas.vienen}`, detalleLlegada(p.llega.filter((x) => !llegadaAtrasada(x, hoy))));
-    if (llegadas.atrasadas > 0) agregar("llega", "ambar", textoAtraso(llegadas.diasAtraso), `${llegadas.atrasadas} sin llegar · ${detalleLlegada(p.llega.filter((x) => llegadaAtrasada(x, hoy)))}`);
+    // Lo que viene en camino: UNA franja con cada parte y su fecha («pediste 10 · llega el 20 oct.»), lo que llega después de la meta y lo
+    // atrasado (A3, plan verificado 2026-10-16). Antes eran dos tarjetas («Por llegar» y «Atrasada») y la segunda quedaba sola en otra fila.
+    const llegadas = llegadasDe(p.llega, hoy, meta?.hasta);
+    const aTiempo = p.llega.filter((x) => !llegadaAtrasada(x, hoy));
+    const tardias = p.llega.filter((x) => llegadaAtrasada(x, hoy));
+    const total = llegadas.vienen + llegadas.despues;
+    if (total > 0) {
+      const lineas = lineasDeLlegadas(aTiempo, hoy);
+      const corte = meta ? textoAntesYDespues(llegadas.vienen, llegadas.despues, meta.nombre) : null;
+      if (corte) lineas.push(corte);
+      if (llegadas.atrasadas > 0) lineas.push(`${llegadas.atrasadas} ${plural(llegadas.atrasadas, "atrasada", "atrasadas")} hace ${llegadas.diasAtraso} ${plural(llegadas.diasAtraso, "día", "días")}`);
+      agregar("llega", llegadas.atrasadas > 0 ? "ambar" : "verde", `Por llegar ${total}`, lineas[0] ?? null, { ancho: "completo", mas: lineas.slice(1) });
+    } else if (llegadas.atrasadas > 0) {
+      // Nada viene a tiempo: lo que debía llegar y no llegó vuelve a «Comprar» y se dice con sus fechas.
+      agregar("llega", "ambar", textoAtraso(llegadas.diasAtraso), `${llegadas.atrasadas} sin llegar`, { ancho: "completo", mas: lineasDeLlegadas(tardias, hoy) });
+    }
     const alla = otraSedeQueLaTiene(p.otras);
     if (alla) agregar("flechas", "pizarra", `${codigoDe(sedes, alla.sedeId)} tiene ${alla.stock}`, "se podría pedir");
     return hechos;
@@ -326,27 +389,34 @@ export function tablaDelModelo(m: { variantes: readonly PrendaAnalisis[] }): Tab
 }
 
 /**
- * Las otras tiendas, en una línea bajo la tabla: «Arequipa y Lima no tienen este modelo.» o «Arequipa tiene 3 (vendió 2 en sus
- * últimos 30 días). Lima no tiene.» Las otras tiendas cuentan sus propios 30 días: se dice, para no mezclarlo con los días de la tuya.
+ * Las otras tiendas, en una línea bajo la tabla: «Arequipa y Lima no tienen este modelo.» o «Arequipa tiene 3 (vendió 2 en sus últimos 30
+ * días). Lima no tiene.» Las otras tiendas cuentan sus propios 30 días: se dice, para no mezclarlo con los días de la tuya.
+ *
+ * Una tienda que lo VENDIÓ y quedó en cero no «no tiene este modelo» (eso se lee como «nunca lo tuvo»): «Arequipa se quedó sin stock (vendió 5 en
+ * sus últimos 30 días)». El «también» es solo para cuando la tuya TAMBIÉN está en cero: en la ficha de un modelo que mandas o liquidas (mi tienda
+ * sí lo tiene) diría que a las dos les falta, y es justo lo contrario de lo que mueve el envío. «Sin stock» y no «sin ella»: «ella» no tenía a
+ * qué referirse y no concordaba con un Polo o un Chaleco. «No tiene este modelo» queda para la que nunca lo tuvo ni lo vendió.
  */
-export function lineaOtrasTiendas(p: Pick<PrendaAnalisis, "otras">, sedes: readonly SedeAnalisis[], miSedeId: string): string | null {
+export function lineaOtrasTiendas(p: Pick<PrendaAnalisis, "otras" | "piso" | "almacen">, sedes: readonly SedeAnalisis[], miSedeId: string): string | null {
   const otras = sedes.filter((s) => s.id !== miSedeId).map((s) => ({ ciudad: s.ciudad, o: p.otras.find((x) => x.sedeId === s.id) }));
   if (otras.length === 0) return null;
-  const con = otras.filter((x) => (x.o?.stock ?? 0) > 0);
-  const sin = otras.filter((x) => (x.o?.stock ?? 0) <= 0).map((x) => x.ciudad);
+  const tiene = (x: (typeof otras)[number]) => (x.o?.stock ?? 0) > 0;
+  const vendio = (x: (typeof otras)[number]) => x.o?.vendidas30 ?? 0;
+  const con = otras.filter(tiene);
+  const sinStock = otras.filter((x) => !tiene(x) && vendio(x) > 0);
+  const sin = otras.filter((x) => !tiene(x) && vendio(x) <= 0).map((x) => x.ciudad);
   const lista = (xs: string[]) => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}`);
-  if (con.length === 0) return `${lista(sin)} no ${sin.length === 1 ? "tiene" : "tienen"} este modelo.`;
-  const tienen = con.map((x) => {
-    const v = x.o?.vendidas30 ?? 0;
-    return `${x.ciudad} tiene ${x.o?.stock ?? 0}${v > 0 ? ` (vendió ${v} en sus últimos 30 días)` : ""}`;
-  });
-  return [`${tienen.join(". ")}.`, sin.length > 0 ? `${lista(sin)} no ${sin.length === 1 ? "tiene" : "tienen"}.` : null].filter(Boolean).join(" ");
+  if (con.length === 0 && sinStock.length === 0) return `${lista(sin)} no ${sin.length === 1 ? "tiene" : "tienen"} este modelo.`;
+  const tienen = con.map((x) => `${x.ciudad} tiene ${x.o?.stock ?? 0}${vendio(x) > 0 ? ` (vendió ${vendio(x)} en sus últimos 30 días)` : ""}`);
+  const tambien = totalEnTienda(p) === 0 ? " también" : "";
+  const sinSu = sinStock.map((x) => `${x.ciudad}${tambien} se quedó sin stock (vendió ${vendio(x)} en sus últimos 30 días)`);
+  return [[...tienen, ...sinSu].join(". ") + ".", sin.length > 0 ? `${lista(sin)} no ${sin.length === 1 ? "tiene" : "tienen"}.` : null].filter(Boolean).join(" ");
 }
 
 // ───────── Los botones del pie ─────────
 
-/** Un botón que lleva a otra pantalla. */
-export type AccionFicha = { texto: string; href: string };
+/** Un botón que lleva a otra pantalla. `secundaria`: no es el paso que toca (lo que ya viene en camino no se compra otra vez): botón secundario, no el negro. */
+export type AccionFicha = { texto: string; href: string; secundaria?: boolean };
 
 /**
  * El botón principal según el grupo, como la fila de su carril: «Comprar», «Enviar a Arequipa» (la tienda que más la vende),
@@ -359,6 +429,8 @@ export function accionPrincipal(
   sedes: readonly SedeAnalisis[],
   acceso: AccesoAnalisis,
   sinSalir = false,
+  /** Algo llega a tiempo (`porLlegar`): «Comprar» sigue ahí, pero ya no es el botón principal (lo hace el carril, que lo dibuja secundario). */
+  yaViene = false,
 ): AccionFicha | null {
   if (sinSalir && !grupo) {
     const href = hrefReponerPiso([p], acceso);
@@ -366,7 +438,7 @@ export function accionPrincipal(
   }
   if (grupo === "comprar") {
     const href = hrefComprar(p, acceso);
-    return href ? { texto: "Comprar", href } : null;
+    return href ? { texto: "Comprar", href, ...(yaViene ? { secundaria: true } : {}) } : null;
   }
   if (grupo === "enviar") {
     const vende = sedeQueMasVende(p.otras);

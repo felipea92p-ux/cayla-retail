@@ -4,6 +4,7 @@ import { DIAS_SE_ACABA, diasQueQuedan, porLlegar, seEstaAcabando } from "./anali
 import {
   atrasoDe,
   colorDias,
+  cuandoLlega,
   cuentasFiltroAcaba,
   EJE_ACABA,
   faltanDelModelo,
@@ -26,6 +27,7 @@ import {
   tipOtraTienda,
   tipTambienSeAcaba,
   tituloAtrasada,
+  tituloDelCarril,
   tituloPorLlegar,
   UNA_SEMANA,
   vacioAcaba,
@@ -231,6 +233,50 @@ describe("«Por llegar»: la píldora y su tooltip", () => {
     });
     expect(tituloPorLlegar(p, HOY)).toBe("Por llegar: 10");
     expect(lineasPorLlegar(p, HOY)).toEqual(["Compra: 10 · llega el 15 oct."]);
+  });
+});
+
+describe("«Por llegar 24 · en 4 días»: cuándo llega (F1)", () => {
+  const HOY = "2026-10-16";
+  const con = (...llega: LlegadaPrenda[]) => cuandoLlega(prenda({ llega }), HOY);
+  it("si todo llega el mismo día: hoy, mañana o «en N días»", () => {
+    expect(con(llegada({ cantidad: 24, fecha: "2026-10-20" }))).toBe("en 4 días");
+    expect(con(llegada({ cantidad: 24, fecha: "2026-10-17" }))).toBe("mañana");
+    expect(con(llegada({ cantidad: 24, fecha: HOY }))).toBe("hoy");
+    // Dos partes el mismo día siguen siendo «un día».
+    expect(con(llegada({ cantidad: 10, fecha: "2026-10-20" }), llegada({ de: "taller", cantidad: 14, fecha: "2026-10-20" }))).toBe("en 4 días");
+  });
+  it("si nadie anotó cuándo: «sin fecha» (no se inventa una)", () => {
+    expect(con(llegada({ cantidad: 20, fecha: null }))).toBe("sin fecha");
+    expect(con(llegada({ cantidad: 20, fecha: null }), llegada({ de: "taller", cantidad: 3, fecha: null }))).toBe("sin fecha");
+  });
+  it("con varias fechas, o una parte sin fecha, dice desde cuándo (la primera); el tooltip trae cada parte", () => {
+    expect(con(llegada({ cantidad: 10, fecha: "2026-10-20" }), llegada({ cantidad: 6, fecha: "2027-01-05" }))).toBe("desde el 20 oct.");
+    expect(con(llegada({ cantidad: 10, fecha: "2026-10-20" }), llegada({ cantidad: 6, fecha: null }))).toBe("desde el 20 oct.");
+  });
+  it("lo atrasado no cuenta (tiene su propia píldora) y sin nada a tiempo no hay «cuándo»", () => {
+    expect(con(llegada({ cantidad: 8, fecha: "2026-10-01" }), llegada({ cantidad: 6, fecha: "2026-10-18" }))).toBe("en 2 días");
+    expect(con(llegada({ cantidad: 8, fecha: "2026-10-01" }))).toBeNull();
+    expect(con(llegada({ cantidad: 0, fecha: "2026-10-20" }))).toBeNull();
+    expect(con()).toBeNull();
+  });
+});
+
+describe("el título del carril sale del filtro (F1)", () => {
+  it("Todos «Se están acabando», Comprar «Cómpralas», Por llegar «Ya vienen»; en singular con uno", () => {
+    expect(tituloDelCarril("todos", 12)).toBe("Se están acabando");
+    expect(tituloDelCarril("comprar", 8)).toBe("Cómpralas");
+    expect(tituloDelCarril("llega", 4)).toBe("Ya vienen");
+    expect(tituloDelCarril("todos", 1)).toBe("Se está acabando");
+    expect(tituloDelCarril("comprar", 1)).toBe("Cómprala");
+    expect(tituloDelCarril("llega", 1)).toBe("Ya viene");
+  });
+  it("no dice «Cómpralas» sobre lo que ya viene en camino (la compradora apretaba «Comprar» y pedía dos veces)", () => {
+    for (const n of [1, 4]) expect(tituloDelCarril("llega", n).toLowerCase()).not.toContain("cómpral");
+  });
+  it("cada filtro tiene el suyo y distinto", () => {
+    const titulos = FILTROS_ACABA.map((f) => tituloDelCarril(f.clave, 5));
+    expect(new Set(titulos).size).toBe(FILTROS_ACABA.length);
   });
 });
 

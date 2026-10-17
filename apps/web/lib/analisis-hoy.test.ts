@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PrendaAnalisis, PrendaEnOtraSede } from "./analisis-tipos";
+import { cuentasFiltroAcaba, pasaFiltroAcaba, prendasQueSeAcaban } from "./analisis-acaba";
 import {
   ALTO_COLUMNA,
   conLoRegistrado,
@@ -18,6 +19,7 @@ import {
   estadoQuieta,
   estadosDelFlujo,
   etiquetaFlujo,
+  filtroAcabaDelCamino,
   FLUJO,
   geometriaFlujo,
   listaTip,
@@ -173,8 +175,9 @@ describe("Qué hacer hoy: los caminos", () => {
       prenda({ nombre: "Se vende bien", piso: 20, vendidas30: 10 }),
     ];
     const c = caminosDeHoy(prendas, 60, sedes, HOY);
-    expect(c.compra).toMatchObject({ verbo: "Compra", grupo: "comprar", vista: "acaba", est: "urg", motivo: "1 agotada · 1 por llegar", primero: true });
-    expect(c.compra!.prendas.map((p) => p.nombre)).toEqual(["Agotada", "Llega"]);
+    // «Llega» ya viene en camino: no se compra otra vez, así que no está en el camino (se dice aparte: «1 más ya viene»).
+    expect(c.compra).toMatchObject({ verbo: "Compra", grupo: "comprar", vista: "acaba", est: "urg", motivo: "1 agotada · 1 más ya viene", primero: true });
+    expect(c.compra!.prendas.map((p) => p.nombre)).toEqual(["Agotada"]);
     // Un camino por tienda destino, en el orden de las tiendas; adentro, la que más espera primero.
     expect(c.manda.map((m) => [m.verbo, m.prendas.map((p) => p.nombre)])).toEqual([
       ["Manda a Arequipa", ["A Arequipa 2", "A Arequipa 1"]],
@@ -196,14 +199,57 @@ describe("Qué hacer hoy: los caminos", () => {
     expect(estadosDelFlujo(c)).toEqual(["urg"]);
   });
 
-  it("«por llegar» cuenta lo que todavía se espera: una llegada atrasada vuelve a ser algo por comprar (A3)", () => {
+  it("lo que ya viene en camino a tiempo no se compra otra vez: se dice aparte («4 más ya vienen»), y una llegada atrasada vuelve a ser algo por comprar (A3)", () => {
     const aTiempo = seAcaba({ nombre: "A tiempo", llega: [{ de: "compra", cantidad: 4, fecha: "2026-10-12" }] });
     const atrasada = seAcaba({ nombre: "Atrasada", llega: [{ de: "taller", cantidad: 4, fecha: "2026-09-20" }] });
-    expect(caminosDeHoy([agotada(), aTiempo, atrasada], 60, sedes, HOY).compra!.motivo).toBe("1 agotada · 1 por llegar");
+    const c = caminosDeHoy([agotada({ nombre: "Agotada" }), aTiempo, atrasada], 60, sedes, HOY).compra!;
+    expect(c.motivo).toBe("1 agotada · 1 más ya viene");
+    expect(c.prendas.map((p) => p.nombre).sort()).toEqual(["Agotada", "Atrasada"]);
     expect(caminosDeHoy([atrasada], 60, sedes, HOY).compra!.motivo).toBe("Quedan 14 días o menos");
+    // Plural: «2 más ya vienen».
+    const otra = seAcaba({ nombre: "Otra", llega: [{ de: "compra", cantidad: 2, fecha: null }] });
+    expect(caminosDeHoy([agotada(), aTiempo, otra], 60, sedes, HOY).compra!.motivo).toBe("1 agotada · 2 más ya vienen");
   });
 
-  it("A quién se pide (A8): el camino de comprar dice a cuántos proveedores, contando solo lo que todavía no viene en camino", () => {
+  it("Compra cuenta LO MISMO que el filtro «Comprar» de «Se está acabando» (una sola regla: nada de dos cuentas)", () => {
+    const prendas = [
+      agotada({ nombre: "Agotada" }),
+      seAcaba({ nombre: "A tiempo", llega: [{ de: "compra", cantidad: 4, fecha: "2026-10-12" }] }),
+      seAcaba({ nombre: "Sin fecha", llega: [{ de: "taller", cantidad: 3, fecha: null }] }),
+      seAcaba({ nombre: "Atrasada", llega: [{ de: "taller", cantidad: 4, fecha: "2026-09-20" }] }),
+      seAcaba({ nombre: "Nada viene" }),
+    ];
+    const seAcaban = prendasQueSeAcaban(prendas, 60);
+    const cuentas = cuentasFiltroAcaba(seAcaban, HOY);
+    const compra = caminosDeHoy(prendas, 60, sedes, HOY).compra!;
+    expect(compra.prendas).toHaveLength(cuentas.comprar);
+    expect(compra.prendas.map((p) => p.nombre).sort()).toEqual(seAcaban.filter((p) => pasaFiltroAcaba(p, "comprar", HOY)).map((p) => p.nombre).sort());
+    // Y lo que dice aparte es lo que cuenta «Por llegar»: entre las dos suman todo lo que se acaba.
+    expect(compra.motivo).toContain(`${cuentas.llega} más ya vienen`);
+    expect(compra.prendas.length + cuentas.llega).toBe(cuentas.todos);
+  });
+
+  it("tocar «Compra» abre «Se está acabando» ya en «Comprar»: el número de la tarjeta es el del título del carril (8, no 12)", () => {
+    const prendas = [agotada({ nombre: "Agotada" }), seAcaba({ nombre: "A tiempo", llega: [{ de: "compra", cantidad: 4, fecha: "2026-10-12" }] }), seAcaba({ nombre: "Nada viene" })];
+    const caminos = caminosDeHoy(prendas, 60, sedes, HOY);
+    const filtro = filtroAcabaDelCamino(caminos.compra!);
+    expect(filtro).toBe("comprar");
+    // Con ese filtro, el carril muestra exactamente las que cuenta el camino.
+    const seAcaban = prendasQueSeAcaban(prendas, 60);
+    expect(seAcaban.filter((p) => pasaFiltroAcaba(p, filtro!, HOY))).toHaveLength(caminos.compra!.prendas.length);
+    // Los demás caminos son de «No se vende», que no tiene ese filtro: no lo tocan.
+    const quietas = [...caminos.manda, ...caminos.reb];
+    for (const c of quietas) expect(filtroAcabaDelCamino(c)).toBeNull();
+    expect(filtroAcabaDelCamino({ clave: "liquidar" })).toBeNull();
+    expect(filtroAcabaDelCamino({ clave: "manda-aqp" })).toBeNull();
+  });
+
+  it("si todo lo que se acaba ya viene en camino no hay nada que comprar hoy: no hay camino de compra", () => {
+    const todoViene = seAcaba({ nombre: "Viene", llega: [{ de: "compra", cantidad: 4, fecha: "2026-10-12" }] });
+    expect(caminosDeHoy([todoViene], 60, sedes, HOY).compra).toBeNull();
+  });
+
+  it("A quién se pide (A8): el camino de comprar dice a cuántos proveedores; su lista es esa misma, sin lo que ya viene en camino", () => {
     const proveedores = {
       nombres: { a: { nombre: "Textil Andino", activo: true }, b: { nombre: "Hilos del Sur", activo: true } },
       delCatalogo: { pa1: "a", pa2: "a", pb1: "b", pcamino: "b" },
@@ -213,26 +259,27 @@ describe("Qué hacer hoy: los caminos", () => {
       seAcaba({ productoId: "pa2", origen: null }),
       seAcaba({ productoId: "pb1", origen: null }),
       seAcaba({ productoId: "sin-catalogo", origen: null }),
-      // Ya viene a tiempo: no se vuelve a pedir, así que su proveedor no entra en la cuenta.
+      // Ya viene a tiempo: no se vuelve a pedir, así que ni su proveedor entra en la cuenta ni él en la lista.
       seAcaba({ productoId: "pcamino", origen: null, llega: [{ de: "compra", cantidad: 4, fecha: "2026-10-12" }] }),
     ];
     const c = caminosDeHoy(prendas, 60, sedes, HOY, proveedores);
-    // El tooltip lista las 5, pero el pie habla solo de las que faltan: lo dice, para que nadie crea que hay que pedir toda la lista.
-    expect(c.compra!.pie).toBe("Las que aún no vienen: pídelas a 2 proveedores · 1 sin proveedor");
-    expect(c.compra!.prendas).toHaveLength(5);
-    // Si nada viene en camino, la lista y el pie hablan de lo mismo y no hace falta aclararlo.
-    const ninguna = caminosDeHoy(prendas.slice(0, 4), 60, sedes, HOY, proveedores);
-    expect(ninguna.compra!.pie).toBe("Pídelas a 2 proveedores · 1 sin proveedor");
+    expect(c.compra!.pie).toBe("Pídelas a 2 proveedores · 1 sin proveedor");
+    expect(c.compra!.prendas).toHaveLength(4);
+    expect(c.compra!.motivo).toBe("1 agotada · 1 más ya viene");
     // Los otros caminos no llevan pie.
     expect(caminosDeHoy([...prendas, paraLiquidar()], 60, sedes, HOY, proveedores).reb[0]!.pie).toBeUndefined();
   });
 
-  it("sin los proveedores (no se pudieron leer) o sin nada por pedir, el camino no dice nada: nunca «sin proveedor» por un error", () => {
+  it("un proveedor archivado no cuenta como proveedor al que pedirle: el camino lo cuenta «sin proveedor»", () => {
+    const proveedores = { nombres: { v: { nombre: "Tejidos Wari", activo: false } }, delCatalogo: { pv: "v" } };
+    const c = caminosDeHoy([agotada({ productoId: "pv", origen: null })], 60, sedes, HOY, proveedores);
+    expect(c.compra!.pie).toBe("Falta elegir el proveedor en el catálogo");
+  });
+
+  it("sin los proveedores (no se pudieron leer), el camino no dice nada: nunca «sin proveedor» por un error", () => {
     const sinLeer = caminosDeHoy([agotada({ productoId: "pa1", origen: null })], 60, sedes, HOY, null);
     expect(sinLeer.compra!.pie).toBeUndefined();
     expect("pie" in sinLeer.compra!).toBe(false);
-    const todoViene = seAcaba({ productoId: "pa1", origen: null, llega: [{ de: "compra", cantidad: 4, fecha: "2026-10-12" }] });
-    expect(caminosDeHoy([todoViene], 60, sedes, HOY, { nombres: {}, delCatalogo: {} }).compra!.pie).toBeUndefined();
   });
 
   it("sin nada que hacer, no hay caminos", () => {

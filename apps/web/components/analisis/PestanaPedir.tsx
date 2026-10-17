@@ -34,6 +34,7 @@ import {
   textoAlcance,
   textoRitmo,
   llegadasAparte,
+  textoVendiste,
   tieneYVienen,
   tiposSinRegistrar,
   notaTiposSinRegistrar,
@@ -127,7 +128,7 @@ export function PestanaPedir() {
             </span>
           </div>
           <p className="b-nota al-nota">
-            {textoRitmo(diasDeVentas)} · toca un tipo para ver sus tallas y lo que más se vende <span aria-hidden="true">→</span>
+            {textoRitmo(diasDeVentas)} · toca un tipo para ver sus tallas y lo que más se vende
           </p>
           <TablaAlcance tipos={tiposOrdenados} hastaNavidad={hastaNavidad} categoria={categoria} onElegir={elegir} />
           {sinRegistro.length > 0 && <p className="b-nota al-sin-registro">{notaTiposSinRegistrar(sinRegistro)}</p>}
@@ -277,8 +278,7 @@ function TablaAlcance({ tipos, hastaNavidad, categoria, onElegir }: { tipos: Alc
             <span className="n">
               <b>{t.categoria}</b>
               <small>
-                vendiste {t.vendidas}
-                {t.sinPrenda > 0 ? ` (${t.sinPrenda} sin su prenda)` : ""} · {tieneYVienen(t)}
+                {textoVendiste(t)} · {tieneYVienen(t)}
               </small>
               {/* Lo atrasado y lo que llega después de Navidad, en su propia línea: no ensancha la principal (la columna es angosta). */}
               {llegadasAparte(t) && <small className="aparte">{llegadasAparte(t)}</small>}
@@ -290,7 +290,6 @@ function TablaAlcance({ tipos, hastaNavidad, categoria, onElegir }: { tipos: Alc
             <span className="v">
               {t.pide ? "▲ " : ""}
               {textoAlcance(t.dias)}
-              {categoria === t.categoria && <span aria-hidden="true"> →</span>}
             </span>
           </button>
         ))}

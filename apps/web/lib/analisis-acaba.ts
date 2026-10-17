@@ -10,6 +10,7 @@ import type { ProveedorDelModelo } from "./analisis-a-quien-pedir";
 import { DIAS_SE_ACABA, diasDeVentas, diasQueQuedan, esTallaUnica, GRUPOS_ACABA, llegadaAtrasada, llegadasDe, ordenSeAcaba, plural, porLlegar, prendasDe, totalEnTienda } from "./analisis-reglas";
 import { compararTallas } from "./tallas";
 import { fechaCorta } from "./motor-demanda-reglas";
+import { diasEntreFechas } from "./fechas-lima";
 
 /** Una semana: hasta aquí los días van en rojo, y es la línea punteada del carril. */
 export const UNA_SEMANA = 7;
@@ -22,6 +23,17 @@ export const FILTROS_ACABA: readonly { clave: FiltroAcaba; texto: string }[] = [
   { clave: "comprar", texto: "Comprar" },
   { clave: "llega", texto: "Por llegar" },
 ];
+
+/**
+ * El título del carril sale del FILTRO (Felipe 2026-10-16: con «Por llegar» decía «Cómpralas» sobre lo que ya viene en camino, y la compradora
+ * aprieta «Comprar» en lo que no hace falta): «Todos» → «Se están acabando», «Comprar» → «Cómpralas», «Por llegar» → «Ya vienen». La cuenta
+ * que lo acompaña es la misma del filtro. El grupo conserva su clave (`comprar`) y su «?»: Hoy lo deja a la vista con ella.
+ */
+export function tituloDelCarril(filtro: FiltroAcaba, n: number): string {
+  if (filtro === "comprar") return plural(n, "Cómprala", "Cómpralas");
+  if (filtro === "llega") return plural(n, "Ya viene", "Ya vienen");
+  return plural(n, "Se está acabando", "Se están acabando");
+}
 
 /**
  * Si una prenda que se acaba pasa el filtro: «Comprar» = no viene nada en camino a tiempo; «Por llegar» = algo ya viene. Una llegada
@@ -106,6 +118,24 @@ function lineasDe(partes: readonly LlegadaPrenda[], hoy: string): string[] {
     .filter((x) => x.cantidad > 0)
     .sort((a, b) => orden(a.fecha).localeCompare(orden(b.fecha)))
     .map((x) => textoLlegada(x, hoy));
+}
+
+/**
+ * Cuándo llega lo que viene, para la píldora «Por llegar 24 · en 4 días»: «hoy», «mañana», «en 4 días» si todo llega el mismo día; «sin
+ * fecha» si nadie anotó cuándo; y, si hay varias fechas (o una parte sin fecha), «desde el 20 oct.» (la primera): el tooltip trae cada parte.
+ * null si no viene nada a tiempo (lo atrasado no cuenta: tiene su propia píldora).
+ */
+export function cuandoLlega(p: Pick<PrendaAnalisis, "llega">, hoy: string): string | null {
+  const partes = p.llega.filter((x) => x.cantidad > 0 && !llegadaAtrasada(x, hoy));
+  if (partes.length === 0) return null;
+  const fechas = [...new Set(partes.map((x) => x.fecha).filter((f): f is string => f !== null))].sort();
+  if (fechas.length === 0) return "sin fecha";
+  const primera = fechas[0]!;
+  if (fechas.length === 1 && partes.every((x) => x.fecha !== null)) {
+    const dias = diasEntreFechas(hoy, primera);
+    return dias <= 0 ? "hoy" : dias === 1 ? "mañana" : `en ${dias} días`;
+  }
+  return `desde el ${fechaCorta(primera)}`;
 }
 
 /** Las líneas del tooltip «Por llegar»: solo lo que todavía se espera (lo atrasado va en su propio tooltip). */
