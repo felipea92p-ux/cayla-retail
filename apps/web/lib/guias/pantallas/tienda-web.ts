@@ -45,7 +45,7 @@ export const GUIA_TIENDA_WEB_RESUMEN: Guia = {
       ancla: "tienda-web.camino",
       opcional: true,
       titulo: "El camino de los pedidos",
-      texto: "Cuántos pedidos hay en cada paso: por confirmar, por cobrar, por entregar y cerrados. El tramo con el reloj en rojo cierra el pedido solo si no lo confirmas a tiempo; los de la campana solo avisan. Toca uno para ver esos pedidos.",
+      texto: "Cuántos pedidos hay en cada paso: por confirmar, por cobrar, por entregar y cerrados. Los tramos con el reloj en rojo pierden la venta: sin confirmar, se cierra solo; sin ningún pago, se anula solo. El de la campana solo avisa. Toca uno para ver esos pedidos.",
     },
     {
       id: "nota",
@@ -98,7 +98,7 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       ancla: "pedidos-web.cifras",
       opcional: true,
       titulo: "El camino de un pedido",
-      texto: "Cuántos pedidos hay en cada paso: por confirmar, por cobrar, por entregar y cerrados. El tramo con el reloj en rojo cierra el pedido solo si no lo confirmas a tiempo; los de la campana solo avisan. Toca un paso para ver solo esos pedidos, y otra vez para volver a todo.",
+      texto: "Cuántos pedidos hay en cada paso. Los tramos con el reloj en rojo pierden la venta: si nadie lo confirma, se cierra solo; si no paga nada, se anula solo. El de la campana solo avisa. Toca un paso para ver solo esos pedidos, y otra vez para volver a todo.",
     },
     {
       id: "para-enviar",
@@ -143,7 +143,7 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       ancla: "pedidos-web.plazo",
       opcional: true,
       titulo: "Su plazo",
-      texto: "Qué pasa y cuándo, una sola vez: «se cierra solo en 2 h», «sin pagar hace 2 días», «listo para recoger». En rojo, lo que se pierde o ya pasó su aviso. La barra dice cuánto va del tiempo de ese paso.",
+      texto: "Qué pasa y cuándo, una sola vez: «se cierra solo en 2 h», «sin pago, se anula en 5 h», «listo para recoger». En rojo, lo que se pierde o ya pasó su aviso. La barra dice cuánto va del tiempo de ese paso.",
     },
     {
       id: "verbo",
