@@ -1,15 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { encuadrar, LIENZO_FOTO, MARGEN_PRENDA } from "./foto-encuadre";
 import {
+  ALFA_SOLIDA,
   ALTO_MAX_RECORTE,
-  aplicarAlfa,
   cajaVisible,
   cifrasRecortes,
   conRecorte,
-  destinoDeLaMascara,
   errorDeRecorte,
-  esFondoBlanco,
   leerRecortes,
+  limpiarAlfa,
   motivoDelRecorte,
   paraDeshacerElDescarte,
   porRecortar,
@@ -18,88 +16,84 @@ import {
   rutaDelRecorte,
   tamanoDelRecorte,
   textoDelMotivo,
+  tieneFondoTransparente,
 } from "./recorte-probador-reglas";
 
 const BASE = "https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/";
 
-describe("destinoDeLaMascara: la prenda cae donde quedó al subir la foto", () => {
-  const original = { ancho: 2000, alto: 2400 };
-  const caja = { x: 400, y: 300, ancho: 1000, alto: 1500 };
-
-  it("sin fondo: la caja de la prenda llega justo al encuadre con margen", () => {
-    const d = destinoDeLaMascara(original, caja, true);
-    const esperado = encuadrar(caja, LIENZO_FOTO, MARGEN_PRENDA);
-    const escala = d.ancho / original.ancho;
-    expect(d.x + caja.x * escala).toBeCloseTo(esperado.x, 6);
-    expect(d.y + caja.y * escala).toBeCloseTo(esperado.y, 6);
-    expect(caja.ancho * escala).toBeCloseTo(esperado.ancho, 6);
-    expect(caja.alto * escala).toBeCloseTo(esperado.alto, 6);
-    // La máscara entera es más grande que el lienzo: lo de afuera no se ve.
-    expect(d.x).toBeLessThan(0);
-    expect(d.ancho).toBeGreaterThan(LIENZO_FOTO.ancho);
-  });
-
-  it("con fondo: el original entero, encuadrado sin margen", () => {
-    expect(destinoDeLaMascara(original, caja, false)).toEqual(encuadrar(original, LIENZO_FOTO, 0));
-    expect(destinoDeLaMascara(original, caja, false)).toEqual({ x: 0, y: 30, ancho: 1200, alto: 1440 });
-  });
-});
-
-/** Una foto de `n` píxeles: los primeros `fondo` son fondo (alfa 0) del tono `tono`; el resto, prenda negra (alfa 255). */
-function foto(n: number, fondo: number, tono: number) {
-  const rgba = new Uint8ClampedArray(n * 4);
-  const alfa = new Uint8ClampedArray(n);
-  for (let i = 0; i < n; i++) {
-    const esFondo = i < fondo;
-    rgba.set(esFondo ? [tono, tono, tono, 255] : [0, 0, 0, 255], i * 4);
-    alfa[i] = esFondo ? 0 : 255;
-  }
-  return { rgba, alfa };
+/** Una imagen de `ancho × alto`: `f(x, y)` devuelve [r, g, b, a] de cada píxel. */
+function imagen(ancho: number, alto: number, f: (x: number, y: number) => [number, number, number, number]) {
+  const rgba = new Uint8ClampedArray(ancho * alto * 4);
+  for (let y = 0; y < alto; y++) for (let x = 0; x < ancho; x++) rgba.set(f(x, y), (y * ancho + x) * 4);
+  return rgba;
 }
+const alfaEn = (rgba: Uint8ClampedArray, ancho: number, x: number, y: number) => rgba[(y * ancho + x) * 4 + 3];
 
-describe("esFondoBlanco: se subió «Sin fondo» o «Con fondo»", () => {
-  it("el blanco puro de una foto sin fondo (con el ruido del JPEG)", () => {
-    const { rgba, alfa } = foto(100, 60, 253);
-    expect(esFondoBlanco(rgba, alfa)).toBe(true);
+describe("tieneFondoTransparente: ¿la IA entregó el fondo transparente?", () => {
+  it("una prenda sobre fondo transparente sí", () => {
+    expect(tieneFondoTransparente(imagen(10, 10, (x) => (x < 3 ? [0, 0, 0, 0] : [200, 200, 200, 255])))).toBe(true);
   });
-
-  it("una pared clara no es el blanco del lienzo", () => {
-    const { rgba, alfa } = foto(100, 60, 232);
-    expect(esFondoBlanco(rgba, alfa)).toBe(false);
+  it("un JPG o un PNG sin transparencia, no: queda «sin recorte»", () => {
+    expect(tieneFondoTransparente(imagen(10, 10, () => [255, 255, 255, 255]))).toBe(false);
   });
-
-  it("unos pocos píxeles oscuros en el fondo no cambian la respuesta, muchos sí", () => {
-    const { rgba, alfa } = foto(100, 100, 255);
-    rgba.set([10, 10, 10, 255], 0);
-    expect(esFondoBlanco(rgba, alfa)).toBe(true);
-    for (let i = 0; i < 10; i++) rgba.set([10, 10, 10, 255], i * 4);
-    expect(esFondoBlanco(rgba, alfa)).toBe(false);
+  it("un par de píxeles sueltos no bastan (el ruido de un PNG con fondo)", () => {
+    const rgba = imagen(100, 100, () => [255, 255, 255, 255]);
+    rgba[3] = 0;
+    rgba[7] = 0;
+    expect(tieneFondoTransparente(rgba)).toBe(false);
   });
-
-  it("sin nada de fondo no se puede decir", () => {
-    const { rgba, alfa } = foto(10, 0, 255);
-    expect(esFondoBlanco(rgba, alfa)).toBe(false);
+  it("una imagen vacía, no", () => {
+    expect(tieneFondoTransparente(new Uint8ClampedArray(0))).toBe(false);
   });
 });
 
-describe("aplicarAlfa: la transparencia, sin el halo blanco del borde", () => {
-  it("despeja el color de la prenda en un borde mezclado con blanco", () => {
-    // Un borde negro con alfa 128, pintado sobre blanco: (128/255)·0 + (1 − 128/255)·255 = 127.
-    const rgba = new Uint8ClampedArray([127, 127, 127, 255]);
-    aplicarAlfa(rgba, [128], true);
-    expect(Array.from(rgba)).toEqual([0, 0, 0, 128]);
+describe("limpiarAlfa: lo que entrega la IA, sin manchas", () => {
+  // 40×40: la prenda ocupa x 10..29, y 10..29. Afuera, fondo transparente.
+  const ANCHO = 40;
+  const prenda = (x: number, y: number) => x >= 10 && x < 30 && y >= 10 && y < 30;
+
+  it("la neblina casi invisible del fondo pasa a transparente del todo", () => {
+    const rgba = imagen(ANCHO, ANCHO, (x, y) => (prenda(x, y) ? [250, 250, 250, 255] : [255, 255, 255, 2]));
+    limpiarAlfa(rgba, ANCHO, ANCHO);
+    expect(alfaEn(rgba, ANCHO, 2, 2)).toBe(0);
+    expect(alfaEn(rgba, ANCHO, 35, 20)).toBe(0);
   });
 
-  it("no toca la tela entera ni el fondo; solo les pone su alfa", () => {
-    const rgba = new Uint8ClampedArray([40, 60, 80, 255, 255, 255, 255, 255]);
-    aplicarAlfa(rgba, [255, 0], true);
-    expect(Array.from(rgba)).toEqual([40, 60, 80, 255, 255, 255, 255, 0]);
+  it("la tela casi opaca (253) queda opaca del todo; no queda lavada", () => {
+    const rgba = imagen(ANCHO, ANCHO, (x, y) => (prenda(x, y) ? [250, 250, 250, 253] : [0, 0, 0, 0]));
+    limpiarAlfa(rgba, ANCHO, ANCHO);
+    expect(alfaEn(rgba, ANCHO, 20, 20)).toBe(255);
   });
 
-  it("con su fondo (no era blanco) solo pone el alfa", () => {
-    const rgba = new Uint8ClampedArray([128, 128, 128, 255]);
-    aplicarAlfa(rgba, [128], false);
-    expect(Array.from(rgba)).toEqual([128, 128, 128, 128]);
+  it("el borde suave en medio se respeta", () => {
+    const rgba = imagen(ANCHO, ANCHO, (x, y) => (prenda(x, y) ? (x === 10 ? [250, 250, 250, 120] : [250, 250, 250, 255]) : [0, 0, 0, 0]));
+    limpiarAlfa(rgba, ANCHO, ANCHO);
+    expect(alfaEn(rgba, ANCHO, 10, 20)).toBe(120);
+    expect(120).toBeLessThan(ALFA_SOLIDA);
+  });
+
+  it("una mota suelta lejos de la prenda se borra", () => {
+    const rgba = imagen(ANCHO, ANCHO, (x, y) => (prenda(x, y) ? [250, 250, 250, 255] : x === 36 && y === 3 ? [255, 255, 255, 200] : [0, 0, 0, 0]));
+    limpiarAlfa(rgba, ANCHO, ANCHO);
+    expect(alfaEn(rgba, ANCHO, 36, 3)).toBe(0);
+    expect(alfaEn(rgba, ANCHO, 20, 20)).toBe(255);
+  });
+
+  it("un conjunto de dos piezas separadas se conserva entero", () => {
+    const dos = (x: number, y: number) => (x >= 2 && x < 18 && y >= 10 && y < 30) || (x >= 22 && x < 38 && y >= 10 && y < 30);
+    const rgba = imagen(ANCHO, ANCHO, (x, y) => (dos(x, y) ? [20, 20, 20, 255] : [0, 0, 0, 0]));
+    limpiarAlfa(rgba, ANCHO, ANCHO);
+    expect(alfaEn(rgba, ANCHO, 10, 20)).toBe(255);
+    expect(alfaEn(rgba, ANCHO, 30, 20)).toBe(255);
+  });
+
+  it("no cambia el color de nadie y deja el hueco de diseño (un ojal) como está", () => {
+    // Un ojal: alfa 255 con el color de la tela de atrás, en medio de la prenda.
+    const rgba = imagen(ANCHO, ANCHO, (x, y) => (prenda(x, y) ? [245, 244, 240, 253] : [0, 0, 0, 0]));
+    const antes = Array.from(rgba).filter((_, i) => i % 4 !== 3);
+    limpiarAlfa(rgba, ANCHO, ANCHO);
+    expect(Array.from(rgba).filter((_, i) => i % 4 !== 3)).toEqual(antes);
+    expect(alfaEn(rgba, ANCHO, 20, 15)).toBe(255);
   });
 });
 
@@ -120,14 +114,13 @@ describe("el tamaño y la caja del PNG", () => {
 
 describe("motivoDelRecorte: lo dudoso se revisa antes de usarlo", () => {
   it("limpio: listo para el probador", () => {
-    expect(motivoDelRecorte({ huecos: 0, fondoBlanco: true, conOriginal: true })).toBeNull();
+    expect(motivoDelRecorte(0)).toBeNull();
+    expect(motivoDelRecorte(null)).toBeNull();
   });
-  it("un fondo que no es blanco pesa más que los huecos, y los huecos más que la falta del original", () => {
-    expect(motivoDelRecorte({ huecos: 0.02, fondoBlanco: false, conOriginal: false })).toBe("con_fondo");
-    expect(motivoDelRecorte({ huecos: 0.02, fondoBlanco: true, conOriginal: false })).toBe("huecos");
-    expect(motivoDelRecorte({ huecos: 0.001, fondoBlanco: true, conOriginal: false })).toBe("sin_original");
+  it("un hueco cerrado en medio de la tela pide revisión", () => {
+    expect(motivoDelRecorte(0.02)).toBe("huecos");
   });
-  it("cada motivo se dice en palabras de la tienda", () => {
+  it("cada motivo se dice en palabras de la tienda, también los de antes del ADR-0442", () => {
     for (const m of ["huecos", "con_fondo", "sin_original"] as const) expect(textoDelMotivo(m)).toBeTruthy();
     expect(textoDelMotivo(null)).toBeNull();
   });

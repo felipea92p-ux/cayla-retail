@@ -106,7 +106,7 @@ export function AgregarColoresModal({
   const [costo, setCosto] = useState(montos.costo);
   // La foto de referencia de cada color nuevo (una por color: volver a elegir la reemplaza).
   const [fotoDe, setFotoDe] = useState<Record<string, string>>({});
-  const { elegir: elegirFoto, ocupado: subiendoFoto, revision } = useSubirFotos({
+  const { elegir: elegirFoto, ocupado: subiendoFoto } = useSubirFotos({
     onSubidas: (nuevas) =>
       setFotoDe((a) => {
         const b = { ...a };
@@ -331,7 +331,6 @@ export function AgregarColoresModal({
               cerrar();
             }}
           />
-          {revision}
         </div>
       )}
     </Modal>
