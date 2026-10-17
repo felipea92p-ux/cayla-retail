@@ -7,7 +7,8 @@ import { useEffect, useState, useTransition } from "react";
 import { anotarEntrada } from "@/app/acciones/entrada";
 import { INICIO_CON_CUENTA } from "@/lib/sesion";
 import { clienteNavegador } from "@/lib/auth-navegador";
-import { MENSAJES, normalizarCorreo } from "@/lib/cuentas";
+import { normalizarCorreo } from "@/lib/cuentas";
+import { MENSAJES } from "@/lib/cuentas-mensajes";
 import { hrefConVolver, PARAMETRO_VOLVER, problemaAlEntrar, rutaParaVolver, type ProblemaAlEntrar } from "@/lib/entrada";
 import { CajaClave } from "./CajaClave";
 

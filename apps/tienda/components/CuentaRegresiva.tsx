@@ -1,6 +1,6 @@
 "use client";
 
-import { finDeCampana, partesCuenta } from "@/lib/portada";
+import { finDeCampana, partesCuenta } from "@/lib/cuenta-regresiva";
 import { useAhora } from "@/lib/useAhora";
 
 const dos = (n: number) => String(n).padStart(2, "0");

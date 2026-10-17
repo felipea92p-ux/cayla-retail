@@ -9,7 +9,8 @@ import {
   type RespuestaConfirmar,
   type RespuestaObtener,
 } from "@/app/acciones/mi-cuenta";
-import { arregloCorreo, codigoCompleto, MENSAJES, marcaDe, normalizarCorreo } from "@/lib/cuentas";
+import { arregloCorreo, codigoCompleto, marcaDe, normalizarCorreo } from "@/lib/cuentas";
+import { MENSAJES } from "@/lib/cuentas-mensajes";
 import { estadoCambioDeCorreo, pasoQueSigue, textoDeLoQueFalta, TEXTOS_CUENTA, type PasoDelCorreo } from "@/lib/mi-cuenta";
 import { CajaClave } from "./CajaClave";
 import { Campo, Resultado } from "./CampoGuiado";
