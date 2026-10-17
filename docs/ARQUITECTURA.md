@@ -2138,8 +2138,12 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   `app/acciones/bolsa.ts` `agregarLookALaBolsa` (sin precios: la bolsa los pide a la base con la tienda de recojo); al terminar, el aviso
   de abajo y el salto del globo de la bolsa. Las dos páginas llevan el marco de la tienda (`MarcoCatalogo`, con «Arma tu look» marcado) y
   piden cuenta en el proxy (`lib/sesion.ts`). Estilos en `app/estilos/looks.css`.
-- `/looks/arma` («Arma el tuyo», el probador de looks, ADR-0434 actividad 4; grupo `(catalogo)`, con cuenta; **escondido**: ninguna página
-  lleva ahí hasta la actividad 10) → `lib/catalogo-servidor.ts` `leerCatalogo(sede)` (qué se ve, su nombre y sus colores; con una tienda
+- `/looks/arma` («Arma el tuyo», el probador de looks, ADR-0434 actividad 4; grupo `(catalogo)`, con cuenta; se llega desde la
+  cabecera —«Arma el tuyo» tras «Arma tu look», `lib/inicio.ts` `datos.probador`, marcado con `actual="probador"`, solo si
+  `lib/probador-servidor.ts` `hayAlgoParaProbar` dice que hay algo que probar en esa tienda—, la tarjeta de arriba
+  de «Arma tu look» —`components/probador/EntradaProbador.tsx`, con el probador quieto en lo primero que hay— y la ficha —«Arma un look
+  con esta prenda», `FichaPrenda` prop `probador`, solo si `armarProbador` la acepta en esa tienda: abre con ella en el color elegido—;
+  actividad 10) → `lib/catalogo-servidor.ts` `leerCatalogo(sede)` (qué se ve, su nombre y sus colores; con una tienda
   elegida, solo lo que hay ahí) + `lib/probador-servidor.ts` `leerProbador(sede)` → `retail.tienda_probador(p_sede)` (`20261017025000`: por
   prenda publicada con largo —propio o típico— y algún recorte LISTO, su largo, sus recortes con el color de su foto, y por COLOR su precio
   —`fn_tienda_precios` por color, el de la bolsa— y su nivel por tienda —`fn_tienda_disponible`—; y `combina`, de `colores.combina_con`),
@@ -2159,6 +2163,31 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   `probador.css` (`@container tienda (min-width: 960px)`): la figura a la izquierda, fija al bajar, y a la derecha «Tu look», los colores,
   las opciones en grilla, el total y las promesas. Su esqueleto de carga es la forma `probador` de `FormaDelEsqueleto`. Estilos en
   `app/estilos/probador.css`. Prueba en la base: `pnpm pruebas:tienda-probador`.
+  **Guardar el look** (actividad 8): el corazón de la cabecera del probador (`components/probador/CorazonDelLook.tsx`) llama a
+  `app/acciones/probador.ts` `guardarTuLook` / `quitarTuLook` → `lib/looks-guardados-servidor.ts` → `retail.tienda_guardar_look` /
+  `tienda_quitar_look` (`20261017044000`: tablas `looks_web` + `look_web_piezas`, de 2 a 4 prendas por modelo y color, una vez por look
+  —la huella, sin importar el orden—, hasta 30 vivos por cuenta, quitar marca `quitado_en` y no borra; cerrar o eliminar la cuenta los
+  quita en `fn_cuentas_web_cerrar_al_anonimizar`). Va lleno si el look de la figura es uno guardado (`lib/looks-guardados.ts`
+  `buscarGuardado`, con los de `tienda_mis_looks` que la página lee junto con lo demás).
+- `/looks/guardado/[id]` (un look guardado, actividad 8; grupo `(catalogo)`, con cuenta) → `leerMisLooksEnBase(cuenta)` →
+  `retail.tienda_mis_looks` (solo los de la cuenta que pregunta: otro, con el enlace, ve «Este look ya no está») + `leerCatalogo` y
+  `leerProbador` (las prendas de TODAS las tiendas, como los favoritos: cada color dice dónde hay). `lookDelGuardado` lo pone en su lugar
+  y aparta lo que ya no está; el precio y el stock son los de hoy (no se guarda ninguno). Lo dibujan `FiguraQuieta.tsx` (la misma figura
+  del probador, quieta, con sus números), `NombreDelLook.tsx` (`renombrarTuLook` → `tienda_renombrar_look`), `AgregarLookGuardado.tsx`
+  (el `AgregarTuLook` del probador, a lo ancho) y `QuitarLookGuardado.tsx`; «Editar en el probador» abre `/looks/arma?p=…`. Su
+  esqueleto es el de la ficha. En `/catalogo?lista=favoritos`, «Tus looks» (`components/probador/TusLooks.tsx`) va arriba de las
+  prendas, solo con la lista entera. Prueba en la base: `pnpm pruebas:tienda-looks-guardados`. «Compartir» (actividad 9,
+  `components/probador/CompartirLook.tsx`) abre una hoja (`HojaNativa`) con la imagen para estados, que arma
+  `app/(catalogo)/looks/guardado/[id]/historia/route.tsx` (1080×1920, `next/og`, solo para la cuenta dueña: lleva el nombre del look), y
+  comparte el archivo con el enlace público por la hoja del celular (`navigator.share`), o lo descarga, o copia el enlace.
+- `/tu-look?p=…` (un look compartido, actividad 9; **público**, fuera del grupo `(catalogo)`, con `MarcoCuenta segunSesion`) →
+  `lib/compartir-servidor.ts` `prendasParaCompartir()` (el catálogo y el probador de todas las tiendas, las mismas lecturas guardadas) +
+  `lookDeLaUrl`: la figura y cada prenda con su color, SIN precio ni cuánto hay; sin cuenta, «Crea tu cuenta y arma el tuyo» (vuelve
+  al probador con este look, `hrefConVolver`) y, con cuenta, «Pruébatelo en el probador». Su vista previa para WhatsApp (`og:image`) es
+  `app/tu-look/vista/route.tsx` (1200×630, `next/og`, pública y guardada un día en la red; una dirección escrita de otra forma va a la
+  del probador, 308). Las dos imágenes salen de `lib/imagenes-del-look.tsx` (plantillas de satori), `lib/compartir-look.ts` (pura, con
+  su prueba: el enlace, dónde va cada tarjeta, el título) y `lib/fuentes-og.ts` (EB Garamond y DM Sans en TTF desde Google Fonts, en
+  memoria; si Google no contesta, la letra de `next/og`). Ninguna imagen pública lleva un texto que venga en la dirección.
 - **Un solo precio y una sola tienda elegida** (integración de la tienda, 2026-10-15). El precio de una prenda (talla y color) en la web
   lo dice `fn_tienda_precio_talla(prendas, tienda)` (`20261015012000`): el de la tienda elegida (`fn_precio_en_sede`) o, con «Todas», el
   mayor entre las de la web (sin ninguna, el de la grilla), con la campaña de la caja encima (la de mayor %, `fn_descuento_campana`,

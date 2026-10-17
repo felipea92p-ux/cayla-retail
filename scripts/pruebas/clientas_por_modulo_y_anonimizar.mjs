@@ -737,6 +737,10 @@ LISTA_BLANCA.push("fn_correo_de_una_persona", "fn_cuenta_web_reglas");
 // archivada (con la ficha archivada la cuenta ya no agrega favoritos ni esperas) y no devuelven nada de ella: tienda_favorito y
 // tienda_avisame. Solo las ejecuta `tienda_web` (lo prueba scripts/pruebas/tienda_club.mjs).
 LISTA_BLANCA.push("tienda_favorito", "tienda_avisame");
+// Y los looks guardados de «Arma el tuyo» (ADR-0434, actividad 8, 20261017044000): tienda_guardar_look solo pregunta si la ficha de la
+// cuenta está archivada (con la ficha archivada la cuenta no guarda looks, como no agrega favoritos), igual que tienda_favorito, y no
+// devuelve nada de ella. Solo la ejecuta `tienda_web` (lo prueba scripts/pruebas/tienda_looks_guardados.mjs, sección 1).
+LISTA_BLANCA.push("tienda_guardar_look");
 // Y la venta de un pedido web (ADR-0408, actividad 10, 20261015051000): fn_pedido_web_vender lee el DNI y el nombre de la ficha del
 // pedido para emitir su boleta (como registrar_venta con el cliente del cobro) y no devuelve nada de ella. No la ejecuta nadie de la
 // API: solo la llama registrar_pago_pedido_web, que ya exige el módulo «Pedidos web» (lo prueba scripts/pruebas/pedidos_web_entregar.mjs).
