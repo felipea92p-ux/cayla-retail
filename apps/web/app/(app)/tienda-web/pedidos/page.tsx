@@ -5,9 +5,9 @@ import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { PedidosWebPantalla } from "@/components/pedidos-web/PedidosWebPantalla";
 
-// Tienda web ▸ Pedidos web (ADR-0408, actividad 8; maqueta docs/maquetas/tienda-online-2026-10, «Pedidos web»): lo que los clientes
-// separaron en la tienda online para ESTA tienda, para confirmarlo; y lo que otra tienda espera de aquí, para enviarlo. La cabecera es
-// la de Ventas (`EncabezadoPagina`, ADR-0220). El pedido abierto vive en la URL (`?pedido=<id>`): se comparte, sobrevive a recargar y
+// Tienda web ▸ Pedidos web (ADR-0408, actividad 8; ADR-0430 y su actualización del 2026-10-17, maqueta docs/maquetas/pedidos-web-2026-10):
+// lo que los clientes separaron en la tienda online para ESTA tienda, para confirmarlo; y lo que otra tienda espera de aquí, para
+// enviarlo. La cabecera es `EncabezadoPagina` (ADR-0220). El pedido abierto vive en la URL (`?pedido=<id>`): se comparte, sobrevive a recargar y
 // la página lo lee junto con la lista.
 const PESTANAS: readonly PestanaPedidos[] = ["confirmar", "cobrar", "entregar", "cerrados"];
 
@@ -34,30 +34,29 @@ export default async function PedidosWebPage({ searchParams }: { searchParams: P
     idPedido ? supabase.rpc("fn_pedido_web_detalle", { p_pedido_id: idPedido }) : Promise.resolve(null),
   ]);
 
-  return (
-    <div className="space-y-6">
-      <EncabezadoPagina
-        sede={persona.ubicacionEtiqueta}
-        detalle="Tienda web"
-        titulo="Pedidos"
-        subtitulo={`Lo que separaron en la web para ${persona.ubicacionEtiqueta}: revisa el stock, confírmalo, registra sus pagos y entrégalo.`}
-      />
-      {tablero.error ? (
+  if (tablero.error) {
+    return (
+      <div className="space-y-6">
+        <EncabezadoPagina sede={persona.ubicacionEtiqueta} detalle="Tienda web" titulo="Pedidos" subtitulo={`Lo que separaron en la web para ${persona.ubicacionEtiqueta}.`} />
         <Aviso tono="error" titulo="No se pudieron leer los pedidos web">
           Recarga la página; si sigue, avísale al líder.
         </Aviso>
-      ) : (
-        <PedidosWebPantalla
-          tablero={leerTablero(tablero.data)}
-          tiendaId={persona.ubicacionId}
-          tienda={persona.ubicacionEtiqueta}
-          ahoraIso={new Date().toISOString()}
-          pestanaInicial={PESTANAS.find((p) => p === pestana) ?? null}
-          // Un pedido de otra tienda, o que ya no existe, no abre nada: la base lo rechaza y la lista queda como estaba.
-          detalle={detalle && !detalle.error ? leerDetalle(detalle.data) : null}
-          detalleFallo={Boolean(idPedido && (!detalle || detalle.error))}
-        />
-      )}
-    </div>
+      </div>
+    );
+  }
+
+  // La cabecera la dibuja la pantalla: su «¿Cómo funciona?» abre las reglas bajo el camino (ADR-0430, act. 2026-10-17).
+  return (
+    <PedidosWebPantalla
+      tablero={leerTablero(tablero.data)}
+      tiendaId={persona.ubicacionId}
+      tienda={persona.ubicacionEtiqueta}
+      ahoraIso={new Date().toISOString()}
+      // `?pestana=` es el filtro del camino (el nombre viene de cuando eran pestañas: un enlace guardado o del Resumen sigue sirviendo).
+      filtroInicial={PESTANAS.find((p) => p === pestana) ?? null}
+      // Un pedido de otra tienda, o que ya no existe, no abre nada: la base lo rechaza y la lista queda como estaba.
+      detalle={detalle && !detalle.error ? leerDetalle(detalle.data) : null}
+      detalleFallo={Boolean(idPedido && (!detalle || detalle.error))}
+    />
   );
 }

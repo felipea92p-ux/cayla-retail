@@ -85,8 +85,5 @@ export function delMenu(prendas: readonly Prenda[], menu: Menu | null): Prenda[]
   });
 }
 
-/** Un nombre partido para el título serif de la lista: lo último va en cursiva roja («Vestidos y *conjuntos*», «*Vestidos*»). */
-export function tituloPartido(nombre: string): [string, string] {
-  const i = nombre.trim().lastIndexOf(" ");
-  return i < 0 ? ["", nombre.trim()] : [nombre.trim().slice(0, i), nombre.trim().slice(i + 1)];
-}
+// Vive en `listas.ts` (sin zod) para que el esqueleto de la lista lo use; aquí se sigue exportando.
+export { tituloPartido } from "./listas";

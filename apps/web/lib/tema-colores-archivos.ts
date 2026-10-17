@@ -39,7 +39,6 @@ export const COLORES_A_MANO: Record<string, ColoresAMano> = {
   "components/SelectorColor.tsx": { cuenta: 3, motivo: "Valor por omisión del selector de color y ejemplo del FORMATO #hex: son datos, no interfaz." },
   "lib/productos-vista.ts": { cuenta: 1, motivo: "Color de reserva de una prenda sin hex: es un dato que se pinta como muestra." },
   "lib/muestra-atributo.ts": { cuenta: 1, motivo: "Lienzo de una imagen que se genera: el blanco es el fondo de la muestra, no un color de pantalla." },
-  "lib/preparar-foto.ts": { cuenta: 1, motivo: "Lienzo de la foto que se sube: el blanco es el papel de la foto, no un color de pantalla." },
 
   // ---------- Permanentes: marca y máscaras ----------
   "components/ui/IsotipoCayla.tsx": { cuenta: 1, motivo: "El rojo de la MARCA (muestreado del propio logo): no cambia con el tema." },
