@@ -13,6 +13,7 @@
 .pb-cab { padding: 10px 16px 0; display: flex; flex-direction: column; gap: 5px; }
 .pb-cab h1 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 34px; line-height: .95; letter-spacing: -.01em; }
 .pb-cab h1 em { font-style: italic; color: var(--rojo); }
+.pb-cab-ayuda { display: none; margin: 0; font-size: 14px; color: var(--tinta-60); }
 
 /* ---- La escena: el arco del estudio, la figura y lo que va encima ---- */
 /* `clip` y no `hidden`: las que asoman a los lados salen de la escena, y con `hidden` el navegador la desplazaba de lado (un foco, un
@@ -156,7 +157,8 @@
 .pb-total-cifra { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
 .pb-total-cifra s { font-size: 13px; color: var(--tinta-60); }
 .pb-total-cifra b { font-family: var(--serif); font-size: 28px; font-weight: 500; font-variant-numeric: tabular-nums lining-nums; }
-.pb-look .cp-promesas { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--sand); }
+.pb-pie { padding: 0 16px 28px; margin-top: -10px; }
+.pb-pie .cp-promesas { margin: 0; padding-top: 14px; border-top: 1px solid var(--sand); }
 
 /* ---- La barra de abajo: cuántas prendas y cuánto cuesta el look ---- */
 .pb-barra { position: sticky; bottom: 0; z-index: 40; margin-top: 4px; min-height: 64px; box-sizing: border-box; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--papel); box-shadow: 0 -1px 0 var(--sand), 0 -16px 30px -20px var(--sombra); display: flex; align-items: center; gap: 14px; }
@@ -234,6 +236,54 @@
 .pb-bus-aviso-txt b { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pb-bus-aviso-txt span { font-size: 12.5px; color: color-mix(in srgb, var(--crema) 78%, var(--tinta)); }
 .pb-bus-aviso-ir { height: 44px; flex: none; padding: 0 16px; border: 0; border-radius: 999px; background: var(--crema); color: var(--tinta); font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+
+/* ---- En la computadora (actividad 7, lienzo `V3Escritorio`): la figura grande a la izquierda y, a la derecha, las prendas del look,
+   los colores, las opciones en grilla y el total. Es la misma pieza reacomodada (grilla con áreas): la figura crece entera y sigue a
+   escala, y el orden para el teclado es el del celular. ---- */
+@container tienda (min-width: 960px) {
+  .pb { max-width: 1344px; padding: 18px 32px 40px; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); column-gap: 48px;
+    grid-template-rows: auto auto auto auto 1fr auto;
+    grid-template-areas: "cab look" "escena look" "escena colores" "escena tira" "escena barra" ". pie"; align-items: start; }
+  .pb-cab { grid-area: cab; padding: 0; flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 16px; }
+  .pb-cab .t-ceja { flex-basis: 100%; }
+  .pb-cab h1 { font-size: 46px; }
+  .pb-cab-ayuda { display: block; }
+  /* La figura se queda a la vista mientras se recorren las opciones de la derecha. */
+  .pb-escena { grid-area: escena; margin-top: 14px; width: 100%; max-width: 560px; position: sticky; top: 16px; align-self: start; }
+  /* Lo que la tienda ya cumple, bajo el total y el botón (como en la ficha): bajo la figura, la figura fija lo taparía. */
+  .pb-pie { grid-area: pie; padding: 18px 0 0; margin: 0; }
+  .pb-pie .cp-promesas { border-top: 0; padding-top: 0; }
+  .pb-colores { grid-area: colores; margin: 4px 0 0; padding-top: 14px; border-top: 1px solid var(--sand); }
+  .pb-tira { grid-area: tira; padding-top: 6px; }
+  .pb-tira-cabeza { padding: 0; }
+  .pb-tira-carril { padding: 4px 0 6px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 14px; overflow: visible; }
+  .pb-opcion { width: auto; min-width: 0; }
+  .pb-opcion-foto, .pb-ninguna-caja { width: 100%; height: 178px; }
+  .pb-opcion-recorte { width: 78%; height: 82%; }
+  .pb-opcion-nombre { font-size: 13px; }
+  .pb-opcion-precio { font-size: 12.5px; }
+  .pb-separador { width: auto; height: 178px; margin: 0; }
+  .pb-buscar-otra { width: auto; height: 178px; font-size: 13px; }
+  .pb-chip { left: 8px; top: 8px; padding: 3px 8px; font-size: 10.5px; }
+  .pb-look { grid-area: look; padding: 0 0 6px; }
+  .pb-filas { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 18px; }
+  /* El total del look lo dice la tarjeta de abajo, junto a «Agregar». */
+  .pb-total { display: none; }
+  .pb-barra { grid-area: barra; align-self: end; position: static; margin-top: 18px; min-height: 0; padding: 16px 18px; border-radius: 8px; box-shadow: inset 0 0 0 1px var(--sand); }
+  .pb-barra-total b { font-size: 30px; }
+  .pb-agregar-bolsa { flex: none; margin-left: auto; padding-inline: 26px; }
+  .pb-aviso-zona { bottom: 32px; }
+  /* La búsqueda, más ancha: cuatro tarjetas por fila. */
+  .pb-bus { max-width: 1040px; }
+  .pb-bus-grilla { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 16px; }
+}
+/* Con más ancho, dos prendas del look por fila y cuatro opciones. */
+@container tienda (min-width: 1200px) {
+  .pb-filas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pb-agregar { display: inline-flex; width: calc(50% - 9px); margin-right: 14px; }
+  .pb-agregar + .pb-agregar { margin-right: 0; }
+  .pb-tira-carril { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 
 /* ---- Mientras llega (`FormaDelEsqueleto`, el esqueleto del catálogo): el arco que brilla y la tira, donde van a caer ---- */
 .t-esqueleto[data-forma="probador"] { padding: 0; }

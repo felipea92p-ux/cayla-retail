@@ -23,8 +23,8 @@ const AGREGAR: readonly { zona: Zona; texto: string }[] = [
 
 /**
  * «Tu look» (lienzo v3): cada prenda puesta con su número, su recorte, su color con cuánto hay, lo que vale en ese color y su candado
- * (Sorpréndeme no la cambia); «Algo encima» y «Un bolso» si faltan y hay qué ponerse; lo que cuesta el look completo, y debajo lo que la
- * tienda ya cumple (`pie`).
+ * (Sorpréndeme no la cambia); «Algo encima» y «Un bolso» si faltan y hay qué ponerse, y lo que cuesta el look completo. Lo que la tienda
+ * ya cumple va debajo, aparte (`Probador`): en la computadora se queda bajo la figura.
  */
 export function TuLook({
   look,
@@ -36,7 +36,6 @@ export function TuLook({
   totales,
   onElegir,
   onFijar,
-  pie,
 }: {
   look: Look;
   indice: ReadonlyMap<string, PrendaDelProbador>;
@@ -47,7 +46,6 @@ export function TuLook({
   totales: Totales;
   onElegir: (zona: Zona) => void;
   onFijar: (zona: Zona) => void;
-  pie?: React.ReactNode;
 }) {
   return (
     <section className="pb-look" aria-label="Tu look">
@@ -124,7 +122,6 @@ export function TuLook({
           </b>
         </span>
       </div>
-      {pie}
     </section>
   );
 }

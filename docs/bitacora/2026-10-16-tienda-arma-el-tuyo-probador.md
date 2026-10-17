@@ -13,3 +13,8 @@ Qué hice: «Agregar a mi bolsa» en la barra de abajo del probador: pide las ta
 Por qué así: una sola forma de llevar un look a la bolsa (ADR-0434); las tallas salen de la ficha que la tienda ya guarda y no viajan con la página (serían miles de filas por visita), y la bolsa vuelve a preguntarle a la base antes de agregar.
 Felipe se lleva: nada; sigue escondido.
 
+## 2026-10-16 («Arma el tuyo», actividad 7: el probador en la computadora)
+Qué hice: en pantallas anchas, la figura grande a la izquierda (fija mientras se baja) y, a la derecha, «Tu look», los colores, las opciones en grilla, el total con «Agregar a mi bolsa» y lo que la tienda ya cumple; en 1024 px, una columna de prendas y tres opciones por fila.
+Por qué así: es la misma pieza del celular reacomodada con CSS (grilla con áreas), no otra: el teclado sigue el mismo orden y la figura crece entera, a escala. Las promesas van bajo el total, porque la figura fija las tapaba si iban debajo de ella.
+Felipe se lleva: el PR 2 (actividades 4 a 7) se abre cuando se fusione el PR 1; su migración (`20261017025000`) se pega con su OK antes de fusionarlo.
+

@@ -12,6 +12,8 @@
 - [x] **Actividad 6 — Tallas y a la bolsa:** «Agregar a mi bolsa» en la barra de abajo pide las tallas de cada prenda en su color (la
   ficha que la tienda ya guarda), abre la misma hoja de tallas de los looks y usa la misma acción de la bolsa. Probado de punta a punta
   en el banco: 3 prendas a la bolsa con su color y talla, y el total de la bolsa igual al del probador.
-- [ ] Actividad 7 — el probador en la computadora (hoy, la columna del celular al centro).
+- [x] **Actividad 7 — El probador en la computadora:** la misma pieza reacomodada (grilla con áreas): la figura a la izquierda, fija al
+  bajar; a la derecha «Tu look», los colores, las opciones en grilla (3 por fila en 1024 px, 4 desde 1200), el total con «Agregar» y las
+  promesas. Mirado a 1440×900 y 1024×768, y el celular igual que antes.
 - [ ] Pendiente de revisar con prendas reales de producción: cómo se ve una prenda de más de 104 cm (la figura se achica entera) y las
   que asoman a los lados en modo oscuro (sobre el fondo oscuro se ven como sombras grises).

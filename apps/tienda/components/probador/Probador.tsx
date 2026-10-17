@@ -214,6 +214,8 @@ export function Probador({
         <h1>
           Arma el <em>tuyo</em>
         </h1>
+        {/* En la computadora, junto al título (lienzo `V3Escritorio`); en el celular, la figura ya lo dice sola. */}
+        <p className="pb-cab-ayuda">Arrastra una prenda hacia un lado o elige a la derecha.</p>
       </header>
 
       <Figura
@@ -253,8 +255,9 @@ export function Probador({
         totales={t}
         onElegir={(zona) => setEstado((s) => (s.zona === zona ? s : { ...s, zona }))}
         onFijar={(zona) => setEstado((s) => ({ ...s, fijos: { ...s.fijos, [zona]: !s.fijos[zona] } }))}
-        pie={pie}
       />
+
+      {pie && <div className="pb-pie">{pie}</div>}
 
       <div className="pb-barra">
         <div className="pb-barra-total">

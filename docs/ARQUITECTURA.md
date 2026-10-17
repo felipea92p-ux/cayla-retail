@@ -2150,7 +2150,9 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   prenda en su color con `app/acciones/probador.ts` `tallasDeTuLook` (la ficha que la tienda ya guarda, `leerFicha` + `tallasDelColor`;
   «hay» en alguna tienda de la web), arma el look para la hoja (`lookParaLaHoja`) y abre la MISMA hoja de tallas de los looks
   (`components/looks/AgregarLook.tsx`, con `conBoton={false}` y `abiertaAlMontar`) y la MISMA acción `agregarLookALaBolsa`; el aviso es
-  `avisoDelLook(null, …)` («de tu look»). Su esqueleto de carga es la forma `probador` de `FormaDelEsqueleto`. Estilos en
+  `avisoDelLook(null, …)` («de tu look»). En la computadora (actividad 7) es la misma pieza reacomodada con una grilla de áreas en
+  `probador.css` (`@container tienda (min-width: 960px)`): la figura a la izquierda, fija al bajar, y a la derecha «Tu look», los colores,
+  las opciones en grilla, el total y las promesas. Su esqueleto de carga es la forma `probador` de `FormaDelEsqueleto`. Estilos en
   `app/estilos/probador.css`. Prueba en la base: `pnpm pruebas:tienda-probador`.
 - **Un solo precio y una sola tienda elegida** (integración de la tienda, 2026-10-15). El precio de una prenda (talla y color) en la web
   lo dice `fn_tienda_precio_talla(prendas, tienda)` (`20261015012000`): el de la tienda elegida (`fn_precio_en_sede`) o, con «Todas», el
