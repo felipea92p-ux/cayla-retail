@@ -1,12 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { hoyLima } from "@/lib/fechas-lima";
-import { horaLima, ritmoDelMes, ordenarPorExcepcion, type NumerosSede, type RitmoMes } from "@/lib/comercial-reglas";
+import { getParametrosCaja } from "@/lib/configuracion";
+import { diasDelMes, horaLima, metasDeLaSede, ritmoDelMes, ordenarPorExcepcion, type NumerosSede, type RitmoMes } from "@/lib/comercial-reglas";
 
 // Panel comercial (ADR-0110). Tres fuentes, ninguna inventada acá:
 //   - `retail.fn_comercial_sedes`         : lo vendido, tickets, unidades y devuelto por tienda (hoy/semana/mes).
 //   - `retail.fn_comercial_horas`         : ventas del día por hora de Lima.
 //   - `retail.fn_comercial_colaboradoras` : ventas del día y del mes por colaboradora, con lo descontado.
+//   - `retail.fn_parametros_caja`         : la meta de cada día de cada tienda — la MISMA que lee Caja e Inicio (ADR-0435: fecha
+//                                           concreta > semana del mes > semana tipo > `meta_venta_diaria`, más la campaña). La
+//                                           del mes es la suma de sus días, igual que `retail.fn_meta_mes` (esa no se puede llamar
+//                                           desde la web: es una pieza interna).
 //   - `comercial-reglas.ts`               : qué significan esos números (única casa de las reglas).
 // Este archivo NO suma ni promedia: solo trae, nombra y ordena. Lo que se muestra es exactamente lo que
 // devolvió el SQL — así dos pantallas nunca pueden decir dos cifras distintas de lo vendido.
@@ -22,6 +27,8 @@ export type SedeComercial = NumerosSede & {
   ubicacionId: string;
   nombre: string;
   ritmo: RitmoMes;
+  /** La meta del mes (suma de la de cada día). Null = ningún día tiene meta. */
+  metaMes: number | null;
 };
 
 export type HoraComercial = { ubicacionId: string; hora: number; ventas: number; tickets: number };
@@ -64,6 +71,9 @@ export async function getPanelComercial(): Promise<PanelComercial> {
     supabase.rpc("fn_comercial_colaboradoras", { p_dia: fecha }),
   ]);
   const sedesCrudas = exigir(filasSedes, "las ventas por tienda");
+  // La meta de cada día del mes, tienda por tienda. Es una lectura secundaria: si la base no responde (la función aún no existe,
+  // un corte) esa tienda cae a su `meta_venta_diaria` en vez de tumbar el panel (principio 9). Ver `metasDeLaSede`.
+  const metasPorTienda = await Promise.all(sedesCrudas.map((s) => metasDelMes(s.ubicacion_id, fecha)));
   const horasCrudas = exigir(filasHoras, "las ventas por hora");
   const colabCrudas = exigir(filasColab, "las ventas por colaboradora");
 
@@ -73,9 +83,12 @@ export async function getPanelComercial(): Promise<PanelComercial> {
     ids.length === 0 ? [] : exigir(await supabase.rpc("fn_nombres_personas", { p_ids: ids }), "los nombres de las colaboradoras");
   const nombrePorId = new Map(nombres.map((n) => [n.id, n.nombre]));
 
-  const sedes: SedeComercial[] = sedesCrudas.map((s) => {
+  const sedes: SedeComercial[] = sedesCrudas.map((s, i) => {
+    const respaldo = s.meta_venta_diaria === null ? null : Number(s.meta_venta_diaria);
+    const metas = metasDeLaSede(metasPorTienda[i] ?? null, respaldo, fecha);
     const numeros: NumerosSede = {
-      metaVentaDiaria: s.meta_venta_diaria === null ? null : Number(s.meta_venta_diaria),
+      metaVentaDiaria: metas.metaVentaDiaria,
+      metasDelMes: metas.metasDelMes,
       ventasHoy: Number(s.ventas_hoy),
       ticketsHoy: s.tickets_hoy,
       unidadesHoy: s.unidades_hoy,
@@ -93,7 +106,8 @@ export async function getPanelComercial(): Promise<PanelComercial> {
       ...numeros,
       ubicacionId: s.ubicacion_id,
       nombre: s.nombre,
-      ritmo: ritmoDelMes({ ventasMes: numeros.ventasMes, ventasHoy: numeros.ventasHoy, metaVentaDiaria: numeros.metaVentaDiaria, fecha }),
+      metaMes: metas.metaMes,
+      ritmo: ritmoDelMes({ ventasMes: numeros.ventasMes, ventasHoy: numeros.ventasHoy, metaVentaDiaria: numeros.metaVentaDiaria, metasDelMes: numeros.metasDelMes, fecha }),
     };
   });
 
@@ -115,4 +129,17 @@ export async function getPanelComercial(): Promise<PanelComercial> {
       descuentoMes: Number(c.descuento_mes),
     })),
   };
+}
+
+/**
+ * La meta efectiva de CADA día del mes de `fecha` en una tienda (índice 0 = día 1), preguntándole a `fn_parametros_caja` lo mismo que
+ * Caja e Inicio. `null` si la base no pudo responder algún día: una mezcla (unos días con la meta nueva y otros con la vieja) sería
+ * peor que ninguna, así que la tienda cae entera a su respaldo.
+ */
+async function metasDelMes(ubicacionId: string, fecha: string): Promise<(number | null)[] | null> {
+  const [anio, mes] = fecha.split("-");
+  const dias = Array.from({ length: diasDelMes(fecha) }, (_, d) => `${anio}-${mes}-${String(d + 1).padStart(2, "0")}`);
+  const parametros = await Promise.all(dias.map((dia) => getParametrosCaja(ubicacionId, dia)));
+  if (parametros.some((p) => p === null)) return null;
+  return parametros.map((p) => p!.meta);
 }
