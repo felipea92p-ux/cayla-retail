@@ -1509,6 +1509,10 @@ export type VaraCategoria = {
   tMax: number;
   /** Fracción vendida a `tMax` (0 a 1). */
   vendidoAlFinal: number;
+  /** Segundos que tardó la venta MÁS LENTA de la curva (el instante más largo en que se vendió algo; null/ausente si no se vendió ninguna).
+   *  Solo la lee Análisis para decir desde cuándo un modelo de un tipo sin ritmo suficiente ya lleva más que cualquiera de los suyos que sí se vendió
+   *  (ADR-0357, act. 2026-10-17, B1). Aditivo: ningún cálculo de Frescura lo usa. */
+  ultimaVentaSeg?: number | null;
   vendidas: number;
   unidades: number;
   nivel: NivelConfianza | null;
@@ -1690,6 +1694,7 @@ function aVaraCategoria(categoriaId: string, categoriaNombre: string, v: Vara): 
     cortes: cortesConCola(v.cortes, finDeCurva(v.curva)),
     tMax: v.curva.tMax,
     vendidoAlFinal: 1 - supervivenciaEn(v.curva, v.curva.tMax),
+    ultimaVentaSeg: v.curva.tiempos.length > 0 ? v.curva.tiempos[v.curva.tiempos.length - 1]! : null,
     vendidas: v.vendidas,
     unidades: v.curva.unidades,
     nivel: v.nivel,

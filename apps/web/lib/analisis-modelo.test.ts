@@ -36,6 +36,8 @@ function prenda(parcial: Partial<PrendaAnalisis>): PrendaAnalisis {
     llegaron30: 0,
     vendidasDeLasQueLlegaron30: 0,
     otras: [],
+    // La vara de su tipo (inventada): se vigila desde 30 días y se liquida desde 60; sin ella no hay un número de respaldo (B1).
+    umbrales: { vigila: 30, liquidar: 60, vara: "hoy", vendidas: 20 },
     llega: [],
     ...parcial,
   };
@@ -69,7 +71,7 @@ describe("un modelo = todas sus tallas y colores (ADR-0357, decisión 12)", () =
     // 7 unidades al ritmo de 3 en 11 días: 26 días.
     expect(diasQueQuedan(m)).toBe(26);
     expect(seEstaAcabando(m)).toBe(false);
-    expect(grupoDe(m, 15)).toBeNull();
+    expect(grupoDe(m)).toBeNull();
   });
 
   it("suma lo que se cuenta y toma la primera vez que salió y que llegó", () => {
@@ -104,7 +106,7 @@ describe("un modelo = todas sus tallas y colores (ADR-0357, decisión 12)", () =
       HOY,
     );
     expect(seEstaAcabando(acaba)).toBe(true);
-    expect(grupoDe(acaba, 15)).toBe("comprar");
+    expect(grupoDe(acaba)).toBe("comprar");
   });
 });
 
@@ -135,7 +137,7 @@ describe("días sin venderse del modelo", () => {
     ];
     expect(diasSinVenderModelo(quieto, HOY)).toBe(70);
     const m = modeloDe(quieto, HOY);
-    expect(grupoDe(m, 15)).toBe("liquidar");
+    expect(grupoDe(m)).toBe("liquidar");
   });
 
   it("una talla vendida el día en que se colgó cuenta como venta", () => {
@@ -148,7 +150,7 @@ describe("días sin venderse del modelo", () => {
       HOY,
     );
     expect(m.diasSinVender).toBe(7);
-    expect(grupoDe(m, 15)).toBeNull();
+    expect(grupoDe(m)).toBeNull();
   });
 
   it("sin la última venta en la base (undefined), cuenta con lo más reciente de sus tallas", () => {

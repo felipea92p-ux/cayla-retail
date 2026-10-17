@@ -9,12 +9,8 @@ import {
   edadDelInventario,
   esTallaUnica,
   grupoDe,
-  LIQUIDAR_DEFECTO,
-  LIQUIDAR_MAX,
-  LIQUIDAR_MIN,
   leerBusqueda,
   leerVista,
-  liquidarDesdeValido,
   llegadaAtrasada,
   llegadasDe,
   noHabiaDe,
@@ -22,6 +18,7 @@ import {
   otraSedeQueLaTiene,
   porLlegar,
   prendasDe,
+  rotuladaSinRitmo,
   sedeDeAnalisis,
   sedeQueMasVende,
   seEstaAcabando,
@@ -111,47 +108,91 @@ describe("cuántos días quedan", () => {
 
 describe("el grupo de cada prenda (una sola)", () => {
   const otras = (v: number, s = 0) => [{ sedeId: "aqp", stock: s, vendidas30: v }];
+  /** La vara de un tipo que sí vende (inventada): se vigila desde 30 días y se liquida desde 60. */
+  const VARA = { vigila: 30, liquidar: 60, vara: "hoy" as const, vendidas: 20 };
+  const con = (p: Partial<PrendaAnalisis>) => prenda({ umbrales: VARA, ...p });
   it("lo que se acaba se compra, aunque otra tienda la tenga (decide la persona)", () => {
-    expect(grupoDe(prenda({ vendidas30: 4, otras: otras(0, 5) }), 60)).toBe("comprar");
+    expect(grupoDe(con({ vendidas30: 4, otras: otras(0, 5) }))).toBe("comprar");
   });
-  it("lo quieto desde el umbral se manda si otra tienda vendió 2 o más; si no, se liquida", () => {
-    expect(grupoDe(prenda({ piso: 3, diasSinVender: 64, otras: otras(3) }), 60)).toBe("enviar");
-    expect(grupoDe(prenda({ piso: 3, diasSinVender: 64, otras: otras(1) }), 60)).toBe("liquidar");
+  it("lo quieto desde el P90 de su tipo se manda si otra tienda vendió 2 o más; si no, se liquida", () => {
+    expect(grupoDe(con({ piso: 3, diasSinVender: 64, otras: otras(3) }))).toBe("enviar");
+    expect(grupoDe(con({ piso: 3, diasSinVender: 64, otras: otras(1) }))).toBe("liquidar");
   });
-  it("entre un mes y el umbral se vigila; menos de un mes, nada", () => {
-    expect(grupoDe(prenda({ piso: 3, diasSinVender: 44 }), 60)).toBe("vigila");
-    expect(grupoDe(prenda({ piso: 3, diasSinVender: 20 }), 60)).toBeNull();
+  it("entre el P75 y el P90 se vigila; antes del P75, nada — justo en los límites (29/30, 59/60)", () => {
+    expect(grupoDe(con({ piso: 3, diasSinVender: 44 }))).toBe("vigila");
+    expect(grupoDe(con({ piso: 3, diasSinVender: 29 }))).toBeNull();
+    expect(grupoDe(con({ piso: 3, diasSinVender: 30 }))).toBe("vigila");
+    expect(grupoDe(con({ piso: 3, diasSinVender: 59 }))).toBe("vigila");
+    expect(grupoDe(con({ piso: 3, diasSinVender: 60 }))).toBe("liquidar");
   });
-  it("mover el umbral cambia el grupo en vivo", () => {
-    const p = prenda({ piso: 3, diasSinVender: 53 });
-    expect(grupoDe(p, 60)).toBe("vigila");
-    expect(grupoDe(p, 50)).toBe("liquidar");
+  it("cada tipo con su vara: el mismo tiempo quieto es «nada» en uno y «liquidar» en otro (Polos contra Jeans)", () => {
+    const polos = { vigila: 13, liquidar: 22, vara: "hoy" as const, vendidas: 40 };
+    const jeans = { vigila: 40, liquidar: 70, vara: "hoy" as const, vendidas: 12 };
+    expect(grupoDe(prenda({ piso: 3, diasSinVender: 24, umbrales: polos }))).toBe("liquidar");
+    expect(grupoDe(prenda({ piso: 3, diasSinVender: 24, umbrales: jeans }))).toBeNull();
   });
   it("sin stock o sin dato de días, no cae en las quietas", () => {
-    expect(grupoDe(prenda({ diasSinVender: 120 }), 60)).toBeNull();
-    expect(grupoDe(prenda({ piso: 2 }), 60)).toBeNull();
+    expect(grupoDe(con({ diasSinVender: 120 }))).toBeNull();
+    expect(grupoDe(con({ piso: 2 }))).toBeNull();
+  });
+  // Felipe, 2026-10-17: «Liquidar desde» se retira. Un tipo sin vara suficiente NO se mide con un número de días fijo.
+  describe("un tipo sin vara suficiente: «Todavía sin ritmo» (B1)", () => {
+    const poca = (desde: number | null) => ({ motivo: "poca_venta" as const, desde, vendidas: 7, unidades: 35 });
+    it("nunca cae en «Liquidar», «Mándalas» ni «Vigílalas», por viejo que sea ni aunque otra tienda lo venda", () => {
+      for (const dias of [8, 11, 30, 60, 120, 400]) {
+        const g = grupoDe(prenda({ piso: 3, diasSinVender: dias, otras: otras(9), sinRitmo: poca(7) }));
+        expect(g).toBe("sin_ritmo");
+      }
+      expect(grupoDe(prenda({ piso: 3, diasSinVender: 120, otras: otras(9) }))).toBeNull();
+    });
+    it("se rotula solo cuando ya lleva lo que tardó la mitad de su tipo (o su última venta): justo en el límite", () => {
+      expect(grupoDe(prenda({ piso: 3, diasSinVender: 6, sinRitmo: poca(7) }))).toBeNull();
+      expect(grupoDe(prenda({ piso: 3, diasSinVender: 7, sinRitmo: poca(7) }))).toBe("sin_ritmo");
+      expect(rotuladaSinRitmo({ diasSinVender: 7, sinRitmo: poca(7), umbrales: undefined })).toBe(true);
+    });
+    it("un tipo que no vendió nada no rotula (no hay con qué comparar): sin ritmo conocido y sin número inventado", () => {
+      expect(grupoDe(prenda({ piso: 3, diasSinVender: 200, sinRitmo: poca(null) }))).toBeNull();
+      expect(grupoDe(prenda({ piso: 3, diasSinVender: 200 }))).toBeNull();
+    });
+    it("sin leer Frescura (sin módulo, falló o la sede no separa piso) toda quieta queda a la vista con su razón, nunca en «Liquidar»", () => {
+      for (const porque of ["sin_modulo", "fallo", "no_aplica"] as const) {
+        const sinRitmo = { motivo: "sin_lectura" as const, porque };
+        expect(grupoDe(prenda({ piso: 3, diasSinVender: 3, otras: otras(5), sinRitmo }))).toBe("sin_ritmo");
+        expect(grupoDe(prenda({ piso: 3, diasSinVender: 300, sinRitmo }))).toBe("sin_ritmo");
+      }
+    });
+    it("lo que ya tiene vara la usa y no se rotula aunque traiga un sinRitmo viejo", () => {
+      expect(grupoDe(prenda({ piso: 3, diasSinVender: 20, umbrales: VARA, sinRitmo: poca(7) }))).toBeNull();
+    });
+    it("una unidad que puede ser una venta sin registrar manda a «Aún no se sabe» antes que «Todavía sin ritmo»", () => {
+      expect(grupoDe(prenda({ piso: 3, diasSinVender: 20, enDuda: 1, sinRitmo: poca(7) }))).toBe("duda");
+    });
+    it("lo que vendió algo en los últimos 30 días nunca está quieto (se decide con 30 días de historia, ~30-oct)", () => {
+      expect(grupoDe(prenda({ piso: 3, diasSinVender: 20, vendidas30: 1, sinRitmo: poca(7) }))).toBeNull();
+      expect(grupoDe(con({ piso: 30, diasSinVender: 100, vendidas30: 1 }))).toBeNull();
+    });
   });
   // ADR-0357, act. 2026-10-14: una venta pendiente anotada en caja de su tipo, talla y color puede ser una de sus unidades colgadas.
   it("lo quieto con una unidad que puede ser una venta sin registrar no se manda ni se liquida: «duda»", () => {
-    expect(grupoDe(prenda({ piso: 3, diasSinVender: 64, otras: otras(3), enDuda: 1 }), 60)).toBe("duda");
-    expect(grupoDe(prenda({ piso: 3, diasSinVender: 64, otras: otras(1), enDuda: 1 }), 60)).toBe("duda");
-    expect(grupoDe(prenda({ piso: 3, diasSinVender: 44, enDuda: 2 }), 60)).toBe("duda");
+    expect(grupoDe(con({ piso: 3, diasSinVender: 64, otras: otras(3), enDuda: 1 }))).toBe("duda");
+    expect(grupoDe(con({ piso: 3, diasSinVender: 64, otras: otras(1), enDuda: 1 }))).toBe("duda");
+    expect(grupoDe(con({ piso: 3, diasSinVender: 44, enDuda: 2 }))).toBe("duda");
   });
   it("la duda no cambia lo que no estaba quieto: lo nuevo, lo que se vende y lo que se acaba siguen igual", () => {
-    expect(grupoDe(prenda({ piso: 3, diasSinVender: 20, enDuda: 1 }), 60)).toBeNull();
-    expect(grupoDe(prenda({ piso: 20, vendidas30: 5, diasSinVender: 2, enDuda: 1 }), 60)).toBeNull();
-    expect(grupoDe(prenda({ piso: 1, vendidas30: 4, enDuda: 1 }), 60)).toBe("comprar");
+    expect(grupoDe(con({ piso: 3, diasSinVender: 20, enDuda: 1 }))).toBeNull();
+    expect(grupoDe(con({ piso: 20, vendidas30: 5, diasSinVender: 2, enDuda: 1 }))).toBeNull();
+    expect(grupoDe(con({ piso: 1, vendidas30: 4, enDuda: 1 }))).toBe("comprar");
   });
   it("sin duda (0) o sin saberla (sin la lectura de Frescura), se juzga como siempre", () => {
-    expect(grupoDe(prenda({ piso: 3, diasSinVender: 64, otras: otras(1), enDuda: 0 }), 60)).toBe("liquidar");
-    expect(grupoDe(prenda({ piso: 3, diasSinVender: 64, otras: otras(1) }), 60)).toBe("liquidar");
-    expect(grupoDe(prenda({ piso: 3, diasSinVender: 44, enDuda: 0 }), 60)).toBe("vigila");
+    expect(grupoDe(con({ piso: 3, diasSinVender: 64, otras: otras(1), enDuda: 0 }))).toBe("liquidar");
+    expect(grupoDe(con({ piso: 3, diasSinVender: 64, otras: otras(1) }))).toBe("liquidar");
+    expect(grupoDe(con({ piso: 3, diasSinVender: 44, enDuda: 0 }))).toBe("vigila");
   });
   it("prendasDe filtra por grupos y se ordena de lo más urgente a lo menos", () => {
     const a = prenda({ varianteId: "a", vendidas30: 6 });
     const b = prenda({ varianteId: "b", piso: 1, vendidas30: 4 });
     const c = prenda({ varianteId: "c", piso: 4, diasSinVender: 90 });
-    expect(prendasDe([c, b, a], ["comprar"], 60).sort(ordenSeAcaba).map((p) => p.varianteId)).toEqual(["a", "b"]);
+    expect(prendasDe([c, b, a], ["comprar"]).sort(ordenSeAcaba).map((p) => p.varianteId)).toEqual(["a", "b"]);
   });
 });
 
@@ -205,7 +246,7 @@ describe("el orden de lo que se acaba: el margen por día solo desempata (A15, 2
   });
 
   it("no cambia qué cae en «Cómpralas»: el grupo sale de los días, no del margen", () => {
-    for (const costo of [null, 0, 27, 59]) expect(grupoDe(prenda({ piso: 1, vendidas30: 4, costo }), 60)).toBe("comprar");
+    for (const costo of [null, 0, 27, 59]) expect(grupoDe(prenda({ piso: 1, vendidas30: 4, costo }))).toBe("comprar");
   });
 
   it("es un orden coherente (se puede usar en sort): el resultado no depende del orden de entrada", () => {
@@ -287,15 +328,7 @@ describe("por llegar, edad y lo que llega", () => {
   });
 });
 
-describe("Liquidar desde, la vista y el buscador", () => {
-  it("se queda en sus topes (de 1 a 999 desde el 2026-10-07: 10 y 400 ya valen)", () => {
-    expect(liquidarDesdeValido(10)).toBe(10);
-    expect(liquidarDesdeValido(400)).toBe(400);
-    expect(liquidarDesdeValido(0)).toBe(LIQUIDAR_MIN);
-    expect(liquidarDesdeValido(5000)).toBe(LIQUIDAR_MAX);
-    expect(liquidarDesdeValido("64")).toBe(64);
-    expect(liquidarDesdeValido(null)).toBe(LIQUIDAR_DEFECTO);
-  });
+describe("la vista y el buscador", () => {
   it("la vista sale de la URL o es Hoy", () => {
     expect(leerVista("nose")).toBe("nose");
     expect(leerVista(["pedir"])).toBe("pedir");

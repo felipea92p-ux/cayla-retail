@@ -323,7 +323,7 @@ describe("candado: las lecturas de Análisis no escriben en la consola, avisan p
     .filter((f) => readFileSync(join(LIB, f), "utf8").includes("@/lib/supabase/server"));
 
   it("encuentra los cinco lectores de hoy (si la búsqueda se pierde, el candado no vigila nada)", () => {
-    expect(lectores).toEqual(expect.arrayContaining(["analisis-datos.ts", "analisis-sede.ts", "analisis-liquidar.ts", "analisis-por-llegar.ts", "analisis-rinde.ts"]));
+    expect(lectores).toEqual(expect.arrayContaining(["analisis-datos.ts", "analisis-sede.ts", "analisis-por-llegar.ts", "analisis-rinde.ts"]));
   });
 
   it("cada lector que abre la base pasa por leerPieza y no usa console.*", () => {

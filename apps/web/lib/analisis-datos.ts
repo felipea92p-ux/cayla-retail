@@ -1,18 +1,17 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import type { DatosAnalisis, PreparacionAnalisis, SedeAnalisis, UmbralesQuieta } from "@/lib/analisis-tipos";
-import { conUmbrales, umbralesPorTipo } from "@/lib/analisis-vara";
+import type { DatosAnalisis, PreparacionAnalisis, SedeAnalisis, SinRitmo, UmbralesQuieta } from "@/lib/analisis-tipos";
+import { conSinRitmo, conUmbrales, sinRitmoPorTipo, umbralesPorTipo } from "@/lib/analisis-vara";
 import { armarPrendas, conPreciosDeMiTienda } from "@/lib/analisis-armado";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { armarModelos, FALLA_ULTIMA_VENTA } from "@/lib/analisis-modelo";
-import { conVentanaDeRitmo, diasDeVentas, liquidarDesdeValido, noHabiaDe, sedeDeAnalisis, VENTANA_VENTAS } from "@/lib/analisis-reglas";
+import { conVentanaDeRitmo, diasDeVentas, noHabiaDe, sedeDeAnalisis, VENTANA_VENTAS } from "@/lib/analisis-reglas";
 import { FALLA_PISO } from "@/lib/analisis-piso";
 import { getPrendasPorSede } from "@/lib/analisis-sede";
 import { getPorLlegar } from "@/lib/analisis-por-llegar";
 import { getPedidoEnCamino } from "@/lib/analisis-pedido-en-camino";
 import { getProveedoresAnalisis } from "@/lib/analisis-proveedores";
 import { recortarProveedores } from "@/lib/analisis-proveedores-lectura";
-import { getLiquidarDesde } from "@/lib/analisis-liquidar";
 import { getRindePorCategoria } from "@/lib/analisis-rinde";
 import { getConteosResumen } from "@/lib/conteos";
 import { leerPreparacion, preparacionDeSede, RPC_PREPARACION } from "@/lib/motor-demanda-reglas";
@@ -68,11 +67,12 @@ const FALLA_FRESCURA = "No se pudo leer Frescura del piso: «No se vende» no sa
 async function leerFrescura(
   activa: Ubicacion,
   conFrescura: boolean,
-): Promise<{ estado: DatosAnalisis["frescura"]; dudas: Map<string, number>; umbrales: Map<string, UmbralesQuieta> }> {
+): Promise<{ estado: DatosAnalisis["frescura"]; dudas: Map<string, number>; umbrales: Map<string, UmbralesQuieta>; sinRitmo: Map<string, Extract<SinRitmo, { motivo: "poca_venta" }>> }> {
   const dudas = new Map<string, number>();
   const umbrales = new Map<string, UmbralesQuieta>();
-  if (!conFrescura) return { estado: "sin_modulo", dudas, umbrales };
-  if (activa.tipo !== "tienda") return { estado: "no_aplica", dudas, umbrales };
+  const sinRitmo = new Map<string, Extract<SinRitmo, { motivo: "poca_venta" }>>();
+  if (!conFrescura) return { estado: "sin_modulo", dudas, umbrales, sinRitmo };
+  if (activa.tipo !== "tienda") return { estado: "no_aplica", dudas, umbrales, sinRitmo };
   // Frescura no lanza: su falla vuelve en `fallo`, que puede traer el nombre de la sede. Una falla se relanza para que cuente como error
   // (no como «sin datos»); `avisoDeFalla` solo copia el código del error, nunca su mensaje: a Sentry llega el id de la tienda y no su
   // texto. Los caminos de adentro de Frescura escriben sus propios logs (`frescura-reglas.ts`); si falla lo de afuera (el cliente, el
@@ -83,10 +83,10 @@ async function leerFrescura(
     return lectura.datos;
   });
   const datos = datosDe(frescura);
-  if (datos === null) return { estado: "fallo", dudas, umbrales };
-  if (!datos.separaPiso) return { estado: "no_aplica", dudas, umbrales };
+  if (datos === null) return { estado: "fallo", dudas, umbrales, sinRitmo };
+  if (!datos.separaPiso) return { estado: "no_aplica", dudas, umbrales, sinRitmo };
   for (const prenda of datos.prendas) for (const t of prenda.tallas) if ((t.dudadas ?? 0) > 0) dudas.set(t.varianteId, t.dudadas!);
-  return { estado: "ok", dudas, umbrales: umbralesPorTipo(datos.categorias) };
+  return { estado: "ok", dudas, umbrales: umbralesPorTipo(datos.categorias), sinRitmo: sinRitmoPorTipo(datos.categorias) };
 }
 
 /**
@@ -101,13 +101,12 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false,
   const ids = sedes.map((s) => s.id);
 
   const idActiva = { ubicacion_id: activa.id };
-  const [motor, lectura, llegan, yaPedido, liquidar, rinde, conteos, pedidos, preciosPropios, sinPrenda, frescura, pendientes, quienPide, campanas] = await Promise.all([
+  const [motor, lectura, llegan, yaPedido, rinde, conteos, pedidos, preciosPropios, sinPrenda, frescura, pendientes, quienPide, campanas] = await Promise.all([
     leerPreparacionDeLaRed(),
     getPrendasPorSede(ids),
     getPorLlegar(activa.id),
     // Lo ya pedido (A4): órdenes de compra abiertas, envíos del proveedor y producción en proceso, por tipo y marca. Si falla, no se cuenta y se dice.
     getPedidoEnCamino(activa.id),
-    getLiquidarDesde(),
     getRindePorCategoria(activa.id),
     leerPieza("conteos", idActiva, () => getConteosResumen(activa.id, 5)).then(datosDe),
     leerPieza("pedidos_no_atendidos", idActiva, () => getPedidosNoAtendidos(activa.id)).then(datosDe),
@@ -131,7 +130,6 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false,
   ]);
   const preciosDeMiTienda = preciosPropios ?? undefined;
 
-  const liquidarDesde = liquidarDesdeValido(liquidar.dias);
   const prepDe = (id: string) => motor.filas.find((f) => f.ubicacionId === id) ?? null;
   const hablaSede = (id: string) => sinCandado() || prepDe(id)?.puedeHablar === true;
 
@@ -141,8 +139,8 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false,
   // Los días de ventas que mi tienda tiene en el ERP, hasta 30: el techo del ritmo de cada prenda y de qué días habla «Vendiste».
   const ventana = diasDeVentas(prepDe(activa.id)?.primeraVenta, hoy);
   // Cada talla mide su ritmo en los días que estuvo colgada, de 7 a los días de ventas de mi tienda (2026-10-14, `ventanaDeRitmo`).
-  // Y se juzga quieta contra la vara de su tipo (p75 y p90 de Frescura, `analisis-vara.ts`), si la tiene.
-  const tallas = conUmbrales(conVentanaDeRitmo(armarPrendas(conPreciosDeMiTienda(filasDe(activa.id), preciosDeMiTienda), otrasDe(activa.id), llegan.porVariante), hoy, ventana), frescura.umbrales).map((p) => ({
+  // Y se juzga quieta contra la vara de su tipo (p75 y p90 de Frescura, `analisis-vara.ts`), si la tiene; si no, queda «Todavía sin ritmo» (B1): nunca con un número de días fijo.
+  const tallas = conSinRitmo(conUmbrales(conVentanaDeRitmo(armarPrendas(conPreciosDeMiTienda(filasDe(activa.id), preciosDeMiTienda), otrasDe(activa.id), llegan.porVariante), hoy, ventana), frescura.umbrales), frescura.sinRitmo, frescura.estado).map((p) => ({
     ...p,
     ...(frescura.estado === "ok" ? { enDuda: frescura.dudas.get(p.varianteId) ?? 0 } : {}),
   }));
@@ -175,7 +173,6 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false,
     diasDeVentas: ventana,
     sabePiso,
     sabeUltimaVenta,
-    liquidarDesde,
     sinPrendaPorTipo: sinPrenda ? sinRegistrarPorTipo(sinPrenda) : {},
     sinPrendaPorTalla: sinPrenda ? sinRegistrarPorTipoYTalla(sinPrenda) : {},
     horizonte,
@@ -191,7 +188,7 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false,
     noHabia: noHabiaDe(pedidos ?? []),
     pedido: yaPedido.pedido,
     sedesSinLeer: lectura.sedesSinLeer,
-    fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, preciosDeMiTienda === undefined ? FALLA_PRECIOS_DE_MI_TIENDA : null, llegan.falla, yaPedido.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null, sinPrenda === null ? FALLA_SIN_PRENDA : null, frescura.estado === "fallo" ? FALLA_FRESCURA : null, quienPide.falla, campanas.falla, temporada.falla].filter(
+    fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, preciosDeMiTienda === undefined ? FALLA_PRECIOS_DE_MI_TIENDA : null, llegan.falla, yaPedido.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null, sinPrenda === null ? FALLA_SIN_PRENDA : null, frescura.estado === "fallo" ? FALLA_FRESCURA : null, quienPide.falla, campanas.falla, temporada.falla].filter(
       (f): f is string => f !== null,
     ),
   };

@@ -46,10 +46,11 @@ export function Carril({
   pista,
   pildoras,
   accion,
+  notaDeFila,
 }: {
   titulo: string;
   nota?: ReactNode;
-  /** A la derecha del título en vez de la nota: los filtros o el control «Liquidar desde». */
+  /** A la derecha del título en vez de la nota: los filtros. */
   herramienta?: ReactNode;
   /** Una franja de aviso entre la cabecera y las filas («Ya pedido: 40 camisas …»): dentro de la tarjeta, así al quitarla o ponerla al cambiar de filtro
    *  no se mueven los filtros de la cabecera de debajo del mouse (ADR-0185). */
@@ -61,6 +62,8 @@ export function Carril({
   pildoras: (p: ModeloAnalisis, grupo: GrupoCarril) => ReactNode;
   /** El botón de la fila (y lo que vaya debajo, como «o pedir a Arequipa»); null en los grupos sin acción. */
   accion: (p: ModeloAnalisis, grupo: GrupoCarril) => ReactNode;
+  /** Una línea chica bajo el nombre de la fila (por qué está en este grupo: «Todavía sin ritmo»); null = ninguna. */
+  notaDeFila?: (p: ModeloAnalisis, grupo: GrupoCarril) => ReactNode;
 }) {
   const { abrirFicha } = useAnalisis();
   // Los grupos con corte que ya se abrieron enteros (se vuelven a cortar al entrar otra vez a la pestaña).
@@ -131,6 +134,7 @@ export function Carril({
               <span className="c-nom">
                 <b>{p.nombre}</b>
                 <span>{queTiene(p)}</span>
+                {notaDeFila?.(p, g) ? <span className="c-nota">{notaDeFila(p, g)}</span> : null}
               </span>
               {pista(p, g)}
               <span className="c-pil">{pildoras(p, g)}</span>

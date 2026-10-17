@@ -54,7 +54,6 @@ export type PiezaAnalisis =
   | "sede"
   | "por_llegar"
   | "pedido_en_camino"
-  | "liquidar_desde"
   | "rinde"
   | "preparacion"
   | "frescura"

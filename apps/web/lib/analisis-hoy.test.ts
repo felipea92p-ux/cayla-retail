@@ -73,6 +73,8 @@ function prenda(parcial: Partial<PrendaAnalisis> = {}): PrendaAnalisis {
     vendidasDeLasQueLlegaron30: 0,
     otras: [],
     llega: [],
+    // La vara de su tipo (inventada): se vigila desde 30 días y se liquida desde 60; sin ella no hay un número de respaldo (B1).
+    umbrales: { vigila: 30, liquidar: 60, vara: "hoy", vendidas: 20 },
     ...parcial,
   };
 }
@@ -100,16 +102,19 @@ describe("las cuatro tarjetas", () => {
     const b = agotada({ nombre: "B" });
     const c = seAcaba({ nombre: "C", piso: 1, vendidas30: 15 }); // 2 días
     const quieta = paraLiquidar();
-    expect(seAcabanHoy([a, quieta, b, c], 60).map((p) => p.nombre)).toEqual(["B", "C", "A"]);
+    expect(seAcabanHoy([a, quieta, b, c]).map((p) => p.nombre)).toEqual(["B", "C", "A"]);
   });
 
   it("«¿Qué no se mueve?»: mandar y liquidar, de la que más espera a la que menos; lo que se vigila no entra", () => {
     const x = paraLiquidar({ nombre: "X", diasSinVender: 65 });
     const y = paraEnviar("aqp", { nombre: "Y", diasSinVender: 120 });
     const vigila = paraLiquidar({ nombre: "V", diasSinVender: 40 });
-    expect(quietasHoy([x, vigila, y], 60).map((p) => p.nombre)).toEqual(["Y", "X"]);
-    // Con el umbral más bajo, la que se vigilaba ya no se mueve.
-    expect(quietasHoy([x, vigila, y], 35).map((p) => p.nombre)).toEqual(["Y", "X", "V"]);
+    expect(quietasHoy([x, vigila, y]).map((p) => p.nombre)).toEqual(["Y", "X"]);
+    // Una de un tipo con una vara más corta ya cuenta como para liquidar con esos mismos días (cada tipo con lo suyo).
+    const corta = paraLiquidar({ nombre: "V", diasSinVender: 40, umbrales: { vigila: 10, liquidar: 35, vara: "hoy", vendidas: 20 } });
+    expect(quietasHoy([x, corta, y]).map((p) => p.nombre)).toEqual(["Y", "X", "V"]);
+    // Un tipo sin vara no entra a mandar ni a liquidar, por viejo que sea.
+    expect(quietasHoy([paraLiquidar({ nombre: "Sin vara", diasSinVender: 300, umbrales: undefined })])).toEqual([]);
   });
 
   it("los días que quedan: «Ya no hay» en rojo, una semana o menos en ámbar, más en pizarra", () => {
@@ -144,7 +149,7 @@ describe("las cuatro tarjetas", () => {
 
 // Tarea #2 de docs/pantallas/gestion-analisis.md (2026-10-14): ninguna tarjeta dice «Va bien» cuando no puede saberlo.
 describe("una tarjeta sin nada no dice «Va bien» si no puede saberlo", () => {
-  // Datos inventados: hoy 14 de octubre; la tienda vende en el ERP desde el 30 de setiembre (14 días) y «Liquidar desde» es 15.
+  // Datos inventados: hoy 14 de octubre; el tipo se liquida desde 60 días (su vara).
   const HOY14 = "2026-10-14";
   const colgada = (salio: string, extra: Partial<PrendaAnalisis> = {}) => prenda({ piso: 2, almacen: 1, salioAlPiso: salio, ...extra });
 
@@ -157,27 +162,46 @@ describe("una tarjeta sin nada no dice «Va bien» si no puede saberlo", () => {
 
   it("si ningún modelo lleva aún en el piso lo que se espera para liquidarlo, «Todavía no se puede saber» (nunca «Va bien»)", () => {
     const tienda = [colgada("2026-09-30"), colgada("2026-10-10")];
-    const v = vacioQuietasHoy(tienda, 15, HOY14, true);
+    const v = vacioQuietasHoy(tienda, HOY14, true);
     expect(v.est).toBe("info");
-    expect(v.texto).toBe("Todavía no se puede saber. Ningún modelo lleva aún 15 días en el piso.");
+    expect(v.texto).toBe("Todavía no se puede saber. Ningún modelo lleva aún lo que tardan 9 de cada 10 de su tipo.");
   });
 
-  it("desde que alguno llega al umbral, que nada esté quieto sí dice algo (y con datos incompletos, «con lo registrado»)", () => {
-    const tienda = [colgada("2026-09-29"), colgada("2026-10-10")];
-    expect(vacioQuietasHoy(tienda, 15, HOY14, true)).toEqual({ est: "bien", texto: "Nada lleva 15 días sin venderse." });
-    expect(vacioQuietasHoy(tienda, 15, HOY14, false)).toEqual({ est: "info", texto: "Con lo registrado, nada lleva 15 días sin venderse." });
+  it("desde que alguno llega a lo que tarda su tipo, que nada esté quieto sí dice algo (y con datos incompletos, «con lo registrado»)", () => {
+    const tienda = [colgada("2026-08-01"), colgada("2026-10-10")];
+    expect(vacioQuietasHoy(tienda, HOY14, true)).toEqual({ est: "bien", texto: "Nada está quieto para lo que tarda su tipo." });
+    expect(vacioQuietasHoy(tienda, HOY14, false)).toEqual({ est: "info", texto: "Con lo registrado, nada está quieto para lo que tarda su tipo." });
   });
 
-  it("con la vara de su tipo, el umbral es el de cada uno", () => {
+  it("con la vara de su tipo, lo que se espera es lo de cada uno", () => {
     const polos = { vigila: 3, liquidar: 5, vara: "hoy" as const, vendidas: 30 };
-    expect(vacioQuietasHoy([colgada("2026-10-12", { umbrales: polos })], 15, HOY14, true).texto).toBe(
-      "Todavía no se puede saber. Ningún modelo lleva aún lo que tarda su tipo en venderse.",
+    expect(vacioQuietasHoy([colgada("2026-10-12", { umbrales: polos })], HOY14, true).texto).toBe(
+      "Todavía no se puede saber. Ningún modelo lleva aún lo que tardan 9 de cada 10 de su tipo.",
     );
-    expect(vacioQuietasHoy([colgada("2026-10-08", { umbrales: polos })], 15, HOY14, true)).toEqual({ est: "bien", texto: "Nada está quieto para lo que tarda su tipo." });
+    expect(vacioQuietasHoy([colgada("2026-10-08", { umbrales: polos })], HOY14, true)).toEqual({ est: "bien", texto: "Nada está quieto para lo que tarda su tipo." });
+  });
+
+  it("si ningún tipo tiene todavía ritmo, no hay con qué juzgar y no se inventa un número de días (B1)", () => {
+    const v = vacioQuietasHoy([colgada("2026-08-01", { umbrales: undefined }), colgada("2026-10-10", { umbrales: undefined })], HOY14, true);
+    expect(v).toEqual({ est: "info", texto: "Todavía no se puede saber. Ningún tipo vendió todavía lo suficiente para saber cuánto tarda en venderse." });
+    expect(v.texto).not.toMatch(/\d+ días/);
+  });
+
+  it("dice cuántos modelos quedaron «todavía sin ritmo», para que «Nada está quieto» no los esconda", () => {
+    const tienda = [colgada("2026-08-01"), colgada("2026-10-10")];
+    expect(vacioQuietasHoy(tienda, HOY14, true, 3)).toEqual({ est: "info", texto: "Nada está quieto para lo que tarda su tipo. 3 modelos quedan en «Todavía sin ritmo»." });
+    expect(vacioQuietasHoy(tienda, HOY14, true, 1).texto).toContain("1 modelo queda en «Todavía sin ritmo»");
+    // Si todavía no se puede juzgar y ALGÚN tipo tiene vara, lo dice; si ningún tipo la tiene, la línea ya lo dijo y no se repite.
+    expect(vacioQuietasHoy([colgada("2026-10-10")], HOY14, true, 2).texto).toBe("Todavía no se puede saber. Ningún modelo lleva aún lo que tardan 9 de cada 10 de su tipo. 2 modelos quedan en «Todavía sin ritmo».");
+    expect(vacioQuietasHoy([colgada("2026-10-10", { umbrales: undefined })], HOY14, true, 2).texto).toBe("Todavía no se puede saber. Ningún tipo vendió todavía lo suficiente para saber cuánto tarda en venderse.");
+  });
+
+  it("con Frescura sin leer dice que no se pudo ver — no que el tipo vendió poco", () => {
+    expect(vacioQuietasHoy([colgada("2026-10-10", { umbrales: undefined })], HOY14, true, 4, "fallo").texto).toBe("Todavía no se puede saber. No se pudo ver cuánto tarda en venderse cada tipo.");
   });
 
   it("sin nada colgado, tampoco «Va bien»", () => {
-    expect(vacioQuietasHoy([prenda({ almacen: 3 })], 15, HOY14, true)).toEqual({ est: "info", texto: "Todavía no se puede saber. No hay nada colgado que juzgar todavía." });
+    expect(vacioQuietasHoy([prenda({ almacen: 3 })], HOY14, true)).toEqual({ est: "info", texto: "Todavía no se puede saber. No hay nada colgado que juzgar todavía." });
   });
 });
 
@@ -192,7 +216,7 @@ describe("Qué hacer hoy: los caminos", () => {
       paraLiquidar({ nombre: "Rebaja" }),
       prenda({ nombre: "Se vende bien", piso: 20, vendidas30: 10 }),
     ];
-    const c = caminosDeHoy(prendas, 60, sedes, HOY);
+    const c = caminosDeHoy(prendas, sedes, HOY);
     // «Llega» ya viene en camino: no se compra otra vez, así que no está en el camino (se dice aparte: «1 más ya viene»).
     expect(c.compra).toMatchObject({ verbo: "Compra", grupo: "comprar", vista: "acaba", est: "urg", motivo: "1 agotada · 1 más ya viene", primero: true });
     expect(c.compra!.prendas.map((p) => p.nombre)).toEqual(["Agotada"]);
@@ -203,16 +227,16 @@ describe("Qué hacer hoy: los caminos", () => {
     ]);
     expect(c.manda.every((m) => m.grupo === "enviar" && m.vista === "nose" && m.est === "ate" && !m.primero)).toBe(true);
     expect(c.reb).toHaveLength(1);
-    expect(c.reb[0]).toMatchObject({ verbo: "Liquidar", grupo: "liquidar", est: "ate", motivo: "Más de 60 días quietas" });
+    expect(c.reb[0]).toMatchObject({ verbo: "Liquidar", grupo: "liquidar", est: "ate", motivo: "Más de lo que tarda su tipo" });
     expect(estadosDelFlujo(c)).toEqual(["urg", "ate"]);
     expect(todosLosCaminos(c).map((x) => x.clave)).toEqual(["comprar", "manda-aqp", "manda-lim", "liquidar"]);
   });
 
   it("los motivos: plural, sin partes vacías, y un respaldo si no hay agotadas ni por llegar", () => {
-    expect(caminosDeHoy([agotada(), agotada()], 60, sedes, HOY).compra!.motivo).toBe("2 agotadas");
-    expect(caminosDeHoy([seAcaba()], 60, sedes, HOY).compra!.motivo).toBe("Quedan 14 días o menos");
+    expect(caminosDeHoy([agotada(), agotada()], sedes, HOY).compra!.motivo).toBe("2 agotadas");
+    expect(caminosDeHoy([seAcaba()], sedes, HOY).compra!.motivo).toBe("Quedan 14 días o menos");
     // Liquidar es urgente si alguna lleva 3 meses o más, y lo dice.
-    const c = caminosDeHoy([paraLiquidar({ diasSinVender: 95 }), paraLiquidar({ diasSinVender: 120 }), paraLiquidar()], 60, sedes, HOY);
+    const c = caminosDeHoy([paraLiquidar({ diasSinVender: 95 }), paraLiquidar({ diasSinVender: 120 }), paraLiquidar()], sedes, HOY);
     expect(c.reb[0]).toMatchObject({ est: "urg", motivo: "2 con más de 3 meses" });
     expect(estadosDelFlujo(c)).toEqual(["urg"]);
   });
@@ -220,13 +244,13 @@ describe("Qué hacer hoy: los caminos", () => {
   it("lo que ya viene en camino a tiempo no se compra otra vez: se dice aparte («4 más ya vienen»), y una llegada atrasada vuelve a ser algo por comprar (A3)", () => {
     const aTiempo = seAcaba({ nombre: "A tiempo", llega: [{ de: "compra", cantidad: 4, fecha: "2026-10-12" }] });
     const atrasada = seAcaba({ nombre: "Atrasada", llega: [{ de: "taller", cantidad: 4, fecha: "2026-09-20" }] });
-    const c = caminosDeHoy([agotada({ nombre: "Agotada" }), aTiempo, atrasada], 60, sedes, HOY).compra!;
+    const c = caminosDeHoy([agotada({ nombre: "Agotada" }), aTiempo, atrasada], sedes, HOY).compra!;
     expect(c.motivo).toBe("1 agotada · 1 más ya viene");
     expect(c.prendas.map((p) => p.nombre).sort()).toEqual(["Agotada", "Atrasada"]);
-    expect(caminosDeHoy([atrasada], 60, sedes, HOY).compra!.motivo).toBe("Quedan 14 días o menos");
+    expect(caminosDeHoy([atrasada], sedes, HOY).compra!.motivo).toBe("Quedan 14 días o menos");
     // Plural: «2 más ya vienen».
     const otra = seAcaba({ nombre: "Otra", llega: [{ de: "compra", cantidad: 2, fecha: null }] });
-    expect(caminosDeHoy([agotada(), aTiempo, otra], 60, sedes, HOY).compra!.motivo).toBe("1 agotada · 2 más ya vienen");
+    expect(caminosDeHoy([agotada(), aTiempo, otra], sedes, HOY).compra!.motivo).toBe("1 agotada · 2 más ya vienen");
   });
 
   it("Compra cuenta LO MISMO que el filtro «Comprar» de «Se está acabando» (una sola regla: nada de dos cuentas)", () => {
@@ -237,9 +261,9 @@ describe("Qué hacer hoy: los caminos", () => {
       seAcaba({ nombre: "Atrasada", llega: [{ de: "taller", cantidad: 4, fecha: "2026-09-20" }] }),
       seAcaba({ nombre: "Nada viene" }),
     ];
-    const seAcaban = prendasQueSeAcaban(prendas, 60);
+    const seAcaban = prendasQueSeAcaban(prendas);
     const cuentas = cuentasFiltroAcaba(seAcaban, HOY);
-    const compra = caminosDeHoy(prendas, 60, sedes, HOY).compra!;
+    const compra = caminosDeHoy(prendas, sedes, HOY).compra!;
     expect(compra.prendas).toHaveLength(cuentas.comprar);
     expect(compra.prendas.map((p) => p.nombre).sort()).toEqual(seAcaban.filter((p) => pasaFiltroAcaba(p, "comprar", HOY)).map((p) => p.nombre).sort());
     // Y lo que dice aparte es lo que cuenta «Por llegar»: entre las dos suman todo lo que se acaba.
@@ -249,11 +273,11 @@ describe("Qué hacer hoy: los caminos", () => {
 
   it("tocar «Compra» abre «Se está acabando» ya en «Comprar»: el número de la tarjeta es el del título del carril (8, no 12)", () => {
     const prendas = [agotada({ nombre: "Agotada" }), seAcaba({ nombre: "A tiempo", llega: [{ de: "compra", cantidad: 4, fecha: "2026-10-12" }] }), seAcaba({ nombre: "Nada viene" })];
-    const caminos = caminosDeHoy(prendas, 60, sedes, HOY);
+    const caminos = caminosDeHoy(prendas, sedes, HOY);
     const filtro = filtroAcabaDelCamino(caminos.compra!);
     expect(filtro).toBe("comprar");
     // Con ese filtro, el carril muestra exactamente las que cuenta el camino.
-    const seAcaban = prendasQueSeAcaban(prendas, 60);
+    const seAcaban = prendasQueSeAcaban(prendas);
     expect(seAcaban.filter((p) => pasaFiltroAcaba(p, filtro!, HOY))).toHaveLength(caminos.compra!.prendas.length);
     // Los demás caminos son de «No se vende», que no tiene ese filtro: no lo tocan.
     const quietas = [...caminos.manda, ...caminos.reb];
@@ -264,7 +288,7 @@ describe("Qué hacer hoy: los caminos", () => {
 
   it("si todo lo que se acaba ya viene en camino no hay nada que comprar hoy: no hay camino de compra", () => {
     const todoViene = seAcaba({ nombre: "Viene", llega: [{ de: "compra", cantidad: 4, fecha: "2026-10-12" }] });
-    expect(caminosDeHoy([todoViene], 60, sedes, HOY).compra).toBeNull();
+    expect(caminosDeHoy([todoViene], sedes, HOY).compra).toBeNull();
   });
 
   it("A quién se pide (A8): el camino de comprar dice a cuántos proveedores; su lista es esa misma, sin lo que ya viene en camino", () => {
@@ -280,28 +304,28 @@ describe("Qué hacer hoy: los caminos", () => {
       // Ya viene a tiempo: no se vuelve a pedir, así que ni su proveedor entra en la cuenta ni él en la lista.
       seAcaba({ productoId: "pcamino", origen: null, llega: [{ de: "compra", cantidad: 4, fecha: "2026-10-12" }] }),
     ];
-    const c = caminosDeHoy(prendas, 60, sedes, HOY, proveedores);
+    const c = caminosDeHoy(prendas, sedes, HOY, proveedores);
     expect(c.compra!.pie).toBe("Pídelas a 2 proveedores · 1 sin proveedor");
     expect(c.compra!.prendas).toHaveLength(4);
     expect(c.compra!.motivo).toBe("1 agotada · 1 más ya viene");
     // Los otros caminos no llevan pie.
-    expect(caminosDeHoy([...prendas, paraLiquidar()], 60, sedes, HOY, proveedores).reb[0]!.pie).toBeUndefined();
+    expect(caminosDeHoy([...prendas, paraLiquidar()], sedes, HOY, proveedores).reb[0]!.pie).toBeUndefined();
   });
 
   it("un proveedor archivado no cuenta como proveedor al que pedirle: el camino lo cuenta «sin proveedor»", () => {
     const proveedores = { nombres: { v: { nombre: "Tejidos Wari", activo: false } }, delCatalogo: { pv: "v" } };
-    const c = caminosDeHoy([agotada({ productoId: "pv", origen: null })], 60, sedes, HOY, proveedores);
+    const c = caminosDeHoy([agotada({ productoId: "pv", origen: null })], sedes, HOY, proveedores);
     expect(c.compra!.pie).toBe("Falta elegir el proveedor en el catálogo");
   });
 
   it("sin los proveedores (no se pudieron leer), el camino no dice nada: nunca «sin proveedor» por un error", () => {
-    const sinLeer = caminosDeHoy([agotada({ productoId: "pa1", origen: null })], 60, sedes, HOY, null);
+    const sinLeer = caminosDeHoy([agotada({ productoId: "pa1", origen: null })], sedes, HOY, null);
     expect(sinLeer.compra!.pie).toBeUndefined();
     expect("pie" in sinLeer.compra!).toBe(false);
   });
 
   it("sin nada que hacer, no hay caminos", () => {
-    const c = caminosDeHoy([prenda({ piso: 10, vendidas30: 3 })], 60, sedes, HOY);
+    const c = caminosDeHoy([prenda({ piso: 10, vendidas30: 3 })], sedes, HOY);
     expect(c).toEqual({ compra: null, manda: [], reb: [] });
     expect(estadosDelFlujo(c)).toEqual([]);
     expect(todosLosCaminos(c)).toEqual([]);
@@ -394,7 +418,7 @@ describe("Qué hacer hoy: el flujo mide lo mismo con 1, 20 o 300 prendas", () =>
       [0.3, () => paraLiquidar({ diasSinVender: 100 })],
     ] as const;
     for (const [parte, crear] of reparto) for (let i = 0; i < Math.max(1, Math.round(total * parte)); i++) prendas.push(crear());
-    return caminosDeHoy(total === 1 ? prendas.slice(0, 1) : prendas, 60, sedes, HOY);
+    return caminosDeHoy(total === 1 ? prendas.slice(0, 1) : prendas, sedes, HOY);
   };
 
   for (const total of [1, 20, 300]) {

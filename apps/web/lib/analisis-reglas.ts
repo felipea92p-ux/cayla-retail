@@ -3,8 +3,9 @@
 //
 // Las cifras son las de la maqueta aprobada por Felipe (2026-10-06, artifact TBSFBD1nikBu8FeShiKMMp): se acaba lo que dura dos
 // semanas o menos al ritmo de lo vendido desde que la prenda se colgó (2026-10-14; antes, los días de ventas de la tienda, y antes
-// siempre 30), nunca en menos de una semana; se vigila lo que lleva un mes quieto; se liquida desde el umbral que eligió la tienda
-// (60 días por defecto, uno para todos); en rojo, lo de más de 3 meses. El sistema NO decide si pedirla a otra tienda o
+// siempre 30), nunca en menos de una semana; lo quieto se juzga SOLO contra lo que tarda en venderse su tipo (la vara de Frescura: se vigila
+// desde el P75 y se manda o se liquida desde el P90); un tipo sin vara suficiente queda en «Todavía sin ritmo», sin un número de días fijo
+// (Felipe, 2026-10-17: «no es lo mismo un polo que un jean»); en rojo, lo de más de 3 meses. El sistema NO decide si pedirla a otra tienda o
 // comprarla (decisión 7): todo lo que se acaba aparece para comprar y, si otra tienda la tiene, se dice cuántas tiene.
 
 import type { DatosAnalisis, EdadInventario, LlegadaPrenda, PrendaAnalisis, PrendaEnOtraSede, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
@@ -15,20 +16,10 @@ import { esPedidoDeTalla, type MotivoPedido } from "./se-probo-reglas";
 
 /** Hasta cuántos días de stock «se está acabando» (el eje del carril llega a 2 semanas). */
 export const DIAS_SE_ACABA = 14;
-/** Desde cuántos días sin venderse se vigila (un mes). */
-export const DIAS_VIGILAR = 30;
 /** Desde cuántos días sin venderse va en rojo (3 meses). */
 export const DIAS_TRES_MESES = 90;
-/** El largo mínimo del carril «Días sin venderse» (4 meses): se alarga si «Liquidar desde» pasa de ahí (`finDelEje`). */
+/** El largo mínimo del carril «Días sin venderse» (4 meses): se alarga si el escalón de «Liquidar» de algún tipo pasa de ahí (`finDelEje`). */
 export const DIAS_EJE_QUIETAS = 120;
-/**
- * «Liquidar desde»: el valor de fábrica y lo que acepta. Felipe, 2026-10-06: se mueve, no es fijo; 2026-10-07: sin tope, los días que
- * se quiera (de 1 a 999, lo mismo que la base: 20261007100000). Cada toque de − y + suma o resta LIQUIDAR_PASO.
- */
-export const LIQUIDAR_DEFECTO = 60;
-export const LIQUIDAR_MIN = 1;
-export const LIQUIDAR_MAX = 999;
-export const LIQUIDAR_PASO = 5;
 /** Cuánto tiene que haber vendido otra tienda en 30 días para proponer mandársela («Mándalas a donde sí se venden»). */
 export const VENDIDAS_PARA_ENVIAR = 2;
 /** La ventana de ventas de Análisis: el ritmo de lo que se vende se mide en hasta 30 días. */
@@ -74,12 +65,16 @@ export function conVentanaDeRitmo<T extends Pick<PrendaAnalisis, "salioAlPiso">>
 /** Cuántas prendas muestran las listas cortas de Hoy. */
 export const PRENDAS_EN_LISTA = 5;
 
-/** «duda»: quieta, pero alguna unidad colgada puede ser una venta sin registrar (ADR-0357, act. 2026-10-14): no se sabe, no se liquida. */
-export type GrupoAnalisis = "comprar" | "enviar" | "liquidar" | "vigila" | "duda";
+/**
+ * «duda»: quieta, pero alguna unidad colgada puede ser una venta sin registrar (ADR-0357, act. 2026-10-14): no se sabe, no se liquida.
+ * «sin_ritmo»: quieta, pero su tipo todavía no tiene ventas suficientes para saber cuánto tarda en venderse (act. 2026-10-17, B1): ni se rebaja, ni se
+ * manda, ni se vigila por ahora.
+ */
+export type GrupoAnalisis = "comprar" | "enviar" | "liquidar" | "vigila" | "duda" | "sin_ritmo";
 /** Los grupos de «Se está acabando» y de «No se vende», en el orden de su carril. */
 export const GRUPOS_ACABA: readonly GrupoAnalisis[] = ["comprar"];
 export const GRUPOS_QUIETAS: readonly GrupoAnalisis[] = ["enviar", "liquidar"];
-export const GRUPOS_CARRIL_QUIETAS: readonly GrupoAnalisis[] = ["enviar", "liquidar", "duda", "vigila"];
+export const GRUPOS_CARRIL_QUIETAS: readonly GrupoAnalisis[] = ["enviar", "liquidar", "duda", "vigila", "sin_ritmo"];
 
 /**
  * Nunca salió al piso (20261007120000): tiene unidades guardadas en mi tienda y la base no sabe de ninguna vez en su piso de venta
@@ -179,26 +174,40 @@ export function otraSedeQueLaTiene(otras: readonly PrendaEnOtraSede[]): PrendaEn
   return [...con].sort((a, b) => b.stock - a.stock || b.vendidas30 - a.vendidas30 || a.sedeId.localeCompare(b.sedeId))[0];
 }
 
-/** Desde cuántos días sin venderse se liquida esta prenda: el p90 de la vara de su tipo o, sin ella, «Liquidar desde». */
-export const umbralLiquidar = (p: Pick<PrendaAnalisis, "umbrales">, liquidarDesde: number): number => p.umbrales?.liquidar ?? liquidarDesde;
-/** Desde cuántos días sin venderse se vigila esta prenda: el p75 de la vara de su tipo o, sin ella, un mes. */
-export const umbralVigilar = (p: Pick<PrendaAnalisis, "umbrales">): number => p.umbrales?.vigila ?? DIAS_VIGILAR;
+/**
+ * ¿Ya toca rotular a esta quieta como «Todavía sin ritmo»? Solo si su tipo NO tiene vara suficiente (`umbrales`): con ella decide la vara. Si Frescura no se
+ * pudo leer (`sin_lectura`) no hay con qué comparar, y toda quieta queda a la vista con su razón: nunca en «Liquidar». Si su tipo sí vendió algo pero no
+ * lo suficiente (`poca_venta`), solo cuando el modelo ya lleva en el piso lo que tardó la mitad de su tipo (o su última venta vista): antes de eso un
+ * modelo recién colgado no se rotula. Un tipo que no vendió nada (`sinRitmo` ausente) no rotula: no hay con qué comparar.
+ */
+export function rotuladaSinRitmo(p: Pick<PrendaAnalisis, "sinRitmo" | "diasSinVender" | "umbrales">): boolean {
+  if (p.umbrales || !p.sinRitmo) return false;
+  if (p.sinRitmo.motivo === "sin_lectura") return true;
+  return p.sinRitmo.desde !== null && p.diasSinVender !== null && p.diasSinVender >= p.sinRitmo.desde;
+}
 
 /**
  * El grupo de una prenda, o null si no pide nada (se vende bien, o todavía no lleva quieta lo que se vigila). Una prenda vive en UN
- * solo grupo: lo que se acaba se compra; lo quieto desde el umbral de liquidar se manda a donde sí se vende (si otra tienda vendió 2
- * o más) o se liquida; lo quieto desde el umbral de vigilar, se vigila. Los umbrales son los de la vara de su tipo (p90 y p75,
- * `analisis-vara.ts`; ADR-0357, act. 2026-10-14) o, sin ella, «Liquidar desde» y un mes. Lo quieto con una unidad que puede ser una
- * venta sin registrar (`enDuda`, la cuenta de Frescura) no se manda ni se liquida: va a «duda» hasta que se registre esa venta.
+ * solo grupo: lo que se acaba se compra; lo quieto desde el P90 de su tipo se manda a donde sí se vende (si otra tienda vendió 2
+ * o más) o se liquida; lo quieto desde el P75, se vigila. Los umbrales son SOLO los de la vara de su tipo (`analisis-vara.ts`; ADR-0357, act.
+ * 2026-10-14) y existen solo si el tipo vendió lo suficiente: sin vara no hay número de días de respaldo, y lo quieto queda en «Todavía sin ritmo» si
+ * ya toca rotularlo (`rotuladaSinRitmo`). Lo quieto con una unidad que puede ser una venta sin registrar (`enDuda`, la cuenta de Frescura) no se
+ * manda ni se liquida: va a «duda» hasta que se registre esa venta.
+ *
+ * DECISIÓN PENDIENTE (Felipe, 2026-10-17): una prenda que vendió algo en los últimos 30 días (`vendidas30 > 0`) nunca cuenta como quieta. Se queda
+ * así por ahora y se decide con 30 días de historia (~30-oct), cuando haya con qué medir si esa regla esconde modelos que sí están lentos.
  */
 export function grupoDe(
-  p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasSinVender" | "otras" | "diasDeVentas" | "enDuda" | "umbrales">,
-  liquidarDesde: number,
+  p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasSinVender" | "otras" | "diasDeVentas" | "enDuda" | "umbrales" | "sinRitmo">,
 ): GrupoAnalisis | null {
   if (seEstaAcabando(p)) return "comprar";
   if (p.vendidas30 > 0 || p.diasSinVender === null || totalEnTienda(p) === 0) return null;
-  const liquidar = umbralLiquidar(p, liquidarDesde);
-  if (p.diasSinVender < liquidar && p.diasSinVender < umbralVigilar(p)) return null;
+  if (!p.umbrales) {
+    if (!rotuladaSinRitmo(p)) return null;
+    return (p.enDuda ?? 0) > 0 ? "duda" : "sin_ritmo";
+  }
+  const { liquidar, vigila } = p.umbrales;
+  if (p.diasSinVender < liquidar && p.diasSinVender < vigila) return null;
   if ((p.enDuda ?? 0) > 0) return "duda";
   if (p.diasSinVender < liquidar) return "vigila";
   const vende = sedeQueMasVende(p.otras);
@@ -207,10 +216,10 @@ export function grupoDe(
 }
 
 /** Las prendas de unos grupos, en el orden en que se atienden. */
-export function prendasDe<T extends PrendaAnalisis>(prendas: readonly T[], grupos: readonly GrupoAnalisis[], liquidarDesde: number): T[] {
+export function prendasDe<T extends PrendaAnalisis>(prendas: readonly T[], grupos: readonly GrupoAnalisis[]): T[] {
   const g = new Set(grupos);
   return prendas.filter((p) => {
-    const x = grupoDe(p, liquidarDesde);
+    const x = grupoDe(p);
     return x !== null && g.has(x);
   });
 }
@@ -247,13 +256,6 @@ export function edadDelInventario(prendas: readonly Pick<PrendaAnalisis, "piso" 
     else e.masDe90 += u;
   }
   return e;
-}
-
-/** «Liquidar desde» dentro de sus topes; lo que no es un número vuelve al de fábrica. */
-export function liquidarDesdeValido(v: unknown): number {
-  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;
-  if (!Number.isFinite(n)) return LIQUIDAR_DEFECTO;
-  return Math.min(LIQUIDAR_MAX, Math.max(LIQUIDAR_MIN, Math.round(n)));
 }
 
 /** La pestaña de la URL (`?vista=`), o Hoy. */

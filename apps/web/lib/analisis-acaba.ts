@@ -48,8 +48,8 @@ export function pasaFiltroAcaba(p: Pick<PrendaAnalisis, "llega">, filtro: Filtro
 }
 
 /** Lo que se acaba (grupo «Cómpralas»), de lo más urgente a lo menos: primero lo agotado, a igual plazo lo que más se vende. */
-export function prendasQueSeAcaban<T extends PrendaAnalisis>(prendas: readonly T[], liquidarDesde: number): T[] {
-  return [...prendasDe(prendas, GRUPOS_ACABA, liquidarDesde)].sort(ordenSeAcaba);
+export function prendasQueSeAcaban<T extends PrendaAnalisis>(prendas: readonly T[]): T[] {
+  return [...prendasDe(prendas, GRUPOS_ACABA)].sort(ordenSeAcaba);
 }
 
 /** Cuántas caen en cada filtro (las tres píldoras): «Comprar» y «Por llegar» se reparten «Todos» sin repetir ninguna. */

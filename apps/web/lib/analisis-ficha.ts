@@ -24,6 +24,7 @@ import { llegaTarde, lecturaDeRitmo, textoAtraso, textoDejasDeGanar, textoLlegaT
 import { ritmoReciente } from "./analisis-ritmo";
 import { notaDePedidoDeTipo, PEDIDO_SIN_MODELO, type PedidoDeTipo } from "./analisis-pedido-en-camino-reglas";
 import { FUENTE_CORTA, type ProveedorDelModelo } from "./analisis-a-quien-pedir";
+import { razonSinRitmo } from "./analisis-quietas";
 import { hrefComprar, hrefEnviar, hrefLiquidar, hrefRegistrarVentas, hrefReponerPiso, type DondeComprar } from "./analisis-acciones";
 import { estiloMosaicoColor } from "./color-prenda-reglas";
 import { queTiene } from "./analisis-modelo";
@@ -52,6 +53,7 @@ const CHIP_GRUPO: Record<GrupoAnalisis, { est: EstadoFicha; texto: string }> = {
   liquidar: { est: "ate", texto: "Liquidar" },
   vigila: { est: "nd", texto: "Vigílalas" },
   duda: { est: "nd", texto: "Aún no se sabe" },
+  sin_ritmo: { est: "nd", texto: "Todavía sin ritmo" },
 };
 
 /**
@@ -273,6 +275,17 @@ export function hechosDe(
     const vende = grupo === "enviar" ? sedeQueMasVende(p.otras) : null;
     if (vende) agregar("camion", "ambar", `${codigoDe(sedes, vende.sedeId)} vendió ${vende.vendidas30}`, "este mes");
     if (grupo === "liquidar") agregar("etiqueta", grave ? "rojo" : "ambar", "Liquidar", "tú eliges cuánto");
+    return hechos;
+  }
+
+  // Quieta, pero su tipo todavía no vendió lo suficiente para saber cuánto tarda en venderse (ADR-0357, act. 2026-10-17, B1): ni se rebaja ni se manda, y
+  // la ficha dice por qué con las mismas palabras que la fila del carril. Sin un número de días de respaldo.
+  if (grupo === "sin_ritmo") {
+    const dias = p.diasSinVender ?? 0;
+    agregar("reloj", "pizarra", `${dias} ${plural(dias, "día", "días")}`, "en el piso sin venderse");
+    agregar("caja", "taupe", `Tienes ${tienes}`, `${p.piso} en el piso`);
+    const razon = razonSinRitmo(p);
+    if (razon) agregar("flechas", "pizarra", "Todavía sin ritmo", razon, { ancho: "completo" });
     return hechos;
   }
 

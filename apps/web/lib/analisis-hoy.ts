@@ -36,13 +36,13 @@ export type EstadoHoy = "urg" | "ate" | "bien" | "info" | "nd";
 // ───────────────────────── Las cuatro tarjetas ─────────────────────────
 
 /** «¿Qué se acaba?»: lo que se está acabando, de lo más urgente a lo menos (la tarjeta muestra las 5 primeras). */
-export function seAcabanHoy<T extends PrendaAnalisis>(prendas: readonly T[], liquidarDesde: number): T[] {
-  return prendasDe(prendas, GRUPOS_ACABA, liquidarDesde).sort(ordenSeAcaba);
+export function seAcabanHoy<T extends PrendaAnalisis>(prendas: readonly T[]): T[] {
+  return prendasDe(prendas, GRUPOS_ACABA).sort(ordenSeAcaba);
 }
 
-/** «¿Qué no se mueve?»: lo quieto desde el umbral (mandar o liquidar), de lo que más espera a lo que menos. */
-export function quietasHoy<T extends PrendaAnalisis>(prendas: readonly T[], liquidarDesde: number): T[] {
-  return prendasDe(prendas, GRUPOS_QUIETAS, liquidarDesde).sort(ordenQuietas);
+/** «¿Qué no se mueve?»: lo quieto desde lo que tarda su tipo (mandar o liquidar), de lo que más espera a lo que menos. */
+export function quietasHoy<T extends PrendaAnalisis>(prendas: readonly T[]): T[] {
+  return prendasDe(prendas, GRUPOS_QUIETAS).sort(ordenQuietas);
 }
 
 /**
@@ -71,18 +71,24 @@ export const estadoSinNada = (confiable: boolean): Extract<EstadoHoy, "bien" | "
 export const conLoRegistrado = (frase: string, confiable: boolean): string => (confiable ? frase : `Con lo registrado, ${frase.charAt(0).toLowerCase()}${frase.slice(1)}`);
 
 /**
- * «¿Qué no se mueve?» sin nada quieto: si ningún modelo lleva todavía en el piso lo que se espera para juzgarlo, «Todavía no se puede
- * saber» (pizarra), nunca «Va bien»; si ya se puede, que nada esté quieto (con los umbrales de cada tipo o «Liquidar desde»).
+ * «¿Qué no se mueve?» sin nada quieto: si ningún modelo lleva todavía en el piso lo que se espera para juzgarlo (o ningún tipo tiene ritmo), «Todavía no se
+ * puede saber» (pizarra), nunca «Va bien»; si ya se puede, que nada esté quieto para lo que tarda su tipo. `sinRitmo`: cuántos modelos quietos quedaron en
+ * «Todavía sin ritmo» (su tipo no vendió lo suficiente): la tarjeta lo dice, para que «Nada está quieto» no los esconda.
  */
 export function vacioQuietasHoy(
   prendas: readonly Pick<PrendaAnalisis, "piso" | "almacen" | "salioAlPiso" | "umbrales">[],
-  liquidarDesde: number,
   hoy: string,
   confiable: boolean,
+  sinRitmo = 0,
+  frescura: "ok" | "sin_modulo" | "fallo" | "no_aplica" = "ok",
 ): { est: Extract<EstadoHoy, "bien" | "info">; texto: string } {
-  if (!puedeJuzgarQuietas(prendas, liquidarDesde, hoy)) return { est: "info", texto: `Todavía no se puede saber. ${lineaTodaviaNoQuietas(prendas, liquidarDesde)}` };
-  const frase = prendas.some((p) => p.umbrales) ? "Nada está quieto para lo que tarda su tipo." : `Nada lleva ${liquidarDesde} días sin venderse.`;
-  return { est: estadoSinNada(confiable), texto: conLoRegistrado(frase, confiable) };
+  const aparte = sinRitmo > 0 ? ` ${sinRitmo} ${plural(sinRitmo, "modelo", "modelos")} ${plural(sinRitmo, "queda", "quedan")} en «Todavía sin ritmo».` : "";
+  if (!puedeJuzgarQuietas(prendas, hoy)) {
+    // Si ningún tipo tiene ritmo, la línea ya lo dijo: no se repite que hay modelos sin ritmo.
+    const repite = prendas.some((p) => p.umbrales) ? aparte : "";
+    return { est: "info", texto: `Todavía no se puede saber. ${lineaTodaviaNoQuietas(prendas, frescura)}${repite}` };
+  }
+  return { est: estadoSinNada(confiable && sinRitmo === 0), texto: `${conLoRegistrado("Nada está quieto para lo que tarda su tipo.", confiable)}${aparte}` };
 }
 
 /** Una fila de «¿Qué no se mueve?»: en rojo desde los 3 meses quieta; antes, en ámbar. */
@@ -134,12 +140,11 @@ export type CaminosHoy = { compra: CaminoHoy | null; manda: CaminoHoy[]; reb: Ca
  */
 export function caminosDeHoy(
   prendas: readonly PrendaAnalisis[],
-  liquidarDesde: number,
   sedes: readonly Pick<SedeAnalisis, "id" | "ciudad">[],
   hoy: string,
   proveedores: ProveedoresAnalisis | null = null,
 ): CaminosHoy {
-  const seAcaban = prendasDe(prendas, ["comprar"], liquidarDesde).sort(ordenSeAcaba);
+  const seAcaban = prendasDe(prendas, ["comprar"]).sort(ordenSeAcaba);
   // Lo que hay que comprar es lo que no viene en camino a tiempo: una llegada atrasada vuelve a ser algo por comprar (A3, 2026-10-16), igual
   // que en el filtro «Comprar».
   const comp = modelosPorPedir(seAcaban, hoy);
@@ -155,7 +160,7 @@ export function caminosDeHoy(
     : null;
 
   const porDestino = new Map<string, PrendaAnalisis[]>();
-  for (const p of prendasDe(prendas, ["enviar"], liquidarDesde).sort(ordenQuietas)) {
+  for (const p of prendasDe(prendas, ["enviar"]).sort(ordenQuietas)) {
     const destino = sedeQueMasVende(p.otras)?.sedeId ?? "";
     porDestino.set(destino, [...(porDestino.get(destino) ?? []), p]);
   }
@@ -177,7 +182,7 @@ export function caminosDeHoy(
       primero: false,
     }));
 
-  const liq = prendasDe(prendas, ["liquidar"], liquidarDesde).sort(ordenQuietas);
+  const liq = prendasDe(prendas, ["liquidar"]).sort(ordenQuietas);
   const viejas = liq.filter((p) => (p.diasSinVender ?? 0) >= DIAS_TRES_MESES).length;
   const reb: CaminoHoy[] = liq.length
     ? [
@@ -189,7 +194,7 @@ export function caminosDeHoy(
           icono: "etiqueta",
           est: viejas ? "urg" : "ate",
           prendas: liq,
-          motivo: viejas ? `${viejas} con más de 3 meses` : `Más de ${liquidarDesde} días quietas`,
+          motivo: viejas ? `${viejas} con más de 3 meses` : "Más de lo que tarda su tipo",
           primero: false,
         },
       ]

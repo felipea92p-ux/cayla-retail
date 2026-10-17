@@ -49,6 +49,7 @@ const delModelo = (v: PrendaAnalisis) => ({
   diasDeVentas: v.diasDeVentas,
   // Los escalones de «No se vende» son de su tipo, y todas sus tallas son del mismo.
   ...(v.umbrales ? { umbrales: v.umbrales } : {}),
+  ...(v.sinRitmo ? { sinRitmo: v.sinRitmo } : {}),
 });
 
 const suma = (vs: readonly PrendaAnalisis[], campo: (v: PrendaAnalisis) => number): number => vs.reduce((s, v) => s + campo(v), 0);

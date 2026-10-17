@@ -127,9 +127,13 @@ export type PrendaAnalisis = {
   /** Su última venta en MI tienda (YYYY-MM-DD, sin tope de fechas); null si nunca se vendió aquí. undefined si la base todavía no lo
    *  dice (sin 20261010120000): con esto se cuentan los días sin venderse del modelo entero (`analisis-modelo.ts`). */
   ultimaVenta?: string | null;
-  /** Desde cuántos días sin venderse se vigila y se liquida, según la vara de su tipo (`analisis-vara.ts`). Sin ella (la vara no alcanza o
-   *  no se leyó Frescura), «Liquidar desde» y un mes. */
+  /** Desde cuántos días sin venderse se vigila y se liquida, según la vara de su tipo (`analisis-vara.ts`). Solo si la vara de su tipo alcanza para
+   *  juzgar (10 ventas con edad conocida y P75 y P90 calculables). Sin ella NO hay un número de días de respaldo (ADR-0357, act. 2026-10-17, B1):
+   *  mira `sinRitmo`. */
   umbrales?: UmbralesQuieta;
+  /** Por qué su tipo NO tiene todavía un ritmo con que juzgar (solo si no tiene `umbrales`): ni se rebaja ni se manda ni se vigila, queda en
+   *  «Todavía sin ritmo» (`analisis-vara.ts`). undefined = su tipo no vendió nada con edad conocida (no hay con qué comparar: no se rotula). */
+  sinRitmo?: SinRitmo;
   /** Unidades colgadas de esta prenda que pueden ser una venta sin registrar: una venta pendiente anotada en caja con su tipo, talla y
    *  color (la cuenta de Frescura, ADR-0208 act. 2026-10-10 (c)). Con alguna, no se sabe si se vendió: no se liquida (ADR-0357, act.
    *  2026-10-14). Sin la lectura de Frescura, undefined. */
@@ -209,6 +213,17 @@ export type PreparacionAnalisis = PreparacionSede & { dias: DiaVenta[]; hoy: str
  */
 export type UmbralesQuieta = { vigila: number; liquidar: number; vara: "mes" | "cayla" | "hoy"; vendidas: number };
 
+/**
+ * Por qué un tipo todavía no tiene ritmo (ADR-0357, act. 2026-10-17, B1). `poca_venta`: Frescura lo lee pero el tipo no vendió lo suficiente en
+ * esta tienda (menos de 10 ventas con edad conocida, o sin P75/P90): `desde` son los días en el piso desde los que un modelo ya lleva más que lo
+ * que tarda en venderse la mitad de su tipo (P50) o, si ni la mitad se vendió, más que la última venta vista de su tipo; null si ninguna se
+ * vendió (no se rotula nada: no hay con qué comparar). `vendidas` y `unidades`: «vendió 7 de 35 de los que colgaste». `sin_lectura`: no se pudo
+ * saber cuánto tarda su tipo porque Frescura no se leyó (el rol no la ve, falló, o la sede no separa piso).
+ */
+export type SinRitmo =
+  | { motivo: "poca_venta"; desde: number | null; vendidas: number; unidades: number }
+  | { motivo: "sin_lectura"; porque: "sin_modulo" | "fallo" | "no_aplica" };
+
 /** Todo lo que la pantalla necesita, leído una vez por el servidor. */
 export type DatosAnalisis = {
   /** Hoy en Lima (YYYY-MM-DD). */
@@ -236,8 +251,6 @@ export type DatosAnalisis = {
   /** Si la base dice la última venta de cada prenda (20261010120000). Sin eso, los días sin venderse de un modelo se cuentan con lo
    *  más reciente de sus tallas, y se dice una vez arriba. */
   sabeUltimaVenta: boolean;
-  /** Desde cuántos días sin venderse se liquida (uno para todos, ADR-0357). */
-  liquidarDesde: number;
   /** Si se leyó Frescura del piso de mi tienda (las dudas de ventas sin registrar y la vara de cada categoría): «sin_modulo» si quien
    *  mira no la ve, «fallo» si no respondió (y se dice en `fallas`), «no_aplica» si la sede no separa piso y almacén. */
   frescura: "ok" | "sin_modulo" | "fallo" | "no_aplica";

@@ -1087,6 +1087,8 @@ describe("analizarSede: la rapidez y los cortes de la categoría", () => {
     const cat = sede.categorias[0];
     expect(cat).toMatchObject({ nivel: "solido", vendidas: 28, cortes: { p50: null, p75: null, p90: null } });
     expect(cat.vendidoAlFinal).toBeCloseTo(28 / 110, 9);
+    // La última venta vista de la categoría (la usa Análisis para decir desde cuándo un modelo ya lleva más que cualquiera de los suyos que se vendió).
+    expect(Math.round((cat.ultimaVentaSeg ?? 0) / 86_400)).toBe(49);
     expect(sede.prendas.map((p) => p.estado.tipo)).toEqual(Array(5).fill("sin_vara"));
     expect(sede.cifras.pctNuevas).toBeNull();
   });

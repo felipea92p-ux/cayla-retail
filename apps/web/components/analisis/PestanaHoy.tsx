@@ -8,7 +8,7 @@ import { Ayuda, ChipEstado, COLOR_ESTADO, NombreCorto, nombreLargo, TilePrenda, 
 import type { PrendaAnalisis, VistaAnalisis } from "@/lib/analisis-tipos";
 import { variantesDe, type ModeloAnalisis } from "@/lib/analisis-modelo";
 import { hrefReponerPiso } from "@/lib/analisis-acciones";
-import { plural, PRENDAS_EN_LISTA } from "@/lib/analisis-reglas";
+import { plural, PRENDAS_EN_LISTA, prendasDe } from "@/lib/analisis-reglas";
 import { diasEnAlmacen, prendasSinSalir } from "@/lib/analisis-piso";
 import { alcancePorTipo, finEjeAlcance, llegadasAparte, ordenarAlcance, textoAlcanceEnEje, textoRitmo, tieneYVienen, tipoCorto, titularDeLosQueNoLlegan, type AlcanceTipo } from "@/lib/analisis-pedir";
 import { despuesDeLaMeta, hastaLaMeta, type Horizonte } from "@/lib/analisis-horizonte";
@@ -60,10 +60,10 @@ const AYUDA_FLUJO =
   "Lo que se acaba y todavía no viene en camino aparece para comprar; lo que ya viene se dice aparte («4 más ya vienen»). Si otra tienda la tiene, verás cuántas están en otra tienda; en la ficha de cada modelo ves cuánto vende cada tienda y decides si pedirlo. El número es cuántos modelos son.";
 
 export function PestanaHoy() {
-  const { datos, prendas, q, liquidarDesde, diasDeVentas } = useAnalisis();
+  const { datos, prendas, q, diasDeVentas } = useAnalisis();
   const buscando = q.trim() !== "";
-  const acaba = seAcabanHoy(prendas, liquidarDesde);
-  const quietas = quietasHoy(prendas, liquidarDesde);
+  const acaba = seAcabanHoy(prendas);
+  const quietas = quietasHoy(prendas);
   // «¿Qué no ha salido al piso?»: sin saberlo (la base sin 20261007120000), la tarjeta lo dice con «Todavía no».
   const sinSalir = datos.sabePiso ? prendasSinSalir(prendas, datos.hoy) : [];
   // Ninguna tarjeta dice «Va bien» cuando no puede saberlo (tarea #2, 2026-10-14): con datos incompletos, «Para saber».
@@ -71,7 +71,7 @@ export function PestanaHoy() {
   const sinNada = estadoSinNada(confiable);
   const estPiso: Estado | null = !datos.sabePiso ? "nd" : sinSalir.length ? "ate" : buscando ? null : sinNada;
   // «¿Qué no se mueve?» sin quietas: «Todavía no se puede saber» si ningún modelo lleva aún en el piso lo que se espera para juzgarlo.
-  const vacioQuietas = vacioQuietasHoy(datos.prendas, liquidarDesde, datos.hoy, confiable);
+  const vacioQuietas = vacioQuietasHoy(datos.prendas, datos.hoy, confiable, prendasDe(datos.prendas, ["sin_ritmo"]).length, datos.frescura);
   // «¿Qué pedir?»: para cuánto te alcanza cada tipo al ritmo de los días de ventas, contra la meta de compra (B2, Felipe 2026-10-07; A6: la campaña del
   // Plan, no Navidad fija). Los que no llegan, en el MISMO orden que «Qué pedir primero»: los que más pesan primero, no los chicos (D13).
   const h = datos.horizonte;
@@ -338,8 +338,8 @@ const teclaSvg = (accion: (el: Element) => void) => (e: KeyboardEvent<SVGGElemen
 };
 
 function QueHacer() {
-  const { prendas, q, liquidarDesde, irA, datos, setFiltroAcaba } = useAnalisis();
-  const caminos = caminosDeHoy(prendas, liquidarDesde, datos.sedes, datos.hoy, datos.proveedores);
+  const { prendas, q, irA, datos, setFiltroAcaba } = useAnalisis();
+  const caminos = caminosDeHoy(prendas, datos.sedes, datos.hoy, datos.proveedores);
   const hay = todosLosCaminos(caminos).length > 0;
   const buscando = q.trim() !== "";
   const reponer = paraReponerPiso(prendas);

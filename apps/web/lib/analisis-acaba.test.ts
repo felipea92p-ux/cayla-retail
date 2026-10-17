@@ -93,23 +93,23 @@ const TIENDA = [QUIETA, DOCE_DIAS, SOBRA, TRES_DIAS, AGOTADA_LLEGA, AGOTADA];
 
 describe("lo que se acaba y su orden", () => {
   it("solo las del grupo «Cómpralas»: ni lo quieto ni lo que todavía alcanza", () => {
-    const ids = prendasQueSeAcaban(TIENDA, 60).map((p) => p.varianteId);
+    const ids = prendasQueSeAcaban(TIENDA).map((p) => p.varianteId);
     expect(ids).not.toContain("e");
     expect(ids).not.toContain("f");
     expect(ids).toHaveLength(4);
   });
   it("primero lo agotado (y entre agotadas, la que más se vendía); después, lo que dura menos", () => {
-    expect(prendasQueSeAcaban(TIENDA, 60).map((p) => p.varianteId)).toEqual(["a", "b", "c", "d"]);
+    expect(prendasQueSeAcaban(TIENDA).map((p) => p.varianteId)).toEqual(["a", "b", "c", "d"]);
   });
   it("no cambia el arreglo que recibe", () => {
     const copia = [...TIENDA];
-    prendasQueSeAcaban(TIENDA, 60);
+    prendasQueSeAcaban(TIENDA);
     expect(TIENDA).toEqual(copia);
   });
 });
 
 describe("los filtros Todos · Comprar · Por llegar", () => {
-  const seAcaban = prendasQueSeAcaban(TIENDA, 60);
+  const seAcaban = prendasQueSeAcaban(TIENDA);
   it("son tres, en el orden de la maqueta", () => {
     expect(FILTROS_ACABA.map((f) => f.texto)).toEqual(["Todos", "Comprar", "Por llegar"]);
   });
@@ -197,7 +197,7 @@ describe("la pista de días", () => {
     expect(pistaAcaba(null)).toBeNull();
   });
   it("toda prenda que se acaba tiene su pista (ninguna fila queda sin días)", () => {
-    for (const p of prendasQueSeAcaban(TIENDA, 60)) {
+    for (const p of prendasQueSeAcaban(TIENDA)) {
       expect(seEstaAcabando(p)).toBe(true);
       expect(pistaAcaba(diasQueQuedan(p))).not.toBeNull();
     }

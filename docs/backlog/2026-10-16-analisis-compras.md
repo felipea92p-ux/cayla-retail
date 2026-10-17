@@ -163,3 +163,10 @@
 - [ ] **Sin correr en la nube:** `pnpm pruebas:analisis-lecturas` (las lecturas del Plan y del historial), pase visual con datos inventados (1440, 1024, claro y oscuro: ¿caben las 3 líneas de la fila?, ¿se lee el eje con «→ más de N»?), `pnpm --filter web tema:auditar`, `guias:recorrer` y `/chaos`.
 - [ ] **Pendiente de Felipe:** el rojo (¿solo «Se agotó» y ≤ 3 días?), si una llegada atrasada vuelve a «Cómpralas», si un envío sin fecha sigue sumando, el verbo pedir/traer, «CAYLA SAC».
 - [ ] **Backlog:** la temporada es de la tienda, no del tipo (el historial no se separa); con la meta «plazo + un mes» la línea punteada del eje es la de terceros (60 días) aunque un tipo del Taller mida a 44.
+
+## B1 · Sin días fijos (2026-10-17)
+- [x] «Todavía sin ritmo» (grupo `sin_ritmo`), `rotuladaSinRitmo`, `sinRitmoDeVara`/`conSinRitmo`, `VaraCategoria.ultimaVentaSeg` (aditivo), sin «Liquidar desde» (hoja, botón, borrador, RPC desde la web), eje y marcas del carril por escalón, textos de Hoy y la ficha, guía y huella al día.
+- [ ] **Migración futura de Felipe:** retirar `retail.parametros_analisis`, `fn_liquidar_desde` y `guardar_liquidar_desde` (sin llamador en la web desde hoy) y su fila de `configuracion_historial` (`que = 'liquidar_desde'`). `pnpm pruebas:roles-cobertura` puede marcarla como función a la que no se llega: correrla local y, si la marca, esa migración es la limpieza.
+- [ ] **Sin correr en la nube:** `pnpm pruebas:analisis-lecturas`, `pruebas:roles-cobertura`, pase visual del carril y de Hoy (¿cabe la razón de «Todavía sin ritmo» en dos renglones?, ¿se lee «Liquidar» vacío?), `tema:auditar` (el escenario de la hoja retirada no existía), `guias:recorrer`.
+- [ ] **Decisión para el 30-oct:** la regla «vendió algo en 30 días no está quieta» (`grupoDe`).
+- [ ] **Aproximación a vigilar:** cuando ni la mitad de un tipo se vendió, «la última venta vista» sale del instante más largo con una venta de la curva de Frescura; si Felipe prefiere otra medida (p. ej. el promedio de lo vendido), es una línea en `sinRitmoDeVara`.

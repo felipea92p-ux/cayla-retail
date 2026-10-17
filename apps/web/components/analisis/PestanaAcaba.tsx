@@ -89,7 +89,7 @@ const AYUDA_CARRIL: Record<FiltroAcaba, string> = {
 type ModoAcaba = "dias" | "proveedor";
 
 export function PestanaAcaba({ modoInicial = "dias" }: { /** Solo para las pruebas (no hay clic en un render de servidor): con qué forma abre. La pantalla no lo pasa. */ modoInicial?: ModoAcaba }) {
-  const { datos, acceso, prendas, liquidarDesde, filtroAcaba, setFiltroAcaba, diasDeVentas } = useAnalisis();
+  const { datos, acceso, prendas, filtroAcaba, setFiltroAcaba, diasDeVentas } = useAnalisis();
   // Cómo se ve la lista: por días (el carril) o por proveedor («A quién pedir»). Es de esta pestaña: al salir y volver, vuelve a «Por días».
   const [modo, setModo] = useState<ModoAcaba>(modoInicial);
   // Cada forma dibuja su propia tarjeta, y el segmento (en su cabecera) se vuelve a montar al pasar de una a otra: quien lo maneja con el
@@ -103,8 +103,8 @@ export function PestanaAcaba({ modoInicial = "dias" }: { /** Solo para las prueb
     document.querySelector<HTMLElement>('[role="radiogroup"][aria-label="Cómo ver lo que se acaba"] [role="radio"][aria-checked="true"]')?.focus({ preventScroll: true });
   }, [modo]);
   // En la tienda (sin buscar): decide si hay carril. Con lo buscado: las filas y las cuentas de cada filtro.
-  const enLaTienda = useMemo(() => prendasQueSeAcaban(datos.prendas, liquidarDesde).length, [datos.prendas, liquidarDesde]);
-  const seAcaban = useMemo(() => prendasQueSeAcaban(prendas, liquidarDesde), [prendas, liquidarDesde]);
+  const enLaTienda = useMemo(() => prendasQueSeAcaban(datos.prendas).length, [datos.prendas]);
+  const seAcaban = useMemo(() => prendasQueSeAcaban(prendas), [prendas]);
   // Los días de ventas de cada tienda, para saber si el modelo también se acaba en otra (con los días de ELLA, no los míos).
   const ventanas = useMemo(() => ventanasPorSede(datos.preparacion, datos.hoy), [datos.preparacion, datos.hoy]);
   // Lo ya pedido por tipo (A4): una orden se pide por tipo y marca, así que se dice UNA vez por tipo, en la franja sobre las filas de «Comprar» de ese TIPO,

@@ -21,9 +21,6 @@ export type ContextoAnalisis = {
   diasDeVentas: number;
   /** Lo escrito en el buscador. */
   q: string;
-  /** «Liquidar desde» EN VIVO: mientras se mueve el control, las prendas cambian de grupo sin guardar. */
-  liquidarDesde: number;
-  setLiquidarDesde: (dias: number) => void;
   filtroAcaba: FiltroAcaba;
   setFiltroAcaba: (f: FiltroAcaba) => void;
   /** El tipo de prenda elegido en la mariposa de «Qué pedir» (filtra tallas y ranking); null = todos. */

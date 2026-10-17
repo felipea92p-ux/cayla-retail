@@ -63,14 +63,14 @@ export function FichaPrenda({ varianteId, onCerrar }: { varianteId: string; onCe
 }
 
 function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () => void }) {
-  const { datos, acceso, liquidarDesde, pedir } = useAnalisis();
+  const { datos, acceso, pedir } = useAnalisis();
   // Refs con estado: la hoja es un portal que Radix monta un render después; el tooltip se engancha cuando ya existe.
   const [raiz, setRaiz] = useState<HTMLDivElement | null>(null);
   const [tip, setTip] = useState<HTMLDivElement | null>(null);
   useTipDeLaFicha(raiz, tip);
 
-  // El grupo con «Liquidar desde» en vivo: la ficha dice lo mismo que el carril de donde se abrió.
-  const grupo = grupoDe(p, liquidarDesde);
+  // El grupo de la prenda con la vara de su tipo: la ficha dice lo mismo que el carril de donde se abrió.
+  const grupo = grupoDe(p);
   // Guardada y nunca colgada (solo si la base ya lo sabe: 20261007120000): no «va bien», nadie la vio.
   const sinSalir = datos.sabePiso && nuncaSalio(p);
   // Algo ya llega a tiempo: la ficha dice lo mismo que el carril («Ya viene», sin rojo) y «Comprar» deja de ser el botón principal.

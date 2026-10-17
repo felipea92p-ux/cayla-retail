@@ -91,7 +91,6 @@ export function AnalisisPantalla({
   const router = useRouter();
   const [vista, setVista] = useState<VistaAnalisis>(vistaInicial);
   const [q, setQ] = useState(busquedaInicial);
-  const [liquidarDesde, setLiquidarDesde] = useState(datos.liquidarDesde);
   const [filtroAcaba, setFiltroAcaba] = useState<FiltroAcaba>("todos");
   const [categoria, setCategoria] = useState<string | null>(null);
   const [fichaId, setFichaId] = useState<string | null>(null);
@@ -107,13 +106,6 @@ export function AnalisisPantalla({
   const modo = modoAnalisis(datos.puedeHablar, verQueFalta);
   const forzado = modo === "datos-de-hoy";
   const recomienda = modo !== "que-falta";
-
-  // Si el servidor trae otro «Liquidar desde» (lo guardó alguien), se toma (ajuste durante el render, sin efecto).
-  const [liquidarLeido, setLiquidarLeido] = useState(datos.liquidarDesde);
-  if (liquidarLeido !== datos.liquidarDesde) {
-    setLiquidarLeido(datos.liquidarDesde);
-    setLiquidarDesde(datos.liquidarDesde);
-  }
 
   // Un modelo pasa el buscador por su nombre o categoría, o por el color o la talla de cualquiera de sus prendas («camel» halla el
   // Chaleco que tiene ese color).
@@ -190,8 +182,6 @@ export function AnalisisPantalla({
       prendas,
       diasDeVentas: ventana,
       q,
-      liquidarDesde,
-      setLiquidarDesde,
       filtroAcaba,
       setFiltroAcaba,
       categoria,
@@ -203,7 +193,7 @@ export function AnalisisPantalla({
       conDatosDeHoy: forzado,
       verConDatosDeHoy,
     }),
-    [datos, acceso, prendas, ventana, q, liquidarDesde, filtroAcaba, categoria, abrirFicha, irA, pedir, forzado, verConDatosDeHoy],
+    [datos, acceso, prendas, ventana, q, filtroAcaba, categoria, abrirFicha, irA, pedir, forzado, verConDatosDeHoy],
   );
 
   // La animación de entrada dura lo que dura; después, lo que cambie (un filtro, el umbral) aparece sin volver a animarse.
@@ -258,8 +248,8 @@ export function AnalisisPantalla({
   // están probadas en `lib/analisis-con-tope.ts`; «Todavía no» (la tienda no cumple) lleva el mismo cuidado por dentro (`textoSiVacio`).
   const sinLeer = miTiendaSinLeer(datos);
   const conCuentas = hayCuentas(recomienda, sinLeer);
-  const cuentaAcaba = conCuentas ? prendasDe(datos.prendas, GRUPOS_ACABA, liquidarDesde).length : null;
-  const cuentaQuietas = conCuentas ? prendasDe(datos.prendas, GRUPOS_QUIETAS, liquidarDesde).length : null;
+  const cuentaAcaba = conCuentas ? prendasDe(datos.prendas, GRUPOS_ACABA).length : null;
+  const cuentaQuietas = conCuentas ? prendasDe(datos.prendas, GRUPOS_QUIETAS).length : null;
   // Sin saber cuándo salió al piso cada prenda (la base sin 20261007120000), «—»: nunca una cuenta inventada.
   const cuentaPiso = conCuentas && datos.sabePiso ? datos.prendas.filter(nuncaSalio).length : null;
   const mia = datos.preparacion.find((p) => p.ubicacionId === datos.sede.id);

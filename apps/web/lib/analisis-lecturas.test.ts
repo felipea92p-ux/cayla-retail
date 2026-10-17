@@ -46,7 +46,6 @@ vi.mock("@/lib/analisis-con-tope", async () => await import("./analisis-con-tope
 vi.mock("@/lib/analisis-lectura", async () => await import("./analisis-lectura"));
 vi.mock("@/lib/analisis-sede-lectura", async () => await import("./analisis-sede-lectura"));
 vi.mock("@/lib/analisis-por-llegar-lectura", async () => await import("./analisis-por-llegar-lectura"));
-vi.mock("@/lib/analisis-liquidar-reglas", async () => await import("./analisis-liquidar-reglas"));
 vi.mock("@/lib/analisis-reglas", async () => await import("./analisis-reglas"));
 vi.mock("@/lib/analisis-sede", async () => await import("./analisis-sede"));
 vi.mock("@/lib/analisis-por-llegar", async () => await import("./analisis-por-llegar"));
@@ -55,7 +54,6 @@ vi.mock("@/lib/analisis-pedido-en-camino", async () => await import("./analisis-
 vi.mock("@/lib/analisis-proveedores", async () => await import("./analisis-proveedores"));
 vi.mock("@/lib/analisis-proveedores-lectura", async () => await import("./analisis-proveedores-lectura"));
 vi.mock("@/lib/resultado", async () => await import("./resultado"));
-vi.mock("@/lib/analisis-liquidar", async () => await import("./analisis-liquidar"));
 vi.mock("@/lib/analisis-rinde", async () => await import("./analisis-rinde"));
 vi.mock("@/lib/analisis-pedir", async () => await import("./analisis-pedir"));
 vi.mock("@/lib/analisis-vara", async () => await import("./analisis-vara"));
@@ -68,14 +66,11 @@ vi.mock("@/lib/registro-contable", async () => await import("./registro-contable
 
 import { capturarError } from "./errores";
 import { TOPE_LECTURA_MS } from "./analisis-con-tope";
-import { LIQUIDAR_DEFECTO } from "./analisis-reglas";
-import { FALLA_LEER_LIQUIDAR } from "./analisis-liquidar-reglas";
 import { FALLA_RINDE } from "./analisis-pedir";
 import { getPrendasPorSede } from "./analisis-sede";
 import { getPorLlegar } from "./analisis-por-llegar";
 import { FALLA_PEDIDO, getPedidoEnCamino } from "./analisis-pedido-en-camino";
 import { FALLA_PROVEEDORES, getProveedoresAnalisis } from "./analisis-proveedores";
-import { getLiquidarDesde } from "./analisis-liquidar";
 import { getRindePorCategoria } from "./analisis-rinde";
 import { getDatosAnalisis } from "./analisis-datos";
 import { miTiendaSinLeer } from "./analisis-con-tope";
@@ -228,19 +223,6 @@ describe("las demás lecturas dicen lo mismo de siempre cuando fallan", () => {
     expect(JSON.stringify(vi.mocked(capturarError).mock.calls)).not.toMatch(/Tienda|canceling/);
   });
 
-  it("«Liquidar desde»: si falla o se cuelga, sigue con el de fábrica y lo dice", async () => {
-    rpc.mockResolvedValueOnce({ data: null, error: { code: "42883", message: "no existe" } });
-    expect(await getLiquidarDesde()).toEqual({ dias: LIQUIDAR_DEFECTO, falla: FALLA_LEER_LIQUIDAR });
-
-    rpc.mockImplementationOnce(seCuelga);
-    const espera = getLiquidarDesde();
-    await vi.advanceTimersByTimeAsync(TOPE_LECTURA_MS);
-    expect(await espera).toEqual({ dias: LIQUIDAR_DEFECTO, falla: FALLA_LEER_LIQUIDAR });
-
-    rpc.mockResolvedValueOnce({ data: 45, error: null });
-    expect(await getLiquidarDesde()).toEqual({ dias: 45, falla: null });
-  });
-
   it("«Lo que más rinde»: si falla o se cuelga, vacío con su falla; sin ventas, vacío SIN falla", async () => {
     rpc.mockResolvedValueOnce({ data: null, error: { code: "57014", message: "tiempo agotado" } });
     expect(await getRindePorCategoria(TRU)).toEqual({ rinde: [], falla: FALLA_RINDE });
@@ -256,11 +238,11 @@ describe("las demás lecturas dicen lo mismo de siempre cuando fallan", () => {
 
   it("una caída de Supabase (todo se cuelga) no manda un aviso por lectura: uno por pieza", async () => {
     rpc.mockImplementation(seCuelga);
-    const espera = Promise.all([getPorLlegar(TRU), getPedidoEnCamino(TRU), getLiquidarDesde(), getRindePorCategoria(TRU), getPrendasPorSede([TRU, AQP, LIM])]);
+    const espera = Promise.all([getPorLlegar(TRU), getPedidoEnCamino(TRU), getRindePorCategoria(TRU), getPrendasPorSede([TRU, AQP, LIM])]);
     await vi.advanceTimersByTimeAsync(TOPE_LECTURA_MS);
     await espera;
     const dondes = vi.mocked(capturarError).mock.calls.map((c) => c[0]).sort();
-    expect(dondes).toEqual(["analisis.liquidar_desde", "analisis.pedido_en_camino", "analisis.por_llegar", "analisis.rinde", "analisis.sede"]);
+    expect(dondes).toEqual(["analisis.pedido_en_camino", "analisis.por_llegar", "analisis.rinde", "analisis.sede"]);
   });
 });
 
@@ -278,7 +260,6 @@ function baseSana(cambia: Record<string, unknown> = {}) {
     if (nombre === "fn_analisis_sede") return sedeSana(args.p_ubicacion_id!, 0);
     if (nombre === "fn_analisis_por_llegar") return { data: [], error: null };
     if (nombre === "fn_analisis_pedido_en_camino") return { data: [], error: null };
-    if (nombre === "fn_liquidar_desde") return { data: 60, error: null };
     if (nombre === "fn_resumen_comparacion_json") return { data: [], error: null };
     if (nombre === "fn_motor_demanda_preparacion") return { data: [], error: null };
     throw new Error(`rpc inesperada: ${nombre}`);
@@ -352,7 +333,6 @@ describe("getDatosAnalisis", () => {
       fn_motor_demanda_preparacion: seCae(),
       fn_analisis_por_llegar: seCae(),
       fn_analisis_pedido_en_camino: seCae(),
-      fn_liquidar_desde: seCae(),
       fn_resumen_comparacion_json: seCae(),
     });
     fakes.getConteosResumen.mockRejectedValue(new Error("TEXTO-DE-LA-BASE conteos de Juana Pérez"));
@@ -367,7 +347,6 @@ describe("getDatosAnalisis", () => {
       "No se pudo leer el precio propio de tu tienda: las cifras en soles usan el precio de la prenda",
       "No se pudo leer lo que viene en camino",
       FALLA_PEDIDO,
-      FALLA_LEER_LIQUIDAR,
       FALLA_RINDE,
       "No se pudo leer el último conteo",
       "No se pudo leer «Te pidieron y no había»",
@@ -376,11 +355,12 @@ describe("getDatosAnalisis", () => {
     ]);
     expect(d.porRegistrar.pendientes).toBeNull();
     expect(d.frescura).toBe("fallo");
-    expect(d.liquidarDesde).toBe(LIQUIDAR_DEFECTO);
+    // Sin Frescura no se sabe cuánto tarda cada tipo: lo quieto queda «sin ritmo», con su razón, nunca con un número de días de respaldo (B1).
+    expect(d.prendas.every((p) => !p.umbrales)).toBe(true);
     // Una pieza que cae es UN aviso, con su pieza como dónde; el nombre de la sede que traía el texto de Frescura no sale.
     const dondes = vi.mocked(capturarError).mock.calls.map((c) => c[0]);
     expect(new Set(dondes).size).toBe(dondes.length);
-    expect(dondes).toEqual(expect.arrayContaining(["analisis.preparacion", "analisis.por_llegar", "analisis.pedido_en_camino", "analisis.liquidar_desde", "analisis.rinde", "analisis.conteos"]));
+    expect(dondes).toEqual(expect.arrayContaining(["analisis.preparacion", "analisis.por_llegar", "analisis.pedido_en_camino", "analisis.rinde", "analisis.conteos"]));
     expect(dondes).toEqual(expect.arrayContaining(["analisis.pedidos_no_atendidos", "analisis.precios_de_mi_tienda", "analisis.vendido_sin_registrar", "analisis.pendientes_por_registrar", "analisis.frescura"]));
     expect(JSON.stringify(vi.mocked(capturarError).mock.calls)).not.toMatch(/Trujillo|TEXTO-DE-LA-BASE|Juana/);
     // Frescura que devuelve su `fallo` cuenta como ERROR (con su motivo), no como «sin datos»: se distingue en Sentry de una respuesta vacía.

@@ -173,6 +173,8 @@
     .c-nom{grid-area:nom;min-width:0;line-height:1.25}
     .c-nom b{display:block;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .c-nom span{font-size:12px;color:var(--color-tinta-60)}
+    /* Por qué está la fila en su grupo («Todavía sin ritmo»): una línea chica bajo el nombre, que puede ocupar dos o tres renglones. */
+    .c-nom .c-nota{display:block;margin-top:2px;font-size:11.5px;line-height:1.35}
     .c-pil{grid-area:pil;display:flex;gap:6px;flex-wrap:wrap}
     .c-acc{grid-area:acc;justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
     .alt{border:0;background:transparent;padding:0;font-size:12px;font-weight:600;color:var(--color-pizarra);text-decoration:underline;text-underline-offset:3px}
@@ -201,6 +203,8 @@
     .pista .punto{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--prenda);left:calc(var(--n) * 100%);
       box-shadow:0 0 0 2px var(--color-papel),0 0 0 3.5px var(--c)}
     .pista.zonas{background:linear-gradient(to right,var(--color-hueso) 0 var(--u),color-mix(in srgb,var(--color-ambar) 26%,var(--color-hueso)) var(--u) var(--r),color-mix(in srgb,var(--color-rojo-profundo) 26%,var(--color-hueso)) var(--r) 100%)}
+    /* Un tipo sin ritmo todavía (B1) no tiene zonas: ni la de liquidar ni la de 3 meses, que pintaría de rojo lo que «ni se rebaja ni se manda». */
+    .pista.zonas.sin-zona{background:var(--color-hueso)}
     .pista.zonas .barra{background:color-mix(in srgb,var(--color-taupe) 40%,transparent)}
     .c-eje .zona{font-weight:600}
     /* En un contenedor ancho (más de 1000 px) la columna de las píldoras toma hasta 260 px: dos píldoras cortas comparten línea en vez de apilarse
@@ -223,7 +227,6 @@
       .c-grupo .detalle{order:9;flex-basis:100%;padding-left:40px}
       .c-mas{margin-left:68px}
     }
-    .umbral{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--color-tinta-60);flex-wrap:wrap}
     /* El modelo en tu tienda (opción B, Felipe 2026-10-10): la frase, la tabla talla × color con palabras y totales, la leyenda y las
        otras tiendas. Lo agotado va en ámbar (una tarea, no un error: sin rojo); lo que queda, en verde; lo que no hay, solo el filo. */
     .m-frase{font:500 19px/1.25 var(--font-serif);margin:0 0 12px;text-wrap:balance}
