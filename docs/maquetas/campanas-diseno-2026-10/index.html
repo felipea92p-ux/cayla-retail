@@ -1,0 +1,1278 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campañas de la tienda web</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================================================
+   MAQUETA · Tienda web ▸ Campañas (2026-10-16). Prototipo tocable, sin código real ni base de datos.
+   El ERP con los tokens de CAYLA Dynamic (globals.css / tema.css) y, dentro de la vista previa, la portada de la tienda online
+   dibujada con las mismas medidas de apps/tienda (globals.css, collage.css): cada campaña le cambia SOLO sus colores, su fondo,
+   su acomodo y sus detalles. Datos de campañas y prendas: los reales de producción (nombres, fechas, descuento, colores).
+   ===================================================================================================== */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #ddd2c0; --tinta: #1a1a18; --taupe: #805c4c;
+  --rojo: #b8412d; --rojo-profundo: #8b2a1f; --verde: #48603f; --ambar: #74501a; --pizarra: #4c5d6e; --sombra: #1a1a18;
+  --tinta-60: color-mix(in srgb, var(--tinta) 64%, transparent);
+  --tinta-40: color-mix(in srgb, var(--tinta) 44%, transparent);
+  --serif: "EB Garamond", ui-serif, Georgia, serif;
+  --sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+  color-scheme: light;
+}
+:root[data-tema="oscuro"] {
+  --crema: #1a1a18; --papel: #22211e; --hueso: #2c2b27; --sand: #3d3a35; --tinta: #f5f0e8; --taupe: #c9a998;
+  --rojo: #e07a64; --rojo-profundo: #f29a86; --verde: #93b384; --ambar: #d6a861; --pizarra: #9db0c2; --sombra: #000;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    --crema: #1a1a18; --papel: #22211e; --hueso: #2c2b27; --sand: #3d3a35; --tinta: #f5f0e8; --taupe: #c9a998;
+    --rojo: #e07a64; --rojo-profundo: #f29a86; --verde: #93b384; --ambar: #d6a861; --pizarra: #9db0c2; --sombra: #000;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--crema); color: var(--tinta); font: 14px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+p { margin: 0; }
+svg.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- La barra de la maqueta (no es del ERP) ---------- */
+.mq { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 16px; background: var(--tinta); color: var(--crema); }
+.mq-t { font-family: var(--serif); font-size: 17px; letter-spacing: .02em; margin-right: 6px; }
+.mq-t small { font-family: var(--sans); font-size: 11px; opacity: .65; margin-left: 8px; letter-spacing: .06em; text-transform: uppercase; }
+.mq-nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.mq-b { border: 1px solid color-mix(in srgb, var(--crema) 22%, transparent); background: transparent; color: var(--crema); border-radius: 999px; padding: 4px 12px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.mq-b[aria-pressed="true"] { background: var(--crema); color: var(--tinta); border-color: var(--crema); }
+.mq-b b { font-weight: 700; opacity: .55; margin-right: 4px; }
+.mq-esp { flex: 1; }
+
+/* ---------- El ERP ---------- */
+.app { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: calc(100vh - 46px); }
+.lat { position: sticky; top: 46px; align-self: start; height: calc(100vh - 46px); overflow-y: auto; background: var(--papel); border-right: 1px solid var(--sand); padding: 16px 10px; display: flex; flex-direction: column; gap: 14px; }
+.lat-marca { display: flex; align-items: center; gap: 9px; padding: 0 8px 4px; font-family: var(--serif); font-size: 20px; letter-spacing: .14em; }
+.lat-marca img { width: 28px; }
+.lat-g { display: flex; flex-direction: column; gap: 1px; }
+.lat-gt { font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--tinta-40); padding: 0 8px 4px; display: flex; align-items: center; gap: 6px; }
+.lat-i { display: flex; align-items: center; gap: 9px; border: 0; background: transparent; text-align: left; padding: 7px 8px; border-radius: 8px; font-size: 13px; color: var(--tinta-60); width: 100%; }
+.lat-i:hover { background: var(--hueso); color: var(--tinta); }
+.lat-i[aria-current="page"] { background: var(--tinta); color: var(--crema); }
+.lat-i .ic { width: 17px; height: 17px; }
+.lat-nueva { margin-left: auto; font-size: 9px; font-weight: 700; letter-spacing: .08em; padding: 2px 6px; border-radius: 999px; background: color-mix(in srgb, var(--verde) 16%, transparent); color: var(--verde); }
+.lat-i[aria-current="page"] .lat-nueva { background: color-mix(in srgb, var(--crema) 20%, transparent); color: var(--crema); }
+.lat-cerrado { opacity: .62; }
+.main { min-width: 0; }
+.top { position: sticky; top: 46px; z-index: 20; display: flex; align-items: center; gap: 10px; padding: 9px 24px; border-bottom: 1px solid var(--sand); background: var(--crema); }
+.top-esp { flex: 1; }
+.sedes { display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--papel); border: 1px solid var(--sand); }
+.sede { border: 0; background: transparent; border-radius: 999px; padding: 4px 12px; font-size: 12.5px; color: var(--tinta-60); }
+.sede[aria-pressed="true"] { background: var(--tinta); color: var(--crema); }
+.av { width: 30px; height: 30px; border-radius: 50%; background: var(--sand); display: grid; place-items: center; font-family: var(--serif); font-size: 13px; flex: none; }
+.pag { padding: 24px 28px 64px; display: flex; flex-direction: column; gap: 20px; max-width: 1480px; }
+.pag[data-entra] > * { animation: subir .45s var(--ease) both; }
+.pag[data-entra] > :nth-child(2) { animation-delay: 55ms; }
+.pag[data-entra] > :nth-child(3) { animation-delay: 110ms; }
+.pag[data-entra] > :nth-child(n+4) { animation-delay: 165ms; }
+
+/* Cabecera de pantalla (EncabezadoPagina) */
+.enc { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-end; justify-content: space-between; }
+.enc > div:first-child { min-width: 0; }
+.enc-l { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); }
+.enc-l::after { content: ""; width: 44px; height: 1px; background: var(--taupe); }
+.enc-l .volver { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--sand); background: var(--papel); display: grid; place-items: center; color: var(--tinta); }
+.enc-l .volver:hover { border-color: var(--tinta); }
+.enc-l .volver .ic { width: 14px; height: 14px; }
+.enc h1 { font-family: var(--serif); font-weight: 500; font-size: 46px; line-height: 1; margin: 8px 0 6px; letter-spacing: -.01em; }
+.enc-f { color: var(--tinta-60); max-width: 60ch; }
+.enc-acc { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* Botones (btn-cayla) — en la cabecera, versalitas de 11 px y 40 px */
+.btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 8px; border: 1px solid transparent; font-size: 13.5px; font-weight: 600; white-space: nowrap; transition: background-color .2s, border-color .2s, transform .15s, box-shadow .2s; }
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+.btn:active:not(:disabled) { transform: scale(.98); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-p { background: var(--tinta); color: var(--crema); }
+.btn-p:hover:not(:disabled) { background: var(--rojo-profundo); }
+.btn-s { background: transparent; border-color: var(--sand); color: var(--tinta); }
+.btn-s:hover:not(:disabled) { border-color: var(--tinta); }
+.btn-peligro { background: transparent; border-color: color-mix(in srgb, var(--rojo) 45%, var(--sand)); color: var(--rojo-profundo); }
+.btn-chico { height: 32px; padding: 0 12px; font-size: 12.5px; }
+.voz-cab .btn { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+.enlace { border: 0; background: none; padding: 0; color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--tinta) 30%, transparent); font-weight: 600; }
+.enlace:hover { color: var(--rojo-profundo); text-decoration-color: var(--rojo); }
+
+/* Tarjetas de cifra */
+.cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.cifra { border: 1px solid var(--sand); background: var(--papel); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: left; }
+.cifra-l { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); }
+.cifra-v { font-family: var(--serif); font-size: 30px; font-weight: 500; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cifra-n { font-size: 12px; color: var(--tinta-60); }
+.cifra-m { display: flex; align-items: center; gap: 10px; }
+.cifra-m .mini-sw { width: 30px; height: 30px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tinta) 12%, transparent); }
+
+.tarjeta { border: 1px solid var(--sand); background: var(--papel); border-radius: 14px; }
+.tarjeta-cab { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--sand); }
+.tit-sec { font-family: var(--serif); font-size: 21px; font-weight: 500; margin: 0; display: flex; align-items: center; gap: 10px; }
+.globito { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--hueso); color: var(--tinta-60); font: 600 11px var(--sans); display: inline-grid; place-items: center; }
+.tarjeta-cuerpo { padding: 16px 18px; }
+.nota { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; background: var(--hueso); font-size: 13px; color: var(--tinta); }
+.nota .ic { width: 17px; height: 17px; color: var(--taupe); margin-top: 1px; }
+.suave { color: var(--tinta-60); }
+
+/* Chips (insignia con punto) */
+.chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+.chip.verde { background: color-mix(in srgb, var(--verde) 15%, var(--papel)); color: var(--verde); }
+.chip.ambar { background: color-mix(in srgb, var(--ambar) 15%, var(--papel)); color: var(--ambar); }
+.chip.pizarra { background: color-mix(in srgb, var(--pizarra) 15%, var(--papel)); color: var(--pizarra); }
+.chip.neutro { background: var(--hueso); color: var(--tinta-60); }
+.chip.rojo { background: color-mix(in srgb, var(--rojo) 13%, var(--papel)); color: var(--rojo-profundo); }
+.chip.vive::before { animation: latir 1.8s ease-in-out infinite; }
+
+/* Píldoras de filtro y pestañas de vidrio */
+.pildoras { display: flex; gap: 6px; flex-wrap: wrap; }
+.pildora { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; border: 1px solid var(--sand); padding: 5px 13px; font-size: 13px; font-weight: 600; color: var(--taupe); background: transparent; }
+.pildora[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+.pildora[aria-pressed="true"] .globito { background: color-mix(in srgb, var(--crema) 22%, transparent); color: var(--crema); }
+.pest { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: color-mix(in srgb, var(--hueso) 75%, transparent); border: 1px solid var(--sand); }
+.pest button { border: 0; background: transparent; padding: 7px 14px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--tinta-60); display: flex; align-items: center; gap: 6px; }
+.pest button[aria-selected="true"] { background: var(--tinta); color: var(--crema); }
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 9px; background: var(--hueso); }
+.seg button { border: 0; background: transparent; padding: 5px 11px; border-radius: 7px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--tinta-60); display: inline-flex; align-items: center; gap: 6px; }
+.seg button[aria-pressed="true"] { background: var(--papel); color: var(--tinta); box-shadow: 0 1px 0 color-mix(in srgb, var(--sombra) 12%, transparent); }
+.seg .ic { width: 14px; height: 14px; }
+
+/* ---------- Pantalla 1: Campañas ---------- */
+.linea-t { padding: 6px 18px 18px; overflow-x: auto; }
+.linea { min-width: 860px; display: grid; grid-template-columns: 170px minmax(0, 1fr); row-gap: 8px; align-items: center; position: relative; }
+.linea-mes { display: grid; grid-template-columns: 31fr 30fr 31fr; font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); }
+.linea-mes span { border-left: 1px solid var(--sand); padding: 6px 8px; }
+.linea-nom { font-size: 13px; display: flex; align-items: center; gap: 8px; padding-right: 10px; min-width: 0; }
+.linea-nom span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.linea-nom.portada { font-weight: 700; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--tinta); }
+.pista { position: relative; height: 30px; border-radius: 8px; background: repeating-linear-gradient(90deg, transparent 0 calc(100% / 13 - 1px), color-mix(in srgb, var(--sand) 70%, transparent) calc(100% / 13 - 1px) calc(100% / 13)); }
+.pista.portada { height: 40px; background: var(--hueso); }
+.barra { position: absolute; top: 3px; bottom: 3px; border-radius: 6px; display: flex; align-items: center; padding: 0 9px; font-size: 11.5px; font-weight: 600; white-space: nowrap; overflow: hidden; border: 0; text-align: left; transition: transform .2s var(--ease), box-shadow .2s; }
+.barra:hover { transform: translateY(-1px); box-shadow: 0 6px 14px -8px var(--sombra); }
+.barra.sin-diseno { background: repeating-linear-gradient(135deg, var(--hueso) 0 6px, var(--papel) 6px 12px) !important; color: var(--tinta-60) !important; box-shadow: inset 0 0 0 1px var(--sand); }
+.barra.nuevo { background: repeating-linear-gradient(135deg, var(--sand) 0 5px, var(--hueso) 5px 10px); color: var(--tinta-60); font-weight: 600; }
+.barra.recortada { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.hoy { position: absolute; top: -4px; bottom: -6px; width: 2px; background: var(--rojo); border-radius: 2px; pointer-events: none; }
+.hoy.rotulo::before { content: "Hoy"; position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--rojo); background: var(--papel); padding: 0 4px; }
+.pasado { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--crema) 55%, transparent); pointer-events: none; border-radius: 8px 0 0 8px; }
+.cruce { margin: 0 18px 16px; }
+.grilla-c { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; padding: 16px 18px 18px; }
+.camp { border: 1px solid var(--sand); border-radius: 12px; overflow: hidden; background: var(--papel); display: flex; flex-direction: column; transition: border-color .2s, transform .25s var(--ease), box-shadow .25s; }
+.camp:hover { border-color: var(--taupe); transform: translateY(-2px); box-shadow: 0 14px 30px -22px var(--sombra); }
+.camp-mini { position: relative; cursor: pointer; border-bottom: 1px solid var(--sand); }
+.camp-mini .cinta { position: absolute; left: 10px; top: 10px; z-index: 3; }
+.camp-cuerpo { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.camp-nom { font-family: var(--serif); font-size: 20px; font-weight: 500; line-height: 1.15; }
+.camp-dato { font-size: 12.5px; color: var(--tinta-60); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.camp-acc { display: flex; gap: 8px; margin-top: auto; padding-top: 8px; flex-wrap: wrap; }
+.camp.apagada .camp-mini { filter: grayscale(.85); opacity: .7; }
+
+/* ---------- Pantalla 2: el editor ---------- */
+.ed { display: grid; grid-template-columns: 372px minmax(0, 1fr); gap: 18px; align-items: start; }
+.ed-panel { display: flex; flex-direction: column; gap: 8px; }
+.paso { border: 1px solid var(--sand); border-radius: 14px; background: var(--papel); transition: box-shadow .25s, border-color .25s; }
+.paso[data-abierto] { border-color: color-mix(in srgb, var(--tinta) 30%, var(--sand)); }
+.paso[data-sigue]:not([data-abierto]) { box-shadow: 0 0 0 5px color-mix(in srgb, var(--ambar) 10%, transparent); background: color-mix(in srgb, var(--ambar) 6%, var(--papel)); }
+.paso-cab { width: 100%; border: 0; background: transparent; display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-align: left; border-radius: 14px; }
+.paso-n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--hueso); color: var(--tinta-60); flex: none; transition: background .25s, color .25s; }
+.paso[data-hecho] .paso-n { background: var(--verde); color: var(--papel); }
+.paso[data-abierto] .paso-n { background: var(--tinta); color: var(--crema); }
+.paso-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.paso-t b { font-size: 14px; font-weight: 600; }
+.paso-t small { font-size: 12px; color: var(--tinta-60); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.paso-estado { font-size: 11px; font-weight: 600; color: var(--ambar); white-space: nowrap; }
+.paso[data-hecho] .paso-estado { color: var(--verde); }
+.paso-flecha { width: 16px; height: 16px; color: var(--tinta-40); transition: transform .25s var(--ease); }
+.paso[data-abierto] .paso-flecha { transform: rotate(180deg); }
+.paso-cuerpo { padding: 2px 14px 16px; display: none; flex-direction: column; gap: 12px; }
+.paso[data-abierto] .paso-cuerpo { display: flex; animation: subir .35s var(--ease) both; }
+.sub { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); display: flex; align-items: center; gap: 8px; }
+.sub .opc { letter-spacing: 0; text-transform: none; font-weight: 500; color: var(--tinta-40); }
+.ops { display: grid; gap: 8px; }
+.ops.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ops.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.op { border: 1px solid var(--sand); background: var(--papel); border-radius: 10px; padding: 0; overflow: hidden; display: flex; flex-direction: column; text-align: left; transition: border-color .2s, box-shadow .2s, transform .2s var(--ease); position: relative; }
+.op:hover { border-color: var(--taupe); transform: translateY(-1px); }
+.op[aria-pressed="true"] { border-color: var(--tinta); box-shadow: 0 0 0 1px var(--tinta); }
+.op[aria-pressed="true"]::after { content: ""; position: absolute; top: 6px; right: 6px; width: 18px; height: 18px; border-radius: 50%; background: var(--tinta) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5f0e8' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat; z-index: 4; }
+.op-n { padding: 6px 9px 7px; font-size: 12px; font-weight: 600; display: flex; flex-direction: column; line-height: 1.25; }
+.op-n small { font-weight: 500; font-size: 11px; color: var(--tinta-60); }
+.op:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.swatches { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.sw { aspect-ratio: 1; border-radius: 50%; border: 0; padding: 0; position: relative; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tinta) 14%, transparent); transition: transform .2s var(--ease), box-shadow .2s; }
+.sw:hover { transform: scale(1.08); }
+.sw[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--papel), 0 0 0 4px var(--tinta); }
+.sw i { position: absolute; inset: 0; border-radius: 50%; clip-path: polygon(62% 0, 100% 0, 100% 100%, 38% 100%); }
+.sw-nom { font-size: 12.5px; color: var(--tinta-60); min-height: 19px; }
+.sw-nom b { color: var(--tinta); font-weight: 600; }
+.propio { display: flex; align-items: center; gap: 10px; border: 1px dashed var(--sand); border-radius: 10px; padding: 8px 10px; }
+.propio input[type="color"] { width: 36px; height: 36px; border: 0; padding: 0; background: none; border-radius: 50%; cursor: pointer; }
+.propio input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.propio input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 50%; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tinta) 18%, transparent); }
+.propio-t { flex: 1; font-size: 12.5px; line-height: 1.35; }
+.propio-t b { display: block; font-size: 13px; }
+.aviso-mini { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; padding: 8px 10px; border-radius: 8px; border-left: 3px solid var(--ambar); background: color-mix(in srgb, var(--ambar) 9%, var(--papel)); }
+.aviso-mini .ic { color: var(--ambar); margin-top: 1px; width: 15px; height: 15px; }
+.aviso-mini.bien { border-left-color: var(--verde); background: color-mix(in srgb, var(--verde) 9%, var(--papel)); }
+.aviso-mini.bien .ic { color: var(--verde); }
+.palabras { display: flex; flex-wrap: wrap; gap: 6px; }
+.palabra { border: 1px solid var(--sand); background: var(--papel); border-radius: 8px; padding: 6px 11px; font-family: var(--serif); font-size: 18px; line-height: 1.1; transition: background .2s, color .2s, border-color .2s; }
+.palabra[data-cursiva] { font-style: italic; background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+.caja { width: 100%; height: 40px; border-radius: 8px; border: 1px solid transparent; background: var(--hueso); padding: 0 12px; font-size: 14px; transition: background .15s, box-shadow .2s; }
+.caja:focus { background: var(--papel); outline: none; box-shadow: inset 0 -2px 0 var(--rojo), 0 0 0 1px var(--sand); }
+.caja-pie { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--tinta-60); }
+.prendas-sel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.prenda-op { border: 1px solid var(--sand); background: var(--papel); border-radius: 10px; padding: 0; overflow: hidden; position: relative; text-align: left; }
+.prenda-op[aria-pressed="true"] { border-color: var(--tinta); box-shadow: 0 0 0 1px var(--tinta); }
+.prenda-op .orden { position: absolute; top: 5px; left: 5px; z-index: 2; width: 20px; height: 20px; border-radius: 50%; background: var(--tinta); color: var(--crema); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.prenda-op .estudio { aspect-ratio: 4/5; }
+.prenda-op small { display: block; padding: 4px 6px 6px; font-size: 10.5px; line-height: 1.25; color: var(--tinta-60); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inter { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid color-mix(in srgb, var(--sand) 60%, transparent); }
+.inter:last-child { border-bottom: 0; }
+.inter-t { flex: 1; font-size: 13px; line-height: 1.3; }
+.inter-t small { display: block; color: var(--tinta-60); font-size: 12px; }
+.sw-i { width: 40px; height: 24px; border-radius: 999px; border: 0; padding: 2px; background: var(--sand); position: relative; flex: none; transition: background .2s; }
+.sw-i::after { content: ""; display: block; width: 20px; height: 20px; border-radius: 50%; background: var(--papel); transition: transform .25s var(--ease), width .15s; box-shadow: 0 1px 2px color-mix(in srgb, var(--sombra) 25%, transparent); }
+.sw-i[aria-checked="true"] { background: var(--tinta); }
+.sw-i[aria-checked="true"]::after { transform: translateX(16px); }
+.sw-i:disabled { opacity: .4; cursor: not-allowed; }
+.mini-ops { display: flex; gap: 6px; flex-wrap: wrap; }
+.mini-op { border: 1px solid var(--sand); background: var(--papel); border-radius: 999px; padding: 4px 11px; font-size: 12.5px; font-weight: 600; color: var(--tinta-60); }
+.mini-op[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+.mini-op:disabled { opacity: .45; cursor: not-allowed; }
+.subir { border: 1.5px dashed var(--sand); border-radius: 12px; padding: 16px; display: flex; gap: 12px; align-items: center; background: color-mix(in srgb, var(--hueso) 50%, transparent); }
+.subir .ic { width: 22px; height: 22px; color: var(--taupe); }
+.subir b { display: block; font-size: 13px; }
+.subir small { font-size: 12px; color: var(--tinta-60); }
+input[type="range"] { width: 100%; accent-color: var(--tinta); }
+
+.ed-vista { position: sticky; top: 104px; display: flex; flex-direction: column; gap: 10px; }
+.vista-herr { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.vista-herr .esp { flex: 1; }
+.marco { position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--sand); background: var(--hueso); box-shadow: 0 30px 60px -40px var(--sombra); }
+.marco-nav { height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 12px; background: var(--hueso); border-bottom: 1px solid var(--sand); font-size: 11.5px; color: var(--tinta-60); }
+.marco-nav i { width: 9px; height: 9px; border-radius: 50%; background: var(--sand); }
+.marco-nav span { margin-left: 8px; padding: 1px 12px; border-radius: 999px; background: var(--papel); border: 1px solid var(--sand); }
+.escala { position: relative; overflow: hidden; }
+.escala > .web { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.cel-marco { margin: 0 auto; width: min(100%, 300px); border-radius: 34px; padding: 10px; background: #121211; /* tema-fijo: el teléfono es negro en los dos temas */ box-shadow: 0 30px 60px -36px var(--sombra); }
+.cel-marco .escala { border-radius: 26px; }
+.vista-fondo { padding: 18px; border-radius: 14px; background: color-mix(in srgb, var(--hueso) 60%, transparent); border: 1px solid var(--sand); }
+.revision { border: 1px solid var(--sand); background: var(--papel); border-radius: 12px; padding: 12px 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px 16px; }
+.rev { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; }
+.rev .ic { width: 16px; height: 16px; margin-top: 2px; }
+.rev.ok .ic { color: var(--verde); }
+.rev.ojo .ic { color: var(--ambar); }
+.rev.mal .ic { color: var(--rojo); }
+.rev.mal { font-weight: 600; }
+.rev button { margin-left: 4px; }
+.barra-pub { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; margin-top: 4px; background: var(--papel); border: 1px solid var(--sand); border-radius: 14px; box-shadow: 0 -10px 30px -26px var(--sombra); }
+.barra-pub .estado { flex: 1; font-size: 12.5px; color: var(--tinta-60); display: flex; align-items: center; gap: 8px; min-width: 180px; }
+.barra-pub .estado b { color: var(--tinta); font-weight: 600; }
+.punto-verde { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); flex: none; }
+.falta { width: 100%; font-size: 12px; color: var(--ambar); text-align: right; }
+
+/* ---------- Hoja (Modal) ---------- */
+.velo { position: fixed; inset: 0; z-index: 80; background: color-mix(in srgb, var(--sombra) 28%, transparent); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: flex-start; padding: 40px 16px; overflow-y: auto; animation: aparecer .22s var(--ease) both; }
+.hoja { width: min(768px, 100%); background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; display: flex; flex-direction: column; position: relative; animation: hoja .34s var(--ease) both; }
+.hoja-cab { padding: 22px 22px 4px; display: flex; flex-direction: column; gap: 4px; }
+.hoja-cab h2 { font-family: var(--serif); font-weight: 500; font-size: 26px; line-height: 1.1; margin: 0; }
+.hoja-cab p { color: var(--tinta-60); font-size: 13.5px; }
+.hoja-cuerpo { padding: 14px 22px 18px; display: flex; flex-direction: column; gap: 16px; }
+.hoja-cuerpo > * { animation: subir .42s var(--ease) both; }
+.hoja-cuerpo > :nth-child(2) { animation-delay: 55ms; }
+.hoja-cuerpo > :nth-child(3) { animation-delay: 110ms; }
+.hoja-cuerpo > :nth-child(n+4) { animation-delay: 165ms; }
+.hoja-pie { display: flex; gap: 8px; justify-content: flex-end; align-items: center; flex-wrap: wrap; padding: 12px 22px 16px; border-top: 1px solid var(--sand); }
+.hoja-pie .izq { margin-right: auto; }
+.dos-vistas { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 14px; align-items: end; }
+.dos-vistas .cel-marco { width: 150px; border-radius: 22px; padding: 6px; }
+.dos-vistas .cel-marco .escala { border-radius: 17px; }
+.cuando { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.cuando > div { border: 1px solid var(--sand); border-radius: 10px; padding: 10px 12px; background: var(--crema); }
+.cuando small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); }
+.cuando b { font-family: var(--serif); font-size: 19px; font-weight: 500; }
+.resp { display: flex; align-items: center; gap: 10px; height: 48px; border-radius: 8px; background: var(--hueso); padding: 0 12px; }
+.resp b { font-weight: 600; }
+.resp small { color: var(--tinta-60); margin-left: auto; font-size: 12px; }
+
+/* ---------- Pantalla de datos ---------- */
+.datos { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.campos { display: flex; flex-direction: column; gap: 16px; }
+.campo { display: flex; flex-direction: column; gap: 6px; }
+.etq { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); display: flex; align-items: center; gap: 8px; }
+.etq .opc { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--tinta-40); }
+.dos-c { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.caja-sol { display: flex; align-items: center; background: var(--hueso); border-radius: 8px; height: 48px; padding: 0 14px; gap: 6px; font-size: 18px; font-weight: 600; }
+.caja-sol span { color: var(--tinta-60); font-weight: 500; font-size: 15px; }
+.rige { display: flex; flex-wrap: wrap; gap: 8px; }
+.rige span { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--hueso); font-size: 13px; font-weight: 600; }
+.rige .ic { width: 15px; height: 15px; color: var(--taupe); }
+.prendas-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
+.prendas-tabla th { text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); padding: 8px 10px; border-bottom: 1px solid var(--sand); }
+.prendas-tabla td { padding: 8px 10px; border-bottom: 1px solid var(--sand); vertical-align: middle; }
+.prendas-tabla tr:last-child td { border-bottom: 0; }
+.miniatura { width: 38px; height: 46px; border-radius: 4px; overflow: hidden; }
+
+/* ---------- Ideas ---------- */
+.ideas { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 16px; }
+.idea { border: 1px solid var(--sand); border-radius: 14px; overflow: hidden; background: var(--papel); }
+.idea-pie { padding: 10px 14px 12px; display: flex; flex-direction: column; gap: 2px; }
+.idea-pie b { font-family: var(--serif); font-size: 19px; font-weight: 500; }
+.idea-pie small { color: var(--tinta-60); font-size: 12.5px; }
+
+/* ---------- Para decidir ---------- */
+.decisiones { display: grid; gap: 16px; }
+.decision { border: 1px solid var(--sand); border-radius: 14px; background: var(--papel); padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+.decision h3 { font-family: var(--serif); font-size: 23px; font-weight: 500; margin: 0; }
+.decision > p { color: var(--tinta-60); max-width: 80ch; }
+.opciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.opcion { border: 1px solid var(--sand); border-radius: 12px; padding: 12px 14px; background: var(--crema); display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.opcion.reco { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+.opcion b { font-size: 14px; }
+.opcion .gp { display: grid; grid-template-columns: 52px 1fr; gap: 2px 8px; }
+.opcion .gp span:nth-child(odd) { font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--taupe); padding-top: 2px; }
+
+/* =====================================================================================================
+   LA PORTADA DE LA TIENDA ONLINE (vista previa). Lienzo fijo: 1280 × 720 en escritorio y 375 × 812 en el celular; se encoge
+   entero con transform para caber en su marco. Las medidas salen de apps/tienda (globals.css y collage.css).
+   ===================================================================================================== */
+.web { width: 1280px; height: 720px; overflow: hidden; font-family: var(--sans); background: var(--w-fondo); color: var(--w-tinta); --w-fondo: #f5f0e8; --w-tinta: #1a1a18; }
+.web.cel { width: 375px; height: 812px; }
+.web.oscuro { --w-fondo: #1a1a18; --w-tinta: #f5f0e8; }
+.w-anuncio { height: 30px; display: grid; place-items: center; background: #171614; color: #f5f0e8; font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; overflow: hidden; padding: 0 12px; } /* tema-fijo: la cinta de la tienda es oscura en los dos temas */
+.web.oscuro .w-anuncio { background: #0d0d0c; }
+.w-cab { height: 70px; display: flex; align-items: center; gap: 28px; padding: 0 64px; border-bottom: 1px solid color-mix(in srgb, var(--w-tinta) 12%, transparent); }
+.w-logo { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 23px; font-weight: 500; letter-spacing: .24em; }
+.w-logo img { width: 30px; }
+.w-nav { display: flex; gap: 26px; font-size: 13.5px; font-weight: 600; }
+.w-cab-esp { flex: 1; }
+.w-pill { height: 40px; padding: 0 18px; border-radius: 999px; display: grid; place-items: center; font-size: 13.5px; font-weight: 700; border: 1.5px solid var(--w-tinta); }
+.w-pill.llena { background: var(--w-tinta); color: var(--w-fondo); }
+.web.cel .w-cab { height: 56px; padding: 0 18px; gap: 10px; }
+.web.cel .w-logo { font-size: 18px; }
+.web.cel .w-logo img { width: 24px; }
+.web.cel .w-nav, .web.cel .w-pill.llena { display: none; }
+.web.cel .w-pill { height: 34px; padding: 0 14px; font-size: 12.5px; }
+.w-menu { display: none; width: 34px; height: 34px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--w-tinta) 30%, transparent); place-items: center; }
+.web.cel .w-menu { display: grid; }
+.w-menu i { width: 14px; height: 1.5px; background: currentColor; box-shadow: 0 -4.5px 0 currentColor, 0 4.5px 0 currentColor; }
+
+.w-hero { --filo: color-mix(in srgb, var(--ht) 22%, transparent); --vidrio: color-mix(in srgb, var(--ht) 10%, transparent);
+  position: relative; isolation: isolate; overflow: hidden; height: 620px; color: var(--ht); background: var(--hf);
+  display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, .96fr); gap: 20px; padding: 52px 0 40px 76px; }
+.w-hero.degradado, .w-hero.dibujo { background: radial-gradient(120% 90% at 88% 6%, var(--hf2), var(--hf) 58%); }
+.w-hero:not(.liso)::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .22; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E"); }
+.w-patron { position: absolute; inset: 0; z-index: -2; pointer-events: none; }
+.w-foto-fondo { position: absolute; inset: 0; z-index: -3; background: radial-gradient(70% 90% at 72% 45%, #efe5d6, #c9b8a0 70%, #b29f86); } /* tema-fijo: la foto de ejemplo es una foto, no cambia con el tema */
+.w-foto-fondo svg { position: absolute; right: 6%; top: -4%; height: 118%; filter: drop-shadow(0 40px 40px rgba(0, 0, 0, .25)); } /* tema-fijo: sombra dentro de la foto */
+.w-velo { position: absolute; inset: 0; z-index: -2; pointer-events: none; }
+.w-txt { position: relative; z-index: 3; display: flex; flex-direction: column; align-self: center; }
+.w-ceja { display: flex; align-items: center; gap: 12px; font-size: 11.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--ha); }
+.w-ceja::before { content: ""; width: 30px; height: 1px; background: currentColor; }
+.w-tit { margin: 16px 0 0; font-family: var(--serif); font-weight: 500; font-size: 104px; line-height: .88; letter-spacing: -.02em; }
+.w-tit span, .w-tit em { display: block; }
+.w-tit em { font-style: italic; color: var(--ha); }
+.w-hero.enorme .w-tit { line-height: .84; }
+.w-frase { margin: 18px 0 0; font-family: var(--serif); font-style: italic; font-size: 27px; line-height: 1.15; max-width: 22ch; }
+.w-desc { margin: 16px 0 0; font-size: 16px; line-height: 1.5; max-width: 40ch; color: color-mix(in srgb, var(--ht) 86%, transparent); }
+.w-desc b { color: var(--ht); }
+.w-cuenta { display: flex; gap: 8px; margin-top: 20px; }
+.w-cuenta > span { min-width: 56px; padding: 9px 6px 7px; border-radius: 12px; background: var(--vidrio); border: 1px solid var(--filo); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.w-cuenta b { font-family: var(--serif); font-size: 28px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
+.w-cuenta small { font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; opacity: .75; }
+.w-acc { display: flex; align-items: center; gap: 22px; margin-top: 24px; flex-wrap: wrap; }
+.w-btn { height: 54px; padding: 0 28px; border-radius: 999px; display: grid; place-items: center; background: var(--ht); color: var(--hf); font-size: 15px; font-weight: 700; letter-spacing: .02em; }
+.w-link { font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--ha); display: inline-flex; gap: 6px; align-items: center; }
+.w-colibri { position: absolute; z-index: 4; width: 58px; top: 46px; left: 46%; opacity: .92; }
+.w-lado { position: relative; z-index: 2; min-width: 0; }
+.w-collage { position: absolute; inset: 0 -20px 0 0; }
+.w-pol { position: absolute; width: 46%; padding: 9px 9px 38px; background: #fbf8f2; border-radius: 5px; color: #1a1a18; box-shadow: 0 26px 40px -18px rgba(26, 26, 24, .55); transform: rotate(var(--r)); } /* tema-fijo: el papel de la polaroid es parte de la foto */
+.w-pol.p1 { left: 0; top: 10%; --r: -7deg; z-index: 2; }
+.w-pol.p2 { left: 27%; top: 2%; --r: 3deg; z-index: 3; }
+.w-pol.p3 { right: 0; top: 18%; --r: 8deg; z-index: 2; }
+.w-pol-pie { position: absolute; left: 11px; right: 11px; bottom: 10px; display: flex; justify-content: space-between; gap: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; }
+.w-pol-pie span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.w-pol-pie span:last-child { color: rgba(26, 26, 24, .6); flex: none; } /* tema-fijo: texto sobre el papel de la polaroid */
+.estudio { position: relative; aspect-ratio: 4 / 5; background: linear-gradient(180deg, #f2ede4, #e6ddcf); display: grid; place-items: center; overflow: hidden; } /* tema-fijo: el estudio de la foto es parte de la foto */
+.estudio svg { width: 74%; height: auto; }
+.w-grande { position: absolute; top: -58px; right: 0; bottom: -40px; left: 8%; overflow: hidden; }
+.w-grande .estudio { height: 100%; aspect-ratio: auto; }
+.w-grande .estudio svg { width: 56%; }
+.w-grande-pie { position: absolute; left: 20px; bottom: 22px; display: inline-flex; gap: 8px; align-items: center; padding: 9px 14px; border-radius: 999px; background: rgba(251, 248, 242, .92); color: #1a1a18; font-size: 13px; font-weight: 600; } /* tema-fijo: etiqueta sobre la foto */
+.w-mosaico { position: absolute; inset: 0 76px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-content: center; }
+.w-mosaico .estudio { border-radius: 6px; }
+.w-mosaico .w-teja-pct { aspect-ratio: 4 / 5; border-radius: 6px; display: grid; place-items: center; background: var(--vidrio); border: 1px solid var(--filo); font-family: var(--serif); font-style: italic; font-size: 92px; color: var(--ha); }
+.w-hero.letras { grid-template-columns: 1fr; padding: 34px 80px; justify-items: center; text-align: center; }
+.w-hero.letras .w-frase { max-width: 36ch; }
+.w-hero.letras .w-txt { align-items: center; }
+.w-hero.letras .w-ceja::after { content: ""; width: 30px; height: 1px; background: currentColor; }
+.w-hero.letras .w-desc, .w-hero.letras .w-frase { margin-inline: auto; }
+.w-hero.letras .w-colibri { left: 90px; right: auto; top: 60px; }
+.w-hero.letras .w-lado { display: none; }
+.w-pct { position: absolute; right: -14px; bottom: -48px; z-index: 0; font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 300px; line-height: 1; letter-spacing: -.04em; color: transparent; -webkit-text-stroke: 1.6px var(--filo); pointer-events: none; }
+.w-hero.letras .w-pct { right: 50%; transform: translateX(50%); bottom: auto; top: 50%; translate: 0 -50%; font-size: 460px; opacity: .9; }
+.w-sello { position: absolute; z-index: 5; width: 118px; height: 118px; border-radius: 50%; display: grid; place-items: center; text-align: center; background: var(--ha); color: var(--hf); font-weight: 700; line-height: 1.05; transform: rotate(-12deg); box-shadow: 0 14px 30px -14px rgba(0, 0, 0, .5); } /* tema-fijo: sombra del sello dentro de la portada */
+.w-sello::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; border: 1.5px dashed color-mix(in srgb, var(--hf) 55%, transparent); }
+.w-sello b { display: block; font-family: var(--serif); font-size: 38px; font-weight: 600; letter-spacing: -.02em; }
+.w-sello small { display: block; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; }
+.w-sello.texto b { font-size: 21px; font-style: italic; }
+.w-lado .w-sello { right: 7%; top: -18px; z-index: 6; }
+.w-hero:not(.letras) > .w-sello { left: 50%; top: 30px; }
+.w-hero.letras .w-sello { right: 150px; top: 54px; }
+.w-club { position: absolute; inset: 40px 70px 40px 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; }
+.w-club-t { width: 360px; aspect-ratio: 1.6; border-radius: 18px; background: linear-gradient(135deg, #1a1a18, #3a3530); color: #f5f0e8; padding: 22px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 30px 50px -24px rgba(0, 0, 0, .6); } /* tema-fijo: la tarjeta del Club es negra en los dos temas */
+.w-club-t b { font-family: var(--serif); letter-spacing: .24em; font-size: 22px; font-weight: 500; }
+.w-club-t span { font-family: var(--serif); font-size: 22px; }
+.w-club p { font-size: 14px; }
+
+/* El celular: todo en una columna */
+.web.cel .w-hero { display: flex; flex-direction: column; height: auto; min-height: 726px; padding: 26px 20px 30px; gap: 18px; }
+.web.cel .w-tit { line-height: .9; margin-top: 12px; }
+.web.cel .w-ceja { font-size: 10.5px; }
+.web.cel .w-frase { font-size: 21px; margin-top: 14px; }
+.web.cel .w-desc { font-size: 15px; margin-top: 14px; }
+.web.cel .w-cuenta > span { min-width: 52px; }
+.web.cel .w-cuenta b { font-size: 25px; }
+.web.cel .w-acc { gap: 14px; margin-top: 20px; }
+.web.cel .w-btn { height: 52px; padding: 0 24px; font-size: 14px; }
+.web.cel .w-link { font-size: 13px; }
+.web.cel .w-colibri { width: 40px; top: 22px; left: auto; right: 22px; }
+.web.cel .w-lado { height: 330px; flex: none; }
+.web.cel .w-collage { inset: 0; }
+.web.cel .w-pol { width: 47%; padding: 7px 7px 30px; }
+.web.cel .w-pol-pie { font-size: 10px; left: 8px; right: 8px; bottom: 8px; }
+.web.cel .w-grande { inset: 0 -20px -30px -20px; }
+.web.cel .w-mosaico { inset: 0; gap: 10px; grid-template-columns: 1fr 1fr 1fr; align-content: start; }
+.web.cel .w-mosaico .w-teja-pct { font-size: 44px; }
+.web.cel .w-hero.letras { padding: 40px 22px; justify-content: center; min-height: 726px; }
+.web.cel .w-hero.letras .w-lado { display: none; }
+.web.cel .w-pct { font-size: 170px; bottom: -20px; }
+.web.cel .w-hero.letras .w-pct { font-size: 230px; }
+.web.cel .w-sello { width: 84px; height: 84px; }
+.web.cel .w-sello b { font-size: 26px; }
+.web.cel .w-sello.texto b { font-size: 15px; }
+.web.cel .w-sello small { font-size: 8.5px; }
+.web.cel .w-lado .w-sello { right: 2px; top: -26px; }
+.web.cel .w-hero.letras .w-sello { right: 16px; left: auto; top: 70px; }
+.web.cel .w-club { inset: 0; }
+.web.cel .w-club-t { width: 260px; }
+.web.cel .w-grande-pie { font-size: 11px; left: 30px; bottom: 40px; }
+
+/* En una miniatura nada se mueve */
+.quieto * { animation: none !important; transition: none !important; }
+
+@keyframes subir { from { opacity: 0; transform: translateY(10px); } }
+@keyframes aparecer { from { opacity: 0; } }
+@keyframes hoja { from { opacity: 0; transform: translateY(18px) scale(.985); } }
+@keyframes latir { 50% { transform: scale(1.6); opacity: .55; } }
+@keyframes cambio { from { opacity: .35; filter: blur(3px); } }
+.cambia { animation: cambio .45s var(--ease) both; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+@media (max-width: 1180px) {
+  .ed { grid-template-columns: 1fr; }
+  .ed-vista { position: static; order: -1; }
+  .datos { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  .lat { display: none; }
+  .pag { padding: 18px 16px 48px; }
+  .enc h1 { font-size: 38px; }
+  .top { top: 0; position: static; }
+  .ideas { grid-template-columns: 1fr; }
+  .dos-vistas { grid-template-columns: 1fr; }
+  .dos-vistas .cel-marco { margin: 0 auto; }
+  .cuando { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .mq-t small { display: none; }
+  .ops.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .swatches { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .prendas-sel { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dos-c { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="mq" role="navigation" aria-label="Pantallas de la maqueta">
+  <span class="mq-t">Campañas · Tienda web <small>maqueta · 16 oct 2026</small></span>
+  <div class="mq-nav" id="mq-nav"></div>
+  <span class="mq-esp"></span>
+  <div class="mq-nav" id="mq-tema"></div>
+</div>
+
+<div class="app">
+  <aside class="lat" id="lat"></aside>
+  <div class="main">
+    <div class="top">
+      <div class="sedes" role="group" aria-label="Sede"><button class="sede" aria-pressed="true">Trujillo</button><button class="sede" aria-pressed="false">Arequipa</button><button class="sede" aria-pressed="false">Lima</button></div>
+      <span class="top-esp"></span>
+      <span class="suave" style="font-size:12.5px">Rosa Medina</span><span class="av">RM</span>
+    </div>
+    <main class="pag" id="pag"></main>
+  </div>
+</div>
+<div id="capa"></div>
+
+<script>
+/* =====================================================================================================
+   DATOS: los de producción (16 oct 2026, solo lectura): nombre, fechas, descuento y prendas de cada campaña. Lo inventado:
+   los diseños de cada campaña (salvo «Día Internacional del Gato», que es el de hoy) y la foto de fondo de ejemplo.
+   ===================================================================================================== */
+const ISO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN8AAACWCAYAAABerl2IAAA+pklEQVR4nO19C3hdZZX2u759Tm5tQlsuIiqMglzSpIW/ChWRJKWXJLQgjkFRUXRGdEZn/HXUGWd0Qn59HEcdLzOMiKKijjD2gNxKk1DaJAVLFSq2uXBHUa690Hvu+3v/Z31772Sfk9OSlKbN5aznSZucyz777P2tb93e9S6pr4e5pgEUgMjJtBPWw6S66uTyVMqPP/6TilMKTkgcc3KCPNUnTxPIKSI8iZTjAJYIkAcgCUIAWIr0C9gNYicEWwXyjAWeom+fTCb9p5esfXRHts+tS6XsdF17euGcEJBUXZ3R3ztTKTYEF2RaXpSpLtG9jitcS0VFoh87z7TgWyBYIMCZEJ4IYCaARPhGHxCfAgsyfcMWCCgGQi/83xBCAXsJ7ADxtAgftpQH7aBsWX5/+87orSvr6rxwzVlMI5F7Fs89q7t78Nl3bnhsb+aTahXndtU5Bc0p5NRUutUXzjvH82w1IRUCnEpVNlLtWR+JAYj4Qlh9rwTaJrpDB7qXcXwRtzaEYLRIBDSAJCDMJyVpBP0EnyewyfimyeQl1y+5d9NufW09YK6pB6RheiihNFaVNYKYA8EjQnmEYMeg9R/3igb+VNv0ZF/mGyJ3AUihLgV1GdzDR+HcczIGWVkH7/KUWi61cqUz+0Qupsi7QTlHBEUA+0Do/VbrpnGIkSwKdijilJJ6SNVJVWF1WVngnhT5oyXXeDS3Lmvb0hEpof4/1S2hNFeVX0Pi4wT6RJAHUm/QPhF5nuBTpHSA6Mwzg08Ye8JzVW1tgwdTyM4UchZyAomzJrr+AW6oW1i4e+ve90PkSoG8GcCACLpJWmfXqFYqu4gIVRP0OE6FMu5vpFVU99NZvwMrriqj6GcGL82HsEjXHIg2S/lRbVv7xmjDCDf4KbmW5J6qsloLXAtKd3CP3CX0KMgTIg8iHsBBEnsE8iyET1DQQYtHQHlq3wntL0Q7alxyFnJiWbvVi+auMDR/D6AMhN7rXgYal13hRFxcF/6uiukRkhC3NsSEihoomt5XfQXFQugLMEiou+r0NTiAqD5md1UleJ3n4kvBACH3JDxcu+Te9vbM7zGVRFZXlL/eCO+kSLHRixZeoOCiqNlXj8FdfQ+CPBJ5ImKouya4i8BzoDwpYrtUIRNJPj17Z+ELb9m0aSDzw4YyXKUpIpdhHTdhTCmaKsrOpME/CbFYFzaI/RTxslkmQmzgGiK61/mqNiQHBNhHyC4R7CSpMdp+0fiNQhFNyLAQlBICs0Q4O/idBYHSia6VXgCDr+DS+qGi63G6Abl10JhrV6zb/Jx+nSAcnLSuqAuI42teH5CmqrIUKOfqBcYBdkJ3D5wmRrG0c+QTIkhGCgmiH+JuzPMAnrSUrgTYOXhgCykrcxnWwyq6wUUJi7uryj9qgE/rYhbI7iAjmX5/0y2PFOr9tKpY4DOAejjSYQweR0L+PGN/3/Y1Sx7b33CQhEhLxSkFvQWFs01/8iTSngaYuQTKITxNcwvObRX0iFsrB3R1dZ14ECkB+QLEfLe6ZcvPjrAVDLJHoVyjelPv/keqS3Wobug5/a1161bZdsIJQ2+JDIw7UGxNu42xHqL3yO0+TZVl/wqRvwH5cmj+R3d2B1FIEElnITVjBuwC+BwEjwtNu092FqLvyaq2x7dnHlMvrn6dnHUcu0QLc9UF5bOTSXyNwAqQewEZ1FAiq9LpvYLMJLAf4GZQWmh4H/J6H8uWcHPvBUQXo2YmVXRBvlKtuLFi/l/A+OcKZBGAcwGcqJt1YOGirOgIGaRIvpAzANw7KP6Xlrc88kz4PXUD4AEVRf8Pzy9TWVT0r9TQXynUlYLXNIxfkkdLOdv6+pKXb9zYE4+R0VQxdznEXA9wV3blk2CnEfeGrL77SIXU4wcJanLYQkLEBLUf2SHgH2ilk+TmBPyOOfuL/pjprg7XH4dix5wyZhGtlWkJ4e6L5p3uWfs9AKUgXj6Ai+kTbnMsJvGSgHdBeEt1S+fmgyXSwsSNe+qVXF7d3YP3ApkF/MZlZ76WfcmlBvxLCM5x9UCqWztSCWOW+RgItsHyS9VtnauyuXGHU1zdM29nPmUwf7APeTDMh2+KvIQpFNoCWlNkwZnGSCFpiwTeDIAzCRaKSKEAM0gWCaRAHwNEXfA8Ai/C8Ls1azsecBdnVdVZp3j0VktQTB3xZQgU6/8i0HS0BsR+mDYeo0IGFtIF7EAiSOi4DKte3L0QPEtKlxZjBbLFzy98orbpt3uyLTT9fzqjI7JZvHsqyhf6gu8LMBtQixcWx+NJFBVSF/IOUv6XxM9q29qfHT5WnTceXodmXefW1Um8mM56mKa2uUtEzFUk3h5+3r4DxIS+W7xEISH/uff49v+I3M+HFixI9ieTiV12e9I7pqiA4uejj/k0yXyRgRnWmsIEWEAjRZacaWAKfYsiI1CLOiNSGP0dZBFE8sNSSAEgYZ5DFYfq0al77rkcSLD69Tx1gTsnOlAXV+jUWNgGG4vzMIKEVHDc/QbmyuCN9fXS3HbrbQDmQ6Q75ofr82qJUhCcAOAMECdSfXHdObUsEQTx/cMKGSW3Dq6Q6bUfJxrk5w8ndNgjkBcBPk5ii1g+nEhI1+J1HS9lV8bpaRkjxWtaNL8K1r8OkKRmMrN4MIMWmGGCVMyvaM1/1bRt/mN0jLBEZI9Wsb+5at4i0v4NgLcB0kewVzK/g4gr9oMsFsFDcGUSFIOS70IdXdhEPgNXWjf3pCJuSKcsRr2uOKpr6HQCo+AytggUZOh3RfO4Neo8OY1XFbUT8+zSvlb6sVUfg9Me/t5aORCq/vDXErkrjVVlXxLgbxw2L/zSDG5GCYxcUbOu/b6VCxcWHpPsPpFiT6PBWYCcKeCpFJwEyDECdS1pNQuWrpCjLNrG0ttqHcOLl68XUmNHAbcR8hSBzQnIQ8ZIx+IgEzbixuruLUHAO2WVMbp3zVXlF1rwhsDHQH88vgu8fncfZxN81Ir9ysUtXeui9x9t72FlrJYXJv/qBKIlkTcR2B0s9AxXNMjKFgVrJLIqrsRo1cxEimJErKtNhn/Hv+YwAicSZ7ayKEv47GECHAwdDtg1pHyrK8svEsFP1PeOZTw19TsbwM3LWto/G55s2o1Sk/9iSfdJSSRPteRZIjwLwGkAXgdgloMWkRpj9At0YQSugtsV1Gi/YjE2KHe4ZI6o2Xe7nKa2fVJ2QPikAA8pZhAF3pbapt9vmw4u6pDFq5o7nzQ3C5inFiMtsRJsZnovSyByc481X76sbfOuI23pRiMrY0mUNRedeaxvE58h5QNaM8xqydUKMruiHAj+djQkE5zgLJ/gOAC3uVKDPuEyZAk2QWSOBQZVKcLFr1Cg50qOn7nsbamNehEkVRdkjzpLU8yWdtZgdTC57aTBAe900aKucC5ETgN5EoBiBt7xgOIHRd1aji5+jLuqgfIyIaHLEZ7zNhjpNOCGft9u7N6Grsu7uvozrWJ43pPWKmr8pIrT+I4zX4tE4jYBXhOCJGIL1LlPCQgStPL/atrab5wMBeuVoTEYckVhvwrgZEB2HQyBczRkJOpnKISKGxfFtnrO/Q1ixUKhPG48uJhv6GY2VZX9kESNqwlFN9LtnpgBsVdUt3RuyHLzXPFzbqiQobs3QiFXV5+WL32FfwHYuYCZD7AUkDeCPE5E8kN31YF5JUiNv6J1HKmMSIoLaJ2b2g3hHwzlQRHe1yPYdGlGvDheyYXxlKhO1NlVmvjzdnOTEAuDUs5wcoUi1oCaXbaE+fua1i3NkwmqRUBaKyo8hTLeWXH6cXkm72skFolI75FSwDhIPNNlDe2VAk2cYoUAFA9EFFfq631QNATooWCvEDsJ7DQiT/gWN2iSy90wzUIhldJDtgG4OKbAgU6L5BFmKYANmRUSfYUrjruHUhkKGXZElKZY2+BqRo+FP7/Sx++sWHBcAfpPo2AeBfM1oSMiJ4XZOI35BghqMdZZx0xlDP8P0RxOWQdJ2et2IFfScCj9UhJX5hMvNVeWb6bwfuPzgV+v73wsHvBPlqSNS1Q0aIzu/bMQFwDcnpbVdBlNp3i+BT5W27qlTT2RqtRITO5ElVQdzOXh+WqavR948XA5kQezVpH3FSg4E5rZVGulhkgE2iKla0+TPppo7BP1NgRaR9U69nYC28TKSzDaz2hf9K3Zlszzdwwk+ndVn/fkvrhRGvKYI8u3ZvGCk/3B/kb3weECDKwLFWb0TL7dU1PV9oxzPcfqskWF2UghL0+l4kXSIevodydPTphEqRg5m7TlIN4kkGNdSQIcBKUPDtYUevwHixuHEjgu4ZMXWkUvKDzrJiC/Fkjr89y9+cPB90qziBOttSXyOpqr5i8l/B+FG43JqIkFu7HI1ctatqxzipcFDD/RQeDNS+bN4CA+CNq/huBEQvaMJukRZSOzKVaY9EtzAxWzGiTnXbijG69m93UtdFP0M/GyBXcYwVaSW0nvJapyid0OX14uGejf/fYNj+0bzYY9lAwM8w9pzbT6QGNl2S9EcGH8xmp2CYKZPvCB5S3t6w9X3BCcjJruA7urqypKTzRizjCUcyg8B8CZLsYJajEK4O3V+DFqVzk4gDdK3rjgvSCw6C6l/TQoG0Rw7+6enQ9evvFZh0KYSI2eUUKheWnpbPZ7d4kiRFzdNe6GOWCzpuH/ftm6jtsmkeKJwgwjT+SeqvJLfPJTIlJK7bDJyODG3uZHaz7MfA4plvMGht1AVcegLAbpAaHKsssKXhb1HIitBF6ixVbPeFsTYrf3WH/3nL6S3eeHiJSxrOVIdE0rauZA4IShRTpUclhUfpUQ/5YBNXNZTxI/rWlt/wLr6400NIzHYkxzVzOREe48F5bOKc4zZ4hgAUTOpaBUwNeEcV7/MIB36IYc1Cq618CVMwqCeBNPA2yxHhtr1nZukqggnLFr4QhLdM2bKssUGfhxkDsyiuh6j+bA4t+r29q/M1kUjzEsamNV+RlC/hOAJa67wcXtI+9haAzU4ynWrhvXEuXao1yNeh8gOwHugMg2gi8K8KIFXoLPbcmk2eF7/q5ndhTu/VgW8P/BAALIgKNlw26ORYYOOJR0ecfcN8AzTZmup9bcdHfo6++v1q73yFJinCXNOmZZ+C0VC47rkf75InibKAUCtU+Ns4KKp/RS0B/46U7LDt7WEhTF1CIWCtiDoLm42Xqm6eK1Wx4fen190Ox5pNxSZRTQrLLrUBDcqRtCcKpD30U3qWMIrK1p7fjQRKjfjfa+Xp6Cv3Lh6wuLC2ZfDeBjApbgoCBw11VfLOLKV6sN+TuFyMHjVhlIbMszsnPbCafvzbZxZzuHOAwukGEonf41ntdQst7kyrKfQLA4PaYQn+AxnuDqpS0dq+Mp4SMp8QuWbYE1L5n3Rjto3yrA+YCcTfBkh68jBp1CvYJVjBQxfL5Q3VtXEBU+CMu7Jem1LFuzZWv0+iOx0KP70lhZppjNS9VlGgJCuKwcE9qRYq2s0CxatJFiEli7VVXlFxrwnw1kPsg94f3JBu7XdqRC16YE2UiL79Ssb7/vcLqBR1rSFt8w2mXeuwT22jjaJfSvj6HI3TUt7R+bKDc4fpEzNwMXtPuDc63vnS+C8wMAgMwJKEpEFVGL0gd2T4cRN5pKnhHGEMo/0kYrt9dUbtkQLaLxKlxHC7VxUfn/EfJWjXEzzlW/8yyIfK66pf2myVLH+9mSeTOO7/c/J0Y+5FCQoLInqAuZcR/cutOkSAnJJwH+9wMVnSndjIaB3xNPsUYjGb504Eq2VMyf1St+s2YZKRjQmx26OWoFBwYlefHyloefmSgKmM0/z5bA0bYWEZ5HsReCeIsoLE4VahSKGDWaUkSzpkp70A9KO4S39wnujmqIh5sEaNjqzfuBwNY6lyxMPrjYB5gpwMY9x7dfoXHIRMvQxkRWhm6mQ+VAvibOM8GusFab5mKG681XHLGQPSK4sdt61ylCJ9N6TlYZsciGrV/51wSa6mXM+gVBPYmv1LS2//fRcj0PxUXNPM+mhaVzpMg7z1ou0XgRxBvc60W6hew/EB51pFuqXRl4AYImsebmiARIJbw+I0oqoz7/cIHdc+Hcs6wxd0Ub4fArXE2viB6u0BaViWr10jrrK8veD8G/klIg2Tovhq1dQptpCf7at/Yry9u6fq/PTNTveCiSBS0QFMoThncgWIQx7KkzjL0iXLGyrjRPYx1MYHG1lAbYSPHUKqlC6KKu3tj18rJ17Y01rR2f8bz8atD8tQhSGk8pFYLGt6GF8UMLExwzWPxBj5zLrmFn0OUhH7Zif9VUVf791RXzLtDXhp9L95lZNrpXksil8j3zHnV7hzlR3Jn4WlaAoFUVTy3kRFyUes2jeFibtkXwjVAb92VXPBfzKVeoOvxf2Xtcx3tU8VTp9G0T8TseqhxoQchDCxYktpf03wayLN5mpJ0OIig2lKuWtravnejW75VjRVWS4Ruq2dM+GagAHJfluSI43uFQg2SNukEHtIZDJEABPO5BEL94/Ql2dVkqwJeOJTkThQCrzz2tRIoKG7W2mWH51PrOpPXfV9vWdf9EtAiRy6zdMCUF+78F4DIAOw7sUUCD8VkgH/QT8sWLQwKlqeBiZpOsODkteIYd5XdoIXqYJsL5ZS5fYYUf0L+1AI1JKLqwdbHqjy70yCJWtW3aXt265dbq1o6Pim+X0+KfAfxGO8JdhwddTTCrNQz/1DR5NyHnQXDts9u9O5uqyt+3YeHCQt2k9HOjTouDScQejhkFFwh4ivJqDi9Y/WxRS/jgb9q6NkxEixAp3u3nn1FcUrDvRxC8M4DCMUtnvei5JyiOsPf7tqD3clW86DpNRcVTkYPtuncsKntNnkUjRBRi5zodYuntfAEvU+qBqbQzDXU+ZKBaNElgaZYLuFQxowF2SfbF4r8RheCAUo9FpOSJ8BED/nRmz+5bzg8RNAe7brHywrfVOMfLC0OtXrSfrm7t/OVE8z6iRNz9559RvC8v+WMI3q6UFgdxM4sVH2mNfLF23Za79MGptKYOJPLKiIryr0JwVXriReMNpSpAqrql/VPjiHg5qpKt43plRenMYuMt0hYO0pUvCkPC14GsmdKoXCFwPB4Au8TK95e2td+qypmNnTna/AJ8o20i5STFs0ZtXgEFB/d0e4VL37X2wR1HCvAwGgkglcCNlafkv9YU/wRAJQCFcCWzvHyQwGwBOoz1P7l0/SNPTKbui1crB2nPaHD/CuUmJVl11IBDosMwuAfksqaK0tOkoWFoEU0lCVzTMFlTHyRrLm/r2lfT0n5ndUv7lfTk3QB+TodulzlB76OzSsMbURArK+9HL4MN7FQKv6t0jdqBrkqnP1FCwb2nPvjf7zPakfG6SPHcOSk+lSwi8BtVPD2vCbRQ3Wal3ZonSsnXQak6mOJB5Fhl3fMS+Zer4tFZcDjXHNNADkwP3gCrN1ZT5wTWU3F0YRd6KGr9SijyV7rErqkPedqmqKgLqIo4FB8CUrt2y8PVLR3/OGjMxST/DeCzgMxS1qrMuFCVMOAkcTXFXUJ5q5IXNVaVX99YNX9utOhUCaMsp+f554hIQXqWM2isMsas17+iQTYTQSJw9D2VZf+grrKL8bIoXtCSI8cS/NXe4+2HdVCKfm+ZQK7zkZCDWqu5ju/QeU436LSaeNkhJMndC5hLV11U/iZn/ULM41SWyBq6thVnDeEpo3JNa8d/2u7eFQA/L5BOiJthN0MVMFMJVa8CnkxoTfFioX9rc1XZl5qWls5RJTx+61YFmOvryoPWqTTRVpjdYgY2TaSEV5BtTfnNi+at8IFPCw4U47l1dCzIn1e3dHzy8lRXv37XiZYwOhIio6YsqCr/HwErMnrIXOwnlJ8uc90OUz9IHk1sqLw222f2LoNCp4CFShkn4L4DMDQPszMDTxvIt5a2bHHNxk1VZU2OMc61wTj2LS2qK3XeE3tf8peHFBlj7q083BIlhxxnqM/bHNdOMKthBP2fA2mAP6pp6fhivPiOaSivaKkCegiAVr7v4v306+SR2GsF7wxiv+EEwnSSyBpGLqmWaZTYtbqlo058uZrg7139Srkjg1ph/CIqblEbll8G8VoLXquF+qZF8891o9uo7mu4SQa8XEkhnlLFC6/1UV240bkpTbxn+S0KikVnM4xUPO29VLjijap49VFnyDRVPJVXVBR1B/RC1bZt+bWA90NcWnjIRVB2KVHaB+Mp5yIjiu7pKLEEjeIYXWZ42fr2xn3Hd7yLwKdJ/EECNjh1x4auYQgmVrIjJSXeCXI5aX+qtTyCMQvi8po6Qepp/Su9x+zoiFp8tXq9puSfHF7WdSaMaHwdhGCOEdxRva79n3OjyAMZlZUKg3pFV38/KPCmuau6c+8GcenqRWXz1O2M+t2msbgCvv4SIU9qWjpWDszMX0Fq+RC7QkrGYSp+9y7HHaJJmd2urBC0CmUsUFqh/RMmgOh91s2m6cKyJQL+FcFscZ7rNQTw22Nn5H3aPdIwvS1eJKNSEr3A6uIsa2lfT6LVYQpjiyYYrsh8Q/ncuJ7tJJRhJazzLlm1qbumteN6DA5cYoWK+tDZ5YoLzXBFXQvNCMugux8pvghDbtI0Iqsj7242gEqCRQ//T5m6AiqUuDiGaQWfP2u85N++ZdWmbuXxmWidMEdLRm2hInfSkv+ldAuKz4s9rbRpWvdb1FhZfqlav9FAqKaTxN3RmvsefaF2XceXrG/eoyx5BGc5du6RrmiaaO+TEg97Yrar6+aoDI6SKC5WN4c80/8FART+FiSFQglRUJpI0klDn1h678PP63fPKd4hKF9U97u4reMhEblLiJK0xeKK8KL8KZ9fs/hNxyhd4KEg+aeDOxokZuDVrtc6YfuVFvwMRbspZFYI3s6qVNGY10HYAo2zWlFhji6L2rxF+pVIpc5LdzcdGEBhiYJ/qVnX/rv6iorEdCwnHEwO5ebJoMF3IdAhmAmXqRsCF7umxzdZf8bf6eIYAgfnJCuoWzczVcSLWzt/mRRzKcC7daZCyJ+TdaHq4A7SfFcnElU1tA2GiZ0jtsnp+WrHvoO+0f6Lw/yO/HSXYAH4k5p17Sklc2qYBGROR1rGpByuPaSuzixf2/60hf0xIcdot3HsJZog2EXiquaK0rNd+j2XfDno9Yy6HHTgS01rx9UQ+ayh7HfooXgyJtzglFdS24t8w5/fU1V+RajEjvb/iGU3NfoY4Cchoo7v/gz6QrXsxSB+t6dn5ld0g6lsa8tZvCwyZsXQfjS9oF7Cu07ATsdtEkNw2GA0WZLGXLOytDQvc4hFTkZKVCPU66o8LPDlMoG0iWCOc0EzsKKk4yq1lvxmc1XZF0IlHvfrPJTddDQQuFpG0tQ7MiclnaWYz0dTWHOZzcOkfHohdQzwsjVb9pP8suvDSnveYRiVQvu8ma8xH9NYMed+ju66hp6Ft+y+LX9Y2tKugzS+DqWqcIDteG01QrvILkv5lLYdUQHN4Zit8TvFYAgOYBT67WZBxF9gSB1gqfPyvlHTsrlTv8vB5rdPdzkkpYiymTVtna06pUGEs4JRTuHz2nhK7jbA3wWg4Zz7OVqJyjr6+7KW9m+LwUeVtTmkVhi+xkGMrUM6tgNyRdP2R793/YIFyfFSQA039L73mZ3v0wGWZkQxXcslOMYSLRvb2n880XoMJ6IcskIooFdv8iDt15VAyCq/ZZh8CdLkovPz8kH/azqDQVGiOfdzdKIxlXMj6+q86nUda4T+uyF8BNAkxrAChpIIKc8vPbm4778fGgcF1GNpuNH8tnknEPx73QysbrChyJC7KXsp/Fc9f812H67Pn6pyyMqnF1hrPcvbunSCzL8rgj+j9UV3ZXU/3yo9+V/QZtuc+zkmobbYaDazuq3ryZl9A3UQWR30wKUnYiIFFJEV20v6rnPj2A5jDBjV9FhgPyXgSYZxSgu32SpgusTS/kdtS+dTOXdzdCKHq+ajfWmKSRQ4ot1EBt+lZu4+UdPafkfOHRm7RN0i6o6+rapM4+yP0M0jGDGhScHLxwG8s4DH/m1rZZt9tRjK6LNXXzjvHDG8xQQToiSDRa2ExP0bKzrer1DEV0OXOJ3kVVsibfnXHTYp/FeBPOeoEuLZOTfEC90CfFUHYeTiv7FLpHjKxlzd0vEvhuabQhdna/GBIywg5JJe8/LXYrXWQ95kNbmmn208+/nMJItDuzn8qeyznqnXzwvdzZzijUJetRLoAlC3ZPG6jpcs8AXFeMYvvduZtcUEWpLgd7Q4q7TeufhvbBLBstTTWNq65T8E8hUdCOO4STMUUDvIhfhAc2XZZ1wCp6LikKB+kfu4sLJ8BYAKcXMNY0kWl92UEl9wvQ6ScfCxnLs5ajksFshNmqmr82pb29cC+O+RiQEdRMh9QpmPQfuVIF58dTvyNEbGBOWI1vbvAVrq4Sw1PyMVEC8T+IxibRVdMlasbYBkSVEJo6DwN2rtLs7jI5ZufgW7PE9+qNZRvaDD+HWnvBw290/9fN358u2x37Q6SESHd6RDpHRH1rnU721aVPZJ3ZFbDnFHnuaiPYNOAatbOq8j5d8hqoDxZJeDoak2dgv479rqNVZ3P0KylCDxcRE53QSUF/FhqioJwnxda77adJ0rpo9NDqvliSgn7lo0/3UJ2ttFO7EzpqcGY3s5U6x8ellb+y2TZYjjRJ7mqjTsEPwNKDtChEk8GVIE4s+eN3jZ4rWPvjwaxMnwPMDS0yBmVRDeiR1OtAQTq3T2jJILT1f6kFcrhzXxEVHgKaEQrXw6GD5Dk4nS14mjNPxGY0X5YlW8+oqsZKo5ObhQa29u7kRrx5cJ/ArCEe6+w14KTvNtQgffcHTuftA/Jsb7nMNpahY1oi6Manoie5LCr+ljGsPnZOxy2LOOQ/Ff25b7jebpBMfE638BONgV4AcpvLa5qnxBQxvGHJPkJLRgDa6gjoE9+Z8jZFM4tCXd3SdeJmWFjvxWS6mjug50zCBp0mCVU9QSNeJGkg0PqwyA9KL39IaLopperkfvkGRcUv7BDXZJgZ+CuIHAcRk7spvzZyBJS/5wzUXzTo/eMx7nM5UlxNrKJZs2dech8cmQln0IbaSicyYE3C2Wn11zUfmbonambIfrLNX5jBUJCyjlQzpvobqeQBHBx3bT/iBIskzsSVUTWcat3ha5RMtaO+oFuDNkJx7GJgYK2GsEs32fN66umntquCvnFPAQ3f2LWh5+hsA/EMyLx3VhokSp2WcN+qzXTKbW7zJlZUSG5L18GcBzle4wbWhl4HvmG2O+qczdSuCUS7IcuoxvC0p4/AcWLizYXbjvZ9DZBhkImDB4n6Hjlo3nfWjpvb93fP25ruexS4Qeaq4q11jtM0LqHId4PO14VgnzyZqWLb+Ko42ieQ+rLiif7SV5p1BOYoym3vFwCooteV91a8cHlNI+l2R5dWKOhEt0/saNPZK0HwOwJWSySk8KKHszeZLv+zcFaXFoGSKXhDlEb2P3S/53Af6GkHSiKxHtBewR8rM6+tu9PtwgI9yt5+FSobzZsRLESwsCY4mBhGe+mbN2h0fGHeblup41I3dP18teIqlzHf4QZdBiL1O6vP0CHicW/6OEsZoFzSng2CRSCiXUtTp6WdAfR6QEyS72EHhTD/yPx7KfsYNwG4QDRLygDuUOLRHB7UvWbnk4V1o4PHJEMJZB/x88ZbDyPLkKkBcBmZklLd4tkBmw9sa7q+YtipUhckiYMfZa1q7rUC/jpxA5xg0mScd/7jYiV66qOusULdhr4mRo5gO9TgQjAYLBlOFIMm3clYRce6B4MSdjlyMGcA5KEPCWKP+LJ1dC+AKyWkCFMSFpyB+urpj7Xi1DhEjdnAKOUiJ3ssCaa0H8QX/NqLUqwdHsBLy/jVjGA7gtsHfbwPMQPAdBnmY3reNklRLC/mLZmi1/iBiqj963mzpyRLsLIgVUEC6tdwWU9lxGxoBCJQnioIh8s7Gq7Av6aDQ+60ie72SVyJ2satu8C5DviqAwvdcS4XxFXBrO2NDQwHHIBMNX+Lgb7UVageST/FPPfv/6qKn2KH61KSVHvLUnUsCats1/5GD++0i063TSzDogA46SPaB8qrmy7MdrLjrz2FwiZvSi7qTGZvmcfSvJh+jc/FirVzAxqMSK+VCEaolm/VnqiDPtVHcTiHXM2ffe9eCjO9zgy1yy5bDJUemrc8Sx9TA19216wZ8h74dgw4g6YJAcMNqfRmCpbxO3KGuWxoHRcMqjce6TSKhDNvV6icF/aQynI47SMp/gfgPUNi+Zd4IyDehcQH0uoax0YC91LAD58L7j/ZuDGXo5q3c45ag1tUYDVZbf3b5zYEb+h0CuguvCzpxb4LhAd4J4I2BubqwquzwaTplzQ0c5Y+MdHWsJeVCnHkXWz21uRD9EXusP2uX62OP79jnl6zPekwB2ijZGG3xbB1iGE5FyVu8wipkIHdo6QGSZEsZCrtP+NC1GpU1zDbJtWgvUjOi3myrLvhW5oWmzzHMyQhwKRRMkYn8uoh0PccSYOhfoN8Al6k1cvWmT8zyWv2PzCzopicDG6nUd94ZWLwd6OMxy1OkcXB0wVJ7q1i2Kj/+8FZ3UyoIRDbmifDCi47Xe69vE7TqaKj7L/Ch+jQkrkatoEl4zIE+kZz41tkYPIOXFOx6dr9dRY2rnlRAd4vM6fVE0IDUnU0z5VBwVQoior27t+IVn5UqhvJiZiIm4KnWKK4nX0cgNTZXlX1W0RhRHTsfJuK8gjo5eG14FuJvCoowuE/29CNZWx9+U8PDt4/bnt+rvOajf+MhEWqhueIgulKVt7Rvz6b8LIi0aB46gTA8GtPSKaK8ar+oz/p2rq8pqdccOQMa5hExcIg5N8ewqUNnEY16CG6rHXoGpUM7PsLFZtB6r462P5nlPdZmQCzQCVqsCNVXN/Swon9AMuADdWSafahG+SETrUrLKiv2mckcGx3HA4RyNXQhSUJztwqrylUK8FbpxhQwDjl1AKenFe1d1y+83O7qJ3NjmaWX5hsT1m4XnVtPS+Q0CHxJFXQBzXCImixUkZS/BSwRye2Nl2Wduc66oSxI4t2uibjRHSiJOFhAtDr3C4cSLcz0FRUL/Avfarlyr0LRVvhhlukuk1LZ2tHlm8J0A/leExWRGMoauHqgF4F0g8kXks4Xi39FUNe+DKxe+vjCnhEBd6Hpai/XKJJfWnR74ngMWPN+9NlfPOyIyKRZivL+vsbLsYgH+CSKnMVA2JYpJJ2hySQQl72UhKR0C+6M9x/M2rVcFx6vzdIFNx91d47ptxf2rRHg6IG6Uc5j9TCgvZz/7l17S9rgCG3LWb7pavrhE8Z9iD2taO+7Op7dCgOsFzHeNuBr3pU3IhefaaYidInwzIN8q3m7uaFxUXtdRV5o3XKSv86ZTdlS/r0uiEA8DOsQmcD3DgvsARY4zJr9UH1Mi5KN9vlNdzOSbXwdPAcPLWtqvoY/3i2CzQtNEgcBZlNDt7oGFPAuW33l2m3dX86Lyq5qWls5RJYzqjNMqQ+ph08gH3QVLJoky/atza8X0uBZHUSaN8mVaQTcfcH3HA8/syf9Lof0igR0QmeNQMNr8GRWSg4yeJyI6L2IXhKeT+CoHzN3aMdFUUXZmwAQ9DFkLyWVlqpYc2O93Kq4zreQQULRYX+gs3zWVbbm4b5xlUi+weEe1goPtoP0rIa5wtUFwrw7sFEedEJuqo5lS525JvgiKLLAbxAM0vKvQ91qCNpxAXGxYmqI0uNhn0sc/URx35/IFRXn7+5oR52kJrkuREpg9UNG+ItezN/4yqZUvFFEeyigh0/yOeW+kx49ScJkoX4wb7jFSCaPEjBIMqRK6lB/kGQpbfXL1/q18MOhtCyTIlKbcVKbJnIiIFLCxqvx/DKDcnI6hLJqnbiC7+2xe9SVtm3JJl3GWqaB8TnShaJJgKCtaVX6GgB8BZUUwy8CNVh6AiMmYaRcxqOn/+Q5qBSra/wkQrYMYvPcvjpeHy8JM6fBn1RmXvp9kxeiIsWx1ZdmXjchfK1QvHfECkxD7zsXrurpyXC3jK1OmMdUpQFicVyBwTar9MQD/eM/is26wvncVBJcYyLGWDkjcG+zqUYki4CuhYEDInSHk6jSIlCXg/fWft+Op1ZXlGwC0FbJvs7Q9vh0xlH+kjPq7cqHoHL2JrpBi5JnMM1QAgwGK+pg4EUBXqmvqbM4TUaaM8kXiUBypYGiLKuHS1CNPAPiXtVVn/aCfifeI4BKSb4SIL5D9mmTQxtIg3R5mSF1I6Gpg3e458FQRlAL8cJ/kv9hYWdYFyG89YtO+xMATsvbRHXFlbMhQSHVXO1OYUEppgOeUn0Unl0anpIM1SK332ROCV9W5c8/J+MiUU74DKeFFqUeeAfD1NYsXXE/bv9Qn/hLAAojMEKKHkD63+CK3NMQ9SlwRXViIWSJYBGCpFfYW+omtTZVlTxHsgJiOAcvHi2GflbaufXGFDM/JidYrI8qGSNSFdaxgDW4a7AgFjV6c+YTiNccyKyFCuoivFIHqhqvOxT9I+SMcq0BOxlmmrPJlKmFkiZakUrvD7Tylc8aNwQoRuxjAG0k1CFTwdr+zA4J0RVQ4DWRQcaRDigocS8FrBVKphEN5gn19YrY1V5b9icDTAnkSgj/4sM8hf8a22qbf7gkyiQe2KAcb+pPFDxyTJY0mCg0a7jSU3vj4tuh4VlwrV07GWaa88qXHhCk/UkJNOtSu3/IwgIdbKkq/NSCJtxO8mOTblVpBFQlw8aGyeSHDNQ3GZQUjYRUxoq8Ja/TabygnWcEpAlYFhTUMiJhu6eve1VxVvp3gSwReBLGV5FYR7BTDnfDNnkHj9yR7kz1mRrKvpwADxXu3257CJE8uzuOf9vZLYc+A7N13nEkcvzvh+UUFA5YzZwzueb6q7Zne0VwHtaqqf/1eXk/B4GAfwUIjOjUqSkK5xJNyquZknGXaKF+mEurvms1zJEOplGZCm/XnjkVlr8kjKyBYKsA5AF8ThkN9FOkLcaNDVjGujJERCqFtfcEDzm3V9yva5niCrwVwTuDdRU/Rh5VBGPQn6A2wwPYPDvb15+1Hf58p8U0v+edePWwBek2hySvuM+gryCNsXoJS0m9K3gNg01iykwX7+npR6KmF11rnsFsbsCwVxV3UnIyPTDvli0uwUFNppQNp6HhJM/L6o4V7+P55lkaxVgtAnAyRQoA+KP0U0QJ1sNh1dqszhpkKGaxoVXqXTVVLqgs8RqXikh4u9nIuoN6TpOicBepoZy2Ax07avU8fdoo9CLDAksdFrUCjTZDsyUd/iZZe1NUeOn5wEtDeyMBK5mQcZVorX1ZrGCqilgyWrdmyFcBd+rNh4cLCvYX7Sy35FhG8BUApyNdSxBHSkjrfwMWKg24BB0fWGdiRMkZ40+xh29A7xAb0YhF1Q2ZJcjjIE7rXKH5gzAmSguJCi/19mvFNCxqdakejpXMTZ8dVcso3CkVUa3J+aqMCtDeFP9evrj63hD3dp3vCcgDlApwJwet1Bh4gyvasGqg0DFqc94cL+eGniOpOMI0kDXnj+ErHcLoiBhZhaWD00rs9ybyCvpxbeRQlp3xjUESdSaeunVpFzVpqe1z44+LHxtbykwT2NELOFMHpInwToPhJmS3kzIAF2qmlFWozsPgWVEB30J0fuJJjOEP6hAzAjD07eUxxt7ED7nwyv7P+Ozg0mj1n/cZNcso3xvnnUUwVV0Z9TBrUurU/C0B/HOuXStPC0jkoTGr29A0iPNmCJwcKieNBzBHITAoLhSggqJQYWToqwjRIXDOdv+jA0LME8kZ9qC6aNDQKMUwmiL5kWMmMPsd9L0NnsV3Ml9O98ZOc8h0mZdSH6gEJOC4DZIjiTKs3dil2Un86M4/RUlE6c2Agv2SwoG8WjDnGUGbR2hKIKYHFDBoWake+oeRZRxAV1ORMEBfqpKFetX4GEh171Montq8gSKwE2duhx507zJ6xJnByMnbJKd/hE62fKb40DZIVt5ARWEvdVi3+VykKBg7w/fzhOIHRQNcUEeOqIfQLQC/PMeemvdHlZbXXLyfjLDnlO/IWckiizvlr6iFzHYhZ1fNAkvn+4deGPYejqu+5WXyq+X6ihAZq/fqDJvbhU6YRRQHlZJwlp3xHUYYMTtCsO0YQ86G5g1GngvVckiYZggHSKomgVTc5J+Msk45GIievVkKLaXGCBCOi44NTHJWEB9lx1E5vGklO+aaZDDmrBm8IgOTD4iBz6oZaKLggBy8bZ8kp33STiDxXm4UVJheKI5yiDtDEfmv5UrwDIifjIznli8l0oA7UxIwbA0Y5zVk5B0kNGwJFh9Jim53R5yyfy97mZNwkp3wxiagDpyqRbvS99idePpmCk6mtUENNw26OQx4gf6xterJPG36nAmPbRJYpucgORQiYaM6fI9Kthwn5O6eMhKOdkfDtOcrsptSKw8+6iQ2e0Y58dTkzOu1zcvhl2pcawh44Ni0qP1usf0NjRfmvaOzN0hCMGZtK9HkRaa4Vc6HrfYo95ygy3LCUgM06h2sZf5n2yheih9Xp+jCB14nhx4TmvU1V5c0C3CQt7Vmo1SefuE2kAXbVBeUK8l4okJ6wIXh4Ph/5Yi+9zfr63KSi8Zcp5VYdmtVroKOMFyyDyMsgdgNMknivJVONlWU/uP/8M4qDsGjyJmQiJjWTx0oArwfYF+sztEonQeChy9o279J4b6pY+4ks01r5AqunHhc+AmBm2JWunQVWhDt02q1AZg0kT+wJmkwn74KMLJmxcpmIDodJbxsMW4mUSgOZzGo5GR+ZtsrndveGBq5ZXHoygIuVVj5s53ENrcpfqSwOHuU/dU75MAfnJLXwAO6+sLycwPkg9keEwQFNvORD5Dl/EOv1sZzLeWRk0i6oVyvh7k7rex900410vFjohoWjp2cY8LeLK7ds0NUZTred1BbeGH4Y0DaliKIiGgnNIgLrlt/fvpP19TmX8wjJtFS+UJmsEiSRvEzHJCs1YPS8wzuSCYj8SJMUk97qNTTYxqr5cyHQoaJ700ZC6/em9CTM4C+DR3KwliMlk3ZRvRoJlYkYsO+FyEnCcEyWitI5ADMg+F2eP2fNZLd6QUOs42P6LAhtzo19F6XMp3J0/nrJ2kceVt6y3GCUIydmulo9zWBSUEfCzWMYfoFbgnlG8OPJHutFE4maF81bQYrykGomd9jqaU+ttu+BP9K/U5dP3u86GcVMV6u3Lz9vBSCnCtgbt3oUFJJ8dHf3riaEiopJCiXTxMnq6rOPJ+2XBOhJ22QgvhGZacj7lrR2rNfXT2YLPxlluimf6IJcWVqaB+L9oJvDFye3VZrNQlBuunzjsz0rI/d0kkLJNHFi+vwvk3hdvK4XwekI+r7H7+jrtMM9J0dWppXyqTLpQpv5GrMY4HzFGEfA4ijlTvAZ38etkaJiEkp9RUVCrVhTVflHAV7iZtGnz18fFMEsUv63dm3ng7khmEdHppXyqTKpeyXQoroo56VkpNxnCHiLptwjRcUkjPMa2toGm6vKLyT4BRB7ovrlkGsNFJF4WvL8b7hOhyEai5wcSZk2yqeLUpXpvMqydwhwHsG0QjMdn4lsHZDEzbpElWEMk0y0HUot3tqquada4j9FeT0hSmWfPjdCkTvWfrH6nq6XlepwMm4yU0GmjfJFymSAvwoeiXFVKoO0yEwCq1es2/xcff3YBk5OnMwm/FUVpSf2w/xIHG29kiOlzd8bJGQOaH5Yvb6zJXrPUTztaS3TQvnUIqgyrb5w7lsheAcp+4bnsTvxSO4T8qeTcTpPZPFaKkpP9MT7mRtj7fhAh8sKDtUiOMYIHsjn7q9rnDdZY9qpItNC+TpLA7fKGPMRUMHS4VivQHTnL4ZIc3Vbx6MB5nPyWL36CiScxas665Q+Mb8Q4VnamaHU88Ov0sK6FBDy0gAG/68O0lR+lpy7eXRlyiuf7vA6hnn1otJSCC8KGaLT4FUE+gT2hslm9ZSLpaENgwodSzJxEyFvDlqiYn2aLsHCJAXWUD6xvOWRZ9w1mWRu9VSUKa981wSgYu1P+GA47jgdXkUWi2BtdUvn5sli9bQmoq6mInAaF5W/Q2hvovAkAffGFc+VT6hs8K6E8qllrVt+4xJPk+A7TgeZ0sqnafSGhgaurijX5tFajevSUR7aICs+DX6sfwSU7ZOiPYjqat5dNfeDsLjRYVEp3Wm1PO1JdJgBHbiCz9a2dKxWS5lDsUwcmdI0Eo4wKJWyYnCFzkMX8OVgNnrUNoSZBtiwdG3HRkezMLEzf2rt1DL7ikvdm59XL+T7AO4JZvvFkivqaurfboS1//madV0pjQ3VUh7Vb5CT6WH5IgD1fReUzwb5biH2p1s9nUNJnUf+U7UkqbqJey1CFjVn7VZfNPete/PzbhXifQB2Rq7l8KsVPOBmqidp8Zmalq6bXba3Lc5UlpOJIBN2wR0uAHV3EnUicnIatlFdMqBIIJt3v+ivDQDUEy8OCmK7IEZ7aMGCZHNV+afFyk0gT4daccCL4zUD2BiLhOxPUK6ubWu/JShDTGiLPm1lqiqfw2XeuXxBkSXfTzId0e/GpSOPgv+5vKurfwICqAOlc9Yu5Tctmn/utuK+Wwl8Xujmu3dnCRkGCcwm8Kw1uGJJW/u9OcWb2DIllS/CZebvHbhERE7XdprIQoQA6gIKniqw/l0TDUCtChO4mCm/aWnpnKbKsnpYezMg80EldRKmAQRcKcH9HCfAekmYv6xd17Elp3gTX6ai8jll6qgrzbPiOEt6421DAYAaRSL4pU6GnSgA6lDp3ChpdTGbKsvez37vLoh8nDpTQTswgEQG1+2gUryLsFgg1+Xz2CuXrdmyNad4k0MmfGr9ULu3GyvLLxXwe4i10wRWT5EfsrvA5lVXtm1yc+iOpvLFFUVN8j2L5i4nzcdIngNIrwTz0dNczJDk1gKcRZEXjEjDsnVb7hoqr+QK6JNCppzlc82ydXWeEVxFiAKJ06yeQGYKkapq27RdkzJHQ/GiRIr+HileU8W86ubKsltI+R6IMoHsciObs8R2QiQJzhKRVbR4pypeaDknHSB8OsuUqvO5JIXGSi89fqH1sEDZIiTcYDRWsqTiOrf19g/8/Gi0DalVch3mWuhOpXw935nbH1kW9Bfa86AtQMSe0Bh7aqcjcXXJgFltDsAXYOQLy9a1u5EKOTdzcsqUcjujoSZNVWU/AbCYlL2x5ISv/JyWvKG2teNLjp+yocEeiXNSC6sWObKyQZHcWy7wlMri7LA2tz9ULjPSxVQ6d8wwDofKOwfE+zfX+hRuLDlrNzllyihfRIXQXFF6thXvViPoz0hOOLHCi2tbOp+uH2cXTc9HafvicK67LjzrzUnPXArIJaCcBgSJlGDTGKl0htRu+4KQ1HYzwW/XtnTeo8/nrN3klynjdkbdCDTmKiELSPQOYx3Fh3CWECtrWzqfGi+rF7mVqnABeDnlrNyegkSlobkUxNsAzAbRA3Cny8KSWs/LtHSqVPkU0XN+msANzO+9SYdWOrRLAzjBoXA5mS7Kp90IDQ2g0if0Q5aF6P4hrKMIDKkjseyNh5mVWbTrXannVeGcJU2lnFWatbXsHCuo3SdYbIg3hh5nN+ggYUYITykdsikdnNLxeQLXIc/eqHQP+ho9rmI7D9fJ5+ToypRwOyNL1lhV3iDA1WAAvYpZvRJS1tS0tn/k1abigxhOY606ZHYIaM+g8b2lFCwR4EwICgMr56xwuAmku8IhNlNnQ+QJMBPkC4D8kv7Az2rue/SFmIup53zU65E5OXwy6ZUvmpm3dlHZCQNWR1yxCOL69MKhJ9CFPVPEfqh6XcRbMvq2Gnf8eojGb5odjSuuKsUxW+edBeGFVrgIwDyBFIPso4iiamxg5UbGnpq91AQMRQeXSKEAz5JIwR/4eVzp6lIYStTkZGrJpFe+SJmaquZ9FuA/ZFg97eKeAZHf7T2u/d2jWchxZasrTTGz8VQnu+YlOM9CLgBwPgUKX5sJavLEFcT9MJYbUUONMpfu/AQzwg98XMBbkfRuUXRK9J3i2dGcTE2RqWD1brvozDlFNtmkhWdABmOWRlP4syzxiYvbOm7PZvXibqTOLFfKifjzKxcuLCwp3Hs6rXmrGJ4HoIyUk5R+zzFeBy6l4wDNzFhG9UU6NIqTAnVFCewTYqMYSRV3F917/saNqrQ5pZtmIlMESvYJEXwxzeq5aUMsJOUJFvSsqGl6sv8aQJQWPZrck839fGj5gqIX9/acnhRvPgX/h0A5gDcIMIMBQqbXIU+CgSpZLdywW+kyKprUCqwc8DRF7rE+7rh4fXt7/HvklG76iUx2q9daUTqj35jVlvI6VYqhOeNBi83xFvL5mtb2n2mhO5uy6Yw+vx+ne6KuJM8WwZmgnKTgawatR30S1OO0lQcUZI3hMhTO0zgOgjyA2wWywZJ3FtC2KZj7QMX3nEwvkckf65UrlcI3NYWfYfUKSHmyprV9abTYGy84+zgv6Z9M4AyAc0E5C+BfAHKsUxSX6pc+CQr0zlU8UMIkA+Csx0+IK4i74+yhSLsB7klgsPmilkeeiZ93Nvc2J9NPJqvyOdhjqq40WbLNu80pkkj3sAvo5hHMFHHZz9+SmAfwFAHUOs5xM8hViAEK+wUyEDTYHtyyBYd2fCkB6brSroMFjnQXorPvOkFp8RN23fJ7Ox/JLL7nrFxOJr3yRVZvdVVZrRA/CIY+pk3hiaxS0rF3uVhNFU0Ggq6AiDTXdaZqSuSA1yGWoQytmyuCqzupSZYXQWwBcZ9NyIaL1255PPM8M8sTOcnJpFa+KN67p6r8ZgucDyKT/n2E4ri0o9O2g1i1mGUL//IoyBOqwjmawd0GeMoCDxF2AwaSD9fe//tt8bfnFC4nU1b5IkBx40Vlb4OP/xXI/oxhIKOWAF2inmbgcrpGWxezKb+L43zZB/LPADZ7ggestb97oK3r6bhiRS5lTuFyMuWxndHcBVi5StwgkBhA8gDiLGCQFdFO9nDPoRdSMOQBknDJFpE9JJ7Q2I3CTULvYRbsf1IBzfHjRY2wYQzn8Jw5ycmUtnxR29BdFfPKksLbRTAQx0qOVLIwWxlM60nqkBSIKKBZSw77KdgmlKcpfEQs272E6UoMzvlTJrls0CVe58aMNQQHziVNcjK9LF8wd6EBCbE6Y0/bhrqpVitImmingJLFJqCDQSBGRNv3XDZzF4GXBNSU/xMW8njS+E8U9Pp/vmDDY9oBgazKFpQEHFmttgflJCfT0vKFbUP2ngvnnmU9WQ2KgfabwmU1BxRXSZFdAmyF5fMw/KOI+aMR+wwl77k5O822t2zapNnONImK3fp7zrLl5EjKpLF82jOn1oeevBvAiwK2k3hWxP6RxJ8SCe/5xKBsrWrbrGxlWSVKjujvCpp2TamqaLnhITnBkZf/D+UTR0XoHHWAAAAAAElFTkSuQmCC";
+const HOY = "2026-10-16";
+const PRENDAS = {
+  "adelle-marino": { nombre: "Adelle Wide Leg", color: "Azul marino", hex: "#2A304E", forma: "pantalon" },
+  "adelle-celeste": { nombre: "Adelle Wide Leg", color: "Celeste", hex: "#A9CADA", forma: "pantalon" },
+  "crop-chocolate": { nombre: "Blusa Crop Manga Larga", color: "Chocolate", hex: "#4B342F", forma: "blusa", rayas: "#e9e1d4" },
+  "rayas-negro": { nombre: "Blusa de Rayas Diplomáticas", color: "Negro", hex: "#2D2C2F", forma: "blusa", rayas: "#cfc8bd" },
+  "cuadros-arena": { nombre: "Blusa Cuadros Coreana", color: "Arena", hex: "#ece2c6", forma: "blusa", cuadros: "#b9a57d" },
+  "cuadros-chocolate": { nombre: "Blusa Cuadros Coreana", color: "Chocolate", hex: "#4B342F", forma: "blusa", cuadros: "#8a6a5c" },
+  "antifaz": { nombre: "Antifaz Encaje", color: "Negro", hex: "#2D2C2F", forma: "antifaz" },
+  "conjunto-gato": { nombre: "Conjunto Gato", color: "Negro", hex: "#2D2C2F", forma: "orejas" },
+  "tocado": { nombre: "Tocado Diosa", color: "Dorado", hex: "#C8A951", forma: "tiara" },
+  "orejas-conejo": { nombre: "Orejas Conejo Encaje", color: "Blanco", hex: "#f4f1ea", forma: "conejo" },
+  "pirata": { nombre: "Set Pirata Rojo", color: "Rojo", hex: "#BD332D", forma: "antifaz" },
+};
+const CAMPANAS = [
+  { id: "gato", nombre: "Día Internacional del Gato", desde: "2026-10-01", hasta: "2026-10-30", pct: 10, prendas: ["adelle-marino", "crop-chocolate", "rayas-negro", "adelle-celeste"], modelos: 3, variantes: 7, categorias: 0,
+    frase: "Ej. Mimos para ti y tu michi", diseno: { estilo: "hoy", publicado: true } },
+  { id: "halloween", nombre: "Halloween", desde: "2026-09-15", hasta: "2026-10-31", pct: null, prendas: ["antifaz", "conjunto-gato", "tocado", "orejas-conejo", "pirata"], modelos: 29, variantes: 33, categorias: 1,
+    frase: "Ej. Disfraces que se separan en un toque", diseno: { paleta: "calabaza", fondo: "dibujo", patron: "estrellas", intensidad: "medio", acomodo: "polaroids", publicado: true } },
+  { id: "aniversario", nombre: "Aniversario CAYLA", desde: "2026-10-01", hasta: "2026-10-08", pct: null, prendas: ["adelle-marino", "cuadros-arena", "cuadros-chocolate"], modelos: 2, variantes: 13, categorias: 3, frase: "Ej. Un año más contigo", diseno: null },
+  { id: "black", nombre: "Black Friday", desde: "2026-11-09", hasta: "2026-11-30", pct: null, prendas: [], modelos: 0, variantes: 0, categorias: 0,
+    frase: "Ej. Solo tres semanas, en las tres tiendas", diseno: { paleta: "negro-rojo", fondo: "liso", acomodo: "letras", tamano: "enorme", sello: "dias", publicado: false } },
+  { id: "navidad", nombre: "Navidad", desde: "2026-12-11", hasta: "2026-12-25", pct: null, prendas: [], modelos: 0, variantes: 0, categorias: 0, frase: "Ej. Regalos que se separan en un toque", diseno: null },
+  { id: "cyber", nombre: "CyberWow", desde: null, hasta: null, pct: null, prendas: [], modelos: 0, variantes: 0, categorias: 0, frase: "Ej. Lo mejor de la temporada, solo online", diseno: null },
+  { id: "perro", nombre: "Día Internacional del Perro", desde: "2026-08-12", hasta: "2026-08-26", pct: null, prendas: [], diseno: null },
+  { id: "patrias", nombre: "Fiestas Patrias", desde: "2026-07-14", hasta: "2026-07-29", pct: null, prendas: [], diseno: null },
+  { id: "madre", nombre: "Día de la Madre", desde: "2026-04-26", hasta: "2026-05-10", pct: null, prendas: [], diseno: null },
+  { id: "tierra", nombre: "Día de la Tierra", desde: "2026-04-08", hasta: "2026-04-22", pct: null, prendas: [], diseno: null },
+  { id: "mujer", nombre: "Día de la Mujer", desde: "2026-02-22", hasta: "2026-03-08", pct: null, prendas: [], diseno: null },
+  { id: "valentin", nombre: "San Valentín", desde: "2026-01-31", hasta: "2026-02-14", pct: null, prendas: [], diseno: null },
+];
+const camp = (id) => CAMPANAS.find((c) => c.id === id);
+
+/* Paletas curadas: cada una trae su fondo, su segundo tono, su letra y su acento, con el contraste ya medido. Las claras traen su
+   versión de noche (en modo oscuro una portada clara encandila). */
+const PALETAS = [
+  { id: "cayla", nombre: "Rojo CAYLA", f: "#6a2118", f2: "#92301f", t: "#f6efe6", a: "#f4c3b3", noche: { f: "#4a1712", f2: "#6b2318" } },
+  { id: "noche", nombre: "Noche", f: "#171614", f2: "#2d2a26", t: "#f5f0e8", a: "#d9a46b" },
+  { id: "caramelo", nombre: "Caramelo", f: "#5a3a22", f2: "#7d5233", t: "#f7efe4", a: "#f2c48d" },
+  { id: "calabaza", nombre: "Calabaza", f: "#1d1612", f2: "#3d2316", t: "#f5ece0", a: "#f39a4a" },
+  { id: "bosque", nombre: "Bosque", f: "#1f3a2b", f2: "#2f5640", t: "#f3efe4", a: "#e3c27a" },
+  { id: "medianoche", nombre: "Medianoche", f: "#1c2a3d", f2: "#2c4260", t: "#f2eee6", a: "#a9c4e4" },
+  { id: "oliva", nombre: "Oliva", f: "#454a27", f2: "#626a36", t: "#f5f1e6", a: "#e7d9a8" },
+  { id: "terracota", nombre: "Terracota", f: "#8f4229", f2: "#a9532f", t: "#fff7ee", a: "#ffd9bf" },
+  { id: "negro-rojo", nombre: "Negro y rojo", f: "#0d0d0c", f2: "#211f1d", t: "#f5f0e8", a: "#ff5a45" },
+  { id: "patria", nombre: "Rojo y blanco", f: "#a8231c", f2: "#c13026", t: "#fffaf3", a: "#ffe0d6" },
+  { id: "arena", nombre: "Arena", f: "#e6dccb", f2: "#f5eee3", t: "#1a1a18", a: "#8b2a1f", noche: { f: "#2a2622", f2: "#3a342d", t: "#f5f0e8", a: "#e8b39d" } },
+  { id: "rosa", nombre: "Rosa empolvado", f: "#e6c4bb", f2: "#f3dcd5", t: "#3a1d1a", a: "#8b2a1f", noche: { f: "#3a2522", f2: "#533430", t: "#f6ebe7", a: "#f0b3a6" } },
+  { id: "lavanda", nombre: "Lavanda", f: "#d7cfe6", f2: "#ebe6f3", t: "#2a2236", a: "#6a3c9f", noche: { f: "#29233a", f2: "#3a3150", t: "#f1ecf7", a: "#c9b3ec" } },
+  { id: "menta", nombre: "Menta", f: "#cbe0d2", f2: "#e3efe7", t: "#15322a", a: "#1c6b56", noche: { f: "#1a2b24", f2: "#263c33", t: "#e9f3ed", a: "#8fd1b3" } },
+];
+
+const ESTILOS = [
+  { id: "hoy", nombre: "Clásico CAYLA", nota: "El de hoy", d: { paleta: "cayla", fondo: "degradado", acomodo: "polaroids" } },
+  { id: "huellitas", nombre: "Huellitas", nota: "Dibujo y sello", d: { paleta: "caramelo", fondo: "dibujo", patron: "huellitas", intensidad: "medio", acomodo: "polaroids", sello: "descuento" } },
+  { id: "galeria", nombre: "Galería", nota: "Claro y ordenado", d: { paleta: "arena", fondo: "liso", acomodo: "mosaico", colibri: false } },
+  { id: "gala", nombre: "Noche de gala", nota: "Una foto grande", d: { paleta: "noche", fondo: "degradado", acomodo: "grande", pctGigante: true } },
+  { id: "cartel", nombre: "Cartel", nota: "Solo letras", d: { paleta: "negro-rojo", fondo: "liso", acomodo: "letras", tamano: "enorme", pctGigante: true, sello: "dias", colibri: false } },
+  { id: "suave", nombre: "Suave", nota: "Corazones", d: { paleta: "rosa", fondo: "dibujo", patron: "corazones", intensidad: "suave", acomodo: "grande" } },
+  { id: "bosque", nombre: "Bosque", nota: "Estrellas", d: { paleta: "bosque", fondo: "dibujo", patron: "estrellas", intensidad: "medio", acomodo: "mosaico" } },
+  { id: "fiesta", nombre: "Fiesta", nota: "Confeti", d: { paleta: "terracota", fondo: "dibujo", patron: "confeti", intensidad: "medio", acomodo: "polaroids", sello: "nuevo" } },
+];
+const BASE = { paleta: "cayla", propia: null, fondo: "degradado", patron: "huellitas", intensidad: "medio", oscuro: 0.45, acomodo: "polaroids", corte: null, tamano: "grande", frase: "", prendas: null, cuenta: true, pctGigante: false, colibri: true, sello: "ninguno" };
+const FONDOS = [["degradado", "Degradado", "Como hoy"], ["liso", "Liso", "Un solo color"], ["dibujo", "Con dibujo", "Un estampado suave"], ["foto", "Con foto", "La que subas"]];
+const PATRONES = [["huellitas", "Huellitas"], ["rayas", "Rayas"], ["puntos", "Puntos"], ["cuadros", "Cuadros"], ["corazones", "Corazones"], ["estrellas", "Estrellas"], ["confeti", "Confeti"], ["ondas", "Ondas"]];
+const ACOMODOS = [["polaroids", "Polaroids", "Tres fotos que caen"], ["grande", "Foto grande", "Una prenda protagonista"], ["mosaico", "Mosaico", "Cuatro, en orden"], ["letras", "Solo letras", "El nombre manda"]];
+const SELLOS = [["ninguno", "Ninguno"], ["descuento", "El descuento"], ["dias", "«Solo por días»"], ["nuevo", "«Lo nuevo»"]];
+
+/* ---------- Utilidades ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const MES_C = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const partes = (f) => f.split("-").map(Number);
+const fLarga = (f) => { const [, m, d] = partes(f); return `${d} de ${MESES[m - 1]}`; };
+const fCorta = (f) => { const [, m, d] = partes(f); return `${d} ${MES_C[m - 1]}`; };
+const dia = (f) => Math.round((Date.UTC(...partes(f).map((v, i) => (i === 1 ? v - 1 : v))) - Date.UTC(2026, 0, 1)) / 864e5);
+const hoyN = dia(HOY);
+const estadoDe = (c) => !c.desde ? "sinfecha" : dia(c.hasta) < hoyN ? "termino" : dia(c.desde) > hoyN ? "proxima" : "vigente";
+function hexRgb(h) { h = h.replace("#", ""); if (h.length === 3) h = h.split("").map((c) => c + c).join(""); const n = parseInt(h, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+const rgbHex = (a) => "#" + a.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0")).join("");
+const mezclar = (a, b, p) => { const A = hexRgb(a), B = hexRgb(b); return rgbHex(A.map((v, i) => v + (B[i] - v) * p)); };
+const lum = (h) => hexRgb(h).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+const contraste = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+const coma = (n) => n.toFixed(1).replace(".", ",");
+const ic = (n) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONOS[n] || ""}</svg>`;
+const ICONOS = {
+  flecha: '<path d="M5 12h14M13 6l6 6-6 6"/>', izq: '<path d="M19 12H5M11 6l-6 6 6 6"/>', abajo: '<path d="M6 9l6 6 6-6"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>', ojo: '<path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9.5"/>', x: '<path d="M18 6L6 18M6 6l12 12"/>',
+  info: '<circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5v.5"/>', mas: '<path d="M12 5v14M5 12h14"/>', lapiz: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/>',
+  dado: '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/>',
+  deshacer: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/>', pc: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>', cel: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+  sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>', luna: '<path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/>',
+  foto: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/>', subir: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/>',
+  candado: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>', tienda: '<path d="M4 9l1.5-5h13L20 9M4 9v11h16V9M4 9h16"/><path d="M10 20v-5h4v5"/>',
+  web: '<circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5c3 3 3 16 0 19M12 2.5c-3 3-3 16 0 19"/>', impresora: '<path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>',
+  calendario: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>', etiqueta: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/>',
+  inicio: '<path d="M4 11l8-7 8 7v9H4z"/>', venta: '<path d="M4 7h16l-1.5 11h-13z"/><path d="M9 7a3 3 0 016 0"/>', caja: '<path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/>',
+  catalogo: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+  vitrina: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/>', campana: '<path d="M4 9v6h3l9 4V5L7 9z"/><path d="M19 9.5a3 3 0 010 5"/>',
+  compras: '<path d="M6 7h12l-1 13H7z"/><path d="M9 7V5a3 3 0 016 0v2"/>', finanzas: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/>', club: '<circle cx="9" cy="9" r="3.5"/><path d="M3 20a6 6 0 0112 0M16 6.5a3 3 0 010 5.5M18 20a5 5 0 00-2.5-4.3"/>',
+  gestion: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', pedido: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+};
+
+/* ---------- La prenda dibujada (sin foto): la silueta de su categoría en el color de la prenda, como DibujoPrenda ---------- */
+const FORMAS = {
+  blusa: '<path d="M44 20 Q60 30 76 20 L90 25 Q103 31 106 45 Q108 57 99 61 L92 57 L92 114 Q60 120 28 114 L28 57 L21 61 Q12 57 14 45 Q17 31 30 25 Z"/>',
+  pantalon: '<path d="M35 14 L85 14 L88 32 L101 138 L69 140 L60 56 L51 140 L19 138 L32 32 Z"/>',
+  antifaz: '<path fill-rule="evenodd" d="M12 72 Q18 52 42 56 Q55 58 60 66 Q65 58 78 56 Q102 52 108 72 Q106 94 80 94 Q66 94 60 82 Q54 94 40 94 Q14 94 12 72 Z M28 74 a11 8 0 1 0 22 0 a11 8 0 1 0 -22 0 Z M70 74 a11 8 0 1 0 22 0 a11 8 0 1 0 -22 0 Z"/>',
+  orejas: '<path d="M24 100 Q60 46 96 100 L90 104 Q60 58 30 104 Z"/><path d="M33 80 L38 40 L58 62 Z"/><path d="M87 80 L82 40 L62 62 Z"/>',
+  conejo: '<path d="M24 104 Q60 58 96 104 L90 108 Q60 70 30 108 Z"/><path d="M40 82 Q28 30 40 18 Q52 30 50 78 Z"/><path d="M80 82 Q92 30 80 18 Q68 30 70 78 Z"/>',
+  tiara: '<path d="M18 100 Q60 86 102 100 L98 110 Q60 96 22 110 Z"/><path d="M28 96 L34 66 L46 88 L60 48 L74 88 L86 66 L92 96 Q60 86 28 96 Z"/>',
+};
+let idPz = 0;
+function dibujo(id) {
+  const p = PRENDAS[id]; if (!p) return "";
+  const n = ++idPz, oscura = lum(p.hex) < 0.2;
+  let extra = "";
+  if (p.rayas) extra = `<g clip-path="url(#pz${n})">${Array.from({ length: 16 }, (_, i) => `<rect x="${14 + i * 6}" y="10" width="2.2" height="120" fill="${p.rayas}"/>`).join("")}</g>`;
+  if (p.cuadros) extra = `<g clip-path="url(#pz${n})" opacity=".55">${Array.from({ length: 9 }, (_, i) => `<rect x="${12 + i * 11}" y="10" width="5" height="120" fill="${p.cuadros}"/><rect x="10" y="${16 + i * 11}" width="100" height="5" fill="${p.cuadros}"/>`).join("")}</g>`;
+  return `<svg viewBox="0 0 120 150" aria-hidden="true"><defs><clipPath id="pz${n}">${FORMAS[p.forma]}</clipPath></defs>
+    <ellipse cx="60" cy="143" rx="42" ry="5" fill="rgba(26,26,24,.10)"/>
+    <g fill="${p.hex}" stroke="${oscura ? "rgba(255,255,255,.14)" : "rgba(26,26,24,.18)"}" stroke-width="1">${FORMAS[p.forma]}</g>${extra}</svg>`;
+}
+const estudio = (id) => `<div class="estudio">${dibujo(id)}</div>`;
+
+/* ---------- Los estampados del fondo (en el color del acento) ---------- */
+function patron(id, c) {
+  // Va dentro de un atributo style="…": las comillas del url() se escriben como entidad, o cortarían el atributo.
+  const svg = (w, h, x) => `url(&quot;data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}' viewBox='0 0 ${w} ${h}'>${x}</svg>`)}&quot;)`;
+  const huella = (x, y, r, s = 1) => `<g transform='translate(${x} ${y}) rotate(${r}) scale(${s})' fill='${c}'><ellipse cy='6' rx='7.5' ry='6.2'/><circle cx='-7.5' cy='-4' r='2.9'/><circle cx='-2.7' cy='-8.6' r='2.9'/><circle cx='2.7' cy='-8.6' r='2.9'/><circle cx='7.5' cy='-4' r='2.9'/></g>`;
+  const corazon = (x, y, s) => `<path transform='translate(${x} ${y}) scale(${s})' fill='${c}' d='M0 3.5C0-1.5 7-2 8 3 9-2 16-1.5 16 3.5 16 9 8 13 8 15 8 13 0 9 0 3.5Z'/>`;
+  const brillo = (x, y, s) => `<path transform='translate(${x} ${y}) scale(${s})' fill='${c}' d='M0-10Q1.6-1.6 10 0 1.6 1.6 0 10-1.6 1.6-10 0-1.6-1.6 0-10Z'/>`;
+  switch (id) {
+    case "huellitas": return svg(110, 110, huella(28, 30, -20) + huella(80, 82, 18, 0.85));
+    case "rayas": return svg(18, 18, `<rect x='8' width='1.6' height='18' fill='${c}'/>`);
+    case "puntos": return svg(24, 24, `<circle cx='6' cy='6' r='2' fill='${c}'/><circle cx='18' cy='18' r='2' fill='${c}'/>`);
+    case "cuadros": return svg(44, 44, `<rect width='22' height='44' fill='${c}' opacity='.5'/><rect width='44' height='22' fill='${c}' opacity='.5'/>`);
+    case "corazones": return svg(80, 80, corazon(10, 12, 1.2) + corazon(50, 50, 0.9));
+    case "estrellas": return svg(100, 100, brillo(24, 24, 1.1) + brillo(72, 64, 0.7) + `<circle cx='70' cy='18' r='1.6' fill='${c}'/><circle cx='22' cy='78' r='1.4' fill='${c}'/>`);
+    case "confeti": return svg(96, 96, `<rect x='10' y='14' width='9' height='4' rx='1' transform='rotate(-25 14 16)' fill='${c}'/><rect x='60' y='22' width='10' height='4' rx='1' transform='rotate(35 65 24)' fill='${c}'/><circle cx='40' cy='50' r='3' fill='${c}'/><rect x='72' y='70' width='9' height='4' rx='1' transform='rotate(-10 76 72)' fill='${c}'/><circle cx='18' cy='80' r='2.4' fill='${c}'/><path d='M44 80 q4 -6 8 0 t8 0' stroke='${c}' stroke-width='2' fill='none'/>`);
+    case "ondas": return svg(56, 20, `<path d='M0 10 Q14 0 28 10 T56 10' stroke='${c}' stroke-width='1.6' fill='none'/>`);
+  }
+  return "none";
+}
+const INTENSIDAD = { suave: 0.12, medio: 0.22, fuerte: 0.36 };
+
+/* ---------- Diseño completo de una campaña ---------- */
+function disenoDe(c, extra = {}) {
+  const base = { ...BASE };
+  const guardado = c.diseno || {};
+  const est = guardado.estilo ? ESTILOS.find((e) => e.id === guardado.estilo).d : {};
+  return { ...base, ...est, ...guardado, ...extra, camp: c.id };
+}
+function paletaDe(d) {
+  if (d.paleta === "propia" && d.propia) return d.propia;
+  if (d.paleta?.startsWith("prenda:")) return paletaDePrenda(d.paleta.slice(7));
+  return PALETAS.find((p) => p.id === d.paleta) || PALETAS[0];
+}
+function paletaEfectiva(d, tema) {
+  const p = paletaDe(d);
+  if (tema !== "oscuro") return p;
+  if (p.noche) return { ...p, ...p.noche };
+  return { ...p, f: mezclar(p.f, "#000000", 0.3), f2: mezclar(p.f2, "#000000", 0.3) };
+}
+/* Una paleta que sale del color de una prenda de la campaña (fondo oscuro, letra crema y el acento de otra prenda). */
+function paletaDePrenda(id) {
+  const p = PRENDAS[id];
+  const clara = Object.values(PRENDAS).find((x) => x !== p && x.nombre === p.nombre && lum(x.hex) > 0.35);
+  const f = lum(p.hex) < 0.2 ? p.hex : mezclar(p.hex, "#000000", 0.6);
+  return { id: "prenda:" + id, nombre: `De ${p.nombre} ${p.color.toLowerCase()}`, f, f2: mezclar(f, "#ffffff", 0.14), t: "#f6efe6", a: clara ? clara.hex : mezclar(p.hex, "#ffffff", 0.66) };
+}
+/* «Mi color»: la letra y el acento se eligen solos; si ninguno se lee, se sugiere el mismo color más oscuro. */
+function paletaPropia(hex) {
+  const crema = "#f6efe6", tinta = "#1a1a18";
+  const t = contraste(crema, hex) >= contraste(tinta, hex) ? crema : tinta;
+  const clara = t === tinta;
+  const p = { id: "propia", nombre: "Mi color", f: hex, f2: mezclar(hex, "#ffffff", clara ? 0.4 : 0.16), t, a: clara ? mezclar(hex, "#000000", 0.62) : mezclar(hex, "#ffffff", 0.7) };
+  if (clara) p.noche = { f: mezclar(hex, "#000000", 0.78), f2: mezclar(hex, "#000000", 0.7), t: crema, a: mezclar(hex, "#ffffff", 0.35) };
+  return p;
+}
+function sugerirOscuro(hex) {
+  for (let q = 0.1; q <= 0.9; q += 0.05) { const h = mezclar(hex, "#000000", q); if (contraste("#f6efe6", h) >= 4.5) return h; }
+  return "#1a1a18";
+}
+const fondoDelTexto = (d, p) => d.fondo === "foto" ? mezclar("#d6c8b3", p.f, Math.min(1, d.oscuro + 0.25)) : d.fondo === "liso" ? p.f : mezclar(p.f, p.f2, 0.22);
+
+/* ---------- La portada de la tienda, dibujada con un diseño ---------- */
+function portada(d, o = {}) {
+  const c = camp(d.camp), cel = !!o.cel, oscuro = o.tema === "oscuro";
+  const p = paletaEfectiva(d, o.tema);
+  const pal = d.prendas ?? c.prendas.slice(0, d.acomodo === "mosaico" ? 4 : 3);
+  const elegidas = pal.filter((x) => c.prendas.includes(x));
+  const palabras = c.nombre.split(/\s+/);
+  const corte = d.corte ?? (palabras.length > 1 ? palabras.length - 1 : palabras.length);
+  const linea = palabras.slice(0, corte).join(" "), cursiva = palabras.slice(corte).join(" ");
+  const pct = c.pct ? String(c.pct) : null;
+  // El nombre se achica solo si es largo (como el clamp de la tienda): «Navidad» enorme, «Día Internacional del Gato» más chico.
+  const largo = c.nombre.length;
+  const base = cel ? (largo <= 12 ? 60 : largo <= 20 ? 50 : 44) : (largo <= 12 ? 116 : largo <= 20 ? 96 : 82);
+  const tam = Math.round(base * (d.tamano === "enorme" ? (cel ? 1.16 : d.acomodo === "letras" ? 1.3 : 1.18) : 1));
+  const ceja = c.hasta ? `Campaña · hasta el ${cel ? fCorta(c.hasta) : fLarga(c.hasta)}` : "Campaña vigente";
+  const desc = pct ? `<b>−${pct} % en prendas elegidas.</b> Crea tu cuenta para ver los precios, cuánto hay en cada tienda y separar.`
+    : `<b>Prendas elegidas para ${esc(c.nombre)}.</b> Crea tu cuenta para ver los precios, cuánto hay en cada tienda y separar.`;
+  const cuenta = c.hasta && d.cuenta ? cuentaRegresiva(c.hasta) : "";
+  const estiloHero = `--hf:${p.f};--hf2:${p.f2};--ht:${p.t};--ha:${p.a};`;
+  const capas = [];
+  if (d.fondo === "dibujo") capas.push(`<div class="w-patron" style="background-image:${patron(d.patron, p.a)};opacity:${INTENSIDAD[d.intensidad]}"></div>`);
+  if (d.fondo === "foto") {
+    const foto = elegidas[0] || "adelle-marino";
+    capas.push(`<div class="w-foto-fondo">${dibujo(foto)}</div>`);
+    const a = Math.round(d.oscuro * 100), a2 = Math.min(100, a + 30);
+    capas.push(`<div class="w-velo" style="background:linear-gradient(${cel ? "180deg" : "90deg"}, color-mix(in srgb, ${p.f} ${a2}%, transparent) 0%, color-mix(in srgb, ${p.f} ${a}%, transparent) 62%)"></div>`);
+  }
+  const filtro = lum(p.t) > 0.5 ? "brightness(0) invert(1)" : "brightness(0)";
+  const colibri = d.colibri ? `<img class="w-colibri" src="${ISO}" alt="" style="filter:${filtro}">` : "";
+  const pctG = d.pctGigante && pct ? `<div class="w-pct">−${pct}%</div>` : "";
+  let sello = "";
+  if (d.sello === "descuento" && pct) sello = `<div class="w-sello"><span><b>−${pct}%</b><small>Web y tiendas</small></span></div>`;
+  if (d.sello === "dias") sello = `<div class="w-sello texto"><span><b>Solo por días</b></span></div>`;
+  if (d.sello === "nuevo") sello = `<div class="w-sello texto"><span><b>Lo nuevo</b></span></div>`;
+  let lado = "";
+  if (d.acomodo !== "letras") {
+    if (!elegidas.length) lado = `<div class="w-club"><div class="w-club-t"><b>CAYLA</b><span>Tu nombre aquí</span><small style="font-size:10px;letter-spacing:.18em;opacity:.7">CLUB CAYLA · DESDE 2026</small></div><p>Crea tu cuenta y forma parte del Club CAYLA.</p></div>`;
+    else if (d.acomodo === "polaroids") lado = `<div class="w-collage">${elegidas.slice(0, 3).map((id, i) => `<div class="w-pol p${i + 1}">${estudio(id)}<div class="w-pol-pie"><span>${esc(PRENDAS[id].nombre)}</span><span>Ver precio</span></div></div>`).join("")}</div>`;
+    else if (d.acomodo === "grande") lado = `<div class="w-grande">${estudio(elegidas[0])}<span class="w-grande-pie">${esc(PRENDAS[elegidas[0]].nombre)} · Ver precio →</span></div>`;
+    else if (d.acomodo === "mosaico") {
+      const t = elegidas.slice(0, 4).map((id) => estudio(id));
+      if (t.length < 4 && pct) t.push(`<div class="w-teja-pct">−${pct}%</div>`);
+      lado = `<div class="w-mosaico">${t.slice(0, cel ? 3 : 4).join("")}</div>`;
+    }
+  }
+  const clases = ["w-hero", d.fondo === "foto" ? "foto" : d.fondo, d.acomodo, d.tamano === "enorme" ? "enorme" : ""].join(" ");
+  const anuncio = pct ? `${c.nombre} · −${pct} % hasta el ${c.hasta ? fCorta(c.hasta) : ""}` : `${c.nombre} · mira lo que elegimos`;
+  return `<div class="web${cel ? " cel" : ""}${oscuro ? " oscuro" : ""}${o.mini ? " quieto" : ""}">
+    <div class="w-anuncio">${esc(anuncio)}</div>
+    <div class="w-cab"><span class="w-logo"><img src="${ISO}" alt="">CAYLA</span><nav class="w-nav"><span>Cómo separar</span><span>Nuestras tiendas</span><span>Club CAYLA</span></nav><span class="w-cab-esp"></span><span class="w-pill">Entrar</span><span class="w-pill llena">Crear mi cuenta</span><span class="w-menu"><i></i></span></div>
+    <section class="${clases}" style="${estiloHero}">
+      ${capas.join("")}${pctG}${colibri}${d.acomodo === "letras" || !lado ? sello : ""}
+      <div class="w-txt">
+        <span class="w-ceja">${esc(ceja)}</span>
+        <h1 class="w-tit" style="font-size:${tam}px">${linea ? `<span>${esc(linea)}</span>` : ""}${cursiva ? `<em>${esc(cursiva)}</em>` : ""}</h1>
+        ${d.frase ? `<p class="w-frase">${esc(d.frase)}</p>` : ""}
+        <p class="w-desc">${desc}</p>
+        ${cuenta}
+        <div class="w-acc"><span class="w-btn">Crear mi cuenta</span><span class="w-link">Ya tengo cuenta · Entrar →</span></div>
+      </div>
+      <div class="w-lado">${lado}${d.acomodo !== "letras" && lado ? sello : ""}</div>
+    </section>
+  </div>`;
+}
+function cuentaRegresiva(hasta) {
+  const ms = new Date(`${hasta}T23:59:59-05:00`).getTime() - Date.now();
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const v = [Math.floor(s / 86400), Math.floor((s % 86400) / 3600), Math.floor((s % 3600) / 60), s % 60];
+  return `<div class="w-cuenta" data-hasta="${hasta}">${["Días", "Horas", "Min", "Seg"].map((n, i) => `<span><b>${String(v[i]).padStart(2, "0")}</b><small>${n}</small></span>`).join("")}</div>`;
+}
+setInterval(() => {
+  document.querySelectorAll(".web:not(.quieto) .w-cuenta").forEach((el) => {
+    const s = Math.max(0, Math.floor((new Date(`${el.dataset.hasta}T23:59:59-05:00`).getTime() - Date.now()) / 1000));
+    const v = [Math.floor(s / 86400), Math.floor((s % 86400) / 3600), Math.floor((s % 3600) / 60), s % 60];
+    el.querySelectorAll("b").forEach((b, i) => (b.textContent = String(v[i]).padStart(2, "0")));
+  });
+}, 1000);
+
+/* El lienzo fijo se encoge entero para caber en su marco (como una captura de verdad). */
+function lienzo(d, o = {}) {
+  const w = o.cel ? 375 : 1280, h = o.cel ? 812 : (o.alto || 720);
+  return `<div class="escala" data-w="${w}" data-h="${h}" style="aspect-ratio:${w}/${h}">${portada(d, o)}</div>`;
+}
+function encajar() {
+  document.querySelectorAll(".escala").forEach((el) => {
+    const w = +el.dataset.w, k = el.clientWidth / w;
+    const web = el.firstElementChild; if (web) web.style.transform = `scale(${k})`;
+  });
+}
+new ResizeObserver(encajar).observe(document.body);
+
+/* =====================================================================================================
+   ESTADO DE LA MAQUETA
+   ===================================================================================================== */
+const S = { pantalla: "lista", filtro: "todas", campId: "gato", pestana: "diseno", vista: "pc", temaWeb: "claro", d: disenoDe(camp("gato")), historial: [], abierto: 0, visitados: new Set([0]), publicar: false, publicado: false };
+
+const PANTALLAS = [["lista", "1 · Campañas"], ["editor", "2 · Diseñar"], ["publicar", "3 · Publicar"], ["datos", "4 · Lo que venía de Atributos"], ["ideas", "5 · Ideas"], ["decidir", "6 · Decisiones"]];
+function irA(p) {
+  if (p === "publicar") { S.pantalla = "editor"; S.pestana = "diseno"; S.publicar = true; }
+  else if (p === "datos") { S.pantalla = "editor"; S.pestana = "datos"; S.publicar = false; }
+  else if (p === "editor") { S.pantalla = "editor"; S.pestana = "diseno"; S.publicar = false; }
+  else { S.pantalla = p; S.publicar = false; }
+  pintar(true);
+  window.scrollTo({ top: 0 });
+}
+function navMaqueta() {
+  const actual = S.publicar ? "publicar" : S.pantalla === "editor" ? (S.pestana === "datos" || S.pestana === "prendas" ? "datos" : "editor") : S.pantalla;
+  $("#mq-nav").innerHTML = PANTALLAS.map(([k, t]) => `<button class="mq-b" data-ir="${k}" aria-pressed="${actual === k}">${t}</button>`).join("");
+  const tema = document.documentElement.dataset.tema;
+  $("#mq-tema").innerHTML = `<button class="mq-b" data-erptema="claro" aria-pressed="${tema === "claro"}">ERP claro</button><button class="mq-b" data-erptema="oscuro" aria-pressed="${tema === "oscuro"}">ERP oscuro</button>`;
+}
+function lateral() {
+  const g = (t, items) => `<div class="lat-g"><span class="lat-gt">${t}</span>${items.map(([n, i, extra = "", actual = false]) => `<button class="lat-i${extra === "cerrado" ? " lat-cerrado" : ""}"${actual ? ' aria-current="page"' : ""} data-ir="${actual ? "lista" : ""}">${ic(i)}<span>${n}</span>${extra === "nueva" ? '<span class="lat-nueva">NUEVA</span>' : ""}</button>`).join("")}</div>`;
+  $("#lat").innerHTML = `<div class="lat-marca"><img src="${ISO}" alt="">CAYLA</div>
+    ${g("General", [["Inicio", "inicio"]])}
+    ${g("Ventas", [["Punto de venta", "venta", "cerrado"], ["Pedidos web", "pedido", "cerrado"]])}
+    ${g("Catálogo", [["Productos", "catalogo", "cerrado"], ["Atributos", "etiqueta", "cerrado"]])}
+    ${g("Tienda web", [["Vitrina web", "vitrina"], ["Campañas", "campana", "nueva", true]])}
+    ${g("Compras", [["Facturas", "compras", "cerrado"]])}
+    ${g("Clientes", [["Club CAYLA", "club", "cerrado"]])}
+    ${g("Gestión", [["Análisis", "gestion", "cerrado"]])}`;
+}
+
+/* =====================================================================================================
+   PANTALLA 1 · CAMPAÑAS: cuál sale en la portada cada día, y cada campaña con su diseño a la vista
+   ===================================================================================================== */
+function chipsDe(c) {
+  const e = estadoDe(c), out = [];
+  if (c.id === "gato") out.push(`<span class="chip verde vive">En la web ahora</span>`);
+  else if (e === "vigente") out.push(`<span class="chip pizarra">Vigente</span>`);
+  if (e === "proxima") out.push(`<span class="chip ambar">En ${dia(c.desde) - hoyN} días</span>`);
+  if (e === "termino") out.push(`<span class="chip neutro">Terminó</span>`);
+  if (e === "sinfecha") out.push(`<span class="chip neutro">Sin fechas</span>`);
+  if (!c.diseno) out.push(`<span class="chip neutro">Diseño de siempre</span>`);
+  else if (!c.diseno.publicado) out.push(`<span class="chip ambar">Borrador</span>`);
+  return out.join(" ");
+}
+function tarjetaCamp(c) {
+  const e = estadoDe(c), d = disenoDe(c);
+  const rango = c.desde ? `${fCorta(c.desde)} → ${fCorta(c.hasta)}` : "Sin fechas";
+  const dato = [rango, c.pct ? `−${c.pct} %` : "Sin descuento", c.modelos ? `${c.modelos} modelo${c.modelos === 1 ? "" : "s"}` : "Sin prendas"].map((x) => `<span>${x}</span>`).join("<span>·</span>");
+  const principal = !c.diseno ? `<button class="btn btn-p btn-chico" data-disenar="${c.id}">${ic("lapiz")}Darle su diseño</button>` : `<button class="btn btn-s btn-chico" data-disenar="${c.id}">${ic("lapiz")}Editar diseño</button>`;
+  return `<article class="camp${e === "termino" ? " apagada" : ""}">
+    <div class="camp-mini" data-disenar="${c.id}" title="Diseñar ${esc(c.nombre)}">${lienzo(d, { mini: true })}</div>
+    <div class="camp-cuerpo">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${chipsDe(c)}</div>
+      <span class="camp-nom">${esc(c.nombre)}</span>
+      <span class="camp-dato">${dato}</span>
+      ${c.id === "halloween" ? `<span class="camp-dato" style="color:var(--ambar)">No sale en la portada: no tiene descuento. <button class="enlace" data-ir="decidir">¿Por qué?</button></span>` : ""}
+      <div class="camp-acc">${e === "termino" ? `<button class="btn btn-s btn-chico" data-disenar="${c.id}">Ver diseño</button>` : principal}<button class="btn btn-s btn-chico" data-datos="${c.id}">Datos y prendas</button></div>
+    </div>
+  </article>`;
+}
+function lineaPortada() {
+  const ini = dia("2026-10-01"), fin = dia("2026-12-31"), tot = fin - ini + 1;
+  const pos = (f) => ((Math.max(dia(f), ini) - ini) / tot) * 100;
+  const ancho = (a, b) => ((Math.min(dia(b), fin) - Math.max(dia(a), ini) + 1) / tot) * 100;
+  const bg = (c) => { const p = paletaDe(disenoDe(c)); return `background:linear-gradient(90deg, ${p.f}, ${p.f2});color:${p.t};${c.diseno ? "" : "outline:1.5px dashed color-mix(in srgb, var(--tinta) 35%, transparent);outline-offset:-3px;"}`; };
+  const filas = ["halloween", "aniversario", "gato", "black", "navidad"].map(camp);
+  const hoyX = ((hoyN - ini) / tot) * 100;
+  const seg = (c, a, b, txt) => `<button class="barra${c ? "" : " nuevo"}" style="left:${pos(a)}%;width:${ancho(a, b)}%;${c ? bg(c) : ""}" ${c ? `data-disenar="${c.id}"` : ""} title="${esc(txt)}">${esc(txt)}</button>`;
+  return `<div class="linea">
+    <span></span><div class="linea-mes"><span>Octubre</span><span>Noviembre</span><span>Diciembre</span></div>
+    <span class="linea-nom portada">En la portada</span>
+    <div class="pista portada">
+      ${seg(camp("gato"), "2026-10-01", "2026-10-30", "Día Internacional del Gato")}
+      ${seg(null, "2026-10-31", "2026-11-08", "Lo nuevo")}
+      ${seg(camp("black"), "2026-11-09", "2026-11-30", "Black Friday")}
+      ${seg(null, "2026-12-01", "2026-12-10", "Lo nuevo")}
+      ${seg(camp("navidad"), "2026-12-11", "2026-12-25", "Navidad")}
+      ${seg(null, "2026-12-26", "2026-12-31", "Lo nuevo")}
+      <div class="pasado" style="width:${hoyX}%"></div><div class="hoy rotulo" style="left:${hoyX}%"></div>
+    </div>
+    ${filas.map((c) => `<span class="linea-nom"><span>${esc(c.nombre)}</span></span><div class="pista">${`<button class="barra${dia(c.desde) < ini ? " recortada" : ""}" style="left:${pos(c.desde)}%;width:${ancho(c.desde, c.hasta)}%;${bg(c)}" data-disenar="${c.id}">${c.pct ? `−${c.pct} %` : c.diseno ? (c.diseno.publicado ? "Con diseño" : "Borrador") : "Diseño de siempre"}</button>`}<div class="pasado" style="width:${hoyX}%"></div><div class="hoy" style="left:${hoyX}%"></div></div>`).join("")}
+  </div>`;
+}
+function pantallaLista() {
+  const conteo = { todas: CAMPANAS.length, vigentes: 0, proximas: 0, terminadas: 0 };
+  CAMPANAS.forEach((c) => { const e = estadoDe(c); if (e === "vigente") conteo.vigentes++; else if (e === "proxima" || e === "sinfecha") conteo.proximas++; else conteo.terminadas++; });
+  const filtradas = CAMPANAS.filter((c) => { const e = estadoDe(c); return S.filtro === "todas" || (S.filtro === "vigentes" && e === "vigente") || (S.filtro === "proximas" && (e === "proxima" || e === "sinfecha")) || (S.filtro === "terminadas" && e === "termino"); });
+  const pGato = paletaDe(disenoDe(camp("gato")));
+  return `
+  <header class="enc">
+    <div><span class="enc-l">Trujillo · jueves 16 de octubre</span><h1>Campañas</h1><p class="enc-f">Lo que celebras, cuándo, con qué descuento y cómo se ve en la web. Cada campaña puede tener su propio diseño; la que no lo tiene sale con el rojo de siempre.</p></div>
+    <div class="enc-acc voz-cab"><button class="btn btn-p">${ic("mas")}Nueva campaña</button></div>
+  </header>
+  <div class="cifras">
+    <div class="cifra"><span class="cifra-l">En la portada ahora</span><span class="cifra-m"><span class="mini-sw" style="background:linear-gradient(135deg, ${pGato.f} 55%, ${pGato.a} 55%)"></span><span class="cifra-v" style="font-size:24px">Día del Gato</span></span><span class="cifra-n">−10 % · hasta el 30 de octubre</span></div>
+    <div class="cifra"><span class="cifra-l">Vigentes hoy</span><span class="cifra-v">${conteo.vigentes}</span><span class="cifra-n">Halloween y Día del Gato</span></div>
+    <div class="cifra"><span class="cifra-l">Próxima</span><span class="cifra-v">Black Friday</span><span class="cifra-n">en 24 días · diseño en borrador</span></div>
+    <div class="cifra"><span class="cifra-l">Sin diseño propio</span><span class="cifra-v">${CAMPANAS.filter((c) => !c.diseno).length}</span><span class="cifra-n">salen con el rojo de siempre</span></div>
+  </div>
+  <section class="tarjeta">
+    <div class="tarjeta-cab"><h2 class="tit-sec">La portada, día a día</h2><span class="suave" style="font-size:12.5px;max-width:62ch">Cada barra lleva los colores de su diseño; la punteada aún usa el rojo de siempre y la rayada es «Lo nuevo», lo que sale cuando no hay campaña. Toca una para diseñarla.</span></div>
+    <div class="linea-t" style="padding-top:26px">${lineaPortada()}</div>
+    <div class="nota cruce">${ic("info")}<span><b>Hasta el 30 de octubre se cruzan Halloween y Día del Gato.</b> La portada muestra una sola campaña a la vez: hoy gana Día del Gato porque es la que tiene descuento. Ojo: con la regla de hoy, Black Friday y Navidad tampoco saldrían, porque no tienen descuento. <button class="enlace" data-ir="decidir">Ver la decisión</button></span></div>
+  </section>
+  <section class="tarjeta">
+    <div class="tarjeta-cab">
+      <h2 class="tit-sec">Todas las campañas <span class="globito">${CAMPANAS.length}</span></h2>
+      <div class="pildoras">${[["todas", "Todas"], ["vigentes", "Vigentes"], ["proximas", "Próximas"], ["terminadas", "Terminadas"]].map(([k, t]) => `<button class="pildora" data-filtro="${k}" aria-pressed="${S.filtro === k}">${t} <span class="globito">${conteo[k]}</span></button>`).join("")}</div>
+    </div>
+    <div class="grilla-c">${filtradas.map(tarjetaCamp).join("")}</div>
+  </section>
+  <p class="nota">${ic("etiqueta")}<span><b>Para liquidar, Últimas unidades y Estreno</b> siguen en Catálogo ▸ Atributos: son etiquetas de descuento, no campañas, y no tienen portada.</span></p>`;
+}
+
+/* =====================================================================================================
+   PANTALLA 2 · LA CAMPAÑA: pestañas Datos · Prendas · Diseño
+   ===================================================================================================== */
+function cabCampana(c) {
+  const e = estadoDe(c);
+  return `<header class="enc">
+    <div><span class="enc-l"><button class="volver" data-ir="lista" aria-label="Volver a Campañas">${ic("izq")}</button>Trujillo · 16 oct · Campañas</span><h1>${esc(c.nombre)}</h1>
+      <p class="enc-f">${c.desde ? `Del ${fLarga(c.desde)} al ${fLarga(c.hasta)}` : "Sin fechas todavía"} · ${c.pct ? `−${c.pct} % en caja y en la web` : "sin descuento"} · ${c.modelos ? `${c.modelos} modelos, ${c.variantes} variantes` : "sin prendas todavía"}</p></div>
+    <div class="enc-acc" style="flex-direction:column;align-items:flex-end;gap:10px">
+      <div style="display:flex;gap:6px">${chipsDe(c)}</div>
+      <div class="pest" role="tablist" aria-label="Partes de la campaña">${[["datos", "Datos"], ["prendas", "Prendas"], ["diseno", "Diseño en la web"]].map(([k, t]) => `<button role="tab" data-pest="${k}" aria-selected="${S.pestana === k}">${t}${k === "prendas" && c.modelos ? ` <span class="globito" style="${S.pestana === k ? "background:color-mix(in srgb, var(--crema) 22%, transparent);color:var(--crema)" : ""}">${c.modelos}</span>` : ""}</button>`).join("")}</div>
+    </div>
+  </header>`;
+}
+
+const PASOS = [
+  { t: "Empieza con un estilo", r: () => (ESTILOS.find((e) => coincideEstilo(e)) || { nombre: "Personalizado" }).nombre },
+  { t: "Colores", r: () => paletaDe(S.d).nombre },
+  { t: "Fondo", r: () => { const f = FONDOS.find((x) => x[0] === S.d.fondo)[1]; return S.d.fondo === "dibujo" ? `${f}: ${PATRONES.find((x) => x[0] === S.d.patron)[1].toLowerCase()}` : f; } },
+  { t: "Cómo se acomoda", r: () => ACOMODOS.find((x) => x[0] === S.d.acomodo)[1] },
+  { t: "El texto", r: () => S.d.frase ? `«${S.d.frase}»` : "Nombre en dos líneas · sin frase", opcional: true },
+  { t: "Las prendas", r: () => { const c = camp(S.campId); if (!c.prendas.length) return "Esta campaña no tiene prendas"; return S.d.prendas ? `${S.d.prendas.length} elegidas por ti` : "Las elige la web"; }, opcional: true },
+  { t: "Detalles", r: () => [S.d.cuenta && "cuenta regresiva", S.d.pctGigante && "% gigante", S.d.colibri && "colibrí", S.d.sello !== "ninguno" && "sello"].filter(Boolean).join(", ") || "Sin detalles", opcional: true },
+];
+function coincideEstilo(e) { return ["paleta", "fondo", "acomodo"].every((k) => (e.d[k] ?? BASE[k]) === S.d[k]) && (S.d.fondo !== "dibujo" || e.d.patron === S.d.patron); }
+
+function cuerpoPaso(i) {
+  const d = S.d, c = camp(S.campId);
+  if (i === 0) return `<p class="suave" style="font-size:12.5px">Un toque y la portada queda lista. Después cambia lo que quieras: el texto y las prendas se mantienen.</p>
+    <div class="ops c2">${ESTILOS.map((e) => `<button class="op" data-estilo="${e.id}" aria-pressed="${coincideEstilo(e)}">${lienzo(disenoDe(c, { ...BASE, ...e.d, frase: d.frase, prendas: d.prendas, corte: d.corte }), { mini: true })}<span class="op-n">${e.nombre}<small>${e.nota}</small></span></button>`).join("")}</div>`;
+  if (i === 1) {
+    const deP = [...new Set(c.prendas.filter((id) => lum(PRENDAS[id].hex) < 0.2 || PRENDAS[id].hex === "#BD332D"))].slice(0, 3);
+    const p = paletaDe(d);
+    const propio = d.paleta === "propia" && d.propia;
+    const cprop = propio ? contraste(d.propia.t, d.propia.f) : 0;
+    return `<div class="sub">Paletas que siempre se leen bien</div>
+    <div class="swatches">${PALETAS.map((x) => `<button class="sw" data-paleta="${x.id}" aria-pressed="${d.paleta === x.id}" title="${x.nombre}" aria-label="${x.nombre}" style="background:${x.f}"><i style="background:${x.a}"></i></button>`).join("")}</div>
+    <p class="sw-nom">Elegida: <b>${esc(p.nombre)}</b></p>
+    ${deP.length ? `<div class="sub">Sacadas de las prendas de esta campaña</div>
+    <div class="swatches">${deP.map((id) => { const x = paletaDePrenda(id); return `<button class="sw" data-paleta="prenda:${id}" aria-pressed="${d.paleta === "prenda:" + id}" title="${esc(x.nombre)}" aria-label="${esc(x.nombre)}" style="background:${x.f}"><i style="background:${x.a}"></i></button>`; }).join("")}</div>` : ""}
+    <div class="sub">O tu propio color <span class="opc">· la letra se elige sola</span></div>
+    <label class="propio"><input type="color" id="mi-color" value="${propio ? d.propia.f : "#2f6f73"}"><span class="propio-t"><b>Elegir mi color</b>${propio ? (cprop >= 4.5 ? "Se lee bien." : "Con este color la letra no se lee bien.") : "Toca el círculo."}</span></label>
+    ${propio && cprop < 4.5 ? `<div class="aviso-mini">${ic("ojo")}<span>Ni la letra clara ni la oscura se leen bien sobre este tono (${coma(cprop)} a 1). <button class="enlace" data-sugerido="${sugerirOscuro(d.propia.f)}">Usar uno un poco más oscuro</button> <span style="display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;background:${sugerirOscuro(d.propia.f)}"></span></span></div>` : ""}`;
+  }
+  if (i === 2) {
+    const p = paletaEfectiva(d, "claro");
+    return `<div class="ops c2">${FONDOS.map(([k, t, n]) => `<button class="op" data-fondo="${k}" aria-pressed="${d.fondo === k}"><span style="display:block;aspect-ratio:2.4;background:${k === "liso" ? p.f : k === "foto" ? "radial-gradient(70% 90% at 70% 40%, #efe5d6, #c9b8a0)" : `radial-gradient(120% 90% at 88% 6%, ${p.f2}, ${p.f} 58%)`};${k === "dibujo" ? `background-image:${patron(d.patron, p.a)}, radial-gradient(120% 90% at 88% 6%, ${p.f2}, ${p.f} 58%)` : ""}"></span><span class="op-n">${t}<small>${n}</small></span></button>`).join("")}</div>
+    ${d.fondo === "dibujo" ? `<div class="sub">El dibujo</div>
+      <div class="ops c4">${PATRONES.map(([k, t]) => `<button class="op" data-patron="${k}" aria-pressed="${d.patron === k}"><span style="display:block;aspect-ratio:1.4;background-color:${p.f};background-image:${patron(k, p.a)};background-size:${k === "rayas" || k === "puntos" ? "auto" : "70%"}"></span><span class="op-n">${t}</span></button>`).join("")}</div>
+      <div class="sub">Qué tanto se nota</div>
+      <div class="mini-ops">${["suave", "medio", "fuerte"].map((k) => `<button class="mini-op" data-intensidad="${k}" aria-pressed="${d.intensidad === k}">${k[0].toUpperCase() + k.slice(1)}</button>`).join("")}</div>` : ""}
+    ${d.fondo === "foto" ? `<div class="subir">${ic("subir")}<span style="flex:1"><b>Arrastra tu foto o tócala para elegirla</b><small>JPG o PNG, horizontal. En el celular se recorta sola. Aquí ves una de ejemplo.</small></span><button class="btn btn-s btn-chico">Elegir foto</button></div>
+      <div class="sub">Oscurecer la foto para que la letra se lea</div>
+      <input type="range" min="15" max="90" value="${Math.round(d.oscuro * 100)}" id="oscuro" aria-label="Oscurecer la foto">` : ""}`;
+  }
+  if (i === 3) return `<div class="ops c2">${ACOMODOS.map(([k, t, n]) => `<button class="op" data-acomodo="${k}" aria-pressed="${d.acomodo === k}">${lienzo(disenoDe(c, { ...d, acomodo: k }), { mini: true })}<span class="op-n">${t}<small>${n}</small></span></button>`).join("")}</div>
+    ${!c.prendas.length ? `<div class="aviso-mini">${ic("ojo")}<span>Esta campaña todavía no tiene prendas: con fotos saldría la tarjeta del Club. «Solo letras» luce sin ellas, o agrega prendas en <button class="enlace" data-pest="prendas">Prendas</button>.</span></div>` : ""}`;
+  if (i === 4) {
+    const palabras = c.nombre.split(/\s+/);
+    const corte = d.corte ?? (palabras.length > 1 ? palabras.length - 1 : palabras.length);
+    return `<div class="sub">¿Desde qué palabra va en cursiva?</div>
+    <div class="palabras">${palabras.map((w, k) => `<button class="palabra" data-corte="${k}"${k >= corte ? " data-cursiva" : ""}>${esc(w)}</button>`).join("")}<button class="mini-op" data-corte="${palabras.length}" aria-pressed="${corte >= palabras.length}">Sin cursiva</button></div>
+    <div class="sub">Tamaño del nombre</div>
+    <div class="mini-ops">${[["grande", "Grande"], ["enorme", "Enorme"]].map(([k, t]) => `<button class="mini-op" data-tamano="${k}" aria-pressed="${d.tamano === k}">${t}</button>`).join("")}</div>
+    <div class="sub">Tu frase <span class="opc">· opcional</span></div>
+    <input class="caja" id="frase" maxlength="60" placeholder="${esc(c.frase || "Ej. Una frase corta")}" value="${esc(d.frase)}">
+    <div class="caja-pie"><span>La fecha, el descuento y «Crea tu cuenta…» los pone la web sola.</span><span id="frase-n">${d.frase.length}/60</span></div>`;
+  }
+  if (i === 5) {
+    if (!c.prendas.length) return `<div class="aviso-mini">${ic("info")}<span>Todavía no hay prendas en esta campaña. Agrégalas en <button class="enlace" data-pest="prendas">Prendas</button> y aquí eliges cuáles salen en la portada.</span></div>`;
+    const max = d.acomodo === "grande" ? 1 : d.acomodo === "mosaico" ? 4 : 3;
+    const sel = d.prendas ?? c.prendas.slice(0, max);
+    return `<p class="suave" style="font-size:12.5px">${d.acomodo === "letras" ? "Con «Solo letras» la portada no muestra prendas." : `Toca hasta ${max} en el orden en que quieres que salgan.`}</p>
+    <div class="prendas-sel">${c.prendas.map((id) => { const k = sel.indexOf(id); return `<button class="prenda-op" data-prenda="${id}" aria-pressed="${k >= 0}"${d.acomodo === "letras" ? " disabled" : ""}>${k >= 0 ? `<span class="orden">${k + 1}</span>` : ""}${estudio(id)}<small>${esc(PRENDAS[id].nombre)} · ${esc(PRENDAS[id].color)}</small></button>`; }).join("")}</div>
+    <button class="mini-op" data-prendas-auto aria-pressed="${!d.prendas}">Que las elija la web (las que tienen más stock)</button>`;
+  }
+  if (i === 6) {
+    const pct = camp(S.campId).pct;
+    const fila = (k, t, n, dis = false) => `<div class="inter"><span class="inter-t">${t}<small>${n}</small></span><button class="sw-i" role="switch" data-inter="${k}" aria-checked="${!!d[k] && !dis}" aria-label="${t}"${dis ? " disabled" : ""}></button></div>`;
+    return `<div>${fila("cuenta", "Cuenta regresiva", c.hasta ? "Días, horas y minutos hasta que termina" : "Esta campaña no tiene fecha de fin", !c.hasta)}
+    ${fila("pctGigante", "El descuento gigante detrás", pct ? `«−${pct}%» dibujado en grande, solo el borde` : "Esta campaña no tiene descuento", !pct)}
+    ${fila("colibri", "El colibrí de CAYLA", "Arriba, junto al nombre")}</div>
+    <div class="sub">Sello</div>
+    <div class="mini-ops">${SELLOS.map(([k, t]) => `<button class="mini-op" data-sello="${k}" aria-pressed="${d.sello === k}"${k === "descuento" && !pct ? " disabled" : ""}>${t}</button>`).join("")}</div>`;
+  }
+}
+function revision() {
+  const d = S.d, c = camp(S.campId), out = [];
+  const pc = paletaEfectiva(d, "claro"), po = paletaEfectiva(d, "oscuro");
+  const c1 = contraste(pc.t, fondoDelTexto(d, pc)), c2 = contraste(po.t, fondoDelTexto(d, po));
+  let bloquea = false;
+  if (c1 >= 4.5) out.push(["ok", `La letra se lee bien (${coma(c1)} a 1)`]); else { bloquea = true; out.push(["mal", `La letra no se lee bien sobre este fondo (${coma(c1)} a 1; hace falta 4,5). Cambia el color u oscurece la foto.`]); }
+  if (c2 >= 4.5) out.push(["ok", "También se lee en modo oscuro"]); else { bloquea = true; out.push(["mal", `En modo oscuro la letra no se lee (${coma(c2)} a 1).`]); }
+  if (d.fondo === "dibujo" && d.intensidad === "fuerte") out.push(["ojo", "El dibujo está fuerte y compite con el nombre. Prueba «Medio»."]);
+  if (d.fondo === "foto" && d.oscuro < 0.35 && lum(pc.t) > 0.5) out.push(["ojo", "La foto está muy clara detrás de la letra. Oscurécela un poco."]);
+  if (d.frase.length > 42) out.push(["ojo", "Tu frase es larga: en el celular ocupa tres líneas."]);
+  if (!c.prendas.length && d.acomodo !== "letras") out.push(["ojo", "Sin prendas, la portada pondrá la tarjeta del Club en vez de fotos."]);
+  else if (d.acomodo !== "letras") out.push(["ok", "Las prendas que salen tienen foto"]);
+  out.push(["ok", "Cabe en el celular"]);
+  return { out, bloquea };
+}
+function pantallaEditor() {
+  const c = camp(S.campId);
+  if (S.pestana === "datos") return cabCampana(c) + pantallaDatos(c);
+  if (S.pestana === "prendas") return cabCampana(c) + pantallaPrendas(c);
+  const { out, bloquea } = revision();
+  const siguiente = PASOS.findIndex((_, i) => !S.visitados.has(i) && !PASOS[i].opcional);
+  const vista = S.vista === "pc"
+    ? `<div class="marco"><div class="marco-nav"><i></i><i></i><i></i><span>tienda.cayla.pe</span></div>${lienzo(S.d, { tema: S.temaWeb })}</div>`
+    : `<div class="vista-fondo"><div class="cel-marco">${lienzo(S.d, { cel: true, tema: S.temaWeb })}</div></div>`;
+  return cabCampana(c) + `
+  <div class="ed">
+    <div class="ed-panel">
+      ${PASOS.map((p, i) => `<section class="paso"${S.abierto === i ? " data-abierto" : ""}${S.visitados.has(i) && S.abierto !== i ? " data-hecho" : ""}${i === siguiente ? " data-sigue" : ""}>
+        <button class="paso-cab" data-paso="${i}" aria-expanded="${S.abierto === i}"><span class="paso-n">${S.visitados.has(i) && S.abierto !== i ? "✓" : i + 1}</span><span class="paso-t"><b>${p.t}</b><small>${esc(p.r())}</small></span>${i === siguiente && S.abierto !== i ? '<span class="paso-estado">Sigue aquí</span>' : p.opcional && !S.visitados.has(i) ? '<span class="paso-estado" style="color:var(--tinta-40)">Opcional</span>' : ""}<svg class="ic paso-flecha" viewBox="0 0 24 24">${ICONOS.abajo}</svg></button>
+        <div class="paso-cuerpo">${S.abierto === i ? cuerpoPaso(i) : ""}</div>
+      </section>`).join("")}
+    </div>
+    <div class="ed-vista">
+      <div class="vista-herr">
+        <div class="seg" role="group" aria-label="Dónde se mira"><button data-vista="pc" aria-pressed="${S.vista === "pc"}">${ic("pc")}Computadora</button><button data-vista="cel" aria-pressed="${S.vista === "cel"}">${ic("cel")}Celular</button></div>
+        <div class="seg" role="group" aria-label="Tema de la web"><button data-temaweb="claro" aria-pressed="${S.temaWeb === "claro"}">${ic("sol")}Claro</button><button data-temaweb="oscuro" aria-pressed="${S.temaWeb === "oscuro"}">${ic("luna")}Oscuro</button></div>
+        <span class="esp"></span>
+        <button class="btn btn-s btn-chico" data-deshacer${S.historial.length ? "" : " disabled"}>${ic("deshacer")}Deshacer</button>
+        <button class="btn btn-s btn-chico" data-sorpresa>${ic("dado")}Sorpréndeme</button>
+      </div>
+      <div id="vista" class="cambia">${vista}</div>
+      <div class="revision">${out.map(([k, t]) => `<span class="rev ${k}">${ic(k === "ok" ? "check" : k === "ojo" ? "ojo" : "x")}<span>${t}</span></span>`).join("")}</div>
+      <div class="barra-pub">
+        <span class="estado"><span class="punto-verde"></span><span><b>Borrador guardado</b> · se guarda solo mientras pruebas. La web sigue mostrando el diseño publicado.</span></span>
+        <button class="btn btn-s">${ic("web")}Ver en la web</button>
+        <button class="btn btn-p" data-publicar${bloquea ? " disabled" : ""}>Publicar diseño</button>
+        ${bloquea ? `<span class="falta">Para publicar falta: que la letra se lea sobre el fondo.</span>` : ""}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- Datos (lo que hoy vive en Catálogo ▸ Atributos ▸ Etiquetas ▸ «Configurar campaña») ---------- */
+function pantallaDatos(c) {
+  return `
+  <div class="datos">
+    <section class="tarjeta"><div class="tarjeta-cab"><h2 class="tit-sec">Qué y cuándo</h2><span class="chip verde">Aprobada</span></div>
+      <div class="tarjeta-cuerpo campos">
+        <label class="campo"><span class="etq">Nombre *</span><input class="caja" value="${esc(c.nombre)}"></label>
+        <div class="dos-c">
+          <label class="campo"><span class="etq">Desde</span><span class="caja" style="display:flex;align-items:center;gap:8px">${ic("calendario")}${c.desde ? fLarga(c.desde) : "Sin fecha"}</span></label>
+          <label class="campo"><span class="etq">Hasta</span><span class="caja" style="display:flex;align-items:center;gap:8px">${ic("calendario")}${c.hasta ? fLarga(c.hasta) : "Sin fecha"}</span></label>
+        </div>
+        <div class="campo"><span class="etq">Descuento <span class="opc">· vacío = sin descuento</span></span>
+          <span class="caja-sol">${c.pct ?? ""}<span>%</span></span>
+          <p class="suave" style="font-size:12.5px">Quien ve Campañas diseña y también pone el descuento: una sola llave, como hoy.</p>
+        </div>
+        <div class="campo"><span class="etq">Dónde rige</span>
+          <div class="mini-ops"><button class="mini-op" aria-pressed="${!c.categorias}">Solo en las prendas elegidas</button><button class="mini-op" aria-pressed="${!!c.categorias}">En categorías completas</button></div>
+        </div>
+        <div class="campo"><span class="etq">Se cobra en</span>
+          <div class="rige"><span>${ic("tienda")}Trujillo</span><span>${ic("tienda")}Arequipa</span><span>${ic("tienda")}Lima</span><span>${ic("web")}La web</span></div>
+          <p class="suave" style="font-size:12.5px">El descuento lo aplica Vender solo, dentro de las fechas. Si una prenda tiene dos campañas, va la de mayor descuento.</p>
+        </div>
+      </div>
+      <div class="hoja-pie"><button class="btn btn-peligro izq">Desactivar campaña</button><button class="btn btn-s">Cancelar</button><button class="btn btn-p">Guardar cambios</button></div>
+    </section>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <section class="tarjeta"><div class="tarjeta-cab"><h2 class="tit-sec">En tienda</h2></div>
+        <div class="tarjeta-cuerpo" style="display:flex;flex-direction:column;gap:10px">
+          <p style="font-size:13px">Con la campaña vigente, imprime las etiquetas con el precio rebajado. Al terminar, las mismas prendas vuelven al precio normal.</p>
+          <button class="btn btn-s" style="align-self:flex-start">${ic("impresora")}Imprimir etiquetas de precio</button>
+        </div>
+      </section>
+      <section class="tarjeta"><div class="tarjeta-cab"><h2 class="tit-sec">En la web</h2></div>
+        <div class="tarjeta-cuerpo" style="display:flex;flex-direction:column;gap:10px">
+          <div class="camp-mini" data-pest="diseno" style="border:1px solid var(--sand);border-radius:10px;overflow:hidden">${lienzo(S.d, { mini: true })}</div>
+          <button class="btn btn-s" data-pest="diseno" style="align-self:flex-start">${ic("lapiz")}Diseñar la portada</button>
+        </div>
+      </section>
+      <p class="nota">${ic("info")}<span>Esto vivía en <b>Catálogo ▸ Atributos ▸ Etiquetas ▸ «Configurar campaña»</b>. Allá quedan las etiquetas que no son campaña.</span></p>
+    </div>
+  </div>`;
+}
+function pantallaPrendas(c) {
+  if (!c.prendas.length) return `<section class="tarjeta"><div class="tarjeta-cuerpo" style="text-align:center;padding:40px 20px;display:flex;flex-direction:column;align-items:center;gap:8px">${ic("etiqueta")}<b style="font-family:var(--serif);font-size:21px;font-weight:500">Todavía no hay prendas en ${esc(c.nombre)}</b><p class="suave">Elige las prendas que entran a la campaña: llevarán su descuento en caja y podrán salir en la portada.</p><button class="btn btn-p">${ic("mas")}Agregar prendas</button></div></section>`;
+  return `<section class="tarjeta"><div class="tarjeta-cab"><h2 class="tit-sec">Prendas de la campaña <span class="globito">${c.prendas.length}</span></h2><button class="btn btn-s btn-chico">${ic("mas")}Agregar prendas</button></div>
+    <div style="overflow-x:auto"><table class="prendas-tabla"><thead><tr><th></th><th>Prenda</th><th>Color</th><th>En la portada</th></tr></thead><tbody>
+    ${c.prendas.map((id) => { const sel = (S.d.prendas ?? c.prendas.slice(0, 3)).indexOf(id); return `<tr><td style="width:56px"><div class="miniatura">${estudio(id)}</div></td><td>${esc(PRENDAS[id].nombre)}</td><td>${esc(PRENDAS[id].color)}</td><td>${sel >= 0 ? `<span class="chip verde">Foto ${sel + 1}</span>` : '<span class="suave">—</span>'}</td></tr>`; }).join("")}
+    </tbody></table></div></section>`;
+}
+
+/* ---------- Publicar ---------- */
+function hojaPublicar() {
+  const c = camp(S.campId), { out } = revision();
+  return `<div class="velo" data-cerrar-velo><div class="hoja" role="dialog" aria-modal="true" aria-labelledby="pub-t">
+    <div class="hoja-cab"><h2 id="pub-t">Publicar el diseño</h2><p>${esc(c.nombre)} · así lo verán los clientes en la computadora y en el celular.</p></div>
+    <div class="hoja-cuerpo">
+      <div class="dos-vistas"><div class="marco">${lienzo(S.d, { mini: true })}</div><div class="cel-marco">${lienzo(S.d, { cel: true, mini: true })}</div></div>
+      <div class="cuando">
+        <div><small>Se ve en la web</small><b>En menos de 5 min</b></div>
+        <div><small>Se quita sola</small><b>${c.hasta ? `Al cerrar el ${fLarga(c.hasta)}` : "Cuando la apagues"}</b></div>
+        <div><small>Después sale</small><b>${c.id === "gato" ? "Halloween o «Lo nuevo»" : "«Lo nuevo»"}</b></div>
+      </div>
+      <div class="revision">${out.map(([k, t]) => `<span class="rev ${k}">${ic(k === "ok" ? "check" : k === "ojo" ? "ojo" : "x")}<span>${t}</span></span>`).join("")}</div>
+      <div class="campo"><span class="etq">Responsable *</span><span class="resp"><span class="av">RM</span><b>Rosa Medina</b><small>de turno en Trujillo</small></span></div>
+      <p class="nota">${ic("deshacer")}<span>El diseño anterior queda guardado: si algo no te gusta, «Volver al anterior» lo regresa en un toque.</span></p>
+    </div>
+    <div class="hoja-pie"><button class="btn btn-s" data-cerrar>Cancelar</button><button class="btn btn-p" data-confirmar>Publicar diseño</button></div>
+  </div></div>`;
+}
+
+/* =====================================================================================================
+   PANTALLA 5 · IDEAS: la misma campaña en varios estilos, y otras campañas con el suyo
+   ===================================================================================================== */
+function pantallaIdeas() {
+  const ideas = [
+    ["gato", { estilo: "hoy" }, "Día del Gato · Clásico CAYLA", "El de hoy: rojo, polaroids y colibrí."],
+    ["gato", { paleta: "caramelo", fondo: "dibujo", patron: "huellitas", intensidad: "medio", sello: "descuento", frase: "Mimos para ti y tu michi" }, "Día del Gato · Huellitas", "Caramelo, huellitas suaves, sello con el descuento y una frase propia."],
+    ["gato", { paleta: "prenda:adelle-marino", fondo: "foto", oscuro: 0.55, acomodo: "letras", sello: "descuento", frase: "Mimos para ti y tu michi" }, "Día del Gato · Con foto y colores del jean", "La paleta sale del Adelle azul marino; la foto, oscurecida para que la letra se lea."],
+    ["gato", { paleta: "arena", fondo: "liso", acomodo: "mosaico", colibri: false }, "Día del Gato · Galería", "Fondo claro y cuatro tejas en orden: la prenda manda."],
+    ["halloween", { paleta: "calabaza", fondo: "dibujo", patron: "estrellas", intensidad: "medio", acomodo: "polaroids" }, "Halloween · Calabaza", "Negro con naranja y estrellitas. Hoy no podría salir: no tiene descuento."],
+    ["black", { paleta: "negro-rojo", fondo: "liso", acomodo: "letras", tamano: "enorme", sello: "dias", colibri: false, frase: "Solo tres semanas, en las tres tiendas" }, "Black Friday · Cartel", "Solo letras: sirve aunque todavía no tenga prendas."],
+    ["navidad", { paleta: "bosque", fondo: "dibujo", patron: "estrellas", intensidad: "suave", acomodo: "letras", tamano: "enorme" }, "Navidad · Bosque", "Verde con dorado; sin prendas, el nombre lo es todo."],
+    ["aniversario", { paleta: "rosa", fondo: "dibujo", patron: "corazones", intensidad: "suave", acomodo: "grande", frase: "Un año más contigo" }, "Aniversario CAYLA · Suave", "Rosa empolvado, corazones apenas visibles y la Adelle de protagonista."],
+  ];
+  return `<header class="enc"><div><span class="enc-l">Maqueta · mostrario</span><h1>Ideas</h1><p class="enc-f">Lo que una colaboradora puede armar con las mismas piezas: catorce paletas, cuatro fondos (y ocho dibujos), cuatro acomodos y cuatro detalles. Nada de esto se hace con un programa de diseño.</p></div></header>
+  <div class="ideas">${ideas.map(([id, x, t, n]) => `<article class="idea"><div style="border-bottom:1px solid var(--sand)">${lienzo(disenoDe(camp(id), { ...(x.estilo ? ESTILOS.find((e) => e.id === x.estilo).d : x), frase: x.frase || "" }), { mini: true })}</div><div class="idea-pie"><b>${t}</b><small>${n}</small></div></article>`).join("")}</div>
+  <div class="ideas" style="grid-template-columns:repeat(auto-fill, minmax(220px, 1fr))">
+    ${[["gato", { estilo: "hoy" }, "claro"], ["gato", { estilo: "hoy" }, "oscuro"], ["aniversario", { paleta: "rosa", fondo: "dibujo", patron: "corazones", intensidad: "suave", acomodo: "polaroids" }, "oscuro"], ["black", { paleta: "negro-rojo", fondo: "liso", acomodo: "letras", tamano: "enorme", sello: "dias" }, "claro"]].map(([id, x, tema]) => `<article class="idea"><div class="vista-fondo" style="border:0;border-radius:0">${`<div class="cel-marco">${lienzo(disenoDe(camp(id), x.estilo ? ESTILOS.find((e) => e.id === x.estilo).d : x), { cel: true, mini: true, tema })}</div>`}</div><div class="idea-pie"><b>${esc(camp(id).nombre)} · celular</b><small>Modo ${tema}${id === "aniversario" ? ": el rosa pasa solo a su versión de noche" : ""}</small></div></article>`).join("")}
+  </div>`;
+}
+
+/* =====================================================================================================
+   PANTALLA 6 · PARA DECIDIR (Felipe)
+   ===================================================================================================== */
+function pantallaDecidir() {
+  const op = (reco, t, g, p) => `<div class="opcion${reco ? " reco" : ""}"><b>${t}${reco ? " · elegida" : ""}</b><div class="gp"><span>Ganas</span><span>${g}</span><span>Pagas</span><span>${p}</span></div></div>`;
+  return `<header class="enc"><div><span class="enc-l">Maqueta · decidido por Felipe el 17 de octubre</span><h1>Decisiones</h1><p class="enc-f">Las tres decisiones que cambiaban qué se construye, con la opción elegida marcada.</p></div></header>
+  <div class="decisiones">
+    <section class="decision"><h3>1. ¿Dónde vive «Campañas» en el menú?</h3>
+      <p>Una campaña no es solo de la web: su descuento lo cobra la caja de las tres tiendas y se imprime en las etiquetas de precio. El nombre del grupo tiene que decirlo, o alguien buscará el descuento de Black Friday en otro lado.</p>
+      <div class="opciones">
+        ${op(true, "Grupo «Tienda web» con Vitrina web y Campañas", "Lo que el cliente ve en la web, junto. Catálogo baja de 6 a 5 pantallas (hoy está en el tope).", "El descuento en caja vive dentro de «Tienda web»: la pantalla lo dice («Se cobra en: Trujillo, Arequipa, Lima y la web»).")}
+        ${op(false, "«Campañas» dentro de Catálogo", "Queda junto a Atributos, donde siempre estuvo.", "Catálogo pasa a 7 pantallas (tope de 6) y la web queda repartida en tres grupos.")}
+        ${op(false, "Solo una pestaña «Diseño» en Atributos", "Cero menú nuevo; lo mínimo.", "Diseñar queda escondido entre colores y tallas: quien diseña no lo encuentra.")}
+      </div></section>
+    <section class="decision"><h3>2. ¿Una campaña sin descuento puede salir en la portada?</h3>
+      <p>Hoy la portada solo muestra campañas con descuento. De las 12 campañas activas, solo Día Internacional del Gato lo tiene: Halloween, Navidad y Black Friday nunca saldrían, por más lindo que sea su diseño.</p>
+      <div class="opciones">
+        ${op(true, "Sí, si tiene prendas o diseño propio", "Halloween y Navidad pueden anunciarse («Prendas elegidas para Navidad»). El diseño tiene sentido en todas.", "Hay que decidir el orden cuando dos se cruzan: la de descuento primero, salvo que la cambies a mano.")}
+        ${op(false, "No, como hoy", "Nada cambia en la regla de la portada.", "Se diseñan campañas que nunca se ven; el editor sirve para una de cada diez.")}
+      </div></section>
+    <section class="decision"><h3>3. ¿Quién diseña?</h3>
+      <p>Hoy configurar una campaña es del líder o de un rol con el módulo Etiquetas, descuento incluido. El diseño no mueve plata; el descuento sí.</p>
+      <div class="opciones">
+        ${op(false, "El módulo «Campañas» diseña; el descuento sigue siendo del líder", "Le das el módulo a una colaboradora creativa y diseña sin poder tocar el precio.", "Un permiso más que entender: ve el descuento con candado.")}
+        ${op(true, "Todo junto, como hoy", "Una sola llave: quien ve Campañas diseña y pone el descuento.", "Para que alguien diseñe tienes que darle también el poder de cambiar el precio en caja.")}
+      </div></section>
+    <p class="nota">${ic("info")}<span>1 y 2, como se recomendaron; 3, «todo junto, como hoy» (Felipe, 17 de octubre). Así se construye.</span></p>
+  </div>`;
+}
+
+/* =====================================================================================================
+   PINTAR Y EVENTOS
+   ===================================================================================================== */
+function pintar(entra = false) {
+  navMaqueta(); lateral();
+  const pag = $("#pag");
+  pag.innerHTML = S.pantalla === "lista" ? pantallaLista() : S.pantalla === "editor" ? pantallaEditor() : S.pantalla === "ideas" ? pantallaIdeas() : pantallaDecidir();
+  if (entra) { pag.removeAttribute("data-entra"); void pag.offsetWidth; pag.setAttribute("data-entra", ""); }
+  $("#capa").innerHTML = S.publicar ? hojaPublicar() : "";
+  encajar();
+}
+function cambiar(fn) {
+  S.historial.push(JSON.stringify(S.d)); if (S.historial.length > 40) S.historial.shift();
+  fn(S.d);
+  const y = window.scrollY; pintar(); window.scrollTo({ top: y });
+  const v = $("#vista"); if (v) { v.classList.remove("cambia"); void v.offsetWidth; v.classList.add("cambia"); }
+}
+function abrirCampana(id, pest = "diseno") {
+  S.campId = id; S.d = disenoDe(camp(id)); S.historial = []; S.abierto = 0; S.visitados = new Set([0]);
+  S.pantalla = "editor"; S.pestana = pest; S.publicar = false; pintar(true); window.scrollTo({ top: 0 });
+}
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("button, [data-disenar], [data-pest], [data-cerrar-velo]");
+  if (!t) return;
+  const ds = t.dataset;
+  if (ds.cerrarVelo !== undefined && e.target === t) { S.publicar = false; pintar(); return; }
+  if (ds.ir) return irA(ds.ir);
+  if (ds.erptema) { document.documentElement.dataset.tema = ds.erptema; return pintar(); }
+  if (ds.disenar) return abrirCampana(ds.disenar);
+  if (ds.datos) return abrirCampana(ds.datos, "datos");
+  if (ds.filtro) { S.filtro = ds.filtro; return pintar(); }
+  if (ds.pest) { S.pestana = ds.pest; return pintar(true); }
+  if (ds.paso !== undefined) { const i = +ds.paso; S.abierto = S.abierto === i ? -1 : i; S.visitados.add(i); return pintar(); }
+  if (ds.vista) { S.vista = ds.vista; return pintar(); }
+  if (ds.temaweb) { S.temaWeb = ds.temaweb; return pintar(); }
+  if (ds.estilo !== undefined) return cambiar((d) => { const est = ESTILOS.find((x) => x.id === ds.estilo).d; Object.assign(d, { ...BASE, ...est, frase: d.frase, prendas: d.prendas, corte: d.corte, camp: d.camp }); });
+  if (ds.paleta) return cambiar((d) => { d.paleta = ds.paleta; });
+  if (ds.sugerido) return cambiar((d) => { d.propia = paletaPropia(ds.sugerido); d.paleta = "propia"; });
+  if (ds.fondo) return cambiar((d) => { d.fondo = ds.fondo; });
+  if (ds.patron) return cambiar((d) => { d.patron = ds.patron; });
+  if (ds.intensidad) return cambiar((d) => { d.intensidad = ds.intensidad; });
+  if (ds.acomodo) return cambiar((d) => { d.acomodo = ds.acomodo; });
+  if (ds.corte !== undefined) return cambiar((d) => { d.corte = +ds.corte; });
+  if (ds.tamano) return cambiar((d) => { d.tamano = ds.tamano; });
+  if (ds.sello) return cambiar((d) => { d.sello = ds.sello; });
+  if (ds.inter) return cambiar((d) => { d[ds.inter] = !d[ds.inter]; });
+  if (ds.prendasAuto !== undefined) return cambiar((d) => { d.prendas = null; });
+  if (ds.prenda) return cambiar((d) => {
+    const c = camp(d.camp), max = d.acomodo === "grande" ? 1 : d.acomodo === "mosaico" ? 4 : 3;
+    const sel = [...(d.prendas ?? c.prendas.slice(0, max))];
+    const k = sel.indexOf(ds.prenda);
+    if (k >= 0) sel.splice(k, 1); else { sel.push(ds.prenda); if (sel.length > max) sel.shift(); }
+    d.prendas = sel.length ? sel : null;
+  });
+  if (ds.deshacer !== undefined && S.historial.length) { S.d = JSON.parse(S.historial.pop()); return pintar(); }
+  if (ds.sorpresa !== undefined) return cambiar((d) => {
+    const azar = (a) => a[Math.floor(Math.random() * a.length)];
+    d.paleta = azar(PALETAS).id; d.fondo = azar(["degradado", "liso", "dibujo", "dibujo"]); d.patron = azar(PATRONES)[0]; d.intensidad = azar(["suave", "medio"]);
+    d.acomodo = camp(d.camp).prendas.length ? azar(["polaroids", "grande", "mosaico", "letras"]) : "letras"; d.sello = azar(["ninguno", "ninguno", "dias", "nuevo", camp(d.camp).pct ? "descuento" : "ninguno"]);
+    d.pctGigante = Math.random() < 0.3; d.tamano = d.acomodo === "letras" ? "enorme" : "grande";
+  });
+  if (ds.publicar !== undefined) { S.publicar = true; return pintar(); }
+  if (ds.cerrar !== undefined) { S.publicar = false; return pintar(); }
+  if (ds.confirmar !== undefined) {
+    const c = camp(S.campId); c.diseno = { ...S.d, publicado: true }; delete c.diseno.camp;
+    S.publicar = false; S.pantalla = "lista"; pintar(true); window.scrollTo({ top: 0 });
+    aviso(`Diseño de ${c.nombre} publicado. Se ve en la web en menos de 5 minutos.`);
+  }
+});
+document.addEventListener("input", (e) => {
+  if (e.target.id === "frase") { S.d.frase = e.target.value; const v = $("#vista"); if (v) { v.innerHTML = S.vista === "pc" ? `<div class="marco"><div class="marco-nav"><i></i><i></i><i></i><span>tienda.cayla.pe</span></div>${lienzo(S.d, { tema: S.temaWeb })}</div>` : `<div class="vista-fondo"><div class="cel-marco">${lienzo(S.d, { cel: true, tema: S.temaWeb })}</div></div>`; encajar(); } $("#frase-n").textContent = `${S.d.frase.length}/60`; }
+  if (e.target.id === "oscuro") { S.d.oscuro = +e.target.value / 100; const v = $("#vista"); if (v) { v.innerHTML = S.vista === "pc" ? `<div class="marco"><div class="marco-nav"><i></i><i></i><i></i><span>tienda.cayla.pe</span></div>${lienzo(S.d, { tema: S.temaWeb })}</div>` : `<div class="vista-fondo"><div class="cel-marco">${lienzo(S.d, { cel: true, tema: S.temaWeb })}</div></div>`; encajar(); } }
+});
+document.addEventListener("change", (e) => {
+  if (e.target.id === "frase" || e.target.id === "oscuro") { const y = window.scrollY; pintar(); window.scrollTo({ top: y }); }
+  if (e.target.id === "mi-color") cambiar((d) => { d.propia = paletaPropia(e.target.value); d.paleta = "propia"; });
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.publicar) { S.publicar = false; pintar(); } });
+function aviso(txt) {
+  const el = document.createElement("div");
+  el.setAttribute("role", "status");
+  el.style.cssText = "position:fixed;top:60px;right:16px;z-index:90;max-width:360px;padding:12px 16px;border-radius:12px;background:var(--papel);border:1px solid var(--sand);border-left:3px solid var(--verde);box-shadow:0 20px 40px -24px var(--sombra);font-size:13.5px;animation:subir .35s var(--ease) both";
+  el.textContent = txt; document.body.appendChild(el); setTimeout(() => el.remove(), 5200);
+}
+const inicio = location.hash.slice(1);
+if (PANTALLAS.some(([k]) => k === inicio)) irA(inicio); else pintar(true);
+</script>
+</body>
+</html>
