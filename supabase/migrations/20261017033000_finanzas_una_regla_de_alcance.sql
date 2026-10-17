@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261017010000_finanzas_una_regla_de_alcance.sql — CAYLA V2 (auditoría de Finanzas 2026-10-16, G16; ADR-0433, actividad 8)
+-- 20261017033000_finanzas_una_regla_de_alcance.sql — CAYLA V2 (auditoría de Finanzas 2026-10-16, G16; ADR-0433, actividad 8)
 --
 -- EL PROBLEMA PRIMERO. Dos funciones hermanas, que leen el MISMO diario, decidían distinto quién ve «todas las tiendas y la empresa»:
 --   · `fn_asientos`, `fn_diario_ubicaciones`, `fn_campanas_reporte`, `fn_presupuesto_vs_real`, `fn_cuentas_dinero_*`… preguntan

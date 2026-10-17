@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261017024000_finanzas_saldo_favor_igv_al_arrancar.sql — CAYLA V2 (auditoría de Finanzas 2026-10-16, actividad 4b; ADR-0433)
+-- 20261017041000_finanzas_saldo_favor_igv_al_arrancar.sql — CAYLA V2 (auditoría de Finanzas 2026-10-16, actividad 4b; ADR-0433)
 --
 -- EL PROBLEMA PRIMERO. «¿Me alcanza?» proyecta el IGV del mes en curso (hoy S/ 9 322, a pagar el 15 de noviembre) como si CAYLA no tuviera ningún crédito
 -- fiscal. Pero CAYLA arrancó con un buen saldo a favor de IGV por compras acumuladas (Felipe, 2026-10-16: «al día de hoy CAYLA tiene buen escudo fiscal por compras

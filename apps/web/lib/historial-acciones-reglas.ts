@@ -157,7 +157,7 @@ export function accionesDeVenta(v: VentaParaAcciones, ctx: ContextoAcciones): Ac
   if (v.comprobante && ctx.puedeFacturar) {
     acciones.push({ clave: "comprobante", etiqueta: "Ver comprobante", detalle: `Comprobantes ▸ Este mes`, href: `/vender/comprobantes/emitidos?${qs({ m: mesDeFecha(v.fecha) })}` });
   }
-  // La venta que entrega un apartado no se anula (la base la rechaza, 20261017023000): su adelanto quedaría sin devolver. Se devuelve por Devolución.
+  // La venta que entrega un apartado no se anula (la base la rechaza, 20261017040000): su adelanto quedaría sin devolver. Se devuelve por Devolución.
   if (ctx.esLider && !v.anulada && v.fecha === ctx.hoy && ve("devoluciones") && !v.apartado && !v.conAnticipo) {
     acciones.push({ clave: "anular", etiqueta: "Anular venta", detalle: "Solo hoy · en Devoluciones", href: `/devoluciones?${paramsDePosventa(v, ctx)}`, peligro: true });
   }

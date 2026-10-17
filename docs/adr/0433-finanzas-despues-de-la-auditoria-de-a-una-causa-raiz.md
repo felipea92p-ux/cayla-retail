@@ -155,7 +155,7 @@ utilidad de UNA sola tienda (le pasa `v_ubics[1]`). Números distintos para el m
 primero, y la actividad 9 —que hace que el Estado de resultados lea el diario congelado— lo necesita resuelto.
 
 DECIDÍ (cumple una decisión que Felipe ya tomó en ADR-0253; no es una decisión nueva):
-- **Un solo predicado, `fn_ve_finanzas_de_todo()`, en las cinco funciones** (`20261017010000`, reemplazos anclados sobre la definición viva; si el ancla no aparece exactamente
+- **Un solo predicado, `fn_ve_finanzas_de_todo()`, en las cinco funciones** (`20261017033000`, reemplazos anclados sobre la definición viva; si el ancla no aparece exactamente
   una vez, la migración aborta; idempotente). Para el LÍDER nada cambia. Para un rol con Configuración, Cierre de mes o CAYLA Global, el Estado de resultados trae las mismas
   unidades que el líder (tiendas, «De la empresa», consolidado), el diario congelado trae las mismas líneas y el Balance por tienda mide cada tienda igual.
 - **Un encargado con solo «Reportes financieros» sigue viendo SOLO su tienda** (`fn_diario_ubicaciones()` le devuelve su sede) y recibe 42501 al pedir otra, en cada una de
@@ -192,7 +192,7 @@ desechable de la base (dos sesiones; sin el arreglo): el gasto de noviembre se g
 rechazó con «Noviembre 2024 de Tienda Trujillo está cerrado» (0 gastos guardados).
 
 DECIDÍ (Felipe, 2026-10-16: aprobada la actividad 9 de la tanda 1, antes del primer cierre):
-- **El Estado de resultados lee `fn_diario`** (reemplazo anclado de una línea, `20261017012000`): un mes abierto sale idéntico (`fn_diario` llama a `fn_asientos`); uno cerrado, de su foto. Los contadores
+- **El Estado de resultados lee `fn_diario`** (reemplazo anclado de una línea, `20261017034000`): un mes abierto sale idéntico (`fn_diario` llama a `fn_asientos`); uno cerrado, de su foto. Los contadores
   de «prendas y mermas sin costo» siguen vivos A PROPÓSITO: son avisos de qué falta cargar, no cifras del cierre. La web marca «cerrado» bajo cada columna cerrada (`fn_periodos_mes`) con una nota
   («no cambian aunque después se corrija algo; se reabre en Cierre de mes»), y «De dónde sale» lee la misma foto, así que las líneas detrás de una cifra son las de la cifra.
 - **El candado de mes toma el cerrojo compartido del cierre** (lente 5 de /rigor, resiliencia): `fn_exigir_mes_abierto` pasa de STABLE a VOLATILE y, antes de mirar `periodos`, toma
@@ -237,7 +237,7 @@ DECIDÍ (Felipe, 2026-10-16: aprobada la actividad 10 de la tanda 1; no cambia l
   aplica el adelanto al entregar usan `fn_igv_de_la_separacion` (la suma de los IGV de sus pagos); si no, el 4011 quedaría huérfano por un céntimo (33.33 + 36.67: 5.08 + 5.59 = 10.67 contra los 10.68 que da
   redondear el total). Si la venta aplica solo una parte, la parte proporcional.
 - **El Balance suma lo recibido hasta el corte** (`fn_bal_anticipos`), no el total de hoy, y sigue excluyendo lo devuelto o aplicado antes del corte.
-- **Qué pasa con producción:** la migración (`20261017014000`) mueve las líneas de `APT-TRU-0006` del 9 al 14 y 15-oct (mismo mes: ningún total mensual cambia) y su IGV pasa de 13.71 a 13.72 (un céntimo,
+- **Qué pasa con producción:** la migración (`20261017035000`) mueve las líneas de `APT-TRU-0006` del 9 al 14 y 15-oct (mismo mes: ningún total mensual cambia) y su IGV pasa de 13.71 a 13.72 (un céntimo,
   por redondear por pago).
 DESCARTÉ: dejar el asiento en la fecha de la separación y «corregir» al cerrar (la foto de un mes cerrado seguiría divergiendo); guardar la fecha del primer pago y sumar los abonos como ajuste (dos fuentes
 de verdad para lo mismo); mover aquí el 4011 a la entrega.
@@ -256,8 +256,8 @@ el navegador:** la base local compartida no tiene la migración.
 
 ## En producción: actividades 8, 9 y 10 (2026-10-16, con el OK de Felipe)
 
-Felipe respondió «Sí, las tres ahora». Cada una con sonda de huellas antes, un ensayo en un lote que termina en `1/0` (llegó al final sin abortar ningún ancla: nada se confirmó) y el pegado con `apply_migration`, en este orden: `20261017010000_finanzas_una_regla_de_alcance` → versión de producción
-`20261017021648`; `20261017012000_finanzas_mes_cerrado_se_queda_cerrado` → `20261017021745`; `20261017014000_finanzas_apartados_por_dia_de_pago` → `20261017021836`. **Las 15 funciones tocadas quedaron con el md5 de su cuerpo, la volatilidad y los permisos idénticos a los de local** (las funciones nuevas, solo `postgres`).
+Felipe respondió «Sí, las tres ahora». Cada una con sonda de huellas antes, un ensayo en un lote que termina en `1/0` (llegó al final sin abortar ningún ancla: nada se confirmó) y el pegado con `apply_migration`, en este orden: `20261017033000_finanzas_una_regla_de_alcance` → versión de producción
+`20261017021648`; `20261017034000_finanzas_mes_cerrado_se_queda_cerrado` → `20261017021745`; `20261017035000_finanzas_apartados_por_dia_de_pago` → `20261017021836`. **Las 15 funciones tocadas quedaron con el md5 de su cuerpo, la volatilidad y los permisos idénticos a los de local** (las funciones nuevas, solo `postgres`).
 Humo como líder (solo lectura, en una transacción que se revierte): octubre trae 4 469 líneas en el diario vivo y en el congelado (`fn_diario`, sin mes cerrado), 0 asientos descuadrados, el Estado de resultados 6 filas, el Balance por tienda 4 filas, y `APT-TRU-0006` se asienta por pago: 9-oct 30.00 (122 25.42, IGV 4.58), 14-oct 30.00 (25.42, 4.58) y 15-oct 29.90 (25.34, 4.56). Por pegar quedan, de este PR, solo el aviso al contador y la decisión sobre anular la entrega de un apartado.
 
 ## Actividad 10b · La venta que entrega un apartado no se anula (hallazgo de la revisión de la 10)
@@ -266,7 +266,7 @@ Humo como líder (solo lectura, en una transacción que se revierte): octubre tr
 cobro» a la 122; el apartado sigue «entregado», el Balance (`fn_bal_anticipos`) lo da en cero y la conciliación de la 122 queda en `no_cuadra`, lo que bloquea el cierre del mes. Reproducido con las RPC reales (suite `finanzas_apartados_por_pago`, caso G: pre-arreglo, los tres casos fallan).
 
 DECIDÍ (Felipe, 2026-10-16: «que anular una venta de apartado la rechace con un mensaje»): `anular_venta` rechaza con `P0001`, `hint = venta_de_apartado` y el mensaje «Esta venta es la entrega del apartado APT-…: su adelanto quedaría sin devolver si se anula. Usa Devolución: la prenda vuelve y el dinero sale por su medio» (mismo estilo que el rechazo de la venta de un
-pedido web por entregar, ADR-0408 act. 10). Migración `20261017023000`, un reemplazo anclado de un comentario (aparece exactamente una vez en producción). En la web, el historial deja de ofrecer «Anular venta» en la venta de un apartado (`accionesDeVenta`), y el formulario de Devoluciones muestra el mensaje de la base si alguien llega por otro camino.
+pedido web por entregar, ADR-0408 act. 10). Migración `20261017040000`, un reemplazo anclado de un comentario (aparece exactamente una vez en producción). En la web, el historial deja de ofrecer «Anular venta» en la venta de un apartado (`accionesDeVenta`), y el formulario de Devoluciones muestra el mensaje de la base si alguien llega por otro camino.
 DESCARTÉ: que anular devuelva el apartado a «liberada» (toca el stock apartado y cambia el estado de un apartado: más código y más riesgo para una anulación que casi nunca es legítima); contar como pendiente en `fn_bal_anticipos` el adelanto de una venta anulada (esconde el problema en vez de impedirlo).
 SE ROMPE SI: se agrega otra forma de entregar un apartado que no deje `separaciones.venta_id` (el chequeo la ve por esa columna); una migración futura vuelve a crear `anular_venta` copiando su texto de un archivo viejo (la prueba G lo atrapa).
 **Verificado.** `pnpm pruebas:finanzas-apartados-por-pago` 19 verificaciones (los tres casos nuevos fallan sin la migración: la anulación pasaba y dejaba la 122 sin cuadrar); `lib/historial-acciones-reglas.test.ts`. **Falta pegar en producción: pide el OK de Felipe.** La revisión adversarial de esta actividad y de la 4b amplió la guarda al pedido web entregado: ver «Revisión adversarial de 10b y 4b», más abajo.
@@ -279,7 +279,7 @@ solución provisional que no espera a esa carga.
 
 DECIDÍ:
 - **Un parámetro tributario más, `saldo_favor_igv`** (Configuración ▸ Impuestos, «Saldo a favor de IGV al empezar»): lo declara el contador de la última declaración («saldo a favor del periodo anterior»), rige desde el DÍA 1 de un mes («al empezar octubre traíamos S/ X»), va en soles de 0 a 10 millones (cero es un dato:
-  declarar que no traía saldo), una corrección es una fila nueva y queda en la historia de Configuración, como el resto de los parámetros (`20261017024000`: tres reglas de la tabla, `guardar_parametro_tributario` y `fn_impuestos_igv_meses`).
+  declarar que no traía saldo), una corrección es una fila nueva y queda en la historia de Configuración, como el resto de los parámetros (`20261017041000`: tres reglas de la tabla, `guardar_parametro_tributario` y `fn_impuestos_igv_meses`).
 - **`fn_impuestos_igv_meses` parte de él** (lo leen Impuestos y la proyección de caja, así que los dos lo descuentan solos): en el mes de la vigencia, lo declarado REEMPLAZA lo que venía arrastrando (lo oficial manda sobre lo calculado con datos incompletos); si la vigencia es anterior a los primeros datos, la cadena empieza ahí y lo arrastra hasta el mes
   pedido. Sin fila declarada, la cadena es exactamente la de hoy: nada cambia hasta que Felipe cargue el número del contador.
 - **«Lo que falta»** de la proyección lista «Cargar el saldo a favor de IGV con que CAYLA arrancó (te lo da el contador)» —con su enlace a Configuración ▸ Impuestos— mientras el IGV entre a la proyección y el saldo no esté declarado (`saldo_favor_igv_declarado`).
@@ -300,3 +300,12 @@ una declaración de un mes futuro apague el aviso de «lo que falta» y que la m
 2. **El campo «Al empezar el mes» era un `<input type="month">`**, que Safari de escritorio y Firefox dibujan como caja de texto: sin formato a la vista, y «2026-13» encendía «Agregar» y fallaba en la base con un mensaje genérico. Era el único `type="month"` del ERP. Ahora el mes se ELIGE de una lista (`SelectFin` con `mesesRecientes`, los últimos 36 meses, como el resto de Finanzas), y la fecha solo se arma con un mes de 01 a 12.
 3. **El aviso de éxito del saldo decía «S/ NaN»** si el monto llevaba un «%» (`parsearParametro` lo limpia y el aviso repetía la limpieza sin él). Ahora usa el monto ya validado.
 Las dos de la web son de una sola pantalla, sin tocar la base ni el dinero.
+
+## Renumeración al juntar #1149 dentro de #1145 (2026-10-17)
+
+Producción tenía pegadas las actividades 8 a 10 antes de que #1145 se fusionara, y el check obligatorio «SQL pegado» de #1145 salía rojo (la actividad 9 reescribe `archivar_caja_prueba`, que también deja la migración `20261016211000`: el caso «otro PR pegado encima» del ADR-0251). Felipe eligió juntar #1149 dentro de #1145. Eso dejó dentro de #1145 tres migraciones que había reservado otra rama (`claude/finanzas-auditoria-costos`), y el candado de reservas lo pone en rojo (ADR-0381: las reservas no se mueven ni se liberan).
+
+DECIDÍ renombrar esas tres con versiones reservadas por la rama de #1145 (solo el prefijo de 14 dígitos; el nombre queda): `20261017010000` → `20261017033000` (alcance), `20261017012000` → `20261017034000` (mes cerrado), `20261017014000` → `20261017035000` (apartados por día de pago). Y, para que la secuencia en una base nueva sea la misma que en producción (8, 9, 10, 10b, 4b), las dos de #1154, que aún no están pegadas, pasan a `20261017040000` (10b) y `20261017041000` (4b).
+DESCARTÉ: reasignar o borrar las etiquetas de reserva (el ADR-0381 las hizo inmutables a propósito); dejar el rojo del candado (la rama protegida lo exige); separar de nuevo las dos mitades (el «SQL pegado» volvería a salir rojo).
+SE ROMPE SI: alguien busca en producción por la versión vieja de un archivo: allá esas tres tienen las versiones `20261017021648`, `20261017021745` y `20261017021836` (se pegaron con `apply_migration`, que les asignó otras), así que el historial de producción nunca coincidió con el nombre del archivo, y los checks («SQL pegado» y la deriva diaria) comparan objetos, no versiones. El contenido no cambió: solo la primera línea de comentario de cada archivo (su propio nombre).
+Esto toca la regla «nunca renombres una migración ya pegada» de `versiones.mjs`: se hizo porque el historial de producción no usa esos nombres de archivo y porque el candado no deja otra salida para SQL que ya está pegado.

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261017023000_finanzas_anular_venta_de_apartado.sql — CAYLA V2 (hallazgo de la revisión de la actividad 10, ADR-0433)
+-- 20261017040000_finanzas_anular_venta_de_apartado.sql — CAYLA V2 (hallazgo de la revisión de la actividad 10, ADR-0433)
 --
 -- EL PROBLEMA PRIMERO. Una encargada se equivoca el mismo día y anula, desde Devoluciones, la venta que ENTREGÓ un apartado. `anular_venta` devuelve las prendas
 -- al stock y revierte la venta, pero el adelanto de la clienta ya estaba asentado como lo que se le debe (122) con su IGV (4011) y la anulación «devuelve el cobro»
