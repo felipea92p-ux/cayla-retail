@@ -6,7 +6,7 @@
   "controles": {
     "components/finanzas/CuentasDinero.tsx": [
       "Boton «fin-dinero.registrar»",
-      "button «Registrar el depósito»",
+      "button «fin-dinero.aviso-registrar»",
       "button «fin-dinero.poner-plata»",
       "button «Sacar plata»",
       "Link «Cambiar en Configuración»",

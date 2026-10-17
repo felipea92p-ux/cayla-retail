@@ -399,13 +399,6 @@ export const GUIA_FIN_CUENTAS: Guia = {
       texto: "Cuánto se movió y el número del voucher o una nota, para encontrarlo después en el banco. En un depósito de la máquina es lo que LLEGÓ al banco, ya sin su comisión.",
     },
     {
-      id: "mov-lotes",
-      ancla: "fin-dinero.mov-lotes",
-      opcional: true,
-      titulo: "Qué días cubre el depósito",
-      texto: "Solo en un depósito de la máquina (Izipay, Vendemás): los días cobrados con tarjeta o QR que todavía no depositó, marcados hasta la fecha del depósito. Lo cobrado esos días menos lo que llegó es la comisión real: sale sola y queda como gasto.",
-    },
-    {
       id: "mov-fecha",
       ancla: "fin-dinero.mov-fecha",
       opcional: true,
@@ -448,8 +441,17 @@ export const GUIA_FIN_CUENTAS: Guia = {
       texto: "Si Izipay o Vendemás no depositó un día dentro de su plazo (el de su tarifa; sin tarifa, 3 días hábiles), aparece aquí: cuántos días esperan, cuánto suman y desde cuándo. «Registrar el depósito» abre el movimiento con esa máquina.",
     },
     {
+      id: "mov-lotes",
+      ancla: "fin-dinero.mov-lotes",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "fin-dinero.aviso-registrar", siEsta: true }],
+      titulo: "Qué días cubre el depósito",
+      texto: "Te abrimos el depósito desde el aviso. Son los días cobrados con tarjeta o QR que la máquina todavía no depositó, marcados hasta la fecha del depósito. Lo cobrado esos días menos lo que llegó al banco es la comisión real: sale sola y queda como gasto. En la demo no registramos.",
+    },
+    {
       id: "cuentas",
       ancla: "fin-dinero.cuentas",
+      preparar: [{ tipo: "escape" }],
       titulo: "Cada lugar con su saldo",
       texto: "Una tarjeta por lugar: cuánto hay y de dónde sale. Los cajones suben con las ventas en efectivo y bajan con los egresos y depósitos. El saldo del cajón solo lo ve quien puede cerrar la caja.",
     },

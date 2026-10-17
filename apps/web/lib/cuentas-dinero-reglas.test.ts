@@ -9,6 +9,7 @@ import {
   cuentasVisibles,
   deudaConDueno,
   diaYNumero,
+  ejemploReferenciaDeposito,
   explicacionCuenta,
   hoyEnPalabras,
   insigniaCuenta,
@@ -453,5 +454,17 @@ describe("la tarifa de cada máquina solo estima y avisa (ADR-0429, act. 4)", ()
     expect(avisos.map((a) => a.titulo.replace(/\u00a0/g, " "))).toEqual(["Vendemás no depositó 2 días (S/ 1,200.00)"]);
     expect(avisos[0]!.detalle).toBe("El más viejo lleva 5 días hábiles esperando y Vendemás deposita en 2. Si ya llegó al banco, regístralo; si no, reclámalo a Vendemás.");
     expect(avisosDeMaquinas([al({ atrasados: 1, montoAtrasado: 80, sinTarifa: true, diasHabilesMasViejo: 4 })])[0]!.detalle).toContain("sin tarifa cargada: se avisa a los 3");
+  });
+});
+
+describe("el ejemplo del voucher de un depósito de máquina sigue a la máquina (ADR-0290)", () => {
+  it("nombra la máquina de la cuenta puente elegida", () => {
+    expect(ejemploReferenciaDeposito("Por depositar Vendemás")).toBe("Depósito Vendemás 15-oct");
+    expect(ejemploReferenciaDeposito("Por depositar Izipay")).toBe("Depósito Izipay 15-oct");
+  });
+  it("sin máquina elegida no promete ninguna", () => {
+    expect(ejemploReferenciaDeposito(null)).toBe("Depósito de la máquina 15-oct");
+    expect(ejemploReferenciaDeposito(undefined)).toBe("Depósito de la máquina 15-oct");
+    expect(ejemploReferenciaDeposito("")).toBe("Depósito de la máquina 15-oct");
   });
 });

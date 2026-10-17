@@ -31,6 +31,7 @@ import {
   cuentasVisibles,
   deudaConDueno,
   diaYNumero,
+  ejemploReferenciaDeposito,
   explicacionCuenta,
   hoyEnPalabras,
   insigniaCuenta,
@@ -80,7 +81,8 @@ const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as stri
 
 // ---- La pantalla: cabecera, «Ver» y el modal de registrar, compartidos por las tres pestañas ------------------------------
 
-type AbrirMovimiento = (que?: QuePaso) => void;
+/** `origenId`: la cuenta de la que sale la plata, si quien abre ya lo sabe (el aviso de una máquina atrasada abre SU depósito). */
+type AbrirMovimiento = (que?: QuePaso, origenId?: string) => void;
 const ContextoMovimiento = createContext<AbrirMovimiento>(() => {});
 
 export function PantallaDinero({
@@ -114,7 +116,7 @@ export function PantallaDinero({
   const router = useRouter();
   const ruta = usePathname();
   const params = useSearchParams();
-  const [modal, setModal] = useState<QuePaso | null>(null);
+  const [modal, setModal] = useState<{ que: QuePaso; origenId?: string } | null>(null);
   const nombreSede = ver.ubicacionId ? (ubicaciones.find((u) => u.id === ver.ubicacionId)?.nombre ?? "tu tienda") : "Todas las tiendas";
 
   const irA = (v: string) => {
@@ -124,7 +126,7 @@ export function PantallaDinero({
   };
 
   return (
-    <ContextoMovimiento.Provider value={(que) => setModal(que ?? "deposito")}>
+    <ContextoMovimiento.Provider value={(que, origenId) => setModal({ que: que ?? "deposito", origenId })}>
       <div className="space-y-6">
         <CabeceraDinero
           pestana={pestana}
@@ -149,7 +151,7 @@ export function PantallaDinero({
               ) : (
                 <Chip versalitas={false}>{nombreSede}</Chip>
               )}
-              <Boton type="button" peso="primario" onClick={() => setModal("deposito")} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
+              <Boton type="button" peso="primario" onClick={() => setModal({ que: "deposito" })} aria-haspopup="dialog" data-guia="fin-dinero.registrar">
                 + Registrar movimiento
               </Boton>
             </>
@@ -164,7 +166,8 @@ export function PantallaDinero({
       </div>
       {modal && (
         <RegistrarMovimientoModal
-          inicial={modal}
+          inicial={modal.que}
+          origenInicial={modal.origenId}
           cuentas={cuentas}
           esLider={esLider}
           ubicacionId={ver.ubicacionId}
@@ -233,7 +236,7 @@ export function CuentasPanel({
           titulo={a.titulo}
           guia="fin-dinero.aviso-maquina"
           accion={
-            <button type="button" className="btn-cayla btn-enlace" onClick={() => abrir("abono_tarjeta")}>
+            <button type="button" className="btn-cayla btn-enlace" onClick={() => abrir("abono_tarjeta", a.maquina.cuentaId)} aria-haspopup="dialog" data-guia="fin-dinero.aviso-registrar">
               Registrar el depósito
             </button>
           }
@@ -844,6 +847,7 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
 
 function RegistrarMovimientoModal({
   inicial,
+  origenInicial,
   cuentas,
   esLider,
   ubicacionId,
@@ -852,6 +856,8 @@ function RegistrarMovimientoModal({
   onCerrar,
 }: {
   inicial: QuePaso;
+  /** La cuenta de origen con que arranca, si una pantalla ya la sabe (solo vale si es una de las que este movimiento ofrece). */
+  origenInicial?: string;
   cuentas: CuentaDinero[];
   esLider: boolean;
   ubicacionId: string | null;
@@ -865,7 +871,11 @@ function RegistrarMovimientoModal({
   const [token] = useState(() => crypto.randomUUID());
   const [guardando, setGuardando] = useState(false);
   const [egresos, setEgresos] = useState<EgresoParaMovimiento[]>([]);
-  const [b, setB] = useState<BorradorMovimiento>(() => inicialDe(inicial, cuentas, ubicacionId, deuda, hoy));
+  const [b, setB] = useState<BorradorMovimiento>(() => {
+    const base = inicialDe(inicial, cuentas, ubicacionId, deuda, hoy);
+    const ofrecido = origenInicial && cuentasPara(cuentas, opcionQuePaso(inicial).origen, "origen").some((c) => c.id === origenInicial);
+    return ofrecido ? { ...base, origen: origenInicial, fuente: fuenteInicial(cuentas.find((c) => c.id === origenInicial)) } : base;
+  });
   const op = opcionQuePaso(b.que);
   const origenes = cuentasPara(cuentas, op.origen, "origen");
   const destinos = cuentasPara(cuentas, op.destino, "destino");
@@ -1107,7 +1117,7 @@ function RegistrarMovimientoModal({
           )}
         </CampoFin>
         <CampoFin etiqueta="Voucher o nota" htmlFor="mov-ref">
-          <InputFin id="mov-ref" value={b.referencia} onChange={(e) => cambiar({ referencia: e.target.value })} placeholder={tipo === "abono_tarjeta" ? "Depósito Izipay 15-oct" : "Voucher 120441"} maxLength={MAX_REFERENCIA_MOVIMIENTO} />
+          <InputFin id="mov-ref" value={b.referencia} onChange={(e) => cambiar({ referencia: e.target.value })} placeholder={tipo === "abono_tarjeta" ? ejemploReferenciaDeposito(origen?.nombre) : "Voucher 120441" /* sugerir-fijo: el formato de un voucher, no depende de nada elegido */} maxLength={MAX_REFERENCIA_MOVIMIENTO} />
         </CampoFin>
       </div>
 

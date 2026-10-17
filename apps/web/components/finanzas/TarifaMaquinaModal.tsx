@@ -82,12 +82,12 @@ export function TarifaMaquinaModal({ maquina, medioInicial, onCerrar }: { maquin
       <p className="nota-cayla mb-4">Hoy: {textoTarifa(vigente)}.</p>
 
       <div className="fin-dos-campos">
-        <CampoGuiado id={ID_TASA} guia={guia}>
+        <CampoGuiado id={ID_TASA} guia={guia} className="mb-3">
           <CampoFin etiqueta={guia.etiqueta(ID_TASA, "Tasa (%)")} htmlFor={ID_TASA} ayuda="Lo que la máquina descuenta de cada pago.">
             <InputFin id={ID_TASA} inputMode="decimal" value={b.tasa} onChange={(e) => cambiar({ tasa: e.target.value })} placeholder="3.50" /* sugerir-fijo: el formato de un porcentaje con dos decimales, no depende de nada elegido */ />
           </CampoFin>
         </CampoGuiado>
-        <CampoGuiado id={ID_FIJO} guia={guia}>
+        <CampoGuiado id={ID_FIJO} guia={guia} className="mb-3">
           <CampoFin etiqueta={guia.etiqueta(ID_FIJO, "Cargo fijo por pago (S/)")} htmlFor={ID_FIJO} ayuda="Si no cobra uno, déjalo vacío.">
             <InputFin id={ID_FIJO} inputMode="decimal" value={b.cargoFijo} onChange={(e) => cambiar({ cargoFijo: e.target.value })} placeholder="0.00" /* sugerir-fijo: el formato de un monto en soles, no depende de nada elegido */ />
           </CampoFin>

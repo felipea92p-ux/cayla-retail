@@ -68,6 +68,12 @@ export function leerTarifa(f: Fila): TarifaPos | null {
   if (f.tasa_pct === null || f.tasa_pct === undefined) return null;
   return { tasaPct: num(f.tasa_pct), igvSobreTasa: f.igv_sobre_tasa !== false, cargoFijo: num(f.cargo_fijo), diasAbono: num(f.dias_abono), desde: texto(f.tarifa_desde) };
 }
+/** El ejemplo del voucher de un depósito de máquina sigue a la máquina elegida (ADR-0290): «Por depositar Vendemás» → «Depósito Vendemás 15-oct».
+ *  Sin máquina elegida, un texto neutro que no nombra a ninguna. */
+export function ejemploReferenciaDeposito(nombreCuentaPuente: string | null | undefined): string {
+  const maquina = (nombreCuentaPuente ?? "").replace(/^por depositar\s+/i, "").trim();
+  return `Depósito ${maquina || "de la máquina"} 15-oct`;
+}
 /** «3,5 % + IGV + S/ 0.20 por pago · deposita en 2 días hábiles»; sin tarifa, lo dice (y cuántos días se esperan antes de avisar). */
 export function textoTarifa(t: TarifaPos | null): string {
   if (!t) return "Sin tarifa: solo avisa pasados 3 días hábiles";

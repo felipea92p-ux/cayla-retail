@@ -209,7 +209,7 @@ export function ConfiguracionCuentas({
             </Vacio>
           ) : (
             <div className="fin-tabla-wrap">
-              <table className="fin-tabla" style={{ minWidth: 560 }}>
+              <table className="fin-tabla">
                 <thead>
                   <tr>
                     <th>Máquina</th>
