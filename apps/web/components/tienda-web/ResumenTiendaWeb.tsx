@@ -124,7 +124,7 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
 
           {sedes && (
             <section className="card-cayla tw-entra self-start p-5" style={{ "--i": 1 } as CSSProperties} data-guia="tienda-web.tiendas">
-              <TituloSeccion nivel={2} accion={<EnlaceVer href="/tienda-web/ajustes">Ajustes</EnlaceVer>}>
+              <TituloSeccion nivel={2} accion={<EnlaceVer href="/tienda-web/ajustes">Datos y plazos</EnlaceVer>}>
                 Tiendas en la web
               </TituloSeccion>
               <ul className="mt-2">

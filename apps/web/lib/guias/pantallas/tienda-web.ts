@@ -32,7 +32,7 @@ export const GUIA_TIENDA_WEB_RESUMEN: Guia = {
       ancla: "tienda-web.tiendas",
       opcional: true,
       titulo: "Las tiendas en la web",
-      texto: "En verde, la tienda se ve y el cliente puede recoger ahí lo que separa. En ámbar, está encendida pero le falta un dato y no se ve. «Ajustes» te lleva a completarla.",
+      texto: "En verde, la tienda se ve y el cliente puede recoger ahí lo que separa. En ámbar, está encendida pero le falta un dato y no se ve. «Datos y plazos» te lleva a completarla.",
     },
     {
       id: "pendientes",
@@ -971,7 +971,7 @@ export const GUIA_RECOMENDACIONES: Guia = {
 export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
   id: "tienda-web.ajustes",
   ruta: "/tienda-web/ajustes",
-  titulo: "Ajustes",
+  titulo: "Datos y plazos",
   resumen: "Lo que la tienda online muestra de cada tienda y cuánto espera un pedido en cada paso.",
   pasos: [
     {
@@ -1010,7 +1010,7 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes qué muestra la tienda web de cada tienda y sus plazos. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Ajustes.",
+      texto: "Ya sabes qué muestra la tienda web de cada tienda y sus plazos. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Datos y plazos.",
     },
   ],
 };

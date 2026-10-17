@@ -22,8 +22,8 @@ import { ConfiguracionPresupuesto } from "@/components/finanzas/ConfiguracionPre
 // en el spike (docs/maquetas/finanzas-2026-09/, `VISTAS.config`), una sola pantalla con pestañas por URL (`?tab=`). Hoy
 // trae Empresa (solo lectura), Tiendas y caja (F1), Cuentas y cobros (F3), Caja y avisos, Gastos fijos (F2b), Presupuesto (capa
 // «para decidir», `?mes=` elige el mes) e Impuestos (F8), sin pestañas vacías. «Tienda web» fue una pestaña de aquí (ADR-0408 act. 6)
-// hasta el 2026-10-16: desde ADR-0430 es Tienda web ▸ Ajustes (`/tienda-web/ajustes`), con el mismo módulo y la misma regla
-// (`fn_puede_configurar`); la dirección vieja, `?tab=tienda-web`, lleva allá (`next.config.ts`).
+// hasta el 2026-10-16: desde ADR-0430 es Tienda web ▸ Datos y plazos (`/tienda-web/ajustes`), y desde 20261016223000 con su propio módulo
+// (`ajustes_web`, `fn_puede_ajustes_tienda_web`): Configuración ya no la abre; la dirección vieja, `?tab=tienda-web`, lleva allá (`next.config.ts`).
 const PESTANAS = [
   { clave: "empresa", etiqueta: "Empresa", href: "/configuracion?tab=empresa", guia: "config.tab-empresa" },
   { clave: "tiendas", etiqueta: "Tiendas y caja", href: "/configuracion?tab=tiendas", guia: "config.tab-tiendas" },
