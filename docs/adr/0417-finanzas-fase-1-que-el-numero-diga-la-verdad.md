@@ -156,7 +156,8 @@ cómo se pega: **ADR-0429** (`docs/adr/0429-cobros-con-tarjeta-y-qr-la-maquina-l
 máquina (Izipay, Vendemás) es una entidad chica con su puente 1 a 1; el destino por defecto sigue en «A qué cuenta entra cada cobro»
 (ahora también para el QR); la hoja de cobro pregunta la máquina solo donde hay dos; el depósito se cruza contra los días pendientes y la
 comisión real es la diferencia; la tarifa solo estima y avisa; y lo pasado se rehace una vez, con rastro. Cinco migraciones
-(`20261016173000` … `20261016193000`) **SIN PEGAR**, en orden y con el OK de Felipe; la última toca filas y se ensaya primero. Cuando se
+(`20261016173000` … `20261016193000`), **pegadas en producción el 2026-10-17** con el OK de Felipe, en orden y con el ensayo previo de la
+última (ADR-0429, «Actualización 2026-10-17»). Cuando se
 peguen, el tramo «tarjeta» del medidor de confianza sube solo (lee `medios_de_cobro`, que pasa a apuntar a las puentes). Lo que Felipe
 hace después de pegar (saldo inicial de Interbank, tarifas, registrar los depósitos ya recibidos) está en el ADR-0429 y en
 `docs/backlog/2026-10-16-upbeat-euclid-d973d1.md`.

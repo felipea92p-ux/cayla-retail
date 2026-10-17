@@ -1,8 +1,8 @@
 # ADR-0429 · Cobros con tarjeta y QR: la máquina que cobra, las cuentas «por depositar» y la comisión real
 
 - **Fecha:** 2026-10-16 · **Estado:** **construido en la rama `claude/upbeat-euclid-d973d1`** (seis actividades de `/construir`, una por
-  commit); **las cinco migraciones están SIN PEGAR en producción** y se pegan en orden, con el OK de Felipe (la quinta toca filas de
-  producción y se ensaya primero). Lista de actividades aprobada por Felipe el 2026-10-16, con tres valores por defecto suyos: el
+  commit); **las cinco migraciones se pegaron en producción el 2026-10-17** (por el conector, con el OK de Felipe, en orden; la quinta con
+  ensayo previo, que coincidió con la sonda: ver «Actualización 2026-10-17»). Lista de actividades aprobada por Felipe el 2026-10-16, con tres valores por defecto suyos: el
   histórico de tarjeta de TRU y AQP va a Vendemás, se rehace desde el 30 de septiembre y solo el líder registra depósitos.
 - **Nace de:** la decisión 3 del ADR-0417 (aprobada el 2026-10-15) y el diseño de cobros con tarjeta del 2026-10-05.
 - **Complementa:** ADR-0195 F3 (cuentas de dinero, `medios_de_cobro` con vigencia) y F3b (la cuenta sellada en cada cobro), ADR-0198 y
@@ -107,3 +107,21 @@ Cuentas y dinero al día; guía de foco en la hoja nueva.
 - Una devolución o anulación de una venta pagada con tarjeta se asienta hoy en la 451 (la tarjeta de crédito de CAYLA) en vez de salir de la
   puente o del banco: tarea aparte, propuesta el 2026-10-16 (hoy 0 casos).
 - Los feriados en el conteo de días hábiles.
+
+## Actualización 2026-10-17: las cinco migraciones están en producción
+
+Pegadas entre las 09:31 y las 09:39 (Lima) por el conector de Supabase, con el «Sí» explícito de Felipe en la sesión, cada una en su orden y en
+una sola ejecución; en `schema_migrations` figuran por la hora en que se aplicaron (`20261017143147` … `20261017143929`), no por su nombre de
+archivo. Protocolo, el de siempre y por escrito: **antes**, una sonda de solo lectura (las huellas `md5(prosrc)` de las nueve funciones vivas
+que se parchan por ancla iguales a las medidas el 16-oct; cada ancla una sola vez; 0 meses cerrados; sin puentes ni tablas nuevas); **después de
+cada una**, su verificación: las diecinueve funciones nuevas con la misma huella que el texto del repo (carácter por carácter), los ocho parches
+anclados presentes, las tablas nuevas con RLS y sus disparadores, `anon` sin ejecutar ninguna. La **193000 se ensayó primero** (el archivo entero
+más un `do $$ … raise exception 'ENSAYO_OK …' $$` final que deshace todo y trae el resultado en el mensaje): movió en el ensayo exactamente los
+cobros que la sonda contaba en el BCP desde el 30-sep, por tienda y medio, con 0 sin destino y 0 apartados, cambios o devoluciones tocados; se
+comprobó que no dejó rastro (ni tabla, ni función, ni sello cambiado) y se pegó de verdad. Resultado: 0 cobros con tarjeta o QR en un banco desde
+el 30-sep, todos en la puente de su máquina con su fila en `cobros_resellados`, Yape, Plin y transferencias intactos, y una segunda corrida
+movería 0. Las cifras exactas (cobros y soles por tienda y medio) quedan fuera del repo, en la nota de traspaso de la sesión.
+
+Lo que sigue es de Felipe, en pantalla (paso 6 de «Cómo se pega»): el saldo inicial de Interbank, las tarifas de Vendemás y de la tarjeta de
+Izipay, y registrar los depósitos ya recibidos desde el 30-sep con «Depósito de la máquina». Hasta entonces las puentes muestran todo como
+pendiente y el aviso de atraso se prende: es lo correcto.
