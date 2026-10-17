@@ -12,6 +12,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { VistaDelCliente } from "@/components/recomendaciones/VistaDelCliente";
 import { LoQuePide } from "@/components/recomendaciones/LoQuePide";
 import { useCatalogoParaResponder } from "@/components/recomendaciones/useCatalogoParaResponder";
+import { useQuienEsElCliente } from "@/components/recomendaciones/useQuienEsElCliente";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { createClient } from "@/lib/supabase/client";
@@ -21,6 +22,8 @@ import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { haceCuanto } from "@/lib/vender-hoy-reglas";
 import { camposRecomendacion } from "@/lib/recomendaciones-guia";
 import { necesitaCatalogo, temasDe, type TemaId } from "@/lib/recomendaciones-temas";
+import { lineaDelCliente } from "@/lib/recomendaciones-cliente";
+import { diaLima } from "@/lib/fechas-lima";
 import { ayudaDeLaCaja, iniciosDe } from "@/lib/sugerencias-recomendaciones";
 import {
   MAX_RESPUESTA,
@@ -123,6 +126,8 @@ export function RecomendacionHoja({
   const tema = temas.find((t) => t.id === temasElegidos[r.id]) ?? temas[0] ?? null;
   const catalogo = useCatalogoParaResponder(necesitaCatalogo(temas));
   const primerNombre = r.cliente?.nombre.split(" ")[0] ?? null;
+  // Quién es (actividad 5): su club, sus compras y su tienda, solo para quien ve las fichas de clientes (regla B-03).
+  const quien = useQuienEsElCliente(r.cliente?.fichaId ?? null, veFichas);
   const inicios = iniciosDe(tema, { nombre: primerNombre, tienda: r.tienda?.nombre ?? null, datos: catalogo.estado === "ok" ? catalogo.datos : null });
   // Lo que había escrito antes de tocar una forma de empezar, para «Deshacer» (se olvida apenas vuelve a escribir).
   const [antesDelInicio, setAntesDelInicio] = useState<Record<string, string>>({});
@@ -297,9 +302,12 @@ export function RecomendacionHoja({
       titulo={nombre ?? "Recomendación sin nombre"}
       frase={
         nombre && veFichas ? (
-          <Link href={hrefFicha(nombre)} onClick={cerrarHoja} className="btn-enlace">
-            Ver su ficha
-          </Link>
+          <>
+            {quien && <span data-guia="recomendacion.quien-es">{lineaDelCliente(quien, diaLima(new Date(ahora).toISOString()) ?? "")} · </span>}
+            <Link href={hrefFicha(nombre)} onClick={cerrarHoja} className="btn-enlace">
+              Ver su ficha
+            </Link>
+          </>
         ) : undefined
       }
       guiaCabecera="recomendacion.cliente"

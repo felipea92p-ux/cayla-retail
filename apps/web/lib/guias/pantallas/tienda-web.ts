@@ -933,7 +933,14 @@ export const GUIA_RECOMENDACIONES: Guia = {
       ancla: "recomendacion.cliente",
       opcional: true,
       titulo: "Quién la escribió",
-      texto: "Arriba del cajón: sobre qué tienda es, su nombre y, si tu rol ve las fichas de clientes, el camino a su ficha. Si su ficha se anonimizó, la recomendación se queda sin su nombre.",
+      texto: "Arriba del cajón: sobre qué tienda es, su nombre y, si tu rol ve las fichas de clientes, quién es (del club, cuánto compra, en qué tienda) y el camino a su ficha. Si su ficha se anonimizó, queda sin su nombre.",
+    },
+    {
+      id: "quien-es",
+      ancla: "recomendacion.quien-es",
+      opcional: true,
+      titulo: "Quién es",
+      texto: "Si es del club, cuánto compró en el último año, en qué tienda y cuándo fue la última vez. Lo ves solo si tu rol ve las fichas de clientes.",
     },
     {
       id: "respuesta-dada",
