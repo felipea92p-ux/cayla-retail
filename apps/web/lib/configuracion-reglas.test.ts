@@ -130,7 +130,7 @@ describe("metas por mes y por fecha (ADR-0435)", () => {
   it("la semana de un mes rechaza lo que la base rechaza, diciendo qué día", () => {
     expect(validarSemanaMes(["1", "2"]).ok).toBe(false);
     expect(validarSemanaMes(["", "", "", "", "", "", "-5"])).toEqual({ ok: false, error: "Domingo: No puede ser negativo." });
-    expect(validarSemanaMes(["", "mil", "", "", "", "", ""])).toEqual({ ok: false, error: "Martes: Escribe un monto, por ejemplo 1500." });
+    expect(validarSemanaMes(["", "mil", "", "", "", "", ""])).toEqual({ ok: false, error: "Martes: No se entiende el monto: escríbelo así, 1299.50 o 1299,50." }); // ADR-0433 act. 2: un texto que no es número dice «no se entiende», no «escribe un monto»
     expect(validarSemanaMes(["10000000", "", "", "", "", "", ""])).toEqual({ ok: false, error: "Lunes: Tiene que ser menor a 10 millones." });
     expect(validarSemanaMes(["9999999.99", "", "", "", "", "", ""]).ok).toBe(true);
   });

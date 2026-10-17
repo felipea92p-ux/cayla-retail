@@ -2,17 +2,18 @@
 // Las mismas reglas las cierra la base (`guardar_metas_tienda`, `guardar_efecto_campana`, checks y disparadores de
 // 20260924210000); aquí solo se dicen con una frase clara ANTES de ir a la base.
 
+import { leerMontoPlata, MONTO_ILEGIBLE } from "./monto-plata-reglas";
+
 export const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"] as const;
 export const DIAS_CORTOS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
 
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
-/** "1,500", "1500.50", "S/ 300" → número. Vacío → `null` (sin meta ese día / fondo normal). */
+/** "1,500", "1500.50", "648,50", "S/ 300" → número, con la regla única de `leerMontoPlata`. Vacío → `null` (sin meta ese día / fondo normal). */
 export function parsearMonto(texto: string): Resultado<number | null> {
-  const limpio = texto.replace(/s\/|\s/gi, "").replace(/,/g, "");
-  if (limpio === "") return { ok: true, valor: null };
-  if (!/^-?\d+(\.\d{1,2})?$/.test(limpio)) return { ok: false, error: "Escribe un monto, por ejemplo 1500." };
-  const n = Number(limpio);
+  if (texto.trim() === "") return { ok: true, valor: null };
+  const n = leerMontoPlata(texto);
+  if (n === null) return { ok: false, error: MONTO_ILEGIBLE };
   if (n < 0) return { ok: false, error: "No puede ser negativo." };
   return { ok: true, valor: n };
 }

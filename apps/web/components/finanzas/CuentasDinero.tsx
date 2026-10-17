@@ -17,6 +17,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { fechaCorta, solesRedondo, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
 import { horaLima } from "@/lib/fechas-lima";
+import { leerMontoPlata, MONTO_ILEGIBLE } from "@/lib/monto-plata-reglas";
 import {
   MEDIOS_COBRO,
   OPCIONES_QUE_PASO,
@@ -612,8 +613,9 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
     );
 
   async function anotar() {
-    const n = Number(saldo.replace(/s\/|\s|,/gi, ""));
-    if (saldo.trim() === "" || !Number.isFinite(n)) return avisar.error("Escribe el saldo que dice el banco, por ejemplo 38420.50.");
+    if (saldo.trim() === "") return avisar.error("Escribe el saldo que dice el banco, por ejemplo 38420.50.");
+    const n = leerMontoPlata(saldo);
+    if (n === null) return avisar.error(MONTO_ILEGIBLE);
     if (fecha > hoy) return avisar.error("La fecha no puede ser futura.");
     const ok = await ejecutar(
       () => createClient().rpc("registrar_conciliacion" as never, { p_cuenta_id: actual!.cuenta.id, p_fecha: fecha, p_saldo_banco: n, p_nota: null } as never),
