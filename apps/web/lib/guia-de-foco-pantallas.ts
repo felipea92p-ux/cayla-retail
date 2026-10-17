@@ -223,7 +223,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ADR-0408 (actividad 11): Vitrina web ▸ Looks. Lo que se llena vive en sus dos hojas: la del look (nombre, de 2 a 4 prendas, que se vean
   // en la web si se va a mostrar, y quién lo cambia; la frase es opcional y el lugar viene puesto) y la de mostrar u ocultar (quién).
   "/tienda-web/vitrina/looks": { estado: "aplicada", evidencia: ["components/vitrina/LookHoja.tsx", "components/vitrina/LookMostrarHoja.tsx"] },
-  "/tienda-web/vitrina/probador": { estado: "aplicada", evidencia: ["components/vitrina/PrepararRecortesHoja.tsx", "components/vitrina/RevisarRecorteHoja.tsx"] },
+  "/tienda-web/vitrina/probador": { estado: "aplicada", evidencia: ["components/vitrina/PrepararRecortesHoja.tsx", "components/vitrina/RevisarRecorteHoja.tsx", "components/vitrina/ProbadorPrendaHoja.tsx", "components/vitrina/LargosTipicosHoja.tsx"] },
   // ---- vender ----
   "/vender": PENDIENTE,
   "/vender/apartados": PENDIENTE,
@@ -484,4 +484,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   // quién lo hace. Lo demás lo hace el recortador.
   "components/vitrina/PrepararRecortesHoja.tsx": { estado: "aplicada", evidencia: ["components/vitrina/PrepararRecortesHoja.tsx"] },
   "components/vitrina/RevisarRecorteHoja.tsx": { estado: "aplicada", evidencia: ["components/vitrina/RevisarRecorteHoja.tsx"] },
+  // ADR-0434 (actividad 3): el largo de una prenda y los largos típicos. «Falta» es lo que `vitrina_guardar_largo` y
+  // `vitrina_guardar_largos_tipicos` rechazarían (de 5 a 250 cm) y, sin típico, el largo que deja a la prenda fuera del probador.
+  "components/vitrina/ProbadorPrendaHoja.tsx": { estado: "aplicada", evidencia: ["components/vitrina/ProbadorPrendaHoja.tsx"] },
+  "components/vitrina/LargosTipicosHoja.tsx": { estado: "aplicada", evidencia: ["components/vitrina/LargosTipicosHoja.tsx"] },
 };

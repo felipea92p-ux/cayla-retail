@@ -39,7 +39,7 @@
 -- PRODUCCIÓN. NO está aplicada (actividad 1 del ADR-0434, con el OK de Felipe). Una sola parte, re-ejecutable: una tabla NUEVA sin
 -- políticas y funciones; no altera tablas en uso, no crea políticas ni toca disparadores (ADR-0195). La llave foránea a
 -- `public.personas` toma un instante esa tabla en modo SHARE ROW EXCLUSIVE (`lock_timeout` lo corta a los 3 s). Dentro de los textos
--- entre comillas no hay ningún `select … into` (ADR-0288). Prueba: `pnpm pruebas:vitrina-recortes`.
+-- entre comillas no hay ningún `select … into` (ADR-0288). Prueba: `pnpm pruebas:vitrina-probador`.
 -- ============================================================================
 
 set search_path = retail, public, extensions;

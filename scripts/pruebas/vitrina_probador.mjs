@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /**
- * Los recortes de las fotos de prenda para el probador (ADR-0434, actividad 1) contra el Postgres local — CAYLA V2.
+ * Vitrina ▸ Probador (ADR-0434, actividades 1 a 3) contra el Postgres local — CAYLA V2: los recortes de las fotos de prenda, los
+ * largos y la lista viva.
  *
- * QUÉ PRUEBA. `20261017003000_foto_recortes.sql` y `20261017013000_recorte_foto_sin_responsable.sql`:
+ * QUÉ PRUEBA. `20261017003000_foto_recortes.sql`, `20261017013000_recorte_foto_sin_responsable.sql` y
+ * `20261017015000_vitrina_largos_del_probador.sql`:
  *   1. Permisos: leer y revisar es del módulo `vitrina_web`; anotar un recorte, de quien ve la Vitrina o edita el catálogo (Micaela edita
  *      el catálogo y no ve la Vitrina: anota, pero no lee ni revisa); alguien sin nada de eso no anota. La tabla no la lee nadie directo;
  *      las funciones son de las cuentas del ERP y no de `anon` ni de `tienda_web`.
@@ -14,19 +16,24 @@
  *   5. Las migraciones se pueden volver a correr.
  *   6. Al subir una foto (actividad 2): con el responsable obligatorio, el recorte se anota sin elegir a nadie con la clave
  *      `recorte_foto` y queda a nombre de la cuenta; sin la clave, el candado de siempre lo frena.
+ *   7. Los largos (actividad 3): la siembra trae típicos y NO para vestidos, conjuntos, enterizos ni faldas (Felipe, 2026-10-16); el
+ *      largo propio va de 5 a 250 cm, solo para una prenda de la vitrina, vuelve al típico con vacío, no sube la versión de la vitrina
+ *      y se anota en la Actividad con su nombre; los típicos se cambian y se quitan, y lo que no cambia no escribe; es de la Vitrina.
+ *   8. La lista viva: cada prenda publicada con su largo y su típico, sus colores con o sin foto propia, cómo van sus recortes y su
+ *      miniatura (el recorte listo antes que la foto).
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK, como Felipe (líder), Micaela (integrante) o una cuenta sin colaborador:
  * nunca se commitea nada. Los archivos del almacén se simulan con filas en `storage.objects` dentro de la misma transacción.
  *
- * PROBAR ANTES DE APLICAR. `APLICAR_ANTES=supabase/migrations/20261017003000_foto_recortes.sql,supabase/migrations/20261017013000_recorte_foto_sin_responsable.sql`
+ * PROBAR ANTES DE APLICAR. `APLICAR_ANTES=supabase/migrations/20261017003000_foto_recortes.sql,supabase/migrations/20261017013000_recorte_foto_sin_responsable.sql,supabase/migrations/20261017015000_vitrina_largos_del_probador.sql`
  * mete las migraciones dentro de cada transacción. Sin la variable, prueba lo que la base ya tiene (lo que hace el CI).
  *
  * DA POR SENTADO: el seed («Blusa Emma» y «Falda Renata»; Felipe líder, Micaela integrante que edita el catálogo) y la Vitrina web
  * (20261014225000).
  *
  * USO
- *   pnpm pruebas:vitrina-recortes    → necesita el stack local (`npx supabase start`)
- *   pnpm pruebas:vitrina-recortes -- --contenedor supabase_db_<mi-pila>
+ *   pnpm pruebas:vitrina-probador    → necesita el stack local (`npx supabase start`)
+ *   pnpm pruebas:vitrina-probador -- --contenedor supabase_db_<mi-pila>
  */
 
 import { execFileSync } from "node:child_process";
@@ -34,7 +41,11 @@ import { readFileSync } from "node:fs";
 
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
-const MIGRACIONES = ["supabase/migrations/20261017003000_foto_recortes.sql", "supabase/migrations/20261017013000_recorte_foto_sin_responsable.sql"];
+const MIGRACIONES = [
+  "supabase/migrations/20261017003000_foto_recortes.sql",
+  "supabase/migrations/20261017013000_recorte_foto_sin_responsable.sql",
+  "supabase/migrations/20261017015000_vitrina_largos_del_probador.sql",
+];
 const APLICAR_ANTES = process.env.APLICAR_ANTES
   ? process.env.APLICAR_ANTES.split(",")
       .map((f) => f.trim())
@@ -249,6 +260,80 @@ esperarError(
   correr(`${PREPARAR}${EXIGE_RESPONSABLE}${COMO(MICAELA)}select retail.registrar_recorte('${FOTO_SUBIDA}', '${RECORTE_SUBIDA}', 0.8);\n${FIN}`),
   "responsable_requerido",
 );
+
+console.log("7. Los largos");
+const PRENDA = (campo) => `(select p -> '${campo}' from jsonb_array_elements(retail.fn_vitrina_probador() -> 'prendas') p where p ->> 'producto_id' = :'emma')`;
+const PRENDA_TEXTO = (campo) => `(select p ->> '${campo}' from jsonb_array_elements(retail.fn_vitrina_probador() -> 'prendas') p where p ->> 'producto_id' = :'emma')`;
+esperarValor(
+  "la siembra trae típicos, pero no para vestidos, conjuntos, enterizos ni faldas",
+  correr(`select string_agg(c.prefijo, ',' order by c.prefijo) from retail.vitrina_largos_tipicos lt join retail.categorias c on c.id = lt.categoria_id
+  where c.prefijo in ('VES', 'CON', 'ENT', 'FAL', 'CMS', 'PAN');\n`),
+  "CMS,PAN",
+);
+esperarValor(
+  "el largo propio se anota, se lee en la lista y vuelve al típico con vacío, sin subir la versión de la vitrina",
+  correr(`${PREPARAR}select version as v0 from retail.vitrina_productos where producto_id = :'emma' \\gset
+select retail.vitrina_guardar_largo(:'emma', 62) ->> 'largo';
+select ${PRENDA_TEXTO("largo")} || '|' || ${PRENDA_TEXTO("tipico")};
+select retail.vitrina_guardar_largo(:'emma', null) ->> 'largo';
+select coalesce(${PRENDA_TEXTO("largo")}, '—') || '|' || ((select version from retail.vitrina_productos where producto_id = :'emma') - :v0);\n${FIN}`),
+  "62\n62|65\n\n—|0",
+);
+esperarValor(
+  "cada cambio queda en la Actividad con el nombre de la prenda; repetir el mismo largo no escribe",
+  correr(`${PREPARAR}select retail.vitrina_guardar_largo(:'emma', 62) is not null;
+select retail.vitrina_guardar_largo(:'emma', 62) is not null;
+select count(*) || '|' || max(descripcion) from retail.actividad where accion = 'vitrina_largo' and registro_id = :'emma' and anotado_at >= now();\n${FIN}`),
+  "t\nt\n1|anotó el largo de «Blusa Emma» para el probador: 62 cm",
+);
+for (const [nombre, largo] of [["menos de 5 cm", 4], ["más de 250 cm", 251]]) {
+  esperarError(`no se anota un largo de ${nombre}`, correr(`${PREPARAR}select retail.vitrina_guardar_largo(:'emma', ${largo});\n${FIN}`), "vitrina_largo_invalido");
+}
+esperarError(
+  "solo se anota el largo de una prenda de la vitrina",
+  correr(`${PREPARAR}select retail.vitrina_guardar_largo(:'falda', 55);\n${FIN}`),
+  "vitrina_largo_sin_vitrina",
+);
+esperarError(
+  "es de la Vitrina: sin el módulo no se anota (Micaela)",
+  correr(`${PREPARAR}${COMO(MICAELA)}select retail.vitrina_guardar_largo(:'emma', 62);\n${FIN}`),
+  "vitrina_web_sin_modulo",
+);
+esperarValor(
+  "un típico se pone y se quita; lo que no cambia no escribe; queda una fila en la Actividad por cada guardado que cambia algo",
+  correr(`${PREPARAR}select id as ves from retail.categorias where prefijo = 'VES' \\gset
+select id as cms from retail.categorias where prefijo = 'CMS' \\gset
+select count(*) as antes from retail.actividad where accion = 'vitrina_largos_tipicos' \\gset
+select retail.vitrina_guardar_largos_tipicos(jsonb_build_array(jsonb_build_object('categoria_id', :'ves', 'largo_cm', 110), jsonb_build_object('categoria_id', :'cms', 'largo_cm', 65))) ->> 'cambios';
+select (select largo_cm from retail.vitrina_largos_tipicos where categoria_id = :'ves');
+select retail.vitrina_guardar_largos_tipicos(jsonb_build_array(jsonb_build_object('categoria_id', :'ves', 'largo_cm', null))) ->> 'cambios';
+select count(*) from retail.vitrina_largos_tipicos where categoria_id = :'ves';
+select count(*) - :antes from retail.actividad where accion = 'vitrina_largos_tipicos';\n${FIN}`),
+  "1\n110\n1\n0\n2",
+);
+esperarError(
+  "un típico fuera de rango no se guarda",
+  correr(`${PREPARAR}select id as ves from retail.categorias where prefijo = 'VES' \\gset
+select retail.vitrina_guardar_largos_tipicos(jsonb_build_array(jsonb_build_object('categoria_id', :'ves', 'largo_cm', 300)));\n${FIN}`),
+  "vitrina_largo_invalido",
+);
+
+console.log("8. La lista viva");
+esperarValor(
+  "cada color dice si tiene foto propia (Emma: BEI con foto, NEG sin), y los recortes cuentan por estado",
+  correr(`${PREPARAR}select retail.registrar_recorte('${FOTO_A}', '${RECORTE_A}', 0.8) is not null;
+select string_agg((c ->> 'codigo') || ':' || (c ->> 'foto'), ',' order by c ->> 'codigo') from jsonb_array_elements(${PRENDA("colores")}) c;
+select ${PRENDA("recortes")} ->> 'listos', ${PRENDA("recortes")} ->> 'sin', ${PRENDA_TEXTO("fotos")};\n${FIN}`),
+  "t\nBEI:true,NEG:false\n1|1|2",
+);
+esperarValor(
+  "la miniatura es el recorte listo antes que la foto",
+  correr(`${PREPARAR}select ${PRENDA_TEXTO("miniatura_es_recorte")};
+select retail.registrar_recorte('${FOTO_A}', '${RECORTE_A}', 0.8) is not null;
+select ${PRENDA_TEXTO("miniatura")} = '${BASE}${RECORTE_A}', ${PRENDA_TEXTO("miniatura_es_recorte")};\n${FIN}`),
+  "false\nt\nt|true",
+);
+esperarError("es de la Vitrina: sin el módulo no se lee (Micaela)", correr(`${PREPARAR}${COMO(MICAELA)}select retail.fn_vitrina_probador();\n${FIN}`), "vitrina_web_sin_modulo");
 
 console.log(`\n${total - fallos} de ${total} bien.`);
 process.exit(fallos ? 1 : 0);

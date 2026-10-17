@@ -2,8 +2,14 @@
   "guia": "tienda-web.vitrina.probador",
   "ruta": "/tienda-web/vitrina/probador",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 13,
+  "total": 24,
   "controles": {
+    "components/vitrina/LargosTipicosHoja.tsx": [
+      "CampoTexto «{`${t.nombre}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
     "components/vitrina/PrepararRecortesHoja.tsx": [
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
@@ -13,8 +19,17 @@
     ],
     "components/vitrina/ProbadorPantalla.tsx": [
       "Boton «probador.preparar»",
+      "Boton «probador.tipicos»",
       "Boton «probador.revisar»",
+      "button «{f.texto}»",
+      "button «{i === 0 ? \"probador.prenda\" : undefined}»",
       "button «{i === 0 ? \"probador.recorte\" : undefined}»"
+    ],
+    "components/vitrina/ProbadorPrendaHoja.tsx": [
+      "CampoTexto «Largo (cm)»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/vitrina/RevisarRecorteHoja.tsx": [
       "ComboResponsable «{responsable}»",

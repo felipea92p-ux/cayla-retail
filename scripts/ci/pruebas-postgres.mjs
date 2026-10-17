@@ -238,10 +238,10 @@ export const PRUEBAS = [
   // para las tallas de SU color en esa tienda (y el ERP muestra el mismo total), sus tallas son las que ofrece la ficha (ninguna a
   // S/ 0) y dicen «hay», nunca la cifra (con mutantes que lo prueban). ROLLBACK.
   "pruebas:vitrina-looks",
-  // Los recortes de las fotos para el probador (ADR-0434, actividad 1): leer y revisar son de la Vitrina, anotar también de quien edita
-  // el catálogo; el PNG tiene que estar en el almacén y la foto existir; volver a anotar reemplaza; usar o descartar deja una fila en la
-  // Actividad y repetirlo no escribe. ROLLBACK.
-  "pruebas:vitrina-recortes",
+  // Vitrina ▸ Probador (ADR-0434, actividades 1 a 3): los recortes (leer y revisar son de la Vitrina, anotar también de quien edita el
+  // catálogo; el PNG tiene que estar en el almacén; el recorte al subir una foto va sin el combo) y los largos (el propio y el típico,
+  // de 5 a 250 cm, sin típico para vestidos, conjuntos, enterizos y faldas; no sube la versión de la vitrina) y la lista viva. ROLLBACK.
+  "pruebas:vitrina-probador",
 
   // El motor del pedido web (ADR-0408, actividades 7-9): separar no toca el stock; confirmar reserva con el motor de Apartados
   // (almacén primero) y Vender ya no la vende; dos por la última (uno reserva, el otro sin stock, y quién separó antes, también

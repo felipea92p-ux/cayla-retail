@@ -5892,6 +5892,11 @@ export type Database = {
         Returns: Json
       }
       revisar_recorte: { Args: { p_foto: string; p_usar: boolean }; Returns: Json }
+      // Vitrina web ▸ Probador, los largos y la lista viva (ADR-0434, actividad 3; 20261017015000). Los dos guardados firman con el
+      // responsable del combo.
+      fn_vitrina_probador: { Args: never; Returns: Json }
+      vitrina_guardar_largo: { Args: { p_producto_id: string; p_largo_cm: number | null }; Returns: Json }
+      vitrina_guardar_largos_tipicos: { Args: { p_largos: Json }; Returns: Json }
       // Cobrar dentro del pedido web (ADR-0408, actividad 9; motor 20261015000000, token 20261015042000). El efectivo no lleva n.º
       // de operación (null); el token lo pone `useIntento`.
       registrar_pago_pedido_web: {

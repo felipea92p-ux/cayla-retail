@@ -13,7 +13,7 @@
 --
 -- PRODUCCIÓN. NO está aplicada (actividad 2 del ADR-0434, con el OK de Felipe), después de 20261017003000. Una sola parte,
 -- re-ejecutable: una fila en `acciones_sin_responsable`; no altera tablas, no crea políticas ni toca disparadores (ADR-0195). Espejo en
--- `apps/web/lib/responsable-omitido.ts` (lo compara `responsable-omitido.test.ts`). Prueba: `pnpm pruebas:vitrina-recortes`.
+-- `apps/web/lib/responsable-omitido.ts` (lo compara `responsable-omitido.test.ts`). Prueba: `pnpm pruebas:vitrina-probador`.
 -- ============================================================================
 
 set search_path = retail, public, extensions;
