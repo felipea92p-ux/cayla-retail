@@ -461,6 +461,17 @@ select concat_ws('|',
     "pedido_web_por_entregar|pedido_web_por_entregar|pedido_web_por_entregar|entregado|ok",
   ],
   [
+    "ya entregado, la venta del pedido tampoco se anula (su pago «anticipo» quedaría colgado en los adelantos de clientes): se devuelve por Devolución",
+    `${pagadoListo("a")}
+select (select id from retail.venta_items where venta_id = :'venta_a') as item \\gset
+select ${entregar("a", ":'cod_a'")} ->> 'estado' as entregado \\gset
+select concat_ws('|', :'entregado',
+  ${hint(sql(`'select retail.anular_venta(%L, %L, %L)', :'venta_a', 'prueba', jsonb_build_array(jsonb_build_object('venta_item_id', :'item', 'condicion', 'vendible'))`))},
+  (select estado from retail.ventas where id = :'venta_a'),
+  (select count(*) from retail.movimientos where venta_item_id = :'item'));`, // solo la salida de la entrega: anular no movió el stock
+    "entregado|venta_de_pedido_web_entregado|completada|1",
+  ],
+  [
     "escribiendo directo: la venta del pedido y la línea de venta de una prenda no se cambian; un pedido no queda pagado sin su venta",
     `${pagadoListo("a")}
 select pg_temp.dejar(:'v2', :'tru', :'tru_alm', 1);

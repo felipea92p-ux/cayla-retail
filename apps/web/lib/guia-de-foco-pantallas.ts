@@ -419,6 +419,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/finanzas/ConfiguracionPresupuesto.tsx": PENDIENTE, // 4 controles
   "components/finanzas/CuentasDinero.tsx": PENDIENTE, // 20 controles
   "components/finanzas/EditarCuentaModal.tsx": PENDIENTE, // 9 controles
+  // ADR-0429 (act. 4): «Cambiar la tarifa» de una máquina de cobro. Falta = lo mismo que apaga «Guardar» (`validarTarifa`): la tasa, los
+  // días de abono y quién hace el cambio; el cargo fijo es opcional y el IGV viene marcado (lo usual en Perú).
+  "components/finanzas/TarifaMaquinaModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/TarifaMaquinaModal.tsx"] },
   "components/finanzas/EstadoResultadosPanel.tsx": PENDIENTE, // 3 controles
   "components/finanzas/PagosSinCuenta.tsx": PENDIENTE, // 2 controles
   "components/finanzas/SaldosArranqueModal.tsx": PENDIENTE, // 3 controles

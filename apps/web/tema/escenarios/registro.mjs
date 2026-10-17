@@ -440,6 +440,22 @@ async function ticketCelular(pagina) {
   await pagina.getByRole("button", { name: /Ver ticket/i }).first().click();
   await esperar(pagina, 1400);
 }
+/** La hoja de cobro abierta en el celular: una asesora de turno simulada, una prenda en la hoja del ticket y «Cobrar». */
+async function cobroCelular(pagina) {
+  await simularAsesoraDeTurno(pagina);
+  await pagina.reload({ waitUntil: "networkidle" });
+  await esperar(pagina, 1800);
+  await ticketCelular(pagina);
+  const pedido = pagina.getByText("¿Quién está atendiendo?").first();
+  if (await pedido.count()) {
+    await pedido.click();
+    await esperar(pagina, 600);
+    await pagina.locator("[role=option]").first().click();
+    await esperar(pagina, 900);
+  }
+  await pagina.getByRole("button", { name: /^Cobrar/ }).first().click();
+  await esperar(pagina, 1400);
+}
 ESCENARIOS.push(
   { id: "vender.m-catalogo", ruta: "/vender", cuentas: VENDEDORAS, ancho: "celular", nombre: "Vender (celular) · el catálogo abierto", preparar: abrirCatalogoCelular },
   { id: "vender.m-ticket", ruta: "/vender", cuentas: VENDEDORAS, ancho: "celular", abre: "[role=dialog]", nombre: "Vender (celular) · la hoja del ticket con una prenda", preparar: ticketCelular },
@@ -451,21 +467,7 @@ ESCENARIOS.push(
     // En celular el cobro vive dentro de la hoja del ticket (un <Modal>), no en `.hoja-cobro` (el panel lateral de escritorio).
     abre: "[role=dialog]",
     nombre: "Vender (celular) · la hoja de cobro",
-    async preparar(pagina) {
-      await simularAsesoraDeTurno(pagina);
-      await pagina.reload({ waitUntil: "networkidle" });
-      await esperar(pagina, 1800);
-      await ticketCelular(pagina);
-      const pedido = pagina.getByText("¿Quién está atendiendo?").first();
-      if (await pedido.count()) {
-        await pedido.click();
-        await esperar(pagina, 600);
-        await pagina.locator("[role=option]").first().click();
-        await esperar(pagina, 900);
-      }
-      await pagina.getByRole("button", { name: /^Cobrar/ }).first().click();
-      await esperar(pagina, 1400);
-    },
+    preparar: cobroCelular,
     limpiar: quitarAsesora,
   },
 );
@@ -1699,6 +1701,28 @@ ESCENARIOS.push(
   { id: "caja.cerrada-vender", soloPorId: true, ruta: "/vender", cuentas: VENDEDORAS, ancho: "escritorio", abre: ".caja-cerrada", nombre: "Vender · con la caja cerrada (la persiana y el cartel)", async preparar(pagina) { await esperar(pagina, 2200); } },
   { id: "caja.cerrada-vender-m", soloPorId: true, ruta: "/vender", cuentas: VENDEDORAS, ancho: "celular", abre: ".caja-cerrada", nombre: "Vender (celular) · con la caja cerrada", async preparar(pagina) { await esperar(pagina, 2200); } },
   { id: "caja.cerrada-abrir", soloPorId: true, ruta: "/caja", cuentas: CAJEROS, ancho: "escritorio", nombre: "Caja · con la caja cerrada (abrir la caja)", async preparar(pagina) { await esperar(pagina, 1200); } },
+);
+
+// ---------- Cobros con máquina y el depósito a Interbank (ADR-0429) ----------
+// La hoja de cobro pregunta «¿Con qué máquina la tarjeta?» solo donde la tienda tiene dos (Trujillo: Vendemás e Izipay): la ve Micaela
+// (integrante). Se audita con la otra máquina marcada, en escritorio y en el celular. En Cuentas y dinero, el depósito de la máquina
+// con los días que cubre (el combo «De» en Vendemás, la que tiene cobros en la base local) y, en Configuración, la tarifa de una
+// máquina (los dos, solo el líder).
+const elegirOpcion = (combo, opcion) => async (pagina) => {
+  await pagina.getByRole("combobox", { name: combo }).first().click({ timeout: 8000 });
+  await esperar(pagina, 500);
+  await pagina.getByRole("option", { name: opcion }).first().click({ timeout: 8000 });
+  await esperar(pagina, 900);
+};
+const marcarIzipay = async (pagina) => {
+  await pagina.getByRole("radio", { name: /Izipay/ }).first().click({ timeout: 8000 });
+  await esperar(pagina, 700);
+};
+ESCENARIOS.push(
+  { id: "vender.cobro-tarjeta-maquina", ruta: "/vender", cuentas: ["integrante"], ancho: "escritorio", abre: "[data-maquinas]", nombre: "Vender (Trujillo) · «¿Con qué máquina la tarjeta?» con Izipay marcada", preparar: secuencia(medio(/Tarjeta/i), marcarIzipay), limpiar: quitarAsesora },
+  { id: "vender.m-cobro-tarjeta-maquina", ruta: "/vender", cuentas: ["integrante"], ancho: "celular", abre: "[data-maquinas]", nombre: "Vender (Trujillo, celular) · cobro con tarjeta y «¿Con qué máquina?»", preparar: secuencia(cobroCelular, clicRol("button", /^Tarjeta$/i), marcarIzipay), limpiar: quitarAsesora },
+  { id: "dinero.deposito-maquina", ruta: "/finanzas/dinero", cuentas: FIN, abre: '[data-guia="fin-dinero.mov-lotes"]', nombre: "Cuentas y dinero · «Depósito de la máquina» con los días que cubre", preparar: secuencia(clicRol("button", /Registrar movimiento/i), elegirOpcion(/^Qué pasó/i, /Depósito de la máquina/i), elegirOpcion(/^De$/, /Vendemás/i)) },
+  { id: "configuracion.maquina-tarifa", ruta: "/configuracion", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Configuración ▸ Cuentas y cobros · «Tarifa de Izipay»", preparar: secuencia(clicPestana(/Cuentas y cobros/i), clicRol("button", /Editar la tarifa de Izipay/i)) },
 );
 
 export const escenariosDe = (ruta, cuentaClave, celular = false) =>

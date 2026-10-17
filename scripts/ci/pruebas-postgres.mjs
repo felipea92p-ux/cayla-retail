@@ -72,6 +72,11 @@ export const PRUEBAS = [
   // salida de caja y restando del cierre; un egreso respalda una sola cosa; los saldos usan lo sellado. ROLLBACK.
   "pruebas:cuenta-sellada",
 
+  // Las máquinas de cobro (ADR-0429, decisión 3 del ADR-0417): Interbank y las cuentas «por depositar»; la tarjeta y el QR se
+  // sellan en la máquina de su tienda (Vendemás donde opera, Izipay donde no); la hoja puede elegir solo una máquina de esa
+  // tienda; el QR asienta en 105; los candados de máquinas y de «A qué cuenta entra cada cobro». ROLLBACK.
+  "pruebas:pos-maquinas",
+
   // Registrar ingreso con su origen (ADR-0375): caja fuerte, líder y préstamo de otra sede bajan su cuenta en la misma
   // operación; el flujo y el balance los leen entre cuentas o como aporte; los motivos de sistema no se tipean. ROLLBACK.
   "pruebas:caja-ingresos",

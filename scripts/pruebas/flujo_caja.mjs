@@ -545,6 +545,27 @@ select (:'p'::jsonb->>'incluye_impuestos');`);
   esperar("la proyección dice que incluye los impuestos", r.ok && incluye === "true", r);
 }
 
+
+// 10d. El saldo a favor de IGV con que CAYLA arrancó (ADR-0433, actividad 4b): la proyección dice si está declarado (la web lo lista en «lo que falta»
+// mientras no) y, una vez declarado, el IGV que proyecta lo descuenta: con un saldo mayor que el IGV del mes, la línea de IGV desaparece.
+{
+  const r = correr(`${ESCENA}
+${COMPROBANTE}
+select pg_temp.comp(:'tru', 'boleta', 'B981', 1, 1180000, 'aceptado', 'produccion', :'hoy'::date) as b1 \\gset
+select retail.fn_flujo_caja_proyeccion(12) as sin \\gset
+select retail.guardar_parametro_tributario('saldo_favor_igv', date_trunc('month', retail.fn_hoy_lima())::date, 5000000) as _g \\gset
+select retail.fn_flujo_caja_proyeccion(12) as con \\gset
+select (:'sin'::jsonb->>'saldo_favor_igv_declarado') || '|' || (:'con'::jsonb->>'saldo_favor_igv_declarado');
+select pg_temp.salidas(:'sin', 'impuesto', 'igv:%') > 0;
+select pg_temp.salidas(:'con', 'impuesto', 'igv:%');
+select pg_temp.salidas(:'con', 'impuesto', 'renta:%') = pg_temp.salidas(:'sin', 'impuesto', 'renta:%');`);
+  const [flags, haIgv, igvConSaldo, rentaIgual] = lineas(r);
+  esperar("sin saldo declarado la base dice false; declarado, true", r.ok && flags === "false|true", r);
+  esperar("(control) sin saldo declarado, el IGV de una boleta de S/ 1,180,000 sí entra a lo que sale", r.ok && haIgv === "t", r);
+  esperar("con S/ 5,000,000 a favor declarados al empezar el mes, el IGV proyectado desaparece (180,000 − 5,000,000 < 0: no se paga)", r.ok && Number(igvConSaldo) === 0, r);
+  esperar("y el pago a cuenta de renta no cambia (el saldo de IGV no lo toca)", r.ok && rentaIgual === "t", r);
+}
+
 // 11. El pago de la planilla y el pago a SUNAT (20261016002000, ADR-0417 situaciones 15 y 16) son SALIDAS del Flujo real, cada una en su categoría
 // («planilla», «impuestos»), y no cambian lo que sale en un «día normal» de la proyección (la planilla ya se suma aparte; un pago a SUNAT cae un día).
 {
