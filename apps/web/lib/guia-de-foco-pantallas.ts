@@ -211,6 +211,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ADR-0408 act. 8: la lista solo lee; lo que se llena vive en sus dos hojas (abiertas desde la misma pantalla, `?pedido=`). «Falta» es
   // lo que la base rechazaría: una decisión por prenda (por conseguir, con fecha de hoy a 60 días), quién lo hace, el motivo al cerrar o
   // anular y, al enviar a otra tienda, el día de llegada.
+  "/tienda-web/campanas": { estado: "no-aplica", motivo: "La lista de Campañas (ADR-0436, actividad 1) solo mira: las cifras de hoy, la línea de qué anuncia la portada cada día y las campañas con un filtro de píldoras. No hay campos ni pasos." },
   "/tienda-web/pedidos": { estado: "aplicada", evidencia: ["components/pedidos-web/PedidoWebHoja.tsx", "components/pedidos-web/EnviarPedidoWebHoja.tsx", "components/pedidos-web/RegistrarPagoHoja.tsx", "components/pedidos-web/AnularPagoHoja.tsx", "components/pedidos-web/AnularPedidoPagadoHoja.tsx"] },
   // ADR-0408 (Felipe 2026-10-15): la lista solo lee y filtra; lo que se llena vive en la hoja de cada recomendación (abierta desde la misma
   // pantalla, `?r=`): la respuesta (opcional sin leer, obligatoria ya leída) y quién lo hace.

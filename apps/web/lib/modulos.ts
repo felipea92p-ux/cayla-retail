@@ -13,7 +13,7 @@ import { PERMISOS, type Permiso } from "./menu";
 export const CLAVES_MODULO = [
   "inicio",
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion",
-  "tienda_web", "pedidos_web", "vitrina_web", "recomendaciones", "ajustes_web",
+  "tienda_web", "pedidos_web", "vitrina_web", "campanas", "recomendaciones", "ajustes_web",
   "clientas", "avisos_club",
   "existencias", "conteos", "traslados", "movimientos", "recibir",
   "productos", "atributos", "etiquetas", "liquidacion",
@@ -71,6 +71,10 @@ export const MODULOS: readonly Modulo[] = [
   // Vitrina web (ADR-0408, actividad 3; 20261014225000): qué modelos se ven en la tienda online y a qué precio web. Nace SIN rol
   // (solo el líder) y delegable: sus funciones piden este módulo. El costo y el margen siguen siendo del líder (la base no los manda).
   { clave: "vitrina_web", grupo: "Tienda web", nombre: "Vitrina web", incluye: "Elegir qué modelos se ven en la tienda online, mostrar u ocultar varios a la vez, fijarlos o quitarlos de Lo nuevo y armar los looks de «Arma tu look»" },
+  // Campañas (ADR-0436, Felipe 2026-10-17; 20261017144000): las campañas, cuál anuncia la portada de la tienda online cada día y, desde
+  // las actividades 2 y 4, su descuento, sus prendas y su diseño. Nace SIN rol (solo el líder) y delegable. Es la llave ÚNICA de las
+  // campañas (Felipe, decisión 3: «todo junto, como hoy»): quien la tiene las diseña y les pone el descuento, que también cobra la caja.
+  { clave: "campanas", grupo: "Tienda web", nombre: "Campañas", incluye: "Ver las campañas y cuál anuncia la portada de la tienda online cada día; crearlas, ponerles fechas, prendas y descuento (que también cobra la caja de las tiendas), imprimir sus etiquetas de precio, y diseñar y publicar cómo se ve cada una en la portada" },
   // Recomendaciones (ADR-0408, Felipe 2026-10-15; 20261015135000): lo que los clientes recomiendan desde la tienda online, SIEMPRE con
   // su nombre. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo. Quien lo tiene ve las de TODAS las tiendas y
   // las de CAYLA en general, con el nombre del cliente aunque no tenga «Clientes» (la ficha, solo si la ve).

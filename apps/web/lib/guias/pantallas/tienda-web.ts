@@ -1014,3 +1014,75 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
     },
   ],
 };
+
+// Tienda web ▸ Campañas (ADR-0436, actividad 1): solo mira. Las cifras de hoy, la línea de qué anuncia la portada cada día y la lista con
+// su filtro. La demo solo enciende cada pieza: no hay nada que guardar.
+export const GUIA_CAMPANAS: Guia = {
+  id: "tienda-web.campanas",
+  ruta: "/tienda-web/campanas",
+  titulo: "Campañas",
+  resumen: "Las campañas y cuál anuncia la portada de la tienda online cada día.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Las campañas",
+      texto: "Aquí ves las campañas de CAYLA (Día del Gato, Halloween, Navidad…), cuándo corren, con qué descuento y cuál anuncia la portada de la tienda online cada día. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "vacio",
+      ancla: "campanas.vacio",
+      opcional: true,
+      titulo: "Todavía no hay campañas",
+      texto: "Cuando se cree una campaña, aparece aquí con sus fechas, su descuento y el día en que sale en la portada.",
+    },
+    {
+      id: "cifras",
+      ancla: "campanas.cifras",
+      opcional: true,
+      titulo: "Hoy, de un vistazo",
+      texto: "Qué campaña anuncia hoy la portada de la tienda online, cuántas corren hoy y cuál viene después.",
+    },
+    {
+      id: "linea",
+      ancla: "campanas.linea",
+      opcional: true,
+      titulo: "La portada, día a día",
+      texto: "Tres meses en una línea. Cada fila es una campaña con sus fechas; la raya roja es hoy y lo de antes se ve apagado.",
+    },
+    {
+      id: "portada",
+      ancla: "campanas.portada",
+      opcional: true,
+      titulo: "Lo que sale en la portada",
+      texto: "La portada muestra una sola campaña a la vez. Esta fila dice cuál sale cada día, con la misma regla que usa la tienda; lo rayado es «Lo nuevo», lo que sale cuando no corre ninguna.",
+    },
+    {
+      id: "cruce",
+      ancla: "campanas.cruce",
+      opcional: true,
+      titulo: "Cuando dos se cruzan",
+      texto: "Si corren dos a la vez, aquí se dice cuál sale en la portada y por qué.",
+    },
+    {
+      id: "filtros",
+      ancla: "campanas.filtros",
+      opcional: true,
+      titulo: "Filtrar",
+      texto: "Deja solo las que corren hoy, las que vienen o las que ya terminaron. Cada botón dice cuántas hay.",
+    },
+    {
+      id: "lista",
+      ancla: "campanas.lista",
+      opcional: true,
+      titulo: "Cada campaña",
+      texto: "Su portada en chico, en qué está (en la web ahora, vigente, en tantos días, terminó), sus fechas, su descuento y cuántas prendas lleva. Si corre hoy pero no sale en la portada, dice por qué.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes leer las campañas y su portada. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Campañas.",
+    },
+  ],
+};

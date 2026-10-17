@@ -152,6 +152,9 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // Tablero: Tienda web ▸ Resumen (ADR-0430), lo que la tienda online pide hoy, de un vistazo. No el velocímetro de Finanzas ▸ Resumen
   // ni el pulso de CAYLA Global, que pueden estar en el mismo lateral.
   resumenWeb: "M3 3h7v9H3z M14 3h7v5h-7z M14 12h7v9h-7z M3 16h7v5H3z", // lucide «layout-dashboard»
+  // Destellos: Tienda web ▸ Campañas (ADR-0436), la fecha que se celebra y cómo luce en la portada. No el megáfono de «Plan de
+  // campaña» (cuánto comprar para ella, en Compras) ni el monitor de la Vitrina: la fiesta misma.
+  campanas: "M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z M20 3v4 M22 5h-4 M4 17v2 M5 18H3", // lucide «sparkles»
   // Controles deslizantes: Tienda web ▸ Ajustes (ADR-0430), lo que la tienda online muestra de cada tienda y sus plazos.
   ajustesWeb: "M21 4h-7 M10 4H3 M21 12h-9 M8 12H3 M21 20h-5 M12 20H3 M14 2v4 M8 10v4 M16 18v4", // lucide «sliders-horizontal»
 };

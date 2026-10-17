@@ -401,6 +401,80 @@
     animation-delay: 180ms;
   }
   .tw-globo-respuesta small { display: block; margin-bottom: 2px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-verde-profundo); }
+
+  /* ───────── Campañas (ADR-0436): la portada en chico y «La portada, día a día» ───────── */
+  /* La portada de una campaña en chico. Sus colores llegan en línea (`--hf`, `--hf2`, `--ht`, `--ha`): son un DATO de la portada de la
+     tienda, no del tema del ERP (`data-color-dato`), así que no cambian con el modo oscuro. */
+  .tw-portada-mini {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    container-type: inline-size;
+    color: var(--ht);
+    background: radial-gradient(120% 90% at 88% 6%, var(--hf2), var(--hf) 58%);
+  }
+  /* Lo de adentro mide en `cqi` del ancho de la portada (la portada es su contenedor; ella misma no puede medirse a sí misma). */
+  .tw-portada-mini-dentro { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 4cqi; padding: 0 8cqi; }
+  .tw-portada-mini-ceja { font-size: max(9px, 3.2cqi); font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ha); }
+  .tw-portada-mini-tit { font-size: 11.5cqi; font-weight: 500; line-height: 0.9; letter-spacing: -0.01em; }
+  .tw-portada-mini-tit > span,
+  .tw-portada-mini-tit > em { display: block; }
+  .tw-portada-mini-tit > em { font-style: italic; color: var(--ha); }
+
+  /* La tarjeta de una campaña: su portada arriba y lo que trae abajo. La que ya pasó se apaga, sin perder sus datos. */
+  .tw-campana {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--color-sand);
+    border-radius: 16px;
+    background: var(--color-papel);
+  }
+  .tw-campana[data-apagada] .tw-portada-mini { filter: grayscale(0.85); opacity: 0.72; }
+
+  /* La línea: una columna para el nombre y otra para los tres meses, una pista por fila. */
+  .tw-cal { display: grid; grid-template-columns: 10.5rem minmax(0, 1fr); row-gap: 8px; align-items: center; min-width: 46rem; }
+  /* En una pantalla angosta la línea se desliza dentro de su tarjeta; el nombre ocupa menos para que se vea más calendario. */
+  @container tw (max-width: 40rem) {
+    .tw-cal { grid-template-columns: 7rem minmax(0, 1fr); min-width: 40rem; }
+  }
+  .tw-cal-meses { display: grid; }
+  .tw-cal-mes { padding: 4px 8px; border-left: 1px solid var(--color-sand); font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-taupe); }
+  .tw-cal-nombre { padding-right: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--color-tinta); }
+  .tw-cal-portada { font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+  .tw-cal-pista { position: relative; height: 30px; border-radius: 8px; background: color-mix(in srgb, var(--color-hueso) 55%, transparent); }
+  .tw-cal-pista[data-portada] { height: 40px; background: var(--color-hueso); }
+  /* Una barra crece desde su primer día, una vez. Con los colores de su portada (dato) o, si es «Lo nuevo», rayada. */
+  .tw-cal-barra {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    display: flex;
+    align-items: center;
+    min-width: 6px;
+    padding: 0 8px;
+    overflow: hidden;
+    border-radius: 6px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ht);
+    background: linear-gradient(90deg, var(--hf), var(--hf2));
+    transform-origin: left center;
+    animation: tw-crece-x 520ms var(--ease-cayla) both;
+    animation-delay: calc(min(var(--i, 0), 12) * 50ms + 260ms);
+  }
+  .tw-cal-barra[data-nuevo] {
+    color: var(--color-tinta);
+    background: repeating-linear-gradient(135deg, var(--color-sand) 0 4px, var(--color-papel) 4px 9px);
+  }
+  .tw-cal-barra[data-corte-antes] { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+  .tw-cal-barra[data-corte-despues] { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+  /* Lo que ya pasó, apagado bajo un velo de papel; hoy, una raya roja. */
+  .tw-cal-pasado { position: absolute; inset: 0 auto 0 0; border-radius: 8px 0 0 8px; background: color-mix(in srgb, var(--color-papel) 55%, transparent); pointer-events: none; }
+  .tw-cal-hoy { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; border-radius: 2px; background: var(--color-rojo); pointer-events: none; }
+  .tw-cal-hoy-rotulo { position: absolute; top: -19px; left: 50%; transform: translateX(-50%); padding: 0 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-rojo-profundo); background: var(--color-papel); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -419,7 +493,8 @@
   .tw-linea-paso::before,
   .tw-linea-nodo,
   .tw-carta,
-  .tw-globo-respuesta {
+  .tw-globo-respuesta,
+  .tw-cal-barra {
     animation: none;
   }
   .tw-marco-barra::after { display: none; }

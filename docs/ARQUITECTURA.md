@@ -887,6 +887,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   producto, Nuevo producto y la cola sin conexión) pide por detrás su recorte (`recortarAlSubir`, carga perezosa de `lib/recorte-probador.ts`),
   sin el combo «Responsable» (`recorte_foto` en `acciones_sin_responsable`, `20261017013000`, Felipe 2026-10-16). Prueba en la base:
   `pnpm pruebas:vitrina-probador`.
+- `/tienda-web/campanas` (Tienda web ▸ Campañas, módulo `campanas`, ADR-0436 act. 1; maqueta `docs/maquetas/campanas-diseno-2026-10`) →
+  `layout.tsx` (`exigirModulo("campanas")`) → `page.tsx` lee `campanas_lista` (las etiquetas de estilo campaña con sus fechas, descuento y
+  cuántas prendas llevan) y `campanas_portada_dias` (qué campaña anuncia la portada cada día de tres meses: LA regla
+  `fn_campana_en_portada(dia)`, la misma que lee la tienda en `tienda_portada()`), las dos con `fn_puede_campanas`
+  (`20261017144000`) → `lib/campanas-reglas.ts` (puro: lectura, estado de cada campaña, filtros, cifras, el cruce de hoy y los tramos de
+  la línea) → `components/campanas/CampanasPantalla.tsx` (cifras, `LineaPortada.tsx` «La portada, día a día», `TarjetaCampana.tsx` con
+  `PortadaMini.tsx`). Estilos `tw-portada-mini`, `tw-campana` y `tw-cal-*` en `app/estilos/tienda-web.css`. Prueba en la base:
+  `pnpm pruebas:campanas-portada`.
 - `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
   `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
   `MarcasLista.tsx` (ADR-0373, 2026-10-10: cabecera de Productos con «!», resumen colapsado `components/marcas/ResumenMarcas.tsx` +
