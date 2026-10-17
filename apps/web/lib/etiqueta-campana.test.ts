@@ -15,6 +15,8 @@ import {
 } from "./etiqueta-campana";
 import { descuentoDeCampana } from "./vender-reglas";
 
+const HOY = "2026-10-17";
+
 describe("parsearDescuento", () => {
   it.each([
     ["20", 20],
@@ -187,16 +189,23 @@ describe("la tarjeta cuenta lo mismo que su hoja", () => {
 
 describe("el chip de la temporada", () => {
   it("vigente y sin prendas va en ámbar; vigente con prendas, en verde", () => {
-    expect(chipDeTarjeta({ estado: "vigente", hasta: "2026-12-31" }, 0)).toMatchObject({ texto: "Vigente, sin prendas", tono: "ambar" });
-    expect(chipDeTarjeta({ estado: "vigente", hasta: "2026-12-31" }, 164)).toEqual({ texto: "Vigente", tono: "verde" });
+    expect(chipDeTarjeta({ estado: "vigente", hasta: "2026-12-31" }, 0, HOY)).toMatchObject({ texto: "Vigente", tono: "neutro", alerta: "Sin prendas" });
+    expect(chipDeTarjeta({ estado: "vigente", hasta: "2026-12-31" }, 164, HOY)).toEqual({ texto: "Vigente", tono: "verde" });
   });
-  it("quien no ve los conteos ve «Vigente», como antes", () => {
-    expect(chipDeTarjeta({ estado: "vigente", hasta: null }, null)).toEqual({ texto: "Vigente", tono: "verde" });
+  it("quien no ve los conteos ve «Vigente» y «En N días», como antes", () => {
+    expect(chipDeTarjeta({ estado: "vigente", hasta: null }, null, HOY)).toEqual({ texto: "Vigente", tono: "verde" });
+    expect(chipDeTarjeta({ estado: "proxima", desde: "2026-11-09", enDias: 23 }, null, HOY)).toEqual({ texto: "En 23 días", tono: "ambar" });
   });
-  it("próxima y terminada no cambian; sin fechas no hay chip", () => {
-    expect(chipDeTarjeta({ estado: "proxima", desde: "2026-11-09", enDias: 1 }, 0)).toEqual({ texto: "Mañana", tono: "ambar" });
-    expect(chipDeTarjeta({ estado: "proxima", desde: "2026-11-09", enDias: 23 }, 5)).toEqual({ texto: "En 23 días", tono: "ambar" });
-    expect(chipDeTarjeta({ estado: "terminada", hasta: "2026-10-14" }, 0)).toEqual({ texto: "Fuera de temporada", tono: "neutro" });
-    expect(chipDeTarjeta(null, 0)).toBeNull();
+  it("una que viene sin prendas suma «Sin preparar» en ámbar; una lista va en pizarra", () => {
+    expect(chipDeTarjeta({ estado: "proxima", desde: "2026-11-09", enDias: 23 }, 0, HOY)).toMatchObject({ texto: "En 23 días", tono: "neutro", alerta: "Sin preparar" });
+    expect(chipDeTarjeta({ estado: "proxima", desde: "2026-10-24", enDias: 7 }, 7, HOY)).toEqual({ texto: "En 7 días", tono: "pizarra" });
+    expect(chipDeTarjeta({ estado: "proxima", desde: "2026-10-18", enDias: 1 }, 0, HOY)).toMatchObject({ texto: "Mañana", alerta: "Sin preparar" });
+  });
+  it("una que pasó dice cuándo, con el año si no es este", () => {
+    expect(chipDeTarjeta({ estado: "terminada", hasta: "2026-10-14" }, 0, HOY)).toEqual({ texto: "Pasó el 14 oct.", tono: "neutro" });
+    expect(chipDeTarjeta({ estado: "terminada", hasta: "2025-12-25" }, 3, HOY)).toEqual({ texto: "Pasó el 25 dic. de 2025", tono: "neutro" });
+  });
+  it("sin fechas no hay chip", () => {
+    expect(chipDeTarjeta(null, 0, HOY)).toBeNull();
   });
 });
