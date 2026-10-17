@@ -7,5 +7,7 @@
        es la de la base, y con «reducir movimiento» la base la apaga). */
     &.analisis-hoja .anim :is(.cx, .cxd, .cy) { animation-delay: calc(var(--d, 0) * 40ms + 380ms); }
     &.analisis-hoja .anim .po { animation-delay: calc(var(--d, 0) * 45ms + 460ms); }
+    /* Los chips de la cabecera (el estado y, si el ritmo sale de una sola venta, «Una sola venta») se acomodan juntos y bajan a otra línea en una hoja angosta. */
+    .h-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; }
   }
 }

@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono } from "@/components/analisis/iconos";
 import { ChipEstado, COLOR_ESTADO, TilePrenda } from "@/components/analisis/piezas";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { grupoDe, plural, porLlegar } from "@/lib/analisis-reglas";
+import { lecturaDeRitmo, tipUnaVenta } from "@/lib/analisis-acaba";
 import { proveedorDelModelo } from "@/lib/analisis-a-quien-pedir";
 import { proximaNavidad } from "@/lib/analisis-pedir";
 import { dondeComprarDe, hrefExistencias, hrefMovimientos } from "@/lib/analisis-acciones";
@@ -70,7 +72,10 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
   const sinSalir = datos.sabePiso && nuncaSalio(p);
   // Algo ya llega a tiempo: la ficha dice lo mismo que el carril («Ya viene», sin rojo) y «Comprar» deja de ser el botón principal.
   const yaViene = porLlegar(p, datos.hoy) > 0;
-  const chip = chipDeGrupo(grupo, sinSalir, yaViene);
+  // El ritmo sale de UNA sola venta (D6, 2026-10-16): lo que se acaba sigue en «Cómpralas», pero sin rojo y con el chip que lo dice.
+  const ritmo = grupo === "comprar" ? lecturaDeRitmo(p, datos.hoy) : null;
+  const unaVenta = ritmo?.unaVenta ?? false;
+  const chip = chipDeGrupo(grupo, sinSalir, yaViene, unaVenta);
   // La meta contra la que se mide lo que viene en camino es la misma de «Qué pedir» (Navidad): lo que llega después se dice.
   const hechos = hechosDe(
     p,
@@ -102,7 +107,14 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
         <div className="anim">
           <div className="h-cab">
             <TilePrenda prenda={p} tamano={64} />
-            <ChipEstado est={chip.est}>{chip.texto}</ChipEstado>
+            <span className="h-chips">
+              <ChipEstado est={chip.est}>{chip.texto}</ChipEstado>
+              {ritmo && unaVenta && (
+                <span data-tip={tipUnaVenta(ritmo)} tabIndex={0}>
+                  <Chip tono="ambar">Una sola venta</Chip>
+                </span>
+              )}
+            </span>
           </div>
 
           <div className="h-sec">

@@ -9,6 +9,7 @@
 
 import type { DatosAnalisis, EdadInventario, LlegadaPrenda, PrendaAnalisis, PrendaEnOtraSede, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
 import { VISTAS_ANALISIS } from "./analisis-tipos";
+import { compararMargen, margenPrudentePorDia } from "./analisis-ritmo";
 import { diaLima, diasEntreFechas } from "./fechas-lima";
 import { esPedidoDeTalla, type MotivoPedido } from "./se-probo-reglas";
 
@@ -53,6 +54,11 @@ export const DIAS_MINIMOS_RITMO = 7;
 /**
  * Entre cuántos días se divide lo vendido de una prenda: desde que salió al piso (`salioAlPiso`, hoy incluido), con el piso de
  * `DIAS_MINIMOS_RITMO` y el techo de los días de ventas de la tienda. Sin saber cuándo salió, los de la tienda (como antes).
+ *
+ * OJO, es un PISO de ritmo (A5, 2026-10-16): divide entre los días desde que se colgó, NO entre los días que tuvo stock. Una prenda que
+ * estuvo agotada parte de esa ventana vende más rápido de lo que dice, y sus días «que quedan» salen más largos de lo real (Producción sí
+ * mide con los días con stock, mínimo 3). Esto lo sabe quien lee un rango de `analisis-ritmo.ts`: el intervalo cubre el azar de pocas
+ * ventas, no este sesgo.
  */
 export function ventanaDeRitmo(salioAlPiso: string | null | undefined, hoy: string, diasTienda: number): number {
   const tienda = Math.min(VENTANA_VENTAS, Math.max(1, Math.round(diasTienda)));
@@ -135,6 +141,9 @@ export function llegadasDe(llega: readonly LlegadaPrenda[], hoy: string, hasta?:
  */
 export const porLlegar = (p: Pick<PrendaAnalisis, "llega">, hoy: string): number => llegadasDe(p.llega, hoy).vienen;
 
+/** Entre cuántos días se mide el ritmo de una prenda: su `diasDeVentas` dentro de 1 y 30; si falta, 30. Una sola cuenta para los días, el rango y el margen. */
+export const ventanaDe = (p: Pick<PrendaAnalisis, "diasDeVentas">): number => Math.min(VENTANA_VENTAS, Math.max(1, Math.round(p.diasDeVentas ?? VENTANA_VENTAS)));
+
 /**
  * Cuántos días le quedan al ritmo de lo vendido en su ventana (`diasDeVentas`: los días que estuvo colgada, de 7 a los días de ventas
  * de la tienda, `ventanaDeRitmo`; si falta, 30): 0 si ya no hay; al menos 1 si queda algo; null si no se vendió (no se acaba: no tiene
@@ -144,8 +153,7 @@ export function diasQueQuedan(p: Pick<PrendaAnalisis, "piso" | "almacen" | "vend
   if (p.vendidas30 <= 0) return null;
   const total = totalEnTienda(p);
   if (total === 0) return 0;
-  const ventana = Math.min(VENTANA_VENTAS, Math.max(1, Math.round(p.diasDeVentas ?? VENTANA_VENTAS)));
-  return Math.max(1, Math.round(total / (p.vendidas30 / ventana)));
+  return Math.max(1, Math.round(total / (p.vendidas30 / ventanaDe(p))));
 }
 
 /** Se está acabando: se vende y lo que queda dura dos semanas o menos (o ya no hay). */
@@ -207,9 +215,19 @@ export function prendasDe<T extends PrendaAnalisis>(prendas: readonly T[], grupo
   });
 }
 
-/** Lo que se acaba, de lo más urgente a lo menos: primero lo agotado; a igual plazo, lo que más se vende. */
+/**
+ * Lo que se acaba, de lo más urgente a lo menos: primero lo agotado; a igual plazo (los agotados empatan todos en 0 días), el que más deja de
+ * ganar por día (A15: `ritmo × (precio sin IGV − costo)`, con el ritmo en su cota baja para que una sola venta no pase delante de varias
+ * por tener una prenda cara: `margenPrudentePorDia`; sin costo va después), después el que más se vende y por último el nombre.
+ * El margen es solo el DESEMPATE: no cambia quién va antes por días ni qué cae en «Cómpralas».
+ */
 export function ordenSeAcaba(a: PrendaAnalisis, b: PrendaAnalisis): number {
-  return (diasQueQuedan(a) ?? Infinity) - (diasQueQuedan(b) ?? Infinity) || b.vendidas30 - a.vendidas30 || a.nombre.localeCompare(b.nombre, "es");
+  return (
+    (diasQueQuedan(a) ?? Infinity) - (diasQueQuedan(b) ?? Infinity) ||
+    compararMargen(margenPrudentePorDia(a, ventanaDe(a)), margenPrudentePorDia(b, ventanaDe(b))) ||
+    b.vendidas30 - a.vendidas30 ||
+    a.nombre.localeCompare(b.nombre, "es")
+  );
 }
 
 /** Lo quieto, de lo que más espera a lo que menos. */

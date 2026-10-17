@@ -7,7 +7,8 @@
 import type { LlegadaPrenda, OrigenLlegada, OrigenPrenda, PrendaAnalisis, PrendaEnOtraSede, SedeAnalisis } from "./analisis-tipos";
 import type { ModeloAnalisis } from "./analisis-modelo";
 import type { ProveedorDelModelo } from "./analisis-a-quien-pedir";
-import { DIAS_SE_ACABA, diasDeVentas, diasQueQuedan, esTallaUnica, GRUPOS_ACABA, llegadaAtrasada, llegadasDe, ordenSeAcaba, plural, porLlegar, prendasDe, totalEnTienda } from "./analisis-reglas";
+import { DIAS_SE_ACABA, diasDeVentas, diasQueQuedan, esTallaUnica, GRUPOS_ACABA, llegadaAtrasada, llegadasDe, ordenSeAcaba, plural, porLlegar, prendasDe, totalEnTienda, ventanaDe } from "./analisis-reglas";
+import { margenPorDia, montoPorDia, rangoDeDias, unaSolaVenta, type RangoDeDias } from "./analisis-ritmo";
 import { compararTallas } from "./tallas";
 import { fechaCorta } from "./motor-demanda-reglas";
 import { diasEntreFechas } from "./fechas-lima";
@@ -81,7 +82,12 @@ export function colorDias(dias: number): string {
 
 /** Cómo se dibuja la pista de una prenda: agotada (rayada y «Se agotó») o una barra de 0 a 2 semanas con sus días. */
 export type PistaAcaba =
-  | { agotada: true; texto: string }
+  | {
+      agotada: true;
+      texto: string;
+      /** Una sola venta (D6, 2026-10-16): el agotado no va en rojo, va suave (ámbar). Solo viene cuando es cierto. */
+      suave?: true;
+    }
   | {
       agotada: false;
       /** El largo de la barra, de 0 a 1 (`--n`). */
@@ -93,12 +99,17 @@ export type PistaAcaba =
       dentro: boolean;
     };
 
-/** La pista con los días que quedan (`diasQueQuedan`); null si la prenda no tiene ritmo (no se vende: no se acaba). */
-export function pistaAcaba(dias: number | null): PistaAcaba | null {
+/**
+ * La pista con los días que quedan (`diasQueQuedan`); null si la prenda no tiene ritmo (no se vende: no se acaba). Con `unaVenta` (el ritmo sale
+ * de UNA sola venta: D6 de Felipe, 2026-10-16) la fila sigue en «Comprar» pero no grita: la barra de una semana o menos va en ámbar en vez de
+ * rojo y el agotado va suave. El rojo de lo demás no cambia (eso es la escala de urgencia, A13).
+ */
+export function pistaAcaba(dias: number | null, unaVenta = false): PistaAcaba | null {
   if (dias === null) return null;
-  if (dias <= 0) return { agotada: true, texto: "Se agotó" };
+  if (dias <= 0) return unaVenta ? { agotada: true, texto: "Se agotó", suave: true } : { agotada: true, texto: "Se agotó" };
   const n = Math.min(dias / DIAS_SE_ACABA, 1);
-  return { agotada: false, n, color: colorDias(dias), texto: `${dias} ${plural(dias, "día", "días")}`, dentro: n > 0.8 };
+  const color = unaVenta && dias <= UNA_SEMANA ? "var(--color-ambar)" : colorDias(dias);
+  return { agotada: false, n, color, texto: `${dias} ${plural(dias, "día", "días")}`, dentro: n > 0.8 };
 }
 
 /** De dónde llega cada parte, como se dice en tienda. */
@@ -267,3 +278,92 @@ export function faltanDelModelo(m: Pick<ModeloAnalisis, "variantes" | "colores">
   const texto = todas.length <= FALTAN_NOMBRADAS ? `${verbo} ${todas.join(" y ")}` : `${verbo} ${todas.length}`;
   return { texto, todas };
 }
+
+// ───────── El ritmo se ve con su base (A5) y cuánto cuesta esperar (A15), 2026-10-16 ─────────
+//
+// «Vendió 2 en 7 días · puede acabarse en 5 días, o durar hasta 53 días»: la base del número y el rango en el que cabe (`analisis-ritmo.ts`).
+// Quien compra decide por el peor caso, así que la respuesta es la cota baja y el rango es el detalle. Aquí solo se dice con palabras de tienda
+// (sin «Poisson» ni «80 %»: ley 4 de /formidable); las cuentas son de `analisis-ritmo.ts`. No sugiere cantidades (decisión 7).
+
+/** Más allá de un año, «hasta 2.562 días» no le sirve a nadie que compra: se dice «más de un año». */
+const DIAS_MAS_DE_UN_ANO = 365;
+
+const diasEscritos = (n: number): string => `${n} ${plural(n, "día", "días")}`;
+
+/** «hoy», «ayer» o «hace 3 días»: cuándo fue algo, contado desde `hoy` (YYYY-MM-DD). Una fecha de mañana o de hoy es «hoy». */
+function textoHace(fecha: string, hoy: string): string {
+  const dias = Math.max(0, diasEntreFechas(fecha, hoy));
+  return dias === 0 ? "hoy" : dias === 1 ? "ayer" : `hace ${dias} días`;
+}
+
+/** «entre 5 y 53 días», «entre 5 días y más de un año» o, si no se separan, «3 días»: el rango entero, para el detalle. */
+function textoEntre(r: RangoDeDias): string {
+  if (r.hasta <= r.desde) return diasEscritos(r.desde);
+  return r.hasta > DIAS_MAS_DE_UN_ANO ? `entre ${diasEscritos(r.desde)} y más de un año` : `entre ${r.desde} y ${diasEscritos(r.hasta)}`;
+}
+
+/** Lo que dice la fila (y la ficha) de la base de una prenda que se acaba. Los textos que no aplican vienen en null. */
+type LecturaDeRitmo = {
+  /** «Vendió 2 en 7 días»: con qué venta se calculó el número. */
+  vendio: string;
+  /** El ritmo sale de UNA sola venta (D6): lleva el chip «Una sola venta» y no usa rojo. */
+  unaVenta: boolean;
+  /** Ya no hay en la tienda: no hay días que contar, sino lo que cuesta esperar. */
+  agotada: boolean;
+  /** Con stock, el peor caso: «puede acabarse en 5 días». */
+  puede: string | null;
+  /** Con stock, la otra punta: «o durar hasta 53 días» (null si no se separa de la primera). */
+  hasta: string | null;
+  /** Con stock, el rango entero: «entre 5 y 53 días». */
+  entre: string | null;
+  /** Agotada y con su última venta conocida: «hoy», «ayer» o «hace 3 días». */
+  hace: string | null;
+  /** Agotada: «última venta hace 3 días». */
+  ultima: string | null;
+  /** Agotada con precio y costo: lo que dejas de ganar por día, ya redondeado (A15). Sin costo no se inventa. */
+  margenDia: number | null;
+};
+
+/**
+ * Lo que la fila y la ficha dicen del ritmo de una prenda que se vende. null si no se vendió (sin ritmo no hay base que decir). El rango se
+ * calcula sobre la MISMA ventana que `diasQueQuedan` (`ventanaDe`), así el peor caso nunca pasa de los días de la barra. Recuerda que el ritmo
+ * de un modelo con quiebre es un piso (`ventanaDeRitmo`): el rango cubre el azar de pocas ventas, no ese sesgo.
+ */
+export function lecturaDeRitmo(
+  p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasDeVentas" | "precio" | "costo"> & { ultimaVenta?: string | null },
+  hoy: string,
+): LecturaDeRitmo | null {
+  if (!(p.vendidas30 > 0)) return null;
+  const ventana = ventanaDe(p);
+  const enStock = totalEnTienda(p);
+  const agotada = enStock === 0;
+  const rango = rangoDeDias({ ventas: p.vendidas30, ventana, enStock });
+  const hace = agotada && p.ultimaVenta ? textoHace(p.ultimaVenta, hoy) : null;
+  return {
+    vendio: `Vendió ${p.vendidas30} en ${diasEscritos(ventana)}`,
+    unaVenta: unaSolaVenta(p.vendidas30),
+    agotada,
+    puede: rango ? `puede acabarse en ${diasEscritos(rango.desde)}` : null,
+    hasta: rango && rango.hasta > rango.desde ? (rango.hasta > DIAS_MAS_DE_UN_ANO ? "o durar más de un año" : `o durar hasta ${diasEscritos(rango.hasta)}`) : null,
+    entre: rango ? textoEntre(rango) : null,
+    hace,
+    ultima: hace ? `última venta ${hace}` : null,
+    margenDia: agotada ? montoPorDia(margenPorDia(p, ventana)) : null,
+  };
+}
+
+/** El detalle de una sola venta, a un toque: por qué no hay que fiarse del número. Con stock dice también cuánto te puede durar. */
+export function tipUnaVenta(l: Pick<LecturaDeRitmo, "agotada" | "entre">): string {
+  return l.agotada || !l.entre
+    ? "Solo se registró una venta de esta prenda: con tan poco no se sabe si se repite."
+    : `Solo se registró una venta de esta prenda: con tan poco no se sabe el ritmo. Te puede durar ${l.entre}.`;
+}
+
+/** El detalle del rango, a un toque: de dónde sale el «puede acabarse en 5 días». null si ya se agotó. */
+export const tipRitmo = (l: Pick<LecturaDeRitmo, "entre">): string | null => (l.entre ? `Según lo vendido hasta hoy, te puede durar ${l.entre}.` : null);
+
+/** «Dejas de ganar ~S/ 26 por día», con el monto ya escrito (`solesFicha`: el espacio de «S/» no se parte, ADR-0413). Es una estimación: lleva «~». */
+export const textoDejasDeGanar = (monto: string): string => `Dejas de ganar ~${monto} por día`;
+
+/** El tooltip de esa cifra: de dónde sale, sin cantidades. */
+export const TIP_DEJAS_DE_GANAR = "Lo que vendías por día multiplicado por lo que te queda en cada una sin el IGV y sin el costo. Es una estimación: mientras no hay, esa ganancia no entra.";

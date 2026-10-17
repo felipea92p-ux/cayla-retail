@@ -21,6 +21,7 @@ import {
   textoVieneDe,
 } from "@/lib/analisis-a-quien-pedir";
 import { textoRitmo } from "@/lib/analisis-pedir";
+import { solesFicha } from "@/lib/analisis-ficha";
 import { notaDePedidoEnFila, pedidoPorTipo, type PedidoDeTipo } from "@/lib/analisis-pedido-en-camino-reglas";
 import {
   atrasoDe,
@@ -30,6 +31,7 @@ import {
   faltanDelModelo,
   FILTROS_ACABA,
   LINEA_SEMANA,
+  lecturaDeRitmo,
   lineasAtrasadas,
   lineasPorLlegar,
   notaAtrasada,
@@ -39,11 +41,15 @@ import {
   seAcabaEnOtras,
   TEXTO_VACIO_ACABA,
   textoAtraso,
+  textoDejasDeGanar,
   textoPedirA,
   textoProveedorGenerico,
   textoTambienSeAcaba,
+  TIP_DEJAS_DE_GANAR,
   tipOtraTienda,
+  tipRitmo,
   tipTambienSeAcaba,
+  tipUnaVenta,
   tituloAtrasada,
   tituloDelCarril,
   tituloPorLlegar,
@@ -52,6 +58,7 @@ import {
   type FiltroAcaba,
   type VacioAcaba,
 } from "@/lib/analisis-acaba";
+import { Chip } from "@/components/ui/Chip";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Vacio } from "@/components/ui/Vacio";
 import { Check } from "lucide-react";
@@ -68,7 +75,7 @@ import { Aviso } from "@/components/ui/Aviso";
 
 const AYUDA_CARRIL: Record<FiltroAcaba, string> = {
   todos:
-    "Lo que, al ritmo que se vende, se acaba en dos semanas o menos. Lo que no viene en camino es para comprar; lo que ya viene dice «Por llegar» y cuándo, y no se pide otra vez. Si una llegada se atrasó, dice «Atrasada» y vuelve a «Comprar». «Pídelo a …» dice a quién; «Viene de …», de quién viene. Si otra tienda la tiene, verás cuántas tiene; toca la prenda para ver cuánto vende cada tienda y decide si pedirla.",
+    "Lo que, al ritmo que se vende, se acaba en dos semanas o menos. Lo que no viene en camino es para comprar; lo que ya viene dice «Por llegar» y cuándo, y no se pide otra vez. Si una llegada se atrasó, dice «Atrasada» y vuelve a «Comprar». «Pídelo a …» dice a quién; «Viene de …», de quién viene. Si otra tienda la tiene, verás cuántas tiene; toca la prenda para ver cuánto vende cada tienda y decide si pedirla. Bajo la barra dice cuánto vendió y en cuántos días: con pocas ventas el número es una pista, no una promesa, y «Una sola venta» lo avisa.",
   comprar:
     "Lo que se acaba y no viene nada en camino a tiempo: hay que comprarlo. «Pídelo a …» dice a quién: a quien le compraste la última vez o, si no hay compra, a quien está anotado en su ficha. Una llegada atrasada también está aquí. Si otra tienda la tiene, verás cuántas tiene y decides si pedirla.",
   llega:
@@ -201,26 +208,48 @@ function Filtros({ filtro, cuentas, onFiltro }: { filtro: FiltroAcaba; cuentas: 
   );
 }
 
-/** Cuántos días le quedan: rayada si se agotó; si no, una barra de 0 a 2 semanas, con la semana punteada. */
+/**
+ * Cuántos días le quedan: rayada si se agotó; si no, una barra de 0 a 2 semanas, con la semana punteada. Debajo, la base del número (A5): cuánto
+ * vendió y en cuántos días, y lo que puede pasar: «puede acabarse en 5 días, o durar hasta 53 días» (el peor caso primero; quien compra decide
+ * por él) o, si ya no hay, cuándo fue la última venta. Con una sola venta la barra no va en rojo (D6).
+ */
 function Pista({ p }: { p: ModeloAnalisis }) {
-  const pista = pistaAcaba(diasQueQuedan(p));
+  const { datos } = useAnalisis();
+  const ritmo = lecturaDeRitmo(p, datos.hoy);
+  const pista = pistaAcaba(diasQueQuedan(p), ritmo?.unaVenta);
   return (
-    <span className="pista">
-      {pista?.agotada && (
-        <>
-          <span className="agot" />
-          <b className="d">{pista.texto}</b>
-        </>
+    <span className="pista-col">
+      <span className={pista?.agotada && pista.suave ? "pista suave" : "pista"}>
+        {pista?.agotada && (
+          <>
+            <span className="agot" />
+            <b className="d">{pista.texto}</b>
+          </>
+        )}
+        {pista && !pista.agotada && (
+          <>
+            <i className="barra cx" style={{ ["--n" as string]: pista.n, ["--c" as string]: pista.color }} />
+            <b className={pista.dentro ? "d dentro" : "d"} style={{ ["--n" as string]: pista.n }}>
+              {pista.texto}
+            </b>
+          </>
+        )}
+        <span className="linea" style={{ left: LINEA_SEMANA }} />
+      </span>
+      {ritmo && (
+        <span className="pista-nota" data-tip={tipRitmo(ritmo) ?? undefined}>
+          {ritmo.vendio}
+          {ritmo.puede ? (
+            <>
+              {" · "}
+              <b>{ritmo.puede}</b>
+              {ritmo.hasta && `, ${ritmo.hasta}`}
+            </>
+          ) : (
+            ritmo.ultima && ` · ${ritmo.ultima}`
+          )}
+        </span>
       )}
-      {pista && !pista.agotada && (
-        <>
-          <i className="barra cx" style={{ ["--n" as string]: pista.n, ["--c" as string]: pista.color }} />
-          <b className={pista.dentro ? "d dentro" : "d"} style={{ ["--n" as string]: pista.n }}>
-            {pista.texto}
-          </b>
-        </>
-      )}
-      <span className="linea" style={{ left: LINEA_SEMANA }} />
     </span>
   );
 }
@@ -242,8 +271,21 @@ function Pildoras({ p, ventanas }: { p: ModeloAnalisis; ventanas: Readonly<Recor
   const faltan = faltanDelModelo(p);
   // «Por llegar 24 · en 4 días» / «· sin fecha»: sin la fecha no se sabe si habrá días con el piso vacío (Felipe 2026-10-16).
   const cuando = cuandoLlega(p, datos.hoy);
+  // La base del número (A5) y lo que cuesta esperar (A15): «Una sola venta» (ámbar, nunca rojo: D6) y, si ya no hay y se sabe lo que deja cada una,
+  // «Dejas de ganar ~S/ 26 por día». Sin costo no se inventa la cifra.
+  const ritmo = lecturaDeRitmo(p, datos.hoy);
   return (
     <>
+      {ritmo?.unaVenta && (
+        <span className="una-venta" data-tip={tipUnaVenta(ritmo)}>
+          <Chip tono="ambar">Una sola venta</Chip>
+        </span>
+      )}
+      {ritmo && ritmo.margenDia !== null && (
+        <span className="pil" data-tip={TIP_DEJAS_DE_GANAR}>
+          {textoDejasDeGanar(solesFicha(ritmo.margenDia))}
+        </span>
+      )}
       {faltan && (
         <span className="pil" data-tip={faltan.todas.length > 1 ? `Ya no hay: ${faltan.todas.join(", ")}` : undefined}>
           {faltan.texto}

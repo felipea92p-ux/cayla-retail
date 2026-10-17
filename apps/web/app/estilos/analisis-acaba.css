@@ -3,6 +3,16 @@
    Aquí nada se mueve: no hay animación ni transición propia. */
 @layer components {
   .analisis {
+    /* A5 (2026-10-16): la barra y, debajo, con qué venta se calculó («Vendió 2 en 7 días · puede acabarse en 5 días, o durar hasta 53 días»). La columna
+       ocupa el lugar de la pista; la nota se parte en dos líneas si no cabe, sin tocar el alto de la barra. */
+    .pista-col{grid-area:pista;min-width:0;display:flex;flex-direction:column;gap:3px}
+    .pista-nota{font-size:12px;line-height:1.3;color:var(--color-tinta-60)}
+    .pista-nota b{font-weight:600;color:var(--color-tinta)}
+    /* Una sola venta (D6): el agotado no grita en rojo. Rayas y borde en ámbar; la palabra, en tinta (así no se gasta otro color en la barra). */
+    .pista.suave .agot{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--color-ambar) 50%,transparent) 0 2px,transparent 2px 4px);box-shadow:inset 0 0 0 1.5px var(--color-ambar)}
+    .pista.suave .agot + .d{color:var(--color-tinta)}
+    /* El chip «Una sola venta» va en la línea de las píldoras: su caja no parte el chip. */
+    .c-pil .una-venta{display:inline-flex}
     /* «o pedir a Arequipa» es texto chico: su zona de toque llega a 24 px de alto sin mover nada (ADR-0350, oficio visual). */
     .c-acc .alt{position:relative}
     .c-acc .alt::after{content:"";position:absolute;inset:-3px -4px}

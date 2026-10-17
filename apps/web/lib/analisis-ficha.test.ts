@@ -109,6 +109,70 @@ describe("el chip de la prenda (el título de su grupo)", () => {
   });
 });
 
+describe("una sola venta no grita en rojo (D6, 2026-10-16)", () => {
+  it("el chip sigue siendo «Cómpralas» pero en ámbar; «Ya viene» manda sobre eso, y lo demás no cambia", () => {
+    expect(chipDeGrupo("comprar", false, false, true)).toEqual({ est: "ate", texto: "Cómpralas" });
+    expect(chipDeGrupo("comprar", false, true, true)).toEqual({ est: "bien", texto: "Ya viene" });
+    // Con más de una venta sigue siendo el rojo de siempre; la bandera solo afecta a «comprar».
+    expect(chipDeGrupo("comprar", false, false, false)).toEqual({ est: "urg", texto: "Cómpralas" });
+    expect(chipDeGrupo("enviar", false, false, true)).toEqual({ est: "ate", texto: "Mándalas a donde sí se venden" });
+    expect(chipDeGrupo(null, false, false, true)).toEqual({ est: "bien", texto: "Va bien" });
+  });
+  it("el «Ya no hay» de una sola venta va en ámbar; el de varias ventas, en rojo como siempre", () => {
+    expect(hechosDe(prenda({ vendidas30: 1, diasDeVentas: 9 }), "comprar", SEDES, HOY)[0]).toMatchObject({ icono: "agotado", tono: "ambar" });
+    expect(hechosDe(prenda({ vendidas30: 2, diasDeVentas: 9 }), "comprar", SEDES, HOY)[0]).toMatchObject({ icono: "agotado", tono: "rojo" });
+  });
+});
+
+describe("el ritmo con su base en la ficha (A5) y lo que cuesta esperar (A15)", () => {
+  it("con stock: el peor caso es la respuesta y el rango, el detalle, en una franja", () => {
+    // 2 ventas en 7 días con 4 en stock: «Quedan 14 días», pero puede acabarse en 5 (y durar hasta 53).
+    const p = prenda({ piso: 4, vendidas30: 2, diasDeVentas: 7 });
+    expect(leer(p)).toEqual(["Quedan 14 días · tienes 4", "Vendiste 2 · en 7 días", "Puede acabarse en 5 días · Según lo vendido: te puede durar entre 5 y 53 días", "Proveedor taller"]);
+    const franja = hechosDe(p, "comprar", SEDES, HOY)[2]!;
+    expect(franja).toMatchObject({ icono: "reloj", tono: "pizarra", ancho: "completo" });
+    // Sin «Poisson» ni «80 %» a la vista: ley 4 de /formidable.
+    expect(JSON.stringify(hechosDe(p, "comprar", SEDES, HOY))).not.toMatch(/poisson|80 ?%|intervalo|confianza/i);
+  });
+  it("una sola venta lo dice: «Fue una sola venta», con el rango entero", () => {
+    const p = prenda({ piso: 1, vendidas30: 1, diasDeVentas: 9 });
+    expect(leer(p)).toEqual(["Quedan 9 días · tienes 1", "Vendiste 1 · en 9 días", "Puede acabarse en 2 días · Fue una sola venta: te puede durar entre 2 y 85 días", "Proveedor taller"]);
+  });
+  it("ya no hay: cuándo fue la última venta y cuánto dejas de ganar por día, sin chip ni tono rojo", () => {
+    // 1 venta en 9 días a S/ 60 con costo S/ 27: (60 / 1,18 − 27) = S/ 23,85 ÷ 9 = S/ 2,65 por día (~S/ 3). Fue hace 3 días (HOY = 7 de octubre).
+    const p = prenda({ vendidas30: 1, diasDeVentas: 9, ultimaVenta: "2026-10-04" });
+    expect(leer(p)).toEqual([
+      "Ya no hay · en tu tienda",
+      "Vendiste 1 · en 9 días",
+      "Hace 3 días · fue tu última venta",
+      "~S/\u00a03 por día · dejas de ganar mientras no hay",
+      "Proveedor taller",
+    ]);
+    const hechos = hechosDe(p, "comprar", SEDES, HOY);
+    expect(hechos.some((h) => h.tono === "rojo")).toBe(false);
+    expect(hechos[3]).toMatchObject({ icono: "etiqueta", tono: "ambar" });
+  });
+  it("«hoy» y «ayer» se dicen como se dicen en tienda", () => {
+    expect(leer(prenda({ vendidas30: 3, diasDeVentas: 9, ultimaVenta: HOY }))[2]).toBe("Hoy · fue tu última venta");
+    expect(leer(prenda({ vendidas30: 3, diasDeVentas: 9, ultimaVenta: "2026-10-06" }))[2]).toBe("Ayer · fue tu última venta");
+  });
+  it("sin costo, sin precio o sin la última venta, no inventa la cifra: solo dice lo que sabe", () => {
+    expect(leer(prenda({ vendidas30: 4, diasDeVentas: 9, costo: null, ultimaVenta: "2026-10-04" }))).toEqual([
+      "Ya no hay · en tu tienda",
+      "Vendiste 4 · en 9 días",
+      "Hace 3 días · fue tu última venta",
+      "Proveedor taller",
+    ]);
+    expect(leer(prenda({ vendidas30: 4, diasDeVentas: 9, precio: null })).some((t) => t.includes("dejas de ganar"))).toBe(false);
+    expect(leer(prenda({ vendidas30: 4, diasDeVentas: 9 })).some((t) => t.includes("última venta"))).toBe(false);
+    // Ganancia cero o negativa: no hay nada que se esté dejando de ganar.
+    expect(leer(prenda({ vendidas30: 4, diasDeVentas: 9, precio: 20, costo: 27 })).some((t) => t.includes("dejas de ganar"))).toBe(false);
+  });
+  it("lo que se acaba pero tiene stock NO dice «dejas de ganar» (todavía lo estás vendiendo)", () => {
+    expect(leer(prenda({ piso: 2, vendidas30: 6, diasDeVentas: 12 })).some((t) => t.includes("dejas de ganar"))).toBe(false);
+  });
+});
+
 describe("el dinero, como se lee en tienda", () => {
   it("entero sin decimales; con céntimos, dos; sin dato, «—»", () => {
     expect(solesFicha(60)).toBe("S/\u00a060");
@@ -137,7 +201,8 @@ describe("el dinero, como se lee en tienda", () => {
 describe("las tarjetitas de la ficha (como `hechos()` de la maqueta)", () => {
   it("se acaba y ya no hay: rojo, lo vendido, de dónde se repone y qué otra tienda la tiene", () => {
     const p = prenda({ vendidas30: 6, otras: [{ sedeId: "s2", stock: 3, vendidas30: 0 }, { sedeId: "s3", stock: 0, vendidas30: 0 }] });
-    expect(leer(p)).toEqual(["Ya no hay · en tu tienda", "Vendiste 6 · en 30 días", "Proveedor taller", "AQP tiene 3 · se podría pedir"]);
+    // A15: lo agotado también dice lo que cuesta esperar (6 en 30 días × S/ 23,85 sin IGV = S/ 4,77 por día, ~S/ 5).
+    expect(leer(p)).toEqual(["Ya no hay · en tu tienda", "Vendiste 6 · en 30 días", "~S/\u00a05 por día · dejas de ganar mientras no hay", "Proveedor taller", "AQP tiene 3 · se podría pedir"]);
     const [agotada] = hechosDe(p, "comprar", SEDES, HOY);
     expect(agotada).toMatchObject({ icono: "agotado", tono: "rojo" });
   });
@@ -163,15 +228,18 @@ describe("las tarjetitas de la ficha (como `hechos()` de la maqueta)", () => {
     expect(leer(p)).toEqual([
       "Ya no hay · en tu tienda",
       "Vendiste 5 · en 30 días",
+      "~S/\u00a04 por día · dejas de ganar mientras no hay",
       "Proveedor terceros",
       "Por llegar 13 · del almacén 2 · llega el 8 oct. · pediste 10 · llega el 15 oct. · del taller 1 · sin fecha",
     ]);
-    expect(hechosDe(p, "comprar", SEDES, HOY)[2]).toMatchObject({ icono: "caja", tono: "taupe", ancho: "completo" });
-    expect(leer(prenda({ vendidas30: 5, origen: null }))).toEqual(["Ya no hay · en tu tienda", "Vendiste 5 · en 30 días"]);
+    expect(hechosDe(p, "comprar", SEDES, HOY)[3]).toMatchObject({ icono: "caja", tono: "taupe", ancho: "completo" });
+    // Sin origen y sin costo no hay proveedor ni cifra de dinero que decir.
+    expect(leer(prenda({ vendidas30: 5, origen: null, costo: null }))).toEqual(["Ya no hay · en tu tienda", "Vendiste 5 · en 30 días"]);
   });
 
   it("A quién se pide (A8): la tarjetita dice el proveedor por su nombre y de dónde se sabe; sin él, lo de siempre", () => {
-    const p = prenda({ vendidas30: 5, origen: null });
+    // Sin costo: esta prueba es del proveedor, no de lo que cuesta esperar (A15, que sale solo con precio y costo).
+    const p = prenda({ vendidas30: 5, origen: null, costo: null });
     const con = (proveedor: Parameters<typeof hechosDe>[5]) =>
       hechosDe(p, "comprar", SEDES, HOY, null, proveedor).map((h) => [h.icono, h.tono, h.valor, h.etiqueta]);
     // Del catálogo: se dice que lo es (no es el de una compra que ya pasó).
@@ -181,18 +249,18 @@ describe("las tarjetitas de la ficha (como `hechos()` de la maqueta)", () => {
     // Se leyó y no tiene a quién: se dice, sin inventar uno.
     expect(con({ fuente: "ninguno" })[2]).toEqual(["caja", "taupe", "Sin proveedor", "falta elegirlo en el catálogo"]);
     // Si algo YA viene en camino a tiempo, la franja no dice «pídelo aquí» (empujaba a pedirlo dos veces): queda el nombre y de dónde se sabe.
-    const viene = prenda({ vendidas30: 5, origen: null, llega: [{ de: "compra", cantidad: 6, fecha: "2026-10-12" }] });
+    const viene = prenda({ vendidas30: 5, origen: null, costo: null, llega: [{ de: "compra", cantidad: 6, fecha: "2026-10-12" }] });
     const conViene = (proveedor: Parameters<typeof hechosDe>[5]) =>
       hechosDe(viene, "comprar", SEDES, HOY, null, proveedor).map((h) => [h.icono, h.tono, h.valor, h.etiqueta]);
     expect(conViene({ fuente: "catalogo", id: "a", nombre: "Textil Andino" })[2]).toEqual(["caja", "taupe", "Textil Andino", "anotado en su ficha"]);
     expect(conViene({ fuente: "compra", id: "a", nombre: "Hilos del Sur" })[2]).toEqual(["caja", "taupe", "Hilos del Sur", "le compraste la última vez"]);
     expect(conViene({ fuente: "taller" })[2]).toEqual(["tijera", "taupe", "Taller de CAYLA", null]);
     // Una llegada ATRASADA no cuenta como que viene: sigue diciendo «pídelo aquí».
-    const atrasada = prenda({ vendidas30: 5, origen: null, llega: [{ de: "compra", cantidad: 6, fecha: "2026-09-20" }] });
+    const atrasada = prenda({ vendidas30: 5, origen: null, costo: null, llega: [{ de: "compra", cantidad: 6, fecha: "2026-09-20" }] });
     expect(hechosDe(atrasada, "comprar", SEDES, HOY, null, { fuente: "catalogo", id: "a", nombre: "Textil Andino" })[2]).toMatchObject({ etiqueta: "pídelo aquí · anotado en su ficha" });
     // Un proveedor archivado no se recomienda: «Sin proveedor», con cuál es y qué hacer (también si el modelo tiene origen conocido).
     expect(con({ fuente: "archivado", id: "v", nombre: "Tejidos Wari" })[2]).toEqual(["caja", "taupe", "Sin proveedor", "Tejidos Wari está archivado: elige otro"]);
-    const deCompra = prenda({ vendidas30: 5, origen: "terceros" });
+    const deCompra = prenda({ vendidas30: 5, origen: "terceros", costo: null });
     expect(hechosDe(deCompra, "comprar", SEDES, HOY, null, { fuente: "archivado", id: "v", nombre: "Tejidos Wari" })[2]).toMatchObject({ valor: "Sin proveedor" });
     // El proveedor va en una FRANJA de ancho completo, no en la cuadrícula de cifras (un nombre largo se partía a media palabra).
     for (const q of [{ fuente: "catalogo", id: "a", nombre: "Textil Andino" }, { fuente: "taller" }, { fuente: "ninguno" }, { fuente: "archivado", id: "v", nombre: "X" }] as const)
@@ -202,7 +270,7 @@ describe("las tarjetitas de la ficha (como `hechos()` de la maqueta)", () => {
     expect(con(null)).toHaveLength(2);
     expect(hechosDe(p, "comprar", SEDES, HOY)).toHaveLength(2);
     // Con origen conocido pero sin poder nombrarlo («ninguno»), queda la etiqueta de siempre.
-    const deTerceros = prenda({ vendidas30: 5, origen: "terceros" });
+    const deTerceros = prenda({ vendidas30: 5, origen: "terceros", costo: null });
     expect(hechosDe(deTerceros, "comprar", SEDES, HOY, null, { fuente: "ninguno" })[2]).toMatchObject({ valor: "Proveedor terceros" });
     // Solo es de «Cómpralas»: lo quieto no pide proveedor.
     const quieta = prenda({ piso: 3, diasSinVender: 70, otras: [] });
@@ -218,6 +286,7 @@ describe("las tarjetitas de la ficha (como `hechos()` de la maqueta)", () => {
     expect(leer(p)).toEqual([
       "Ya no hay · en tu tienda",
       "Vendiste 5 · en 30 días",
+      "~S/\u00a04 por día · dejas de ganar mientras no hay",
       "Proveedor terceros",
       "Por llegar 10 · pediste 10 · llega el 15 oct. · 8 atrasadas hace 17 días",
     ]);
@@ -226,7 +295,7 @@ describe("las tarjetitas de la ficha (como `hechos()` de la maqueta)", () => {
     expect(franja).toMatchObject({ icono: "llega", tono: "ambar", ancho: "completo" });
     expect(hechosDe(p, "comprar", SEDES, HOY).filter((h) => h.valor.startsWith("Atrasada"))).toEqual([]);
     // Solo atrasada: no hay «Por llegar» verde que prometa nada, y se dice qué debía llegar y cuándo.
-    const sola = prenda({ vendidas30: 5, origen: null, llega: [llega[1]!] });
+    const sola = prenda({ vendidas30: 5, origen: null, costo: null, llega: [llega[1]!] });
     expect(leer(sola)).toEqual(["Ya no hay · en tu tienda", "Vendiste 5 · en 30 días", "Atrasada 17 días · 8 sin llegar · del taller 8 · debía llegar el 20 set."]);
     expect(hechosDe(sola, "comprar", SEDES, HOY).at(-1)).toMatchObject({ icono: "llega", tono: "ambar", ancho: "completo" });
   });

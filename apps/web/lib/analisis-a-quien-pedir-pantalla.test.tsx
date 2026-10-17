@@ -23,11 +23,13 @@ vi.mock("@/components/analisis/Carril", () => ({
     grupos,
     accion,
     pildoras,
+    pista,
   }: {
     herramienta: ReactNode;
     grupos: { titulo: string; prendas: unknown[]; lote?: ReactNode }[];
     accion: (p: unknown) => ReactNode;
     pildoras: (p: unknown) => ReactNode;
+    pista?: (p: unknown) => ReactNode;
   }) => (
     <div data-carril="">
       {herramienta}
@@ -39,6 +41,7 @@ vi.mock("@/components/analisis/Carril", () => ({
       ))}
       {grupos.flatMap((g) => g.prendas).map((p, i) => (
         <div key={i} data-fila="">
+          {pista?.(p)}
           {pildoras(p)}
           {accion(p)}
         </div>
@@ -65,6 +68,7 @@ vi.mock("@/lib/analisis-pedir", async () => await import("./analisis-pedir"));
 vi.mock("@/components/ui/VerMas", async () => await import("../components/ui/VerMas"));
 vi.mock("@/lib/analisis-reglas", async () => await import("./analisis-reglas"));
 vi.mock("@/lib/analisis-acaba", async () => await import("./analisis-acaba"));
+vi.mock("@/lib/analisis-ficha", async () => await import("./analisis-ficha"));
 vi.mock("@/lib/analisis-a-quien-pedir", async () => await import("./analisis-a-quien-pedir"));
 vi.mock("@/lib/analisis-pedido-en-camino-reglas", async () => await import("./analisis-pedido-en-camino-reglas"));
 
@@ -300,6 +304,69 @@ describe("«A quién pedir» dentro de la pestaña «Se está acabando»", () =>
       for (const pedido of [null, [], [orden({ categoria: "Polos" })], [orden({ de: "taller", marca: null }), orden({ de: "por_repartir" })]]) {
         expect(notas(pestana("comprar", SEIS, "dias", [sinNada], ACCESO, pedido))).toEqual([]);
       }
+    });
+  });
+
+  // El ritmo con su base (A5) y lo que cuesta esperar (A15): la fila dice con qué venta se calculó el número, y una sola venta no grita en rojo (D6).
+  describe("la base del número en la fila (A5 y A15)", () => {
+    const una = modelo("u1", 1, { vendidas30: 1, diasDeVentas: 9, nombre: "Blusa Una" });
+    const dos = modelo("d1", 4, { vendidas30: 2, diasDeVentas: 7, nombre: "Blusa Dos" });
+    const unaAgotada = modelo("u0", 0, { vendidas30: 1, diasDeVentas: 9, nombre: "Blusa Agotada", ultimaVenta: "2026-10-13" });
+    const nota = (html: string) => [...html.matchAll(/<span class="pista-nota"[^>]*>(.*?)<\/span>/g)].map((m) => m[1]!.replace(/<\/?b>/g, ""));
+
+    it("cada fila dice «Vendió N en D días» y, con stock, lo peor que puede pasar (el rango, de detalle)", () => {
+      const html = pestana("todos", SEIS, "dias", [dos, una]);
+      // La de 9 días va antes que la de 14.
+      expect(nota(html)).toEqual(["Vendió 1 en 9 días · puede acabarse en 2 días, o durar hasta 85 días", "Vendió 2 en 7 días · puede acabarse en 5 días, o durar hasta 53 días"]);
+      expect(html).toContain("<b>puede acabarse en 5 días</b>");
+      // El detalle a un toque: el rango entero, sin jerga.
+      expect(html).toContain('data-tip="Según lo vendido hasta hoy, te puede durar entre 5 y 53 días."');
+      expect(html).not.toMatch(/poisson|80 ?%|intervalo/i);
+    });
+
+    it("una sola venta: el chip «Una sola venta» en ámbar, la barra sin rojo y la fila sigue en «Comprar»", () => {
+      const html = pestana("comprar", SEIS, "dias", [una, dos]);
+      expect(html.match(/Una sola venta/g)).toHaveLength(1);
+      expect(html).toContain("bg-ambar/15 text-ambar");
+      expect(html).toContain('data-tip="Solo se registró una venta de esta prenda: con tan poco no se sabe el ritmo. Te puede durar entre 2 y 85 días."');
+      // La barra de «Una sola venta» (9 días) es ámbar por defecto; la de 14 días de 2 ventas también: ninguna es roja.
+      expect(html).not.toContain("--color-rojo-profundo");
+      expect(html).toContain("<h4>Cómpralas <i>2</i></h4>");
+    });
+
+    it("una sola venta con pocos días no se pinta de rojo, pero la de varias ventas sí (no se cambia el rojo de los demás: eso es A13)", () => {
+      const urgenteUna = modelo("u3", 1, { vendidas30: 1, diasDeVentas: 1 });
+      const urgenteDos = modelo("d3", 1, { vendidas30: 2, diasDeVentas: 1 });
+      expect(pestana("todos", SEIS, "dias", [urgenteUna])).not.toContain("--color-rojo-profundo");
+      expect(pestana("todos", SEIS, "dias", [urgenteDos])).toContain("--n:0.07142857142857142;--c:var(--color-rojo-profundo)");
+    });
+
+    it("una sola venta agotada va suave (ámbar), dice cuándo fue la última venta y cuánto dejas de ganar por día, sin chip rojo", () => {
+      const html = pestana("todos", SEIS, "dias", [unaAgotada]);
+      expect(html).toContain('<span class="pista suave">');
+      expect(nota(html)).toEqual(["Vendió 1 en 9 días · última venta hace 3 días"]);
+      // 1 venta en 9 días a S/ 50 con costo S/ 20: (50 / 1,18 − 20) = S/ 22,37 ÷ 9 = S/ 2,49 por día (~S/ 2).
+      expect(html).toContain("Dejas de ganar ~S/\u00a02 por día");
+      expect(html).toContain("Una sola venta");
+    });
+
+    it("una agotada de varias ventas: «Dejas de ganar» sin el chip, y la pista sigue sin la marca suave", () => {
+      const agotada = modelo("a0", 0, { vendidas30: 5, diasDeVentas: 10, ultimaVenta: "2026-10-16" });
+      const html = pestana("todos", SEIS, "dias", [agotada]);
+      // 5 ventas en 10 días × S/ 22,37 = S/ 11,19 por día (~S/ 11).
+      expect(html).toContain("Dejas de ganar ~S/\u00a011 por día");
+      expect(html).not.toContain("Una sola venta");
+      expect(html).not.toContain("pista suave");
+      expect(nota(html)).toEqual(["Vendió 5 en 10 días · última venta hoy"]);
+    });
+
+    it("sin costo no inventa la cifra: la fila agotada no dice «Dejas de ganar»", () => {
+      const sinCosto = modelo("c0", 0, { vendidas30: 5, diasDeVentas: 10, costo: null });
+      expect(pestana("todos", SEIS, "dias", [sinCosto])).not.toContain("Dejas de ganar");
+    });
+
+    it("lo que se acaba pero todavía tiene stock no dice «Dejas de ganar» (todavía lo vendes)", () => {
+      expect(pestana("todos", SEIS, "dias", [dos])).not.toContain("Dejas de ganar");
     });
   });
 

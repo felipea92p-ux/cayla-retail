@@ -747,3 +747,57 @@ agrega su viñeta aquí; la decisión 7 («Análisis no sugiere cantidades») si
     (el enlace y su lectura, ids ajenos, repetidos, enormes y mal formados, una orden armada que no se puede guardar sin cantidad, la guía de foco, el cableado entre las dos
     pantallas —lee el código de la página, el formulario y Análisis— y la matriz de módulos por origen por proveedor). En el navegador local: Análisis ▸ Se está acabando ▸ «Comprar» → la orden con el proveedor, la tienda y la línea «Por revisar» sin cantidad → «Volver» regresa a
     Análisis; «Por proveedor» ▸ «Pedir a X»; una cuenta con solo Órdenes ve el botón, una con solo Facturas cae en «Registrar factura», una sin ninguna no lo ve; a 1440 y 1024 px, claro y oscuro.
+
+- **A5 + A15 · El ritmo se ve con su base («Vendió N en D días», el peor caso y el rango, «Una sola venta») y cuánto cuesta esperar** (decisión D6 de Felipe, 2026-10-16; solo web, sin
+  migración).
+  - **El problema.** «Quedan 14 días» parece un número sólido y puede descansar en una sola unidad vendida. Medido en producción el 16-oct (por la verificación del plan, con las cifras
+    corregidas): de 40 modelos que se acaban en Trujillo, 17 descansan en UNA venta y 22 en una o dos; de 14 agotados, 10 vendieron una sola unidad y 11 una o dos. Un agotado con una
+    venta salía «Urgente: Compra» en rojo sin decir su base, y quien compra decide por el peor caso, que la pantalla no mostraba. Además, dos agotados con las mismas unidades vendidas
+    salían empatados aunque uno deje el doble por prenda.
+  - **El rango** (`lib/analisis-ritmo.ts`, función pura `rangoDeDias`). Con las `ventas` observadas en la ventana de ritmo (`ventanaDe`, la MISMA de `diasQueQuedan`) y lo que hay en la
+    tienda, los días que quedan caben entre `stock × ventana / λalto` y `stock × ventana / λbajo`, con λ entre los límites **exactos** (Clopper-Pearson) de una Poisson al 80 % (10 %
+    de azar por cada lado). Una venta es un conteo de sucesos sueltos en una ventana de tiempo; exacto, porque con 1 o 2 ventas la aproximación normal da límites negativos. Se resuelve
+    por bisección sobre la Poisson (sin librerías) y se guarda por número de ventas. Ejemplos de la prueba: **2 ventas en 7 días con 4 en tienda → 5,3 a 52,7 días; 1 venta en 9 días
+    con 1 → 2,3 a 85,4**; sin ventas o sin stock no hay rango (una agotada ya no tiene días que contar). El rango SIEMPRE rodea a lo que dice la barra (`días = stock × ventana / ventas`):
+    el peor caso no pasa de ella.
+  - **Qué se ve.** Debajo de la barra de cada fila de «Se está acabando»: **«Vendió 2 en 7 días · puede acabarse en 5 días, o durar hasta 53 días»**. La COTA BAJA es la respuesta (quien
+    compra actúa por el peor caso: ley 2 de /formidable, una pregunta, una respuesta); el rango, de detalle, y entero a un toque (tooltip: «Según lo vendido hasta hoy, te puede durar entre 5
+    y 53 días»). Ni «Poisson» ni «80 %» ni «intervalo» a la vista (ley 4; lo vigilan las pruebas). Más de un año no se escribe en días («o durar más de un año») y si el rango no se abre
+    no se repite el número. La ficha lo dice en una franja: «Puede acabarse en 5 días · Según lo vendido: te puede durar entre 5 y 53 días».
+  - **D6: una sola venta.** Sigue en «Comprar» (no se esconde un posible quiebre) pero **no grita**: chip «Una sola venta» (`<Chip tono="ambar">`, con su porqué a un toque), la barra de una
+    semana o menos va en ámbar y no en rojo, el agotado va «suave» (rayas y borde ámbar, la palabra en tinta), y en la ficha el chip «Cómpralas» y el «Ya no hay» pasan a ámbar. Lo demás
+    no cambia: el rojo de los demás agotados y la escala de urgencia son de A13, y el icono rojo del grupo «Cómpralas» y el camino «Compra» de Qué hacer hoy siguen en rojo (se unifican
+    con A13). `grupoDe` no se tocó: nada cae a otro grupo por esto.
+  - **Un piso, no un promedio.** `ventanaDeRitmo` divide entre los días desde que se colgó, NO entre los días con stock (Producción sí usa los de stock, mínimo 3). Un modelo que estuvo
+    agotado parte de la ventana vende más rápido de lo que dice la pantalla y sus días «que quedan» salen más largos de lo real. El rango cubre el azar de pocas ventas; **no corrige este
+    sesgo** (queda escrito en `ventanaDeRitmo` y en `analisis-ritmo.ts`). Tampoco se escala ni se contrae el ritmo: el backtest de la verificación (ritmo del 3 al 9 de octubre contra lo
+    vendido del 10 al 16) muestra que la pantalla SOBREstima a los modelos elegidos por sus ventas recientes (+61 % a +78 %), que el factor 1,45 que se sospechaba no existe en los modelos que
+    se acaban (0,87) y que el sesgo grande es solo de Arequipa, que registra pocas ventas con prenda. No hay corrección que aplicar: se muestra el rango y decide quien compra.
+  - **A15 · Cuánto cuesta esperar.** En las filas agotadas, sin chip rojo: **«Dejas de ganar ~S/ 26 por día»** = `vendidas30 / ventana × (precio sin IGV − costo)`, con el margen del modelo
+    (promedio de sus tallas y colores, `analisis-modelo.ts`), y **«última venta hace N días»** (`ultimaVenta`, que ya llega de `fn_analisis_sede`). **Sin el IGV:** el precio de venta de CAYLA lo trae adentro y el costo de compra no (la misma cuenta que «Lo que más rinde», `analisis-rinde.ts`, con `IGV_TASA`); restar el costo del
+    precio entero inflaba lo que se deja de ganar en el 15 % del precio, y esa plata es de la SUNAT. Solo con precio Y costo (sin costo no
+    se inventa la cifra) y solo con ganancia positiva; por debajo de S/ 1 se escribe a los diez céntimos y por debajo de diez céntimos no se pinta. El monto se escribe con `solesFicha`
+    (el espacio de «S/» no se parte, ADR-0413) y lleva «~»: es una estimación. En la ficha, dos tarjetas («Hace 3 días · fue tu última venta», «~S/ 26 por día · dejas de ganar mientras no hay»).
+    **Es además el desempate de `ordenSeAcaba`**: primero los días (los agotados con ventas van antes, como siempre), luego el que más deja de ganar por día **con el ritmo en su cota baja** (`margenPrudentePorDia`: el mismo intervalo del rango; sin costo, después de quien sí lo
+    tiene), luego el que más vende y por último el nombre. La cota baja es lo que ordena y la cifra puntual es lo que se lee: con una sola venta el ritmo puntual es el menos fiable, y
+    ordenar por él hacía que una prenda de UNA venta de S/ 150 de ganancia (5 por día) pasara delante de otra de cuatro ventas de S/ 30 (4 por día), que es premiar al azar (rankear
+    con poca muestra); con la cota baja gana la que tiene más base. Solo el desempate: no mueve a nadie de su lugar por plazo ni cambia el grupo. Medido en producción por la crítica del plan: en
+    TRU ninguna de 1.236 variantes con stock está sin costo; en los 14 agotados con ventas el margen por unidad va de S/ 19 (p10) a S/ 39 (p90), mediana S/ 26 (medido como precio − costo, con el
+    IGV adentro: sin él cada margen baja alrededor del 15 % del precio). No sugiere cantidades (la
+    decisión 7 sigue intacta).
+  - **Lo descartado.** Multiplicar o encoger el ritmo (×1,45: no hay evidencia, ver arriba); la aproximación normal (límites negativos con 1 o 2 ventas); decir «Poisson», «80 %» o «intervalo
+    de confianza» a la vista; mover a «Vigila» lo que tiene una sola venta (la opción 2 de D6: se puede perder el primer síntoma de un hit); exigir un mínimo de ventas para entrar a
+    «Comprar» (D14, pendiente); mostrar «dejas de ganar» en lo que todavía tiene stock (lo estás vendiendo); un chip rojo para la pérdida; un control nuevo (el rango va en un tooltip y en la ficha,
+    así la huella de la guía no cambia).
+  - **Pendiente.** (1) El ADR/tabla «qué ritmo usa cada pantalla» (9 a 10 fórmulas: Producción en `resumen-reglas.ts` con días con stock, Existencias en `existencias-filtros.ts`, Análisis,
+    `demanda-reglas.ts`, `piso-plan.ts`, `plan-compra-reglas.ts`, `fn_productos_listado` ÷ 30…), con su enlace desde `docs/datos/15-COMO-OPERA-CAYLA.md`: necesita reservar número de ADR y
+    es D9 (Producción contra Análisis); no se hizo aquí. (2) Hoy («Compra» y «Qué hacer hoy») sigue contando y pintando como urgente al agotado de una sola venta (es la escala de urgencia, A13).
+    (3) El margen de un modelo agotado es el promedio simple de sus tallas (con stock cero todas pesan igual); una talla muy cara o muy barata lo mueve. (4) D14: el piso de ventas para
+    «Comprar» sigue como hoy. (5) **«Ganas por cada una»** de la ficha (`dineroDe`, de la actividad 6) sigue restando el costo del precio entero, con el IGV adentro: en la ficha de un agotado
+    conviven dos bases (esa tarjeta y «dejas de ganar», que ya va sin IGV; el tooltip lo dice). Corregirla cambia una cifra ya entregada y es dinero: espera el OK de Felipe.
+    (6) El orden por la cota baja es una decisión de ordenar con poca muestra; si Felipe prefiere la cifra puntual, es una línea (`ordenSeAcaba`).
+  - **Cómo se verifica.** `pnpm --filter web exec vitest run lib/analisis-ritmo lib/analisis-reglas lib/analisis-acaba lib/analisis-ficha lib/analisis-a-quien-pedir-pantalla lib/guias`:
+    los dos ejemplos (5,3 a 52,7 y 2,3 a 85,4), que los límites cumplen su definición contados aparte (P = 0,1 por cada lado), que el ritmo de la barra siempre cae adentro (1 a 200 ventas,
+    ventanas de 7, 17 y 30), que el peor caso nunca pasa de los días de la barra, que más ventas cierran el rango, que no hay NaN con 600 ventas, que el margen quita el IGV (precio S/ 118 y costo S/ 70 dejan S/ 30, no S/ 48) y que la cota baja de ordenar nunca pasa de la cifra que se ve y no deja que una venta de S/ 150 pase delante de cuatro de S/ 30, que una sola venta no pinta rojo (barra,
+    agotado, chip de la ficha), que el desempate por margen no cambia el lugar por plazo ni el grupo y que sin costo no hay cifra. En el navegador local: Análisis ▸ Se está acabando con
+    filas de 1, 2 y 10 ventas y un agotado, a 1440, 1024 y 375 px, claro y oscuro: la nota bajo la barra, el chip «Una sola venta», «Dejas de ganar» en el agotado, la ficha.

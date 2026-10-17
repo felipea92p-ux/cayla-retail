@@ -25,6 +25,7 @@ import {
   sedeDeAnalisis,
   sedeQueMasVende,
   seEstaAcabando,
+  ventanaDe,
 } from "./analisis-reglas";
 
 /** El día de las pruebas de lo que llega (16 de octubre de 2026). */
@@ -151,6 +152,79 @@ describe("el grupo de cada prenda (una sola)", () => {
     const b = prenda({ varianteId: "b", piso: 1, vendidas30: 4 });
     const c = prenda({ varianteId: "c", piso: 4, diasSinVender: 90 });
     expect(prendasDe([c, b, a], ["comprar"], 60).sort(ordenSeAcaba).map((p) => p.varianteId)).toEqual(["a", "b"]);
+  });
+});
+
+describe("el orden de lo que se acaba: el margen por día solo desempata (A15, 2026-10-16)", () => {
+  const orden = (...ps: PrendaAnalisis[]) => [...ps].sort(ordenSeAcaba).map((p) => p.varianteId);
+  // El precio de venta trae el IGV y el costo no: el precio que deja `ganancia` sin IGV sobre ese costo.
+  const conIgv = (ganancia: number, costo: number) => (ganancia + costo) * 1.18;
+
+  it("a igual plazo (los agotados empatan en 0 días), primero el que más deja de ganar por día", () => {
+    // Las dos vendieron 6 en 30 días y están agotadas; «mucha» deja S/ 23,8 por prenda (60 / 1,18 − 27) y «poca», S/ 3,9 (40 / 1,18 − 30).
+    const poca = prenda({ varianteId: "poca", nombre: "Aaa", vendidas30: 6, precio: 40, costo: 30 });
+    const mucha = prenda({ varianteId: "mucha", nombre: "Zzz", vendidas30: 6, precio: 60, costo: 27 });
+    expect(orden(poca, mucha)).toEqual(["mucha", "poca"]);
+    expect(orden(mucha, poca)).toEqual(["mucha", "poca"]);
+  });
+
+  it("vender más no siempre gana: 3 ventas a S/ 100 de margen pasan a 5 ventas a S/ 10 (antes ganaba la que más vendía)", () => {
+    const cara = prenda({ varianteId: "cara", vendidas30: 3, precio: conIgv(100, 60), costo: 60 });
+    const barata = prenda({ varianteId: "barata", vendidas30: 5, precio: conIgv(10, 30), costo: 30 });
+    expect(orden(barata, cara)).toEqual(["cara", "barata"]);
+  });
+
+  it("una sola venta de mucha ganancia no pasa delante de varias de menos: con poca muestra la cifra más alta premia al azar", () => {
+    // Las dos agotadas, 30 días. Una vendió 1 a S/ 150 de ganancia (5 por día si fuera cierto); la otra, 4 a S/ 30 (4 por día).
+    const una = prenda({ varianteId: "una", vendidas30: 1, precio: conIgv(150, 30), costo: 30 });
+    const cuatro = prenda({ varianteId: "cuatro", vendidas30: 4, precio: conIgv(30, 30), costo: 30 });
+    expect(orden(una, cuatro)).toEqual(["cuatro", "una"]);
+    expect(orden(cuatro, una)).toEqual(["cuatro", "una"]);
+  });
+
+  it("los días mandan: el margen NO mueve a una prenda de su lugar por plazo", () => {
+    // Agotada barata, con 2 días, y con stock carísima: la agotada va primero aunque deje de ganar menos.
+    const agotada = prenda({ varianteId: "agotada", vendidas30: 2, precio: 40, costo: 30 });
+    const con2 = prenda({ varianteId: "con2", piso: 1, vendidas30: 15, precio: 500, costo: 100 });
+    const con9 = prenda({ varianteId: "con9", piso: 3, vendidas30: 10, precio: 500, costo: 100 });
+    expect(orden(con9, con2, agotada)).toEqual(["agotada", "con2", "con9"]);
+  });
+
+  it("sin costo no hay margen: va después de quien sí lo tiene; entre dos sin costo, decide quien vende más y luego el nombre", () => {
+    const con = prenda({ varianteId: "con", nombre: "Zzz", vendidas30: 1, precio: 50, costo: 40 });
+    const sinA = prenda({ varianteId: "sinA", nombre: "Bbb", vendidas30: 9, costo: null });
+    const sinB = prenda({ varianteId: "sinB", nombre: "Aaa", vendidas30: 9, costo: null });
+    const sinC = prenda({ varianteId: "sinC", nombre: "Ccc", vendidas30: 20, precio: null });
+    expect(orden(sinA, sinB, sinC, con)).toEqual(["con", "sinC", "sinB", "sinA"]);
+  });
+
+  it("la ventana de cada prenda cuenta: la misma venta en una ventana corta deja más por día", () => {
+    const corta = prenda({ varianteId: "corta", vendidas30: 4, diasDeVentas: 8 });
+    const larga = prenda({ varianteId: "larga", vendidas30: 4, diasDeVentas: 30 });
+    expect(orden(larga, corta)).toEqual(["corta", "larga"]);
+  });
+
+  it("no cambia qué cae en «Cómpralas»: el grupo sale de los días, no del margen", () => {
+    for (const costo of [null, 0, 27, 59]) expect(grupoDe(prenda({ piso: 1, vendidas30: 4, costo }), 60)).toBe("comprar");
+  });
+
+  it("es un orden coherente (se puede usar en sort): el resultado no depende del orden de entrada", () => {
+    const ps = Array.from({ length: 12 }, (_, i) =>
+      prenda({ varianteId: `p${i}`, nombre: `Modelo ${i % 4}`, vendidas30: 1 + (i % 5), diasDeVentas: 7 + (i % 3) * 8, precio: 50 + (i % 3) * 20, costo: i % 4 === 0 ? null : 20 + (i % 2) * 15 }),
+    );
+    const base = orden(...ps);
+    expect(orden(...[...ps].reverse())).toEqual(base);
+    expect(orden(...ps.slice(6), ...ps.slice(0, 6))).toEqual(base);
+  });
+});
+
+describe("ventanaDe: una sola cuenta para los días, el rango y el margen", () => {
+  it("la de la prenda dentro de 1 y 30; sin ella, 30", () => {
+    expect(ventanaDe({})).toBe(30);
+    expect(ventanaDe({ diasDeVentas: 7 })).toBe(7);
+    expect(ventanaDe({ diasDeVentas: 7.6 })).toBe(8);
+    expect(ventanaDe({ diasDeVentas: 99 })).toBe(30);
+    expect(ventanaDe({ diasDeVentas: 0 })).toBe(1);
   });
 });
 

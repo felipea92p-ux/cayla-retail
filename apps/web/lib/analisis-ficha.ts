@@ -18,7 +18,7 @@ import {
   sedeQueMasVende,
   totalEnTienda,
 } from "./analisis-reglas";
-import { textoAtraso } from "./analisis-acaba";
+import { lecturaDeRitmo, textoAtraso } from "./analisis-acaba";
 import { FUENTE_CORTA, type ProveedorDelModelo } from "./analisis-a-quien-pedir";
 import { hrefComprar, hrefEnviar, hrefLiquidar, hrefRegistrarVentas, hrefReponerPiso, type DondeComprar } from "./analisis-acciones";
 import { estiloMosaicoColor } from "./color-prenda-reglas";
@@ -56,9 +56,13 @@ const CHIP_GRUPO: Record<GrupoAnalisis, { est: EstadoFicha; texto: string }> = {
  *
  * `yaViene` (algo llega a tiempo, `porLlegar`): un modelo que se acaba pero YA viene en camino no es un «Cómpralas» en rojo (el carril lo pone
  * en «Ya vienen», sin rojo, y la ficha no puede contradecirlo): dice «Ya viene».
+ *
+ * `unaVenta` (el ritmo sale de UNA sola venta, D6 de Felipe 2026-10-16): sigue en «Cómpralas», pero en ámbar y no en rojo; el chip «Una sola
+ * venta» lo acompaña. Un dato así de flaco no grita.
  */
-export function chipDeGrupo(grupo: GrupoAnalisis | null, sinSalir = false, yaViene = false): { est: EstadoFicha; texto: string } {
+export function chipDeGrupo(grupo: GrupoAnalisis | null, sinSalir = false, yaViene = false, unaVenta = false): { est: EstadoFicha; texto: string } {
   if (grupo === "comprar" && yaViene) return { est: "bien", texto: "Ya viene" };
+  if (grupo === "comprar" && unaVenta) return { est: "ate", texto: CHIP_GRUPO.comprar.texto };
   if (grupo) return CHIP_GRUPO[grupo];
   return sinSalir ? { est: "ate", texto: "Nunca salió al piso" } : { est: "bien", texto: "Va bien" };
 }
@@ -84,7 +88,7 @@ export function subtituloFicha(p: Pick<PrendaAnalisis, "color" | "talla" | "prec
   return [p.color, p.talla ? `talla ${p.talla}` : null, p.precio === null ? null : solesFicha(p.precio)].filter(Boolean).join(" · ");
 }
 
-/** «Costó cada una» y «Ganas por cada una» (precio − costo); «—» si falta uno de los dos. */
+/** «Costó cada una» y «Ganas por cada una» (precio − costo, con el IGV del precio adentro: pendiente de Felipe, ADR-0357 act. 2026-10-16); «—» si falta uno de los dos. */
 export function dineroDe(p: Pick<PrendaAnalisis, "precio" | "costo">): { costo: string; ganas: string } {
   return { costo: solesFicha(p.costo), ganas: p.precio === null || p.costo === null ? "—" : solesFicha(p.precio - p.costo) };
 }
@@ -134,6 +138,9 @@ const enDias = (p: Pick<PrendaAnalisis, "diasDeVentas">): string => {
   return `en ${n} ${plural(n, "día", "días")}`;
 };
 
+/** La primera letra en mayúscula: «puede acabarse en 5 días» → «Puede acabarse en 5 días». */
+const mayuscula = (texto: string): string => texto.charAt(0).toUpperCase() + texto.slice(1);
+
 /** El código de una tienda para las tarjetitas («AQP tiene 3»); si no está en la red, «Otra tienda». */
 const codigoDe = (sedes: readonly SedeAnalisis[], id: string): string => sedes.find((s) => s.id === id)?.codigo ?? "Otra tienda";
 
@@ -163,9 +170,18 @@ export function hechosDe(
 
   if (grupo === "comprar") {
     const d = diasQueQuedan(p) ?? 0;
-    if (d === 0) agregar("agotado", "rojo", "Ya no hay", "en tu tienda");
+    // La base del número (A5, 2026-10-16): cuántas ventas sostienen los días, el peor caso y el rango; y, si ya no hay, lo que cuesta esperar (A15).
+    const ritmo = lecturaDeRitmo(p, hoy);
+    if (d === 0) agregar("agotado", ritmo?.unaVenta ? "ambar" : "rojo", "Ya no hay", "en tu tienda");
     else agregar("reloj", d <= 7 ? "ambar" : "pizarra", d === 1 ? "Queda 1 día" : `Quedan ${d} días`, `tienes ${tienes}`);
     agregar("check", "verde", `Vendiste ${p.vendidas30}`, enDias(p));
+    if (ritmo?.agotada) {
+      if (ritmo.hace) agregar("reloj", "pizarra", mayuscula(ritmo.hace), "fue tu última venta");
+      if (ritmo.margenDia !== null) agregar("etiqueta", "ambar", `~${solesFicha(ritmo.margenDia)} por día`, "dejas de ganar mientras no hay");
+    } else if (ritmo?.puede && ritmo.entre) {
+      // Una franja: es una frase con su detalle. El peor caso primero (quien compra decide por él); el rango, de detalle.
+      agregar("reloj", "pizarra", mayuscula(ritmo.puede), `${ritmo.unaVenta ? "Fue una sola venta" : "Según lo vendido"}: te puede durar ${ritmo.entre}`, { ancho: "completo" });
+    }
     // A quién se le pide va en una FRANJA de ancho completo, no en la cuadrícula de cifras: un nombre largo en una tarjeta de 112 px se partía a media
     // palabra. Un proveedor archivado no se recomienda: se dice que falta elegir otro (Felipe 2026-10-16).
     const completo = { ancho: "completo" } as const;

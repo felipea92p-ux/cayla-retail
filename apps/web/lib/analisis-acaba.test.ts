@@ -11,6 +11,7 @@ import {
   FILTROS_ACABA,
   LINEA_SEMANA,
   lineasAtrasadas,
+  lecturaDeRitmo,
   lineasPorLlegar,
   notaAtrasada,
   pasaFiltroAcaba,
@@ -19,6 +20,10 @@ import {
   seAcabaEnOtras,
   TEXTO_VACIO_ACABA,
   textoAtraso,
+  textoDejasDeGanar,
+  TIP_DEJAS_DE_GANAR,
+  tipRitmo,
+  tipUnaVenta,
   textoLlegada,
   textoPedirA,
   textoProveedor,
@@ -191,6 +196,139 @@ describe("la pista de días", () => {
       expect(seEstaAcabando(p)).toBe(true);
       expect(pistaAcaba(diasQueQuedan(p))).not.toBeNull();
     }
+  });
+});
+
+describe("una sola venta no grita en rojo en la pista (D6, 2026-10-16)", () => {
+  it("la barra de una semana o menos va en ámbar (no rojo); de ahí en adelante, como siempre", () => {
+    expect(pistaAcaba(1, true)).toMatchObject({ agotada: false, color: "var(--color-ambar)" });
+    expect(pistaAcaba(UNA_SEMANA, true)).toMatchObject({ color: "var(--color-ambar)" });
+    expect(pistaAcaba(UNA_SEMANA + 1, true)).toMatchObject({ color: "var(--color-ambar)" });
+    expect(pistaAcaba(DIAS_SE_ACABA + 1, true)).toMatchObject({ color: "var(--color-taupe)" });
+  });
+  it("lo agotado de una sola venta va suave; el de varias ventas, igual que siempre (sin la marca)", () => {
+    expect(pistaAcaba(0, true)).toEqual({ agotada: true, texto: "Se agotó", suave: true });
+    expect(pistaAcaba(0, false)).toEqual({ agotada: true, texto: "Se agotó" });
+    expect(pistaAcaba(0)).toEqual({ agotada: true, texto: "Se agotó" });
+  });
+  it("sin la bandera nada cambia: el rojo de lo demás es de la escala de urgencia, no de este cambio", () => {
+    expect(pistaAcaba(3)).toMatchObject({ color: "var(--color-rojo-profundo)" });
+    expect(pistaAcaba(3, false)).toMatchObject({ color: "var(--color-rojo-profundo)" });
+  });
+});
+
+describe("el ritmo con su base: «Vendió N en D días» y lo que puede pasar (A5)", () => {
+  const ritmo = (parcial: Partial<PrendaAnalisis>) => lecturaDeRitmo(prenda(parcial), HOY)!;
+
+  it("2 ventas en 7 días con 4 en stock: la respuesta es el peor caso y el rango, el detalle", () => {
+    const r = ritmo({ piso: 4, vendidas30: 2, diasDeVentas: 7 });
+    expect(r.vendio).toBe("Vendió 2 en 7 días");
+    expect(r.puede).toBe("puede acabarse en 5 días");
+    expect(r.hasta).toBe("o durar hasta 53 días");
+    expect(r.entre).toBe("entre 5 y 53 días");
+    expect(r.unaVenta).toBe(false);
+    expect(r.agotada).toBe(false);
+    expect(r.ultima).toBeNull();
+    expect(r.margenDia).toBeNull();
+  });
+
+  it("1 venta en 9 días con 1 en stock: lo marca como una sola venta y dice el rango (2 a 85 días)", () => {
+    const r = ritmo({ piso: 1, vendidas30: 1, diasDeVentas: 9 });
+    expect(r.vendio).toBe("Vendió 1 en 9 días");
+    expect(r.puede).toBe("puede acabarse en 2 días");
+    expect(r.hasta).toBe("o durar hasta 85 días");
+    expect(r.unaVenta).toBe(true);
+  });
+
+  it("singular: «1 día» y la talla del plural se respeta", () => {
+    expect(ritmo({ piso: 1, vendidas30: 40, diasDeVentas: 1 }).vendio).toBe("Vendió 40 en 1 día");
+    expect(ritmo({ piso: 1, vendidas30: 40, diasDeVentas: 1 }).puede).toBe("puede acabarse en 1 día");
+  });
+
+  it("sin venta no hay base que decir", () => {
+    expect(lecturaDeRitmo(prenda({ piso: 5, vendidas30: 0 }), HOY)).toBeNull();
+  });
+
+  it("la ventana es la misma de los días de la barra: sin `diasDeVentas`, 30; nunca más de 30 ni menos de 1", () => {
+    expect(ritmo({ piso: 3, vendidas30: 3 }).vendio).toBe("Vendió 3 en 30 días");
+    expect(ritmo({ piso: 3, vendidas30: 3, diasDeVentas: 99 }).vendio).toBe("Vendió 3 en 30 días");
+    expect(ritmo({ piso: 3, vendidas30: 3, diasDeVentas: 0 }).vendio).toBe("Vendió 3 en 1 día");
+  });
+
+  it("el peor caso nunca pasa de los días de la barra, ni el mejor baja de ellos", () => {
+    for (const ventana of [7, 11, 17, 30]) {
+      for (let ventas = 1; ventas <= 40; ventas++) {
+        for (let piso = 1; piso <= 20; piso++) {
+          const p = prenda({ piso, vendidas30: ventas, diasDeVentas: ventana });
+          if (!seEstaAcabando(p)) continue;
+          const r = lecturaDeRitmo(p, HOY)!;
+          const barra = diasQueQuedan(p)!;
+          // «puede acabarse en N» no promete más que la barra; si el rango se abre, el «hasta» no es menos.
+          const peor = Number(r.puede!.match(/\d+/)![0]);
+          expect(peor).toBeLessThanOrEqual(barra);
+          if (r.hasta) expect(Number(r.hasta.match(/\d+/)![0])).toBeGreaterThanOrEqual(barra);
+        }
+      }
+    }
+  });
+
+  it("si el rango no se abre, no repite el número: «puede acabarse en 1 día» y nada más", () => {
+    const r = ritmo({ piso: 1, vendidas30: 90, diasDeVentas: 7 });
+    expect(r.puede).toBe("puede acabarse en 1 día");
+    expect(r.hasta).toBeNull();
+    expect(r.entre).toBe("1 día");
+  });
+
+  it("más de un año no se escribe en días: «más de un año»", () => {
+    const r = ritmo({ piso: 40, vendidas30: 1, diasDeVentas: 30 });
+    expect(r.hasta).toBe("o durar más de un año");
+    expect(r.entre).toBe("entre 309 días y más de un año");
+  });
+
+  it("agotada: no hay días que contar; dice cuándo fue la última venta y cuánto dejas de ganar por día (A15)", () => {
+    // 3 ventas en 10 días a S/ 50 con costo S/ 20: 0,3 por día × (50 / 1,18 − 20 = S/ 22,37) = S/ 6,71 (~S/ 7) por día. La última, hace 3 días.
+    const r = ritmo({ vendidas30: 3, diasDeVentas: 10, precio: 50, costo: 20, ultimaVenta: "2026-10-03" });
+    expect(r.agotada).toBe(true);
+    expect([r.puede, r.hasta, r.entre]).toEqual([null, null, null]);
+    expect(r.hace).toBe("hace 3 días");
+    expect(r.ultima).toBe("última venta hace 3 días");
+    expect(r.margenDia).toBe(7);
+  });
+
+  it("la última venta se dice como se dice en tienda: hoy, ayer, hace N días; sin dato, nada", () => {
+    expect(ritmo({ vendidas30: 3, ultimaVenta: HOY }).ultima).toBe("última venta hoy");
+    expect(ritmo({ vendidas30: 3, ultimaVenta: "2026-10-05" }).ultima).toBe("última venta ayer");
+    expect(ritmo({ vendidas30: 3, ultimaVenta: "2026-09-20" }).ultima).toBe("última venta hace 16 días");
+    expect(ritmo({ vendidas30: 3, ultimaVenta: null }).ultima).toBeNull();
+    expect(ritmo({ vendidas30: 3 }).ultima).toBeNull();
+    // Una fecha adelantada (reloj de otra máquina) no dice «hace -2 días».
+    expect(ritmo({ vendidas30: 3, ultimaVenta: "2026-10-09" }).ultima).toBe("última venta hoy");
+    // Con stock no se dice la última venta: todavía la estás vendiendo.
+    expect(ritmo({ piso: 4, vendidas30: 3, ultimaVenta: HOY }).ultima).toBeNull();
+  });
+
+  it("sin costo (o sin precio) no inventa lo que dejas de ganar; con ganancia cero tampoco", () => {
+    expect(ritmo({ vendidas30: 3, costo: null }).margenDia).toBeNull();
+    expect(ritmo({ vendidas30: 3, precio: null }).margenDia).toBeNull();
+    expect(ritmo({ vendidas30: 3, precio: 20, costo: 20 }).margenDia).toBeNull();
+  });
+
+  it("lo que se acaba pero todavía tiene stock no dice «dejas de ganar»", () => {
+    expect(ritmo({ piso: 2, vendidas30: 6, diasDeVentas: 12 }).margenDia).toBeNull();
+  });
+
+  it("los tooltips: una sola venta dice por qué no fiarse; el rango dice de dónde sale; nada de jerga", () => {
+    const una = ritmo({ piso: 1, vendidas30: 1, diasDeVentas: 9 });
+    expect(tipUnaVenta(una)).toBe("Solo se registró una venta de esta prenda: con tan poco no se sabe el ritmo. Te puede durar entre 2 y 85 días.");
+    expect(tipUnaVenta(ritmo({ vendidas30: 1, diasDeVentas: 9 }))).toBe("Solo se registró una venta de esta prenda: con tan poco no se sabe si se repite.");
+    expect(tipRitmo(ritmo({ piso: 4, vendidas30: 2, diasDeVentas: 7 }))).toBe("Según lo vendido hasta hoy, te puede durar entre 5 y 53 días.");
+    expect(tipRitmo(ritmo({ vendidas30: 2, diasDeVentas: 7 }))).toBeNull();
+    const todo = JSON.stringify([una, tipUnaVenta(una), tipRitmo(una), TIP_DEJAS_DE_GANAR, textoDejasDeGanar("S/\u00a09")]);
+    expect(todo).not.toMatch(/poisson|80 ?%|intervalo|confianza|estad/i);
+  });
+
+  it("«Dejas de ganar ~S/ 9 por día»: lleva «~» porque es una estimación, y el monto viene escrito aparte (S/ con espacio que no se parte)", () => {
+    expect(textoDejasDeGanar("S/\u00a09")).toBe("Dejas de ganar ~S/\u00a09 por día");
   });
 });
 
