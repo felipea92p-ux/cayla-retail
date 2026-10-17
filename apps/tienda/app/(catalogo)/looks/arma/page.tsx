@@ -26,7 +26,8 @@ export const metadata: Metadata = { title: "Arma el tuyo · CAYLA" };
 // «Arma el tuyo» (ADR-0434, actividad 4; lienzo v3, `V3Probador`): el probador de looks. Junta el catálogo de la tienda elegida (qué se
 // ve, su nombre y sus colores; con «Ver lo que hay en», solo lo que hay ahí) con lo del probador (el largo, los recortes y el precio y el
 // stock de cada color) y abre con el look de la dirección (`?p=`) o, si no trae uno, con lo primero que hay. Pide cuenta como todo el
-// catálogo (el layout del grupo). Escondido hasta que Felipe diga: ninguna página lleva aquí todavía (actividad 10).
+// catálogo (el layout del grupo). Se llega desde la cabecera, la tarjeta de «Arma tu look» y la ficha de cada prenda que se puede probar
+// («Arma un look con esta prenda», que abre con ella en su color: actividad 10), y desde un look guardado o compartido.
 export default async function ArmaElTuyo({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
@@ -60,7 +61,7 @@ export default async function ArmaElTuyo({ searchParams }: { searchParams: Promi
     <MarcoCatalogo
       prendas={deLaTienda}
       sede={sede}
-      actual="looks"
+      actual="probador"
       franja={
         tiendas.length > 2 ? (
           // Mientras llega lo de la dirección, la franja con el look con que se abrió la página.

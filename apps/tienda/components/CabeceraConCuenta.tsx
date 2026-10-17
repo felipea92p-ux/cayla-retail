@@ -14,7 +14,7 @@ import { Isotipo } from "./Isotipo";
 // El globo rojo de la bolsa y del corazón (`.t-globo`).
 import "@/app/estilos/bolsa.css";
 
-export type SeccionActual = "inicio" | "nuevo" | "vendidos" | "ofertas" | "looks" | "favoritos" | "cuenta" | null;
+export type SeccionActual = "inicio" | "nuevo" | "vendidos" | "ofertas" | "looks" | "probador" | "favoritos" | "cuenta" | null;
 
 /** «3 favoritos», «1 favorito»: lo que oye el lector en el corazón. */
 const etiquetaFavoritos = (n: number | null) => (n ? `Favoritos: ${n} ${n === 1 ? "guardado" : "guardados"}` : "Favoritos");
@@ -98,6 +98,9 @@ export function CabeceraConCuenta({
             ))}
             <Link className="t-nav-b" href={datos.looks} aria-current={marca("looks")}>
               Arma tu look
+            </Link>
+            <Link className="t-nav-b" href={datos.probador} aria-current={marca("probador")}>
+              Arma el tuyo
             </Link>
             <Link className="t-nav-b" href={datos.vendidos.href} aria-current={marca("vendidos")}>
               Más vendidos
@@ -290,6 +293,9 @@ function HojaMenu({ datos, favoritos, cerrar }: { datos: DatosCabecera; favorito
         </Link>
         <Link href={datos.looks} onClick={cerrar}>
           Arma tu look
+        </Link>
+        <Link href={datos.probador} onClick={cerrar}>
+          Arma el tuyo
         </Link>
         <Link href={datos.vendidos.href} onClick={cerrar}>
           Más vendidos

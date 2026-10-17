@@ -17,6 +17,7 @@ import {
   type Prenda,
 } from "./catalogo";
 import { hrefLooks } from "./looks";
+import { hrefDelProbador } from "./probador";
 import { gruposDe, MENUS, type Menu } from "./grupos";
 import type { Campana } from "./portada";
 
@@ -133,6 +134,8 @@ export type DatosCabecera = {
   ofertas: Enlace;
   /** «Arma tu look», con la tienda elegida (maqueta, `cabT`: entre «Ropa» y «Más vendidos»). */
   looks: string;
+  /** «Arma el tuyo», el probador (ADR-0434, actividad 10), con la tienda elegida: justo después de «Arma tu look». */
+  probador: string;
   /** Los favoritos: el corazón de la computadora y el menú del celular. */
   favoritos: string;
   /** Los menús «Ropa» y «Accesorios» (lib/grupos.ts): solo los que tienen algo, con sus grupos y categorías. Los usan la computadora
@@ -185,6 +188,7 @@ export function datosDeCabecera(prendas: readonly Prenda[], sede: string | null,
     vendidos: { href: lista("vendidos"), cuantas: prendas.filter((p) => p.vendidos !== null).length },
     ofertas: { href: lista("ofertas"), cuantas: prendas.filter(enOferta).length },
     looks: hrefLooks(sede),
+    probador: hrefDelProbador(sede),
     favoritos: HREF_FAVORITOS,
     menus,
     indice: prendas.map((p) => {

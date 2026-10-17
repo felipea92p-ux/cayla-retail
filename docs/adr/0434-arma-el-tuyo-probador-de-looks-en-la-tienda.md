@@ -229,3 +229,16 @@ tu cuenta y arma el tuyo») y al terminar abre el probador con ese look. Con cue
   - Dibujar la imagen en el navegador (`canvas`): la vista previa de WhatsApp igual necesita el servidor, y serían dos dibujos del mismo
     look.
   - Guardar las letras en el repositorio: hay que bajarlas, y la tienda ya depende de Google Fonts por `next/font`.
+
+## Actualización 2026-10-17 (actividad 10): las entradas
+
+Felipe pidió construirlas en el PR 3, junto con guardar y compartir (2026-10-17): el probador queda a la vista el día que se fusione ese
+PR. Son tres:
+
+- **La cabecera:** «Arma el tuyo» justo después de «Arma tu look», en la computadora y en el menú del celular. Está marcado cuando se
+  está en el probador (`actual="probador"`). Antes, el probador marcaba «Arma tu look».
+- **«Arma tu look»:** arriba de los looks de CAYLA, una tarjeta en el oscuro de la campaña con el probador quieto (lo primero que hay en
+  la tienda elegida, con prendas de verdad) y «Abrir el probador». Si el probador de esa tienda no tiene nada, no se dibuja.
+- **La ficha:** «Arma un look con esta prenda» bajo el botón de la bolsa. Abre el probador con esa prenda en el color elegido, y lo
+  demás se completa con lo primero que hay. Solo sale si el probador de esa tienda la tiene: la decisión usa las mismas reglas que lo
+  arman (`armarProbador`: con su recorte, con su largo y con algo en esa tienda). Así el botón nunca abre un probador sin ella.

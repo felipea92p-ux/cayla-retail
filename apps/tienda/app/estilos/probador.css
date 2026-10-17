@@ -387,6 +387,33 @@
   .tl-llamado .t-enlace { align-self: flex-start; }
 }
 
+/* ---- La entrada a «Arma el tuyo» en «Arma tu look» (actividad 10): la tarjeta de la campaña, con el probador quieto a la derecha ---- */
+.ae { display: grid; grid-template-columns: minmax(0, 1fr) 40%; grid-template-areas: "txt fig" "btn btn"; align-items: center; gap: 14px 12px; margin: 4px 0 26px; padding: 20px; border-radius: 8px; overflow: hidden; background: radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--t-hero) 82%, var(--t-oscuro)), var(--t-oscuro) 82%); color: var(--t-hero-tinta); text-decoration: none; }
+.ae-txt { grid-area: txt; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
+.ae .t-ceja { color: var(--t-hero-acento); }
+.ae-titulo { font-family: var(--serif); font-weight: 500; font-size: 36px; line-height: .95; letter-spacing: -.01em; }
+.ae-titulo em { color: var(--t-hero-acento); }
+.ae-bajada { font-size: 13px; line-height: 1.45; color: color-mix(in srgb, var(--t-hero-tinta) 80%, transparent); }
+.ae-btn { grid-area: btn; min-height: 48px; padding-inline: 18px; background: var(--t-hero-tinta); color: var(--t-tinta-fija); }
+.ae-btn .ic { width: 16px; height: 16px; transition: transform .25s var(--ease); }
+.ae-figura { grid-area: fig; min-width: 0; }
+/* Aquí la figura va en su arco, como en el probador. */
+.ae-figura .pb-quieta .pb-arco { left: 4.1%; right: 4.1%; border-radius: 50% 50% 4px 4px / 42.6% 42.6% 4px 4px; }
+.ae:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; }
+/* Sobre el oscuro, el botón no pasa al rojo profundo de los demás (su texto oscuro no se leería): pasa al rosado de la campaña. */
+@media (hover: hover) {
+  .ae:hover .ae-btn:not(:disabled) { background: var(--t-hero-acento); color: var(--t-tinta-fija); }
+  .ae:hover .ae-btn .ic { transform: translateX(4px); }
+}
+@container tienda (min-width: 960px) {
+  .ae { grid-template-columns: minmax(0, 1fr) 320px; grid-template-areas: "txt fig" "btn fig"; align-content: center; gap: 22px 40px; padding: 36px 32px 36px 48px; }
+  .ae-txt { align-self: end; }
+  .ae-btn { justify-self: start; align-self: start; }
+  .ae-titulo { font-size: 60px; }
+  .ae-bajada { font-size: 15px; max-width: 44ch; }
+  .ae-btn { min-height: 48px; padding-inline: 22px; }
+}
+
 /* ---- Mientras llega (`FormaDelEsqueleto`, el esqueleto del catálogo): el arco que brilla y la tira, donde van a caer ---- */
 .t-esqueleto[data-forma="probador"] { padding: 0; }
 .pb-esq-ceja { display: block; width: 92px; height: 10px; border-radius: 3px; background: var(--hueso); }
