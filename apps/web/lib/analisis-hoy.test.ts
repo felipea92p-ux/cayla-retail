@@ -203,6 +203,38 @@ describe("Qué hacer hoy: los caminos", () => {
     expect(caminosDeHoy([atrasada], 60, sedes, HOY).compra!.motivo).toBe("Quedan 14 días o menos");
   });
 
+  it("A quién se pide (A8): el camino de comprar dice a cuántos proveedores, contando solo lo que todavía no viene en camino", () => {
+    const proveedores = {
+      nombres: { a: { nombre: "Textil Andino", activo: true }, b: { nombre: "Hilos del Sur", activo: true } },
+      delCatalogo: { pa1: "a", pa2: "a", pb1: "b", pcamino: "b" },
+    };
+    const prendas = [
+      agotada({ productoId: "pa1", origen: null }),
+      seAcaba({ productoId: "pa2", origen: null }),
+      seAcaba({ productoId: "pb1", origen: null }),
+      seAcaba({ productoId: "sin-catalogo", origen: null }),
+      // Ya viene a tiempo: no se vuelve a pedir, así que su proveedor no entra en la cuenta.
+      seAcaba({ productoId: "pcamino", origen: null, llega: [{ de: "compra", cantidad: 4, fecha: "2026-10-12" }] }),
+    ];
+    const c = caminosDeHoy(prendas, 60, sedes, HOY, proveedores);
+    // El tooltip lista las 5, pero el pie habla solo de las que faltan: lo dice, para que nadie crea que hay que pedir toda la lista.
+    expect(c.compra!.pie).toBe("Las que aún no vienen: pídelas a 2 proveedores · 1 sin proveedor");
+    expect(c.compra!.prendas).toHaveLength(5);
+    // Si nada viene en camino, la lista y el pie hablan de lo mismo y no hace falta aclararlo.
+    const ninguna = caminosDeHoy(prendas.slice(0, 4), 60, sedes, HOY, proveedores);
+    expect(ninguna.compra!.pie).toBe("Pídelas a 2 proveedores · 1 sin proveedor");
+    // Los otros caminos no llevan pie.
+    expect(caminosDeHoy([...prendas, paraLiquidar()], 60, sedes, HOY, proveedores).reb[0]!.pie).toBeUndefined();
+  });
+
+  it("sin los proveedores (no se pudieron leer) o sin nada por pedir, el camino no dice nada: nunca «sin proveedor» por un error", () => {
+    const sinLeer = caminosDeHoy([agotada({ productoId: "pa1", origen: null })], 60, sedes, HOY, null);
+    expect(sinLeer.compra!.pie).toBeUndefined();
+    expect("pie" in sinLeer.compra!).toBe(false);
+    const todoViene = seAcaba({ productoId: "pa1", origen: null, llega: [{ de: "compra", cantidad: 4, fecha: "2026-10-12" }] });
+    expect(caminosDeHoy([todoViene], 60, sedes, HOY, { nombres: {}, delCatalogo: {} }).compra!.pie).toBeUndefined();
+  });
+
   it("sin nada que hacer, no hay caminos", () => {
     const c = caminosDeHoy([prenda({ piso: 10, vendidas30: 3 })], 60, sedes, HOY);
     expect(c).toEqual({ compra: null, manda: [], reb: [] });

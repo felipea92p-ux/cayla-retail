@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const fakes = vi.hoisted(() => ({
   rpc: vi.fn(),
+  from: vi.fn(),
   getConteosResumen: vi.fn(),
   getPedidosNoAtendidos: vi.fn(),
   getPreciosPorSede: vi.fn(),
@@ -15,7 +16,7 @@ const fakes = vi.hoisted(() => ({
 }));
 const { rpc } = fakes;
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ rpc: fakes.rpc }) }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ rpc: fakes.rpc, from: fakes.from }) }));
 vi.mock("@/lib/ubicaciones", () => ({
   getUbicaciones: async () => [
     { id: "aaaaaaaa-0000-0000-0000-000000000001", nombre: "Tienda Trujillo", tipo: "tienda", activo: true },
@@ -42,6 +43,9 @@ vi.mock("@/lib/analisis-liquidar-reglas", async () => await import("./analisis-l
 vi.mock("@/lib/analisis-reglas", async () => await import("./analisis-reglas"));
 vi.mock("@/lib/analisis-sede", async () => await import("./analisis-sede"));
 vi.mock("@/lib/analisis-por-llegar", async () => await import("./analisis-por-llegar"));
+vi.mock("@/lib/analisis-proveedores", async () => await import("./analisis-proveedores"));
+vi.mock("@/lib/analisis-proveedores-lectura", async () => await import("./analisis-proveedores-lectura"));
+vi.mock("@/lib/resultado", async () => await import("./resultado"));
 vi.mock("@/lib/analisis-liquidar", async () => await import("./analisis-liquidar"));
 vi.mock("@/lib/analisis-rinde", async () => await import("./analisis-rinde"));
 vi.mock("@/lib/analisis-pedir", async () => await import("./analisis-pedir"));
@@ -60,6 +64,7 @@ import { FALLA_LEER_LIQUIDAR } from "./analisis-liquidar-reglas";
 import { FALLA_RINDE } from "./analisis-pedir";
 import { getPrendasPorSede } from "./analisis-sede";
 import { getPorLlegar } from "./analisis-por-llegar";
+import { FALLA_PROVEEDORES, getProveedoresAnalisis } from "./analisis-proveedores";
 import { getLiquidarDesde } from "./analisis-liquidar";
 import { getRindePorCategoria } from "./analisis-rinde";
 import { getDatosAnalisis } from "./analisis-datos";
@@ -68,6 +73,26 @@ import { miTiendaSinLeer } from "./analisis-con-tope";
 const TRU = "aaaaaaaa-0000-0000-0000-000000000001";
 const AQP = "aaaaaaaa-0000-0000-0000-000000000002";
 const LIM = "aaaaaaaa-0000-0000-0000-000000000003";
+
+/** Una consulta `.from(tabla).select().not().order().range()` de mentira: responde `resultado` (una promesa) al pedir la página. */
+const consulta = (resultado: PromiseLike<unknown>) => {
+  const q: Record<string, unknown> = { range: () => resultado };
+  for (const paso of ["select", "not", "order"]) q[paso] = () => q;
+  return q;
+};
+const PROV_A = "bbbbbbbb-0000-0000-0000-00000000000a";
+const PROV_B = "bbbbbbbb-0000-0000-0000-00000000000b";
+const MODELO_1 = "cccccccc-0000-0000-0000-000000000001";
+const MODELO_2 = "cccccccc-0000-0000-0000-000000000002";
+/** El catálogo sano: dos modelos con proveedor, y los dos proveedores (uno archivado). */
+const tablasSanas = (tabla: string) =>
+  consulta(
+    Promise.resolve(
+      tabla === "productos"
+        ? { data: [{ id: MODELO_1, proveedor_id: PROV_A }, { id: MODELO_2, proveedor_id: PROV_B }], error: null }
+        : { data: [{ id: PROV_A, nombre: "Textil Andino", activo: true }, { id: PROV_B, nombre: "Hilos del Sur", activo: false }], error: null },
+    ),
+  );
 
 const sedeSana = (id: string, rebaja: number) => ({ data: { ubicacion_id: id, hoy: "2026-10-16", rebaja_de_100: rebaja, prendas: [] }, error: null });
 const seCae = () => ({ data: null, error: { code: "57014", message: "canceling statement due to statement timeout (Tienda Lima)" } });
@@ -217,17 +242,29 @@ function baseSana(cambia: Record<string, unknown> = {}) {
   fakes.leerVendidoSinRegistrar.mockResolvedValue([]);
   fakes.contarPendientes.mockResolvedValue(3);
   fakes.getLecturaFrescuraDeTienda.mockResolvedValue({ datos: { separaPiso: true, prendas: [], categorias: [] }, fallo: null });
+  fakes.from.mockImplementation(tablasSanas);
 }
 
 describe("getDatosAnalisis", () => {
   it("con todo sano no hay fallas, ninguna tienda sin leer ni avisos", async () => {
-    baseSana();
+    // Mi tienda tiene UNA prenda: el modelo 1, que se compró a Hilos del Sur (la última compra manda, aunque el catálogo diga otro).
+    const unaPrenda = (id: string) => {
+      const sede = sedeSana(id, 0);
+      return id === TRU ? { ...sede, data: { ...sede.data, prendas: [{ variante_id: "dddddddd-0000-0000-0000-000000000001", producto_id: MODELO_1, nombre: "Blusa Prueba", origen: "terceros", proveedor_id: PROV_B, salio_al_piso: null, ultima_venta: null }] } } : sede;
+    };
+    baseSana({ fn_analisis_sede: (a: { p_ubicacion_id: string }) => unaPrenda(a.p_ubicacion_id) });
     const d = await getDatosAnalisis(ACTIVA, { conFrescura: true });
     expect(d.fallas).toEqual([]);
     expect(d.sedesSinLeer).toEqual([]);
     expect(d.frescura).toBe("ok");
     expect(d.porRegistrar.pendientes).toBe(3);
     expect(miTiendaSinLeer(d)).toBe(false);
+    // A quién se le pide cada modelo, recortado a lo que las prendas de mi tienda pueden usar: el proveedor del catálogo del modelo 1 y los
+    // nombres de a quienes apunta (el del catálogo y el de la compra, también el archivado). El modelo 2, que mi tienda no tiene, no viaja.
+    expect(d.proveedores).toEqual({
+      nombres: { [PROV_A]: { nombre: "Textil Andino", activo: true }, [PROV_B]: { nombre: "Hilos del Sur", activo: false } },
+      delCatalogo: { [MODELO_1]: PROV_A },
+    });
     expect(capturarError).not.toHaveBeenCalled();
   });
 
@@ -303,6 +340,7 @@ describe("getDatosAnalisis", () => {
 
   it("si Supabase se cae del todo, la pantalla se arma igual al vencer el tope: todo dicho como «no se pudo leer»", async () => {
     rpc.mockImplementation(seCuelga);
+    fakes.from.mockImplementation(() => consulta(seCuelga()));
     for (const f of [fakes.getConteosResumen, fakes.getPedidosNoAtendidos, fakes.getPreciosPorSede, fakes.leerVendidoSinRegistrar, fakes.contarPendientes, fakes.getLecturaFrescuraDeTienda]) {
       f.mockImplementation(seCuelga);
     }
@@ -320,5 +358,71 @@ describe("getDatosAnalisis", () => {
     expect(d.fallas.length).toBeGreaterThanOrEqual(10);
     expect(d.frescura).toBe("fallo");
     expect(d.prendas).toEqual([]);
+  });
+});
+
+// ───────────────────────── A quién se le pide cada modelo (A8) ─────────────────────────
+
+describe("getProveedoresAnalisis (A8)", () => {
+  it("lee solo id y proveedor de los modelos, y solo id, nombre y estado de los proveedores (nada bancario)", async () => {
+    const pedidas: { tabla: string; columnas: string }[] = [];
+    fakes.from.mockImplementation((tabla: string) => {
+      const q = tablasSanas(tabla);
+      const select = q.select as () => unknown;
+      q.select = (columnas: string) => {
+        pedidas.push({ tabla, columnas });
+        return select();
+      };
+      return q;
+    });
+    const lectura = await getProveedoresAnalisis();
+    expect(lectura.falla).toBeNull();
+    // Lo que se lee es el directorio y el catálogo enteros (el recorte a las prendas de la tienda se hace después, en `getDatosAnalisis`).
+    expect(lectura.proveedores).toEqual({
+      nombres: { [PROV_A]: { nombre: "Textil Andino", activo: true }, [PROV_B]: { nombre: "Hilos del Sur", activo: false } },
+      delCatalogo: { [MODELO_1]: PROV_A, [MODELO_2]: PROV_B },
+    });
+    expect(pedidas.sort((a, b) => a.tabla.localeCompare(b.tabla))).toEqual([
+      { tabla: "productos", columnas: "id, proveedor_id" },
+      { tabla: "proveedores", columnas: "id, nombre, activo" },
+    ]);
+  });
+
+  it("si la base da error, devuelve null con su frase y avisa con el código, sin el nombre de ningún proveedor", async () => {
+    fakes.from.mockImplementation((tabla: string) =>
+      tabla === "productos"
+        ? consulta(Promise.resolve({ data: null, error: { code: "57014", message: "canceling statement (Textil Andino)" } }))
+        : tablasSanas(tabla),
+    );
+    const lectura = await getProveedoresAnalisis();
+    expect(lectura).toEqual({ proveedores: null, falla: FALLA_PROVEEDORES });
+    expect(capturarError).toHaveBeenCalledTimes(1);
+    const [donde, error] = vi.mocked(capturarError).mock.calls[0]!;
+    expect(donde).toBe("analisis.proveedores");
+    expect((error as Error & { code?: string }).code).toBe("57014");
+    expect(JSON.stringify(vi.mocked(capturarError).mock.calls)).not.toMatch(/Textil|canceling/);
+  });
+
+  it("si la base se cuelga, no espera más del tope y lo dice igual", async () => {
+    fakes.from.mockImplementation(() => consulta(seCuelga()));
+    const espera = getProveedoresAnalisis();
+    await vi.advanceTimersByTimeAsync(TOPE_LECTURA_MS);
+    expect(await espera).toEqual({ proveedores: null, falla: FALLA_PROVEEDORES });
+  });
+
+  it("una respuesta que no es una lista cuenta como no leída (nunca «sin proveedor»)", async () => {
+    fakes.from.mockImplementation(() => consulta(Promise.resolve({ data: { no: "es una lista" }, error: null })));
+    // `leerTodas` junta las páginas con un spread: algo que no es una lista lanza, y `leerPieza` lo cuenta como «no se pudo».
+    expect(await getProveedoresAnalisis()).toEqual({ proveedores: null, falla: FALLA_PROVEEDORES });
+  });
+
+  it("dentro de la pantalla: sin proveedores, se dice en las fallas y lo demás se lee igual", async () => {
+    baseSana();
+    fakes.from.mockImplementation(() => consulta(Promise.resolve({ data: null, error: { code: "42501", message: "sin permiso" } })));
+    const d = await getDatosAnalisis(ACTIVA, { conFrescura: true });
+    expect(d.proveedores).toBeNull();
+    expect(d.fallas).toEqual([FALLA_PROVEEDORES]);
+    expect(d.sedesSinLeer).toEqual([]);
+    expect(d.frescura).toBe("ok");
   });
 });

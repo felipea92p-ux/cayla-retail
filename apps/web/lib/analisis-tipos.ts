@@ -71,7 +71,8 @@ export type PrendaAnalisis = {
   costo: number | null;
   /** De dónde se repone: el Taller o un proveedor; null si no se sabe. */
   origen: OrigenPrenda | null;
-  /** El proveedor con el que se compró la última vez (para abrir Compras con él), si es de terceros. */
+  /** El proveedor con el que se compró la última vez (para abrir Compras con él), si es de terceros. Es el de una compra REAL: el que el
+   *  catálogo le puso al modelo vive aparte (`DatosAnalisis.proveedores`) y solo entra cuando el modelo no tiene origen. */
   proveedorId: string | null;
 
   /** En MI tienda: lo libre colgado y lo libre guardado (sin apartadas ni Cuarentena). */
@@ -150,6 +151,19 @@ export type AccesoAnalisis = {
   planCompra: boolean;
 };
 
+/**
+ * A quién se le pide cada modelo (A8, ADR-0357 act. 2026-10-16): los proveedores del directorio y el proveedor que el CATÁLOGO le puso a
+ * cada modelo (`productos.proveedor_id`). Solo lectura de `productos` y `proveedores`, sin función de la base. Son objetos planos (no
+ * `Map`) porque viajan del servidor a la pantalla. El proveedor de la última compra (`PrendaAnalisis.proveedorId`) sigue mandando cuando
+ * existe; esto es su respaldo y solo se usa cuando el modelo no tiene origen (`analisis-a-quien-pedir.ts`).
+ */
+export type ProveedoresAnalisis = {
+  /** Por id de proveedor: su nombre y si sigue activo (uno archivado se nombra como tal). */
+  nombres: Record<string, { nombre: string; activo: boolean }>;
+  /** Por id de modelo (`productos.id`, el `productoId`): el proveedor del catálogo. Solo los modelos que tienen uno. */
+  delCatalogo: Record<string, string>;
+};
+
 /** La lectura del motor (ADR-0346) de una tienda, con sus días para dibujar «Ventas con su prenda, día a día» y su primera venta en
  *  el ERP (YYYY-MM-DD, o null si todavía no vende): de ahí sale cuántos días de ventas tiene (`diasDeVentas`). */
 export type PreparacionAnalisis = PreparacionSede & { dias: DiaVenta[]; hoy: string; primeraVenta: string | null };
@@ -208,6 +222,9 @@ export type DatosAnalisis = {
   conteo: { contadas: number; coinciden: number } | null;
   /** «Te pidieron y no había», sin resolver: qué se pidió y el día de Lima en que se anotó (YYYY-MM-DD; null si no se lee). */
   noHabia: { que: string; dia: string | null }[];
+  /** A quién se le pide cada modelo (nombres de proveedor y proveedor del catálogo de cada modelo). null = no se pudo leer (y se dice en
+   *  `fallas`): ni «Pídelo a …» ni «A quién pedir» se dibujan, y nunca se dice «Sin proveedor» por un error. */
+  proveedores: ProveedoresAnalisis | null;
   /** Los ids de las tiendas cuya lectura no respondió (error, sin datos o tope vencido; `getPrendasPorSede`). Si está la mía
    *  (`miTiendaSinLeer`), las listas vienen vacías porque no se leyeron, no porque no haya nada: la pantalla lo dice en vez de «sin
    *  ventas». Qué hace cada regla con una OTRA tienda sin leer (hoy cuenta 0) lo decide A11, no este campo. */

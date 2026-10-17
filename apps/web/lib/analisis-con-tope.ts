@@ -60,7 +60,8 @@ export type PiezaAnalisis =
   | "pedidos_no_atendidos"
   | "precios_de_mi_tienda"
   | "vendido_sin_registrar"
-  | "pendientes_por_registrar";
+  | "pendientes_por_registrar"
+  | "proveedores";
 
 /**
  * Lo que da una lectura. Las cuatro cosas distintas que le pueden pasar:

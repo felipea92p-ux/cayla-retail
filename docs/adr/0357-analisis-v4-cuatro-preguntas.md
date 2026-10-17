@@ -119,6 +119,9 @@ taller» o «Proveedor terceros».
 - Cuánto vende cada tienda está en la ficha, en «Dónde hay».
 - No hay regla automática. Análisis no usa `cedibleDe` ni `planDeReposicion` (`lib/resumen-reglas.ts`).
 - *Por qué:* con tres tiendas y pocos datos, una regla de «cuánto le sobra a la otra» se equivocaría; la persona conoce las dos tiendas.
+- *(Act. 2026-10-16, A8: «con su proveedor a la vista» deja de ser la etiqueta genérica «Proveedor taller / terceros» y pasa a decir a quién por
+  su nombre —«Pídelo a Textil Andino»— y de dónde se sabe: la última compra o, sin ninguna, el catálogo. Ver «Actualización 2026-10-16», viñeta A8.
+  «Comprar» sigue abriendo lo mismo: a dónde lleva es A9.)*
 
 **5. Un solo grupo «Liquidar», sin oferta y remate aparte.** «Liquidar desde» se mueve en «No se vende», de 30 a 85 días (60 de fábrica);
 desde el 2026-10-07, de 1 a 999 y con una caja con − y + (actualización 2, abajo).
@@ -355,8 +358,9 @@ calla (principio 9).
 - **Días sin venderse tras un agotamiento:** una prenda agotada mucho tiempo y repuesta ayer arrastra esos días y podría salir en «Liquidar» recién
   llegada. ¿Contar solo los días con stock, o empezar en la reposición?
 - **Rebaja de 100:** cuentan el descuento de línea y el de toda la venta; el regalo de cumpleaños del club no (ADR-0288 1c). Falta confirmarlo.
-- **Origen sin compra ni producción** (casi toda la carga inicial): «Comprar» abre Compras sin proveedor. ¿Usar `productos.proveedor_id` como
-  respaldo? En local, los productos propios tienen el proveedor «CAYLA SAC».
+- ~~**Origen sin compra ni producción** (casi toda la carga inicial): «Comprar» abre Compras sin proveedor. ¿Usar `productos.proveedor_id` como
+  respaldo? En local, los productos propios tienen el proveedor «CAYLA SAC».~~ Hecho el 2026-10-16 (A8) como texto y agrupación, no como destino
+  del botón: ver «Actualización 2026-10-16», viñeta A8. Lo de «CAYLA SAC» sigue abierto (D9).
 - **Una compra agrupada** (una línea sin talla ni color, que se desglosa al recibir, ADR-0035) no se puede atribuir a una prenda y no sale en «Por
   llegar».
 - **«¿Qué pedir?» pasada la Navidad:** la meta es siempre la próxima Navidad; el 26 de diciembre queda a 364 días y casi todo «no llegaría».
@@ -508,3 +512,54 @@ agrega su viñeta aquí; la decisión 7 («Análisis no sugiere cantidades») si
     5-ene con Navidad a 79 días → 10 días y se pide; el 25-dic cuenta y el 26 no; una parte a tiempo y otra atrasada → «Por llegar» y la nota no
     nombra «Comprar»; el traslado de 0 líneas no cambia nada). En el navegador local: crear un traslado en tránsito y una compra repartida con prenda, ver la píldora «Por llegar»
     y el «vienen» de la fila de su tipo; cambiar la fecha estimada al pasado y ver «Atrasada», el filtro «Comprar» y que «vienen» baje.
+
+- **A8 · Comprar dice a quién pedir, con el proveedor del catálogo agrupado** (solo web, sin migración).
+  - **El problema.** El proveedor de «Comprar» salía de la última compra o producción (`fn_origen_producto`), y en producción ningún modelo tiene
+    ninguna (0 compras con prenda, 0 producciones): la fila no decía a quién pedir —solo una etiqueta genérica, «Proveedor terceros»— y
+    «Comprar todas» mezclaba a todos. El catálogo SÍ trae el proveedor de casi todos los modelos (`productos.proveedor_id`: 260 de 357 el 2026-10-16,
+    de 40 proveedores del catálogo).
+  - **La decisión.** Una sola regla (`lib/analisis-a-quien-pedir.ts`, `proveedorDelModelo`), de más fuerte a más débil: (1) el origen REAL
+    manda: del Taller es del Taller; con una compra, el proveedor de esa compra; (2) sin origen, el proveedor del CATÁLOGO, y se dice que lo es
+    («proveedor del catálogo»: es con quien se compra «habitualmente» ese modelo, no el de una compra que ya pasó); (3) sin nada, «Sin
+    proveedor», nunca uno inventado. Se muestra como «Pídelo a Textil Andino» bajo «Comprar» (con «proveedor del catálogo» A LA VISTA cuando el nombre
+    sale del catálogo, y un tooltip con el detalle), como la
+    tarjeta «A quién pedir» sobre el carril (lo que todavía no viene en camino, agrupado por proveedor: dentro de cada uno, del más urgente
+    al menos; entre proveedores, primero quien tiene lo más urgente —lo agotado antes que lo que queda—; «Sin proveedor» siempre al final; los
+    4 primeros a la vista y «Ver N más»; sin botón por proveedor), como el pie del tooltip del camino «Compra» de Hoy («Pídelas a 12 proveedores ·
+    3 sin proveedor»; si parte de la lista ya viene en camino, «Las que aún no vienen: pídelas a …») y como la tarjetita de proveedor de la ficha. Se lee con un SELECT del servidor (`lib/analisis-proveedores.ts`, pieza
+    `proveedores` de `leerPieza`): `productos.id, proveedor_id` y `proveedores.id, nombre, activo` (nunca RUC, banco ni teléfono), sin RPC ni
+    migración. `productos_select` y `proveedores_select` piden `fn_tiene_acceso_retail()` (comprobado en producción, solo lectura), la primera de las
+    dos puertas de `fn_analisis_sede`: toda cuenta que abre Análisis puede leerlas. Si la lectura falla, `DatosAnalisis.proveedores` es null, se
+    dice en `fallas` y no se dibuja nada de esto (principio 9: nunca «Sin proveedor» por un error). Un directorio SIN ni un proveedor también cuenta
+    como no leído (`leerProveedoresAnalisis` devuelve null): es lo que responde una política de filas cuando la cuenta pierde la puerta de lectura
+    (cero filas, no un error), y leerlo como dato pondría «Sin proveedor» a todos los modelos por una falla. A la pantalla solo viaja lo que sus
+    prendas pueden usar (`recortarProveedores`: el proveedor del catálogo de sus modelos y los nombres de a quienes apuntan), no el catálogo ni el
+    directorio enteros.
+  - **El catálogo NUNCA decide Taller contra terceros** (paso 0 del plan). El plan pedía comprobar en producción que lo que fabrica el Taller no
+    apunte a un tercero en `proveedor_id`; no se puede: hay 0 producciones, 0 movimientos en el Taller y 0 líneas de compra, así que no existe una
+    sola prenda de la que se sepa que es del Taller. Y 26 modelos apuntan a «CAYLA SAC», la marca propia (ADR-0109 y ADR-0283 la cuelgan de ese
+    proveedor), que puede ser el Taller o una maquila. Por eso el respaldo solo se usa cuando el modelo NO tiene origen, la etiqueta dice «del
+    catálogo» y no afirma «terceros», `hrefComprar` NO cambió (`?prov=` sigue saliendo solo de una compra real) y un proveedor del catálogo no
+    mueve a «Comprar» hacia Compras ni hacia Producción. Qué hacer con «CAYLA SAC» es de Felipe (D9).
+  - **«También se acaba en AQP»** (`seAcabaEnOtras`, `ventanasPorSede`): para cada otra tienda donde el modelo se vende y, al ritmo de SU tienda
+    (sus días de ventas en el ERP, hasta 30), le quedan 14 días o menos (la regla de `seEstaAcabando`, con `diasQueQuedan`), la fila lo dice con
+    una píldora («AQP también se acaba»; «también se agotó» si allá ya no hay). Es lo que ya se lee en `otras`: sin RPC. Existe porque una orden
+    de compra tiene UN solo destino (`ordenes_compra.ubicacion_destino_id`) y Análisis ve UNA tienda: el comprador que arma un pedido para la suya
+    debe saber que el mismo modelo falta en otra. No dice cuántas pedir (la decisión 7 sigue intacta). Una tienda cuyo motor no se leyó no dice nada.
+  - **La tarjeta no depende del filtro del carril** (`modelosPorPedir`, regla única de la tarjeta y del pie de Hoy): lo que se acaba y no viene en
+    camino, venga el filtro «Todos», «Comprar» o «Por llegar». Los botones del filtro viven DEBAJO de la tarjeta; una tarjeta que aparece y
+    desaparece al elegir «Por llegar» correría el carril ~250 px y los botones se irían de debajo del mouse (ADR-0185). Sí sigue al buscador, que
+    está arriba de todo.
+  - **Lo descartado.** Que «A quién pedir» lleve un botón por proveedor (hoy «Comprar» abre «Registrar factura», una compra ya hecha: es A9, tras
+    A4); pasar el proveedor del catálogo a `?prov=` (cambiaría a dónde lleva el botón); decidir el Taller o terceros por el nombre del proveedor
+    («CAYLA SAC»): una regla de negocio de Felipe; agregar el proveedor a `fn_analisis_sede` (una migración para algo que se lee con un SELECT);
+    poner la tarjeta debajo del carril (con 40 filas quedaría fuera de la pantalla) o dentro de los filtros (escondida); que la tarjeta siga al
+    filtro (salta el carril); decir el origen del nombre solo en un tooltip (no se alcanza con el dedo ni con el teclado: ley 6 de ADR-0350); cambiar
+    el botón «o pedir a Arequipa» cuando allá también se acaba (la píldora ya lo avisa en la misma fila; el botón es de D10).
+  - **Cómo se verifica.** `pnpm --filter web exec vitest run lib/analisis-a-quien-pedir lib/analisis-proveedores-lectura lib/analisis-lecturas lib/analisis-acaba lib/analisis-hoy lib/analisis-ficha`
+    (el origen real contra el catálogo; el Taller no cambia por el catálogo; 40 modelos y 17 proveedores sin perder ni repetir ninguno y en orden
+    de urgencia; la lectura que falla o se cuelga y no nombra a nadie; el directorio vacío que no se lee como dato; «también se acaba» en el borde de
+    14 días; la pestaña entera con los tres filtros, que dibuja la misma tarjeta con cada uno). En el navegador local: la tarjeta «A quién pedir»
+    en «Se está acabando» con los tres filtros (el carril no debe saltar al cambiar de uno a otro), a 1440, 1024 y 375 px, claro y oscuro;
+    «Pídelo a …» con un nombre largo y su «proveedor del catálogo» debajo; el tooltip de «Compra» en Hoy. En producción, con la base real: la fila dice «proveedor del catálogo» (no hay ninguna compra).
+

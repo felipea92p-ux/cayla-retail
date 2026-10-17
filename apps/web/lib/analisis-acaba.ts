@@ -4,9 +4,10 @@
 // `analisis-reglas.ts`: aquí no nace ninguna regla de negocio, solo cómo se dice y se dibuja (la maqueta aprobada por Felipe,
 // 2026-10-06).
 
-import type { LlegadaPrenda, OrigenLlegada, OrigenPrenda, PrendaAnalisis, SedeAnalisis } from "./analisis-tipos";
+import type { LlegadaPrenda, OrigenLlegada, OrigenPrenda, PrendaAnalisis, PrendaEnOtraSede, SedeAnalisis } from "./analisis-tipos";
 import type { ModeloAnalisis } from "./analisis-modelo";
-import { DIAS_SE_ACABA, esTallaUnica, GRUPOS_ACABA, llegadaAtrasada, llegadasDe, ordenSeAcaba, plural, porLlegar, prendasDe, totalEnTienda } from "./analisis-reglas";
+import type { ProveedorDelModelo } from "./analisis-a-quien-pedir";
+import { DIAS_SE_ACABA, diasDeVentas, diasQueQuedan, esTallaUnica, GRUPOS_ACABA, llegadaAtrasada, llegadasDe, ordenSeAcaba, plural, porLlegar, prendasDe, totalEnTienda } from "./analisis-reglas";
 import { compararTallas } from "./tallas";
 import { fechaCorta } from "./motor-demanda-reglas";
 
@@ -146,9 +147,55 @@ export function textoProveedor(origen: OrigenPrenda | null): string | null {
   return null;
 }
 
+/**
+ * La píldora genérica («Proveedor taller» / «Proveedor terceros») solo sale cuando la fila NO pudo decir a quién se pide: el nombre ya se
+ * dice en «Pídelo a …» (bajo «Comprar»). `quien` es null si los proveedores no se pudieron leer (A8): entonces queda lo de siempre.
+ */
+export function textoProveedorGenerico(quien: ProveedorDelModelo | null, origen: OrigenPrenda | null): string | null {
+  return quien && quien.fuente !== "ninguno" ? null : textoProveedor(origen);
+}
+
 /** El tooltip de «AQP tiene 3»: el dato y qué hacer con él (decide la persona, decisión 7). */
 export const tipOtraTienda = (sede: Pick<SedeAnalisis, "ciudad">, stock: number): string =>
   `${sede.ciudad} tiene ${stock}. Toca la prenda para ver cuánto vende cada tienda y decide si pedirla.`;
+
+/**
+ * Los días de ventas que cada tienda tiene en el ERP (hasta 30), por id, desde su primera venta: con ellos se mide el ritmo de lo que
+ * OTRA tienda vende de un modelo (de ella solo se lee cuánto tiene y cuánto vendió, no desde cuándo está colgado). Una tienda cuyo motor
+ * no se pudo leer no aparece: de ella no se dice nada en vez de medirla con una ventana inventada.
+ */
+export function ventanasPorSede(preparacion: readonly { ubicacionId: string; primeraVenta: string | null }[], hoy: string): Record<string, number> {
+  return Object.fromEntries(preparacion.map((f) => [f.ubicacionId, diasDeVentas(f.primeraVenta, hoy)]));
+}
+
+/** Una otra tienda donde el modelo TAMBIÉN se acaba: cuántos días le quedan allá (0 = ya no tiene y lo venden), cuánto tiene y cuánto vendió. */
+export type SeAcabaEnOtra = { sedeId: string; dias: number; stock: number; vendidas30: number };
+
+/**
+ * Las otras tiendas donde este modelo también se acaba (A8): se vende allá y, al ritmo de su tienda, lo que tiene dura `DIAS_SE_ACABA`
+ * días o menos. Es la misma regla que «se está acabando» aquí (`diasQueQuedan`), con los días de ventas de esa tienda. Sirve para que
+ * quien compra sepa que el mismo modelo falta en más de una tienda: una orden de compra tiene UN solo destino (`ordenes_compra.ubicacion_destino_id`) y Análisis ve una tienda.
+ * No dice cuántas pedir (decisión 7). De la más urgente a la menos; una tienda sin su ventana (`ventanas`) o sin ventas no cuenta.
+ */
+export function seAcabaEnOtras(otras: readonly PrendaEnOtraSede[], ventanas: Readonly<Record<string, number>>): SeAcabaEnOtra[] {
+  const acaban: SeAcabaEnOtra[] = [];
+  for (const o of otras) {
+    const ventana = ventanas[o.sedeId];
+    if (ventana === undefined) continue;
+    const dias = diasQueQuedan({ piso: o.stock, almacen: 0, vendidas30: o.vendidas30, diasDeVentas: ventana });
+    if (dias !== null && dias <= DIAS_SE_ACABA) acaban.push({ sedeId: o.sedeId, dias, stock: o.stock, vendidas30: o.vendidas30 });
+  }
+  return acaban.sort((a, b) => a.dias - b.dias || b.vendidas30 - a.vendidas30 || a.sedeId.localeCompare(b.sedeId));
+}
+
+/** Lo que dice la píldora tras el código de la tienda: «AQP también se acaba» (o «también se agotó» si allá ya no hay). */
+export const textoTambienSeAcaba = (o: Pick<SeAcabaEnOtra, "dias">): string => (o.dias === 0 ? "también se agotó" : "también se acaba");
+
+/** El tooltip de esa píldora: qué pasa allá y por qué importa al pedir (una orden de compra lleva un solo destino); sin cantidades. */
+export function tipTambienSeAcaba(sede: Pick<SedeAnalisis, "ciudad">, o: Pick<SeAcabaEnOtra, "dias">): string {
+  const como = o.dias === 0 ? `${sede.ciudad} ya no tiene y lo vende.` : `${sede.ciudad} también se queda sin él: al ritmo que vende, ${plural(o.dias, "le queda", "le quedan")} ${o.dias} ${plural(o.dias, "día", "días")}.`;
+  return `${como} Una orden de compra tiene un solo destino: piénsalo también para ${sede.ciudad}.`;
+}
 
 /** El botón de texto bajo «Comprar»: «o pedir a Arequipa». */
 export const textoPedirA = (sede: Pick<SedeAnalisis, "ciudad">): string => `o pedir a ${sede.ciudad}`;

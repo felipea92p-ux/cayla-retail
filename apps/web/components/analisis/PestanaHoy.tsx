@@ -291,8 +291,9 @@ function MiniAlcance({ tipos, hastaNavidad }: { tipos: AlcanceTipo[]; hastaNavid
 
 // ───────────────────────── Qué hacer hoy ─────────────────────────
 
-/** El tooltip de un camino: su verbo y cuántas, y una línea por prenda con su color (las primeras 8; el resto, contado). */
-function ListaTip({ titulo, prendas }: { titulo: string; prendas: readonly PrendaAnalisis[] }) {
+/** El tooltip de un camino: su verbo y cuántas, y una línea por prenda con su color (las primeras 8; el resto, contado) y, si lo trae, su pie
+ *  («Pídelas a 12 proveedores», en el camino de comprar). */
+function ListaTip({ titulo, prendas, pie }: { titulo: string; prendas: readonly PrendaAnalisis[]; pie?: string }) {
   const { mostradas, resto } = listaTip(prendas);
   return (
     <>
@@ -306,6 +307,7 @@ function ListaTip({ titulo, prendas }: { titulo: string; prendas: readonly Prend
         ))}
         {resto > 0 && <span>y {resto} más</span>}
       </span>
+      {pie && <span className="tip-pie">{pie}</span>}
     </>
   );
 }
@@ -336,7 +338,7 @@ const teclaSvg = (accion: (el: Element) => void) => (e: KeyboardEvent<SVGGElemen
 
 function QueHacer() {
   const { prendas, q, liquidarDesde, irA, datos } = useAnalisis();
-  const caminos = caminosDeHoy(prendas, liquidarDesde, datos.sedes, datos.hoy);
+  const caminos = caminosDeHoy(prendas, liquidarDesde, datos.sedes, datos.hoy, datos.proveedores);
   const hay = todosLosCaminos(caminos).length > 0;
   const buscando = q.trim() !== "";
   const reponer = paraReponerPiso(prendas);
@@ -578,7 +580,7 @@ function Cinta({ banda: b, i, lado, alIr, encima }: { banda: BandaFlujo<CaminoHo
         data-ps={ids(c.prendas)}
       />
       <TipSvg>
-        <ListaTip titulo={tituloTip(c)} prendas={c.prendas} />
+        <ListaTip titulo={tituloTip(c)} prendas={c.prendas} pie={c.pie} />
       </TipSvg>
     </g>
   );
@@ -609,7 +611,7 @@ function Pastilla({ banda: b, lado, alIr, encima }: { banda: BandaFlujo<CaminoHo
         {texto}
       </text>
       <TipSvg>
-        <ListaTip titulo={tituloTip(c)} prendas={c.prendas} />
+        <ListaTip titulo={tituloTip(c)} prendas={c.prendas} pie={c.pie} />
       </TipSvg>
     </g>
   );
@@ -650,7 +652,7 @@ function Etiqueta({ banda: b, lado, alIr, encima }: { banda: BandaFlujo<CaminoHo
           </span>
           <span className="fl-l2">{c.motivo}</span>
           <TipRico>
-            <ListaTip titulo={tituloTip(c)} prendas={c.prendas} />
+            <ListaTip titulo={tituloTip(c)} prendas={c.prendas} pie={c.pie} />
           </TipRico>
         </div>
       </foreignObject>
@@ -703,7 +705,7 @@ function FilaCamino({ camino: c, alIr }: { camino: CaminoHoy; alIr: AlIr }) {
         <b>{c.prendas.length}</b>
       </span>
       <TipRico>
-        <ListaTip titulo={tituloTip(c)} prendas={c.prendas} />
+        <ListaTip titulo={tituloTip(c)} prendas={c.prendas} pie={c.pie} />
       </TipRico>
     </button>
   );

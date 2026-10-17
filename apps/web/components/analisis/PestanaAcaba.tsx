@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
+import { AQuienPedir } from "@/components/analisis/AQuienPedir";
 import { Carril, type GrupoCarril } from "@/components/analisis/Carril";
 import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono } from "@/components/analisis/iconos";
@@ -9,6 +10,7 @@ import { nombreLargo, TipRico } from "@/components/analisis/piezas";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { diasQueQuedan, otraSedeQueLaTiene, porLlegar } from "@/lib/analisis-reglas";
 import { hrefComprar, hrefComprarTodas } from "@/lib/analisis-acciones";
+import { FUENTE_LARGA, modelosPorPedir, proveedorDelModelo, textoFuenteDeLaFila, textoPidelo } from "@/lib/analisis-a-quien-pedir";
 import { textoRitmo } from "@/lib/analisis-pedir";
 import {
   atrasoDe,
@@ -23,14 +25,18 @@ import {
   pasaFiltroAcaba,
   pistaAcaba,
   prendasQueSeAcaban,
+  seAcabaEnOtras,
   TEXTO_VACIO_ACABA,
   textoAtraso,
   textoPedirA,
-  textoProveedor,
+  textoProveedorGenerico,
+  textoTambienSeAcaba,
   tipOtraTienda,
+  tipTambienSeAcaba,
   tituloAtrasada,
   tituloPorLlegar,
   vacioAcaba,
+  ventanasPorSede,
   type FiltroAcaba,
   type VacioAcaba,
 } from "@/lib/analisis-acaba";
@@ -45,19 +51,25 @@ import { Aviso } from "@/components/ui/Aviso";
 // `lib/analisis-acaba.ts`; los destinos de los botones, en `lib/analisis-acciones.ts` (un destino que la cuenta no ve, no se dibuja).
 
 const AYUDA_COMPRAR =
-  "Por defecto, todo lo que se acaba se compra al proveedor: el taller o terceros. Si otra tienda la tiene, verás cuántas tiene; toca la prenda para ver cuánto vende cada tienda y decide si pedirla. Lo que ya viene en camino dice «Por llegar»; si se atrasó, dice «Atrasada», y si no viene nada más vuelve a «Comprar».";
+  "Por defecto, todo lo que se acaba se compra al proveedor: el taller o terceros. «Pídelo a …» dice a quién: al de tu última compra o, si el modelo no tiene ninguna, al del catálogo. Si otra tienda la tiene, verás cuántas tiene, y si también se le acaba, te lo dice; toca la prenda para ver cuánto vende cada tienda y decide si pedirla. Lo que ya viene en camino dice «Por llegar»; si se atrasó, dice «Atrasada», y si no viene nada más vuelve a «Comprar».";
 
 export function PestanaAcaba() {
   const { datos, acceso, prendas, liquidarDesde, filtroAcaba, setFiltroAcaba, diasDeVentas } = useAnalisis();
   // En la tienda (sin buscar): decide si hay carril. Con lo buscado: las filas y las cuentas de cada filtro.
   const enLaTienda = useMemo(() => prendasQueSeAcaban(datos.prendas, liquidarDesde).length, [datos.prendas, liquidarDesde]);
   const seAcaban = useMemo(() => prendasQueSeAcaban(prendas, liquidarDesde), [prendas, liquidarDesde]);
+  // Los días de ventas de cada tienda, para saber si el modelo también se acaba en otra (con los días de ELLA, no los míos).
+  const ventanas = useMemo(() => ventanasPorSede(datos.preparacion, datos.hoy), [datos.preparacion, datos.hoy]);
 
   const vacio = vacioAcaba({ prendas: datos.prendas.length, seAcaban: enLaTienda, fallas: datos.fallas.length });
   if (vacio) return <SinCarril tipo={vacio} />;
 
   const visibles = seAcaban.filter((p) => pasaFiltroAcaba(p, filtroAcaba, datos.hoy));
   const comprarTodas = hrefComprarTodas(visibles, acceso);
+  // «A quién pedir» junta lo que todavía hay que comprar (lo que ya viene en camino no se pide otra vez). NO depende del filtro del carril:
+  // los botones del filtro viven debajo de la tarjeta, y una tarjeta que aparece y desaparece al elegir «Por llegar» los correría de
+  // debajo del mouse (ADR-0185). Sí sigue al buscador, que está arriba de todo y no se mueve.
+  const porPedir = modelosPorPedir(seAcaban, datos.hoy);
   const grupo: GrupoCarril = {
     clave: "comprar",
     titulo: "Cómpralas",
@@ -73,16 +85,19 @@ export function PestanaAcaba() {
   };
 
   return (
-    <Carril
-      titulo="Cuántos días te quedan"
-      nota={textoRitmo(diasDeVentas)}
-      herramienta={<Filtros filtro={filtroAcaba} cuentas={cuentasFiltroAcaba(seAcaban, datos.hoy)} onFiltro={setFiltroAcaba} />}
-      eje={[...EJE_ACABA]}
-      grupos={[grupo]}
-      pista={(p) => <Pista p={p} />}
-      pildoras={(p) => <Pildoras p={p} />}
-      accion={(p) => <Accion p={p} />}
-    />
+    <>
+      <AQuienPedir modelos={porPedir} />
+      <Carril
+        titulo="Cuántos días te quedan"
+        nota={textoRitmo(diasDeVentas)}
+        herramienta={<Filtros filtro={filtroAcaba} cuentas={cuentasFiltroAcaba(seAcaban, datos.hoy)} onFiltro={setFiltroAcaba} />}
+        eje={[...EJE_ACABA]}
+        grupos={[grupo]}
+        pista={(p) => <Pista p={p} />}
+        pildoras={(p) => <Pildoras p={p} ventanas={ventanas} />}
+        accion={(p) => <Accion p={p} />}
+      />
+    </>
   );
 }
 
@@ -125,15 +140,18 @@ function Pista({ p }: { p: ModeloAnalisis }) {
 
 /**
  * «Por llegar 13» (con de dónde y cuándo, al pasar el mouse), «Atrasada 26 días» si algo debía llegar y no llegó (esa prenda vuelve a
- * «Comprar»), y «AQP tiene 3» o a quién se compra.
+ * «Comprar»), «AQP tiene 3» o a quién se compra, y «AQP también se acaba» si el mismo modelo falta en otra tienda (A8).
  */
-function Pildoras({ p }: { p: ModeloAnalisis }) {
+function Pildoras({ p, ventanas }: { p: ModeloAnalisis; ventanas: Readonly<Record<string, number>> }) {
   const { datos, sedeDe } = useAnalisis();
   const llega = porLlegar(p, datos.hoy);
   const atraso = atrasoDe(p, datos.hoy);
   const otra = otraSedeQueLaTiene(p.otras);
   const sede = otra ? sedeDe(otra.sedeId) : undefined;
-  const proveedor = textoProveedor(p.origen);
+  // El proveedor ya se dice por su nombre en «Pídelo a …» (bajo «Comprar»); la etiqueta genérica solo sale si no se pudo nombrar.
+  const quien = datos.proveedores ? proveedorDelModelo(p, datos.proveedores) : null;
+  const proveedor = textoProveedorGenerico(quien, p.origen);
+  const tambien = seAcabaEnOtras(p.otras, ventanas);
   const faltan = faltanDelModelo(p);
   return (
     <>
@@ -179,22 +197,41 @@ function Pildoras({ p }: { p: ModeloAnalisis }) {
       ) : (
         proveedor && <span className="pil">{proveedor}</span>
       )}
+      {tambien.map((o) => {
+        const donde = sedeDe(o.sedeId);
+        return donde ? (
+          <span key={o.sedeId} className="pil" data-tip={tipTambienSeAcaba(donde, o)}>
+            <span className="cod">{donde.codigo}</span> {textoTambienSeAcaba(o)}
+          </span>
+        ) : null;
+      })}
     </>
   );
 }
 
-/** «Comprar» (Compras o Producción, según de dónde viene) y, si otra tienda la tiene, «o pedir a Arequipa». */
+/** «Comprar» (Compras o Producción, según de dónde viene), a quién pedirlo («Pídelo a …») y, si otra tienda la tiene, «o pedir a Arequipa». */
 function Accion({ p }: { p: ModeloAnalisis }) {
-  const { acceso, sedeDe, pedir } = useAnalisis();
+  const { datos, acceso, sedeDe, pedir } = useAnalisis();
   const comprar = hrefComprar(p, acceso);
   const otra = otraSedeQueLaTiene(p.otras);
   const sede = otra && acceso.pedir ? sedeDe(otra.sedeId) : undefined;
+  // «Pídelo a Textil Andino»: a quién. Solo informa: a dónde lleva «Comprar» no cambia con esto (eso es A9).
+  const quien = datos.proveedores ? proveedorDelModelo(p, datos.proveedores) : null;
+  const pidelo = quien ? textoPidelo(quien) : null;
+  // Si el nombre sale del catálogo, la fila lo dice a la vista (un tooltip no se alcanza con el dedo ni con el teclado).
+  const fuente = quien ? textoFuenteDeLaFila(quien) : null;
   return (
     <>
       {comprar && (
         <Link href={comprar} className="btn-cayla btn-secundario btn-s" aria-label={`Comprar: ${nombreLargo(p)}`}>
           Comprar
         </Link>
+      )}
+      {quien && pidelo && (
+        <span className="pidelo" data-tip={`${pidelo}. ${FUENTE_LARGA[quien.fuente]}`}>
+          <span className="pidelo-q">{pidelo}</span>
+          {fuente && <span className="pidelo-f">{fuente}</span>}
+        </span>
       )}
       {sede && (
         <button type="button" className="alt" aria-label={`${textoPedirA(sede)}: ${nombreLargo(p)}`} onClick={() => pedir([p], sede.id)}>

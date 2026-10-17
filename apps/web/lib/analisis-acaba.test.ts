@@ -15,16 +15,21 @@ import {
   pasaFiltroAcaba,
   pistaAcaba,
   prendasQueSeAcaban,
+  seAcabaEnOtras,
   TEXTO_VACIO_ACABA,
   textoAtraso,
   textoLlegada,
   textoPedirA,
   textoProveedor,
+  textoProveedorGenerico,
+  textoTambienSeAcaba,
   tipOtraTienda,
+  tipTambienSeAcaba,
   tituloAtrasada,
   tituloPorLlegar,
   UNA_SEMANA,
   vacioAcaba,
+  ventanasPorSede,
 } from "./analisis-acaba";
 import { modeloDe } from "./analisis-modelo";
 
@@ -271,6 +276,19 @@ describe("las otras píldoras y el botón de pedir", () => {
     expect(textoProveedor("terceros")).toBe("Proveedor terceros");
     expect(textoProveedor(null)).toBeNull();
   });
+  it("la etiqueta genérica solo sale si la fila no pudo decir a quién se pide (A8): con el nombre en «Pídelo a …», no se repite", () => {
+    // Proveedores sin leer (quien = null): queda lo de siempre.
+    expect(textoProveedorGenerico(null, "terceros")).toBe("Proveedor terceros");
+    expect(textoProveedorGenerico(null, "taller")).toBe("Proveedor taller");
+    expect(textoProveedorGenerico(null, null)).toBeNull();
+    // Se pudo nombrar (compra, catálogo o Taller): la etiqueta sobra.
+    expect(textoProveedorGenerico({ fuente: "compra", id: "x", nombre: "Hilos del Sur" }, "terceros")).toBeNull();
+    expect(textoProveedorGenerico({ fuente: "catalogo", id: "x", nombre: "Textil Andino" }, null)).toBeNull();
+    expect(textoProveedorGenerico({ fuente: "taller" }, "taller")).toBeNull();
+    // Origen «terceros» con un proveedor que no se pudo nombrar: la fila no dice «Pídelo a …», así que la etiqueta sí.
+    expect(textoProveedorGenerico({ fuente: "ninguno" }, "terceros")).toBe("Proveedor terceros");
+    expect(textoProveedorGenerico({ fuente: "ninguno" }, null)).toBeNull();
+  });
   it("si otra tienda la tiene: cuántas y qué hacer, y el botón nombra la ciudad", () => {
     const sede = { ciudad: "Ciudad Prueba" };
     expect(tipOtraTienda(sede, 3)).toBe("Ciudad Prueba tiene 3. Toca la prenda para ver cuánto vende cada tienda y decide si pedirla.");
@@ -331,5 +349,70 @@ describe("lo que falta de un modelo que se acaba (ADR-0357, decisión 12)", () =
   it("nada que decir si no falta ninguna o si se agotó el modelo entero (lo dice su pista)", () => {
     expect(faltanDelModelo(modeloDe([prenda({ piso: 1 })], HOY))).toBeNull();
     expect(faltanDelModelo(modeloDe([prenda({ varianteId: "a", vendidas30: 2 }), prenda({ varianteId: "b", talla: "L", vendidas30: 1 })], HOY))).toBeNull();
+  });
+});
+
+// ───────────────────────── «También se acaba en otra tienda» (A8) ─────────────────────────
+
+describe("ventanasPorSede y seAcabaEnOtras: el mismo modelo falta en más de una tienda", () => {
+  // Hoy 6-oct. TRU vende desde el 29-sep (8 días), AQP desde hace más de 30 días; LIM no tiene motor leído.
+  const ventanas = ventanasPorSede(
+    [
+      { ubicacionId: "tru", primeraVenta: "2026-09-29" },
+      { ubicacionId: "aqp", primeraVenta: "2026-08-01" },
+      { ubicacionId: "lim", primeraVenta: null },
+    ],
+    HOY,
+  );
+
+  it("los días de ventas de cada tienda, hasta 30; sin primera venta, 30 (no hay ritmo que medir)", () => {
+    expect(ventanas).toEqual({ tru: 8, aqp: 30, lim: 30 });
+    expect(ventanasPorSede([], HOY)).toEqual({});
+  });
+
+  it("también se acaba donde se vende y lo que tiene dura dos semanas o menos, con los días DE ESA tienda", () => {
+    // AQP: 5 en total, vendió 30 en 30 días: 1 por día → 5 días. TRU: vendió 4 en sus 8 días → 0,5 por día → 3 en 6 días.
+    const r = seAcabaEnOtras(
+      [
+        { sedeId: "aqp", stock: 5, vendidas30: 30 },
+        { sedeId: "tru", stock: 3, vendidas30: 4 },
+      ],
+      ventanas,
+    );
+    expect(r).toEqual([
+      { sedeId: "aqp", dias: 5, stock: 5, vendidas30: 30 },
+      { sedeId: "tru", dias: 6, stock: 3, vendidas30: 4 },
+    ]);
+    expect(r.map((o) => o.dias)).toEqual([...r.map((o) => o.dias)].sort((a, b) => a - b));
+  });
+
+  it("allá ya no tiene y se vende: «también se agotó» (0 días), y es lo más urgente", () => {
+    const r = seAcabaEnOtras(
+      [
+        { sedeId: "aqp", stock: 2, vendidas30: 30 },
+        { sedeId: "tru", stock: 0, vendidas30: 3 },
+      ],
+      ventanas,
+    );
+    expect(r.map((o) => [o.sedeId, o.dias])).toEqual([["tru", 0], ["aqp", 2]]);
+    expect(textoTambienSeAcaba({ dias: 0 })).toBe("también se agotó");
+    expect(textoTambienSeAcaba({ dias: 2 })).toBe("también se acaba");
+  });
+
+  it("no cuenta donde no se vende, donde alcanza para más de dos semanas, ni donde no se conoce su ventana", () => {
+    expect(seAcabaEnOtras([{ sedeId: "aqp", stock: 0, vendidas30: 0 }], ventanas)).toEqual([]); // sin ventas: no hay ritmo
+    expect(seAcabaEnOtras([{ sedeId: "aqp", stock: 20, vendidas30: 30 }], ventanas)).toEqual([]); // 20 días
+    expect(seAcabaEnOtras([{ sedeId: "aqp", stock: 14, vendidas30: 30 }], ventanas)).toHaveLength(1); // 14: el borde cuenta
+    expect(seAcabaEnOtras([{ sedeId: "aqp", stock: 15, vendidas30: 30 }], ventanas)).toEqual([]);
+    expect(seAcabaEnOtras([{ sedeId: "otra", stock: 0, vendidas30: 9 }], ventanas)).toEqual([]); // no se leyó su motor: no se dice nada
+    expect(seAcabaEnOtras([], ventanas)).toEqual([]);
+  });
+
+  it("el tooltip dice qué pasa allá y que una orden de compra lleva un solo destino, sin sugerir cantidades", () => {
+    const aqp = { ciudad: "Arequipa" };
+    expect(tipTambienSeAcaba(aqp, { dias: 5 })).toBe("Arequipa también se queda sin él: al ritmo que vende, le quedan 5 días. Una orden de compra tiene un solo destino: piénsalo también para Arequipa.");
+    expect(tipTambienSeAcaba(aqp, { dias: 1 })).toContain("le queda 1 día.");
+    expect(tipTambienSeAcaba(aqp, { dias: 0 })).toBe("Arequipa ya no tiene y lo vende. Una orden de compra tiene un solo destino: piénsalo también para Arequipa.");
+    expect(tipTambienSeAcaba(aqp, { dias: 5 })).not.toMatch(/\bpide\s+\d|\bcompra\s+\d|unidades/i);
   });
 });

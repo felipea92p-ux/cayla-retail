@@ -594,6 +594,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   reglas puras (tope, freno, qué se manda, `miTiendaSinLeer`, y lo que dice la pantalla: `contenidoDeAnalisis`, `hayCuentas`, `confianzaDelDato`,
   `notaDeFallas`, `textoSiVacio`) están en `lib/analisis-con-tope.ts`; `getPrendasPorSede` suma `sedesSinLeer` y, si falta la MÍA, `AnalisisPantalla`
   dice «No se pudo leer tu tienda» (también «Todavía no») en vez de «sin ventas».
+  **A quién se le pide cada modelo (2026-10-16, A8):** `lib/analisis-proveedores.ts:getProveedoresAnalisis` (servidor, pieza `proveedores` de
+  `leerPieza`) lee con un SELECT, sin RPC, `productos.proveedor_id` y `proveedores.id/nombre/activo` (`lib/analisis-proveedores-lectura.ts` lo
+  entiende; un directorio sin ni un proveedor cuenta como no leído, y `recortarProveedores` deja solo lo que las prendas de la tienda usan) →
+  `DatosAnalisis.proveedores` (null = no se pudo leer y se dice en `fallas`). La regla es pura, `lib/analisis-a-quien-pedir.ts`
+  (`proveedorDelModelo`: el origen real —Taller o la última compra— manda; sin origen, el proveedor del catálogo, dicho como tal; el catálogo no
+  decide Taller contra terceros; `agruparPorProveedor`; `modelosPorPedir` = lo que se acaba y no viene en camino, sin depender del filtro del carril): la
+  dibujan «Pídelo a X» (`PestanaAcaba`, con «proveedor del catálogo» a la vista), la tarjeta `AQuienPedir.tsx`, el pie del
+  camino «Compra» de Hoy (`CaminoHoy.pie`) y la ficha (`hechosDe`). «También se acaba en otra tienda»: `seAcabaEnOtras` / `ventanasPorSede`
+  (`lib/analisis-acaba.ts`, con lo que ya se lee en `otras` y `preparacion`).
   · **Contrato y reglas:** `lib/analisis-tipos.ts` (`DatosAnalisis`; `PrendaAnalisis` es una talla de un color) y `lib/analisis-reglas.ts`
   (puro: `grupoDe` decide comprar · enviar · liquidar · vigila · duda, una prenda en un solo grupo, con los umbrales de su tipo o «Liquidar
   desde» de respaldo; `diasQueQuedan` —al ritmo de su ventana, `diasDeVentas`—, `seEstaAcabando`, `nuncaSalio`, `porLlegar`, `otraSedeQueLaTiene`, `sedeQueMasVende`, `edadDelInventario`,

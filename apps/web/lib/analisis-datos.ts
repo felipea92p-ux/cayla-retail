@@ -9,6 +9,8 @@ import { conVentanaDeRitmo, diasDeVentas, liquidarDesdeValido, noHabiaDe, sedeDe
 import { FALLA_PISO } from "@/lib/analisis-piso";
 import { getPrendasPorSede } from "@/lib/analisis-sede";
 import { getPorLlegar } from "@/lib/analisis-por-llegar";
+import { getProveedoresAnalisis } from "@/lib/analisis-proveedores";
+import { recortarProveedores } from "@/lib/analisis-proveedores-lectura";
 import { getLiquidarDesde } from "@/lib/analisis-liquidar";
 import { getRindePorCategoria } from "@/lib/analisis-rinde";
 import { getConteosResumen } from "@/lib/conteos";
@@ -92,7 +94,7 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false 
   const ids = sedes.map((s) => s.id);
 
   const idActiva = { ubicacion_id: activa.id };
-  const [motor, lectura, llegan, liquidar, rinde, conteos, pedidos, preciosPropios, sinPrenda, frescura, pendientes] = await Promise.all([
+  const [motor, lectura, llegan, liquidar, rinde, conteos, pedidos, preciosPropios, sinPrenda, frescura, pendientes, quienPide] = await Promise.all([
     leerPreparacionDeLaRed(),
     getPrendasPorSede(ids),
     getPorLlegar(activa.id),
@@ -113,6 +115,8 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false 
     leerFrescura(activa, conFrescura),
     // Las ventas sin prenda que todavía se pueden registrar: el número del botón «Registrar N» (las cerradas ya no vuelven).
     leerPieza("pendientes_por_registrar", idActiva, async () => contarPendientes(await createClient(), activa.id)).then(datosDe),
+    // A quién se le pide cada modelo (A8): el proveedor del catálogo y los nombres. Si falla, no se dibuja «Pídelo a …» y se dice.
+    getProveedoresAnalisis(),
   ]);
   const preciosDeMiTienda = preciosPropios ?? undefined;
 
@@ -160,11 +164,13 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false 
     frescura: frescura.estado,
     porRegistrar: { pendientes, cerradas30: sinPrenda ? sinPrenda.filter((v) => v.estado === "cerrada_sin_prenda").length : null },
     rebajaDe100: lectura.rebajaDe100[activa.id] ?? null,
+    // Solo lo que las prendas de esta tienda pueden usar: el directorio y el catálogo enteros no viajan al navegador.
+    proveedores: quienPide.proveedores ? recortarProveedores(quienPide.proveedores, tallas) : null,
     rinde: rinde.rinde,
     conteo: ultimoConteo ? { contadas: ultimoConteo.lineas, coinciden: Math.max(0, ultimoConteo.lineas - ultimoConteo.lineasConDiferencia) } : null,
     noHabia: noHabiaDe(pedidos ?? []),
     sedesSinLeer: lectura.sedesSinLeer,
-    fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, preciosDeMiTienda === undefined ? FALLA_PRECIOS_DE_MI_TIENDA : null, llegan.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null, sinPrenda === null ? FALLA_SIN_PRENDA : null, frescura.estado === "fallo" ? FALLA_FRESCURA : null].filter(
+    fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, preciosDeMiTienda === undefined ? FALLA_PRECIOS_DE_MI_TIENDA : null, llegan.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null, sinPrenda === null ? FALLA_SIN_PRENDA : null, frescura.estado === "fallo" ? FALLA_FRESCURA : null, quienPide.falla].filter(
       (f): f is string => f !== null,
     ),
   };

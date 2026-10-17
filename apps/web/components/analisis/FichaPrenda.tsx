@@ -8,6 +8,7 @@ import { Icono } from "@/components/analisis/iconos";
 import { ChipEstado, COLOR_ESTADO, TilePrenda } from "@/components/analisis/piezas";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { grupoDe, plural } from "@/lib/analisis-reglas";
+import { proveedorDelModelo } from "@/lib/analisis-a-quien-pedir";
 import { hrefExistencias, hrefMovimientos } from "@/lib/analisis-acciones";
 import {
   accionPrincipal,
@@ -67,7 +68,7 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
   // Guardada y nunca colgada (solo si la base ya lo sabe: 20261007120000): no «va bien», nadie la vio.
   const sinSalir = datos.sabePiso && nuncaSalio(p);
   const chip = chipDeGrupo(grupo, sinSalir);
-  const hechos = hechosDe(p, grupo, datos.sedes, datos.hoy, sinSalir ? { dias: diasEnAlmacen(p, datos.hoy) } : null);
+  const hechos = hechosDe(p, grupo, datos.sedes, datos.hoy, sinSalir ? { dias: diasEnAlmacen(p, datos.hoy) } : null, datos.proveedores ? proveedorDelModelo(p, datos.proveedores) : null);
   const barras = barrasSemanas(p.semanas, datos.hoy);
   const frase = fraseDelModelo(p, datos.diasDeVentas);
   const tabla = tablaDelModelo(p);

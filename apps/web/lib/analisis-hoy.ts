@@ -10,7 +10,8 @@
 // Ninguna regla de negocio nueva: los grupos (comprar, enviar, liquidar) salen de `grupoDe` (`analisis-reglas.ts`), igual que
 // en los carriles; aquí solo se reparten en caminos y se mide el dibujo.
 
-import type { PrendaAnalisis, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
+import type { PrendaAnalisis, ProveedoresAnalisis, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
+import { agruparPorProveedor, modelosPorPedir, resumenDeGrupos, textoPidelasA } from "./analisis-a-quien-pedir";
 import {
   DIAS_SE_ACABA,
   DIAS_TRES_MESES,
@@ -96,6 +97,9 @@ export type CaminoHoy = {
   motivo: string;
   /** El camino por donde empezar («empieza aquí»): el de comprar, como en la maqueta. */
   primero: boolean;
+  /** Una última línea del tooltip, aparte de la lista de prendas: el camino de comprar dice a cuántos proveedores se pide («Pídelas a 12
+   *  proveedores · 3 sin proveedor»). Sin ella, el tooltip es solo la lista. */
+  pie?: string;
 };
 
 /** Izquierda: lo que llega a la tienda (se compra). Derecha: lo que sale a otra tienda y lo que se queda y se rebaja. */
@@ -105,8 +109,17 @@ export type CaminosHoy = { compra: CaminoHoy | null; manda: CaminoHoy[]; reb: Ca
  * Los caminos de hoy. «Compra»: todo lo que se acaba (el sistema no decide pedirlo a otra tienda: decisión 7). «Manda a …»: lo que
  * aquí no se vende y en otra tienda sí, un camino por tienda destino (la que más lo vendió), en el orden de `sedes`. «Liquidar»:
  * lo quieto que no se vende en ninguna; urgente si alguna lleva 3 meses o más.
+ *
+ * `proveedores` (A8): con ellos, el camino de comprar dice a cuántos proveedores se pide lo que todavía no viene en camino (`pie`). Sin
+ * ellos (no se pudieron leer), no dice nada: nunca «sin proveedor» por un error.
  */
-export function caminosDeHoy(prendas: readonly PrendaAnalisis[], liquidarDesde: number, sedes: readonly Pick<SedeAnalisis, "id" | "ciudad">[], hoy: string): CaminosHoy {
+export function caminosDeHoy(
+  prendas: readonly PrendaAnalisis[],
+  liquidarDesde: number,
+  sedes: readonly Pick<SedeAnalisis, "id" | "ciudad">[],
+  hoy: string,
+  proveedores: ProveedoresAnalisis | null = null,
+): CaminosHoy {
   const comp = prendasDe(prendas, ["comprar"], liquidarDesde).sort(ordenSeAcaba);
   const agotadas = comp.filter((p) => totalEnTienda(p) === 0).length;
   // «Por llegar» es lo que todavía se espera: una llegada atrasada vuelve a ser algo por comprar (A3, 2026-10-16), igual que en el filtro.
@@ -114,8 +127,11 @@ export function caminosDeHoy(prendas: readonly PrendaAnalisis[], liquidarDesde: 
   const motivoCompra =
     [agotadas ? `${agotadas} ${plural(agotadas, "agotada", "agotadas")}` : "", llegan ? `${llegan} por llegar` : ""].filter(Boolean).join(" · ") ||
     `Quedan ${DIAS_SE_ACABA} días o menos`;
+  // A quién se le pide lo que todavía hay que comprar (lo que ya viene en camino no se pide otra vez).
+  // Si parte de la lista ya viene en camino, el pie lo dice (habla solo de las que faltan).
+  const pie = proveedores ? textoPidelasA(resumenDeGrupos(agruparPorProveedor(modelosPorPedir(comp, hoy), proveedores)), llegan > 0) : null;
   const compra: CaminoHoy | null = comp.length
-    ? { clave: "comprar", grupo: "comprar", vista: "acaba", verbo: "Compra", icono: "caja", est: "urg", prendas: comp, motivo: motivoCompra, primero: true }
+    ? { clave: "comprar", grupo: "comprar", vista: "acaba", verbo: "Compra", icono: "caja", est: "urg", prendas: comp, motivo: motivoCompra, primero: true, ...(pie ? { pie } : {}) }
     : null;
 
   const porDestino = new Map<string, PrendaAnalisis[]>();

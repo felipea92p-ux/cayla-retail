@@ -338,7 +338,7 @@
     .hechos{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}
     .hecho{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--c) 9%,var(--color-crema));border:1px solid color-mix(in srgb,var(--c) 22%,transparent)}
     .hecho svg{width:18px;height:18px;color:var(--c);margin-bottom:4px}
-    .hecho b{font:500 19px/1.1 var(--font-serif)}
+    .hecho b{font:500 19px/1.1 var(--font-serif);overflow-wrap:anywhere}
     .hecho small{font-size:11.5px;color:var(--color-tinta-60)}
     .h-acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;padding-top:16px;border-top:1px solid var(--color-sand)}
     .h-nota{font-size:12.5px;color:var(--color-tinta-60);margin-top:10px}
@@ -374,6 +374,8 @@
   .an-tip .tl{display:flex;flex-direction:column;gap:5px;margin-top:6px}
   .an-tip .tl span{display:flex;align-items:center;gap:7px}
   .an-tip .tl i{width:12px;height:12px;border-radius:4px;background:var(--prenda);flex:none;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-crema) 30%,transparent)}
+  /* El pie de un tooltip de lista (A8): «Pídelas a 12 proveedores» bajo las prendas del camino de comprar. */
+  .an-tip .tip-pie{display:block;margin-top:7px;padding-top:6px;border-top:1px solid color-mix(in srgb,var(--color-crema) 24%,transparent)}
 
   /* La edad del inventario: los dos tramos más viejos van sobre rojo; en oscuro el rojo se aclara y la cifra pasa a tinta fija. */
   :root[data-tema="oscuro"] .analisis .e3,

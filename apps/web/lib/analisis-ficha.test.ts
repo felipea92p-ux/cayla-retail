@@ -165,6 +165,27 @@ describe("las tarjetitas de la ficha (como `hechos()` de la maqueta)", () => {
     expect(leer(prenda({ vendidas30: 5, origen: null }))).toEqual(["Ya no hay · en tu tienda", "Vendiste 5 · en 30 días"]);
   });
 
+  it("A quién se pide (A8): la tarjetita dice el proveedor por su nombre y de dónde se sabe; sin él, lo de siempre", () => {
+    const p = prenda({ vendidas30: 5, origen: null });
+    const con = (proveedor: Parameters<typeof hechosDe>[5]) =>
+      hechosDe(p, "comprar", SEDES, HOY, null, proveedor).map((h) => [h.icono, h.tono, h.valor, h.etiqueta]);
+    // Del catálogo: se dice que lo es (no es el de una compra que ya pasó).
+    expect(con({ fuente: "catalogo", id: "a", nombre: "Textil Andino" })[2]).toEqual(["caja", "taupe", "Textil Andino", "pídelo aquí · proveedor del catálogo"]);
+    expect(con({ fuente: "compra", id: "a", nombre: "Hilos del Sur" })[2]).toEqual(["caja", "taupe", "Hilos del Sur", "pídelo aquí · de tu última compra"]);
+    expect(con({ fuente: "taller" })[2]).toEqual(["tijera", "taupe", "Taller de CAYLA", "pídelo aquí"]);
+    // Se leyó y no tiene a quién: se dice, sin inventar uno.
+    expect(con({ fuente: "ninguno" })[2]).toEqual(["caja", "taupe", "Sin proveedor", "falta elegirlo en el catálogo"]);
+    // Sin leer los proveedores (null) o sin pasarlos: nada de «Sin proveedor» por un error, y sin origen no se dice nada.
+    expect(con(null)).toHaveLength(2);
+    expect(hechosDe(p, "comprar", SEDES, HOY)).toHaveLength(2);
+    // Con origen conocido pero sin poder nombrarlo («ninguno»), queda la etiqueta de siempre.
+    const deTerceros = prenda({ vendidas30: 5, origen: "terceros" });
+    expect(hechosDe(deTerceros, "comprar", SEDES, HOY, null, { fuente: "ninguno" })[2]).toMatchObject({ valor: "Proveedor terceros" });
+    // Solo es de «Cómpralas»: lo quieto no pide proveedor.
+    const quieta = prenda({ piso: 3, diasSinVender: 70, otras: [] });
+    expect(hechosDe(quieta, "liquidar", SEDES, HOY, null, { fuente: "catalogo", id: "a", nombre: "Textil Andino" }).some((h) => h.valor === "Textil Andino")).toBe(false);
+  });
+
   it("lo que debía llegar y no llegó es «Atrasada» (ámbar), aparte de «Por llegar»: sigue por comprar (A3)", () => {
     const llega = [
       { de: "compra" as const, cantidad: 10, fecha: "2026-10-15" },

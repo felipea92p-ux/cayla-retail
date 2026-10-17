@@ -18,6 +18,7 @@ import {
   totalEnTienda,
 } from "./analisis-reglas";
 import { textoAtraso } from "./analisis-acaba";
+import { FUENTE_CORTA, type ProveedorDelModelo } from "./analisis-a-quien-pedir";
 import { hrefComprar, hrefEnviar, hrefLiquidar, hrefRegistrarVentas, hrefReponerPiso } from "./analisis-acciones";
 import { estiloMosaicoColor } from "./color-prenda-reglas";
 import { queTiene } from "./analisis-modelo";
@@ -111,6 +112,9 @@ export function hechosDe(
   /** El día de hoy en Lima (YYYY-MM-DD): con él, lo que ya se atrasó no se cuenta como «Por llegar» (A3). */
   hoy: string,
   sinSalir: { dias: number | null } | null = null,
+  /** A quién se le pide (A8, `proveedorDelModelo`): con él la tarjetita dice el proveedor por su nombre y de dónde se sabe. Sin él (no se
+   *  pudo leer), «Proveedor taller» o «Proveedor terceros», como antes. */
+  proveedor: ProveedorDelModelo | null = null,
 ): Hecho[] {
   const hechos: Hecho[] = [];
   const agregar = (icono: IconoHecho, tono: TonoFicha, valor: string, etiqueta: string | null = null) => hechos.push({ icono, tono, valor, etiqueta });
@@ -121,7 +125,15 @@ export function hechosDe(
     if (d === 0) agregar("agotado", "rojo", "Ya no hay", "en tu tienda");
     else agregar("reloj", d <= 7 ? "ambar" : "pizarra", d === 1 ? "Queda 1 día" : `Quedan ${d} días`, `tienes ${tienes}`);
     agregar("check", "verde", `Vendiste ${p.vendidas30}`, enDias(p));
-    if (p.origen) agregar(p.origen === "taller" ? "tijera" : "caja", "taupe", p.origen === "taller" ? "Proveedor taller" : "Proveedor terceros");
+    if (proveedor && proveedor.fuente !== "ninguno") {
+      const taller = proveedor.fuente === "taller";
+      agregar(taller ? "tijera" : "caja", "taupe", taller ? "Taller de CAYLA" : proveedor.nombre, taller ? "pídelo aquí" : `pídelo aquí · ${FUENTE_CORTA[proveedor.fuente]}`);
+    } else if (p.origen) {
+      agregar(p.origen === "taller" ? "tijera" : "caja", "taupe", p.origen === "taller" ? "Proveedor taller" : "Proveedor terceros");
+    } else if (proveedor) {
+      // Se leyó y el modelo no tiene a quién: se dice (no se calla), sin inventar uno.
+      agregar("caja", "taupe", "Sin proveedor", FUENTE_CORTA.ninguno);
+    }
     // Lo que se espera es «Por llegar»; lo que debía llegar y no llegó, «Atrasada» (ámbar): sigue por comprar (A3, plan verificado 2026-10-16). El ícono es el de «llega» en ámbar, no el reloj de «Quedan N días»: dos tarjetas con reloj ámbar se confundían.
     const llegadas = llegadasDe(p.llega, hoy);
     if (llegadas.vienen > 0) agregar("llega", "verde", `Por llegar ${llegadas.vienen}`, detalleLlegada(p.llega.filter((x) => !llegadaAtrasada(x, hoy))));

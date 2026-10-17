@@ -75,7 +75,14 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-acaba" }],
       titulo: "Se está acabando",
-      texto: "Las prendas que, al ritmo que se venden desde que se colgaron, se acaban pronto, con los días que les quedan. Si algo ya viene en camino dice «Por llegar»; si se atrasó, dice «Atrasada», y si no viene nada más vuelve a «Comprar». Puedes pedirlas a otra sede antes de quedarte sin nada.",
+      texto: "Las prendas que, al ritmo que se venden desde que se colgaron, se acaban pronto, con los días que les quedan y «Pídelo a …». Si algo ya viene en camino dice «Por llegar»; si se atrasó, «Atrasada», y si no viene nada más vuelve a «Comprar». Si otra sede la tiene, puedes pedírsela; si también se le acaba, te lo dice.",
+    },
+    {
+      id: "a-quien-pedir",
+      ancla: "analisis.a-quien-pedir",
+      opcional: true,
+      titulo: "A quién pedir",
+      texto: "Lo que todavía hay que comprar, junto por proveedor y de lo más urgente a lo menos: así sabes a quién llamar primero. El proveedor es el de tu última compra o, si no hay, el del catálogo, y lo dice. Toca un modelo para ver su ficha. Es una demo: no se pide nada.",
     },
     {
       id: "nose",
