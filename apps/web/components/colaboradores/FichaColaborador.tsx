@@ -135,7 +135,9 @@ export function FichaColaborador({
   const cuenta = cuentas?.find((c) => c.tipo === "persona" && c.id === persona.id) ?? null;
   const rolActual = roles?.find((r) => r.id === (cuenta?.rolId ?? persona.rolId)) ?? null;
   const destinos = roles && cuenta ? rolesAsignables(roles, cuenta, soyAdmin, misModulos).filter((r) => r.id !== cuenta.rolId) : [];
-  const destino = destinos.find((r) => r.id === rolElegido);
+  // El rol elegido solo cuenta con «Cambiar rol» abierto: al pasar a Suspender, el menú de abajo vuelve a ser el de hoy (si no, decía
+  // «Así lo verá con …» mientras se suspendía). Lo elegido se conserva por si vuelve al panel.
+  const destino = panel === "rol" ? destinos.find((r) => r.id === rolElegido) : undefined;
   const conSede = !!cuenta && pideUbicacion(cuenta, destino);
   const tipoUbicacion = ubicaciones.find((u) => u.id === persona.ubicacionId)?.tipo === "taller" ? "taller" : "tienda";
   const menu = rolActual ? menuConCambios(rolActual, destino?.modulos ?? rolActual.modulos, tipoUbicacion) : null;
