@@ -208,18 +208,16 @@ describe("errorDeRecorte", () => {
 describe("paraDeshacerElDescarte: el recorte vuelve tal como estaba", () => {
   const url = "https://abc.supabase.co/storage/v1/object/public/retail-productos-fotos/recortes/f1-a1b2c3.png";
 
-  it("uno por revisar vuelve a por revisar, con su motivo; uno listo vuelve a listo", () => {
-    expect(paraDeshacerElDescarte("fotos/f1.jpg", { url, proporcion: 0.62, estado: "por_revisar", motivo: "huecos" })).toEqual({
-      p_foto: "fotos/f1.jpg",
-      p_recorte: "recortes/f1-a1b2c3.png",
-      p_proporcion: 0.62,
-      p_motivo: "huecos",
-    });
-    expect(paraDeshacerElDescarte("fotos/f1.jpg", { url: `${url}?v=2`, proporcion: 0.62, estado: "listo", motivo: null })?.p_motivo).toBeNull();
+  it("uno por revisar vuelve a por revisar; uno listo, a listo", () => {
+    expect(paraDeshacerElDescarte("fotos/f1.jpg", { url, proporcion: 0.62, estado: "por_revisar", motivo: "huecos" })).toEqual({ p_foto: "fotos/f1.jpg", p_estado: "por_revisar" });
+    expect(paraDeshacerElDescarte("fotos/f1.jpg", { url, proporcion: 0.62, estado: "listo", motivo: null })).toEqual({ p_foto: "fotos/f1.jpg", p_estado: "listo" });
   });
 
-  it("no adivina: una dirección que no es de un recorte del almacén, o uno ya descartado, no se deshace", () => {
-    expect(paraDeshacerElDescarte("fotos/f1.jpg", { url: "https://otro.com/x.png", proporcion: 1, estado: "listo", motivo: null })).toBeNull();
+  it("uno que ya estaba descartado no tiene nada que deshacer", () => {
     expect(paraDeshacerElDescarte("fotos/f1.jpg", { url, proporcion: 1, estado: "descartado", motivo: null })).toBeNull();
+  });
+
+  it("si alguien ya decidió, el error se lee en palabras de la pantalla", () => {
+    expect(errorDeRecorte("ERROR: recorte_ya_cambio")).toMatch(/alguien ya decidió/);
   });
 });

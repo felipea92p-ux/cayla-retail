@@ -59,8 +59,8 @@ export function RevisarRecorteHoja({
     }
     const nuevo = recorteDeRespuesta(data, f.url);
     if (nuevo) onHecho(f.foto, nuevo);
-    // Un descarte por error se arregla desde el aviso: el recorte vuelve tal como estaba (/formidable, 2026-10-17). Antes había que
-    // encontrar la foto entre cientos, y la fila decía «Sin recorte».
+    // Un descarte por error se arregla desde el aviso: el recorte vuelve tal como estaba, si nadie decidió después (/formidable y
+    // /chaos, 2026-10-17). Antes había que encontrar la foto entre cientos, y la fila decía «Sin recorte».
     const deshacer = usar ? null : paraDeshacerElDescarte(f.foto, r);
     if (deshacer) {
       avisar.exito(`Descartaste el recorte de «${f.nombre}».`, {
@@ -152,20 +152,20 @@ export function RevisarRecorteHoja({
   );
 }
 
-/** Vuelve a anotar el MISMO recorte con su motivo de antes (`registrar_recorte`): queda «por revisar» o «listo», como estaba. Corre
- *  desde el aviso, aunque la hoja ya se haya cerrado; firma quien descartó. */
+/** Devuelve el recorte a como estaba (`deshacer_descarte_recorte`): solo si sigue descartado, y queda en la Actividad. Corre desde el
+ *  aviso, aunque la hoja ya se haya cerrado; firma quien descartó. */
 async function deshacerElDescarte(
   f: FotoDelProbador,
   params: NonNullable<ReturnType<typeof paraDeshacerElDescarte>>,
   firma: Firma | null,
   onHecho: (foto: string, recorte: RecorteDeFoto) => void,
 ) {
-  const { data, error } = await firmar(createClient().rpc("registrar_recorte", params), firma);
+  const { data, error } = await firmar(createClient().rpc("deshacer_descarte_recorte", params), firma);
   if (error || !data) {
     avisar.error(errorDeRecorte(`${error?.message ?? ""} ${error?.hint ?? ""}`) ?? traducirError(error ?? { message: "sin respuesta" }, "deshacer el descarte"));
     return;
   }
   const nuevo = recorteDeRespuesta(data, f.url);
   if (nuevo) onHecho(f.foto, nuevo);
-  avisar.exito(params.p_motivo ? `El recorte de «${f.nombre}» vuelve a esperar revisión.` : `El recorte de «${f.nombre}» vuelve al probador.`);
+  avisar.exito(params.p_estado === "por_revisar" ? `El recorte de «${f.nombre}» vuelve a esperar revisión.` : `El recorte de «${f.nombre}» vuelve al probador.`);
 }

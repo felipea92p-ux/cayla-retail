@@ -224,18 +224,13 @@ export function recorteDeRespuesta(data: unknown, urlFoto: string): RecorteDeFot
 }
 
 /**
- * Cómo dejar un recorte recién descartado tal como estaba (/formidable, 2026-10-17: «Descartar» no traía «Deshacer» y un descarte por
- * error obligaba a buscar la foto entre cientos). Se vuelve a anotar el MISMO archivo con su motivo de antes (`registrar_recorte`): con
- * motivo vuelve a «por revisar», sin él a «listo». `null` si la dirección no es la de un recorte del almacén (no se adivina).
+ * Cómo deshacer un recorte recién descartado (/formidable y /chaos, 2026-10-17): la pantalla recuerda cómo estaba —«listo» o «por
+ * revisar»— y `deshacer_descarte_recorte` lo devuelve a eso solo si sigue descartado (si alguien ya decidió, responde
+ * `recorte_ya_cambio` y no pisa nada) y lo anota en la Actividad. `null` si no hay nada que deshacer (ya estaba descartado).
  */
-export function paraDeshacerElDescarte(
-  foto: string,
-  antes: RecorteDeFoto,
-): { p_foto: string; p_recorte: string; p_proporcion: number; p_motivo: MotivoRecorte | null } | null {
+export function paraDeshacerElDescarte(foto: string, antes: RecorteDeFoto): { p_foto: string; p_estado: "listo" | "por_revisar" } | null {
   if (antes.estado === "descartado") return null;
-  const ruta = /\/storage\/v1\/object\/public\/retail-productos-fotos\/(recortes\/[^/?#]+\.png)(?:[?#].*)?$/.exec(antes.url)?.[1];
-  if (!ruta) return null;
-  return { p_foto: foto, p_recorte: ruta, p_proporcion: antes.proporcion, p_motivo: antes.estado === "por_revisar" ? antes.motivo : null };
+  return { p_foto: foto, p_estado: antes.estado };
 }
 
 /** El motivo de un error de las funciones de recortes, en palabras de la pantalla (`null` si no es uno de ellas). */
@@ -244,6 +239,7 @@ export function errorDeRecorte(texto: string): string | null {
   if (texto.includes("recorte_foto_no_existe")) return "Esa foto ya no está. Recarga la pantalla.";
   if (texto.includes("recorte_archivo_no_existe")) return "El recorte no llegó al almacén. Vuelve a intentarlo.";
   if (texto.includes("recorte_no_existe")) return "Esa foto todavía no tiene recorte. Recarga la pantalla.";
+  if (texto.includes("recorte_ya_cambio")) return "No se deshizo: alguien ya decidió ese recorte. Recarga para verlo.";
   if (texto.includes("recorte_datos_invalidos")) return "El recorte no salió bien. Vuelve a intentarlo.";
   return null;
 }
