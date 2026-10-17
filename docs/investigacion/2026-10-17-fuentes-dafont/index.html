@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Letras dafont para CAYLA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Las fuentes de dafont viven en ./fuentes, que git no sube (el repo es público y casi ninguna licencia permite redistribuirlas).
+   Cada familia lleva el prefijo «CY» para no chocar con una fuente instalada en la computadora. */
+@font-face { font-family: "CY Butler"; src: url("fuentes/butler-light.otf"); font-weight: 300; font-display: swap; }
+@font-face { font-family: "CY Butler"; src: url("fuentes/butler-regular.otf"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "CY Butler"; src: url("fuentes/butler-bold.otf"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "CY Bodoni XT"; src: url("fuentes/bodoni-xt.ttf"); font-display: swap; }
+@font-face { font-family: "CY ZT Bros"; src: url("fuentes/zt-bros-light.otf"); font-weight: 300; font-display: swap; }
+@font-face { font-family: "CY ZT Bros"; src: url("fuentes/zt-bros-regular.otf"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "CY ZT Bros"; src: url("fuentes/zt-bros-light-italic.otf"); font-weight: 300; font-style: italic; font-display: swap; }
+@font-face { font-family: "CY ZT Bros"; src: url("fuentes/zt-bros-italic.otf"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "CY Oranienbaum"; src: url("fuentes/oranienbaum.ttf"); font-display: swap; }
+@font-face { font-family: "CY Belgiano"; src: url("fuentes/belgiano-serif.otf"); font-display: swap; }
+@font-face { font-family: "CY Edensor"; src: url("fuentes/edensor.otf"); font-display: swap; }
+@font-face { font-family: "CY Ahellya"; src: url("fuentes/ahellya.ttf"); font-display: swap; }
+@font-face { font-family: "CY Ahellya"; src: url("fuentes/ahellya-italic.ttf"); font-style: italic; font-display: swap; }
+@font-face { font-family: "CY Zeit"; src: url("fuentes/zeit-light.otf"); font-display: swap; }
+@font-face { font-family: "CY Producer"; src: url("fuentes/producer.ttf"); font-display: swap; }
+@font-face { font-family: "CY Creato"; src: url("fuentes/creato-light.otf"); font-weight: 300; font-display: swap; }
+@font-face { font-family: "CY Creato"; src: url("fuentes/creato-regular.otf"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "CY Creato"; src: url("fuentes/creato-medium.otf"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "CY Creato"; src: url("fuentes/creato-bold.otf"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "CY Creato"; src: url("fuentes/creato-regularitalic.otf"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "CY Tangerine"; src: url("fuentes/tangerine-regular.ttf"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "CY Tangerine"; src: url("fuentes/tangerine-bold.ttf"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "CY Le Jour Serif"; src: url("fuentes/le-jour-serif.otf"); font-display: swap; }
+@font-face { font-family: "CY Le Jour Script"; src: url("fuentes/le-jour-script.otf"); font-display: swap; }
+@font-face { font-family: "CY Recoleta"; src: url("fuentes/recoleta-demo.otf"); font-display: swap; }
+@font-face { font-family: "CY Voguella"; src: url("fuentes/voguella.ttf"); font-display: swap; }
+@font-face { font-family: "CY Vogue"; src: url("fuentes/vogue.otf"); font-display: swap; }
+
+/* Mesa de pruebas: la página es neutra (DM Sans) para no inclinar la elección; las piezas llevan los colores de CAYLA. */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0; --tinta: #1a1a18; --taupe: #805c4c;
+  --rojo: #b8412d; --verde: #48603f; --ambar: #74501a;
+  --tinta-suave: color-mix(in srgb, var(--tinta) 70%, transparent);
+  --sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "DM Mono", ui-monospace, Menlo, monospace;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --crema: #1a1a18; --papel: #242422; --hueso: #2c2b28; --sand: #3d3c38; --tinta: #f5f0e8; --taupe: #c4a898; --rojo: #e8806a; --verde: #9ccb8d; --ambar: #e4b968; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --crema: #1a1a18; --papel: #242422; --hueso: #2c2b28; --sand: #3d3c38; --tinta: #f5f0e8; --taupe: #c4a898; --rojo: #e8806a; --verde: #9ccb8d; --ambar: #e4b968; color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--crema); color: var(--tinta); font: 15px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
+p { margin: 0; }
+a { color: inherit; text-underline-offset: 3px; text-decoration-color: var(--taupe); }
+:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.envoltura { max-width: 1320px; margin-inline: auto; padding: 32px max(16px, env(safe-area-inset-right, 0px)) 80px max(16px, env(safe-area-inset-left, 0px)); }
+.ceja { font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); }
+h1 { margin: 12px 0 0; font-size: clamp(34px, 5vw, 56px); line-height: 1; letter-spacing: -.03em; font-weight: 600; max-width: 18ch; text-wrap: balance; }
+h2 { margin: 0; font-size: 24px; letter-spacing: -.01em; font-weight: 600; }
+.bajada { margin-top: 14px; max-width: 72ch; font-size: 17px; color: var(--tinta-suave); text-wrap: pretty; }
+
+/* Licencias en tres columnas */
+.tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 26px; }
+@media (max-width: 860px) { .tiers { grid-template-columns: minmax(0, 1fr); } }
+.tier { padding: 16px 18px; border-radius: 16px; background: var(--papel); border: 1px solid var(--sand); display: grid; gap: 6px; align-content: start; }
+.tier b { font-size: 15px; }
+.tier p { font-size: 13.5px; color: var(--tinta-suave); }
+.tier b { display: flex; align-items: center; gap: 8px; }
+.tier b::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--punto); }
+.tier-libre { --punto: var(--verde); }
+.tier-pago { --punto: var(--ambar); }
+.tier-fuera { --punto: var(--taupe); }
+.nota { margin-top: 12px; padding: 14px 16px; border-radius: 14px; background: var(--hueso); font-size: 14px; max-width: 100%; }
+.nota b { font-weight: 600; }
+
+/* Mandos */
+.mandos { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; margin: 30px calc(max(16px, env(safe-area-inset-left, 0px)) * -1) 0; padding: 12px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); background: color-mix(in srgb, var(--crema) 94%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--sand); display: grid; gap: 10px; }
+@media (max-width: 760px) { .mandos { position: static; } }
+.fila-mandos { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+.grupo-mando { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; border: 0; margin: 0; padding: 0; min-width: 0; }
+.grupo-mando legend, .rot { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); padding: 0; margin-right: 4px; float: left; }
+.seg { display: flex; flex-wrap: wrap; gap: 5px; }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.seg label { padding: 6px 11px; border-radius: 999px; border: 1px solid var(--sand); background: var(--papel); font-size: 13px; cursor: pointer; white-space: nowrap; transition: background-color .2s var(--ease), color .2s var(--ease); }
+.seg label:hover { border-color: var(--taupe); }
+.seg input:checked + label { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+.seg input:focus-visible + label { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.letras { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.letras .sep { flex: none; align-self: center; font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); padding: 0 4px 0 10px; white-space: nowrap; }
+.chip-letra { flex: none; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 7px; border-radius: 12px; border: 1px solid var(--sand); background: var(--papel); color: var(--tinta); cursor: pointer; font-size: 19px; line-height: 1.1; white-space: nowrap; }
+.chip-letra small { font: 600 9.5px var(--sans); letter-spacing: .08em; text-transform: uppercase; padding: 2px 6px; border-radius: 999px; }
+.chip-letra[aria-pressed="true"] { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+.lic-libre { background: color-mix(in srgb, var(--verde) 16%, transparent); color: var(--verde); }
+.lic-pago { background: color-mix(in srgb, var(--ambar) 18%, transparent); color: var(--ambar); }
+.lic-hoy { background: var(--hueso); color: var(--taupe); }
+.chip-letra[aria-pressed="true"] small { background: color-mix(in srgb, var(--crema) 18%, transparent); color: var(--crema); }
+.texto-libre { display: flex; gap: 8px; align-items: center; flex: 1 1 320px; }
+.texto-libre input[type="text"] { flex: 1; min-width: 0; height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--sand); background: var(--papel); color: var(--tinta); font: 14px var(--sans); }
+
+/* Escena */
+.cab-escena { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; margin-top: 26px; }
+.cab-escena p { color: var(--tinta-suave); font-size: 14px; max-width: 70ch; }
+.cab-escena .nombre-letra { font-size: clamp(30px, 4vw, 44px); line-height: 1.05; }
+.escena { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; margin-top: 18px; }
+.carta { margin: 0; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.carta figcaption { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--taupe); }
+.carta figcaption b { color: var(--tinta); font-weight: 600; font-size: 13.5px; }
+.estrella { border: 1px solid var(--sand); background: var(--papel); color: var(--taupe); border-radius: 999px; height: 30px; padding: 0 10px; font: 600 12.5px var(--sans); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.estrella svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.estrella[aria-pressed="true"] { color: var(--rojo); border-color: var(--rojo); }
+.estrella[aria-pressed="true"] svg { fill: currentColor; }
+
+/* ===== Las piezas: objetos físicos con colores de CAYLA, iguales en los dos temas ===== */
+.pz-caja { container-type: inline-size; min-width: 0; }
+.pz { border-radius: 14px; overflow: hidden; position: relative; color: var(--c-tinta); outline: 1px solid rgba(26, 26, 24, .08); outline-offset: -1px; }
+.pz * { margin: 0; }
+.pz .marca { font-family: var(--f); font-weight: var(--fm); letter-spacing: var(--tr); padding-left: var(--tr); line-height: 1; white-space: nowrap; }
+.pz .disp { font-family: var(--f); font-weight: var(--ft); line-height: 1.02; letter-spacing: -.01em; }
+.pz .txt { font-family: var(--t); }
+.pz em { font-family: var(--a); font-style: var(--ae); font-weight: var(--aw); }
+.pz .ave { fill: none; stroke: var(--c-acento); }
+
+.p-logo { aspect-ratio: 16 / 10; background: var(--c-crema); display: grid; place-content: center; justify-items: center; gap: 3.2cqi; }
+.p-logo .ave { width: 15cqi; height: 10cqi; }
+.p-logo .marca { font-size: calc(13cqi * var(--es)); }
+.p-logo .txt { font-size: 2.7cqi; letter-spacing: .32em; text-transform: uppercase; color: var(--c-suave); padding-left: .32em; }
+
+.p-lema { aspect-ratio: 16 / 10; background: var(--c-papel); display: grid; align-content: center; padding: 0 8cqi; gap: 4cqi; }
+.p-lema .disp { font-size: calc(10.5cqi * var(--es)); line-height: .98; }
+.p-lema em { color: var(--c-acento); }
+.p-lema .marca { font-size: calc(4cqi * var(--es)); color: var(--c-suave); }
+
+.p-etiqueta { aspect-ratio: 4 / 5; background: radial-gradient(circle at 30% 20%, var(--c-hueso-2), var(--c-hueso)); display: grid; place-items: start center; padding-top: 12cqi; }
+.p-etiqueta .hilo { position: absolute; z-index: 1; top: 0; left: 50%; width: .5cqi; height: 18.6cqi; background: var(--c-acento); translate: -50% 0; }
+.p-etiqueta .tag { width: 52cqi; margin-top: 0; padding: 12cqi 5cqi 5cqi; background: var(--c-papel); clip-path: polygon(14% 0, 86% 0, 100% 9%, 100% 100%, 0 100%, 0 9%); display: grid; justify-items: center; gap: 2cqi; text-align: center; position: relative; box-shadow: 0 2cqi 4cqi rgba(26, 26, 24, .12); }
+.p-etiqueta .tag::before { content: ""; position: absolute; top: 4.5cqi; left: 50%; width: 3.6cqi; height: 3.6cqi; translate: -50% 0; border-radius: 50%; background: var(--c-hueso); box-shadow: inset 0 0 0 .5cqi var(--c-suave-2); }
+.p-etiqueta .ave { width: 9cqi; height: 6cqi; }
+.p-etiqueta .marca { font-size: calc(6.2cqi * var(--es)); }
+.p-etiqueta hr { width: 60%; border: 0; border-top: .35cqi dashed var(--c-acento); }
+.p-etiqueta .disp { font-size: calc(5.4cqi * var(--es)); }
+.p-etiqueta .txt { font-size: 2.6cqi; color: var(--c-suave); line-height: 1.35; }
+.p-etiqueta .precio { font-family: var(--f); font-weight: var(--fb); font-size: calc(6.4cqi * var(--es)); }
+
+.p-bolsa { aspect-ratio: 4 / 5; background: linear-gradient(180deg, var(--c-hueso) 0 78%, var(--c-hueso-2) 78%); display: grid; place-items: center; }
+.p-bolsa .bolsa { position: relative; width: 56cqi; aspect-ratio: 4 / 4.6; margin-top: 12cqi; background: var(--c-bolsa); display: grid; align-content: center; justify-items: center; gap: 3cqi; color: var(--c-bolsa-tinta); box-shadow: 0 3cqi 5cqi rgba(26, 26, 24, .18); }
+.p-bolsa .bolsa::before { content: ""; position: absolute; left: 50%; bottom: 100%; width: 26cqi; height: 15cqi; translate: -50% 0; border: 1.2cqi solid var(--c-asa); border-bottom: 0; border-radius: 13cqi 13cqi 0 0; }
+.p-bolsa .bolsa::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 7%; background: rgba(0, 0, 0, .08); }
+.p-bolsa .ave { width: 13cqi; height: 9cqi; stroke: var(--c-bolsa-tinta); }
+.p-bolsa .marca { font-size: calc(8.4cqi * var(--es)); }
+.p-bolsa em { font-size: calc(4.2cqi * var(--es)); opacity: .9; }
+
+.p-letrero { aspect-ratio: 16 / 10; background: repeating-linear-gradient(0deg, var(--c-muro) 0 3.4cqi, var(--c-muro-2) 3.4cqi 3.6cqi); display: grid; place-items: center; }
+.p-letrero .luz { position: absolute; top: 0; left: 50%; width: 70cqi; height: 40cqi; translate: -50% -30%; background: radial-gradient(closest-side, rgba(255, 236, 200, .55), transparent); }
+.p-letrero .panel { position: relative; padding: 5cqi 9cqi 4.5cqi; background: var(--c-letrero); display: grid; justify-items: center; gap: 2cqi; box-shadow: 0 2cqi 4cqi rgba(0, 0, 0, .25); }
+.p-letrero .ave { width: 9cqi; height: 6cqi; }
+.p-letrero .marca { font-size: calc(10cqi * var(--es)); color: var(--c-letrero-tinta); }
+.p-letrero .txt { font-size: 2.4cqi; letter-spacing: .4em; text-transform: uppercase; color: var(--c-letrero-suave); padding-left: .4em; }
+
+.p-post { aspect-ratio: 4 / 5; background: radial-gradient(110% 90% at 85% 10%, var(--c-acento), var(--c-acento-2) 62%); color: var(--c-crema); display: grid; align-content: end; padding: 7cqi; gap: 2cqi; }
+.p-post svg.prenda { position: absolute; top: 9cqi; right: 8cqi; width: 40cqi; fill: var(--c-crema); opacity: .92; }
+.p-post .ave { position: absolute; top: 7cqi; left: 7cqi; width: 10cqi; height: 7cqi; stroke: var(--c-crema); }
+.p-post .txt { font-size: 2.6cqi; letter-spacing: .22em; text-transform: uppercase; opacity: .85; }
+.p-post .disp { font-size: calc(14cqi * var(--es)); line-height: .9; }
+.p-post em { color: var(--c-acento-claro); }
+
+.p-web { aspect-ratio: 16 / 10; background: var(--c-crema); display: grid; grid-template-rows: auto 1fr; }
+.p-web .barra { display: flex; align-items: center; gap: 2cqi; padding: 2.6cqi 4cqi; border-bottom: .25cqi solid var(--c-filo); }
+.p-web .barra .ave { width: 5.4cqi; height: 3.6cqi; }
+.p-web .barra .marca { font-size: calc(3.6cqi * var(--es)); }
+.p-web .barra .txt { margin-left: auto; display: flex; gap: 3cqi; font-size: 2.2cqi; color: var(--c-suave); }
+.p-web .heroe { display: grid; grid-template-columns: 1.15fr 1fr; }
+.p-web .heroe > div:first-child { padding: 6cqi 4cqi; display: grid; align-content: center; gap: 2.6cqi; }
+.p-web .heroe .txt.ceja { font-size: 2cqi; letter-spacing: .2em; text-transform: uppercase; color: var(--c-acento); }
+.p-web .heroe .disp { font-size: calc(8.6cqi * var(--es)); line-height: .92; }
+.p-web .heroe em { color: var(--c-acento); }
+.p-web .boton { justify-self: start; padding: 1.6cqi 3.4cqi; border-radius: 999px; background: var(--c-tinta); color: var(--c-crema); font-size: 2.2cqi; font-family: var(--t); font-weight: 600; }
+.p-web .foto { background: radial-gradient(100% 80% at 70% 20%, var(--c-acento), var(--c-acento-2)); display: grid; place-items: center; }
+.p-web .foto svg { width: 55%; fill: var(--c-crema); opacity: .9; }
+
+.p-ficha { aspect-ratio: 16 / 10; background: var(--c-papel); display: grid; grid-template-columns: .9fr 1.1fr; }
+.p-ficha .foto { background: var(--c-hueso); display: grid; place-items: center; }
+.p-ficha .foto svg { width: 66%; fill: #c9b79c; }
+.p-ficha .datos { padding: 5cqi 5cqi; display: grid; align-content: center; gap: 2.2cqi; }
+.p-ficha .txt.ceja { font-size: 1.9cqi; letter-spacing: .2em; text-transform: uppercase; color: var(--c-suave); }
+.p-ficha .disp { font-size: calc(7cqi * var(--es)); }
+.p-ficha .precio { font-family: var(--f); font-weight: var(--fb); font-size: calc(4.4cqi * var(--es)); }
+.p-ficha .txt.parrafo { font-size: 2.3cqi; line-height: 1.45; color: var(--c-suave); }
+.p-ficha .boton { justify-self: start; padding: 1.6cqi 3.4cqi; border-radius: 999px; background: var(--c-boton); color: var(--c-boton-tinta); font-size: 2.2cqi; font-family: var(--t); font-weight: 600; }
+
+.p-club { aspect-ratio: 16 / 10; background: var(--c-hueso); display: grid; place-items: center; }
+.p-club .tarjeta { width: 80cqi; aspect-ratio: 85.6 / 54; border-radius: 3.4cqi; background: linear-gradient(135deg, var(--c-tarjeta), var(--c-tarjeta-2)); color: var(--c-crema); padding: 5cqi; display: grid; grid-template-rows: auto 1fr auto; box-shadow: 0 2.4cqi 5cqi rgba(26, 26, 24, .25); }
+.p-club .arriba { display: flex; align-items: center; gap: 2cqi; }
+.p-club .ave { width: 6cqi; height: 4cqi; stroke: var(--c-crema); }
+.p-club .marca { font-size: calc(4.6cqi * var(--es)); }
+.p-club .arriba em { margin-left: auto; font-size: calc(4.6cqi * var(--es)); color: var(--c-acento-claro); }
+.p-club .disp { align-self: center; font-size: calc(6.4cqi * var(--es)); }
+.p-club .txt { font-size: 2.4cqi; opacity: .85; display: flex; justify-content: space-between; gap: 2cqi; }
+
+.p-interna { aspect-ratio: 16 / 10; background: repeating-linear-gradient(45deg, var(--c-tela) 0 1cqi, var(--c-tela-2) 1cqi 2cqi); display: grid; place-items: center; }
+.p-interna .cinta { width: 46cqi; padding: 4cqi 3cqi; background: var(--c-cinta); color: var(--c-crema); display: grid; justify-items: center; gap: 1.4cqi; text-align: center; box-shadow: 0 1.4cqi 3cqi rgba(0, 0, 0, .2); border-top: .7cqi dashed var(--c-acento-claro); border-bottom: .7cqi dashed var(--c-acento-claro); }
+.p-interna .marca { font-size: calc(5.6cqi * var(--es)); }
+.p-interna .txt { font-size: 2.1cqi; letter-spacing: .14em; text-transform: uppercase; opacity: .9; }
+
+.p-precios { aspect-ratio: 16 / 10; background: var(--c-papel); padding: 6cqi 8cqi; display: grid; align-content: center; gap: 2.4cqi; }
+.p-precios .fila { display: flex; justify-content: space-between; align-items: baseline; gap: 4cqi; border-bottom: .25cqi solid var(--c-filo); padding-bottom: 1.6cqi; }
+.p-precios .disp { font-size: calc(4.6cqi * var(--es)); }
+.p-precios .precio { font-family: var(--f); font-weight: var(--fb); font-size: calc(4.8cqi * var(--es)); font-variant-numeric: tabular-nums; }
+.p-precios .total .disp, .p-precios .total .precio { font-weight: var(--fb); }
+.p-precios .total { border-bottom: 0; }
+.p-precios .txt { font-size: 2.1cqi; color: var(--c-suave); }
+
+.p-cel { aspect-ratio: 4 / 5; background: var(--c-hueso); display: grid; place-items: end center; }
+.p-cel .tel { width: 64cqi; height: 92%; border: 2cqi solid #111; border-bottom: 0; border-radius: 8cqi 8cqi 0 0; background: var(--c-crema); overflow: hidden; display: grid; grid-template-rows: auto auto 1fr; }
+.p-cel .cab { display: flex; align-items: center; justify-content: center; gap: 1.6cqi; padding: 5cqi 0 2.6cqi; border-bottom: .3cqi solid var(--c-filo); }
+.p-cel .cab .ave { width: 5cqi; height: 3.4cqi; }
+.p-cel .cab .marca { font-size: calc(3.8cqi * var(--es)); }
+.p-cel .heroe { padding: 4cqi 4cqi 3cqi; display: grid; gap: 1.6cqi; background: radial-gradient(120% 90% at 85% 10%, var(--c-acento), var(--c-acento-2) 62%); color: var(--c-crema); }
+.p-cel .heroe .txt { font-size: 1.8cqi; letter-spacing: .2em; text-transform: uppercase; opacity: .85; }
+.p-cel .heroe .disp { font-size: calc(8.4cqi * var(--es)); line-height: .92; }
+.p-cel .heroe em { color: var(--c-acento-claro); }
+.p-cel .grilla { display: grid; grid-template-columns: 1fr 1fr; gap: 2cqi; padding: 3cqi; align-content: start; }
+.p-cel .prod { display: grid; gap: .8cqi; }
+.p-cel .prod .foto { aspect-ratio: 4 / 5; background: var(--c-hueso); display: grid; place-items: center; border-radius: 1.4cqi; }
+.p-cel .prod .foto svg { width: 66%; fill: #c9b79c; }
+.p-cel .prod .disp { font-size: calc(3cqi * var(--es)); }
+.p-cel .prod .precio { font-family: var(--f); font-weight: var(--fb); font-size: calc(2.8cqi * var(--es)); }
+
+.pz .marca-logo { letter-spacing: 0; padding-left: 0; line-height: 0; }
+.pz .marca-logo svg { display: block; height: calc(.74em / var(--es)); width: auto; aspect-ratio: 4.7536; overflow: visible; }
+.p-logo .marca-logo { color: var(--c-logo); }
+/* El colibrí oficial (relleno, calcado del logo): toma el color del lugar */
+.pz .ave { color: var(--c-acento); }
+.p-bolsa .ave { color: var(--c-bolsa-tinta); }
+.p-post .ave, .p-club .ave { color: var(--c-crema); }
+.p-logo-escaparate .lockup { width: 62cqi; height: auto; aspect-ratio: 2000 / 580; color: var(--c-logo); overflow: visible; }
+
+/* Tu texto */
+.lineas { display: grid; gap: 0; margin-top: 18px; background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; overflow: hidden; }
+.linea { display: grid; grid-template-columns: 190px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px 18px; border-top: 1px solid var(--sand); }
+.linea:first-child { border-top: 0; }
+.linea .quien { font-size: 13px; color: var(--taupe); }
+.linea .quien b { display: block; color: var(--tinta); font-size: 14px; }
+.linea .muestra { font-size: var(--tam, 44px); line-height: 1.15; overflow-wrap: anywhere; color: var(--tinta); }
+@media (max-width: 640px) { .linea { grid-template-columns: minmax(0, 1fr) auto; } .linea .muestra { grid-column: 1 / -1; grid-row: 2; } }
+
+/* Fichas */
+.tabla-caja { margin-top: 18px; overflow-x: auto; border: 1px solid var(--sand); border-radius: 16px; background: var(--papel); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 860px; }
+th { text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); background: var(--hueso); padding: 10px 14px; }
+td { padding: 11px 14px; border-top: 1px solid var(--sand); vertical-align: top; }
+td.muestra-celda { font-size: 26px; line-height: 1.1; white-space: nowrap; }
+.sec { margin-top: 56px; }
+
+/* Favoritas */
+.favoritas { margin-top: 18px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 860px) { .favoritas { grid-template-columns: minmax(0, 1fr); } }
+.caja-fav { padding: 20px; border-radius: 18px; background: var(--tinta); color: var(--crema); display: grid; gap: 12px; align-content: start; }
+.caja-fav ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.caja-fav textarea { width: 100%; min-height: 80px; padding: 10px 12px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--crema) 25%, transparent); background: color-mix(in srgb, var(--crema) 8%, transparent); color: var(--crema); font: 14px/1.5 var(--sans); resize: vertical; }
+.caja-fav textarea::placeholder { color: color-mix(in srgb, var(--crema) 62%, transparent); }
+.caja-fav button { justify-self: start; min-height: 42px; padding: 0 18px; border-radius: 999px; border: 0; background: var(--crema); color: var(--tinta); font: 700 14px var(--sans); cursor: pointer; }
+.caja-fav .aviso { font-size: 13px; color: color-mix(in srgb, var(--crema) 78%, transparent); }
+.consejo { padding: 20px; border-radius: 18px; background: var(--papel); border: 1px solid var(--sand); display: grid; gap: 10px; align-content: start; font-size: 14.5px; color: var(--tinta-suave); }
+.consejo b { color: var(--tinta); }
+.pie { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--sand); font-size: 12.5px; color: var(--taupe); }
+
+/* ===== Hojas para compartir (?hojas): cada .hoja se fotografía y pasa a una página del PDF. Siempre en claro. ===== */
+.hojas { display: grid; gap: 48px; padding: 48px 0; background: #d9d2c6; justify-content: center; }
+.hoja { width: 1600px; padding: 52px 64px 56px; background: var(--crema); color: var(--tinta); display: grid; gap: 26px; align-content: start; }
+.hoja-cab { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--sand); font-size: 13px; color: var(--taupe); letter-spacing: .04em; }
+.hoja-cab .ave { width: 30px; height: 20px; fill: none; stroke: var(--rojo); }
+.hoja-cab span { display: flex; align-items: center; gap: 10px; }
+.hoja-cab b { color: var(--tinta); font-weight: 600; letter-spacing: .24em; }
+.hoja h2.hoja-tit { font-size: 46px; line-height: 1.05; letter-spacing: -.02em; font-weight: 600; }
+.hoja .hoja-sub { font-size: 18px; color: var(--tinta-suave); max-width: 90ch; margin-top: -10px; }
+.rejilla { display: grid; gap: 22px 18px; }
+.rejilla-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.rejilla-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.rejilla .carta figcaption { font-size: 14px; }
+.chip-lic { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11.5px; font-weight: 600; line-height: 1.45; }
+.portada { display: grid; grid-template-columns: 1.25fr 1fr; gap: 56px; }
+.portada h1 { font-size: 78px; max-width: 13ch; margin-top: 14px; }
+.portada .bajada { font-size: 19px; max-width: 54ch; }
+.portada .tiers { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 28px; }
+.portada .tier p { font-size: 14.5px; }
+.indice-hojas { margin-top: 18px; display: grid; gap: 6px; font-size: 15px; color: var(--tinta-suave); }
+.indice-hojas b { color: var(--tinta); }
+.muro-marcas { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; align-content: start; background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; padding: 10px 26px; }
+.muro-marcas div { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--sand); }
+.muro-marcas div:last-child { border-bottom: 0; }
+.muro-marcas .m { font-size: 34px; line-height: 1.1; white-space: nowrap; color: var(--tinta); }
+.muro-marcas small { font-size: 12.5px; color: var(--taupe); text-align: right; }
+.cab-letra { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 36px; align-items: end; }
+.cab-letra .n { font-size: 64px; line-height: 1; color: var(--tinta); white-space: nowrap; }
+.cab-letra p { font-size: 16px; color: var(--tinta-suave); max-width: 80ch; }
+.cab-letra .meta { display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--taupe); margin-bottom: 8px; }
+.hoja table { min-width: 0; font-size: 14px; }
+.hoja td.muestra-celda { font-size: 28px; }
+.hoja .url { font-family: var(--mono); font-size: 12px; color: var(--taupe); overflow-wrap: anywhere; }
+.dos { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.logo-hoja { display: grid; gap: 28px; }
+.logo-grande { padding: 70px 0; background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; display: grid; place-items: center; color: #d13730; }
+.logo-grande svg { width: 860px; height: auto; }
+.logo-pares { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.logo-pares figure { margin: 0; display: grid; gap: 8px; }
+.logo-pares figcaption { font-size: 14px; color: var(--taupe); }
+.logo-pares img, .logo-chico { width: 100%; aspect-ratio: 284 / 80; border-radius: 12px; background: #f5f1e8; display: grid; place-items: center; }
+.logo-pares img { padding: 4% 14%; }
+.logo-pares img { object-fit: contain; image-rendering: auto; }
+.logo-chico svg { width: 72%; height: auto; color: #d13730; }
+.logo-oscuro .logo-chico { background: #1a1a18; }
+.logo-oscuro .logo-chico svg { color: #f5f0e8; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="colibri" viewBox="0 0 223 150"><g fill="none" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"><path d="M3,6 C45,14 95,28 118,50 C134,64 136,96 124,112 C110,130 80,138 47,146 L68,102"/><path d="M3,6 C10,40 40,70 70,80 C85,85 100,87 112,87"/><path d="M104,40 C102,22 118,6 140,5 C155,4 165,10 172,16 L220,12"/><path d="M172,16 C156,22 144,38 134,62"/></g></symbol>
+  <symbol id="palabra-cayla" viewBox="671 221 1331 280"><path fill="currentColor" stroke="none" fill-rule="evenodd" d="M774.22 224.00 L787.00 223.12 L795.00 223.10 L806.00 223.79 L817.00 225.52 L826.00 227.83 L836.00 231.53 L840.00 233.46 L841.00 233.69 L842.00 234.46 L843.00 234.73 L850.00 238.67 L860.00 245.71 L864.78 250.00 L870.00 255.04 L873.61 259.00 L879.36 266.00 L885.36 275.00 L885.72 276.00 L889.31 282.00 L889.60 283.00 L890.39 284.00 L890.62 285.00 L891.42 286.00 L891.65 287.00 L892.38 288.00 L895.35 295.00 L895.56 296.00 L896.25 297.00 L896.64 299.00 L897.37 300.00 L897.38 301.00 L895.00 303.51 L865.00 317.49 L863.00 318.13 L862.00 317.97 L860.58 317.00 L858.58 314.00 L855.41 306.00 L851.14 298.00 L847.35 292.00 L843.43 287.00 L838.00 281.31 L833.00 276.88 L827.00 272.75 L821.00 269.55 L814.00 266.75 L806.00 264.59 L803.00 264.39 L798.00 263.54 L787.00 263.47 L783.00 263.65 L779.00 264.40 L776.00 264.61 L774.00 265.30 L771.00 265.79 L763.00 268.62 L760.00 270.25 L759.00 270.51 L755.00 272.72 L749.00 276.69 L742.00 282.87 L735.66 290.00 L729.58 299.00 L724.89 308.00 L723.40 312.00 L722.64 313.00 L722.13 315.00 L721.53 316.00 L719.74 321.00 L718.32 326.00 L717.69 327.00 L717.18 330.00 L716.57 331.00 L716.23 334.00 L715.64 335.00 L715.09 339.00 L714.64 340.00 L713.57 347.00 L713.40 350.00 L712.92 352.00 L712.55 358.00 L712.48 363.00 L712.82 370.00 L714.51 382.00 L715.14 384.00 L715.52 387.00 L716.30 389.00 L716.68 392.00 L717.34 393.00 L717.61 395.00 L718.40 397.00 L718.78 399.00 L723.68 412.00 L724.40 413.00 L728.59 422.00 L733.74 430.00 L739.47 437.00 L747.00 444.36 L754.00 449.29 L759.00 452.07 L764.00 454.43 L769.00 456.30 L771.00 456.62 L773.00 457.41 L776.00 457.73 L779.00 458.51 L788.00 459.26 L792.00 459.30 L804.00 458.42 L806.00 457.74 L809.00 457.41 L811.00 456.62 L813.00 456.29 L822.00 452.55 L828.00 449.18 L832.00 446.41 L838.00 441.15 L840.20 439.00 L845.30 433.00 L849.48 427.00 L855.49 416.00 L858.62 408.00 L860.60 405.00 L863.00 402.68 L865.00 402.48 L867.00 402.64 L889.00 413.52 L893.58 416.00 L896.00 418.18 L897.35 420.00 L897.40 421.00 L896.70 422.00 L896.25 425.00 L895.61 426.00 L895.09 428.00 L892.46 434.00 L888.33 442.00 L882.26 452.00 L877.30 459.00 L871.33 466.00 L866.00 471.39 L858.00 478.27 L851.00 483.26 L844.00 487.32 L842.00 488.39 L841.00 488.60 L840.00 489.41 L828.00 494.17 L826.00 494.58 L824.00 495.46 L822.00 495.69 L820.00 496.48 L816.00 497.31 L803.00 499.16 L793.00 499.54 L779.00 499.18 L766.00 497.40 L757.00 495.32 L756.00 494.72 L754.00 494.40 L751.00 493.35 L744.00 490.48 L738.00 487.42 L731.00 483.29 L724.00 478.37 L719.00 474.35 L713.15 469.00 L704.77 460.00 L698.65 452.00 L698.28 451.00 L694.83 446.00 L686.80 431.00 L685.33 427.00 L684.65 426.00 L681.75 418.00 L681.29 416.00 L680.69 415.00 L680.40 413.00 L679.54 411.00 L679.29 409.00 L678.67 408.00 L678.21 405.00 L677.51 403.00 L675.94 396.00 L675.42 392.00 L674.75 390.00 L674.37 385.00 L673.70 383.00 L673.29 375.00 L672.55 371.00 L672.55 352.00 L673.26 348.00 L673.63 340.00 L674.33 338.00 L674.71 333.00 L675.37 331.00 L675.88 327.00 L677.63 319.00 L678.13 318.00 L678.57 315.00 L679.18 314.00 L679.66 311.00 L680.30 310.00 L680.65 308.00 L684.55 297.00 L685.21 296.00 L686.67 292.00 L687.36 291.00 L690.58 284.00 L697.75 272.00 L703.60 264.00 L708.85 258.00 L714.00 252.77 L721.00 246.61 L729.00 240.68 L741.00 233.56 L742.00 233.36 L743.00 232.57 L750.00 229.73 L760.00 226.53 L762.00 226.31 L764.00 225.64 L769.00 224.73 Z M1049.70 224.00 L1053.00 223.10 L1096.00 223.10 L1099.00 223.81 L1100.34 225.00 L1102.11 228.00 L1102.77 230.00 L1103.42 231.00 L1103.87 233.00 L1106.19 239.00 L1106.62 241.00 L1107.27 242.00 L1107.62 244.00 L1108.37 245.00 L1108.65 247.00 L1109.35 248.00 L1109.77 250.00 L1112.08 256.00 L1112.56 258.00 L1113.21 259.00 L1113.56 261.00 L1114.23 262.00 L1114.61 264.00 L1115.26 265.00 L1115.70 267.00 L1120.43 280.00 L1120.87 282.00 L1121.47 283.00 L1121.94 285.00 L1125.29 294.00 L1125.75 296.00 L1126.37 297.00 L1126.79 299.00 L1127.44 300.00 L1127.80 302.00 L1128.44 303.00 L1130.64 310.00 L1131.19 311.00 L1131.63 313.00 L1132.32 314.00 L1132.61 316.00 L1133.36 317.00 L1133.70 319.00 L1134.38 320.00 L1134.79 322.00 L1137.12 328.00 L1137.58 330.00 L1138.21 331.00 L1138.57 333.00 L1139.29 334.00 L1139.62 336.00 L1140.24 337.00 L1140.72 339.00 L1146.48 355.00 L1146.97 357.00 L1150.82 368.00 L1151.39 369.00 L1151.79 371.00 L1152.43 372.00 L1152.88 374.00 L1153.44 375.00 L1155.63 382.00 L1156.23 383.00 L1156.64 385.00 L1157.32 386.00 L1157.64 388.00 L1158.40 389.00 L1158.71 391.00 L1159.36 392.00 L1159.83 394.00 L1162.15 400.00 L1162.57 402.00 L1163.24 403.00 L1163.59 405.00 L1164.28 406.00 L1164.65 408.00 L1165.30 409.00 L1165.73 411.00 L1169.05 420.00 L1169.54 422.00 L1170.45 424.00 L1170.59 425.00 L1175.84 440.00 L1176.40 441.00 L1176.84 443.00 L1177.45 444.00 L1177.85 446.00 L1178.44 447.00 L1180.66 454.00 L1181.25 455.00 L1181.64 457.00 L1182.35 458.00 L1182.67 460.00 L1183.37 461.00 L1183.74 463.00 L1184.40 464.00 L1184.84 466.00 L1186.58 471.00 L1187.17 472.00 L1187.61 474.00 L1188.27 475.00 L1188.59 477.00 L1189.33 478.00 L1189.68 480.00 L1190.30 481.00 L1190.77 483.00 L1194.35 493.00 L1194.36 495.00 L1193.25 497.00 L1191.00 498.59 L1189.00 499.35 L1162.00 499.54 L1159.00 499.29 L1157.00 498.03 L1155.79 496.00 L1152.66 487.00 L1152.34 485.00 L1151.62 484.00 L1151.38 482.00 L1150.71 481.00 L1148.36 473.00 L1147.00 469.95 L1099.00 469.86 L1002.00 469.86 L1001.00 470.05 L999.63 473.00 L991.46 495.00 L990.70 496.00 L990.48 497.00 L990.00 497.69 L988.00 499.27 L985.00 499.54 L959.00 499.44 L956.00 498.46 L955.00 497.72 L953.50 496.00 L953.05 494.00 L953.63 491.00 L958.41 478.00 L958.55 477.00 L959.49 475.00 L959.62 474.00 L964.10 462.00 L964.56 460.00 L965.16 459.00 L965.62 457.00 L966.22 456.00 L969.54 446.00 L970.14 445.00 L971.60 440.00 L972.24 439.00 L972.69 437.00 L975.56 429.00 L976.16 428.00 L976.56 426.00 L977.25 425.00 L977.60 423.00 L978.28 422.00 L978.69 420.00 L979.33 419.00 L982.57 409.00 L983.28 408.00 L983.58 406.00 L984.29 405.00 L984.67 403.00 L985.33 402.00 L985.78 400.00 L987.56 395.00 L988.15 394.00 L988.59 392.00 L989.28 391.00 L989.58 389.00 L990.34 388.00 L990.68 386.00 L991.36 385.00 L991.78 383.00 L992.40 382.00 L994.59 375.00 L995.25 374.00 L995.60 372.00 L996.36 371.00 L996.65 369.00 L997.36 368.00 L997.76 366.00 L998.40 365.00 L1000.59 358.00 L1001.26 357.00 L1001.64 355.00 L1002.36 354.00 L1002.65 352.00 L1003.41 351.00 L1003.78 349.00 L1004.41 348.00 L1006.63 341.00 L1007.24 340.00 L1007.64 338.00 L1008.33 337.00 L1008.66 335.00 L1009.43 334.00 L1009.72 332.00 L1010.42 331.00 L1010.88 329.00 L1013.24 323.00 L1013.66 321.00 L1014.34 320.00 L1014.72 318.00 L1015.42 317.00 L1015.78 315.00 L1016.45 314.00 L1016.91 312.00 L1019.21 306.00 L1019.70 304.00 L1020.33 303.00 L1020.70 301.00 L1021.41 300.00 L1021.77 298.00 L1022.46 297.00 L1022.83 295.00 L1023.45 294.00 L1026.33 286.00 L1026.77 284.00 L1027.41 283.00 L1028.93 278.00 L1032.30 269.00 L1032.80 267.00 L1033.40 266.00 L1033.84 264.00 L1034.46 263.00 L1034.92 261.00 L1035.48 260.00 L1035.98 258.00 L1040.46 246.00 L1045.53 231.00 L1047.86 226.00 Z M1197.78 224.00 L1200.00 223.12 L1228.00 223.10 L1235.00 223.88 L1238.29 226.00 L1241.21 230.00 L1249.83 244.00 L1251.34 246.00 L1251.66 247.00 L1263.17 265.00 L1263.58 266.00 L1269.42 275.00 L1269.77 276.00 L1276.31 286.00 L1276.71 287.00 L1281.31 294.00 L1281.65 295.00 L1293.20 313.00 L1293.59 314.00 L1301.38 326.00 L1301.72 327.00 L1306.34 334.00 L1306.72 335.00 L1313.28 345.00 L1313.63 346.00 L1315.00 346.75 L1331.33 321.00 L1331.63 320.00 L1343.20 302.00 L1343.56 301.00 L1351.36 289.00 L1351.72 288.00 L1356.32 281.00 L1356.70 280.00 L1363.25 270.00 L1368.61 261.00 L1369.46 260.00 L1369.83 259.00 L1381.38 241.00 L1381.71 240.00 L1388.66 229.00 L1391.00 226.08 L1393.00 224.49 L1395.00 223.68 L1401.00 223.12 L1429.00 223.10 L1431.00 223.61 L1432.32 225.00 L1432.61 228.00 L1432.27 230.00 L1430.39 234.00 L1375.64 319.00 L1375.28 320.00 L1369.85 328.00 L1369.45 329.00 L1362.78 339.00 L1362.40 340.00 L1334.64 383.00 L1334.55 491.00 L1334.48 494.00 L1333.68 496.00 L1332.00 498.14 L1330.00 499.19 L1328.00 499.50 L1302.00 499.54 L1300.00 499.41 L1298.00 498.63 L1296.00 496.88 L1294.65 494.00 L1294.61 493.00 L1294.53 383.00 L1288.72 374.00 L1288.31 373.00 L1274.58 352.00 L1274.18 351.00 L1270.70 346.00 L1270.34 345.00 L1263.64 335.00 L1263.31 334.00 L1256.60 324.00 L1245.26 306.00 L1238.60 296.00 L1238.27 295.00 L1231.56 285.00 L1227.32 278.00 L1225.77 276.00 L1225.37 275.00 L1199.52 235.00 L1197.88 232.00 L1196.73 229.00 L1196.62 226.00 L1196.98 225.00 Z M1519.28 224.00 L1520.00 223.63 L1523.00 223.10 L1549.00 223.12 L1552.00 223.73 L1553.00 224.38 L1555.29 227.00 L1555.49 228.00 L1555.69 232.00 L1555.69 458.00 L1556.00 458.97 L1558.00 459.30 L1686.00 459.30 L1690.00 459.77 L1692.00 461.19 L1693.41 463.00 L1693.94 466.00 L1693.98 492.00 L1693.31 496.00 L1692.00 497.65 L1689.84 499.00 L1689.00 499.33 L1686.00 499.54 L1523.00 499.54 L1521.00 499.38 L1519.00 498.55 L1518.00 497.78 L1516.57 496.00 L1515.91 493.00 L1515.82 491.00 L1515.82 231.00 L1516.51 227.00 L1517.86 225.00 Z M1854.71 224.00 L1858.00 223.10 L1901.00 223.11 L1904.00 223.81 L1905.32 225.00 L1907.07 228.00 L1909.43 234.00 L1909.57 235.00 L1914.30 248.00 L1914.76 250.00 L1915.37 251.00 L1915.77 253.00 L1916.40 254.00 L1916.84 256.00 L1920.22 265.00 L1920.68 267.00 L1921.28 268.00 L1921.68 270.00 L1922.34 271.00 L1922.76 273.00 L1923.33 274.00 L1927.12 285.00 L1927.59 287.00 L1928.17 288.00 L1928.63 290.00 L1934.45 306.00 L1934.59 307.00 L1938.76 319.00 L1939.32 320.00 L1939.78 322.00 L1940.38 323.00 L1940.81 325.00 L1941.42 326.00 L1941.88 328.00 L1945.23 337.00 L1945.71 339.00 L1946.32 340.00 L1946.72 342.00 L1947.34 343.00 L1947.77 345.00 L1948.34 346.00 L1951.59 356.00 L1952.15 357.00 L1952.60 359.00 L1953.21 360.00 L1953.67 362.00 L1958.40 375.00 L1958.54 376.00 L1959.46 378.00 L1959.60 379.00 L1964.33 392.00 L1964.82 394.00 L1965.41 395.00 L1965.85 397.00 L1966.42 398.00 L1966.91 400.00 L1970.26 409.00 L1970.73 411.00 L1971.33 412.00 L1971.73 414.00 L1972.37 415.00 L1972.81 417.00 L1973.36 418.00 L1976.61 428.00 L1977.19 429.00 L1977.62 431.00 L1978.22 432.00 L1978.69 434.00 L1979.23 435.00 L1999.34 493.00 L1999.34 495.00 L1998.21 497.00 L1996.00 498.58 L1994.00 499.34 L1967.00 499.54 L1964.00 499.30 L1962.00 498.05 L1960.71 496.00 L1959.59 493.00 L1959.19 491.00 L1958.60 490.00 L1958.25 488.00 L1957.69 487.00 L1954.33 476.00 L1953.79 475.00 L1953.41 473.00 L1952.00 470.01 L1904.00 469.86 L1807.00 469.86 L1806.00 470.17 L1804.99 472.00 L1804.43 474.00 L1803.78 475.00 L1803.33 477.00 L1802.67 478.00 L1798.44 490.00 L1797.83 491.00 L1797.30 493.00 L1796.62 494.00 L1796.37 495.00 L1794.73 498.00 L1793.00 499.27 L1790.00 499.54 L1764.00 499.43 L1763.00 499.28 L1760.35 498.00 L1758.44 496.00 L1758.18 495.00 L1758.05 494.00 L1758.38 492.00 L1759.64 488.00 L1760.28 487.00 L1760.70 485.00 L1761.30 484.00 L1761.80 482.00 L1765.17 473.00 L1765.64 471.00 L1766.29 470.00 L1766.69 468.00 L1767.31 467.00 L1767.77 465.00 L1771.21 456.00 L1771.68 454.00 L1772.31 453.00 L1772.72 451.00 L1773.36 450.00 L1773.81 448.00 L1777.21 439.00 L1777.67 437.00 L1778.29 436.00 L1778.70 434.00 L1779.39 433.00 L1779.78 431.00 L1780.38 430.00 L1783.71 420.00 L1784.31 419.00 L1784.76 417.00 L1785.39 416.00 L1785.83 414.00 L1786.41 413.00 L1789.72 403.00 L1790.31 402.00 L1790.74 400.00 L1791.38 399.00 L1791.80 397.00 L1792.43 396.00 L1792.90 394.00 L1796.31 385.00 L1796.81 383.00 L1797.39 382.00 L1797.53 381.00 L1802.30 368.00 L1802.79 366.00 L1803.39 365.00 L1803.84 363.00 L1804.45 362.00 L1804.93 360.00 L1809.38 348.00 L1809.53 347.00 L1810.46 345.00 L1810.59 344.00 L1834.10 278.00 L1834.58 276.00 L1835.18 275.00 L1840.58 259.00 L1841.17 258.00 L1841.65 256.00 L1846.16 244.00 L1846.62 242.00 L1847.24 241.00 L1847.66 239.00 L1848.28 238.00 L1848.76 236.00 L1851.85 228.00 L1853.58 225.00 Z M1074.67 262.00 L1075.00 261.79 L1075.15 262.00 L1075.66 264.00 L1076.32 265.00 L1076.66 267.00 L1077.39 268.00 L1077.70 270.00 L1078.42 271.00 L1078.78 273.00 L1079.37 274.00 L1081.58 281.00 L1082.19 282.00 L1082.56 284.00 L1083.25 285.00 L1083.62 287.00 L1084.22 288.00 L1084.71 290.00 L1087.00 296.00 L1089.57 304.00 L1094.29 317.00 L1094.74 319.00 L1095.38 320.00 L1095.74 322.00 L1096.43 323.00 L1096.80 325.00 L1097.44 326.00 L1097.88 328.00 L1098.42 329.00 L1099.62 333.00 L1100.21 334.00 L1100.64 336.00 L1101.31 337.00 L1101.61 339.00 L1102.39 340.00 L1102.71 342.00 L1103.36 343.00 L1106.56 353.00 L1107.17 354.00 L1107.57 356.00 L1108.24 357.00 L1108.63 359.00 L1109.21 360.00 L1118.71 388.00 L1119.29 389.00 L1119.72 391.00 L1120.38 392.00 L1120.70 394.00 L1121.44 395.00 L1121.77 397.00 L1122.41 398.00 L1124.64 405.00 L1125.23 406.00 L1125.61 408.00 L1126.33 409.00 L1126.64 411.00 L1127.36 412.00 L1127.70 414.00 L1128.37 415.00 L1128.81 417.00 L1134.45 433.00 L1134.00 433.48 L1133.00 433.58 L1075.00 433.58 L1015.00 433.57 L1014.37 433.00 L1014.60 431.00 L1015.35 430.00 L1015.69 428.00 L1016.36 427.00 L1016.80 425.00 L1019.12 419.00 L1019.58 417.00 L1020.22 416.00 L1020.57 414.00 L1021.32 413.00 L1021.66 411.00 L1022.31 410.00 L1022.75 408.00 L1023.35 407.00 L1024.57 403.00 L1025.12 402.00 L1025.58 400.00 L1026.22 399.00 L1026.59 397.00 L1027.32 396.00 L1027.62 394.00 L1028.33 393.00 L1028.74 391.00 L1029.33 390.00 L1031.55 383.00 L1032.18 382.00 L1032.58 380.00 L1033.24 379.00 L1033.60 377.00 L1034.30 376.00 L1034.69 374.00 L1035.28 373.00 L1037.57 366.00 L1038.17 365.00 L1038.56 363.00 L1039.25 362.00 L1039.60 360.00 L1040.31 359.00 L1040.67 357.00 L1041.32 356.00 L1044.56 346.00 L1045.22 345.00 L1045.57 343.00 L1046.24 342.00 L1046.64 340.00 L1047.28 339.00 L1050.56 329.00 L1051.18 328.00 L1051.56 326.00 L1052.25 325.00 L1052.63 323.00 L1053.25 322.00 L1053.73 320.00 L1054.30 319.00 L1057.09 311.00 L1057.56 309.00 L1058.20 308.00 L1058.59 306.00 L1059.19 305.00 L1062.53 295.00 L1063.12 294.00 L1063.55 292.00 L1064.18 291.00 L1064.58 289.00 L1065.25 288.00 L1065.67 286.00 L1070.09 274.00 L1070.56 272.00 L1071.15 271.00 L1071.64 269.00 L1073.88 263.00 Z M1878.71 263.00 L1879.00 262.52 L1880.00 262.08 L1880.48 263.00 L1888.68 287.00 L1889.22 288.00 L1889.67 290.00 L1890.29 291.00 L1890.68 293.00 L1891.33 294.00 L1891.74 296.00 L1892.33 297.00 L1895.61 307.00 L1896.18 308.00 L1896.61 310.00 L1897.23 311.00 L1897.66 313.00 L1898.23 314.00 L1902.53 327.00 L1903.46 329.00 L1903.59 330.00 L1908.83 345.00 L1909.40 346.00 L1909.86 348.00 L1910.41 349.00 L1913.66 359.00 L1914.21 360.00 L1914.67 362.00 L1915.28 363.00 L1915.69 365.00 L1916.31 366.00 L1916.75 368.00 L1920.11 377.00 L1920.59 379.00 L1921.18 380.00 L1921.59 382.00 L1922.21 383.00 L1922.66 385.00 L1923.21 386.00 L1927.53 399.00 L1928.46 401.00 L1928.59 402.00 L1933.33 415.00 L1933.80 417.00 L1934.39 418.00 L1934.84 420.00 L1935.41 421.00 L1939.41 433.00 L1939.00 433.46 L1938.00 433.58 L1881.00 433.58 L1821.00 433.58 L1820.00 433.55 L1819.14 433.00 L1826.71 411.00 L1827.29 410.00 L1827.73 408.00 L1828.37 407.00 L1828.77 405.00 L1829.41 404.00 L1829.86 402.00 L1830.43 401.00 L1833.77 391.00 L1834.35 390.00 L1834.79 388.00 L1835.41 387.00 L1835.88 385.00 L1839.23 376.00 L1839.71 374.00 L1840.31 373.00 L1840.73 371.00 L1841.40 370.00 L1841.79 368.00 L1842.39 367.00 L1845.73 357.00 L1846.29 356.00 L1846.75 354.00 L1847.37 353.00 L1847.81 351.00 L1848.40 350.00 L1851.69 340.00 L1852.26 339.00 L1852.70 337.00 L1853.33 336.00 L1853.74 334.00 L1854.38 333.00 L1854.83 331.00 L1858.23 322.00 L1858.72 320.00 L1859.33 319.00 L1859.75 317.00 L1860.37 316.00 L1860.84 314.00 L1864.19 305.00 L1864.67 303.00 L1865.29 302.00 L1865.69 300.00 L1866.35 299.00 L1866.76 297.00 L1867.36 296.00 L1870.68 286.00 L1871.27 285.00 L1871.70 283.00 L1872.35 282.00 L1872.76 280.00 L1873.36 279.00 L1876.65 269.00 L1877.22 268.00 L1877.65 266.00 L1878.31 265.00 Z"/></symbol>
+  <symbol id="logo-escaparate" viewBox="0 0 2000 580"><path fill="currentColor" stroke="none" fill-rule="evenodd" d="M541.97 0.00 L549.00 -0.42 L562.00 -0.46 L569.00 -0.19 L577.00 0.59 L584.00 1.53 L587.00 2.32 L590.00 2.58 L592.00 3.29 L595.00 3.67 L612.00 8.49 L614.00 9.42 L615.00 9.55 L621.00 11.81 L628.00 14.72 L629.00 15.41 L630.00 15.58 L631.00 16.30 L640.00 20.56 L641.00 21.34 L642.00 21.60 L643.00 22.41 L644.00 22.74 L654.00 28.74 L661.00 33.50 L673.00 42.74 L707.00 41.32 L716.00 40.60 L728.00 40.36 L737.00 39.58 L750.00 39.26 L757.00 38.68 L810.00 36.31 L818.00 35.70 L831.00 35.34 L840.00 34.60 L848.00 34.52 L850.00 34.81 L854.00 36.65 L857.42 40.00 L859.38 44.00 L859.56 48.00 L859.30 51.00 L857.18 55.00 L855.00 57.31 L852.00 59.20 L848.00 60.20 L841.00 60.72 L838.00 61.29 L815.00 63.61 L812.00 64.19 L806.00 64.54 L802.00 65.30 L796.00 65.65 L792.00 66.35 L761.00 69.54 L757.00 70.24 L751.00 70.58 L747.00 71.37 L741.00 71.65 L738.00 72.28 L732.00 72.65 L728.00 73.32 L722.00 73.79 L702.00 76.19 L696.00 76.60 L692.00 77.34 L687.00 77.57 L682.00 78.41 L678.00 78.66 L670.00 83.31 L669.00 83.62 L668.00 84.43 L667.00 84.80 L657.00 90.75 L646.00 97.77 L639.00 102.60 L632.00 107.74 L622.00 115.77 L613.00 123.89 L606.82 130.00 L597.55 140.00 L591.67 147.00 L581.72 160.00 L574.62 170.00 L561.59 190.00 L561.26 191.00 L556.75 198.00 L555.18 201.00 L550.75 208.00 L550.41 209.00 L549.62 210.00 L543.46 221.00 L542.64 222.00 L542.34 223.00 L537.62 231.00 L537.28 232.00 L533.75 238.00 L520.22 263.00 L519.00 264.14 L513.75 240.00 L513.33 237.00 L512.64 235.00 L512.32 232.00 L511.55 230.00 L511.23 227.00 L510.84 226.00 L512.72 222.00 L523.23 204.00 L523.56 203.00 L524.39 202.00 L524.69 201.00 L531.36 190.00 L531.66 189.00 L541.75 172.00 L543.20 170.00 L543.58 169.00 L549.34 160.00 L549.66 159.00 L556.80 148.00 L565.76 135.00 L574.82 123.00 L584.00 112.50 L595.00 101.64 L602.00 95.69 L607.00 91.84 L617.00 84.72 L618.00 84.32 L628.00 77.67 L629.00 77.32 L638.00 71.68 L639.00 71.35 L640.00 70.54 L641.00 70.19 L655.00 62.00 L654.00 60.58 L649.00 56.71 L642.00 51.80 L634.00 46.81 L620.00 39.50 L611.00 35.65 L599.00 31.51 L589.00 28.78 L586.00 28.38 L584.00 27.69 L570.00 25.70 L558.00 25.14 L543.00 25.64 L535.00 26.53 L532.00 27.28 L529.00 27.52 L519.00 29.77 L510.00 32.44 L505.00 34.40 L504.00 34.55 L492.00 39.91 L480.00 46.72 L473.00 51.62 L462.00 60.86 L457.77 65.00 L450.67 73.00 L444.62 81.00 L437.68 92.00 L431.71 104.00 L426.87 117.00 L423.62 129.00 L421.55 142.00 L420.78 152.00 L421.26 153.00 L435.00 164.55 L443.00 171.83 L450.22 179.00 L461.20 191.00 L469.38 201.00 L475.31 209.00 L475.75 210.00 L481.35 218.00 L486.21 226.00 L486.54 227.00 L487.37 228.00 L487.66 229.00 L488.44 230.00 L493.18 239.00 L498.20 250.00 L499.59 254.00 L500.24 255.00 L500.76 257.00 L501.39 258.00 L504.25 266.00 L504.65 268.00 L505.28 269.00 L505.57 271.00 L506.14 272.00 L506.76 275.00 L507.33 276.00 L510.25 288.00 L510.66 291.00 L511.14 292.00 L511.56 296.00 L512.31 298.00 L512.73 303.00 L513.36 305.00 L513.84 311.00 L514.41 314.00 L515.42 328.00 L515.51 342.00 L515.41 352.00 L514.38 367.00 L513.79 370.00 L513.35 376.00 L512.70 378.00 L512.38 382.00 L511.63 384.00 L511.34 387.00 L510.61 389.00 L510.11 392.00 L507.24 402.00 L506.67 403.00 L506.25 405.00 L505.59 406.00 L505.17 408.00 L504.54 409.00 L501.37 417.00 L494.21 431.00 L487.24 442.00 L481.41 450.00 L476.48 456.00 L469.42 464.00 L463.00 470.46 L451.00 481.29 L441.00 489.26 L434.00 494.38 L422.00 502.42 L414.00 507.36 L413.00 507.68 L412.00 508.52 L407.00 511.35 L392.00 519.40 L391.00 519.68 L390.00 520.43 L389.00 520.68 L388.00 521.40 L380.00 525.21 L376.00 526.81 L375.00 527.49 L366.00 531.40 L365.00 531.61 L364.00 532.27 L350.00 537.63 L349.00 538.25 L347.00 538.75 L346.00 539.39 L333.00 543.84 L332.00 544.40 L330.00 544.81 L329.00 545.42 L327.00 545.77 L326.00 546.38 L324.00 546.81 L314.00 550.22 L312.00 550.60 L310.00 551.45 L308.00 551.77 L307.00 552.33 L293.00 556.31 L291.00 556.59 L289.00 557.40 L287.00 557.62 L285.00 558.44 L283.00 558.69 L269.00 562.34 L267.00 562.61 L265.00 563.31 L262.00 563.69 L260.00 564.44 L257.00 564.84 L256.00 565.26 L242.00 568.18 L238.00 568.75 L236.00 569.39 L233.00 569.62 L231.00 570.30 L227.00 570.72 L224.00 571.53 L221.00 571.81 L219.00 572.35 L203.00 574.74 L201.00 575.24 L196.00 575.69 L193.00 576.41 L189.00 576.67 L186.00 577.33 L181.00 577.80 L172.00 579.19 L171.00 579.26 L170.68 579.00 L170.65 578.00 L171.33 577.00 L175.73 567.00 L176.44 566.00 L176.64 565.00 L177.38 564.00 L182.45 553.00 L182.69 552.00 L183.43 551.00 L183.66 550.00 L188.47 540.00 L188.70 539.00 L189.47 538.00 L189.68 537.00 L190.36 536.00 L195.75 524.00 L196.42 523.00 L201.76 511.00 L202.46 510.00 L202.72 509.00 L206.21 502.00 L208.76 496.00 L214.52 484.00 L214.77 483.00 L219.24 474.00 L227.85 455.00 L231.31 448.00 L231.56 447.00 L232.30 446.00 L237.59 434.00 L238.31 433.00 L238.55 432.00 L243.64 421.00 L244.36 420.00 L244.57 419.00 L245.30 418.00 L256.67 393.00 L257.38 392.00 L257.62 391.00 L259.00 389.41 L260.00 389.61 L281.00 399.49 L281.50 400.00 L281.44 401.00 L276.66 411.00 L276.43 412.00 L275.68 413.00 L275.44 414.00 L270.64 424.00 L270.39 425.00 L269.64 426.00 L269.42 427.00 L264.33 438.00 L263.59 439.00 L263.41 440.00 L262.68 441.00 L251.33 466.00 L250.59 467.00 L250.37 468.00 L249.68 469.00 L245.27 479.00 L244.57 480.00 L244.34 481.00 L243.64 482.00 L239.92 490.00 L238.29 494.00 L237.56 495.00 L237.34 496.00 L227.82 516.00 L219.22 535.00 L214.76 544.00 L214.52 545.00 L213.87 546.00 L214.00 546.53 L215.00 546.78 L218.00 546.52 L221.00 545.72 L225.00 545.32 L227.00 544.64 L230.00 544.40 L233.00 543.58 L236.00 543.25 L238.00 542.65 L250.00 540.35 L252.00 539.71 L255.00 539.28 L257.00 538.59 L259.00 538.41 L261.00 537.70 L264.00 537.20 L275.00 534.52 L277.00 533.78 L279.00 533.52 L281.00 532.73 L284.00 532.23 L285.00 531.72 L287.00 531.41 L301.00 527.48 L303.00 526.64 L305.00 526.30 L306.00 525.74 L308.00 525.37 L320.00 521.50 L322.00 520.63 L323.00 520.50 L325.00 519.58 L326.00 519.46 L340.00 514.46 L341.00 513.85 L343.00 513.32 L344.00 512.68 L355.00 508.48 L356.00 507.81 L358.00 507.21 L369.00 502.35 L370.00 501.64 L371.00 501.41 L372.00 500.71 L385.00 494.44 L398.00 487.30 L408.00 481.27 L424.00 470.28 L434.00 462.30 L444.00 453.37 L450.27 447.00 L457.41 439.00 L462.13 433.00 L467.11 426.00 L470.27 421.00 L475.30 412.00 L479.00 403.89 L479.60 402.00 L480.29 401.00 L482.44 395.00 L485.10 386.00 L485.61 383.00 L486.33 381.00 L486.62 378.00 L487.35 376.00 L487.64 372.00 L488.36 369.00 L488.76 362.00 L489.36 358.00 L489.83 346.00 L489.79 332.00 L489.29 322.00 L488.76 319.00 L488.32 312.00 L487.70 310.00 L487.34 305.00 L486.64 303.00 L486.24 299.00 L485.58 297.00 L485.37 295.00 L483.28 286.00 L482.78 285.00 L482.44 283.00 L481.66 281.00 L481.37 279.00 L480.80 278.00 L480.38 276.00 L476.45 265.00 L475.85 264.00 L475.32 262.00 L474.62 261.00 L473.17 257.00 L469.43 249.00 L468.69 248.00 L468.42 247.00 L467.64 246.00 L467.35 245.00 L462.70 237.00 L462.36 236.00 L457.33 228.00 L450.26 218.00 L443.19 209.00 L431.00 195.53 L424.00 188.61 L413.00 178.72 L403.00 170.59 L395.00 164.55 L385.00 157.57 L368.00 146.72 L367.00 146.39 L366.00 145.57 L354.00 138.78 L344.00 133.49 L322.00 122.77 L303.00 114.52 L302.00 114.33 L301.00 113.71 L292.00 110.30 L291.00 109.68 L287.00 108.39 L275.00 103.67 L259.00 98.24 L258.00 97.69 L256.00 97.26 L255.00 96.66 L253.00 96.32 L252.00 95.69 L250.00 95.31 L236.00 90.60 L234.00 90.23 L233.00 89.64 L231.00 89.31 L220.00 85.79 L218.00 85.42 L216.00 84.62 L214.00 84.35 L212.00 83.51 L210.00 83.21 L209.00 82.66 L207.00 82.31 L195.00 78.85 L192.00 78.27 L191.00 77.76 L188.00 77.24 L187.00 76.73 L173.00 73.36 L171.00 72.64 L169.00 72.41 L167.00 71.63 L164.00 71.22 L163.00 70.70 L160.00 70.25 L158.00 69.53 L144.00 66.43 L142.00 65.76 L139.00 65.36 L137.00 64.59 L134.00 64.19 L132.00 63.52 L117.00 60.42 L115.00 59.78 L112.00 59.41 L110.00 58.68 L107.00 58.35 L105.00 57.66 L102.00 57.26 L86.00 53.69 L83.00 53.34 L81.00 52.64 L78.00 52.33 L76.00 51.64 L73.00 51.25 L56.00 47.62 L53.00 47.28 L51.00 46.58 L48.00 46.31 L46.00 45.58 L43.00 45.28 L41.00 44.64 L36.00 43.67 L35.00 43.70 L34.72 44.00 L34.86 45.00 L38.31 56.00 L38.70 58.00 L39.28 59.00 L39.61 61.00 L40.51 63.00 L40.63 64.00 L44.76 76.00 L52.72 97.00 L53.40 98.00 L57.52 108.00 L63.54 121.00 L64.25 122.00 L64.54 123.00 L69.60 133.00 L70.37 134.00 L70.64 135.00 L71.43 136.00 L76.73 146.00 L89.82 167.00 L99.69 181.00 L109.75 194.00 L120.82 207.00 L129.00 215.65 L142.00 228.52 L154.00 239.29 L164.00 247.46 L177.00 257.24 L189.00 265.42 L207.00 276.37 L208.00 276.69 L209.00 277.46 L218.00 282.37 L219.00 282.65 L220.00 283.44 L221.00 283.68 L222.00 284.44 L231.00 288.64 L232.00 289.37 L233.00 289.59 L234.00 290.29 L243.00 294.32 L244.00 294.54 L245.00 295.20 L247.00 295.79 L248.00 296.45 L249.00 296.64 L260.00 301.20 L262.00 301.68 L263.00 302.36 L265.00 302.84 L274.00 306.18 L276.00 306.63 L277.00 307.21 L279.00 307.57 L281.00 308.47 L283.00 308.87 L284.00 309.41 L286.00 309.76 L297.00 313.12 L300.00 313.72 L301.00 314.23 L304.00 314.74 L305.00 315.24 L322.00 319.16 L326.00 319.73 L328.00 320.39 L331.00 320.62 L333.00 321.32 L337.00 321.72 L339.00 322.31 L352.00 324.25 L369.00 326.36 L375.00 326.59 L381.00 327.40 L401.00 328.34 L419.00 328.40 L435.00 327.54 L436.00 327.70 L436.29 328.00 L436.58 333.00 L437.32 337.00 L437.63 344.00 L438.30 347.00 L438.43 349.00 L438.59 352.00 L438.00 352.92 L432.00 353.47 L411.00 353.63 L399.00 353.41 L390.00 352.70 L382.00 352.45 L376.00 351.61 L370.00 351.36 L366.00 350.66 L360.00 350.19 L341.00 347.46 L338.00 346.71 L335.00 346.48 L332.00 345.64 L329.00 345.42 L326.00 344.55 L323.00 344.24 L321.00 343.60 L306.00 340.46 L304.00 339.72 L301.00 339.25 L300.00 338.75 L297.00 338.21 L285.00 334.70 L283.00 334.34 L282.00 333.79 L280.00 333.46 L278.00 332.57 L276.00 332.25 L275.00 331.67 L273.00 331.26 L264.00 328.26 L263.00 327.69 L261.00 327.25 L260.00 326.63 L258.00 326.17 L257.00 325.58 L248.00 322.41 L247.00 321.81 L245.00 321.28 L244.00 320.60 L240.00 319.25 L231.00 315.42 L230.00 314.73 L226.00 313.18 L218.00 309.43 L217.00 308.72 L216.00 308.45 L206.00 303.41 L205.00 302.68 L204.00 302.38 L203.00 301.59 L202.00 301.32 L194.00 296.66 L193.00 296.32 L183.00 290.41 L172.00 283.40 L164.00 277.71 L163.00 277.26 L147.00 265.35 L137.00 257.19 L129.00 250.20 L116.00 237.94 L101.63 223.00 L88.74 208.00 L81.74 199.00 L70.83 184.00 L64.77 175.00 L53.78 157.00 L44.54 140.00 L39.54 130.00 L39.27 129.00 L38.56 128.00 L38.30 127.00 L34.85 120.00 L33.31 116.00 L32.60 115.00 L27.57 103.00 L27.40 102.00 L26.72 101.00 L22.38 89.00 L21.77 88.00 L21.32 86.00 L20.67 85.00 L20.22 83.00 L19.65 82.00 L16.45 72.00 L15.92 71.00 L15.49 69.00 L14.59 67.00 L14.24 65.00 L13.68 64.00 L13.29 62.00 L9.88 51.00 L9.26 48.00 L8.71 47.00 L8.42 45.00 L7.66 43.00 L4.88 32.00 L3.41 25.00 L2.63 23.00 L2.44 21.00 L1.71 19.00 L1.24 16.00 L-0.13 11.00 L1.00 10.42 L4.00 10.80 L19.00 14.12 L22.00 14.51 L25.00 15.39 L28.00 15.76 L30.00 16.40 L47.00 19.65 L49.00 20.27 L52.00 20.59 L54.00 21.32 L57.00 21.58 L59.00 22.27 L62.00 22.61 L79.00 26.25 L82.00 26.65 L84.00 27.32 L87.00 27.64 L89.00 28.36 L92.00 28.69 L94.00 29.33 L110.00 32.48 L112.00 33.16 L115.00 33.51 L117.00 34.24 L120.00 34.59 L122.00 35.28 L125.00 35.69 L127.00 36.33 L138.00 38.60 L140.00 39.27 L143.00 39.70 L145.00 40.41 L147.00 40.61 L149.00 41.33 L152.00 41.82 L164.00 44.69 L165.00 45.13 L168.00 45.59 L170.00 46.39 L172.00 46.57 L174.00 47.34 L176.00 47.60 L192.00 51.68 L193.00 52.18 L196.00 52.71 L197.00 53.24 L200.00 53.82 L214.00 57.67 L215.00 58.22 L217.00 58.51 L219.00 59.36 L221.00 59.62 L236.00 64.32 L238.00 64.69 L239.00 65.30 L241.00 65.63 L257.00 70.80 L258.00 71.38 L263.00 72.75 L264.00 73.30 L280.00 78.70 L292.00 83.38 L293.00 83.53 L294.00 84.13 L296.00 84.67 L297.00 85.30 L311.00 90.69 L312.00 91.33 L320.00 94.53 L321.00 95.20 L325.00 96.65 L326.00 97.37 L327.00 97.61 L336.00 101.68 L337.00 102.39 L338.00 102.59 L339.00 103.34 L348.00 107.50 L361.00 114.35 L362.00 114.64 L363.00 115.44 L364.00 115.76 L373.00 120.76 L383.00 126.63 L394.00 133.53 L395.00 134.39 L396.00 134.80 L396.70 134.00 L399.56 119.00 L400.38 117.00 L400.62 115.00 L401.43 113.00 L401.80 111.00 L405.57 100.00 L406.26 99.00 L406.75 97.00 L407.42 96.00 L407.63 95.00 L412.71 84.00 L419.63 72.00 L423.60 66.00 L429.61 58.00 L436.48 50.00 L447.00 39.54 L458.00 30.60 L462.00 27.63 L463.00 27.20 L468.00 23.74 L475.00 19.64 L483.00 15.54 L494.00 10.75 L499.00 9.13 L500.00 8.53 L502.00 8.15 L503.00 7.58 L517.00 3.74 L520.00 3.35 L522.00 2.67 L526.00 2.21 L528.00 1.62 Z M774.22 224.00 L787.00 223.12 L795.00 223.10 L806.00 223.79 L817.00 225.52 L826.00 227.83 L836.00 231.53 L840.00 233.46 L841.00 233.69 L842.00 234.46 L843.00 234.73 L850.00 238.67 L860.00 245.71 L864.78 250.00 L870.00 255.04 L873.61 259.00 L879.36 266.00 L885.36 275.00 L885.72 276.00 L889.31 282.00 L889.60 283.00 L890.39 284.00 L890.62 285.00 L891.42 286.00 L891.65 287.00 L892.38 288.00 L895.35 295.00 L895.56 296.00 L896.25 297.00 L896.64 299.00 L897.37 300.00 L897.38 301.00 L895.00 303.51 L865.00 317.49 L863.00 318.13 L862.00 317.97 L860.58 317.00 L858.58 314.00 L855.41 306.00 L851.14 298.00 L847.35 292.00 L843.43 287.00 L838.00 281.31 L833.00 276.88 L827.00 272.75 L821.00 269.55 L814.00 266.75 L806.00 264.59 L803.00 264.39 L798.00 263.54 L787.00 263.47 L783.00 263.65 L779.00 264.40 L776.00 264.61 L774.00 265.30 L771.00 265.79 L763.00 268.62 L760.00 270.25 L759.00 270.51 L755.00 272.72 L749.00 276.69 L742.00 282.87 L735.66 290.00 L729.58 299.00 L724.89 308.00 L723.40 312.00 L722.64 313.00 L722.13 315.00 L721.53 316.00 L719.74 321.00 L718.32 326.00 L717.69 327.00 L717.18 330.00 L716.57 331.00 L716.23 334.00 L715.64 335.00 L715.09 339.00 L714.64 340.00 L713.57 347.00 L713.40 350.00 L712.92 352.00 L712.55 358.00 L712.48 363.00 L712.82 370.00 L714.51 382.00 L715.14 384.00 L715.52 387.00 L716.30 389.00 L716.68 392.00 L717.34 393.00 L717.61 395.00 L718.40 397.00 L718.78 399.00 L723.68 412.00 L724.40 413.00 L728.59 422.00 L733.74 430.00 L739.47 437.00 L747.00 444.36 L754.00 449.29 L759.00 452.07 L764.00 454.43 L769.00 456.30 L771.00 456.62 L773.00 457.41 L776.00 457.73 L779.00 458.51 L788.00 459.26 L792.00 459.30 L804.00 458.42 L806.00 457.74 L809.00 457.41 L811.00 456.62 L813.00 456.29 L822.00 452.55 L828.00 449.18 L832.00 446.41 L838.00 441.15 L840.20 439.00 L845.30 433.00 L849.48 427.00 L855.49 416.00 L858.62 408.00 L860.60 405.00 L863.00 402.68 L865.00 402.48 L867.00 402.64 L889.00 413.52 L893.58 416.00 L896.00 418.18 L897.35 420.00 L897.40 421.00 L896.70 422.00 L896.25 425.00 L895.61 426.00 L895.09 428.00 L892.46 434.00 L888.33 442.00 L882.26 452.00 L877.30 459.00 L871.33 466.00 L866.00 471.39 L858.00 478.27 L851.00 483.26 L844.00 487.32 L842.00 488.39 L841.00 488.60 L840.00 489.41 L828.00 494.17 L826.00 494.58 L824.00 495.46 L822.00 495.69 L820.00 496.48 L816.00 497.31 L803.00 499.16 L793.00 499.54 L779.00 499.18 L766.00 497.40 L757.00 495.32 L756.00 494.72 L754.00 494.40 L751.00 493.35 L744.00 490.48 L738.00 487.42 L731.00 483.29 L724.00 478.37 L719.00 474.35 L713.15 469.00 L704.77 460.00 L698.65 452.00 L698.28 451.00 L694.83 446.00 L686.80 431.00 L685.33 427.00 L684.65 426.00 L681.75 418.00 L681.29 416.00 L680.69 415.00 L680.40 413.00 L679.54 411.00 L679.29 409.00 L678.67 408.00 L678.21 405.00 L677.51 403.00 L675.94 396.00 L675.42 392.00 L674.75 390.00 L674.37 385.00 L673.70 383.00 L673.29 375.00 L672.55 371.00 L672.55 352.00 L673.26 348.00 L673.63 340.00 L674.33 338.00 L674.71 333.00 L675.37 331.00 L675.88 327.00 L677.63 319.00 L678.13 318.00 L678.57 315.00 L679.18 314.00 L679.66 311.00 L680.30 310.00 L680.65 308.00 L684.55 297.00 L685.21 296.00 L686.67 292.00 L687.36 291.00 L690.58 284.00 L697.75 272.00 L703.60 264.00 L708.85 258.00 L714.00 252.77 L721.00 246.61 L729.00 240.68 L741.00 233.56 L742.00 233.36 L743.00 232.57 L750.00 229.73 L760.00 226.53 L762.00 226.31 L764.00 225.64 L769.00 224.73 Z M1049.70 224.00 L1053.00 223.10 L1096.00 223.10 L1099.00 223.81 L1100.34 225.00 L1102.11 228.00 L1102.77 230.00 L1103.42 231.00 L1103.87 233.00 L1106.19 239.00 L1106.62 241.00 L1107.27 242.00 L1107.62 244.00 L1108.37 245.00 L1108.65 247.00 L1109.35 248.00 L1109.77 250.00 L1112.08 256.00 L1112.56 258.00 L1113.21 259.00 L1113.56 261.00 L1114.23 262.00 L1114.61 264.00 L1115.26 265.00 L1115.70 267.00 L1120.43 280.00 L1120.87 282.00 L1121.47 283.00 L1121.94 285.00 L1125.29 294.00 L1125.75 296.00 L1126.37 297.00 L1126.79 299.00 L1127.44 300.00 L1127.80 302.00 L1128.44 303.00 L1130.64 310.00 L1131.19 311.00 L1131.63 313.00 L1132.32 314.00 L1132.61 316.00 L1133.36 317.00 L1133.70 319.00 L1134.38 320.00 L1134.79 322.00 L1137.12 328.00 L1137.58 330.00 L1138.21 331.00 L1138.57 333.00 L1139.29 334.00 L1139.62 336.00 L1140.24 337.00 L1140.72 339.00 L1146.48 355.00 L1146.97 357.00 L1150.82 368.00 L1151.39 369.00 L1151.79 371.00 L1152.43 372.00 L1152.88 374.00 L1153.44 375.00 L1155.63 382.00 L1156.23 383.00 L1156.64 385.00 L1157.32 386.00 L1157.64 388.00 L1158.40 389.00 L1158.71 391.00 L1159.36 392.00 L1159.83 394.00 L1162.15 400.00 L1162.57 402.00 L1163.24 403.00 L1163.59 405.00 L1164.28 406.00 L1164.65 408.00 L1165.30 409.00 L1165.73 411.00 L1169.05 420.00 L1169.54 422.00 L1170.45 424.00 L1170.59 425.00 L1175.84 440.00 L1176.40 441.00 L1176.84 443.00 L1177.45 444.00 L1177.85 446.00 L1178.44 447.00 L1180.66 454.00 L1181.25 455.00 L1181.64 457.00 L1182.35 458.00 L1182.67 460.00 L1183.37 461.00 L1183.74 463.00 L1184.40 464.00 L1184.84 466.00 L1186.58 471.00 L1187.17 472.00 L1187.61 474.00 L1188.27 475.00 L1188.59 477.00 L1189.33 478.00 L1189.68 480.00 L1190.30 481.00 L1190.77 483.00 L1194.35 493.00 L1194.36 495.00 L1193.25 497.00 L1191.00 498.59 L1189.00 499.35 L1162.00 499.54 L1159.00 499.29 L1157.00 498.03 L1155.79 496.00 L1152.66 487.00 L1152.34 485.00 L1151.62 484.00 L1151.38 482.00 L1150.71 481.00 L1148.36 473.00 L1147.00 469.95 L1099.00 469.86 L1002.00 469.86 L1001.00 470.05 L999.63 473.00 L991.46 495.00 L990.70 496.00 L990.48 497.00 L990.00 497.69 L988.00 499.27 L985.00 499.54 L959.00 499.44 L956.00 498.46 L955.00 497.72 L953.50 496.00 L953.05 494.00 L953.63 491.00 L958.41 478.00 L958.55 477.00 L959.49 475.00 L959.62 474.00 L964.10 462.00 L964.56 460.00 L965.16 459.00 L965.62 457.00 L966.22 456.00 L969.54 446.00 L970.14 445.00 L971.60 440.00 L972.24 439.00 L972.69 437.00 L975.56 429.00 L976.16 428.00 L976.56 426.00 L977.25 425.00 L977.60 423.00 L978.28 422.00 L978.69 420.00 L979.33 419.00 L982.57 409.00 L983.28 408.00 L983.58 406.00 L984.29 405.00 L984.67 403.00 L985.33 402.00 L985.78 400.00 L987.56 395.00 L988.15 394.00 L988.59 392.00 L989.28 391.00 L989.58 389.00 L990.34 388.00 L990.68 386.00 L991.36 385.00 L991.78 383.00 L992.40 382.00 L994.59 375.00 L995.25 374.00 L995.60 372.00 L996.36 371.00 L996.65 369.00 L997.36 368.00 L997.76 366.00 L998.40 365.00 L1000.59 358.00 L1001.26 357.00 L1001.64 355.00 L1002.36 354.00 L1002.65 352.00 L1003.41 351.00 L1003.78 349.00 L1004.41 348.00 L1006.63 341.00 L1007.24 340.00 L1007.64 338.00 L1008.33 337.00 L1008.66 335.00 L1009.43 334.00 L1009.72 332.00 L1010.42 331.00 L1010.88 329.00 L1013.24 323.00 L1013.66 321.00 L1014.34 320.00 L1014.72 318.00 L1015.42 317.00 L1015.78 315.00 L1016.45 314.00 L1016.91 312.00 L1019.21 306.00 L1019.70 304.00 L1020.33 303.00 L1020.70 301.00 L1021.41 300.00 L1021.77 298.00 L1022.46 297.00 L1022.83 295.00 L1023.45 294.00 L1026.33 286.00 L1026.77 284.00 L1027.41 283.00 L1028.93 278.00 L1032.30 269.00 L1032.80 267.00 L1033.40 266.00 L1033.84 264.00 L1034.46 263.00 L1034.92 261.00 L1035.48 260.00 L1035.98 258.00 L1040.46 246.00 L1045.53 231.00 L1047.86 226.00 Z M1197.78 224.00 L1200.00 223.12 L1228.00 223.10 L1235.00 223.88 L1238.29 226.00 L1241.21 230.00 L1249.83 244.00 L1251.34 246.00 L1251.66 247.00 L1263.17 265.00 L1263.58 266.00 L1269.42 275.00 L1269.77 276.00 L1276.31 286.00 L1276.71 287.00 L1281.31 294.00 L1281.65 295.00 L1293.20 313.00 L1293.59 314.00 L1301.38 326.00 L1301.72 327.00 L1306.34 334.00 L1306.72 335.00 L1313.28 345.00 L1313.63 346.00 L1315.00 346.75 L1331.33 321.00 L1331.63 320.00 L1343.20 302.00 L1343.56 301.00 L1351.36 289.00 L1351.72 288.00 L1356.32 281.00 L1356.70 280.00 L1363.25 270.00 L1368.61 261.00 L1369.46 260.00 L1369.83 259.00 L1381.38 241.00 L1381.71 240.00 L1388.66 229.00 L1391.00 226.08 L1393.00 224.49 L1395.00 223.68 L1401.00 223.12 L1429.00 223.10 L1431.00 223.61 L1432.32 225.00 L1432.61 228.00 L1432.27 230.00 L1430.39 234.00 L1375.64 319.00 L1375.28 320.00 L1369.85 328.00 L1369.45 329.00 L1362.78 339.00 L1362.40 340.00 L1334.64 383.00 L1334.55 491.00 L1334.48 494.00 L1333.68 496.00 L1332.00 498.14 L1330.00 499.19 L1328.00 499.50 L1302.00 499.54 L1300.00 499.41 L1298.00 498.63 L1296.00 496.88 L1294.65 494.00 L1294.61 493.00 L1294.53 383.00 L1288.72 374.00 L1288.31 373.00 L1274.58 352.00 L1274.18 351.00 L1270.70 346.00 L1270.34 345.00 L1263.64 335.00 L1263.31 334.00 L1256.60 324.00 L1245.26 306.00 L1238.60 296.00 L1238.27 295.00 L1231.56 285.00 L1227.32 278.00 L1225.77 276.00 L1225.37 275.00 L1199.52 235.00 L1197.88 232.00 L1196.73 229.00 L1196.62 226.00 L1196.98 225.00 Z M1519.28 224.00 L1520.00 223.63 L1523.00 223.10 L1549.00 223.12 L1552.00 223.73 L1553.00 224.38 L1555.29 227.00 L1555.49 228.00 L1555.69 232.00 L1555.69 458.00 L1556.00 458.97 L1558.00 459.30 L1686.00 459.30 L1690.00 459.77 L1692.00 461.19 L1693.41 463.00 L1693.94 466.00 L1693.98 492.00 L1693.31 496.00 L1692.00 497.65 L1689.84 499.00 L1689.00 499.33 L1686.00 499.54 L1523.00 499.54 L1521.00 499.38 L1519.00 498.55 L1518.00 497.78 L1516.57 496.00 L1515.91 493.00 L1515.82 491.00 L1515.82 231.00 L1516.51 227.00 L1517.86 225.00 Z M1854.71 224.00 L1858.00 223.10 L1901.00 223.11 L1904.00 223.81 L1905.32 225.00 L1907.07 228.00 L1909.43 234.00 L1909.57 235.00 L1914.30 248.00 L1914.76 250.00 L1915.37 251.00 L1915.77 253.00 L1916.40 254.00 L1916.84 256.00 L1920.22 265.00 L1920.68 267.00 L1921.28 268.00 L1921.68 270.00 L1922.34 271.00 L1922.76 273.00 L1923.33 274.00 L1927.12 285.00 L1927.59 287.00 L1928.17 288.00 L1928.63 290.00 L1934.45 306.00 L1934.59 307.00 L1938.76 319.00 L1939.32 320.00 L1939.78 322.00 L1940.38 323.00 L1940.81 325.00 L1941.42 326.00 L1941.88 328.00 L1945.23 337.00 L1945.71 339.00 L1946.32 340.00 L1946.72 342.00 L1947.34 343.00 L1947.77 345.00 L1948.34 346.00 L1951.59 356.00 L1952.15 357.00 L1952.60 359.00 L1953.21 360.00 L1953.67 362.00 L1958.40 375.00 L1958.54 376.00 L1959.46 378.00 L1959.60 379.00 L1964.33 392.00 L1964.82 394.00 L1965.41 395.00 L1965.85 397.00 L1966.42 398.00 L1966.91 400.00 L1970.26 409.00 L1970.73 411.00 L1971.33 412.00 L1971.73 414.00 L1972.37 415.00 L1972.81 417.00 L1973.36 418.00 L1976.61 428.00 L1977.19 429.00 L1977.62 431.00 L1978.22 432.00 L1978.69 434.00 L1979.23 435.00 L1999.34 493.00 L1999.34 495.00 L1998.21 497.00 L1996.00 498.58 L1994.00 499.34 L1967.00 499.54 L1964.00 499.30 L1962.00 498.05 L1960.71 496.00 L1959.59 493.00 L1959.19 491.00 L1958.60 490.00 L1958.25 488.00 L1957.69 487.00 L1954.33 476.00 L1953.79 475.00 L1953.41 473.00 L1952.00 470.01 L1904.00 469.86 L1807.00 469.86 L1806.00 470.17 L1804.99 472.00 L1804.43 474.00 L1803.78 475.00 L1803.33 477.00 L1802.67 478.00 L1798.44 490.00 L1797.83 491.00 L1797.30 493.00 L1796.62 494.00 L1796.37 495.00 L1794.73 498.00 L1793.00 499.27 L1790.00 499.54 L1764.00 499.43 L1763.00 499.28 L1760.35 498.00 L1758.44 496.00 L1758.18 495.00 L1758.05 494.00 L1758.38 492.00 L1759.64 488.00 L1760.28 487.00 L1760.70 485.00 L1761.30 484.00 L1761.80 482.00 L1765.17 473.00 L1765.64 471.00 L1766.29 470.00 L1766.69 468.00 L1767.31 467.00 L1767.77 465.00 L1771.21 456.00 L1771.68 454.00 L1772.31 453.00 L1772.72 451.00 L1773.36 450.00 L1773.81 448.00 L1777.21 439.00 L1777.67 437.00 L1778.29 436.00 L1778.70 434.00 L1779.39 433.00 L1779.78 431.00 L1780.38 430.00 L1783.71 420.00 L1784.31 419.00 L1784.76 417.00 L1785.39 416.00 L1785.83 414.00 L1786.41 413.00 L1789.72 403.00 L1790.31 402.00 L1790.74 400.00 L1791.38 399.00 L1791.80 397.00 L1792.43 396.00 L1792.90 394.00 L1796.31 385.00 L1796.81 383.00 L1797.39 382.00 L1797.53 381.00 L1802.30 368.00 L1802.79 366.00 L1803.39 365.00 L1803.84 363.00 L1804.45 362.00 L1804.93 360.00 L1809.38 348.00 L1809.53 347.00 L1810.46 345.00 L1810.59 344.00 L1834.10 278.00 L1834.58 276.00 L1835.18 275.00 L1840.58 259.00 L1841.17 258.00 L1841.65 256.00 L1846.16 244.00 L1846.62 242.00 L1847.24 241.00 L1847.66 239.00 L1848.28 238.00 L1848.76 236.00 L1851.85 228.00 L1853.58 225.00 Z M1074.67 262.00 L1075.00 261.79 L1075.15 262.00 L1075.66 264.00 L1076.32 265.00 L1076.66 267.00 L1077.39 268.00 L1077.70 270.00 L1078.42 271.00 L1078.78 273.00 L1079.37 274.00 L1081.58 281.00 L1082.19 282.00 L1082.56 284.00 L1083.25 285.00 L1083.62 287.00 L1084.22 288.00 L1084.71 290.00 L1087.00 296.00 L1089.57 304.00 L1094.29 317.00 L1094.74 319.00 L1095.38 320.00 L1095.74 322.00 L1096.43 323.00 L1096.80 325.00 L1097.44 326.00 L1097.88 328.00 L1098.42 329.00 L1099.62 333.00 L1100.21 334.00 L1100.64 336.00 L1101.31 337.00 L1101.61 339.00 L1102.39 340.00 L1102.71 342.00 L1103.36 343.00 L1106.56 353.00 L1107.17 354.00 L1107.57 356.00 L1108.24 357.00 L1108.63 359.00 L1109.21 360.00 L1118.71 388.00 L1119.29 389.00 L1119.72 391.00 L1120.38 392.00 L1120.70 394.00 L1121.44 395.00 L1121.77 397.00 L1122.41 398.00 L1124.64 405.00 L1125.23 406.00 L1125.61 408.00 L1126.33 409.00 L1126.64 411.00 L1127.36 412.00 L1127.70 414.00 L1128.37 415.00 L1128.81 417.00 L1134.45 433.00 L1134.00 433.48 L1133.00 433.58 L1075.00 433.58 L1015.00 433.57 L1014.37 433.00 L1014.60 431.00 L1015.35 430.00 L1015.69 428.00 L1016.36 427.00 L1016.80 425.00 L1019.12 419.00 L1019.58 417.00 L1020.22 416.00 L1020.57 414.00 L1021.32 413.00 L1021.66 411.00 L1022.31 410.00 L1022.75 408.00 L1023.35 407.00 L1024.57 403.00 L1025.12 402.00 L1025.58 400.00 L1026.22 399.00 L1026.59 397.00 L1027.32 396.00 L1027.62 394.00 L1028.33 393.00 L1028.74 391.00 L1029.33 390.00 L1031.55 383.00 L1032.18 382.00 L1032.58 380.00 L1033.24 379.00 L1033.60 377.00 L1034.30 376.00 L1034.69 374.00 L1035.28 373.00 L1037.57 366.00 L1038.17 365.00 L1038.56 363.00 L1039.25 362.00 L1039.60 360.00 L1040.31 359.00 L1040.67 357.00 L1041.32 356.00 L1044.56 346.00 L1045.22 345.00 L1045.57 343.00 L1046.24 342.00 L1046.64 340.00 L1047.28 339.00 L1050.56 329.00 L1051.18 328.00 L1051.56 326.00 L1052.25 325.00 L1052.63 323.00 L1053.25 322.00 L1053.73 320.00 L1054.30 319.00 L1057.09 311.00 L1057.56 309.00 L1058.20 308.00 L1058.59 306.00 L1059.19 305.00 L1062.53 295.00 L1063.12 294.00 L1063.55 292.00 L1064.18 291.00 L1064.58 289.00 L1065.25 288.00 L1065.67 286.00 L1070.09 274.00 L1070.56 272.00 L1071.15 271.00 L1071.64 269.00 L1073.88 263.00 Z M1878.71 263.00 L1879.00 262.52 L1880.00 262.08 L1880.48 263.00 L1888.68 287.00 L1889.22 288.00 L1889.67 290.00 L1890.29 291.00 L1890.68 293.00 L1891.33 294.00 L1891.74 296.00 L1892.33 297.00 L1895.61 307.00 L1896.18 308.00 L1896.61 310.00 L1897.23 311.00 L1897.66 313.00 L1898.23 314.00 L1902.53 327.00 L1903.46 329.00 L1903.59 330.00 L1908.83 345.00 L1909.40 346.00 L1909.86 348.00 L1910.41 349.00 L1913.66 359.00 L1914.21 360.00 L1914.67 362.00 L1915.28 363.00 L1915.69 365.00 L1916.31 366.00 L1916.75 368.00 L1920.11 377.00 L1920.59 379.00 L1921.18 380.00 L1921.59 382.00 L1922.21 383.00 L1922.66 385.00 L1923.21 386.00 L1927.53 399.00 L1928.46 401.00 L1928.59 402.00 L1933.33 415.00 L1933.80 417.00 L1934.39 418.00 L1934.84 420.00 L1935.41 421.00 L1939.41 433.00 L1939.00 433.46 L1938.00 433.58 L1881.00 433.58 L1821.00 433.58 L1820.00 433.55 L1819.14 433.00 L1826.71 411.00 L1827.29 410.00 L1827.73 408.00 L1828.37 407.00 L1828.77 405.00 L1829.41 404.00 L1829.86 402.00 L1830.43 401.00 L1833.77 391.00 L1834.35 390.00 L1834.79 388.00 L1835.41 387.00 L1835.88 385.00 L1839.23 376.00 L1839.71 374.00 L1840.31 373.00 L1840.73 371.00 L1841.40 370.00 L1841.79 368.00 L1842.39 367.00 L1845.73 357.00 L1846.29 356.00 L1846.75 354.00 L1847.37 353.00 L1847.81 351.00 L1848.40 350.00 L1851.69 340.00 L1852.26 339.00 L1852.70 337.00 L1853.33 336.00 L1853.74 334.00 L1854.38 333.00 L1854.83 331.00 L1858.23 322.00 L1858.72 320.00 L1859.33 319.00 L1859.75 317.00 L1860.37 316.00 L1860.84 314.00 L1864.19 305.00 L1864.67 303.00 L1865.29 302.00 L1865.69 300.00 L1866.35 299.00 L1866.76 297.00 L1867.36 296.00 L1870.68 286.00 L1871.27 285.00 L1871.70 283.00 L1872.35 282.00 L1872.76 280.00 L1873.36 279.00 L1876.65 269.00 L1877.22 268.00 L1877.65 266.00 L1878.31 265.00 Z"/></symbol>
+  <symbol id="colibri-oficial" viewBox="-2 -2 864 584"><path fill="currentColor" stroke="none" fill-rule="evenodd" d="M541.97 0.00 L549.00 -0.42 L562.00 -0.46 L569.00 -0.19 L577.00 0.59 L584.00 1.53 L587.00 2.32 L590.00 2.58 L592.00 3.29 L595.00 3.67 L612.00 8.49 L614.00 9.42 L615.00 9.55 L621.00 11.81 L628.00 14.72 L629.00 15.41 L630.00 15.58 L631.00 16.30 L640.00 20.56 L641.00 21.34 L642.00 21.60 L643.00 22.41 L644.00 22.74 L654.00 28.74 L661.00 33.50 L673.00 42.74 L707.00 41.32 L716.00 40.60 L728.00 40.36 L737.00 39.58 L750.00 39.26 L757.00 38.68 L810.00 36.31 L818.00 35.70 L831.00 35.34 L840.00 34.60 L848.00 34.52 L850.00 34.81 L854.00 36.65 L857.42 40.00 L859.38 44.00 L859.56 48.00 L859.30 51.00 L857.18 55.00 L855.00 57.31 L852.00 59.20 L848.00 60.20 L841.00 60.72 L838.00 61.29 L815.00 63.61 L812.00 64.19 L806.00 64.54 L802.00 65.30 L796.00 65.65 L792.00 66.35 L761.00 69.54 L757.00 70.24 L751.00 70.58 L747.00 71.37 L741.00 71.65 L738.00 72.28 L732.00 72.65 L728.00 73.32 L722.00 73.79 L702.00 76.19 L696.00 76.60 L692.00 77.34 L687.00 77.57 L682.00 78.41 L678.00 78.66 L670.00 83.31 L669.00 83.62 L668.00 84.43 L667.00 84.80 L657.00 90.75 L646.00 97.77 L639.00 102.60 L632.00 107.74 L622.00 115.77 L613.00 123.89 L606.82 130.00 L597.55 140.00 L591.67 147.00 L581.72 160.00 L574.62 170.00 L561.59 190.00 L561.26 191.00 L556.75 198.00 L555.18 201.00 L550.75 208.00 L550.41 209.00 L549.62 210.00 L543.46 221.00 L542.64 222.00 L542.34 223.00 L537.62 231.00 L537.28 232.00 L533.75 238.00 L520.22 263.00 L519.00 264.14 L513.75 240.00 L513.33 237.00 L512.64 235.00 L512.32 232.00 L511.55 230.00 L511.23 227.00 L510.84 226.00 L512.72 222.00 L523.23 204.00 L523.56 203.00 L524.39 202.00 L524.69 201.00 L531.36 190.00 L531.66 189.00 L541.75 172.00 L543.20 170.00 L543.58 169.00 L549.34 160.00 L549.66 159.00 L556.80 148.00 L565.76 135.00 L574.82 123.00 L584.00 112.50 L595.00 101.64 L602.00 95.69 L607.00 91.84 L617.00 84.72 L618.00 84.32 L628.00 77.67 L629.00 77.32 L638.00 71.68 L639.00 71.35 L640.00 70.54 L641.00 70.19 L655.00 62.00 L654.00 60.58 L649.00 56.71 L642.00 51.80 L634.00 46.81 L620.00 39.50 L611.00 35.65 L599.00 31.51 L589.00 28.78 L586.00 28.38 L584.00 27.69 L570.00 25.70 L558.00 25.14 L543.00 25.64 L535.00 26.53 L532.00 27.28 L529.00 27.52 L519.00 29.77 L510.00 32.44 L505.00 34.40 L504.00 34.55 L492.00 39.91 L480.00 46.72 L473.00 51.62 L462.00 60.86 L457.77 65.00 L450.67 73.00 L444.62 81.00 L437.68 92.00 L431.71 104.00 L426.87 117.00 L423.62 129.00 L421.55 142.00 L420.78 152.00 L421.26 153.00 L435.00 164.55 L443.00 171.83 L450.22 179.00 L461.20 191.00 L469.38 201.00 L475.31 209.00 L475.75 210.00 L481.35 218.00 L486.21 226.00 L486.54 227.00 L487.37 228.00 L487.66 229.00 L488.44 230.00 L493.18 239.00 L498.20 250.00 L499.59 254.00 L500.24 255.00 L500.76 257.00 L501.39 258.00 L504.25 266.00 L504.65 268.00 L505.28 269.00 L505.57 271.00 L506.14 272.00 L506.76 275.00 L507.33 276.00 L510.25 288.00 L510.66 291.00 L511.14 292.00 L511.56 296.00 L512.31 298.00 L512.73 303.00 L513.36 305.00 L513.84 311.00 L514.41 314.00 L515.42 328.00 L515.51 342.00 L515.41 352.00 L514.38 367.00 L513.79 370.00 L513.35 376.00 L512.70 378.00 L512.38 382.00 L511.63 384.00 L511.34 387.00 L510.61 389.00 L510.11 392.00 L507.24 402.00 L506.67 403.00 L506.25 405.00 L505.59 406.00 L505.17 408.00 L504.54 409.00 L501.37 417.00 L494.21 431.00 L487.24 442.00 L481.41 450.00 L476.48 456.00 L469.42 464.00 L463.00 470.46 L451.00 481.29 L441.00 489.26 L434.00 494.38 L422.00 502.42 L414.00 507.36 L413.00 507.68 L412.00 508.52 L407.00 511.35 L392.00 519.40 L391.00 519.68 L390.00 520.43 L389.00 520.68 L388.00 521.40 L380.00 525.21 L376.00 526.81 L375.00 527.49 L366.00 531.40 L365.00 531.61 L364.00 532.27 L350.00 537.63 L349.00 538.25 L347.00 538.75 L346.00 539.39 L333.00 543.84 L332.00 544.40 L330.00 544.81 L329.00 545.42 L327.00 545.77 L326.00 546.38 L324.00 546.81 L314.00 550.22 L312.00 550.60 L310.00 551.45 L308.00 551.77 L307.00 552.33 L293.00 556.31 L291.00 556.59 L289.00 557.40 L287.00 557.62 L285.00 558.44 L283.00 558.69 L269.00 562.34 L267.00 562.61 L265.00 563.31 L262.00 563.69 L260.00 564.44 L257.00 564.84 L256.00 565.26 L242.00 568.18 L238.00 568.75 L236.00 569.39 L233.00 569.62 L231.00 570.30 L227.00 570.72 L224.00 571.53 L221.00 571.81 L219.00 572.35 L203.00 574.74 L201.00 575.24 L196.00 575.69 L193.00 576.41 L189.00 576.67 L186.00 577.33 L181.00 577.80 L172.00 579.19 L171.00 579.26 L170.68 579.00 L170.65 578.00 L171.33 577.00 L175.73 567.00 L176.44 566.00 L176.64 565.00 L177.38 564.00 L182.45 553.00 L182.69 552.00 L183.43 551.00 L183.66 550.00 L188.47 540.00 L188.70 539.00 L189.47 538.00 L189.68 537.00 L190.36 536.00 L195.75 524.00 L196.42 523.00 L201.76 511.00 L202.46 510.00 L202.72 509.00 L206.21 502.00 L208.76 496.00 L214.52 484.00 L214.77 483.00 L219.24 474.00 L227.85 455.00 L231.31 448.00 L231.56 447.00 L232.30 446.00 L237.59 434.00 L238.31 433.00 L238.55 432.00 L243.64 421.00 L244.36 420.00 L244.57 419.00 L245.30 418.00 L256.67 393.00 L257.38 392.00 L257.62 391.00 L259.00 389.41 L260.00 389.61 L281.00 399.49 L281.50 400.00 L281.44 401.00 L276.66 411.00 L276.43 412.00 L275.68 413.00 L275.44 414.00 L270.64 424.00 L270.39 425.00 L269.64 426.00 L269.42 427.00 L264.33 438.00 L263.59 439.00 L263.41 440.00 L262.68 441.00 L251.33 466.00 L250.59 467.00 L250.37 468.00 L249.68 469.00 L245.27 479.00 L244.57 480.00 L244.34 481.00 L243.64 482.00 L239.92 490.00 L238.29 494.00 L237.56 495.00 L237.34 496.00 L227.82 516.00 L219.22 535.00 L214.76 544.00 L214.52 545.00 L213.87 546.00 L214.00 546.53 L215.00 546.78 L218.00 546.52 L221.00 545.72 L225.00 545.32 L227.00 544.64 L230.00 544.40 L233.00 543.58 L236.00 543.25 L238.00 542.65 L250.00 540.35 L252.00 539.71 L255.00 539.28 L257.00 538.59 L259.00 538.41 L261.00 537.70 L264.00 537.20 L275.00 534.52 L277.00 533.78 L279.00 533.52 L281.00 532.73 L284.00 532.23 L285.00 531.72 L287.00 531.41 L301.00 527.48 L303.00 526.64 L305.00 526.30 L306.00 525.74 L308.00 525.37 L320.00 521.50 L322.00 520.63 L323.00 520.50 L325.00 519.58 L326.00 519.46 L340.00 514.46 L341.00 513.85 L343.00 513.32 L344.00 512.68 L355.00 508.48 L356.00 507.81 L358.00 507.21 L369.00 502.35 L370.00 501.64 L371.00 501.41 L372.00 500.71 L385.00 494.44 L398.00 487.30 L408.00 481.27 L424.00 470.28 L434.00 462.30 L444.00 453.37 L450.27 447.00 L457.41 439.00 L462.13 433.00 L467.11 426.00 L470.27 421.00 L475.30 412.00 L479.00 403.89 L479.60 402.00 L480.29 401.00 L482.44 395.00 L485.10 386.00 L485.61 383.00 L486.33 381.00 L486.62 378.00 L487.35 376.00 L487.64 372.00 L488.36 369.00 L488.76 362.00 L489.36 358.00 L489.83 346.00 L489.79 332.00 L489.29 322.00 L488.76 319.00 L488.32 312.00 L487.70 310.00 L487.34 305.00 L486.64 303.00 L486.24 299.00 L485.58 297.00 L485.37 295.00 L483.28 286.00 L482.78 285.00 L482.44 283.00 L481.66 281.00 L481.37 279.00 L480.80 278.00 L480.38 276.00 L476.45 265.00 L475.85 264.00 L475.32 262.00 L474.62 261.00 L473.17 257.00 L469.43 249.00 L468.69 248.00 L468.42 247.00 L467.64 246.00 L467.35 245.00 L462.70 237.00 L462.36 236.00 L457.33 228.00 L450.26 218.00 L443.19 209.00 L431.00 195.53 L424.00 188.61 L413.00 178.72 L403.00 170.59 L395.00 164.55 L385.00 157.57 L368.00 146.72 L367.00 146.39 L366.00 145.57 L354.00 138.78 L344.00 133.49 L322.00 122.77 L303.00 114.52 L302.00 114.33 L301.00 113.71 L292.00 110.30 L291.00 109.68 L287.00 108.39 L275.00 103.67 L259.00 98.24 L258.00 97.69 L256.00 97.26 L255.00 96.66 L253.00 96.32 L252.00 95.69 L250.00 95.31 L236.00 90.60 L234.00 90.23 L233.00 89.64 L231.00 89.31 L220.00 85.79 L218.00 85.42 L216.00 84.62 L214.00 84.35 L212.00 83.51 L210.00 83.21 L209.00 82.66 L207.00 82.31 L195.00 78.85 L192.00 78.27 L191.00 77.76 L188.00 77.24 L187.00 76.73 L173.00 73.36 L171.00 72.64 L169.00 72.41 L167.00 71.63 L164.00 71.22 L163.00 70.70 L160.00 70.25 L158.00 69.53 L144.00 66.43 L142.00 65.76 L139.00 65.36 L137.00 64.59 L134.00 64.19 L132.00 63.52 L117.00 60.42 L115.00 59.78 L112.00 59.41 L110.00 58.68 L107.00 58.35 L105.00 57.66 L102.00 57.26 L86.00 53.69 L83.00 53.34 L81.00 52.64 L78.00 52.33 L76.00 51.64 L73.00 51.25 L56.00 47.62 L53.00 47.28 L51.00 46.58 L48.00 46.31 L46.00 45.58 L43.00 45.28 L41.00 44.64 L36.00 43.67 L35.00 43.70 L34.72 44.00 L34.86 45.00 L38.31 56.00 L38.70 58.00 L39.28 59.00 L39.61 61.00 L40.51 63.00 L40.63 64.00 L44.76 76.00 L52.72 97.00 L53.40 98.00 L57.52 108.00 L63.54 121.00 L64.25 122.00 L64.54 123.00 L69.60 133.00 L70.37 134.00 L70.64 135.00 L71.43 136.00 L76.73 146.00 L89.82 167.00 L99.69 181.00 L109.75 194.00 L120.82 207.00 L129.00 215.65 L142.00 228.52 L154.00 239.29 L164.00 247.46 L177.00 257.24 L189.00 265.42 L207.00 276.37 L208.00 276.69 L209.00 277.46 L218.00 282.37 L219.00 282.65 L220.00 283.44 L221.00 283.68 L222.00 284.44 L231.00 288.64 L232.00 289.37 L233.00 289.59 L234.00 290.29 L243.00 294.32 L244.00 294.54 L245.00 295.20 L247.00 295.79 L248.00 296.45 L249.00 296.64 L260.00 301.20 L262.00 301.68 L263.00 302.36 L265.00 302.84 L274.00 306.18 L276.00 306.63 L277.00 307.21 L279.00 307.57 L281.00 308.47 L283.00 308.87 L284.00 309.41 L286.00 309.76 L297.00 313.12 L300.00 313.72 L301.00 314.23 L304.00 314.74 L305.00 315.24 L322.00 319.16 L326.00 319.73 L328.00 320.39 L331.00 320.62 L333.00 321.32 L337.00 321.72 L339.00 322.31 L352.00 324.25 L369.00 326.36 L375.00 326.59 L381.00 327.40 L401.00 328.34 L419.00 328.40 L435.00 327.54 L436.00 327.70 L436.29 328.00 L436.58 333.00 L437.32 337.00 L437.63 344.00 L438.30 347.00 L438.43 349.00 L438.59 352.00 L438.00 352.92 L432.00 353.47 L411.00 353.63 L399.00 353.41 L390.00 352.70 L382.00 352.45 L376.00 351.61 L370.00 351.36 L366.00 350.66 L360.00 350.19 L341.00 347.46 L338.00 346.71 L335.00 346.48 L332.00 345.64 L329.00 345.42 L326.00 344.55 L323.00 344.24 L321.00 343.60 L306.00 340.46 L304.00 339.72 L301.00 339.25 L300.00 338.75 L297.00 338.21 L285.00 334.70 L283.00 334.34 L282.00 333.79 L280.00 333.46 L278.00 332.57 L276.00 332.25 L275.00 331.67 L273.00 331.26 L264.00 328.26 L263.00 327.69 L261.00 327.25 L260.00 326.63 L258.00 326.17 L257.00 325.58 L248.00 322.41 L247.00 321.81 L245.00 321.28 L244.00 320.60 L240.00 319.25 L231.00 315.42 L230.00 314.73 L226.00 313.18 L218.00 309.43 L217.00 308.72 L216.00 308.45 L206.00 303.41 L205.00 302.68 L204.00 302.38 L203.00 301.59 L202.00 301.32 L194.00 296.66 L193.00 296.32 L183.00 290.41 L172.00 283.40 L164.00 277.71 L163.00 277.26 L147.00 265.35 L137.00 257.19 L129.00 250.20 L116.00 237.94 L101.63 223.00 L88.74 208.00 L81.74 199.00 L70.83 184.00 L64.77 175.00 L53.78 157.00 L44.54 140.00 L39.54 130.00 L39.27 129.00 L38.56 128.00 L38.30 127.00 L34.85 120.00 L33.31 116.00 L32.60 115.00 L27.57 103.00 L27.40 102.00 L26.72 101.00 L22.38 89.00 L21.77 88.00 L21.32 86.00 L20.67 85.00 L20.22 83.00 L19.65 82.00 L16.45 72.00 L15.92 71.00 L15.49 69.00 L14.59 67.00 L14.24 65.00 L13.68 64.00 L13.29 62.00 L9.88 51.00 L9.26 48.00 L8.71 47.00 L8.42 45.00 L7.66 43.00 L4.88 32.00 L3.41 25.00 L2.63 23.00 L2.44 21.00 L1.71 19.00 L1.24 16.00 L-0.13 11.00 L1.00 10.42 L4.00 10.80 L19.00 14.12 L22.00 14.51 L25.00 15.39 L28.00 15.76 L30.00 16.40 L47.00 19.65 L49.00 20.27 L52.00 20.59 L54.00 21.32 L57.00 21.58 L59.00 22.27 L62.00 22.61 L79.00 26.25 L82.00 26.65 L84.00 27.32 L87.00 27.64 L89.00 28.36 L92.00 28.69 L94.00 29.33 L110.00 32.48 L112.00 33.16 L115.00 33.51 L117.00 34.24 L120.00 34.59 L122.00 35.28 L125.00 35.69 L127.00 36.33 L138.00 38.60 L140.00 39.27 L143.00 39.70 L145.00 40.41 L147.00 40.61 L149.00 41.33 L152.00 41.82 L164.00 44.69 L165.00 45.13 L168.00 45.59 L170.00 46.39 L172.00 46.57 L174.00 47.34 L176.00 47.60 L192.00 51.68 L193.00 52.18 L196.00 52.71 L197.00 53.24 L200.00 53.82 L214.00 57.67 L215.00 58.22 L217.00 58.51 L219.00 59.36 L221.00 59.62 L236.00 64.32 L238.00 64.69 L239.00 65.30 L241.00 65.63 L257.00 70.80 L258.00 71.38 L263.00 72.75 L264.00 73.30 L280.00 78.70 L292.00 83.38 L293.00 83.53 L294.00 84.13 L296.00 84.67 L297.00 85.30 L311.00 90.69 L312.00 91.33 L320.00 94.53 L321.00 95.20 L325.00 96.65 L326.00 97.37 L327.00 97.61 L336.00 101.68 L337.00 102.39 L338.00 102.59 L339.00 103.34 L348.00 107.50 L361.00 114.35 L362.00 114.64 L363.00 115.44 L364.00 115.76 L373.00 120.76 L383.00 126.63 L394.00 133.53 L395.00 134.39 L396.00 134.80 L396.70 134.00 L399.56 119.00 L400.38 117.00 L400.62 115.00 L401.43 113.00 L401.80 111.00 L405.57 100.00 L406.26 99.00 L406.75 97.00 L407.42 96.00 L407.63 95.00 L412.71 84.00 L419.63 72.00 L423.60 66.00 L429.61 58.00 L436.48 50.00 L447.00 39.54 L458.00 30.60 L462.00 27.63 L463.00 27.20 L468.00 23.74 L475.00 19.64 L483.00 15.54 L494.00 10.75 L499.00 9.13 L500.00 8.53 L502.00 8.15 L503.00 7.58 L517.00 3.74 L520.00 3.35 L522.00 2.67 L526.00 2.21 L528.00 1.62 Z"/></symbol>
+  <symbol id="g-blusa" viewBox="0 0 100 104"><path d="M38 8 Q50 17 62 8 L80 14 L96 44 L84 50 L75 35 L75 94 Q50 99 25 94 L25 35 L16 50 L4 44 L20 14 Z"/></symbol>
+  <symbol id="g-vestido" viewBox="0 0 100 104"><path d="M40 4 Q50 13 60 4 L68 8 L66 30 Q64 38 71 46 L90 98 Q50 104 10 98 L29 46 Q36 38 34 30 L32 8 Z"/></symbol>
+</svg>
+
+<div class="envoltura">
+  <span class="ceja">Comparación · 17 de octubre de 2026 · sigue a «Identidad web CAYLA»</span>
+  <h1>Las letras de dafont, puestas en CAYLA</h1>
+  <p class="bajada">Quince letras de dafont escogidas porque encajan con la marca, más la EB Garamond de hoy para comparar. La palabra CAYLA va, por defecto, con el dibujo del logo del escaparate; el resto del texto, con la letra que elijas. Cada una se ve en doce piezas reales de CAYLA: el logotipo, el letrero, la etiqueta, la bolsa, un post, la web en computadora y en celular, la tarjeta del Club, la etiqueta cosida y los precios. Elige una letra para verla en todo, o una pieza para ver todas las letras lado a lado.</p>
+
+  <div class="tiers">
+    <div class="tier tier-libre"><b>10 libres para CAYLA</b><p>Dafont las marca «100% Free» u OFL, su licencia permite uso comercial y escriben bien el español: se pueden usar en la tienda, las etiquetas y las bolsas sin pagar. Las revisé una por una en la nota del autor, en la licencia del zip y letra por letra.</p></div>
+    <div class="tier tier-pago"><b>5 solo para mirar</b><p>Le Jour Serif, Recoleta, Voguella y Vogue son de uso personal o de prueba. Edensor es gratis, pero su versión gratis dibuja la ñ y las tildes sin su marca. Para usarlas en CAYLA hay que comprar la licencia: el enlace está en su ficha.</p></div>
+    <div class="tier tier-fuera"><b>3 descartadas</b><p>Ballet Harmony y Rosehot no tienen ñ ni tildes: no pueden escribir «Colección» ni «Señora». Bauserif mezcla dos fuentes comerciales (Bauhaus y Cambria): su licencia no es confiable.</p></div>
+  </div>
+  <p class="nota"><b>Los precios no se alinean con estas letras.</b> Ninguna de las de dafont trae cifras de igual ancho, salvo Bodoni XT y Vogue (medido en sus archivos). Si eliges una para la marca, los precios de la tienda irían en otra letra que sí las tenga. La pieza «Precios» lo deja ver.</p>
+
+  <form class="mandos" id="mandos" aria-label="Qué mirar">
+    <div class="fila-mandos">
+      <fieldset class="grupo-mando"><legend>Ver</legend>
+        <div class="seg">
+          <input type="radio" name="vista" id="vista-letra" value="letra" checked><label for="vista-letra">Una letra en todas las piezas</label>
+          <input type="radio" name="vista" id="vista-pieza" value="pieza"><label for="vista-pieza">Una pieza con todas las letras</label>
+          <input type="radio" name="vista" id="vista-texto" value="texto"><label for="vista-texto">Tu texto</label>
+        </div>
+      </fieldset>
+      <fieldset class="grupo-mando"><legend>Color</legend>
+        <div class="seg">
+          <input type="radio" name="color" id="color-colibri" value="colibri" checked><label for="color-colibri">Rojo colibrí</label>
+          <input type="radio" name="color" id="color-carmin" value="carmin"><label for="color-carmin">Carmín</label>
+          <input type="radio" name="color" id="color-tinta" value="tinta"><label for="color-tinta">Tinta</label>
+        </div>
+      </fieldset>
+    </div>
+    <div class="letras" id="letras" role="group" aria-label="Letra"></div>
+    <div class="fila-mandos" id="fila-pieza" hidden>
+      <fieldset class="grupo-mando"><legend>Pieza</legend><div class="seg" id="piezas-seg"></div></fieldset>
+    </div>
+    <div class="fila-mandos" id="fila-texto" hidden>
+      <div class="texto-libre"><label class="rot" for="texto-propio">Texto</label><input type="text" id="texto-propio" value="Donde el estilo transforma." maxlength="80"></div>
+      <div class="texto-libre" style="flex:0 1 240px"><label class="rot" for="tam">Tamaño</label><input type="range" id="tam" min="20" max="96" value="46"></div>
+    </div>
+    <div class="fila-mandos">
+      <fieldset class="grupo-mando"><legend>Texto chico</legend>
+        <div class="seg">
+          <input type="radio" name="texto" id="texto-dm" value="dm" checked><label for="texto-dm">DM Sans (hoy)</label>
+          <input type="radio" name="texto" id="texto-creato" value="creato"><label for="texto-creato">Creato Display</label>
+          <input type="radio" name="texto" id="texto-misma" value="misma"><label for="texto-misma">La misma letra</label>
+        </div>
+      </fieldset>
+      <fieldset class="grupo-mando"><legend>Palabra CAYLA</legend>
+        <div class="seg">
+          <input type="radio" name="palabra" id="palabra-logo" value="logo" checked><label for="palabra-logo">La del escaparate</label>
+          <input type="radio" name="palabra" id="palabra-letra" value="letra"><label for="palabra-letra">Con la letra elegida</label>
+        </div>
+      </fieldset>
+      <fieldset class="grupo-mando"><legend>Palabra de acento</legend>
+        <div class="seg">
+          <input type="radio" name="acento" id="acento-misma" value="misma" checked><label for="acento-misma">La misma, en cursiva</label>
+          <input type="radio" name="acento" id="acento-tangerine" value="tangerine"><label for="acento-tangerine">Tangerine</label>
+          <input type="radio" name="acento" id="acento-lejour" value="lejour"><label for="acento-lejour">Le Jour Script (de pago)</label>
+        </div>
+      </fieldset>
+    </div>
+  </form>
+
+  <div class="cab-escena" id="cab-escena"></div>
+  <div id="escena" class="escena" aria-live="polite"></div>
+
+  <section class="sec" aria-labelledby="t-fichas">
+    <span class="ceja">Cada letra, con su licencia</span>
+    <h2 id="t-fichas" style="margin-top:8px">Ficha de cada letra</h2>
+    <div class="tabla-caja"><table><thead><tr><th>Muestra</th><th>Letra y autor</th><th>Licencia</th><th>Para CAYLA</th><th>Ojo con</th><th>Dónde</th></tr></thead><tbody id="fichas"></tbody></table></div>
+  </section>
+
+  <section class="sec" aria-labelledby="t-fav">
+    <span class="ceja">Para cerrar</span>
+    <h2 id="t-fav" style="margin-top:8px">Tus favoritas</h2>
+    <div class="favoritas">
+      <div class="caja-fav">
+        <p id="fav-vacio">Marca con «Me gusta» las que te convenzan; aparecen aquí.</p>
+        <ul id="fav-lista" hidden></ul>
+        <label for="fav-nota" style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:.75;font-weight:600">Nota</label>
+        <textarea id="fav-nota" placeholder="Para el logotipo me gusta…, para la web…"></textarea>
+        <button type="button" id="copiar">Copiar mis favoritas</button>
+        <p class="aviso" id="aviso" aria-live="polite"></p>
+        <textarea id="respaldo" readonly hidden aria-label="Texto para copiar"></textarea>
+      </div>
+      <div class="consejo">
+        <b>Cómo leer la comparación</b>
+        <p>Una letra de marca no tiene que hacerlo todo. La que elijas iría en el logotipo, los títulos, las campañas, la etiqueta y la bolsa; el texto chico y los precios de la tienda pueden quedarse en una letra de lectura con cifras alineadas.</p>
+        <p>Mira sobre todo tres piezas: el <b>logotipo</b> (si «CAYLA» se sostiene sola), la <b>etiqueta interna</b> (si se lee chica, cosida en la prenda) y el <b>letrero</b> (si se reconoce de lejos).</p>
+        <p>Las cuatro de pago se pueden mirar aquí, pero no usar en la tienda sin comprar su licencia.</p>
+      </div>
+    </div>
+  </section>
+
+  <p class="pie">Las fuentes se bajaron de dafont.com el 17-10-2026 y viven en <code>docs/investigacion/2026-10-17-fuentes-dafont/fuentes/</code>, fuera de git. Prendas, precios y nombres de las piezas son de ejemplo.</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var DAF = "https://www.dafont.com/";
+  // Una sola fuente de verdad para las letras: cómo se dibuja la marca y qué dice su licencia (leída el 17-10-2026).
+  var LETRAS = [
+    { id: "hoy", nombre: "EB Garamond", autor: "Georg Duffner y Octavio Pardo", grupo: "hoy", f: '"EB Garamond", Georgia, serif', fm: 500, ft: 400, fb: 600, cursiva: true, tr: ".3em", es: 1, licencia: "OFL · Google Fonts", para: "La de hoy en la tienda, el ERP, tickets y etiquetas.", ojo: "Hermès usa la misma en su web.", url: "https://fonts.google.com/specimen/EB+Garamond", cifras: true },
+    { id: "butler", nombre: "Butler", autor: "Fabian De Smet", grupo: "libre", f: '"CY Butler", Georgia, serif', fm: 400, ft: 300, fb: 700, cursiva: false, tr: ".24em", es: 1, licencia: "100% Free · licencia del autor", para: "Uso personal y comercial permitido; redistribuir solo gratis y con su licencia.", ojo: "No trae cursiva: el acento va en otra letra.", url: DAF + "butler.font" },
+    { id: "bodoni", nombre: "Bodoni XT", autor: "Manfred Klein", grupo: "libre", f: '"CY Bodoni XT", Didot, serif', fm: 400, ft: 400, fb: 400, cursiva: false, tr: ".22em", es: 1, licencia: "100% Free", para: "Libre para usar.", ojo: "Un solo peso y sin cursiva. Cifras de igual ancho.", url: DAF + "bodoni-xt.font", cifras: true },
+    { id: "ztbros", nombre: "ZT Bros Oskon 90s", autor: "Zelow Type", grupo: "libre", f: '"CY ZT Bros", Didot, serif', fm: 400, ft: 300, fb: 400, cursiva: true, tr: ".26em", es: 1.12, licencia: "100% Free", para: "El autor dice que sus seis estilos son libres para uso comercial; la familia completa es de pago.", ojo: "Angosta: se agranda un poco para igualar.", url: DAF + "zt-bros-oskon-90s.font" },
+    { id: "oranienbaum", nombre: "Oranienbaum", autor: "Jovanny Lemonad", grupo: "libre", f: '"CY Oranienbaum", Didot, serif', fm: 400, ft: 400, fb: 400, cursiva: false, tr: ".24em", es: 1.12, licencia: "OFL", para: "Libre para usar y modificar.", ojo: "Un solo peso y sin cursiva.", url: DAF + "oranienbaum.font" },
+    { id: "belgiano", nombre: "Belgiano Serif", autor: "Fajarisha Phonna", grupo: "libre", f: '"CY Belgiano", Georgia, serif', fm: 400, ft: 400, fb: 400, cursiva: false, tr: ".22em", es: 1, licencia: "100% Free", para: "El autor permite uso comercial sin licencia adicional; la familia completa es de pago.", ojo: "Un solo peso y sin cursiva.", url: DAF + "belgiano-serif.font" },
+    { id: "edensor", nombre: "Edensor", autor: "FactoryType", grupo: "pago", f: '"CY Edensor", Georgia, serif', fm: 400, ft: 400, fb: 400, cursiva: false, tr: ".24em", es: 1.04, licencia: "100% Free, pero incompleta", para: "La versión gratis no sirve en español: solo la completa, de pago, trae la ñ y las tildes.", ojo: "La gratis dibuja ñ, á, é, í, ó y ú sin su marca («cumpleanos, Lucia») y no trae «/», «¿» ni «¡».", url: DAF + "edensor.font", compra: "https://go.factory738.com/cFNRKb" },
+    { id: "ahellya", nombre: "Ahellya", autor: "Dmitry Barsukov", grupo: "libre", f: '"CY Ahellya", Georgia, serif', fm: 400, ft: 400, fb: 400, cursiva: true, tr: ".2em", es: .9, licencia: "100% Free", para: "Libre para usar.", ojo: "Ancha: se achica un poco para igualar.", url: DAF + "ahellya.font" },
+    { id: "zeit", nombre: "Zeit Light", autor: "Fenotype", grupo: "libre", f: '"CY Zeit", Georgia, serif', fm: 400, ft: 400, fb: 400, cursiva: false, tr: ".16em", es: .86, licencia: "100% Free (solo el peso Light)", para: "Libre para usar; el resto de la familia se vende en Fontspring.", ojo: "Un solo peso, muy ancha.", url: DAF + "zeit-light.font" },
+    { id: "producer", nombre: "Producer", autor: "Istiko Rahadi", grupo: "libre", f: '"CY Producer", Georgia, serif', fm: 400, ft: 400, fb: 400, cursiva: false, tr: ".2em", es: .96, licencia: "100% Free", para: "Libre para usar (basada en Spectral).", ojo: "Un solo peso y sin cursiva.", url: DAF + "producer.font" },
+    { id: "creato", nombre: "Creato Display", autor: "Lafontype", grupo: "libre", f: '"CY Creato", system-ui, sans-serif', fm: 500, ft: 400, fb: 700, cursiva: true, tr: ".34em", es: 1, licencia: "OFL", para: "Libre para usar; sirve también como letra de texto.", ojo: "Es la única sin remates de la lista.", url: DAF + "creato-display.font" },
+    { id: "lejour", nombre: "Le Jour Serif", autor: "Din Studio", grupo: "pago", f: '"CY Le Jour Serif", Georgia, serif', fm: 400, ft: 400, fb: 400, cursiva: false, tr: ".2em", es: .94, licencia: "Solo uso personal", para: "Para CAYLA hay que comprar la licencia a Din Studio.", ojo: "Trae su pareja manuscrita, Le Jour Script.", url: DAF + "le-jour-serif.font", compra: "https://din-studio.com/" },
+    { id: "recoleta", nombre: "Recoleta", autor: "Latinotype (Chile)", grupo: "pago", f: '"CY Recoleta", Georgia, serif', fm: 400, ft: 400, fb: 400, cursiva: false, tr: ".18em", es: 1, licencia: "Demo, solo para pruebas", para: "La licencia comercial la vende Latinotype.", ojo: "Muy usada por marcas de comida y bienestar.", url: DAF + "recoleta.font", compra: "https://www.latinotype.com/typefaces/recoleta" },
+    { id: "voguella", nombre: "Voguella", autor: "Moka Type Studio", grupo: "pago", f: '"CY Voguella", Didot, serif', fm: 400, ft: 400, fb: 400, cursiva: false, tr: ".22em", es: 1, licencia: "Solo uso personal", para: "Para CAYLA hay que comprar la licencia en mokatype.com.", ojo: "Un solo peso.", url: DAF + "voguella.font", compra: "https://mokatype.com/voguella-luxury-serif/" },
+    { id: "vogue", nombre: "Vogue", autor: "Vladimir Nikolic", grupo: "pago", f: '"CY Vogue", Didot, serif', fm: 400, ft: 400, fb: 400, cursiva: false, tr: ".2em", es: 1.1, licencia: "Solo uso personal", para: "Para CAYLA hay que comprar la licencia en Creative Fabrica.", ojo: "Su nombre la ata a la revista. Cifras de igual ancho.", url: DAF + "vogue.font", compra: "https://www.creativefabrica.com/product/vogue/" }
+  ];
+  var ACENTOS = { misma: null, tangerine: { f: '"CY Tangerine", cursive', w: 700, s: "normal" }, lejour: { f: '"CY Le Jour Script", cursive', w: 400, s: "normal" } };
+  var TEXTOS = { dm: '"DM Sans", system-ui, sans-serif', creato: '"CY Creato", system-ui, sans-serif' };
+  var COLORES = {
+    colibri: { logo: "#d13730", acento: "#b8412d", acento2: "#6a2118", claro: "#f4c3b3", bolsa: "#b8412d", bolsaTinta: "#f5f0e8", asa: "#1a1a18", letrero: "#1a1a18", tarjeta: "#6a2118", tarjeta2: "#2a1210", cinta: "#1a1a18", boton: "#1a1a18" },
+    carmin: { logo: "#9e1b32", acento: "#9e1b32", acento2: "#5e0f1e", claro: "#f7c6cd", bolsa: "#9e1b32", bolsaTinta: "#fdf6f2", asa: "#f6f3ef", letrero: "#1c1619", tarjeta: "#7a1226", tarjeta2: "#2a0a12", cinta: "#9e1b32", boton: "#9e1b32" },
+    tinta: { logo: "#1a1a18", acento: "#1a1a18", acento2: "#3a3733", claro: "#e9dccb", bolsa: "#1a1a18", bolsaTinta: "#f5f0e8", asa: "#b8412d", letrero: "#1a1a18", tarjeta: "#1a1a18", tarjeta2: "#3a3733", cinta: "#1a1a18", boton: "#1a1a18" }
+  };
+  var BASE = { crema: "#f5f0e8", papel: "#fbf8f2", hueso: "#eae1d2", hueso2: "#dfd4c2", tinta: "#1a1a18", suave: "#805c4c", suave2: "#b7a58f", filo: "#e8e0d0", muro: "#e6ddcd", muro2: "#d9cdb9", letreroTinta: "#f5f0e8", letreroSuave: "#c9b79c", tela: "#efe6d8", tela2: "#e6dccb" };
+
+  var AVE = '<svg class="ave" viewBox="0 0 864 584" aria-hidden="true"><use href="#colibri-oficial"/></svg>';
+  var PIEZAS = [
+    { id: "logo", nombre: "Logotipo", html: function () { return '<div class="pz p-logo">' + AVE + '<p class="marca">CAYLA</p><p class="txt">Trujillo · Arequipa · Lima</p></div>'; } },
+    { id: "lema", nombre: "Lema", html: function () { return '<div class="pz p-lema"><p class="disp">Donde el estilo <em>transforma.</em></p><p class="marca">CAYLA</p></div>'; } },
+    { id: "letrero", nombre: "Letrero de la tienda", html: function () { return '<div class="pz p-letrero"><span class="luz"></span><div class="panel">' + AVE + '<p class="marca">CAYLA</p><p class="txt">Trujillo</p></div></div>'; } },
+    { id: "web", nombre: "Portada web", html: function () { return '<div class="pz p-web"><div class="barra">' + AVE + '<p class="marca">CAYLA</p><p class="txt"><span>Lo nuevo</span><span>Ropa</span><span>Arma tu look</span><span>Tiendas</span></p></div><div class="heroe"><div><p class="txt ceja">Nueva colección</p><p class="disp">Eterna <em>primavera</em></p><span class="boton">Ver la colección</span></div><div class="foto"><svg viewBox="0 0 100 104" aria-hidden="true"><use href="#g-vestido"/></svg></div></div></div>'; } },
+    { id: "etiqueta", nombre: "Etiqueta colgante", html: function () { return '<div class="pz p-etiqueta"><span class="hilo"></span><div class="tag">' + AVE + '<p class="marca">CAYLA</p><hr><p class="disp">Blusa Aurora</p><p class="txt">Talla M · Arena</p><p class="precio">S/ 119.90</p><p class="txt">Cosida en nuestro taller de Lima<br>Lote 0412</p></div></div>'; } },
+    { id: "bolsa", nombre: "Bolsa", html: function () { return '<div class="pz p-bolsa"><div class="bolsa">' + AVE + '<p class="marca">CAYLA</p><em>Donde el estilo transforma.</em></div></div>'; } },
+    { id: "post", nombre: "Post de campaña", html: function () { return '<div class="pz p-post">' + AVE + '<svg class="prenda" viewBox="0 0 100 104" aria-hidden="true"><use href="#g-vestido"/></svg><p class="txt">Colección primavera–verano 2027</p><p class="disp">Eterna <em>primavera</em></p><p class="txt">Separa online · recoge en tu tienda</p></div>'; } },
+    { id: "celular", nombre: "Portada en el celular", html: function () { return '<div class="pz p-cel"><div class="tel"><div class="cab">' + AVE + '<p class="marca">CAYLA</p></div><div class="heroe"><p class="txt">Nueva colección</p><p class="disp">Eterna <em>primavera</em></p></div><div class="grilla"><div class="prod"><div class="foto"><svg viewBox="0 0 100 104" aria-hidden="true"><use href="#g-blusa"/></svg></div><p class="disp">Blusa Aurora</p><p class="precio">S/ 119.90</p></div><div class="prod"><div class="foto"><svg viewBox="0 0 100 104" aria-hidden="true"><use href="#g-vestido"/></svg></div><p class="disp">Vestido Brisa</p><p class="precio">S/ 89.90</p></div></div></div></div>'; } },
+    { id: "ficha", nombre: "Ficha de prenda", html: function () { return '<div class="pz p-ficha"><div class="foto"><svg viewBox="0 0 100 104" aria-hidden="true"><use href="#g-blusa"/></svg></div><div class="datos"><p class="txt ceja">Blusas · lote 0412</p><p class="disp">Blusa Aurora</p><p class="precio">S/ 119.90</p><p class="txt parrafo">Algodón con manga globo y largo a la cadera. Si la quieres más corta, el taller te la ajusta al separarla.</p><span class="boton">Separar en Trujillo</span></div></div>'; } },
+    { id: "club", nombre: "Tarjeta del Club", html: function () { return '<div class="pz p-club"><div class="tarjeta"><div class="arriba">' + AVE + '<p class="marca">CAYLA</p><em>Club</em></div><p class="disp">Feliz cumpleaños, Lucía</p><p class="txt"><span>Tu regalo te espera en Arequipa</span><span>N.º 0412</span></p></div></div>'; } },
+    { id: "interna", nombre: "Etiqueta cosida", html: function () { return '<div class="pz p-interna"><div class="cinta"><p class="marca">CAYLA</p><p class="txt">Hecha en Lima, Perú</p><p class="txt">Talla M · 100 % algodón</p></div></div>'; } },
+    { id: "precios", nombre: "Precios", html: function () { return '<div class="pz p-precios"><div class="fila"><p class="disp">Blusa Aurora</p><p class="precio">S/ 119.90</p></div><div class="fila"><p class="disp">Vestido Brisa</p><p class="precio">S/ 89.90</p></div><div class="fila"><p class="disp">Casaca Sillar</p><p class="precio">S/ 1,249.00</p></div><div class="fila total"><p class="disp">Total</p><p class="precio">S/ 1,458.80</p></div><p class="txt">Las cifras se alinean solo si la letra las trae del mismo ancho.</p></div>'; } }
+  ];
+
+  // La palabra CAYLA del escaparate (vector): reemplaza a la palabra escrita con la letra elegida, salvo que se pida lo contrario.
+  var PALABRA = '<p class="marca marca-logo"><svg viewBox="0 0 1331 280" role="img" aria-label="CAYLA"><use href="#palabra-cayla"/></svg></p>';
+  function pieza(p) {
+    if (estado.palabra !== "logo") return p.html();
+    // el logotipo es el del escaparate tal cual: colibrí a la izquierda y la palabra
+    if (p.id === "logo") return '<div class="pz p-logo p-logo-escaparate"><svg class="lockup" viewBox="0 0 2000 580" role="img" aria-label="CAYLA"><use href="#logo-escaparate"/></svg><p class="txt">Trujillo · Arequipa · Lima</p></div>';
+    return p.html().replace(/<p class="marca">CAYLA<\/p>/g, PALABRA);
+  }
+  var GUARDA = "cayla-letras-dafont";
+  var estado = { vista: "letra", letra: "butler", pieza: "logo", color: "colibri", texto: "dm", acento: "misma", palabra: "logo", favoritas: [] };
+  try { var g = JSON.parse(localStorage.getItem(GUARDA) || "null"); if (g && typeof g === "object") Object.keys(estado).forEach(function (k) { if (g[k] !== undefined) estado[k] = g[k]; }); } catch (e) { /* sin memoria: arranca de fábrica */ }
+  if (!LETRAS.some(function (l) { return l.id === estado.letra; })) estado.letra = "butler";
+  if (!Array.isArray(estado.favoritas)) estado.favoritas = [];
+
+  function guardar() { try { localStorage.setItem(GUARDA, JSON.stringify(estado)); } catch (e) { /* sin memoria */ } }
+  function letra(id) { return LETRAS.filter(function (l) { return l.id === id; })[0]; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  var ETIQ = { hoy: ["Hoy", "lic-hoy"], libre: ["Libre", "lic-libre"], pago: ["De pago", "lic-pago"] };
+
+  // Las variables de una pieza: la letra elegida + el texto chico + la palabra de acento + el color.
+  function vars(l) {
+    var c = COLORES[estado.color], a = ACENTOS[estado.acento];
+    var t = estado.texto === "misma" ? l.f : TEXTOS[estado.texto];
+    var af = a ? a.f : l.f, aw = a ? a.w : l.ft, as = a ? a.s : (l.cursiva ? "italic" : "normal");
+    var m = { "--f": l.f, "--fm": l.fm, "--ft": l.ft, "--fb": l.fb, "--tr": l.tr, "--es": l.es, "--t": t, "--a": af, "--aw": aw, "--ae": as,
+      "--c-crema": BASE.crema, "--c-papel": BASE.papel, "--c-hueso": BASE.hueso, "--c-hueso-2": BASE.hueso2, "--c-tinta": BASE.tinta, "--c-suave": BASE.suave, "--c-suave-2": BASE.suave2, "--c-filo": BASE.filo,
+      "--c-muro": BASE.muro, "--c-muro-2": BASE.muro2, "--c-letrero-tinta": BASE.letreroTinta, "--c-letrero-suave": BASE.letreroSuave, "--c-tela": BASE.tela, "--c-tela-2": BASE.tela2,
+      "--c-logo": c.logo, "--c-acento": c.acento, "--c-acento-2": c.acento2, "--c-acento-claro": c.claro, "--c-bolsa": c.bolsa, "--c-bolsa-tinta": c.bolsaTinta, "--c-asa": c.asa, "--c-letrero": c.letrero,
+      "--c-tarjeta": c.tarjeta, "--c-tarjeta-2": c.tarjeta2, "--c-cinta": c.cinta, "--c-boton": c.boton, "--c-boton-tinta": BASE.crema };
+    return Object.keys(m).map(function (k) { return k + ":" + m[k]; }).join(";");
+  }
+  function estrella(id) {
+    var on = estado.favoritas.indexOf(id) >= 0;
+    return '<button type="button" class="estrella" data-fav="' + id + '" aria-pressed="' + on + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z"/></svg>Me gusta</button>';
+  }
+
+  var escena = document.getElementById("escena"), cab = document.getElementById("cab-escena");
+  function pintar() {
+    var l = letra(estado.letra);
+    document.getElementById("fila-pieza").hidden = estado.vista !== "pieza";
+    document.getElementById("fila-texto").hidden = estado.vista !== "texto";
+    document.getElementById("letras").hidden = estado.vista !== "letra";
+    escena.className = estado.vista === "texto" ? "" : "escena";
+    Array.prototype.forEach.call(document.querySelectorAll(".chip-letra"), function (b) { b.setAttribute("aria-pressed", String(b.dataset.letra === estado.letra)); });
+    if (estado.vista === "letra") {
+      var et = ETIQ[l.grupo];
+      cab.innerHTML = '<div><span class="ceja">' + esc(l.autor) + ' · <span class="' + et[1] + '" style="padding:2px 8px;border-radius:999px">' + et[0] + '</span></span><p class="nombre-letra" style="font-family:' + esc(l.f) + ';font-weight:' + l.ft + '">' + esc(l.nombre) + '</p><p>' + esc(l.para) + ' ' + esc(l.ojo) + '</p></div>' + estrella(l.id);
+      escena.innerHTML = PIEZAS.map(function (p) { return '<figure class="carta"><figcaption><b>' + p.nombre + '</b></figcaption><div class="pz-caja" style="' + esc(vars(l)) + '">' + pieza(p) + '</div></figure>'; }).join("");
+    } else if (estado.vista === "pieza") {
+      var p = PIEZAS.filter(function (x) { return x.id === estado.pieza; })[0] || PIEZAS[0];
+      cab.innerHTML = '<div><span class="ceja">Una pieza con todas las letras</span><p class="nombre-letra">' + p.nombre + '</p><p>La misma pieza con las quince letras. Marca las que te gusten.</p></div>';
+      escena.innerHTML = LETRAS.map(function (x) { var et = ETIQ[x.grupo]; return '<figure class="carta"><figcaption><span><b>' + esc(x.nombre) + '</b> · <span class="' + et[1] + '" style="padding:1px 7px;border-radius:999px">' + et[0] + '</span></span>' + estrella(x.id) + '</figcaption><div class="pz-caja" style="' + esc(vars(x)) + '">' + pieza(p) + '</div></figure>'; }).join("");
+    } else {
+      var texto = document.getElementById("texto-propio").value || "CAYLA";
+      cab.innerHTML = '<div><span class="ceja">Tu texto</span><p>Escribe cualquier palabra y mírala en las quince letras.</p></div>';
+      escena.innerHTML = '<div class="lineas" style="--tam:' + document.getElementById("tam").value + 'px">' + LETRAS.map(function (x) { var et = ETIQ[x.grupo]; return '<div class="linea"><p class="quien"><b>' + esc(x.nombre) + '</b><span class="' + et[1] + '" style="padding:1px 7px;border-radius:999px;font-size:11px">' + et[0] + '</span></p><p class="muestra" style="font-family:' + esc(x.f) + ';font-weight:' + x.ft + '">' + esc(texto) + '</p>' + estrella(x.id) + '</div>'; }).join("") + '</div>';
+    }
+    pintarFavoritas();
+    guardar();
+  }
+
+  // Botones de letra, agrupados por licencia, cada uno escrito en su propia letra
+  var grupos = [["hoy", "Hoy"], ["libre", "Libres para CAYLA"], ["pago", "De pago"]];
+  document.getElementById("letras").innerHTML = grupos.map(function (g) {
+    return '<span class="sep">' + g[1] + '</span>' + LETRAS.filter(function (l) { return l.grupo === g[0]; }).map(function (l) {
+      var et = ETIQ[l.grupo];
+      return '<button type="button" class="chip-letra" data-letra="' + l.id + '" style="font-family:' + esc(l.f) + ';font-weight:' + l.ft + '">' + esc(l.nombre) + ' <small class="' + et[1] + '">' + et[0] + '</small></button>';
+    }).join("");
+  }).join("");
+  document.getElementById("piezas-seg").innerHTML = PIEZAS.map(function (p) { return '<input type="radio" name="pieza" id="pieza-' + p.id + '" value="' + p.id + '"><label for="pieza-' + p.id + '">' + p.nombre + '</label>'; }).join("");
+
+  // Fichas
+  var TANGERINE = { id: "tangerine", nombre: "Tangerine", autor: "Toshi Omagari", grupo: "libre", f: '"CY Tangerine", cursive', fm: 700, tr: ".04em", licencia: "OFL", para: "Libre para usar, solo como palabra de acento.", ojo: "Manuscrita: no sirve para texto ni para el logotipo.", url: DAF + "tangerine.font" };
+  document.getElementById("fichas").innerHTML = LETRAS.concat([TANGERINE]).map(function (l) {
+    var et = ETIQ[l.grupo];
+    return '<tr><td class="muestra-celda" style="font-family:' + esc(l.f) + ';font-weight:' + (l.ft || l.fm) + '">Aurora</td><td><b>' + esc(l.nombre) + '</b><br><span style="color:var(--taupe)">' + esc(l.autor) + '</span></td><td><span class="' + et[1] + '" style="padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600">' + esc(l.licencia) + '</span></td><td>' + esc(l.para) + '</td><td>' + esc(l.ojo) + '</td><td><a href="' + l.url + '" target="_blank" rel="noopener">Ver en ' + (l.grupo === "hoy" ? "Google Fonts" : "dafont") + '</a>' + (l.compra ? '<br><a href="' + l.compra + '" target="_blank" rel="noopener">Comprar la licencia</a>' : "") + '</td></tr>';
+  }).join("");
+
+  function marcar() {
+    ["vista", "color", "texto", "acento", "pieza", "palabra"].forEach(function (n) { var r = document.getElementById(n + "-" + estado[n]); if (r) r.checked = true; });
+  }
+  document.getElementById("mandos").addEventListener("change", function (ev) {
+    var t = ev.target;
+    if (t.name && t.name in estado) { estado[t.name] = t.value; pintar(); }
+  });
+  document.getElementById("mandos").addEventListener("submit", function (ev) { ev.preventDefault(); });
+  document.getElementById("letras").addEventListener("click", function (ev) {
+    var b = ev.target.closest(".chip-letra"); if (!b) return;
+    estado.letra = b.dataset.letra; pintar();
+  });
+  document.getElementById("texto-propio").addEventListener("input", function () { if (estado.vista === "texto") pintar(); });
+  document.getElementById("tam").addEventListener("input", function () { var c = document.querySelector(".lineas"); if (c) c.style.setProperty("--tam", this.value + "px"); });
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-fav]"); if (!b) return;
+    var id = b.dataset.fav, i = estado.favoritas.indexOf(id);
+    if (i >= 0) estado.favoritas.splice(i, 1); else estado.favoritas.push(id);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-fav="' + id + '"]'), function (x) { x.setAttribute("aria-pressed", String(i < 0)); });
+    pintarFavoritas(); guardar();
+  });
+
+  function pintarFavoritas() {
+    var lista = document.getElementById("fav-lista"), vacio = document.getElementById("fav-vacio");
+    var favs = estado.favoritas.map(letra).filter(Boolean);
+    lista.hidden = !favs.length; vacio.hidden = !!favs.length;
+    lista.innerHTML = favs.map(function (l) { return '<li><span style="font-family:' + esc(l.f) + ';font-size:20px">' + esc(l.nombre) + '</span> · ' + esc(l.licencia) + '</li>'; }).join("");
+  }
+  var aviso = document.getElementById("aviso"), respaldo = document.getElementById("respaldo");
+  document.getElementById("copiar").addEventListener("click", function () {
+    var favs = estado.favoritas.map(letra).filter(Boolean);
+    var nota = document.getElementById("fav-nota").value.trim();
+    var texto = ["Mis letras favoritas de dafont para CAYLA (comparación del 17-10-2026):"].concat(
+      favs.length ? favs.map(function (l) { return "- " + l.nombre + " (" + l.autor + ") · " + l.licencia; }) : ["- ninguna marcada"],
+      ["- Color de las piezas: " + estado.color + " · texto chico: " + estado.texto + " · acento: " + estado.acento], nota ? ["- Nota: " + nota] : []).join("\n");
+    function mostrar() { respaldo.value = texto; respaldo.hidden = false; respaldo.style.minHeight = "130px"; respaldo.focus(); respaldo.select(); aviso.textContent = "No se pudo copiar solo. El texto quedó seleccionado: cópialo con Ctrl+C o ⌘C."; }
+    try { navigator.clipboard.writeText(texto).then(function () { aviso.textContent = "Copiado. Pégalo en la conversación."; respaldo.hidden = true; }, mostrar); } catch (e) { mostrar(); }
+  });
+
+
+  // ---------- Hojas para compartir: ?hojas arma las páginas del PDF con lo de fábrica (rojo colibrí, DM Sans, acento en cursiva) ----------
+  var QUE_MIRAR = {
+    logo: "Si «CAYLA» se sostiene sola junto al colibrí.",
+    lema: "Cómo suena la marca en una frase, con su palabra de acento.",
+    letrero: "Si se reconoce de lejos, sobre la fachada de la tienda.",
+    etiqueta: "La prenda en la mano: nombre, talla y precio.",
+    bolsa: "La marca que sale a la calle con la cliente.",
+    post: "Una campaña en Instagram, en el formato vertical 4:5.",
+    interna: "Si se lee chica, cosida dentro de la prenda.",
+    precios: "Si las cifras se alinean: solo Bodoni XT y Vogue las traen del mismo ancho."
+  };
+  function hojas() {
+    document.documentElement.dataset.theme = "light";
+    estado.color = "colibri"; estado.texto = "misma"; estado.acento = "misma"; estado.palabra = "logo";
+    var cabeza = function (n, total) { return '<div class="hoja-cab"><span><svg class="ave" viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg><b>CAYLA</b> Letras de dafont para la marca · 17 de octubre de 2026</span><span>' + n + ' / ' + total + '</span></div>'; };
+    var chip = function (l) { var et = ETIQ[l.grupo]; return '<span class="chip-lic ' + et[1] + '">' + et[0] + '</span>'; };
+    var comparar = ["lema", "etiqueta", "bolsa", "post", "interna", "precios"]; // el letrero casi no cambia: la palabra es fija
+    var total = 2 + comparar.length + LETRAS.length + 1, n = 0, html = [];
+    // 1. Portada
+    html.push('<section class="hoja">' + cabeza(++n, total) + '<div class="portada"><div>' +
+      '<span class="ceja">Tienda web · identidad de marca</span><h1>Las letras de dafont, puestas en CAYLA</h1>' +
+      '<p class="bajada">Quince letras escogidas en dafont porque encajan con la marca, junto a la EB Garamond de hoy, dibujadas en doce piezas reales de CAYLA. La palabra CAYLA va siempre con el dibujo del logo del escaparate; la letra elegida va en todo lo demás. Sirve para elegir mirando: primero cada pieza con todas las letras y después cada letra en todas las piezas.</p>' +
+      '<div class="tiers"><div class="tier tier-libre"><b>Libres para CAYLA</b><p>Butler, Bodoni XT, ZT Bros Oskon 90s, Oranienbaum, Belgiano Serif, Ahellya, Zeit Light, Producer y Creato Display, más Tangerine como palabra de acento. Su licencia permite usarlas en la tienda, las etiquetas y las bolsas sin pagar, y escriben bien el español.</p></div>' +
+      '<div class="tier tier-pago"><b>Solo para mirar</b><p>Le Jour Serif, Recoleta, Voguella y Vogue son de uso personal o de prueba. Edensor es gratis, pero su versión gratis escribe «cumpleanos» en vez de «cumpleaños». Para usarlas en CAYLA hay que comprar su licencia.</p></div>' +
+      '<div class="tier tier-fuera"><b>Descartadas</b><p>Ballet Harmony y Rosehot no tienen ñ ni tildes. Bauserif mezcla dos fuentes comerciales.</p></div></div>' +
+      '<div class="indice-hojas"><span><b>Página 2:</b> el logo del escaparate, en vector: la palabra CAYLA va siempre con este dibujo.</span><span><b>Páginas 3 a ' + (2 + comparar.length) + ':</b> una pieza con las quince letras.</span><span><b>Páginas ' + (3 + comparar.length) + ' a ' + (2 + comparar.length + LETRAS.length) + ':</b> cada letra en las doce piezas.</span><span><b>Página ' + total + ':</b> licencias y dónde conseguir cada una.</span></div>' +
+      '</div><div class="muro-marcas">' + LETRAS.map(function (l) { return '<div><span class="m" style="font-family:' + esc(l.f) + ';font-weight:' + l.ft + '">Eterna primavera</span><small>' + esc(l.nombre) + '<br>' + chip(l) + '</small></div>'; }).join("") + '</div></div></section>');
+    // 2. El logo del escaparate
+    html.push('<section class="hoja">' + cabeza(++n, total) + '<h2 class="hoja-tit">El logo de CAYLA, en vector</h2><p class="hoja-sub">La palabra CAYLA va siempre con el dibujo del logo de la tienda física; la letra elegida va en todo lo demás. Se calcó del archivo oficial en alta (2000×580 px): superpuestos, el vector y el original no se separan a simple vista.</p>' +
+      '<div class="logo-hoja"><div class="logo-grande"><svg viewBox="0 0 2000 580" role="img" aria-label="CAYLA"><use href="#logo-escaparate"/></svg></div>' +
+      '<div class="logo-pares"><figure><img src="logo-oficial.png" alt="El logo oficial de CAYLA"><figcaption>El archivo oficial (2000×580 px)</figcaption></figure><figure><div class="logo-chico"><svg viewBox="0 0 2000 580" aria-hidden="true"><use href="#logo-escaparate"/></svg></div><figcaption>El vector calcado, al mismo tamaño</figcaption></figure>' +
+      '<figure class="logo-oscuro"><div class="logo-chico"><svg viewBox="0 0 2000 580" aria-hidden="true"><use href="#logo-escaparate"/></svg></div><figcaption>Sobre negro, como en el letrero</figcaption></figure></div>' +
+      '<div class="dos"><p class="nota"><b>Cómo se hizo.</b> Se siguió el borde del archivo oficial con precisión de fracción de píxel: 8 contornos (el colibrí, las cinco letras y los huecos de las A). Solo difiere el suavizado del borde. Su A, con la barra al 17 % del alto, no está en ninguna de cien fuentes medidas: el dibujo es propio.</p><p class="nota"><b>El rojo del logo es más vivo que el del ERP.</b> El archivo usa #D13730; el ERP, #B8412D. Para el logo va el del archivo; para un texto rojo chico sobre crema, #D13730 no llega al contraste mínimo (4,3:1) y #B8412D sí (4,8:1). El colibrí oficial también difiere un poco del que dibuja el ERP.</p></div></div></section>');
+    // 3. Una pieza con todas las letras
+    comparar.forEach(function (id) {
+      var p = PIEZAS.filter(function (x) { return x.id === id; })[0];
+      html.push('<section class="hoja">' + cabeza(++n, total) + '<h2 class="hoja-tit">' + p.nombre + ', con las quince letras</h2><p class="hoja-sub">' + QUE_MIRAR[id] + '</p><div class="rejilla rejilla-5">' +
+        LETRAS.map(function (l) { return '<figure class="carta"><figcaption><b>' + esc(l.nombre) + '</b>' + chip(l) + '</figcaption><div class="pz-caja" style="' + esc(vars(l)) + '">' + pieza(p) + '</div></figure>'; }).join("") + '</div></section>');
+    });
+    // 4. Una letra en todas las piezas
+    LETRAS.forEach(function (l) {
+      html.push('<section class="hoja">' + cabeza(++n, total) + '<div class="cab-letra"><p class="n" style="font-family:' + esc(l.f) + ';font-weight:' + l.ft + '">' + esc(l.nombre) + '</p><div><p class="meta">' + esc(l.autor) + ' ' + chip(l) + ' ' + esc(l.licencia) + '</p><p>' + esc(l.para) + ' ' + esc(l.ojo) + '</p></div></div><div class="rejilla rejilla-4">' +
+        PIEZAS.map(function (p) { return '<figure class="carta"><figcaption><b>' + p.nombre + '</b></figcaption><div class="pz-caja" style="' + esc(vars(l)) + '">' + pieza(p) + '</div></figure>'; }).join("") + '</div></section>');
+    });
+    // 5. Licencias
+    html.push('<section class="hoja">' + cabeza(++n, total) + '<h2 class="hoja-tit">Licencias y dónde conseguir cada letra</h2><p class="hoja-sub">Leídas el 17 de octubre de 2026 en la página de cada letra en dafont y en el archivo de licencia de su zip. Este PDF son imágenes: no lleva los archivos de las fuentes.</p>' +
+      '<div class="tabla-caja"><table><thead><tr><th>Muestra</th><th>Letra y autor</th><th>Licencia</th><th>Para CAYLA</th><th>Ojo con</th><th>Dónde</th></tr></thead><tbody>' +
+      LETRAS.concat([TANGERINE]).map(function (l) { var et = ETIQ[l.grupo]; return '<tr><td class="muestra-celda" style="font-family:' + esc(l.f) + ';font-weight:' + (l.ft || l.fm) + '">Aurora</td><td><b>' + esc(l.nombre) + '</b><br><span style="color:var(--taupe)">' + esc(l.autor) + '</span></td><td><span class="chip-lic ' + et[1] + '">' + esc(l.licencia) + '</span></td><td>' + esc(l.para) + '</td><td>' + esc(l.ojo) + '</td><td><span class="url">' + esc(l.url.replace(/^https:\/\//, "")) + '</span>' + (l.compra ? '<br><span class="url">Licencia: ' + esc(l.compra.replace(/^https:\/\//, "")) + '</span>' : "") + '</td></tr>'; }).join("") +
+      '</tbody></table></div><div class="dos"><p class="nota"><b>Los precios no se alinean con estas letras.</b> Solo Bodoni XT y Vogue traen las cifras del mismo ancho. Si se elige otra para la marca, los precios de la tienda irían en una letra de lectura que sí las tenga.</p><p class="nota"><b>Una letra de marca no tiene que hacerlo todo.</b> La elegida iría en el logotipo, los títulos, las campañas, la etiqueta y la bolsa; el texto chico se queda en una letra de lectura.</p></div></section>');
+    document.body.innerHTML = '<div class="hojas">' + html.join("") + '</div>' + document.querySelector('svg[aria-hidden="true"]').outerHTML;
+  }
+  if (/[?&]hojas\b/.test(location.search)) { hojas(); return; }
+
+  marcar(); pintar();
+})();
+</script>
+</body>
+</html>
