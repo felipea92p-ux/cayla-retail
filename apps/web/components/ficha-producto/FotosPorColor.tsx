@@ -74,7 +74,7 @@ export function FotosPorColor({
   useEffect(() => {
     fotosRef.current = fotos;
   }, [fotos]);
-  const { elegir, ocupado, revision } = useSubirFotos({
+  const { elegir, ocupado } = useSubirFotos({
     onSubidas: (nuevas) =>
       onFotos(conFotosNuevas(fotosRef.current, nuevas.map((n) => ({ clientKey: nuevaClave(), id: null, url: n.url, esPrincipal: false, colorCodigo: n.colorCodigo })))),
   });
@@ -187,7 +187,7 @@ export function FotosPorColor({
         </Aviso>
       )}
 
-      <p className="text-xs text-tinta/45">JPG, PNG o WebP, hasta 25 MB. Cada foto sale del mismo tamaño, sobre blanco; antes de subirla eliges si va sin fondo.</p>
+      <p className="text-xs text-tinta/45">JPG, PNG o WebP, hasta 5 MB. Se sube tal cual la entregas. Un PNG con fondo transparente además entra al armador de looks.</p>
 
       {viendo !== undefined && (
         <HojaDeFotos
@@ -205,8 +205,6 @@ export function FotosPorColor({
           onClose={() => setViendo(undefined)}
         />
       )}
-      {/* Fuera de la hoja: la revisión se abre encima, y si se cerrara la hoja mientras tanto no debe llevársela. */}
-      {revision}
     </div>
   );
 }

@@ -38,14 +38,14 @@ export const GUIA_TIENDA_WEB_RESUMEN: Guia = {
       id: "pendientes",
       ancla: "tienda-web.pendientes",
       titulo: "Lo que te pide hoy",
-      texto: "De lo urgente a lo que solo informa: pedidos por confirmar, plata por devolver, recomendaciones sin leer, tallas que llegaron. Tocas una y te lleva a la pantalla donde se resuelve.",
+      texto: "De lo urgente a lo que solo informa: pedidos por confirmar, plata por devolver, recomendaciones por responder, tallas que llegaron. Tocas una y te lleva a la pantalla donde se resuelve.",
     },
     {
       id: "camino",
       ancla: "tienda-web.camino",
       opcional: true,
       titulo: "El camino de los pedidos",
-      texto: "Un pedido web pasa por tres pasos: lo confirmas, el cliente paga y lo recoge. Entre cada paso va su plazo. Toca un paso para ver sus pedidos.",
+      texto: "Cuántos pedidos hay en cada paso: por confirmar, por cobrar, por entregar y cerrados. Los tramos con el reloj en rojo pierden la venta: sin confirmar, se cierra solo; sin ningún pago, se anula solo. El de la campana solo avisa. Toca uno para ver esos pedidos.",
     },
     {
       id: "nota",
@@ -62,9 +62,10 @@ export const GUIA_TIENDA_WEB_RESUMEN: Guia = {
   ],
 };
 
-// Tienda web ▸ Pedidos (ADR-0408, act. 8, 9 y 10). El piloto abre el primer pedido de la lista y, si hay algo para enviar a otra tienda, su
-// hoja; si el pedido ya está confirmado, abre «Registrar un pago», elige Yape y escribe un n.º de ejemplo; y si hay algo pagado, pasa a
-// «Por entregar», abre el primero, escribe un código de ejemplo y abre «Anular el pedido» (lo que pasaría con sus prendas, su plata y su
+// Tienda web ▸ Pedidos (ADR-0408, act. 8, 9 y 10; ADR-0430 act. 2026-10-17: el camino es el único filtro y la lista abre con «Lo que te
+// toca»). El piloto abre el primer pedido de la lista y, si hay algo para enviar a otra tienda, su
+// hoja; si el pedido ya está confirmado, abre «Registrar un pago», elige Yape y escribe un n.º de ejemplo; y si hay algo pagado, toca la
+// estación «Por entregar», abre el primero, escribe un código de ejemplo y abre «Anular el pedido» (lo que pasaría con sus prendas, su plata y su
 // boleta) y elige un motivo. Nunca confirma, cierra, anula, envía, registra, devuelve ni entrega: esos botones se explican encendidos. Lo que se ve depende del pedido que abre (por confirmar o ya
 // confirmado), por eso los pasos de la hoja son opcionales.
 export const GUIA_PEDIDOS_WEB: Guia = {
@@ -80,10 +81,24 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       texto: "Cuando un cliente toca «Separar» en la web, su pedido llega aquí y te escribe por WhatsApp con su número. Tú revisas el stock y lo confirmas: recién ahí se reservan sus prendas. Es una demo: no se confirma ni se anula nada.",
     },
     {
+      id: "todo-al-dia",
+      ancla: "pedidos-web.todo-al-dia",
+      opcional: true,
+      titulo: "Todo al día",
+      texto: "Cuando no queda nada por hacer, te lo dice en una línea, con lo último que pasó. Abajo quedan los pedidos cerrados de los últimos 30 días.",
+    },
+    {
+      id: "como",
+      ancla: "pedidos-web.como",
+      titulo: "¿Cómo funciona?",
+      texto: "Abre, bajo cada paso del camino, lo que conviene saber de él: cuándo se reserva la prenda, a dónde va el efectivo, con qué se entrega y cuánto se guarda lo cerrado. Tócalo otra vez para cerrarlo.",
+    },
+    {
       id: "cifras",
       ancla: "pedidos-web.cifras",
+      opcional: true,
       titulo: "El camino de un pedido",
-      texto: "Un pedido pasa por tres pasos: lo confirmas, el cliente paga y lo recoge; entre cada paso va su plazo. Cada cifra dice cuántos hay en ese paso y toca para ver la lista. Aparte, lo cobrado hoy (o lo que falta devolver de un anulado).",
+      texto: "Cuántos pedidos hay en cada paso. Los tramos con el reloj en rojo pierden la venta: si nadie lo confirma, se cierra solo; si no paga nada, se anula solo. El de la campana solo avisa. Toca un paso para ver solo esos pedidos, y otra vez para volver a todo.",
     },
     {
       id: "para-enviar",
@@ -116,17 +131,26 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       texto: "«Enviar por traslado» suelta la reserva de aquí y arma el traslado en el mismo paso: nadie puede venderla mientras viaja. En la demo no se envía nada.",
     },
     {
-      id: "pestanas",
-      ancla: "pedidos-web.pestanas",
-      preparar: [{ tipo: "escape" }],
-      titulo: "En qué paso va cada uno",
-      texto: "«Por confirmar» espera que revises el stock (si nadie lo confirma a tiempo, se cierra solo). «Por cobrar» ya tiene sus prendas reservadas, «Por entregar» está pagado y «Cerrados» guarda lo entregado, lo anulado y lo que venció.",
-    },
-    {
       id: "lista",
       ancla: "pedidos-web.lista",
-      titulo: "Cada pedido",
-      texto: "Su número es el mismo que el cliente te manda por WhatsApp. Ves quién lo separó, sus prendas, el total y qué toca hacer ahora. Tócalo para abrirlo.",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Lo que te toca",
+      texto: "Todo lo que pide algo, junto: arriba lo que se pierde si no actúas (lo que se cierra solo en menos de 3 horas), después lo que ya pasó su aviso y la plata por devolver. Su número es el mismo que el cliente te manda por WhatsApp.",
+    },
+    {
+      id: "plazo",
+      ancla: "pedidos-web.plazo",
+      opcional: true,
+      titulo: "Su plazo",
+      texto: "Qué pasa y cuándo, una sola vez: «se cierra solo en 2 h», «sin pago, se anula en 5 h», «listo para recoger». En rojo, lo que se pierde o ya pasó su aviso. La barra dice cuánto va del tiempo de ese paso.",
+    },
+    {
+      id: "verbo",
+      ancla: "pedidos-web.verbo",
+      opcional: true,
+      titulo: "Lo que toca ahora",
+      texto: "Confirmar, registrar un pago, entregar, escribirle o devolver: abre el pedido en ese paso. Nada se hace con este botón solo; se hace dentro del pedido, a nombre de quien está de turno.",
     },
     {
       id: "cliente",
@@ -218,12 +242,13 @@ export const GUIA_PEDIDOS_WEB: Guia = {
     },
     {
       id: "por-entregar",
-      ancla: "pedidos-web.pestana-entregar",
+      ancla: "pedidos-web.estacion-entregar",
       opcional: true,
-      // Dos: la hoja de pagar (si se abrió) y la del pedido. Un Escape sin nada que cerrar no hace nada.
-      preparar: [{ tipo: "escape" }, { tipo: "escape" }, { tipo: "clic", ancla: "pedidos-web.pestana-entregar" }],
+      // Dos: la hoja de pagar (si se abrió) y la del pedido. Un Escape sin nada que cerrar no hace nada. Tocar la estación deja solo lo
+      // pagado en la lista.
+      preparar: [{ tipo: "escape" }, { tipo: "escape" }, { tipo: "clic", ancla: "pedidos-web.estacion-entregar" }],
       titulo: "Lo pagado, por entregar",
-      texto: "Cuando un pedido queda pagado completo, su boleta sale sola y el pedido pasa aquí hasta que el cliente venga a recogerlo. Si pasan los días y no viene, se marca en rojo.",
+      texto: "Cuando un pedido queda pagado completo, su boleta sale sola y el pedido queda aquí hasta que el cliente venga a recogerlo. Si pasan los días y no viene, se marca en rojo.",
     },
     {
       id: "boleta",
@@ -294,12 +319,14 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       texto: "«Anular y devolver» lo hace todo junto, a nombre de quien está de turno: o queda todo anulado o no cambia nada. En la demo no se anula nada.",
     },
     {
-      id: "nota",
-      ancla: "pedidos-web.nota",
-      // Dos: la de anular el pedido (si se abrió) y la del pedido. Un Escape sin nada que cerrar no hace nada.
-      preparar: [{ tipo: "escape" }, { tipo: "escape" }],
-      titulo: "Lo que conviene saber",
-      texto: "Separar no toca el stock: la prenda se reserva al confirmar y sale del stock al entregarla. Los pagos se anotan dentro de cada pedido (el efectivo, en la caja abierta) y con el que lo completa sale su boleta. Se entrega con el código del cliente. Los pedidos web van aparte de los apartados de la tienda.",
+      id: "cerrados",
+      ancla: "pedidos-web.cerrados",
+      opcional: true,
+      // Dos: la de anular el pedido (si se abrió) y la del pedido. Después se quita el filtro «Por entregar» (si quedó puesto), porque
+      // lo cerrado se ve con la lista entera.
+      preparar: [{ tipo: "escape" }, { tipo: "escape" }, { tipo: "clic", ancla: "pedidos-web.quitar-filtro", siEsta: true }],
+      titulo: "Lo cerrado y por qué",
+      texto: "Lo entregado, lo anulado y lo que nadie confirmó de los últimos 30 días, con por qué se cerró cada uno. «Nadie lo confirmó a tiempo» es una venta perdida; si «no hay stock» crece, la vitrina está mostrando lo que esta tienda no tiene. «Ver los …» despliega sus filas.",
     },
     {
       id: "fin",
@@ -655,7 +682,8 @@ export const GUIA_VITRINA_LOOKS: Guia = {
 
 // Tienda web ▸ Vitrina ▸ Probador (ADR-0434, actividades 1 y 3): lo que necesita «Arma el tuyo». El piloto abre la hoja de una prenda, la
 // de los largos típicos, un recorte y «Preparar recortes» para mostrar sus piezas; «Guardar», «Empezar», «Usar en el probador» y
-// «Descartar» se EXPLICAN.
+// «Descartar» se EXPLICAN. Desde /formidable (2026-10-17) el paso que toca va en la cabecera: «Preparar», «Revisar» o «Anotar largos»,
+// uno a la vez (por eso sus pasos son opcionales y van primero).
 export const GUIA_VITRINA_PROBADOR: Guia = {
   id: "tienda-web.vitrina.probador",
   ruta: "/tienda-web/vitrina/probador",
@@ -672,19 +700,67 @@ export const GUIA_VITRINA_PROBADOR: Guia = {
       id: "pestanas",
       ancla: "vitrina.pestanas",
       titulo: "Modelos, looks y probador",
-      texto: "La vitrina tiene tres partes: Modelos (qué prendas se ven en la web), Looks y esta, el Probador. Solo salen aquí las prendas que se ven en la web.",
+      texto: "La vitrina tiene tres partes: Modelos (qué prendas se ven en la web), Looks y esta, el Probador. Aquí salen las prendas de la web que el probador usa: la ropa y los bolsos (los demás accesorios, no).",
     },
     {
       id: "cifras",
       ancla: "probador.cifras",
       titulo: "Cómo va el probador",
-      texto: "Cuántas prendas ya salen en el probador, a cuántas les falta el largo, cuántos colores con stock faltan fotografiar y cuántos recortes están pendientes. Toca una tarjeta y la lista se queda con esas.",
+      texto: "Cuántas prendas ya salen en el probador, a cuántas les falta el largo, cuántos colores con stock faltan fotografiar y cuántas fotos esperan su recorte. Toca una tarjeta y la lista se queda con esas.",
+    },
+    {
+      id: "preparar",
+      ancla: "probador.preparar",
+      opcional: true,
+      titulo: "El paso que toca: preparar los recortes",
+      texto: "Arriba va siempre lo que toca hacer. Ahora, recortar en este equipo las fotos que faltan, de lo que más se vende a lo que menos (te lo abrimos). Ninguna foto cambia: el recorte es un archivo aparte.",
+    },
+    {
+      id: "recortes-responsable",
+      ancla: "recortes.responsable",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "probador.preparar" }],
+      prepararSoloAlAvanzar: true,
+      titulo: "Quién lo hace",
+      texto: "Como en todo el ERP, queda anotado quién preparó los recortes. Se elige una vez y vale para todas las fotos.",
+    },
+    {
+      id: "recortes-empezar",
+      ancla: "recortes.empezar",
+      opcional: true,
+      titulo: "Empezar y pausar",
+      texto: "«Empezar» saca el recorte de una foto tras otra (solo de las que traen fondo transparente) y puedes pausar cuando quieras: lo hecho queda guardado. Deja la pestaña abierta mientras recorta. En la demo cerramos sin empezar.",
+    },
+    {
+      id: "revisar",
+      ancla: "probador.revisar",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      prepararSoloAlAvanzar: true,
+      titulo: "Las dudosas, antes de usarlas",
+      texto: "Un recorte con huecos (una abertura del diseño, como un ojal, o un defecto de la imagen) queda por revisar: no sale en el probador hasta que alguien lo mira. Aquí los revisas uno por uno; si descartas uno por error, el aviso trae «Deshacer».",
+    },
+    {
+      id: "largos",
+      ancla: "probador.largos",
+      opcional: true,
+      titulo: "El paso que toca: los largos",
+      texto: "Cuando ya no queda nada por recortar ni por revisar, el paso es anotar los largos que faltan: la lista se queda con esas prendas.",
     },
     {
       id: "prendas",
       ancla: "probador.prendas",
+      preparar: [{ tipo: "escape" }],
+      prepararSoloAlAvanzar: true,
       titulo: "La lista viva",
-      texto: "Cada prenda de la web, de lo que más se vende a lo que menos, con lo que le falta: su largo, la foto de cada color y su recorte. Se actualiza sola.",
+      texto: "Cada prenda que el probador usa, de lo que más se vende a lo que menos: su largo, la foto de cada color y si ya sale. Se actualiza sola.",
+    },
+    {
+      id: "veredicto",
+      ancla: "probador.veredicto",
+      opcional: true,
+      titulo: "Si ya sale",
+      texto: "«Lista» si ya sale en el probador. Si no, lo primero que le falta: su foto, recortarla, revisar su recorte o anotar su largo.",
     },
     {
       id: "buscador",
@@ -698,7 +774,7 @@ export const GUIA_VITRINA_PROBADOR: Guia = {
       ancla: "probador.prenda",
       opcional: true,
       titulo: "Una prenda",
-      texto: "Tócala para anotar su largo y ver qué colores ya tienen su foto (te la abrimos).",
+      texto: "Tócala para ver qué le falta, anotar su largo y ver qué colores ya tienen su foto (te la abrimos).",
     },
     {
       id: "largo-campo",
@@ -759,14 +835,14 @@ export const GUIA_VITRINA_PROBADOR: Guia = {
       ancla: "probador.ayuda",
       preparar: [{ tipo: "escape" }],
       prepararSoloAlAvanzar: true,
-      titulo: "Los recortes",
-      texto: "Cada prenda va recortada, sin fondo, para ponerla sobre otra en el probador. Aquí preparas los que faltan, revisas los dudosos y miras cualquiera de cerca.",
+      titulo: "Las fotos de la web",
+      texto: "Cada prenda va recortada, sin fondo, para ponerla sobre otra en el probador. Aquí ves cada foto con su recorte y miras cualquiera de cerca.",
     },
     {
       id: "filtros-fotos",
       ancla: "probador.filtros-fotos",
       opcional: true,
-      titulo: "Qué recortes ver",
+      titulo: "Qué fotos ver",
       texto: "Todas las fotos, solo las recortadas, las que esperan revisión o las que todavía no tienen recorte.",
     },
     {
@@ -807,46 +883,12 @@ export const GUIA_VITRINA_PROBADOR: Guia = {
       texto: "«Usar en el probador» la deja lista; «Descartar» la saca del probador y la foto sigue igual: la puedes volver a usar después. En la demo cerramos sin decidir.",
     },
     {
-      id: "preparar",
-      ancla: "probador.preparar",
-      opcional: true,
-      preparar: [{ tipo: "escape" }],
-      prepararSoloAlAvanzar: true,
-      titulo: "Preparar recortes",
-      texto: "Recorta en este equipo las fotos que faltan, de lo que más se vende a lo que menos (te lo abrimos). Ninguna foto cambia: el recorte es un archivo aparte.",
-    },
-    {
-      id: "recortes-responsable",
-      ancla: "recortes.responsable",
-      opcional: true,
-      preparar: [{ tipo: "clic", ancla: "probador.preparar" }],
-      prepararSoloAlAvanzar: true,
-      titulo: "Quién lo hace",
-      texto: "Como en todo el ERP, queda anotado quién preparó los recortes. Se elige una vez y vale para todas las fotos.",
-    },
-    {
-      id: "recortes-empezar",
-      ancla: "recortes.empezar",
-      opcional: true,
-      titulo: "Empezar y pausar",
-      texto: "«Empezar» recorta una foto tras otra (un par de segundos cada una) y puedes pausar cuando quieras: lo hecho queda guardado. Deja la pestaña abierta mientras recorta. En la demo cerramos sin empezar.",
-    },
-    {
-      id: "revisar",
-      ancla: "probador.revisar",
-      opcional: true,
-      preparar: [{ tipo: "escape" }],
-      prepararSoloAlAvanzar: true,
-      titulo: "Las dudosas, antes de usarlas",
-      texto: "Un recorte con huecos o de una foto que se subió con su fondo queda por revisar: no sale en el probador hasta que alguien lo mira. Aquí los revisas uno por uno.",
-    },
-    {
       id: "nota",
       ancla: "probador.nota",
       preparar: [{ tipo: "escape" }],
       prepararSoloAlAvanzar: true,
       titulo: "Cuándo sale una prenda",
-      texto: "Con su largo y un recorte listo. Un color sin foto propia se elige igual: el cliente ve otra foto de la prenda y se le avisa. Ninguna foto cambia.",
+      texto: "Con su largo y un recorte listo. Un color sin foto propia se elige igual: el cliente ve otra foto de la prenda y se le avisa. Solo cuentan la ropa y los bolsos. Ninguna foto cambia.",
     },
     {
       id: "fin",
@@ -859,8 +901,8 @@ export const GUIA_VITRINA_PROBADOR: Guia = {
 };
 
 // Tienda web ▸ Recomendaciones (ADR-0408, Felipe 2026-10-15): lo que los clientes le recomiendan a CAYLA desde la tienda online, con su
-// nombre. El piloto abre la primera recomendación de la lista, escribe un ejemplo de respuesta (que no envía) y cierra la hoja. Marcar
-// como leída, Enviar respuesta y Archivar se EXPLICAN.
+// nombre. El piloto abre la primera recomendación de la lista, escribe un ejemplo de respuesta (que no envía) y cierra la hoja. Enviar
+// respuesta y Archivar sin responder se EXPLICAN.
 export const GUIA_RECOMENDACIONES: Guia = {
   id: "tienda-web.recomendaciones",
   ruta: "/tienda-web/recomendaciones",
@@ -877,19 +919,19 @@ export const GUIA_RECOMENDACIONES: Guia = {
       id: "cifras",
       ancla: "recomendaciones.cifras",
       titulo: "Cuántas hay",
-      texto: "«Sin leer» son las que nadie abrió todavía. Toca una cifra para ver solo esas en la lista; tócala otra vez para volver a la bandeja.",
+      texto: "«Por responder» son las que esperan algo de CAYLA: la lista las muestra de entrada. Toca otra cifra para ver solo esas; tócala otra vez para volver a las que esperan.",
     },
     {
       id: "filtros",
       ancla: "recomendaciones.filtros",
       titulo: "Buscar y filtrar",
-      texto: "Busca una palabra de lo que escribieron o el nombre del cliente. «Estado» cambia entre la bandeja, las sin leer, las respondidas y las archivadas; «Sobre» deja las de una tienda o las de CAYLA en general.",
+      texto: "Busca una palabra de lo que escribieron o el nombre del cliente. «Estado» cambia entre las por responder, toda la bandeja, las respondidas y las archivadas; «Sobre» deja las de una tienda o las de CAYLA en general.",
     },
     {
       id: "lista",
       ancla: "recomendaciones.lista",
       titulo: "La bandeja",
-      texto: "Cada fila dice quién la escribió, sobre qué tienda es, lo que escribió y en qué está. Toca una para leerla entera y responder.",
+      texto: "Cada fila dice quién la escribió, sobre qué tienda es, lo que escribió y en qué está. Toca una y se abre al costado, con la lista a la vista.",
     },
     {
       id: "vacio",
@@ -918,7 +960,14 @@ export const GUIA_RECOMENDACIONES: Guia = {
       ancla: "recomendacion.cliente",
       opcional: true,
       titulo: "Quién la escribió",
-      texto: "Su nombre arriba y, debajo, sobre qué tienda es y, si tu rol ve las fichas de clientes, el camino a su ficha. Si su ficha se anonimizó, la recomendación se queda sin su nombre.",
+      texto: "Arriba del cajón: sobre qué tienda es, su nombre y, si tu rol ve las fichas de clientes, quién es (del club, cuánto compra, en qué tienda) y el camino a su ficha. Si su ficha se anonimizó, queda sin su nombre.",
+    },
+    {
+      id: "quien-es",
+      ancla: "recomendacion.quien-es",
+      opcional: true,
+      titulo: "Quién es",
+      texto: "Si es del club, cuánto compró en el último año, en qué tienda y cuándo fue la última vez. Lo ves solo si tu rol ve las fichas de clientes.",
     },
     {
       id: "respuesta-dada",
@@ -928,33 +977,61 @@ export const GUIA_RECOMENDACIONES: Guia = {
       texto: "Si alguien ya le respondió, aquí ves qué le dijo, quién y cuándo. El cliente la lee en su cuenta.",
     },
     {
+      id: "lo-que-pide",
+      ancla: "recomendacion.lo-que-pide",
+      opcional: true,
+      titulo: "Lo que pide",
+      texto: "De qué habla lo que escribió y el dato del ERP para responderle: cuántos modelos hay en su talla, cuántos colores, cómo entrega la tienda online. Tocar otro tema cambia las formas de empezar.",
+    },
+    {
+      id: "inicios",
+      ancla: "recomendacion.inicios",
+      opcional: true,
+      titulo: "Formas de empezar",
+      texto: "Un comienzo que lo saluda por su nombre y dice qué se hará con lo que contó. Tócalo y sigue escribiendo; si ya tenías algo, «Recuperar lo que escribí» lo trae de vuelta.",
+    },
+    {
       id: "respuesta",
       ancla: "recomendacion.respuesta",
       opcional: true,
       titulo: "Tu respuesta",
-      texto: "Un texto corto que el cliente lee en su cuenta de la tienda online. Se escribe una sola vez. Si no hace falta responder, déjala vacía: el botón la marca como leída.",
+      texto: "Un texto corto que el cliente lee en su cuenta de la tienda online. Se escribe una sola vez: el corrector subraya las faltas y abajo ves cómo le llega.",
       demostrar: [{ tipo: "escribir", ancla: "recomendacion.respuesta", texto: "¡Gracias por escribirnos! Ya lo estamos viendo." }],
+    },
+    {
+      id: "vista-cliente",
+      ancla: "recomendacion.vista-cliente",
+      opcional: true,
+      titulo: "Así le llega",
+      texto: "Es la misma tarjeta que el cliente ve en su cuenta de la tienda online, con tu respuesta mientras la escribes. Revísala aquí: después de enviada ya no se corrige.",
     },
     {
       id: "responsable",
       ancla: "recomendacion.responsable",
       opcional: true,
       titulo: "Quién lo hace",
-      texto: "La persona del equipo que la lee o la responde. Queda anotado con su nombre.",
+      texto: "La persona del equipo que la responde o la archiva. Queda anotado con su nombre.",
     },
     {
       id: "acciones",
       ancla: "recomendacion.acciones",
       opcional: true,
-      titulo: "Responder, leída o archivar",
-      texto: "«Enviar respuesta» se la manda a su cuenta; sin respuesta, «Marcar como leída». «Archivar» la saca de la bandeja sin borrarla y se puede deshacer. En la demo no tocamos ninguno.",
+      titulo: "Responder o archivar",
+      texto: "«Enviar respuesta» se la manda a su cuenta. Si no hace falta responder, «Archivar sin responder» la saca de la bandeja sin borrarla y el cliente la ve como leída. Después, «Siguiente por responder» o ↑ ↓ te llevan a otra sin cerrar. En la demo no tocamos ninguno.",
+    },
+    {
+      id: "por-salir",
+      ancla: "recomendacion.por-salir",
+      opcional: true,
+      titulo: "Ocho segundos para deshacer",
+      texto: "Al enviar, tu respuesta espera 8 segundos antes de salir: «Deshacer» la devuelve a la caja para corregirla. Si cierras el cajón o pasas a otra, sale en ese momento.",
     },
     {
       id: "nota",
       ancla: "recomendaciones.nota",
       preparar: [{ tipo: "escape" }],
       titulo: "Lo que conviene saber",
-      texto: "Las recomendaciones no se borran: se archivan. Cada lectura, respuesta y archivo queda anotado en la Actividad con quién lo hizo.",
+      texto: "Las recomendaciones no se borran: se archivan. Cada respuesta y cada archivo queda anotado en la Actividad con quién lo hizo.",
     },
     {
       id: "fin",

@@ -413,6 +413,8 @@ const MENSAJES_SEPARAR: Record<string, string> = {
   tienda_separar_tope_prenda: `Puedes separar hasta ${TOPE_POR_PRENDA} de la misma prenda y talla, contando las que ya separaste. Quita una para separar.`,
   pedido_web_muchas_prendas: `Tu bolsa lleva hasta ${TOPE_PRENDAS} prendas. Quita alguna para separar.`,
   tienda_sin_cuenta: "Tu cuenta no terminó de crearse. Entra a «Mi perfil» para terminarla.",
+  // Se separa siendo del Club (ADR-0438): sin documento ni celular la tienda no puede confirmar ni entregar el pedido.
+  tienda_sin_club: "Antes de separar, completa tus datos: son tu documento y tu celular, una sola vez.",
   // Lo que llegó no se pudo leer (una bolsa vieja, una pestaña a medias): se vuelve a mirar la bolsa de ahora.
   pedido_web_linea_invalida: "Revisa tu bolsa y vuelve a tocar «Separar».",
   pedido_web_bolsa_vacia: "Revisa tu bolsa y vuelve a tocar «Separar».",
@@ -421,6 +423,7 @@ const MENSAJES_SEPARAR: Record<string, string> = {
 const CAMINOS_SEPARAR: Record<string, { texto: string; href: string }> = {
   tienda_separar_tope: { texto: "Ver mis pedidos", href: "/cuenta/pedidos" },
   tienda_separar_tope_prenda: { texto: "Ver mis pedidos", href: "/cuenta/pedidos" },
+  tienda_sin_club: { texto: "Completar mis datos", href: "/cuenta/club?volver=%2Fbolsa" },
 };
 export const SEPARAR_SIN_RESPUESTA = "No pudimos separar ahora. Tu bolsa sigue aquí: vuelve a intentarlo en un momento.";
 export const BOLSA_CAMBIO = "Tu bolsa cambió en otra pestaña. Revísala y vuelve a tocar «Separar».";

@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
-import { useRouter } from "next/navigation";
 import { agregarALaBolsa, quitarDeLaBolsa } from "@/app/acciones/bolsa";
 
 /**
@@ -25,7 +24,6 @@ export function CantidadEnLaBolsa({
   /** Con la prenda agotada (o sin tantas en las tiendas) no se ofrece otra. */
   puedeSumar: boolean;
 }) {
-  const router = useRouter();
   const [pendiente, iniciar] = useTransition();
   // La frase de un «+» que no pudo, atada a la cantidad que se veía: si la cantidad cambia, ya no corresponde y se va.
   const [aviso, setAviso] = useState<{ texto: string; cantidad: number } | null>(null);
@@ -34,8 +32,7 @@ export function CantidadEnLaBolsa({
     if (pendiente) return;
     iniciar(async () => {
       const r = await agregarALaBolsa(varianteId, null);
-      if (r.estado === "sin_sesion") router.push("/entrar");
-      else setAviso(r.estado === "no" ? { texto: r.mensaje, cantidad } : null);
+      setAviso(r.estado === "no" ? { texto: r.mensaje, cantidad } : null);
     });
   }
 

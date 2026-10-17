@@ -13,7 +13,7 @@
 //   NO HACE: lo de cobrar (registrar y anular un pago) vive en `pedidos-web-cobro-reglas.ts` (actividad 9); aquí solo se lee lo que
 //            pagó cada pedido y lo que queda por devolver de uno anulado. Nunca compara el código: lo compara la base.
 
-import { diaLima, hoyLima, sumarDias } from "./fechas-lima";
+import { diaLima, horaLima, hoyLima, sumarDias } from "./fechas-lima";
 import { enlaceWhatsAppA } from "./facturacion-comprobantes-reglas";
 import { soles } from "./precio-sede-reglas";
 import { formatoCelular } from "./separaciones-reglas";
@@ -430,12 +430,13 @@ export function leerDetalle(data: unknown): PedidoDetalle | null {
 // ---------------------------------------------------------------------------------------------------------------------------
 
 export type PestanaPedidos = "confirmar" | "cobrar" | "entregar" | "cerrados";
-export const PESTANAS_PEDIDOS: readonly { clave: PestanaPedidos; etiqueta: string }[] = [
-  { clave: "confirmar", etiqueta: "Por confirmar" },
-  { clave: "cobrar", etiqueta: "Por cobrar" },
-  { clave: "entregar", etiqueta: "Por entregar" },
-  { clave: "cerrados", etiqueta: "Cerrados" },
-];
+/** El nombre de cada estación del camino (y del filtro que pone). */
+export const NOMBRE_ESTACION: Readonly<Record<PestanaPedidos, string>> = {
+  confirmar: "Por confirmar",
+  cobrar: "Por cobrar",
+  entregar: "Por entregar",
+  cerrados: "Cerrados",
+};
 
 export function pestanaDe(estado: EstadoPedidoWeb): PestanaPedidos {
   if (estado === "por_confirmar") return "confirmar";
@@ -479,9 +480,17 @@ export type CifrasPedidosWeb = {
   /** Lo que la tienda todavía tiene de clientes en pedidos anulados (se les devuelve anulando cada pago), y en cuántos pedidos. */
   porDevolver: number;
   pedidosPorDevolver: number;
+  /** Pagados que todavía esperan una prenda (por traer o por conseguir): no se pueden entregar. */
+  esperanPrenda: number;
+  /** Lo que le queda al confirmado SIN NINGÚN pago que se anula solo primero (`fn_anular_pedidos_web_sin_pagar`, ADR-0408 D2: a las
+   *  horas de «Si no paga» se anula y sus prendas se liberan); null si no hay ninguno. Con un pago parcial no se anula: solo avisa. */
+  proximoAnulaEnMs: number | null;
+  /** Lo cerrado de los últimos 30 días (lo que manda la base): entregado, anulado o vencido. */
+  cerrados: number;
 };
 
-export function cifrasDe(t: Pick<TableroPedidosWeb, "pedidos" | "cobradoHoy">, ahora: number): CifrasPedidosWeb {
+export function cifrasDe(t: Pick<TableroPedidosWeb, "pedidos" | "cobradoHoy"> & { plazos?: PlazosPedidosWeb }, ahora: number): CifrasPedidosWeb {
+  const plazos = t.plazos ?? PLAZOS_DE_FABRICA;
   const porConfirmar = t.pedidos.filter((p) => p.estado === "por_confirmar");
   const confirmados = t.pedidos.filter((p) => p.estado === "confirmado");
   const pagados = t.pedidos.filter((p) => p.estado === "pagado");
@@ -498,6 +507,12 @@ export function cifrasDe(t: Pick<TableroPedidosWeb, "pedidos" | "cobradoHoy">, a
     cobradoHoy: t.cobradoHoy,
     porDevolver: Math.round(conPlata.reduce((a, p) => a + p.pagado, 0) * 100) / 100,
     pedidosPorDevolver: conPlata.length,
+    esperanPrenda: pagados.filter((p) => !p.listoParaRecoger).length,
+    proximoAnulaEnMs: (() => {
+      const anulan = confirmados.filter((p) => p.pagado === 0).map((p) => limiteDe(p, plazos)).filter((x): x is number => x !== null);
+      return anulan.length ? Math.max(0, Math.min(...anulan) - ahora) : null;
+    })(),
+    cerrados: t.pedidos.filter((p) => pestanaDe(p.estado) === "cerrados").length,
   };
 }
 
@@ -609,6 +624,285 @@ export function textoCierre(motivo: string | null): string {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
+// El camino y «Lo que te toca» (ADR-0430, actualización 2026-10-17): una sola navegación, cada fila con su plazo y su verbo
+// ---------------------------------------------------------------------------------------------------------------------------
+
+/** Una estación del camino: cuántos pedidos hay en ese paso (siempre pedidos, nunca soles) y, abajo, lo que urge o la plata. */
+export type EstacionCamino = {
+  clave: PestanaPedidos;
+  etiqueta: string;
+  valor: number;
+  pie: string;
+  punto: "neutro" | "ambar" | "verde" | "rojo";
+  vivo: boolean;
+};
+
+const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+
+/**
+ * Las cuatro estaciones del camino, las mismas en Pedidos y en el Resumen. Todas cuentan PEDIDOS: antes «Por cobrar» decía soles entre
+ * dos cifras de pedidos y «Cobrado hoy» cerraba la fila como si fuera el paso que sigue a entregar. La plata va en el pie («Faltan …»), y
+ * lo cobrado hoy, en la cabecera de la pantalla.
+ */
+export function estacionesDe(c: CifrasPedidosWeb, plazos: PlazosPedidosWeb): [EstacionCamino, EstacionCamino, EstacionCamino, EstacionCamino] {
+  const urgente = c.proximoVenceEnMs !== null && c.proximoVenceEnMs < URGENTE_MS;
+  const anulaPronto = c.proximoAnulaEnMs !== null && c.proximoAnulaEnMs < URGENTE_MS;
+  const listos = c.porEntregar - c.esperanPrenda;
+  return [
+    {
+      clave: "confirmar",
+      etiqueta: NOMBRE_ESTACION.confirmar,
+      valor: c.porConfirmar,
+      pie: c.proximoVenceEnMs !== null ? `El primero se cierra en ${plazoCorto(c.proximoVenceEnMs)}` : "Nada esperando",
+      punto: c.porConfirmar > 0 ? (urgente ? "rojo" : "ambar") : "neutro",
+      vivo: urgente,
+    },
+    {
+      clave: "cobrar",
+      etiqueta: NOMBRE_ESTACION.cobrar,
+      valor: c.confirmados,
+      pie:
+        c.confirmados === 0
+          ? "Nada por cobrar"
+          : [
+              `Faltan ${soles(c.porCobrar)}`,
+              c.proximoAnulaEnMs !== null ? `el primero sin pago se anula en ${plazoCorto(c.proximoAnulaEnMs)}` : null,
+              c.sinPagar > 0 ? `${c.sinPagar} sin pagar hace más de ${plazos.horasAvisoSinPagar} h` : null,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+      punto: anulaPronto || c.sinPagar > 0 ? "rojo" : c.confirmados > 0 ? "ambar" : "neutro",
+      vivo: anulaPronto,
+    },
+    {
+      clave: "entregar",
+      etiqueta: NOMBRE_ESTACION.entregar,
+      valor: c.porEntregar,
+      pie:
+        c.porEntregar === 0
+          ? "Nada por entregar"
+          : c.sinRecoger > 0
+            ? `${c.sinRecoger} sin recoger hace más de ${plazos.diasAvisoSinRecoger} días`
+            : [listos > 0 ? plural(listos, "listo para recoger", "listos para recoger") : null, c.esperanPrenda > 0 ? plural(c.esperanPrenda, "espera una prenda", "esperan una prenda") : null]
+                .filter(Boolean)
+                .join(" · "),
+      punto: c.sinRecoger > 0 ? "rojo" : c.porEntregar > 0 ? "verde" : "neutro",
+      vivo: false,
+    },
+    {
+      clave: "cerrados",
+      etiqueta: NOMBRE_ESTACION.cerrados,
+      valor: c.cerrados,
+      // La plata de un anulado es lo único que falta hacer con lo cerrado: va primero.
+      pie: c.porDevolver > 0 ? `${soles(c.porDevolver)} por devolver` : "Últimos 30 días",
+      punto: c.porDevolver > 0 ? "rojo" : "neutro",
+      vivo: false,
+    },
+  ];
+}
+
+/** Un tramo del camino: qué lo hace avanzar, en cuánto y si al llegar el pedido SE CIERRA (se pierde la venta) o solo avisa. */
+export type TramoPedidos = { verbo: string; plazo: string; cierra: boolean };
+
+/** Los tres tramos: si nadie lo confirma, se cierra solo; si no paga NADA, se anula solo (con un pago parcial solo avisa:
+ *  `fn_anular_pedidos_web_sin_pagar`, ADR-0408 D2); recoger solo avisa. Los dos primeros pierden la venta: van como los que cierran. */
+export function tramosDelCamino(plazos: PlazosPedidosWeb): [TramoPedidos, TramoPedidos, TramoPedidos] {
+  return [
+    { verbo: "Confirmas", plazo: `se cierra a las ${plazos.horasParaConfirmar} h`, cierra: true },
+    { verbo: "Te paga", plazo: `sin pago, se anula a las ${plazos.horasAvisoSinPagar} h`, cierra: true },
+    { verbo: "Lo recoge", plazo: `aviso a los ${plazos.diasAvisoSinRecoger} días`, cierra: false },
+  ];
+}
+
+/** «¿Cómo funciona?»: una regla por estación, la que antes vivía en una nota de cinco reglas al pie de la pantalla. */
+export function reglasDelCamino(plazos: PlazosPedidosWeb): Record<PestanaPedidos, string> {
+  return {
+    confirmar: `Separar no toca el stock: la prenda se reserva cuando confirmas. Si nadie lo confirma en ${plazos.horasParaConfirmar} h, se cierra solo.`,
+    cobrar: `Registra cada pago dentro del pedido; con el que lo completa sale su boleta. Si no paga nada en ${plazos.horasAvisoSinPagar} h, se anula solo y sus prendas se liberan; si pagó una parte, solo avisa.`,
+    entregar: "Se entrega con el código de 4 cifras que el cliente ve en su pedido. Recién ahí la prenda sale del stock.",
+    cerrados: "Quedan 30 días: lo entregado, lo anulado y lo que nadie confirmó a tiempo. Van aparte de los apartados de la tienda.",
+  };
+}
+
+/** ¿Queda algo por hacer con este pedido? Lo abierto y, de lo cerrado, el anulado que todavía tiene plata del cliente. */
+export function pideAlgo(p: Pick<PedidoDeLista, "estado" | "pagado">): boolean {
+  return pestanaDe(p.estado) !== "cerrados" || (p.estado === "anulado" && p.pagado > 0);
+}
+
+/** El momento en que vence el plazo del paso en que está (se cierra solo o salta su aviso); null si no tiene. */
+function limiteDe(p: Pick<PedidoDeLista, "estado" | "venceEn" | "confirmadoEn" | "pagadoEn" | "cerradoEn">, plazos: PlazosPedidosWeb): number | null {
+  const t = (x: string | null) => (x ? Date.parse(x) : Number.NaN);
+  const v =
+    p.estado === "por_confirmar"
+      ? t(p.venceEn)
+      : p.estado === "confirmado"
+        ? t(p.confirmadoEn) + plazos.horasAvisoSinPagar * HORA
+        : p.estado === "pagado"
+          ? t(p.pagadoEn) + plazos.diasAvisoSinRecoger * 24 * HORA
+          : t(p.cerradoEn);
+  return Number.isFinite(v) ? v : null;
+}
+
+/**
+ * «Lo que te toca»: lo que pide algo, con lo que se PIERDE si no actúas arriba. Primero lo que se cierra o se anula solo en menos de 3 h
+ * (por confirmar, o confirmado sin ningún pago); después lo que ya pasó su aviso (sin pagar, sin recoger) y la plata por devolver; después
+ * lo demás que se cierra o se anula solo (pierde la venta);
+ * después lo que solo avisa, por lo que le queda; al final lo que espera una prenda (no depende de la tienda). En cada grupo, lo que
+ * vence antes arriba.
+ */
+export function loQueTeToca(pedidos: readonly PedidoDeLista[], plazos: PlazosPedidosWeb, ahora: number): PedidoDeLista[] {
+  const grupo = (p: PedidoDeLista): number => {
+    if (p.estado === "por_confirmar") return p.venceEn && Date.parse(p.venceEn) - ahora < URGENTE_MS ? 0 : 2;
+    // Confirmado sin ningún pago: se anula solo, igual que lo que nadie confirma (pierde la venta).
+    if (p.estado === "confirmado" && p.pagado === 0) {
+      const l = limiteDe(p, plazos);
+      return l !== null && l - ahora < URGENTE_MS ? 0 : 2;
+    }
+    if (p.estado === "anulado" || p.sinPagar || p.sinRecoger) return 1;
+    if (p.estado === "pagado" && !p.listoParaRecoger) return 4;
+    return 3;
+  };
+  return pedidos
+    .filter(pideAlgo)
+    .map((p) => ({ p, g: grupo(p), l: limiteDe(p, plazos) ?? Number.POSITIVE_INFINITY }))
+    .sort((a, b) => a.g - b.g || a.l - b.l || a.p.numero - b.p.numero)
+    .map((x) => x.p);
+}
+
+/** «hoy a las 22:15», «mañana a las 10:44», «ayer a las 18:02» o «el 19 oct a las 10:44»: un instante, como se dice en la tienda. */
+export function cuandoEnLima(instante: string, ahora: number): string {
+  const dia = diaLima(instante);
+  const hora = horaLima(instante);
+  if (!dia || !hora) return "";
+  const hoy = hoyLima(new Date(ahora));
+  const cual = dia === hoy ? "hoy" : dia === sumarDias(hoy, 1) ? "mañana" : dia === sumarDias(hoy, -1) ? "ayer" : `el ${fechaCorta(dia)}`;
+  return `${cual} a las ${hora}`;
+}
+
+export type TonoReloj = "tinta" | "ambar" | "rojo" | "verde" | "pizarra";
+
+/** El plazo de una fila de la lista, UNA vez: qué pasa y cuándo (el texto), por qué importa (el detalle) y cuánto va (la barra). */
+export type RelojDeFila = {
+  texto: string;
+  detalle: string | null;
+  tono: TonoReloj;
+  barra: { pct: number; tono: "tinta" | "ambar" | "rojo"; etiqueta: string } | null;
+};
+
+/**
+ * Antes cada fila decía su estado tres veces (la insignia, una frase con lo que toca hacer y la barra). Ahora el reloj dice CUÁNDO y qué
+ * pasa si no, y el verbo del botón (`verboDe`) dice QUÉ. El tono es el de `relojDelPlazo`, así barra y texto nunca dicen dos cosas.
+ */
+export function relojDeFila(
+  p: Pick<PedidoDeLista, "estado" | "creadoEn" | "venceEn" | "confirmadoEn" | "pagadoEn" | "cerradoEn" | "cierreMotivo" | "total" | "pagado" | "sinPagar" | "sinRecoger" | "listoParaRecoger" | "porConseguir" | "porTraer">,
+  plazos: PlazosPedidosWeb,
+  ahora: number,
+): RelojDeFila {
+  const r = relojDelPlazo(p, plazos, ahora);
+  const barra = r ? { pct: r.pct, tono: r.tono, etiqueta: r.texto } : null;
+  const tonoDe = (t: "tinta" | "ambar" | "rojo" | undefined): TonoReloj => t ?? "tinta";
+  if (p.estado === "por_confirmar") {
+    const queda = p.venceEn ? Math.max(0, Date.parse(p.venceEn) - ahora) : 0;
+    const urgente = queda < URGENTE_MS;
+    return {
+      texto: `Se cierra solo en ${plazoCorto(queda)}`,
+      detalle: urgente ? "Si nadie lo confirma, se pierde" : p.venceEn ? `Hasta ${cuandoEnLima(p.venceEn, ahora)}` : null,
+      tono: urgente ? "rojo" : tonoDe(r?.tono),
+      barra,
+    };
+  }
+  if (p.estado === "confirmado") {
+    // Sin ningún pago, se anula solo al cumplir sus horas (`fn_anular_pedidos_web_sin_pagar`, cada 15 min): es un plazo que pierde la
+    // venta, como el de confirmar. Con un pago parcial no se anula: solo avisa, y decide la tienda.
+    if (p.pagado === 0) {
+      const limite = limiteDe(p, plazos);
+      const queda = limite !== null ? limite - ahora : null;
+      if (queda !== null && queda <= 0)
+        return { texto: "Se anula en minutos", detalle: `No pagó nada en ${plazos.horasAvisoSinPagar} h`, tono: "rojo", barra };
+      const urgente = queda !== null && queda < URGENTE_MS;
+      return {
+        texto: queda !== null ? `Sin pago, se anula en ${plazoCorto(queda)}` : "Esperando su pago",
+        detalle: urgente ? "Si no paga nada, se pierde" : limite !== null ? `Si no paga nada hasta ${cuandoEnLima(new Date(limite).toISOString(), ahora)}` : null,
+        tono: urgente ? "rojo" : tonoDe(r?.tono),
+        barra,
+      };
+    }
+    if (p.sinPagar)
+      return {
+        texto: `Falta ${soles(p.total - p.pagado)} · confirmado ${p.confirmadoEn ? haceCuanto(p.confirmadoEn, ahora) : ""}`.trim(),
+        detalle: `Pagó una parte y pasó el aviso de ${plazos.horasAvisoSinPagar} h: no se anula solo`,
+        tono: "rojo",
+        barra: null,
+      };
+    return { texto: `Pagó ${soles(p.pagado)} de ${soles(p.total)}`, detalle: "Pagó una parte: no se anula solo", tono: "tinta", barra: null };
+  }
+  if (p.estado === "pagado") {
+    if (p.sinRecoger)
+      return {
+        texto: `Sin recoger · pagó ${p.pagadoEn ? haceCuanto(p.pagadoEn, ahora) : ""}`.trim(),
+        detalle: `Ya pasó el aviso de ${plazos.diasAvisoSinRecoger} días`,
+        tono: "rojo",
+        barra,
+      };
+    if (!p.listoParaRecoger) {
+      const n = p.porConseguir + p.porTraer;
+      return { texto: n > 1 ? `Espera ${n} prendas` : "Espera una prenda", detalle: "Avísale cuando llegue", tono: "pizarra", barra: null };
+    }
+    return { texto: "Listo para recoger", detalle: "Pide su código de 4 cifras", tono: "verde", barra };
+  }
+  if (p.estado === "anulado" && p.pagado > 0)
+    return { texto: `Por devolver ${soles(p.pagado)}`, detalle: `Anulado: ${textoCierre(p.cierreMotivo).toLocaleLowerCase("es")}`, tono: "rojo", barra: null };
+  return { texto: motivoDeCierre(p).texto, detalle: null, tono: "tinta", barra: null };
+}
+
+/** El verbo del botón de la fila: lo que toca hacer ahora. El botón abre la hoja del pedido, donde se hace (nunca hace nada solo).
+ *  null: no queda nada que hacer (lo cerrado se abre tocando la fila). */
+export function verboDe(p: Pick<PedidoDeLista, "estado" | "pagado" | "sinPagar" | "sinRecoger" | "listoParaRecoger">): string | null {
+  if (p.estado === "por_confirmar") return "Confirmar";
+  // Sin ningún pago, lo que salva la venta es cobrar; con un pago parcial que ya pasó su aviso, escribirle (no se anula solo).
+  if (p.estado === "confirmado") return p.sinPagar && p.pagado > 0 ? "Escribirle" : "Registrar pago";
+  if (p.estado === "pagado") return p.sinRecoger ? "Escribirle" : p.listoParaRecoger ? "Entregar" : "Ver pedido";
+  if (p.estado === "anulado" && p.pagado > 0) return "Devolver";
+  return null;
+}
+
+/** Por qué se cerró un pedido, agrupable: entregado, nadie lo confirmó a tiempo, o el motivo con que se anuló. */
+export type MotivoDeCierre = { clave: string; texto: string };
+
+export function motivoDeCierre(p: Pick<PedidoDeLista, "estado" | "cierreMotivo">): MotivoDeCierre {
+  if (p.estado === "entregado") return { clave: "entregado", texto: "Entregado" };
+  if (p.estado === "vencido" || p.cierreMotivo === "sin_confirmar") return { clave: "sin_confirmar", texto: "Nadie lo confirmó a tiempo" };
+  return { clave: p.cierreMotivo ?? "otro", texto: p.cierreMotivo ? textoCierre(p.cierreMotivo) : "Anulado" };
+}
+
+/** Lo que dicen los cerrados juntos: cuántos por cada motivo. Primero lo entregado, después lo que se perdió por la tienda (nadie lo
+ *  confirmó, no había stock) y después lo del cliente, de más a menos. Si «no había stock» crece, la vitrina muestra lo que la tienda no
+ *  tiene; «nadie lo confirmó» es una venta perdida. */
+export function porQueSeCerraron(pedidos: readonly Pick<PedidoDeLista, "estado" | "cierreMotivo">[]): (MotivoDeCierre & { cuantos: number })[] {
+  const PRIMERO = ["entregado", "sin_confirmar", "sin_stock"];
+  const cuenta = new Map<string, MotivoDeCierre & { cuantos: number }>();
+  for (const p of pedidos) {
+    if (pestanaDe(p.estado) !== "cerrados") continue;
+    const m = motivoDeCierre(p);
+    const ya = cuenta.get(m.clave);
+    if (ya) ya.cuantos++;
+    else cuenta.set(m.clave, { ...m, cuantos: 1 });
+  }
+  const lugar = (k: string) => (PRIMERO.includes(k) ? PRIMERO.indexOf(k) : PRIMERO.length);
+  return [...cuenta.values()].sort((a, b) => lugar(a.clave) - lugar(b.clave) || b.cuantos - a.cuantos || a.texto.localeCompare(b.texto, "es"));
+}
+
+/** «Todo al día»: no queda nada que hacer, en una línea, con lo último que pasó (que es lo que la persona quiere saber después). */
+export function todoAlDia(pedidos: readonly PedidoDeLista[], tienda: string, ahora: number): string {
+  const ultimo = [...pedidos].sort((a, b) => Date.parse(b.creadoEn) - Date.parse(a.creadoEn))[0];
+  const base = `No hay pedidos web esperando en ${tienda}.`;
+  if (!ultimo) return `${base} Todavía no llegó ninguno.`;
+  const m = motivoDeCierre(ultimo);
+  const final = m.clave === "entregado" ? "ya se entregó" : m.clave === "sin_confirmar" ? "nadie lo confirmó a tiempo" : `se cerró: ${m.texto.toLocaleLowerCase("es")}`;
+  return `${base} El último (${ultimo.codigo}) llegó ${cuandoEnLima(ultimo.creadoEn, ahora)} y ${final}.`;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------
 // Confirmar: la decisión de cada prenda
 // ---------------------------------------------------------------------------------------------------------------------------
 
@@ -702,26 +996,32 @@ export function textoDeDonde(lugar: LugarWeb | null): string {
   return "Sepárala para el pedido.";
 }
 
-/** Los avisos de la prenda: si es la última del lugar elegido y quién más la pidió (propuesta k). Lo decide la tienda. */
+/** Los avisos de la prenda: si es la última DE LA TIENDA donde se reserva y quién más la pidió (propuesta k). Lo decide la tienda.
+ *  Cuenta la tienda entera, no el lugar elegido: con 1 en el almacén y 1 en el piso no es la última (antes decía «Es la última en
+ *  Tienda TRU» justo debajo de «Hay 2 en Tienda TRU»; ADR-0430, corrección 2026-10-17 c). */
 export function avisosDeLinea(l: Pick<LineaDetalle, "disponible" | "compiten">, d: DecisionLinea | null | undefined, tiendaPedidoId: string, tienda: string): string[] {
   const avisos: string[] = [];
   if (d?.tipo === "reservar") {
-    const libres =
-      d.ubicacionId === tiendaPedidoId
-        ? d.lugar === "almacen"
-          ? l.disponible.almacen
-          : d.lugar === "piso"
-            ? l.disponible.piso
-            : libresAqui(l)
-        : (l.disponible.otras.find((o) => o.ubicacionId === d.ubicacionId)?.libres ?? 0);
-    const donde = d.ubicacionId === tiendaPedidoId ? tienda : (l.disponible.otras.find((o) => o.ubicacionId === d.ubicacionId)?.tienda ?? "esa tienda");
-    if (libres === 1) avisos.push(`Es la última en ${donde}.`);
+    const aqui = d.ubicacionId === tiendaPedidoId;
+    const otra = aqui ? null : l.disponible.otras.find((o) => o.ubicacionId === d.ubicacionId);
+    const libres = aqui ? libresAqui(l) : (otra?.libres ?? 0);
+    if (libres === 1) avisos.push(aqui ? `Es la última en ${tienda}: al confirmar, ya no se puede vender en la tienda.` : `Es la última en ${otra?.tienda ?? "esa tienda"}.`);
     if (l.compiten.length > 0) {
       const quienes = l.compiten.map((c) => `${c.codigo}${c.separoAntes ? " (la separó antes)" : ""}`).join(", ");
       avisos.push(`También la ${l.compiten.length === 1 ? "pidió" : "pidieron"} ${quienes}. Tú decides a quién confirmarla.`);
     }
   }
   return avisos;
+}
+
+/** ¿Se ofrece «Quitar del pedido» en esta prenda? Solo si queda otra sin quitar: si se quitan todas no se puede confirmar (es «No se
+ *  puede confirmar», `problemaParaConfirmar`), así que en un pedido de una sola prenda el botón llevaba a un callejón. */
+export function sePuedeQuitar(
+  lineas: readonly Pick<LineaDetalle, "lineaId">[],
+  decisiones: Readonly<Record<string, DecisionLinea | null>>,
+  lineaId: string,
+): boolean {
+  return lineas.some((l) => l.lineaId !== lineaId && decisiones[l.lineaId]?.tipo !== "quitar");
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------

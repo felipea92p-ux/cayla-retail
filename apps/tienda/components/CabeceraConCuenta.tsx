@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { Suspense, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { salir } from "@/app/acciones/cuenta";
 import { buscarEn, leerRespuestaDelBuscador, resaltar, type RespuestaBuscador } from "@/lib/buscador";
+import { hrefConVolver } from "@/lib/entrada";
+import { seccionDeLaRuta, type SeccionActual } from "@/lib/esqueleto";
 import type { DatosCabecera, FotoChica, MenuCabecera } from "@/lib/inicio";
 import { useGuardados } from "./club/Guardados";
 import { BotonCerrarSesion } from "./cuenta/BotonCerrarSesion";
@@ -14,7 +16,31 @@ import { Isotipo } from "./Isotipo";
 // El globo rojo de la bolsa y del corazón (`.t-globo`).
 import "@/app/estilos/bolsa.css";
 
-export type SeccionActual = "inicio" | "nuevo" | "vendidos" | "ofertas" | "looks" | "probador" | "favoritos" | "cuenta" | null;
+export type { SeccionActual };
+
+// La cabecera de la última página que llegó (2026-10-17, Felipe: «cuando cambia de vista es muy abrupto»). Mientras llega la siguiente,
+// el esqueleto dibujaba una cabecera vacía: sin «Ropa», «Accesorios» ni «Arma el tuyo», sin el nombre y sin los globos, que volvían al
+// llegar la página; en cada toque la cabecera se encogía y se volvía a estirar. Ahora la cabecera que espera (`deEspera`) es la última
+// que se vio, con lo mismo, y sus enlaces funcionan. Vive en la memoria de esta pestaña: la primera espera después de recargar va con la
+// cabecera vacía de siempre (es la que mandó el servidor, así que hidrata igual).
+type CabeceraVista = { datos: DatosCabecera; favoritos: number | null; nombre: string | null; bolsa: React.ReactNode; campanita: React.ReactNode; visitante: boolean };
+let ultimaVista: CabeceraVista | null = null;
+const sinAvisos = () => () => {};
+const laUltima = () => ultimaVista;
+const ninguna = () => null;
+
+/** Lo que dijo la última cabecera vista (sus menús con los nombres de cada grupo y categoría): el esqueleto de una lista escribe con eso
+ *  el título de la categoría que viene. null sin ninguna vista. */
+export function useCabeceraVista(): DatosCabecera | null {
+  return useSyncExternalStore(sinAvisos, laUltima, ninguna)?.datos ?? null;
+}
+
+/** «Entrar» / «Crear mi cuenta» desde donde se está: al terminar, la persona vuelve a esta misma página (con su tienda y su búsqueda). */
+function hrefDeEntrada(base: "/entrar" | "/crear-cuenta"): string {
+  if (typeof window === "undefined") return base;
+  const { pathname, search } = window.location;
+  return hrefConVolver(base, pathname + search);
+}
 
 /** «3 favoritos», «1 favorito»: lo que oye el lector en el corazón. */
 const etiquetaFavoritos = (n: number | null) => (n ? `Favoritos: ${n} ${n === 1 ? "guardado" : "guardados"}` : "Favoritos");
@@ -40,6 +66,25 @@ function pedirIndice(sede: string | null): Promise<RespuestaBuscador> {
 }
 
 /**
+ * La cabecera de una página que todavía carga (el esqueleto): la última vista (`deEspera`), con la sección de la página que viene ya
+ * marcada (la raya bajo «Lo nuevo» no se apaga mientras llega Lo nuevo). Leer la dirección en una página armada por adelantado frena el
+ * armado: se lee en su propio <Suspense>, con la cabecera sin marca mientras tanto (ADR-0432).
+ */
+export function CabeceraDeEspera(props: { datos: DatosCabecera; bolsa?: React.ReactNode; campanita?: React.ReactNode }) {
+  return (
+    <Suspense fallback={<CabeceraConCuenta {...props} deEspera />}>
+      <CabeceraConLaSeccion {...props} />
+    </Suspense>
+  );
+}
+
+function CabeceraConLaSeccion(props: { datos: DatosCabecera; bolsa?: React.ReactNode; campanita?: React.ReactNode }) {
+  const ruta = usePathname();
+  const buscar = useSearchParams();
+  return <CabeceraConCuenta {...props} deEspera actual={seccionDeLaRuta(ruta ?? "", new URLSearchParams(buscar.toString()))} />;
+}
+
+/**
  * La cabecera de quien tiene cuenta (maqueta v4, `cabT`): en el celular, el menú a la izquierda; en la computadora, «Lo nuevo», «Ropa» y
  * «Accesorios» (cada uno abre sus grupos de categorías con fotos y lo último que llegó), «Arma tu look», «Más vendidos» y «Ofertas». A la derecha, el
  * buscador (busca mientras se escribe, por nombre, categoría o color, sin tildes ni mayúsculas), el corazón de los favoritos con cuántos
@@ -47,11 +92,14 @@ function pedirIndice(sede: string | null): Promise<RespuestaBuscador> {
  * bolsa con su globo. Todos los enlaces llevan la tienda elegida, menos los favoritos (son de la persona, no de una tienda).
  */
 export function CabeceraConCuenta({
-  datos,
+  datos: propios,
   actual = null,
-  favoritos = null,
-  bolsa = null,
-  nombre = null,
+  favoritos: favoritosPropios = null,
+  bolsa: bolsaPropia = null,
+  campanita: campanitaPropia = null,
+  nombre: nombrePropio = null,
+  visitante: visitantePropio = false,
+  deEspera = false,
 }: {
   datos: DatosCabecera;
   actual?: SeccionActual;
@@ -59,9 +107,28 @@ export function CabeceraConCuenta({
   favoritos?: number | null;
   /** La bolsa con su globo (`components/bolsa/BotonBolsa.tsx`, de servidor: lee la cookie de la bolsa). La pone el marco. */
   bolsa?: React.ReactNode;
+  /** La campanita de los avisos (`components/campanita/`, de servidor: lee la sesión y la base). La pone el marco; va entre el corazón y la persona. */
+  campanita?: React.ReactNode;
   /** El nombre corto de la cuenta («María»), para el saludo del menú de la persona; null si no se sabe (sale sin saludo). */
   nombre?: string | null;
+  /** Sin sesión (Felipe 2026-10-17: la tienda se mira sin cuenta): la persona ofrece «Entrar» y «Crear mi cuenta» en vez de «Mi perfil». */
+  visitante?: boolean;
+  /** La cabecera de una página que todavía carga (el esqueleto): repite la última que se vio; sin ninguna vista, la que le pasan. */
+  deEspera?: boolean;
 }) {
+  const vista = useSyncExternalStore(sinAvisos, deEspera ? laUltima : ninguna, ninguna);
+  const datos = vista?.datos ?? propios;
+  const favoritos = vista ? vista.favoritos : favoritosPropios;
+  const nombre = vista ? vista.nombre : nombrePropio;
+  // Sin sesión, el esqueleto repite también eso: no le dibuja a quien no tiene cuenta el menú de «Mi perfil».
+  const visitante = vista ? vista.visitante : visitantePropio;
+  const bolsa = vista ? vista.bolsa : bolsaPropia;
+  const campanita = vista ? vista.campanita : campanitaPropia;
+  useEffect(() => {
+    if (!deEspera) {
+      ultimaVista = { datos: propios, favoritos: favoritosPropios, nombre: nombrePropio, bolsa: bolsaPropia, campanita: campanitaPropia, visitante: visitantePropio };
+    }
+  }, [deEspera, propios, favoritosPropios, nombrePropio, bolsaPropia, campanitaPropia, visitantePropio]);
   const [hoja, setHoja] = useState<"menu" | "buscar" | null>(null);
   // La lista del buscador de ESTA tienda, cuando llega (null mientras tanto, o si es de otra tienda: la persona cambió de tienda).
   const [indice, setIndice] = useState<{ sede: string | null; respuesta: RespuestaBuscador } | null>(null);
@@ -157,13 +224,14 @@ export function CabeceraConCuenta({
             <Icono nombre="corazon" />
             {cuantosFavoritos ? <span className="t-globo">{cuantosFavoritos}</span> : null}
           </Link>
-          <MenuDeLaCuenta nombre={nombre} enCuenta={actual === "cuenta"} />
+          {!visitante && campanita}
+          <MenuDeLaCuenta nombre={nombre} enCuenta={actual === "cuenta"} visitante={visitante} />
           {bolsa}
         </div>
       </header>
 
       {hoja && <div className="t-velo" aria-hidden="true" onClick={cerrar} />}
-      {hoja === "menu" && <HojaMenu datos={datos} favoritos={cuantosFavoritos} cerrar={cerrar} />}
+      {hoja === "menu" && <HojaMenu datos={datos} favoritos={cuantosFavoritos} cerrar={cerrar} visitante={visitante} />}
       {hoja === "buscar" && <HojaBuscar datos={datos} indice={indiceDeEstaTienda} reintentar={prepararBuscador} cerrar={cerrar} />}
     </>
   );
@@ -255,7 +323,7 @@ function FotoChicaDe({ foto, tamanos }: { foto: FotoChica; tamanos: string }) {
  * desplegable (el botón dice si está abierto y qué abre; se recorre con Tab), no un `role="menu"`: ese rol promete moverse con las
  * flechas, y con dos opciones no hace falta.
  */
-function MenuDeLaCuenta({ nombre, enCuenta }: { nombre: string | null; enCuenta: boolean }) {
+function MenuDeLaCuenta({ nombre, enCuenta, visitante }: { nombre: string | null; enCuenta: boolean; visitante: boolean }) {
   const [abierto, setAbierto] = useState(false);
   const caja = useRef<HTMLDivElement | null>(null);
   const boton = useRef<HTMLButtonElement | null>(null);
@@ -286,7 +354,7 @@ function MenuDeLaCuenta({ nombre, enCuenta }: { nombre: string | null; enCuenta:
         ref={boton}
         type="button"
         className="t-ico"
-        aria-label={nombre ? `Tu cuenta, ${nombre}` : "Tu cuenta"}
+        aria-label={visitante ? "Entrar o crear mi cuenta" : nombre ? `Tu cuenta, ${nombre}` : "Tu cuenta"}
         aria-expanded={abierto}
         aria-controls={abierto ? idMenu : undefined}
         onClick={() => setAbierto((a) => !a)}
@@ -295,18 +363,33 @@ function MenuDeLaCuenta({ nombre, enCuenta }: { nombre: string | null; enCuenta:
       </button>
       {abierto && (
         <div className="t-persona-menu" id={idMenu}>
-          {nombre && (
-            <p className="t-persona-hola">
-              Hola, <b>{nombre}</b>
-            </p>
+          {visitante ? (
+            <>
+              <Link className="t-persona-op" href={hrefDeEntrada("/entrar")} onClick={() => setAbierto(false)}>
+                <Icono nombre="persona" />
+                Entrar
+              </Link>
+              <Link className="t-persona-op" href={hrefDeEntrada("/crear-cuenta")} onClick={() => setAbierto(false)}>
+                <Icono nombre="persona" />
+                Crear mi cuenta
+              </Link>
+            </>
+          ) : (
+            <>
+              {nombre && (
+                <p className="t-persona-hola">
+                  Hola, <b>{nombre}</b>
+                </p>
+              )}
+              <Link className="t-persona-op" href="/cuenta" aria-current={enCuenta ? "page" : undefined} onClick={() => setAbierto(false)}>
+                <Icono nombre="persona" />
+                Mi perfil
+              </Link>
+              <form action={salir}>
+                <BotonCerrarSesion className="t-persona-op" conIcono />
+              </form>
+            </>
           )}
-          <Link className="t-persona-op" href="/cuenta" aria-current={enCuenta ? "page" : undefined} onClick={() => setAbierto(false)}>
-            <Icono nombre="persona" />
-            Mi perfil
-          </Link>
-          <form action={salir}>
-            <BotonCerrarSesion className="t-persona-op" conIcono />
-          </form>
         </div>
       )}
     </div>
@@ -315,7 +398,7 @@ function MenuDeLaCuenta({ nombre, enCuenta }: { nombre: string | null; enCuenta:
 
 /** El menú del celular (maqueta, hoja «menu»): lo grande arriba (con «Arma tu look» y los favoritos, que en el celular no van en la
  *  fila de arriba), las categorías en dos columnas bajo su menú («Ropa», «Accesorios») y la ayuda al pie. */
-function HojaMenu({ datos, favoritos, cerrar }: { datos: DatosCabecera; favoritos: number | null; cerrar: () => void }) {
+function HojaMenu({ datos, favoritos, cerrar, visitante }: { datos: DatosCabecera; favoritos: number | null; cerrar: () => void; visitante: boolean }) {
   return (
     <div className="t-menu" role="dialog" aria-modal="true" aria-label="Menú">
       <div className="t-menu-cab">
@@ -363,19 +446,27 @@ function HojaMenu({ datos, favoritos, cerrar }: { datos: DatosCabecera; favorito
         </nav>
       ))}
       <div className="t-menu-pie">
-        <Link className="t-enlace" href="/cuenta" onClick={cerrar}>
-          Mi perfil y mis pedidos
-        </Link>
+        {visitante ? (
+          <Link className="t-enlace" href={hrefDeEntrada("/entrar")} onClick={cerrar}>
+            Entrar o crear mi cuenta
+          </Link>
+        ) : (
+          <Link className="t-enlace" href="/cuenta" onClick={cerrar}>
+            Mi perfil y mis pedidos
+          </Link>
+        )}
         <Link className="t-enlace" href="/como-separar" onClick={cerrar}>
           Cómo separar
         </Link>
         <Link className="t-enlace" href="/tiendas" onClick={cerrar}>
           Nuestras tiendas
         </Link>
-        {/* Lo que el cliente le quiera recomendar a CAYLA (Felipe 2026-10-15), con su nombre. */}
-        <Link className="t-enlace" href="/recomendaciones" onClick={cerrar}>
-          Recomendaciones
-        </Link>
+        {/* Lo que el cliente le quiera recomendar a CAYLA (Felipe 2026-10-15), con su nombre: solo con cuenta. */}
+        {!visitante && (
+          <Link className="t-enlace" href="/recomendaciones" onClick={cerrar}>
+            Recomendaciones
+          </Link>
+        )}
       </div>
     </div>
   );

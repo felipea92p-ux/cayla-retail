@@ -41,8 +41,12 @@ ERP cada cuenta es una fila de `cuentas_web` unida a su ficha del Club, y la tie
 - **Entrar** y **pedir el enlace de «Olvidé mi contraseña»** se hacen desde el navegador (`lib/auth-navegador.ts`): así el
   proyecto de clientes pone sus topes a la ip de cada persona. El enlace del correo lleva a `/nueva-contrasena`, que canjea su
   código recién al guardar (un lector de correos que abre enlaces solo no lo gasta).
-- `proxy.ts` refresca la sesión y lleva a cada uno a su lado (con sesión, de la portada y de «Entrar» al Inicio, `/inicio`; sin
-  sesión, del Inicio, el catálogo y «Mi perfil» a «Entrar»).
+- `proxy.ts` refresca la sesión y lleva a cada uno a su lado (con sesión, de «Entrar» y «Crear mi cuenta» al Inicio, `/inicio`; sin
+  sesión, solo lo que es DE la persona —`/cuenta`, un pedido ya separado, `/recomendaciones` y sus favoritos— a «Entrar»). **El catálogo,
+  los precios, cuánto hay en cada tienda, los looks, «Arma el tuyo» y la bolsa se ven SIN cuenta** (Felipe 2026-10-17): la cuenta se pide
+  al «Separar» (el botón dice «Entra para separar» y vuelve a la bolsa, que vive en la cookie del aparato) o al guardar algo suyo (un
+  favorito, un aviso, un look). `/` ya no es una portada aparte: lleva al Inicio, que sin sesión muestra la franja de confianza y
+  la invitación al Club (`SegunSesion`, `MarcoCatalogo`).
 - La llave secreta del proyecto de clientes solo la lee `lib/sesion-servidor.ts`; la cookie se llama `tienda-sesion` (en local
   el ERP también vive en `localhost` y no deben pisarse).
 - **Un correo es de una sola persona** (Felipe 2026-10-14, `20261015054000`): el correo de contacto de OTRA ficha del Club no sirve
@@ -117,6 +121,18 @@ prueba: una sola vez por visita, nunca encima de un gesto, «Ahora no» calla 30
 insiste nunca. `app/manifest.ts` y `public/sw.js` (sin caché: no toca ninguna petición) son lo que el celular lee; `proxy.ts` los deja
 pasar sin redirigir. Un componente nuevo que ofrezca instalar usa `useInstalar()`, no escucha `beforeinstallprompt` por su cuenta (el
 aviso de Chrome llega una sola vez). Las plantillas: `docs/maquetas/tienda-instalar-2026-10/`.
+
+## La campanita de la cabecera (ADR-0448, 2026-10-17)
+
+Un ícono en la cabecera de quien tiene cuenta, con globo y panel: «las tallas que esperabas» que ya llegaron (de `tienda_mis_avisos_del_club`,
+la misma lectura del aviso al entrar, que se comparte por petición con `cache`) y «lo nuevo desde tu última visita». **Sin consulta ni migración
+nuevas:** lo nuevo se cuenta en el catálogo que la página ya leyó (`Prenda.nuevo.dias`) contra un día de Lima que vive en una cookie de este
+aparato (`tienda-campanita-<dueño>`; la base no guarda qué lee la gente). Un marco de página la pone con
+`campanita={<CampanitaConEspera prendas hrefNuevo />}` (`components/campanita/Campanita.tsx`, de servidor, tras un `Suspense`) y el esqueleto
+y el marco «mientras» con `<CampanitaApagada />`, para que la persona y la bolsa no se corran. La lógica es de `lib/campanita.ts`, con su
+prueba. **No uses `fn_tienda_novedades` desde la tienda** (131 ms con 298 modelos y no es de `tienda_web`) ni el prefijo `t-campana-` en el
+CSS (es la tarjeta de campaña de la portada): los estilos de la campanita son `t-avisos-*`. El aviso al celular (Web Push) está diseñado en el
+ADR-0448 y no construido.
 
 ## Levantarla en local
 

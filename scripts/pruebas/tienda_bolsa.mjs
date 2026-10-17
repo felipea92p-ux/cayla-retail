@@ -204,8 +204,8 @@ select coalesce((select id from retail.cajas where ubicacion_id = :'tru' and est
    and coalesce((select id from retail.cajas where ubicacion_id = :'lim' and estado = 'abierta'), retail.abrir_caja(:'lim', 0, 'prueba bolsa: la caja del día')) is not null
     as _cajas \\gset
 -- Dos clientes con cuenta web (su usuario del proyecto de clientes es un id cualquiera: aquí no se entra a ningún lado).
-insert into retail.clientas (nombre, telefono_whatsapp) values ('ZZ Cliente A tienda web', '999888771') returning id as cli_a \\gset
-insert into retail.clientas (nombre, telefono_whatsapp) values ('ZZ Cliente B tienda web', '999888772') returning id as cli_b \\gset
+insert into retail.clientas (nombre, telefono_whatsapp, documento_tipo, documento_numero, club_desde, codigo_club) values ('ZZ Cliente A tienda web', '999888771', 'dni', '09997001', now(), retail.fn_club_codigo_nuevo()) returning id as cli_a \\gset
+insert into retail.clientas (nombre, telefono_whatsapp, documento_tipo, documento_numero, club_desde, codigo_club) values ('ZZ Cliente B tienda web', '999888772', 'dni', '09997002', now(), retail.fn_club_codigo_nuevo()) returning id as cli_b \\gset
 select gen_random_uuid() as usr_a, gen_random_uuid() as usr_b, gen_random_uuid() as tok \\gset
 insert into retail.cuentas_web (usuario_web_id, clienta_id, correo, textos_aceptados)
 values (:'usr_a', :'cli_a', 'zz-a@prueba-tienda.test', 'prueba'), (:'usr_b', :'cli_b', 'zz-b@prueba-tienda.test', 'prueba');

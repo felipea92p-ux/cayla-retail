@@ -1,26 +1,16 @@
+import { GRUPOS_DE_LA_TIENDA, grupoDeLaTienda, type GrupoDeLaTienda, type MenuDeLaTienda } from "@cayla-retail/shared/categorias-de-la-tienda";
 import { claveCategoria, type Prenda } from "./catalogo";
 
 // Los grupos de categorías de la tienda (ADR-0408, act. 2026-10-15 (f)). El primer día en producción, el menú «Ropa» de la cabecera
 // mezclaba la ropa con aretes, collares y maquillaje (una tercera columna de 17 filas) y el catálogo mostraba sus 28 categorías como
-// píldoras en tres filas (Felipe: «podría verse mucho mejor»). Cada categoría va en un grupo y cada grupo en un menú de la cabecera
-// («Ropa» o «Accesorios»), siempre por su PREFIJO (`categorias.prefijo`, nunca el nombre visible, que se renombra). Los mismos grupos
-// arman el menú de la computadora, el del celular y los filtros del catálogo: la persona encuentra lo mismo en el mismo lugar.
-// Un prefijo que no está en ninguna lista (una categoría que un Líder creó después) cae en «Encima y más»: se ve, aunque no en su mejor
-// lugar, hasta que se sume aquí.
+// píldoras en tres filas (Felipe: «podría verse mucho mejor»). Los mismos grupos arman el menú de la computadora, el del celular y los
+// filtros del catálogo: la persona encuentra lo mismo en el mismo lugar. La tabla de prefijos vive en `packages/shared`
+// (`categorias-de-la-tienda.ts`) desde el 2026-10-17: el ERP la lee para saber qué entra al probador de «Arma el tuyo».
 
-export type Menu = "ropa" | "accesorios";
-export type Grupo = { clave: string; nombre: string; menu: Menu; prefijos: readonly string[] };
+export type Menu = MenuDeLaTienda;
+export type Grupo = GrupoDeLaTienda;
 
-export const GRUPOS: readonly Grupo[] = [
-  { clave: "arriba", nombre: "Arriba", menu: "ropa", prefijos: ["CMS", "BLU", "TOP", "POL", "BOD", "COR", "SUD", "CMP", "LEN"] },
-  { clave: "vestidos", nombre: "Vestidos y conjuntos", menu: "ropa", prefijos: ["VES", "CON", "ENT", "TBA"] },
-  { clave: "abajo", nombre: "Abajo", menu: "ropa", prefijos: ["PAN", "JEA", "FAL", "SHO"] },
-  { clave: "encima", nombre: "Encima y más", menu: "ropa", prefijos: ["CAS", "BLZ", "CHA", "CAP", "ABR"] },
-  { clave: "accesorios", nombre: "Bolsos y accesorios", menu: "accesorios", prefijos: ["CAR", "MOC", "RIN", "ACC", "CIN", "BUF", "PAS", "GOR", "LSO", "REL"] },
-  { clave: "bisuteria", nombre: "Bisutería y belleza", menu: "accesorios", prefijos: ["ARE", "COL", "ANL", "PUL", "MAQ"] },
-  { clave: "calzado", nombre: "Calzado", menu: "accesorios", prefijos: ["ZAP", "ZFO", "BAI", "BOI", "BOT", "MSN", "SAN"] },
-  { clave: "mas", nombre: "Más", menu: "accesorios", prefijos: ["LAP", "LIB", "UOF", "UTC", "BOL"] },
-];
+export const GRUPOS: readonly Grupo[] = GRUPOS_DE_LA_TIENDA;
 
 /**
  * Los dos menús de la cabecera, en su orden. `todo` es el enlace que lleva a TODO el menú (`/catalogo?menu=ropa`): el botón «Ropa»
@@ -32,13 +22,8 @@ export const MENUS: readonly { clave: Menu; nombre: string; todo: string; titulo
   { clave: "accesorios", nombre: "Accesorios", todo: "Todos los accesorios", titulo: ["Todos los", "accesorios"] },
 ];
 
-/** A donde va lo que nadie ordenó. */
-const RESTO = "encima";
-
 /** El grupo de una categoría, por su clave (el prefijo; sin prefijo, su nombre). Lo desconocido, a «Encima y más». */
-export function grupoDe(claveDeCategoria: string): Grupo {
-  return GRUPOS.find((g) => g.prefijos.includes(claveDeCategoria)) ?? GRUPOS.find((g) => g.clave === RESTO)!;
-}
+export const grupoDe: (claveDeCategoria: string) => Grupo = grupoDeLaTienda;
 
 /** El grupo de la URL (`?grupo=`), o null si no existe. */
 export function leerGrupo(v: string | string[] | undefined): Grupo | null {
@@ -100,8 +85,5 @@ export function delMenu(prendas: readonly Prenda[], menu: Menu | null): Prenda[]
   });
 }
 
-/** Un nombre partido para el título serif de la lista: lo último va en cursiva roja («Vestidos y *conjuntos*», «*Vestidos*»). */
-export function tituloPartido(nombre: string): [string, string] {
-  const i = nombre.trim().lastIndexOf(" ");
-  return i < 0 ? ["", nombre.trim()] : [nombre.trim().slice(0, i), nombre.trim().slice(i + 1)];
-}
+// Vive en `listas.ts` (sin zod) para que el esqueleto de la lista lo use; aquí se sigue exportando.
+export { tituloPartido } from "./listas";

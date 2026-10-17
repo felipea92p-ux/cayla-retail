@@ -246,3 +246,39 @@ PR. Son tres:
 - **La ficha:** «Arma un look con esta prenda» bajo el botón de la bolsa. Abre el probador con esa prenda en el color elegido, y lo
   demás se completa con lo primero que hay. Solo sale si el probador de esa tienda la tiene: la decisión usa las mismas reglas que lo
   arman (`armarProbador`: con su recorte, con su largo y con algo en esa tienda). Así el botón nunca abre un probador sin ella.
+
+## Actualización 2026-10-17 (/formidable de Vitrina ▸ Probador)
+
+La primera pasada de `/formidable` por la pantalla del ERP (`docs/formidable/tienda-web-vitrina-probador.md`) encontró que la lista
+pedía largo y recorte a prendas que el probador nunca muestra: 36 de las 48 prendas «sin largo» de producción eran accesorios
+(aretes, cinturones, maquillaje…). La regla de qué entra vivía solo en la tienda (`zonaDe`). Felipe aprobó los tres cambios:
+
+- **Una sola regla de zonas para las dos apps.** La tabla de grupos de categorías de la tienda y la zona de cada una en el probador
+  pasan a `packages/shared/src/categorias-de-la-tienda.ts` (`GRUPOS_DE_LA_TIENDA`, `zonaDelProbador`). La tienda la usa como antes
+  (`lib/grupos.ts`, `zonaDe`), y el ERP deja en Vitrina ▸ Probador solo las prendas, los típicos y las fotos de lo que entra
+  (`soloLoQueEntra`). Sin migración: las funciones de la base siguen devolviendo todo y cada pantalla aplica la misma regla.
+- **Una palabra por prenda.** La columna «En el probador» dice «Lista» o lo primero que le falta, en el orden en que se arregla
+  (`veredictoDelProbador`): su foto, revisar su recorte, recortarla, un recorte descartado o el largo.
+- **El paso que toca, arriba.** La cabecera lleva un solo botón: «Preparar N recortes», después «Revisar N recortes», después «Anotar N
+  largos» (`siguientePaso`).
+
+Felipe también decidió (2026-10-17) **quitar** los largos típicos que se guardaron ese día en producción para Vestidos (110), Faldas (55)
+y Enterizos (140), que eran los números de ejemplo de esas cajas: la decisión del 2026-10-16 sigue en pie. Las cajas vacías de «Largos
+típicos» dicen ahora «Sin típico», no un «Ej.» que invite a llenarlas. Los quita él en el ERP de producción.
+
+### Después de /chaos (2026-10-17)
+
+`/chaos` de la misma pantalla (semilla 1017, `docs/chaos/README.md`) encontró que el «Deshacer» del aviso de un descarte, que volvía a
+anotar el recorte con `registrar_recorte`, le pisaba la decisión a quien lo hubiera usado en esos 7 segundos, y no quedaba en la Actividad.
+La migración `20261017183000` trae `deshacer_descarte_recorte(p_foto, p_estado)`: devuelve el recorte a como estaba solo si sigue
+descartado (si no, `recorte_ya_cambio`) y lo anota. Además, `registrar_recorte` exige que el archivo sea el de esa foto
+(`recortes/<foto>.png` o `recortes/<foto>-<sello>.png`) y que una foto con recorte la cambie quien ve la Vitrina web; el mismo archivo otra
+vez es un reintento. Pegada en producción el 2026-10-17 con el OK de Felipe, antes de fusionar el PR #1164.
+
+
+
+## Actualización 2026-10-17 (ADR-0442): el recorte sale del PNG de la IA
+
+El recorte ya no se calcula con MODNet sobre `originales/<id>.jpg`: es la transparencia de la propia foto, que la IA del equipo entrega como PNG sin fondo,
+limpiada y cortada a la prenda. Una foto sin fondo transparente (un JPG) queda «sin recorte». El resto de este ADR no cambia (la tabla `foto_recortes`, el largo, el
+probador). Ver ADR-0442.

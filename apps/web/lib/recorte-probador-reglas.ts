@@ -1,76 +1,55 @@
-// El recorte de una foto de prenda para el probador de la tienda online (ADR-0434, actividad 1). Lógica pura, sin navegador: la usan
-// `recorte-probador.ts` (que dibuja en un canvas) y sus pruebas. Sin imports de `@/`, como `foto-encuadre.ts`.
+// El recorte de una foto de prenda para el probador de la tienda online (ADR-0434, actividad 1; cambiado por el ADR-0442). Lógica pura,
+// sin navegador: la usan `recorte-probador.ts` (que dibuja en un canvas) y sus pruebas. Sin imports de `@/`, como `foto-encuadre.ts`.
 //
-// EL PROBLEMA. El probador apila prendas a su tamaño real y para encimarlas cada una tiene que estar recortada, con fondo
-// transparente. La foto que se ve en la tienda es un JPG sobre blanco (ADR-0228) y NO se toca (Felipe, 2026-10-16): el recorte es un
-// archivo más. Para que sea la MISMA prenda que muestra la ficha —su luz, su nitidez, su encuadre—, los colores salen de esa foto y
-// lo único que se agrega es la transparencia: la máscara de MODNet, calculada otra vez sobre el original (`originales/<id>.jpg`, el
-// mismo archivo que se recortó al subirla) y llevada al lugar donde quedó la prenda en la foto.
+// DE DÓNDE SALE. Desde el ADR-0442 (Felipe, 2026-10-17) el ERP no quita fondos: la IA externa que usa el equipo entrega cada prenda como
+// PNG con fondo TRANSPARENTE real y la foto se sube tal cual. El recorte del probador es esa misma imagen: su transparencia, limpiada
+// (sin neblina ni halo) y cortada a la caja de la prenda. Antes salía de una máscara de MODNet calculada en el navegador sobre un JPEG
+// (la transparencia se perdía al subirla), y esa máscara dejaba manchitas claras alrededor de la prenda.
 
-import { cajaDeContenido, encuadrar, LIENZO_FOTO, MARGEN_PRENDA, recorteAgujereado, type Caja } from "./foto-encuadre";
+import { cajaDeContenido, recorteAgujereado, soloLaPrenda, UMBRAL_ALFA, type Caja } from "./foto-encuadre";
 
 /** El recorte más alto que se guarda. Una prenda del probador no pasa de ~400 px en un celular (2,5 px por cm): 1000 px sobra para
  *  una pantalla con el doble de densidad, y un PNG de ese alto pesa 200–600 KB. */
 export const ALTO_MAX_RECORTE = 1000;
 
-/** Desde qué fracción de fondo blanco se da por hecho que la foto se subió «Sin fondo». Las fotos sin fondo tienen el fondo de
- *  #ffffff puro (lo pintó `sobreBlanco`); el JPEG lo mueve uno o dos tonos. Una foto «Con fondo» sobre una pared clara no llega. */
-export const FRACCION_FONDO_BLANCO = 0.97;
-
-/** Desde qué tono (0–255, en el canal más oscuro) un píxel cuenta como blanco del fondo. */
-export const TONO_BLANCO = 245;
-
-/** Por qué un recorte queda «por revisar» (los valores de `foto_recortes.motivo`). */
+/** Por qué un recorte queda «por revisar» (los valores de `foto_recortes.motivo`). Hoy solo se genera «huecos»; los otros dos quedan
+ *  porque hay filas de antes del ADR-0442 (el recortador de MODNet) y la pantalla tiene que poder leerlas. */
 export type MotivoRecorte = "huecos" | "con_fondo" | "sin_original";
 
+/** Desde qué fracción de la foto transparente (alfa menor a 128) se dice que trae fondo transparente. Un JPG, o un PNG con fondo,
+ *  tiene 0; una prenda sobre fondo transparente deja casi siempre un tercio o más. */
+export const FRACCION_TRANSPARENTE_MINIMA = 0.01;
+
+/** Desde qué opacidad (0–255) un píxel es tela del todo. La IA suele dejarla en 253: sobre otro color se vería «lavada». */
+export const ALFA_SOLIDA = 240;
+
 /**
- * Dónde dibujar la máscara ENTERA (del tamaño del original) dentro de la foto de la tienda (1200×1500) para que la prenda caiga
- * exactamente donde quedó al subirla. Es la cuenta de `prepararFotoPrenda` al revés:
- *   · «Sin fondo»: la caja de la prenda (`cajaPrenda`, en el original) se encuadró con `MARGEN_PRENDA`.
- *   · «Con fondo»: el original entero se encuadró sin margen.
- * Devuelve el rectángulo de destino de la máscara completa (puede salirse del lienzo: lo de afuera no se ve).
+ * ¿La foto trae fondo transparente de verdad? Lee el canal alfa de una imagen RGBA (4 bytes por píxel). Una foto sin transparencia
+ * no tiene recorte: nadie le quita el fondo (ADR-0442) y se queda «sin recorte».
  */
-export function destinoDeLaMascara(original: { ancho: number; alto: number }, cajaPrenda: Caja, sinFondo: boolean): Caja {
-  if (!sinFondo) return encuadrar(original, LIENZO_FOTO, 0);
-  const d = encuadrar(cajaPrenda, LIENZO_FOTO, MARGEN_PRENDA);
-  const escala = d.ancho / cajaPrenda.ancho;
-  return {
-    x: d.x - cajaPrenda.x * escala,
-    y: d.y - cajaPrenda.y * escala,
-    ancho: original.ancho * escala,
-    alto: original.alto * escala,
-  };
+export function tieneFondoTransparente(rgba: ArrayLike<number>): boolean {
+  const total = rgba.length / 4;
+  if (total === 0) return false;
+  let transparentes = 0;
+  for (let i = 3; i < rgba.length; i += 4) if (rgba[i] < 128) transparentes++;
+  return transparentes / total >= FRACCION_TRANSPARENTE_MINIMA;
 }
 
 /**
- * ¿Lo que la máscara deja afuera es el blanco puro de una foto «Sin fondo»? Mira solo los píxeles que la máscara marca como fondo
- * (alfa bajo) y cuenta cuántos son blancos. Sin fondo que mirar, no se puede decir: `false`.
+ * Deja limpio el alfa que entrega la IA, sin tocar el color de nadie. Modifica `rgba` en el lugar:
+ *   · lo casi invisible (alfa de `UMBRAL_ALFA` para abajo: neblina, sombra tenue, halo) pasa a transparente del todo;
+ *   · lo casi opaco (`ALFA_SOLIDA` para arriba) pasa a opaco del todo, así la tela no queda medio transparente;
+ *   · lo de en medio —el borde suave de 1 o 2 píxeles— se respeta;
+ *   · las piezas sueltas mucho más chicas que la prenda (una mota, un resto) se borran (`soloLaPrenda`); un conjunto de dos piezas se queda.
+ * Las aberturas del diseño (un ojal, un escote) son alfa 255 en la imagen de la IA y no se tocan.
  */
-export function esFondoBlanco(rgbaFoto: ArrayLike<number>, alfa: ArrayLike<number>, umbralAlfa = 16): boolean {
-  let fondo = 0;
-  let blancos = 0;
-  for (let i = 0, p = 0; i < alfa.length; i++, p += 4) {
-    if (alfa[i] > umbralAlfa) continue;
-    fondo++;
-    if (Math.min(rgbaFoto[p], rgbaFoto[p + 1], rgbaFoto[p + 2]) >= TONO_BLANCO) blancos++;
+export function limpiarAlfa(rgba: Uint8ClampedArray, ancho: number, alto: number): void {
+  for (let i = 3; i < rgba.length; i += 4) {
+    const a = rgba[i];
+    if (a <= UMBRAL_ALFA) rgba[i] = 0;
+    else if (a >= ALFA_SOLIDA) rgba[i] = 255;
   }
-  return fondo > 0 && blancos / fondo >= FRACCION_FONDO_BLANCO;
-}
-
-/**
- * Le pone la transparencia a la foto y le saca el blanco que se le mezcló en los bordes. Sobre blanco, un borde con alfa `a` se
- * pintó como `a·color + (1 − a)·255`: se despeja el color de la prenda. Sin eso, el borde queda con un halo claro que se nota sobre
- * una prenda oscura. Escribe en `rgba` (los píxeles de la foto) y deja el alfa de la máscara. `blanco = false` (foto con su fondo):
- * solo pone el alfa, porque el fondo no era blanco y no hay qué despejar.
- */
-export function aplicarAlfa(rgba: Uint8ClampedArray, alfa: ArrayLike<number>, blanco: boolean): void {
-  for (let i = 0, p = 0; i < alfa.length; i++, p += 4) {
-    const a = alfa[i];
-    rgba[p + 3] = a;
-    if (!blanco || a === 0 || a >= 250) continue;
-    const f = a / 255;
-    for (let k = 0; k < 3; k++) rgba[p + k] = (rgba[p + k] - 255 * (1 - f)) / f;
-  }
+  soloLaPrenda(rgba, ancho, alto);
 }
 
 /** La caja de lo que quedó visible, para recortar el aire transparente alrededor de la prenda. */
@@ -85,14 +64,11 @@ export function tamanoDelRecorte(caja: { ancho: number; alto: number }, altoMax 
   return { ancho: Math.max(1, Math.round(caja.ancho * escala)), alto: Math.max(1, Math.round(caja.alto * escala)) };
 }
 
-/** Por qué revisarlo antes de usarlo, o `null` si salió limpio. Un fondo que no es blanco (la foto se subió «Con fondo» sobre una
- *  pared o una tela) pesa más que los huecos: lo más probable es que se haya colado un pedazo. Una foto «Con fondo» sobre blanco parejo
- *  (la de un proveedor) se recorta igual de limpio que una «Sin fondo». Los huecos pesan más que la falta del original. */
-export function motivoDelRecorte(h: { huecos: number | null; fondoBlanco: boolean; conOriginal: boolean }): MotivoRecorte | null {
-  if (!h.fondoBlanco) return "con_fondo";
-  if (recorteAgujereado(h.huecos)) return "huecos";
-  if (!h.conOriginal) return "sin_original";
-  return null;
+/** Por qué revisarlo antes de usarlo, o `null` si salió limpio. Con la transparencia de la IA, un hueco cerrado en medio de la tela casi
+ *  siempre es una abertura del diseño (un ojal, un cut-out) y quien lo mira lo confirma con «Usar en el probador»; si fuera un defecto de
+ *  la imagen, lo descarta y se cambia la foto. */
+export function motivoDelRecorte(huecos: number | null): MotivoRecorte | null {
+  return recorteAgujereado(huecos) ? "huecos" : null;
 }
 
 /** En palabras de la tienda, por qué un recorte quedó por revisar. */
@@ -223,12 +199,23 @@ export function recorteDeRespuesta(data: unknown, urlFoto: string): RecorteDeFot
   return recorteDe({ url: base + ruta, proporcion: r.proporcion, estado: r.estado, motivo: r.motivo });
 }
 
+/**
+ * Cómo deshacer un recorte recién descartado (/formidable y /chaos, 2026-10-17): la pantalla recuerda cómo estaba —«listo» o «por
+ * revisar»— y `deshacer_descarte_recorte` lo devuelve a eso solo si sigue descartado (si alguien ya decidió, responde
+ * `recorte_ya_cambio` y no pisa nada) y lo anota en la Actividad. `null` si no hay nada que deshacer (ya estaba descartado).
+ */
+export function paraDeshacerElDescarte(foto: string, antes: RecorteDeFoto): { p_foto: string; p_estado: "listo" | "por_revisar" } | null {
+  if (antes.estado === "descartado") return null;
+  return { p_foto: foto, p_estado: antes.estado };
+}
+
 /** El motivo de un error de las funciones de recortes, en palabras de la pantalla (`null` si no es uno de ellas). */
 export function errorDeRecorte(texto: string): string | null {
   if (texto.includes("recorte_sin_permiso")) return "Para guardar recortes necesitas la Vitrina web o poder editar el catálogo.";
   if (texto.includes("recorte_foto_no_existe")) return "Esa foto ya no está. Recarga la pantalla.";
   if (texto.includes("recorte_archivo_no_existe")) return "El recorte no llegó al almacén. Vuelve a intentarlo.";
   if (texto.includes("recorte_no_existe")) return "Esa foto todavía no tiene recorte. Recarga la pantalla.";
+  if (texto.includes("recorte_ya_cambio")) return "No se deshizo: alguien ya decidió ese recorte. Recarga para verlo.";
   if (texto.includes("recorte_datos_invalidos")) return "El recorte no salió bien. Vuelve a intentarlo.";
   return null;
 }

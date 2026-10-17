@@ -73,9 +73,11 @@ describe("guía de foco — cada pantalla declara su estado", () => {
 });
 
 // MODALES (ADR-0284, actualización f). Un modal es todo archivo de `components/` o `app/(app)/` (fuera de `components/ui/`) que dibuja un
-// `<Modal>`, un `<ModalRuta>` o un `Dialog.Content` y tiene campos. La detección es espejo de `scripts/focus/escanear.mjs` (`esModal`,
-// `tieneCampos`): si se cambia una, se cambia la otra.
-const ES_MODAL = /<Modal\b|<ModalRuta\b|Dialog\.Content/;
+// `<Modal>`, un `<ModalRuta>`, un `<Cajon>` o un `Dialog.Content` y tiene campos. El `<Cajon>` (ADR-0358, ronda 17) arma su
+// `Dialog.Content` por dentro, en `components/ui/`, así que quien lo dibuja no lo escribe: sin nombrarlo, un cajón con campos quedaba
+// fuera del registro sin que nada avisara. La detección es espejo de `scripts/focus/escanear.mjs` (`esModal`, `tieneCampos`): si se
+// cambia una, se cambia la otra.
+const ES_MODAL = /<Modal\b|<ModalRuta\b|<Cajon\b|Dialog\.Content/;
 const TIENE_CAMPOS = /<(input|textarea|form|Campo\w*|Select\w*|Combo\w*|Desplegable|Segmentado|Interruptor|Buscador)\b/;
 
 /** Las rutas (bajo `apps/web`) de todos los modales con campos. */
