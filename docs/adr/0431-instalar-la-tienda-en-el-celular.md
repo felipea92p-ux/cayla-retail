@@ -74,4 +74,4 @@ la ofrecería o la tienda mostraría un stock viejo.
 
 Los íconos (`public/cayla-app-*.png`, `cayla-apple-180.png`) se rehicieron con el colibrí del logo oficial, en la misma caja que
 ocupaba el de antes y en su rojo (`#d13730`) sobre `#f5f0e8`. `public/cayla-isotipo.png` ya no existe: el colibrí de la tienda es
-`<Isotipo>` de `components/Marca.tsx`.
+`<Isotipo>` (`components/Isotipo.tsx`), que dibuja el trazo de `lib/marca.ts`.

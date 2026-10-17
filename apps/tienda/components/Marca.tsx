@@ -1,12 +1,12 @@
 import { Fragment } from "react";
-import { COLIBRI, LOGO, PALABRA, partirPorLaMarca, type PiezaDeMarca } from "@/lib/marca";
+import { LOGO, PALABRA, partirPorLaMarca, type PiezaDeMarca } from "@/lib/marca";
 
 /**
  * El logo oficial de CAYLA (`lib/marca.ts`) en SVG, del color del texto que lo rodea (`currentColor`): cada lugar le pone su color y su
  * alto (o su ancho) con CSS, y la otra medida sigue sola. Escondido para el lector de pantalla —el enlace o la tarjeta que lo lleva ya
- * dice «CAYLA»—, salvo que `nombre` diga cómo leerlo (la palabra dentro de un título).
+ * dice «CAYLA»—, salvo que `nombre` diga cómo leerlo (la palabra dentro de un título). El colibrí solo es `<Isotipo>` (`./Isotipo`).
  */
-function Pieza({ pieza, className, nombre }: { pieza: PiezaDeMarca; className: string; nombre?: string }) {
+export function PiezaDeLaMarca({ pieza, className, nombre }: { pieza: PiezaDeMarca; className: string; nombre?: string }) {
   const lectura = nombre ? { role: "img", "aria-label": nombre } : { "aria-hidden": true };
   return (
     <svg
@@ -25,17 +25,12 @@ function Pieza({ pieza, className, nombre }: { pieza: PiezaDeMarca; className: s
 
 /** El logo completo: el colibrí y la palabra, como en el escaparate. */
 export function Logo({ className = "" }: { className?: string }) {
-  return <Pieza pieza={LOGO} className={`t-marca t-marca-logo ${className}`.trim()} />;
-}
-
-/** El colibrí solo. */
-export function Isotipo({ className = "" }: { className?: string }) {
-  return <Pieza pieza={COLIBRI} className={`t-marca t-marca-colibri ${className}`.trim()} />;
+  return <PiezaDeLaMarca pieza={LOGO} className={`t-marca t-marca-logo ${className}`.trim()} />;
 }
 
 /** La palabra CAYLA sola, con el dibujo del logo (nunca escrita con una letra). */
 export function PalabraCayla({ className = "", nombre }: { className?: string; nombre?: string }) {
-  return <Pieza pieza={PALABRA} className={`t-marca t-marca-palabra ${className}`.trim()} nombre={nombre} />;
+  return <PiezaDeLaMarca pieza={PALABRA} className={`t-marca t-marca-palabra ${className}`.trim()} nombre={nombre} />;
 }
 
 /** Un título que puede nombrar a CAYLA («Aniversario CAYLA», «de CAYLA»): la palabra sale con el dibujo del logo y el resto, como texto. */

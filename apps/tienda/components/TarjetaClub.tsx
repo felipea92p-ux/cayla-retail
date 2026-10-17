@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import { Isotipo, PalabraCayla } from "./Marca";
+import { Isotipo } from "./Isotipo";
+import { PalabraCayla } from "./Marca";
 
 /** La tarjeta del Club CAYLA. Con el mouse encima se inclina un poco hacia él (con el dedo o «reducir movimiento», no). */
 export function TarjetaClub({ nombre, desde }: { nombre: string; desde: number }) {

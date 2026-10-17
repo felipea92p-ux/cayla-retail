@@ -35,12 +35,13 @@
   oficial (2000 × 580). El calcado se simplificó con media unidad de tolerancia: pesa 3,3 KB y, superpuesto al original, solo difiere en
   el suavizado del borde (2,8 % de los píxeles de tinta, lo mismo que el calcado fino de 28 KB). `partirPorLaMarca(texto)` separa la
   palabra CAYLA de un título (entera, en mayúsculas o no; no la de «CAYLAS»), con su prueba en `lib/marca.test.ts`.
-- **`components/Marca.tsx`**: `Logo`, `Isotipo`, `PalabraCayla` y `TextoConMarca`, todos con `currentColor` (cada lugar pone su color y
+- **`components/Marca.tsx`** (`Logo`, `PalabraCayla`, `TextoConMarca`) y **`components/Isotipo.tsx`** (el colibrí), todos con `currentColor` (cada lugar pone su color y
   su alto, y el ancho sigue solo). Escondidos para el lector de pantalla —el enlace o la tarjeta ya dicen «CAYLA»—, salvo la palabra dentro
   de un título, que se lee «CAYLA». Va escrito en la página: con 3,3 KB no hace falta un archivo aparte ni hay un instante sin logo.
 - **Dónde:** `Cabecera`, `CabeceraConCuenta` (la fila y el menú del celular), `Pie`, `CabeceraNeutra` (páginas sin salida y la de error),
   `TarjetaClub`, los títulos de campaña de la portada y del Inicio, y el colibrí de la campaña, de la entrada, de las ayudas y del ícono de
-  instalar. `components/Isotipo.tsx` y `public/cayla-isotipo.png` se borraron.
+  instalar. `<Isotipo>` sigue en su archivo de siempre (otros PR de la tienda lo importan) y ahora dibuja el colibrí oficial;
+  `public/cayla-isotipo.png` se borró.
 - **Las imágenes para compartir un look** (`lib/imagenes-del-look.tsx`) arman el logo y el colibrí desde el mismo trazo, como SVG en
   línea: ya no piden el PNG a la red (antes, si no respondía, la imagen salía sin colibrí). Su letra de texto también pasó a Heebo
   (`lib/fuentes-og.ts`).

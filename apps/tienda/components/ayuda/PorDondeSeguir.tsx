@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icono } from "../Icono";
-import { Isotipo, Logo } from "../Marca";
+import { Isotipo } from "../Isotipo";
+import { Logo } from "../Marca";
 import type { TemaDeAyuda } from "./temas";
 import "@/app/estilos/ayuda.css";
 
