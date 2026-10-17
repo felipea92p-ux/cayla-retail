@@ -6,8 +6,7 @@
 - [x] **Prueba `pnpm pruebas:movimientos-dinero-inicio-y-empresa`** en las tandas del CI: 1900 y el día anterior rechazados, el día del inicio
       entra, sin inicio no frena, el cajón por egreso sigue; Trujillo, Lima y todas para el líder; la colaboradora con el módulo; pegar dos
       veces y las anclas vecinas.
-- [ ] **De Felipe: pegar `20261017143000` en producción** (una sola parte, sin políticas). Antes, decidir la variante: lo de la empresa en toda
-      tienda (lo construido) o solo en «Todas las tiendas».
+- [x] **Pegada en producción el 2026-10-17** (`20261017145817`, con la orden de Felipe; variante elegida: lo de la empresa en toda tienda). PR #1158.
 - [ ] **Traer a `main` la web de la rama `claude/finanzas-revisiones-ab242a`** (commit `9b4575544`: el campo de fecha con `min`, el aviso y el
       salto a `?ver=todas`; y `9fd4d991a`, la demo con `?demo=1` en desarrollo). Con la base nueva el salto a «Todas» sobra para el líder: el
       pago ya aparece en la tienda que miraba; el aviso puede decir solo «registrado». Al traerla, tachar en su backlog

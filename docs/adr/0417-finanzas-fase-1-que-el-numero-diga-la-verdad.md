@@ -179,3 +179,10 @@ Prueba: `scripts/pruebas/movimientos_dinero_inicio_y_empresa.mjs` (en el CI, tan
 inicio, el día del inicio, sin inicio, el cajón por egreso; el líder mirando Trujillo, Lima y todas; la colaboradora con el módulo; pegar dos
 veces; las anclas del fondo por rendir, del token y de los tipos enteras. **Cómo se pega:** una sola parte, sin políticas ni `alter`;
 los dos reemplazos anclados abortan sin tocar nada si su ancla no aparece exactamente una vez.
+
+**Pegada en producción el 2026-10-17** (con la orden de Felipe, antes de fusionar el PR #1158; `apply_migration`, registrada como
+`20261017145817` `movimientos_dinero_desde_el_inicio_y_la_empresa_en_toda_vista`). Protocolo: sonda de solo lectura (cada ancla exactamente
+una vez; el token de ADR-0412 y los tipos de ADR-0417 ya en la función; `fn_finanzas_desde` presente, inicio 2026-10-01; 0 movimientos sin
+tienda vigentes y 0 fechados antes del inicio, así que nada cambia de golpe en pantalla), ensayo en un solo lote que termina en excepción,
+aplicación, y después las dos huellas `md5(pg_get_functiondef(…))` iguales a las del ensayo: puerta `ea93db7bdf64ba3408cccc49ebe38431`,
+lista `c29de8b8835d5f720b95d843db547a4c`.

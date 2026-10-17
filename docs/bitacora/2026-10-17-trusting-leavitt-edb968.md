@@ -8,8 +8,8 @@ Por qué así: dos reemplazos anclados sobre las funciones vivas, cada uno sumad
 183000), porque las suites del fondo por rendir repegan sus parches encima. La lista de una tienda muestra lo de la empresa porque los bancos
 ya se ven en toda tienda: un saldo que baja sin el movimiento que lo bajó es la pantalla mintiendo. Un `check` en la tabla se descartó: frenaría
 el depósito de un egreso del cajón anterior al inicio, cuya fecha la pone la caja.
-Felipe se lleva: **decidir si se pega `20261017143000`** (dinero y RPC son suyos; una sola parte, sin políticas) y si prefiere que lo de la
-empresa se vea en toda tienda o solo en «Todas». La web del commit `9b4575544` (rama `claude/finanzas-revisiones-ab242a`) no está en `main`:
+Felipe decidió lo de la empresa en toda tienda y ordenó pegar: **`20261017143000` está en producción desde el 17-oct** (`20261017145817`, sonda,
+ensayo con excepción y huellas iguales), PR #1158 abierto. La web del commit `9b4575544` (rama `claude/finanzas-revisiones-ab242a`) no está en `main`:
 hasta que entre, la pantalla deja escribir 1900 y es la base la que lo frena, con el mensaje a la vista. Probado en una pila propia al día con
 `main` (`cayla-pila-dinero`): la suite nueva, `pago-planilla-y-sunat`, `cuentas-dinero`, `rendicion_fondo` y `finanzas-montos-y-caja-fuerte`
 contra esa base, y vitest.
