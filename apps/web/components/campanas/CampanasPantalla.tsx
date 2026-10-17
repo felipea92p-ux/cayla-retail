@@ -17,7 +17,7 @@ import {
   ordenarYFiltrar,
   rangoDeLaLinea,
   textoPct,
-  type Campana,
+  type CampanaDeLista,
   type DiaPortada,
   type Filtro,
 } from "@/lib/campanas-reglas";
@@ -30,10 +30,10 @@ const conPunto = (frase: string) => (frase.endsWith(".") ? frase : `${frase}.`);
 
 /**
  * Tienda web ▸ Campañas (ADR-0436; maqueta, pantalla 1): las cifras (qué anuncia la portada hoy, cuántas corren, cuál viene), «La portada,
- * día a día» y todas las campañas con su filtro. `dias` es lo que contestó la base para la línea (null si no respondió: la línea lo dice y
- * lo demás se ve igual).
+ * día a día» y todas las campañas con su filtro y su portada en chico. `dias` es lo que contestó la base para la línea (null si no
+ * respondió: la línea lo dice y lo demás se ve igual). `ahora`: la hora del contador de las portadas en chico.
  */
-export function CampanasPantalla({ campanas, dias, hoy }: { campanas: Campana[]; dias: DiaPortada[] | null; hoy: string }) {
+export function CampanasPantalla({ campanas, dias, hoy, ahora }: { campanas: CampanaDeLista[]; dias: DiaPortada[] | null; hoy: string; ahora: number }) {
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const rango = rangoDeLaLinea(hoy);
   const cifras = cifrasDeCampanas(campanas, dias, hoy);
@@ -90,8 +90,8 @@ export function CampanasPantalla({ campanas, dias, hoy }: { campanas: Campana[];
         )}
         <div className="space-y-3 px-4 pb-4 sm:px-5 sm:pb-5">
           <p className="nota-cayla">
-            Cada barra lleva los colores de la portada de su campaña. La rayada es «Lo nuevo»: lo que la tienda muestra cuando no corre ninguna
-            campaña con descuento.
+            Cada barra lleva los colores del diseño de su campaña; la punteada todavía sale con el rojo de siempre. La rayada es «Lo nuevo»:
+            lo que la tienda muestra cuando no corre ninguna campaña con descuento.
           </p>
           {cruce && (
             <p className="nota-cayla" data-guia="campanas.cruce">
@@ -123,15 +123,15 @@ export function CampanasPantalla({ campanas, dias, hoy }: { campanas: Campana[];
         ) : (
           <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-3">
             {visibles.map((c, i) => (
-              <TarjetaCampana key={c.id} c={c} enPortada={enPortada} hoy={hoy} i={i} />
+              <TarjetaCampana key={c.id} c={c} enPortada={enPortada} hoy={hoy} i={i} ahora={ahora} />
             ))}
           </div>
         )}
       </section>
 
       <p className="nota-cayla">
-        Toca una campaña para cambiar su descuento, sus fechas y sus prendas. Las etiquetas que no son campaña (Para liquidar, Estreno…)
-        siguen en{" "}
+        Toca la portada de una campaña para darle su diseño, o «Datos y prendas» para cambiar su descuento, sus fechas y sus prendas. Las
+        etiquetas que no son campaña (Para liquidar, Estreno…) siguen en{" "}
         <Link href="/productos/atributos?tipo=etiquetas" className="btn-enlace">
           Catálogo ▸ Atributos
         </Link>

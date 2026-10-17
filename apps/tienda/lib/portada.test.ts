@@ -4,9 +4,7 @@ import {
   anuncios,
   fechaCorta,
   fechaLarga,
-  finDeCampana,
   interpretarPortada,
-  partesCuenta,
   partirTitulo,
   pctTexto,
   PORTADA_SIN_DATOS,
@@ -62,16 +60,6 @@ describe("textos de la campaña", () => {
   });
 });
 
-describe("la cuenta regresiva", () => {
-  it("la campaña rige todo su último día en Lima (hasta las 23:59:59, UTC−5)", () => {
-    expect(new Date(finDeCampana("2026-10-21")).toISOString()).toBe("2026-10-22T04:59:59.000Z");
-  });
-
-  it("parte lo que falta en días, horas, minutos y segundos; nunca negativo", () => {
-    expect(partesCuenta(((2 * 24 + 3) * 3600 + 4 * 60 + 5) * 1000)).toEqual({ d: 2, h: 3, m: 4, s: 5 });
-    expect(partesCuenta(-5000)).toEqual({ d: 0, h: 0, m: 0, s: 0 });
-  });
-});
 
 describe("anioLima", () => {
   it("el año de Lima, no el del servidor (el 31 a las 23:30 en Lima ya es 1 de enero en UTC)", () => {

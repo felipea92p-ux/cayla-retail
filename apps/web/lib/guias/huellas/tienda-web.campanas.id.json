@@ -2,7 +2,7 @@
   "guia": "tienda-web.campanas.id",
   "ruta": "/tienda-web/campanas/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 29,
+  "total": 46,
   "controles": {
     "app/(app)/tienda-web/campanas/[id]/page.tsx": [
       "Volver «/tienda-web/campanas»",
@@ -38,10 +38,33 @@
       "Boton «Desactivar campaña»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
-      "BotonImprimir «(sin nombre)»"
+      "BotonImprimir «(sin nombre)»",
+      "BotonEditar «Diseñar la portada»"
+    ],
+    "components/campanas/DisenoCampana.tsx": [
+      "button «{i + 1}»",
+      "SegmentoDeslizante «Dónde se mira»",
+      "SegmentoDeslizante «Tema de la tienda»",
+      "Boton «Ver el último»",
+      "Boton «campana.diseno-volver»",
+      "Boton «campana.diseno-publicar»",
+      "button «{e.nombre}»",
+      "input «Elegir mi color»",
+      "Boton «Usar uno un poco más oscuro»",
+      "button «{nombre}»"
     ],
     "components/campanas/PrendasCampana.tsx": [
       "Boton «{campana.activo ? undefined : \"Actívala en Datos para elegir sus prendas\"}»"
+    ],
+    "components/campanas/PublicarDiseno.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/campanas/VolverAlAnterior.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ]
   }
 }

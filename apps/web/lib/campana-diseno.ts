@@ -4,10 +4,15 @@ import {
   leerDiseno,
   mismoDiseno,
   paletaDelDiseno,
+  paletasDeLasPrendas,
+  type ColoresPropios,
   type ContextoRevision,
   type DisenoDeCampana,
 } from "@cayla-retail/portada";
 import type { EstadoCampo } from "@/lib/guia-campos";
+import type { CategoriaDePrenda } from "@/lib/categoria-de-prenda";
+import type { PrendaDeCampana } from "@/lib/campana-detalle";
+import type { DiaPortada } from "@/lib/campanas-reglas";
 
 // Tienda web ▸ Campañas ▸ una campaña ▸ «Diseño en la web» (ADR-0436, actividad 4): lo que la pantalla lee de la base y decide sin
 // dibujar. El diseño en sí (sus opciones, sus colores y la revisión) vive en @cayla-retail/portada, el mismo paquete que pinta la tienda.
@@ -51,14 +56,69 @@ export function leerEstadoDiseno(x: unknown): EstadoDiseno | null {
   };
 }
 
+/** Una prenda de la campaña que puede salir en la portada: su foto (o, sin foto, su categoría y su color, ADR-0333). */
+export type PiezaDePortada = { id: string; nombre: string; foto: string | null; colorHex?: string | null } & CategoriaDePrenda;
+
+/** Lo que la portada dice de la campaña. */
+export type CampanaDePortada = { nombre: string; pct: number | null; hasta: string | null };
+
+/**
+ * Las prendas de la campaña en el orden en que la tienda elige sus polaroids (`heroDelInicio`: primero las que tienen foto); cada una con
+ * el color de su primera variante con color, para dibujarla sin foto.
+ */
+export function piezasDeLaCampana(prendas: readonly PrendaDeCampana[]): PiezaDePortada[] {
+  return [...prendas]
+    .sort((a, b) => Number(a.foto === null) - Number(b.foto === null) || a.nombre.localeCompare(b.nombre, "es"))
+    .map((p) => ({
+      id: p.productoId,
+      nombre: p.nombre,
+      foto: p.foto,
+      colorHex: p.colores.find((c) => c.hex)?.hex ?? null,
+      categoria: p.categoria,
+      prefijo: p.prefijo,
+      familia: p.familia,
+    }));
+}
+
+/** Las paletas sacadas de los colores de las prendas de la campaña (paso «Colores»); un color sin `#hex` no cuenta. */
+export function paletasDeLaCampana(prendas: readonly PrendaDeCampana[]): ColoresPropios[] {
+  return paletasDeLasPrendas(
+    prendas.map((p) => ({ nombre: p.nombre, colores: p.colores.flatMap((c) => (c.hex ? [{ nombre: c.nombre, hex: c.hex }] : [])) })),
+  );
+}
+
+/** El día siguiente a `fecha` (`AAAA-MM-DD`). */
+export const diaSiguiente = (fecha: string) => new Date(Date.parse(`${fecha}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+
+/**
+ * Qué anuncia la portada el día después de que la campaña termina, para la hoja «Publicar» («Después sale»). Lo dice la base
+ * (`campanas_portada_dias`, la regla de la tienda), no esta pantalla: aquí solo se le pone nombre. `null`: no se pudo saber.
+ */
+export function queSaleDespues(dias: readonly DiaPortada[] | null, nombres: ReadonlyMap<string, string>): string | null {
+  const dia = dias?.[0];
+  if (!dia) return null;
+  return dia.campana ? (nombres.get(dia.campana) ?? null) : "Lo nuevo";
+}
+
+/**
+ * Lo que identifica lo que hay guardado: cambia al guardar el borrador, al publicar y al volver al anterior. El editor se vuelve a armar
+ * cuando cambia (con la versión nueva del borrador), así nunca guarda encima con una versión vieja.
+ */
+export function claveDelEstado(e: EstadoDiseno): string {
+  return `${e.borrador?.version ?? 0}|${e.publicado?.publicadoEn ?? "-"}|${e.anterior?.publicadoEn ?? "-"}`;
+}
+
 /** Lo que se abre en el editor: el borrador si se estaba probando; si no, lo publicado; si no, la portada de siempre. */
 export function disenoParaEditar(e: EstadoDiseno): { diseno: DisenoDeCampana; version: number } {
   if (e.borrador) return e.borrador;
   return { diseno: e.publicado?.diseno ?? DISENO_DE_SIEMPRE, version: 0 };
 }
 
-/** Lo que dice la barra de abajo del editor: si lo que se ve ya es lo que ve el cliente, o un borrador que todavía no. */
-export function estadoDelBorrador(e: EstadoDiseno, diseno: DisenoDeCampana): "publicado" | "borrador" | "de-siempre" {
+/**
+ * Si lo que se ve ya es lo que ve el cliente, o un borrador que todavía no. Lo dicen la barra de abajo del editor y la insignia de cada
+ * campaña en la lista (con su borrador, o sin él lo publicado): un borrador igual a lo publicado no es un borrador.
+ */
+export function estadoDelBorrador(e: { publicado: { diseno: DisenoDeCampana } | null }, diseno: DisenoDeCampana): "publicado" | "borrador" | "de-siempre" {
   if (e.publicado && mismoDiseno(e.publicado.diseno, diseno)) return "publicado";
   if (!e.publicado && mismoDiseno(DISENO_DE_SIEMPRE, diseno)) return "de-siempre";
   return "borrador";

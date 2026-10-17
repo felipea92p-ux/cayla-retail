@@ -1,16 +1,18 @@
 import { describe, expect, it } from "vitest";
+import { DISENO_DE_SIEMPRE, PALETA_DE_SIEMPRE } from "@cayla-retail/portada";
 import {
   barraEn,
   campanasEnLaLinea,
   cifrasDeCampanas,
   conteoPorFiltro,
+  coloresDeLaPortada,
   cruceDeHoy,
   datosDeCampana,
+  disenoDeLaLista,
   estadoDeCampana,
   leerCampanas,
   leerDiasPortada,
   ordenarYFiltrar,
-  partirNombre,
   porQueNoSale,
   rangoDeLaLinea,
   tramosDePortada,
@@ -44,12 +46,24 @@ const NUEVA = campana({ id: "nueva", nombre: "Día del Padre", desde: "2027-06-0
 const TODAS = [GATO, HALLOWEEN, ANIVERSARIO, BLACK, NAVIDAD, CYBER, GALENTINE, NUEVA];
 
 describe("leer lo que manda la base", () => {
+  const fila = { ...GATO, diseno: null, borrador: null, piezas: [] as unknown[] };
   it("una lista bien formada pasa, con el % de texto convertido a número", () => {
-    const leidas = leerCampanas([{ ...GATO, pct: "10.00" }]);
+    const leidas = leerCampanas([{ ...fila, pct: "10.00" }]);
     expect(leidas?.[0]?.pct).toBe(10);
+  });
+  it("trae el diseño publicado, el borrador y las prendas de su portada en chico", () => {
+    const pieza = { id: "p1", nombre: "Blusa Emma", foto: null, categoria: "Blusas", prefijo: "BLU", familia: "SUP", color_hex: "#123456" };
+    const [c] = leerCampanas([{ ...fila, diseno: { ...DISENO_DE_SIEMPRE, paleta: "bosque" }, borrador: DISENO_DE_SIEMPRE, piezas: [pieza] }])!;
+    expect(c?.diseno?.paleta).toBe("bosque");
+    expect(c?.borrador).toEqual(DISENO_DE_SIEMPRE);
+    expect(c?.piezas).toEqual([{ id: "p1", nombre: "Blusa Emma", foto: null, categoria: "Blusas", prefijo: "BLU", familia: "SUP", colorHex: "#123456" }]);
+  });
+  it("un diseño que esta versión no sabe leer cuenta como la portada de siempre, sin tumbar la lista", () => {
+    expect(leerCampanas([{ ...fila, diseno: { ...DISENO_DE_SIEMPRE, fondo: "video" } }])?.[0]?.diseno).toBeNull();
   });
   it("una forma inesperada devuelve null (la pantalla lo dice en vez de dibujar a medias)", () => {
     expect(leerCampanas([{ id: "x" }])).toBeNull();
+    expect(leerCampanas([{ ...fila, piezas: [{ id: 3 }] }])).toBeNull();
     expect(leerCampanas(null)).toBeNull();
     expect(leerDiasPortada([{ dia: "2026-10-17" }])).toBeNull();
     expect(leerDiasPortada([{ dia: "2026-10-17", campana: null }])).toEqual([{ dia: "2026-10-17", campana: null }]);
@@ -173,8 +187,22 @@ describe("por qué una campaña que corre hoy no sale en la portada", () => {
     expect(porQueNoSale(BLACK, GATO, HOY)).toBeNull();
     expect(porQueNoSale(ANIVERSARIO, GATO, HOY)).toBeNull();
   });
-  it("el nombre en dos líneas, la última palabra en cursiva", () => {
-    expect(partirNombre("Día Internacional del Gato")).toEqual(["Día Internacional del", "Gato"]);
-    expect(partirNombre("Navidad")).toEqual(["Navidad", ""]);
+});
+
+describe("el diseño de cada campaña en la lista", () => {
+  const BOSQUE = { ...DISENO_DE_SIEMPRE, paleta: "bosque" };
+  it("sin nada propio: «de siempre»; con un borrador distinto: «borrador»; publicado y sin cambios: «publicado»", () => {
+    expect(disenoDeLaLista({ diseno: null, borrador: null })).toBe("de-siempre");
+    expect(disenoDeLaLista({ diseno: null, borrador: BOSQUE })).toBe("borrador");
+    expect(disenoDeLaLista({ diseno: BOSQUE, borrador: null })).toBe("publicado");
+    expect(disenoDeLaLista({ diseno: BOSQUE, borrador: DISENO_DE_SIEMPRE })).toBe("borrador");
+  });
+  it("un borrador igual a lo publicado (o a la portada de siempre, sin nada publicado) no es un borrador", () => {
+    expect(disenoDeLaLista({ diseno: BOSQUE, borrador: { ...BOSQUE } })).toBe("publicado");
+    expect(disenoDeLaLista({ diseno: null, borrador: { ...DISENO_DE_SIEMPRE } })).toBe("de-siempre");
+  });
+  it("la barra y la miniatura llevan los colores de lo publicado; sin diseño, los de siempre", () => {
+    expect(coloresDeLaPortada({ diseno: null }).fondo).toBe(PALETA_DE_SIEMPRE.fondo);
+    expect(coloresDeLaPortada({ diseno: BOSQUE }).fondo).not.toBe(PALETA_DE_SIEMPRE.fondo);
   });
 });

@@ -113,3 +113,59 @@ en oscuro y a 375 px, comparadas píxel por píxel. El Inicio sale idéntico (di
 entre corridas según cuándo el navegador decodifica la imagen: con el código de antes también). Una primera versión del paquete apagaba
 las animaciones con `animation: none` bajo `prefers-reduced-motion` y cambiaba el suavizado de los bordes de las polaroids: ahora las acorta,
 como la regla general de la tienda. `next build` de la tienda pasa; el lockfile solo suma el paquete (sin re-resolver lo demás).
+
+## Actividad 4 — Diseñar y publicar: borrador, publicado y anterior (`20261017160000`)
+
+**DECIDÍ 8 — El diseño vive aparte de la etiqueta, en `retail.campana_disenos`: por campaña, a lo más UN borrador, UN publicado y UN
+anterior (índices únicos parciales), y lo que sale de ahí queda «archivado», nunca se borra.** Cada opción sale de una lista curada (los
+`check` de la tabla son las listas de `packages/portada`, y `campana-diseno.test.ts` exige que coincidan), y la base cierra los estados
+imposibles: una paleta propia sin sus colores, colores sueltos en una paleta curada, una frase de más de 60 letras, más de 4 prendas, un
+publicado sin fecha de publicación.
+**DESCARTÉ** columnas del diseño en `retail.etiquetas`: el diseño no es el descuento (Vender y Atributos leerían una fila que cambia a cada
+toque), un borrador en la misma fila que lo publicado obliga a elegir cuál ve el cliente, y sin el diseño anterior guardado «Volver al
+anterior» no existiría.
+**SE ROMPE SI** dos personas prueban el diseño de la misma campaña a la vez: la versión del borrador hace que la segunda no pise a la
+primera (`diseno_cambiado`), pero su último cambio no se guarda; la pantalla lo dice y «Ver el último» trae el de la otra.
+
+**DECIDÍ 9 — Cada toque se guarda solo, como borrador (`guardar_diseno_borrador`, 450 ms después del último toque y sin el loader), suelto
+del combo «Responsable» (`campana_diseno_borrador`); publicar (`publicar_diseno_campana`) y volver al anterior
+(`volver_al_diseno_anterior`) sí piden quién.** La web sigue mostrando lo publicado hasta que alguien publica. Publicar guarda antes lo
+último que se tocó y publica ESA versión: si otra persona cambió el borrador en el medio, la base no publica y lo dice.
+**DESCARTÉ** un botón «Guardar borrador»: la maqueta aprobada lo guarda solo, y quien prueba siete estilos y se va a almorzar pierde todo si
+se olvida. **DESCARTÉ** también firmar cada toque: el combo a cada toque detiene a quien prueba, y un borrador no lo ve ningún cliente.
+**SE ROMPE SI** el internet se corta mientras se prueba: el borrador deja de guardarse (la pantalla lo dice: «No se pudo guardar el
+borrador»), lo publicado no cambia, y el próximo toque lo vuelve a intentar.
+
+**DECIDÍ 10 — Si la letra se lee lo mide una sola regla, `revisarDiseno` (`packages/portada/src/revision.ts`): el ERP apaga «Publicar» si no
+se lee en claro o en oscuro, y la tienda no pintará un diseño que no se lea (actividad 5).**
+**DESCARTÉ** repetir la medida del contraste en SQL: serían dos reglas que un día dirían cosas distintas.
+**SE ROMPE SI** alguien cambia la fórmula del contraste solo en un lado (no puede: hay uno solo) o publica por fuera del ERP (no hay otra
+puerta: la tabla solo se escribe por estas funciones).
+
+**DECIDÍ 11 — Una campaña abre en su «Diseño en la web» (la pestaña de la maqueta, la tercera); Datos y Prendas van por la URL
+(`?pestana=datos`). «Nueva campaña» lleva a sus Datos**, porque una campaña recién creada todavía no tiene descuento ni prendas. Las
+variantes y su costo (el aviso de «por debajo del costo») se leen solo en Datos y Prendas. «Después sale», en la hoja Publicar, lo dice la
+base (`campanas_portada_dias` del día después de que termina), no la pantalla. Al publicar o volver al anterior, el editor se vuelve a
+armar con lo guardado (`claveDelEstado`), así nunca guarda encima con una versión vieja.
+
+**DECIDÍ 12 — La lista y la línea muestran la portada de verdad: la miniatura es la misma pieza de la tienda (`Lienzo` + `PortadaDeCampana`,
+con su diseño publicado), cada barra de «La portada, día a día» lleva sus colores (punteada si todavía sale con el rojo de siempre), y la
+insignia «Diseño de siempre» / «Borrador» la decide `disenoDeLaLista`, que es la misma pregunta del editor (`estadoDelBorrador`).** Por eso
+`campanas_lista` devuelve el borrador entero (antes, un sí o no) y las prendas con su categoría y su color (la miniatura sin foto dibuja la
+categoría, ADR-0333). `PortadaMini` y `PORTADA_DE_SIEMPRE` (la portada en chico con los colores fijos) se borraron.
+**DESCARTÉ** que la base dijera si hay borrador: un borrador igual a lo publicado se veía como «Borrador», y compararlos en SQL sería otra
+regla de «igual» al lado de `mismoDiseno`.
+**SE ROMPE SI** la lista crece a cientos de campañas: cada tarjeta dibuja una portada entera (hoy son 14; a 100, conviene paginar la lista).
+
+**Lo que se apartó de la maqueta, a propósito:** la cuarta cifra «Sin diseño propio» no entró: con los nombres reales («Día Internacional
+del Gato») cortaba la cifra que importa, «En la portada hoy»; cada tarjeta ya dice «Diseño de siempre» y la línea la puntea. El editor pasa a
+dos columnas desde un contenedor de 840 px (un laptop de 1280 con el lateral abierto), para ver cada toque sin bajar. Los pasos 3 a 7, «Deshacer»
+y «Sorpréndeme» son de la actividad 7: hasta entonces, un estilo con otro fondo o acomodo (Huellitas, Galería) solo cambia los colores.
+
+**Verificación:** `pnpm pruebas:campanas-diseno` (44 casos: los estados imposibles, guardar con su versión, publicar, volver al anterior,
+la lista con el borrador y las prendas con su categoría, quién y la migración dos veces), `campanas-portada` (25) y las pruebas de
+`campana-diseno.ts` y `campanas-reglas.ts`. En el navegador, en la pila propia, con Día Internacional del Gato: elegir «Huellitas» guardó el
+borrador (versión 1); «Publicar diseño» lo publicó a nombre de Felipe y la pantalla dijo «Es el diseño que ve el cliente hoy»; otro estilo y
+«Volver al anterior» dejaron el publicado como anterior y la portada de siempre, y el siguiente toque guardó la versión 2 sin choque. La lista,
+Datos y el diseño en 1440 px claro y oscuro y a 375 px, sin desborde ni errores de consola. Las guías de la lista (10 pasos) y de la campaña
+(13) recorren en escritorio y a 375 px en oscuro sin escribir en la base (el piloto no toca un estilo ni un color: cada toque guarda).

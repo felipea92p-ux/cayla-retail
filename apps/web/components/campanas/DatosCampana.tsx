@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { Globe, Store } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
+import { DISENO_DE_SIEMPRE, type DisenoDeCampana } from "@cayla-retail/portada";
 import { Boton, CampoTexto } from "@/components/ui/campos";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -21,15 +23,17 @@ import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { vigenciaDe } from "@/lib/etiqueta-vigencia";
 import { camposDeDatos, datosValidos, limpiarNombre, NOMBRE_MAX, type CampanaDetalle } from "@/lib/campana-detalle";
 import { sugerirNombreCampana } from "@/lib/sugerencias-campanas";
+import type { PiezaDePortada } from "@/lib/campana-diseno";
 import { CamposDeCampana, leerCamposDeCampana, type CategoriaDeCampana } from "./CamposDeCampana";
-import { PortadaMini } from "./PortadaMini";
+import { Lienzo } from "./Lienzo";
+import { PortadaDeCampana } from "./PortadaDeCampana";
 
 /**
  * Tienda web ▸ Campañas ▸ una campaña ▸ Datos (ADR-0436, actividad 2; maqueta, pantalla 4): lo que antes era «Configurar campaña» de
  * Catálogo ▸ Atributos, en su página. El nombre, el descuento, las fechas y las categorías se guardan juntos (`guardar_campana`, todo o
  * nada), firmados con el responsable. Quien ve Campañas pone también el descuento (Felipe, decisión 3: una sola llave), y la pantalla
  * dice dónde se cobra: en la caja de las tiendas y en la web. Al lado, lo que la campaña es en tienda (sus etiquetas de precio) y en la
- * web (su portada).
+ * web (su portada, la que ve el cliente hoy, con el botón para diseñarla).
  */
 export function DatosCampana({
   campana,
@@ -38,6 +42,9 @@ export function DatosCampana({
   tiendas,
   nombresUsados,
   hoy,
+  disenoPublicado,
+  piezas,
+  ahora,
 }: {
   campana: CampanaDetalle;
   categorias: CategoriaDeCampana[];
@@ -47,6 +54,10 @@ export function DatosCampana({
   /** Los nombres de las otras etiquetas: el ejemplo del nombre nunca propone uno que ya existe. */
   nombresUsados: string[];
   hoy: string;
+  /** El diseño que ve el cliente hoy (null: la portada de siempre). */
+  disenoPublicado: DisenoDeCampana | null;
+  piezas: readonly PiezaDePortada[];
+  ahora: number;
 }) {
   const router = useRouter();
   const responsable = useResponsable();
@@ -269,9 +280,16 @@ export function DatosCampana({
           </div>
           <div className="space-y-3 p-4 sm:p-5">
             <div className="overflow-hidden rounded-xl border border-sand">
-              <PortadaMini nombre={campana.nombre} hasta={campana.hasta} />
+              <Lienzo ancho={1280} alto={720} etiqueta={`La portada de ${campana.nombre} en la tienda online`}>
+                <PortadaDeCampana campana={campana} diseno={disenoPublicado ?? DISENO_DE_SIEMPRE} tema="claro" piezas={piezas} ahora={ahora} />
+              </Lienzo>
             </div>
-            <p className="text-[13px] text-tinta/70">Así se anuncia en la portada de la tienda online: hoy, con los colores de siempre.</p>
+            <p className="text-[13px] text-tinta/70">
+              {disenoPublicado ? "Así se anuncia en la portada de la tienda online." : "Así se anuncia en la portada de la tienda online: con el diseño de siempre."}
+            </p>
+            <BotonEditar href={`/tienda-web/campanas/${campana.id}`} chico>
+              Diseñar la portada
+            </BotonEditar>
           </div>
         </section>
       </div>

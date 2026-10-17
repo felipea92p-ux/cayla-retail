@@ -37,11 +37,13 @@ import {
   estadoDelBorrador,
   resumenColores,
   resumenEstilo,
+  type CampanaDePortada,
   type ClavePaso,
   type EstadoDiseno,
+  type PiezaDePortada,
 } from "@/lib/campana-diseno";
 import { Lienzo } from "./Lienzo";
-import { PortadaDeCampana, type CampanaDePortada, type PiezaDePortada } from "./PortadaDeCampana";
+import { PortadaDeCampana } from "./PortadaDeCampana";
 import { PublicarDiseno } from "./PublicarDiseno";
 import { VolverAlAnterior } from "./VolverAlAnterior";
 
@@ -160,7 +162,7 @@ export function DisenoCampana({
 
   return (
     <div className="tw-editor">
-      <div className="tw-pasos">
+      <div className="tw-pasos" data-guia="campana.diseno-pasos">
         {PASOS_DEL_DISENO.map((p, i) => {
           const abiertoAqui = abierto === p.clave;
           return (
@@ -192,15 +194,15 @@ export function DisenoCampana({
       </div>
 
       <div className="tw-editor-vista space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3" data-guia="campana.diseno-mirar">
           <SegmentoDeslizante
             forma="modo"
             etiqueta="Dónde se mira"
             valor={vista}
             onCambio={(v) => setVista(v as "pc" | "cel")}
             opciones={[
-              { clave: "pc", etiqueta: "Computadora", icono: <Monitor aria-hidden className="h-4 w-4" /> },
-              { clave: "cel", etiqueta: "Celular", icono: <Smartphone aria-hidden className="h-4 w-4" /> },
+              { clave: "pc", etiqueta: "Computadora", icono: <Monitor aria-hidden className="h-4 w-4" />, guia: "campana.diseno-computadora" },
+              { clave: "cel", etiqueta: "Celular", icono: <Smartphone aria-hidden className="h-4 w-4" />, guia: "campana.diseno-celular" },
             ]}
           />
           <SegmentoDeslizante
@@ -215,7 +217,7 @@ export function DisenoCampana({
           />
         </div>
 
-        <div>
+        <div data-guia="campana.diseno-previa">
           {vista === "pc" ? (
             <MarcoWeb etiqueta={`La portada de ${campana.nombre} como la verá el cliente en la computadora`}>
               <Lienzo ancho={1280}>
@@ -231,7 +233,7 @@ export function DisenoCampana({
           )}
         </div>
 
-        <Revision avisos={revision.avisos} />
+        <Revision avisos={revision.avisos} guia="campana.diseno-revision" />
 
         {guardado === "choque" && (
           <Aviso
@@ -260,10 +262,12 @@ export function DisenoCampana({
                 ? "Es el diseño que ve el cliente hoy."
                 : comoEsta === "de-siempre"
                   ? "Es la portada de siempre: cambia algo para darle su diseño."
-                  : "Borrador guardado: la web sigue mostrando el diseño publicado."}
+                  : estado.publicado
+                    ? "Borrador guardado: la web sigue mostrando el diseño publicado."
+                    : "Borrador guardado: la web sigue mostrando la portada de siempre."}
           </p>
           {(estado.publicado || estado.anterior) && (
-            <Boton peso="fantasma" onClick={() => setVolviendo(true)}>
+            <Boton peso="fantasma" onClick={() => setVolviendo(true)} data-guia="campana.diseno-volver">
               Volver al anterior {/* unificar-fijo: regresa el diseño que estaba publicado (maqueta aprobada), no es la vuelta de una pantalla */}
             </Boton>
           )}
@@ -274,6 +278,7 @@ export function DisenoCampana({
             peso="primario"
             onClick={() => setPublicando(true)}
             disabled={!puedePublicar}
+            data-guia="campana.diseno-publicar"
             title={revision.bloquea ? "Para publicar falta que la letra se lea sobre el fondo." : undefined}
           >
             Publicar diseño
@@ -420,9 +425,9 @@ function Muestra({ nombre, fondo, acento, elegida, onClick }: { nombre: string; 
 }
 
 /** La revisión: lo que se midió de la portada (que la letra se lea en los dos temas, que las prendas tengan foto). */
-export function Revision({ avisos }: { avisos: readonly AvisoDeRevision[] }) {
+export function Revision({ avisos, guia }: { avisos: readonly AvisoDeRevision[]; guia?: string }) {
   return (
-    <ul className="tw-revision" aria-label="Revisión del diseño">
+    <ul className="tw-revision" aria-label="Revisión del diseño" data-guia={guia}>
       {avisos.map((a) => (
         <li key={a.texto} data-tono={a.tono}>
           {a.tono === "ok" ? <Check aria-hidden /> : a.tono === "ojo" ? <Eye aria-hidden /> : <X aria-hidden />}

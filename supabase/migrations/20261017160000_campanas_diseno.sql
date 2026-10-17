@@ -17,8 +17,9 @@
 --    anterior, la portada vuelve a la de siempre, y otra vez lo regresa).
 -- 3. Guardar el borrador se suelta del combo «Responsable» (`campana_diseno_borrador`, como `recorte_foto`): lo hace el ERP solo a cada
 --    toque, y así lo aprobó Felipe en la maqueta (el combo está en la hoja «Publicar»). Publicar y volver al anterior SÍ piden quién.
--- 4. `campanas_lista` suma el diseño publicado de cada campaña y tres de sus prendas con foto: la miniatura de la lista es la portada
---    de verdad.
+-- 4. `campanas_lista` suma el diseño publicado de cada campaña, su borrador (si hay uno) y tres de sus prendas con foto, su categoría
+--    y su color: la miniatura de la lista es la portada de verdad. Si el borrador ya es igual a lo publicado lo decide la web
+--    (`mismoDiseno`, la misma pregunta del editor), no otra regla aquí.
 --
 -- LO QUE NO HACE LA BASE: medir si la letra se lee (el contraste). Esa regla vive una sola vez, en `packages/portada/src/revision.ts`,
 -- y la preguntan los dos lados: el ERP apaga «Publicar» si no se lee, y la tienda no pinta un diseño publicado que no se lea (sale el de
@@ -409,7 +410,7 @@ begin
         'variantes', coalesce(p.variantes, 0),
         'categorias', coalesce(c.categorias, 0),
         'diseno', (select retail.fn_diseno_json(d) from retail.campana_disenos d where d.etiqueta_id = e.id and d.estado = 'publicado'),
-        'borrador', exists (select 1 from retail.campana_disenos d where d.etiqueta_id = e.id and d.estado = 'borrador'),
+        'borrador', (select retail.fn_diseno_json(d) from retail.campana_disenos d where d.etiqueta_id = e.id and d.estado = 'borrador'),
         'piezas', coalesce(f.piezas, '[]'::jsonb)
       ) order by e.vigente_desde nulls last, e.nombre)
     from retail.etiquetas e
@@ -422,15 +423,24 @@ begin
     left join lateral (
       select count(*)::int as categorias from retail.etiqueta_categorias ec where ec.etiqueta_id = e.id
     ) c on true
-    -- Tres modelos de la campaña, primero los que tienen foto (como elige la tienda sus polaroids).
+    -- Tres modelos de la campaña, primero los que tienen foto (como elige la tienda sus polaroids). Sin foto, la miniatura dibuja su
+    -- categoría sobre su color (ADR-0333): por eso viajan la categoría y el color de una de sus variantes en la campaña.
     left join lateral (
-      select jsonb_agg(jsonb_build_object('id', x.id, 'nombre', x.nombre, 'foto', x.foto) order by x.foto is null, x.nombre) as piezas
+      select jsonb_agg(jsonb_build_object('id', x.id, 'nombre', x.nombre, 'foto', x.foto, 'categoria', x.categoria, 'prefijo', x.prefijo,
+                                          'familia', x.familia, 'color_hex', x.color_hex) order by x.foto is null, x.nombre) as piezas
       from (
         select y.*
         from (
           select pr.id, pr.referencia as nombre,
-                 (select fo.url from retail.producto_fotos fo where fo.producto_id = pr.id order by fo.es_principal desc, fo.orden, fo.created_at limit 1) as foto
+                 (select fo.url from retail.producto_fotos fo where fo.producto_id = pr.id order by fo.es_principal desc, fo.orden, fo.created_at limit 1) as foto,
+                 ca.nombre as categoria, ca.prefijo, ca.familia,
+                 (select co.hex from retail.variante_etiquetas ve2
+                    join retail.variantes v2 on v2.id = ve2.variante_id
+                    join retail.colores co on co.codigo = v2.color_codigo
+                  where ve2.etiqueta_id = e.id and v2.producto_id = pr.id and co.hex is not null
+                  order by co.nombre limit 1) as color_hex
           from retail.productos pr
+          left join retail.categorias ca on ca.id = pr.categoria_id
           where pr.id in (select v.producto_id from retail.variante_etiquetas ve join retail.variantes v on v.id = ve.variante_id where ve.etiqueta_id = e.id)
         ) y
         order by y.foto is null, y.nombre
@@ -443,7 +453,7 @@ end;
 $$;
 
 comment on function retail.campanas_lista() is
-  'Tienda web ▸ Campañas (ADR-0436): [{id, nombre, activo, estado, desde, hasta, pct, modelos, variantes, categorias, diseno (el publicado | null), borrador (bool), piezas: [{id, nombre, foto}] (3, con foto primero)}]. Pide fn_puede_campanas().';
+  'Tienda web ▸ Campañas (ADR-0436): [{id, nombre, activo, estado, desde, hasta, pct, modelos, variantes, categorias, diseno (el publicado | null), borrador (el diseño en prueba | null), piezas: [{id, nombre, foto, categoria, prefijo, familia, color_hex}] (3, con foto primero)}]. Pide fn_puede_campanas().';
 
 revoke all on function retail.campanas_lista() from public, anon;
 grant execute on function retail.campanas_lista() to authenticated, service_role;

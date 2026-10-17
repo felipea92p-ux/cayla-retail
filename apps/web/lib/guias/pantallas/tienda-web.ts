@@ -1057,14 +1057,14 @@ export const GUIA_CAMPANAS: Guia = {
       preparar: [{ tipo: "escape" }],
       opcional: true,
       titulo: "Hoy, de un vistazo",
-      texto: "Qué campaña anuncia hoy la portada de la tienda online, cuántas corren hoy y cuál viene después.",
+      texto: "Qué campaña anuncia hoy la portada de la tienda online, cuántas corren hoy, y cuál viene después.",
     },
     {
       id: "linea",
       ancla: "campanas.linea",
       opcional: true,
       titulo: "La portada, día a día",
-      texto: "Tres meses en una línea. Cada fila es una campaña con sus fechas; la raya roja es hoy y lo de antes se ve apagado.",
+      texto: "Tres meses en una línea. Cada fila es una campaña con sus fechas y los colores de su diseño (punteada si todavía usa el rojo de siempre); la raya roja es hoy y lo de antes se ve apagado.",
     },
     {
       id: "portada",
@@ -1092,7 +1092,7 @@ export const GUIA_CAMPANAS: Guia = {
       ancla: "campanas.lista",
       opcional: true,
       titulo: "Cada campaña",
-      texto: "Su portada en chico, en qué está (en la web ahora, vigente, en tantos días, terminó), sus fechas, su descuento y cuántas prendas lleva. Si corre hoy pero no sale en la portada, dice por qué. Tócala para cambiar sus datos y sus prendas.",
+      texto: "Su portada en chico, tal como la ve el cliente; en qué está (en la web ahora, vigente, en tantos días, terminó) y si su diseño es el de siempre o tiene un borrador sin publicar. «Editar diseño» (o «Darle su diseño») abre su diseño; «Datos y prendas», su descuento, sus fechas y sus prendas.",
     },
     {
       id: "fin",
@@ -1103,8 +1103,9 @@ export const GUIA_CAMPANAS: Guia = {
   ],
 };
 
-// Tienda web ▸ Campañas ▸ una campaña (ADR-0436, actividad 2): una pantalla interna (no se ofrece sola). Datos (lo que era «Configurar
-// campaña» de Atributos) y Prendas. La demo no guarda, no desactiva ni elige prendas: eso se explica con la pieza encendida.
+// Tienda web ▸ Campañas ▸ una campaña (ADR-0436, actividades 2 y 4): una pantalla interna (no se ofrece sola). Abre en «Diseño en la web»;
+// Datos (lo que era «Configurar campaña» de Atributos) y Prendas son las otras dos pestañas. La demo no guarda, no desactiva ni elige
+// prendas, y en el diseño no toca un estilo ni un color (cada toque guarda el borrador): solo cambia la vista a celular y la regresa.
 export const GUIA_CAMPANA: Guia = {
   id: "tienda-web.campanas.id",
   ruta: "/tienda-web/campanas/[id]",
@@ -1115,13 +1116,71 @@ export const GUIA_CAMPANA: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Una campaña por dentro",
-      texto: "Aquí se cambia todo lo de una campaña: su nombre, sus fechas, su descuento y sus prendas. Es una demo: no se guarda nada.",
+      texto: "Aquí se cambia todo lo de una campaña: cómo se ve en la web, su nombre, sus fechas, su descuento y sus prendas. Es una demo: no se guarda nada.",
     },
     {
       id: "pestanas",
       ancla: "campana.pestanas",
-      titulo: "Datos y Prendas",
-      texto: "Datos es lo de la campaña; Prendas, las que lleva a mano.",
+      titulo: "Tres partes",
+      texto: "Datos es lo de la campaña; Prendas, las que lleva a mano; Diseño en la web, cómo la anuncia la portada de la tienda online.",
+    },
+    {
+      id: "pestana-diseno",
+      ancla: "campana.pestana-diseno",
+      opcional: true,
+      titulo: "Diseño en la web",
+      texto: "La portada de la tienda online con esta campaña: se diseña aquí y se publica cuando te gusta.",
+    },
+    {
+      id: "diseno-pasos",
+      ancla: "campana.diseno-pasos",
+      opcional: true,
+      titulo: "Paso a paso",
+      texto: "Empieza con un estilo (un toque y la portada queda lista) y después elige sus colores: los que siempre se leen bien, los sacados de las prendas de la campaña o el tuyo. Cada toque se guarda solo como borrador.",
+    },
+    {
+      id: "diseno-mirar",
+      ancla: "campana.diseno-mirar",
+      opcional: true,
+      titulo: "Dónde se mira",
+      texto: "La portada en la computadora o en el celular, y con la tienda en claro u oscuro: así la verá el cliente.",
+    },
+    {
+      id: "diseno-celular",
+      ancla: "campana.diseno-previa",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "campana.diseno-celular" }],
+      titulo: "Así se ve en el celular",
+      texto: "Es la misma portada de la tienda, acomodada al celular: lo que ves aquí es lo que verá el cliente.",
+    },
+    {
+      id: "diseno-previa",
+      ancla: "campana.diseno-previa",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "campana.diseno-computadora" }],
+      titulo: "La vista previa",
+      texto: "Cambia con cada toque. La web sigue mostrando el diseño publicado hasta que alguien lo publica.",
+    },
+    {
+      id: "diseno-revision",
+      ancla: "campana.diseno-revision",
+      opcional: true,
+      titulo: "La revisión",
+      texto: "Mide si la letra se lee sobre el fondo, en claro y en oscuro, y si las prendas tienen foto. Si la letra no se lee, «Publicar diseño» se apaga y dice por qué.",
+    },
+    {
+      id: "diseno-publicar",
+      ancla: "campana.diseno-publicar",
+      opcional: true,
+      titulo: "Publicar",
+      texto: "Abre la hoja con la portada en los dos tamaños, cuándo se ve y quién publica. En menos de 5 minutos está en la web. En la demo no publicamos.",
+    },
+    {
+      id: "diseno-volver",
+      ancla: "campana.diseno-volver",
+      opcional: true,
+      titulo: "Volver al anterior",
+      texto: "Si el diseño nuevo no te gusta, regresa el que estaba publicado en un toque (con quién lo hace). El de ahora queda guardado.",
     },
     {
       id: "pestana-datos",
@@ -1170,7 +1229,7 @@ export const GUIA_CAMPANA: Guia = {
       ancla: "campana.en-web",
       opcional: true,
       titulo: "En la web",
-      texto: "Cómo se anuncia la campaña en la portada de la tienda online.",
+      texto: "La portada de la tienda online con esta campaña, como la ve el cliente hoy. «Diseñar la portada» lleva a su diseño.",
     },
     {
       id: "prendas",

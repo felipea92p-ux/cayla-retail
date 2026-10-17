@@ -1,4 +1,6 @@
+import { DISENO_DE_SIEMPRE, coloresDelDiseno, leerDiseno, type Colores, type DisenoDeCampana } from "@cayla-retail/portada";
 import { fechaCorta, textoRango } from "./etiqueta-vigencia";
+import { estadoDelBorrador, type PiezaDePortada } from "./campana-diseno";
 
 // Tienda web ▸ Campañas (ADR-0436; maqueta docs/maquetas/campanas-diseno-2026-10): lo que la pantalla deriva de lo que lee. Lógica pura:
 // se importa desde el servidor y desde el cliente, y se prueba en `campanas-reglas.test.ts`.
@@ -23,6 +25,16 @@ export type Campana = {
   categorias: number;
 };
 
+/** Una campaña de la lista, con lo que su portada en chico necesita (ADR-0436, actividad 4). */
+export type CampanaDeLista = Campana & {
+  /** El diseño que ve el cliente; null: la portada de siempre. */
+  diseno: DisenoDeCampana | null;
+  /** El que se está probando y todavía no se publicó; null: ninguno. */
+  borrador: DisenoDeCampana | null;
+  /** Hasta tres de sus prendas, primero las que tienen foto (las polaroids de la miniatura). */
+  piezas: PiezaDePortada[];
+};
+
 export type DiaPortada = { dia: string; campana: string | null };
 
 type Crudo = Record<string, unknown>;
@@ -30,8 +42,22 @@ const esObjeto = (x: unknown): x is Crudo => !!x && typeof x === "object" && !Ar
 const esFecha = (x: unknown): x is string => typeof x === "string" && /^\d{4}-\d{2}-\d{2}$/.test(x);
 const fechaONull = (x: unknown): string | null | undefined => (x === null ? null : esFecha(x) ? x : undefined);
 const entero = (x: unknown): number | null => (typeof x === "number" && Number.isInteger(x) && x >= 0 ? x : null);
+const textoONull = (x: unknown): string | null => (typeof x === "string" ? x : null);
 
-function leerCampana(x: unknown): Campana | null {
+function leerPieza(x: unknown): PiezaDePortada | null {
+  if (!esObjeto(x) || typeof x.id !== "string" || typeof x.nombre !== "string") return null;
+  return {
+    id: x.id,
+    nombre: x.nombre,
+    foto: textoONull(x.foto),
+    colorHex: textoONull(x.color_hex),
+    categoria: textoONull(x.categoria),
+    prefijo: textoONull(x.prefijo),
+    familia: textoONull(x.familia),
+  };
+}
+
+function leerCampana(x: unknown): CampanaDeLista | null {
   if (!esObjeto(x) || typeof x.id !== "string" || typeof x.nombre !== "string" || typeof x.activo !== "boolean") return null;
   if (x.estado !== "aprobado" && x.estado !== "pendiente") return null;
   const desde = fechaONull(x.desde);
@@ -40,15 +66,33 @@ function leerCampana(x: unknown): Campana | null {
   const pct = x.pct === null ? null : Number(x.pct);
   const [modelos, variantes, categorias] = [entero(x.modelos), entero(x.variantes), entero(x.categorias)];
   if (desde === undefined || hasta === undefined || (pct !== null && !(pct > 0)) || modelos === null || variantes === null || categorias === null) return null;
-  return { id: x.id, nombre: x.nombre, activo: x.activo, estado: x.estado, desde, hasta, pct, modelos, variantes, categorias };
+  const piezas = Array.isArray(x.piezas) ? x.piezas.map(leerPieza) : null;
+  if (!piezas || !piezas.every((p): p is PiezaDePortada => p !== null)) return null;
+  // Un diseño que esta versión no sabe leer cuenta como la portada de siempre: la miniatura nunca se dibuja rota (`leerDiseno`).
+  const diseno = leerDiseno(x.diseno);
+  const borrador = leerDiseno(x.borrador);
+  return { id: x.id, nombre: x.nombre, activo: x.activo, estado: x.estado, desde, hasta, pct, modelos, variantes, categorias, diseno, borrador, piezas };
 }
 
 /** Todo o nada: una fila con otra forma vuelve null la lista entera (mejor «no se pudo leer» que una lista con huecos). */
-export function leerCampanas(dato: unknown): Campana[] | null {
+export function leerCampanas(dato: unknown): CampanaDeLista[] | null {
   if (!Array.isArray(dato)) return null;
   const lista = dato.map(leerCampana);
-  return lista.every((c): c is Campana => c !== null) ? lista : null;
+  return lista.every((c): c is CampanaDeLista => c !== null) ? lista : null;
 }
+
+/* ---------------- El diseño de cada campaña en la lista ---------------- */
+
+/**
+ * La insignia del diseño de una campaña: «Diseño de siempre» si nunca se publicó uno propio, «Borrador» si hay cambios que el cliente
+ * todavía no ve. Es la misma pregunta del editor (`estadoDelBorrador`): un borrador igual a lo publicado no es un borrador.
+ */
+export const disenoDeLaLista = (c: Pick<CampanaDeLista, "diseno" | "borrador">) =>
+  estadoDelBorrador({ publicado: c.diseno ? { diseno: c.diseno } : null }, c.borrador ?? c.diseno ?? DISENO_DE_SIEMPRE);
+
+/** Los colores de la portada que ve el cliente (en claro): los de su barra en «La portada, día a día» y su miniatura. Son dato, no tema. */
+export const coloresDeLaPortada = (c: Pick<CampanaDeLista, "diseno">): Colores => coloresDelDiseno(c.diseno ?? DISENO_DE_SIEMPRE, "claro");
+
 
 export function leerDiasPortada(dato: unknown): DiaPortada[] | null {
   if (!Array.isArray(dato)) return null;
@@ -106,7 +150,7 @@ const PUESTO: Record<EstadoCampana, number> = { vigente: 0, proxima: 1, por_apro
 
 /** El orden de la lista: lo que corre hoy (la que termina primero arriba), lo que viene (la más cercana arriba), lo que no tiene fecha,
  *  y al final lo que ya pasó (la más reciente arriba); las desactivadas, al fondo. Así lo primero que se ve es lo que importa hoy. */
-export function ordenarYFiltrar(campanas: readonly Campana[], filtro: Filtro, hoy: string): Campana[] {
+export function ordenarYFiltrar<C extends Campana>(campanas: readonly C[], filtro: Filtro, hoy: string): C[] {
   const dentro = (a: Campana, b: Campana, e: EstadoCampana): number => {
     if (e === "vigente") return (a.hasta ?? "9999-12-31").localeCompare(b.hasta ?? "9999-12-31");
     if (e === "proxima") return (a.desde ?? "").localeCompare(b.desde ?? "");
@@ -221,7 +265,7 @@ export function tramosDePortada(dias: readonly DiaPortada[]): Tramo[] {
 }
 
 /** Las campañas que tienen alguna fecha dentro de la línea (las que se dibujan como fila), en el orden en que empiezan. */
-export function campanasEnLaLinea(campanas: readonly Campana[], rango: Rango): Campana[] {
+export function campanasEnLaLinea<C extends Campana>(campanas: readonly C[], rango: Rango): C[] {
   return campanas
     .filter((c) => c.activo && c.estado === "aprobado" && (c.desde || c.hasta))
     .filter((c) => (c.desde ?? "0000-00-00") <= rango.hasta && (c.hasta ?? "9999-12-31") >= rango.desde)
@@ -230,26 +274,6 @@ export function campanasEnLaLinea(campanas: readonly Campana[], rango: Rango): C
 
 /** «hasta el 30 oct.»: cómo se nombra el último día de un cruce. */
 export const hastaEl = (f: string) => `hasta el ${fechaCorta(f)}`;
-
-/* ---------------- La portada de siempre ---------------- */
-
-/**
- * Los colores con los que la tienda dibuja HOY toda campaña (`--t-hero*` de `apps/tienda/app/globals.css`), mientras ninguna tenga su
- * diseño (actividad 4). Son un DATO de la portada, no del tema del ERP: no cambian con el modo oscuro (`data-color-dato`).
- */
-export const PORTADA_DE_SIEMPRE = {
-  fondo: "#6a2118", // tema-fijo: el fondo de la portada de la tienda, un dato que no cambia con el tema
-  fondo2: "#92301f", // tema-fijo: el segundo tono del degradado de la portada de la tienda
-  letra: "#f6efe6", // tema-fijo: la letra crema de la portada de la tienda
-  acento: "#f4c3b3", // tema-fijo: el acento (la cursiva) de la portada de la tienda
-} as const;
-
-/** «Día Internacional del» / «Gato»: el nombre en dos líneas, la última palabra en cursiva (como `partirTitulo` de la tienda). */
-export function partirNombre(nombre: string): [string, string] {
-  const palabras = nombre.trim().split(/\s+/);
-  if (palabras.length < 2) return [nombre.trim(), ""];
-  return [palabras.slice(0, -1).join(" "), palabras[palabras.length - 1]!];
-}
 
 /**
  * Por qué una campaña que corre hoy no es la de la portada, en palabras de tienda. La regla es de la base (`fn_campana_en_portada`):

@@ -25,6 +25,8 @@ export default async function CampanasPage() {
     supabase.from("etiquetas").select("nombre"),
   ]);
   const campanas = lista.error ? null : leerCampanas(lista.data);
+  // La hora del contador de las portadas en chico, la de esta carga (`getTime()`: ver la página de una campaña).
+  const ahora = new Date().getTime();
 
   return (
     <div className="tw space-y-6">
@@ -32,7 +34,7 @@ export default async function CampanasPage() {
         sede={persona.ubicacionEtiqueta}
         detalle="Tienda web"
         titulo="Campañas"
-        subtitulo="Lo que celebras, cuándo y con qué descuento, y qué campaña anuncia la portada de la tienda online cada día."
+        subtitulo="Lo que celebras, cuándo, con qué descuento y cómo se ve en la web. Cada campaña puede tener su propio diseño; la que no lo tiene sale con el rojo de siempre."
         acciones={<NuevaCampana nombresUsados={(nombres.data ?? []).map((e) => e.nombre)} hoy={hoy} />}
       />
       {campanas === null ? (
@@ -40,7 +42,7 @@ export default async function CampanasPage() {
           Recarga la página; si sigue, avísale al líder.
         </Aviso>
       ) : (
-        <CampanasPantalla campanas={campanas} dias={dias.error ? null : leerDiasPortada(dias.data)} hoy={hoy} />
+        <CampanasPantalla campanas={campanas} dias={dias.error ? null : leerDiasPortada(dias.data)} hoy={hoy} ahora={ahora} />
       )}
     </div>
   );

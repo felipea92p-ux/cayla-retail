@@ -12,16 +12,10 @@ import {
   type PiezaDeHeroe,
   type Tema,
 } from "@cayla-retail/portada";
-import type { CategoriaDePrenda } from "@/lib/categoria-de-prenda";
+import type { CampanaDePortada, PiezaDePortada } from "@/lib/campana-diseno";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { IsotipoCayla } from "@/components/ui/IsotipoCayla";
 import { SinFoto } from "@/components/ui/PrendaCelda";
-
-/** Una prenda de la campaña que puede salir en la portada: su foto (o, sin foto, su categoría y su color). */
-export type PiezaDePortada = { id: string; nombre: string; foto: string | null; colorHex?: string | null } & CategoriaDePrenda;
-
-/** Lo que la portada dice de la campaña. */
-export type CampanaDePortada = { nombre: string; pct: number | null; hasta: string | null };
 
 /** Hasta tres polaroids, como la tienda (`heroDelInicio`): la vista previa muestra las que de verdad pueden salir. */
 const POLAROIDS = 3;

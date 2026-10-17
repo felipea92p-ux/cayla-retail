@@ -403,25 +403,8 @@
   .tw-globo-respuesta small { display: block; margin-bottom: 2px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-verde-profundo); }
 
   /* ───────── Campañas (ADR-0436): la portada en chico y «La portada, día a día» ───────── */
-  /* La portada de una campaña en chico. Sus colores llegan en línea (`--hf`, `--hf2`, `--ht`, `--ha`): son un DATO de la portada de la
-     tienda, no del tema del ERP (`data-color-dato`), así que no cambian con el modo oscuro. */
-  .tw-portada-mini {
-    position: relative;
-    aspect-ratio: 16 / 9;
-    overflow: hidden;
-    container-type: inline-size;
-    color: var(--ht);
-    background: radial-gradient(120% 90% at 88% 6%, var(--hf2), var(--hf) 58%);
-  }
-  /* Lo de adentro mide en `cqi` del ancho de la portada (la portada es su contenedor; ella misma no puede medirse a sí misma). */
-  .tw-portada-mini-dentro { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 4cqi; padding: 0 8cqi; }
-  .tw-portada-mini-ceja { font-size: max(9px, 3.2cqi); font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ha); }
-  .tw-portada-mini-tit { font-size: 11.5cqi; font-weight: 500; line-height: 0.9; letter-spacing: -0.01em; }
-  .tw-portada-mini-tit > span,
-  .tw-portada-mini-tit > em { display: block; }
-  .tw-portada-mini-tit > em { font-style: italic; color: var(--ha); }
-
-  /* La tarjeta de una campaña: su portada arriba y lo que trae abajo. La que ya pasó se apaga, sin perder sus datos. */
+  /* La tarjeta de una campaña: su portada arriba (la de verdad, en `Lienzo`: un DATO, `data-color-dato`) y lo que trae abajo. La que ya
+     pasó se apaga, sin perder sus datos. */
   .tw-campana {
     display: flex;
     flex-direction: column;
@@ -429,13 +412,12 @@
     border: 1px solid var(--color-sand);
     border-radius: 16px;
     background: var(--color-papel);
-    color: inherit;
-    text-decoration: none;
-    transition: border-color 200ms var(--ease-cayla), transform 260ms var(--ease-cayla);
+    transition: border-color 200ms var(--ease-cayla);
   }
-  .tw-campana:hover { border-color: var(--color-taupe); transform: translateY(-2px); }
-  .tw-campana:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
-  .tw-campana[data-apagada] .tw-portada-mini { filter: grayscale(0.85); opacity: 0.72; }
+  .tw-campana:hover { border-color: var(--color-taupe); }
+  .tw-campana-mini { display: block; border-bottom: 1px solid var(--color-sand); transition: opacity 200ms var(--ease-cayla); }
+  .tw-campana-mini:hover { opacity: 0.92; }
+  .tw-campana[data-apagada] .tw-campana-mini { filter: grayscale(0.85); opacity: 0.72; }
 
   /* La línea: una columna para el nombre y otra para los tres meses, una pista por fila. */
   .tw-cal { display: grid; grid-template-columns: 10.5rem minmax(0, 1fr); row-gap: 8px; align-items: center; min-width: 46rem; }
@@ -474,6 +456,8 @@
     color: var(--color-tinta);
     background: repeating-linear-gradient(135deg, var(--color-sand) 0 4px, var(--color-papel) 4px 9px);
   }
+  /* La campaña que todavía sale con el rojo de siempre (sin diseño propio publicado): punteada por dentro. */
+  .tw-cal-barra[data-de-siempre] { outline: 1.5px dashed color-mix(in srgb, var(--color-crema-fija) 55%, transparent); outline-offset: -3px; }
   .tw-cal-barra[data-corte-antes] { border-top-left-radius: 0; border-bottom-left-radius: 0; }
   .tw-cal-barra[data-corte-despues] { border-top-right-radius: 0; border-bottom-right-radius: 0; }
   /* Lo que ya pasó, apagado bajo un velo de papel; hoy, una raya roja. */
@@ -494,8 +478,9 @@
   /* La franja de arriba y la cabecera de la tienda, como las ve el cliente sin cuenta (en claro o en oscuro: lo elige la vista previa). */
   .tw-web { background: var(--color-crema-fija); color: var(--color-tinta-fija); }
   .tw-web[data-tema="oscuro"] { background: var(--color-tinta-fija); color: var(--color-crema-fija); }
+  /* Como la franja de la tienda (`.t-anuncio-pila`): en el celular la frase baja a dos líneas en vez de cortarse. */
   .tw-web-anuncio {
-    height: 30px; display: grid; place-items: center; padding: 0 12px; overflow: hidden; white-space: nowrap;
+    min-height: 30px; display: grid; place-items: center; padding: 8px 12px; line-height: 1.35; text-align: center;
     background: var(--color-tinta-fija); color: var(--color-crema-fija);
     font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
   }
@@ -534,10 +519,11 @@
   }
   .tw-celular > .tw-lienzo { border-radius: 26px; }
 
-  /* El editor: los pasos a la izquierda y la vista previa a la derecha (pegada arriba mientras se baja). En angosto, uno sobre otro. */
+  /* El editor: los pasos a la izquierda y la vista previa a la derecha (pegada arriba mientras se baja), para ver cada toque sin bajar:
+     desde un laptop de 1280 px con el lateral abierto (el contenedor mide ~860). En angosto, uno sobre otro. */
   .tw-editor { display: grid; gap: 20px; }
-  @container tw (min-width: 1080px) {
-    .tw-editor { grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); align-items: start; }
+  @container tw (min-width: 840px) {
+    .tw-editor { grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); align-items: start; }
     .tw-editor-vista { position: sticky; top: 16px; }
   }
   .tw-pasos { display: grid; gap: 10px; }
@@ -636,6 +622,5 @@
   .tw-campana {
     transition: none;
   }
-  .tw-campana:hover { transform: none; }
   .tw-camino-linea { stroke-dashoffset: 0; }
 }

@@ -1,30 +1,34 @@
 import type { CSSProperties } from "react";
 import {
-  PORTADA_DE_SIEMPRE,
   barraEn,
   campanasEnLaLinea,
+  coloresDeLaPortada,
   diasEntre,
+  disenoDeLaLista,
   textoPct,
   tramosDePortada,
-  type Campana,
+  type CampanaDeLista,
   type DiaPortada,
   type Rango,
 } from "@/lib/campanas-reglas";
 import { textoRango } from "@/lib/etiqueta-vigencia";
 
-/** Los colores de la barra de una campaña: los de su portada (hoy, los de siempre). Son dato, no tema. */
-const COLORES_DE_SIEMPRE = {
-  "--hf": PORTADA_DE_SIEMPRE.fondo,
-  "--hf2": PORTADA_DE_SIEMPRE.fondo2,
-  "--ht": PORTADA_DE_SIEMPRE.letra,
-} as CSSProperties;
+/** Los colores de la barra de una campaña: los de la portada que ve el cliente (su diseño publicado, o el de siempre). Son dato, no tema. */
+function coloresDeBarra(c: CampanaDeLista): CSSProperties {
+  const k = coloresDeLaPortada(c);
+  return { "--hf": k.fondo, "--hf2": k.fondo2, "--ht": k.letra } as CSSProperties;
+}
+
+/** Lo que dice la barra de una campaña sin descuento: cómo está su diseño. */
+const SIN_DESCUENTO = { publicado: "Con diseño", borrador: "Borrador", "de-siempre": "Diseño de siempre" } as const;
 
 /**
  * «La portada, día a día» (maqueta, pantalla 1): arriba, qué campaña anuncia la portada cada día —la que dice la base, tramo por tramo, y
- * «Lo nuevo» donde no hay ninguna—; abajo, una fila por campaña con sus fechas. La línea marca hoy y apaga lo que ya pasó. Se lee de
- * izquierda a derecha como un calendario; el detalle de cada barra va en su texto para el lector de pantalla.
+ * «Lo nuevo» donde no hay ninguna—; abajo, una fila por campaña con sus fechas. Cada barra lleva los colores de su diseño publicado; la
+ * de una campaña que todavía sale con el de siempre va punteada. La línea marca hoy y apaga lo que ya pasó. Se lee de izquierda a derecha
+ * como un calendario; el detalle de cada barra va en su texto para el lector de pantalla.
  */
-export function LineaPortada({ campanas, dias, rango, hoy }: { campanas: readonly Campana[]; dias: readonly DiaPortada[]; rango: Rango; hoy: string }) {
+export function LineaPortada({ campanas, dias, rango, hoy }: { campanas: readonly CampanaDeLista[]; dias: readonly DiaPortada[]; rango: Rango; hoy: string }) {
   const porId = new Map(campanas.map((c) => [c.id, c]));
   const tramos = tramosDePortada(dias);
   const filas = campanasEnLaLinea(campanas, rango);
@@ -68,8 +72,9 @@ export function LineaPortada({ campanas, dias, rango, hoy }: { campanas: readonl
                 className="tw-cal-barra"
                 data-nuevo={c ? undefined : ""}
                 data-color-dato={c ? "" : undefined}
+                data-de-siempre={c && !c.diseno ? "" : undefined}
                 title={`${nombre}: ${textoRango(t.desde, t.hasta)}`}
-                style={{ ...(c ? COLORES_DE_SIEMPRE : {}), left: `${b.izquierda}%`, width: `${b.ancho}%`, ["--i" as string]: i } as CSSProperties}
+                style={{ ...(c ? coloresDeBarra(c) : {}), left: `${b.izquierda}%`, width: `${b.ancho}%`, ["--i" as string]: i } as CSSProperties}
               >
                 {nombre}
                 <span className="sr-only"> en la portada, {textoRango(t.desde, t.hasta)}</span>
@@ -91,12 +96,13 @@ export function LineaPortada({ campanas, dias, rango, hoy }: { campanas: readonl
                 <span
                   className="tw-cal-barra"
                   data-color-dato
+                  data-de-siempre={c.diseno ? undefined : ""}
                   data-corte-antes={b.cortadaAntes ? "" : undefined}
                   data-corte-despues={b.cortadaDespues ? "" : undefined}
                   title={`${c.nombre}: ${textoRango(c.desde, c.hasta) ?? "sin fechas"}`}
-                  style={{ ...COLORES_DE_SIEMPRE, left: `${b.izquierda}%`, width: `${b.ancho}%`, ["--i" as string]: i + tramos.length } as CSSProperties}
+                  style={{ ...coloresDeBarra(c), left: `${b.izquierda}%`, width: `${b.ancho}%`, ["--i" as string]: i + tramos.length } as CSSProperties}
                 >
-                  {c.pct ? `−${textoPct(c.pct)} %` : "Sin descuento"}
+                  {c.pct ? `−${textoPct(c.pct)} %` : SIN_DESCUENTO[disenoDeLaLista(c)]}
                   <span className="sr-only">, {textoRango(c.desde, c.hasta)}</span>
                 </span>
                 {marcaDeHoy(false)}

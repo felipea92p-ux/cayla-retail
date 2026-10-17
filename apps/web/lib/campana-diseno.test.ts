@@ -1,7 +1,19 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ACOMODOS, DISENO_DE_SIEMPRE, FONDOS, INTENSIDADES, PALETAS, PATRONES, SELLOS, TAMANOS, paletaPropia } from "@cayla-retail/portada";
-import { contextoDeRevision, disenoParaEditar, estadoDelBorrador, leerEstadoDiseno, resumenColores, resumenEstilo } from "./campana-diseno";
+import {
+  contextoDeRevision,
+  diaSiguiente,
+  disenoParaEditar,
+  estadoDelBorrador,
+  leerEstadoDiseno,
+  paletasDeLaCampana,
+  piezasDeLaCampana,
+  queSaleDespues,
+  resumenColores,
+  resumenEstilo,
+} from "./campana-diseno";
+import type { PrendaDeCampana } from "./campana-detalle";
 
 // La base impide los valores que no están en las listas curadas (`check` de 20261017160000_campanas_diseno.sql) y el código las ofrece
 // desde @cayla-retail/portada: si una crece y la otra no, la pantalla ofrecería algo que la base rechaza (o al revés).
@@ -51,9 +63,9 @@ describe("lo que hay de una campaña", () => {
 
   it("dice si lo que se ve ya es lo publicado, un borrador o la portada de siempre", () => {
     const publicado = { diseno: OLIVA, publicadoEn: "x", publicadoPor: null };
-    expect(estadoDelBorrador({ borrador: null, publicado, anterior: null }, OLIVA)).toBe("publicado");
-    expect(estadoDelBorrador({ borrador: null, publicado, anterior: null }, BOSQUE)).toBe("borrador");
-    expect(estadoDelBorrador({ borrador: null, publicado: null, anterior: null }, DISENO_DE_SIEMPRE)).toBe("de-siempre");
+    expect(estadoDelBorrador({ publicado }, OLIVA)).toBe("publicado");
+    expect(estadoDelBorrador({ publicado }, BOSQUE)).toBe("borrador");
+    expect(estadoDelBorrador({ publicado: null }, DISENO_DE_SIEMPRE)).toBe("de-siempre");
   });
 
   it("resume el estilo y los colores elegidos", () => {
@@ -64,6 +76,47 @@ describe("lo que hay de una campaña", () => {
 
   it("cuenta las prendas y cuántas tienen foto", () => {
     expect(contextoDeRevision([{ foto: "a.jpg" }, { foto: null }])).toEqual({ prendas: 2, prendasConFoto: 1 });
+  });
+});
+
+const prenda = (x: Partial<PrendaDeCampana> & { nombre: string }): PrendaDeCampana => ({
+  productoId: x.nombre,
+  codigo: null,
+  categoria: "Blusas",
+  prefijo: "BLU",
+  familia: "SUP",
+  foto: null,
+  variantes: 1,
+  colores: [],
+  ...x,
+});
+
+describe("las prendas de la portada", () => {
+  it("van como las elige la tienda: primero las que tienen foto, después por nombre; sin foto, con su color y su categoría", () => {
+    const piezas = piezasDeLaCampana([
+      prenda({ nombre: "Top Luna", colores: [{ nombre: "Sin color", hex: null }, { nombre: "Negro", hex: "#1a1a18" }] }),
+      prenda({ nombre: "Blusa Emma", foto: "emma.jpg" }),
+      prenda({ nombre: "Abrigo Sol" }),
+    ]);
+    expect(piezas.map((p) => p.nombre)).toEqual(["Blusa Emma", "Abrigo Sol", "Top Luna"]);
+    expect(piezas[2]).toEqual({ id: "Top Luna", nombre: "Top Luna", foto: null, colorHex: "#1a1a18", categoria: "Blusas", prefijo: "BLU", familia: "SUP" });
+  });
+
+  it("las paletas salen de los colores con #hex de sus prendas", () => {
+    const paletas = paletasDeLaCampana([prenda({ nombre: "Blusa Emma", colores: [{ nombre: "Vino", hex: "#5a1a2a" }, { nombre: "Sin color", hex: null }] })]);
+    expect(paletas.map((p) => p.nombre)).toEqual(["De Blusa Emma vino"]);
+    expect(paletasDeLaCampana([prenda({ nombre: "Blusa Emma", colores: [{ nombre: "Sin color", hex: null }] })])).toEqual([]);
+  });
+});
+
+describe("qué sale en la portada cuando la campaña termina", () => {
+  const nombres = new Map([["halloween", "Halloween"]]);
+  it("el día siguiente, con su nombre; sin campaña, «Lo nuevo»; sin respuesta, null", () => {
+    expect(diaSiguiente("2026-10-31")).toBe("2026-11-01");
+    expect(queSaleDespues([{ dia: "2026-10-31", campana: "halloween" }], nombres)).toBe("Halloween");
+    expect(queSaleDespues([{ dia: "2026-10-31", campana: null }], nombres)).toBe("Lo nuevo");
+    expect(queSaleDespues(null, nombres)).toBeNull();
+    expect(queSaleDespues([], nombres)).toBeNull();
   });
 });
 

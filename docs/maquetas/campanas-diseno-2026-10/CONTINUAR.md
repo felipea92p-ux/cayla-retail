@@ -7,31 +7,23 @@ Escrito el 2026-10-17. Sin llaves ni contraseñas (el repo es público): dice d�
 - **Carpeta de trabajo (worktree):** `/Volumes/CAYLA-SSD/Developer/cayla-retail/.claude/worktrees/campanas-design-customization-ddbd90`
   (también se ve como `/Users/ArchiCaylo/Developer/cayla-retail/.claude/worktrees/...`; **para escribir con Write/Edit usa la ruta
   `/Users/ArchiCaylo/...`**, la otra la bloquea el guardia). Abre Claude Code **dentro de esa carpeta**: así lee su `CLAUDE.md`.
-- **Rama:** `claude/campanas-design-customization-ddbd90`. Último commit: `3cc0cd4f8`. Árbol limpio salvo `.claude/launch.json`
+- **Rama:** `claude/campanas-design-customization-ddbd90`. Árbol limpio salvo `.claude/launch.json`
   (sin commitear a propósito: trae las llaves LOCALES de los servidores de prueba).
 - **Qué se construye y por qué:** `docs/adr/0436-campanas-con-diseno-propio-en-la-portada.md` (decisiones de Felipe, DECIDÍ/DESCARTÉ por
   actividad). **Maqueta aprobada «tal cual»:** `docs/maquetas/campanas-diseno-2026-10/index.html` (+ su README). **Dónde quedó:**
   `docs/backlog/2026-10-16-campanas-design-customization-ddbd90.md`, sección «Dónde quedó».
 - **Las 9 actividades (lista aprobada por Felipe, método `/construir`: una por una, cada una con su commit):**
   1 menú y lista ✔ · 2 Datos y Prendas con una sola llave ✔ · 3 la portada en una sola pieza (`packages/portada`) ✔ ·
-  **4 diseñar y publicar (a medias)** · 5 la tienda pinta el diseño publicado · 6 campañas sin descuento y cuál va primero ·
+  4 diseñar y publicar ✔ · **5 la tienda pinta el diseño publicado** · 6 campañas sin descuento y cuál va primero ·
   7 el resto del editor (fondo liso/degradado/dibujo, acomodos, texto, prendas, detalles, Sorpréndeme, Deshacer) · 8 fondo con foto ·
   9 cierre (`/chaos`, `/formidable`, `tema:auditar`, 375 px, ADR, PR con `/abrir-pr`).
 
-## Lo siguiente (actividad 4, lo que falta)
+## Lo siguiente (actividad 5)
 
-1. Conectar la pestaña «Diseño en la web» en `apps/web/app/(app)/tienda-web/campanas/[id]/page.tsx`: leer `campana_diseno` (RPC),
-   `leerEstadoDiseno`, y pintar `<DisenoCampana>` (ya existe, sin conectar). Será la pestaña por defecto, como la maqueta; `NuevaCampana`
-   lleva a `?pestana=datos`. «Después sale» sale de `campanas_portada_dias`. Piezas ya hechas: `components/campanas/{DisenoCampana,Lienzo,
-   PortadaDeCampana,PublicarDiseno,VolverAlAnterior}.tsx`, `lib/campana-diseno.ts`, y en `packages/portada`: `diseno.ts`, `revision.ts`,
-   `paletas.ts`, `colores-de-prendas.ts` (`paletasDeLasPrendas`), `textos.ts`, `lienzo.css`.
-2. La lista (`TarjetaCampana`): miniatura real con `Lienzo` + `PortadaDeCampana`, chip «Diseño de siempre» / «Borrador», botones «Editar
-   diseño» y «Datos y prendas»; colores del diseño en «La portada, día a día»; borrar `PortadaMini` y `PORTADA_DE_SIEMPRE`.
-   `campanas_lista` devuelve `diseno`, `borrador` y `piezas` (3 con foto).
-3. La guía interactiva de la pestaña (las anclas `data-guia` se quitaron hasta escribir sus pasos; `lib/guias/pantallas/tienda-web.ts` +
-   `node guias/huella.mjs <id>` solo tras revisar), `docs/ARQUITECTURA.md`, y la sección «Actividad 4» del ADR-0436.
-4. Verificar en el navegador (abajo): diseñar, publicar, volver al anterior, 375 px, modo oscuro. Después `pnpm knip` (hoy marcaría los
-   componentes nuevos sin usar: se resuelve al conectar) y, antes de cada commit, el hook corre tipos, pruebas y lint.
+La actividad 4 está cerrada (ver la sección «Actividad 4» del ADR-0436 y el backlog). Sigue la **5: la tienda pinta el diseño publicado**:
+`retail.tienda_portada()` devuelve el `diseno` publicado de la campaña que sale; `apps/tienda/lib/portada.ts` lo valida (`leerDiseno` del
+paquete) y la portada y el Inicio lo pintan con `HeroeDePortada` + `variablesDePaleta`; si falta, no pasa o no se lee (`revisarDiseno`),
+sale el rojo de siempre. Se verifica en la tienda local (puerto 3048) sin cuenta y con cuenta, en claro, oscuro y 375 px.
 
 ## Reglas que ya costaron tiempo
 

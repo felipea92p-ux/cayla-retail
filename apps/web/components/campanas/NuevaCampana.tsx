@@ -72,7 +72,8 @@ function NuevaCampanaHoja({ nombresUsados, hoy, onClose }: { nombresUsados: stri
         return;
       }
       avisar.exito(`${limpio} creada`, { detalle: "Ponle su descuento y sus prendas." });
-      router.push(`/tienda-web/campanas/${data as unknown as string}`);
+      // Una campaña recién creada se completa por sus Datos (el descuento, dónde rige); el diseño viene después.
+      router.push(`/tienda-web/campanas/${data as unknown as string}?pestana=datos`);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {

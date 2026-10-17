@@ -13,7 +13,7 @@
  *      anterior a archivado (nunca se borra nada); después de publicar, el borrador viejo ya no se puede guardar encima.
  *   4. `volver_al_diseno_anterior`: cambia el publicado por el anterior y otra vez lo regresa; sin anterior, la portada vuelve a la de
  *      siempre y otra vez lo regresa; sin nada publicado, lo dice.
- *   5. `campanas_lista`: el diseño publicado, si hay borrador y tres prendas con la foto primero.
+ *   5. `campanas_lista`: el diseño publicado, el borrador (si hay) y tres prendas con la foto primero, con su categoría y su color.
  *   6. Quién: sin Campañas, nada (42501); una etiqueta que no es campaña «no existe» aquí. La migración se puede pegar dos veces.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK; la sesión se simula con `request.jwt.claim.sub` y los encabezados con
@@ -288,18 +288,23 @@ ${volver}${estados}`);
   console.log("— La lista —");
   {
     const r = correr(`${ESCENA}
-select (x->>'diseno') is null, (x->>'borrador'), jsonb_array_length(x->'piezas') from jsonb_array_elements(retail.campanas_lista()) x where x->>'id' = :'camp';
+select (x->>'diseno') is null, (x->>'borrador') is null, jsonb_array_length(x->'piezas') from jsonb_array_elements(retail.campanas_lista()) x where x->>'id' = :'camp';
 select retail.guardar_diseno_borrador(:'camp', ${j({ ...DISENO, paleta: "bosque" })}, 0) as _v \\gset
-select (x->>'borrador') from jsonb_array_elements(retail.campanas_lista()) x where x->>'id' = :'camp';
+select x->'borrador'->>'paleta' from jsonb_array_elements(retail.campanas_lista()) x where x->>'id' = :'camp';
 ${como(FELIPE)}select retail.publicar_diseno_campana(:'camp', 1) as _p \\gset
 ${darle("campanas")}
-select x->'diseno'->>'paleta', (x->>'borrador') from jsonb_array_elements(retail.campanas_lista()) x where x->>'id' = :'camp';
-select bool_and(jsonb_array_length(x->'piezas') <= 3) from jsonb_array_elements(retail.campanas_lista()) x;`);
-    const [antes, conBorrador, despues, tope] = lineas(r);
-    esperar("sin diseño ni borrador, con su prenda", antes === "t|false|1", r.ok ? antes : r.mensaje);
-    esperar("dice cuándo hay un borrador sin publicar", conBorrador === "true", conBorrador);
-    esperar("trae el diseño publicado", despues === "bosque|false", despues);
+select x->'diseno'->>'paleta', (x->>'borrador') is null from jsonb_array_elements(retail.campanas_lista()) x where x->>'id' = :'camp';
+select bool_and(jsonb_array_length(x->'piezas') <= 3) from jsonb_array_elements(retail.campanas_lista()) x;
+-- La prenda viaja con lo que su miniatura necesita sin foto (ADR-0333): su categoría y el color de su variante en la campaña.
+select (p->>'id') = :'producto', (p ? 'categoria') and (p ? 'prefijo') and (p ? 'familia'),
+       (p->>'color_hex') is not distinct from (select co.hex from retail.variantes v join retail.colores co on co.codigo = v.color_codigo where v.id = :'variante')
+from jsonb_array_elements(retail.campanas_lista()) x, jsonb_array_elements(x->'piezas') p where x->>'id' = :'camp';`);
+    const [antes, conBorrador, despues, tope, pieza] = lineas(r);
+    esperar("sin diseño ni borrador, con su prenda", antes === "t|t|1", r.ok ? antes : r.mensaje);
+    esperar("trae el borrador sin publicar, con su diseño", conBorrador === "bosque", conBorrador);
+    esperar("trae el diseño publicado (y ya no hay borrador)", despues === "bosque|t", despues);
     esperar("a lo más tres prendas por campaña", tope === "t", tope);
+    esperar("la prenda trae su categoría y su color", pieza === "t|t|t", pieza);
   }
 
   console.log("— Quién —");

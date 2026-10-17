@@ -16,8 +16,9 @@ import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { Lienzo } from "./Lienzo";
-import { PortadaDeCampana, type CampanaDePortada, type PiezaDePortada } from "./PortadaDeCampana";
+import { PortadaDeCampana } from "./PortadaDeCampana";
 import { Revision } from "./DisenoCampana";
+import type { CampanaDePortada, PiezaDePortada } from "@/lib/campana-diseno";
 
 /**
  * «Publicar el diseño» (ADR-0436, actividad 4; maqueta, pantalla 3): la portada en los dos tamaños, cuándo se ve y cuándo se quita, la
