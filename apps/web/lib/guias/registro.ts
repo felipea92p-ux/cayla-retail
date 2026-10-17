@@ -122,6 +122,7 @@ import {
   GUIA_VITRINA,
   GUIA_VITRINA_ESPERAN,
   GUIA_VITRINA_LOOKS,
+  GUIA_VITRINA_PROBADOR,
 } from "./pantallas/tienda-web";
 import type { Guia } from "./tipos";
 
@@ -237,6 +238,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_VITRINA,
   GUIA_VITRINA_ESPERAN,
   GUIA_VITRINA_LOOKS,
+  GUIA_VITRINA_PROBADOR,
   GUIA_RECOMENDACIONES,
   GUIA_TIENDA_WEB_AJUSTES,
 ];
@@ -388,6 +390,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/tienda-web/vitrina": { estado: "aplicada", guia: GUIA_VITRINA.id },
   "/tienda-web/vitrina/esperan": { estado: "aplicada", guia: GUIA_VITRINA_ESPERAN.id },
   "/tienda-web/vitrina/looks": { estado: "aplicada", guia: GUIA_VITRINA_LOOKS.id },
+  "/tienda-web/vitrina/probador": { estado: "aplicada", guia: GUIA_VITRINA_PROBADOR.id },
   // ---- vender ----
   "/vender": { estado: "aplicada", guia: GUIA_PUNTO_DE_VENTA.id },
   "/vender/apartados": { estado: "aplicada", guia: GUIA_APARTADOS.id },

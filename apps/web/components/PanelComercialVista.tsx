@@ -93,7 +93,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
             etiqueta="Ventas del mes"
             ayuda={
               <Ayuda titulo="Ritmo del mes">
-                Compara lo vendido en los días ya cerrados del mes contra lo que prometían las metas diarias. No usa lo de
+                Compara lo vendido en los días ya cerrados del mes contra lo que prometía la meta de cada uno de esos días: la misma que ves en Caja e Inicio. No usa lo de
                 hoy: a las 11 am toda tienda va &quot;atrasada&quot; y una alarma que salta siempre deja de mirarse. La
                 proyección es lineal (promedio diario de los días cerrados × días del mes): una brújula, no una
                 predicción.
@@ -104,6 +104,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
             pie={
               <>
                 {total.ticketsMes} {total.ticketsMes === 1 ? "ticket" : "tickets"}
+                {total.metaMes !== null && <span className="block">Meta del mes: {soles(total.metaMes)}</span>}
                 {total.ritmo.proyeccion !== null && <span className="block">Proyección al cierre: {soles(total.ritmo.proyeccion)}</span>}
                 {total.devueltoMes > 0 && <span className="block">Devuelto en el mes: {soles(total.devueltoMes)}</span>}
               </>
@@ -209,7 +210,8 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
             las 7:30 pm de Lima cuenta como de hoy aunque en UTC ya sea mañana.
           </li>
           <li>
-            <strong>Ritmo y meta:</strong> la meta es una cifra por día por tienda. El semáforo mira los días cerrados del mes,
+            <strong>Ritmo y meta:</strong> la meta de cada día es la misma que ves en Caja e Inicio (cambia con el día de la semana, el mes,
+            las fechas especiales y las campañas), y la del mes es la suma de sus días. El semáforo mira los días cerrados del mes,
             no lo de hoy. Es &quot;bajo su ritmo&quot; por debajo del 85% de lo prometido y &quot;sobre su ritmo&quot; desde el
             100%; esos umbrales son provisionales.
           </li>
@@ -245,6 +247,7 @@ function TarjetaSede({ sede }: { sede: SedeComercial }) {
           )}
           <Fila k="Semana" v={`${soles(sede.ventasSemana)} · ${sede.ticketsSemana} tickets`} />
           <Fila k="Mes" v={`${soles(sede.ventasMes)} · ${sede.ticketsMes} tickets`} />
+          {sede.metaMes !== null && <Fila k="Meta del mes" v={soles(sede.metaMes)} />}
           {sede.ritmo.proyeccion !== null && <Fila k="Proyección al cierre" v={soles(sede.ritmo.proyeccion)} />}
           <Fila k="Ticket promedio (mes)" v={tk === null ? "—" : `${soles(tk)} · ${upt === null ? "—" : num1(upt)} u.`} />
           {sede.devueltoMes > 0 && <Fila k="Devuelto en el mes" v={soles(sede.devueltoMes)} />}

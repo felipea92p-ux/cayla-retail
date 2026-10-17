@@ -136,6 +136,7 @@
     "pruebas:tienda-lugares": "node scripts/pruebas/tienda_lugares.mjs",
     "pruebas:tienda-inicio": "node scripts/pruebas/tienda_inicio.mjs",
     "pruebas:vitrina-looks": "node scripts/pruebas/vitrina_looks.mjs",
+    "pruebas:vitrina-probador": "node scripts/pruebas/vitrina_probador.mjs",
     "pruebas:pedidos-web-motor": "node scripts/pruebas/pedidos_web_motor.mjs",
     "pruebas:pedidos-web-erp": "node scripts/pruebas/pedidos_web_erp.mjs",
     "pruebas:tienda-bolsa": "node scripts/pruebas/tienda_bolsa.mjs",
