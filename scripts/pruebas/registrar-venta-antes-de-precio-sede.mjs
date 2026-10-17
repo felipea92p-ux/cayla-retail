@@ -5,7 +5,8 @@
 // reemplazos anclados; después, el candado del precio 0 (20261012190000, ADR-0384), otro reemplazo anclado; y al final, el token
 // que sigue al contenido (20261013201000), una llamada insertada antes de buscar el token; y por último, el descuento sin céntimos
 // (20261014173000, ADR-0403), dos reemplazos anclados en los topes del 35 y del 15 %; y el cumpleaños sin céntimos (20261015182000,
-// ADR-0403 act. 2026-10-15), dos reemplazos anclados en la cuenta del club. El candado de huella de la migración vieja los rechaza, y
+// ADR-0403 act. 2026-10-15), dos reemplazos anclados en la cuenta del club; y la máquina de cobro (20261016182000, ADR-0429), un
+// reemplazo anclado en el insert de `venta_pagos` (le suma `cuenta_dinero_id`). El candado de huella de la migración vieja los rechaza, y
 // está bien que lo haga.
 //
 // Para probar la migración vieja sobre SU punto de partida, este texto devuelve la función a como estaba antes de esos parches
@@ -18,6 +19,22 @@ import { readFileSync } from "node:fs";
 
 const FIRMA = `(select p.oid::regprocedure::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                     where n.nspname = 'retail' and p.proname = 'registrar_venta')`;
+
+/** Inverso de 20261016182000 (la hoja de cobro anota la máquina, ADR-0429): el insert de `venta_pagos` vuelve a no llevar
+ *  `cuenta_dinero_id`. El reemplazo (`$v$ viejo $v$, $n$ nuevo $n$`) se lee del archivo para no copiarlo. Si la base no lo tiene,
+ *  `replace` no cambia nada. */
+const MAQUINA = readFileSync("supabase/migrations/20261016182000_registrar_venta_anota_la_maquina.sql", "utf8");
+const REEMPLAZO_MAQUINA = [...MAQUINA.matchAll(/\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$,\s*1\);/g)].map((m) => [m[1], m[2]]);
+if (REEMPLAZO_MAQUINA.length !== 1) throw new Error("registrar-venta-antes-de-precio-sede: no encontré el reemplazo de la máquina de cobro");
+export const DESHACER_MAQUINA = `do $deshacer$
+declare
+  v_firma text := ${FIRMA};
+begin
+  execute replace(pg_get_functiondef(v_firma::regprocedure), $q$${REEMPLAZO_MAQUINA[0][1]}$q$, $q$${REEMPLAZO_MAQUINA[0][0]}$q$);
+end $deshacer$;
+`;
+/** Rehacerlo es volver a pegar la migración entera: es re-ejecutable (`pg_temp.reemplazar` no hace nada si el texto nuevo ya está). */
+export const REHACER_MAQUINA = MAQUINA;
 
 /** Inverso de 20261015182000 (el cumpleaños sin céntimos, ADR-0403 act. 2026-10-15): la parte del club vuelve a
  *  `round(… × pct / 100, 2)` y el chequeo pierde la transición. Los dos reemplazos se leen del archivo y se deshacen del último al
@@ -157,6 +174,6 @@ export const REHACER_PRECIO_SEDE = readFileSync("supabase/migrations/20261010100
 export const REHACER_ORIGEN_SUGERENCIA = readFileSync("supabase/migrations/20261010220100_venta_items_origen_sugerencia_parte2.sql", "utf8");
 
 /** Todos los parches posteriores al redondeo, deshechos del más nuevo al más viejo. */
-export const DESHACER_POSTERIORES = `${DESHACER_CUMPLE_SIN_CENTIMOS}\n${DESHACER_DESCUENTO_SIN_CENTIMOS}\n${DESHACER_TOKEN}\n${DESHACER_PRECIO_CERO}\n${DESHACER_ORIGEN_SUGERENCIA}\n${DESHACER_LIQUIDACION}\n${DESHACER_PRECIO_SEDE}`;
+export const DESHACER_POSTERIORES = `${DESHACER_MAQUINA}\n${DESHACER_CUMPLE_SIN_CENTIMOS}\n${DESHACER_DESCUENTO_SIN_CENTIMOS}\n${DESHACER_TOKEN}\n${DESHACER_PRECIO_CERO}\n${DESHACER_ORIGEN_SUGERENCIA}\n${DESHACER_LIQUIDACION}\n${DESHACER_PRECIO_SEDE}`;
 /** Y rehechos en su orden. */
-export const REHACER_POSTERIORES = `${REHACER_PRECIO_SEDE}\n${REHACER_LIQUIDACION}\n${REHACER_ORIGEN_SUGERENCIA}\n${REHACER_PRECIO_CERO}\n${REHACER_TOKEN}\n${REHACER_DESCUENTO_SIN_CENTIMOS}\n${REHACER_CUMPLE_SIN_CENTIMOS}`;
+export const REHACER_POSTERIORES = `${REHACER_PRECIO_SEDE}\n${REHACER_LIQUIDACION}\n${REHACER_ORIGEN_SUGERENCIA}\n${REHACER_PRECIO_CERO}\n${REHACER_TOKEN}\n${REHACER_DESCUENTO_SIN_CENTIMOS}\n${REHACER_CUMPLE_SIN_CENTIMOS}\n${REHACER_MAQUINA}`;

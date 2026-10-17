@@ -27,6 +27,7 @@ import {
   metodoDeAtajo,
   cobroEnEfectivo,
   motivoBloqueoCobro,
+  pagoNuevo,
   pagosCobrados,
   pagosParaRpc,
   pagosTrasEditarMonto,
@@ -40,6 +41,7 @@ import {
   conDescuentoDeCampana,
   type CampanaLinea,
   type DetalleDescuento,
+  type MaquinaDeCobro,
   type ModoDescuento,
   type MomentoTicket,
   type PagoAplicado,
@@ -161,6 +163,7 @@ export { ID_CARGO_ESPECIAL };
 
 /** Sin fichas de color: una sola referencia vacía, para que el `useMemo` de la ficha no se rearme en cada render. */
 const SIN_COLORES: ColorConFicha[] = [];
+const SIN_MAQUINAS: readonly MaquinaDeCobro[] = [];
 
 export type VarianteBusqueda = PrendaBuscableV2 & {
   /** De qué modelo es (`productos.id`): «Combina bien con» no sugiere la misma prenda ni una que ya está en el ticket. Ausente = se
@@ -362,6 +365,10 @@ type Props = {
   /** La base ya acepta el QR como medio de una venta (`fn_acepta_pago_qr`, 20261002130000). Hasta que la migración esté en
    *  producción, la hoja de cobro muestra los cinco medios de siempre: un cobro con QR ahí se rechazaría entero. */
   qrDisponible?: boolean;
+  /** Las máquinas de cobro de esta tienda (`fn_pos_maquinas_de_sede`, ADR-0429): con tarjeta o QR el pago nace con la máquina por
+   *  defecto y, donde hay dos para un mismo medio (Vendemás e Izipay en TRU y AQP), la hoja de cobro deja cambiarla con un toque.
+   *  Vacío (la base todavía no las conoce, o la tienda no tiene) = la hoja no pregunta y la base sella sola, como antes. */
+  maquinasCobro?: readonly MaquinaDeCobro[];
   /** Los comprobantes que esta sede puede emitir (los que tienen serie activa, `tiposDeComprobanteDeLaSede`). Sin el dato, los tres. */
   tiposComprobante?: readonly ("boleta" | "factura" | "nota_venta")[];
   /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, 20261003140000, ADR-0311): el efectivo se cobra al
@@ -397,7 +404,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, colores = SIN_COLORES, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, colores = SIN_COLORES, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -1629,7 +1636,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // tocar otro medio. Una fila por medio: tocar uno que ya está no duplica.
   function agregarPago(metodo: MetodoPagoVenta) {
     if (pagos.some((p) => p.metodo === metodo)) return;
-    setPagos((actual) => [...actual, { metodo, monto: Math.max(0, restante) }]);
+    // Con tarjeta o QR el pago nace con la máquina por defecto de la tienda (ADR-0429); la cajera la cambia en la hoja si fue la otra.
+    setPagos((actual) => [...actual, pagoNuevo(metodo, Math.max(0, restante), maquinasCobro)]);
+  }
+  // Con qué máquina se cobró la tarjeta o el QR (ADR-0429): cambia solo la cuenta de ESE pago; el monto y el resto quedan.
+  function cambiarMaquina(indice: number, cuentaId: string) {
+    setPagos((actual) => actual.map((p, i) => (i === indice ? { ...p, cuentaId } : p)));
   }
   // Con dos medios, al editar uno el otro toma lo que falta (`pagosTrasEditarMonto`).
   function cambiarMontoPago(indice: number, monto: number) {
@@ -1675,7 +1687,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         tocarMedio(metodo);
       } else if (momento === "armar" && prendas > 0) {
         e.preventDefault();
-        setPagos([{ metodo, monto: Math.max(0, total) }]);
+        setPagos([pagoNuevo(metodo, Math.max(0, total), maquinasCobro)]);
         setMomento("cobrar");
       }
     }
@@ -2089,6 +2101,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       vuelto={vuelto}
       cobroEfectivo={cobroEfectivo}
       onTocarMedio={tocarMedio}
+      maquinas={maquinasCobro}
+      onMaquina={cambiarMaquina}
       onMontoPago={cambiarMontoPago}
       onRecibido={cambiarRecibido}
       tipoComprobante={tipoComprobante}

@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 175,
+  "total": 176,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -194,6 +194,7 @@
     "components/punto-de-venta/HojaDeCobro.tsx": [
       "Volver «→onVolver»",
       "CampoMonto «{`Monto en ${NOMBRE_METODO[m]}»",
+      "button «→() => onMaquina?.(indice, m.cuentaId)»",
       "button «{i === 0 ? \"Exacto\" : undefined}»",
       "input «Otro monto recibido»",
       "button «{icono}»",
