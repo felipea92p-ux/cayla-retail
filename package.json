@@ -140,6 +140,7 @@
     "pruebas:vitrina-looks": "node scripts/pruebas/vitrina_looks.mjs",
     "pruebas:vitrina-probador": "node scripts/pruebas/vitrina_probador.mjs",
     "pruebas:tienda-probador": "node scripts/pruebas/tienda_probador.mjs",
+    "pruebas:tienda-looks-guardados": "node scripts/pruebas/tienda_looks_guardados.mjs",
     "pruebas:pedidos-web-motor": "node scripts/pruebas/pedidos_web_motor.mjs",
     "pruebas:pedidos-web-erp": "node scripts/pruebas/pedidos_web_erp.mjs",
     "pruebas:tienda-bolsa": "node scripts/pruebas/tienda_bolsa.mjs",

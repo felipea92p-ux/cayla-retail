@@ -63,6 +63,18 @@ const EDITAR_DE_LA_PARTE_1 = (() => {
 const COMO_LA_DEJO_LA_PARTE_1 = `drop function if exists retail.editar_clienta(uuid, text, text, text, text, smallint, smallint, smallint, jsonb, integer, text);
 ${EDITAR_DE_LA_PARTE_1}
 `;
+// 20261017044000 (ADR-0434, actividad 8: los looks guardados) le sumó a fn_cuentas_web_cerrar_al_anonimizar la línea que quita los looks
+// vivos al cerrar la cuenta. Volver a pegar la PARTE 2 encima aborta A PROPÓSITO (su candado ve la función cambiada y no la pisa a
+// ciegas). Los casos de K que vuelven a pegar la PARTE 2 empiezan por dejarla como la dejó la PARTE 2 (su texto, sacado de ese
+// archivo), dentro de la transacción que se revierte, igual que con editar_clienta.
+const CIERRE_DE_LA_PARTE_2 = (() => {
+  const ini = SQL_2.indexOf("create or replace function retail.fn_cuentas_web_cerrar_al_anonimizar(");
+  const fin = SQL_2.indexOf("\n$$;", ini);
+  if (ini < 0 || fin < 0) throw new Error(`No encontré fn_cuentas_web_cerrar_al_anonimizar en ${PARTE_2}`);
+  return SQL_2.slice(ini, fin + "\n$$;".length);
+})();
+const COMO_LA_DEJO_LA_PARTE_2 = `${CIERRE_DE_LA_PARTE_2}
+`;
 const APLICAR_ANTES = process.env.APLICAR_ANTES === "1";
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const TEXTOS = "borrador-2026-10-14";
@@ -430,7 +442,7 @@ function main() {
   console.log("— K. El pegado —");
   esperarValor(
     "las dos partes se pueden pegar dos veces, y después todo sigue igual (el correo de otra ficha y la entrada)",
-    caso(`${COMO_LA_DEJO_LA_PARTE_1}${SQL_1}\n${SQL_2}\n${SQL_1}\n${SQL_2}\nset local search_path = retail, public, extensions;
+    caso(`${COMO_LA_DEJO_LA_PARTE_1}${COMO_LA_DEJO_LA_PARTE_2}${SQL_1}\n${SQL_2}\n${SQL_1}\n${SQL_2}\nset local search_path = retail, public, extensions;
           select pg_temp.corto(pg_temp.intento(format('update retail.clientas set correo = %L where id = %L', 'zz.ana@ejemplo.com', :'bea')));
           select pg_temp.cuenta(:'bea', 'zz.bea.web@ejemplo.com') as u \\gset
           select retail.tienda_anotar_entrada(:'u') ->> 'estado';`),
@@ -456,7 +468,7 @@ function main() {
       editarCambiada.mensaje.includes("retail.editar_clienta(uuid,text,text,text,text,smallint,smallint,smallint,jsonb,integer) cambió desde que se escribió"),
     editarCambiada.ok ? "no abortó" : editarCambiada.mensaje,
   );
-  const cuentaAjena = caso(`alter table retail.cuentas_web disable trigger cuentas_web_correo_de_una_persona;
+  const cuentaAjena = caso(`${COMO_LA_DEJO_LA_PARTE_2}alter table retail.cuentas_web disable trigger cuentas_web_correo_de_una_persona;
           select pg_temp.cuenta(:'bea', 'zz.ana@ejemplo.com') as _u \\gset
           ${SQL_2}`);
   esperar(

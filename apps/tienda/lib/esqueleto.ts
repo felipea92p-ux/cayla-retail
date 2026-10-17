@@ -13,8 +13,11 @@ export function formaDeLaRuta(ruta: string): FormaEsqueleto {
   const ficha = /^\/catalogo\/([^/]+)$/.exec(limpia);
   if (ficha && esIdDePrenda(ficha[1])) return "ficha";
   if (limpia === "/cuenta") return "perfil";
-  // «Arma el tuyo» (ADR-0434): el arco del probador y su tira, no una grilla.
+  // «Arma el tuyo» (ADR-0434): el arco del probador y su tira, no una grilla. Un look guardado se ve como una ficha: su figura grande
+  // y sus datos al lado.
   if (limpia === "/looks/arma") return "probador";
+  const guardado = /^\/looks\/guardado\/([^/]+)$/.exec(limpia);
+  if (guardado && esIdDePrenda(guardado[1])) return "ficha";
   if (limpia.startsWith("/cuenta/") || limpia === "/bolsa" || limpia.startsWith("/bolsa/")) return "lista";
   return "grilla";
 }
