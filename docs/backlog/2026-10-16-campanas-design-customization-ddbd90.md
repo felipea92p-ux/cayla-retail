@@ -31,5 +31,8 @@ visible) y **4 (diseñar y publicar)**:
   sección de la actividad 4 del ADR-0436.
 - [ ] Al publicar: avisarle a Felipe que «Terminal Almacén» y «Terminal de ventas» pierden la configuración de campañas hasta que el líder
   les dé el módulo «Campañas» (ADR-0436, DECIDÍ 1).
+- [ ] Visto al verificar la 4 (para la 7, «El texto»): en la portada de 1280 px, una palabra larga del nombre («Internacional», de Día
+  Internacional del Gato) se mete debajo de las polaroids; es el héroe compartido (`packages/portada/src/heroe.css`), así que la tienda lo
+  muestra igual. El tamaño «grande/enorme» y el corte de la cursiva de la actividad 7 son el lugar para achicar la letra según el nombre.
 - Después: actividades 5 a 9 (la tienda pinta el diseño publicado, campañas sin descuento y cuál va primero, el resto del editor —fondo,
   acomodos, texto, prendas, detalles, Sorpréndeme, Deshacer—, la foto, el cierre con `/chaos`, `/formidable`, `tema:auditar` y el PR).
