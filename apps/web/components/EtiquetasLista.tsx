@@ -44,8 +44,10 @@ import {
   type ConteoTarjeta,
   type PrendaConCosto,
 } from "@/lib/etiqueta-campana";
-import { textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
+import { avisoDiaDeSemana, ordenarPorTemporada, repetirTemporada, textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
 import { hoyLima } from "@/lib/fechas-lima";
+import { Aviso } from "@/components/ui/Aviso";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { GRUPOS_ETIQUETA, ORDEN_GRUPOS_ETIQUETA, type EstiloEtiqueta } from "@/lib/etiqueta-grupos";
 import { normalizarNombre } from "@/lib/patron-visual";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
@@ -116,15 +118,24 @@ function ordenar(lista: Etiqueta[]) {
   return [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
+/** «Campaña», o «Repetir» si su temporada ya pasó. El año va en el `title` y en el título de la hoja: «Repetir en 2027» no cabe
+ *  en el pie de la tarjeta a 1024 px (101 px de texto en 86). */
+const botonCampana = (e: Etiqueta, hoy: string) => {
+  const r = repetirTemporada(e.vigenteDesde, e.vigenteHasta, hoy);
+  return r ? { texto: "Repetir", title: `Repetir en ${r.anio}: abre la campaña con las fechas de ${r.anio}` } : { texto: "Campaña", title: undefined };
+};
+
 function TarjetaEtiqueta({
   e,
   vigencia,
+  hoy,
   apagada = false,
   conteo = null,
   children,
 }: {
   e: Etiqueta;
   vigencia: Vigencia | null;
+  hoy: string;
   apagada?: boolean;
   /** A cuántas prendas a la venta llega, con la regla de su hoja (`conteoDeTarjeta`); `null` = quien mira no lo ve. */
   conteo?: ConteoTarjeta | null;
@@ -132,7 +143,7 @@ function TarjetaEtiqueta({
 }) {
   const rango = textoRango(e.vigenteDesde, e.vigenteHasta);
   // Lo que dice su temporada (un chip que se lee sin abrir nada) y, si se ve el conteo, si de verdad llega a alguna prenda.
-  const chip = chipDeTarjeta(vigencia, conteo?.total ?? null);
+  const chip = chipDeTarjeta(vigencia, conteo?.total ?? null, hoy);
   const textos = conteo ? textoConteoTarjeta(conteo) : null;
   return (
     <TarjetaAtributo
@@ -148,6 +159,11 @@ function TarjetaEtiqueta({
               {chip && (
                 <Chip tono={chip.tono} title={chip.title}>
                   {chip.texto}
+                </Chip>
+              )}
+              {chip?.alerta && (
+                <Chip tono="ambar" title={chip.title}>
+                  {chip.alerta}
                 </Chip>
               )}
               {rango && <p className="text-[11px] tabular-nums text-tinta/60">{rango}</p>}
@@ -457,7 +473,8 @@ export function EtiquetasLista({
 
       <div key={`${grupo}-${soloVigentes}`} className={`space-y-6 ${animar ? "anim-asentar" : ""}`}>
         {ORDEN_GRUPOS.map((clave) => {
-          const delGrupo = activasVisibles.filter((e) => e.estilo === clave);
+          // Dentro del grupo, por temporada (lo que rige, lo que viene, lo que pasó); las que no tienen fechas, por nombre.
+          const delGrupo = ordenarPorTemporada(activasVisibles.filter((e) => e.estilo === clave), hoy);
           if (delGrupo.length === 0) return null;
           const { grupo: nombreGrupo, dot } = ESTILOS[clave];
           return (
@@ -471,6 +488,7 @@ export function EtiquetasLista({
                     key={e.id}
                     e={e}
                     vigencia={vigenciaEn(e)}
+                    hoy={hoy}
                     conteo={puedeEditar ? conteoDeTarjeta(prendasConCosto, new Set(e.categoriaIds), manuales[e.id] ?? []) : null}
                   >
                     {/* Una etiqueta CON descuento cambia el precio en caja; quien tiene el módulo Etiquetas también la configura (ADR-0293). */}
@@ -491,8 +509,15 @@ export function EtiquetasLista({
                             <button type="button" onClick={() => setEtiquetando(e)} data-guia="atributos.prendas" className="btn-cayla btn-sutil btn-chico w-full whitespace-nowrap">
                               Prendas
                             </button>
-                            <button type="button" onClick={() => setConfigurando(e)} data-guia="atributos.campana" className="btn-cayla btn-sutil btn-chico w-full whitespace-nowrap">
-                              Campaña
+                            {/* Una campaña que ya pasó se abre para repetirla: la misma hoja, con las fechas del año que viene. */}
+                            <button
+                              type="button"
+                              onClick={() => setConfigurando(e)}
+                              title={botonCampana(e, hoy).title}
+                              data-guia="atributos.campana"
+                              className="btn-cayla btn-sutil btn-chico w-full whitespace-nowrap"
+                            >
+                              {botonCampana(e, hoy).texto}
                             </button>
                           </div>
                           <DesactivarTarjeta
@@ -514,7 +539,7 @@ export function EtiquetasLista({
           <TituloGrupo cuenta={desactivadasVisibles.length}>Desactivadas — ya no se pueden aplicar a una variante nueva</TituloGrupo>
           <div className={GRILLA_ATRIBUTOS}>
             {desactivadasVisibles.map((e) => (
-              <TarjetaEtiqueta key={e.id} e={e} vigencia={null} apagada>
+              <TarjetaEtiqueta key={e.id} e={e} vigencia={null} hoy={hoy} apagada>
                 {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) && (
                   <BotonReactivar
                     cambiando={cambiandoId === e.id}
@@ -640,9 +665,12 @@ function CampanaModal({
   onClose: () => void;
   onGuardado: (cambios: Pick<Etiqueta, "descuentoPct" | "vigenteDesde" | "vigenteHasta" | "categoriaIds">) => void;
 }) {
+  // Si su temporada ya pasó, la hoja abre para repetirla: las mismas fechas, un año después (se guardan solo con «Guardar»).
+  const [repetir] = useState(() => repetirTemporada(etiqueta.vigenteDesde, etiqueta.vigenteHasta, hoyLima()));
   const [descuento, setDescuento] = useState(etiqueta.descuentoPct === null ? "" : String(etiqueta.descuentoPct));
-  const [desde, setDesde] = useState(etiqueta.vigenteDesde ?? "");
-  const [hasta, setHasta] = useState(etiqueta.vigenteHasta ?? "");
+  const [desde, setDesde] = useState((repetir ? repetir.desde : etiqueta.vigenteDesde) ?? "");
+  const [hasta, setHasta] = useState((repetir ? repetir.hasta : etiqueta.vigenteHasta) ?? "");
+  const avisoDia = repetir ? avisoDiaDeSemana(repetir, { desde, hasta }) : null;
   const [elegidas, setElegidas] = useState(() => new Set(etiqueta.categoriaIds));
   const [guardando, setGuardando] = useState(false);
 
@@ -709,8 +737,12 @@ function CampanaModal({
 
   return (
     <Modal
-      titulo={`Campaña «${etiqueta.nombre}»`}
-      subtitulo="Cuánto baja, cuándo rige y en qué categorías. Las prendas sueltas se eligen en «Prendas»."
+      titulo={repetir ? `Repetir «${etiqueta.nombre}» en ${repetir.anio}` : `Campaña «${etiqueta.nombre}»`}
+      subtitulo={
+        repetir
+          ? `Las fechas son las de ${etiqueta.vigenteHasta?.slice(0, 4)}, pasadas a ${repetir.anio}. Revisa el descuento y las categorías, y guarda.`
+          : "Cuánto baja, cuándo rige y en qué categorías. Las prendas sueltas se eligen en «Prendas»."
+      }
       tamano="ancha"
       onClose={onClose}
     >
@@ -777,6 +809,34 @@ function CampanaModal({
                     pie={objecion ?? undefined}
                   />
                 </div>
+                {/* Al repetir: sumar un año cambia el día de la semana. Si la fiesta va por día (el 2.º domingo de mayo), un toque
+                    corre la temporada entera; si va por fecha (el 25 de diciembre), se deja como está. */}
+                {avisoDia && repetir?.mismoDia && (
+                  // El botón va debajo de la frase, no a su lado: en la columna angosta le quitaba el ancho y la frase se partía en 9 líneas.
+                  <Aviso tono="info" className="mt-3" titulo={avisoDia.titulo}>
+                    <p>{avisoDia.detalle}</p>
+                    {avisoDia.modo === "sumando-un-anio" ? (
+                      <button
+                        type="button"
+                        className="btn-cayla btn-sutil btn-chico mt-2"
+                        onClick={() => {
+                          setDesde(repetir.mismoDia?.desde ?? "");
+                          setHasta(repetir.mismoDia?.hasta ?? "");
+                        }}
+                      >
+                        {avisoDia.boton}
+                      </button>
+                    ) : (
+                      <BotonDeshacer
+                        className="mt-1"
+                        onClick={() => {
+                          setDesde(repetir.desde ?? "");
+                          setHasta(repetir.hasta ?? "");
+                        }}
+                      />
+                    )}
+                  </Aviso>
+                )}
               </CampoGuiado>
             </div>
 
