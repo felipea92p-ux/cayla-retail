@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CejaDeCampana, HeroeDePortada } from "@cayla-retail/portada";
+import { CejaDeCampana, HeroeDePortada, destacadoDeCampana } from "@cayla-retail/portada";
 import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { AvisoAlEntrar } from "@/components/AvisoAlEntrar";
 import { CarrilConFlechas } from "@/components/CarrilConFlechas";
@@ -29,7 +29,7 @@ import {
   type Prenda,
 } from "@/lib/catalogo";
 import { leerBeneficiosDelClub, leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
-import { categoriasDelInicio, heroDelInicio, type Hero } from "@/lib/inicio";
+import { categoriasDelInicio, heroDelInicio, hrefDeLaCampana, type Hero } from "@/lib/inicio";
 import { avisoAlEntrar } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
 import { hrefLooks } from "@/lib/looks";
@@ -116,7 +116,13 @@ export default async function Inicio({ searchParams }: Props) {
       ]}
     >
       {aviso && avisos && <AvisoAlEntrar aviso={aviso} activas={avisos.map((a) => a.clave)} />}
-      <Heroe hero={hero} sede={sede} origenFotos={origenFotos} verCampana={lista("ofertas", hero.tipo === "campana" ? hero.campanaId : null)} verNuevo={nuevos.length > 0 ? lista("nuevo") : null} />
+      <Heroe
+        hero={hero}
+        sede={sede}
+        origenFotos={origenFotos}
+        verCampana={hero.tipo === "campana" ? hrefDeLaCampana(hero, sede) : null}
+        verNuevo={nuevos.length > 0 ? lista("nuevo") : null}
+      />
 
       {catalogo === null ? (
         <div className="t-ancho">
@@ -302,7 +308,8 @@ function Heroe({
   hero: Hero;
   sede: string | null;
   origenFotos: string | undefined;
-  verCampana: string;
+  /** null: la campaña sale por su diseño, sin prendas a la vista; el botón lleva a «Lo nuevo» (o a toda la tienda), nunca a una lista vacía. */
+  verCampana: string | null;
   verNuevo: string | null;
 }) {
   const piezas = hero.tipo === "marca" ? [] : hero.piezas;
@@ -321,23 +328,29 @@ function Heroe({
         titulo={partirTitulo(hero.campana.nombre, hero.campana.diseno?.corte)}
         descripcion={
           <>
-            <b>−{pctTexto(hero.campana.pct)} % en prendas elegidas.</b> Sepáralas online, confírmalas por WhatsApp y recógelas en tu tienda.
+            <b>{destacadoDeCampana(hero.campana)}</b> Sepáralas online, confírmalas por WhatsApp y recógelas en tu tienda.
           </>
         }
         cuenta={hero.campana.hasta ? <CuentaRegresiva hasta={hero.campana.hasta} /> : null}
         acciones={
-          <>
-            <Link className="t-btn t-btn-claro" href={verCampana}>
-              Ver la campaña
-            </Link>
-            {verNuevo && (
-              <Link className="t-enlace" href={verNuevo}>
-                Ver lo nuevo <Icono nombre="flecha" />
+          verCampana ? (
+            <>
+              <Link className="t-btn t-btn-claro" href={verCampana}>
+                Ver la campaña
               </Link>
-            )}
-          </>
+              {verNuevo && (
+                <Link className="t-enlace" href={verNuevo}>
+                  Ver lo nuevo <Icono nombre="flecha" />
+                </Link>
+              )}
+            </>
+          ) : (
+            <Link className="t-btn t-btn-claro" href={verNuevo ?? hrefLista({ sede, categoria: null, orden: "destacado" })}>
+              {verNuevo ? "Ver lo nuevo" : "Ver toda la tienda"}
+            </Link>
+          )
         }
-        marca={`−${pctTexto(hero.campana.pct)}%`}
+        marca={hero.campana.pct ? `−${pctTexto(hero.campana.pct)}%` : null}
         // Con su diseño publicado en el ERP (ADR-0436), sus colores; sin él, el rojo de siempre.
         diseno={hero.campana.diseno}
       />

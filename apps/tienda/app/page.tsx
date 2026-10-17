@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 import Link from "next/link";
-import { CejaDeCampana, HeroeDePortada } from "@cayla-retail/portada";
+import { CejaDeCampana, HeroeDePortada, destacadoDeCampana } from "@cayla-retail/portada";
 import { Anuncio } from "@/components/Anuncio";
 import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { Cabecera } from "@/components/Cabecera";
@@ -18,7 +18,7 @@ import { hrefDePrenda, hrefLista } from "@/lib/catalogo";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { leerBeneficiosDelClub } from "@/lib/cuentas-servidor";
 import { hrefConVolver } from "@/lib/entrada";
-import { heroDelInicio, type Hero } from "@/lib/inicio";
+import { heroDelInicio, hrefDeLaCampana, type Hero } from "@/lib/inicio";
 import { anioActual } from "@/lib/hoy-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
 import { anuncios, partirTitulo, pctTexto, type Campana } from "@/lib/portada";
@@ -48,10 +48,11 @@ export default async function Portada() {
   // El rojo de la campaña cuando el héroe la anuncia (con sus prendas o, sin ninguna publicada, solo su texto); si no, el oscuro. Si la
   // campaña tiene su diseño publicado en el ERP (ADR-0436), con sus colores en vez del rojo de siempre.
   const conCampana = hero.tipo === "campana" || (hero.tipo === "marca" && campana !== null);
-  // A dónde llega quien crea su cuenta desde el héroe: a la campaña, o a lo nuevo.
+  // A dónde llega quien crea su cuenta desde el héroe: a la campaña (sus ofertas o, sin descuento, sus prendas), o a lo nuevo. Una
+  // campaña que sale solo por su diseño (sin prendas a la vista) no tiene lista: llega al Inicio.
   const destino =
     hero.tipo === "campana"
-      ? hrefLista({ categoria: null, orden: "destacado", lista: "ofertas", campana: hero.campanaId })
+      ? hrefDeLaCampana(hero, null)
       : hero.tipo === "nuevo"
         ? hrefLista({ categoria: null, orden: "destacado", lista: "nuevo" })
         : null;
@@ -78,7 +79,7 @@ export default async function Portada() {
           }
           piezas={piezasDelHeroe(piezas, { href: (p) => hrefConVolver("/crear-cuenta", hrefDePrenda(p)), conPrecio: false, origenFotos })}
           Enlace={Link}
-          marca={hero.tipo === "campana" ? `−${pctTexto(hero.campana.pct)}%` : null}
+          marca={hero.tipo === "campana" && hero.campana.pct ? `−${pctTexto(hero.campana.pct)}%` : null}
           diseno={conCampana ? (campana?.diseno ?? null) : null}
           lado={
             // Sin prendas para mostrar (o sin base): la tarjeta del Club, como antes.
@@ -135,7 +136,7 @@ function textoCampana(campana: Campana): TextoDelHeroe {
     titulo: partirTitulo(campana.nombre, campana.diseno?.corte),
     descripcion: (
       <>
-        <b>−{pctTexto(campana.pct)} % en prendas elegidas.</b> Crea tu cuenta para ver los precios, cuánto hay en cada tienda y separar.
+        <b>{destacadoDeCampana(campana)}</b> Crea tu cuenta para ver los precios, cuánto hay en cada tienda y separar.
       </>
     ),
     cuenta: campana.hasta ? <CuentaRegresiva hasta={campana.hasta} /> : null,

@@ -208,3 +208,47 @@ diseño, sin él, con uno que no se sabe leer). En la tienda local (3048), con D
 rojo de siempre; con «Bosque», verde en claro y más oscuro en oscuro, también a 375 px; con «Galería» (una paleta clara), letra y botón
 oscuros y sin colibrí en claro, y su versión de noche en oscuro; el Inicio con cuenta, igual. La portada cambió en menos de un minuto
 después de publicar.
+
+## Actividad 6 — Campañas sin descuento y cuál va primero (6a: `20261017204000`)
+
+Felipe, al preguntarle cómo se cambia «a mano» qué campaña va primero (2026-10-17): «Si hay dos campañas activas, eso debe convertirse en
+un carrusel que va deslizándose cada ciertos segundos». La actividad se parte en dos cortes: **6a**, una campaña sin descuento sale en la
+portada (una sola, la de descuento primero), y **6b**, el carrusel cuando corre más de una.
+
+**DECIDÍ 16 — LA regla (`fn_campana_en_portada`) suma las campañas sin descuento: sale la aprobada, activa y vigente con prendas o
+categorías o, si no tiene descuento, con su diseño publicado; primero las de descuento y después, como siempre, la que termina primero,
+la de mayor descuento y el nombre** (decisión 2 de Felipe). Una campaña CON descuento y sin prendas sigue sin salir: anunciaría
+«−N % en prendas elegidas» sin ninguna. La caja no cambia: esto solo decide qué anuncia la portada.
+**DESCARTÉ** un botón «Poner primero» o un orden a mano: Felipe eligió el carrusel (6b), y en él todas salen.
+**SE ROMPE SI** se diseña y publica una campaña sin fechas ni descuento «para probar»: sale en la portada y no se quita sola (la hoja
+«Publicar» lo dice: «Se quita sola: cuando la apagues»).
+
+**DECIDÍ 17 — Para mostrar las prendas de una campaña sin descuento (no bajan de precio, no salen en «Ofertas»), `tienda_portada()` manda
+el `id` de la campaña y sus modelos (`fn_modelos_de_campana`: los que lleva a mano y los de sus categorías, sin los descontinuados, hasta
+200); el héroe toma los que se ven en la tienda, y «Ver la campaña» lleva a una lista nueva del catálogo, `?lista=campana`, con esos
+modelos.** Las de descuento siguen como antes (sus prendas en oferta y sus «Ofertas»), para no mezclar el precio de una campaña con las
+prendas de otra.
+**DESCARTÉ** sumar a cada prenda del catálogo todas sus campañas (`tienda_catalogo`): es la lectura más pesada de la tienda y la que dice el
+precio; para una lista que solo se abre desde el héroe bastan los modelos de la campaña que ya lee la portada.
+**SE ROMPE SI** una campaña sin descuento lleva más de 200 modelos (una categoría entera muy grande): su lista muestra 200.
+
+**DECIDÍ 18 — Sin prendas a la vista, una campaña SIN descuento sale igual si tiene su diseño publicado: su texto, su diseño y la tarjeta del
+Club, y en el Inicio el botón lleva a «Lo nuevo» (o a toda la tienda), nunca a una lista vacía** (Felipe 2026-10-17: «sí, sin fotos»). Una
+CON descuento sin prendas a la vista sigue la regla del 15-oct: sale «Lo nuevo» (anunciaría un descuento sin mostrar en qué).
+**SE ROMPE SI** el texto del Inicio («Sepáralas online…») se lee raro sin prendas: con fotos se entiende; sin ellas, la frase invita a
+separar algo que no se ve. Si molesta, la actividad 7 (el texto propio) le da otra frase.
+
+La franja de arriba y la frase en negrita del héroe salen de una sola pieza del paquete (`anuncioDeCampana`, `destacadoDeCampana`): «Navidad
+· mira lo que elegimos» y «Prendas elegidas para Navidad.», iguales en la tienda y en la vista previa del ERP. En el ERP, «por qué no sale»
+ya no dice «no tiene descuento»: dice que le faltan prendas (o prendas y diseño, sin descuento), o qué campaña sale hoy.
+
+**Migraciones viejas pegadas otra vez:** las comprobaciones de `20261017144000` y `20261017200000` comparan qué campaña se anuncia (nombre, %
+y fin), no la forma de la respuesta, porque las que siguen le suman campos y las suites las vuelven a pegar sobre la base final.
+
+**Verificación (6a):** `pnpm pruebas:campanas-portada` (33: la regla con las sin descuento —la de descuento primero aunque otra termine
+antes, sin descuento con prendas o con solo su diseño, con descuento y sin prendas no—, `tienda_portada` con su id y sus modelos, y las dos
+migraciones pegadas dos veces), `campanas-diseno` (49) y `campanas-llave` (26); el paquete (109) y la tienda (`heroDelInicio`, la lista de la
+campaña, `interpretarPortada` sin descuento). En la tienda local, con el Gato terminado a mano en la pila propia: Halloween, sin descuento,
+sale con sus prendas y sin «−%», y «Ver la campaña» abre «Campaña · Halloween» con sus 4 prendas a precio normal; con Navidad traída a hoy,
+sin prendas y con su diseño publicado desde el ERP, sale en verde con la tarjeta del Club y el Inicio (375 px, oscuro) ofrece «Ver lo nuevo».
+En el ERP, la lista dice «En la web ahora» en Halloween. Las fechas se devolvieron después.

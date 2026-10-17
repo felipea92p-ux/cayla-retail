@@ -177,15 +177,18 @@ describe("la línea «La portada, día a día»", () => {
 });
 
 describe("por qué una campaña que corre hoy no sale en la portada", () => {
+  const sinDiseno = (c: Campana) => ({ ...c, diseno: null });
   it("la que sale no lleva razón; las que no, dicen la suya", () => {
-    expect(porQueNoSale(GATO, GATO, HOY)).toBeNull();
-    expect(porQueNoSale(HALLOWEEN, GATO, HOY)).toBe("No sale en la portada: no tiene descuento.");
-    expect(porQueNoSale({ ...HALLOWEEN, pct: 15, modelos: 0, categorias: 0 }, GATO, HOY)).toBe("No sale en la portada: todavía no tiene prendas.");
-    expect(porQueNoSale({ ...HALLOWEEN, pct: 5 }, GATO, HOY)).toBe("Hoy la portada muestra «Día Internacional del Gato».");
+    expect(porQueNoSale(sinDiseno(GATO), GATO, HOY)).toBeNull();
+    // Desde la actividad 6a, una sin descuento con prendas también sale: si hoy no es ella, es porque la de descuento va primero.
+    expect(porQueNoSale(sinDiseno(HALLOWEEN), GATO, HOY)).toBe("Hoy la portada muestra «Día Internacional del Gato».");
+    expect(porQueNoSale(sinDiseno({ ...HALLOWEEN, pct: 15, modelos: 0, categorias: 0 }), GATO, HOY)).toBe("No sale en la portada: todavía no tiene prendas.");
+    expect(porQueNoSale(sinDiseno({ ...HALLOWEEN, modelos: 0, categorias: 0 }), GATO, HOY)).toBe("No sale en la portada: todavía no tiene prendas ni diseño propio.");
+    expect(porQueNoSale({ ...HALLOWEEN, modelos: 0, categorias: 0, diseno: DISENO_DE_SIEMPRE }, GATO, HOY)).toBe("Hoy la portada muestra «Día Internacional del Gato».");
   });
   it("una que no corre hoy no lleva razón", () => {
-    expect(porQueNoSale(BLACK, GATO, HOY)).toBeNull();
-    expect(porQueNoSale(ANIVERSARIO, GATO, HOY)).toBeNull();
+    expect(porQueNoSale(sinDiseno(BLACK), GATO, HOY)).toBeNull();
+    expect(porQueNoSale(sinDiseno(ANIVERSARIO), GATO, HOY)).toBeNull();
   });
 });
 

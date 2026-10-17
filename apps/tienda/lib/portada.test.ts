@@ -11,7 +11,7 @@ import {
   PORTADA_SIN_DATOS,
 } from "./portada";
 
-const ANIVERSARIO = { nombre: "Aniversario CAYLA", pct: 12, hasta: "2026-10-21", diseno: null };
+const ANIVERSARIO = { id: null, nombre: "Aniversario CAYLA", pct: 12, hasta: "2026-10-21", diseno: null, prendas: [] as string[] };
 const BOSQUE = { ...DISENO_DE_SIEMPRE, paleta: "bosque" };
 
 describe("interpretarPortada", () => {
@@ -27,6 +27,16 @@ describe("interpretarPortada", () => {
       { campana: { ...ANIVERSARIO, pct: "12" } }, { campana: { ...ANIVERSARIO, hasta: "21/10/2026" } }]) {
       expect(interpretarPortada(raro)).toEqual(PORTADA_SIN_DATOS);
     }
+  });
+
+  it("una campaña sin descuento (actividad 6a), con su id y sus modelos; un % de 0 sigue siendo raro", () => {
+    const id = "8a6f1c1e-3b55-4c8e-9a55-333333333333";
+    const modelo = "8a6f1c1e-3b55-4c8e-9a55-444444444444";
+    const leida = interpretarPortada({ campana: { id, nombre: "Navidad", pct: null, hasta: "2026-12-25", diseno: null, prendas: [modelo] } }).campana;
+    expect(leida).toEqual({ id, nombre: "Navidad", pct: null, hasta: "2026-12-25", diseno: null, prendas: [modelo] });
+    expect(anuncios(leida)[0]).toBe("Navidad · mira lo que elegimos");
+    expect(interpretarPortada({ campana: { ...ANIVERSARIO, prendas: ["no-es-un-id"] } }).campana?.prendas).toEqual([]);
+    expect(interpretarPortada({ campana: { ...ANIVERSARIO, pct: 0 } })).toEqual(PORTADA_SIN_DATOS);
   });
 
   it("un diseño que no se puede pintar no tumba la campaña: sale con el rojo de siempre", () => {

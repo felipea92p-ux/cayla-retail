@@ -14,23 +14,28 @@ Escrito el 2026-10-17. Sin llaves ni contraseñas (el repo es público): dice d�
   `docs/backlog/2026-10-16-campanas-design-customization-ddbd90.md`, sección «Dónde quedó».
 - **Las 9 actividades (lista aprobada por Felipe, método `/construir`: una por una, cada una con su commit):**
   1 menú y lista ✔ · 2 Datos y Prendas con una sola llave ✔ · 3 la portada en una sola pieza (`packages/portada`) ✔ ·
-  4 diseñar y publicar ✔ · 5 la tienda pinta el diseño publicado ✔ · **6 campañas sin descuento y cuál va primero** ·
+  4 diseñar y publicar ✔ · 5 la tienda pinta el diseño publicado ✔ · 6 campañas sin descuento (**6a ✔**) y cuál va primero (**6b, el carrusel**) ·
   7 el resto del editor (fondo liso/degradado/dibujo, acomodos, texto, prendas, detalles, Sorpréndeme, Deshacer) · 8 fondo con foto ·
   9 cierre (`/chaos`, `/formidable`, `tema:auditar`, 375 px, ADR, PR con `/abrir-pr`).
 
-## Lo siguiente (actividad 6)
+## Lo siguiente (actividad 6b)
 
-Las actividades 4 y 5 están cerradas (secciones «Actividad 4» y «Actividad 5» del ADR-0436, y el backlog). Sigue la **6: campañas sin
-descuento y cuál va primero** (decisión 2 de Felipe): una campaña sin descuento sale en la portada si tiene prendas o diseño propio; con dos
-a la vez, la de descuento primero salvo que se cambie a mano. La regla vive en UN lugar, `retail.fn_campana_en_portada(dia)`
-(`20261017144000`); la leen `tienda_portada()` (`20261017200000`) y `campanas_portada_dias`. Cambia la regla ahí, con su migración reservada
-(`pnpm reservar migracion`), «cuál va primero» a mano, y lo que la pantalla dice (`porQueNoSale`, la nota del cruce). Ojo: `tienda_portada`
-y la tienda (`apps/tienda/lib/portada.ts`, `pct: z.number().positive()`) hoy exigen descuento, y el héroe y la franja de arriba dicen «−N %».
+Las actividades 4, 5 y 6a están cerradas (ADR-0436, secciones «Actividad 4», «Actividad 5» y «Actividad 6»). Sigue la **6b: el carrusel**.
+Felipe (2026-10-17): «si hay dos campañas activas, eso debe convertirse en un carrusel que va deslizándose cada ciertos segundos». La regla
+pasa de UNA campaña a una lista en orden (la de descuento primero, luego la que termina primero): `fn_campana_en_portada` →
+una lista; `tienda_portada()` sigue mandando `campana` (la primera, para la tienda que todavía no se publicó) y suma `campanas`; la tienda
+pasa las diapositivas (con pausa y sin moverse con `prefers-reduced-motion`); el ERP dibuja en «La portada, día a día» los días con más de
+una y cambia «por qué no sale» y la nota del cruce.
+
+## El orden de pegado en producción (nada de esto está pegado)
+
+`20261017144000` → `20261017151000` → `20261017160000` → `20261017200000` → `20261017204000`, una vez cada una y en ese orden, con el OK de
+Felipe. **Volver a pegar `20261017144000` después de las otras le quita a la tienda el diseño y las campañas sin descuento** (reescribe
+`tienda_portada()` y la regla como eran en la actividad 1): se arregla pegando otra vez `20261017200000` y `20261017204000`, en orden.
 
 ## Reglas que ya costaron tiempo
 
-- **Nada se pega en producción sin el OK de Felipe.** Las migraciones `20261017144000`, `20261017151000`, `20261017160000` y
-  `20261017200000` NO están en producción (se pegan en ese orden). No uses el SQL Editor ni el MCP de Supabase de producción para escribir.
+- **Nada se pega en producción sin el OK de Felipe.** Ninguna migración de esta rama está en producción (el orden, arriba). No uses el SQL Editor ni el MCP de Supabase de producción para escribir.
 - **No uses la base local compartida** (`supabase_db_cayla-retail`): hay otras sesiones. Usa la pila propia de esta rama (abajo).
 - Números (ADR, migración): se reservan con `pnpm reservar adr|migracion`. Los de esta rama ya están tomados (ADR-0436 y las tres migraciones).
 - Colores: solo tokens; el color de la portada de una campaña es **dato** (`data-color-dato`, comentario `// tema-fijo: …`).

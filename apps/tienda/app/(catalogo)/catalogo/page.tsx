@@ -29,6 +29,7 @@ import { categoriasConLaElegida, dondeHay, gruposConLoElegido, paraSeguirMirando
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
 import { delGrupo, delMenu, grupoDe, gruposDe, leerGrupo, leerMenu, MENUS, tituloPartido } from "@/lib/grupos";
 import { fechaLarga, pctTexto } from "@/lib/portada";
+import { leerPortada } from "@/lib/portada-servidor";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
@@ -42,6 +43,7 @@ const TITULOS: Record<Lista, string> = {
   ofertas: "Ofertas",
   vendidos: "Más vendidos",
   favoritos: "Tus favoritos",
+  campana: "Campaña",
 };
 
 /** Cuántas tarjetas de arriba cargan su foto apenas llega la página (las que se ven sin bajar: 2 en el celular, 4 en la computadora). */
@@ -72,7 +74,13 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 // lo que se enciende, se apaga o se vende se ve al recargar.
 export default async function Catalogo({ searchParams }: Props) {
   const sp = await searchParams;
-  const lista = leerLista(sp.lista);
+  const listaPedida = leerLista(sp.lista);
+  // Las prendas de una campaña sin descuento (ADR-0436, actividad 6a): sus modelos los dice la portada (la misma lectura compartida de la
+  // franja). Una campaña que ya no está en la portada (un enlace viejo) se ignora como cualquier lista que no existe: se ve toda la tienda.
+  const enPortada = listaPedida === "campana" ? (await leerPortada()).campana : null;
+  const campanaSinDescuento = enPortada && enPortada.id !== null && enPortada.id === leerCampana(sp.campana) ? enPortada : null;
+  const lista: Lista = listaPedida === "campana" && !campanaSinDescuento ? "todo" : listaPedida;
+  const modelos = campanaSinDescuento ? new Set(campanaSinDescuento.prendas) : null;
   const orden = leerOrden(sp.orden);
   const categoriaPedida = leerCategoria(sp.categoria);
   const sedes = sedesEnOrden(await leerSedes());
@@ -113,12 +121,14 @@ export default async function Catalogo({ searchParams }: Props) {
   const favoritosSinLeer = esFavoritos && guardados === null;
   const base = esFavoritos ? deFavoritos(prendas ?? [], guardados?.favoritos ?? []) : delMenu(enLaTienda, claveMenu);
   const campanas = lista === "ofertas" ? campanasDe(base) : [];
-  const campana = campanas.find((c) => c.id === leerCampana(sp.campana))?.id ?? null;
-  const deLaLista = filtrarYOrdenar(base, { categoria: null, orden: "destacado", lista, campana });
+  const campana = campanaSinDescuento?.id ?? campanas.find((c) => c.id === leerCampana(sp.campana))?.id ?? null;
+  const deLaLista = filtrarYOrdenar(base, { categoria: null, orden: "destacado", lista, campana, modelos });
   // La lista en todas las tiendas: si tampoco ahí hay nada, lo que falta no es la tienda (la lista dice su propio vacío).
-  const enTodas = esFavoritos ? deLaLista : filtrarYOrdenar(delMenu(prendas ?? [], claveMenu), { categoria: null, orden: "destacado", lista, campana });
-  const vista = delGrupo(filtrarYOrdenar(base, { categoria, orden, lista, campana }), grupoPedido);
-  const loPedidoEnTodas = esFavoritos ? vista : delGrupo(filtrarYOrdenar(delMenu(prendas ?? [], claveMenu), { categoria, orden, lista, campana }), grupoPedido);
+  const enTodas = esFavoritos ? deLaLista : filtrarYOrdenar(delMenu(prendas ?? [], claveMenu), { categoria: null, orden: "destacado", lista, campana, modelos });
+  const vista = delGrupo(filtrarYOrdenar(base, { categoria, orden, lista, campana, modelos }), grupoPedido);
+  const loPedidoEnTodas = esFavoritos
+    ? vista
+    : delGrupo(filtrarYOrdenar(delMenu(prendas ?? [], claveMenu), { categoria, orden, lista, campana, modelos }), grupoPedido);
   const enOtras = loPedidoEnTodas.length - vista.length;
   // El grupo encendido: el pedido o el de la categoría elegida. Lo elegido sale en los filtros aunque esta tienda no tenga nada de eso
   // (con 0): la persona ve dónde está.
@@ -129,7 +139,7 @@ export default async function Catalogo({ searchParams }: Props) {
   // Con muchas categorías y más de un grupo, primero los grupos y, debajo, las categorías del grupo encendido (Felipe 2026-10-15: 28
   // píldoras en tres filas «podría verse mucho mejor»). Con pocas (los favoritos, una tienda chica), todas de una vez.
   const porGrupos = grupos.length > 1 && categorias.length > 8;
-  const cab = cabeceraDeLista(lista);
+  const cab = cabeceraDeLista(lista, campanaSinDescuento);
   // En «Toda la tienda», el título dice lo que se está viendo: la categoría (con su grupo arriba) o el grupo (con su menú arriba).
   const ceja =
     lista === "todo" && categoriaElegida
@@ -187,7 +197,7 @@ export default async function Catalogo({ searchParams }: Props) {
     <MarcoCatalogo
       prendas={enLaTienda}
       sede={sede}
-      actual={lista === "todo" ? null : lista}
+      actual={lista === "todo" || lista === "campana" ? null : lista}
       filtro={[
         { nombre: "Todas", href: href({ sede: null }), actual: elegida === null },
         ...sedes.map((s) => ({ nombre: s.nombre, href: href({ sede: claveDeSede(s.nombre) }), actual: elegida?.id === s.id })),

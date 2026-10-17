@@ -1991,7 +1991,10 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
 `lib/<tema>-servidor.ts`; lo vigila `lib/candados.test.ts` y, en la base, `pnpm pruebas:tienda-puerta`.
 
 - `/` (portada sin cuenta) → `lib/portada-servidor.ts` `leerPortada()` → `retail.tienda_portada()`: la campaña que anuncia la
-  portada (LA regla `fn_campana_en_portada`, ADR-0436) con su diseño publicado en el ERP (`20261017200000`). `lib/portada.ts` lo revisa
+  portada (LA regla `fn_campana_en_portada`, ADR-0436; desde `20261017204000` también sin descuento, la de descuento primero) con su id,
+  sus modelos (`fn_modelos_de_campana`) y su diseño publicado en el ERP (`20261017200000`). El héroe (`heroDelInicio`, `lib/inicio.ts`)
+  muestra las prendas en oferta de una campaña con descuento o los modelos de una sin descuento; «Ver la campaña» lleva a sus ofertas o
+  a `/catalogo?lista=campana&campana=<id>` (la lista de sus modelos, `enLaLista`). `lib/portada.ts` lo revisa
   con `disenoParaPintar` de `@cayla-retail/portada` (que se sepa leer y que la letra se lea en claro y en oscuro; si no, null) y la
   portada y el héroe del Inicio lo pasan a `HeroeDePortada`, que escribe sus colores de día y de noche (`--t-dia*`, `--t-noche*`) y
   `heroe.css` elige según el tema. Sin diseño, o si no pasa, el rojo de siempre. Si la base no responde, la portada sale sin campaña.

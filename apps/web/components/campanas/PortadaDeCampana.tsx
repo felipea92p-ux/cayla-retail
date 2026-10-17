@@ -3,7 +3,8 @@ import {
   CejaDeCampana,
   CuentaDeCampana,
   HeroeDePortada,
-  fechaCorta,
+  anuncioDeCampana,
+  destacadoDeCampana,
   finDeCampana,
   partesCuenta,
   partirTitulo,
@@ -53,9 +54,8 @@ export function PortadaDeCampana({
   );
   return (
     <div className="tw-web" data-tema={tema} data-celular={celular ? "" : undefined}>
-      <div className="tw-web-anuncio">
-        {pct ? `${nombre} · −${pctTexto(pct)} %${hasta ? ` hasta el ${fechaCorta(hasta)}` : ""}` : `${nombre} · mira lo que elegimos`}
-      </div>
+      {/* La misma frase de la franja de la tienda (`anuncioDeCampana`). */}
+      <div className="tw-web-anuncio">{anuncioDeCampana(campana)}</div>
       <div className="tw-web-cab">
         <span className="tw-web-logo">
           <IsotipoCayla />
@@ -82,15 +82,9 @@ export function PortadaDeCampana({
         ceja={<CejaDeCampana hasta={hasta} />}
         titulo={partirTitulo(nombre, diseno.corte)}
         descripcion={
-          pct ? (
-            <>
-              <b>−{pctTexto(pct)} % en prendas elegidas.</b> Crea tu cuenta para ver los precios, cuánto hay en cada tienda y separar.
-            </>
-          ) : (
-            <>
-              <b>Prendas elegidas para {nombre}.</b> Crea tu cuenta para ver los precios, cuánto hay en cada tienda y separar.
-            </>
-          )
+          <>
+            <b>{destacadoDeCampana(campana)}</b> Crea tu cuenta para ver los precios, cuánto hay en cada tienda y separar.
+          </>
         }
         cuenta={hasta ? <CuentaDeCampana partes={partesCuenta(finDeCampana(hasta) - ahora)} /> : null}
         acciones={

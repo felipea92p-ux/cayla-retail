@@ -20,16 +20,19 @@ Maqueta: `docs/maquetas/campanas-diseno-2026-10/` (abrir `index.html`; su README
 
 **Dónde quedó (2026-10-17, tarde).** Lista de 9 actividades aprobada (ADR-0436). Hechas y commiteadas: 1 (módulo, lista, regla de la
 portada en un solo lugar), 2 (Datos y Prendas con una sola llave), 3 (la portada en una sola pieza, `packages/portada`, sin cambio
-visible), 4 (diseñar y publicar) y **5 (la tienda pinta el diseño publicado)**:
+visible), 4 (diseñar y publicar), 5 (la tienda pinta el diseño publicado) y **6a (campañas sin descuento)**:
 - [x] Migraciones `20261017160000_campanas_diseno.sql` (la tabla del diseño, borrador con versión, publicar, volver al anterior, la lista
   con el diseño) y `20261017200000_campanas_diseno_en_la_tienda.sql` (`tienda_portada()` con el diseño publicado), con su suite
-  `pnpm pruebas:campanas-diseno` (49/49). **Ninguna de las cuatro está en producción** (`20261017144000`, `20261017151000`,
-  `20261017160000`, `20261017200000`): se pegan con el OK de Felipe, en ese orden.
+  `pnpm pruebas:campanas-diseno` (49/49). **Ninguna está en producción**: el orden de pegado, en `CONTINUAR.md`.
 - [x] Actividad 4: la pestaña «Diseño en la web» (la de entrada; Nueva campaña lleva a Datos), con «Después sale» desde la base; la portada
   real en la lista, en la línea y en Datos ▸ En la web; «Borrador» solo si difiere de lo publicado; guías y huellas al día.
 - [x] Actividad 5: la tienda revisa el diseño (`disenoParaPintar`: que se sepa leer y que la letra se lea en los dos temas) y la portada y
   el Inicio lo pintan, en claro y en oscuro (`--t-dia*` / `--t-noche*`, elegidos en `heroe.css`); sin diseño o si no pasa, el rojo de
   siempre. Verificado en la tienda local con Bosque y Galería, en claro, oscuro y 375 px.
+- [x] Actividad 6a: una campaña sin descuento sale en la portada (con prendas, o sin ellas con su diseño publicado; la de descuento
+  primero), con su lista de prendas en la tienda (`?lista=campana`). Migración `20261017204000`, sin pegar.
+- [ ] Actividad 6b: el carrusel (Felipe 2026-10-17: «si hay dos campañas activas, eso debe convertirse en un carrusel que va deslizándose
+  cada ciertos segundos»).
 - [ ] Al publicar: avisarle a Felipe que «Terminal Almacén» y «Terminal de ventas» pierden la configuración de campañas hasta que el líder
   les dé el módulo «Campañas» (ADR-0436, DECIDÍ 1).
 - [ ] Visto al verificar la 4 (para la 7, «El texto»): en la portada de 1280 px, una palabra larga del nombre («Internacional», de Día

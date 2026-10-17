@@ -27,7 +27,8 @@ import type { Campana } from "./portada";
 /* ---------------- El héroe ---------------- */
 
 export type Hero =
-  /** La campaña que anuncia la portada (la misma de la franja), con hasta 3 prendas suyas que hay en la tienda elegida. */
+  /** La campaña que anuncia la portada (la misma de la franja), con hasta 3 prendas suyas que hay en la tienda elegida (ninguna: sale
+   *  por su diseño, sin fotos; `campanaId` null). */
   | { tipo: "campana"; campana: Campana; piezas: Prenda[]; campanaId: string | null }
   /** Sin campaña: lo que llegó hace menos. */
   | { tipo: "nuevo"; piezas: Prenda[] }
@@ -37,21 +38,37 @@ export type Hero =
 
 /**
  * El héroe del Inicio (maqueta: la campaña vigente; si no hay, «Lo nuevo»). Las prendas del collage, las que tienen foto primero.
- * La campaña sale solo si tiene alguna prenda suya que baja de precio en lo que se ve (Felipe 2026-10-15): el primer día en
- * producción el Aniversario no tenía ninguna prenda publicada, el collage quedaba vacío y «Ver la campaña» llevaba a una lista sin
- * nada. Sin prendas suyas, la portada pasa a «Lo nuevo» (o a la marca), y la campaña vuelve sola cuando se le publiquen prendas.
+ * Las prendas de una campaña con descuento son las suyas que bajan de precio en lo que se ve; las de una sin descuento (ADR-0436,
+ * actividad 6a), sus modelos (los que manda la portada) que se ven. Sin ninguna a la vista, una campaña SIN descuento sale igual si tiene
+ * su diseño publicado (Felipe 2026-10-17: «sí, sin fotos»; la página lleva entonces a «Lo nuevo», nunca a una lista vacía); una con
+ * descuento, no (Felipe 2026-10-15: el Aniversario sin prendas publicadas dejaba el collage vacío). Si no, «Lo nuevo» (o la marca), y
+ * la campaña vuelve sola cuando se le publiquen prendas.
  */
+/**
+ * A dónde lleva «Ver la campaña» del héroe: con descuento, a sus ofertas; sin descuento, a la lista de sus prendas (`?lista=campana`). Sin
+ * prendas a la vista (sale por su diseño), `null`: la página ofrece «Lo nuevo» en su lugar.
+ */
+export function hrefDeLaCampana(hero: Extract<Hero, { tipo: "campana" }>, sede: string | null): string | null {
+  if (hero.piezas.length === 0) return null;
+  return hrefLista({ sede, categoria: null, orden: "destacado", lista: hero.campana.pct ? "ofertas" : "campana", campana: hero.campanaId });
+}
+
 export function heroDelInicio(campana: Campana | null, prendas: readonly Prenda[]): Hero {
   if (campana) {
-    const suyas = prendas.filter((p) => enOferta(p) && p.campana && normalizar(p.campana.nombre) === normalizar(campana.nombre));
+    const modelos = new Set(campana.prendas);
+    const suyas = campana.pct
+      ? prendas.filter((p) => enOferta(p) && p.campana && normalizar(p.campana.nombre) === normalizar(campana.nombre))
+      : prendas.filter((p) => modelos.has(p.id));
     if (suyas.length > 0) {
       return {
         tipo: "campana",
         campana,
         piezas: [...suyas].sort(conFotoPrimero).slice(0, 3),
-        campanaId: suyas.find((p) => p.campana?.id)?.campana?.id ?? null,
+        campanaId: campana.pct ? (suyas.find((p) => p.campana?.id)?.campana?.id ?? null) : campana.id,
       };
     }
+    // Solo sin descuento: una con descuento sin prendas a la vista anunciaría «−N %» sin mostrar en qué (la regla del 15-oct sigue).
+    if (!campana.pct && campana.diseno) return { tipo: "campana", campana, piezas: [], campanaId: null };
   }
   const nuevas = prendas.filter((p) => p.nuevo);
   if (nuevas.length > 0) return { tipo: "nuevo", piezas: [...nuevas].sort((a, b) => conFotoPrimero(a, b) || porLlegada(a, b)).slice(0, 3) };

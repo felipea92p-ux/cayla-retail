@@ -5,7 +5,17 @@ export { HeroeDePortada, type PiezaDeHeroe } from "./HeroeDePortada";
 export { CejaDeCampana } from "./CejaDeCampana";
 export { paletasDeLasPrendas, type PrendaConColores } from "./colores-de-prendas";
 export { CuentaDeCampana } from "./CuentaDeCampana";
-export { fechaCorta, fechaLarga, finDeCampana, partesCuenta, partirTitulo, pctTexto } from "./textos";
+export {
+  anuncioDeCampana,
+  destacadoDeCampana,
+  fechaCorta,
+  fechaLarga,
+  finDeCampana,
+  partesCuenta,
+  partirTitulo,
+  pctTexto,
+  type AnuncioDeCampana,
+} from "./textos";
 export { CONTRASTE_MINIMO, contraste, luminancia, mezclar } from "./contraste";
 export {
   ACOMODOS,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { finDeCampana, partesCuenta, partirTitulo } from "./textos";
+import { anuncioDeCampana, destacadoDeCampana, finDeCampana, partesCuenta, partirTitulo } from "./textos";
 
 describe("partir el nombre de la campaña", () => {
   it("sin corte, la última palabra en cursiva (como siempre)", () => {
@@ -22,5 +22,17 @@ describe("la cuenta regresiva (la de la tienda y la de la vista previa del ERP)"
   it("parte lo que falta en días, horas, minutos y segundos; nunca negativo", () => {
     expect(partesCuenta(((2 * 24 + 3) * 3600 + 4 * 60 + 5) * 1000)).toEqual({ d: 2, h: 3, m: 4, s: 5 });
     expect(partesCuenta(-5000)).toEqual({ d: 0, h: 0, m: 0, s: 0 });
+  });
+});
+
+describe("lo que anuncia una campaña, con y sin descuento", () => {
+  it("la franja de arriba: con su % pegado al número y su fin; sin descuento, sin %", () => {
+    expect(anuncioDeCampana({ nombre: "Día del Gato", pct: 15, hasta: "2026-10-30" })).toBe("Día del Gato · −15\u00a0% hasta el 30 oct.");
+    expect(anuncioDeCampana({ nombre: "Liquidación", pct: 12.5, hasta: null })).toBe("Liquidación · −12.5\u00a0%");
+    expect(anuncioDeCampana({ nombre: "Navidad", pct: null, hasta: "2026-12-25" })).toBe("Navidad · mira lo que elegimos");
+  });
+  it("lo que el héroe dice en negrita", () => {
+    expect(destacadoDeCampana({ nombre: "Día del Gato", pct: 15 })).toBe("−15 % en prendas elegidas.");
+    expect(destacadoDeCampana({ nombre: "Navidad", pct: null })).toBe("Prendas elegidas para Navidad.");
   });
 });

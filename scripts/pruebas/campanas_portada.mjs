@@ -2,16 +2,19 @@
 /**
  * Tienda web ▸ Campañas, actividad 1 (ADR-0436) contra el Postgres local — CAYLA V2.
  *
- * QUÉ PRUEBA. `20261017144000_campanas_modulo_y_portada_por_dia.sql`:
- *   1. LA regla de la portada (`fn_campana_en_portada`): ese día, la campaña aprobada, activa, con descuento, vigente y con prendas o
- *      categorías que termina primero; a igual fin, la de mayor descuento. Una sin prendas, sin descuento, desactivada o por aprobar no
- *      sale; fuera de sus fechas, tampoco; sin ninguna, null.
- *   2. La tienda pregunta lo mismo: `tienda_portada()` nombra la campaña de `fn_campana_en_portada(hoy)`, con su % y su fin.
+ * QUÉ PRUEBA. `20261017144000_campanas_modulo_y_portada_por_dia.sql`, con la regla como queda después de
+ * `20261017204000_campanas_sin_descuento_en_la_portada.sql` (actividad 6a):
+ *   1. LA regla de la portada (`fn_campana_en_portada`): ese día, de las campañas aprobadas, activas y vigentes con prendas o categorías
+ *      (o, sin descuento, con su diseño publicado), primero las que tienen descuento y, entre ellas, la que termina primero; a igual fin,
+ *      la de mayor descuento. Una con descuento sin prendas, una desactivada o por aprobar no sale; fuera de sus fechas, tampoco; sin
+ *      ninguna, null. Una sin descuento sale cuando no corre ninguna con descuento.
+ *   2. La tienda pregunta lo mismo: `tienda_portada()` nombra la campaña de `fn_campana_en_portada(hoy)`, con su % y su fin, su id y sus
+ *      modelos (a mano y por categoría).
  *   3. `campanas_portada_dias`: un día por fila, con la misma regla; no acepta un rango al revés ni de más de 400 días.
  *   4. `campanas_lista`: solo las de estilo campaña, sin las rechazadas y con las desactivadas; cuenta modelos, variantes y categorías.
  *   5. Quién: el líder; una colaboradora sin el módulo «Campañas» no lee nada (42501); con el módulo en su rol, sí. `authenticated` no
  *      llama a la regla directo, y `tienda_web` lee `tienda_portada` pero no las funciones del ERP.
- *   6. La migración se puede pegar dos veces.
+ *   6. Las dos migraciones se pueden pegar dos veces.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK: nunca se commitea nada. La sesión se simula con
  * `request.jwt.claim.sub`. `APLICAR_ANTES=<migración>` la mete dentro de cada transacción (que se revierte); sin la variable, prueba
@@ -31,6 +34,7 @@ import { readFileSync } from "node:fs";
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const MIGRACION = "supabase/migrations/20261017144000_campanas_modulo_y_portada_por_dia.sql";
+const MIGRACION_SIN_DESCUENTO = "supabase/migrations/20261017204000_campanas_sin_descuento_en_la_portada.sql";
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(process.env.APLICAR_ANTES, "utf8") : "";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora, sin «Campañas»
@@ -79,12 +83,12 @@ $f$;
 `;
 
 /**
- * Cada escenario parte igual: ninguna campaña con descuento salvo las de la prueba, y estas cinco (h = hoy en Lima):
+ * Cada escenario parte igual: ninguna otra campaña activa, y estas cinco (h = hoy en Lima):
  *   A: −10 %, h−2 a h+10, con una variante        → sale en la portada desde h+6 hasta h+10
  *   B: −20 %, h a h+5, con una categoría           → sale hoy (termina primero)
- *   C: −30 %, h a h+3, sin prendas ni categorías   → nunca (no tiene qué mostrar)
+ *   C: −30 %, h a h+3, sin prendas ni categorías   → nunca (con descuento y sin prendas no tiene qué mostrar)
  *   D: −40 %, h a h+2, con una variante, desactivada → nunca
- *   E: sin descuento, h a h+30, con una variante   → nunca (con la regla de hoy; la actividad 6 la cambia)
+ *   E: sin descuento, h a h+30, con una variante   → sale cuando ya no corre ninguna con descuento (h+11 en adelante; actividad 6a)
  */
 const ESCENA = `
 begin;
@@ -92,6 +96,9 @@ ${APLICAR_ANTES}
 ${INTENTO}
 ${como(FELIPE)}
 update retail.etiquetas set descuento_pct = null where descuento_pct is not null;
+-- Desde la actividad 6a una campaña sin descuento también sale: las de la base se apagan (dentro de la transacción) para que solo
+-- cuenten las de la prueba.
+update retail.etiquetas set activo = false where estilo = 'campana' and activo;
 select retail.fn_hoy_lima() as h \\gset
 select id as variante from retail.variantes where activo order by id limit 1 \\gset
 select id as variante2 from retail.variantes where activo order by id offset 1 limit 1 \\gset
@@ -140,7 +147,7 @@ ${nombreEn(-3)}`);
     esperar("hoy sale B: de las que tienen prendas y descuento, la que termina primero (C no tiene prendas, D está desactivada)", hoy === "Prueba B", r.ok ? r.salida : r.mensaje);
     esperar("B sigue hasta su último día", h5 === "Prueba B", h5);
     esperar("cuando B termina, sale A", h6 === "Prueba A" && h10 === "Prueba A", `${h6} / ${h10}`);
-    esperar("después de A no queda ninguna (E no tiene descuento)", h11 === "—", h11);
+    esperar("después de A sale E, sin descuento (la de descuento va primero mientras corre)", h11 === "Prueba E", h11);
     esperar("ayer ya estaba A (B empezaba hoy)", ayer === "Prueba A", ayer);
     esperar("antes de que empiece A, ninguna", antes === "—", antes);
   }
@@ -155,16 +162,49 @@ ${nombreEn(0)}`);
     esperar("una campaña por aprobar no sale (queda A)", sinB === "Prueba A", r.ok ? r.salida : r.mensaje);
     esperar("a igual fin, la de mayor descuento (A −10 % gana a B −5 %)", empate === "Prueba A", empate);
   }
+  {
+    // La actividad 6a: sin descuento sale; la de descuento va primero aunque termine después; sin prendas, solo con su diseño.
+    const r = correr(`${ESCENA}
+update retail.etiquetas set vigente_hasta = :'h'::date + 1 where id = :'e';
+${nombreEn(0)}
+update retail.etiquetas set descuento_pct = null where id in (:'a', :'b');
+${nombreEn(0)}
+update retail.etiquetas set descuento_pct = null where nombre like 'Prueba %';
+delete from retail.variante_etiquetas where etiqueta_id = :'e';
+${nombreEn(12)}
+update retail.etiquetas set vigente_hasta = :'h'::date + 30 where id = :'e';
+insert into retail.campana_disenos (etiqueta_id, estado, paleta, fondo, patron, intensidad, acomodo, tamano, cuenta, pct_gigante, colibri, sello, publicado_en)
+values (:'e', 'publicado', 'bosque', 'degradado', 'huellitas', 'medio', 'polaroids', 'grande', true, false, true, 'ninguno', now());
+${nombreEn(12)}
+update retail.etiquetas set activo = false where id in (:'a', :'b');
+update retail.etiquetas set descuento_pct = 10 where nombre = 'Prueba C';
+insert into retail.campana_disenos (etiqueta_id, estado, paleta, fondo, patron, intensidad, acomodo, tamano, cuenta, pct_gigante, colibri, sello, publicado_en)
+values ((select id from retail.etiquetas where nombre = 'Prueba C'), 'publicado', 'bosque', 'degradado', 'huellitas', 'medio', 'polaroids', 'grande', true, false, true, 'ninguno', now());
+${nombreEn(2)}`);
+    const [descuentoPrimero, sinDescuentoTermina, sinNada, conDiseno, conDescuentoSinPrendas] = lineas(r);
+    esperar("la de descuento va primero aunque una sin descuento termine antes (B, no E)", descuentoPrimero === "Prueba B", r.ok ? r.salida : r.mensaje);
+    esperar("sin descuento en ninguna, sale la que termina primero (E)", sinDescuentoTermina === "Prueba E", sinDescuentoTermina);
+    esperar("sin descuento, sin prendas ni diseño, no sale", sinNada === "—", sinNada);
+    esperar("sin descuento y sin prendas, con su diseño publicado, sí sale", conDiseno === "Prueba E", conDiseno);
+    esperar("con descuento y sin prendas no sale ni con diseño (anunciaría un % sin prendas)", conDescuentoSinPrendas === "Prueba E", conDescuentoSinPrendas);
+  }
 
   console.log("— La tienda pregunta lo mismo —");
   {
     const r = correr(`${ESCENA}
-select retail.tienda_portada()->'campana'->>'nombre', retail.tienda_portada()->'campana'->>'pct', retail.tienda_portada()->'campana'->>'hasta' = (:'h'::date + 5)::text;
+select retail.tienda_portada()->'campana'->>'nombre', retail.tienda_portada()->'campana'->>'pct', retail.tienda_portada()->'campana'->>'hasta' = (:'h'::date + 5)::text,
+       retail.tienda_portada()->'campana'->>'id' = :'b';
+-- B rige en una categoría: sus modelos son los de esa categoría. Sin descuento en ninguna sale B igual (termina primero), con pct null.
+select (select count(*) from retail.productos p where p.categoria_id = :'categoria' and p.estado <> 'descontinuado') = jsonb_array_length(retail.tienda_portada()->'campana'->'prendas');
 update retail.etiquetas set descuento_pct = null;
+select retail.tienda_portada()->'campana'->>'nombre', (retail.tienda_portada()->'campana'->>'pct') is null;
+update retail.etiquetas set activo = false where nombre like 'Prueba %';
 select retail.tienda_portada()::text;`);
-    const [hoy, sinNinguna] = lineas(r);
-    esperar("tienda_portada() anuncia B, con su % y su último día", hoy === "Prueba B|20.00|t", r.ok ? r.salida : r.mensaje);
-    esperar("sin campañas con descuento, la portada sale sin campaña", sinNinguna === '{"campana": null}', sinNinguna);
+    const [hoy, modelos, sinDescuento, sinNinguna] = lineas(r);
+    esperar("tienda_portada() anuncia B, con su %, su último día y su id", hoy === "Prueba B|20.00|t|t", r.ok ? r.salida : r.mensaje);
+    esperar("y sus modelos: los de su categoría", modelos === "t", modelos);
+    esperar("sin descuento sale igual, con el % vacío", sinDescuento === "Prueba B|t", sinDescuento);
+    esperar("sin ninguna campaña, la portada sale sin campaña", sinNinguna === '{"campana": null}', sinNinguna);
   }
 
   console.log("— Día por día, para el ERP —");
@@ -178,7 +218,7 @@ select pg_temp.intento(format('select retail.campanas_portada_dias(%L::date, %L:
 select pg_temp.intento(format('select retail.campanas_portada_dias(%L::date, %L::date)', :'h', :'h'::date + 401));`);
     const [dias, deB, deA, primero, alReves, muchos] = lineas(r);
     esperar("catorce días, catorce filas", dias === "14", r.ok ? r.salida : r.mensaje);
-    esperar("B los 6 primeros, A los 5 siguientes (el resto, ninguna)", deB === "6" && deA === "5", `${deB} / ${deA}`);
+    esperar("B los 6 primeros, A los 5 siguientes (el resto, E: sin descuento)", deB === "6" && deA === "5", `${deB} / ${deA}`);
     esperar("cada fila trae su día", primero === "t", primero);
     esperar("un rango al revés se rechaza", alReves?.startsWith("22023"), alReves);
     esperar("más de 400 días se rechaza", muchos?.startsWith("22023"), muchos);
@@ -232,6 +272,11 @@ select has_function_privilege('tienda_web', 'retail.tienda_portada()', 'execute'
     const migracion = readFileSync(MIGRACION, "utf8");
     const r = correr(`begin;\n${migracion}\n${migracion}\nselect count(*) from retail.modulos where clave = 'campanas';`);
     esperar("dos veces seguidas, sin error y con un solo módulo", r.ok && r.salida.split("\n").at(-1) === "1", r.ok ? r.salida : r.mensaje);
+  }
+  {
+    const migracion = readFileSync(MIGRACION_SIN_DESCUENTO, "utf8");
+    const r = correr(`begin;\n${migracion}\n${migracion}\nselect 'ok';`);
+    esperar("la de la actividad 6a, dos veces seguidas, sin error", r.ok && r.salida.split("\n").at(-1) === "ok", r.ok ? r.salida : r.mensaje);
   }
 
   console.log(`\n${total - fallos} de ${total} · contenedor: ${CONTENEDOR_LOCAL}`);

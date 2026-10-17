@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Prenda } from "./catalogo";
-import { categoriasDelInicio, datosDeCabecera, heroDelInicio, hrefDelInicio } from "./inicio";
+import { DISENO_DE_SIEMPRE } from "@cayla-retail/portada";
+import { categoriasDelInicio, datosDeCabecera, heroDelInicio, hrefDeLaCampana, hrefDelInicio } from "./inicio";
 
 const FOTO = "https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/fotos/a.jpg";
 const ANIV = "8a6f1c1e-3b55-4c8e-9a55-222222222222";
@@ -33,7 +34,7 @@ const enCampana = (nombre: string, extra: Partial<Prenda> = {}) =>
 const nombres = (ps: Prenda[]) => ps.map((p) => p.nombre);
 
 describe("el héroe del Inicio", () => {
-  const campana = { nombre: "Aniversario CAYLA", pct: 20, hasta: "2026-10-21", diseno: null };
+  const campana = { id: null, nombre: "Aniversario CAYLA", pct: 20, hasta: "2026-10-21", diseno: null, prendas: [] };
 
   it("con campaña: hasta tres prendas suyas que bajan de precio, las que tienen foto primero", () => {
     const prendas = [
@@ -59,6 +60,33 @@ describe("el héroe del Inicio", () => {
     // De la campaña pero sin descuento en esta tienda tampoco cuenta: no es «suya» aquí.
     const sinDescuento = prenda("Sin descuento", { campana: { id: ANIV, nombre: "Aniversario CAYLA", pct: 20, hasta: "2026-10-21" } });
     expect(heroDelInicio(campana, [sinDescuento]).tipo).toBe("marca");
+  });
+
+  // ADR-0436, actividad 6a: una campaña sin descuento muestra sus modelos (los que manda la portada) aunque no bajen de precio.
+  const NAVIDAD_ID = "8a6f1c1e-3b55-4c8e-9a55-333333333333";
+  const navidad = { id: NAVIDAD_ID, nombre: "Navidad", pct: null, hasta: "2026-12-25", diseno: null, prendas: ["Vestido rojo", "Falda verde"] };
+
+  it("sin descuento: sus modelos que se ven, con foto primero, y su lista de campaña", () => {
+    const hero = heroDelInicio(navidad, [prenda("Blusa"), prenda("Falda verde"), prenda("Vestido rojo", { fotos: [FOTO] })]);
+    expect(hero.tipo).toBe("campana");
+    if (hero.tipo !== "campana") return;
+    expect(nombres(hero.piezas)).toEqual(["Vestido rojo", "Falda verde"]);
+    expect(hero.campanaId).toBe(NAVIDAD_ID);
+    expect(hrefDeLaCampana(hero, "trujillo")).toBe(`/catalogo?lista=campana&sede=trujillo&campana=${NAVIDAD_ID}`);
+  });
+
+  it("sin descuento ni prendas a la vista: con su diseño publicado sale igual, sin fotos y sin lista (Felipe 2026-10-17); sin diseño, no", () => {
+    const conDiseno = heroDelInicio({ ...navidad, diseno: DISENO_DE_SIEMPRE }, [prenda("Blusa"), prenda("Nueva", { nuevo: { dias: 2 } })]);
+    expect(conDiseno.tipo === "campana" && conDiseno.piezas).toEqual([]);
+    if (conDiseno.tipo === "campana") expect(hrefDeLaCampana(conDiseno, null)).toBeNull();
+    expect(heroDelInicio(navidad, [prenda("Nueva", { nuevo: { dias: 2 } })]).tipo).toBe("nuevo");
+    // Con descuento y su diseño, pero nada suyo en oferta a la vista: no (anunciaría «−20 %» sin mostrar en qué; regla del 15-oct).
+    expect(heroDelInicio({ ...campana, diseno: DISENO_DE_SIEMPRE }, [prenda("Blusa")])).toEqual({ tipo: "marca" });
+  });
+
+  it("con descuento, «Ver la campaña» lleva a sus ofertas", () => {
+    const hero = heroDelInicio(campana, [enCampana("Blusa")]);
+    if (hero.tipo === "campana") expect(hrefDeLaCampana(hero, null)).toBe(`/catalogo?lista=ofertas&campana=${ANIV}`);
   });
 
   it("el nombre de la campaña se compara sin tildes ni mayúsculas", () => {

@@ -33,3 +33,19 @@ export const fechaLarga = (hasta: string) => fecha(hasta, { day: "numeric", mont
 
 /** «21 oct.» */
 export const fechaCorta = (hasta: string) => fecha(hasta, { day: "numeric", month: "short" });
+
+/** Lo que una campaña anuncia: su nombre, su descuento (null: sin descuento, actividad 6a) y su último día. */
+export type AnuncioDeCampana = { nombre: string; pct: number | null; hasta: string | null };
+
+/**
+ * La frase de la franja de arriba: «Día del Gato · −15 % hasta el 30 oct.» o, sin descuento, «Navidad · mira lo que elegimos». El «%» va
+ * pegado a su número con un espacio que no se parte (en un celular angosto la frase baja a dos líneas, nunca deja el «%» solo).
+ */
+export function anuncioDeCampana({ nombre, pct, hasta }: AnuncioDeCampana): string {
+  if (!pct) return `${nombre} · mira lo que elegimos`;
+  return `${nombre} · −${pctTexto(pct)}\u00a0%${hasta ? ` hasta el ${fechaCorta(hasta)}` : ""}`;
+}
+
+/** Lo que el héroe dice en negrita antes de su frase: «−15 % en prendas elegidas.» o, sin descuento, «Prendas elegidas para Navidad.». */
+export const destacadoDeCampana = ({ nombre, pct }: Pick<AnuncioDeCampana, "nombre" | "pct">): string =>
+  pct ? `−${pctTexto(pct)} % en prendas elegidas.` : `Prendas elegidas para ${nombre}.`;

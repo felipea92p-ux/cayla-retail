@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pctTexto } from "./portada";
+import { partirTitulo, pctTexto } from "./portada";
 import { esquemaStockModelo, type StockModelo } from "./stock";
 
 // El catálogo de la tienda (ADR-0408, actividades 3 a 5): lo que se publicó en Catálogo ▸ Vitrina web, tal como lo devuelve
@@ -181,8 +181,9 @@ export function fotoOptimizable(url: string, origen: string | undefined): boolea
 
 /** Las listas de la maqueta (`vLista`): toda la tienda, Lo nuevo, las ofertas, los más vendidos y «Tus favoritos» (lo que el cliente
  *  marcó con el corazón: el corazón de la cabecera lleva a `/catalogo?lista=favoritos`). */
-export type Lista = "todo" | "nuevo" | "ofertas" | "vendidos" | "favoritos";
-const LISTAS: readonly Lista[] = ["todo", "nuevo", "ofertas", "vendidos", "favoritos"];
+/** `campana`: las prendas de una campaña sin descuento (ADR-0436, actividad 6a), que no salen en «Ofertas»; sus modelos los dice la portada. */
+export type Lista = "todo" | "nuevo" | "ofertas" | "vendidos" | "favoritos" | "campana";
+const LISTAS: readonly Lista[] = ["todo", "nuevo", "ofertas", "vendidos", "favoritos", "campana"];
 
 export type Orden = "destacado" | "precio-asc" | "precio-desc";
 export const ORDENES: readonly Orden[] = ["destacado", "precio-asc", "precio-desc"];
@@ -226,9 +227,19 @@ export type CabeceraLista = {
   vacio: { titulo: string; texto: string } | null;
 };
 
-/** Lo de arriba de cada lista (maqueta, `vLista`): la ceja, el título (lo segundo en cursiva) y la frase; y lo que dice vacía. */
-export function cabeceraDeLista(lista: Lista): CabeceraLista {
+/** Lo de arriba de cada lista (maqueta, `vLista`): la ceja, el título (lo segundo en cursiva) y la frase; y lo que dice vacía. La de una
+ *  campaña sin descuento lleva su nombre (`campana`). */
+export function cabeceraDeLista(lista: Lista, campana: { nombre: string } | null = null): CabeceraLista {
   switch (lista) {
+    case "campana": {
+      const nombre = campana?.nombre ?? "la campaña";
+      return {
+        ceja: "Campaña",
+        titulo: campana ? partirTitulo(campana.nombre) : ["La", "campaña"],
+        frase: `Las prendas que elegimos para ${nombre}.`,
+        vacio: { titulo: "Por ahora no hay prendas de esta campaña", texto: "Cuando se publiquen, aparecen aquí. Mientras tanto, mira toda la tienda." },
+      };
+    }
     case "nuevo":
       return {
         ceja: "Recién llegado",
@@ -266,11 +277,13 @@ export function cabeceraDeLista(lista: Lista): CabeceraLista {
 export const enOferta = (p: Prenda): boolean => p.precioFinal < p.precio;
 
 /** ¿La prenda va en esa lista? Lo nuevo: lo que la base marcó nuevo; Más vendidos: lo que tiene puesto; las ofertas: lo que tiene
- *  descuento (y, si se eligió una campaña, de esa campaña). Los favoritos llegan ya elegidos (`deFavoritos`): todas van. */
-export function enLaLista(p: Prenda, lista: Lista, campana: string | null = null): boolean {
+ *  descuento (y, si se eligió una campaña, de esa campaña); una campaña sin descuento: sus modelos (`modelos`, los de la portada). Los
+ *  favoritos llegan ya elegidos (`deFavoritos`): todas van. */
+export function enLaLista(p: Prenda, lista: Lista, campana: string | null = null, modelos: ReadonlySet<string> | null = null): boolean {
   if (lista === "nuevo") return p.nuevo !== null;
   if (lista === "vendidos") return p.vendidos !== null;
   if (lista === "ofertas") return enOferta(p) && (!campana || p.campana?.id === campana);
+  if (lista === "campana") return modelos?.has(p.id) ?? false;
   return true;
 }
 
@@ -340,9 +353,15 @@ export function categoriasDe(prendas: readonly Prenda[]): CategoriaLista[] {
  *  orden porque dice algo: el puesto («N.º 1») y lo último que guardaste. Por precio tampoco se toca: la persona pidió ese orden. */
 export function filtrarYOrdenar(
   prendas: readonly Prenda[],
-  { categoria, orden, lista = "todo", campana = null }: { categoria: string | null; orden: Orden; lista?: Lista; campana?: string | null },
+  {
+    categoria,
+    orden,
+    lista = "todo",
+    campana = null,
+    modelos = null,
+  }: { categoria: string | null; orden: Orden; lista?: Lista; campana?: string | null; modelos?: ReadonlySet<string> | null },
 ): Prenda[] {
-  const salida = prendas.filter((p) => enLaLista(p, lista, campana) && (!categoria || claveCategoria(p.categoria) === categoria));
+  const salida = prendas.filter((p) => enLaLista(p, lista, campana, modelos) && (!categoria || claveCategoria(p.categoria) === categoria));
   if (orden === "precio-asc") salida.sort((a, b) => a.precioFinal - b.precioFinal || a.nombre.localeCompare(b.nombre, "es"));
   else if (orden === "precio-desc") salida.sort((a, b) => b.precioFinal - a.precioFinal || a.nombre.localeCompare(b.nombre, "es"));
   else if (lista === "nuevo") salida.sort(porLlegada);
@@ -379,7 +398,7 @@ export function hrefLista({
   if (menu) q.set("menu", menu);
   if (categoria) q.set("categoria", categoria);
   else if (grupo) q.set("grupo", grupo);
-  if (lista === "ofertas" && campana) q.set("campana", campana);
+  if ((lista === "ofertas" || lista === "campana") && campana) q.set("campana", campana);
   if (orden !== "destacado") q.set("orden", orden);
   const s = q.toString();
   return s ? `/catalogo?${s}` : "/catalogo";

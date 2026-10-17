@@ -399,3 +399,16 @@ describe("las listas: Lo nuevo, las ofertas y Más vendidos (actividad 5)", () =
     ]);
   });
 });
+
+describe("la lista de una campaña sin descuento (ADR-0436, actividad 6a)", () => {
+  it("sus prendas son sus modelos, aunque no bajen de precio; su dirección lleva la campaña", async () => {
+    const { cabeceraDeLista, enLaLista, hrefLista } = await import("./catalogo");
+    const modelos = new Set(["a"]);
+    const p = (id: string) => ({ id, nuevo: null, vendidos: null, precio: 50, precioFinal: 50, campana: null }) as unknown as Parameters<typeof enLaLista>[0];
+    expect(enLaLista(p("a"), "campana", "x", modelos)).toBe(true);
+    expect(enLaLista(p("b"), "campana", "x", modelos)).toBe(false);
+    expect(enLaLista(p("a"), "campana", "x", null)).toBe(false);
+    expect(hrefLista({ categoria: null, orden: "destacado", lista: "campana", campana: "x" })).toBe("/catalogo?lista=campana&campana=x");
+    expect(cabeceraDeLista("campana", { nombre: "Navidad" })).toMatchObject({ ceja: "Campaña", titulo: ["Navidad", ""], frase: "Las prendas que elegimos para Navidad." });
+  });
+});

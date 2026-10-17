@@ -91,13 +91,15 @@ export function CampanasPantalla({ campanas, dias, hoy, ahora }: { campanas: Cam
         <div className="space-y-3 px-4 pb-4 sm:px-5 sm:pb-5">
           <p className="nota-cayla">
             Cada barra lleva los colores del diseño de su campaña; la punteada todavía sale con el rojo de siempre. La rayada es «Lo nuevo»:
-            lo que la tienda muestra cuando no corre ninguna campaña con descuento.
+            lo que la tienda muestra cuando no corre ninguna campaña que salga en la portada.
           </p>
           {cruce && (
             <p className="nota-cayla" data-guia="campanas.cruce">
               <b>{conPunto(`${cruce.nombres.join(" y ")} corren a la vez${cruce.hasta ? ` ${hastaEl(cruce.hasta)}` : ""}`)}</b>{" "}
               La portada muestra una sola campaña:{" "}
-              {cruce.enPortada ? `hoy sale «${cruce.enPortada.nombre}», la que termina primero entre las que tienen descuento.` : "hoy ninguna de ellas, porque no tienen descuento."}
+              {cruce.enPortada
+                ? `hoy sale «${cruce.enPortada.nombre}», ${cruce.enPortada.pct ? "la de descuento que termina primero" : "la que termina primero"}.`
+                : "hoy ninguna de ellas: todavía no tienen prendas ni diseño propio."}
             </p>
           )}
         </div>

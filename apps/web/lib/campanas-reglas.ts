@@ -279,9 +279,11 @@ export const hastaEl = (f: string) => `hasta el ${fechaCorta(f)}`;
  * Por qué una campaña que corre hoy no es la de la portada, en palabras de tienda. La regla es de la base (`fn_campana_en_portada`):
  * aquí solo se nombra la razón que se ve en los datos, en el mismo orden en que la regla la mira. null si sí sale, o si no corre hoy.
  */
-export function porQueNoSale(c: Campana, enPortada: Campana | null, hoy: string): string | null {
+export function porQueNoSale(c: Campana & Pick<CampanaDeLista, "diseno">, enPortada: Campana | null, hoy: string): string | null {
   if (estadoDeCampana(c, hoy) !== "vigente" || enPortada?.id === c.id) return null;
-  if (!c.pct) return "No sale en la portada: no tiene descuento.";
-  if (c.modelos === 0 && c.categorias === 0) return "No sale en la portada: todavía no tiene prendas.";
+  // Desde la actividad 6a una campaña sin descuento también sale, con prendas o con su diseño publicado.
+  const sinPrendas = c.modelos === 0 && c.categorias === 0;
+  if (c.pct && sinPrendas) return "No sale en la portada: todavía no tiene prendas.";
+  if (!c.pct && sinPrendas && !c.diseno) return "No sale en la portada: todavía no tiene prendas ni diseño propio.";
   return enPortada ? `Hoy la portada muestra «${enPortada.nombre}».` : null;
 }

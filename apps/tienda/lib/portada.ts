@@ -1,18 +1,23 @@
 import { z } from "zod";
-import { disenoParaPintar, fechaCorta, pctTexto } from "@cayla-retail/portada";
+import { anuncioDeCampana, disenoParaPintar } from "@cayla-retail/portada";
 
-// Lo que la portada pública muestra sin cuenta (ADR-0408): la campaña vigente que termina primero.
+// Lo que la portada pública muestra sin cuenta (ADR-0408): la campaña que anuncia la portada (LA regla de la base, ADR-0436).
 // La base lo arma en `retail.tienda_portada()`; aquí solo se valida la forma y se preparan los textos.
 const esquemaPortada = z.object({
   campana: z
     .object({
+      // Su id y sus modelos (ADR-0436, actividad 6a): con ellos se muestran las prendas de una campaña sin descuento, que no bajan de precio
+      // y no salen en «Ofertas». Una base de antes no los trae: sin id ni modelos, la campaña se anuncia igual que antes.
+      id: z.string().uuid().nullish().catch(null).transform((x) => x ?? null),
       nombre: z.string().min(1),
-      pct: z.number().positive(),
+      // null: una campaña sin descuento (actividad 6a). Un 0 o un texto siguen siendo una respuesta rara.
+      pct: z.number().positive().nullable(),
       // Último día de la campaña (fecha de Lima, «2026-10-21»); null si no tiene fecha de término.
       hasta: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
       // Su diseño publicado en el ERP (ADR-0436, actividad 5). Nunca tumba la campaña: si falta, esta versión no lo sabe leer o su letra
       // no se lee, queda null y la portada sale con el rojo de siempre (`disenoParaPintar`, la misma revisión que apaga «Publicar»).
       diseno: z.unknown().optional().transform(disenoParaPintar),
+      prendas: z.array(z.string().uuid()).catch([]).optional().transform((x) => x ?? []),
     })
     .nullable(),
 });
@@ -37,13 +42,12 @@ export { fechaCorta, fechaLarga, partirTitulo, pctTexto } from "@cayla-retail/po
 export const anioLima = (ahora = new Date()) =>
   Number(ahora.toLocaleDateString("en-CA", { year: "numeric", timeZone: "America/Lima" }));
 
-/** Las frases de la franja de arriba, en el orden en que rotan. La de la campaña va primero si hay una. Con cuenta no se invita a
- *  crearla (quien ya entró leía «Crea tu cuenta…», revisión 2026-10-15): se le recuerda dónde están sus beneficios del Club. El «%» va
- *  pegado a su número con un espacio que no se parte (en un celular angosto la frase baja a dos líneas). */
+/** Las frases de la franja de arriba, en el orden en que rotan. La de la campaña va primero si hay una (`anuncioDeCampana`, la misma
+ *  frase de la vista previa del ERP; sin descuento, sin %). Con cuenta no se invita a crearla (quien ya entró leía «Crea tu cuenta…»,
+ *  revisión 2026-10-15): se le recuerda dónde están sus beneficios del Club. */
 export function anuncios(campana: Campana | null, conCuenta = false): string[] {
   const club = conCuenta ? "Tus beneficios del Club CAYLA están en Mi perfil" : "Crea tu cuenta y forma parte del Club CAYLA";
   const frases = ["Separa online y recoge en tu tienda", "Mira cuánto hay en cada tienda", club];
   if (!campana) return frases;
-  const hasta = campana.hasta ? ` hasta el ${fechaCorta(campana.hasta)}` : "";
-  return [`${campana.nombre} · −${pctTexto(campana.pct)}\u00a0%${hasta}`, ...frases];
+  return [anuncioDeCampana(campana), ...frases];
 }
