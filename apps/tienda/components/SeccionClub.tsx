@@ -19,11 +19,14 @@ export function SeccionClub({
   nombre,
   desde,
   conCuenta,
+  esDelClub = conCuenta,
   cumplePct = null,
 }: {
   nombre: string | null;
   desde: number;
   conCuenta: boolean;
+  /** Con cuenta pero sin Club (ADR-0438): se une al separar, o ahora, completando su documento y su celular. */
+  esDelClub?: boolean;
   cumplePct?: number | null;
 }) {
   return (
@@ -32,9 +35,13 @@ export function SeccionClub({
         <div className="t-revela">
           <span className="t-ceja">Club CAYLA</span>
           <h2 id="club-cayla">
-            {conCuenta ? (
+            {esDelClub ? (
               <>
                 Eres miembro del club. <em>Esto es para ti.</em>
+              </>
+            ) : conCuenta ? (
+              <>
+                Completa tus datos y <em>entra al club.</em>
               </>
             ) : (
               <>
@@ -55,9 +62,13 @@ export function SeccionClub({
               </li>
             ))}
           </ul>
-          {conCuenta ? (
+          {esDelClub ? (
             <Link className="t-btn" href="/cuenta">
               Ver mi perfil
+            </Link>
+          ) : conCuenta ? (
+            <Link className="t-btn" href="/cuenta/club">
+              Entrar al Club
             </Link>
           ) : (
             <Link className="t-btn" href="/crear-cuenta">

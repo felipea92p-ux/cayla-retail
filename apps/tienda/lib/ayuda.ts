@@ -57,21 +57,21 @@ export type PasoParaSeparar = Paso & { hecho: boolean };
 
 /**
  * Los cuatro pasos de «Cómo separar», con las tiendas de la web: «En cada prenda ves cuánto hay en Trujillo, Arequipa y Lima». Con una
- * sola tienda no hay otra de dónde traer; sin tiendas (o sin base), la frase va sin nombres. Con cuenta (`conCuenta`), el primero ya
- * está hecho: no se le pide crear una cuenta a quien ya la tiene. «Tu documento»: la cuenta se crea con DNI, carné de extranjería o
- * pasaporte (decir solo «DNI» dejaba fuera a quien no lo tiene).
+ * sola tienda no hay otra de dónde traer; sin tiendas (o sin base), la frase va sin nombres. Desde el 2026-10-17 (ADR-0438) primero se
+ * mira y se elige, sin cuenta; la cuenta es el segundo paso y, con cuenta (`conCuenta`), ya está hecho. El documento y el celular se
+ * piden al separar, y con ellos se entra al Club.
  */
 export function pasosParaSeparar(tiendas: readonly string[], conCuenta = false): PasoParaSeparar[] {
   const donde = tiendas.length > 0 ? `En cada prenda ves cuánto hay en ${listaDeNombres(tiendas)}.` : "En cada prenda ves cuánto hay en cada tienda.";
   const traer = tiendas.length === 1 ? "" : " Lo que no está en tu tienda, la tienda puede traerlo de otra.";
   return [
+    { titulo: "Elige tus prendas y tu tienda", texto: `${donde}${traer} Sin crear nada: la tienda es de todos.`, hecho: false },
     conCuenta
-      ? { titulo: "Ya tienes tu cuenta", texto: "Y eres miembro del Club CAYLA.", hecho: true }
-      : { titulo: "Crea tu cuenta", texto: "Con tu correo, tu documento, tu celular y tu cumpleaños. Al crearla ya eres miembro del Club CAYLA.", hecho: false },
-    { titulo: "Elige tus prendas y tu tienda", texto: `${donde}${traer}`, hecho: false },
+      ? { titulo: "Ya tienes tu cuenta", texto: "Con ella separas, guardas favoritos y sigues tus pedidos.", hecho: true }
+      : { titulo: "Entra o crea tu cuenta", texto: "Con tu correo, en un minuto. Solo te pedimos lo necesario.", hecho: false },
     {
       titulo: "Toca «Separar» y mándalo por WhatsApp",
-      texto: "Se crea tu pedido con su número y el mensaje ya va escrito. No pagas nada en la web.",
+      texto: "La primera vez completas tu documento y tu celular y entras al Club CAYLA. Se crea tu pedido con su número y el mensaje ya va escrito. No pagas nada en la web.",
       hecho: false,
     },
     {
