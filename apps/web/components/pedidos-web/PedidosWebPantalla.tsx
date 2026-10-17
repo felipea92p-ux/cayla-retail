@@ -2,20 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Smartphone, Truck } from "lucide-react";
+import { ArrowRight, Banknote, CircleCheck, CircleHelp, Inbox, Smartphone, Truck } from "lucide-react";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Boton } from "@/components/ui/campos";
+import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Chip } from "@/components/ui/Chip";
-import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { Pestanas } from "@/components/ui/Pestanas";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { ResumenSede } from "@/components/ui/ResumenSede";
 import { Encabezado, Tabla, fila } from "@/components/ui/Tabla";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
+import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { Aviso } from "@/components/ui/Aviso";
-import { BarraAvance } from "@/components/ui/BarraAvance";
-import { Camino } from "@/components/tienda-web/Camino";
+import { CaminoDePedidos } from "@/components/tienda-web/CaminoDePedidos";
 import { PedidoWebHoja } from "@/components/pedidos-web/PedidoWebHoja";
 import { EnviarPedidoWebHoja } from "@/components/pedidos-web/EnviarPedidoWebHoja";
 import { RegistrarPagoHoja } from "@/components/pedidos-web/RegistrarPagoHoja";
@@ -26,32 +28,58 @@ import { soles } from "@/lib/precio-sede-reglas";
 import {
   agruparPorPestana,
   cifrasDe,
-  estadoVisible,
+  loQueTeToca,
   momentoDe,
-  PESTANAS_PEDIDOS,
-  plazoCorto,
-  relojDelPlazo,
-  URGENTE_MS,
+  motivoDeCierre,
+  NOMBRE_ESTACION,
+  pestanaDe,
+  porQueSeCerraron,
+  relojDeFila,
+  todoAlDia,
+  verboDe,
   type EnvioPorHacer,
   type PagoDeLista,
   type ParaEnviar,
   type PedidoDeLista,
   type PedidoDetalle,
-  type PlazosPedidosWeb,
   type PestanaPedidos,
+  type PlazosPedidosWeb,
   type PrendaWeb,
   type TableroPedidosWeb,
+  type TonoReloj,
 } from "@/lib/pedidos-web-reglas";
 
 const RUTA = "/tienda-web/pedidos";
-// En el celular la fila es una tarjeta (pedido y estado arriba, prendas y total abajo); desde `sm`, columnas.
-const PLANTILLA = "grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[6.5rem_minmax(0,1.2fr)_7.5rem_6.5rem_minmax(0,1.5fr)]";
+// En el celular la fila es una tarjeta (pedido y total arriba; el cliente, su plazo y su verbo abajo); desde `sm`, columnas.
+const PLANTILLA = "grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[6.5rem_minmax(0,1.5fr)_7rem_minmax(0,1.3fr)_9.5rem]";
+const COLUMNAS = [{ titulo: "Pedido" }, { titulo: "Cliente y prendas" }, { titulo: "Total", alinear: "der" as const }, { titulo: "Plazo" }, { titulo: "" }];
+const COLUMNAS_CERRADOS = [{ titulo: "Pedido" }, { titulo: "Cliente y prendas" }, { titulo: "Total", alinear: "der" as const }, { titulo: "Cómo se cerró" }];
+// Lo cerrado que se ve sin abrir «Ver los …» en un día tranquilo (en uno con pedidos, la barra de motivos basta).
+const CERRADOS_A_LA_VISTA = 3;
 
-const VACIOS: Record<PestanaPedidos, { titulo: string; frase: string }> = {
+// Una estación filtrada que no tiene nada: qué pasa y cuándo aparece algo.
+const VACIOS: Record<Exclude<PestanaPedidos, "cerrados">, { titulo: string; frase: string }> = {
   confirmar: { titulo: "No hay pedidos por confirmar", frase: "Cuando un cliente toque «Separar» en la web, su pedido aparece aquí y te escribe por WhatsApp." },
   cobrar: { titulo: "Nada por cobrar", frase: "Los pedidos confirmados esperan aquí su pago." },
   entregar: { titulo: "Nada por entregar", frase: "Lo pagado que falta recoger aparece aquí." },
-  cerrados: { titulo: "Todavía no hay pedidos cerrados", frase: "Aquí quedan, por 30 días, los entregados, los que se cerraron sin confirmar y los anulados." },
+};
+
+const TONO_RELOJ: Record<TonoReloj, string> = {
+  tinta: "text-tinta",
+  ambar: "text-ambar",
+  rojo: "text-rojo-profundo",
+  verde: "text-verde",
+  pizarra: "text-pizarra",
+};
+
+// El color de cada motivo en la barra de «por qué se cerraron»: lo entregado en verde, lo que perdió la tienda (nadie lo confirmó, no
+// había stock) en rojo y ámbar, lo del cliente en tonos tranquilos. Solo tokens (ADR-0169).
+const TONO_MOTIVO: Record<string, string> = {
+  entregado: "bg-verde",
+  sin_confirmar: "bg-rojo",
+  sin_stock: "bg-ambar",
+  cliente_desistio: "bg-taupe",
+  cliente_no_respondio: "bg-pizarra",
 };
 
 /** Una prenda en miniatura (sin foto: el ícono de su categoría sobre su color, ADR-0333). */
@@ -69,19 +97,22 @@ export function MiniPrenda({ prenda, tamano = "sm" }: { prenda: PrendaWeb; taman
 }
 
 /**
- * Tienda web ▸ Pedidos (ADR-0408, actividad 8; maqueta v4, «Pedidos web»): las cifras de la tienda (cada una lleva a su pestaña),
- * lo que otra tienda espera de aquí («Para enviar»), y la lista en sus cuatro pestañas. Tocar un pedido lo abre (la URL lo recuerda:
- * `?pedido=`). La hoja confirma, no confirma o anula; lo de enviar abre su propia hoja, y cobrar (actividad 9) también: «Registrar un
- * pago» y «Anular un pago» (o «Devolver») se abren ENCIMA de la del pedido, que se pone al día al guardar; y «Anular el pedido» de uno
- * pagado (devuelve la plata y anula su boleta, Felipe 2026-10-15), igual. Toda escritura pasa por una hoja con el combo «Responsable»
- * (ADR-0162).
+ * Tienda web ▸ Pedidos (ADR-0408, actividad 8; ADR-0430 y su actualización del 2026-10-17). Una sola navegación: el CAMINO, cuyas cuatro
+ * estaciones cuentan los pedidos de cada paso y filtran la lista (sin filtro, la lista es «Lo que te toca»: todo lo que pide algo, con lo
+ * que se pierde arriba). Cada fila dice su plazo una vez y su verbo; el verbo abre la hoja del pedido, donde se hace. Cuando no queda
+ * nada, «Todo al día» en una línea. Lo cerrado va al final con por qué se cerró. Lo que antes era una nota de cinco reglas al pie vive en
+ * «¿Cómo funciona?», una regla bajo cada estación. Lo cobrado hoy va en la cabecera: no es un paso del pedido.
+ *
+ * Tocar un pedido lo abre (la URL lo recuerda: `?pedido=`). La hoja confirma, no confirma o anula; lo de enviar abre su propia hoja, y
+ * cobrar (actividad 9) también: «Registrar un pago» y «Anular un pago» (o «Devolver») se abren ENCIMA de la del pedido, que se pone al
+ * día al guardar; y «Anular el pedido» de uno pagado, igual. Toda escritura pasa por una hoja con el combo «Responsable» (ADR-0162).
  */
 export function PedidosWebPantalla({
   tablero,
   tiendaId,
   tienda,
   ahoraIso,
-  pestanaInicial,
+  filtroInicial,
   detalle,
   detalleFallo,
 }: {
@@ -89,27 +120,20 @@ export function PedidosWebPantalla({
   tiendaId: string;
   tienda: string;
   ahoraIso: string;
-  pestanaInicial: PestanaPedidos | null;
+  filtroInicial: PestanaPedidos | null;
   detalle: PedidoDetalle | null;
   detalleFallo: boolean;
 }) {
   const router = useRouter();
-  const grupos = agruparPorPestana(tablero.pedidos);
-  // La pestaña de entrada: la pedida en la URL, o la primera con algo (empezando por lo que vence); si no hay nada abierto pero queda
-  // plata por devolver de un anulado, «Cerrados» (es lo único que falta hacer).
-  const [pestana, setPestana] = useState<PestanaPedidos>(
-    () =>
-      pestanaInicial ??
-      (["confirmar", "cobrar", "entregar"] as const).find((p) => grupos[p].length > 0) ??
-      (grupos.cerrados.some((p) => p.estado === "anulado" && p.pagado > 0) ? "cerrados" : "confirmar"),
-  );
-  // «Ahora» parte de la hora del servidor (el primer dibujo es idéntico en los dos lados) y avanza cada minuto: «vence en 3 h».
+  const [filtro, setFiltro] = useState<PestanaPedidos | null>(filtroInicial);
+  const [como, setComo] = useState(false);
+  // «Ahora» parte de la hora del servidor (el primer dibujo es idéntico en los dos lados) y avanza cada minuto: «se cierra en 3 h».
   const [ahora, setAhora] = useState(() => Date.parse(ahoraIso));
   useEffect(() => {
     const id = window.setInterval(() => setAhora(Date.now()), 60_000);
     return () => window.clearInterval(id);
   }, []);
-  // El pedido recién confirmado o cerrado respira una vez en su nueva pestaña.
+  // El pedido recién confirmado o cerrado respira una vez en su nuevo lugar.
   const [recien, setRecien] = useState<string | null>(null);
   // Cerrar la hoja no vuelve a pedir la página: se esconde y la URL pierde su `?pedido=` (sin recargar).
   const [cerradoId, setCerradoId] = useState<string | null>(null);
@@ -121,124 +145,90 @@ export function PedidosWebPantalla({
   // Un pedido cerrado o anulado se refresca DESPUÉS de cambiar la URL al cerrar la hoja: un refresco pedido antes se perdía.
   const refrescarAlCerrar = useRef(false);
 
-  const cifras = cifrasDe(tablero, ahora);
-  const lista = grupos[pestana];
-  const abierto = detalle && detalle.id !== cerradoId ? detalle : null;
   const plazos = tablero.plazos;
+  const cifras = cifrasDe(tablero, ahora);
+  const grupos = agruparPorPestana(tablero.pedidos);
+  const tocan = loQueTeToca(tablero.pedidos, plazos, ahora);
+  const nadaQueHacer = tocan.length === 0 && tablero.paraEnviar.length === 0;
+  const abierto = detalle && detalle.id !== cerradoId ? detalle : null;
 
-  const urlCon = (extra: Record<string, string>) => `${RUTA}?${new URLSearchParams({ pestana, ...extra }).toString()}`;
+  const urlCon = (f: PestanaPedidos | null, extra: Record<string, string>) => {
+    const q = new URLSearchParams({ ...(f ? { pestana: f } : {}), ...extra }).toString();
+    return q ? `${RUTA}?${q}` : RUTA;
+  };
   const abrir = (id: string) => {
     setCerradoId(null);
     setPagando(false);
     setAnulandoPago(null);
     setAnulandoPedido(false);
-    router.push(urlCon({ pedido: id }), { scroll: false });
+    router.push(urlCon(filtro, { pedido: id }), { scroll: false });
   };
   const cerrar = () => {
     if (detalle) setCerradoId(detalle.id);
     setPagando(false);
     setAnulandoPago(null);
     setAnulandoPedido(false);
-    window.history.replaceState(null, "", urlCon({}));
+    window.history.replaceState(null, "", urlCon(filtro, {}));
     if (refrescarAlCerrar.current) {
       refrescarAlCerrar.current = false;
       router.refresh();
     }
   };
-  const cambiarPestana = (p: PestanaPedidos) => {
-    setPestana(p);
-    window.history.replaceState(null, "", `${RUTA}?${new URLSearchParams({ pestana: p, ...(abierto ? { pedido: abierto.id } : {}) }).toString()}`);
+  const ponerFiltro = (f: PestanaPedidos | null) => {
+    setFiltro(f);
+    window.history.replaceState(null, "", urlCon(f, abierto ? { pedido: abierto.id } : {}));
+  };
+  // Tocar la estación puesta la quita: vuelve a «Lo que te toca».
+  const alternar = (f: PestanaPedidos) => ponerFiltro(filtro === f ? null : f);
+  // Tras guardar, el pedido cambia de estación. Con un filtro puesto, el filtro lo sigue; sin filtro, sigue en «Lo que te toca».
+  const seguirA = (f: PestanaPedidos) => {
+    if (filtro !== null) setFiltro(f);
   };
 
   return (
     <div className="space-y-6">
+      <EncabezadoPagina
+        sede={tienda}
+        detalle="Tienda web"
+        titulo="Pedidos"
+        subtitulo={`Lo que separaron en la web para ${tienda}.`}
+        acciones={
+          <Boton type="button" peso="fantasma" aria-expanded={como} aria-controls="pedidos-web-reglas" onClick={() => setComo((c) => !c)} data-guia="pedidos-web.como">
+            <span className="flex items-center gap-2">
+              <CircleHelp aria-hidden className="-my-1 h-4 w-4 shrink-0" />
+              ¿Cómo funciona?
+            </span>
+          </Boton>
+        }
+      >
+        {cifras.cobradoHoy > 0 ? (
+          <ResumenSede
+            sede={tienda}
+            cifras={[{ valor: cifras.cobradoHoy, formato: "soles", etiqueta: "Cobrado hoy", icono: Banknote, titulo: "Lo que entró hoy por pagos de pedidos web" }]}
+          />
+        ) : undefined}
+      </EncabezadoPagina>
+
       {detalleFallo && (
         <Aviso tono="atencion" titulo="No se pudo abrir ese pedido">
           Puede ser de otra tienda o ya no existir. Elige uno de la lista.
         </Aviso>
       )}
 
-      {/* El camino del pedido (ADR-0430): las tres cifras de los pasos, unidas por lo que las hace avanzar y su plazo; cada una sigue
-          filtrando la lista como antes. «Cobrado hoy» va aparte: no es un paso del pedido. */}
-      <Camino
-        etiqueta="El camino de los pedidos web: cada cifra muestra los pedidos de ese paso"
-        guia="pedidos-web.cifras"
-        tramos={[
-          { verbo: "Confirmas", plazo: `en ${plazos.horasParaConfirmar} h` },
-          { verbo: "Paga", plazo: `en ${plazos.horasAvisoSinPagar} h` },
-        ]}
-        pasos={[
-          <TarjetaCifra
-            key="confirmar"
-            punto={cifras.porConfirmar > 0 ? (cifras.proximoVenceEnMs !== null && cifras.proximoVenceEnMs < URGENTE_MS ? "rojo" : "ambar") : "neutro"}
-            vivo={cifras.proximoVenceEnMs !== null && cifras.proximoVenceEnMs < URGENTE_MS}
-            etiqueta="Por confirmar"
-            className="anim-entra"
-            style={{ ["--i" as string]: 0 }}
-            valor={<CifraQueCuenta valor={cifras.porConfirmar} alMontar />}
-            activa={pestana === "confirmar"}
-            onClick={() => cambiarPestana("confirmar")}
-          >
-            {cifras.proximoVenceEnMs !== null ? `El próximo vence en ${plazoCorto(cifras.proximoVenceEnMs)}` : "Nada esperando"}
-          </TarjetaCifra>,
-          <TarjetaCifra
-            key="cobrar"
-            punto={cifras.sinPagar > 0 ? "rojo" : cifras.confirmados > 0 ? "ambar" : "neutro"}
-            etiqueta="Por cobrar"
-            className="anim-entra"
-            style={{ ["--i" as string]: 1 }}
-            valor={<CifraQueCuenta valor={cifras.porCobrar} formato="soles" alMontar />}
-            activa={pestana === "cobrar"}
-            onClick={() => cambiarPestana("cobrar")}
-          >
-            {cifras.sinPagar > 0
-              ? `${cifras.sinPagar} sin pagar hace más de ${plazos.horasAvisoSinPagar} h`
-              : cifras.confirmados === 0
-                ? "Nada por cobrar"
-                : `${cifras.confirmados} ${cifras.confirmados === 1 ? "pedido confirmado" : "pedidos confirmados"}`}
-          </TarjetaCifra>,
-          <TarjetaCifra
-            key="entregar"
-            punto={cifras.sinRecoger > 0 ? "rojo" : cifras.porEntregar > 0 ? "verde" : "neutro"}
-            etiqueta="Por entregar"
-            className="anim-entra"
-            style={{ ["--i" as string]: 2 }}
-            valor={<CifraQueCuenta valor={cifras.porEntregar} alMontar />}
-            activa={pestana === "entregar"}
-            onClick={() => cambiarPestana("entregar")}
-          >
-            {cifras.sinRecoger > 0
-              ? `${cifras.sinRecoger} sin recoger hace más de ${plazos.diasAvisoSinRecoger} días`
-              : `Pagados: recogen en ${plazos.diasAvisoSinRecoger} días, con su código`}
-          </TarjetaCifra>,
-        ]}
-        cierre={
-          cifras.porDevolver > 0 ? (
-            // Plata de clientes en pedidos anulados: lo que falta hacer con el dinero va primero (lleva a «Cerrados»).
-            <TarjetaCifra
-              punto="rojo"
-              etiqueta="Cobrado hoy"
-              className="anim-entra"
-              style={{ ["--i" as string]: 3 }}
-              valor={<CifraQueCuenta valor={cifras.cobradoHoy} formato="soles" alMontar />}
-              activa={pestana === "cerrados"}
-              onClick={() => cambiarPestana("cerrados")}
-            >
-              {`${soles(cifras.porDevolver)} por devolver en ${cifras.pedidosPorDevolver} ${cifras.pedidosPorDevolver === 1 ? "pedido anulado" : "pedidos anulados"}`}
-            </TarjetaCifra>
-          ) : (
-            <TarjetaCifra
-              punto="neutro"
-              etiqueta="Cobrado hoy"
-              className="anim-entra"
-              style={{ ["--i" as string]: 3 }}
-              valor={<CifraQueCuenta valor={cifras.cobradoHoy} formato="soles" alMontar />}
-            >
-              En pedidos web
-            </TarjetaCifra>
-          )
-        }
-      />
+      {/* En un día tranquilo el camino solo diría ceros: se ve si hay algo, o si se pidió «¿Cómo funciona?». */}
+      {(!nadaQueHacer || como || filtro !== null) && (
+        <CaminoDePedidos
+          cifras={cifras}
+          plazos={plazos}
+          etiqueta="El camino de los pedidos web: cada estación muestra los pedidos de ese paso"
+          filtro={filtro}
+          onFiltrar={alternar}
+          conReglas={como}
+          idReglas="pedidos-web-reglas"
+          guia="pedidos-web.cifras"
+          guiaEntregar="pedidos-web.estacion-entregar"
+        />
+      )}
 
       {tablero.paraEnviar.length > 0 && (
         <ParaEnviarSeccion
@@ -247,58 +237,36 @@ export function PedidosWebPantalla({
         />
       )}
 
-      <section className="card-cayla space-y-0">
-        <div className="flex flex-wrap items-center gap-3 border-b border-sand px-5 py-4">
-          <Pestanas
-            etiquetaAccesible="Estado del pedido"
-            guia="pedidos-web.pestanas"
-            idIndicador="pedidos-web"
-            activa={pestana}
-            onCambio={(c) => cambiarPestana(c as PestanaPedidos)}
-            items={PESTANAS_PEDIDOS.map((p) => ({
-              clave: p.clave,
-              etiqueta: p.etiqueta,
-              conteo: grupos[p.clave].length,
-              ...(p.clave === "confirmar" && grupos.confirmar.length > 0 ? { pide: "esperan confirmación" } : {}),
-              ...(p.clave === "entregar" ? { guia: "pedidos-web.pestana-entregar" } : {}),
-            }))}
-          />
-        </div>
-        {lista.length === 0 ? (
-          <Vacio icono={<Smartphone />} titulo={VACIOS[pestana].titulo} guia="pedidos-web.lista">
-            {VACIOS[pestana].frase}
+      {nadaQueHacer && filtro === null ? (
+        <section className="card-cayla">
+          <Vacio icono={<CircleCheck />} titulo="Todo al día" guia="pedidos-web.todo-al-dia">
+            {todoAlDia(tablero.pedidos, tienda, ahora)} Cuando llegue uno, lo verás aquí y con su número en el menú.
           </Vacio>
-        ) : (
-          <Tabla className="rounded-none border-0 shadow-none" guia="pedidos-web.lista">
-            <Encabezado
-              plantilla={PLANTILLA}
-              columnas={[{ titulo: "Pedido" }, { titulo: "Cliente" }, { titulo: "Prendas" }, { titulo: "Total", alinear: "der" }, { titulo: "Estado" }]}
-            />
-            {lista.map((p, i) => (
-              <FilaPedido
-                key={p.id}
-                pedido={p}
-                ahora={ahora}
-                plazos={plazos}
-                indice={i}
-                abierto={abierto?.id === p.id}
-                recien={recien === p.id}
-                primera={i === 0}
-                onAbrir={() => abrir(p.id)}
-              />
-            ))}
-          </Tabla>
-        )}
-      </section>
+        </section>
+      ) : filtro === "cerrados" ? (
+        <CerradosSeccion pedidos={grupos.cerrados} ahora={ahora} filtrado onQuitar={() => ponerFiltro(null)} onAbrir={abrir} abiertoId={abierto?.id ?? null} />
+      ) : (
+        <ListaSeccion
+          filtro={filtro}
+          pedidos={filtro === null ? tocan : tocan.filter((p) => pestanaDe(p.estado) === filtro)}
+          plazos={plazos}
+          ahora={ahora}
+          abiertoId={abierto?.id ?? null}
+          recien={recien}
+          onAbrir={abrir}
+          onQuitar={() => ponerFiltro(null)}
+        />
+      )}
 
-      <div className="nota-cayla space-y-2 text-[13px]" data-guia="pedidos-web.nota">
-        <p>
-          Separar no toca el stock: la prenda se reserva recién cuando confirmas, y sale del stock al entregarla. Un pedido por confirmar se
-          cierra solo a las {plazos.horasParaConfirmar} horas. Los pagos se registran dentro de cada pedido: el efectivo entra a la caja
-          abierta, y con el pago que lo completa sale su boleta. Se entrega con el código de 4 cifras que el cliente ve en su pedido. Los
-          pedidos web van aparte de los apartados de tienda.
-        </p>
-      </div>
+      {filtro === null && grupos.cerrados.length > 0 && (
+        <CerradosSeccion
+          pedidos={grupos.cerrados}
+          ahora={ahora}
+          aLaVista={nadaQueHacer ? CERRADOS_A_LA_VISTA : 0}
+          onAbrir={abrir}
+          abiertoId={abierto?.id ?? null}
+        />
+      )}
 
       {abierto && (
         <PedidoWebHoja
@@ -311,7 +279,7 @@ export function PedidosWebPantalla({
           onCambio={(estado, opciones) => {
             setRecien(abierto.id);
             if (estado === "anulado") {
-              setPestana("cerrados");
+              seguirA("cerrados");
               // Anulado con plata por devolver: la hoja sigue abierta y el pedido se relee ya. Si se cierra, al cerrar.
               if (opciones?.sigueAbierta) router.refresh();
               else refrescarAlCerrar.current = true;
@@ -319,11 +287,11 @@ export function PedidosWebPantalla({
             }
             if (estado === "entregado") {
               // Entregado (actividad 10): la hoja se cierra y, al cerrarse, la lista se pone al día con el pedido en «Cerrados».
-              setPestana("cerrados");
+              seguirA("cerrados");
               refrescarAlCerrar.current = true;
               return;
             }
-            if (estado === "confirmado") setPestana("cobrar");
+            if (estado === "confirmado") seguirA("cobrar");
             router.refresh();
           }}
           onEnviar={(desdeId) => {
@@ -355,8 +323,8 @@ export function PedidosWebPantalla({
           onClose={() => setPagando(false)}
           onRegistrado={(estado) => {
             setRecien(abierto.id);
-            // Pagado completo: en la lista pasa a «Por entregar».
-            if (estado === "pagado") setPestana("entregar");
+            // Pagado completo: pasa a «Por entregar».
+            if (estado === "pagado") seguirA("entregar");
             router.refresh();
           }}
         />
@@ -382,9 +350,9 @@ export function PedidosWebPantalla({
           onReleer={() => router.refresh()}
           onAnulado={() => {
             // La hoja del pedido se queda abierta y se relee: muestra lo que se devolvió y cómo quedó su boleta. En la lista pasa a
-            // «Cerrados».
+            // «Cerrados» (o, si queda plata por devolver, sigue en «Lo que te toca»).
             setRecien(abierto.id);
-            setPestana("cerrados");
+            seguirA("cerrados");
             router.refresh();
           }}
         />
@@ -403,7 +371,100 @@ export function PedidosWebPantalla({
   );
 }
 
-/** Un pedido de la lista: el número y hace cuánto, el cliente, sus prendas en miniatura, el total y en qué está. Toda la fila lo abre. */
+/** «Lo que te toca» (sin filtro) o los pedidos de una estación. Una estación vacía dice qué pasa y deja quitar el filtro. */
+function ListaSeccion({
+  filtro,
+  pedidos,
+  plazos,
+  ahora,
+  abiertoId,
+  recien,
+  onAbrir,
+  onQuitar,
+}: {
+  filtro: Exclude<PestanaPedidos, "cerrados"> | null;
+  pedidos: PedidoDeLista[];
+  plazos: PlazosPedidosWeb;
+  ahora: number;
+  abiertoId: string | null;
+  recien: string | null;
+  onAbrir: (id: string) => void;
+  onQuitar: () => void;
+}) {
+  const titulo = filtro ? NOMBRE_ESTACION[filtro] : "Lo que te toca";
+  return (
+    <section className="card-cayla space-y-0" data-guia="pedidos-web.lista">
+      <TituloSeccion
+        cuenta={pedidos.length}
+        dato={filtro ? undefined : "Primero lo que se pierde si no actúas"}
+        accion={
+          filtro ? (
+            <FiltroPuesto onQuitar={onQuitar} etiqueta={`Quitar el filtro «${titulo}»`} guia="pedidos-web.quitar-filtro">
+              {titulo}
+            </FiltroPuesto>
+          ) : undefined
+        }
+        className="border-b border-sand px-5 py-4"
+      >
+        {titulo}
+      </TituloSeccion>
+      {pedidos.length === 0 ? (
+        filtro ? (
+          <Vacio icono={<Smartphone />} titulo={VACIOS[filtro].titulo} filtros={[{ texto: titulo, onQuitar }]}>
+            {VACIOS[filtro].frase}
+          </Vacio>
+        ) : (
+          // Solo pasa si lo único pendiente es enviar algo a otra tienda: de los clientes de aquí, nada.
+          <Vacio tamano="chico" icono={<Inbox />}>
+            Ningún cliente de esta tienda espera nada.
+          </Vacio>
+        )
+      ) : (
+        <Tabla className="rounded-none border-0 shadow-none">
+          <Encabezado plantilla={PLANTILLA} columnas={COLUMNAS} />
+          {pedidos.map((p, i) => (
+            <FilaPedido key={p.id} pedido={p} ahora={ahora} plazos={plazos} indice={i} abierto={abiertoId === p.id} recien={recien === p.id} primera={i === 0} onAbrir={() => onAbrir(p.id)} />
+          ))}
+        </Tabla>
+      )}
+    </section>
+  );
+}
+
+/** Lo que abre una fila entera: el clic (que no suba desde la hoja abierta, que vive en un portal) y Enter o Espacio. */
+function abreConLaFila(onAbrir: () => void) {
+  return {
+    role: "row" as const,
+    tabIndex: 0,
+    onClick: (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!e.currentTarget.contains(e.target as Node)) return;
+      onAbrir();
+    },
+    onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.target !== e.currentTarget) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onAbrir();
+      }
+    },
+  };
+}
+
+/** Las prendas de un pedido en miniatura (hasta 4 y «+n»). */
+function Prendas({ pedido: p }: { pedido: PedidoDeLista }) {
+  const vistas = p.prendasVista.slice(0, 4);
+  return (
+    <span className="flex shrink-0 items-center gap-1.5" aria-label={`${p.prendas} ${p.prendas === 1 ? "prenda" : "prendas"}`}>
+      {vistas.map((v, i) => (
+        <MiniPrenda key={i} prenda={v} />
+      ))}
+      {p.prendasVista.length > vistas.length && <span className="text-[12px] text-taupe">+{p.prendasVista.length - vistas.length}</span>}
+    </span>
+  );
+}
+
+/** Un pedido que pide algo: el número y hace cuánto, el cliente con sus prendas, el total, su plazo (una vez) y su verbo. Toda la fila
+ *  lo abre; el verbo dice qué toca y abre lo mismo. */
 function FilaPedido({
   pedido: p,
   ahora,
@@ -423,28 +484,14 @@ function FilaPedido({
   primera: boolean;
   onAbrir: () => void;
 }) {
-  const estado = estadoVisible(p, ahora);
-  const reloj = relojDelPlazo(p, plazos, ahora);
-  const vistas = p.prendasVista.slice(0, 4);
+  const reloj = relojDeFila(p, plazos, ahora);
+  const verbo = verboDe(p);
   return (
     <div
-      role="row"
-      tabIndex={0}
+      {...abreConLaFila(onAbrir)}
       aria-current={abierto ? "true" : undefined}
       data-recien={recien ? "" : undefined}
-      onClick={(e) => {
-        // Un clic que sube desde la hoja abierta (vive en un portal) no vuelve a abrir.
-        if (!e.currentTarget.contains(e.target as Node)) return;
-        onAbrir();
-      }}
-      onKeyDown={(e) => {
-        if (e.target !== e.currentTarget) return;
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onAbrir();
-        }
-      }}
-      className={`${fila(PLANTILLA, "cursor-pointer items-center sm:items-center")}`}
+      className={fila(PLANTILLA, "cursor-pointer items-center sm:items-center")}
     >
       <span className="min-w-0">
         <button
@@ -461,31 +508,157 @@ function FilaPedido({
         </button>
         <span className="block text-[12px] text-taupe">{haceCuanto(momentoDe(p), ahora)}</span>
       </span>
-      <span className="col-start-2 row-start-1 flex justify-end sm:hidden">
-        <Chip tono={estado.tono} vivo={estado.vivo}>
-          {estado.texto.split(" · ")[0]}
-        </Chip>
+      <span className="text-right font-medium tabular-nums text-tinta sm:hidden">{soles(p.total)}</span>
+      <span className="col-span-2 flex min-w-0 items-center gap-3 sm:col-span-1">
+        <span className="flex min-w-0 flex-1 items-center gap-2">
+          <AvatarPersona personaId={null} nombre={p.cliente} tamano={24} />
+          <span className="truncate text-tinta">{p.cliente}</span>
+        </span>
+        <Prendas pedido={p} />
       </span>
-      <span className="col-span-2 flex min-w-0 items-center gap-2 sm:col-span-1">
-        <AvatarPersona personaId={null} nombre={p.cliente} tamano={24} />
-        <span className="truncate text-tinta">{p.cliente}</span>
+      <span className="hidden text-right tabular-nums sm:block">
+        <span className="block font-medium text-tinta">{soles(p.total)}</span>
+        {p.estado === "confirmado" && p.pagado > 0 && <span className="block text-[12px] text-taupe">falta {soles(p.falta)}</span>}
       </span>
-      <span className="flex items-center gap-1.5" aria-label={`${p.prendas} ${p.prendas === 1 ? "prenda" : "prendas"}`}>
-        {vistas.map((v, i) => (
-          <MiniPrenda key={i} prenda={v} />
-        ))}
-        {p.prendasVista.length > vistas.length && <span className="text-[12px] text-taupe">+{p.prendasVista.length - vistas.length}</span>}
-      </span>
-      <span className="text-right font-medium tabular-nums text-tinta sm:block">{soles(p.total)}</span>
-      <span className="col-span-2 hidden min-w-0 sm:col-span-1 sm:block">
-        <Chip tono={estado.tono} vivo={estado.vivo}>
-          {estado.texto}
-        </Chip>
-        {estado.accion && <span className="mt-0.5 block truncate text-[12px] text-taupe">{estado.accion}</span>}
+      <span className="col-span-2 min-w-0 sm:col-span-1" data-guia={primera ? "pedidos-web.plazo" : undefined}>
+        <span className={`block text-[13px] font-medium ${TONO_RELOJ[reloj.tono]}`}>{reloj.texto}</span>
+        {reloj.detalle && <span className="block text-[12px] text-taupe">{reloj.detalle}</span>}
         {/* El reloj de su plazo (ADR-0430): cuánto lleva del tiempo de este paso; se llena una vez al verse. */}
-        {reloj && <BarraAvance pct={reloj.pct} alto="fina" tono={reloj.tono} indice={indice} etiqueta={reloj.texto} className="mt-1.5 block max-w-[11rem]" />}
+        {reloj.barra && <BarraAvance pct={reloj.barra.pct} alto="fina" tono={reloj.barra.tono} indice={indice} etiqueta={reloj.barra.etiqueta} className="mt-1.5 block max-w-[11rem]" />}
+      </span>
+      <span className="col-span-2 flex sm:col-span-1 sm:justify-end">
+        {verbo && (
+          <Boton
+            type="button"
+            peso="fantasma"
+            aria-haspopup="dialog"
+            className="btn-chico w-full sm:w-auto"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAbrir();
+            }}
+            data-guia={primera ? "pedidos-web.verbo" : undefined}
+          >
+            <span className="flex items-center justify-center gap-2">
+              {verbo}
+              <ArrowRight aria-hidden className="-my-1 h-4 w-4 shrink-0" />
+            </span>
+          </Boton>
+        )}
       </span>
     </div>
+  );
+}
+
+/**
+ * Lo cerrado en los últimos 30 días: por qué se cerró, en una barra (lo entregado, lo que perdió la tienda, lo del cliente), y sus filas.
+ * Al pie de «Lo que te toca» las filas se guardan tras «Ver los …» (en un día tranquilo se ven las primeras, porque es lo único que hay);
+ * con la estación «Cerrados» puesta, se ven todas.
+ */
+function CerradosSeccion({
+  pedidos,
+  ahora,
+  filtrado = false,
+  aLaVista = 0,
+  abiertoId,
+  onAbrir,
+  onQuitar,
+}: {
+  pedidos: PedidoDeLista[];
+  ahora: number;
+  filtrado?: boolean;
+  aLaVista?: number;
+  abiertoId: string | null;
+  onAbrir: (id: string) => void;
+  onQuitar?: () => void;
+}) {
+  const [abiertos, setAbiertos] = useState(false);
+  const motivos = porQueSeCerraron(pedidos);
+  const sinStock = motivos.find((m) => m.clave === "sin_stock")?.cuantos ?? 0;
+  const visibles = filtrado ? pedidos : pedidos.slice(0, aLaVista);
+  const guardados = filtrado ? [] : pedidos.slice(aLaVista);
+  const filaCerrada = (p: PedidoDeLista) => {
+    const m = motivoDeCierre(p);
+    const porDevolver = p.estado === "anulado" && p.pagado > 0;
+    return (
+      <div key={p.id} {...abreConLaFila(() => onAbrir(p.id))} aria-current={abiertoId === p.id ? "true" : undefined} className={fila(PLANTILLA, "cursor-pointer items-center sm:items-center")}>
+        <span className="min-w-0">
+          <span className="font-semibold tabular-nums text-tinta">{p.codigo}</span>
+          <span className="block text-[12px] text-taupe">{haceCuanto(momentoDe(p), ahora)}</span>
+        </span>
+        <span className="text-right font-medium tabular-nums text-tinta sm:hidden">{soles(p.total)}</span>
+        <span className="col-span-2 flex min-w-0 items-center gap-3 sm:col-span-1">
+          <span className="flex min-w-0 flex-1 items-center gap-2">
+            <AvatarPersona personaId={null} nombre={p.cliente} tamano={24} />
+            <span className="truncate text-tinta">{p.cliente}</span>
+          </span>
+          <Prendas pedido={p} />
+        </span>
+        <span className="hidden text-right font-medium tabular-nums text-tinta sm:block">{soles(p.total)}</span>
+        <span className="col-span-2 min-w-0 sm:col-span-2">
+          <Chip tono={porDevolver ? "rojo" : "neutro"}>{porDevolver ? `Por devolver ${soles(p.pagado)}` : m.texto}</Chip>
+        </span>
+      </div>
+    );
+  };
+  return (
+    <section className="card-cayla space-y-0" data-guia="pedidos-web.cerrados">
+      <TituloSeccion
+        cuenta={pedidos.length}
+        accion={
+          filtrado && onQuitar ? (
+            <FiltroPuesto onQuitar={onQuitar} etiqueta="Quitar el filtro «Cerrados»" guia="pedidos-web.quitar-filtro">
+              Cerrados
+            </FiltroPuesto>
+          ) : undefined
+        }
+        className="border-b border-sand px-5 py-4"
+      >
+        {filtrado ? "Cerrados" : "Cerrados en los últimos 30 días"}
+      </TituloSeccion>
+      {pedidos.length === 0 ? (
+        <Vacio icono={<Smartphone />} titulo="Todavía no hay pedidos cerrados" filtros={onQuitar ? [{ texto: "Cerrados", onQuitar }] : undefined}>
+          Aquí quedan, por 30 días, los entregados, los que nadie confirmó a tiempo y los anulados.
+        </Vacio>
+      ) : (
+        <>
+          <div className={`space-y-2.5 px-5 py-4 ${visibles.length > 0 || guardados.length > 0 ? "border-b border-sand" : ""}`}>
+            <BarraApilada
+              decorativa
+              alto={8}
+              etiqueta="Por qué se cerraron"
+              segmentos={motivos.map((m) => ({ clave: m.clave, nombre: m.texto, valor: m.cuantos, clase: TONO_MOTIVO[m.clave] ?? "bg-tinta/25" }))}
+            />
+            <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-tinta/75">
+              {motivos.map((m) => (
+                <li key={m.clave} className="inline-flex items-center gap-1.5">
+                  <MuestraTramo clase={TONO_MOTIVO[m.clave] ?? "bg-tinta/25"} />
+                  {m.texto} · <b className="font-semibold tabular-nums text-tinta">{m.cuantos}</b>
+                </li>
+              ))}
+            </ul>
+            {sinStock > 0 && (
+              <p className="text-[12.5px] text-taupe">Si «no hay stock» crece, la vitrina está mostrando prendas que esta tienda no tiene.</p>
+            )}
+          </div>
+          {(visibles.length > 0 || guardados.length > 0) && (
+            <Tabla className="rounded-none border-0 shadow-none">
+              {filtrado && <Encabezado plantilla={PLANTILLA} columnas={COLUMNAS_CERRADOS} />}
+              {visibles.map(filaCerrada)}
+              {guardados.length > 0 && <FilasDeMas abierto={abiertos} id="pedidos-web-cerrados">{guardados.map(filaCerrada)}</FilasDeMas>}
+            </Tabla>
+          )}
+          {guardados.length > 0 && (
+            <BotonVerMas
+              abierto={abiertos}
+              onCambiar={setAbiertos}
+              controla="pedidos-web-cerrados"
+              texto={visibles.length > 0 ? `Ver ${guardados.length} más` : `Ver los ${guardados.length}`}
+            />
+          )}
+        </>
+      )}
+    </section>
   );
 }
 
