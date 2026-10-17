@@ -219,8 +219,8 @@ export function VistaDelLook({ piezas }: { piezas: readonly PiezaConFoto[] }) {
           </div>
           <span style={{ fontSize: 24, lineHeight: 1.35, color: "rgba(245, 240, 232, 0.78)", maxWidth: 470 }}>
             {conLook
-              ? "Crea tu cuenta para ver los precios y las tallas, y sepáralo para recoger en tu tienda."
-              : "Crea tu cuenta y arma tu look con las prendas de la tienda, a escala y en sus colores."}
+              ? "Mira los precios y las tallas, y sepáralo para recoger en tu tienda."
+              : "Arma tu look con las prendas de la tienda, a escala y en sus colores."}
           </span>
         </div>
         <div style={{ display: "flex" }}>

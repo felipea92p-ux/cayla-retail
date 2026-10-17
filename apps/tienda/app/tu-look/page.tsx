@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { Suspense } from "react";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
-import { SegunSesion } from "@/components/cuenta/SegunSesion";
 import { FormaDelEsqueleto } from "@/components/FormaDelEsqueleto";
 import { Icono } from "@/components/Icono";
 import { FiguraQuieta } from "@/components/probador/FiguraQuieta";
@@ -16,7 +15,6 @@ import {
   RUTA_TU_LOOK,
 } from "@/lib/compartir-look";
 import { prendasParaCompartir } from "@/lib/compartir-servidor";
-import { hrefConVolver } from "@/lib/entrada";
 import { etiquetaDelLook } from "@/lib/looks-guardados";
 import { origenDeLaPeticion } from "@/lib/mi-cuenta-servidor";
 import {
@@ -187,8 +185,8 @@ async function ElLookCompartido({ searchParams }: Props) {
             </ol>
             <Llamado probador={probador} />
             <p className="lg-nota">
-              Con tu cuenta ves los precios, las tallas y en qué tienda hay, y
-              lo separas sin pagar para recogerlo en tu tienda.
+              En CAYLA ves los precios, las tallas y en qué tienda hay, y lo
+              separas sin pagar para recogerlo en tu tienda.
             </p>
           </div>
         </div>
@@ -197,30 +195,13 @@ async function ElLookCompartido({ searchParams }: Props) {
   );
 }
 
-/** Sin cuenta, crearla (o entrar) y volver al probador con este look; con cuenta, el probador directo. */
+/** El probador abre con este look, para todos (el catálogo se ve sin cuenta desde el 2026-10-17; la cuenta se pide al separar). */
 function Llamado({ probador }: { probador: string }) {
   return (
-    <SegunSesion
-      visitante={
-        <div className="tl-llamado">
-          <Link
-            className="t-btn"
-            href={hrefConVolver("/crear-cuenta", probador)}
-          >
-            Crea tu cuenta y arma el tuyo
-          </Link>
-          <Link className="t-enlace" href={hrefConVolver("/entrar", probador)}>
-            Ya tengo cuenta
-          </Link>
-        </div>
-      }
-      conCuenta={
-        <div className="tl-llamado">
-          <Link className="t-btn" href={probador}>
-            Pruébatelo en el probador
-          </Link>
-        </div>
-      }
-    />
+    <div className="tl-llamado">
+      <Link className="t-btn" href={probador}>
+        Pruébatelo en el probador
+      </Link>
+    </div>
   );
 }

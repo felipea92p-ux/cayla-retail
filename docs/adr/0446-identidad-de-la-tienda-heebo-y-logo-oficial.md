@@ -39,7 +39,7 @@
   su alto, y el ancho sigue solo). Escondidos para el lector de pantalla —el enlace o la tarjeta ya dicen «CAYLA»—, salvo la palabra dentro
   de un título, que se lee «CAYLA». Va escrito en la página: con 3,3 KB no hace falta un archivo aparte ni hay un instante sin logo.
 - **Dónde:** `Cabecera`, `CabeceraConCuenta` (la fila y el menú del celular), `Pie`, `CabeceraNeutra` (páginas sin salida y la de error),
-  `TarjetaClub`, los títulos de campaña de la portada y del Inicio, y el colibrí de la campaña, de la entrada, de las ayudas y del ícono de
+  `TarjetaClub`, el título de campaña del Inicio (`HeroeDelInicio`; la portada sin cuenta se quitó con ADR-0438), y el colibrí de la campaña, de la entrada, de las ayudas y del ícono de
   instalar. `<Isotipo>` sigue en su archivo de siempre (otros PR de la tienda lo importan) y ahora dibuja el colibrí oficial;
   `public/cayla-isotipo.png` se borró.
 - **Las imágenes para compartir un look** (`lib/imagenes-del-look.tsx`) arman el logo y el colibrí desde el mismo trazo, como SVG en

@@ -50,32 +50,33 @@ describe("los plazos de la ayuda", () => {
 describe("Cómo separar", () => {
   it("los cuatro pasos de la maqueta, con las tiendas de la web por su nombre", () => {
     const pasos = pasosParaSeparar(["Trujillo", "Arequipa", "Lima"]);
-    expect(pasos.map((p) => p.titulo)).toEqual(["Crea tu cuenta", "Elige tus prendas y tu tienda", "Toca «Separar» y mándalo por WhatsApp", "Paga y recógelo"]);
-    expect(pasos[1].texto).toBe("En cada prenda ves cuánto hay en Trujillo, Arequipa y Lima. Lo que no está en tu tienda, la tienda puede traerlo de otra.");
-    expect(pasosParaSeparar(["Trujillo", "Lima"])[1].texto).toBe(
-      "En cada prenda ves cuánto hay en Trujillo y Lima. Lo que no está en tu tienda, la tienda puede traerlo de otra.",
+    expect(pasos.map((p) => p.titulo)).toEqual(["Elige tus prendas y tu tienda", "Entra o crea tu cuenta", "Toca «Separar» y mándalo por WhatsApp", "Paga y recógelo"]);
+    expect(pasos[0].texto).toBe(
+      "En cada prenda ves cuánto hay en Trujillo, Arequipa y Lima. Lo que no está en tu tienda, la tienda puede traerlo de otra. Sin crear nada: la tienda es de todos.",
+    );
+    expect(pasosParaSeparar(["Trujillo", "Lima"])[0].texto).toBe(
+      "En cada prenda ves cuánto hay en Trujillo y Lima. Lo que no está en tu tienda, la tienda puede traerlo de otra. Sin crear nada: la tienda es de todos.",
     );
   });
 
   it("con una sola tienda no hay otra de dónde traer; sin tiendas (o sin base), la frase va sin nombres", () => {
-    expect(pasosParaSeparar(["Trujillo"])[1].texto).toBe("En cada prenda ves cuánto hay en Trujillo.");
-    expect(pasosParaSeparar([])[1].texto).toBe("En cada prenda ves cuánto hay en cada tienda. Lo que no está en tu tienda, la tienda puede traerlo de otra.");
+    expect(pasosParaSeparar(["Trujillo"])[0].texto).toBe("En cada prenda ves cuánto hay en Trujillo. Sin crear nada: la tienda es de todos.");
+    expect(pasosParaSeparar([])[0].texto).toBe(
+      "En cada prenda ves cuánto hay en cada tienda. Lo que no está en tu tienda, la tienda puede traerlo de otra. Sin crear nada: la tienda es de todos.",
+    );
   });
 
-  it("con cuenta, «Crea tu cuenta» ya está hecho; sin cuenta, es el primer paso por hacer", () => {
+  it("con cuenta, «Entra o crea tu cuenta» ya está hecho; sin cuenta, es el paso por hacer (el segundo: primero se mira)", () => {
     const sin = pasosParaSeparar(["Trujillo", "Lima"]);
-    expect(sin[0]).toEqual({
-      titulo: "Crea tu cuenta",
-      texto: "Con tu correo, tu documento, tu celular y tu cumpleaños. Al crearla ya eres miembro del Club CAYLA.",
+    expect(sin[1]).toEqual({
+      titulo: "Entra o crea tu cuenta",
+      texto: "Con tu correo, en un minuto. Solo te pedimos lo necesario.",
       hecho: false,
     });
     const con = pasosParaSeparar(["Trujillo", "Lima"], true);
-    expect(con[0]).toEqual({ titulo: "Ya tienes tu cuenta", texto: "Y eres miembro del Club CAYLA.", hecho: true });
+    expect(con[1]).toEqual({ titulo: "Ya tienes tu cuenta", texto: "Con ella separas, guardas favoritos y sigues tus pedidos.", hecho: true });
     // Los demás pasos no cambian con la cuenta, y ninguno más viene hecho.
-    expect(con.slice(1)).toEqual(sin.slice(1));
-    expect(con.filter((p) => p.hecho)).toHaveLength(1);
-    // Sin género para la persona (ADR-0288 act. k): «miembro», nunca «socia» ni «clienta».
-    for (const p of [...sin, ...con]) expect(`${p.titulo} ${p.texto}`).not.toMatch(/socia|clienta|bienvenida/i);
+    expect([con[0], ...con.slice(2)]).toEqual([sin[0], ...sin.slice(2)]);
   });
 
   it("los avisos dicen los plazos de Configuración ▸ Tienda web, en singular o plural, y que el de confirmar es de la tienda", () => {
