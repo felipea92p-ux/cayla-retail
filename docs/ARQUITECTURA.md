@@ -2055,8 +2055,10 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   `retail.tienda_separadas_por_otros(usuario, modelo, tienda)` (`20261015044000`): por talla, solo sí o no según si los pedidos web por
   confirmar de OTROS clientes que recogen ahí (sin vencer) cubren lo libre de `fn_tienda_disponible`; prueba: `pnpm pruebas:tienda-separadas`.
   «Combínalo con» es el primer look que la lleva (`leerLooks` → `combinaCon`). La tarjeta (`components/TarjetaPrenda.tsx`) lleva el corazón
-  y, desde 960 px, «Agregar» con la talla (`components/RapidoDeTarjeta.tsx`: pide las tallas al quedarse el mouse, `app/acciones/tarjeta.ts`
-  `tallasParaAgregar` → la ficha de ese modelo; el catálogo no trae tallas y no cambia de forma). Lo guardado lo lee el marco del catálogo
+  y, desde 960 px, «Agregar» con la talla (`components/RapidoDeTarjeta.tsx`: pide las tallas al quedarse el mouse, `GET /api/tallas` →
+  `lib/tarjeta-servidor.ts` `leerTallasParaAgregar` → la ficha de ese modelo; una ruta y no una acción, desde el 2026-10-17: las acciones van
+  de a una y las de varias tarjetas, y «Agregar a la bolsa», se hacían esperar; el catálogo no trae tallas y no cambia de forma). Al tocar una tarjeta, `components/PrendaTocada.tsx`
+  guarda lo que ya mostraba (sus `data-*` y su foto, `lib/prenda-tocada.ts`): el esqueleto de la ficha y la ficha lo usan mientras llega. Lo guardado lo lee el marco del catálogo
   (`app/(catalogo)/layout.tsx`, una vez por petición) y lo reparte a toda tarjeta (`components/club/Guardados.tsx` `ProveedorGuardados`):
   los corazones del mismo modelo cambian juntos. «Tus favoritos» es `/catalogo?lista=favoritos` (`lib/catalogo.ts` `deFavoritos`; no se
   filtra por la tienda elegida); «Mi cuenta» usa la misma tarjeta, con `guardado` dicho por la página.
