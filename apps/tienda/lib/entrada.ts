@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { CLAVE_MINIMA, correoValido, hoyLima, MENSAJES, normalizarCorreo } from "./cuentas";
+import { CLAVE_MINIMA, correoValido, hoyLima, normalizarCorreo } from "./cuentas";
+import { MENSAJES } from "./cuentas-mensajes";
 
 // La entrada a la tienda online cuenta como actividad del Club (Felipe 2026-10-14): con 3 años sin comprar NI entrar, la ficha se
 // anonimiza y su cuenta web se cierra (`20261015055000`). La base la anota con `retail.tienda_anotar_entrada`; aquí, lo que no

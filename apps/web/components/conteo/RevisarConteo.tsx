@@ -209,9 +209,7 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
 
       {conPendientes && (
         <>
-          <p role="status" className="rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm text-ambar-profundo">
-            {textoFaltanPorContar(resumen.pendientes)}
-          </p>
+          <Aviso tono="atencion">{textoFaltanPorContar(resumen.pendientes)}</Aviso>
 
           <section ref={tarjetaPend} data-guia="revisar.pendientes" className="card-cayla @container scroll-mt-24 overflow-hidden">
             <div className="space-y-1 border-b border-sand px-4 py-4 @[36rem]:px-5">

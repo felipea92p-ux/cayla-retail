@@ -5892,6 +5892,9 @@ export type Database = {
         Returns: Json
       }
       revisar_recorte: { Args: { p_foto: string; p_usar: boolean }; Returns: Json }
+      // El «Deshacer» de un recorte descartado (/chaos, 2026-10-17; 20261017183000): lo devuelve a «listo» o «por revisar» solo si sigue
+      // descartado, y queda en la Actividad.
+      deshacer_descarte_recorte: { Args: { p_foto: string; p_estado: string }; Returns: Json }
       // Vitrina web ▸ Probador, los largos y la lista viva (ADR-0434, actividad 3; 20261017015000). Los dos guardados firman con el
       // responsable del combo.
       fn_vitrina_probador: { Args: never; Returns: Json }

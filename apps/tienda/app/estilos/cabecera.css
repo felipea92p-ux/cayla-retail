@@ -118,6 +118,12 @@
 /* Una prenda en oferta dice su precio en rojo, como la tarjeta del catálogo. */
 .t-resultado b[data-oferta] { color: var(--rojo-profundo); }
 .t-resultados-cuenta { display: block; margin-bottom: 2px; }
+/* Mientras llega la lista del buscador (`HojaBuscar`, 2026-10-17): tres filas con la forma de un resultado, que brillan como el esqueleto
+   de las páginas (catalogo.css, `.t-esqueleto .t-card-foto`). */
+.t-resultados-esqueleto { padding-block: 0; }
+.t-resultados-esqueleto .t-card-foto { width: 52px; aspect-ratio: 3 / 4; }
+.t-resultados-esqueleto .t-esqueleto-linea { margin-top: 0; width: 70%; }
+.t-resultados-esqueleto .t-esqueleto-linea + .t-esqueleto-linea { width: 35%; margin-top: 7px; }
 .t-sugerencias-centro { justify-content: center; margin-top: 4px; }
 .t-resultado:hover { background: color-mix(in srgb, var(--tinta) 4%, transparent); }
 .t-vacio-chico { padding: 24px 8px; }

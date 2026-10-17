@@ -2,21 +2,8 @@
 
 import type { TipoDocumentoClienta } from "@cayla-retail/shared";
 import { redirect } from "next/navigation";
-import {
-  avisoAlUnirse,
-  celularNormalizado,
-  documentoRepetido,
-  errorDeClub,
-  esquemaUnirseAlClub,
-  hoyLima,
-  MENSAJES,
-  mensajeSinNombre,
-  nombreEscrito,
-  problemaClub,
-  TEXTOS_VERSION,
-  type CampoProblema,
-  type CasillaWhatsapp,
-} from "@/lib/cuentas";
+import { avisoAlUnirse, celularNormalizado, documentoRepetido, errorDeClub, esquemaUnirseAlClub, hoyLima, mensajeSinNombre, nombreEscrito, problemaClub, TEXTOS_VERSION, type CampoProblema, type CasillaWhatsapp } from "@/lib/cuentas";
+import { MENSAJES } from "@/lib/cuentas-mensajes";
 import { leerCasillaDeAvisos, unirseAlClubEnBase, revisarClubEnBase, type DatosClub } from "@/lib/cuentas-servidor";
 import { conAviso, hrefConVolver, rutaParaVolver } from "@/lib/entrada";
 import { huellas } from "@/lib/intentos-servidor";

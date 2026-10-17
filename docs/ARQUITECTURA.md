@@ -881,12 +881,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `lib/vitrina-probador-reglas.ts`, ejemplo del largo en `lib/sugerencias-largo-probador.ts`) + `LargosTipicosHoja.tsx`
   (`vitrina_guardar_largos_tipicos`; `vitrina_productos.largo_cm` y `retail.vitrina_largos_tipicos`, `20261017015000`) + `PrepararRecortesHoja.tsx` (recorta EN EL NAVEGADOR con MODNet sobre el original, `lib/recorte-probador.ts`:
   los colores de la foto de la tienda y la transparencia de `mascaraDePrenda` de `lib/preparar-foto.ts`; sube `recortes/<id>-<sello>.png`
-  con `subirRecorteDeFoto` y anota con `registrar_recorte`) + `RevisarRecorteHoja.tsx` (`revisar_recorte`: usar o descartar). Ninguna
+  con `subirRecorteDeFoto` y anota con `registrar_recorte`) + `RevisarRecorteHoja.tsx` (`revisar_recorte`: usar o descartar; el «Deshacer»
+  de un descarte es `deshacer_descarte_recorte`, solo si sigue descartado, `20261017183000`). Ninguna
   foto se modifica. Reglas puras en `lib/recorte-probador-reglas.ts`, guía de foco en `lib/vitrina-probador-guia.ts`; tabla
   `retail.foto_recortes` (`20261017003000`). Desde la actividad 2, cada foto que sube `subirFotoProducto` (`lib/producto-fotos.ts`: Editar
   producto, Nuevo producto y la cola sin conexión) pide por detrás su recorte (`recortarAlSubir`, carga perezosa de `lib/recorte-probador.ts`),
   sin el combo «Responsable» (`recorte_foto` en `acciones_sin_responsable`, `20261017013000`, Felipe 2026-10-16). Prueba en la base:
-  `pnpm pruebas:vitrina-probador`.
+  `pnpm pruebas:vitrina-probador`. Desde `/formidable` (2026-10-17): la página deja solo lo que el probador usa (`soloLoQueEntra`, con
+  `zonaDelProbador` de `packages/shared/src/categorias-de-la-tienda.ts`, la misma tabla de grupos de la tienda), la pantalla dibuja su
+  cabecera con el paso que toca (`siguientePaso`) y cada fila dice «Lista» o lo primero que le falta (`veredictoDelProbador`).
 - `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
   `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
   `MarcasLista.tsx` (ADR-0373, 2026-10-10: cabecera de Productos con «!», resumen colapsado `components/marcas/ResumenMarcas.tsx` +
@@ -2161,7 +2164,8 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   prenda publicada con largo —propio o típico— y algún recorte LISTO, su largo, sus recortes con el color de su foto, y por COLOR su precio
   —`fn_tienda_precios` por color, el de la bolsa— y su nivel por tienda —`fn_tienda_disponible`—; y `combina`, de `colores.combina_con`),
   guardada medio minuto como el catálogo. `lib/probador.ts` (pura, con su prueba) junta las dos (`armarProbador`: la zona de cada
-  categoría sale de `lib/grupos.ts`; el bolso es Bolsos y Carteras), arma el look (`poner`, `quitar`, `sorprender`, `completarLook`), lo
+  categoría sale de `zonaDelProbador`, en `packages/shared/src/categorias-de-la-tienda.ts` desde 2026-10-17, la misma tabla que leen
+  `lib/grupos.ts` y el ERP; el bolso es Bolsos y Carteras), arma el look (`poner`, `quitar`, `sorprender`, `completarLook`), lo
   pone en la dirección (`?p=CÓDIGO.COLOR~…`, `codificarLook`/`lookDeLaUrl`) y dibuja la figura a 2,5 px por cm (`cajaDe`). Lo dibujan
   `components/probador/Probador.tsx` (el estado), `Figura.tsx` (la escena: prendas, las que asoman, números, flechas, deslizar, teclado,
   «Sorpréndeme»), `Colores.tsx`, `TiraDeOpciones.tsx` y `TuLook.tsx`; la franja de tiendas es `FiltroDelProbador.tsx` (conserva el look,

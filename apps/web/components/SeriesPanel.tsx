@@ -23,6 +23,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Aviso } from "@/components/ui/Aviso";
 
 type Tienda = { id: string; nombre: string };
 
@@ -212,16 +213,17 @@ export function SeriesPanel({
       {/* El día de pasar a la SUNAT real (D-60): las pruebas en sandbox gastan la misma numeración, así que
           se arranca con series nuevas. Se muestra solo mientras el envío va al sandbox. */}
       {enPruebas && esLider && !busqueda && (
-        <section data-guia="series.pasar-a-real" className="anim-sube rounded-[14px] border border-ambar/30 bg-ambar/[0.06] px-5 py-4 text-[13px] text-tinta/80" style={{ "--i": 5 + grupos.length } as CSSProperties}>
-          <h3 className="font-display text-base text-tinta">El día de pasar a la SUNAT real</h3>
-          <ol className="mt-2 list-decimal space-y-1 pl-5">
-            <li>
-              En Vercel, cambia <code className="font-mono">LUCODE_ENTORNO</code> a <code className="font-mono">produccion</code> y vuelve a desplegar.
-            </li>
-            <li>Aquí, archiva cada serie usada en pruebas y registra una nueva por tienda y tipo: empieza en 1.</li>
-            <li>Haz una venta chica y revisa en Emitidos que SUNAT la aceptó.</li>
-          </ol>
-        </section>
+        <div className="anim-sube" style={{ "--i": 5 + grupos.length } as CSSProperties}>
+          <Aviso tono="atencion" guia="series.pasar-a-real" titulo="El día de pasar a la SUNAT real">
+            <ol className="mt-1 list-decimal space-y-1 pl-5">
+              <li>
+                En Vercel, cambia <code className="font-mono">LUCODE_ENTORNO</code> a <code className="font-mono">produccion</code> y vuelve a desplegar.
+              </li>
+              <li>Aquí, archiva cada serie usada en pruebas y registra una nueva por tienda y tipo: empieza en 1.</li>
+              <li>Haz una venta chica y revisa en Emitidos que SUNAT la aceptó.</li>
+            </ol>
+          </Aviso>
+        </div>
       )}
 
       {archivando && <ModalArchivarSerie serie={archivando} onClose={() => setArchivando(null)} />}

@@ -40,6 +40,21 @@ const BASE = arg("--base", "postgres");
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261014002000_no_deducible.sql"), "utf8");
 // Con solo su fondo, una persona pregunta por lo de su fondo (20261014195000): se carga después, porque la suya vuelve a crear la función.
 const MI_FONDO = readFileSync(join(RAIZ, "supabase", "migrations", "20261014195000_no_deducibles_de_mi_fondo.sql"), "utf8");
+// ADR-0433 act. 4b (20261017041000) reemplaza por ancla texto de `guardar_parametro_tributario` que la 002000 reconoce como «ya aplicado» (la lista de nombres
+// con 'tope_planilla_movilidad' y la regla anual): sobre la función viva, la 002000 ya no encuentra ni su texto nuevo ni su ancla vieja. Como la prueba vuelve a pegarla
+// para ver que es idempotente, antes se DESHACEN, dentro de la misma transacción, los reemplazos de 4b sobre esa función (leídos de su propio archivo: si 4b cambia, esto la sigue).
+const SALDO_IGV = readFileSync(join(RAIZ, "supabase", "migrations", "20261017041000_finanzas_saldo_favor_igv_al_arrancar.sql"), "utf8");
+const DESHACER_SALDO_IGV = [...SALDO_IGV.matchAll(/pg_temp\.anclar\('retail\.guardar_parametro_tributario\(([^)]*)\)',\s*\$v\$(.*?)\$v\$,\s*\$n\$(.*?)\$n\$\)/gs)]
+  .map(([, args, viejo, nuevo]) => `
+do $deshacer$
+declare v_def text := pg_get_functiondef('retail.guardar_parametro_tributario(${args})'::regprocedure);
+begin
+  if position($d1$${nuevo}$d1$ in v_def) > 0 then
+    execute replace(v_def, $d2$${nuevo}$d2$, $d3$${viejo}$d3$);
+  end if;
+end
+$deshacer$;`)
+  .join("\n");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
@@ -88,6 +103,7 @@ insert into retail.compra_pagos (compra_id, fecha, monto, metodo, ubicacion_id, 
 const PRELUDIO = `
 begin;
 set local search_path = retail, public, extensions;
+${DESHACER_SALDO_IGV}
 ${sinCandadosDePegado(MIGRACION)}
 ${sinCandadosDePegado(MIGRACION)}
 ${sinCandadosDePegado(MI_FONDO)}

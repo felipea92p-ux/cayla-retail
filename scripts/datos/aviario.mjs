@@ -71,6 +71,10 @@ export const AVIARIO = [
       // ADR-0408 (tienda online): qué modelos se ven en la web y cómo entran a Lo nuevo, y los looks de «Arma tu look» con sus
       // prendas. Se manejan desde Catálogo ▸ Vitrina web: son de quien responde por el catálogo. Refresco del volcado del 2026-10-16.
       "vitrina_productos", "vitrina_looks", "vitrina_look_piezas",
+      // ADR-0434 («Arma el tuyo»): el recorte de cada foto para el probador y el largo típico por categoría. Se manejan desde Tienda web ▸
+      // Vitrina ▸ Probador, como `vitrina_productos` (el largo propio vive ahí). Están en producción desde el 2026-10-17 (PR #1151);
+      // las asignó el refresco del volcado de ese día.
+      "foto_recortes", "vitrina_largos_tipicos",
     ] },
   // Tucán es la traducción al estándar de Shopify (ADR-0030); sus tablas no existen en V2.
   { n: "03", pajaro: "Tucán", modulo: "Taxonomía universal", tablas: [] },
@@ -188,6 +192,13 @@ export const AVIARIO = [
       "padron_lecturas",
       // ADR-0414: cada vez que se aplazó el vencimiento de un apartado, de qué fecha a cuál y quién. Refresco del volcado del 2026-10-16.
       "separacion_aplazamientos",
+      // ADR-0434 (actividad 8): los looks que una cuenta web guarda desde el probador y sus prendas. Son de la cuenta, como sus
+      // `favoritos_web`, y el cierre de la cuenta los quita igual. En producción desde el 2026-10-17 (PR #1157). Refresco de ese día.
+      "looks_web", "look_web_piezas",
+      // ADR-0435: la meta de cada tienda para un mes (su semana) y para una fecha puntual (23, 24 y 31 de diciembre, un feriado). Las lee
+      // `fn_parametros_caja` —lo que ve el mostrador—, como `ubicacion_metas_dia`: el mismo pájaro. En producción desde el 2026-10-17
+      // (PR #1152). Refresco del volcado de ese día.
+      "ubicacion_metas_mes", "ubicacion_metas_fecha",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales",
@@ -255,7 +266,12 @@ export const AVIARIO = [
       // ADR-0362 (fase 7, parte 2): lo que se recibió en el Taller contra una orden de insumos y lo que se anotó como que no va a llegar
       // («el proveedor nos debe»). Son de la orden del Taller, como sus líneas. Están en producción desde el 2026-10-15; las asignó el
       // refresco del volcado de ese día.
-      "orden_insumo_recepciones", "orden_insumo_cierres"] },
+      "orden_insumo_recepciones", "orden_insumo_cierres",
+      // ADR-0400 (el rediseño de Producción): las fases de cada orden y sus avances, la tela y los avíos de la orden, lo que sale a un
+      // servicio y lo que vuelve (con sus líneas), cuánta tela lleva cada modelo y la lista de precios de los servicios por fase. Todo se
+      // maneja desde Producción. En producción desde el 2026-10-17 (20261014154000); las asignó el refresco del volcado de ese día.
+      "produccion_fases", "produccion_avances", "produccion_insumos", "produccion_salidas", "produccion_salida_lineas",
+      "produccion_vueltas", "produccion_vuelta_lineas", "producto_consumos", "proveedor_tarifas"] },
   // `planilla_por_sede` (vista, ADR-0133 F7 / D-33): la planilla YA PAGADA por sede y período, leída de Dynamic. Es costo
   // operativo de la sede —Producción la usa para costear la mano de obra, pero no es suya—, por eso va con los gastos.
   // Finanzas F1–F10 (ADR-0195, ADR-0198), repartidas con el criterio de GOBIERNO §1 «Repartos que no son obvios»: Garza es la
@@ -278,7 +294,12 @@ export const AVIARIO = [
       // Los gastos de un viaje (con sus órdenes y fotos) y los fondos por rendir con su rendición: plata entregada a una persona que
       // vuelve como gastos o como devolución. Es plata del día, como `gastos`. Están en producción desde el 2026-10-13 (sus migraciones
       // aún no están en main); las asignó el refresco del volcado de ese día. Finanzas (Felipe) confirma la asignación.
-      "gastos_viaje", "gastos_viaje_ordenes", "gasto_viaje_fotos", "rendiciones_fondo", "rendicion_fondo_items"] },
+      "gastos_viaje", "gastos_viaje_ordenes", "gasto_viaje_fotos", "rendiciones_fondo", "rendicion_fondo_items",
+      // ADR-0429: las máquinas con que se cobra con tarjeta o QR (con su cuenta «por depositar»), en qué tienda opera cada una, su
+      // tarifa, qué días cubrió cada depósito y cada cobro que se reselló a su máquina. Es Cuentas y dinero, como `medios_de_cobro` y
+      // `movimientos_dinero`. Están en producción desde el 2026-10-16 (sus migraciones aún no están en main: PR #1138); las asignó el
+      // refresco del volcado del 2026-10-17. Finanzas (Felipe) confirma la asignación.
+      "pos_maquinas", "pos_maquinas_sedes", "pos_tarifas", "pos_abonos_lotes", "cobros_resellados"] },
   { n: "12", pajaro: "Urraca", modulo: "Contabilidad",
     tablas: ["activos_fijos",
       // El plan de cuentas (PCGE, F2a) y la lista cerrada de tipos de activo, que trae su cuenta y su vida útil (F2b).
@@ -407,6 +428,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (sinPajaro.length) errores.push(`${sinPajaro.length} tabla(s) de producción sin pájaro: ${sinPajaro.join(", ")}\n    → Dales pájaro en scripts/datos/aviario.mjs. Si nace una tabla nueva, nace con dueño o no nace.`);
   if (dobles.length) errores.push(`${dobles.length} tabla(s) con más de un pájaro: ${dobles.join("; ")}\n    → Cada tabla tiene un solo dueño; deja una.`);
   if (difGobierno.length) errores.push(`Los pájaros de acá y los de 07-GOBIERNO.md §1 no coinciden:\n    - ${difGobierno.join("\n    - ")}`);
+  // El diccionario se ordena con este mapa: si se generó antes de darle pájaro a una tabla, ella sigue en «Sin módulo
+  // asignado» aunque aquí ya tenga dueño, y nada más lo notaba (pasó el 2026-10-17 con 20 tablas).
+  const diccionario = join(GENERADO, "DICCIONARIO-RETAIL.md");
+  if (!sinPajaro.length && existsSync(diccionario) && readFileSync(diccionario, "utf8").includes("\n## Sin módulo asignado\n")) {
+    errores.push("DICCIONARIO-RETAIL.md tiene tablas en «Sin módulo asignado» que ya tienen pájaro.\n    → Corre `pnpm datos:generar:produccion` y commitea el diccionario que sale.");
+  }
 
   const md = aviarioMd(reales);
   const ruta = join(GENERADO, "AVIARIO.md");

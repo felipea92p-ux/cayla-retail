@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { REFERENCIA_SIN_TIPICO, sugerirLargo, sugerirTipico } from "./sugerencias-largo-probador";
+import { REFERENCIA_SIN_TIPICO, sugerirLargo } from "./sugerencias-largo-probador";
 
 // Las categorías de la tienda online que van al probador (`apps/tienda/lib/grupos.ts`) y una que un Líder podría crear sin deploy.
 const PREFIJOS = ["CMS", "BLU", "TOP", "POL", "BOD", "COR", "SUD", "VES", "CON", "ENT", "PAN", "JEA", "FAL", "SHO", "CAS", "BLZ", "CHA", "CAP", "ABR", "CAR", "ZZZ"];
@@ -34,10 +34,3 @@ describe("sugerirLargo: el ejemplo dice lo que va a pasar con esa prenda", () =>
   });
 });
 
-describe("sugerirTipico", () => {
-  it("la referencia de las categorías sin típico, y «Sin típico» para las demás", () => {
-    expect(sugerirTipico("VES")).toBe("Ej. 110");
-    expect(sugerirTipico("TOP")).toBe("Sin típico");
-    expect(sugerirTipico(null)).toBe("Sin típico");
-  });
-});

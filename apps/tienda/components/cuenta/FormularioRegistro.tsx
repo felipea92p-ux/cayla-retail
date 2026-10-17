@@ -17,7 +17,6 @@ import {
   faltanResumidos,
   marcaDe,
   MAX_NOMBRE_CUENTA,
-  MENSAJES,
   normalizarCorreo,
   REGISTRO_CUENTA_VACIO,
   TEXTO_MARCA,
@@ -25,6 +24,7 @@ import {
   type ConsultaCorreo,
   type RegistroCuenta,
 } from "@/lib/cuentas";
+import { MENSAJES } from "@/lib/cuentas-mensajes";
 import { codigoDelCorreoActual, codigoParaProbar, type CodigoDelCorreo } from "@/lib/correo-confirmado";
 import { hrefConVolver, PARAMETRO_VOLVER, rutaParaVolver } from "@/lib/entrada";
 import { avanceDeLaCuenta, buzonDelCorreo, nombreParaLaTarjeta } from "@/lib/panel-entrada";

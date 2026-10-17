@@ -17,7 +17,7 @@ import type { Lectura } from "@/lib/resumen-finanzas";
 import { soles } from "@/lib/flujo-caja-reglas";
 import { avisoAntesDelCorte, mesDelCorte } from "@/lib/finanzas-arranque-reglas";
 import { mesNombre } from "@/lib/resultados-reglas";
-import { cascadaPulso, lugaresPulso, respuestaPulso, ritmoPulso } from "@/lib/pulso-reglas";
+import { cascadaPulso, lugaresPulso, matizarRespuesta, respuestaPulso, ritmoPulso } from "@/lib/pulso-reglas";
 import {
   avisosParaDecidir,
   bajadaResumen,
@@ -77,7 +77,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, acceso }: { re
         acciones={<VerPorPagar ver={ver} unidades={unidades} esLider={r.lider} />}
       />
 
-      <Respuesta r={r} />
+      <Respuesta r={r} nivel={confianza.datos?.nivel ?? null} />
 
       <section className="fin-dos-col">
         <Ritmo r={r} />
@@ -146,9 +146,11 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, acceso }: { re
 }
 
 /** La pregunta y la respuesta grande, con «¿Por qué?» que abre la cascada (vendiste → costó → sueldos → gastos → queda). */
-function Respuesta({ r }: { r: ResumenFinanzas }) {
+function Respuesta({ r, nivel }: { r: ResumenFinanzas; nivel: ConfianzaDatos["nivel"] | null }) {
   const [porque, setPorque] = useState(false);
   const resp = respuestaPulso(r);
+  // ADR-0417: el «Sí» pelado solo con confianza alta; con baja, «Con lo que hay registrado…» y la cifra provisional.
+  const m = resp.estado === "sin_datos" ? null : matizarRespuesta(resp, r.mes, nivel);
   const cascada = cascadaPulso(r);
   const vende = r.ver.todas || r.ver.tipo === "tienda";
   const pregunta = vende ? "¿Estoy ganando plata?" : r.ver.tipo === "taller" ? "¿Cuánto cuesta el Taller?" : "¿Cuánto cuesta lo de la empresa?";
@@ -157,28 +159,30 @@ function Respuesta({ r }: { r: ResumenFinanzas }) {
       <p id="fin-pulso-pregunta" {...entraEn("fin-pulso-pregunta", 1)}>
         {pregunta}
       </p>
-      {resp.estado === "sin_datos" ? (
+      {resp.estado === "sin_datos" || m === null ? (
         <div {...entra(2)}>
           <Vacio tamano="chico" icono={<ChartColumn />}>
-            {resp.motivo}
+            {resp.estado === "sin_datos" ? resp.motivo : ""}
           </Vacio>
         </div>
       ) : (
         <>
           {vende && (
             <p {...entraEn("fin-pulso-si", 2)}>
-              <Chip tono={resp.estado === "gana" ? "verde" : resp.estado === "pierde" ? "rojo" : "ambar"}>{resp.corto}</Chip>
-              <span>En lo que va de {mesNombre(r.mes)},</span>
+              <Chip tono={m.tono}>{m.chip}</Chip>
+              <span>{m.intro}</span>
             </p>
           )}
           <p {...entraEn("fin-pulso-respuesta", 3)}>
             <span className="fin-pulso-verbo">{resp.verbo}</span>
-            <span className="fin-pulso-monto" data-estado={resp.estado}>
+            <span className="fin-pulso-monto" data-estado={resp.estado} data-provisional={m.provisional || undefined}>
+              {m.aprox}
               <CifraAnimada valor={Math.round(resp.monto)} formato="soles" />
             </span>
           </p>
           <p {...entraEn("fin-pulso-explica", 4)}>
             {resp.explica}
+            {m.aviso && ` ${m.aviso}`}
           </p>
           {cascada.length > 0 && (
             <div {...entraEn("fin-pulso-porque", 5)}>

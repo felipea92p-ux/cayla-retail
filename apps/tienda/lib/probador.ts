@@ -1,6 +1,6 @@
 import { z } from "zod";
+import { zonaDelProbador, type ZonaDelProbador } from "@cayla-retail/shared/categorias-de-la-tienda";
 import { claveCategoria, type Prenda } from "./catalogo";
-import { grupoDe } from "./grupos";
 import type { Look as LookDeCayla, TallaLook } from "./looks";
 import { esquemaStockModelo, hayAlgo, notaDeStock, type NotaStock, type StockModelo, type Tienda } from "./stock";
 
@@ -93,25 +93,20 @@ export function interpretarProbador(dato: unknown): LecturaProbador | null {
 
 /* =============================================== 2. Las zonas del cuerpo =============================================== */
 
-export type Zona = "vestido" | "arriba" | "abajo" | "encima" | "bolso";
+export type Zona = ZonaDelProbador;
 /** En este orden se numeran las prendas del look (1, 2, 3…) y se recorren al armarlo, como en el lienzo. */
 export const ZONAS: readonly Zona[] = ["vestido", "arriba", "abajo", "encima", "bolso"];
 export const NOMBRE_ZONA: Record<Zona, string> = { vestido: "Vestido", arriba: "Arriba", abajo: "Abajo", encima: "Encima", bolso: "Bolso" };
 /** Lo que puede faltar: arriba y abajo (o un vestido) van siempre; algo encima y el bolso, si el cliente quiere. */
 export const OPCIONAL: Record<Zona, boolean> = { vestido: false, arriba: false, abajo: false, encima: true, bolso: true };
 
-const ZONA_DEL_GRUPO: Readonly<Record<string, Zona>> = { arriba: "arriba", vestidos: "vestido", abajo: "abajo", encima: "encima" };
-/** El bolso es Bolsos y Carteras (ADR-0434): los demás accesorios, la bisutería y el calzado no entran en esta versión. */
-const PREFIJOS_DEL_BOLSO: readonly string[] = ["CAR"];
 /** El body va metido: debajo de lo de abajo. */
 const PREFIJOS_METIDOS: readonly string[] = ["BOD"];
 
-/** La zona de una categoría, por su prefijo (nunca por el nombre visible, que se renombra). null: no entra al probador. */
+/** La zona de una categoría, por su prefijo (nunca por el nombre visible, que se renombra). null: no entra al probador. La regla vive
+ *  en `packages/shared` (`zonaDelProbador`): el ERP cuenta con la misma qué prendas preparar (Tienda web ▸ Vitrina ▸ Probador). */
 export function zonaDe(categoria: Prenda["categoria"]): Zona | null {
-  const clave = claveCategoria(categoria);
-  if (!clave) return null;
-  if (PREFIJOS_DEL_BOLSO.includes(clave)) return "bolso";
-  return ZONA_DEL_GRUPO[grupoDe(clave).clave] ?? null;
+  return zonaDelProbador(claveCategoria(categoria));
 }
 
 /* =============================================== 3. Juntar el catálogo y el probador =============================================== */

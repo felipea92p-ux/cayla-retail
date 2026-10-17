@@ -78,6 +78,9 @@ const nextConfig: NextConfig = {
       : [],
     // Una foto de prenda es un archivo nuevo por cada foto (su nombre lleva un id): lo ya optimizado no envejece (31 días).
     minimumCacheTTL: 60 * 60 * 24 * 31,
+    // AVIF primero (2026-10-17): a la misma calidad pesa menos que WebP, y el navegador que no lo entiende recibe WebP. Se paga una
+    // vez por foto y ancho: la primera vez tarda más en prepararse y Vercel cuenta una conversión más; después sale de su caché 31 días.
+    formats: ["image/avif", "image/webp"],
     // Pocos anchos: la tarjeta mide de ~170 px (celular, dos columnas) a ~300 px (computadora, cuatro), y el doble en retina.
     imageSizes: [256, 384],
     deviceSizes: [640, 1080],

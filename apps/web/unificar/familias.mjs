@@ -275,6 +275,22 @@ const BASE = [
     gobierna: ["ADR-0169", "ADR-0136", "ADR-0322", "ADR-0357", "ADR-0355"],
   },
   {
+    id: "mes",
+    grupo: "Filtros y búsqueda",
+    nombre: "Elegir el mes",
+    funcion: "Pasar de un mes a otro en una pantalla que muestra un mes: Comprobantes, Proformas, el Historial de cierres.",
+    pieza: "`<SelectorMes>` / `<SelectorMesEnUrl>` (components/ui/SelectorMes.tsx), decidido el 2026-10-17 (ronda 17); Finanzas elige el mes con su combo (ADR-0195)",
+    gobierna: ["ADR-0195"],
+  },
+  {
+    id: "cantidad",
+    grupo: "Campos",
+    nombre: "El paso de cantidad («− 1 +»)",
+    funcion: "Subir o bajar una cantidad de uno en uno: el ticket de Vender, Bajar al piso, las matrices de tallas, Recibir.",
+    pieza: "`<PasoCantidad>` (components/ui/PasoCantidad.tsx), decidido el 2026-10-17 (ronda 17); las teclas grandes de contar quedan aparte",
+    gobierna: ["ADR-0136"],
+  },
+  {
     id: "titulo-pagina",
     grupo: "Textos",
     nombre: "Títulos de pantalla",
@@ -323,6 +339,14 @@ const BASE = [
     funcion: "La ventana que se abre encima de la pantalla.",
     pieza: "`<Modal>` / `<ModalRuta>` (components/ui/Modal.tsx): una cara, tres anchos (`tamano`) y una salida a la vista (decidido el 2026-10-14)",
     gobierna: ["ADR-0136", "ADR-0358"],
+  },
+  {
+    id: "cajon",
+    grupo: "Hojas",
+    nombre: "El cajón lateral",
+    funcion: "La hoja que entra por la derecha con el detalle de algo (un comprobante por pagar, un movimiento, una persona del equipo).",
+    pieza: "`<Cajon>` (components/ui/Cajon.tsx): la banda de Compras en todos, decidido el 2026-10-17 (ronda 17); la vista rápida de Productos es una hoja al centro (ADR-0136)",
+    gobierna: ["ADR-0136", "ADR-0128", "ADR-0358"],
   },
   {
     id: "avatar",
@@ -393,6 +417,9 @@ export const DECISIONES = {
       // «Volver a contar / a revisar / a editar…» como texto de un botón. No cuentan los que NO vuelven a un paso: reintentar,
       // restablecer, la salida de una pantalla de error ni el enlace dentro de una frase.
       "^\\s*Volver (?:a|al) (?!intentar|lo predeterminado|la predeterminada|como está|la que propone|inicio|período)[^<{}\"]+\\s*$",
+      // El glifo seguido de una expresión («← {apilado ? "Atrás" : "Ticket"}»): la vuelta escrita a mano que las de arriba no veían
+      // porque el texto va entre llaves (Apartados en el celular; control 2026-10-17).
+      "←\\s*\\{",
     ],
     deuda: [],
     excepciones: [
@@ -448,9 +475,7 @@ export const DECISIONES = {
     // El mostrador entró en su propia pasada (2026-10-07): conserva sus altos (28–36 px los compactos, 44–56 los de cobro) con
     // letra de 12,5 px en los compactos, y toma la voz, el movimiento y la onda. Probado a 375 px (PL-105).
     "deuda": [],
-    "excepciones": [
-      { "archivo": "components/SelectorMesFacturacion.tsx", "motivo": "Es el selector de mes de la barra de vidrio de Comprobantes (ADR-0124): un filtro de período, familia de pestañas, no un botón" }
-    ]
+    "excepciones": []
   },
   "accion.eliminar": {
     "fecha": "2026-10-07",
@@ -540,8 +565,12 @@ export const DECISIONES = {
     "tambien": ["app/estilos/vacio-aviso-buscador.css", "components/ui/campos.tsx", "components/ui/Avisos.tsx"],
     "firmas": [
       // Un recuadro de tono pintado a mano: fondo suave de ámbar, rojo o verde con su texto profundo, esquinas de caja y relleno
-      // de recuadro (una insignia o un chip, redondos y chicos, no cuentan).
-      "[\"'`](?=[^\"'`]*\\bbg-(?:ambar|rojo|verde)\\/(?:\\[0\\.0\\d+\\]|5|10)\\b)(?=[^\"'`]*\\btext-(?:ambar|rojo|verde)-profundo\\b)(?=[^\"'`]*\\brounded-(?:md|lg|xl|2xl)\\b)(?=[^\"'`]*\\bpy-(?:2|2\\.5|3)\\b)",
+      // de recuadro (una insignia o un chip, redondos y chicos, no cuentan). Tras el «]» de `bg-ambar/[0.07]` no hay un \b: la
+      // frontera es `(?![\w-])` (con \b, ningún fondo entre corchetes coincidía y ~25 recuadros se escaparon de la ronda 5; control 2026-10-17).
+      "[\"'`](?=[^\"'`]*\\bbg-(?:ambar|rojo|verde)\\/(?:\\[0\\.0\\d+\\]|5|10)(?![\\w-]))(?=[^\"'`]*\\btext-(?:ambar|rojo|verde)-profundo\\b)(?=[^\"'`]*\\brounded-(?:md|lg|xl|2xl)\\b)(?=[^\"'`]*\\bpy-(?:2|2\\.5|3)\\b)",
+      // El recuadro con borde de tono, sin importar el color del texto (el texto en tinta, el role=alert o status): esquinas, borde,
+      // fondo y relleno del tono en la MISMA clase. Un mapa de tonos («ok: "border-verde/35 bg-verde/15"») o un hover no cuentan.
+      "[\"'`](?=[^\"'`]*\\brounded-(?:md|lg|xl|2xl|\\[\\d+px\\])(?![\\w-]))(?=[^\"'`]*(?<![:\\w-])border-(?:ambar|rojo|verde|pizarra)\\/\\d+(?![\\w-]))(?=[^\"'`]*(?<![:\\w-])bg-(?:ambar|rojo|verde|pizarra)\\/(?:\\[0\\.\\d+\\]|\\d+)(?![\\w-]))(?=[^\"'`]*\\bp[xy]?-[\\d.]+(?![\\w-]))",
       // La franja copiada (con su fondo de tono; el acento de una tarjeta de cifra no es un aviso).
       "\\bborder-l-(?:ambar|rojo)\\b[^\"'`]*\\bbg-(?:ambar|rojo)\\/",
       // Los de Finanzas y Análisis, que se suman (Felipe 2026-10-08).
@@ -650,11 +679,21 @@ export const DECISIONES = {
       // La flecha escrita a mano al final de un `btn-enlace` («Ver traslados →»): un enlace que lleva a ver más es <EnlaceVer>.
       "\\bbtn-enlace\\b[^\\n]*(?:\\n[^\\n]*){0,3}?[^\\n]*→\\s*(?:\\{|<\\/)",
       // Lo mismo en versalitas a mano («Ver los 11 →», «Ver todas las sedes →»): encontradas por el censo de después (2026-10-13).
-      "\\blabel-cayla\\b[^\\n]*(?:\\n[^\\n]*){0,3}?[^\\n]*→\\s*(?:\\{|<\\/|\\n|$)"
+      "\\blabel-cayla\\b[^\\n]*(?:\\n[^\\n]*){0,3}?[^\\n]*→\\s*(?:\\{|<\\/|\\n|$)",
+      // La «→» escrita al final del texto de lo que lleva a otra parte, sea cual sea su clase («Ver Por enviar →», la insignia
+      // «Pendiente de enviar →», «Seguir →»): la pieza trae su flecha (<EnlaceVer>, <BotonVer>) o el ícono de lucide. «A → B», que
+      // muestra un cambio, no cuenta: después de la flecha sigue algo (control 2026-10-17).
+      "[\\wáéíóúñ})]\\s+→\\s*(?:<\\/|[\"'`]\\s*(?:[:})\\]]|$))",
+      // «Ver ›» y «Ver tallas ›»: el «›» al final de un «Ver…». El «›» suelto de una fila o de un desplegable es otra cosa.
+      "\\bVer\\b[^<>{}\"'`\\n]*\\s›\\s*(?:<\\/|[\"'`]|$)",
+      // La «→» sola en su <span> justo antes de cerrar el enlace o el botón (las tarjetas del perfil).
+      "<span\\b[^>]*>\\s*→\\s*<\\/span>\\s*<\\/(?:Link|a|button)>"
     ],
     "ventana": 4,
     "deuda": [],
-    "excepciones": []
+    "excepciones": [
+      { "archivo": "components/RecordatorioCierreCaja.tsx", "motivo": "ADR-0359: el aviso de cierre de caja de la cabecera tiene su diseño y su movimiento por decisión (su «→» corre con él)" }
+    ]
   },
   "tabla": {
     "fecha": "2026-10-13",
@@ -741,7 +780,7 @@ export const DECISIONES = {
     "registro": "docs/unificar/campo-combo.md",
     "elegida": "P1 · la caja que se enciende: todo campo de una hoja es la caja hundida de 40 px que, con el cursor adentro, sube a papel y dibuja el hilo rojo desde el centro (verde si el dato está bien, barre mientras consulta); el monto, 48 px con su cifra en serif; elegida tocándola el 2026-10-13",
     "pieza": "components/ui/campos.tsx",
-    "tambien": ["components/ui/CampoFecha.tsx", "components/ui/CampoMonto.tsx", "components/ComboResponsable.tsx", "components/ui/Buscador.tsx", "components/ui/ComboBuscable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/Casilla.tsx", "app/estilos/campos-y-casillas.css"],
+    "tambien": ["components/ui/PasoCantidad.tsx", "components/ui/CampoFecha.tsx", "components/ui/CampoMonto.tsx", "components/ComboResponsable.tsx", "components/ui/Buscador.tsx", "components/ui/ComboBuscable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/Casilla.tsx", "app/estilos/campos-y-casillas.css"],
     "ventana": 14,
     "firmas": [
       // Una caja de texto dibujada a mano: un <input> (ni casilla, ni radio, ni oculto, ni archivo, ni rango) fuera de las piezas. Es
@@ -821,6 +860,8 @@ export const DECISIONES = {
     "firmas": [
       // El título de Campo copiado a mano (versalitas sobre una caja): es <Campo> o la clase `campo-etiqueta`.
       "\\blabel-cayla block text-\\[11px\\] text-tinta\\/(?:6\\d|7\\d)\\b",
+      // Cualquier <label> en versalitas a mano (con o sin `block`, en tinta o en taupe): el título es `campo-etiqueta` (control 2026-10-17).
+      "<label\\b[^>]*className=\\{?[\"'`][^\"'`]*\\blabel-cayla\\b",
       // Un título de campo en letra normal hecho a mano: un <label> de 12 a 14 px con peso.
       "<label\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:xs|sm|\\[1[234](?:\\.5)?px\\])(?![\\w-])[^\"'`]*\\bfont-(?:medium|semibold)\\b"
     ],
@@ -1263,6 +1304,69 @@ export const DECISIONES = {
     "firmas": [
       // Un botón «Deshacer» escrito a mano.
       ">\\s*Deshacer\\s*</"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "mes": {
+    "fecha": "2026-10-17",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/mes.md",
+    "elegida": "P1 · «‹ Octubre 2026 ›» en todas: las flechas pasan al mes de al lado y al tocar el nombre se abren los doce meses (los que no llegan, con candado); la del Historial de cierres, que Felipe eligió el 12; elegida mirando el 2026-10-17 (ronda 17)",
+    "pieza": "components/ui/SelectorMes.tsx",
+    "firmas": [
+      // Los vecinos escritos a mano con su flecha («← SEPTIEMBRE · Octubre 2026 · NOVIEMBRE →») y la pieza que los dibujaba.
+      "[←‹]\\s*\\{\\s*NOMBRES_MES\\b|NOMBRES_MES\\[[^\\]]+\\]\\s*\\}\\s*[→›]",
+      "\\bSelectorMesFacturacion\\b"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "cantidad": {
+    "fecha": "2026-10-17",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/cantidad.md",
+    "elegida": "P1 · la caja con el número adentro: la caja del campo (la que se enciende con su hilo) con − y + de lucide adentro y el número que se escribe; «celda» de 26 px en una matriz y «fila» de 36 px que crece a 44 en una pantalla táctil; elegida mirando el 2026-10-17 (ronda 17)",
+    "pieza": "components/ui/PasoCantidad.tsx",
+    "tambien": ["app/estilos/campos-y-casillas.css"],
+    "firmas": [
+      // Un botón de «− 1 +» dibujado a mano: su etiqueta para el lector («Una menos», «Restar a…», «Reducir cantidad»). En la pieza, esas
+      // etiquetas van en `menos` / `mas` (`etiqueta`), no en un `aria-label`.
+      "aria-label=\\{?[\"'`](?:Una (?:unidad |\\$\\{[^}]+\\} )?(?:menos|más)\\b|Restar\\b|Reducir cantidad|Aumentar cantidad|Sumar (?:a|uno)\\b)",
+      // Las caras que había: la clase de la etiqueta de precio y la píldora del Taller.
+      "\\betq-paso\\b|\\btaller-stepper\\b"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/EscanerConteo.tsx", "motivo": "las teclas grandes de contar (56 px, el número enorme): un teclado de contar, aparte por decisión de Felipe (ronda 17)" },
+      { "archivo": "components/recepcion-conteo/ContarEnvio.tsx", "motivo": "las teclas grandes de Contar el envío (56 px, el número de 84): un teclado de contar, aparte por decisión de Felipe (ronda 17)" },
+      { "archivo": "components/existencias/FlujoTalla.tsx", "motivo": "el paso a paso táctil de Existencias (`Stepper`, teclas de 56 px y el número serif): la misma anatomía de las teclas grandes de contar; sus celdas de matriz sí usan la pieza (ronda 17)" },
+      { "archivo": "components/traslados-pases/ReversoPase.tsx", "motivo": "ADR-0355: los pases de Traslados tienen su diseño por decisión (`tp-contador`)" }
+    ]
+  },
+  "cajon": {
+    "fecha": "2026-10-17",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/cajon.md",
+    "elegida": "P1 · la banda de Compras en todos: marca a la izquierda (avatar de 40, sello, ícono), versalitas, título serif de 24, la × de las hojas, el pie con las acciones y «n de N» con ↑ ↓; anchos de 456 y 544 px; elegida mirando el 2026-10-17 (ronda 17)",
+    "pieza": "components/ui/Cajon.tsx",
+    "firmas": [
+      // El marco de un cajón armado a mano (pegado al borde derecho, de arriba abajo): es <Cajon>.
+      "\\bfixed inset-y-0 right-0\\b"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.anterior": {
+    "fecha": "2026-10-17",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.anterior.md",
+    "elegida": "P1 · como todo paso a paso: la flecha redonda de volver (<Volver onClick a>, que no se dibuja en el primer paso) y «Siguiente» negro con su flecha que avanza; elegida mirando el 2026-10-17 (ronda 17)",
+    "pieza": "components/ui/Volver.tsx",
+    "firmas": [
+      // «← Anterior», «‹ Anterior» o «Siguiente →» escritos a mano: volver a un paso es la flecha redonda y «Siguiente» lleva su ícono.
+      // Una paginación con números es <Paginas>, que dibuja sus flechas. (Las comillas «» de un texto no son flechas: no cuentan.)
+      "[←‹]\\s*Anterior\\b|\\bSiguiente\\s*[→›]"
     ],
     "deuda": [],
     "excepciones": []

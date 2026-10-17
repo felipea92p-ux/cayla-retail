@@ -1,3 +1,5 @@
+import { zonaDelProbador } from "@cayla-retail/shared/categorias-de-la-tienda";
+
 // La lista viva de Tienda web ▸ Vitrina ▸ Probador (ADR-0434, actividad 3): qué le falta a cada prenda publicada para salir en el
 // probador de «Arma el tuyo». Lógica pura, sin navegador. Lee `fn_vitrina_probador()` (20261017015000).
 //
@@ -105,6 +107,78 @@ export function estaLista(p: PrendaDelProbador): boolean {
   return largoEfectivo(p) !== null && p.recortes.listos > 0;
 }
 
+/* ---------------- Lo que entra al probador (/formidable, 2026-10-17) ---------------- */
+
+/**
+ * ¿El probador de la tienda usa las prendas de esta categoría? Solo arriba, vestido, abajo, encima y el bolso: los demás accesorios, la
+ * bisutería y el calzado no entran en esta versión (ADR-0434). Es la MISMA regla de la tienda (`zonaDelProbador`, en `packages/shared`),
+ * por el prefijo y, sin prefijo, por el nombre, como la tienda. Sin esto la pantalla les pedía largo y recorte a aretes y cinturones que
+ * nadie va a ver: 36 de las 48 prendas «sin largo» de producción el 2026-10-17.
+ */
+export function entraAlProbador(categoria: { nombre: string; prefijo: string | null } | null): boolean {
+  return zonaDelProbador(categoria ? (categoria.prefijo ?? categoria.nombre) : null) !== null;
+}
+
+/** Solo lo que el probador usa: las prendas de las categorías que entran, esas categorías en «Largos típicos» y las fotos de esas
+ *  prendas (las demás no se recortan). */
+export function soloLoQueEntra<F extends { productoId: string }>(lectura: LecturaProbador, fotos: readonly F[]): { probador: LecturaProbador; fotos: F[] } {
+  const prendas = lectura.prendas.filter((p) => entraAlProbador(p.categoria));
+  const ids = new Set(prendas.map((p) => p.productoId));
+  return {
+    probador: { prendas, tipicos: lectura.tipicos.filter((t) => entraAlProbador({ nombre: t.nombre, prefijo: t.prefijo })) },
+    fotos: fotos.filter((f) => ids.has(f.productoId)),
+  };
+}
+
+/**
+ * Lo PRIMERO que le falta a una prenda para salir, en el orden en que se arregla: sin foto no hay recorte, y un recorte por revisar está
+ * a un toque. El largo va al final porque se anota en la misma prenda; si también le falta, lo dice su columna «Largo».
+ */
+export type FaltaParaElProbador = "foto" | "revisar" | "recortar" | "descartado" | "largo";
+
+export type VeredictoDelProbador = { sale: true; texto: string } | { sale: false; falta: FaltaParaElProbador; texto: string };
+
+const TEXTO_DE_LO_QUE_FALTA: Record<FaltaParaElProbador, string> = {
+  foto: "Falta su foto",
+  revisar: "Revisa el recorte",
+  recortar: "Falta recortar",
+  descartado: "Recorte descartado",
+  largo: "Falta el largo",
+};
+
+/** Una palabra por prenda: «Lista» o lo primero que le falta. Las fotos por color no la frenan (un color sin foto se elige igual). */
+export function veredictoDelProbador(p: Pick<PrendaDelProbador, "largo" | "tipico" | "fotos" | "recortes">): VeredictoDelProbador {
+  const r = p.recortes;
+  let falta: FaltaParaElProbador | null = null;
+  if (r.listos === 0) {
+    if (p.fotos === 0) falta = "foto";
+    else if (r.porRevisar > 0) falta = "revisar";
+    else if (r.sin > 0) falta = "recortar";
+    else falta = "descartado";
+  } else if (largoEfectivo(p) === null) falta = "largo";
+  return falta === null ? { sale: true, texto: "Lista" } : { sale: false, falta, texto: TEXTO_DE_LO_QUE_FALTA[falta] };
+}
+
+/** Qué hacer con una prenda que no sale, en una frase para su hoja. */
+export function queHacerConLaPrenda(v: VeredictoDelProbador): string {
+  if (v.sale) return "Sale en el probador de «Arma el tuyo».";
+  if (v.falta === "foto") return "No tiene ninguna foto: súbela en «Editar sus fotos»; con «Sin fondo», su recorte sale solo.";
+  if (v.falta === "revisar") return "Su recorte espera que alguien lo mire: revísalo en «Fotos de la web».";
+  if (v.falta === "recortar") return "Su foto todavía no tiene recorte: lo hace «Preparar recortes».";
+  if (v.falta === "descartado") return "Se descartó su recorte: úsalo igual desde «Fotos de la web» o cambia la foto en «Editar sus fotos».";
+  return "Le falta el largo: anótalo aquí abajo.";
+}
+
+/** El paso que toca, en este orden: recortar lo que falta, revisar los dudosos y anotar los largos. `null`: no queda nada. */
+export type PasoDelProbador = { tipo: "preparar" | "revisar" | "largos"; n: number; texto: string };
+
+export function siguientePaso(c: { sinRecorte: number; porRevisar: number; sinLargo: number }): PasoDelProbador | null {
+  if (c.sinRecorte > 0) return { tipo: "preparar", n: c.sinRecorte, texto: c.sinRecorte === 1 ? "Preparar 1 recorte" : `Preparar ${c.sinRecorte} recortes` };
+  if (c.porRevisar > 0) return { tipo: "revisar", n: c.porRevisar, texto: c.porRevisar === 1 ? "Revisar 1 recorte" : `Revisar ${c.porRevisar} recortes` };
+  if (c.sinLargo > 0) return { tipo: "largos", n: c.sinLargo, texto: c.sinLargo === 1 ? "Anotar 1 largo" : `Anotar ${c.sinLargo} largos` };
+  return null;
+}
+
 export type CifrasProbador = { prendas: number; listas: number; sinLargo: number; coloresPorFotografiar: number; prendasPorFotografiar: number };
 
 export function cifrasProbador(prendas: readonly PrendaDelProbador[]): CifrasProbador {
@@ -151,6 +225,15 @@ export function leerLargo(escrito: string): { valor: number | null } | { error: 
   const n = Math.round(Number(limpio));
   if (n < LARGO_MINIMO || n > LARGO_MAXIMO) return { error: `El largo va de ${LARGO_MINIMO} a ${LARGO_MAXIMO} cm.` };
   return { valor: n };
+}
+
+/** Si lo escrito lleva un decimal que cambia al redondear, la caja lo dice ANTES de guardar: «62,5» se guardaba como 63 sin que nadie lo
+ *  viera hasta el aviso de después (/chaos ENT-06, 2026-10-17). `null`: un entero, un decimal que no cambia o algo que ya tiene su error. */
+export function avisoDeRedondeo(escrito: string): string | null {
+  const leido = leerLargo(escrito);
+  if ("error" in leido || leido.valor === null) return null;
+  const limpio = escrito.trim().toLowerCase().replace(/\s*cm$/, "").replace(",", ".");
+  return Number(limpio) === leido.valor ? null : `Se guarda en centímetros enteros: ${leido.valor}.`;
 }
 
 /** El largo de una prenda en palabras de la lista: «62 cm», «45 cm · el típico» o «Falta». */

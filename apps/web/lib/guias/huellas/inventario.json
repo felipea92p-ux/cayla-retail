@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 140,
+  "total": 131,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
@@ -112,11 +112,6 @@
     "components/RitmoRecientePopover.tsx": [
       "button «{textoRitmoRecienteCelda(ritmo)}»"
     ],
-    "components/SelectorDeAjuste.tsx": [
-      "button «{`Una menos de la talla ${f.talla}»",
-      "input «{`${etiquetaControl}»",
-      "button «{`Una más de la talla ${f.talla}»"
-    ],
     "components/existencias/AnilloMision.tsx": [
       "button «existencias.pendientes»"
     ],
@@ -129,9 +124,6 @@
       "input «{etiqueta}»",
       "button «Una más»",
       "textarea «Ej. no cabe en el riel»",
-      "button «{`Una menos de ${etiqueta}»",
-      "input «{`Cuántas descuelgas de ${etiqueta}»",
-      "button «{`Una más de ${etiqueta}»",
       "button «Todas (»",
       "button «¿Más tallas o colores? Subir varias»",
       "button «¿Más tallas o colores? Colgar varias»",
@@ -139,9 +131,6 @@
       "button «Todo lo que está colgado de cada talla»",
       "button «1 en cada talla sin ninguna colgada»",
       "button «Vaciar»",
-      "button «{`Una menos de ${etiqueta}» #2",
-      "input «{`Cuántas cuelgas de ${etiqueta}»",
-      "button «{`Una más de ${etiqueta}» #2",
       "input «Nombres»",
       "input «Apellidos»",
       "input «Celular»",

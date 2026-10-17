@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { guardarClaveNueva, type RespuestaClave } from "@/app/acciones/cuenta";
-import { CLAVE_MAXIMA, estadoClave, faltanCaracteres, MENSAJES } from "@/lib/cuentas";
+import { CLAVE_MAXIMA, estadoClave, faltanCaracteres } from "@/lib/cuentas";
+import { MENSAJES } from "@/lib/cuentas-mensajes";
 import { CajaClave } from "./CajaClave";
 import { usePasoDelPanel } from "./EntradaViva";
 

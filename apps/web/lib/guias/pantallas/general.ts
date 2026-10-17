@@ -214,7 +214,7 @@ export const GUIA_INICIO: Guia = {
       ancla: "inicio.almacen-ultimos",
       opcional: true,
       titulo: "Lo último registrado",
-      texto: "Las prendas que se registraron hoy y ayer, con quién lo hizo y en qué sede. Míralas antes de crear otra: si ya está, no la registres dos veces. «Ver →» abre su ficha.",
+      texto: "Las prendas que se registraron hoy y ayer, con quién lo hizo y en qué sede. Míralas antes de crear otra: si ya está, no la registres dos veces. «Ver» abre su ficha.",
     },
     {
       id: "almacen-sigue",
@@ -1161,6 +1161,20 @@ export const GUIA_CONFIGURACION: Guia = {
       opcional: true,
       titulo: "Un tope nuevo",
       texto: "Cuando el contador lo fije o cambie, se agrega desde una fecha, como una tasa nueva. Lo de antes de esa fecha no se marca.",
+    },
+    {
+      id: "impuestos-saldo",
+      ancla: "config.impuestos-saldo",
+      opcional: true,
+      titulo: "El saldo a favor de IGV",
+      texto: "El crédito fiscal con que CAYLA arrancó, de la última declaración. Te lo da el contador. El IGV de cada mes parte de aquí en vez de cero; mientras no esté, sale de más.",
+    },
+    {
+      id: "nuevo-saldo",
+      ancla: "config.nuevo-saldo",
+      opcional: true,
+      titulo: "Declarar un saldo",
+      texto: "Eliges el mes en que CAYLA traía ese saldo y su monto. Una corrección es otra fila nueva: la historia guarda las dos.",
     },
     {
       id: "impuestos-regimen",

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { clienteNavegador } from "@/lib/auth-navegador";
-import { MENSAJES } from "@/lib/cuentas";
+import { MENSAJES } from "@/lib/cuentas-mensajes";
 import { PARAMETRO_VOLVER } from "@/lib/entrada";
 import { googleDisponible } from "@/lib/sesion";
 

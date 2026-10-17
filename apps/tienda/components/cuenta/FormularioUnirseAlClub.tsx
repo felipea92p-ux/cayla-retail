@@ -5,29 +5,8 @@ import { Fragment, useEffect, useState, useTransition } from "react";
 import { ajustarNumeroAlTipo, TIPOS_DOCUMENTO_CLIENTA, type TipoDocumentoClienta } from "@cayla-retail/shared";
 import { consultarDocumento } from "@/app/acciones/cuenta";
 import { unirseAlClub, type RespuestaUnirse } from "@/app/acciones/club-registro";
-import {
-  ayudaDelNumero,
-  cajaDelNumero,
-  campoQueSigue,
-  cumpleTexto,
-  documentoCompleto,
-  documentoRepetido,
-  estadoClub,
-  faltanClub,
-  faltanResumidos,
-  marcaDe,
-  MAX_PARTE_NOMBRE,
-  MENSAJES,
-  mensajeSinNombre,
-  REGISTRO_CLUB_VACIO,
-  soloDigitos,
-  TEXTO_MARCA,
-  type CampoClub,
-  type CasillaWhatsapp,
-  type ConsultaDocumento,
-  type Dia,
-  type RegistroClub,
-} from "@/lib/cuentas";
+import { ayudaDelNumero, cajaDelNumero, campoQueSigue, cumpleTexto, documentoCompleto, documentoRepetido, estadoClub, faltanClub, faltanResumidos, marcaDe, MAX_PARTE_NOMBRE, mensajeSinNombre, REGISTRO_CLUB_VACIO, soloDigitos, TEXTO_MARCA, type CampoClub, type CasillaWhatsapp, type ConsultaDocumento, type Dia, type RegistroClub } from "@/lib/cuentas";
+import { MENSAJES } from "@/lib/cuentas-mensajes";
 import { PARAMETRO_VOLVER, rutaParaVolver } from "@/lib/entrada";
 import { Icono } from "../Icono";
 import { Campo, Resultado } from "./CampoGuiado";

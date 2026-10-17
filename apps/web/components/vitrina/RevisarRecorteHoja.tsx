@@ -10,8 +10,8 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { createClient } from "@/lib/supabase/client";
-import { errorDeRecorte, recorteDeRespuesta, textoDelMotivo, type FotoDelProbador, type RecorteDeFoto } from "@/lib/recorte-probador-reglas";
-import { firmar } from "@/lib/responsable-reglas";
+import { errorDeRecorte, paraDeshacerElDescarte, recorteDeRespuesta, textoDelMotivo, type FotoDelProbador, type RecorteDeFoto } from "@/lib/recorte-probador-reglas";
+import { firmar, type Firma } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
 import { useResponsable } from "@/lib/useResponsable";
 import { camposDeRecortes } from "@/lib/vitrina-probador-guia";
@@ -25,10 +25,13 @@ export function RevisarRecorteHoja({
   fotos,
   onHecho,
   onClose,
+  alCerrarEnfocar,
 }: {
   fotos: FotoDelProbador[];
   onHecho: (foto: string, recorte: RecorteDeFoto) => void;
   onClose: () => void;
+  /** Dónde vuelve el foco al cerrar: la fila o la foto que la abrió. */
+  alCerrarEnfocar?: React.RefObject<HTMLElement | null>;
 }) {
   const responsable = useResponsable();
   const guia = useGuiaCampos(camposDeRecortes({ responsableListo: responsable.listo, responsableMotivo: responsable.motivo }));
@@ -45,7 +48,8 @@ export function RevisarRecorteHoja({
     if (enVuelo.current || !guia.puedeConfirmar || !r) return;
     enVuelo.current = true;
     setGuardando(usar ? "usar" : "descartar");
-    const { data, error } = await firmar(createClient().rpc("revisar_recorte", { p_foto: f.foto, p_usar: usar }), responsable.firma());
+    const firma = responsable.firma();
+    const { data, error } = await firmar(createClient().rpc("revisar_recorte", { p_foto: f.foto, p_usar: usar }), firma);
     enVuelo.current = false;
     setGuardando(null);
     if (error || !data) {
@@ -55,12 +59,22 @@ export function RevisarRecorteHoja({
     }
     const nuevo = recorteDeRespuesta(data, f.url);
     if (nuevo) onHecho(f.foto, nuevo);
+    // Un descarte por error se arregla desde el aviso: el recorte vuelve tal como estaba, si nadie decidió después (/formidable y
+    // /chaos, 2026-10-17). Antes había que encontrar la foto entre cientos, y la fila decía «Sin recorte».
+    const deshacer = usar ? null : paraDeshacerElDescarte(f.foto, r);
+    if (deshacer) {
+      avisar.exito(`Descartaste el recorte de «${f.nombre}».`, {
+        accion: { texto: "Deshacer", onClick: () => void deshacerElDescarte(f, deshacer, firma, onHecho) },
+        duracion: 7000,
+      });
+    }
     if (i + 1 < lista.length) {
       setI(i + 1);
       return;
     }
     responsable.despues(null);
-    avisar.exito(lista.length === 1 ? (usar ? "Listo: sale en el probador." : "Descartado: no sale en el probador.") : "Listo: revisaste todos.");
+    if (lista.length > 1) avisar.exito("Listo: revisaste todos.");
+    else if (!deshacer) avisar.exito(usar ? "Listo: sale en el probador." : "Descartado: no sale en el probador.");
     onClose();
   }
 
@@ -71,6 +85,7 @@ export function RevisarRecorteHoja({
       onClose={onClose}
       variante="hoja"
       tamano="mediana"
+      alCerrarEnfocar={alCerrarEnfocar}
       bloqueado={guardando !== null}
     >
       <div className="space-y-5">
@@ -135,4 +150,22 @@ export function RevisarRecorteHoja({
       </div>
     </Modal>
   );
+}
+
+/** Devuelve el recorte a como estaba (`deshacer_descarte_recorte`): solo si sigue descartado, y queda en la Actividad. Corre desde el
+ *  aviso, aunque la hoja ya se haya cerrado; firma quien descartó. */
+async function deshacerElDescarte(
+  f: FotoDelProbador,
+  params: NonNullable<ReturnType<typeof paraDeshacerElDescarte>>,
+  firma: Firma | null,
+  onHecho: (foto: string, recorte: RecorteDeFoto) => void,
+) {
+  const { data, error } = await firmar(createClient().rpc("deshacer_descarte_recorte", params), firma);
+  if (error || !data) {
+    avisar.error(errorDeRecorte(`${error?.message ?? ""} ${error?.hint ?? ""}`) ?? traducirError(error ?? { message: "sin respuesta" }, "deshacer el descarte"));
+    return;
+  }
+  const nuevo = recorteDeRespuesta(data, f.url);
+  if (nuevo) onHecho(f.foto, nuevo);
+  avisar.exito(params.p_estado === "por_revisar" ? `El recorte de «${f.nombre}» vuelve a esperar revisión.` : `El recorte de «${f.nombre}» vuelve al probador.`);
 }

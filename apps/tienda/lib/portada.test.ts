@@ -4,13 +4,12 @@ import {
   anuncios,
   fechaCorta,
   fechaLarga,
-  finDeCampana,
   interpretarPortada,
-  partesCuenta,
   partirTitulo,
   pctTexto,
   PORTADA_SIN_DATOS,
 } from "./portada";
+import { finDeCampana, partesCuenta } from "./cuenta-regresiva";
 
 const ANIVERSARIO = { nombre: "Aniversario CAYLA", pct: 12, hasta: "2026-10-21" };
 
