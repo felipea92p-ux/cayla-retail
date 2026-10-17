@@ -405,9 +405,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   // quién lo hace y el motivo como sugerido (Felipe 2026-10-17: se enciende y sale en «Falta», pero nunca bloquea); cambiar la sede, reactivar y quitar el acceso son un toque y solo piden quién lo hace.
   "components/colaboradores/FichaColaborador.tsx": { estado: "aplicada", evidencia: ["components/colaboradores/FichaColaborador.tsx"] },
   "components/clientas/BeneficiosClubModal.tsx": { estado: "aplicada", evidencia: ["components/clientas/BeneficiosClubModal.tsx"] },
-  // Recomendaciones (ADR-0408): desde el 2026-10-17 la hoja es un `<Cajon>`, que este registro no cuenta como modal; su guía (la
-  // respuesta, que siempre falta hasta estar bien escrita, y quién lo hace) la sigue vigilando la entrada de su pantalla,
-  // «/tienda-web/recomendaciones», que la cita como evidencia.
+  // Recomendaciones (ADR-0408): desde el 2026-10-17 la hoja es un `<Cajon>`, que la prueba también cuenta como hoja. Su guía: la respuesta,
+  // que falta hasta estar bien escrita, y quién lo hace. «Falta» = lo que `responder_recomendacion` rechazaría (`lib/recomendaciones-guia.ts`).
+  "components/recomendaciones/RecomendacionHoja.tsx": { estado: "aplicada", evidencia: ["components/recomendaciones/RecomendacionHoja.tsx"] },
   "components/alta-producto/ElegirColores.tsx": { estado: "no-aplica", motivo: "Elegir colores sirve a la fila «Colores» de Nuevo producto, que ya lleva su guía (FilaAlta). Su hoja «Nuevo color» (2026-10-02) pide solo nombre y tono: la familia y el código se llenan solos, y lo que falta se dice al tocar «Crear y elegir»." },
   "components/alta-producto/ProponerValor.tsx": { estado: "no-aplica", motivo: "Modal «Nuevo tejido / patrón / talla» (2026-10-02): un solo campo, el nombre; «Agregar» se apaga mientras está vacío." },
   "components/alta-producto/ElegirEtiquetas.tsx": { estado: "no-aplica", motivo: "Hoja de elegir etiquetas que sirve a la fila «Etiquetas» de Nuevo producto, que ya lleva su guía (FilaAlta); elegir es opcional y «Listo» aplica lo marcado." },
