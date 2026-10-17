@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { Forma } from "@/lib/catalogo";
 import { DibujoPrenda } from "./DibujoPrenda";
@@ -36,6 +36,14 @@ export function FotoTarjeta({
   // Una foto que no carga (borrada, sin red): queda la silueta, nunca una imagen rota.
   const [rota, setRota] = useState(false);
   const conFoto = Boolean(foto) && !rota;
+  // La foto que baja cuando el cliente se acerca aparece con un fundido sobre la silueta de su color, no de golpe (2026-10-17). Solo la que
+  // todavía no llegó al activarse la página: la de la primera fila (`pronto`) puede estar a medio pintar, y esconderla para volver a
+  // mostrarla sería un parpadeo. La marca es un atributo del DOM (`data-esperando`, catalogo.css), no un estado: no vuelve a dibujar nada.
+  const imagen = useRef<HTMLImageElement>(null);
+  useEffect(() => {
+    const img = imagen.current;
+    if (!pronto && img && !img.complete) img.dataset.esperando = "";
+  }, [pronto, foto]);
   return (
     <span className={`t-card-foto${conFoto ? "" : " sin-foto"}`}>
       <span className="t-dibujo">
@@ -43,6 +51,7 @@ export function FotoTarjeta({
       </span>
       {conFoto && foto && (
         <Image
+          ref={imagen}
           src={foto}
           alt={nombre}
           fill
@@ -51,6 +60,9 @@ export function FotoTarjeta({
           loading={pronto ? "eager" : undefined}
           fetchPriority={pronto ? "high" : undefined}
           className={`f1${segunda ? " con-f2" : ""}`}
+          onLoad={(e) => {
+            delete e.currentTarget.dataset.esperando;
+          }}
           onError={() => setRota(true)}
         />
       )}

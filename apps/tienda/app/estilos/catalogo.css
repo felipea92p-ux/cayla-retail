@@ -124,6 +124,9 @@
 .t-card-foto { position: relative; display: block; width: 100%; aspect-ratio: 4 / 5; background: var(--t-foto); border-radius: 3px; overflow: hidden; }
 .t-card-foto img { object-fit: contain; mix-blend-mode: multiply; transition: opacity .5s var(--ease), transform .8s var(--ease); }
 .t-card-foto .f2 { opacity: 0; }
+/* La foto que todavía baja (`FotoTarjeta`, `data-esperando`): invisible sobre la silueta de su color y, al llegar, aparece con el fundido
+   de .5 s de arriba. Con «reducir movimiento», la regla general de globals.css la muestra de una vez. */
+.t-card-foto img[data-esperando] { opacity: 0; }
 @media (hover: hover) {
   .t-card:hover .t-card-foto .f2 { opacity: 1; }
   .t-card:hover .t-card-foto .f1.con-f2 { opacity: 0; }
@@ -263,6 +266,13 @@ a.t-campana:hover { border-color: var(--taupe); }
 .t-esqueleto-linea { height: 11px; margin-top: 12px; border-radius: 3px; background: var(--hueso); }
 .t-esqueleto-linea + .t-esqueleto-linea { width: 55%; margin-top: 7px; }
 .t-solo-lector { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* El final de una lista con más prendas por dibujar (`components/MasPrendas.tsx`, lib/tandas.ts): la tanda siguiente se pide sola y,
+   mientras llega, cuatro tarjetas brillan con la forma de las que vienen, pegadas a la grilla de arriba (mismo espacio entre filas). */
+.t-mas { display: grid; justify-items: center; gap: 22px; margin-top: 24px; }
+.t-mas-esqueleto { padding-block: 0; width: 100%; }
+.t-mas-boton { gap: 10px; }
+.t-mas-boton small { font-size: 12.5px; font-weight: 500; color: var(--tinta-60); }
+.t-mas[data-cargando] .t-mas-boton { opacity: .6; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) {
   .t-esqueleto .t-card-foto, .t-esqueleto .t-foto-g { animation: none; background: var(--t-foto); }
 }

@@ -142,8 +142,9 @@ export type DatosCabecera = {
   /** Los menús «Ropa» y «Accesorios» (lib/grupos.ts): solo los que tienen algo, con sus grupos y categorías. Los usan la computadora
    *  (un menú que se abre por cada uno) y el celular (las categorías, en su grupo). */
   menus: MenuCabecera[];
-  /** El buscador: todo lo publicado (en la tienda elegida). */
-  indice: ItemBusqueda[];
+  /** La clave de la tienda elegida (o null con «Todas»): el buscador pide su lista para ella (`indiceDelBuscador`). La lista no viaja
+   *  con la cabecera (2026-10-17): eran ~530 bytes por prenda en CADA página, aunque nadie abriera el buscador. */
+  sede: string | null;
   /** Con el buscador vacío, las categorías para tocar. */
   sugerencias: string[];
 };
@@ -193,22 +194,28 @@ export function datosDeCabecera(prendas: readonly Prenda[], sede: string | null,
     probador: conProbador ? hrefDelProbador(sede) : null,
     favoritos: HREF_FAVORITOS,
     menus,
-    indice: prendas.map((p) => {
-      const foto = fotosDeTarjeta(p)[0];
-      return {
-        id: p.id,
-        nombre: p.nombre,
-        categoria: p.categoria?.nombre ?? null,
-        colores: p.colores.map((c) => c.nombre),
-        precio: precioTarjeta(p).principal,
-        oferta: insigniaOferta(p),
-        href: hrefDePrenda(p, sede),
-        foto,
-        optimizar: foto ? fotoOptimizable(foto, origenFotos) : false,
-        forma: formaDe(p.categoria?.prefijo),
-        color: colorDeDibujo(p),
-      };
-    }),
+    sede,
     sugerencias: categorias.slice(0, 6).map((x) => x.corto),
   };
+}
+
+/** El buscador de la cabecera: todo lo publicado en la tienda elegida, con lo que dice cada tarjeta (precio, oferta, foto) y nada más. Lo
+ *  pide la cabecera recién cuando el cliente va a buscar (`app/acciones/buscador.ts`), no con cada página. */
+export function indiceDelBuscador(prendas: readonly Prenda[], sede: string | null, origenFotos: string | undefined): ItemBusqueda[] {
+  return prendas.map((p) => {
+    const foto = fotosDeTarjeta(p)[0];
+    return {
+      id: p.id,
+      nombre: p.nombre,
+      categoria: p.categoria?.nombre ?? null,
+      colores: p.colores.map((c) => c.nombre),
+      precio: precioTarjeta(p).principal,
+      oferta: insigniaOferta(p),
+      href: hrefDePrenda(p, sede),
+      foto,
+      optimizar: foto ? fotoOptimizable(foto, origenFotos) : false,
+      forma: formaDe(p.categoria?.prefijo),
+      color: colorDeDibujo(p),
+    };
+  });
 }

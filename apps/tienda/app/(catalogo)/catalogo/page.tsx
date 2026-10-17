@@ -5,6 +5,7 @@ import { ElegidoALaVista } from "@/components/ElegidoALaVista";
 import { FiltrosDeLista } from "@/components/FiltrosDeLista";
 import { Icono } from "@/components/Icono";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
+import { MasPrendas } from "@/components/MasPrendas";
 import { PendienteDelEnlace } from "@/components/PendienteDelEnlace";
 import { TusLooks } from "@/components/probador/TusLooks";
 import { TarjetaPrenda } from "@/components/TarjetaPrenda";
@@ -37,6 +38,7 @@ import { fechaLarga, pctTexto } from "@/lib/portada";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
+import { conMostrar, leerMostrar, tandaDe } from "@/lib/tandas";
 import { leerSedes } from "@/lib/tiendas-servidor";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -127,6 +129,9 @@ export default async function Catalogo({ searchParams }: Props) {
   // La lista en todas las tiendas: si tampoco ahí hay nada, lo que falta no es la tienda (la lista dice su propio vacío).
   const enTodas = esFavoritos ? deLaLista : filtrarYOrdenar(delMenu(prendas ?? [], claveMenu), { categoria: null, orden: "destacado", lista, campana });
   const vista = delGrupo(filtrarYOrdenar(base, { categoria, orden, lista, campana }), grupoPedido);
+  // Las tarjetas se dibujan en tandas (lib/tandas.ts): las primeras 24 y, al acercarse al final, las que siguen. El conteo y los filtros
+  // siguen siendo de la lista entera.
+  const tanda = tandaDe(vista.length, leerMostrar(sp.mostrar));
   const loPedidoEnTodas = esFavoritos ? vista : delGrupo(filtrarYOrdenar(delMenu(prendas ?? [], claveMenu), { categoria, orden, lista, campana }), grupoPedido);
   const enOtras = loPedidoEnTodas.length - vista.length;
   // El grupo encendido: el pedido o el de la categoría elegida. Lo elegido sale en los filtros aunque esta tienda no tenga nada de eso
@@ -397,7 +402,7 @@ export default async function Catalogo({ searchParams }: Props) {
             {vista.length > 0 ? (
               <>
                 <div className={`t-grilla${esFavoritos ? " t-grilla-favoritos" : ""}`}>
-                  {vista.map((p, i) => (
+                  {vista.slice(0, tanda.visibles).map((p, i) => (
                     <TarjetaPrenda
                       key={p.id}
                       prenda={p}
@@ -410,6 +415,9 @@ export default async function Catalogo({ searchParams }: Props) {
                     />
                   ))}
                 </div>
+                {tanda.siguiente !== null && (
+                  <MasPrendas href={conMostrar(href({}), tanda.siguiente)} cuantasMas={tanda.cuantasMas} quedan={tanda.quedan} />
+                )}
                 {carrilSeguir}
               </>
             ) : vacioAqui ? (

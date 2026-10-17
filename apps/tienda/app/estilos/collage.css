@@ -4,7 +4,10 @@
    foto son fijos (son parte de la foto), igual en claro y en oscuro.
    ===================================================================================================== */
 .t-collage { position: relative; height: 330px; z-index: 2; }
-.t-polaroid { position: absolute; width: 47%; padding: 8px 8px 34px; background: var(--t-papel-fijo); border-radius: 5px; box-shadow: 0 26px 40px -18px color-mix(in srgb, var(--t-tinta-fija) 55%, transparent); transform: rotate(var(--r)); transition: transform .45s var(--ease), box-shadow .45s; animation: t-caer 1s var(--ease) both; animation-delay: calc(var(--i) * 140ms + 260ms); color: var(--t-tinta-fija); }
+/* La caída empieza con la página y dura menos (2026-10-17): antes la primera polaroid esperaba 0,26 s y la tercera quedaba quieta a
+   los 1,54 s; como empiezan invisibles, lo principal del héroe (las fotos) se veía tarde. Ahora la primera cae desde el primer cuadro
+   y la tercera queda quieta a los 0,88 s: la misma caída, una sola vez, sin rebote. */
+.t-polaroid { position: absolute; width: 47%; padding: 8px 8px 34px; background: var(--t-papel-fijo); border-radius: 5px; box-shadow: 0 26px 40px -18px color-mix(in srgb, var(--t-tinta-fija) 55%, transparent); transform: rotate(var(--r)); transition: transform .45s var(--ease), box-shadow .45s; animation: t-caer .7s var(--ease) both; animation-delay: calc(var(--i) * 90ms); color: var(--t-tinta-fija); }
 .t-polaroid .t-card-foto { border-radius: 0; }
 .t-polaroid-pie { position: absolute; left: 10px; right: 10px; bottom: 8px; display: flex; justify-content: space-between; gap: 6px; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; }
 .t-polaroid-pie > span:first-child { overflow: hidden; text-overflow: ellipsis; }

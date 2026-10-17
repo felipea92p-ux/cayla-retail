@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { salir } from "@/app/acciones/cuenta";
-import { buscarEn, resaltar } from "@/lib/buscador";
+import { buscarEn, leerRespuestaDelBuscador, resaltar, type RespuestaBuscador } from "@/lib/buscador";
 import type { DatosCabecera, FotoChica, MenuCabecera } from "@/lib/inicio";
 import { useGuardados } from "./club/Guardados";
 import { BotonCerrarSesion } from "./cuenta/BotonCerrarSesion";
@@ -18,6 +18,26 @@ export type SeccionActual = "inicio" | "nuevo" | "vendidos" | "ofertas" | "looks
 
 /** «3 favoritos», «1 favorito»: lo que oye el lector en el corazón. */
 const etiquetaFavoritos = (n: number | null) => (n ? `Favoritos: ${n} ${n === 1 ? "guardado" : "guardados"}` : "Favoritos");
+
+// La lista del buscador no viaja con cada página (2026-10-17): se pide al primer roce de la lupa (`GET /api/buscador`) y se guarda en
+// este aparato 30 s por tienda, los mismos que el catálogo se comparte en el servidor (el navegador también la guarda esos 30 s): abrir y
+// cerrar el buscador, o pasar a otra página, no la vuelve a pedir. Un fallo no se guarda: el próximo roce lo vuelve a intentar.
+const SEGUNDOS_DEL_INDICE = 30;
+const indicesGuardados = new Map<string, { hasta: number; promesa: Promise<RespuestaBuscador> }>();
+function pedirIndice(sede: string | null): Promise<RespuestaBuscador> {
+  const clave = sede ?? "";
+  const guardado = indicesGuardados.get(clave);
+  if (guardado && guardado.hasta > Date.now()) return guardado.promesa;
+  const promesa = fetch(`/api/buscador?sede=${encodeURIComponent(sede ?? "")}`, { headers: { accept: "application/json" } })
+    .then((r) => r.json())
+    .then(leerRespuestaDelBuscador)
+    .catch((): RespuestaBuscador => ({ estado: "sin_respuesta" }));
+  indicesGuardados.set(clave, { hasta: Date.now() + SEGUNDOS_DEL_INDICE * 1000, promesa });
+  void promesa.then((r) => {
+    if (r.estado !== "ok") indicesGuardados.delete(clave);
+  });
+  return promesa;
+}
 
 /**
  * La cabecera de quien tiene cuenta (maqueta v4, `cabT`): en el celular, el menú a la izquierda; en la computadora, «Lo nuevo», «Ropa» y
@@ -43,6 +63,13 @@ export function CabeceraConCuenta({
   nombre?: string | null;
 }) {
   const [hoja, setHoja] = useState<"menu" | "buscar" | null>(null);
+  // La lista del buscador de ESTA tienda, cuando llega (null mientras tanto, o si es de otra tienda: la persona cambió de tienda).
+  const [indice, setIndice] = useState<{ sede: string | null; respuesta: RespuestaBuscador } | null>(null);
+  const prepararBuscador = () => {
+    const sede = datos.sede;
+    void pedirIndice(sede).then((respuesta) => setIndice({ sede, respuesta }));
+  };
+  const indiceDeEstaTienda = indice && indice.sede === datos.sede ? indice.respuesta : null;
   // El globo del corazón, al día: dentro del catálogo lo guardado se lleva en el navegador (`ProveedorGuardados`) y baja apenas se quita
   // un favorito; fuera de él (Mi cuenta, la bolsa), lo que contó el servidor.
   const guardados = useGuardados();
@@ -112,7 +139,18 @@ export function CabeceraConCuenta({
             </Link>
           </nav>
           <span className="t-esp" />
-          <button type="button" className="t-ico" aria-label="Buscar" onClick={(e) => abrir("buscar", e.currentTarget)}>
+          <button
+            type="button"
+            className="t-ico"
+            aria-label="Buscar"
+            onPointerEnter={prepararBuscador}
+            onFocus={prepararBuscador}
+            onTouchStart={prepararBuscador}
+            onClick={(e) => {
+              prepararBuscador();
+              abrir("buscar", e.currentTarget);
+            }}
+          >
             <Icono nombre="lupa" />
           </button>
           <Link className="t-ico t-solo-grande" href={datos.favoritos} aria-label={etiquetaFavoritos(cuantosFavoritos)} aria-current={marca("favoritos")}>
@@ -126,7 +164,7 @@ export function CabeceraConCuenta({
 
       {hoja && <div className="t-velo" aria-hidden="true" onClick={cerrar} />}
       {hoja === "menu" && <HojaMenu datos={datos} favoritos={cuantosFavoritos} cerrar={cerrar} />}
-      {hoja === "buscar" && <HojaBuscar datos={datos} cerrar={cerrar} />}
+      {hoja === "buscar" && <HojaBuscar datos={datos} indice={indiceDeEstaTienda} reintentar={prepararBuscador} cerrar={cerrar} />}
     </>
   );
 }
@@ -343,10 +381,25 @@ function HojaMenu({ datos, favoritos, cerrar }: { datos: DatosCabecera; favorito
   );
 }
 
-/** El buscador (maqueta, hoja «buscar»): busca mientras se escribe; vacío, las categorías para tocar; sin nada, lo dice. */
-function HojaBuscar({ datos, cerrar }: { datos: DatosCabecera; cerrar: () => void }) {
+/**
+ * El buscador (maqueta, hoja «buscar»): busca mientras se escribe; vacío, las categorías para tocar; sin nada, lo dice. La lista llega
+ * aparte (`indice`, casi siempre ya está: se pidió al rozar la lupa); si se escribe antes de que llegue, «Buscando…» con tres filas que
+ * brillan con la forma de los resultados, y si la base no contestó, «Volver a intentar».
+ */
+function HojaBuscar({
+  datos,
+  indice,
+  reintentar,
+  cerrar,
+}: {
+  datos: DatosCabecera;
+  indice: RespuestaBuscador | null;
+  reintentar: () => void;
+  cerrar: () => void;
+}) {
   const [q, setQ] = useState("");
-  const encontradas = buscarEn(datos.indice, q);
+  const lista = indice?.estado === "ok" ? indice.indice : null;
+  const encontradas = lista ? buscarEn(lista, q) : [];
   const corto = q.trim().length < 2;
   const router = useRouter();
   return (
@@ -391,6 +444,30 @@ function HojaBuscar({ datos, cerrar }: { datos: DatosCabecera; cerrar: () => voi
               </div>
             </>
           )
+        ) : indice === null ? (
+          <>
+            <span className="t-ceja t-resultados-cuenta">Buscando…</span>
+            <div className="t-esqueleto t-resultados-esqueleto" aria-hidden="true">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="t-resultado">
+                  <span className="t-card-foto" />
+                  <span>
+                    <i className="t-esqueleto-linea" />
+                    <i className="t-esqueleto-linea" />
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : lista === null ? (
+          <div className="t-vacio t-vacio-chico">
+            <Icono nombre="lupa" />
+            <h3>No pudimos buscar ahora</h3>
+            <p>Es un problema de conexión de nuestro lado.</p>
+            <button type="button" className="t-btn t-btn-sec" onClick={reintentar}>
+              Volver a intentar
+            </button>
+          </div>
         ) : encontradas.length === 0 ? (
           <>
             <div className="t-vacio t-vacio-chico">
