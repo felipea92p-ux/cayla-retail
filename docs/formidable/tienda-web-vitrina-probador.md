@@ -35,8 +35,8 @@ Hecho con los arreglos chicos (OK de Felipe, 2026-10-17):
 - ✓ La lista dice cuándo está filtrada: «3 de 14» y la píldora que quita el filtro. El patrón de las 13 pantallas con tarjetas que filtran sigue.
 - ✓ El ícono de «Largos típicos» al lado del texto. La pieza `<Boton>` sigue dejando la trampa abierta: `<BotonAncla>` y `<BotonEnlace>`
   envuelven en `inline-flex` y `<Boton>` no.
-- ✓ «Descartar» trae «Deshacer» en su aviso: el recorte vuelve tal como estaba (`registrar_recorte` con el mismo archivo). La Actividad
-  muestra el descarte, pero no el «Deshacer».
+- ✓ «Descartar» trae «Deshacer» en su aviso: el recorte vuelve tal como estaba. Después de `/chaos`, con `deshacer_descarte_recorte`
+  (`20261017183000`): solo si sigue descartado y queda en la Actividad.
 - ✓ «recortador (26 MB)» → «un poco más mientras se prepara el recortador»; «La categoría Vestidos no tiene largo típico: sin el suyo, no sale
   en el probador»; y las cajas vacías de «Largos típicos» dicen «Sin típico», no un «Ej.» que invite a llenarlas.
 
@@ -73,7 +73,7 @@ Hechos en la rama `claude/formidable-vitrina-probador`, medidos en el mismo banc
 - **El paso que toca, arriba:** «Preparar 3 recortes» queda a 152 px de arriba a 1440×900 (antes 1765) y a 268 px a 1024×768 (antes 1884);
   sin nada que recortar ni revisar, el botón pasa a «Anotar 3 largos» y filtra la lista con su píldora [Medido].
 - **Arreglos chicos:** «Largos típicos» mide 39,3 px junto a la caja de 40 (antes 50,9); la lista filtrada dice «3 de 14» y lleva la píldora
-  que quita el filtro; «Descartar» trae «Deshacer» en su aviso (el recorte vuelve tal como estaba); «recortador (26 MB)» pasa a «un poco más
+  que quita el filtro; «Descartar» trae «Deshacer» en su aviso (el recorte vuelve tal como estaba, si nadie decidió después); «recortador (26 MB)» pasa a «un poco más
   mientras se prepara el recortador»; «La categoría Vestidos no tiene largo típico…»; y las cajas vacías de «Largos típicos» dicen «Sin
   típico», no un «Ej.» [Medido].
 - Leyes: 2 → 8, 3 → 7, 4 → 8, 5 → 7, 7 → 8, 8 → 7, 9 → 7; 1 y 6 sin cambio → **7,2** (provisional). Oficio: falla solo la jerarquía de las

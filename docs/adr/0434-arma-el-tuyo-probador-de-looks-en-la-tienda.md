@@ -265,3 +265,13 @@ pedía largo y recorte a prendas que el probador nunca muestra: 36 de las 48 pre
 Felipe también decidió (2026-10-17) **quitar** los largos típicos que se guardaron ese día en producción para Vestidos (110), Faldas (55)
 y Enterizos (140), que eran los números de ejemplo de esas cajas: la decisión del 2026-10-16 sigue en pie. Las cajas vacías de «Largos
 típicos» dicen ahora «Sin típico», no un «Ej.» que invite a llenarlas. Los quita él en el ERP de producción.
+
+### Después de /chaos (2026-10-17)
+
+`/chaos` de la misma pantalla (semilla 1017, `docs/chaos/README.md`) encontró que el «Deshacer» del aviso de un descarte, que volvía a
+anotar el recorte con `registrar_recorte`, le pisaba la decisión a quien lo hubiera usado en esos 7 segundos, y no quedaba en la Actividad.
+La migración `20261017183000` trae `deshacer_descarte_recorte(p_foto, p_estado)`: devuelve el recorte a como estaba solo si sigue
+descartado (si no, `recorte_ya_cambio`) y lo anota. Además, `registrar_recorte` exige que el archivo sea el de esa foto
+(`recortes/<foto>.png` o `recortes/<foto>-<sello>.png`) y que una foto con recorte la cambie quien ve la Vitrina web; el mismo archivo otra
+vez es un reintento. Se pega en producción con el OK de Felipe antes de fusionar el PR #1164.
+

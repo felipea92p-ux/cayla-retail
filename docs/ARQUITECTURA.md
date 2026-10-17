@@ -882,7 +882,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`vitrina_guardar_largos_tipicos`; `vitrina_productos.largo_cm` y `retail.vitrina_largos_tipicos`, `20261017015000`) + `PrepararRecortesHoja.tsx` (recorta EN EL NAVEGADOR con MODNet sobre el original, `lib/recorte-probador.ts`:
   los colores de la foto de la tienda y la transparencia de `mascaraDePrenda` de `lib/preparar-foto.ts`; sube `recortes/<id>-<sello>.png`
   con `subirRecorteDeFoto` y anota con `registrar_recorte`) + `RevisarRecorteHoja.tsx` (`revisar_recorte`: usar o descartar; el «Deshacer»
-  de un descarte vuelve a anotar el mismo archivo con `registrar_recorte`, `paraDeshacerElDescarte`). Ninguna
+  de un descarte es `deshacer_descarte_recorte`, solo si sigue descartado, `20261017183000`). Ninguna
   foto se modifica. Reglas puras en `lib/recorte-probador-reglas.ts`, guía de foco en `lib/vitrina-probador-guia.ts`; tabla
   `retail.foto_recortes` (`20261017003000`). Desde la actividad 2, cada foto que sube `subirFotoProducto` (`lib/producto-fotos.ts`: Editar
   producto, Nuevo producto y la cola sin conexión) pide por detrás su recorte (`recortarAlSubir`, carga perezosa de `lib/recorte-probador.ts`),
