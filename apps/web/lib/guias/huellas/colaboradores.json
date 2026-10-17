@@ -92,10 +92,10 @@
       "ComboResponsable «{responsable}»",
       "button «{r.nombre}»",
       "button «{u.nombre}»",
-      "button «{responsable.motivo ?? undefined}»",
+      "button «{responsable.motivo ?? guia.frase ?? undefined}»",
       "button «{u.nombre}» #2",
       "input «{`motivo-${persona.id}»",
-      "button «{responsable.motivo ?? undefined}» #2",
+      "button «{responsable.motivo ?? guia.frase ?? undefined}» #2",
       "button «Sí, quitar acceso»",
       "button «Volver»",
       "button «Quitar acceso»"
