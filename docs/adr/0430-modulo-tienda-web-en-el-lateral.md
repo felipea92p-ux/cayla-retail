@@ -180,3 +180,29 @@ toca, el plazo, el verbo, lo cerrado) y su huella se aceptó.
   tienda no lo ven. Se da en Colaboradores ▸ Roles y accesos (el módulo es delegable).
 - **Verlo con datos reales.** La base local compartida va 218 migraciones atrás (no tiene `pedidos_web`): la pantalla se miró con datos de
   ejemplo en una ruta temporal (1366 px, claro y oscuro, 375 px) y `guias:recorrer` queda para cuando la base local esté al día.
+
+## Corrección 2026-10-17 (b) — «Te paga» también pierde la venta: sin ningún pago, el pedido se anula solo
+
+La DECIDÍ 9 de arriba decía que pagar «solo avisa». **Era falso desde el 2026-10-16**: `20261016001000_pedidos_web_topes_y_anulacion_sin_pagar.sql`
+(ADR-0408 D2, en producción, verificado el 2026-10-17) anula solo, cada 15 minutos, un pedido CONFIRMADO al que no se le pagó NADA cuando se
+cumplen las horas de «Si no paga» (48 de fábrica), y sus prendas se liberan. Con un pago parcial no se anula: solo avisa y decide la
+tienda. Datos y plazos ya lo decía bien; el camino lo contradecía. El error fue de quien escribió la actualización (no leyó esa migración).
+
+- El tramo es «Te paga · sin pago, se anula a las 48 h», con el reloj y en rojo profundo, como «Confirmas». Solo «Lo recoge» avisa.
+- En la lista, un confirmado sin ningún pago dice «Sin pago, se anula en 42 h · Si no paga nada hasta …» y se ordena con lo que se
+  cierra solo (a menos de 3 h, arriba de todo). Con un pago parcial: «Pagó S/ 80.00 de S/ 159.00 · Pagó una parte: no se anula solo».
+- La estación «Por cobrar» dice cuándo se anula el primero sin pago (y late a menos de 3 h); la regla de «¿Cómo funciona?» lo explica.
+- **SE ROMPE SI** cambia la regla de la base (por ejemplo, que también se anule con un pago parcial): `relojDeFila`, `loQueTeToca` y
+  `tramosDelCamino` en `lib/pedidos-web-reglas.ts` repiten lo que decide `fn_anular_pedidos_web_sin_pagar`, y sus pruebas lo nombran.
+
+## Corrección 2026-10-17 (c) — la hoja del pedido: «Es la última» cuenta la tienda, y «Quitar» no se ofrece sin salida
+
+Dos errores de la hoja de un pedido por confirmar, vistos en una captura de producción (maqueta con los demás puntos de la hoja, sin
+construir: `docs/maquetas/pedidos-web-2026-10/hoja.html`):
+
+- **«Es la última en Tienda TRU» era falso** justo debajo de «Hay 2 en Tienda TRU (1 en almacén, 1 en piso)». `avisosDeLinea` contaba lo
+  libre en el LUGAR elegido pero nombraba a la tienda. Ahora cuenta la tienda entera y dice qué significa: «Es la última en Tienda TRU: al
+  confirmar, ya no se puede vender en la tienda». En otra tienda, cuenta esa tienda, como antes.
+- **«Quitar del pedido» con una sola prenda llevaba a un callejón**: la prenda se tachaba y «Confirmar» quedaba bloqueado («si quitas
+  todas, ciérralo con «No se puede confirmar»»). Ahora el botón sale solo si queda otra prenda sin quitar (`sePuedeQuitar`); con una sola,
+  la salida es «No se puede confirmar», que ya está en el pie. `problemaParaConfirmar` sigue de red.
