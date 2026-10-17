@@ -50,5 +50,8 @@ Sigue a `docs/backlog/2026-10-17-tienda-percepcion-fdbd9c.md` (fila 1, «Medir a
 - [ ] **Corrección a `2026-10-17-tienda-percepcion-fdbd9c.md`, fila 9 (calentar la caché):** dice que el plan gratis de Vercel corre las
   tareas programadas una vez al día, pero la cuenta es **Pro** (bitácora 2026-09-09): en Pro pueden correr cada minuto. Lo que decide
   esa fila es el costo de las invocaciones, no el plan.
+- [ ] **Con #1173 (`EnCamino`, el esqueleto instantáneo de una lista a otra):** su `FormaDelEsqueleto` no lleva `data-esqueleto`, así que
+  la medición no lo ve y la fila `/catalogo → /catalogo` mediría el toque hasta la página. El que fusione segundo le pone la marca al
+  esqueleto de `EnCamino` (la fila lista → ficha no cambia: usa `EsqueletoDePagina`).
 - [ ] **Si se suma una página o un `loading.tsx`:** la página va en `RUTAS_MEDIDAS` (`lib/medicion.ts`; la prueba lo exige) y el
   `loading.tsx` dibuja `EsqueletoDePagina` (si no, sus toques se miden como sin esqueleto).
