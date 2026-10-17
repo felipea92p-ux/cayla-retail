@@ -38,6 +38,18 @@ const MIGRACIONES = [
 ].map((m) =>
   readFileSync(join(RAIZ, "supabase", "migrations", m), "utf8"),
 );
+// Lo que vino DESPUÉS y toca `fn_parametros_caja`: 20261017020000 (ADR-0435) la envuelve y deja el cuerpo vigente como
+// `fn_parametros_caja_normal`. 20261015222000 compara el md5 del cuerpo antes de reemplazarlo, así que primero se quita el
+// envoltorio (queda el cuerpo de antes) y, tras pegar las dos, se vuelve a pegar la de después (idempotente): el camino es el
+// mismo en local y en el CI, y los casos de abajo prueban además la guardia del envoltorio.
+const DESHACER_ENVOLTORIO = `
+do $f$ begin
+  if to_regprocedure('retail.fn_parametros_caja_normal(uuid,date)') is not null then
+    drop function retail.fn_parametros_caja(uuid, date);
+    alter function retail.fn_parametros_caja_normal(uuid, date) rename to fn_parametros_caja;
+  end if;
+end $f$;`;
+const REAPLICAR_ENVOLTORIO = readFileSync(join(RAIZ, "supabase", "migrations", "20261017020000_metas_por_mes_y_por_fecha.sql"), "utf8");
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora — Tienda Trujillo (seed)
@@ -55,7 +67,7 @@ function psql(sql) {
 /** Corre `sql` en una transacción que siempre se deshace, con la migración pegada antes. */
 function correr(sql) {
   try {
-    const salida = psql(`begin;\n${PRELUDIO}\n${MIGRACIONES.join("\n")}\nreset search_path;\n${CUENTAS}\n${sql}\nrollback;\n`);
+    const salida = psql(`begin;\n${PRELUDIO}\n${DESHACER_ENVOLTORIO}\n${MIGRACIONES.join("\n")}\n${REAPLICAR_ENVOLTORIO}\nreset search_path;\n${CUENTAS}\n${sql}\nrollback;\n`);
     return { ok: true, lineas: salida.trim().split("\n").filter((x) => x !== "") };
   } catch (e) {
     return { ok: false, mensaje: `${e.stderr ?? ""}${e.message ?? ""}` };
@@ -162,7 +174,7 @@ select pg_temp.intento($$insert into retail.colores (codigo, nombre) values ('ZZ
 
 // E. Se pueden volver a pegar.
 {
-  const r = correr(`${MIGRACIONES.join("\n")}\nselect 'repegada';`);
+  const r = correr(`${DESHACER_ENVOLTORIO}\n${MIGRACIONES.join("\n")}\n${REAPLICAR_ENVOLTORIO}\nselect 'repegada';`);
   esperar("las dos migraciones se pueden pegar dos veces", ultima(r) === "repegada", r);
 }
 

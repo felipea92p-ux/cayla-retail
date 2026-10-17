@@ -16,9 +16,9 @@ import { ResumenTiendaWeb } from "@/components/tienda-web/ResumenTiendaWeb";
 
 // Tienda web ▸ Resumen (ADR-0430, Felipe 2026-10-16): «¿Qué te pide hoy la tienda web?». Es también la puerta del grupo: quien no tiene
 // el módulo del Resumen cae en la primera pantalla de Tienda web que ve, en el orden del menú. Sin funciones propias: lee con las
-// mismas lecturas de Pedidos, Vitrina, Recomendaciones y Ajustes, y SOLO las de los módulos que la cuenta ve (lo demás ni se pide).
+// mismas lecturas de Pedidos, Vitrina, Recomendaciones y Datos y plazos, y SOLO las de los módulos que la cuenta ve (lo demás ni se pide).
 export default async function TiendaWebPage() {
-  const persona = await exigirModulo("tienda_web", "pedidos_web", "vitrina_web", "recomendaciones", "configuracion");
+  const persona = await exigirModulo("tienda_web", "pedidos_web", "vitrina_web", "recomendaciones", "ajustes_web");
   if (!veModulo(persona, "tienda_web")) {
     if (veModulo(persona, "pedidos_web")) redirect("/tienda-web/pedidos");
     if (veModulo(persona, "vitrina_web")) redirect("/tienda-web/vitrina");
@@ -55,7 +55,7 @@ async function leerResumen(persona: Awaited<ReturnType<typeof exigirModulo>>): P
     ve("vitrina_web") ? supabase.rpc("fn_vitrina_looks") : nada,
     ve("vitrina_web") ? supabase.rpc("fn_vitrina_esperan") : nada,
     ve("recomendaciones") ? supabase.rpc("fn_recomendaciones") : nada,
-    ve("configuracion") ? getConfiguracionTiendaWeb() : nada,
+    ve("ajustes_web") ? getConfiguracionTiendaWeb() : nada,
   ]);
 
   const ahora = Date.now();
@@ -91,7 +91,7 @@ async function leerResumen(persona: Awaited<ReturnType<typeof exigirModulo>>): P
       : listaRecomendaciones
         ? { estado: "ok", dato: cifrasDeRecomendaciones(listaRecomendaciones.recomendaciones, hoyLima()) }
         : { estado: "fallo" },
-    ajustes: !ve("configuracion")
+    ajustes: !ve("ajustes_web")
       ? { estado: "sin_modulo" }
       : ajustes
         ? {

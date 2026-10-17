@@ -13,7 +13,7 @@ import { PERMISOS, type Permiso } from "./menu";
 export const CLAVES_MODULO = [
   "inicio",
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion",
-  "tienda_web", "pedidos_web", "vitrina_web", "recomendaciones",
+  "tienda_web", "pedidos_web", "vitrina_web", "recomendaciones", "ajustes_web",
   "clientas", "avisos_club",
   "existencias", "conteos", "traslados", "movimientos", "recibir",
   "productos", "atributos", "etiquetas", "liquidacion",
@@ -62,7 +62,7 @@ export const MODULOS: readonly Modulo[] = [
   // Tienda web (ADR-0430, Felipe 2026-10-16; 20261016174000): el grupo de lo de la tienda online, justo después de Ventas (el mismo
   // lugar que en el lateral). Su Resumen nace SIN rol (solo el líder) y delegable; no trae funciones propias: lee con las lecturas de las
   // otras tres pantallas, y cada una pide SU módulo. Pedidos web, Vitrina web y Recomendaciones llegaron de Ventas, Catálogo y Clientes
-  // sin cambiar quién los ve. Su cuarta pantalla, Ajustes, la abre el módulo Configuración (abajo, en Gestión).
+  // sin cambiar quién los ve. Su quinta pantalla, Ajustes («Datos y plazos»), tiene su módulo desde 20261016223000 (abajo): antes la abría Configuración.
   { clave: "tienda_web", grupo: "Tienda web", nombre: "Resumen de la tienda web", incluye: "Ver de un vistazo lo que la tienda online pide hoy: los pedidos por atender de su tienda, las recomendaciones sin responder, quién espera una talla, qué modelos no se ven en la web y qué le falta a cada tienda para mostrarse (cada cosa, solo si también tiene su pantalla)" },
   // Pedidos web (ADR-0408, actividad 8; 20261015010000): lo que los clientes separan en la tienda online para esta tienda. Nace SIN rol
   // (solo el líder) y delegable: sus funciones piden este módulo (`fn_pedido_web_exigir`) y la tienda que se opera. Quien lo tiene ve
@@ -75,6 +75,11 @@ export const MODULOS: readonly Modulo[] = [
   // su nombre. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo. Quien lo tiene ve las de TODAS las tiendas y
   // las de CAYLA en general, con el nombre del cliente aunque no tenga «Clientes» (la ficha, solo si la ve).
   { clave: "recomendaciones", grupo: "Tienda web", nombre: "Recomendaciones", incluye: "Leer lo que los clientes recomiendan desde la tienda online, con su nombre y sobre qué tienda es, marcarlo como leído, responderles con un texto corto que ven en su cuenta y archivarlo" },
+  // Datos y plazos (Felipe 2026-10-16; 20261016223000): Tienda web ▸ Ajustes. Antes la abría Configuración, que es mucho más (metas, fondo
+  // de caja, gastos fijos, parámetros tributarios): para dar esta pantalla había que dar todo eso. Nace SIN rol (solo el líder) y delegable:
+  // sus tres funciones propias piden este módulo (`fn_puede_ajustes_tienda_web`); `guardar_whatsapp_tienda`, compartida con Tiendas y
+  // caja, acepta cualquiera de los dos. Configuración ya no abre esta pantalla.
+  { clave: "ajustes_web", grupo: "Tienda web", nombre: "Datos y plazos de la tienda web", incluye: "Cambiar lo que la tienda online le muestra al cliente de cada tienda (nombre, WhatsApp, dirección, horario y si se ve en la web) y los plazos de los pedidos web (cuánto espera un pedido sin confirmar o sin pagar, cuánto sin recoger y desde cuántas unidades se muestra cuánto queda)" },
   { clave: "clientas", grupo: "Clientes", nombre: "Fichas de clientes", incluye: "Registrar, editar y archivar clientes; ver sus compras" },
   // Avisos del club (ADR-0288 act. g, G-8; 20261001210500): Clientas ▸ Avisos, los mensajes del club por mandar a las socias
   // con publicidad. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo, no al líder.

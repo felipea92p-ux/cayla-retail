@@ -39,6 +39,8 @@ export const MODULOS_DE_LA_VISTA_GLOBAL = [
   "impuestos",
   "cierre_mes",
   "configuracion",
+  // Datos y plazos de la tienda web (20261016223000): la web es una sola, así que se abre también en CAYLA Global, como cuando la abría Configuración.
+  "ajustes_web",
   "actividad",
   // Frescura del piso (ADR-0208, act. 2026-10-10 (b)): en esta vista dibuja una barra por tienda y la suma de CAYLA (`FrescuraRed`).
   "frescura",

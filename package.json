@@ -47,6 +47,7 @@
     "pruebas:caja-fondo-coherente": "node scripts/pruebas/caja_fondo_coherente.mjs",
     "pruebas:candado-dinero-caja-cambios-devoluciones": "node scripts/pruebas/candado_dinero_caja_cambios_devoluciones.mjs",
     "pruebas:configuracion-caja": "node scripts/pruebas/configuracion_caja_campanas.mjs",
+    "pruebas:metas-mes-y-fecha": "node scripts/pruebas/metas_mes_y_fecha.mjs",
     "pruebas:gastos": "node scripts/pruebas/gastos.mjs",
     "pruebas:activos-y-fijos": "node scripts/pruebas/activos_y_gastos_fijos.mjs",
     "pruebas:activos-carga-inicial": "node scripts/pruebas/activos_carga_inicial.mjs",
