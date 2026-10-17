@@ -2,9 +2,10 @@
   "guia": "inventario.conteo",
   "ruta": "/inventario/conteo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 25,
+  "total": 26,
   "controles": {
     "components/AbrirConteo.tsx": [
+      "Link «Ver traslados»",
       "SegmentoDeslizante «Qué vas a contar»",
       "ComboResponsable «{responsable}»",
       "Boton «{guia.frase ?? undefined}»",
@@ -15,7 +16,7 @@
       "Link «Contar todo»",
       "Link «Ir a ese día»",
       "Link «Ver todos»",
-      "Link «Ver ajustes por conteo →»"
+      "Link «Ver ajustes por conteo»"
     ],
     "components/ConteosLista.tsx": [
       "Link «conteo.fila»"

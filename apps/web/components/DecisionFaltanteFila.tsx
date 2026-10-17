@@ -67,7 +67,7 @@ export function EditorDecision({
   onCancelar?: () => void;
 }) {
   return (
-    <div role="group" aria-label={`Qué pasó con lo que falta de ${nombre}`} className="anim-revelar mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-xl border border-ambar/40 bg-ambar/[0.06] px-4 py-2.5">
+    <div /* unificar-fijo: la pregunta con sus píldoras para elegir, no un aviso */ role="group" aria-label={`Qué pasó con lo que falta de ${nombre}`} className="anim-revelar mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-xl border border-ambar/40 bg-ambar/[0.06] px-4 py-2.5">
       <span className="mr-1 text-[13px] text-tinta">
         ¿Qué pasó con {faltan === 1 ? "la" : `las ${faltan}`} que {faltan === 1 ? "falta" : "faltan"}?
       </span>

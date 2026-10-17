@@ -22,7 +22,7 @@
     ],
     "components/CerrarFaltanteModal.tsx": [
       "CampoSelect «¿En qué tienda faltó?»",
-      "input «cierre-cantidad»",
+      "CampoTexto «¿Cuántas unidades se cierran?»",
       "button «{texto}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cerrar línea con faltante»"
@@ -68,7 +68,7 @@
       "CampoSelect «¿De qué línea?»",
       "CampoSelect «Sale de»",
       "CampoSelect «Va a»",
-      "input «reasignar-cantidad»",
+      "CampoTexto «¿Cuántas unidades se mueven?»",
       "input «motivo-reasignacion»",
       "CampoTexto «{motivo === \"otro\" ? \"Nota (cuenta el motivo)\" : \"Nota (opcional)\"}»",
       "ComboResponsable «{responsable}»",

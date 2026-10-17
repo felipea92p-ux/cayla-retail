@@ -214,7 +214,7 @@ export const GUIA_INICIO: Guia = {
       ancla: "inicio.almacen-ultimos",
       opcional: true,
       titulo: "Lo último registrado",
-      texto: "Las prendas que se registraron hoy y ayer, con quién lo hizo y en qué sede. Míralas antes de crear otra: si ya está, no la registres dos veces. «Ver →» abre su ficha.",
+      texto: "Las prendas que se registraron hoy y ayer, con quién lo hizo y en qué sede. Míralas antes de crear otra: si ya está, no la registres dos veces. «Ver» abre su ficha.",
     },
     {
       id: "almacen-sigue",

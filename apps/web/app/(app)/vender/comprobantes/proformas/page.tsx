@@ -10,7 +10,7 @@ import { conversionDelMes } from "@/lib/facturacion-proformas-reglas";
 import { ProformasPanel } from "@/components/ProformasPanel";
 import { MarcaDeCarga } from "@/components/MarcaDeCarga";
 import { ProformasTarjetas } from "@/components/ProformasTarjetas";
-import { SelectorMesFacturacion } from "@/components/SelectorMesFacturacion";
+import { SelectorMesEnUrl } from "@/components/ui/SelectorMes";
 import type { PrendaParaProforma } from "@/components/NuevaProformaModal";
 
 // Proformas (ADR-0167): la lista del mes (`getProformasMes` suma además todas las vigentes, sin filtro de mes,
@@ -56,7 +56,7 @@ export default async function ProformasPage({ searchParams }: { searchParams: Pr
   return (
     <div className="space-y-6">
       <MarcaDeCarga en={ahora.getTime()} />
-      <SelectorMesFacturacion ruta="/vender/comprobantes/proformas" mes={mes} actual={actual} />
+      <SelectorMesEnUrl ruta="/vender/comprobantes/proformas" mes={mes} actual={actual} guia="comprobantes.mes" guiaAnterior="comprobantes.mes-anterior" />
       <ProformasTarjetas resumen={resumenProformas(proformas, ahora.getTime())} montoPorVencer={montoPorVencer(proformas, ahora.getTime())} />
       <ProformasPanel
         proformas={proformas}

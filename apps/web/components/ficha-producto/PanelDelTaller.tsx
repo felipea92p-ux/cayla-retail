@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { vistaDeFotos, type FotoLocal } from "@/lib/fotos-por-color-reglas";
 import { compararTallas } from "@/lib/tallas";
@@ -167,6 +168,7 @@ export function PanelDelTaller({
               const bloqueo = guardada ? stock.bloqueoDeSubida(f.id!) : stock.bloqueoNuevas;
               // Lo tocado y sin guardar, en ámbar como en la matriz: el panel no puede decir «8» como si ya estuviera guardado.
               const cambiada = !esperando && (guardada ? u !== stock.numeroGuardado(f.id!) : u > 0);
+              const tituloNumero = cambiada ? (guardada ? `Antes ${stock.numeroGuardado(f.id!)} · se guarda con «Revisar y guardar»` : "Entra como stock inicial al guardar") : undefined;
               // Sin «Ajustar stock» no hay stepper, ni en una variante nueva (no se le podría cargar stock inicial).
               const conBotones = stock.puedeAjustar;
               return (
@@ -179,37 +181,37 @@ export function PanelDelTaller({
                     etiqueta={nombre}
                     texto={`${u} ${u === 1 ? "unidad" : "unidades"}`}
                   />
-                  <span
-                    className={`text-right text-[12px] tabular-nums ${cambiada ? "font-semibold text-ambar-profundo" : "text-tinta"}`}
-                    title={cambiada ? (guardada ? `Antes ${stock.numeroGuardado(f.id!)} · se guarda con «Revisar y guardar»` : "Entra como stock inicial al guardar") : undefined}
-                  >
-                    {esperando ? "…" : u}
-                  </span>
                   {conBotones ? (
-                    <span className="taller-stepper" data-mini="true">
-                      <button
-                        type="button"
-                        aria-label={`Una menos de ${nombre}`}
-                        disabled={deshabilitado || esperando || !puedeBajar}
-                        onClick={() => (guardada ? stock.paso(f.id!, -1) : stock.pasoNueva(f.clave, -1))}
-                      >
-                        −
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={bloqueo ? `Una más de ${nombre}: ${bloqueo}` : `Una más de ${nombre}`}
-                        title={bloqueo ?? undefined}
-                        disabled={deshabilitado || esperando || !!bloqueo}
-                        onClick={() => {
+                    // El número va dentro del paso de cantidad (ADR-0358, ronda 17): ocupa las dos últimas columnas de la fila.
+                    <PasoCantidad
+                      tamano="celda"
+                      className="col-span-2 justify-self-end"
+                      menos={{
+                        onClick: () => (guardada ? stock.paso(f.id!, -1) : stock.pasoNueva(f.clave, -1)),
+                        deshabilitado: deshabilitado || esperando || !puedeBajar,
+                        etiqueta: `Una menos de ${nombre}`,
+                      }}
+                      mas={{
+                        onClick: () => {
                           if (!guardada) return stock.pasoNueva(f.clave, 1);
                           if (stock.paso(f.id!, 1).abrirModal) onAbrirModal(f.guardada!.colorCodigo);
-                        }}
-                      >
-                        +
-                      </button>
-                    </span>
+                        },
+                        deshabilitado: deshabilitado || esperando || !!bloqueo,
+                        etiqueta: bloqueo ? `Una más de ${nombre}: ${bloqueo}` : `Una más de ${nombre}`,
+                        title: bloqueo ?? undefined,
+                      }}
+                    >
+                      <span className={cambiada ? "text-ambar-profundo" : undefined} title={tituloNumero}>
+                        {esperando ? "…" : u}
+                      </span>
+                    </PasoCantidad>
                   ) : (
-                    <span />
+                    <>
+                      <span className={`text-right text-[12px] tabular-nums ${cambiada ? "font-semibold text-ambar-profundo" : "text-tinta"}`} title={tituloNumero}>
+                        {esperando ? "…" : u}
+                      </span>
+                      <span />
+                    </>
                   )}
                 </div>
               );

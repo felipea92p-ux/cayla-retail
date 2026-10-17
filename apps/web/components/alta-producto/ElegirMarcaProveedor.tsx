@@ -226,9 +226,9 @@ export function ElegirMarcaProveedor({
     // Editar producto, con el menú lateral abierto, dos columnas de 165 px cortaban «Toca para ver la ma…»).
     <div className="@container space-y-2">
       <div className="grid gap-x-3 gap-y-2.5 @lg:grid-cols-2">
-        <div className="space-y-1">
+        <div className="campo space-y-1">
           <div className="flex items-baseline justify-between gap-2">
-            <label htmlFor="buscar-marca" className="label-cayla text-[11px] text-tinta/70">
+            <label htmlFor="buscar-marca" className="campo-etiqueta">
               Marca
             </label>
             {puedeQuitarMarca && (
@@ -250,9 +250,9 @@ export function ElegirMarcaProveedor({
             crear={crear((q) => (q ? `+ Registrar «${q}» como marca nueva` : "+ Registrar una marca o un proveedor nuevo"))}
           />
         </div>
-        <div className="space-y-1">
+        <div className="campo space-y-1">
           <div className="flex items-baseline justify-between gap-2">
-            <label htmlFor="buscar-proveedor" className="label-cayla text-[11px] text-tinta/70">
+            <label htmlFor="buscar-proveedor" className="campo-etiqueta">
               Proveedor
             </label>
             {puedeQuitarProv && (
