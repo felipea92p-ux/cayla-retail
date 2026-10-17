@@ -27,11 +27,19 @@ export function CollageDePrendas({
     <div className="t-collage">
       {piezas.map((p, i) => {
         const foto = fotosDeTarjeta(p)[0];
+        const precio = conPrecio ? precioTarjeta(p) : null;
         return (
           <Link
             key={p.id}
             className={`t-polaroid p${i + 1}`}
             href={href(p)}
+            // Lo que ya se ve, para la ficha que llega (`RecordarPrendaTocada`); sin cuenta no hay precio que adelantar.
+            data-prenda={p.id}
+            data-nombre={p.nombre}
+            data-precio={precio?.principal}
+            data-antes={precio?.anterior ?? undefined}
+            data-oferta={precio?.oferta ? "si" : undefined}
+            data-categoria={p.categoria?.nombre ?? undefined}
             aria-label={conPrecio ? `Ver ${p.nombre}` : `${p.nombre}: crea tu cuenta para ver su precio`}
           >
             <FotoTarjeta
@@ -46,7 +54,7 @@ export function CollageDePrendas({
             />
             <span className="t-polaroid-pie">
               <span>{p.nombre}</span>
-              {conPrecio ? <span className="num">{precioTarjeta(p).principal}</span> : <span className="t-polaroid-ver">Ver precio</span>}
+              {precio ? <span className="num">{precio.principal}</span> : <span className="t-polaroid-ver">Ver precio</span>}
             </span>
           </Link>
         );

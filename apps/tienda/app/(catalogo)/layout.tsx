@@ -22,7 +22,7 @@ export default async function CatalogoLayout({ children }: { children: React.Rea
   return (
     <div className="tienda">
       <Anuncio frases={anuncios(campana, true)} />
-      <Suspense fallback={<EsqueletoDePagina />}>
+      <Suspense fallback={<EsqueletoDePagina campana={campana} />}>
         <ConSesion>{children}</ConSesion>
       </Suspense>
     </div>
