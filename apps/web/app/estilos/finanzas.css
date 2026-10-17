@@ -1910,3 +1910,534 @@
     }
   }
 }
+
+/* ---- El medidor de confianza (ADR-0417, Fase 1): un arco que se dibuja hasta el porcentaje, la frase y las piezas. ---- */
+@layer components {
+  .fin-confianza {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .fin-confianza-cab {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .fin-confianza-arco {
+    position: relative;
+    flex: none;
+    width: 132px;
+  }
+  .fin-confianza-arco svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .fin-confianza-pista,
+  .fin-confianza-valor {
+    fill: none;
+    stroke-width: 9;
+    stroke-linecap: round;
+  }
+  .fin-confianza-pista {
+    stroke: var(--color-hueso);
+  }
+  .fin-confianza-valor {
+    stroke: var(--color-verde);
+    stroke-dasharray: 1;
+    animation: fin-confianza-dibuja 900ms var(--ease-cayla) backwards;
+  }
+  .fin-confianza[data-nivel="medio"] .fin-confianza-valor {
+    stroke: var(--color-ambar);
+  }
+  .fin-confianza[data-nivel="bajo"] .fin-confianza-valor {
+    stroke: var(--color-rojo-profundo);
+  }
+  @keyframes fin-confianza-dibuja {
+    from {
+      stroke-dashoffset: 1;
+    }
+  }
+  .fin-confianza-pct {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 2px;
+    text-align: center;
+    font-family: var(--font-serif);
+    font-size: 26px;
+    line-height: 1;
+    color: var(--color-tinta);
+  }
+  .fin-confianza-piezas {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 18px;
+  }
+  .fin-confianza-piezas > li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding-top: 10px;
+    border-top: 1px solid var(--color-sand);
+    min-width: 0;
+  }
+  .fin-confianza-piezas > li > div > b {
+    display: block;
+    font-weight: 600;
+    font-size: 13.5px;
+  }
+  .fin-confianza-piezas > li > div > p {
+    font-size: 13px;
+    color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre papel y hueso (ADR-0336: desde 64 % pasa) */
+  }
+  @media (max-width: 720px) {
+    .fin-confianza-cab {
+      flex-direction: column-reverse;
+      align-items: stretch;
+    }
+    .fin-confianza-arco {
+      width: 120px;
+    }
+    .fin-confianza-piezas {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fin-confianza-valor {
+      animation: none;
+    }
+  }
+}
+
+/* ---- El Pulso (Resumen, camino A; Felipe 2026-10-15): la pregunta, la respuesta grande, la cascada, el ritmo y qué deja cada lugar. ---- */
+@layer components {
+  .fin-pulso-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    padding: 26px 16px 6px;
+  }
+  .fin-pulso-pregunta {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--color-taupe);
+  }
+  .fin-pulso-si {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+  }
+  .fin-pulso-respuesta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+    gap: 6px;
+  }
+  .fin-pulso-verbo {
+    font-family: var(--font-serif);
+    font-size: 26px;
+  }
+  .fin-pulso-monto {
+    font-family: var(--font-serif);
+    font-size: clamp(48px, 8vw, 84px);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .fin-pulso-monto[data-estado="pierde"] {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-pulso-explica {
+    max-width: 62ch;
+    font-size: 15px;
+    color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre crema (ADR-0336: desde 64 % pasa) */
+  }
+  .fin-pulso-porque {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+  .fin-pulso-cascada {
+    width: 100%;
+    max-width: 640px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+  }
+  .fin-pulso-tramo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+    align-items: baseline;
+    font-size: 14px;
+  }
+  .fin-pulso-tramo-nombre small {
+    display: block;
+    font-size: 12px;
+    color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto sobre crema (ADR-0336: desde 64 % pasa) */
+  }
+  .fin-pulso-tramo-monto {
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-pulso-tramo[data-tipo="queda"] {
+    font-weight: 600;
+    padding-top: 6px;
+    border-top: 1px solid var(--color-sand);
+  }
+  .fin-pulso-tramo-barra {
+    grid-column: 1 / -1;
+    display: block;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--color-hueso);
+    overflow: hidden;
+  }
+  .fin-pulso-tramo-barra > i {
+    display: block;
+    height: 100%;
+    width: var(--w, 0%);
+    border-radius: 999px;
+    background: var(--color-tinta);
+    animation: fin-pulso-crece 700ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 60ms);
+  }
+  .fin-pulso-tramo[data-tipo="sale"] .fin-pulso-tramo-barra > i {
+    background: var(--color-taupe);
+  }
+  .fin-pulso-tramo[data-tipo="queda"] .fin-pulso-tramo-barra > i {
+    background: var(--color-verde);
+  }
+  @keyframes fin-pulso-crece {
+    from {
+      width: 0;
+    }
+  }
+
+  /* El ritmo: una pista con lo vendido por día y una marca donde está lo necesario. */
+  .fin-pulso-ritmo {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding-top: 18px;
+  }
+  .fin-pulso-ritmo-pista {
+    position: relative;
+    height: 14px;
+    border-radius: 999px;
+    background: var(--color-hueso);
+  }
+  .fin-pulso-ritmo-relleno {
+    display: block;
+    height: 100%;
+    width: var(--w, 0%);
+    border-radius: 999px;
+    background: var(--color-verde);
+    animation: fin-pulso-crece 900ms var(--ease-cayla) backwards;
+  }
+  .fin-pulso-ritmo[data-tono="ambar"] .fin-pulso-ritmo-relleno {
+    background: var(--color-ambar);
+  }
+  .fin-pulso-ritmo[data-tono="rojo"] .fin-pulso-ritmo-relleno {
+    background: var(--color-rojo-profundo);
+  }
+  .fin-pulso-ritmo-marca {
+    position: absolute;
+    top: -6px;
+    width: 2px;
+    height: 26px;
+    background: var(--color-tinta);
+  }
+  .fin-pulso-ritmo-marca > span {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-taupe);
+  }
+  .fin-pulso-ritmo-escala {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12.5px;
+    color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto sobre papel (ADR-0336: desde 64 % pasa) */
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-pulso-cierre {
+    margin-top: 14px;
+    font-family: var(--font-serif);
+    font-size: 19px;
+    line-height: 1.3;
+  }
+
+  /* Qué deja cada lugar: barras que salen del centro, a la derecha lo que deja y a la izquierda lo que cuesta. */
+  .fin-pulso-lugares {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .fin-pulso-lugar {
+    display: grid;
+    grid-template-columns: minmax(0, 190px) minmax(0, 1fr) 112px;
+    gap: 12px;
+    align-items: center;
+    padding: 9px 0;
+    border-top: 1px solid var(--color-sand);
+  }
+  .fin-pulso-lugar:first-child {
+    border-top: 0;
+  }
+  .fin-pulso-lugar-nombre b {
+    display: block;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .fin-pulso-lugar-nombre small {
+    display: block;
+    font-size: 12px;
+    color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto sobre papel (ADR-0336: desde 64 % pasa) */
+  }
+  .fin-pulso-lugar-eje {
+    position: relative;
+    display: block;
+    height: 10px;
+  }
+  .fin-pulso-lugar-eje::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -4px;
+    bottom: -4px;
+    width: 1px;
+    background: var(--color-sand);
+  }
+  .fin-pulso-lugar-eje > i {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: var(--w, 0%);
+    border-radius: 999px;
+    animation: fin-pulso-crece 700ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 70ms + 120ms);
+  }
+  .fin-pulso-lugar-eje > i[data-signo="mas"] {
+    left: 50%;
+    background: var(--color-verde);
+  }
+  .fin-pulso-lugar-eje > i[data-signo="menos"] {
+    right: 50%;
+    background: var(--color-rojo-profundo);
+  }
+  .fin-pulso-lugar-monto {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+  .fin-pulso-lugar-monto[data-signo="menos"] {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-pulso-lugar-total {
+    border-top: 2px solid var(--color-tinta);
+    font-family: var(--font-serif);
+  }
+  .fin-pulso-lugar-total .fin-pulso-lugar-nombre b,
+  .fin-pulso-lugar-total .fin-pulso-lugar-monto {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    font-weight: 500;
+  }
+  @media (max-width: 640px) {
+    .fin-pulso-lugar {
+      grid-template-columns: minmax(0, 1fr) 100px;
+    }
+    .fin-pulso-lugar-eje {
+      display: none;
+    }
+    .fin-pulso-ritmo-marca > span {
+      font-size: 10px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fin-pulso-tramo-barra > i,
+    .fin-pulso-ritmo-relleno,
+    .fin-pulso-lugar-eje > i {
+      animation: none;
+    }
+  }
+}
+
+/* ---- Cuentas y dinero en camino A: las partes de «tienes» y las dos preguntas de al lado. ---- */
+@layer components {
+  .fin-dinero-partes {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  .fin-dinero-partes > li {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--color-hueso);
+    font-size: 13px;
+  }
+  .fin-dinero-partes > li > b {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-dinero-partes > li[data-deuda] > b {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-dinero-alcanza {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .fin-dinero-alcanza > .nota-cayla {
+    flex-basis: 100%;
+  }
+  .fin-dinero-ver {
+    flex-basis: 100%;
+    font-size: 13.5px;
+    margin-top: 6px;
+  }
+}
+
+/* ---- Gastos en camino A: la cosa por revisar, de a una. ---- */
+@layer components {
+  .fin-gastos-cosa {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--color-hueso);
+  }
+  .fin-gastos-cosa > div > b {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 21px;
+    font-weight: 500;
+    line-height: 1.15;
+    margin-top: 4px;
+  }
+  .fin-gastos-cosa > div > p {
+    font-size: 13.5px;
+    margin-top: 4px;
+    color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre hueso (ADR-0336: desde 64 % pasa) */
+  }
+  .fin-gastos-cosa-der {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    flex: none;
+  }
+  .fin-gastos-cosa-monto {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-gastos-cosa-mas {
+    margin-top: 10px;
+    font-size: 13.5px;
+  }
+  @media (max-width: 560px) {
+    .fin-gastos-cosa {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .fin-gastos-cosa-der {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+  }
+}
+
+/* ---- Cierre de mes en camino A: el anillo de lo que ya pasó. ---- */
+@layer components {
+  .fin-cierre-anillo {
+    position: relative;
+    width: 128px;
+    height: 128px;
+  }
+  .fin-cierre-anillo svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+  .fin-cierre-pista,
+  .fin-cierre-valor {
+    fill: none;
+    stroke-width: 9;
+    stroke-linecap: round;
+  }
+  .fin-cierre-pista {
+    stroke: var(--color-hueso);
+  }
+  .fin-cierre-valor {
+    stroke: var(--color-ambar);
+    stroke-dasharray: 1;
+    animation: fin-confianza-dibuja 1100ms var(--ease-cayla) backwards;
+  }
+  .fin-cierre-valor[data-estado="listo"],
+  .fin-cierre-valor[data-estado="cerrado"] {
+    stroke: var(--color-verde);
+  }
+  .fin-cierre-anillo-num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .fin-cierre-anillo-num > b {
+    font-family: var(--font-serif);
+    font-size: 40px;
+    font-weight: 500;
+  }
+  .fin-cierre-anillo-num > small {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-taupe);
+    margin-top: 4px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fin-cierre-valor {
+      animation: none;
+    }
+  }
+}

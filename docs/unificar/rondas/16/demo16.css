@@ -1,0 +1,17 @@
+/* Demos de la ronda 16. Solo tokens del ERP. */
+.r16-lupa { display: grid; gap: 8px; }
+.r16-lupa-fila { display: flex; align-items: center; gap: 16px; zoom: 2.5; color: var(--color-tinta); }
+.r16-lupa-fila > span { width: 64px; font-size: 5px; line-height: 1.2; color: var(--color-taupe); }
+.r16-pild { display: grid; gap: 0; padding: 8px 18px; max-width: 640px; }
+.r16-pfila { display: grid; grid-template-columns: 210px 1fr; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--color-sand); font-size: 13px; }
+.r16-pfila:last-child { border-bottom: 0; }
+.r16-pdonde { color: var(--color-taupe); font-size: 12px; }
+.r16-pvan { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.r16-cierres { padding: 16px 20px; max-width: 640px; display: grid; gap: 12px; }
+.r16-ctit { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-weight: 600; font-size: 14px; }
+.r16-ley { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-weight: 400; font-size: 12px; color: var(--color-taupe); }
+.r16-ley i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: -4px; }
+.r16-ley i[data-t="verde"] { background: var(--color-verde); }
+.r16-ley i[data-t="rojo"] { background: var(--color-rojo); }
+.r16-ley i[data-t="ambar"] { background: var(--color-ambar); }
+.r16-ley i[data-t="meta"] { height: 2px; background: var(--color-taupe); }

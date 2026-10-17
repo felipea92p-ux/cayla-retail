@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { CuentaAtras } from "@/components/bolsa/CuentaAtras";
 import { PrendaDelPedido } from "@/components/bolsa/PrendaDelPedido";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
+import { TarjetaInstalar } from "@/components/instalar/TarjetaInstalar";
 import { Icono } from "@/components/Icono";
 import { soles } from "@/lib/catalogo";
 import { codigoDeLaUrl, enlaceDelPedido, nombreTienda, vivas } from "@/lib/pedidos";
@@ -109,6 +110,8 @@ export default async function Separado({ params }: { params: Promise<{ numero: s
           <Link className="w-enlace" href={`/cuenta/pedidos/${p.codigo}`}>
             Ver el estado de mi pedido
           </Link>
+          {/* El momento justo para ofrecer instalar CAYLA (ADR-0431): ya separó, y va debajo de lo que importa. */}
+          <TarjetaInstalar />
         </div>
       </div>
     </MarcoCuenta>

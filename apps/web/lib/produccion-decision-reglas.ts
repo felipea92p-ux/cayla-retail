@@ -276,13 +276,3 @@ export function analizarInsumos(rendimiento: Rendimiento[], prendas: number, sal
   });
 }
 
-/** Cuánto insumo lleva una prenda, a costo del lote del que saldría (el más antiguo con saldo). `null` si algún costo no se conoce. */
-export function costoMaterialesPorPrenda(rendimiento: Rendimiento[], costoUnitarioDe: (insumoId: string) => number | null): number | null {
-  let total = 0;
-  for (const r of rendimiento) {
-    const c = costoUnitarioDe(r.insumoId);
-    if (c === null) return null;
-    total += r.porPrenda * c;
-  }
-  return Math.round(total * 100) / 100;
-}

@@ -117,6 +117,9 @@ export type PrendaMenu = { id: string; href: string; nombre: string; precio: str
 export type MenuCabecera = {
   clave: Menu;
   nombre: string;
+  /** A todo el menú («Toda la ropa»): lo que lleva el botón de la cabecera y la primera línea del celular. */
+  href: string;
+  todo: string;
   grupos: { clave: string; nombre: string; href: string; categorias: CategoriaMenu[] }[];
   /** La vitrina de la derecha: lo último que llegó de este menú, con foto (hasta 5; se ven las que caben). */
   recien: PrendaMenu[];
@@ -161,6 +164,8 @@ export function datosDeCabecera(prendas: readonly Prenda[], sede: string | null,
     return [{
       clave: m.clave,
       nombre: m.nombre,
+      href: hrefLista({ sede, categoria: null, orden: "destacado", menu: m.clave }),
+      todo: m.todo,
       grupos: suyos.map((g) => ({
         clave: g.clave,
         nombre: g.nombre,

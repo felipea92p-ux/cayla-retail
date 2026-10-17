@@ -635,7 +635,7 @@ function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; 
       }`}
     >
       {esActivo && <span aria-hidden className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo" />}
-      <Icono d={IC[h.icono]} className={`h-[18px] w-[18px] shrink-0 transition-colors ${esActivo ? "text-tinta" : "text-tinta/60 group-hover:text-rojo"}`} />
+      <Icono d={IC[h.icono]} className={`h-5 w-5 shrink-0 transition-colors ${esActivo ? "text-tinta" : "text-tinta/60 group-hover:text-rojo"}`} />
       <span className="flex-1">{h.etiqueta}</span>
       <Insignia n={h.contador ?? 0} etiqueta="por atender" />
     </Link>
@@ -656,13 +656,15 @@ function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; 
 // panel de validaciones ya había de sobra qué poner a los lados.
 // Producción entró el 2026-09-22 (pedido de Felipe: «los módulos no ocupan todo el espacio»): el Resumen (cifras, tarjetas, tablas de modelos y telas), el tablero de Órdenes (cuatro
 // columnas desde 1240 px) y las tablas de Comprobantes, Por pagar y Eficiencia se apretaban en la columna de 64 rem, con ~300 px de margen vacío a cada lado en pantallas grandes.
+// «/ordenes-insumos» (Formidable de Producción, 2026-10-15): es de Producción pero su ruta no cuelga de «/produccion» (ADR-0362); fuera de la lista, al pasar de Proveedores a Órdenes de insumos
+// el título saltaba 32 px y la pantalla se estrechaba. Lo vigila `lib/ancho-completo.test.ts`.
 // Colaboradores entró el 2026-09-22 (pedido de Felipe): «Roles y accesos» pasa a tres columnas —roles, módulos del rol y el
 // efecto en el menú— y las tablas de Activos/Terminales tienen qué poner a lo ancho. Los párrafos siguen con su `max-w-*`.
 // «/etiquetas-de-precio» (Felipe 2026-10-03): la vista previa de las etiquetas va a la derecha de la tabla, a tamaño real; con el tope no
 // cabían lado a lado y quedaba al final, sin verse a la primera. «/rotulos» (ADR-0366): dos rótulos de 100 mm a tamaño real, lado a lado.
 // «/gestion» (ADR-0392, 2026-10-13): Análisis, Frescura del piso y Plan del piso vivían bajo «/inventario» y ya iban a ancho completo (sus
 // tableros por categoría y los dos rieles del plan); al mudarse al grupo «Gestión» conservan el ancho. «/rendimiento» no cuelga de ahí y sigue igual.
-const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/gestion", "/recibir", "/caja", "/cambios", "/devoluciones", "/produccion", "/colaboradores", "/etiquetas-de-precio", "/rotulos"];
+const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/gestion", "/recibir", "/caja", "/cambios", "/devoluciones", "/produccion", "/ordenes-insumos", "/colaboradores", "/etiquetas-de-precio", "/rotulos"];
 
 export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWebPorConfirmar, lateralPlegado = false, children }: Props) {
   const pathname = usePathname();
@@ -1030,7 +1032,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             aria-controls="lateral"
             className="-ml-1.5 grid h-10 w-10 place-items-center rounded-lg text-tinta transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
           >
-            <Icono d={IC.menu} className="h-[22px] w-[22px]" />
+            <Icono d={IC.menu} className="h-5 w-5" />
           </button>
           {/* Plegar/expandir el lateral. Solo escritorio: en celular el lateral es un cajón (botón de arriba). */}
           <button
@@ -1095,7 +1097,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
                 aria-label="Buscar"
                 className="grid h-9 w-9 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
               >
-                <Icono d={IC.buscar} className="h-[18px] w-[18px]" />
+                <Icono d={IC.buscar} className="h-4 w-4" />
               </Link>
             )}
           </div>

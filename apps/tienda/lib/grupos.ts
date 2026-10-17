@@ -22,10 +22,14 @@ export const GRUPOS: readonly Grupo[] = [
   { clave: "mas", nombre: "Más", menu: "accesorios", prefijos: ["LAP", "LIB", "UOF", "UTC", "BOL"] },
 ];
 
-/** Los dos menús de la cabecera, en su orden. */
-export const MENUS: readonly { clave: Menu; nombre: string }[] = [
-  { clave: "ropa", nombre: "Ropa" },
-  { clave: "accesorios", nombre: "Accesorios" },
+/**
+ * Los dos menús de la cabecera, en su orden. `todo` es el enlace que lleva a TODO el menú (`/catalogo?menu=ropa`): el botón «Ropa»
+ * de la cabecera y su primera línea en el celular (antes «Ropa» era un botón sin destino: al hacer clic, o con el dedo, no pasaba nada
+ * y no había forma de ver toda la ropa junta). `titulo` es el de la lista, con lo último en cursiva roja.
+ */
+export const MENUS: readonly { clave: Menu; nombre: string; todo: string; titulo: [string, string] }[] = [
+  { clave: "ropa", nombre: "Ropa", todo: "Toda la ropa", titulo: ["Toda la", "ropa"] },
+  { clave: "accesorios", nombre: "Accesorios", todo: "Todos los accesorios", titulo: ["Todos los", "accesorios"] },
 ];
 
 /** A donde va lo que nadie ordenó. */
@@ -40,6 +44,12 @@ export function grupoDe(claveDeCategoria: string): Grupo {
 export function leerGrupo(v: string | string[] | undefined): Grupo | null {
   const g = (Array.isArray(v) ? v[0] : v)?.trim();
   return GRUPOS.find((x) => x.clave === g) ?? null;
+}
+
+/** El menú de la URL (`?menu=`), o null si no existe. */
+export function leerMenu(v: string | string[] | undefined): (typeof MENUS)[number] | null {
+  const m = (Array.isArray(v) ? v[0] : v)?.trim();
+  return MENUS.find((x) => x.clave === m) ?? null;
 }
 
 export type CategoriaDeGrupo = { clave: string; nombre: string; cuantas: number; prendas: Prenda[] };
@@ -78,6 +88,15 @@ export function delGrupo(prendas: readonly Prenda[], grupo: Grupo | null): Prend
   return prendas.filter((p) => {
     const clave = claveCategoria(p.categoria);
     return clave !== null && grupoDe(clave).clave === grupo.clave;
+  });
+}
+
+/** Solo las prendas del menú («Ropa», «Accesorios»), o todas sin menú. */
+export function delMenu(prendas: readonly Prenda[], menu: Menu | null): Prenda[] {
+  if (!menu) return [...prendas];
+  return prendas.filter((p) => {
+    const clave = claveCategoria(p.categoria);
+    return clave !== null && grupoDe(clave).menu === menu;
   });
 }
 

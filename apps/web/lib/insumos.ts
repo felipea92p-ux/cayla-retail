@@ -36,6 +36,9 @@ export type InsumoVista = {
   merma: number;
   minimo: number | null;
   nota: string | null;
+  /** De qué tejido y de qué color es esta tela (el vocabulario de la prenda, ADR-0400); vacíos si no se dijo. */
+  tejidoId: string | null;
+  colorCodigo: string | null;
   saldo: number;
   estado: EstadoInsumo;
   lotes: LoteConSaldo[];
@@ -78,16 +81,33 @@ export type InsumosDelTaller = {
   consumosPorOrden: Record<string, ConsumoDeOrden[]>;
   /** Cuánto vale lo que hay; `null` si no se ven costos. */
   capital: number | null;
+  /** La base entregó el costo de los lotes (quien mira ve Producción en este Taller, ADR-0400 actividad 6). Sin lotes no hay costo que ver y se da por visible; con lotes y cero filas, no se ve: nunca se dibuja «S/ 0.00». */
+  veCostos: boolean;
 };
 
 const LIMITE_LIBRO = 12;
 
+type FilaInsumo = {
+  id: string;
+  codigo: string;
+  nombre: string;
+  tipo: string;
+  unidad_medida: string;
+  merma_pct: number | string;
+  stock_minimo: number | string | null;
+  nota: string | null;
+  tejido_id: string | null;
+  color_codigo: string | null;
+};
+
 export async function getInsumosDelTaller(tallerId: string, opciones: { conCostos: boolean; hoy: string }): Promise<InsumosDelTaller> {
   const supabase = await createClient();
   const [insumos, lotes, movs, costos] = await Promise.all([
-    supabase
-      .from("insumos")
-      .select("id, codigo, nombre, tipo, unidad_medida, merma_pct, stock_minimo, nota")
+    // `tejido_id` y `color_codigo` son nuevas (ADR-0400, migración 20261014154000) y los tipos generados aún no las traen: la consulta se tipa a mano, como `lotes` en recepcion-envio.ts.
+    (supabase.from("insumos") as unknown as {
+      select: (c: string) => { is: (col: string, v: null) => { order: (c: string) => PromiseLike<{ data: FilaInsumo[] | null; error: { message: string; code?: string } | null }> } };
+    })
+      .select("id, codigo, nombre, tipo, unidad_medida, merma_pct, stock_minimo, nota, tejido_id, color_codigo")
       .is("archivado_at", null)
       .order("nombre"),
     supabase
@@ -99,7 +119,7 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
       .select("id, insumo_id, insumo_lote_id, tipo, cantidad, produccion_id, motivo, created_at, produccion:producciones ( producto:productos ( referencia ) )")
       .eq("ubicacion_id", tallerId)
       .order("created_at", { ascending: false }),
-    // Solo el líder recibe filas; quien no lo es ni siquiera hace la consulta.
+    // Solo quien ve los costos del Taller recibe filas (`fn_ve_costos_del_taller`: el líder, o quien ve Producción parado en él); a los demás la base les responde vacío.
     opciones.conCostos ? supabase.rpc("fn_costos_insumos_taller", { p_ubicacion_id: tallerId }) : Promise.resolve({ data: [] as { lote_id: string; costo_unitario: number }[], error: null }),
   ]);
   const costoDeLote = new Map(exigir(costos, "los costos de los lotes").map((c) => [c.lote_id, Number(c.costo_unitario)]));
@@ -107,6 +127,7 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
   const filasInsumos = exigir(insumos, "los insumos");
   const filasLotes = exigir(lotes, "los lotes de insumos");
   const filasMovs = exigir(movs, "los movimientos de insumos");
+  const veCostos = opciones.conCostos && (costoDeLote.size > 0 || filasLotes.length === 0);
 
   const movimientos: (MovimientoInsumo & { costo: number })[] = filasMovs.map((m) => ({
     id: m.id,
@@ -126,7 +147,7 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
     ingreso: l.fecha_ingreso,
     creadoEn: l.created_at,
     cantidadIngresada: Number(l.cantidad_ingresada),
-    costoUnitario: opciones.conCostos ? (costoDeLote.get(l.id) ?? 0) : null,
+    costoUnitario: veCostos ? (costoDeLote.get(l.id) ?? 0) : null,
     documento: l.documento,
     origen: l.origen as "compra" | "saldo_inicial",
   }));
@@ -147,6 +168,8 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
       merma: Number(i.merma_pct),
       minimo: i.stock_minimo === null ? null : Number(i.stock_minimo),
       nota: i.nota,
+      tejidoId: i.tejido_id ?? null,
+      colorCodigo: i.color_codigo ?? null,
       saldo,
       estado: estadoInsumo(saldo, i.stock_minimo === null ? null : Number(i.stock_minimo)),
       lotes: suyosLotes,
@@ -187,7 +210,7 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
       cantidad: Number(m.cantidad) * (m.tipo === "devolucion" ? -1 : 1),
       lote: m.insumo_lote_id ? (codigoDeLote.get(m.insumo_lote_id) ?? null) : null,
       loteId: m.insumo_lote_id,
-      costo: opciones.conCostos ? (m.insumo_lote_id ? (costoDeLote.get(m.insumo_lote_id) ?? 0) : 0) * Number(m.cantidad) * (m.tipo === "devolucion" ? -1 : 1) : null,
+      costo: veCostos ? (m.insumo_lote_id ? (costoDeLote.get(m.insumo_lote_id) ?? 0) : 0) * Number(m.cantidad) * (m.tipo === "devolucion" ? -1 : 1) : null,
       creadoEn: m.created_at,
     });
   }
@@ -196,6 +219,7 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
     insumos: vistas,
     libro,
     consumosPorOrden,
-    capital: opciones.conCostos ? capitalEnLotes(vistas.flatMap((v) => v.lotes)) : null,
+    capital: veCostos ? capitalEnLotes(vistas.flatMap((v) => v.lotes)) : null,
+    veCostos,
   };
 }

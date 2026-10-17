@@ -25,7 +25,7 @@ export type Apartado = {
    *  cualquiera aparta, pero el apartado de otra persona solo lo libera una líder. Es la MISMA regla
    *  que aplica `liberar_apartado`, en un solo lugar: la pantalla solo decide si ofrece el botón. */
   puedeLiberar: boolean;
-  /** La reserva de un pedido web (ADR-0408, act. 8): se entrega o se libera desde Ventas ▸ Pedidos web, nunca desde aquí (la base
+  /** La reserva de un pedido web (ADR-0408, act. 8): se entrega o se libera desde Tienda web ▸ Pedidos, nunca desde aquí (la base
    *  lo rechaza). Se rotula con su número en vez de esconderla: la unidad sigue «apartada» en el stock y así se explica. */
   pedidoWeb?: { codigo: string; tiendaPedido: string; paraOtraTienda: boolean } | null;
 };

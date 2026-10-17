@@ -1,5 +1,6 @@
 import type { createClient } from "@/lib/supabase/client";
 import { rutasFotoPrenda } from "@/lib/foto-encuadre";
+import { rutaDelRecorte } from "@/lib/recorte-probador-reglas";
 
 // Subida de fotos de producto desde el NAVEGADOR
 // (20260915224500_producto_fotos_temporada_venta_sin_stock.sql). Mismo
@@ -13,7 +14,8 @@ import { rutasFotoPrenda } from "@/lib/foto-encuadre";
 //
 // La fila en `producto_fotos` recién se escribe al guardar el formulario
 // (dentro de `catalogo_crear_producto`/`catalogo_actualizar_producto`,
-// como `p_fotos`) — este archivo solo sube bytes y devuelve la URL.
+// como `p_fotos`) — este archivo sube bytes y devuelve la URL. Desde el
+// ADR-0434, además le pide por detrás su recorte al probador de la tienda.
 //
 // Desde el ADR-0228 (2026-09-26) lo que llega acá ya viene preparado en el
 // navegador (`preparar-foto.ts`): encuadrado en 1200×1500 sobre blanco, con o
@@ -76,5 +78,26 @@ export async function subirFotoProducto(supabase: Cliente, archivo: File, origin
   const subida = await almacen.upload(rutas.foto, archivo, { contentType: archivo.type, upsert: false });
   if (subida.error) return { error: leerErrorStorage(subida.error.message) };
 
-  return { url: almacen.getPublicUrl(rutas.foto).data.publicUrl };
+  const url = almacen.getPublicUrl(rutas.foto).data.publicUrl;
+  // El recorte para el probador de la tienda online (ADR-0434, actividad 2), por detrás: no hace esperar a quien sube la foto y, si
+  // falla, la foto queda «sin recorte» para «Preparar recortes». Se carga recién aquí: casi ninguna pantalla lo necesita.
+  void import("@/lib/recorte-probador")
+    .then((m) => m.recortarAlSubir(supabase, { foto: rutas.foto, url }, archivo, original ?? null))
+    .catch((err) => console.warn("[producto-fotos] no se pudo empezar el recorte", err));
+  return { url };
 }
+
+/**
+ * Sube el recorte de una foto para el probador de la tienda online (ADR-0434): un PNG transparente en `recortes/<id>-<sello>.png`,
+ * junto a la foto y su original (la foto no se toca). Va con `x-espera: no`: «Preparar recortes» sube cientos seguidos y el loader de
+ * pantalla completa (ADR-0149) no dejaría ver el avance. Cada subida lleva su sello (`rutaDelRecorte`): nunca choca con un intento
+ * anterior. La fila la anota `registrar_recorte`.
+ */
+export async function subirRecorteDeFoto(supabase: Cliente, foto: string, png: Blob): Promise<{ ruta: string } | { error: string }> {
+  const ruta = rutaDelRecorte(foto, crypto.randomUUID().slice(0, 8));
+  const { error } = await supabase.storage
+    .from(PRODUCTO_FOTOS_BUCKET)
+    .upload(ruta, png, { contentType: "image/png", upsert: false, headers: { "x-espera": "no" } });
+  return error ? { error: leerErrorStorage(error.message) } : { ruta };
+}
+

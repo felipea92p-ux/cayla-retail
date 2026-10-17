@@ -2,11 +2,11 @@
   "guia": "produccion.comprobantes",
   "ruta": "/produccion/comprobantes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 36,
+  "total": 37,
   "controles": {
     "components/ComprobanteProduccionDetalle.tsx": [
       "CampoTexto «Motivo de la anulación»",
-      "ComboResponsable «setAnulando(false)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Volver»",
       "Boton «{responsable.motivo ?? undefined}»",
       "button «Anular este comprobante»"
@@ -19,7 +19,7 @@
       "CampoTexto «{<span className=\"sr-only\">Fecha de emisión</span>}»",
       "SegmentoDeslizante «Condición de pago»",
       "CampoTexto «Vence el»",
-      "Desplegable «(sin nombre)»",
+      "Desplegable «{l.insumoId ?? (l.descripcion || l.insumoId === null ? CONCEPTO_LIBRE : \"\")}»",
       "input «{`Línea ${i + 1}»",
       "input «{`Línea ${i + 1}» #2",
       "input «{`Línea ${i + 1}» #3",
@@ -27,7 +27,7 @@
       "button «Agregar línea»",
       "CampoTexto «Total impreso en el papel»",
       "CampoTexto «Nota»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/ComprobantesProduccionPanel.tsx": [
@@ -41,12 +41,15 @@
       "button «{diaMes(c.fechaEmision)}»"
     ],
     "components/MediosDePago.tsx": [
-      "Desplegable «cambiar(i,»",
+      "Desplegable «{m.metodo}»",
       "input «{`Monto del medio ${i + 1}»",
       "input «{`Referencia del medio ${i + 1}»",
       "button «{`Quitar el medio ${i + 1}»",
       "button «Agregar otro medio»",
-      "Desplegable «(sin nombre)»"
+      "Desplegable «{valor}»"
+    ],
+    "components/ProduccionSoloLider.tsx": [
+      "BotonVer «Ir a Órdenes»"
     ]
   }
 }

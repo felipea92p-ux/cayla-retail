@@ -2,23 +2,26 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 76,
+  "total": 80,
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Guardar»"
     ],
     "components/ConfiguracionCargaInicial.tsx": [
       "button «→() => setAbierta(s)»",
       "button «(sin nombre)»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/ConfiguracionCasilla.tsx": [
+      "input «{etiqueta}»"
     ],
     "components/ConfiguracionImpuestos.tsx": [
       "input «{etiqueta}»",
       "button «ya lo confirmó»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Casilla «{`Tasa de IGV desde el ${fechaCorta(t.vigenteDesde, true)}»",
       "button «config.nueva-tasa»",
       "Casilla «{`UIT de ${anio}»",
@@ -28,22 +31,25 @@
       "button «+ Año nuevo»",
       "Casilla «{`Límite de ventas de ${anio}»",
       "Casilla «{`Pago a cuenta de renta de ${anio}»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
       "Boton «Agregar»"
     ],
-    "components/ConfiguracionTiendaWeb.tsx": [
-      "ComboResponsable «(sin nombre)»"
+    "components/ConfiguracionMetasMes.tsx": [
+      "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»",
+      "Casilla «{`Meta de ${que}»",
+      "Boton «Quitar»",
+      "input «Meta de la fecha especial»",
+      "Boton «+ Agregar»"
     ],
     "components/ConfiguracionTiendas.tsx": [
       "input «{etiqueta}»",
       "input «{etiqueta}» #2",
-      "input «{etiqueta}» #3",
       "Casilla «{`Meta del ${DIAS_SEMANA[i]!.toLowerCase()}»",
       "Casilla «{`Fondo de caja de ${tienda.nombre}»",
       "Casilla «{`Cuánto sube la meta en ${campana.nombre}»",
       "Casilla «{`Fondo de caja en ${campana.nombre}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "BotonVer «Ver el cartel del club»",
       "BotonEnlace «+ Nueva campaña (en Catálogo ▸ Etiquetas)»",
       "Link «Ver cómo se ve en Caja»"
@@ -55,42 +61,42 @@
       "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}» #2",
       "button «Marcar fijo»",
       "button «No es fijo»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «No es fijo»",
       "Boton «+ Agregar fijo»",
       "LapizEditar «{f.descripcion}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}» #2",
       "button «Ya no se paga: archivar»",
       "button «Cancelar» #2",
       "Boton «{fijo ? \"Guardar\" : \"Agregar fijo\"}»",
-      "ComboResponsable «setAccion(null)»",
+      "ComboResponsable «{responsable}» #3",
       "button «Volver»",
       "Boton «{accion === \"baja\" ? \"Dar de baja\" : \"Anular activo\"}»",
       "button «Se registró por error…»",
       "button «Dar de baja…»"
     ],
     "components/finanzas/ConfiguracionCuentas.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «+ Agregar cuenta»",
       "LapizEditar «{c.nombre}»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
       "Boton «Agregar»"
     ],
     "components/finanzas/ConfiguracionPresupuesto.tsx": [
       "input «{etiqueta}»",
-      "ComboResponsable «{mesTitulo(mes)}»",
+      "ComboResponsable «{responsable}»",
       "Link «Reportes ▸ Presupuesto»",
       "Boton «{datos.anterior === 0 ? `${mesTitulo(mesAnterior(mes))}»",
       "Boton «config.presupuesto-sugerir»",
       "Link «Se cambia en Tiendas y caja»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
       "Boton «{`Aplicar ${cambios.length}»"
     ],
     "components/finanzas/EditarCuentaModal.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «No, volver»",
       "Boton «Sí, eliminar»",
       "button «Eliminar cuenta»",

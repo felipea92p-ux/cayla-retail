@@ -1,0 +1,33 @@
+{
+  "guia": "tienda-web.vitrina.looks",
+  "ruta": "/tienda-web/vitrina/looks",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 17,
+  "controles": {
+    "components/vitrina/LookHoja.tsx": [
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del look\")}»",
+      "textarea «Frase del look»",
+      "Desplegable «{p.color}»",
+      "button «{`Quitar ${nombrePrenda}»",
+      "ComboBuscable «→agregar»",
+      "CampoSelect «Lugar en «Arma tu look»»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/vitrina/LookMostrarHoja.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? impide ?? undefined}»"
+    ],
+    "components/vitrina/LooksPantalla.tsx": [
+      "Boton «looks.nuevo»",
+      "button «{`Abrir el look ${l.nombre}»",
+      "button «looks.abrir»",
+      "button «{`Mostrar el look ${l.nombre}»"
+    ],
+    "components/vitrina/VitrinaPestanas.tsx": [
+      "Pestanas «(sin nombre)»"
+    ]
+  }
+}

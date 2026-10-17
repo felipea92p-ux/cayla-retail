@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { puedeVerProduccion } from "@/lib/produccion-menu";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
+import { ProduccionSoloLider } from "@/components/ProduccionSoloLider";
 import { getTaller, getOrdenesProduccion, getModelosProducibles } from "@/lib/produccion";
 import { getInsumosDelTaller } from "@/lib/insumos";
 import { getLineasPorRecibir } from "@/lib/recibir-produccion";
@@ -13,7 +14,10 @@ import { coloresDeModelos, presentacionesDeModelos } from "@/lib/produccion-pres
 import { hojaDelModelo, materialesDelModelo, ordenesDelModelo, prendasPorFabricar } from "@/lib/produccion-hoja-modelo";
 import { getFichasDeColor, getFichasDeModelos } from "@/lib/produccion-ficha-modelo";
 import { hoyLima } from "@/lib/fechas-lima";
-import { cifrasResumen, resumenDeDecisiones, demandaDeInsumos, filasDeTela, filasPorModelo, type InsumoParaDecidir, type OrdenParaDecidir } from "@/lib/produccion-decisiones";
+import { cifrasResumen, resumenDeDecisiones, demandaDelTaller, filasDeTela, filasPorModelo, type InsumoParaDecidir, type OrdenParaDecidir } from "@/lib/produccion-decisiones";
+import { getTelaDelTaller } from "@/lib/tela-del-taller";
+import { getListaDeOrdenes } from "@/lib/ordenes-lista";
+import { cifrasHoyEnElTaller, datoHoyEnElTaller } from "@/lib/ordenes-lista-reglas";
 import { ResumenProduccionPanel } from "@/components/ResumenProduccionPanel";
 
 // `/produccion` es el módulo padre (ADR-0133) y, desde F6, su Resumen: «¿qué necesita mi decisión hoy?». Solo líder (ventas de la red y dinero) y, como el resto
@@ -25,13 +29,13 @@ export default async function ProduccionPage() {
     if (!persona.puedeCambiarUbicacion) redirect("/");
     return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} />;
   }
-  if (persona.rol !== "lider") redirect("/produccion/ordenes");
+  if (persona.rol !== "lider") return <ProduccionSoloLider titulo="Resumen" />;
 
   const taller = await getTaller();
   if (!taller) redirect("/produccion/ordenes");
 
   const hoy = hoyLima();
-  const [ordenes, modelos, datosInsumos, lineas, comprobantes, catalogo] = await Promise.all([
+  const [ordenes, modelos, datosInsumos, lineas, comprobantes, catalogo, telaDelTaller, dondeEstan] = await Promise.all([
     getOrdenesProduccion(taller.id, { conCostos: true, limite: 400 }),
     getModelosProducibles({ soloProducibles: true }),
     getInsumosDelTaller(taller.id, { conCostos: true, hoy }),
@@ -40,6 +44,10 @@ export default async function ProduccionPage() {
     // Las fotos son un dato SECUNDARIO (la misma copia cacheada de Catálogo, ADR-0168): si no se leen, cada modelo se dibuja con el ícono de su categoría
     // sobre su color y todo lo demás sigue en pie.
     opcional(getCatalogo(), "las fotos de los modelos"),
+    // Lo que las órdenes abiertas ya reservan de cada tela y lo pedido (ADR-0400, actividad 8d): dato de apoyo; si no se lee, «¿Alcanza la tela?» cuenta con el rendimiento medido de siempre.
+    getTelaDelTaller(taller.id),
+    // Dónde está cada orden (la misma lectura de la lista de Órdenes): si no se lee, «Hoy en el Taller» lo dice y manda a Órdenes.
+    getListaDeOrdenes(taller.id, hoy),
   ]);
   const presentaciones = presentacionesDeModelos(catalogo ?? []);
   // Las fichas (marca, proveedor, material, patrón y la de cada color) son datos SECUNDARIOS, como las fotos: si no se leen, la hoja «Ver el modelo» lo dice y lo demás sigue en pie.
@@ -69,7 +77,10 @@ export default async function ProduccionPage() {
   }
 
   const datos = decision.datos;
-  const demandaInsumos = demandaDeInsumos(ordenesParaDecidir, datos?.rendimientoPorModelo ?? {}, consumoNeto);
+  // UNA cuenta de lo que piden las órdenes abiertas: la tela que declararon (la misma de «Nueva orden» y de la página de la orden) y, donde no declaran ninguna, el rendimiento medido de su modelo.
+  const demandaInsumos = demandaDelTaller(telaDelTaller, ordenesParaDecidir, datos?.rendimientoPorModelo ?? {}, consumoNeto);
+  // Lo que viene en camino a cada tela y avío (regla de Felipe, 2026-10-16): lo que FALTA RECIBIR de los pedidos, sin los atrasados, que se cuenta como tela que llega.
+  const enCaminoPorInsumo = new Map((telaDelTaller?.telas ?? []).map((t) => [t.insumoId, { cuenta: t.enCamino, atrasado: t.atrasado, pedidos: t.pedidos }]));
   const filasModelo = datos
     ? filasPorModelo(datos.demanda, modelos.map((m) => ({ productoId: m.productoId, referencia: m.referencia, variantesIds: m.variantes.map((v) => v.varianteId), variantes: m.variantes.map((v) => ({ varianteId: v.varianteId, talla: v.talla, color: v.color, colorHex: v.colorHex })) })), datos.enProduccion)
     : [];
@@ -92,13 +103,14 @@ export default async function ProduccionPage() {
     ]),
   );
 
-  const resumen = resumenDeDecisiones({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo, tallerId: taller.id });
+  const resumen = resumenDeDecisiones({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo, tallerId: taller.id, enCamino: enCaminoPorInsumo });
   const cifras = cifrasResumen({ hoy, ordenes: ordenesParaDecidir, insumos, capitalInsumos: datosInsumos.capital, comprobantes });
-  const telas = filasDeTela(insumos, demandaInsumos, llegadas);
+  const telas = filasDeTela(insumos, demandaInsumos, llegadas, enCaminoPorInsumo);
+  const hoyEnElTaller = dondeEstan.lista ? { cifras: cifrasHoyEnElTaller(dondeEstan.lista.filas), dato: datoHoyEnElTaller(dondeEstan.lista.filas) } : null;
 
   return (
     <div className="space-y-6">
-      <ResumenProduccionPanel sede={persona.ubicacionEtiqueta} presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} hojas={hojas} fichasDeColor={fichasDeColor ?? []} telas={telas} falloRed={decision.fallo} />
+      <ResumenProduccionPanel sede={persona.ubicacionEtiqueta} presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} hojas={hojas} fichasDeColor={fichasDeColor ?? []} telas={telas} hoyEnElTaller={hoyEnElTaller} falloRed={decision.fallo} />
     </div>
   );
 }

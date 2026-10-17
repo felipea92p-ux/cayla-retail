@@ -7,6 +7,9 @@ import {
   diasDelMes,
   horaLima,
   horaPico,
+  metaDelMes,
+  metasDeLaSede,
+  metasDelMesDe,
   ordenarPorExcepcion,
   ritmoDelMes,
   serieHoras,
@@ -222,5 +225,101 @@ describe("textoEstado", () => {
   it("todos los estados tienen texto propio (el color nunca es la única señal)", () => {
     const textos = (["bajo", "en_ruta", "sobre", "sin_dias_cerrados", "sin_meta"] as const).map(textoEstado);
     expect(new Set(textos).size).toBe(5);
+  });
+});
+
+// ── Metas por día (ADR-0435): el panel lee la misma meta que Caja e Inicio ─────────────────────────────
+describe("metas por día", () => {
+  // Septiembre de 2026 tiene 30 días. Días 1-10: meta 100; el 11 es una fecha especial (300); el resto, 100.
+  const septiembre = (cambios: Record<number, number | null> = {}) =>
+    Array.from({ length: 30 }, (_, d) => (d + 1 in cambios ? cambios[d + 1]! : 100));
+
+  it("lo prometido es la suma de la meta de cada día cerrado, no una cifra plana", () => {
+    // Hoy es el día 6: 5 días cerrados. Los días 2 y 3 prometían 200 cada uno → 100 + 200 + 200 + 100 + 100 = 700.
+    const metas = septiembre({ 2: 200, 3: 200 });
+    const r = ritmoDelMes({ ventasMes: 700, ventasHoy: 0, metaVentaDiaria: 100, metasDelMes: metas, fecha: "2026-09-06" });
+    expect(r.ritmo).toBe(1);
+    expect(r.estado).toBe("sobre");
+    // Con la meta plana de hoy (100) los mismos 700 darían 140 %: justo el engaño que esto evita.
+    expect(ritmoDelMes({ ventasMes: 700, ventasHoy: 0, metaVentaDiaria: 100, fecha: "2026-09-06" }).ritmo).toBe(1.4);
+  });
+
+  it("un día sin meta (la tienda no abre) promete 0 y no arruina el ritmo", () => {
+    const metas = septiembre({ 2: null });
+    const r = ritmoDelMes({ ventasMes: 400, ventasHoy: 0, metaVentaDiaria: 100, metasDelMes: metas, fecha: "2026-09-06" });
+    expect(r.ritmo).toBe(1); // 4 días con meta × 100
+  });
+
+  it("si todos los días cerrados no tienen meta no hay semáforo, pero sí proyección", () => {
+    const metas = septiembre({ 1: null, 2: null });
+    const r = ritmoDelMes({ ventasMes: 300, ventasHoy: 0, metaVentaDiaria: 100, metasDelMes: metas, fecha: "2026-09-03" });
+    expect(r.estado).toBe("sin_meta");
+    expect(r.proyeccion).toBe(4500);
+  });
+
+  it("el día 1 sigue sin días cerrados si hay meta en el mes", () => {
+    const r = ritmoDelMes({ ventasMes: 50, ventasHoy: 50, metaVentaDiaria: 100, metasDelMes: septiembre(), fecha: "2026-09-01" });
+    expect(r.estado).toBe("sin_dias_cerrados");
+  });
+
+  it("metasDelMesDe: usa las del mes, o repite la meta de hoy si no hay o no calzan los días", () => {
+    expect(metasDelMesDe({ metaVentaDiaria: 50, metasDelMes: septiembre() }, "2026-09-10")[0]).toBe(100);
+    expect(metasDelMesDe({ metaVentaDiaria: 50 }, "2026-09-10")).toEqual(Array(30).fill(50));
+    expect(metasDelMesDe({ metaVentaDiaria: 50, metasDelMes: [1, 2, 3] }, "2026-09-10")).toEqual(Array(30).fill(50));
+    expect(metasDelMesDe({ metaVentaDiaria: null }, "2026-09-10").every((m) => m === null)).toBe(true);
+  });
+
+  it("la meta del mes es la suma de sus días (como fn_meta_mes) y null si ninguno tiene", () => {
+    expect(metaDelMes(septiembre({ 11: 300 }))).toBe(3200);
+    expect(metaDelMes(septiembre({ 11: null }))).toBe(2900);
+    expect(metaDelMes(Array(30).fill(null))).toBeNull();
+    expect(metaDelMes([0, 0])).toBeNull();
+  });
+
+  it("metasDeLaSede: con las metas de la base, la de hoy sale de su día; sin ellas, cae al respaldo", () => {
+    const m = metasDeLaSede(septiembre({ 18: 450 }), 99, "2026-09-18");
+    expect(m.metaVentaDiaria).toBe(450);
+    expect(m.metaMes).toBe(3350);
+    expect(m.metasDelMes).toHaveLength(30);
+
+    const respaldo = metasDeLaSede(null, 80, "2026-09-18");
+    expect(respaldo.metaVentaDiaria).toBe(80);
+    expect(respaldo.metasDelMes).toBeNull();
+    expect(respaldo.metaMes).toBe(2400);
+
+    expect(metasDeLaSede(null, null, "2026-09-18")).toEqual({ metaVentaDiaria: null, metasDelMes: null, metaMes: null });
+  });
+
+  it("metasDeLaSede: hoy sin meta en la base no se rellena con el respaldo (la base manda)", () => {
+    const m = metasDeLaSede(septiembre({ 18: null }), 99, "2026-09-18");
+    expect(m.metaVentaDiaria).toBeNull();
+    expect(m.metaMes).toBe(2900);
+  });
+
+  it("metasDeLaSede: una respuesta con otro número de días no se usa (cae al respaldo)", () => {
+    const m = metasDeLaSede([100, 100, 100], 60, "2026-09-18");
+    expect(m.metasDelMes).toBeNull();
+    expect(m.metaVentaDiaria).toBe(60);
+  });
+
+  it("consolidar suma las metas de cada día de las tiendas con meta", () => {
+    const a = sede({ metaVentaDiaria: 100, metasDelMes: septiembre({ 2: 200 }), ventasMes: 1000, ventasHoy: 0 });
+    const b = sede({ metaVentaDiaria: 50, metasDelMes: Array(30).fill(50), ventasMes: 500, ventasHoy: 0 });
+    const sinMeta = sede({ ventasMes: 9999 });
+    const c = consolidar([a, b, sinMeta], "2026-09-06");
+    expect(c.tiendasConMeta).toBe(2);
+    expect(c.metaVentaDiaria).toBe(150);
+    expect(c.metaMes).toBe(3100 + 1500);
+    // 5 días cerrados: a promete 100·4 + 200 = 600; b promete 250 → 850; se vendió 1500 → 1500/850.
+    expect(c.ritmo.ritmo).toBeCloseTo(1500 / 850, 10);
+    expect(c.ventasMes).toBe(11499);
+  });
+
+  it("consolidar: una tienda que hoy no abre pero tiene metas en el mes sigue contando como tienda con meta", () => {
+    const a = sede({ metaVentaDiaria: null, metasDelMes: septiembre({ 6: null }), ventasMes: 500, ventasHoy: 0 });
+    const c = consolidar([a], "2026-09-06");
+    expect(c.tiendasConMeta).toBe(1);
+    expect(c.metaVentaDiaria).toBeNull();
+    expect(c.ritmo.ritmo).toBe(1);
   });
 });

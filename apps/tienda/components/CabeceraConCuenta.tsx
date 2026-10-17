@@ -135,9 +135,10 @@ export function CabeceraConCuenta({
 function MenuGrande({ menu, hrefNuevo }: { menu: MenuCabecera; hrefNuevo: string }) {
   return (
     <div className="t-mega-envol">
-      <button type="button" className="t-nav-b" aria-haspopup="true">
+      {/* Un enlace, no un botón: al hacer clic lleva a TODO el menú («Toda la ropa»); el menú de abajo se abre igual con el mouse o con Tab. */}
+      <Link className="t-nav-b" href={menu.href} aria-haspopup="true">
         {menu.nombre} <Icono nombre="chevron" />
-      </button>
+      </Link>
       <div className="t-mega">
         <div className="t-mega-in" style={{ "--grupos": menu.grupos.length } as React.CSSProperties}>
           {menu.grupos.map((g) => (
@@ -303,6 +304,9 @@ function HojaMenu({ datos, favoritos, cerrar }: { datos: DatosCabecera; favorito
       {datos.menus.map((m) => (
         <nav key={m.clave} className="t-menu-cats" aria-label={m.nombre}>
           <h4>{m.nombre}</h4>
+          <Link className="t-menu-todo" href={m.href} onClick={cerrar}>
+            {m.todo} <small>{m.grupos.reduce((n, g) => n + g.categorias.reduce((k, c) => k + c.cuantas, 0), 0)}</small>
+          </Link>
           {m.grupos.flatMap((g) => g.categorias).map((c) => (
             <Link key={c.clave} href={c.href} onClick={cerrar}>
               {c.nombre}

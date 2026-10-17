@@ -5,7 +5,6 @@ import { SeccionLegal } from "@/components/ayuda/SeccionLegal";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import type { SeccionLegal as TipoSeccion } from "@/lib/ayuda";
 import { TEXTOS_VERSION } from "@/lib/cuentas";
-import { haySesion } from "@/lib/sesion-servidor";
 // La lectura larga (el índice, los títulos con su número y los enlaces dentro del texto) tiene su cara en ayuda.css.
 import "../estilos/ayuda.css";
 
@@ -35,10 +34,9 @@ const [responsable, datos, finalidades, obligatorios, compartir, conservacion, d
  * «Borrador»): el título grande, la letra de 16 px, cada título con su número aparte y, en la computadora, el índice fijo al costado
  * que enciende el punto que se está leyendo; en el celular, «En esta página» arriba.
  */
-export default async function Privacidad() {
-  const conCuenta = await haySesion();
+export default function Privacidad() {
   return (
-    <MarcoCuenta conCuenta={conCuenta} conPie>
+    <MarcoCuenta segunSesion conPie>
       <div className="t-ancho">
         <article className="ay-legal">
           <EncabezadoAyuda

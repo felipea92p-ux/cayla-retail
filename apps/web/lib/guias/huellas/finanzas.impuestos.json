@@ -2,14 +2,19 @@
   "guia": "finanzas.impuestos",
   "ruta": "/finanzas/impuestos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 5,
+  "total": 8,
   "controles": {
     "components/ImpuestosPanel.tsx": [
       "Boton «fin-impuestos.registro-ventas»",
       "Boton «fin-impuestos.registro-compras»",
       "Boton «fin-impuestos.paquete»",
       "Link «Configurarla»",
+      "Link «Registrar el pago»",
       "BotonVer «{p.accion.texto}»"
+    ],
+    "components/finanzas/ImpuestosPulso.tsx": [
+      "button «{porque ? \"Cerrar\" : \"¿Por qué?\"}»",
+      "Link «Ir»"
     ]
   }
 }

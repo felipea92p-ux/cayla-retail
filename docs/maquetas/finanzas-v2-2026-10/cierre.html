@@ -1,0 +1,1358 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cierre de mes · Finanzas · maquetas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="base.css"><style>
+/* Cierre de mes — solo var(--…) de base.css. Movimiento de ADR-0136: una vez, sin rebote; reduced-motion lo apaga (base.css). */
+[hidden]{display:none!important}
+.mono{font-family:var(--mono);font-size:.92em;letter-spacing:-.01em}
+.globo{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 7px;border-radius:999px;background:var(--hueso);font-family:var(--sans);font-size:12px;font-weight:600;vertical-align:middle;margin-left:6px}
+.btn:disabled{opacity:.42;cursor:not-allowed;transform:none}
+.btn.primario:disabled:hover{background:var(--tinta);border-color:var(--tinta)}
+.btn.peligro{border-color:var(--rojo-p);color:var(--rojo-p)}
+.btn.peligro:hover{background:var(--rojo-p);color:var(--crema)}
+.sec-titulo{font-size:21px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.visto{width:20px;height:20px;flex:none;fill:none;stroke:var(--verde);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.traza{stroke-dasharray:1;animation:x-traza .55s var(--ease-cayla) backwards}
+.traza.t2{animation-delay:.22s}
+@keyframes x-traza{from{stroke-dashoffset:1}}
+.aparece-ya{animation:mq-sube .7s var(--ease-cayla) backwards}
+.icono{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.campo-motivo{width:100%;min-height:76px;resize:vertical;border:1px solid var(--sand);background:var(--hueso);color:var(--tinta);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;transition:background .2s var(--ease-cayla),border-color .2s}
+.campo-motivo:focus{outline:none;background:var(--papel);border-color:var(--taupe)}
+.error-campo{font-size:12.5px;color:var(--rojo-p);margin-top:6px}
+.pie-acciones{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:12px}
+.motivo-titulo{font-size:13px;font-weight:600;margin-bottom:6px;display:block}
+.atajo{border:1px dashed color-mix(in srgb,var(--ambar) 55%,transparent);color:var(--ambar);background:transparent;border-radius:999px;padding:5px 12px;font-size:11.5px;font-weight:600;letter-spacing:.04em;cursor:pointer}
+.atajo:hover{background:color-mix(in srgb,var(--ambar) 8%,transparent)}
+
+/* ================= A · La respuesta ================= */
+.a-respuesta{display:grid;grid-template-columns:auto minmax(0,1fr);gap:40px;align-items:center;padding:34px 40px}
+.a-anillo{position:relative;width:188px;height:188px}
+.a-anillo svg{width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.a-pista{fill:none;stroke:var(--hueso);stroke-width:11}
+.a-avance{fill:none;stroke:var(--verde);stroke-width:11;stroke-linecap:butt;stroke-dasharray:1;stroke-dashoffset:var(--resto,.375);transition:stroke-dashoffset 1.1s var(--ease-cayla),stroke .4s}
+.a-cortes{fill:none;stroke:var(--papel);stroke-width:14;stroke-dasharray:.01 .115;stroke-dashoffset:.005}
+.a-centro{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.a-centro b{font-size:60px;line-height:.9;font-weight:500}
+.a-centro span{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.a-texto{display:flex;flex-direction:column;gap:12px;align-items:flex-start;min-width:0}
+.a-titular{font-size:clamp(30px,3.6vw,44px);line-height:1.05}
+.a-titular b{font-weight:500;color:var(--ambar)}
+.a-titular.listo b{color:var(--verde)}
+.a-titular .cambia{display:inline-block;animation:mq-entra .5s var(--ease-cayla) backwards}
+.a-texto>p{max-width:60ch;font-size:15.5px}
+.a-pq{font-size:14px;max-width:62ch;padding-top:8px;color:color-mix(in srgb,var(--tinta) 72%,transparent)}
+.a-bloque{display:flex;flex-direction:column;gap:14px}
+.a-item{display:grid;grid-template-rows:1fr;margin-bottom:12px;transition:grid-template-rows .55s var(--ease-cayla),opacity .35s var(--ease-cayla),margin .55s var(--ease-cayla)}
+.a-item>div{min-height:0;overflow:hidden}
+.a-item.se-va{grid-template-rows:0fr;opacity:0;margin-bottom:0}
+.a-cosa{position:relative;display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:18px;align-items:start;background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);padding:22px 24px 22px 26px;transition:border-color .3s var(--ease-cayla),background .4s var(--ease-cayla)}
+.a-cosa::before{content:"";position:absolute;left:0;top:20px;bottom:20px;width:3px;border-radius:0 3px 3px 0;background:var(--ambar);transition:background .4s var(--ease-cayla)}
+.a-cosa:hover{border-color:color-mix(in srgb,var(--taupe) 45%,var(--sand))}
+.a-cosa.hecha{background:color-mix(in srgb,var(--verde) 5%,var(--papel))}
+.a-cosa.hecha::before{background:var(--verde)}
+.a-icono{width:46px;height:46px;border-radius:50%;background:var(--hueso);display:grid;place-items:center;color:var(--tinta)}
+.a-cuerpo{display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:0}
+.a-cuerpo h3{font-size:22px;line-height:1.15}
+.a-cuerpo>p{font-size:14.5px;max-width:62ch}
+.a-accion{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:150px}
+.a-donde{font-size:12px}
+.a-hecho{display:inline-flex;align-items:center;gap:8px;height:32px;font-size:13.5px;font-weight:600;color:var(--verde)}
+.a-hecho .visto{width:24px;height:24px}
+.a-vacio{display:flex;align-items:center;gap:12px;padding:18px 20px;border:1px dashed var(--sand);border-radius:var(--radio);font-size:14.5px}
+.a-ya{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:2px 24px}
+.a-ya li{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--sand);list-style:none}
+.a-ya li b{font-weight:600;font-size:14.5px;display:block}
+.a-ya li span{font-size:13px}
+.a-ya{padding:0;margin:0}
+.a-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:14px}
+.a-info .tarjeta{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.a-info h3{font-size:20px}
+.a-info p{font-size:14px}
+.a-listo{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 28px;align-items:center;padding:28px 32px;border-color:color-mix(in srgb,var(--verde) 40%,var(--sand))}
+.a-listo h2{font-size:30px;line-height:1.1;margin:6px 0 8px}
+.a-listo p{max-width:64ch;font-size:14.5px}
+.a-listo .desplegable{grid-column:1/-1}
+.a-confirma-in{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;background:var(--hueso);border-radius:12px;padding:14px 16px;font-size:14px}
+.a-confirma-in .pie-acciones{margin:0}
+.a-reabierto{grid-column:1/-1;font-size:13.5px}
+.a-congelado{display:grid;grid-template-columns:300px minmax(0,1fr);gap:40px;padding:32px 36px;align-items:start}
+.a-cal-cab{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.a-cal-cab .icono{color:var(--pizarra)}
+.a-cal-cab .icono path,.a-cal-cab .icono rect{stroke-dasharray:1}
+.helado .a-cal-cab .icono path,.helado .a-cal-cab .icono rect{animation:x-traza .8s var(--ease-cayla) .95s backwards}
+.a-cal{background:var(--hueso);border-radius:14px;padding:18px}
+.a-cal-rejilla{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.a-cal-rejilla .dl{font-size:10px;font-weight:600;letter-spacing:.08em;text-align:center;color:var(--taupe);padding-bottom:2px}
+.a-dia{aspect-ratio:1;border-radius:7px;display:grid;place-items:center;font-size:11.5px;font-variant-numeric:tabular-nums;background:var(--papel);color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.a-congelado.helado .a-dia{background:color-mix(in srgb,var(--pizarra) 20%,var(--papel));color:var(--pizarra);font-weight:600;animation:a-hiela .5s var(--ease-cayla) backwards;animation-delay:calc(var(--d) * 24ms + 150ms)}
+@keyframes a-hiela{from{background:var(--papel);color:color-mix(in srgb,var(--tinta) 70%,transparent);transform:scale(.82)}}
+.a-cal-pie{font-size:12.5px;margin-top:12px}
+.a-final{display:flex;flex-direction:column;gap:10px;align-items:flex-start;min-width:0}
+.a-cifra{font-family:var(--serif);font-size:clamp(46px,6vw,68px);line-height:1;position:relative;padding-bottom:10px}
+.a-cifra::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--tinta);transform:scaleX(0);transform-origin:left;transition:transform .8s var(--ease-cayla)}
+.a-cifra.asentada{animation:a-asienta .7s var(--ease-cayla)}
+.a-cifra.asentada::after{transform:scaleX(1)}
+@keyframes a-asienta{0%{transform:translateY(-8px);letter-spacing:.03em}100%{transform:none;letter-spacing:0}}
+.a-sello{display:inline-flex;align-items:center;gap:10px;border:1.5px solid var(--pizarra);color:var(--pizarra);border-radius:10px;padding:7px 14px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;transform:rotate(-1.5deg)}
+.a-sello.estampa{animation:mq-sello .6s var(--ease-cayla) backwards}
+.a-orden{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:4px 0 0}
+.a-orden li{list-style:none;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:5px 11px 5px 8px;border-radius:999px;background:var(--hueso);color:color-mix(in srgb,var(--tinta) 55%,transparent);transition:background .3s var(--ease-cayla),color .3s}
+.a-orden li .visto{width:16px;height:16px;opacity:0}
+.a-orden li.ok{background:color-mix(in srgb,var(--verde) 13%,transparent);color:var(--verde)}
+.a-orden li.ok .visto{opacity:1}
+.a-orden li.ok .visto circle,.a-orden li.ok .visto path{stroke-dasharray:1;animation:x-traza .45s var(--ease-cayla) backwards}
+.a-orden li.global{font-weight:600}
+.a-paquete{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--sand);padding-top:14px;margin-top:6px;width:100%}
+.a-paquete ul{display:flex;flex-wrap:wrap;gap:6px 18px;padding:0;margin:0}
+.a-paquete li{list-style:none;display:inline-flex;align-items:center;gap:6px;font-size:13.5px;opacity:.35;transition:opacity .4s var(--ease-cayla)}
+.a-paquete li.ok{opacity:1}
+.a-paquete li .visto{width:16px;height:16px}
+.a-reabrir{width:100%;border-top:1px solid var(--sand);padding-top:14px;margin-top:4px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.a-reabrir .desplegable{width:100%}
+@media (max-width:860px){.a-congelado{grid-template-columns:1fr;gap:24px}.a-cal{max-width:340px}}
+@media (max-width:720px){
+  .a-respuesta{grid-template-columns:1fr;justify-items:start;padding:24px 20px;gap:22px}
+  .a-anillo{width:150px;height:150px}.a-centro b{font-size:48px}
+  .a-cosa{grid-template-columns:40px minmax(0,1fr);padding:18px 18px 18px 22px;gap:14px}
+  .a-icono{width:40px;height:40px}
+  .a-accion{grid-column:2;align-items:flex-start;min-width:0}
+  .a-listo{grid-template-columns:1fr;padding:22px 20px}
+  .a-congelado{padding:22px 20px}
+}
+
+/* ================= B · La mesa de trabajo ================= */
+.b-cab-tabla{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 20px;flex-wrap:wrap;margin-bottom:14px}
+.b-cab-tabla p{font-size:13.5px;max-width:64ch}
+.b-pildoras{display:flex;gap:6px;flex-wrap:wrap}
+.b-pildora{border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:6px 13px;font-size:12.5px;cursor:pointer;transition:background .2s var(--ease-cayla),color .2s,border-color .2s}
+.b-pildora:hover{border-color:var(--taupe)}
+.b-pildora[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.b-tabla{min-width:980px}
+.b-tabla thead th.b-col{text-align:center;padding-inline:4px}
+.b-tabla tbody th{font-size:inherit;text-transform:none;letter-spacing:0;color:inherit;font-weight:inherit;padding:12px;border-bottom:1px solid var(--sand);text-align:left}
+.b-fila{cursor:pointer}
+.b-fila>th:first-child{position:relative}
+.b-fila>th:first-child::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:2px;border-radius:2px;background:var(--rojo);transform:scaleY(0);transition:transform .3s var(--ease-cayla)}
+.b-fila[aria-expanded="true"]>th:first-child::before{transform:scaleY(1)}
+.b-fila.cerrada>*{background:color-mix(in srgb,var(--verde) 5%,transparent)}
+.b-sede{display:flex;align-items:center;gap:10px}
+.b-sede b{font-weight:600;font-size:14.5px;display:block}
+.b-sede small{font-size:11.5px;color:color-mix(in srgb,var(--tinta) 64%,transparent)}
+.b-flecha{width:16px;height:16px;flex:none;color:var(--taupe);transition:transform .3s var(--ease-cayla)}
+.b-fila[aria-expanded="true"] .b-flecha{transform:rotate(90deg)}
+.b-c{text-align:center;padding-inline:4px!important}
+.b-m{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.b-m svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.b-m.ok{background:color-mix(in srgb,var(--verde) 14%,transparent);color:var(--verde)}
+.b-m.falta{background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ambar) 40%,transparent)}
+.b-m.info{background:color-mix(in srgb,var(--pizarra) 13%,transparent);color:var(--pizarra);font-family:var(--serif);font-style:italic;font-size:14px}
+.b-m.na{color:color-mix(in srgb,var(--tinta) 30%,transparent);font-weight:400}
+.b-m.recien{animation:b-pop .45s var(--ease-cayla) backwards}
+.b-m.recien path{stroke-dasharray:1;animation:x-traza .5s var(--ease-cayla) .15s backwards}
+@keyframes b-pop{from{transform:scale(.4);opacity:0}}
+.b-deja{font-family:var(--serif);font-size:19px;display:inline-flex;align-items:center;gap:5px}
+.b-deja .icono{width:14px;height:14px;color:var(--pizarra)}
+.b-deja-pie{display:block;font-size:11px;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.b-detalle>td{padding:0!important;border-bottom:0!important}
+.b-detalle.abierto>td{border-bottom:1px solid var(--sand)!important}
+.b-detalle .desplegable>div>div{padding:6px 16px 18px 40px}
+.b-lineas{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:4px 28px}
+.b-linea{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:start;padding:9px 0;border-bottom:1px dashed var(--sand)}
+.b-linea b{font-weight:600;font-size:13.5px;display:block}
+.b-linea p{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 68%,transparent)}
+.b-na-pie{font-size:12px;margin-top:10px}
+.b-bajo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.b-global{display:flex;flex-direction:column;gap:12px}
+.b-global-cab{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.b-global h3{font-size:24px}
+.b-seg{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.b-seg div{display:flex;flex-direction:column;gap:6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:color-mix(in srgb,var(--tinta) 60%,transparent);text-align:center}
+.b-seg i{display:block;height:8px;border-radius:999px;background:var(--hueso);position:relative;overflow:hidden}
+.b-seg i::after{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--verde);transform:scaleX(0);transform-origin:left;transition:transform .7s var(--ease-cayla)}
+.b-seg div.lleno{color:var(--verde)}
+.b-seg div.lleno i::after{transform:scaleX(1)}
+.b-candado{display:flex;gap:10px;align-items:flex-start;font-size:14px}
+.b-candado .icono{color:var(--taupe);margin-top:1px}
+.b-global-final{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border-top:1px solid var(--sand);padding-top:12px}
+.b-global-final .serif{font-size:36px;line-height:1}
+.b-paquete{display:flex;flex-direction:column;gap:12px}
+.b-paquete h3{font-size:24px}
+.b-piezas{display:flex;flex-direction:column;padding:0;margin:0}
+.b-piezas li{list-style:none;display:grid;grid-template-columns:24px minmax(0,1fr);gap:12px;align-items:start;padding:10px 0;border-bottom:1px solid var(--sand)}
+.b-piezas li:last-child{border-bottom:0}
+.b-piezas b{font-weight:600;font-size:14px;display:block}
+.b-piezas p{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.b-estado-pieza{width:22px;height:22px;border-radius:50%;border:1.5px dashed color-mix(in srgb,var(--tinta) 30%,transparent);position:relative;margin-top:1px}
+.b-piezas li.trabajando .b-estado-pieza{border-style:solid;border-color:var(--sand);overflow:hidden}
+.b-piezas li.trabajando .b-estado-pieza::after{content:"";position:absolute;left:0;right:0;bottom:0;height:100%;background:color-mix(in srgb,var(--pizarra) 30%,transparent);transform-origin:bottom;animation:b-llena .5s var(--ease-cayla) backwards}
+@keyframes b-llena{from{transform:scaleY(0)}}
+.b-piezas li.ok .b-estado-pieza{border:0}
+.b-piezas li.ok .b-estado-pieza .visto{width:22px;height:22px}
+.b-descarga .icono{width:16px;height:16px;transition:transform .25s var(--ease-cayla)}
+.b-descarga:hover .icono{transform:translateY(2px)}
+.b-hist{padding:0;margin:0}
+.b-hist>li{list-style:none;border-bottom:1px solid var(--sand)}
+.b-hist>li:last-child{border-bottom:0}
+.b-evento{display:grid;grid-template-columns:118px minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:12px 0}
+.b-evento .cuando{font-size:12.5px;font-variant-numeric:tabular-nums;color:color-mix(in srgb,var(--tinta) 64%,transparent)}
+.b-evento .que{font-size:14px}
+.b-evento .que b{font-weight:600}
+.b-evento .huella{font-family:var(--mono);font-size:12px;padding:3px 9px;border-radius:7px;background:var(--hueso)}
+.b-evento.reapertura .que{color:var(--ambar)}
+.b-hist>li.recien{animation:mq-entra .55s var(--ease-cayla) backwards}
+.b-hist-form{padding:4px 0 16px 132px}
+.b-vacio{display:flex;gap:14px;align-items:flex-start;padding:10px 0}
+.b-vacio .icono{width:30px;height:30px;color:var(--taupe)}
+.b-vacio .icono path,.b-vacio .icono rect{stroke-dasharray:1;animation:x-traza 1s var(--ease-cayla) backwards}
+.b-vacio h4{font-size:19px}
+.b-vacio p{font-size:13.5px;max-width:60ch}
+@media (max-width:900px){.b-bajo{grid-template-columns:1fr}}
+@media (max-width:640px){
+  .b-evento{grid-template-columns:1fr auto;gap:4px 10px}
+  .b-evento .cuando{grid-column:1/-1}
+  .b-hist-form{padding-left:0}
+}
+
+/* ================= C · Las cosas de la tienda ================= */
+.variante[data-variante="c"]{
+  --kraft:color-mix(in srgb,var(--taupe) 30%,var(--sand));
+  --kraft-osc:color-mix(in srgb,var(--taupe) 44%,var(--sand));
+  --borde-caja:color-mix(in srgb,var(--taupe) 55%,transparent);
+  --cinta:color-mix(in srgb,var(--tinta) 84%,transparent);
+}
+.c-respuesta{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 24px;flex-wrap:wrap}
+.c-respuesta h2{font-size:clamp(28px,3.4vw,40px);line-height:1.08}
+.c-respuesta h2 b{font-weight:500;color:var(--ambar)}
+.c-respuesta h2.listo b{color:var(--verde)}
+.c-respuesta p{font-size:15px;max-width:66ch;margin-top:6px}
+.c-mesa{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:18px;align-items:start}
+.c-superficie{background:var(--hueso);border-radius:18px;padding:22px 20px 24px}
+.c-superficie>.versalita{display:block;margin-bottom:14px}
+.c-puestos{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:22px 12px}
+.c-puesto{display:flex;flex-direction:column;align-items:center;gap:12px;padding-top:16px;min-width:0}
+.c-caja{position:relative;width:160px;height:136px;flex:none}
+.c-frente{position:absolute;left:0;right:0;bottom:0;height:96px;background:var(--kraft);border:1px solid var(--borde-caja);border-radius:5px 5px 9px 9px;display:grid;place-items:center;z-index:2}
+.c-frente::after{content:"";position:absolute;left:50%;bottom:9px;width:34px;height:8px;margin-left:-17px;border-radius:999px;background:color-mix(in srgb,var(--sombra) 22%,var(--kraft-osc))}
+.c-etiq-caja{background:var(--papel);border:1px solid var(--borde-caja);border-radius:4px;padding:5px 10px 6px;text-align:center;width:78%;margin-top:-10px;display:flex;flex-direction:column;gap:1px}
+.c-etiq-caja .versalita{font-size:9px}
+.c-etiq-caja b{font-family:var(--serif);font-weight:500;font-size:17px;line-height:1.1}
+.c-etiq-caja small{font-size:10.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.c-dentro{position:absolute;left:16px;right:16px;bottom:62px;height:66px;display:flex;align-items:flex-end;gap:3px;z-index:1}
+.c-dentro i{flex:1;height:var(--h,40px);background:color-mix(in srgb,var(--crema-fija) 90%,var(--taupe));border:1px solid var(--borde-caja);border-bottom:0;border-radius:3px 3px 0 0;transition:transform .5s var(--ease-cayla)}
+.c-dentro i.nuevo{animation:c-asoma .55s var(--ease-cayla) backwards}
+@keyframes c-asoma{from{transform:translateY(100%)}}
+.c-tapa{position:absolute;left:-5px;right:-5px;bottom:91px;height:20px;background:var(--kraft-osc);border:1px solid var(--borde-caja);border-radius:4px;z-index:0;transform-origin:100% 100%;transform:translate(5px,-8px) rotate(-9deg);transition:transform .75s var(--ease-cayla),z-index 0s .38s}
+.c-puesto.cerrada .c-tapa{transform:none;z-index:3}
+.c-puesto.cerrada .c-dentro i{transform:translateY(60%)}
+.c-tinta{position:absolute;right:6px;top:6px;z-index:4;border:1.5px solid var(--pizarra);color:var(--pizarra);border-radius:5px;padding:1px 6px;font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;transform:rotate(-9deg);opacity:0}
+.c-puesto.cerrada .c-tinta{opacity:1;animation:mq-sello .5s var(--ease-cayla) .6s backwards}
+.c-sueltos{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;width:100%}
+.c-papel{position:relative;width:158px;background:var(--papel);border:1px solid var(--sand);border-radius:4px;padding:12px 12px 11px;transform:rotate(var(--r,0deg));display:flex;flex-direction:column;gap:3px;font-size:12px;
+  box-shadow:0 1px 0 color-mix(in srgb,var(--sombra) 7%,transparent),0 6px 14px -8px color-mix(in srgb,var(--sombra) 30%,transparent);transition:transform .3s var(--ease-cayla)}
+.c-papel:hover{transform:rotate(0deg) translateY(-2px)}
+.c-papel b{font-weight:600;font-size:13px;line-height:1.25}
+.c-papel small{font-size:11.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.c-papel .btn{margin-top:7px;height:28px;padding:0 11px;font-size:11.5px;align-self:flex-start}
+.c-etiq{align-self:flex-start;display:inline-flex;align-items:center;font-size:9.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ambar);
+  background:color-mix(in srgb,var(--ambar) 14%,var(--papel));padding:2px 8px 2px 13px;margin-bottom:4px;clip-path:polygon(7px 0,100% 0,100% 100%,7px 100%,0 50%);position:relative}
+.c-etiq::before{content:"";position:absolute;left:6px;top:50%;width:3px;height:3px;margin-top:-1.5px;border-radius:50%;background:var(--papel)}
+.c-completa{font-size:12px;color:var(--verde);display:inline-flex;gap:6px;align-items:center}
+.c-completa .visto{width:16px;height:16px}
+.c-hueco{width:160px;height:96px;border:1.5px dashed var(--borde-caja);border-radius:9px;display:grid;place-items:center;text-align:center;font-size:11.5px;padding:10px;color:color-mix(in srgb,var(--tinta) 62%,transparent);margin-top:40px}
+.c-grande-zona{display:flex;flex-direction:column;align-items:center;gap:14px;background:var(--hueso);border-radius:18px;padding:22px 18px 22px}
+.c-grande-zona>.versalita{align-self:flex-start}
+.c-g-caja{position:relative;width:320px;height:272px;flex:none;margin-top:12px}
+.c-g-frente{position:absolute;left:0;right:0;bottom:0;height:190px;background:var(--kraft);border:1px solid var(--borde-caja);border-radius:6px 6px 12px 12px;z-index:2;display:grid;place-items:center}
+.c-g-frente::after{content:"";position:absolute;left:50%;bottom:14px;width:52px;height:10px;margin-left:-26px;border-radius:999px;background:color-mix(in srgb,var(--sombra) 22%,var(--kraft-osc))}
+.c-g-etiq{background:var(--papel);border:1px solid var(--borde-caja);border-radius:5px;padding:9px 16px 10px;text-align:center;width:62%;display:flex;flex-direction:column;gap:2px;margin-top:-18px}
+.c-g-etiq b{font-family:var(--serif);font-weight:500;font-size:24px;line-height:1.05}
+.c-g-etiq small{font-size:11.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.c-g-dentro{position:absolute;left:20px;right:20px;bottom:150px;height:84px;display:flex;align-items:flex-end;gap:5px;z-index:1}
+.c-g-dentro .c-hoja{width:11px;flex:none;height:var(--h,58px);background:color-mix(in srgb,var(--crema-fija) 90%,var(--taupe));border:1px solid var(--borde-caja);border-bottom:0;border-radius:3px 3px 0 0;transition:transform .55s var(--ease-cayla)}
+.c-g-dentro .c-mini{flex:1;height:70px;background:var(--kraft-osc);border:1px solid var(--borde-caja);border-bottom:0;border-radius:4px 4px 0 0;display:flex;justify-content:center;padding-top:6px;font-size:9.5px;font-weight:600;letter-spacing:.1em;color:color-mix(in srgb,var(--tinta) 75%,transparent);transition:transform .55s var(--ease-cayla)}
+.c-g-dentro .c-mini.vacio{background:transparent;border:1px dashed color-mix(in srgb,var(--taupe) 35%,transparent);color:color-mix(in srgb,var(--tinta) 32%,transparent)}
+.c-g-dentro .nuevo{animation:c-asoma .6s var(--ease-cayla) backwards}
+.c-g-tapa{position:absolute;left:-7px;right:-7px;bottom:184px;height:28px;background:var(--kraft-osc);border:1px solid var(--borde-caja);border-radius:6px;z-index:0;transform-origin:100% 100%;transform:translate(7px,-10px) rotate(-8deg);transition:transform .85s var(--ease-cayla),z-index 0s .42s}
+.c-grande.cerrada .c-g-tapa{transform:none;z-index:3}
+.c-grande.cerrada .c-g-dentro>*{transform:translateY(55%)}
+.c-cinta{position:absolute;left:0;top:0;width:320px;height:272px;z-index:4;pointer-events:none;opacity:0;overflow:visible}
+.c-cinta path{fill:none;stroke:var(--cinta);stroke-width:11}
+.c-grande.sellada .c-cinta{opacity:1}
+.c-grande.sellada .c-cinta path{stroke-dasharray:1;animation:x-traza .8s var(--ease-cayla) backwards}
+.c-grande.sellada .c-cinta path+path{animation-delay:.45s}
+.c-lacre{position:absolute;left:240px;top:190px;width:76px;height:76px;border-radius:50%;z-index:5;background:var(--rojo-p);color:var(--papel);display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--rojo-p) 30%,transparent),0 6px 12px -6px color-mix(in srgb,var(--sombra) 50%,transparent)}
+.c-lacre::before{content:"";position:absolute;inset:6px;border-radius:50%;border:1.2px dashed color-mix(in srgb,var(--papel) 55%,transparent)}
+.c-lacre b{font-family:var(--serif);font-weight:600;font-size:17px;line-height:1}
+.c-lacre span{font-size:8px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;margin-top:2px}
+.c-grande.sellada .c-lacre{opacity:1;animation:c-estampa .55s var(--ease-cayla) 1.15s backwards}
+@keyframes c-estampa{from{opacity:0;transform:scale(1.7) rotate(-16deg)}}
+.c-g-estado{text-align:center;font-size:13.5px;display:flex;flex-direction:column;gap:4px;align-items:center}
+.c-notas{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.c-nota{width:160px;background:color-mix(in srgb,var(--ambar) 9%,var(--papel));border:1px solid color-mix(in srgb,var(--ambar) 25%,var(--sand));border-radius:3px;padding:10px 11px;font-size:11.5px;transform:rotate(var(--r,0deg));display:flex;flex-direction:column;gap:4px;position:relative}
+.c-nota::before{content:"";position:absolute;top:-6px;left:50%;width:34px;height:12px;margin-left:-17px;background:color-mix(in srgb,var(--tinta) 10%,transparent);transform:rotate(-3deg)}
+.c-nota b{font-size:12.5px;font-weight:600}
+.c-nota .porque{font-size:10px}
+.c-nota .desplegable p{font-size:11.5px;padding-top:4px}
+.c-estante-zona{display:flex;flex-direction:column;gap:12px}
+.c-estante-cab{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.c-estante-cab p{font-size:13.5px;max-width:64ch}
+.c-estante{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:0 14px;align-items:end}
+.c-repisa{height:12px;border-radius:3px;background:var(--kraft-osc);border:1px solid var(--borde-caja);margin-top:-2px}
+.c-hueco-mes{min-height:150px;border:1.5px dashed color-mix(in srgb,var(--taupe) 40%,transparent);border-bottom:0;border-radius:10px 10px 0 0;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;padding:12px;font-size:12px;position:relative;min-width:0}
+.c-hueco-mes small{font-size:11.5px;color:color-mix(in srgb,var(--tinta) 62%,transparent)}
+.c-hueco-mes.futuro{opacity:.5}
+.c-hueco-mes.antes{background:color-mix(in srgb,var(--hueso) 70%,transparent)}
+.c-hueco-mes.lleno{border-color:transparent;padding:0}
+.c-archivada{display:flex;flex-direction:column;gap:6px;align-items:stretch;width:100%}
+.c-archivada-caja{position:relative;height:118px;background:var(--kraft);border:1px solid var(--borde-caja);border-radius:6px 6px 0 0;display:grid;place-items:center;overflow:hidden}
+.c-archivada-caja::before{content:"";position:absolute;left:auto;right:16%;top:0;bottom:0;width:6px;background:var(--cinta)}
+.c-archivada-caja::after{content:"";position:absolute;left:0;right:0;bottom:16%;height:6px;background:var(--cinta)}
+.c-archivada-etiq{position:relative;background:var(--papel);border:1px solid var(--borde-caja);border-radius:4px;padding:5px 10px;text-align:center;display:flex;flex-direction:column}
+.c-archivada-etiq b{font-family:var(--serif);font-weight:500;font-size:17px;line-height:1.1}
+.c-archivada-etiq small{font-family:var(--mono);font-size:10px}
+.c-lacre-mini{position:absolute;right:calc(16% - 9px);bottom:calc(16% - 9px);width:24px;height:24px;border-radius:50%;background:var(--rojo-p);z-index:1;box-shadow:0 0 0 3px color-mix(in srgb,var(--rojo-p) 30%,transparent)}
+.c-archivada.entra{animation:mq-aparece .4s var(--ease-cayla)}
+.c-archivada .btn{align-self:center}
+.c-reabrir-c{padding:12px;background:var(--papel);border:1px solid var(--sand);border-radius:10px;margin-top:6px}
+.c-sobre-zona{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px 28px;align-items:center}
+.c-sobre{position:relative;width:230px;height:150px;margin-top:70px;flex:none}
+.c-sobre-fondo{position:absolute;inset:0;background:var(--kraft-osc);border:1px solid var(--borde-caja);border-radius:6px}
+.c-sobre-hoja{position:absolute;left:18px;right:18px;bottom:12px;height:118px;background:var(--papel);border:1px solid var(--sand);border-radius:3px;padding:7px 10px;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--taupe);text-align:center;
+  transform:translateY(calc(-78px + var(--i) * 12px));transition:transform .7s var(--ease-cayla);transition-delay:calc(var(--i) * 170ms)}
+.c-sobre-bolsillo{position:absolute;inset:0;background:var(--kraft);border:1px solid var(--borde-caja);border-radius:6px;clip-path:polygon(0 38%,50% 72%,100% 38%,100% 100%,0 100%);z-index:2}
+.c-sobre-solapa{position:absolute;left:0;right:0;top:0;height:62%;background:var(--kraft-osc);clip-path:polygon(0 0,100% 0,50% 100%);transform-origin:top;transform:scaleY(-1);z-index:0;transition:transform .6s var(--ease-cayla) .85s,z-index 0s 1.15s}
+.c-sobre.lleno .c-sobre-hoja{transform:translateY(0)}
+.c-sobre.lleno .c-sobre-solapa{transform:scaleY(1);z-index:3}
+.c-sobre-txt{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.c-sobre-txt h3{font-size:24px}
+.c-sobre-txt p{font-size:14px;max-width:58ch}
+@media (max-width:980px){.c-mesa{grid-template-columns:1fr}}
+@media (max-width:560px){
+  .c-estante{grid-template-columns:repeat(2,minmax(0,1fr));padding:0 6px}
+  .c-sobre-zona{grid-template-columns:1fr}
+  .c-puestos{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 8px}
+  .c-caja,.c-hueco{width:148px}
+  .c-papel{width:100%;max-width:158px}
+  .c-superficie{padding:18px 10px 20px}
+}
+@media (max-width:400px){.c-g-caja{transform:scale(.92);transform-origin:top center;margin-bottom:-20px}}
+</style></head><body>
+<header class="mq-barra"><a class="mq-volver" href="index.html" aria-label="Volver a las maquetas"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></a>
+<div class="mq-titulo"><span class="versalita">Finanzas · maquetas</span><b>Cierre de mes</b></div><span class="mq-espacio"></span>
+<div class="mq-selector" role="group" aria-label="Camino"><button data-ver="a">A · La respuesta</button><button data-ver="b">B · La mesa</button><button data-ver="c">C · Las cosas</button></div>
+<span class="mq-ejemplo">Cifras de ejemplo</span><button class="mq-tema" type="button">Oscuro</button></header>
+<main class="pagina">
+
+<!-- ======================================================= A · LA RESPUESTA ======================================================= -->
+<section class="variante" data-variante="a">
+ <div class="variante-cab"><span class="versalita">Camino A · La respuesta</span><p class="idea tenue">Una pregunta, «¿puedo cerrar octubre?», y una respuesta: lo que falta, de a una cosa, cada una con su botón. El anillo se completa contigo.</p></div>
+
+ <header class="encabezado" data-entra style="--i:0">
+  <div>
+   <div class="linea-sede"><span class="versalita">Todas las sedes · octubre 2026</span></div>
+   <h1>Cierre de mes</h1>
+   <p class="frase tenue">Lo que te falta para dejar octubre en orden y, cuando todo esté listo, el botón que lo congela.</p>
+  </div>
+  <span class="chip c-pizarra">Se cierra desde el 1 de noviembre</span>
+ </header>
+
+ <div class="tarjeta a-respuesta" data-entra style="--i:1">
+  <div class="a-anillo" aria-hidden="true">
+   <svg viewBox="0 0 120 120"><circle class="a-pista" cx="60" cy="60" r="52"/><circle class="a-avance" id="a-avance" cx="60" cy="60" r="52" pathLength="1"/><circle class="a-cortes" cx="60" cy="60" r="52" pathLength="1"/></svg>
+   <div class="a-centro"><b class="serif num" id="a-hechas">5</b><span>de 8 listas</span></div>
+  </div>
+  <div class="a-texto" aria-live="polite">
+   <span class="versalita">¿Puedo cerrar octubre?</span>
+   <h2 class="a-titular" id="a-titular">Te faltan <b class="num" data-cuenta="3" data-dur="700">3</b> cosas para cerrar octubre</h2>
+   <p class="tenue" id="a-bajada">Lo demás ya está en orden. Puedes resolver estas tres desde hoy: el 1 de noviembre solo te quedará apretar «Cerrar».</p>
+   <button class="porque" type="button" data-porque="a-pq-como" aria-expanded="false">¿Qué pasa al cerrar?</button>
+   <div class="desplegable" id="a-pq-como"><div><p class="a-pq">Octubre <b>se congela</b>: nadie puede agregar, cambiar ni borrar nada con fecha de octubre, ni una venta ni un gasto. Se cierra cada sede, lo de toda la empresa y, al final, CAYLA entera. El mes queda con su <b>huella</b>, una especie de número de serie que delata cualquier cambio posterior, y tu contador recibe su paquete. Si después hace falta corregir algo, un líder lo reabre y escribe por qué.</p></div></div>
+  </div>
+ </div>
+
+ <section class="a-bloque" id="a-bloque-falta" aria-live="polite">
+  <h2 class="sec-titulo" data-entra style="--i:2">Lo que te falta <span class="globo num" id="a-globo">3</span></h2>
+  <div id="a-lista">
+   <div class="a-item" data-entra style="--i:3" data-listo="Depósitos de tarjeta cruzados|Los dos de Izipay ya están en Interbank."><div>
+    <article class="a-cosa">
+     <span class="a-icono"><svg class="icono" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h4"/></svg></span>
+     <div class="a-cuerpo">
+      <h3>Faltan 2 depósitos de tarjeta</h3>
+      <p>Izipay todavía no te deposita lo del martes 13 en Trujillo (S/ 1,280) ni lo del miércoles 14 en Arequipa (S/ 860).</p>
+      <button class="porque" type="button" data-porque="a-pq-1" aria-expanded="false">¿Por qué frena?</button>
+      <div class="desplegable" id="a-pq-1"><div><p class="a-pq">Si cierras sin ellos, octubre diría que cobraste S/ 2,140 que todavía no tienes en el banco. Suelen llegar en 1 a 3 días; cuando caen en Interbank, se cruzan solos y esta tarjeta desaparece.</p></div></div>
+     </div>
+     <div class="a-accion"><button class="btn primario chico" type="button" data-resolver>Resolver</button><span class="tenue a-donde">en Dinero ▸ Por depositar</span></div>
+    </article>
+   </div></div>
+   <div class="a-item" data-entra style="--i:4" data-listo="Facturas del mes registradas|Textiles del Norte, Hidrandina y Grafinort, revisadas."><div>
+    <article class="a-cosa">
+     <span class="a-icono"><svg class="icono" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-1.6-3 1.6-3-1.6L6 21z"/><path d="M9.5 8h5M9.5 12h5M9.5 16h3"/></svg></span>
+     <div class="a-cuerpo">
+      <h3>Faltan 3 facturas de proveedor</h3>
+      <p>SUNAT ya las trae a tu RUC; solo falta que las mires: Textiles del Norte (S/ 3,540, tela), Hidrandina (S/ 410, la luz de Trujillo) y Grafinort (S/ 650, etiquetas).</p>
+      <button class="porque" type="button" data-porque="a-pq-2" aria-expanded="false">¿Por qué frena?</button>
+      <div class="desplegable" id="a-pq-2"><div><p class="a-pq">Una factura sin registrar es un gasto que octubre no tendría: el mes diría que ganaste más de lo real y lo que le mandas a SUNAT de tus compras saldría incompleto. Dos de las tres ya traen la categoría sugerida.</p></div></div>
+     </div>
+     <div class="a-accion"><button class="btn primario chico" type="button" data-resolver>Resolver</button><span class="tenue a-donde">en Gastos ▸ Por revisar</span></div>
+    </article>
+   </div></div>
+   <div class="a-item" data-entra style="--i:5" data-listo="Bancos cuadrados|BCP e Interbank dicen lo mismo que el sistema."><div>
+    <article class="a-cosa">
+     <span class="a-icono"><svg class="icono" viewBox="0 0 24 24"><path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20.5h18"/></svg></span>
+     <div class="a-cuerpo">
+      <h3>Falta explicar 1 movimiento de Interbank</h3>
+      <p>Un cargo de −S/ 180 que dice «COM MANT». Parece la comisión de mantenimiento del banco: con un toque lo confirmas. BCP ya cuadra.</p>
+      <button class="porque" type="button" data-porque="a-pq-3" aria-expanded="false">¿Por qué frena?</button>
+      <div class="desplegable" id="a-pq-3"><div><p class="a-pq">Al cerrar, lo que dice el banco y lo que dice el sistema tienen que coincidir al sol. Mientras haya un movimiento sin explicar, nadie puede saber si falta plata o si sobra.</p></div></div>
+     </div>
+     <div class="a-accion"><button class="btn primario chico" type="button" data-resolver>Resolver</button><span class="tenue a-donde">en Dinero ▸ Conciliación</span></div>
+    </article>
+   </div></div>
+  </div>
+  <div class="a-vacio" id="a-vacio" hidden><svg class="visto" viewBox="0 0 20 20"><circle class="traza" cx="10" cy="10" r="8.5" pathLength="1"/><path class="traza t2" d="M6 10.4l2.7 2.7L14.2 7.4" pathLength="1"/></svg>Nada pendiente. Lo que frenaba el cierre ya está resuelto.</div>
+ </section>
+
+ <div class="tarjeta a-listo" id="a-cerrar" hidden>
+  <div>
+   <span class="versalita">Todo en orden</span>
+   <h2 class="serif">Octubre está listo para cerrarse</h2>
+   <p class="tenue">Se cierran las cuatro sedes y lo de toda la empresa y, al final, CAYLA entera. Desde ese momento nadie puede cambiar nada con fecha de octubre, y tu contador recibe su paquete.</p>
+  </div>
+  <button class="btn primario" type="button" id="a-btn-cerrar">Cerrar octubre</button>
+  <div class="desplegable" id="a-confirma"><div><div class="a-confirma-in">
+   <p><b>¿Congelamos octubre?</b> Después, solo un líder puede reabrirlo, y tiene que escribir por qué.</p>
+   <div class="pie-acciones"><button class="btn sutil chico" type="button" id="a-no">Todavía no</button><button class="btn primario chico" type="button" id="a-si">Sí, cerrar octubre</button></div>
+  </div></div></div>
+  <p class="a-reabierto tenue" id="a-nota-reabierto" hidden></p>
+ </div>
+
+ <div class="tarjeta a-congelado" id="a-congelado" hidden>
+  <div class="a-cal">
+   <div class="a-cal-cab"><span class="versalita">Octubre 2026</span><svg class="icono" viewBox="0 0 24 24" id="a-candado"><rect x="5" y="11" width="14" height="10" rx="2" pathLength="1"/><path d="M8 11V8a4 4 0 0 1 8 0v3" pathLength="1"/></svg></div>
+   <div class="a-cal-rejilla" id="a-cal"></div>
+   <p class="a-cal-pie tenue">Los 31 días quedan congelados: nada con fecha de octubre se puede cambiar.</p>
+  </div>
+  <div class="a-final">
+   <span class="versalita">Octubre te dejó</span>
+   <div class="a-cifra num" id="a-cifra">S/ 0</div>
+   <p class="tenue" style="font-size:13.5px">Lo que vendiste, menos lo que costó la ropa y los gastos del mes completo. <i>En la maqueta, la proyección de hoy.</i></p>
+   <div class="a-sello" id="a-sello" hidden><svg class="icono" viewBox="0 0 24 24" style="width:16px;height:16px"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Octubre cerrado · huella <span class="mono">9f3a…c71e</span></div>
+   <ol class="a-orden" id="a-orden">
+    <li>TRU<svg class="visto" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5" pathLength="1"/><path d="M6 10.4l2.7 2.7L14.2 7.4" pathLength="1"/></svg></li>
+    <li>AQP<svg class="visto" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5" pathLength="1"/><path d="M6 10.4l2.7 2.7L14.2 7.4" pathLength="1"/></svg></li>
+    <li>LIM<svg class="visto" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5" pathLength="1"/><path d="M6 10.4l2.7 2.7L14.2 7.4" pathLength="1"/></svg></li>
+    <li>Taller<svg class="visto" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5" pathLength="1"/><path d="M6 10.4l2.7 2.7L14.2 7.4" pathLength="1"/></svg></li>
+    <li>Toda la empresa<svg class="visto" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5" pathLength="1"/><path d="M6 10.4l2.7 2.7L14.2 7.4" pathLength="1"/></svg></li>
+    <li class="global">CAYLA entera<svg class="visto" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5" pathLength="1"/><path d="M6 10.4l2.7 2.7L14.2 7.4" pathLength="1"/></svg></li>
+   </ol>
+   <button class="porque" type="button" data-porque="a-pq-huella" aria-expanded="false">¿Qué es la huella?</button>
+   <div class="desplegable" id="a-pq-huella"><div><p class="a-pq">Un código que se calcula con cada venta, gasto y pago de octubre. Si mañana alguien cambiara un solo sol de ese mes, el código ya no daría lo mismo y el sistema te lo diría. Es la prueba de que lo que ve tu contador es lo mismo que cerraste.</p></div></div>
+   <div class="a-paquete" id="a-paquete">
+    <span class="versalita">Tu contador recibe</span>
+    <ul>
+     <li><svg class="visto" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5" pathLength="1"/><path d="M6 10.4l2.7 2.7L14.2 7.4" pathLength="1"/></svg>SIRE de ventas</li>
+     <li><svg class="visto" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5" pathLength="1"/><path d="M6 10.4l2.7 2.7L14.2 7.4" pathLength="1"/></svg>SIRE de compras</li>
+     <li><svg class="visto" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5" pathLength="1"/><path d="M6 10.4l2.7 2.7L14.2 7.4" pathLength="1"/></svg>Libro Diario</li>
+     <li><svg class="visto" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5" pathLength="1"/><path d="M6 10.4l2.7 2.7L14.2 7.4" pathLength="1"/></svg>Libro Mayor</li>
+    </ul>
+   </div>
+   <div class="a-reabrir">
+    <button class="porque" type="button" data-porque="a-form-reabrir" aria-expanded="false">Reabrir octubre · solo un líder</button>
+    <div class="desplegable" id="a-form-reabrir"><div style="padding-top:6px">
+     <label class="motivo-titulo" for="a-motivo">¿Por qué lo reabres? Queda escrito en la historia del mes</label>
+     <textarea class="campo-motivo" id="a-motivo" placeholder="Por ejemplo: llegó tarde una factura de octubre"></textarea>
+     <p class="error-campo" id="a-motivo-error" hidden>Escribe el motivo (al menos 5 letras): queda en la historia.</p>
+     <div class="pie-acciones"><button class="btn sutil chico" type="button" data-porque="a-form-reabrir">Cancelar</button><button class="btn peligro chico" type="button" id="a-btn-reabrir">Reabrir octubre</button></div>
+    </div></div>
+   </div>
+  </div>
+ </div>
+
+ <section class="a-bloque">
+  <h2 class="sec-titulo" data-entra style="--i:6">Ya está <span class="globo num" id="a-globo-ya">3</span></h2>
+  <ul class="a-ya" id="a-ya" data-entra style="--i:7">
+   <li><svg class="visto" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5"/><path d="M6 10.4l2.7 2.7L14.2 7.4"/></svg><div><b>Ventas cuadradas con comprobantes</b><span class="tenue">636 ventas y 636 comprobantes aceptados por SUNAT.</span></div></li>
+   <li><svg class="visto" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5"/><path d="M6 10.4l2.7 2.7L14.2 7.4"/></svg><div><b>Todas las cajas cerradas</b><span class="tenue">30 cierres en Trujillo y Arequipa; ninguna caja quedó abierta.</span></div></li>
+   <li><svg class="visto" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5"/><path d="M6 10.4l2.7 2.7L14.2 7.4"/></svg><div><b>Mermas y conteos</b><span class="tenue">Los conteos de las tres tiendas y del Taller, sin diferencias por explicar.</span></div></li>
+  </ul>
+ </section>
+
+ <section class="a-bloque">
+  <h2 class="sec-titulo" data-entra style="--i:8">Para que sepas <span class="tenue" style="font-family:var(--sans);font-size:13px">· no te frena</span></h2>
+  <div class="a-info">
+   <div class="tarjeta hundida" data-entra style="--i:9">
+    <span class="chip c-pizarra">Aviso</span>
+    <h3>12 % del costo es estimado</h3>
+    <p>De los S/ 22,500 que costó la ropa que vendiste, S/ 2,700 vienen de ventas que se cerraron sin saber qué prenda salió. El sistema les puso un costo estimado.</p>
+    <button class="porque" type="button" data-porque="a-pq-costo" aria-expanded="false">¿Por qué no frena?</button>
+    <div class="desplegable" id="a-pq-costo"><div><p class="a-pq">Esas ventas ya no tienen arreglo: la prenda no se puede identificar después. Esperar no cambia nada, así que el mes se cierra igual y el aviso queda guardado en el cierre, para que se sepa que esa parte del costo es estimada.</p></div></div>
+   </div>
+   <div class="tarjeta hundida" data-entra style="--i:10">
+    <span class="chip c-pizarra">Aviso</span>
+    <h3>La planilla llega el 30</h3>
+    <p>Dynamic paga los sueldos de octubre (S/ 25,400) el viernes 30. Ese día el sistema la lee solo; para el 1 de noviembre ya estará adentro.</p>
+    <button class="porque" type="button" data-porque="a-pq-planilla" aria-expanded="false">¿Y si no llega?</button>
+    <div class="desplegable" id="a-pq-planilla"><div><p class="a-pq">Si el 1 de noviembre todavía no está pagada, esta tarjeta sube a «Lo que te falta»: cerrar sin sueldos haría que octubre se viera mucho mejor de lo que fue.</p></div></div>
+   </div>
+  </div>
+ </section>
+</section>
+
+<!-- ======================================================= B · LA MESA DE TRABAJO ======================================================= -->
+<section class="variante" data-variante="b" hidden>
+ <div class="variante-cab"><span class="versalita">Camino B · La mesa de trabajo</span><p class="idea tenue">Todo a la vista: cada lugar contra las ocho comprobaciones, el cierre global con su candado, la historia de cierres y el paquete del contador.</p></div>
+
+ <header class="encabezado" data-entra style="--i:0">
+  <div>
+   <div class="linea-sede"><span class="versalita">Todas las sedes · octubre 2026</span></div>
+   <h1>Cierre de mes</h1>
+   <p class="frase tenue">Cada lugar se cierra por su cuenta; cuando cierran todos, se cierra CAYLA entera y se prepara el paquete del contador.</p>
+  </div>
+ </header>
+
+ <div class="rejilla r4">
+  <div class="cifra" data-entra style="--i:1"><span class="versalita">Cerrados</span><span class="valor"><span id="b-k-cerradas">0</span> <span class="tenue" style="font-size:20px">de 5</span></span><span class="pie">Las 4 sedes y lo de toda la empresa. Después, CAYLA entera.</span></div>
+  <div class="cifra" data-entra style="--i:2"><span class="versalita">Lo que frena</span><span class="valor" id="b-k-frena">6</span><span class="pie" id="b-k-frena-pie">2 depósitos · 3 facturas · 1 de Interbank</span></div>
+  <div class="cifra" data-entra style="--i:3"><span class="versalita">Avisos que no frenan</span><span class="valor" data-cuenta="2">2</span><span class="pie">Costo estimado 12 % · planilla del 30</span></div>
+  <div class="cifra" data-entra style="--i:4"><span class="versalita">Se cierra desde</span><span class="valor">1 nov</span><span class="pie">En 17 días. Lo que resuelvas antes, queda hecho.</span></div>
+ </div>
+
+ <div class="tarjeta" data-entra style="--i:5">
+  <div class="b-cab-tabla">
+   <div>
+    <h2 class="sec-titulo">Chequeo por lugar</h2>
+    <p class="tenue">Toca una fila para ver qué dice cada comprobación. <span class="b-m ok" style="width:18px;height:18px;vertical-align:-4px"><svg viewBox="0 0 16 16"><path d="M4 8.4l2.6 2.6L12 5.6"/></svg></span> listo · <span class="b-m falta" style="width:18px;height:18px;font-size:10px;vertical-align:-1px">n</span> falta · <span class="b-m info" style="width:18px;height:18px;font-size:11px;vertical-align:-1px">i</span> aviso, no frena · — no aplica</p>
+   </div>
+   <div class="b-pildoras" role="group" aria-label="Filtrar">
+    <button class="b-pildora" type="button" data-filtro="todas" aria-pressed="true">Todos</button>
+    <button class="b-pildora" type="button" data-filtro="pend" aria-pressed="false">Con pendientes</button>
+    <button class="b-pildora" type="button" data-filtro="listas" aria-pressed="false">Listos para cerrar</button>
+    <button class="b-pildora" type="button" data-filtro="cerradas" aria-pressed="false">Cerrados</button>
+   </div>
+  </div>
+  <div class="desliza">
+   <table class="tabla b-tabla">
+    <thead><tr><th>Lugar</th><th class="b-col" title="Ventas cuadradas con comprobantes">Ventas</th><th class="b-col" title="Todas las cajas cerradas">Cajas</th><th class="b-col" title="Depósitos de tarjeta cruzados">Tarjetas</th><th class="b-col" title="Facturas del mes registradas">Facturas</th><th class="b-col" title="Bancos cuadrados">Bancos</th><th class="b-col" title="Planilla leída de Dynamic">Planilla</th><th class="b-col" title="Mermas y conteos">Mermas</th><th class="b-col" title="Costo estimado">Costo</th><th>Estado</th><th class="m">Deja</th><th></th></tr></thead>
+    <tbody id="b-cuerpo"></tbody>
+   </table>
+  </div>
+  <div class="pie-acciones" style="justify-content:space-between;align-items:center">
+   <p class="tenue" style="font-size:12.5px;max-width:70ch">«Deja»: lo que queda después de lo que cada lugar causa, al 15 de octubre. Al cerrar, se congela la cifra del mes completo.</p>
+   <button class="atajo" type="button" id="b-atajo">Atajo de maqueta: resolver todo</button>
+  </div>
+ </div>
+
+ <div class="b-bajo">
+  <div class="tarjeta b-global" data-entra style="--i:6">
+   <div class="b-global-cab"><span class="versalita">El cierre global</span><span class="chip c-taupe" id="b-glob-chip">Con candado</span></div>
+   <h3 class="serif">CAYLA entera · octubre</h3>
+   <div class="b-seg" id="b-seg"></div>
+   <div class="b-candado" id="b-glob-porque"><svg class="icono" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><p></p></div>
+   <button class="porque" type="button" data-porque="b-pq-glob" aria-expanded="false">¿Por qué espera a todos?</button>
+   <div class="desplegable" id="b-pq-glob"><div><p class="tenue" style="font-size:13.5px;padding-top:6px">El global suma lo que congeló cada lugar. Si uno siguiera abierto, el total de CAYLA podría cambiar después de cerrado, y el Balance completo solo existe en el global. Por la misma razón, reabrir un lugar reabre también el global.</p></div></div>
+   <div class="b-global-final" id="b-glob-final" hidden><span class="serif num" id="b-glob-cifra">S/ 7,950</span><span class="tenue" style="font-size:13px">dejó octubre · huella <span class="mono" id="b-glob-huella">9f3a…c71e</span></span></div>
+   <div class="pie-acciones" style="justify-content:flex-start"><button class="btn primario" type="button" id="b-cerrar-glob" disabled>Cerrar CAYLA entera</button></div>
+  </div>
+
+  <div class="tarjeta b-paquete" data-entra style="--i:7">
+   <div class="b-global-cab"><span class="versalita">Para tu contador</span><span class="chip c-taupe" id="b-paq-chip">Espera el cierre global</span></div>
+   <h3 class="serif">El paquete de octubre</h3>
+   <ul class="b-piezas" id="b-piezas">
+    <li><span class="b-estado-pieza"></span><div><b>SIRE de ventas</b><p>Tus 636 comprobantes, como SUNAT los pide en su sistema SIRE.</p></div></li>
+    <li><span class="b-estado-pieza"></span><div><b>SIRE de compras</b><p>Las facturas de tus proveedores del mes, con su IGV.</p></div></li>
+    <li><span class="b-estado-pieza"></span><div><b>Libro Diario</b><p>Cada movimiento de octubre, en el orden en que pasó.</p></div></li>
+    <li><span class="b-estado-pieza"></span><div><b>Libro Mayor</b><p>Los mismos movimientos, agrupados por cuenta.</p></div></li>
+    <li><span class="b-estado-pieza"></span><div><b>Resumen del mes</b><p>Una hoja: qué dejó cada lugar, avisos del cierre y la huella.</p></div></li>
+   </ul>
+   <div class="pie-acciones" style="justify-content:flex-start">
+    <button class="btn primario" type="button" id="b-preparar" disabled>Preparar el paquete del contador</button>
+    <button class="btn sutil b-descarga" type="button" id="b-descargar" hidden><svg class="icono" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Descargar el paquete (.zip)</button>
+   </div>
+  </div>
+ </div>
+
+ <div class="tarjeta" data-entra style="--i:8">
+  <div class="b-cab-tabla" style="margin-bottom:4px">
+   <h2 class="sec-titulo">Historia de cierres</h2>
+   <button class="porque" type="button" data-porque="b-pq-huella" aria-expanded="false">¿Qué es la huella?</button>
+  </div>
+  <div class="desplegable" id="b-pq-huella"><div><p class="tenue" style="font-size:13.5px;padding-bottom:8px;max-width:72ch">Un código que se calcula con cada línea del Diario del mes al cerrarlo. Si algo con fecha de ese mes cambiara después, el Diario ya no daría la misma huella y el sistema lo avisaría. Cada cierre nuevo de un mismo mes es una versión nueva, con su propia huella.</p></div></div>
+  <ul class="b-hist" id="b-hist"></ul>
+ </div>
+</section>
+
+<!-- ======================================================= C · LAS COSAS DE LA TIENDA ======================================================= -->
+<section class="variante" data-variante="c" hidden>
+ <div class="variante-cab"><span class="versalita">Camino C · Las cosas de la tienda</span><p class="idea tenue">El mes es una caja de archivo. Cada sede guarda sus papeles en su caja; las cuatro van a la caja grande de octubre, que se cierra, se amarra, se sella y sube al estante.</p></div>
+
+ <header class="encabezado" data-entra style="--i:0">
+  <div>
+   <div class="linea-sede"><span class="versalita">Todas las sedes · octubre 2026</span></div>
+   <h1>Cierre de mes</h1>
+   <p class="frase tenue">Guarda cada papel en su caja. Cuando una caja tiene todo, la cierras; cuando las cuatro están adentro, sellas octubre.</p>
+  </div>
+ </header>
+
+ <div class="c-respuesta" data-entra style="--i:1" aria-live="polite">
+  <div>
+   <h2 class="serif" id="c-titular">Faltan <b class="num">6</b> papeles para cerrar octubre</h2>
+   <p class="tenue" id="c-bajada">Están sobre la mesa, cada uno con su etiqueta: dos depósitos, tres facturas y un movimiento del banco.</p>
+  </div>
+  <button class="atajo" type="button" id="c-atajo">Atajo de maqueta: guardar todos los papeles</button>
+ </div>
+
+ <div class="c-mesa">
+  <div class="c-superficie" data-entra style="--i:2">
+   <span class="versalita">La mesa · una caja por lugar</span>
+   <div class="c-puestos" id="c-puestos"></div>
+  </div>
+
+  <div class="c-grande-zona" data-entra style="--i:3">
+   <span class="versalita">Octubre · la caja grande</span>
+   <div class="c-grande" id="c-grande">
+    <div class="c-g-caja" id="c-g-caja">
+     <div class="c-g-dentro" id="c-g-dentro"></div>
+     <div class="c-g-tapa"></div>
+     <div class="c-g-frente"><div class="c-g-etiq"><span class="versalita">CAYLA · archivo</span><b>Octubre 2026</b><small id="c-g-cuenta">0 de 4 sedes adentro</small></div></div>
+     <svg class="c-cinta" viewBox="0 0 320 272" aria-hidden="true"><path d="M278 54V272" pathLength="1"/><path d="M0 228H320" pathLength="1"/></svg>
+     <div class="c-lacre" aria-hidden="true"><b>OCT</b><span>2026 · cerrado</span></div>
+    </div>
+   </div>
+   <div class="c-g-estado" id="c-g-estado"><span class="tenue">Aquí va lo de toda la empresa, y las cuatro cajas cuando estén cerradas.</span></div>
+   <div class="c-sueltos" id="c-sueltos-g"></div>
+   <button class="btn primario" type="button" id="c-btn-g" hidden>Cerrar octubre</button>
+   <div class="c-notas">
+    <div class="c-nota" style="--r:-2deg"><b>12 % del costo es estimado</b><span>Ventas cerradas sin saber qué prenda salió. No frena.</span>
+     <button class="porque" type="button" data-porque="c-pq-costo" aria-expanded="false">¿Por qué?</button>
+     <div class="desplegable" id="c-pq-costo"><div><p>Esas ventas ya no tienen arreglo, así que la nota se pega a la caja: quien la abra sabrá que esa parte del costo es estimada.</p></div></div>
+    </div>
+    <div class="c-nota" style="--r:1.6deg"><b>La planilla llega el 30</b><span>Dynamic paga los sueldos el viernes 30. No frena.</span>
+     <button class="porque" type="button" data-porque="c-pq-planilla" aria-expanded="false">¿Por qué?</button>
+     <div class="desplegable" id="c-pq-planilla"><div><p>Para el 1 de noviembre ya estará adentro. Si no llegara, se volvería un papel que falta.</p></div></div>
+    </div>
+   </div>
+  </div>
+ </div>
+
+ <div class="tarjeta c-sobre-zona" id="c-sobre-zona" hidden>
+  <div class="c-sobre" id="c-sobre">
+   <div class="c-sobre-fondo"></div>
+   <div class="c-sobre-solapa"></div>
+   <div class="c-sobre-hoja" style="--i:0">SIRE de ventas</div>
+   <div class="c-sobre-hoja" style="--i:1">SIRE de compras</div>
+   <div class="c-sobre-hoja" style="--i:2">Libro Diario</div>
+   <div class="c-sobre-hoja" style="--i:3">Libro Mayor</div>
+   <div class="c-sobre-bolsillo"></div>
+  </div>
+  <div class="c-sobre-txt">
+   <span class="versalita">Para tu contador</span>
+   <h3 class="serif">Su sobre ya está listo</h3>
+   <p class="tenue">Adentro van el SIRE de ventas y el de compras (lo que SUNAT recibe de lo que vendiste y compraste) y los libros Diario y Mayor (cada movimiento de octubre, en orden y por cuenta). Todos con la huella del mes.</p>
+   <button class="btn sutil b-descarga" type="button"><svg class="icono" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Descargar el sobre</button>
+  </div>
+ </div>
+
+ <section class="c-estante-zona" data-entra style="--i:4">
+  <div class="c-estante-cab">
+   <h2 class="sec-titulo">El estante</h2>
+   <p class="tenue">Los meses cerrados. Octubre es el primero: Finanzas cuenta desde el 1 de octubre, y los meses de antes los lleva tu contador.</p>
+  </div>
+  <div class="c-estante">
+   <div class="c-hueco-mes antes"><span class="versalita">Sep 2026</span><small>Antes de Finanzas · lo tiene tu contador</small></div>
+   <div class="c-hueco-mes" id="c-slot-oct"><span class="versalita">Oct 2026</span><small>Aquí va octubre cuando lo selles</small></div>
+   <div class="c-hueco-mes futuro"><span class="versalita">Nov 2026</span></div>
+   <div class="c-hueco-mes futuro"><span class="versalita">Dic 2026</span></div>
+  </div>
+  <div class="c-repisa"></div>
+ </section>
+</section>
+
+</main><script src="base.js"></script><script>
+(function () {
+  "use strict";
+  const RED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const espera = (ms) => new Promise((res) => setTimeout(res, RED ? 0 : ms));
+  const miles = (n) => Math.round(Math.abs(n)).toLocaleString("en-US");
+  const soles = (n) => (n < 0 ? "−" : "") + "S/ " + miles(n);
+  const conSigno = (n) => (n < 0 ? "−" : "+") + miles(n);
+  const VISTO = '<svg class="visto" viewBox="0 0 20 20" aria-hidden="true"><circle class="traza" cx="10" cy="10" r="8.5" pathLength="1"/><path class="traza t2" d="M6 10.4l2.7 2.7L14.2 7.4" pathLength="1"/></svg>';
+  const CANDADO = '<svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+
+  // Un número que cambia de un valor a otro (base.js solo cuenta desde cero).
+  function tween(el, de, a, dur, fmt) {
+    if (RED) { el.textContent = fmt(a); return Promise.resolve(); }
+    return new Promise((res) => {
+      const t0 = performance.now();
+      const paso = (t) => {
+        const p = Math.min(1, (t - t0) / dur);
+        el.textContent = fmt(de + (a - de) * (1 - Math.pow(1 - p, 3)));
+        if (p < 1) requestAnimationFrame(paso); else res();
+      };
+      requestAnimationFrame(paso);
+    });
+  }
+
+  // Hace volar un elemento hasta otro (papel → caja, caja → caja grande, caja → estante).
+  function volar(el, destino, o) {
+    o = Object.assign({ escala: 0.3, giro: 0, dur: 720, alzar: 46, opacidad: 0 }, o || {});
+    if (RED || !el.animate) return Promise.resolve();
+    const a = el.getBoundingClientRect(), b = destino.getBoundingClientRect();
+    const dx = b.left + b.width / 2 - (a.left + a.width / 2);
+    const dy = b.top + b.height / 2 - (a.top + a.height / 2);
+    el.style.zIndex = "40";
+    if (getComputedStyle(el).position === "static") el.style.position = "relative";
+    const t0 = getComputedStyle(el).transform;
+    const an = el.animate([
+      { transform: t0 && t0 !== "none" ? t0 : "translate(0,0) scale(1) rotate(0deg)", opacity: 1 },
+      { transform: `translate(${dx * 0.5}px,${dy * 0.5 - o.alzar}px) scale(${(1 + o.escala) / 2}) rotate(${o.giro / 2}deg)`, opacity: 1, offset: 0.55 },
+      { transform: `translate(${dx}px,${dy}px) scale(${o.escala}) rotate(${o.giro}deg)`, opacity: o.opacidad }
+    ], { duration: o.dur, easing: "cubic-bezier(0.32,0.72,0.24,1)", fill: "forwards" });
+    return an.finished.catch(() => {});
+  }
+
+  /* =================================== A =================================== */
+  (function A() {
+    const sec = $('[data-variante="a"]');
+    const TOTAL = 8;
+    let hechas = 5;
+    const avance = $("#a-avance");
+    const pintar = () => { avance.style.setProperty("--resto", String(1 - hechas / TOTAL)); };
+
+    // El anillo se dibuja al entrar: parte vacío y avanza hasta 5 de 8.
+    document.addEventListener("variante", (e) => {
+      if (e.detail !== "a") return;
+      if (RED) { pintar(); return; }
+      avance.style.transition = "none";
+      avance.style.setProperty("--resto", "1");
+      void avance.getBoundingClientRect();
+      avance.style.transition = "";
+      setTimeout(pintar, 380);
+    });
+
+    // El calendario de octubre de 2026: empieza en jueves.
+    const cal = $("#a-cal");
+    cal.innerHTML = ["L", "M", "M", "J", "V", "S", "D"].map((d) => `<span class="dl">${d}</span>`).join("") +
+      "<span></span><span></span><span></span>" +
+      Array.from({ length: 31 }, (_, i) => `<span class="a-dia" style="--d:${i}">${i + 1}</span>`).join("");
+
+    function titular() {
+      const f = TOTAL - hechas;
+      const h = $("#a-titular");
+      h.classList.toggle("listo", f === 0);
+      h.innerHTML = f === 0 ? '<span class="cambia">Puedes cerrar <b>octubre</b></span>'
+        : f === 1 ? 'Te falta <b class="num cambia">1</b> cosa para cerrar octubre'
+        : `Te faltan <b class="num cambia">${f}</b> cosas para cerrar octubre`;
+      $("#a-bajada").textContent = f === 0
+        ? "Todo lo que frenaba está resuelto. Lo de abajo es informativo y no te detiene."
+        : `Lo demás ya está en orden. ${f === 1 ? "Te queda una" : "Te quedan " + f}: el 1 de noviembre solo tendrás que apretar «Cerrar».`;
+      $("#a-hechas").textContent = String(hechas);
+      $("#a-globo").textContent = String(f);
+    }
+
+    sec.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-resolver]");
+      if (!b) return;
+      const item = b.closest(".a-item");
+      const cosa = item.querySelector(".a-cosa");
+      cosa.classList.add("hecha");
+      const hecho = document.createElement("span");
+      hecho.className = "a-hecho";
+      hecho.innerHTML = VISTO + "Hecho";
+      b.replaceWith(hecho);
+      hechas++;
+      pintar(); titular();
+      const [t, d] = (item.dataset.listo || "|").split("|");
+      setTimeout(() => {
+        item.classList.add("se-va");
+        const li = document.createElement("li");
+        li.className = "aparece-ya";
+        li.innerHTML = VISTO + `<div><b>${t}</b><span class="tenue">${d}</span></div>`;
+        $("#a-ya").appendChild(li);
+        $("#a-globo-ya").textContent = String($$("#a-ya li").length);
+      }, RED ? 0 : 900);
+      setTimeout(() => {
+        item.remove();
+        if (hechas === TOTAL) {
+          $("#a-vacio").hidden = false;
+          mostrarCerrar();
+        }
+      }, RED ? 0 : 1500);
+    });
+
+    function mostrarCerrar() {
+      const c = $("#a-cerrar");
+      c.hidden = false;
+      c.classList.remove("aparece-ya"); void c.offsetWidth; c.classList.add("aparece-ya");
+      c.scrollIntoView({ behavior: RED ? "auto" : "smooth", block: "center" });
+    }
+
+    $("#a-btn-cerrar").addEventListener("click", () => {
+      $("#a-confirma").classList.add("abierto");
+      $("#a-btn-cerrar").disabled = true;
+    });
+    $("#a-no").addEventListener("click", () => {
+      $("#a-confirma").classList.remove("abierto");
+      $("#a-btn-cerrar").disabled = false;
+    });
+
+    let corriendo = false;
+    $("#a-si").addEventListener("click", async () => {
+      if (corriendo) return;
+      corriendo = true;
+      $("#a-confirma").classList.remove("abierto");
+      $("#a-cerrar").hidden = true;
+      $("#a-bloque-falta").hidden = true;
+      const h = $("#a-titular");
+      h.innerHTML = '<span class="cambia">Octubre está <b>cerrado</b></span>';
+      $("#a-bajada").textContent = "Nadie puede cambiar nada con fecha de octubre. Si hay que corregir algo, un líder lo reabre y escribe por qué.";
+      const cong = $("#a-congelado");
+      const cifra = $("#a-cifra"), sello = $("#a-sello");
+      cong.classList.remove("helado"); cifra.classList.remove("asentada");
+      sello.hidden = true; sello.classList.remove("estampa");
+      $$("#a-orden li, #a-paquete li").forEach((li) => li.classList.remove("ok"));
+      cifra.textContent = "S/ 0";
+      cong.hidden = false;
+      cong.classList.remove("aparece-ya"); void cong.offsetWidth; cong.classList.add("aparece-ya");
+      cong.scrollIntoView({ behavior: RED ? "auto" : "smooth", block: "center" });
+      await espera(450);
+      cong.classList.add("helado");                         // los 31 días se congelan en cascada
+      const lis = $$("#a-orden li");
+      for (let i = 0; i < lis.length; i++) { await espera(i === 0 ? 300 : 210); lis[i].classList.add("ok"); }  // cada sede y, al final, CAYLA entera
+      await tween(cifra, 0, 7950, 1100, soles);             // la cifra final cuenta…
+      cifra.classList.add("asentada");                      // …y se asienta
+      await espera(500);
+      sello.hidden = false; sello.classList.add("estampa"); // la huella se estampa
+      await espera(650);
+      for (const li of $$("#a-paquete li")) { li.classList.add("ok"); await espera(160); }
+      corriendo = false;
+    });
+
+    $("#a-btn-reabrir").addEventListener("click", () => {
+      const campo = $("#a-motivo");
+      const motivo = campo.value.trim();
+      const err = $("#a-motivo-error");
+      if (motivo.length < 5) { err.hidden = false; campo.focus(); return; }
+      err.hidden = true;
+      $("#a-form-reabrir").classList.remove("abierto");
+      $$('[data-porque="a-form-reabrir"]').forEach((b) => b.setAttribute("aria-expanded", "false"));
+      $("#a-congelado").hidden = true;
+      const c = $("#a-cerrar");
+      c.hidden = false;
+      $("#a-btn-cerrar").disabled = false;
+      $("#a-btn-cerrar").textContent = "Cerrar octubre otra vez";
+      const nota = $("#a-nota-reabierto");
+      nota.hidden = false;
+      nota.textContent = `Reabierto por Felipe: «${motivo}». Cuando termines, ciérralo otra vez: quedará como versión 2, con una huella nueva.`;
+      campo.value = "";
+      $("#a-titular").innerHTML = '<span class="cambia">Octubre está <b>reabierto</b></span>';
+      $("#a-bajada").textContent = "Mientras esté abierto, se puede corregir lo que tenga fecha de octubre.";
+      c.classList.remove("aparece-ya"); void c.offsetWidth; c.classList.add("aparece-ya");
+    });
+  })();
+
+  /* =================================== B =================================== */
+  (function B() {
+    const CHEQ = [
+      { k: "ventas", titulo: "Ventas cuadradas con comprobantes" },
+      { k: "cajas", titulo: "Todas las cajas cerradas" },
+      { k: "tarjetas", titulo: "Depósitos de tarjeta cruzados" },
+      { k: "facturas", titulo: "Facturas del mes registradas" },
+      { k: "bancos", titulo: "Bancos cuadrados" },
+      { k: "planilla", titulo: "Planilla leída de Dynamic" },
+      { k: "mermas", titulo: "Mermas y conteos" },
+      { k: "costo", titulo: "Costo estimado" }
+    ];
+    const NA_BANCO = ["na", "Los bancos son de toda la empresa."];
+    const PLANILLA = ["info", "Dynamic paga el 30: ese día se lee sola. No frena."];
+    const COSTO = ["info", "12 % del costo de lo vendido es estimado (ventas sin prenda). No frena."];
+    // [estado, qué dice, cuántos faltan, qué dice al resolverse]
+    const UNI = [
+      { id: "tru", nombre: "Trujillo", corto: "TRU", sub: "TRU · tienda", al15: 6120, fin: 12650, c: {
+        ventas: ["ok", "419 ventas y 419 comprobantes aceptados por SUNAT."],
+        cajas: ["ok", "15 cierres de caja; ninguna quedó abierta."],
+        tarjetas: ["falta", "Izipay del martes 13 (S/ 1,280) todavía no llega a Interbank.", 1, "Cruzado con el depósito del 16 de octubre."],
+        facturas: ["falta", "Hidrandina, S/ 410 (la luz de la tienda): SUNAT ya la trae, falta revisarla.", 1, "Registrada como luz de Trujillo."],
+        bancos: NA_BANCO, planilla: PLANILLA,
+        mermas: ["ok", "Conteo del 12 de octubre sin diferencias por explicar."], costo: COSTO } },
+      { id: "aqp", nombre: "Arequipa", corto: "AQP", sub: "AQP · tienda", al15: 2480, fin: 5130, c: {
+        ventas: ["ok", "217 ventas y 217 comprobantes aceptados por SUNAT."],
+        cajas: ["ok", "15 cierres de caja; ninguna quedó abierta."],
+        tarjetas: ["falta", "Izipay del miércoles 14 (S/ 860) todavía no llega a Interbank.", 1, "Cruzado con el depósito del 16 de octubre."],
+        facturas: ["ok", "Sus facturas del mes ya están registradas (luz, agua y alquiler)."],
+        bancos: NA_BANCO, planilla: PLANILLA,
+        mermas: ["ok", "Conteo del 9 de octubre sin diferencias por explicar."], costo: COSTO } },
+      { id: "lim", nombre: "Lima", corto: "LIM", sub: "LIM · tienda · abre el 20", al15: -1450, fin: -3000, c: {
+        ventas: ["ok", "Abre el 20: todavía no vende."], cajas: ["ok", "Todavía no tiene caja abierta."],
+        tarjetas: ["ok", "Sin cobros con tarjeta todavía."], facturas: ["ok", "Alquiler y equipo registrados."],
+        bancos: NA_BANCO, planilla: PLANILLA,
+        mermas: ["ok", "Conteo de apertura hecho el 13 de octubre."], costo: ["na", "Todavía no vende."] } },
+      { id: "taller", nombre: "Taller", corto: "Taller", sub: "Lima · confección", al15: -620, fin: -1280, c: {
+        ventas: ["na", "El Taller no vende."], cajas: ["na", "El Taller no tiene caja."], tarjetas: ["na", "El Taller no cobra."],
+        facturas: ["falta", "Textiles del Norte, S/ 3,540 (tela) y Grafinort, S/ 650 (etiquetas): SUNAT ya las trae.", 2, "Las dos registradas como insumos del Taller."],
+        bancos: NA_BANCO, planilla: PLANILLA,
+        mermas: ["ok", "Retazos y mermas del mes anotados."], costo: ["na", "Lo que confecciona pasa al costo de las prendas."] } },
+      { id: "empresa", nombre: "Toda la empresa", corto: "Empresa", sub: "Contador, publicidad, bancos", al15: -2680, fin: -5550, c: {
+        ventas: ["na", "Las ventas son de cada tienda."], cajas: ["na", "Las cajas son de cada tienda."], tarjetas: ["na", "Los depósitos son de cada tienda."],
+        facturas: ["ok", "Contador (S/ 1,200) y publicidad (S/ 1,500) registrados."],
+        bancos: ["falta", "BCP cuadra. Interbank: −S/ 180 «COM MANT» todavía no tiene pareja.", 1, "Explicado: comisión de mantenimiento de Interbank."],
+        planilla: ["na", "Los sueldos van en cada lugar."], mermas: ["na", "No guarda ropa."], costo: ["na", "No vende."] } }
+    ];
+    const HUELLAS = {
+      tru: ["4b7e…a210", "d41c…7e02", "5a90…3c11"], aqp: ["c03d…19f8", "8e21…f4a7", "0b6c…92de"],
+      lim: ["71aa…e6b4", "f9c0…2d58", "3e47…a8c9"], taller: ["e5f2…0c3d", "6d1b…b390", "a2e8…57f4"],
+      empresa: ["28c9…b5a1", "93fd…1e6c", "c7a4…08b2"], global: ["9f3a…c71e", "b72d…40e9", "1c85…e3fa"]
+    };
+    const est = {}; UNI.forEach((u) => { est[u.id] = { estado: "abierto", version: 0 }; });
+    const glob = { estado: "abierto", version: 0 };
+    const hist = [];
+    const abiertos = new Set();
+    const recien = new Set();
+    let filtro = "todas", formDe = null, primera = true, reloj = 9 * 60 + 2, paquete = "nada", tokFrena = 0;
+    // «Lo que frena» cuenta al entrar, pero un clic durante la cuenta la corta (no la pisa).
+    document.addEventListener("variante", (e) => {
+      if (e.detail !== "b" || RED) return;
+      const el = $("#b-k-frena"), fin = UNI.reduce((s, u) => s + pend(u), 0), tk = ++tokFrena, t0 = performance.now();
+      const paso = (t) => {
+        if (tk !== tokFrena) return;
+        const p = Math.min(1, (t - t0) / 1100);
+        el.textContent = String(Math.round(fin * (1 - Math.pow(1 - p, 3))));
+        if (p < 1) requestAnimationFrame(paso);
+      };
+      requestAnimationFrame(paso);
+    });
+
+    const pend = (u) => CHEQ.reduce((s, c) => s + (u.c[c.k][0] === "falta" ? (u.c[c.k][2] || 1) : 0), 0);
+    const ahora = () => { reloj += 3; return `1 nov · ${Math.floor(reloj / 60)}:${String(reloj % 60).padStart(2, "0")}`; };
+    const porId = (id) => UNI.find((u) => u.id === id);
+
+    function marca(cel, nuevo) {
+      const r = nuevo ? " recien" : "";
+      if (cel[0] === "ok") return `<span class="b-m ok${r}" aria-label="Listo"><svg viewBox="0 0 16 16"><path pathLength="1" d="M4 8.4l2.6 2.6L12 5.6"/></svg></span>`;
+      if (cel[0] === "falta") return `<span class="b-m falta" aria-label="Faltan ${cel[2]}">${cel[2]}</span>`;
+      if (cel[0] === "info") return '<span class="b-m info" aria-label="Aviso, no frena">i</span>';
+      return '<span class="b-m na" aria-label="No aplica">—</span>';
+    }
+    function chip(u) {
+      const e = est[u.id].estado, p = pend(u);
+      if (e === "cerrado") return '<span class="chip c-verde">Cerrado</span>';
+      if (p > 0) return `<span class="chip c-ambar">${p} pendiente${p === 1 ? "" : "s"}</span>`;
+      if (e === "reabierto") return '<span class="chip c-taupe">Reabierto · listo</span>';
+      return '<span class="chip c-pizarra">Listo para cerrar</span>';
+    }
+    function fila(u, i) {
+      const e = est[u.id].estado, p = pend(u), cerrado = e === "cerrado";
+      const entra = primera ? ` data-entra style="--i:${i + 6}"` : "";
+      const deja = cerrado
+        ? `<span class="b-deja num" data-deja="${u.id}">${CANDADO}${conSigno(u.fin)}</span><span class="b-deja-pie">mes completo · congelado</span>`
+        : `<span class="b-deja num">${conSigno(u.al15)}</span><span class="b-deja-pie">al 15</span>`;
+      const boton = cerrado
+        ? `<span class="tenue" style="font-size:12.5px">v${est[u.id].version} · ${HUELLAS[u.id][est[u.id].version - 1]}</span>`
+        : `<button class="btn chico ${p === 0 ? "primario" : "sutil"}" type="button" data-cerrar="${u.id}" ${p > 0 ? "disabled" : ""}>Cerrar ${u.corto}</button>`;
+      return `<tr class="b-fila${cerrado ? " cerrada" : ""}" data-u="${u.id}" tabindex="0" aria-expanded="${abiertos.has(u.id)}"${entra}>
+        <th scope="row"><span class="b-sede"><svg class="b-flecha" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3.5 10.5 8 6 12.5"/></svg><span><b>${u.nombre}</b><small>${u.sub}</small></span></span></th>
+        ${CHEQ.map((c) => `<td class="b-c">${marca(u.c[c.k], recien.has(u.id + ":" + c.k))}</td>`).join("")}
+        <td>${chip(u)}</td><td class="m">${deja}</td><td class="m">${boton}</td></tr>`;
+    }
+    function detalle(u) {
+      const aplican = CHEQ.filter((c) => u.c[c.k][0] !== "na");
+      const NOMBRE = { ventas: "ventas", cajas: "cajas", tarjetas: "depósitos de tarjeta", facturas: "facturas", bancos: "bancos", planilla: "planilla", mermas: "mermas", costo: "costo" };
+      const no = CHEQ.filter((c) => u.c[c.k][0] === "na").map((c) => NOMBRE[c.k]);
+      const cerrado = est[u.id].estado === "cerrado";
+      const lineas = aplican.map((c) => {
+        const cel = u.c[c.k];
+        const btn = cel[0] === "falta" && !cerrado ? `<button class="btn sutil chico" type="button" data-resolver-b="${u.id}:${c.k}">Resolver</button>` : "<span></span>";
+        return `<div class="b-linea">${marca(cel, recien.has(u.id + ":" + c.k))}<div><b>${c.titulo}</b><p>${cel[1]}</p></div>${btn}</div>`;
+      }).join("");
+      const ab = abiertos.has(u.id) ? " abierto" : "";
+      return `<tr class="b-detalle${ab}" data-de="${u.id}"><td colspan="12"><div class="desplegable${ab}"><div><div>
+        <div class="b-lineas">${lineas}</div>
+        ${no.length ? `<p class="b-na-pie tenue">No aplica aquí: ${no.join(", ")}.</p>` : ""}
+      </div></div></div></td></tr>`;
+    }
+
+    function render() {
+      $("#b-cuerpo").innerHTML = UNI.map((u, i) => fila(u, i) + detalle(u)).join("");
+      primera = false;
+      recien.clear();
+      filtrar(); cifras(); global(); historia(); paq();
+    }
+    function filtrar() {
+      UNI.forEach((u) => {
+        const e = est[u.id].estado, p = pend(u);
+        const ve = filtro === "todas" || (filtro === "pend" && p > 0 && e !== "cerrado") || (filtro === "listas" && p === 0 && e !== "cerrado") || (filtro === "cerradas" && e === "cerrado");
+        $(`.b-fila[data-u="${u.id}"]`).hidden = !ve;
+        $(`.b-detalle[data-de="${u.id}"]`).hidden = !ve;
+      });
+    }
+    function cifras() {
+      $("#b-k-cerradas").textContent = String(UNI.filter((u) => est[u.id].estado === "cerrado").length);
+      const t = UNI.reduce((s, u) => s + pend(u), 0);
+      tokFrena++;
+      $("#b-k-frena").textContent = String(t);
+      const dep = pend(porId("tru")) + pend(porId("aqp")) - (porId("tru").c.facturas[0] === "falta" ? 1 : 0);
+      const fac = (porId("tru").c.facturas[0] === "falta" ? 1 : 0) + (porId("taller").c.facturas[0] === "falta" ? 2 : 0);
+      const ban = porId("empresa").c.bancos[0] === "falta" ? 1 : 0;
+      const partes = [];
+      if (dep) partes.push(`${dep} depósito${dep === 1 ? "" : "s"}`);
+      if (fac) partes.push(`${fac} factura${fac === 1 ? "" : "s"}`);
+      if (ban) partes.push("1 de Interbank");
+      $("#b-k-frena-pie").textContent = partes.length ? partes.join(" · ") : "Nada frena: ya puedes cerrar cada lugar.";
+    }
+    function global() {
+      $("#b-seg").innerHTML = UNI.map((u) => `<div class="${est[u.id].estado === "cerrado" ? "lleno" : ""}"><i></i>${u.corto}</div>`).join("");
+      const faltan = UNI.filter((u) => est[u.id].estado !== "cerrado").map((u) => u.id === "empresa" ? "la empresa" : u.corto);
+      const p = $("#b-glob-porque p"), chipG = $("#b-glob-chip"), btn = $("#b-cerrar-glob");
+      const lista = faltan.length > 1 ? faltan.slice(0, -1).join(", ") + " y " + faltan[faltan.length - 1] : faltan[0];
+      if (glob.estado === "cerrado") {
+        p.textContent = "Octubre está cerrado de punta a punta. Nadie puede cambiar nada con fecha de octubre.";
+        chipG.className = "chip c-verde"; chipG.textContent = "Cerrado";
+        btn.disabled = true; btn.textContent = "CAYLA entera está cerrada";
+        $("#b-glob-final").hidden = false;
+        $("#b-glob-huella").textContent = HUELLAS.global[glob.version - 1];
+      } else if (faltan.length) {
+        p.textContent = `Se abre cuando cierren los cinco. ${faltan.length === 1 ? "Falta" : "Faltan"}: ${lista}.`;
+        chipG.className = "chip c-taupe"; chipG.textContent = glob.estado === "reabierto" ? "Reabierto · con candado" : "Con candado";
+        btn.disabled = true; btn.textContent = "Cerrar CAYLA entera";
+        $("#b-glob-final").hidden = true;
+      } else {
+        p.textContent = "Los cinco están cerrados. Ya puedes cerrar CAYLA entera.";
+        chipG.className = "chip c-pizarra"; chipG.textContent = "Listo para cerrar";
+        btn.disabled = false; btn.textContent = glob.version ? "Cerrar CAYLA entera otra vez" : "Cerrar CAYLA entera";
+        $("#b-glob-final").hidden = true;
+      }
+    }
+    function historia() {
+      const ul = $("#b-hist");
+      if (!hist.length) {
+        ul.innerHTML = `<li><div class="b-vacio"><svg class="icono" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2" pathLength="1"/><path d="M4 10h16M9 3v4M15 3v4" pathLength="1"/></svg><div><h4 class="serif">Todavía no hay cierres</h4><p class="tenue">Octubre es el primer mes que Finanzas cuenta. Los meses de antes los tiene tu contador. Cuando cierres el primer lugar, aparecerá aquí con su huella.</p></div></div></li>`;
+        return;
+      }
+      ul.innerHTML = hist.slice().reverse().map((ev) => {
+        const vigente = ev.tipo === "cierre" && ev.vigente && (ev.u === "global" ? glob.estado === "cerrado" : est[ev.u].estado === "cerrado");
+        const accion = vigente ? `<button class="btn sutil chico" type="button" data-reabrir="${ev.u}">Reabrir</button>` : "<span></span>";
+        const form = vigente && formDe === ev.u ? `<div class="b-hist-form">
+            <label class="motivo-titulo" for="b-motivo">¿Por qué reabres ${ev.nombre}? Solo un líder puede, y queda escrito${ev.u !== "global" && glob.estado === "cerrado" ? ". También se reabre CAYLA entera" : ""}.</label>
+            <textarea class="campo-motivo" id="b-motivo" placeholder="Por ejemplo: llegó tarde una factura de octubre"></textarea>
+            <p class="error-campo" id="b-motivo-error" hidden>Escribe el motivo (al menos 5 letras): queda en la historia.</p>
+            <div class="pie-acciones"><button class="btn sutil chico" type="button" data-cancelar-reabrir>Cancelar</button><button class="btn peligro chico" type="button" data-confirmar-reabrir="${ev.u}">Reabrir ${ev.nombre}</button></div>
+          </div>` : "";
+        return `<li class="${ev.nuevo ? "recien" : ""}"><div class="b-evento ${ev.tipo}"><span class="cuando">${ev.cuando}</span><span class="que">${ev.texto}</span>${ev.huella ? `<span class="huella">${ev.huella}</span>` : "<span></span>"}${accion}</div>${form}</li>`;
+      }).join("");
+      hist.forEach((ev) => { ev.nuevo = false; });
+    }
+    function paq() {
+      const btn = $("#b-preparar"), chipP = $("#b-paq-chip");
+      const listo = glob.estado === "cerrado";
+      if (paquete === "listo" && listo) return;
+      if (!listo) {
+        paquete = paquete === "listo" ? "viejo" : paquete === "viejo" ? "viejo" : "nada";
+        $$("#b-piezas li").forEach((li) => { li.className = ""; li.querySelector(".b-estado-pieza").innerHTML = ""; });
+        btn.disabled = true; btn.hidden = false; $("#b-descargar").hidden = true;
+        chipP.className = "chip c-taupe";
+        chipP.textContent = paquete === "viejo" ? "Quedó viejo: espera el nuevo cierre" : "Espera el cierre global";
+      } else if (paquete !== "preparando") {
+        btn.disabled = false; btn.hidden = false;
+        chipP.className = "chip c-pizarra"; chipP.textContent = "Listo para prepararse";
+      }
+    }
+
+    // Abrir y cerrar una fila
+    function alternar(id) {
+      const tr = $(`.b-fila[data-u="${id}"]`), det = $(`.b-detalle[data-de="${id}"]`);
+      const abrir = !abiertos.has(id);
+      if (abrir) abiertos.add(id); else abiertos.delete(id);
+      tr.setAttribute("aria-expanded", String(abrir));
+      det.classList.toggle("abierto", abrir);
+      det.querySelector(".desplegable").classList.toggle("abierto", abrir);
+    }
+    const sec = $('[data-variante="b"]');
+    sec.addEventListener("click", async (e) => {
+      const t = e.target;
+      const pill = t.closest("[data-filtro]");
+      if (pill) {
+        filtro = pill.dataset.filtro;
+        $$("[data-filtro]").forEach((b) => b.setAttribute("aria-pressed", String(b === pill)));
+        filtrar(); return;
+      }
+      const res = t.closest("[data-resolver-b]");
+      if (res) {
+        const [id, k] = res.dataset.resolverB.split(":");
+        const u = porId(id), cel = u.c[k];
+        u.c[k] = ["ok", cel[3] || "Resuelto."];
+        recien.add(id + ":" + k);
+        render(); return;
+      }
+      const cerrar = t.closest("[data-cerrar]");
+      if (cerrar) {
+        const u = porId(cerrar.dataset.cerrar);
+        const s = est[u.id];
+        s.estado = "cerrado"; s.version++;
+        hist.forEach((ev) => { if (ev.u === u.id) ev.vigente = false; });
+        hist.push({ tipo: "cierre", u: u.id, nombre: u.corto, vigente: true, nuevo: true, cuando: ahora(),
+          texto: `<b>Felipe</b> cerró ${u.nombre}${s.version > 1 ? ` · versión ${s.version}` : ""}`, huella: HUELLAS[u.id][s.version - 1] });
+        render();
+        const d = $(`[data-deja="${u.id}"]`);
+        if (d) {
+          const txt = document.createElement("span");
+          d.lastChild.replaceWith(txt);
+          tween(txt, u.al15, u.fin, 1100, conSigno);
+        }
+        return;
+      }
+      if (t.closest("#b-cerrar-glob")) {
+        glob.estado = "cerrado"; glob.version++;
+        hist.forEach((ev) => { if (ev.u === "global") ev.vigente = false; });
+        hist.push({ tipo: "cierre", u: "global", nombre: "CAYLA entera", vigente: true, nuevo: true, cuando: ahora(),
+          texto: `<b>Felipe</b> cerró <b>CAYLA entera</b>${glob.version > 1 ? ` · versión ${glob.version}` : ""}`, huella: HUELLAS.global[glob.version - 1] });
+        render();
+        tween($("#b-glob-cifra"), 0, 7950, 1100, soles);
+        return;
+      }
+      const reab = t.closest("[data-reabrir]");
+      if (reab) { formDe = formDe === reab.dataset.reabrir ? null : reab.dataset.reabrir; historia(); const m = $("#b-motivo"); if (m) m.focus(); return; }
+      if (t.closest("[data-cancelar-reabrir]")) { formDe = null; historia(); return; }
+      const conf = t.closest("[data-confirmar-reabrir]");
+      if (conf) {
+        const id = conf.dataset.confirmarReabrir;
+        const motivo = ($("#b-motivo").value || "").trim();
+        if (motivo.length < 5) { $("#b-motivo-error").hidden = false; $("#b-motivo").focus(); return; }
+        formDe = null;
+        const nombre = id === "global" ? "CAYLA entera" : porId(id).nombre;
+        if (id === "global") glob.estado = "reabierto"; else est[id].estado = "reabierto";
+        hist.push({ tipo: "reapertura", u: id, nuevo: true, cuando: ahora(), texto: `<b>Felipe</b> reabrió ${nombre}: «${motivo.replace(/</g, "&lt;")}»`, huella: "" });
+        if (id !== "global" && glob.estado === "cerrado") {
+          glob.estado = "reabierto";
+          hist.push({ tipo: "reapertura", u: "global", nuevo: true, cuando: ahora(), texto: `CAYLA entera se reabrió con ${nombre}`, huella: "" });
+        }
+        render(); return;
+      }
+      if (t.closest("#b-atajo")) {
+        UNI.forEach((u) => CHEQ.forEach((c) => { const cel = u.c[c.k]; if (cel[0] === "falta") { u.c[c.k] = ["ok", cel[3]]; recien.add(u.id + ":" + c.k); } }));
+        render(); return;
+      }
+      if (t.closest("#b-preparar")) { preparar(); return; }
+      const tr = t.closest(".b-fila");
+      if (tr && !t.closest("button")) alternar(tr.dataset.u);
+    });
+    sec.addEventListener("keydown", (e) => {
+      const tr = e.target.closest && e.target.closest(".b-fila");
+      if (tr && e.target === tr && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); alternar(tr.dataset.u); }
+    });
+
+    async function preparar() {
+      paquete = "preparando";
+      const btn = $("#b-preparar");
+      btn.disabled = true; btn.textContent = "Preparando…";
+      $("#b-paq-chip").className = "chip c-pizarra"; $("#b-paq-chip").textContent = "Armándose";
+      for (const li of $$("#b-piezas li")) {
+        li.className = "trabajando";
+        await espera(420);
+        li.className = "ok";
+        li.querySelector(".b-estado-pieza").innerHTML = VISTO;
+        await espera(140);
+      }
+      paquete = "listo";
+      btn.hidden = true; btn.textContent = "Preparar el paquete del contador";
+      const d = $("#b-descargar"); d.hidden = false; d.classList.remove("aparece-ya"); void d.offsetWidth; d.classList.add("aparece-ya");
+      $("#b-paq-chip").className = "chip c-verde"; $("#b-paq-chip").textContent = "Listo · con la huella del mes";
+    }
+
+    render();
+  })();
+
+  /* =================================== C =================================== */
+  (function C() {
+    const SEDES = [
+      { id: "tru", nombre: "Trujillo", dentro: 5, sueltos: [
+        { t: "Depósito Izipay", d: "Martes 13 · S/ 1,280", e: "No llega al banco", r: -3 },
+        { t: "Factura Hidrandina", d: "Luz de la tienda · S/ 410", e: "Por revisar", r: 2.5 } ] },
+      { id: "aqp", nombre: "Arequipa", dentro: 6, sueltos: [
+        { t: "Depósito Izipay", d: "Miércoles 14 · S/ 860", e: "No llega al banco", r: 2 } ] },
+      { id: "lim", nombre: "Lima", dentro: 5, sueltos: [] },
+      { id: "taller", nombre: "Taller", dentro: 3, sueltos: [
+        { t: "Textiles del Norte", d: "Tela · S/ 3,540", e: "Por revisar", r: -2 },
+        { t: "Grafinort EIRL", d: "Etiquetas · S/ 650", e: "Por revisar", r: 3 } ] }
+    ];
+    const EMPRESA = [{ t: "Interbank −S/ 180", d: "«COM MANT» · sin pareja", e: "Por explicar", r: -1.5 }];
+    const alturas = [58, 50, 62, 54, 46, 60, 52, 56];
+    let enGrande = 0, sueltosG = EMPRESA.length, sellada = false;
+
+    const quedan = () => SEDES.reduce((s, x) => s + x.sueltos.length, 0) + sueltosG;
+
+    function papelHTML(p, clave) {
+      return `<div class="c-papel" data-papel="${clave}" style="--r:${p.r}deg"><span class="c-etiq">${p.e}</span><b>${p.t}</b><small>${p.d}</small><button class="btn sutil chico" type="button" data-guardar="${clave}">Guardar en la caja</button></div>`;
+    }
+    function textoCuenta(s) {
+      const n = s.sueltos.length;
+      return n === 0 ? "Completa" : `Faltan ${n} papel${n === 1 ? "" : "es"}`;
+    }
+    $("#c-puestos").innerHTML = SEDES.map((s) => `
+      <div class="c-puesto" data-u="${s.id}">
+        <div class="c-caja" id="c-caja-${s.id}">
+          <div class="c-dentro">${Array.from({ length: s.dentro }, (_, i) => `<i style="--h:${alturas[i % 8]}px"></i>`).join("")}</div>
+          <div class="c-tapa"></div>
+          <div class="c-frente"><div class="c-etiq-caja"><span class="versalita">Oct 2026</span><b>${s.nombre}</b><small data-cuenta-caja>${textoCuenta(s)}</small></div><span class="c-tinta">Cerrada</span></div>
+        </div>
+        <div class="c-hueco" hidden>Ya está en la caja de octubre</div>
+        <div class="c-sueltos">${s.sueltos.map((p, i) => papelHTML(p, s.id + "-" + i)).join("")}</div>
+        <button class="btn primario chico" type="button" data-cerrar-caja="${s.id}" ${s.sueltos.length ? "hidden" : ""}>Cerrar la caja de ${s.nombre}</button>
+      </div>`).join("");
+    $("#c-sueltos-g").innerHTML = EMPRESA.map((p, i) => papelHTML(p, "g-" + i)).join("");
+    $("#c-g-dentro").innerHTML = '<i class="c-hoja" style="--h:62px"></i><i class="c-hoja" style="--h:54px"></i>' +
+      SEDES.map((s) => `<span class="c-mini vacio" data-mini="${s.id}">${s.id === "taller" ? "TALLER" : s.id.toUpperCase()}</span>`).join("");
+
+    function titular() {
+      const n = quedan();
+      const h = $("#c-titular");
+      const cajas = SEDES.length - enGrande;
+      h.classList.toggle("listo", n === 0);
+      if (sellada) { h.innerHTML = "Octubre está <b>sellado</b>"; $("#c-bajada").textContent = "La caja está en el estante con su huella. Nadie puede cambiar nada con fecha de octubre."; return; }
+      if (n > 0) {
+        h.innerHTML = `Falta${n === 1 ? "" : "n"} <b class="num">${n}</b> papel${n === 1 ? "" : "es"} para cerrar octubre`;
+        $("#c-bajada").textContent = "Están sobre la mesa, cada uno con su etiqueta. Cuando lo resuelvas, guárdalo en su caja.";
+      } else if (cajas > 0) {
+        h.innerHTML = `Todo está guardado: cierra <b class="num">${cajas}</b> caja${cajas === 1 ? "" : "s"}`;
+        $("#c-bajada").textContent = "Cada caja cerrada se apila sola en la caja grande de octubre.";
+      } else {
+        h.innerHTML = "Ya puedes <b>sellar octubre</b>";
+        $("#c-bajada").textContent = "Las cuatro cajas están adentro. Al cerrar, la caja se amarra, se sella y nadie puede cambiar nada de octubre.";
+      }
+    }
+    function estadoGrande() {
+      $("#c-g-cuenta").textContent = sellada ? "Cerrada · huella 9f3a…c71e" : `${enGrande} de 4 sedes adentro`;
+      $("#c-btn-g").hidden = !(enGrande === 4 && sueltosG === 0 && !sellada);
+      const est = $("#c-g-estado");
+      if (sellada) est.innerHTML = '<b class="serif" style="font-size:20px">Octubre 2026 · cerrado</b><span class="tenue">Te dejó S/ 7,950 · huella <span class="mono">9f3a…c71e</span></span>';
+      else if (sueltosG > 0) est.innerHTML = '<span class="tenue">Lo de toda la empresa va directo aquí. Falta un papel del banco.</span>';
+      else if (enGrande < 4) est.innerHTML = `<span class="tenue">Lo de la empresa ya está. ${4 - enGrande === 1 ? "Falta 1 caja" : "Faltan " + (4 - enGrande) + " cajas"}.</span>`;
+      else est.innerHTML = '<span class="tenue">Todo adentro. Ya puedes cerrarla.</span>';
+    }
+
+    async function guardar(clave) {
+      const papel = $(`[data-papel="${clave}"]`);
+      if (!papel || papel.dataset.volando) return;
+      papel.dataset.volando = "1";
+      const esG = clave.startsWith("g-");
+      const destino = esG ? $("#c-g-dentro") : $(`#c-caja-${clave.split("-")[0]} .c-dentro`);
+      await volar(papel, destino, { escala: 0.22, giro: -8 });
+      papel.remove();
+      const hoja = document.createElement("i");
+      hoja.className = esG ? "c-hoja nuevo" : "nuevo";
+      hoja.style.setProperty("--h", (esG ? 58 : 60) + "px");
+      if (esG) destino.insertBefore(hoja, destino.querySelector(".c-mini")); else destino.appendChild(hoja);
+      if (esG) sueltosG--;
+      else {
+        const s = SEDES.find((x) => x.id === clave.split("-")[0]);
+        s.sueltos.splice(0, 1);
+        const puesto = $(`.c-puesto[data-u="${s.id}"]`);
+        $("[data-cuenta-caja]", puesto).textContent = textoCuenta(s);
+        if (!s.sueltos.length) {
+          const b = $("[data-cerrar-caja]", puesto);
+          b.hidden = false; b.classList.remove("aparece-ya"); void b.offsetWidth; b.classList.add("aparece-ya");
+          $("[data-cuenta-caja]", puesto).innerHTML = '<span class="c-completa">' + VISTO + "Completa</span>";
+        }
+      }
+      titular(); estadoGrande();
+    }
+
+    async function cerrarCaja(id) {
+      const puesto = $(`.c-puesto[data-u="${id}"]`);
+      const b = $("[data-cerrar-caja]", puesto);
+      b.hidden = true;
+      puesto.classList.add("cerrada");                     // la tapa baja y la tinta marca «Cerrada»
+      await espera(1250);
+      const caja = $(`#c-caja-${id}`);
+      const mini = $(`[data-mini="${id}"]`);
+      await volar(caja, mini, { escala: 0.34, alzar: 70, dur: 820 });   // se apila en la caja grande
+      caja.style.visibility = "hidden";
+      caja.getAnimations().forEach((a) => a.cancel());
+      caja.hidden = true; caja.style.visibility = "";
+      $(".c-hueco", puesto).hidden = false;
+      mini.classList.remove("vacio"); mini.classList.add("nuevo");
+      enGrande++;
+      titular(); estadoGrande();
+    }
+
+    async function sellar() {
+      $("#c-btn-g").hidden = true;
+      const g = $("#c-grande");
+      g.classList.add("cerrada");                          // la tapa grande baja
+      await espera(950);
+      g.classList.add("sellada");                          // la cinta envuelve y el lacre se estampa
+      sellada = true;
+      titular(); estadoGrande();
+      await espera(2300);
+      const caja = $("#c-g-caja"), slot = $("#c-slot-oct");
+      slot.scrollIntoView({ behavior: RED ? "auto" : "smooth", block: "center" });
+      await espera(500);
+      const r = slot.getBoundingClientRect();
+      await volar(caja, slot, { escala: Math.min(0.6, r.width / 320), alzar: 20, dur: 950, opacidad: 0.4 });  // se desliza al estante
+      caja.style.visibility = "hidden";
+      archivar();
+      const z = $("#c-sobre-zona");
+      z.hidden = false; z.classList.remove("aparece-ya"); void z.offsetWidth; z.classList.add("aparece-ya");
+      await espera(500);
+      $("#c-sobre").classList.add("lleno");               // los papeles entran al sobre del contador
+    }
+
+    function archivar() {
+      const slot = $("#c-slot-oct");
+      slot.classList.add("lleno");
+      slot.innerHTML = `<div class="c-archivada entra">
+        <div class="c-archivada-caja"><div class="c-archivada-etiq"><b>Oct 2026</b><small>9f3a…c71e</small></div><span class="c-lacre-mini"></span></div>
+        <button class="porque" type="button" data-porque="c-form-reabrir" aria-expanded="false" style="align-self:center">Reabrir · solo un líder</button>
+        <div class="desplegable" id="c-form-reabrir"><div><div class="c-reabrir-c">
+          <label class="motivo-titulo" for="c-motivo">¿Por qué la reabres?</label>
+          <textarea class="campo-motivo" id="c-motivo" placeholder="Por ejemplo: llegó tarde una factura"></textarea>
+          <p class="error-campo" id="c-motivo-error" hidden>Escribe el motivo (al menos 5 letras).</p>
+          <div class="pie-acciones"><button class="btn peligro chico" type="button" id="c-btn-reabrir">Reabrir octubre</button></div>
+        </div></div></div>
+      </div>`;
+    }
+
+    function reabrir() {
+      const m = $("#c-motivo"), motivo = (m.value || "").trim();
+      if (motivo.length < 5) { $("#c-motivo-error").hidden = false; m.focus(); return; }
+      const slot = $("#c-slot-oct");
+      slot.classList.remove("lleno");
+      slot.innerHTML = '<span class="versalita">Oct 2026</span><small>Aquí va octubre cuando lo selles</small>';
+      const caja = $("#c-g-caja");
+      caja.getAnimations().forEach((a) => a.cancel());
+      caja.style.visibility = ""; caja.style.zIndex = "";
+      const g = $("#c-grande");
+      g.classList.remove("sellada", "cerrada");
+      sellada = false;
+      $("#c-sobre").classList.remove("lleno");
+      $("#c-sobre-zona").hidden = true;
+      titular(); estadoGrande();
+      const est = $("#c-g-estado");
+      est.innerHTML = `<span class="tenue">Reabierta por Felipe: «${motivo.replace(/</g, "&lt;")}». Ciérrala otra vez cuando termines.</span>`;
+      $("#c-btn-g").hidden = false;
+      $("#c-grande").scrollIntoView({ behavior: RED ? "auto" : "smooth", block: "center" });
+    }
+
+    const sec = $('[data-variante="c"]');
+    sec.addEventListener("click", async (e) => {
+      const t = e.target;
+      const g = t.closest("[data-guardar]");
+      if (g) { guardar(g.dataset.guardar); return; }
+      const cc = t.closest("[data-cerrar-caja]");
+      if (cc) { cerrarCaja(cc.dataset.cerrarCaja); return; }
+      if (t.closest("#c-btn-g")) { sellar(); return; }
+      if (t.closest("#c-btn-reabrir")) { reabrir(); return; }
+      if (t.closest("#c-atajo")) {
+        const claves = $$("[data-guardar]", sec).map((b) => b.dataset.guardar);
+        for (const k of claves) { guardar(k); await espera(140); }
+      }
+    });
+
+    titular(); estadoGrande();
+  })();
+})();
+</script></body></html>
