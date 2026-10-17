@@ -454,11 +454,17 @@ con esas palabras: *"Lo que hay que sumar para contabilidad"*.
 Tres propiedades que hacen que esto sea un contrato sólido y no un reporte
 frágil:
 
-1. **Es una foto congelada, no un cálculo vivo.** `planilla_pagada_detalle` es
-   *append-only*; la vigente de cada periodo y grupo es la de mayor `version`,
-   y eso es justo lo que la vista filtra. El número de un mes cerrado **no
-   cambia** si mañana alguien corrige un horario. Es la misma disciplina que
-   `movimientos` en retail: el pasado no se edita.
+1. **Es una foto, no un cálculo vivo… pero la foto puede volver a tomarse.**
+   `planilla_pagada_detalle` es *append-only*; la vigente de cada periodo y
+   grupo es la de mayor `version`, y eso es justo lo que la vista filtra.
+   **Ojo (corregido el 2026-10-16, auditoría de Finanzas G09):** Dynamic puede
+   volver a congelar un periodo ya pagado —se vieron hasta 7 versiones en 7
+   semanas— y la vista toma siempre la última, así que el número de un mes que
+   ya pasó **sí puede cambiar** si allá corrigen algo. Por eso retail no confía
+   en esta vista para un mes cerrado: al cerrar, congela las líneas de su propio
+   diario (`diario_cerrado`, con huella) y el Estado de resultados de un mes
+   cerrado lee esa foto. Si la planilla de Dynamic cambia después, el chequeo
+   «huella» del cierre lo avisa (no bloquea) y quien corrige reabre el mes.
 2. **Ya trae la sede adentro** (`sede_codigo`), así que no hay que reconstruir
    a qué tienda pertenecía cada persona ese mes.
 3. **Ya distingue lo que la persona recibe de lo que a CAYLA le cuesta.** Para
