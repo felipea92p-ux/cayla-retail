@@ -4,7 +4,6 @@ import {
   alcancePorTipo,
   categoriaDe,
   DIAS_ALCANZA_MAX,
-  diasANavidad,
   finEjeAlcance,
   textoAlcance,
   textoRitmo,
@@ -12,7 +11,6 @@ import {
   titularDeLosQueNoLlegan,
   tiposSinRegistrar,
   notaTiposSinRegistrar,
-  cuentaNavidad,
   curvaDeTallas,
   escalaRinde,
   estadoQuedan,
@@ -27,10 +25,8 @@ import {
   ordenarAlcance,
   ORDEN_ALCANCE_DEFECTO,
   llegadasAparte,
-  textoVendiste,
   ORDENES_ALCANCE,
-  proximaNavidad,
-  rielNavidad,
+  rielHacia,
   rindePorCategoria,
   SIN_CATEGORIA,
   solesRinde,
@@ -41,6 +37,8 @@ import {
   type FilaRinde,
 } from "./analisis-pedir";
 import { armarModelos } from "./analisis-modelo";
+import { cuentaHorizonte } from "./analisis-horizonte";
+import { diasEntreFechas } from "./fechas-lima";
 import { leerPorLlegar } from "./analisis-por-llegar-lectura";
 import { notaPedidoSinTipo, pedidoAparte, pedidoPorTipo, pedidoSinTipo, sinPedido, yaPedidoCorto } from "./analisis-pedido-en-camino-reglas";
 
@@ -89,23 +87,24 @@ describe("categoriaDe", () => {
   });
 });
 
-describe("cuenta para Navidad", () => {
-  it("el próximo 25 de diciembre: el de este año o, si ya pasó, el del siguiente (el mismo día es hoy)", () => {
-    expect(proximaNavidad("2026-10-06")).toBe("2026-12-25");
-    expect(proximaNavidad("2026-12-25")).toBe("2026-12-25");
-    expect(proximaNavidad("2026-12-26")).toBe("2027-12-25");
-  });
+/** El próximo 25 de diciembre desde `hoy` (el de este año o, si ya pasó, el del siguiente): la meta de respaldo de las pruebas viejas de Navidad. */
+const proximaNavidad = (hoy: string): string => (hoy.slice(5, 10) > "12-25" ? `${Number(hoy.slice(0, 4)) + 1}-12-25` : `${hoy.slice(0, 4)}-12-25`);
+const diasANavidad = (hoy: string): number => Math.max(0, diasEntreFechas(hoy, proximaNavidad(hoy)));
+const cuentaNavidad = (hoy: string) => {
+  const dias = diasANavidad(hoy);
+  return cuentaHorizonte({ modo: "navidad", dias: Math.max(1, dias), nombre: "Navidad" });
+};
+const rielNavidad = (hoy: string) => rielHacia(hoy, proximaNavidad(hoy), "Navidad");
 
+describe("cuenta hasta la meta (la de Navidad, como respaldo)", () => {
   it("semanas enteras mientras falte una o más (el 6 de octubre: 80 días = 11 semanas, como la maqueta)", () => {
     expect(cuentaNavidad("2026-10-06")).toEqual({ valor: 11, texto: "semanas para Navidad" });
     expect(cuentaNavidad("2026-12-18")).toEqual({ valor: 1, texto: "semana para Navidad" });
-    expect(cuentaNavidad("2026-12-26")).toEqual({ valor: 52, texto: "semanas para Navidad" });
   });
 
-  it("en la última semana, días; el mismo día, sin número", () => {
+  it("en la última semana, días", () => {
     expect(cuentaNavidad("2026-12-20")).toEqual({ valor: 5, texto: "días para Navidad" });
     expect(cuentaNavidad("2026-12-24")).toEqual({ valor: 1, texto: "día para Navidad" });
-    expect(cuentaNavidad("2026-12-25")).toEqual({ valor: null, texto: "es Navidad" });
   });
 });
 
@@ -114,7 +113,7 @@ describe("rielNavidad", () => {
     const r = rielNavidad("2026-10-06");
     // 1 oct → 31 dic son 91 días: hoy es el día 5 y Navidad el 85 (las posiciones de la maqueta).
     expect(r.hoyPct).toBe(5.5);
-    expect(r.navidadPct).toBe(93.4);
+    expect(r.metaPct).toBe(93.4);
     expect(r.meses.map((m) => m.texto)).toEqual(["octubre", "noviembre", "diciembre"]);
     expect(r.meses.map((m) => m.pct)).toEqual([16.5, 50, 83.5]);
     expect(r.juntos).toBe(false);
@@ -125,8 +124,8 @@ describe("rielNavidad", () => {
     for (const hoy of ["2026-01-01", "2026-06-30", "2026-09-01", "2026-12-01", "2026-12-25", "2026-12-31"]) {
       const r = rielNavidad(hoy);
       expect(r.hoyPct).toBeGreaterThanOrEqual(0);
-      expect(r.navidadPct).toBeLessThanOrEqual(100);
-      expect(r.hoyPct).toBeLessThanOrEqual(r.navidadPct);
+      expect(r.metaPct).toBeLessThanOrEqual(100);
+      expect(r.hoyPct).toBeLessThanOrEqual(r.metaPct);
       const pcts = r.meses.map((m) => m.pct);
       expect([...pcts].sort((a, b) => a - b)).toEqual(pcts);
       expect(new Set(r.meses.map((m) => m.clave)).size).toBe(r.meses.length);
@@ -218,14 +217,15 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
       const tipo = [prenda({ categoria: "Shorts", categoriaPrefijo: "SHO", vendidas30: 0, piso: 8, almacen: 10, salioAlPiso: "2026-10-01" })];
       expect(alcancePorTipo(tipo, 15, HOY, 72, true)[0]).toMatchObject({ dias: null, pide: false });
       const a = alcancePorTipo(tipo, 15, HOY, 72, true, { Shorts: 16 })[0]!;
-      expect(a).toMatchObject({ vendidas: 16, sinPrenda: 16, tiene: 18, pide: true });
+      // Todo lo vendido se cobró sin su prenda: tiene ritmo (2 semanas) pero el catálogo del tipo está incompleto y no pide (A6, g).
+      expect(a).toMatchObject({ vendidas: 16, sinPrenda: 16, tiene: 18, pide: false, incompleto: true, situacion: "incompleto" });
       expect(textoAlcance(a.dias)).toBe("2 semanas");
     });
 
     it("un tipo que la tienda tiene pero hoy sin venta ni stock también suma lo vendido sin registrar (y ya no hay)", () => {
       const agotado = [prenda({ categoria: "Capas", categoriaPrefijo: "CAP", vendidas30: 0, piso: 0, almacen: 0 })];
       expect(alcancePorTipo(agotado, 15, HOY, 72, true)).toEqual([]);
-      expect(alcancePorTipo(agotado, 15, HOY, 72, true, { Capas: 4 })[0]).toMatchObject({ vendidas: 4, sinPrenda: 4, tiene: 0, dias: 0, pide: true });
+      expect(alcancePorTipo(agotado, 15, HOY, 72, true, { Capas: 4 })[0]).toMatchObject({ vendidas: 4, sinPrenda: 4, tiene: 0, dias: 0, pide: false, incompleto: true });
     });
 
     it("un tipo que la tienda no tiene registrado no entra a la tabla: se nombra aparte, del más vendido al menos", () => {
@@ -381,7 +381,7 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
     it("sin nada que viene, la fila y la frase quedan como antes", () => {
       const a = alcancePorTipo(sola(), 30, HOY, 79, true)[0]!;
       expect(tieneYVienen(a)).toBe("tienes 2");
-      expect(fraseDelTipo(a, [a], 30)).toBe("Te alcanza para 1 semana: no llega a Navidad. Tienes 2.");
+      expect(fraseDelTipo(a, [a], 30)).toMatch(/^Te alcanza para 1 semana: no llega hasta Navidad\. Tienes 2\./);
     });
   });
 
@@ -482,7 +482,7 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
       const a = tipo([parte("envio", 10, null), parte("orden", 5, "2026-10-20"), parte("orden", 8, null)]);
       // (2 + 15) entre 0,2 por día = 85 días = 12 semanas.
       expect(fraseDelTipo(a, [a], 30)).toBe(
-        "Con lo ya pedido, te alcanza para 12 semanas: llega a Navidad. Tienes 2. Ya pedido 15: 10 van en un envío y 5 llegan el 20 oct. 8 pedidas sin fecha: no las cuento.",
+        "Con lo ya pedido, te alcanza para 12 semanas: llega hasta Navidad. Tienes 2. Ya pedido 15: 10 van en un envío y 5 llegan el 20 oct. 8 pedidas sin fecha: no las cuento.",
       );
       expect(fraseDelTipo(null, [a], 30)).toBe("Vendiste 6 en 30 días y tienes 2. Ya pedido 15.");
     });
@@ -498,7 +498,7 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
       expect(alcancePorTipo(sola(), 30, HOY, 79, true, {}, null)).toEqual(antes);
       expect(alcancePorTipo(sola(), 30, HOY, 79, true, {}, [])).toEqual(antes);
       expect(antes[0]!.pedido).toEqual(sinPedido());
-      expect(fraseDelTipo(antes[0]!, antes, 30)).toBe("Te alcanza para 1 semana: no llega a Navidad. Tienes 2.");
+      expect(fraseDelTipo(antes[0]!, antes, 30)).toMatch(/^Te alcanza para 1 semana: no llega hasta Navidad\. Tienes 2\./);
     });
 
     it("lo pedido de un tipo que la lista no dibuja se nombra aparte (para no volver a pedirlo); lo de la red no", () => {
@@ -513,33 +513,30 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
   });
 
   it("las palabras de «tienes y vienen»: uno en singular, y las frases del panel", () => {
-    const base: AlcanceTipo = { categoria: "Tops", prefijo: null, familia: null, vendidas: 21, sinPrenda: 0, tiene: 92, vienen: 0, vienenSinFecha: 0, atrasadas: 0, despues: 0, pedido: sinPedido(), nunca: 39, dias: 49, pide: true };
+    const base: AlcanceTipo = { categoria: "Tops", prefijo: null, familia: null, vendidas: 21, sinPrenda: 0, tiene: 92, vienen: 0, vienenSinFecha: 0, atrasadas: 0, despues: 0, pedido: sinPedido(), nunca: 39, dias: 49, pide: true, plazo: { dias: 30, origen: "terceros" }, meta: 79, pidelo: null, conTemporada: null, pesa: 0, situacion: "no_llega", incompleto: false, ordenAbierta: false };
     expect(tieneYVienen({ ...base, vienen: 1 })).toBe("tienes 92 y viene 1");
     expect(tieneYVienen(base)).toBe("tienes 92");
     expect(llegadasAparte({ ...base, atrasadas: 1 })).toBe("1 atrasada: no la cuento");
-    // Lo vendido y, de eso, lo que se cobró sin que nadie registrara la prenda: «sin su prenda» no se entendía.
-    expect(textoVendiste({ vendidas: 56, sinPrenda: 6 })).toBe("vendiste 56 · 6 sin registrar la prenda");
-    expect(textoVendiste({ vendidas: 56, sinPrenda: 0 })).toBe("vendiste 56");
     expect(fraseDelTipo({ ...base, vienen: 40, dias: 126, pide: false }, [], 11)).toBe(
-      "Con lo que viene, te alcanza para 18 semanas: llega a Navidad. Tienes 92 y vienen 40 · 39 nunca salieron al piso.",
+      "Con lo que viene, te alcanza para 18 semanas: llega hasta Navidad. Tienes 92 y vienen 40 · 39 nunca salieron al piso.",
     );
     expect(fraseDelTipo({ ...base, atrasadas: 8 }, [], 11)).toBe(
-      "Te alcanza para 7 semanas: no llega a Navidad. Tienes 92 · 39 nunca salieron al piso. 8 atrasadas no cuentan hasta que lleguen.",
+      "Te alcanza para 7 semanas: no llega hasta Navidad. Tienes 92 · 39 nunca salieron al piso. 8 atrasadas no cuentan hasta que lleguen.",
     );
     expect(fraseDelTipo({ ...base, atrasadas: 1 }, [], 11)).toContain("1 atrasada no cuenta hasta que llegue.");
     expect(fraseDelTipo({ ...base, despues: 20 }, [], 11)).toBe(
-      "Te alcanza para 7 semanas: no llega a Navidad. Tienes 92 · 39 nunca salieron al piso. 20 llegan después de Navidad y no cuentan.",
+      "Te alcanza para 7 semanas: no llega hasta Navidad. Tienes 92 · 39 nunca salieron al piso. 20 llegan después de Navidad y no cuentan.",
     );
     expect(fraseDelTipo({ ...base, despues: 1 }, [], 11)).toContain("1 llega después de Navidad y no cuenta.");
     // Un tipo que no se vendió igual dice qué viene.
     expect(fraseDelTipo({ ...base, vendidas: 0, dias: null, pide: false, vienen: 5 }, [], 11)).toBe("No se vendió en 11 días. Tienes 92 y vienen 5 · 39 nunca salieron al piso.");
     // Toda la tienda: suma lo que tienes y lo que viene.
     expect(fraseDelTipo(null, [base, { ...base, categoria: "Polos", vendidas: 0, tiene: 10, vienen: 20, dias: null, pide: false }], 11)).toBe(
-      "Vendiste 21 en 11 días, tienes 102 y vienen 20. 1 tipo no llega a Navidad.",
+      "Vendiste 21 en 11 días, tienes 102 y vienen 20. 1 tipo no llega hasta Navidad.",
     );
     // Lo que no cuenta (atrasado o muy tarde) también se dice en la frase de toda la tienda.
     expect(fraseDelTipo(null, [{ ...base, atrasadas: 8, despues: 20 }], 11)).toBe(
-      "Vendiste 21 en 11 días y tienes 92 · 8 atrasadas: no las cuento · 20 llegan después de Navidad. 1 tipo no llega a Navidad.",
+      "Vendiste 21 en 11 días y tienes 92 · 8 atrasadas: no las cuento · 20 llegan después de Navidad. 1 tipo no llega hasta Navidad.",
     );
   });
 
@@ -557,14 +554,16 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
     expect(textoRitmo(1)).toBe("Al ritmo de los últimos 1 día");
   });
 
-  it("los días a Navidad, el nombre corto de un tipo y el fin del eje (6 meses, o más si Navidad queda lejos)", () => {
+  it("los días a Navidad, el nombre corto de un tipo y el fin del eje (la meta más un 15 %, A6)", () => {
     expect(diasANavidad("2026-10-07")).toBe(79);
     expect(diasANavidad("2026-12-25")).toBe(0);
     expect(diasANavidad("2026-12-26")).toBe(364);
     expect(tipoCorto("Gorros y Sombreros")).toBe("Gorros");
     expect(tipoCorto("Polos")).toBe("Polos");
-    expect(finEjeAlcance(79)).toBe(DIAS_ALCANZA_MAX);
+    expect(finEjeAlcance(79)).toBe(91);
     expect(finEjeAlcance(300)).toBe(345);
+    expect(finEjeAlcance(1)).toBe(7);
+    expect(DIAS_ALCANZA_MAX).toBe(182);
   });
 });
 
@@ -677,11 +676,18 @@ describe("lo que más se vende", () => {
     expect(ventaMaxima([])).toBe(1);
   });
 
-  it("lo que queda: agotada en rojo, 1 o 2 en ámbar, más en verde", () => {
+  it("lo que queda: agotada en rojo y, si no, la MISMA regla de días que «Se está acabando» (A6, c); dice unidades y días", () => {
     expect(estadoQuedan({ piso: 0, almacen: 0 })).toEqual({ est: "urg", texto: "Agotada" });
-    expect(estadoQuedan({ piso: 1, almacen: 0 })).toEqual({ est: "ate", texto: "Queda 1" });
-    expect(estadoQuedan({ piso: 1, almacen: 1 })).toEqual({ est: "ate", texto: "Quedan 2" });
-    expect(estadoQuedan({ piso: 2, almacen: 3 })).toEqual({ est: "bien", texto: "Quedan 5" });
+    // Sin ritmo (no se vendió) no hay días: solo las unidades.
+    expect(estadoQuedan({ piso: 1, almacen: 0 })).toEqual({ est: "bien", texto: "Queda 1" });
+    // 3 en 30 días de ventas = 10 por día... no: 30 vendidas en 30 días = 1 por día → 3 unidades duran 3 días (ámbar, ya no un ✓ verde).
+    expect(estadoQuedan({ piso: 1, almacen: 2, vendidas30: 30, diasDeVentas: 30 })).toEqual({ est: "ate", texto: "Quedan 3 · 3 días" });
+    expect(estadoQuedan({ piso: 1, almacen: 0, vendidas30: 30, diasDeVentas: 30 })).toEqual({ est: "ate", texto: "Queda 1 · 1 día" });
+    // 14 días es el límite de «Se está acabando»: 14 sigue ámbar, 15 pasa a verde.
+    expect(estadoQuedan({ piso: 14, almacen: 0, vendidas30: 30, diasDeVentas: 30 })).toMatchObject({ est: "ate", texto: "Quedan 14 · 14 días" });
+    expect(estadoQuedan({ piso: 15, almacen: 0, vendidas30: 30, diasDeVentas: 30 })).toMatchObject({ est: "bien", texto: "Quedan 15 · 15 días" });
+    // Lo que se vende poco dura mucho aunque queden pocas: 2 unidades con 1 venta en 30 días = 60 días.
+    expect(estadoQuedan({ piso: 2, almacen: 0, vendidas30: 1, diasDeVentas: 30 })).toEqual({ est: "bien", texto: "Quedan 2 · 60 días" });
   });
 });
 
@@ -829,17 +835,17 @@ describe("Qué pedir, opción A: el panel del tipo y el «Top» que se elige (Fe
   });
 
   it("la frase del tipo: para cuánto alcanza contra Navidad y lo que tienes; sin tipo, lo de toda la tienda", () => {
-    const tops: AlcanceTipo = { categoria: "Tops", prefijo: null, familia: null, vendidas: 21, sinPrenda: 0, tiene: 92, vienen: 0, vienenSinFecha: 0, atrasadas: 0, despues: 0, pedido: sinPedido(), nunca: 39, dias: 49, pide: true };
-    const polos: AlcanceTipo = { categoria: "Polos", prefijo: null, familia: null, vendidas: 0, sinPrenda: 0, tiene: 10, vienen: 0, vienenSinFecha: 0, atrasadas: 0, despues: 0, pedido: sinPedido(), nunca: 0, dias: null, pide: false };
-    expect(fraseDelTipo(tops, [], 11)).toBe("Te alcanza para 7 semanas: no llega a Navidad. Tienes 92 · 39 nunca salieron al piso.");
+    const tops: AlcanceTipo = { categoria: "Tops", prefijo: null, familia: null, vendidas: 21, sinPrenda: 0, tiene: 92, vienen: 0, vienenSinFecha: 0, atrasadas: 0, despues: 0, pedido: sinPedido(), nunca: 39, dias: 49, pide: true, plazo: { dias: 30, origen: "terceros" }, meta: 79, pidelo: null, conTemporada: null, pesa: 0, situacion: "no_llega", incompleto: false, ordenAbierta: false };
+    const polos: AlcanceTipo = { categoria: "Polos", prefijo: null, familia: null, vendidas: 0, sinPrenda: 0, tiene: 10, vienen: 0, vienenSinFecha: 0, atrasadas: 0, despues: 0, pedido: sinPedido(), nunca: 0, dias: null, pide: false, plazo: { dias: 30, origen: "terceros" }, meta: 79, pidelo: null, conTemporada: null, pesa: 0, situacion: "no_llega", incompleto: false, ordenAbierta: false };
+    expect(fraseDelTipo(tops, [], 11)).toBe("Te alcanza para 7 semanas: no llega hasta Navidad. Tienes 92 · 39 nunca salieron al piso.");
     expect(fraseDelTipo(polos, [], 11)).toBe("No se vendió en 11 días. Tienes 10.");
-    expect(fraseDelTipo({ ...tops, dias: 0, tiene: 0, nunca: 0 }, [], 11)).toBe("Ya no te queda: no llega a Navidad. Tienes 0.");
-    expect(fraseDelTipo(null, [tops, polos], 11)).toBe("Vendiste 21 en 11 días y tienes 102. 1 tipo no llega a Navidad.");
+    expect(fraseDelTipo({ ...tops, dias: 0, tiene: 0, nunca: 0 }, [], 11)).toBe("Ya no te queda: no llega hasta Navidad. Tienes 0.");
+    expect(fraseDelTipo(null, [tops, polos], 11)).toBe("Vendiste 21 en 11 días y tienes 102. 1 tipo no llega hasta Navidad.");
   });
 });
 
 describe("el orden de «¿Para cuánto te alcanza?» (Felipe 2026-10-12)", () => {
-  const t = (categoria: string, vendidas: number, dias: number | null): AlcanceTipo => ({ categoria, prefijo: null, familia: null, vendidas, sinPrenda: 0, tiene: 5, vienen: 0, vienenSinFecha: 0, atrasadas: 0, despues: 0, pedido: sinPedido(), nunca: 0, dias, pide: false });
+  const t = (categoria: string, vendidas: number, dias: number | null): AlcanceTipo => ({ categoria, prefijo: null, familia: null, vendidas, sinPrenda: 0, tiene: 5, vienen: 0, vienenSinFecha: 0, atrasadas: 0, despues: 0, pedido: sinPedido(), nunca: 0, dias, pide: false, plazo: { dias: 30, origen: "terceros" }, meta: 79, pidelo: null, conTemporada: null, pesa: 0, situacion: "no_llega", incompleto: false, ordenAbierta: false });
   // Ya ordenados por «se acaba antes», como los entrega alcancePorTipo.
   const tipos = [t("Capas", 10, 1), t("Polos", 86, 35), t("Tops", 21, 56), t("Bodys", 21, 77), t("Shorts", 0, null)];
 
@@ -851,9 +857,9 @@ describe("el orden de «¿Para cuánto te alcanza?» (Felipe 2026-10-12)", () =>
     expect(ordenarAlcance(tipos, "vende").map((x) => x.categoria)).toEqual(["Polos", "Tops", "Bodys", "Capas", "Shorts"]);
   });
 
-  it("por defecto, «Más vendido», y es la primera opción", () => {
-    expect(ORDEN_ALCANCE_DEFECTO).toBe("vende");
-    expect(ORDENES_ALCANCE[0].clave).toBe("vende");
+  it("por defecto, «Qué pedir primero» (A6, D13), y es la primera opción; «Más vendido» y «Se acaba antes» siguen a un toque", () => {
+    expect(ORDEN_ALCANCE_DEFECTO).toBe("prioridad");
+    expect(ORDENES_ALCANCE.map((o) => o.clave)).toEqual(["prioridad", "vende", "acaba"]);
   });
 
   it("no cambia la lista que recibe", () => {

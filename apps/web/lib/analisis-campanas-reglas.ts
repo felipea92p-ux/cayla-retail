@@ -5,17 +5,16 @@
 //
 // QUÉ CAMPAÑAS CUENTAN. Solo las que tienen su PLAN (`planes_compra`, sin archivar): son las que alguien armó en Compras ▸ Plan de campaña. El
 // calendario de Etiquetas (Día del Gato del 24 al 30 oct., Halloween desde el 15 set.) también trae «campañas», pero no son campañas de COMPRA: con
-// ellas la próxima del 16-oct sería una semana de octubre y la meta estaría a 14 días. `proximaCampana` se usa tal cual (sus firmas no cambian) con el
-// calendario vacío, para que solo mire los planes.
+// ellas la próxima del 16-oct sería una semana de octubre y la meta estaría a 14 días. Solo se miran los planes.
 //
-// QUÉ MIDE «FIN DE LA CAMPAÑA». La próxima que todavía no empieza; y, si otra campaña del Plan se cruza con ella (Diciembre del 1 al 31 contiene
-// a Navidad del 11 al 25), el fin de la que termina más tarde: el 5-dic la próxima es Navidad, pero la meta no puede achicarse al 25-dic justo cuando
-// el 26 al 31 (Año Nuevo, hasta ~4,8 veces un día de octubre) es lo que más vende. Es una decisión de este archivo, escrita en ADR-0357.
+// QUÉ MIDE «FIN DE LA CAMPAÑA». La primera campaña que sirve (la que viene o la que está en curso y todavía llega a servirse: ver `horizonteDeCompra`); y,
+// si otra campaña del Plan se cruza con ella (Diciembre del 1 al 31 contiene a Navidad del 11 al 25), el fin de la que termina más tarde: el 5-dic la próxima
+// es Navidad, pero la meta no puede achicarse al 25-dic justo cuando el 26 al 31 (Año Nuevo, hasta ~4,8 veces un día de octubre) es lo que más vende. Es una
+// decisión de este archivo, escrita en ADR-0357.
 
-import { proximaCampana } from "./plan-compra-momento";
-import type { CampanasLeidas } from "./plan-compra-reglas";
+import type { CampanaPlan, CampanasLeidas } from "./plan-compra-reglas";
 import { diasEntreFechas, sumarDias } from "./fechas-lima";
-import { CAMPANA_MAX_DIAS, horizonteDeCampana, horizonteDeRespaldo, type CampanaDelRitmo, type Horizonte } from "./analisis-horizonte";
+import { CAMPANA_MAX_DIAS, horizonteDeCampana, horizonteDeRespaldo, PLAZO_TALLER_DIAS, type CampanaDelRitmo, type Horizonte } from "./analisis-horizonte";
 
 /** Lo que se pudo saber del Plan de campaña: leído, o por qué no. */
 export type LecturaCampanas =
@@ -32,18 +31,30 @@ const conPlan = (c: Pick<CampanasLeidas, "planes">) => c.planes.filter((p) => !p
  * La meta de hoy (D3): el fin de la próxima campaña del Plan si EMPIEZA en 120 días o menos; si la próxima está más lejos, el plazo de pedido más un
  * mes; y sin campañas por venir o sin el módulo, el respaldo (25-dic mientras falte, y después plazo + 30). Siempre trae su `nota` cuando no es
  * una campaña, para que la pantalla diga de dónde sale.
+ *
+ * QUÉ CAMPAÑAS SIRVEN. La que está en curso también (el 12-dic, Diciembre sigue hasta el 31 y lo que se pida hoy llega para su final), con una
+ * condición: que termine DESPUÉS de lo más pronto que puede llegar un pedido (`PLAZO_TALLER_DIAS`). Aniversario con 4 días por delante no sirve de meta:
+ * lo que se pida hoy llega cuando ya terminó. Entre las que sirven, la primera en empezar manda y, si otras se cruzan con ella (Diciembre contiene a
+ * Navidad), la meta es el fin de la que termina más tarde. Una campaña que termina a más de 120 días no es una meta de compra (un plan «Anual» no
+ * estira la meta a 8 meses): no extiende ni se elige.
  */
 export function horizonteDeCompra(hoy: string, lectura: LecturaCampanas): Horizonte {
   if (lectura.estado !== "ok") return horizonteDeRespaldo(hoy, lectura.estado);
   const vivas = conPlan(lectura.campanas);
-  const proxima = proximaCampana({ planes: vivas, etiquetas: [] }, hoy, "");
-  if (!proxima) return horizonteDeRespaldo(hoy, "sin_campanas");
-  if (proxima.dias > CAMPANA_MAX_DIAS) return horizonteDeRespaldo(hoy, { lejos: { nombre: proxima.nombre, dias: proxima.dias } });
-  const destino = proxima.destino;
-  const plan = destino.tipo === "plan" ? vivas.find((p) => p.id === destino.id) : undefined;
-  if (!plan) return horizonteDeRespaldo(hoy, "sin_campanas");
-  // La que termina más tarde entre la próxima y las que se cruzan con ella (a igual fin, la próxima).
-  const fin = vivas.reduce((mejor, p) => (p.desde <= plan.hasta && p.hasta >= plan.desde && p.hasta > mejor.hasta ? p : mejor), plan);
+  const finEn = (p: Pick<CampanaPlan, "hasta">) => diasEntreFechas(hoy, p.hasta);
+  const sirven = vivas.filter((p) => finEn(p) >= PLAZO_TALLER_DIAS && finEn(p) <= CAMPANA_MAX_DIAS);
+  const empiezaEn = (p: Pick<CampanaPlan, "desde">) => Math.max(0, diasEntreFechas(hoy, p.desde));
+  const ordenadas = [...sirven].sort((a, b) => empiezaEn(a) - empiezaEn(b) || a.desde.localeCompare(b.desde) || a.nombre.localeCompare(b.nombre, "es"));
+  const primera = ordenadas[0];
+  if (!primera) {
+    // Nada por venir que sirva. Si hay una campaña lejana (más allá de 120 días) o sin lugar en el Plan, el respaldo lo dice.
+    const lejos = vivas.filter((p) => empiezaEn(p) > 0).sort((a, b) => a.desde.localeCompare(b.desde))[0];
+    return horizonteDeRespaldo(hoy, lejos ? { lejos: { nombre: lejos.nombre, dias: empiezaEn(lejos) } } : "sin_campanas");
+  }
+  if (empiezaEn(primera) > CAMPANA_MAX_DIAS) return horizonteDeRespaldo(hoy, { lejos: { nombre: primera.nombre, dias: empiezaEn(primera) } });
+  // La que termina más tarde entre la primera y las que se cruzan con ella (a igual fin, la primera). Todas terminan a 120 días o menos.
+  let fin = primera;
+  for (const p of sirven) if (p.desde <= fin.hasta && p.hasta >= primera.desde && p.hasta > fin.hasta) fin = p;
   return horizonteDeCampana(hoy, { nombre: fin.nombre, hasta: fin.hasta });
 }
 

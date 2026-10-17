@@ -88,24 +88,24 @@ export function cuentaHorizonte(h: Pick<Horizonte, "modo" | "dias" | "nombre">):
   return { valor, texto: `${cuanto}: un pedido y un mes de venta` };
 }
 
-/** El rótulo sobre la línea del eje: «31 dic. · 10 semanas», «Navidad · 10 semanas» o «Plazo + 1 mes». */
+/** El rótulo sobre la línea del eje: «31 dic. · 10 semanas», «Navidad · 10 semanas» o «Plazo + 1 mes · 9 semanas» (la del plazo de terceros). */
 export function rotuloDelEje(h: Pick<Horizonte, "modo" | "dias" | "fecha">): string {
-  if (h.modo === "plazo") return "Plazo + 1 mes";
+  if (h.modo === "plazo") return `Plazo + 1 mes · ${tiempoHasta(h.dias)}`;
   return `${h.modo === "navidad" ? "Navidad" : fechaCorta(h.fecha)} · ${tiempoHasta(h.dias)}`;
 }
 
-/** Dónde termina la cuenta, para una frase: «hasta el 31 dic.», «hasta Navidad» o «hasta tu plazo + 1 mes». («no llega hasta…», «llega hasta…») */
+/** Dónde termina la cuenta, para una frase: «hasta el 31 dic.», «hasta Navidad» o «hasta un mes después de que llegue un pedido». («no llega hasta…», «llega hasta…») */
 export function hastaLaMeta(h: Pick<Horizonte, "modo" | "fecha">): string {
   if (h.modo === "campana") return `hasta el ${fechaCorta(h.fecha)}`;
   if (h.modo === "navidad") return "hasta Navidad";
-  return "hasta tu plazo + 1 mes";
+  return "hasta un mes después de que llegue un pedido";
 }
 
-/** «después del 31 dic.», «después de Navidad» o «después de tu plazo + 1 mes»: lo que llega pasada la meta. */
+/** «después del 31 dic.», «después de Navidad» o «un mes después de que llegue un pedido»: lo que llega pasada la meta. */
 export function despuesDeLaMeta(h: Pick<Horizonte, "modo" | "fecha">): string {
   if (h.modo === "campana") return `después del ${fechaCorta(h.fecha)}`;
   if (h.modo === "navidad") return "después de Navidad";
-  return "después de tu plazo + 1 mes";
+  return "más de un mes después de que llegue un pedido";
 }
 
 const NAVIDAD_MES_DIA = "12-25";
@@ -144,10 +144,8 @@ export function horizonteDeRespaldo(hoy: string, motivo: MotivoDeRespaldo): Hori
     return { modo: "navidad", fecha: navidad, dias: diasNavidad, nombre: "Navidad", nota: `${porque}: se mide hasta Navidad (${fechaCorta(navidad)}).` };
   }
   const dias = PLAZO_TERCEROS_DIAS + MES_DE_VENTA_DIAS;
-  const motivoPlazo = lejos ? "" : diasNavidad < 1 ? "Navidad ya pasó" : "Navidad está lejos";
-  const nota = lejos
-    ? `${porque}: se mide a lo que tarda un pedido más un mes.`
-    : `${porque} y ${motivoPlazo.charAt(0).toLowerCase()}${motivoPlazo.slice(1)}: se mide a lo que tarda un pedido más un mes.`;
+  const motivoPlazo = diasNavidad < 1 ? "Navidad ya pasó" : "Navidad está lejos";
+  const nota = lejos ? `${porque}: se mide a lo que tarda un pedido más un mes.` : `${porque} y ${motivoPlazo}: se mide a lo que tarda un pedido más un mes.`;
   return { modo: "plazo", fecha: sumarDias(hoy, dias), dias, nombre: "Plazo + 1 mes", nota };
 }
 
@@ -161,7 +159,7 @@ export type CampanaDelRitmo = { nombre: string; desde: string; hasta: string; di
 export function notaDelRitmo(c: CampanaDelRitmo, hoy: string): string {
   const cuando = c.hasta >= hoy ? `hasta el ${fechaCorta(c.hasta)}` : `terminó el ${fechaCorta(c.hasta)}`;
   const cierre = c.hasta >= hoy ? "fue ritmo de campaña y puede bajar al terminar" : "fue ritmo de campaña, no de un día normal";
-  const cuantos = c.dias === c.de ? `los ${c.de} días` : `${c.dias} de estos ${c.de} días`;
+  const cuantos = c.dias === c.de ? `los ${c.de} días` : `${c.dias} de los últimos ${c.de} días`;
   return `Ojo: ${cuantos} cayeron en ${c.nombre} (${cuando}): ${cierre}.`;
 }
 
@@ -183,7 +181,7 @@ export const textoPidelo = (p: PideloAntes): string => (p.ya ? "pídelo ya" : `p
 
 /** Lo que explica el rótulo al pasar el mouse o tocarlo: de dónde sale la fecha y que el plazo es un supuesto. */
 export function tipPidelo(p: PideloAntes, plazo: PlazoDeTipo): string {
-  const cuanto = `Un pedido tarda unos ${plazo.dias} días en llegar (${textoPlazo(plazo)}).`;
+  const cuanto = `Un pedido tarda unos ${plazo.dias} días en llegar (un supuesto${plazo.origen === "taller" ? ": es del Taller" : ""}).`;
   return p.ya
     ? `${cuanto} Lo que te alcanza no cubre ese plazo: si lo pides hoy llegará con el piso vacío.`
     : `${cuanto} Si lo pides después del ${fechaCorta(p.fecha)}, llegará cuando ya no te quede.`;

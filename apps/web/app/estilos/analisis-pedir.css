@@ -23,7 +23,7 @@
        misma posición en todas las filas: `--nav`) y lo que tienes. Lo que no llega a Navidad va en ámbar. Cada fila es un botón de
        24 px o más que filtra tallas y ranking. */
     .alcance{display:flex;flex-direction:column;gap:2px}
-    .al-cab,.al-f{display:grid;grid-template-columns:22px minmax(110px,170px) minmax(120px,1fr) 112px;gap:12px;align-items:center}
+    .al-cab,.al-f{display:grid;grid-template-columns:22px minmax(150px,1.35fr) minmax(90px,1fr) 128px 44px;gap:12px;align-items:center}
     /* Opción A (Felipe 2026-10-10): la lista se desplaza por dentro, y «↓ N tipos más» se pega abajo mientras quede algo. */
     .al-lista{position:relative;display:flex;flex-direction:column;gap:2px;max-height:min(540px,64vh);overflow-y:auto;overscroll-behavior:contain}
     /* Cada fila conserva su alto: sin esto, al limitar el alto de la lista, el flex las encogía y el nombre de un tipo quedaba
@@ -46,7 +46,7 @@
     .pt-de{margin:-4px 0 0}
     /* Columnas de ancho fijo salvo el nombre: con la última en `auto`, cada fila medía su «Quedan N» y la barra arrancaba en otro
        lugar (Felipe 2026-10-12). Así todas las barras salen de la misma línea. */
-    .panel-tipo .rank-f{grid-template-columns:32px minmax(0,1fr) minmax(60px,.8fr) 108px}
+    .panel-tipo .rank-f{grid-template-columns:32px minmax(140px,1fr) minmax(60px,.8fr) 132px}
     @container analisis (max-width:1000px){ .pedir-ad{grid-template-columns:minmax(0,1fr)} .panel-tipo{position:static} }
     .al-cab{font-size:11px;color:var(--color-tinta-60);padding:0 8px 6px}
     .al-cab .eje{position:relative;height:14px}
@@ -59,13 +59,23 @@
     .al-f .n{min-width:0;line-height:1.2}
     .al-f .n b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     /* Las dos líneas de la fila («vendiste · tienes y vienen» / «atrasadas · llegan después») con el mismo interlineado: la segunda, más apretada, parecía un agregado. */
-    .al-f .n small{display:block;font-size:11.5px;line-height:1.45;color:var(--color-tinta-60)}
+    /* La fila en pocas líneas (A6, a): lo que se cuenta puede ocupar dos renglones solo en una lista ancha; lo que no se cuenta, uno (el texto entero va en
+       el `title` y en el panel del tipo). */
+    .al-f .n small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;font-size:11.5px;line-height:1.45;color:var(--color-tinta-60)}
+    @container analisis (min-width:1101px){ .al-f .n small:not(.aparte){-webkit-line-clamp:2} }
     .al-f .p{position:relative;height:10px;border-radius:5px;background:var(--color-hueso)}
     .al-f:hover .p,.al-f[aria-pressed="true"] .p{background:var(--color-papel)}
     .al-f .p i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;width:calc(var(--n) * 100%);min-width:3px;background:var(--color-grafico-neutro)}
     .al-f.pide .p i{background:color-mix(in srgb,var(--color-ambar) 70%,var(--color-papel))}
     .al-f .p .nav{position:absolute;top:-6px;bottom:-6px;left:calc(var(--nav) * 100%);border-left:1.5px dashed var(--color-tinta);pointer-events:none}
-    .al-f .v{font-size:12.5px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+    .al-f .v{font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.25}
+    .al-f .v b{display:block;font-weight:600;white-space:nowrap}
+    .al-f .v b.inc{white-space:normal}
+    .al-f .v small{display:block;font-size:11px;font-weight:500;color:var(--color-tinta-60)}
+    /* «Pesa %» (A6, D13): qué parte de lo vendido es del tipo; a la derecha, tenue y alineada. */
+    .al-cab .pesa,.al-f .pesa{text-align:right;font-size:12px;font-variant-numeric:tabular-nums;color:var(--color-tinta-60)}
+    .al-supuestos{display:flex;flex-direction:column;gap:2px;margin:-4px 0 10px}
+    .al-supuestos .b-nota{margin:0}
     .al-f.pide .v{color:var(--color-ambar)}
     @container analisis (max-width:760px){
       .al-cab{display:none}

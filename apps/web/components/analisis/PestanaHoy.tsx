@@ -10,7 +10,8 @@ import { variantesDe, type ModeloAnalisis } from "@/lib/analisis-modelo";
 import { hrefReponerPiso } from "@/lib/analisis-acciones";
 import { plural, PRENDAS_EN_LISTA } from "@/lib/analisis-reglas";
 import { diasEnAlmacen, prendasSinSalir } from "@/lib/analisis-piso";
-import { alcancePorTipo, diasANavidad, llegadasAparte, textoAlcance, textoRitmo, tieneYVienen, tipoCorto, titularDeLosQueNoLlegan, type AlcanceTipo } from "@/lib/analisis-pedir";
+import { alcancePorTipo, finEjeAlcance, llegadasAparte, ordenarAlcance, textoAlcanceEnEje, textoRitmo, tieneYVienen, tipoCorto, titularDeLosQueNoLlegan, type AlcanceTipo } from "@/lib/analisis-pedir";
+import { despuesDeLaMeta, hastaLaMeta, type Horizonte } from "@/lib/analisis-horizonte";
 import { pedidoAparte, yaPedidoCorto } from "@/lib/analisis-pedido-en-camino-reglas";
 import {
   caminosDeHoy,
@@ -71,10 +72,11 @@ export function PestanaHoy() {
   const estPiso: Estado | null = !datos.sabePiso ? "nd" : sinSalir.length ? "ate" : buscando ? null : sinNada;
   // «¿Qué no se mueve?» sin quietas: «Todavía no se puede saber» si ningún modelo lleva aún en el piso lo que se espera para juzgarlo.
   const vacioQuietas = vacioQuietasHoy(datos.prendas, liquidarDesde, datos.hoy, confiable);
-  // «¿Qué pedir?»: para cuánto te alcanza cada tipo al ritmo de los días de ventas, contra Navidad (B2, Felipe 2026-10-07).
-  const hastaNavidad = diasANavidad(datos.hoy);
-  const alcance = alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo, datos.pedido);
-  const noLlegan = alcance.filter((t) => t.pide);
+  // «¿Qué pedir?»: para cuánto te alcanza cada tipo al ritmo de los días de ventas, contra la meta de compra (B2, Felipe 2026-10-07; A6: la campaña del
+  // Plan, no Navidad fija). Los que no llegan, en el MISMO orden que «Qué pedir primero»: los que más pesan primero, no los chicos (D13).
+  const h = datos.horizonte;
+  const alcance = alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, h, datos.sabePiso, datos.sinPrendaPorTipo, datos.pedido, datos.temporada);
+  const noLlegan = ordenarAlcance(alcance.filter((t) => t.pide), "prioridad");
   const vendioAlgo = alcance.some((t) => t.vendidas > 0);
 
   return (
@@ -94,7 +96,7 @@ export function PestanaHoy() {
             <Icono nombre="reloj" />
             {textoRitmo(diasDeVentas)}
           </div>
-          <div className="i-vis">{noLlegan.length > 0 && <MiniAlcance tipos={noLlegan.slice(0, 3)} hastaNavidad={hastaNavidad} />}</div>
+          <div className="i-vis">{noLlegan.length > 0 && <MiniAlcance tipos={noLlegan.slice(0, 3)} h={h} />}</div>
           <div className="i-num">
             {!vendioAlgo ? (
               <>
@@ -104,10 +106,10 @@ export function PestanaHoy() {
             ) : noLlegan.length === 0 ? (
               <>
                 <b className="palabras">Todo llega</b>
-                <span>a Navidad</span>
+                <span>{hastaLaMeta(h)}</span>
               </>
             ) : (
-              <TitularNoLlegan categorias={noLlegan.map((t) => t.categoria)} />
+              <TitularNoLlegan categorias={noLlegan.map((t) => t.categoria)} hasta={hastaLaMeta(h)} />
             )}
           </div>
         </Instrumento>
@@ -121,8 +123,8 @@ export function PestanaHoy() {
  * El titular de «¿Qué pedir?»: «Casacas y Faldas» y, a su lado o debajo según quepa, «no llegan a Navidad (y 12 tipos más)». Sin saltos escritos a mano: el
  * nombre se parte solo donde haga falta (`text-wrap: balance`) y, si no cabe en una línea, baja de tamaño (`largo`).
  */
-function TitularNoLlegan({ categorias }: { categorias: readonly string[] }) {
-  const t = titularDeLosQueNoLlegan(categorias);
+function TitularNoLlegan({ categorias, hasta }: { categorias: readonly string[]; hasta: string }) {
+  const t = titularDeLosQueNoLlegan(categorias, hasta);
   return (
     <>
       <b className={t.largo ? "palabras largo" : "palabras"}>{t.titular}</b>
@@ -266,21 +268,23 @@ function ListaPiso({ prendas, vacio }: { prendas: PrendaAnalisis[]; vacio: strin
  * «¿Qué pedir?»: los tipos que no llegan a Navidad (hasta 3, del que menos dura), con para cuánto te alcanzan y la línea de Navidad.
  * El eje deja Navidad cerca del final (al 87 %), así se ve que las barras se quedan cortas.
  */
-function MiniAlcance({ tipos, hastaNavidad }: { tipos: AlcanceTipo[]; hastaNavidad: number }) {
-  const fin = Math.max(1, hastaNavidad / 0.87);
+function MiniAlcance({ tipos, h }: { tipos: AlcanceTipo[]; h: Horizonte }) {
+  // El eje deja la meta cerca del final (al 87 %): así se ve que las barras se quedan cortas. Lo que pasa de él se dice «→ más de…».
+  const fin = Math.max(1, h.dias / 0.87);
+  const finLista = finEjeAlcance(h.dias);
   return (
     <div className="mini-al">
       {tipos.map((t, k) => (
-        <div key={t.categoria} className="al" data-tip={`${t.categoria}: te alcanza para ${textoAlcance(t.dias).toLowerCase()} · vendiste ${t.vendidas}, ${tieneYVienen(t)}${yaPedidoCorto(t.pedido) ? ` · ${yaPedidoCorto(t.pedido)}` : ""}${[llegadasAparte(t), ...pedidoAparte(t.pedido)].filter((x) => x !== "").map((x) => ` · ${x}`).join("")}`}>
+        <div key={t.categoria} className="al" data-tip={`${t.categoria}: te alcanza para ${textoAlcanceEnEje(t.dias, finLista).toLowerCase()} · vendiste ${t.vendidas}, ${tieneYVienen(t)}${yaPedidoCorto(t.pedido) ? ` · ${yaPedidoCorto(t.pedido)}` : ""}${[llegadasAparte(t, despuesDeLaMeta(h)), ...pedidoAparte(t.pedido, despuesDeLaMeta(h))].filter((x) => x !== "").map((x) => ` · ${x}`).join("")}`}>
           <span className="n">{tipoCorto(t.categoria)}</span>
           <span className="p">
             <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: Math.min(1, (t.dias ?? 0) / fin) }} />
           </span>
-          <span className="v">{textoAlcance(t.dias)}</span>
+          <span className="v">{textoAlcanceEnEje(t.dias, finLista)}</span>
         </div>
       ))}
-      <span className="navidad" style={{ ["--n" as string]: Math.min(1, hastaNavidad / fin) }}>
-        <span>Navidad</span>
+      <span className="navidad" style={{ ["--n" as string]: Math.min(1, h.dias / fin) }}>
+        <span>{h.nombre}</span>
       </span>
     </div>
   );

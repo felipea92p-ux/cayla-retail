@@ -12,7 +12,9 @@ import { diasQueQuedan, grupoDe, plural, porLlegar } from "@/lib/analisis-reglas
 import { llegaTarde, lecturaDeRitmo, tipUnaVenta } from "@/lib/analisis-acaba";
 import { pedidoPorTipo } from "@/lib/analisis-pedido-en-camino-reglas";
 import { proveedorDelModelo } from "@/lib/analisis-a-quien-pedir";
-import { proximaNavidad } from "@/lib/analisis-pedir";
+import { metaDeTipo, plazoDeTipo } from "@/lib/analisis-horizonte";
+import { categoriaDe } from "@/lib/analisis-pedir";
+import { sumarDias } from "@/lib/fechas-lima";
 import { dondeComprarDe, hrefExistencias, hrefMovimientos } from "@/lib/analisis-acciones";
 import {
   accionPrincipal,
@@ -83,7 +85,9 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
   const chip = chipDeGrupo(grupo, sinSalir, yaViene, unaVenta, grupo === "comprar" ? diasQueQuedan(p) : null, tarde);
   // Lo ya pedido de su tipo: una orden es del tipo y no dice a qué modelo irá (la franja de «Se está acabando» lo dice una vez; la ficha, igual).
   const pedidoDe = useMemo(() => pedidoPorTipo(datos.pedido ?? [], datos.hoy), [datos.pedido, datos.hoy]);
-  // La meta contra la que se mide lo que viene en camino es la misma de «Qué pedir» (Navidad): lo que llega después se dice.
+  // La meta contra la que se mide lo que viene en camino es la misma de «Qué pedir» (A6: el fin de la campaña del Plan, el 25-dic, o el plazo de su TIPO
+  // más un mes: el mismo plazo que usa «Qué pedir»): lo que llega después se dice.
+  const metaFecha = datos.horizonte.modo === "plazo" ? sumarDias(datos.hoy, metaDeTipo(datos.horizonte, plazoDeTipo(datos.prendas.filter((x) => categoriaDe(x) === categoriaDe(p)).map((x) => x.origen)))) : datos.horizonte.fecha;
   const hechos = hechosDe(
     p,
     grupo,
@@ -91,7 +95,7 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
     datos.hoy,
     sinSalir ? { dias: diasEnAlmacen(p, datos.hoy) } : null,
     datos.proveedores ? proveedorDelModelo(p, datos.proveedores) : null,
-    { hasta: proximaNavidad(datos.hoy), nombre: "Navidad" },
+    { hasta: metaFecha, nombre: datos.horizonte.modo === "plazo" ? "tu plazo + 1 mes" : datos.horizonte.nombre },
     p.categoria ? (pedidoDe.get(p.categoria.trim()) ?? null) : null,
   );
   // Las cifras van en la cuadrícula; lo que lleva frases (el proveedor, lo que viene en camino) va en franjas de ancho completo debajo.

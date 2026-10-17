@@ -50,7 +50,8 @@ export function rangosDeTemporada(hoy: string, ventana: number, hasta: string, a
     rangos.push({
       anio: Number(hoy.slice(0, 4)) - k,
       base: { desde: llevarA(desdeBase, k), hasta: llevarA(hoy, k) },
-      meta: { desde: llevarA(sumarDias(hoy, 1), k), hasta: llevarA(hasta, k) },
+      // La meta empieza el día DESPUÉS del fin de la base de ese año (no «mañana» llevado al año: en un 29-feb se perdería o se contaría dos veces).
+      meta: { desde: sumarDias(llevarA(hoy, k), 1), hasta: llevarA(hasta, k) },
     });
   }
   return rangos;
@@ -107,7 +108,11 @@ export function temporadaDe(dias: ReadonlyMap<string, number>, rangos: readonly 
   return { estado: "ok", factor: mediana(factores), minimo: Math.min(...factores), maximo: Math.max(...factores), anios: factores.length };
 }
 
-const unDecimal = (n: number): string => n.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+/** «30 % más» o «10 % menos» que lo de estos días (la temporada como se dice en tienda, sin «veces» ni cuentas). */
+const masOMenos = (factor: number): string => {
+  const pct = Math.round(Math.abs(factor - 1) * 100);
+  return pct === 0 ? "lo mismo" : `${pct} % ${factor > 1 ? "más" : "menos"}`;
+};
 
 /**
  * Lo que se dice UNA vez sobre la temporada (bajo la lista de tipos): de dónde sale y, si no hay, por qué. null si no hay nada que decir
@@ -116,13 +121,13 @@ const unDecimal = (n: number): string => n.toLocaleString("es-PE", { minimumFrac
  */
 export function notaDeTemporada(t: TemporadaDatos, hastaLaMeta: string, ciudad: string): string | null {
   if (t.estado === "ok") {
-    const rango = `entre ${unDecimal(t.minimo)} y ${unDecimal(t.maximo)}`;
-    return `Temporada: en ${t.anios} años, de aquí ${hastaLaMeta} se vendió por día ${unDecimal(t.factor)} ${t.factor === 1 ? "vez" : "veces"} lo de estos días (${rango}).`;
+    const rango = `entre ${masOMenos(t.minimo)} y ${masOMenos(t.maximo)}`;
+    return `Temporada: en los últimos ${t.anios} años, de aquí ${hastaLaMeta} se vendió por día ${masOMenos(t.factor)} que en estos días (${rango}).`;
   }
   if (t.estado === "poca_historia") {
     const tiene = t.anios === 0 ? "sin años con ventas comparables" : `${t.anios} ${plural(t.anios, "año", "años")} con ventas comparables`;
-    return `Sin historia suficiente de ${ciudad} para ver la temporada (${tiene}): el ritmo se toma plano.`;
+    return `Sin historia suficiente de ${ciudad} para ver la temporada (${tiene}): cuento con el ritmo de hoy, sin temporada.`;
   }
-  if (t.estado === "sin_modulo") return "Tu rol no ve el historial de ventas: el ritmo se toma plano, sin temporada.";
+  if (t.estado === "sin_modulo") return "Tu rol no ve el historial de ventas: cuento con el ritmo de hoy, sin temporada.";
   return null;
 }

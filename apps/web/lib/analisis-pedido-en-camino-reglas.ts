@@ -135,7 +135,7 @@ export function pedidoPorTipo(partes: readonly PartePedido[], hoy: string, hasta
 const cierre = (frase: string): string => (frase.endsWith(".") ? frase : `${frase}.`);
 
 /** «el 12 nov.», o «del 12 nov. al 30 nov.» si hay varias entregas. */
-function cuandoLlegan(p: Pick<PedidoDeTipo, "primeraFecha" | "ultimaFecha">): string | null {
+export function cuandoLlegan(p: Pick<PedidoDeTipo, "primeraFecha" | "ultimaFecha">): string | null {
   if (!p.primeraFecha) return null;
   return p.ultimaFecha && p.ultimaFecha !== p.primeraFecha ? `del ${fechaCorta(p.primeraFecha)} al ${fechaCorta(p.ultimaFecha)}` : `el ${fechaCorta(p.primeraFecha)}`;
 }
@@ -180,12 +180,12 @@ export function yaPedidoDetalle(p: Pick<PedidoDeTipo, "suma" | "enEnvio" | "deOr
  * vencida: no las cuento», «8 pedidas con entrega después de Navidad», «el proveedor debe 10», «30 por repartir desde Lima», «el Taller tiene 40 en proceso».
  * Vacío si no hay nada de eso. «Navidad» es la meta de hoy: con A6 sale de la campaña, junto con `llegadasAparte` de `analisis-pedir.ts`.
  */
-export function pedidoAparte(p: Pick<PedidoDeTipo, "sinFecha" | "atrasadas" | "despues" | "debe" | "porRepartir" | "enTaller">): string[] {
+export function pedidoAparte(p: Pick<PedidoDeTipo, "sinFecha" | "atrasadas" | "despues" | "debe" | "porRepartir" | "enTaller">, despues: string = "después de Navidad"): string[] {
   const f: string[] = [];
   if (p.sinFecha > 0) f.push(`${p.sinFecha} ${plural(p.sinFecha, "pedida", "pedidas")} sin fecha: no ${plural(p.sinFecha, "la cuento", "las cuento")}`);
   if (p.atrasadas > 0) f.push(`${p.atrasadas} ${plural(p.atrasadas, "pedida", "pedidas")} con la entrega vencida: no ${plural(p.atrasadas, "la cuento", "las cuento")}`);
   // «pedidas con entrega…», no «llegan…»: las prendas de `llegadasAparte` (compras y traslados) ya dicen «llegan después de Navidad» en la misma línea.
-  if (p.despues > 0) f.push(`${p.despues} ${plural(p.despues, "pedida", "pedidas")} con entrega después de Navidad`);
+  if (p.despues > 0) f.push(`${p.despues} ${plural(p.despues, "pedida", "pedidas")} con entrega ${despues}`);
   if (p.debe > 0) f.push(`el proveedor debe ${p.debe}`);
   if (p.porRepartir > 0) f.push(`${p.porRepartir} por repartir desde Lima`);
   if (p.enTaller > 0) f.push(`el Taller tiene ${p.enTaller} en proceso`);

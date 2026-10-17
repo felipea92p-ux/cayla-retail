@@ -8,10 +8,8 @@ import { ChipEstado, Cuenta, nombreLargo, TilePrenda } from "@/components/analis
 import { queTiene } from "@/lib/analisis-modelo";
 import {
   alcancePorTipo,
-  cuentaNavidad,
   curvaDeTallas,
   DIAS_RINDE,
-  diasANavidad,
   escalaRinde,
   estadoQuedan,
   finEjeAlcance,
@@ -19,6 +17,7 @@ import {
   masVendidas,
   cuantasVendidas,
   fraseDelTipo,
+  lineasDeTipo,
   ordenarAlcance,
   ORDENES_ALCANCE,
   ORDEN_ALCANCE_DEFECTO,
@@ -28,23 +27,25 @@ import {
   type Top,
   notaRindeVacio,
   RINDE_POCO,
-  rielNavidad,
+  rindeConConfianza,
+  rielHacia,
   solesRinde,
   tipRinde,
-  textoAlcance,
+  tipRindeSinRegistro,
+  textoAlcanceEnEje,
   textoRitmo,
-  llegadasAparte,
-  textoVendiste,
-  tieneYVienen,
   tiposSinRegistrar,
   notaTiposSinRegistrar,
   ventaMaxima,
   type AlcanceTipo,
   type CurvaTallas,
-  type RielNavidad,
+  type RielMeta,
 } from "@/lib/analisis-pedir";
 import { plural } from "@/lib/analisis-reglas";
-import { notaPedidoSinTipo, pedidoAparte, pedidoPorTipo, pedidoSinTipo, yaPedidoCorto } from "@/lib/analisis-pedido-en-camino-reglas";
+import { cuentaHorizonte, hastaLaMeta, rotuloDelEje, tipPidelo, textoPlazo, PLAZO_TALLER_DIAS, PLAZO_TERCEROS_DIAS, type Horizonte } from "@/lib/analisis-horizonte";
+import { notaDeTemporada } from "@/lib/analisis-temporada";
+import { notaDelRitmo } from "@/lib/analisis-horizonte";
+import { notaPedidoSinTipo, pedidoPorTipo, pedidoSinTipo } from "@/lib/analisis-pedido-en-camino-reglas";
 import { IconoCategoria } from "@/components/IconoCategoria";
 
 // Análisis v4 (ADR-0357): «Qué pedir», como la maqueta aprobada (2026-10-06) y su cambio del 2026-10-07 (B2): cuánto falta para
@@ -57,12 +58,14 @@ import { IconoCategoria } from "@/components/IconoCategoria";
 
 export function PestanaPedir() {
   const { datos, acceso, prendas, q, categoria, setCategoria, abrirFicha, diasDeVentas } = useAnalisis();
-  const cuenta = cuentaNavidad(datos.hoy);
-  const riel = useMemo(() => rielNavidad(datos.hoy), [datos.hoy]);
-  const hastaNavidad = diasANavidad(datos.hoy);
+  // La meta de «Qué pedir» (A6, D3): el fin de la próxima campaña del Plan, el 25-dic o el plazo + 1 mes. UNA sola cuenta para la cifra de arriba, el
+  // riel y el eje de la lista.
+  const h = datos.horizonte;
+  const cuenta = cuentaHorizonte(h);
+  const riel = useMemo(() => rielHacia(datos.hoy, h.fecha, h.nombre), [datos.hoy, h.fecha, h.nombre]);
   const tipos = useMemo(
-    () => alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo, datos.pedido),
-    [datos.prendas, diasDeVentas, datos.hoy, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo, datos.pedido],
+    () => alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, h, datos.sabePiso, datos.sinPrendaPorTipo, datos.pedido, datos.temporada),
+    [datos.prendas, diasDeVentas, datos.hoy, h, datos.sabePiso, datos.sinPrendaPorTipo, datos.pedido, datos.temporada],
   );
   // Lo pedido para mi tienda de un tipo que la lista no dibuja (la tienda no tiene ninguna prenda de ese tipo): se nombra aparte, para que
   // quien lo busca y no lo ve no lo vuelva a pedir.
@@ -73,7 +76,7 @@ export function PestanaPedir() {
   // Lo vendido sin registrar de tipos que la tienda no tiene en el sistema: no se sabe para cuánto alcanzan, pero no se calla.
   const sinRegistro = useMemo(() => tiposSinRegistrar(datos.prendas, datos.sinPrendaPorTipo), [datos.prendas, datos.sinPrendaPorTipo]);
   // Las tallas se comparan talla por talla (las filas de la base), no por modelo.
-  const curva = useMemo(() => curvaDeTallas(datos.tallas, categoria), [datos.tallas, categoria]);
+  const curva = useMemo(() => curvaDeTallas(datos.tallas, categoria, datos.sinPrendaPorTalla), [datos.tallas, categoria, datos.sinPrendaPorTalla]);
   // «Lo que más se vende»: los 5 primeros por defecto; la persona elige ver 10, 15 o 20 (Felipe 2026-10-10). Solo se ofrecen los
   // «Top» que tienen más modelos vendidos que el anterior; si el elegido ya no cabe (otro tipo), se marca el más grande que sí.
   const [top, setTop] = useState<Top>(TOP_DEFECTO);
@@ -107,12 +110,12 @@ export function PestanaPedir() {
       <section className={`tarjeta campana entra ${acceso.planCompra ? "" : "sin-boton"}`} style={{ ["--i" as string]: 0 }}>
         <div className="cuenta-reg">
           <div>
-            <b>{cuenta.valor === null ? "Hoy" : <Cuenta valor={cuenta.valor} />}</b>
+            <b><Cuenta valor={cuenta.valor} /></b>
             <span>{cuenta.texto}</span>
           </div>
         </div>
         <div style={{ minWidth: 0 }}>
-          <Riel r={riel} />
+          <Riel r={riel} nombre={h.nombre} />
         </div>
         {acceso.planCompra && (
           <Link href="/compras/plan" className="btn-cayla btn-secundario btn-s">
@@ -137,7 +140,8 @@ export function PestanaPedir() {
           <p className="b-nota al-nota">
             {textoRitmo(diasDeVentas)} · toca un tipo para ver sus tallas y lo que más se vende
           </p>
-          <TablaAlcance tipos={tiposOrdenados} hastaNavidad={hastaNavidad} categoria={categoria} onElegir={elegir} />
+          <NotasDeLaMeta h={h} />
+          <TablaAlcance tipos={tiposOrdenados} h={h} categoria={categoria} onElegir={elegir} />
           {sinRegistro.length > 0 && <p className="b-nota al-sin-registro">{notaTiposSinRegistrar(sinRegistro)}</p>}
           {pedidoSinFila.length > 0 && <p className="b-nota al-sin-registro">{notaPedidoSinTipo(pedidoSinFila)}</p>}
         </section>
@@ -152,7 +156,7 @@ export function PestanaPedir() {
               </button>
             )}
           </div>
-          <p className="pt-frase">{fraseDelTipo(elegido, tipos, diasDeVentas)}</p>
+          <p className="pt-frase">{fraseDelTipo(elegido, tipos, diasDeVentas, h)}</p>
 
           <BloqueCurva c={curva} categoria={categoria} />
 
@@ -215,8 +219,8 @@ export function PestanaPedir() {
   );
 }
 
-/** El riel de hoy a Navidad: lo ya pasado del mes en taupe, los meses del medio y los dos hitos (la maqueta). */
-function Riel({ r }: { r: RielNavidad }) {
+/** El riel de hoy a la meta: lo ya pasado del mes en taupe, los meses del medio y los dos hitos (la maqueta). */
+function Riel({ r, nombre }: { r: RielMeta; nombre: string }) {
   return (
     <div className="riel" role="img" aria-label={r.etiqueta}>
       <span className="linea-r" />
@@ -230,23 +234,46 @@ function Riel({ r }: { r: RielNavidad }) {
         <span style={r.juntos ? { visibility: "hidden" } : undefined}>Hoy</span>
         <i />
       </span>
-      <span className="hito" style={{ left: `${r.navidadPct}%` }}>
-        <span>Navidad</span>
+      <span className="hito" style={{ left: `${r.metaPct}%` }}>
+        <span>{nombre}</span>
         <i />
       </span>
     </div>
   );
 }
 
-/** Lo que viene o está pedido y NO cuenta, junto: «8 atrasadas: no las cuento · 15 pedidas sin fecha: no las cuento · el Taller tiene 40 en proceso». */
-const aparteDe = (t: AlcanceTipo): string => [llegadasAparte(t), ...pedidoAparte(t.pedido)].filter((x) => x !== "").join(" · ");
+/**
+ * Lo que la lista da por supuesto, dicho una vez bajo el título (A6): de dónde sale la meta si NO es una campaña del Plan, cuánto tarda un pedido (un
+ * supuesto, D4), de dónde sale la temporada o por qué no hay, y si el ritmo salió de una campaña (D3, D5, f).
+ */
+function NotasDeLaMeta({ h }: { h: Horizonte }) {
+  const { datos } = useAnalisis();
+  const temporada = notaDeTemporada(datos.temporada, hastaLaMeta(h), datos.sede.nombre);
+  const ritmo = datos.campanaDelRitmo ? notaDelRitmo(datos.campanaDelRitmo, datos.hoy) : null;
+  const notas = [
+    h.nota,
+    `Un pedido tarda ${PLAZO_TALLER_DIAS} días si es del Taller y ${PLAZO_TERCEROS_DIAS} si es de terceros (un supuesto, mientras las órdenes no traigan su fecha de entrega).`,
+    temporada,
+    ritmo,
+  ].filter((x): x is string => x !== null);
+  return (
+    <div className="al-supuestos">
+      {notas.map((n) => (
+        <p key={n} className="b-nota">
+          {n}
+        </p>
+      ))}
+    </div>
+  );
+}
 
 /**
- * «¿Para cuánto te alcanza?»: cada tipo, para cuánto te alcanza lo que tienes al ritmo de los días de ventas, con la línea de
- * Navidad: lo que no llega va en ámbar con su ▲ (pídelo). Cada tipo es un botón que cambia el panel de al lado (opción A, Felipe
- * 2026-10-10). La lista se desplaza por dentro y, mientras queden tipos abajo, lo dice («↓ 6 tipos más», que baja al tocarlo).
+ * «¿Para cuánto te alcanza?»: cada tipo, para cuánto te alcanza lo que tienes al ritmo de los días de ventas, con la línea de la meta: lo que no llega va
+ * en ámbar con su ▲ (pídelo) y «pídelo antes del X». Cada fila en pocas líneas fijas (A6, a): lo que se CUENTA, lo que NO, y a la derecha la fecha límite y la
+ * temporada. Cada tipo es un botón que cambia el panel de al lado (opción A, Felipe 2026-10-10). La lista se desplaza por dentro y, mientras queden tipos
+ * abajo, lo dice («↓ 6 tipos más», que baja al tocarlo).
  */
-function TablaAlcance({ tipos, hastaNavidad, categoria, onElegir }: { tipos: AlcanceTipo[]; hastaNavidad: number; categoria: string | null; onElegir: (c: string) => void }) {
+function TablaAlcance({ tipos, h, categoria, onElegir }: { tipos: AlcanceTipo[]; h: Horizonte; categoria: string | null; onElegir: (c: string) => void }) {
   const lista = useRef<HTMLDivElement>(null);
   const [ocultos, setOcultos] = useState(0);
   // Cuántos tipos quedan bajo el borde de la lista (más de la mitad de su fila fuera de la vista).
@@ -266,46 +293,54 @@ function TablaAlcance({ tipos, hastaNavidad, categoria, onElegir }: { tipos: Alc
   }, [medir, tipos.length]);
 
   if (tipos.length === 0) return <p className="b-nota">Todavía no hay ventas ni prendas que comparar.</p>;
-  const fin = finEjeAlcance(hastaNavidad);
-  const semanas = Math.round(hastaNavidad / 7);
+  const fin = finEjeAlcance(h.dias);
   return (
-    <div className="alcance" style={{ ["--nav" as string]: Math.min(1, hastaNavidad / fin) }}>
+    <div className="alcance" style={{ ["--nav" as string]: Math.min(1, h.dias / fin) }}>
       <div className="al-cab" aria-hidden>
         <span />
         <span>Tipo</span>
         <span className="eje">
-          <span className="nav-et">
-            Navidad · {semanas} {plural(semanas, "semana", "semanas")}
-          </span>
+          <span className="nav-et">{rotuloDelEje(h)}</span>
         </span>
         <span>Te alcanza</span>
+        <span className="pesa">Pesa</span>
       </div>
       <div ref={lista} className="al-lista" onScroll={medir}>
-        {tipos.map((t, k) => (
-          <button key={t.categoria} type="button" className={`al-f ${t.pide ? "pide" : ""}`} aria-pressed={categoria === t.categoria} onClick={() => onElegir(t.categoria)}>
-            <span className="ico">
-              <IconoCategoria prefijo={t.prefijo} familia={(t.familia ?? null) as Parameters<typeof IconoCategoria>[0]["familia"]} className="h-[18px] w-[18px]" />
-            </span>
-            <span className="n">
-              <b>{t.categoria}</b>
-              <small>
-                {textoVendiste(t)} · {tieneYVienen(t)}
-              </small>
-              {/* Lo ya pedido que cuenta (A4), en su propia línea: no ensancha la principal (la columna es angosta). */}
-              {yaPedidoCorto(t.pedido) && <small>{yaPedidoCorto(t.pedido)}</small>}
-              {/* Lo atrasado, lo que llega después de Navidad y lo pedido que no cuenta o es de la red, en su propia línea. */}
-              {aparteDe(t) && <small className="aparte">{aparteDe(t)}</small>}
-            </span>
-            <span className="p">
-              {t.dias !== null && <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: Math.min(1, t.dias / fin) }} />}
-              <span className="nav" />
-            </span>
-            <span className="v">
-              {t.pide ? "▲ " : ""}
-              {textoAlcance(t.dias)}
-            </span>
-          </button>
-        ))}
+        {tipos.map((t, k) => {
+          const l = lineasDeTipo(t, h);
+          return (
+            <button key={t.categoria} type="button" className={`al-f ${t.pide ? "pide" : ""}`} aria-pressed={categoria === t.categoria} onClick={() => onElegir(t.categoria)}>
+              <span className="ico">
+                <IconoCategoria prefijo={t.prefijo} familia={(t.familia ?? null) as Parameters<typeof IconoCategoria>[0]["familia"]} className="h-[18px] w-[18px]" />
+              </span>
+              <span className="n">
+                <b>{t.categoria}</b>
+                <small title={l.cuenta}>{l.cuenta}</small>
+                {/* Lo que NO se cuenta, en su propia línea: una sola palabra para atrasada y vencida. */}
+                {l.noCuenta && (
+                  <small className="aparte" title={l.noCuenta}>
+                    {l.noCuenta}
+                  </small>
+                )}
+              </span>
+              <span className="p">
+                {t.dias !== null && <i className="cx" style={{ ["--d" as string]: k, ["--n" as string]: Math.min(1, t.dias / fin) }} />}
+                <span className="nav" />
+              </span>
+              <span className="v">
+                <b className={t.incompleto ? "inc" : undefined} title={t.pidelo ? tipPidelo(t.pidelo, t.plazo) : undefined}>
+                  {t.pide ? "▲ " : ""}
+                  {t.incompleto ? "Catálogo incompleto" : textoAlcanceEnEje(t.dias, fin)}
+                </b>
+                {l.pidelo && <small title={t.pidelo ? tipPidelo(t.pidelo, t.plazo) : textoPlazo(t.plazo)}>{l.pidelo}</small>}
+                {l.temporada && <small>{l.temporada}</small>}
+              </span>
+              <span className="pesa" title={`De cada 100 prendas vendidas, ${t.pesa} son de ${t.categoria}`}>
+                {t.pesa} %
+              </span>
+            </button>
+          );
+        })}
         {ocultos > 0 && (
           <button
             type="button"
@@ -386,8 +421,17 @@ function BloqueCurva({ c, categoria }: { c: CurvaTallas; categoria: string | nul
 /** «Lo que más rinde»: por tipo, cuánto se ganó por cada S/ 1 de ropa en 90 días; la línea punteada es S/ 1. */
 function BloqueRinde() {
   const { datos } = useAnalisis();
-  const filas = [...datos.rinde].sort((a, b) => b.porSol - a.porSol || a.categoria.localeCompare(b.categoria, "es"));
-  const escala = escalaRinde(filas);
+  const { diasDeVentas } = useAnalisis();
+  // Un tipo del que casi todo se vendió sin registrar la prenda se calla (A6, d): su cifra mide una parte pequeña del tipo.
+  const tiposDeMiTienda = useMemo(
+    () => alcancePorTipo(datos.prendas, diasDeVentas, datos.hoy, datos.horizonte, datos.sabePiso, datos.sinPrendaPorTipo, datos.pedido),
+    [datos.prendas, diasDeVentas, datos.hoy, datos.horizonte, datos.sabePiso, datos.sinPrendaPorTipo, datos.pedido],
+  );
+  const filas = useMemo(
+    () => rindeConConfianza(datos.rinde, tiposDeMiTienda).sort((a, b) => Number(b.fiable) - Number(a.fiable) || b.porSol - a.porSol || a.categoria.localeCompare(b.categoria, "es")),
+    [datos.rinde, tiposDeMiTienda],
+  );
+  const escala = escalaRinde(filas.filter((f) => f.fiable));
   return (
     <section className="tarjeta bloque entra" style={{ ["--i" as string]: 4 }}>
       <div className="b-cab">
@@ -401,6 +445,15 @@ function BloqueRinde() {
           <div className="rinde">
             {filas.map((r, k) => {
               const n = Math.min(1, Math.max(0, r.porSol / escala));
+              if (!r.fiable) {
+                return (
+                  <div key={r.categoria} className="r" role="img" tabIndex={0} aria-label={tipRindeSinRegistro(r.categoria)} data-tip={tipRindeSinRegistro(r.categoria)}>
+                    <span>{r.categoria}</span>
+                    <span className="pista2" />
+                    <span className="v">Sin dato</span>
+                  </div>
+                );
+              }
               return (
                 <div key={r.categoria} className="r" role="img" tabIndex={0} aria-label={tipRinde(r)} data-tip={tipRinde(r)}>
                   <span>{r.categoria}</span>

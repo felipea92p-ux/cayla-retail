@@ -115,14 +115,14 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-pedir" }],
       titulo: "Qué pedir",
-      texto: "Arriba, cuánto falta para la campaña, con un atajo al Plan de campaña. «¿Para cuánto te alcanza?»: cada tipo, con lo que tienes, lo que viene a tiempo y lo ya pedido en órdenes y envíos (lo atrasado o sin fecha no cuenta); lo que no llega va en ámbar: conviene pedirlo. Toca un tipo y ves sus tallas.",
+      texto: "Arriba, cuánto falta para terminar la próxima campaña del Plan (o Navidad si no hay: lo dice). «¿Para cuánto te alcanza?»: cada tipo con lo que tienes, lo que viene y lo ya pedido; lo ámbar no llega y dice «pídelo antes del…» (un pedido tarda 14 días del Taller, 30 de terceros). Toca un tipo y ves sus tallas.",
     },
     {
       id: "pedir-orden",
       ancla: "analisis.pedir-orden",
       opcional: true,
       titulo: "Ordenar los tipos",
-      texto: "«Más vendido» pone arriba lo que más sale; «Se acaba antes», lo que te alcanza para menos días. Úsalo para ver primero lo más urgente de pedir.",
+      texto: "«Qué pedir primero» pone arriba lo que se agotó o no llega y, entre eso, lo que más pesa en tus ventas (la columna «Pesa»). «Más vendido» y «Se acaba antes» siguen a un toque.",
     },
     {
       id: "fin",
