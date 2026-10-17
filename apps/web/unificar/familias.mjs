@@ -283,6 +283,14 @@ const BASE = [
     gobierna: ["ADR-0195"],
   },
   {
+    id: "cantidad",
+    grupo: "Campos",
+    nombre: "El paso de cantidad («− 1 +»)",
+    funcion: "Subir o bajar una cantidad de uno en uno: el ticket de Vender, Bajar al piso, las matrices de tallas, Recibir.",
+    pieza: "`<PasoCantidad>` (components/ui/PasoCantidad.tsx), decidido el 2026-10-17 (ronda 17); las teclas grandes de contar quedan aparte",
+    gobierna: ["ADR-0136"],
+  },
+  {
     id: "titulo-pagina",
     grupo: "Textos",
     nombre: "Títulos de pantalla",
@@ -331,6 +339,14 @@ const BASE = [
     funcion: "La ventana que se abre encima de la pantalla.",
     pieza: "`<Modal>` / `<ModalRuta>` (components/ui/Modal.tsx): una cara, tres anchos (`tamano`) y una salida a la vista (decidido el 2026-10-14)",
     gobierna: ["ADR-0136", "ADR-0358"],
+  },
+  {
+    id: "cajon",
+    grupo: "Hojas",
+    nombre: "El cajón lateral",
+    funcion: "La hoja que entra por la derecha con el detalle de algo (un comprobante por pagar, un movimiento, una persona del equipo).",
+    pieza: "`<Cajon>` (components/ui/Cajon.tsx): la banda de Compras en todos, decidido el 2026-10-17 (ronda 17); la vista rápida de Productos es una hoja al centro (ADR-0136)",
+    gobierna: ["ADR-0136", "ADR-0128", "ADR-0358"],
   },
   {
     id: "avatar",
@@ -764,7 +780,7 @@ export const DECISIONES = {
     "registro": "docs/unificar/campo-combo.md",
     "elegida": "P1 · la caja que se enciende: todo campo de una hoja es la caja hundida de 40 px que, con el cursor adentro, sube a papel y dibuja el hilo rojo desde el centro (verde si el dato está bien, barre mientras consulta); el monto, 48 px con su cifra en serif; elegida tocándola el 2026-10-13",
     "pieza": "components/ui/campos.tsx",
-    "tambien": ["components/ui/CampoFecha.tsx", "components/ui/CampoMonto.tsx", "components/ComboResponsable.tsx", "components/ui/Buscador.tsx", "components/ui/ComboBuscable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/Casilla.tsx", "app/estilos/campos-y-casillas.css"],
+    "tambien": ["components/ui/PasoCantidad.tsx", "components/ui/CampoFecha.tsx", "components/ui/CampoMonto.tsx", "components/ComboResponsable.tsx", "components/ui/Buscador.tsx", "components/ui/ComboBuscable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/Casilla.tsx", "app/estilos/campos-y-casillas.css"],
     "ventana": 14,
     "firmas": [
       // Una caja de texto dibujada a mano: un <input> (ni casilla, ni radio, ni oculto, ni archivo, ni rango) fuera de las piezas. Es
@@ -1302,6 +1318,41 @@ export const DECISIONES = {
       // Los vecinos escritos a mano con su flecha («← SEPTIEMBRE · Octubre 2026 · NOVIEMBRE →») y la pieza que los dibujaba.
       "[←‹]\\s*\\{\\s*NOMBRES_MES\\b|NOMBRES_MES\\[[^\\]]+\\]\\s*\\}\\s*[→›]",
       "\\bSelectorMesFacturacion\\b"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "cantidad": {
+    "fecha": "2026-10-17",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/cantidad.md",
+    "elegida": "P1 · la caja con el número adentro: la caja del campo (la que se enciende con su hilo) con − y + de lucide adentro y el número que se escribe; «celda» de 26 px en una matriz y «fila» de 36 px que crece a 44 en una pantalla táctil; elegida mirando el 2026-10-17 (ronda 17)",
+    "pieza": "components/ui/PasoCantidad.tsx",
+    "tambien": ["app/estilos/campos-y-casillas.css"],
+    "firmas": [
+      // Un botón de «− 1 +» dibujado a mano: su etiqueta para el lector («Una menos», «Restar a…», «Reducir cantidad»). En la pieza, esas
+      // etiquetas van en `menos` / `mas` (`etiqueta`), no en un `aria-label`.
+      "aria-label=\\{?[\"'`](?:Una (?:unidad |\\$\\{[^}]+\\} )?(?:menos|más)\\b|Restar\\b|Reducir cantidad|Aumentar cantidad|Sumar (?:a|uno)\\b)",
+      // Las caras que había: la clase de la etiqueta de precio y la píldora del Taller.
+      "\\betq-paso\\b|\\btaller-stepper\\b"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/EscanerConteo.tsx", "motivo": "las teclas grandes de contar (56 px, el número enorme): un teclado de contar, aparte por decisión de Felipe (ronda 17)" },
+      { "archivo": "components/recepcion-conteo/ContarEnvio.tsx", "motivo": "las teclas grandes de Contar el envío (56 px, el número de 84): un teclado de contar, aparte por decisión de Felipe (ronda 17)" },
+      { "archivo": "components/existencias/FlujoTalla.tsx", "motivo": "el paso a paso táctil de Existencias (`Stepper`, teclas de 56 px y el número serif): la misma anatomía de las teclas grandes de contar; sus celdas de matriz sí usan la pieza (ronda 17)" },
+      { "archivo": "components/traslados-pases/ReversoPase.tsx", "motivo": "ADR-0355: los pases de Traslados tienen su diseño por decisión (`tp-contador`)" }
+    ]
+  },
+  "cajon": {
+    "fecha": "2026-10-17",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/cajon.md",
+    "elegida": "P1 · la banda de Compras en todos: marca a la izquierda (avatar de 40, sello, ícono), versalitas, título serif de 24, la × de las hojas, el pie con las acciones y «n de N» con ↑ ↓; anchos de 456 y 544 px; elegida mirando el 2026-10-17 (ronda 17)",
+    "pieza": "components/ui/Cajon.tsx",
+    "firmas": [
+      // El marco de un cajón armado a mano (pegado al borde derecho, de arriba abajo): es <Cajon>.
+      "\\bfixed inset-y-0 right-0\\b"
     ],
     "deuda": [],
     "excepciones": []

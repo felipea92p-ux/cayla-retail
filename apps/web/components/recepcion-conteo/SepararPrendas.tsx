@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ListChecks, Minus, Plus, Sparkles, X } from "lucide-react";
+import { ListChecks, Sparkles, X } from "lucide-react";
 import { BotonEditar } from "@/components/ui/BotonEditar";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import type { CategoriaDeLinea, PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
 import { sugerirNombre } from "@/lib/sugerencias-alta-producto";
@@ -36,20 +37,15 @@ import { DescribirNuevas } from "./DescribirNuevas";
 const BOTON_PASO =
   "grid h-8 w-8 shrink-0 place-items-center rounded-lg text-taupe transition-colors hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-30";
 
-/** − 3 + : cuántas de una fila. */
-export function PasoCantidad({ valor, onValor, etiqueta, minimo = 0 }: { valor: number; onValor: (n: number) => void; etiqueta: string; minimo?: number }) {
+/** − 3 + : cuántas de una fila (el paso de cantidad del sistema, `<PasoCantidad>`; el número se muestra, no se escribe). */
+export function PasoDePrendas({ valor, onValor, etiqueta, minimo = 0 }: { valor: number; onValor: (n: number) => void; etiqueta: string; minimo?: number }) {
   return (
-    <span className="inline-flex items-center gap-0.5">
-      <button type="button" className={BOTON_PASO} onClick={() => onValor(valor - 1)} disabled={valor <= minimo} aria-label={`Una menos de ${etiqueta}`}>
-        <Minus aria-hidden className="h-4 w-4" />
-      </button>
-      <span className="min-w-8 text-center text-lg font-semibold tabular-nums text-tinta" aria-live="polite">
-        {valor}
-      </span>
-      <button type="button" className={BOTON_PASO} onClick={() => onValor(valor + 1)} aria-label={`Una más de ${etiqueta}`}>
-        <Plus aria-hidden className="h-4 w-4" />
-      </button>
-    </span>
+    <PasoCantidad
+      menos={{ onClick: () => onValor(valor - 1), deshabilitado: valor <= minimo, etiqueta: `Una menos de ${etiqueta}` }}
+      mas={{ onClick: () => onValor(valor + 1), etiqueta: `Una más de ${etiqueta}` }}
+    >
+      {valor}
+    </PasoCantidad>
   );
 }
 
@@ -146,7 +142,7 @@ export function SepararPrendas({
                   {!enHacerAhora && <span className="text-[12.5px] text-taupe">o queda pendiente</span>}
                 </>
               )}
-              <PasoCantidad valor={p.cantidad} etiqueta={p.nombre ?? "esta prenda"} minimo={1} onValor={(n) => onSeparado(cambiarCantidadPrenda(separado, p.productoId, n))} />
+              <PasoDePrendas valor={p.cantidad} etiqueta={p.nombre ?? "esta prenda"} minimo={1} onValor={(n) => onSeparado(cambiarCantidadPrenda(separado, p.productoId, n))} />
               <Quitar etiqueta={p.nombre ?? "esta prenda"} onQuitar={() => onSeparado(quitarPrenda(separado, p.productoId))} />
             </span>
           </li>
@@ -163,7 +159,7 @@ export function SepararPrendas({
             </span>
             <span className="rc-fila-fin">
               <Chip tono="pizarra">Por crear</Chip>
-              <PasoCantidad valor={n.cantidad} etiqueta={n.descripcion} minimo={1} onValor={(c) => onSeparado(cambiarCantidadNuevaDescrita(separado, n.descripcion, c))} />
+              <PasoDePrendas valor={n.cantidad} etiqueta={n.descripcion} minimo={1} onValor={(c) => onSeparado(cambiarCantidadNuevaDescrita(separado, n.descripcion, c))} />
               <Quitar etiqueta={n.descripcion} onQuitar={() => onSeparado(quitarNuevaDescrita(separado, n.descripcion))} />
             </span>
           </li>
@@ -182,7 +178,7 @@ export function SepararPrendas({
               <BotonEditar onClick={() => setDescribiendo(true)}>Describir ahora</BotonEditar>
             )}
             {nuevas > 0 ? <Chip tono="pizarra">Por crear</Chip> : <Chip tono="neutro">Ninguna</Chip>}
-            <PasoCantidad valor={nuevas} etiqueta="nuevas" onValor={(n) => onSeparado(cambiarNuevasSinDescribir(separado, n))} />
+            <PasoDePrendas valor={nuevas} etiqueta="nuevas" onValor={(n) => onSeparado(cambiarNuevasSinDescribir(separado, n))} />
           </span>
         </li>
       </ul>

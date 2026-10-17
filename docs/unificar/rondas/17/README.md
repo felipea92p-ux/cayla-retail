@@ -2,8 +2,9 @@
 
 Armada el 2026-10-17 (rama `claude/unificar-control`) con las cuatro familias que el [censo de control del 16](../../control/2026-10-16.md)
 encontró sin decidir. **Decidida el 2026-10-17, mirando: P1 en las cuatro** («‹ Octubre 2026 ›» en todas, la banda de Compras en
-todos los cajones, la caja con el número adentro y, en la guía de impresión, la flecha y «Siguiente»). Falta construir las piezas y
-migrar (ver «Lo que sigue», abajo). La página vive en `apps/web/unificar/.salida/elegir-ronda17/` (fuera de git),
+todos los cajones, la caja con el número adentro y, en la guía de impresión, la flecha y «Siguiente»). **Migrada el mismo día: deuda 0 en
+las cuatro** (registros: [mes.md](../../mes.md), [cajon.md](../../cajon.md), [cantidad.md](../../cantidad.md),
+[accion.anterior.md](../../accion.anterior.md)). La página vive en `apps/web/unificar/.salida/elegir-ronda17/` (fuera de git),
 también en un solo archivo (`empaquetar.mjs`); estas son sus fuentes.
 
 | # | Familia | La pregunta | Opciones |
@@ -27,7 +28,7 @@ Los de la página se corren desde `apps/web/unificar/.salida/elegir-ronda17/`; l
 que ya está en `main`, y la pantalla se cae) y el cajón de una orden de Producción (la base local no tiene órdenes). Van como demo y como
 texto.
 
-## Lo que sigue (la migración)
+## Lo que se migró
 
 1. **`mes`** → `SelectorMes` (`components/ui/SelectorMes.tsx`) también en Comprobantes ▸ Emitidos y Proformas, en lugar de
    `SelectorMesFacturacion.tsx` (hoy de servidor, con enlaces `?m=`). Conservar las anclas de la guía `comprobantes.mes` y

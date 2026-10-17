@@ -2,7 +2,7 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 123,
+  "total": 121,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
       "Volver «{RUTA_ORDENES}»",
@@ -116,9 +116,7 @@
     "components/alta-producto/MatrizCantidades.tsx": [
       "SegmentoDeslizante «Qué escribes en la tabla»",
       "input «1»",
-      "button «{`Restar a ${etiqueta}»",
-      "input «{`${preguntaCelda}»",
-      "button «{`Sumar a ${etiqueta}»",
+      "input «(sin nombre)»",
       "input «{`${enCostos ? \"Costo\" : \"Precio\"}»"
     ],
     "components/alta-producto/MatrizVariantes.tsx": [

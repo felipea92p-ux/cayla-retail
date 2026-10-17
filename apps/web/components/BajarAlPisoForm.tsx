@@ -2,7 +2,7 @@
 
 import { useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Check, Minus, Plus, ScanBarcode, ScanLine } from "lucide-react";
+import { Camera, Check, ScanBarcode, ScanLine } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { ErrorEscritura } from "@/lib/error-escritura";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
@@ -92,6 +92,7 @@ import {
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { Boton } from "@/components/ui/campos";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 /*
  * «Bajar prendas al piso» (ADR-0208, paso 1). Se usa de pie junto al fardo, con la pistola (que es un teclado): cada
@@ -1083,43 +1084,29 @@ export function BajarAlPisoForm({
                           </div>
                         </div>
                         <div className="relative ml-auto flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            aria-label={`Una menos de ${nombre}`}
-                            disabled={listaQuieta || porEscanear(l)}
-                            onClick={() => cambiarCantidad(l.varianteId, l.cantidad - 1)}
-                            className="btn-cayla btn-secundario h-11 w-11 p-0"
-                          >
-                            <Minus aria-hidden className="h-4 w-4" />
-                          </button>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            aria-label={`Cantidad de ${nombre}`}
-                            className={`caja-campo-input h-11 w-14 px-1 text-center text-base tabular-nums ${enRojo ? "text-rojo-profundo" : ""}`}
-                            disabled={listaQuieta}
-                            value={edicion[l.varianteId] ?? String(l.cantidad)}
-                            onFocus={(e) => e.currentTarget.select()}
-                            onChange={(e) => {
-                              const valor = e.target.value;
-                              setEdicion((m) => ({ ...m, [l.varianteId]: valor }));
-                            }}
-                            onBlur={(e) => confirmarNumero(l.varianteId, e.currentTarget.value)}
-                            onKeyDown={(e) => {
-                              if (e.key !== "Enter") return;
-                              e.preventDefault();
-                              volverAlEscaner();
+                          <PasoCantidad
+                            menos={{ onClick: () => cambiarCantidad(l.varianteId, l.cantidad - 1), deshabilitado: listaQuieta || porEscanear(l), etiqueta: `Una menos de ${nombre}` }}
+                            mas={{ onClick: () => cambiarCantidad(l.varianteId, l.cantidad + 1), deshabilitado: listaQuieta || l.cantidad >= tope, etiqueta: `Una más de ${nombre}` }}
+                            tono={enRojo ? "error" : undefined}
+                            campo={{
+                              type: "text",
+                              inputMode: "numeric",
+                              "aria-label": `Cantidad de ${nombre}`,
+                              disabled: listaQuieta,
+                              value: edicion[l.varianteId] ?? String(l.cantidad),
+                              onFocus: (e) => e.currentTarget.select(),
+                              onChange: (e) => {
+                                const valor = e.target.value;
+                                setEdicion((m) => ({ ...m, [l.varianteId]: valor }));
+                              },
+                              onBlur: (e) => confirmarNumero(l.varianteId, e.currentTarget.value),
+                              onKeyDown: (e) => {
+                                if (e.key !== "Enter") return;
+                                e.preventDefault();
+                                volverAlEscaner();
+                              },
                             }}
                           />
-                          <button
-                            type="button"
-                            aria-label={`Una más de ${nombre}`}
-                            disabled={listaQuieta || l.cantidad >= tope}
-                            onClick={() => cambiarCantidad(l.varianteId, l.cantidad + 1)}
-                            className="btn-cayla btn-secundario h-11 w-11 p-0"
-                          >
-                            <Plus aria-hidden className="h-4 w-4" />
-                          </button>
                           <button type="button" disabled={listaQuieta} onClick={() => quitar(l.varianteId)} className="btn-cayla btn-sutil ml-1 h-11">
                             Quitar
                           </button>

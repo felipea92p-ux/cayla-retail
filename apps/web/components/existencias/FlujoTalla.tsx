@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { avisarDestacado } from "@/components/ui/AvisoDestacado";
 import { IconoPercha } from "@/components/ui/IconoPercha";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -168,23 +169,21 @@ function CeldaSubir({ celda, n, etiqueta, fondo, onValor }: { celda: ReturnType<
     );
   return (
     <td className={`border-t border-sand px-1 py-2 text-center ${fondo}`}>
-      <span className="inline-flex items-center gap-px rounded-lg border border-transparent bg-hueso px-0.5 focus-within:border-taupe focus-within:bg-papel">
-        <button type="button" aria-label={`Una menos de ${etiqueta}`} disabled={n <= 0} onClick={() => onValor(n - 1, celda.piso)} className="grid h-8 w-6 place-items-center rounded-md text-taupe hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25">
-          −
-        </button>
-        <input
-          inputMode="numeric"
-          aria-label={`Cuántas descuelgas de ${etiqueta}: hay ${celda.piso} colgada${celda.piso === 1 ? "" : "s"}`}
-          value={n === 0 ? "" : n}
-          placeholder="0"
-          onFocus={(e) => e.currentTarget.select()}
-          onChange={(e) => onValor(leerCantidadTecleada(e.target.value, celda.piso), celda.piso)}
-          className={`h-8 w-8 bg-transparent text-center text-[15px] font-bold tabular-nums outline-none placeholder:font-medium placeholder:text-tinta/30 ${n > 0 ? "text-verde" : "text-tinta"}`}
-        />
-        <button type="button" aria-label={`Una más de ${etiqueta}`} disabled={n >= celda.piso} onClick={() => onValor(n + 1, celda.piso)} className="grid h-8 w-6 place-items-center rounded-md text-taupe hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25">
-          +
-        </button>
-      </span>
+      <PasoCantidad
+        tamano="celda"
+        menos={{ onClick: () => onValor(n - 1, celda.piso), deshabilitado: n <= 0, etiqueta: `Una menos de ${etiqueta}` }}
+        mas={{ onClick: () => onValor(n + 1, celda.piso), deshabilitado: n >= celda.piso, etiqueta: `Una más de ${etiqueta}` }}
+        campo={{
+          inputMode: "numeric",
+          "aria-label": `Cuántas descuelgas de ${etiqueta}: hay ${celda.piso} colgada${celda.piso === 1 ? "" : "s"}`,
+          value: n === 0 ? "" : n,
+          placeholder: "0",
+          onFocus: (e) => e.currentTarget.select(),
+          onChange: (e) => onValor(leerCantidadTecleada(e.target.value, celda.piso), celda.piso),
+          // Con algo elegido, el número va en verde.
+          className: n > 0 ? "text-verde" : "",
+        }}
+      />
       <small className="mt-1 block text-[10.5px] text-taupe">{celda.piso} colgada{celda.piso === 1 ? "" : "s"}</small>
       <small className="block text-[10.5px] text-taupe/75">{celda.almacen} en almacén</small>
     </td>
@@ -772,23 +771,23 @@ export function FlujoTalla({
                           const etiqueta = `${c.color ?? ""} ${nombre}`;
                           return (
                             <td key={nombre} className={`border-t border-sand px-1 py-2 text-center ${fondo}`}>
-                              <span className={`inline-flex items-center gap-px rounded-lg border px-0.5 focus-within:border-taupe focus-within:bg-papel ${celda.falta ? "border-ambar/40 bg-ambar/[0.14]" : "border-transparent bg-hueso"}`}>
-                                <button type="button" aria-label={`Una menos de ${etiqueta}`} disabled={n <= 0} onClick={() => poner1(t.varianteId, n - 1, celda.almacen)} className="grid h-8 w-6 place-items-center rounded-md text-taupe hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25">
-                                  −
-                                </button>
-                                <input
-                                  inputMode="numeric"
-                                  aria-label={`Cuántas cuelgas de ${etiqueta}: hay ${celda.almacen} en almacén`}
-                                  value={n === 0 ? "" : n}
-                                  placeholder="0"
-                                  onFocus={(e) => e.currentTarget.select()}
-                                  onChange={(e) => poner({ cant: { ...cant, [t.varianteId]: leerCantidadTecleada(e.target.value, celda.almacen) } })}
-                                  className={`h-8 w-8 bg-transparent text-center text-[15px] font-bold tabular-nums outline-none placeholder:font-medium placeholder:text-tinta/30 ${n > 0 ? "text-verde" : "text-tinta"}`}
-                                />
-                                <button type="button" aria-label={`Una más de ${etiqueta}`} disabled={n >= celda.almacen} onClick={() => poner1(t.varianteId, n + 1, celda.almacen)} className="grid h-8 w-6 place-items-center rounded-md text-taupe hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25">
-                                  +
-                                </button>
-                              </span>
+                              <PasoCantidad
+                                tamano="celda"
+                                // La talla que falta en el piso se tiñe de ámbar (como su «falta» de abajo).
+                                tono={celda.falta ? "atencion" : undefined}
+                                menos={{ onClick: () => poner1(t.varianteId, n - 1, celda.almacen), deshabilitado: n <= 0, etiqueta: `Una menos de ${etiqueta}` }}
+                                mas={{ onClick: () => poner1(t.varianteId, n + 1, celda.almacen), deshabilitado: n >= celda.almacen, etiqueta: `Una más de ${etiqueta}` }}
+                                campo={{
+                                  inputMode: "numeric",
+                                  "aria-label": `Cuántas cuelgas de ${etiqueta}: hay ${celda.almacen} en almacén`,
+                                  value: n === 0 ? "" : n,
+                                  placeholder: "0",
+                                  onFocus: (e) => e.currentTarget.select(),
+                                  onChange: (e) => poner({ cant: { ...cant, [t.varianteId]: leerCantidadTecleada(e.target.value, celda.almacen) } }),
+                                  // Con algo elegido, el número va en verde (también en una talla que falta).
+                                  className: n > 0 ? "text-verde" : "",
+                                }}
+                              />
                               <small className={`mt-1 block text-[10.5px] ${celda.falta ? "font-semibold text-ambar-profundo" : "text-taupe"}`}>
                                 {celda.falta ? "falta" : celda.piso === 0 ? "nada colgado" : `${celda.piso} colgada${celda.piso === 1 ? "" : "s"}`}
                               </small>

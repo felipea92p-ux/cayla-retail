@@ -56,6 +56,8 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 | «Deshacer» (`accion.deshacer`) | `<BotonDeshacer>` (`components/ui/BotonDeshacer.tsx`): el enlace con la flecha curva delante (ronda 15) | 2026-10-15 (tocando) | 0 | [accion.deshacer.md](accion.deshacer.md) |
 | «Buscar» al apretar (`accion.buscar`) | `<BotonBuscar>` (`components/ui/BotonBuscar.tsx`): el secundario con la lupa; primario solo si buscar es el paso (ronda 15) | 2026-10-15 (tocando) | 0 | [accion.buscar.md](accion.buscar.md) |
 | Elegir el mes (`mes`) | `<SelectorMes>` / `<SelectorMesEnUrl>` (`components/ui/SelectorMes.tsx`): «‹ Octubre 2026 ›» con los doce meses al tocar el nombre (ronda 17) | 2026-10-17 (mirando) | 0 | [mes.md](mes.md) |
+| El paso de cantidad (`cantidad`) | `<PasoCantidad>` (`components/ui/PasoCantidad.tsx`): la caja del campo con − y + adentro; celda 26 px, fila 36 (44 con el dedo) (ronda 17) | 2026-10-17 (mirando) | 0 | [cantidad.md](cantidad.md) |
+| El cajón lateral (`cajon`) | `<Cajon>` (`components/ui/Cajon.tsx`): la banda de Compras en todos, anchos de 456 y 544 px (ronda 17) | 2026-10-17 (mirando) | 0 | [cajon.md](cajon.md) |
 | Anterior y siguiente (`accion.anterior`) | `<Volver onClick>` + «Siguiente» primario con su flecha, como todo paso a paso (ronda 17) | 2026-10-17 (mirando) | 0 | [accion.anterior.md](accion.anterior.md) |
 
 ## Propuestas esperando decisión

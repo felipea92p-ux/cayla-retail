@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowUpRight, ChevronDown, ChevronUp, X, Banknote } from "lucide-react";
+import { ArrowUpRight, Banknote } from "lucide-react";
 import { BotonPagar } from "@/components/CompraDetallePanel";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
-import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
-import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
+import { Cajon } from "@/components/ui/Cajon";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import type { DatosPagoProveedor, ResultadoPago } from "@/components/PagoPiezas";
 import { ETIQUETA_METODO_PAGO, soles, type CompraResumen, type PagoCompra } from "@/lib/compras-reglas";
 import { diaMes, diasHastaLima, hoyLima } from "@/lib/fechas-lima";
@@ -16,9 +14,6 @@ import { etiquetaVence, pasosDeComprobante, tramoDe, type PasoDeComprobante } fr
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { MarcaNoDeducible } from "@/components/MarcaNoDeducible";
 import { Vacio } from "@/components/ui/Vacio";
-
-/** Debe coincidir con `.anim-cajon-salida` en globals.css. */
-const MS_SALIDA = 240;
 
 const BORDE: Record<PasoDeComprobante["tono"], string> = { rojo: "border-l-rojo", ambar: "border-l-ambar", verde: "border-l-verde", neutro: "border-l-tinta/25" };
 
@@ -33,7 +28,7 @@ const BORDE: Record<PasoDeComprobante["tono"], string> = { rojo: "border-l-rojo"
 // pantalla de referencia: esto es el vistazo, no la reemplaza. El historial de pagos vive allí: `CompraResumen`
 // no lo trae y pedirlo en cada clic sería una consulta más por fila; aquí van el total, lo pagado y el plazo.
 //
-// Cierre en dos tiempos, igual que `Modal`: primero se anima la salida y recién ahí se le avisa al padre.
+// El cajón es la pieza del sistema (`<Cajon>`, ADR-0358, ronda 17): la banda, el pie con «n de N» y el cierre en dos tiempos.
 export function PorPagarVistaRapida({
   compra: c,
   otros,
@@ -60,134 +55,91 @@ export function PorPagarVistaRapida({
   /** El pago que se registra desde el cajón avisa a la lista, que hace reaccionar la pantalla y cierra el cajón. */
   onPagado: (r: ResultadoPago) => void;
 }) {
-  const [cerrando, setCerrando] = useState(false);
-  const pedirCierre = useCallback(() => setCerrando(true), []);
-  useEffect(() => {
-    if (!cerrando) return;
-    const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const t = setTimeout(onCerrar, reducido ? 0 : MS_SALIDA);
-    return () => clearTimeout(t);
-  }, [cerrando, onCerrar]);
-  // Escape cierra el cajón solo si ningún control de adentro lo usó (useEscapeLibre.ts).
-  const alEscape = useEscapeLibre(pedirCierre);
-  // ↑ ↓ pasan de comprobante solo con teclas del cajón: no con las que suben desde «Registrar pago» (useFlechasDelCajon.ts).
-  const alFlecha = useFlechasDelCajon(onNavegar);
-
   const tramo = tramoDe(c, ahora);
   const tonoChip: TonoChip = tramo === "vencidas" ? "rojo" : tramo === "semana" ? "ambar" : "neutro";
   const saldoFavor = datos?.saldoFavor ?? 0;
   const pasos = pasosDeComprobante(c, otros, { proveedor: c.proveedorNombre, saldoFavor, notaPendiente: nota?.montoEsperado ?? null, formato: soles }, ahora);
 
   return (
-    <Dialog.Root open onOpenChange={(abierto) => !abierto && pedirCierre()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className={`fixed inset-0 z-50 bg-sombra/25 dark:bg-sombra/55 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />
-        <Dialog.Content
-          onEscapeKeyDown={alEscape}
-          onKeyDown={alFlecha}
-          data-guia="por-pagar.vista"
-          className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-[28.5rem] flex-col border-l border-sand bg-papel outline-none ${cerrando ? "anim-cajon-salida" : "anim-cajon"}`}
-        >
-          {/* `key`: al pasar de un comprobante a otro el contenido se re-asienta (y la línea de vida se vuelve a dibujar);
-              el cajón no se cierra ni se vuelve a abrir. */}
-          <div key={c.id} className="anim-asentar flex min-h-0 flex-1 flex-col">
-            <div className="flex items-start gap-3.5 border-b border-tinta/10 px-6 pb-4 pt-5">
-              <span aria-hidden className="font-display grid h-14 w-14 shrink-0 place-items-center rounded-full bg-sand text-2xl text-tinta">
-                {c.proveedorNombre.trim().split(/\s+/).filter((w) => w.length > 2).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
-              </span>
-              <div className="min-w-0 flex-1">
-                <Dialog.Description className="label-cayla truncate text-[10.5px] text-tinta/65">{c.proveedorNombre}</Dialog.Description>
-                <Dialog.Title asChild>
-                  <h2 className="font-display text-[23px] leading-tight tabular-nums text-tinta">{/* unificar-fijo: es el título de la hoja (Dialog.Title), no de un bloque */}{c.documento}</h2>
-                </Dialog.Title>
-              </div>
-              <button type="button" onClick={pedirCierre} aria-label="Cerrar" className="-mr-1 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo">
-                <X aria-hidden className="h-4 w-4" />
-              </button>
-            </div>
+    <Cajon
+      onCerrar={onCerrar}
+      clave={c.id}
+      guia="por-pagar.vista"
+      guiaPie="por-pagar.vista-acciones"
+      marca={<AvatarPersona personaId={null} nombre={c.proveedorNombre} tamano={40} />}
+      sobre={c.proveedorNombre}
+      titulo={<span className="tabular-nums">{c.documento}</span>}
+      navegacion={{ indice: posicion.indice, total: posicion.total, onNavegar, que: "Comprobante" }}
+      pie={
+        <>
+          <BotonPagar compra={c} saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} etiqueta={`Pagar ${soles(c.saldo)}`} conIcono />
+          <Link
+            href={`/compras/factura/${c.id}`}
+            className="btn-cayla btn-secundario inline-flex items-center gap-2"
+          >
+            Abrir comprobante <ArrowUpRight aria-hidden className="h-3.5 w-3.5" />
+          </Link>
+        </>
+      }
+    >
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <p className="label-cayla text-[10.5px] text-tinta/65">Saldo por pagar</p>
+          <p className="font-display text-[40px] leading-[1.1] tabular-nums text-tinta">{soles(c.saldo)}</p>
+        </div>
+        <Chip tono={tonoChip}>{c.fechaVencimiento ? etiquetaVence(c.fechaVencimiento, ahora) : "Sin fecha de vencimiento"}</Chip>
+      </div>
 
-            <div className="scroll-cayla min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-5">
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <p className="label-cayla text-[10.5px] text-tinta/65">Saldo por pagar</p>
-                  <p className="font-display text-[40px] leading-[1.1] tabular-nums text-tinta">{soles(c.saldo)}</p>
-                </div>
-                <Chip tono={tonoChip}>{c.fechaVencimiento ? etiquetaVence(c.fechaVencimiento, ahora) : "Sin fecha de vencimiento"}</Chip>
-              </div>
+      <dl className="mt-[18px] grid grid-cols-3 divide-x divide-sand overflow-hidden rounded-xl border border-sand">
+        <div className="px-3.5 py-3">
+          <dt className="label-cayla text-[10px] text-tinta/65">Total</dt>
+          <dd className="font-display mt-0.5 text-[20px] leading-tight tabular-nums text-tinta">{soles(c.total)}</dd>
+        </div>
+        <div className="px-3.5 py-3">
+          <dt className="label-cayla text-[10px] text-tinta/65">Pagado</dt>
+          <dd className={`font-display mt-0.5 text-[20px] leading-tight tabular-nums ${c.pagado > 0 ? "text-verde-profundo" : "text-tinta/55"}`}>{c.pagado > 0 ? soles(c.pagado) : "—"}</dd>
+        </div>
+        <div className="px-3.5 py-3">
+          <dt className="label-cayla text-[10px] text-tinta/65">Crédito</dt>
+          <dd className="font-display mt-0.5 text-[20px] leading-tight tabular-nums text-tinta">{datos?.plazoCreditoDias != null ? `${datos.plazoCreditoDias} días` : "—"}</dd>
+        </div>
+      </dl>
 
-              <dl className="mt-[18px] grid grid-cols-3 divide-x divide-sand overflow-hidden rounded-xl border border-sand">
-                <div className="px-3.5 py-3">
-                  <dt className="label-cayla text-[10px] text-tinta/65">Total</dt>
-                  <dd className="font-display mt-0.5 text-[20px] leading-tight tabular-nums text-tinta">{soles(c.total)}</dd>
-                </div>
-                <div className="px-3.5 py-3">
-                  <dt className="label-cayla text-[10px] text-tinta/65">Pagado</dt>
-                  <dd className={`font-display mt-0.5 text-[20px] leading-tight tabular-nums ${c.pagado > 0 ? "text-verde-profundo" : "text-tinta/55"}`}>{c.pagado > 0 ? soles(c.pagado) : "—"}</dd>
-                </div>
-                <div className="px-3.5 py-3">
-                  <dt className="label-cayla text-[10px] text-tinta/65">Crédito</dt>
-                  <dd className="font-display mt-0.5 text-[20px] leading-tight tabular-nums text-tinta">{datos?.plazoCreditoDias != null ? `${datos.plazoCreditoDias} días` : "—"}</dd>
-                </div>
-              </dl>
+      <LineaDeVida emision={c.fechaEmision} vencimiento={c.fechaVencimiento} ahora={ahora} />
 
-              <LineaDeVida emision={c.fechaEmision} vencimiento={c.fechaVencimiento} ahora={ahora} />
-
-              <div className="mt-[18px] space-y-3" data-guia="por-pagar.vista-pasos">
-                {pasos.map((p, i) => (
-                  <div key={i} className={`card-cayla anim-revelar border-l-2 px-4 py-3 text-[13.5px] text-tinta ${BORDE[p.tono]}`} style={{ animationDelay: `${180 + i * 80}ms` }}>
-                    <b className="font-semibold">{p.fuerte}</b>
-                    {p.resto}
-                  </div>
-                ))}
-              </div>
-
-              {/* Pagos de este comprobante (como en el spike): cuándo, con qué medio y cuánto. Sin pagos, se dice. */}
-              {pagos && (
-                <section className="mt-[22px]">
-                  <TituloGrupo className="mb-1">Pagos de este comprobante</TituloGrupo>
-                  {pagos.length === 0 ? (
-                    <Vacio tamano="chico" alinear="izquierda" className="border-t border-tinta/10 px-0" icono={<Banknote />}>Sin pagos todavía.</Vacio>
-                  ) : (
-                    <ul>
-                      {pagos.map((p, i) => (
-                        <li key={p.id} className="anim-revelar grid grid-cols-[3.4rem_1fr_auto] items-baseline gap-3 border-t border-tinta/10 py-2.5 text-[13px]" style={{ animationDelay: `${260 + i * 60}ms` }}>
-                          <span className="tabular-nums text-tinta/55">{diaMes(p.fecha)}</span>
-                          <span>
-                            {ETIQUETA_METODO_PAGO[p.metodo] ?? p.metodo}
-                            {p.referencia && <span className="block text-xs text-tinta/55">{p.referencia}</span>}
-                          </span>
-                          <b className="font-medium tabular-nums">{soles(p.monto)}</b>
-                          {p.noDeducible && <MarcaNoDeducible nd={p.noDeducible} montoDeLaFila={p.monto} className="col-span-full" />}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5 border-t border-tinta/10 px-6 py-4" data-guia="por-pagar.vista-acciones">
-              <BotonPagar compra={c} saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} etiqueta={`Pagar ${soles(c.saldo)}`} conIcono />
-              <Link
-                href={`/compras/factura/${c.id}`}
-                className="btn-cayla btn-secundario inline-flex items-center gap-2"
-              >
-                Abrir comprobante <ArrowUpRight aria-hidden className="h-3.5 w-3.5" />
-              </Link>
-              <span className="ml-auto flex items-center gap-1.5 text-xs tabular-nums text-tinta/55">
-                {posicion.indice + 1} de {posicion.total}
-                <button type="button" onClick={() => onNavegar(-1)} disabled={posicion.indice <= 0} aria-label="Comprobante anterior" className="rounded-md border border-tinta/15 p-1.5 transition-colors hover:border-rojo hover:text-rojo disabled:pointer-events-none disabled:opacity-35">
-                  <ChevronUp aria-hidden className="h-3.5 w-3.5" />
-                </button>
-                <button type="button" onClick={() => onNavegar(1)} disabled={posicion.indice >= posicion.total - 1} aria-label="Comprobante siguiente" className="rounded-md border border-tinta/15 p-1.5 transition-colors hover:border-rojo hover:text-rojo disabled:pointer-events-none disabled:opacity-35">
-                  <ChevronDown aria-hidden className="h-3.5 w-3.5" />
-                </button>
-              </span>
-            </div>
+      <div className="mt-[18px] space-y-3" data-guia="por-pagar.vista-pasos">
+        {pasos.map((p, i) => (
+          <div key={i} className={`card-cayla anim-revelar border-l-2 px-4 py-3 text-[13.5px] text-tinta ${BORDE[p.tono]}`} style={{ animationDelay: `${180 + i * 80}ms` }}>
+            <b className="font-semibold">{p.fuerte}</b>
+            {p.resto}
           </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+        ))}
+      </div>
+
+      {/* Pagos de este comprobante (como en el spike): cuándo, con qué medio y cuánto. Sin pagos, se dice. */}
+      {pagos && (
+        <section className="mt-[22px]">
+          <TituloGrupo className="mb-1">Pagos de este comprobante</TituloGrupo>
+          {pagos.length === 0 ? (
+            <Vacio tamano="chico" alinear="izquierda" className="border-t border-tinta/10 px-0" icono={<Banknote />}>Sin pagos todavía.</Vacio>
+          ) : (
+            <ul>
+              {pagos.map((p, i) => (
+                <li key={p.id} className="anim-revelar grid grid-cols-[3.4rem_1fr_auto] items-baseline gap-3 border-t border-tinta/10 py-2.5 text-[13px]" style={{ animationDelay: `${260 + i * 60}ms` }}>
+                  <span className="tabular-nums text-tinta/55">{diaMes(p.fecha)}</span>
+                  <span>
+                    {ETIQUETA_METODO_PAGO[p.metodo] ?? p.metodo}
+                    {p.referencia && <span className="block text-xs text-tinta/55">{p.referencia}</span>}
+                  </span>
+                  <b className="font-medium tabular-nums">{soles(p.monto)}</b>
+                  {p.noDeducible && <MarcaNoDeducible nd={p.noDeducible} montoDeLaFila={p.monto} className="col-span-full" />}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+    </Cajon>
   );
 }
 

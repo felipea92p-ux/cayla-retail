@@ -43,9 +43,8 @@ El censo de control del 16 (Admin, `terminal-ventas` e `integrante`) encontró d
 `aviso` terminaba en `\b` después de `bg-ambar/[0.07]`, y tras un «]» no hay frontera de palabra, así que **ningún fondo entre corchetes
 coincidía**: 31 recuadros se habían escapado de la ronda 5. **Lección: una firma nueva se prueba contra el código de ANTES de migrar**
 (que atrape lo viejo), no solo contra el de después (que dé 0). Se migraron 45 archivos y se reforzaron cuatro firmas. La ronda 17 (el
-mes, el cajón lateral, el paso de cantidad y el anterior/siguiente) está armada en [rondas/17](rondas/17/README.md) y espera a Felipe; sus
-dos excepciones temporales en `familias.mjs` (`SelectorMesFacturacion.tsx` en `accion.volver` y `enlace`, `GuiaImpresion.tsx` en
-`enlace`) se sacan al migrarla.
+mes, el cajón lateral, el paso de cantidad y el anterior/siguiente) se decidió (P1 en las cuatro) y se migró el mismo día: ver
+[rondas/17](rondas/17/README.md). Con ella, todas las familias del censo tienen su pieza y su candado.
 
 ## Ronda 16 (2026-10-15): el cierre — el marco, las píldoras y los cierres del mes
 

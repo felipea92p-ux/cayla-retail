@@ -93,7 +93,9 @@ describe("los anillos propios con transparencia (rojo o tinta) solo bajan", () =
   // 30 → 29 el 2026-10-16: el consejo de la red de Nueva orden dejó su botón «Usar la sugerencia» dibujado a mano y pasó a <Boton> (ADR-0400, Formidable).
   // 29 → 28 el 2026-10-17 (control de /unificar): el aviso de Comprobantes («más de 1 hora sin llegar a SUNAT») era un enlace con su
   // anillo propio y pasó a <Aviso>.
-  const PENDIENTES_HOY = 28;
+  // 28 → 26 el 2026-10-17 (ADR-0358, ronda 17): la × de la orden de Producción pasó a <Cajon> y un paso de cantidad a mano, a
+  // <PasoCantidad>, los dos con el anillo del sistema.
+  const PENDIENTES_HOY = 26;
   it("la cuenta de afuera de components/ui es exacta y solo baja", () => {
     const total = porArchivo.reduce((s, a) => s + a.n, 0);
     expect(total).toBe(PENDIENTES_HOY);

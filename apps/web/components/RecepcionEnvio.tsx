@@ -83,6 +83,7 @@ import type { FilaConCategoria } from "@/lib/categoria-de-prenda";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
 import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 // Recibir mercadería POR ENVÍO (ADR-0113). Lo que llega a la puerta es un envío —una agencia, una guía,
 // varios bultos— y puede traer comprobantes de VARIOS proveedores y prendas que ningún comprobante lista. Todo se
@@ -149,6 +150,9 @@ type ConteoDelEnvio = {
 // lateral abierto una ventana de 1440 px deja al panel en ~700 px, y ahí la tabla de 6 columnas aprieta el nombre (ADR-0128).
 // Panel angosto: cada línea es una tarjeta con su − / +; ancho: la tabla de siempre.
 const PLANTILLA_LINEA = "@[46rem]:grid-cols-[1fr_4rem_6.5rem_3rem_9rem] @[60rem]:grid-cols-[1fr_8.5rem_4rem_7rem_3rem_10rem]";
+
+/** La marca de los campos «Llegó»: Enter salta al siguiente campo marcado (y, tras el último, al escáner). */
+const MARCA_CONTEO = { "data-conteo": true };
 
 const CHIP_ESTADO: Record<EstadoLinea, TonoChip> = { sin_contar: "neutro", completa: "verde", faltan: "ambar", excede: "rojo" };
 const ETIQUETA_ESTADO: Record<EstadoLinea, (faltan: number) => string> = {
@@ -855,51 +859,36 @@ export function RecepcionEnvio({
             <span className="hidden truncate text-[12.5px] tabular-nums text-tinta/65 @[60rem]:block">{l.sku ?? "—"}</span>
             <span className="hidden text-center text-sm tabular-nums text-tinta/65 @[46rem]:block">{l.pendiente}</span>
             <span className="text-left @[46rem]:text-center">
-              <span
+              <PasoCantidad
                 key={destello?.id === l.id ? destello.n : 0}
-                className={`${destello?.id === l.id ? "anim-pop" : ""} inline-flex items-center overflow-hidden rounded-[10px] border transition-colors focus-within:border-rojo ${
-                  excede ? "border-rojo bg-rojo/[0.08]" : completa ? "border-verde bg-verde/[0.09]" : estado === "faltan" ? "border-ambar bg-ambar/10" : "border-tinta/25"
-                }`}
-              >
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  aria-label="Una unidad menos"
-                  onClick={() => fijar(l.id, l.varianteId!, Math.max(0, (llego ?? 0) - 1))}
-                  className="grid h-[42px] w-10 place-items-center overflow-hidden text-lg text-tinta/65 transition-[width,color] duration-200 hover:text-rojo @[46rem]:h-9 @[46rem]:w-0 @[46rem]:group-focus-within:w-6 @[46rem]:group-hover:w-6"
-                >
-                  −
-                </button>
-                <input /* unificar-fijo: el contador entre − y + que tiñe su borde según lo que llegó; otra función, no un campo */
-                  type="number"
-                  min={0}
-                  max={l.pendiente}
-                  data-conteo
-                  aria-label={`Llegó de ${l.referencia} ${[l.talla, l.color].filter(Boolean).join(" ")}`}
-                  value={reparto[l.id]?.[l.varianteId] ?? ""}
-                  placeholder="—"
-                  onChange={(e) => fijar(l.id, l.varianteId!, e.target.value === "" ? null : Number(e.target.value))}
-                  onFocus={(e) => e.target.select()}
-                  onKeyDown={(e) => {
+                className={destello?.id === l.id ? "anim-pop" : ""}
+                // El borde y el número dicen lo que llegó: se pasó, está completo, falta.
+                tono={excede ? "error" : completa ? "exito" : estado === "faltan" ? "atencion" : undefined}
+                sinTab
+                // En tabla (panel ancho) el − / + se esconde hasta pasar el mouse por la fila o enfocarla; en tarjeta se ve siempre.
+                claseBotones="overflow-hidden transition-[width,background-color,color,transform] duration-200 ease-cayla @[46rem]:w-0 @[46rem]:group-focus-within:w-6 @[46rem]:group-hover:w-6"
+                menos={{ onClick: () => fijar(l.id, l.varianteId!, Math.max(0, (llego ?? 0) - 1)), etiqueta: "Una unidad menos" }}
+                mas={{ onClick: () => fijar(l.id, l.varianteId!, (llego ?? 0) + 1), etiqueta: "Una unidad más" }}
+                campo={{
+                  type: "number",
+                  min: 0,
+                  max: l.pendiente,
+                  ...MARCA_CONTEO,
+                  "aria-label": `Llegó de ${l.referencia} ${[l.talla, l.color].filter(Boolean).join(" ")}`,
+                  value: reparto[l.id]?.[l.varianteId] ?? "",
+                  placeholder: "—",
+                  onChange: (e) => fijar(l.id, l.varianteId!, e.target.value === "" ? null : Number(e.target.value)),
+                  onFocus: (e) => e.target.select(),
+                  onKeyDown: (e) => {
                     if (e.key !== "Enter") return;
                     e.preventDefault();
                     const todos = [...document.querySelectorAll<HTMLInputElement>("input[data-conteo]")].filter((i) => i.offsetParent);
                     const siguiente = todos[todos.indexOf(e.currentTarget) + 1];
                     if (siguiente) siguiente.focus();
                     else escaneoRef.current?.focus();
-                  }}
-                  className={`h-[42px] w-14 bg-transparent text-center text-[15px] tabular-nums outline-none [appearance:textfield] @[46rem]:h-9 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${excede ? "text-rojo" : completa ? "text-verde-profundo" : estado === "faltan" ? "text-ambar-profundo" : "text-tinta/45"}`}
-                />
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  aria-label="Una unidad más"
-                  onClick={() => fijar(l.id, l.varianteId!, (llego ?? 0) + 1)}
-                  className="grid h-[42px] w-10 place-items-center overflow-hidden text-lg text-tinta/65 transition-[width,color] duration-200 hover:text-rojo @[46rem]:h-9 @[46rem]:w-0 @[46rem]:group-focus-within:w-6 @[46rem]:group-hover:w-6"
-                >
-                  +
-                </button>
-              </span>
+                  },
+                }}
+              />
             </span>
             <span className={`hidden text-center text-sm tabular-nums @[46rem]:block ${dif === null || dif === 0 ? "text-tinta/45" : dif < 0 ? "font-semibold text-ambar-profundo" : "font-semibold text-rojo"}`}>
               {dif === null ? "—" : dif === 0 ? "0" : dif < 0 ? `−${-dif}` : `+${dif}`}

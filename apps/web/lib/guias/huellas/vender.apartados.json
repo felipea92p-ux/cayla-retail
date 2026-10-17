@@ -2,7 +2,7 @@
   "guia": "vender.apartados",
   "ruta": "/vender/apartados",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 156,
+  "total": 152,
   "controles": {
     "components/BilleteRapido.tsx": [
       "button «{`Sumar S/${valor}»"
@@ -48,8 +48,6 @@
       "button «Pedir a»",
       "button «→() => agregar(id)»",
       "button «Quitar»",
-      "button «Una menos»",
-      "button «Una más»",
       "input «Viene el sábado, quiere probársela otra vez…»",
       "button «Apartar»",
       "Volver «(sin nombre)»",
@@ -131,8 +129,6 @@
       "Boton «→() => abonar(cerrar)»",
       "button «{h.talla ?? \"—\"}»",
       "button «{fuera ? \"Dejar\" : \"Quitar\"}»",
-      "button «Una menos»",
-      "button «Una más»",
       "button «No sumar»",
       "button «{p.referencia}»",
       "ComboResponsable «{responsable}» #4",

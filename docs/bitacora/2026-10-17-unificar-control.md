@@ -9,3 +9,14 @@ Por qué así: «una función, una pieza» (ADR-0358) solo vale si el candado ve
 abren, así que la deuda escondida se confirma en el código y la firma se prueba contra la versión vieja de cada archivo.
 Felipe se lleva: la deuda de todas las familias decididas otra vez en 0 (ahora de verdad) y una página para elegir las cuatro que faltan.
 La base local está atrás de `main` (`fn_sobrantes_por_revisar` y `familias.entra_a_motores` no están): Editar producto se cae en local.
+
+## 2026-10-17 (/unificar: la ronda 17 decidida y migrada)
+Qué hice: Felipe eligió P1 en las cuatro y las migré el mismo día: la guía de impresión pasa de paso con la flecha de `<Volver>` y
+«Siguiente» con su ícono (la firma nueva encontró además la paginación a mano de Clientes, que pasó a `<Paginas>`); Comprobantes elige el
+mes con «‹ Octubre 2026 ›» (`<SelectorMesEnUrl>`); los siete cajones son `<Cajon>`, la banda de Compras en todos; y los 19 pasos de
+cantidad, `<PasoCantidad>`, la caja del campo con − y + adentro (dos agentes en paralelo con lotes cerrados, revisados después).
+Por qué así: «una función, una pieza» (ADR-0358). Las piezas no deciden nada: cada pantalla les pasa qué hace cada botón, así migrar no
+cambia el comportamiento. Al verla en la tienda, el «−» apagado en 1 apagaba la caja entera (una regla del campo): la pieza la corrige.
+Felipe se lleva: las cuatro con su candado y deuda 0; quedan aparte las teclas grandes de contar, el paso a paso táctil de Existencias y
+el pase de Traslados. En Conteo cada fila crece unos 10 px (el control pasa de 26 a 36 px).
+

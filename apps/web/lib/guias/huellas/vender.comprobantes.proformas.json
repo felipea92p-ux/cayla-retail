@@ -2,7 +2,7 @@
   "guia": "vender.comprobantes.proformas",
   "ruta": "/vender/comprobantes/proformas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 29,
+  "total": 27,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
@@ -18,8 +18,6 @@
     "components/NuevaProformaModal.tsx": [
       "CampoSelect «Tienda»",
       "button «{p.referencia}»",
-      "button «{`Una ${f.prenda.referencia}»",
-      "button «{`Una ${f.prenda.referencia}» #2",
       "input «{`Descuento en % de ${f.prenda.referencia}»",
       "Desplegable «{f.motivo}»",
       "input «Detalle del motivo»",

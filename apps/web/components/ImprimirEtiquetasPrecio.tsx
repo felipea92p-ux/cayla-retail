@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { Minus, Plus, RotateCcw, Tags, Trash2 } from "lucide-react";
+import { RotateCcw, Tags, Trash2 } from "lucide-react";
 import { Volver } from "@/components/ui/Volver";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Encabezado, Tabla, TABLA, type Columna } from "@/components/ui/Tabla";
 import { CapsulaColor, VARIOS_COLORES } from "@/components/ui/MuestraColor";
 import { Aviso } from "@/components/ui/Aviso";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { Vacio } from "@/components/ui/Vacio";
 import { avisar } from "@/components/ui/Avisos";
 import { EtiquetaPrecio } from "@/components/EtiquetaPrecio";
@@ -465,25 +466,20 @@ function FilaEtiqueta({
             >
               de {e.cantidad}
             </button>
-            <span className="etq-paso">
-              <button type="button" aria-label={`Una etiqueta menos de ${nombre}`} disabled={numero <= 0} onClick={() => onTexto(String(numero - 1))}>
-                <Minus aria-hidden />
-              </button>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                max={MAX_POR_PRENDA}
-                value={texto}
-                onChange={(ev) => onTexto(ev.target.value)}
-                onFocus={(ev) => ev.currentTarget.select()}
-                aria-label={`Etiquetas de ${nombre}`}
-                className="tabular-nums"
-              />
-              <button type="button" aria-label={`Una etiqueta más de ${nombre}`} disabled={numero >= MAX_POR_PRENDA} onClick={() => onTexto(String(numero + 1))}>
-                <Plus aria-hidden />
-              </button>
-            </span>
+            <PasoCantidad
+              menos={{ onClick: () => onTexto(String(numero - 1)), deshabilitado: numero <= 0, etiqueta: `Una etiqueta menos de ${nombre}` }}
+              mas={{ onClick: () => onTexto(String(numero + 1)), deshabilitado: numero >= MAX_POR_PRENDA, etiqueta: `Una etiqueta más de ${nombre}` }}
+              campo={{
+                type: "number",
+                inputMode: "numeric",
+                min: 0,
+                max: MAX_POR_PRENDA,
+                value: texto,
+                onChange: (ev) => onTexto(ev.target.value),
+                onFocus: (ev) => ev.currentTarget.select(),
+                "aria-label": `Etiquetas de ${nombre}`,
+              }}
+            />
             <button type="button" className="etq-tacho" aria-label={`Quitar ${nombre}`} title="Quitar esta fila" onClick={(ev) => onQuitar(ev.timeStamp)}>
               <Trash2 aria-hidden />
             </button>

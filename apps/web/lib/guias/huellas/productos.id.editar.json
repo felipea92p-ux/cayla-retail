@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 142,
+  "total": 134,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{volverA}»"
@@ -56,11 +56,6 @@
     "components/SelectorColor.tsx": [
       "input «Elegir color con el selector»",
       "CampoTexto «{etiqueta}»"
-    ],
-    "components/SelectorDeAjuste.tsx": [
-      "button «{`Una menos de la talla ${f.talla}»",
-      "input «{`${etiquetaControl}»",
-      "button «{`Una más de la talla ${f.talla}»"
     ],
     "components/alta-producto/AvisoParecidos.tsx": [
       "Link «Abrir»",
@@ -155,9 +150,6 @@
       "button «{b.corregir.titulo}»",
       "button «{b.quitar.titulo}»",
       "button «{h.puede ? `Agregar ${donde}»",
-      "button «{`Restar a ${etiqueta}»",
-      "input «{`Cuántas hay de ${etiqueta}»",
-      "button «{bloqueo ? `Sumar a ${etiqueta}»",
       "button «{`${nombreElegida}»",
       "input «{`${campo === \"precio\" ? \"Precio\" : \"Costo\"}»",
       "CampoTexto «{<ConMarca estado={notaSuficiente(stock.motivo, stock.nota) ? \"hecho\" : \"falta\"}»",
@@ -167,8 +159,6 @@
       "button «{propia ? \"Cambiar foto\" : \"+ Agregar foto\"}»",
       "input «(sin nombre)»",
       "button «{n.color(c)}»",
-      "button «{`Una menos de ${nombre}»",
-      "button «{bloqueo ? `Una más de ${nombre}»",
       "button «editar.falta»"
     ],
     "components/ficha-producto/PrecioSedeModal.tsx": [

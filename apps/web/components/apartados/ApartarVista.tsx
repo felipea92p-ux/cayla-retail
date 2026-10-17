@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Volver } from "@/components/ui/Volver";
 import { BotonBuscar } from "@/components/ui/BotonBuscar";
 import { BarraAvance } from "@/components/ui/BarraAvance";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Bookmark, Camera, Check, FileText, Minus, Plus, Receipt, ScanBarcode, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
+import { ArrowRight, Bookmark, Camera, Check, FileText, Receipt, ScanBarcode, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -812,15 +813,12 @@ export function ApartarVista({
                           <span className="text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Cantidad</span>
                           <span className="text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Precio</span>
                           <span className="text-right text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Importe</span>
-                          <span className="inline-flex h-9 items-center rounded-lg border border-sand">
-                            <button type="button" aria-label="Una menos" onClick={() => setLineas((ls) => ls.flatMap((x, j) => (j !== i ? [x] : x.cantidad > 1 ? [{ ...x, cantidad: x.cantidad - 1 }] : [])))} className="grid h-9 w-8 place-items-center text-tinta/60">
-                              <Minus className="h-3.5 w-3.5" aria-hidden />
-                            </button>
-                            <span className="min-w-6 text-center text-sm font-semibold tabular-nums">{l.cantidad}</span>
-                            <button type="button" aria-label="Una más" onClick={() => agregar(l.varianteId)} className="grid h-9 w-8 place-items-center text-tinta/60">
-                              <Plus className="h-3.5 w-3.5" aria-hidden />
-                            </button>
-                          </span>
+                          <PasoCantidad
+                            menos={{ onClick: () => setLineas((ls) => ls.flatMap((x, j) => (j !== i ? [x] : x.cantidad > 1 ? [{ ...x, cantidad: x.cantidad - 1 }] : []))), etiqueta: "Una menos" }}
+                            mas={{ onClick: () => agregar(l.varianteId), etiqueta: "Una más" }}
+                          >
+                            {l.cantidad}
+                          </PasoCantidad>
                           <span className="text-sm font-semibold tabular-nums">{money(precioFinal(pr))}</span>
                           <span className="text-right text-sm font-semibold tabular-nums">{money(totalDeLineas([{ cantidad: l.cantidad, precioUnitario: pr.precio, descuentoUnitario: descuentoCampana(pr) }]))}</span>
                         </div>

@@ -5,7 +5,7 @@ import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, X } from "lucide-react";
+import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { debeEncolarse, traducirError } from "@/lib/error-escritura";
 import { leerCostosAtipicos, type CostoAtipico } from "@/lib/costo-atipico-reglas";
@@ -55,6 +55,7 @@ import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
 import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 export type ProveedorLlegada = { id: string; nombre: string; ruc: string | null; marcas: string[] };
 
@@ -543,23 +544,20 @@ export function LlegoMercaderia({
                           {detalle(p)} · {p.sku}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1" role="group" aria-label={`Cantidad de ${p.referencia}`}>
-                        <button type="button" aria-label="Una menos" onClick={() => cambiarLineas(sumarPrenda(lineas, l.varianteId, -1))} className="btn-cayla btn-sutil h-8 w-8 p-0">
-                          <Minus aria-hidden className="h-3.5 w-3.5" />
-                        </button>
-                        <input
-                          type="number"
-                          min={0}
-                          inputMode="numeric"
-                          aria-label="Cantidad"
-                          value={l.cantidad}
-                          onChange={(e) => cambiarLineas(fijarCantidad(lineas, l.varianteId, Number(e.target.value)))}
-                          className="caja-campo-input h-8 min-h-8 w-14 px-1 text-center tabular-nums"
-                        />
-                        <button type="button" aria-label="Una más" onClick={() => cambiarLineas(sumarPrenda(lineas, l.varianteId, 1))} className="btn-cayla btn-sutil h-8 w-8 p-0">
-                          <Plus aria-hidden className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                      <PasoCantidad
+                        role="group"
+                        aria-label={`Cantidad de ${p.referencia}`}
+                        menos={{ onClick: () => cambiarLineas(sumarPrenda(lineas, l.varianteId, -1)), etiqueta: "Una menos" }}
+                        mas={{ onClick: () => cambiarLineas(sumarPrenda(lineas, l.varianteId, 1)), etiqueta: "Una más" }}
+                        campo={{
+                          type: "number",
+                          min: 0,
+                          inputMode: "numeric",
+                          "aria-label": "Cantidad",
+                          value: l.cantidad,
+                          onChange: (e) => cambiarLineas(fijarCantidad(lineas, l.varianteId, Number(e.target.value))),
+                        }}
+                      />
                       {verMontos && (
                         <input
                           {...atributosMontoTexto(l.costo)}

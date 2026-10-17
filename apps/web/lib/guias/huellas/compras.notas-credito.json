@@ -2,7 +2,7 @@
   "guia": "compras.notas-credito",
   "ruta": "/compras/notas-credito",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 53,
+  "total": 50,
   "controles": {
     "components/NotaCreditoDetalle.tsx": [
       "BotonCopiar «el mensaje para el proveedor»",
@@ -10,13 +10,10 @@
       "Boton «Llegó su nota de crédito»"
     ],
     "components/NotaCreditoVistaRapida.tsx": [
-      "button «Cerrar vista rápida»",
       "button «{f.bloqueada ? \"Aún no se puede\" : \"Registrar nota\"}»",
       "button «Llegó su nota de crédito»",
       "button «Ver detalle»",
-      "Link «Comprobante»",
-      "button «Nota anterior»",
-      "button «Nota siguiente»"
+      "Link «Comprobante»"
     ],
     "components/NotaDelProveedorModal.tsx": [
       "Casilla «{`${d.serieNumero ?? \"\"}»",
