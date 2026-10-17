@@ -63,6 +63,7 @@
     "pruebas:balance": "node scripts/pruebas/balance.mjs",
     "pruebas:perdidas": "node scripts/pruebas/perdidas.mjs",
     "pruebas:resumen-finanzas": "node scripts/pruebas/resumen_finanzas.mjs",
+    "pruebas:finanzas-alcance": "node scripts/pruebas/finanzas_alcance_coherente.mjs",
     "pruebas:finanzas-arranque": "node scripts/pruebas/finanzas_arranque.mjs",
     "pruebas:costo-estimado-venta-sin-prenda": "node scripts/pruebas/costo_estimado_venta_sin_prenda.mjs",
     "pruebas:finanzas-confianza": "node scripts/pruebas/finanzas_confianza.mjs",

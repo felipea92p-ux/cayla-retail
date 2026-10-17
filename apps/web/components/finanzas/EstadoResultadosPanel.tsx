@@ -50,7 +50,7 @@ type Origen = { concepto: ConceptoER; columna: FilaER };
 export function EstadoResultadosPanel({
   filas,
   anteriores,
-  esLider,
+  veTodo,
   sedeActual,
   verParam,
   mes,
@@ -61,7 +61,7 @@ export function EstadoResultadosPanel({
 }: {
   filas: FilaER[];
   anteriores: FilaER[] | null;
-  esLider: boolean;
+  veTodo: boolean;
   sedeActual: string | null;
   verParam: string | undefined;
   mes: string;
@@ -75,7 +75,7 @@ export function EstadoResultadosPanel({
   const params = useSearchParams();
   const [origen, setOrigen] = useState<Origen | null>(null);
 
-  const ver = leerVerER(verParam, filas, esLider, sedeActual);
+  const ver = leerVerER(verParam, filas, veTodo, sedeActual);
   const columnas = useMemo(() => columnasER(filas, ver), [filas, ver]);
   const conceptos = useMemo(() => conceptosER(columnas), [columnas]);
   const previas = useMemo(() => new Map((anteriores ?? []).map((f) => [claveUnidad(f), f])), [anteriores]);
@@ -114,7 +114,7 @@ export function EstadoResultadosPanel({
         bajada="Salen solos del diario que arma el sistema con cada venta, compra, gasto y movimiento de caja (ADR-0198). Nadie escribe un asiento."
         acciones={
           <>
-            {esLider ? (
+            {veTodo ? (
               <label className="fin-ver" data-guia="fin-ver.combo">
                 <span className="label-cayla text-[11px] text-taupe">Ver</span>
                 <SelectFin
@@ -237,7 +237,7 @@ export function EstadoResultadosPanel({
         </Superficie>
       </div>
 
-      {esLider ? (
+      {veTodo ? (
         <div {...entra(2, "fin-dos-col")} data-guia="fin-resultados.notas">
           <div className="nota-cayla">
             <b>El Taller no le vende a las tiendas</b> (D-31): lo que cuesta la tela, los avíos y la maquila de cada prenda entra en el

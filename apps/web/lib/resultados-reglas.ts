@@ -86,11 +86,12 @@ export function nombreCorto(f: Pick<FilaER, "nombre" | "unidad">): string {
 // ---- «Ver»: qué se mira (la cabecera dice dónde se trabaja) --------------------------------------------------------------
 
 /**
- * `?ver=` → qué columnas. El líder: una ubicación (por defecto, la sede donde trabaja), «todas» o «empresa»; siempre con
- * CAYLA al lado. Quien tiene el módulo sin ser líder ve solo su tienda: la base ya no le manda otra cosa.
+ * `?ver=` → qué columnas. Quien ve todo (`veFinanzasDeTodo`: el líder, o un rol con Configuración, Cierre de mes o CAYLA Global): una
+ * ubicación (por defecto, la sede donde trabaja), «todas» o «empresa»; siempre con CAYLA al lado. Quien tiene solo «Reportes
+ * financieros» ve solo su tienda: la base ya no le manda otra cosa.
  */
-export function leerVerER(param: string | undefined, filas: readonly FilaER[], esLider: boolean, sedeActual: string | null): string {
-  if (!esLider) return filas.find((f) => f.ubicacionId)?.ubicacionId ?? "todas";
+export function leerVerER(param: string | undefined, filas: readonly FilaER[], veTodo: boolean, sedeActual: string | null): string {
+  if (!veTodo) return filas.find((f) => f.ubicacionId)?.ubicacionId ?? "todas";
   if (param === "todas" || param === "empresa") return param;
   const candidata = param ?? sedeActual;
   if (candidata && filas.some((f) => f.ubicacionId === candidata)) return candidata;

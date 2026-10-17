@@ -10,13 +10,13 @@
 
 import type { Guia, PasoGuia } from "../tipos";
 
-/** «Ver»: el mismo combo en casi todas las pantallas de Finanzas (solo el líder elige; los demás ven su tienda). */
+/** «Ver»: el mismo combo en casi todas las pantallas de Finanzas (lo elige quien ve todas las tiendas —el líder y, donde la pantalla lo permite, quien tiene Configuración, Cierre de mes o CAYLA Global—; los demás ven su tienda). */
 const VER: PasoGuia = {
   id: "ver",
   ancla: "fin-ver.combo",
   opcional: true,
   titulo: "Qué tienda mirar",
-  texto: "Eliges si ves todas las tiendas juntas, una sola o lo de la empresa (lo que no es de ninguna tienda, como el contador). Lo elige el líder; si no lo eres, ves tu tienda.",
+  texto: "Eliges si ves todas las tiendas juntas, una sola o lo de la empresa (lo que no es de ninguna tienda, como el contador). Lo elige quien ve todas las tiendas (el líder y, en algunas pantallas, quien tiene Configuración o Cierre de mes); si no, ves tu tienda.",
 };
 
 /** Las pestañas de Reportes: cada una es otra pantalla (se explican, no se tocan). */

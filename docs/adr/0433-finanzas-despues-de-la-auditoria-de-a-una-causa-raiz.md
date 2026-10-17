@@ -142,3 +142,40 @@ que no sea el día 15 (hoy es un punto medio); se vuelve a ver un mes cerrado…
 migraciones sobre la proyección y el flujo incluidas) pasan; `lib/flujo-caja-reglas.test.ts` y `lib/dinero-pulso-reglas.test.ts` (los literales viejos son
 «base vieja»: no dicen nada); la guía de Cuentas y dinero y la del Flujo dicen «provisional» y sus huellas se aceptaron tras revisarlas. vitest 160 297, `tsc`
 y Knip limpios. **No verificado en el navegador:** la base local compartida no tiene la migración (probé la función y la regla pura); queda para el pase final.
+
+## Actividad 8 · Una sola regla de «quién ve todas las tiendas y la empresa» (G16)
+
+**El problema.** Dos funciones hermanas que leen el MISMO diario decidían distinto quién ve «todo». ADR-0253 (Felipe, 2026-09-28) dijo que quien tiene Configuración,
+Cierre de mes (y, desde ADR-0275, CAYLA Global) ve las finanzas «todo, como el líder», y la migración `20260928220000` lo aplicó a `fn_asientos`,
+`fn_diario_ubicaciones`, `fn_campanas_reporte`, `fn_presupuesto_vs_real`… pero dejó con `fn_es_lider()` a `fn_diario`, `fn_estado_resultados`, `fn_balance_por_tienda`,
+`fn_balance_general` y `fn_gastos_fuera_de_lo_normal`. Quien cierra el mes congela el diario ENTERO (la empresa incluida) pero, al abrir el mes cerrado, `fn_diario` le
+deja fuera las líneas de la empresa (`null = any(…)` es nulo), el Estado de resultados no le muestra «De la empresa» ni el consolidado, y el Balance por tienda mide la
+utilidad de UNA sola tienda (le pasa `v_ubics[1]`). Números distintos para el mismo mes según quién mira, sin ningún error. La web agravaba lo mismo: preguntaba
+`persona.rol === "lider"`, otra regla. Hoy no se nota (el rol «Producción» tiene Cierre de mes, 1 persona activa, y ningún mes está cerrado); se nota en cuanto se cierre el
+primero, y la actividad 9 —que hace que el Estado de resultados lea el diario congelado— lo necesita resuelto.
+
+DECIDÍ (cumple una decisión que Felipe ya tomó en ADR-0253; no es una decisión nueva):
+- **Un solo predicado, `fn_ve_finanzas_de_todo()`, en las cinco funciones** (`20261017010000`, reemplazos anclados sobre la definición viva; si el ancla no aparece exactamente
+  una vez, la migración aborta; idempotente). Para el LÍDER nada cambia. Para un rol con Configuración, Cierre de mes o CAYLA Global, el Estado de resultados trae las mismas
+  unidades que el líder (tiendas, «De la empresa», consolidado), el diario congelado trae las mismas líneas y el Balance por tienda mide cada tienda igual.
+- **Un encargado con solo «Reportes financieros» sigue viendo SOLO su tienda** (`fn_diario_ubicaciones()` le devuelve su sede) y recibe 42501 al pedir otra, en cada una de
+  las funciones (casos C de la prueba).
+- **En la web, la misma pregunta una sola vez:** `veFinanzasDeTodo(rol, modulos)` (`lib/modulos.ts`) espeja la función de la base y una prueba la cruza con la ÚLTIMA migración que
+  la define (`lib/modulos.test.ts`: si alguien le suma un módulo a la base y no a la web, falla). El Estado de resultados la usa en vez de `rol === "lider"`.
+- **El candado es estructural, no una lista** (`scripts/pruebas/finanzas_alcance_coherente.mjs`, caso A1): ninguna función que reparta el alcance con `fn_diario_ubicaciones()`
+  puede preguntar `fn_es_lider()` por su cuenta. Así lo encontró: `fn_gastos_fuera_de_lo_normal` era una quinta hermana que el informe no listaba.
+DESCARTÉ: arreglar solo las tres funciones del informe (la quinta seguía igual y una futura hermana volvería a nacer con `fn_es_lider()`); un predicado nuevo `fn_alcance_finanzas()` (ya
+existe uno con el significado exacto; otro nombre es otra cosa que mantener); llevar también a `fn_resumen_finanzas` y `fn_por_pagar_consolidado` (no leen el diario ni usan
+`fn_diario_ubicaciones()`; es otra decisión de Felipe y queda en el backlog).
+EFECTO QUE HAY QUE NOMBRAR (lo midió la revisión adversarial): `fn_presupuesto_vs_real` y `fn_presupuesto_propuesta` leen `fn_estado_resultados`; para quien ve todo, «Presupuesto vs real» deja de
+mostrar en cero el gasto real de la empresa y de CAYLA, y «Proponer desde el promedio» recibe la línea de la empresa (caso B5b). Medido en producción (solo lectura, 2026-10-16): un solo rol tiene
+alguno de los tres módulos —Cierre de mes—, con 1 persona y 0 terminales.
+NO CAMBIA, a propósito: `fn_exigir_lider_balance()` —«el Balance de CAYLA entera y sus saldos de arranque los ve el líder»— sigue siendo solo del líder (no entró en ADR-0253); por eso la
+página del Balance y las de Presupuesto y Campañas conservan su `esLider` (en las dos últimas mezcla el alcance con el enlace a Configuración, que exige ese módulo; separar las dos
+cosas queda para el seguimiento).
+SE ROMPE SI: una migración futura vuelve a crear una de estas funciones copiando su texto de un archivo VIEJO del repo (le devuelve `fn_es_lider()`; el caso A1 y los B/E lo atrapan); se
+agrega un módulo a `fn_ve_finanzas_de_todo()` sin sumarlo a `MODULOS_QUE_VEN_TODO_FINANZAS` (lo atrapa la prueba cruzada).
+**Verificado.** `pnpm pruebas:finanzas-alcance`: 24 verificaciones, 7 fallan sin la migración (A1, A2, B2, B3, B4 y los dos del mes CERRADO, E1 y E2: el síntoma real del informe) y las 24
+pasan con ella; las 13 suites vecinas (balance, cierre de mes, estado de resultados, presupuesto, resumen, roles…) dan lo mismo con y sin la migración (3 fallos que ya existían en la base local
+y no son de este cambio: `cierre_mes` G, `redondeo_efectivo` y `roles_cobertura_modulos`); vitest 160 826 pruebas, `tsc`, ESLint y Knip limpios; prueba de mutación de la web (quitar un módulo de
+`MODULOS_QUE_VEN_TODO_FINANZAS` rompe la prueba cruzada). **No verificado en el navegador:** el rol «Producción» no tiene cuenta de prueba local; queda para el pase final.
