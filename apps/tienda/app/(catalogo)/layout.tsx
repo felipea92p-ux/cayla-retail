@@ -1,27 +1,29 @@
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Anuncio } from "@/components/Anuncio";
 import { ProveedorGuardados } from "@/components/club/Guardados";
 import { EsqueletoDePagina } from "@/components/EsqueletoDePagina";
+import { SegunSesion } from "@/components/cuenta/SegunSesion";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
 import { anuncios } from "@/lib/portada";
 import { leerSesion } from "@/lib/sesion-servidor";
 
-// El marco de las páginas con cuenta (ADR-0408, actividades 3 a 5): el Inicio, el catálogo y la ficha. Sin cuenta, nada de esto se ve
-// (maqueta v4): el proxy ya manda a «Entrar» a quien no trae la cookie, y aquí se vuelve a preguntar quién es contra el proyecto de
-// clientes, como en «Mi cuenta». La franja lee la campaña con la misma lectura de la portada; si la base no responde, salen las frases
-// fijas. La cabecera, la franja «Ver lo que hay en» y el pie los pone cada página (`MarcoCatalogo`): dependen de la tienda elegida.
+// El marco del catálogo (ADR-0408, actividades 3 a 5): el Inicio, el catálogo, los looks y la ficha. SE VE SIN CUENTA (Felipe 2026-10-17: «no sea
+// obligatorio iniciar sesión para ver los productos que se venden, ni los precios ni el stock»): la cuenta se pide cuando la persona quiere
+// separar o guardar algo suyo, no antes. Lo que es de la persona (sus favoritos, su nombre) se lee solo si trae sesión, validada contra el
+// proyecto de clientes, como en «Mi cuenta». La franja lee la campaña con la misma lectura de la portada; si la base no responde, salen las
+// frases fijas. La cabecera, la franja «Ver lo que hay en» y el pie los pone cada página (`MarcoCatalogo`): dependen de la tienda elegida.
 // Lo que la cuenta guardó con el corazón se lee aquí una vez por petición y se reparte a TODA tarjeta (`ProveedorGuardados`): ninguna
-// página tiene que pasárselo. Si la base no lo da, los corazones salen vacíos (guardar otra vez no duplica nada).
+// página tiene que pasárselo. Sin cuenta, o si la base no lo da, los corazones salen vacíos (tocar uno pide entrar).
 export default async function CatalogoLayout({ children }: { children: React.ReactNode }) {
-  // La franja es la misma para todos (la campaña es compartida): sale en la cáscara armada por adelantado. Lo que mira la cuenta (quién
-  // es, qué guardó) se lee por detrás, dentro de su <Suspense>, y mientras tanto se ve la cabecera con la página que brilla (ADR-0432).
+  // La campaña es la misma para todos: sale en la cáscara armada por adelantado. Solo la última frase de la franja cambia con la cuenta
+  // («Crea tu cuenta…» o «Tus beneficios están en Mi perfil»). Lo que mira la cuenta (quién es, qué guardó) se lee por detrás, dentro de su
+  // <Suspense>, y mientras tanto se ve la cabecera con la página que brilla (ADR-0432).
   const { campana } = await leerPortada();
   return (
     <div className="tienda">
-      <Anuncio frases={anuncios(campana, true)} />
+      <SegunSesion visitante={<Anuncio frases={anuncios(campana, false)} />} conCuenta={<Anuncio frases={anuncios(campana, true)} />} />
       <Suspense fallback={<EsqueletoDePagina campana={campana} />}>
         <ConSesion>{children}</ConSesion>
       </Suspense>
@@ -31,7 +33,6 @@ export default async function CatalogoLayout({ children }: { children: React.Rea
 
 async function ConSesion({ children }: { children: React.ReactNode }) {
   const sesion = await leerSesion();
-  if (sesion.estado === "sin_sesion") redirect("/entrar");
   const guardados = sesion.estado === "con_sesion" ? await leerGuardadosEnBase(sesion.usuarioId) : null;
   if (sesion.estado === "sin_respuesta") {
     return (

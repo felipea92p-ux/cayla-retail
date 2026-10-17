@@ -84,7 +84,9 @@ describe("candados de la tienda", () => {
     ).toEqual([]);
     expect(variables.filter((v) => v.nombre === "CRON_SECRET").map((v) => v.ruta)).toEqual(["app/api/cuentas-cerradas/route.ts"]);
     const publicas = new Set(FUENTES.flatMap(({ texto }) => [...texto.matchAll(/\bNEXT_PUBLIC_[A-Z0-9_]+/g)].map((m) => m[0])));
-    expect([...publicas].sort()).toEqual(["NEXT_PUBLIC_TIENDA_AUTH_ANON_KEY", "NEXT_PUBLIC_TIENDA_AUTH_URL"]);
+    // `NEXT_PUBLIC_TIENDA_GOOGLE` no es un secreto: es el «sí» que enciende el botón «Continuar con Google» cuando el proveedor ya está
+    // configurado en el proyecto de clientes (ADR-0438); sin él, el botón no sale.
+    expect([...publicas].sort()).toEqual(["NEXT_PUBLIC_TIENDA_AUTH_ANON_KEY", "NEXT_PUBLIC_TIENDA_AUTH_URL", "NEXT_PUBLIC_TIENDA_GOOGLE"]);
   });
 
   it("la llave secreta del proyecto de clientes solo la lee lib/sesion-servidor.ts, que es del servidor", () => {

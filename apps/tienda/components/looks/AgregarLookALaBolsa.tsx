@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { agregarLookALaBolsa } from "@/app/acciones/bolsa";
 import { visible } from "@/lib/visible";
 import { avisoDelLook, type LineaLook, type Look } from "@/lib/looks";
@@ -39,7 +38,6 @@ export function AgregarLookALaBolsa({
   /** La tienda que el cliente venía mirando («Ver lo que hay en»): queda elegida para recoger si todavía no eligió otra. */
   sedeId: string | null;
 }) {
-  const router = useRouter();
   const { aviso, mostrar } = useAvisoBreve();
 
   async function alAgregar(lineas: LineaLook[]): Promise<string | null> {
@@ -47,10 +45,6 @@ export function AgregarLookALaBolsa({
       lineas.map((l) => l.varianteId),
       sedeId,
     );
-    if (r.estado === "sin_sesion") {
-      router.push("/entrar");
-      return null;
-    }
     if (r.estado === "no") return r.mensaje;
     const dicho = avisoDelLook(look.nombre, lineas, r);
     if (!dicho.cerrar) return dicho.texto;
