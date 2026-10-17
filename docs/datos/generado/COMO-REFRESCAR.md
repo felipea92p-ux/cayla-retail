@@ -188,8 +188,11 @@ haber creado, alguien pegó SQL en producción sin anotarlo — que es exactamen
 `migraciones_aplicadas` y la decisión D-11 existen para evitar.
 
 Si `datos:aviario` falla, la tabla nueva necesita pájaro antes de commitear el volcado:
-se agrega a su lista en `scripts/datos/aviario.mjs` y se vuelve a correr. El CI corre
-la misma revisión en cada push, así que un volcado commiteado sin eso sale en rojo.
+se agrega a su lista en `scripts/datos/aviario.mjs` y se vuelven a correr `pnpm datos:generar:produccion` y
+`pnpm datos:aviario`, en ese orden. El diccionario se ordena por pájaro: si no se regenera, la tabla sigue en «Sin
+módulo asignado» y `datos:aviario` falla (desde el 2026-10-17; antes no lo notaba nada, y pasó con 20 tablas). El CI
+corre la misma revisión del aviario en cada push, así que un volcado commiteado sin pájaro, o un diccionario que no se
+regeneró después de dárselo, sale en rojo.
 
 ## Refresco por diferencia: `pnpm datos:refrescar` (lo normal)
 
