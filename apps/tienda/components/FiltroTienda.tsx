@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icono } from "./Icono";
 import { PendienteDelEnlace } from "./PendienteDelEnlace";
+import { RecordarTiendas } from "./TiendasRecordadas";
 
 export type OpcionTienda = { nombre: string; href: string; actual: boolean };
 
@@ -15,6 +16,8 @@ export function FiltroTienda({ opciones }: { opciones: OpcionTienda[] }) {
     <nav className="t-ubic t-filtro-tienda" aria-label="Ver lo que hay en">
       <Icono nombre="tienda" />
       <span className="t-filtro-txt">Ver lo que hay en</span>
+      {/* Para la próxima espera: la franja del esqueleto dibuja estas mismas tiendas (`TiendasDeEspera`). */}
+      <RecordarTiendas tiendas={opciones.map((o) => ({ nombre: o.nombre, clave: claveDeLaOpcion(o.href) }))} />
       <span className="t-pildoras-tienda">
         {opciones.map((o) => (
           <Link key={o.href} className="t-pildora-mini" href={o.href} aria-current={o.actual ? "true" : undefined} scroll={false}>
@@ -25,4 +28,10 @@ export function FiltroTienda({ opciones }: { opciones: OpcionTienda[] }) {
       </span>
     </nav>
   );
+}
+
+/** La tienda de un enlace de la franja (`?sede=lima`), o null con «Todas». */
+function claveDeLaOpcion(href: string): string | null {
+  const q = href.indexOf("?");
+  return q < 0 ? null : new URLSearchParams(href.slice(q + 1).split("#")[0]).get("sede");
 }

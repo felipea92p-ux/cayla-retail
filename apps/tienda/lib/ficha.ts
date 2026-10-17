@@ -4,6 +4,7 @@ import { claveCategoria, conFotoPrimero, soles, type Color, type PrecioTarjeta, 
 import { grupoDe } from "./grupos";
 import type { Look } from "./looks";
 import { pctTexto } from "./portada";
+import type { TallaRapida } from "./rapido";
 import { esquemaNivel, hayAlgo, type Nivel } from "./stock";
 
 // La ficha de una prenda (ADR-0408, actividad 4; maqueta v4, `vProducto`), tal como la devuelve `retail.tienda_ficha(p_producto,
@@ -315,7 +316,8 @@ export function promesasDeCompra(p: Plazos): Promesa[] {
 }
 
 /** Una talla del «Agregar» rápido de la tarjeta: su nombre y la prenda que agrega (`null`: esa talla no hay, se ve tachada). */
-export type TallaRapida = { talla: string; varianteId: string | null };
+// La forma vive en `rapido.ts` (sin zod, la lee la tarjeta en el navegador).
+export type { TallaRapida };
 
 /**
  * El «Agregar» rápido de la tarjeta (maqueta, `rapidoHTML`): el primer color del modelo que tiene algo en la tienda elegida (o, con

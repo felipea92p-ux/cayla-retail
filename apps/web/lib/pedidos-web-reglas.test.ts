@@ -5,6 +5,7 @@ import {
   agruparPorPestana,
   avisosDeLinea,
   cifrasDe,
+  cuandoEnLima,
   datosDelCliente,
   decisionDeFabrica,
   decisionesParaLaBase,
@@ -12,6 +13,7 @@ import {
   errorDePedidoWeb,
   estadoDeBoleta,
   estadoDeLinea,
+  estacionesDe,
   estadoVisible,
   faltanParaEntregar,
   fechasSugeridas,
@@ -19,16 +21,23 @@ import {
   leerDetalle,
   leerTablero,
   limpiarCodigo,
+  loQueTeToca,
   mensajeWhatsapp,
   MOTIVOS_ANULAR,
   MOTIVOS_NO_CONFIRMAR,
   plazoCorto,
+  porQueSeCerraron,
   problemaDelCodigo,
   rehacerDecisiones,
+  relojDeFila,
   relojDelPlazo,
+  reglasDelCamino,
   sePuedeReservarYa,
   textoCierre,
   textoDisponible,
+  todoAlDia,
+  tramosDelCamino,
+  verboDe,
   type LineaDetalle,
   type PedidoDeLista,
 } from "./pedidos-web-reglas";
@@ -432,5 +441,152 @@ describe("el reloj del plazo de cada pedido (Tienda web ▸ Pedidos, ADR-0430)",
     expect(relojDelPlazo(pedido({ estado: "pagado", pagadoEn: hace(84) }), PLAZOS, AHORA)).toMatchObject({ pct: 50, tono: "ambar" });
     expect(relojDelPlazo(pedido({ estado: "entregado" }), PLAZOS, AHORA)).toBeNull();
     expect(relojDelPlazo(pedido({ estado: "confirmado", confirmadoEn: null }), PLAZOS, AHORA)).toBeNull();
+  });
+});
+
+// ADR-0430, actualización 2026-10-17: el camino es el único filtro, la lista abre con «Lo que te toca» y cada fila dice su plazo una vez
+// y su verbo. AHORA es el 14 de octubre a las 10:00 de Lima.
+describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
+  const PLAZOS = { horasParaConfirmar: 24, horasAvisoSinPagar: 48, diasAvisoSinRecoger: 7 };
+  const hace = (h: number) => new Date(AHORA - h * 3_600_000).toISOString();
+  const en = (h: number) => new Date(AHORA + h * 3_600_000).toISOString();
+
+  it("las cuatro estaciones cuentan pedidos; la plata va en el pie y lo cerrado avisa lo que falta devolver", () => {
+    const c = cifrasDe(
+      {
+        pedidos: [
+          pedido({ venceEn: en(2) }),
+          pedido({ estado: "confirmado", falta: 79, sinPagar: true }),
+          pedido({ estado: "confirmado", falta: 100 }),
+          pedido({ estado: "pagado", listoParaRecoger: true }),
+          pedido({ estado: "pagado", listoParaRecoger: false }),
+          pedido({ estado: "entregado" }),
+          pedido({ estado: "anulado", pagado: 30 }),
+        ],
+        cobradoHoy: 0,
+      },
+      AHORA,
+    );
+    const [confirmar, cobrar, entregar, cerrados] = estacionesDe(c, PLAZOS);
+    expect(confirmar).toMatchObject({ valor: 1, pie: "El primero se cierra en 2 h", punto: "rojo", vivo: true });
+    expect(cobrar).toMatchObject({ valor: 2, pie: "Faltan S/\u00a0179.00 · 1 sin pagar hace más de 48 h", punto: "rojo" });
+    expect(entregar).toMatchObject({ valor: 2, pie: "1 listo para recoger · 1 espera una prenda", punto: "verde" });
+    expect(cerrados).toMatchObject({ valor: 2, pie: "S/\u00a030.00 por devolver", punto: "rojo" });
+    const vacio = estacionesDe(cifrasDe({ pedidos: [], cobradoHoy: 0 }, AHORA), PLAZOS);
+    expect(vacio.map((e) => [e.valor, e.pie, e.punto])).toEqual([
+      [0, "Nada esperando", "neutro"],
+      [0, "Nada por cobrar", "neutro"],
+      [0, "Nada por entregar", "neutro"],
+      [0, "Últimos 30 días", "neutro"],
+    ]);
+  });
+
+  it("los tramos dicen cuál cierra el pedido y cuáles solo avisan, con los plazos de Datos y plazos", () => {
+    expect(tramosDelCamino({ horasParaConfirmar: 12, horasAvisoSinPagar: 36, diasAvisoSinRecoger: 5 })).toEqual([
+      { verbo: "Confirmas", plazo: "se cierra a las 12 h", cierra: true },
+      { verbo: "Te paga", plazo: "aviso a las 36 h", cierra: false },
+      { verbo: "Lo recoge", plazo: "aviso a los 5 días", cierra: false },
+    ]);
+    expect(reglasDelCamino({ ...PLAZOS, horasParaConfirmar: 12 }).confirmar).toContain("en 12 h, se cierra solo");
+  });
+
+  it("«Lo que te toca»: lo que se pierde arriba; lo cerrado sin plata no aparece", () => {
+    const lista = loQueTeToca(
+      [
+        pedido({ id: "espera", estado: "pagado", pagadoEn: hace(3), listoParaRecoger: false }),
+        pedido({ id: "listo", estado: "pagado", pagadoEn: hace(24), listoParaRecoger: true }),
+        pedido({ id: "confirmado", estado: "confirmado", confirmadoEn: hace(6) }),
+        pedido({ id: "confirmar-19h", venceEn: en(19) }),
+        pedido({ id: "sin-pagar", estado: "confirmado", confirmadoEn: hace(50), sinPagar: true }),
+        pedido({ id: "devolver", estado: "anulado", pagado: 30, cerradoEn: hace(1) }),
+        pedido({ id: "confirmar-2h", venceEn: en(2) }),
+        pedido({ id: "entregado", estado: "entregado" }),
+        pedido({ id: "anulado", estado: "anulado", pagado: 0 }),
+      ],
+      PLAZOS,
+      AHORA,
+    );
+    expect(lista.map((p) => p.id)).toEqual(["confirmar-2h", "sin-pagar", "devolver", "confirmar-19h", "confirmado", "listo", "espera"]);
+  });
+
+  it("el reloj de cada fila: qué pasa y cuándo, una sola vez", () => {
+    expect(relojDeFila(pedido({ creadoEn: hace(22), venceEn: en(2) }), PLAZOS, AHORA)).toMatchObject({
+      texto: "Se cierra solo en 2 h",
+      detalle: "Si nadie lo confirma, se pierde",
+      tono: "rojo",
+    });
+    expect(relojDeFila(pedido({ creadoEn: hace(6), venceEn: en(18) }), PLAZOS, AHORA)).toMatchObject({
+      texto: "Se cierra solo en 18 h",
+      detalle: "Hasta mañana a las 04:00",
+      tono: "tinta",
+      barra: { pct: 25, tono: "tinta" },
+    });
+    expect(relojDeFila(pedido({ estado: "confirmado", confirmadoEn: hace(6), total: 159, pagado: 80 }), PLAZOS, AHORA)).toMatchObject({
+      texto: "Pagó S/\u00a080.00 de S/\u00a0159.00",
+      detalle: "Aviso si no paga en 42 h",
+    });
+    expect(relojDeFila(pedido({ estado: "confirmado", confirmadoEn: hace(50), sinPagar: true }), PLAZOS, AHORA)).toMatchObject({
+      texto: "Sin pagar · confirmado hace 2 días",
+      detalle: "Ya pasó el aviso de 48 h",
+      tono: "rojo",
+    });
+    expect(relojDeFila(pedido({ estado: "pagado", pagadoEn: hace(24), listoParaRecoger: true }), PLAZOS, AHORA)).toMatchObject({ texto: "Listo para recoger", tono: "verde" });
+    expect(relojDeFila(pedido({ estado: "pagado", pagadoEn: hace(3), porTraer: 1, porConseguir: 1 }), PLAZOS, AHORA)).toMatchObject({ texto: "Espera 2 prendas", barra: null });
+    expect(relojDeFila(pedido({ estado: "anulado", pagado: 30, cierreMotivo: "cliente_desistio" }), PLAZOS, AHORA)).toMatchObject({
+      texto: "Por devolver S/\u00a030.00",
+      detalle: "Anulado: el cliente desistió",
+      tono: "rojo",
+    });
+  });
+
+  it("el verbo de la fila: lo que toca ahora; lo cerrado no tiene", () => {
+    expect(verboDe(pedido({}))).toBe("Confirmar");
+    expect(verboDe(pedido({ estado: "confirmado" }))).toBe("Registrar pago");
+    expect(verboDe(pedido({ estado: "confirmado", sinPagar: true }))).toBe("Escribirle");
+    expect(verboDe(pedido({ estado: "pagado", listoParaRecoger: true }))).toBe("Entregar");
+    expect(verboDe(pedido({ estado: "pagado", listoParaRecoger: false }))).toBe("Ver pedido");
+    expect(verboDe(pedido({ estado: "pagado", listoParaRecoger: true, sinRecoger: true }))).toBe("Escribirle");
+    expect(verboDe(pedido({ estado: "anulado", pagado: 30 }))).toBe("Devolver");
+    expect(verboDe(pedido({ estado: "anulado", pagado: 0 }))).toBeNull();
+    expect(verboDe(pedido({ estado: "entregado" }))).toBeNull();
+  });
+
+  it("por qué se cerraron: lo entregado primero, después lo que perdió la tienda y después lo del cliente", () => {
+    const motivos = porQueSeCerraron([
+      pedido({ estado: "anulado", cierreMotivo: "cliente_desistio" }),
+      pedido({ estado: "anulado", cierreMotivo: "sin_stock" }),
+      pedido({ estado: "anulado", cierreMotivo: "cliente_desistio" }),
+      pedido({ estado: "vencido", cierreMotivo: "sin_confirmar" }),
+      pedido({ estado: "entregado" }),
+      pedido({ estado: "por_confirmar" }),
+    ]);
+    expect(motivos.map((m) => [m.clave, m.cuantos])).toEqual([
+      ["entregado", 1],
+      ["sin_confirmar", 1],
+      ["sin_stock", 1],
+      ["cliente_desistio", 2],
+    ]);
+    expect(motivos[1]!.texto).toBe("Nadie lo confirmó a tiempo");
+  });
+
+  it("todo al día: en una línea, con lo último que pasó", () => {
+    expect(todoAlDia([], "Tienda TRU", AHORA)).toBe("No hay pedidos web esperando en Tienda TRU. Todavía no llegó ninguno.");
+    expect(
+      todoAlDia(
+        [
+          pedido({ codigo: "W-0008", estado: "entregado", creadoEn: hace(30) }),
+          pedido({ codigo: "W-0009", estado: "anulado", cierreMotivo: "cliente_desistio", creadoEn: hace(1) }),
+        ],
+        "Tienda TRU",
+        AHORA,
+      ),
+    ).toBe("No hay pedidos web esperando en Tienda TRU. El último (W-0009) llegó hoy a las 09:00 y se cerró: el cliente desistió.");
+  });
+
+  it("los instantes, como se dicen en la tienda (en hora de Lima, también de noche)", () => {
+    expect(cuandoEnLima(en(13), AHORA)).toBe("hoy a las 23:00");
+    expect(cuandoEnLima(en(15), AHORA)).toBe("mañana a las 01:00");
+    expect(cuandoEnLima(hace(20), AHORA)).toBe("ayer a las 14:00");
+    expect(cuandoEnLima(en(72), AHORA)).toBe("el 17 oct a las 10:00");
   });
 });
