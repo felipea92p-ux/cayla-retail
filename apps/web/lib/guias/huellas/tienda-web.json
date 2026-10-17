@@ -1,0 +1,14 @@
+{
+  "guia": "tienda-web",
+  "ruta": "/tienda-web",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 4,
+  "controles": {
+    "components/tienda-web/ResumenTiendaWeb.tsx": [
+      "BotonVer «Elegir qué se ve»",
+      "BotonVer «Ver la vitrina»",
+      "Link «{t.nombre}»",
+      "Link «{ICONO[p.icono]}»"
+    ]
+  }
+}

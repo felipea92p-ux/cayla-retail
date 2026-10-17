@@ -1,4 +1,4 @@
-// Configuración ▸ Tienda web (ADR-0408, actividad 6). Lógica pura: la usan la pantalla y sus pruebas.
+// Tienda web ▸ Ajustes (ADR-0408, actividad 6). Lógica pura: la usan la pantalla y sus pruebas.
 // La base vuelve a cerrar todo (`guardar_sede_tienda_web`, `guardar_parametros_tienda_web` y `fn_sede_web_falta`,
 // 20261014231000); aquí solo se dice con una frase clara ANTES de ir a la base y se arma lo que necesita la guía de foco.
 //

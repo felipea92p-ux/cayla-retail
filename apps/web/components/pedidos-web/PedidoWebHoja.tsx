@@ -1003,7 +1003,7 @@ function LineasDelPedido({
         ) : (
           <p key={desdeId} className="flex items-start gap-2 text-[12.5px] text-taupe">
             <PackageSearch aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-            {x.tienda} la tiene reservada: la envía desde su «Pedidos web», en «Para enviar a otra tienda».
+            {x.tienda} la tiene reservada: la envía desde Tienda web ▸ Pedidos, en «Para enviar a otra tienda».
           </p>
         ),
       )}

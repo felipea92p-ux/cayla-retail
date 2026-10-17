@@ -158,7 +158,7 @@ export function ApartadosModal({
                     <div className="flex shrink-0 flex-col items-end gap-1.5">
                       {a.pedidoWeb ? (
                         // La reserva de un pedido web (ADR-0408, act. 8): su número ya va en el nombre; el chip dice que no vence aquí
-                        // (se entrega o se libera desde Ventas ▸ Pedidos web, por eso no lleva «Liberar») o adónde viaja.
+                        // (se entrega o se libera desde Tienda web ▸ Pedidos, por eso no lleva «Liberar») o adónde viaja.
                         <Chip tono="pizarra">{a.pedidoWeb.paraOtraTienda ? `Pedido web · viaja a ${a.pedidoWeb.tiendaPedido}` : "Pedido web · no vence"}</Chip>
                       ) : a.venceEl === null ? (
                         <Chip tono="pizarra">Para otra sede · no vence</Chip>

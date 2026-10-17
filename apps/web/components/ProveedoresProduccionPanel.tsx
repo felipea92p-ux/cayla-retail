@@ -23,14 +23,40 @@ import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { Casilla } from "@/components/ui/Casilla";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Pestanas } from "@/components/ui/Pestanas";
+import { ServiciosYTarifas } from "@/components/proveedores-produccion/ServiciosYTarifas";
+import { TarifaServicioModal } from "@/components/proveedores-produccion/TarifaServicioModal";
+import { serviciosParaTarifar, tarifasPorServicio, type TarifaDeServicio } from "@/lib/tarifas-servicios-reglas";
 
 // Proveedores de Producción (ADR-0133, F4a; D-H): quienes le venden tela, avíos y maquila al Taller. Directorio aparte del de
 // Compras. Solo se muestra lo que la base ya sabe de cada uno —lotes recibidos, total comprado, última entrega—; el saldo y el
 // cumplimiento del spike llegan con los comprobantes y las recepciones de Producción (F4b a F4d) y no se dibujan antes.
+//
+// Dos vistas de la misma pantalla (ADR-0400, actividad 8c): «Proveedores» (el directorio) y «Servicios y tarifas» (la lista de precios de los
+// servicios de afuera por fase, que «Nueva orden» sugiere al elegir quién hace una fase). La vista es estado de la pantalla.
+
+export type VistaProveedores = "proveedores" | "tarifas";
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
-export function ProveedoresProduccionPanel({ proveedores, sede }: { proveedores: ProveedorProduccion[]; /** La sede de la línea de arriba de la cabecera (el Taller). */ sede: string }) {
+type HojaDeTarifa = { tarifa: TarifaDeServicio | null; proveedorId?: string };
+
+export function ProveedoresProduccionPanel({
+  sede,
+  proveedores,
+  tarifas,
+  hoy,
+  vistaInicial = "proveedores",
+}: {
+  sede: string;
+  proveedores: ProveedorProduccion[];
+  /** `null`: la base no pudo leer la lista de precios. */
+  tarifas: TarifaDeServicio[] | null;
+  hoy: string;
+  vistaInicial?: VistaProveedores;
+}) {
+  const [vista, setVista] = useState<VistaProveedores>(vistaInicial);
+  const [hojaTarifa, setHojaTarifa] = useState<HojaDeTarifa | null>(null);
   const [rubro, setRubro] = useState<RubroProduccion | "todos">("todos");
   const [busqueda, setBusqueda] = useState("");
   const [verArchivados, setVerArchivados] = useState(false);
@@ -38,6 +64,9 @@ export function ProveedoresProduccionPanel({ proveedores, sede }: { proveedores:
 
   const resumen = resumenProveedores(proveedores);
   const visibles = filtrarProveedores(proveedores, { rubro, busqueda, verArchivados });
+  const servicios = serviciosParaTarifar(proveedores);
+  // Cuántos servicios de afuera todavía no tienen ninguna tarifa: la pestaña lo avisa sin abrirla.
+  const sinTarifa = tarifas === null ? 0 : tarifasPorServicio(tarifas, servicios).filter((s) => s.tarifas.length === 0).length;
 
   return (
     <div className="space-y-6">
@@ -45,14 +74,55 @@ export function ProveedoresProduccionPanel({ proveedores, sede }: { proveedores:
       <EncabezadoPagina
         sede={sede}
         titulo="Proveedores"
-        subtitulo="Quién le vende tela, avíos y maquila al Taller. Es un directorio aparte del de Compras."
+        subtitulo="Quién le vende tela y avíos al Taller y quién le hace servicios de afuera. Es un directorio aparte del de Compras."
         acciones={
-          <Boton peso="primario" data-guia="prod-proveedores.nuevo" onClick={() => setEditando("nuevo")}>
-            + Nuevo proveedor
-          </Boton>
+          vista === "tarifas" ? (
+            tarifas !== null && servicios.length > 0 && (
+              <Boton peso="primario" data-guia="prod-proveedores.nueva-tarifa" onClick={() => setHojaTarifa({ tarifa: null })}>
+                + Nueva tarifa
+              </Boton>
+            )
+          ) : (
+            <Boton peso="primario" data-guia="prod-proveedores.nuevo" onClick={() => setEditando("nuevo")}>
+              + Nuevo proveedor
+            </Boton>
+          )
         }
       />
 
+      <Pestanas
+        guia="prod-proveedores.pestanas"
+        etiquetaAccesible="Vista de Proveedores"
+        activa={vista}
+        onCambio={(c) => setVista(c as VistaProveedores)}
+        idIndicador="proveedores-produccion"
+        items={[
+          { clave: "proveedores", etiqueta: "Proveedores", conteo: resumen.activos, pide: "activos", tono: "neutro", ayuda: "Quién le vende al Taller", guia: "prod-proveedores.pestana-proveedores" },
+          {
+            clave: "tarifas",
+            etiqueta: "Servicios y tarifas",
+            conteo: sinTarifa > 0 ? sinTarifa : null,
+            pide: "sin tarifa",
+            ayuda: "Cuánto cobra por prenda cada servicio de afuera",
+            guia: "prod-proveedores.pestana-tarifas",
+          },
+        ]}
+      />
+
+      {vista === "tarifas" ? (
+        <ServiciosYTarifas
+          tarifas={tarifas}
+          proveedores={proveedores}
+          hoy={hoy}
+          onNueva={(proveedorId) => setHojaTarifa({ tarifa: null, proveedorId })}
+          onCambiar={(t) => setHojaTarifa({ tarifa: t })}
+          onAgregarServicio={() => {
+            setVista("proveedores");
+            setEditando("nuevo");
+          }}
+        />
+      ) : (
+        <>
       <div data-guia="prod-proveedores.cifras" className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra punto="verde" etiqueta="Proveedores activos" className="anim-entra" style={{ ["--i" as string]: 0 }} valor={<CifraQueCuenta valor={resumen.activos} alMontar />}>
           {resumen.archivados > 0 ? `${plural(resumen.archivados, "archivado", "archivados")} aparte` : "ninguno archivado"}
@@ -180,13 +250,13 @@ export function ProveedoresProduccionPanel({ proveedores, sede }: { proveedores:
               </ul>
             </div>
           )}
-          <p className="text-xs text-tinta/65">
-            El saldo por pagar y el cumplimiento de cada proveedor aparecen cuando el Taller registre sus comprobantes y reciba pedidos: se calculan de eso, nunca se digitan.
-          </p>
         </div>
+      )}
+        </>
       )}
 
       {editando && <ProveedorProduccionModal proveedor={editando === "nuevo" ? null : editando} onClose={() => setEditando(null)} />}
+      {hojaTarifa && <TarifaServicioModal tarifa={hojaTarifa.tarifa} proveedorId={hojaTarifa.proveedorId} servicios={servicios} tarifas={tarifas ?? []} onClose={() => setHojaTarifa(null)} />}
     </div>
   );
 }

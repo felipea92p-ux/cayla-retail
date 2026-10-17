@@ -13,9 +13,10 @@ import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Ayuda } from "@/components/Ayuda";
 
 // Eficiencia del Taller (ADR-0133, F7; D-31 y D-33). «Cuánto cuesta de verdad cada prenda que sale del Taller»: materiales de lo que cerró + conversión (la
-// planilla de Dynamic y los gastos generales, repartidos entre las prendas buenas). El período es el de la planilla (29 al 28). Sin planilla visible NO se
+// planilla del Taller y los gastos generales, repartidos entre las prendas buenas). El período es el de la planilla (29 al 28). Sin planilla visible NO se
 // inventa la conversión: se dice qué falta. Sin rojo: nada de esto es una alarma, es una medida que se compara período a período.
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
@@ -27,7 +28,7 @@ const COLUMNAS_PERIODOS: Columna[] = [
   { titulo: "Período" },
   { titulo: "Prendas buenas", alinear: "der" },
   { titulo: "Materiales / prenda", alinear: "der" },
-  { titulo: "Conversión / prenda", alinear: "der" },
+  { titulo: "Mano de obra y gastos / prenda", alinear: "der" },
   { titulo: "Costo / prenda", alinear: "der" },
 ];
 
@@ -61,12 +62,13 @@ export function EficienciaTallerPanel({
   return (
     <div className="space-y-6">
       {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). Eficiencia es una pestaña del Resumen, no una fila
-          del menú: su título es el de la pantalla y lo suyo va en la frase. */}
+          del menú: su título es el nombre de la pestaña y lo suyo va en la frase. */}
       <EncabezadoPagina
         sede={sede}
-        titulo="Eficiencia del Taller"
-        subtitulo="Cuánto cuesta de verdad cada prenda que sale del Taller: la tela, los avíos y la maquila de lo que cerró, más lo que cuesta transformarlo —la planilla y los gastos del Taller— repartido entre las prendas buenas."
+        titulo="Eficiencia"
+        subtitulo="Cuánto cuesta de verdad cada prenda que sale del Taller: la tela, los avíos y los servicios de afuera de lo que pasó al stock, más lo que cuesta transformarlo —la planilla y los gastos del Taller— repartido entre las prendas buenas."
       />
+
       {/* «Hoy | Eficiencia»: las dos miradas del líder sobre el Taller (ADR-0133, F6 y F7), con la pestaña de vista del sistema
           (ADR-0358). Eficiencia NO es una fila del lateral (el menú de Producción está en su tope de hijas): se llega desde aquí. */}
       <Pestanas
@@ -82,12 +84,12 @@ export function EficienciaTallerPanel({
 
       {estadoPlanilla === "sin_vista" && (
         <p data-guia="prod-eficiencia.aviso-planilla" className="rounded-md bg-sand/60 px-3 py-2.5 text-sm text-tinta/80">
-          Todavía no está conectada la planilla de Dynamic (falta pegar <code className="font-mono text-xs">20260921160000_planilla_por_sede.sql</code>). Mientras tanto se muestran los materiales por prenda; el costo completo aparecerá solo.
+          Todavía no se puede leer la planilla del Taller. Mientras tanto se muestran los materiales por prenda; el costo completo aparecerá solo cuando se pueda leer.
         </p>
       )}
       {estadoPlanilla === "vacia" && (
         <p data-guia="prod-eficiencia.aviso-planilla" className="rounded-md bg-sand/60 px-3 py-2.5 text-sm text-tinta/80">
-          No hay planilla del Taller para mostrar: Dynamic solo se la enseña a quien allá es admin o líder, o todavía no hay períodos pagados. Se muestran los últimos meses con los materiales por prenda; sin la planilla no se calcula la conversión ni el costo total.
+          No hay planilla del Taller para mostrar: o todavía no hay períodos pagados, o tu cuenta no la puede ver (la ve quien administra al personal). Se muestran los últimos meses con los materiales por prenda; sin la planilla no se calcula lo de mano de obra y gastos ni el costo total.
         </p>
       )}
 
@@ -134,19 +136,24 @@ export function EficienciaTallerPanel({
             </TarjetaCifra>
             <TarjetaCifra
               punto="verde"
-              etiqueta="Conversión por prenda"
+              etiqueta="Mano de obra y gastos por prenda"
+              ayuda={
+                <Ayuda titulo="¿Qué es esto?">
+                  Es lo que cuesta transformar la tela en prenda, más allá de los materiales: la planilla del Taller y sus gastos del período, repartidos entre las prendas buenas que salieron. Una segunda o una faltante sube el de las demás.
+                </Ayuda>
+              }
               className="anim-entra"
               style={{ ["--i" as string]: 3 }}
               valor={actual.conversionPorPrenda === null ? null : <CifraQueCuenta valor={actual.conversionPorPrenda} formato="soles" alMontar />}
             >
-              {actual.conversionPorPrenda === null ? "planilla y gastos ÷ prendas buenas" : <Variacion actual={actual.conversionPorPrenda} anterior={anterior?.conversionPorPrenda ?? null} />}
+              {actual.conversionPorPrenda === null ? "sin planilla que repartir" : <Variacion actual={actual.conversionPorPrenda} anterior={anterior?.conversionPorPrenda ?? null} />}
             </TarjetaCifra>
           </div>
 
           <section data-guia="prod-eficiencia.reparto" aria-label="En qué se fue la plata" className="card-cayla space-y-3 p-5">
             <div>
               <TituloSeccion>¿En qué se fue la plata del Taller?</TituloSeccion>
-              <p className="text-xs text-tinta/65">Período {actual.ventana.etiqueta}. Lo que gastó el Taller: la planilla, los gastos generales y los materiales y la maquila de lo que cerró.</p>
+              <p className="text-xs text-tinta/65">Período {actual.ventana.etiqueta}. Lo que gastó el Taller: la planilla, los gastos generales y los materiales y los servicios de afuera de lo que pasó al stock.</p>
             </div>
             {reparto.length === 0 ? (
               <p className="text-sm text-tinta/70">No hay gasto del Taller registrado en este período.</p>
@@ -172,7 +179,7 @@ export function EficienciaTallerPanel({
                 )}
               </>
             )}
-            {actual.planilla !== null && <p className="text-xs text-tinta/60">Planilla: costo total para CAYLA (sueldos, provisiones de gratificación, CTS y vacaciones, y aportes) de {plural(actual.ventana.planilla?.personas ?? 0, "persona", "personas")}, tal como la pagó Dynamic.</p>}
+            {actual.planilla !== null && <p className="text-xs text-tinta/60">Planilla: costo total para CAYLA (sueldos, provisiones de gratificación, CTS y vacaciones, y aportes) de {plural(actual.ventana.planilla?.personas ?? 0, "persona", "personas")}, tal como se pagó.</p>}
             {!hayGastos && (
               <p className="text-xs text-tinta/60">
                 Alquiler y servicios del Taller aparecerán aquí cuando se registren como gastos del Taller en Finanzas (modelo de gastos, ADR-0117); Producción no lleva una tabla aparte.

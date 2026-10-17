@@ -3,8 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { baseTraeElCorte, leerInicioFinanzas } from "@/lib/finanzas-arranque-reglas";
 import {
   leerConfiguracion,
+  leerConfiguracionMetas,
   leerParametrosCaja,
   leerParametrosFinanzas,
+  type ConfiguracionMetas,
   type ConfiguracionTiendas,
   type DatosEmpresa,
   type ParametrosCaja,
@@ -31,6 +33,16 @@ export async function getConfiguracionTiendas(): Promise<ConfiguracionTiendas> {
   return { ...config, tiendas: config.tiendas.map((t) => ({ ...t, whatsappNumero: numeros.get(t.id) ?? null })) };
 }
 
+/** Configuración ▸ Tiendas y caja ▸ metas por mes y por fecha (ADR-0435, 20261017020000): los próximos 6 meses de cada tienda y sus
+ *  fechas especiales. `null` si la base todavía no tiene la función (web publicada antes de pegar la migración): la pantalla
+ *  sigue con la semana tipo, sin las dos tarjetas nuevas. */
+export async function getConfiguracionMetas(): Promise<ConfiguracionMetas | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_configuracion_metas" as never, { p_meses: 6 } as never);
+  if (error) return null;
+  return leerConfiguracionMetas(data);
+}
+
 /** Lo que rige hoy (o en `fecha`) en una sede: meta del día, fondo y campañas. `null` si la base todavía no tiene la
  *  función (web publicada antes de pegar 20260924210000): Caja cae a la meta de antes y el cierre no pide fondo. */
 export async function getParametrosCaja(ubicacionId: string, fecha: string): Promise<ParametrosCaja | null> {
@@ -52,7 +64,7 @@ export async function getParametrosFinanzas(): Promise<ParametrosFinanzasConCort
   return p ? { ...p, inicioFinanzas: leerInicioFinanzas(data), corteDisponible: baseTraeElCorte(data) } : null;
 }
 
-/** Configuración ▸ Tienda web (ADR-0408, act. 6, 20261014231000): cada tienda abierta con lo que la web le muestra al cliente
+/** Tienda web ▸ Ajustes (ADR-0408, act. 6, 20261014231000): cada tienda abierta con lo que la web le muestra al cliente
  *  (su WhatsApp es el del QR del club) y los plazos de los pedidos web. `null` si la base todavía no tiene la migración: la
  *  pestaña lo dice en vez de caerse (principio 9). */
 export async function getConfiguracionTiendaWeb(): Promise<ConfiguracionTiendaWeb | null> {

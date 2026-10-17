@@ -1,0 +1,24 @@
+{
+  "guia": "tienda-web.recomendaciones",
+  "ruta": "/tienda-web/recomendaciones",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 12,
+  "controles": {
+    "components/recomendaciones/RecomendacionHoja.tsx": [
+      "Link «ver su ficha»",
+      "textarea «Escribe una respuesta corta y cálida…»",
+      "ComboResponsable «{responsable}»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "Boton «{guia.frase ?? undefined}» #2",
+      "Boton «{responsable.motivo ?? undefined}» #2"
+    ],
+    "components/recomendaciones/RecomendacionesPantalla.tsx": [
+      "DesplegablePildora «Estado»",
+      "DesplegablePildora «Sobre»",
+      "BotonLimpiar «Limpiar todo»",
+      "button «{deQuien(r)}»"
+    ]
+  }
+}

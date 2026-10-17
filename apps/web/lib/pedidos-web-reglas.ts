@@ -1,4 +1,4 @@
-// Ventas ▸ Pedidos web (ADR-0408, actividad 8; maqueta docs/maquetas/tienda-online-2026-10, «Pedidos web»): la parte pura de la
+// Tienda web ▸ Pedidos (ADR-0408, actividad 8; maqueta docs/maquetas/tienda-online-2026-10, «Pedidos web»): la parte pura de la
 // pantalla, sin React ni red, para importarla desde el servidor y el cliente y probarla sola.
 //
 // CONTRATO
@@ -7,7 +7,7 @@
 //            prenda; armar la decisión de cada prenda para confirmar (de dónde sale, por conseguir con fecha o quitarla) en la forma que
 //            pide `confirmar_pedido_web`, y lo que todavía falta para poder confirmar; y los mensajes de WhatsApp de la maqueta.
 //   ASUME:   que la base manda (permisos, stock, plazos, transiciones): lo que aquí se calcula es para mostrar y para no ofrecer lo que
-//            la base rechazaría. Los plazos (24 h, 48 h, 7 días) llegan de Configuración ▸ Tienda web en la lectura, nunca escritos aquí.
+//            la base rechazaría. Los plazos (24 h, 48 h, 7 días) llegan de Tienda web ▸ Ajustes en la lectura, nunca escritos aquí.
 //            Entregar (actividad 10): el código de 4 cifras como lo escribe la persona, lo que falta para poder entregar, la boleta y en
 //            qué va su envío a SUNAT, y los mensajes para avisarle que ya puede recogerlo (o que no lo recoge).
 //   NO HACE: lo de cobrar (registrar y anular un pago) vive en `pedidos-web-cobro-reglas.ts` (actividad 9); aquí solo se lee lo que
@@ -539,6 +539,42 @@ export function estadoVisible(
   return { texto: "Anulado", tono: "apagado", vivo: false, accion: "" };
 }
 
+/**
+ * El RELOJ del plazo de un pedido abierto (Tienda web ▸ Pedidos, ADR-0430): cuánto lleva del plazo del paso en que está, para la barra
+ * fina de su fila. Por confirmar: de las horas para confirmar, desde que se separó (se cierra solo al llegar). Confirmado: de las horas
+ * del aviso «sin pagar», desde que se confirmó. Pagado: de los días para recoger, desde que se pagó. El tono es el mismo que ya decide
+ * `estadoVisible` (rojo si urge o ya pasó; ámbar pasada la mitad), así barra y chip nunca dicen dos cosas. `null`: nada que medir.
+ */
+export function relojDelPlazo(
+  p: Pick<PedidoDeLista, "estado" | "creadoEn" | "venceEn" | "confirmadoEn" | "pagadoEn" | "sinPagar" | "sinRecoger">,
+  plazos: PlazosPedidosWeb,
+  ahora: number,
+): { pct: number; tono: "tinta" | "ambar" | "rojo"; texto: string } | null {
+  const medir = (desde: string | null, totalMs: number, nombre: string) => {
+    const d = desde ? Date.parse(desde) : Number.NaN;
+    if (!Number.isFinite(d) || totalMs <= 0) return null;
+    const pct = Math.min(100, Math.max(0, ((ahora - d) / totalMs) * 100));
+    return { pct, texto: `Lleva ${Math.round(pct)} % del plazo para ${nombre}` };
+  };
+  if (p.estado === "por_confirmar") {
+    const total = plazos.horasParaConfirmar * HORA;
+    const desde = p.venceEn ? new Date(Date.parse(p.venceEn) - total).toISOString() : p.creadoEn;
+    const m = medir(desde, total, "confirmar");
+    if (!m) return null;
+    const queda = p.venceEn ? Date.parse(p.venceEn) - ahora : total * (1 - m.pct / 100);
+    return { ...m, tono: queda < URGENTE_MS ? "rojo" : m.pct >= 50 ? "ambar" : "tinta" };
+  }
+  if (p.estado === "confirmado") {
+    const m = medir(p.confirmadoEn, plazos.horasAvisoSinPagar * HORA, "pagar");
+    return m && { ...m, tono: p.sinPagar ? "rojo" : m.pct >= 50 ? "ambar" : "tinta" };
+  }
+  if (p.estado === "pagado") {
+    const m = medir(p.pagadoEn, plazos.diasAvisoSinRecoger * 24 * HORA, "recoger");
+    return m && { ...m, tono: p.sinRecoger ? "rojo" : m.pct >= 50 ? "ambar" : "tinta" };
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------------------------------------------------------
 // Los motivos (los mismos que acepta la base)
 // ---------------------------------------------------------------------------------------------------------------------------
@@ -810,7 +846,7 @@ export type PlantillaWhatsapp = "libre" | "confirmado" | "cobro" | "sinstock" | 
 
 const primerNombre = (nombre: string) => nombre.trim().split(/\s+/)[0] ?? nombre;
 
-/** Los mensajes de la maqueta (`plantilla`), con la tienda y la dirección de Configuración ▸ Tienda web. */
+/** Los mensajes de la maqueta (`plantilla`), con la tienda y la dirección de Tienda web ▸ Ajustes. */
 export function mensajeWhatsapp(
   p: Pick<PedidoDetalle, "codigo" | "total" | "falta" | "pagado" | "cliente" | "tiendaWeb">,
   plantilla: PlantillaWhatsapp,

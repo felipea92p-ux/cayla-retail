@@ -1,4 +1,4 @@
-// Catálogo ▸ Vitrina web ▸ Looks (ADR-0408, actividad 11; maqueta v4, «looks-erp»): las combinaciones de 2 a 4 prendas que la tienda
+// Tienda web ▸ Vitrina ▸ Looks (ADR-0408, actividad 11; maqueta v4, «looks-erp»): las combinaciones de 2 a 4 prendas que la tienda
 // online muestra en «Arma tu look». Lógica pura: se importa desde el servidor y desde el cliente, y se prueba con
 // `vitrina-looks-reglas.test.ts`.
 //

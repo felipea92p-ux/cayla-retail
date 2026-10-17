@@ -14,11 +14,13 @@ import { firmar } from "@/lib/responsable-reglas";
 import { fechaCorta, solesRedondo } from "@/lib/gastos-reglas";
 import { DIAS_CORTOS, DIAS_SEMANA, TEXTO_ESTADO, estadoCampana, ordenarCampanas, parsearMonto, parsearPorcentaje, validarTienda } from "@/lib/configuracion-reglas";
 import { ajustarCelular, celularValido } from "@/lib/club-reglas";
-import type { CampanaConfig, ConfiguracionTiendas as Datos, TiendaConfig } from "@/lib/configuracion-reglas";
+import type { CampanaConfig, ConfiguracionMetas, ConfiguracionTiendas as Datos, TiendaConfig } from "@/lib/configuracion-reglas";
 import { BotonEnlace } from "@/components/ui/campos";
 import { BotonVer } from "@/components/ui/BotonDescargar";
+import { Casilla, type Guardar } from "@/components/ConfiguracionCasilla";
+import { ConfiguracionMetasMes } from "@/components/ConfiguracionMetasMes";
 
-// Configuración ▸ Tiendas y caja (ADR-0195 F1), dibujada como el spike (docs/maquetas/finanzas-2026-09/, `cfgTiendas`):
+// Configuración ▸ Tiendas y caja (ADR-0195 F1; metas por mes y por fecha, ADR-0435), dibujada como el spike (docs/maquetas/finanzas-2026-09/, `cfgTiendas`):
 // dos tablas —lo normal de cada tienda (meta por día y fondo) y lo que cambia cada campaña— donde CADA CASILLA SE GUARDA
 // SOLA al salir de ella si cambió, firmada con el responsable. Sin botones «Guardar»: la base vuelve a validar todo.
 // ADR-0288 tanda 1b suma una tercera, con el mismo patrón: el WhatsApp de cada tienda para el QR del club
@@ -26,38 +28,6 @@ import { BotonVer } from "@/components/ui/BotonDescargar";
 
 const texto = (n: number | null) => (n === null ? "" : String(n));
 const corto = (nombre: string) => nombre.replace(/^Tienda\s+/i, "");
-
-type Guardar = (hacer: () => PromiseLike<{ error: unknown }>, que: string, listo: string) => Promise<boolean>;
-
-/** Una casilla numérica que se guarda al salir (blur) si su texto cambió. Si el guardado falla, vuelve a lo de antes. */
-function Casilla({ valor, etiqueta, ancho, alGuardar, placeholder = "—" }: { valor: string; etiqueta: string; ancho: string; alGuardar: (nuevo: string) => Promise<boolean>; placeholder?: string }) {
-  const [t, setT] = useState(valor);
-  const [antes, setAntes] = useState(valor);
-  // Si la base trae otro valor (otro guardado, un refresco), la casilla lo toma.
-  if (valor !== antes) {
-    setAntes(valor);
-    setT(valor);
-  }
-  return (
-    <input
-      aria-label={etiqueta}
-      inputMode="decimal"
-      value={t}
-      placeholder={placeholder}
-      onChange={(e) => setT(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-        if (e.key === "Escape") setT(valor);
-      }}
-      onBlur={async () => {
-        if (t.trim() === valor.trim()) return;
-        const ok = await alGuardar(t);
-        if (!ok) setT(valor);
-      }}
-      className={`fin-control fin-num inline-block ${ancho}`}
-    />
-  );
-}
 
 /** La hora de cierre: se guarda al salir si cambió (vacía = sin hora, Caja no proyecta). */
 function CasillaHora({ valor, etiqueta, alGuardar }: { valor: string; etiqueta: string; alGuardar: (hora: string) => Promise<boolean> }) {
@@ -268,7 +238,7 @@ function FilaCampana({ campana, tiendas, hoy, guardar }: { campana: CampanaConfi
 
 /** `despuesDeWhatsapp`: otra tarjeta de la sede que va entre el WhatsApp y las campañas (la carga inicial, ADR-0328). Se pasa
  *  armada desde la página: tiene su propio responsable y su propia hoja, no usa las casillas de aquí. */
-export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Datos; despuesDeWhatsapp?: ReactNode }) {
+export function ConfiguracionTiendas({ datos, metas, despuesDeWhatsapp }: { datos: Datos; metas?: ConfiguracionMetas | null; despuesDeWhatsapp?: ReactNode }) {
   const router = useRouter();
   const responsable = useResponsable();
   const [guardando, setGuardando] = useState(false);
@@ -336,6 +306,8 @@ export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Dato
           <span>La meta del mes no se escribe: es la suma de los días, con las campañas incluidas. Vacío = sin meta ese día.</span>
         </PieTabla>
       </Superficie>
+
+      {metas && metas.tiendas.length > 0 && <ConfiguracionMetasMes metas={metas} guardar={guardar} />}
 
       <Superficie className="anim-sube" guia="config.tiendas-whatsapp">
         <TituloDeTarjeta

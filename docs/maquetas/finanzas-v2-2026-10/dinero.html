@@ -1,0 +1,1835 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cuentas y dinero · Finanzas · maquetas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="base.css">
+<style>
+/* Cuentas y dinero — solo var(--…) de base.css. Prefijos: d- (común de esta página), va- (A), vb- (B), vc- (C). */
+
+/* ================= Común de la página ================= */
+.d-tip{position:absolute;left:0;top:0;pointer-events:none;background:var(--tinta);color:var(--crema);font-size:12.5px;line-height:1.45;border-radius:12px;
+  padding:10px 12px;min-width:180px;max-width:260px;opacity:0;transform:translateY(6px);transition:opacity .16s var(--ease-cayla),transform .22s var(--ease-cayla);z-index:6;
+  box-shadow:0 10px 30px color-mix(in srgb,var(--sombra) 28%,transparent)}
+.d-tip.ver{opacity:1;transform:none}
+.d-tip b{display:block;font-weight:600;font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+.d-tip .n{display:block;font-family:var(--serif);font-size:22px;line-height:1.15;font-variant-numeric:tabular-nums}
+.d-tip ul{list-style:none;margin:6px 0 0;padding:6px 0 0;border-top:1px solid color-mix(in srgb,var(--crema) 22%,transparent)}
+.d-tip li{display:flex;justify-content:space-between;gap:14px;font-size:12px}
+.d-tip li span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+.d-h2{font-family:var(--serif);font-size:21px;line-height:1.2;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.d-cuenta{font-family:var(--sans);font-size:11px;font-weight:600;min-width:22px;height:20px;padding:0 7px;border-radius:999px;background:var(--hueso);
+  display:inline-flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;color:var(--tinta);transition:background .3s}
+.d-sello{display:inline-flex;align-items:center;gap:6px;border:2px solid currentColor;border-radius:8px;padding:3px 10px;font-size:11px;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--verde);transform:rotate(-4deg);white-space:nowrap}
+.d-sello[hidden]{display:none}
+.d-sello.estampa{animation:mq-sello .55s var(--ease-cayla)}
+.d-pie{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.d-flecha{display:inline-block;color:var(--taupe);margin:0 4px}
+svg [data-crece-alto]{transform-box:fill-box}
+svg [data-sello]{transform-box:fill-box;transform-origin:center}
+@keyframes d-trazo{from{transform:scaleX(0)}}
+@keyframes d-entra-lado{from{opacity:0;transform:translateX(-14px)}}
+
+/* ================= A · La respuesta ================= */
+.va-bloque{display:flex;flex-direction:column;gap:14px;padding:26px 28px}
+@media (max-width:480px){.va-bloque{padding:20px 18px}}
+.va-grande{font-family:var(--serif);font-size:clamp(44px,8vw,76px);line-height:.98;letter-spacing:-.015em}
+.va-grande .num{white-space:nowrap}
+.va-media{font-family:var(--serif);font-size:clamp(30px,4.4vw,40px);line-height:1.05}
+.va-media small{font-family:var(--sans);font-size:14px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.va-reparto{display:flex;gap:3px;height:12px}
+.va-reparto>i{display:block;flex:none;height:100%;border-radius:999px;background:var(--c);width:var(--w)}
+.va-leyenda{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:8px 22px}
+.va-leyenda li{display:flex;align-items:baseline;gap:8px;font-size:14px}
+.va-leyenda i{width:9px;height:9px;border-radius:3px;background:var(--c);flex:none;transform:translateY(-1px)}
+.va-leyenda b{margin-left:auto;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+.va-explica{padding-top:10px;display:flex;flex-direction:column;gap:10px;font-size:14px;max-width:74ch}
+.va-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.va-lista li{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px dashed var(--sand)}
+.va-lista li small{display:block;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.va-lista li>span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+.va-frase{font-family:var(--serif);font-size:clamp(26px,3.6vw,38px);line-height:1.15;max-width:32ch}
+.va-monto{font-weight:500;white-space:nowrap;transition:color .45s var(--ease-cayla);font-variant-numeric:tabular-nums}
+.va-monto.bajo{color:var(--rojo-p)}
+.va-monto.bien{color:var(--verde)}
+.va-sub{font-size:14.5px;max-width:62ch;min-height:1.55em}
+.va-curva{position:relative;margin-top:2px;touch-action:pan-y}
+.va-curva svg{display:block;width:100%;overflow:visible}
+.va-grilla{stroke:var(--sand);stroke-width:1}
+.va-eje{font-size:11.5px;fill:color-mix(in srgb,var(--tinta) 64%,transparent);font-family:var(--sans)}
+.va-area{fill:color-mix(in srgb,var(--pizarra) 13%,transparent)}
+.va-bajo{fill:color-mix(in srgb,var(--rojo) 30%,transparent)}
+.va-min{stroke:var(--tinta);stroke-width:1.2;stroke-dasharray:5 5;opacity:.6}
+.va-min-t{font-size:12px;font-weight:600;fill:var(--tinta);font-family:var(--sans)}
+.va-linea{fill:none;stroke:var(--tinta);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.va-ev{fill:var(--papel);stroke:var(--tinta);stroke-width:1.6}
+.va-valle-aro{fill:none;stroke:var(--tinta);stroke-width:1.2;opacity:.35}
+.va-valle-punto{fill:var(--tinta)}
+.va-valle-et rect{fill:var(--tinta)}
+.va-valle-et text{fill:var(--crema);font-size:12.5px;font-weight:600;font-family:var(--sans)}
+.va-nota-l{stroke:var(--taupe);stroke-width:1}
+.va-nota-t{font-size:12px;fill:var(--taupe);font-family:var(--sans);font-weight:500}
+.va-guia{stroke:var(--tinta);stroke-width:1;stroke-dasharray:3 3;transition:opacity .15s}
+.va-guia-p{fill:var(--papel);stroke:var(--tinta);stroke-width:2;transition:opacity .15s}
+.va-captura{fill:transparent;cursor:crosshair}
+.va-salidas{display:flex;flex-direction:column;gap:10px;padding-top:4px}
+.va-opciones{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:10px}
+.va-opcion{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:12px;text-align:left;padding:14px 16px;border-radius:14px;
+  border:1px solid var(--sand);background:var(--crema);cursor:pointer;position:relative;overflow:hidden;
+  transition:transform .25s var(--ease-cayla),border-color .2s,background .2s,box-shadow .2s}
+.va-opcion:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--tinta) 35%,var(--sand))}
+.va-opcion:active{transform:scale(.985)}
+.va-opcion[aria-pressed="true"]{border-color:var(--tinta);background:var(--papel);box-shadow:inset 0 0 0 1px var(--tinta)}
+.va-op-ico{position:relative;width:42px;height:42px;border-radius:12px;background:var(--hueso);display:grid;place-items:center;transition:background .25s var(--ease-cayla)}
+.va-op-ico>svg{grid-area:1/1;transition:opacity .2s,transform .3s var(--ease-cayla)}
+.va-op-ico .visto{opacity:0;transform:scale(.6)}
+.va-op-ico .visto path{stroke:var(--crema);stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .45s var(--ease-cayla) .12s}
+.va-opcion[aria-pressed="true"] .va-op-ico{background:var(--tinta)}
+.va-opcion[aria-pressed="true"] .va-op-ico .icono{opacity:0;transform:scale(.6)}
+.va-opcion[aria-pressed="true"] .va-op-ico .visto{opacity:1;transform:none}
+.va-opcion[aria-pressed="true"] .va-op-ico .visto path{stroke-dashoffset:0}
+.va-op-txt b{display:block;font-weight:600;font-size:14.5px}
+.va-op-txt small{display:block;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.va-op-num{font-family:var(--serif);font-size:21px;white-space:nowrap;font-variant-numeric:tabular-nums}
+@media (max-width:480px){.va-opcion{grid-template-columns:42px minmax(0,1fr)}.va-op-num{grid-column:2;font-size:18px}}
+.va-deudas{list-style:none;margin:0;padding:0}
+.va-deudas li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px 14px;align-items:center;padding:11px 0;border-bottom:1px solid var(--sand)}
+.va-deudas li:last-child{border-bottom:0}
+.va-deudas b{font-weight:600}
+.va-deudas small{display:block;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.va-deudas .m{font-family:var(--serif);font-size:19px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.va-vence{text-align:right;font-size:12.5px;white-space:nowrap}
+@media (max-width:480px){.va-deudas li{grid-template-columns:minmax(0,1fr) auto}.va-vence{grid-column:1;text-align:left;grid-row:2}}
+.va-tl{position:relative;height:52px;margin:6px 8px 0}
+.va-tl::before{content:"";position:absolute;left:0;right:0;top:12px;height:2px;border-radius:2px;background:var(--sand)}
+.va-tl .trazo{position:absolute;left:0;right:0;top:12px;height:2px;border-radius:2px;background:var(--tinta);transform-origin:left;opacity:.75}
+.animar .va-tl .trazo{animation:d-trazo 1.1s var(--ease-cayla) .35s backwards}
+.va-tl .pt{position:absolute;top:6px;left:var(--x);width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--papel);border:2px solid var(--tinta)}
+.va-tl .pt.hoy{background:var(--tinta)}
+.va-tl .pt.urg{border-color:var(--ambar);background:var(--ambar)}
+.va-tl .pt small{position:absolute;top:18px;left:50%;transform:translateX(-50%);font-size:11px;white-space:nowrap;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.va-tl .pt.hoy small{left:0;transform:none}
+.va-tl .pt:last-child small{left:auto;right:0;transform:none}
+.va-viajes{display:flex;flex-direction:column;gap:12px}
+.va-viaje{background:var(--crema);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.va-viaje-cab{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.va-viaje-cab b{font-weight:600}
+.va-viaje-cab .n{font-family:var(--serif);font-size:22px;font-variant-numeric:tabular-nums}
+.va-pasos{list-style:none;margin:2px 0 0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+.va-pasos li{position:relative;padding-top:18px;font-size:11px;line-height:1.3;text-align:center;color:color-mix(in srgb,var(--tinta) 70%,transparent)}
+.va-pasos li::before{content:"";position:absolute;top:4px;left:50%;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:var(--papel);border:1.5px solid var(--sand);z-index:1}
+.va-pasos li::after{content:"";position:absolute;top:8px;left:-50%;width:100%;height:2px;background:var(--sand)}
+.va-pasos li:first-child::after{display:none}
+.va-pasos li.hecho::before{background:var(--tinta);border-color:var(--tinta)}
+.va-pasos li.hecho+li::after,.va-pasos li.hoy::after{background:var(--tinta)}
+.va-pasos li.hoy::before{background:var(--papel);border:3px solid var(--tinta)}
+.va-pasos li.hoy{color:var(--tinta);font-weight:600}
+.va-pasos li.ventana::before{background:var(--m-qr);border-color:var(--m-qr)}
+.va-pasos li.aviso::before{border-color:var(--ambar);border-style:dashed}
+.va-bancos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:12px}
+.va-banco{background:var(--crema);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.va-banco-cab{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.va-banco-cab b{font-weight:600}
+.va-banco .pista>i{transition:width .7s var(--ease-cayla)}
+.va-falta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13.5px}
+.va-falta code{font-family:var(--mono);font-size:12px;background:var(--hueso);padding:2px 7px;border-radius:6px}
+.va-hecho{display:none;align-items:center;gap:10px;font-size:13.5px}
+.va-banco.hecho .va-falta{display:none}
+.va-banco.hecho .va-hecho{display:flex}
+.va-cajas{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13.5px;padding-top:2px}
+
+/* ================= B · La mesa de trabajo ================= */
+.vb-barra-filtros{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.vb-pildoras{display:flex;flex-wrap:wrap;gap:6px}
+.vb-pildora{border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;
+  transition:background .2s var(--ease-cayla),color .2s,border-color .2s,transform .2s var(--ease-cayla)}
+.vb-pildora:hover{border-color:color-mix(in srgb,var(--tinta) 40%,var(--sand));transform:translateY(-1px)}
+.vb-pildora[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.vb-pista-sede{font-size:13px;min-height:1.5em}
+.vb-cuentas{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:14px;align-items:start}
+.vb-col{display:flex;flex-direction:column;gap:14px}
+.vb-grupo{display:flex;flex-direction:column;gap:8px}
+.vb-grupo-cab{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:0 4px}
+.vb-grupo-cab .t{font-family:var(--serif);font-size:16px;font-variant-numeric:tabular-nums}
+.vb-cta{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);padding:14px 16px;display:flex;flex-direction:column;gap:6px;
+  transition:opacity .35s var(--ease-cayla),transform .3s var(--ease-cayla),border-color .2s,filter .35s}
+.vb-cta:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--taupe) 45%,var(--sand))}
+.vb-cta.apagada{opacity:.32;filter:saturate(.2)}
+.vb-cta-cab{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.vb-cta-cab span:first-child{font-weight:600;font-size:14px}
+.vb-cta-v{font-family:var(--serif);font-size:27px;line-height:1.05;font-variant-numeric:tabular-nums}
+.vb-cta-v.debe{color:var(--taupe)}
+.vb-spark{width:100%;height:30px;display:block;overflow:visible}
+.vb-spark path{fill:none;stroke:var(--c,var(--tinta));stroke-width:1.6;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round}
+.vb-spark .base{stroke:var(--sand);stroke-width:1;stroke-dasharray:2 3}
+.vb-dias{display:flex;gap:4px;align-items:center;font-size:11.5px}
+.vb-dias i{width:16px;height:5px;border-radius:999px;background:var(--hueso)}
+.vb-dias i.si{background:var(--m-qr)}
+.vb-dias i.av{background:transparent;border:1px dashed var(--ambar)}
+.vb-cifras .valor{white-space:nowrap}
+.vb-medios{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.vb-medios li{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--sand);font-size:13.5px}
+.vb-medios li:last-child{border-bottom:0}
+.vb-medio-n{display:flex;align-items:center;gap:8px;font-weight:500}
+.vb-medio-n i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.vb-camino{display:flex;flex-wrap:wrap;align-items:center;gap:4px 2px}
+.vb-paso{background:var(--hueso);border-radius:999px;padding:2px 10px;font-size:12.5px;white-space:nowrap}
+.vb-paso.fin{background:transparent;border:1px solid var(--sand)}
+.vb-paso.com{background:transparent;color:var(--ambar);font-size:12px}
+@media (max-width:560px){.vb-medios li{grid-template-columns:1fr}}
+.vb-flujo{position:relative;touch-action:pan-y}
+.vb-flujo svg{display:block;width:100%;overflow:visible}
+.vb-leyenda{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;align-items:center}
+.vb-leyenda span{display:inline-flex;align-items:center;gap:7px}
+.vb-leyenda i{width:12px;height:12px;border-radius:3px;background:var(--c)}
+.vb-leyenda i.l{height:2px;border-radius:2px}
+.vb-leyenda i.dash{height:0;border-top:2px dashed var(--tinta);background:none;opacity:.6}
+.vb-g{stroke:var(--sand);stroke-width:1}
+.vb-eje{font-size:11px;fill:color-mix(in srgb,var(--tinta) 64%,transparent);font-family:var(--sans)}
+.vb-finde{fill:color-mix(in srgb,var(--hueso) 55%,transparent)}
+.vb-ent{fill:var(--verde)}
+.vb-sal{fill:var(--taupe)}
+.animar .vb-sal[data-crece-alto]{transform-origin:top}
+.vb-corte{stroke:var(--papel);stroke-width:3}
+.vb-corte-t{font-size:11px;fill:var(--taupe);font-family:var(--sans);font-weight:600}
+.vb-linea{fill:none;stroke:var(--tinta);stroke-width:2;stroke-linejoin:round}
+.vb-min{stroke:var(--tinta);stroke-dasharray:5 5;opacity:.6}
+.vb-bajo{fill:color-mix(in srgb,var(--rojo) 30%,transparent)}
+.vb-col-hover{fill:color-mix(in srgb,var(--tinta) 6%,transparent);transition:opacity .12s}
+.vb-captura{fill:transparent;cursor:crosshair}
+.vb-tabla .vence{white-space:nowrap}
+.vb-tabla tbody tr.fila{cursor:pointer}
+.vb-tabla tbody tr.fila td:first-child{position:relative}
+.vb-tabla tbody tr.fila td:first-child::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:2px;border-radius:2px;background:var(--rojo);transform:scaleY(0);transition:transform .3s var(--ease-cayla)}
+.vb-tabla tbody tr.fila[aria-expanded="true"] td:first-child::before{transform:none}
+.vb-tabla tbody tr.fila .flecha{display:inline-block;transition:transform .25s var(--ease-cayla);color:var(--taupe);margin-left:6px}
+.vb-tabla tbody tr.fila[aria-expanded="true"] .flecha{transform:rotate(90deg)}
+.vb-tabla tr.det td{padding:0;border-bottom:0}
+.vb-tabla tr.det.abierta td{border-bottom:1px solid var(--sand)}
+.vb-det{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px 24px;padding:4px 12px 16px;font-size:13px}
+.vb-det span{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.vb-tabla tr.pagado td{color:color-mix(in srgb,var(--tinta) 55%,transparent)}
+.vb-tabla tr.pagado .m{text-decoration:line-through}
+.vb-tabla tr.oculta,.vb-tabla tr.det.oculta{display:none}
+.vb-tabla tfoot td{font-weight:600;border-bottom:0;padding-top:14px}
+.vb-tabla small{display:block;font-size:12px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.vb-ok{color:var(--verde);font-weight:600;white-space:nowrap}
+.vb-dif-mala{color:var(--ambar);font-weight:600}
+.vb-subir{display:flex;align-items:center;gap:14px;border:1.5px dashed var(--sand);border-radius:14px;padding:14px 16px;background:var(--crema);cursor:pointer;width:100%;text-align:left;
+  transition:border-color .2s,background .2s}
+.vb-subir:hover{border-color:var(--tinta)}
+.vb-subir .ico{width:38px;height:38px;border-radius:10px;background:var(--hueso);display:grid;place-items:center;flex:none}
+.vb-subir .pista{margin-top:6px;height:4px;width:100%;max-width:280px}
+.vb-subir .pista>i{transition:width 1.2s var(--ease-cayla)}
+.vb-concilia-cab{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.vb-barra{display:flex;gap:3px;height:10px;margin-top:4px}
+.vb-barra i{display:block;height:100%;border-radius:999px;width:var(--w);background:var(--c);transition:width .6s var(--ease-cayla)}
+.vb-cont{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;margin-top:8px}
+.vb-cont span{display:inline-flex;align-items:center;gap:7px}
+.vb-cont i{width:9px;height:9px;border-radius:3px;background:var(--c)}
+.vb-saldos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--sand);border:1px solid var(--sand);border-radius:12px;overflow:hidden}
+.vb-saldos>div{background:var(--papel);padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.vb-saldos .n{font-family:var(--serif);font-size:22px;font-variant-numeric:tabular-nums;transition:color .4s}
+@media (max-width:560px){.vb-saldos{grid-template-columns:1fr}}
+.vb-colcab{display:grid;grid-template-columns:minmax(0,1fr) 200px minmax(0,1fr);gap:12px;padding:0 2px}
+.vb-seccion{display:flex;align-items:center;gap:10px;margin:14px 0 4px;font-size:13px;font-weight:600}
+.vb-seccion .d-cuenta{font-weight:600}
+.vb-par{display:grid;grid-template-columns:minmax(0,1fr) 200px minmax(0,1fr);gap:12px;align-items:center;padding:6px 0}
+.vb-mov{background:var(--crema);border:1px solid var(--sand);border-radius:12px;padding:10px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline;
+  min-width:0;transition:transform .5s var(--ease-cayla),border-color .35s,background .35s,opacity .3s}
+.vb-mov .que{min-width:0;overflow-wrap:anywhere}
+.vb-mov .cuanto{font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:500}
+.vb-mov .cuando{grid-column:1/-1;font-size:11.5px;color:color-mix(in srgb,var(--tinta) 64%,transparent)}
+.vb-ext{font-family:var(--mono);font-size:12px}
+.vb-ext .cuando{font-family:var(--sans)}
+.vb-medio{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;font-size:12px;transition:opacity .3s,transform .35s var(--ease-cayla)}
+.vb-medio::before{content:"";position:absolute;left:-12px;right:-12px;top:50%;border-top:1.5px dashed var(--c,var(--ambar));z-index:0;opacity:.7}
+.vb-medio>*{position:relative;z-index:1;background:var(--papel);padding:0 6px}
+.vb-medio.ok::before{border-top-style:solid;border-color:var(--verde)}
+.vb-medio .chip{background:color-mix(in srgb,var(--c) 13%,var(--papel))}
+.vb-par.juntando .vb-ext{transform:translateX(112px)}
+.vb-par.juntando .vb-sis{transform:translateX(-112px)}
+.vb-par.juntando .vb-medio{opacity:0;transform:scale(.85)}
+.vb-par.junta .vb-mov{border-color:color-mix(in srgb,var(--verde) 55%,var(--sand));background:color-mix(in srgb,var(--verde) 8%,var(--crema))}
+.vb-plegable{display:grid;grid-template-rows:1fr;transition:grid-template-rows .5s var(--ease-cayla),opacity .4s}
+.vb-plegable>div{overflow:hidden;min-height:0}
+.vb-plegable.ido{grid-template-rows:0fr;opacity:0}
+.vb-vacio{border:1.5px dashed var(--sand);border-radius:12px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12.5px;
+  color:color-mix(in srgb,var(--tinta) 66%,transparent);min-height:56px}
+.vb-sis.nuevo{animation:d-entra-lado .5s var(--ease-cayla)}
+.vb-comision{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 10px;font-size:13px;background:var(--hueso);border-radius:10px;padding:8px 12px}
+.vb-comision b{font-family:var(--serif);font-size:17px;font-weight:500;font-variant-numeric:tabular-nums}
+.vb-mini{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 12px;font-size:12px;padding:8px 0}
+.vb-mini>div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--sand);padding:5px 2px}
+.vb-mini>div span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+.vb-mini .x{font-family:var(--mono);font-size:11.5px}
+@media (max-width:760px){
+  .vb-colcab{display:none}
+  .vb-par{grid-template-columns:1fr;gap:6px}
+  .vb-medio::before{left:50%;right:auto;top:-6px;bottom:-6px;border-top:0;border-left:1.5px dashed var(--c,var(--ambar))}
+  .vb-medio.ok::before{border-left-style:solid}
+  .vb-par.juntando .vb-ext,.vb-par.juntando .vb-sis{transform:none}
+  .vb-mini{grid-template-columns:1fr}
+}
+
+/* ================= C · Las cosas de la tienda ================= */
+.vc-mapa-caja{padding:0;overflow:hidden;position:relative}
+.vc-mapa-desliza{overflow-x:auto;overscroll-behavior-x:contain}
+.vc-mapa{display:block;width:100%;min-width:760px;height:auto}
+.vc-t{font-family:var(--sans);font-size:11px;letter-spacing:.12em;font-weight:600;fill:var(--taupe);text-transform:uppercase}
+.vc-n{font-family:var(--serif);font-size:24px;fill:var(--tinta);font-variant-numeric:tabular-nums}
+.vc-nc{font-family:var(--serif);font-size:17px;fill:var(--tinta);font-variant-numeric:tabular-nums}
+.vc-s{font-family:var(--sans);font-size:12px;fill:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.vc-lugar{cursor:pointer;outline:none}
+.vc-card{fill:var(--papel);stroke:var(--sand);stroke-width:1.2;transition:stroke .2s,fill .2s}
+.vc-lugar:hover .vc-card,.vc-lugar:focus-visible .vc-card,.vc-lugar.activo .vc-card{stroke:var(--tinta);stroke-width:1.6}
+.vc-trazo{fill:none;stroke:var(--tinta);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.vc-hueso{fill:var(--hueso)}
+.vc-crema{fill:var(--crema)}
+.vc-toldo{fill:var(--hueso);stroke:var(--tinta);stroke-width:1.2}
+.vc-ruta{fill:none;stroke:color-mix(in srgb,var(--taupe) 45%,transparent);stroke-width:1.6;stroke-linecap:round;transition:stroke .25s,stroke-width .25s}
+.vc-ruta.viva{stroke:var(--tinta);stroke-width:2.4}
+.vc-tubo-borde{fill:none;stroke:var(--sand);stroke-width:14;stroke-linecap:round;stroke-linejoin:round}
+.vc-tubo{fill:none;stroke:var(--hueso);stroke-width:10;stroke-linecap:round;stroke-linejoin:round}
+.vc-camino{fill:var(--hueso)}
+.vc-camino-l{stroke:var(--papel);stroke-width:2.5;stroke-dasharray:16 14}
+.vc-rueda{fill:var(--tinta)}
+.vc-rueda-c{fill:var(--hueso)}
+.vc-caja-camion{fill:var(--papel);stroke:var(--tinta);stroke-width:1.4}
+.vc-camion{transition:transform .5s var(--ease-cayla)}
+.vc-camion.carga{transform:translateY(-3px)}
+.vc-tanque{fill:color-mix(in srgb,var(--papel) 70%,transparent);stroke:var(--tinta);stroke-width:1.6}
+.vc-agua{fill:color-mix(in srgb,var(--pizarra) 30%,transparent);transition:fill .5s var(--ease-cayla)}
+.vc-agua.bajo{fill:color-mix(in srgb,var(--rojo) 32%,transparent)}
+.vc-superficie{fill:none;stroke:var(--pizarra);stroke-width:2;transition:stroke .5s}
+.vc-superficie.bajo{stroke:var(--rojo)}
+.vc-division{stroke:var(--papel);stroke-width:2;stroke-dasharray:3 4;transition:opacity .4s}
+.vc-min{stroke:var(--tinta);stroke-dasharray:6 6;stroke-width:1.4}
+.vc-min-t{font-family:var(--sans);font-size:11.5px;font-weight:600;fill:var(--tinta)}
+.vc-nivel{font-family:var(--serif);font-size:22px;fill:var(--tinta);font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--papel);stroke-width:5px}
+.vc-dentro{font-family:var(--sans);font-size:11.5px;font-weight:600;fill:var(--tinta);transition:opacity .4s}
+.vc-salida{fill:var(--papel);stroke:var(--sand);stroke-width:1.2}
+.vc-frasco{fill:color-mix(in srgb,var(--ambar) 12%,var(--papel));stroke:var(--tinta);stroke-width:1.3}
+.vc-moneda{fill:var(--ambar)}
+.vc-cometa .cab{stroke:var(--papel);stroke-width:1.5}
+.vc-cometa .cola{opacity:.35}
+.vc-cometa text{font-family:var(--sans);font-size:12px;font-weight:600;fill:var(--tinta);paint-order:stroke;stroke:var(--crema);stroke-width:4px;stroke-linejoin:round}
+.vc-cometa.llego{opacity:0;transition:opacity .4s}
+.vc-k-efectivo{fill:var(--m-efectivo)}
+.vc-k-qr{fill:var(--m-qr)}
+.vc-k-yape{fill:var(--m-yape)}
+.vc-k-comision{fill:var(--ambar)}
+.vc-k-sobre{fill:var(--papel);stroke:var(--tinta);stroke-width:1.2}
+.vc-onda{fill:none;stroke:var(--tinta);stroke-width:1.5;transform-box:fill-box;transform-origin:center;animation:vc-onda .65s var(--ease-cayla) forwards}
+@keyframes vc-onda{from{transform:scale(.3);opacity:.7}to{transform:scale(2.4);opacity:0}}
+.vc-latido{animation:vc-salta .5s var(--ease-cayla)}
+@keyframes vc-salta{40%{transform:translateY(-4px)}}
+.vc-bajo-mapa{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:0;border-top:1px solid var(--sand)}
+.vc-bajo-mapa>div{padding:18px 22px;min-width:0}
+.vc-bajo-mapa>div+div{border-left:1px solid var(--sand)}
+@media (max-width:760px){.vc-bajo-mapa{grid-template-columns:1fr}.vc-bajo-mapa>div+div{border-left:0;border-top:1px solid var(--sand)}}
+.vc-pasos{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;counter-reset:p}
+.vc-pasos li{display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px;align-items:start;padding:7px 10px;border-radius:10px;font-size:13.5px;transition:background .3s,opacity .3s;opacity:.62}
+.vc-pasos li::before{counter-increment:p;content:counter(p);width:24px;height:24px;border-radius:50%;border:1px solid var(--sand);display:grid;place-items:center;font-size:11.5px;font-weight:600;background:var(--papel);transition:background .3s,color .3s}
+.vc-pasos li.activo{background:var(--hueso);opacity:1}
+.vc-pasos li.hecho{opacity:1}
+.vc-pasos li.hecho::before{content:"✓";background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.vc-ficha{display:flex;flex-direction:column;gap:6px}
+.vc-ficha h3{font-size:22px}
+.vc-ficha .n{font-family:var(--serif);font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.vc-ficha p{font-size:13.5px}
+.vc-ficha.cambia{animation:mq-entra .4s var(--ease-cayla)}
+.vc-sim{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:16px 22px;border-top:1px solid var(--sand);background:color-mix(in srgb,var(--hueso) 45%,var(--papel))}
+.vc-sim-txt{flex:1 1 280px;font-size:14px;min-height:1.5em}
+.vc-sim-txt b{font-family:var(--serif);font-size:19px;font-weight:500}
+.vc-sim-acciones{display:flex;flex-wrap:wrap;gap:8px}
+.vc-ojo{color:var(--rojo-p)}
+.vc-bien{color:var(--verde)}
+.btn[disabled]{opacity:.45;cursor:default;transform:none}
+.vc-tiras{--hilo:clamp(76px,17vw,210px);position:relative;display:grid;grid-template-columns:minmax(0,1fr) var(--hilo) minmax(0,1fr);padding:0 0 26px;margin-top:6px}
+.vc-papel{position:absolute;top:0;bottom:6px;width:calc((100% - var(--hilo)) / 2);background-color:var(--papel);
+  background-image:repeating-linear-gradient(to bottom,transparent 0 41px,color-mix(in srgb,var(--sand) 70%,transparent) 41px 42px);
+  border:1px solid var(--sand);border-radius:6px 6px 0 0;
+  -webkit-mask:conic-gradient(from -45deg at bottom,transparent,black 1deg 89deg,transparent 90deg) 50%/14px 100%;
+  mask:conic-gradient(from -45deg at bottom,transparent,black 1deg 89deg,transparent 90deg) 50%/14px 100%}
+.vc-papel.izq{left:0}
+.vc-papel.der{right:0}
+.vc-cab{position:relative;z-index:1;padding:14px 16px 8px}
+.vc-cab.izq{grid-column:1}
+.vc-cab.der{grid-column:3}
+.vc-celda{position:relative;z-index:1;padding:9px 16px;min-height:54px;display:flex;flex-direction:column;justify-content:center;min-width:0;transition:background .35s}
+.vc-celda.izq{grid-column:1;font-family:var(--mono);font-size:12px}
+.vc-celda.der{grid-column:3;font-size:13px}
+.vc-celda .fila{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.vc-celda .fila span:first-child{min-width:0;overflow-wrap:anywhere}
+.vc-celda .fila b{font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.vc-celda small{font-family:var(--sans);font-size:11px;color:color-mix(in srgb,var(--tinta) 64%,transparent)}
+.vc-celda.cosida{background:color-mix(in srgb,var(--verde) 8%,transparent)}
+.vc-celda.cosida .fila b::after{content:" ✓";color:var(--verde)}
+.vc-hilo{grid-column:2;position:relative;z-index:2;display:grid;place-items:center;min-height:54px}
+.vc-hilo>svg{position:absolute;top:0;bottom:0;left:-18px;width:calc(100% + 36px);height:100%;overflow:visible;pointer-events:none}
+.vc-suelto{fill:none;stroke:var(--taupe);stroke-width:1.5;stroke-dasharray:3 5;vector-effect:non-scaling-stroke;transition:opacity .3s}
+.vc-firme{fill:none;stroke:var(--tinta);stroke-width:1.7;opacity:0}
+.vc-fajo path{fill:none;stroke:var(--tinta);stroke-width:1;opacity:.55}
+.vc-colgando{fill:none;stroke:var(--rojo);stroke-width:1.6;vector-effect:non-scaling-stroke;transition:opacity .3s}
+.vc-hilo.cosido .vc-firme{opacity:1}
+.vc-hilo.cosido .vc-suelto,.vc-hilo.cosido .vc-colgando{opacity:0}
+.vc-nudo{position:absolute;top:50%;width:8px;height:8px;border-radius:50%;background:var(--tinta);transform:translate(-50%,-50%) scale(0);transition:transform .35s var(--ease-cayla) .5s;z-index:3}
+.vc-nudo.i{left:-18px}
+.vc-nudo.d{left:calc(100% + 18px)}
+.vc-hilo.cosido .vc-nudo{transform:translate(-50%,-50%) scale(1)}
+.vc-coser{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--tinta);background:var(--papel);cursor:pointer;font-size:12.5px;font-weight:500;
+  transition:transform .2s var(--ease-cayla),background .2s,color .2s,opacity .25s}
+.vc-coser:hover{transform:translateY(-2px);background:var(--tinta);color:var(--crema)}
+.vc-hilo.cosido .vc-coser{opacity:0;pointer-events:none;transform:scale(.8)}
+.vc-fajo-t{position:relative;z-index:2;font-size:11.5px;font-weight:600;background:var(--crema);padding:2px 8px;border-radius:999px;text-align:center}
+.vc-hueco{border:1.5px dashed var(--sand);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;font-size:12px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.vc-boleta{background:var(--crema);border:1px solid var(--sand);border-radius:6px;padding:8px 10px;animation:vc-cae .55s var(--ease-cayla)}
+@keyframes vc-cae{from{opacity:0;transform:translateY(-16px) rotate(-3deg)}}
+.vc-pie-tiras{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) var(--hilo) minmax(0,1fr);position:relative;z-index:1;border-top:1px solid var(--sand);margin-top:4px}
+.vc-pie-tiras>div{padding:10px 16px;font-size:12.5px}
+.vc-pie-tiras .n{font-family:var(--serif);font-size:20px;display:block;font-variant-numeric:tabular-nums}
+.vc-pie-tiras .dif{text-align:center;padding-inline:4px}
+.vc-sello{position:absolute;left:50%;top:46%;z-index:5;transform:translate(-50%,-50%) rotate(-8deg);border:3px double var(--verde);color:var(--verde);border-radius:10px;
+  font-family:var(--serif);font-size:clamp(24px,4vw,38px);letter-spacing:.06em;padding:6px 20px;background:color-mix(in srgb,var(--papel) 82%,transparent);opacity:0;pointer-events:none;white-space:nowrap;text-align:center;line-height:1.1}
+.vc-sello small{display:block;font-family:var(--sans);font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+.vc-sello.ver{opacity:1;animation:vc-sello .6s var(--ease-cayla)}
+@keyframes vc-sello{from{opacity:0;transform:translate(-50%,-50%) scale(1.5) rotate(-14deg)}}
+@media (max-width:560px){
+  .vc-tiras{--hilo:52px}
+  .vc-celda{padding:8px 10px}.vc-cab{padding:12px 10px 6px}
+  .vc-celda .fila{flex-direction:column;align-items:flex-start;gap:1px}
+  .vc-fajo-t{font-size:10.5px;padding:2px 5px}
+  .vc-celda.izq{font-size:10.5px}.vc-celda.der{font-size:12px}
+  .vc-coser{width:30px;padding:0;justify-content:center}.vc-coser span{display:none}
+  .vc-pie-tiras>div{padding:10px}
+  .vc-pie-tiras .dif{padding-inline:0}.vc-pie-tiras .dif .versalita{display:none}.vc-pie-tiras .dif .n{font-size:14px;white-space:nowrap}
+  .vc-hueco .btn{white-space:nowrap;padding:0 10px}
+}
+.vc-tendedero{position:relative;padding-top:8px}
+.vc-cuerda{position:absolute;left:0;right:0;top:14px;width:100%;height:30px;overflow:visible}
+.vc-cuerda path{fill:none;stroke:var(--taupe);stroke-width:1.4;vector-effect:non-scaling-stroke}
+.vc-sobres{position:relative;display:flex;justify-content:space-around;gap:14px;padding-top:12px}
+.vc-sobre{position:relative;flex:0 1 200px;min-width:0;border:0;background:none;padding:0;cursor:pointer;text-align:left;transform:rotate(var(--r,0deg));transform-origin:50% 0;
+  transition:transform .35s var(--ease-cayla)}
+.vc-sobre:hover,.vc-sobre:focus-visible{transform:rotate(0deg) translateY(-4px)}
+.vc-pinza{position:absolute;left:50%;top:-6px;width:10px;height:22px;margin-left:-5px;border-radius:3px;background:var(--taupe);z-index:2}
+.vc-cuerpo{position:relative;display:flex;flex-direction:column;gap:3px;background:var(--papel);border:1px solid var(--sand);border-radius:8px;padding:34px 14px 14px;overflow:hidden}
+.vc-solapa{position:absolute;left:0;right:0;top:0;height:30px;background:var(--hueso);clip-path:polygon(0 0,100% 0,50% 100%);transform-origin:top;transition:transform .45s var(--ease-cayla)}
+.vc-sobre:hover .vc-solapa,.vc-sobre:focus-visible .vc-solapa{transform:scaleY(.25)}
+.vc-sobre .f{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.vc-sobre b{font-weight:600;font-size:14px}
+.vc-sobre .n{font-family:var(--serif);font-size:22px;font-variant-numeric:tabular-nums}
+.vc-sobre .chip{align-self:flex-start;margin-top:4px}
+.vc-sobre.urgente .vc-cuerpo{border-color:color-mix(in srgb,var(--ambar) 55%,var(--sand))}
+@media (max-width:760px){.vc-cuerda{display:none}.vc-sobres{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.vc-sobre{--r:0deg!important}}
+</style></head><body>
+<header class="mq-barra"><a class="mq-volver" href="index.html" aria-label="Volver a las maquetas"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></a>
+<div class="mq-titulo"><span class="versalita">Finanzas · maquetas</span><b>Cuentas y dinero</b></div><span class="mq-espacio"></span>
+<div class="mq-selector" role="group" aria-label="Camino"><button data-ver="a">A · La respuesta</button><button data-ver="b">B · La mesa</button><button data-ver="c">C · Las cosas</button></div>
+<span class="mq-ejemplo">Cifras de ejemplo</span><button class="mq-tema" type="button">Oscuro</button></header>
+<main class="pagina">
+
+<!-- =====================================================================
+     A · LA RESPUESTA
+     ===================================================================== -->
+<section class="variante" data-variante="a">
+  <div class="variante-cab"><span class="versalita">Camino A · La respuesta</span><p class="idea tenue">Cuatro preguntas y cuatro respuestas grandes: cuánto tienes, si te alcanza, qué debes y si cuadra con el banco. El detalle se abre en «¿Por qué?».</p></div>
+
+  <div class="encabezado" data-entra style="--i:0">
+    <div>
+      <div class="linea-sede"><span class="versalita">Todas las sedes · jueves 15 de octubre</span></div>
+      <h1>Cuentas y dinero</h1>
+      <p class="frase tenue">Dónde está tu plata hoy y si te alcanza hasta que vuelva a entrar.</p>
+    </div>
+  </div>
+
+  <!-- ¿Dónde está mi plata? -->
+  <article class="tarjeta va-bloque" data-sube style="--i:1">
+    <span class="versalita">¿Dónde está mi plata?</span>
+    <p class="va-grande">Tienes <span class="num" data-cuenta="42830" data-pre="S/ " data-dur="1300">S/ 42,830</span></p>
+    <div class="va-reparto" role="img" aria-label="En bancos 66 %, en cajas fuertes 24 %, en camino 8 %, en cajones 2 %">
+      <i data-crece style="--i:0;--c:var(--pizarra);--w:calc((100% - 9px) * .6603)"></i>
+      <i data-crece style="--i:1;--c:var(--m-efectivo);--w:calc((100% - 9px) * .2358)"></i>
+      <i data-crece style="--i:2;--c:var(--m-qr);--w:calc((100% - 9px) * .0806)"></i>
+      <i data-crece style="--i:3;--c:var(--taupe);--w:calc((100% - 9px) * .0233)"></i>
+    </div>
+    <ul class="va-leyenda">
+      <li data-entra style="--i:3"><i style="--c:var(--pizarra)"></i><span>En tus bancos</span><b>S/ 28,280</b></li>
+      <li data-entra style="--i:4"><i style="--c:var(--m-efectivo)"></i><span>En las cajas fuertes</span><b>S/ 10,100</b></li>
+      <li data-entra style="--i:5"><i style="--c:var(--m-qr)"></i><span>En camino al banco</span><b>S/ 3,450</b></li>
+      <li data-entra style="--i:6"><i style="--c:var(--taupe)"></i><span>En los cajones</span><b>S/ 1,000</b></li>
+    </ul>
+    <div><button class="porque" type="button" data-porque="va-p-donde" aria-expanded="false">¿Por qué?</button></div>
+    <div class="desplegable" id="va-p-donde"><div><div class="va-explica">
+      <p>Es la suma de los 8 lugares donde CAYLA guarda plata, contada hoy a primera hora. No resta lo que debes: eso va más abajo.</p>
+      <ul class="va-lista">
+        <li><span>BCP<small>Aquí entran Yape, Plin y los depósitos de efectivo</small></span><span>S/ 18,450</span></li>
+        <li><span>Interbank<small>Aquí llegan Izipay y Vendemás</small></span><span>S/ 9,830</span></li>
+        <li><span>Por depositar · Izipay<small>Tarjeta y QR del martes 13 y miércoles 14</small></span><span>S/ 2,140</span></li>
+        <li><span>Por depositar · Vendemás<small>Tarjeta del miércoles 14 · llega mañana</small></span><span>S/ 1,310</span></li>
+        <li><span>Caja fuerte de Trujillo<small>Efectivo desde el último depósito, el martes 13</small></span><span>S/ 6,200</span></li>
+        <li><span>Caja fuerte de Arequipa<small>Efectivo desde el último depósito, el viernes 9</small></span><span>S/ 3,900</span></li>
+        <li><span>Cajones de Trujillo y Arequipa<small>El sencillo para dar vuelto: S/ 500 cada uno</small></span><span>S/ 1,000</span></li>
+      </ul>
+    </div></div></div>
+  </article>
+
+  <!-- ¿Me alcanza a fin de mes? -->
+  <article class="tarjeta va-bloque" data-sube style="--i:2">
+    <span class="versalita">¿Me alcanza a fin de mes?</span>
+    <p class="va-frase" id="va-frase" aria-live="polite">El 31 bajas a <span class="va-monto bajo" id="va-monto">S/ 11,200</span>, bajo tu mínimo de S/ 15,000.</p>
+    <p class="tenue va-sub" id="va-sub">Son 3 días por debajo: del sábado 31 al lunes 2. El martes 3 vuelve a entrar lo del fin de semana.</p>
+    <div class="va-curva" id="va-curva">
+      <svg role="img" aria-label="Plata en tus bancos en los próximos 30 días, con tu mínimo de S/ 15,000"></svg>
+      <div class="d-tip" id="va-tip" aria-hidden="true"></div>
+    </div>
+    <div class="va-salidas">
+      <span class="versalita">Dos salidas · toca una, o las dos</span>
+      <div class="va-opciones">
+        <button class="va-opcion" type="button" aria-pressed="false" data-opcion="dep">
+          <span class="va-op-ico">
+            <svg class="icono" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="15" rx="2"/><circle cx="12" cy="11.5" r="3.5"/><path d="M12 8v1.2M15.5 11.5h-1.2M6 19v2M18 19v2"/></svg>
+            <svg class="visto" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+          </span>
+          <span class="va-op-txt"><b>Deposita las cajas fuertes</b><small>Trujillo S/ 6,200 y Arequipa S/ 3,900, mañana jueves</small></span>
+          <span class="va-op-num">+S/ 10,100</span>
+        </button>
+        <button class="va-opcion" type="button" aria-pressed="false" data-opcion="tex">
+          <span class="va-op-ico">
+            <svg class="icono" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M13 15h4M15 13l2 2-2 2"/></svg>
+            <svg class="visto" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+          </span>
+          <span class="va-op-txt"><b>Paga a Textiles del Norte el 3</b><small>Vence el lunes 19: pídeselo antes de esa fecha</small></span>
+          <span class="va-op-num">S/ 6,800</span>
+        </button>
+      </div>
+    </div>
+    <div><button class="porque" type="button" data-porque="va-p-mes" aria-expanded="false">¿Por qué?</button></div>
+    <div class="desplegable" id="va-p-mes"><div><div class="va-explica">
+      <p>La curva es la plata de tus <b>bancos</b>, día por día. Cuenta solo el BCP, Interbank y lo que llega de Izipay y Vendemás, porque los sueldos y los alquileres se pagan por transferencia. Lo de las cajas fuertes no sirve para eso hasta que lo depositas.</p>
+      <p>Suma lo que entra al ritmo de este mes (≈ S/ 2,900 por día hábil en tarjeta, Yape y QR; el fin de semana, solo Yape y Plin) y resta lo que ya sabes que sale:</p>
+      <ul class="va-lista">
+        <li><span>lun 19 · Textiles del Norte</span><span>−S/ 6,800</span></li>
+        <li><span>mar 20 · SUNAT y la detracción del alquiler de AQP</span><span>−S/ 9,610</span></li>
+        <li><span>dom 25 · Tarjeta de crédito CAYLA</span><span>−S/ 2,300</span></li>
+        <li><span>mié 28 · Hilandería Andina</span><span>−S/ 4,600</span></li>
+        <li><span>vie 30 · Sueldos y alquileres de noviembre</span><span>−S/ 37,900</span></li>
+        <li><span>sáb 31 · Contador, publicidad, luz, agua e internet</span><span>−S/ 4,010</span></li>
+        <li><span>vie 6 nov · Botones y Avíos Lima</span><span>−S/ 3,200</span></li>
+      </ul>
+      <p>Tu mínimo (S/ 15,000) es el colchón que elegiste para una urgencia: una máquina que se malogra, un pedido que se adelanta. Pasa el dedo o el mouse por la curva para ver cada día.</p>
+    </div></div></div>
+  </article>
+
+  <div class="rejilla r2">
+    <!-- ¿Qué debo pagar y cuándo? -->
+    <article class="tarjeta va-bloque" data-sube style="--i:3">
+      <span class="versalita">¿Qué debo pagar y cuándo?</span>
+      <p class="va-media">Debes <span class="num" data-cuenta="16900" data-pre="S/ ">S/ 16,900</span></p>
+      <div class="va-tl" aria-hidden="true">
+        <i class="trazo"></i>
+        <span class="pt hoy" style="--x:0%"><small>hoy</small></span>
+        <span class="pt urg" style="--x:18%"><small>lun 19</small></span>
+        <span class="pt" style="--x:45%"><small>dom 25</small></span>
+        <span class="pt" style="--x:59%"><small>mié 28</small></span>
+        <span class="pt" style="--x:100%"><small>vie 6 nov</small></span>
+      </div>
+      <ul class="va-deudas">
+        <li data-entra style="--i:4"><div><b>Textiles del Norte</b><small>Tela · factura F001-2231</small></div><div class="va-vence"><span class="chip late c-ambar">Vence en 4 días</span></div><span class="m">S/ 6,800</span></li>
+        <li data-entra style="--i:5"><div><b>Tarjeta de crédito CAYLA</b><small>Lo que usaste hasta el 10 de octubre</small></div><div class="va-vence">dom 25</div><span class="m">S/ 2,300</span></li>
+        <li data-entra style="--i:6"><div><b>Hilandería Andina</b><small>Hilos · factura F002-0871</small></div><div class="va-vence">mié 28</div><span class="m">S/ 4,600</span></li>
+        <li data-entra style="--i:7"><div><b>Botones y Avíos Lima</b><small>Avíos · factura E001-339</small></div><div class="va-vence">vie 6 nov</div><span class="m">S/ 3,200</span></li>
+      </ul>
+      <div><button class="porque" type="button" data-porque="va-p-debes" aria-expanded="false">¿Por qué?</button></div>
+      <div class="desplegable" id="va-p-debes"><div><div class="va-explica">
+        <p>Son 3 facturas de proveedores que ya registraste (S/ 14,600) y lo que usaste de la tarjeta de crédito (S/ 2,300).</p>
+        <p>No suma SUNAT (S/ 9,290, el martes 20) ni los sueldos del viernes 30: se ven en Impuestos y en la planilla, y ya están restados en la curva de arriba.</p>
+      </div></div></div>
+    </article>
+
+    <!-- En camino -->
+    <article class="tarjeta va-bloque" data-sube style="--i:4">
+      <span class="versalita">En camino al banco</span>
+      <p class="va-media"><span class="num" data-cuenta="3450" data-pre="S/ ">S/ 3,450</span> <small>de Izipay y Vendemás</small></p>
+      <div class="va-viajes">
+        <div class="va-viaje" data-entra style="--i:5">
+          <div class="va-viaje-cab"><b>Izipay</b><span class="n">S/ 2,140</span></div>
+          <small class="tenue">Tarjeta y QR del martes 13 y miércoles 14 · llega el viernes o el sábado</small>
+          <ol class="va-pasos" aria-label="Días del depósito de Izipay">
+            <li class="hecho">mié 14<br>vendiste</li><li class="hoy">jue 15<br>hoy</li><li class="ventana">vie 16</li><li class="ventana">sáb 17<br>llega</li><li class="aviso">dom 18<br>si no, te aviso</li>
+          </ol>
+        </div>
+        <div class="va-viaje" data-entra style="--i:6">
+          <div class="va-viaje-cab"><b>Vendemás</b><span class="n">S/ 1,310</span></div>
+          <small class="tenue">Tarjeta del miércoles 14 en Trujillo y Arequipa · llega mañana</small>
+          <ol class="va-pasos" aria-label="Días del depósito de Vendemás">
+            <li class="hecho">mié 14<br>vendiste</li><li class="hoy">jue 15<br>hoy</li><li class="ventana">vie 16<br>llega</li><li>sáb 17</li><li class="aviso">dom 18<br>si no, te aviso</li>
+          </ol>
+        </div>
+      </div>
+      <p class="d-pie">Llegan sin la comisión de la máquina. En octubre van S/ 520 de comisiones.</p>
+      <div><button class="porque" type="button" data-porque="va-p-camino" aria-expanded="false">¿Por qué?</button></div>
+      <div class="desplegable" id="va-p-camino"><div><div class="va-explica">
+        <p>Cuando cobras con tarjeta o con el QR de Izipay, la venta se anota completa ese mismo día. La máquina te deposita 1 a 3 días después, ya sin su comisión.</p>
+        <p>La diferencia entre lo que vendiste y lo que llegó <b>es</b> la comisión: así sabes cuánto te cobra de verdad, sin hacer cuentas. Si al 4.º día no llegó, te aviso aquí mismo.</p>
+      </div></div></div>
+    </article>
+  </div>
+
+  <!-- ¿Cuadra con el banco? -->
+  <article class="tarjeta va-bloque" data-sube style="--i:5">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span class="versalita">¿Cuadra con el banco?</span>
+        <p class="va-media" id="va-cuadra-t">Casi. Falta explicar 2 movimientos.</p>
+      </div>
+      <span class="d-sello" id="va-cuadra-sello" hidden>Cuadra · 14 oct</span>
+    </div>
+    <div class="va-bancos">
+      <div class="va-banco" id="va-banco-int">
+        <div class="va-banco-cab"><b>Interbank</b><span class="d-pie" data-n>37 de 38 cruzados</span></div>
+        <div class="pista"><i style="--w:97.4%;--c:var(--verde)" data-crece></i></div>
+        <div class="va-falta"><span>Falta <code>COM MANT −180.00</code> del sábado 3. ¿Qué es?</span>
+          <button class="btn chico sutil" type="button" data-resolver="int" data-texto="Anotado como cobro del banco">Un cobro del banco</button></div>
+        <div class="va-hecho"><span class="d-sello estampa">Listo</span><span data-hecho></span></div>
+      </div>
+      <div class="va-banco" id="va-banco-bcp">
+        <div class="va-banco-cab"><b>BCP</b><span class="d-pie" data-n>41 de 42 cruzados</span></div>
+        <div class="pista"><i style="--w:97.6%;--c:var(--verde)" data-crece></i></div>
+        <div class="va-falta"><span>Falta <code>TRANSF +1,000.00</code> del martes 13. ¿Qué es?</span>
+          <button class="btn chico sutil" type="button" data-resolver="bcp" data-texto="Anotado como plata que pusiste tú">La puse yo</button>
+          <a class="btn chico sutil" href="#b">Otra cosa</a></div>
+        <div class="va-hecho"><span class="d-sello estampa">Listo</span><span data-hecho></span></div>
+      </div>
+    </div>
+    <div class="va-cajas"><span class="chip c-verde">Con motivo</span><span>Cajas: faltaron S/ 120 en 2 cierres de Arequipa. Ya tiene motivo: un taxi que no se anotó.</span></div>
+  </article>
+</section>
+
+<!-- =====================================================================
+     B · LA MESA DE TRABAJO
+     ===================================================================== -->
+<section class="variante" data-variante="b" hidden>
+  <div class="variante-cab"><span class="versalita">Camino B · La mesa de trabajo</span><p class="idea tenue">Todo a la vista: cada cuenta en su tarjeta, el flujo de 30 días, lo que debes y la conciliación de Interbank, pareja por pareja.</p></div>
+
+  <div class="encabezado" data-entra style="--i:0">
+    <div>
+      <div class="linea-sede"><span class="versalita">Todas las sedes · jueves 15 de octubre</span></div>
+      <h1>Cuentas y dinero</h1>
+      <p class="frase tenue">Saldos, efectivo por tienda, lo que debes y si cada banco cuadra con su extracto.</p>
+    </div>
+  </div>
+
+  <div class="rejilla r4 vb-cifras">
+    <div class="cifra" data-entra style="--i:1"><span class="versalita">Tienes</span><span class="valor" data-cuenta="42830" data-pre="S/ ">S/ 42,830</span><span class="pie">En 8 lugares · el 66 % en bancos</span></div>
+    <div class="cifra" data-entra style="--i:2"><span class="versalita">Debes</span><span class="valor" id="vb-debes">S/ 16,900</span><span class="pie" id="vb-debes-pie">4 pagos · el próximo, el lunes 19</span></div>
+    <div class="cifra" data-entra style="--i:3"><span class="versalita">En camino</span><span class="valor" data-cuenta="3450" data-pre="S/ ">S/ 3,450</span><span class="pie">Izipay y Vendemás · comisión ≈ S/ 86</span></div>
+    <div class="cifra" data-entra style="--i:4"><span class="versalita">Punto más bajo</span><span class="valor" data-cuenta="11200" data-pre="S/ ">S/ 11,200</span><span class="pie">Sábado 31 · 3 días bajo tu mínimo</span></div>
+  </div>
+
+  <!-- Cuentas -->
+  <article class="tarjeta" data-sube style="--i:2">
+    <div class="vb-barra-filtros">
+      <h2 class="d-h2">Dónde está <span class="d-cuenta">8</span></h2>
+      <div class="vb-pildoras" role="group" aria-label="Sede">
+        <button class="vb-pildora" type="button" aria-pressed="true" data-sede="todas">Todas</button>
+        <button class="vb-pildora" type="button" aria-pressed="false" data-sede="tru">Trujillo</button>
+        <button class="vb-pildora" type="button" aria-pressed="false" data-sede="aqp">Arequipa</button>
+        <button class="vb-pildora" type="button" aria-pressed="false" data-sede="lim">Lima</button>
+        <button class="vb-pildora" type="button" aria-pressed="false" data-sede="taller">Taller</button>
+      </div>
+    </div>
+    <p class="vb-pista-sede tenue" id="vb-pista-sede" aria-live="polite">Los bancos y la tarjeta son de toda la empresa; las cajas y los cajones, de cada tienda.</p>
+    <div class="vb-cuentas" style="margin-top:12px">
+      <div class="vb-col">
+        <div class="vb-grupo">
+          <div class="vb-grupo-cab"><span class="versalita">Bancos</span><span class="t">S/ 28,280</span></div>
+          <div class="vb-cta" data-sede="empresa" data-entra style="--i:3">
+            <div class="vb-cta-cab"><span>BCP</span><span class="chip c-ambar">1 por explicar</span></div>
+            <div class="vb-cta-v" data-cuenta="18450" data-pre="S/ ">S/ 18,450</div>
+            <svg class="vb-spark" style="--c:var(--pizarra)" viewBox="0 0 120 30" preserveAspectRatio="none" data-serie="15200,15900,16400,15100,15800,16900,17600,16300,16800,17400,18100,17200,17900,18450"></svg>
+            <small class="tenue">Cuadrado al 12 de octubre · Yape, Plin y depósitos</small>
+          </div>
+          <div class="vb-cta" data-sede="empresa" data-entra style="--i:4">
+            <div class="vb-cta-cab"><span>Interbank</span><span class="chip c-ambar">1 sin pareja</span></div>
+            <div class="vb-cta-v" data-cuenta="9830" data-pre="S/ ">S/ 9,830</div>
+            <svg class="vb-spark" style="--c:var(--pizarra)" viewBox="0 0 120 30" preserveAspectRatio="none" data-serie="7400,7900,8600,8100,8800,9300,8700,9100,9500,8900,9400,9900,10010,9830"></svg>
+            <small class="tenue">Extracto al 14 de octubre · Izipay y Vendemás</small>
+          </div>
+        </div>
+      </div>
+      <div class="vb-col">
+        <div class="vb-grupo">
+          <div class="vb-grupo-cab"><span class="versalita">Por depositar</span><span class="t">S/ 3,450</span></div>
+          <div class="vb-cta" data-sede="tru aqp" data-entra style="--i:5">
+            <div class="vb-cta-cab"><span>Izipay</span><span class="chip c-pizarra">Llega jue o vie</span></div>
+            <div class="vb-cta-v" data-cuenta="2140" data-pre="S/ ">S/ 2,140</div>
+            <div class="vb-dias" aria-label="Día 1 de 3; al 4.º, aviso"><i class="si"></i><i></i><i></i><i class="av"></i><span class="tenue">día 1 de 3</span></div>
+            <small class="tenue">Tarjeta y QR del martes 13 y miércoles 14</small>
+          </div>
+          <div class="vb-cta" data-sede="tru aqp" data-entra style="--i:6">
+            <div class="vb-cta-cab"><span>Vendemás</span><span class="chip c-verde">Llega mañana</span></div>
+            <div class="vb-cta-v" data-cuenta="1310" data-pre="S/ ">S/ 1,310</div>
+            <div class="vb-dias" aria-label="Día 1 de 3; al 4.º, aviso"><i class="si"></i><i></i><i></i><i class="av"></i><span class="tenue">día 1 de 3</span></div>
+            <small class="tenue">Tarjeta del miércoles 14 · TRU y AQP</small>
+          </div>
+          <div><button class="porque" type="button" data-porque="vb-p-dep" aria-expanded="false">¿Por qué existe?</button></div>
+          <div class="desplegable" id="vb-p-dep"><div><p class="d-pie" style="padding-top:6px">«Por depositar» es plata que ya vendiste pero todavía no llegó al banco. La venta entra completa; el depósito llega 1 a 3 días después sin la comisión, y la diferencia se anota sola como comisión. Si al 4.º día no llegó, la tarjeta se pone en ámbar y te aviso.</p></div></div>
+        </div>
+      </div>
+      <div class="vb-col">
+        <div class="vb-grupo">
+          <div class="vb-grupo-cab"><span class="versalita">Cajas fuertes</span><span class="t">S/ 10,100</span></div>
+          <div class="vb-cta" data-sede="tru" data-entra style="--i:7">
+            <div class="vb-cta-cab"><span>Trujillo</span><span class="chip c-taupe">Sin depositar 2 días</span></div>
+            <div class="vb-cta-v" data-cuenta="6200" data-pre="S/ ">S/ 6,200</div>
+            <svg class="vb-spark" style="--c:var(--m-efectivo)" viewBox="0 0 120 30" preserveAspectRatio="none" data-serie="1200,2100,2900,3600,600,1500,2300,3100,3900,4600,2100,3600,5000,6200"></svg>
+            <small class="tenue">Último depósito: martes 13</small>
+          </div>
+          <div class="vb-cta" data-sede="aqp" data-entra style="--i:8">
+            <div class="vb-cta-cab"><span>Arequipa</span><span class="chip c-taupe">Sin depositar 6 días</span></div>
+            <div class="vb-cta-v" data-cuenta="3900" data-pre="S/ ">S/ 3,900</div>
+            <svg class="vb-spark" style="--c:var(--m-efectivo)" viewBox="0 0 120 30" preserveAspectRatio="none" data-serie="400,900,1300,1800,2300,800,1200,1700,2200,2600,3000,3300,3600,3900"></svg>
+            <small class="tenue">Último depósito: viernes 9</small>
+          </div>
+        </div>
+      </div>
+      <div class="vb-col">
+        <div class="vb-grupo">
+          <div class="vb-grupo-cab"><span class="versalita">Cajones</span><span class="t">S/ 1,000</span></div>
+          <div class="vb-cta" data-sede="tru" data-entra style="--i:9">
+            <div class="vb-cta-cab"><span>Trujillo</span><span class="chip c-pizarra">Fondo fijo</span></div>
+            <div class="vb-cta-v">S/ 500</div>
+          </div>
+          <div class="vb-cta" data-sede="aqp" data-entra style="--i:10">
+            <div class="vb-cta-cab"><span>Arequipa</span><span class="chip c-pizarra">Fondo fijo</span></div>
+            <div class="vb-cta-v">S/ 500</div>
+          </div>
+        </div>
+        <div class="vb-grupo">
+          <div class="vb-grupo-cab"><span class="versalita">Tarjeta de crédito</span><span class="t">−S/ 2,300</span></div>
+          <div class="vb-cta" data-sede="empresa" data-entra style="--i:11">
+            <div class="vb-cta-cab"><span>Visa CAYLA</span><span class="chip c-pizarra">Vence dom 25</span></div>
+            <div class="vb-cta-v debe">−S/ 2,300</div>
+            <svg class="vb-spark" style="--c:var(--taupe)" viewBox="0 0 120 30" preserveAspectRatio="none" data-serie="800,800,1100,1100,1400,1400,1400,1700,1900,1900,2000,2100,2300,2300"></svg>
+            <small class="tenue">Línea de S/ 10,000 · usada al 23 %</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <!-- Por dónde entra cada cobro -->
+  <article class="tarjeta" data-sube style="--i:3">
+    <h2 class="d-h2">Por dónde entra cada cobro</h2>
+    <p class="d-pie" style="margin:4px 0 8px">Cada medio de pago tiene su camino hasta el banco. Lo nuevo: Izipay y Vendemás pasan por «Por depositar» y llegan a Interbank sin su comisión.</p>
+    <ul class="vb-medios">
+      <li data-entra style="--i:1"><span class="vb-medio-n"><i style="--c:var(--m-efectivo)"></i>Efectivo</span><span class="vb-camino"><span class="vb-paso">Cajón</span><span class="d-flecha">→</span><span class="vb-paso">Caja fuerte</span><span class="d-flecha">→</span><span class="vb-paso fin">BCP</span><span class="vb-paso com">al depositar</span></span></li>
+      <li data-entra style="--i:2"><span class="vb-medio-n"><i style="--c:var(--m-yape)"></i>Yape</span><span class="vb-camino"><span class="vb-paso fin">BCP</span><span class="vb-paso com">al instante</span></span></li>
+      <li data-entra style="--i:3"><span class="vb-medio-n"><i style="--c:var(--m-plin)"></i>Plin</span><span class="vb-camino"><span class="vb-paso fin">BCP</span><span class="vb-paso com">al instante</span></span></li>
+      <li data-entra style="--i:4"><span class="vb-medio-n"><i style="--c:var(--m-tarjeta)"></i>Tarjeta · Izipay</span><span class="vb-camino"><span class="vb-paso">Por depositar Izipay</span><span class="d-flecha">→</span><span class="vb-paso fin">Interbank</span><span class="vb-paso com">1 a 3 días · menos comisión</span></span></li>
+      <li data-entra style="--i:5"><span class="vb-medio-n"><i style="--c:var(--m-qr)"></i>QR · Izipay</span><span class="vb-camino"><span class="vb-paso">Por depositar Izipay</span><span class="d-flecha">→</span><span class="vb-paso fin">Interbank</span><span class="vb-paso com">1 a 3 días · menos comisión</span></span></li>
+      <li data-entra style="--i:6"><span class="vb-medio-n"><i style="--c:var(--m-tarjeta)"></i>Tarjeta · Vendemás</span><span class="vb-camino"><span class="vb-paso">Por depositar Vendemás</span><span class="d-flecha">→</span><span class="vb-paso fin">Interbank</span><span class="vb-paso com">solo TRU y AQP · menos comisión</span></span></li>
+    </ul>
+  </article>
+
+  <!-- Flujo de 30 días -->
+  <article class="tarjeta" data-sube style="--i:4">
+    <div class="vb-barra-filtros">
+      <h2 class="d-h2">Los próximos 30 días</h2>
+      <div class="vb-leyenda" aria-hidden="true">
+        <span><i style="--c:var(--verde)"></i>Entra</span>
+        <span><i style="--c:var(--taupe)"></i>Sale</span>
+        <span><i class="l" style="--c:var(--tinta)"></i>Saldo en bancos</span>
+        <span><i class="dash"></i>Tu mínimo</span>
+      </div>
+    </div>
+    <p class="d-pie" style="margin:4px 0 6px">Saldo de BCP + Interbank al cierre de cada día. Las barras de salida se cortan a S/ 10,000 para que se vea el resto; la cifra completa va al lado.</p>
+    <div class="vb-flujo" id="vb-flujo"><svg role="img" aria-label="Entradas, salidas y saldo de los próximos 30 días"></svg><div class="d-tip" id="vb-tip" aria-hidden="true"></div></div>
+  </article>
+
+  <div class="rejilla r2">
+    <!-- Por pagar -->
+    <article class="tarjeta" data-sube style="--i:5">
+      <div class="vb-barra-filtros">
+        <h2 class="d-h2">Por pagar <span class="d-cuenta" id="vb-n-pagar">4</span></h2>
+        <div class="vb-pildoras" role="group" aria-label="Qué mostrar" id="vb-filtro-pagar">
+          <button class="vb-pildora" type="button" aria-pressed="true" data-f="todo">Todo</button>
+          <button class="vb-pildora" type="button" aria-pressed="false" data-f="semana">Esta semana</button>
+          <button class="vb-pildora" type="button" aria-pressed="false" data-f="prov">Proveedores</button>
+          <button class="vb-pildora" type="button" aria-pressed="false" data-f="tarjeta">Tarjeta</button>
+        </div>
+      </div>
+      <div class="desliza" style="margin-top:8px">
+        <table class="tabla vb-tabla" id="vb-pagar">
+          <thead><tr><th>Qué</th><th>Vence</th><th class="m">Cuánto</th><th></th></tr></thead>
+          <tbody>
+            <tr class="fila" data-tipo="prov semana" aria-expanded="false" data-monto="6800" tabindex="0">
+              <td><b>Textiles del Norte</b><span class="flecha">›</span><small>Tela · Taller</small></td>
+              <td class="vence"><span class="chip late c-ambar">lun 19 · en 4 días</span></td><td class="m">S/ 6,800</td>
+              <td><button class="btn chico" type="button" data-pagar>Pagar</button></td></tr>
+            <tr class="det"><td colspan="4"><div class="desplegable"><div><div class="vb-det">
+              <div><span>Factura</span>F001-2231 · del 19 de septiembre, a 30 días</div>
+              <div><span>Se paga a</span>BCP · cuenta terminada en 041</div>
+              <div><span>Si la mueves</span>Pagándola el martes 3, el 31 no bajas de tu mínimo</div>
+            </div></div></div></td></tr>
+            <tr class="fila" data-tipo="tarjeta" aria-expanded="false" data-monto="2300" tabindex="0">
+              <td><b>Tarjeta de crédito CAYLA</b><span class="flecha">›</span><small>Visa · toda la empresa</small></td>
+              <td class="vence">dom 25</td><td class="m">S/ 2,300</td>
+              <td><button class="btn chico" type="button" data-pagar>Pagar</button></td></tr>
+            <tr class="det"><td colspan="4"><div class="desplegable"><div><div class="vb-det">
+              <div><span>Cierre</span>10 de octubre</div>
+              <div><span>Qué tiene</span>Publicidad en Meta S/ 1,500 · útiles S/ 330 · otros S/ 470</div>
+              <div><span>Se paga desde</span>Interbank</div>
+            </div></div></div></td></tr>
+            <tr class="fila" data-tipo="prov" aria-expanded="false" data-monto="4600" tabindex="0">
+              <td><b>Hilandería Andina</b><span class="flecha">›</span><small>Hilos · Taller</small></td>
+              <td class="vence">mié 28</td><td class="m">S/ 4,600</td>
+              <td><button class="btn chico" type="button" data-pagar>Pagar</button></td></tr>
+            <tr class="det"><td colspan="4"><div class="desplegable"><div><div class="vb-det">
+              <div><span>Factura</span>F002-0871 · del 28 de septiembre, a 30 días</div>
+              <div><span>Se paga a</span>Interbank · cuenta terminada en 718</div>
+            </div></div></div></td></tr>
+            <tr class="fila" data-tipo="prov" aria-expanded="false" data-monto="3200" tabindex="0">
+              <td><b>Botones y Avíos Lima</b><span class="flecha">›</span><small>Avíos · Taller</small></td>
+              <td class="vence">vie 6 nov</td><td class="m">S/ 3,200</td>
+              <td><button class="btn chico" type="button" data-pagar>Pagar</button></td></tr>
+            <tr class="det"><td colspan="4"><div class="desplegable"><div><div class="vb-det">
+              <div><span>Factura</span>E001-339 · del 7 de octubre, a 30 días</div>
+              <div><span>Se paga a</span>Yape empresa · 9XX XXX 214</div>
+            </div></div></div></td></tr>
+          </tbody>
+          <tfoot><tr><td colspan="2">Total que debes</td><td class="m" id="vb-total-pagar">S/ 16,900</td><td></td></tr></tfoot>
+        </table>
+      </div>
+      <p class="d-pie" style="margin-top:8px">SUNAT (S/ 9,290, el martes 20) vive en Impuestos y los sueldos (S/ 25,400, el viernes 30) en la planilla; los dos ya están en el flujo de arriba.</p>
+    </article>
+
+    <!-- Efectivo por tienda -->
+    <article class="tarjeta" data-sube style="--i:6">
+      <h2 class="d-h2">Efectivo por tienda</h2>
+      <p class="d-pie" style="margin:4px 0 8px">Lo que se vendió en efectivo en octubre, lo que ya se llevó al banco y lo que debería quedar en la caja fuerte. El cajón no entra: es el fondo para dar vuelto.</p>
+      <div class="desliza">
+        <table class="tabla">
+          <thead><tr><th>Sede</th><th class="m">Vendido</th><th class="m">Depositado</th><th class="m">Debería haber</th><th class="m">Hay</th></tr></thead>
+          <tbody>
+            <tr data-entra style="--i:1"><td><b>Trujillo</b></td><td class="m">10,300</td><td class="m">4,100</td><td class="m">6,200</td><td class="m"><span class="vb-ok">6,200 ✓</span></td></tr>
+            <tr data-entra style="--i:2"><td><b>Arequipa</b><small style="display:block;font-size:12px" class="tenue">−120 en 2 cierres: un taxi sin anotar</small></td><td class="m">5,340</td><td class="m">1,320</td><td class="m">4,020</td><td class="m"><span class="vb-dif-mala">3,900</span></td></tr>
+            <tr data-entra style="--i:3"><td><b>Lima</b><small style="display:block;font-size:12px" class="tenue">Abre el martes 20</small></td><td class="m">—</td><td class="m">—</td><td class="m">—</td><td class="m">—</td></tr>
+          </tbody>
+          <tfoot><tr><td>Total</td><td class="m">15,640</td><td class="m">5,420</td><td class="m">10,220</td><td class="m">10,100</td></tr></tfoot>
+        </table>
+      </div>
+      <div class="nota" style="margin-top:12px">La diferencia de Arequipa (−S/ 120) ya tiene motivo: un gasto de taxi que no se anotó. Al registrarlo, la fila queda en verde.</div>
+    </article>
+  </div>
+
+  <!-- Conciliación de Interbank -->
+  <article class="tarjeta" data-sube style="--i:7">
+    <div class="vb-concilia-cab">
+      <div style="display:flex;flex-direction:column;gap:6px;min-width:min(100%,320px);flex:1 1 420px">
+        <h2 class="d-h2">¿Cuadra Interbank? <span class="d-cuenta" id="vb-n-faltan">4</span></h2>
+        <p class="d-pie">Extracto del 1 al 14 de octubre · 38 movimientos. Lo que coincide en monto y fecha se cruza solo; lo dudoso te lo sugiero y tú dices sí.</p>
+        <div class="vb-barra" aria-hidden="true">
+          <i id="vb-b-cruz" style="--c:var(--verde);--w:calc((100% - 6px) * .8947)"></i>
+          <i id="vb-b-sug" style="--c:var(--ambar);--w:calc((100% - 6px) * .0789)"></i>
+          <i id="vb-b-sin" style="--c:var(--rojo);--w:calc((100% - 6px) * .0263)"></i>
+        </div>
+        <div class="vb-cont">
+          <span><i style="--c:var(--verde)"></i><b id="vb-c-cruz">34</b> cruzadas solas</span>
+          <span><i style="--c:var(--ambar)"></i><b id="vb-c-sug">3</b> sugeridas</span>
+          <span><i style="--c:var(--rojo)"></i><b id="vb-c-sin">1</b> sin pareja</span>
+        </div>
+      </div>
+      <button class="vb-subir" type="button" id="vb-subir" style="flex:0 1 340px">
+        <span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></span>
+        <span style="flex:1;min-width:0"><b style="font-weight:600;font-size:13.5px;display:block" id="vb-subir-t">Subir otro extracto</b><small class="tenue" id="vb-subir-s">PDF, Excel o CSV del BCP o Interbank</small><span class="pista"><i id="vb-subir-b" style="--w:0%;--c:var(--tinta)"></i></span></span>
+      </button>
+    </div>
+
+    <div class="vb-saldos" style="margin-top:16px">
+      <div><span class="versalita">El banco dice</span><span class="n">S/ 9,830</span></div>
+      <div><span class="versalita">CAYLA dice</span><span class="n" id="vb-s-cayla">S/ 10,010</span></div>
+      <div><span class="versalita">Diferencia</span><span class="n" id="vb-s-dif" style="color:var(--ambar)">S/ 180</span></div>
+    </div>
+
+    <div class="vb-colcab" style="margin-top:18px"><span class="versalita">El extracto</span><span></span><span class="versalita">Lo que anotó CAYLA</span></div>
+
+    <!-- Cruzadas -->
+    <div class="vb-seccion"><span class="chip c-verde">Cruzadas</span><span class="d-cuenta" id="vb-c-cruz2">34</span><span class="tenue" style="font-weight:400">Así se cruza un depósito de máquina:</span></div>
+    <div class="vb-par" data-entra style="--i:2">
+      <div class="vb-mov vb-ext"><span class="que">ABONO IZIPAY LIQ 0045388</span><span class="cuanto">+2,089.00</span><span class="cuando">mar 13 oct</span></div>
+      <div class="vb-medio ok"><span class="chip c-verde">Cruzada sola</span></div>
+      <div class="vb-mov vb-sis"><span class="que">Por depositar Izipay · tarjeta y QR del vie 9 y sáb 10</span><span class="cuanto">S/ 2,140</span><span class="cuando">vendido el 9 y 10 de octubre</span></div>
+      <div class="vb-comision">
+        <span>Venta</span><b>S/ 2,140</b><span class="d-flecha">→</span><span>depositó</span><b>S/ 2,089</b><span class="d-flecha">→</span><span>comisión</span><b>S/ 51</b><span class="vb-ok">✓ 2.4 %, lo normal</span>
+      </div>
+    </div>
+    <div><button class="porque" type="button" data-porque="vb-p-cruz" aria-expanded="false">Ver las otras 33</button></div>
+    <div class="desplegable" id="vb-p-cruz"><div><div class="vb-mini">
+      <div><span class="x">ABONO VENDEMAS 00981</span><span>+1,262.40</span></div><div><span>Vendemás · tarjeta del sáb 10</span><span>S/ 1,296</span></div>
+      <div><span class="x">PAGO SERV SEDALIB</span><span>−96.00</span></div><div><span>Agua · Trujillo</span><span>S/ 96</span></div>
+      <div><span class="x">TRANSF HILANDERIA AND</span><span>−3,000.00</span></div><div><span>Hilandería Andina · adelanto</span><span>S/ 3,000</span></div>
+      <div><span class="x">ABONO IZIPAY LIQ 0045102</span><span>+1,875.10</span></div><div><span>Izipay · tarjeta y QR del mar 6 y mié 7</span><span>S/ 1,921</span></div>
+      <div><span class="x">PAGO TARJ VISA CAYLA</span><span>−1,850.00</span></div><div><span>Tarjeta de crédito · septiembre</span><span>S/ 1,850</span></div>
+      <div><span class="tenue">y 28 más, iguales</span><span></span></div>
+    </div></div></div>
+
+    <!-- Sugeridas -->
+    <div class="vb-seccion"><span class="chip c-ambar">Sugeridas</span><span class="d-cuenta" id="vb-c-sug2">3</span><span class="tenue" style="font-weight:400">Revisa y di si es la misma.</span></div>
+    <div class="vb-plegable" data-sug><div>
+      <div class="vb-par" style="--c:var(--ambar)">
+        <div class="vb-mov vb-ext"><span class="que">DEP EFECTIVO AG 0214 TRUJILLO</span><span class="cuanto">+2,500.00</span><span class="cuando">mar 13 oct</span></div>
+        <div class="vb-medio"><small class="tenue">Mismo monto y día, pero esa semana hubo dos de S/ 2,500</small><button class="btn chico primario" type="button" data-aceptar>Sí, es la misma</button></div>
+        <div class="vb-mov vb-sis"><span class="que">Depósito de la caja fuerte de Trujillo</span><span class="cuanto">S/ 2,500</span><span class="cuando">mar 13 oct · lo llevó la encargada</span></div>
+      </div>
+    </div></div>
+    <div class="vb-plegable" data-sug><div>
+      <div class="vb-par" style="--c:var(--ambar)">
+        <div class="vb-mov vb-ext"><span class="que">TRANSF 99812 M RIOS C</span><span class="cuanto">−1,200.00</span><span class="cuando">sáb 10 oct</span></div>
+        <div class="vb-medio"><small class="tenue">Mismo monto; el banco lo cobró un día después</small><button class="btn chico primario" type="button" data-aceptar>Sí, es la misma</button></div>
+        <div class="vb-mov vb-sis"><span class="que">Contador · honorarios de septiembre</span><span class="cuanto">S/ 1,200</span><span class="cuando">vie 9 oct</span></div>
+      </div>
+    </div></div>
+    <div class="vb-plegable" data-sug><div>
+      <div class="vb-par" style="--c:var(--ambar)">
+        <div class="vb-mov vb-ext"><span class="que">PAGO SERV CLARO 51998</span><span class="cuanto">−149.00</span><span class="cuando">mié 7 oct</span></div>
+        <div class="vb-medio"><small class="tenue">Mismo monto; el banco dice «CLARO» y tú anotaste «Internet»</small><button class="btn chico primario" type="button" data-aceptar>Sí, es la misma</button></div>
+        <div class="vb-mov vb-sis"><span class="que">Internet · Arequipa</span><span class="cuanto">S/ 149</span><span class="cuando">mié 7 oct</span></div>
+      </div>
+    </div></div>
+
+    <!-- Sin pareja -->
+    <div class="vb-seccion"><span class="chip c-rojo">Sin pareja</span><span class="d-cuenta" id="vb-c-sin2">1</span><span class="tenue" style="font-weight:400">Está en el banco y nadie lo anotó.</span></div>
+    <div class="vb-plegable" id="vb-sin"><div>
+      <div class="vb-par" style="--c:var(--rojo)">
+        <div class="vb-mov vb-ext"><span class="que">COM MANT CTA 0012</span><span class="cuanto">−180.00</span><span class="cuando">sáb 3 oct</span></div>
+        <div class="vb-medio"><small class="tenue">Parece un cobro del banco por mantener la cuenta</small></div>
+        <div class="vb-vacio" id="vb-hueco"><span>Nadie lo anotó en CAYLA</span><button class="btn chico primario" type="button" id="vb-crear">Crear gasto</button></div>
+      </div>
+    </div></div>
+    <div class="nota" id="vb-cierre-conc" style="margin-top:14px">Cuando las 4 estén resueltas, Interbank queda cuadrado al 14 de octubre y el cierre de mes lo marca en verde.</div>
+  </article>
+</section>
+
+<!-- =====================================================================
+     C · LAS COSAS DE LA TIENDA
+     ===================================================================== -->
+<section class="variante" data-variante="c" hidden>
+  <div class="variante-cab"><span class="versalita">Camino C · Las cosas de la tienda</span><p class="idea tenue">La plata se ve: cajones, cajas fuertes, camioncitos que van al banco y un tanque que baja cuando pagas. Toca cualquier lugar para saber qué es.</p></div>
+
+  <div class="encabezado" data-entra style="--i:0">
+    <div>
+      <div class="linea-sede"><span class="versalita">Todas las sedes · jueves 15 de octubre</span></div>
+      <h1>Cuentas y dinero</h1>
+      <p class="frase tenue">Tienes <b class="num">S/ 42,830</b> repartidos en 8 lugares. Mira cómo viaja de uno a otro.</p>
+    </div>
+  </div>
+
+  <article class="tarjeta vc-mapa-caja" data-sube style="--i:1">
+    <div class="vc-mapa-desliza">
+      <svg class="vc-mapa" id="vc-mapa" viewBox="0 0 1160 670" role="img" aria-label="Mapa de los lugares donde está la plata de CAYLA y cómo viaja entre ellos">
+        <defs><clipPath id="vc-clip-tanque"><rect x="900" y="80" width="200" height="480" rx="18"/></clipPath></defs>
+
+        <!-- camino de los camioncitos -->
+        <rect class="vc-camino" x="250" y="566" width="550" height="46" rx="23" data-aparece style="--i:1"/>
+        <line class="vc-camino-l" x1="272" y1="589" x2="780" y2="589" data-aparece style="--i:2"/>
+
+        <!-- tubos al tanque -->
+        <path class="vc-tubo-borde" d="M790,110 H900"/><path class="vc-tubo" d="M790,110 H900"/>
+        <path class="vc-tubo-borde" d="M790,330 H852 V150 H900"/><path class="vc-tubo" d="M790,330 H852 V150 H900"/>
+        <path class="vc-tubo-borde" d="M1000,560 V588 M935,612 V588 H1065 V612"/><path class="vc-tubo" d="M1000,560 V588 M935,612 V588 H1065 V612"/>
+
+        <!-- rutas por donde viaja la plata -->
+        <g>
+          <path id="vc-r-venta-tru" class="vc-ruta" pathLength="1" data-dibuja style="--i:2" d="M64,140 C64,170 90,190 116,192"/>
+          <path id="vc-r-venta-aqp" class="vc-ruta" pathLength="1" data-dibuja style="--i:2" d="M64,410 C64,440 90,460 116,462"/>
+          <path id="vc-r-cajon-cf-tru" class="vc-ruta" pathLength="1" data-dibuja style="--i:3" d="M196,192 C270,192 270,160 330,160"/>
+          <path id="vc-r-cajon-cf-aqp" class="vc-ruta" pathLength="1" data-dibuja style="--i:3" d="M196,462 C270,462 270,420 330,420"/>
+          <path id="vc-r-cf-bcp" class="vc-ruta" pathLength="1" data-dibuja style="--i:4" d="M490,160 C565,160 575,132 640,130"/>
+          <path id="vc-r-cfa-bcp" class="vc-ruta" pathLength="1" data-dibuja style="--i:4" d="M490,420 C585,420 560,160 640,150"/>
+          <path id="vc-r-tru-izi" class="vc-ruta" pathLength="1" data-dibuja style="--i:5" d="M240,210 C300,215 285,470 345,540"/>
+          <path id="vc-r-aqp-ven" class="vc-ruta" pathLength="1" data-dibuja style="--i:5" d="M200,500 C260,560 440,500 520,540"/>
+          <path id="vc-r-izi-int" class="vc-ruta" pathLength="1" data-dibuja style="--i:6" d="M412,560 C520,560 560,382 640,380"/>
+          <path id="vc-r-ven-int" class="vc-ruta" pathLength="1" data-dibuja style="--i:6" d="M592,560 C660,560 700,515 712,462"/>
+          <path id="vc-r-izi-com" class="vc-ruta" pathLength="1" data-dibuja style="--i:7" d="M380,540 C470,480 760,490 835,505"/>
+          <path id="vc-r-yape" class="vc-ruta" pathLength="1" data-dibuja style="--i:7" d="M150,60 C260,-10 560,0 712,58"/>
+          <path id="vc-r-pipe-bcp" fill="none" stroke="none" d="M790,110 H900 C930,110 940,130 950,180"/>
+          <path id="vc-r-pipe-int" fill="none" stroke="none" d="M790,330 H852 V150 H900 C930,150 940,170 950,200"/>
+          <path id="vc-r-sal-1" fill="none" stroke="none" d="M1000,540 V588 H935 V630"/>
+          <path id="vc-r-sal-2" fill="none" stroke="none" d="M1000,540 V588 H1065 V630"/>
+        </g>
+
+        <!-- Tienda Trujillo -->
+        <g class="vc-lugar" data-lugar="tienda-tru" tabindex="0" role="button" aria-label="Tienda Trujillo" data-entra style="--i:2">
+          <rect class="vc-card" x="30" y="60" width="210" height="170" rx="14"/>
+          <path class="vc-toldo" d="M30,74 a14,14 0 0 1 14,-14 h182 a14,14 0 0 1 14,14 v8 a17.5,10 0 0 1 -35,0 a17.5,10 0 0 1 -35,0 a17.5,10 0 0 1 -35,0 a17.5,10 0 0 1 -35,0 a17.5,10 0 0 1 -35,0 a17.5,10 0 0 1 -35,0 z"/>
+          <text class="vc-t" x="46" y="112">Tienda Trujillo</text>
+          <rect class="vc-hueso" x="52" y="124" width="24" height="30" rx="3"/><path class="vc-trazo" d="M57,133 h14 M57,139 h14 M57,145 h9"/>
+          <text class="vc-s" x="84" y="144">vendes aquí</text>
+          <g data-lugar-hijo="cajon-tru"><rect class="vc-crema" x="46" y="172" width="178" height="42" rx="7" stroke="currentColor" stroke-opacity=".35"/><rect class="vc-hueso" x="120" y="204" width="30" height="5" rx="2.5"/>
+          <text class="vc-s" x="58" y="198">Cajón</text><text class="vc-nc" x="212" y="199" text-anchor="end">S/ 500</text></g>
+        </g>
+        <!-- Tienda Arequipa -->
+        <g class="vc-lugar" data-lugar="tienda-aqp" tabindex="0" role="button" aria-label="Tienda Arequipa" data-entra style="--i:3">
+          <rect class="vc-card" x="30" y="330" width="210" height="170" rx="14"/>
+          <path class="vc-toldo" d="M30,344 a14,14 0 0 1 14,-14 h182 a14,14 0 0 1 14,14 v8 a17.5,10 0 0 1 -35,0 a17.5,10 0 0 1 -35,0 a17.5,10 0 0 1 -35,0 a17.5,10 0 0 1 -35,0 a17.5,10 0 0 1 -35,0 a17.5,10 0 0 1 -35,0 z"/>
+          <text class="vc-t" x="46" y="382">Tienda Arequipa</text>
+          <rect class="vc-hueso" x="52" y="394" width="24" height="30" rx="3"/><path class="vc-trazo" d="M57,403 h14 M57,409 h14 M57,415 h9"/>
+          <text class="vc-s" x="84" y="414">vendes aquí</text>
+          <rect class="vc-crema" x="46" y="442" width="178" height="42" rx="7" stroke="currentColor" stroke-opacity=".35"/><rect class="vc-hueso" x="120" y="474" width="30" height="5" rx="2.5"/>
+          <text class="vc-s" x="58" y="468">Cajón</text><text class="vc-nc" x="212" y="469" text-anchor="end">S/ 500</text>
+        </g>
+        <!-- Lima: abre el 20 -->
+        <g data-aparece style="--i:4">
+          <rect x="30" y="250" width="210" height="58" rx="12" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-dasharray="4 5"/>
+          <text class="vc-t" x="46" y="274">Tienda Lima</text><text class="vc-s" x="46" y="294">Abre el martes 20</text>
+        </g>
+
+        <!-- Cajas fuertes -->
+        <g class="vc-lugar" data-lugar="cf-tru" tabindex="0" role="button" aria-label="Caja fuerte de Trujillo" data-entra style="--i:4">
+          <rect class="vc-card" x="330" y="70" width="160" height="180" rx="14"/>
+          <rect class="vc-hueso" x="346" y="86" width="128" height="94" rx="8"/>
+          <circle cx="410" cy="133" r="24" class="vc-crema" stroke="currentColor" stroke-opacity=".5"/>
+          <path class="vc-trazo" d="M410,113 v6 M430,133 h-6 M410,153 v-6 M390,133 h6 M410,133 l9,-9"/>
+          <rect class="vc-trazo" x="456" y="118" width="6" height="30" rx="3"/>
+          <text class="vc-t" x="346" y="206">Caja fuerte TRU</text>
+          <text class="vc-n" x="346" y="236" id="vc-cf-tru-n">S/ 6,200</text>
+        </g>
+        <g class="vc-lugar" data-lugar="cf-aqp" tabindex="0" role="button" aria-label="Caja fuerte de Arequipa" data-entra style="--i:5">
+          <rect class="vc-card" x="330" y="330" width="160" height="180" rx="14"/>
+          <rect class="vc-hueso" x="346" y="346" width="128" height="94" rx="8"/>
+          <circle cx="410" cy="393" r="24" class="vc-crema" stroke="currentColor" stroke-opacity=".5"/>
+          <path class="vc-trazo" d="M410,373 v6 M430,393 h-6 M410,413 v-6 M390,393 h6 M410,393 l9,-9"/>
+          <rect class="vc-trazo" x="456" y="378" width="6" height="30" rx="3"/>
+          <text class="vc-t" x="346" y="466">Caja fuerte AQP</text>
+          <text class="vc-n" x="346" y="496" id="vc-cf-aqp-n">S/ 3,900</text>
+        </g>
+
+        <!-- Camioncitos -->
+        <g class="vc-lugar" data-lugar="izipay" tabindex="0" role="button" aria-label="Por depositar Izipay" data-entra style="--i:6">
+          <text class="vc-t" x="300" y="634">Izipay</text>
+          <text class="vc-nc" x="300" y="656">S/ 2,140</text>
+          <g class="vc-camion" id="vc-camion-izi">
+            <rect class="vc-caja-camion" x="300" y="540" width="78" height="40" rx="6"/>
+            <path class="vc-caja-camion" d="M378,552 h20 l14,14 v14 h-34 z"/>
+            <path class="vc-trazo" d="M384,557 h11 l8,8 h-19 z"/>
+            <circle class="vc-rueda" cx="322" cy="584" r="9"/><circle class="vc-rueda-c" cx="322" cy="584" r="3.5"/>
+            <circle class="vc-rueda" cx="394" cy="584" r="9"/><circle class="vc-rueda-c" cx="394" cy="584" r="3.5"/>
+            <text class="vc-s" x="339" y="565" text-anchor="middle">jue o vie</text>
+          </g>
+        </g>
+        <g class="vc-lugar" data-lugar="vendemas" tabindex="0" role="button" aria-label="Por depositar Vendemás" data-entra style="--i:7">
+          <text class="vc-t" x="480" y="634">Vendemás</text>
+          <text class="vc-nc" x="480" y="656">S/ 1,310</text>
+          <g class="vc-camion" id="vc-camion-ven">
+            <rect class="vc-caja-camion" x="480" y="540" width="78" height="40" rx="6"/>
+            <path class="vc-caja-camion" d="M558,552 h20 l14,14 v14 h-34 z"/>
+            <path class="vc-trazo" d="M564,557 h11 l8,8 h-19 z"/>
+            <circle class="vc-rueda" cx="502" cy="584" r="9"/><circle class="vc-rueda-c" cx="502" cy="584" r="3.5"/>
+            <circle class="vc-rueda" cx="574" cy="584" r="9"/><circle class="vc-rueda-c" cx="574" cy="584" r="3.5"/>
+            <text class="vc-s" x="519" y="565" text-anchor="middle">mañana</text>
+          </g>
+        </g>
+        <!-- Comisiones -->
+        <g class="vc-lugar" data-lugar="comision" tabindex="0" role="button" aria-label="Comisiones de las máquinas" data-entra style="--i:8">
+          <g id="vc-frasco">
+            <path class="vc-frasco" d="M815,500 h40 v6 h-4 v30 a6,6 0 0 1 -6,6 h-20 a6,6 0 0 1 -6,-6 v-30 h-4 z"/>
+            <circle class="vc-moneda" cx="827" cy="532" r="5"/><circle class="vc-moneda" cx="839" cy="530" r="5"/><circle class="vc-moneda" cx="833" cy="522" r="5"/>
+          </g>
+          <text class="vc-t" x="835" y="568" text-anchor="middle">Comisiones</text>
+          <text class="vc-s" x="835" y="586" text-anchor="middle" id="vc-com-n">S/ 520 en oct.</text>
+        </g>
+
+        <!-- Bancos -->
+        <g class="vc-lugar" data-lugar="bcp" tabindex="0" role="button" aria-label="Banco BCP" data-entra style="--i:6">
+          <rect class="vc-card" x="630" y="50" width="170" height="190" rx="14"/>
+          <path class="vc-hueso" d="M650,98 L715,68 L780,98 Z" stroke="currentColor" stroke-opacity=".5"/>
+          <rect class="vc-hueso" x="650" y="98" width="130" height="8"/>
+          <path class="vc-trazo" d="M662,112 v44 M688,112 v44 M742,112 v44 M768,112 v44"/>
+          <rect class="vc-hueso" x="646" y="158" width="138" height="10" rx="2"/>
+          <text class="vc-t" x="646" y="196">BCP</text>
+          <text class="vc-n" x="646" y="226">S/ 18,450</text>
+        </g>
+        <g class="vc-lugar" data-lugar="interbank" tabindex="0" role="button" aria-label="Banco Interbank" data-entra style="--i:7">
+          <rect class="vc-card" x="630" y="270" width="170" height="190" rx="14"/>
+          <path class="vc-hueso" d="M650,318 L715,288 L780,318 Z" stroke="currentColor" stroke-opacity=".5"/>
+          <rect class="vc-hueso" x="650" y="318" width="130" height="8"/>
+          <path class="vc-trazo" d="M662,332 v44 M688,332 v44 M742,332 v44 M768,332 v44"/>
+          <rect class="vc-hueso" x="646" y="378" width="138" height="10" rx="2"/>
+          <text class="vc-t" x="646" y="416">Interbank</text>
+          <text class="vc-n" x="646" y="446">S/ 9,830</text>
+        </g>
+
+        <!-- Tanque: tus bancos -->
+        <g class="vc-lugar" data-lugar="tanque" tabindex="0" role="button" aria-label="Tus bancos, como un tanque de agua" data-entra style="--i:8">
+          <text class="vc-t" x="1000" y="36" text-anchor="middle">Tus bancos</text>
+          <text class="vc-s" x="1000" y="58" text-anchor="middle" id="vc-fecha">hoy · jueves 15</text>
+          <rect class="vc-tanque" x="900" y="80" width="200" height="480" rx="18"/>
+          <g clip-path="url(#vc-clip-tanque)">
+            <rect class="vc-agua" id="vc-agua" x="900" y="288" width="200" height="272"/>
+            <path class="vc-superficie" id="vc-superficie" d=""/>
+            <line class="vc-division" id="vc-division" x1="900" x2="1100" y1="383" y2="383"/>
+          </g>
+          <text class="vc-dentro" id="vc-t-int" x="1000" y="340" text-anchor="middle">Interbank · S/ 9,830</text>
+          <text class="vc-dentro" id="vc-t-bcp" x="1000" y="480" text-anchor="middle">BCP · S/ 18,450</text>
+          <line class="vc-min" x1="900" x2="1100" y1="416" y2="416"/>
+          <text class="vc-min-t" x="1092" y="409" text-anchor="end">tu mínimo · S/ 15,000</text>
+          <text class="vc-nivel" id="vc-nivel" x="1000" y="276" text-anchor="middle">S/ 28,280</text>
+        </g>
+        <!-- Salidas -->
+        <g data-aparece style="--i:9">
+          <rect class="vc-salida" x="878" y="612" width="114" height="46" rx="10"/>
+          <text class="vc-s" x="935" y="632" text-anchor="middle">Proveedores,</text><text class="vc-s" x="935" y="648" text-anchor="middle">SUNAT y servicios</text>
+          <rect class="vc-salida" x="1008" y="612" width="114" height="46" rx="10"/>
+          <text class="vc-s" x="1065" y="632" text-anchor="middle">Sueldos y</text><text class="vc-s" x="1065" y="648" text-anchor="middle">alquileres</text>
+        </g>
+        <g id="vc-cometas"></g>
+      </svg>
+    </div>
+
+    <div class="vc-bajo-mapa">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="versalita">Así viaja tu plata</span>
+          <button class="btn chico sutil" type="button" id="vc-repetir">Ver el recorrido otra vez</button>
+        </div>
+        <ol class="vc-pasos" id="vc-pasos">
+          <li>Vendes en efectivo: entra al cajón. Al cerrar la caja, lo que pasa de los S/ 500 se va a la caja fuerte.</li>
+          <li>Vendes con tarjeta o QR: la plata sube al camioncito de Izipay (o de Vendemás) y espera 1 a 3 días.</li>
+          <li>Llega a Interbank sin la comisión. La monedita que se queda en el frasco es lo que te cobró la máquina: S/ 51 de S/ 2,140.</li>
+          <li>Yape y Plin entran directo al BCP. Lo que está en los bancos llena el tanque: con eso pagas.</li>
+        </ol>
+      </div>
+      <div class="vc-ficha" id="vc-ficha" aria-live="polite">
+        <span class="versalita">Toca un lugar del mapa</span>
+        <h3>Tus bancos</h3>
+        <span class="n">S/ 28,280</span>
+        <p class="tenue">Es la plata con la que pagas sueldos, alquileres y proveedores. La raya punteada del tanque es tu mínimo: S/ 15,000.</p>
+      </div>
+    </div>
+
+    <div class="vc-sim">
+      <div class="vc-sim-txt" id="vc-sim-txt" aria-live="polite"><b>¿Te alcanza a fin de mes?</b> Mira qué pasa con el tanque hasta el sábado 31.</div>
+      <div class="vc-sim-acciones" id="vc-sim-acciones">
+        <button class="btn primario" type="button" id="vc-simular">Simular fin de mes</button>
+      </div>
+    </div>
+  </article>
+
+  <div class="rejilla r2">
+    <!-- Sobres -->
+    <article class="tarjeta" data-sube style="--i:2">
+      <span class="versalita">¿Qué debo pagar y cuándo?</span>
+      <p class="va-media" style="margin:8px 0 6px">Debes <span class="num" data-cuenta="16900" data-pre="S/ ">S/ 16,900</span> <small>en 4 sobres</small></p>
+      <div class="vc-tendedero">
+        <svg class="vc-cuerda" viewBox="0 0 1000 30" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" data-dibuja d="M0,4 Q500,30 1000,4"/></svg>
+        <div class="vc-sobres">
+          <button class="vc-sobre urgente" type="button" style="--r:-3deg" data-entra>
+            <span class="vc-pinza"></span>
+            <span class="vc-cuerpo"><span class="vc-solapa"></span><span class="f">lun 19</span><b>Textiles del Norte</b><span class="n">S/ 6,800</span><span class="chip late c-ambar">en 4 días</span></span>
+          </button>
+          <button class="vc-sobre" type="button" style="--r:2deg;--i:1" data-entra>
+            <span class="vc-pinza"></span>
+            <span class="vc-cuerpo"><span class="vc-solapa"></span><span class="f">dom 25</span><b>Tarjeta de crédito</b><span class="n">S/ 2,300</span></span>
+          </button>
+          <button class="vc-sobre" type="button" style="--r:-2deg;--i:2" data-entra>
+            <span class="vc-pinza"></span>
+            <span class="vc-cuerpo"><span class="vc-solapa"></span><span class="f">mié 28</span><b>Hilandería Andina</b><span class="n">S/ 4,600</span></span>
+          </button>
+          <button class="vc-sobre" type="button" style="--r:3deg;--i:3" data-entra>
+            <span class="vc-pinza"></span>
+            <span class="vc-cuerpo"><span class="vc-solapa"></span><span class="f">vie 6 nov</span><b>Botones y Avíos</b><span class="n">S/ 3,200</span></span>
+          </button>
+        </div>
+      </div>
+      <p class="d-pie" style="margin-top:14px">Cada sobre cuelga en el orden en que vence: el de la izquierda toca primero. Si pagas el de Textiles el martes 3 (pídeselo antes), el tanque no baja de tu mínimo.</p>
+    </article>
+
+    <!-- Por depositar en C: ya está en el mapa; aquí, la explicación del cajón y la caja fuerte -->
+    <article class="tarjeta" data-sube style="--i:3">
+      <span class="versalita">Las cajas de las tiendas</span>
+      <p class="va-media" style="margin:8px 0 10px"><span class="num" data-cuenta="11100" data-pre="S/ ">S/ 11,100</span> <small>en efectivo</small></p>
+      <ul class="va-lista">
+        <li><span>Caja fuerte de Trujillo<small>Sin depositar desde el martes 13 · cuadra al sol</small></span><span>S/ 6,200</span></li>
+        <li><span>Caja fuerte de Arequipa<small>Sin depositar desde el viernes 9 · faltaron S/ 120 (un taxi sin anotar)</small></span><span>S/ 3,900</span></li>
+        <li><span>Cajones de Trujillo y Arequipa<small>El fondo para dar vuelto: no se deposita</small></span><span>S/ 1,000</span></li>
+      </ul>
+      <p class="d-pie" style="margin-top:10px">Lo de las cajas fuertes no paga sueldos ni proveedores hasta que lo llevas al banco: por eso no entra al tanque.</p>
+    </article>
+  </div>
+
+  <!-- Conciliación: dos tiras de papel -->
+  <article class="tarjeta" data-sube style="--i:4">
+    <span class="versalita">¿Cuadra con el banco?</span>
+    <h2 class="d-h2" style="margin-top:6px">Dos tiras de papel, una al lado de la otra</h2>
+    <p class="d-pie" style="margin-top:4px;max-width:70ch">A la izquierda, el extracto de Interbank del 1 al 14 de octubre. A la derecha, lo que anotó CAYLA. Cada pareja se une con un hilo; las que no están seguras esperan a que tú las cosas.</p>
+    <div class="vc-tiras" id="vc-tiras">
+      <div class="vc-papel izq" aria-hidden="true"></div><div class="vc-papel der" aria-hidden="true"></div>
+      <div class="vc-cab izq"><span class="versalita">Interbank dice</span></div><div class="vc-cab der"><span class="versalita">CAYLA dice</span></div>
+
+      <div class="vc-celda izq"><div class="fila"><span>34 movimientos</span><b>✓</b></div><small>del 1 al 14 de octubre</small></div>
+      <div class="vc-hilo"><svg class="vc-fajo" viewBox="0 0 100 54" preserveAspectRatio="none" aria-hidden="true">
+        <path pathLength="1" data-dibuja style="--i:1" d="M0,10 C40,10 60,12 100,12"/><path pathLength="1" data-dibuja style="--i:2" d="M0,15 C40,15 60,20 100,20"/>
+        <path pathLength="1" data-dibuja style="--i:3" d="M0,20 C40,20 60,16 100,16"/><path pathLength="1" data-dibuja style="--i:4" d="M0,26 C40,26 60,30 100,30"/>
+        <path pathLength="1" data-dibuja style="--i:5" d="M0,31 C40,31 60,25 100,25"/><path pathLength="1" data-dibuja style="--i:6" d="M0,36 C40,36 60,38 100,38"/>
+        <path pathLength="1" data-dibuja style="--i:7" d="M0,42 C40,42 60,44 100,44"/></svg><span class="vc-fajo-t">34 cosidos solos</span></div>
+      <div class="vc-celda der"><div class="fila"><span>34 movimientos</span><b>✓</b></div><small>ventas, depósitos y pagos</small></div>
+
+      <div class="vc-celda izq" data-par="1"><div class="fila"><span>DEP EFECTIVO AG 0214</span><b>+2,500.00</b></div><small>mar 13 oct</small></div>
+      <div class="vc-hilo" data-par="1"><svg viewBox="0 0 100 54" preserveAspectRatio="none" aria-hidden="true"><path class="vc-suelto" d="M0,27 C30,36 70,36 100,27"/><path class="vc-firme" pathLength="1" d="M0,27 C30,33 70,33 100,27"/></svg>
+        <span class="vc-nudo i"></span><span class="vc-nudo d"></span>
+        <button class="vc-coser" type="button" data-coser="1" aria-label="Coser: es la misma"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20 20 4M16 4h4v4"/><circle cx="18" cy="6" r="1"/></svg><span>Coser</span></button></div>
+      <div class="vc-celda der" data-par="1"><div class="fila"><span>Depósito caja fuerte TRU</span><b>S/ 2,500</b></div><small>mar 13 · hubo dos de este monto esa semana</small></div>
+
+      <div class="vc-celda izq" data-par="2"><div class="fila"><span>TRANSF 99812 M RIOS C</span><b>−1,200.00</b></div><small>sáb 10 oct</small></div>
+      <div class="vc-hilo" data-par="2"><svg viewBox="0 0 100 54" preserveAspectRatio="none" aria-hidden="true"><path class="vc-suelto" d="M0,27 C30,36 70,36 100,27"/><path class="vc-firme" pathLength="1" d="M0,27 C30,33 70,33 100,27"/></svg>
+        <span class="vc-nudo i"></span><span class="vc-nudo d"></span>
+        <button class="vc-coser" type="button" data-coser="2" aria-label="Coser: es la misma"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20 20 4M16 4h4v4"/><circle cx="18" cy="6" r="1"/></svg><span>Coser</span></button></div>
+      <div class="vc-celda der" data-par="2"><div class="fila"><span>Contador · septiembre</span><b>S/ 1,200</b></div><small>vie 9 · el banco lo cobró un día después</small></div>
+
+      <div class="vc-celda izq" data-par="3"><div class="fila"><span>PAGO SERV CLARO 51998</span><b>−149.00</b></div><small>mié 7 oct</small></div>
+      <div class="vc-hilo" data-par="3"><svg viewBox="0 0 100 54" preserveAspectRatio="none" aria-hidden="true"><path class="vc-suelto" d="M0,27 C30,36 70,36 100,27"/><path class="vc-firme" pathLength="1" d="M0,27 C30,33 70,33 100,27"/></svg>
+        <span class="vc-nudo i"></span><span class="vc-nudo d"></span>
+        <button class="vc-coser" type="button" data-coser="3" aria-label="Coser: es la misma"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20 20 4M16 4h4v4"/><circle cx="18" cy="6" r="1"/></svg><span>Coser</span></button></div>
+      <div class="vc-celda der" data-par="3"><div class="fila"><span>Internet · Arequipa</span><b>S/ 149</b></div><small>mié 7 · el banco dice «Claro»</small></div>
+
+      <div class="vc-celda izq" data-par="4"><div class="fila"><span>COM MANT CTA 0012</span><b>−180.00</b></div><small>sáb 3 oct · nadie lo anotó</small></div>
+      <div class="vc-hilo" data-par="4"><svg viewBox="0 0 100 54" preserveAspectRatio="none" aria-hidden="true"><path class="vc-colgando" d="M0,27 C22,30 34,52 26,80 C22,92 30,100 34,104"/><path class="vc-firme" pathLength="1" d="M0,27 C30,33 70,33 100,27"/></svg>
+        <span class="vc-nudo i"></span><span class="vc-nudo d"></span></div>
+      <div class="vc-celda der" data-par="4" id="vc-hueco"><div class="vc-hueco"><span>Aquí no hay nada todavía.</span><button class="btn chico primario" type="button" id="vc-crear">Crear gasto</button></div></div>
+
+      <div class="vc-pie-tiras">
+        <div><span class="versalita">Saldo</span><span class="n">S/ 9,830</span></div>
+        <div class="dif"><span class="versalita">Diferencia</span><span class="n" id="vc-dif" style="color:var(--ambar)">S/ 180</span></div>
+        <div><span class="versalita">Saldo</span><span class="n" id="vc-saldo-cayla">S/ 10,010</span></div>
+      </div>
+      <div class="vc-sello" id="vc-sello">Cuadra<small>Interbank · 14 de octubre</small></div>
+    </div>
+  </article>
+</section>
+</main>
+<script src="base.js"></script>
+<script>
+(function () {
+  "use strict";
+  var NS = "http://www.w3.org/2000/svg";
+  var reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var q = function (s, r) { return (r || document).querySelector(s); };
+  var qa = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var soles = function (n) { return "S/ " + Math.round(n).toLocaleString("es-PE"); };
+  var firmado = function (n) { return (n < 0 ? "−" : "+") + "S/ " + Math.abs(Math.round(n)).toLocaleString("es-PE"); };
+
+  /* ---------- La historia: 31 días desde hoy (jueves 15 de octubre) ---------- */
+  var N = 31, MINIMO = 15000;
+  var DIAS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
+  var DIAS_L = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
+  function fecha(i, largo) {
+    var d = 15 + i, nov = d > 31, dia = nov ? d - 31 : d, ds = (largo ? DIAS_L : DIAS)[(2 + i) % 7];
+    return { ds: ds, dia: dia, nov: nov, txt: ds + " " + dia + (nov ? " nov" : " oct") };
+  }
+  // Lo que ya se sabe que entra o sale de los bancos. Los depósitos de máquina llegan sin su comisión.
+  var EVENTOS = {
+    1: [["Llega Vendemás (sin su comisión)", 1275]],
+    2: [["Llega Izipay (sin su comisión)", 2089]],
+    4: [["Textiles del Norte", -6800]],
+    5: [["SUNAT · IGV y renta", -9290], ["Detracción del alquiler de AQP", -320]],
+    10: [["Tarjeta de crédito CAYLA", -2300]],
+    13: [["Hilandería Andina", -4600]],
+    15: [["Sueldos", -25400], ["Alquileres de noviembre", -12500]],
+    16: [["Contador, publicidad y servicios", -4010]],
+    22: [["Botones y Avíos Lima", -3200]]
+  };
+  function proyectar(op) {
+    op = op || {};
+    var v = [28280], ent = [0], sal = [0], mov = [[]];
+    for (var i = 1; i < N; i++) {
+      var wd = (2 + i) % 7, e = 0, s = 0, lista = [];
+      var ritmo = wd >= 5 ? 900 : 2898 + (wd === 0 ? 3200 : 0);
+      e += ritmo;
+      lista.push([wd >= 5 ? "Yape y Plin del día" : (wd === 0 ? "Ventas del día y tarjetas del fin de semana" : "Ventas del día"), ritmo]);
+      (EVENTOS[i] || []).forEach(function (ev) {
+        if (op.tex && ev[0] === "Textiles del Norte") return;
+        lista.push(ev);
+        if (ev[1] > 0) e += ev[1]; else s -= ev[1];
+      });
+      if (op.dep && i === 1) { lista.push(["Depositas las cajas fuertes", 10100]); e += 10100; }
+      if (op.tex && i === 19) { lista.push(["Textiles del Norte (pago movido)", -6800]); s += 6800; }
+      v.push(v[i - 1] + e - s); ent.push(e); sal.push(s); mov.push(lista);
+    }
+    return { v: v, ent: ent, sal: sal, mov: mov };
+  }
+
+  // Curva suave que no se pasa de los puntos (monótona): el valle dibujado es el valle real.
+  function rutaSuave(p) {
+    var n = p.length, dx = [], m = [], t = [], i;
+    for (i = 0; i < n - 1; i++) { dx[i] = p[i + 1][0] - p[i][0]; m[i] = (p[i + 1][1] - p[i][1]) / dx[i]; }
+    t[0] = m[0]; t[n - 1] = m[n - 2];
+    for (i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+    for (i = 0; i < n - 1; i++) {
+      if (m[i] === 0) { t[i] = 0; t[i + 1] = 0; continue; }
+      var a = t[i] / m[i], b = t[i + 1] / m[i], s = a * a + b * b;
+      if (s > 9) { var k = 3 / Math.sqrt(s); t[i] = k * a * m[i]; t[i + 1] = k * b * m[i]; }
+    }
+    var f = function (x) { return x.toFixed(1); };
+    var d = "M" + f(p[0][0]) + "," + f(p[0][1]);
+    for (i = 0; i < n - 1; i++) {
+      var h = dx[i] / 3;
+      d += "C" + f(p[i][0] + h) + "," + f(p[i][1] + t[i] * h) + " " + f(p[i + 1][0] - h) + "," + f(p[i + 1][1] - t[i + 1] * h) + " " + f(p[i + 1][0]) + "," + f(p[i + 1][1]);
+    }
+    return d;
+  }
+
+  function contenidoTip(i, saldo, mov) {
+    var f = fecha(i, true);
+    var h = "<b>" + (i === 0 ? "Hoy · " : "") + f.ds + " " + f.dia + (f.nov ? " de noviembre" : " de octubre") + "</b><span class=\"n\">" + soles(saldo) + "</span>";
+    var lista = (mov || []).filter(function (m) { return Math.abs(m[1]) >= 1; });
+    if (lista.length) {
+      h += "<ul>";
+      lista.forEach(function (m) { h += "<li><span>" + m[0] + "</span><span>" + firmado(m[1]) + "</span></li>"; });
+      h += "</ul>";
+    }
+    return h;
+  }
+  function ponerTip(tip, caja, px, py, html) {
+    tip.innerHTML = html;
+    var w = tip.offsetWidth, h = tip.offsetHeight, W = caja.clientWidth;
+    var x = px + 16; if (x + w > W) x = px - 16 - w; if (x < 0) x = Math.max(0, Math.min(W - w, px - w / 2));
+    var y = Math.max(-10, py - h / 2);
+    tip.style.transform = "translate(" + x + "px," + y + "px)";
+    tip.classList.add("ver");
+  }
+
+  /* =================== A · La respuesta =================== */
+  var A = { op: { dep: false, tex: false }, vals: null, geo: null };
+  function construirA(entrada) {
+    var caja = q("#va-curva"); if (!caja || !caja.clientWidth) return;
+    var svg = q("svg", caja), W = caja.clientWidth, angosto = W < 560, H = angosto ? 236 : 300;
+    var m = { l: angosto ? 46 : 62, r: angosto ? 10 : 20, t: 28, b: 30 }, YMAX = 60000;
+    var x = function (i) { return m.l + (W - m.l - m.r) * i / (N - 1); };
+    var y = function (v) { return m.t + (H - m.t - m.b) * (1 - v / YMAX); };
+    A.geo = { W: W, H: H, m: m, x: x, y: y, angosto: angosto };
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("height", H);
+    var en = function (attr) { return entrada ? attr : ""; };
+    var h = "";
+    [0, 30000, 45000, 60000].forEach(function (t) {
+      h += '<line class="va-grilla" x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y(t) + '" y2="' + y(t) + '"/>';
+      h += '<text class="va-eje" x="' + (m.l - 8) + '" y="' + (y(t) + 4) + '" text-anchor="end">' + (t ? (t / 1000) + " mil" : "0") + "</text>";
+    });
+    h += '<defs><clipPath id="va-sobre"><path id="va-sobre-p"/></clipPath></defs>';
+    h += '<path id="va-area" class="va-area" ' + en('data-aparece style="--i:2"') + "/>";
+    h += '<rect class="va-bajo" clip-path="url(#va-sobre)" x="' + m.l + '" y="' + y(MINIMO) + '" width="' + (W - m.l - m.r) + '" height="' + (y(0) - y(MINIMO)) + '" ' + en('data-aparece style="--i:9"') + "/>";
+    h += '<line class="va-min" x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y(MINIMO) + '" y2="' + y(MINIMO) + '"/>';
+    h += '<text class="va-eje" x="' + (m.l - 8) + '" y="' + (y(MINIMO) + 4) + '" text-anchor="end">15 mil</text>';
+    h += angosto ? '<text class="va-min-t" x="' + (m.l + 6) + '" y="' + (y(MINIMO) + 16) + '">Tu mínimo</text>' : '<text class="va-min-t" x="' + (W - m.r) + '" y="' + (y(MINIMO) - 8) + '" text-anchor="end">Tu mínimo · S/ 15,000</text>';
+    h += '<path id="va-linea" class="va-linea" pathLength="1" ' + en("data-dibuja") + "/>";
+    h += '<g id="va-eventos" ' + en('data-aparece style="--i:8"') + "></g>";
+    (angosto ? [0, 16, 30] : [0, 5, 10, 16, 21, 26, 30]).forEach(function (i) {
+      var f = fecha(i);
+      h += '<text class="va-eje" x="' + x(i) + '" y="' + (H - 8) + '" text-anchor="' + (i === 0 ? "start" : (i === 30 ? "end" : "middle")) + '">' + (i === 0 ? "hoy" : f.ds + " " + f.dia + (f.nov ? " nov" : "")) + "</text>";
+    });
+    h += '<g id="va-nota" ' + en('data-aparece style="--i:10"') + '><line class="va-nota-l" id="va-nota-l"/><text class="va-nota-t" id="va-nota-t"></text></g>';
+    h += '<circle class="va-valle-aro" id="va-valle-aro" r="12" ' + en('data-sello style="--i:7"') + '/><circle class="va-valle-punto" id="va-valle-punto" r="5"/>';
+    h += '<g class="va-valle-et" id="va-valle-et" ' + en('data-aparece style="--i:11"') + '><rect id="va-valle-r" rx="8" height="26"/><text id="va-valle-t"></text></g>';
+    h += '<line id="va-guia" class="va-guia" y1="' + m.t + '" y2="' + (H - m.b) + '" opacity="0"/><circle id="va-guia-p" class="va-guia-p" r="5" opacity="0"/>';
+    h += '<rect class="va-captura" id="va-captura" x="' + m.l + '" y="0" width="' + (W - m.l - m.r) + '" height="' + (H - m.b) + '"/>';
+    svg.innerHTML = h;
+    if (!A.vals) A.vals = proyectar(A.op).v.slice();
+    pintarA(A.vals);
+  }
+  function pintarA(vals) {
+    var g = A.geo; if (!g) return;
+    var x = g.x, y = g.y, pts = vals.map(function (v, i) { return [x(i), y(v)]; });
+    var d = rutaSuave(pts);
+    q("#va-linea").setAttribute("d", d);
+    q("#va-area").setAttribute("d", d + " L" + x(N - 1) + "," + y(0) + " L" + x(0) + "," + y(0) + " Z");
+    q("#va-sobre-p").setAttribute("d", "M" + x(0) + ",0 L" + pts[0][0] + "," + pts[0][1] + " " + d.slice(d.indexOf("C")) + " L" + x(N - 1) + ",0 Z");
+    var mi = 0; vals.forEach(function (v, i) { if (v < vals[mi]) mi = i; });
+    var px = x(mi), py = y(vals[mi]);
+    ["#va-valle-aro", "#va-valle-punto"].forEach(function (s) { var c = q(s); c.setAttribute("cx", px); c.setAttribute("cy", py); });
+    var t = q("#va-valle-t"); t.textContent = fecha(mi).txt + " · " + soles(vals[mi]);
+    var largo = 0; try { largo = t.getComputedTextLength(); } catch (_) {} if (!largo) largo = 130;
+    var ancho = largo + 20, ex = px + 16; if (ex + ancho > g.W - g.m.r) ex = px - 16 - ancho;
+    var ey = py - 44; if (ey < g.m.t - 10) ey = py + 18;
+    var r = q("#va-valle-r"); r.setAttribute("x", ex); r.setAttribute("y", ey); r.setAttribute("width", ancho);
+    t.setAttribute("x", ex + 10); t.setAttribute("y", ey + 17);
+    // Marcas de los pagos grandes
+    var op = proyectar(A.op), ev = "";
+    op.mov.forEach(function (lista, i) {
+      if (lista.some(function (mv) { return mv[1] <= -2000; })) ev += '<circle class="va-ev" cx="' + x(i) + '" cy="' + y(vals[i]) + '" r="4"/>';
+    });
+    q("#va-eventos").innerHTML = ev;
+    // Nota del viernes 30
+    var nx = x(15), ny = y(Math.max(vals[14], vals[15])) + 2;
+    var nl = q("#va-nota-l"); nl.setAttribute("x1", nx + 4); nl.setAttribute("x2", nx + 18); nl.setAttribute("y1", ny + 10); nl.setAttribute("y2", ny + 10);
+    var nt = q("#va-nota-t"); nt.setAttribute("x", nx + 22); nt.setAttribute("y", ny + 14);
+    nt.textContent = g.angosto ? "" : "vie 30 · sueldos y alquileres −S/ 37,900"; nl.style.display = g.angosto ? "none" : "";
+  }
+  var FRASES = {
+    "": ["El 31 bajas a ", ", bajo tu mínimo de S/ 15,000.", "Son 3 días por debajo: del sábado 31 al lunes 2. El martes 3 vuelve a entrar lo del fin de semana."],
+    dep: ["Con las cajas fuertes en el banco, el 31 quedas en ", ": sobre tu mínimo.", "Llévalas mañana jueves: Trujillo S/ 6,200 y Arequipa S/ 3,900. Desde ese día cuentan para pagar."],
+    tex: ["Si le pagas a Textiles del Norte el 3, el 31 quedas en ", ": sobre tu mínimo.", "Su factura vence el lunes 19: tendrías que pedírselo antes. El martes 3 ya entró lo del fin de semana."],
+    "dep tex": ["Con las dos, el 31 quedas en ", ": te sobra margen.", "Basta con una. Si eliges solo una, que sea depositar: no le pides nada a nadie."]
+  };
+  function animarA() {
+    var clave = [A.op.dep ? "dep" : "", A.op.tex ? "tex" : ""].filter(Boolean).join(" ");
+    var dest = proyectar(A.op).v, desde = A.vals.slice();
+    var vIni = Math.min.apply(null, desde), vFin = Math.min.apply(null, dest);
+    var fr = FRASES[clave];
+    q("#va-frase").innerHTML = fr[0] + '<span class="va-monto ' + (vFin < MINIMO ? "bajo" : "bien") + '" id="va-monto">' + soles(vIni) + "</span>" + fr[1];
+    q("#va-sub").textContent = fr[2];
+    var monto = q("#va-monto"), t0 = performance.now(), dur = reducido ? 0 : 780;
+    function paso(t) {
+      var p = dur ? Math.min(1, (t - t0) / dur) : 1, e = 1 - Math.pow(1 - p, 3);
+      A.vals = desde.map(function (v, i) { return v + (dest[i] - v) * e; });
+      pintarA(A.vals);
+      monto.textContent = soles(vIni + (vFin - vIni) * e);
+      if (p < 1) requestAnimationFrame(paso); else { A.vals = dest.slice(); pintarA(A.vals); monto.textContent = soles(vFin); }
+    }
+    requestAnimationFrame(paso);
+  }
+  qa(".va-opcion").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var k = b.dataset.opcion, on = b.getAttribute("aria-pressed") !== "true";
+      b.setAttribute("aria-pressed", String(on)); A.op[k] = on; animarA();
+    });
+  });
+  (function () {
+    var caja = q("#va-curva"), tip = q("#va-tip");
+    function mover(e) {
+      var g = A.geo; if (!g || !A.vals) return;
+      var r = caja.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+      if (mx < g.m.l - 6 || mx > g.W - g.m.r + 6 || my < 0 || my > g.H) { salir(); return; }
+      var i = Math.max(0, Math.min(N - 1, Math.round((mx - g.m.l) / ((g.W - g.m.l - g.m.r) / (N - 1)))));
+      var px = g.x(i), py = g.y(A.vals[i]);
+      var gu = q("#va-guia"), gp = q("#va-guia-p");
+      gu.setAttribute("x1", px); gu.setAttribute("x2", px); gu.setAttribute("opacity", ".55");
+      gp.setAttribute("cx", px); gp.setAttribute("cy", py); gp.setAttribute("opacity", "1");
+      ponerTip(tip, caja, px, py, contenidoTip(i, A.vals[i], proyectar(A.op).mov[i]));
+    }
+    function salir() {
+      tip.classList.remove("ver");
+      var gu = q("#va-guia"), gp = q("#va-guia-p"); if (gu) gu.setAttribute("opacity", "0"); if (gp) gp.setAttribute("opacity", "0");
+    }
+    caja.addEventListener("pointermove", mover);
+    caja.addEventListener("pointerdown", mover);
+    caja.addEventListener("pointerleave", salir);
+  })();
+  // ¿Cuadra? — explicar lo que falta con un toque
+  qa("[data-resolver]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var banco = b.closest(".va-banco"); if (banco.classList.contains("hecho")) return;
+      banco.classList.add("hecho");
+      q(".pista>i", banco).style.setProperty("--w", "100%");
+      var n = q("[data-n]", banco); n.textContent = b.dataset.resolver === "int" ? "38 de 38 cruzados" : "42 de 42 cruzados";
+      q("[data-hecho]", banco).textContent = b.dataset.texto + ".";
+      var s = q(".d-sello", banco); s.classList.remove("estampa"); void s.offsetWidth; s.classList.add("estampa");
+      var faltan = qa(".va-banco:not(.hecho)").length;
+      q("#va-cuadra-t").textContent = faltan ? "Casi. Falta explicar 1 movimiento." : "Sí. Tus dos bancos cuadran.";
+      if (!faltan) { var st = q("#va-cuadra-sello"); st.hidden = false; st.classList.remove("estampa"); void st.offsetWidth; st.classList.add("estampa"); }
+    });
+  });
+
+  /* =================== B · La mesa de trabajo =================== */
+  // Líneas chicas de cada cuenta (14 días)
+  qa(".vb-spark[data-serie]").forEach(function (svg, k) {
+    var s = svg.dataset.serie.split(",").map(Number), mn = Math.min.apply(null, s), mx = Math.max.apply(null, s), rg = (mx - mn) || 1;
+    var pts = s.map(function (v, i) { return [i * 120 / (s.length - 1), 27 - (v - mn) / rg * 24]; });
+    svg.innerHTML = '<line class="base" x1="0" x2="120" y1="29.5" y2="29.5"/><path pathLength="1" data-dibuja style="--i:' + (k + 2) + '" d="' + rutaSuave(pts) + '"/>';
+  });
+  // Filtro por sede
+  var PISTAS = {
+    todas: "Los bancos y la tarjeta son de toda la empresa; las cajas y los cajones, de cada tienda.",
+    tru: "Trujillo: su caja fuerte, su cajón y lo que vendió con tarjeta (por depositar).",
+    aqp: "Arequipa: su caja fuerte, su cajón y lo que vendió con tarjeta (por depositar).",
+    lim: "Lima abre el martes 20: su cajón nace con S/ 500. Por ahora no guarda plata.",
+    taller: "El Taller no tiene cajón ni caja fuerte: lo que compra sale de los bancos."
+  };
+  qa("[data-sede]", q('[data-variante="b"] .vb-pildoras')).forEach(function (b) {
+    b.addEventListener("click", function () {
+      var sede = b.dataset.sede;
+      qa(".vb-pildora", b.parentNode).forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      qa(".vb-cta").forEach(function (c) {
+        var de = (c.dataset.sede || "").split(" ");
+        c.classList.toggle("apagada", sede !== "todas" && de.indexOf(sede) < 0);
+      });
+      q("#vb-pista-sede").textContent = PISTAS[sede];
+    });
+  });
+  // Flujo de 30 días
+  var B = { geo: null, P: proyectar() };
+  function construirB(entrada) {
+    var caja = q("#vb-flujo"); if (!caja || !caja.clientWidth) return;
+    var svg = q("svg", caja), W = caja.clientWidth, angosto = W < 560, H = angosto ? 300 : 340;
+    var m = { l: angosto ? 42 : 58, r: 12, t: 16, b: 24 };
+    var P = B.P, sTop = m.t, sBot = angosto ? 150 : 180, bMid = angosto ? 222 : 256, bAlto = angosto ? 44 : 54, YMAX = 50000, BMAX = 10000;
+    var paso = (W - m.l - m.r) / N, bw = Math.max(3, Math.min(16, paso * 0.6));
+    var xc = function (i) { return m.l + paso * (i + 0.5); };
+    var ys = function (v) { return sTop + (sBot - sTop) * (1 - v / YMAX); };
+    B.geo = { W: W, H: H, m: m, xc: xc, ys: ys, paso: paso, sBot: sBot };
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("height", H);
+    var en = function (a) { return entrada ? a : ""; };
+    var h = "";
+    for (var i = 0; i < N; i++) if ((2 + i) % 7 >= 5) h += '<rect class="vb-finde" x="' + (m.l + paso * i) + '" y="' + sTop + '" width="' + paso + '" height="' + (bMid + bAlto - sTop) + '"/>';
+    [0, 25000, 50000].forEach(function (t) {
+      h += '<line class="vb-g" x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + ys(t) + '" y2="' + ys(t) + '"/><text class="vb-eje" x="' + (m.l - 8) + '" y="' + (ys(t) + 4) + '" text-anchor="end">' + (t ? t / 1000 + " mil" : "0") + "</text>";
+    });
+    var pts = P.v.map(function (v, i) { return [xc(i), ys(v)]; }), d = rutaSuave(pts);
+    h += '<defs><clipPath id="vb-sobre"><path d="M' + xc(0) + ',0 L' + pts[0][0] + "," + pts[0][1] + " " + d.slice(d.indexOf("C")) + " L" + xc(N - 1) + ',0 Z"/></clipPath></defs>';
+    h += '<rect class="vb-bajo" clip-path="url(#vb-sobre)" x="' + xc(0) + '" y="' + ys(MINIMO) + '" width="' + (xc(N - 1) - xc(0)) + '" height="' + (ys(0) - ys(MINIMO)) + '" ' + en('data-aparece style="--i:12"') + "/>";
+    h += '<line class="vb-min" x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + ys(MINIMO) + '" y2="' + ys(MINIMO) + '"/>';
+    h += '<path class="vb-linea" pathLength="1" ' + en('data-dibuja style="--i:4"') + ' d="' + d + '"/>';
+    h += '<line class="vb-g" x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + bMid + '" y2="' + bMid + '"/>';
+    h += '<text class="vb-eje" x="' + (m.l - 8) + '" y="' + (bMid - bAlto / 2 + 4) + '" text-anchor="end">entra</text>';
+    h += '<text class="vb-eje" x="' + (m.l - 8) + '" y="' + (bMid + bAlto / 2 + 4) + '" text-anchor="end">sale</text>';
+    for (i = 1; i < N; i++) {
+      var dl = en('data-crece-alto style="--i:' + (i / 2).toFixed(1) + '"');
+      if (P.ent[i] > 0) { var he = Math.min(P.ent[i], BMAX) / BMAX * bAlto; h += '<rect class="vb-ent" x="' + (xc(i) - bw / 2) + '" y="' + (bMid - he) + '" width="' + bw + '" height="' + he + '" rx="2" ' + dl + "/>"; }
+      if (P.sal[i] > 0) {
+        var hs = Math.min(P.sal[i], BMAX) / BMAX * bAlto;
+        h += '<rect class="vb-sal" x="' + (xc(i) - bw / 2) + '" y="' + bMid + '" width="' + bw + '" height="' + hs + '" rx="2" ' + dl + "/>";
+        if (P.sal[i] > BMAX) {
+          h += '<line class="vb-corte" x1="' + (xc(i) - bw / 2 - 2) + '" x2="' + (xc(i) + bw / 2 + 2) + '" y1="' + (bMid + hs - 12) + '" y2="' + (bMid + hs - 16) + '"/>';
+          h += '<text class="vb-corte-t" x="' + (xc(i) + bw / 2 + 4) + '" y="' + (bMid + hs - 2) + '">−' + (P.sal[i] / 1000).toFixed(1).replace(".0", "") + ' mil</text>';
+        }
+      }
+    }
+    (angosto ? [0, 16, 30] : [0, 5, 10, 16, 21, 26, 30]).forEach(function (i) {
+      var f = fecha(i);
+      h += '<text class="vb-eje" x="' + xc(i) + '" y="' + (H - 6) + '" text-anchor="' + (i === 0 ? "start" : (i === 30 ? "end" : "middle")) + '">' + (i === 0 ? "hoy" : f.ds + " " + f.dia + (f.nov ? " nov" : "")) + "</text>";
+    });
+    h += '<rect class="vb-col-hover" id="vb-col-h" x="0" y="' + sTop + '" width="' + paso + '" height="' + (bMid + bAlto - sTop) + '" opacity="0"/>';
+    h += '<circle class="va-guia-p" id="vb-pt" r="4.5" opacity="0"/>';
+    h += '<rect class="vb-captura" x="' + m.l + '" y="0" width="' + (W - m.l - m.r) + '" height="' + (H - m.b) + '"/>';
+    svg.innerHTML = h;
+  }
+  (function () {
+    var caja = q("#vb-flujo"), tip = q("#vb-tip");
+    function mover(e) {
+      var g = B.geo; if (!g) return;
+      var r = caja.getBoundingClientRect(), mx = e.clientX - r.left;
+      if (mx < g.m.l || mx > g.W - g.m.r) { salir(); return; }
+      var i = Math.max(0, Math.min(N - 1, Math.floor((mx - g.m.l) / g.paso)));
+      var c = q("#vb-col-h"); c.setAttribute("x", g.m.l + g.paso * i); c.setAttribute("opacity", "1");
+      var p = q("#vb-pt"); p.setAttribute("cx", g.xc(i)); p.setAttribute("cy", g.ys(B.P.v[i])); p.setAttribute("opacity", "1");
+      ponerTip(tip, caja, g.xc(i), g.ys(B.P.v[i]) + 30, contenidoTip(i, B.P.v[i], B.P.mov[i]));
+    }
+    function salir() { tip.classList.remove("ver"); var c = q("#vb-col-h"), p = q("#vb-pt"); if (c) c.setAttribute("opacity", "0"); if (p) p.setAttribute("opacity", "0"); }
+    caja.addEventListener("pointermove", mover); caja.addEventListener("pointerdown", mover); caja.addEventListener("pointerleave", salir);
+  })();
+  // Por pagar: filtros, fila que se abre, pagar
+  var tabla = q("#vb-pagar");
+  function totalPagar() {
+    var vivas = qa("tr.fila:not(.pagado)", tabla), t = 0;
+    vivas.forEach(function (f) { t += +f.dataset.monto; });
+    q("#vb-total-pagar").textContent = soles(t);
+    q("#vb-debes").textContent = soles(t);
+    q("#vb-n-pagar").textContent = vivas.length;
+    q("#vb-debes-pie").textContent = vivas.length ? vivas.length + (vivas.length === 1 ? " pago" : " pagos") + " por hacer" : "Nada por pagar";
+  }
+  qa("tr.fila", tabla).forEach(function (f) {
+    var det = f.nextElementSibling, caja = q(".desplegable", det);
+    function abrir() {
+      var ab = !caja.classList.contains("abierto");
+      caja.classList.toggle("abierto", ab); det.classList.toggle("abierta", ab); f.setAttribute("aria-expanded", String(ab));
+    }
+    f.addEventListener("click", function (e) { if (e.target.closest("[data-pagar]")) return; abrir(); });
+    f.addEventListener("keydown", function (e) { if ((e.key === "Enter" || e.key === " ") && e.target === f) { e.preventDefault(); abrir(); } });
+    q("[data-pagar]", f).addEventListener("click", function (e) {
+      e.stopPropagation();
+      var td = e.currentTarget.parentNode;
+      f.classList.add("pagado");
+      td.innerHTML = '<span class="d-sello estampa">Pagado</span>';
+      totalPagar();
+    });
+  });
+  qa("[data-f]", q("#vb-filtro-pagar")).forEach(function (b) {
+    b.addEventListener("click", function () {
+      qa("[data-f]", b.parentNode).forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      var f = b.dataset.f;
+      qa("tr.fila", tabla).forEach(function (fila) {
+        var ver = f === "todo" || fila.dataset.tipo.split(" ").indexOf(f) >= 0;
+        fila.classList.toggle("oculta", !ver); fila.nextElementSibling.classList.toggle("oculta", !ver);
+      });
+    });
+  });
+  // Conciliación: aceptar sugeridas y crear el gasto que falta
+  var CONC = { cruz: 34, sug: 3, sin: 1 };
+  function contarConc() {
+    var tot = 38;
+    q("#vb-b-cruz").style.setProperty("--w", "calc((100% - 6px) * " + (CONC.cruz / tot) + ")");
+    q("#vb-b-sug").style.setProperty("--w", "calc((100% - 6px) * " + (CONC.sug / tot) + ")");
+    q("#vb-b-sin").style.setProperty("--w", "calc((100% - 6px) * " + (CONC.sin / tot) + ")");
+    ["#vb-c-cruz", "#vb-c-cruz2"].forEach(function (s) { q(s).textContent = CONC.cruz; });
+    ["#vb-c-sug", "#vb-c-sug2"].forEach(function (s) { q(s).textContent = CONC.sug; });
+    ["#vb-c-sin", "#vb-c-sin2"].forEach(function (s) { q(s).textContent = CONC.sin; });
+    q("#vb-n-faltan").textContent = CONC.sug + CONC.sin;
+    if (!CONC.sug && !CONC.sin) {
+      q("#vb-cierre-conc").innerHTML = '<span class="d-sello estampa">Cuadra · 14 oct</span> &nbsp;Interbank está cuadrado al 14 de octubre: las 38 líneas tienen pareja.';
+    }
+  }
+  function juntar(par, plegable, despues) {
+    par.classList.add("juntando");
+    setTimeout(function () {
+      par.classList.add("junta");
+      var m = q(".vb-medio", par); m.innerHTML = '<span class="d-sello estampa">Cruzada</span>'; m.classList.add("ok");
+      par.classList.remove("juntando");
+    }, reducido ? 0 : 520);
+    setTimeout(function () { plegable.classList.add("ido"); if (despues) despues(); }, reducido ? 0 : 1500);
+  }
+  qa("[data-aceptar]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var plegable = b.closest(".vb-plegable"); if (plegable.dataset.hecho) return; plegable.dataset.hecho = "1";
+      juntar(q(".vb-par", plegable), plegable, function () { CONC.sug--; CONC.cruz++; contarConc(); });
+    });
+  });
+  q("#vb-crear").addEventListener("click", function () {
+    var hueco = q("#vb-hueco"), plegable = q("#vb-sin"); if (plegable.dataset.hecho) return; plegable.dataset.hecho = "1";
+    var nuevo = document.createElement("div");
+    nuevo.className = "vb-mov vb-sis nuevo";
+    nuevo.innerHTML = '<span class="que">Gasto · Comisión de mantenimiento de cuenta</span><span class="cuanto">S/ 180</span><span class="cuando">sáb 3 oct · Interbank · lo creaste hoy</span>';
+    hueco.replaceWith(nuevo);
+    q("#vb-s-cayla").textContent = "S/ 9,830";
+    var dif = q("#vb-s-dif"); dif.textContent = "S/ 0"; dif.style.color = "var(--verde)";
+    setTimeout(function () { juntar(q(".vb-par", plegable), plegable, function () { CONC.sin--; CONC.cruz++; contarConc(); }); }, reducido ? 0 : 650);
+  });
+  q("#vb-subir").addEventListener("click", function () {
+    var b = q("#vb-subir-b"), t = q("#vb-subir-t"), s = q("#vb-subir-s");
+    t.textContent = "Leyendo el extracto…"; s.textContent = "Interbank · 1 al 14 de octubre";
+    b.style.setProperty("--w", "0%"); void b.offsetWidth; b.style.setProperty("--w", "100%");
+    setTimeout(function () { t.textContent = "Listo: 38 movimientos"; s.textContent = "34 se cruzaron solos · es una maqueta, no se guarda"; }, reducido ? 0 : 1250);
+  });
+
+  /* =================== C · Las cosas de la tienda =================== */
+  var TQ = { x: 900, y: 80, w: 200, h: 480, max: 50000 };
+  var nivelY = function (v) { return TQ.y + TQ.h - TQ.h * Math.max(0, Math.min(v, TQ.max)) / TQ.max; };
+  var C = { nivel: 28280, cf: [6200, 3900], tour: 0, sim: false, estado: "hoy" };
+  function ponerNivel(v) {
+    C.nivel = v;
+    var yy = nivelY(v), agua = q("#vc-agua"), sup = q("#vc-superficie");
+    agua.setAttribute("y", yy); agua.setAttribute("height", TQ.y + TQ.h - yy);
+    sup.setAttribute("d", "M900," + yy.toFixed(1) + " q25,-5 50,0 t50,0 t50,0 t50,0");
+    var bajo = v < MINIMO; agua.classList.toggle("bajo", bajo); sup.classList.toggle("bajo", bajo);
+    var nv = q("#vc-nivel"); nv.textContent = soles(v); nv.setAttribute("y", Math.max(110, yy - 14));
+  }
+  function tween(desde, hasta, dur, cada) {
+    return new Promise(function (res) {
+      if (reducido || !dur) { cada(hasta); res(); return; }
+      var t0 = performance.now();
+      (function paso(t) {
+        var p = Math.min(1, (t - t0) / dur), e = p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+        cada(desde + (hasta - desde) * e);
+        if (p < 1) requestAnimationFrame(paso); else res();
+      })(t0);
+    });
+  }
+  function onda(x, y) {
+    var c = document.createElementNS(NS, "circle");
+    c.setAttribute("class", "vc-onda"); c.setAttribute("cx", x); c.setAttribute("cy", y); c.setAttribute("r", 10);
+    q("#vc-cometas").appendChild(c); setTimeout(function () { c.remove(); }, 700);
+  }
+  function viajar(id, o) {
+    o = o || {};
+    return new Promise(function (res) {
+      var p = document.getElementById(id), capa = q("#vc-cometas");
+      if (!p || reducido) { res(); return; }
+      var L = p.getTotalLength(), g = document.createElementNS(NS, "g"), clase = "vc-k-" + (o.clase || "efectivo");
+      g.setAttribute("class", "vc-cometa"); g.dataset.tour = o.tour || "";
+      var cola = [], cab, i;
+      for (i = 4; i >= 1; i--) { var c = document.createElementNS(NS, "circle"); c.setAttribute("r", (o.r || 7) * (0.35 + 0.1 * (4 - i))); c.setAttribute("class", "cola " + clase); g.appendChild(c); cola.unshift(c); }
+      if (o.forma === "sobre") {
+        cab = document.createElementNS(NS, "g");
+        cab.innerHTML = '<rect class="vc-k-sobre" x="-12" y="-8" width="24" height="16" rx="2"/><path class="vc-trazo" d="M-12,-8 L0,1 L12,-8"/>';
+      } else {
+        cab = document.createElementNS(NS, "circle"); cab.setAttribute("r", o.r || 7); cab.setAttribute("class", "cab " + clase);
+      }
+      g.appendChild(cab);
+      var et = null; if (o.etq) { et = document.createElementNS(NS, "text"); et.textContent = o.etq; et.setAttribute("text-anchor", "middle"); g.appendChild(et); }
+      capa.appendChild(g);
+      var t0 = performance.now() + (o.retraso || 0), dur = o.dur || 1200, hist = [];
+      (function paso(t) {
+        if (!g.isConnected) { res(); return; }
+        if (t < t0) { requestAnimationFrame(paso); return; }
+        var pr = Math.min(1, (t - t0) / dur), e = pr < .5 ? 2 * pr * pr : 1 - Math.pow(-2 * pr + 2, 2) / 2;
+        var pt = p.getPointAtLength(e * L); hist.unshift([pt.x, pt.y]); if (hist.length > 20) hist.pop();
+        if (o.forma === "sobre") cab.setAttribute("transform", "translate(" + pt.x + "," + pt.y + ")");
+        else { cab.setAttribute("cx", pt.x); cab.setAttribute("cy", pt.y); }
+        cola.forEach(function (c, k) { var h = hist[Math.min(hist.length - 1, (k + 1) * 3)]; c.setAttribute("cx", h[0]); c.setAttribute("cy", h[1]); });
+        if (et) { et.setAttribute("x", pt.x); et.setAttribute("y", pt.y - 14); }
+        if (pr < 1) requestAnimationFrame(paso);
+        else { if (!o.sinOnda) onda(pt.x, pt.y); g.classList.add("llego"); setTimeout(function () { g.remove(); }, 450); res(); }
+      })(performance.now());
+    });
+  }
+  function limpiarCometas() { var capa = q("#vc-cometas"); if (capa) capa.innerHTML = ""; }
+  function marcarPaso(n) {
+    qa("#vc-pasos li").forEach(function (li, i) { li.classList.toggle("activo", i === n); li.classList.toggle("hecho", n === -1 ? true : (n >= 0 && i < n)); });
+  }
+  function latido(sel) { var el = q(sel); if (!el || reducido) return; el.classList.remove("vc-latido"); void el.getBoundingClientRect(); el.classList.add("vc-latido"); }
+  function recorrido() {
+    var yo = ++C.tour;
+    var sigue = function () { return yo === C.tour; };
+    if (reducido) { marcarPaso(-1); return; }
+    marcarPaso(0);
+    viajar("vc-r-venta-tru", { clase: "efectivo", etq: "S/ 120", dur: 900 })
+      .then(function () { return sigue() && viajar("vc-r-cajon-cf-tru", { clase: "efectivo", dur: 1100 }); })
+      .then(function () { if (!sigue()) return; marcarPaso(1); return viajar("vc-r-tru-izi", { clase: "qr", etq: "S/ 2,140", dur: 1300 }); })
+      .then(function () {
+        if (!sigue()) return; marcarPaso(2); var cam = q("#vc-camion-izi"); cam.classList.add("carga");
+        setTimeout(function () { cam.classList.remove("carga"); }, 500);
+        return Promise.all([viajar("vc-r-izi-int", { clase: "qr", etq: "S/ 2,089", dur: 1400 }), viajar("vc-r-izi-com", { clase: "comision", etq: "S/ 51", dur: 1100, r: 5 }).then(function () { latido("#vc-frasco"); })]);
+      })
+      .then(function () { if (!sigue()) return; marcarPaso(3); return viajar("vc-r-yape", { clase: "yape", etq: "Yape", dur: 1500 }); })
+      .then(function () { if (!sigue()) return; return Promise.all([viajar("vc-r-pipe-bcp", { clase: "yape", dur: 700, r: 5 }), viajar("vc-r-pipe-int", { clase: "qr", dur: 900, r: 5 })]); })
+      .then(function () { if (sigue()) marcarPaso(-1); });
+  }
+  q("#vc-repetir").addEventListener("click", function () { if (!C.sim) { limpiarCometas(); recorrido(); } });
+
+  // Fichas: qué es cada lugar
+  var FICHAS = {
+    "tienda-tru": ["Tienda Trujillo", "S/ 30,900", "Lo que vendió en octubre, sin IGV. El efectivo entra al cajón; la tarjeta y el QR suben al camioncito de Izipay; el Yape va directo al BCP.", ["vc-r-venta-tru", "vc-r-tru-izi", "vc-r-yape", "vc-r-cajon-cf-tru"]],
+    "tienda-aqp": ["Tienda Arequipa", "S/ 16,000", "Lo que vendió en octubre, sin IGV. Su tarjeta viaja en el camioncito de Vendemás.", ["vc-r-venta-aqp", "vc-r-aqp-ven", "vc-r-cajon-cf-aqp"]],
+    "cf-tru": ["Caja fuerte de Trujillo", "S/ 6,200", "Efectivo juntado desde el último depósito, el martes 13. Cuadra al sol. No paga transferencias hasta que lo lleves al banco.", ["vc-r-cajon-cf-tru", "vc-r-cf-bcp"]],
+    "cf-aqp": ["Caja fuerte de Arequipa", "S/ 3,900", "Último depósito: el viernes 9. En el mes faltaron S/ 120 en 2 cierres; ya tiene motivo: un taxi que no se anotó.", ["vc-r-cajon-cf-aqp", "vc-r-cfa-bcp"]],
+    "izipay": ["Por depositar · Izipay", "S/ 2,140", "Tarjeta y QR del martes 13 y miércoles 14. Llega a Interbank el jueves o el viernes, sin la comisión. Si al 4.º día no llegó, te aviso.", ["vc-r-tru-izi", "vc-r-izi-int", "vc-r-izi-com"]],
+    "vendemas": ["Por depositar · Vendemás", "S/ 1,310", "Tarjeta del miércoles 14 en Trujillo y Arequipa. Llega mañana a Interbank, sin la comisión.", ["vc-r-aqp-ven", "vc-r-ven-int"]],
+    "comision": ["Comisiones de las máquinas", "S/ 520", "Lo que Izipay y Vendemás se quedaron en octubre. No lo anotas tú: es la diferencia entre lo que vendiste con tarjeta y lo que llegó al banco.", ["vc-r-izi-com"]],
+    "bcp": ["BCP", "S/ 18,450", "Aquí entran Yape, Plin y los depósitos de efectivo de las cajas fuertes.", ["vc-r-yape", "vc-r-cf-bcp", "vc-r-cfa-bcp"]],
+    "interbank": ["Interbank", "S/ 9,830", "Aquí llegan Izipay y Vendemás. Su extracto tiene 1 movimiento sin explicar: −S/ 180 «COM MANT».", ["vc-r-izi-int", "vc-r-ven-int"]],
+    "tanque": ["Tus bancos", "S/ 28,280", "Es la plata con la que pagas sueldos, alquileres y proveedores. La raya punteada es tu mínimo: S/ 15,000. Toca «Simular fin de mes» para verlo bajar.", []]
+  };
+  function ficha(clave) {
+    var f = FICHAS[clave]; if (!f) return;
+    var el = q("#vc-ficha");
+    el.innerHTML = '<span class="versalita">Toca un lugar del mapa</span><h3>' + f[0] + '</h3><span class="n">' + f[1] + '</span><p class="tenue">' + f[2] + "</p>";
+    el.classList.remove("cambia"); void el.offsetWidth; el.classList.add("cambia");
+    qa(".vc-lugar").forEach(function (l) { l.classList.toggle("activo", l.dataset.lugar === clave); });
+  }
+  function rutasVivas(clave) {
+    qa(".vc-ruta").forEach(function (r) { r.classList.remove("viva"); });
+    var f = FICHAS[clave]; if (!f) return;
+    f[3].forEach(function (id) { var r = document.getElementById(id); if (r) r.classList.add("viva"); });
+  }
+  qa(".vc-lugar").forEach(function (l) {
+    l.addEventListener("pointerenter", function () { rutasVivas(l.dataset.lugar); });
+    l.addEventListener("pointerleave", function () { rutasVivas(null); });
+    l.addEventListener("focus", function () { rutasVivas(l.dataset.lugar); ficha(l.dataset.lugar); });
+    l.addEventListener("blur", function () { rutasVivas(null); });
+    l.addEventListener("click", function () { ficha(l.dataset.lugar); });
+    l.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ficha(l.dataset.lugar); } });
+  });
+
+  // Simular fin de mes
+  var CORTO = { "Textiles del Norte": "Textiles", "SUNAT · IGV y renta": "SUNAT", "Detracción del alquiler de AQP": "Detracción", "Tarjeta de crédito CAYLA": "Tarjeta",
+    "Hilandería Andina": "Hilandería", "Sueldos": "Sueldos", "Alquileres de noviembre": "Alquileres", "Contador, publicidad y servicios": "Servicios" };
+  function acciones(html) { q("#vc-sim-acciones").innerHTML = html; }
+  function textoSim(html) { q("#vc-sim-txt").innerHTML = html; }
+  function verDentro(si) { ["#vc-division", "#vc-t-int", "#vc-t-bcp"].forEach(function (s) { q(s).style.opacity = si ? "" : "0"; }); }
+  function ponerCF(a, b) {
+    C.cf = [a, b]; q("#vc-cf-tru-n").textContent = soles(a); q("#vc-cf-aqp-n").textContent = soles(b);
+  }
+  async function simularMes() {
+    if (C.sim) return; C.sim = true; var yo = ++C.tour; limpiarCometas(); marcarPaso(-1);
+    var mio = function (v) { if (yo === C.tour) ponerNivel(v); };
+    acciones('<button class="btn primario" type="button" disabled>Simulando…</button>');
+    verDentro(false);
+    var P = proyectar();
+    for (var i = 1; i <= 16; i++) {
+      if (yo !== C.tour) return;
+      var f = fecha(i, true);
+      q("#vc-fecha").textContent = f.ds + " " + f.dia + " de octubre";
+      textoSim("<b>" + f.ds.charAt(0).toUpperCase() + f.ds.slice(1) + " " + f.dia + "</b> · en tus bancos: " + soles(P.v[i]));
+      (EVENTOS[i] || []).filter(function (e) { return e[1] < 0; }).forEach(function (e, k) {
+        var grande = e[0] === "Sueldos" || e[0] === "Alquileres de noviembre";
+        viajar(grande ? "vc-r-sal-2" : "vc-r-sal-1", { forma: "sobre", etq: (CORTO[e[0]] || e[0]) + " −" + Math.abs(e[1]).toLocaleString("es-PE"), retraso: k * 220, dur: 950, sinOnda: true });
+      });
+      await tween(P.v[i - 1], P.v[i], i >= 15 ? 1100 : 230, mio);
+      if (i >= 15) await new Promise(function (r) { setTimeout(r, reducido ? 0 : 250); });
+    }
+    if (yo !== C.tour) return;
+    C.sim = false; C.estado = "fin";
+    textoSim('<b class="vc-ojo">Sábado 31 · te quedan S/ 11,200.</b> El tanque baja de tu mínimo y se queda ahí 3 días, hasta que el martes 3 entra lo del fin de semana.');
+    acciones('<button class="btn primario" type="button" id="vc-depositar">Lleva las cajas fuertes al banco</button><button class="btn sutil" type="button" id="vc-hoy">Volver a hoy</button>');
+    q("#vc-depositar").addEventListener("click", depositar);
+    q("#vc-hoy").addEventListener("click", volverHoy);
+  }
+  async function depositar() {
+    if (C.sim) return; C.sim = true;
+    acciones('<button class="btn primario" type="button" disabled>Depositando…</button>');
+    viajar("vc-r-cf-bcp", { clase: "efectivo", etq: "S/ 6,200", dur: 1000 });
+    viajar("vc-r-cfa-bcp", { clase: "efectivo", etq: "S/ 3,900", dur: 1200, retraso: 150 });
+    tween(6200, 0, 1000, function (v) { ponerCF(v, C.cf[1]); });
+    await tween(3900, 0, 1200, function (v) { ponerCF(C.cf[0], v); });
+    await viajar("vc-r-pipe-bcp", { clase: "efectivo", dur: 600, r: 6 });
+    await tween(11200, 21300, 900, ponerNivel);
+    C.sim = false;
+    textoSim('<b class="vc-bien">Con las cajas fuertes en el banco, el 31 quedas en S/ 21,300.</b> Sobre tu mínimo, y sin pedirle nada a nadie.');
+    acciones('<button class="btn sutil" type="button" id="vc-hoy">Volver a hoy</button>');
+    q("#vc-hoy").addEventListener("click", volverHoy);
+  }
+  function volverHoy() {
+    if (C.sim) return;
+    C.estado = "hoy";
+    tween(C.nivel, 28280, 700, ponerNivel).then(function () { verDentro(true); });
+    ponerCF(6200, 3900);
+    q("#vc-fecha").textContent = "hoy · jueves 15";
+    textoSim("<b>¿Te alcanza a fin de mes?</b> Mira qué pasa con el tanque hasta el sábado 31.");
+    acciones('<button class="btn primario" type="button" id="vc-simular">Simular fin de mes</button>');
+    q("#vc-simular").addEventListener("click", simularMes);
+  }
+  q("#vc-simular").addEventListener("click", simularMes);
+  function reiniciarC() {
+    C.tour++; limpiarCometas(); C.sim = false; C.estado = "hoy";
+    ponerNivel(28280); verDentro(true); ponerCF(6200, 3900);
+    q("#vc-fecha").textContent = "hoy · jueves 15";
+    textoSim("<b>¿Te alcanza a fin de mes?</b> Mira qué pasa con el tanque hasta el sábado 31.");
+    acciones('<button class="btn primario" type="button" id="vc-simular">Simular fin de mes</button>');
+    q("#vc-simular").addEventListener("click", simularMes);
+    marcarPaso(-2);
+  }
+  ponerNivel(28280);
+
+  // Las dos tiras de papel
+  var COSIDAS = 0, CREADO = false;
+  function revisarTiras() {
+    if (COSIDAS === 3 && CREADO) { var s = q("#vc-sello"); s.classList.remove("ver"); void s.offsetWidth; s.classList.add("ver"); }
+  }
+  function coser(n) {
+    var hilo = q('.vc-hilo[data-par="' + n + '"]'); if (!hilo || hilo.classList.contains("cosido")) return;
+    var firme = q(".vc-firme", hilo); firme.setAttribute("data-dibuja", ""); firme.style.setProperty("--i", "0");
+    hilo.classList.add("cosido");
+    qa('.vc-celda[data-par="' + n + '"]').forEach(function (c) { c.classList.add("cosida"); });
+  }
+  qa("[data-coser]").forEach(function (b) { b.addEventListener("click", function () { coser(b.dataset.coser); COSIDAS++; revisarTiras(); }); });
+  q("#vc-crear").addEventListener("click", function () {
+    if (CREADO) return; CREADO = true;
+    var hueco = q("#vc-hueco");
+    hueco.innerHTML = '<div class="vc-boleta"><div class="fila"><span>Gasto · comisión de mantenimiento</span><b>S/ 180</b></div><small>sáb 3 · Interbank · lo creaste hoy</small></div>';
+    setTimeout(function () {
+      coser(4);
+      q("#vc-saldo-cayla").textContent = "S/ 9,830";
+      var d = q("#vc-dif"); d.textContent = "S/ 0"; d.style.color = "var(--verde)";
+      revisarTiras();
+    }, reducido ? 0 : 450);
+  });
+
+  /* =================== Al cambiar de camino =================== */
+  var visible = null;
+  document.addEventListener("variante", function (e) {
+    visible = e.detail;
+    if (visible !== "c") { C.tour++; limpiarCometas(); }
+    if (visible === "a") construirA(true);
+    if (visible === "b") construirB(true);
+    if (visible === "c") {
+      reiniciarC();
+      setTimeout(function () { if (visible === "c" && !C.sim) recorrido(); }, reducido ? 0 : 1400);
+    }
+  });
+  var rz;
+  addEventListener("resize", function () {
+    clearTimeout(rz);
+    rz = setTimeout(function () { if (visible === "a") construirA(false); if (visible === "b") construirB(false); }, 140);
+  });
+})();
+</script></body></html>

@@ -230,9 +230,9 @@ function main() {
            || (select count(*) from retail.rol_modulos rm where rm.modulo = m.clave)
       from retail.modulos m where m.clave = 'recomendaciones';`;
   esperarValor(
-    "la tabla tiene RLS, sin políticas y sin permisos para nadie; las dos tienda_* son de tienda_web; las cuatro del ERP de authenticated; las internas de nadie; el módulo nace en Clientes, delegable y SIN rol",
+    "la tabla tiene RLS, sin políticas y sin permisos para nadie; las dos tienda_* son de tienda_web; las cuatro del ERP de authenticated; las internas de nadie; el módulo vive en Tienda web (nació en Clientes; ADR-0430 lo movió), delegable y SIN rol",
     correr(`begin;\n${APLICAR_ANTES}\n${ESTRUCTURA}\nrollback;`),
-    "true|0|0\ntodas bien\ntodas bien\nninguna\nClientes|78|true|false|0",
+    "true|0|0\ntodas bien\ntodas bien\nninguna\nTienda web|68|true|false|0",
   );
   esperarValor(
     "las cuatro del ERP piden el módulo antes que nada: es lo primero que corre (antes del responsable y de leer la recomendación)",
