@@ -86,10 +86,10 @@ Tiene «Preparar recortes» y la hoja de cada prenda, con su largo y sus recorte
 
 ### 4. La tienda
 
-- **Datos:** `retail.tienda_probador()` devuelve, por prenda publicada, su largo (el propio o el típico) y sus recortes listos, cada uno
-  con su color (o «todos los colores») y su proporción. Es igual para todos: se guarda como el catálogo (`lecturaCompartida` y
-  `"use cache"`). Precios, colores y stock salen del catálogo y de la ficha que ya existen (una sola fuente). Una prenda sin largo o sin
-  ningún recorte no entra al probador.
+- **Datos:** `retail.tienda_probador(p_sede)` devuelve, por prenda publicada, su largo (el propio o el típico) y sus recortes listos, cada
+  uno con su color (o «todos los colores») y su proporción; y, por color, su precio y su stock en esa tienda (ver la actualización de
+  abajo). Es igual para todos los que miran la misma tienda: se guarda como el catálogo (`lecturaCompartida`). El nombre, la categoría,
+  los colores y si la prenda se ve salen del catálogo que ya existe. Una prenda sin largo o sin ningún recorte no entra al probador.
 - **El probador:** `/looks/arma`, con cuenta como todo el catálogo. La figura apila cada prenda a escala (2,5 px por cm en el celular)
   desde su línea:
   - arriba, el vestido y lo de encima, desde los hombros;
@@ -97,8 +97,9 @@ Tiene «Preparar recortes» y la hoja de cada prenda, con su largo y sus recorte
   - el bolso, a un costado.
 
   Capas: el body va metido. Un vestido ocupa arriba y abajo y, al sacarlo, vuelven las que había.
-- **Un color sin foto propia** se elige igual. La figura muestra la foto de «todos los colores» o la de otro color y dice «Aún no hay
-  foto en negro: ves otro color de esta prenda». Nunca nombra un color que el sistema no sabe.
+- **Un color sin foto propia** se elige igual. La figura muestra la foto de «todos los colores» o la de otro color y lo dice: «Aún no hay
+  foto en negro: ves la del rosa pálido» si la foto que se ve es de otro color, o «ves otra foto de esta prenda» si es una foto sin color
+  marcado. Nunca nombra un color que el sistema no sabe.
 - **«Sorpréndeme»** cambia lo que no tiene candado y prefiere colores que combinan con lo fijo (`colores.combina_con`, ya cargado en
   93 de 104 colores).
 - **Tallas y bolsa:** la misma hoja de tallas de los looks (`AgregarLook`) y la misma acción (`agregarLookALaBolsa`, hasta 4 prendas,
@@ -155,3 +156,22 @@ PR 1 = actividades 1 a 3 (ERP); PR 2 = 4 a 7 (tienda, probador escondido); PR 3 
    guardados.
 2. Una persona del equipo aprieta «Preparar recortes» en el ERP de producción y revisa las dudosas.
 3. Felipe fusiona cada PR. La tienda se publica al fusionar; las entradas, solo en el último.
+
+## Actualización 2026-10-16 (actividad 4): el precio y el stock de cada color vienen con el probador
+
+Al construir la actividad 4 se vio que el catálogo trae el precio y el stock del MODELO (todas sus tallas y colores juntos), y el probador
+pone cada prenda en UN color. Con el precio del modelo, una campaña solo en el negro haría que la falda beige dijera el precio del negro
+y que la bolsa cobrara el del beige: el mismo error que ya se corrigió en los looks de CAYLA (`20261015032000`). Por eso
+`retail.tienda_probador` recibe la tienda (`p_sede`) y trae, por cada color que se ofrece ahí, lo que vale (`fn_tienda_precios` por
+color, la regla única del precio, la misma de la ficha, los looks y la bolsa) y su nivel en cada tienda de la web (`fn_tienda_disponible`
+con `fn_tienda_nivel`: nunca la cifra de 4 o más), y `combina` (los colores con que se lleva cada color, para «Sorpréndeme»).
+
+- **Una sola fuente, igual:** el precio y el stock salen de las MISMAS piezas de la ficha y la bolsa; la prueba
+  (`pnpm pruebas:tienda-probador`) cruza el precio de cada color con el del look de CAYLA de la misma prenda en la misma tienda.
+- **Descartado:** preguntar la ficha (`tienda_ficha`) de cada prenda que el cliente se pone (un viaje a la base por toque, desde el
+  celular); y armar el catálogo entero por dentro, como `tienda_looks` (1,6 s de media en producción): la tienda junta en la página el
+  catálogo que ya guarda con lo del probador, y lo que una de las dos no trae no entra.
+- **El look vive en la dirección** (`/looks/arma?p=<código de prenda>.<código de color>~…`, el mismo formato de compartir): recargar, cambiar de tienda o
+  mandar el enlace deja el mismo look. Lo que ya no está (se agotó, o en esa tienda no hay) se salta y, si faltó lo de arriba o lo de
+  abajo, se completa con lo primero que hay.
+
