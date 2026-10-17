@@ -2,7 +2,7 @@
 /**
  * Los recortes de las fotos de prenda para el probador (ADR-0434, actividad 1) contra el Postgres local — CAYLA V2.
  *
- * QUÉ PRUEBA. `20261017003000_foto_recortes.sql`:
+ * QUÉ PRUEBA. `20261017003000_foto_recortes.sql` y `20261017013000_recorte_foto_sin_responsable.sql`:
  *   1. Permisos: leer y revisar es del módulo `vitrina_web`; anotar un recorte, de quien ve la Vitrina o edita el catálogo (Micaela edita
  *      el catálogo y no ve la Vitrina: anota, pero no lee ni revisa); alguien sin nada de eso no anota. La tabla no la lee nadie directo;
  *      las funciones son de las cuentas del ERP y no de `anon` ni de `tienda_web`.
@@ -11,13 +11,15 @@
  *   3. Anotar: el PNG tiene que estar en el almacén y la foto existir (en el almacén o en una ficha); nombres, proporción y motivo
  *      válidos; volver a anotar reemplaza; con motivo queda `por_revisar`; firma quien lo hace.
  *   4. Revisar: usar o descartar cambia el estado y deja UNA fila en la Actividad; repetir lo mismo no escribe; sin recorte no se revisa.
- *   5. La migración se puede volver a correr.
+ *   5. Las migraciones se pueden volver a correr.
+ *   6. Al subir una foto (actividad 2): con el responsable obligatorio, el recorte se anota sin elegir a nadie con la clave
+ *      `recorte_foto` y queda a nombre de la cuenta; sin la clave, el candado de siempre lo frena.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK, como Felipe (líder), Micaela (integrante) o una cuenta sin colaborador:
  * nunca se commitea nada. Los archivos del almacén se simulan con filas en `storage.objects` dentro de la misma transacción.
  *
- * PROBAR ANTES DE APLICAR. `APLICAR_ANTES=supabase/migrations/20261017003000_foto_recortes.sql` mete la migración dentro de cada
- * transacción. Sin la variable, prueba lo que la base ya tiene (lo que hace el CI).
+ * PROBAR ANTES DE APLICAR. `APLICAR_ANTES=supabase/migrations/20261017003000_foto_recortes.sql,supabase/migrations/20261017013000_recorte_foto_sin_responsable.sql`
+ * mete las migraciones dentro de cada transacción. Sin la variable, prueba lo que la base ya tiene (lo que hace el CI).
  *
  * DA POR SENTADO: el seed («Blusa Emma» y «Falda Renata»; Felipe líder, Micaela integrante que edita el catálogo) y la Vitrina web
  * (20261014225000).
@@ -32,7 +34,7 @@ import { readFileSync } from "node:fs";
 
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
-const MIGRACION = "supabase/migrations/20261017003000_foto_recortes.sql";
+const MIGRACIONES = ["supabase/migrations/20261017003000_foto_recortes.sql", "supabase/migrations/20261017013000_recorte_foto_sin_responsable.sql"];
 const APLICAR_ANTES = process.env.APLICAR_ANTES
   ? process.env.APLICAR_ANTES.split(",")
       .map((f) => f.trim())
@@ -228,11 +230,24 @@ esperarError(
   "recorte_no_existe",
 );
 
-console.log("5. La migración se puede volver a correr");
+console.log("5. Las migraciones se pueden volver a correr");
+const TODAS = MIGRACIONES.map((m) => readFileSync(m, "utf8")).join("\n");
+esperarValor("dos veces seguidas, sin error", correr(`begin;\n${TODAS}\n${TODAS}\nselect 'ok';\nrollback;\n`), "ok");
+
+console.log("6. Al subir una foto: sin el combo (recorte_foto)");
+const EXIGE_RESPONSABLE = `insert into retail.configuracion_empresa (id, ruc, razon_social, exige_responsable) values (true, '20000000001', 'Prueba', true)
+  on conflict (id) do update set exige_responsable = true;\n`;
+const SIN_COMBO = `select set_config('request.headers', '{"x-responsable-omitido": "recorte_foto"}', true) \\g /dev/null\n`;
 esperarValor(
-  "dos veces seguidas, sin error",
-  correr(`begin;\n${readFileSync(MIGRACION, "utf8")}\n${readFileSync(MIGRACION, "utf8")}\nselect 'ok';\nrollback;\n`),
-  "ok",
+  "con el responsable obligatorio, quien sube la foto anota su recorte sin elegir a nadie y queda a su nombre",
+  correr(`${PREPARAR}${EXIGE_RESPONSABLE}${COMO(MICAELA)}${SIN_COMBO}select retail.registrar_recorte('${FOTO_SUBIDA}', '${RECORTE_SUBIDA}', 0.8) ->> 'estado';
+select (select nombres from public.personas where id = r.creado_por) from retail.foto_recortes r where r.foto = '${FOTO_SUBIDA}';\n${FIN}`),
+  "listo\nMicaela",
+);
+esperarError(
+  "sin la clave, el responsable obligatorio lo frena",
+  correr(`${PREPARAR}${EXIGE_RESPONSABLE}${COMO(MICAELA)}select retail.registrar_recorte('${FOTO_SUBIDA}', '${RECORTE_SUBIDA}', 0.8);\n${FIN}`),
+  "responsable_requerido",
 );
 
 console.log(`\n${total - fallos} de ${total} bien.`);

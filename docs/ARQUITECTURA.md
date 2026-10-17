@@ -880,7 +880,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   los colores de la foto de la tienda y la transparencia de `mascaraDePrenda` de `lib/preparar-foto.ts`; sube `recortes/<id>-<sello>.png`
   con `subirRecorteDeFoto` y anota con `registrar_recorte`) + `RevisarRecorteHoja.tsx` (`revisar_recorte`: usar o descartar). Ninguna
   foto se modifica. Reglas puras en `lib/recorte-probador-reglas.ts`, guía de foco en `lib/vitrina-probador-guia.ts`; tabla
-  `retail.foto_recortes` (`20261017003000`). Prueba en la base: `pnpm pruebas:vitrina-recortes`.
+  `retail.foto_recortes` (`20261017003000`). Desde la actividad 2, cada foto que sube `subirFotoProducto` (`lib/producto-fotos.ts`: Editar
+  producto, Nuevo producto y la cola sin conexión) pide por detrás su recorte (`recortarAlSubir`, carga perezosa de `lib/recorte-probador.ts`),
+  sin el combo «Responsable» (`recorte_foto` en `acciones_sin_responsable`, `20261017013000`, Felipe 2026-10-16). Prueba en la base:
+  `pnpm pruebas:vitrina-recortes`.
 - `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
   `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
   `MarcasLista.tsx` (ADR-0373, 2026-10-10: cabecera de Productos con «!», resumen colapsado `components/marcas/ResumenMarcas.tsx` +

@@ -16,6 +16,7 @@ import {
   type MotivoRecorte,
   type RecorteDeFoto,
 } from "@/lib/recorte-probador-reglas";
+import { firmaOmitida, type FirmaOmitida } from "@/lib/responsable-omitido";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
 
@@ -69,12 +70,21 @@ function aPng(c: HTMLCanvasElement): Promise<Blob> {
  */
 export async function prepararRecorte(f: { url: string; original: string | null }): Promise<RecortePreparado> {
   const blobFoto = await bajarImagen(f.url);
+  return componerRecorte(blobFoto, f.original ? () => bajarImagen(f.original!) : null);
+}
+
+/**
+ * El recorte a partir de la foto de la tienda (`blobFoto`, la que se ve) y, si hay, su original (lo que se le pasa al recortador). El
+ * original llega como función para bajarlo solo si sirve (una foto de antes del ADR-0228 no se cruza con él). Lanza si no se puede.
+ */
+async function componerRecorte(blobFoto: Blob, original: (() => Promise<Blob>) | Blob | null): Promise<RecortePreparado> {
   const foto = await createImageBitmap(blobFoto);
   try {
     const { width: ancho, height: alto } = foto;
     // Solo una foto encuadrada por el ADR-0228 (1200×1500) se puede cruzar con su original: las de antes no tienen la misma cuenta.
-    const conOriginal = f.original !== null && ancho === LIENZO_FOTO.ancho && alto === LIENZO_FOTO.alto;
-    const { mascara, motivo } = await mascaraDePrenda(conOriginal ? await bajarImagen(f.original!) : blobFoto);
+    const conOriginal = original !== null && ancho === LIENZO_FOTO.ancho && alto === LIENZO_FOTO.alto;
+    const fuente = !conOriginal ? blobFoto : typeof original === "function" ? await original() : original;
+    const { mascara, motivo } = await mascaraDePrenda(fuente);
     if (!mascara) throw new Error(motivo ?? "No se reconoció la prenda en esta foto.");
 
     const c = lienzo(ancho, alto);
@@ -123,7 +133,7 @@ export async function guardarRecorte(
   supabase: Cliente,
   f: { foto: string; url: string },
   recorte: RecortePreparado,
-  firma: Firma | null,
+  firma: Firma | FirmaOmitida | null,
 ): Promise<{ recorte: RecorteDeFoto } | { error: string; deResponsable?: { code?: string | null; hint?: string | null; message?: string | null } }> {
   const subida = await subirRecorteDeFoto(supabase, f.foto, recorte.png);
   if ("error" in subida) return { error: subida.error };
@@ -139,4 +149,20 @@ export async function guardarRecorte(
   if (error) return { error: errorDeRecorte(`${error.message ?? ""} ${error.hint ?? ""}`) ?? traducirError(error, "guardar el recorte"), deResponsable: error };
   const hecho = recorteDeRespuesta(data, f.url);
   return hecho ? { recorte: hecho } : { error: "La base no devolvió el recorte. Recarga la pantalla." };
+}
+
+/**
+ * El recorte de una foto recién subida, por detrás (ADR-0434, actividad 2): lo llama `subirFotoProducto` apenas la foto llega al
+ * almacén, en Editar producto, Nuevo producto y la cola sin conexión. Nadie espera ni elige nada: va sin el combo «Responsable»
+ * (`recorte_foto`, Felipe 2026-10-16) y con la cuenta de una persona queda a su nombre. Nunca lanza: si algo falla (el recortador no
+ * carga, se cortó la red), la foto queda «sin recorte» y la recorta «Preparar recortes» de Vitrina ▸ Probador.
+ */
+export async function recortarAlSubir(supabase: Cliente, f: { foto: string; url: string }, archivo: Blob, original: Blob | null): Promise<void> {
+  try {
+    const recorte = await componerRecorte(archivo, original);
+    const r = await guardarRecorte(supabase, f, recorte, firmaOmitida("recorte_foto"));
+    if ("error" in r) console.warn("[recorte-probador] no se guardó el recorte de la foto nueva", r.error);
+  } catch (err) {
+    console.warn("[recorte-probador] no se pudo recortar la foto nueva", err);
+  }
 }
