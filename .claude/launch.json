@@ -104,6 +104,16 @@
       "autoPort": true
     },
     {
+      "name": "tienda-compilada",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "pnpm --filter tienda exec next start --port ${PORT:-3100}"
+      ],
+      "port": 3100,
+      "autoPort": true
+    },
+    {
       "name": "tienda-dev-local-bin",
       "runtimeExecutable": "sh",
       "runtimeArgs": [

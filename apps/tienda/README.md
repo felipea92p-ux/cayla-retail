@@ -122,6 +122,16 @@ insiste nunca. `app/manifest.ts` y `public/sw.js` (sin caché: no toca ninguna p
 pasar sin redirigir. Un componente nuevo que ofrezca instalar usa `useInstalar()`, no escucha `beforeinstallprompt` por su cuenta (el
 aviso de Chrome llega una sola vez). Las plantillas: `docs/maquetas/tienda-instalar-2026-10/`.
 
+## Cuánto tarda en el celular de los clientes (ADR-0447, 2026-10-17)
+
+1 de cada 2 visitas mide cuándo se ve lo principal (LCP), cuánto tarda en responder a un toque (INP), cuánto salta (CLS) y, al tocar un
+enlace, cuánto tarda en salir el esqueleto y la página (`components/Medicion.tsx`, que carga aparte `MedicionActiva.tsx` solo en esas
+visitas). Sale en un envío a `POST /api/medicion`, que escribe una línea `medicion_tienda {…}` en el registro de Vercel: sin base, sin
+sesión y sin la dirección (la página va sin sus ids, `lib/medicion.ts`). Para leerlo, una vez al día (el registro guarda uno), con la CLI
+de Vercel 64 o más nueva: `pnpm --filter tienda medicion:leer`. Qué dice cada número y cuándo actuar:
+`docs/backlog/2026-10-17-distracted-vaughan-22269f.md`. Una página nueva se suma a `RUTAS_MEDIDAS` (la prueba lo pide) y un `loading.tsx`
+nuevo dibuja `EsqueletoDePagina` (su `data-esqueleto` es lo que la medición busca).
+
 ## Levantarla en local
 
 1. La base local del repo arriba (`npx supabase start`) con las migraciones de la tienda (`20261014220000…`, `20261014223000…`,
