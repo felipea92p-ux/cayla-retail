@@ -35,7 +35,8 @@ import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
 import { hrefLooks } from "@/lib/looks";
 import { leerLooks } from "@/lib/looks-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
-import { anioLima, fechaCorta, partirTitulo, pctTexto } from "@/lib/portada";
+import { fechaCorta, partirTitulo, pctTexto } from "@/lib/portada";
+import { anioActual } from "@/lib/hoy-servidor";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
@@ -67,12 +68,14 @@ export default async function Inicio({ searchParams }: Props) {
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
   const pedida = sedeDeLaUrl(sp.sede, sedes);
-  const [catalogo, { campana }, sesion, lecturaLooks, beneficios] = await Promise.all([
+  // El año, como en la portada: guardado (`anioActual`), porque Next no deja leer el reloj mientras arma la página.
+  const [catalogo, { campana }, sesion, lecturaLooks, beneficios, anio] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
     leerPortada(),
     leerSesion(),
     leerLooks(pedida?.id ?? null),
     leerBeneficiosDelClub(),
+    anioActual(),
   ]);
   const [lectura, avisos, vistos] =
     sesion.estado === "con_sesion"
@@ -277,7 +280,7 @@ export default async function Inicio({ searchParams }: Props) {
       )}
 
       <AsiSeSepara conCuenta />
-      <SeccionClub nombre={cuenta?.nombre ?? null} desde={cuenta?.clubDesde ?? anioLima()} conCuenta cumplePct={beneficios?.pct ?? null} />
+      <SeccionClub nombre={cuenta?.nombre ?? null} desde={cuenta?.clubDesde ?? anio} conCuenta cumplePct={beneficios?.pct ?? null} />
       {sedes.length > 0 && (
         <NuestrasTiendas
           sedes={sedes}
