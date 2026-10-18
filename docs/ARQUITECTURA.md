@@ -2238,6 +2238,12 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   piezas a propósito rompe a todas juntas). Al CONFIRMAR, el motor del pedido web (`fn_pedido_web_reservar`, `20261014235000`) reserva
   fila por fila del piso, el almacén o lo sin lugar de cualquier tienda abierta: coincide con la ficha salvo en una sububicación de una
   tienda de otro tipo (un «rack»), que la ficha cuenta y el motor no.
+- **La medición de la tienda** (ADR-0447): `components/Medicion.tsx` (en `app/layout.tsx`) sortea 1 de cada 2 visitas
+  (`lib/medicion-muestra.ts`) y solo en esas carga aparte `components/MedicionActiva.tsx` (`useReportWebVitals` y el toque → esqueleto →
+  página, que reconoce el esqueleto por `data-esqueleto` en `EsqueletoDePagina`). Un envío al ocultarse la pestaña a `POST /api/medicion`
+  (`app/api/medicion/route.ts`), que valida con `lib/medicion.ts` (`leerEnvio`, páginas de `RUTAS_MEDIDAS`) y escribe una línea
+  `medicion_tienda {…}` en el registro de Vercel; sin base ni sesión (el proxy no la mira). Se lee con `pnpm --filter tienda medicion:leer`
+  (`scripts/medicion-leer.mjs` + `scripts/medicion-resumen.mjs`), que guarda lo bajado en `apps/tienda/.medicion/` (fuera de git).
 
 ---
 
