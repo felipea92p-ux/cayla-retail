@@ -41,7 +41,10 @@
 .pb-pieza:focus-visible { outline: 2px solid var(--t-oferta); outline-offset: 2px; border-radius: 6px; }
 .pb-pieza-arrastre { display: block; width: 100%; height: 100%; transition: transform .32s var(--ease), opacity .32s; }
 .pb-pieza-arrastre[data-arrastrando] { transition: none; }
-.pb-pieza-giro { display: block; width: 100%; height: 100%; transition: transform .5s var(--ease); }
+.pb-pieza-giro { display: block; width: 100%; height: 100%; transition: transform .5s var(--ease), opacity .2s; }
+/* Mientras se mide para unirla a la de arriba, la de abajo espera atenuada y avisa («Ajustando…»); al llegar la medida se acomoda sin rodeos. */
+.pb-pieza[data-ajustando] .pb-pieza-giro { opacity: .45; }
+.pb-pieza { transition-duration: .32s; }
 .pb-pieza-foto { position: absolute; inset: 0; filter: drop-shadow(0 12px 14px var(--pb-sombra-prenda)); transition: filter .3s; }
 .pb-pieza[data-activa] .pb-pieza-foto { filter: drop-shadow(0 18px 18px color-mix(in srgb, var(--t-tinta-fija) 24%, transparent)); }
 .pb-recorte { object-fit: contain; pointer-events: none; -webkit-user-drag: none; }
@@ -69,6 +72,12 @@
 .pb-flecha-antes { left: 6.2%; }
 .pb-flecha-despues { right: 6.2%; }
 .pb-sorpresa { position: absolute; right: 4.1%; top: 4px; z-index: 30; height: 40px; padding: 0 15px 0 12px; border: 0; border-radius: 999px; background: color-mix(in srgb, var(--t-papel-fijo) 90%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 6px 16px color-mix(in srgb, var(--t-tinta-fija) 14%, transparent), inset 0 0 0 1px var(--sand); display: flex; align-items: center; gap: 8px; font: inherit; font-size: 13px; font-weight: 600; color: var(--t-tinta-fija); cursor: pointer; transition: transform .15s; }
+.pb-ajusta { position: absolute; left: 50%; z-index: 28; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 14px 0 10px; border-radius: 999px; background: color-mix(in srgb, var(--t-papel-fijo) 92%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 6px 16px color-mix(in srgb, var(--t-tinta-fija) 14%, transparent), inset 0 0 0 1px var(--sand); font-size: 12px; font-weight: 600; color: var(--t-tinta-fija); white-space: nowrap; pointer-events: none; animation: pb-ajusta-entra .2s var(--ease) both; }
+.pb-ajusta-hilo { position: relative; width: 22px; height: 2px; border-radius: 2px; overflow: hidden; background: var(--sand); }
+.pb-ajusta-hilo::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 9px; border-radius: 2px; background: var(--t-oferta); animation: pb-ajusta-hilo 1s ease-in-out infinite alternate; }
+@keyframes pb-ajusta-entra { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pb-ajusta-hilo { from { transform: translateX(0); } to { transform: translateX(13px); } }
+@media (prefers-reduced-motion: reduce) { .pb-ajusta, .pb-ajusta-hilo::after { animation: none; } .pb-pieza-giro { transition: none; } }
 .pb-sorpresa:active { transform: scale(.97); }
 .pb-sorpresa .ic { width: 16px; height: 16px; color: var(--t-oferta); }
 .pb-flecha:focus-visible, .pb-sorpresa:focus-visible { outline: 2px solid var(--t-oferta); outline-offset: 2px; }

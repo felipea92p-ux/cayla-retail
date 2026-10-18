@@ -134,18 +134,30 @@ prueba. **No uses `fn_tienda_novedades` desde la tienda** (131 ms con 298 modelo
 CSS (es la tarjeta de campaña de la portada): los estilos de la campanita son `t-avisos-*`. El aviso al celular (Web Push) está diseñado en el
 ADR-0448 y no construido.
 
+## Cuánto tarda en el celular de los clientes (ADR-0447, 2026-10-17)
+
+1 de cada 2 visitas mide cuándo se ve lo principal (LCP), cuánto tarda en responder a un toque (INP), cuánto salta (CLS) y, al tocar un
+enlace, cuánto tarda en salir el esqueleto y la página (`components/Medicion.tsx`, que carga aparte `MedicionActiva.tsx` solo en esas
+visitas). Sale en un envío a `POST /api/medicion`, que escribe una línea `medicion_tienda {…}` en el registro de Vercel: sin base, sin
+sesión y sin la dirección (la página va sin sus ids, `lib/medicion.ts`). Para leerlo, una vez al día (el registro guarda uno), con la CLI
+de Vercel 64 o más nueva: `pnpm --filter tienda medicion:leer`. Qué dice cada número y cuándo actuar:
+`docs/backlog/2026-10-17-distracted-vaughan-22269f.md`. Una página nueva se suma a `RUTAS_MEDIDAS` (la prueba lo pide) y un `loading.tsx`
+nuevo dibuja `EsqueletoDePagina` (su `data-esqueleto` es lo que la medición busca).
+
 ## Levantarla en local
 
 1. La base local del repo arriba (`npx supabase start`) con las migraciones de la tienda (`20261014220000…`, `20261014223000…`,
    `20261014224000…`).
 2. `pnpm --filter tienda rol-local` crea el usuario `tienda_web_local` (solo local).
-3. La pila del proyecto de clientes (su configuración está en `apps/tienda/supabase/`, puertos 58420–58429):
-   `npx supabase start --workdir apps/tienda -x realtime,storage-api,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor`.
-   El buzón de prueba, donde llegan el código para crear la cuenta y el correo de «Olvidé mi contraseña», está en
-   http://127.0.0.1:58424. Si cambias una plantilla de `supabase/plantillas/`, la pila se reinicia para leerla
-   (`npx supabase stop --workdir apps/tienda` y el `start` de arriba).
+3. La pila del proyecto de clientes (su configuración está en `apps/tienda/supabase/`, puertos 58420–58429): `pnpm --filter tienda pila`
+   (para bajarla, `pnpm --filter tienda pila:parar`). El buzón de prueba, donde llegan el código para crear la cuenta y el correo de
+   «Olvidé mi contraseña», está en http://127.0.0.1:58424. Si cambias una plantilla de `supabase/plantillas/`, la pila se reinicia para
+   leerla (`pila:parar` y `pila`). Los scripts fijan la CLI de Supabase a la versión del CI (`SUPABASE_CLI` en `.github/workflows/ci.yml`;
+   `lib/pila-local.test.ts` exige que sean la misma): con `npx supabase` a secas cada máquina usa la que tenga guardada, y antes de la
+   2.115 las rutas de los avisos (`auth.email.notification.*.content_path`) se leían desde `supabase/` y no desde la raíz, así que la pila
+   no arrancaba («open supabase/supabase/plantillas/correo-cambiado.html: no such file or directory»).
 4. `cp apps/tienda/.env.example apps/tienda/.env.local` y pon en `TIENDA_AUTH_SERVICE_KEY` la `SECRET_KEY` de
-   `npx supabase status --workdir apps/tienda -o env`. Para no consultar DNI reales mientras pruebas: `TIENDA_PADRON_SUNAT_PUBLICO=no`
+   `pnpm --filter tienda pila:llaves`. Para no consultar DNI reales mientras pruebas: `TIENDA_PADRON_SUNAT_PUBLICO=no`
    (la persona escribe su nombre).
 5. `pnpm --filter tienda dev` → http://localhost:3100 (o «tienda-dev» en `.claude/launch.json`).
 

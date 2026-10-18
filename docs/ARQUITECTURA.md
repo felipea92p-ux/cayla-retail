@@ -1962,6 +1962,14 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   con `requirePersonaActualV2`, la misma regla del Inicio). La llama el login antes de navegar, para ir directo sin pintar `/` (Felipe 2026-10-13,
   «se ve el inicio»). Sin sesión o sin acceso responde con la redirección de `requirePersonaActualV2`; el login no la sigue y, como con cualquier
   fallo o una espera de más de 5 s, entra por `/`, el camino de siempre. `Cache-Control: private, no-store`. ADR-0136 act. 2026-10-13 (e).
+- `/api/salud` → `GET`, **pública** (`lib/rutas-publicas.ts`, exacta): `{ ok: true }` (200) o `{ ok: false, motivo }` (503), ¿responde la base AHORA? Llama a
+  `retail.fn_salud()` (`select true`, migración 20261017225000) por la llave pública con tope de 4 s y la respuesta guardada 10 s por instancia
+  (`lib/salud-reglas.ts`); el motivo es de una lista fija, nunca un mensaje de la base. La repite `/sin-base` y el vigía de GitHub. La tienda tiene la suya
+  (`apps/tienda/app/api/salud`, `select 1` por `base()`). ADR-0450.
+- `/sin-base?desde=<ruta>` → pantalla pública (`app/sin-base/page.tsx`, `components/SinBase.tsx`): «No logramos conectar con el sistema. Tu sesión sigue abierta».
+  A ella va, en vez de al login, quien tiene la sesión abierta cuando la base no responde: `requirePersonaActualV2` (`esFalloDeLaBase`, `lib/base-caida-reglas.ts`) y
+  `proxy.ts` (`noSePudoComprobar`: Auth sin responder al renovar la sesión; una API recibe 503, una acción de servidor sigue de largo). El proxy anota la pantalla
+  pedida en la cabecera `x-cayla-ruta` para volver a ella cuando `/api/salud` responde. ADR-0450.
 - `/api/version` → `GET`, con sesión: `{ id }`, la versión (el commit de Vercel) con la que se armó la compilación que atiende, grabada en
   `NEXT_PUBLIC_BUILD_ID` por `next.config.ts` (fuera de Vercel, «desarrollo»). La pregunta `<VersionNueva />` (`components/VersionNueva.tsx`,
   montado una vez en `app/(app)/layout.tsx`, reglas en `lib/version-nueva-reglas.ts`) cada 5 min con la pestaña a la vista: si la de producción es
@@ -2064,7 +2072,10 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   y, desde 960 px, «Agregar» con la talla (`components/RapidoDeTarjeta.tsx`: pide las tallas al quedarse el mouse, `GET /api/tallas` →
   `lib/tarjeta-servidor.ts` `leerTallasParaAgregar` → la ficha de ese modelo; una ruta y no una acción, desde el 2026-10-17: las acciones van
   de a una y las de varias tarjetas, y «Agregar a la bolsa», se hacían esperar; el catálogo no trae tallas y no cambia de forma). Al tocar una tarjeta, `components/PrendaTocada.tsx`
-  guarda lo que ya mostraba (sus `data-*` y su foto, `lib/prenda-tocada.ts`): el esqueleto de la ficha y la ficha lo usan mientras llega. Lo guardado lo lee el marco del catálogo
+  guarda lo que ya mostraba (sus `data-*` y su foto, `lib/prenda-tocada.ts`): el esqueleto de la ficha y la ficha lo usan mientras llega.
+  Los esqueletos (`components/FormaDelEsqueleto.tsx`, una forma por página, `lib/esqueleto.ts`) y el fundido entre vistas
+  (`components/Vistas.tsx`, `app/estilos/vistas.css`) están en ADR-0445; de una lista a otra (misma página, otra dirección) el esqueleto lo
+  pone la página de antes (`components/EnCamino.tsx`). Lo guardado lo lee el marco del catálogo
   (`app/(catalogo)/layout.tsx`, una vez por petición) y lo reparte a toda tarjeta (`components/club/Guardados.tsx` `ProveedorGuardados`):
   los corazones del mismo modelo cambian juntos. «Tus favoritos» es `/catalogo?lista=favoritos` (`lib/catalogo.ts` `deFavoritos`; no se
   filtra por la tienda elegida); «Mi cuenta» usa la misma tarjeta, con `guardado` dicho por la página.
@@ -2211,8 +2222,9 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   al probador con este look, `hrefConVolver`) y, con cuenta, «Pruébatelo en el probador». Su vista previa para WhatsApp (`og:image`) es
   `app/tu-look/vista/route.tsx` (1200×630, `next/og`, pública y guardada un día en la red; una dirección escrita de otra forma va a la
   del probador, 308). Las dos imágenes salen de `lib/imagenes-del-look.tsx` (plantillas de satori), `lib/compartir-look.ts` (pura, con
-  su prueba: el enlace, dónde va cada tarjeta, el título) y `lib/fuentes-og.ts` (EB Garamond y DM Sans en TTF desde Google Fonts, en
-  memoria; si Google no contesta, la letra de `next/og`). Ninguna imagen pública lleva un texto que venga en la dirección.
+  su prueba: el enlace, dónde va cada tarjeta, el título) y `lib/fuentes-og.ts` (EB Garamond y Heebo en TTF desde Google Fonts, en
+  memoria; si Google no contesta, la letra de `next/og`). El logo y el colibrí salen de `lib/marca.ts` (ADR-0446), sin pedir nada a la
+  red. Ninguna imagen pública lleva un texto que venga en la dirección.
 - **Un solo precio y una sola tienda elegida** (integración de la tienda, 2026-10-15). El precio de una prenda (talla y color) en la web
   lo dice `fn_tienda_precio_talla(prendas, tienda)` (`20261015012000`): el de la tienda elegida (`fn_precio_en_sede`) o, con «Todas», el
   mayor entre las de la web (sin ninguna, el de la grilla), con la campaña de la caja encima (la de mayor %, `fn_descuento_campana`,
@@ -2235,6 +2247,12 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   piezas a propósito rompe a todas juntas). Al CONFIRMAR, el motor del pedido web (`fn_pedido_web_reservar`, `20261014235000`) reserva
   fila por fila del piso, el almacén o lo sin lugar de cualquier tienda abierta: coincide con la ficha salvo en una sububicación de una
   tienda de otro tipo (un «rack»), que la ficha cuenta y el motor no.
+- **La medición de la tienda** (ADR-0447): `components/Medicion.tsx` (en `app/layout.tsx`) sortea 1 de cada 2 visitas
+  (`lib/medicion-muestra.ts`) y solo en esas carga aparte `components/MedicionActiva.tsx` (`useReportWebVitals` y el toque → esqueleto →
+  página, que reconoce el esqueleto por `data-esqueleto` en `EsqueletoDePagina`). Un envío al ocultarse la pestaña a `POST /api/medicion`
+  (`app/api/medicion/route.ts`), que valida con `lib/medicion.ts` (`leerEnvio`, páginas de `RUTAS_MEDIDAS`) y escribe una línea
+  `medicion_tienda {…}` en el registro de Vercel; sin base ni sesión (el proxy no la mira). Se lee con `pnpm --filter tienda medicion:leer`
+  (`scripts/medicion-leer.mjs` + `scripts/medicion-resumen.mjs`), que guarda lo bajado en `apps/tienda/.medicion/` (fuera de git).
 
 ---
 

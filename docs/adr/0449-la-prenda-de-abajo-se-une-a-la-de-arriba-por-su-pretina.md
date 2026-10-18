@@ -57,3 +57,19 @@ El pantalón de pierna ancha da de 84 a 114 cm. En el navegador, el polo con oja
 - **El largo sigue siendo la puerta de entrada**: una prenda sin largo no entra al probador («Falta el largo»), aunque para las de abajo su valor ya no se use. Quitar esa exigencia es un
   cambio de la base y lo decide Felipe.
 - **No probado** en Safari ni en un celular real; sí en el navegador de escritorio.
+
+## Actualización 2026-10-18: la unión se siente inmediata y avisa cuando espera
+
+Felipe pidió que la prenda de abajo no se moviera «tarde» al adaptarse, y que el cliente supiera que se estaba ajustando. Causa: la medida bajaba el PNG entero de cada recorte, por aparte de la copia que ya
+se ve, y recién empezaba al poner las dos prendas. Ahora (`useUnionDeLaFigura`, `lib/union-prendas.ts`):
+
+- **Se mide la copia chica** que ya sirve el optimizador de imágenes (`/_next/image?…&w=256&q=75`, 3 a 27 kB en las 8 prendas probadas) en vez del PNG entero. Medido con `sharp` en AVIF y WebP sobre esas
+  8 prendas: el borde, la fila del borde y la pretina salen idénticos a los del PNG. Una foto que no pasa por el optimizador se baja tal cual, como antes.
+- **Se recuerda entre visitas** (`localStorage`, los últimos 300 recortes, solo tres fracciones por prenda): una prenda ya vista se une al instante. Se lee después de montar, para que la primera
+  pintura coincida con la del servidor.
+- **Se miden las vecinas** de arriba y de abajo (las que se pasan con la flecha o deslizando) cuando el navegador está libre, de a una.
+- **Si igual hay que esperar** más de 180 ms, la prenda de abajo se atenúa y aparece «Ajustando la prenda…» con un hilo que va y viene sobre la unión. Es una señal de espera (como el hilo de los botones
+  del ERP), no un adorno; se apaga con `prefers-reduced-motion`. Una imagen que no responde en 4 s se da por no medible y la figura queda como antes.
+- La prenda de abajo se acomoda en 0,32 s (antes 0,55 s).
+
+Sigue sin hacerse en la figura quieta (servidor). No probado en un celular real ni en Safari.

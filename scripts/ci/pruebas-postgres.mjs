@@ -260,6 +260,11 @@ export const PRUEBAS = [
   // revisión «¿se puede mostrar?» está en PL/pgSQL y el catálogo devuelve EXACTAMENTE el JSON de su versión de antes. ROLLBACK.
   "pruebas:tienda-rapida",
 
+  // La base se cae sin llevarse al ERP (ADR-0450): `fn_salud()` («¿responde la base?», solo true y solo para anon/authenticated/service_role)
+  // y los topes de conexión/tiempo del usuario de la tienda (20 conexiones, 5 s, 10 s en transacción quieta) que no tocan a nadie más
+  // —ni a `postgres`, que queda como miembro de `tienda_web` por haberlo creado—, son idempotentes y no fallan sin usuario. ROLLBACK.
+  "pruebas:base-resiliencia",
+
   // Los looks de la tienda online (ADR-0408, actividad 11): es el módulo de la Vitrina web (sin él no se lee ni se guarda); 2 a 4
   // prendas que se venden, y para mostrarlo cada una se ve en la web; la versión frena a la segunda persona; el lugar va de 1 a N sin
   // huecos; un look con una prenda que dejó de verse (o eliminada) no sale en la tienda; cada prenda vale EXACTAMENTE lo de la ficha
