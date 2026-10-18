@@ -73,3 +73,13 @@ antes de llegar a ninguna parte, y MODNet recortaba otra vez una imagen distinta
 
 - Alguien sube un JPG esperando que entre al armador: queda «sin recorte» y la lista de Vitrina ▸ Probador lo dice.
 - Alguien cambia `UMBRAL_ALFA` (32) sin mirar `limpiarAlfa`, `cajaDeContenido` y `soloLaPrenda`: los tres lo comparten.
+
+## Actualización 2026-10-18 — el color de la prenda ya no queda detrás de la foto
+
+El primer riesgo se vio el mismo día en producción: «Blusa Burdeos de Rayas» (CMS-0073) subió como PNG transparente y la tarjeta la mostró sobre
+chocolate (#4B342F), el primer color de su catálogo. No era la foto: `ImagenDePrenda` pinta `fondo` (el color de la prenda) como `backgroundColor`
+para que se vea algo mientras la foto llega, y un JPG lo tapaba entero. Un PNG transparente no lo tapa nunca.
+
+**Decidí:** el color se ve solo mientras la foto carga y se quita al cargar (`fondoDeLaFoto`, `lib/foto-prenda-reglas.ts`; se guarda por URL, igual
+que «rota»). Detrás de una foto transparente queda el fondo de su tarjeta. Pendiente, como ya decía «Riesgos»: una prenda blanca o crema sobre fondo
+claro, decisión de Felipe mirando prendas reales.
