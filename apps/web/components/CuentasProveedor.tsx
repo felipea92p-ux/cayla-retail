@@ -52,18 +52,24 @@ export function CuentasProveedor({
   onEditar,
   titulo = "Paga por",
   className = "",
+  mostrarPlazo = true,
+  etiquetaForma,
 }: {
   datos: DatosPagoProveedor;
   /** Si se pasa, aparece «Editar» y, cuando no hay datos, «Agregar…». */
   onEditar?: () => void;
   titulo?: string;
   className?: string;
+  /** «Contado» o «Crédito a N días»: es de un proveedor de Compras; un gasto fijo no lo tiene (ADR-0452). */
+  mostrarPlazo?: boolean;
+  /** Dice la forma de pago con sus palabras (la ficha de un gasto fijo), en vez de la «preferida» de un proveedor. */
+  etiquetaForma?: string;
 }) {
   const [ver, setVer] = useState(false);
   const filas = filasDe(datos, ver);
   const cobraEnEfectivo = datos.formaPagoPreferida === "efectivo";
   const sinNada = filas.length === 0;
-  const forma = datos.formaPagoPreferida ? (ETIQUETA_METODO[datos.formaPagoPreferida] ?? datos.formaPagoPreferida) : null;
+  const forma = etiquetaForma ?? (datos.formaPagoPreferida ? (ETIQUETA_METODO[datos.formaPagoPreferida] ?? datos.formaPagoPreferida) : null);
 
   return (
     <div className={`anim-revelar rounded-xl border p-4 ${sinNada && !cobraEnEfectivo ? "border-ambar/30 bg-ambar/[0.06]" : "border-sand bg-sand/40"} ${className}`}>
@@ -74,7 +80,7 @@ export function CuentasProveedor({
             {forma ?? "Sin medio preferido"}
             {datos.banco ? ` · ${datos.banco}` : ""}
           </p>
-          <p className="text-xs text-tinta/55">{datos.plazoCreditoDias ? `Crédito a ${datos.plazoCreditoDias} días` : "Contado"}</p>
+          {mostrarPlazo && <p className="text-xs text-tinta/55">{datos.plazoCreditoDias ? `Crédito a ${datos.plazoCreditoDias} días` : "Contado"}</p>}
         </div>
         <div className="flex items-center gap-4">
           {filas.length > 0 && (

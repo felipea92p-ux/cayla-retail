@@ -281,7 +281,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.fijos",
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "fin-gastos.tab-fijos" }],
       titulo: "Los fijos del mes",
-      texto: "El alquiler, la luz o el contador se guardan una vez y cada mes el sistema dice cuáles llegaron y cuáles faltan. «Registrar» abre el gasto ya lleno. Si un gasto se repite, el sistema te pregunta si lo marca como fijo.",
+      texto: "El alquiler, la luz o el contador se guardan una vez y cada mes el sistema dice cuáles llegaron y cuáles faltan. «Registrar» abre el gasto ya lleno, con a quién y cómo se le paga. Si un gasto se repite, el sistema te pregunta si lo marca como fijo.",
     },
     {
       id: "activos",

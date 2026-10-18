@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 91,
+  "total": 93,
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
       "ComboResponsable «{responsable}»",
@@ -120,6 +120,10 @@
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «Guardar»"
+    ],
+    "components/gasto-fijo/FichaDePagoCampos.tsx": [
+      "Casilla «{TEXTO_BILLETERA[b]}»",
+      "textarea «ficha-notas»"
     ]
   }
 }

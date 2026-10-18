@@ -23,6 +23,7 @@ import {
   type UbicacionGastos,
   type Ver,
 } from "@/lib/gastos-reglas";
+import { leerResumenFicha, type ResumenFicha } from "@/lib/gasto-fijo-ficha-reglas";
 
 // Finanzas ▸ Gastos (ADR-0195 F2, 20260924235100). Todo sale de funciones que ya miran solo lo que la cuenta ve
 // (`fn_gastos_ubicaciones`): el líder, todas y «la empresa»; con el módulo Gastos, su tienda. Si una lectura falla, la
@@ -103,7 +104,7 @@ export async function getMarcasNoGasto(ver: Ver): Promise<MarcaNoGasto[]> {
 export async function getProveedoresParaGasto(): Promise<ProveedorGasto[]> {
   const supabase = await createClient();
   // Con su contacto (ADR-0440). Lo bancario NO se lee de la tabla: la pantalla lo pide al elegir (`fn_proveedor_datos_bancarios`).
-  const { data } = await supabase.from("proveedores").select("id, nombre, ruc, contacto, telefono, forma_pago_preferida, plazo_credito_dias").eq("activo", true).order("nombre");
+  const { data } = await supabase.from("proveedores").select("id, nombre, ruc, contacto, telefono, forma_pago_preferida, plazo_credito_dias, rubros").eq("activo", true).order("nombre");
   return ((data ?? []) as ProveedorGasto[]).map((p) => ({
     id: p.id,
     nombre: p.nombre,
@@ -112,7 +113,24 @@ export async function getProveedoresParaGasto(): Promise<ProveedorGasto[]> {
     telefono: p.telefono ?? null,
     forma_pago_preferida: p.forma_pago_preferida ?? null,
     plazo_credito_dias: p.plazo_credito_dias ?? null,
+    rubros: p.rubros ?? [],
   }));
+}
+
+/**
+ * Lo que se sabe de cada gasto fijo para poder pagarlo (ADR-0452), por id. `disponible: false` si la base todavía no tiene la
+ * ficha (la migración 20261018003000 no está pegada): la pantalla se dibuja como antes, sin la columna ni el aviso.
+ */
+export async function getFichasDeFijos(): Promise<{ porFijo: Record<string, ResumenFicha>; disponible: boolean }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_gastos_fijos_fichas" as never);
+  if (error) return { porFijo: {}, disponible: false };
+  const porFijo: Record<string, ResumenFicha> = {};
+  for (const fila of (data ?? []) as Record<string, unknown>[]) {
+    const { gastoFijoId, resumen } = leerResumenFicha(fila);
+    porFijo[gastoFijoId] = resumen;
+  }
+  return { porFijo, disponible: true };
 }
 
 /** Los gastos de una ubicación en un rango (Producción ▸ Eficiencia lee los del Taller). Vacío si la cuenta no los ve. */

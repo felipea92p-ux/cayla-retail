@@ -56,6 +56,10 @@ export const PRUEBAS = [
 
   "pruebas:activos-y-fijos",
 
+  // La ficha de pago de un gasto fijo (ADR-0452): a quién y cómo se paga, el código del recibo y el contrato; datos bancarios solo
+  // del líder y admin; el historial de cambios de cuenta; ficha parcial, null que borra, errores en criollo. ROLLBACK.
+  "pruebas:gasto-fijo-ficha",
+
   // Activos «ya lo teníamos» (ADR-0335): lo anterior al sistema entra sin pago, sin mover plata, con su fecha real y su
   // depreciación; solo el líder; los estados imposibles los impide la base. ROLLBACK.
   "pruebas:activos-carga-inicial",
