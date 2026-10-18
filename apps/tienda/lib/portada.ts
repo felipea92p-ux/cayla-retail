@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { anuncioDeCampana, disenoParaPintar } from "@cayla-retail/portada";
+import { anuncioDeCampana, disenoParaPintar, type DisenoDeCampana } from "@cayla-retail/portada";
 
 // Lo que la portada pública muestra sin cuenta (ADR-0408): las campañas que anuncia la portada, en orden (LA regla de la base,
 // ADR-0436; con más de una, el carrusel de la actividad 6b). La base lo arma en `retail.tienda_portada()`; aquí solo se valida la forma y
@@ -33,17 +33,35 @@ export type Portada = { campana: Campana | null; campanas: Campana[] };
 export const PORTADA_SIN_DATOS: Portada = { campana: null, campanas: [] };
 
 /**
+ * La foto del fondo solo se pinta si es de NUESTRO almacén (el origen de `TIENDA_FOTOS_ORIGEN`), como las demás fotos de la tienda. Un
+ * diseño «Con foto» con una foto que no se puede comprobar sale como la portada de siempre; si solo quedó guardada con otro fondo, se le
+ * quita la foto y el resto del diseño se pinta.
+ */
+export function conFotoDeCasa(diseno: DisenoDeCampana | null, origen: string | undefined): DisenoDeCampana | null {
+  if (!diseno?.foto) return diseno;
+  let propia = false;
+  try {
+    propia = !!origen && new URL(diseno.foto).origin === new URL(origen).origin;
+  } catch {
+    propia = false;
+  }
+  if (propia) return diseno;
+  return diseno.fondo === "foto" ? null : { ...diseno, foto: null, fotoTono: null };
+}
+
+/**
  * Lo que manda la base, revisado. Una respuesta sin forma (o con la primera campaña rara) es la portada sin campaña, como siempre; en la
  * lista, una campaña rara se salta sin tumbar a las demás (la tienda de esta versión no sabe leerla).
  */
-export function interpretarPortada(dato: unknown): Portada {
+export function interpretarPortada(dato: unknown, origenFotos: string | undefined = process.env.TIENDA_FOTOS_ORIGEN): Portada {
   const resultado = esquemaPortada.safeParse(dato);
   if (!resultado.success) return PORTADA_SIN_DATOS;
+  const deCasa = (c: Campana): Campana => ({ ...c, diseno: conFotoDeCasa(c.diseno, origenFotos) });
   const { campana, campanas } = resultado.data;
-  if (campanas === undefined) return { campana, campanas: campana ? [campana] : [] };
+  if (campanas === undefined) return { campana: campana && deCasa(campana), campanas: campana ? [deCasa(campana)] : [] };
   const leidas = campanas.flatMap((c) => {
     const r = esquemaCampana.safeParse(c);
-    return r.success ? [r.data] : [];
+    return r.success ? [deCasa(r.data)] : [];
   });
   return { campana: leidas[0] ?? null, campanas: leidas };
 }

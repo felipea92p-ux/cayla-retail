@@ -5,6 +5,7 @@ import {
   anuncios,
   fechaCorta,
   fechaLarga,
+  conFotoDeCasa,
   interpretarPortada,
   partirTitulo,
   pctTexto,
@@ -96,5 +97,38 @@ describe("anioLima", () => {
   it("el año de Lima, no el del servidor (el 31 a las 23:30 en Lima ya es 1 de enero en UTC)", () => {
     expect(anioLima(new Date("2027-01-01T04:30:00Z"))).toBe(2026);
     expect(anioLima(new Date("2027-01-01T05:30:00Z"))).toBe(2027);
+  });
+});
+
+describe("la foto del fondo solo es de nuestro almacén", () => {
+  const ORIGEN = "https://abc.supabase.co";
+  const ruta = "/storage/v1/object/public/retail-campanas-fotos/fondos/0f0f0f0f-1111-4222-8333-444455556666.jpg";
+  const conFoto = { ...DISENO_DE_SIEMPRE, fondo: "foto" as const, foto: `${ORIGEN}${ruta}`, fotoTono: "#e8dcc8", oscuro: 0.5 };
+
+  it("una foto de nuestro origen se pinta", () => {
+    expect(conFotoDeCasa(conFoto, ORIGEN)).toBe(conFoto);
+    expect(conFotoDeCasa(null, ORIGEN)).toBeNull();
+    expect(conFotoDeCasa(DISENO_DE_SIEMPRE, ORIGEN)).toBe(DISENO_DE_SIEMPRE);
+  });
+
+  it("una foto de otro sitio no se pinta: sale la portada de siempre", () => {
+    expect(conFotoDeCasa({ ...conFoto, foto: `https://malo.example${ruta}` }, ORIGEN)).toBeNull();
+    expect(conFotoDeCasa({ ...conFoto, foto: `${ORIGEN}.malo.example${ruta}` }, ORIGEN)).toBeNull();
+  });
+
+  it("sin origen configurado no se puede comprobar: tampoco se pinta", () => {
+    expect(conFotoDeCasa(conFoto, undefined)).toBeNull();
+  });
+
+  it("una foto que quedó guardada con otro fondo no se pinta, pero el diseño sí (solo se le quita la foto ajena)", () => {
+    const ajena = { ...DISENO_DE_SIEMPRE, foto: `https://malo.example${ruta}`, fotoTono: "#ffffff" };
+    expect(conFotoDeCasa(ajena, ORIGEN)).toEqual({ ...DISENO_DE_SIEMPRE, foto: null, fotoTono: null });
+  });
+
+  it("la portada leída pasa por la misma revisión", () => {
+    const campana = { id: null, nombre: "Gato", pct: 15, hasta: "2026-10-30", prendas: [] as string[] };
+    const ajena = { ...conFoto, foto: `https://malo.example${ruta}` };
+    expect(interpretarPortada({ campana: { ...campana, diseno: ajena } }, ORIGEN).campana?.diseno).toBeNull();
+    expect(interpretarPortada({ campana: { ...campana, diseno: conFoto } }, ORIGEN).campana?.diseno?.foto).toBe(conFoto.foto);
   });
 });
