@@ -1,0 +1,2062 @@
+<title>Identidad web CAYLA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Investigación de las diez empresas de moda más grandes y propuestas de tipografía, paleta, diseño y funciones a futuro para la tienda web de CAYLA.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400&family=DM+Mono:wght@400;500&family=Instrument+Sans:wdth,wght@75..100,400..700&family=Instrument+Serif:ital@0;1&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Manrope:wght@400..700&family=Labrada:wght@300..700&family=Chivo:wght@400..700&family=Chivo+Mono:wght@400;500&display=swap">
+<style>
+/* Pliego de taller: un documento largo de lectura, con índice fijo a la izquierda en la computadora (arriba en el celular)
+   y una banda a todo el ancho para el probador. Paleta y letras: la guía «CAYLA Dynamic» del ERP (claro y oscuro). */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0; --tinta: #1a1a18; --taupe: #805c4c;
+  --rojo: #b8412d; --rojo-profundo: #8b2a1f; --verde: #48603f; --ambar: #74501a; --pizarra: #4c5d6e;
+  --marco: #1a1a18; --sombra: rgba(26, 26, 24, .28);
+  --tinta-suave: color-mix(in srgb, var(--tinta) 72%, transparent);
+  --serif: "EB Garamond", ui-serif, Georgia, "Times New Roman", serif;
+  --sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --crema: #1a1a18; --papel: #242422; --hueso: #2c2b28; --sand: #3d3c38; --tinta: #f5f0e8; --taupe: #c4a898;
+    --rojo: #e8806a; --rojo-profundo: #f29a86; --verde: #9ccb8d; --ambar: #e4b968; --pizarra: #a2b8cd;
+    --marco: #050505; --sombra: rgba(0, 0, 0, .6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --crema: #1a1a18; --papel: #242422; --hueso: #2c2b28; --sand: #3d3c38; --tinta: #f5f0e8; --taupe: #c4a898;
+  --rojo: #e8806a; --rojo-profundo: #f29a86; --verde: #9ccb8d; --ambar: #e4b968; --pizarra: #a2b8cd;
+  --marco: #050505; --sombra: rgba(0, 0, 0, .6);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--crema); color: var(--tinta); font: 16px/1.62 var(--sans); -webkit-font-smoothing: antialiased; }
+h1, h2, h3, h4 { font-family: var(--serif); font-weight: 500; line-height: 1.08; letter-spacing: -.01em; text-wrap: balance; margin: 0; }
+p { margin: 0; text-wrap: pretty; }
+a { color: inherit; text-decoration: underline; text-decoration-color: var(--taupe); text-underline-offset: 3px; }
+a:hover { color: var(--rojo-profundo); }
+:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.mono { font-family: var(--mono); font-size: .86em; }
+.ceja { display: block; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); }
+.bajada { margin-top: 12px; max-width: 64ch; font-size: 17px; color: var(--tinta-suave); }
+
+/* ============ ARMAZÓN DEL DOCUMENTO ============ */
+.pliego { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 56px; max-width: 1240px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.indice { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 28px); align-self: start; padding-block: 28px; }
+.indice-marca { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+.indice-marca svg { width: 34px; height: 23px; fill: none; stroke: var(--rojo); }
+.indice-marca span { font-family: var(--serif); font-size: 19px; font-weight: 500; letter-spacing: .24em; }
+.indice ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; counter-reset: ind; }
+.indice a { display: flex; gap: 10px; padding: 5px 0; font-size: 13.5px; text-decoration: none; color: var(--tinta-suave); }
+.indice a::before { counter-increment: ind; content: counter(ind, decimal-leading-zero); font-family: var(--mono); font-size: 11px; padding-top: 2px; color: var(--taupe); }
+.indice a:hover, .indice a.activo { color: var(--tinta); }
+.indice a.activo::before { color: var(--rojo); }
+.contenido { min-width: 0; padding-block: 28px 96px; }
+@media (max-width: 960px) {
+  .pliego { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .indice { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; margin-inline: calc(max(16px, env(safe-area-inset-left, 0px)) * -1) calc(max(16px, env(safe-area-inset-right, 0px)) * -1); padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); background: color-mix(in srgb, var(--crema) 94%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--sand); }
+  .indice-marca { display: none; }
+  .indice ol { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .indice ol::-webkit-scrollbar { display: none; }
+  .indice a { flex: none; padding: 6px 12px; border: 1px solid var(--sand); border-radius: 999px; background: var(--papel); white-space: nowrap; font-size: 13px; }
+  .indice a::before { display: none; }
+  .indice a.activo { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+}
+
+/* Portada del documento */
+.apertura { padding-block: 40px 56px; border-bottom: 1px solid var(--sand); }
+.apertura h1 { margin-top: 18px; font-size: clamp(46px, 7.4vw, 92px); line-height: .92; letter-spacing: -.025em; max-width: 12ch; }
+.apertura h1 em { font-style: italic; color: var(--rojo); }
+.apertura .bajada { font-size: clamp(17px, 2vw, 20px); max-width: 58ch; margin-top: 22px; }
+.tesis { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px; margin-top: 40px; padding: 28px; background: var(--papel); border: 1px solid var(--sand); border-radius: 20px; }
+.tesis h2 { font-size: 30px; }
+.tesis p { margin-top: 12px; color: var(--tinta-suave); }
+.tesis-lema { font-family: var(--serif); font-size: clamp(30px, 4vw, 44px); line-height: 1; letter-spacing: -.01em; }
+.tesis-lema em { color: var(--rojo); }
+.tesis ul { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.tesis li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; font-size: 15px; }
+.tesis li svg { width: 20px; height: 14px; margin-top: 5px; fill: none; stroke: var(--rojo); }
+@media (max-width: 760px) { .tesis { grid-template-columns: minmax(0, 1fr); padding: 22px; } }
+
+/* Secciones */
+.sec { padding-block: 72px 8px; scroll-margin-top: 72px; }
+.sec-cab { max-width: 70ch; }
+.sec-cab h2 { margin-top: 10px; font-size: clamp(34px, 4.6vw, 52px); }
+.sec h3 { font-size: 27px; }
+.sec h4 { font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); margin: 0; }
+.prosa { max-width: 68ch; display: grid; gap: 14px; margin-top: 22px; }
+.prosa p { color: var(--tinta-suave); }
+.prosa b { color: var(--tinta); font-weight: 600; }
+.marca-dato { font-family: var(--mono); font-size: 10.5px; letter-spacing: .04em; padding: 1px 6px; border-radius: 4px; background: var(--hueso); color: var(--taupe); white-space: nowrap; vertical-align: 1px; }
+.leyenda-marcas { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; font-size: 13.5px; color: var(--tinta-suave); }
+
+/* Tabla general */
+.tabla-caja { margin-top: 26px; overflow-x: auto; border: 1px solid var(--sand); border-radius: 16px; background: var(--papel); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); background: var(--hueso); padding: 11px 14px; white-space: nowrap; }
+td { padding: 12px 14px; border-top: 1px solid var(--sand); vertical-align: top; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+td b { font-weight: 600; }
+.tabla-ancha { min-width: 760px; }
+
+/* Grupos de empresas */
+.grupo { margin-top: 56px; }
+.grupo-cab { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px solid var(--tinta); }
+.grupo-cab h3 { font-size: 30px; }
+.grupo-cab p { color: var(--tinta-suave); font-size: 15px; }
+.emp { padding-block: 34px; border-bottom: 1px solid var(--sand); scroll-margin-top: 72px; }
+.emp-cab { display: grid; grid-template-columns: 48px minmax(0, 1fr) minmax(0, 300px); gap: 8px 22px; align-items: start; }
+.emp-n { font-family: var(--mono); font-size: 13px; color: var(--taupe); padding-top: 9px; }
+.emp-cab h3 { font-size: 34px; }
+.emp-cab h3 small { display: block; margin-top: 6px; font-family: var(--sans); font-size: 13px; letter-spacing: .04em; color: var(--taupe); font-weight: 500; }
+.emp-firma { margin-top: 12px; font-family: var(--serif); font-style: italic; font-size: 19px; line-height: 1.35; color: var(--tinta); max-width: 46ch; }
+.emp-escala { font-size: 13.5px; color: var(--tinta-suave); padding-top: 8px; font-variant-numeric: tabular-nums; }
+.emp-escala b { display: block; font-family: var(--serif); font-size: 26px; font-weight: 500; color: var(--tinta); line-height: 1.1; margin-bottom: 4px; }
+.emp-cuerpo { display: grid; grid-template-columns: 48px minmax(0, 1fr) minmax(0, 300px); gap: 22px; margin-top: 22px; }
+.emp-cuerpo > .emp-texto { grid-column: 2; }
+.emp-cuerpo > .emp-ficha { grid-column: 3; }
+.emp-texto { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px 28px; }
+.emp-texto ul { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 7px; font-size: 14.5px; color: var(--tinta-suave); }
+.emp-texto li::marker { color: var(--taupe); }
+.emp-toma { grid-column: 1 / -1; padding: 18px 20px; border-radius: 16px; background: var(--papel); border: 1px solid var(--sand); }
+.emp-toma h4 { display: flex; align-items: center; gap: 8px; color: var(--rojo); }
+.emp-toma h4 svg { width: 22px; height: 15px; fill: none; stroke: currentColor; }
+.emp-toma ul { list-style: none; padding: 0; gap: 10px; }
+.emp-toma li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: start; color: var(--tinta); }
+.emp-toma li span:first-child { color: var(--tinta-suave); }
+.emp-toma li b { color: var(--tinta); font-weight: 600; }
+.emp-no { grid-column: 1 / -1; }
+.esf { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; background: var(--hueso); color: var(--tinta); }
+.esf::before { content: "Esfuerzo "; color: var(--taupe); font-weight: 500; }
+.emp-ficha { display: grid; gap: 16px; align-content: start; padding-top: 2px; }
+.emp-ficha dl { margin: 0; display: grid; gap: 14px; }
+.emp-ficha dt { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); }
+.emp-ficha dd { margin: 4px 0 0; font-size: 14px; }
+.muestras { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.muestras i { display: grid; gap: 3px; font-style: normal; font-family: var(--mono); font-size: 9.5px; color: var(--taupe); text-transform: uppercase; }
+.muestras i::before { content: ""; width: 44px; height: 30px; border-radius: 6px; background: var(--m); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tinta) 14%, transparent); }
+@media (max-width: 960px) {
+  .emp-cab, .emp-cuerpo { grid-template-columns: minmax(0, 1fr); }
+  .emp-n { padding-top: 0; }
+  .emp-cuerpo > .emp-texto, .emp-cuerpo > .emp-ficha { grid-column: 1; }
+  .emp-cuerpo > .emp-ficha { grid-row: 1; }
+  .emp-texto { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Cifras de la clienta peruana */
+.cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 28px; background: var(--sand); border: 1px solid var(--sand); border-radius: 18px; overflow: hidden; }
+.cifra { background: var(--papel); padding: 20px 20px 18px; display: grid; gap: 6px; align-content: start; }
+.cifra b { font-family: var(--serif); font-size: 44px; font-weight: 500; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.cifra p { font-size: 14px; color: var(--tinta-suave); }
+.cifra small { font-size: 11.5px; color: var(--taupe); }
+@media (max-width: 760px) { .cifras { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .cifra b { font-size: 34px; } }
+@media (max-width: 440px) { .cifras { grid-template-columns: minmax(0, 1fr); } }
+.dos-col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; margin-top: 30px; }
+@media (max-width: 860px) { .dos-col { grid-template-columns: minmax(0, 1fr); } }
+.lista-num { margin: 12px 0 0; padding: 0; list-style: none; counter-reset: ln; display: grid; gap: 10px; }
+.lista-num li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 6px; font-size: 14.5px; color: var(--tinta-suave); }
+.lista-num li::before { counter-increment: ln; content: counter(ln, decimal-leading-zero); font-family: var(--mono); font-size: 11.5px; color: var(--taupe); padding-top: 3px; }
+.lista-num b { color: var(--tinta); font-weight: 600; }
+
+/* Identidad propia */
+.codigos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 14px; margin-top: 28px; }
+.codigo { padding: 20px; border-radius: 18px; background: var(--papel); border: 1px solid var(--sand); display: grid; gap: 10px; align-content: start; }
+.codigo-dib { height: 64px; display: flex; align-items: center; }
+.codigo-dib svg { height: 100%; width: auto; max-width: 100%; fill: none; stroke: var(--rojo); }
+.codigo h3 { font-size: 22px; }
+.codigo p { font-size: 14px; color: var(--tinta-suave); }
+.aviso-nota { margin-top: 26px; padding: 18px 20px; border-radius: 16px; background: var(--hueso); display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 12px; font-size: 15px; }
+.aviso-nota svg { width: 22px; height: 22px; fill: none; stroke: var(--taupe); stroke-width: 1.7; stroke-linecap: round; }
+.aviso-nota p + p { margin-top: 8px; }
+.aviso-nota b { font-weight: 600; }
+
+/* Propuestas (tipografía, paleta, dirección) */
+.propuestas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 30px; }
+@media (max-width: 860px) { .propuestas { grid-template-columns: minmax(0, 1fr); } }
+.prop { position: relative; display: grid; gap: 16px; align-content: start; padding: 24px; border-radius: 20px; background: var(--papel); border: 1px solid var(--sand); }
+.prop-cab { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.prop-letra { font-family: var(--mono); font-size: 12px; color: var(--taupe); }
+.prop h3 { font-size: 26px; margin-top: 4px; }
+.prop-idea { font-size: 15px; color: var(--tinta-suave); }
+.prop-reco { font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--crema); background: var(--tinta); padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+.prop dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; font-size: 13.5px; }
+.prop dt { color: var(--taupe); font-weight: 600; }
+.prop dd { margin: 0; }
+.prop-pros { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; font-size: 13.5px; }
+.prop-pros p { color: var(--tinta-suave); }
+.prop-pros b { display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); margin-bottom: 4px; }
+.btn-probar { justify-self: start; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--tinta); background: transparent; color: var(--tinta); font: 600 13.5px var(--sans); cursor: pointer; transition: background-color .2s var(--ease), color .2s var(--ease); }
+.btn-probar:hover { background: var(--tinta); color: var(--crema); }
+.btn-probar svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Muestra tipográfica: siempre sobre papel claro, como saldría impresa */
+.especimen { padding: 22px 20px; border-radius: 14px; background: #fbf8f2; color: #1a1a18; display: grid; gap: 10px; overflow: hidden; }
+.esp-marca { font-size: 28px; line-height: 1; }
+.esp-tit { font-size: clamp(34px, 4.4vw, 46px); line-height: .98; }
+.esp-tit em { color: #b8412d; }
+.esp-texto { font-size: 15px; line-height: 1.55; max-width: 44ch; color: #3b3a36; }
+.esp-fila { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; padding-top: 8px; border-top: 1px solid #e8e0d0; }
+.esp-nombre { font-size: 21px; }
+.esp-precio { font-size: 17px; font-variant-numeric: tabular-nums; }
+.esp-ceja { font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: #805c4c; }
+.esp-boton { font-size: 12.5px; padding: 9px 16px; border-radius: 999px; background: #1a1a18; color: #f5f0e8; }
+.esp-abc { font-size: 13px; color: #805c4c; letter-spacing: .02em; }
+
+/* Paletas */
+.paleta-tira { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border-radius: 14px; overflow: hidden; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tinta) 10%, transparent); }
+.paleta-tira span { aspect-ratio: 1 / 1.25; display: flex; flex-direction: column; justify-content: flex-end; padding: 8px; font-family: var(--mono); font-size: 9.5px; line-height: 1.3; }
+.paleta-tira span b { font-family: var(--sans); font-size: 11px; font-weight: 600; }
+@media (max-width: 440px) { .paleta-tira { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.contraste { display: grid; gap: 6px; font-size: 13px; }
+.contraste-fila { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding-bottom: 6px; border-bottom: 1px dashed var(--sand); }
+.contraste-fila:last-child { border-bottom: 0; }
+.contraste-fila span:nth-child(2) { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+.ok, .flojo { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; padding: 2px 8px; border-radius: 999px; }
+.ok { background: color-mix(in srgb, var(--verde) 16%, transparent); color: var(--verde); }
+.flojo { background: color-mix(in srgb, var(--ambar) 16%, transparent); color: var(--ambar); }
+
+/* Dirección de diseño: esquemas */
+.esquema { aspect-ratio: 16 / 10; border-radius: 12px; background: var(--hueso); padding: 10px; display: grid; gap: 6px; }
+.esquema i { display: block; border-radius: 4px; background: color-mix(in srgb, var(--tinta) 14%, transparent); }
+.esquema .fuerte { background: color-mix(in srgb, var(--tinta) 72%, transparent); }
+.esquema .rojo { background: var(--rojo); }
+.esquema .punteado { background: none; border: 1.5px dashed var(--rojo); }
+.esq-editorial { grid-template-columns: 2fr 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.esq-editorial .fuerte { grid-row: 1 / 3; }
+.esq-taller { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: auto 1fr auto; }
+.esq-taller .punteado { grid-column: 1 / 3; grid-row: 1 / 3; }
+.esq-mostrador { grid-template-columns: repeat(4, 1fr); grid-template-rows: 12px 1fr 1fr; }
+.esq-mostrador .barra { grid-column: 1 / -1; border-radius: 999px; }
+
+/* Voz */
+.voz td:first-child { color: var(--taupe); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--taupe) 50%, transparent); }
+.voz td:nth-child(2) { font-weight: 500; }
+
+/* Funciones a futuro */
+.horizonte { margin-top: 34px; }
+.horizonte-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid var(--tinta); }
+.horizonte-cab h3 { font-size: 26px; }
+.horizonte-cab span { font-size: 13px; color: var(--taupe); }
+.funcs { display: grid; gap: 0; }
+.func { display: grid; grid-template-columns: 34px minmax(0, 1fr) 150px; gap: 14px; align-items: start; padding: 16px 0; border-bottom: 1px solid var(--sand); }
+.func input { width: 20px; height: 20px; margin-top: 4px; accent-color: var(--rojo); }
+.func label { cursor: pointer; display: grid; gap: 4px; }
+.func label b { font-size: 16px; font-weight: 600; }
+.func label span { font-size: 14px; color: var(--tinta-suave); }
+.func label small { font-size: 12.5px; color: var(--taupe); }
+.medidor { display: grid; gap: 6px; font-size: 11.5px; color: var(--taupe); }
+.medidor div { display: grid; grid-template-columns: 52px 1fr; gap: 8px; align-items: center; }
+.medidor i { display: flex; gap: 3px; }
+.medidor i::before, .medidor i::after { content: none; }
+.punto { width: 100%; height: 6px; border-radius: 3px; background: var(--sand); }
+.punto.on { background: var(--tinta); }
+.medidor .esf-on { background: var(--taupe); }
+@media (max-width: 640px) { .func { grid-template-columns: 30px minmax(0, 1fr); } .medidor { grid-column: 2; } }
+
+/* Mi elección */
+.eleccion { margin-top: 28px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; }
+@media (max-width: 860px) { .eleccion { grid-template-columns: minmax(0, 1fr); } }
+.resumen { padding: 24px; border-radius: 20px; background: var(--tinta); color: var(--crema); display: grid; gap: 14px; align-content: start; }
+.resumen h3 { font-size: 26px; }
+.resumen dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 16px; font-size: 14.5px; }
+.resumen dt { color: color-mix(in srgb, var(--crema) 70%, transparent); }
+.resumen dd { margin: 0; font-weight: 500; }
+.resumen textarea { width: 100%; min-height: 84px; padding: 12px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--crema) 25%, transparent); background: color-mix(in srgb, var(--crema) 8%, transparent); color: var(--crema); font: 14px/1.5 var(--sans); resize: vertical; }
+.resumen textarea::placeholder { color: color-mix(in srgb, var(--crema) 62%, transparent); }
+.resumen > label { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: color-mix(in srgb, var(--crema) 70%, transparent); font-weight: 600; }
+.btn-copiar { justify-self: start; min-height: 44px; padding: 0 20px; border-radius: 999px; border: 0; background: var(--crema); color: var(--tinta); font: 700 14px var(--sans); cursor: pointer; }
+.btn-copiar:hover { background: var(--papel); }
+.copiado { font-size: 13px; color: color-mix(in srgb, var(--crema) 78%, transparent); }
+.texto-eleccion { width: 100%; font: 12.5px/1.5 var(--mono); }
+.decisiones { padding: 24px; border-radius: 20px; background: var(--papel); border: 1px solid var(--sand); }
+
+/* Fuentes */
+.fuentes { margin-top: 26px; display: grid; gap: 8px; }
+.fuentes details { border: 1px solid var(--sand); border-radius: 14px; background: var(--papel); }
+.fuentes summary { cursor: pointer; padding: 14px 18px; font-weight: 600; font-size: 15px; display: flex; justify-content: space-between; gap: 12px; }
+.fuentes summary span { font-weight: 400; color: var(--taupe); font-size: 13px; }
+.fuentes ul { margin: 0; padding: 0 18px 16px 34px; display: grid; gap: 6px; font-size: 13px; color: var(--tinta-suave); overflow-wrap: anywhere; }
+.pie { margin-top: 64px; padding-top: 22px; border-top: 1px solid var(--sand); font-size: 13px; color: var(--taupe); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
+
+/* ============ EL PROBADOR DE IDENTIDAD ============
+   La maqueta lleva su propia paleta (la que se está probando), independiente del tema de esta página:
+   por eso fija todos sus colores explícitos dentro de .lab. Valores de partida: Evolución + Colibrí + claro. */
+.banda-lab { background: var(--hueso); border-block: 1px solid var(--sand); }
+.banda-lab-dentro { max-width: 1240px; margin-inline: auto; padding-block: 56px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.lab {
+  --pv-display: "EB Garamond", Georgia, serif; --pv-text: "DM Sans", system-ui, sans-serif; --pv-mono: "DM Mono", ui-monospace, monospace;
+  --pv-precio: "EB Garamond", Georgia, serif; --pv-precio-peso: 500; --pv-em: "EB Garamond", Georgia, serif;
+  --pv-marca-peso: 500; --pv-marca-esp: .3em; --pv-marca-ancho: 100%; --pv-tit-peso: 400; --pv-tit-esp: -.02em;
+  --pv-tit-caja: none; --pv-tit-escala: 1.04; --pv-tit-ancho: 100%; --pv-em-estilo: italic; --pv-ceja-esp: .16em;
+  --pv-bg: #f5f0e8; --pv-sup: #fbf8f2; --pv-tinta: #1a1a18; --pv-suave: #805c4c; --pv-filo: #e8e0d0; --pv-acento: #b8412d;
+  --pv-cta: #1a1a18; --pv-cta-tinta: #f5f0e8; --pv-heroe: #6a2118; --pv-heroe-2: #92301f; --pv-heroe-tinta: #f6efe6;
+  --pv-heroe-acento: #f4c3b3; --pv-heroe-prenda: #e9dccb; --pv-estudio: #ebe3d6; --pv-ok: #48603f; --pv-poco: #74501a; --pv-oferta: #b8412d;
+  --pv-radio-foto: 0px; --pv-boton-radio: 0px; --pv-boton-caja: uppercase; --pv-boton-esp: .14em;
+}
+.lab[data-dir="taller"] { --pv-radio-foto: 14px; --pv-boton-radio: 999px; --pv-boton-caja: none; --pv-boton-esp: .01em; }
+.lab[data-dir="mostrador"] { --pv-radio-foto: 10px; --pv-boton-radio: 12px; --pv-boton-caja: none; --pv-boton-esp: .01em; }
+.lab[data-dir="mezcla"] { --pv-radio-foto: 6px; --pv-boton-radio: 999px; --pv-boton-caja: none; --pv-boton-esp: .02em; }
+
+.lab-mandos { display: flex; flex-wrap: wrap; gap: 18px 28px; padding: 18px 20px; background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; }
+.mando { border: 0; margin: 0; padding: 0; min-width: 0; }
+.mando legend { padding: 0; margin-bottom: 8px; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.seg label { padding: 7px 13px; border-radius: 999px; border: 1px solid var(--sand); background: var(--crema); color: var(--tinta); font-size: 13px; cursor: pointer; transition: background-color .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease); }
+.seg label:hover { border-color: var(--taupe); }
+.seg input:checked + label { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+.seg input:focus-visible + label { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.lab-lectura { margin: 16px 0 0; max-width: 78ch; font-size: 14.5px; color: var(--tinta-suave); text-wrap: pretty; }
+.lab-lectura b { color: var(--tinta); font-weight: 600; }
+.lab-escenario { display: grid; grid-template-columns: repeat(2, minmax(0, 340px)); justify-content: center; gap: 28px 48px; margin-top: 30px; }
+@media (max-width: 780px) { .lab-escenario { grid-template-columns: minmax(0, 340px); } }
+.tel-fig { margin: 0; display: grid; gap: 12px; justify-items: center; min-width: 0; }
+.tel-fig figcaption { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+.tel { position: relative; width: 100%; max-width: 340px; aspect-ratio: 340 / 700; border: 9px solid var(--marco); border-radius: 46px; overflow: hidden; background: var(--pv-bg); box-shadow: 0 34px 60px -34px var(--sombra); }
+.tel::before { content: ""; position: absolute; z-index: 5; top: 9px; left: 50%; width: 84px; height: 22px; translate: -50% 0; border-radius: 12px; background: var(--marco); }
+.tel-pantalla { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding-top: 38px; }
+.tel-pantalla::-webkit-scrollbar { display: none; }
+
+/* Dentro del celular todo sale de las variables --pv-* */
+.pv { font-family: var(--pv-text); color: var(--pv-tinta); background: var(--pv-bg); font-size: 13px; line-height: 1.45; }
+.pv, .pv * { transition: background-color .35s var(--ease), color .35s var(--ease), border-color .35s var(--ease); }
+.pv p { margin: 0; }
+.pv-ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.pv-anuncio { background: var(--pv-tinta); color: var(--pv-bg); text-align: center; font-size: 9.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; padding: 7px 10px; }
+.pv-cab { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--pv-filo); background: var(--pv-bg); }
+.pv-colibri { width: 30px; height: 20px; fill: none; stroke: var(--pv-acento); }
+.pv-marca { font-family: var(--pv-display); font-weight: var(--pv-marca-peso); letter-spacing: var(--pv-marca-esp); font-stretch: var(--pv-marca-ancho); font-size: 17px; line-height: 1; padding-left: var(--pv-marca-esp); margin-left: calc(var(--pv-marca-esp) * -1); }
+.pv-marca-chica { font-size: 15px; }
+.pv-esp { flex: 1; }
+.pv-ceja { display: block; font-family: var(--pv-mono); font-size: 9.5px; font-weight: 500; letter-spacing: var(--pv-ceja-esp); text-transform: uppercase; }
+
+.lab:not([data-dir="editorial"]):not([data-dir="mezcla"]) .pv-hero-editorial,
+.lab:not([data-dir="taller"]) .pv-hero-taller,
+.lab:not([data-dir="mostrador"]) .pv-hero-mostrador,
+.lab:not([data-dir="taller"]):not([data-dir="mezcla"]) .pv-taller-tira,
+.lab:not([data-dir="mostrador"]) .pv-barra,
+.lab[data-dir="editorial"] .pv-grilla .pv-stock,
+.lab[data-dir="editorial"] .pv-sello { display: none; }
+
+.pv-hero-editorial { position: relative; }
+.pv-hero-foto { aspect-ratio: 4 / 5; display: grid; place-items: start center; padding-top: 9%; background: radial-gradient(120% 90% at 78% 12%, var(--pv-heroe-2), var(--pv-heroe) 62%); }
+.pv-prenda-grande { width: 46%; fill: var(--pv-heroe-prenda); stroke: color-mix(in srgb, var(--pv-heroe-prenda) 80%, #000); stroke-width: .8; }
+.pv-hero-editorial .pv-hero-texto { position: absolute; left: 16px; right: 16px; bottom: 18px; color: var(--pv-heroe-tinta); }
+.pv-hero-editorial .pv-ceja { color: var(--pv-heroe-acento); }
+.pv-hero-tit { font-family: var(--pv-display); font-weight: var(--pv-tit-peso); font-stretch: var(--pv-tit-ancho); text-transform: var(--pv-tit-caja); letter-spacing: var(--pv-tit-esp); font-size: calc(48px * var(--pv-tit-escala)); line-height: .9; margin: 8px 0 14px !important; }
+.pv-hero-tit em { font-family: var(--pv-em); font-style: var(--pv-em-estilo); color: var(--pv-heroe-acento); }
+
+.pv-hero-taller { position: relative; margin: 14px; padding: 6px; border-radius: 16px; background: var(--pv-sup); }
+.pv-hilo { padding: 18px 16px; border: 1.5px dashed color-mix(in srgb, var(--pv-acento) 75%, transparent); border-radius: 12px; }
+.pv-hero-taller .pv-ceja { color: var(--pv-acento); }
+.pv-hero-taller .pv-hero-tit { font-size: calc(32px * var(--pv-tit-escala)); line-height: 1; margin: 10px 0 10px !important; max-width: 11ch; }
+.pv-hero-taller .pv-hero-tit em { color: var(--pv-acento); }
+.pv-hero-desc { font-size: 12.5px; color: var(--pv-suave); margin-bottom: 14px !important; max-width: 30ch; }
+.pv-hero-ave { position: absolute; bottom: 24px; right: 22px; width: 54px; height: 36px; fill: none; stroke: var(--pv-acento); opacity: .9; }
+
+.pv-busca { display: flex; align-items: center; gap: 8px; margin: 12px 14px 8px; padding: 10px 12px; border-radius: 999px; border: 1px solid var(--pv-filo); background: var(--pv-sup); color: var(--pv-suave); font-size: 12px; }
+.pv-busca .pv-ic { width: 17px; height: 17px; }
+.pv-chips { display: flex; gap: 6px; padding-inline: 14px; overflow: hidden; }
+.pv-chip { flex: none; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--pv-filo); font-size: 11px; white-space: nowrap; }
+.pv-chip-on { background: var(--pv-tinta); color: var(--pv-bg); border-color: var(--pv-tinta); }
+.pv-banda { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 14px 0; padding: 14px; border-radius: 14px; background: var(--pv-heroe); color: var(--pv-heroe-tinta); }
+.pv-banda .pv-ceja { color: var(--pv-heroe-acento); }
+.pv-banda-tit { font-family: var(--pv-display); font-weight: var(--pv-tit-peso); font-stretch: var(--pv-tit-ancho); font-size: calc(24px * var(--pv-tit-escala)); line-height: 1.05; margin-top: 4px !important; }
+.pv-cuenta { text-align: center; padding: 6px 9px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--pv-heroe-tinta) 25%, transparent); }
+.pv-cuenta b { display: block; font-family: var(--pv-precio); font-size: 24px; line-height: 1; font-variant-numeric: tabular-nums; }
+.pv-cuenta small { font-size: 8.5px; letter-spacing: .14em; text-transform: uppercase; }
+
+.pv-sec { padding: 20px 14px 4px; }
+.pv-sec-cab { display: flex; align-items: baseline; justify-content: space-between; }
+.pv-sec-tit { font-family: var(--pv-display); font-weight: var(--pv-tit-peso); font-stretch: var(--pv-tit-ancho); text-transform: var(--pv-tit-caja); letter-spacing: var(--pv-tit-esp); font-size: calc(23px * var(--pv-tit-escala)); }
+.pv-ver { font-size: 11px; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--pv-acento); }
+.pv-grilla { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 10px; margin-top: 12px; }
+.lab[data-dir="editorial"] .pv-grilla { gap: 20px 2px; margin-inline: -14px; }
+.lab[data-dir="editorial"] .pv-tarj p { padding-inline: 10px; }
+.pv-foto { position: relative; aspect-ratio: 4 / 5; display: grid; place-items: center; border-radius: var(--pv-radio-foto); background: var(--pv-estudio); overflow: hidden; }
+.pv-foto svg, .pv-ficha-foto svg { width: 70%; fill: var(--prenda); stroke: color-mix(in srgb, var(--prenda) 72%, #000); stroke-width: .8; }
+.pv-sello { position: absolute; top: 8px; left: 8px; padding: 3px 6px; border-radius: 4px; background: var(--pv-sup); font-size: 8.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.pv-nombre { margin-top: 8px !important; font-size: 12.5px; }
+.pv-precio { margin-top: 1px !important; font-family: var(--pv-precio); font-size: 13.5px; font-weight: var(--pv-precio-peso); font-variant-numeric: tabular-nums; }
+.pv-precio s, .pv-ficha-precio s { color: var(--pv-suave); font-weight: 400; }
+.pv-stock { display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; font-size: 10.5px; color: var(--pv-suave); }
+.pv-stock::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pv-stock-ok { color: var(--pv-ok); }
+.pv-stock-poco { color: var(--pv-poco); }
+.lab[data-dir="mostrador"] .pv-tarj { padding: 6px; border-radius: 14px; background: var(--pv-sup); }
+/* El hilo rojo: un pespunte bajo cada título, en «Taller abierto» y en «La mezcla» */
+.lab[data-dir="taller"] .pv-sec-tit, .lab[data-dir="mezcla"] .pv-sec-tit { padding-bottom: 6px; background-image: repeating-linear-gradient(90deg, var(--pv-acento) 0 6px, transparent 6px 10px); background-repeat: no-repeat; background-position: left bottom; background-size: 64px 1.5px; }
+.pv-taller-tira { display: flex; gap: 10px; align-items: flex-start; margin: 18px 14px 20px; padding-top: 14px; border-top: 1.5px dashed color-mix(in srgb, var(--pv-acento) 70%, transparent); font-size: 12px; color: var(--pv-suave); }
+.pv-taller-tira b { color: var(--pv-tinta); }
+.pv-taller-tira .pv-ic { color: var(--pv-acento); }
+.pv-barra { position: sticky; bottom: 0; z-index: 3; display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 18px; padding: 9px 0 14px; border-top: 1px solid var(--pv-filo); background: var(--pv-sup); font-size: 10px; text-align: center; color: var(--pv-suave); }
+.pv-barra .on { color: var(--pv-tinta); font-weight: 700; }
+.pv-grilla + * { margin-top: 0; }
+.lab:not([data-dir="mostrador"]) .pv-sec:last-of-type { padding-bottom: 24px; }
+
+.pv-boton { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 0 18px; border-radius: var(--pv-boton-radio); background: var(--pv-cta); color: var(--pv-cta-tinta); font-size: 12px; font-weight: 600; letter-spacing: var(--pv-boton-esp); text-transform: var(--pv-boton-caja); }
+.pv-boton-claro { background: var(--pv-heroe-tinta); color: var(--pv-heroe); }
+.pv-boton-sec { background: transparent; color: var(--pv-tinta); box-shadow: inset 0 0 0 1.2px var(--pv-tinta); }
+.pv-boton-ancho { display: flex; width: 100%; margin-top: 8px; }
+
+.pv-ficha-foto { position: relative; aspect-ratio: 4 / 5; display: grid; place-items: center; background: var(--pv-estudio); }
+.pv-puntos { position: absolute; bottom: 12px; left: 50%; translate: -50% 0; display: flex; gap: 5px; }
+.pv-puntos i { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in srgb, var(--pv-tinta) 22%, transparent); }
+.pv-puntos i.on { background: var(--pv-tinta); }
+.pv-ficha { padding: 14px 14px 26px; }
+.pv-ficha .pv-ceja { color: var(--pv-suave); }
+.pv-ficha-tit { font-family: var(--pv-display); font-weight: var(--pv-tit-peso); font-stretch: var(--pv-tit-ancho); text-transform: var(--pv-tit-caja); letter-spacing: var(--pv-tit-esp); font-size: calc(30px * var(--pv-tit-escala)); line-height: 1.05; margin: 6px 0 4px !important; }
+.pv-ficha-precio { display: flex; align-items: center; gap: 8px; font-family: var(--pv-precio); font-size: 17px; font-variant-numeric: tabular-nums; }
+.pv-ficha-precio .pv-pct { font-family: var(--pv-text); }
+.pv-oferta { font-weight: 700; color: var(--pv-oferta); }
+.pv-pct { padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--pv-oferta) 14%, transparent); color: var(--pv-oferta); font-size: 10.5px; font-weight: 700; }
+.pv-rot { display: flex; justify-content: space-between; gap: 8px; margin: 16px 0 7px !important; font-size: 11.5px; color: var(--pv-suave); }
+.pv-rot b { color: var(--pv-tinta); font-weight: 600; }
+.pv-mi-talla { color: var(--pv-ok); font-weight: 600; }
+.pv-colores { display: flex; gap: 9px; }
+.pv-colores span { width: 26px; height: 26px; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pv-tinta) 18%, transparent); }
+.pv-colores span.on { outline: 1.5px solid var(--pv-tinta); outline-offset: 2px; }
+.pv-tallas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.pv-tallas span { display: grid; place-items: center; height: 38px; border: 1px solid var(--pv-filo); border-radius: min(var(--pv-boton-radio), 10px); font-size: 12.5px; font-weight: 600; }
+.pv-tallas span.on { border-color: var(--pv-tinta); box-shadow: inset 0 0 0 1px var(--pv-tinta); }
+.pv-tallas span.agotada { color: color-mix(in srgb, var(--pv-tinta) 35%, transparent); text-decoration: line-through; }
+.pv-sedes { list-style: none; margin: 14px 0 6px; padding: 0; border-top: 1px solid var(--pv-filo); }
+.pv-sedes li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--pv-filo); font-size: 12.5px; }
+.pv-sedes b { font-variant-numeric: tabular-nums; }
+.pv-origen { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; padding: 12px; border-radius: 12px; background: var(--pv-sup); font-size: 11.5px; color: var(--pv-suave); }
+.pv-origen b { color: var(--pv-tinta); }
+.pv-resena { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--pv-filo); font-size: 11.5px; }
+.pv-resena-cab { display: flex; justify-content: space-between; gap: 8px; }
+.pv-resena-cab span { color: var(--pv-suave); }
+.pv-calce { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; margin: 9px 0; font-size: 10px; color: var(--pv-suave); }
+.pv-calce i { position: relative; height: 3px; border-radius: 2px; background: var(--pv-filo); }
+.pv-calce i b { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; translate: -50% -50%; background: var(--pv-tinta); }
+.pv-resena-txt { font-style: italic; }
+@media (prefers-reduced-motion: reduce) { .pv, .pv * { transition: none; } }
+.lab-pie-mandos { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin-top: 16px; }
+.lab-pie-mandos .lab-lectura { margin: 0; flex: 1 1 420px; }
+/* La franja de la hora del celular tapa lo que pasa por debajo al recorrer la pantalla */
+.tel::after { content: ""; position: absolute; z-index: 4; top: 0; left: 0; right: 0; height: 38px; background: var(--pv-bg); transition: background-color .35s var(--ease); }
+
+/* ============ PIEZAS SUELTAS ============ */
+.esp-precios { display: grid; justify-items: end; gap: 1px; margin-left: auto; font-size: 16px; font-variant-numeric: tabular-nums; line-height: 1.25; }
+.esq-mezcla { grid-template-columns: 2fr 1fr 1fr; grid-template-rows: 1fr 1fr 10px; }
+.esq-mezcla .fuerte { grid-row: 1 / 3; }
+.esq-mezcla .barra { grid-column: 1 / -1; border-radius: 999px; }
+.seg-oscuro label { background: transparent; color: var(--crema); border-color: color-mix(in srgb, var(--crema) 30%, transparent); font-size: 13px; }
+.seg-oscuro label:hover { border-color: var(--crema); }
+.seg-oscuro input:checked + label { background: var(--crema); color: var(--tinta); border-color: var(--crema); }
+.contraste-cab span { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); font-family: var(--sans) !important; }
+.contraste-fila { grid-template-columns: minmax(0, 1fr) 118px 118px; }
+.contraste-fila > span:not(:first-child) { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
+.cifra-ratio { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+@media (max-width: 440px) { .contraste-fila { grid-template-columns: minmax(0, 1fr) 96px 96px; font-size: 12px; } .ok, .flojo { padding: 2px 5px; } }
+.medidor { align-content: start; }
+.medidor div { display: grid; grid-template-columns: 62px 1fr; gap: 8px; align-items: center; }
+.medidor i { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
+.medidor small { font-size: 11.5px; color: var(--taupe); }
+.punto.medio { background: linear-gradient(90deg, var(--tinta) 50%, var(--sand) 50%); }
+.esf-dots .punto.on { background: var(--taupe); }
+.esf-dots .punto.medio { background: linear-gradient(90deg, var(--taupe) 50%, var(--sand) 50%); }
+
+/* El probador vive dentro de la columna de lectura: una banda hundida, a todo el ancho en el celular */
+.banda-lab { margin-top: 72px; border-radius: 26px; scroll-margin-top: 72px; }
+.banda-lab-dentro { max-width: none; padding: 40px clamp(16px, 3.4vw, 40px) 48px; }
+@media (max-width: 960px) {
+  .banda-lab { margin-inline: calc(max(16px, env(safe-area-inset-left, 0px)) * -1) calc(max(16px, env(safe-area-inset-right, 0px)) * -1); border-radius: 0; border-inline: 0; }
+  .banda-lab-dentro { padding: 40px max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px)); }
+}
+
+/* El hilo que une la prenda con su sede */
+.hilo-demo { margin: 0; padding: 18px; border-radius: 20px; background: var(--papel); border: 1px solid var(--sand); }
+.hilo-demo svg { display: block; width: 100%; height: auto; }
+.hd-foto { fill: var(--hueso); }
+.hd-prenda { fill: #c9b79c; stroke: #a8967a; stroke-width: .8; }
+.hd-txt { fill: var(--tinta); font: 600 13px var(--sans); }
+.hd-suave { fill: var(--taupe); font-weight: 500; }
+.hd-hilo { fill: none; stroke: var(--rojo); stroke-width: 3; stroke-dasharray: 8 6; stroke-linecap: round; }
+.hd-mascara-trazo { fill: none; stroke: #fff; stroke-width: 14; stroke-dasharray: 1; stroke-dashoffset: 0; }
+.hd-sede { fill: var(--papel); stroke: var(--rojo); stroke-width: 2; }
+.hd-pin { fill: var(--rojo); }
+.hilo-demo.anima .hd-mascara-trazo { animation: hd-dibujar 1.1s var(--ease) both; }
+.hilo-demo.anima .hd-llegada { animation: hd-asomar .45s var(--ease) .95s both; }
+@keyframes hd-dibujar { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes hd-asomar { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .hilo-demo.anima .hd-mascara-trazo, .hilo-demo.anima .hd-llegada { animation: none; } }
+
+</style>
+
+<!-- Dibujos que se repiten: el colibrí de CAYLA (el mismo trazo de apps/web/components/ui/IsotipoCayla.tsx) y las siluetas de prenda del probador -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="colibri" viewBox="0 0 223 150">
+    <g fill="none" stroke-width="9" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M3,6 C45,14 95,28 118,50 C134,64 136,96 124,112 C110,130 80,138 47,146 L68,102"/>
+      <path d="M3,6 C10,40 40,70 70,80 C85,85 100,87 112,87"/>
+      <path d="M104,40 C102,22 118,6 140,5 C155,4 165,10 172,16 L220,12"/>
+      <path d="M172,16 C156,22 144,38 134,62"/>
+    </g>
+  </symbol>
+  <symbol id="g-blusa" viewBox="0 0 100 104"><path d="M38 8 Q50 17 62 8 L80 14 L96 44 L84 50 L75 35 L75 94 Q50 99 25 94 L25 35 L16 50 L4 44 L20 14 Z"/></symbol>
+  <symbol id="g-vestido" viewBox="0 0 100 104"><path d="M40 4 Q50 13 60 4 L68 8 L66 30 Q64 38 71 46 L90 98 Q50 104 10 98 L29 46 Q36 38 34 30 L32 8 Z"/></symbol>
+  <symbol id="g-casaca" viewBox="0 0 100 104"><path d="M36 6 L50 20 L64 6 L82 12 L95 62 L83 64 L77 38 L77 96 L53 96 L50 26 L47 96 L23 96 L23 38 L17 64 L5 62 L18 12 Z"/></symbol>
+  <symbol id="g-pantalon" viewBox="0 0 100 104"><path d="M27 4 L73 4 L82 100 L59 100 L50 34 L41 100 L18 100 Z"/></symbol>
+</svg>
+
+<div class="pliego">
+  <nav class="indice" aria-label="Secciones">
+    <div class="indice-marca"><svg viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg><span>CAYLA</span></div>
+    <ol>
+      <li><a href="#resumen">Resumen</a></li>
+      <li><a href="#las-diez">Las diez</a></li>
+      <li><a href="#lo-mejor">Lo mejor de cada una</a></li>
+      <li><a href="#peru">La cliente peruana</a></li>
+      <li><a href="#identidad">Identidad propia</a></li>
+      <li><a href="#tipografia">Tipografía</a></li>
+      <li><a href="#paleta">Paleta</a></li>
+      <li><a href="#diseno">Dirección de diseño</a></li>
+      <li><a href="#probador">Probador</a></li>
+      <li><a href="#voz">Voz y movimiento</a></li>
+      <li><a href="#futuro">Funciones a futuro</a></li>
+      <li><a href="#eleccion">Tu elección</a></li>
+      <li><a href="#fuentes">Fuentes</a></li>
+    </ol>
+  </nav>
+
+  <main class="contenido">
+    <header class="apertura" id="resumen">
+      <span class="ceja">Investigación · 17 de octubre de 2026 · tienda web</span>
+      <h1>Una tienda que se parece a <em>CAYLA</em></h1>
+      <p class="bajada">Cómo trabajan las diez empresas de moda más grandes del mundo, qué hace mejor cada una y qué toma CAYLA de ellas para una tienda web con identidad propia. Al final están las propuestas para elegir mirando: tipografía, paleta, dirección de diseño y funciones a futuro, con un probador para verlas puestas en un celular.</p>
+
+      <div class="tesis">
+        <div>
+          <span class="ceja">La conclusión</span>
+          <h2 style="margin-top:10px">Ninguna de las diez tiene junto lo que CAYLA ya tiene</h2>
+          <p>Zara y Shein ganan por velocidad, Uniqlo por un producto que se corrige cada año, Nike y adidas por su club, y las casas de lujo por el oficio y el servicio. CAYLA tiene una mezcla que ninguna de ellas puede copiar: un taller propio a días de sus tiendas, stock real por sede y asesoras con nombre en cada ciudad. La tienda web tiene que contar eso, y dejar de parecerse a la paleta de otra casa.</p>
+          <p>Promesa propuesta para la tienda:</p>
+          <p class="tesis-lema">Hecha cerca. <em>Te queda</em> a la primera.</p>
+        </div>
+        <div>
+          <span class="ceja">Lo que recomiendo, en cuatro decisiones</span>
+          <ul>
+            <li><svg viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg><span><b>Tipografía A, «Garamond afinado».</b> Se queda EB Garamond (logotipo, tickets y ERP ya hablan en ella), pero los precios pasan a Garamond: hoy no se alinean porque DM Sans no tiene cifras tabulares.</span></li>
+            <li><svg viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg><span><b>Paleta 2, «Carmín».</b> Hoy el crema, el rojo ladrillo y la Garamond de la tienda son casi los de hermes.com. El carmín separa a CAYLA y trae su propia historia: el Perú produce entre el 70 % y el 80 % del carmín de cochinilla del mundo.</span></li>
+            <li><svg viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg><span><b>Dirección IV, «La mezcla».</b> Vitrina editorial en la portada, mostrador útil en el catálogo y el taller en la ficha, cosido con un código propio: el hilo rojo.</span></li>
+            <li><svg viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg><span><b>Cinco funciones para ahora:</b> alerta de talla con medidas reales, probador reservado, QR en la etiqueta, fichas legibles para buscadores con IA y avisos útiles de la tienda instalada.</span></li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <section class="sec" id="metodo" aria-labelledby="t-metodo">
+      <div class="sec-cab">
+        <span class="ceja">Cómo se hizo</span>
+        <h2 id="t-metodo">Diez empresas, ocho investigaciones, un mismo día</h2>
+      </div>
+      <div class="prosa">
+        <p>Se eligieron las <b>diez empresas de moda con más ventas</b> en su último ejercicio: LVMH, Nike, Shein, Inditex, Fast Retailing, adidas, H&amp;M Group, Chanel, Hermès y Kering. Quedaron fuera TJX (vende saldos de otras marcas) y Richemont (es joyería). Para contrastar se sumaron referentes digitales muy admirados (COS, Jacquemus, The Row, Khaite, Toteme, Mango) y catorce marcas peruanas y latinoamericanas.</p>
+        <p>El 17 de octubre de 2026, ocho investigaciones en paralelo leyeron informes anuales y notas oficiales de resultados, recorrieron las webs en vivo y leyeron del código de cada página qué tipografías y colores usa de verdad. Para elegir tipografías se bajaron los archivos oficiales de Google Fonts y se midieron: soporte del español, cifras tabulares y versalitas.</p>
+        <p><b>Un límite:</b> el cupo de búsquedas web se agotó a mitad del trabajo. Lo que no se pudo volver a confirmar queda marcado, y ninguna cifra se completó de memoria.</p>
+      </div>
+      <div class="leyenda-marcas">
+        <span><span class="marca-dato">VERIFICADO</span> leído en la fuente primaria o medido en la web</span>
+        <span><span class="marca-dato">REPORTADO</span> prensa o fuente secundaria seria</span>
+        <span><span class="marca-dato">INFERIDO</span> lectura propia</span>
+      </div>
+
+      <div class="tabla-caja">
+        <table class="tabla-ancha">
+          <thead><tr><th>Empresa</th><th>Ventas del último ejercicio</th><th>Su firma</th><th>Lo que CAYLA toma</th></tr></thead>
+          <tbody>
+            <tr><td><a href="#inditex"><b>Inditex</b></a> · Zara</td><td class="num">€39.864 M</td><td>Una revista que se puede comprar</td><td>Modo tienda y «Avísame» para lo que viene del taller</td></tr>
+            <tr><td><a href="#hm"><b>H&amp;M Group</b></a> · COS, Arket</td><td class="num">SEK 228.285 M</td><td>Moda clara; COS, el armario como arquitectura</td><td>«Quién la hizo» y la medida real de la prenda</td></tr>
+            <tr><td><a href="#uniqlo"><b>Fast Retailing</b></a> · Uniqlo</td><td class="num">¥3,96 billones</td><td>El básico que se perfecciona cada año</td><td>La prenda por versiones y el ajuste del taller</td></tr>
+            <tr><td><a href="#shein"><b>Shein</b></a></td><td class="num">US$41.800 M</td><td>Feed infinito empujado por cupones</td><td>Reseñas con calce real; nada de urgencias falsas</td></tr>
+            <tr><td><a href="#nike"><b>Nike</b></a></td><td class="num">US$46.400 M</td><td>El deporte como titular</td><td>El calce contado con una persona y «recoger hoy»</td></tr>
+            <tr><td><a href="#adidas"><b>adidas</b></a></td><td class="num">€24.811 M</td><td>Mentalidad local y comunidad</td><td>«Así lo llevan» y el veredicto de talla</td></tr>
+            <tr><td><a href="#lvmh"><b>LVMH</b></a> · Louis Vuitton, Dior</td><td class="num">€80.807 M</td><td>El oficio contado y el asesor a un toque</td><td>Dos botones iguales: separar o preguntarle a tu asesora</td></tr>
+            <tr><td><a href="#kering"><b>Kering</b></a> · Gucci, Bottega</td><td class="num">€14.675 M</td><td>Códigos de archivo; «value over volume»</td><td>Certificado del taller y promesas fijas en la ficha</td></tr>
+            <tr><td><a href="#hermes"><b>Hermès</b></a></td><td class="num">€16.002 M</td><td>Oficio, dibujo a mano y humor</td><td>Tema del año, arreglos y humor en los textos</td></tr>
+            <tr><td><a href="#chanel"><b>Chanel</b></a></td><td class="num">US$19.300 M</td><td>La boutique como destino</td><td>«Míralo puesto» y la cita para probarse</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:10px;font-size:13px;color:var(--taupe)">Cada empresa en su moneda y su ejercicio (Fast Retailing cierra en agosto, Nike en mayo, Inditex en enero). Fuente de cada cifra en su ficha y en <a href="#fuentes">Fuentes</a>.</p>
+    </section>
+
+    <section class="sec" id="las-diez" aria-labelledby="t-diez">
+      <div class="sec-cab">
+        <span class="ceja">Investigación</span>
+        <h2 id="t-diez">Las diez, una por una</h2>
+        <p class="bajada">Agrupadas por lo que mejor enseñan. Cada ficha dice cómo se maneja la empresa, qué tiene de distinto su web, con qué letras y colores se presenta, y qué toma CAYLA de ella con su esfuerzo.</p>
+      </div>
+
+      <!-- ===================== GRUPO 1 ===================== -->
+      <div class="grupo">
+        <div class="grupo-cab"><h3>Producto y velocidad</h3><p>Cómo hacen la ropa y la llevan a la tienda.</p></div>
+
+        <article class="emp" id="inditex">
+          <header class="emp-cab">
+            <span class="emp-n">01</span>
+            <div>
+              <h3>Inditex <small>Zara · Massimo Dutti</small></h3>
+              <p class="emp-firma">«Una revista que se puede comprar: foto enorme, texto mínimo, cero ruido.»</p>
+            </div>
+            <p class="emp-escala"><b>€39.864 M</b>Ventas feb-2025 a ene-2026 (+3,2 %) · 5.460 tiendas · cerca de 27 % online <span class="marca-dato">VERIFICADO</span></p>
+          </header>
+          <div class="emp-cuerpo">
+            <div class="emp-texto">
+              <div><h4>Cómo se maneja</h4><ul>
+                <li>Produce cerca de la mitad en España, Portugal, Marruecos y Turquía para reaccionar dentro de la temporada.</li>
+                <li>Un solo stock para tienda y web, con RFID: la tienda despacha los pedidos online.</li>
+                <li>No tiene programa de puntos: lo que fideliza es la novedad constante.</li>
+                <li>Sus prioridades declaradas para 2026 son la personalización y las comunidades.</li>
+              </ul></div>
+              <div><h4>Su web</h4><ul>
+                <li>Portada con una sola foto a pantalla completa y el logotipo gigante, sin carrusel de ofertas.</li>
+                <li>«VISTA 1 · 2 · 3» cambia la densidad de la grilla; subcategorías numeradas.</li>
+                <li>Modo Tienda en la app: recoges en 120 minutos lo que esa tienda tiene, y ves dónde está en el piso.</li>
+                <li>Zara Try-On (diciembre de 2025): un avatar armado con tus fotos, en 43 mercados y con más de 7 millones de sesiones. Toda imagen editada con IA lleva un ícono «AI».</li>
+              </ul></div>
+              <div class="emp-toma"><h4><svg viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg>Lo que CAYLA toma</h4><ul>
+                <li><span><b>Modo tienda.</b> «Voy a CAYLA Trujillo» filtra todo a lo que hay en esa sede y promete una hora de recojo.</span><span class="esf">baja-media</span></li>
+                <li><span><b>«Avísame» para lo que está en el taller,</b> con fecha estimada. Cada aviso es demanda para decidir cuánto cortar.</span><span class="esf">media</span></li>
+                <li><span><b>Vista 1·2·3</b> en el catálogo: una prenda grande o un mosaico.</span><span class="esf">baja</span></li>
+                <li><span><b>Ícono «IA» honesto</b> en toda imagen retocada y en las composiciones de «Arma el tuyo».</span><span class="esf">baja</span></li>
+              </ul></div>
+              <div class="emp-no"><h4>Lo que no</h4><ul>
+                <li>El minimalismo hostil: texto de 13 px en peso 300 y casi sin jerarquía. No pasa la prueba de entender la pantalla en 5 segundos.</li>
+                <li>La velocidad como identidad: CAYLA gana contando su taller, no imitando el ritmo de Zara.</li>
+              </ul></div>
+            </div>
+            <aside class="emp-ficha" aria-label="Identidad visual de Zara">
+              <dl>
+                <div><dt>Tipografía</dt><dd>Logotipo Didone a medida (Baron &amp; Baron, 2019) · Helvetica Now Text a 11–13 px · Didot en titulares <span class="marca-dato">VERIFICADO</span></dd></div>
+                <div><dt>Colores de su web</dt><dd><span class="muestras"><i style="--m:#000000">000000</i><i style="--m:#ffffff">ffffff</i><i style="--m:#555555">555555</i><i style="--m:#cccccc">cccccc</i><i style="--m:#27455c">27455c</i></span></dd></div>
+                <div><dt>Estética</dt><dd>Editorial, austera, monocroma</dd></div>
+              </dl>
+            </aside>
+          </div>
+        </article>
+
+        <article class="emp" id="hm">
+          <header class="emp-cab">
+            <span class="emp-n">02</span>
+            <div>
+              <h3>H&amp;M Group <small>H&amp;M · COS · Arket</small></h3>
+              <p class="emp-firma">«Moda para todos, clara y comercial»; COS, «el armario como arquitectura».</p>
+            </div>
+            <p class="emp-escala"><b>SEK 228.285 M</b>Dic-2024 a nov-2025 · 4.101 tiendas en 81 mercados · algo más del 30 % online <span class="marca-dato">VERIFICADO</span></p>
+          </header>
+          <div class="emp-cuerpo">
+            <div class="emp-texto">
+              <div><h4>Cómo se maneja</h4><ul>
+                <li>En 2025: decisiones más cortas, producción más cercana, RFID y pronósticos con IA «para producir lo que realmente vendemos».</li>
+                <li>Club con puntos; en Reino Unido recortó beneficios en 2025 y recibió críticas.</li>
+                <li>COS, la marca que funcionó: n.º 3 del índice Lyst a fines de 2025, con una línea Atelier de tiraje corto.</li>
+                <li>Segunda mano con Sellpy (24 mercados) y COS Resell.</li>
+              </ul></div>
+              <div><h4>Su web</h4><ul>
+                <li>La ficha de H&amp;M nombra la fábrica, su dirección y cuántas personas trabajan ahí.</li>
+                <li>Materiales explicados sin maquillaje: «el poliéster se obtiene del petróleo».</li>
+                <li>COS: «la espalda de la talla 36 mide 115,5 cm · la modelo lleva la 36», «Completa el look» y cómo combinarlo.</li>
+                <li>Textos alternativos muy descriptivos y ficha que respeta el modo oscuro del teléfono.</li>
+              </ul></div>
+              <div class="emp-toma"><h4><svg viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg>Lo que CAYLA toma</h4><ul>
+                <li><span><b>«Quién la hizo».</b> «Confeccionada en el taller CAYLA, Lima · lote de octubre 2026». Zara da el país y H&amp;M una fábrica ajena; CAYLA puede nombrar su propia casa.</span><span class="esf">baja</span></li>
+                <li><span><b>Medida real de la prenda + talla de la modelo + cómo medir.</b></span><span class="esf">baja</span></li>
+                <li><span><b>«En qué tienda hay»</b> pegado al botón principal, no escondido.</span><span class="esf">baja</span></li>
+                <li><span><b>Materiales explicados</b> en lenguaje de tienda: cómo cae, cómo se lava, para qué clima.</span><span class="esf">baja</span></li>
+              </ul></div>
+              <div class="emp-no"><h4>Lo que no</h4><ul>
+                <li>La promoción permanente en la franja de arriba («−15 % en la app»): enseña a esperar el descuento.</li>
+                <li>Prometer beneficios del club y retirarlos después.</li>
+              </ul></div>
+            </div>
+            <aside class="emp-ficha" aria-label="Identidad visual de H&amp;M y COS">
+              <dl>
+                <div><dt>Tipografía</dt><dd>H&amp;M: HM Slussen + HM Sergel (propias) · COS: Suisse Int'l, una sola familia · Arket: Arket Sans <span class="marca-dato">VERIFICADO</span></dd></div>
+                <div><dt>Colores de su web</dt><dd><span class="muestras"><i style="--m:#faf9f8">faf9f8</i><i style="--m:#222222">222222</i><i style="--m:#eb0010">eb0010</i><i style="--m:#707070">707070</i><i style="--m:#c80000">c80000</i></span></dd></div>
+                <div><dt>Estética</dt><dd>Accesible y cálida (H&amp;M); de galería (COS)</dd></div>
+              </dl>
+            </aside>
+          </div>
+        </article>
+
+        <article class="emp" id="uniqlo">
+          <header class="emp-cab">
+            <span class="emp-n">03</span>
+            <div>
+              <h3>Fast Retailing <small>Uniqlo</small></h3>
+              <p class="emp-firma">«La ropa como herramienta perfeccionada; la tela es la protagonista.»</p>
+            </div>
+            <p class="emp-escala"><b>¥3,96 billones</b>Sep-2025 a ago-2026 (+16,6 %, quinto récord seguido) · cerca de 15 % online <span class="marca-dato">VERIFICADO</span></p>
+          </header>
+          <div class="emp-cuerpo">
+            <div class="emp-texto">
+              <div><h4>Cómo se maneja</h4><ul>
+                <li>LifeWear: el mismo núcleo de prendas se corrige cada año; cada producto se desarrolla unos 12 meses antes.</li>
+                <li>Telas con nombre propio (HEATTECH, AIRism) junto a Toray; lotes de cerca de un millón de unidades.</li>
+                <li>Recibe más de 39 millones de comentarios al año. En Europa la ropa de mujer pasó de 40 % a 50 % de la venta por lo que pidieron las clientes.</li>
+                <li>RE.UNIQLO: reparación y bordado en 58 tiendas de 22 países (2025) <span class="marca-dato">REPORTADO</span></li>
+              </ul></div>
+              <div><h4>Su web</h4><ul>
+                <li>MySize ASSIST: estatura, peso y edad dan una talla recomendada; MySize CAMERA lo hace con dos fotos.</li>
+                <li>Reseñas (en Japón) con edad, estatura, peso, talla comprada y «cómo me quedó».</li>
+                <li>La app escanea la etiqueta en la tienda y muestra stock y reseñas.</li>
+                <li>El rojo solo aparece en el logo y en los precios rebajados.</li>
+              </ul></div>
+              <div class="emp-toma"><h4><svg viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg>Lo que CAYLA toma</h4><ul>
+                <li><span><b>La prenda por versiones.</b> «Blusa Emma · 3.ª versión: bajamos el escote 1 cm porque nos lo pidieron».</span><span class="esf">baja</span></li>
+                <li><span><b>Reseñas con talla y estatura</b> en rangos, y «¿cómo te quedó?».</span><span class="esf">baja-media</span></li>
+                <li><span><b>Ajuste del taller al separar:</b> dices tu largo y la prenda te espera lista.</span><span class="esf">media</span></li>
+                <li><span><b>Disciplina del rojo:</b> el colibrí, el precio especial y una sola acción por pantalla.</span><span class="esf">baja</span></li>
+              </ul></div>
+              <div class="emp-no"><h4>Lo que no</h4><ul>
+                <li>El básico anónimo y la frialdad de Helvetica sobre blanco: borraría lo que distingue a CAYLA.</li>
+                <li>Precios exclusivos de la app: castigan a quien compra en tienda o por WhatsApp.</li>
+              </ul></div>
+            </div>
+            <aside class="emp-ficha" aria-label="Identidad visual de Uniqlo">
+              <dl>
+                <div><dt>Tipografía</dt><dd>UniqloPro, propia, para logo y campañas · fuentes del sistema en el catálogo. Logo de Kashiwa Sato (2006) <span class="marca-dato">VERIFICADO</span></dd></div>
+                <div><dt>Colores de su web</dt><dd><span class="muestras"><i style="--m:#ee0000">ee0000</i><i style="--m:#000000">000000</i><i style="--m:#ffffff">ffffff</i><i style="--m:#f4f4f4">f4f4f4</i><i style="--m:#dadada">dadada</i></span></dd></div>
+                <div><dt>Estética</dt><dd>Funcional, ordenada, neutral</dd></div>
+              </dl>
+            </aside>
+          </div>
+        </article>
+
+        <article class="emp" id="shein">
+          <header class="emp-cab">
+            <span class="emp-n">04</span>
+            <div>
+              <h3>Shein</h3>
+              <p class="emp-firma">«Un feed infinito de novedades a precio mínimo, empujado por cupones.»</p>
+            </div>
+            <p class="emp-escala"><b>US$41.800 M</b>Año 2025 · unos 273 millones de clientes activos · bolsa de Hong Kong desde el 1-09-2026 <span class="marca-dato">REPORTADO</span></p>
+          </header>
+          <div class="emp-cuerpo">
+            <div class="emp-texto">
+              <div><h4>Cómo se maneja</h4><ul>
+                <li>Prueba y repite: lotes iniciales de 100 a 200 piezas, mide la respuesta y repone lo que vende (lo declara la propia Shein).</li>
+                <li>Lee una tendencia y la produce en unos 3 días; vende también marcas de terceros.</li>
+                <li>Puntos por ver transmisiones, reseñar y entrar a concursos.</li>
+                <li>En el Perú es la n.º 1 en tráfico de moda online (mayo de 2026).</li>
+              </ul></div>
+              <div><h4>Su web</h4><ul>
+                <li>La palabra «coupon» aparece 601 veces en el código de su portada <span class="marca-dato">VERIFICADO</span></li>
+                <li>Insignia «Low Return Rate» para prendas que casi no se devuelven.</li>
+                <li>Millones de reseñas con foto y datos de calce de quien compró.</li>
+                <li>«Find Similar» cuando algo no está.</li>
+              </ul></div>
+              <div class="emp-toma"><h4><svg viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg>Lo que CAYLA toma (solo lo ético)</h4><ul>
+                <li><span><b>Reseñas con calce real</b> («chica · justa · grande») y foto. Solo opina quien compró o recogió.</span><span class="esf">baja-media</span></li>
+                <li><span><b>«Casi nadie la cambió por talla»,</b> con los datos que ya registra Cambios.</span><span class="esf">media</span></li>
+                <li><span><b>Primera corrida corta del taller</b> (20 a 40 piezas) en la web y una sede; se repone lo que se separa.</span><span class="esf">media</span></li>
+                <li><span><b>«Busca parecidas»</b> cuando no hay tu talla en tu sede.</span><span class="esf">baja-media</span></li>
+              </ul></div>
+              <div class="emp-no"><h4>Lo que no</h4><ul>
+                <li>Descuentos y plazos falsos (la UE la notificó en 2025), diseño adictivo (investigación abierta en 2026) y cookies sin permiso (multa de €150 M de la CNIL, 2025).</li>
+                <li>Copia de diseños (Uniqlo la demandó en 2024) y condiciones de trabajo cuestionadas.</li>
+              </ul></div>
+            </div>
+            <aside class="emp-ficha" aria-label="Identidad visual de Shein">
+              <dl>
+                <div><dt>Tipografía</dt><dd>Jost en titulares y Mulish en texto, las dos gratis de Google Fonts <span class="marca-dato">VERIFICADO</span></dd></div>
+                <div><dt>Colores de su web</dt><dd><span class="muestras"><i style="--m:#000000">000000</i><i style="--m:#ffffff">ffffff</i><i style="--m:#fa6338">fa6338</i><i style="--m:#f6f6f6">f6f6f6</i><i style="--m:#e5e5e5">e5e5e5</i></span></dd></div>
+                <div><dt>Estética</dt><dd>Densa, promocional, veloz</dd></div>
+              </dl>
+            </aside>
+          </div>
+        </article>
+      </div>
+
+      <!-- ===================== GRUPO 2 ===================== -->
+      <div class="grupo">
+        <div class="grupo-cab"><h3>Club y comunidad</h3><p>Cómo convierten a quien compra en alguien que vuelve.</p></div>
+
+        <article class="emp" id="nike">
+          <header class="emp-cab">
+            <span class="emp-n">05</span>
+            <div>
+              <h3>Nike</h3>
+              <p class="emp-firma">«El deporte como titular: una Futura condensada gigante sobre la foto del atleta.»</p>
+            </div>
+            <p class="emp-escala"><b>US$46.400 M</b>Jun-2025 a may-2026 (plano) · venta directa cerca de 38 % · 1.034 tiendas propias <span class="marca-dato">VERIFICADO</span></p>
+          </header>
+          <div class="emp-cuerpo">
+            <div class="emp-texto">
+              <div><h4>Cómo se maneja</h4><ul>
+                <li>Entre 2017 y 2023 apostó a vender directo y cortó distribuidores. Su digital cayó 20 % y luego 12 %; hoy vuelve al mayorista.</li>
+                <li>Membresía gratis y sin puntos: sus beneficios son servicios (60 días para probar y devolver, devoluciones sin boleta, eventos).</li>
+                <li>En 2026 recortó cerca de 1.400 puestos de tecnología y fusionó la app de lanzamientos con la principal.</li>
+                <li>Cerró su negocio de NFT en enero de 2025 y enfrenta una demanda por eso.</li>
+              </ul></div>
+              <div><h4>Su web</h4><ul>
+                <li>«Pick Up Today» es el primer filtro del catálogo.</li>
+                <li>«La modelo usa talla S y mide 1,70 m · Corte oversized: amplio y suelto».</li>
+                <li>Una serif, Palatino, reservada para «la conversación»: citas y relatos.</li>
+                <li>Movimiento de 150 a 400 ms, sin rebote.</li>
+              </ul></div>
+              <div class="emp-toma"><h4><svg viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg>Lo que CAYLA toma</h4><ul>
+                <li><span><b>El calce contado con una persona</b> y el nombre del corte.</span><span class="esf">baja</span></li>
+                <li><span><b>«Para recoger hoy en Arequipa»</b> como primer filtro, recordando la sede de cada cliente.</span><span class="esf">baja-media</span></li>
+                <li><span><b>Un Club que da servicios:</b> cambios sin boleta en cualquier sede (el ERP encuentra la compra por DNI) y arreglo de basta.</span><span class="esf">media</span></li>
+                <li><span><b>La Garamond en cursiva solo para voces reales:</b> una cita de una cliente de cada sede.</span><span class="esf">baja</span></li>
+              </ul></div>
+              <div class="emp-no"><h4>Lo que no</h4><ul>
+                <li>Empujar todo a la web con promociones: destruyó valor. La web de CAYLA lleva gente a la tienda, no compite con ella.</li>
+                <li>Varias apps, sorteos y coleccionables digitales.</li>
+              </ul></div>
+            </div>
+            <aside class="emp-ficha" aria-label="Identidad visual de Nike">
+              <dl>
+                <div><dt>Tipografía</dt><dd>Nike Futura ND (titulares) · Helvetica Now Text y Display · Palatino LT Pro Light para citas <span class="marca-dato">VERIFICADO</span></dd></div>
+                <div><dt>Colores de su web</dt><dd><span class="muestras"><i style="--m:#111111">111111</i><i style="--m:#ffffff">ffffff</i><i style="--m:#f5f5f5">f5f5f5</i><i style="--m:#707072">707072</i><i style="--m:#ff5000">ff5000</i></span></dd></div>
+                <div><dt>Estética</dt><dd>Atlética, contundente, limpia</dd></div>
+              </dl>
+            </aside>
+          </div>
+        </article>
+
+        <article class="emp" id="adidas">
+          <header class="emp-cab">
+            <span class="emp-n">06</span>
+            <div>
+              <h3>adidas</h3>
+              <p class="emp-firma">«Bloques en mayúsculas, botones cuadrados y una comunidad que pone el color.»</p>
+            </div>
+            <p class="emp-escala"><b>€24.811 M</b>Año 2025, récord · venta directa 40 % · 2.022 tiendas propias <span class="marca-dato">VERIFICADO</span></p>
+          </header>
+          <div class="emp-cuerpo">
+            <div class="emp-texto">
+              <div><h4>Cómo se maneja</h4><ul>
+                <li>«Una marca global con mentalidad local»: decidir cerca del cliente y vender la cantidad justa a precio completo.</li>
+                <li>Incuba antes de escalar: la Superstar se relanzó en comunidades chicas antes de producirla en volumen.</li>
+                <li>adiClub gratis: puntos por comprar, completar el perfil, reseñar y publicar un look.</li>
+                <li>Colecciones creadas con sus distribuidores y colaboraciones (Wales Bonner, Bad Bunny).</li>
+              </ul></div>
+              <div><h4>Su web</h4><ul>
+                <li>Un veredicto de talla en una frase bajo las tallas: «Calza normal: pide tu talla de siempre».</li>
+                <li>«Share how you wear it»: fotos de clientes, cada una con las prendas del look para comprarlas.</li>
+                <li>Puntos visibles en cada ficha y calendario de lanzamientos en el pie.</li>
+              </ul></div>
+              <div class="emp-toma"><h4><svg viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg>Lo que CAYLA toma</h4><ul>
+                <li><span><b>«Así lo llevan»:</b> fotos de clientes con la prenda (con permiso escrito); cada foto lleva al look.</span><span class="esf">media</span></li>
+                <li><span><b>Veredicto de talla por prenda,</b> alimentado por los cambios por talla.</span><span class="esf">media</span></li>
+                <li><span><b>Puntos por aportar:</b> medidas, reseña con foto, look compartido. Se canjean por experiencias: visita al taller, un arreglo.</span><span class="esf">media</span></li>
+                <li><span><b>«Selección Arequipa»:</b> cada encargada arma la suya según el clima y el gusto de su ciudad.</span><span class="esf">baja</span></li>
+              </ul></div>
+              <div class="emp-no"><h4>Lo que no</h4><ul>
+                <li>Portada con −40 % y «15 % al registrarte»: registrarse en CAYLA debe dar servicio, no descuento.</li>
+                <li>Puntos con dos saldos, vencimientos y cuatro niveles: demasiado para tres tiendas.</li>
+              </ul></div>
+            </div>
+            <aside class="emp-ficha" aria-label="Identidad visual de adidas">
+              <dl>
+                <div><dt>Tipografía</dt><dd>adidasFG · AdihausDIN · AdineuePRO, todas propias <span class="marca-dato">VERIFICADO</span></dd></div>
+                <div><dt>Colores de su web</dt><dd><span class="muestras"><i style="--m:#000000">000000</i><i style="--m:#ffffff">ffffff</i><i style="--m:#eceff1">eceff1</i><i style="--m:#767677">767677</i><i style="--m:#e32b2b">e32b2b</i></span></dd></div>
+                <div><dt>Estética</dt><dd>Gráfica, retro-deportiva, directa</dd></div>
+              </dl>
+            </aside>
+          </div>
+        </article>
+      </div>
+
+      <!-- ===================== GRUPO 3 ===================== -->
+      <div class="grupo">
+        <div class="grupo-cab"><h3>Oficio y servicio</h3><p>Lo que el lujo enseña sin tener que ser lujo.</p></div>
+
+        <article class="emp" id="lvmh">
+          <header class="emp-cab">
+            <span class="emp-n">07</span>
+            <div>
+              <h3>LVMH <small>Louis Vuitton · Dior · Loewe · Celine</small></h3>
+              <p class="emp-firma">«El baúl como origen: viaje, oficio y servicio de por vida» (Louis Vuitton).</p>
+            </div>
+            <p class="emp-escala"><b>€80.807 M</b>Año 2025; moda y marroquinería €37.770 M con 35 % de margen · más de 6.280 tiendas <span class="marca-dato">VERIFICADO</span></p>
+          </header>
+          <div class="emp-cuerpo">
+            <div class="emp-texto">
+              <div><h4>Cómo se maneja</h4><ul>
+                <li>El oficio como relato: Les Journées Particulières abre 71 talleres en 13 países (16 al 18 de octubre de 2026).</li>
+                <li>La reparación como prueba: Louis Vuitton tiene 12 talleres de reparación y registra su primer arreglo en 1860.</li>
+                <li>Servicio en cinco puertas: asesor, cita, personalización, reparación y «el arte de envolver».</li>
+                <li>Cada marca con su propia cara; el grupo casi no aparece.</li>
+              </ul></div>
+              <div><h4>Su web</h4><ul>
+                <li>En la ficha de Louis Vuitton, «Agregar al carrito» y «Contactar a un asesor» tienen el mismo tamaño.</li>
+                <li>Una línea concreta de calce: «Entra una tablet de 11 pulgadas, un celular… un labial».</li>
+                <li>Dior: disponibilidad en tienda, cita y «Para completar la silueta» en cada ficha.</li>
+                <li>Relato primero y datos después; cada pieza icónica tiene su página de historia.</li>
+              </ul></div>
+              <div class="emp-toma"><h4><svg viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg>Lo que CAYLA toma</h4><ul>
+                <li><span><b>Dos botones iguales:</b> «Separar en Trujillo» y «Escríbele a tu asesora», que abre WhatsApp con el mensaje ya escrito.</span><span class="esf">baja</span></li>
+                <li><span><b>La línea concreta:</b> «Ella mide 1,64 m y usa S · 96 % viscosa · largo a la rodilla · hecha en nuestro taller de Lima».</span><span class="esf">baja</span></li>
+                <li><span><b>«Un sábado en el taller»:</b> puertas abiertas para el Club dos veces al año.</span><span class="esf">media</span></li>
+                <li><span><b>El empaque como origen:</b> papel, colibrí en sello rojo y una tarjeta «cosida en Lima por…».</span><span class="esf">baja-media</span></li>
+              </ul></div>
+              <div class="emp-no"><h4>Lo que no</h4><ul>
+                <li>Precio inflado y escasez fingida: LVMH lleva dos años de caída orgánica en moda. El «Última» de CAYLA funciona porque es verdad.</li>
+                <li>Dispersarse en muebles, libros y mascotas.</li>
+              </ul></div>
+            </div>
+            <aside class="emp-ficha" aria-label="Identidad visual de Louis Vuitton y Dior">
+              <dl>
+                <div><dt>Tipografía</dt><dd>Louis Vuitton Web, propia, de raíz Futura · Dior: Atacama (Newglyph) + Hellix · Celine: Neue Haas Grotesk <span class="marca-dato">VERIFICADO</span></dd></div>
+                <div><dt>Colores de su web</dt><dd><span class="muestras"><i style="--m:#1a1a1a">1a1a1a</i><i style="--m:#f8f8f8">f8f8f8</i><i style="--m:#19110b">19110b</i><i style="--m:#33383c">33383c</i><i style="--m:#e5dfd7">e5dfd7</i></span></dd></div>
+                <div><dt>Estética</dt><dd>Sobria y viajera (LV); etérea y arquitectónica (Dior)</dd></div>
+              </dl>
+            </aside>
+          </div>
+        </article>
+
+        <article class="emp" id="kering">
+          <header class="emp-cab">
+            <span class="emp-n">08</span>
+            <div>
+              <h3>Kering <small>Gucci · Bottega Veneta · Saint Laurent</small></h3>
+              <p class="emp-firma">«Archivo italiano y un asesor a un toque» (Gucci); «el valor antes que el volumen» (Bottega).</p>
+            </div>
+            <p class="emp-escala"><b>€14.675 M</b>Año 2025 (−10 % comparable); Gucci €5.992 M, de más de €10.000 M en 2022 <span class="marca-dato">VERIFICADO</span></p>
+          </header>
+          <div class="emp-cuerpo">
+            <div class="emp-texto">
+              <div><h4>Cómo se maneja</h4><ul>
+                <li>Nuevo director general y plan de reordenamiento: al menos 100 cierres de tiendas en 2026.</li>
+                <li>Gucci vuelve a sus códigos de archivo (el freno de caballo, la franja verde y roja).</li>
+                <li>Bottega Veneta entrega un «Certificate of Craft»: tarjeta con número de serie y QR que da cuidados de por vida.</li>
+                <li>Gucci Vault, su tienda de NFT de 2021, ya no existe.</li>
+              </ul></div>
+              <div><h4>Su web</h4><ul>
+                <li>La portada de Gucci muestra sus servicios antes que la ropa: cita, personalización, recojo en tienda.</li>
+                <li>Cuatro promesas fijas en cada ficha: envío y recojo gratis, cambios gratis, pago seguro, empaque de la casa.</li>
+                <li>WhatsApp, chat y teléfono, cada uno con su horario; en computadora, un QR para seguir en el celular.</li>
+                <li>Su página de error dice «¿Le ayudamos?».</li>
+              </ul></div>
+              <div class="emp-toma"><h4><svg viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg>Lo que CAYLA toma</h4><ul>
+                <li><span><b>Certificado del taller:</b> QR con número en la etiqueta interna que se guarda en «Mi cuenta» y activa los arreglos. Sin blockchain: el ERP ya registra la producción.</span><span class="esf">media</span></li>
+                <li><span><b>Franja fija de promesas:</b> «Separa sin pagar · Recoge en tu tienda · Cambia en cualquier sede».</span><span class="esf">baja</span></li>
+                <li><span><b>Contacto con horario</b> por sede y una página de error que ofrece WhatsApp.</span><span class="esf">baja</span></li>
+                <li><span><b>«Los clásicos CAYLA»:</b> las prendas que vuelven cada temporada, con su historia.</span><span class="esf">baja-media</span></li>
+              </ul></div>
+              <div class="emp-no"><h4>Lo que no</h4><ul>
+                <li>Depender de la estética de un director: el maximalismo se gastó y Gucci perdió cerca de 40 % de sus ventas en tres años.</li>
+                <li>Metaverso, NFT y tiendas digitales de concepto.</li>
+              </ul></div>
+            </div>
+            <aside class="emp-ficha" aria-label="Identidad visual de Gucci">
+              <dl>
+                <div><dt>Tipografía</dt><dd>Gucci Sans Pro + Gucci Serif (propias) · Bottega Veneta propia · Saint Laurent en Helvetica Neue <span class="marca-dato">VERIFICADO</span></dd></div>
+                <div><dt>Colores de su web</dt><dd><span class="muestras"><i style="--m:#000000">000000</i><i style="--m:#ffffff">ffffff</i><i style="--m:#f4f4f4">f4f4f4</i><i style="--m:#555555">555555</i><i style="--m:#27455c">27455c</i></span></dd></div>
+                <div><dt>Estética</dt><dd>Contundente y de archivo (Gucci); lacónica (Bottega)</dd></div>
+              </dl>
+            </aside>
+          </div>
+        </article>
+
+        <article class="emp" id="hermes">
+          <header class="emp-cab">
+            <span class="emp-n">09</span>
+            <div>
+              <h3>Hermès</h3>
+              <p class="emp-firma">«El oficio hecho a mano y la fantasía como tono; el color vive en la caja, no en la pantalla.»</p>
+            </div>
+            <p class="emp-escala"><b>€16.002 M</b>Año 2025 (+8,9 %) · 41 % de margen operativo · 26.494 personas <span class="marca-dato">VERIFICADO</span></p>
+          </header>
+          <div class="emp-cuerpo">
+            <div class="emp-texto">
+              <div><h4>Cómo se maneja</h4><ul>
+                <li>Todas sus carteras se cosen a mano en Francia. Abre cerca de un taller por año (el n.º 24 en 2025), con 250 a 280 artesanos cada uno.</li>
+                <li>Repara más de 200.000 objetos al año en una docena de talleres.</li>
+                <li>Un tema por año guía sus 16 oficios; en 2026, «L'appel du large».</li>
+                <li>petit h: objetos únicos hechos con los sobrantes de la casa <span class="marca-dato">REPORTADO</span></li>
+              </ul></div>
+              <div><h4>Su web</h4><ul>
+                <li>En 2026 sus secciones pasaron a ilustraciones hechas a mano, leído como una postura humana frente a la IA <span class="marca-dato">REPORTADO</span></li>
+                <li>Un menú como gabinete de curiosidades: regalos para perros, cómo anudar el pañuelo.</li>
+                <li>Recojo en tienda y un localizador; si no hay stock, invita a llamar a la tienda más cercana.</li>
+                <li>Humor discreto en los textos: «Oops!»; su buscador respondía «Abracadabra!».</li>
+              </ul></div>
+              <div class="emp-toma"><h4><svg viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg>Lo que CAYLA toma</h4><ul>
+                <li><span><b>Tema del año con una ilustradora o ilustrador peruano:</b> el colibrí cambia de pose en cada sección.</span><span class="esf">baja-media</span></li>
+                <li><span><b>«Arreglos CAYLA»</b> en el pie: basta, botón o cierre, coordinado por WhatsApp.</span><span class="esf">media</span></li>
+                <li><span><b>«Retazos»:</b> piezas únicas con los sobrantes del taller, marcadas «Única».</span><span class="esf">baja-media</span></li>
+                <li><span><b>Humor en los textos:</b> «El colibrí revisó las tres tiendas y no lo encontró».</span><span class="esf">baja</span></li>
+              </ul></div>
+              <div class="emp-no"><h4>Lo que no</h4><ul>
+                <li>La escasez fabricada o el acceso según lo que compraste antes.</li>
+                <li>Su paleta y su tipografía tal cual: hoy la tienda de CAYLA ya se le parece (ver <a href="#identidad">Identidad propia</a>).</li>
+              </ul></div>
+            </div>
+            <aside class="emp-ficha" aria-label="Identidad visual de Hermès">
+              <dl>
+                <div><dt>Tipografía</dt><dd>Logotipo propio · web en <b>EB Garamond</b> + Manrope + Overpass Mono, las tres gratis de Google Fonts <span class="marca-dato">VERIFICADO</span></dd></div>
+                <div><dt>Colores de su web</dt><dd><span class="muestras"><i style="--m:#fcf7f1">fcf7f1</i><i style="--m:#f6f1eb">f6f1eb</i><i style="--m:#000000">000000</i><i style="--m:#9d2a1e">9d2a1e</i><i style="--m:#f37021">f37021</i></span></dd></div>
+                <div><dt>Estética</dt><dd>Artesanal, lúdica, serena</dd></div>
+              </dl>
+            </aside>
+          </div>
+        </article>
+
+        <article class="emp" id="chanel">
+          <header class="emp-cab">
+            <span class="emp-n">10</span>
+            <div>
+              <h3>Chanel</h3>
+              <p class="emp-firma">«Blanco y negro absoluto y la boutique como destino: la web lo muestra todo, hasta el precio, y te invita a ir.»</p>
+            </div>
+            <p class="emp-escala"><b>US$19.300 M</b>Año 2025 (+2 %) · resultado operativo US$4.700 M · unas 310 boutiques <span class="marca-dato">REPORTADO</span></p>
+          </header>
+          <div class="emp-cuerpo">
+            <div class="emp-texto">
+              <div><h4>Cómo se maneja</h4><ul>
+                <li>No vende ropa ni carteras por internet, solo belleza y perfume. «Si le das todo a todos de inmediato, pierdes la exclusividad» (Bruno Pavlovsky, 2017).</li>
+                <li>Compra a sus proveedores artesanos para protegerlos: le19M reúne cerca de 700 artesanos de 12 casas.</li>
+                <li>Matthieu Blazy debutó en octubre de 2025; su primera colección hizo colas en marzo de 2026.</li>
+              </ul></div>
+              <div><h4>Su web</h4><ul>
+                <li>Moda en tres bloques: pronto en boutiques, el desfile y lo que ya está.</li>
+                <li>La ficha muestra el precio pero no tiene botón de compra: cita, contacto y el video de la prenda puesta en su look.</li>
+                <li>«CHANEL &amp; moi»: reparar y restaurar, con nombre propio.</li>
+                <li>Un botón de alto contraste para quien lo necesita.</li>
+              </ul></div>
+              <div class="emp-toma"><h4><svg viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg>Lo que CAYLA toma</h4><ul>
+                <li><span><b>«Míralo puesto»:</b> cada ficha lleva a su look en «Arma tu look» y cada look a sus prendas.</span><span class="esf">baja</span></li>
+                <li><span><b>«Separa y reserva tu probador»:</b> eliges tienda y hora, y la encargada deja todo listo.</span><span class="esf">media</span></li>
+                <li><span><b>La colección contada:</b> 4 a 6 frases cortas entre las prendas, y «Pronto en tiendas» que el Club ve primero.</span><span class="esf">baja</span></li>
+                <li><span><b>«Quiénes hacen CAYLA»:</b> el taller y los proveedores peruanos, con nombre y ciudad y con su permiso.</span><span class="esf">media</span></li>
+              </ul></div>
+              <div class="emp-no"><h4>Lo que no</h4><ul>
+                <li>No vender online: CAYLA necesita vender, y la cita es un complemento.</li>
+                <li>Boutiques privadas para unos pocos: con tres tiendas, excluir duele más de lo que distingue.</li>
+              </ul></div>
+            </div>
+            <aside class="emp-ficha" aria-label="Identidad visual de Chanel">
+              <dl>
+                <div><dt>Tipografía</dt><dd>ABChanel 2022 y ABChanel Corpo (propias) · Futura PT · Helvetica en el texto <span class="marca-dato">VERIFICADO</span></dd></div>
+                <div><dt>Colores de su web</dt><dd><span class="muestras"><i style="--m:#000000">000000</i><i style="--m:#1d1d1d">1d1d1d</i><i style="--m:#767676">767676</i><i style="--m:#f9f9f9">f9f9f9</i><i style="--m:#e8dccb">e8dccb</i></span></dd></div>
+                <div><dt>Estética</dt><dd>Rigurosa, monocroma, cinematográfica</dd></div>
+              </dl>
+            </aside>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="sec" id="lo-mejor" aria-labelledby="t-mejor">
+      <div class="sec-cab">
+        <span class="ceja">Consolidado</span>
+        <h2 id="t-mejor">Lo mejor de cada una, puesto en la tienda de CAYLA</h2>
+        <p class="bajada">Las ideas que pasaron el filtro, ordenadas por la pantalla donde viven. Se quedaron solo las que una marca de tres tiendas con taller propio puede sostener.</p>
+      </div>
+      <div class="tabla-caja">
+        <table class="tabla-ancha">
+          <thead><tr><th>Pantalla</th><th>La idea, en CAYLA</th><th>Viene de</th><th>Esfuerzo</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="3"><b>Portada</b></td><td>Una sola imagen de campaña a sangre, sin carrusel de ofertas</td><td>Zara, Chanel</td><td><span class="esf">baja</span></td></tr>
+            <tr><td>Entradas por ocasión: oficina, matrimonio de día, fin de semana, viaje</td><td>Nike, Johanna Ortiz</td><td><span class="esf">baja</span></td></tr>
+            <tr><td>Franja fija de promesas: separa sin pagar, recoge en tu tienda, cambia en cualquier sede</td><td>Gucci</td><td><span class="esf">baja</span></td></tr>
+            <tr><td rowspan="3"><b>Catálogo</b></td><td>«Voy a CAYLA Arequipa»: todo filtrado a esa sede y «para recoger hoy» como primer filtro</td><td>Zara, Nike</td><td><span class="esf">baja-media</span></td></tr>
+            <tr><td>Vista 1·2·3: una prenda grande o un mosaico</td><td>Zara</td><td><span class="esf">baja</span></td></tr>
+            <tr><td>Filtros con intención: «En mi tienda», «Hecho en nuestro taller», «Última pieza»</td><td>Gucci</td><td><span class="esf">baja</span></td></tr>
+            <tr><td rowspan="7"><b>Ficha</b></td><td>Dos botones iguales: «Separar en Trujillo» y «Escríbele a tu asesora»</td><td>Louis Vuitton, Gucci</td><td><span class="esf">baja</span></td></tr>
+            <tr><td>La línea de calce: cuánto mide la modelo y qué talla usa, medidas reales de la prenda, nombre del corte</td><td>Nike, COS, Louis Vuitton</td><td><span class="esf">baja</span></td></tr>
+            <tr><td>Veredicto de talla y reseñas con talla, estatura y «¿cómo te quedó?»</td><td>adidas, Uniqlo, Shein</td><td><span class="esf">media</span></td></tr>
+            <tr><td>«Quién la hizo» y la prenda por versiones</td><td>H&amp;M, Arket, Uniqlo</td><td><span class="esf">baja</span></td></tr>
+            <tr><td>Tela, cuidado y origen en lenguaje de tienda</td><td>Zara, H&amp;M</td><td><span class="esf">baja</span></td></tr>
+            <tr><td>«Míralo puesto» y «Para completar el look», con el stock de cada sede</td><td>Chanel, Dior, adidas</td><td><span class="esf">baja</span></td></tr>
+            <tr><td>«Avísame» para lo que viene del taller, con fecha estimada</td><td>Zara</td><td><span class="esf">media</span></td></tr>
+            <tr><td rowspan="3"><b>Cuenta y Club</b></td><td>Un Club de servicios: cambios sin boleta en cualquier sede y arreglos del taller</td><td>Nike, Uniqlo, Louis Vuitton</td><td><span class="esf">media</span></td></tr>
+            <tr><td>Puntos por aportar (medidas, reseña con foto, look compartido), canjeables por experiencias</td><td>adidas</td><td><span class="esf">media</span></td></tr>
+            <tr><td>Certificado del taller guardado en «Mi cuenta»</td><td>Bottega Veneta</td><td><span class="esf">media</span></td></tr>
+            <tr><td rowspan="4"><b>Tienda y taller</b></td><td>QR en la etiqueta: otras tallas, otros colores y el stock de las tres sedes</td><td>Uniqlo, Zara</td><td><span class="esf">baja</span></td></tr>
+            <tr><td>«Separa y reserva tu probador» con hora</td><td>Zara, Chanel</td><td><span class="esf">media</span></td></tr>
+            <tr><td>«Un sábado en el taller» para el Club, dos veces al año</td><td>LVMH, Hermès</td><td><span class="esf">media</span></td></tr>
+            <tr><td>Primera corrida corta del taller y reposición de lo que se separa</td><td>Shein, adidas</td><td><span class="esf">media</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="sec" id="peru" aria-labelledby="t-peru">
+      <div class="sec-cab">
+        <span class="ceja">Contexto</span>
+        <h2 id="t-peru">Cómo compra moda online la cliente peruana</h2>
+        <p class="bajada">Lo que traen las grandes sirve solo si funciona para quien compra desde un celular en Trujillo, paga con Yape y desconfía de las tiendas que no conoce.</p>
+      </div>
+      <div class="cifras">
+        <div class="cifra"><b>74 %</b><p>de las compras online en el Perú se hacen desde el celular.</p><small>Abril de 2025 · REPORTADO</small></div>
+        <div class="cifra"><b>60,7 %</b><p>de las transacciones online se pagan con billetera; Yape es el 87 % de ellas.</p><small>Capece, 2025–2026 · REPORTADO</small></div>
+        <div class="cifra"><b>S/ 180</b><p>es el ticket promedio online; con tarjeta de crédito sube a S/ 284.</p><small>Primer semestre de 2026 · REPORTADO</small></div>
+        <div class="cifra"><b>55 %</b><p>de quienes compran online vive en provincias.</p><small>Capece · REPORTADO</small></div>
+        <div class="cifra"><b>9 de 10</b><p>preferiría pagar contra entrega: el miedo a la estafa sigue siendo la barrera.</p><small>Ipsos, 2023 · VERIFICADO</small></div>
+        <div class="cifra"><b>N.º 1</b><p>en tráfico de moda online es Shein. La competencia en el celular de la cliente no es otra marca peruana.</p><small>Mayo de 2026 · REPORTADO</small></div>
+      </div>
+
+      <div class="dos-col">
+        <div>
+          <h3>Lo que la tienda tiene que tener sí o sí</h3>
+          <ol class="lista-num">
+            <li><span><b>Celular primero:</b> separar una prenda en tres toques, con el pulgar.</span></li>
+            <li><span><b>«Sepárala y pruébatela»</b> con el stock real de cada sede, el plazo de recojo y su recordatorio. Es la respuesta al «prefiero pagar contra entrega».</span></li>
+            <li><span><b>Talla resuelta prenda por prenda:</b> medidas del taller, la talla de la modelo y la promesa de cambiarla en cualquiera de las tres tiendas.</span></li>
+            <li><span><b>Yape primero y sin sorpresas.</b> Avisar el tope antes de pagar (el manual de Culqi de 2022 decía S/ 500 al día en comercio electrónico; hay que confirmarlo) y ofrecer Plin, transferencia o pagar en tienda.</span></li>
+            <li><span><b>Quién cobra, a la vista:</b> razón social, RUC, Yape a nombre de CAYLA y las tres tiendas con foto, dirección y horario.</span></li>
+            <li><span><b>Precio final en soles con IGV</b> y el costo de recojo o envío antes del último paso.</span></li>
+            <li><span><b>WhatsApp con contexto:</b> el mensaje sale con prenda, color, talla, tienda y código. Responde la sede donde se recoge.</span></li>
+            <li><span><b>Libro de Reclamaciones</b> en el pie, en la confirmación y en «Mi cuenta», y la política de cambios antes de separar.</span></li>
+            <li><span><b>Permisos separados</b> para la cuenta, las promociones y el cumpleaños, y el banco de datos inscrito ante la ANPD (Ley 29733).</span></li>
+            <li><span><b>Opiniones reales,</b> solo de compras verificadas: el 43 % las busca antes de pagar (Ipsos).</span></li>
+          </ol>
+        </div>
+        <div>
+          <h3>Lo que nadie está haciendo en el Perú</h3>
+          <ol class="lista-num">
+            <li><span><b>Vender en soles a la cliente de provincias.</b> El diseño peruano de autor vende en dólares y en inglés, al turista. CAYLA puede decir «pruébatela en tu ciudad».</span></li>
+            <li><span><b>Contar la costura urbana.</b> Todos cuentan los Andes y la alpaca; nadie cuenta un taller de Lima con nombres, lotes y procesos.</span></li>
+            <li><span><b>Una garantía de talla visible.</b> Ninguna web peruana revisada muestra una guía de tallas de verdad.</span></li>
+            <li><span><b>Separar sin pagar con el stock de cada tienda.</b> Nadie de lo revisado lo hace.</span></li>
+            <li><span><b>Pago a prueba de estafas como diseño:</b> Yape de empresa, RUC a la vista y el comprobante que llega solo.</span></li>
+            <li><span><b>El cumpleaños con un beneficio visible.</b> Muchas lo piden; ninguna marca local revisada lo usa.</span></li>
+          </ol>
+          <h3 style="margin-top:28px">Cómo lo hacen las marcas de la región</h3>
+          <div class="tabla-caja" style="margin-top:14px">
+            <table>
+              <thead><tr><th>Marca</th><th>Lo mejor</th><th>Lo que falla</th></tr></thead>
+              <tbody>
+                <tr><td><b>Mozh Mozh</b> (Perú)</td><td>El mejor relato de oficio: Cajamarca, telar de cintura, autores con nombre</td><td>Precio en «$» sin decir la moneda</td></tr>
+                <tr><td><b>Ayni</b> (Perú)</td><td>Nombra a su líder de taller y da cifras concretas</td><td>Sin WhatsApp; casi todo en inglés</td></tr>
+                <tr><td><b>Kuna</b> (Perú)</td><td>Tienda peruana en soles, recojo en tienda, boleta o factura</td><td>Sin WhatsApp ni guía de tallas</td></tr>
+                <tr><td><b>Topitop</b> (Perú)</td><td>Cambios en cualquier tienda; envío gratis desde S/ 139,90</td><td>Sin guía de tallas</td></tr>
+                <tr><td><b>Ela</b> (Colombia)</td><td>Club propio, crédito propio, lo legal visible en el pie</td><td>Portada recargada</td></tr>
+                <tr><td><b>Benito Fernández</b> (Argentina)</td><td>Cita al atelier por WhatsApp con el mensaje ya escrito</td><td>No vende online</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" id="identidad" aria-labelledby="t-identidad">
+      <div class="sec-cab">
+        <span class="ceja">La propuesta</span>
+        <h2 id="t-identidad">La identidad propia de CAYLA</h2>
+      </div>
+
+      <div class="aviso-nota" role="note">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>
+        <div>
+          <p><b>Primero, un hallazgo: hoy la tienda de CAYLA se parece mucho a hermes.com.</b> Leyendo su código, la interfaz de Hermès usa un fondo crema (#FCF7F1), un rojo ladrillo (#9D2A1E) y EB Garamond para lo editorial. La tienda de CAYLA usa crema #F5F0E8, rojo ladrillo #B8412D y EB Garamond. <span class="marca-dato">VERIFICADO</span></p>
+          <p>Nadie es dueño del crema ni de una tipografía gratuita, y nadie va a confundir las dos marcas. Pero crema, serif y rojo tierra es además una de las combinaciones más repetidas del diseño web de hoy. La identidad propia no puede salir de ahí: tiene que salir de lo que solo CAYLA tiene.</p>
+        </div>
+      </div>
+
+      <div class="prosa">
+        <p><b>Lo que solo CAYLA tiene junto.</b> Un taller propio en Lima, a días de sus tiendas. Stock real por sede, que vuelve honesta cualquier escasez. Asesoras con nombre en Trujillo, Arequipa y Lima que ya atienden por WhatsApp. Y un colibrí dibujado con una sola línea, que en la entrada del ERP ya cose las tres sedes con un hilo.</p>
+        <p><b>La promesa que sale de ahí:</b> «Hecha cerca. Te queda a la primera.» Hecha cerca porque se cose en Lima y se prueba en tu ciudad. Te queda a la primera porque la talla se resuelve con datos, el taller la ajusta y se cambia en cualquier sede. El lema de la marca, «Donde el estilo transforma.», se mantiene: la promesa es de la tienda. Otras dos formas de decirlo: «Del taller a tu tienda» o «Cosida en Lima, pensada para ti».</p>
+        <p><b>Su carácter, en tres palabras:</b> cercana, hecha a mano y segura. No es lujo de escasez, no es moda rápida de cupones y no es postal andina.</p>
+      </div>
+
+      <h3 style="margin-top:40px">Cinco códigos propios</h3>
+      <p style="margin-top:8px;max-width:66ch;color:var(--tinta-suave)">Como el freno de caballo de Gucci o la caja naranja de Hermès: piezas que se repiten en todas partes hasta que solo pueden ser de CAYLA.</p>
+      <div class="codigos">
+        <div class="codigo">
+          <div class="codigo-dib"><svg viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg></div>
+          <h3>El colibrí de una línea</h3>
+          <p>El isotipo guía la web: aparece en las cargas, en los vacíos y en los errores, y cambia de pose con el tema de cada año.</p>
+        </div>
+        <div class="codigo">
+          <div class="codigo-dib"><svg viewBox="0 0 160 60" aria-hidden="true"><path d="M4 40 C40 6, 70 6, 96 30 S140 54, 156 20" stroke-width="3" stroke-dasharray="9 6" stroke-linecap="round"/></svg></div>
+          <h3>El hilo rojo</h3>
+          <p>Un pespunte rojo: subraya títulos, dibuja el camino del pedido y une la prenda con su sede. Fuera de la pantalla es un objeto: el pespunte de la etiqueta y la cinta que amarra la bolsa.</p>
+        </div>
+        <div class="codigo">
+          <div class="codigo-dib"><svg viewBox="0 0 120 64" aria-hidden="true" stroke-width="2.5" stroke-linejoin="round"><path d="M18 6 H102 V58 H18 L4 32 Z"/><circle cx="20" cy="32" r="4"/><path d="M40 20 H56 V36 H40 Z M64 20 H72 M64 28 H90 M64 36 H84 M40 46 H90" stroke-linecap="round"/></svg></div>
+          <h3>La etiqueta del taller</h3>
+          <p>Lote, tela y quién la cosió, con un QR que abre su historia y guarda el certificado en «Mi cuenta».</p>
+        </div>
+        <div class="codigo">
+          <div class="codigo-dib"><svg viewBox="0 0 160 60" aria-hidden="true"><path d="M20 14 C60 10, 90 44, 140 46" stroke-width="2.5" stroke-dasharray="7 6" stroke-linecap="round"/><circle cx="20" cy="14" r="6" stroke-width="2.5"/><circle cx="82" cy="31" r="6" stroke-width="2.5"/><circle cx="140" cy="46" r="6" stroke-width="2.5"/></svg></div>
+          <h3>Las tres sedes</h3>
+          <p>Trujillo, Arequipa y Lima como un mapa vivo: stock, asesora y una selección propia de cada ciudad.</p>
+        </div>
+        <div class="codigo">
+          <div class="codigo-dib"><svg viewBox="0 0 120 64" aria-hidden="true" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"><path d="M10 10 H110 V44 H48 L30 58 V44 H10 Z"/><path d="M28 24 H92 M28 32 H70"/></svg></div>
+          <h3>La voz de tienda</h3>
+          <p>Habla de tú, con el humor discreto de una buena vendedora. Nunca inventa urgencia: «Última» solo cuando es la última.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" id="tipografia" aria-labelledby="t-tipo">
+      <div class="sec-cab">
+        <span class="ceja">Para elegir · 1 de 3</span>
+        <h2 id="t-tipo">Tipografía: cuatro voces para la misma ficha</h2>
+        <p class="bajada">Las cuatro son gratis (Google Fonts), funcionan con la tienda tal como está armada hoy y traen ñ, tildes, ¿ y ¡. Cada una tiene su alternativa de pago, por si un día CAYLA quiere una letra exclusiva.</p>
+      </div>
+
+      <div class="prosa">
+        <p><b>Lo que enseñan las diez.</b> Nueve de cada doce grandes tienen una familia tipográfica propia. La excepción que más importa es Hermès: arma su web con tres fuentes gratuitas de Google, y una es EB Garamond, la misma de CAYLA. El lujo no se compra con una licencia; sale de cómo se usa la letra. Shein, en cambio, usa Jost: una geométrica gratuita hoy suena a moda rápida. Y casi todas separan dos voces: una serif para el relato y una grotesca para menú, talla y precio.</p>
+      </div>
+
+      <div class="aviso-nota" role="note">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>
+        <div>
+          <p><b>Dos arreglos que salen de esta investigación, elijas la propuesta que elijas.</b></p>
+          <p><b>1. Los precios de la tienda no se alinean.</b> La tienda pide cifras tabulares en 20 lugares de 10 hojas de estilo, pero DM Sans no las tiene: cada número mide distinto. Medido con los archivos oficiales de Google Fonts <span class="marca-dato">VERIFICADO</span>. EB Garamond y Chivo sí las traen; Instrument Sans, Bodoni Moda, Manrope y Labrada las tienen como opción.</p>
+          <p><b>2. Hay textos de menos de 11 px.</b> El anuncio y las cejas van a 10,5 px y el contador de la campaña a 9,5 px (`apps/tienda/app/globals.css`). Las grandes no bajan de 11 px.</p>
+        </div>
+      </div>
+
+      <div class="propuestas">
+        <!-- A -->
+        <article class="prop" id="tipo-a">
+          <div class="prop-cab"><div><span class="prop-letra">A · evolución</span><h3>Garamond afinado</h3></div><span class="prop-reco">Recomendada</span></div>
+          <p class="prop-idea">La misma voz de hoy, usada con el oficio de Hermès: serif para el relato y el precio, grotesca para la interfaz y una mono para la etiqueta del taller.</p>
+          <div class="especimen">
+            <span class="esp-marca" style="font-family:'EB Garamond',Georgia,serif;font-weight:500;letter-spacing:.3em">CAYLA</span>
+            <span class="esp-ceja" style="font-family:'DM Mono',ui-monospace,monospace">Nueva colección · lote 0412</span>
+            <p class="esp-tit" style="font-family:'EB Garamond',Georgia,serif;font-weight:400;letter-spacing:-.02em">Donde el estilo <em style="font-style:italic">transforma.</em></p>
+            <p class="esp-texto" style="font-family:'DM Sans',system-ui,sans-serif">Blusa de algodón con manga globo y largo a la cadera. Cosida en nuestro taller de Lima; si la quieres más corta, te la ajustamos al separarla.</p>
+            <div class="esp-fila">
+              <span class="esp-nombre" style="font-family:'EB Garamond',Georgia,serif">Blusa Aurora</span>
+              <span class="esp-precios" style="font-family:'EB Garamond',Georgia,serif;font-weight:500"><span>S/ 119.90</span><span>S/ 89.90</span><span>S/ 1,249.00</span></span>
+              <span class="esp-boton" style="font-family:'DM Sans',system-ui,sans-serif;font-weight:600">Separar en Trujillo</span>
+            </div>
+            <span class="esp-abc" style="font-family:'DM Sans',system-ui,sans-serif">ñ ¿ ¡ á é í ó ú · 0123456789</span>
+          </div>
+          <dl>
+            <dt>Familias</dt><dd>EB Garamond (logotipo, titulares, precio) · DM Sans (interfaz) · DM Mono (lote, talla, código)</dd>
+            <dt>Rescata</dt><dd>Hermès (serif, grotesca y mono) · Nike (la serif para la voz humana) · Chanel (cejas de 11 px con aire)</dd>
+            <dt>Medidas</dt><dd>Portada 44 px en celular y 112 px en computadora, peso 400 · nombre en la ficha 26–32 px · precio Garamond 500 a 19–22 px · botón DM Sans 600 a 14 px · ceja DM Mono 11 px</dd>
+            <dt>CAYLA</dt><dd>EB Garamond 500 con +0,30em de espacio a 16–21 px; +0,22em en grande</dd>
+            <dt>Costo</dt><dd>S/ 0 · de pago: Lyon, de Commercial Type (Display US$325)</dd>
+          </dl>
+          <div class="prop-pros"><p><b>Ganas</b>El logotipo, los tickets y las etiquetas no cambian, y los precios se alinean.</p><p><b>Pagas</b>Con la paleta de hoy, sigue muy cerca de hermes.com.</p></div>
+          <button type="button" class="btn-probar" data-probar-tipo="evolucion"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>Verla en el probador</button>
+        </article>
+
+        <!-- B -->
+        <article class="prop" id="tipo-b">
+          <div class="prop-cab"><div><span class="prop-letra">B · moderna</span><h3>Línea continua</h3></div></div>
+          <p class="prop-idea">Una sola grotesca para todo, como COS o Toteme. El único adorno es el colibrí de una sola línea, y una palabra por pantalla en serif.</p>
+          <div class="especimen">
+            <span class="esp-marca" style="font-family:'Instrument Sans',system-ui,sans-serif;font-weight:600;letter-spacing:.36em">CAYLA</span>
+            <span class="esp-ceja" style="font-family:'Instrument Sans',system-ui,sans-serif;font-weight:500">Nueva colección · lote 0412</span>
+            <p class="esp-tit" style="font-family:'Instrument Sans',system-ui,sans-serif;font-weight:500;font-stretch:85%;letter-spacing:-.03em">Donde el estilo <em style="font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-weight:400;letter-spacing:0">transforma.</em></p>
+            <p class="esp-texto" style="font-family:'Instrument Sans',system-ui,sans-serif">Blusa de algodón con manga globo y largo a la cadera. Cosida en nuestro taller de Lima; si la quieres más corta, te la ajustamos al separarla.</p>
+            <div class="esp-fila">
+              <span class="esp-nombre" style="font-family:'Instrument Sans',system-ui,sans-serif;font-weight:500">Blusa Aurora</span>
+              <span class="esp-precios" style="font-family:'Instrument Sans',system-ui,sans-serif;font-weight:600"><span>S/ 119.90</span><span>S/ 89.90</span><span>S/ 1,249.00</span></span>
+              <span class="esp-boton" style="font-family:'Instrument Sans',system-ui,sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.1em;font-size:11.5px">Separar en Trujillo</span>
+            </div>
+            <span class="esp-abc" style="font-family:'Instrument Sans',system-ui,sans-serif">ñ ¿ ¡ á é í ó ú · 0123456789</span>
+          </div>
+          <dl>
+            <dt>Familias</dt><dd>Instrument Sans, con eje de ancho (todo) · Instrument Serif (una palabra). De Rodrigo Fuenzalida, en Santiago de Chile</dd>
+            <dt>Rescata</dt><dd>COS, The Row y Toteme (una sola familia) · Jacquemus (botones chicos con aire)</dd>
+            <dt>Medidas</dt><dd>Portada 40–96 px, peso 500, ancho 85 · nombre 18–22 px · precio 16 px peso 600 · botón 13 px en mayúsculas · ceja 11 px</dd>
+            <dt>CAYLA</dt><dd>Instrument Sans 600 con +0,36em: cambia el logotipo</dd>
+            <dt>Costo</dt><dd>S/ 0 · de pago: Neue Montreal, de Pangram Pangram (desde US$40)</dd>
+          </dl>
+          <div class="prop-pros"><p><b>Ganas</b>La más moderna y liviana: una sola familia que carga rápido en el celular.</p><p><b>Pagas</b>Cambia el logotipo, y la serif de acento hoy se ve en muchas webs.</p></div>
+          <button type="button" class="btn-probar" data-probar-tipo="linea"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>Verla en el probador</button>
+        </article>
+
+        <!-- C -->
+        <article class="prop" id="tipo-c">
+          <div class="prop-cab"><div><span class="prop-letra">C · editorial</span><h3>Portada</h3></div></div>
+          <p class="prop-idea">La voz de revista: contraste extremo en el titular y una grotesca tranquila en todo lo demás.</p>
+          <div class="especimen">
+            <span class="esp-marca" style="font-family:'Bodoni Moda',Didot,serif;font-weight:500;letter-spacing:.26em;font-optical-sizing:auto">CAYLA</span>
+            <span class="esp-ceja" style="font-family:'Bodoni Moda',Didot,serif;font-variant-caps:all-small-caps;font-size:14px;letter-spacing:.1em">Nueva colección · lote 0412</span>
+            <p class="esp-tit" style="font-family:'Bodoni Moda',Didot,serif;font-weight:400;letter-spacing:-.01em;font-optical-sizing:auto">Donde el estilo <em style="font-style:italic">transforma.</em></p>
+            <p class="esp-texto" style="font-family:'Manrope',system-ui,sans-serif">Blusa de algodón con manga globo y largo a la cadera. Cosida en nuestro taller de Lima; si la quieres más corta, te la ajustamos al separarla.</p>
+            <div class="esp-fila">
+              <span class="esp-nombre" style="font-family:'Bodoni Moda',Didot,serif">Blusa Aurora</span>
+              <span class="esp-precios" style="font-family:'Manrope',system-ui,sans-serif;font-weight:600"><span>S/ 119.90</span><span>S/ 89.90</span><span>S/ 1,249.00</span></span>
+              <span class="esp-boton" style="font-family:'Manrope',system-ui,sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.1em;font-size:11.5px">Separar en Trujillo</span>
+            </div>
+            <span class="esp-abc" style="font-family:'Manrope',system-ui,sans-serif">ñ ¿ ¡ á é í ó ú · 0123456789</span>
+          </div>
+          <dl>
+            <dt>Familias</dt><dd>Bodoni Moda, con tamaño óptico para que los trazos finos no desaparezcan en el celular · Manrope (interfaz y precio)</dd>
+            <dt>Rescata</dt><dd>Zara (Didot con Helvetica) · Dior (Atacama con Hellix)</dd>
+            <dt>Medidas</dt><dd>Portada 46–128 px, peso 400 · nombre 28–36 px · precio Manrope 600 a 16 px · ceja en versalitas reales a 13 px</dd>
+            <dt>CAYLA</dt><dd>Bodoni Moda 500 con +0,26em: cambia el logotipo</dd>
+            <dt>Costo</dt><dd>S/ 0 · de pago: Domaine Display (Klim) o GT Super (Grilli Type)</dd>
+          </dl>
+          <div class="prop-pros"><p><b>Ganas</b>La portada más «de revista» de las cuatro.</p><p><b>Pagas</b>La Didone es la firma de Zara: CAYLA podría leerse como una Zara chica.</p></div>
+          <button type="button" class="btn-probar" data-probar-tipo="portada"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>Verla en el probador</button>
+        </article>
+
+        <!-- D -->
+        <article class="prop" id="tipo-d">
+          <div class="prop-cab"><div><span class="prop-letra">D · latinoamericana</span><h3>Telar</h3></div></div>
+          <p class="prop-idea">Lo andino en la estructura, no en el adorno: la mono como la trama del tejido, la línea continua del colibrí y letras dibujadas en Latinoamérica.</p>
+          <div class="especimen">
+            <span class="esp-marca" style="font-family:'Labrada',Georgia,serif;font-weight:600;letter-spacing:.28em">CAYLA</span>
+            <span class="esp-ceja" style="font-family:'Chivo Mono',ui-monospace,monospace">Nueva colección · lote 0412</span>
+            <p class="esp-tit" style="font-family:'Labrada',Georgia,serif;font-weight:300;letter-spacing:-.02em">Donde el estilo <em style="font-style:normal;font-weight:500">transforma.</em></p>
+            <p class="esp-texto" style="font-family:'Chivo',system-ui,sans-serif">Blusa de algodón con manga globo y largo a la cadera. Cosida en nuestro taller de Lima; si la quieres más corta, te la ajustamos al separarla.</p>
+            <div class="esp-fila">
+              <span class="esp-nombre" style="font-family:'Labrada',Georgia,serif">Blusa Aurora</span>
+              <span class="esp-precios" style="font-family:'Chivo Mono',ui-monospace,monospace;font-weight:500"><span>S/ 119.90</span><span>S/ 89.90</span><span>S/ 1,249.00</span></span>
+              <span class="esp-boton" style="font-family:'Chivo',system-ui,sans-serif;font-weight:600">Separar en Trujillo</span>
+            </div>
+            <span class="esp-abc" style="font-family:'Chivo',system-ui,sans-serif">ñ ¿ ¡ á é í ó ú · 0123456789</span>
+          </div>
+          <dl>
+            <dt>Familias</dt><dd>Labrada, de Mercedes Jáuregui, nacida para expresar la oralidad de las culturas indígenas · Chivo y Chivo Mono, de Héctor Gatti. Las tres de Omnibus-Type, Buenos Aires</dd>
+            <dt>Rescata</dt><dd>Uniqlo (lo propio en la forma de las letras) · Hermès (la mono como tercera voz)</dd>
+            <dt>Medidas</dt><dd>Portada 42–104 px en Labrada 300 · nombre 24–30 px · precio Chivo Mono 500 a 16 px · ceja Chivo Mono 11 px</dd>
+            <dt>CAYLA</dt><dd>Labrada 600 con +0,28em, o la Garamond se queda solo en el logotipo</dd>
+            <dt>Costo</dt><dd>S/ 0 · de pago: Latinotype (Chile) desde US$25 por familia</dd>
+          </dl>
+          <div class="prop-pros"><p><b>Ganas</b>La más distinta de las diez grandes, con origen latinoamericano verificable.</p><p><b>Pagas</b>Labrada no se probó a tamaño de portada: hay que verla puesta. No hay diseñadores peruanos en Google Fonts.</p></div>
+          <button type="button" class="btn-probar" data-probar-tipo="telar"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>Verla en el probador</button>
+        </article>
+      </div>
+    </section>
+
+    <section class="sec" id="paleta" aria-labelledby="t-paleta">
+      <div class="sec-cab">
+        <span class="ceja">Para elegir · 2 de 3</span>
+        <h2 id="t-paleta">Paleta: dónde vive el rojo de CAYLA</h2>
+        <p class="bajada">Hermès no tiene su naranja en la pantalla: lo tiene en la caja que la gente guarda. Un color se vuelve propio cuando se repite en un objeto que se toca. Cada paleta trae su versión clara y oscura, con el contraste medido.</p>
+      </div>
+      <div class="propuestas" id="paletas">
+        <article class="prop" id="pal-colibri">
+          <div class="prop-cab"><div><span class="prop-letra">1 · la de hoy, afinada</span><h3>Colibrí</h3></div></div>
+          <p class="prop-idea">Crema, tinta y el rojo ladrillo del colibrí. Afinarla es usar el rojo solo en el colibrí, el precio especial y una acción por pantalla, y llevar la campaña al vino.</p>
+          <div class="paleta-tira" data-paleta-tira="colibri"></div>
+          <div class="contraste" data-paleta-contraste="colibri"></div>
+          <div class="prop-pros"><p><b>Ganas</b>No cambia nada impreso ni del ERP. Costo cero.</p><p><b>Pagas</b>Sigue cerca de hermes.com y del look crema-serif-terracota; la identidad depende solo de los códigos.</p></div>
+          <button type="button" class="btn-probar" data-probar-paleta="colibri"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>Verla en el probador</button>
+        </article>
+        <article class="prop" id="pal-carmin">
+          <div class="prop-cab"><div><span class="prop-letra">2 · un color propio con origen</span><h3>Carmín</h3></div><span class="prop-reco">Recomendada</span></div>
+          <p class="prop-idea">Un rojo carmín, más profundo y frío que el ladrillo, sobre blanco algodón. El Perú produce entre el 70 % y el 80 % del carmín de cochinilla del mundo <span class="marca-dato">REPORTADO · Midagri 2025</span>. Se ancla a objetos, como el naranja de Hermès: el botón principal, el pespunte de la etiqueta, la cinta de la bolsa.</p>
+          <div class="paleta-tira" data-paleta-tira="carmin"></div>
+          <div class="contraste" data-paleta-contraste="carmin"></div>
+          <div class="prop-pros"><p><b>Ganas</b>Separa a CAYLA de Hermès y del cliché, con una historia peruana que no es postal.</p><p><b>Pagas</b>El colibrí cambia de rojo en tickets, etiquetas, bolsas y el ERP: es una decisión de marca.</p></div>
+          <button type="button" class="btn-probar" data-probar-paleta="carmin"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>Verla en el probador</button>
+        </article>
+        <article class="prop" id="pal-sillar">
+          <div class="prop-cab"><div><span class="prop-letra">3 · la calma de Arequipa</span><h3>Sillar</h3></div></div>
+          <p class="prop-idea">El blanco de la piedra volcánica, un gris volcán, la tinta y un azul Misti. El rojo del colibrí queda solo en el isotipo y en el precio especial. Tiene la calma de COS y el gris perla de Dior, pero mineral y peruana.</p>
+          <div class="paleta-tira" data-paleta-tira="sillar"></div>
+          <div class="contraste" data-paleta-contraste="sillar"></div>
+          <div class="prop-pros"><p><b>Ganas</b>Elegante y distinta; la foto manda y el rojo se vuelve escaso.</p><p><b>Pagas</b>Puede sentirse fría, y depende de fotos de campaña muy buenas.</p></div>
+          <button type="button" class="btn-probar" data-probar-paleta="sillar"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>Verla en el probador</button>
+        </article>
+        <article class="prop" id="pal-noche">
+          <div class="prop-cab"><div><span class="prop-letra">4 · oscura primero</span><h3>Vitrina de noche</h3></div></div>
+          <p class="prop-idea">Negro cálido, crema y un rojo brasa: una vitrina iluminada de noche. La versión clara existe, pero está pensada para el oscuro.</p>
+          <div class="paleta-tira" data-paleta-tira="noche"></div>
+          <div class="contraste" data-paleta-contraste="noche"></div>
+          <div class="prop-pros"><p><b>Ganas</b>Impacto y un modo oscuro de verdad.</p><p><b>Pagas</b>Se lee peor al sol en la calle, y las fotos sobre blanco necesitan los recortes sin fondo de «Arma el tuyo».</p></div>
+          <button type="button" class="btn-probar" data-probar-paleta="noche"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>Verla en el probador</button>
+        </article>
+      </div>
+    </section>
+
+    <section class="sec" id="diseno" aria-labelledby="t-diseno">
+      <div class="sec-cab">
+        <span class="ceja">Para elegir · 3 de 3</span>
+        <h2 id="t-diseno">Dirección de diseño: cómo se arma cada pantalla</h2>
+        <p class="bajada">Tres maneras puras de armar la tienda y una mezcla. En el probador se ve cada una en el celular.</p>
+      </div>
+      <div class="propuestas">
+        <article class="prop">
+          <div class="prop-cab"><div><span class="prop-letra">I</span><h3>Vitrina editorial</h3></div></div>
+          <div class="esquema esq-editorial" aria-hidden="true"><i class="fuerte"></i><i></i><i></i><i></i><i></i></div>
+          <p class="prop-idea">Una foto grande, poco texto y el relato antes que los datos. Toma de Zara, Chanel y Dior.</p>
+          <div class="prop-pros"><p><b>Ganas</b>La portada y las campañas se ven de marca grande.</p><p><b>Pagas</b>Llevada al catálogo, la cliente no sabe qué hacer. Pide una buena foto de campaña cada temporada.</p></div>
+          <button type="button" class="btn-probar" data-probar-dir="editorial"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>Verla en el probador</button>
+        </article>
+        <article class="prop">
+          <div class="prop-cab"><div><span class="prop-letra">II</span><h3>Taller abierto</h3></div></div>
+          <div class="esquema esq-taller" aria-hidden="true"><i class="punteado"></i><i></i><i></i><i></i><i></i><i></i></div>
+          <p class="prop-idea">El hilo rojo, la etiqueta, el lote y quién la hizo, con el colibrí dibujado. Toma de Hermès, Louis Vuitton, Arket y Mozh Mozh.</p>
+          <div class="prop-pros"><p><b>Ganas</b>Cuenta lo que ninguna otra marca en el Perú puede contar.</p><p><b>Pagas</b>Puede volverse rústica, y pide fotos y textos del taller.</p></div>
+          <button type="button" class="btn-probar" data-probar-dir="taller"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>Verla en el probador</button>
+        </article>
+        <article class="prop">
+          <div class="prop-cab"><div><span class="prop-letra">III</span><h3>Mostrador vivo</h3></div></div>
+          <div class="esquema esq-mostrador" aria-hidden="true"><i class="barra"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="rojo"></i></div>
+          <p class="prop-idea">Buscador arriba, filtros por sede y talla, stock a la vista y una barra abajo, como una app. Toma de Uniqlo, Nike, adidas y lo ético de Shein.</p>
+          <div class="prop-pros"><p><b>Ganas</b>La más rápida para encontrar y separar.</p><p><b>Pagas</b>Sin cuidado se ve como cualquier tienda de catálogo.</p></div>
+          <button type="button" class="btn-probar" data-probar-dir="mostrador"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>Verla en el probador</button>
+        </article>
+        <article class="prop">
+          <div class="prop-cab"><div><span class="prop-letra">IV</span><h3>La mezcla</h3></div><span class="prop-reco">Recomendada</span></div>
+          <div class="esquema esq-mezcla" aria-hidden="true"><i class="fuerte"></i><i></i><i class="punteado"></i><i></i><i></i><i class="barra"></i></div>
+          <p class="prop-idea">Vitrina en la portada, mostrador en el catálogo y taller en la ficha. El hilo rojo une las tres para que se sienta una sola tienda.</p>
+          <div class="prop-pros"><p><b>Ganas</b>Cada pantalla hace bien su trabajo: enamorar, encontrar, decidir.</p><p><b>Pagas</b>Pide disciplina para que las tres partes hablen igual.</p></div>
+          <button type="button" class="btn-probar" data-probar-dir="mezcla"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>Verla en el probador</button>
+        </article>
+      </div>
+    </section>
+
+    <section class="banda-lab" id="probador" aria-labelledby="t-probador">
+      <div class="banda-lab-dentro">
+        <div class="sec-cab">
+          <span class="ceja">Elige mirando</span>
+          <h2 id="t-probador">El probador de identidad</h2>
+          <p class="bajada">Combina una tipografía, una paleta y una dirección de diseño. Los dos celulares muestran la portada y la ficha de una prenda con lo que elegiste, en claro o en oscuro, y se pueden recorrer con el dedo o la rueda. Las prendas, los precios y el stock son de ejemplo.</p>
+        </div>
+
+        <div class="lab" id="lab" data-tipo="evolucion" data-paleta="colibri" data-dir="editorial" data-modo="claro">
+          <form class="lab-mandos" id="lab-mandos" aria-label="Combinación a probar">
+            <fieldset class="mando">
+              <legend>Tipografía</legend>
+              <div class="seg">
+                <input type="radio" name="tipo" id="tipo-evolucion" value="evolucion" checked><label for="tipo-evolucion">A · Garamond afinado</label>
+                <input type="radio" name="tipo" id="tipo-linea" value="linea"><label for="tipo-linea">B · Línea continua</label>
+                <input type="radio" name="tipo" id="tipo-portada" value="portada"><label for="tipo-portada">C · Portada</label>
+                <input type="radio" name="tipo" id="tipo-telar" value="telar"><label for="tipo-telar">D · Telar</label>
+              </div>
+            </fieldset>
+            <fieldset class="mando">
+              <legend>Paleta</legend>
+              <div class="seg">
+                <input type="radio" name="paleta" id="paleta-colibri" value="colibri" checked><label for="paleta-colibri">1 · Colibrí</label>
+                <input type="radio" name="paleta" id="paleta-carmin" value="carmin"><label for="paleta-carmin">2 · Carmín</label>
+                <input type="radio" name="paleta" id="paleta-sillar" value="sillar"><label for="paleta-sillar">3 · Sillar</label>
+                <input type="radio" name="paleta" id="paleta-noche" value="noche"><label for="paleta-noche">4 · Vitrina de noche</label>
+              </div>
+            </fieldset>
+            <fieldset class="mando">
+              <legend>Dirección de diseño</legend>
+              <div class="seg">
+                <input type="radio" name="dir" id="dir-editorial" value="editorial" checked><label for="dir-editorial">I · Vitrina editorial</label>
+                <input type="radio" name="dir" id="dir-taller" value="taller"><label for="dir-taller">II · Taller abierto</label>
+                <input type="radio" name="dir" id="dir-mostrador" value="mostrador"><label for="dir-mostrador">III · Mostrador vivo</label>
+                <input type="radio" name="dir" id="dir-mezcla" value="mezcla"><label for="dir-mezcla">IV · La mezcla</label>
+              </div>
+            </fieldset>
+            <fieldset class="mando mando-chico">
+              <legend>Modo</legend>
+              <div class="seg">
+                <input type="radio" name="modo" id="modo-claro" value="claro" checked><label for="modo-claro">Claro</label>
+                <input type="radio" name="modo" id="modo-oscuro" value="oscuro"><label for="modo-oscuro">Oscuro</label>
+              </div>
+            </fieldset>
+          </form>
+
+          <div class="lab-pie-mandos">
+            <p class="lab-lectura" id="lab-lectura" aria-live="polite"></p>
+            <button type="button" class="btn-probar" id="ver-recomendada"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>Ver la combinación recomendada</button>
+          </div>
+
+          <div class="lab-escenario">
+            <!-- ===================== CELULAR 1: PORTADA ===================== -->
+            <figure class="tel-fig">
+              <div class="tel">
+                <div class="tel-pantalla pv">
+                  <div class="pv-anuncio">Separa online · recoge en tu tienda</div>
+                  <header class="pv-cab">
+                    <svg class="pv-colibri" viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg>
+                    <span class="pv-marca">CAYLA</span>
+                    <span class="pv-esp"></span>
+                    <svg class="pv-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+                    <svg class="pv-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg>
+                  </header>
+
+                  <!-- Héroe I: vitrina editorial -->
+                  <div class="pv-hero pv-hero-editorial">
+                    <div class="pv-hero-foto" data-color-dato>
+                      <svg class="pv-prenda-grande" viewBox="0 0 100 104" aria-hidden="true"><use href="#g-vestido"/></svg>
+                    </div>
+                    <div class="pv-hero-texto">
+                      <span class="pv-ceja">Colección primavera–verano 2027</span>
+                      <p class="pv-hero-tit">Eterna<br><em>primavera</em></p>
+                      <span class="pv-boton pv-boton-claro">Ver la colección</span>
+                    </div>
+                  </div>
+
+                  <!-- Héroe II: taller abierto -->
+                  <div class="pv-hero pv-hero-taller">
+                    <div class="pv-hilo">
+                      <span class="pv-ceja">Cosido en nuestro taller de Lima</span>
+                      <p class="pv-hero-tit">Cada prenda dice <em>quién la hizo</em></p>
+                      <p class="pv-hero-desc">Escanea la etiqueta y conoce su tela, su lote y las manos que la cosieron.</p>
+                      <span class="pv-boton">Conocer el taller</span>
+                    </div>
+                    <svg class="pv-hero-ave" viewBox="0 0 223 150" aria-hidden="true"><use href="#colibri"/></svg>
+                  </div>
+
+                  <!-- Héroe III: mostrador vivo -->
+                  <div class="pv-hero pv-hero-mostrador">
+                    <div class="pv-busca"><svg class="pv-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span>Blusa, talla M, en Trujillo…</span></div>
+                    <div class="pv-chips"><span class="pv-chip pv-chip-on">Lo nuevo</span><span class="pv-chip">Mi talla</span><span class="pv-chip">Trujillo</span><span class="pv-chip">Ofertas</span></div>
+                    <div class="pv-banda">
+                      <div><span class="pv-ceja">Eterna primavera</span><p class="pv-banda-tit">−20 % en blusas</p></div>
+                      <div class="pv-cuenta"><b>03</b><small>días</small></div>
+                    </div>
+                  </div>
+
+                  <div class="pv-sec">
+                    <div class="pv-sec-cab"><p class="pv-sec-tit">Lo nuevo</p><span class="pv-ver">Ver todo</span></div>
+                    <div class="pv-grilla">
+                      <article class="pv-tarj">
+                        <div class="pv-foto" data-color-dato style="--prenda:#c9b79c"><svg viewBox="0 0 100 104" aria-hidden="true"><use href="#g-blusa"/></svg><span class="pv-sello">Nuevo</span></div>
+                        <p class="pv-nombre">Blusa Aurora</p>
+                        <p class="pv-precio">S/ 119.90</p>
+                        <span class="pv-stock pv-stock-ok">Hay en 3 tiendas</span>
+                      </article>
+                      <article class="pv-tarj">
+                        <div class="pv-foto" data-color-dato style="--prenda:#7d2430"><svg viewBox="0 0 100 104" aria-hidden="true"><use href="#g-vestido"/></svg></div>
+                        <p class="pv-nombre">Vestido Brisa</p>
+                        <p class="pv-precio">S/ 189.90</p>
+                        <span class="pv-stock pv-stock-poco">Última en Lima</span>
+                      </article>
+                      <article class="pv-tarj">
+                        <div class="pv-foto" data-color-dato style="--prenda:#3b4a5c"><svg viewBox="0 0 100 104" aria-hidden="true"><use href="#g-casaca"/></svg></div>
+                        <p class="pv-nombre">Casaca Sillar</p>
+                        <p class="pv-precio">S/ 219.90</p>
+                        <span class="pv-stock pv-stock-ok">Hay en Arequipa</span>
+                      </article>
+                      <article class="pv-tarj">
+                        <div class="pv-foto" data-color-dato style="--prenda:#e3d9c6"><svg viewBox="0 0 100 104" aria-hidden="true"><use href="#g-pantalon"/></svg></div>
+                        <p class="pv-nombre">Pantalón Larco</p>
+                        <p class="pv-precio"><s>S/ 139.90</s> S/ 111.90</p>
+                        <span class="pv-stock pv-stock-poco">Quedan 2 en Trujillo</span>
+                      </article>
+                    </div>
+                  </div>
+
+                  <div class="pv-taller-tira">
+                    <svg viewBox="0 0 24 24" class="pv-ic" aria-hidden="true"><path d="M4 20l8-16 8 16"/><path d="M7.5 13h9"/></svg>
+                    <p><b>Del taller a tu tienda en 15 días.</b> Lo que se agota se vuelve a coser en lotes chicos.</p>
+                  </div>
+
+                  <nav class="pv-barra" aria-hidden="true"><span class="on">Inicio</span><span>Buscar</span><span>Arma</span><span>Bolsa</span><span>Cuenta</span></nav>
+                </div>
+              </div>
+              <figcaption>Portada en el celular</figcaption>
+            </figure>
+
+            <!-- ===================== CELULAR 2: FICHA ===================== -->
+            <figure class="tel-fig">
+              <div class="tel">
+                <div class="tel-pantalla pv">
+                  <header class="pv-cab">
+                    <svg class="pv-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+                    <span class="pv-esp"></span>
+                    <span class="pv-marca pv-marca-chica">CAYLA</span>
+                    <span class="pv-esp"></span>
+                    <svg class="pv-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>
+                  </header>
+                  <div class="pv-ficha-foto" data-color-dato style="--prenda:#c9b79c">
+                    <svg viewBox="0 0 100 104" aria-hidden="true"><use href="#g-blusa"/></svg>
+                    <span class="pv-puntos"><i class="on"></i><i></i><i></i><i></i></span>
+                  </div>
+                  <div class="pv-ficha">
+                    <span class="pv-ceja">Blusas · Colección primavera–verano 2027</span>
+                    <p class="pv-ficha-tit">Blusa Aurora</p>
+                    <p class="pv-ficha-precio"><span class="pv-oferta">S/ 95.90</span> <s>S/ 119.90</s> <span class="pv-pct">−20 %</span></p>
+
+                    <p class="pv-rot">Color · <b>Arena</b></p>
+                    <div class="pv-colores">
+                      <span class="on" data-color-dato style="--c:#c9b79c" title="Arena"></span>
+                      <span data-color-dato style="--c:#7d2430" title="Carmín"></span>
+                      <span data-color-dato style="--c:#23262b" title="Noche"></span>
+                    </div>
+
+                    <p class="pv-rot">Talla <span class="pv-mi-talla">Tu talla en CAYLA: M</span></p>
+                    <div class="pv-tallas"><span>S</span><span class="on">M</span><span>L</span><span class="agotada">XL</span></div>
+
+                    <ul class="pv-sedes">
+                      <li><span>Trujillo</span><b class="pv-stock-ok">Hay</b></li>
+                      <li><span>Arequipa</span><b>2</b></li>
+                      <li><span>Lima</span><b class="pv-stock-poco">Última</b></li>
+                    </ul>
+
+                    <span class="pv-boton pv-boton-ancho">Separar en Trujillo</span>
+                    <span class="pv-boton pv-boton-sec pv-boton-ancho">Probarla en «Arma el tuyo»</span>
+
+                    <div class="pv-origen">
+                      <svg viewBox="0 0 24 24" class="pv-ic" aria-hidden="true"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2"/></svg>
+                      <p><b>La historia de esta prenda.</b> Cosida en Lima · tela de algodón · lote 0412. Está en el QR de su etiqueta.</p>
+                    </div>
+
+                    <div class="pv-resena">
+                      <p class="pv-resena-cab"><b>Lucía · Trujillo</b><span>Usó M · mide 1,60 m</span></p>
+                      <div class="pv-calce" aria-hidden="true"><span>Ajustada</span><i><b style="left:50%"></b></i><span>Holgada</span></div>
+                      <p class="pv-resena-txt">«La tela no se arruga y el largo me tapa la cadera.»</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <figcaption>Ficha de una prenda</figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" id="voz" aria-labelledby="t-voz">
+      <div class="sec-cab">
+        <span class="ceja">Cómo habla y cómo se mueve</span>
+        <h2 id="t-voz">La voz de una buena vendedora</h2>
+        <p class="bajada">La identidad también se lee. Cada texto de la tienda dice algo concreto, habla de tú y no inventa urgencias. El humor discreto de Hermès va donde no hay dinero en juego; un error al pagar nunca es un chiste.</p>
+      </div>
+      <div class="tabla-caja voz">
+        <table class="tabla-ancha">
+          <thead><tr><th>Lo genérico</th><th>Como lo diría CAYLA</th><th>Por qué</th></tr></thead>
+          <tbody>
+            <tr><td>Agregar al carrito</td><td>Separar en Trujillo</td><td>Dice qué pasa y dónde</td></tr>
+            <tr><td>Agotado</td><td>No hay tu talla en Lima. Hay 2 en Arequipa: ¿te la traemos?</td><td>Ofrece una salida con el stock real</td></tr>
+            <tr><td>Stock: 1</td><td>Última en Trujillo</td><td>Escasez honesta, nunca inventada</td></tr>
+            <tr><td>Error al procesar la solicitud</td><td>Alguien la separó hace un minuto. Te mostramos la más parecida en tu talla.</td><td>Explica qué pasó y qué hacer</td></tr>
+            <tr><td>Suscríbete y obtén 15 % de descuento</td><td>Avísame cuando vuelva mi talla</td><td>El Club da servicio, no descuento</td></tr>
+            <tr><td>Guía de tallas</td><td>Ella mide 1,64 m y usa S. La blusa mide 62 cm de largo.</td><td>Una persona y una medida real</td></tr>
+            <tr><td>Contáctanos</td><td>Escríbele a CAYLA Trujillo · lunes a sábado, de 10 a. m. a 8 p. m.</td><td>Una sede, un horario</td></tr>
+            <tr><td>0 resultados</td><td>El colibrí revisó las tres tiendas y no encontró «blusa lila». Mira las más parecidas.</td><td>Humor donde no hay dinero en juego</td></tr>
+            <tr><td>404 · Página no encontrada</td><td>Esta página se nos descosió. ¿Te ayudamos por WhatsApp?</td><td>El taller en la voz, con salida</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:12px;font-size:14px;color:var(--tinta-suave);max-width:70ch">En pantalla se dice «cliente» y, en el Club, «miembro»; nunca «clienta» ni «socia». Un texto le habla igual a un hombre que a una mujer: «Te damos la bienvenida».</p>
+
+      <div class="dos-col" style="align-items:center">
+        <div class="prosa" style="margin-top:0">
+          <h3>Movimiento: una vez, sin rebote</h3>
+          <p>La tienda ya sigue la regla del ERP: movimientos ricos que pasan una sola vez, sin rebote y sin bucle, y que se apagan si el teléfono pide menos movimiento (ADR-0136 y ADR-0430). Nike usa la misma escala: de 150 a 400 ms.</p>
+          <p><b>La firma propuesta es el hilo.</b> Al separar una prenda, un pespunte rojo se dibuja una vez desde la prenda hasta su sede, como el hilo con que el colibrí ya cose las tres tiendas en la entrada del ERP. Es el mismo código en la pantalla, en la etiqueta y en la bolsa.</p>
+          <button type="button" class="btn-probar" id="repetir-hilo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/></svg>Ver el hilo otra vez</button>
+        </div>
+        <figure class="hilo-demo" aria-label="Demostración del hilo que une una prenda con su sede">
+          <svg viewBox="0 0 420 200" role="img" aria-labelledby="hilo-t">
+            <title id="hilo-t">Un pespunte rojo va de la blusa separada a la sede de Trujillo</title>
+            <rect x="18" y="40" width="104" height="128" rx="12" class="hd-foto"/>
+            <use href="#g-blusa" x="34" y="58" width="72" height="76" class="hd-prenda"/>
+            <text x="70" y="156" text-anchor="middle" class="hd-txt">Blusa Aurora</text>
+            <defs><mask id="hd-mascara" maskUnits="userSpaceOnUse" x="0" y="0" width="420" height="200"><path class="hd-mascara-trazo" pathLength="1" d="M126 104 C 200 30, 250 170, 326 96"/></mask></defs>
+            <path class="hd-hilo" mask="url(#hd-mascara)" d="M126 104 C 200 30, 250 170, 326 96"/>
+            <g class="hd-llegada">
+              <circle cx="350" cy="92" r="22" class="hd-sede"/>
+              <path d="M350 82 a7 7 0 0 1 7 7 c0 6-7 13-7 13 s-7-7-7-13 a7 7 0 0 1 7-7z" class="hd-pin"/>
+              <text x="350" y="138" text-anchor="middle" class="hd-txt">Te la guardamos</text>
+              <text x="350" y="156" text-anchor="middle" class="hd-txt hd-suave">en Trujillo</text>
+            </g>
+          </svg>
+        </figure>
+      </div>
+    </section>
+
+    <section class="sec" id="futuro" aria-labelledby="t-futuro">
+      <div class="sec-cab">
+        <span class="ceja">Hacia adelante</span>
+        <h2 id="t-futuro">Funciones a futuro que CAYLA puede sostener</h2>
+        <p class="bajada">Lo «futurista» que de verdad vende en moda hoy es resolver la talla: cerca del 70 % de las devoluciones de ropa online son por talla o calce <span class="marca-dato">REPORTADO</span>. Están ordenadas por valor para la cliente dividido entre esfuerzo, pensando en un equipo técnico de una persona. Marca las que quieras; se suman a tu elección.</p>
+      </div>
+
+      <div class="horizonte">
+        <div class="horizonte-cab"><h3>Ahora</h3><span>0 a 3 meses</span></div>
+        <div class="funcs">
+          <div class="func"><input type="checkbox" id="f1" data-func="Alerta de talla y medidas reales" checked><label for="f1"><b>Alerta de talla y medidas reales</b><span>«Suele quedar chica: 6 de 8 la cambiaron por una talla más», junto al busto, la cintura y el largo que mide el taller.</span><small>El ERP ya guarda los cambios por talla chica o grande y el largo de cada prenda.</small></label><div class="medidor" data-valor="3" data-esfuerzo="1"></div></div>
+          <div class="func"><input type="checkbox" id="f2" data-func="Probador reservado" checked><label for="f2"><b>Probador reservado</b><span>Al separar: «Déjamela en el probador de Trujillo hoy a las 5 p. m.». La vendedora la ve en su lista.</span><small>Zara lo hace desde su app. CAYLA ya separa sin pago; falta la hora.</small></label><div class="medidor" data-valor="3" data-esfuerzo="1"></div></div>
+          <div class="func"><input type="checkbox" id="f3" data-func="QR en la etiqueta con tallas y sedes" checked><label for="f3"><b>QR en la etiqueta: otras tallas y otras sedes</b><span>En la tienda escaneas y ves «Talla M: no hay aquí, hay 2 en Lima. ¿Te la traemos?».</span><small>El stock por tienda ya existe. También le sirve a la vendedora.</small></label><div class="medidor" data-valor="3" data-esfuerzo="1"></div></div>
+          <div class="func"><input type="checkbox" id="f4" data-func="Fichas legibles para buscadores con IA" checked><label for="f4"><b>Fichas legibles para buscadores con IA</b><span>Datos estructurados de cada prenda, Merchant Center en soles y el mapa del sitio al día.</span><small>El Modo IA de Google funciona en el Perú desde setiembre de 2025. Comprar dentro de ChatGPT o Google existe solo en EE. UU.</small></label><div class="medidor" data-valor="2.5" data-esfuerzo="1"></div></div>
+          <div class="func"><input type="checkbox" id="f5" data-func="Avisos útiles de la tienda instalada" checked><label for="f5"><b>Avisos útiles de la tienda instalada</b><span>«Volvió tu talla de la Blusa Emma», «Tu separado vence mañana». Uno o dos por semana, con permiso.</span><small>En iPhone funcionan si la tienda está instalada en la pantalla de inicio (iOS 16.4 o superior).</small></label><div class="medidor" data-valor="3" data-esfuerzo="1.5"></div></div>
+        </div>
+      </div>
+
+      <div class="horizonte">
+        <div class="horizonte-cab"><h3>Pronto</h3><span>3 a 9 meses</span></div>
+        <div class="funcs">
+          <div class="func"><input type="checkbox" id="f6" data-func="Tu talla CAYLA y reseñas con calce"><label for="f6"><b>«Tu talla CAYLA» y reseñas con calce</b><span>«Por lo que compraste y cambiaste, en esta blusa te va S». Las reseñas dicen «mido 1,58 m, uso M, me quedó justa».</span><small>Zalando reporta 10 % menos devoluciones por talla donde da su consejo.</small></label><div class="medidor" data-valor="3" data-esfuerzo="2"></div></div>
+          <div class="func"><input type="checkbox" id="f7" data-func="Tu armario"><label for="f7"><b>«Tu armario»</b><span>Todo lo que compraste en tienda y en la web, y «combínalo con lo que ya tienes».</span><small>Se cruza con los looks que arma el equipo.</small></label><div class="medidor" data-valor="3" data-esfuerzo="2"></div></div>
+          <div class="func"><input type="checkbox" id="f8" data-func="Búsqueda por foto y por descripción"><label for="f8"><b>Búsqueda por foto y por descripción</b><span>Subes una captura de Instagram o escribes «algo fresco para un matrimonio de día».</span><small>Indexar unas 2.000 fotos cuesta menos de US$1. Falta activar la búsqueda por vectores en la base.</small></label><div class="medidor" data-valor="2.5" data-esfuerzo="2"></div></div>
+          <div class="func"><input type="checkbox" id="f9" data-func="Quién hizo tu prenda (certificado del taller)"><label for="f9"><b>«Quién hizo tu prenda»</b><span>El QR cosido muestra taller, lote, tela, cuidados y «pide un arreglo», y se guarda en tu cuenta.</span><small>El nombre de la costurera va solo con su permiso.</small></label><div class="medidor" data-valor="2.5" data-esfuerzo="2"></div></div>
+          <div class="func"><input type="checkbox" id="f10" data-func="Tarjeta del Club en el celular"><label for="f10"><b>Tarjeta del Club en el celular</b><span>Tus puntos y tu cumpleaños en Apple o Google Wallet, con un QR para la caja.</span><small>Apple cobra US$99 al año por su programa de desarrollador.</small></label><div class="medidor" data-valor="2" data-esfuerzo="2"></div></div>
+        </div>
+      </div>
+
+      <div class="horizonte">
+        <div class="horizonte-cab"><h3>Visión</h3><span>9 a 24 meses</span></div>
+        <div class="funcs">
+          <div class="func"><input type="checkbox" id="f11" data-func="Pregúntale a CAYLA (estilista del catálogo)"><label for="f11"><b>«Pregúntale a CAYLA»</b><span>Un estilista que solo habla del catálogo y del stock real, arma looks y pasa a una vendedora por WhatsApp.</span><small>Cuesta cerca de US$10 al mes por 1.000 conversaciones. El bot de Gap terminó hablando de cualquier cosa en 2025: tiene que quedarse en el catálogo.</small></label><div class="medidor" data-valor="2" data-esfuerzo="2"></div></div>
+          <div class="func"><input type="checkbox" id="f12" data-func="Pruébatelo generativo"><label for="f12"><b>«Pruébatelo» con IA</b><span>Primero «elige una figura como tú», sin foto propia. Después, con tu foto: solo con permiso expreso, mayores de 18 y borrado inmediato.</span><small>US$0,04 a 0,11 por imagen. La foto del cuerpo puede ser dato sensible (Ley 29733): consultar con un abogado.</small></label><div class="medidor" data-valor="3" data-esfuerzo="2.5"></div></div>
+        </div>
+      </div>
+
+      <div class="horizonte">
+        <div class="horizonte-cab"><h3>De marca, sin tecnología</h3><span>cuando el taller pueda</span></div>
+        <div class="funcs">
+          <div class="func"><input type="checkbox" id="f13" data-func="Arreglos CAYLA del taller"><label for="f13"><b>Arreglos CAYLA</b><span>Basta, botones y cierres de prendas CAYLA, coordinados por WhatsApp y entregados en tu tienda.</span><small>Uniqlo repara en 58 tiendas; Louis Vuitton en 12 talleres. CAYLA tiene el suyo.</small></label><div class="medidor" data-valor="3" data-esfuerzo="2"></div></div>
+          <div class="func"><input type="checkbox" id="f14" data-func="Un sábado en el taller"><label for="f14"><b>Un sábado en el taller</b><span>Puertas abiertas para el Club dos veces al año; lo que se graba alimenta la página «El taller».</span><small>La versión chica de Les Journées Particulières de LVMH.</small></label><div class="medidor" data-valor="2" data-esfuerzo="2"></div></div>
+          <div class="func"><input type="checkbox" id="f15" data-func="Tema del año con ilustración peruana"><label for="f15"><b>Tema del año con ilustración peruana</b><span>Una ilustradora o un ilustrador peruano dibuja cada sección, con el colibrí en una pose nueva cada año.</span><small>Hermès lo hizo en 2026.</small></label><div class="medidor" data-valor="2" data-esfuerzo="1"></div></div>
+          <div class="func"><input type="checkbox" id="f16" data-func="Retazos: piezas únicas"><label for="f16"><b>Retazos</b><span>Piezas únicas hechas con los sobrantes del taller, marcadas «Única».</span><small>Como petit h de Hermès.</small></label><div class="medidor" data-valor="2" data-esfuerzo="2"></div></div>
+          <div class="func"><input type="checkbox" id="f17" data-func="Así lo llevan"><label for="f17"><b>«Así lo llevan»</b><span>Fotos de clientes con la prenda, con permiso escrito; cada foto lleva al look completo.</span><small>Como «Share how you wear it» de adidas.</small></label><div class="medidor" data-valor="2" data-esfuerzo="2"></div></div>
+        </div>
+      </div>
+
+      <div class="aviso-nota" role="note" style="margin-top:34px">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 8l8 8M16 8l-8 8"/></svg>
+        <div>
+          <p><b>Lo que no recomiendo ahora.</b> Realidad aumentada (Snap cerró su negocio de probadores para empresas en 2023). 3D en la tienda (en el taller, más adelante). RFID: con tres tiendas alcanzan el código de barras y el ERP. Espejos inteligentes, alquiler y reventa propia. Pagar dentro de ChatGPT o Google, que hoy solo existe en EE. UU. Modelos hechas con IA en lugar de fotos reales. Y llms.txt: en mayo de 2026, el 97 % de esos archivos no recibió ni una visita de un bot.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" id="eleccion" aria-labelledby="t-eleccion">
+      <div class="sec-cab">
+        <span class="ceja">Para cerrar</span>
+        <h2 id="t-eleccion">Tu elección</h2>
+        <p class="bajada">Lo que elijas en el probador y en las funciones se junta aquí. Copia el texto y pégalo en la conversación: con eso se arma el plan para la tienda.</p>
+      </div>
+      <div class="eleccion">
+        <div class="resumen">
+          <h3>Lo que elegiste</h3>
+          <dl>
+            <dt>Tipografía</dt><dd id="r-tipo">A · Garamond afinado</dd>
+            <dt>Paleta</dt><dd id="r-paleta">1 · Colibrí</dd>
+            <dt>Diseño</dt><dd id="r-dir">I · Vitrina editorial</dd>
+            <dt>Modo</dt><dd id="r-modo">Claro</dd>
+            <dt>Funciones</dt><dd id="r-funcs">5 marcadas</dd>
+          </dl>
+          <fieldset class="mando" style="margin-top:4px">
+            <legend style="color:inherit;opacity:.75">Promesa de la tienda</legend>
+            <div class="seg seg-oscuro">
+              <input type="radio" name="promesa" id="pr-1" value="Hecha cerca. Te queda a la primera." checked><label for="pr-1">Hecha cerca. Te queda a la primera.</label>
+              <input type="radio" name="promesa" id="pr-2" value="Del taller a tu tienda."><label for="pr-2">Del taller a tu tienda.</label>
+              <input type="radio" name="promesa" id="pr-3" value="Cosida en Lima, pensada para ti."><label for="pr-3">Cosida en Lima, pensada para ti.</label>
+              <input type="radio" name="promesa" id="pr-4" value="Otra (va en la nota)"><label for="pr-4">Otra</label>
+            </div>
+          </fieldset>
+          <label for="nota">Nota para el plan</label>
+          <textarea id="nota" placeholder="Lo que quieres cambiar o probar: un color, una palabra, una función…"></textarea>
+          <button type="button" class="btn-copiar" id="copiar">Copiar mi elección</button>
+          <p class="copiado" id="copiado" aria-live="polite"></p>
+          <textarea class="texto-eleccion" id="texto-eleccion" readonly hidden aria-label="Texto de tu elección"></textarea>
+        </div>
+        <div class="decisiones">
+          <h3>Decisiones que son tuyas</h3>
+          <ol class="lista-num">
+            <li><span><b>El rojo de la marca.</b> Si eliges Carmín, el colibrí cambia de rojo en tickets, etiquetas, bolsas y el ERP, no solo en la web.</span></li>
+            <li><span><b>El logotipo.</b> Las tipografías B, C y D cambian la palabra CAYLA, salvo que la Garamond se quede solo en el logotipo.</span></li>
+            <li><span><b>Los arreglos del taller.</b> Si el Club los da gratis, cuáles y cuántos: es capacidad del taller.</span></li>
+            <li><span><b>Nombrar a las costureras</b> en la ficha y en el QR, solo con su permiso escrito.</span></li>
+            <li><span><b>El probador con foto propia.</b> Recomiendo empezar con figuras de ejemplo; la foto del cuerpo pide revisión legal.</span></li>
+            <li><span><b>Los precios con decimales.</b> Si los precios pasan a Garamond, conviene decidir el formato: «S/ 119.90» o «S/ 119».</span></li>
+          </ol>
+          <p style="margin-top:18px;font-size:14px;color:var(--tinta-suave)">Con tu elección, el paso siguiente es una maqueta de la tienda real (portada, catálogo y ficha) con la tipografía y la paleta aplicadas, para mirarla al ancho del celular y de la computadora antes de tocar el código.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" id="fuentes" aria-labelledby="t-fuentes">
+      <div class="sec-cab">
+        <span class="ceja">De dónde sale cada dato</span>
+        <h2 id="t-fuentes">Fuentes</h2>
+        <p class="bajada">Leídas o recorridas el 17 de octubre de 2026. Las webs de las marcas se leyeron en vivo: las tipografías y los colores salen de lo que cada página carga.</p>
+      </div>
+      <div class="fuentes">
+        <details><summary>Inditex y H&amp;M Group <span>15 fuentes</span></summary><ul>
+          <li><a href="https://www.inditex.com/itxcomweb/pe/en/press/news-detail/b870d5ec-6b7e-491d-b38e-340cd69036df/fy2025-results">Inditex, resultados FY2025 (11-mar-2026)</a></li>
+          <li><a href="https://www.inditex.com/itxcomweb/pe/en/press/news-detail/a2c9b82b-1e27-4582-a7c9-746bc88b744e/interim-half-year-2026-results">Inditex, primer semestre 2026</a></li>
+          <li><a href="https://www.zara.com/es/es/help-center/StoreMode">Zara, Modo Tienda</a> · <a href="https://static.zara.net/static/pdfs/ZARA/image-ai-terms/image-ai-terms-es_20260727_v1.pdf">Zara, uso de IA (PDF)</a></li>
+          <li><a href="https://www.zara.com/pe/es/vestido-rustico-rayas-p06462007.html">Zara Perú, ficha observada</a></li>
+          <li><a href="https://www.dezeen.com/2019/02/04/zara-logo-controversial-rebrand-baron-baron/">Dezeen, logotipo de Zara</a> · <a href="https://ixd.prattsi.org/2023/09/design-critique-zara-website/">Pratt, crítica de zara.com</a></li>
+          <li><a href="https://www.theindustry.fashion/inditex-posts-upbeat-results-for-2025-as-it-looks-to-invest-in-long-term-future/">The Industry, Zara Try-On en resultados</a></li>
+          <li><a href="https://mb.cision.com/Main/769/4326552/4005428.pdf">H&amp;M Group, Annual &amp; Sustainability Report 2025</a></li>
+          <li><a href="https://www2.hm.com/es_es/productpage.1375254002.html">H&amp;M, ficha observada</a> · <a href="https://www.cos.com/es-es/women/womenswear/dresses/mididresses/product/leopard-print-fluid-scarf-detail-dress-brown-leopard-print-1374414001">COS, ficha observada</a></li>
+          <li><a href="https://enterprise.monotype.com/resources/case-studies/fashion-forward-fonts-hm">Monotype, tipografías de H&amp;M</a> · <a href="https://itsnicethat.com/articles/arket-identity-graphic-design-121017">It's Nice That, identidad de Arket</a></li>
+          <li><a href="https://fashionunited.uk/news/business/the-cos-strategy-defining-the-sweet-spot-between-hyper-luxury-and-high-street-in-2026/2026022686500">FashionUnited, estrategia de COS</a></li>
+        </ul></details>
+        <details><summary>Fast Retailing y Shein <span>13 fuentes</span></summary><ul>
+          <li><a href="https://www.fastretailing.com/eng/ir/news/2610081800.html">Fast Retailing, resultados FY2026</a> · <a href="https://www.fastretailing.com/eng/group/strategy/uniqlobusiness.html">Modelo de negocio de Uniqlo</a> · <a href="https://www.fastretailing.com/eng/group/strategy/tactics.html">Estrategia por región</a></li>
+          <li><a href="https://faq-uk.uniqlo.com/articles/en_US/Knowledge/MySize-Assist-UK">Uniqlo, MySize ASSIST</a> · <a href="https://www.uniqlo.com/jp/ja/contents/kw/detail-E473715-000/31/">Formato de reseñas en Japón</a></li>
+          <li><a href="https://insideretail.asia/2024/07/15/fast-retailing-cio-talks-rfid-self-checkout-and-continuous-improvement/">Inside Retail, RFID y autopago</a> · <a href="https://zenbird.media/16-uniqlo-stores-offer-free-clothing-repairs-to-celebrate-earth-day/">RE.UNIQLO</a></li>
+          <li><a href="https://designsingapore.org/stories/a-strong-identity-is-an-icon-says-the-designer-behind-the-uniqlo-logo/">Design Singapore, Kashiwa Sato y Uniqlo</a></li>
+          <li><a href="https://thenextweb.com/news/shein-hong-kong-ipo-financials">The Next Web, cifras del prospecto de Shein</a> · <a href="https://www.npr.org/2026/09/01/g-s1-141410/shein-ipo-hong-kong-stock-exchange">NPR, salida a bolsa</a></li>
+          <li><a href="https://sheingroup.com/wp-content/uploads/2024/11/On-Demand-Fashion.pdf">Shein, On-Demand Fashion (lotes de 100 a 200)</a></li>
+          <li><a href="https://commission.europa.eu/live-work-travel-eu/consumer-rights-and-complaints/enforcement-consumer-protection/coordinated-actions/market-places-and-digital-services_en">Comisión Europea, acción de la red CPC</a> · <a href="https://www.cnil.fr/en/cookies-placed-without-consent-shein-fined-150-million-euros-cnil">CNIL, multa de €150 M</a></li>
+        </ul></details>
+        <details><summary>Nike y adidas <span>12 fuentes</span></summary><ul>
+          <li><a href="https://about.nike.com/newsroom/releases/nike-inc-reports-fiscal-2026-fourth-quarter-and-full-year-results">Nike, resultados FY2026</a> · <a href="https://about.nike.com/newsroom/releases/nike-inc-reports-fiscal-2027-first-quarter-results">Nike, primer trimestre FY2027</a></li>
+          <li><a href="https://www.sec.gov/Archives/edgar/data/320187/000032018725000047/nke-20250531.htm">Nike, 10-K FY2025</a> · <a href="https://www.nike.com/membership">Membresía de Nike</a></li>
+          <li><a href="https://www.nike.com/static/ncss/5.0/dotcom/desktop/css/ncss.en-us.min.css">CSS de nike.com (tipografías, colores, movimiento)</a> · <a href="https://www.dandad.org/work/d-ad-awards-archive/nike365">D&amp;AD, la Futura de Nike</a></li>
+          <li><a href="https://hypebeast.com/2026/5/what-nike-1400-tech-layoffs-mean-future-snkrs-app">Hypebeast, despidos de tecnología</a> · <a href="https://www.theblock.co/amp/post/352129/nike-class-action-lawsuit-nft-rtfkt">The Block, demanda por RTFKT</a></li>
+          <li><a href="https://www.adidas-group.com/en/media/press-releases/adidas-reports-record-revenues-for-2025-and-expects-strong-sales-and-profit-growth-to-continue-over-the-next-years">adidas, resultados 2025</a> · <a href="https://report.adidas-group.com/2025/en/group-management-report-our-company/description-of-business-model/markets-and-sales-channels.html">Informe anual adidas 2025</a></li>
+          <li><a href="https://www.adidas.com/us/adiclub">adiClub</a> · <a href="https://www.adidas.com/us/samba-og-shoes/B75806.html">Ficha del Samba OG</a></li>
+        </ul></details>
+        <details><summary>LVMH y Kering <span>14 fuentes</span></summary><ul>
+          <li><a href="https://www.lvmh.com/en/publications/solid-performance-in-a-disrupted-global-economic-and-geopolitical-environment">LVMH, resultados 2025</a> · <a href="https://www.lvmh.com/en/publications/continued-growth-in-the-third-quarter-of-2026">LVMH, nueve meses de 2026</a></li>
+          <li><a href="https://www.lvmh.com/en/news-lvmh/a-weekend-under-the-banner-of-lvmhs-journees-particulieres-day-2">LVMH, Journées Particulières 2026</a></li>
+          <li><a href="https://us.louisvuitton.com/eng-us/stories/louis-vuitton-services">Louis Vuitton, servicios</a> · <a href="https://us.louisvuitton.com/eng-us/stories/louis-vuitton-repairs">reparaciones</a> · <a href="https://us.louisvuitton.com/eng-us/products/alma-mm-soft-monogram-P00142518/M3A021">ficha observada</a></li>
+          <li><a href="https://www.dior.com/en_us/fashion/products/651V17A1445_X6310">Dior, ficha observada</a> · <a href="https://newglyph.com/product/atacama/">Newglyph, Atacama</a></li>
+          <li><a href="https://mfn.se/all/a/kering/kering-2025-results-sequential-improvement-unlocking-the-next-phase-of-sustainable-and-profitable-growth-df4cbf96">Kering, resultados 2025</a> · <a href="https://mfn.se/all/a/kering/kering-2026-first-half-results-back-to-growth-performance-improvement-and-strategy-execution-on-track-be4c7c4c">Kering, primer semestre 2026</a></li>
+          <li><a href="https://www.gucci.com/us/en/pr/women/handbags/shoulder-bags-for-women/paparazzo-medium-top-handle-bag-p-875018AAGIQ1053">Gucci, ficha observada</a> · <a href="https://www.bottegaveneta.com/en-us/certificate-of-craft/certificate-of-craft.html">Bottega Veneta, Certificate of Craft</a></li>
+          <li><a href="https://cyprus-mail.com/2025/10/12/guccis-demna-launch-drives-early-sales-us-store-traffic-growth">Debut de Demna en Gucci</a> · <a href="https://www.luxurytribune.com/en/kering-still-penalized-by-gucci-in-2025">Caída de Gucci</a></li>
+        </ul></details>
+        <details><summary>Hermès y Chanel <span>13 fuentes</span></summary><ul>
+          <li><a href="https://mfn.se/all/a/hermes/hermes-international-2025-full-year-results-a01f2a5e">Hermès, resultados 2025</a> · <a href="https://www.hermes.com/us/en/">hermes.com (portada y hoja de estilos)</a></li>
+          <li><a href="https://www.hermes.cn/cn/en/content/339462-hermes-in-the-making-shenzhen">Hermès in the Making</a> · <a href="https://www.hermes.cn/cn/en/content/333126-creative-freedom/">Creative freedom (16 oficios, tema 2026)</a></li>
+          <li><a href="https://www.domusweb.it/en/news/2026/01/07/herms-new-website.html">Domus, la web ilustrada</a> · <a href="https://www.fastcompany.com/91471305/hermes-hand-illustrated-website-is-the-ultimate-luxury">Fast Company</a> · <a href="https://www.nssmag.com/en/fashion/46500/hermes-artist-website-illustration-ai">nss</a></li>
+          <li><a href="https://lampoonmagazine.com/hermes-petit-h-design-hermes-offcuts-reuse-godefroy-de-virieu-pascale-mussa/">Lampoon, petit h</a></li>
+          <li><a href="https://www.theindustry.fashion/chanel-sees-revenues-rise-following-year-of-exceptional-creative-momentum/">The Industry, resultados 2025 de Chanel</a> · <a href="https://www.cosmeticsbusiness.com/chanel-sales-hit-19-billion-in-2025">Cosmetics Business</a></li>
+          <li><a href="https://www.chanel.com/us/fashion/p/P83676V75644U6936/jacket-wool/">Chanel, ficha observada</a> · <a href="https://www.le19m.com/en/houses">le19M</a></li>
+          <li><a href="https://www.businessoffashion.com/news/news-analysis/online-sales-maybe-one-day-says-chanel/">Business of Fashion, por qué Chanel no vende online</a></li>
+        </ul></details>
+        <details><summary>Tipografía <span>14 fuentes</span></summary><ul>
+          <li><a href="https://github.com/google/fonts">Repositorio oficial de Google Fonts</a> (archivos medidos: cifras tabulares, español, versalitas)</li>
+          <li><a href="https://blazetype.eu/typefaces/slussen">Blaze Type, Slussen</a> · <a href="https://www.abcdinamo.com/projects/ssense">Dinamo, SSENSE</a> · <a href="https://fontsinuse.com/uses/64050/reformation-clare-waight-keller">Fonts In Use, Reformation</a></li>
+          <li><a href="https://commercialtype.com/catalog/lyon">Commercial Type, Lyon</a> · <a href="https://pangrampangram.com/products/neue-montreal">Pangram Pangram, Neue Montreal</a> · <a href="https://www.swisstypefaces.com/fonts/suisse/">Swiss Typefaces, Suisse</a></li>
+          <li><a href="https://klim.co.nz/fonts/domaine-display/">Klim, Domaine Display</a> · <a href="https://www.grillitype.com/typeface/gt-super">Grilli Type, GT Super</a></li>
+          <li><a href="https://www.omnibus-type.com/">Omnibus-Type</a> · <a href="https://www.latinotype.com/">Latinotype</a> · <a href="https://www.tipotype.com/">TipoType</a> · <a href="https://www.sudtipos.com/">Sudtipos</a> · <a href="https://www.htfonts.com/">HT Fonts</a></li>
+        </ul></details>
+        <details><summary>La cliente peruana <span>16 fuentes</span></summary><ul>
+          <li><a href="https://www.peru-retail.com/ecommerce-peruano-alcanza-los-us19-3-mil-millones-en-el-primer-semestre-de-2026-que-impulso-su-crecimiento/">Perú Retail, Capece primer semestre 2026</a> · <a href="https://elperuano.pe/notas-suplemento/articulo/134-el-comercio-electronico-consolida-su-dinamismo">El Peruano</a></li>
+          <li><a href="https://www.ipsos.com/es-pe/node/999011">Ipsos, «Compra por internet, compra con fe» (2023)</a> · <a href="https://infomercado.pe/el-perfil-del-consumidor-online-peruano-prioriza-el-movil-para-sus-compras/">Infomercado, uso del celular</a></li>
+          <li><a href="https://www.peru-retail.com/shein-escala-al-primer-lugar-del-ecommerce-de-moda-en-peru-cuanto-trafico-registro/">Shein, primero en tráfico de moda en el Perú</a></li>
+          <li><a href="https://www.yape.com.pe/">Yape</a> · <a href="https://docs.culqi.com/pdf/manual_shopify.pdf">Manual de Culqi (2022)</a> · <a href="https://www.culqi.com/static/files/tarifario_abril_26.pdf">Tarifario de Culqi 2026</a> · <a href="https://www.izipay.pe/">Izipay</a></li>
+          <li><a href="https://www.consumidor.gob.pe/libro-de-reclamaciones">Indecopi, Libro de Reclamaciones</a></li>
+          <li><a href="https://andina.pe/agencia/noticia-midagri-peru-lidera-mercado-mundial-carmin-cochinilla-1081879.aspx">Andina, el Perú lidera el carmín de cochinilla (Midagri)</a></li>
+          <li><a href="https://pe.kunastores.com/">Kuna</a> · <a href="https://ayni.com.pe/">Ayni</a> · <a href="https://mozhdehmatin.com/">Mozhdeh Matin</a> · <a href="https://www.topitop.pe/">Topitop</a> · <a href="https://www.ela.com.co/">Ela</a> · <a href="https://benitofernandez.com.ar/">Benito Fernández</a></li>
+          <li><a href="https://materiniciativa.com/">Mater Iniciativa</a> (contar el origen con nombres propios)</li>
+        </ul></details>
+        <details><summary>Funciones a futuro <span>16 fuentes</span></summary><ul>
+          <li><a href="https://techcrunch.com/2025/10/08/googles-virtual-try-on-shopping-tool-expands-to-more-countries-now-lets-you-try-on-shoes/">TechCrunch, el probador de Google</a> · <a href="https://fashionunited.es/noticias/retail/inditex-lleva-su-probador-virtual-por-ia-a-todas-sus-marcas-y-anuncia-nuevas-aperturas-desde-eeuu-al-caribe/2026031148642">FashionUnited, Zara Try-On</a></li>
+          <li><a href="https://help.fashn.ai/plans-and-pricing/api-pricing">FASHN, precios</a> · <a href="https://fal.ai/learn/tools/best-virtual-try-on-apis-2026">fal.ai, probadores</a> · <a href="https://ai.google.dev/gemini-api/docs/pricing">Precios de Gemini</a></li>
+          <li><a href="https://corporate.zalando.com/en/node/11013">Zalando, consejos de talla</a> · <a href="https://www.retailgazette.co.uk/blog/2026/03/zalando-reports-strong-2025-growth-as-ai-strategy-drives-performance/">Zalando Assistant</a></li>
+          <li><a href="https://vibegraveyard.ai/story/gap-sierra-chatbot-jailbreak-brand-safety/">El bot de Gap</a> · <a href="https://respond.io/blog/whatsapp-general-purpose-chatbots-ban">WhatsApp y los bots de propósito general</a></li>
+          <li><a href="https://andina.pe/agencia/noticia-modo-ia-llega-al-peru-google-expande-funcion-inteligencia-artificial-buscador-1045895.aspx">Andina, el Modo IA llega al Perú</a> · <a href="https://support.google.com/merchants/answer/160637">Merchant Center, países y monedas</a> · <a href="https://schema.org/hasMerchantReturnPolicy">schema.org</a></li>
+          <li><a href="https://ppc.land/llms-txt-adoption-rises-8-8x-but-97-of-files-get-zero-ai-requests/">llms.txt sin visitas</a> · <a href="https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/">WebKit, avisos en iPhone</a></li>
+          <li><a href="https://iapp.org/news/a/se-publica-el-nuevo-reglamento-de-protecci-n-de-datos-personales-en-per-">IAPP, nuevo reglamento de datos personales del Perú</a></li>
+          <li><a href="https://techcrunch.com/2023/09/27/snap-shutters-its-enterprise-services-division-after-less-than-a-year/">Snap cierra su negocio de AR para empresas</a> · <a href="https://cross-border-magazine.com/zara-launched-a-booking-system-for-fitting-rooms/">Zara, probador reservado</a></li>
+        </ul></details>
+      </div>
+      <p style="margin-top:16px;font-size:13.5px;color:var(--tinta-suave);max-width:70ch">Quedaron sin confirmar por el límite de búsquedas: la multa francesa de €40 M a Shein, el estado actual de Nike Fit y de Gucci en Roblox, si TikTok Shop y el agente de IA de WhatsApp Business ya operan en el Perú, el tope vigente de Yape en comercio electrónico y si existe una ley nueva de devolución en compras a distancia.</p>
+    </section>
+
+    <footer class="pie">
+      <span>CAYLA · Investigación para la tienda web · 17 de octubre de 2026</span>
+      <span>docs/investigacion/2026-10-17-identidad-tienda-web.html</span>
+    </footer>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var reducir = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- Datos de las propuestas (una sola fuente para el probador, las paletas y el resumen) ----------
+  var TIPOS = {
+    evolucion: { nombre: "A · Garamond afinado", vars: { "--pv-display": '"EB Garamond", Georgia, serif', "--pv-text": '"DM Sans", system-ui, sans-serif', "--pv-mono": '"DM Mono", ui-monospace, monospace', "--pv-precio": '"EB Garamond", Georgia, serif', "--pv-precio-peso": "500", "--pv-em": '"EB Garamond", Georgia, serif', "--pv-marca-peso": "500", "--pv-marca-esp": ".3em", "--pv-tit-peso": "400", "--pv-tit-esp": "-.02em", "--pv-tit-escala": "1.04", "--pv-tit-ancho": "100%", "--pv-em-estilo": "italic", "--pv-ceja-esp": ".16em" } },
+    linea: { nombre: "B · Línea continua", vars: { "--pv-display": '"Instrument Sans", system-ui, sans-serif', "--pv-text": '"Instrument Sans", system-ui, sans-serif', "--pv-mono": '"Instrument Sans", system-ui, sans-serif', "--pv-precio": '"Instrument Sans", system-ui, sans-serif', "--pv-precio-peso": "600", "--pv-em": '"Instrument Serif", Georgia, serif', "--pv-marca-peso": "600", "--pv-marca-esp": ".36em", "--pv-tit-peso": "500", "--pv-tit-esp": "-.03em", "--pv-tit-escala": ".92", "--pv-tit-ancho": "85%", "--pv-em-estilo": "italic", "--pv-ceja-esp": ".14em" } },
+    portada: { nombre: "C · Portada", vars: { "--pv-display": '"Bodoni Moda", Didot, serif', "--pv-text": '"Manrope", system-ui, sans-serif', "--pv-mono": '"Manrope", system-ui, sans-serif', "--pv-precio": '"Manrope", system-ui, sans-serif', "--pv-precio-peso": "600", "--pv-em": '"Bodoni Moda", Didot, serif', "--pv-marca-peso": "500", "--pv-marca-esp": ".26em", "--pv-tit-peso": "400", "--pv-tit-esp": "-.01em", "--pv-tit-escala": "1", "--pv-tit-ancho": "100%", "--pv-em-estilo": "italic", "--pv-ceja-esp": ".14em" } },
+    telar: { nombre: "D · Telar", vars: { "--pv-display": '"Labrada", Georgia, serif', "--pv-text": '"Chivo", system-ui, sans-serif', "--pv-mono": '"Chivo Mono", ui-monospace, monospace', "--pv-precio": '"Chivo Mono", ui-monospace, monospace', "--pv-precio-peso": "500", "--pv-em": '"Labrada", Georgia, serif', "--pv-marca-peso": "600", "--pv-marca-esp": ".28em", "--pv-tit-peso": "300", "--pv-tit-esp": "-.02em", "--pv-tit-escala": ".96", "--pv-tit-ancho": "100%", "--pv-em-estilo": "normal", "--pv-ceja-esp": ".1em" } }
+  };
+
+  // Cada paleta en claro y en oscuro. heroe/heroe2: la campaña; heroePrenda: la prenda dibujada sobre ella (color de dato).
+  var PALETAS = {
+    colibri: { nombre: "1 · Colibrí",
+      muestras: [["#f5f0e8", "Crema"], ["#fbf8f2", "Papel"], ["#1a1a18", "Tinta"], ["#805c4c", "Taupe"], ["#b8412d", "Rojo colibrí"], ["#6a2118", "Vino"]],
+      claro: { bg: "#f5f0e8", sup: "#fbf8f2", tinta: "#1a1a18", suave: "#805c4c", filo: "#e8e0d0", acento: "#b8412d", cta: "#1a1a18", ctaTinta: "#f5f0e8", heroe: "#6a2118", heroe2: "#92301f", heroeTinta: "#f6efe6", heroeAcento: "#f4c3b3", heroePrenda: "#e9dccb", estudio: "#ebe3d6", ok: "#48603f", poco: "#74501a", oferta: "#b8412d" },
+      oscuro: { bg: "#1a1a18", sup: "#242422", tinta: "#f5f0e8", suave: "#c4a898", filo: "#3d3c38", acento: "#e8806a", cta: "#f5f0e8", ctaTinta: "#1a1a18", heroe: "#4a1712", heroe2: "#6b2318", heroeTinta: "#f6efe6", heroeAcento: "#f4c3b3", heroePrenda: "#e9dccb", estudio: "#2c2a27", ok: "#9ccb8d", poco: "#e4b968", oferta: "#e8806a" } },
+    carmin: { nombre: "2 · Carmín",
+      muestras: [["#f6f3ef", "Algodón"], ["#fdfbf8", "Papel"], ["#1c1619", "Tinta"], ["#6f5a60", "Malva gris"], ["#9e1b32", "Carmín"], ["#7a1226", "Carmín profundo"]],
+      claro: { bg: "#f6f3ef", sup: "#fdfbf8", tinta: "#1c1619", suave: "#6f5a60", filo: "#e6dedc", acento: "#9e1b32", cta: "#9e1b32", ctaTinta: "#fdf6f2", heroe: "#7a1226", heroe2: "#a51d38", heroeTinta: "#fff4ef", heroeAcento: "#f7c6cd", heroePrenda: "#efe4dc", estudio: "#ece6e2", ok: "#3f6448", poco: "#82561a", oferta: "#9e1b32" },
+      oscuro: { bg: "#161113", sup: "#211b1e", tinta: "#f5eeea", suave: "#c9adb3", filo: "#3a3034", acento: "#ec7a8a", cta: "#ec7a8a", ctaTinta: "#161113", heroe: "#4f0c19", heroe2: "#741428", heroeTinta: "#fff4ef", heroeAcento: "#f7c6cd", heroePrenda: "#efe4dc", estudio: "#2a2225", ok: "#9ccb8d", poco: "#e4b968", oferta: "#ec7a8a" } },
+    sillar: { nombre: "3 · Sillar",
+      muestras: [["#efede8", "Sillar"], ["#f9f8f5", "Piedra clara"], ["#1f2124", "Tinta"], ["#5f636a", "Gris volcán"], ["#b8412d", "Rojo colibrí"], ["#3d5a80", "Azul Misti"]],
+      claro: { bg: "#efede8", sup: "#f9f8f5", tinta: "#1f2124", suave: "#5f636a", filo: "#dcd9d2", acento: "#b8412d", cta: "#1f2124", ctaTinta: "#f9f8f5", heroe: "#d6d1c6", heroe2: "#e8e4dc", heroeTinta: "#1f2124", heroeAcento: "#3d5a80", heroePrenda: "#3d4a5c", estudio: "#e4e1da", ok: "#3f5a46", poco: "#7a5418", oferta: "#b8412d" },
+      oscuro: { bg: "#1b1c1e", sup: "#242527", tinta: "#eeece6", suave: "#a9abb0", filo: "#36383b", acento: "#e8806a", cta: "#eeece6", ctaTinta: "#1b1c1e", heroe: "#2a2c30", heroe2: "#3a3d42", heroeTinta: "#eeece6", heroeAcento: "#a8bdd8", heroePrenda: "#c9b79c", estudio: "#2a2b2e", ok: "#9cc3a4", poco: "#e2b866", oferta: "#e8806a" } },
+    noche: { nombre: "4 · Vitrina de noche",
+      muestras: [["#0f0e0d", "Noche"], ["#1a1817", "Carbón"], ["#f2ece4", "Crema"], ["#a59d93", "Ceniza"], ["#ff6a4d", "Brasa"], ["#c63c24", "Brasa de día"]],
+      claro: { bg: "#fbfaf8", sup: "#ffffff", tinta: "#121212", suave: "#5d5852", filo: "#e7e3dd", acento: "#c63c24", cta: "#121212", ctaTinta: "#fbfaf8", heroe: "#121212", heroe2: "#2a1712", heroeTinta: "#f2ece4", heroeAcento: "#ff8a70", heroePrenda: "#e9dccb", estudio: "#efebe5", ok: "#3d6b47", poco: "#8a5a14", oferta: "#c63c24" },
+      oscuro: { bg: "#0f0e0d", sup: "#1a1817", tinta: "#f2ece4", suave: "#a59d93", filo: "#2d2a27", acento: "#ff6a4d", cta: "#f2ece4", ctaTinta: "#0f0e0d", heroe: "#141210", heroe2: "#2a1712", heroeTinta: "#f2ece4", heroeAcento: "#ff8a70", heroePrenda: "#e9dccb", estudio: "#1f1d1b", ok: "#9ccb8d", poco: "#e4b968", oferta: "#ff6a4d" } }
+  };
+
+  var DIRS = {
+    editorial: { nombre: "I · Vitrina editorial", idea: "Una foto grande y poco texto: la portada se siente de marca grande, pero el catálogo esconde el stock." },
+    taller: { nombre: "II · Taller abierto", idea: "El hilo rojo, la etiqueta y el taller por delante: cuenta lo que nadie más puede contar." },
+    mostrador: { nombre: "III · Mostrador vivo", idea: "Buscador, filtros por sede y stock a la vista, como una app: la más rápida para separar." },
+    mezcla: { nombre: "IV · La mezcla", idea: "Vitrina en la portada, stock a la vista en el catálogo y el taller en la ficha, unidos por el hilo rojo." }
+  };
+
+  var CLAVES = { bg: "--pv-bg", sup: "--pv-sup", tinta: "--pv-tinta", suave: "--pv-suave", filo: "--pv-filo", acento: "--pv-acento", cta: "--pv-cta", ctaTinta: "--pv-cta-tinta", heroe: "--pv-heroe", heroe2: "--pv-heroe-2", heroeTinta: "--pv-heroe-tinta", heroeAcento: "--pv-heroe-acento", heroePrenda: "--pv-heroe-prenda", estudio: "--pv-estudio", ok: "--pv-ok", poco: "--pv-poco", oferta: "--pv-oferta" };
+
+  // ---------- Contraste WCAG ----------
+  function canal(c) { c = c / 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+  function luminancia(hex) { var n = parseInt(hex.slice(1), 16); return 0.2126 * canal((n >> 16) & 255) + 0.7152 * canal((n >> 8) & 255) + 0.0722 * canal(n & 255); }
+  function contraste(a, b) { var la = luminancia(a), lb = luminancia(b); return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05); }
+  function veredicto(r, grande) { if (r >= 4.5) return ["AA", "ok"]; if (r >= 3) return [grande ? "AA grande" : "Solo grande", grande ? "ok" : "flojo"]; return ["Bajo", "flojo"]; }
+
+  var PARES = [["Texto", "tinta", "bg", false], ["Texto suave", "suave", "bg", false], ["Rojo sobre el fondo", "acento", "bg", true], ["Botón principal", "ctaTinta", "cta", false], ["Precio de oferta", "oferta", "bg", false]];
+
+  Object.keys(PALETAS).forEach(function (clave) {
+    var p = PALETAS[clave];
+    var tira = document.querySelector('[data-paleta-tira="' + clave + '"]');
+    if (tira) {
+      tira.innerHTML = p.muestras.map(function (m) {
+        var tinta = luminancia(m[0]) > 0.35 ? "#1a1a18" : "#f5f0e8";
+        return '<span data-color-dato style="background:' + m[0] + ";color:" + tinta + '"><b>' + m[1] + "</b>" + m[0].toUpperCase() + "</span>";
+      }).join("");
+    }
+    var caja = document.querySelector('[data-paleta-contraste="' + clave + '"]');
+    if (caja) {
+      var filas = ['<div class="contraste-fila contraste-cab"><span>Contraste medido</span><span>Claro</span><span>Oscuro</span></div>'];
+      PARES.forEach(function (par) {
+        var celdas = ["claro", "oscuro"].map(function (modo) {
+          var m = p[modo], r = contraste(m[par[1]], m[par[2]]), v = veredicto(r, par[3]);
+          return '<span><span class="cifra-ratio">' + r.toFixed(1).replace(".", ",") + ':1</span> <span class="' + v[1] + '">' + v[0] + "</span></span>";
+        });
+        filas.push('<div class="contraste-fila"><span>' + par[0] + "</span>" + celdas.join("") + "</div>");
+      });
+      caja.innerHTML = filas.join("");
+    }
+  });
+
+  // ---------- Medidores de valor y esfuerzo ----------
+  var TXT_VALOR = { "1": "bajo", "2": "medio", "2.5": "medio-alto", "3": "alto" };
+  var TXT_ESF = { "1": "bajo", "1.5": "bajo-medio", "2": "medio", "2.5": "medio-alto", "3": "alto" };
+  function puntos(v) { var h = ""; for (var i = 1; i <= 3; i++) { h += '<span class="punto' + (i <= v ? " on" : (i - 0.5 === v ? " medio" : "")) + '"></span>'; } return h; }
+  Array.prototype.forEach.call(document.querySelectorAll(".medidor"), function (m) {
+    var v = parseFloat(m.dataset.valor), e = parseFloat(m.dataset.esfuerzo);
+    m.setAttribute("aria-label", "Valor " + TXT_VALOR[m.dataset.valor] + ", esfuerzo " + TXT_ESF[m.dataset.esfuerzo]);
+    m.innerHTML = '<div><span>Valor</span><i>' + puntos(v) + "</i></div><div><span>Esfuerzo</span><i class=\"esf-dots\">" + puntos(e) + "</i></div><small>" + TXT_VALOR[m.dataset.valor] + " · esfuerzo " + TXT_ESF[m.dataset.esfuerzo] + "</small>";
+  });
+
+  // ---------- El probador ----------
+  var lab = document.getElementById("lab");
+  var form = document.getElementById("lab-mandos");
+  var lectura = document.getElementById("lab-lectura");
+  var GUARDA = "cayla-identidad-web";
+  var estado = { tipo: "evolucion", paleta: "colibri", dir: "editorial", modo: "claro" };
+  try { var g = JSON.parse(localStorage.getItem(GUARDA) || "null"); if (g && TIPOS[g.tipo] && PALETAS[g.paleta] && DIRS[g.dir] && (g.modo === "claro" || g.modo === "oscuro")) estado = g; } catch (e) { /* sin memoria: arranca con lo de fábrica */ }
+
+  function marcarRadios() {
+    ["tipo", "paleta", "dir", "modo"].forEach(function (n) {
+      var r = document.getElementById(n + "-" + estado[n]);
+      if (r) r.checked = true;
+    });
+  }
+
+  function aplicar() {
+    lab.dataset.tipo = estado.tipo; lab.dataset.paleta = estado.paleta; lab.dataset.dir = estado.dir; lab.dataset.modo = estado.modo;
+    var t = TIPOS[estado.tipo].vars;
+    Object.keys(t).forEach(function (k) { lab.style.setProperty(k, t[k]); });
+    var m = PALETAS[estado.paleta][estado.modo];
+    Object.keys(CLAVES).forEach(function (k) { lab.style.setProperty(CLAVES[k], m[k]); });
+    var reco = estado.tipo === "evolucion" && estado.paleta === "carmin" && estado.dir === "mezcla";
+    lectura.innerHTML = "<b>" + TIPOS[estado.tipo].nombre + "</b> con <b>" + PALETAS[estado.paleta].nombre + "</b> y <b>" + DIRS[estado.dir].nombre + "</b>, en " + estado.modo + ". " + DIRS[estado.dir].idea + (reco ? " Es la combinación recomendada." : "") + (estado.paleta === "noche" && estado.modo === "claro" ? " Esta paleta está pensada para el oscuro." : "");
+    document.getElementById("r-tipo").textContent = TIPOS[estado.tipo].nombre;
+    document.getElementById("r-paleta").textContent = PALETAS[estado.paleta].nombre;
+    document.getElementById("r-dir").textContent = DIRS[estado.dir].nombre;
+    document.getElementById("r-modo").textContent = estado.modo === "claro" ? "Claro" : "Oscuro";
+    try { localStorage.setItem(GUARDA, JSON.stringify(estado)); } catch (e) { /* sin memoria: no pasa nada */ }
+  }
+
+  form.addEventListener("change", function (ev) {
+    var t = ev.target;
+    if (!t.name || !(t.name in estado)) return;
+    estado[t.name] = t.value;
+    if (t.name === "paleta" && t.value === "noche") { estado.modo = "oscuro"; marcarRadios(); }
+    aplicar();
+  });
+
+  function irAlProbador() {
+    var sec = document.getElementById("probador");
+    if (sec) sec.scrollIntoView({ behavior: reducir ? "auto" : "smooth", block: "start" });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-probar-tipo],[data-probar-paleta],[data-probar-dir]"), function (b) {
+    b.addEventListener("click", function () {
+      if (b.dataset.probarTipo) estado.tipo = b.dataset.probarTipo;
+      if (b.dataset.probarPaleta) { estado.paleta = b.dataset.probarPaleta; if (estado.paleta === "noche") estado.modo = "oscuro"; }
+      if (b.dataset.probarDir) estado.dir = b.dataset.probarDir;
+      marcarRadios(); aplicar(); irAlProbador();
+    });
+  });
+  document.getElementById("ver-recomendada").addEventListener("click", function () {
+    estado = { tipo: "evolucion", paleta: "carmin", dir: "mezcla", modo: estado.modo };
+    marcarRadios(); aplicar();
+  });
+
+  marcarRadios(); aplicar();
+
+  // ---------- Funciones marcadas y texto para copiar ----------
+  var funcs = Array.prototype.slice.call(document.querySelectorAll("[data-func]"));
+  function elegidas() { return funcs.filter(function (f) { return f.checked; }).map(function (f) { return f.dataset.func; }); }
+  function pintarFuncs() {
+    var e = elegidas();
+    document.getElementById("r-funcs").textContent = e.length ? e.length + (e.length === 1 ? " marcada" : " marcadas") : "Ninguna marcada";
+  }
+  funcs.forEach(function (f) { f.addEventListener("change", pintarFuncs); });
+  pintarFuncs();
+
+  function textoEleccion() {
+    var promesa = document.querySelector('input[name="promesa"]:checked');
+    var nota = document.getElementById("nota").value.trim();
+    var lineas = [
+      "Mi elección para la tienda web de CAYLA (investigación del 17-10-2026):",
+      "- Tipografía: " + TIPOS[estado.tipo].nombre,
+      "- Paleta: " + PALETAS[estado.paleta].nombre + " (modo " + estado.modo + ")",
+      "- Diseño: " + DIRS[estado.dir].nombre,
+      "- Promesa: " + (promesa ? promesa.value : "sin elegir"),
+      "- Funciones: " + (elegidas().join("; ") || "ninguna")
+    ];
+    if (nota) lineas.push("- Nota: " + nota);
+    return lineas.join("\n");
+  }
+  var aviso = document.getElementById("copiado");
+  var respaldo = document.getElementById("texto-eleccion");
+  document.getElementById("copiar").addEventListener("click", function () {
+    var texto = textoEleccion();
+    function mostrarRespaldo() {
+      respaldo.value = texto; respaldo.hidden = false; respaldo.style.minHeight = "150px";
+      respaldo.focus(); respaldo.select();
+      aviso.textContent = "No se pudo copiar solo. El texto quedó seleccionado: cópialo con Ctrl+C o ⌘C.";
+    }
+    try {
+      navigator.clipboard.writeText(texto).then(function () {
+        aviso.textContent = "Copiado. Pégalo en la conversación.";
+        respaldo.hidden = true;
+      }, mostrarRespaldo);
+    } catch (e) { mostrarRespaldo(); }
+  });
+
+  // ---------- El hilo que se dibuja una vez ----------
+  var hilo = document.querySelector(".hilo-demo");
+  function animarHilo() {
+    if (!hilo || reducir) return;
+    hilo.classList.remove("anima"); void hilo.getBoundingClientRect(); hilo.classList.add("anima");
+  }
+  if (hilo && "IntersectionObserver" in window && !reducir) {
+    var visto = false;
+    new IntersectionObserver(function (ents, obs) {
+      ents.forEach(function (en) { if (en.isIntersecting && !visto) { visto = true; animarHilo(); obs.disconnect(); } });
+    }, { threshold: 0.6 }).observe(hilo);
+  }
+  document.getElementById("repetir-hilo").addEventListener("click", animarHilo);
+
+  // ---------- Índice: marca la sección que se está leyendo ----------
+  var enlaces = Array.prototype.slice.call(document.querySelectorAll(".indice a"));
+  var lista = document.querySelector(".indice ol");
+  if ("IntersectionObserver" in window) {
+    var visibles = {};
+    var obsInd = new IntersectionObserver(function (ents) {
+      ents.forEach(function (en) { visibles[en.target.id] = en.isIntersecting; });
+      var activo = null;
+      enlaces.forEach(function (a) { if (!activo && visibles[a.getAttribute("href").slice(1)]) activo = a; });
+      if (!activo) return;
+      enlaces.forEach(function (a) { a.classList.toggle("activo", a === activo); if (a === activo) a.setAttribute("aria-current", "true"); else a.removeAttribute("aria-current"); });
+      if (lista.scrollWidth > lista.clientWidth) lista.scrollTo({ left: activo.parentNode.offsetLeft - 16, behavior: reducir ? "auto" : "smooth" });
+    }, { rootMargin: "-20% 0px -70% 0px" });
+    enlaces.forEach(function (a) { var s = document.getElementById(a.getAttribute("href").slice(1)); if (s) obsInd.observe(s); });
+  }
+})();
+</script>

@@ -3,9 +3,16 @@
   "configurations": [
     {
       "name": "maqueta-referentes",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "python3 -m http.server ${PORT:-3031} --directory docs/maquetas"],
+      "port": 3031,
+      "autoPort": true
+    },
+    {
+      "name": "investigacion-docs",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "3031", "--directory", "docs/maquetas"],
-      "port": 3031
+      "runtimeArgs": ["-m", "http.server", "3032", "--bind", "127.0.0.1", "--directory", "docs/investigacion"],
+      "port": 3032
     },
     {
       "name": "cayla-retail-dev",

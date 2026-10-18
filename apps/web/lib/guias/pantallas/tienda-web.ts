@@ -38,14 +38,14 @@ export const GUIA_TIENDA_WEB_RESUMEN: Guia = {
       id: "pendientes",
       ancla: "tienda-web.pendientes",
       titulo: "Lo que te pide hoy",
-      texto: "De lo urgente a lo que solo informa: pedidos por confirmar, plata por devolver, recomendaciones sin leer, tallas que llegaron. Tocas una y te lleva a la pantalla donde se resuelve.",
+      texto: "De lo urgente a lo que solo informa: pedidos por confirmar, plata por devolver, recomendaciones por responder, tallas que llegaron. Tocas una y te lleva a la pantalla donde se resuelve.",
     },
     {
       id: "camino",
       ancla: "tienda-web.camino",
       opcional: true,
       titulo: "El camino de los pedidos",
-      texto: "Cuántos pedidos hay en cada paso: por confirmar, por cobrar, por entregar y cerrados. El tramo con el reloj en rojo cierra el pedido solo si no lo confirmas a tiempo; los de la campana solo avisan. Toca uno para ver esos pedidos.",
+      texto: "Cuántos pedidos hay en cada paso: por confirmar, por cobrar, por entregar y cerrados. Los tramos con el reloj en rojo pierden la venta: sin confirmar, se cierra solo; sin ningún pago, se anula solo. El de la campana solo avisa. Toca uno para ver esos pedidos.",
     },
     {
       id: "nota",
@@ -98,7 +98,7 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       ancla: "pedidos-web.cifras",
       opcional: true,
       titulo: "El camino de un pedido",
-      texto: "Cuántos pedidos hay en cada paso: por confirmar, por cobrar, por entregar y cerrados. El tramo con el reloj en rojo cierra el pedido solo si no lo confirmas a tiempo; los de la campana solo avisan. Toca un paso para ver solo esos pedidos, y otra vez para volver a todo.",
+      texto: "Cuántos pedidos hay en cada paso. Los tramos con el reloj en rojo pierden la venta: si nadie lo confirma, se cierra solo; si no paga nada, se anula solo. El de la campana solo avisa. Toca un paso para ver solo esos pedidos, y otra vez para volver a todo.",
     },
     {
       id: "para-enviar",
@@ -143,7 +143,7 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       ancla: "pedidos-web.plazo",
       opcional: true,
       titulo: "Su plazo",
-      texto: "Qué pasa y cuándo, una sola vez: «se cierra solo en 2 h», «sin pagar hace 2 días», «listo para recoger». En rojo, lo que se pierde o ya pasó su aviso. La barra dice cuánto va del tiempo de ese paso.",
+      texto: "Qué pasa y cuándo, una sola vez: «se cierra solo en 2 h», «sin pago, se anula en 5 h», «listo para recoger». En rojo, lo que se pierde o ya pasó su aviso. La barra dice cuánto va del tiempo de ese paso.",
     },
     {
       id: "verbo",
@@ -694,7 +694,7 @@ export const GUIA_VITRINA_PROBADOR: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Arma el tuyo",
-      texto: "En la tienda online el cliente arma su look poniendo una prenda sobre otra, a su tamaño real. Para eso cada prenda necesita su largo y su recorte sin fondo. Aquí ves qué le falta a cada una. Es una demo: no se guarda nada.",
+      texto: "En la tienda online el cliente arma su look con tres prendas —una de arriba, una de abajo y un bolso—, a su tamaño real. Para eso cada prenda necesita su largo y su recorte sin fondo. Aquí ves qué le falta a cada una. Es una demo: no se guarda nada.",
     },
     {
       id: "pestanas",
@@ -783,7 +783,7 @@ export const GUIA_VITRINA_PROBADOR: Guia = {
       preparar: [{ tipo: "clic", ancla: "probador.prenda" }],
       prepararSoloAlAvanzar: true,
       titulo: "Su largo",
-      texto: "En centímetros, de arriba abajo como cae puesta. Vacío usa el típico de su categoría. Vestidos, faldas, conjuntos y enterizos no tienen típico: sin su largo no entran al probador.",
+      texto: "En centímetros, de arriba abajo como cae puesta. Vacío usa el típico de su categoría. Las faldas no tienen típico (una mini y una maxi no se parecen): sin su largo no entran al probador.",
     },
     {
       id: "largo-responsable",
@@ -901,8 +901,8 @@ export const GUIA_VITRINA_PROBADOR: Guia = {
 };
 
 // Tienda web ▸ Recomendaciones (ADR-0408, Felipe 2026-10-15): lo que los clientes le recomiendan a CAYLA desde la tienda online, con su
-// nombre. El piloto abre la primera recomendación de la lista, escribe un ejemplo de respuesta (que no envía) y cierra la hoja. Marcar
-// como leída, Enviar respuesta y Archivar se EXPLICAN.
+// nombre. El piloto abre la primera recomendación de la lista, escribe un ejemplo de respuesta (que no envía) y cierra la hoja. Enviar
+// respuesta y Archivar sin responder se EXPLICAN.
 export const GUIA_RECOMENDACIONES: Guia = {
   id: "tienda-web.recomendaciones",
   ruta: "/tienda-web/recomendaciones",
@@ -919,19 +919,19 @@ export const GUIA_RECOMENDACIONES: Guia = {
       id: "cifras",
       ancla: "recomendaciones.cifras",
       titulo: "Cuántas hay",
-      texto: "«Sin leer» son las que nadie abrió todavía. Toca una cifra para ver solo esas en la lista; tócala otra vez para volver a la bandeja.",
+      texto: "«Por responder» son las que esperan algo de CAYLA: la lista las muestra de entrada. Toca otra cifra para ver solo esas; tócala otra vez para volver a las que esperan.",
     },
     {
       id: "filtros",
       ancla: "recomendaciones.filtros",
       titulo: "Buscar y filtrar",
-      texto: "Busca una palabra de lo que escribieron o el nombre del cliente. «Estado» cambia entre la bandeja, las sin leer, las respondidas y las archivadas; «Sobre» deja las de una tienda o las de CAYLA en general.",
+      texto: "Busca una palabra de lo que escribieron o el nombre del cliente. «Estado» cambia entre las por responder, toda la bandeja, las respondidas y las archivadas; «Sobre» deja las de una tienda o las de CAYLA en general.",
     },
     {
       id: "lista",
       ancla: "recomendaciones.lista",
       titulo: "La bandeja",
-      texto: "Cada fila dice quién la escribió, sobre qué tienda es, lo que escribió y en qué está. Toca una para leerla entera y responder.",
+      texto: "Cada fila dice quién la escribió, sobre qué tienda es, lo que escribió y en qué está. Toca una y se abre al costado, con la lista a la vista.",
     },
     {
       id: "vacio",
@@ -960,7 +960,14 @@ export const GUIA_RECOMENDACIONES: Guia = {
       ancla: "recomendacion.cliente",
       opcional: true,
       titulo: "Quién la escribió",
-      texto: "Su nombre arriba y, debajo, sobre qué tienda es y, si tu rol ve las fichas de clientes, el camino a su ficha. Si su ficha se anonimizó, la recomendación se queda sin su nombre.",
+      texto: "Arriba del cajón: sobre qué tienda es, su nombre y, si tu rol ve las fichas de clientes, quién es (del club, cuánto compra, en qué tienda) y el camino a su ficha. Si su ficha se anonimizó, queda sin su nombre.",
+    },
+    {
+      id: "quien-es",
+      ancla: "recomendacion.quien-es",
+      opcional: true,
+      titulo: "Quién es",
+      texto: "Si es del club, cuánto compró en el último año, en qué tienda y cuándo fue la última vez. Lo ves solo si tu rol ve las fichas de clientes.",
     },
     {
       id: "respuesta-dada",
@@ -970,33 +977,61 @@ export const GUIA_RECOMENDACIONES: Guia = {
       texto: "Si alguien ya le respondió, aquí ves qué le dijo, quién y cuándo. El cliente la lee en su cuenta.",
     },
     {
+      id: "lo-que-pide",
+      ancla: "recomendacion.lo-que-pide",
+      opcional: true,
+      titulo: "Lo que pide",
+      texto: "De qué habla lo que escribió y el dato del ERP para responderle: cuántos modelos hay en su talla, cuántos colores, cómo entrega la tienda online. Tocar otro tema cambia las formas de empezar.",
+    },
+    {
+      id: "inicios",
+      ancla: "recomendacion.inicios",
+      opcional: true,
+      titulo: "Formas de empezar",
+      texto: "Un comienzo que lo saluda por su nombre y dice qué se hará con lo que contó. Tócalo y sigue escribiendo; si ya tenías algo, «Recuperar lo que escribí» lo trae de vuelta.",
+    },
+    {
       id: "respuesta",
       ancla: "recomendacion.respuesta",
       opcional: true,
       titulo: "Tu respuesta",
-      texto: "Un texto corto que el cliente lee en su cuenta de la tienda online. Se escribe una sola vez. Si no hace falta responder, déjala vacía: el botón la marca como leída.",
+      texto: "Un texto corto que el cliente lee en su cuenta de la tienda online. Se escribe una sola vez: el corrector subraya las faltas y abajo ves cómo le llega.",
       demostrar: [{ tipo: "escribir", ancla: "recomendacion.respuesta", texto: "¡Gracias por escribirnos! Ya lo estamos viendo." }],
+    },
+    {
+      id: "vista-cliente",
+      ancla: "recomendacion.vista-cliente",
+      opcional: true,
+      titulo: "Así le llega",
+      texto: "Es la misma tarjeta que el cliente ve en su cuenta de la tienda online, con tu respuesta mientras la escribes. Revísala aquí: después de enviada ya no se corrige.",
     },
     {
       id: "responsable",
       ancla: "recomendacion.responsable",
       opcional: true,
       titulo: "Quién lo hace",
-      texto: "La persona del equipo que la lee o la responde. Queda anotado con su nombre.",
+      texto: "La persona del equipo que la responde o la archiva. Queda anotado con su nombre.",
     },
     {
       id: "acciones",
       ancla: "recomendacion.acciones",
       opcional: true,
-      titulo: "Responder, leída o archivar",
-      texto: "«Enviar respuesta» se la manda a su cuenta; sin respuesta, «Marcar como leída». «Archivar» la saca de la bandeja sin borrarla y se puede deshacer. En la demo no tocamos ninguno.",
+      titulo: "Responder o archivar",
+      texto: "«Enviar respuesta» se la manda a su cuenta. Si no hace falta responder, «Archivar sin responder» la saca de la bandeja sin borrarla y el cliente la ve como leída. Después, «Siguiente por responder» o ↑ ↓ te llevan a otra sin cerrar. En la demo no tocamos ninguno.",
+    },
+    {
+      id: "por-salir",
+      ancla: "recomendacion.por-salir",
+      opcional: true,
+      titulo: "Ocho segundos para deshacer",
+      texto: "Al enviar, tu respuesta espera 8 segundos antes de salir: «Deshacer» la devuelve a la caja para corregirla. Si cierras el cajón o pasas a otra, sale en ese momento.",
     },
     {
       id: "nota",
       ancla: "recomendaciones.nota",
       preparar: [{ tipo: "escape" }],
       titulo: "Lo que conviene saber",
-      texto: "Las recomendaciones no se borran: se archivan. Cada lectura, respuesta y archivo queda anotado en la Actividad con quién lo hizo.",
+      texto: "Las recomendaciones no se borran: se archivan. Cada respuesta y cada archivo queda anotado en la Actividad con quién lo hizo.",
     },
     {
       id: "fin",

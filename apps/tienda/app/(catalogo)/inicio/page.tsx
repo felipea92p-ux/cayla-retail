@@ -26,9 +26,11 @@ import {
   type Prenda,
 } from "@/lib/catalogo";
 import { leerBeneficiosDelClub, leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
+import { hoyLima } from "@/lib/cuentas";
 import { categoriasDelInicio, heroDelInicio } from "@/lib/inicio";
-import { avisoAlEntrar } from "@/lib/inicio-aviso";
+import { avisoAlEntrar, avisosDeRespuestas } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
+import { leerMisRecomendaciones } from "@/lib/recomendaciones-servidor";
 import { hrefLooks } from "@/lib/looks";
 import { leerLooks } from "@/lib/looks-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
@@ -71,10 +73,19 @@ export default async function Inicio({ searchParams }: Props) {
     leerLooks(pedida?.id ?? null),
     leerBeneficiosDelClub(),
   ]);
-  const [lectura, avisos, vistos] =
+  const [lectura, avisosDelClub, mias, vistos] =
     sesion.estado === "con_sesion"
-      ? await Promise.all([leerMiCuentaEnBase(sesion.usuarioId), leerAvisosDelClub(sesion.usuarioId), avisosVistos()])
-      : [null, null, new Set<string>()];
+      ? await Promise.all([
+          leerMiCuentaEnBase(sesion.usuarioId),
+          leerAvisosDelClub(sesion.usuarioId),
+          // «CAYLA te respondió» (hoja nueva de Recomendaciones, 2026-10-17): sus respuestas de los últimos 30 días, en el mismo aviso.
+          leerMisRecomendaciones(sesion.usuarioId),
+          avisosVistos(),
+        ])
+      : [null, null, null, new Set<string>()];
+  const respuestas = sesion.estado === "con_sesion" && mias?.estado === "ok" ? avisosDeRespuestas(mias.mias.recomendaciones, sesion.usuarioId, hoyLima()) : [];
+  // Si una de las dos lecturas no contestó, sale lo de la otra: un aviso a medias es mejor que ninguno, y lo demás sigue en su página.
+  const avisos = avisosDelClub || respuestas.length > 0 ? [...(avisosDelClub ?? []), ...respuestas] : null;
   const cuenta = lectura?.estado === "cuenta" ? lectura.cuenta : null;
   // Sin sesión el Inicio es el mismo (Felipe 2026-10-17): lo que cambia es que «Así se separa» y el Club invitan a crear la cuenta.
   const conSesion = sesion.estado !== "sin_sesion";

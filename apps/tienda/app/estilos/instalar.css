@@ -7,7 +7,7 @@
    ===================================================================================================== */
 .t-inst-icono { --t-icono-app: #f5f0e8; /* el crema del archivo del ícono (public/cayla-app-*.png): no cambia con el tema */
   flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--t-icono-app); box-shadow: inset 0 0 0 1px var(--sand); }
-.t-inst-icono img { width: 62%; height: auto; }
+.t-inst-icono .t-marca-colibri { width: 62%; color: var(--t-logo); }
 
 /* ---------- la hoja (plantillas C y D) ---------- */
 dialog.t-inst { position: fixed; inset: 0; margin: 0; padding: 0; border: 0; width: 100%; height: 100%; max-width: none; max-height: none; background: transparent; color: var(--tinta); overflow: hidden; }

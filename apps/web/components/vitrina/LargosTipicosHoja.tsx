@@ -16,8 +16,8 @@ import { avisoDeRedondeo, errorDeLargo, leerLargo, type TipicoDeCategoria } from
 
 /**
  * Los largos típicos de Vitrina ▸ Probador (ADR-0434, actividad 3): el largo con que el probador dibuja una prenda de cada categoría
- * hasta que se anote el suyo. Vacío: la categoría no tiene típico y sus prendas entran solo con su largo propio (así nacen vestidos,
- * faldas, conjuntos y enterizos: Felipe, 2026-10-16). Se guarda todo junto y firma el «Responsable» (ADR-0162).
+ * hasta que se anote el suyo. Vacío: la categoría no tiene típico y sus prendas entran solo con su largo propio (así nacen las
+ * faldas: Felipe, 2026-10-16). Se guarda todo junto y firma el «Responsable» (ADR-0162).
  */
 export function LargosTipicosHoja({
   tipicos,
