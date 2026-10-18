@@ -16,8 +16,9 @@
 --       al_cierre   lo que costaría el período entero: las horas al ritmo de lo trabajado y el sueldo fijo completo. Solo
 --                   si ya corrieron 7 días (con menos, una semana rara decide el mes entero); si no, nulo.
 --     La unidad es costo = `total + provision_total`, la MISMA definición de `planilla_por_sede` (lo que le cuesta a CAYLA).
---   · `retail.fn_planilla_provision(desde, hasta, ubicacion)` (la que llama la web): la anterior, acotada al alcance del
---     diario (`fn_diario_ubicaciones`): el líder ve todo; con «Reportes financieros», su sede.
+--   · `retail.fn_planilla_provision(desde, hasta, ubicacion)` (la que llama la web): la anterior, acotada al MISMO alcance que el Estado
+--     de resultados (`fn_ve_finanzas_de_todo()`, la regla única de Finanzas, ADR-0433): quien ve todo (el líder, o un rol con Configuración,
+--     Cierre de mes o CAYLA Global) ve todas las sedes y «de la empresa»; con solo «Reportes financieros», su sede.
 --
 -- DECISIONES DE FELIPE (2026-10-17).
 --   1. Se ve en Resumen y Resultados como «estimado», FUERA DEL LIBRO: no entra al diario, al Balance ni al cierre. Cuando
@@ -141,11 +142,11 @@ returns table (
 language plpgsql stable security definer set search_path = retail, public, extensions as $$
 #variable_conflict use_column
 declare
-  v_lider boolean := retail.fn_es_lider();
+  v_ve_todo boolean := coalesce(retail.fn_ve_finanzas_de_todo(), false);
   v_ubics uuid[] := retail.fn_diario_ubicaciones();
   v_todo boolean;
 begin
-  if not v_lider and coalesce(cardinality(v_ubics), 0) = 0 then
+  if not v_ve_todo and coalesce(cardinality(v_ubics), 0) = 0 then
     raise exception 'Ver la planilla estimada necesita el módulo «Reportes financieros» en tu rol.' using errcode = '42501';
   end if;
   if p_ubicacion_id is not null then
@@ -154,7 +155,7 @@ begin
     end if;
     v_ubics := array[p_ubicacion_id];
   end if;
-  v_todo := v_lider and p_ubicacion_id is null;
+  v_todo := v_ve_todo and p_ubicacion_id is null;
   return query
   select c.ubicacion_id, c.sede_codigo, c.unidad, c.periodo_id, c.fecha_ini, c.fecha_fin, c.personas, c.dias_periodo,
          c.dias_corridos, c.devengado, c.al_cierre
@@ -162,7 +163,7 @@ begin
    where v_todo or c.ubicacion_id = any (v_ubics);
 end $$;
 comment on function retail.fn_planilla_provision(date, date, uuid) is
-  'ADR-0453: la planilla estimada de los períodos de Dynamic sin pagar (ver fn_planilla_provision_calc), acotada al alcance del diario: el líder ve todas las sedes y «de la empresa»; con Reportes financieros, su sede. Solo lectura; fuera del libro: no entra al diario, al Balance ni al cierre.';
+  'ADR-0453: la planilla estimada de los períodos de Dynamic sin pagar (ver fn_planilla_provision_calc), acotada al mismo alcance que el Estado de resultados (fn_ve_finanzas_de_todo): quien ve todo ve todas las sedes y «de la empresa»; con solo Reportes financieros, su sede. Solo lectura; fuera del libro: no entra al diario, al Balance ni al cierre.';
 
 -- ---------- 3. Quién puede llamarlas ----------
 revoke all on function retail.fn_planilla_provision_calc(date, date, date) from public, anon, authenticated;

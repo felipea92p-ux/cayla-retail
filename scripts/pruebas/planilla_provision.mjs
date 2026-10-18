@@ -10,8 +10,9 @@
  *   · EL MAPEO: el taller de Dynamic es el Taller de retail (por su tipo); la central y la oficina son «de la empresa».
  *   · NUNCA DOS VECES: un período ya pagado no se estima (entra lo real por `planilla_por_sede`); lo cerrado se queda cerrado.
  *   · PRINCIPIO 9: sin ser admin o líder en Dynamic no devuelve nada; si Dynamic falla con UN período, los demás se devuelven.
- *   · PERMISOS: el líder ve todas las sedes; con «Reportes financieros», la suya; sin él, nada; `anon` y `authenticated` no
- *     llaman a la función interna.
+ *   · PERMISOS: el mismo alcance que el Estado de resultados (`fn_ve_finanzas_de_todo()`, ADR-0433): el líder, o quien tiene «Cierre de
+ *     mes», ve todas las sedes y «de la empresa»; con solo «Reportes financieros», la suya; sin él, nada; `anon` y `authenticated` no
+ *     llaman a la función interna. Y ninguna de las dos pregunta `fn_es_lider()` por su cuenta (la regla A1 de `pruebas:finanzas-alcance`).
  *   · PEGAR DOS VECES no cambia las funciones.
  *
  * CÓMO. Cada escena corre dentro de UNA transacción con ROLLBACK; fechas de 2030 para no cruzarse con datos reales. Dynamic se
@@ -209,6 +210,11 @@ select 'R2 sin el módulo, una colaboradora no ve la planilla estimada', (select
 ${conModulo("reportes_financieros")}
 select 'R3 con el módulo ve SU sede y nada más: ni el Taller ni la empresa', (select count(*) = 1 and bool_and(ubicacion_id = :'tru') from retail.fn_planilla_provision('2030-10-01', '2030-11-30'));
 select 'R3 pedir otra sede falla', (select pg_temp.intento(format('select * from retail.fn_planilla_provision(%L, %L, %L)', '2030-10-01', '2030-11-30', :'lim')) like '%esa ubicación%');
+-- La regla única de Finanzas (ADR-0433): quien cierra el mes ve «De la empresa» en el Estado de resultados, así que también su estimación.
+${conModulo("cierre_mes")}
+select 'R3b con «Cierre de mes» ve lo mismo que el líder: todas las sedes y «de la empresa», como el Estado de resultados', (select count(*) = 4 and count(distinct unidad) = 3 from retail.fn_planilla_provision('2030-10-01', '2030-11-30'));
+select 'R3b y puede pedir una sola sede', (select count(*) = 1 and bool_and(ubicacion_id = :'tru') from retail.fn_planilla_provision('2030-10-01', '2030-11-30', :'tru'));
+select 'R3c ninguna de las dos funciones pregunta fn_es_lider() por su cuenta (la regla A1 de pruebas:finanzas-alcance)', (select count(*) = 0 from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname like 'fn_planilla_provision%' and regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g') ~ 'fn_es_lider\\s*\\(');
 select 'R4 anon no puede llamar a ninguna', (select not has_function_privilege('anon', 'retail.fn_planilla_provision(date, date, uuid)', 'execute') and not has_function_privilege('anon', 'retail.fn_planilla_provision_calc(date, date, date)', 'execute'));
 select 'R4 una sesión llama a la pública pero no a la interna', (select has_function_privilege('authenticated', 'retail.fn_planilla_provision(date, date, uuid)', 'execute') and not has_function_privilege('authenticated', 'retail.fn_planilla_provision_calc(date, date, date)', 'execute'));
 `;

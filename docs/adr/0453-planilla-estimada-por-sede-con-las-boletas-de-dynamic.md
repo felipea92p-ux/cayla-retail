@@ -39,7 +39,7 @@ Dynamic, en cambio, no está ciego: calcula la boleta de cada persona con las ma
 ## Decisión
 
 1. **Dos funciones de solo lectura** (`retail.fn_planilla_provision_calc`, interna, y `retail.fn_planilla_provision`, la que llama la web, acotada al
-   alcance del diario). Por cada período de Dynamic SIN pagar cuyo fin cae en el rango, piden `fn_proyeccion_periodo`, y por sede devuelven:
+   mismo alcance que el Estado de resultados: `fn_ve_finanzas_de_todo()`, la regla única de Finanzas, ADR-0433). Por cada período de Dynamic SIN pagar cuyo fin cae en el rango, piden `fn_proyeccion_periodo`, y por sede devuelven:
    - **devengado** — lo que corresponde pagar hasta hoy: quien cobra por horas, lo trabajado; quien tiene sueldo fijo, su sueldo en proporción a
      los días corridos del período. Es lo que Dynamic pagaría hoy.
    - **al_cierre** — lo que costaría el período entero: las horas al ritmo de lo trabajado y el fijo completo. Solo con 7 días corridos o más (con menos,
