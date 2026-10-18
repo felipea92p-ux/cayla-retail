@@ -118,3 +118,45 @@ export function cajaDeAbajoUnida(
     h: Math.round(h),
   };
 }
+
+/* ======================== Para medir rápido: qué se baja, y lo que se recuerda entre visitas ======================== */
+
+/** El ancho (px) al que se baja un recorte para medirlo: uno de los anchos que el optimizador de imágenes de la tienda ya sirve (`imageSizes`). */
+export const ANCHO_PARA_MEDIR = 256;
+/** Cuántos recortes medidos se recuerdan en el navegador (los más nuevos): son tres números por prenda. */
+export const MEDIDAS_QUE_SE_RECUERDAN = 300;
+
+/**
+ * De dónde se baja un recorte para medirlo. Una foto del almacén de CAYLA pasa por el optimizador (misma dirección que ya usa la figura, 256 px
+ * de ancho): pesa una fracción del PNG entero, sale de la caché del CDN y es del mismo origen, sin pedir permisos de lectura. Cualquier otra se
+ * baja tal cual. Las medidas son fracciones de la imagen, así que no cambian por bajarla más chica.
+ */
+export function direccionParaMedir(foto: { url: string; optimizar: boolean }): string {
+  return foto.optimizar ? `/_next/image?url=${encodeURIComponent(foto.url)}&w=${ANCHO_PARA_MEDIR}&q=75` : foto.url;
+}
+
+const esFraccion = (v: unknown): v is number | null => v === null || (typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1);
+
+/** Lo que se recordó de visitas anteriores: solo lo bien formado (un texto roto o de otra versión no rompe nada). */
+export function medidasDesdeTexto(texto: string | null): Map<string, MedidaDelRecorte> {
+  const salida = new Map<string, MedidaDelRecorte>();
+  if (!texto) return salida;
+  try {
+    const dato: unknown = JSON.parse(texto);
+    if (!dato || typeof dato !== "object" || Array.isArray(dato)) return salida;
+    for (const [url, m] of Object.entries(dato)) {
+      if (!m || typeof m !== "object") continue;
+      const { filaDelBorde, borde, pretina } = m as Record<string, unknown>;
+      if (esFraccion(filaDelBorde) && esFraccion(borde) && esFraccion(pretina)) salida.set(url, { filaDelBorde, borde, pretina });
+    }
+  } catch {
+    // Un texto que no es JSON se ignora: se vuelve a medir.
+  }
+  return salida;
+}
+
+/** Lo que se guarda: solo recortes que sí se pudieron medir, y los últimos `MEDIDAS_QUE_SE_RECUERDAN`. */
+export function medidasATexto(medidas: ReadonlyMap<string, MedidaDelRecorte | null>): string {
+  const buenas = [...medidas].filter((e): e is [string, MedidaDelRecorte] => e[1] !== null && (e[1].borde !== null || e[1].pretina !== null));
+  return JSON.stringify(Object.fromEntries(buenas.slice(-MEDIDAS_QUE_SE_RECUERDAN)));
+}
