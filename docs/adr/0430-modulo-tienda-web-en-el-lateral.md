@@ -119,3 +119,90 @@ DECIDÍ 2, así que se hizo (migración `20261016223000_tienda_web_modulo_ajuste
   a la misma pantalla.
 - **Se rompe si:** alguien con Configuración abre un enlace viejo `/configuracion?tab=tienda-web` (redirige a `/tienda-web/ajustes`): sin el
   módulo nuevo ve «Sin acceso».
+
+## Actualización 2026-10-17 — Pedidos: una sola navegación, «Lo que te toca» y cada fila con su verbo
+
+Felipe pidió críticas de Pedidos con una maqueta (`docs/maquetas/pedidos-web-2026-10/index.html`, con la pantalla de antes al lado) y
+eligió construir las siete. Mismas funciones de la base, mismas hojas, mismos permisos: cambia qué se muestra y en qué orden. La lógica
+es pura y probada (`lib/pedidos-web-reglas.ts`: `estacionesDe`, `tramosDelCamino`, `reglasDelCamino`, `loQueTeToca`, `relojDeFila`,
+`verboDe`, `porQueSeCerraron`, `todoAlDia`).
+
+**DECIDÍ 7 — El camino es la única navegación de Pedidos: sus estaciones filtran y se quitó la fila de pestañas.** Las tres cifras y
+tres de las cuatro pestañas llevaban al mismo lugar («Por confirmar» se leía tres veces en la primera pantalla). Ahora el camino tiene
+cuatro estaciones (Por confirmar, Por cobrar, Por entregar y Cerrados), cada una un `<TarjetaCifra>` que filtra (la que filtra se rellena
+de arena, como decidió `/unificar`); tocarla de nuevo, o la píldora `<FiltroPuesto>` del título, la quita. **Sin filtro, la lista es «Lo
+que te toca»**: todo lo que pide algo, mezclado, con lo que se pierde arriba (se cierra solo en menos de 3 h → ya pasó su aviso o hay
+plata por devolver → lo demás por confirmar → lo que solo avisa → lo que espera una prenda). `?pestana=` sigue siendo el filtro: los
+enlaces guardados y los del Resumen siguen sirviendo.
+**DESCARTÉ** dejar las pestañas y que las cifras solo informen: dos controles para lo mismo, y con 0 a 5 pedidos abiertos por tienda
+(producción, 2026-10-17: 11 pedidos web en total) una sola lista ordenada responde «¿qué hago ahora?» mejor que cuatro.
+**SE ROMPE SI** una tienda llega a decenas de pedidos abiertos a la vez: «Lo que te toca» se vuelve larga y el filtro deja de ser opcional.
+Entonces se pagina, no se vuelve a las pestañas.
+
+**DECIDÍ 8 — Las estaciones cuentan pedidos; la plata va en su pie y «Cobrado hoy» sale del camino.** Antes la fila decía
+«0 · S/ 0.00 · 0 · S/ 0.00» y «Cobrado hoy», al final del camino, se leía como el paso que sigue a entregar. Ahora «Por cobrar» dice
+cuántos pedidos y abajo «Faltan S/ 426.00»; «Cobrado hoy» va a la derecha de la cabecera (`ResumenSede`, solo si hay algo) en Pedidos y
+en el título de la sección en el Resumen. La plata por devolver de un anulado va en el pie de «Cerrados», en rojo.
+
+**DECIDÍ 9 — El tramo que CIERRA el pedido se ve distinto de los que solo avisan, y el camino tiene su último tramo.** «Confirmas · se
+cierra a las 24 h» lleva el reloj, el hilo entero y el plazo en rojo profundo: si se cumple, la venta se pierde. «Te paga · aviso a las
+48 h» y «Lo recoge · aviso a los 7 días» llevan la campana y el hilo punteado, que aparece en vez de dibujarse (una raya punteada no se
+puede «trazar»; sigue siendo una vez, sin bucle, `--ease-cayla`). Los plazos salen de Datos y plazos, nunca escritos en la pantalla.
+Desde 1280 px el camino va en una fila (cuatro tarjetas necesitan ~150 px cada una con el lateral abierto); más angosto, de a dos sin tramos.
+
+**DECIDÍ 10 — Cada fila dice su plazo una vez y su verbo.** Antes: insignia («Por confirmar · vence en 2 h») + frase («Revisa el stock y
+confírmalo») + barra, y ningún botón. Ahora el reloj dice CUÁNDO y qué pasa si no («Se cierra solo en 2 h · Si nadie lo confirma, se
+pierde»), con la barra del plazo, y el botón dice QUÉ: Confirmar, Registrar pago, Escribirle, Entregar, Ver pedido o Devolver. **El botón
+solo abre la hoja del pedido** (la misma que tocar la fila): nada se confirma, cobra ni entrega sin pasar por ella y su «Responsable».
+**DESCARTÉ** que «Registrar pago» abriera directo la hoja de pago encima: mientras la URL trae el pedido nuevo, la hoja podía abrirse
+sobre el pedido que estaba abierto antes y cobrarle al equivocado. **SE ROMPE SI** alguien espera que «Confirmar» confirme en un toque:
+abre la hoja, y la guía lo dice.
+
+**DECIDÍ 11 — Sin nada que hacer, «Todo al día» en una línea.** Con todo en cero la pantalla decía «nada» diez veces (siete ceros y tres
+frases). Ahora: «No hay pedidos web esperando en Tienda TRU. El último (W-0009) llegó hoy a las 11:40 y se cerró: el cliente desistió.»
+(`<Vacio>`), sin el camino, y debajo los cerrados con sus tres primeras filas a la vista.
+
+**DECIDÍ 12 — La nota de cinco reglas del pie pasó a «¿Cómo funciona?».** Un botón de la cabecera abre una regla bajo cada estación, en
+la misma grilla del camino (`Camino reglas`). Ninguna regla nueva: son las mismas de la nota, con el plazo de Datos y plazos.
+
+**DECIDÍ 13 — Lo cerrado dice por qué se cerró.** Una `<BarraApilada>` con su leyenda: entregado (verde), nadie lo confirmó a tiempo
+(rojo: una venta perdida), no hay stock (ámbar) y lo del cliente. Si hay «no hay stock», una línea: la vitrina está mostrando prendas que
+esta tienda no tiene.
+
+**Piezas.** `components/tienda-web/CaminoDePedidos.tsx` arma las cuatro estaciones para Pedidos (filtran) y para el Resumen (llevan a
+Pedidos con el filtro puesto): antes cada pantalla armaba sus tarjetas por su cuenta. `<TarjetaCifra>` gana `guia` (el ancla de la guía
+interactiva, sin cambiar su cara). La guía de Pedidos se rehízo con los pasos nuevos (Todo al día, ¿Cómo funciona?, el camino, Lo que te
+toca, el plazo, el verbo, lo cerrado) y su huella se aceptó.
+
+**Lo que quedó fuera, a propósito:**
+- **Quién ve Pedidos (decisión de Felipe, no de código).** En producción el módulo `pedidos_web` lo tiene solo el rol «Terminal Almacén»
+  (y los líderes). La «Terminal de ventas» —la Caja, donde el cliente paga en efectivo y recoge con su código— y los integrantes de
+  tienda no lo ven. Se da en Colaboradores ▸ Roles y accesos (el módulo es delegable).
+- **Verlo con datos reales.** La base local compartida va 218 migraciones atrás (no tiene `pedidos_web`): la pantalla se miró con datos de
+  ejemplo en una ruta temporal (1366 px, claro y oscuro, 375 px) y `guias:recorrer` queda para cuando la base local esté al día.
+
+## Corrección 2026-10-17 (b) — «Te paga» también pierde la venta: sin ningún pago, el pedido se anula solo
+
+La DECIDÍ 9 de arriba decía que pagar «solo avisa». **Era falso desde el 2026-10-16**: `20261016001000_pedidos_web_topes_y_anulacion_sin_pagar.sql`
+(ADR-0408 D2, en producción, verificado el 2026-10-17) anula solo, cada 15 minutos, un pedido CONFIRMADO al que no se le pagó NADA cuando se
+cumplen las horas de «Si no paga» (48 de fábrica), y sus prendas se liberan. Con un pago parcial no se anula: solo avisa y decide la
+tienda. Datos y plazos ya lo decía bien; el camino lo contradecía. El error fue de quien escribió la actualización (no leyó esa migración).
+
+- El tramo es «Te paga · sin pago, se anula a las 48 h», con el reloj y en rojo profundo, como «Confirmas». Solo «Lo recoge» avisa.
+- En la lista, un confirmado sin ningún pago dice «Sin pago, se anula en 42 h · Si no paga nada hasta …» y se ordena con lo que se
+  cierra solo (a menos de 3 h, arriba de todo). Con un pago parcial: «Pagó S/ 80.00 de S/ 159.00 · Pagó una parte: no se anula solo».
+- La estación «Por cobrar» dice cuándo se anula el primero sin pago (y late a menos de 3 h); la regla de «¿Cómo funciona?» lo explica.
+- **SE ROMPE SI** cambia la regla de la base (por ejemplo, que también se anule con un pago parcial): `relojDeFila`, `loQueTeToca` y
+  `tramosDelCamino` en `lib/pedidos-web-reglas.ts` repiten lo que decide `fn_anular_pedidos_web_sin_pagar`, y sus pruebas lo nombran.
+
+## Corrección 2026-10-17 (c) — la hoja del pedido: «Es la última» cuenta la tienda, y «Quitar» no se ofrece sin salida
+
+Dos errores de la hoja de un pedido por confirmar, vistos en una captura de producción (maqueta con los demás puntos de la hoja, sin
+construir: `docs/maquetas/pedidos-web-2026-10/hoja.html`):
+
+- **«Es la última en Tienda TRU» era falso** justo debajo de «Hay 2 en Tienda TRU (1 en almacén, 1 en piso)». `avisosDeLinea` contaba lo
+  libre en el LUGAR elegido pero nombraba a la tienda. Ahora cuenta la tienda entera y dice qué significa: «Es la última en Tienda TRU: al
+  confirmar, ya no se puede vender en la tienda». En otra tienda, cuenta esa tienda, como antes.
+- **«Quitar del pedido» con una sola prenda llevaba a un callejón**: la prenda se tachaba y «Confirmar» quedaba bloqueado («si quitas
+  todas, ciérralo con «No se puede confirmar»»). Ahora el botón sale solo si queda otra prenda sin quitar (`sePuedeQuitar`); con una sola,
+  la salida es «No se puede confirmar», que ya está en el pie. `problemaParaConfirmar` sigue de red.

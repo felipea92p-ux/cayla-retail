@@ -211,6 +211,8 @@ export function DatosCampana({
             categorias={categorias}
             puedeDarDescuento
             bajoCosto={bajoCosto}
+            prendasConCosto={prendasConCosto}
+            variantesManuales={campana.varianteIds}
           />
           <div data-guia="campana.cobra">
             <p className="campo-etiqueta">Se cobra en</p>

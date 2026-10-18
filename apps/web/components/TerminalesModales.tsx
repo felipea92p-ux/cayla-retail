@@ -37,9 +37,7 @@ function ClaveUnaVez({ resultado, onListo }: { resultado: Extract<ResultadoClave
           <dd className="font-mono text-[15px] tracking-wide text-tinta tabular-nums">{resultado.clave}</dd>
         </div>
       </dl>
-      <p role="alert" className="rounded-md border border-ambar/40 bg-ambar/10 px-3 py-2.5 text-sm font-medium text-tinta">
-        Anótala: no se vuelve a mostrar.
-      </p>
+      <Aviso tono="atencion" chico titulo="Anótala: no se vuelve a mostrar." />
       <p className="text-xs leading-relaxed text-tinta/70">
         En el aparato de {resultado.tienda}, abre retail e inicia sesión con este correo y esta clave. No la dejes escrita junto al aparato ni la mandes
         por chat. Si se pierde, aquí mismo: «Cambiar clave».

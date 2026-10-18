@@ -79,6 +79,7 @@ export function PrendasCampana({ campana, prendasConCosto }: { campana: CampanaD
         <PrendasDeEtiquetaModal
           etiqueta={etiqueta}
           prendasConCosto={prendasConCosto}
+          marcasManuales={campana.varianteIds}
           onClose={() => setEligiendo(false)}
           onAplicado={() => {
             setEligiendo(false);

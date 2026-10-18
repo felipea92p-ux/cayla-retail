@@ -22,11 +22,15 @@ import {
   type Ficha,
   type Promesa,
 } from "@/lib/ficha";
+import { hrefDelProbador } from "@/lib/probador";
+import { esLaMismaFoto } from "@/lib/prenda-tocada";
 import { leyendaNiveles, textoNivel, tonoNivel } from "@/lib/stock";
 import { AgregarALaBolsa } from "./bolsa/AgregarALaBolsa";
 import { Promesas } from "./bolsa/Promesas";
 import { BotonAvisame } from "./club/BotonAvisame";
 import { BotonFavorito } from "./club/BotonFavorito";
+import { usePrendaTocada } from "./PrendaTocada";
+import { fotoQueViaja } from "./Vistas";
 import { DibujoPrenda } from "./DibujoPrenda";
 import { Icono } from "./Icono";
 
@@ -58,6 +62,7 @@ export function FichaPrenda({
   esperasIds = {},
   enLaBolsa = 0,
   separadas = [],
+  probador = null,
   children,
 }: {
   ficha: Ficha;
@@ -81,6 +86,9 @@ export function FichaPrenda({
   enLaBolsa?: number;
   /** Las tallas cuyo resto en la tienda elegida ya separaron otros clientes (propuesta k; solo con una tienda elegida). */
   separadas?: readonly string[];
+  /** Si la prenda está en el probador de esta tienda («Arma el tuyo», ADR-0434, actividad 10): su código y la tienda elegida, para
+   *  «Arma un look con esta prenda», que lo abre con ella en el color elegido. null si no se puede probar (sin recorte o sin largo). */
+  probador?: { codigo: string; sede: string | null } | null;
   /** Lo que va debajo de la ficha: la barra del celular queda pegada abajo mientras se ve. */
   children?: React.ReactNode;
 }) {
@@ -311,6 +319,17 @@ export function FichaPrenda({
           {/* En el celular esta línea solo lleva a la bolsa: lo que pasó al agregar se dice en la barra de abajo. */}
           {lineaDeLaBolsa("t-pdp-bolsa t-pdp-bolsa-info", true)}
 
+          {/* «Arma un look con esta prenda» (actividad 10; lienzo v1, «Entrada desde la ficha»): el probador con ella, en este color. */}
+          {probador && (
+            <div className="t-pdp-probador">
+              <Link className="t-btn t-btn-sec" href={hrefDelProbador(probador.sede, `${probador.codigo}.${color}`)}>
+                <Icono nombre="chispas" />
+                Arma un look con esta prenda
+              </Link>
+              <p>Pruébala con otras prendas de la tienda, a su tamaño y en el color que elijas.</p>
+            </div>
+          )}
+
           {promesas.length > 0 && <Promesas promesas={promesas} />}
 
           {/* Lo que describe la prenda va primero y abierto; cómo se separa ya lo dicen las promesas de arriba: aquí, el detalle. */}
@@ -357,6 +376,9 @@ function Galeria({ ficha, color, hex, origenFotos }: { ficha: Ficha; color: stri
   const { fotos, enOtroColor } = fotosDelColor(ficha, color);
   const [vista, setVista] = useState(0);
   const forma = formaDe(ficha.categoria?.prefijo);
+  // La foto de la tarjeta que se tocó para llegar aquí (lib/prenda-tocada.ts): si es la primera de la ficha, se ve debajo mientras llega
+  // la grande, que es otro archivo; así la foto no se apaga entre el esqueleto y la ficha.
+  const tocada = usePrendaTocada(ficha.id);
   return (
     <div className="cp-galeria">
       <div
@@ -383,6 +405,9 @@ function Galeria({ ficha, color, hex, origenFotos }: { ficha: Ficha; color: stri
               forma={forma}
               hex={hex}
               rotulo={i === 0 && enOtroColor ? "Foto en otro color" : null}
+              previa={i === 0 && tocada && esLaMismaFoto(tocada, url) ? tocada.foto : null}
+              // La primera es a donde vuela la foto de la tarjeta tocada (`fotoQueViaja`).
+              viaja={i === 0 ? ficha.id : null}
             />
           ))
         )}
@@ -411,6 +436,8 @@ function FotoGaleria({
   forma,
   hex,
   rotulo,
+  previa,
+  viaja,
 }: {
   url: string;
   alt: string;
@@ -419,9 +446,15 @@ function FotoGaleria({
   forma: ReturnType<typeof formaDe>;
   hex: string | null;
   rotulo: string | null;
+  /** La misma foto en chico, la que ya se vio en la tarjeta tocada: se ve mientras llega esta. */
+  previa: string | null;
+  /** La prenda cuya foto vuela hasta aquí desde la tarjeta tocada (solo la primera). */
+  viaja: string | null;
 }) {
   // Una foto que no carga deja la silueta, nunca una imagen rota.
   const [rota, setRota] = useState(false);
+  // La grande ya se ve: la chica de abajo se va (las dos se multiplican con el fondo y, una encima de otra, oscurecerían la foto).
+  const [cargada, setCargada] = useState(false);
   // La lupa (2026-10-16): con el mouse encima, la foto se acerca al doble donde está el mouse y lo sigue. La foto grande se pide recién la
   // primera vez que el mouse entra (nadie la descarga si no mira de cerca) y, mientras llega, se acerca la que ya se ve. Lo que sigue al
   // mouse va por variables de CSS, sin volver a dibujar.
@@ -451,6 +484,7 @@ function FotoGaleria({
     <figure
       ref={marco}
       className={`t-foto-g${rota ? " sin-foto" : ""}`}
+      style={viaja ? fotoQueViaja(viaja) : undefined}
       data-cp-lupa={encima ? (lupa === "lista" ? "lista" : "") : undefined}
       onPointerEnter={entrar}
       // Si el mouse ya estaba sobre la foto al llegar la página (no hubo «entrar»), la lupa empieza con el primer movimiento.
@@ -460,8 +494,22 @@ function FotoGaleria({
       <span className="t-dibujo">
         <DibujoPrenda forma={forma} color={hex} />
       </span>
+      {previa && !rota && !cargada && (
+        // La foto que el navegador ya tiene, tal cual: sin pasar otra vez por el optimizador.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={previa} alt="" aria-hidden="true" className="t-foto-previa" />
+      )}
       {!rota && (
-        <Image src={url} alt={alt} fill sizes={tamanos} priority={primera} unoptimized={!optimizar} onError={() => setRota(true)} />
+        <Image
+          src={url}
+          alt={alt}
+          fill
+          sizes={tamanos}
+          priority={primera}
+          unoptimized={!optimizar}
+          onError={() => setRota(true)}
+          onLoad={() => setCargada(true)}
+        />
       )}
       {!rota && lupa !== "no" && (
         <Image src={url} alt="" aria-hidden fill sizes="1080px" unoptimized={!optimizar} className="cp-lupa" onLoad={() => setLupa("lista")} />

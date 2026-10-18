@@ -12,7 +12,7 @@ import {
   type PerfilDelMenu,
   type TipoUbicacion,
 } from "./menu";
-import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, NACEN_QUITADOS_AL_LIDER, accionesDeCompra, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, usaModulo, type ClaveModulo } from "./modulos";
+import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, MODULOS_QUE_VEN_TODO_FINANZAS, NACEN_QUITADOS_AL_LIDER, accionesDeCompra, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, usaModulo, veFinanzasDeTodo, type ClaveModulo } from "./modulos";
 
 // Roles por módulo (ADR-0161 B, migración 20260923030000_roles_por_modulo.sql). Lo que estas pruebas cuidan:
 //  1. El catálogo de la web y el de la base son el mismo (claves, orden, «solo líder», «solo líder por ahora»), y lo que
@@ -275,6 +275,27 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     expect(con("impuestos")).toEqual(["verImpuestos"]);
     expect(con("cierre_mes")).toEqual(["cerrarMes"]);
     expect(con("configuracion")).toEqual([]);
+  });
+
+  // Auditoría de Finanzas 2026-10-16, G16: «¿ve las finanzas de TODAS las tiendas y la empresa?» tiene una sola respuesta, en la base
+  // (`fn_ve_finanzas_de_todo()`) y en la web (`veFinanzasDeTodo`). Antes la web preguntaba `rol === "lider"` y la base, otra cosa.
+  it("G16: veFinanzasDeTodo espeja la base — el líder siempre; los demás, solo con Configuración, Cierre de mes o CAYLA Global completos", () => {
+    const con = (...cs: ClaveModulo[]) => cs.map((clave) => ({ clave, completo: true }));
+    expect(veFinanzasDeTodo("lider", [])).toBe(true); // al líder no se lo quita un módulo quitado: la base pregunta fn_es_lider()
+    expect(veFinanzasDeTodo("integrante", [])).toBe(false);
+    expect(veFinanzasDeTodo("integrante", con("reportes_financieros", "gastos", "cuentas_dinero", "impuestos"))).toBe(false); // ven SU tienda
+    for (const clave of MODULOS_QUE_VEN_TODO_FINANZAS) expect(veFinanzasDeTodo("integrante", con(clave))).toBe(true);
+    expect(veFinanzasDeTodo("integrante", [{ clave: "cierre_mes", completo: false }])).toBe(false); // «limitado como hoy» no abre nada
+  });
+
+  it("G16: los módulos que abren «todo» son exactamente los de la última migración que define fn_ve_finanzas_de_todo()", () => {
+    const definiciones = TODAS.flatMap((m) => {
+      const hallazgo = /create or replace function retail\.fn_ve_finanzas_de_todo\(\)[\s\S]*?fn_capacidad_por_modulos\(array\[([^\]]+)\]\)/i.exec(m.sql);
+      return hallazgo ? [{ archivo: m.archivo, claves: [...hallazgo[1]!.matchAll(/'([a-z_]+)'/g)].map((x) => x[1]!) }] : [];
+    });
+    expect(definiciones.length).toBeGreaterThan(0);
+    const ultima = definiciones[definiciones.length - 1]!;
+    expect([...ultima.claves].sort(), `última definición: ${ultima.archivo}`).toEqual([...MODULOS_QUE_VEN_TODO_FINANZAS].sort());
   });
 
   it("limitado como hoy: ve Caja, Existencias y Productos pero no gana sus poderes de escritura", () => {

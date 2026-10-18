@@ -2,7 +2,7 @@
   "guia": "inventario.movimientos",
   "ruta": "/inventario/movimientos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 56,
+  "total": 55,
   "controles": {
     "app/(app)/inventario/movimientos/page.tsx": [
       "Pestanas «(sin nombre)»",
@@ -11,8 +11,7 @@
     "components/CajonMovimiento.tsx": [
       "button «Ver las»",
       "button «{cuerpo}»",
-      "Link «{cuerpo}»",
-      "button «Cerrar»"
+      "Link «{cuerpo}»"
     ],
     "components/CorregirPagoModal.tsx": [
       "button «{NOMBRE_METODO[m]}»",

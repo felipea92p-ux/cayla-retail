@@ -2,7 +2,7 @@
   "guia": "productos.atributos",
   "ruta": "/productos/atributos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 162,
+  "total": 171,
   "controles": {
     "components/AtributosHub.tsx": [
       "Pestanas «(sin nombre)»"
@@ -59,6 +59,8 @@
       "BotonFiltro «Todas»",
       "BotonFiltro «{ESTILOS[g].grupo}»",
       "BotonFiltro «Vigentes hoy»",
+      "button «atributos.prendas»",
+      "button «atributos.campana»",
       "CampoTexto «Comentario (obligatorio)»",
       "Boton «Cancelar»",
       "Boton «→() => aprobar(aprobandoEtiqueta)»",
@@ -95,17 +97,21 @@
       "ComboResponsable «{responsable}»",
       "Boton «Volver»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
-      "CampoTexto «Buscar»",
-      "CampoSelect «Categoría»",
+      "BotonFiltro «Todas»",
+      "BotonFiltro «Con la etiqueta»",
+      "BotonFiltro «Sin ella»",
+      "DesplegablePildora «Categoría»",
+      "button «Marca todas las tallas de los productos de la lista. Los que entran por su categoría ya la llevan.»",
+      "button «Quita la etiqueta a los productos de la lista. Los que entran por su categoría la siguen llevando.»",
+      "BotonDeshacer «→() => setQuitarFuera(false)»",
+      "button «Quitárselas»",
       "Boton «Reintentar»",
-      "button «Marcar visibles»",
-      "button «Soltar visibles»",
-      "Casilla «{`${p.referencia}»",
-      "button «{p.referencia}»",
-      "Casilla «{[v.talla, v.color].filter(Boolean).join(\" · \") || \"Única\"}»",
+      "Casilla «{`${nombre}»",
+      "button «{nombre}»",
+      "Casilla «{nombreTalla}»",
       "ComboResponsable «{responsable}» #2",
       "Boton «Cancelar»",
-      "Boton «{vista ? \"Revisar y aplicar\" : \"Aplicar\"}»"
+      "Boton «{requiereRevision ? \"Revisar y aplicar\" : \"Aplicar\"}»"
     ],
     "components/SelectorColor.tsx": [
       "input «Elegir color con el selector»",
@@ -189,14 +195,17 @@
       "button «{abrir.titulo}»",
       "Boton «Aprobar»",
       "Boton «Rechazar»",
-      "button «{guia}»",
       "button «{cambiando ? \"Desactivando…\" : \"Desactivar\"}»",
       "Boton «Reactivar»"
     ],
     "components/campanas/CamposDeCampana.tsx": [
       "CampoTexto «{guia.etiqueta(\"descuento\", \"Descuento (%)\")}»",
-      "CampoTexto «Desde»",
-      "CampoTexto «Hasta»",
+      "button «Sin descuento»",
+      "button «{v}»",
+      "CampoFecha «Desde»",
+      "CampoFecha «Hasta»",
+      "button «{avisoDia.boton}»",
+      "BotonDeshacer «(sin nombre)»",
       "button «Quitar todas»",
       "button «{c.nombre}»"
     ],

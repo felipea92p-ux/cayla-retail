@@ -2,11 +2,8 @@
   "guia": "compras.plan",
   "ruta": "/compras/plan",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 87,
+  "total": 86,
   "controles": {
-    "components/colaboradores/CajonFicha.tsx": [
-      "button «Cerrar»"
-    ],
     "components/plan-compra/AvisoStock.tsx": [
       "BotonVer «Ir a Conteo»",
       "Boton «Ver qué falta»"

@@ -194,7 +194,7 @@ export const hrefLooks = (sede: string | null = null): string => conSede("/looks
 export const hrefLook = (id: string, sede: string | null = null): string => conSede(`/looks/${id}`, sede);
 
 /** La ficha de una prenda del look, con su color ya elegido y la tienda elegida. */
-export function hrefDePieza(p: Pick<PiezaLook, "prenda" | "color">, sede: string | null = null): string {
+export function hrefDePieza(p: { prenda: Pick<PiezaLook["prenda"], "id">; color: Pick<PiezaLook["color"], "codigo"> }, sede: string | null = null): string {
   const q = new URLSearchParams();
   if (sede) q.set("sede", sede);
   q.set("color", p.color.codigo);
@@ -288,10 +288,12 @@ function lasQueNoEntraron(lineas: readonly LineaLook[], r: ResultadoDelLook): st
  * cierra y el aviso de abajo dice cuántas («Agregaste 3 prendas del look «Fin de semana» a tu bolsa.») y, si alguna no entró, cuál y por
  * qué. Si no entró ninguna, la hoja sigue abierta y lo dice ahí, para que elija otra talla.
  */
-export function avisoDelLook(nombreLook: string, lineas: readonly LineaLook[], r: ResultadoDelLook): { cerrar: boolean; texto: string } {
+export function avisoDelLook(nombreLook: string | null, lineas: readonly LineaLook[], r: ResultadoDelLook): { cerrar: boolean; texto: string } {
   const faltan = lasQueNoEntraron(lineas, r);
   if (r.agregadas.length === 0) {
     return { cerrar: false, texto: `${faltan || "No pudimos agregar las prendas."} Elige otra talla o vuelve a intentarlo.` };
   }
-  return { cerrar: true, texto: `Agregaste ${cuantasPrendas(r.agregadas.length)} del look «${nombreLook}» a tu bolsa.${faltan ? ` ${faltan}` : ""}` };
+  // Sin nombre, el look que el cliente armó en el probador («Arma el tuyo», ADR-0434): «de tu look».
+  const deQue = nombreLook ? `del look «${nombreLook}»` : "de tu look";
+  return { cerrar: true, texto: `Agregaste ${cuantasPrendas(r.agregadas.length)} ${deQue} a tu bolsa.${faltan ? ` ${faltan}` : ""}` };
 }

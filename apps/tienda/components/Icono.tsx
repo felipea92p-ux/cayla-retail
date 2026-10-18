@@ -35,6 +35,17 @@ const TRAZOS = {
   puntos: <><circle cx="5.5" cy="12" r="1.2" /><circle cx="12" cy="12" r="1.2" /><circle cx="18.5" cy="12" r="1.2" /></>,
   // Nuestras tiendas (revisión 2026-10-15): «Cómo llegar», el pin del mapa.
   ubicacion: <><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" /><circle cx="12" cy="10" r="2.3" /></>,
+  // «Arma el tuyo» (ADR-0434): el candado que deja una prenda fija (cerrado y abierto), «Sorpréndeme», las flechas de la figura, agregar
+  // una prenda y «Sin bolso».
+  candado: <><rect x="5" y="11" width="14" height="10" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></>,
+  candadoAbierto: <><rect x="5" y="11" width="14" height="10" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 7.6-1.8" /></>,
+  chispas: <><path d="M10 3.5l1.6 4.4 4.4 1.6-4.4 1.6-1.6 4.4-1.6-4.4L4 9.5l4.4-1.6Z" /><path d="M18 13.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8Z" /></>,
+  izquierda: <path d="M15 5l-7 7 7 7" />,
+  derecha: <path d="M9 5l7 7-7 7" />,
+  mas: <path d="M12 5v14M5 12h14" />,
+  ninguna: <><circle cx="12" cy="12" r="8" /><path d="M6.5 17.5l11-11" /></>,
+  // El look guardado (actividad 8): «Cambiar el nombre».
+  lapiz: <path d="M16.5 3.5l4 4L8 20H4v-4z" />,
 };
 
 export type NombreIcono = keyof typeof TRAZOS;

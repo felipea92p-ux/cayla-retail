@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
+import { FaltanProyeccion } from "@/components/finanzas/FaltanProyeccion";
 import { soles } from "@/lib/flujo-caja-reglas";
 import type { Alcanza, Debes, Tienes } from "@/lib/dinero-pulso-reglas";
 
@@ -51,14 +52,17 @@ export function DineroPulso({ tienes, alcanza, debes, verPorPagar }: { tienes: T
             <CabeceraBloque titulo="¿Me alcanza?" bajada={alcanza.frase} />
             {alcanza.estado !== "sin_dato" && (
               <div className="fin-dinero-alcanza">
-                <Chip tono={alcanza.estado === "baja" ? "ambar" : "verde"}>
-                  {alcanza.estado === "baja" ? "Baja del mínimo" : "Dentro del mínimo"}
+                <Chip tono={alcanza.estado === "baja" ? "ambar" : alcanza.provisional ? "pizarra" : "verde"}>
+                  {alcanza.estado === "baja" ? "Baja del mínimo" : alcanza.provisional ? "Dentro del mínimo · provisional" : "Dentro del mínimo"}
                 </Chip>
                 {alcanza.diasDeCaja !== null && (
                   <Chip tono="pizarra">
+                    {alcanza.provisional ? "≈ " : ""}
                     {alcanza.diasDeCaja} {alcanza.diasDeCaja === 1 ? "día de caja" : "días de caja"}
+                    {alcanza.provisional ? " · provisional" : ""}
                   </Chip>
                 )}
+                {alcanza.provisional && <FaltanProyeccion provisional faltan={alcanza.faltan} className="mt-3" />}
                 {alcanza.siDepositas && <p className="nota-cayla mt-3">{alcanza.siDepositas.frase}</p>}
                 <p className="fin-dinero-ver">
                   <Link href="/finanzas/reportes/flujo" className="btn-cayla btn-enlace">

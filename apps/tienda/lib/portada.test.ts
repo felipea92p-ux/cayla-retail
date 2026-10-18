@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DISENO_DE_SIEMPRE } from "@cayla-retail/portada";
+import { DISENO_DE_SIEMPRE, partirTitulo } from "@cayla-retail/portada";
 import {
   anioLima,
   anuncios,
@@ -7,10 +7,10 @@ import {
   fechaLarga,
   conFotoDeCasa,
   interpretarPortada,
-  partirTitulo,
   pctTexto,
   PORTADA_SIN_DATOS,
 } from "./portada";
+import { finDeCampana, partesCuenta } from "./cuenta-regresiva";
 
 const ANIVERSARIO = { id: null, nombre: "Aniversario CAYLA", pct: 12, hasta: "2026-10-21", diseno: null, prendas: [] as string[] };
 const BOSQUE = { ...DISENO_DE_SIEMPRE, paleta: "bosque" };

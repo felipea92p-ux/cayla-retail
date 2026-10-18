@@ -8,6 +8,7 @@ import { Chip } from "@/components/ui/Chip";
 import { avisar } from "@/components/ui/Avisos";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { SinFoto } from "@/components/ui/PrendaCelda";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -17,21 +18,24 @@ import { traducirError } from "@/lib/error-escritura";
 import { useResponsable } from "@/lib/useResponsable";
 import { sugerirLargo } from "@/lib/sugerencias-largo-probador";
 import { camposDeLargo } from "@/lib/vitrina-probador-guia";
-import { coloresPorFotografiar, errorDeLargo, leerLargo, type PrendaDelProbador } from "@/lib/vitrina-probador-reglas";
+import { avisoDeRedondeo, coloresPorFotografiar, errorDeLargo, leerLargo, queHacerConLaPrenda, veredictoDelProbador, type PrendaDelProbador } from "@/lib/vitrina-probador-reglas";
 
 /**
- * Una prenda en Vitrina ▸ Probador (ADR-0434, actividad 3): su largo para el probador —vacío usa el típico de su categoría; vestidos,
- * faldas, conjuntos y enterizos no tienen típico (Felipe, 2026-10-16)—, qué colores tienen su foto y cómo van sus recortes. Las fotos se
+ * Una prenda en Vitrina ▸ Probador (ADR-0434, actividad 3): su largo para el probador —vacío usa el típico de su categoría; las
+ * faldas no tienen típico (Felipe, 2026-10-16; vestidos, enterizos y conjuntos ya no entran, ADR-0444)—, qué colores tienen su foto y cómo van sus recortes. Las fotos se
  * cambian en Editar producto (el enlace lleva ahí). Guardar firma el «Responsable» (ADR-0162).
  */
 export function ProbadorPrendaHoja({
   prenda: p,
   onClose,
   onGuardado,
+  alCerrarEnfocar,
 }: {
   prenda: PrendaDelProbador;
   onClose: () => void;
   onGuardado: (productoId: string, largo: number | null) => void;
+  /** Dónde vuelve el foco al cerrar: la fila o la foto que la abrió. */
+  alCerrarEnfocar?: React.RefObject<HTMLElement | null>;
 }) {
   const responsable = useResponsable();
   const [escrito, setEscrito] = useState(p.largo === null ? "" : String(p.largo));
@@ -43,6 +47,13 @@ export function ProbadorPrendaHoja({
   const sugerencia = sugerirLargo({ prefijo: p.categoria?.prefijo ?? null, tipico: p.tipico });
   const porFotografiar = coloresPorFotografiar(p);
   const categoria = p.categoria?.nombre ?? "su categoría";
+  // Lo guardado, no lo que se está escribiendo: «Lista» recién vale cuando el largo se guardó.
+  const veredicto = veredictoDelProbador(p);
+  const sinFoto = (
+    <div className="absolute inset-0">
+      <SinFoto tamano="h-full w-full" colorHex={p.colores.find((c) => c.hex)?.hex ?? null} prefijo={p.categoria?.prefijo} categoria={p.categoria?.nombre} conNombre />
+    </div>
+  );
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -72,17 +83,24 @@ export function ProbadorPrendaHoja({
   return (
     <Modal
       titulo={p.nombre}
-      subtitulo={`${p.codigo ? `${p.codigo} · ` : ""}${categoria}. Así entra al probador de «Arma el tuyo».`}
+      subtitulo={[p.codigo, p.categoria?.nombre].filter(Boolean).join(" · ") || undefined}
       onClose={onClose}
       variante="hoja"
       tamano="mediana"
+      alCerrarEnfocar={alCerrarEnfocar}
       bloqueado={guardando}
     >
       <form onSubmit={guardar} className="space-y-5">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-tinta">
+          <Chip tono={veredicto.sale ? "verde" : "ambar"}>{veredicto.texto}</Chip>
+          <span>{queHacerConLaPrenda(veredicto)}</span>
+        </p>
         <div className="grid gap-4 sm:grid-cols-[9rem_minmax(0,1fr)]">
           <div className="papel-fijo relative aspect-[4/5] w-36 overflow-hidden rounded-xl border border-sand bg-hueso">
-            {p.miniatura && (
-              <ImagenDePrenda src={p.miniatura} alt={p.nombre} fill sizes="144px" fallback={null} className={`object-contain ${p.miniaturaEsRecorte ? "p-3" : ""}`} />
+            {p.miniatura ? (
+              <ImagenDePrenda src={p.miniatura} alt={p.nombre} fill sizes="144px" fallback={sinFoto} className={`object-contain ${p.miniaturaEsRecorte ? "p-3" : ""}`} />
+            ) : (
+              sinFoto
             )}
           </div>
           <div className="space-y-3 text-[13px] text-tinta">
@@ -129,7 +147,7 @@ export function ProbadorPrendaHoja({
               pie={
                 "error" in leido
                   ? leido.error
-                  : `${p.tipico === null ? `${categoria} no tiene largo típico: sin el suyo, no entra al probador.` : `Vacío: usa el típico de ${categoria}, ${p.tipico} cm.`} Se mide de arriba abajo, como cae puesta.`
+                  : `${avisoDeRedondeo(escrito) ? `${avisoDeRedondeo(escrito)} ` : ""}${p.tipico === null ? `${p.categoria ? `La categoría ${p.categoria.nombre}` : "Su categoría"} no tiene largo típico: sin el suyo, no sale en el probador.` : `Vacío: usa el típico de ${categoria}, ${p.tipico} cm.`} Se mide de arriba abajo, como cae puesta.`
               }
               disabled={guardando}
             />

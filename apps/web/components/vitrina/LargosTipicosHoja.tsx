@@ -11,14 +11,13 @@ import { createClient } from "@/lib/supabase/client";
 import { firmar } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
 import { useResponsable } from "@/lib/useResponsable";
-import { sugerirTipico } from "@/lib/sugerencias-largo-probador";
 import { camposDeTipicos } from "@/lib/vitrina-probador-guia";
-import { errorDeLargo, leerLargo, type TipicoDeCategoria } from "@/lib/vitrina-probador-reglas";
+import { avisoDeRedondeo, errorDeLargo, leerLargo, type TipicoDeCategoria } from "@/lib/vitrina-probador-reglas";
 
 /**
  * Los largos típicos de Vitrina ▸ Probador (ADR-0434, actividad 3): el largo con que el probador dibuja una prenda de cada categoría
- * hasta que se anote el suyo. Vacío: la categoría no tiene típico y sus prendas entran solo con su largo propio (así nacen vestidos,
- * faldas, conjuntos y enterizos: Felipe, 2026-10-16). Se guarda todo junto y firma el «Responsable» (ADR-0162).
+ * hasta que se anote el suyo. Vacío: la categoría no tiene típico y sus prendas entran solo con su largo propio (así nacen las
+ * faldas: Felipe, 2026-10-16). Se guarda todo junto y firma el «Responsable» (ADR-0162).
  */
 export function LargosTipicosHoja({
   tipicos,
@@ -87,9 +86,9 @@ export function LargosTipicosHoja({
                   inputMode="numeric"
                   value={escritos[t.categoriaId] ?? ""}
                   onChange={(e) => setEscritos((m) => ({ ...m, [t.categoriaId]: e.target.value }))}
-                  placeholder={sugerirTipico(t.prefijo)}
+                  placeholder="Sin típico" // sugerir-fijo: dice qué pasa con la caja vacía; un «Ej.» invitaba a ponerles típico a vestidos y faldas (/formidable)
                   tono={"error" in leido ? "error" : undefined}
-                  pie={"error" in leido ? leido.error : undefined}
+                  pie={"error" in leido ? leido.error : (avisoDeRedondeo(escritos[t.categoriaId] ?? "") ?? undefined)}
                   disabled={guardando}
                 />
               </li>

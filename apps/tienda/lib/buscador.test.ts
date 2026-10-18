@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buscarEn, normalizar, resaltar, type ItemBusqueda } from "./buscador";
+import { buscarEn, leerRespuestaDelBuscador, normalizar, resaltar, type ItemBusqueda } from "./buscador";
 
 const item = (nombre: string, categoria: string | null, colores: string[] = []): ItemBusqueda => ({
   id: nombre,
@@ -60,5 +60,17 @@ describe("el buscador de la cabecera", () => {
     expect(resaltar("Pantalón Ágata", "talon")).toEqual(["Pan", "talón", " Ágata"]);
     expect(resaltar("Blusa Emma", "negro")).toBeNull();
     expect(resaltar("Blusa Emma", " ")).toBeNull();
+  });
+});
+
+describe("la respuesta de GET /api/buscador (la lista llega aparte de la página)", () => {
+  it("con la forma buena, la lista; sin sesión, lo dice; cualquier otra cosa es como si la base no hubiera contestado", () => {
+    expect(leerRespuestaDelBuscador({ estado: "ok", indice: [] })).toEqual({ estado: "ok", indice: [] });
+    expect(leerRespuestaDelBuscador({ estado: "sin_sesion" })).toEqual({ estado: "sin_sesion" });
+    expect(leerRespuestaDelBuscador({ estado: "sin_respuesta" })).toEqual({ estado: "sin_respuesta" });
+    expect(leerRespuestaDelBuscador({ estado: "ok" })).toEqual({ estado: "sin_respuesta" });
+    expect(leerRespuestaDelBuscador({ estado: "ok", indice: "x" })).toEqual({ estado: "sin_respuesta" });
+    expect(leerRespuestaDelBuscador(null)).toEqual({ estado: "sin_respuesta" });
+    expect(leerRespuestaDelBuscador("<html>")).toEqual({ estado: "sin_respuesta" });
   });
 });

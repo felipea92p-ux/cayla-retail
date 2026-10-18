@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { EB_Garamond, DM_Sans } from "next/font/google";
+import { EB_Garamond, Heebo } from "next/font/google";
 import { Suspense } from "react";
 import { AvisoDeLaUrl } from "@/components/cuenta/AvisoDeLaUrl";
 import { ProveedorInstalar } from "@/components/instalar/ProveedorInstalar";
+import { Medicion } from "@/components/Medicion";
+import { VigiaDelCamino } from "@/components/EnCamino";
+import { RecordarPrendaTocada } from "@/components/PrendaTocada";
 import { SCRIPT_DEL_AVISO } from "@/lib/instalar";
 import "./globals.css";
 // El héroe de la portada y del Inicio (la campaña, el colibrí y las polaroids): vive en un paquete porque el ERP lo dibuja igual en la
@@ -17,10 +20,15 @@ import "./estilos/catalogo.css";
 import "./estilos/cabecera.css";
 // Instalar CAYLA en el celular (ADR-0431): la hoja, la guía, la franja, la tarjeta tras separar y la fila de «Mi perfil».
 import "./estilos/instalar.css";
+// El paso de una vista a otra: el fundido, lo fijo que no se mueve y la foto que viaja a la ficha (components/Vistas.tsx).
+import "./estilos/vistas.css";
 
-// Las mismas dos letras del ERP y de la marca: EB Garamond para títulos, DM Sans para el texto.
+// Las letras de la tienda (ADR-0446, variante B, elegida por Felipe el 2026-10-17): Heebo para el texto, los botones, los formularios y los precios
+// —sus cifras tienen todas el mismo ancho, así que los montos quedan en columna— y EB Garamond para los títulos, hasta que el autor de
+// Ahellya (la letra elegida para la marca y los títulos) dé su permiso por escrito. La palabra CAYLA no va con ninguna: es el dibujo del
+// logo (`components/Marca.tsx`).
 const serif = EB_Garamond({ subsets: ["latin"], variable: "--font-eb-garamond", display: "swap" });
-const sans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
+const sans = Heebo({ subsets: ["latin"], variable: "--font-heebo", display: "swap" });
 
 export const metadata: Metadata = {
   title: "CAYLA · Tienda online",
@@ -47,10 +55,16 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body>
         <ProveedorInstalar>{children}</ProveedorInstalar>
+        {/* Al tocar una prenda, guarda lo que su tarjeta ya mostraba: la ficha llega con eso (lib/prenda-tocada.ts). */}
+        <RecordarPrendaTocada />
+        {/* De una lista a otra desde la cabecera, la grilla que brilla con el título de la que viene, al instante (components/EnCamino.tsx). */}
+        <VigiaDelCamino />
         {/* Lee la dirección en el navegador: en una página guardada en caché (la portada) va dentro de su Suspense. */}
         <Suspense fallback={null}>
           <AvisoDeLaUrl />
         </Suspense>
+        {/* Cuánto tarda la tienda en el aparato del cliente, en 1 de cada 2 visitas (ADR-0447). No dibuja nada. */}
+        <Medicion />
       </body>
     </html>
   );

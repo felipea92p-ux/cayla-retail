@@ -2,7 +2,7 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 123,
+  "total": 115,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
       "Volver «{RUTA_ORDENES}»",
@@ -16,21 +16,13 @@
     ],
     "components/NuevoProductoForm.tsx": [
       "Volver «→() => irAPaso((n - 1) as NumeroPaso)»",
-      "button «Seguir →»",
+      "button «Seguir»",
       "button «{responsable.motivo ?? undefined}»",
       "CampoTexto «Nombre»",
       "CampoTexto «Descripción»",
       "CampoMonto «Precio de venta»",
       "CampoMonto «Costo»",
       "button «{quienRegistra ? \"Cambiar\" : \"Elegir\"}»"
-    ],
-    "components/RevisarFotosModal.tsx": [
-      "button «Todas sin fondo»",
-      "button «Todas con fondo»",
-      "Boton «Cancelar»",
-      "Boton «→() => confirmar(cerrar)»",
-      "button «{TEXTO_ELECCION[o]}»",
-      "button «{l ? \"Luz corregida\" : \"Luz original\"}»"
     ],
     "components/SelectorColor.tsx": [
       "input «Elegir color con el selector»",
@@ -116,9 +108,7 @@
     "components/alta-producto/MatrizCantidades.tsx": [
       "SegmentoDeslizante «Qué escribes en la tabla»",
       "input «1»",
-      "button «{`Restar a ${etiqueta}»",
-      "input «{`${preguntaCelda}»",
-      "button «{`Sumar a ${etiqueta}»",
+      "input «(sin nombre)»",
       "input «{`${enCostos ? \"Costo\" : \"Precio\"}»"
     ],
     "components/alta-producto/MatrizVariantes.tsx": [
@@ -173,7 +163,7 @@
     ],
     "components/alta-producto/TarjetaParecida.tsx": [
       "button «{FRASE.deshacerAria(t.nombre)}»",
-      "Link «{FRASE.esElMismoAria(t.nombre)}»",
+      "BotonVer «{FRASE.esElMismoAria(t.nombre)}»",
       "button «{FRASE.noEsOtroAria(t.nombre)}»",
       "button «?»"
     ],

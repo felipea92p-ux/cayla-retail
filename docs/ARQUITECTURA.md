@@ -803,8 +803,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (reemplazó a `components/FotosProducto.tsx`, la galería suelta con un combo de los 71 colores): un rectángulo por cada color
   que la prenda vende (`coloresFicha`, las variantes activas), con su portada o «Agregar foto de Beige», más «Todos los colores»
   y un bloque para las fotos de un color sin variantes activas. Las reglas —qué ve cada color, la principal, el orden, pasar de
-  color— son de `lib/fotos-por-color-reglas.ts` (pura, con `.test.ts`); elegir → revisar (`RevisarFotosModal`, ADR-0228) → subir
-  es el hook `components/ficha-producto/useSubirFotos.tsx`, que también usa `AgregarColoresModal` (casilla «Foto de cada
+  color— son de `lib/fotos-por-color-reglas.ts` (pura, con `.test.ts`); elegir → subir tal cual (ADR-0442; antes pasaba por `RevisarFotosModal`, ADR-0228)
+  es el hook `components/ficha-producto/useSubirFotos.ts`, que también usa `AgregarColoresModal` (casilla «Foto de cada
   color»; sus fotos suben a la ficha por `ProductoForm.agregarColores` → `sumarFotosDeColores`). Recibe las
   fotos como se ven (`fotosComoSeVen`) y devuelve la lista; el anclaje al color de origen (`anclarFotos`) y `p_fotos` de
   `catalogo_actualizar_producto` siguen en `ProductoForm`. Sin migración.
@@ -826,6 +826,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (lee `productos` + `producto_fotos` del tejido al abrir; sube la foto con `lib/muestra-atributo.ts` al bucket
   `retail-colores-muestras` y la guarda con PATCH `/api/productos/{tejidos,patrones}` → `imagenMuestraUrl`, validada por
   `lib/muestra-atributo-reglas.ts:leerUrlMuestra`). ADR-0256.
+- `/productos/atributos?tipo=etiquetas` → las tarjetas de Rotación (Nuevo, Top ventas, Últimas unidades, Para liquidar) dicen
+  cuántas unidades quedan y cuántas se vendieron en 30 días en todas las tiendas (`lib/etiqueta-rotacion-datos.ts`: `getPrendasPorSede` →
+  RPC `fn_analisis_sede` por tienda, y `leerVendidoSinRegistrar` para la nota de lo vendido sin registrar, solo al líder; lógica pura en
+  `lib/etiqueta-rotacion.ts`). Solo para quien edita etiquetas y puede analizar; sin respuesta en 4 s, las tarjetas salen sin esa línea.
+  ADR-0441, actividad 6, sin migración.
 - Las seis pestañas de `/productos/atributos` (`AtributosHub`) se arman con las mismas piezas de
   `components/atributos/kit.tsx` (barra de píldoras + buscador + «+ Agregar», título de grupo, tarjeta, estados vacíos):
   cada `*Lista.tsx` conserva su lógica y solo comparte cómo se ve. Los filtros son puros: `lib/atributos-buscar.ts`
@@ -879,14 +884,17 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   recortes; y los largos típicos) y `fn_vitrina_recortes` (cada foto con su original y su recorte) → `ProbadorPantalla.tsx` (cifras, la
   lista de prendas y la hoja de contactos de recortes) + `ProbadorPrendaHoja.tsx` (`vitrina_guardar_largo`; reglas en
   `lib/vitrina-probador-reglas.ts`, ejemplo del largo en `lib/sugerencias-largo-probador.ts`) + `LargosTipicosHoja.tsx`
-  (`vitrina_guardar_largos_tipicos`; `vitrina_productos.largo_cm` y `retail.vitrina_largos_tipicos`, `20261017015000`) + `PrepararRecortesHoja.tsx` (recorta EN EL NAVEGADOR con MODNet sobre el original, `lib/recorte-probador.ts`:
-  los colores de la foto de la tienda y la transparencia de `mascaraDePrenda` de `lib/preparar-foto.ts`; sube `recortes/<id>-<sello>.png`
-  con `subirRecorteDeFoto` y anota con `registrar_recorte`) + `RevisarRecorteHoja.tsx` (`revisar_recorte`: usar o descartar). Ninguna
+  (`vitrina_guardar_largos_tipicos`; `vitrina_productos.largo_cm` y `retail.vitrina_largos_tipicos`, `20261017015000`) + `PrepararRecortesHoja.tsx` (saca EN EL NAVEGADOR el recorte de la propia foto, `lib/recorte-probador.ts`:
+  el color y la transparencia del PNG sin fondo que entrega la IA, limpiados con `limpiarAlfa` (ADR-0442; antes MODNet); una foto sin transparencia queda sin recorte; sube `recortes/<id>-<sello>.png`
+  con `subirRecorteDeFoto` y anota con `registrar_recorte`) + `RevisarRecorteHoja.tsx` (`revisar_recorte`: usar o descartar; el «Deshacer»
+  de un descarte es `deshacer_descarte_recorte`, solo si sigue descartado, `20261017183000`). Ninguna
   foto se modifica. Reglas puras en `lib/recorte-probador-reglas.ts`, guía de foco en `lib/vitrina-probador-guia.ts`; tabla
   `retail.foto_recortes` (`20261017003000`). Desde la actividad 2, cada foto que sube `subirFotoProducto` (`lib/producto-fotos.ts`: Editar
   producto, Nuevo producto y la cola sin conexión) pide por detrás su recorte (`recortarAlSubir`, carga perezosa de `lib/recorte-probador.ts`),
   sin el combo «Responsable» (`recorte_foto` en `acciones_sin_responsable`, `20261017013000`, Felipe 2026-10-16). Prueba en la base:
-  `pnpm pruebas:vitrina-probador`.
+  `pnpm pruebas:vitrina-probador`. Desde `/formidable` (2026-10-17): la página deja solo lo que el probador usa (`soloLoQueEntra`, con
+  `zonaDelProbador` de `packages/shared/src/categorias-de-la-tienda.ts`, la misma tabla de grupos de la tienda), la pantalla dibuja su
+  cabecera con el paso que toca (`siguientePaso`) y cada fila dice «Lista» o lo primero que le falta (`veredictoDelProbador`).
 - `/tienda-web/campanas` (Tienda web ▸ Campañas, módulo `campanas`, ADR-0436 act. 1 y 4; maqueta `docs/maquetas/campanas-diseno-2026-10`) →
   `layout.tsx` (`exigirModulo("campanas")`) → `page.tsx` lee `campanas_lista` (las etiquetas de estilo campaña con sus fechas, descuento,
   cuántas prendas llevan y, desde `20261017160000`, su diseño publicado, su borrador y tres prendas con foto, categoría y color) y
@@ -1111,7 +1119,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   prenda, que viaja como `descuento_unitario` por línea; «cobrar» = desde ADR-0307 la
   `punto-de-venta/HojaDeCobro.tsx` entra sobre el catálogo (en el celular, dentro de la hoja del
   ticket): seis medios con QR solo si `page.tsx` lee `fn_acepta_pago_qr` = true, billetes sugeridos
-  (`montosSugeridos`), comprobante sin valor por defecto y el documento (`DocumentoDelComprobante`);
+  (`montosSugeridos`), «¿Con qué máquina?» para la tarjeta o el QR solo donde la tienda tiene dos (ADR-0429: `fn_pos_maquinas_de_sede`,
+  `maquinasPara`/`pagoNuevo` de `lib/vender-reglas.ts`; lo marcado viaja como `cuenta_id`), comprobante sin valor por defecto y el
+  documento (`DocumentoDelComprobante`);
   su botón envía el formulario del ticket (`form="ticket-pos"`) y vive FUERA del cuerpo que scrollea (la hoja se compacta sola por su
   alto, ADR-0307 act. 2026-10-05), Confirmar cobro → RPC `registrar_venta`,
   que emite el comprobante en la misma transacción y, desde ADR-0048, rechaza precios
@@ -1774,6 +1784,17 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `fn_por_pagar_consolidado`. Tablas `cuentas_dinero`, `medios_de_cobro`, `movimientos_dinero`, `conciliaciones`,
     `dinero_revisados`. La cuenta sellada (F3b): `cuenta_dinero_id` en los pagos de venta, separación, cambio,
     devolución, traslado de caja y compra, llenada por disparador (cobros) o elegida con la cuenta propuesta (pagos).
+  - **Las máquinas de cobro y la comisión real (ADR-0429, 2026-10-16; decisión 3 del ADR-0417):** tablas `pos_maquinas` (Izipay,
+    Vendemás, cada una con su cuenta «por depositar» 1 a 1), `pos_maquinas_sedes`, `pos_tarifas` (con vigencia), `pos_abonos_lotes`
+    (qué días cubrió cada depósito) y `cobros_resellados` (el rastro de la corrección del histórico). El destino por defecto sigue en
+    `medios_de_cobro` (ahora con `qr`); el sello (`fn_cuenta_sellada`) valida la máquina elegida con `fn_pos_cuenta_sirve_en_sede`.
+    Vender: `vender/page.tsx` lee `fn_pos_maquinas_de_sede` → `PuntoDeVenta` (`pagoNuevo`, `cuentaPorDefecto` de `lib/vender-reglas.ts`)
+    → `HojaDeCobro` pregunta «¿Con qué máquina?» donde hay dos → `p_pagos[].cuenta_id` → `registrar_venta`. Cuentas y dinero: el
+    «Depósito de la máquina» del modal de movimientos lee `fn_pos_pendientes` y llama `registrar_abono_pos` (`validarAbonoPos`,
+    `resumenAbono`); el aviso de atraso sale de `fn_pos_alertas` (`avisosDeMaquinas`). Configuración ▸ Cuentas y cobros: la tarjeta
+    «Máquinas de cobro» (`fn_pos_maquinas`) y `TarifaMaquinaModal.tsx` → `guardar_pos_tarifa`. Migraciones `20261016173000` (con
+    `fn_pos_sembrar_maquinas_en_tiendas`, que también llama `seed.sql`), `182000`, `190000`, `191000` y la de datos `193000`
+    (`fn_resellar_cobros_a_maquinas`, solo desde una migración).
   - Configuración ▸ Cuentas y cobros ▸ «Editar» (`components/finanzas/EditarCuentaModal.tsx`, `lib/cuenta-editar-reglas.ts`;
     migración `20260925210100`) → `fn_cuenta_dinero_detalle` (qué se puede cambiar y quién la usa, leído de las llaves
     foráneas con `fn_usos_cuenta_dinero`), `editar_cuenta_dinero`, `eliminar_cuenta_dinero` (borra solo una cuenta que
@@ -2069,8 +2090,13 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   `retail.tienda_separadas_por_otros(usuario, modelo, tienda)` (`20261015044000`): por talla, solo sí o no según si los pedidos web por
   confirmar de OTROS clientes que recogen ahí (sin vencer) cubren lo libre de `fn_tienda_disponible`; prueba: `pnpm pruebas:tienda-separadas`.
   «Combínalo con» es el primer look que la lleva (`leerLooks` → `combinaCon`). La tarjeta (`components/TarjetaPrenda.tsx`) lleva el corazón
-  y, desde 960 px, «Agregar» con la talla (`components/RapidoDeTarjeta.tsx`: pide las tallas al quedarse el mouse, `app/acciones/tarjeta.ts`
-  `tallasParaAgregar` → la ficha de ese modelo; el catálogo no trae tallas y no cambia de forma). Lo guardado lo lee el marco del catálogo
+  y, desde 960 px, «Agregar» con la talla (`components/RapidoDeTarjeta.tsx`: pide las tallas al quedarse el mouse, `GET /api/tallas` →
+  `lib/tarjeta-servidor.ts` `leerTallasParaAgregar` → la ficha de ese modelo; una ruta y no una acción, desde el 2026-10-17: las acciones van
+  de a una y las de varias tarjetas, y «Agregar a la bolsa», se hacían esperar; el catálogo no trae tallas y no cambia de forma). Al tocar una tarjeta, `components/PrendaTocada.tsx`
+  guarda lo que ya mostraba (sus `data-*` y su foto, `lib/prenda-tocada.ts`): el esqueleto de la ficha y la ficha lo usan mientras llega.
+  Los esqueletos (`components/FormaDelEsqueleto.tsx`, una forma por página, `lib/esqueleto.ts`) y el fundido entre vistas
+  (`components/Vistas.tsx`, `app/estilos/vistas.css`) están en ADR-0445; de una lista a otra (misma página, otra dirección) el esqueleto lo
+  pone la página de antes (`components/EnCamino.tsx`). Lo guardado lo lee el marco del catálogo
   (`app/(catalogo)/layout.tsx`, una vez por petición) y lo reparte a toda tarjeta (`components/club/Guardados.tsx` `ProveedorGuardados`):
   los corazones del mismo modelo cambian juntos. «Tus favoritos» es `/catalogo?lista=favoritos` (`lib/catalogo.ts` `deFavoritos`; no se
   filtra por la tienda elegida); «Mi cuenta» usa la misma tarjeta, con `guardado` dicho por la página.
@@ -2168,6 +2194,58 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   `app/acciones/bolsa.ts` `agregarLookALaBolsa` (sin precios: la bolsa los pide a la base con la tienda de recojo); al terminar, el aviso
   de abajo y el salto del globo de la bolsa. Las dos páginas llevan el marco de la tienda (`MarcoCatalogo`, con «Arma tu look» marcado) y
   piden cuenta en el proxy (`lib/sesion.ts`). Estilos en `app/estilos/looks.css`.
+- `/looks/arma` («Arma el tuyo», el probador de looks, ADR-0434 actividad 4; grupo `(catalogo)`, con cuenta; se llega desde la
+  cabecera —«Arma el tuyo» tras «Arma tu look», `lib/inicio.ts` `datos.probador`, marcado con `actual="probador"`, solo si
+  `lib/probador-servidor.ts` `hayAlgoParaProbar` dice que hay algo que probar en esa tienda—, la tarjeta de arriba
+  de «Arma tu look» —`components/probador/EntradaProbador.tsx`, con el probador quieto en lo primero que hay— y la ficha —«Arma un look
+  con esta prenda», `FichaPrenda` prop `probador`, solo si `armarProbador` la acepta en esa tienda: abre con ella en el color elegido—;
+  actividad 10) → `lib/catalogo-servidor.ts` `leerCatalogo(sede)` (qué se ve, su nombre y sus colores; con una tienda
+  elegida, solo lo que hay ahí) + `lib/probador-servidor.ts` `leerProbador(sede)` → `retail.tienda_probador(p_sede)` (`20261017025000`: por
+  prenda publicada con largo —propio o típico— y algún recorte LISTO, su largo, sus recortes con el color de su foto, y por COLOR su precio
+  —`fn_tienda_precios` por color, el de la bolsa— y su nivel por tienda —`fn_tienda_disponible`—; y `combina`, de `colores.combina_con`),
+  guardada medio minuto como el catálogo. `lib/probador.ts` (pura, con su prueba) junta las dos (`armarProbador`: la zona de cada
+  categoría sale de `zonaDelProbador`, en `packages/shared/src/categorias-de-la-tienda.ts` desde 2026-10-17, la misma tabla que leen
+  `lib/grupos.ts` y el ERP; el bolso es Bolsos y Carteras), arma el look (`poner`, `quitar`, `sorprender`, `completarLook`), lo
+  pone en la dirección (`?p=CÓDIGO.COLOR~…`, `codificarLook`/`lookDeLaUrl`) y dibuja la figura a 2,5 px por cm (`cajaDe`). Lo dibujan
+  `components/probador/Probador.tsx` (el estado), `Figura.tsx` (la escena: prendas, las que asoman, números, flechas, deslizar, teclado,
+  «Sorpréndeme»), `Colores.tsx`, `TiraDeOpciones.tsx` y `TuLook.tsx`; la franja de tiendas es `FiltroDelProbador.tsx` (conserva el look,
+  por la prop `franja` de `MarcoCatalogo`). «Ver todas» y «Buscar otra» (actividad 5) abren `Buscador.tsx`, una hoja a pantalla
+  completa (`<dialog>`) que vive en la dirección (`?buscar=<zona>`: «atrás» la cierra) y busca en lo que la página ya trajo, con
+  `lib/probador-buscar.ts` (pura, con su prueba: zonas, coincidencias sin tildes, el color de cada tarjeta, conteo y sugerencias que salen
+  de lo que hay); «Probar» pone la prenda en ese color. «Agregar a mi bolsa» (actividad 6, `AgregarTuLook.tsx`) pide las tallas de cada
+  prenda en su color con `app/acciones/probador.ts` `tallasDeTuLook` (la ficha que la tienda ya guarda, `leerFicha` + `tallasDelColor`;
+  «hay» en alguna tienda de la web), arma el look para la hoja (`lookParaLaHoja`) y abre la MISMA hoja de tallas de los looks
+  (`components/looks/AgregarLook.tsx`, con `conBoton={false}` y `abiertaAlMontar`) y la MISMA acción `agregarLookALaBolsa`; el aviso es
+  `avisoDelLook(null, …)` («de tu look»). En la computadora (actividad 7) es la misma pieza reacomodada con una grilla de áreas en
+  `probador.css` (`@container tienda (min-width: 960px)`): la figura a la izquierda, fija al bajar, y a la derecha «Tu look», los colores,
+  las opciones en grilla, el total y las promesas. Su esqueleto de carga es la forma `probador` de `FormaDelEsqueleto`. Estilos en
+  `app/estilos/probador.css`. Prueba en la base: `pnpm pruebas:tienda-probador`.
+  **Guardar el look** (actividad 8): el corazón de la cabecera del probador (`components/probador/CorazonDelLook.tsx`) llama a
+  `app/acciones/probador.ts` `guardarTuLook` / `quitarTuLook` → `lib/looks-guardados-servidor.ts` → `retail.tienda_guardar_look` /
+  `tienda_quitar_look` (`20261017044000`: tablas `looks_web` + `look_web_piezas`, de 2 a 4 prendas por modelo y color, una vez por look
+  —la huella, sin importar el orden—, hasta 30 vivos por cuenta, quitar marca `quitado_en` y no borra; cerrar o eliminar la cuenta los
+  quita en `fn_cuentas_web_cerrar_al_anonimizar`). Va lleno si el look de la figura es uno guardado (`lib/looks-guardados.ts`
+  `buscarGuardado`, con los de `tienda_mis_looks` que la página lee junto con lo demás).
+- `/looks/guardado/[id]` (un look guardado, actividad 8; grupo `(catalogo)`, con cuenta) → `leerMisLooksEnBase(cuenta)` →
+  `retail.tienda_mis_looks` (solo los de la cuenta que pregunta: otro, con el enlace, ve «Este look ya no está») + `leerCatalogo` y
+  `leerProbador` (las prendas de TODAS las tiendas, como los favoritos: cada color dice dónde hay). `lookDelGuardado` lo pone en su lugar
+  y aparta lo que ya no está; el precio y el stock son los de hoy (no se guarda ninguno). Lo dibujan `FiguraQuieta.tsx` (la misma figura
+  del probador, quieta, con sus números), `NombreDelLook.tsx` (`renombrarTuLook` → `tienda_renombrar_look`), `AgregarLookGuardado.tsx`
+  (el `AgregarTuLook` del probador, a lo ancho) y `QuitarLookGuardado.tsx`; «Editar en el probador» abre `/looks/arma?p=…`. Su
+  esqueleto es el de la ficha. En `/catalogo?lista=favoritos`, «Tus looks» (`components/probador/TusLooks.tsx`) va arriba de las
+  prendas, solo con la lista entera. Prueba en la base: `pnpm pruebas:tienda-looks-guardados`. «Compartir» (actividad 9,
+  `components/probador/CompartirLook.tsx`) abre una hoja (`HojaNativa`) con la imagen para estados, que arma
+  `app/(catalogo)/looks/guardado/[id]/historia/route.tsx` (1080×1920, `next/og`, solo para la cuenta dueña: lleva el nombre del look), y
+  comparte el archivo con el enlace público por la hoja del celular (`navigator.share`), o lo descarga, o copia el enlace.
+- `/tu-look?p=…` (un look compartido, actividad 9; **público**, fuera del grupo `(catalogo)`, con `MarcoCuenta segunSesion`) →
+  `lib/compartir-servidor.ts` `prendasParaCompartir()` (el catálogo y el probador de todas las tiendas, las mismas lecturas guardadas) +
+  `lookDeLaUrl`: la figura y cada prenda con su color, SIN precio ni cuánto hay; sin cuenta, «Crea tu cuenta y arma el tuyo» (vuelve
+  al probador con este look, `hrefConVolver`) y, con cuenta, «Pruébatelo en el probador». Su vista previa para WhatsApp (`og:image`) es
+  `app/tu-look/vista/route.tsx` (1200×630, `next/og`, pública y guardada un día en la red; una dirección escrita de otra forma va a la
+  del probador, 308). Las dos imágenes salen de `lib/imagenes-del-look.tsx` (plantillas de satori), `lib/compartir-look.ts` (pura, con
+  su prueba: el enlace, dónde va cada tarjeta, el título) y `lib/fuentes-og.ts` (EB Garamond y Heebo en TTF desde Google Fonts, en
+  memoria; si Google no contesta, la letra de `next/og`). El logo y el colibrí salen de `lib/marca.ts` (ADR-0446), sin pedir nada a la
+  red. Ninguna imagen pública lleva un texto que venga en la dirección.
 - **Un solo precio y una sola tienda elegida** (integración de la tienda, 2026-10-15). El precio de una prenda (talla y color) en la web
   lo dice `fn_tienda_precio_talla(prendas, tienda)` (`20261015012000`): el de la tienda elegida (`fn_precio_en_sede`) o, con «Todas», el
   mayor entre las de la web (sin ninguna, el de la grilla), con la campaña de la caja encima (la de mayor %, `fn_descuento_campana`,
@@ -2190,6 +2268,12 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   piezas a propósito rompe a todas juntas). Al CONFIRMAR, el motor del pedido web (`fn_pedido_web_reservar`, `20261014235000`) reserva
   fila por fila del piso, el almacén o lo sin lugar de cualquier tienda abierta: coincide con la ficha salvo en una sububicación de una
   tienda de otro tipo (un «rack»), que la ficha cuenta y el motor no.
+- **La medición de la tienda** (ADR-0447): `components/Medicion.tsx` (en `app/layout.tsx`) sortea 1 de cada 2 visitas
+  (`lib/medicion-muestra.ts`) y solo en esas carga aparte `components/MedicionActiva.tsx` (`useReportWebVitals` y el toque → esqueleto →
+  página, que reconoce el esqueleto por `data-esqueleto` en `EsqueletoDePagina`). Un envío al ocultarse la pestaña a `POST /api/medicion`
+  (`app/api/medicion/route.ts`), que valida con `lib/medicion.ts` (`leerEnvio`, páginas de `RUTAS_MEDIDAS`) y escribe una línea
+  `medicion_tienda {…}` en el registro de Vercel; sin base ni sesión (el proxy no la mira). Se lee con `pnpm --filter tienda medicion:leer`
+  (`scripts/medicion-leer.mjs` + `scripts/medicion-resumen.mjs`), que guarda lo bajado en `apps/tienda/.medicion/` (fuera de git).
 
 ---
 

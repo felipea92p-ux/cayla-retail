@@ -10,12 +10,14 @@ import { textoCambios } from "@/lib/ayuda";
 import { leerAyuda } from "@/lib/ayuda-servidor";
 import { cuantasEnLaBolsa } from "@/lib/bolsa-servidor";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
-import { claveCategoria, hrefDePrenda, hrefLista } from "@/lib/catalogo";
+import { claveCategoria, fotoOptimizable, hrefDePrenda, hrefLista } from "@/lib/catalogo";
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
 import { chipsDelCatalogo, combinaCon, esIdDePrenda, parecidasA, promesasDeCompra } from "@/lib/ficha";
 import { leerFicha, leerSeparadasPorOtros } from "@/lib/ficha-servidor";
 import { hrefLook } from "@/lib/looks";
 import { leerLooks } from "@/lib/looks-servidor";
+import { armarProbador } from "@/lib/probador";
+import { leerProbador } from "@/lib/probador-servidor";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
@@ -59,13 +61,15 @@ export default async function FichaDePrenda(props: Props) {
   const elegida = ficha?.sede ? sedes.find((s) => s.id === ficha.sede) ?? null : null;
   // El plazo de cambio es el de la caja (el que imprime la boleta), el mismo de «Cambios y devoluciones». Lo guardado (las esperas)
   // es la misma lectura del marco del catálogo (una sola consulta por visita).
-  const [catalogo, plazos, guardados, enLaBolsa, looks, separadas] = await Promise.all([
+  const [catalogo, plazos, guardados, enLaBolsa, looks, separadas, lecturaProbador] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
     leerAyuda(),
     usuario ? leerGuardadosEnBase(usuario) : null,
     cuantasEnLaBolsa(),
     ficha ? leerLooks(pedida?.id ?? null) : null,
     usuario && ficha && elegida ? leerSeparadasPorOtros(usuario, ficha.id, elegida.id) : new Set<string>(),
+    // Si se puede probar: la misma lectura guardada del probador (ADR-0434, actividad 10).
+    ficha ? leerProbador(pedida?.id ?? null) : null,
   ]);
   const sede = elegida ? claveDeSede(elegida.nombre) : null;
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
@@ -76,6 +80,15 @@ export default async function FichaDePrenda(props: Props) {
   const parecidas = ficha ? parecidasA(ficha, enLaTienda, { fuera: combina?.prendas.map((p) => p.id) ?? [] }) : null;
   // «Nuevo · llegó hace 4 días» y «N.º 3 en más vendidos» salen del catálogo, que ya los trae.
   const chips = chipsDelCatalogo(catalogo?.prendas.find((p) => p.id === id) ?? null);
+  // «Arma un look con esta prenda», solo si el probador de esta tienda la tiene (con su recorte y su largo, y algo en la tienda): las
+  // mismas reglas que arman el probador, así el botón nunca abre un probador sin ella.
+  const enElProbador = lecturaProbador
+    ? (armarProbador(
+        enLaTienda.filter((p) => p.id === id),
+        lecturaProbador,
+        { elegida, tiendas: sedes, optimizable: (url) => fotoOptimizable(url, origenFotos) },
+      )[0] ?? null)
+    : null;
 
   return (
     <MarcoCatalogo
@@ -121,6 +134,7 @@ export default async function FichaDePrenda(props: Props) {
             esperasIds={guardados ? Object.fromEntries(guardados.esperas) : {}}
             enLaBolsa={enLaBolsa}
             separadas={[...separadas]}
+            probador={enElProbador ? { codigo: enElProbador.codigo ?? enElProbador.id, sede } : null}
           >
             {combina && (
               <section className="t-sec" aria-labelledby="combina">

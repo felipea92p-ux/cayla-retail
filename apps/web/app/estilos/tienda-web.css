@@ -21,6 +21,7 @@
   @keyframes tw-dibuja { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
   @keyframes tw-asoma { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: none; } }
   @keyframes tw-crece-x { from { transform: scaleX(0); } to { transform: none; } }
+  @keyframes tw-funde { from { opacity: 0; } to { opacity: 1; } }
 
   /* La pantalla: el contenedor de las consultas de ancho de sus piezas (se acomodan al ancho de la página, no de la ventana). */
   .tw { container-type: inline-size; container-name: tw; }
@@ -143,18 +144,19 @@
     background: color-mix(in srgb, var(--color-crema-fija) 90%, transparent);
   }
 
-  /* ───────── El camino: los pasos de un pedido, unidos por su plazo ───────── */
-  /* En la computadora, las cifras quedan en una fila y entre cada una va su tramo; en el celular el tramo no se dibuja (las cifras van
-     de a dos, como siempre). */
+  /* ───────── El camino: las cuatro estaciones de un pedido, unidas por su plazo (ADR-0430, act. 2026-10-17) ───────── */
+  /* En una pantalla ancha, las estaciones quedan en una fila y entre cada una va su tramo; más angosta (desde 1280 px: cuatro tarjetas de
+     cifra necesitan ~150 px cada una con el lateral abierto), el tramo no se dibuja y las estaciones van de a dos, como siempre. Las
+     reglas de «¿Cómo funciona?» usan la misma grilla, así cada una queda bajo su estación. */
   .tw-camino { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .tw-camino-tramo,
   .tw-camino-hueco { display: none; }
-  @media (min-width: 1024px) {
-    .tw-camino { grid-template-columns: minmax(0, 1fr) 4.75rem minmax(0, 1fr) 4.75rem minmax(0, 1fr) 1.5rem minmax(0, 1fr); gap: 0; align-items: stretch; }
-    .tw-camino-tramo { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 2px; }
+  @media (min-width: 1280px) {
+    .tw-camino { grid-template-columns: minmax(0, 1fr) 5.75rem minmax(0, 1fr) 5.75rem minmax(0, 1fr) 5.75rem minmax(0, 1fr); gap: 0; align-items: stretch; }
+    .tw-camino-tramo { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 4px; }
     .tw-camino-hueco { display: block; }
   }
-  .tw-camino-tramo svg { display: block; width: 100%; height: 16px; overflow: visible; }
+  .tw-camino-tramo > svg { display: block; width: 100%; height: 16px; overflow: visible; }
   .tw-camino-linea {
     fill: none;
     stroke: var(--color-taupe);
@@ -172,7 +174,11 @@
     animation-delay: calc(var(--d, 0) * 160ms + 1020ms);
   }
   .tw-camino-verbo { font-size: 11.5px; font-weight: 600; color: var(--color-tinta); line-height: 1.1; text-align: center; }
-  .tw-camino-plazo { font-size: 11px; color: var(--color-taupe); line-height: 1.1; text-align: center; white-space: nowrap; }
+  .tw-camino-plazo { display: inline-flex; align-items: flex-start; justify-content: center; gap: 3px; font-size: 11px; color: var(--color-taupe); line-height: 1.2; text-align: center; text-wrap: balance; }
+  /* Un plazo que solo avisa (pagar, recoger): hilo punteado que aparece, sin dibujarse (la raya no se puede «trazar» punteada). */
+  .tw-camino-tramo:not([data-cierra]) .tw-camino-linea { stroke-dasharray: 0.05 0.07; animation-name: tw-funde; }
+  /* El que CIERRA el pedido (confirmar a tiempo): el reloj y el plazo en rojo profundo, el hilo entero. */
+  .tw-camino-tramo[data-cierra] .tw-camino-plazo { color: var(--color-rojo-profundo); font-weight: 600; }
   .tw-camino-verbo,
   .tw-camino-plazo { animation: tw-entra 420ms var(--ease-cayla) both; animation-delay: calc(var(--d, 0) * 160ms + 640ms); }
 

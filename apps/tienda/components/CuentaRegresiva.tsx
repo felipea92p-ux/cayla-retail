@@ -1,6 +1,7 @@
 "use client";
 
-import { CuentaDeCampana, finDeCampana, partesCuenta } from "@cayla-retail/portada";
+import { CuentaDeCampana } from "@cayla-retail/portada";
+import { finDeCampana, partesCuenta } from "@/lib/cuenta-regresiva";
 import { useAhora } from "@/lib/useAhora";
 
 /** Cuánto falta para que termine la campaña, segundo a segundo. La página se arma por adelantado y no sabe qué hora será al abrirla: las

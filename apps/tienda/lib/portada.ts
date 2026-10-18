@@ -69,7 +69,7 @@ export function interpretarPortada(dato: unknown, origenFotos: string | undefine
 // Los textos del héroe (partir el nombre, el porcentaje, las fechas y el contador) viven en la portada en una sola pieza
 // (@cayla-retail/portada, ADR-0436): la vista previa del ERP los dice igual. Se reexportan para que la tienda los siga pidiendo aquí
 // (el contador, `finDeCampana` y `partesCuenta`, lo pide `CuentaRegresiva` directo al paquete, que lo prueba en `textos.test.ts`).
-export { fechaCorta, fechaLarga, partirTitulo, pctTexto } from "@cayla-retail/portada";
+export { fechaCorta, fechaLarga, pctTexto } from "@cayla-retail/portada";
 
 /** El año en Lima, para la tarjeta del club y el pie. */
 export const anioLima = (ahora = new Date()) =>

@@ -2,7 +2,7 @@
   "guia": "compras.por-pagar",
   "ruta": "/compras/por-pagar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 72,
+  "total": 69,
   "controles": {
     "app/(app)/compras/por-pagar/page.tsx": [
       "BotonEnlace «Limpiar filtros»",
@@ -88,10 +88,7 @@
       "Link «)»"
     ],
     "components/PorPagarVistaRapida.tsx": [
-      "button «Cerrar»",
-      "Link «Abrir comprobante»",
-      "button «Comprobante anterior»",
-      "button «Comprobante siguiente»"
+      "Link «Abrir comprobante»"
     ],
     "components/SaldosAFavor.tsx": [
       "Link «{s.nombre}»"

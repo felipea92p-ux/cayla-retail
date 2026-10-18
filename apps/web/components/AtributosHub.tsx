@@ -93,6 +93,7 @@ export function AtributosHub({
   categorias,
   prendasConCosto,
   variantesManuales,
+  rotacion,
   puedeEditar,
   puedeEditarEtiquetas,
   puedeDarDescuento,
@@ -113,6 +114,7 @@ export function AtributosHub({
   categorias: ComponentProps<typeof EtiquetasLista>["categorias"];
   prendasConCosto: ComponentProps<typeof EtiquetasLista>["prendasConCosto"];
   variantesManuales: ComponentProps<typeof EtiquetasLista>["variantesManuales"];
+  rotacion: ComponentProps<typeof EtiquetasLista>["rotacion"];
   /** Colores, tallas, tejidos y patrones: el líder o la terminal administrativa (ADR-0160). */
   puedeEditar: boolean;
   /** Etiquetas: el líder o un rol con el módulo Etiquetas (20260923130000). */
@@ -170,6 +172,7 @@ export function AtributosHub({
           categorias={categorias}
           prendasConCosto={prendasConCosto}
           variantesManuales={variantesManuales}
+          rotacion={rotacion}
           puedeEditar={puedeEditarEtiquetas}
           puedeDarDescuento={puedeDarDescuento}
         />}

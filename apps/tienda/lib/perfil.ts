@@ -36,7 +36,9 @@ export function resumenPedidos(pedidos: readonly Pick<Pedido, "estado" | "listoP
  * «Mi Club». Lo que se puede usar hoy va primero, en verde (el descuento de su mes, el vale); si no, cuándo llega su cumpleaños o cuánto
  * lleva para su vale. Sin ficha activa, lo dice en ámbar (el bloque explica qué hacer).
  */
-export function resumenClub(club: MiClub["club"] | null): Resumen {
+export function resumenClub(club: MiClub["club"] | null, esDelClub = true): Resumen {
+  // Una cuenta simple (ADR-0438) todavía no es del Club: se une al separar o cuando quiera, desde aquí.
+  if (!esDelClub) return { texto: "Únete: completa tus datos", tono: "ambar" };
   if (club === null) return SIN_RESPUESTA;
   if (!club.activa) return { texto: "Tu ficha no está activa", tono: "ambar" };
   const { cumple, aniversario } = club;
@@ -74,7 +76,8 @@ export function resumenAvisos(esperas: readonly Espera[] | null): Resumen {
 }
 
 /** La línea bajo el saludo: desde cuándo es del Club (el año de su tarjeta). Sin ficha activa, eso; sin respuesta del Club, lo de siempre. */
-export function lineaDeMiembro(club: MiClub["club"] | null, desde: number): string {
+export function lineaDeMiembro(club: MiClub["club"] | null, desde: number | null): string {
+  if (desde === null) return "Todavía no eres del Club CAYLA: se activa cuando completas tus datos.";
   if (club && !club.activa) return "Tu ficha del Club CAYLA no está activa.";
   return `Miembro del Club CAYLA desde ${desde}`;
 }

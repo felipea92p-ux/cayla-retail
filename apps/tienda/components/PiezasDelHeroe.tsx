@@ -14,10 +14,20 @@ export function piezasDelHeroe(
 ): PiezaDeHeroe[] {
   return prendas.map((p) => {
     const foto = fotosDeTarjeta(p)[0];
+    const precio = conPrecio ? precioTarjeta(p) : null;
     return {
       id: p.id,
       nombre: p.nombre,
       href: href(p),
+      // Lo que ya se ve, para la ficha que llega (`RecordarPrendaTocada`); sin cuenta no hay precio que adelantar.
+      datos: {
+        "data-prenda": p.id,
+        "data-nombre": p.nombre,
+        "data-precio": precio?.principal,
+        "data-antes": precio?.anterior ?? undefined,
+        "data-oferta": precio?.oferta ? "si" : undefined,
+        "data-categoria": p.categoria?.nombre ?? undefined,
+      },
       etiqueta: conPrecio ? `Ver ${p.nombre}` : `${p.nombre}: crea tu cuenta para ver su precio`,
       foto: (
         <FotoTarjeta
@@ -31,7 +41,7 @@ export function piezasDelHeroe(
           pronto
         />
       ),
-      derecha: conPrecio ? <span className="num">{precioTarjeta(p).principal}</span> : <span className="t-polaroid-ver">Ver precio</span>,
+      derecha: precio ? <span className="num">{precio.principal}</span> : <span className="t-polaroid-ver">Ver precio</span>,
     };
   });
 }

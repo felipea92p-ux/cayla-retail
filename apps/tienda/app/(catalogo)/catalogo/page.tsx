@@ -5,7 +5,9 @@ import { ElegidoALaVista } from "@/components/ElegidoALaVista";
 import { FiltrosDeLista } from "@/components/FiltrosDeLista";
 import { Icono } from "@/components/Icono";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
+import { MasPrendas } from "@/components/MasPrendas";
 import { PendienteDelEnlace } from "@/components/PendienteDelEnlace";
+import { TusLooks } from "@/components/probador/TusLooks";
 import { TarjetaPrenda } from "@/components/TarjetaPrenda";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import {
@@ -15,6 +17,7 @@ import {
   conteoDeLista,
   deFavoritos,
   filtrarYOrdenar,
+  fotoOptimizable,
   hrefLista,
   leerCampana,
   leerCategoria,
@@ -28,11 +31,15 @@ import {
 import { categoriasConLaElegida, dondeHay, gruposConLoElegido, paraSeguirMirando, queSeBusca, vacioEnTienda } from "@/lib/catalogo-lista";
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
 import { delGrupo, delMenu, grupoDe, gruposDe, leerGrupo, leerMenu, MENUS, tituloPartido } from "@/lib/grupos";
+import { leerMisLooksEnBase } from "@/lib/looks-guardados-servidor";
+import { armarProbador } from "@/lib/probador";
+import { leerProbador } from "@/lib/probador-servidor";
 import { fechaLarga, pctTexto } from "@/lib/portada";
 import { leerPortada } from "@/lib/portada-servidor";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
+import { conMostrar, leerMostrar, tandaDe } from "@/lib/tandas";
 import { leerSedes } from "@/lib/tiendas-servidor";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -89,10 +96,14 @@ export default async function Catalogo({ searchParams }: Props) {
   const pedida = sedeDeLaUrl(sp.sede, sedes);
   const esFavoritos = lista === "favoritos";
   const sesion = esFavoritos ? await leerSesion() : null;
-  // Lo guardado es la misma lectura del marco del catálogo (una sola consulta por visita).
-  const [catalogo, guardados] = await Promise.all([
+  // Lo guardado es la misma lectura del marco del catálogo (una sola consulta por visita). En los favoritos, también los looks que armó
+  // en «Arma el tuyo» (ADR-0434, actividad 8) y lo del probador para dibujarlos: si no llegan, la lista de prendas se ve igual.
+  const conCuenta = sesion?.estado === "con_sesion" ? sesion.usuarioId : null;
+  const [catalogo, guardados, misLooks, lecturaProbador] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
-    sesion?.estado === "con_sesion" ? leerGuardadosEnBase(sesion.usuarioId) : null,
+    conCuenta ? leerGuardadosEnBase(conCuenta) : null,
+    conCuenta ? leerMisLooksEnBase(conCuenta) : null,
+    conCuenta ? leerProbador(pedida?.id ?? null) : null,
   ]);
   // La tienda cuyo precio usó la base (si la escondieron entretanto, la base ya respondió con «Todas»).
   const elegida = catalogo?.sede ? sedes.find((s) => s.id === catalogo.sede) ?? null : null;
@@ -128,6 +139,9 @@ export default async function Catalogo({ searchParams }: Props) {
   // La lista en todas las tiendas: si tampoco ahí hay nada, lo que falta no es la tienda (la lista dice su propio vacío).
   const enTodas = esFavoritos ? deLaLista : filtrarYOrdenar(delMenu(prendas ?? [], claveMenu), { categoria: null, orden: "destacado", lista, campana, modelos });
   const vista = delGrupo(filtrarYOrdenar(base, { categoria, orden, lista, campana, modelos }), grupoPedido);
+  // Las tarjetas se dibujan en tandas (lib/tandas.ts): las primeras 24 y, al acercarse al final, las que siguen. El conteo y los filtros
+  // siguen siendo de la lista entera.
+  const tanda = tandaDe(vista.length, leerMostrar(sp.mostrar));
   const loPedidoEnTodas = esFavoritos
     ? vista
     : delGrupo(filtrarYOrdenar(delMenu(prendas ?? [], claveMenu), { categoria, orden, lista, campana, modelos }), grupoPedido);
@@ -174,6 +188,14 @@ export default async function Catalogo({ searchParams }: Props) {
       : null;
   // El origen del almacén público de fotos (no es una llave): solo sus fotos pasan por el optimizador de Next.
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
+  // «Tus looks»: los guardados, con las prendas del probador de todas las tiendas (como las prendas favoritas, se ven haya o no aquí).
+  // Solo con la lista entera: con una categoría elegida se buscan prendas.
+  const tusLooks = esFavoritos && !categoria && !grupoPedido && misLooks && misLooks.length > 0 && lecturaProbador && prendas ? misLooks : [];
+  const delProbador =
+    tusLooks.length > 0 && lecturaProbador && prendas
+      ? armarProbador(prendas, lecturaProbador, { elegida, tiendas: sedes, optimizable: (url) => fotoOptimizable(url, origenFotos) })
+      : [];
+  const looksArriba = tusLooks.length > 0 && <TusLooks looks={tusLooks} prendas={delProbador} sede={sede} />;
   // Lo que se ofrece para seguir mirando (de lo que hay en la tienda elegida): debajo del vacío de una lista vacía en todas las tiendas y
   // al final de tus favoritos (la página terminaba en tus dos o tres prendas guardadas), sin repetirlas.
   const seguir =
@@ -248,9 +270,10 @@ export default async function Catalogo({ searchParams }: Props) {
           // La lista misma está vacía en todas las tiendas (no es la categoría ni la tienda elegida): dice qué aparecería aquí, sin
           // filtros ni orden que no sirven, y debajo ofrece algo para seguir mirando (Lo nuevo o toda la tienda): no es un callejón.
           <>
+            {looksArriba}
             <div className="t-vacio">
               <Icono nombre={esFavoritos ? "corazon" : "tienda"} />
-              <h3>{cab.vacio.titulo}</h3>
+              <h3>{tusLooks.length > 0 ? "Aún no guardas prendas" : cab.vacio.titulo}</h3>
               <p>{cab.vacio.texto}</p>
               <Link className="t-btn" href={hrefLista({ sede, categoria: null, orden: "destacado" })}>
                 Ver toda la tienda
@@ -260,6 +283,7 @@ export default async function Catalogo({ searchParams }: Props) {
           </>
         ) : (
           <>
+            {looksArriba}
             {/* Una tarjeta por campaña, que la elige o la suelta. Con una sola, la tarjeta solo informa: elegirla no cambiaba nada. */}
             {campanas.length === 1 ? (
               <div className="t-campanas">
@@ -390,7 +414,7 @@ export default async function Catalogo({ searchParams }: Props) {
             {vista.length > 0 ? (
               <>
                 <div className={`t-grilla${esFavoritos ? " t-grilla-favoritos" : ""}`}>
-                  {vista.map((p, i) => (
+                  {vista.slice(0, tanda.visibles).map((p, i) => (
                     <TarjetaPrenda
                       key={p.id}
                       prenda={p}
@@ -403,6 +427,9 @@ export default async function Catalogo({ searchParams }: Props) {
                     />
                   ))}
                 </div>
+                {tanda.siguiente !== null && (
+                  <MasPrendas href={conMostrar(href({}), tanda.siguiente)} cuantasMas={tanda.cuantasMas} quedan={tanda.quedan} />
+                )}
                 {carrilSeguir}
               </>
             ) : vacioAqui ? (

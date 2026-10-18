@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Prenda } from "./catalogo";
 import { DISENO_DE_SIEMPRE } from "@cayla-retail/portada";
-import { categoriasDelInicio, datosDeCabecera, heroDelInicio, heroesDelInicio, hrefDeLaCampana, hrefDelInicio } from "./inicio";
+import { categoriasDelInicio, datosDeCabecera, heroDelInicio, heroesDelInicio, hrefDeLaCampana, hrefDelInicio, indiceDelBuscador } from "./inicio";
 
 const FOTO = "https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/fotos/a.jpg";
 const ANIV = "8a6f1c1e-3b55-4c8e-9a55-222222222222";
@@ -178,6 +178,12 @@ describe("la cabecera con cuenta", () => {
     expect(todas.nuevo.href).toBe("/catalogo?lista=nuevo");
   });
 
+  it("«Arma el tuyo» sale solo si el probador tiene algo que probar, con la tienda elegida", () => {
+    expect(datosDeCabecera(prendas, "trujillo", undefined).probador).toBeNull();
+    expect(datosDeCabecera(prendas, "trujillo", undefined, true).probador).toBe("/looks/arma?sede=trujillo");
+    expect(datosDeCabecera(prendas, null, undefined, true).probador).toBe("/looks/arma");
+  });
+
   it("«Arma tu look» lleva la tienda elegida; los favoritos, no (son de la persona, no de una tienda)", () => {
     const d = datosDeCabecera(prendas, "trujillo", undefined);
     expect(d.looks).toBe("/looks?sede=trujillo");
@@ -236,10 +242,15 @@ describe("la cabecera con cuenta", () => {
     expect(enOferta).toMatchObject({ precio: "S/ 63.90", oferta: true });
   });
 
-  it("el índice del buscador: lo que dice cada tarjeta (precio, oferta, foto) y nada más", () => {
+  it("el índice del buscador: lo que dice cada tarjeta (precio, oferta, foto) y nada más; no viaja con la cabecera", () => {
     const d = datosDeCabecera(prendas, null, "https://x.supabase.co");
-    expect(d.indice).toHaveLength(5);
-    expect(d.indice[0]).toEqual({
+    // La cabecera ya no lleva la lista (2026-10-17): la pide el buscador al abrirse, para la tienda que dice `sede`.
+    expect("indice" in d).toBe(false);
+    expect(d.sede).toBeNull();
+    expect(datosDeCabecera(prendas, "lima", undefined).sede).toBe("lima");
+    const indice = indiceDelBuscador(prendas, null, "https://x.supabase.co");
+    expect(indice).toHaveLength(5);
+    expect(indice[0]).toEqual({
       id: "Blusa Emma",
       nombre: "Blusa Emma",
       categoria: "Camisas y Blusas",
@@ -252,7 +263,9 @@ describe("la cabecera con cuenta", () => {
       forma: "blusa",
       color: "#D5BA98",
     });
-    expect(d.indice[2]).toMatchObject({ nombre: "Vestido Rosa", precio: "S/ 63.90", oferta: "−20 %" });
+    expect(indice[2]).toMatchObject({ nombre: "Vestido Rosa", precio: "S/ 63.90", oferta: "−20 %" });
+    // Con una tienda elegida, cada resultado lleva a la ficha en esa tienda.
+    expect(indiceDelBuscador(prendas, "lima", undefined)[0].href).toBe("/catalogo/Blusa Emma?sede=lima");
     // Las sugerencias del buscador vacío: las categorías, con su nombre corto.
     expect(d.sugerencias).toEqual(["Blusas", "Vestidos", "Faldas", "Zapatos"]);
   });

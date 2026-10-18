@@ -1,18 +1,16 @@
 "use client";
 
 import type { createClient } from "@/lib/supabase/client";
-import { fraccionDeHuecos, LIENZO_FOTO, type Caja } from "@/lib/foto-encuadre";
-import { mascaraDePrenda, type MascaraDePrenda } from "@/lib/preparar-foto";
+import { fraccionDeHuecos } from "@/lib/foto-encuadre";
 import { subirRecorteDeFoto } from "@/lib/producto-fotos";
 import {
-  aplicarAlfa,
   cajaVisible,
-  destinoDeLaMascara,
   errorDeRecorte,
-  esFondoBlanco,
+  limpiarAlfa,
   motivoDelRecorte,
   recorteDeRespuesta,
   tamanoDelRecorte,
+  tieneFondoTransparente,
   type MotivoRecorte,
   type RecorteDeFoto,
 } from "@/lib/recorte-probador-reglas";
@@ -20,17 +18,19 @@ import { firmaOmitida, type FirmaOmitida } from "@/lib/responsable-omitido";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
 
-// El recorte de una foto para el probador de la tienda online, en el NAVEGADOR (ADR-0434, actividad 1). Las cuentas están en
-// `recorte-probador-reglas.ts`; aquí se dibujan en un canvas, se codifica el PNG, se sube y se anota.
+// El recorte de una foto para el probador de la tienda online, en el NAVEGADOR (ADR-0434, actividad 1; cambiado por el ADR-0442). Las
+// cuentas están en `recorte-probador-reglas.ts`; aquí se lee la foto en un canvas, se codifica el PNG, se sube y se anota.
 //
-// De dónde sale cada cosa: los COLORES, de la foto que ya muestra la tienda (así el recorte es la misma prenda que la ficha, con su luz
-// y su nitidez); la TRANSPARENCIA, del recortador de siempre (MODNet, `mascaraDePrenda`) pasado otra vez por el original guardado al
-// subirla, que es la misma imagen que se recortó entonces. Sin original (fotos de antes del ADR-0228), se recorta la foto misma y queda
-// por revisar.
+// De dónde sale: la foto se sube tal cual la entrega la IA del equipo, con su fondo TRANSPARENTE. El recorte es esa misma imagen: su
+// color y su transparencia, limpiada (`limpiarAlfa`) y cortada a la caja de la prenda. Nadie le quita el fondo a una foto en el ERP:
+// una foto sin transparencia (un JPG) se queda «sin recorte» y no entra al armador de looks.
 
 type Cliente = ReturnType<typeof createClient>;
 
 export type RecortePreparado = { png: Blob; proporcion: number; motivo: MotivoRecorte | null };
+
+/** Lo que se le dice a quien sube una foto sin fondo transparente (también es lo que lee «Preparar recortes» en su lista de fallas). */
+const SIN_TRANSPARENCIA = "La foto no trae fondo transparente, así que no entra al armador de looks. Pídele a la IA un PNG sin fondo y cámbiala en Editar producto.";
 
 function lienzo(ancho: number, alto: number): HTMLCanvasElement {
   const c = document.createElement("canvas");
@@ -46,69 +46,30 @@ async function bajarImagen(url: string): Promise<Blob> {
   return r.blob();
 }
 
-/** El alfa (un byte por píxel) de la máscara dibujada en `destino`, dentro de un lienzo del tamaño de la foto. */
-function alfaEnLaFoto(mascara: MascaraDePrenda, destino: Caja, ancho: number, alto: number): Uint8ClampedArray {
-  const m = lienzo(mascara.ancho, mascara.alto);
-  m.getContext("2d")!.putImageData(new ImageData(mascara.rgba as Uint8ClampedArray<ArrayBuffer>, mascara.ancho, mascara.alto), 0, 0);
-  const c = lienzo(ancho, alto);
-  const g = c.getContext("2d")!;
-  g.imageSmoothingQuality = "high";
-  g.drawImage(m, destino.x, destino.y, destino.ancho, destino.alto);
-  const datos = g.getImageData(0, 0, ancho, alto).data;
-  const alfa = new Uint8ClampedArray(ancho * alto);
-  for (let i = 0; i < alfa.length; i++) alfa[i] = datos[i * 4 + 3];
-  return alfa;
-}
-
 function aPng(c: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("El navegador no pudo generar el recorte."))), "image/png"));
 }
 
 /**
- * Prepara el recorte de una foto que ya está en la tienda. Lanza si no se puede (la foto no está, el recortador no encontró la
- * prenda): «Preparar recortes» lo cuenta y sigue con la siguiente.
+ * Prepara el recorte de una foto que ya está en la tienda. Lanza si no se puede (la foto no está, no trae fondo transparente, no quedó
+ * nada): «Preparar recortes» lo cuenta y sigue con la siguiente.
  */
-export async function prepararRecorte(f: { url: string; original: string | null }): Promise<RecortePreparado> {
-  const blobFoto = await bajarImagen(f.url);
-  return componerRecorte(blobFoto, f.original ? () => bajarImagen(f.original!) : null);
+export async function prepararRecorte(f: { url: string }): Promise<RecortePreparado> {
+  return componerRecorte(await bajarImagen(f.url));
 }
 
-/**
- * El recorte a partir de la foto de la tienda (`blobFoto`, la que se ve) y, si hay, su original (lo que se le pasa al recortador). El
- * original llega como función para bajarlo solo si sirve (una foto de antes del ADR-0228 no se cruza con él). Lanza si no se puede.
- */
-async function componerRecorte(blobFoto: Blob, original: (() => Promise<Blob>) | Blob | null): Promise<RecortePreparado> {
+/** El recorte a partir de la foto misma: su transparencia limpia, cortada a la prenda y achicada a `ALTO_MAX_RECORTE`. Lanza si no se puede. */
+async function componerRecorte(blobFoto: Blob): Promise<RecortePreparado> {
   const foto = await createImageBitmap(blobFoto);
   try {
     const { width: ancho, height: alto } = foto;
-    // Solo una foto encuadrada por el ADR-0228 (1200×1500) se puede cruzar con su original: las de antes no tienen la misma cuenta.
-    const conOriginal = original !== null && ancho === LIENZO_FOTO.ancho && alto === LIENZO_FOTO.alto;
-    const fuente = !conOriginal ? blobFoto : typeof original === "function" ? await original() : original;
-    const { mascara, motivo } = await mascaraDePrenda(fuente);
-    if (!mascara) throw new Error(motivo ?? "No se reconoció la prenda en esta foto.");
-
     const c = lienzo(ancho, alto);
-    const g = c.getContext("2d")!;
+    const g = c.getContext("2d", { willReadFrequently: true })!;
     g.drawImage(foto, 0, 0);
     const pixeles = g.getImageData(0, 0, ancho, alto);
+    if (!tieneFondoTransparente(pixeles.data)) throw new Error(SIN_TRANSPARENCIA);
 
-    let alfa: Uint8ClampedArray;
-    let fondoBlanco: boolean;
-    if (conOriginal) {
-      // Se prueba primero como «Sin fondo» (lo de siempre): si lo que la máscara deja afuera es blanco puro, era esa. Si no, la foto se
-      // subió «Con fondo» y la máscara va donde quedó el original entero; ese fondo puede ser blanco igual (una foto de proveedor) o no.
-      alfa = alfaEnLaFoto(mascara, destinoDeLaMascara(mascara, mascara.caja, true), ancho, alto);
-      fondoBlanco = esFondoBlanco(pixeles.data, alfa);
-      if (!fondoBlanco) {
-        alfa = alfaEnLaFoto(mascara, destinoDeLaMascara(mascara, mascara.caja, false), ancho, alto);
-        fondoBlanco = esFondoBlanco(pixeles.data, alfa);
-      }
-    } else {
-      alfa = alfaEnLaFoto(mascara, { x: 0, y: 0, ancho, alto }, ancho, alto);
-      fondoBlanco = esFondoBlanco(pixeles.data, alfa);
-    }
-
-    aplicarAlfa(pixeles.data, alfa, fondoBlanco);
+    limpiarAlfa(pixeles.data, ancho, alto);
     const caja = cajaVisible(pixeles.data, ancho, alto);
     if (!caja) throw new Error("No quedó nada de la prenda.");
     const huecos = fraccionDeHuecos(pixeles.data, ancho, caja);
@@ -119,7 +80,7 @@ async function componerRecorte(blobFoto: Blob, original: (() => Promise<Blob>) |
     const gs = salida.getContext("2d")!;
     gs.imageSmoothingQuality = "high";
     gs.drawImage(c, caja.x, caja.y, caja.ancho, caja.alto, 0, 0, tam.ancho, tam.alto);
-    return { png: await aPng(salida), proporcion: tam.ancho / tam.alto, motivo: motivoDelRecorte({ huecos, fondoBlanco, conOriginal }) };
+    return { png: await aPng(salida), proporcion: tam.ancho / tam.alto, motivo: motivoDelRecorte(huecos) };
   } finally {
     foto.close();
   }
@@ -154,15 +115,18 @@ export async function guardarRecorte(
 /**
  * El recorte de una foto recién subida, por detrás (ADR-0434, actividad 2): lo llama `subirFotoProducto` apenas la foto llega al
  * almacén, en Editar producto, Nuevo producto y la cola sin conexión. Nadie espera ni elige nada: va sin el combo «Responsable»
- * (`recorte_foto`, Felipe 2026-10-16) y con la cuenta de una persona queda a su nombre. Nunca lanza: si algo falla (el recortador no
- * carga, se cortó la red), la foto queda «sin recorte» y la recorta «Preparar recortes» de Vitrina ▸ Probador.
+ * (`recorte_foto`, Felipe 2026-10-16) y con la cuenta de una persona queda a su nombre. Nunca lanza: un JPG, o una imagen sin fondo
+ * transparente, queda «sin recorte» sin hacer ruido (ADR-0442); si algo más falla (se cortó la red), la foto queda «sin recorte» y la
+ * toma «Preparar recortes» de Vitrina ▸ Probador.
  */
-export async function recortarAlSubir(supabase: Cliente, f: { foto: string; url: string }, archivo: Blob, original: Blob | null): Promise<void> {
+export async function recortarAlSubir(supabase: Cliente, f: { foto: string; url: string }, archivo: Blob): Promise<void> {
+  if (archivo.type === "image/jpeg") return; // un JPG no puede traer transparencia
   try {
-    const recorte = await componerRecorte(archivo, original);
+    const recorte = await componerRecorte(archivo);
     const r = await guardarRecorte(supabase, f, recorte, firmaOmitida("recorte_foto"));
     if ("error" in r) console.warn("[recorte-probador] no se guardó el recorte de la foto nueva", r.error);
   } catch (err) {
+    if (err instanceof Error && err.message === SIN_TRANSPARENCIA) return;
     console.warn("[recorte-probador] no se pudo recortar la foto nueva", err);
   }
 }

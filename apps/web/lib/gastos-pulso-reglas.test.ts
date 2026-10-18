@@ -37,7 +37,7 @@ const egreso = (p: Partial<EgresoPorClasificar> & Pick<EgresoPorClasificar, "id"
 });
 const fijo = (p: Partial<GastoFijoMes> & Pick<GastoFijoMes, "id" | "descripcion" | "estado" | "fechaEsperada">): GastoFijoMes => ({
   ubicacionId: "tru", ubicacionNombre: "Tienda Trujillo", categoria: "alquiler", categoriaNombre: "Alquiler", proveedorId: null, proveedorNombre: null,
-  comprobanteTipo: "factura", monto: 4000, montoVariable: false, diaDelMes: 5, gastoId: null, gastoMonto: null, ...p,
+  comprobanteTipo: "factura", monto: 4000, montoVariable: false, diaDelMes: 5, momento: "dia", gastoId: null, gastoMonto: null, ...p,
 });
 
 describe("bandejaPulso", () => {

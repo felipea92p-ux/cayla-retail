@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CloudOff } from "lucide-react";
+import { Aviso } from "@/components/ui/Aviso";
 import { borrar, guardar, leer } from "@/lib/almacen-local";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { esCopiaGuardada } from "@/lib/sin-conexion-reglas";
@@ -101,29 +101,25 @@ export function SinConexion({ cuenta, generadoEn }: { cuenta: string; generadoEn
   if (!sinRed && !copiaDe && pendientes === 0 && rechazadas === 0) return null;
 
   return (
-    <div role="status" className="mb-4 flex items-start gap-2 rounded-lg border border-ambar/35 bg-ambar/[0.08] px-3 py-2 text-[13px] text-ambar-profundo">
-      <CloudOff className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-      <span>
-        {sinRed ? <b className="font-semibold">Sin conexión. </b> : null}
-        {copiaDe
-          ? `Estás viendo la copia guardada en este equipo (${diaYHoraLima(copiaDe).dia} · ${diaYHoraLima(copiaDe).hora}). Lo que guardes sube solo al volver el internet.`
-          : sinRed
-            ? "Lo que guardes en Vender, Recibir o Nuevo producto queda en este equipo y sube solo al volver el internet."
-            : null}
-        {!sinRed && copiaDe ? " Ya hay internet: recarga la pantalla para ver lo de ahora." : null}
-        {pendientes > 0 ? (
-          <b className="font-semibold">
-            {" "}
-            {pendientes === 1 ? "1 operación espera subir" : `${pendientes} operaciones esperan subir`} desde este equipo.
-          </b>
-        ) : null}
-        {rechazadas > 0 ? (
-          <span className="text-rojo-profundo">
-            {" "}
-            {rechazadas === 1 ? "1 no pudo subir" : `${rechazadas} no pudieron subir`}: revísalas en Vender, Recibir o Nuevo producto.
-          </span>
-        ) : null}
-      </span>
-    </div>
+    <Aviso tono="atencion" className="mb-4" titulo={sinRed ? "Sin conexión" : undefined}>
+      {copiaDe
+        ? `Estás viendo la copia guardada en este equipo (${diaYHoraLima(copiaDe).dia} · ${diaYHoraLima(copiaDe).hora}). Lo que guardes sube solo al volver el internet.`
+        : sinRed
+          ? "Lo que guardes en Vender, Recibir o Nuevo producto queda en este equipo y sube solo al volver el internet."
+          : null}
+      {!sinRed && copiaDe ? " Ya hay internet: recarga la pantalla para ver lo de ahora." : null}
+      {pendientes > 0 ? (
+        <b className="font-semibold">
+          {" "}
+          {pendientes === 1 ? "1 operación espera subir" : `${pendientes} operaciones esperan subir`} desde este equipo.
+        </b>
+      ) : null}
+      {rechazadas > 0 ? (
+        <span className="text-rojo-profundo">
+          {" "}
+          {rechazadas === 1 ? "1 no pudo subir" : `${rechazadas} no pudieron subir`}: revísalas en Vender, Recibir o Nuevo producto.
+        </span>
+      ) : null}
+    </Aviso>
   );
 }

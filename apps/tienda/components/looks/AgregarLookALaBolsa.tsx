@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { agregarLookALaBolsa } from "@/app/acciones/bolsa";
 import { visible } from "@/lib/visible";
 import { avisoDelLook, type LineaLook, type Look } from "@/lib/looks";
@@ -10,7 +9,7 @@ import { AgregarLook } from "./AgregarLook";
 /** El globo de la bolsa salta una vez (maqueta, `saltaBolsa`) cuando ya dice cuántas lleva ahora: la acción escribe la cookie y Next
  *  vuelve a dibujar la cabecera; se espera ese cuadro (como mucho medio segundo) para no hacer saltar el número viejo. Sin movimiento
  *  si la persona lo pidió (bolsa.css apaga `.salta` con `prefers-reduced-motion`). */
-function saltarLaBolsa(cuantas: number) {
+export function saltarLaBolsa(cuantas: number) {
   let cuadros = 0;
   const mirar = () => {
     const globo = visible(document.querySelectorAll<HTMLElement>("[data-bolsa] .t-globo"));
@@ -39,7 +38,6 @@ export function AgregarLookALaBolsa({
   /** La tienda que el cliente venía mirando («Ver lo que hay en»): queda elegida para recoger si todavía no eligió otra. */
   sedeId: string | null;
 }) {
-  const router = useRouter();
   const { aviso, mostrar } = useAvisoBreve();
 
   async function alAgregar(lineas: LineaLook[]): Promise<string | null> {
@@ -47,10 +45,6 @@ export function AgregarLookALaBolsa({
       lineas.map((l) => l.varianteId),
       sedeId,
     );
-    if (r.estado === "sin_sesion") {
-      router.push("/entrar");
-      return null;
-    }
     if (r.estado === "no") return r.mensaje;
     const dicho = avisoDelLook(look.nombre, lineas, r);
     if (!dicho.cerrar) return dicho.texto;

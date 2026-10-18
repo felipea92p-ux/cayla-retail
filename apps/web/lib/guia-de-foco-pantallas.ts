@@ -247,7 +247,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // Un archivo que es a la vez el formulario principal de una pantalla y dibuja un `<Modal>` cuenta como modal: sepáralo si hace falta.
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-/** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. (55 → 54 con «Ingresar insumo» del rediseño de Producción y 54 → 53 con la ficha de la clienta de `main`: dos archivos distintos que se suman al fusionar.) */
+/** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. (55 → 54 con «Ingresar insumo» del rediseño de Producción y 54 → 53 con la ficha de la clienta de `main`: dos archivos distintos que se suman al fusionar; 53 → 52 el 2026-10-17: la orden de Producción pasó a `<Cajon>` y ya no arma su propia hoja, ADR-0358 ronda 17; 52 → 54 ese mismo día, cuando la prueba aprendió a ver el `<Cajon>`: la orden de Producción vuelve —su cajón sigue llevando el cierre y los insumos, sin guía— y entra la ficha de una persona del Equipo, que nació el 2026-10-05 en un cajón hecho a mano que la prueba no veía. Ninguno es un modal nuevo: es deuda que estaba escondida; 54 → 53 ese mismo día, con la guía de la ficha del Equipo.) */
 export const MODALES_PENDIENTES_HOY = 53;
 
 export const MODALES: Record<string, PantallaGuia> = {
@@ -326,6 +326,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/RevisarProductoHoja.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién firma): el título dice qué prenda se aprueba o se rechaza y la nota qué pasa después; cuando el rechazo está bloqueado (orden en proceso o stock) la hoja no pide nada, dice qué lo frena y a dónde ir. No hay camino que indicar (ADR-0371)." },
   "components/plan-compra/NuevaCampanaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/NuevaCampanaModal.tsx"] },
   "components/plan-compra/EditarCampanaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/EditarCampanaModal.tsx"] },
+  // El cajón «Resumen y avisos» del Plan de compra (Felipe 2026-10-12). El campo que ve el detector es el selector de campaña, que vive
+  // en la cabecera de la pantalla, fuera del cajón.
+  "components/plan-compra/PlanCampana.tsx": { estado: "no-aplica", motivo: "El cajón «Resumen y avisos» se lee: avisos, las cifras de toda CAYLA, lo ya pedido y el reparto. Lo que se fija (el tope, el % de lo que sobra, los mínimos) abre su propia hoja, cada una con su guía en este registro, y el simulador de adentro mueve supuestos sin guardar nada: no hay nada que falte." },
   "components/plan-compra/CampanasArchivadasModal.tsx": { estado: "no-aplica", motivo: "Una lista de campañas archivadas con «Ver» y «Restaurar» en cada fila y un solo control (quién restaura): no se llenan campos ni hay pasos." },
   "components/plan-compra/TopeModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/TopeModal.tsx"] },
   "components/plan-compra/RecuperoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/RecuperoModal.tsx"] },
@@ -352,7 +355,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   // Actividad 7: anotar lo que se usó de la tela (o devolver lo que sobró): cuánto —con lo que hay en el estante o lo ya descontado— y quién lo anota.
   "components/orden-pagina/TelaUsadaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/TelaUsadaModal.tsx"] },
   "components/orden-pagina/DeshacerAvanceModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién lo deshace): el título dice qué anotación se deshace y cuántas prendas vuelven a quedar por terminar; no hay camino que indicar." },
-  "components/OrdenPanel.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
+  // La orden de Producción, en su `<Cajon>` (ADR-0358 ronda 17). Su archivo trae un solo control (quién lo hace), pero el cajón lleva
+  // adentro el cierre («Pasar al stock»: `OrdenCierre.tsx`, 4 controles) y los insumos (`OrdenInsumos.tsx`, 4): ahí está el camino que guiar.
+  "components/OrdenPanel.tsx": PENDIENTE, // 1 control propio + 8 del cierre y los insumos
   "components/PagarComprobanteProduccionModal.tsx": PENDIENTE, // 3 controles
   "components/PagoJuntosModal.tsx": PENDIENTE, // 5 controles
   "components/PatronesLista.tsx": { estado: "aplicada", evidencia: ["components/PatronesLista.tsx"] },
@@ -401,9 +406,13 @@ export const MODALES: Record<string, PantallaGuia> = {
   // se borra o se escribe mal (`lib/club-beneficios-guia.ts`, la misma regla que apaga «Guardar»).
   // ADR-0341: Dar acceso en una hoja. Falta = lo mismo que apaga el botón: a quién, la sede, el rol (si se leyeron los roles) y quién lo da.
   "components/colaboradores/DarAccesoModal.tsx": { estado: "aplicada", evidencia: ["components/colaboradores/DarAccesoModal.tsx"] },
+  // ADR-0340: la ficha de una persona del Equipo, en su `<Cajon>`. La guía vive en el panel abierto (`lib/ficha-colaborador-guia.ts`): «Cambiar
+  // rol» pide quién lo hace, el rol nuevo y, solo al bajar a un líder sin sede, la sede donde queda (lo que exige `asignar_rol`); «Suspender»,
+  // quién lo hace y el motivo como sugerido (Felipe 2026-10-17: se enciende y sale en «Falta», pero nunca bloquea); cambiar la sede, reactivar y quitar el acceso son un toque y solo piden quién lo hace.
+  "components/colaboradores/FichaColaborador.tsx": { estado: "aplicada", evidencia: ["components/colaboradores/FichaColaborador.tsx"] },
   "components/clientas/BeneficiosClubModal.tsx": { estado: "aplicada", evidencia: ["components/clientas/BeneficiosClubModal.tsx"] },
-  // Recomendaciones (ADR-0408): la respuesta se enciende si todavía se puede responder (sin leer, opcional: sin ella la hoja la marca
-  // leída; ya leída, falta) y después quién lo hace. «Falta» = lo que `responder_recomendacion` rechazaría (`lib/recomendaciones-guia.ts`).
+  // Recomendaciones (ADR-0408): desde el 2026-10-17 la hoja es un `<Cajon>`, que la prueba también cuenta como hoja. Su guía: la respuesta,
+  // que falta hasta estar bien escrita, y quién lo hace. «Falta» = lo que `responder_recomendacion` rechazaría (`lib/recomendaciones-guia.ts`).
   "components/recomendaciones/RecomendacionHoja.tsx": { estado: "aplicada", evidencia: ["components/recomendaciones/RecomendacionHoja.tsx"] },
   "components/alta-producto/ElegirColores.tsx": { estado: "no-aplica", motivo: "Elegir colores sirve a la fila «Colores» de Nuevo producto, que ya lleva su guía (FilaAlta). Su hoja «Nuevo color» (2026-10-02) pide solo nombre y tono: la familia y el código se llenan solos, y lo que falta se dice al tocar «Crear y elegir»." },
   "components/alta-producto/ProponerValor.tsx": { estado: "no-aplica", motivo: "Modal «Nuevo tejido / patrón / talla» (2026-10-02): un solo campo, el nombre; «Agregar» se apaga mientras está vacío." },
@@ -425,6 +434,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/finanzas/ConfiguracionPresupuesto.tsx": PENDIENTE, // 4 controles
   "components/finanzas/CuentasDinero.tsx": PENDIENTE, // 20 controles
   "components/finanzas/EditarCuentaModal.tsx": PENDIENTE, // 9 controles
+  // ADR-0429 (act. 4): «Cambiar la tarifa» de una máquina de cobro. Falta = lo mismo que apaga «Guardar» (`validarTarifa`): la tasa, los
+  // días de abono y quién hace el cambio; el cargo fijo es opcional y el IGV viene marcado (lo usual en Perú).
+  "components/finanzas/TarifaMaquinaModal.tsx": { estado: "aplicada", evidencia: ["components/finanzas/TarifaMaquinaModal.tsx"] },
   "components/finanzas/EstadoResultadosPanel.tsx": PENDIENTE, // 3 controles
   "components/finanzas/PagosSinCuenta.tsx": PENDIENTE, // 2 controles
   "components/finanzas/SaldosArranqueModal.tsx": PENDIENTE, // 3 controles

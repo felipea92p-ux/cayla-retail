@@ -8,7 +8,7 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import type { CategoriaDeLinea } from "@/lib/recepcion-envio-reglas";
 import { TOPES_CONTEO } from "@/lib/recepcion-conteo-reglas";
 import { sugerirNombre } from "@/lib/sugerencias-alta-producto";
-import { PasoCantidad } from "./SepararPrendas";
+import { PasoDePrendas } from "./SepararPrendas";
 
 // «Describir ahora» (maqueta A, ADR-0393 decisión 8): de las nuevas que se contaron, anotar qué son —nombre, color, tallas, en palabras— sin
 // crearlas todavía. Siguen «por crear»: quien las cree después, en «Hacer ahora», ya sabe qué son. No guarda nada por su cuenta: lo descrito
@@ -62,7 +62,7 @@ export function DescribirNuevas({
           </CampoGuiado>
           <CampoGuiado id="describir-cuantas" guia={guia}>
             <p className="campo-etiqueta mb-1.5">{guia.etiqueta("describir-cuantas", `¿Cuántas son? De ${maximo} nuevas`)}</p>
-            <PasoCantidad valor={cantidad} etiqueta="nuevas descritas" minimo={1} onValor={(n) => setCantidad(Math.min(maximo, n))} />
+            <PasoDePrendas valor={cantidad} etiqueta="nuevas descritas" minimo={1} onValor={(n) => setCantidad(Math.min(maximo, n))} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo." />
           <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">

@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CejaDeCampana, HeroeDePortada, destacadoDeCampana } from "@cayla-retail/portada";
 import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { AvisoAlEntrar } from "@/components/AvisoAlEntrar";
 import { CarrilConFlechas } from "@/components/CarrilConFlechas";
-import { CuentaRegresiva } from "@/components/CuentaRegresiva";
-import { FotoDeFondo } from "@/components/FotoDeFondo";
+import { CarruselDePortada } from "@/components/CarruselDePortada";
+import { ConfianzaPortada } from "@/components/portada/ConfianzaPortada";
 import { FotoTarjeta } from "@/components/FotoTarjeta";
+import { HeroeDelInicio } from "@/components/HeroeDelInicio";
 import { Icono } from "@/components/Icono";
-import { Isotipo } from "@/components/Isotipo";
 import { TarjetaLook } from "@/components/looks/TarjetaLook";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
@@ -24,21 +23,21 @@ import {
   formaDe,
   fotoOptimizable,
   fotosDeTarjeta,
-  hrefDePrenda,
   hrefLista,
   leerCampana,
   type Prenda,
 } from "@/lib/catalogo";
 import { leerBeneficiosDelClub, leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
-import { categoriasDelInicio, heroesDelInicio, hrefDeLaCampana, type Hero } from "@/lib/inicio";
-import { CarruselDePortada } from "@/components/CarruselDePortada";
-import { avisoAlEntrar } from "@/lib/inicio-aviso";
+import { hoyLima } from "@/lib/cuentas";
+import { categoriasDelInicio, heroesDelInicio, hrefDeLaCampana } from "@/lib/inicio";
+import { avisoAlEntrar, avisosDeRespuestas } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
+import { leerMisRecomendaciones } from "@/lib/recomendaciones-servidor";
 import { hrefLooks } from "@/lib/looks";
 import { leerLooks } from "@/lib/looks-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
-import { fechaCorta, partirTitulo, pctTexto } from "@/lib/portada";
 import { anioActual } from "@/lib/hoy-servidor";
+import { fechaCorta, pctTexto } from "@/lib/portada";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
@@ -61,7 +60,7 @@ const hrefInicio = (sede: string | null, oferta: string | null = null) => {
   return s ? `/inicio?${s}` : "/inicio";
 };
 
-// El Inicio de quien tiene cuenta (maqueta v4, `vInicio`): arriba, si tiene algo del Club a su favor que todavía no cerró, el aviso al
+// El Inicio de la tienda, para todos (maqueta v4, `vInicio`; sin cuenta desde el 2026-10-17): arriba, si tiene algo del Club a su favor que todavía no cerró, el aviso al
 // entrar (Felipe, 2026-10-14: es adonde se llega al iniciar sesión); el héroe de la campaña vigente (o «Lo nuevo» si no hay), las
 // categorías, Lo nuevo, «Arma tu look» (si hay looks), las ofertas de cada campaña, los más vendidos (sin cifras), cómo se separa, el Club
 // y nuestras tiendas. Todo respeta la tienda elegida en «Ver lo que hay en»: el precio es el de esa tienda y, si hay una elegida, solo
@@ -80,11 +79,22 @@ export default async function Inicio({ searchParams }: Props) {
     leerBeneficiosDelClub(),
     anioActual(),
   ]);
-  const [lectura, avisos, vistos] =
+  const [lectura, avisosDelClub, mias, vistos] =
     sesion.estado === "con_sesion"
-      ? await Promise.all([leerMiCuentaEnBase(sesion.usuarioId), leerAvisosDelClub(sesion.usuarioId), avisosVistos()])
-      : [null, null, new Set<string>()];
+      ? await Promise.all([
+          leerMiCuentaEnBase(sesion.usuarioId),
+          leerAvisosDelClub(sesion.usuarioId),
+          // «CAYLA te respondió» (hoja nueva de Recomendaciones, 2026-10-17): sus respuestas de los últimos 30 días, en el mismo aviso.
+          leerMisRecomendaciones(sesion.usuarioId),
+          avisosVistos(),
+        ])
+      : [null, null, null, new Set<string>()];
+  const respuestas = sesion.estado === "con_sesion" && mias?.estado === "ok" ? avisosDeRespuestas(mias.mias.recomendaciones, sesion.usuarioId, hoyLima()) : [];
+  // Si una de las dos lecturas no contestó, sale lo de la otra: un aviso a medias es mejor que ninguno, y lo demás sigue en su página.
+  const avisos = avisosDelClub || respuestas.length > 0 ? [...(avisosDelClub ?? []), ...respuestas] : null;
   const cuenta = lectura?.estado === "cuenta" ? lectura.cuenta : null;
+  // Sin sesión el Inicio es el mismo (Felipe 2026-10-17): lo que cambia es que «Así se separa» y el Club invitan a crear la cuenta.
+  const conSesion = sesion.estado !== "sin_sesion";
   const aviso = avisos ? avisoAlEntrar(avisos, vistos) : null;
   // Sin looks (o si la base no los dio), la sección no sale.
   const looks = lecturaLooks?.looks ?? [];
@@ -122,7 +132,7 @@ export default async function Inicio({ searchParams }: Props) {
       {aviso && avisos && <AvisoAlEntrar aviso={aviso} activas={avisos.map((a) => a.clave)} />}
       {(() => {
         const dibujados = heroes.map((hero, i) => (
-          <Heroe
+          <HeroeDelInicio
             key={hero.tipo === "campana" ? (hero.campana.id ?? hero.campana.nombre) : i}
             hero={hero}
             sede={sede}
@@ -137,6 +147,8 @@ export default async function Inicio({ searchParams }: Props) {
           dibujados[0]
         );
       })()}
+      {/* Quien todavía no tiene sesión ve de un vistazo lo que la tienda cumple (la franja que era de la portada). */}
+      {!conSesion && <ConfianzaPortada tiendas={sedes.map((s) => s.nombre)} />}
 
       {catalogo === null ? (
         <div className="t-ancho">
@@ -299,8 +311,14 @@ export default async function Inicio({ searchParams }: Props) {
         </>
       )}
 
-      <AsiSeSepara conCuenta />
-      <SeccionClub nombre={cuenta?.nombre ?? null} desde={cuenta?.clubDesde ?? anio} conCuenta cumplePct={beneficios?.pct ?? null} />
+      <AsiSeSepara conCuenta={conSesion} />
+      <SeccionClub
+        nombre={cuenta?.nombre ?? null}
+        desde={cuenta?.clubDesde ?? anio}
+        conCuenta={conSesion}
+        esDelClub={cuenta?.esDelClub ?? conSesion}
+        cumplePct={beneficios?.pct ?? null}
+      />
       {sedes.length > 0 && (
         <NuestrasTiendas
           sedes={sedes}
@@ -311,94 +329,3 @@ export default async function Inicio({ searchParams }: Props) {
   );
 }
 
-/** El héroe (maqueta, `heroCampana` y `heroNuevo`): el texto a la izquierda y, en la computadora, las fotos como polaroids. */
-function Heroe({
-  hero,
-  sede,
-  origenFotos,
-  verCampana,
-  verNuevo,
-}: {
-  hero: Hero;
-  sede: string | null;
-  origenFotos: string | undefined;
-  /** null: la campaña sale por su diseño, sin prendas a la vista; el botón lleva a «Lo nuevo» (o a toda la tienda), nunca a una lista vacía. */
-  verCampana: string | null;
-  verNuevo: string | null;
-}) {
-  const piezas = hero.tipo === "marca" ? [] : hero.piezas;
-  const comun = {
-    clase: "t-hero-inicio",
-    sinCampana: hero.tipo !== "campana",
-    colibri: <Isotipo className="t-colibri" />,
-    piezas: piezasDelHeroe(piezas, { href: (p) => hrefDePrenda(p, sede), conPrecio: true, origenFotos }),
-    Enlace: Link,
-  };
-  if (hero.tipo === "campana") {
-    return (
-      <HeroeDePortada
-        {...comun}
-        ceja={<CejaDeCampana hasta={hero.campana.hasta} />}
-        titulo={partirTitulo(hero.campana.nombre, hero.campana.diseno?.corte)}
-        descripcion={
-          <>
-            <b>{destacadoDeCampana(hero.campana)}</b> Sepáralas online, confírmalas por WhatsApp y recógelas en tu tienda.
-          </>
-        }
-        cuenta={hero.campana.hasta ? <CuentaRegresiva hasta={hero.campana.hasta} /> : null}
-        acciones={
-          verCampana ? (
-            <>
-              <Link className="t-btn t-btn-claro" href={verCampana}>
-                Ver la campaña
-              </Link>
-              {verNuevo && (
-                <Link className="t-enlace" href={verNuevo}>
-                  Ver lo nuevo <Icono nombre="flecha" />
-                </Link>
-              )}
-            </>
-          ) : (
-            <Link className="t-btn t-btn-claro" href={verNuevo ?? hrefLista({ sede, categoria: null, orden: "destacado" })}>
-              {verNuevo ? "Ver lo nuevo" : "Ver toda la tienda"}
-            </Link>
-          )
-        }
-        marca={hero.campana.pct ? `−${pctTexto(hero.campana.pct)}%` : null}
-        // Con su diseño publicado en el ERP (ADR-0436), sus colores; sin él, el rojo de siempre.
-        diseno={hero.campana.diseno}
-        FotoDeFondo={FotoDeFondo}
-      />
-    );
-  }
-  if (hero.tipo === "nuevo") {
-    return (
-      <HeroeDePortada
-        {...comun}
-        ceja="Recién llegado"
-        titulo={["Lo nuevo", "de CAYLA"]}
-        descripcion="Lo que llegó a nuestras tiendas en los últimos 30 días."
-        acciones={
-          verNuevo && (
-            <Link className="t-btn t-btn-claro" href={verNuevo}>
-              Ver lo nuevo
-            </Link>
-          )
-        }
-      />
-    );
-  }
-  return (
-    <HeroeDePortada
-      {...comun}
-      ceja="Tienda online"
-      titulo={["Donde el estilo", "transforma"]}
-      descripcion="Mira lo que hay en cada tienda, sepáralo aquí y recógelo en tu tienda."
-      acciones={
-        <Link className="t-btn t-btn-claro" href={hrefLista({ sede, categoria: null, orden: "destacado" })}>
-          Ver toda la tienda
-        </Link>
-      }
-    />
-  );
-}

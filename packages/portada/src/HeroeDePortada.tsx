@@ -17,9 +17,13 @@ export type PiezaDeHeroe = {
   href?: string;
   /** Lo que lee el lector de pantalla al llegar a la polaroid (con `href`). */
   etiqueta?: string;
+  /** Lo que ya se ve de la prenda, en `data-*` del enlace: la tienda se lo adelanta a la ficha que llega (`RecordarPrendaTocada`). */
+  datos?: Readonly<Record<`data-${string}`, string | undefined>>;
 };
 
-type Enlace = ComponentType<{ href: string; className?: string; style?: CSSProperties; "aria-label"?: string; children?: ReactNode }>;
+type Enlace = ComponentType<
+  { href: string; className?: string; style?: CSSProperties; "aria-label"?: string; children?: ReactNode } & { [dato: `data-${string}`]: string | undefined }
+>;
 
 /** Cómo dibuja cada lugar la foto del fondo: la tienda, con su optimizador de imágenes (`next/image`, a lo ancho de la pantalla). */
 export type FotoDeFondo = ComponentType<{ src: string }>;
@@ -58,6 +62,8 @@ export function HeroeDePortada({
   diseno = null,
   tema,
   FotoDeFondo,
+  Texto,
+  enEspera = false,
 }: {
   /** Lo que la página le agrega al héroe (`t-portada`, `t-hero-inicio`): sus ajustes de lugar viven en sus propios estilos. */
   clase?: string;
@@ -79,6 +85,10 @@ export function HeroeDePortada({
   diseno?: DisenoDeCampana | null;
   /** El tema de los colores del diseño: la vista previa del ERP lo elige con su botón «Claro / Oscuro». Sin él, los dos (la tienda). */
   tema?: Tema;
+  /** Cómo se dibuja cada parte del nombre en el título: la tienda pone ahí el dibujo del logo en lugar de la palabra «CAYLA». Sin él, el texto. */
+  Texto?: (texto: string) => ReactNode;
+  /** Las fotos todavía no llegaron: sus marcos salen vacíos, quietos y apagados (el esqueleto del Inicio); sin enlaces ni animación. */
+  enEspera?: boolean;
   /** Cómo se dibuja la foto del fondo; sin él, una imagen simple (la vista previa del ERP). */
   FotoDeFondo?: FotoDeFondo;
 }) {
@@ -96,7 +106,7 @@ export function HeroeDePortada({
     if (mias.length === 0) derecha = lado;
     else if (acomodo === "grande") derecha = <FotoGrande pieza={mias[0]!} Enlace={Enlace} />;
     else if (acomodo === "mosaico") derecha = <Mosaico piezas={mias} Enlace={Enlace} marca={marca} />;
-    else derecha = <Collage piezas={mias} Enlace={Enlace} marca={gigante} />;
+    else derecha = <Collage piezas={mias} Enlace={Enlace} marca={gigante} enEspera={enEspera} />;
   }
   // Con polaroids el % va dentro del collage (como siempre); con los otros acomodos, suelto en el héroe, donde no lo tapa la foto.
   const pctSuelto = gigante && (acomodo === "letras" || (acomodo !== "polaroids" && mias.length > 0)) ? gigante : null;
@@ -124,11 +134,11 @@ export function HeroeDePortada({
         <span className="t-hero-ceja">{ceja}</span>
         {/* Las dos partes son bloques: el espacio entre ellas no se ve, pero el lector de pantalla lee «Día del Gato», no «Día delGato». */}
         <h1 className="t-hero-tit">
-          {linea && <span>{linea}</span>}
+          {linea && <span>{Texto ? Texto(linea) : linea}</span>}
           {cursiva && (
             <>
               {" "}
-              <em>{cursiva}</em>
+              <em>{Texto ? Texto(cursiva) : cursiva}</em>
             </>
           )}
         </h1>
@@ -198,7 +208,7 @@ function SelloDeCampana({ sello, marca }: { sello: Sello; marca: string | null }
 function PiezaEnlazada({ pieza, Enlace, clase, estilo, children }: { pieza: PiezaDeHeroe; Enlace: Enlace | undefined; clase: string; estilo?: CSSProperties; children: ReactNode }) {
   if (pieza.href && Enlace) {
     return (
-      <Enlace className={clase} style={estilo} href={pieza.href} aria-label={pieza.etiqueta ?? pieza.nombre}>
+      <Enlace className={clase} style={estilo} href={pieza.href} aria-label={pieza.etiqueta ?? pieza.nombre} {...pieza.datos}>
         {children}
       </Enlace>
     );
@@ -243,9 +253,9 @@ function Mosaico({ piezas, Enlace, marca }: { piezas: readonly PiezaDeHeroe[]; E
 }
 
 /** Las fotos como polaroids (hasta tres: `p1`, `p2`, `p3` las acomodan) y el descuento calado detrás. */
-function Collage({ piezas, Enlace, marca }: { piezas: readonly PiezaDeHeroe[]; Enlace: Enlace | undefined; marca: string | null }) {
+function Collage({ piezas, Enlace, marca, enEspera }: { piezas: readonly PiezaDeHeroe[]; Enlace: Enlace | undefined; marca: string | null; enEspera: boolean }) {
   return (
-    <div className="t-collage">
+    <div className={enEspera ? "t-collage t-collage-espera" : "t-collage"} aria-hidden={enEspera ? true : undefined}>
       {piezas.map((p, i) => (
         <PiezaEnlazada key={p.id} pieza={p} Enlace={Enlace} clase={`t-polaroid p${i + 1}`}>
           {p.foto}

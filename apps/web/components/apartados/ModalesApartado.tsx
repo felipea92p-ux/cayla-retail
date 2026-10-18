@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { BarraAvance } from "@/components/ui/BarraAvance";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { useRouter } from "next/navigation";
-import { Check, MessageCircle, Minus, Plus, Trash2 } from "lucide-react";
+import { Check, MessageCircle, Trash2 } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { CampoMonto } from "@/components/ui/CampoMonto";
 import { codigoPrenda } from "@/lib/prenda-reglas";
@@ -903,11 +904,12 @@ export function EditarApartadoModal({
                     <p className="truncate text-sm font-semibold">{p.referencia} <span className="ml-1 text-[11px] font-normal text-verde-profundo">nueva</span></p>
                     <p className="text-xs text-tinta/60">{detalleVariante(p)}</p>
                   </div>
-                  <span className="inline-flex h-8 items-center rounded-lg border border-sand">
-                    <button type="button" aria-label="Una menos" onClick={() => setSumar((ls) => ls.flatMap((x) => (x.varianteId !== l.varianteId ? [x] : x.cantidad > 1 ? [{ ...x, cantidad: x.cantidad - 1 }] : [])))} className="grid h-8 w-7 place-items-center text-tinta/60"><Minus className="h-3 w-3" aria-hidden /></button>
-                    <span className="min-w-5 text-center text-sm tabular-nums">{l.cantidad}</span>
-                    <button type="button" aria-label="Una más" onClick={() => agregar(l.varianteId)} className="grid h-8 w-7 place-items-center text-tinta/60"><Plus className="h-3 w-3" aria-hidden /></button>
-                  </span>
+                  <PasoCantidad
+                    menos={{ onClick: () => setSumar((ls) => ls.flatMap((x) => (x.varianteId !== l.varianteId ? [x] : x.cantidad > 1 ? [{ ...x, cantidad: x.cantidad - 1 }] : []))), etiqueta: "Una menos" }}
+                    mas={{ onClick: () => agregar(l.varianteId), etiqueta: "Una más" }}
+                  >
+                    {l.cantidad}
+                  </PasoCantidad>
                   <span className="w-20 text-right text-sm tabular-nums">{money((p.precio - descuentoHoy(p)) * l.cantidad)}</span>
                   <button type="button" aria-label="No sumar" onClick={() => setSumar((ls) => ls.filter((x) => x.varianteId !== l.varianteId))} className="text-rojo-profundo"><Trash2 className="h-3.5 w-3.5" aria-hidden /></button>
                 </li>

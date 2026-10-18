@@ -2,7 +2,7 @@
   "guia": "colaboradores",
   "ruta": "/colaboradores",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 78,
+  "total": 77,
   "controles": {
     "components/ColaboradoresModales.tsx": [
       "ComboResponsable «{responsable}»",
@@ -68,9 +68,6 @@
       "button «{t.etiqueta}»",
       "button «{p.etiqueta}»"
     ],
-    "components/colaboradores/CajonFicha.tsx": [
-      "button «Cerrar»"
-    ],
     "components/colaboradores/DarAccesoModal.tsx": [
       "button «{d.nombre}»",
       "button «{u.nombre}»",
@@ -95,10 +92,10 @@
       "ComboResponsable «{responsable}»",
       "button «{r.nombre}»",
       "button «{u.nombre}»",
-      "button «{responsable.motivo ?? undefined}»",
+      "button «{responsable.motivo ?? guia.frase ?? undefined}»",
       "button «{u.nombre}» #2",
       "input «{`motivo-${persona.id}»",
-      "button «{responsable.motivo ?? undefined}» #2",
+      "button «{responsable.motivo ?? guia.frase ?? undefined}» #2",
       "button «Sí, quitar acceso»",
       "button «Volver»",
       "button «Quitar acceso»"

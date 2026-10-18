@@ -72,6 +72,11 @@ export const PRUEBAS = [
   // salida de caja y restando del cierre; un egreso respalda una sola cosa; los saldos usan lo sellado. ROLLBACK.
   "pruebas:cuenta-sellada",
 
+  // Las máquinas de cobro (ADR-0429, decisión 3 del ADR-0417): Interbank y las cuentas «por depositar»; la tarjeta y el QR se
+  // sellan en la máquina de su tienda (Vendemás donde opera, Izipay donde no); la hoja puede elegir solo una máquina de esa
+  // tienda; el QR asienta en 105; los candados de máquinas y de «A qué cuenta entra cada cobro». ROLLBACK.
+  "pruebas:pos-maquinas",
+
   // Registrar ingreso con su origen (ADR-0375): caja fuerte, líder y préstamo de otra sede bajan su cuenta en la misma
   // operación; el flujo y el balance los leen entre cuentas o como aporte; los motivos de sistema no se tipean. ROLLBACK.
   "pruebas:caja-ingresos",
@@ -103,6 +108,11 @@ export const PRUEBAS = [
   // tipo, cada cuenta por dos caminos (si no, no se dibuja y dice por qué), lo que es de la tienda y permisos. ROLLBACK.
   "pruebas:balance",
 
+  // La reversa de un cobro sale por su cuenta (ADR-0120 act. 2026-10-17): anulación, devolución, diferencia de un cambio y
+  // adelanto devuelto van a la cuenta por la que entró el cobro (tarjeta: 105) y nunca a la 451, con cada medio; el parche de
+  // F7 sobre fn_asientos no se pierde al recrearla (autoprueba con la versión original). ROLLBACK.
+  "pruebas:reversa-de-cobro",
+
   // Pérdidas (ADR-0328 act. 14): UNA definición —cada tipo y motivo clasificado, todo motivo que escribe la base decidido—,
   // la pestaña (razón, categoría, talla, «más faltan», lo que apareció aparte, traslados y anulaciones), el 659 del diario
   // igual al total de la pestaña sede por sede, permisos y la guarda de meses cerrados. ROLLBACK.
@@ -128,6 +138,11 @@ export const PRUEBAS = [
   // Pago de la planilla y pago a SUNAT (ADR-0417, situaciones 15 y 16): salen de un banco, el Diario baja la 41 y la 4011,
   // candados (destino, caja fuerte, comisión, sin ser líder), anular, pegar dos veces. ROLLBACK.
   "pruebas:pago-planilla-y-sunat",
+
+  // El piso de fecha de un movimiento de dinero y lo de la empresa en la lista de una tienda (ADR-0417 act. 2026-10-17, los dos
+  // hallazgos de /chaos del 2026-10-16): una fecha anterior al inicio de Finanzas se rechaza como un gasto; el líder ve la planilla,
+  // SUNAT y lo entre bancos mirando cualquier tienda; la colaboradora, solo lo suyo; pegar dos veces y las anclas vecinas. ROLLBACK.
+  "pruebas:movimientos-dinero-inicio-y-empresa",
 
   "pruebas:registrar-cambio",
 
@@ -217,6 +232,7 @@ export const PRUEBAS = [
   // consultar y al registrar, la cuenta que se une a la ficha del Club sin pisar sus datos, el menor de 18 y el cumpleaños
   // imposible rechazados sin escribir nada, y `cuentas_web` cerrada a todos. ROLLBACK.
   "pruebas:tienda-cuentas",
+  "pruebas:tienda-cuenta-simple",
 
   // La Vitrina web y el catálogo de la tienda online (ADR-0408, actividad 3): el módulo nace sin rol y sin él no se lee ni guarda;
   // la versión frena a la segunda persona, mostrar varios es todo o nada y cada cambio deja su línea en la Actividad;
@@ -248,6 +264,10 @@ export const PRUEBAS = [
   // ROLLBACK.
   "pruebas:tienda-inicio",
 
+  // La tienda online carga rápido sin cambiar lo que muestra (2026-10-17): el precio de cada talla se calcula una vez por tienda, la
+  // revisión «¿se puede mostrar?» está en PL/pgSQL y el catálogo devuelve EXACTAMENTE el JSON de su versión de antes. ROLLBACK.
+  "pruebas:tienda-rapida",
+
   // Los looks de la tienda online (ADR-0408, actividad 11): es el módulo de la Vitrina web (sin él no se lee ni se guarda); 2 a 4
   // prendas que se venden, y para mostrarlo cada una se ve en la web; la versión frena a la segunda persona; el lugar va de 1 a N sin
   // huecos; un look con una prenda que dejó de verse (o eliminada) no sale en la tienda; cada prenda vale EXACTAMENTE lo de la ficha
@@ -258,6 +278,14 @@ export const PRUEBAS = [
   // catálogo; el PNG tiene que estar en el almacén; el recorte al subir una foto va sin el combo) y los largos (el propio y el típico,
   // de 5 a 250 cm, sin típico para vestidos, conjuntos, enterizos y faldas; no sube la versión de la vitrina) y la lista viva. ROLLBACK.
   "pruebas:vitrina-probador",
+  // «Arma el tuyo» en la tienda (ADR-0434, actividad 4): entra lo publicado con largo (el propio manda) y un recorte LISTO del almacén
+  // público; cada COLOR con su precio (el del look de CAYLA, con una campaña solo en el negro la beige no baja) y su nivel por tienda
+  // (sin Cuarentena, apartado ni Taller; nunca la cifra de 4 o más); con qué colores combina; solo tienda_web; un mutante. ROLLBACK.
+  "pruebas:tienda-probador",
+  // Los looks que el cliente guarda desde el probador (ADR-0434, actividad 8): de 2 a 4 prendas que se ven en la web, el mismo look una
+  // sola vez (su huella), nombre del día, tope de 30, quitar sin borrar, renombrar, leer con «ya no está», y cerrar o eliminar la cuenta
+  // los quita como a los favoritos; solo tienda_web. ROLLBACK.
+  "pruebas:tienda-looks-guardados",
 
   // El motor del pedido web (ADR-0408, actividades 7-9): separar no toca el stock; confirmar reserva con el motor de Apartados
   // (almacén primero) y Vender ya no la vende; dos por la última (uno reserva, el otro sin stock, y quién separó antes, también
@@ -1072,6 +1100,28 @@ export const PRUEBAS = [
   // `revisar_apertura_caja` es solo del líder y una sola vez; y el check `caja_apertura_explica_diferencia`
   // frena una escritura directa. Cada caso termina en ROLLBACK.
   "pruebas:caja-cierre-traslado",
+
+  // Una caja cerrada real cumple contado = fondo + trasladado (ADR-0186; auditoría de Finanzas 2026-10-16, G01): un candado
+  // diferido rechaza regularizar un traslado sin corregir el fondo (el caso de Trujillo: 977.20 en vez de 277.20), tocar solo
+  // el fondo o borrar un traslado; un cierre normal con traslado, una caja de prueba o una abierta no se miran; y
+  // `archivar_caja_prueba` recalcula lo esperado por la primera caja real posterior (el caso de Arequipa). ROLLBACK.
+  "pruebas:caja-fondo-coherente",
+
+  // Una sola regla de «quién ve todas las tiendas y la empresa» en Finanzas (auditoría 2026-10-16, G16; ADR-0433 act. 8): el diario
+  // (también el congelado), el Estado de resultados, el Balance, el Balance por tienda y los gastos fuera de lo normal preguntan
+  // `fn_ve_finanzas_de_todo()` como `fn_asientos`; un candado estructural exige que ninguna función que reparta el alcance con
+  // `fn_diario_ubicaciones()` pregunte `fn_es_lider()` por su cuenta. Un encargado sigue viendo solo su tienda (42501 en otra). ROLLBACK.
+  "pruebas:finanzas-alcance",
+
+  // Un mes cerrado se queda cerrado (auditoría 2026-10-16, G09; ADR-0433 act. 9): el Estado de resultados lee el diario congelado, archivar una
+  // caja de prueba y una vigencia retroactiva del IGV o del tope de planilla de un mes cerrado se rechazan, y DOS SESIONES reales prueban el
+  // entrelazado del cerrojo de cierre (quien registra espera al cierre y el cierre espera a quien registra; lo de hoy no espera). ROLLBACK.
+  "pruebas:finanzas-mes-cerrado",
+
+  // Cada pago de un apartado se asienta el día en que entró la plata (auditoría 2026-10-16, G02; ADR-0433 act. 10): el diario trae un asiento por pago
+  // (el primero y cada abono) con su IGV por pago; agregar un abono no cambia el diario de un mes anterior; devolver el adelanto o entregar el apartado
+  // reversan exactamente lo que entró (122 y 4011 en cero, con los céntimos por pago) y el Balance suma lo recibido hasta el corte. ROLLBACK.
+  "pruebas:finanzas-apartados-por-pago",
 
   // Tres candados de dinero que vivían solo en el modal, no en la base (20260922235000): `registrar_movimiento_caja`
   // decide `es_ajuste` del MOTIVO (no de lo que manda el navegador) con vocabulario cerrado y referencia exigida

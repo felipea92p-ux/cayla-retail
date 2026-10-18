@@ -314,6 +314,24 @@ export function usaModulo(rol: "lider" | "integrante", modulos: readonly ModuloD
   return rol === "lider" || modulos.some((m) => m.clave === clave && m.completo);
 }
 
+/**
+ * Los módulos que, además del líder, abren «todas las tiendas y la empresa» en Finanzas (ADR-0253: Configuración y Cierre de mes,
+ * «todo, como el líder»; ADR-0275: CAYLA Global). ESPEJA `retail.fn_ve_finanzas_de_todo()`: `lib/modulos.test.ts` la cruza con la
+ * migración que la define, así la pantalla y el candado no pueden decir cosas distintas (auditoría de Finanzas 2026-10-16, G16).
+ * @internal La usa la prueba que la cruza con la migración.
+ */
+export const MODULOS_QUE_VEN_TODO_FINANZAS: readonly ClaveModulo[] = ["configuracion", "cierre_mes", "cayla_global"];
+
+/**
+ * ¿Esta cuenta ve las finanzas de TODAS las tiendas y de la empresa (no solo las de su tienda)? Es la ÚNICA pregunta de alcance
+ * de Finanzas en la web: espeja `fn_ve_finanzas_de_todo()` («`fn_es_lider()` o `fn_capacidad_por_modulos(…)`»). Una pantalla que
+ * reparte columnas por tienda la usa en vez de `rol === "lider"`. No decide lo que es «solo del líder» de verdad (el Balance de
+ * CAYLA entera, el Resumen): eso lo siguen decidiendo sus funciones con `fn_es_lider()`.
+ */
+export function veFinanzasDeTodo(rol: "lider" | "integrante", modulos: readonly ModuloDeCuenta[]): boolean {
+  return rol === "lider" || modulos.some((m) => m.completo && MODULOS_QUE_VEN_TODO_FINANZAS.includes(m.clave));
+}
+
 /** Qué hace cada cuenta con un comprobante de compra (ADR-0161 P1): cada acción es de UN módulo. */
 export type AccionesDeCompra = { facturas: boolean; pagar: boolean; notas: boolean };
 export function accionesDeCompra(rol: "lider" | "integrante", modulos: readonly ModuloDeCuenta[]): AccionesDeCompra {

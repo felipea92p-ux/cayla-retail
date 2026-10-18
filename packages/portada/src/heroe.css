@@ -6,8 +6,8 @@
 
    Lo que pide de quien la usa:
    - los colores de la campaña: `--t-hero`, `--t-hero-2`, `--t-hero-tinta`, `--t-hero-acento`, `--t-hero-vidrio`, `--t-hero-filo` (la
-     tienda los tiene en sus tokens; una paleta los cambia con `variablesDePaleta`, src/paletas.ts, que suma `--t-hero-colibri` y
-     `--t-hero-boton-letra` para las paletas claras);
+     tienda los tiene en sus tokens; una paleta los cambia con `variablesDePaleta`, src/paletas.ts, que suma `--t-hero-boton-letra` para
+     las paletas claras). El colibrí es un SVG que toma el color de la letra (`currentColor`: ADR-0446, el logo oficial);
    - en la tienda, el tema: `prefers-color-scheme` o `:root[data-theme]`, como sus tokens. Un diseño publicado llega con sus colores de
      día (`--t-dia*`) y de noche (`--t-noche*`) en `.t-hero[data-diseno]`, y aquí se elige cuáles se pintan;
    - las letras y el ritmo de la tienda: `--serif`, `--ease`;
@@ -36,7 +36,7 @@
 .t-hero-acciones .t-enlace .ic { width: 16px; height: 16px; }
 /* El botón claro se pinta con la letra de la campaña; sobre una paleta clara (letra oscura), su letra pasa a papel. */
 .t-hero .t-btn-claro { color: var(--t-hero-boton-letra, var(--t-tinta-fija)); }
-.t-colibri { position: absolute; z-index: 4; width: 42px; height: auto; top: 20px; right: 20px; filter: var(--t-hero-colibri, brightness(0) invert(1)); opacity: .9; animation: volar 2.6s cubic-bezier(.25, .8, .25, 1) .2s both; pointer-events: none; }
+.t-colibri { position: absolute; z-index: 4; width: 42px; height: auto; top: 20px; right: 20px; color: var(--t-hero-tinta); opacity: .9; animation: volar 2.6s cubic-bezier(.25, .8, .25, 1) .2s both; pointer-events: none; }
 .t-hero.sin-campana { background: radial-gradient(120% 90% at 88% 6%, #3a3430, #1d1b19 58%); } /* tema-fijo: el fondo de la marca sin campaña, un dato de la portada */
 /* El diseño publicado de la campaña (ADR-0436, actividad 5): sus colores de día y, con la tienda en oscuro, los de noche. */
 .t-hero[data-diseno] {
@@ -76,7 +76,10 @@
    portada sin cuenta (sin precio: Felipe 2026-10-16, «fotos sin precio»). El papel de una polaroid y el estudio de la foto son fijos
    (son parte de la foto), igual en claro y en oscuro. ---- */
 .t-collage { position: relative; height: 330px; z-index: 2; }
-.t-polaroid { position: absolute; width: 47%; padding: 8px 8px 34px; background: var(--t-papel-fijo); border-radius: 5px; box-shadow: 0 26px 40px -18px color-mix(in srgb, var(--t-tinta-fija) 55%, transparent); transform: rotate(var(--r)); transition: transform .45s var(--ease), box-shadow .45s; animation: t-caer 1s var(--ease) both; animation-delay: calc(var(--i) * 140ms + 260ms); color: var(--t-tinta-fija); }
+/* La caída empieza con la página y dura menos (2026-10-17): antes la primera polaroid esperaba 0,26 s y la tercera quedaba quieta a
+   los 1,54 s; como empiezan invisibles, lo principal del héroe (las fotos) se veía tarde. Ahora la primera cae desde el primer cuadro
+   y la tercera queda quieta a los 0,88 s: la misma caída, una sola vez, sin rebote. */
+.t-polaroid { position: absolute; width: 47%; padding: 8px 8px 34px; background: var(--t-papel-fijo); border-radius: 5px; box-shadow: 0 26px 40px -18px color-mix(in srgb, var(--t-tinta-fija) 55%, transparent); transform: rotate(var(--r)); transition: transform .45s var(--ease), box-shadow .45s; animation: t-caer .7s var(--ease) both; animation-delay: calc(var(--i) * 90ms); color: var(--t-tinta-fija); }
 .t-polaroid .t-card-foto { border-radius: 0; }
 .t-polaroid-pie { position: absolute; left: 10px; right: 10px; bottom: 8px; display: flex; justify-content: space-between; gap: 6px; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; }
 .t-polaroid-pie > span:first-child { overflow: hidden; text-overflow: ellipsis; }

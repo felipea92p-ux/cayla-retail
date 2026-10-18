@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { Isotipo } from "./Isotipo";
+import { PalabraCayla } from "./Marca";
 
 /** La tarjeta del Club CAYLA. Con el mouse encima se inclina un poco hacia él (con el dedo o «reducir movimiento», no). */
 export function TarjetaClub({ nombre, desde }: { nombre: string; desde: number }) {
@@ -32,7 +33,7 @@ export function TarjetaClub({ nombre, desde }: { nombre: string; desde: number }
   return (
     <div ref={tarjeta} className="t-tarjeta-club" role="img" aria-label="Tarjeta del Club CAYLA" onPointerMove={inclinar} onPointerLeave={soltar}>
       <div className="fila">
-        <span className="marca">CAYLA</span>
+        <PalabraCayla className="marca" />
         <Isotipo />
       </div>
       <div className="chip-oro" aria-hidden="true" />

@@ -544,14 +544,14 @@ export const GUIA_ATRIBUTOS: Guia = {
       ancla: "atributos.prendas",
       opcional: true,
       titulo: "Sus prendas",
-      texto: "Abre la lista de prendas que llevan esta etiqueta, para ponérsela o quitársela a varias de una vez.",
+      texto: "Abre la lista de prendas, cada una con su foto: márcalas para ponerles la etiqueta o quítasela a varias de una vez. «Con la etiqueta» deja solo las que ya la llevan. Si baja el precio, cada fila dice cuánto queda y, antes de aplicar, te muestra qué cambia en caja.",
     },
     {
       id: "campana",
       ancla: "atributos.campana",
       opcional: true,
       titulo: "Descuento y fechas",
-      texto: "Para una etiqueta con descuento, como Para liquidar: el descuento, las fechas y a qué categorías se aplica (te la abrimos). Las campañas, como Black Friday, se configuran en Tienda web ▸ Campañas.",
+      texto: "Para una etiqueta con descuento, como Para liquidar: el descuento, las fechas y las categorías (te la abrimos). Un chip ámbar avisa si no llega a ninguna prenda; si ya pasó, «Repetir» abre con las fechas del año que viene. Las campañas se configuran en Tienda web ▸ Campañas.",
     },
     {
       id: "campana-form",
@@ -559,7 +559,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "atributos.campana" }],
       titulo: "Descuento, fechas y categorías",
-      texto: "El porcentaje de descuento, desde cuándo y hasta cuándo (sin fechas, es permanente) y las categorías que entran. Cada campo dice si está listo o falta, y «Sigue aquí» te marca el próximo.",
+      texto: "El descuento (los de siempre a un toque, o escribe otro), desde y hasta cuándo rige (sin fechas, rige siempre) y las categorías, cada una con cuántas prendas trae. Abajo dice a cuántas prendas llega antes de guardar.",
     },
     {
       id: "campana-pie",

@@ -3,7 +3,8 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { CLAVE_MAXIMA, codigoCompleto, codigoLimpio, correoValido, estadoClave, MENSAJES, mensajeCodigoMalo, normalizarCorreo } from "@/lib/cuentas";
+import { CLAVE_MAXIMA, codigoCompleto, codigoLimpio, correoValido, estadoClave, mensajeCodigoMalo, normalizarCorreo } from "@/lib/cuentas";
+import { MENSAJES } from "@/lib/cuentas-mensajes";
 import { COOKIE_ENTRADA, ENTRADA_DURA_S, marcaDeEntrada } from "@/lib/entrada";
 import { anotarEntradaEnBase } from "@/lib/entrada-servidor";
 import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";

@@ -36,8 +36,9 @@ const config: KnipConfig = {
   ignoreExportsUsedInFile: true,
   // `supabase` es la CLI (en el CI va por `npx supabase`, no como dependencia) y `uptime`, el comando del sistema que lee la carga
   // de la máquina en `scripts/carga/carga.mjs`; `openssl`, el del sistema, que arma el certificado de prueba del experimento
-  // `scripts/investigacion/reintento-post-cortado.mjs`.
-  ignoreBinaries: ["supabase", "uptime", "openssl"],
+  // `scripts/investigacion/reintento-post-cortado.mjs`; `vercel`, la CLI de cada máquina (`vercel login`), con que
+  // `apps/tienda/scripts/medicion-leer.mjs` baja el registro de la tienda (ADR-0447).
+  ignoreBinaries: ["supabase", "uptime", "openssl", "vercel"],
   workspaces: {
     ".": {
       // Los scripts de la raíz se corren a mano, desde las skills o desde el CI: cada uno es un punto de entrada, y también lo que
@@ -52,10 +53,8 @@ const config: KnipConfig = {
     "apps/web": {
       // Las rutas de Next (`app/**`, `proxy.ts`), las pruebas de Vitest y los CLI de `package.json` los encuentra Knip solo. Estos no:
       entry: [
-        // Se cargan por URL desde el navegador: `navigator.serviceWorker.register("/sw.js")` (ADR-0210) y
-        // `new Worker("/quitar-fondo.worker.js")` (ADR-0228). Llegan a la tienda: llevan `!`.
+        // Se carga por URL desde el navegador: `navigator.serviceWorker.register("/sw.js")` (ADR-0210). Llega a la tienda: lleva `!`.
         "public/sw.js!",
-        "public/quitar-fondo.worker.js!",
         // Se leen como texto y se inyectan en la página que se mide (`tema/cli.mjs`, `unificar/cli.mjs`, `unificar/fotos.mjs`).
         "tema/motor/escaner-en-pagina.js",
         "unificar/motor/censo-en-pagina.js",
