@@ -1403,7 +1403,7 @@ ESCENARIOS.push(
     ["fondo", "Diseño en la web · el paso «Fondo»", "3. Fondo"],
     ["acomodo", "Diseño en la web · «Cómo se acomoda»", "4. Cómo se acomoda"],
     ["texto", "Diseño en la web · «El texto»", "5. El texto"],
-    ["prendas", "Diseño en la web · «Las prendas»", "6. Las prendas"],
+    ["prendas", "Diseño en la web · «Qué prendas salen»", "6. Qué prendas salen"],
     ["detalles", "Diseño en la web · «Detalles»", "7. Detalles"],
   ].map(([clave, nombre, paso]) => ({
     id: clave === "diseno" ? "campana.diseno" : `campana.paso-${clave}`,

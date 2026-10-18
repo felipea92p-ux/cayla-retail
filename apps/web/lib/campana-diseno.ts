@@ -159,6 +159,9 @@ export function versionDeMiBorrador(leido: Pick<EstadoDiseno, "borrador"> | null
   return mismoDiseno(leido.borrador.diseno, disenoParaGuardar(sinRespuesta)) ? leido.borrador.version : null;
 }
 
+/** A dónde vuelve la portada al «Volver al anterior»: con uno anterior, a él; sin él, a la de siempre. («a el» no se escribe: «al».) */
+export const adondeVuelve = (hayAnterior: boolean): string => (hayAnterior ? "al diseño anterior" : "a la portada de siempre");
+
 /** Cómo va el guardado del borrador en el editor. */
 export type EstadoGuardado = "al-dia" | "guardando" | "error" | "choque";
 
@@ -234,7 +237,10 @@ export function resumenPrendas(d: DisenoDeCampana, piezas: readonly { id: string
   if (d.acomodo === "letras") return "Con solo letras no salen prendas";
   const elegidas = (d.prendas ?? []).filter((id) => piezas.some((p) => p.id === id)).length;
   if (elegidas === 0) return "Las elige la web";
-  return elegidas === 1 ? "1 elegida por ti" : `${elegidas} elegidas por ti`;
+  // Salen las que caben en el acomodo: «4 elegidas» con tres polaroids engañaba (el ciego de /formidable dudó de cuántas había de verdad).
+  const salen = Math.min(elegidas, piezasQueCaben(d));
+  if (salen < elegidas) return `${salen} de tus ${elegidas} elegidas`;
+  return salen === 1 ? "1 elegida por ti" : `${salen} elegidas por ti`;
 }
 /** Los detalles que de verdad salen: la cuenta solo con fecha de fin, el % gigante y el sello del descuento solo con descuento. */
 export function resumenDetalles(d: DisenoDeCampana, c: Pick<CampanaDePortada, "pct" | "hasta">): string {
@@ -269,7 +275,7 @@ export function cortarEn(d: DisenoDeCampana, nombre: string, k: number): DisenoD
 /* ---------------- Las prendas: cuáles salen y en qué orden ---------------- */
 
 /**
- * Las prendas que el paso «Las prendas» muestra marcadas, en su orden: las elegidas (las que siguen en la campaña) o, si la web elige, las
+ * Las prendas que el paso «Qué prendas salen» muestra marcadas, en su orden: las elegidas (las que siguen en la campaña) o, si la web elige, las
  * que elegiría (las primeras de `piezas`, ya con las de foto primero). Tantas como caben en el acomodo.
  */
 export function prendasMarcadas(d: DisenoDeCampana, piezas: readonly { id: string }[]): string[] {
@@ -339,22 +345,29 @@ export const PASOS_DEL_DISENO: readonly PasoDelDiseno[] = [
   { clave: "fondo", titulo: "Fondo", opcional: false },
   { clave: "acomodo", titulo: "Cómo se acomoda", opcional: false },
   { clave: "texto", titulo: "El texto", opcional: true },
-  { clave: "prendas", titulo: "Las prendas", opcional: true },
+  { clave: "prendas", titulo: "Qué prendas salen", opcional: true },
   { clave: "detalles", titulo: "Detalles", opcional: true },
 ];
 
 /**
  * Cómo se marca cada paso: el abierto, «ahora»; el que se visitó y ya se cerró, ✓; el que nadie abrió todavía, «falta» (o «opcional»).
  * `sigue`: el primero sin visitar que no es opcional (lleva «Sigue aquí» mientras está cerrado). Nunca cambia qué se puede publicar.
+ * `armado`: el diseño ya existe (hay un borrador o uno publicado): no hay nada «por hacer» —viene armado—, así que lo que no se visitó no dice
+ * «Falta» ni «Sigue aquí» (ADR-0284, regla 4: una ficha que ya venía completa no se llena de marcas); lo que se visita igual lleva ✓.
  */
 export function estadoDePasos(
   pasos: readonly PasoDelDiseno[],
   visitados: ReadonlySet<ClavePaso>,
   abierto: ClavePaso | null,
+  armado = false,
 ): { estados: Record<ClavePaso, EstadoCampo>; sigue: ClavePaso | null } {
-  const estados = Object.fromEntries(
-    pasos.map((p) => [p.clave, p.clave === abierto ? "ahora" : visitados.has(p.clave) ? "hecho" : p.opcional ? "opcional" : "falta"]),
-  ) as Record<ClavePaso, EstadoCampo>;
-  const sigue = pasos.find((p) => !p.opcional && !visitados.has(p.clave) && p.clave !== abierto)?.clave ?? null;
+  const sinVisitar = (p: PasoDelDiseno): EstadoCampo => (p.opcional || armado ? "opcional" : "falta");
+  const estados = Object.fromEntries(pasos.map((p) => [p.clave, p.clave === abierto ? "ahora" : visitados.has(p.clave) ? "hecho" : sinVisitar(p)])) as Record<ClavePaso, EstadoCampo>;
+  const sigue = armado ? null : (pasos.find((p) => !p.opcional && !visitados.has(p.clave) && p.clave !== abierto)?.clave ?? null);
   return { estados, sigue };
+}
+
+/** ¿El diseño ya existe? Hay uno en prueba o uno publicado; un «anterior» solo no cuenta (hoy la portada es la de siempre). */
+export function disenoYaArmado(e: Pick<EstadoDiseno, "borrador" | "publicado"> & Partial<Pick<EstadoDiseno, "anterior">>): boolean {
+  return e.borrador !== null || e.publicado !== null;
 }

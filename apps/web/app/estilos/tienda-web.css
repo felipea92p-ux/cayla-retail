@@ -601,7 +601,7 @@
   .tw-palabra[aria-pressed="true"] { border-color: var(--color-tinta); box-shadow: 0 0 0 1px var(--color-tinta); }
   .tw-palabra:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
 
-  /* Las prendas de la portada (paso «Las prendas»): se tocan en orden y cada una lleva su número. */
+  /* Las prendas de la portada (paso «Qué prendas salen»): se tocan en orden y cada una lleva su número. */
   .tw-prendas-elegir { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 8px; }
   .tw-prenda-op {
     position: relative; display: flex; flex-direction: column; gap: 4px; padding: 4px 4px 6px; border: 1px solid var(--color-sand); border-radius: 10px;

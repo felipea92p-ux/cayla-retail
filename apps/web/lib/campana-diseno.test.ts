@@ -345,3 +345,59 @@ describe("la respuesta perdida de un guardado (/chaos RS-03, 2026-10-17)", () =>
     expect(versionDeMiBorrador(null, mio)).toBeNull();
   });
 });
+
+describe("«Falta» solo donde de verdad falta (/formidable, 2026-10-17)", () => {
+  it("un diseño que ya existe (borrador o publicado) abre sin «Falta» ni «Sigue aquí»: viene armado (ADR-0284, regla 4)", async () => {
+    const { PASOS_DEL_DISENO, estadoDePasos } = await import("./campana-diseno");
+    const armado = estadoDePasos(PASOS_DEL_DISENO, new Set(["estilo"]), "estilo", true);
+    expect(armado.sigue).toBeNull();
+    expect(Object.values(armado.estados)).not.toContain("falta");
+    expect(armado.estados.estilo).toBe("ahora");
+    // Lo que se visita igual se marca ✓.
+    expect(estadoDePasos(PASOS_DEL_DISENO, new Set(["estilo", "colores"]), null, true).estados.colores).toBe("hecho");
+  });
+
+  it("una campaña con la portada de siempre conserva la guía: dice qué falta y qué sigue", async () => {
+    const { PASOS_DEL_DISENO, estadoDePasos } = await import("./campana-diseno");
+    const nuevo = estadoDePasos(PASOS_DEL_DISENO, new Set(["estilo"]), "estilo", false);
+    expect(nuevo.sigue).toBe("colores");
+    expect(nuevo.estados.colores).toBe("falta");
+    expect(estadoDePasos(PASOS_DEL_DISENO, new Set(["estilo"]), "estilo").sigue).toBe("colores");
+  });
+
+  it("el editor sabe si el diseño viene armado", async () => {
+    const { disenoYaArmado } = await import("./campana-diseno");
+    const vacio = { borrador: null, publicado: null, anterior: null };
+    expect(disenoYaArmado(vacio)).toBe(false);
+    expect(disenoYaArmado({ ...vacio, borrador: { diseno: DISENO_DE_SIEMPRE, version: 1 } })).toBe(true);
+    expect(disenoYaArmado({ ...vacio, publicado: { diseno: DISENO_DE_SIEMPRE, publicadoEn: "2026-10-17T10:00:00Z", publicadoPor: null } })).toBe(true);
+    // Solo un «anterior» (nada publicado ni en prueba): la portada hoy es la de siempre.
+    expect(disenoYaArmado({ ...vacio, anterior: { diseno: DISENO_DE_SIEMPRE, publicadoEn: "2026-10-16T10:00:00Z" } })).toBe(false);
+  });
+});
+
+describe("el paso de las prendas dice lo que sale (/formidable, 2026-10-17)", () => {
+  const piezas = ["a", "b", "c", "d", "e"].map((id) => ({ id }));
+  it("se llama por lo que es: no se confunde con la pestaña «Prendas» de la campaña", async () => {
+    const { PASOS_DEL_DISENO } = await import("./campana-diseno");
+    expect(PASOS_DEL_DISENO.find((p) => p.clave === "prendas")?.titulo).toBe("Qué prendas salen");
+  });
+  it("cuenta las que SALEN, no las que se guardaron: con más elegidas de las que caben, lo dice", () => {
+    // Cuatro elegidas y un acomodo de tres polaroids: salen tres.
+    expect(resumenPrendas({ ...DISENO_DE_SIEMPRE, prendas: ["a", "b", "c", "d"] }, piezas)).toBe("3 de tus 4 elegidas");
+    // Con el mosaico caben las cuatro.
+    expect(resumenPrendas({ ...DISENO_DE_SIEMPRE, acomodo: "mosaico", prendas: ["a", "b", "c", "d"] }, piezas)).toBe("4 elegidas por ti");
+    // Con foto grande sale una sola.
+    expect(resumenPrendas({ ...DISENO_DE_SIEMPRE, acomodo: "grande", prendas: ["c", "a"] }, piezas)).toBe("1 de tus 2 elegidas");
+    expect(resumenPrendas({ ...DISENO_DE_SIEMPRE, prendas: ["b"] }, piezas)).toBe("1 elegida por ti");
+  });
+});
+
+describe("los textos de «Volver al anterior» (/formidable, 2026-10-17)", () => {
+  it("«vuelve al diseño anterior» y «vuelve a la portada de siempre», nunca «vuelve a el»", async () => {
+    const { adondeVuelve } = await import("./campana-diseno");
+    expect(adondeVuelve(true)).toBe("al diseño anterior");
+    expect(adondeVuelve(false)).toBe("a la portada de siempre");
+    for (const x of [true, false]) expect(`vuelve ${adondeVuelve(x)}`).not.toMatch(/\ba el\b/);
+  });
+});

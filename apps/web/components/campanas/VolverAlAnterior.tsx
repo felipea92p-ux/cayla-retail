@@ -15,6 +15,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import type { EstadoDiseno } from "@/lib/campana-diseno";
 import { unaSolaPasada } from "@/lib/una-sola-pasada";
+import { adondeVuelve } from "@/lib/campana-diseno";
 
 /**
  * «Volver al anterior» (ADR-0436, actividad 4): el diseño publicado y el anterior cambian de lugar, en un toque y con quién lo hace. Sin
@@ -27,7 +28,7 @@ export function VolverAlAnterior({ campana, estado, onClose }: { campana: { id: 
   // Diez clics en el mismo instante son una sola llamada (el estado de arriba tarda un momento en apagar el botón: `una-sola-pasada.ts`).
   const [unaVez] = useState(unaSolaPasada);
   const guia = useGuiaCampos([{ id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién lo hace." }]);
-  const queSale = estado.anterior ? "el diseño anterior" : "la portada de siempre";
+  const adonde = adondeVuelve(Boolean(estado.anterior));
 
   async function volver(cerrar: () => void) {
     if (!responsable.listo) return;
@@ -40,7 +41,7 @@ export function VolverAlAnterior({ campana, estado, onClose }: { campana: { id: 
           avisar.error(traducirError(error, "volver al diseño anterior"));
           return;
         }
-        avisar.exito(`${campana.nombre}: volvió ${queSale}`, { detalle: "Se ve en la web en menos de 5 minutos." });
+        avisar.exito(`${campana.nombre}: volvió ${adonde}`, { detalle: "Se ve en la web en menos de 5 minutos." });
         cerrar();
         router.refresh();
       } catch {
@@ -56,7 +57,7 @@ export function VolverAlAnterior({ campana, estado, onClose }: { campana: { id: 
       titulo="Volver al anterior"
       subtitulo={
         estado.publicado
-          ? `La portada de ${campana.nombre} vuelve a ${queSale}. El diseño de ahora queda guardado: puedes regresarlo igual.`
+          ? `La portada de ${campana.nombre} vuelve ${adonde}. El diseño de ahora queda guardado: puedes regresarlo igual.`
           : `La portada de ${campana.nombre} vuelve a mostrar el diseño que tenía.`
       }
       onClose={onClose}

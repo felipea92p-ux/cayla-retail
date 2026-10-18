@@ -20,6 +20,7 @@ import {
   contextoDeRevision,
   disenoParaEditar,
   disenoParaGuardar,
+  disenoYaArmado,
   estadoDePasos,
   leerEstadoDiseno,
   estadoDelBorrador,
@@ -202,7 +203,7 @@ export function DisenoCampana({
     setVisitados((v) => new Set([...v, clave]));
   }
 
-  const { estados, sigue } = estadoDePasos(PASOS_DEL_DISENO, visitados, abierto);
+  const { estados, sigue } = estadoDePasos(PASOS_DEL_DISENO, visitados, abierto, disenoYaArmado(estado));
   const revision = revisarDiseno(diseno, contextoDeRevision(piezas));
   const comoEsta = estadoDelBorrador(estado, diseno);
   const resumen: Record<ClavePaso, string> = {
