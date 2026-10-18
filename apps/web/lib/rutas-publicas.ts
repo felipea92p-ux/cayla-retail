@@ -6,6 +6,8 @@
 //     (tienda.cayla.pe), donde se crea la cuenta y se entra al Club (20261016154000); el registro que vivía aquí, con sus acciones
 //     de servidor y su `/api/club/nombre`, se retiró;
 //   · `/club/privacidad` y `/club/terminos`: los textos que aceptó quien se unió por el cartel.
+// Y las dos del aviso de «sin conexión con la base» (ADR-0450): `/sin-base`, la pantalla donde se espera cuando la base no
+// responde, y `/api/salud`, la pregunta «¿responde la base?» que esa pantalla y el vigía de GitHub repiten. No muestran ningún dato.
 // `/login` y `/auth` NO van aquí: esas sí miran la sesión (quien ya entró no vuelve al login).
 //
 // Por qué tan estrecha: toda ruta que pasa sin sesión es una puerta abierta a internet. Pasa `/club/` seguido de UN uuid o de
@@ -15,8 +17,10 @@
 
 const UUID = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 const PAGINAS_DEL_CLUB = new RegExp(`^/club/(?:${UUID}|privacidad|terminos)/?$`);
+// Exactas, sin subrutas ni `?`: el pathname nunca los trae.
+const RUTAS_DE_LA_BASE_CAIDA = new Set(["/sin-base", "/api/salud"]);
 
 /** ¿Esta ruta se sirve sin sesión y sin pasar por ninguna otra barrera de `proxy.ts`? */
 export function esRutaPublica(pathname: string): boolean {
-  return PAGINAS_DEL_CLUB.test(pathname);
+  return PAGINAS_DEL_CLUB.test(pathname) || RUTAS_DE_LA_BASE_CAIDA.has(pathname);
 }

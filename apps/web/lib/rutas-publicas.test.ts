@@ -20,6 +20,14 @@ describe("rutas públicas: solo la dirección de los carteles del club, la polí
     expect(esRutaPublica("/club/terminos/")).toBe(true);
   });
 
+  it("el aviso de «sin conexión con la base» y su pregunta «¿responde?» pasan (ADR-0450), exactos y sin subrutas", () => {
+    expect(esRutaPublica("/sin-base")).toBe(true);
+    expect(esRutaPublica("/api/salud")).toBe(true);
+    for (const ruta of ["/sin-base/otra", "/sin-bases", "/api/salud/otra", "/api/saludos", "/api/salud-de-la-base", "/x/sin-base", "/x/api/salud", "/sin-base/../vender"]) {
+      expect(esRutaPublica(ruta), ruta).toBe(false);
+    }
+  });
+
   it("nada más: ni el ERP, ni el club sin tienda, ni otro segmento, ni subrutas, ni rutas que solo empiezan igual", () => {
     for (const ruta of [
       "/",
