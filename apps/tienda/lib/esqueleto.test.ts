@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { claveDeVista, formaDeLaRuta, prendaDeLaRuta, seccionDeLaRuta, tituloDeEspera } from "./esqueleto";
+import { claveDeVista, esperaEnLaMismaPagina, formaDeLaRuta, prendaDeLaRuta, seccionDeLaRuta, tituloDeEspera } from "./esqueleto";
 import type { MenuCabecera } from "./inicio";
 
 const PRENDA = "3f6c2a1e-8b4d-4c2a-9e1f-0a1b2c3d4e5f";
@@ -142,5 +142,43 @@ describe("qué cuenta como otra vista para el fundido", () => {
     expect(claveDeVista("/catalogo", q("lista=nuevo&orden=precio-asc&sede=lima&mostrar=60"))).toBe(base);
     expect(claveDeVista("/inicio", q("sede=lima"))).toBe(claveDeVista("/inicio", q("")));
     expect(claveDeVista(`/catalogo/${PRENDA}`, q("color=NEG"))).toBe(claveDeVista(`/catalogo/${PRENDA}`, q("")));
+  });
+});
+
+describe("el esqueleto propio, donde Next no muestra ninguno (otra lista de la misma página)", () => {
+  const ir = (de: string, a: string) => {
+    const partir = (r: string) => {
+      const [ruta, buscar = ""] = r.split("?");
+      return { ruta, buscar: new URLSearchParams(buscar) };
+    };
+    return esperaEnLaMismaPagina(partir(de), partir(a));
+  };
+  const OTRA = "6f6c2a1e-8b4d-4c2a-9e1f-0a1b2c3d4e5f";
+
+  it("de una lista a otra desde la cabecera, la grilla (con su título)", () => {
+    expect(ir("/catalogo?lista=nuevo", "/catalogo?lista=vendidos")).toBe("grilla");
+    expect(ir("/catalogo?menu=ropa", "/catalogo?menu=accesorios")).toBe("grilla");
+    expect(ir("/catalogo", "/catalogo?lista=ofertas&sede=lima")).toBe("grilla");
+  });
+
+  it("de una ficha a otra o de un look a otro, nada: ahí Next ya muestra el esqueleto de su carpeta", () => {
+    expect(ir(`/catalogo/${PRENDA}`, `/catalogo/${OTRA}?sede=lima`)).toBeNull();
+    expect(ir(`/looks/${PRENDA}`, `/looks/${OTRA}`)).toBeNull();
+  });
+
+  it("la misma vista (un filtro, la tienda, «ver más», otro color) no: se apaga la lista o no cambia nada", () => {
+    expect(ir("/catalogo?lista=nuevo", "/catalogo?lista=nuevo&categoria=CMS")).toBeNull();
+    expect(ir("/catalogo?lista=nuevo", "/catalogo?lista=nuevo&sede=lima&mostrar=60")).toBeNull();
+    expect(ir(`/catalogo/${PRENDA}`, `/catalogo/${PRENDA}?color=NEG`)).toBeNull();
+    expect(ir(`/looks/${PRENDA}`, `/looks/${PRENDA}?sede=lima`)).toBeNull();
+  });
+
+  it("a otra página, nada: ahí sale solo el esqueleto de la que viene", () => {
+    expect(ir("/catalogo?lista=nuevo", `/catalogo/${PRENDA}`)).toBeNull();
+    expect(ir(`/catalogo/${PRENDA}`, "/catalogo?lista=nuevo")).toBeNull();
+    expect(ir("/inicio", "/catalogo")).toBeNull();
+    expect(ir(`/catalogo/${PRENDA}`, `/looks/${OTRA}`)).toBeNull();
+    expect(ir("/looks", `/looks/${PRENDA}`)).toBeNull();
+    expect(ir("/looks/arma", `/looks/${PRENDA}`)).toBeNull();
   });
 });

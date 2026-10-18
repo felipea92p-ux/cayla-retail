@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { piezasDeLaImagen } from "@/lib/compartir-look";
 import { prendasParaCompartir } from "@/lib/compartir-servidor";
 import { fuentesDeLaMarca } from "@/lib/fuentes-og";
-import { cargarFotos, cargarIsotipo, TAMANO_VISTA, VistaDelLook } from "@/lib/imagenes-del-look";
+import { cargarFotos, TAMANO_VISTA, VistaDelLook } from "@/lib/imagenes-del-look";
 import { codificarLook, indizar, lookDeLaUrl, PARAMETRO_DEL_LOOK } from "@/lib/probador";
 
 // GET /tu-look/vista?p=… — la vista previa del enlace de un look compartido (ADR-0434, actividad 9): la imagen que muestra WhatsApp
@@ -22,12 +22,8 @@ export async function GET(request: NextRequest) {
       return new Response(null, { status: 308, headers: { Location: `${request.nextUrl.pathname}?${PARAMETRO_DEL_LOOK}=${encodeURIComponent(canonico)}` } });
     }
   }
-  const [fuentes, piezas, isotipo] = await Promise.all([
-    fuentesDeLaMarca(),
-    cargarFotos(look ? piezasDeLaImagen(look, indice) : []),
-    cargarIsotipo(request.nextUrl.origin),
-  ]);
-  return new ImageResponse(<VistaDelLook piezas={piezas} isotipo={isotipo} />, {
+  const [fuentes, piezas] = await Promise.all([fuentesDeLaMarca(), cargarFotos(look ? piezasDeLaImagen(look, indice) : [])]);
+  return new ImageResponse(<VistaDelLook piezas={piezas} />, {
     ...TAMANO_VISTA,
     fonts: fuentes,
     // La misma para todos: la red la guarda un día (una foto nueva se ve al día siguiente). Sin la base, solo unos minutos.

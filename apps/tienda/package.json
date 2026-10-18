@@ -12,7 +12,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "rol-local": "node scripts/rol-local.mjs"
+    "rol-local": "node scripts/rol-local.mjs",
+    "medicion:leer": "node scripts/medicion-leer.mjs"
   },
   "dependencies": {
     "@cayla-retail/shared": "workspace:*",

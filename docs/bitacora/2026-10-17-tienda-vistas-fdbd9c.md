@@ -14,3 +14,15 @@ mano (el esqueleto ya estaría dibujado al tomar la foto de antes) y deslizar de
 Felipe se lleva: una tienda donde tocar algo ya muestra lo que viene, en su lugar y con lo que se sabe; el paso de una vista a otra es un
 fundido corto y la foto de la prenda vuela a su ficha. Si un fundido le parece lento o la foto que vuela, demasiado, son dos números de
 `app/estilos/vistas.css`.
+
+## 2026-10-17 (De una lista a otra, el esqueleto al instante; la espera de la precarga, medida)
+Qué hice: de Lo nuevo a Más vendidos (o de «Ropa» a «Accesorios», en la cabecera o en el menú del celular) es la misma página con otra
+dirección, y Next no mostraba ningún esqueleto: 1,3 s con la lista de antes quieta. Ahora la página de antes se cambia en el mismo toque
+por la grilla con el título de la que viene, con su fundido, y la raya de la cabecera pasa a la lista tocada (`components/EnCamino.tsx`;
+medido a los 30–53 ms, a 1280 y a 375 px). Un filtro sigue sin esqueleto (apaga la lista).
+Por qué así: lo probé también de una ficha a otra y de un look a otro, y ahí Next sí pone el esqueleto de su carpeta (a los 50–90 ms):
+el mío encima duplicaba el fundido y cortaba la foto que vuela, así que quedó solo para las listas, y corregí el ADR-0445, que decía lo
+contrario. Medí la precarga: Next solo precarga lo que está a la vista (5 fichas de 24, de a 4) y un toque que se le adelanta espera; en
+producción eso debería ser corto, así que quedó escrita la salida y no la apliqué sin medir en un celular de verdad.
+Felipe se lleva: tocar otra lista en la cabecera ya responde al instante, como tocar una prenda.
+

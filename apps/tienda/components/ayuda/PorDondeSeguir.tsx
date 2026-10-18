@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icono } from "../Icono";
 import { Isotipo } from "../Isotipo";
+import { Logo } from "../Marca";
 import type { TemaDeAyuda } from "./temas";
 import "@/app/estilos/ayuda.css";
 
@@ -11,12 +12,7 @@ import "@/app/estilos/ayuda.css";
  * 2026-10-16). `recargar`: un enlace de siempre en vez de `Link` (después de un fallo, mejor una carga nueva).
  */
 export function CabeceraNeutra({ recargar = false }: { recargar?: boolean }) {
-  const marca = (
-    <>
-      <Isotipo />
-      <span>CAYLA</span>
-    </>
-  );
+  const marca = <Logo />;
   return (
     <header className="t-cab">
       <div className="t-cab-fila">
@@ -67,8 +63,8 @@ export function PorDondeSeguir({
     <div className="t-ancho ay-sin-salida">
       <div className="ay-sin-salida-in" data-con-caminos={caminos.length > 0 ? "" : undefined}>
         <div className="ay-sin-salida-cab" role={alerta ? "alert" : undefined}>
-          {/* El colibrí de la marca pintado con el rojo de la paleta (su dibujo hace de máscara): en oscuro se aclara como el resto. */}
-          <span className="ay-sin-salida-colibri" aria-hidden="true" />
+          {/* El colibrí del logo, pintado con el rojo de la paleta: en oscuro se aclara como el resto. */}
+          <Isotipo className="ay-sin-salida-colibri" />
           <span className="t-ceja">{ceja}</span>
           <h1 className="ay-titulo ay-sin-salida-t">{titulo}</h1>
           <p className="ay-bajada">{texto}</p>
