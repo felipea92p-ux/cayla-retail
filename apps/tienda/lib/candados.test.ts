@@ -102,3 +102,13 @@ describe("candados de la tienda", () => {
     expect(FUENTES.filter(({ texto }) => esDelNavegador(texto) && /\b(clienteAdmin|clienteSuelto|clienteSesion)\b/.test(texto)).map((f) => f.ruta)).toEqual([]);
   });
 });
+
+describe("la tienda compila con Cache Components (next.config.ts)", () => {
+  it("ninguna ruta ni página exporta `dynamic`, `dynamicParams`, `revalidate` ni `fetchCache` (el build de la tienda falla con «Route segment config … is not compatible with nextConfig.cacheComponents»)", () => {
+    // Lo que se ejecuta en cada petición se dice con `connection()` (next/server) o leyendo la petición; lo que se guarda, con `"use cache"` y
+    // `cacheLife` (ADR-0450: `/api/salud` rompió «Compila la tienda» en el PR #1188 por traer `export const dynamic`). Solo se miran las líneas
+    // que son código: un comentario puede nombrarlo.
+    const conConfiguracion = FUENTES.filter((f) => /^export const (dynamic|dynamicParams|revalidate|fetchCache)\b/m.test(f.texto)).map((f) => f.ruta);
+    expect(conConfiguracion).toEqual([]);
+  });
+});

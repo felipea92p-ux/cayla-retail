@@ -56,7 +56,9 @@ CAYLA sea el único tenant y el esquema no lo modele explícitamente con `tenant
    manda la sesión, una búsqueda ni un DNI, y un mensaje de error lleva ids, nunca nombres); y
    la publicación en Vercel (ADR-0425: si el aviso de GitHub no le llega, nadie lo reintenta; el
    «Vigía de Vercel» de Actions mira el último commit de `main` y, sin marca de Vercel a los 3 min,
-   lo pide al Deploy Hook y deja un aviso «Producción atrás de main»); el
+   lo pide al Deploy Hook y deja un aviso «Producción atrás de main»); y la
+   base misma (ADR-0450: si no responde, el ERP no confunde eso con «sin acceso» ni «sin sesión»: manda a `/sin-base`, que espera y vuelve sola; `GET /api/salud`
+   corre una consulta de verdad en Postgres y un vigía de GitHub la pregunta cada 5 min; el usuario de la tienda tiene tope de conexiones); el
    sistema se degrada con gracia, nunca pierde datos. Culqi y Shopify se investigaron pero no se integraron
    (docs/investigacion/2026-09-23-tarjeta-pos-y-canal-online.md).
 10. **Ergonomía = potencia** — un colaborador de sede sin formación técnica debe
