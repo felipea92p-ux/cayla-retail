@@ -71,4 +71,5 @@ Las fechas de una campaña aceptan el año 0001 o el 9999 sin avisar (lo halló 
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
-| 2026-10-17 | 191b69bca | 7,0 | 7 | — (los 3 esperan el OK de Felipe) |
+| 2026-10-17 | 191b69bca | 7,0 | 7 | — (los 3 esperaban el OK de Felipe) |
+| 2026-10-17 (después) | 2c40e50d6 | sin recalificar | sin recalificar | los 3 cerrados con el OK de Felipe, cada uno con su prueba y verificado en el navegador: sin «Falta» falso en un diseño ya armado, «Qué prendas salen» contado por lo que sale, «vuelve al diseño anterior» |

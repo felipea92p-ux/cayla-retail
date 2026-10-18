@@ -17,6 +17,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { objecionVigencia, parsearFecha } from "@/lib/etiqueta-campana";
 import { limpiarNombre, NOMBRE_MAX } from "@/lib/campana-detalle";
 import { sugerirNombreCampana } from "@/lib/sugerencias-campanas";
+import { unaSolaPasada } from "@/lib/una-sola-pasada";
 
 /**
  * «Nueva campaña» (ADR-0436, actividad 2): el botón de la cabecera de Campañas y su hoja. Pide lo mínimo para que exista —el nombre y,
@@ -43,6 +44,8 @@ function NuevaCampanaHoja({ nombresUsados, hoy, onClose }: { nombresUsados: stri
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
   const [creando, setCreando] = useState(false);
+  // Diez clics en el mismo instante son una sola llamada (`una-sola-pasada.ts`; /chaos DC-02: la base rechazaba las nueve repetidas con un 400).
+  const [unaVez] = useState(unaSolaPasada);
 
   const limpio = limpiarNombre(nombre);
   const fDesde = parsearFecha(desde);
@@ -60,25 +63,27 @@ function NuevaCampanaHoja({ nombresUsados, hoy, onClose }: { nombresUsados: stri
 
   async function crear() {
     if (!valido || !fDesde.ok || !fHasta.ok) return;
-    setCreando(true);
-    try {
-      const { data, error } = await firmar(
-        createClient().rpc("crear_campana" as never, { p_nombre: limpio, p_desde: fDesde.valor, p_hasta: fHasta.valor } as never),
-        responsable.firma(),
-      );
-      responsable.despues(error);
-      if (error) {
-        avisar.error(traducirError(error, "crear la campaña"));
-        return;
+    await unaVez(async () => {
+      setCreando(true);
+      try {
+        const { data, error } = await firmar(
+          createClient().rpc("crear_campana" as never, { p_nombre: limpio, p_desde: fDesde.valor, p_hasta: fHasta.valor } as never),
+          responsable.firma(),
+        );
+        responsable.despues(error);
+        if (error) {
+          avisar.error(traducirError(error, "crear la campaña"));
+          return;
+        }
+        avisar.exito(`${limpio} creada`, { detalle: "Ponle su descuento y sus prendas." });
+        // Una campaña recién creada se completa por sus Datos (el descuento, dónde rige); el diseño viene después.
+        router.push(`/tienda-web/campanas/${data as unknown as string}?pestana=datos`);
+      } catch {
+        avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
+      } finally {
+        setCreando(false);
       }
-      avisar.exito(`${limpio} creada`, { detalle: "Ponle su descuento y sus prendas." });
-      // Una campaña recién creada se completa por sus Datos (el descuento, dónde rige); el diseño viene después.
-      router.push(`/tienda-web/campanas/${data as unknown as string}?pestana=datos`);
-    } catch {
-      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
-    } finally {
-      setCreando(false);
-    }
+    });
   }
 
   return (

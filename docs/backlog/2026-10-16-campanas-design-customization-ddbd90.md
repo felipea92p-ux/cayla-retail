@@ -66,6 +66,11 @@ editor, sin migración) y **8 (el fondo con foto)**:
   nueva (que `campanas_lista` mande primero las elegidas, hasta cuatro): mejor junto con la de la actividad 8, para pegar una sola vez.
 - [ ] Aviso de Supabase en desarrollo (`Date.now()` while prerendering en las páginas con sesión): Felipe 2026-10-17, «dejarlo así» (el
   build de producción pasa).
-- Después: la actividad 9 (el cierre con `/chaos`, `/formidable`, `tema:auditar` y el PR).
+- [x] Actividad 9 (el cierre, `ca6ef2ff8` a `2c40e50d6`): `/chaos`, `tema:auditar` y `/formidable`; arreglado lo de la web con su prueba (ADR-0436, DECIDÍ 35).
+- [ ] **Para Felipe, de la base (lo dejó abierto `/chaos`):** una ventana de años en las fechas de una campaña (aceptan 0001 y 9999, y deciden cuándo cobra la caja);
+  `volver_al_diseno_anterior` con versión, como publicar; `fn_clave_texto` sin caracteres invisibles; y un control más estricto del lugar de la foto del
+  fondo (detalle en el chat de la sesión de cierre, no aquí). La web ya no se rompe por ninguna de las cuatro.
+- [ ] Sin probar con una colaboradora real: el editor de Campañas (la prueba ciega la pasó; `/formidable` lo deja anotado).
+- Después: el PR con `/abrir-pr`.
 - [ ] Visto en la 8: una foto subida que no se usa (se cambió por otra, o nunca se guardó) queda en el almacén sin diseño que la nombre. No
   molesta a nadie (nadie la ve) y nada se borra solo; si un día pesa, una limpieza de las que ningún diseño nombra.

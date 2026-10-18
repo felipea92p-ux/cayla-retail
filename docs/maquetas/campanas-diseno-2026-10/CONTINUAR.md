@@ -16,17 +16,15 @@ Escrito el 2026-10-17. Sin llaves ni contraseñas (el repo es público): dice d�
   1 menú y lista ✔ · 2 Datos y Prendas con una sola llave ✔ · 3 la portada en una sola pieza (`packages/portada`) ✔ ·
   4 diseñar y publicar ✔ · 5 la tienda pinta el diseño publicado ✔ · 6 campañas sin descuento y el carrusel ✔ ·
   7 el resto del editor (fondo liso/degradado/dibujo, acomodos, texto, prendas, detalles, Sorpréndeme, Deshacer) ✔ · 8 fondo con foto ✔ ·
-  **9 cierre** (`/chaos`, `/formidable`, `tema:auditar`, 375 px, ADR, PR con `/abrir-pr`).
+  9 cierre (`/chaos`, `/formidable`, `tema:auditar`, 375 px, ADR) ✔ · **PR con `/abrir-pr`**.
 
-## Lo siguiente (actividad 9)
+## Lo siguiente (el PR y el día de publicar)
 
-Las actividades 4 a 8 están cerradas (ADR-0436: la 7, DECIDÍ 25 a 30; la 8, DECIDÍ 31 a 34, al final del ADR). La 8 sumó el fondo «Con foto»:
-la migración `20261017231000` (sin pegar), el héroe que dibuja la foto con su velo y el editor que la sube y la oscurece. Sigue la **9, el
-cierre**: `/chaos` (toda pantalla que guarda: el editor, la subida de la foto, publicar, volver al anterior), `/formidable` (espera el OK de
-Felipe antes de tocar nada), `tema:auditar` con sus escenarios, 375 px, y el PR con `/abrir-pr`, con las casillas del día de publicar.
-
-Lo anotado para después está en el backlog: la miniatura de la lista del ERP no sigue las prendas elegidas (sale de las tres con foto que manda
-`campanas_lista`) y la polaroid sin foto de la vista previa (`SinFoto`) distinta de la silueta de la tienda (lo decide Felipe).
+Las 9 actividades están hechas (ADR-0436; la 9, al final: DECIDÍ 35). Lo que sigue es el PR (`/abrir-pr`, con las casillas del día de publicar) y,
+ya con él fusionado y las migraciones pegadas, verificar la web publicada. Lo de la base que `/chaos` dejó abierto es de Felipe (el ADR, DECIDÍ 35): las
+fechas de una campaña sin ventana de años, `volver_al_diseno_anterior` sin versión, `fn_clave_texto` sin quitar invisibles y un hallazgo más estricto
+sobre la foto que está en el chat de la sesión de cierre. Otros pendientes en el backlog: la miniatura de la lista del ERP no sigue las prendas
+elegidas y la polaroid sin foto de la vista previa (`SinFoto`) distinta de la silueta de la tienda.
 
 ## Lo pegado en producción y lo que falta
 

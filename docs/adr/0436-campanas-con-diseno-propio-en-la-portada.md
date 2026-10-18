@@ -468,3 +468,31 @@ paquete (124: leer la foto, el velo, la revisión sobre la foto, cambiar de esti
 foto chica o vertical). En la pila, con Storage levantado: una foto de prueba subida desde el editor (llegó al almacén, el borrador la guardó con
 su tono), la revisión apagó «Publicar» en oscuro al 45 % y lo encendió al 55 %, publicada desde la hoja, y vista en la tienda real a 1440 y 375
 px, en claro y oscuro, por el optimizador. `guias:recorrer` (14 pasos, escritorio y 375 px en oscuro) antes de aceptar la huella; Knip en verde.
+
+## Actividad 9 — El cierre: `/chaos`, el modo oscuro y `/formidable` (sin migración)
+
+Antes del PR, las pantallas que guardan se atacaron a propósito (`/chaos`, semilla 436, en la pila propia), el modo oscuro se midió (`tema:auditar`, con
+12 escenarios nuevos de Campañas en `tema/escenarios/registro.mjs`) y las pantallas se calificaron (`/formidable`, con prueba ciega). Los informes
+completos viven en `.chaos/` (local), `docs/chaos/README.md` y `docs/formidable/tienda-web-campanas.md`.
+
+**DECIDÍ 35 — Se arregló todo lo que vive en la web, cada hallazgo con su prueba primero y el mismo ataque repetido; lo que vive en la base lo decide
+Felipe.** Arreglado (commits `8fa590824` a `2c40e50d6`): una frase con espacio al final se guarda recortada y el pie ya no dice «guardado» si falló;
+la respuesta perdida de un guardado ya no traba el editor con un «alguien más» falso (el editor relee el borrador y, si es el suyo, sigue con su
+versión); diez clics en «Publicar» o «Volver al anterior» son una sola llamada (`unaSolaPasada`); el nombre de una campaña no admite caracteres
+invisibles; la tienda solo pinta la foto del fondo si es de su propio almacén; Datos pregunta antes de perder un cambio sin guardar; y los tres cambios
+de `/formidable` (sin «Falta» en un diseño ya armado, «Qué prendas salen» contado por lo que sale, «vuelve al diseño anterior»).
+**DESCARTÉ** arreglar de paso la base (las fechas, `volver_al_diseno_anterior`, `fn_clave_texto`, el control de la foto): son RPC y reglas de una
+tabla que cobra descuentos; la web ya no depende de ellas para no romperse.
+**SE ROMPE SI** alguien llama a la base sin pasar por la web (una llamada a mano): lo que la web cuida (la frase recortada, los invisibles, la
+versión de «Volver al anterior») la base todavía lo acepta. Queda abierto, para Felipe:
+- Las fechas de una campaña aceptan el año 0001 o el 9999 sin aviso, y deciden cuándo la caja cobra el descuento (una ventana de años, en el campo
+  y en la base).
+- `volver_al_diseno_anterior` no lleva versión (publicar sí): una llamada repetida lo intercambia otra vez.
+- `fn_clave_texto` no quita los caracteres invisibles: dos nombres que se ven iguales no chocan en la base.
+- Un control más estricto del lugar de la foto en la base (hay un hallazgo anotado en el chat de la sesión, no aquí).
+
+**Verificación (9):** `/chaos` 20 del plan + 8 propios, sin violaciones nuevas de INV-01..20 ni de las 8 invariantes propias de Campañas (C1–C8:
+dos borradores, foto con tono, foto en el almacén, nombre limpio, nombres repetidos, descuento válido, diseño de una campaña, prendas de la
+campaña); la base quedó idéntica a su foto tras cada ataque. `tema:auditar` (admin, 13 visitas): lo que falla solo en oscuro está dentro de la
+portada en chico y de la barra de la línea (color de dato, con su foto o dibujo detrás: no se oscurece a propósito) y en la pestaña activa (pieza
+del sistema). `/formidable`: leyes 7,0 y oficio 7, con un agente ciego que terminó la tarea sin ayuda (la colaboradora real, sin probar).
