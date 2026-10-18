@@ -48,5 +48,16 @@ describe("el formulario de Datos: la guía sale de la misma regla que apaga «Gu
   });
   it("el nombre se guarda sin espacios de más", () => {
     expect(limpiarNombre("  Black   Friday ")).toBe("Black Friday");
+    // /chaos ENT-04 (2026-10-17): un carácter invisible no hace «distinta» a una campaña que ya existe («Navi\u200bdad» pasaba como nueva).
+    expect(limpiarNombre("Navi\u200bdad")).toBe("Navidad");
+    expect(limpiarNombre("\u200b  Navidad\ufeff ")).toBe("Navidad");
+    expect(limpiarNombre("Navi\u2060dad\u200c\u200d")).toBe("Navidad");
+    // Los que dan vuelta la lectura de un texto (un nombre que se lee al revés en la lista).
+    expect(limpiarNombre("Navi\u202edad")).toBe("Navidad");
+    expect(limpiarNombre("\u2066Navidad\u2069")).toBe("Navidad");
+    // Lo visible no se toca: tildes, ñ, emojis.
+    expect(limpiarNombre("Día del Año 🐱")).toBe("Día del Año 🐱");
+    // Un nombre hecho solo de invisibles queda vacío (el botón queda apagado).
+    expect(limpiarNombre("\u200b\u200b \u200b")).toBe("");
   });
 });

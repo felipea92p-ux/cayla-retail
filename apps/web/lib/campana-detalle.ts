@@ -77,8 +77,15 @@ export function leerCampanaDetalle(dato: unknown): CampanaDetalle | null {
 /** El tope del nombre, el mismo de `fn_campana_nombre_valido` en la base. */
 export const NOMBRE_MAX = 60;
 
-/** El nombre como lo guarda la base: sin espacios de más. */
-export const limpiarNombre = (s: string) => s.replace(/\s+/g, " ").trim();
+/**
+ * El nombre como lo guarda la base: sin espacios de más y sin caracteres invisibles (ancho cero, marca de orden de bytes) ni los que dan vuelta
+ * la lectura: «Navi​dad» con uno de esos se veía igual que «Navidad» y se creaba como una campaña nueva. Lo visible no se toca.
+ */
+export const limpiarNombre = (s: string) =>
+  s
+    .replace(/[\u200b-\u200d\u2060\ufeff\u202a-\u202e\u2066-\u2069]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
 export type EntradaDatos = { nombre: string; descuento: string; desde: string; hasta: string; categorias: number; puedeDarDescuento: boolean };
 
