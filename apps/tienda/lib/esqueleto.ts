@@ -118,3 +118,18 @@ export function claveDeVista(ruta: string, buscar: URLSearchParams): string {
   if (limpia !== "/catalogo") return limpia;
   return `${limpia}?lista=${leerLista(buscar.get("lista") ?? undefined)}&menu=${buscar.get("menu") ?? ""}`;
 }
+
+/**
+ * Qué esqueleto mostrar por nuestra cuenta al tocar un enlace que lleva a otra vista de la MISMA página (2026-10-17): de una lista a otra
+ * desde la cabecera (Lo nuevo → Más vendidos, «Ropa» → «Accesorios»). Es la misma página (`/catalogo`) con otra dirección, y Next no
+ * vuelve a mostrar un `loading.tsx` cuando solo cambia la dirección: la lista de antes se quedaba quieta, sin ninguna señal, hasta que
+ * llegaba la nueva. Cualquier otro caso, null: de una ficha a otra o de un look a otro Next sí muestra el de su carpeta (medido: a los
+ * 50–90 ms), y uno nuestro encima solo duplicaba el fundido y cortaba la foto que vuela. Un filtro, la tienda o «ver más» tampoco: son la
+ * misma vista (`claveDeVista`) y apagan la lista.
+ */
+export function esperaEnLaMismaPagina(desde: { ruta: string; buscar: URLSearchParams }, hacia: { ruta: string; buscar: URLSearchParams }): FormaEsqueleto | null {
+  const de = limpiar(desde.ruta);
+  const a = limpiar(hacia.ruta);
+  if (de !== "/catalogo" || a !== "/catalogo") return null;
+  return claveDeVista(de, desde.buscar) === claveDeVista(a, hacia.buscar) ? null : "grilla";
+}

@@ -32,10 +32,10 @@ Medido con red lenta (cada respuesta retrasada 1,2 y 4 s), a 1280 y a 375 px:
    (`leerPortada`, la de la franja; `HeroeDelInicio enEspera`), el título de la lista (`tituloDeEspera`, con `lib/listas.ts` sin zod), los
    textos fijos de cada página. Solo brilla lo que de verdad falta. Cada línea que brilla ocupa el renglón de lo que va a escribirse en su
    lugar (11 px de línea en 17 de renglón). Medido: títulos, fotos y botones a 0 px de la página; lo demás, a lo sumo 2.
-3. **Toda página a la que se llega desde una hermana tiene su `loading.tsx`.** Next 16.4 muestra un `loading.tsx` solo cuando se entra a
-   su carpeta: su límite se arma con la clave del segmento hijo, que es el nombre del segmento (`id|d`) y NO lleva los parámetros ni la
-   dirección. Por eso cambiar un filtro, la tienda o «ver más» nunca enseña el esqueleto (y no debe), y por eso un look, «Arma el tuyo»,
-   los pedidos y el pedido separado necesitan el suyo. De una ficha a otra (o de un look a otro) tampoco sale, por lo mismo.
+3. **Toda página a la que se llega desde una hermana tiene su `loading.tsx`.** Next 16.4 muestra un `loading.tsx` al entrar a su carpeta (y
+   al cambiar su parámetro: de una ficha a otra y de un look a otro sale el suyo, medido a los 50–90 ms), pero no cuando solo cambia la
+   dirección dentro de la misma página: cambiar un filtro, la tienda o «ver más» nunca enseña el esqueleto (y no debe). Por eso un look,
+   «Arma el tuyo», los pedidos y el pedido separado necesitan el suyo, y por eso de una lista a otra hace falta el punto 8.
 4. **La ficha llega con lo que la tarjeta ya mostraba.** La tarjeta lleva sus `data-*` (nombre, precio, categoría) y, al tocarla,
    `RecordarPrendaTocada` los guarda con la foto que el navegador ya descargó (`lib/prenda-tocada.ts`). El esqueleto de la ficha pone esa
    foto, el nombre, el precio y la ruta; la ficha, mientras baja su foto grande, deja debajo la chica (solo si es la misma foto,
@@ -50,6 +50,14 @@ Medido con red lenta (cada respuesta retrasada 1,2 y 4 s), a 1280 y a 375 px:
    corta (un esqueleto, la bolsa vacía) y una larga tienen el mismo ancho y nada se corre de lado.
 7. **Las tallas del «Agregar» rápido van por `GET /api/tallas`**, no por una acción del servidor: Next ejecuta las acciones de a una y pasar
    el mouse por varias tarjetas las ponía en fila (y «Agregar a la bolsa» esperaba detrás).
+8. **De una lista a otra, el esqueleto lo pone la página de antes** (`components/EnCamino.tsx`, `esperaEnLaMismaPagina`). Lo nuevo → Más
+   vendidos, «Ropa» → «Accesorios» (en la cabecera o en el menú del celular) es la misma página `/catalogo` con otra dirección: Next no
+   muestra ningún `loading.tsx` y la lista de antes se quedaba quieta, sin ninguna señal, hasta que llegaba la nueva (1,3 s con red lenta).
+   Ahora, en la captura del toque, la lista se cambia al instante por la grilla que brilla con el título de la que viene, con el mismo
+   fundido (una transición de vista propia, alrededor de un `flushSync`: es un cambio de estado nuestro, no una navegación), y la raya de la
+   cabecera pasa a la lista tocada (`useCamino`). Se ve mientras la dirección sigue siendo la de antes; al cambiar, se olvida. Medido: el
+   esqueleto a los 30–53 ms, a 1280 y a 375 px. Solo para las listas: de una ficha a otra Next ya pone el suyo, y uno nuestro encima
+   duplicaba el fundido y cortaba la foto que vuela.
 
 ## Lo que cuesta no saber (trampas medidas, para quien toque esto)
 
@@ -62,8 +70,12 @@ Medido con red lenta (cada respuesta retrasada 1,2 y 4 s), a 1280 y a 375 px:
   aborte la transición entera.
 - **Una pestaña que no se ve no funde** (`visibilityState: hidden`): el navegador aborta con «invalid state». Para probarlo hay que mirar
   una página a la vista (se probó con Playwright, que la tiene).
-- **Si se toca una prenda antes de que llegue su precarga, Next espera esa precarga para mostrar el esqueleto.** Con red muy lenta y una
-  grilla de 24 tarjetas que se precargan en fila, eso fue hasta 1,3 s. Es de Next y ya pasaba; queda en el backlog.
+- **Si se toca una prenda antes de que llegue su precarga, Next espera esa precarga para mostrar el esqueleto.** Next precarga solo lo que
+  está a la vista (al abrir una lista a 1280 px: 5 fichas de 24, de a 4 a la vez) y cada tarjeta recién cuando entra a la pantalla. Medido:
+  sin retraso, listas a los 0,35 s; con 1,2 s por respuesta, de 1,4 a 2,6 s, y un toque en ese lapso esperó hasta 1,3 s sin nada en
+  pantalla. En producción la cáscara de la ficha sale de la caché de Vercel y la espera debería ser corta; si en un 4G de verdad se nota
+  (quien baja rápido y toca lo que acaba de aparecer), la salida es la del punto 8 llevada a «de una lista a una ficha», apagando para
+  ese toque el fundido de la navegación de Next (las marcas en `none`) para que no corte la foto que vuela. Es de Next y ya pasaba.
 
 ## Alternativas descartadas
 
@@ -78,7 +90,7 @@ Medido con red lenta (cada respuesta retrasada 1,2 y 4 s), a 1280 y a 375 px:
 
 ## Cómo se verifica
 
-- Pruebas puras: `lib/esqueleto.test.ts` (forma, sección, título y clave de vista), `lib/prenda-tocada.test.ts`, `lib/anuncio.test.ts`
+- Pruebas puras: `lib/esqueleto.test.ts` (forma, sección, título, clave de vista y cuándo poner el esqueleto propio), `lib/prenda-tocada.test.ts`, `lib/anuncio.test.ts`
   (la franja que sigue en su frase), `lib/rapido.test.ts`.
 - En el navegador, con la tienda compilada y red lenta: el esqueleto sale a los 10 ms con la cabecera igual; las posiciones del esqueleto
   y de la página se miden pieza por pieza (`getBoundingClientRect`); en una página a la vista, cada cambio de vista pide su transición y
