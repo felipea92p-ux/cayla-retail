@@ -620,6 +620,11 @@ const irA = (ruta) => async (pagina) => {
   await esperar(pagina, 1800);
 };
 const idDeProducto = (codigo) => consultarLocal(`select id from retail.productos where codigo = '${codigo.replace(/'/g, "")}' limit 1`);
+// La campaña de ejemplo de Campañas: la de su guía (con descuento y la fecha más reciente primero; `guias/ejemplos.mjs`).
+const campanaDeEjemplo = () =>
+  consultarLocal("select id from retail.etiquetas where estilo = 'campana' and estado = 'aprobado' order by activo desc, (descuento_pct is not null) desc, vigente_hasta desc nulls last limit 1");
+// Se pregunta al preparar el escenario, nunca al cargar este archivo (en el CI no hay base local).
+const alaCampana = (resto = "") => async (pagina) => irA(`/tienda-web/campanas/${campanaDeEjemplo()}${resto}`)(pagina);
 const productoPorCodigo = (codigo, sufijo) => async (pagina) => irA(`/productos/${idDeProducto(codigo)}/${sufijo}`)(pagina);
 // Nuevo producto es un formulario de 4 pasos que se abren de a uno: cada escenario lo lleva hasta el paso que audita (sin crear nada).
 const nuevoHasta = (paso) => async (pagina) => {
@@ -1388,6 +1393,58 @@ ESCENARIOS.push(
   { id: "colaboradores.terminal", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · la ficha de una terminal", preparar: clicRol("button", /^Almacén Trujillo/i) },
   { id: "colaboradores.roles", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · «Roles y accesos»", preparar: clicRol("button", /^Roles y accesos/i) },
   { id: "colaboradores.rol", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · el detalle de un rol", preparar: secuencia(clicRol("button", /^Roles y accesos/i), async (pagina) => { await pagina.getByRole("button", { name: /Integrante/i }).first().click({ timeout: 8000 }); await esperar(pagina, 1200); }) },
+  // Tienda web ▸ Campañas (ADR-0436): la lista, «Nueva campaña», una campaña (la que tiene descuento y la fecha más reciente, como su guía)
+  // con su editor paso por paso, sus Datos, sus Prendas y la hoja «Volver al anterior». Abrir un paso no guarda nada; «Publicar» sí (para
+  // encenderse necesita un borrador distinto de lo publicado), por eso va solo por su id.
+  { id: "campanas.lista", ruta: "/tienda-web/campanas", cuentas: ["admin"], abre: ".tw-campana", nombre: "Campañas · la lista con la portada de cada una", preparar: async (pagina) => esperar(pagina, 1500) },
+  { id: "campanas.nueva", ruta: "/tienda-web/campanas", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Campañas · «Nueva campaña»", preparar: clicRol("button", /Nueva campaña/i) },
+  ...[
+    ["diseno", "Una campaña · Diseño en la web (el editor)", null],
+    ["fondo", "Diseño en la web · el paso «Fondo»", "3. Fondo"],
+    ["acomodo", "Diseño en la web · «Cómo se acomoda»", "4. Cómo se acomoda"],
+    ["texto", "Diseño en la web · «El texto»", "5. El texto"],
+    ["prendas", "Diseño en la web · «Las prendas»", "6. Las prendas"],
+    ["detalles", "Diseño en la web · «Detalles»", "7. Detalles"],
+  ].map(([clave, nombre, paso]) => ({
+    id: clave === "diseno" ? "campana.diseno" : `campana.paso-${clave}`,
+    ruta: "/tienda-web/campanas/[id]",
+    cuentas: ["admin"],
+    abre: paso ? ".tw-paso[data-abierto] .tw-paso-cuerpo" : ".tw-editor",
+    nombre,
+    preparar: secuencia(alaCampana(), async (pagina) => {
+      if (!paso) return;
+      await pagina.locator(".tw-paso-cab", { hasText: paso }).first().click({ timeout: 8000 });
+      await esperar(pagina, 1100);
+    }),
+  })),
+  { id: "campana.datos", ruta: "/tienda-web/campanas/[id]", cuentas: ["admin"], abre: "main input", nombre: "Una campaña · Datos", preparar: alaCampana("?pestana=datos") },
+  { id: "campana.prendas", ruta: "/tienda-web/campanas/[id]", cuentas: ["admin"], abre: "main", nombre: "Una campaña · Prendas", preparar: alaCampana("?pestana=prendas") },
+  {
+    id: "campana.volver",
+    ruta: "/tienda-web/campanas/[id]",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Diseño en la web · la hoja «Volver al anterior»",
+    preparar: secuencia(alaCampana(), async (pagina) => {
+      await pagina.locator('[data-guia="campana.diseno-volver"]').first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+    }),
+  },
+  {
+    id: "campana.publicar",
+    soloPorId: true,
+    ruta: "/tienda-web/campanas/[id]",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Diseño en la web · la hoja «Publicar» (GUARDA un borrador para encenderse)",
+    preparar: secuencia(alaCampana(), async (pagina) => {
+      await pagina.locator(".tw-paso-cab", { hasText: "5. El texto" }).first().click({ timeout: 8000 });
+      await pagina.locator(".tw-paso[data-abierto] input:not([type=range]):not([type=file])").first().fill(`Prueba del tema ${Date.now() % 1000}`);
+      await esperar(pagina, 1800);
+      await pagina.locator('[data-guia="campana.diseno-publicar"]').first().click({ timeout: 8000 });
+      await esperar(pagina, 1500);
+    }),
+  },
   { id: "tienda-web.ajustes", ruta: "/tienda-web/ajustes", cuentas: ["admin"], abre: '[data-guia="config.tienda-web-sedes"]', nombre: "Tienda web ▸ Datos y plazos (ADR-0430; antes la pestaña «Tienda web» de Configuración)" },
   { id: "configuracion.caja", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Caja y avisos»", preparar: clicPestana(/Caja y avisos/i) },
   { id: "configuracion.cuentas", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Cuentas y cobros»", preparar: clicPestana(/Cuentas y cobros/i) },
