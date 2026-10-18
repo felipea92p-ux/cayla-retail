@@ -326,3 +326,22 @@ describe("lo que el editor manda a guardar y lo que dice su pie (/chaos ENT-02, 
     expect(textoDelPie("al-dia", "publicado", true)).toBe("Es el diseño que ve el cliente hoy.");
   });
 });
+
+describe("la respuesta perdida de un guardado (/chaos RS-03, 2026-10-17)", () => {
+  const mio: DisenoDeCampana = { ...DISENO_DE_SIEMPRE, frase: "Primera " };
+  const estado = (diseno: DisenoDeCampana | null, version = 4) => ({ borrador: diseno ? { diseno, version } : null, publicado: null, anterior: null });
+
+  it("si el borrador de la base es justo el que se mandó sin respuesta, es de esta pantalla: se sigue con su versión", async () => {
+    const { versionDeMiBorrador } = await import("./campana-diseno");
+    // La base lo guardó recortado: igual cuenta como el mismo.
+    expect(versionDeMiBorrador(estado({ ...mio, frase: "Primera" }), mio)).toBe(4);
+  });
+
+  it("si es otro (lo cambió otra persona), o no hay nada que se haya quedado sin respuesta, es un choque de verdad", async () => {
+    const { versionDeMiBorrador } = await import("./campana-diseno");
+    expect(versionDeMiBorrador(estado({ ...mio, frase: "De otra persona" }), mio)).toBeNull();
+    expect(versionDeMiBorrador(estado({ ...mio, frase: "Primera" }), null)).toBeNull();
+    expect(versionDeMiBorrador(estado(null), mio)).toBeNull();
+    expect(versionDeMiBorrador(null, mio)).toBeNull();
+  });
+});

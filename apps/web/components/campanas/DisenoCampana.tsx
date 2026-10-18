@@ -21,6 +21,7 @@ import {
   disenoParaEditar,
   disenoParaGuardar,
   estadoDePasos,
+  leerEstadoDiseno,
   estadoDelBorrador,
   resumenAcomodo,
   resumenColores,
@@ -31,6 +32,7 @@ import {
   resumenTexto,
   sorprendeme,
   textoDelPie,
+  versionDeMiBorrador,
   type CampanaDePortada,
   type ClavePaso,
   type EstadoDiseno,
@@ -95,12 +97,27 @@ export function DisenoCampana({
   const pendiente = useRef<DisenoDeCampana | null>(null);
   const reloj = useRef<ReturnType<typeof setTimeout> | null>(null);
   const enCurso = useRef<Promise<boolean> | null>(null);
+  // Lo último que se mandó y cuya respuesta no llegó (la red cortó): si la base sí lo guardó, el próximo guardado choca con su propia versión.
+  const sinRespuesta = useRef<DisenoDeCampana | null>(null);
+
+  /** ¿El borrador de la base es el que se quedó sin respuesta? Entonces se adopta su versión (y se sigue); si no, es un choque de verdad. */
+  async function adoptarMiBorrador(): Promise<boolean> {
+    const { data } = await createClient()
+      .rpc("campana_diseno" as never, { p_etiqueta_id: campana.id } as never)
+      .setHeader("x-espera", "no");
+    const propia = versionDeMiBorrador(leerEstadoDiseno(data), sinRespuesta.current);
+    if (propia === null) return false;
+    version.current = propia;
+    sinRespuesta.current = null;
+    return true;
+  }
 
   async function guardarPendiente(): Promise<boolean> {
     while (enCurso.current) await enCurso.current;
     const d = pendiente.current;
     if (!d) return true;
     pendiente.current = null;
+    let reintentar = false;
     const tarea = (async () => {
       try {
         // `x-espera: no`: guardar el borrador no bloquea la pantalla con el loader (se guarda a cada toque, por detrás).
@@ -111,13 +128,22 @@ export function DisenoCampana({
           firmaOmitida("campana_diseno_borrador"),
         );
         if (error) {
+          if (error.hint === "diseno_cambiado" && (await adoptarMiBorrador())) {
+            // Era el guardado anterior, que sí llegó: se vuelve a mandar este, ahora con la versión buena.
+            pendiente.current ??= d;
+            reintentar = true;
+            return false;
+          }
+          if (error.hint !== "diseno_cambiado" && !error.hint) sinRespuesta.current = d;
           setGuardado(error.hint === "diseno_cambiado" ? "choque" : "error");
           return false;
         }
         version.current = data as unknown as number;
+        sinRespuesta.current = null;
         if (!pendiente.current) setGuardado("al-dia");
         return true;
       } catch {
+        sinRespuesta.current = d;
         setGuardado("error");
         return false;
       }
@@ -125,7 +151,7 @@ export function DisenoCampana({
     enCurso.current = tarea;
     const ok = await tarea;
     enCurso.current = null;
-    return ok;
+    return reintentar ? guardarPendiente() : ok;
   }
 
   /** Guarda ya lo que falte (antes de publicar): la versión que quedó, o `null` si no se pudo. */

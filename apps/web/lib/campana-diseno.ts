@@ -150,6 +150,15 @@ export function disenoParaGuardar(d: DisenoDeCampana): DisenoDeCampana {
   return d.frase === d.frase.trim() ? d : { ...d, frase: d.frase.trim() };
 }
 
+/**
+ * Si el borrador que hay en la base es el que ESTA pantalla mandó y cuya respuesta se perdió (la base lo guardó, la red cortó la vuelta):
+ * su versión, para seguir guardando encima sin decir «alguien más lo cambió». Si es otro, `null`: ese sí es un choque.
+ */
+export function versionDeMiBorrador(leido: Pick<EstadoDiseno, "borrador"> | null, sinRespuesta: DisenoDeCampana | null): number | null {
+  if (!leido?.borrador || !sinRespuesta) return null;
+  return mismoDiseno(leido.borrador.diseno, disenoParaGuardar(sinRespuesta)) ? leido.borrador.version : null;
+}
+
 /** Cómo va el guardado del borrador en el editor. */
 export type EstadoGuardado = "al-dia" | "guardando" | "error" | "choque";
 
