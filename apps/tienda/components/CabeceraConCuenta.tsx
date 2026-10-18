@@ -9,6 +9,7 @@ import { hrefConVolver } from "@/lib/entrada";
 import { seccionDeLaRuta, type SeccionActual } from "@/lib/esqueleto";
 import type { DatosCabecera, FotoChica, MenuCabecera } from "@/lib/inicio";
 import { useGuardados } from "./club/Guardados";
+import { useCamino } from "./EnCamino";
 import { BotonCerrarSesion } from "./cuenta/BotonCerrarSesion";
 import { FotoTarjeta } from "./FotoTarjeta";
 import { Icono } from "./Icono";
@@ -170,7 +171,10 @@ export function CabeceraConCuenta({
     };
   }, [hoja]);
 
-  const marca = (seccion: SeccionActual) => (actual === seccion ? "page" : undefined);
+  // Si se tocó otra lista (de Lo nuevo a Más vendidos), la raya pasa ya a la tocada, mientras llega (`EnCamino`).
+  const camino = useCamino();
+  const marcada = camino ? seccionDeLaRuta(camino.ruta, new URLSearchParams(camino.buscar)) : actual;
+  const marca = (seccion: SeccionActual) => (marcada === seccion ? "page" : undefined);
 
   return (
     <>

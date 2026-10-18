@@ -3,6 +3,7 @@ import { EB_Garamond, Heebo } from "next/font/google";
 import { Suspense } from "react";
 import { AvisoDeLaUrl } from "@/components/cuenta/AvisoDeLaUrl";
 import { ProveedorInstalar } from "@/components/instalar/ProveedorInstalar";
+import { VigiaDelCamino } from "@/components/EnCamino";
 import { RecordarPrendaTocada } from "@/components/PrendaTocada";
 import { SCRIPT_DEL_AVISO } from "@/lib/instalar";
 import "./globals.css";
@@ -52,6 +53,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <ProveedorInstalar>{children}</ProveedorInstalar>
         {/* Al tocar una prenda, guarda lo que su tarjeta ya mostraba: la ficha llega con eso (lib/prenda-tocada.ts). */}
         <RecordarPrendaTocada />
+        {/* De una lista a otra desde la cabecera, la grilla que brilla con el título de la que viene, al instante (components/EnCamino.tsx). */}
+        <VigiaDelCamino />
         {/* Lee la dirección en el navegador: en una página guardada en caché (la portada) va dentro de su Suspense. */}
         <Suspense fallback={null}>
           <AvisoDeLaUrl />
