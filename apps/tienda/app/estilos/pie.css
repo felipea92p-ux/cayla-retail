@@ -3,8 +3,8 @@
    Su fondo, su letra y su marca son los de globals.css (`.t-pie`, de la maqueta); aquí, lo que se le sumó: el pie va siempre al borde de
    abajo de la ventana; los títulos de columna son h2 con la cara de siempre; en el celular cada enlace mide 44 px de alto (se toca con el
    dedo). Revisión «a nivel mundial» (2026-10-16): la ayuda va arriba y a la vista, cada página con lo que promete en una línea (`.ay-pie-*`),
-   la marca más grande y los enlaces con un subrayado que aparece al pasar el mouse. El pie es oscuro en los dos temas: solo los tokens fijos
-   `--t-oscuro*` de app/globals.css.
+   la marca más grande y los enlaces con un subrayado que aparece al pasar el mouse. Desde el 2026-10-17 usa los
+   tokens claros de app/globals.css (el pie de «A · Muro» es claro, sobre el mismo muro).
    ===================================================================================================== */
 
 /* ---- El pie al borde de abajo. En una página corta (Cambios y devoluciones a 1280 px, una bolsa vacía) quedaba a media pantalla con
@@ -19,24 +19,24 @@
 .t-pie.ay-pie { padding-block: 34px 26px; }
 
 /* ---- Los títulos de columna: h2 con la cara del h4 de la maqueta ---- */
-.t-pie .t-pie-tit { margin: 0 0 10px; font-size: 10.5px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--t-oscuro-suave); }
+.t-pie .t-pie-tit { margin: 0 0 10px; font-size: 10.5px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--taupe); }
 
 /* ---- La ayuda, arriba: cada página con su ícono, su nombre y lo que promete; se toca toda la fila ---- */
-.t-pie .ay-pie-ayuda { margin-bottom: 30px; padding-bottom: 6px; border-bottom: 1px solid var(--t-oscuro-filo); }
+.t-pie .ay-pie-ayuda { margin-bottom: 30px; padding-bottom: 6px; border-bottom: 1px solid var(--sand); }
 .t-pie .ay-pie-ayuda .t-pie-tit { margin-bottom: 4px; }
 .t-pie .ay-pie-ayuda ul { list-style: none; margin: 0; padding: 0; display: grid; }
-.t-pie .ay-pie-ayuda li + li { border-top: 1px solid var(--t-oscuro-filo); }
+.t-pie .ay-pie-ayuda li + li { border-top: 1px solid var(--sand); }
 /* Con `.t-pie` delante: la regla de los enlaces del pie de globals.css (`.t-pie li a`, en línea) no les gana. */
-.t-pie .ay-pie-tema { display: grid; grid-template-columns: 40px minmax(0, 1fr) 16px; align-items: center; gap: 14px; min-height: 72px; padding: 12px 0; color: var(--t-oscuro-tinta); }
-.t-pie .ay-pie-tema-ic { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--t-oscuro-filo); color: var(--t-hero-acento); transition: background-color .25s var(--ease), border-color .25s var(--ease); }
+.t-pie .ay-pie-tema { display: grid; grid-template-columns: 40px minmax(0, 1fr) 16px; align-items: center; gap: 14px; min-height: 72px; padding: 12px 0; color: var(--tinta); }
+.t-pie .ay-pie-tema-ic { width: 40px; height: 40px; border-radius: 0; display: grid; place-items: center; border: 1px solid var(--sand); color: var(--t-hero-acento); transition: background-color .25s var(--ease), border-color .25s var(--ease); }
 .t-pie .ay-pie-tema-ic .ic { width: 18px; height: 18px; }
 .t-pie .ay-pie-tema-tx { min-width: 0; }
 .t-pie .ay-pie-tema-tx b { display: block; font-size: 14.5px; font-weight: 600; line-height: 1.3; }
-.t-pie .ay-pie-tema-tx small { display: block; margin-top: 3px; font-size: 12.5px; line-height: 1.45; color: var(--t-oscuro-suave); }
-.t-pie .ay-pie-tema > .ic { width: 16px; height: 16px; color: var(--t-oscuro-suave); transition: transform .25s var(--ease), color .2s var(--ease); }
+.t-pie .ay-pie-tema-tx small { display: block; margin-top: 3px; font-size: 12.5px; line-height: 1.45; color: var(--taupe); }
+.t-pie .ay-pie-tema > .ic { width: 16px; height: 16px; color: var(--taupe); transition: transform .25s var(--ease), color .2s var(--ease); }
 .t-pie .ay-pie-tema:hover { text-decoration: none; }
-.t-pie .ay-pie-tema:hover .ay-pie-tema-ic { background: var(--t-oscuro-2); border-color: var(--t-oscuro-suave); }
-.t-pie .ay-pie-tema:hover > .ic { transform: translateX(4px); color: var(--t-oscuro-tinta); }
+.t-pie .ay-pie-tema:hover .ay-pie-tema-ic { background: var(--hueso); border-color: var(--taupe); }
+.t-pie .ay-pie-tema:hover > .ic { transform: translateX(4px); color: var(--tinta); }
 
 /* ---- La marca, un poco más grande que en la cabecera: es el cierre de la página ---- */
 .t-pie .t-pie-marca .t-logo span { font-size: 25px; }
@@ -47,7 +47,7 @@
 .t-pie .t-pie-marca { grid-column: 1 / -1; }
 .t-pie .t-pie-in ul { gap: 0; }
 .t-pie .t-pie-in li a { display: flex; align-items: center; min-height: 44px; padding: 0; line-height: 1.3; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 4px; transition: text-decoration-color .2s var(--ease), color .2s var(--ease); }
-.t-pie .t-pie-in li a:hover { text-decoration-color: var(--t-oscuro-suave); }
+.t-pie .t-pie-in li a:hover { text-decoration-color: var(--taupe); }
 .t-pie .t-pie-marca .t-logo { align-self: flex-start; min-height: 44px; }
 /* El foco, claro sobre el oscuro del pie (el rojo de la tienda casi no se ve aquí): el mismo acento de la banda de ofertas. */
 .t-pie a:focus-visible { outline: 2px solid var(--t-hero-acento); outline-offset: 3px; border-radius: 4px; }
@@ -63,7 +63,7 @@
   .t-pie.ay-pie { padding-block: 44px 28px; }
   .t-pie .ay-pie-ayuda { margin-bottom: 40px; padding-bottom: 14px; }
   .t-pie .ay-pie-ayuda ul { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .t-pie .ay-pie-ayuda li + li { border-top: 0; border-left: 1px solid var(--t-oscuro-filo); }
+  .t-pie .ay-pie-ayuda li + li { border-top: 0; border-left: 1px solid var(--sand); }
   .t-pie .ay-pie-tema { grid-template-columns: 44px minmax(0, 1fr) 16px; height: 100%; padding: 18px 28px; gap: 16px; }
   .t-pie .ay-pie-ayuda li:first-child .ay-pie-tema { padding-left: 0; }
   .t-pie .ay-pie-ayuda li:last-child .ay-pie-tema { padding-right: 0; }

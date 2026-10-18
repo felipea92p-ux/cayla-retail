@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { EB_Garamond, DM_Sans } from "next/font/google";
+import { Archivo, EB_Garamond, Newsreader } from "next/font/google";
 import { Suspense } from "react";
 import { AvisoDeLaUrl } from "@/components/cuenta/AvisoDeLaUrl";
 import { ProveedorInstalar } from "@/components/instalar/ProveedorInstalar";
@@ -18,9 +18,12 @@ import "./estilos/instalar.css";
 // El paso de una vista a otra: el fundido, lo fijo que no se mueve y la foto que viaja a la ficha (components/Vistas.tsx).
 import "./estilos/vistas.css";
 
-// Las mismas dos letras del ERP y de la marca: EB Garamond para títulos, DM Sans para el texto.
-const serif = EB_Garamond({ subsets: ["latin"], variable: "--font-eb-garamond", display: "swap" });
-const sans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
+// Las letras de la dirección «A · Muro» (Felipe 2026-10-17, docs/maquetas/tienda-rediseno-2026-10/a-muro.html): Archivo para todo el texto
+// y, ensanchada (eje `wdth` hasta 125), para los títulos en mayúsculas, como la señalética de una galería; Newsreader en cursiva para el
+// nombre de cada prenda, como la cédula de una obra; EB Garamond queda solo en la palabra CAYLA del logo (la marca no se rediseña).
+const sans = Archivo({ subsets: ["latin"], axes: ["wdth"], variable: "--font-archivo", display: "swap" });
+const nombre = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], axes: ["opsz"], variable: "--font-newsreader", display: "swap" });
+const marca = EB_Garamond({ subsets: ["latin"], weight: ["500"], variable: "--font-eb-garamond", display: "swap" });
 
 export const metadata: Metadata = {
   title: "CAYLA · Tienda online",
@@ -33,14 +36,14 @@ export const metadata: Metadata = {
 // El color de la barra del navegador en el celular: el crema del tema claro y el fondo del oscuro (los de globals.css).
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f0e8" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1a18" },
+    { media: "(prefers-color-scheme: light)", color: "#ecebe7" },
+    { media: "(prefers-color-scheme: dark)", color: "#161615" },
   ],
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" className={`${serif.variable} ${sans.variable}`}>
+    <html lang="es" className={`${sans.variable} ${nombre.variable} ${marca.variable}`}>
       <head>
         {/* Guarda el aviso de instalar de Chrome si llega antes de que la página se arme (ADR-0431): llega una sola vez. */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_DEL_AVISO }} />
