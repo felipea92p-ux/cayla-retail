@@ -22,6 +22,7 @@ import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
 import { ProveedorElegido } from "@/components/ProveedorElegido";
+import { FichaDePagoTarjeta } from "@/components/gasto-fijo/FichaDePagoTarjeta";
 import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
 import {
   TEXTO_COMPROBANTE,
@@ -400,6 +401,8 @@ export function RegistrarGastoModal({
     <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={onCerrar} antesDeCerrar={avisoSalida.pedirAccion} tamano="mediana" bloqueado={guardando || intento.incierto}>
       {/* Los campos se congelan mientras no se sabe si el gasto se guardó (la cascada de la hoja sigue igual: globals.css). */}
       <fieldset disabled={intento.incierto} className="campos-congelables min-w-0">
+        {/* Un gasto que viene de un fijo muestra a quién y cómo se le paga (ADR-0452): quien lo paga no depende de quien lo cargó. */}
+        {fijo && !esActivo && <FichaDePagoTarjeta gastoFijoId={fijo.id} hoy={hoy} />}
         {/* Orden del spike: un gasto empieza por su comprobante; un activo, por qué es, dónde está y cuánto dura. */}
         {!esActivo && bloqueComprobante}
         <div className="grid gap-x-3 sm:grid-cols-[1fr_10.5rem]" data-guia="fin-gastos.form-que">

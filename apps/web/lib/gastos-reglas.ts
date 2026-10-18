@@ -916,6 +916,8 @@ export type ProveedorGasto = {
   telefono?: string | null;
   forma_pago_preferida?: string | null;
   plazo_credito_dias?: number | null;
+  /** Para separar los de gastos (rubro «Gastos») de los de mercadería en el combo de un gasto fijo (ADR-0452). */
+  rubros?: string[];
 };
 
 export type MomentoFijo = "dia" | "primera_semana" | "quincena" | "fin_de_mes";
