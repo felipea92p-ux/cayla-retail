@@ -14,6 +14,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import type { EstadoDiseno } from "@/lib/campana-diseno";
+import { unaSolaPasada } from "@/lib/una-sola-pasada";
 
 /**
  * «Volver al anterior» (ADR-0436, actividad 4): el diseño publicado y el anterior cambian de lugar, en un toque y con quién lo hace. Sin
@@ -23,27 +24,31 @@ export function VolverAlAnterior({ campana, estado, onClose }: { campana: { id: 
   const router = useRouter();
   const responsable = useResponsable();
   const [volviendo, setVolviendo] = useState(false);
+  // Diez clics en el mismo instante son una sola llamada (el estado de arriba tarda un momento en apagar el botón: `una-sola-pasada.ts`).
+  const [unaVez] = useState(unaSolaPasada);
   const guia = useGuiaCampos([{ id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién lo hace." }]);
   const queSale = estado.anterior ? "el diseño anterior" : "la portada de siempre";
 
   async function volver(cerrar: () => void) {
     if (!responsable.listo) return;
-    setVolviendo(true);
-    try {
-      const { error } = await firmar(createClient().rpc("volver_al_diseno_anterior" as never, { p_etiqueta_id: campana.id } as never), responsable.firma());
-      responsable.despues(error);
-      if (error) {
-        avisar.error(traducirError(error, "volver al diseño anterior"));
-        return;
+    await unaVez(async () => {
+      setVolviendo(true);
+      try {
+        const { error } = await firmar(createClient().rpc("volver_al_diseno_anterior" as never, { p_etiqueta_id: campana.id } as never), responsable.firma());
+        responsable.despues(error);
+        if (error) {
+          avisar.error(traducirError(error, "volver al diseño anterior"));
+          return;
+        }
+        avisar.exito(`${campana.nombre}: volvió ${queSale}`, { detalle: "Se ve en la web en menos de 5 minutos." });
+        cerrar();
+        router.refresh();
+      } catch {
+        avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
+      } finally {
+        setVolviendo(false);
       }
-      avisar.exito(`${campana.nombre}: volvió ${queSale}`, { detalle: "Se ve en la web en menos de 5 minutos." });
-      cerrar();
-      router.refresh();
-    } catch {
-      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
-    } finally {
-      setVolviendo(false);
-    }
+    });
   }
 
   return (

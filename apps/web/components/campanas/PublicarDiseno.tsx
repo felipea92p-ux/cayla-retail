@@ -19,6 +19,7 @@ import { Lienzo } from "./Lienzo";
 import { PortadaDeCampana } from "./PortadaDeCampana";
 import { Revision } from "./DisenoCampana";
 import type { CampanaDePortada, PiezaDePortada } from "@/lib/campana-diseno";
+import { unaSolaPasada } from "@/lib/una-sola-pasada";
 
 /**
  * «Publicar el diseño» (ADR-0436, actividad 4; maqueta, pantalla 3): la portada en los dos tamaños, cuándo se ve y cuándo se quita, la
@@ -47,34 +48,38 @@ export function PublicarDiseno({
   const router = useRouter();
   const responsable = useResponsable();
   const [publicando, setPublicando] = useState(false);
+  // Diez clics en el mismo instante son una sola llamada (el estado de arriba tarda un momento en apagar el botón: `una-sola-pasada.ts`).
+  const [unaVez] = useState(unaSolaPasada);
   const guia = useGuiaCampos([{ id: "responsable", nombre: "Quién publica", requerido: true, hecho: responsable.listo, pendiente: "Elige quién publica." }]);
 
   async function publicar(cerrar: () => void) {
     if (!responsable.listo) return;
-    setPublicando(true);
-    try {
-      const version = await guardarYa();
-      if (version === null) {
-        avisar.error("No se pudo guardar lo último que cambiaste. Revisa la conexión y vuelve a intentar.");
-        return;
+    await unaVez(async () => {
+      setPublicando(true);
+      try {
+        const version = await guardarYa();
+        if (version === null) {
+          avisar.error("No se pudo guardar lo último que cambiaste. Revisa la conexión y vuelve a intentar.");
+          return;
+        }
+        const { error } = await firmar(
+          createClient().rpc("publicar_diseno_campana" as never, { p_etiqueta_id: campana.id, p_version: version } as never),
+          responsable.firma(),
+        );
+        responsable.despues(error);
+        if (error) {
+          avisar.error(traducirError(error, "publicar el diseño"));
+          return;
+        }
+        avisar.exito(`Diseño de ${campana.nombre} publicado`, { detalle: "Se ve en la web en menos de 5 minutos." });
+        cerrar();
+        router.refresh();
+      } catch {
+        avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
+      } finally {
+        setPublicando(false);
       }
-      const { error } = await firmar(
-        createClient().rpc("publicar_diseno_campana" as never, { p_etiqueta_id: campana.id, p_version: version } as never),
-        responsable.firma(),
-      );
-      responsable.despues(error);
-      if (error) {
-        avisar.error(traducirError(error, "publicar el diseño"));
-        return;
-      }
-      avisar.exito(`Diseño de ${campana.nombre} publicado`, { detalle: "Se ve en la web en menos de 5 minutos." });
-      cerrar();
-      router.refresh();
-    } catch {
-      avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
-    } finally {
-      setPublicando(false);
-    }
+    });
   }
 
   return (
