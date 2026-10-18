@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import heroeCss from "./heroe.css?raw";
 import { describe, expect, it } from "vitest";
 import { CONTRASTE_MINIMO, contraste } from "./contraste";
 import {
@@ -242,7 +242,7 @@ describe("lo que la tienda pinta (actividad 5)", () => {
   // heroe.css es el que elige, según el tema de la tienda, qué colores se pintan: si falta una variable en un tema, ese tema mezclaría
   // los colores de siempre con los del diseño.
   it("heroe.css pasa cada variable del diseño a las del héroe, de día y de noche (en los dos selectores del tema oscuro)", () => {
-    const css = readFileSync(new URL("./heroe.css", import.meta.url), "utf8");
+    const css = heroeCss;
     const bloques = [...css.matchAll(/\.t-hero\[data-diseno\] \{([^}]*)\}/g)].map((m) => m[1]!);
     expect(bloques).toHaveLength(3);
     const nombres = Object.keys(variablesDePaleta(coloresEnTema(paletaPorId("cayla"), "claro")));
