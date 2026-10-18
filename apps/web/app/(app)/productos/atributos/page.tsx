@@ -2,6 +2,7 @@ import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import { getCostosVariantes } from "@/lib/catalogo-v2";
+import { getLecturaRotacion } from "@/lib/etiqueta-rotacion-datos";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { precioMasBajoEnTiendas } from "@/lib/precio-sede-reglas";
 
@@ -137,6 +138,13 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   // cobra su precio, así que el peor caso es el más bajo entre la prenda y las tiendas. Solo si el aviso puede salir: sin costos (la
   // cuenta no ve el dinero) no hay aviso y no se piden. Nunca lanza: si una lectura falla, esa tienda no entra y el aviso queda como
   // antes (con el precio de la prenda).
+  // Lo que dicen los datos al lado de las etiquetas de Rotación (actividad 6, ADR-0441): unidades que quedan y vendidas en 30 días, con
+  // la lectura de Análisis. Solo para quien edita etiquetas Y puede analizar (la misma puerta de `fn_analisis_sede`). Nunca lanza ni
+  // hace esperar la pestaña más de 4 s: sin lectura, las tarjetas se ven como antes.
+  const cargaRotacion =
+    tipo === "etiquetas" && puedeEditarEtiquetas && (persona.rol === "lider" || veModulo(persona, "analisis"))
+      ? getLecturaRotacion(persona.rol === "lider")
+      : Promise.resolve(null);
   const cargaPreciosTiendas =
     tipo === "etiquetas" && puedeDarDescuento
       ? cargaCostos.then((c) => (c === null ? sinPreciosDeTiendas() : getPreciosDeLasTiendas()))
@@ -277,6 +285,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   }
   const nombreFamilia = new Map(exigir(resFamilias, "las familias").map((f) => [f.codigo, f.nombre]));
   const temporadas = await cargaTemporadas;
+  const rotacion = await cargaRotacion;
   const categorias = exigir(resCategorias, "las categorías").map((c) => ({
     id: c.id,
     nombre: c.nombre,
@@ -318,6 +327,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
         categorias={categorias}
         prendasConCosto={prendasConCosto}
         variantesManuales={variantesManuales}
+        rotacion={rotacion}
         puedeEditar={puede(persona, "editarCatalogo")}
         puedeEditarEtiquetas={puedeEditarEtiquetas}
         puedeDarDescuento={puedeDarDescuento}

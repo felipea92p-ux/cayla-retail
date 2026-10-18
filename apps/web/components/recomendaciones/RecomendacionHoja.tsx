@@ -175,7 +175,8 @@ export function RecomendacionHoja({
     setConfirmados((c) => ({ ...c, [e.id]: { tipo: "respondida", texto: e.texto, en: new Date().toISOString() } }));
     setBorradores((b) => sinClave(b, e.id));
     onCambio(e.id);
-    avisar.exito("Respuesta enviada", { detalle: `${e.nombre ?? "El cliente"} la lee en su cuenta de la tienda online.` });
+    // Desde la actividad 6 (2026-10-17) la tienda online le avisa al entrar («CAYLA te respondió», 30 días) y la deja en su cuenta.
+    avisar.exito("Respuesta enviada", { detalle: `${e.nombre ?? "El cliente"} la verá al entrar a la tienda online, y queda en su cuenta.` });
   }
   // El reloj y el cierre del cajón llaman a la última versión de `mandar` (la de la última vuelta, con su `onCambio`).
   const mandarRef = useRef(mandar);

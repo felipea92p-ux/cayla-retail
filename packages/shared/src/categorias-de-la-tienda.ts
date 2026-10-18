@@ -31,10 +31,19 @@ export function grupoDeLaTienda(claveDeCategoria: string): GrupoDeLaTienda {
 
 /* ---------------- El probador de «Arma el tuyo» ---------------- */
 
-/** Dónde va una prenda en la figura del probador: arriba y el vestido desde los hombros, abajo desde la cintura, el bolso a un costado. */
+/** Dónde va una prenda en la figura del probador: arriba desde los hombros, abajo desde la cintura, el bolso a un costado. `vestido` y `encima`
+ *  siguen en el tipo porque el código del probador de la tienda las conoce, pero desde el ADR-0444 `zonaDelProbador` ya no devuelve ninguna: sin
+ *  prendas en esas zonas, sus filas y sus botones no se dibujan. */
 export type ZonaDelProbador = "vestido" | "arriba" | "abajo" | "encima" | "bolso";
 
-const ZONA_DEL_GRUPO: Readonly<Record<string, ZonaDelProbador>> = { arriba: "arriba", vestidos: "vestido", abajo: "abajo", encima: "encima" };
+/**
+ * El armador acepta MÁXIMO 3 prendas, una por zona (Felipe, 2026-10-17, ADR-0444): UNA de arriba —top, blusa, polo, camisa, chaleco, casaca,
+ * blazer, abrigo—, una de abajo y un bolso. Una casaca o un chaleco ES la prenda de arriba: no se pone encima de otra. No entran vestidos,
+ * enterizos ni conjuntos (el grupo «Vestidos y conjuntos»), ni las capas (largas como un vestido: `PREFIJOS_FUERA`).
+ */
+const ZONA_DEL_GRUPO: Readonly<Record<string, ZonaDelProbador>> = { arriba: "arriba", abajo: "abajo", encima: "arriba" };
+/** Las capas son tan largas como un vestido y se llevan sobre algo: no entran al armador. */
+const PREFIJOS_FUERA: readonly string[] = ["CAP"];
 /** El bolso es Bolsos y Carteras (ADR-0434): los demás accesorios, la bisutería y el calzado no entran en esta versión. */
 const PREFIJOS_DEL_BOLSO: readonly string[] = ["CAR"];
 
@@ -42,5 +51,6 @@ const PREFIJOS_DEL_BOLSO: readonly string[] = ["CAR"];
 export function zonaDelProbador(claveDeCategoria: string | null | undefined): ZonaDelProbador | null {
   if (!claveDeCategoria) return null;
   if (PREFIJOS_DEL_BOLSO.includes(claveDeCategoria)) return "bolso";
+  if (PREFIJOS_FUERA.includes(claveDeCategoria)) return null;
   return ZONA_DEL_GRUPO[grupoDeLaTienda(claveDeCategoria).clave] ?? null;
 }

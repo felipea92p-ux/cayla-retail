@@ -695,7 +695,7 @@ export const GUIA_COLABORADORES: Guia = {
       ancla: "colaboradores.ficha-acciones",
       opcional: true,
       titulo: "Cambiar rol, sede o suspender",
-      texto: "Quien tiene más acceso que esa persona puede cambiarle el rol o la sede, o suspenderla (deja de entrar, y se puede reactivar). Cada cambio pide el responsable y queda anotado. En la demo no tocamos nada.",
+      texto: "Quien tiene más acceso que esa persona puede cambiarle el rol o la sede, o suspenderla (deja de entrar, y se puede reactivar). Al abrir uno se enciende lo que sigue y, sobre el botón, dice qué falta. Cada cambio pide el responsable y queda anotado. En la demo no tocamos nada.",
     },
     {
       id: "ficha-menu",
