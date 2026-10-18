@@ -282,3 +282,9 @@ vez es un reintento. Pegada en producción el 2026-10-17 con el OK de Felipe, an
 El recorte ya no se calcula con MODNet sobre `originales/<id>.jpg`: es la transparencia de la propia foto, que la IA del equipo entrega como PNG sin fondo,
 limpiada y cortada a la prenda. Una foto sin fondo transparente (un JPG) queda «sin recorte». El resto de este ADR no cambia (la tabla `foto_recortes`, el largo, el
 probador). Ver ADR-0442.
+
+
+## Actualización 2026-10-17 (ADR-0449): la unión de arriba con abajo
+
+La prenda de abajo ya no se dibuja por su largo en cm: su pretina se une al borde de abajo de la de arriba (±15 % de una cintura estándar) y su largo sale de la forma de la foto. Las
+medidas salen del recorte, en el navegador. Ver ADR-0449.

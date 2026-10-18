@@ -25,6 +25,7 @@ import {
 } from "@/lib/probador";
 import { Icono } from "../Icono";
 import { Recorte } from "./Recorte";
+import { useUnionDeLaFigura } from "./useUnionDeLaFigura";
 
 export type TipoDeEntrada = "der" | "izq" | "asoma" | "tinte";
 /** Cómo entró la última prenda de una zona; `vuelta` cambia en cada cambio para que la animación vuelva a empezar. */
@@ -74,13 +75,15 @@ export function Figura({
   const ignorarClic = useRef(false);
   const [arrastre, setArrastre] = useState<{ zona: Zona; dx: number } | null>(null);
 
-  const piezas = presentes(look).flatMap((z) => {
+  const piezasPorLargo = presentes(look).flatMap((z) => {
     const pieza = look[z]!;
     const p = indice.get(pieza.id);
     if (!p) return [];
     const c = colorDeLaPieza(p, pieza);
     return [{ z, p, c, caja: cajaDe(z, p.largo, c.foto.proporcion) }];
   });
+  // La prenda de abajo se une a la de arriba: su pretina coincide con el borde de abajo de la otra (ADR-0449).
+  const piezas = useUnionDeLaFigura(piezasPorLargo);
   // Si lo más largo no cabe, toda la figura se achica igual (las prendas siguen a escala entre ellas).
   const k = escalaDe(piezas.map((x) => x.caja));
   const dibujadas = piezas.map((x) => ({ ...x, caja: achicar(x.caja, k) }));
