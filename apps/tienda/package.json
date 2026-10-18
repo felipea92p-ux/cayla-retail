@@ -6,10 +6,14 @@
     "dev": "next dev --port 3100",
     "build": "next build",
     "start": "next start --port 3100",
+    "pila": "npx -y supabase@2.118.0 start -x realtime,storage-api,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor",
+    "pila:parar": "npx -y supabase@2.118.0 stop",
+    "pila:llaves": "npx -y supabase@2.118.0 status -o env",
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "rol-local": "node scripts/rol-local.mjs"
+    "rol-local": "node scripts/rol-local.mjs",
+    "medicion:leer": "node scripts/medicion-leer.mjs"
   },
   "dependencies": {
     "@cayla-retail/shared": "workspace:*",
