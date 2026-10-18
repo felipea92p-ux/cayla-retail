@@ -2,7 +2,9 @@
 
 - **Fecha:** 2026-10-17 · **Estado:** construido y probado en local (Postgres 16, `pnpm pruebas:planilla-provision`, 31 verificaciones; web: 568
   archivos de pruebas, tipos, lint y Knip en verde; Resumen y Resultados vistos en el navegador con datos de ensayo). **La migración
-  `20261018040000_planilla_provision_por_sede.sql` NO está en producción.** Rama `claude/provision-by-location-b7aba1`.
+  `20261018040000_planilla_provision_por_sede.sql` la pegó Felipe en producción el 2026-10-17** y se verificó en solo lectura: las dos funciones
+  existen, con los permisos de la migración (`anon` no ejecuta ninguna; `authenticated` solo la pública), y la lectura real con la identidad de un admin
+  dio, en las 5 sedes, lo mismo que el cálculo de Dynamic cortado hoy. Rama `claude/provision-by-location-b7aba1` (PR #1192).
 - **Números reservados:** ADR `0453` y migración `20261018040000` (`pnpm reservar`).
 - **Pedido:** Felipe, 2026-10-17, mirando «Qué tan seguro es este número» de Finanzas ▸ Resumen en Tienda AQP: la pieza «Sueldos del mes» decía
   «Dynamic todavía no pagó el período: hasta que lo haga, el mes se ve sin sueldos». «Esta parte se puede ir provisionando, porque cada sede
@@ -92,8 +94,8 @@ los números como si fueran aparte, y por eso no lo cazaron). Una prueba nueva r
 
 ## Lo que sigue
 
-- **Pegar la migración en producción** (Felipe; un solo pegado, solo `create or replace function`, sin políticas ni `alter`) y comparar lo que dice el Resumen con la
-  pantalla de Planilla de Dynamic para el mismo período. Después, refrescar `docs/datos/generado/` (COMO-REFRESCAR.md).
+- **Comparar** lo que diga el Resumen, ya con la web publicada, con la pantalla de Planilla de Dynamic para el mismo período, y refrescar `docs/datos/generado/`
+  (COMO-REFRESCAR.md). La migración ya está pegada (un solo pegado, solo `create or replace function`, sin políticas ni `alter`).
 - **El Flujo de caja** (su salida «Pago de la planilla») sigue repitiendo el último período. Felipe pidió que las cifras sean las mismas: es el paso siguiente, en su
   propio PR, con `al_cierre` como fuente única (el Resumen muestra lo devengado a la fecha; el Flujo, lo que saldrá del banco el día de pago: dos cortes de la misma boleta).
 - Si una tienda queda con menos de 3 personas en Dynamic, su estimación desaparece (la protección de quien cobra). Es una decisión de privacidad de D-33, no un error.
