@@ -145,8 +145,8 @@
 .ay-sin-salida { display: flex; flex-direction: column; gap: 56px; padding-block: 36px 0; }
 .ay-sin-salida-in { display: grid; gap: 40px; }
 .ay-sin-salida-cab { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-width: 0; }
-/* El colibrí (223 × 150) como máscara sobre el rojo de la paleta: la imagen trae su propio rojo, que en oscuro casi no se veía. */
-.ay-sin-salida-colibri { display: block; width: 54px; aspect-ratio: 223 / 150; margin-bottom: 4px; background: var(--rojo); -webkit-mask: url("/cayla-isotipo.png") center / contain no-repeat; mask: url("/cayla-isotipo.png") center / contain no-repeat; animation: ay-asoma .5s var(--ease) both; }
+/* El colibrí del logo oficial en el rojo de la paleta (`--rojo`, que en oscuro se aclara: el rojo del logo casi no se veía ahí). */
+.ay-sin-salida-colibri { display: block; width: 54px; height: auto; margin-bottom: 4px; color: var(--rojo); animation: ay-asoma .5s var(--ease) both; }
 @keyframes ay-asoma { from { opacity: 0; transform: translate(-10px, 8px) rotate(-8deg); } }
 .ay-sin-salida-cab .ay-bajada { max-width: 40ch; }
 .ay-sin-salida-acc { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 24px; margin-top: 12px; }

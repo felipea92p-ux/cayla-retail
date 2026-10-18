@@ -5,12 +5,13 @@ import type { Look as LookDeCayla, TallaLook } from "./looks";
 import { esquemaStockModelo, hayAlgo, notaDeStock, type NotaStock, type StockModelo, type Tienda } from "./stock";
 
 // «Arma el tuyo», el probador de looks de la tienda (ADR-0434, actividad 4; lienzo v3, `V3Probador`). El cliente se viste prenda por
-// prenda a escala —arriba, abajo o un vestido, algo encima y un bolso—, cambia cada una deslizándola o desde la tira de opciones y la
+// prenda a escala —una de arriba, una de abajo y un bolso: MÁXIMO 3 prendas, ADR-0444—, cambia cada una deslizándola o desde la tira de opciones y la
 // elige en cualquiera de sus colores. Todo lo de aquí es lógica pura, con su prueba al lado:
 //   1. Lo que dice la base (`retail.tienda_probador`): el largo, los recortes y el precio y el stock de CADA color.
 //   2. La zona de cada categoría, de los grupos que ya usa la tienda (`grupos.ts`).
 //   3. Juntar el catálogo (qué se ve, su nombre y sus colores) con lo del probador, y lo que dice cada color.
-//   4. El look: poner, sacar y cambiar prendas (un vestido ocupa arriba y abajo y, al sacarlo, vuelven las que había), «Sorpréndeme».
+//   4. El look: poner, sacar y cambiar prendas, «Sorpréndeme». (Desde el ADR-0444 ninguna categoría cae en «vestido» ni en «encima»: el código de
+//      esas dos zonas —el vestido que ocupa arriba y abajo, la fila «Algo encima»— queda, sin prendas que lo usen, por si se vuelve atrás.)
 //   5. El look en la dirección (`?p=`), para volver a él o compartirlo.
 //   6. La figura: dónde va cada prenda y de qué tamaño (2,5 px por cm, desde los hombros o la cintura).
 // Solo fotos reales (Felipe, 2026-10-16): un color sin foto propia se elige igual, la figura muestra otra foto de la prenda y lo dice.

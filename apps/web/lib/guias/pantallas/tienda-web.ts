@@ -694,7 +694,7 @@ export const GUIA_VITRINA_PROBADOR: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Arma el tuyo",
-      texto: "En la tienda online el cliente arma su look poniendo una prenda sobre otra, a su tamaño real. Para eso cada prenda necesita su largo y su recorte sin fondo. Aquí ves qué le falta a cada una. Es una demo: no se guarda nada.",
+      texto: "En la tienda online el cliente arma su look con tres prendas —una de arriba, una de abajo y un bolso—, a su tamaño real. Para eso cada prenda necesita su largo y su recorte sin fondo. Aquí ves qué le falta a cada una. Es una demo: no se guarda nada.",
     },
     {
       id: "pestanas",
@@ -783,7 +783,7 @@ export const GUIA_VITRINA_PROBADOR: Guia = {
       preparar: [{ tipo: "clic", ancla: "probador.prenda" }],
       prepararSoloAlAvanzar: true,
       titulo: "Su largo",
-      texto: "En centímetros, de arriba abajo como cae puesta. Vacío usa el típico de su categoría. Vestidos, faldas, conjuntos y enterizos no tienen típico: sin su largo no entran al probador.",
+      texto: "En centímetros, de arriba abajo como cae puesta. Vacío usa el típico de su categoría. Las faldas no tienen típico (una mini y una maxi no se parecen): sin su largo no entran al probador.",
     },
     {
       id: "largo-responsable",

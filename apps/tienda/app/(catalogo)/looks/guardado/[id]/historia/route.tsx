@@ -3,7 +3,7 @@ import { esId } from "@/lib/bolsa";
 import { piezasDeLaImagen, tituloDeLaHistoria } from "@/lib/compartir-look";
 import { prendasParaCompartir } from "@/lib/compartir-servidor";
 import { fuentesDeLaMarca } from "@/lib/fuentes-og";
-import { cargarFotos, cargarIsotipo, HistoriaDelLook, TAMANO_HISTORIA } from "@/lib/imagenes-del-look";
+import { cargarFotos, HistoriaDelLook, TAMANO_HISTORIA } from "@/lib/imagenes-del-look";
 import { lookDelGuardado } from "@/lib/looks-guardados";
 import { leerMisLooksEnBase } from "@/lib/looks-guardados-servidor";
 import { indizar } from "@/lib/probador";
@@ -23,9 +23,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (!guardado) return new Response(null, { status: 404 });
   const piezas = piezasDeLaImagen(lookDelGuardado(guardado, prendas).look, indizar(prendas));
   if (piezas.length === 0) return new Response(null, { status: 404 });
-  const origen = new URL(request.url).origin;
-  const [fuentes, conFotos, isotipo] = await Promise.all([fuentesDeLaMarca(), cargarFotos(piezas), cargarIsotipo(origen)]);
-  return new ImageResponse(<HistoriaDelLook titulo={tituloDeLaHistoria(guardado.nombre)} piezas={conFotos} isotipo={isotipo} />, {
+  const [fuentes, conFotos] = await Promise.all([fuentesDeLaMarca(), cargarFotos(piezas)]);
+  return new ImageResponse(<HistoriaDelLook titulo={tituloDeLaHistoria(guardado.nombre)} piezas={conFotos} />, {
     ...TAMANO_HISTORIA,
     fonts: fuentes,
     headers: { "Cache-Control": "private, no-store" },
