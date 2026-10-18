@@ -17,3 +17,13 @@ export function fotoOptimizable(fotoUrl: string, supabaseUrl: string | undefined
     return false;
   }
 }
+
+/**
+ * Qué color se pinta DETRÁS de la foto de una prenda. El color de la prenda se ve solo mientras la foto llega (en vez de una caja
+ * vacía); apenas carga, nada: desde el ADR-0442 la foto es un PNG con fondo transparente, y si el color se quedara, la prenda se
+ * vería sobre el color de su primer color de catálogo («Blusa Burdeos de Rayas» sobre chocolate, 2026-10-18). Sobre un JPG no cambia
+ * nada: lo tapa entero. `undefined` = sin fondo (el de la tarjeta).
+ */
+export function fondoDeLaFoto(colorHex: string | null | undefined, cargada: boolean): string | undefined {
+  return !cargada && colorHex ? colorHex : undefined;
+}
