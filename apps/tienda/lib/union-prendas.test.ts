@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   ANCHO_ESTANDAR_DE_LA_UNION,
+  ANCHO_PARA_MEDIR,
   cajaDeAbajoUnida,
+  direccionParaMedir,
   HOLGURA_DE_LA_UNION,
   LARGO_MAXIMO_DE_ABAJO,
   LARGO_MINIMO_DE_ABAJO,
+  MEDIDAS_QUE_SE_RECUERDAN,
+  type MedidaDelRecorte,
+  medidasATexto,
+  medidasDesdeTexto,
   medirRecorte,
   SIN_MEDIDA,
   SOLAPE_DE_LA_UNION,
@@ -134,5 +140,42 @@ describe("cajaDeAbajoUnida: la pretina sigue al borde del torso, dentro de la ci
     expect(cajaDeAbajoUnida({ ...arribaCon(90), caja: { x: 0, y: 0, w: 0, h: 0 } }, falda)).toBeNull();
     const c = cajaDeAbajoUnida(arribaCon(90), falda)!;
     for (const v of [c.x, c.y, c.w, c.h]) expect(Number.isFinite(v)).toBe(true);
+  });
+});
+
+describe("direccionParaMedir: se mide una copia chica, no el PNG entero", () => {
+  it("una foto del almacén pasa por el optimizador, al ancho que ya sirve", () => {
+    const d = direccionParaMedir({ url: "https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/a b.png", optimizar: true });
+    expect(d.startsWith("/_next/image?url=")).toBe(true);
+    expect(d).toContain(`w=${ANCHO_PARA_MEDIR}`);
+    expect(d).toContain(encodeURIComponent("a b.png"));
+  });
+  it("cualquier otra foto se baja tal cual", () => {
+    expect(direccionParaMedir({ url: "https://otro.com/a.png", optimizar: false })).toBe("https://otro.com/a.png");
+  });
+});
+
+describe("las medidas que se recuerdan entre visitas", () => {
+  const m: MedidaDelRecorte = { filaDelBorde: 0.8, borde: 0.4, pretina: null };
+  it("lo que se guarda se lee igual", () => {
+    const texto = medidasATexto(new Map([["u1", m]]));
+    expect(medidasDesdeTexto(texto).get("u1")).toEqual(m);
+  });
+  it("no se guarda lo que no se pudo medir", () => {
+    const texto = medidasATexto(new Map<string, MedidaDelRecorte | null>([["roto", null], ["vacio", SIN_MEDIDA], ["bueno", m]]));
+    expect([...medidasDesdeTexto(texto).keys()]).toEqual(["bueno"]);
+  });
+  it("se queda con los más nuevos", () => {
+    const muchas = new Map(Array.from({ length: MEDIDAS_QUE_SE_RECUERDAN + 5 }, (_, i) => [`u${i}`, m] as const));
+    const leidas = medidasDesdeTexto(medidasATexto(muchas));
+    expect(leidas.size).toBe(MEDIDAS_QUE_SE_RECUERDAN);
+    expect(leidas.has("u0")).toBe(false);
+    expect(leidas.has(`u${MEDIDAS_QUE_SE_RECUERDAN + 4}`)).toBe(true);
+  });
+  it("un texto roto, de otra forma o con números fuera de rango no rompe nada", () => {
+    expect(medidasDesdeTexto(null).size).toBe(0);
+    expect(medidasDesdeTexto("{no es json").size).toBe(0);
+    expect(medidasDesdeTexto("[1,2]").size).toBe(0);
+    expect(medidasDesdeTexto(JSON.stringify({ a: { filaDelBorde: 3, borde: 0.4, pretina: null }, b: 5, c: { borde: 0.4 } })).size).toBe(0);
   });
 });
