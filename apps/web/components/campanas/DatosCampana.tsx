@@ -27,6 +27,7 @@ import type { PiezaDePortada } from "@/lib/campana-diseno";
 import { CamposDeCampana, leerCamposDeCampana, type CategoriaDeCampana } from "./CamposDeCampana";
 import { Lienzo } from "./Lienzo";
 import { PortadaDeCampana } from "./PortadaDeCampana";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 
 /**
  * Tienda web ▸ Campañas ▸ una campaña ▸ Datos (ADR-0436, actividad 2; maqueta, pantalla 4): lo que antes era «Configurar campaña» de
@@ -82,6 +83,9 @@ export function DatosCampana({
     desde !== inicial.desde ||
     hasta !== inicial.hasta ||
     [...elegidas].sort().join(",") !== inicial.categorias;
+  // «¿Salir sin guardar?» (/chaos NAV-02, 2026-10-17): el descuento y las fechas de una campaña los cobra la caja; un cambio a medias no se
+  // pierde en silencio al recargar, al volver atrás ni al tocar otro lugar del menú.
+  const salida = useSalidaSinGuardar(hayCambio, "Cambiaste los datos de la campaña y todavía no los guardaste. Si sales ahora, se pierden.");
   const entrada = { nombre, descuento, desde, hasta, categorias: elegidas.size, puedeDarDescuento: true };
   const guia = useGuiaCampos([
     ...camposDeDatos(entrada),
@@ -162,6 +166,7 @@ export function DatosCampana({
 
   return (
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+      {salida.aviso}
       <section className="card-cayla" data-guia="campana.datos">
         <div className="border-b border-sand px-4 py-3.5 sm:px-5">
           <TituloSeccion>Qué y cuándo</TituloSeccion>
