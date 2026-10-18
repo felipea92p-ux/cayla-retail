@@ -19,6 +19,7 @@ import {
   PASOS_DEL_DISENO,
   contextoDeRevision,
   disenoParaEditar,
+  disenoParaGuardar,
   estadoDePasos,
   estadoDelBorrador,
   resumenAcomodo,
@@ -29,9 +30,11 @@ import {
   resumenPrendas,
   resumenTexto,
   sorprendeme,
+  textoDelPie,
   type CampanaDePortada,
   type ClavePaso,
   type EstadoDiseno,
+  type EstadoGuardado,
   type PiezaDePortada,
 } from "@/lib/campana-diseno";
 import { Lienzo } from "./Lienzo";
@@ -46,7 +49,6 @@ const ESPERA_GUARDADO_MS = 450;
 /** Cuántos pasos atrás guarda «Deshacer» (lo de esta visita: al salir de la pantalla se olvida). */
 const DESHACER_MAX = 30;
 
-type Guardado = "al-dia" | "guardando" | "error" | "choque";
 
 /**
  * Tienda web ▸ Campañas ▸ una campaña ▸ «Diseño en la web» (ADR-0436, actividades 4 y 7; maqueta, pantalla 2). A la izquierda los siete
@@ -74,7 +76,7 @@ export function DisenoCampana({
   const router = useRouter();
   const inicial = disenoParaEditar(estado);
   const [diseno, setDiseno] = useState<DisenoDeCampana>(inicial.diseno);
-  const [guardado, setGuardado] = useState<Guardado>("al-dia");
+  const [guardado, setGuardado] = useState<EstadoGuardado>("al-dia");
   const [vista, setVista] = useState<"pc" | "cel">("pc");
   const [temaWeb, setTemaWeb] = useState<Tema>("claro");
   const [abierto, setAbierto] = useState<ClavePaso | null>("estilo");
@@ -104,7 +106,7 @@ export function DisenoCampana({
         // `x-espera: no`: guardar el borrador no bloquea la pantalla con el loader (se guarda a cada toque, por detrás).
         const { data, error } = await firmar(
           createClient()
-            .rpc("guardar_diseno_borrador" as never, { p_etiqueta_id: campana.id, p_diseno: d, p_version: version.current } as never)
+            .rpc("guardar_diseno_borrador" as never, { p_etiqueta_id: campana.id, p_diseno: disenoParaGuardar(d), p_version: version.current } as never)
             .setHeader("x-espera", "no"),
           firmaOmitida("campana_diseno_borrador"),
         );
@@ -312,15 +314,7 @@ export function DisenoCampana({
 
         <div className="flex flex-wrap items-center gap-3 border-t border-sand pt-4">
           <p className="mr-auto min-w-0 text-[13px] text-tinta/70">
-            {guardado === "guardando"
-              ? "Guardando el borrador…"
-              : comoEsta === "publicado"
-                ? "Es el diseño que ve el cliente hoy."
-                : comoEsta === "de-siempre"
-                  ? "Es la portada de siempre: cambia algo para darle su diseño."
-                  : estado.publicado
-                    ? "Borrador guardado: la web sigue mostrando el diseño publicado."
-                    : "Borrador guardado: la web sigue mostrando la portada de siempre."}
+            {textoDelPie(guardado, comoEsta, Boolean(estado.publicado))}
           </p>
           {(estado.publicado || estado.anterior) && (
             <Boton peso="fantasma" onClick={() => setVolviendo(true)} data-guia="campana.diseno-volver">

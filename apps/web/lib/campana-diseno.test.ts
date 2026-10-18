@@ -307,3 +307,22 @@ describe("«Sorpréndeme»", () => {
     expect(sorprendeme(base, { pct: 15, conPrendas: true }, semilla(7))).toEqual(sorprendeme(base, { pct: 15, conPrendas: true }, semilla(7)));
   });
 });
+
+describe("lo que el editor manda a guardar y lo que dice su pie (/chaos ENT-02, 2026-10-17)", () => {
+  it("la frase va sin espacios a los lados (la base la rechaza con ellos y el borrador no se guardaba)", async () => {
+    const { disenoParaGuardar } = await import("./campana-diseno");
+    expect(disenoParaGuardar({ ...DISENO_DE_SIEMPRE, frase: "Mimos " }).frase).toBe("Mimos");
+    expect(disenoParaGuardar({ ...DISENO_DE_SIEMPRE, frase: "     " }).frase).toBe("");
+    expect(disenoParaGuardar({ ...DISENO_DE_SIEMPRE, frase: "Para ti y tu michi" }).frase).toBe("Para ti y tu michi");
+  });
+
+  it("si el último guardado falló, el pie no dice «guardado»", async () => {
+    const { textoDelPie } = await import("./campana-diseno");
+    expect(textoDelPie("error", "borrador", true)).not.toMatch(/guardado/i);
+    expect(textoDelPie("choque", "borrador", true)).not.toMatch(/guardado/i);
+    expect(textoDelPie("al-dia", "borrador", true)).toBe("Borrador guardado: la web sigue mostrando el diseño publicado.");
+    expect(textoDelPie("al-dia", "borrador", false)).toBe("Borrador guardado: la web sigue mostrando la portada de siempre.");
+    expect(textoDelPie("guardando", "borrador", true)).toBe("Guardando el borrador…");
+    expect(textoDelPie("al-dia", "publicado", true)).toBe("Es el diseño que ve el cliente hoy.");
+  });
+});

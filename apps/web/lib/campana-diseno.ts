@@ -142,6 +142,26 @@ export function estadoDelBorrador(e: { publicado: { diseno: DisenoDeCampana } | 
   return "borrador";
 }
 
+/**
+ * Lo que el editor manda a guardar: la frase sin espacios a los lados (la base la exige así; mientras se escribe, «Mimos » con su espacio
+ * final se rechazaba y el borrador quedaba sin guardar). En pantalla se sigue viendo lo que se escribió.
+ */
+export function disenoParaGuardar(d: DisenoDeCampana): DisenoDeCampana {
+  return d.frase === d.frase.trim() ? d : { ...d, frase: d.frase.trim() };
+}
+
+/** Cómo va el guardado del borrador en el editor. */
+export type EstadoGuardado = "al-dia" | "guardando" | "error" | "choque";
+
+/** La línea del pie del editor: si el último guardado falló, nunca dice «guardado» (el aviso de arriba dice qué pasó). */
+export function textoDelPie(guardado: EstadoGuardado, comoEsta: "publicado" | "borrador" | "de-siempre", hayPublicado: boolean): string {
+  if (guardado === "guardando") return "Guardando el borrador…";
+  if (guardado === "error" || guardado === "choque") return "El último cambio todavía no se guardó.";
+  if (comoEsta === "publicado") return "Es el diseño que ve el cliente hoy.";
+  if (comoEsta === "de-siempre") return "Es la portada de siempre: cambia algo para darle su diseño.";
+  return hayPublicado ? "Borrador guardado: la web sigue mostrando el diseño publicado." : "Borrador guardado: la web sigue mostrando la portada de siempre.";
+}
+
 /** Una línea para el resumen de cada paso del editor (lo que se eligió). */
 export function resumenEstilo(d: DisenoDeCampana): string {
   return estiloDelDiseno(d)?.nombre ?? "Personalizado";
