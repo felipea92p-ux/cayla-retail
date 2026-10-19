@@ -15,6 +15,10 @@
 --   3. `fn_club_anonimizar_inactivas` (el cron diario) usa `fn_club_conservacion_hasta` (la misma fecha que «Mi Club» le muestra a la
 --      persona: 3 años desde su última compra, y se elimina al día siguiente) y procesa cada ficha aparte: una que no se pueda
 --      anonimizar (un pedido pagado sin entregar, una llave tomada) se avisa en el registro y NO frena a las demás.
+--      Lo de la versión anterior (20261015055000) que NO cambia: no toca a quien tiene un apartado abierto ni un pedido web en curso
+--      (por confirmar, confirmado o pagado sin recoger), y al anonimizarse su cuenta web se cierra en la misma escritura (el disparador
+--      `clientas_cuenta_web_al_anonimizar`, que no depende de esta función). Lo único que cambia de la regla: entrar a la cuenta web
+--      ya NO corre el plazo (Felipe 2026-10-19: «a los 3 años sin compras»); cuenta la última compra, o el registro o la unión al club.
 --
 -- DECIDÍ: los cupones vivos NO se tocan. Un cupón es al portador y ya no son puntos: sigue valiendo hasta su fecha (máximo 7 días) y, si
 --   vence, no devuelve nada a una ficha anónima (`fn_club_cupones_vencer`, actividad 3).
@@ -113,6 +117,10 @@ begin
        -- La fecha que «Mi Club» le muestra a la persona (3 años desde su última compra): se elimina al DÍA SIGUIENTE.
        and retail.fn_club_conservacion_hasta(c.id) < retail.fn_hoy_lima()
        and not exists (select 1 from retail.separaciones s where s.clienta_id = c.id and s.estado = 'abierta')
+       -- Un pedido web que todavía no termina (por confirmar, confirmado o pagado sin recoger) es como un apartado abierto: se le debe algo
+       -- y la tienda tiene que poder escribirle. Lo traía la versión anterior (20261015055000) y se conserva.
+       and not exists (select 1 from retail.pedidos_web p
+                        where p.clienta_id = c.id and p.estado not in ('entregado', 'vencido', 'anulado'))
      order by c.id
        for update of c skip locked
   loop
@@ -132,6 +140,6 @@ begin
 end;
 $$;
 comment on function retail.fn_club_anonimizar_inactivas() is
-  'La conservación del club (ADR-0288 G-15; puntos, actividad 9): anonimiza las fichas que pasaron su fecha de conservación (3 años desde su última compra, o desde que se registró o se unió: fn_club_conservacion_hasta, la misma que ve la persona en «Mi Club») con la rutina de archivar_clienta, sin persona y con su nota, y sus puntos se eliminan con ella (movimiento pierde). No toca una con apartado abierto. Cada ficha en su propio bloque: una que falle no frena a las demás. Vacía el celular de los intentos del cartel de más de un día. Devuelve cuántas anonimizó. Solo el servidor (cron diario con CRON_SECRET).';
+  'La conservación del club (ADR-0288 G-15; puntos, actividad 9): anonimiza las fichas que pasaron su fecha de conservación (3 años desde su última compra, o desde que se registró o se unió: fn_club_conservacion_hasta, la misma que ve la persona en «Mi Club») con la rutina de archivar_clienta, sin persona y con su nota, y sus puntos se eliminan con ella (movimiento pierde). Entrar a la cuenta web ya no corre el plazo. No toca una con apartado abierto ni con un pedido web en curso. Al anonimizarse, su cuenta web se cierra (clientas_cuenta_web_al_anonimizar). Cada ficha en su propio bloque: una que falle no frena a las demás. Vacía el celular de los intentos del cartel de más de un día. Devuelve cuántas anonimizó. Solo el servidor (cron diario con CRON_SECRET).';
 
 reset lock_timeout;
