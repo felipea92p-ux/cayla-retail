@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Prenda } from "./catalogo";
 import {
-  avisoOtraTienda,
   avisoOtrosSepararon,
   botonDeLaFicha,
   campanaDeLaFicha,
@@ -16,6 +15,7 @@ import {
   interpretarSeparadas,
   lineaAlAgregar,
   notaDeTalla,
+  pistaOtraTienda,
   parecidasA,
   precioDeLaFicha,
   promesasDeCompra,
@@ -136,6 +136,11 @@ describe("al elegir color y talla", () => {
     expect(colorInicial(ficha)).toBe("BEI");
     const sinStockBei = { ...ficha, variantes: ficha.variantes.map((v) => (v.color === "BEI" ? { ...v, total: 0 as const } : v)) };
     expect(colorInicial(sinStockBei)).toBe("BEI");
+    // Con una tienda elegida cuenta lo que hay AHÍ (cada tienda maneja lo suyo): el negro no tiene nada en Lima, el beige sí.
+    const conFotos = { ...ficha, colores: ficha.colores.map((c) => ({ ...c, foto: FOTO(c.codigo) })) };
+    const sinNegroEnLima = { ...conFotos, variantes: conFotos.variantes.map((v) => (v.color === "NEG" ? { ...v, stock: { ...v.stock, [LIM]: 0 as const } } : v)) };
+    expect(colorInicial(sinNegroEnLima, null, LIM)).toBe("BEI");
+    expect(colorInicial(sinNegroEnLima, null, null)).toBe("NEG");
     const sinFotos = { ...ficha, colores: ficha.colores.map((c) => ({ ...c, foto: null })) };
     expect(colorInicial(sinFotos)).toBe("NEG");
   });
@@ -152,14 +157,14 @@ describe("al elegir color y talla", () => {
     expect(fotosDelColor({ ...ficha, fotos: [] }, "NEG")).toEqual({ fotos: [], enOtroColor: false });
   });
 
-  it("la nota de la talla: «Otra tienda» si la elegida no tiene y otra sí, «Avísame» si ninguna; sin tiendas, nada", () => {
+  it("la nota de la talla: «Agotada» si la tienda elegida no tiene (aunque otra sí: cada tienda maneja lo suyo); sin tienda, si ninguna; sin tiendas, nada", () => {
     const [negS, negM, negL, beiS, beiM] = ficha.variantes;
-    expect(notaDeTalla(negS, LIM, true)).toBe("Otra tienda");
+    expect(notaDeTalla(negS, LIM, true)).toBe("Agotada");
     expect(notaDeTalla(negM, LIM, true)).toBeNull();
-    expect(notaDeTalla(negL, TRU, true)).toBe("Avísame");
+    expect(notaDeTalla(negL, TRU, true)).toBe("Agotada");
     expect(notaDeTalla(beiS, null, true)).toBeNull();
-    expect(notaDeTalla(negL, null, true)).toBe("Avísame");
-    expect(notaDeTalla(beiM, TRU, true)).toBe("Otra tienda");
+    expect(notaDeTalla(negL, null, true)).toBe("Agotada");
+    expect(notaDeTalla(beiM, TRU, true)).toBe("Agotada");
     expect(notaDeTalla(negL, null, false)).toBeNull();
   });
 
@@ -217,10 +222,15 @@ describe("lo que la ficha conecta: el botón, la propuesta k, «Agregar» de la 
   const [negS, negM, negL, beiS, beiM] = ficha.variantes;
   const TRUJILLO = { id: TRU, nombre: "Trujillo" };
 
-  it("el botón: sin talla «Elige tu talla»; si hay en ALGUNA tienda, agregar (aunque no en la elegida); si no hay en ninguna, «Avísame»", () => {
-    expect(botonDeLaFicha(null)).toEqual({ tipo: "elige" });
+  it("el botón: sin talla «Elige tu talla»; si hay en la tienda elegida, agregar; si ahí no hay (aunque otra tenga), «Avísame»; sin tienda, lo de todas", () => {
+    expect(botonDeLaFicha(null, LIM)).toEqual({ tipo: "elige" });
+    expect(botonDeLaFicha(negS, TRU)).toEqual({ tipo: "agregar", varianteId: negS.id });
+    expect(botonDeLaFicha(negS, LIM)).toEqual({ tipo: "avisame", varianteId: negS.id });
+    expect(botonDeLaFicha(beiM, LIM)).toEqual({ tipo: "agregar", varianteId: beiM.id });
+    expect(botonDeLaFicha(beiM, TRU)).toEqual({ tipo: "avisame", varianteId: beiM.id });
+    expect(botonDeLaFicha(negL, LIM)).toEqual({ tipo: "avisame", varianteId: negL.id });
+    // Sin tienda elegida (la web sin tiendas): vale lo que haya en todas juntas.
     expect(botonDeLaFicha(negS)).toEqual({ tipo: "agregar", varianteId: negS.id });
-    expect(botonDeLaFicha(beiM)).toEqual({ tipo: "agregar", varianteId: beiM.id });
     expect(botonDeLaFicha(negL)).toEqual({ tipo: "avisame", varianteId: negL.id });
   });
 
@@ -239,17 +249,23 @@ describe("lo que la ficha conecta: el botón, la propuesta k, «Agregar» de la 
     expect(avisoOtrosSepararon(null, TRUJILLO, separadas)).toBeNull();
   });
 
-  it("una talla que no está en la tienda elegida pero sí en otra: se separa igual y la tienda la puede traer; si no, nada", () => {
+  it("una talla que no está en la tienda elegida pero sí en otra: solo una pista, «Hay en …», sin prometer que la tienda la traiga; si no, nada", () => {
     const LIMA = { id: LIM, nombre: "Lima" };
-    // NEG S: Trujillo 3, Lima 0 → con Lima elegida, la trae de Trujillo.
-    expect(avisoOtraTienda(negS, LIMA, ficha.sedes)).toBe("No hay en Lima. Igual puedes separarla ahí: la tienda puede traerla de Trujillo.");
-    // BEI M: Trujillo 0, Lima 1 → con Trujillo elegida, la trae de Lima.
-    expect(avisoOtraTienda(beiM, TRUJILLO, ficha.sedes)).toBe("No hay en Trujillo. Igual puedes separarla ahí: la tienda puede traerla de Lima.");
-    // Hay en la elegida; sin tienda («Todas»); sin talla; en ninguna (eso es «Avísame»).
-    expect(avisoOtraTienda(negM, LIMA, ficha.sedes)).toBeNull();
-    expect(avisoOtraTienda(negS, null, ficha.sedes)).toBeNull();
-    expect(avisoOtraTienda(null, LIMA, ficha.sedes)).toBeNull();
-    expect(avisoOtraTienda(negL, LIMA, ficha.sedes)).toBeNull();
+    // NEG S: Trujillo 3, Lima 0 → con Lima elegida, hay en Trujillo.
+    expect(pistaOtraTienda(negS, LIMA, ficha.sedes)).toBe("Hay en Trujillo.");
+    // BEI M: Trujillo 0, Lima 1 → con Trujillo elegida, hay en Lima.
+    expect(pistaOtraTienda(beiM, TRUJILLO, ficha.sedes)).toBe("Hay en Lima.");
+    // Con tres tiendas, las nombra todas: «Hay en Arequipa y Lima.».
+    const tres = [{ id: "a", nombre: "Arequipa" }, ...ficha.sedes];
+    const enDos = { ...negS, stock: { ...negS.stock, a: "hay" as const, [TRU]: "hay" as const, [LIM]: 0 as const } };
+    expect(pistaOtraTienda(enDos, LIMA, tres)).toBe("Hay en Arequipa y Trujillo.");
+    // Hay en la elegida; sin tienda; sin talla; en ninguna (eso es «Avísame» sin pista).
+    expect(pistaOtraTienda(negM, LIMA, ficha.sedes)).toBeNull();
+    expect(pistaOtraTienda(negS, null, ficha.sedes)).toBeNull();
+    expect(pistaOtraTienda(null, LIMA, ficha.sedes)).toBeNull();
+    expect(pistaOtraTienda(negL, LIMA, ficha.sedes)).toBeNull();
+    // Nunca la promesa vieja.
+    expect(pistaOtraTienda(negS, LIMA, ficha.sedes)).not.toMatch(/traer|separarla/);
   });
 
   it("lo que dice la ficha junto al botón al agregar: corto y con la talla; si no entró, la frase del servidor", () => {
