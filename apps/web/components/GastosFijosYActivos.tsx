@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -12,6 +12,21 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ProveedorGasto } from "@/components/RegistrarGastoModal";
 import { CabeceraBloque, CampoFin, InputFin, ListaDatos, PieTabla, RadiosFin, SelectFin, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
 import { ProveedorElegido } from "@/components/ProveedorElegido";
+import { FichaDePagoCampos } from "@/components/gasto-fijo/FichaDePagoCampos";
+import { HistorialFicha } from "@/components/gasto-fijo/HistorialFicha";
+import {
+  contratoPorVencer,
+  datosDeLaFicha,
+  esProveedorDeGasto,
+  faltaDeLaFicha,
+  FICHA_VACIA,
+  fichaParaEnviar,
+  leerFicha,
+  TEXTO_FORMA_DE_PAGO,
+  textoContratoPorVencer,
+  type FichaFijo,
+  type ResumenFicha,
+} from "@/lib/gasto-fijo-ficha-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -86,7 +101,7 @@ export function FijosDelMes({
   const faltan = fijos.filter((f) => f.estado === "falta");
   const registrados = fijos.filter((f) => f.estado === "registrado");
   const nombre = (f: { descripcion: string; ubicacionNombre: string }) => (verTodas ? `${f.descripcion} · ${f.ubicacionNombre}` : f.descripcion);
-  const detalle = (f: GastoFijoMes) => `${f.proveedorNombre ?? "Sin proveedor"} · ${textoCuandoLlega(f.momento, f.diaDelMes)}${f.montoVariable ? " · monto variable" : ""}`;
+  const detalle = (f: GastoFijoMes) => `${f.proveedorNombre ? `${f.proveedorNombre} · ` : ""}${textoCuandoLlega(f.momento, f.diaDelMes)}${f.montoVariable ? " · monto variable" : ""}`;
   const monto = (f: GastoFijoMes) => `${f.montoVariable ? "~" : ""}${solesRedondo(f.monto)}`;
   const editar = puedeConfigurar ? (
     <BotonEditar chico href="/configuracion?tab=fijos">
@@ -263,15 +278,25 @@ export function TablaGastosFijos({
   categorias,
   ubicaciones,
   proveedores,
+  fichas = {},
+  fichaDisponible = false,
+  hoy = "",
 }: {
   fijos: GastoFijoMes[];
   categorias: CategoriaGasto[];
   ubicaciones: UbicacionGastos[];
   proveedores: ProveedorGasto[];
+  /** Lo que se sabe de cada fijo para pagarlo (ADR-0452), por id. */
+  fichas?: Record<string, ResumenFicha>;
+  /** La base ya tiene la ficha. Si no, la tabla se dibuja como antes. */
+  fichaDisponible?: boolean;
+  /** Hoy en Lima (`AAAA-MM-DD`), para avisar de un contrato que vence pronto. */
+  hoy?: string;
 }) {
   const [editar, setEditar] = useState<{ fijo?: GastoFijoMes } | null>(null);
   const cuenta = (codigo: string) => categorias.find((c) => c.codigo === codigo)?.cuenta ?? "";
   const total = fijos.reduce((t, f) => t + f.monto, 0);
+  const sinCompletar = fichaDisponible ? fijos.filter((f) => faltaDeLaFicha(fichas[f.id]).length > 0).length : 0;
   return (
     <>
       <Superficie className="anim-sube" guia="config.fijos">
@@ -291,7 +316,7 @@ export function TablaGastosFijos({
                 <tr>
                   <th>Gasto</th>
                   <th>Unidad</th>
-                  <th>Proveedor</th>
+                  <th>{fichaDisponible ? "Se le paga a" : "Proveedor"}</th>
                   <th>Llega con</th>
                   <th className="fin-num">Monto</th>
                   <th className="fin-num">Llega</th>
@@ -309,7 +334,13 @@ export function TablaGastosFijos({
                       </span>
                     </td>
                     <td data-l="Unidad">{f.ubicacionId ? f.ubicacionNombre : "De la empresa"}</td>
-                    <td data-l="Proveedor">{f.proveedorNombre ?? <span className="fin-tenue">Sin proveedor</span>}</td>
+                    {fichaDisponible ? (
+                      <td data-l="Se le paga a">
+                        <CeldaSePagaA r={fichas[f.id]} hoy={hoy} />
+                      </td>
+                    ) : (
+                      <td data-l="Proveedor">{f.proveedorNombre ?? <span className="fin-tenue">Sin proveedor</span>}</td>
+                    )}
                     <td data-l="Llega con">{TEXTO_COMPROBANTE[f.comprobanteTipo]}</td>
                     <td className="fin-num" data-l="Monto">
                       {f.montoVariable ? "~" : ""}
@@ -330,6 +361,7 @@ export function TablaGastosFijos({
         <PieTabla>
           <span>
             {fijos.length} {fijos.length === 1 ? "fijo" : "fijos"} · suman {solesRedondo(total)} al mes · uno que ya no se paga se archiva, no se borra
+            {sinCompletar > 0 && ` · ${sinCompletar} sin completar a quién y cómo se paga`}
           </span>
         </PieTabla>
       </Superficie>
@@ -343,6 +375,26 @@ export function TablaGastosFijos({
           ubicacionInicial={ubicaciones[0]?.id ?? "empresa"}
           onCerrar={() => setEditar(null)}
         />
+      )}
+    </>
+  );
+}
+
+/** La celda «Se le paga a» de la lista de fijos (ADR-0452): quién cobra y cómo, o que falta completarlo. */
+function CeldaSePagaA({ r, hoy }: { r: ResumenFicha | undefined; hoy: string }) {
+  const vence = r?.contratoVence && hoy ? contratoPorVencer(r.contratoVence, hoy) : null;
+  if (!r || !r.beneficiario) return <span className="fin-tenue">Sin completar</span>;
+  return (
+    <>
+      <b>{r.beneficiario}</b>
+      <span className="fin-sub">
+        {r.formaDePago ? TEXTO_FORMA_DE_PAGO[r.formaDePago] : "Falta cómo se paga"}
+        {r.codigoServicio ? ` · ${r.codigoServicio}` : ""}
+      </span>
+      {vence && (
+        <Chip tono={vence.vencido || vence.dias <= 30 ? "ambar" : "neutro"} versalitas={false}>
+          {textoContratoPorVencer(vence)}
+        </Chip>
       )}
     </>
   );
@@ -387,9 +439,57 @@ export function GastoFijoModal({
   const poner = <K extends keyof BorradorFijo>(k: K, v: BorradorFijo[K]) => setB((x) => ({ ...x, [k]: v }));
   const cat = categorias.find((c) => c.codigo === b.categoria) ?? null;
 
+  // La ficha de pago (ADR-0452): a quién y cómo se paga, para que otra persona pueda pagarlo sin quien lo cargó. La hoja pregunta
+  // una vez si la base ya la tiene (antes de pegar la migración, el modal es el de siempre) y si la cuenta es de un líder o admin
+  // (solo ellos ven y cambian la cuenta). Al editar, lee la ficha del fijo; al guardar manda SOLO lo que la persona cambió.
+  const [apoyo, setApoyo] = useState<{ disponible: boolean; lider: boolean } | null>(null);
+  const [ficha, setFicha] = useState<FichaFijo>(FICHA_VACIA);
+  const [fichaInicial, setFichaInicial] = useState<FichaFijo>(FICHA_VACIA);
+  const [lectura, setLectura] = useState<"leyendo" | "lista" | "fallo">(fijo ? "leyendo" : "lista");
+  const [bancoLeido, setBancoLeido] = useState(true);
+  const ponerFicha = <K extends keyof FichaFijo>(k: K, v: FichaFijo[K]) => setFicha((x) => ({ ...x, [k]: v }));
+  const fichaOn = apoyo?.disponible === true;
+  const verBanco = apoyo?.lider === true && bancoLeido;
+
+  useEffect(() => {
+    let vigente = true;
+    const supabase = createClient();
+    // `fn_` es de lectura para el loader (espera-reglas.ts): no tapa la hoja.
+    Promise.all([supabase.rpc("fn_gastos_fijos_fichas" as never), supabase.rpc("fn_es_lider" as never)]).then(([fichas, lider]) => {
+      if (vigente) setApoyo({ disponible: !fichas.error, lider: lider.data === true });
+    });
+    return () => {
+      vigente = false;
+    };
+  }, []);
+
+  const fijoId = fijo?.id;
+  useEffect(() => {
+    if (!fijoId || !fichaOn) return;
+    let vigente = true;
+    createClient()
+      .rpc("fn_gasto_fijo_ficha" as never, { p_gasto_fijo_id: fijoId } as never)
+      .then(({ data, error }) => {
+        if (!vigente) return;
+        const leida = leerFicha(error ? undefined : ((data ?? []) as Record<string, unknown>[])[0]);
+        if (!leida) return setLectura("fallo");
+        const datos = datosDeLaFicha(leida);
+        setFicha(datos);
+        setFichaInicial(datos);
+        setBancoLeido(leida.puedeVerBanco);
+        setLectura("lista");
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [fijoId, fichaOn]);
+
   async function ejecutar(accion: "guardar" | "archivar") {
     const v = validarFijo(b);
     if (accion === "guardar" && !v.ok) return avisar.error(v.error);
+    // Solo lo que cambió; sin lectura de la ficha (todavía o con falla) no se manda nada: nunca se pisa lo que no se vio.
+    const f = accion === "guardar" && fichaOn && lectura === "lista" ? fichaParaEnviar(ficha, fichaInicial, verBanco) : null;
+    if (f && !f.ok) return avisar.error(f.error);
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
@@ -399,7 +499,7 @@ export function GastoFijoModal({
     const { error } = await firmar(
       accion === "archivar"
         ? supabase.rpc("archivar_gasto_fijo" as never, { p_id: fijo!.id } as never)
-        : supabase.rpc("guardar_gasto_fijo" as never, { p_id: fijo?.id ?? null, ...(v.ok ? v.valor : {}) } as never),
+        : supabase.rpc("guardar_gasto_fijo" as never, { p_id: fijo?.id ?? null, ...(v.ok ? v.valor : {}), ...(f?.ok && f.valor ? { p_ficha: f.valor } : {}) } as never),
       responsable.firma(),
     );
     setGuardando(false);
@@ -413,6 +513,10 @@ export function GastoFijoModal({
   }
 
   const opcionesUbicacion = [...ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre })), ...(esLider ? [{ valor: "empresa", texto: "De la empresa (no es de una tienda)" }] : [])];
+  const conComprobante = b.comprobante !== "sin_comprobante";
+  // Con la ficha, el proveedor es solo quien EMITE el papel (luz, agua, internet…): la mercadería no se ofrece. Sin la ficha (la base
+  // aún no la tiene) queda el combo de siempre.
+  const emisores = fichaOn ? proveedores.filter((p) => esProveedorDeGasto(p) || p.id === b.proveedorId) : proveedores;
   return (
     <Modal variante="hoja" titulo={fijo ? "Editar gasto fijo" : "Nuevo gasto fijo"} subtitulo="Lo que se paga todos los meses. Es un recordatorio: cuenta cuando se registra con lo que llegó." onClose={onCerrar} tamano="mediana">
       <CampoFin etiqueta="Qué se paga" htmlFor="fijo-descripcion">
@@ -438,25 +542,6 @@ export function GastoFijoModal({
           />
         </CampoFin>
       </div>
-      <div className="fin-dos-campos">
-        <CampoFin etiqueta="Proveedor" htmlFor="fijo-proveedor">
-          <SelectFin
-            id="fijo-proveedor"
-            valor={b.proveedorId}
-            onValor={(v) => poner("proveedorId", v)}
-            opciones={[{ valor: "", texto: "Sin proveedor" }, ...proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
-          />
-        </CampoFin>
-        <CampoFin etiqueta="Llega con" htmlFor="fijo-comprobante">
-          <SelectFin<BorradorFijo["comprobante"]>
-            id="fijo-comprobante"
-            valor={b.comprobante}
-            onValor={(v) => poner("comprobante", v)}
-            opciones={TIPOS_COMPROBANTE.map((t) => ({ valor: t, texto: TEXTO_COMPROBANTE[t] }))}
-          />
-        </CampoFin>
-      </div>
-      <ProveedorElegido proveedor={proveedores.find((p) => p.id === b.proveedorId)} />
       <div className="fin-dos-campos">
         <CampoFin etiqueta="Monto de siempre (con IGV)" htmlFor="fijo-monto">
           <InputFin id="fijo-monto" inputMode="decimal" value={b.monto} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" />
@@ -487,8 +572,39 @@ export function GastoFijoModal({
           ]}
         />
       </CampoFin>
+      <div className="fin-dos-campos">
+        <CampoFin etiqueta="Llega con" htmlFor="fijo-comprobante">
+          <SelectFin<BorradorFijo["comprobante"]>
+            id="fijo-comprobante"
+            valor={b.comprobante}
+            onValor={(v) => setB((x) => ({ ...x, comprobante: v, proveedorId: v === "sin_comprobante" ? "" : x.proveedorId }))}
+            opciones={TIPOS_COMPROBANTE.map((t) => ({ valor: t, texto: TEXTO_COMPROBANTE[t] }))}
+          />
+        </CampoFin>
+        {apoyo && (!fichaOn || conComprobante) && (
+          <CampoFin
+            etiqueta={fichaOn ? "Quién emite el comprobante" : "Proveedor"}
+            htmlFor="fijo-proveedor"
+            ayuda={fichaOn ? "Opcional: luz, agua, internet y demás servicios. ¿No está? Súmalo al registrar su primer gasto." : undefined}
+          >
+            <SelectFin
+              id="fijo-proveedor"
+              valor={b.proveedorId}
+              onValor={(v) => poner("proveedorId", v)}
+              opciones={[{ valor: "", texto: fichaOn ? "Sin elegir" : "Sin proveedor" }, ...emisores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
+            />
+          </CampoFin>
+        )}
+      </div>
+      {apoyo && !fichaOn && <ProveedorElegido proveedor={proveedores.find((p) => p.id === b.proveedorId)} />}
+      {fichaOn && lectura === "leyendo" && <p className="nota-cayla mt-4">Leyendo los datos de pago…</p>}
+      {fichaOn && lectura === "fallo" && (
+        <p className="nota-cayla mt-4">No pude leer los datos de pago de este gasto. Lo demás se guarda igual y los datos de pago quedan como estaban.</p>
+      )}
+      {fichaOn && lectura === "lista" && <FichaDePagoCampos valor={ficha} onCambio={ponerFicha} categoria={b.categoria} puedeVerBanco={verBanco} deshabilitado={guardando} />}
+      {fichaOn && lectura === "lista" && fijo && verBanco && <HistorialFicha gastoFijoId={fijo.id} />}
       <ComboResponsable control={responsable} deshabilitado={guardando} />
-      <div className="fin-botones mt-4">
+      <div className="fin-botones pie-hoja-fijo mt-4">
         {fijo && (
           <button type="button" className="btn-cayla btn-sutil mr-auto" disabled={guardando} onClick={() => ejecutar("archivar")}>
             Ya no se paga: archivar

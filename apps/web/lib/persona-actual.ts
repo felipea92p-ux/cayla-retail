@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
+import { direccionDeSinBase, esFalloDeLaBase } from "@/lib/base-caida-reglas";
 import type { Permiso } from "@/lib/menu";
 import {
   accionesDeCompra,
@@ -99,8 +101,12 @@ function tipoUbicacion(tipo: string | null | undefined): PersonaActualV2["ubicac
 export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> => {
   const supabase = await createClient();
 
-  const { data: claims } = await supabase.auth.getClaims();
-  if (!claims?.claims?.sub) redirect("/login");
+  const { data: claims, error: errorDeSesion } = await supabase.auth.getClaims();
+  // «No pude comprobar la sesión» no es «no hay sesión»: si el access token venció y renovarlo falló porque el servicio de Auth no
+  // respondió, la persona sigue con su sesión abierta y se queda esperando aquí, no se la manda a escribir su contraseña (ADR-0450).
+  if (!claims?.claims?.sub) {
+    redirect(errorDeSesion && isAuthRetryableFetchError(errorDeSesion) ? await direccionSinBase() : "/login");
+  }
 
   // «¿Es un aparato?» se pide EN PARALELO con el resumen: no suma una espera. `fn_mi_terminal()` devuelve el nombre del
   // aparato (una base vieja, su tipo); vacío o error = una persona. Falla cerrado (principio 9).
@@ -110,7 +116,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
   // `fn_actor_persona_id` devuelve el id propio sin mirar encabezados. En una terminal falla (exige responsable): null.
   // ¿Admin? También en paralelo; un error = no es admin (falla cerrado: se le pide el combo como a todos).
   const [
-    { data, error },
+    { data, error, status: estadoDelResumen },
     { data: miTerminal, error: errorTerminal },
     { data: filasModulos, error: errorModulos },
     { data: miPersonaId, error: errorPersonaId },
@@ -125,6 +131,9 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     supabase.rpc("fn_mi_pantalla_principal"),
   ]);
 
+  // Un error de la base NO es «sin acceso» (2026-10-17: la base se cayó y a todos los mandó al login con «pide a un Líder que te dé de
+  // alta»). Solo una respuesta de la base sin fila dice que la cuenta no entra; si la base no respondió, se espera (ADR-0450).
+  if (error && esFalloDeLaBase({ error, status: estadoDelResumen })) redirect(await direccionSinBase());
   if (error || !data || !data.ubicacion_id) {
     redirect(`/login?error=${await motivoSinAcceso(supabase, claims.claims.sub)}`);
   }
@@ -194,6 +203,11 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     pantallaPrincipal: !terminal && !errorPantallaPrincipal && typeof pantallaPrincipal === "string" ? pantallaPrincipal : null,
   };
 });
+
+/** A `/sin-base`, con la pantalla de la que se salió (la anota `proxy.ts` en `x-cayla-ruta`) para volver a ella cuando la base responda. */
+async function direccionSinBase(): Promise<string> {
+  return direccionDeSinBase((await headers()).get("x-cayla-ruta"));
+}
 
 /** Por qué una cuenta sin fila en `fn_persona_actual_resumen()` no entra. Una terminal desactivada (ADR-0162) se ve a sí
  *  misma en `retail.terminales` (RLS: `auth_user_id = auth.uid()`, activa o no) y merece un aviso que diga qué pasó —«pide

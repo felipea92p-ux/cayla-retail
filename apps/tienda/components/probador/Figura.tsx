@@ -25,6 +25,7 @@ import {
 } from "@/lib/probador";
 import { Icono } from "../Icono";
 import { Recorte } from "./Recorte";
+import { useUnionDeLaFigura } from "./useUnionDeLaFigura";
 
 export type TipoDeEntrada = "der" | "izq" | "asoma" | "tinte";
 /** Cómo entró la última prenda de una zona; `vuelta` cambia en cada cambio para que la animación vuelva a empezar. */
@@ -74,13 +75,20 @@ export function Figura({
   const ignorarClic = useRef(false);
   const [arrastre, setArrastre] = useState<{ zona: Zona; dx: number } | null>(null);
 
-  const piezas = presentes(look).flatMap((z) => {
+  const piezasPorLargo = presentes(look).flatMap((z) => {
     const pieza = look[z]!;
     const p = indice.get(pieza.id);
     if (!p) return [];
     const c = colorDeLaPieza(p, pieza);
     return [{ z, p, c, caja: cajaDe(z, p.largo, c.foto.proporcion) }];
   });
+  // Las fotos que probablemente se vean pronto (las vecinas de arriba y de abajo): se miden en segundo plano para que la unión sea inmediata.
+  const cercanas = (["arriba", "abajo"] as const).flatMap((z) => {
+    const pieza = look[z];
+    return pieza ? vecinasDe(prendas, z, pieza.id).map(({ prenda }) => colorPara(prenda, recordados).foto) : [];
+  });
+  // La prenda de abajo se une a la de arriba: su pretina coincide con el borde de abajo de la otra (ADR-0449). `ajustando`: la medida tarda y se avisa.
+  const { piezas, ajustando } = useUnionDeLaFigura(piezasPorLargo, cercanas);
   // Si lo más largo no cabe, toda la figura se achica igual (las prendas siguen a escala entre ellas).
   const k = escalaDe(piezas.map((x) => x.caja));
   const dibujadas = piezas.map((x) => ({ ...x, caja: achicar(x.caja, k) }));
@@ -93,6 +101,7 @@ export function Figura({
         })
       : [];
   const hayFlechas = elegida !== null && vecinaDe(prendas, zona, elegida.p.id, 1) !== null;
+  const cajaDeAbajo = dibujadas.find((x) => x.z === "abajo")?.caja ?? null;
   const piso = Math.max(0, ...dibujadas.map((x) => x.caja.y + x.caja.h)) - 10;
 
   function inicio(e: React.PointerEvent<HTMLDivElement>) {
@@ -178,6 +187,7 @@ export function Figura({
             type="button"
             className="pb-pieza"
             data-activa={activa ? "" : undefined}
+            data-ajustando={z === "abajo" && ajustando ? "" : undefined}
             aria-pressed={activa}
             aria-label={`${numero[z]}. ${NOMBRE_ZONA[z]}: ${p.nombre}, ${c.nombre}. ${activa ? "Desliza para cambiarla" : "Tócala para cambiarla"}`}
             style={{
@@ -219,6 +229,13 @@ export function Figura({
           </span>
         );
       })}
+
+      {ajustando && cajaDeAbajo && (
+        <span className="pb-ajusta" role="status" style={{ top: enAlto(cajaDeAbajo.y) }}>
+          <span className="pb-ajusta-hilo" aria-hidden="true" />
+          Ajustando la prenda…
+        </span>
+      )}
 
       {hayFlechas && elegida && (
         <>

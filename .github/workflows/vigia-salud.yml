@@ -1,0 +1,52 @@
+name: Vigía de salud
+
+# ¿Responde la base? (ADR-0450). El 2026-10-17 la base de producción se cayó dos veces y nos enteramos por las colaboradoras: nada le
+# preguntaba a Postgres si estaba vivo. Cada 5 minutos este trabajo le pregunta a `/api/salud` del ERP (corre `retail.fn_salud()` dentro de
+# Postgres) y de la tienda (`select 1` por la conexión de la tienda). Una dirección se da por caída solo si fallan 3 intentos seguidos (un
+# parpadeo no despierta a nadie). Si alguna cae abre un aviso «Base o tienda sin responder (vigía de salud)» y deja esta corrida en rojo
+# (GitHub avisa); mientras siga caída no repite ni el aviso ni el rojo; cuando todas vuelven, comenta y lo cierra. Toda la lógica, con sus
+# pruebas, en scripts/ci/vigia-salud.mjs.
+#
+# Límites honestos: GitHub puede atrasar un trabajo programado varios minutos y no manda mensajes al teléfono. Es lo que se tiene sin abrir
+# ninguna cuenta; un monitor externo (UptimeRobot, Better Stack…) sobre las mismas dos direcciones es mejor y se suma, no se reemplaza.
+#
+# Lo que hay que configurar una vez (Settings ▸ Secrets and variables ▸ Actions ▸ pestaña VARIABLES, no secretos: son direcciones públicas):
+#   URL_SALUD_ERP     la ruta completa del ERP, terminada en /api/salud
+#   URL_SALUD_TIENDA  la ruta completa de la tienda, https://tienda.cayla.pe/api/salud
+# Pega ANTES la migración 20261017225000 (`retail.fn_salud()`) en producción: sin ella el ERP contesta «falta_fn_salud» y el vigía avisa.
+# Sin ninguna variable, el trabajo no hace nada y lo dice. Para probarlo: Actions ▸ Vigía de salud ▸ Run workflow (con «ensayo» no escribe avisos).
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      ensayo:
+        description: "Ensayo: preguntar y decir qué haría, sin abrir ni cerrar ningún aviso"
+        type: boolean
+        default: false
+
+concurrency:
+  group: vigia-salud
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  vigia:
+    name: ¿Responde la base?
+    runs-on: ubuntu-latest
+    # 3 intentos de hasta 15 s con 20 s de pausa por cada dirección, y son dos direcciones: cabe de sobra.
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/ci
+      - name: Preguntar al ERP y a la tienda
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL_SALUD_ERP: ${{ vars.URL_SALUD_ERP }}
+          URL_SALUD_TIENDA: ${{ vars.URL_SALUD_TIENDA }}
+          ENSAYO: ${{ inputs.ensayo }}
+        run: node scripts/ci/vigia-salud.mjs

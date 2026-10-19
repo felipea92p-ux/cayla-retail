@@ -74,7 +74,7 @@
    derecha y la página se movía de lado. Los íconos bajan a 38 px (siguen fáciles de tocar) y el logo se aprieta un poco. ---- */
 @container tienda (max-width: 359px) {
   .t-cab-fila .t-ico { width: 38px; height: 38px; }
-  .t-cab-fila .t-logo span { font-size: 19px; letter-spacing: .16em; }
+  .t-cab-fila .t-logo .t-marca-logo { height: 23px; }
 }
 
 /* ---- El velo de las hojas ---- */

@@ -56,6 +56,10 @@ export const PRUEBAS = [
 
   "pruebas:activos-y-fijos",
 
+  // La ficha de pago de un gasto fijo (ADR-0452): a quién y cómo se paga, el código del recibo y el contrato; datos bancarios solo
+  // del líder y admin; el historial de cambios de cuenta; ficha parcial, null que borra, errores en criollo. ROLLBACK.
+  "pruebas:gasto-fijo-ficha",
+
   // Activos «ya lo teníamos» (ADR-0335): lo anterior al sistema entra sin pago, sin mover plata, con su fecha real y su
   // depreciación; solo el líder; los estados imposibles los impide la base. ROLLBACK.
   "pruebas:activos-carga-inicial",
@@ -255,6 +259,11 @@ export const PRUEBAS = [
   // La tienda online carga rápido sin cambiar lo que muestra (2026-10-17): el precio de cada talla se calcula una vez por tienda, la
   // revisión «¿se puede mostrar?» está en PL/pgSQL y el catálogo devuelve EXACTAMENTE el JSON de su versión de antes. ROLLBACK.
   "pruebas:tienda-rapida",
+
+  // La base se cae sin llevarse al ERP (ADR-0450): `fn_salud()` («¿responde la base?», solo true y solo para anon/authenticated/service_role)
+  // y los topes de conexión/tiempo del usuario de la tienda (20 conexiones, 5 s, 10 s en transacción quieta) que no tocan a nadie más
+  // —ni a `postgres`, que queda como miembro de `tienda_web` por haberlo creado—, son idempotentes y no fallan sin usuario. ROLLBACK.
+  "pruebas:base-resiliencia",
 
   // Los looks de la tienda online (ADR-0408, actividad 11): es el módulo de la Vitrina web (sin él no se lee ni se guarda); 2 a 4
   // prendas que se venden, y para mostrarlo cada una se ve en la web; la versión frena a la segunda persona; el lugar va de 1 a N sin

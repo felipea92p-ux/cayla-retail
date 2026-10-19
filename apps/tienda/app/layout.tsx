@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, EB_Garamond, Newsreader } from "next/font/google";
+import { Archivo, Newsreader } from "next/font/google";
 import { Suspense } from "react";
 import { AvisoDeLaUrl } from "@/components/cuenta/AvisoDeLaUrl";
 import { ProveedorInstalar } from "@/components/instalar/ProveedorInstalar";
+import { Medicion } from "@/components/Medicion";
+import { VigiaDelCamino } from "@/components/EnCamino";
 import { RecordarPrendaTocada } from "@/components/PrendaTocada";
 import { SCRIPT_DEL_AVISO } from "@/lib/instalar";
 import "./globals.css";
@@ -18,12 +20,12 @@ import "./estilos/instalar.css";
 // El paso de una vista a otra: el fundido, lo fijo que no se mueve y la foto que viaja a la ficha (components/Vistas.tsx).
 import "./estilos/vistas.css";
 
-// Las letras de la dirección «A · Muro» (Felipe 2026-10-17, docs/maquetas/tienda-rediseno-2026-10/a-muro.html): Archivo para todo el texto
-// y, ensanchada (eje `wdth` hasta 125), para los títulos en mayúsculas, como la señalética de una galería; Newsreader en cursiva para el
-// nombre de cada prenda, como la cédula de una obra; EB Garamond queda solo en la palabra CAYLA del logo (la marca no se rediseña).
+// Las letras de la dirección «A · Muro» (Felipe 2026-10-17, docs/maquetas/tienda-rediseno-2026-10/a-muro.html; el 2026-10-19 eligió A
+// completa sobre Heebo, ADR-0446): Archivo para todo el texto y, ensanchada (eje `wdth` hasta 125), para los títulos en mayúsculas, como la
+// señalética de una galería; Newsreader en cursiva para el nombre de cada prenda, como la cédula de una obra. La palabra CAYLA no va con
+// ninguna letra: es el dibujo del logo (`components/Marca.tsx`).
 const sans = Archivo({ subsets: ["latin"], axes: ["wdth"], variable: "--font-archivo", display: "swap" });
 const nombre = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], axes: ["opsz"], variable: "--font-newsreader", display: "swap" });
-const marca = EB_Garamond({ subsets: ["latin"], weight: ["500"], variable: "--font-eb-garamond", display: "swap" });
 
 export const metadata: Metadata = {
   title: "CAYLA · Tienda online",
@@ -43,7 +45,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" className={`${sans.variable} ${nombre.variable} ${marca.variable}`}>
+    <html lang="es" className={`${sans.variable} ${nombre.variable}`}>
       <head>
         {/* Guarda el aviso de instalar de Chrome si llega antes de que la página se arme (ADR-0431): llega una sola vez. */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_DEL_AVISO }} />
@@ -52,10 +54,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <ProveedorInstalar>{children}</ProveedorInstalar>
         {/* Al tocar una prenda, guarda lo que su tarjeta ya mostraba: la ficha llega con eso (lib/prenda-tocada.ts). */}
         <RecordarPrendaTocada />
+        {/* De una lista a otra desde la cabecera, la grilla que brilla con el título de la que viene, al instante (components/EnCamino.tsx). */}
+        <VigiaDelCamino />
         {/* Lee la dirección en el navegador: en una página guardada en caché (la portada) va dentro de su Suspense. */}
         <Suspense fallback={null}>
           <AvisoDeLaUrl />
         </Suspense>
+        {/* Cuánto tarda la tienda en el aparato del cliente, en 1 de cada 2 visitas (ADR-0447). No dibuja nada. */}
+        <Medicion />
       </body>
     </html>
   );

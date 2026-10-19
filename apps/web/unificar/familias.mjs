@@ -1006,6 +1006,7 @@ export const DECISIONES = {
       { "archivo": "components/ProduccionSoloLider.tsx", "motivo": "un estado (esta pantalla de Producción es del líder), no la cabecera de una pantalla" },
       { "archivo": "app/(app)/sin-acceso/page.tsx", "motivo": "un estado (tu rol no ve este módulo), no la cabecera de una pantalla" },
       { "archivo": "app/(app)/error.tsx", "motivo": "un estado (la pantalla se cayó), no la cabecera de una pantalla" },
+      { "archivo": "components/SinBase.tsx", "motivo": "un estado (la base no responde y se espera), no la cabecera de una pantalla" },
       { "archivo": "app/(app)/global/elige-sede/page.tsx", "motivo": "un estado (en CAYLA Global esta pantalla pide una sede), no la cabecera de una pantalla" },
       { "archivo": "components/plan-compra/ExportarPlan.tsx", "motivo": "la hoja del plan de campaña que se imprime o se guarda: es papel, no una pantalla" },
       { "archivo": "components/clientas/piezas-club-publico.tsx", "motivo": "la página pública del club, para el cliente fuera del ERP, con su propio diseño" },

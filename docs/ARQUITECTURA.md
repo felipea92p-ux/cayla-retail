@@ -826,6 +826,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (lee `productos` + `producto_fotos` del tejido al abrir; sube la foto con `lib/muestra-atributo.ts` al bucket
   `retail-colores-muestras` y la guarda con PATCH `/api/productos/{tejidos,patrones}` → `imagenMuestraUrl`, validada por
   `lib/muestra-atributo-reglas.ts:leerUrlMuestra`). ADR-0256.
+- `/productos/atributos?tipo=etiquetas` → las tarjetas de Rotación (Nuevo, Top ventas, Últimas unidades, Para liquidar) dicen
+  cuántas unidades quedan y cuántas se vendieron en 30 días en todas las tiendas (`lib/etiqueta-rotacion-datos.ts`: `getPrendasPorSede` →
+  RPC `fn_analisis_sede` por tienda, y `leerVendidoSinRegistrar` para la nota de lo vendido sin registrar, solo al líder; lógica pura en
+  `lib/etiqueta-rotacion.ts`). Solo para quien edita etiquetas y puede analizar; sin respuesta en 4 s, las tarjetas salen sin esa línea.
+  ADR-0441, actividad 6, sin migración.
 - Las seis pestañas de `/productos/atributos` (`AtributosHub`) se arman con las mismas piezas de
   `components/atributos/kit.tsx` (barra de píldoras + buscador + «+ Agregar», título de grupo, tarjeta, estados vacíos):
   cada `*Lista.tsx` conserva su lógica y solo comparte cómo se ve. Los filtros son puros: `lib/atributos-buscar.ts`
@@ -1732,7 +1737,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   que no bloquea) e Inicio (`lib/inicio.ts`). El cierre anota `cajas.fondo_requerido` con un disparador, sin tocar `cerrar_caja`.
   Desde el ajuste al spike (2026-09-24) es UNA pantalla con pestañas por URL (`?tab=tiendas|fijos`): «Tiendas y caja» guarda
   cada casilla al salir de ella, y «Gastos fijos» (`TablaGastosFijos` en `GastosFijosYActivos.tsx`, `fn_gastos_fijos_mes` +
-  `guardar_gasto_fijo` / `archivar_gasto_fijo`) es donde se editan los fijos. Caja suma «Al cerrar» con el `esperado` de
+  `guardar_gasto_fijo` / `archivar_gasto_fijo`) es donde se editan los fijos; cada fijo trae su ficha de pago (ADR-0452:
+  `components/gasto-fijo/*`, `lib/gasto-fijo-ficha-reglas.ts`, `fn_gasto_fijo_ficha` / `fn_gastos_fijos_fichas`; la cuenta es solo de líder y admin). Caja suma «Al cerrar» con el `esperado` de
   `getTableroCaja` (`lib/caja.ts` → `fn_resumen_caja`, solo a quien puede gestionar la caja; desde ADR-0226 no llama aparte
   a `fn_esperado_caja`). Desde ADR-0226 Caja es pantalla de trabajo: `lib/caja-tablero.ts` (apartados, gastos del turno,
   posventa y pendientes, solo lectura) + `components/CajaTablero.tsx` + `lib/caja-tablero-reglas.ts`. Las pantallas de Finanzas se arman con
@@ -1956,6 +1962,14 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   con `requirePersonaActualV2`, la misma regla del Inicio). La llama el login antes de navegar, para ir directo sin pintar `/` (Felipe 2026-10-13,
   «se ve el inicio»). Sin sesión o sin acceso responde con la redirección de `requirePersonaActualV2`; el login no la sigue y, como con cualquier
   fallo o una espera de más de 5 s, entra por `/`, el camino de siempre. `Cache-Control: private, no-store`. ADR-0136 act. 2026-10-13 (e).
+- `/api/salud` → `GET`, **pública** (`lib/rutas-publicas.ts`, exacta): `{ ok: true }` (200) o `{ ok: false, motivo }` (503), ¿responde la base AHORA? Llama a
+  `retail.fn_salud()` (`select true`, migración 20261017225000) por la llave pública con tope de 4 s y la respuesta guardada 10 s por instancia
+  (`lib/salud-reglas.ts`); el motivo es de una lista fija, nunca un mensaje de la base. La repite `/sin-base` y el vigía de GitHub. La tienda tiene la suya
+  (`apps/tienda/app/api/salud`, `select 1` por `base()`). ADR-0450.
+- `/sin-base?desde=<ruta>` → pantalla pública (`app/sin-base/page.tsx`, `components/SinBase.tsx`): «No logramos conectar con el sistema. Tu sesión sigue abierta».
+  A ella va, en vez de al login, quien tiene la sesión abierta cuando la base no responde: `requirePersonaActualV2` (`esFalloDeLaBase`, `lib/base-caida-reglas.ts`) y
+  `proxy.ts` (`noSePudoComprobar`: Auth sin responder al renovar la sesión; una API recibe 503, una acción de servidor sigue de largo). El proxy anota la pantalla
+  pedida en la cabecera `x-cayla-ruta` para volver a ella cuando `/api/salud` responde. ADR-0450.
 - `/api/version` → `GET`, con sesión: `{ id }`, la versión (el commit de Vercel) con la que se armó la compilación que atiende, grabada en
   `NEXT_PUBLIC_BUILD_ID` por `next.config.ts` (fuera de Vercel, «desarrollo»). La pregunta `<VersionNueva />` (`components/VersionNueva.tsx`,
   montado una vez en `app/(app)/layout.tsx`, reglas en `lib/version-nueva-reglas.ts`) cada 5 min con la pestaña a la vista: si la de producción es
@@ -2058,7 +2072,10 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   y, desde 960 px, «Agregar» con la talla (`components/RapidoDeTarjeta.tsx`: pide las tallas al quedarse el mouse, `GET /api/tallas` →
   `lib/tarjeta-servidor.ts` `leerTallasParaAgregar` → la ficha de ese modelo; una ruta y no una acción, desde el 2026-10-17: las acciones van
   de a una y las de varias tarjetas, y «Agregar a la bolsa», se hacían esperar; el catálogo no trae tallas y no cambia de forma). Al tocar una tarjeta, `components/PrendaTocada.tsx`
-  guarda lo que ya mostraba (sus `data-*` y su foto, `lib/prenda-tocada.ts`): el esqueleto de la ficha y la ficha lo usan mientras llega. Lo guardado lo lee el marco del catálogo
+  guarda lo que ya mostraba (sus `data-*` y su foto, `lib/prenda-tocada.ts`): el esqueleto de la ficha y la ficha lo usan mientras llega.
+  Los esqueletos (`components/FormaDelEsqueleto.tsx`, una forma por página, `lib/esqueleto.ts`) y el fundido entre vistas
+  (`components/Vistas.tsx`, `app/estilos/vistas.css`) están en ADR-0445; de una lista a otra (misma página, otra dirección) el esqueleto lo
+  pone la página de antes (`components/EnCamino.tsx`). Lo guardado lo lee el marco del catálogo
   (`app/(catalogo)/layout.tsx`, una vez por petición) y lo reparte a toda tarjeta (`components/club/Guardados.tsx` `ProveedorGuardados`):
   los corazones del mismo modelo cambian juntos. «Tus favoritos» es `/catalogo?lista=favoritos` (`lib/catalogo.ts` `deFavoritos`; no se
   filtra por la tienda elegida); «Mi cuenta» usa la misma tarjeta, con `guardado` dicho por la página.
@@ -2205,8 +2222,9 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   al probador con este look, `hrefConVolver`) y, con cuenta, «Pruébatelo en el probador». Su vista previa para WhatsApp (`og:image`) es
   `app/tu-look/vista/route.tsx` (1200×630, `next/og`, pública y guardada un día en la red; una dirección escrita de otra forma va a la
   del probador, 308). Las dos imágenes salen de `lib/imagenes-del-look.tsx` (plantillas de satori), `lib/compartir-look.ts` (pura, con
-  su prueba: el enlace, dónde va cada tarjeta, el título) y `lib/fuentes-og.ts` (EB Garamond y DM Sans en TTF desde Google Fonts, en
-  memoria; si Google no contesta, la letra de `next/og`). Ninguna imagen pública lleva un texto que venga en la dirección.
+  su prueba: el enlace, dónde va cada tarjeta, el título) y `lib/fuentes-og.ts` (EB Garamond y Heebo en TTF desde Google Fonts, en
+  memoria; si Google no contesta, la letra de `next/og`). El logo y el colibrí salen de `lib/marca.ts` (ADR-0446), sin pedir nada a la
+  red. Ninguna imagen pública lleva un texto que venga en la dirección.
 - **Un solo precio y una sola tienda elegida** (integración de la tienda, 2026-10-15). El precio de una prenda (talla y color) en la web
   lo dice `fn_tienda_precio_talla(prendas, tienda)` (`20261015012000`): el de la tienda elegida (`fn_precio_en_sede`) o, con «Todas», el
   mayor entre las de la web (sin ninguna, el de la grilla), con la campaña de la caja encima (la de mayor %, `fn_descuento_campana`,
@@ -2229,6 +2247,12 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   piezas a propósito rompe a todas juntas). Al CONFIRMAR, el motor del pedido web (`fn_pedido_web_reservar`, `20261014235000`) reserva
   fila por fila del piso, el almacén o lo sin lugar de cualquier tienda abierta: coincide con la ficha salvo en una sububicación de una
   tienda de otro tipo (un «rack»), que la ficha cuenta y el motor no.
+- **La medición de la tienda** (ADR-0447): `components/Medicion.tsx` (en `app/layout.tsx`) sortea 1 de cada 2 visitas
+  (`lib/medicion-muestra.ts`) y solo en esas carga aparte `components/MedicionActiva.tsx` (`useReportWebVitals` y el toque → esqueleto →
+  página, que reconoce el esqueleto por `data-esqueleto` en `EsqueletoDePagina`). Un envío al ocultarse la pestaña a `POST /api/medicion`
+  (`app/api/medicion/route.ts`), que valida con `lib/medicion.ts` (`leerEnvio`, páginas de `RUTAS_MEDIDAS`) y escribe una línea
+  `medicion_tienda {…}` en el registro de Vercel; sin base ni sesión (el proxy no la mira). Se lee con `pnpm --filter tienda medicion:leer`
+  (`scripts/medicion-leer.mjs` + `scripts/medicion-resumen.mjs`), que guarda lo bajado en `apps/tienda/.medicion/` (fuera de git).
 
 ---
 
@@ -2332,6 +2356,7 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
 | `abrir_caja` / `cerrar_caja` | Apertura comparada con el fondo del último cierre (motivo si no coincide) / cierre con un traslado opcional a `caja_traslados` y `cajas.monto_fondo` (ADR-0186) |
 | `fn_esperado_caja` / `revisar_apertura_caja` | Esperado del cuadre, mismo cálculo que `cerrar_caja` (`fn_calcular_esperado_caja`) / el líder da por revisada una apertura con diferencia (ADR-0186) |
 | `fn_resumen_caja` / `fn_sello_caja` | Tablero de Caja en una fila (montos de `fn_calcular_esperado_caja` + reparto por método y serie por hora de Lima; esperado solo con `fn_puede_gestionar_caja`) / sello «ventas:anuladas:movimientos:devoluciones:cambios» que sondea la Caja en vivo (ADR-0191) |
+| `gastos_fijos_ficha` + `gastos_fijos_ficha_cambios` / `guardar_gasto_fijo(…, p_ficha jsonb)` / `fn_gasto_fijo_ficha` / `fn_gastos_fijos_fichas` / `fn_gasto_fijo_ficha_cambios` (2026-10-18, ADR-0452; **sin pegar en producción**, `20261018003000`) | Configuración ▸ Gastos fijos y la hoja de Registrar gasto de un fijo. Una ficha 1:1 por fijo, todo opcional: a quién y cómo se paga, código del recibo, contrato, notas; banco/cuenta/CCI/Yape/titular solo para `fn_es_lider()`; cada cambio de a quién y cómo se paga queda en el historial (disparador). `p_ficha` manda solo las llaves que cambiaron. `20261018004000` siembra 9 proveedores de servicios con rubro «Gastos» |
 | `registrar_activo` / `anular_activo` / `dar_de_baja_activo` / `fn_activos_lista` / `fn_depreciacion_mes` / `fn_tipos_activo` / `guardar_gasto_fijo` / `archivar_gasto_fijo` / `fn_gastos_fijos_mes` / `fn_gastos_fijos_sugeridos` (2026-09-24, ADR-0195 F2b; **sin pegar en producción**) | Finanzas ▸ Gastos, pestañas Activos fijos y Fijos del mes. `activos_fijos` (costo sin IGV, línea recta desde el mes siguiente, baja o anulación; con comprobante, `compras.naturaleza = 'activo'`) y `gastos_fijos` (día y monto de siempre; `gastos.gasto_fijo_id`, uno por mes). Gasto y activo pagan por `fn_comprobante_y_pago`; un egreso de caja respalda una sola cosa (`fn_egreso_ya_usado`). `registrar_gasto` gana `p_gasto_fijo_id` |
 | `cargar_activo_inicial` + `fn_activos_carga_inicial_validar` (disparador) + `fn_activos_lista` con la columna `carga_inicial` (2026-10-04, ADR-0335; **en producción**) | Finanzas ▸ Gastos ▸ Activos fijos: lo que CAYLA ya tenía antes del sistema (marca «Ya lo teníamos»). Solo del líder; sin comprobante, medio de pago, egreso ni cuenta, así que no mueve plata (0 líneas en `fn_dinero_libro`); costo histórico y fecha real, se deprecia con `fn_meses_depreciados` y la propuesta de saldos de arranque lo toma (333 y 391). La fecha tiene que ser anterior al arranque del Balance. Corregir = `anular_activo` y volver a cargar con otro token. Con «Todas las tiendas», la pestaña muestra una tarjeta por sede y el total (`ResumenActivosPorSede` ← `resumenActivosPorSede`, en `lib/gastos-reglas.ts`). Prueba: `pnpm pruebas:activos-carga-inicial`. |
 | `registrar_gasto` / `anular_gasto` / `marcar_egreso_no_gasto` / `revertir_egreso_no_gasto` / `registrar_proveedor_de_gasto` + lecturas `fn_gastos_panel` / `fn_gastos_lista` / `fn_egresos_sin_clasificar` / `fn_egresos_no_gasto_lista` / `fn_categorias_gasto` / `fn_gastos_ubicaciones` (2026-09-24, ADR-0195 F2a; **sin pegar en producción**) | Finanzas ▸ Gastos (`/finanzas/gastos`). `gastos` es la única fuente de los gastos: sin comprobante dice cómo se pagó (efectivo ⇔ su egreso de caja); con comprobante cuelga de `compras` (`naturaleza = 'gasto'`, misma cabecera que la mercadería: un solo IGV, un solo candado contra la factura doble, y la deuda en Por pagar). `egresos_no_gasto` marca depósitos, retiros y ajustes. Líder: todas y «la empresa»; con el módulo `gastos`: su tienda. `compra_parte_por_tienda` trata la factura de un gasto como entera de su tienda; `listar_compras(p_naturaleza)` separa la lista de mercadería de Por pagar |

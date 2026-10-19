@@ -6,6 +6,7 @@ import { CollageDePrendas } from "./CollageDePrendas";
 import { CuentaRegresiva } from "./CuentaRegresiva";
 import { Icono } from "./Icono";
 import { Isotipo } from "./Isotipo";
+import { TextoConMarca } from "./Marca";
 import "@/app/estilos/collage.css";
 import "@/app/estilos/inicio.css";
 
@@ -139,11 +140,15 @@ function TituloHeroe({ texto }: { texto: string }) {
   const [linea, cursiva] = partirTitulo(texto);
   return (
     <h1 className="t-hero-tit">
-      <span>{linea}</span>
+      <span>
+        <TextoConMarca texto={linea} />
+      </span>
       {cursiva && (
         <>
           {" "}
-          <em>{cursiva}</em>
+          <em>
+            <TextoConMarca texto={cursiva} />
+          </em>
         </>
       )}
     </h1>

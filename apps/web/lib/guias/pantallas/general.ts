@@ -1078,7 +1078,7 @@ export const GUIA_CONFIGURACION: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "config.tab-fijos" }],
       titulo: "Gastos fijos",
-      texto: "Lo que se paga todos los meses: alquiler, luz, contador. «+ Agregar fijo» suma uno; cada mes aparecen en Finanzas ▸ Gastos para registrarlos con lo que llegó. Si uno deja de pagarse, se archiva.",
+      texto: "Lo que se paga todos los meses: alquiler, luz, contador. «+ Agregar fijo» suma uno y guarda a quién y cómo se le paga (propietario, cuenta, código del recibo, notas) para que otra persona pueda pagarlo. Si uno deja de pagarse, se archiva.",
     },
     {
       id: "presupuesto",

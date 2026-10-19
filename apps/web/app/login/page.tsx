@@ -12,6 +12,7 @@ import { cuentaParaSaludar } from "@/lib/login-saludo";
 import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { esFalloDeAuth } from "@/lib/base-caida-reglas";
 import { Boton } from "@/components/ui/campos";
 
 const MENSAJES_ERROR: Record<string, string> = {
@@ -104,6 +105,12 @@ function LoginForm() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setLoading(false);
+      // Si el servicio no respondió (la base caída, un corte), la contraseña no tiene la culpa: decir «incorrectos» hace que cada quien la
+      // reescriba, la «recupere» o llame a un líder por un problema que no es suyo (ADR-0450).
+      if (esFalloDeAuth(error)) {
+        avisar.error("No logramos conectar con el sistema. No es tu contraseña: espera un momento y vuelve a intentar.");
+        return;
+      }
       avisar.error("Correo o contraseña incorrectos.", { enfocar: "login-email" });
       return;
     }

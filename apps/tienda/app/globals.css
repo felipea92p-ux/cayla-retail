@@ -28,10 +28,9 @@
   --tinta-60: color-mix(in srgb, var(--tinta) 64%, transparent);
   --tinta-40: color-mix(in srgb, var(--tinta) 42%, transparent);
   /* Las letras: Archivo para todo; ensanchada y en mayúsculas para los títulos (`--ancho`); Newsreader en cursiva para el nombre de
-     cada prenda y las cifras grandes; EB Garamond solo para la palabra CAYLA del logo. `--serif` queda como el alias de Newsreader. */
+     cada prenda y las cifras grandes; la palabra CAYLA es el dibujo del logo (`--t-logo`). `--serif` queda como el alias de Newsreader. */
   --sans: var(--font-archivo), "Archivo", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --nombre: var(--font-newsreader), "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
-  --marca: var(--font-eb-garamond), "EB Garamond", ui-serif, Georgia, serif;
   --serif: var(--nombre);
   --ancho: "wdth" 125;
   --ease: cubic-bezier(.2, .7, .2, 1);
@@ -64,6 +63,7 @@
   --t-hero-2: #2a2927;
   --t-hero-tinta: #ecebe7;    /* texto sobre lo oscuro: igual en los dos temas */
   --t-hero-acento: #e3a9b3;   /* la cochinilla clara, para leerse sobre grafito */
+  --t-logo: #d13730;          /* el rojo del logo oficial (su dibujo): igual en los dos temas; el texto rojo sigue en --rojo */
   --t-hero-vidrio: rgba(236, 235, 231, .08);
   --t-hero-filo: rgba(236, 235, 231, .20);
   --t-oscuro: #1c1c1a;        /* la franja de arriba */
@@ -87,8 +87,10 @@
 .t-cab { flex: none; position: relative; z-index: 15; background: color-mix(in srgb, var(--crema) 92%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--sand); }
 .t-cab-fila { position: relative; height: 60px; display: flex; align-items: center; gap: 2px; padding-inline: clamp(8px, 3cqi, 64px); }
 .t-logo { display: flex; align-items: center; gap: 8px; border: 0; background: none; padding: 4px 6px; color: var(--tinta); }
-.t-logo img { width: 27px; height: auto; }
-.t-logo span { font-family: var(--marca); font-size: 21px; font-weight: 500; letter-spacing: .22em; margin-right: -.22em; }
+/* El logo oficial (`components/Marca.tsx`): cada lugar le da su alto o su ancho y su color; la otra medida sigue sola. */
+/* Sin `max-width` en porcentaje: con él, un SVG dentro de un enlace que se ajusta a su contenido cuenta como «comprimible» y queda en 0. */
+.t-marca { display: block; width: auto; height: auto; flex: none; }
+.t-logo .t-marca-logo { height: 26px; color: var(--t-logo); }
 .t-esp { flex: 1; }
 .t-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 52px; padding: 0 28px; border: 1px solid var(--tinta); border-radius: 0; background: var(--tinta); color: var(--crema); font-size: 14px; font-weight: 500; letter-spacing: .02em; transition: background-color .4s var(--ease), color .4s var(--ease), border-color .4s, opacity .15s; text-align: center; }
 .t-btn:active:not(:disabled) { opacity: .82; }
@@ -166,8 +168,8 @@
 .t-tarjeta-club { container-type: inline-size; position: relative; overflow: hidden; aspect-ratio: 1.586; max-width: 440px; width: 100%; justify-self: center; border-radius: 18px; padding: clamp(14px, 5cqi, 22px) clamp(14px, 5cqi, 22px) clamp(12px, 4cqi, 18px); color: #f5f0e8; background: radial-gradient(120% 120% at 100% 0%, #5a2a20 0%, #1e1b19 52%, #111010 100%); box-shadow: 0 34px 60px -30px rgba(0, 0, 0, .65); display: flex; flex-direction: column; justify-content: space-between; transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .25s var(--ease); }
 .t-tarjeta-club::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 38%, rgba(255, 255, 255, .16) 50%, transparent 62%); background-size: 260% 100%; background-position: 120% 0; animation: brillo 2.6s var(--ease) 1.2s 1 both; }
 .t-tarjeta-club .fila { display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 1; }
-.t-tarjeta-club img { width: clamp(26px, 8.6cqi, 38px); filter: brightness(0) invert(1); opacity: .9; }
-.t-tarjeta-club .marca { font-family: var(--marca); font-size: clamp(15px, 5cqi, 22px); letter-spacing: .24em; }
+.t-tarjeta-club .t-marca-colibri { width: clamp(26px, 8.6cqi, 38px); opacity: .9; }
+.t-tarjeta-club .marca { height: clamp(10px, 3.4cqi, 15px); }
 .t-tarjeta-club .nombre { font-family: var(--serif); font-size: clamp(16px, 5.5cqi, 24px); position: relative; z-index: 1; }
 .t-tarjeta-club small { font-size: clamp(8px, 2.3cqi, 10px); letter-spacing: .18em; text-transform: uppercase; opacity: .7; }
 .t-tarjeta-club .chip-oro { width: clamp(28px, 9cqi, 40px); height: clamp(21px, 6.8cqi, 30px); border-radius: 3px; background: color-mix(in srgb, var(--t-hero-tinta) 24%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--t-hero-tinta) 30%, transparent); }
@@ -179,14 +181,12 @@
 .t-pie li a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .t-pie-marca { display: flex; flex-direction: column; gap: 16px; }
 .t-pie-marca .t-logo { padding: 0; color: var(--tinta); }
-.t-pie-marca .t-logo img { filter: none; }
 .t-pie-marca p { margin: 0; color: var(--taupe); font-size: 14px; max-width: 30ch; }
 .t-pie-legal { margin: 40px 0 0; padding-top: 16px; border-top: 1px solid var(--sand); font-size: 12px; color: var(--taupe); display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between; }
 .t-solo-grande { display: none; }
 @container tienda (min-width: 960px) {
   .t-cab-fila { height: 72px; gap: 4px; }
-  .t-logo img { width: 30px; }
-  .t-logo span { font-size: 22px; }
+  .t-logo .t-marca-logo { height: 32px; }
   .t-solo-movil { display: none !important; }
   .t-solo-grande { display: flex; }
   .t-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 40%); align-items: end; gap: clamp(24px, 5cqi, 96px); padding: clamp(40px, 7cqi, 96px) clamp(16px, 4cqi, 64px) 0; }
@@ -245,8 +245,9 @@ button, input, textarea { font: inherit; color: inherit; }
   .t-revela { animation: none !important; }
   .t-club .t-tarjeta-club::after { animation: none !important; }
 }
-/* El colibrí es una imagen de Next con su alto escrito: el alto sigue al ancho que pone cada lugar. */
-.t-logo img, .t-colibri, .t-tarjeta-club img { height: auto; }
+/* La palabra CAYLA dentro del título de una campaña («Aniversario CAYLA»): el dibujo del logo, del alto de las mayúsculas de la letra
+   del título y sobre su misma línea, en el color del pedazo donde cae (el rosado de la cursiva). */
+.t-palabra-en-titulo { display: inline-block; height: .68em; vertical-align: baseline; }
 /* El vacío de la maqueta: una página que no está (y, más adelante, la bolsa o los pedidos sin nada). */
 .t-vacio { padding: 50px 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
 .t-vacio .ic { width: 40px; height: 40px; color: var(--taupe); }

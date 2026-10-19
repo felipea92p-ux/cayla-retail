@@ -44,7 +44,8 @@ export function EsqueletoDePagina({ forma, campana = null }: { forma?: FormaEsqu
           </Link>
         }
       />
-      <main className="t-pagina t-pagina-catalogo" aria-busy="true">
+      {/* `data-esqueleto`: mientras está en la pantalla, la página de destino no llegó (lo mira la medición, ADR-0447). */}
+      <main className="t-pagina t-pagina-catalogo" aria-busy="true" data-esqueleto="">
         <FormaDelEsqueleto forma={forma} heroe={heroe} />
       </main>
     </>

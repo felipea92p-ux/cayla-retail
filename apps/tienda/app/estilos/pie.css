@@ -39,7 +39,7 @@
 .t-pie .ay-pie-tema:hover > .ic { transform: translateX(4px); color: var(--tinta); }
 
 /* ---- La marca, un poco más grande que en la cabecera: es el cierre de la página ---- */
-.t-pie .t-pie-marca .t-logo span { font-size: 25px; }
+.t-pie .t-pie-marca .t-logo .t-marca-logo { height: 30px; }
 .t-pie .t-pie-marca p { font-size: 13.5px; line-height: 1.5; }
 
 /* ---- En el celular y la tablet: la marca arriba y las columnas de dos en dos; cada enlace, del alto de un dedo ---- */
@@ -71,8 +71,7 @@
   .t-pie .ay-pie-tema-tx b { font-size: 15px; }
   .t-pie .ay-pie-tema-tx small { font-size: 13px; }
   .t-pie .t-pie-in { grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)); gap: 26px; }
-  .t-pie .t-pie-marca .t-logo span { font-size: 30px; }
-  .t-pie .t-pie-marca .t-logo img { width: 34px; }
+  .t-pie .t-pie-marca .t-logo .t-marca-logo { height: 36px; }
 }
 /* Con el mouse, en la computadora, los enlaces vuelven al alto de la maqueta: ahí nadie los toca con el dedo (una tablet ancha, sí). */
 @media (hover: hover) and (pointer: fine) {
