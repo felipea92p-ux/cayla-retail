@@ -237,21 +237,17 @@ a.t-campana:hover { border-color: var(--tinta); }
   .t-card-nom { font-size: 21px; }
   .t-campanas { grid-auto-columns: calc((100% - 30px) / 3.4); }
 }
-/* En el celular (A · Muro, Felipe 2026-10-19): las categorías se ven completas y se deslizan con todo el ancho; la lupa y el orden son solo
-   su ícono (36 px, 44 de toque), y el orden puesto se lee en el conteo de abajo. */
-.t-conteo-orden { display: inline; }
+/* En el celular (A · Muro, Felipe 2026-10-19): la lupa es solo su ícono y el orden, su ícono (⇅) con el nombre del que está puesto («Destacado»,
+   «Menor precio»), sin el «Orden:» de la computadora: las categorías se ven y se deslizan con casi todo el ancho. */
 @container tienda (max-width: 959px) {
-  .t-filtros { gap: 16px 6px; }
-  .t-orden a { width: 36px; height: 36px; padding: 0; border: 0; justify-content: center; }
-  .t-orden a:hover { background: var(--hueso); }
-  .t-orden .ic { width: 18px; height: 18px; }
-  .t-orden-nombre { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .t-filtros { gap: 16px 10px; }
+  .t-orden a { gap: 4px; font-size: 10.5px; letter-spacing: .06em; }
+  .t-orden .ic { width: 16px; height: 16px; }
 }
 @container tienda (min-width: 960px) {
   .t-ubic { justify-content: center; }
   .t-filtro-txt { display: inline; }
   .t-orden-rot { display: inline; }
-  .t-conteo-orden { display: none; }
   .t-pildoras { flex-wrap: wrap; overflow: visible; }
   /* Aquí las píldoras bajan de fila en vez de deslizarse: sin borde que desvanecer (la máscara recortaría el foco). */
   .t-filtros .t-pildoras { -webkit-mask-image: none; mask-image: none; animation: none; }

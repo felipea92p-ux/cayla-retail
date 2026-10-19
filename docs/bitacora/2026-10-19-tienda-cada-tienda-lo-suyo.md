@@ -5,3 +5,4 @@ Qué se rompería sin esto: la web diría «Agotada» y la base seguiría acepta
 Producción: `20261019223000_tienda_separar_solo_lo_de_la_tienda.sql` pegada el 2026-10-19 con el OK de Felipe (una parte, idempotente, con guarda de md5; verificada por md5). Falta fusionar el PR para publicar la web.
 Además: los íconos de «Ayuda» del pie (Cómo separar, Cambios y devoluciones, Nuestras tiendas) pasan del rosa pálido al rojo del logo (`--t-logo`), de 20 px y con trazo 2: no se notaban sobre el crema.
 Además: en la barra de filtros del catálogo, «Buscar» es solo la lupa y, en el celular, el orden es solo su ícono (el orden puesto se lee en el conteo de abajo): las categorías ganan ancho y se leen mejor.
+Además: el botón del orden usa flechas verticales (⇅) y, en el celular, dice el orden puesto («Destacado», «Menor precio») sin el «Orden:» de la computadora.
