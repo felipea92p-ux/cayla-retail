@@ -1,6 +1,6 @@
 # ADR-0457 — Un producto nuevo nace con «Se ve en la web» encendido
 
-- **Fecha:** 2026-10-19 · **Estado:** propuesto (migración y pruebas en la rama; **la migración NO está en producción**: va con el OK de Felipe)
+- **Fecha:** 2026-10-19 · **Estado:** propuesto (migración y pruebas en la rama; **la migración está en producción desde el 2026-10-19 con el OK de Felipe**, ensayada en una transacción revertida y verificada por md5 del cuerpo)
 - **Relacionados:** ADR-0408 (la Vitrina web y `vitrina_productos`), ADR-0371 (las prendas que se proponen nacen «pendiente» y un líder las aprueba), ADR-0377
   (las familias fuera de los motores no van en la web), CLAUDE.md principios 2 y 4.
 
