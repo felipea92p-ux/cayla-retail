@@ -249,6 +249,8 @@ svg.ic{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .par b{display:block;font-size:14px;font-weight:600}.par small{color:var(--t65);font-size:12.5px;line-height:1.35;display:block}
 .caj{display:flex;align-items:center;gap:6px;height:40px;padding:0 10px;border:1px solid var(--sand);border-radius:10px;background:var(--hueso)}.caj:focus-within{background:var(--papel);border-color:var(--tinta)}
 .caj input{width:100%;min-width:0;border:0;background:transparent;outline:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}.caj span{font-size:12px;color:var(--t65);white-space:nowrap}
+.menuc{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 4px}.menuc span{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);font-size:13px;color:var(--t80)}.menuc span.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta);font-weight:600}.menuc i{font-style:normal;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--crema);color:var(--tinta)}
+.caj.fijo{justify-content:flex-end;background:var(--hueso);opacity:.8}.caj.fijo b{font-variant-numeric:tabular-nums}
 .ejemplo{margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--hueso);font-size:13.5px}.ejemplo b{font-weight:700}
 .sem{display:flex;height:12px;border-radius:999px;overflow:hidden;background:var(--hueso);margin-top:10px}.sem i{display:block}
 /* ====================================================================  RESPONSIVO (el marco es el contenedor)  */
@@ -316,7 +318,7 @@ const PRENDAS = {
 };
 const INICIAL = () => ({
   vista:'tienda', dev:'escritorio', t:'perfil', hoja:null, paso:0,
-  params:{ptsPorSol:1, solesPor100:5, minCanje:200, minCompraX:3, vigencia:7, regaloCumple:100},
+  params:{ptsPorSol:1, solesPor100:5, minCanje:200, minCompraX:3, vigencia:7, regaloCumple:100, topeCosto:2},
   saldo:1240, movFiltro:'todos', movTodos:false, cumpleRecibido:false, canje:600, ultimo:null, copiado:false,
   cupones:[
     {codigo:'CAY-3M7P-A4QX',valor:10,pts:200,min:30,gen:'28 set',vence:'8 oct',estado:'vencido'},
@@ -344,7 +346,8 @@ const maxCanje = () => Math.floor(S.saldo/100)*100;
 const ic = (n,c='') => `<svg class="ic ${c}"><use href="#i-${n}"/></svg>`;
 const sumaCaja = () => S.caja.items.reduce((a,k)=>a+PRENDAS[k].p,0);
 const MESES=['ene','feb','mar','abr','may','jun','jul','ago','set','oct','nov','dic'];
-const fechaVence=()=>{const d=new Date(2026,9,19+S.params.vigencia);return d.getDate()+' '+MESES[d.getMonth()]};
+const fechaEn=n=>{const d=new Date(2026,9,19+n);return d.getDate()+' '+MESES[d.getMonth()]};
+const fechaVence=()=>fechaEn(S.params.vigencia);
 /* El código nunca se repite: sale de un alfabeto sin 0/O/1/I y se revisa contra todos los que existen (en la base: índice único + reintento). */
 const ALFA='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function nuevoCodigo(){
@@ -367,7 +370,7 @@ const LEYES = {
  tienda:'<b>Tienda web · Mi perfil.</b> Así lo ve el cliente en la tienda online. Pruébalo: toca «Canjear puntos», copia el código y úsalo en la pestaña Caja, también como «Ana (una amiga)».',
  bolsa:'<b>Tienda web · Bolsa.</b> Al pagar online el cupón también entra: sus cupones activos aparecen listos para usar, o escribe el código.',
  caja:'<b>Caja (ERP).</b> Pantalla de Vender con la ficha del cliente. Dos caminos, un solo mecanismo por debajo (un cupón): «Usar puntos» (el cliente está en la caja) y «Código de cupón» (lo trae de la web).',
- lider:'<b>Líder · Clientes ▸ Beneficios del club.</b> Los números del programa se editan sin deploy, incluido el regalo de cumpleaños. El tablero dice cuánto debes en puntos.'
+ lider:'<b>Líder · Clientes ▸ Beneficios del club (módulo nuevo).</b> Aparece como tercera pantalla de Clientes, junto a Fichas y Avisos, y nace disponible solo para el líder. Los números del programa se editan sin deploy; el tablero dice cuánto debes en puntos.'
 };
 
 /* =========================== barra y pasos =========================== */
@@ -423,7 +426,8 @@ function perfil(){
       <button class="btn" ${S.saldo<S.params.minCanje?'disabled':''} onclick="A.abrir('canje')">${ic('gift')} Canjear puntos</button></div>
       <span class="barra" role="progressbar" aria-valuenow="${resto}" aria-valuemin="0" aria-valuemax="100" aria-label="Para tus siguientes ${S2(S.params.solesPor100)}"><i style="width:${resto}%"></i></span>
       <div class="nota" style="background:none;padding:0;margin-top:8px;color:var(--t65)">${resto} de 100 para sumar otros ${S2(S.params.solesPor100)}</div>
-      <div class="reglas"><span>${ic('star','s')}<b>${S.params.ptsPorSol} punto</b> por cada S/ 1 que pagas</span><span><b>100 puntos</b> = ${S2(S.params.solesPor100)}</span><span>No vencen</span></div></div>
+      <div class="reglas"><span>${ic('star','s')}<b>${S.params.ptsPorSol} punto</b> por cada S/ 1 que pagas</span><span><b>100 puntos</b> = ${S2(S.params.solesPor100)}</span><span>No vencen mientras compres</span></div>
+      <p style="font-size:12.5px;color:var(--t65);margin-top:10px">${ic('info','s')} Si pasan <b>3 años sin que compres</b>, tu ficha y tus puntos se eliminan. Te avisamos 30 días antes.</p></div>
     <div class="benef ${S.cumpleRecibido?'':'disp'}">${ic('cake')}<span><b>${S.cumpleRecibido?'Regalo de cumpleaños':'Tu mes de cumpleaños: compra y gana '+S.params.regaloCumple+' puntos adicionales'}</b><small>${S.cumpleRecibido?`Ya recibiste tus ${S.params.regaloCumple} puntos este año.`:`Haz tu primera compra de octubre, en tienda o en la web, y se suman solos a los puntos de tu compra. Una vez al año.`}</small></span>${S.cumpleRecibido?'<span class="chip nodot">Recibido</span>':'<span class="chip v">Disponible</span>'}</div>
    </div></div></section>
   <section class="w-sec"><div class="w-sec-t"><h2>Tus cupones</h2><span class="c">${activos.length}</span></div>
@@ -568,8 +572,9 @@ function hojaCobrado(){
 function lider(){
   const P=S.params, ret=(P.solesPor100/100)/P.ptsPorSol*100;
   const circ=184300, deuda=Math.floor(circ/100)*P.solesPor100;
-  return `<div class="lid"><div style="font-size:11px;letter-spacing:.13em;color:var(--taupe);font-weight:600">CLIENTES ▸ BENEFICIOS DEL CLUB</div><h1>Puntos del Club</h1>
-  <p class="t-sub" style="color:var(--t65)">Los números del programa. Cambian en todas las pantallas sin pedir un deploy (pruébalo: cambia «100 puntos valen» y vuelve a la tienda).</p>
+  return `<div class="lid"><div style="font-size:11px;letter-spacing:.13em;color:var(--taupe);font-weight:600">CLIENTES ▸ BENEFICIOS DEL CLUB</div><h1>Beneficios del club</h1>
+  <div class="menuc"><span>Fichas</span><span>Avisos</span><span class="on">Beneficios del club <i>Nuevo</i></span></div>
+  <p class="t-sub" style="color:var(--t65)">Aquí se configura el programa de puntos. Los números cambian en todas las pantallas sin pedir un deploy (pruébalo: cambia «100 puntos valen» y vuelve a la tienda). Reemplaza la hoja «Beneficios del club» que hoy vive dentro de Avisos.</p>
   <div class="cifras"><div class="cifra"><small>Puntos en circulación</small><b>${fmt(circ)}</b><span>de 1,412 clientes</span></div>
    <div class="cifra"><small>Lo que debes en puntos</small><b>${S2(deuda)}</b><span>si todos los canjearan hoy</span></div>
    <div class="cifra"><small>Canjeado este mes</small><b>S/ 1,340</b><span>en 61 cupones</span></div>
@@ -580,11 +585,16 @@ function lider(){
    ${par('Canje mínimo','Menos que esto no se puede canjear.','minCanje','pts')}
    ${par('Compra mínima del cupón','Veces el valor del cupón. Evita que cubra la compra entera.','minCompraX','×')}
    ${par('Vigencia del cupón','Si vence, los puntos vuelven al cliente.','vigencia','días')}
-   ${par('Regalo de cumpleaños','Puntos que recibe una vez al año, con su primera compra de su mes.','regaloCumple','pts')}</div>
+   ${par('Regalo de cumpleaños','Puntos que recibe una vez al año, con su primera compra de su mes.','regaloCumple','pts')}
+   ${par('Tope de costo del Club','Lo máximo que quieres devolver en puntos, como % de lo que compra el cliente.','topeCosto','%')}
+   <div class="par"><span><b>Años sin compras para eliminar la ficha</b><small>Fijo: lo dicen los términos (5.7). Cambiarlo exige cambiar los términos.</small></span><span class="caj fijo"><b>3</b><span>años</span></span></div>
+   <div class="nota am" style="margin-top:12px">${ic('info','s')} <b>Cambiar lo que valen los puntos o el canje toca lo que los clientes ya ganaron.</b> Esos cambios rigen desde dentro de <b>15 días</b> (${fechaEn(15)}) y se avisa a los clientes; los demás rigen desde hoy. Queda registrado quién lo cambió y cuándo.</div></div>
    <div><div class="tarjeta"><h2>Lo que le devuelves al cliente</h2><div style="font-family:'EB Garamond',serif;font-size:56px;line-height:1">${ret.toFixed(1).replace('.0','')} %</div>
     <div style="color:var(--t65);font-size:13px">nominal, sobre lo que paga. El costo real es menor: parte de los puntos nunca se canjea.</div>
     <div class="ejemplo">Una compra de <b>S/ 200</b> gana <b>${200*P.ptsPorSol} puntos</b>. Valen <b>${S2(soles(200*P.ptsPorSol))}</b> de descuento, canjeables desde ${fmt(P.minCanje)} puntos.</div>
-    <div class="nota am" style="margin-top:12px">${ic('info','s')} Tu tope de costo del Club era 2 %. Con estos números, el nominal está ${ret>2?'por encima':'dentro'} de ese tope. Decide con datos reales de canje después del primer mes.</div></div>
+    <div class="nota am" style="margin-top:12px">${ic('info','s')} Tu tope de costo es <b>${P.topeCosto} %</b>. Con estos números, el nominal está ${ret>P.topeCosto?'<b>por encima</b>':'dentro'} de ese tope. Decide con datos reales de canje después del primer mes.</div></div>
+    <div class="tarjeta" style="margin-top:14px"><h2>Cambios recientes <span class="chip nodot">ejemplo inventado</span></h2>
+     <div class="hechos" style="margin-top:8px"><div>Vigencia del cupón 14 → 7 días<span>12 oct · Felipe</span></div><div>Canje mínimo 100 → 200 puntos<span>2 oct · Felipe</span></div><div>Tope de costo 3 → 2 %<span>2 oct · Felipe</span></div></div></div>
     <div class="tarjeta" style="margin-top:14px"><h2>De dónde sale cada punto</h2><div class="sem"><i style="width:88%;background:var(--verde)"></i><i style="width:4%;background:var(--pizarra)"></i><i style="width:8%;background:var(--ambar)"></i></div>
      <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;margin-top:8px;color:var(--t80)"><span>● <span style="color:var(--verde)">Compras</span> 88 %</span><span>● <span style="color:var(--pizarra)">Cumpleaños</span> 4 %</span><span>● <span style="color:var(--ambar)">Devueltos por cupón vencido</span> 8 %</span></div></div></div></div></div>`;
 }
@@ -655,7 +665,7 @@ const A={
    if(m){const e=document.getElementById('bolsaMsg');if(e)e.textContent=m;return}
    S.bolsaCupon={codigo:c.codigo,valor:c.valor};pinta()},
  bolsaQuitar(){S.bolsaCupon=null;pinta()},
- param(k,v){const n=parseFloat(String(v).replace(',','.'));if(isFinite(n)&&n>0){S.params[k]=k==='solesPor100'?n:Math.round(n);S.canje=Math.max(S.params.minCanje,S.canje)}pinta()}
+ param(k,v){const n=parseFloat(String(v).replace(',','.'));if(isFinite(n)&&n>0){S.params[k]=(k==='solesPor100'||k==='topeCosto')?n:Math.round(n);S.canje=Math.max(S.params.minCanje,S.canje)}pinta()}
 };
 
 /* =========================== dibujo =========================== */

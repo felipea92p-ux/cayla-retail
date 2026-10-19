@@ -9,7 +9,8 @@ comparten el mismo estado: si canjeas en la tienda, el código existe en la caja
 
 ## Lo que decidió Felipe (2026-10-19)
 
-- **1 punto por cada S/ 1 pagado; 100 puntos = S/ 5.** Los puntos **no vencen**.
+- **1 punto por cada S/ 1 pagado; 100 puntos = S/ 5.** Los puntos **no vencen mientras el cliente compre**: a los **3 años sin compras se eliminan sus datos y sus puntos**, y los Términos lo dicen.
+- **El retorno es configurable** en un módulo nuevo, **Clientes ▸ Beneficios del club** (solo líder al nacer), que reemplaza la hoja «Beneficios del club» que hoy vive dentro de Avisos. Pantalla «Líder» de la maqueta.
 - El cliente **canjea en la tienda web** y recibe un **cupón con código**. La **caja tiene una opción para escribir el código**.
 
 ## Lo que propone la maqueta (a confirmar)
@@ -37,9 +38,9 @@ comparten el mismo estado: si canjeas en la tienda, el código existe en la caja
    otra vez: ya se descontaron al crear el cupón. La maqueta lo muestra con «Quién compra: Lucía / Ana / Sin identificar».
 2. **Retorno nominal 5 %** (100 puntos = S/ 5 con 1 punto por sol) contra el **tope de 2 %** que tenía el Club. El Líder lo
    ve y lo cambia sin deploy (pantalla «Líder»), pero hay que fijarlo.
-3. **Los puntos no vencen:** la deuda crece sin tope, y la ficha se anonimiza a los 3 años sin compras (G-15) y se llevaría
-   sus puntos. Debe decirse en los términos.
-4. **Contador y abogado:** cómo registrar los puntos pendientes y el texto de los términos.
+3. ~~**Los puntos no vencen**~~ **Decidido por Felipe (2026-10-19):** a los 3 años sin compras se eliminan los datos y los puntos, y consta en los Términos (5.7) y en la Política (2.6). Los puntos pendientes siguen siendo una deuda hasta entonces.
+4. **Abogado y contador: PENDIENTES.** El texto legal está en `docs/club/texto-legal-puntos-v1-borrador.md` y **no puede publicarse hasta que un abogado lo revise**. Cómo se registran los puntos pendientes lo dice el contador.
+5. **Transición:** qué pasa con quien iba avanzando hacia su vale de aniversario.
 
 ## Lo que esta maqueta NO resuelve todavía
 
