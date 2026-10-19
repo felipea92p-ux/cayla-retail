@@ -220,7 +220,27 @@ export default async function Bolsa() {
               })}
             </div>
 
-            {v.tiendas.length > 0 && (
+            {/* La bolsa es de UNA tienda, la que se eligió arriba (cambiarla vacía la bolsa): se muestra solo esa. Solo si todavía no
+                tiene tienda (una bolsa vieja) se ofrecen las demás para elegir. */}
+            {v.sede && v.tiendas.some((t) => t.elegida) ? (
+              <div id="bloque-tienda" className="w-bloque t-bolsa-tiendas" data-campo="tienda" data-estado="hecho">
+                <span className="w-lbl">Recoges en</span>
+                {v.tiendas
+                  .filter((t) => t.elegida)
+                  .map((t) => (
+                    <div key={t.sede.id} className="w-opcion t-op-tienda t-op-fija">
+                      <span className="w-opcion-cab">
+                        <span className="w-opcion-t">
+                          <b>{nombreTienda(t.sede.nombre)}</b>
+                          {t.texto && <small>{t.texto}</small>}
+                        </span>
+                        <Icono nombre="tienda" />
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+            v.tiendas.length > 0 && (
               <div id="bloque-tienda" className="w-bloque t-bolsa-tiendas" data-campo="tienda" data-estado={v.sede ? "hecho" : "sigue"}>
                 <span className="w-lbl" id="tienda-de-recojo">
                   ¿En qué tienda lo recoges? <span className="w-marca">{v.sede ? "✓ Listo" : "Sigue aquí"}</span>
@@ -247,7 +267,7 @@ export default async function Bolsa() {
                   ))}
                 </form>
               </div>
-            )}
+            ))}
           </div>
 
           {/* El resumen y «Separar»: en la computadora, la columna de la derecha que acompaña al bajar; en el celular, «Separar» queda

@@ -152,16 +152,9 @@
 .t-persona-op svg { width: 18px; height: 18px; flex: none; }
 @media (prefers-reduced-motion: reduce) { .t-persona-menu { animation: none; } }
 
-/* ---- A · Muro, cabecera «Una línea» (Felipe 2026-10-19): en la computadora, buscar, la cuenta y la bolsa son palabras (con su número), no
-   íconos; el selector de tienda es una palabra más. En el celular siguen los íconos. ---- */
-.t-ico-txt .t-txt { display: none; }
+/* La cabecera «Una línea» (A · Muro): la tienda es una palabra («LIMA ▾»); la cuenta y la bolsa son íconos, con el número de la bolsa en su globo. */
 .t-sel-tienda .t-nav-b { white-space: nowrap; }
-.t-txt-n { font-style: normal; font-variant-numeric: tabular-nums; }
 @container tienda (min-width: 960px) {
-  .t-cab-fila .t-ico.t-ico-txt { width: auto; height: 100%; padding: 0; display: inline-flex; align-items: center; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .14em; text-transform: uppercase; }
-  .t-ico-txt .ic, .t-ico-txt .t-globo { display: none; }
-  .t-ico-txt .t-txt { display: inline; }
-  .t-ico-txt:hover { opacity: 1; text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 1px; }
   .t-cab-fila { gap: clamp(14px, 1.7cqi, 26px); }
 }
 
@@ -200,3 +193,12 @@
 .t-cab-simple > .t-nav-b { display: none; }
 @container tienda (min-width: 700px) { .t-cab-simple > .t-nav-b { height: 100%; display: inline-flex; align-items: center; } }
 @container tienda (max-width: 1179px) { .t-cab-simple > .t-logo { position: absolute; left: 50%; transform: translate(-50%, -50%); margin: 0; order: 0; } }
+
+/* Cambiar de tienda con prendas en la bolsa: el aviso corto dentro del mismo desplegable. */
+.t-sel-aviso { display: grid; gap: 12px; padding: 14px 16px; min-width: 210px; }
+.t-sel-aviso p { margin: 0; font-size: 14px; }
+.t-sel-aviso-acc { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+
+/* Un punto sobre «Cuenta» cuando los avisos que viven dentro del menú tienen algo sin ver (el menú puede estar cerrado). */
+.t-persona:has([data-avisos-pendientes]) > .t-ico::after { content: ""; position: absolute; top: 8px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--rojo); }
+.t-persona-menu[hidden] { display: none; }
