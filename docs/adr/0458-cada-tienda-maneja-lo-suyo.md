@@ -1,6 +1,6 @@
 # ADR-0458 — En la tienda online, cada tienda maneja lo suyo
 
-- **Fecha:** 2026-10-19 · **Estado:** código y pruebas listos; **la migración `20261019223000` espera el OK de Felipe para pegarse en producción** (cambia una regla de `tienda_separar` y de `tienda_look`).
+- **Fecha:** 2026-10-19 · **Estado:** código y pruebas listos; **la migración `20261019223000` está pegada en producción desde el 2026-10-19** (cambia una regla de `tienda_separar` y de `tienda_look`); falta fusionar el PR para publicar la web.
 - **Relacionados:** ADR-0408 (la tienda online; su DECIDÍ «una tienda para todo, lo que falta se trae con un traslado» queda **reemplazado** por este), ADR-0455 (siempre una tienda elegida), ADR-0438 (separar siendo del Club).
 
 ## El problema
