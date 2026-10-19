@@ -51,17 +51,17 @@ describe("Cómo separar", () => {
     const pasos = pasosParaSeparar(["Trujillo", "Arequipa", "Lima"]);
     expect(pasos.map((p) => p.titulo)).toEqual(["Elige tus prendas y tu tienda", "Entra o crea tu cuenta", "Toca «Separar» y mándalo por WhatsApp", "Paga y recógelo"]);
     expect(pasos[0].texto).toBe(
-      "En cada prenda ves cuánto hay en Trujillo, Arequipa y Lima. Lo que no está en tu tienda, la tienda puede traerlo de otra. Sin crear nada: la tienda es de todos.",
+      "En cada prenda ves cuánto hay en Trujillo, Arequipa y Lima. Cada tienda maneja lo suyo. Sin crear nada: la tienda es de todos.",
     );
     expect(pasosParaSeparar(["Trujillo", "Lima"])[0].texto).toBe(
-      "En cada prenda ves cuánto hay en Trujillo y Lima. Lo que no está en tu tienda, la tienda puede traerlo de otra. Sin crear nada: la tienda es de todos.",
+      "En cada prenda ves cuánto hay en Trujillo y Lima. Cada tienda maneja lo suyo. Sin crear nada: la tienda es de todos.",
     );
   });
 
-  it("con una sola tienda no hay otra de dónde traer; sin tiendas (o sin base), la frase va sin nombres", () => {
+  it("con una sola tienda no hace falta decir que cada una maneja lo suyo; sin tiendas (o sin base), la frase va sin nombres", () => {
     expect(pasosParaSeparar(["Trujillo"])[0].texto).toBe("En cada prenda ves cuánto hay en Trujillo. Sin crear nada: la tienda es de todos.");
     expect(pasosParaSeparar([])[0].texto).toBe(
-      "En cada prenda ves cuánto hay en cada tienda. Lo que no está en tu tienda, la tienda puede traerlo de otra. Sin crear nada: la tienda es de todos.",
+      "En cada prenda ves cuánto hay en cada tienda. Cada tienda maneja lo suyo. Sin crear nada: la tienda es de todos.",
     );
   });
 

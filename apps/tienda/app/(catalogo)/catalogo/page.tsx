@@ -385,7 +385,7 @@ export default async function Catalogo({ searchParams }: Props) {
                 >
                   <Icono nombre="flechas" />
                   <span className="t-orden-rot">Orden:</span>
-                  {nombreOrden(orden, lista)}
+                  <span className="t-orden-nombre">{nombreOrden(orden, lista)}</span>
                   <PendienteDelEnlace />
                 </Link>
               </div>

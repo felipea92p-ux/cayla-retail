@@ -57,8 +57,8 @@ export type RespuestaAgregar = { estado: "agregada"; mensaje: string; cuantas: n
  * (`components/bolsa/AgregarALaBolsa.tsx`, `components/RapidoDeTarjeta.tsx`, `components/bolsa/CantidadEnLaBolsa.tsx`). `sedeId`: la
  * tienda que el cliente venía mirando («Ver lo que hay en»); queda elegida para recoger si todavía no eligió otra (maqueta).
  *
- * Como la maqueta, no deja agregar más de lo que hay en las tiendas de la web: «Esa talla ya no está en ninguna tienda» si no queda
- * ninguna, y «Ya tienes en tu bolsa todas las que quedan» si las que quedan ya están en su bolsa.
+ * Como la maqueta, no deja agregar más de lo que hay en la tienda elegida (cada tienda maneja lo suyo): «Esa talla se agotó en esta tienda» si no
+ * queda ninguna, y «Ya tienes en tu bolsa todas las que quedan» si las que quedan ya están en su bolsa.
  */
 export async function agregarALaBolsa(varianteId: unknown, sedeId: unknown): Promise<RespuestaAgregar> {
   if (!esId(varianteId)) return { estado: "no", mensaje: AGREGAR_NO_ESTA };
@@ -72,12 +72,13 @@ export async function agregarALaBolsa(varianteId: unknown, sedeId: unknown): Pro
   const cantidad = nueva.lineas.find((l) => l.varianteId === varianteId)?.cantidad ?? 1;
   const enBase = await leerBolsaEnBase([{ varianteId, cantidad }], null);
   if (!enBase) return { estado: "no", mensaje: AGREGAR_SIN_RESPUESTA };
-  const revisada = revisarParaAgregar(enBase.lineas[0]);
+  // Cada tienda maneja lo suyo: se revisa lo que hay en la tienda de la bolsa o, si todavía no tiene, en la que el cliente miraba.
+  const sedeQueMiraba = esId(sedeId) && enBase.sedes.some((s) => s.id === sedeId) ? sedeId : null;
+  const revisada = revisarParaAgregar(enBase.lineas[0], bolsa.sedeId ?? sedeQueMiraba);
   if (revisada.tipo === "no_esta") return { estado: "no", mensaje: AGREGAR_NO_ESTA };
   if (revisada.tipo === "agotada") return { estado: "no", mensaje: AGREGAR_AGOTADA };
   if (revisada.tipo === "no_alcanza") return { estado: "no", mensaje: AGREGAR_NO_ALCANZA };
 
-  const sedeQueMiraba = esId(sedeId) && enBase.sedes.some((s) => s.id === sedeId) ? sedeId : null;
   await guardarBolsa({ ...nueva, sedeId: bolsa.sedeId ?? sedeQueMiraba });
   return { estado: "agregada", mensaje: avisoAgregada(revisada.linea), cuantas: unidades(nueva) };
 }
@@ -110,7 +111,8 @@ export async function agregarLookALaBolsa(varianteIds: unknown, sedeId: unknown)
     null,
   );
   if (!enBase) return { estado: "no", mensaje: AGREGAR_SIN_RESPUESTA };
-  const tipo = new Map(unicas.map((v) => [v, revisarParaAgregar(enBase.lineas.find((l) => l.varianteId === v)).tipo]));
+  const sedeQueMiraba = esId(sedeId) && enBase.sedes.some((s) => s.id === sedeId) ? sedeId : null;
+  const tipo = new Map(unicas.map((v) => [v, revisarParaAgregar(enBase.lineas.find((l) => l.varianteId === v), bolsa.sedeId ?? sedeQueMiraba).tipo]));
   const agregadas = ids.filter((v) => tipo.get(v) === "entra");
   // Una que no alcanza (las que quedan ya están en la bolsa) queda fuera igual que una agotada: el look dice que no entró.
   const agotadas = unicas.filter((v) => tipo.get(v) === "agotada" || tipo.get(v) === "no_alcanza");
@@ -120,7 +122,6 @@ export async function agregarLookALaBolsa(varianteIds: unknown, sedeId: unknown)
   // Las que entran caben: son parte de las que ya cabían todas.
   const nueva = agregarVarias(bolsa, agregadas, { marca: randomUUID() });
   if (!nueva) return { estado: "no", mensaje: AGREGAR_LLENA_LOOK };
-  const sedeQueMiraba = esId(sedeId) && enBase.sedes.some((s) => s.id === sedeId) ? sedeId : null;
   await guardarBolsa({ ...nueva, sedeId: bolsa.sedeId ?? sedeQueMiraba });
   return { estado: "listo", agregadas, agotadas, noEstan, cuantas: unidades(nueva) };
 }
