@@ -161,6 +161,7 @@
   "pruebas:rendimiento-detalle": 1,
   "pruebas:reposicion-piso-cerrada": 1,
   "pruebas:responsable-omitido": 1,
+  "pruebas:terminal-sin-responsable": 1,
   "pruebas:resumen-finanzas": 2,
   "pruebas:retirar-del-piso": 3,
   "pruebas:revisar-productos": 5,
