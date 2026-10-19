@@ -73,6 +73,44 @@ if (VERSIONES.length < 20) {
   process.exit(1);
 }
 const RV_HOY = "retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text,boolean,boolean)";
+// EL PROGRAMA DE PUNTOS (ADR-0459) volvió a tocar funciones de esta cadena, después de todo lo de arriba:
+//   - registrar_venta, con reemplazos ANCLADOS posteriores a los de DESHACER_POSTERIORES: 20261019202000 (la llamada que suma los
+//     puntos), 20261019204000 (el cupón, 4a–4g), 20261019221000 (rechaza el 10 % y el vale) y 20261019224000 (5d: el cupón reservado);
+//   - registrar_aviso_enviado, con un reemplazo anclado de 20261019222000 (acepta el tipo `puntos`, ya no `aniversario`);
+//   - fn_club_avisos_pendientes (20261019222000) y fn_club_anonimizar_inactivas (20261019220000), reemplazadas ENTERAS.
+// Los anclados se deshacen (del más nuevo al más viejo, como DESHACER_POSTERIORES) para medir la cadena del club sobre su punto de
+// partida: los pares [viejo, nuevo] se leen de los archivos para no copiarlos, y si la base no tiene uno, `replace` no cambia nada. Las
+// enteras no traen una tabla de versiones con su md5 «después»: su «después» se MIDE pegando su archivo (el del repo) en una transacción
+// que se deshace, antes del caso (l). Así la cadena sigue al archivo: si alguien cambia la viva a mano, o el archivo, la prueba lo marca.
+const anclados = (archivo, funcion) =>
+  [...leer("supabase", "migrations", archivo).matchAll(
+    new RegExp(`pg_temp\\.reemplazar\\(\\s*'(retail\\.${funcion}\\([^']*\\))',\\s*\\$v\\$([\\s\\S]*?)\\$v\\$,\\s*\\$v\\$([\\s\\S]*?)\\$v\\$,\\s*1\\);`, "g")
+  )].map((m) => ({ firma: m[1], viejo: m[2], nuevo: m[3] }));
+const ANCLADOS_PUNTOS = [
+  ...anclados("20261019202000_club_puntos_ganar.sql", "registrar_venta"),
+  ...anclados("20261019204000_club_puntos_cobrar_con_cupon.sql", "registrar_venta"),
+  ...anclados("20261019221000_club_puntos_retira_cumple_vale_y_ligado.sql", "registrar_venta"),
+  ...anclados("20261019222000_club_puntos_textos_y_avisos.sql", "registrar_aviso_enviado"),
+  ...anclados("20261019224000_club_puntos_pedido_web.sql", "registrar_venta"),
+];
+if (ANCLADOS_PUNTOS.length !== 11) {
+  console.error(`✗ Esperaba 11 reemplazos anclados en las migraciones de puntos (registrar_venta 1 + 7 + 1 + 1; registrar_aviso_enviado 1) y encontré ${ANCLADOS_PUNTOS.length}.`);
+  process.exit(1);
+}
+const DESHACER_PUNTOS = `do $deshacer_puntos$
+begin
+${[...ANCLADOS_PUNTOS]
+  .reverse()
+  .map(({ firma, viejo, nuevo }) => `  execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`)
+  .join("\n")}
+end $deshacer_puntos$;
+`;
+const ENTERAS_PUNTOS = [
+  { firma: "retail.fn_club_anonimizar_inactivas()", archivo: "20261019220000_club_puntos_conservacion.sql" },
+  { firma: "retail.fn_club_avisos_pendientes(uuid)", archivo: "20261019222000_club_puntos_textos_y_avisos.sql" },
+];
+/** firma → md5 normalizado que deja su archivo (se llena antes del caso (l)). */
+const DESPUES_ENTERAS_PUNTOS = new Map();
 // 20261002100000_descuento_sin_codigo.sql (Felipe, 2026-10-01) volvió a cambiar la registrar_venta de 18 (le quitó el código
 // de descuento), partiendo del «después» de la PARTE 8: la cadena no se corta y su «después» es el md5 vivo de HOY.
 const SIN_CODIGO = leer("supabase", "migrations", "20261002100000_descuento_sin_codigo.sql");
@@ -142,9 +180,12 @@ if (!ARCHIVAR_POSTERIOR || VERSIONES.find((v) => v.firma === ARCHIVAR)?.despues 
   process.exit(1);
 }
 /** El md5 que cada firma tiene que tener HOY: el de la migración que la superó (registrar_venta de 18, registrarse_en_el_club, la
- *  conservación, la rutina de anonimizar —que ya no existe con 3 parámetros—, archivar_clienta) o el de la PARTE 8. */
+ *  conservación, la rutina de anonimizar —que ya no existe con 3 parámetros—, archivar_clienta) o el de la PARTE 8. Las que el programa
+ *  de puntos reemplazó ENTERAS (la conservación otra vez y la lista de avisos), el que deja su archivo (DESPUES_ENTERAS_PUNTOS). */
 const despuesHoy = (v) =>
-  (v.firma === RV_HOY
+  (DESPUES_ENTERAS_PUNTOS.has(v.firma)
+    ? DESPUES_ENTERAS_PUNTOS.get(v.firma)
+    : v.firma === RV_HOY
     ? REDONDEO_DESPUES
     : v.firma === REGISTRARSE
       ? SIN_PISAR_DESPUES
@@ -592,7 +633,7 @@ select retail.fn_club_pagina(:'taller') is null, retail.fn_club_pagina(gen_rando
   "Tienda Lima|966000111|10.00|1=20.00,2=30.00,3=40.00,4=50.00,5=60.00|6|600.00|60|casilla_publicidad,privacidad,saludo,terminos|t|t|t|t|t\nt|t|t"
 );
 caso(
-  "(i) fn_club_textos_legales (como anon): lo mismo sin la tienda, con los términos y la privacidad; y las cuatro plantillas de avisos, en cada versión (cumpleaños y novedades tienen v2: act. k), terminan con «Si no quieres recibir más mensajes, responde BAJA.» y saludan por {nombre}",
+  "(i) fn_club_textos_legales (como anon): lo mismo sin la tienda, con los términos y la privacidad; y las cinco plantillas de avisos, en cada versión (cumpleaños y novedades tienen v2: act. k; cumpleaños tiene v3 y nace «Puntos por vencer», aviso_puntos v1: programa de puntos, 20261019222000), terminan con «Si no quieres recibir más mensajes, responde BAJA.» y saludan por {nombre}",
   comoAnon +
     `select (select string_agg(k, ',' order by k) from jsonb_object_keys(p) k), (select string_agg(k, ',' order by k) from jsonb_object_keys(p -> 'textos') k),
        p -> 'textos' -> 'terminos' ->> 'texto' = $t$${TEXTO_TERMINOS}$t$, p -> 'textos' -> 'privacidad' ->> 'version'
@@ -601,7 +642,7 @@ reset role;
 select string_agg(tipo || ' v' || version || ':' || (texto like '%Si no quieres recibir más mensajes, responde BAJA.' and texto like '%{nombre}%'), ',' order by tipo, version)
   from retail.club_textos where tipo like 'aviso\\_%';
 ` + intento(`insert into retail.club_textos (tipo, version, texto) values ('aviso_rebaja', 9, 'Hola {nombre}, sin baja.')`),
-  "compras,dias,escala,monto_minimo,pct,textos|privacidad,terminos|t|2\naviso_aniversario v1:true,aviso_cumpleanos v1:true,aviso_cumpleanos v2:true,aviso_novedades v1:true,aviso_novedades v2:true,aviso_rebaja v1:true\n23514|new row for relation \"club_textos\" violates check constraint \"club_textos_aviso_con_baja\""
+  "compras,dias,escala,monto_minimo,pct,textos|privacidad,terminos|t|2\naviso_aniversario v1:true,aviso_cumpleanos v1:true,aviso_cumpleanos v2:true,aviso_cumpleanos v3:true,aviso_novedades v1:true,aviso_novedades v2:true,aviso_puntos v1:true,aviso_rebaja v1:true\n23514|new row for relation \"club_textos\" violates check constraint \"club_textos_aviso_con_baja\""
 );
 
 // =====================================================================================================================
@@ -699,10 +740,17 @@ select a.detalle ? 'automatica' from retail.actividad a where a.accion = 'anonim
 // =====================================================================================================================
 // l. Estructura y pegado
 // =====================================================================================================================
+// El «después» de las funciones que el programa de puntos reemplazó ENTERAS: se pega su archivo en una transacción que se deshace y se
+// mide lo que deja (la última fila: el archivo puede imprimir filas vacías de sus `select pg_temp.reemplazar(…)`).
+for (const { firma, archivo } of ENTERAS_PUNTOS) {
+  const r = correr(`begin;\n${leer("supabase", "migrations", archivo)}\nselect coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${firma}')), 'NO_EXISTE');\nrollback;`);
+  DESPUES_ENTERAS_PUNTOS.set(firma, r.ok ? r.salida.split("\n").filter(Boolean).at(-1) : `NO_SE_PUDO_MEDIR (${archivo}): ${r.mensaje.split("\n").find((l) => l.includes("ERROR")) ?? r.mensaje}`);
+}
 caso(
-  `(l) los md5 «después» de la sección 0 de la PARTE 8 son los de las funciones vivas (${VERSIONES.length} firmas; la registrar_venta de 17 ya no existe, la de 18 tiene el de 20261003130000, que parte del de 20261002100000, que parte del de aquí, y registrarse_en_el_club el de 20261015232000, que parte del de 20261003235000) y los «antes» son los de producción el 2026-10-01`,
-  // registrar_venta se mide antes de los parches posteriores (precio por sede, ADR-0370; origen sugerido, 20261010220100): la cadena que se vigila es la del club.
-  DESHACER_POSTERIORES + VERSIONES.map((v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`).join(""),
+  `(l) los md5 «después» de la sección 0 de la PARTE 8 son los de las funciones vivas (${VERSIONES.length} firmas; la registrar_venta de 17 ya no existe, la de 18 tiene el de 20261003130000, que parte del de 20261002100000, que parte del de aquí, y registrarse_en_el_club el de 20261015232000, que parte del de 20261003235000; con los anclados del programa de puntos deshechos, y la conservación y la lista de avisos con el de sus archivos de puntos, 20261019220000 y 20261019222000) y los «antes» son los de producción el 2026-10-01`,
+  // registrar_venta se mide antes de los parches posteriores (precio por sede, ADR-0370; origen sugerido, 20261010220100; y los del programa
+  // de puntos, ADR-0459, que van primero porque son los más nuevos): la cadena que se vigila es la del club.
+  DESHACER_PUNTOS + DESHACER_POSTERIORES + VERSIONES.map((v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`).join(""),
   (s) =>
     s === VERSIONES.map(despuesHoy).join("\n") &&
     VERSIONES.find((v) => v.firma === RV_HOY)?.despues === SIN_CODIGO_ANTES &&
