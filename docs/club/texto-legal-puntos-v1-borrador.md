@@ -44,8 +44,9 @@ y se respetan los cupones y vales ya disponibles. Ver sección 6 (transición).
 
 5.1 **Cómo ganas puntos.** Ganas 1 punto por cada S/ 1 que pagas en una compra en una tienda CAYLA o en la tienda web, siempre
 que la compra quede a tu nombre con tu documento. Se calcula sobre lo que realmente pagas, después de descuentos y cupones, sin
-céntimos. Una compra sin tu documento no suma puntos. [por decidir: si se puede pedir que se sumen después, con la boleta y
-dentro de un plazo]
+céntimos. Una compra sin tu documento no suma puntos. **Solo cuentan las compras hechas después de tu registro**: las anteriores no se
+ligan a tu cuenta, aunque hayas dado tu DNI en la boleta. Para registrarte, pide que te agreguen como cliente en caja. [por decidir:
+si se puede pedir que se sumen puntos de una compra después, con la boleta y dentro de un plazo]
 
 5.2 **Regalo de cumpleaños.** En el mes de tu cumpleaños, según la fecha registrada, tu primera compra suma además 100 puntos.
 Una vez por año calendario. Se suman solos al cobrar; no tienes que pedirlos.
@@ -142,7 +143,11 @@ justificarlo por escrito y cambiar los Términos con aviso. **No conviene guarda
 **Por qué cambié «No vencen»:** decirlo a secas y luego perderlos a los 3 años puede leerse como publicidad engañosa. Con su
 condición es más honesto y no cuesta nada.
 
-## 6. Transición para los miembros que ya existen [por decidir]
+## 6. Transición para los miembros que ya existen
+
+> **Probablemente no aplica** (Felipe, 2026-10-19): las 54 fichas que existen son de prueba y se borran el día del lanzamiento; el cartel
+> aún no se imprime. Si el Club arranca de cero, no hay miembros que avisar ni vales a medias. Esta sección solo vale si, antes del
+> lanzamiento, se inscribe un cliente real. Se conserva por si acaso.
 
 1. **Aviso de 15 días** antes de cambiar los beneficios (Términos actuales, 6).
 2. **Cupones y vales ya disponibles se respetan** hasta su vencimiento (ya lo dicen los Términos actuales).
