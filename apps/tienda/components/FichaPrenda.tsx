@@ -20,13 +20,11 @@ import {
   tallaDelPrecio,
   tallasDelColor,
   type Ficha,
-  type Promesa,
 } from "@/lib/ficha";
 import { hrefDelProbador } from "@/lib/probador";
 import { esLaMismaFoto } from "@/lib/prenda-tocada";
-import { leyendaNiveles, textoNivel, tonoNivel } from "@/lib/stock";
+import { textoNivel, tonoNivel } from "@/lib/stock";
 import { AgregarALaBolsa } from "./bolsa/AgregarALaBolsa";
-import { Promesas } from "./bolsa/Promesas";
 import { BotonAvisame } from "./club/BotonAvisame";
 import { BotonFavorito } from "./club/BotonFavorito";
 import { usePrendaTocada } from "./PrendaTocada";
@@ -56,8 +54,6 @@ export function FichaPrenda({
   colorPedido,
   origenFotos,
   chips = [],
-  cambios,
-  promesas = [],
   esperas = [],
   esperasIds = {},
   enLaBolsa = 0,
@@ -74,9 +70,6 @@ export function FichaPrenda({
   /** Los chips de arriba del nombre que vienen del catálogo («Nuevo…», «N.º 3 en más vendidos»). */
   chips?: { texto: string; tono?: "nuevo" }[];
   /** «Cambios»: como en tienda, con el plazo de la caja (`lib/ayuda.ts`, el mismo de «Cambios y devoluciones»). */
-  cambios: string;
-  /** Lo que la tienda ya cumple, junto al botón (`promesasDeCompra`, con los plazos de la ayuda). */
-  promesas?: readonly Promesa[];
   /** Lo que la cuenta ya pidió con «Avísame» (`claveEspera`: prenda y tienda). */
   esperas?: readonly string[];
   /** El id de cada una de esas esperas (por su misma clave): con él, «Te avisaremos ×» la quita desde la ficha, aunque se haya pedido
@@ -254,13 +247,12 @@ export function FichaPrenda({
                   key={c.codigo}
                   type="button"
                   className="t-swatch"
-                  data-color-dato
-                  style={c.hex ? { background: c.hex } : undefined}
                   aria-pressed={c.codigo === color}
-                  aria-label={c.nombre}
-                  title={c.nombre}
                   onClick={() => elegirColor(c.codigo)}
-                />
+                >
+                  <i data-color-dato style={c.hex ? { background: c.hex } : undefined} aria-hidden="true" />
+                  {c.nombre}
+                </button>
               ))}
             </div>
             {!colorElegido.foto && ficha.fotos.length > 0 && <span className="t-swatch-nota">Este color aún no tiene foto: la ves en otro color.</span>}
@@ -326,13 +318,10 @@ export function FichaPrenda({
                 <Icono nombre="chispas" />
                 Arma un look con esta prenda
               </Link>
-              <p>Pruébala con otras prendas de la tienda, a su tamaño y en el color que elijas.</p>
             </div>
           )}
 
-          {promesas.length > 0 && <Promesas promesas={promesas} />}
-
-          {/* Lo que describe la prenda va primero y abierto; cómo se separa ya lo dicen las promesas de arriba: aquí, el detalle. */}
+          {/* Solo el detalle de la prenda (A · Muro, menos texto): cómo se separa y los cambios viven en su página de ayuda. */}
           <div className="t-acordeon">
             {ficha.descripcion && (
               <details open>
@@ -342,21 +331,6 @@ export function FichaPrenda({
                 <p>{ficha.descripcion}</p>
               </details>
             )}
-            <details>
-              <summary>
-                Cómo funciona separar <Icono nombre="chevron" />
-              </summary>
-              <p>
-                Agrega tus prendas, elige tu tienda y toca «Separar». Se crea tu pedido con su número; lo mandas por WhatsApp y la tienda
-                revisa que esté y te confirma. No pagas nada en la web: el pago se coordina por WhatsApp y lo recoges en tu tienda.
-              </p>
-            </details>
-            <details>
-              <summary>
-                Cambios <Icono nombre="chevron" />
-              </summary>
-              <p>{cambios}</p>
-            </details>
           </div>
         </div>
       </div>
@@ -580,7 +554,6 @@ function TablaStock({
               </tbody>
             </table>
           </div>
-          <p className="t-stock-nota">{leyendaNiveles(ficha.umbral)}</p>
         </>
       )}
     </div>

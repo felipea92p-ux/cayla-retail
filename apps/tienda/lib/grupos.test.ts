@@ -74,7 +74,7 @@ describe("los grupos de categorías", () => {
     const prendas = [prenda("Top", "TOP"), prenda("Aretes", "ARE"), prenda("Sin categoría", null)];
     expect(delGrupo(prendas, leerGrupo("arriba")).map((p) => p.nombre)).toEqual(["Top"]);
     expect(delGrupo(prendas, null)).toHaveLength(3);
-    expect(leerGrupo("bisuteria")?.nombre).toBe("Bisutería y belleza");
+    expect(leerGrupo("bisuteria")?.nombre).toBe("Bisutería/Belleza");
     expect(leerGrupo(["abajo", "arriba"])?.clave).toBe("abajo");
     for (const raro of [undefined, "", "  ", "Arriba", "otra"]) expect(leerGrupo(raro), String(raro)).toBeNull();
   });

@@ -7,7 +7,6 @@ import {
   pasosParaSeparar,
   puntosDeCambios,
   seccionQueSeLee,
-  textoCambios,
 } from "./ayuda";
 
 // Lo que devuelve `retail.tienda_ayuda()` con los plazos de fábrica de Configuración ▸ Tienda web y el de cambio de la caja.
@@ -113,34 +112,13 @@ describe("Cómo separar", () => {
 });
 
 describe("Cambios y devoluciones", () => {
-  it("igual que en tienda, con el plazo de la caja (el que imprime la boleta)", () => {
-    expect(textoCambios(interpretarAyuda(DE_FABRICA))).toBe(
-      "Igual que en tienda: puedes cambiar o devolver tu prenda dentro de 15 días, en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta.",
-    );
-  });
-
-  it("sin el plazo, sin número: va impreso en la boleta", () => {
-    const texto = textoCambios(PLAZOS_SIN_DATOS);
-    expect(texto).toBe(
-      "Igual que en tienda: puedes cambiar o devolver tu prenda en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta. El plazo va impreso en tu boleta.",
-    );
-    expect(texto).not.toMatch(/\d/);
-  });
-
-  it("la página lo parte en tres (cuánto tiempo, dónde, qué llevar) y promete lo mismo que la frase de la ficha", () => {
+  it("la página lo parte en tres (cuánto tiempo, dónde, qué llevar)", () => {
     const p = puntosDeCambios(interpretarAyuda(DE_FABRICA));
     expect(p).toEqual({
       plazo: { titulo: "Tienes 15 días", texto: "Para cambiar o devolver tu prenda, igual que en tienda." },
       donde: { titulo: "En cualquier tienda CAYLA", texto: "La que te quede más cerca, aunque no sea donde la recogiste." },
       llevar: { titulo: "Lleva tu boleta", texto: "Y la prenda con su etiqueta puesta." },
     });
-    // Lo mismo que la frase de la ficha: el plazo, cualquier tienda CAYLA, la boleta y la etiqueta puesta. Ni una condición más.
-    const frase = textoCambios(interpretarAyuda(DE_FABRICA));
-    const puntos = Object.values(p).map((x) => `${x.titulo} ${x.texto}`).join(" ");
-    for (const dato of ["15 días", "cualquier tienda CAYLA", "boleta", "etiqueta puesta"]) {
-      expect(frase).toContain(dato);
-      expect(puntos).toContain(dato);
-    }
     expect(puntosDeCambios({ ...PLAZOS_SIN_DATOS, diasParaCambiar: 1 }).plazo.titulo).toBe("Tienes 1 día");
   });
 

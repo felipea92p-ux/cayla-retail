@@ -257,6 +257,7 @@
     "pruebas:edicion-simultanea": "node scripts/pruebas/edicion_simultanea_version.mjs",
     "pruebas:actor-firma": "node scripts/pruebas/actor_firma_las_operaciones.mjs",
     "pruebas:responsable-omitido": "node scripts/pruebas/responsable_omitido.mjs",
+    "pruebas:terminal-sin-responsable": "node scripts/pruebas/terminal_sin_responsable.mjs",
     "pruebas:colaboradores-endurecimiento": "node scripts/pruebas/colaboradores_endurecimiento.mjs",
     "pruebas:archivar-datos-prueba": "node scripts/pruebas/archivar_datos_prueba.mjs",
     "pruebas:clientas": "node scripts/pruebas/clientas.mjs",

@@ -64,6 +64,11 @@ export type PersonaActualV2 = {
   /** ¿La sesión es de un ADMIN (ADR-0178, `fn_es_admin()`)? El Admin firma a su nombre sin marcar asistencia
    *  (20260924171300): en vez del combo «Responsable», la pantalla le dice que no necesita autorización. */
   esAdmin: boolean;
+  /** ADR-0454 (temporal, hasta integrar Lima con Dynamic): si la sesión es una terminal con firma de respaldo
+   *  (`terminales.firma_respaldo_id`: hoy Caja Lima y Almacén Lima), la persona a cuyo nombre firma SIEMPRE. Esa terminal no
+   *  pide el combo «Responsable» en ningún módulo. `null` en una persona y en una terminal sin respaldo (pide responsable, como
+   *  siempre). No da poderes: los permisos son de la cuenta. */
+  firmaRespaldo: { personaId: string; nombre: string } | null;
   /** Lo que puede hacer además de operar su tienda, resuelto UNA vez desde sus módulos (`permisosDeModulos`).
    *  Las pantallas y los botones preguntan por un permiso (`puede`), no por «¿es líder?». */
   permisos: readonly Permiso[];
@@ -141,6 +146,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
   const textoTerminal = !errorTerminal && typeof miTerminal === "string" ? miTerminal.trim() : "";
   const terminal = textoTerminal !== "";
   const rol = data.es_lider ? "lider" : "integrante";
+  const firmaRespaldo = terminal ? await leerFirmaRespaldo(supabase) : null;
   const deLaBase = !errorModulos && Array.isArray(filasModulos);
   // Sin `fn_mis_modulos()` (base anterior a los roles): una terminal ve lo de su tipo viejo, si la base aún lo devuelve.
   const legado = (TIPOS_TERMINAL_LEGADO as readonly string[]).includes(textoTerminal) ? (textoTerminal as TipoTerminalLegado) : null;
@@ -198,11 +204,21 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     terminal,
     personaId: !terminal && !errorPersonaId && typeof miPersonaId === "string" ? miPersonaId : null,
     esAdmin: !terminal && soyAdmin === true,
+    firmaRespaldo,
     permisos,
     modulos,
     pantallaPrincipal: !terminal && !errorPantallaPrincipal && typeof pantallaPrincipal === "string" ? pantallaPrincipal : null,
   };
 });
+
+/** ADR-0454: ¿esta terminal firma a nombre de una persona de respaldo? Solo se pregunta cuando la sesión ES una terminal (una persona
+ *  no suma una espera). Falla CERRADO (principio 9): si la función aún no existe (web publicada antes de pegar 20261019185000) o la
+ *  base no responde, la terminal sigue pidiendo el combo como siempre; nunca se supone un respaldo que la base no confirmó. */
+async function leerFirmaRespaldo(supabase: Awaited<ReturnType<typeof createClient>>): Promise<PersonaActualV2["firmaRespaldo"]> {
+  const { data, error } = await supabase.rpc("fn_terminal_firma_respaldo");
+  const fila = !error && Array.isArray(data) ? data[0] : undefined;
+  return fila?.persona_id ? { personaId: fila.persona_id, nombre: fila.nombre ?? "" } : null;
+}
 
 /** A `/sin-base`, con la pantalla de la que se salió (la anota `proxy.ts` en `x-cayla-ruta`) para volver a ella cuando la base responda. */
 async function direccionSinBase(): Promise<string> {
