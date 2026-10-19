@@ -30,7 +30,9 @@ const [responsable, datos, finalidades, obligatorios, compartir, conservacion, d
  * La política de privacidad de la tienda online. BORRADOR (ADR-0408, actividad 2): parte de la política del Club CAYLA que ya
  * rige en el ERP (`club_textos`, privacidad v2) y suma lo que trae la cuenta web (correo y contraseña, pedidos web, el servicio
  * de inicio de sesión). La revisa CAYLA antes de publicar la tienda; lo que se acepta al crear la cuenta queda anotado con su
- * versión (`TEXTOS_VERSION`). Revisión «a nivel mundial» (2026-10-16): cambió cómo se lee, NUNCA qué dice (ni una palabra, ni el sello
+ * versión (`TEXTOS_VERSION`). Programa de puntos (2026-10-19, borrador para el abogado: docs/club/texto-legal-puntos-v1-borrador.md):
+ * los datos de los puntos y cupones, la finalidad del club y la conservación de 3 años con los puntos. Revisión «a nivel mundial»
+ * (2026-10-16): cambió cómo se lee, NUNCA qué dice (ni una palabra, ni el sello
  * «Borrador»): el título grande, la letra de 16 px, cada título con su número aparte y, en la computadora, el índice fijo al costado
  * que enciende el punto que se está leyendo; en el celular, «En esta página» arriba.
  */
@@ -41,7 +43,7 @@ export default function Privacidad() {
         <article className="ay-legal">
           <EncabezadoAyuda
             apilado
-            sello={<span className="w-borrador">Borrador: lo revisa CAYLA</span>}
+            sello={<span className="w-borrador">Borrador: lo revisa el abogado</span>}
             titulo={
               <>
                 Política de <em>privacidad</em>
@@ -80,7 +82,7 @@ export default function Privacidad() {
                   <li>Tu contraseña la guarda cifrada el servicio de inicio de sesión: nadie en CAYLA puede verla.</li>
                   <li>
                     Los que se generan cuando separas o compras: tus pedidos web, la tienda que elegiste, las prendas, tallas, montos y
-                    comprobantes, y los beneficios del club que usaste.
+                    comprobantes, los puntos del club que ganas y canjeas, y los cupones que creas y su uso.
                   </li>
                   <li>La prueba de lo que aceptaste: la versión de estos textos, la fecha y la hora.</li>
                 </ul>
@@ -93,7 +95,9 @@ export default function Privacidad() {
                     <b>Tu cuenta y tus pedidos web</b>: que entres, separes prendas, la tienda te confirme por WhatsApp y recojas en tienda.
                   </li>
                   <li>
-                    <b>Tu membresía del Club CAYLA</b>: reconocerte en caja, ligar tus compras a tu ficha y aplicar tus beneficios.
+                    <b>Tu membresía del Club CAYLA</b>: reconocerte en caja, ligar a tu ficha las compras que hagas desde que te registras,
+                    sumar tus puntos, crear tus cupones y darte tu regalo de cumpleaños. Por WhatsApp, avisos de tus puntos y tus cupones, si
+                    los autorizaste.
                   </li>
                   <li>
                     <b>Cumplir obligaciones legales</b>: emitir y conservar comprobantes de pago ante SUNAT.
@@ -108,7 +112,7 @@ export default function Privacidad() {
               <SeccionLegal {...obligatorios}>
                 <p>
                   Tu correo, tu contraseña, tu documento, tu nombre, tu celular y el día y el mes de tu cumpleaños: sin ellos no podemos darte tu
-                  cuenta ni aplicar tus beneficios. El año de tu cumpleaños es opcional.
+                  cuenta ni tus puntos. El año de tu cumpleaños es opcional.
                 </p>
               </SeccionLegal>
 
@@ -135,12 +139,14 @@ export default function Privacidad() {
                 </ul>
               </SeccionLegal>
 
-              {/* Los Términos del Club enlazan aquí (su punto 7): `/privacidad#conservacion`. */}
+              {/* Los Términos del Club enlazan aquí (su punto 8): `/privacidad#conservacion`. */}
               <SeccionLegal {...conservacion}>
                 <p>
-                  Mientras tengas tu cuenta y seas miembro del club. Si pasan 3 años desde tu última compra o tu última entrada a tu cuenta
-                  web, anonimizamos tu ficha de forma automática, como en el Club CAYLA, y cerramos tu cuenta web: borramos tu correo, quitamos
-                  tus favoritos y tus avisos de «Avísame cuando llegue», y ya no puedes entrar con ella. Lo mismo, cuando quieras, si eliminas
+                  Mientras tengas tu cuenta y seas miembro del club. Si pasan 3 años desde tu última compra, eliminamos tus datos personales de
+                  forma definitiva: tu nombre, documento, celular, fecha de nacimiento y correo dejan de estar asociados a tus compras, y tus
+                  puntos se eliminan con ellos. Antes te avisamos (Términos del Club, punto 8). Si pasan 3 años desde tu última compra o tu última
+                  entrada a tu cuenta web, cerramos además tu cuenta web: borramos tu correo, quitamos tus favoritos y tus avisos de «Avísame
+                  cuando llegue», y ya no puedes entrar con ella. Lo mismo, cuando quieras, si eliminas
                   tu cuenta en «Mi cuenta» ▸ «Eliminar mi cuenta» o pides la cancelación en una tienda: dejas de ser miembro del club. Si tienes
                   un pedido web o un apartado pendiente, primero lo recoges o le pides a la tienda que lo anule. Los comprobantes de pago se
                   conservan el tiempo que exige la ley tributaria, sin tus datos.
