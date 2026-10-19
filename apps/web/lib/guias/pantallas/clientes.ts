@@ -129,6 +129,13 @@ export const GUIA_CLIENTES: Guia = {
       texto: "Si es miembro y desde cuándo, y si pidió novedades por WhatsApp. Si responde BAJA, se registra aquí y deja de recibir mensajes en las 3 tiendas.",
     },
     {
+      id: "ficha-puntos",
+      ancla: "clientas.ficha-puntos",
+      opcional: true,
+      titulo: "Sus puntos y sus cupones",
+      texto: "Cuántos puntos tiene y cuánto valen, si este mes le toca su regalo de cumpleaños y sus cupones por usar, con su código y hasta cuándo valen. Los puntos se canjean en caja, al vender.",
+    },
+    {
       id: "ficha-preferencias",
       ancla: "clientas.ficha-preferencias",
       opcional: true,
