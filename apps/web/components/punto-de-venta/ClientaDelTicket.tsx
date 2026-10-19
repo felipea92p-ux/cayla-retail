@@ -248,7 +248,7 @@ export function ClientaDelTicket({
 
           {caja.tipo === "identificada" && (
             <FilaDelCartel
-              fila={filaDelCartel({ sinDocumento: caja.sinDocumento, espera: espera.espera, cumplePct: resumen?.cumplePct ?? null })}
+              fila={filaDelCartel({ sinDocumento: caja.sinDocumento, espera: espera.espera, regaloCumple: puntosDelClub.puntos?.config.regaloCumple ?? null })}
               revisando={espera.revisando}
               onActualizar={espera.actualizar}
             />

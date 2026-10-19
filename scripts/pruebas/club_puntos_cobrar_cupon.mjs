@@ -13,7 +13,8 @@
  *   b. La regla del reparto, `fn_club_repartir_vale`, igual a la de la web (la tabla de ejemplos y 300 casos al azar contra una
  *      réplica en JS de `repartirVale`), exacta al céntimo.
  *   c. Los rechazos, sin dejar venta ni gastar el cupón: no existe, ya usado, vencido, compra por debajo del mínimo, un reparto
- *      distinto del de la base, un cupón sin su parte en las líneas, y el cupón junto al cumpleaños.
+ *      distinto del de la base, un cupón sin su parte en las líneas, y el cupón junto al cumpleaños (que desde la actividad 11 ya no
+ *      existe: la base lo rechaza con beneficio_retirado).
  *   d. Al portador: lo usa una compra con OTRA ficha (los puntos son de ella, no de la dueña) y una compra SIN ficha.
  *   e. Anular la venta devuelve el cupón (vuelve a vivir y se puede usar otra vez); si ya pasó su fecha, vence y devuelve sus puntos.
  *   f. El mismo token no gasta dos veces: devuelve la misma venta, no «ya usado».
@@ -59,7 +60,7 @@ function psqlEnParalelo(sql) {
 }
 
 /**
- * La regla del reparto, en JS: una RÉPLICA de `repartirVale` (apps/web/lib/club-aniversario-canje-reglas.ts). Todo en céntimos
+ * La regla del reparto, en JS: una RÉPLICA de `repartirVale` (apps/web/lib/club-cupon-reparto-reglas.ts). Todo en céntimos
  * enteros. Devuelve la parte del monto por unidad de cada línea, en soles.
  */
 function repartirVale(lineas, monto) {
@@ -290,7 +291,7 @@ const SIN_RASTRO = `reset role;
 select (select count(*) from retail.ventas where nota is null and created_at > now() - interval '1 minute' and ubicacion_id = :'ubic') as ventas \\gset
 `;
 caso(
-  "(c) los rechazos NO dejan venta ni gastan el cupón: no existe, ya usado, vencido, por debajo del mínimo, reparto distinto, sin su parte, y junto al cumpleaños",
+  "(c) los rechazos NO dejan venta ni gastan el cupón: no existe, ya usado, vencido, por debajo del mínimo, reparto distinto, sin su parte, y junto al cumpleaños (retirado: beneficio_retirado)",
   SEDE() + CON_CUPON() + `select count(*) as antes from retail.ventas \\gset\n` + como(FELIPE) +
     `select pg_temp.con_cupon(${DOS}, 30) as bien \\gset
 select pg_temp.con_cupon(${DOS}, 25) as otro_monto \\gset
@@ -304,7 +305,7 @@ select pg_temp.con_cupon(${items(item({ precio: 79.9 }))}, 30) as una_linea \\gs
   pg_temp.vender(:'ubic', :'bien'::jsonb, null, :'codigo', gen_random_uuid(), true)) as r \\gset
 reset role;
 select :'r' || '|' || (select count(*) from retail.ventas) - :antes || '|' || (select estado from retail.club_cupones where codigo = :'codigo');`,
-  "ERROR|cupon_no_existe|ERROR|cupon_descuento_distinto|ERROR|cupon_descuento_distinto|ERROR|cupon_compra_minima|ERROR|club_un_cupon_por_compra|0|activo"
+  "ERROR|cupon_no_existe|ERROR|cupon_descuento_distinto|ERROR|cupon_descuento_distinto|ERROR|cupon_compra_minima|ERROR|beneficio_retirado|0|activo"
 );
 caso(
   "(c2) un cupón vencido y uno ya usado se rechazan con su motivo (cupon_vencido, cupon_ya_usado)",

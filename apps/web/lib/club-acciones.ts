@@ -35,21 +35,6 @@ export type ResumenClientaCaja = {
   celular: string | null;
   cumpleDia: number | null;
   cumpleMes: number | null;
-  /** El canje del cumpleaños (tanda 1c, ADR-0288 D-5): socia activa, en su mes de Lima y sin canje vivo este año. Lo decide
-   *  la base; la caja lo muestra con `cumpleEnCaja` (lib/club-cumple-canje-reglas.ts). */
-  cumpleDisponible: boolean;
-  /** El % de `configuracion_empresa.club_cumple_pct` (10 por defecto): nunca escrito a mano en la pantalla. */
-  cumplePct: number | null;
-  cumpleCanjeadoEsteAnio: boolean;
-  /** El día de Lima (`aaaa-mm-dd`) en que lo canjeó este año, o null: «Cumpleaños canjeado el 12 sep». */
-  cumpleCanjeadoEl: string | null;
-  /** El vale de aniversario (tanda 1g, G-13): un año de club que cuenta, sin canje vivo y dentro de sus días. Lo decide la
-   *  base; la caja lo muestra con `valeEnCaja` (lib/club-aniversario-canje-reglas.ts). */
-  aniversarioDisponible: boolean;
-  /** Cuánto vale (la escala de `club_aniversario_escala`): nunca escrito a mano en la pantalla. */
-  aniversarioMonto: number | null;
-  /** Hasta cuándo se puede usar (`aaaa-mm-dd`, día de Lima). */
-  aniversarioVence: string | null;
 };
 
 
@@ -57,7 +42,6 @@ export type ResumenClientaCaja = {
 export async function resumenClientaCaja(clientaId: string): Promise<{ resumen: ResumenClientaCaja | null; error: ErrorEscritura }> {
   const { data, error } = await createClient().rpc("resumen_clienta_caja", { p_clienta_id: clientaId });
   const f = Array.isArray(data) ? data[0] : null;
-  const aniversario = f ?? { aniversario_disponible: false, aniversario_monto: null, aniversario_vence: null };
   return {
     resumen: f
       ? {
@@ -68,15 +52,6 @@ export async function resumenClientaCaja(clientaId: string): Promise<{ resumen: 
           celular: f.celular,
           cumpleDia: f.cumple_dia,
           cumpleMes: f.cumple_mes,
-          // Una base sin la tanda 1c no trae estas columnas: sin ellas no se ofrece el canje (principio 9).
-          cumpleDisponible: f.cumple_disponible === true,
-          cumplePct: f.cumple_pct == null ? null : Number(f.cumple_pct),
-          cumpleCanjeadoEsteAnio: f.cumple_canjeado_este_anio === true,
-          cumpleCanjeadoEl: f.cumple_canjeado_el ?? null,
-          // Igual con la 1g: sin estas columnas no se ofrece el vale.
-          aniversarioDisponible: aniversario.aniversario_disponible === true,
-          aniversarioMonto: aniversario.aniversario_monto == null ? null : Number(aniversario.aniversario_monto),
-          aniversarioVence: aniversario.aniversario_vence ?? null,
         }
       : null,
     error,

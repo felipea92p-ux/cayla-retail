@@ -174,24 +174,16 @@ describe("firmaDeVentaEncolada — el responsable viaja con la venta sin conexi�
 });
 
 // ADR-0288 D-5: una venta con el canje del cumpleaños no se encola nunca. Basta cualquiera de las dos señales.
-describe("llevaCanje: la venta con el cumpleaños no va a la cola", () => {
+describe("llevaCanje: la venta con un cupón del Club no va a la cola", () => {
   const item = { variante_id: "v1", cantidad: 1, precio_unitario: 79.9, descuento_unitario: 0 };
-  it("sin canje, se puede encolar como siempre", () => {
+  it("sin cupón, se puede encolar como siempre", () => {
     expect(llevaCanje({ p_items: [item] })).toBe(false);
-    expect(llevaCanje({ p_items: [item], p_canjear_cumpleanos: false })).toBe(false);
+    expect(llevaCanje({ p_items: [item], p_codigo_descuento: undefined })).toBe(false);
     expect(llevaCanje({ p_items: [{ ...item, descuento_club_unitario: 0 }] })).toBe(false);
   });
-  it("con el parámetro o con la parte del club en un ítem, no", () => {
-    expect(llevaCanje({ p_items: [item], p_canjear_cumpleanos: true })).toBe(true);
-    expect(llevaCanje({ p_items: [{ ...item, descuento_unitario: 7.99, descuento_club_unitario: 7.99 }] })).toBe(true);
-  });
-  it("con un cupón del Club (programa de puntos) tampoco: otra caja podría gastarlo a la vez", () => {
+  it("con el código o con la parte del club en un ítem, no: otra caja podría gastarlo a la vez", () => {
     expect(llevaCanje({ p_items: [item], p_codigo_descuento: "CAY-4K7P-9H2M" })).toBe(true);
-    expect(llevaCanje({ p_items: [item], p_codigo_descuento: undefined })).toBe(false);
-  });
-  it("con el vale de aniversario tampoco (tanda 1g)", () => {
-    expect(llevaCanje({ p_items: [item], p_canjear_aniversario: true })).toBe(true);
-    expect(llevaCanje({ p_items: [item], p_canjear_aniversario: false })).toBe(false);
+    expect(llevaCanje({ p_items: [{ ...item, descuento_unitario: 7.99, descuento_club_unitario: 7.99 }] })).toBe(true);
   });
 });
 
