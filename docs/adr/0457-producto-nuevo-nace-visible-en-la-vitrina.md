@@ -29,6 +29,14 @@ Queda anotado en la Actividad (módulo `vitrina_web`, «se muestra en la web …
 - Esconderlo sigue siendo un toque en la Vitrina; ninguno de los dos disparadores corre otra vez sobre ese producto (solo al nacer y al aprobarse).
 - **Los modelos que ya existen no se tocan** (no se rellena nada): no se muestra de golpe en la web lo que Felipe nunca decidió mostrar.
 
+## Lo que esto obligó a tocar (lo vio el CI)
+
+- **La purga de productos de prueba** (`scripts/purga/purgar-producto-de-prueba.sql` y su `restaurar-purga.sql`): se negaba a borrar cualquier producto
+  con fila de vitrina («otra parte del sistema todavía lo usa»), y desde este cambio todos la tienen. Ahora `vitrina_productos` es una «hoja» más de
+  `productos`: se respalda, se borra con la ficha y se devuelve al restaurar. Sin esto, la purga habría quedado inservible para todo producto nuevo.
+  (Los favoritos, las esperas y los looks de la tienda siguen frenándola, como antes: solo existen si un cliente los creó.)
+- **Actividad:** crear un producto ahora deja DOS líneas, la de Productos y la de la vitrina («se muestra en la web … (producto nuevo)»).
+
 ## Alternativas descartadas
 
 - **Leer «sin fila» como «se ve».** Mostraría de una vez todos los modelos que hoy no están en la vitrina (~256 en producción).
