@@ -73,8 +73,7 @@ begin
     raise exception 'fn_cuenta_web_reglas tiene otro cuerpo (md5 %): no es el de producción del 2026-10-17 ni el de este archivo. Reescribe el reemplazo desde su definición real antes de pegar.',
       coalesce(v_reglas, 'ninguno');
   end if;
-  -- El tercero es el de 20261019223000 (ADR-0458, «solo lo de la tienda»): pegar de nuevo ESTA migración después de esa no debe fallar.
-  if v_separar is null or v_separar not in ('6398d88faf180468b8beb1644e95e625', 'f20e2fd55c98e519c90be7f7aa333c37', '03cd966d59530bb53817f22523728553') then
+  if v_separar is null or v_separar not in ('6398d88faf180468b8beb1644e95e625', 'f20e2fd55c98e519c90be7f7aa333c37') then
     raise exception 'tienda_separar tiene otro cuerpo (md5 %): no es el de producción del 2026-10-17 ni el de este archivo. Reescribe el reemplazo desde su definición real antes de pegar.',
       coalesce(v_separar, 'ninguno');
   end if;
