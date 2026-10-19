@@ -995,6 +995,12 @@ export const PRUEBAS = [
   // BASE_DESECHABLE=1, no aquí).
   "pruebas:club-puntos-base",
 
+  // Puntos del Club, actividad 2: ganar al cobrar. Una venta de una miembro suma lo que PAGA (79.90 → 79; con descuento, cantidad
+  // y varias líneas), no suma una ficha «Identificado» ni una venta sin clienta, el mes de su cumpleaños suma el regalo una vez, manda
+  // la configuración del día de la venta, anular o devolver resta (reversa enlazada, nunca más de lo que tiene), el mismo token no
+  // suma dos veces y, si sumar o restar falla, la venta y la anulación siguen. ROLLBACK.
+  "pruebas:club-puntos-ganar",
+
   // Club de clientas, tanda 1g (G-8, CL-20, CL-21): Clientas ▸ Avisos. Quién aparece (publicidad de esa tienda; no sin la
   // casilla, con BAJA, de otra tienda), cumpleaños, aniversario, novedades (llegadas de 14 días con stock libre) y rebaja en
   // su talla deducida; el grupo testigo y el tope de 2 promocionales al mes; registrar y deshacer (10 minutos); el módulo
