@@ -242,6 +242,24 @@ DE_LA_FICHA_Y_LA_TIENDA.push("fn_clienta_acceso_web", "restablecer_acceso_tienda
 // lo justo para responderle, nunca la ficha entera. La prueba a fondo es scripts/pruebas/recomendaciones_web.mjs.
 const DE_RECOMENDACIONES = ["fn_recomendaciones"];
 
+// Y los puntos del Club (ADR-0459, 2026-10-19). Tres grupos, cada uno con lo que el vigilante le exige (no solo su nombre en una lista):
+//  · DE_LOS_PUNTOS_EN_CAJA: canjear_puntos (20261019203000: crea el cupón en la caja), validar_cupon (20261019204000: lee un cupón por su
+//    código para cobrarlo; devuelve el nombre de pila de su dueña) y resumen_puntos_caja (20261019205000: saldo, regalo, cupones vivos y el
+//    día y el mes del cumpleaños de una miembro). Las usa la caja: su candado es «Vender o Clientas» (`fn_ve_modulo('vender') or
+//    fn_ve_modulo('clientas')` y un 42501 si no), escrito en el código; el vigilante exige las dos preguntas. Las prueban
+//    club_puntos_cupones.mjs, club_puntos_cobrar_cupon.mjs y club_puntos_resumen_caja.mjs. OJO: con «Vender» sin «Clientas» se leen el
+//    día y el mes del cumpleaños (resumen_puntos_caja) que resumen_clienta_caja solo da con «Clientas»: es una decisión de permisos de
+//    Felipe, no de esta prueba.
+//  · Las de la tienda online: tienda_mis_puntos (20261019213000, «Mi Club»): solo `tienda_web` y solo los puntos de la cuenta que entra,
+//    como las demás de DE_LA_TIENDA (la prueba a fondo es club_puntos_tienda.mjs).
+//  · DE_LOS_PUNTOS_INTERNAS: fn_club_puntos_anotar (20261019201000, el libro), fn_club_puntos_por_venta (20261019202000, lo que gana una
+//    venta) y fn_club_conservacion_hasta (20261019213000, la fecha de los 3 años). Sin módulo a propósito porque nadie de la API las
+//    ejecuta: las llaman registrar_venta, los cupones, la conservación y «Mi Club», que ya pidieron su candado. El vigilante no les cree
+//    por el nombre: exige que ni anon, ni authenticated, ni tienda_web tengan EXECUTE.
+const DE_LOS_PUNTOS_EN_CAJA = ["canjear_puntos", "resumen_puntos_caja", "validar_cupon"];
+DE_LA_TIENDA.push("tienda_mis_puntos");
+const DE_LOS_PUNTOS_INTERNAS = ["fn_club_conservacion_hasta", "fn_club_puntos_anotar", "fn_club_puntos_por_venta"];
+
 // Seed local: Felipe (líder y admin), Micaela (integrante de Trujillo, con Clientas por su rol).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -763,18 +781,23 @@ LISTA_BLANCA.push("fn_ficha_minima_de_cuenta");
 const SIN_EL_CANDADO = `x.src !~ 'fn_exigir_modulo\\(''clientas''\\)' and x.proname not in (${[...DE_LA_PAGINA, ...DEL_SERVIDOR, ...DE_LA_TIENDA].map((n) => `'${n}'`).join(", ")})
   and not (x.proname in (${DE_AVISOS.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''avisos_club''\\)')
   and not (x.proname in (${DE_PEDIDOS_WEB.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_pedido_web_exigir\\(')
-  and not (x.proname in (${DE_RECOMENDACIONES.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''recomendaciones''\\)')`;
+  and not (x.proname in (${DE_RECOMENDACIONES.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''recomendaciones''\\)')
+  and not (x.proname in (${DE_LOS_PUNTOS_EN_CAJA.map((n) => `'${n}'`).join(", ")})
+           and x.src ~ 'if\\s+not\\s*\\(\\s*retail\\.fn_ve_modulo\\(''vender''\\)\\s+or\\s+retail\\.fn_ve_modulo\\(''clientas''\\)\\s*\\)\\s+then\\s+raise\\s+exception[^;]*errcode\\s*=\\s*''42501''')
+  and not (x.proname in (${DE_LOS_PUNTOS_INTERNAS.map((n) => `'${n}'`).join(", ")})
+           and not has_function_privilege('anon', x.oid, 'execute') and not has_function_privilege('authenticated', x.oid, 'execute')
+           and not has_function_privilege('tienda_web', x.oid, 'execute'))`;
 const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' order by x.proname), 'ninguna')
-  from (select p.proname, ${SIN_COMENTARIOS} as src, pg_get_function_result(p.oid) as retorna
+  from (select p.oid, p.proname, ${SIN_COMENTARIOS} as src, pg_get_function_result(p.oid) as retorna
           from pg_proc p
          where p.pronamespace = 'retail'::regnamespace and p.prosecdef
            and p.proname not in (${LISTA_BLANCA.map((n) => `'${n}'`).join(", ")})) x
  where (x.proname ~ 'clienta' or x.retorna ~* 'clientas' or x.src ~* '(\\mclientas\\M|telefono_whatsapp|whatsapp_consentimiento_en|cumple_dia|cumple_mes)')
    and ${condicion};\n`;
 caso(
-  `(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 10, las 6 del club (tanda 1b), las 2 de la página pública (camino B), las 6 de la lista y la ficha (tanda 1f) las 5 de la tanda 1g, la 1 del cobro (agregar_celular_clienta) las ${DE_LA_TIENDA.length} de la tienda online, las 2 de los pedidos web, las ${DE_LA_FICHA_Y_LA_TIENDA.length} de la ficha y la tienda online (fn_clienta_tienda_online y las de «Restablecer acceso») y la 1 de Recomendaciones (fn_recomendaciones), y todas llevan el candado del módulo salvo las 2 de la página, las 2 del servidor y las ${DE_LA_TIENDA.length} de la tienda (las de Avisos, las de los pedidos web y la de Recomendaciones, el de su módulo)`,
+  `(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 10, las 6 del club (tanda 1b), las 2 de la página pública (camino B), las 6 de la lista y la ficha (tanda 1f) las 5 de la tanda 1g, la 1 del cobro (agregar_celular_clienta) las ${DE_LA_TIENDA.length} de la tienda online, las 2 de los pedidos web, las ${DE_LA_FICHA_Y_LA_TIENDA.length} de la ficha y la tienda online (fn_clienta_tienda_online y las de «Restablecer acceso»), la 1 de Recomendaciones (fn_recomendaciones) y las ${DE_LOS_PUNTOS_EN_CAJA.length + DE_LOS_PUNTOS_INTERNAS.length} de los puntos del Club, y todas llevan el candado del módulo salvo las 2 de la página, las 2 del servidor y las ${DE_LA_TIENDA.length} de la tienda (las de Avisos, las de los pedidos web y la de Recomendaciones, el de su módulo; las de los puntos en caja, «Vender o Clientas»; las internas de los puntos, sin EXECUTE para nadie de la API)`,
   VIGILANTE("true") + VIGILANTE(SIN_EL_CANDADO),
-  `${[...LAS_DE_LA_FICHA, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR, ...DEL_COBRO, ...DE_LA_TIENDA, ...DE_PEDIDOS_WEB, ...DE_LA_FICHA_Y_LA_TIENDA, ...DE_RECOMENDACIONES].sort().join(",")}\nninguna`
+  `${[...LAS_DE_LA_FICHA, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR, ...DEL_COBRO, ...DE_LA_TIENDA, ...DE_PEDIDOS_WEB, ...DE_LA_FICHA_Y_LA_TIENDA, ...DE_RECOMENDACIONES, ...DE_LOS_PUNTOS_EN_CAJA, ...DE_LOS_PUNTOS_INTERNAS].sort().join(",")}\nninguna`
 );
 caso(
   "(5) el vigilante muerde: una función NUEVA que devuelve el DNI sin el candado (o con el candado solo en un comentario) sale nombrada",
