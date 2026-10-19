@@ -5,6 +5,7 @@ import type { Caja, FotoDelColor, Zona } from "@/lib/probador";
 import {
   ANCHO_PARA_MEDIR,
   cajaDeAbajoUnida,
+  cajaDeArribaAjustada,
   direccionParaMedir,
   medidasATexto,
   medidasDesdeTexto,
@@ -153,11 +154,12 @@ export function useUnionDeLaFigura<T extends PiezaDeLaFigura>(
     if (leerRecordadas()) notificar();
   }, []);
 
+  // La de arriba se mide siempre (también sola: su tamaño se ajusta a su forma); la de abajo, cuando hay una de arriba a la que unirla.
   useEffect(() => {
-    if (!urlArriba || !urlAbajo) return;
+    if (!urlArriba) return;
     const faltan = [
       { url: urlArriba, optimizar: optimizarArriba },
-      { url: urlAbajo, optimizar: optimizarAbajo },
+      ...(urlAbajo ? [{ url: urlAbajo, optimizar: optimizarAbajo }] : []),
     ].filter((f) => !medidas.has(f.url));
     if (faltan.length === 0) return;
     void Promise.all(faltan.map(medir));
@@ -195,10 +197,19 @@ export function useUnionDeLaFigura<T extends PiezaDeLaFigura>(
   }, [pendiente, par]);
 
   const ajustando = pendiente && demoraDe === par;
-  if (!arriba || !abajo || !urlArriba || !urlAbajo || !completa) return { piezas: [...piezas], ajustando };
-  const unida = cajaDeAbajoUnida(
-    { caja: arriba.caja, medida: medidas.get(urlArriba), metida: arriba.p.metida },
-    { proporcion: abajo.c.foto.proporcion, medida: medidas.get(urlAbajo) },
-  );
-  return { piezas: unida ? piezas.map((x) => (x === abajo ? { ...x, caja: unida } : x)) : [...piezas], ajustando };
+  // 1. La de arriba, ajustada a su propia forma (solo crece, y solo si su bajo es implausiblemente angosto).
+  const cajaArriba = arriba && urlArriba ? cajaDeArribaAjustada({ caja: arriba.caja, medida: medidas.get(urlArriba), metida: arriba.p.metida }) : null;
+  const arribaFinal = arriba && cajaArriba ? { ...arriba, caja: cajaArriba } : arriba;
+  // 2. La de abajo, unida a la de arriba ya ajustada.
+  const unida =
+    arribaFinal && abajo && urlArriba && urlAbajo && completa
+      ? cajaDeAbajoUnida(
+          { caja: arribaFinal.caja, medida: medidas.get(urlArriba), metida: arribaFinal.p.metida },
+          { proporcion: abajo.c.foto.proporcion, medida: medidas.get(urlAbajo) },
+        )
+      : null;
+  return {
+    piezas: piezas.map((x) => (x === arriba && arribaFinal ? arribaFinal : x === abajo && unida ? { ...x, caja: unida } : x)),
+    ajustando,
+  };
 }

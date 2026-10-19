@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   ANCHO_ESTANDAR_DE_LA_UNION,
   ANCHO_PARA_MEDIR,
+  AJUSTE_MAXIMO_DE_ARRIBA,
   anchoDelBajo,
+  cajaDeArribaAjustada,
   cajaDeAbajoUnida,
   direccionParaMedir,
   filaAltaDelBorde,
@@ -139,6 +141,58 @@ describe("anchoDelBajo: el ancho de toda la zona del bajo", () => {
   });
   it("sin perfil no hay medida", () => {
     expect(anchoDelBajo(SIN_MEDIDA)).toBeNull();
+  });
+});
+
+describe("cajaDeArribaAjustada: solo crece lo dibujado demasiado chico, lo demás no se mueve", () => {
+  const MINIMO = ANCHO_ESTANDAR_DE_LA_UNION * (1 - HOLGURA_DE_LA_UNION) * PX_POR_CM; // 76,5 px: la cintura más angosta de la unión
+  // Una prenda de arriba de 160 px de ancho cuyo bajo ocupa `fraccion` de su ancho.
+  const con = (fraccion: number, metida = false) => ({
+    caja: { x: 110, y: 44, w: 160, h: 160 },
+    medida: { filaDelBorde: 0.9, borde: fraccion, pretina: null, bajo: null } as MedidaDelRecorte,
+    metida,
+  });
+
+  it("un bajo que ya llega a la cintura mínima no se toca: ni un píxel", () => {
+    for (const bajoPx of [MINIMO, MINIMO + 0.5, 90, 100, 120, 160, 200]) expect(cajaDeArribaAjustada(con(bajoPx / 160))).toBeNull();
+  });
+
+  it("nunca encoge: una prenda ancha (oversize, casaca, cardigan) queda como está", () => {
+    expect(cajaDeArribaAjustada(con(1))).toBeNull();
+  });
+
+  it("un bajo demasiado angosto hace crecer la prenda, sin pasar del tope", () => {
+    const c = cajaDeArribaAjustada(con(0.25))!; // 40 px de bajo contra 76,5 de mínimo
+    expect(c.w).toBeGreaterThan(160);
+    expect(c.w).toBeLessThanOrEqual(Math.round(160 * AJUSTE_MAXIMO_DE_ARRIBA));
+    expect(cajaDeArribaAjustada(con(0.05))!.w).toBe(Math.round(160 * AJUSTE_MAXIMO_DE_ARRIBA));
+  });
+
+  it("crece parejo (no se deforma), desde el centro de los hombros y sin subir", () => {
+    const c = cajaDeArribaAjustada(con(0.3))!;
+    expect(c.w / c.h).toBeCloseTo(1, 1);
+    expect(Math.abs(c.x + c.w / 2 - (110 + 80))).toBeLessThanOrEqual(1);
+    expect(c.y).toBe(44);
+  });
+
+  it("es continuo: justo debajo del umbral casi no cambia, y más angosto crece más", () => {
+    const casi = cajaDeArribaAjustada(con((MINIMO - 1) / 160))!;
+    expect(casi.w - 160).toBeLessThanOrEqual(2);
+    const anchos = [0.45, 0.4, 0.35, 0.3, 0.25, 0.2].map((f) => cajaDeArribaAjustada(con(f))!.w);
+    for (let i = 1; i < anchos.length; i++) expect(anchos[i]).toBeGreaterThanOrEqual(anchos[i - 1]);
+  });
+
+  it("una prenda metida, sin medida o con datos raros no se ajusta", () => {
+    expect(cajaDeArribaAjustada(con(0.25, true))).toBeNull();
+    expect(cajaDeArribaAjustada({ ...con(0.25), medida: null })).toBeNull();
+    expect(cajaDeArribaAjustada({ ...con(0.25), medida: SIN_MEDIDA })).toBeNull();
+    expect(cajaDeArribaAjustada({ ...con(0.25), caja: { x: 0, y: 0, w: 0, h: 0 } })).toBeNull();
+  });
+
+  it("usa el ancho de toda la zona del bajo, no solo el de su punta", () => {
+    // Punta angosta (borde 0,2) pero zona del bajo ancha (60 % del ancho): 96 px, ya en rango: no cambia.
+    const bajo = Array.from({ length: FRANJAS_DEL_BAJO }, (_, i) => (i >= 5 && i < 19 ? 0.9 : null));
+    expect(cajaDeArribaAjustada({ ...con(0.2), medida: { filaDelBorde: 0.9, borde: 0.2, pretina: null, bajo } })).toBeNull();
   });
 });
 

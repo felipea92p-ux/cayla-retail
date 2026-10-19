@@ -164,6 +164,28 @@ export const LARGO_MINIMO_DE_ABAJO = 20;
 export const LARGO_MAXIMO_DE_ABAJO = 120;
 /** Cuánto entra la pretina bajo el borde del torso (px de la escena), para que no quede una línea de aire entre las dos. */
 export const SOLAPE_DE_LA_UNION = 3;
+/** Cuánto puede crecer, a lo más, una prenda de arriba que se dibuja con el bajo demasiado angosto (×1,3). Nunca se encoge: una prenda ancha es ancha a propósito. */
+export const AJUSTE_MAXIMO_DE_ARRIBA = 1.3;
+
+/**
+ * La prenda de arriba que se dibuja con el bajo más angosto de lo que una persona puede llevar: si su bajo mide menos que la cintura más
+ * angosta que admite la unión (`ANCHO_ESTANDAR_DE_LA_UNION` menos su holgura, 30,6 cm), la blusa está dibujada demasiado chica (su largo en cm
+ * es el típico de su categoría, igual para todas las blusas, y no encaja con su forma): crece desde el centro de los hombros, sin subir, lo justo
+ * para acercarse a esa cintura (raíz cuadrada de lo que le falta, y a lo más `AJUSTE_MAXIMO_DE_ARRIBA`). Todo lo demás queda EXACTAMENTE como estaba:
+ * no encoge nunca (los oversize, las casacas y los cardigans son anchos a propósito) y desde la cintura mínima hacia arriba no toca nada, así lo que
+ * ya se ve bien no se mueve ni un píxel. Continua: justo en el umbral crece 1,0. `null`: sin cambio (sin medida, metida, o ya en rango).
+ */
+export function cajaDeArribaAjustada(arriba: { caja: Caja; medida: MedidaDelRecorte | null | undefined; metida: boolean }): Caja | null {
+  const m = arriba.medida;
+  const c = arriba.caja;
+  if (arriba.metida || !m || m.borde === null || !(c.w > 0) || !(c.h > 0)) return null;
+  const bajoPx = c.w * Math.max(m.borde, anchoDelBajo(m) ?? 0);
+  const minimoPx = ANCHO_ESTANDAR_DE_LA_UNION * (1 - HOLGURA_DE_LA_UNION) * PX_POR_CM;
+  if (!(bajoPx > 0) || bajoPx >= minimoPx) return null;
+  const k = Math.min(AJUSTE_MAXIMO_DE_ARRIBA, Math.sqrt(minimoPx / bajoPx));
+  const w = c.w * k;
+  return { x: Math.round(c.x + c.w / 2 - w / 2), y: c.y, w: Math.round(w), h: Math.round(c.h * k) };
+}
 
 /**
  * Dónde va la prenda de abajo para que su pretina siga al borde de abajo de la de arriba (dentro de ±15 % de la cintura estándar). `null` si no se puede (sin medidas, o

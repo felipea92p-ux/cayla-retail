@@ -95,5 +95,14 @@ quedaba una franja de aire entre la blusa y el pantalón. Causa: `medirRecorte` 
   que la cintura del pantalón caía al mínimo de su rango (30,6 cm) y la blusa parecía enorme. Con el ancho real de la zona del bajo (0,75) la cintura sale de 37,9 cm, el pantalón recupera su largo
   de foto (el tope de 120 cm sigue) y la figura entera se achica sola si no cabe (`escalaDe`). No se tocó el largo de las prendas de arriba: sigue mandando el que anota el ERP.
 
+- **La prenda de arriba se ajusta sola a su forma, sin tocar lo que ya se ve bien** (`cajaDeArribaAjustada`). Felipe vio blusas que no igualan el ancho del pantalón y pidió que fuera automático y sin
+  deformar las otras. Causa: el largo de cada categoría es un solo número (65 cm para todas las blusas, 45 para los tops, 60 para los polos) y no encaja con la forma de cada prenda. Regla: si el
+  bajo de la prenda mide menos que la cintura más angosta que admite la unión (30,6 cm), la prenda se dibujó demasiado chica y crece desde el centro de los hombros, sin subir, por la raíz
+  cuadrada de lo que le falta y a lo más ×1,3; desde ese umbral hacia arriba no se toca NADA y **nunca se encoge** (los oversize, casacas y cardigans son anchos a propósito: 25 de las 105 prendas de
+  arriba miden más de 50 cm de bajo). Es continua en el umbral. Medido sobre el catálogo de las tres tiendas (105 prendas de arriba, jeans Adelle Wide Leg): 80 quedan idénticas, 25 crecen (la de
+  encaje asimétrica y el top con escote ×1,3; 7 más entre ×1,1 y ×1,2; las otras 16 menos de ×1,1) y ninguna se achica. La prenda de arriba ahora se mide siempre, también sin pantalón. El largo
+  que anota el ERP sigue siendo el punto de partida.
+- Descartado: encoger las prendas anchas hasta la cintura del pantalón (deformaría los oversize), y subir el tope por encima de ×1,3 (un top de 9,8 cm de bajo, que es probablemente una punta de amarre y no un bajo, saldría enorme).
+
 Queda por hacer: probar la figura quieta en `/looks/guardado/<id>` y en una tarjeta de «Tus looks» con una cuenta real (aquí solo se comprobaron tipos, las 676 pruebas de la tienda y la medida con las
 imágenes reales), y mirar cómo se ven las prendas de arriba con volado o peplum.
