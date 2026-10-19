@@ -1,6 +1,6 @@
 # ADR-0454 — Las terminales de Lima no piden responsable, de forma temporal y por dato: «firma de respaldo»
 
-- **Fecha:** 2026-10-19 · **Estado:** propuesto (código y pruebas en la rama; **las dos migraciones NO están en producción**: esperan el OK de Felipe para pegarse)
+- **Fecha:** 2026-10-19 · **Estado:** propuesto (código y pruebas en la rama; **las dos migraciones están en producción desde el 2026-10-19 con el OK de Felipe**, pegadas en orden y verificadas: solo Caja Lima y Almacén Lima tienen respaldo)
 - **Relacionados:** ADR-0161 y ADR-0162 (el combo «Responsable» y las terminales sin persona), ADR-0280 (las 30 acciones que Felipe soltó del combo),
   ADR-0178 (el Admin firma sin asistencia, el modelo de este cambio), ADR-0195 (políticas y deadlocks en el SQL Editor), CLAUDE.md principios 2, 4 y 9.
 
