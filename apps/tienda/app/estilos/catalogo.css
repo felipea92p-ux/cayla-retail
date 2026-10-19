@@ -237,6 +237,13 @@ a.t-campana:hover { border-color: var(--tinta); }
   .t-card-nom { font-size: 21px; }
   .t-campanas { grid-auto-columns: calc((100% - 30px) / 3.4); }
 }
+/* En el celular (A · Muro, Felipe 2026-10-19): la lupa es solo su ícono y el orden, su ícono (⇅) con el nombre del que está puesto («Destacado»,
+   «Menor precio»), sin el «Orden:» de la computadora: las categorías se ven y se deslizan con casi todo el ancho. */
+@container tienda (max-width: 959px) {
+  .t-filtros { gap: 16px 10px; }
+  .t-orden a { gap: 4px; font-size: 10.5px; letter-spacing: .06em; }
+  .t-orden .ic { width: 16px; height: 16px; }
+}
 @container tienda (min-width: 960px) {
   .t-ubic { justify-content: center; }
   .t-filtro-txt { display: inline; }
@@ -396,7 +403,8 @@ a.t-pag:focus-visible { outline: 2px solid var(--rojo); outline-offset: -2px; }
 :root[data-tras-esqueleto] .t-hero-tit :is(span, em) { animation: none; }
 
 /* «Buscar» en la barra del catálogo (A · Muro): una palabra con su lupa, junto al orden. */
-.t-buscar-cat { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0; border: 0; background: none; color: var(--tinta); font: inherit; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .14em; text-transform: uppercase; cursor: pointer; }
-.t-buscar-cat .ic { width: 15px; height: 15px; }
-.t-buscar-cat:hover { text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 1px; }
+.t-buscar-cat { flex: none; position: relative; display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; background: none; color: var(--tinta); cursor: pointer; transition: background-color .25s var(--ease); }
+.t-buscar-cat::before { content: ""; position: absolute; inset: -4px; }
+.t-buscar-cat .ic { width: 18px; height: 18px; }
+.t-buscar-cat:hover { background: var(--hueso); }
 .t-buscar-cat:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; }

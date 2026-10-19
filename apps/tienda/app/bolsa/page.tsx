@@ -189,11 +189,6 @@ export default async function Bolsa() {
                             <Icono nombre="check" />
                             {texto}
                           </small>
-                        ) : marca.tipo === "traslado" ? (
-                          <small className="t-traslado">
-                            <Icono nombre="traslado" />
-                            {texto}
-                          </small>
                         ) : (
                           <em>{texto}</em>
                         ))}
