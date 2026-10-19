@@ -1020,6 +1020,11 @@ export const PRUEBAS = [
   // lo vencido; el regalo de cumpleaños (su mes, una vez, otra vez si se revirtió); solo con el módulo Vender o Clientes. ROLLBACK.
   "pruebas:club-puntos-resumen-caja",
 
+  // Puntos del Club, actividad 6: lo que «Mi Club» de la tienda web muestra (tienda_mis_puntos). Una miembro: saldo, lo que valen,
+  // configuración y cupones VIVOS con su código; sin cuenta o cerrada: null; leer libera lo vencido; el regalo de cumpleaños; el
+  // historial (15, sin venta ni nota ni responsable); solo la ejecuta tienda_web. ROLLBACK.
+  "pruebas:club-puntos-tienda",
+
   // Club de clientas, tanda 1g (G-8, CL-20, CL-21): Clientas ▸ Avisos. Quién aparece (publicidad de esa tienda; no sin la
   // casilla, con BAJA, de otra tienda), cumpleaños, aniversario, novedades (llegadas de 14 días con stock libre) y rebaja en
   // su talla deducida; el grupo testigo y el tope de 2 promocionales al mes; registrar y deshacer (10 minutos); el módulo

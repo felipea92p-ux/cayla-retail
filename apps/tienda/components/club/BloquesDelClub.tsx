@@ -1,26 +1,27 @@
 import Link from "next/link";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { colorDeDibujo, formaDe, fotoOptimizable, fotosDeTarjeta, hrefDePrenda, hrefLista, type Prenda } from "@/lib/catalogo";
 import {
-  beneficioAniversario,
-  beneficioCumple,
   detalleEspera,
   estadoEspera,
   NOVEDADES_EN_EL_CARRIL,
   ordenarEsperas,
   textoNovedades,
   tituloNovedades,
-  type Beneficio,
   type Espera,
   type MiClub,
+  montoDicho,
 } from "@/lib/club";
-import type { Dia } from "@/lib/cuentas";
+import { cumpleTexto, type Dia } from "@/lib/cuentas";
+import { cuponDicho, movimientoDicho, reglaDeLosPuntos, venceDicho, type MisPuntos } from "@/lib/puntos";
 import { claveDeSede } from "@/lib/sede-elegida";
 import { CarrilConFlechas } from "../CarrilConFlechas";
 import { SeccionDelPerfil } from "../cuenta/SeccionDelPerfil";
 import { FotoTarjeta } from "../FotoTarjeta";
 import { Icono, type NombreIcono } from "../Icono";
 import { TarjetaPrenda } from "../TarjetaPrenda";
+import { CanjearPuntos } from "./CanjearPuntos";
+import { CopiarCodigo } from "./CopiarCodigo";
 import { QuitarEspera } from "./QuitarEspera";
 
 // Los bloques del Club en «Mi perfil» (ADR-0408, actividad 12; ordenados el 2026-10-15): Mi Club CAYLA (la tarjeta y los beneficios) ·
@@ -49,52 +50,33 @@ function Carril({ children }: { children: ReactNode }) {
   );
 }
 
-function Fila({ icono, b, children }: { icono: NombreIcono; b: Beneficio; children?: ReactNode }) {
-  return (
-    <div className="c-novedad" data-disponible={b.disponible || undefined}>
-      <Icono nombre={icono} />
-      <span>
-        <b>{b.titulo}</b>
-        <small>{b.texto}</small>
-        {b.avance !== null && (
-          <span
-            className="c-barra"
-            role="progressbar"
-            aria-label="Lo que llevas este año para tu vale"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(b.avance * 100)}
-          >
-            <i style={{ "--avance": `${Math.round(b.avance * 100)}%` } as CSSProperties} />
-          </span>
-        )}
-        {children}
-      </span>
-      {b.disponible && <span className="c-chip">Disponible</span>}
-    </div>
-  );
-}
-
 /**
- * Mi Club CAYLA: su tarjeta y sus dos beneficios (el cumpleaños y el vale), con las reglas que cobra la caja. Sin ficha activa, la
- * tarjeta y una nota. `tarjeta` la dibuja la página (es del navegador: se inclina con el mouse).
+ * Mi Club CAYLA: su tarjeta y sus puntos (programa de puntos, ADR-0288 y la actividad 6): cuántos tiene y cuánto valen, cómo los gana, el
+ * regalo de su cumpleaños, canjear por un cupón con código, sus cupones vivos y su historial. Las reglas son las mismas que cobra la caja.
+ * Sin ficha activa, la tarjeta y una nota; si la base no contestó, lo dice y deja reintentar. `tarjeta` la dibuja la página (es del
+ * navegador: se inclina con el mouse).
  */
-export function BeneficiosDelClub({ club, hoy, tarjeta }: { club: MiClub["club"]; hoy: Dia; tarjeta: ReactNode }) {
+export function BeneficiosDelClub({ club, puntos, hoy, tarjeta }: { club: MiClub["club"]; puntos: MisPuntos | null; hoy: Dia; tarjeta: ReactNode }) {
   return (
     <SeccionDelPerfil id="pf-club" titulo="Mi Club CAYLA" accion={<VerMas href="/terminos-del-club">Cómo funciona</VerMas>} mitad>
       <div className="pf-club">
         <div className="pf-club-fila">
           {tarjeta}
           <div className="pf-beneficios">
-            {club.activa ? (
+            {club.activa && puntos?.miembro ? (
+              <PuntosDelClub puntos={puntos} hoy={hoy} />
+            ) : club.activa ? (
               <>
-                <Fila icono="regalo" b={beneficioCumple(club.cumple, club.conPublicidad, hoy)} />
-                <Fila icono="ticket" b={beneficioAniversario(club.aniversario, club.conPublicidad, hoy)} />
-                <p className="w-texto-sec">Se usan en caja, con tu DNI, uno por compra.</p>
+                <p className="w-nota" role="status">
+                  No pudimos cargar tus puntos ahora. Vuelve a intentarlo en unos minutos.
+                </p>
+                <Link className="t-btn t-btn-sec t-btn-chico c-reintentar" href="/cuenta">
+                  Volver a intentar
+                </Link>
               </>
             ) : (
               <p className="w-nota">
-                Tu ficha del Club CAYLA no está activa, así que aquí no vemos tus beneficios. Acércate a cualquier tienda CAYLA y la revisan
+                Tu ficha del Club CAYLA no está activa, así que aquí no vemos tus puntos. Acércate a cualquier tienda CAYLA y la revisan
                 contigo.
               </p>
             )}
@@ -102,6 +84,97 @@ export function BeneficiosDelClub({ club, hoy, tarjeta }: { club: MiClub["club"]
         </div>
       </div>
     </SeccionDelPerfil>
+  );
+}
+
+/** Los puntos de una miembro (lo que dice `tienda_mis_puntos`), en el orden en que se buscan: cuántos tiene, el regalo, canjear, cupones, historial. */
+function PuntosDelClub({ puntos, hoy }: { puntos: MisPuntos; hoy: Dia }) {
+  const { config } = puntos;
+  const hayCumple = puntos.cumple !== null;
+  const esSuMes = puntos.cumple?.mes === hoy.mes;
+  return (
+    <>
+      <div className="pt-saldo">
+        <span className="t-ceja">Tus puntos</span>
+        <p className="pt-saldo-n">
+          <b>{puntos.saldo.toLocaleString("es-PE")}</b>
+          <span>valen {montoDicho(puntos.valorSaldo)}</span>
+        </p>
+        <p className="pt-saldo-r">{reglaDeLosPuntos(config)} No vencen mientras compres.</p>
+      </div>
+
+      {config.regaloCumple > 0 && (
+        <div className="c-novedad" data-disponible={puntos.regaloDisponible || undefined}>
+          <Icono nombre="regalo" />
+          <span>
+            {puntos.regaloDisponible ? (
+              <>
+                <b>Es tu mes: +{config.regaloCumple} puntos de regalo</b>
+                <small>Se suman con tu primera compra de este mes, en tienda o en la web.</small>
+              </>
+            ) : esSuMes ? (
+              <>
+                <b>Ya recibiste tu regalo de cumpleaños</b>
+                <small>Los {config.regaloCumple} puntos ya están en tu saldo. El próximo, el año que viene.</small>
+              </>
+            ) : hayCumple && puntos.cumple ? (
+              <>
+                <b>Tu cumpleaños: {cumpleTexto(puntos.cumple.dia, puntos.cumple.mes)}</b>
+                <small>Ese mes te regalamos {config.regaloCumple} puntos con tu primera compra.</small>
+              </>
+            ) : (
+              <>
+                <b>{config.regaloCumple} puntos de regalo en tu cumpleaños</b>
+                <small>Agrega tu cumpleaños en cualquier tienda CAYLA para recibirlos.</small>
+              </>
+            )}
+          </span>
+          {puntos.regaloDisponible && <span className="c-chip">Disponible</span>}
+        </div>
+      )}
+
+      <CanjearPuntos saldo={puntos.saldo} config={config} />
+
+      {puntos.cupones.length > 0 && (
+        <div className="pt-cupones" role="list" aria-label="Tus cupones">
+          <p className="pt-sub">Tus cupones</p>
+          {puntos.cupones.map((c) => (
+            <div key={c.codigo} className="pt-cupon" role="listitem">
+              <Icono nombre="ticket" />
+              <span>
+                <b className="pt-codigo">{c.codigo}</b>
+                <small>{cuponDicho(c)}</small>
+                <small className="pt-vence">{venceDicho(c.venceEl, hoy)}</small>
+              </span>
+              <CopiarCodigo codigo={c.codigo} />
+            </div>
+          ))}
+          <p className="w-texto-sec">En caja dices o muestras el código; en la bolsa de la web lo pegas al pagar. Lo puede usar quien lo traiga, una sola vez. Si no lo usas, tus puntos vuelven.</p>
+        </div>
+      )}
+
+      {puntos.movimientos.length > 0 && (
+        <details className="pt-historial">
+          <summary>Tu historial de puntos</summary>
+          <ul>
+            {puntos.movimientos.map((m, i) => {
+              const d = movimientoDicho(m, hoy);
+              return (
+                <li key={`${m.dia}-${m.tipo}-${i}`}>
+                  <span>
+                    <b>{d.titulo}</b>
+                    <small>{d.dia}</small>
+                  </span>
+                  <span className="pt-mov" data-sube={d.sube || undefined}>
+                    {d.puntos}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </details>
+      )}
+    </>
   );
 }
 
