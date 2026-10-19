@@ -5,7 +5,7 @@
 - [ ] **Capturas a 375 px** de Inicio, catálogo, ficha, bolsa, entrar y crear cuenta (lo pide la plantilla del PR; las hechas fueron a 390, 360 y 320 px).
 - [ ] **Google en producción:** el botón sale solo con `NEXT_PUBLIC_TIENDA_GOOGLE=si`; falta configurar el proveedor.
 - [ ] **Decisión de Felipe:** el precio es el de la tienda elegida (por defecto Arequipa, la primera en orden alfabético): ¿se prefiere otra tienda por defecto o la más cercana?
-- [ ] **Decisión de Felipe:** el botón «Arma tu look personalizado» sale siempre; si no hay prendas que probar, el probador lo dice. ¿Se vuelve a esconder?
+- [ ] **Decisión de Felipe (resuelta 2026-10-19):** el botón «Arma tu look personalizado» sale siempre; si no hay prendas que probar, el probador lo dice. ¿Se vuelve a esconder?
 - [ ] Las páginas de ayuda para quien no tiene sesión (Cómo separar, Nuestras tiendas) conservan la cabecera de 4 opciones; ¿se llevan también al estilo de Entrar?
 - [ ] La cabecera que se ve mientras carga una página (esqueleto) no se ajustó; puede haber un pequeño salto.
 - [ ] Limpiar el CSS que quedó sin uso (`.t-circs*`, `.t-ubic*`, `.t-filtro-tienda`, `.ae*` del probador).

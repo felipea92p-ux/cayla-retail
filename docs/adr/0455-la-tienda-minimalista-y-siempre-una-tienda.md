@@ -11,7 +11,7 @@ un precio que ninguna tienda cobra. Felipe pidió «lo menos posible de texto»,
 
 ## Lo que se decidió
 
-1. **Cabecera «Una línea»** (elegida mirando 6 opciones, `docs/maquetas/tienda-rediseno-2026-10/cabeceras-minimalistas.html`): en la computadora, Lo nuevo · Ropa · Looks · Ofertas, el logo al centro y a la derecha la tienda (`LIMA ▾`), «Entrar» o «Cuenta» y «Bolsa 2». Sin franja negra (se oculta con una regla de `anuncio.css`, no se borra), sin la segunda barra de tiendas, sin corazón ni buscador. En el celular, el logo a la izquierda junto al menú y la tienda a la derecha, con los íconos de cuenta y bolsa.
+1. **Cabecera «Una línea»** (elegida mirando 6 opciones, `docs/maquetas/tienda-rediseno-2026-10/cabeceras-minimalistas.html`): en la computadora, Lo nuevo · Ropa · Looks · Ofertas, el logo al centro y a la derecha la tienda (`LIMA ▾`), «Entrar» o «Cuenta» y «Bolsa 2». Con la franja negra de arriba a la vista (la campaña y las frases rotan como siempre), sin la segunda barra de tiendas, sin corazón ni buscador. En el celular, el logo a la izquierda junto al menú y la tienda a la derecha, con los íconos de cuenta y bolsa.
 2. **Siempre una tienda** (`lib/sede-elegida.ts: resolverSede`, `lib/sede-servidor.ts: sedeDeLaPagina`): una página del catálogo sin `?sede=` redirige a la que la persona eligió la última vez (cookie `tienda-sede`, un año, del aparato) o, sin ella, a la **primera en orden alfabético** (hoy, Arequipa). Con una sola tienda en la web no hay nada que elegir. El precio es siempre el de esa tienda; **«Todas» (el mayor entre tiendas) ya no se muestra**.
 3. **Favoritos dentro de la cuenta:** «Favoritos» es una opción del menú de la cuenta (con o sin sesión), con su número. Al guardar un favorito (ya confirmado por la base), el corazón de la prenda vuela hasta la palabra «Entrar» / «Cuenta» y esta late una vez (`lib/corazon-vuela.ts`; sin vuelo con «reducir movimiento»; si la cabecera no se ve, el corazón sube hasta el borde de arriba).
 4. **Buscar solo en el catálogo:** un «Buscar» en la barra de filtros abre el mismo buscador de la cabecera (evento `cayla:buscar`).
@@ -24,7 +24,7 @@ un precio que ninguna tienda cobra. Felipe pidió «lo menos posible de texto»,
 
 - **El precio que ve el cliente es el de su tienda, nunca el «mayor entre tiendas».** Con tiendas de precio distinto, quien llega sin elegir ve el de Arequipa.
 - **El botón «Arma tu look personalizado» ya no se esconde** cuando no hay prendas que probar (ADR-0434 / decisión de Felipe del 2026-10-17: «sin recortes, la entrada no sale»): el probador dice «Pronto podrás armar tu look aquí».
-- **La franja negra con los avisos de campaña está oculta**: la campaña sigue en el héroe y en «Ofertas».
+- **La franja negra de arriba se queda a la vista** (Felipe 2026-10-19: «que la barra aparezca, no la ocultes»): la campaña y las frases siguen rotando.
 
 ## Descarté
 

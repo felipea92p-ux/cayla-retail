@@ -26,7 +26,3 @@
   from { opacity: 1; visibility: visible; transform: none; }
   to { opacity: 0; visibility: hidden; transform: translateY(-6px); }
 }
-
-/* A · Muro, cabecera «Una línea» (Felipe 2026-10-19): la franja negra se oculta; la campaña ya está en el héroe y en «Ofertas».
-   Para volver a verla, quitar esta regla. */
-.t-anuncio { display: none; }
