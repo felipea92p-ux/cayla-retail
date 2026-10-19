@@ -74,35 +74,26 @@ if (VERSIONES.length < 20) {
 }
 const RV_HOY = "retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text,boolean,boolean)";
 // EL PROGRAMA DE PUNTOS (ADR-0459) volvió a tocar funciones de esta cadena, después de todo lo de arriba:
-//   - registrar_venta, con reemplazos ANCLADOS posteriores a los de DESHACER_POSTERIORES: 20261019202000 (la llamada que suma los
-//     puntos), 20261019204000 (el cupón, 4a–4g), 20261019221000 (rechaza el 10 % y el vale) y 20261019224000 (5d: el cupón reservado);
-//   - registrar_aviso_enviado, con un reemplazo anclado de 20261019222000 (acepta el tipo `puntos`, ya no `aniversario`);
+//   - registrar_venta, con reemplazos ANCLADOS (202000, 204000, 221000 y 224000): los deshace DESHACER_POSTERIORES (su
+//     DESHACER_CLUB_PUNTOS, en registrar-venta-antes-de-precio-sede.mjs), como los demás parches posteriores al redondeo;
+//   - registrar_aviso_enviado, con un reemplazo anclado de 20261019222000 (acepta el tipo `puntos`, ya no `aniversario`): se deshace aquí;
 //   - fn_club_avisos_pendientes (20261019222000) y fn_club_anonimizar_inactivas (20261019220000), reemplazadas ENTERAS.
-// Los anclados se deshacen (del más nuevo al más viejo, como DESHACER_POSTERIORES) para medir la cadena del club sobre su punto de
-// partida: los pares [viejo, nuevo] se leen de los archivos para no copiarlos, y si la base no tiene uno, `replace` no cambia nada. Las
-// enteras no traen una tabla de versiones con su md5 «después»: su «después» se MIDE pegando su archivo (el del repo) en una transacción
-// que se deshace, antes del caso (l). Así la cadena sigue al archivo: si alguien cambia la viva a mano, o el archivo, la prueba lo marca.
-const anclados = (archivo, funcion) =>
-  [...leer("supabase", "migrations", archivo).matchAll(
-    new RegExp(`pg_temp\\.reemplazar\\(\\s*'(retail\\.${funcion}\\([^']*\\))',\\s*\\$v\\$([\\s\\S]*?)\\$v\\$,\\s*\\$v\\$([\\s\\S]*?)\\$v\\$,\\s*1\\);`, "g")
-  )].map((m) => ({ firma: m[1], viejo: m[2], nuevo: m[3] }));
+// El anclado se deshace para medir la cadena del club sobre su punto de partida: el par [viejo, nuevo] se lee del archivo para no
+// copiarlo, y si la base no lo tiene, `replace` no cambia nada. Las enteras no traen una tabla de versiones con su md5 «después»: su
+// «después» se MIDE pegando su archivo (el del repo) en una transacción que se deshace, antes del caso (l). Así la cadena sigue al
+// archivo: si alguien cambia la viva a mano, o el archivo, la prueba lo marca.
 const ANCLADOS_PUNTOS = [
-  ...anclados("20261019202000_club_puntos_ganar.sql", "registrar_venta"),
-  ...anclados("20261019204000_club_puntos_cobrar_con_cupon.sql", "registrar_venta"),
-  ...anclados("20261019221000_club_puntos_retira_cumple_vale_y_ligado.sql", "registrar_venta"),
-  ...anclados("20261019222000_club_puntos_textos_y_avisos.sql", "registrar_aviso_enviado"),
-  ...anclados("20261019224000_club_puntos_pedido_web.sql", "registrar_venta"),
-];
-if (ANCLADOS_PUNTOS.length !== 11) {
-  console.error(`✗ Esperaba 11 reemplazos anclados en las migraciones de puntos (registrar_venta 1 + 7 + 1 + 1; registrar_aviso_enviado 1) y encontré ${ANCLADOS_PUNTOS.length}.`);
+  ...leer("supabase", "migrations", "20261019222000_club_puntos_textos_y_avisos.sql").matchAll(
+    /pg_temp\.reemplazar\(\s*'(retail\.registrar_aviso_enviado\([^']*\))',\s*\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$,\s*1\);/g
+  ),
+].map((m) => ({ firma: m[1], viejo: m[2], nuevo: m[3] }));
+if (ANCLADOS_PUNTOS.length !== 1) {
+  console.error(`✗ Esperaba 1 reemplazo anclado de registrar_aviso_enviado en 20261019222000 y encontré ${ANCLADOS_PUNTOS.length}.`);
   process.exit(1);
 }
 const DESHACER_PUNTOS = `do $deshacer_puntos$
 begin
-${[...ANCLADOS_PUNTOS]
-  .reverse()
-  .map(({ firma, viejo, nuevo }) => `  execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`)
-  .join("\n")}
+${ANCLADOS_PUNTOS.map(({ firma, viejo, nuevo }) => `  execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`).join("\n")}
 end $deshacer_puntos$;
 `;
 const ENTERAS_PUNTOS = [
@@ -748,8 +739,8 @@ for (const { firma, archivo } of ENTERAS_PUNTOS) {
 }
 caso(
   `(l) los md5 «después» de la sección 0 de la PARTE 8 son los de las funciones vivas (${VERSIONES.length} firmas; la registrar_venta de 17 ya no existe, la de 18 tiene el de 20261003130000, que parte del de 20261002100000, que parte del de aquí, y registrarse_en_el_club el de 20261015232000, que parte del de 20261003235000; con los anclados del programa de puntos deshechos, y la conservación y la lista de avisos con el de sus archivos de puntos, 20261019220000 y 20261019222000) y los «antes» son los de producción el 2026-10-01`,
-  // registrar_venta se mide antes de los parches posteriores (precio por sede, ADR-0370; origen sugerido, 20261010220100; y los del programa
-  // de puntos, ADR-0459, que van primero porque son los más nuevos): la cadena que se vigila es la del club.
+  // registrar_venta se mide antes de los parches posteriores (precio por sede, ADR-0370; origen sugerido, 20261010220100; los del programa
+  // de puntos, ADR-0459): la cadena que se vigila es la del club. Y registrar_aviso_enviado, antes del anclado de puntos (DESHACER_PUNTOS).
   DESHACER_PUNTOS + DESHACER_POSTERIORES + VERSIONES.map((v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`).join(""),
   (s) =>
     s === VERSIONES.map(despuesHoy).join("\n") &&
