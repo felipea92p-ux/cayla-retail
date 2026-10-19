@@ -20,6 +20,10 @@ TODAS las boletas viejas con su mismo DNI (CL-27): un cliente se encontraba con 
 7. **Conservación: a los 3 años sin compras se eliminan los datos y los puntos** (`fn_club_anonimizar_inactivas`, que usa la misma fecha que «Mi Club»). 30 días antes, quien autorizó WhatsApp recibe el aviso «Puntos por vencer» en Clientes ▸ Avisos.
 8. **El DNI de la boleta nunca registra a nadie:** un cliente entra al Club solo por «Agregar cliente», el cartel o la tienda web.
 9. **En la web, el cupón se reserva al separar el pedido:** el total nace rebajado, el cupón queda reservado (nadie más lo usa), se consume al venderse y se libera si el pedido se anula, vence o no se confirma.
+   Felipe, 2026-10-19 (tarde): con pagos por partes, el cupón **se da por usado al pagar completo** (si el pedido se anula a medio
+   pagar, vuelve entero); un pedido vencido **suelta su cupón con el cierre automático**, no al leerlo; y el WhatsApp de «confirmado»
+   dice el cupón **con el código a medias** (`CAY-••••-9H2M`), porque es al portador: entero solo se ve en Pedidos web del ERP. Si al
+   confirmar se quitan prendas y lo que queda no llega a la compra mínima, el cupón vuelve al cliente y el total vuelve a la suma.
 
 ## Cómo quedó (base)
 
@@ -31,7 +35,7 @@ TODAS las boletas viejas con su mismo DNI (CL-27): un cliente se encontraba con 
 
 Migraciones, en el orden en que se pegan: `20261019201000` base · `202000` ganar · `203000` cupones · `204000` cobrar con cupón · `205000` resumen de caja ·
 `213000` Mi Club en la tienda · `215000` módulo «Beneficios del club» · `220000` conservación · `221000` retira 10 %, vale y ligado · `222000` cartel y avisos ·
-`224000` pedido web (en construcción). Cada una lleva `set lock_timeout = '3s'` y es idempotente.
+`224000` pedido web. Cada una lleva `set lock_timeout = '3s'` y es idempotente.
 
 ## Descarté
 

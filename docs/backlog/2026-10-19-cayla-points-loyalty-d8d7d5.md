@@ -30,7 +30,7 @@
 ## Puntos del Club: lo que queda tras construirlo (ADR-0459)
 
 - [ ] **Pegar en producción, con el OK de Felipe una por una y en este orden:** `20261019201000`, `202000`, `203000`, `204000`, `205000`, `213000`, `215000`, `220000`, `221000`, `222000` (y `224000`, pedido web, cuando esté). Antes de cada una, comprobar sus candados de md5 contra la base viva; después, `pnpm datos:generar:produccion` tras refrescar el volcado.
-- [ ] **Pedido web con cupón reservado (`20261019224000`):** en construcción; toca el motor de pedidos ya en producción y la boleta: revisar con Felipe antes de pegar.
+- [ ] **Pedido web con cupón reservado (`20261019224000`):** construido y probado en el banco (13/13); toca el motor de pedidos ya en producción y la boleta. Falta: probar la bolsa y la hoja del ERP en el navegador, y mandar una boleta con cupón a Lucode en un banco de pruebas antes de pegarla. Decisiones de Felipe en ADR-0459 (punto 9).
 - [ ] **Limpieza de `registrar_venta`:** las ramas muertas de `p_canjear_cumpleanos` / `p_canjear_aniversario` (hoy rechazan con `beneficio_retirado`) se borran en una migración aparte, cuando la caja vieja ya no exista en ningún aparato.
 - [ ] **Ficha del cliente:** decidir si dice la conservación de 3 años (la caja dice «no vencen mientras compre») y si lleva «Copiar» junto al código del cupón.
 - [ ] **Abogado:** los Términos 5.1–5.9 y la Política; con su OK, `docs/club/club_textos-v3-para-pegar-tras-el-abogado.sql`.
