@@ -143,6 +143,7 @@ describe("resultadoDelCodigo", () => {
     };
     expect(no({ ok: false, motivo: "no_existe", intentos: 1 }).titulo).toMatch(/No encontramos/);
     expect(no({ ok: false, motivo: "usado" }).titulo).toMatch(/ya se usó/);
+    expect(no({ ok: false, motivo: "reservado" }).titulo).toMatch(/reservado para un pedido web/);
     expect(no({ ok: false, motivo: "vencido", vence_el: "2026-10-12" }).titulo).toMatch(/12 oct/);
     expect(no({ ok: false, motivo: "bloqueado" }).detalle).toMatch(/5 minutos/);
     const minimo = no({ ok: false, motivo: "minimo", compra_minima: 30, faltan: 12.5 });

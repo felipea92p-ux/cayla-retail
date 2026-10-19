@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   conservacionDicha,
   cuponDicho,
+  cuponYSuPedido,
   diasQueFaltan,
   estadoDeRechazo,
   leerMisPuntos,
@@ -38,7 +39,10 @@ describe("leerMisPuntos", () => {
     expect(p.valorSaldo).toBe(60);
     expect(p.regaloDisponible).toBe(true);
     expect(p.config).toEqual({ puntosPorSol: 1, solesPor100: 5, canjeMinimo: 200, compraMinimaX: 3, vigenciaDias: 7, regaloCumple: 100 });
-    expect(p.cupones).toEqual([{ codigo: "CAY-4K7P-9H2M", puntos: 200, valor: 10, compraMinima: 30, venceEl: "2026-10-26" }]);
+    // Una base sin el pedido web (antes de 20261019224000) se lee como activo, sin pedido.
+    expect(p.cupones).toEqual([
+      { codigo: "CAY-4K7P-9H2M", puntos: 200, valor: 10, compraMinima: 30, venceEl: "2026-10-26", estado: "activo", pedido: null, volvioDe: null },
+    ]);
     expect(p.movimientos).toHaveLength(1);
   });
 
@@ -163,5 +167,14 @@ describe("resumenDePuntos", () => {
   it("sin respuesta o sin ficha activa", () => {
     expect(resumenDePuntos(null, true).texto).toBe("No se pudo cargar");
     expect(resumenDePuntos(leerMisPuntos({ ...CONFIG, miembro: false }), true)).toEqual({ texto: "Tu ficha no está activa", tono: "ambar" });
+  });
+});
+
+describe("el cupón y su pedido web (20261019224000)", () => {
+  it("reservado dice para qué pedido; vuelto de uno, de cuál; uno suelto no dice nada", () => {
+    expect(cuponYSuPedido({ estado: "reservado", pedido: "W-0012", volvioDe: null })).toBe("Reservado para tu pedido W-0012: se usa cuando lo pagues");
+    expect(cuponYSuPedido({ estado: "reservado", pedido: null, volvioDe: null })).toBe("Reservado para un pedido web");
+    expect(cuponYSuPedido({ estado: "activo", pedido: null, volvioDe: "W-0012" })).toBe("Volvió de tu pedido W-0012: puedes usarlo de nuevo");
+    expect(cuponYSuPedido({ estado: "activo", pedido: null, volvioDe: null })).toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { deFavoritos, soles, type Prenda } from "./catalogo";
 import { paraSeguirMirando } from "./catalogo-lista";
+import { MENSAJES_CUPON_AL_SEPARAR } from "./cupon";
 import { nombreTienda } from "./pedidos";
 import { sedesEnOrden } from "./sede-elegida";
 import { interpretarSedes, type Sede } from "./tiendas";
@@ -418,6 +419,8 @@ const MENSAJES_SEPARAR: Record<string, string> = {
   // Lo que llegó no se pudo leer (una bolsa vieja, una pestaña a medias): se vuelve a mirar la bolsa de ahora.
   pedido_web_linea_invalida: "Revisa tu bolsa y vuelve a tocar «Separar».",
   pedido_web_bolsa_vacia: "Revisa tu bolsa y vuelve a tocar «Separar».",
+  // El cupón del Club (20261019224000): si no sirve al separar, no se separa nada.
+  ...MENSAJES_CUPON_AL_SEPARAR,
 };
 /** Cuando lo que hay que hacer está en otra página, el mensaje lleva su camino: con el tope, los pedidos que esperan. */
 const CAMINOS_SEPARAR: Record<string, { texto: string; href: string }> = {

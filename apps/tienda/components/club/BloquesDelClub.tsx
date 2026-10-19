@@ -13,7 +13,7 @@ import {
   montoDicho,
 } from "@/lib/club";
 import { cumpleTexto, type Dia } from "@/lib/cuentas";
-import { conservacionDicha, cuponDicho, movimientoDicho, reglaDeLosPuntos, venceDicho, type MisPuntos } from "@/lib/puntos";
+import { conservacionDicha, cuponDicho, cuponYSuPedido, movimientoDicho, reglaDeLosPuntos, venceDicho, type MisPuntos } from "@/lib/puntos";
 import { claveDeSede } from "@/lib/sede-elegida";
 import { CarrilConFlechas } from "../CarrilConFlechas";
 import { SeccionDelPerfil } from "../cuenta/SeccionDelPerfil";
@@ -145,12 +145,20 @@ function PuntosDelClub({ puntos, hoy }: { puntos: MisPuntos; hoy: Dia }) {
               <span>
                 <b className="pt-codigo">{c.codigo}</b>
                 <small>{cuponDicho(c)}</small>
-                <small className="pt-vence">{venceDicho(c.venceEl, hoy)}</small>
+                {/* Reservado para un pedido web: no vence mientras ese pedido siga abierto (el precio quedó fijo al separar). */}
+                {c.estado === "reservado" ? (
+                  <small className="pt-vence">{cuponYSuPedido(c)}</small>
+                ) : (
+                  <>
+                    <small className="pt-vence">{venceDicho(c.venceEl, hoy)}</small>
+                    {cuponYSuPedido(c) && <small>{cuponYSuPedido(c)}</small>}
+                  </>
+                )}
               </span>
-              <CopiarCodigo codigo={c.codigo} />
+              {c.estado === "activo" && <CopiarCodigo codigo={c.codigo} />}
             </div>
           ))}
-          <p className="w-texto-sec">En caja dices o muestras el código; en la bolsa de la web lo pegas al pagar. Lo puede usar quien lo traiga, una sola vez. Si no lo usas, tus puntos vuelven.</p>
+          <p className="w-texto-sec">En caja dices o muestras el código; en la web lo escribes en tu bolsa antes de separar. Lo puede usar quien lo traiga, una sola vez. Si no lo usas, tus puntos vuelven.</p>
         </div>
       )}
 

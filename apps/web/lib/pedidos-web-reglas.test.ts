@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   agruparPorPestana,
+  leerCuponDelPedido,
+  textoDelCupon,
   avisosDeLinea,
   cifrasDe,
   cuandoEnLima,
@@ -622,5 +624,33 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
     expect(cuandoEnLima(en(15), AHORA)).toBe("mañana a las 01:00");
     expect(cuandoEnLima(hace(20), AHORA)).toBe("ayer a las 14:00");
     expect(cuandoEnLima(en(72), AHORA)).toBe("el 17 oct a las 10:00");
+  });
+});
+
+describe("El cupón del Club del pedido (20261019224000)", () => {
+  const NBSP = String.fromCharCode(0xa0);
+  it("lee el cupón del detalle; sin código, no hay cupón", () => {
+    expect(leerCuponDelPedido({ codigo: "CAY-4K7P-9H2M", valor: 5, descuento: 5, estado: "reservado", liberado_motivo: null })).toEqual({
+      codigo: "CAY-4K7P-9H2M",
+      valor: 5,
+      descuento: 5,
+      estado: "reservado",
+      liberadoMotivo: null,
+    });
+    expect(leerCuponDelPedido(null)).toBeNull();
+    expect(leerCuponDelPedido({ valor: 5 })).toBeNull();
+    // Un estado que la web no conoce se lee reservado; un motivo raro, sin motivo.
+    expect(leerCuponDelPedido({ codigo: "CAY-4K7P-9H2M", estado: "otro" })?.estado).toBe("reservado");
+    expect(leerCuponDelPedido({ codigo: "CAY-4K7P-9H2M", estado: "liberado", liberado_motivo: "raro" })?.liberadoMotivo).toBeNull();
+  });
+  it("«Cupón CAY-… · − S/ 5.00» y en qué quedó, en palabras de tienda", () => {
+    const reservado = textoDelCupon({ codigo: "CAY-4K7P-9H2M", valor: 5, descuento: 5, estado: "reservado", liberadoMotivo: null });
+    expect(reservado.titulo).toBe(`Cupón CAY-4K7P-9H2M · − S/${NBSP}5.00`);
+    expect(reservado.chip).toBe("Reservado");
+    expect(textoDelCupon({ codigo: "CAY-4K7P-9H2M", valor: 5, descuento: 5, estado: "usado", liberadoMotivo: null }).detalle).toMatch(/boleta/);
+    const liberado = textoDelCupon({ codigo: "CAY-4K7P-9H2M", valor: 5, descuento: 0, estado: "liberado", liberadoMotivo: "compra_minima" });
+    expect(liberado.titulo).toBe("Cupón CAY-4K7P-9H2M");
+    expect(liberado.detalle).toMatch(/compra mínima/);
+    expect(textoDelCupon({ codigo: "CAY-4K7P-9H2M", valor: 5, descuento: 5, estado: "liberado", liberadoMotivo: "pedido_anulado" }).detalle).toMatch(/se cerró/);
   });
 });

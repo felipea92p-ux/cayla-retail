@@ -30,6 +30,10 @@ const esquemaCupon = z.object({
   valor: numero.positive(),
   compra_minima: numero.positive(),
   vence_el: fecha,
+  // 20261019224000: reservado para un pedido web (su número, si es de esta cuenta), o vuelto de uno. Una base sin eso: activo.
+  estado: z.enum(["activo", "reservado"]).catch("activo").default("activo"),
+  pedido: z.string().regex(/^W-\d{4,}$/).nullable().catch(null).default(null),
+  volvio_de: z.string().regex(/^W-\d{4,}$/).nullable().catch(null).default(null),
 });
 
 const esquemaMovimiento = z.object({
@@ -60,7 +64,19 @@ export type ConfigPuntos = {
   regaloCumple: number;
 };
 
-export type CuponWeb = { codigo: string; puntos: number; valor: number; compraMinima: number; venceEl: string };
+export type CuponWeb = {
+  codigo: string;
+  puntos: number;
+  valor: number;
+  compraMinima: number;
+  venceEl: string;
+  /** Reservado: lo escribió al separar un pedido web y espera a que ese pedido se pague (no vence mientras tanto). */
+  estado: "activo" | "reservado";
+  /** El pedido web para el que está reservado, si es de esta cuenta. */
+  pedido: string | null;
+  /** Activo otra vez: el pedido del que volvió (se cerró o quedó bajo su compra mínima). */
+  volvioDe: string | null;
+};
 export type MovimientoDePuntos = { tipo: z.infer<typeof esquemaMovimiento>["tipo"]; puntos: number; dia: string; codigo: string | null };
 
 export type MisPuntos = {
@@ -116,7 +132,20 @@ export function leerMisPuntos(dato: unknown): MisPuntos | null {
     pierdeEl: d.pierde_el ? d.pierde_el.slice(0, 10) : null,
     cupones: (d.cupones ?? []).flatMap((c) => {
       const x = esquemaCupon.safeParse(c);
-      return x.success ? [{ codigo: x.data.codigo, puntos: x.data.puntos, valor: x.data.valor, compraMinima: x.data.compra_minima, venceEl: x.data.vence_el }] : [];
+      return x.success
+        ? [
+            {
+              codigo: x.data.codigo,
+              puntos: x.data.puntos,
+              valor: x.data.valor,
+              compraMinima: x.data.compra_minima,
+              venceEl: x.data.vence_el,
+              estado: x.data.estado,
+              pedido: x.data.pedido,
+              volvioDe: x.data.volvio_de,
+            },
+          ]
+        : [];
     }),
     movimientos: (d.movimientos ?? []).flatMap((m) => {
       const x = esquemaMovimiento.safeParse(m);
@@ -163,6 +192,12 @@ export function venceDicho(venceEl: string, hoy: Dia): string {
   if (faltan <= 0) return "Vence hoy";
   if (faltan === 1) return "Vence mañana";
   return `Vence el ${fechaDicha(venceEl, hoy)} · te quedan ${faltan} días`;
+}
+
+/** Lo que dice un cupón de su pedido web: «Reservado para tu pedido W-0012», «Volvió de tu pedido W-0012». null si no tiene que ver con uno. */
+export function cuponYSuPedido(c: Pick<CuponWeb, "estado" | "pedido" | "volvioDe">): string | null {
+  if (c.estado === "reservado") return c.pedido ? `Reservado para tu pedido ${c.pedido}: se usa cuando lo pagues` : "Reservado para un pedido web";
+  return c.volvioDe ? `Volvió de tu pedido ${c.volvioDe}: puedes usarlo de nuevo` : null;
 }
 
 /** El cupón en una línea: «S/ 10 · compra desde S/ 30». */

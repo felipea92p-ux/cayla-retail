@@ -16,7 +16,7 @@ export type CuponDelClub = {
 export type ValidacionDeCupon =
   | { ok: true; codigo: string; valor: number; compra_minima: number; vence_el: string; puntos: number; de: string | null }
   | { ok: false; motivo: "no_existe"; intentos: number }
-  | { ok: false; motivo: "usado" | "bloqueado" }
+  | { ok: false; motivo: "usado" | "bloqueado" | "reservado" }
   | { ok: false; motivo: "vencido"; vence_el: string }
   | { ok: false; motivo: "minimo"; compra_minima: number; faltan: number }
 

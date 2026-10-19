@@ -250,6 +250,14 @@ export function resultadoDelCodigo(v: ValidacionDeCupon): ResultadoDelCodigo {
       };
     case "usado":
       return { tipo: "no", tono: "atencion", titulo: "Este cupón ya se usó", detalle: "Cada cupón vale una sola vez." };
+    case "reservado":
+      // 20261019224000: el cliente lo puso en un pedido web por recoger; vale para ese pedido y nadie más lo usa, ni en caja.
+      return {
+        tipo: "no",
+        tono: "atencion",
+        titulo: "Ese cupón está reservado para un pedido web",
+        detalle: "Se usa cuando se cobre ese pedido. Si el pedido se cierra sin pagarse, el cupón vuelve a servir.",
+      };
     case "vencido":
       return {
         tipo: "no",
@@ -271,6 +279,7 @@ export function resultadoDelCodigo(v: ValidacionDeCupon): ResultadoDelCodigo {
 
 const RECHAZOS_DEL_CUPON: ReadonlyMap<string, string> = new Map([
   ["cupon_ya_usado", "Otra caja lo usó antes. Quité el cupón: revisa el total con el cliente y vuelve a confirmar el cobro."],
+  ["cupon_reservado", "Ese cupón está reservado para un pedido web. Quité el cupón: revisa el total con el cliente y vuelve a confirmar el cobro."],
   ["cupon_vencido", "El cupón venció. Quité el cupón: revisa el total con el cliente y vuelve a confirmar el cobro."],
   ["cupon_no_existe", "La base no reconoce ese código. Quité el cupón: revisa el total con el cliente y vuelve a confirmar el cobro."],
   ["cupon_compra_minima", "La compra bajó del mínimo del cupón. Quité el cupón: agrega prendas o cobra sin él."],

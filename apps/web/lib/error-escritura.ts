@@ -550,6 +550,8 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
  * Programa de puntos (2026-10-19): el cupón del Club en `registrar_venta` y el canje de puntos. Llegan con su frase; la de acá es el
  * respaldo. En Cobrar, además, la caja quita el cupón y dice qué hizo (`rechazoDelCupon`, lib/club-puntos-reglas.ts):
  *   · `cupon_no_existe`, `cupon_ya_usado`, `cupon_vencido`: el código no sirve (otra caja se adelantó, o venció).
+ *   · `cupon_reservado`: lo tiene un pedido web por recoger (20261019224000); `cupon_no_reservado`: al cobrar el pedido, su cupón ya
+ *     no estaba reservado para él (no debería pasar: la base lo hace imposible).
  *   · `cupon_compra_minima`: la compra no llega al mínimo del cupón.
  *   · `cupon_cubre_todo`, `cupon_sin_monto`: el cupón cubriría toda la compra, o no descontaría nada.
  *   · `cupon_descuento_distinto`: el reparto por prenda no coincide con el de la base (misma regla que `repartirVale`).
@@ -580,6 +582,8 @@ const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["beneficio_retirado", "El descuento de cumpleaños y el vale de aniversario ya no existen: ahora el club da puntos y cupones. Quita el canje y vuelve a cobrar."],
   ["cupon_no_existe", "Ese código de cupón no existe. Revisa que esté completo (CAY-XXXX-XXXX)."],
   ["cupon_ya_usado", "Ese cupón ya se usó: cada cupón vale una sola vez."],
+  ["cupon_reservado", "Ese cupón está reservado para un pedido web: se usa cuando se cobre ese pedido."],
+  ["cupon_no_reservado", "El cupón de este pedido web ya no está reservado para él. Vuelve a abrir el pedido para ver su total."],
   ["cupon_vencido", "Ese cupón venció: sus puntos ya volvieron a su dueño."],
   ["cupon_compra_minima", "La compra no llega al mínimo del cupón: agrega prendas o cobra sin él."],
   ["cupon_cubre_todo", "El cupón cubriría toda la compra, y una venta en S/\u00a00 no se puede registrar: agrega otra prenda o cobra sin él."],

@@ -31,6 +31,8 @@ import { detalleDeLaPrenda, nombreTienda } from "@/lib/pedidos";
 import { claveDeSede, sedesEnOrden } from "@/lib/sede-elegida";
 import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
+import { cuponDicho } from "@/lib/puntos";
+import { leerMisPuntosEnBase } from "@/lib/puntos-servidor";
 import { notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../estilos/catalogo.css";
@@ -106,7 +108,15 @@ export default async function Bolsa() {
   }
 
   // Los plazos de las promesas del resumen (la misma lectura de la ayuda) van junto con la bolsa: una sola espera.
-  const [enBase, plazos] = await Promise.all([leerBolsaEnBase(bolsa.lineas, bolsa.sedeId), leerAyuda()]);
+  // Sus cupones vivos (20261019224000), para elegirlos con un toque en «Código de cupón». Si «Mi Club» no responde, el campo sigue: se escribe.
+  const conCupon = sesion.estado === "con_sesion" && !sinClub;
+  const [enBase, plazos, puntos] = await Promise.all([
+    leerBolsaEnBase(bolsa.lineas, bolsa.sedeId),
+    leerAyuda(),
+    conCupon ? leerMisPuntosEnBase(sesion.usuarioId) : null,
+  ]);
+  const misCupones =
+    puntos?.estado === "ok" ? puntos.puntos.cupones.filter((c) => c.estado === "activo").map((c) => ({ codigo: c.codigo, texto: cuponDicho(c) })) : [];
   if (!enBase)
     return (
       <Aviso
@@ -287,6 +297,8 @@ export default async function Bolsa() {
               sinClub={sinClub}
               faltaTienda={v.faltaTienda}
               boton={v.boton}
+              conCupon={conCupon}
+              misCupones={misCupones}
               nota={
                 <>
                   {v.nota.antes}
