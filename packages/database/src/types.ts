@@ -8120,6 +8120,13 @@ export type Database = {
         Returns: undefined
       }
       restaurar_rol: { Args: { p_rol_id: string }; Returns: undefined }
+      fn_terminal_firma_respaldo: {
+        Args: never
+        Returns: {
+          nombre: string
+          persona_id: string
+        }[]
+      }
       fn_terminales: {
         Args: never
         Returns: {
