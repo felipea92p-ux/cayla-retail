@@ -733,15 +733,6 @@ export function leerBeneficios(dato: unknown): Beneficios | null {
  */
 export const soles = (monto: number) => `S/\u00a0${Number.isInteger(monto) ? String(monto) : monto.toFixed(2)}`;
 
-const ORDINALES = ["el primer año", "el segundo", "el tercero", "el cuarto", "el quinto"];
-
-/** «S/ 20 el primer año, S/ 30 el segundo… y S/ 60 el quinto» (como los términos del Club). */
-export function escalaEnPalabras(escala: readonly { anio: number; monto: number }[]): string {
-  const partes = escala.map((e) => `${soles(e.monto)} ${ORDINALES[e.anio - 1] ?? `el año ${e.anio}`}`);
-  if (partes.length <= 1) return partes.join("");
-  return `${partes.slice(0, -1).join(", ")} y ${partes[partes.length - 1]}`;
-}
-
 /* ------------------------------------------------------------------ La ip de quien llama */
 
 /** La primera ip de `x-forwarded-for` (en Vercel, la de su celular) o `x-real-ip`. Solo se usa para su huella con sal. */
