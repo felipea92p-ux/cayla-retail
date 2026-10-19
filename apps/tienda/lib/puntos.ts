@@ -46,6 +46,7 @@ const esquemaMisPuntos = esquemaConfig.extend({
   cumple_dia: z.number().int().nullable().optional(),
   cumple_mes: z.number().int().min(1).max(12).nullable().optional(),
   regalo_disponible: z.boolean().optional(),
+  pierde_el: fecha.nullable().optional(),
   cupones: z.array(z.unknown()).optional(),
   movimientos: z.array(z.unknown()).optional(),
 });
@@ -72,6 +73,8 @@ export type MisPuntos = {
   regaloDisponible: boolean;
   /** Su cumpleaños (día y mes), si lo dio. */
   cumple: { dia: number; mes: number } | null;
+  /** El último día en que se guardan sus datos y sus puntos (3 años desde su última compra, Términos 5.7), o null si la base no lo dijo. */
+  pierdeEl: string | null;
   cupones: CuponWeb[];
   movimientos: MovimientoDePuntos[];
 };
@@ -95,6 +98,7 @@ export function leerMisPuntos(dato: unknown): MisPuntos | null {
     valorSaldo: d.valor_saldo ?? 0,
     regaloDisponible: d.regalo_disponible === true,
     cumple: d.cumple_dia && d.cumple_mes ? { dia: d.cumple_dia, mes: d.cumple_mes } : null,
+    pierdeEl: d.pierde_el ? d.pierde_el.slice(0, 10) : null,
     cupones: (d.cupones ?? []).flatMap((c) => {
       const x = esquemaCupon.safeParse(c);
       return x.success ? [{ codigo: x.data.codigo, puntos: x.data.puntos, valor: x.data.valor, compraMinima: x.data.compra_minima, venceEl: x.data.vence_el }] : [];
@@ -120,6 +124,15 @@ export function reglaDeLosPuntos(cfg: ConfigPuntos): string {
   const porSol = Number.isInteger(por) ? String(por) : String(por);
   const cada = `${por === 1 ? "1 punto" : `${porSol} puntos`} por cada S/ 1 que pagas`;
   return `Ganas ${cada}. 100 puntos valen ${soles(cfg.solesPor100)}.`;
+}
+
+/**
+ * Lo que se dice de la conservación (Términos 5.7): sus puntos y sus datos se guardan mientras compre; con 3 años sin compras se eliminan.
+ * Con la fecha que la base calculó (la misma del cron), para que lo que ve sea lo que corre. Sin fecha, la regla sola.
+ */
+export function conservacionDicha(pierdeEl: string | null, hoy: Dia): string {
+  const base = "Tus puntos y tus datos se guardan mientras compres: si pasan 3 años sin compras, se eliminan.";
+  return pierdeEl ? `${base} Tu fecha: ${fechaDicha(pierdeEl, hoy)}. Cada compra la corre 3 años más.` : base;
 }
 
 /** Hoy y la fecha de un cupón: cuántos días le quedan (0 = vence hoy). */

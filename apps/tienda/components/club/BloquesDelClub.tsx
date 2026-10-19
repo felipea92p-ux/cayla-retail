@@ -13,12 +13,12 @@ import {
   montoDicho,
 } from "@/lib/club";
 import { cumpleTexto, type Dia } from "@/lib/cuentas";
-import { cuponDicho, movimientoDicho, reglaDeLosPuntos, venceDicho, type MisPuntos } from "@/lib/puntos";
+import { conservacionDicha, cuponDicho, movimientoDicho, reglaDeLosPuntos, venceDicho, type MisPuntos } from "@/lib/puntos";
 import { claveDeSede } from "@/lib/sede-elegida";
 import { CarrilConFlechas } from "../CarrilConFlechas";
 import { SeccionDelPerfil } from "../cuenta/SeccionDelPerfil";
 import { FotoTarjeta } from "../FotoTarjeta";
-import { Icono, type NombreIcono } from "../Icono";
+import { Icono } from "../Icono";
 import { TarjetaPrenda } from "../TarjetaPrenda";
 import { CanjearPuntos } from "./CanjearPuntos";
 import { CopiarCodigo } from "./CopiarCodigo";
@@ -100,7 +100,8 @@ function PuntosDelClub({ puntos, hoy }: { puntos: MisPuntos; hoy: Dia }) {
           <b>{puntos.saldo.toLocaleString("es-PE")}</b>
           <span>valen {montoDicho(puntos.valorSaldo)}</span>
         </p>
-        <p className="pt-saldo-r">{reglaDeLosPuntos(config)} No vencen mientras compres.</p>
+        <p className="pt-saldo-r">{reglaDeLosPuntos(config)}</p>
+        <p className="pt-saldo-r">{conservacionDicha(puntos.pierdeEl, hoy)}</p>
       </div>
 
       {config.regaloCumple > 0 && (

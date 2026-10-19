@@ -12,6 +12,7 @@
 -- «Mi Club» nunca muestre puntos que están en un cupón pasado de fecha. Devuelve `null` sin cuenta; con la cuenta pero sin ficha
 -- activa del Club, solo la configuración y `miembro: false`.
 --
+-- DECIDÍ: `pierde_el` es el último día en que se guardan sus datos y sus puntos (Términos 5.7): lo dice la misma cuenta que usa el cron.
 -- DECIDÍ: de cada movimiento solo sale el tipo, los puntos, el día de Lima y, si es de un cupón, su código. Nunca la venta, la nota
 --   ni quién lo registró: la tienda web no debe ver nada de la operación interna.
 -- CÓMO SE PEGA: este archivo SOLO en el SQL Editor de producción, después de `20261019205000`. Idempotente. `lock_timeout` 3 s.
@@ -21,6 +22,26 @@
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
 
+-- ---------- 0. Hasta cuándo se guardan sus datos y sus puntos (la conservación de 3 años, Términos 5.7) ----------
+-- La MISMA cuenta la usa el cron que elimina (`fn_club_anonimizar_inactivas`, actividad 9) y lo que «Mi Club» le dice a la persona, para que
+-- la fecha que ella ve sea la que de verdad corre: 3 años desde su última compra (sin compras, desde que se registró o se unió).
+create or replace function retail.fn_club_conservacion_hasta(p_clienta_id uuid)
+returns date
+language sql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+  select ((greatest(c.created_at, coalesce(c.club_desde, c.created_at),
+                    coalesce((select max(v.created_at) from retail.ventas v where v.cliente_id = c.id and v.estado = 'completada'), c.created_at))
+           + interval '3 years') at time zone 'America/Lima')::date
+    from retail.clientas c where c.id = p_clienta_id;
+$$;
+comment on function retail.fn_club_conservacion_hasta(uuid) is
+  'El último día en que se guardan los datos y los puntos de una ficha: 3 años desde su última compra (o desde que se registró o se unió). Al día siguiente la conservación la anonimiza y sus puntos se eliminan con ella. Interna: la usan el cron y «Mi Club».';
+revoke all on function retail.fn_club_conservacion_hasta(uuid) from public, anon, authenticated;
+
+-- ---------- 1. Lo que muestra «Mi Club» ----------
 create or replace function retail.tienda_mis_puntos(p_usuario_web_id uuid)
 returns jsonb
 language plpgsql
@@ -74,6 +95,7 @@ begin
     'cumple_dia', v_ficha.cumple_dia,
     'cumple_mes', v_ficha.cumple_mes,
     'regalo_disponible', v_regalo,
+    'pierde_el', retail.fn_club_conservacion_hasta(v_clienta),
     'cupones', coalesce((select jsonb_agg(jsonb_build_object('codigo', k.codigo, 'puntos', k.puntos, 'valor', k.valor,
                                                              'compra_minima', k.compra_minima, 'vence_el', k.vence_el)
                                           order by k.vence_el, k.creado_en)

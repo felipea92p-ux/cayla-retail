@@ -8,7 +8,8 @@
  * de la operación interna en un historial que ve el cliente) rompería la confianza en el programa.
  *
  * QUÉ PRUEBA (cada caso en su transacción, que termina en ROLLBACK):
- *   a. Una miembro: su saldo, lo que valen, la configuración y sus cupones VIVOS con su código (sin el usado ni el vencido).
+ *   a. Una miembro: su saldo, lo que valen, la configuración, hasta cuándo se guardan sus datos y puntos (3 años) y sus cupones VIVOS
+ *      con su código (sin el usado ni el vencido).
  *   b. Sin cuenta, con la cuenta cerrada o sin usuario: null. Cuenta sin ficha del Club: `miembro: false` y solo la configuración.
  *   c. Leer libera lo vencido: el cupón pasado de fecha devuelve sus puntos y deja de aparecer, en la misma lectura.
  *   d. El regalo de cumpleaños: sí en su mes, no fuera de su mes, no si ya lo recibió este año, sí otra vez si se revirtió.
@@ -105,9 +106,11 @@ alter table retail.club_cupones enable trigger trg_club_cupones_guardas;
 select retail.tienda_mis_puntos(:'u') as r \\gset
 select concat_ws('|', (:'r'::jsonb ->> 'miembro'), (:'r'::jsonb ->> 'saldo'), (:'r'::jsonb ->> 'valor_saldo'), (:'r'::jsonb ->> 'puntos_por_sol'),
   (:'r'::jsonb ->> 'soles_por_100'), (:'r'::jsonb ->> 'canje_minimo'), (:'r'::jsonb ->> 'vigencia_dias'), jsonb_array_length(:'r'::jsonb -> 'cupones'),
-  (:'r'::jsonb -> 'cupones' -> 0 ->> 'codigo') = :'vivo');`,
+  (:'r'::jsonb -> 'cupones' -> 0 ->> 'codigo') = :'vivo',
+  -- hasta cuándo se guardan sus datos y puntos: 3 años desde que se unió (sin compras), la misma fecha que usa el cron.
+  (:'r'::jsonb ->> 'pierde_el')::date = (:'hoy'::date + interval '3 years')::date);`,
   // 1 240 − 3 canjes de 200 = 640; el vencido devuelve sus 200 al leer → 840 (valen S/ 40: solo cuentan los cientos completos); queda UN cupón vivo.
-  "true|840|40.00|1.00|5.00|200|7|1|t"
+  "true|840|40.00|1.00|5.00|200|7|1|t|t"
 );
 caso(
   "(b) sin usuario, sin cuenta o con la cuenta cerrada: null; una cuenta sin ficha del Club: miembro false y solo la configuración",

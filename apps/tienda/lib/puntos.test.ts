@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  conservacionDicha,
   cuponDicho,
   diasQueFaltan,
   estadoDeRechazo,
@@ -25,6 +26,7 @@ const COMPLETA = {
   cumple_dia: 14,
   cumple_mes: 10,
   regalo_disponible: true,
+  pierde_el: "2029-10-19",
   cupones: [{ codigo: "CAY-4K7P-9H2M", puntos: 200, valor: 10, compra_minima: 30, vence_el: "2026-10-26" }],
   movimientos: [{ tipo: "canje", puntos: -200, dia: "2026-10-19", codigo: "CAY-4K7P-9H2M" }],
 };
@@ -82,6 +84,15 @@ describe("cómo se dicen", () => {
     expect(venceDicho("2026-10-20", HOY)).toBe("Vence mañana");
     expect(venceDicho("2026-10-26", HOY)).toBe("Vence el 26 de octubre · te quedan 7 días");
     expect(venceDicho("2026-10-18", HOY)).toBe("Vence hoy");
+  });
+
+  it("la conservación: la regla de los 3 años con la fecha de la base", () => {
+    expect(conservacionDicha("2029-10-19", HOY)).toBe(
+      "Tus puntos y tus datos se guardan mientras compres: si pasan 3 años sin compras, se eliminan. Tu fecha: 19 de octubre de 2029. Cada compra la corre 3 años más.",
+    );
+    expect(conservacionDicha(null, HOY)).toBe("Tus puntos y tus datos se guardan mientras compres: si pasan 3 años sin compras, se eliminan.");
+    expect(leerMisPuntos(COMPLETA)!.pierdeEl).toBe("2029-10-19");
+    expect(leerMisPuntos({ ...COMPLETA, pierde_el: undefined })!.pierdeEl).toBeNull();
   });
 
   it("el cupón en una línea", () => {

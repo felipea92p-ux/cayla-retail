@@ -1030,6 +1030,11 @@ export const PRUEBAS = [
   // mes) suben con lo que pasa; el módulo nace sin rol. ROLLBACK.
   "pruebas:club-puntos-beneficios",
 
+  // Puntos del Club, actividad 9: la conservación de 3 años elimina los datos Y los puntos. El cron elimina a una miembro inactiva con un
+  // «pierde» por todo su saldo y no toca a quien compró hace poco; la fecha de «Mi Club» es la del cron; los tres caminos de anonimizar
+  // eliminan los puntos; una ficha que falla no frena a las demás; un cupón vivo no se toca; dos corridas no repiten. ROLLBACK.
+  "pruebas:club-puntos-conservacion",
+
   // Club de clientas, tanda 1g (G-8, CL-20, CL-21): Clientas ▸ Avisos. Quién aparece (publicidad de esa tienda; no sin la
   // casilla, con BAJA, de otra tienda), cumpleaños, aniversario, novedades (llegadas de 14 días con stock libre) y rebaja en
   // su talla deducida; el grupo testigo y el tope de 2 promocionales al mes; registrar y deshacer (10 minutos); el módulo
