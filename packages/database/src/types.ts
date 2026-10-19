@@ -20,6 +20,23 @@ export type ValidacionDeCupon =
   | { ok: false; motivo: "vencido"; vence_el: string }
   | { ok: false; motivo: "minimo"; compra_minima: number; faltan: number }
 
+/** Lo que devuelve `resumen_puntos_caja`: la configuración vigente (siempre) y, si es miembro, su saldo, su regalo y sus cupones vivos. */
+export type ResumenDePuntosEnCaja = {
+  puntos_por_sol: number
+  soles_por_100: number
+  canje_minimo: number
+  compra_minima_x: number
+  vigencia_dias: number
+  regalo_cumple: number
+  miembro: boolean
+  saldo?: number
+  valor_saldo?: number
+  cumple_dia?: number | null
+  cumple_mes?: number | null
+  regalo_disponible?: boolean
+  cupones?: { codigo: string; valor: number; compra_minima: number; vence_el: string }[]
+}
+
 export type Json =
   | string
   | number
@@ -6110,6 +6127,11 @@ export type Database = {
       canjear_puntos: {
         Args: { p_clienta_id: string; p_puntos: number; p_token?: string }
         Returns: CuponDelClub
+      }
+      /** Puntos del Club (actividad 5): lo que la caja muestra de los puntos de una clienta (lectura). */
+      resumen_puntos_caja: {
+        Args: { p_clienta_id: string }
+        Returns: ResumenDePuntosEnCaja
       }
       /** Puntos del Club (actividad 4): ¿sirve este código de cupón? ok con su valor, o el motivo; cuenta los códigos que no existen (5 en 5 min bloquean la cuenta). */
       validar_cupon: {

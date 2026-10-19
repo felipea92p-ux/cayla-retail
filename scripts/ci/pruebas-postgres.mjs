@@ -1015,6 +1015,11 @@ export const PRUEBAS = [
   // códigos que no existen. ROLLBACK (la carrera de dos cajas con COMMIT solo corre con BASE_DESECHABLE=1, no aquí).
   "pruebas:club-puntos-cobrar-cupon",
 
+  // Puntos del Club, actividad 5: lo que la caja muestra de los puntos (resumen_puntos_caja). Una miembro: saldo, lo que valen,
+  // configuración y cupones VIVOS con su código; «Identificado» o anonimizada: miembro false y aun así la configuración; leer libera
+  // lo vencido; el regalo de cumpleaños (su mes, una vez, otra vez si se revirtió); solo con el módulo Vender o Clientes. ROLLBACK.
+  "pruebas:club-puntos-resumen-caja",
+
   // Club de clientas, tanda 1g (G-8, CL-20, CL-21): Clientas ▸ Avisos. Quién aparece (publicidad de esa tienda; no sin la
   // casilla, con BAJA, de otra tienda), cumpleaños, aniversario, novedades (llegadas de 14 días con stock libre) y rebaja en
   // su talla deducida; el grupo testigo y el tope de 2 promocionales al mes; registrar y deshacer (10 minutos); el módulo
