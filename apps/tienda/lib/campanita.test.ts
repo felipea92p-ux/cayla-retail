@@ -148,11 +148,11 @@ describe("las palabras", () => {
     expect(textoGlobo(298)).toBe("9+");
   });
 
-  it("Lo nuevo, en singular y plural, y sin número invita sin inventar", () => {
-    expect(textoNovedades(1)).toBe("Llegó 1 prenda nueva desde tu última visita.");
-    expect(textoNovedades(3)).toBe("Llegaron 3 prendas nuevas desde tu última visita.");
-    expect(textoNovedades(0)).toBe("Desde tu última visita no llegó nada nuevo.");
-    expect(textoNovedades(null)).not.toMatch(/llegó|llegaron/i);
+  it("Lo nuevo, en una línea: singular, plural, y sin nada o sin dato, «Nada nuevo» (sin inventar un número)", () => {
+    expect(textoNovedades(1)).toBe("1 prenda nueva");
+    expect(textoNovedades(3)).toBe("3 prendas nuevas");
+    expect(textoNovedades(0)).toBe("Nada nuevo");
+    expect(textoNovedades(null)).toBe("Nada nuevo");
   });
 
   it("las tallas que no se nombran", () => {

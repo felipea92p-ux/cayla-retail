@@ -18,8 +18,9 @@ const TRAZOS = {
   reloj: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5v5l3 2" /></>,
   traslado: <path d="M3 7h12l-3-3M21 17H9l3 3" />,
   sobre: <><rect x="3.5" y="5.5" width="17" height="13" rx="2" /><path d="M4 7l8 6 8-6" /></>,
-  // Catálogo (actividad 3): el botón que cambia el orden de la lista.
-  flechas: <path d="M4 8h13l-3-3M20 16H7l3 3" />,
+  // Catálogo (actividad 3): el botón que cambia el orden de la lista. Flechas verticales (⇅): así se lee «ordenar»; las horizontales
+  // (⇄, `traslado`) se leían como «intercambiar» (Felipe 2026-10-19).
+  flechas: <path d="M8 20V4M4 8l4-4 4 4M16 4v16M12 16l4 4 4-4" />,
   // La ficha (actividad 4): el acordeón.
   chevron: <path d="M7 10l5 5 5-5" />,
   // La cabecera con cuenta (actividad 5): el menú, el buscador y cerrar sus hojas.

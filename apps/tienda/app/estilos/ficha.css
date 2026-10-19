@@ -86,12 +86,12 @@
 .t-stock { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
 .t-stock th, .t-stock td { padding: 9px 8px; text-align: center; border-top: 1px solid var(--sand); }
 .t-stock thead th { border-top: 0; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); }
-.t-stock tbody th { text-align: left; font-weight: 500; color: var(--tinta); padding-left: 0; white-space: nowrap; }
+.t-stock tbody th { text-align: left; font-weight: 500; color: var(--tinta); padding-left: 12px; white-space: nowrap; }
 .t-stock td.hay { color: var(--verde); font-weight: 600; }
 .t-stock td.poco { color: var(--rojo-profundo); font-weight: 700; }
 .t-stock td.cero { color: var(--tinta-60); }
-.t-stock tr.elegida th, .t-stock tr.elegida td { background: color-mix(in srgb, var(--tinta) 6%, transparent); }
-.t-stock tr.elegida th { box-shadow: inset 3px 0 0 var(--tinta); }
+.t-stock tr.elegida th, .t-stock tr.elegida td { background: color-mix(in srgb, var(--tinta) 9%, transparent); }
+.t-stock tr.elegida th { font-weight: 700; }
 .t-stock th.talla-elegida { color: var(--tinta); }
 .t-stock td.talla-elegida { background: color-mix(in srgb, var(--rojo) 7%, transparent); }
 /* El cruce de la tienda elegida con la talla elegida: la respuesta que se busca. */
