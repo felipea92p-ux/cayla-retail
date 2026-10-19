@@ -437,11 +437,17 @@ export function memoriaInicial(look: Look, prendas: readonly PrendaDelProbador[]
 
 export type Totales = { cuantas: number; final: number; lista: number; desde: boolean };
 
-/** Lo que cuesta el look completo: la suma de lo que se paga por cada prenda en su color (con «Desde» si alguna lo lleva). */
-export function totales(look: Look, indice: ReadonlyMap<string, PrendaDelProbador>): Totales {
+/** Las prendas que el cliente NO lleva (su «✕» en «Tu look»), por el id de la prenda: siguen en la figura, pero no cuentan en el total ni van
+ *  a la bolsa. Por id y no por zona: si cambia la prenda de esa zona, la nueva entra sola; si vuelve la de antes, vuelve como la dejó. */
+export type SinLlevar = ReadonlySet<string>;
+
+/** Lo que cuesta el look completo: la suma de lo que se paga por cada prenda en su color (con «Desde» si alguna lo lleva). Sin las
+ *  que el cliente no lleva (`sin`). */
+export function totales(look: Look, indice: ReadonlyMap<string, PrendaDelProbador>, sin?: SinLlevar): Totales {
   return presentes(look).reduce<Totales>(
     (t, z) => {
       const pieza = look[z]!;
+      if (sin?.has(pieza.id)) return t;
       const p = indice.get(pieza.id);
       if (!p) return t;
       const c = colorDeLaPieza(p, pieza);
@@ -478,17 +484,27 @@ export function piezasParaLasTallas(dato: unknown): PiezaParaTallas[] | null {
   return r.success ? r.data.map((p) => ({ id: p.id, color: p.color.toUpperCase() })) : null;
 }
 
-/** Las prendas puestas, para pedir sus tallas, en el orden de las zonas. */
-export function piezasDelLook(look: Look): PiezaParaTallas[] {
-  return presentes(look).map((z) => ({ id: look[z]!.id, color: look[z]!.color }));
+/** Las prendas puestas, para pedir sus tallas, en el orden de las zonas. Sin las que el cliente no lleva (`sin`): la bolsa solo recibe lo
+ *  que lleva. */
+export function piezasDelLook(look: Look, sin?: SinLlevar): PiezaParaTallas[] {
+  return presentes(look)
+    .filter((z) => !sin?.has(look[z]!.id))
+    .map((z) => ({ id: look[z]!.id, color: look[z]!.color }));
+}
+
+/** Lo que dice el botón de la bolsa de «Tu look»: cuántas prendas se agregan, no «todo» (Felipe 2026-10-19: con una prenda sin llevar,
+ *  «Agregar a mi bolsa» daba a entender que se agregaba todo). Sin ninguna que llevar, se apaga y dice qué hacer. */
+export function textoAgregarAlLook(llevo: number): { texto: string; apagado: boolean } {
+  if (llevo <= 0) return { texto: "Elige qué llevar", apagado: true };
+  return { texto: `Agregar ${llevo} ${llevo === 1 ? "prenda" : "prendas"} a mi bolsa`, apagado: false };
 }
 
 /**
  * El look del probador como la hoja de tallas de los looks (`AgregarLook`) lo dibuja: cada prenda en su color, con su recorte, lo que
  * vale ese color y sus tallas. La hoja y la bolsa son las mismas de «Arma tu look» (ADR-0434): una sola forma de llevar un look a la bolsa.
  */
-export function lookParaLaHoja(look: Look, indice: ReadonlyMap<string, PrendaDelProbador>, tallas: TallasDeTuLook): LookDeCayla {
-  const t = totales(look, indice);
+export function lookParaLaHoja(look: Look, indice: ReadonlyMap<string, PrendaDelProbador>, tallas: TallasDeTuLook, sin?: SinLlevar): LookDeCayla {
+  const t = totales(look, indice, sin);
   return {
     id: "tu-look",
     nombre: "Una talla por prenda",
@@ -498,7 +514,7 @@ export function lookParaLaHoja(look: Look, indice: ReadonlyMap<string, PrendaDel
     total: t.lista,
     totalFinal: t.final,
     desde: t.desde,
-    piezas: presentes(look).flatMap((z, i) => {
+    piezas: presentes(look).filter((z) => !sin?.has(look[z]!.id)).flatMap((z, i) => {
       const pieza = look[z]!;
       const p = indice.get(pieza.id);
       if (!p) return [];
