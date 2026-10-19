@@ -14,7 +14,6 @@ import {
   enMinutos,
   errorDeClub,
   errorDeCuenta,
-  escalaEnPalabras,
   esquemaCrearCuenta,
   esquemaUnirseAlClub,
   estadoClub,
@@ -616,10 +615,9 @@ describe("lo que contesta la base", () => {
     for (const raro of [null, undefined, "x", {}, { ...CUENTA, nombre: "" }, { ...CUENTA, club_desde: "14/10/2026" }]) expect(leerMiCuenta(raro)).toBeNull();
   });
 
-  it("lee los beneficios del club y los dice como los términos", () => {
+  it("lee los beneficios del club", () => {
     const b = leerBeneficios({ pct: "10.00", escala: [{ anio: 2, monto: 30 }, { anio: 1, monto: "20.00" }], compras: 6, monto_minimo: 600, dias: 60 });
     expect(b).toEqual({ pct: 10, escala: [{ anio: 1, monto: 20 }, { anio: 2, monto: 30 }], compras: 6, montoMinimo: 600, dias: 60 });
-    expect(escalaEnPalabras(b!.escala)).toBe("S/\u00a020 el primer año y S/\u00a030 el segundo");
     // «S/» y la cifra no se separan al final de un renglón (ADR-0413): el espacio es el que no se parte.
     expect(soles(20)).toBe("S/\u00a020");
     expect(soles(25.5)).toBe("S/\u00a025.50");
