@@ -134,8 +134,20 @@
 .pb-ninguna-caja { width: 72px; height: 84px; box-sizing: border-box; border-radius: 0; border: 1.5px dashed var(--pb-filo); display: grid; place-items: center; color: var(--taupe); transition: box-shadow .2s; }
 .pb-ninguna[aria-pressed="true"] .pb-ninguna-caja { box-shadow: inset 0 0 0 1.5px var(--tinta); border-color: transparent; }
 .pb-ninguna-caja .ic { width: 22px; height: 22px; }
-.pb-buscar-otra { flex: none; width: 72px; height: 84px; box-sizing: border-box; padding: 0; border-radius: 0; border: 1.5px dashed var(--pb-filo); background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font: inherit; font-size: 11.5px; font-weight: 600; line-height: 1.2; text-align: center; color: var(--tinta); cursor: pointer; scroll-snap-align: start; }
-.pb-buscar-otra .ic { width: 20px; height: 20px; }
+/* «Buscar otra»: ya no es una tarjeta al final de la tira (con páginas, el final cambia): vive en el pie, junto a las páginas. */
+.pb-buscar-otra { flex: none; min-height: 40px; padding: 0; border: 0; background: transparent; display: inline-flex; align-items: center; gap: 7px; font: inherit; font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--tinta); cursor: pointer; }
+.pb-buscar-otra .ic { width: 16px; height: 16px; }
+/* El pie de la tira: las páginas de 8 (`lib/paginas.ts`, Felipe 2026-10-19) y «Buscar otra». */
+.pb-tira-pie { padding: 4px 16px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pb-pag { display: inline-flex; align-items: center; gap: 2px; }
+.pb-pag-flecha { width: 40px; height: 40px; padding: 0; border: 1px solid var(--sand); border-radius: 0; background: transparent; color: var(--tinta); display: inline-grid; place-items: center; cursor: pointer; transition: border-color .2s, color .2s, background-color .2s; }
+.pb-pag-flecha .ic { width: 16px; height: 16px; }
+.pb-pag-anterior .ic { transform: rotate(180deg); }
+.pb-pag-flecha:disabled { color: var(--tinta-40); cursor: default; border-color: color-mix(in srgb, var(--sand) 55%, transparent); }
+@media (hover: hover) { .pb-pag-flecha:not(:disabled):hover { border-color: var(--tinta); } }
+.pb-pag-flecha:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.pb-pag-dato { min-width: 64px; text-align: center; font-size: 11.5px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); }
+.pb-pag-dato b { color: var(--tinta); font-weight: 700; }
 .pb-separador { flex: none; width: 56px; height: 84px; display: flex; align-items: center; justify-content: center; border-left: 1px solid var(--sand); margin-left: 2px; font-family: var(--nombre); font-style: italic; font-size: 15px; line-height: 1.1; color: var(--taupe); text-align: center; }
 
 /* ---- «Tu look» ---- */
@@ -281,8 +293,10 @@
   .pb-opcion-recorte { width: 78%; height: 82%; }
   .pb-opcion-nombre { font-size: 13px; }
   .pb-opcion-precio { font-size: 12.5px; }
-  .pb-separador { width: auto; height: 178px; margin: 0; }
-  .pb-buscar-otra { width: auto; height: 178px; font-size: 13px; }
+  /* En la grilla, «o un vestido» es un rótulo de fila entera sobre las de la otra zona (no una celda más). */
+  .pb-separador { grid-column: 1 / -1; width: auto; height: auto; margin: 4px 0 -4px; padding-top: 12px; border-left: 0; border-top: 1px solid var(--sand); justify-content: flex-start; text-align: left; }
+  .pb-tira-pie { padding: 14px 0 0; }
+  .pb-solo-celular { display: none; }
   .pb-chip { left: 8px; top: 8px; padding: 3px 8px; font-size: 10.5px; }
   .pb-look { grid-area: look; padding: 0 0 6px; }
   .pb-filas { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 18px; }
@@ -302,6 +316,15 @@
   .pb-agregar { display: inline-flex; width: calc(50% - 9px); margin-right: 14px; }
   .pb-agregar + .pb-agregar { margin-right: 0; }
   .pb-tira-carril { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* En una computadora de pantalla baja (portátil de 768 px de alto) las dos filas de 8 con su pie no entraban en la vista: la foto de cada
+   opción se achica para que las 8 y las páginas se vean sin bajar (Felipe 2026-10-19: «que entre todo en una misma vista»). */
+@container tienda (min-width: 960px) {
+  @media (max-height: 820px) {
+    .pb-opcion-foto, .pb-ninguna-caja { height: 122px; }
+    .pb-tira-carril { gap: 12px 14px; }
+  }
 }
 
 /* ---- La figura quieta (actividad 8): un look guardado, sin nada que tocar, en Favoritos y en su página ---- */
