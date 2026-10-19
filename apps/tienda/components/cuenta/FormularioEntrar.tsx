@@ -132,13 +132,7 @@ export function FormularioEntrar() {
         entrar(e.currentTarget);
       }}
     >
-      <div>
-        <span className="t-ceja">Tu cuenta</span>
-        <h1 className="w-titulo">
-          Entra a <em>tu cuenta.</em>
-        </h1>
-      </div>
-      <BotonGoogle volver={volver} />
+      <h1 className="w-titulo">Entrar</h1>
       <div className="w-campo" data-estado={problema?.campo === "correo" ? "error" : undefined}>
         <label htmlFor={ID.correo}>Correo</label>
         <input
@@ -208,6 +202,7 @@ export function FormularioEntrar() {
       <button className="t-btn t-btn-ancho" type="submit" disabled={enviando} aria-busy={enviando || undefined}>
         {enviando ? "Entrando…" : "Entrar"}
       </button>
+      <BotonGoogle volver={volver} abajo />
       {/* Quien llega sin cuenta (un enlace que le mandaron) ve el otro camino como un botón, no como un enlace perdido en una frase. La
           pregunta va en la raya que separa los dos caminos; lo que gana con el Club lo dice el panel de al lado (o de abajo). */}
       <div className="w-otro-camino">

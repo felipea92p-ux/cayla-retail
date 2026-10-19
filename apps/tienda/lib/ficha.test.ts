@@ -330,7 +330,7 @@ describe("«También te puede gustar» llena su fila (2026-10-16)", () => {
 
   it("la ceja dice de dónde salen y «Ver todo» lleva a eso mismo: su categoría, su grupo o toda la tienda", () => {
     expect(parecidasA(emma, catalogo, { cuantas: 2 })).toMatchObject({ ceja: "Camisas y Blusas", ver: { categoria: "CMS", grupo: null } });
-    expect(parecidasA(emma, catalogo, { cuantas: 3 })).toMatchObject({ ceja: "Arriba", ver: { categoria: null, grupo: "arriba" } });
+    expect(parecidasA(emma, catalogo, { cuantas: 3 })).toMatchObject({ ceja: "Blusas/Tops", ver: { categoria: null, grupo: "arriba" } });
     expect(parecidasA(emma, catalogo)).toMatchObject({ ceja: "Sigue mirando", ver: { categoria: null, grupo: null } });
   });
 

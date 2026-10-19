@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { cejaDeLook, hrefLook, precioDelLook, type Look } from "@/lib/looks";
+import { hrefLook, precioDelLook, type Look } from "@/lib/looks";
 import { Lamina } from "./Lamina";
 
 /**
- * La tarjeta de un look en «Arma tu look» y en el Inicio (maqueta v4, `vLooks`): la lámina, «Look 1 · 4 prendas», su nombre, su frase y,
- * en su propia línea, lo que cuesta completo (con el total sin campaña tachado, como una prenda). Antes el precio iba pegado a la frase,
- * en gris, y en el celular se partía («S/» al final de una línea y «243.10» en la siguiente). Toda la tarjeta lleva al look.
+ * La tarjeta de un look en «Arma tu look» y en el Inicio (A · Muro, minimalista): la lámina y, debajo, su nombre a la izquierda y lo que
+ * cuesta completo a la derecha (con el total sin campaña tachado, como una prenda): como la cédula de una obra. Sin «Look 1 · 4 prendas»,
+ * sin frase ni «el look completo»: el nombre y el precio se entienden solos (la frase se lee dentro del look). Toda la tarjeta lleva al look.
  */
 export function TarjetaLook({
   look,
@@ -23,9 +23,7 @@ export function TarjetaLook({
   return (
     <Link className="t-look-card" href={hrefLook(look.id, sede)}>
       <Lamina look={look} sede={sede} origenFotos={origenFotos} enlaces={false} pronto={pronto} />
-      <span className="t-ceja">{cejaDeLook(look)}</span>
       <h3>{look.nombre}</h3>
-      {look.frase && <small>{look.frase}</small>}
       <span className={`t-precio t-look-card-precio${precio.oferta ? " oferta" : ""}`}>
         <b className="num">{precio.principal}</b>
         {precio.anterior && (
@@ -34,7 +32,6 @@ export function TarjetaLook({
             {precio.anterior}
           </s>
         )}
-        <span className="t-look-card-todo">el look completo</span>
       </span>
     </Link>
   );
