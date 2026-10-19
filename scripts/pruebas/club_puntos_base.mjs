@@ -305,9 +305,9 @@ ${como(FELIPE)}select concat_ws('|',
 // ---------------------------------------------------------------- f. Guardar la configuración
 const GUARDAR = (...v) => `select retail.guardar_beneficios_puntos(${v.join(", ")})`;
 caso(
-  "(f1) solo el líder guarda: una integrante recibe solo_lider",
+  "(f1) solo quien tiene el módulo «Beneficios del club» guarda: una integrante recibe sin_permiso",
   `${como(MICAELA)}${intento(GUARDAR("1", "5", "200", "3", "7", "100", "2"))}`,
-  "42501|solo_lider"
+  "42501|sin_permiso"
 );
 caso(
   "(f2) guardar lo MISMO no agrega una versión (devuelve la vigencia de la última)",

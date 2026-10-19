@@ -113,7 +113,7 @@ import {
   GUIA_INICIO,
 } from "./pantallas/general";
 import { GUIA_ANALISIS, GUIA_FRESCURA, GUIA_PLAN_DEL_PISO, GUIA_RENDIMIENTO } from "./pantallas/gestion";
-import { GUIA_AVISOS_CLUB, GUIA_CLIENTES } from "./pantallas/clientes";
+import { GUIA_AVISOS_CLUB, GUIA_BENEFICIOS_CLUB, GUIA_CLIENTES } from "./pantallas/clientes";
 import {
   GUIA_PEDIDOS_WEB,
   GUIA_RECOMENDACIONES,
@@ -226,6 +226,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_BUSCAR,
   GUIA_CLIENTES,
   GUIA_AVISOS_CLUB,
+  GUIA_BENEFICIOS_CLUB,
   GUIA_COLABORADORES,
   GUIA_COMERCIAL,
   GUIA_CALIDAD,
@@ -264,6 +265,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   // ---- clientas ----
   "/clientas": { estado: "aplicada", guia: GUIA_CLIENTES.id },
   "/clientas/avisos": { estado: "aplicada", guia: GUIA_AVISOS_CLUB.id },
+  "/clientas/beneficios": { estado: "aplicada", guia: GUIA_BENEFICIOS_CLUB.id },
   "/clientas/cartel": { estado: "no-aplica", motivo: "Hoja de impresión del cartel del club: se revisa y se imprime, no hay piezas que recorrer." },
   // ---- colaboradores ----
   "/colaboradores": { estado: "aplicada", guia: GUIA_COLABORADORES.id },

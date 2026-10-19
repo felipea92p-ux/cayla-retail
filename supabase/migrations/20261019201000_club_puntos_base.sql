@@ -17,8 +17,8 @@
 --   3. `club_puntos_saldos`: el saldo, DERIVADO. Lo mantiene un disparador desde los movimientos y no puede ser negativo.
 --   4. Funciones internas (sin permiso para la API; las llamarán `registrar_venta` y las demás actividades): leer la configuración,
 --      anotar un movimiento (con todas sus reglas) y recalcular el saldo desde los movimientos (para auditar).
---   5. `guardar_beneficios_puntos`: guarda una versión nueva de la configuración. Solo el líder, con su responsable; la pantalla y
---      el módulo «Beneficios del club» llegan en la actividad 8. NO toca `club_textos`: los Términos los publica el abogado.
+--   5. `guardar_beneficios_puntos`: guarda una versión nueva de la configuración. Con el módulo «Beneficios del club» (nace solo
+--      para el líder), con su responsable; la pantalla y el módulo llegan en la actividad 8. NO toca `club_textos`: los Términos los publica el abogado.
 --
 -- DECIDÍ: el saldo es una tabla derivada por disparador (como `stock`), no una vista: se lee barato y la CHECK `saldo >= 0` es un
 --   candado que ningún camino puede saltarse. Además `fn_club_puntos_anotar` bloquea la fila del saldo ANTES de mirar si alcanza,
@@ -396,8 +396,9 @@ declare
   v_toca_lo_ganado boolean;
   v_desde date;
 begin
-  if not retail.fn_es_lider() then
-    raise exception 'Los beneficios del club los cambia el líder.' using errcode = '42501', hint = 'solo_lider';
+  -- Con el módulo «Beneficios del club» (nace solo para el líder; el líder decide después a qué rol dárselo, ADR-0161/ADR-0253).
+  if not retail.fn_ve_modulo('beneficios_club') then
+    raise exception 'Los beneficios del club los cambia quien tiene el módulo «Beneficios del club».' using errcode = '42501', hint = 'sin_permiso';
   end if;
   v_persona := retail.fn_actor_persona_id(true);
 
@@ -464,6 +465,6 @@ begin
 end;
 $$;
 comment on function retail.guardar_beneficios_puntos(numeric, numeric, integer, numeric, integer, integer, numeric, date) is
-  'Guarda una versión nueva de la configuración de los puntos del Club. Solo el líder, con su responsable. Cambiar lo que valen los puntos o el canje mínimo rige desde dentro de 15 días (hint cambio_con_aviso si se pide antes); lo demás, desde hoy. Anota quién y cuándo en configuracion_historial. No toca club_textos.';
+  'Guarda una versión nueva de la configuración de los puntos del Club. Solo con el módulo «Beneficios del club» (nace solo para el líder), con su responsable. Cambiar lo que valen los puntos o el canje mínimo rige desde dentro de 15 días (hint cambio_con_aviso si se pide antes); lo demás, desde hoy. Anota quién y cuándo en configuracion_historial. No toca club_textos.';
 revoke all on function retail.guardar_beneficios_puntos(numeric, numeric, integer, numeric, integer, integer, numeric, date) from public, anon;
 grant execute on function retail.guardar_beneficios_puntos(numeric, numeric, integer, numeric, integer, integer, numeric, date) to authenticated;

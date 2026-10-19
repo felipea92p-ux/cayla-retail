@@ -1025,6 +1025,11 @@ export const PRUEBAS = [
   // historial (15, sin venta ni nota ni responsable); solo la ejecuta tienda_web. ROLLBACK.
   "pruebas:club-puntos-tienda",
 
+  // Puntos del Club, actividad 8: el módulo «Beneficios del club» (resumen_beneficios_puntos). El líder lee lo vigente; un cambio de lo que
+  // valen los puntos queda programado a 15 días con su historial; las cifras (circulación, deuda en soles, cupones vivos, lo canjeado del
+  // mes) suben con lo que pasa; el módulo nace sin rol. ROLLBACK.
+  "pruebas:club-puntos-beneficios",
+
   // Club de clientas, tanda 1g (G-8, CL-20, CL-21): Clientas ▸ Avisos. Quién aparece (publicidad de esa tienda; no sin la
   // casilla, con BAJA, de otra tienda), cumpleaños, aniversario, novedades (llegadas de 14 días con stock libre) y rebaja en
   // su talla deducida; el grupo testigo y el tope de 2 promocionales al mes; registrar y deshacer (10 minutos); el módulo

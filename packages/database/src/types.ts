@@ -6128,6 +6128,11 @@ export type Database = {
         Args: { p_clienta_id: string; p_puntos: number; p_token?: string }
         Returns: CuponDelClub
       }
+      /** Puntos del Club (actividad 8): lo que muestra Clientes ▸ Beneficios del club (configuración vigente y programada, cifras del programa, últimos cambios). Solo lee; con el módulo beneficios_club. */
+      resumen_beneficios_puntos: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       /** Puntos del Club (actividad 5): lo que la caja muestra de los puntos de una clienta (lectura). */
       resumen_puntos_caja: {
         Args: { p_clienta_id: string }

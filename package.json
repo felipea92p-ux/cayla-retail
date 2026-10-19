@@ -280,6 +280,7 @@
     "pruebas:club-puntos-cobrar-cupon": "node scripts/pruebas/club_puntos_cobrar_cupon.mjs",
     "pruebas:club-puntos-resumen-caja": "node scripts/pruebas/club_puntos_resumen_caja.mjs",
     "pruebas:club-puntos-tienda": "node scripts/pruebas/club_puntos_tienda.mjs",
+    "pruebas:club-puntos-beneficios": "node scripts/pruebas/club_puntos_beneficios.mjs",
     "pruebas:club-avisos": "node scripts/pruebas/club_avisos.mjs",
     "pruebas:comprobante-carne-pasaporte": "node scripts/pruebas/comprobante_carne_pasaporte.mjs",
     "pruebas:candado-ventas": "node scripts/pruebas/candado_ventas_clientas_conteos_lotes.mjs",
