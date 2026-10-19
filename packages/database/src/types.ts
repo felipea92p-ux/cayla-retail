@@ -6133,6 +6133,11 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      /** Puntos del Club (actividad 10): la configuración vigente de los puntos, pública (cartel y página del QR). */
+      fn_club_puntos_vigentes: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       /** Puntos del Club (actividad 5): lo que la caja muestra de los puntos de una clienta (lectura). */
       resumen_puntos_caja: {
         Args: { p_clienta_id: string }
