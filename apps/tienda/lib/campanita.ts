@@ -84,7 +84,7 @@ export type DatosCampanita = {
 
 /**
  * Arma lo que la campanita muestra. `avisos`: lo que está a favor de la persona (`leerAvisosDelClub`; null si la base no contestó:
- * sin tallas, y las novedades se ven igual). Solo cuentan las tallas que llegaron: el cumpleaños y el vale ya los dice el aviso del
+ * sin tallas, y las novedades se ven igual). Solo cuentan las tallas que llegaron: el regalo de cumpleaños y el cupón por vencer ya los dice el aviso del
  * Inicio y «Mi perfil». `vistos`: los avisos que cerró con «Entendido» (no suman al globo, pero siguen en el panel mientras la talla
  * esté disponible).
  */

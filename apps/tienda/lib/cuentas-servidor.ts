@@ -1,16 +1,13 @@
 import "server-only";
 import type { TipoDocumentoClienta } from "@cayla-retail/shared";
-import { cacheLife, unstable_cache } from "next/cache";
 import { cache } from "react";
 import { base, leerConRespaldo } from "./base";
 import {
-  leerBeneficios,
   leerCasillaWhatsapp,
   leerIntentoDeCodigo,
   leerMiCuenta,
   leerReserva,
   type AvisosAlUnirse,
-  type Beneficios,
   type CasillaWhatsapp,
   type IntentoDeCodigo,
   type MiCuenta,
@@ -251,39 +248,3 @@ export const leerMiCuentaEnBase = cache(async (usuarioWebId: string): Promise<Le
     return { estado: "sin_respuesta" };
   }
 });
-
-/** El % del cumpleaños y la escala del vale, para los términos. null si la base no contesta: se dicen sin cifras. */
-// Los beneficios del Club son los mismos para todos (los configura el ERP): desde que salen en la portada y en el Inicio (el sello del
-// descuento de cumpleaños, 2026-10-16), se comparten entre visitas unos minutos, como el catálogo, en vez de preguntarle a la base en
-// cada página. Se guarda el JSON crudo; un fallo NO se guarda (se lanza adentro y se responde `null` afuera, para reintentar).
-const beneficiosCompartidos = unstable_cache(
-  async (): Promise<unknown> => {
-    const [fila] = await base()`select retail.tienda_club_beneficios() as r`;
-    return fila?.r ?? null;
-  },
-  ["tienda-club-beneficios-v1"],
-  { revalidate: 300 },
-);
-
-async function beneficiosGuardados(): Promise<unknown> {
-  "use cache";
-  try {
-    const cruda = await beneficiosCompartidos();
-    cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
-    return cruda;
-  } catch (error) {
-    // Sin base: no se lanza (Next daría por rota la página que se arma por adelantado) y el respaldo dura segundos, no minutos.
-    console.error(JSON.stringify({ evento: "tienda_club_beneficios_fallo", mensaje: error instanceof Error ? error.message : String(error) }));
-    cacheLife({ stale: 300, revalidate: 5, expire: 3600 });
-    return null;
-  }
-}
-
-export const leerBeneficiosDelClub = async (): Promise<Beneficios | null> => {
-  try {
-    return leerBeneficios(await beneficiosGuardados());
-  } catch (error) {
-    console.error(JSON.stringify({ evento: "tienda_club_beneficios_fallo", mensaje: error instanceof Error ? error.message : String(error) }));
-    return null;
-  }
-};

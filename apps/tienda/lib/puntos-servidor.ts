@@ -1,7 +1,8 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
+import { cacheLife, unstable_cache } from "next/cache";
 import { base, leerConRespaldo } from "./base";
-import { estadoDeRechazo, leerMisPuntos, leerRespuestaCanje, type EstadoCanje, type MisPuntos } from "./puntos";
+import { estadoDeRechazo, leerConfigDePuntos, leerMisPuntos, leerRespuestaCanje, type ConfigPuntos, type EstadoCanje, type MisPuntos } from "./puntos";
 
 // Los puntos del Club en la cuenta (programa de puntos, actividad 6) en la base del ERP, solo por sus funciones `retail.tienda_*`
 // (20261019203000 y 20261019213000). Cada una busca la cuenta por el usuario del proyecto de CLIENTES que le pasa el servidor (el que
@@ -38,3 +39,38 @@ export async function canjearPuntosEnBase(usuarioWebId: string, puntos: number, 
     return { estado };
   }
 }
+
+// La configuración de los puntos es la misma para todos (la cambia el ERP, Clientes ▸ Beneficios del club): se comparte entre visitas unos
+// minutos, como los beneficios de antes, en vez de preguntarle a la base en cada página. Se guarda el JSON crudo; un fallo NO se guarda.
+const configCompartida = unstable_cache(
+  async (): Promise<unknown> => {
+    const [fila] = await base()`select retail.tienda_puntos_config() as r`;
+    return fila?.r ?? null;
+  },
+  ["tienda-puntos-config-v1"],
+  { revalidate: 300 },
+);
+
+async function configGuardada(): Promise<unknown> {
+  "use cache";
+  try {
+    const cruda = await configCompartida();
+    cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
+    return cruda;
+  } catch (error) {
+    // Sin base: no se lanza (Next daría por rota la página que se arma por adelantado) y el respaldo dura segundos, no minutos.
+    console.error(JSON.stringify({ evento: "tienda_puntos_config_fallo", mensaje: error instanceof Error ? error.message : String(error) }));
+    cacheLife({ stale: 300, revalidate: 5, expire: 3600 });
+    return null;
+  }
+}
+
+/** Lo que valen los puntos hoy, para la portada y los Términos. null si la base no contesta: se dice sin cifras. */
+export const leerConfigDePuntosDelClub = async (): Promise<ConfigPuntos | null> => {
+  try {
+    return leerConfigDePuntos(await configGuardada());
+  } catch (error) {
+    console.error(JSON.stringify({ evento: "tienda_puntos_config_fallo", mensaje: error instanceof Error ? error.message : String(error) }));
+    return null;
+  }
+};

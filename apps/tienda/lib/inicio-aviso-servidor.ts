@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { leerConRespaldo } from "./base";
 import { hoyLima } from "./cuentas";
 import { avisosDelClub, claveDeCookie, type AvisoClub } from "./inicio-aviso";
+import { leerMisPuntos } from "./puntos";
 
 // El aviso al entrar en el servidor (ADR-0408; Felipe, 2026-10-14): qué tiene la persona a su favor en el Club, por la puerta angosta
 // (`retail.tienda_mis_avisos_del_club`, 20261015045000: no escribe nada, ni la visita de «Mi cuenta»), y qué avisos ya cerró en este
@@ -16,8 +17,12 @@ export const leerAvisosDelClub = cache(
     leerConRespaldo(
       "tienda_mis_avisos_del_club_fallo",
       async (db) => {
-        const [fila] = await db`select retail.tienda_mis_avisos_del_club(${usuarioWebId}::uuid) as r`;
-        return fila?.r ? avisosDelClub(fila.r, usuarioWebId, hoyLima()) : null;
+        const [[fila], [puntos]] = await Promise.all([
+          db`select retail.tienda_mis_avisos_del_club(${usuarioWebId}::uuid) as r`,
+          // El regalo de cumpleaños y los cupones que vencen (programa de puntos). Si falla, salen igual las tallas que llegaron.
+          db`select retail.tienda_mis_puntos(${usuarioWebId}::uuid) as r`.catch(() => [{ r: null }]),
+        ]);
+        return fila?.r ? avisosDelClub(fila.r, usuarioWebId, hoyLima(), leerMisPuntos(puntos?.r)) : null;
       },
       null,
     ),

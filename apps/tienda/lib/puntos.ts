@@ -79,6 +79,21 @@ export type MisPuntos = {
   movimientos: MovimientoDePuntos[];
 };
 
+/** La configuración vigente que devuelve `tienda_puntos_config` (portada, Términos). null si no tiene la forma: se dice sin cifras. */
+export function leerConfigDePuntos(dato: unknown): ConfigPuntos | null {
+  const r = esquemaConfig.safeParse(dato);
+  if (!r.success) return null;
+  const d = r.data;
+  return {
+    puntosPorSol: d.puntos_por_sol,
+    solesPor100: d.soles_por_100,
+    canjeMinimo: d.canje_minimo,
+    compraMinimaX: d.compra_minima_x,
+    vigenciaDias: d.vigencia_dias,
+    regaloCumple: d.regalo_cumple,
+  };
+}
+
 /** La respuesta de `tienda_mis_puntos`. null si no tiene la forma (no se muestra a medias); un cupón o un movimiento raro se deja fuera solo. */
 export function leerMisPuntos(dato: unknown): MisPuntos | null {
   const r = esquemaMisPuntos.safeParse(dato);

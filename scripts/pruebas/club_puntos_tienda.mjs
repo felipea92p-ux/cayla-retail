@@ -15,6 +15,7 @@
  *   d. El regalo de cumpleaños: sí en su mes, no fuera de su mes, no si ya lo recibió este año, sí otra vez si se revirtió.
  *   e. El historial: últimos 15, el más nuevo primero; con el código solo en canje y devuelve; sin venta, nota ni responsable.
  *   f. Quién la ejecuta: solo `tienda_web` (ni anon, ni authenticated, ni public).
+ *   g. `tienda_puntos_config()`: la configuración vigente para lo que la tienda dice a todos, sin datos de nadie; solo `tienda_web`.
  *
  * USO
  *   pnpm pruebas:club-puntos-tienda                   → contra la base `postgres` del stack local (la del CI)
@@ -173,6 +174,14 @@ caso(
   `select concat_ws('|', has_function_privilege('anon', 'retail.tienda_mis_puntos(uuid)', 'execute'), has_function_privilege('authenticated', 'retail.tienda_mis_puntos(uuid)', 'execute'),
   case when exists (select 1 from pg_roles where rolname = 'tienda_web') then has_function_privilege('tienda_web', 'retail.tienda_mis_puntos(uuid)', 'execute')::text else 'true' end);`,
   "f|f|true"
+);
+
+caso(
+  "(g) tienda_puntos_config: la configuración vigente para la portada y los Términos, sin datos de nadie, y solo de tienda_web",
+  `select concat_ws('|', retail.tienda_puntos_config() ->> 'puntos_por_sol', retail.tienda_puntos_config() ->> 'soles_por_100',
+  retail.tienda_puntos_config() ->> 'regalo_cumple', (select count(*) from jsonb_object_keys(retail.tienda_puntos_config())),
+  has_function_privilege('anon', 'retail.tienda_puntos_config()', 'execute'), has_function_privilege('authenticated', 'retail.tienda_puntos_config()', 'execute'));`,
+  "1.00|5.00|100|6|f|f"
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde${fallas ? ` — ${fallas} en rojo` : ""} (base: ${BASE})`);

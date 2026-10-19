@@ -7,7 +7,8 @@
 -- cómo los gana, cuáles son sus cupones vivos con su código (para enseñarlos en caja o pegarlos al pagar en la web) y qué le pasó a
 -- sus puntos últimamente. Todo lo decide la base; la tienda solo lo pone en palabras.
 --
--- QUÉ HACE: `tienda_mis_puntos(usuario_web)` devuelve un jsonb con la configuración vigente, el saldo y lo que vale, el regalo de
+-- QUÉ HACE: `tienda_puntos_config()` devuelve la configuración vigente para lo que la tienda dice a TODOS (la portada, los Términos):
+-- sin usuario y sin datos de nadie. `tienda_mis_puntos(usuario_web)` devuelve un jsonb con la configuración vigente, el saldo y lo que vale, el regalo de
 -- cumpleaños de este mes, los cupones vivos y los últimos movimientos. Antes de leer libera lo vencido de esa miembro, para que
 -- «Mi Club» nunca muestre puntos que están en un cupón pasado de fecha. Devuelve `null` sin cuenta; con la cuenta pero sin ficha
 -- activa del Club, solo la configuración y `miembro: false`.
@@ -116,6 +117,34 @@ do $grant$
 begin
   if exists (select 1 from pg_roles where rolname = 'tienda_web') then
     grant execute on function retail.tienda_mis_puntos(uuid) to tienda_web;
+  end if;
+end;
+$grant$;
+
+-- ---------- 2. La configuración para lo que la tienda dice a todos ----------
+create or replace function retail.tienda_puntos_config()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_cfg retail.club_puntos_config;
+begin
+  v_cfg := retail.fn_club_puntos_config((now() at time zone 'America/Lima')::date);
+  return jsonb_build_object(
+    'puntos_por_sol', v_cfg.puntos_por_sol, 'soles_por_100', v_cfg.soles_por_100, 'canje_minimo', v_cfg.canje_minimo_puntos,
+    'compra_minima_x', v_cfg.compra_minima_x, 'vigencia_dias', v_cfg.vigencia_cupon_dias, 'regalo_cumple', v_cfg.regalo_cumple_puntos);
+end;
+$$;
+comment on function retail.tienda_puntos_config() is
+  'La configuración vigente de los puntos del Club para lo que la tienda web dice a todos (portada, Términos): sin usuario y sin datos de nadie. La llama el rol tienda_web.';
+revoke all on function retail.tienda_puntos_config() from public, anon, authenticated;
+do $grant$
+begin
+  if exists (select 1 from pg_roles where rolname = 'tienda_web') then
+    grant execute on function retail.tienda_puntos_config() to tienda_web;
   end if;
 end;
 $grant$;
