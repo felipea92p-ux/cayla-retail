@@ -224,6 +224,8 @@ export function CabeceraConCuenta({
           </nav>
           <span className="t-esp" />
           {tiendas && <SelectorTienda opciones={tiendas} prendasEnBolsa={prendasEnBolsa} />}
+          {/* La bolsa antes y la cuenta al final (Felipe 2026-10-19): la cuenta, con su menú, queda en la esquina. */}
+          {bolsa}
           <MenuDeLaCuenta
             nombre={nombre}
             enCuenta={actual === "cuenta"}
@@ -232,7 +234,6 @@ export function CabeceraConCuenta({
             favoritos={cuantosFavoritos}
             avisos={visitante ? null : campanita}
           />
-          {bolsa}
         </div>
       </header>
 
