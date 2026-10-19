@@ -303,7 +303,7 @@ ni el cajón abierto**: la pila es rama (`DismissableLayer.Branch`) de toda capa
 Para lo que no pasa por `fetch`: `useEsperando(activo, mensaje?)` (hook), `esperar(mensaje?) → fin()` (imperativo) y
 `<EsperaPantalla />` en cada `loading.tsx`. Una petición que no debe bloquear lleva el header `x-espera: no`. **Al agregar una
 RPC de solo lectura llamada desde el navegador, suma su prefijo o nombre a la lista de lectura de `espera-reglas.ts`** (hoy
-`fn_`, `previsualizar_`, `campanas_`, `resumen_`, `buscar_`, `get_`); si no, el loader bloqueará la pantalla mientras se busca
+`fn_`, `previsualizar_`, `campanas_`, `resumen_`, `buscar_`, `get_`, `validar_`); si no, el loader bloqueará la pantalla mientras se busca
 o se escribe. **Un buscador que filtra por URL (`?q=`) navega con `buscar(href)` de `useBusquedaEnUrl`
 (`components/ui/BusquedaEnUrl.tsx`), nunca con `router.push` suelto:** lo tipeado no abre el loader; el campo dice «Buscando…»
 (`<Buscador buscando>`) y la lista marcada con `data-resultados` se atenúa (Felipe 2026-09-28). Un filtro por clic sigue con el loader.
