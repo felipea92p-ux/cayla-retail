@@ -456,6 +456,8 @@ export const AGREGAR_AGOTADA = "Esa talla ya no está en ninguna tienda.";
 /** Quedan, pero todas las que quedan ya están en su bolsa (agregar otra más no se puede). */
 export const AGREGAR_NO_ALCANZA = "Ya tienes en tu bolsa todas las que quedan de esa talla.";
 export const AGREGAR_NO_ESTA = "Esa prenda ya no está en la tienda online.";
+/** La bolsa es de UNA tienda (la elegida arriba): agregar desde otra no mezcla las dos. */
+export const AGREGAR_OTRA_TIENDA = "Tu bolsa es de otra tienda.";
 export const AGREGAR_LLENA = `Tu bolsa lleva hasta ${TOPE_PRENDAS} prendas.`;
 export const AGREGAR_TOPE_PRENDA = `Puedes llevar hasta ${TOPE_POR_PRENDA} de la misma prenda y talla.`;
 export const AGREGAR_TOPE_PRENDA_LOOK = `Ya llevas ${TOPE_POR_PRENDA} de alguna de esas prendas: quita una para agregar el look.`;

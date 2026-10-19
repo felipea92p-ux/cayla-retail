@@ -200,3 +200,8 @@
 .t-cab-simple > .t-nav-b { display: none; }
 @container tienda (min-width: 700px) { .t-cab-simple > .t-nav-b { height: 100%; display: inline-flex; align-items: center; } }
 @container tienda (max-width: 1179px) { .t-cab-simple > .t-logo { position: absolute; left: 50%; transform: translate(-50%, -50%); margin: 0; order: 0; } }
+
+/* Cambiar de tienda con prendas en la bolsa: el aviso corto dentro del mismo desplegable. */
+.t-sel-aviso { display: grid; gap: 12px; padding: 14px 16px; min-width: 210px; }
+.t-sel-aviso p { margin: 0; font-size: 14px; }
+.t-sel-aviso-acc { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }

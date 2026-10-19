@@ -10,6 +10,7 @@ import {
   AGREGAR_LLENA_LOOK,
   AGREGAR_NO_ALCANZA,
   AGREGAR_NO_ESTA,
+  AGREGAR_OTRA_TIENDA,
   AGREGAR_SIN_RESPUESTA,
   AGREGAR_TOPE_PRENDA,
   AGREGAR_TOPE_PRENDA_LOOK,
@@ -17,6 +18,7 @@ import {
   agregarVarias,
   avisoAgregada,
   BOLSA_CAMBIO,
+  BOLSA_VACIA,
   cuantasDe,
   elegirSede,
   esId,
@@ -30,6 +32,7 @@ import {
   TOPE_POR_PRENDA,
   TOPE_PRENDAS,
   unidades,
+  type Bolsa,
 } from "@/lib/bolsa";
 import { hrefConVolver } from "@/lib/entrada";
 import { guardarBolsa, leerBolsaDeLaCookie, leerBolsaEnBase, separarEnBase } from "@/lib/bolsa-servidor";
@@ -41,6 +44,11 @@ import { leerSesion } from "@/lib/sesion-servidor";
 // Las acciones de la bolsa (ADR-0408, actividad 7). Son las ÚNICAS que escriben la cookie de la bolsa. Agregar, quitar y elegir
 // la tienda solo tocan la cookie de este aparato (agregar no separa nada: propuesta f); «Separar» es lo único que escribe en la
 // base, y lo decide la base (`retail.tienda_separar`). Cada cambio de la bolsa le pone una marca nueva: la del próximo «Separar».
+
+/** ¿La bolsa ya lleva prendas de OTRA tienda que la que se está mirando? Si es así, no se mezclan (la bolsa es de una sola tienda). */
+function deOtraTienda(bolsa: Bolsa, sedeId: unknown): boolean {
+  return bolsa.lineas.length > 0 && bolsa.sedeId !== null && esId(sedeId) && sedeId !== bolsa.sedeId;
+}
 
 export type RespuestaAgregar = { estado: "agregada"; mensaje: string; cuantas: number } | { estado: "no"; mensaje: string };
 
@@ -56,6 +64,7 @@ export async function agregarALaBolsa(varianteId: unknown, sedeId: unknown): Pro
   if (!esId(varianteId)) return { estado: "no", mensaje: AGREGAR_NO_ESTA };
   // Sin pedir cuenta (Felipe 2026-10-17): la bolsa vive en la cookie de este aparato y agregar no separa nada; la cuenta se pide al «Separar».
   const bolsa = await leerBolsaDeLaCookie();
+  if (deOtraTienda(bolsa, sedeId)) return { estado: "no", mensaje: AGREGAR_OTRA_TIENDA };
   if (cuantasDe(bolsa, varianteId) >= TOPE_POR_PRENDA) return { estado: "no", mensaje: AGREGAR_TOPE_PRENDA };
   const nueva = agregarUna(bolsa, varianteId, { marca: randomUUID() });
   if (!nueva) return { estado: "no", mensaje: AGREGAR_LLENA };
@@ -90,6 +99,7 @@ export async function agregarLookALaBolsa(varianteIds: unknown, sedeId: unknown)
   if (!ids) return { estado: "no", mensaje: AGREGAR_NO_ESTA };
 
   const bolsa = await leerBolsaDeLaCookie();
+  if (deOtraTienda(bolsa, sedeId)) return { estado: "no", mensaje: AGREGAR_OTRA_TIENDA };
   if (pasaElTopePorPrenda(bolsa, ids)) return { estado: "no", mensaje: AGREGAR_TOPE_PRENDA_LOOK };
   const conTodas = agregarVarias(bolsa, ids, { marca: randomUUID() });
   if (!conTodas) return { estado: "no", mensaje: AGREGAR_LLENA_LOOK };
@@ -125,6 +135,11 @@ export async function quitarDeLaBolsa(datos: FormData): Promise<void> {
   const quitar = datos.get("todas") === "1" ? quitarLinea : quitarUna;
   const nueva = quitar(bolsa, variante, { vista, marca: randomUUID() });
   if (nueva !== bolsa) await guardarBolsa(nueva);
+}
+
+/** Cambiar de tienda con prendas en la bolsa (la cabecera lo avisa antes): la bolsa se vacía y la próxima prenda la hace de la nueva tienda. */
+export async function vaciarBolsaPorCambioDeTienda(): Promise<void> {
+  await guardarBolsa(BOLSA_VACIA);
 }
 
 /** «¿En qué tienda lo recoges?»: una para todo. La página vuelve con los precios de esa tienda. */

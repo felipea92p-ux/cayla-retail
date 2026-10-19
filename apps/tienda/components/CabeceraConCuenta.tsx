@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import { Suspense, useEffect, useId, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { salir } from "@/app/acciones/cuenta";
@@ -14,6 +14,7 @@ import { BotonCerrarSesion } from "./cuenta/BotonCerrarSesion";
 import { FotoTarjeta } from "./FotoTarjeta";
 import { EVENTO_BUSCAR } from "@/lib/buscar-evento";
 import { claveDeLaOpcion, type OpcionTienda } from "@/lib/sede-elegida";
+import { vaciarBolsaPorCambioDeTienda } from "@/app/acciones/bolsa";
 import { recordarSede } from "@/lib/sede-cookie";
 import { Icono } from "./Icono";
 import { Logo } from "./Marca";
@@ -104,6 +105,7 @@ export function CabeceraConCuenta({
   visitante: visitantePropio = false,
   deEspera = false,
   tiendas = null,
+  prendasEnBolsa = 0,
 }: {
   datos: DatosCabecera;
   actual?: SeccionActual;
@@ -121,6 +123,8 @@ export function CabeceraConCuenta({
   deEspera?: boolean;
   /** Las tiendas de la web para elegir («Todas ▾», a la derecha de la cabecera); null con una sola tienda. */
   tiendas?: OpcionTienda[] | null;
+  /** Cuántas prendas lleva la bolsa: cambiar de tienda la vacía, y el selector lo avisa antes. */
+  prendasEnBolsa?: number;
 }) {
   const vista = useSyncExternalStore(sinAvisos, deEspera ? laUltima : ninguna, ninguna);
   const datos = vista?.datos ?? propios;
@@ -219,7 +223,7 @@ export function CabeceraConCuenta({
             </Link>
           </nav>
           <span className="t-esp" />
-          {tiendas && <SelectorTienda opciones={tiendas} />}
+          {tiendas && <SelectorTienda opciones={tiendas} prendasEnBolsa={prendasEnBolsa} />}
           {!visitante && campanita}
           <MenuDeLaCuenta nombre={nombre} enCuenta={actual === "cuenta"} visitante={visitante} hrefFavoritos={datos.favoritos} favoritos={cuantosFavoritos} />
           {bolsa}
@@ -314,19 +318,27 @@ function FotoChicaDe({ foto, tamanos }: { foto: FotoChica; tamanos: string }) {
  * cabecera de la computadora y del celular; al tocarla se abren las demás. Son enlaces (la tienda elegida va en la dirección y se puede
  * compartir) y, al elegir una, se recuerda en una cookie: la próxima visita sin tienda en la dirección abre en esa.
  */
-function SelectorTienda({ opciones }: { opciones: OpcionTienda[] }) {
+function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]; prendasEnBolsa: number }) {
   const [abierto, setAbierto] = useState(false);
+  // La tienda a la que quiere pasar mientras la bolsa lleva prendas: se confirma antes (cambiar de tienda vacía la bolsa).
+  const [pendiente, setPendiente] = useState<OpcionTienda | null>(null);
+  const [cambiando, cambiar] = useTransition();
+  const router = useRouter();
   const caja = useRef<HTMLDivElement | null>(null);
   const boton = useRef<HTMLButtonElement | null>(null);
   const idMenu = useId();
   useEffect(() => {
     if (!abierto) return;
     const fuera = (e: PointerEvent) => {
-      if (caja.current && !caja.current.contains(e.target as Node)) setAbierto(false);
+      if (caja.current && !caja.current.contains(e.target as Node)) {
+        setAbierto(false);
+        setPendiente(null);
+      }
     };
     const alEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setAbierto(false);
+        setPendiente(null);
         boton.current?.focus();
       }
     };
@@ -343,6 +355,13 @@ function SelectorTienda({ opciones }: { opciones: OpcionTienda[] }) {
     if (clave) recordarSede(clave);
     setAbierto(false);
   };
+  const confirmar = (o: OpcionTienda) =>
+    cambiar(async () => {
+      await vaciarBolsaPorCambioDeTienda();
+      recordar(o);
+      setPendiente(null);
+      router.push(o.href);
+    });
   return (
     <div className="t-persona t-sel-tienda" ref={caja}>
       <button
@@ -352,17 +371,47 @@ function SelectorTienda({ opciones }: { opciones: OpcionTienda[] }) {
         aria-label={`Tienda: ${elegida.nombre}. Cambiar`}
         aria-expanded={abierto}
         aria-controls={abierto ? idMenu : undefined}
-        onClick={() => setAbierto((a) => !a)}
+        onClick={() => {
+          setPendiente(null);
+          setAbierto((a) => !a);
+        }}
       >
         {elegida.nombre} <span aria-hidden="true">▾</span>
       </button>
       {abierto && (
         <div className="t-persona-menu" id={idMenu}>
-          {opciones.map((o) => (
-            <Link key={o.href} className="t-persona-op" href={o.href} scroll={false} aria-current={o.actual ? "true" : undefined} onClick={() => recordar(o)}>
-              {o.nombre}
-            </Link>
-          ))}
+          {pendiente ? (
+            // Con prendas en la bolsa, cambiar de tienda las quita: un aviso corto y dos botones.
+            <div className="t-sel-aviso" role="alert">
+              <p>Tu bolsa se vaciará.</p>
+              <div className="t-sel-aviso-acc">
+                <button type="button" className="t-btn t-btn-chico" disabled={cambiando} onClick={() => confirmar(pendiente)}>
+                  Cambiar a {pendiente.nombre}
+                </button>
+                <button type="button" className="t-enlace" onClick={() => setPendiente(null)}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            opciones.map((o) => (
+              <Link
+                key={o.href}
+                className="t-persona-op"
+                href={o.href}
+                scroll={false}
+                aria-current={o.actual ? "true" : undefined}
+                onClick={(e) => {
+                  if (prendasEnBolsa > 0 && !o.actual) {
+                    e.preventDefault();
+                    setPendiente(o);
+                  } else recordar(o);
+                }}
+              >
+                {o.nombre}
+              </Link>
+            ))
+          )}
         </div>
       )}
     </div>
