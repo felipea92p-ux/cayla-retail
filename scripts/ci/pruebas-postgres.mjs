@@ -1015,6 +1015,13 @@ export const PRUEBAS = [
   // eliminan los puntos; una ficha que falla no frena a las demás; un cupón vivo no se toca; dos corridas no repiten. ROLLBACK.
   "pruebas:club-puntos-conservacion",
 
+  // Puntos del Club en el PEDIDO WEB (20261019224000): separar con cupón rebaja el total y lo RESERVA para ese pedido (ni la caja ni
+  // otro «Separar» lo usan); quitar prendas bajo el mínimo, anular, no confirmar o vencer lo libera (vencido y con sus puntos devueltos si
+  // pasó su fecha); pagar completo lo reparte en las líneas de la venta (lo vendido = total = boleta), lo deja usado y suma puntos y el
+  // regalo de cumpleaños; anular el pedido pagado lo devuelve y resta los puntos; un reservado no vence; la misma marca no duplica;
+  // tienda_validar_cupon con su bloqueo. ROLLBACK (la carrera de dos «Separar» con COMMIT solo corre con BASE_DESECHABLE=1, no aquí).
+  "pruebas:club-puntos-pedido-web",
+
   // Club de clientas, tanda 1g (G-8, CL-20, CL-21): Clientas ▸ Avisos. Quién aparece (publicidad de esa tienda; no sin la
   // casilla, con BAJA, de otra tienda), cumpleaños, aniversario, novedades (llegadas de 14 días con stock libre) y rebaja en
   // su talla deducida; el grupo testigo y el tope de 2 promocionales al mes; registrar y deshacer (10 minutos); el módulo
