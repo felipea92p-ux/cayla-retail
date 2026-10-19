@@ -169,7 +169,9 @@ create or replace trigger trg_club_puntos_config_solo_agregar
 -- cualquier camino (la función de anotar o un SQL a mano) se turna con los demás en la misma miembro:
 --   · el regalo de cumpleaños: uno por miembro y año, salvo que el que se dio ya tenga su reversa (se anuló la venta que lo dio);
 --   · una reversa: apunta a una compra o un regalo de la MISMA miembro y de la MISMA venta, y todas las reversas de un movimiento
---     nunca suman más que lo que ese movimiento dio.
+--     nunca suman más que lo que ese movimiento dio;
+--   · una devolución de puntos (un cupón vencido): apunta a un canje de la MISMA miembro y todas sus devoluciones nunca suman más
+--     de lo que costó ese canje.
 create or replace function retail.fn_club_puntos_guardas()
 returns trigger
 language plpgsql
@@ -199,6 +201,17 @@ begin
       from retail.club_puntos_movimientos r where r.tipo = 'revierte' and r.de_movimiento_id = new.de_movimiento_id;
     if v_ya_revertido - new.puntos > v_orig.puntos then
       raise exception 'Esa reversa quita más de lo que dio el movimiento.' using errcode = '23514', hint = 'puntos_reversa_excede';
+    end if;
+  elsif new.tipo = 'devuelve' then
+    -- Un cupón que vence (o se anula la venta donde se usó) devuelve los puntos de SU canje, una sola vez y nunca más de lo que costó.
+    select m.clienta_id, m.tipo, m.puntos, m.venta_id into v_orig from retail.club_puntos_movimientos m where m.id = new.de_movimiento_id;
+    if not found or v_orig.clienta_id <> new.clienta_id or v_orig.tipo <> 'canje' then
+      raise exception 'Una devolución de puntos deshace un canje de la misma miembro.' using errcode = '23514', hint = 'puntos_devolucion_invalida';
+    end if;
+    select coalesce(sum(d.puntos), 0) into v_ya_revertido
+      from retail.club_puntos_movimientos d where d.tipo = 'devuelve' and d.de_movimiento_id = new.de_movimiento_id;
+    if v_ya_revertido + new.puntos > -v_orig.puntos then
+      raise exception 'Esa devolución de puntos pasa de lo que costó el canje.' using errcode = '23514', hint = 'puntos_devolucion_excede';
     end if;
   end if;
   return new;

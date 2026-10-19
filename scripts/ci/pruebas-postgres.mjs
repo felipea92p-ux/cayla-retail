@@ -1001,6 +1001,13 @@ export const PRUEBAS = [
   // suma dos veces y, si sumar o restar falla, la venta y la anulación siguen. ROLLBACK.
   "pruebas:club-puntos-ganar",
 
+  // Puntos del Club, actividad 3: canjear en un cupón. Un cupón NUNCA se duplica: una clave de operación (el doble toque devuelve
+  // el mismo cupón y descuenta una vez; la misma clave con otra cosa se rechaza, también si llegan dos a la vez), un código único con
+  // reintento sin canjes huérfanos y una devolución de puntos por canje, una sola vez. Mínimo y múltiplos, quién canjea, vencer (los
+  // puntos vuelven y canjear libera primero lo vencido), la tabla no se edita ni se borra y la puerta de la tienda. ROLLBACK (la
+  // carrera con COMMIT solo corre con BASE_DESECHABLE=1, no aquí).
+  "pruebas:club-puntos-cupones",
+
   // Club de clientas, tanda 1g (G-8, CL-20, CL-21): Clientas ▸ Avisos. Quién aparece (publicidad de esa tienda; no sin la
   // casilla, con BAJA, de otra tienda), cumpleaños, aniversario, novedades (llegadas de 14 días con stock libre) y rebaja en
   // su talla deducida; el grupo testigo y el tope de 2 promocionales al mes; registrar y deshacer (10 minutos); el módulo

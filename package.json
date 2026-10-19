@@ -275,6 +275,7 @@
     "pruebas:club-aniversario": "node scripts/pruebas/club_aniversario.mjs",
     "pruebas:club-puntos-base": "node scripts/pruebas/club_puntos_base.mjs",
     "pruebas:club-puntos-ganar": "node scripts/pruebas/club_puntos_ganar.mjs",
+    "pruebas:club-puntos-cupones": "node scripts/pruebas/club_puntos_cupones.mjs",
     "pruebas:club-avisos": "node scripts/pruebas/club_avisos.mjs",
     "pruebas:comprobante-carne-pasaporte": "node scripts/pruebas/comprobante_carne_pasaporte.mjs",
     "pruebas:candado-ventas": "node scripts/pruebas/candado_ventas_clientas_conteos_lotes.mjs",
