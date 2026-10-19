@@ -5,8 +5,7 @@ import { IndiceLegal } from "@/components/ayuda/IndiceLegal";
 import { SeccionLegal } from "@/components/ayuda/SeccionLegal";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import type { SeccionLegal as TipoSeccion } from "@/lib/ayuda";
-import { escalaEnPalabras, soles, TEXTOS_VERSION } from "@/lib/cuentas";
-import { leerBeneficiosDelClub } from "@/lib/cuentas-servidor";
+import { TEXTOS_VERSION } from "@/lib/cuentas";
 // La lectura larga (el índice, los títulos con su número y los enlaces dentro del texto) tiene su cara en ayuda.css.
 import "../estilos/ayuda.css";
 
@@ -17,32 +16,38 @@ export const metadata: Metadata = { title: "Términos del Club CAYLA · CAYLA" }
 const SECCIONES = [
   { id: "miembros", titulo: "1. Quién puede ser miembro" },
   { id: "codigo", titulo: "2. Código de miembro" },
-  { id: "cumpleanos", titulo: "3. Cupón de cumpleaños" },
-  { id: "aniversario", titulo: "4. Vale de aniversario" },
-  { id: "avisos", titulo: "5. Avisos" },
-  { id: "cambios-del-club", titulo: "6. Cambios y fin del programa" },
-  { id: "conservacion-club", titulo: "7. Conservación de datos" },
+  { id: "puntos", titulo: "3. Cómo ganas puntos" },
+  { id: "cupones", titulo: "4. Cómo se canjean: los cupones" },
+  { id: "devoluciones", titulo: "5. Devoluciones y anulaciones" },
+  { id: "avisos", titulo: "6. Avisos" },
+  { id: "cambios-del-club", titulo: "7. Cambios y fin del programa" },
+  { id: "conservacion-club", titulo: "8. Cuánto duran tus puntos y tus datos" },
+  { id: "errores", titulo: "9. Errores y mal uso" },
 ] as const satisfies readonly TipoSeccion[];
-const [miembros, codigo, cumpleanos, aniversario, avisos, cambios, conservacion] = SECCIONES;
+const [miembros, codigo, puntos, cupones, devoluciones, avisos, cambios, conservacion, errores] = SECCIONES;
 
 /**
- * Los términos del Club CAYLA para quien se une desde la tienda online. BORRADOR (ADR-0408, actividad 2): son los términos que ya
- * rigen en el ERP (`club_textos`, términos v2), con lo que cambia al unirse con la cuenta web. Las cifras (el % del cumpleaños,
- * la escala del vale, el umbral y los días) salen de la base, las mismas que usa la caja; si la base no contesta, se dicen sin
- * cifras. La revisa CAYLA antes de publicar la tienda. Revisión «a nivel mundial» (2026-10-16): cambió cómo se lee, NUNCA qué dice
- * (ni una palabra, ni el sello «Borrador»): el título grande, la letra de 16 px, cada título con su número aparte y, en la computadora,
- * el índice fijo al costado que enciende el punto que se está leyendo; en el celular, «En esta página» arriba.
+ * Los términos del Club CAYLA. BORRADOR del programa de puntos (2026-10-19, docs/club/texto-legal-puntos-v1-borrador.md): reemplaza al
+ * descuento de cumpleaños y al vale de aniversario, que se retiraron. Lo revisa el abogado; mientras tanto es la versión 3 de
+ * `club_textos`, la misma que muestra la página del ERP (la cuenta registra la versión que aceptó). Las cifras son las que decidió Felipe
+ * (2026-10-19) y van escritas: la producción todavía no tiene la configuración de los puntos, que llega con el programa (rama
+ * `claude/cayla-points-loyalty-d8d7d5`, ADR-0459); ese día vuelven a leerse de la base. Cómo se lee (la letra, el índice fijo al
+ * costado, cada título con su número) es el de la revisión «a nivel mundial» (2026-10-16).
  */
-export default async function TerminosDelClub() {
-  const b = await leerBeneficiosDelClub();
-  const pct = b ? `${Number.isInteger(b.pct) ? b.pct : b.pct.toFixed(2)} %` : "un porcentaje";
+export default function TerminosDelClub() {
+  const porSol = "1 punto por cada S/ 1";
+  const valen = "100 puntos valen S/ 5";
+  const minimo = "desde 200 puntos (S/ 10)";
+  const dias = "7 días";
+  const veces = "3 veces su valor";
+  const regalo = "100 puntos";
   return (
     <MarcoCuenta segunSesion conPie>
       <div className="t-ancho">
         <article className="ay-legal">
           <EncabezadoAyuda
             apilado
-            sello={<span className="w-borrador">Borrador: lo revisa CAYLA</span>}
+            sello={<span className="w-borrador">Borrador: lo revisa el abogado</span>}
             titulo={
               <>
                 Términos del <em>Club CAYLA</em>
@@ -50,7 +55,8 @@ export default async function TerminosDelClub() {
             }
             bajada={
               <>
-                Los mismos del Club CAYLA en tienda, para quien se une creando su cuenta en la tienda online. Versión: <span className="ay-sin-corte">{TEXTOS_VERSION}</span>.
+                El programa de puntos del Club CAYLA, en tienda y en la tienda online. Borrador del 19 de octubre de 2026, pendiente de revisión
+                legal; la versión que aceptaste al crear tu cuenta es la <span className="ay-sin-corte">{TEXTOS_VERSION}</span>.
               </>
             }
           />
@@ -61,75 +67,97 @@ export default async function TerminosDelClub() {
                 <p>
                   Personas mayores de 18 años, con DNI, carné de extranjería o pasaporte y un celular con WhatsApp. Unirse es gratis: creas tu
                   cuenta en la tienda online con lo mínimo (tu correo y tu nombre, o con Google) y entras al club cuando completas tu documento
-                  y tu celular, que te pedimos la primera vez que separas una prenda (o antes, desde «Mi perfil»). Si ya lo eras en tienda, tu
-                  cuenta se une a tu ficha y conservas tu código y tu fecha de miembro.
+                  y tu celular, que te pedimos la primera vez que separas una prenda (o antes, desde «Mi perfil»). En tienda, pide que te
+                  agreguen como cliente en caja y únete con el código QR del cartel.
                 </p>
               </SeccionLegal>
 
               <SeccionLegal {...codigo}>
-                <p>Al unirte recibes un código personal (por ejemplo, C-0001). Para usar tus beneficios basta tu documento en caja.</p>
+                <p>Al unirte recibes un código personal (por ejemplo, C-0001). Para ganar puntos en caja basta tu documento.</p>
               </SeccionLegal>
 
-              <SeccionLegal {...cumpleanos}>
+              <SeccionLegal {...puntos}>
                 <ul>
                   <li>
-                    {pct} de descuento sobre el total de una compra, en cualquier tienda CAYLA, durante el mes de tu cumpleaños según el día y el
-                    mes que registraste.
+                    Ganas {porSol} que pagas en una compra en una tienda CAYLA o en la tienda web, siempre que la compra quede a tu nombre con
+                    tu documento. Se calcula sobre lo que realmente pagas, después de descuentos y cupones, sin céntimos. Una compra sin tu
+                    documento no suma puntos.
                   </li>
-                  <li>Una vez por año calendario. Se aplica sobre el precio vigente, incluidas las prendas que ya estén en promoción.</li>
-                  <li>Es personal y se usa con tu documento. No se canjea por dinero ni se acumula con otro cupón del Club.</li>
-                  <li>Solo en compras presenciales en tiendas CAYLA. Requiere conexión del sistema en el momento del pago.</li>
-                  <li>Si la compra se anula, el cupón vuelve a estar disponible. Si devuelves o cambias prendas, el cupón ya se considera usado.</li>
+                  <li>
+                    Solo cuentan las compras hechas después de tu registro: las anteriores no se ligan a tu cuenta, aunque hayas dado tu DNI en
+                    la boleta.
+                  </li>
+                  <li>
+                    <b>Regalo de cumpleaños:</b> en el mes de tu cumpleaños, según la fecha registrada, tu primera compra suma además {regalo}.
+                    Una vez por año calendario. Se suman solos al cobrar; no tienes que pedirlos.
+                  </li>
+                  <li>Tus puntos los ves en «Mi perfil», con su historial.</li>
                 </ul>
               </SeccionLegal>
 
-              <SeccionLegal {...aniversario}>
+              <SeccionLegal {...cupones}>
                 <ul>
                   <li>
-                    Cada año como miembro se cuenta desde la fecha en que te uniste. Un año <b>cuenta</b> si en él hiciste al menos{" "}
-                    {b ? `${b.compras} compras o sumaste al menos ${soles(b.montoMinimo)}` : "las compras o el monto que pide el club"} en compras
-                    en tiendas CAYLA. Las compras devueltas completas no cuentan, y una devolución parcial descuenta lo devuelto.
+                    {valen} de descuento. Puedes canjear {minimo}, de 100 en 100, en la tienda web o en caja. CAYLA puede cambiar estos
+                    valores avisando con 15 días de anticipación (punto 7).
                   </li>
                   <li>
-                    Al cumplir un año que cuenta, recibes un vale según cuántos años que cuentan llevas
-                    {b ? `: ${escalaEnPalabras(b.escala)}. Desde el último año de la escala, ese vale se repite cada año.` : ". El vale crece cada año."}
-                  </li>
-                  <li>Si un año no cuenta, no recibes vale ese año, pero no pierdes lo acumulado: el siguiente año que cuente sigue donde te quedaste.</li>
-                  <li>
-                    Tienes {b ? `${b.dias} días` : "un plazo"} desde tu aniversario para usarlo, en una sola compra, en cualquier prenda de cualquier
-                    tienda CAYLA.
+                    Al canjear, tus puntos se descuentan de tu saldo y recibes un <b>cupón con código</b>. El cupón vale {dias}, se usa una
+                    sola vez y en una sola compra, en compras desde {veces}, y no cubre la compra completa. No se junta con otro cupón.
                   </li>
                   <li>
-                    El vale se descuenta del total de esa compra. No se canjea por dinero ni da vuelto: si la compra es menor que el vale, la
-                    diferencia no se conserva. Es personal y se usa con tu documento. No se acumula con el cupón de cumpleaños en la misma compra.
+                    <b>Lo puede usar cualquier persona que tenga el código.</b> Guárdalo: si lo compartes, lo pierdes o te lo usan, no lo
+                    reponemos. Los puntos de esa compra son de quien se identifica con su documento al pagar, no de quien creó el cupón.
                   </li>
+                  <li>No se cambia por dinero y no da vuelto.</li>
                   <li>
-                    Si la compra se anula, el vale vuelve a estar disponible dentro de su plazo. Si devuelves o cambias prendas, el vale ya se
-                    considera usado.
+                    <b>Si no lo usas en {dias}, tus puntos vuelven solos a tu saldo.</b>
                   </li>
                 </ul>
+              </SeccionLegal>
+
+              <SeccionLegal {...devoluciones}>
+                <p>
+                  Si se anula una venta, se restan los puntos que dio y el cupón que se usó en ella vuelve a estar disponible por el tiempo que
+                  le quedaba. Si devuelves prendas, se restan los puntos de lo devuelto y se te devuelve lo que pagaste, sin incluir el valor
+                  del cupón.
+                </p>
               </SeccionLegal>
 
               <SeccionLegal {...avisos}>
                 <p>
-                  Tus beneficios los ves en tu cuenta. Por WhatsApp te avisamos de tu cupón o tu vale solo si lo autorizaste. Si no recibes el
-                  aviso, el beneficio igual está disponible en caja.
+                  Tus puntos y tus cupones los ves en tu cuenta. Por WhatsApp te avisamos de tus puntos y tus cupones solo si lo autorizaste.
+                  Si otra persona usa un cupón tuyo, te avisamos que se usó, sin decirte quién. Si no recibes el aviso, tus puntos igual están.
                 </p>
               </SeccionLegal>
 
               <SeccionLegal {...cambios}>
                 <p>
-                  CAYLA puede cambiar los beneficios o terminar el Club avisando con 15 días de anticipación en tu cuenta, por WhatsApp (a quien lo
-                  autorizó) y en tienda. Los cupones y vales ya disponibles se respetan hasta su vencimiento.
+                  CAYLA puede cambiar el programa (lo que ganas, lo que valen los puntos o las condiciones del canje) o terminarlo avisando con
+                  15 días de anticipación en tu cuenta, por WhatsApp (a quien lo autorizó) y en tienda. Un cambio rige solo desde la fecha
+                  avisada: los puntos ya ganados mantienen su valor hasta esa fecha, y si el programa termina tienes 60 días para canjearlos.
+                  Los cupones ya creados se respetan hasta su vencimiento.
                 </p>
               </SeccionLegal>
 
               <SeccionLegal {...conservacion}>
                 <p>
-                  Si pasan 3 años desde tu última compra o tu última entrada a tu cuenta web, tu ficha se anonimiza de forma automática, dejas de
-                  ser miembro y tu cuenta web se cierra (ver la <Link href="/privacidad#conservacion">Política de privacidad, punto 6</Link>).
-                  Puedes dejar el club antes, cuando quieras, eliminando tu cuenta en «Mi cuenta» o pidiéndolo en una tienda CAYLA: pierdes tu
-                  descuento de cumpleaños y tu vale de aniversario.
+                  Tus puntos no vencen mientras sigas comprando. Si pasan 3 años desde tu última compra, eliminamos tus datos personales de
+                  forma definitiva (ver la <Link href="/privacidad#conservacion">Política de privacidad</Link>) y tus puntos se eliminan con
+                  ellos, porque ya no podemos saber a quién pertenecen: desde ese momento ya no eres miembro. Te avisamos 30 días antes por
+                  WhatsApp si lo autorizaste, y tu fecha la ves en «Mi perfil». Cada compra la corre 3 años más.
+                </p>
+                <p>
+                  Los puntos son personales: no son dinero, no se transfieren a otra persona, no se cambian por efectivo ni se heredan. Si
+                  eliminas tu cuenta o pides tu baja del Club, tus puntos también se eliminan.
+                </p>
+              </SeccionLegal>
+
+              <SeccionLegal {...errores}>
+                <p>
+                  Si por error te damos o te quitamos puntos, lo corregimos y te lo explicamos. Si detectamos uso fraudulento (por ejemplo,
+                  compras ficticias para ganar puntos), podemos anular los puntos mal obtenidos: te decimos el motivo por escrito y puedes
+                  reclamar.
                 </p>
               </SeccionLegal>
             </div>
