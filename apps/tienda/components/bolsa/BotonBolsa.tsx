@@ -13,9 +13,8 @@ import "@/app/estilos/bolsa.css";
 export async function BotonBolsa() {
   const n = await cuantasEnLaBolsa();
   return (
-    <Link className="t-ico t-ico-txt" href="/bolsa" data-bolsa aria-label={n > 0 ? `Tu bolsa: ${n} ${n === 1 ? "prenda" : "prendas"}` : "Tu bolsa"}>
+    <Link className="t-ico" href="/bolsa" data-bolsa aria-label={n > 0 ? `Tu bolsa: ${n} ${n === 1 ? "prenda" : "prendas"}` : "Tu bolsa"}>
       <Icono nombre="bolsa" />
-      <span className="t-txt">Bolsa{n > 0 && <i className="t-txt-n"> {n}</i>}</span>
       {n > 0 && <span className="t-globo">{n}</span>}
       {/* Para el esqueleto de la bolsa: cuántas filas dibujar mientras llega (`BolsaRecordada`). */}
       <RecordarBolsa cuantas={n} />
