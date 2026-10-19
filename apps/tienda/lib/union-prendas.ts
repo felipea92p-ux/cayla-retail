@@ -19,17 +19,69 @@ const TORSO_MINIMO = 0.3;
 /** Una pretina ocupa al menos esta fracción del ancho de su prenda: menos es el cuello de una blusa, no la parte de arriba de una falda. */
 const PRETINA_MINIMA = 0.15;
 
+/** En cuántas franjas verticales se parte una prenda para medir su bajo: lo bastante fino para un bajo curvo o asimétrico, lo bastante corto para recordarlo. */
+export const FRANJAS_DEL_BAJO = 24;
+/** Una franja cuyo bajo queda más arriba que esto (fracción del alto de la prenda) del punto más bajo del torso no es el bajo: es un hombro o una manga. */
+export const SALTO_MAXIMO_DEL_BAJO = 0.25;
+/** Cuánto del ancho de la prenda de arriba mira la unión para encontrar su bajo más alto: ni solo el centro, ni hasta las mangas. */
+export const FRANJA_MINIMA_DE_LA_UNION = 0.3;
+export const FRANJA_MAXIMA_DE_LA_UNION = 0.6;
+
 /** Lo que se mide de un recorte, en fracciones de su propio ancho y alto (no cambian si la imagen se achica). `null`: no se pudo medir. */
 export type MedidaDelRecorte = {
-  /** En qué parte del alto de la prenda termina el torso (0–1). */
+  /** En qué parte del alto de la prenda termina el torso (0–1): su punto MÁS BAJO. */
   filaDelBorde: number | null;
   /** El ancho del torso justo ahí, sobre el ancho de la prenda (sin mangas sueltas). */
   borde: number | null;
   /** El ancho de la parte de arriba de la prenda (la pretina de una falda o de un pantalón), sobre su ancho. */
   pretina: number | null;
+  /** Dónde termina la prenda en cada una de sus `FRANJAS_DEL_BAJO` franjas, de izquierda a derecha (0–1 del alto); `null` en una franja sin prenda.
+   *  Un bajo curvo o asimétrico (un top con caída, una blusa cruzada) no termina a la misma altura en todo su ancho. */
+  bajo: (number | null)[] | null;
 };
 
-export const SIN_MEDIDA: MedidaDelRecorte = { filaDelBorde: null, borde: null, pretina: null };
+export const SIN_MEDIDA: MedidaDelRecorte = { filaDelBorde: null, borde: null, pretina: null, bajo: null };
+
+/** Dónde termina la prenda en cada franja (0–1 del alto): la mediana del último píxel de prenda de sus columnas, para que un hilo suelto no cuente. */
+function perfilDelBajo(rgba: ArrayLike<number>, ancho: number, alto: number): (number | null)[] {
+  const ultimo = new Array<number>(ancho).fill(-1);
+  for (let x = 0; x < ancho; x++) {
+    for (let y = alto - 1; y >= 0; y--) {
+      if (rgba[(y * ancho + x) * 4 + 3] > UMBRAL_ALFA) {
+        ultimo[x] = y;
+        break;
+      }
+    }
+  }
+  return Array.from({ length: FRANJAS_DEL_BAJO }, (_, i) => {
+    const columnas = ultimo.slice(Math.floor((i * ancho) / FRANJAS_DEL_BAJO), Math.floor(((i + 1) * ancho) / FRANJAS_DEL_BAJO)).filter((v) => v >= 0);
+    // Una franja con menos de la mitad de sus columnas con prenda es el borde de una manga o un hueco, no parte del bajo.
+    if (columnas.length === 0 || columnas.length * 2 < Math.floor(ancho / FRANJAS_DEL_BAJO)) return null;
+    columnas.sort((a, b) => a - b);
+    return Math.round(((columnas[columnas.length >> 1] + 1) / alto) * 100) / 100;
+  });
+}
+
+/**
+ * Dónde termina el torso en su punto MÁS ALTO dentro del ancho central `ancho` (fracción del ancho de la prenda, centrada): ahí empieza a
+ * verse lo que hay debajo. Con un bajo recto da lo mismo que `filaDelBorde`; con uno curvo o asimétrico es la subida del bajo, y la parte
+ * que cuelga más abajo simplemente tapa la pretina (la de arriba va delante). `null`: no hay perfil medido.
+ */
+export function filaAltaDelBorde(m: MedidaDelRecorte, ancho: number): number | null {
+  const bajo = m.bajo;
+  const fondo = m.filaDelBorde;
+  if (!bajo || bajo.length === 0 || fondo === null) return null;
+  const n = bajo.length;
+  const desde = Math.max(0, Math.floor(n * (0.5 - ancho / 2)));
+  const hasta = Math.min(n, Math.ceil(n * (0.5 + ancho / 2)));
+  let alta: number | null = null;
+  for (let i = desde; i < hasta; i++) {
+    const v = bajo[i];
+    if (v === null || v < fondo - SALTO_MAXIMO_DEL_BAJO) continue;
+    if (alta === null || v < alta) alta = v;
+  }
+  return alta === null ? null : Math.min(alta, fondo);
+}
 
 /** El tramo contiguo de prenda más ancho de una fila de la imagen (en píxeles). */
 function tramoMasAncho(rgba: ArrayLike<number>, ancho: number, y: number): number {
@@ -79,7 +131,7 @@ export function medirRecorte(rgba: ArrayLike<number>, ancho: number, alto: numbe
   for (let y = desde; y < Math.max(desde + 1, Math.ceil(0.05 * alto)); y++) p = Math.max(p, tramos[y]);
   const pretina = p / ancho >= PRETINA_MINIMA ? p / ancho : null;
 
-  return { filaDelBorde, borde, pretina };
+  return { filaDelBorde, borde, pretina, bajo: filaDelBorde === null ? null : perfilDelBajo(rgba, ancho, alto) };
 }
 
 /** La cintura estándar de una pretina, plana (cm): la mitad de una cintura de 72 cm. Lo que se le deja de ancho a la pretina cuando la prenda de
@@ -109,11 +161,15 @@ export function cajaDeAbajoUnida(
   if (!(abajo.proporcion > 0) || !(arriba.caja.w > 0) || !(arriba.caja.h > 0)) return null;
   const estandar = ANCHO_ESTANDAR_DE_LA_UNION * PX_POR_CM;
   const pretinaPx = Math.min(Math.max(arriba.caja.w * a.borde, estandar * (1 - HOLGURA_DE_LA_UNION)), estandar * (1 + HOLGURA_DE_LA_UNION));
+  // El bajo de la prenda de arriba no siempre es recto: la pretina arranca donde el bajo está más ALTO dentro de su ancho (sin aire en ese lado)
+  // y la parte del bajo que cuelga más abajo la tapa. Sin perfil medido, el punto más bajo de siempre.
+  const franja = Math.min(Math.max(pretinaPx / arriba.caja.w, FRANJA_MINIMA_DE_LA_UNION), FRANJA_MAXIMA_DE_LA_UNION);
+  const filaDelBorde = filaAltaDelBorde(a, franja) ?? a.filaDelBorde;
   const h = Math.min(Math.max(pretinaPx / b.pretina / abajo.proporcion, LARGO_MINIMO_DE_ABAJO * PX_POR_CM), LARGO_MAXIMO_DE_ABAJO * PX_POR_CM);
   const w = h * abajo.proporcion;
   return {
     x: Math.round(ESCENA.ancho / 2 - w / 2),
-    y: Math.round(arriba.caja.y + arriba.caja.h * a.filaDelBorde - SOLAPE_DE_LA_UNION),
+    y: Math.round(arriba.caja.y + arriba.caja.h * filaDelBorde - SOLAPE_DE_LA_UNION),
     w: Math.round(w),
     h: Math.round(h),
   };
@@ -146,8 +202,11 @@ export function medidasDesdeTexto(texto: string | null): Map<string, MedidaDelRe
     if (!dato || typeof dato !== "object" || Array.isArray(dato)) return salida;
     for (const [url, m] of Object.entries(dato)) {
       if (!m || typeof m !== "object") continue;
-      const { filaDelBorde, borde, pretina } = m as Record<string, unknown>;
-      if (esFraccion(filaDelBorde) && esFraccion(borde) && esFraccion(pretina)) salida.set(url, { filaDelBorde, borde, pretina });
+      const { filaDelBorde, borde, pretina, bajo } = m as Record<string, unknown>;
+      const perfil = Array.isArray(bajo) && bajo.length === FRANJAS_DEL_BAJO && bajo.every(esFraccion) ? (bajo as (number | null)[]) : null;
+      if (esFraccion(filaDelBorde) && esFraccion(borde) && esFraccion(pretina) && (bajo == null || perfil)) {
+        salida.set(url, { filaDelBorde, borde, pretina, bajo: perfil });
+      }
     }
   } catch {
     // Un texto que no es JSON se ignora: se vuelve a medir.
