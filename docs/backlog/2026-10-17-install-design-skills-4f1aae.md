@@ -85,9 +85,9 @@ Hecho (sin commit hasta este traspaso; ver el commit «wip»):
 
 ## Decisiones abiertas para Felipe (no las tomes tú)
 
-- **Choque con el PR #1172** (otra sesión, hoy): «Heebo y el logo oficial» para la misma tienda, «variante B, elegida por Felipe mirando la
-  maqueta A/B» de ESA sesión. A usa Archivo + Newsreader. Las dos no pueden salir: o A con sus letras (y #1172 se queda solo con el logo
-  oficial), o A con Heebo. Mientras tanto, local, sigue A tal cual.
+- ~~Choque con el PR #1172 (Heebo y el logo oficial, ADR-0446)~~ **Decidido el 2026-10-19: A completa.** Las letras de A (Archivo +
+  Newsreader) reemplazan a Heebo; el logo oficial y el colibrí de #1172 se quedan (la palabra CAYLA es `components/Marca.tsx`, en
+  `--t-logo`). EB Garamond ya no se carga. Está escrito en la «Actualización 2026-10-19» del ADR-0446.
 - El **modo oscuro** no estaba en A: está derivado; Felipe tiene que mirarlo.
 - Lo que A no tenía y se vistió con su idioma: franja de arriba, campaña, ofertas, categorías, más vendidos, looks; la **tarjeta del Club
   se escondió en el Inicio** (A lista lo que da el Club, sin tarjeta).
