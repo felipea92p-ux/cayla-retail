@@ -293,7 +293,7 @@ const enDias = (n: number) => `${n} ${n === 1 ? "día" : "días"}`;
 /**
  * Lo que la tienda ya cumple, dicho junto al botón de comprar (2026-10-16, la confianza a la vista de las marcas grandes): separas sin
  * pagar en la web, recoges en tu tienda y cambias en cualquier tienda CAYLA. Promete lo mismo que «Cómo separar» y «Cambios y
- * devoluciones» (`lib/ayuda.ts`: `pasosParaSeparar`, `avisosParaSeparar`, `textoCambios`), con sus mismos plazos (`tienda_ayuda()`); sin
+ * devoluciones» (`lib/ayuda.ts`: `pasosParaSeparar`, `avisosParaSeparar`), con sus mismos plazos (`tienda_ayuda()`); sin
  * el plazo, la frase va sin número, nunca uno inventado. La usan la ficha, el look y la bolsa.
  */
 export function promesasDeCompra(p: Plazos): Promesa[] {
