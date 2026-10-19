@@ -105,15 +105,13 @@ export function BotonCampanita({
               )}
             </section>
           )}
-          <section>
-            <h3 className="t-avisos-sub">Lo nuevo</h3>
-            <p className="t-avisos-nota">{textoNovedades(datos.novedades)}</p>
-            <Link className="t-enlace t-avisos-ver" href={hrefNuevo} onClick={() => setAbierto(false)}>
-              Ver lo nuevo <Icono nombre="flecha" />
+          {/* Lo nuevo, en UNA línea: «3 prendas nuevas →» que lleva a Lo nuevo, o «Nada nuevo» sin enlace (antes, un título, dos líneas y un enlace). */}
+          {datos.novedades ? (
+            <Link className="t-avisos-lo-nuevo" href={hrefNuevo} onClick={() => setAbierto(false)}>
+              {textoNovedades(datos.novedades)} <Icono nombre="flecha" />
             </Link>
-          </section>
-          {sinTallas && (
-            <p className="t-avisos-ayuda">¿Una talla agotada? Toca «Avísame» en la prenda y te lo decimos aquí apenas llegue.</p>
+          ) : (
+            <p className="t-avisos-nota">{textoNovedades(datos.novedades)}</p>
           )}
         </div>
       )}
