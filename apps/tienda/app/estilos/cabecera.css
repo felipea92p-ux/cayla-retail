@@ -14,11 +14,12 @@
 .t-ico.t-solo-grande { display: none; }
 
 /* ---- La navegación de la computadora: un subrayado que se dibuja al pasar el mouse ---- */
-.t-nav { display: none; align-items: center; gap: clamp(14px, 2cqi, 30px); height: 100%; order: -1; }
+.t-nav { display: none; align-items: center; gap: clamp(14px, 1.7cqi, 26px); height: 100%; order: -1; }
 .t-cab-fila > .t-logo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
-/* Entre 960 y 1240 px la navegación ya está a la vista pero no cabe junto al logo centrado: ahí el logo vuelve a su lugar, a la izquierda. */
-@container tienda (min-width: 960px) and (max-width: 1239px) {
+/* Hasta 1180 px el logo va a la izquierda (junto al menú, en el celular): la navegación y la tienda no caben junto a un logo centrado. */
+@container tienda (max-width: 1179px) {
   .t-cab-fila > .t-logo { position: static; transform: none; order: -2; margin-right: 18px; }
+  .t-cab-fila > .t-ico.t-solo-movil { order: -3; }
 }
 .t-nav-b { border: 0; background: none; height: 100%; padding: 0; font: inherit; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .14em; text-transform: uppercase; position: relative; color: var(--tinta); display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
 .t-nav-b::after { content: ""; position: absolute; left: 0; right: 0; bottom: 22px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform .4s var(--ease); }
@@ -33,23 +34,21 @@
 .t-mega { position: absolute; left: 0; right: 0; top: 100%; background: var(--papel); border-bottom: 1px solid var(--sand); box-shadow: 0 30px 50px -40px var(--sombra); padding: 32px clamp(16px, 4cqi, 64px) 36px; display: none; }
 .t-mega-envol:hover .t-mega, .t-mega-envol:focus-within .t-mega { display: block; animation: t-bajar .28s var(--ease) both; }
 .t-mega-in { max-width: 1440px; margin: 0 auto; display: grid; grid-template-columns: repeat(var(--grupos), minmax(0, 210px)) minmax(0, 1fr); gap: 0 22px; align-items: start; }
+/* Simetría: los títulos y las listas de todas las columnas comparten fila (subgrid): un título que se parte en dos líneas no baja SOLO su
+   lista; todas bajan igual. «Recién llegado» ocupa las dos filas. */
+.t-mega-in { grid-template-rows: auto 1fr; }
+.t-mega-grupo { display: grid; grid-template-rows: subgrid; grid-row: span 2; row-gap: 0; }
+.t-mega-recien { grid-row: 1 / span 2; grid-column: calc(var(--grupos) + 1); }
 .t-mega h4 { margin: 0 0 10px; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); }
 .t-mega h4 a { color: inherit; }
 .t-mega h4 a:hover { color: var(--tinta); }
 .t-mega ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.t-mega-cat { display: grid; grid-template-columns: 42px minmax(0, max-content) 1fr; align-items: center; gap: 12px; margin-left: -6px; padding: 5px 12px 5px 6px; border-radius: 0; font-size: 14px; color: var(--tinta); transition: background-color .3s var(--ease); }
+.t-mega-cat { display: grid; grid-template-columns: minmax(0, max-content) 1fr; align-items: baseline; gap: 12px; margin-left: -6px; padding: 7px 12px 7px 6px; border-radius: 0; font-size: 14px; color: var(--tinta); transition: background-color .3s var(--ease); }
 .t-mega-cat-nom { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .2s; }
 .t-mega-cat small { justify-self: start; color: var(--tinta-60); font-size: 11.5px; font-variant-numeric: tabular-nums; }
 .t-mega-cat:hover { background: var(--hueso); }
 .t-mega-cat:hover .t-mega-cat-nom { text-decoration: underline; text-underline-offset: 4px; }
 .t-mega-cat:focus-visible, .t-mega h4 a:focus-visible, .t-mega-prenda:focus-visible, .t-mega-recien-cab a:focus-visible { outline: 1.5px solid var(--rojo); outline-offset: 2px; }
-/* La foto de la categoría: la prenda ENTERA en su estudio (contain), en un cuadro redondeado; recortada en círculo, un cinturón o un
-   pantalón no se reconocían. Se llama `t-mega-mini` porque `t-mini` ya es de las miniaturas de la bolsa (las hojas son globales). */
-.t-mega-mini { position: relative; width: 42px; height: 42px; border-radius: 0; overflow: hidden; display: block; background: var(--t-foto); transition: transform .5s var(--ease); }
-.t-mega-cat:hover .t-mega-mini { transform: scale(1.08); }
-.t-mega-mini .t-card-foto { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; }
-.t-mega-mini .t-card-foto img { padding: 3px; }
-.t-mega-mini .pz { width: 70%; }
 /* Lo último que llegó: una vitrina que se apaga sola si no le queda lugar (menos de 2 prendas). */
 .t-mega-recien { min-width: 0; container-type: inline-size; }
 .t-mega-recien-in { border-left: 1px solid var(--sand); padding-left: 24px; }
@@ -67,7 +66,7 @@
 .t-mega-prenda small { font-size: 13px; font-weight: 400; font-variant-numeric: tabular-nums; }
 .t-mega-prenda small[data-oferta] { color: var(--rojo); }
 @media (prefers-reduced-motion: reduce) {
-  .t-mega-cat, .t-mega-mini, .t-mega-prenda .t-card-foto, .t-mega-recien-cab a .ic { transition: none; }
+  .t-mega-cat, .t-mega-prenda .t-card-foto, .t-mega-recien-cab a .ic { transition: none; }
 }
 
 /* ---- En un celular angosto (320 px) la fila con cuenta —menú, logo, buscar, persona y bolsa— no cabía: la bolsa salía 6 px por la
@@ -83,22 +82,6 @@
 /* ---- El menú del celular: entra desde la izquierda ---- */
 .t-menu { position: fixed; top: 0; bottom: 0; left: 0; z-index: 41; width: min(88%, 420px); background: var(--crema); display: flex; flex-direction: column; overflow-y: auto; box-shadow: 20px 0 50px -30px var(--sombra); animation: t-entrar-izq .4s var(--ease) both; }
 .t-menu-cab { display: flex; align-items: center; justify-content: space-between; padding: 10px 10px 10px 16px; border-bottom: 1px solid var(--sand); }
-.t-menu-grandes { display: flex; flex-direction: column; padding: 18px 20px 8px; }
-.t-menu-grandes a { padding: 10px 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; font-size: 22px; font-weight: 250; letter-spacing: .06em; line-height: 1.1; color: var(--tinta); display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--sand); }
-.t-menu-grandes a small { font-family: var(--sans); font-variation-settings: "wdth" 100; text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--taupe); }
-.t-menu-grandes a.oferta { color: var(--rojo); }
-.t-menu-grandes a { animation: t-subir .5s var(--ease) both; }
-.t-menu-grandes a:nth-child(2) { animation-delay: 50ms; }
-.t-menu-grandes a:nth-child(3) { animation-delay: 100ms; }
-.t-menu-grandes a:nth-child(4) { animation-delay: 150ms; }
-.t-menu-grandes a:nth-child(5) { animation-delay: 200ms; }
-.t-menu-cats { padding: 10px 20px 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
-.t-menu-cats a { padding: 9px 0; font-size: 14px; color: var(--tinta); }
-.t-menu-cats h4 { grid-column: 1 / -1; margin: 10px 0 2px; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); }
-.t-menu-cats .t-menu-todo { grid-column: 1 / -1; font-weight: 600; }
-.t-menu-cats .t-menu-todo small { margin-left: 4px; font-size: 11px; font-weight: 400; color: var(--taupe); }
-.t-menu-cats + .t-menu-cats { padding-top: 0; }
-.t-menu-pie { margin-top: auto; padding: 16px 20px 22px; border-top: 1px solid var(--sand); display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 
 /* ---- El buscador: baja desde arriba; en la computadora, al centro ---- */
 .t-buscador { position: fixed; left: 0; right: 0; top: 0; z-index: 41; max-height: 92vh; overflow-y: auto; background: var(--crema); padding: 14px 16px 20px; border-radius: 0; box-shadow: 0 20px 50px -30px var(--sombra); display: flex; flex-direction: column; gap: 14px; animation: t-bajar .35s var(--ease) both; }
@@ -118,7 +101,7 @@
 .t-resultado > span { display: flex; flex-direction: column; font-size: 14px; min-width: 0; }
 .t-resultado-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--nombre); font-style: italic; font-size: 17px; }
 .t-resultado small { color: var(--taupe); font-size: 12px; }
-.t-resultado mark { background: color-mix(in srgb, var(--ambar) 22%, transparent); color: inherit; border-radius: 2px; }
+.t-resultado mark { background: color-mix(in srgb, var(--ambar) 22%, transparent); color: inherit; border-radius: 0; }
 .t-resultado b { font-size: 14px; font-weight: 400; font-variant-numeric: tabular-nums; }
 /* Una prenda en oferta dice su precio en rojo, como la tarjeta del catálogo. */
 .t-resultado b[data-oferta] { color: var(--rojo); }
@@ -168,3 +151,52 @@
 .t-persona-op:disabled { opacity: .65; cursor: progress; }
 .t-persona-op svg { width: 18px; height: 18px; flex: none; }
 @media (prefers-reduced-motion: reduce) { .t-persona-menu { animation: none; } }
+
+/* ---- A · Muro, cabecera «Una línea» (Felipe 2026-10-19): en la computadora, buscar, la cuenta y la bolsa son palabras (con su número), no
+   íconos; el selector de tienda es una palabra más. En el celular siguen los íconos. ---- */
+.t-ico-txt .t-txt { display: none; }
+.t-sel-tienda .t-nav-b { white-space: nowrap; }
+.t-txt-n { font-style: normal; font-variant-numeric: tabular-nums; }
+@container tienda (min-width: 960px) {
+  .t-cab-fila .t-ico.t-ico-txt { width: auto; height: 100%; padding: 0; display: inline-flex; align-items: center; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .14em; text-transform: uppercase; }
+  .t-ico-txt .ic, .t-ico-txt .t-globo { display: none; }
+  .t-ico-txt .t-txt { display: inline; }
+  .t-ico-txt:hover { opacity: 1; text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 1px; }
+  .t-cab-fila { gap: clamp(14px, 1.7cqi, 26px); }
+}
+
+
+/* «Favoritos» dentro del menú de la cuenta: su cuenta, en versalitas chicas, al lado. Y la cuenta late cuando le llega un corazón. */
+.t-persona-n { font-style: normal; font-size: 11px; color: var(--taupe); font-variant-numeric: tabular-nums; }
+@keyframes t-recibe { 0% { transform: scale(1); } 35% { transform: scale(1.18); } 100% { transform: scale(1); } }
+[data-destino-corazon][data-recibe] { animation: t-recibe .6s var(--ease); }
+@media (prefers-reduced-motion: reduce) { [data-destino-corazon][data-recibe] { animation: none; text-decoration: underline; text-underline-offset: 6px; } }
+
+/* ---- El menú del celular (A · Muro, minimalista): las secciones en grande, «Ropa» que se abre, la tienda con su título y al pie lo demás. ---- */
+.t-menu-grandes { display: flex; flex-direction: column; padding: 14px 20px 8px; }
+.t-menu-grandes > a, .t-menu-acor > summary { padding: 12px 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; font-size: 22px; font-weight: 250; letter-spacing: .06em; line-height: 1.1; color: var(--tinta); text-decoration: none; }
+.t-menu-acor > summary { display: flex; justify-content: space-between; align-items: center; cursor: pointer; list-style: none; }
+.t-menu-acor > summary::-webkit-details-marker { display: none; }
+.t-menu-acor > summary::after { content: "+"; font-weight: 200; font-size: 24px; line-height: 1; }
+.t-menu-acor[open] > summary::after { content: "–"; }
+.t-menu-grandes > a, .t-menu-acor { animation: t-subir .5s var(--ease) both; }
+.t-menu-grandes > :nth-child(2) { animation-delay: 50ms; }
+.t-menu-grandes > :nth-child(3) { animation-delay: 100ms; }
+.t-menu-grandes > :nth-child(4) { animation-delay: 150ms; }
+.t-menu-grandes > :nth-child(5) { animation-delay: 200ms; }
+.t-menu-sub { display: flex; flex-direction: column; padding: 4px 0 16px; border-left: 1px solid var(--sand); margin: 0 0 6px 2px; }
+.t-menu-sub a { padding: 9px 0 9px 16px; font-size: 15px; color: var(--tinta); text-decoration: none; }
+.t-menu-sub .t-menu-grupo { display: flex; flex-direction: column; margin-top: 8px; }
+.t-menu-sub .t-menu-grupo a:not(.t-menu-grupo-t) { padding-left: 28px; color: var(--taupe); }
+.t-menu-sub .t-menu-grupo-t { font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--tinta); }
+.t-menu-pie { margin-top: auto; padding: 20px 20px 24px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.t-menu-pie a { padding: 8px 0; font-size: 14px; color: var(--tinta); text-decoration: none; }
+.t-menu-pie a:hover, .t-menu-sub a:hover, .t-menu-tiendas a:hover { text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1px; }
+
+/* La cabecera de «Entrar» y «Crear cuenta» (A · Muro): el logo siempre al centro (sin el rodeo de 960 a 1180 px: aquí no hay navegación) y a
+   la derecha una sola palabra. */
+.t-cab-simple > .t-logo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; order: 0; }
+/* En el celular el otro camino ya está en el formulario («Crear mi cuenta» / «Entrar» abajo): la cabecera es solo el logo. */
+.t-cab-simple > .t-nav-b { display: none; }
+@container tienda (min-width: 700px) { .t-cab-simple > .t-nav-b { height: 100%; display: inline-flex; align-items: center; } }
+@container tienda (max-width: 1179px) { .t-cab-simple > .t-logo { position: absolute; left: 50%; transform: translate(-50%, -50%); margin: 0; order: 0; } }

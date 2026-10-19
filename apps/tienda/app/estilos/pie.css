@@ -50,7 +50,7 @@
 .t-pie .t-pie-in li a:hover { text-decoration-color: var(--taupe); }
 .t-pie .t-pie-marca .t-logo { align-self: flex-start; min-height: 44px; }
 /* El foco, claro sobre el oscuro del pie (el rojo de la tienda casi no se ve aquí): el mismo acento de la banda de ofertas. */
-.t-pie a:focus-visible { outline: 2px solid var(--t-hero-acento); outline-offset: 3px; border-radius: 4px; }
+.t-pie a:focus-visible { outline: 2px solid var(--t-hero-acento); outline-offset: 3px; border-radius: 0; }
 
 /* En una tablet, la marca con sus dos columnas al lado (la ayuda sigue una bajo otra: de a tres no cabía sin partir cada línea). */
 @container tienda (min-width: 700px) {

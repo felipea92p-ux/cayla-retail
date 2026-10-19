@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import {
   BENEFICIOS_DE_ENTRADA,
   CONFIANZA_ACCESO,
-  CONFIANZA_CLUB,
   PASOS_DE_ACCESO,
   PROMESA_ACCESO,
   PROMESA_CLUB,
@@ -77,7 +76,6 @@ export function PanelDelClub({ desde, nombreVivo = false }: { desde: number; nom
               </span>
               <span>
                 <b>{b.titulo}</b>
-                <small>{b.texto}</small>
               </span>
             </li>
           ))}
@@ -85,10 +83,6 @@ export function PanelDelClub({ desde, nombreVivo = false }: { desde: number; nom
         <div className="en-tarjeta">
           {nombreVivo ? <TarjetaConTuNombre desde={desde} /> : <TarjetaClub nombre="Tu nombre aquí" desde={desde} />}
         </div>
-        <p className="en-confianza">
-          <Icono nombre="traslado" />
-          {CONFIANZA_CLUB}
-        </p>
       </div>
     </aside>
   );

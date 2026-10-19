@@ -22,7 +22,7 @@ export const MENUS: readonly { clave: Menu; nombre: string; todo: string; titulo
   { clave: "accesorios", nombre: "Accesorios", todo: "Todos los accesorios", titulo: ["Todos los", "accesorios"] },
 ];
 
-/** El grupo de una categoría, por su clave (el prefijo; sin prefijo, su nombre). Lo desconocido, a «Encima y más». */
+/** El grupo de una categoría, por su clave (el prefijo; sin prefijo, su nombre). Lo desconocido, a «Casacas/Abrigos». */
 export const grupoDe: (claveDeCategoria: string) => Grupo = grupoDeLaTienda;
 
 /** El grupo de la URL (`?grupo=`), o null si no existe. */

@@ -14,12 +14,12 @@
 /* ---- La cabecera: ceja, título grande y, al lado en la computadora, para qué sirve la página ---- */
 .ay-cab { display: grid; gap: 16px; }
 .ay-cab-tit { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
-.ay-titulo { margin: 0; font-family: var(--serif); font-weight: 500; font-size: clamp(40px, 7.5cqi, 80px); line-height: .94; letter-spacing: -.02em; text-wrap: balance; }
+.ay-titulo { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: clamp(24.8px, 4.65cqi, 49.6px); line-height: 1.12;  text-wrap: balance; }
 .ay-titulo em { font-style: italic; color: var(--rojo); }
 .ay-bajada { margin: 0; max-width: 46ch; font-size: 15.5px; line-height: 1.55; color: var(--tinta-60); text-wrap: pretty; }
 
 /* El título de un bloque dentro de la página («Lo que tienes que saber»): la misma letra, más chica. */
-.ay-h2 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: clamp(30px, 5cqi, 46px); line-height: 1; letter-spacing: -.012em; text-wrap: balance; }
+.ay-h2 { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: clamp(18.6px, 3.1cqi, 28.5px); line-height: 1.12;  text-wrap: balance; }
 .ay-h2 em { font-style: italic; color: var(--rojo); }
 .ay-bloque { display: flex; flex-direction: column; gap: 22px; }
 .ay-bloque-cab { display: flex; flex-direction: column; gap: 8px; }
@@ -29,7 +29,7 @@
 .ay-enlace .ic { width: 15px; height: 15px; transition: transform .25s var(--ease); }
 .ay-enlace:hover { color: var(--rojo-profundo); text-decoration-color: currentColor; }
 .ay-enlace:hover .ic { transform: translateX(3px); }
-.ay-enlace:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; border-radius: 4px; }
+.ay-enlace:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; border-radius: 0; }
 
 /* =====================================================================================================
    LOS PASOS PARA SEPARAR: una línea de tiempo con números grandes (`LineaDePasos`). En el celular, uno bajo el otro con el hilo a la
@@ -70,12 +70,12 @@
    el ícono al costado; desde 960 px, de a tres en fila, con el ícono arriba.
    ===================================================================================================== */
 .ay-puntos { display: grid; gap: 12px; }
-.ay-punto { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; align-items: start; padding: 20px 18px; border: 1px solid var(--sand); border-radius: 16px; background: var(--papel); }
+.ay-punto { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; align-items: start; padding: 20px 18px; border: 1px solid var(--sand); border-radius: 0; background: var(--papel); }
 .ay-punto-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--hueso); color: var(--rojo-profundo); }
 .ay-punto-ic .ic { width: 20px; height: 20px; }
 .ay-punto-cuerpo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 /* `pretty` y no `balance`: equilibrar partía «24 / horas» en dos líneas; así la cifra se queda con su unidad. */
-.ay-punto-t { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 22px; line-height: 1.12; letter-spacing: -.005em; text-wrap: pretty; }
+.ay-punto-t { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: 18px; line-height: 1.12;  text-wrap: pretty; }
 .ay-punto-x { margin: 0; font-size: 14px; line-height: 1.55; color: var(--tinta-60); text-wrap: pretty; }
 /* El enlace de un punto no lo agranda: su área de toque (44 px) baja sobre el aire de la tarjeta. */
 .ay-punto .ay-enlace { margin-bottom: -12px; }
@@ -84,7 +84,7 @@
    EL LLAMADO DEL FINAL («Cómo separar»): crear la cuenta (o entrar) o, con cuenta, ver la ropa. Una franja en hueso, como el Club de
    la portada.
    ===================================================================================================== */
-.ay-llamado { display: grid; gap: 22px; padding: 30px 22px; border-radius: 22px; background: var(--hueso); }
+.ay-llamado { display: grid; gap: 22px; padding: 30px 22px; border-radius: 0; background: var(--hueso); }
 .ay-llamado-tx { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .ay-llamado-x { margin: 0; max-width: 48ch; font-size: 14.5px; line-height: 1.55; color: var(--tinta-60); }
 .ay-llamado-acc { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
@@ -101,7 +101,7 @@
 .ay-legal-cuerpo { display: grid; gap: 28px; }
 .ay-legal-texto { display: flex; flex-direction: column; gap: 36px; min-width: 0; max-width: 680px; align-self: start; }
 .ay-legal-sec { display: flex; flex-direction: column; gap: 12px; padding-top: 30px; border-top: 1px solid var(--sand); scroll-margin-top: 20px; }
-.ay-legal-h2 { margin: 0 0 4px; font-family: var(--serif); font-weight: 500; font-size: 26px; line-height: 1.15; letter-spacing: -.005em; text-wrap: balance; }
+.ay-legal-h2 { margin: 0 0 4px; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: 18px; line-height: 1.12;  text-wrap: balance; }
 .ay-legal-n { color: var(--taupe); font-variant-numeric: lining-nums; }
 /* La versión del texto («borrador-2026-10-14») no se parte en dos líneas por sus guiones. */
 .ay-sin-corte { white-space: nowrap; }
@@ -110,31 +110,31 @@
 .ay-legal-sec ul, .ay-legal-sec ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
 .ay-legal-sec ul > li { position: relative; padding-left: 24px; }
 /* Una raya fina en rojo, a la altura de la primera línea, en vez del punto del navegador. */
-.ay-legal-sec ul > li::before { content: ""; position: absolute; left: 3px; top: .82em; width: 9px; height: 1.5px; border-radius: 1px; background: var(--rojo); }
+.ay-legal-sec ul > li::before { content: ""; position: absolute; left: 3px; top: .82em; width: 9px; height: 1.5px; border-radius: 0; background: var(--rojo); }
 .ay-legal-sec ol { counter-reset: ay-legal; }
 .ay-legal-sec ol > li { position: relative; padding-left: 30px; counter-increment: ay-legal; }
-.ay-legal-sec ol > li::before { content: counter(ay-legal) "."; position: absolute; left: 0; top: 0; font-family: var(--serif); font-size: 18px; line-height: 1.55; color: var(--taupe); font-variant-numeric: lining-nums; }
+.ay-legal-sec ol > li::before { content: counter(ay-legal) "."; position: absolute; left: 0; top: 0; font-family: var(--nombre); font-size: 18px; line-height: 1.55; color: var(--taupe); font-variant-numeric: lining-nums; }
 /* Los enlaces dentro del texto legal: el correo de CAYLA y el punto de la otra página. */
 .ay-legal-texto a { color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--taupe); overflow-wrap: anywhere; transition: color .2s var(--ease); }
 .ay-legal-texto a:hover { color: var(--rojo-profundo); text-decoration-color: currentColor; }
-.ay-legal-texto a:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 3px; }
+.ay-legal-texto a:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 0; }
 /* El punto al que lleva un enlace (`/privacidad#conservacion`, desde los Términos) lleva su número en rojo: se ve dónde se llegó. */
 .ay-legal-sec:target .ay-legal-n { color: var(--rojo); }
 
 /* ---- El índice: en el celular, una lista que se abre; en la computadora, fijo al costado ---- */
 .ay-indice-fijo { display: none; }
-.ay-indice-movil { border: 1px solid var(--sand); border-radius: 16px; background: var(--papel); }
-.ay-indice-movil > summary { list-style: none; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 16px; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 16px; }
+.ay-indice-movil { border: 1px solid var(--sand); border-radius: 0; background: var(--papel); }
+.ay-indice-movil > summary { list-style: none; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 16px; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 0; }
 .ay-indice-movil > summary::-webkit-details-marker { display: none; }
 .ay-indice-movil > summary .ic { width: 18px; height: 18px; margin-left: auto; color: var(--taupe); transition: transform .25s var(--ease); }
 .ay-indice-movil[open] > summary .ic { transform: rotate(180deg); }
 .ay-indice-movil > summary:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
 .ay-indice-cuantos { font-size: 12px; font-weight: 600; color: var(--tinta-60); }
 .ay-indice-lista { list-style: none; margin: 0; padding: 0 8px 10px; display: flex; flex-direction: column; }
-.ay-indice-lista a { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: baseline; gap: 6px; min-height: 44px; padding: 11px 8px; border-radius: 10px; font-size: 14px; line-height: 1.35; color: var(--tinta); transition: background-color .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease); }
+.ay-indice-lista a { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: baseline; gap: 6px; min-height: 44px; padding: 11px 8px; border-radius: 0; font-size: 14px; line-height: 1.35; color: var(--tinta); transition: background-color .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease); }
 .ay-indice-lista a:hover { background: var(--hueso); }
 .ay-indice-lista a:focus-visible { outline: 2px solid var(--rojo); outline-offset: 1px; }
-.ay-indice-n { font-family: var(--serif); font-size: 16px; color: var(--taupe); font-variant-numeric: lining-nums; }
+.ay-indice-n { font-family: var(--nombre); font-style: italic; font-size: 16px; color: var(--taupe); font-variant-numeric: lining-nums; }
 .ay-indice-t { margin: 0 0 12px; font-size: 10.5px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--taupe); }
 .ay-indice-otra { margin-top: 18px; }
 
@@ -163,7 +163,7 @@
 .ay-camino > .ic { width: 18px; height: 18px; color: var(--taupe); transition: transform .25s var(--ease), color .2s var(--ease); }
 .ay-camino:hover .ay-camino-ic { background: var(--tinta); color: var(--crema); }
 .ay-camino:hover > .ic { transform: translateX(4px); color: var(--tinta); }
-.ay-camino:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 10px; }
+.ay-camino:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 0; }
 /* La página sola, sin pie (la que no está y la que falló: no saben si hay sesión): lo suyo queda al medio de la ventana, no arriba
    con un vacío debajo. */
 .ay-pagina-sola { flex-grow: 1; justify-content: center; }

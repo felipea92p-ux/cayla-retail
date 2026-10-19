@@ -12,7 +12,7 @@
 
 /* ---- El saludo ---- */
 .pf-cab { display: flex; flex-direction: column; gap: 8px; }
-.pf-cab h1 { margin: 2px 0 0; font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 8cqi, 54px); line-height: .95; letter-spacing: -.01em; }
+.pf-cab h1 { margin: 2px 0 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: clamp(21.1px, 4.96cqi, 33.5px); line-height: 1.12;  }
 .pf-cab h1 em { font-style: italic; color: var(--rojo); }
 .pf-cab-linea { margin: 0; font-size: 14px; color: var(--tinta-60); }
 .pf-cab .w-nota { margin-top: 6px; }
@@ -21,7 +21,7 @@
    sección, más abajo en la misma página. ---- */
 .pf-atajos ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .pf-atajos li { display: flex; min-width: 0; }
-.pf-atajo { position: relative; flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px; border-radius: 14px; border: 1px solid var(--sand); background: var(--papel); color: var(--tinta); transition: border-color .2s; }
+.pf-atajo { position: relative; flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px; border-radius: 0; border: 1px solid var(--sand); background: var(--papel); color: var(--tinta); transition: border-color .2s; }
 .pf-atajo:hover { border-color: var(--taupe); }
 .pf-atajo:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
 .pf-atajo-ic { width: 36px; height: 36px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--hueso); color: var(--rojo-profundo); }
@@ -41,9 +41,9 @@
 .pf-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr); }
 .pf-sec { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding-block: 22px; border-top: 1px solid var(--sand); scroll-margin-top: 12px; }
 .pf-sec-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
-.pf-sec-cab h2 { margin: 0; display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 24px; font-weight: 500; line-height: 1.1; }
+.pf-sec-cab h2 { margin: 0; display: flex; align-items: center; gap: 10px; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-size: 18px; font-weight: 250; line-height: 1.12; }
 /* Cuántos hay: el globito, pegado al título (como el de «Ver todos» del catálogo). */
-.pf-cuenta { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px; display: inline-grid; place-items: center; background: var(--sand); font-family: var(--sans); font-size: 12px; font-weight: 700; line-height: 1; color: var(--tinta); }
+.pf-cuenta { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 0; display: inline-grid; place-items: center; background: var(--sand); font-family: var(--sans); font-size: 12px; font-weight: 700; line-height: 1; color: var(--tinta); }
 .pf-sec-cab .t-ver { padding-block: 0; }
 /* Un botón suelto de una sección («Ver toda la tienda», «Volver a intentar»), alineado con el texto: sin la sangría del botón chico. */
 .pf-sec .t-btn.t-btn-chico { margin-left: 0; }
@@ -63,7 +63,7 @@
 .pf-beneficios .c-reintentar { margin-left: 0; }
 
 /* ---- Tu cuenta: el correo, sus dos botones y, aparte, «Eliminar mi cuenta» ---- */
-.pf-acceso { display: flex; flex-direction: column; gap: 14px; padding: 16px; border-radius: 14px; border: 1px solid var(--sand); background: var(--papel); }
+.pf-acceso { display: flex; flex-direction: column; gap: 14px; padding: 16px; border-radius: 0; border: 1px solid var(--sand); background: var(--papel); }
 .pf-acceso-correo { margin: 0; font-size: 14px; line-height: 1.5; }
 .pf-acceso-correo > span { color: var(--tinta-60); }
 .pf-acceso-acc { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
@@ -75,12 +75,12 @@
 /* ---- Mientras llega (FormaDelEsqueleto, forma «perfil»): las mismas cajas, que brillan ---- */
 .t-esqueleto .pf-perfil i { display: block; }
 .pf-cab .pf-esq-ceja { width: 72px; height: 9px; margin: 0; }
-.pf-esq-hola { width: min(320px, 70%); height: clamp(34px, 8cqi, 52px); border-radius: 6px; background: var(--hueso); }
+.pf-esq-hola { width: min(320px, 70%); height: clamp(34px, 8cqi, 52px); border-radius: 0; background: var(--hueso); }
 .pf-cab .pf-esq-linea { width: min(260px, 60%); margin-top: 2px; }
 .pf-esq-atajo .pf-atajo-ic { background: var(--hueso); }
 .pf-esq-atajo .pf-atajo-txt { flex: 1; }
-.pf-esq-tarjeta { width: 100%; max-width: 300px; aspect-ratio: 1.586; border-radius: 18px; background: var(--hueso); }
-.pf-esq-beneficio { height: 76px; border-radius: 12px; border: 1px solid var(--sand); background: var(--papel); }
+.pf-esq-tarjeta { width: 100%; max-width: 300px; aspect-ratio: 1.586; border-radius: 0; background: var(--hueso); }
+.pf-esq-beneficio { height: 76px; border-radius: 0; border: 1px solid var(--sand); background: var(--papel); }
 .pf-esq-atajo .t-esqueleto-linea { margin-top: 0; width: 70%; }
 .pf-esq-atajo .t-esqueleto-linea + .t-esqueleto-linea { width: 50%; margin-top: 8px; }
 .t-esqueleto .pf-sec .t-esqueleto-titulo { margin-bottom: 4px; }

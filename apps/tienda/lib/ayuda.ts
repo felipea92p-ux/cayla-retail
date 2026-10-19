@@ -121,7 +121,7 @@ export function avisosParaSeparar(p: Plazos): { confirmar: Paso; pagar: Paso; re
 
 /**
  * «Cambios y devoluciones» en tres cosas que se leen de un vistazo: cuánto tiempo, dónde y qué llevar. Promete lo mismo que
- * `textoCambios` (la misma regla de la tienda), solo que partido: el plazo de la caja (el que imprime la boleta), cualquier tienda CAYLA,
+ * la regla de la tienda (la ficha ya no la dice en una frase, 2026-10-19): el plazo de la caja (el que imprime la boleta), cualquier tienda CAYLA,
  * la boleta y la etiqueta puesta. Sin el plazo, sin número: lo dice la boleta.
  */
 export function puntosDeCambios(p: Plazos): { plazo: Paso; donde: Paso; llevar: Paso } {
@@ -133,14 +133,6 @@ export function puntosDeCambios(p: Plazos): { plazo: Paso; donde: Paso; llevar: 
     donde: { titulo: "En cualquier tienda CAYLA", texto: "La que te quede más cerca, aunque no sea donde la recogiste." },
     llevar: { titulo: "Lleva tu boleta", texto: "Y la prenda con su etiqueta puesta." },
   };
-}
-
-/** «Cambios y devoluciones» en una frase (la ficha de cada prenda la muestra así): como en tienda, con el mismo plazo que la boleta.
- *  Sin el plazo, se dice que va impreso en la boleta. */
-export function textoCambios(p: Plazos): string {
-  return p.diasParaCambiar !== null
-    ? `Igual que en tienda: puedes cambiar o devolver tu prenda dentro de ${enDias(p.diasParaCambiar)}, en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta.`
-    : "Igual que en tienda: puedes cambiar o devolver tu prenda en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta. El plazo va impreso en tu boleta.";
 }
 
 // ---- Las lecturas largas (Privacidad y Términos del Club): solo cómo se dibujan, nunca qué dicen ----

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SigueMirando } from "@/components/bolsa/SigueMirando";
+import { BotonBuscarCatalogo } from "@/components/BotonBuscarCatalogo";
 import { ElegidoALaVista } from "@/components/ElegidoALaVista";
 import { FiltrosDeLista } from "@/components/FiltrosDeLista";
 import { Icono } from "@/components/Icono";
@@ -36,6 +37,7 @@ import { armarProbador } from "@/lib/probador";
 import { leerProbador } from "@/lib/probador-servidor";
 import { fechaLarga, pctTexto } from "@/lib/portada";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
+import { sedeDeLaPagina } from "@/lib/sede-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { conMostrar, leerMostrar, tandaDe } from "@/lib/tandas";
@@ -83,7 +85,7 @@ export default async function Catalogo({ searchParams }: Props) {
   const orden = leerOrden(sp.orden);
   const categoriaPedida = leerCategoria(sp.categoria);
   const sedes = sedesEnOrden(await leerSedes());
-  const pedida = sedeDeLaUrl(sp.sede, sedes);
+  const pedida = await sedeDeLaPagina(sp, sedes, "/catalogo", claveDeSede);
   const esFavoritos = lista === "favoritos";
   const sesion = esFavoritos ? await leerSesion() : null;
   // Lo guardado es la misma lectura del marco del catálogo (una sola consulta por visita). En los favoritos, también los looks que armó
@@ -375,6 +377,7 @@ export default async function Catalogo({ searchParams }: Props) {
               ) : (
                 <span className="t-esp" />
               )}
+              <BotonBuscarCatalogo />
               <div className="t-orden">
                 <Link
                   href={href({ orden: siguienteOrden(orden) })}

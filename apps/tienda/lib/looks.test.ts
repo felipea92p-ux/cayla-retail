@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   alternarTalla,
   avisoDelLook,
-  cejaDeLook,
   faltaTalla,
   hrefDePieza,
   hrefLook,
@@ -105,10 +104,9 @@ describe("lo que se dibuja", () => {
     expect(precioDePieza(look.piezas[2])).toEqual({ principal: "S/ 134.90", anterior: "S/ 149.90", oferta: true });
   });
 
-  it("el total del look y la ceja de la tarjeta («desde» si una campaña no toca todas las tallas)", () => {
+  it("el total del look («desde» si una campaña no toca todas las tallas)", () => {
     expect(totalDelLook(look)).toBe("S/ 289.70");
     expect(totalDelLook({ ...look, desde: true })).toBe("Desde S/ 289.70");
-    expect(cejaDeLook(look)).toBe("Look 2 · 3 prendas");
   });
 
   it("el precio de la tarjeta, en su línea: lo que se paga y, si alguna prenda tiene campaña, el total sin ella tachado", () => {
