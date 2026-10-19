@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import type { Caja, ColorDelProbador, PrendaDelProbador, Zona } from "@/lib/probador";
+import type { Caja, FotoDelColor, Zona } from "@/lib/probador";
 import {
   ANCHO_PARA_MEDIR,
   cajaDeAbajoUnida,
@@ -26,7 +26,8 @@ import {
 const ESPERA_ANTES_DE_AVISAR_MS = 180;
 /** Una imagen que no responde en tanto se da por no medible: se queda la caja de siempre y el aviso se va. */
 const LIMITE_POR_RECORTE_MS = 4000;
-const CLAVE_GUARDADA = "cayla-union-v1";
+// v2: las medidas ahora traen el perfil del bajo; lo recordado en v1 se vuelve a medir.
+const CLAVE_GUARDADA = "cayla-union-v2";
 
 /** Lo que se midió de cada recorte (por su dirección); `null`: no se pudo. Dura lo que dura la pestaña, más lo recordado de otras visitas. */
 const medidas = new Map<string, MedidaDelRecorte | null>();
@@ -121,7 +122,8 @@ function medir(foto: Foto): Promise<void> {
   return tarea;
 }
 
-type PiezaDeLaFigura = { z: Zona; p: PrendaDelProbador; c: ColorDelProbador; caja: Caja };
+/** Lo que la unión lee de cada pieza: su zona, si va metida, su recorte y su caja (la figura interactiva manda más; la quieta, solo esto). */
+export type PiezaDeLaFigura = { z: Zona; p: { metida: boolean }; c: { foto: FotoDelColor }; caja: Caja };
 
 /**
  * Las piezas de la figura con la de abajo unida a la de arriba. Con las dos zonas puestas pide medir sus recortes y, cuando están, devuelve las
