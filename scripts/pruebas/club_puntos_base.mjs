@@ -228,6 +228,34 @@ select concat_ws('|', substr(:'segundo', 1, 5), retail.fn_club_puntos_saldo(:'f'
   "23505|200"
 );
 
+caso(
+  "(d3) el regalo de cumpleaños se puede dar de nuevo SOLO si el anterior ya tiene su reversa (se anuló la venta que lo dio)",
+  `reset role;
+select pg_temp.ficha('79000023', true) as f \\gset
+select retail.fn_club_puntos_anotar(:'f', 'cumple', 100, null, :'anio_hoy'::smallint) as c1 \\gset
+select retail.fn_club_puntos_anotar(:'f', 'revierte', -100, null, null, null, null, null, :'c1') as _r \\gset
+select retail.fn_club_puntos_anotar(:'f', 'cumple', 100, null, :'anio_hoy'::smallint) as _c2 \\gset
+select pg_temp.intento(format($q$select retail.fn_club_puntos_anotar(%L::uuid, 'cumple', 100, null, %s::smallint)$q$, :'f', :'anio_hoy')) as tercero \\gset
+select concat_ws('|', retail.fn_club_puntos_saldo(:'f'), retail.fn_club_puntos_saldo_calculado(:'f'), substr(:'tercero', 1, 5));`,
+  "100|100|23505"
+);
+caso(
+  "(d4) una reversa deshace SOLO lo de su miembro y nunca más de lo que dio: de más, de otra miembro o sin apuntar a nada se rechazan; lo justo pasa",
+  `reset role;
+select pg_temp.ficha('79000024', true) as f \\gset
+select pg_temp.ficha('79000025', true) as otra \\gset
+select retail.fn_club_puntos_anotar(:'f', 'compra', 100) as c \\gset
+select retail.fn_club_puntos_anotar(:'f', 'cumple', 100, null, :'anio_hoy'::smallint) as _otro \\gset
+select retail.fn_club_puntos_anotar(:'otra', 'compra', 100) as co \\gset
+select retail.fn_club_puntos_anotar(:'f', 'revierte', -60, null, null, null, null, null, :'c') as _r1 \\gset
+select pg_temp.intento(format($q$select retail.fn_club_puntos_anotar(%L::uuid, 'revierte', -50, null, null, null, null, null, %L::uuid)$q$, :'f', :'c')) as excede \\gset
+select pg_temp.intento(format($q$select retail.fn_club_puntos_anotar(%L::uuid, 'revierte', -10, null, null, null, null, null, %L::uuid)$q$, :'f', :'co')) as ajena \\gset
+select substr(pg_temp.intento(format($q$insert into retail.club_puntos_movimientos (clienta_id, tipo, puntos) values (%L, 'revierte', -10)$q$, :'f')), 1, 5) as sin_apuntar \\gset
+select pg_temp.intento(format($q$select retail.fn_club_puntos_anotar(%L::uuid, 'revierte', -40, null, null, null, null, null, %L::uuid)$q$, :'f', :'c')) as justo \\gset
+select concat_ws('|', :'excede', :'ajena', :'sin_apuntar', :'justo', retail.fn_club_puntos_saldo(:'f'), retail.fn_club_puntos_saldo_calculado(:'f'));`,
+  "23514|puntos_reversa_excede|23514|puntos_reversa_invalida|23514|SIN_ERROR|100|100"
+);
+
 // ---------------------------------------------------------------- e. Los candados de la tabla
 caso(
   "(e1) un movimiento no se edita ni se borra: puntos_solo_agregar (ni siquiera como dueño)",

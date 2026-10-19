@@ -12,7 +12,8 @@
 --      100 puntos, canje mínimo, compra mínima del cupón, vigencia del cupón, regalo de cumpleaños y tope de costo). Solo se agrega.
 --      Cambiar lo que valen los puntos o el canje rige desde dentro de 15 días (los Términos, 5.9); lo demás, desde hoy.
 --   2. `club_puntos_movimientos`: LA fuente de verdad. Cada punto ganado, canjeado, devuelto, revertido o perdido es una fila que
---      solo se agrega (como `movimientos` con el stock). El signo lo manda el tipo.
+--      solo se agrega (como `movimientos` con el stock). El signo lo manda el tipo. Una reversa apunta al movimiento que deshace
+--      (`de_movimiento_id`) y nunca quita más de lo que ese movimiento dio.
 --   3. `club_puntos_saldos`: el saldo, DERIVADO. Lo mantiene un disparador desde los movimientos y no puede ser negativo.
 --   4. Funciones internas (sin permiso para la API; las llamarán `registrar_venta` y las demás actividades): leer la configuración,
 --      anotar un movimiento (con todas sus reglas) y recalcular el saldo desde los movimientos (para auditar).
@@ -87,11 +88,15 @@ create table if not exists retail.club_puntos_movimientos (
   referencia     text,
   nota           text,
   registrado_por uuid references public.personas (id),
-  created_at     timestamptz not null default now()
+  created_at     timestamptz not null default now(),
+  de_movimiento_id uuid references retail.club_puntos_movimientos (id)
 );
+-- (por si la tabla nació sin la columna al pegar una versión anterior de este archivo)
+alter table retail.club_puntos_movimientos add column if not exists de_movimiento_id uuid references retail.club_puntos_movimientos (id);
 comment on table retail.club_puntos_movimientos is
   'Cada punto del Club (actividad 1 de los puntos): una fila que SOLO se agrega. tipo: compra (+, una por venta), cumple (+, una por socia y año), canje (−, al crear un cupón), devuelve (+, un cupón vencido o sin usar devuelve sus puntos), revierte (−, anulación o devolución de una compra), pierde (−, a los 3 años sin compras) y ajuste (±, del líder). El saldo es club_puntos_saldos, derivado por disparador. RLS sin políticas y sin permisos para la API.';
 comment on column retail.club_puntos_movimientos.anio is 'Año de Lima del regalo de cumpleaños: uno por socia y año.';
+comment on column retail.club_puntos_movimientos.de_movimiento_id is 'El movimiento que corrige: una reversa (revierte) apunta a la compra o al regalo que deshace; un cupón vencido (devuelve) apunta a su canje.';
 comment on column retail.club_puntos_movimientos.referencia is 'Qué lo originó cuando no es una venta (el código de un cupón, por ejemplo).';
 
 alter table retail.club_puntos_movimientos drop constraint if exists club_puntos_mov_tipo_valido;
@@ -109,11 +114,16 @@ alter table retail.club_puntos_movimientos add constraint club_puntos_mov_anio_d
 alter table retail.club_puntos_movimientos drop constraint if exists club_puntos_mov_tope;
 alter table retail.club_puntos_movimientos add constraint club_puntos_mov_tope check (abs(puntos) <= 10000000);
 
--- Los dos candados de «una sola vez»: una compra da puntos una sola vez, y el cumpleaños se regala una vez por año.
+alter table retail.club_puntos_movimientos drop constraint if exists club_puntos_mov_de_movimiento;
+alter table retail.club_puntos_movimientos add constraint club_puntos_mov_de_movimiento
+  check ((tipo in ('revierte', 'devuelve')) = (de_movimiento_id is not null));
+
+-- El candado de «una sola vez» de la compra: una venta da puntos una sola vez. (El regalo de cumpleaños —uno por año, pero que se
+-- puede volver a dar si se anuló la venta que lo dio— lo vigila el disparador fn_club_puntos_guardas, no un único.)
 create unique index if not exists club_puntos_mov_una_compra_por_venta
   on retail.club_puntos_movimientos (venta_id) where tipo = 'compra';
-create unique index if not exists club_puntos_mov_un_cumple_por_anio
-  on retail.club_puntos_movimientos (clienta_id, anio) where tipo = 'cumple';
+drop index if exists retail.club_puntos_mov_un_cumple_por_anio;
+create index if not exists club_puntos_mov_de_idx on retail.club_puntos_movimientos (de_movimiento_id) where de_movimiento_id is not null;
 create index if not exists club_puntos_mov_clienta_idx on retail.club_puntos_movimientos (clienta_id, created_at desc);
 create index if not exists club_puntos_mov_venta_idx on retail.club_puntos_movimientos (venta_id) where venta_id is not null;
 
@@ -154,6 +164,53 @@ create or replace trigger trg_club_puntos_mov_solo_agregar
 create or replace trigger trg_club_puntos_config_solo_agregar
   before update or delete on retail.club_puntos_config
   for each row execute function retail.fn_club_puntos_solo_agregar();
+
+-- Las guardas que un único no puede expresar. Corren ANTES de cada inserción y toman primero la fila del saldo de la miembro, así que
+-- cualquier camino (la función de anotar o un SQL a mano) se turna con los demás en la misma miembro:
+--   · el regalo de cumpleaños: uno por miembro y año, salvo que el que se dio ya tenga su reversa (se anuló la venta que lo dio);
+--   · una reversa: apunta a una compra o un regalo de la MISMA miembro y de la MISMA venta, y todas las reversas de un movimiento
+--     nunca suman más que lo que ese movimiento dio.
+create or replace function retail.fn_club_puntos_guardas()
+returns trigger
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_orig record;
+  v_ya_revertido integer;
+begin
+  insert into retail.club_puntos_saldos (clienta_id, saldo) values (new.clienta_id, 0) on conflict (clienta_id) do nothing;
+  perform 1 from retail.club_puntos_saldos s where s.clienta_id = new.clienta_id for update;
+
+  if new.tipo = 'cumple' then
+    if exists (select 1 from retail.club_puntos_movimientos m
+                where m.clienta_id = new.clienta_id and m.tipo = 'cumple' and m.anio = new.anio
+                  and not exists (select 1 from retail.club_puntos_movimientos r where r.tipo = 'revierte' and r.de_movimiento_id = m.id)) then
+      raise exception 'El regalo de cumpleaños de este año ya se dio.' using errcode = '23505', hint = 'puntos_cumple_ya_regalado';
+    end if;
+  elsif new.tipo = 'revierte' then
+    select m.clienta_id, m.tipo, m.puntos, m.venta_id into v_orig from retail.club_puntos_movimientos m where m.id = new.de_movimiento_id;
+    if not found or v_orig.clienta_id <> new.clienta_id or v_orig.tipo not in ('compra', 'cumple')
+       or v_orig.venta_id is distinct from new.venta_id then
+      raise exception 'Una reversa deshace una compra o un regalo de la misma miembro y de la misma venta.' using errcode = '23514', hint = 'puntos_reversa_invalida';
+    end if;
+    select coalesce(sum(-r.puntos), 0) into v_ya_revertido
+      from retail.club_puntos_movimientos r where r.tipo = 'revierte' and r.de_movimiento_id = new.de_movimiento_id;
+    if v_ya_revertido - new.puntos > v_orig.puntos then
+      raise exception 'Esa reversa quita más de lo que dio el movimiento.' using errcode = '23514', hint = 'puntos_reversa_excede';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+comment on function retail.fn_club_puntos_guardas() is
+  'Disparador de club_puntos_movimientos (antes de insertar): serializa por miembro y vigila el regalo de cumpleaños (uno por año, reversible) y las reversas (nunca más de lo que dio el movimiento).';
+revoke all on function retail.fn_club_puntos_guardas() from public, anon, authenticated;
+
+create or replace trigger trg_club_puntos_guardas
+  before insert on retail.club_puntos_movimientos
+  for each row execute function retail.fn_club_puntos_guardas();
 
 create or replace function retail.fn_club_puntos_aplicar_saldo()
 returns trigger
@@ -238,6 +295,9 @@ comment on function retail.fn_club_puntos_saldo_calculado(uuid) is
   'El saldo recalculado sumando los movimientos. Sirve para auditar: debe ser igual a fn_club_puntos_saldo.';
 revoke all on function retail.fn_club_puntos_saldo_calculado(uuid) from public, anon, authenticated;
 
+-- (la firma de 8 parámetros de una versión anterior de este archivo, si alguien la pegó)
+drop function if exists retail.fn_club_puntos_anotar(uuid, text, integer, uuid, smallint, text, text, uuid);
+
 -- Anota un movimiento con TODAS sus reglas. La usan registrar_venta y las demás funciones del programa; nadie escribe en
 -- club_puntos_movimientos por otro camino. Devuelve el id del movimiento.
 create or replace function retail.fn_club_puntos_anotar(
@@ -248,7 +308,8 @@ create or replace function retail.fn_club_puntos_anotar(
   p_anio smallint default null,
   p_referencia text default null,
   p_nota text default null,
-  p_persona uuid default null
+  p_persona uuid default null,
+  p_de_movimiento_id uuid default null
 )
 returns uuid
 language plpgsql
@@ -289,15 +350,15 @@ begin
       using errcode = 'P0001', hint = 'puntos_insuficientes';
   end if;
 
-  insert into retail.club_puntos_movimientos (clienta_id, tipo, puntos, venta_id, anio, referencia, nota, registrado_por)
-  values (p_clienta_id, p_tipo, p_puntos, p_venta_id, p_anio, nullif(btrim(p_referencia), ''), nullif(btrim(p_nota), ''), p_persona)
+  insert into retail.club_puntos_movimientos (clienta_id, tipo, puntos, venta_id, anio, referencia, nota, registrado_por, de_movimiento_id)
+  values (p_clienta_id, p_tipo, p_puntos, p_venta_id, p_anio, nullif(btrim(p_referencia), ''), nullif(btrim(p_nota), ''), p_persona, p_de_movimiento_id)
   returning id into v_id;
   return v_id;
 end;
 $$;
-comment on function retail.fn_club_puntos_anotar(uuid, text, integer, uuid, smallint, text, text, uuid) is
+comment on function retail.fn_club_puntos_anotar(uuid, text, integer, uuid, smallint, text, text, uuid, uuid) is
   'El único camino para anotar puntos: valida que sea miembro, bloquea el saldo, impide quedar en negativo y deja que los candados de la tabla hagan imposible dar puntos dos veces por la misma venta o el mismo cumpleaños. Interna.';
-revoke all on function retail.fn_club_puntos_anotar(uuid, text, integer, uuid, smallint, text, text, uuid) from public, anon, authenticated;
+revoke all on function retail.fn_club_puntos_anotar(uuid, text, integer, uuid, smallint, text, text, uuid, uuid) from public, anon, authenticated;
 
 -- ---------- 6. Guardar una versión nueva de la configuración ----------
 create or replace function retail.guardar_beneficios_puntos(
