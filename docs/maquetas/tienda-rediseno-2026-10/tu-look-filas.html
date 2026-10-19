@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tu look · tres maneras de ordenar las prendas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,100..900&family=Newsreader:ital,wght@1,400;1,500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --crema: #ecebe7; --papel: #f4f3f0; --hueso: #e1ded7; --sand: #cbc7be; --tinta: #1c1c1a; --taupe: #615e57;
+  --rojo: #9e1d32; --verde: #48603f; --ambar: #74501a; --tinta-60: color-mix(in srgb, var(--tinta) 64%, transparent);
+  --sans: "Archivo", ui-sans-serif, system-ui, sans-serif; --nombre: "Newsreader", Georgia, serif; --ancho: "wdth" 125;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #d9d6ce; color: var(--tinta); font-family: var(--sans); font-size: 14px; }
+.pag { max-width: 1280px; margin: 0 auto; padding: 32px 24px 80px; }
+h1 { font-weight: 250; font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-size: 26px; margin: 0 0 6px; }
+.intro { color: var(--taupe); max-width: 70ch; margin: 0 0 34px; line-height: 1.5; }
+.op { margin-bottom: 64px; }
+.op > header { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; }
+.op > header b { font-size: 30px; font-weight: 250; font-variation-settings: var(--ancho); }
+.op > header h2 { margin: 0; font-size: 17px; font-weight: 600; }
+.op > p { margin: 0 0 18px; color: var(--taupe); max-width: 78ch; line-height: 1.5; }
+.marcos { display: grid; grid-template-columns: 375px minmax(0, 1fr); gap: 28px; align-items: start; }
+.marco { background: var(--crema); box-shadow: 0 0 0 1px var(--sand); container-type: inline-size; container-name: tienda; }
+.marco > small { display: block; padding: 8px 14px; color: var(--taupe); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; border-bottom: 1px solid var(--sand); background: var(--papel); }
+.look { padding: 18px 16px 20px; }
+.cab { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--sand); }
+.cab h3 { margin: 0; font-weight: 250; font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-size: 18px; }
+.cab span { font-size: 12.5px; color: var(--tinta-60); }
+ul { list-style: none; margin: 0; padding: 0; }
+button { font: inherit; color: inherit; cursor: pointer; }
+
+/* piezas comunes */
+.num { width: 22px; height: 22px; border-radius: 50%; background: var(--tinta); color: var(--crema); font-size: 11px; font-weight: 700; display: grid; place-items: center; flex: none; }
+.foto { background: var(--hueso); display: grid; place-items: center; }
+.foto svg { width: 70%; height: 70%; }
+.nombre { font-size: 13.5px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.det { display: flex; align-items: flex-start; gap: 6px; font-size: 12px; font-weight: 500; line-height: 1.3; color: var(--ambar); }
+.det .pto { margin-top: 3px; }
+.det.ok { color: var(--verde); }
+.pto { width: 10px; height: 10px; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tinta) 18%, transparent); }
+.precio { font-size: 13.5px; font-weight: 700; white-space: nowrap; }
+.circ { width: 32px; height: 32px; border: 0; border-radius: 50%; background: transparent; box-shadow: inset 0 0 0 1px var(--sand); display: grid; place-items: center; transition: background-color .2s, color .2s; }
+.circ svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.circ[aria-pressed="true"].cand { background: var(--tinta); color: var(--crema); box-shadow: none; }
+.circ.x:hover { background: var(--hueso); }
+.item[data-fuera] { opacity: .5; }
+.item[data-fuera] .nombre, .item[data-fuera] .precio { text-decoration: line-through; }
+.item[data-fuera] .circ.x { opacity: 1; background: var(--tinta); color: var(--crema); box-shadow: none; }
+.nota { margin: 12px 0 0; font-size: 12px; color: var(--taupe); display: flex; gap: 8px; align-items: flex-start; line-height: 1.4; }
+.nota svg { width: 14px; height: 14px; flex: none; margin-top: 1px; fill: none; stroke: currentColor; stroke-width: 2; }
+.pie { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--sand); display: grid; gap: 10px; }
+.pie .tot { display: flex; align-items: baseline; justify-content: space-between; }
+.pie .tot span { color: var(--taupe); font-size: 12.5px; }
+.pie .tot b { font-size: 24px; font-weight: 300; font-variation-settings: var(--ancho); }
+.pie .tot s { color: var(--tinta-60); font-size: 12px; margin-right: 8px; }
+.go { height: 46px; border: 0; background: var(--tinta); color: var(--crema); font-size: 12px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .14em; text-transform: uppercase; transition: background-color .2s; }
+.go:hover { background: var(--rojo); }
+.go[disabled] { background: var(--sand); color: var(--tinta-60); cursor: not-allowed; }
+
+/* A · fila compacta: foto con el número encima, acciones apiladas a la derecha */
+.A .it { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--sand); min-height: 100px; }
+.A .foto { width: 64px; height: 80px; position: relative; }
+.A .foto .num { position: absolute; left: -6px; top: -6px; box-shadow: 0 0 0 2px var(--crema); }
+.A .txt { display: grid; gap: 4px; min-width: 0; }
+.A .acc { display: grid; gap: 6px; }
+@container tienda (min-width: 700px) { .A ul { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; } }
+
+/* B · tarjetas: foto grande, acciones sobre la foto, todas del mismo alto */
+.B ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; margin-top: 14px; }
+@container tienda (min-width: 700px) { .B ul { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 18px; } }
+.B .it { display: grid; gap: 8px; align-content: start; }
+.B .foto { aspect-ratio: 4 / 5; position: relative; }
+.B .foto .num { position: absolute; left: 8px; top: 8px; }
+.B .acc { position: absolute; right: 8px; top: 8px; display: grid; gap: 6px; }
+.B .acc .circ { background: var(--papel); box-shadow: none; }
+.B .acc .circ[aria-pressed="true"].cand { background: var(--tinta); }
+.B .txt { display: grid; gap: 3px; }
+.B .nombre { min-height: 2.5em; }
+.B .fila-precio { display: flex; justify-content: space-between; align-items: baseline; }
+.B .item[data-fuera] .foto { filter: grayscale(1); }
+
+/* C · fila con una palabra: «No la llevo» a la vista, sin adivinar qué hace la X */
+.C .it { display: grid; grid-template-columns: 22px 54px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 12px 0; border-bottom: 1px solid var(--sand); min-height: 110px; }
+.C .it > .num { margin-top: 2px; }
+.C .der { align-self: stretch; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; }
+.C .foto { width: 54px; height: 66px; }
+.C .txt { display: grid; gap: 3px; min-width: 0; }
+.C .llevo { justify-self: start; margin-top: 4px; height: 28px; padding: 0 10px; border: 0; background: transparent; box-shadow: inset 0 0 0 1px var(--sand); font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .1em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.C .llevo svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.C .llevo:hover { background: var(--hueso); }
+.C .item[data-fuera] .llevo { background: var(--tinta); color: var(--crema); box-shadow: none; }
+@container tienda (min-width: 700px) { .C ul { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; } }
+
+.tira { margin-top: 28px; padding: 16px 18px; background: var(--papel); box-shadow: inset 0 0 0 1px var(--sand); max-width: 78ch; line-height: 1.55; }
+.tira b { font-weight: 600; }
+@media (max-width: 1100px) { .marcos { grid-template-columns: 1fr; } .marco { max-width: 375px; } .marco.ancho { max-width: none; } }
+</style>
+</head>
+<body>
+<div class="pag">
+  <h1>Tu look · cómo ordenar las prendas</h1>
+  <p class="intro">Tres maneras de dibujar cada prenda para que todas midan igual, con la «X» que deja la prenda en la figura pero la saca de la compra, y el botón que ahora dice cuántas prendas se agregan. <b>Toca la X y el candado de cada prenda</b>: el total y el botón se actualizan. Datos de ejemplo.</p>
+  <div id="raiz"></div>
+
+  <div class="tira">
+    <b>Lo que cambia igual en las tres:</b> la nota «Aún no hay foto en negro: ves otra foto de esta prenda» sale de cada fila y pasa a una sola línea bajo la lista (hoy hace que unas filas midan el doble). El botón deja de decir «Agregar a mi bolsa» a secas: dice «Agregar 3 prendas a mi bolsa» y baja con cada X («Agregar 2 prendas…»); sin ninguna llevada, se apaga y dice «Elige qué llevar». El total solo suma lo que llevas.
+  </div>
+</div>
+
+<script>
+const SVG = {
+  blusa: '<svg viewBox="0 0 60 60"><path d="M20 8l-12 8 5 10 6-3v27h22V23l6 3 5-10-12-8c-2 4-6 6-10 6s-8-2-10-6z" fill="#f3d9de" stroke="#b8909a" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+  jean: '<svg viewBox="0 0 60 60"><path d="M18 6h24l4 48H33l-3-30-3 30H14z" fill="#27395a" stroke="#18233a" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+  bolso: '<svg viewBox="0 0 60 60"><path d="M8 28l30-8 14 8-4 14H12z" fill="#1d1d1d" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 28c8-12 24-14 34 0" fill="none" stroke="#000" stroke-width="2"/></svg>'
+};
+const ICO = {
+  cand: '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  candA: '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 7.6-1.8"/></svg>',
+  x: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  volver: '<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/></svg>',
+  info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>'
+};
+const PRENDAS = [
+  { n: 1, nombre: 'Blusa de Encaje Asimétrica', color: 'Negro', hex: '#1d1d1d', nota: 'Quedan 2 en Trujillo', ok: false, precio: 39.9, svg: 'blusa' },
+  { n: 2, nombre: 'Adelle Wide Leg', color: 'Celeste', hex: '#a9c4dd', nota: 'Última en Trujillo', ok: false, precio: 109.9, svg: 'jean' },
+  { n: 3, nombre: 'Bolso de Mano con Correa', color: 'Negro', hex: '#1d1d1d', nota: 'Quedan 2 en Trujillo', ok: false, precio: 69.9, svg: 'bolso' }
+];
+const soles = (n) => 'S/ ' + n.toFixed(2);
+const NOTA = '<p class="nota">' + ICO.info + '<span>Algunos colores aún no tienen foto: ves otra foto de la prenda.</span></p>';
+
+function fila(tipo, p) {
+  const det = `<span class="det${p.ok ? ' ok' : ''}"><i class="pto" style="background:${p.hex}"></i>${p.color} · ${p.nota}</span>`;
+  const cand = `<button class="circ cand" data-cand aria-pressed="false" aria-label="Fijar ${p.nombre}">${ICO.cand}</button>`;
+  const x = `<button class="circ x" data-x aria-label="No llevar ${p.nombre}">${ICO.x}</button>`;
+  if (tipo === 'A') return `<li class="item it" data-i="${p.n}"><div class="foto"><span class="num">${p.n}</span>${SVG[p.svg]}</div><div class="txt"><span class="nombre">${p.nombre}</span>${det}</div><span class="precio">${soles(p.precio)}</span><div class="acc">${cand}${x}</div></li>`;
+  if (tipo === 'B') return `<li class="item it" data-i="${p.n}"><div class="foto"><span class="num">${p.n}</span><div class="acc">${cand}${x}</div>${SVG[p.svg]}</div><div class="txt"><span class="nombre">${p.nombre}</span>${det}<div class="fila-precio"><span class="precio">${soles(p.precio)}</span></div></div></li>`;
+  return `<li class="item it" data-i="${p.n}"><span class="num">${p.n}</span><div class="foto">${SVG[p.svg]}</div><div class="txt"><span class="nombre">${p.nombre}</span>${det}<button class="llevo" data-x aria-label="No llevar ${p.nombre}"><span data-t>${ICO.x}No la llevo</span></button></div><div class="der"><span class="precio">${soles(p.precio)}</span>${cand}</div></li>`;
+}
+function marco(tipo, etq, ancho) {
+  return `<div class="marco ${ancho ? 'ancho' : ''} ${tipo}" data-tipo="${tipo}"><small>${etq}</small><section class="look"><div class="cab"><h3>Tu look</h3><span>El candado deja una prenda fija</span></div><ul>${PRENDAS.map((p) => fila(tipo, p)).join('')}</ul>${NOTA}<div class="pie"><div class="tot"><span data-llevas></span><span><s data-antes hidden></s><b data-total></b></span></div><button class="go" data-go></button></div></section></div>`;
+}
+function opcion(tipo, titulo, texto) {
+  return `<section class="op"><header><b>${tipo}</b><h2>${titulo}</h2></header><p>${texto}</p><div class="marcos">${marco(tipo, 'Celular · 375 px', false)}${marco(tipo, 'Computadora · el ancho de la hoja', true)}</div></section>`;
+}
+document.getElementById('raiz').innerHTML =
+  opcion('A', 'Fila compacta, todas del mismo alto', 'La foto sube a 64 × 80 con el número en su esquina (una columna menos), el nombre se corta en dos líneas y las dos acciones se apilan a la derecha. Es lo más parecido a hoy, ordenado.') +
+  opcion('B', 'Tarjetas con la foto grande', 'Cada prenda es una tarjeta de foto 4:5 con el número y las dos acciones sobre la foto: dos por fila en el celular, tres en la computadora. Todas miden igual por construcción y la foto se ve de verdad; ocupa más alto.') +
+  opcion('C', 'Fila con una palabra: «No la llevo»', 'La fila de A, pero la X se vuelve un botón con palabras debajo del nombre, «✕ No la llevo» (y «↺ Sí la llevo» al activarla): nadie tiene que adivinar qué hace. Cada fila queda un poco más alta.');
+
+for (const m of document.querySelectorAll('.marco')) {
+  const fuera = new Set();
+  const pintar = () => {
+    const llevo = PRENDAS.filter((p) => !fuera.has(p.n));
+    const lista = PRENDAS.reduce((s, p) => s + p.precio, 0), tot = llevo.reduce((s, p) => s + p.precio, 0);
+    m.querySelector('[data-llevas]').textContent = llevo.length === PRENDAS.length ? 'El look completo' : `Llevas ${llevo.length} de ${PRENDAS.length} prendas`;
+    m.querySelector('[data-total]').textContent = soles(tot);
+    const a = m.querySelector('[data-antes]'); a.hidden = llevo.length === PRENDAS.length || llevo.length === 0; a.textContent = soles(lista);
+    const go = m.querySelector('[data-go]');
+    go.disabled = llevo.length === 0;
+    go.textContent = llevo.length === 0 ? 'Elige qué llevar' : llevo.length === 1 ? 'Agregar 1 prenda a mi bolsa' : `Agregar ${llevo.length} prendas a mi bolsa`;
+    for (const li of m.querySelectorAll('.item')) {
+      const f = fuera.has(Number(li.dataset.i));
+      li.toggleAttribute('data-fuera', f);
+      const t = li.querySelector('[data-t]');
+      if (t) t.innerHTML = f ? ICO.volver + 'Sí la llevo' : ICO.x + 'No la llevo';
+    }
+  };
+  m.addEventListener('click', (e) => {
+    const li = e.target.closest('.item'); if (!li) return;
+    const n = Number(li.dataset.i);
+    if (e.target.closest('[data-x]')) { fuera.has(n) ? fuera.delete(n) : fuera.add(n); pintar(); }
+    const c = e.target.closest('[data-cand]');
+    if (c) { const on = c.getAttribute('aria-pressed') !== 'true'; c.setAttribute('aria-pressed', on); c.innerHTML = on ? ICO.cand : ICO.cand; c.innerHTML = on ? ICO.cand : ICO.candA; }
+  });
+  for (const c of m.querySelectorAll('[data-cand]')) c.innerHTML = ICO.candA;
+  pintar();
+}
+</script>
+</body>
+</html>
