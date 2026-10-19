@@ -183,10 +183,12 @@ export function carritoPasaElUmbral(items: readonly ItemVentaEncolada[], stockPi
  *  otra tienda podría usarlo a la vez, y cuando la venta subiera y la base la rechazara, la clienta ya se habría ido con el
  *  precio rebajado. Mira las señales (los parámetros y la parte del club de cada ítem): la base exige que vayan juntas
  *  (`cumple_sin_canje`). */
-export function llevaCanje(params: Pick<ParamsRegistrarVenta, "p_canjear_cumpleanos" | "p_canjear_aniversario" | "p_items">): boolean {
+export function llevaCanje(params: Pick<ParamsRegistrarVenta, "p_canjear_cumpleanos" | "p_canjear_aniversario" | "p_items" | "p_codigo_descuento">): boolean {
   return (
     params.p_canjear_cumpleanos === true ||
     params.p_canjear_aniversario === true ||
+    // El cupón del Club (programa de puntos) también es de una sola vez: otra caja podría gastarlo a la vez.
+    Boolean(params.p_codigo_descuento) ||
     params.p_items.some((it) => (it.descuento_club_unitario ?? 0) > 0)
   );
 }

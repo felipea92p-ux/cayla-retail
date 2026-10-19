@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { ErrorEscritura } from "@/lib/error-escritura";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import type { FirmaOmitida } from "@/lib/responsable-omitido";
+import type { CuponDelClub, ResumenDePuntosEnCaja, ValidacionDeCupon } from "@cayla-retail/database";
+import { resultadoDelCodigo, resumenDePuntos, type CuponPuesto, type ResultadoDelCodigo, type ResumenPuntos } from "@/lib/club-puntos-reglas";
 
 // Las escrituras y lecturas del club desde el navegador (ADR-0288 tanda 1b): una función por RPC, para que Cobrar y
 // /clientas no sepan de Supabase. Todas las que guardan firman con el responsable del combo (ADR-0161) y la base exige el
@@ -79,4 +81,33 @@ export async function resumenClientaCaja(clientaId: string): Promise<{ resumen: 
       : null,
     error,
   };
+}
+
+/* ------------------------------------------------------------------ Puntos y cupones del Club (programa de puntos) */
+
+/** Los puntos de una clienta y la configuración vigente, para la tarjeta de la caja (lectura: `resumen_` no abre el loader). */
+export async function resumenPuntosCaja(clientaId: string): Promise<{ resumen: ResumenPuntos | null; error: ErrorEscritura }> {
+  const { data, error } = await createClient().rpc("resumen_puntos_caja", { p_clienta_id: clientaId });
+  return { resumen: data ? resumenDePuntos(data as ResumenDePuntosEnCaja) : null, error };
+}
+
+/** Canjea puntos en un cupón con código (se aplica al ticket). La misma `token` devuelve el MISMO cupón: un doble toque no gasta dos veces. */
+export async function canjearPuntosEnCaja(
+  clientaId: string,
+  puntos: number,
+  token: string,
+  firma: Firma | FirmaOmitida | null
+): Promise<{ cupon: CuponPuesto | null; error: ErrorEscritura }> {
+  const { data, error } = await firmar(createClient().rpc("canjear_puntos", { p_clienta_id: clientaId, p_puntos: puntos, p_token: token }), firma);
+  const c = data as CuponDelClub | null;
+  return {
+    cupon: c ? { codigo: c.codigo, valor: Number(c.valor), compraMinima: Number(c.compra_minima), venceEl: c.vence_el, origen: "puntos", de: null } : null,
+    error,
+  };
+}
+
+/** ¿Sirve este código para ESTA compra? Lectura: la base cuenta los códigos que no existen (5 en 5 minutos bloquean). */
+export async function validarCuponEnCaja(codigo: string, totalDelTicket: number): Promise<{ resultado: ResultadoDelCodigo | null; error: ErrorEscritura }> {
+  const { data, error } = await createClient().rpc("validar_cupon", { p_codigo: codigo, p_total: totalDelTicket });
+  return { resultado: data ? resultadoDelCodigo(data as ValidacionDeCupon) : null, error };
 }

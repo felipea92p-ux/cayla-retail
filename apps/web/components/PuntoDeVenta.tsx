@@ -124,6 +124,8 @@ import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/Acces
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
 import { ClientaDelTicket } from "@/components/punto-de-venta/ClientaDelTicket";
 import { useClubDeLaClienta } from "@/components/punto-de-venta/useClubDeLaClienta";
+import { useCuponDelClub } from "@/components/punto-de-venta/useCuponDelClub";
+import { CodigoDeCuponModal, UsarPuntosModal } from "@/components/punto-de-venta/PuntosYCuponModales";
 import { useReportarTicket } from "@/components/punto-de-venta/TicketPorSede";
 import { CLUB_APAGADO, type ClubDeLaCaja } from "@/lib/club-caja-reglas";
 import {
@@ -134,6 +136,16 @@ import {
   ticketConCumple,
 } from "@/lib/club-cumple-canje-reglas";
 import { avisoValeApagado, rechazoDelVale, ticketConVale, valeSinConexion } from "@/lib/club-aniversario-canje-reglas";
+import {
+  avisoCuponApagado,
+  ayudaPieCupon,
+  cuponSinConexion,
+  detalleDelCupon,
+  opcionesDeCanje,
+  puntosQueGana,
+  rechazoDelCupon,
+  solesDelCupon,
+} from "@/lib/club-puntos-reglas";
 import { DejarEnEsperaModal, TiraDeEsperas } from "@/components/punto-de-venta/Esperas";
 import { ticketParaEspera } from "@/lib/vender-hoy-reglas";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
@@ -303,7 +315,7 @@ export type VentaOk = {
   cumple?: { pct: number; monto: number } | null;
   /** El vale de aniversario que usó esta venta (tanda 1g, G-13): «Vale de aniversario usado (−S/30.00)…». Tampoco sin
    *  conexión. */
-  vale?: { monto: number } | null;
+  vale?: { monto: number; cupon?: boolean } | null;
   /** La venta guardada en el servidor: con ella «Venta registrada» busca el PDF de Lucode para mandarlo por WhatsApp. */
   ventaId?: string | null;
   /** El celular del cliente de la venta (el de su ficha, el más fresco), para ofrecer «Enviar por WhatsApp». Sin cliente, null. */
@@ -474,6 +486,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // Si es socia del club (ADR-0288, tanda 1b) y el «Ahora no» de esta venta. Vive aquí y no en la fila: la fila se desmonta
   // al pasar a cobrar, y el ticket impreso necesita saberlo para su QR.
   const clubDeLaClienta = useClubDeLaClienta(clienta?.id ?? null, puedeBuscarClienta);
+  // Los puntos de la clienta y el cupón puesto en esta compra (programa de puntos): vive aquí por lo mismo que el club de arriba.
+  const cuponClub = useCuponDelClub(clienta?.id ?? null, puedeBuscarClienta);
+  const [hojaPuntos, setHojaPuntos] = useState(false);
+  const [hojaCodigo, setHojaCodigo] = useState(false);
   const [esperaAbierta, setEsperaAbierta] = useState(false);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
   // — un «efectivo» que nadie eligió es un dato fantasma en el cuadre de caja. `cobrar()`
@@ -714,7 +730,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`). La hoja de la clienta también: con
   // su combo «Tipo de documento» enfocado, una tecla suelta se iba al escáner de atrás, y F1–F5 pasaban el ticket a cobrar.
   const hayModal =
-    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || hojaClientaAbierta || bajadaPorConfirmar !== null || envio.incierto;
+    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -1544,10 +1560,22 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // El vale de aniversario (tanda 1g, G-13), igual que el cumpleaños: UNA línea en el pie y el reparto por prenda
   // (`ticketConVale`, proporcional a lo que cobra cada una, en céntimos exactos). Va una sola ventaja del club por compra:
   // `useClubDeLaClienta` no deja poner las dos. Un vale que no descuenta nada no se manda (`aniversario_sin_monto`).
-  const montoVale = clubDeLaClienta.montoVale;
+  //
+  // El cupón del Club (programa de puntos) usa ESTA misma tubería: es un descuento fijo en soles repartido por prenda con la misma
+  // regla que repite la base (`fn_club_repartir_vale`), y viaja con su código en `p_codigo_descuento`. Cuando hay cupón puesto manda
+  // él (la caja no deja poner a la vez el vale heredado; la tarjeta ya no lo ofrece).
+  const cuponPuesto = cuponClub.cupon;
+  const montoVale = cuponPuesto ? cuponPuesto.valor : clubDeLaClienta.montoVale;
   const conVale = useMemo(() => ticketConVale(carrito, montoVale), [carrito, montoVale]);
   const valeDelTicket =
-    montoVale !== null && conVale.totalVale > 0 ? { vale: montoVale, monto: conVale.totalVale, totalSinVale: conVale.totalSinVale } : null;
+    montoVale !== null && conVale.totalVale > 0
+      ? {
+          vale: montoVale,
+          monto: conVale.totalVale,
+          totalSinVale: conVale.totalSinVale,
+          cupon: cuponPuesto ? { codigo: cuponPuesto.codigo, detalle: detalleDelCupon(cuponPuesto), ayuda: ayudaPieCupon(cuponPuesto, conVale.totalVale) } : null,
+        }
+      : null;
   // Las líneas con la parte del club (la de la ventaja que esté puesta; sin ninguna, en 0): las que viajan y se imprimen.
   const lineasConClub = valeDelTicket ? conVale.lineas : conCumple.lineas;
   const conVentajaDelClub = cumpleDelTicket !== null || valeDelTicket !== null;
@@ -1557,6 +1585,22 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       ? conVale.total
       : totalDeLineas(carrito);
   const prendas = carrito.reduce((acc, it) => acc + it.cantidad, 0);
+  // Lo que gana la miembro con esta compra (programa de puntos): lo que PAGA (ya con el cupón) por los puntos por sol de hoy, más el
+  // regalo de cumpleaños si le toca. Solo se dice; quien suma es la base al cobrar (`fn_club_puntos_por_venta`).
+  const puntosDelTicket = cuponClub.puntos;
+  const ganaPuntos =
+    clienta && puntosDelTicket?.miembro && carrito.length > 0
+      ? {
+          nombre: (clienta.nombre ?? "").trim().split(/\s+/)[0] || "El cliente",
+          puntos: puntosQueGana(total, puntosDelTicket.config),
+          regalo: puntosDelTicket.regaloDisponible ? puntosDelTicket.config.regaloCumple : 0,
+        }
+      : null;
+  // Un cupón pide una compra mínima: si el ticket bajó de ahí (se quitó una prenda), no se cobra con él (la base lo rechazaría).
+  const cuponNoAlcanza =
+    cuponPuesto && conVale.totalSinVale < cuponPuesto.compraMinima - 1e-9
+      ? `El cupón del Club pide una compra de ${solesDelCupon(cuponPuesto.compraMinima)} o más. Agrega prendas o quita el cupón.`
+      : null;
 
   // Se apagó SOLO (sin conexión, o su resumen ya no lo da por disponible): el total subió sin que nadie tocara «Quitar», y
   // quien cobra tiene que saberlo antes de decirle el monto a la clienta.
@@ -1566,6 +1610,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     const { titulo, detalle } = avisoCumpleApagado(cumpleSeApago.motivo, cumpleSeApago.pct);
     avisar.aviso(titulo, { detalle });
   }, [cumpleSeApago]);
+  const cuponSeApago = cuponClub.seApago;
+  useEffect(() => {
+    if (!cuponSeApago) return;
+    const { titulo, detalle } = avisoCuponApagado(cuponSeApago.valor);
+    avisar.aviso(titulo, { detalle });
+  }, [cuponSeApago]);
   const valeSeApago = clubDeLaClienta.valeSeApago;
   useEffect(() => {
     if (!valeSeApago) return;
@@ -1594,9 +1644,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // ADR-0379: el regalo del club (cumpleaños o vale) no se usa con piezas de liquidación: la base rechazaría la venta entera.
   const liquidacionConClub =
     conVentajaDelClub && carrito.some((it) => it.liquidacion)
-      ? "Las prendas de liquidación tienen precio final: el regalo del club se usa en otra venta. Quita el canje o cóbralas aparte."
+      ? "Las prendas de liquidación tienen precio final: el regalo del club se usa en otra venta. Quita el cupón o el canje, o cóbralas aparte."
       : null;
-  const motivoBloqueo = liquidacionConClub ?? motivoBloqueoCobro({
+  const motivoBloqueo = liquidacionConClub ?? cuponNoAlcanza ?? motivoBloqueoCobro({
     cajaAbierta: !bloqueado,
     prendas,
     momento,
@@ -1816,7 +1866,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       // El canje del cumpleaños (ADR-0288 D-5). Sin canje no viaja: la base lo toma como `false`.
       p_canjear_cumpleanos: cumpleDelTicket ? true : undefined,
       // El vale de aniversario (tanda 1g, G-13). Sin vale no viaja: la base lo toma como `false`.
-      p_canjear_aniversario: valeDelTicket ? true : undefined,
+      p_canjear_aniversario: valeDelTicket && !valeDelTicket.cupon ? true : undefined,
+      // El cupón del Club (programa de puntos): el código viaja aquí y la base lo valida, reparte y gasta (una sola vez). Sin cupón no viaja.
+      p_codigo_descuento: valeDelTicket?.cupon ? valeDelTicket.cupon.codigo : undefined,
     };
 
     const supabase = createClient();
@@ -1883,7 +1935,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         return;
       }
       // Lo mismo con el vale de aniversario (tanda 1g): se apaga, se relee si la base sabe algo que la caja no, y se dice.
-      const rechazoVale = valeDelTicket ? rechazoDelVale(error.hint) : null;
+      // Y con el cupón del Club (programa de puntos): se quita, se vuelve a leer lo que la base sabe y se dice.
+      const rechazoCupon = valeDelTicket?.cupon ? rechazoDelCupon(error.hint) : null;
+      if (rechazoCupon) {
+        cuponClub.apagarTrasRechazo();
+        avisar.error(traducirError(error, "registrar la venta"), { detalle: rechazoCupon.detalle });
+        responsable.despues(error);
+        return;
+      }
+      const rechazoVale = valeDelTicket && !valeDelTicket.cupon ? rechazoDelVale(error.hint) : null;
       if (rechazoVale) {
         clubDeLaClienta.apagarValeTrasRechazo(rechazoVale.releer);
         avisar.error(traducirError(error, "registrar la venta"), { detalle: rechazoVale.detalle });
@@ -1947,7 +2007,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    */
   function motivoParaNoEncolar(params: ParamsRegistrarVenta): string | null {
     if (conVentajaDelClub && llevaCanje(params)) {
-      const { titulo, detalle } = cumpleDelTicket ? canjeSinConexion(cumpleDelTicket.pct) : valeSinConexion();
+      const { titulo, detalle } = cumpleDelTicket ? canjeSinConexion(cumpleDelTicket.pct) : valeDelTicket?.cupon ? cuponSinConexion() : valeSinConexion();
       return `${titulo}. ${detalle ?? ""}`.trim();
     }
     if (carrito.some((it) => it.liquidacion)) {
@@ -2029,7 +2089,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           // El papel muestra el descuento de cada prenda: dice cuánto de eso es del cumpleaños.
           cumple: cumpleDelTicket ? { pct: cumpleDelTicket.pct, monto: cumpleDelTicket.monto } : null,
           // Lo mismo con el vale de aniversario: cuánto del descuento de las prendas es del vale.
-          vale: valeDelTicket ? { monto: valeDelTicket.monto } : null,
+          vale: valeDelTicket ? { monto: valeDelTicket.monto, cupon: valeDelTicket.cupon !== null } : null,
         });
       }
     }
@@ -2060,12 +2120,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       estado,
       offline: false,
       cumple: cumpleDelTicket ? { pct: cumpleDelTicket.pct, monto: cumpleDelTicket.monto } : null,
-      vale: valeDelTicket ? { monto: valeDelTicket.monto } : null,
+      vale: valeDelTicket ? { monto: valeDelTicket.monto, cupon: valeDelTicket.cupon !== null } : null,
       ventaId: ventaId ?? null,
       // El WhatsApp de esta boleta: el que quedó en el paso Comprobante (de su ficha, o escrito ahí). Sin él, no se ofrece el botón.
       celular: tipoComprobante === "nota_venta" ? null : celularBoleta || null,
       celularEnFicha,
     });
+    // El cupón se gastó con esta venta (o no se usó): la próxima empieza sin él, y los puntos de la clienta se leen de nuevo.
+    cuponClub.quitar();
+    cuponClub.recargar();
     const vendidas = carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
     setCarrito([]);
     limpiarComprobante();
@@ -2181,6 +2244,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             prendas={prendas}
             cumple={cumpleDelTicket}
             vale={valeDelTicket}
+            onQuitarCupon={cuponClub.quitar}
+            onAbrirCodigo={() => setHojaCodigo(true)}
+            gana={ganaPuntos}
             pagos={pagos}
             redondeoEfectivo={redondeoEfectivoDisponible}
             tipoComprobante={tipoComprobante}
@@ -2206,6 +2272,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
                 responsable={responsable}
                 onHojaAbierta={setHojaClientaAbierta}
                 clubDeLaClienta={clubDeLaClienta}
+                puntosDelClub={cuponClub}
+                totalDelTicket={conVale.totalSinVale}
+                hayArticulos={carrito.length > 0}
+                onUsarPuntos={() => setHojaPuntos(true)}
               />
               <FilaDeBolsas bolsas={bolsas} carrito={carrito} bloqueado={bloqueado} onAbrir={() => setBolsasAbiertas(true)} />
             </>
@@ -2542,6 +2612,41 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
           ubicacionEtiqueta={ubicacionEtiqueta}
           onAgregar={(v) => void agregar(v)}
           onClose={() => setBolsasAbiertas(false)}
+          alCerrarEnfocar={buscador}
+        />
+      )}
+
+      {hojaPuntos && clienta && puntosDelTicket?.miembro && (() => {
+        // El rango de lo que se puede canjear en ESTA compra lo decide `opcionesDeCanje` (la misma cuenta que la base).
+        const o = opcionesDeCanje(puntosDelTicket.saldo, conVale.totalSinVale, puntosDelTicket.config);
+        return o.tipo === "posible" ? (
+          <UsarPuntosModal
+            clientaId={clienta.id}
+            nombre={(clienta.nombre ?? "").trim().split(/\s+/)[0] || "el cliente"}
+            saldo={puntosDelTicket.saldo}
+            config={puntosDelTicket.config}
+            min={o.min}
+            max={o.max}
+            paso={o.paso}
+            totalDelTicket={conVale.totalSinVale}
+            responsable={responsable}
+            onAplicado={(c) => {
+              cuponClub.poner(c);
+              cuponClub.recargar();
+            }}
+            onClose={() => setHojaPuntos(false)}
+            alCerrarEnfocar={buscador}
+          />
+        ) : null;
+      })()}
+
+      {hojaCodigo && (
+        <CodigoDeCuponModal
+          totalDelTicket={conVale.totalSinVale}
+          cuponesDeLaClienta={puntosDelTicket?.miembro ? puntosDelTicket.cupones : []}
+          nombreClienta={clienta?.nombre ? clienta.nombre.trim().split(/\s+/)[0] : null}
+          onAplicar={cuponClub.poner}
+          onClose={() => setHojaCodigo(false)}
           alCerrarEnfocar={buscador}
         />
       )}

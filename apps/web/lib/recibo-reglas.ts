@@ -63,7 +63,7 @@ export type ReciboVenta = {
   cumple?: { pct: number; monto: number } | null;
   /** El vale de aniversario del club que usó la venta (ADR-0288, tanda 1g): como el cumpleaños, el descuento de cada prenda
    *  ya lo trae y el papel dice cuánto de eso es del vale. Ausente/`null` sin vale o en una reimpresión. */
-  vale?: { monto: number } | null;
+  vale?: { monto: number; cupon?: boolean } | null;
 };
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
@@ -110,7 +110,7 @@ export function armarRecibo(entrada: {
   /** El cumpleaños canjeado en esta venta: las líneas ya traen su descuento total (con la parte del club). */
   cumple?: { pct: number; monto: number } | null;
   /** El vale de aniversario usado en esta venta: igual que el cumpleaños. */
-  vale?: { monto: number } | null;
+  vale?: { monto: number; cupon?: boolean } | null;
 }): ReciboVenta {
   const lineas: LineaRecibo[] = entrada.lineas.map((l) => ({
     cantidad: l.cantidad,

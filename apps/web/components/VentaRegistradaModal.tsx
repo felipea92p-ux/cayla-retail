@@ -14,6 +14,7 @@ import { fechaHoraLima, NOMBRE_METODO, TEXTO_REDONDEO, textoNumeroRecibo } from 
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { textoCumpleCobrado } from "@/lib/club-cumple-canje-reglas";
 import { textoValeCobrado } from "@/lib/club-aniversario-canje-reglas";
+import { textoCuponCobrado } from "@/lib/club-puntos-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
@@ -192,7 +193,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
           {ok.vale && ok.vale.monto > 0 && (
             <p className="flex items-start gap-1.5 text-xs text-taupe-profundo">
               <Gift className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span>{textoValeCobrado(ok.vale.monto)}</span>
+              <span>{ok.vale.cupon ? textoCuponCobrado(ok.vale.monto) : textoValeCobrado(ok.vale.monto)}</span>
             </p>
           )}
 

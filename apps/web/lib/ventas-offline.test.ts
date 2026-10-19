@@ -185,6 +185,10 @@ describe("llevaCanje: la venta con el cumpleaños no va a la cola", () => {
     expect(llevaCanje({ p_items: [item], p_canjear_cumpleanos: true })).toBe(true);
     expect(llevaCanje({ p_items: [{ ...item, descuento_unitario: 7.99, descuento_club_unitario: 7.99 }] })).toBe(true);
   });
+  it("con un cupón del Club (programa de puntos) tampoco: otra caja podría gastarlo a la vez", () => {
+    expect(llevaCanje({ p_items: [item], p_codigo_descuento: "CAY-4K7P-9H2M" })).toBe(true);
+    expect(llevaCanje({ p_items: [item], p_codigo_descuento: undefined })).toBe(false);
+  });
   it("con el vale de aniversario tampoco (tanda 1g)", () => {
     expect(llevaCanje({ p_items: [item], p_canjear_aniversario: true })).toBe(true);
     expect(llevaCanje({ p_items: [item], p_canjear_aniversario: false })).toBe(false);
