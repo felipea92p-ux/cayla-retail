@@ -1,0 +1,4 @@
+## 2026-10-19 (Puntos del Club: maqueta navegable, sin código del ERP)
+Qué hice: `docs/maquetas/puntos-2026-10/` (index.html + README): tienda web (Mi Club con saldo, canje, cupón con código y QR, movimientos, bolsa), caja (ficha del cliente, «Usar puntos», «Código de cupón», cobro) y panel del líder, en claro, oscuro y 375 px, con el estado compartido entre pantallas.
+Por qué así: Felipe decidió puntos por compra (1 punto por S/ 1, 100 puntos = S/ 5, no vencen), cupón con código al portador de 7 días (si vence, los puntos vuelven; nunca duplicado), 100 puntos de regalo con la primera compra del mes de cumpleaños, y sin bono de aniversario. El cupón es de quien lo trae; los puntos de la compra, de quien se identifica con su DNI.
+Felipe se lleva: solo una maqueta, sin migración ni ADR; los datos son inventados. Falta el retorno nominal (5 % contra el tope de 2 % del Club), la anonimización a 3 años que se lleva los puntos, el contador y el abogado.
