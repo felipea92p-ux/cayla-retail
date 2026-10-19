@@ -329,7 +329,8 @@
 
 /* ---- La figura quieta (actividad 8): un look guardado, sin nada que tocar, en Favoritos y en su página ---- */
 .pb-quieta { --pb-sombra-prenda: color-mix(in srgb, var(--t-tinta-fija) 15%, transparent); position: relative; aspect-ratio: 390 / 420; overflow: hidden; overflow: clip; }
-.pb-quieta-pieza { position: absolute; filter: drop-shadow(0 12px 14px var(--pb-sombra-prenda)); }
+.pb-quieta-pieza { position: absolute; filter: drop-shadow(0 12px 14px var(--pb-sombra-prenda)); transition: top .35s var(--ease), left .35s var(--ease), width .35s var(--ease), height .35s var(--ease); }
+@media (prefers-reduced-motion: reduce) { .pb-quieta-pieza { transition: none; } }
 /* Quieta, la figura va en un rectángulo con el degradado del estudio (lienzo v3): el arco es del probador, donde se juega. */
 .pb-quieta .pb-arco { left: 0; right: 0; border-radius: 0; box-shadow: none; }
 .pb-quieta .pb-arco-filo { display: none; }
