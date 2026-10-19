@@ -205,3 +205,7 @@
 .t-sel-aviso { display: grid; gap: 12px; padding: 14px 16px; min-width: 210px; }
 .t-sel-aviso p { margin: 0; font-size: 14px; }
 .t-sel-aviso-acc { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+
+/* Un punto sobre «Cuenta» cuando los avisos que viven dentro del menú tienen algo sin ver (el menú puede estar cerrado). */
+.t-persona:has([data-avisos-pendientes]) > .t-ico::after { content: ""; position: absolute; top: calc(50% - 12px); right: -7px; width: 6px; height: 6px; border-radius: 50%; background: var(--rojo); }
+.t-persona-menu[hidden] { display: none; }

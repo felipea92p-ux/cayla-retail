@@ -224,8 +224,14 @@ export function CabeceraConCuenta({
           </nav>
           <span className="t-esp" />
           {tiendas && <SelectorTienda opciones={tiendas} prendasEnBolsa={prendasEnBolsa} />}
-          {!visitante && campanita}
-          <MenuDeLaCuenta nombre={nombre} enCuenta={actual === "cuenta"} visitante={visitante} hrefFavoritos={datos.favoritos} favoritos={cuantosFavoritos} />
+          <MenuDeLaCuenta
+            nombre={nombre}
+            enCuenta={actual === "cuenta"}
+            visitante={visitante}
+            hrefFavoritos={datos.favoritos}
+            favoritos={cuantosFavoritos}
+            avisos={visitante ? null : campanita}
+          />
           {bolsa}
         </div>
       </header>
@@ -431,12 +437,15 @@ function MenuDeLaCuenta({
   visitante,
   hrefFavoritos,
   favoritos,
+  avisos = null,
 }: {
   nombre: string | null;
   enCuenta: boolean;
   visitante: boolean;
   hrefFavoritos: string;
   favoritos: number | null;
+  /** Los avisos (la talla que esperabas, lo nuevo): una fila del menú, con su número y su panel (`BotonCampanita`). Solo con sesión. */
+  avisos?: React.ReactNode;
 }) {
   const [abierto, setAbierto] = useState(false);
   const caja = useRef<HTMLDivElement | null>(null);
@@ -470,15 +479,17 @@ function MenuDeLaCuenta({
         className="t-ico t-ico-txt"
         aria-label={visitante ? "Entrar o crear mi cuenta" : nombre ? `Tu cuenta, ${nombre}` : "Tu cuenta"}
         aria-expanded={abierto}
-        aria-controls={abierto ? idMenu : undefined}
+        aria-controls={abierto || avisos ? idMenu : undefined}
         data-destino-corazon
         onClick={() => setAbierto((a) => !a)}
       >
         <Icono nombre="persona" />
         <span className="t-txt">{visitante ? "Entrar" : "Cuenta"}</span>
       </button>
-      {abierto && (
-        <div className="t-persona-menu" id={idMenu}>
+      {/* El menú siempre está dibujado (escondido si está cerrado): los avisos viven dentro y cuentan lo suyo aunque el menú esté cerrado
+          (el punto sobre «Cuenta»; `cabecera.css`, `:has`). */}
+      {(abierto || avisos) && (
+        <div className="t-persona-menu" id={idMenu} hidden={!abierto}>
           {visitante ? (
             <>
               <Link className="t-persona-op" href={hrefDeEntrada("/entrar")} onClick={() => setAbierto(false)}>
@@ -509,6 +520,7 @@ function MenuDeLaCuenta({
                 <Icono nombre="corazon" />
                 Favoritos{favoritos ? <small className="t-persona-n"> {favoritos}</small> : null}
               </Link>
+              {avisos}
               <form action={salir}>
                 <BotonCerrarSesion className="t-persona-op" conIcono />
               </form>
