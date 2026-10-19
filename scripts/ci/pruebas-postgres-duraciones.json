@@ -43,6 +43,7 @@
   "pruebas:club-puntos-base": 3,
   "pruebas:club-puntos-ganar": 12,
   "pruebas:club-puntos-cupones": 10,
+  "pruebas:club-puntos-cobrar-cupon": 20,
   "pruebas:club-lista-y-ficha": 4,
   "pruebas:club-permisos": 10,
   "pruebas:club-registro-cartel": 3,

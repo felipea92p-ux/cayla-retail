@@ -1008,6 +1008,13 @@ export const PRUEBAS = [
   // carrera con COMMIT solo corre con BASE_DESECHABLE=1, no aquí).
   "pruebas:club-puntos-cupones",
 
+  // Puntos del Club, actividad 4: cobrar con cupón (dinero y boleta). El código viaja en p_codigo_descuento (la firma de
+  // registrar_venta NO cambia); el reparto por prenda es el de la web, exacto al céntimo (la tabla de ejemplos y 300 casos al azar);
+  // los rechazos (no existe, ya usado, vencido, mínimo, reparto distinto, junto al cumpleaños) no dejan venta ni gastan el cupón; al
+  // portador (otra ficha o sin ficha); anular lo devuelve; el mismo token no gasta dos veces; validar_cupon y su bloqueo a los 5
+  // códigos que no existen. ROLLBACK (la carrera de dos cajas con COMMIT solo corre con BASE_DESECHABLE=1, no aquí).
+  "pruebas:club-puntos-cobrar-cupon",
+
   // Club de clientas, tanda 1g (G-8, CL-20, CL-21): Clientas ▸ Avisos. Quién aparece (publicidad de esa tienda; no sin la
   // casilla, con BAJA, de otra tienda), cumpleaños, aniversario, novedades (llegadas de 14 días con stock libre) y rebaja en
   // su talla deducida; el grupo testigo y el tope de 2 promocionales al mes; registrar y deshacer (10 minutos); el módulo
