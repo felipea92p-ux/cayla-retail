@@ -209,6 +209,11 @@ begin
       cross join lateral (select retail.fn_club_conservacion_hasta(s.id) as hasta) h
      where v_t_puntos is not null and h.hasta between v_hoy and v_hoy + 30
        and not exists (select 1 from vivos w where w.cid = s.id and w.etipo = 'puntos' and w.eref = h.hasta::text)
+       -- Las mismas excepciones de `fn_club_anonimizar_inactivas` (20261019220000): con un apartado abierto o un pedido web que no
+       -- terminó, la ficha no se elimina, así que no se le avisa que se va a eliminar.
+       and not exists (select 1 from retail.separaciones sp where sp.clienta_id = s.id and sp.estado = 'abierta')
+       and not exists (select 1 from retail.pedidos_web pw
+                        where pw.clienta_id = s.id and pw.estado not in ('entregado', 'vencido', 'anulado'))
   ),
   -- Su talla deducida por categoría: la de su compra completada más reciente de esa categoría (deducirTallas, sobre las
   -- mismas filas que fn_clienta_compras). Solo de quienes pueden recibir una rebaja.

@@ -241,6 +241,17 @@ select retail.registrar_aviso_enviado(:'f', 'puntos', :'r', :'t', :'ubic') as _a
 ` + QUIENES("puntos", ["f"]),
   "t|t|t\nf\nninguna"
 );
+caso(
+  "(b) puntos por eliminarse: con un pedido web que no terminó, la ficha no se elimina (fn_club_anonimizar_inactivas lo salta), así que no se le avisa (sin el pedido, el caso de arriba sí le avisa)",
+  SOCIA("f", "90771021", { mes: ":otro_mes" }) +
+    `reset role;
+select pg_temp.compra(:'f', :'ubic', :'emma_bei_m', interval '3 years' - interval '20 days') as _vf \\gset
+select retail.fn_club_puntos_anotar(:'f', 'compra', 240, null, null, 'prueba') as _pf \\gset
+update retail.clientas set club_desde = now() - interval '3 years', created_at = now() - interval '3 years' where id = :'f';
+insert into retail.pedidos_web (clienta_id, ubicacion_id) values (:'f', :'ubic') returning id as pw \\gset
+` + QUIENES("puntos", ["f"]),
+  "ninguna"
+);
 
 // =====================================================================================================================
 // c. Novedades
