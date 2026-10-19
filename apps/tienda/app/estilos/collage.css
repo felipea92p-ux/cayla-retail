@@ -17,3 +17,14 @@
 /* El descuento de la campaña, sobre la obra: la cifra en cursiva, en cochinilla (es lo que cambia el precio). */
 .t-hero-pct { position: absolute; left: 18px; top: 10px; z-index: 3; font-family: var(--nombre); font-style: italic; font-weight: 400; font-size: clamp(44px, 6cqi, 84px); line-height: 1; letter-spacing: -.02em; color: var(--rojo); pointer-events: none; animation: a-aparece 1s var(--ease) .4s both; }
 .t-polaroid-pie .t-polaroid-ver { flex: none; color: var(--taupe); font-weight: 400; }
+
+/* El héroe cabe en la pantalla (Felipe 2026-10-19: «que el alto sea lo de la pantalla»): en la computadora ocupa lo que queda bajo la franja y
+   la cabecera (30 + 73 px), así «Lo nuevo» y su obra se ven completos sin bajar; la obra toma el alto que sobra, sin pasar de él. */
+@container tienda (min-width: 960px) {
+  .t-hero.t-hero-inicio { min-height: max(560px, calc(100svh - 103px)); align-items: stretch; padding-block: clamp(20px, 4svh, 44px); }
+  .t-hero-inicio .t-hero-texto { justify-content: flex-end; }
+  .t-hero-inicio .t-collage { display: grid; grid-template-rows: minmax(0, 1fr); min-height: 0; }
+  .t-hero-inicio .t-collage > .t-polaroid { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; }
+  .t-hero-inicio .t-collage > .t-polaroid.p2, .t-hero-inicio .t-collage > .t-polaroid.p3 { display: none; }
+  .t-hero-inicio .t-polaroid .t-card-foto { min-height: 0; aspect-ratio: auto; }
+}

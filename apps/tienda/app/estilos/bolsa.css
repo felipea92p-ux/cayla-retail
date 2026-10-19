@@ -222,3 +222,7 @@
   .t-sello, .t-globo.salta { animation: none; }
   .t-sello .ic path { stroke-dashoffset: 0; animation: none; }
 }
+
+/* La tienda de recojo ya elegida (la bolsa es de una sola): sin radio ni clic, con el filo de la elegida. */
+.w-opcion.t-op-fija { cursor: default; border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+.w-opcion.t-op-fija:hover { border-color: var(--tinta); }

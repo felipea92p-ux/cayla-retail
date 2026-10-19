@@ -46,3 +46,13 @@
   .t-avisos-panel { left: auto; right: 0; width: 360px; }
 }
 @media (prefers-reduced-motion: reduce) { .t-avisos-panel { animation: none; } }
+
+/* Los avisos dentro del menú de la cuenta (2026-10-19): el panel baja DENTRO del menú, sin caja propia, y un punto sobre «Cuenta» avisa si hay algo sin ver. */
+.t-avisos-menu { display: block; }
+.t-persona-menu .t-avisos-panel { position: static; width: auto; max-height: min(52vh, 420px); margin: 0 8px 8px; padding: 4px 8px; border: 0; background: transparent; box-shadow: none; animation: none; }
+/* Menos texto: la ayuda larga del panel no va dentro del menú de la cuenta. */
+.t-persona-menu .t-avisos-ayuda { display: none; }
+.t-avisos-lo-nuevo { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; font-size: 14px; color: var(--tinta); text-decoration: none; }
+.t-avisos-lo-nuevo .ic { width: 16px; height: 16px; flex: none; }
+.t-avisos-lo-nuevo:hover { background: var(--hueso); }
+.t-persona-menu .t-avisos-nota { margin: 0; padding: 4px 10px 8px; }
