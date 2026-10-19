@@ -476,7 +476,7 @@ function MenuDeLaCuenta({
       <button
         ref={boton}
         type="button"
-        className="t-ico t-ico-txt"
+        className="t-ico"
         aria-label={visitante ? "Entrar o crear mi cuenta" : nombre ? `Tu cuenta, ${nombre}` : "Tu cuenta"}
         aria-expanded={abierto}
         aria-controls={abierto || avisos ? idMenu : undefined}
@@ -484,7 +484,6 @@ function MenuDeLaCuenta({
         onClick={() => setAbierto((a) => !a)}
       >
         <Icono nombre="persona" />
-        <span className="t-txt">{visitante ? "Entrar" : "Cuenta"}</span>
       </button>
       {/* El menú siempre está dibujado (escondido si está cerrado): los avisos viven dentro y cuentan lo suyo aunque el menú esté cerrado
           (el punto sobre «Cuenta»; `cabecera.css`, `:has`). */}
