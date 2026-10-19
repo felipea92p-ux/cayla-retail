@@ -1191,15 +1191,28 @@ export type PlantillaWhatsapp = "libre" | "confirmado" | "cobro" | "sinstock" | 
 
 const primerNombre = (nombre: string) => nombre.trim().split(/\s+/)[0] ?? nombre;
 
+/**
+ * El código de un cupón a medias, para un mensaje que sale de la tienda: «CAY-••••-9H2M». El cupón es al portador (lo usa quien tenga el
+ * código), así que por WhatsApp no viaja entero (Felipe, 2026-10-19); entero se ve en Pedidos web del ERP.
+ */
+export function cuponAMedias(codigo: string): string {
+  const partes = codigo.trim().toUpperCase().split("-");
+  const ultima = partes[partes.length - 1] ?? "";
+  return partes.length >= 3 ? `${partes[0]}-••••-${ultima}` : `••••${ultima.slice(-4)}`;
+}
+
 /** Los mensajes de la maqueta (`plantilla`), con la tienda y la dirección de Tienda web ▸ Ajustes. */
 export function mensajeWhatsapp(
-  p: Pick<PedidoDetalle, "codigo" | "total" | "falta" | "pagado" | "cliente" | "tiendaWeb">,
+  p: Pick<PedidoDetalle, "codigo" | "total" | "falta" | "pagado" | "cliente" | "tiendaWeb"> & { cupon?: CuponDelPedidoWeb | null },
   plantilla: PlantillaWhatsapp,
 ): string {
   const n = primerNombre(p.cliente.nombre);
   const tienda = `CAYLA ${p.tiendaWeb.nombre}`;
+  // El cupón del Club que sigue descontando (reservado o ya usado): el total ya lo resta, y el mensaje dice por qué bajó.
+  const cupon = p.cupon && p.cupon.estado !== "liberado" && p.cupon.descuento > 0 ? p.cupon : null;
+  const conCupon = cupon ? `, ya con tu cupón ${cuponAMedias(cupon.codigo)} de − ${soles(cupon.descuento)}` : "";
   if (plantilla === "confirmado")
-    return `Hola ${n}, confirmamos tu pedido ${p.codigo} en ${tienda} (${soles(p.total)}). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda?${p.tiendaWeb.direccion ? ` Lo recoges en ${p.tiendaWeb.direccion}.` : ""}`;
+    return `Hola ${n}, confirmamos tu pedido ${p.codigo} en ${tienda} (${soles(p.total)}${conCupon}). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda?${p.tiendaWeb.direccion ? ` Lo recoges en ${p.tiendaWeb.direccion}.` : ""}`;
   if (plantilla === "cobro") return `Hola ${n}, te escribimos por tu pedido ${p.codigo}. Falta pagar ${soles(p.falta)}. ¿Te pasamos los datos para el Yape?`;
   if (plantilla === "devolucion")
     return `Hola ${n}, te escribimos de ${tienda} por tu pedido ${p.codigo}: quedó anulado y te devolvemos ${soles(p.pagado)}. ¿Cómo prefieres recibirlo?`;

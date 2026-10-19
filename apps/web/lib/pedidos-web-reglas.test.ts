@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  cuponAMedias,
   agruparPorPestana,
   leerCuponDelPedido,
   textoDelCupon,
@@ -373,6 +374,19 @@ describe("El cliente y WhatsApp", () => {
       "Hola Andrea, tu pedido W-0012 ya está listo para recoger en CAYLA Trujillo (Jr. Pizarro 123). Muestra en caja el código de tu pedido: lo ves en «Mis pedidos».",
     );
     expect(mensajeWhatsapp(p, "norecoge")).toBe("Hola Andrea, tu pedido W-0012 te espera en CAYLA Trujillo. ¿Cuándo pasas a recogerlo? Muestra en caja el código de tu pedido.");
+  });
+
+  it("con cupón del Club, el mensaje de confirmado dice por qué bajó el total, con el código a medias (Felipe, 2026-10-19)", () => {
+    const cupon = { codigo: "CAY-4K7P-9H2M", valor: 10, descuento: 10, estado: "reservado" as const, liberadoMotivo: null };
+    const conCupon = { ...p, total: 219.8, cupon };
+    expect(mensajeWhatsapp(conCupon, "confirmado")).toBe(
+      "Hola Andrea, confirmamos tu pedido W-0012 en CAYLA Trujillo (S/\u00a0219.80, ya con tu cupón CAY-••••-9H2M de − S/\u00a010.00). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda? Lo recoges en Jr. Pizarro 123.",
+    );
+    // El código entero nunca viaja por WhatsApp.
+    expect(mensajeWhatsapp(conCupon, "confirmado")).not.toContain("4K7P");
+    // Un cupón que volvió al cliente ya no descuenta: el mensaje no lo nombra.
+    expect(mensajeWhatsapp({ ...p, cupon: { ...cupon, estado: "liberado", descuento: 0, liberadoMotivo: "compra_minima" } }, "confirmado")).not.toContain("cupón");
+    expect(cuponAMedias("cay-4k7p-9h2m")).toBe("CAY-••••-9H2M");
   });
 });
 
