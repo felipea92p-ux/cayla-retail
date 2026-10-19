@@ -1,5 +1,10 @@
 -- ============================================================================
--- club_textos-v3-para-pegar-tras-el-abogado.sql — CAYLA V2 · Club · los Términos y la Política del programa de puntos (versión 3)
+-- club_textos-v3-para-pegar-tras-el-abogado.sql — CAYLA V2 · Club · los Términos y la Política del programa de puntos (versión 4)
+--
+-- ACTUALIZACIÓN 2026-10-19 (Felipe): la versión 3 ya se publicó desde main con las cifras ESCRITAS (`docs/club/club_textos-v3-puntos.sql`
+--   en main), para que los Términos dejen de hablar del 10 % y del vale antes del lanzamiento. Este archivo publica el MISMO texto con
+--   los marcadores, como versión 4, el día que lleguen las migraciones de puntos: así una cifra que el líder cambie en Beneficios del
+--   club se dice sola. El candado de abajo exige que la v3 sea la de las cifras escritas. (El nombre del archivo se queda.)
 --
 --   ███  ESTO NO ES UNA MIGRACIÓN.  ███  NO SE PEGA HASTA QUE EL ABOGADO APRUEBE EL TEXTO.  ███
 --
@@ -185,31 +190,34 @@ El Club CAYLA es solo para mayores de 18 años. Si detectamos datos de un menor 
 Si cambiamos esta política, publicaremos la nueva versión con su fecha. Si el cambio afecta una finalidad que autorizaste, te
 pediremos una nueva autorización.$texto$;
   v record;
-  v_md5_v2 text;
+  v_md5_v3 text;
 begin
   -- 0. Candado: la configuración de los puntos ya es pública (sin ella los Términos nuevos no se pueden mostrar).
   if to_regprocedure('retail.fn_club_puntos_vigentes()') is null then
     raise exception 'Falta retail.fn_club_puntos_vigentes(): pega antes 20261019222000_club_puntos_textos_y_avisos.sql. No se publicó nada.';
   end if;
 
-  -- 1. Candado: la v2 de cada texto es la del 2026-10-02, y no hay una v3 distinta ni una v4.
+  -- 1. Candado: la v3 de cada texto es la de las cifras escritas que se publicó el 2026-10-19 (`club_textos-v3-puntos.sql`, desde main),
+  --    y no hay una v4 distinta ni una v5.
   for v in select * from (values
-    ('terminos', 'de66042bd9bac0e936dd5c912b28de60', md5(v_terminos)),
-    ('privacidad', 'a01e7810b53677b95c12d8c0004148a4', md5(v_privacidad))
-  ) e(tipo, md5_v2, md5_v3) loop
-    v_md5_v2 := (select md5(t.texto) from retail.club_textos t where t.tipo = v.tipo and t.version = 2);
-    if v_md5_v2 is distinct from v.md5_v2 then
-      raise exception 'El texto % versión 2 no es el del 2026-10-02: no se publica la versión 3 sobre otro texto. No se publicó nada.', v.tipo;
+    ('terminos', '3ed42d9395c5fffdffd6f48fa04129c3', md5(v_terminos)),
+    ('privacidad', '63e3ef99ed48f1825e36f4ccb6969de1', md5(v_privacidad))
+  ) e(tipo, md5_v3, md5_v4) loop
+    v_md5_v3 := (select md5(t.texto) from retail.club_textos t where t.tipo = v.tipo and t.version = 3);
+    if v_md5_v3 is distinct from v.md5_v3 then
+      raise exception 'El texto % versión 3 no es el de las cifras escritas del 2026-10-19: no se publica la versión 4 sobre otro texto. No se publicó nada.', v.tipo;
     end if;
-    if exists (select 1 from retail.club_textos t where t.tipo = v.tipo and (t.version > 3 or (t.version = 3 and md5(t.texto) <> v.md5_v3))) then
-      raise exception 'El texto % ya tiene otra versión 3 o una 4: revisa antes de pegar. No se publicó nada.', v.tipo;
+    if exists (select 1 from retail.club_textos t where t.tipo = v.tipo and (t.version > 4 or (t.version = 4 and md5(t.texto) <> v.md5_v4))) then
+      raise exception 'El texto % ya tiene otra versión 4 o una 5: revisa antes de pegar. No se publicó nada.', v.tipo;
     end if;
   end loop;
 
-  -- 2. Las versiones 3 (una segunda pegada no hace nada).
-  insert into retail.club_textos (tipo, version, texto, creado_por) values
-    ('terminos', 3, v_terminos, null),
-    ('privacidad', 3, v_privacidad, null)
+  -- 2. Las versiones 4 (una segunda pegada no hace nada). La Política no nombra cifras: si el abogado no le cambió nada, su v4 sería
+  --    idéntica a la v3 y no se publica.
+  insert into retail.club_textos (tipo, version, texto, creado_por)
+  select x.tipo, 4, x.texto, null
+    from (values ('terminos', v_terminos), ('privacidad', v_privacidad)) x(tipo, texto)
+   where md5(x.texto) is distinct from (select md5(t.texto) from retail.club_textos t where t.tipo = x.tipo and t.version = 3)
   on conflict (tipo, version) do nothing;
 end
 $do$;
