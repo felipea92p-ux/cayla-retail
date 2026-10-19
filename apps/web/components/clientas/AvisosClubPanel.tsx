@@ -49,9 +49,9 @@ import { Vacio } from "@/components/ui/Vacio";
 // volver a elegir a la misma persona en cada fila sería un clic de más cada vez (como el Conteo, 2026-09-30). Si la base lo rechaza
 // (ya no está de turno), el combo se vacía y relee la lista, como en todas partes.
 
-const ICONO: Record<TipoAviso, LucideIcon> = { cumpleanos: Cake, aniversario: Gift, novedades: Sparkles, rebaja: Tag };
+const ICONO: Record<TipoAviso, LucideIcon> = { cumpleanos: Cake, puntos: Gift, novedades: Sparkles, rebaja: Tag };
 // Como el spike: las promesas del club en neutro; la publicidad en pizarra (informativo, no semáforo). Sin rojo: nada aquí es un error.
-const TONO: Record<TipoAviso, TonoChip> = { cumpleanos: "neutro", aniversario: "neutro", novedades: "pizarra", rebaja: "pizarra" };
+const TONO: Record<TipoAviso, TonoChip> = { cumpleanos: "neutro", puntos: "neutro", novedades: "pizarra", rebaja: "pizarra" };
 
 type Envio = { id: string; texto: string; enviadoEnMs: number };
 
@@ -317,7 +317,7 @@ export function AvisosClubPanel({
 
       <p className="nota-cayla anim-sube" style={{ "--i": 4 } as CSSProperties} data-guia="avisos.reglas">
         La lista la arma la base: solo miembros que pidieron novedades por WhatsApp de esta tienda; <b>máximo 2 promociones al mes</b> por miembro
-        (cumpleaños y aniversario no cuentan), y 1 de cada 5 miembros no recibe novedades ni rebajas para medir si los avisos sirven. Si un miembro
+        (cumpleaños y puntos por vencer no cuentan), y 1 de cada 5 miembros no recibe novedades ni rebajas para medir si los avisos sirven. Si un miembro
         responde <b>BAJA</b>, regístralo con «Pidió BAJA»: deja de recibir mensajes del club desde hoy, en las 3 tiendas.
       </p>
 

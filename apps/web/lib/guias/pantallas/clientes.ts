@@ -198,7 +198,7 @@ export const GUIA_AVISOS_CLUB: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Los avisos del club",
-      texto: "Cada día el sistema arma la lista de mensajes por mandar a los miembros del club: su cumpleaños, su aniversario, una novedad. Tú los envías desde el WhatsApp de la tienda. Es una demo: no se envía nada.",
+      texto: "Cada día el sistema arma la lista de mensajes por mandar a los miembros del club: su regalo de cumpleaños, sus puntos por vencer, una novedad. Tú los envías desde el WhatsApp de la tienda. Es una demo: no se envía nada.",
     },
     {
       id: "cifras",
@@ -220,7 +220,7 @@ export const GUIA_AVISOS_CLUB: Guia = {
       ancla: "avisos.filtros",
       opcional: true,
       titulo: "Por tipo de aviso",
-      texto: "Deja en la lista solo los de un tipo: cumpleaños, aniversario, novedades…",
+      texto: "Deja en la lista solo los de un tipo: cumpleaños, puntos, novedades…",
     },
     {
       id: "responsable",
