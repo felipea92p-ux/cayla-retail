@@ -500,6 +500,27 @@ siempre el OK de Felipe**. Respeta los tokens (ADR-0169), el movimiento sin rebo
 modal, corre `/formidable`; el avance módulo por módulo vive en `docs/formidable/README.md` (piloto: Inventario ▸ Frescura del piso). Detalle:
 `docs/adr/0350-formidable-el-iphone-llevado-al-erp.md` y `.claude/skills/formidable/`.
 
+## Skills de diseño de afuera: se consultan, no mandan (regla — Felipe 2026-10-17)
+
+**`frontend-design` (Anthropic) y `ui-ux-pro-max` solo se consultan: nunca mandan sobre los colores ni sobre las piezas ya decididas.**
+No viven en el repo (cada quien las instala en su `~/.claude/skills/`), pero se activan solas en casi cualquier tarea de interfaz y empujan
+a elegir una estética propia —fuentes, paletas, estilos—. Si lo que sugieren choca con este archivo, gana este archivo:
+1. **En el ERP (`apps/web`), colores y letras:** solo los tokens de `apps/web/app/globals.css` con su oscuro en `estilos/tema.css`
+   (ADR-0169 y ADR-0336). Nunca una paleta, un hex ni una fuente que proponga la skill.
+2. **En el ERP, piezas y movimiento:** la tabla de «Una función, una pieza» (ADR-0358) y la regla de ADR-0136. Una sugerencia de la skill
+   no reemplaza una pieza decidida ni abre otra variante; una idea que valga para el ERP pasa por `/unificar` y Felipe la elige mirando.
+3. **La tienda online (`apps/tienda`) puede tener identidad visual propia** (Felipe 2026-10-17, al pedir su rediseño completo): ahí las
+   skills SÍ proponen paleta, letras y estilo, pero siempre como 2 o 3 direcciones en maquetas tocables (`docs/maquetas/`) que Felipe
+   elige mirando, nunca directo en el código. Lo elegido se escribe en `apps/tienda/app/globals.css`, que sigue siendo la única fuente
+   de la tienda; desde ahí, la tienda se trata como el ERP (nada se reinventa pieza por pieza). El logo y el colibrí son la marca y no
+   se rediseñan sin que Felipe lo pida, y lo que decida la tienda no viaja al ERP.
+4. **Nunca `--persist`, en ninguna de las dos apps:** `ui-ux-pro-max` no crea `design-system/<proyecto>/MASTER.md` ni sus `pages/*.md`.
+   Se presenta como «fuente de verdad» y sería una segunda, compitiendo con los `globals.css`, los ADR y `docs/unificar/`; una carpeta
+   `design-system/` no entra a un commit.
+
+Sirven, además, para lo que el repo no decide: criterios de accesibilidad y de UX, cómo elegir un gráfico, ideas para una maqueta en
+`docs/maquetas/`. La búsqueda de `ui-ux-pro-max` está en inglés (en español no encuentra nada) y nunca lleva datos de CAYLA.
+
 ## Una función, una pieza (regla — ADR-0358, Felipe 2026-10-06)
 
 **Dos piezas que hacen lo mismo se ven igual en todo el ERP.** Si «Cancelar», unas pestañas o una insignia de estado se dibujan distinto en dos

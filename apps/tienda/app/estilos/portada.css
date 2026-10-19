@@ -5,13 +5,12 @@
    ===================================================================================================== */
 
 /* ---- La franja de confianza: lo que la tienda ya cumple, de un vistazo (como «envío gratis» en una marca grande) ---- */
-.po-confianza { background: var(--papel); border-bottom: 1px solid var(--sand); }
+.po-confianza { background: transparent; border-block: 1px solid var(--sand); margin-top: clamp(40px, 6cqi, 72px); }
 .po-confianza ul { list-style: none; margin-block: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 14px; padding-block: 20px; }
 .po-confianza li { display: flex; gap: 10px; align-items: flex-start; min-width: 0; }
-.po-confianza-ic { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--hueso); color: var(--rojo-profundo); }
-.po-confianza-ic .ic { width: 17px; height: 17px; }
-.po-confianza b { display: block; font-size: 13px; font-weight: 700; line-height: 1.25; }
-.po-confianza small { display: block; margin-top: 3px; font-size: 12px; line-height: 1.4; color: var(--tinta-60); }
+.po-confianza-ic { display: none; }
+.po-confianza b { display: block; font-size: 14px; font-weight: 500; line-height: 1.3; }
+.po-confianza small { display: block; margin-top: 4px; font-size: 13px; line-height: 1.5; color: var(--taupe); }
 
 @container tienda (min-width: 700px) {
   .po-confianza ul { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
