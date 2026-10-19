@@ -1,3 +1,25 @@
+/** Un cupón del Club tal como lo devuelven `canjear_puntos` y `tienda_canjear_puntos`. */
+export type CuponDelClub = {
+  codigo: string
+  puntos: number
+  valor: number
+  compra_minima: number
+  vence_el: string
+  estado: "activo" | "usado" | "vencido"
+  /** true si la misma clave de operación ya había creado este cupón (doble toque o reintento). */
+  repetido: boolean
+  /** El saldo de puntos de la dueña después del canje. */
+  saldo: number
+}
+
+/** Lo que dice `validar_cupon`: ok con el cupón, o el motivo por el que no sirve. */
+export type ValidacionDeCupon =
+  | { ok: true; codigo: string; valor: number; compra_minima: number; vence_el: string; puntos: number; de: string | null }
+  | { ok: false; motivo: "no_existe"; intentos: number }
+  | { ok: false; motivo: "usado" | "bloqueado" }
+  | { ok: false; motivo: "vencido"; vence_el: string }
+  | { ok: false; motivo: "minimo"; compra_minima: number; faltan: number }
+
 export type Json =
   | string
   | number
@@ -6069,6 +6091,30 @@ export type Database = {
       guardar_beneficios_club: {
         Args: { p_pct: number; p_compras: number; p_monto: number; p_dias: number; p_escala: Json }
         Returns: undefined
+      }
+      /** Puntos del Club (actividad 1): guarda una versión nueva de la configuración. Solo el líder. Devuelve desde cuándo rige (15 días si toca lo que valen los puntos o el canje). */
+      guardar_beneficios_puntos: {
+        Args: {
+          p_puntos_por_sol: number
+          p_soles_por_100: number
+          p_canje_minimo: number
+          p_compra_minima_x: number
+          p_vigencia_dias: number
+          p_regalo_cumple: number
+          p_tope_costo_pct: number
+          p_vigente_desde?: string
+        }
+        Returns: string
+      }
+      /** Puntos del Club (actividad 3): canjea puntos de una miembro por un cupón con código desde la caja. La misma clave (p_token) devuelve el mismo cupón. */
+      canjear_puntos: {
+        Args: { p_clienta_id: string; p_puntos: number; p_token?: string }
+        Returns: CuponDelClub
+      }
+      /** Puntos del Club (actividad 4): ¿sirve este código de cupón? ok con su valor, o el motivo; cuenta los códigos que no existen (5 en 5 min bloquean la cuenta). */
+      validar_cupon: {
+        Args: { p_codigo: string; p_total?: number }
+        Returns: ValidacionDeCupon
       }
       /** Servidor (cron diario con CRON_SECRET): anonimiza las fichas sin compra en 3 años. Devuelve cuántas. */
       fn_club_anonimizar_inactivas: {
