@@ -4,6 +4,7 @@ import { datosDeCabecera } from "@/lib/inicio";
 import { anioActual } from "@/lib/hoy-servidor";
 import { hayAlgoParaProbar } from "@/lib/probador-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
+import { cuantasEnLaBolsa } from "@/lib/bolsa-servidor";
 import { BotonBolsa } from "./bolsa/BotonBolsa";
 import { CampanitaConEspera } from "./campanita/Campanita";
 import { CabeceraConCuenta, type SeccionActual } from "./CabeceraConCuenta";
@@ -37,7 +38,13 @@ export async function MarcoCatalogo({
   children: React.ReactNode;
 }) {
   // «Arma el tuyo» sale solo si hay algo que probar en esta tienda (la lectura guardada del probador, como el catálogo).
-  const [favoritos, nombre, conProbador, sesion] = await Promise.all([cuantosFavoritos(), nombreDeLaCuenta(), hayAlgoParaProbar(prendas), leerSesion()]);
+  const [favoritos, nombre, conProbador, sesion, enLaBolsa] = await Promise.all([
+    cuantosFavoritos(),
+    nombreDeLaCuenta(),
+    hayAlgoParaProbar(prendas),
+    leerSesion(),
+    cuantasEnLaBolsa(),
+  ]);
   // Sin sesión (o con una cookie ya vencida) la tienda se ve igual; solo cambia el menú de la persona y el pie.
   const conSesion = sesion.estado !== "sin_sesion";
   const datos = datosDeCabecera(prendas, sede, process.env.TIENDA_FOTOS_ORIGEN, conProbador);
@@ -56,6 +63,7 @@ export async function MarcoCatalogo({
         campanita={conSesion ? <CampanitaConEspera prendas={prendas} hrefNuevo={datos.nuevo.href} /> : null}
         visitante={!conSesion}
         tiendas={soloTiendas(filtro)}
+        prendasEnBolsa={enLaBolsa}
       />
       {/* Instalar CAYLA en el celular (ADR-0431): sale sola, una vez por visita y solo en el Inicio y el catálogo (lib/instalar.ts). */}
       <InstalarCayla />

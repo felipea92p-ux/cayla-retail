@@ -9,3 +9,5 @@
 - [ ] Las páginas de ayuda para quien no tiene sesión (Cómo separar, Nuestras tiendas) conservan la cabecera de 4 opciones; ¿se llevan también al estilo de Entrar?
 - [ ] La cabecera que se ve mientras carga una página (esqueleto) no se ajustó; puede haber un pequeño salto.
 - [ ] Limpiar el CSS que quedó sin uso (`.t-circs*`, `.t-ubic*`, `.t-filtro-tienda`, `.ae*` del probador).
+- [ ] **La bolsa no muestra «Tienda ▾» en su cabecera:** solo se cambia de tienda desde el catálogo, el Inicio, la ficha o los looks. Si se quiere cambiarla desde la bolsa, hay que pasarle las tiendas al marco de la cuenta.
+- [ ] Probar «Separar» con la bolsa de una sola tienda (cuenta real): el pedido sale con la tienda de recojo de la bolsa.

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { cookieDelDia, etiquetaCampanita, textoGlobo, textoLlegadasMas, textoNovedades, type DatosCampanita } from "@/lib/campanita";
 import { hoyLima } from "@/lib/cuentas";
 import { Icono } from "../Icono";
@@ -20,9 +20,9 @@ function anotarMirada(cookie: string) {
 }
 
 /**
- * La campanita de la cabecera (ADR-0408; Felipe, 2026-10-17): un botón con su globo que abre un panel con dos cosas, «la talla que
- * esperabas ya llegó» (cada una lleva a su prenda) y «lo nuevo desde tu última visita» (lleva a Lo nuevo). Es un desplegable como el
- * menú de la persona (el botón dice si está abierto; Escape y tocar fuera lo cierran), no un `role="menu"`.
+ * Los avisos, dentro del menú de la cuenta (ADR-0408; Felipe, 2026-10-17; 2026-10-19: «las notificaciones van dentro de cuenta»): una fila «Avisos» con su número que abre un panel con dos cosas, «la talla que
+ * esperabas ya llegó» (cada una lleva a su prenda) y «lo nuevo desde tu última visita» (lleva a Lo nuevo). Vive dentro del
+ * menú de la persona (que se cierra con Escape y al tocar fuera); si hay algo sin ver, un punto sobre «Cuenta» lo avisa aunque el menú esté cerrado.
  *
  * El globo suma las tallas que no cerró con «Entendido» y las prendas nuevas. Al abrir, lo nuevo se da por visto (se anota el día en la
  * cookie `cookie` y el globo baja); las tallas siguen contando mientras estén disponibles, porque son una cosa que hacer —separarla—,
@@ -44,32 +44,11 @@ export function BotonCampanita({
 }) {
   const [abierto, setAbierto] = useState(false);
   const [miradoAhora, setMiradoAhora] = useState(false);
-  const caja = useRef<HTMLDivElement | null>(null);
-  const boton = useRef<HTMLButtonElement | null>(null);
   const idPanel = useId();
 
   useEffect(() => {
     if (!vistoAntes) anotarMirada(cookie);
   }, [vistoAntes, cookie]);
-
-  useEffect(() => {
-    if (!abierto) return;
-    const fuera = (e: PointerEvent) => {
-      if (caja.current && !caja.current.contains(e.target as Node)) setAbierto(false);
-    };
-    const alEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setAbierto(false);
-        boton.current?.focus();
-      }
-    };
-    document.addEventListener("pointerdown", fuera);
-    window.addEventListener("keydown", alEscape);
-    return () => {
-      document.removeEventListener("pointerdown", fuera);
-      window.removeEventListener("keydown", alEscape);
-    };
-  }, [abierto]);
 
   function alternar() {
     if (!abierto) {
@@ -84,19 +63,20 @@ export function BotonCampanita({
   const sinTallas = datos.llegadas.length === 0;
 
   return (
-    <div className="t-avisos" ref={caja}>
+    <div className="t-avisos-menu">
       <button
-        ref={boton}
         type="button"
-        className="t-ico"
+        className="t-persona-op"
         aria-label={etiquetaCampanita(globo)}
         aria-expanded={abierto}
         aria-controls={abierto ? idPanel : undefined}
         onClick={alternar}
       >
         <Icono nombre="campana" />
-        {globo > 0 ? <span className="t-globo">{textoGlobo(globo)}</span> : null}
+        Avisos{globo > 0 ? <small className="t-persona-n"> {textoGlobo(globo)}</small> : null}
       </button>
+      {/* Para el punto sobre «Cuenta» (`:has`): existe aunque el menú esté cerrado. */}
+      {globo > 0 && <span data-avisos-pendientes="" hidden />}
       {abierto && (
         <div className="t-avisos-panel" id={idPanel} role="region" aria-label="Tus avisos">
           {!sinTallas && (
@@ -125,15 +105,13 @@ export function BotonCampanita({
               )}
             </section>
           )}
-          <section>
-            <h3 className="t-avisos-sub">Lo nuevo</h3>
-            <p className="t-avisos-nota">{textoNovedades(datos.novedades)}</p>
-            <Link className="t-enlace t-avisos-ver" href={hrefNuevo} onClick={() => setAbierto(false)}>
-              Ver lo nuevo <Icono nombre="flecha" />
+          {/* Lo nuevo, en UNA línea: «3 prendas nuevas →» que lleva a Lo nuevo, o «Nada nuevo» sin enlace (antes, un título, dos líneas y un enlace). */}
+          {datos.novedades ? (
+            <Link className="t-avisos-lo-nuevo" href={hrefNuevo} onClick={() => setAbierto(false)}>
+              {textoNovedades(datos.novedades)} <Icono nombre="flecha" />
             </Link>
-          </section>
-          {sinTallas && (
-            <p className="t-avisos-ayuda">¿Una talla agotada? Toca «Avísame» en la prenda y te lo decimos aquí apenas llegue.</p>
+          ) : (
+            <p className="t-avisos-nota">{textoNovedades(datos.novedades)}</p>
           )}
         </div>
       )}
