@@ -90,7 +90,7 @@
 .t-stock td.hay { color: var(--verde); font-weight: 600; }
 .t-stock td.poco { color: var(--rojo-profundo); font-weight: 700; }
 .t-stock td.cero { color: var(--tinta-60); }
-.t-stock tr.elegida th, .t-stock tr.elegida td { background: color-mix(in srgb, var(--tinta) 6%, transparent); }
+.t-stock tr.elegida th, .t-stock tr.elegida td { background: color-mix(in srgb, var(--tinta) 9%, transparent); }
 .t-stock tr.elegida th { font-weight: 700; }
 .t-stock th.talla-elegida { color: var(--tinta); }
 .t-stock td.talla-elegida { background: color-mix(in srgb, var(--rojo) 7%, transparent); }
