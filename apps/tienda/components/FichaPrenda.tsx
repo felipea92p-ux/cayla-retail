@@ -6,7 +6,6 @@ import Link from "next/link";
 import { formaDe, fotoOptimizable } from "@/lib/catalogo";
 import { claveEspera } from "@/lib/club";
 import {
-  avisoOtraTienda,
   avisoOtrosSepararon,
   botonDeLaFicha,
   campanaDeLaFicha,
@@ -16,6 +15,7 @@ import {
   fotosDelColor,
   lineaAlAgregar,
   notaDeTalla,
+  pistaOtraTienda,
   precioDeLaFicha,
   tallaDelPrecio,
   tallasDelColor,
@@ -85,7 +85,7 @@ export function FichaPrenda({
   /** Lo que va debajo de la ficha: la barra del celular queda pegada abajo mientras se ve. */
   children?: React.ReactNode;
 }) {
-  const [color, setColor] = useState(() => colorInicial(ficha, colorPedido));
+  const [color, setColor] = useState(() => colorInicial(ficha, colorPedido, sedeElegida));
   const tallas = tallasDelColor(ficha, color);
   const [tallaId, setTallaId] = useState<string | null>(() => (tallas.length === 1 ? tallas[0].talla.id : null));
   const elegida = tallas.find((t) => t.talla.id === tallaId)?.variante ?? null;
@@ -98,11 +98,11 @@ export function FichaPrenda({
   const hasta = campanaVista?.hasta ?? null;
   const hayTiendas = ficha.sedes.length > 0;
   const tiendaElegida = ficha.sedes.find((s) => s.id === sedeElegida) ?? null;
-  const boton = botonDeLaFicha(elegida);
+  const boton = botonDeLaFicha(elegida, sedeElegida);
   const tallaElegida = tallas.find((t) => t.variante === elegida)?.talla.nombre ?? "";
   const yaSeparadas = useMemo(() => new Set(separadas), [separadas]);
   const otrosSepararon = avisoOtrosSepararon(elegida, tiendaElegida, yaSeparadas);
-  const otraTienda = avisoOtraTienda(elegida, tiendaElegida, ficha.sedes);
+  const otraTienda = pistaOtraTienda(elegida, tiendaElegida, ficha.sedes);
 
   // Lo que pasó al agregar, atado al color y la talla de ese momento: al elegir otra, ya no corresponde y se va.
   const seleccion = `${color}|${tallaId ?? ""}`;
@@ -302,7 +302,7 @@ export function FichaPrenda({
           )}
           {otraTienda && (
             <p className="t-pdp-nota" role="status">
-              <Icono nombre="traslado" />
+              <Icono nombre="ubicacion" />
               <span>{otraTienda}</span>
             </p>
           )}
@@ -509,11 +509,14 @@ function TablaStock({
 }) {
   const tallas = tallasDelColor(ficha, color);
   const varias = tallas.length > 1;
+  // Cada tienda maneja lo suyo (2026-10-19): con una tienda elegida, la tabla muestra solo esa; sin ella, todas.
+  const tiendas = ficha.sedes.filter((s) => !sedeElegida || s.id === sedeElegida);
+  const soloUna = tiendas.length === 1 ? tiendas[0] : null;
   return (
     <div className="t-bloque t-stock-bloque">
       <span className="t-etq">
         <span>
-          Cuánto hay por tienda <b>{colorNombre}</b>
+          {soloUna ? `Cuánto hay en ${soloUna.nombre}` : "Cuánto hay por tienda"} <b>{colorNombre}</b>
         </span>
       </span>
       {ficha.sedes.length === 0 ? (
@@ -523,7 +526,7 @@ function TablaStock({
           <div className="t-stock-envol">
             <table className="t-stock">
               <caption className="t-sr">
-                Cuánto hay de {ficha.nombre} en {colorNombre}, por tienda y talla
+                Cuánto hay de {ficha.nombre} en {colorNombre}, {soloUna ? `en ${soloUna.nombre}` : "por tienda"} y por talla
               </caption>
               <thead>
                 <tr>
@@ -538,8 +541,8 @@ function TablaStock({
                 </tr>
               </thead>
               <tbody>
-                {ficha.sedes.map((s) => (
-                  <tr key={s.id} className={s.id === sedeElegida ? "elegida" : undefined}>
+                {tiendas.map((s) => (
+                  <tr key={s.id} className={s.id === sedeElegida && !soloUna ? "elegida" : undefined}>
                     <th scope="row">{s.nombre}</th>
                     {tallas.map(({ talla, variante }) => {
                       const nivel = variante.stock[s.id] ?? 0;

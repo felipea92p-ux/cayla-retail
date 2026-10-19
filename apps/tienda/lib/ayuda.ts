@@ -56,16 +56,16 @@ type Paso = { titulo: string; texto: string };
 export type PasoParaSeparar = Paso & { hecho: boolean };
 
 /**
- * Los cuatro pasos de «Cómo separar», con las tiendas de la web: «En cada prenda ves cuánto hay en Trujillo, Arequipa y Lima». Con una
- * sola tienda no hay otra de dónde traer; sin tiendas (o sin base), la frase va sin nombres. Desde el 2026-10-17 (ADR-0438) primero se
+ * Los cuatro pasos de «Cómo separar», con las tiendas de la web: «En cada prenda ves cuánto hay en Trujillo, Arequipa y Lima». Cada
+ * tienda maneja lo suyo (2026-10-19): lo que no hay en la tuya, no se trae de otra; sin tiendas (o sin base), la frase va sin nombres. Desde el 2026-10-17 (ADR-0438) primero se
  * mira y se elige, sin cuenta; la cuenta es el segundo paso y, con cuenta (`conCuenta`), ya está hecho. El documento y el celular se
  * piden al separar, y con ellos se entra al Club.
  */
 export function pasosParaSeparar(tiendas: readonly string[], conCuenta = false): PasoParaSeparar[] {
   const donde = tiendas.length > 0 ? `En cada prenda ves cuánto hay en ${listaDeNombres(tiendas)}.` : "En cada prenda ves cuánto hay en cada tienda.";
-  const traer = tiendas.length === 1 ? "" : " Lo que no está en tu tienda, la tienda puede traerlo de otra.";
+  const suyo = tiendas.length === 1 ? "" : " Cada tienda maneja lo suyo.";
   return [
-    { titulo: "Elige tus prendas y tu tienda", texto: `${donde}${traer} Sin crear nada: la tienda es de todos.`, hecho: false },
+    { titulo: "Elige tus prendas y tu tienda", texto: `${donde}${suyo} Sin crear nada: la tienda es de todos.`, hecho: false },
     conCuenta
       ? { titulo: "Ya tienes tu cuenta", texto: "Con ella separas, guardas favoritos y sigues tus pedidos.", hecho: true }
       : { titulo: "Entra o crea tu cuenta", texto: "Con tu correo, en un minuto. Solo te pedimos lo necesario.", hecho: false },
