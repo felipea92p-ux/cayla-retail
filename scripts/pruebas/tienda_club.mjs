@@ -171,7 +171,9 @@ begin
   insert into retail.variantes (producto_id, color_codigo, talla_id, precio, costo, activo)
     select v_p, v.color_codigo, v.talla_id, 50, 10, true from retail.variantes v where v.id = p_como
   returning id into v_v;
-  insert into retail.vitrina_productos (producto_id, publicado, publicado_en, en_lo_nuevo) values (v_p, true, now(), p_en_lo_nuevo);
+  -- Un producto nuevo ya nace con su fila encendida (20261019214000): aquí solo se le fija cómo entra a «Lo nuevo».
+  insert into retail.vitrina_productos (producto_id, publicado, publicado_en, en_lo_nuevo) values (v_p, true, now(), p_en_lo_nuevo)
+    on conflict (producto_id) do update set publicado = true, publicado_en = now(), en_lo_nuevo = excluded.en_lo_nuevo;
   return v_v;
 end $f$;
 -- La versión viva de una función con un pedazo cambiado (un MUTANTE). Si el pedazo no está, falla: el mutante no sería tal.
