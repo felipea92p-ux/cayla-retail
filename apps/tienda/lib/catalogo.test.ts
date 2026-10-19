@@ -181,6 +181,11 @@ describe("la tarjeta", () => {
     expect(fotoOptimizable(FOTO, "https://otro.supabase.co")).toBe(false);
     expect(fotoOptimizable("https://x.supabase.co/storage/v1/object/public/retail-colores-muestras/a.jpg", "https://x.supabase.co")).toBe(false);
     expect(fotoOptimizable(FOTO, undefined)).toBe(false);
+    // La foto del fondo de una campaña (ADR-0436, actividad 8): solo de su almacén, y una de prenda no pasa por él.
+    const FONDO = "https://x.supabase.co/storage/v1/object/public/retail-campanas-fotos/fondos/0f0f0f0f-1111-4222-8333-444455556666.jpg";
+    expect(fotoOptimizable(FONDO, "https://x.supabase.co", "retail-campanas-fotos")).toBe(true);
+    expect(fotoOptimizable(FONDO, "https://x.supabase.co")).toBe(false);
+    expect(fotoOptimizable(FOTO, "https://x.supabase.co", "retail-campanas-fotos")).toBe(false);
     expect(fotoOptimizable("no es url", "https://x.supabase.co")).toBe(false);
   });
 });
@@ -397,5 +402,18 @@ describe("las listas: Lo nuevo, las ofertas y Más vendidos (actividad 5)", () =
       "Blusa C",
       "Blusa B",
     ]);
+  });
+});
+
+describe("la lista de una campaña sin descuento (ADR-0436, actividad 6a)", () => {
+  it("sus prendas son sus modelos, aunque no bajen de precio; su dirección lleva la campaña", async () => {
+    const { cabeceraDeLista, enLaLista, hrefLista } = await import("./catalogo");
+    const modelos = new Set(["a"]);
+    const p = (id: string) => ({ id, nuevo: null, vendidos: null, precio: 50, precioFinal: 50, campana: null }) as unknown as Parameters<typeof enLaLista>[0];
+    expect(enLaLista(p("a"), "campana", "x", modelos)).toBe(true);
+    expect(enLaLista(p("b"), "campana", "x", modelos)).toBe(false);
+    expect(enLaLista(p("a"), "campana", "x", null)).toBe(false);
+    expect(hrefLista({ categoria: null, orden: "destacado", lista: "campana", campana: "x" })).toBe("/catalogo?lista=campana&campana=x");
+    expect(cabeceraDeLista("campana", { nombre: "Navidad" })).toMatchObject({ ceja: "Campaña", titulo: ["Navidad", ""], frase: "Las prendas que elegimos para Navidad." });
   });
 });

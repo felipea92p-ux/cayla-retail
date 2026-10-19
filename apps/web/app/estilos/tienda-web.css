@@ -407,6 +407,259 @@
     animation-delay: 180ms;
   }
   .tw-globo-respuesta small { display: block; margin-bottom: 2px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-verde-profundo); }
+
+  /* ───────── Campañas (ADR-0436): la portada en chico y «La portada, día a día» ───────── */
+  /* La tarjeta de una campaña: su portada arriba (la de verdad, en `Lienzo`: un DATO, `data-color-dato`) y lo que trae abajo. La que ya
+     pasó se apaga, sin perder sus datos. */
+  .tw-campana {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--color-sand);
+    border-radius: 16px;
+    background: var(--color-papel);
+    transition: border-color 200ms var(--ease-cayla);
+  }
+  .tw-campana:hover { border-color: var(--color-taupe); }
+  .tw-campana-mini { display: block; border-bottom: 1px solid var(--color-sand); transition: opacity 200ms var(--ease-cayla); }
+  .tw-campana-mini:hover { opacity: 0.92; }
+  .tw-campana[data-apagada] .tw-campana-mini { filter: grayscale(0.85); opacity: 0.72; }
+
+  /* La línea: una columna para el nombre y otra para los tres meses, una pista por fila. */
+  .tw-cal { display: grid; grid-template-columns: 10.5rem minmax(0, 1fr); row-gap: 8px; align-items: center; min-width: 46rem; }
+  /* En una pantalla angosta la línea se desliza dentro de su tarjeta; el nombre ocupa menos para que se vea más calendario. */
+  @container tw (max-width: 40rem) {
+    .tw-cal { grid-template-columns: 7rem minmax(0, 1fr); min-width: 40rem; }
+  }
+  .tw-cal-meses { display: grid; }
+  .tw-cal-mes { padding: 4px 8px; border-left: 1px solid var(--color-sand); font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-taupe); }
+  .tw-cal-nombre { padding-right: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--color-tinta); }
+  .tw-cal-portada { font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+  .tw-cal-pista { position: relative; height: 30px; border-radius: 8px; background: color-mix(in srgb, var(--color-hueso) 55%, transparent); }
+  .tw-cal-pista[data-portada] { height: 40px; background: var(--color-hueso); }
+  /* Una barra crece desde su primer día, una vez. Con los colores de su portada (dato) o, si es «Lo nuevo», rayada. */
+  .tw-cal-barra {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    display: flex;
+    align-items: center;
+    min-width: 6px;
+    padding: 0 8px;
+    overflow: hidden;
+    border-radius: 6px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ht);
+    background: linear-gradient(90deg, var(--hf), var(--hf2));
+    transform-origin: left center;
+    animation: tw-crece-x 520ms var(--ease-cayla) both;
+    animation-delay: calc(min(var(--i, 0), 12) * 50ms + 260ms);
+  }
+  .tw-cal-barra[data-nuevo] {
+    color: var(--color-tinta);
+    background: repeating-linear-gradient(135deg, var(--color-sand) 0 4px, var(--color-papel) 4px 9px);
+  }
+  /* Los días en carrusel (actividad 6b): una franja por campaña, en su orden, y el nombre en una pastilla oscura que se lee sobre cualquier
+     color de diseño (los colores son dato; la pastilla, tinta y crema fijas). */
+  .tw-cal-barra[data-carrusel] { background: none; color: var(--color-crema-fija); }
+  .tw-cal-franjas { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .tw-cal-franjas > span { flex: 1; background: linear-gradient(90deg, var(--hf), var(--hf2)); }
+  .tw-cal-barra-nombre { position: relative; overflow: hidden; text-overflow: ellipsis; }
+  .tw-cal-barra[data-carrusel] .tw-cal-barra-nombre {
+    padding: 1px 6px; border-radius: 4px; background: color-mix(in srgb, var(--color-tinta-fija) 72%, transparent);
+  }
+  /* La campaña que todavía sale con el rojo de siempre (sin diseño propio publicado): punteada por dentro. */
+  .tw-cal-barra[data-de-siempre] { outline: 1.5px dashed color-mix(in srgb, var(--color-crema-fija) 55%, transparent); outline-offset: -3px; }
+  .tw-cal-barra[data-corte-antes] { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+  .tw-cal-barra[data-corte-despues] { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+  /* Lo que ya pasó, apagado bajo un velo de papel; hoy, una raya roja. */
+  .tw-cal-pasado { position: absolute; inset: 0 auto 0 0; border-radius: 8px 0 0 8px; background: color-mix(in srgb, var(--color-papel) 55%, transparent); pointer-events: none; }
+  .tw-cal-hoy { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; border-radius: 2px; background: var(--color-rojo); pointer-events: none; }
+  .tw-cal-hoy-rotulo { position: absolute; top: -19px; left: 50%; transform: translateX(-50%); padding: 0 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-rojo-profundo); background: var(--color-papel); }
+
+  /* ───────── Campañas ▸ Diseño en la web (ADR-0436, actividad 4) ───────── */
+  /* El escenario: la portada de la tienda se dibuja a su ancho real (1280 o 375 px) con la MISMA pieza que la tienda
+     (`@cayla-retail/portada`) y se achica entera para caber (`Lienzo.tsx`). Es un DATO (`data-color-dato`): sus colores son los de la
+     campaña, no los del tema del ERP. Aquí no se mueve nada: el colibrí ya llegó y las fotos ya cayeron (el vuelo es de la tienda). */
+  .tw-lienzo { position: relative; overflow: hidden; width: 100%; }
+  .tw-lienzo-hoja { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+  .tw-lienzo-hoja *,
+  .tw-lienzo-hoja *::before,
+  .tw-lienzo-hoja *::after { animation: none !important; transition: none !important; }
+
+  /* La franja de arriba y la cabecera de la tienda, como las ve el cliente sin cuenta (en claro o en oscuro: lo elige la vista previa). */
+  .tw-web { background: var(--color-crema-fija); color: var(--color-tinta-fija); }
+  .tw-web[data-tema="oscuro"] { background: var(--color-tinta-fija); color: var(--color-crema-fija); }
+  /* Como la franja de la tienda (`.t-anuncio-pila`): en el celular la frase baja a dos líneas en vez de cortarse. */
+  .tw-web-anuncio {
+    min-height: 30px; display: grid; place-items: center; padding: 8px 12px; line-height: 1.35; text-align: center;
+    background: var(--color-tinta-fija); color: var(--color-crema-fija);
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  }
+  .tw-web-cab {
+    height: 70px; display: flex; align-items: center; gap: 10px; padding: 0 26px;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  }
+  .tw-web[data-celular] .tw-web-cab { height: 56px; padding: 0 14px; }
+  .tw-web-logo { display: flex; align-items: center; gap: 8px; font-family: var(--font-serif); font-size: 26px; font-weight: 500; letter-spacing: 0.22em; }
+  .tw-web[data-celular] .tw-web-logo { font-size: 21px; }
+  .tw-web-logo svg { width: 30px; height: auto; }
+  .tw-web-nav { display: flex; gap: 22px; margin-left: 18px; font-size: 13.5px; font-weight: 500; }
+  .tw-web-pildora { display: inline-flex; align-items: center; height: 38px; padding: 0 16px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+  .tw-web-pildora[data-llena] { background: currentColor; }
+  .tw-web-pildora[data-llena] > span { color: var(--color-crema-fija); }
+  .tw-web[data-tema="oscuro"] .tw-web-pildora[data-llena] > span { color: var(--color-tinta-fija); }
+
+  /* Las polaroids sin foto: la prenda con el ícono de su categoría sobre su color (`MosaicoPrenda`), como en todo el ERP. */
+  .tw-pieza-sin-foto { position: absolute; inset: 0; }
+
+  /* La tarjeta del Club que la tienda pone a la derecha cuando la campaña no tiene prendas (`.t-portada-club` de la tienda). */
+  .tw-club-mini { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .tw-club-mini-tarjeta {
+    width: min(100%, 420px); aspect-ratio: 1.6; padding: 22px 24px; border-radius: 18px; transform: rotate(-4deg);
+    display: flex; flex-direction: column; justify-content: space-between;
+    background: var(--color-tinta-fija); color: var(--color-crema-fija);
+  }
+  .tw-club-mini-tarjeta b { font-family: var(--font-serif); font-size: 26px; font-weight: 500; letter-spacing: 0.22em; }
+  .tw-club-mini-tarjeta small { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.7; }
+  .tw-club-mini p { margin: 0; font-size: 13px; opacity: 0.85; text-align: center; }
+
+  /* El celular de la vista previa: un marco redondo, oscuro en los dos temas (es un aparato). */
+  .tw-celular {
+    width: min(100%, 300px); margin-inline: auto; padding: 10px; border-radius: 34px;
+    background: var(--color-tinta-fija);
+  }
+  .tw-celular > .tw-lienzo { border-radius: 26px; }
+
+  /* El editor: los pasos a la izquierda y la vista previa a la derecha (pegada arriba mientras se baja), para ver cada toque sin bajar:
+     desde un laptop de 1280 px con el lateral abierto (el contenedor mide ~860). En angosto, uno sobre otro. */
+  .tw-editor { display: grid; gap: 20px; }
+  @container tw (min-width: 840px) {
+    .tw-editor { grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); align-items: start; }
+    .tw-editor-vista { position: sticky; top: 16px; }
+  }
+  .tw-pasos { display: grid; gap: 10px; }
+  .tw-paso { min-width: 0; border: 1px solid var(--color-sand); border-radius: 14px; background: var(--color-papel); }
+  .tw-paso[data-abierto] { border-color: var(--color-taupe); }
+  .tw-paso-cab {
+    width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 0; background: none; text-align: left; cursor: pointer;
+    border-radius: 14px;
+  }
+  .tw-paso-cab:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+  .tw-paso-cab b { display: block; font-size: 14px; font-weight: 600; color: var(--color-tinta); }
+  .tw-paso-cab small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--color-taupe); }
+  .tw-paso-flecha { margin-left: auto; width: 16px; height: 16px; flex: none; color: var(--color-taupe); transition: transform 240ms var(--ease-cayla); }
+  .tw-paso[data-abierto] .tw-paso-flecha { transform: rotate(180deg); }
+  .tw-paso-cuerpo { padding: 0 16px 16px; }
+
+  /* Los estilos de partida: cada uno es su portada en chico. */
+  .tw-opciones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tw-opcion {
+    display: block; overflow: hidden; padding: 0; border: 1px solid var(--color-sand); border-radius: 12px; background: var(--color-papel);
+    text-align: left; cursor: pointer; transition: border-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla);
+  }
+  .tw-opcion:hover { border-color: var(--color-taupe); }
+  .tw-opcion[aria-pressed="true"] { border-color: var(--color-tinta); box-shadow: 0 0 0 1px var(--color-tinta); }
+  .tw-opcion:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+  .tw-opcion-nombre { display: block; padding: 8px 10px 9px; font-size: 13px; font-weight: 600; color: var(--color-tinta); }
+  .tw-opcion-nombre small { display: block; font-size: 11.5px; font-weight: 400; color: var(--color-taupe); }
+
+  /* El fondo y el dibujo (paso «Fondo»): tres fondos en una fila y los ocho dibujos de a cuatro, en los colores de la campaña. */
+  .tw-opciones[data-columnas="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tw-opciones[data-columnas="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .tw-opciones[data-columnas="4"] .tw-opcion-nombre { padding: 6px 6px 7px; font-size: 11.5px; text-align: center; }
+  .tw-fondo-muestra, .tw-patron-muestra { position: relative; isolation: isolate; display: block; overflow: hidden; }
+  .tw-fondo-muestra { aspect-ratio: 1.6; }
+  .tw-patron-muestra { aspect-ratio: 1.3; }
+  .tw-estampado { position: absolute; inset: 0; -webkit-mask-repeat: repeat; mask-repeat: repeat; }
+  @supports not ((mask-image: none) or (-webkit-mask-image: none)) {
+    .tw-estampado { display: none; }
+  }
+  /* «Con foto» (paso «Fondo»): sin foto todavía, el ícono de subir; la zona donde se arrastra o se elige la foto. */
+  .tw-fondo-sin-foto { display: grid; place-items: center; background: var(--color-hueso); color: var(--color-taupe); }
+  .tw-subir {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 12px 14px; border: 1px dashed var(--color-sand); border-radius: 12px;
+    background: var(--color-papel); transition: border-color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
+  }
+  .tw-subir[data-arrastrando] { border-color: var(--color-rojo); background: color-mix(in srgb, var(--color-rojo) 5%, var(--color-papel)); }
+
+  /* El sello en chico (paso «Detalles»): girado como en la portada. */
+  .tw-sello-muestra { display: grid; place-items: center; aspect-ratio: 1.3; }
+  .tw-sello-mini {
+    display: grid; place-items: center; width: 44px; height: 44px; padding: 4px; border-radius: 999px; text-align: center;
+    font-family: var(--font-serif); font-size: 10px; font-style: italic; font-weight: 600; line-height: 1.05; transform: rotate(-12deg);
+  }
+  .tw-sello-mini[data-vacio] { border: 1.5px dashed; opacity: 0.6; }
+
+  /* Desde qué palabra va la cursiva (paso «El texto»): la elegida y las que siguen, en cursiva y en rojo, como en la portada. */
+  .tw-palabras { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tw-palabra {
+    min-height: 32px; padding: 4px 12px; border: 1px solid var(--color-sand); border-radius: 999px; background: var(--color-papel);
+    font-family: var(--font-serif); font-size: 15px; color: var(--color-tinta); cursor: pointer;
+    transition: border-color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla);
+  }
+  .tw-palabra:last-child { font-family: inherit; font-size: 12.5px; font-weight: 600; }
+  .tw-palabra:hover { border-color: var(--color-taupe); }
+  .tw-palabra[data-cursiva] { font-style: italic; color: var(--color-rojo-profundo); background: var(--color-hueso); }
+  .tw-palabra[aria-pressed="true"] { border-color: var(--color-tinta); box-shadow: 0 0 0 1px var(--color-tinta); }
+  .tw-palabra:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+
+  /* Las prendas de la portada (paso «Qué prendas salen»): se tocan en orden y cada una lleva su número. */
+  .tw-prendas-elegir { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 8px; }
+  .tw-prenda-op {
+    position: relative; display: flex; flex-direction: column; gap: 4px; padding: 4px 4px 6px; border: 1px solid var(--color-sand); border-radius: 10px;
+    background: var(--color-papel); text-align: left; cursor: pointer; transition: border-color 200ms var(--ease-cayla), box-shadow 200ms var(--ease-cayla), opacity 200ms var(--ease-cayla);
+  }
+  .tw-prenda-op .portada-foto { position: relative; display: block; width: 100%; aspect-ratio: 4 / 5; overflow: hidden; border-radius: 6px; background: var(--color-hueso); }
+  .tw-prenda-op .portada-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .tw-prenda-op small { display: block; overflow: hidden; padding-inline: 2px; font-size: 11.5px; font-weight: 600; color: var(--color-tinta); white-space: nowrap; text-overflow: ellipsis; }
+  .tw-prenda-op:hover { border-color: var(--color-taupe); }
+  .tw-prenda-op[aria-pressed="true"] { border-color: var(--color-tinta); box-shadow: 0 0 0 1px var(--color-tinta); }
+  .tw-prenda-op:disabled { opacity: 0.5; cursor: not-allowed; }
+  .tw-prenda-op:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
+  .tw-prenda-orden {
+    position: absolute; z-index: 1; top: 8px; left: 8px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 999px;
+    background: var(--color-tinta); color: var(--color-crema); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+  }
+
+  /* Las muestras de color: el fondo con su acento en un punto. */
+  .tw-muestras { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tw-muestra {
+    position: relative; width: 36px; height: 36px; padding: 0; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--color-tinta) 18%, transparent);
+    cursor: pointer; transition: transform 200ms var(--ease-cayla);
+  }
+  .tw-muestra i { position: absolute; right: 3px; bottom: 3px; width: 11px; height: 11px; border-radius: 999px; border: 1.5px solid var(--color-papel); }
+  .tw-muestra:hover { transform: scale(1.06); }
+  .tw-muestra[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--color-papel), 0 0 0 4px var(--color-tinta); }
+  .tw-muestra:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 4px; }
+  .tw-mi-color { display: flex; align-items: center; gap: 12px; }
+  .tw-mi-color input[type="color"] {
+    width: 44px; height: 44px; padding: 0; border: 1px solid var(--color-sand); border-radius: 999px; background: none; cursor: pointer;
+  }
+  .tw-mi-color input[type="color"]::-webkit-color-swatch-wrapper { padding: 3px; }
+  .tw-mi-color input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 999px; }
+
+  /* La revisión: lo que se mide de la portada, en una línea cada cosa. */
+  .tw-revision { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0; padding: 0; list-style: none; }
+  .tw-revision li { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-tinta); }
+  .tw-revision li svg { width: 16px; height: 16px; flex: none; }
+  .tw-revision li[data-tono="ok"] svg { color: var(--color-verde); }
+  .tw-revision li[data-tono="ojo"] svg { color: var(--color-ambar); }
+  .tw-revision li[data-tono="mal"] { color: var(--color-rojo-profundo); }
+  .tw-revision li[data-tono="mal"] svg { color: var(--color-rojo); }
+
+  /* Cuándo se ve, cuándo se quita y qué sale después (la hoja «Publicar»). */
+  .tw-cuando { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .tw-cuando > div { padding: 10px 12px; border-radius: 12px; background: var(--color-hueso); }
+  .tw-cuando small { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-taupe); }
+  .tw-cuando b { display: block; margin-top: 3px; font-size: 13.5px; font-weight: 600; color: var(--color-tinta); }
+  @container (max-width: 520px) { .tw-cuando { grid-template-columns: minmax(0, 1fr); } }
+  .tw-dos-vistas { display: grid; grid-template-columns: minmax(0, 1fr) 132px; gap: 14px; align-items: end; }
+  .tw-dos-vistas .tw-celular { width: 132px; padding: 5px; border-radius: 18px; }
+  .tw-dos-vistas .tw-celular > .tw-lienzo { border-radius: 13px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -425,7 +678,8 @@
   .tw-linea-paso::before,
   .tw-linea-nodo,
   .tw-carta,
-  .tw-globo-respuesta {
+  .tw-globo-respuesta,
+  .tw-cal-barra {
     animation: none;
   }
   .tw-marco-barra::after { display: none; }
@@ -437,7 +691,8 @@
   .tw-carta[data-oculta] .tw-look-collage,
   .tw-previa[data-apagada],
   .tw-previa-nombre,
-  .tw-previa-boton {
+  .tw-previa-boton,
+  .tw-campana {
     transition: none;
   }
   .tw-camino-linea { stroke-dashoffset: 0; }

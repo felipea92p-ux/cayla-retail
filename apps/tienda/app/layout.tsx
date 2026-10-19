@@ -8,6 +8,9 @@ import { VigiaDelCamino } from "@/components/EnCamino";
 import { RecordarPrendaTocada } from "@/components/PrendaTocada";
 import { SCRIPT_DEL_AVISO } from "@/lib/instalar";
 import "./globals.css";
+// El héroe de la portada y del Inicio (la campaña, el colibrí y las polaroids): vive en un paquete porque el ERP lo dibuja igual en la
+// vista previa de Tienda web ▸ Campañas (ADR-0436).
+import "@cayla-retail/portada/heroe.css";
 // Las páginas de la cuenta (crear, entrar, recuperar, «Mi cuenta», privacidad y términos) y el aviso «Listo: …», que también
 // sale en la portada al salir de la cuenta.
 import "./estilos/cuenta.css";

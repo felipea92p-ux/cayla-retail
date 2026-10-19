@@ -22,7 +22,14 @@ export function dondeHay<T extends Tienda>(prendas: readonly Prenda[], tiendas: 
 /** Lo que se pidió, en minúsculas, para decir «No hay … en Lima»: la categoría o el grupo elegido o, sin ellos, lo propio de la lista. */
 export function queSeBusca(lista: Lista, elegido: string | null): string {
   if (elegido) return elegido.trim().toLocaleLowerCase("es");
-  const porLista: Record<Lista, string> = { todo: "prendas", nuevo: "nada nuevo", ofertas: "ofertas", vendidos: "más vendidos", favoritos: "favoritos" };
+  const porLista: Record<Lista, string> = {
+    todo: "prendas",
+    nuevo: "nada nuevo",
+    ofertas: "ofertas",
+    vendidos: "más vendidos",
+    favoritos: "favoritos",
+    campana: "prendas de esta campaña",
+  };
   return porLista[lista];
 }
 

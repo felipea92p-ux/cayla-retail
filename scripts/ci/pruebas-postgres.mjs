@@ -220,6 +220,18 @@ export const PRUEBAS = [
   // tienda_sedes. ROLLBACK.
   "pruebas:tienda-web-configuracion",
 
+  // Tienda web ▸ Campañas (ADR-0436, actividad 1): LA regla de qué campaña anuncia la portada cada día vive en una sola función
+  // (fn_campana_en_portada), y la tienda (tienda_portada) y el ERP (campanas_portada_dias) la preguntan; la lista de campañas; solo el
+  // líder o quien tenga el módulo «Campañas»; la migración se pega dos veces. ROLLBACK.
+  "pruebas:campanas-portada",
+
+  // Tienda web ▸ Campañas (ADR-0436, actividad 2): una sola llave por etiqueta (una campaña, Campañas; otra, Etiquetas), la campaña nace
+  // aprobada si quien la crea tiene su llave, y crear, guardar (todo o nada), activar y el detalle de una campaña. ROLLBACK.
+  "pruebas:campanas-llave",
+  // Tienda web ▸ Campañas (ADR-0436, actividad 4): el diseño de la portada de cada campaña: los estados imposibles que impide la base,
+  // el borrador con su versión (no se pisa el trabajo de otra persona), publicar todo o nada, volver al anterior y quién. ROLLBACK.
+  "pruebas:campanas-diseno",
+
   // Las cuentas de la tienda online (ADR-0408, actividad 2): correo y DNI únicos, los topes del cartel (club_intento) al
   // consultar y al registrar, la cuenta que se une a la ficha del Club sin pisar sus datos, el menor de 18 y el cumpleaños
   // imposible rechazados sin escribir nada, y `cuentas_web` cerrada a todos. ROLLBACK.

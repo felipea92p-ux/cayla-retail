@@ -62,7 +62,8 @@ export function seccionDeLaRuta(ruta: string, buscar: URLSearchParams): SeccionA
   if (limpia === "/inicio") return "inicio";
   if (limpia === "/catalogo") {
     const lista = leerLista(buscar.get("lista") ?? undefined);
-    return lista === "todo" ? null : lista;
+    // «campana» (las prendas de una campaña sin descuento) no tiene su raya en la cabecera.
+    return lista === "todo" || lista === "campana" ? null : lista;
   }
   if (limpia === "/looks/arma") return "probador";
   if (limpia.startsWith("/looks/guardado/")) return "favoritos";

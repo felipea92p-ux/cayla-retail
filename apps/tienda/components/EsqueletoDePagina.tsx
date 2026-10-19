@@ -27,7 +27,7 @@ import "@/app/estilos/recomendaciones.css";
 export function EsqueletoDePagina({ forma, campana = null }: { forma?: FormaEsqueleto; campana?: Campana | null }) {
   // El héroe del Inicio, con la campaña de verdad (la misma de la franja): si lo que viene es el Inicio, ya está escrito.
   const heroe = campana ? (
-    <HeroeDelInicio hero={{ tipo: "campana", campana, piezas: [], campanaId: null }} sede={null} origenFotos={undefined} verCampana="" verNuevo={null} enEspera />
+    <HeroeDelInicio hero={{ tipo: "campana", campana, piezas: [], conPrendas: false, campanaId: null }} sede={null} origenFotos={undefined} verCampana="" verNuevo={null} enEspera />
   ) : null;
   return (
     <>

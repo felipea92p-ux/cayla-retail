@@ -221,11 +221,12 @@ function main() {
   }
 
   console.log("— La campaña de la portada —");
-  esperarValor("sin campañas vigentes, la portada no anuncia ninguna", correr(`${PREPARAR}${PORTADA}`), '{"campana": null}');
+  esperarValor("sin campañas vigentes, la portada no anuncia ninguna", correr(`${PREPARAR}${PORTADA}`), '{"campana": null, "campanas": []}');
   esperarValor(
     "con una campaña: nombre, % y último día (fecha de Lima)",
     correr(`${PREPARAR}${campana("ZZ Aniversario (prueba)", { pct: 12, hasta: 7 })}
-      select (retail.tienda_portada() -> 'campana') = jsonb_build_object('nombre', 'ZZ Aniversario (prueba)', 'pct', 12, 'hasta', (:'hoy'::date + 7)::text);
+      select ((retail.tienda_portada() -> 'campana') - array['id', 'diseno', 'prendas']) = jsonb_build_object('nombre', 'ZZ Aniversario (prueba)', 'pct', 12, 'hasta', (:'hoy'::date + 7)::text)
+        and (retail.tienda_portada() -> 'campanas' -> 0) = (retail.tienda_portada() -> 'campana');
       rollback;`),
     "t",
   );

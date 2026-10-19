@@ -1,0 +1,96 @@
+{
+  "guia": "tienda-web.campanas.id",
+  "ruta": "/tienda-web/campanas/[id]",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 70,
+  "controles": {
+    "app/(app)/tienda-web/campanas/[id]/page.tsx": [
+      "Volver «/tienda-web/campanas»",
+      "Pestanas «(sin nombre)»"
+    ],
+    "components/PrendasDeEtiquetaModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Volver»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "BotonFiltro «Todas»",
+      "BotonFiltro «Con la etiqueta»",
+      "BotonFiltro «Sin ella»",
+      "DesplegablePildora «Categoría»",
+      "button «Marca todas las tallas de los productos de la lista. Los que entran por su categoría ya la llevan.»",
+      "button «Quita la etiqueta a los productos de la lista. Los que entran por su categoría la siguen llevando.»",
+      "BotonDeshacer «→() => setQuitarFuera(false)»",
+      "button «Quitárselas»",
+      "Boton «Reintentar»",
+      "Casilla «{`${nombre}»",
+      "button «{nombre}»",
+      "Casilla «{nombreTalla}»",
+      "ComboResponsable «{responsable}» #2",
+      "Boton «Cancelar»",
+      "Boton «{requiereRevision ? \"Revisar y aplicar\" : \"Aplicar\"}»"
+    ],
+    "components/campanas/CamposDeCampana.tsx": [
+      "CampoTexto «{guia.etiqueta(\"descuento\", \"Descuento (%)\")}»",
+      "button «Sin descuento»",
+      "button «{v}»",
+      "CampoFecha «Desde»",
+      "CampoFecha «Hasta»",
+      "button «{avisoDia.boton}»",
+      "BotonDeshacer «(sin nombre)»",
+      "button «Quitar todas»",
+      "button «{c.nombre}»"
+    ],
+    "components/campanas/DatosCampana.tsx": [
+      "Boton «Activarla de nuevo»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Desactivar campaña»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "BotonImprimir «(sin nombre)»",
+      "BotonEditar «Diseñar la portada»"
+    ],
+    "components/campanas/DisenoCampana.tsx": [
+      "button «{i + 1}»",
+      "SegmentoDeslizante «Dónde se mira»",
+      "SegmentoDeslizante «Tema de la tienda»",
+      "BotonDeshacer «{historial.length === 0 ? \"Todavía no hay nada que deshacer\" : undefined}»",
+      "Boton «Sorpréndeme»",
+      "Boton «Ver el último»",
+      "Boton «campana.diseno-volver»",
+      "Boton «campana.diseno-publicar»"
+    ],
+    "components/campanas/PasosDelDiseno.tsx": [
+      "button «{e.nombre}»",
+      "input «Elegir mi color»",
+      "Boton «Usar uno un poco más oscuro»",
+      "button «{nombre}»",
+      "button «{NOMBRES_FONDO[f].nombre}»",
+      "button «{NOMBRES_PATRON[p]}»",
+      "SegmentoDeslizante «Qué tanto se nota el dibujo»",
+      "input «→(e) => void usar(e.target.files?.[0])»",
+      "Boton «{diseno.foto ? \"Cambiar foto\" : \"Elegir foto\"}»",
+      "input «Oscurecer la foto»",
+      "button «{NOMBRES_ACOMODO[a].nombre}»",
+      "BotonVer «Ir a Prendas»",
+      "button «{`Cursiva desde «${w}»",
+      "button «Sin cursiva»",
+      "SegmentoDeslizante «Tamaño del nombre»",
+      "CampoTexto «Tu frase»",
+      "button «{orden >= 0 ? `${p.nombre}»",
+      "button «{NOMBRES_SELLO[s]}»"
+    ],
+    "components/campanas/PrendasCampana.tsx": [
+      "Boton «{campana.activo ? undefined : \"Actívala en Datos para elegir sus prendas\"}»"
+    ],
+    "components/campanas/PublicarDiseno.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/campanas/VolverAlAnterior.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ]
+  }
+}

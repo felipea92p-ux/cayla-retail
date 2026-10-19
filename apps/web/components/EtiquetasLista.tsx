@@ -12,8 +12,8 @@ import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
-import { CampoFecha } from "@/components/ui/CampoFecha";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { CamposDeCampana, leerCamposDeCampana, type CategoriaDeCampana } from "@/components/campanas/CamposDeCampana";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { campanaValida, camposDeCampana } from "@/lib/etiqueta-campana-guia";
 import {
@@ -108,7 +108,7 @@ type Etiqueta = {
   categoriaIds: string[];
 };
 
-type CategoriaOpcion = { id: string; nombre: string; familia: string };
+type CategoriaOpcion = CategoriaDeCampana;
 
 // `true` desde que `registrar_venta` lee `etiquetas.descuento_pct`
 // (20260918170000_venta_aplica_descuento_de_campana.sql, paso 3 de ADR-0107). Vuelve a
@@ -690,7 +690,6 @@ function CampanaModal({
   const [descuento, setDescuento] = useState(etiqueta.descuentoPct === null ? "" : String(etiqueta.descuentoPct));
   const [desde, setDesde] = useState((repetir ? repetir.desde : etiqueta.vigenteDesde) ?? "");
   const [hasta, setHasta] = useState((repetir ? repetir.hasta : etiqueta.vigenteHasta) ?? "");
-  const avisoDia = repetir ? avisoDiaDeSemana(repetir, { desde, hasta }) : null;
   const [elegidas, setElegidas] = useState(() => new Set(etiqueta.categoriaIds));
   const [guardando, setGuardando] = useState(false);
   const router = useRouter();
@@ -699,35 +698,11 @@ function CampanaModal({
   // así que solo «sigue» lo mal escrito.
   const guia = useGuiaCampos(camposDeCampana({ descuento, desde, hasta, categorias: elegidas.size, puedeDarDescuento }));
 
-  const pct = parsearDescuento(descuento);
-  const fDesde = parsearFecha(desde);
-  const fHasta = parsearFecha(hasta);
-  const objecion = fDesde.ok && fHasta.ok ? objecionVigencia(fDesde.valor, fHasta.valor) : null;
+  const { pct, fDesde, fHasta } = leerCamposDeCampana({ descuento, desde, hasta });
   const valido = campanaValida({ descuento, desde, hasta });
   // La campaña no se bloquea por bajar del costo (puede ser una liquidación a propósito),
   // pero quien la configura se entera: número en rojo y cuántas prendas serían.
   const bajoCosto = prendasBajoCosto(pct.ok ? pct.valor : null, prendasConCosto, elegidas, new Set(variantesManuales));
-
-  // Cada categoría dice cuántas prendas a la venta trae, y la hoja dice a cuántas llega la campaña antes de guardar. Las categorías
-  // sin prendas van juntas al final: se pueden elegir (pueden recibir prendas después), pero no compiten con las que sí venden.
-  const prendasDe = prendasPorCategoria(prendasConCosto);
-  const alcance = alcanceCampana(prendasConCosto, elegidas, new Set(variantesManuales));
-  const porFamilia = new Map<string, CategoriaOpcion[]>();
-  const sinPrendas: CategoriaOpcion[] = [];
-  for (const c of categorias) {
-    if (!prendasDe.get(c.id)) sinPrendas.push(c);
-    else porFamilia.set(c.familia, [...(porFamilia.get(c.familia) ?? []), c]);
-  }
-  // Plegadas por defecto: son muchas y hoy no mueven ninguna prenda. Se abren solas si ya hay una elegida ahí, para que no quede escondida.
-  const sinPrendasElegida = sinPrendas.some((c) => elegidas.has(c.id));
-
-  const alternar = (id: string) =>
-    setElegidas((actual) => {
-      const nuevo = new Set(actual);
-      if (nuevo.has(id)) nuevo.delete(id);
-      else nuevo.add(id);
-      return nuevo;
-    });
 
   async function guardar() {
     if (!pct.ok || !fDesde.ok || !fHasta.ok) return;
@@ -785,132 +760,23 @@ function CampanaModal({
     >
       {(cerrar) => (
         <div data-guia="atributos.campana-form" className="mt-5 space-y-5">
-          {/* Dos columnas desde tablet: a la izquierda cuánto y cuándo, a la derecha las categorías completas. En una hoja angosta
-              Desde y Hasta no cabían juntos y las categorías vivían en una caja con su propio scroll dentro de la hoja. */}
-          <div className="grid gap-6 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-            <div className="space-y-5">
-              <CampoGuiado id="descuento" guia={guia}>
-                <CampoTexto
-                  etiqueta={guia.etiqueta("descuento", "Descuento (%)")}
-                  mono
-                  inputMode="decimal"
-                  value={descuento}
-                  onChange={(e) => setDescuento(e.target.value)}
-                  disabled={!puedeDarDescuento}
-                  placeholder={puedeDarDescuento ? "Escribe otro %" : "Tu rol no pone descuento"}
-                  tono={!pct.ok || bajoCosto.length > 0 ? "error" : undefined}
-                  className={bajoCosto.length > 0 ? "!text-rojo-profundo" : ""}
-                  pie={
-                    !pct.ok
-                      ? pct.error
-                      : bajoCosto.length > 0
-                        ? `Por debajo del costo: ${bajoCosto.length} prenda${bajoCosto.length === 1 ? "" : "s"} (${bajoCosto
-                            .slice(0, 2)
-                            .map(nombreBajoCosto)
-                            .join(", ")}${bajoCosto.length > 2 ? "…" : ""}). Se puede guardar igual.`
-                        : pct.valor === null
-                          ? "Vacío: la etiqueta solo marca prendas y no cambia precios."
-                          : `Baja ${textoPct(pct.valor)} % el precio en Vender, sin pedir código.`
-                  }
-                  autoComplete="off"
-                />
-                {puedeDarDescuento && (
-                  <div role="group" aria-label="Descuentos de siempre" className="mt-1 flex flex-wrap gap-1.5">
-                    <button type="button" className="pildora-cayla" aria-pressed={pct.ok && pct.valor === null} onClick={() => setDescuento("")}>
-                      Sin descuento
-                    </button>
-                    {DESCUENTOS_RAPIDOS.map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        className="pildora-cayla tabular-nums"
-                        aria-pressed={pct.ok && pct.valor === v}
-                        onClick={() => setDescuento(String(v))}
-                      >
-                        {v} %
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </CampoGuiado>
-
-              {/* El título del grupo va FUERA de la grilla: dentro, ocupaba la primera celda y partía Desde y Hasta en dos filas. */}
-              <CampoGuiado id="vigencia" guia={guia} titulo="Cuándo rige" ayuda="Opcional: sin fechas, rige siempre.">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <CampoFecha etiqueta="Desde" valor={desde} onValor={setDesde} tono={fDesde.ok ? undefined : "error"} />
-                  <CampoFecha
-                    etiqueta="Hasta"
-                    valor={hasta}
-                    onValor={setHasta}
-                    tono={fHasta.ok && !objecion ? undefined : "error"}
-                    pie={objecion ?? undefined}
-                  />
-                </div>
-                {/* Al repetir: sumar un año cambia el día de la semana. Si la fiesta va por día (el 2.º domingo de mayo), un toque
-                    corre la temporada entera; si va por fecha (el 25 de diciembre), se deja como está. */}
-                {avisoDia && repetir?.mismoDia && (
-                  // El botón va debajo de la frase, no a su lado: en la columna angosta le quitaba el ancho y la frase se partía en 9 líneas.
-                  <Aviso tono="info" className="mt-3" titulo={avisoDia.titulo}>
-                    <p>{avisoDia.detalle}</p>
-                    {avisoDia.modo === "sumando-un-anio" ? (
-                      <button
-                        type="button"
-                        className="btn-cayla btn-sutil btn-chico mt-2"
-                        onClick={() => {
-                          setDesde(repetir.mismoDia?.desde ?? "");
-                          setHasta(repetir.mismoDia?.hasta ?? "");
-                        }}
-                      >
-                        {avisoDia.boton}
-                      </button>
-                    ) : (
-                      <BotonDeshacer
-                        className="mt-1"
-                        onClick={() => {
-                          setDesde(repetir.desde ?? "");
-                          setHasta(repetir.hasta ?? "");
-                        }}
-                      />
-                    )}
-                  </Aviso>
-                )}
-              </CampoGuiado>
-            </div>
-
-            <CampoGuiado id="categorias" guia={guia} retiene="fila">
-              <div className="flex items-baseline justify-between gap-3">
-                <p className="label-cayla text-[11px] text-tinta/65">
-                  {guia.etiqueta("categorias", "Categorías")} <span className="font-normal normal-case text-tinta/45">· opcional</span>
-                </p>
-                {elegidas.size > 0 && (
-                  <button type="button" onClick={() => setElegidas(new Set())} className="btn-cayla btn-enlace text-xs">
-                    Quitar todas
-                  </button>
-                )}
-              </div>
-              <p className="mt-1 text-xs text-tinta/65" aria-live="polite">
-                {elegidas.size === 0
-                  ? `Sin categorías, la campaña solo alcanza a las prendas marcadas a mano${alcance.aMano ? ` (${alcance.aMano})` : ": hoy ninguna"}.`
-                  : `Alcanza a ${alcance.total} prenda${alcance.total === 1 ? "" : "s"} a la venta: ${alcance.porCategoria} de ${elegidas.size} categoría${elegidas.size === 1 ? "" : "s"}${alcance.aMano ? ` y ${alcance.aMano} marcada${alcance.aMano === 1 ? "" : "s"} a mano` : ""}.`}
-              </p>
-              <div className="mt-3 space-y-3">
-                {[...porFamilia.entries()].map(([familia, lista]) => (
-                  <div key={familia}>
-                    <p className="text-[11px] text-tinta/60">{familia}</p>
-                    <ChipsCategorias lista={lista} elegidas={elegidas} prendasDe={prendasDe} onAlternar={alternar} />
-                  </div>
-                ))}
-                {sinPrendas.length > 0 && (
-                  <details open={sinPrendasElegida || undefined} className="border-t border-sand pt-2">
-                    <summary className="cursor-pointer text-[11px] text-tinta/60">
-                      Sin prendas todavía · {sinPrendas.length} categoría{sinPrendas.length === 1 ? "" : "s"}
-                    </summary>
-                    <ChipsCategorias lista={sinPrendas} elegidas={elegidas} prendasDe={prendasDe} onAlternar={alternar} />
-                  </details>
-                )}
-              </div>
-            </CampoGuiado>
-          </div>
+          <CamposDeCampana
+            guia={guia}
+            descuento={descuento}
+            setDescuento={setDescuento}
+            desde={desde}
+            setDesde={setDesde}
+            hasta={hasta}
+            setHasta={setHasta}
+            elegidas={elegidas}
+            setElegidas={setElegidas}
+            categorias={categorias}
+            puedeDarDescuento={puedeDarDescuento}
+            bajoCosto={bajoCosto}
+            prendasConCosto={prendasConCosto}
+            variantesManuales={variantesManuales}
+            repetir={repetir}
+          />
 
           <p className="nota-cayla text-xs">
             {DESCUENTO_YA_SE_APLICA
@@ -930,30 +796,6 @@ function CampanaModal({
         </div>
       )}
     </Modal>
-  );
-}
-
-/** Las categorías de un grupo como píldoras que se eligen, cada una con cuántas prendas a la venta trae. */
-function ChipsCategorias({
-  lista,
-  elegidas,
-  prendasDe,
-  onAlternar,
-}: {
-  lista: CategoriaOpcion[];
-  elegidas: ReadonlySet<string>;
-  prendasDe: ReadonlyMap<string, number>;
-  onAlternar: (id: string) => void;
-}) {
-  return (
-    <div className="mt-1.5 flex flex-wrap gap-1.5">
-      {lista.map((c) => (
-        <button key={c.id} type="button" aria-pressed={elegidas.has(c.id)} onClick={() => onAlternar(c.id)} className="pildora-cayla">
-          {c.nombre}
-          <span className="text-[11px] font-normal tabular-nums opacity-70">{prendasDe.get(c.id) ?? 0}</span>
-        </button>
-      ))}
-    </div>
   );
 }
 

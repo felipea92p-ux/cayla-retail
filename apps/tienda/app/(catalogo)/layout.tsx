@@ -20,11 +20,11 @@ export default async function CatalogoLayout({ children }: { children: React.Rea
   // La campaña es la misma para todos: sale en la cáscara armada por adelantado. Solo la última frase de la franja cambia con la cuenta
   // («Crea tu cuenta…» o «Tus beneficios están en Mi perfil»). Lo que mira la cuenta (quién es, qué guardó) se lee por detrás, dentro de su
   // <Suspense>, y mientras tanto se ve la cabecera con la página que brilla (ADR-0432).
-  const { campana } = await leerPortada();
+  const { campanas } = await leerPortada();
   return (
     <div className="tienda">
-      <SegunSesion visitante={<Anuncio frases={anuncios(campana, false)} />} conCuenta={<Anuncio frases={anuncios(campana, true)} />} />
-      <Suspense fallback={<EsqueletoDePagina campana={campana} />}>
+      <SegunSesion visitante={<Anuncio frases={anuncios(campanas, false)} />} conCuenta={<Anuncio frases={anuncios(campanas, true)} />} />
+      <Suspense fallback={<EsqueletoDePagina campana={campanas[0] ?? null} />}>
         <ConSesion>{children}</ConSesion>
       </Suspense>
     </div>

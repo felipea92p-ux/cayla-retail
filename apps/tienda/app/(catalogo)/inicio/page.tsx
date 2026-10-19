@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { AvisoAlEntrar } from "@/components/AvisoAlEntrar";
 import { CarrilConFlechas } from "@/components/CarrilConFlechas";
+import { CarruselDePortada } from "@/components/CarruselDePortada";
 import { ConfianzaPortada } from "@/components/portada/ConfianzaPortada";
 import { FotoTarjeta } from "@/components/FotoTarjeta";
 import { HeroeDelInicio } from "@/components/HeroeDelInicio";
@@ -10,6 +11,7 @@ import { Icono } from "@/components/Icono";
 import { TarjetaLook } from "@/components/looks/TarjetaLook";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
+import { piezasDelHeroe } from "@/components/PiezasDelHeroe";
 import { PendienteDelEnlace } from "@/components/PendienteDelEnlace";
 import { SeccionClub } from "@/components/SeccionClub";
 import { TarjetaPrenda } from "@/components/TarjetaPrenda";
@@ -27,14 +29,15 @@ import {
 } from "@/lib/catalogo";
 import { leerBeneficiosDelClub, leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { hoyLima } from "@/lib/cuentas";
-import { categoriasDelInicio, heroDelInicio } from "@/lib/inicio";
+import { categoriasDelInicio, heroesDelInicio, hrefDeLaCampana } from "@/lib/inicio";
 import { avisoAlEntrar, avisosDeRespuestas } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
 import { leerMisRecomendaciones } from "@/lib/recomendaciones-servidor";
 import { hrefLooks } from "@/lib/looks";
 import { leerLooks } from "@/lib/looks-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
-import { anioLima, fechaCorta, pctTexto } from "@/lib/portada";
+import { anioActual } from "@/lib/hoy-servidor";
+import { fechaCorta, pctTexto } from "@/lib/portada";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
@@ -42,6 +45,7 @@ import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../estilos/tiendas.css";
 import "../../estilos/looks.css";
 import "../../estilos/inicio.css";
+import "../../estilos/carrusel.css";
 
 export const metadata: Metadata = { title: "Inicio · CAYLA" };
 
@@ -66,12 +70,14 @@ export default async function Inicio({ searchParams }: Props) {
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
   const pedida = sedeDeLaUrl(sp.sede, sedes);
-  const [catalogo, { campana }, sesion, lecturaLooks, beneficios] = await Promise.all([
+  // El año, como en la portada: guardado (`anioActual`), porque Next no deja leer el reloj mientras arma la página.
+  const [catalogo, { campanas: deLaPortada }, sesion, lecturaLooks, beneficios, anio] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
     leerPortada(),
     leerSesion(),
     leerLooks(pedida?.id ?? null),
     leerBeneficiosDelClub(),
+    anioActual(),
   ]);
   const [lectura, avisosDelClub, mias, vistos] =
     sesion.estado === "con_sesion"
@@ -101,7 +107,8 @@ export default async function Inicio({ searchParams }: Props) {
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
   const nota = (p: Prenda) => notaDeStock(p.stock, elegida, sedes);
 
-  const hero = heroDelInicio(campana, prendas);
+  // Un héroe por campaña que se puede mostrar aquí, en el orden de la base; con más de uno, el carrusel (ADR-0436, actividad 6b).
+  const heroes = heroesDelInicio(deLaPortada, prendas);
   const categorias = categoriasDelInicio(prendas);
   const nuevos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "nuevo" });
   const ofertas = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "ofertas" });
@@ -123,7 +130,23 @@ export default async function Inicio({ searchParams }: Props) {
       ]}
     >
       {aviso && avisos && <AvisoAlEntrar aviso={aviso} activas={avisos.map((a) => a.clave)} />}
-      <HeroeDelInicio hero={hero} sede={sede} origenFotos={origenFotos} verCampana={lista("ofertas", hero.tipo === "campana" ? hero.campanaId : null)} verNuevo={nuevos.length > 0 ? lista("nuevo") : null} />
+      {(() => {
+        const dibujados = heroes.map((hero, i) => (
+          <HeroeDelInicio
+            key={hero.tipo === "campana" ? (hero.campana.id ?? hero.campana.nombre) : i}
+            hero={hero}
+            sede={sede}
+            origenFotos={origenFotos}
+            verCampana={hero.tipo === "campana" ? hrefDeLaCampana(hero, sede) : null}
+            verNuevo={nuevos.length > 0 ? lista("nuevo") : null}
+          />
+        ));
+        return dibujados.length > 1 ? (
+          <CarruselDePortada nombres={heroes.map((h) => (h.tipo === "campana" ? h.campana.nombre : ""))}>{dibujados}</CarruselDePortada>
+        ) : (
+          dibujados[0]
+        );
+      })()}
       {/* Quien todavía no tiene sesión ve de un vistazo lo que la tienda cumple (la franja que era de la portada). */}
       {!conSesion && <ConfianzaPortada tiendas={sedes.map((s) => s.nombre)} />}
 
@@ -291,7 +314,7 @@ export default async function Inicio({ searchParams }: Props) {
       <AsiSeSepara conCuenta={conSesion} />
       <SeccionClub
         nombre={cuenta?.nombre ?? null}
-        desde={cuenta?.clubDesde ?? anioLima()}
+        desde={cuenta?.clubDesde ?? anio}
         conCuenta={conSesion}
         esDelClub={cuenta?.esDelClub ?? conSesion}
         cumplePct={beneficios?.pct ?? null}

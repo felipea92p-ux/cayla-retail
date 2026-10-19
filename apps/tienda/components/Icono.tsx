@@ -28,6 +28,9 @@ const TRAZOS = {
   cerrar: <path d="M6 6l12 12M18 6L6 18" />,
   // Instalar CAYLA en el celular (ADR-0431): los botones que la guía nombra, dibujados como los del navegador para reconocerlos.
   compartir: <path d="M12 15V3M8 7l4-4 4 4M6 11H5v10h14V11h-1" />,
+  // El carrusel de la portada (ADR-0436, actividad 6b): detenerlo y que siga.
+  pausa: <path d="M9 6v12M15 6v12" />,
+  seguir: <path d="M8 5.5v13l10-6.5-10-6.5Z" />,
   agregar: <><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M12 8v8M8 12h8" /></>,
   puntos: <><circle cx="5.5" cy="12" r="1.2" /><circle cx="12" cy="12" r="1.2" /><circle cx="18.5" cy="12" r="1.2" /></>,
   // Nuestras tiendas (revisión 2026-10-15): «Cómo llegar», el pin del mapa.

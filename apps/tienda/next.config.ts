@@ -1,8 +1,9 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 
-// La tienda online (ADR-0408) es una app aparte del ERP: se publica sola, con su dominio. No comparte llaves ni código con
-// apps/web; habla con la base del ERP solo por las funciones `retail.tienda_*` (lib/base.ts).
+// La tienda online (ADR-0408) es una app aparte del ERP: se publica sola, con su dominio. No comparte llaves con apps/web, y
+// código solo por los paquetes de `packages/` (el héroe de la portada, `@cayla-retail/portada`, ADR-0436); habla con la base del ERP
+// solo por las funciones `retail.tienda_*` (lib/base.ts).
 
 // Las fotos de las prendas viven en el almacén PÚBLICO de fotos del ERP (`retail-productos-fotos`): se ven sin ninguna llave. El
 // optimizador de imágenes solo acepta las de ese almacén y de ese origen (`TIENDA_FOTOS_ORIGEN`, la dirección del proyecto donde vive,
@@ -74,6 +75,13 @@ const nextConfig: NextConfig = {
             port: origen.port,
             pathname: "/storage/v1/object/public/retail-productos-fotos/**",
           },
+          // La foto del fondo de una campaña (ADR-0436, actividad 8), del mismo almacén.
+          {
+            protocol: origen.protocol === "http:" ? "http" : "https",
+            hostname: origen.hostname,
+            port: origen.port,
+            pathname: "/storage/v1/object/public/retail-campanas-fotos/**",
+          },
         ]
       : [],
     // Una foto de prenda es un archivo nuevo por cada foto (su nombre lleva un id): lo ya optimizado no envejece (31 días).
@@ -81,9 +89,10 @@ const nextConfig: NextConfig = {
     // AVIF primero (2026-10-17): a la misma calidad pesa menos que WebP, y el navegador que no lo entiende recibe WebP. Se paga una
     // vez por foto y ancho: la primera vez tarda más en prepararse y Vercel cuenta una conversión más; después sale de su caché 31 días.
     formats: ["image/avif", "image/webp"],
-    // Pocos anchos: la tarjeta mide de ~170 px (celular, dos columnas) a ~300 px (computadora, cuatro), y el doble en retina.
+    // Pocos anchos: la tarjeta mide de ~170 px (celular, dos columnas) a ~300 px (computadora, cuatro), y el doble en retina. 1920: la
+    // foto del fondo de una campaña, a todo el ancho de una computadora (ADR-0436, actividad 8); una tarjeta nunca lo pide.
     imageSizes: [256, 384],
-    deviceSizes: [640, 1080],
+    deviceSizes: [640, 1080, 1920],
     // Solo en `next dev`: el almacén local vive en localhost, que Next bloquea por defecto. Nunca en producción.
     dangerouslyAllowLocalIP: process.env.NODE_ENV === "development",
   },

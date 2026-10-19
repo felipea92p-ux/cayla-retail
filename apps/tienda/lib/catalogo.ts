@@ -168,14 +168,14 @@ export const formaDe = (prefijo: string | null | undefined): Forma => (prefijo ?
 /** A dónde lleva una tarjeta: la ficha de la prenda, con la tienda elegida si hay una. */
 export const hrefDePrenda = (p: Pick<Prenda, "id">, sede: string | null = null) => `/catalogo/${p.id}${sede ? `?sede=${encodeURIComponent(sede)}` : ""}`;
 
-/** ¿El optimizador de imágenes de Next puede achicar esta foto? Solo si vive en el almacén PÚBLICO de fotos de prendas del origen
- *  que permite `next.config.ts` (`TIENDA_FOTOS_ORIGEN`). Cualquier otra se muestra tal cual: con un host no permitido, `next/image`
- *  no falla en silencio, tumba la página. */
-export function fotoOptimizable(url: string, origen: string | undefined): boolean {
+/** ¿El optimizador de imágenes de Next puede achicar esta foto? Solo si vive en un almacén PÚBLICO del origen que permite
+ *  `next.config.ts` (`TIENDA_FOTOS_ORIGEN`): el de fotos de prendas o, con `almacen`, el de fotos de campañas. Cualquier otra se muestra
+ *  tal cual: con un host no permitido, `next/image` no falla en silencio, tumba la página. */
+export function fotoOptimizable(url: string, origen: string | undefined, almacen = "retail-productos-fotos"): boolean {
   if (!origen) return false;
   try {
     const foto = new URL(url);
-    return foto.origin === new URL(origen).origin && foto.pathname.startsWith("/storage/v1/object/public/retail-productos-fotos/");
+    return foto.origin === new URL(origen).origin && foto.pathname.startsWith(`/storage/v1/object/public/${almacen}/`);
   } catch {
     return false;
   }
@@ -214,11 +214,13 @@ export function nombreOrden(o: Orden, lista: Lista = "todo"): string {
 export const enOferta = (p: Prenda): boolean => p.precioFinal < p.precio;
 
 /** ¿La prenda va en esa lista? Lo nuevo: lo que la base marcó nuevo; Más vendidos: lo que tiene puesto; las ofertas: lo que tiene
- *  descuento (y, si se eligió una campaña, de esa campaña). Los favoritos llegan ya elegidos (`deFavoritos`): todas van. */
-export function enLaLista(p: Prenda, lista: Lista, campana: string | null = null): boolean {
+ *  descuento (y, si se eligió una campaña, de esa campaña); una campaña sin descuento: sus modelos (`modelos`, los de la portada). Los
+ *  favoritos llegan ya elegidos (`deFavoritos`): todas van. */
+export function enLaLista(p: Prenda, lista: Lista, campana: string | null = null, modelos: ReadonlySet<string> | null = null): boolean {
   if (lista === "nuevo") return p.nuevo !== null;
   if (lista === "vendidos") return p.vendidos !== null;
   if (lista === "ofertas") return enOferta(p) && (!campana || p.campana?.id === campana);
+  if (lista === "campana") return modelos?.has(p.id) ?? false;
   return true;
 }
 
@@ -288,9 +290,15 @@ export function categoriasDe(prendas: readonly Prenda[]): CategoriaLista[] {
  *  orden porque dice algo: el puesto («N.º 1») y lo último que guardaste. Por precio tampoco se toca: la persona pidió ese orden. */
 export function filtrarYOrdenar(
   prendas: readonly Prenda[],
-  { categoria, orden, lista = "todo", campana = null }: { categoria: string | null; orden: Orden; lista?: Lista; campana?: string | null },
+  {
+    categoria,
+    orden,
+    lista = "todo",
+    campana = null,
+    modelos = null,
+  }: { categoria: string | null; orden: Orden; lista?: Lista; campana?: string | null; modelos?: ReadonlySet<string> | null },
 ): Prenda[] {
-  const salida = prendas.filter((p) => enLaLista(p, lista, campana) && (!categoria || claveCategoria(p.categoria) === categoria));
+  const salida = prendas.filter((p) => enLaLista(p, lista, campana, modelos) && (!categoria || claveCategoria(p.categoria) === categoria));
   if (orden === "precio-asc") salida.sort((a, b) => a.precioFinal - b.precioFinal || a.nombre.localeCompare(b.nombre, "es"));
   else if (orden === "precio-desc") salida.sort((a, b) => b.precioFinal - a.precioFinal || a.nombre.localeCompare(b.nombre, "es"));
   else if (lista === "nuevo") salida.sort(porLlegada);
@@ -327,7 +335,7 @@ export function hrefLista({
   if (menu) q.set("menu", menu);
   if (categoria) q.set("categoria", categoria);
   else if (grupo) q.set("grupo", grupo);
-  if (lista === "ofertas" && campana) q.set("campana", campana);
+  if ((lista === "ofertas" || lista === "campana") && campana) q.set("campana", campana);
   if (orden !== "destacado") q.set("orden", orden);
   const s = q.toString();
   return s ? `/catalogo?${s}` : "/catalogo";

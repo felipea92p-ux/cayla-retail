@@ -67,7 +67,8 @@ test("en el repo de hoy: las tres que leen la web, y solo pocas", () => {
   for (const esperada of ["pruebas:roles-cobertura", "pruebas:frescura-lectura", "pruebas:fn-movimientos-busqueda-especial"]) {
     assert.ok(nombres.includes(esperada), `${esperada} lee apps/web y debería estar`);
   }
-  assert.ok(nombres.length < 15, `se detectaron ${nombres.length}: el modo «web» ya no ahorraría tiempo, revisar`);
+  // Tope 20 (2026-10-17): las tres pruebas de Campañas leen la web a propósito (cruzan su lógica con la de la base); main tenía 14.
+  assert.ok(nombres.length < 20, `se detectaron ${nombres.length}: el modo «web» ya no ahorraría tiempo, revisar`);
 });
 
 // --- El push a main (ADR-0345) ---------------------------------------------------------------------------------------

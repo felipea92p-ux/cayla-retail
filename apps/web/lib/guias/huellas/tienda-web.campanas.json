@@ -1,0 +1,28 @@
+{
+  "guia": "tienda-web.campanas",
+  "ruta": "/tienda-web/campanas",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 14,
+  "controles": {
+    "components/campanas/CampanasPantalla.tsx": [
+      "button «{f.etiqueta}»",
+      "Link «Catálogo ▸ Atributos»"
+    ],
+    "components/campanas/NuevaCampana.tsx": [
+      "Boton «campanas.nueva»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
+      "CampoTexto «Desde»",
+      "CampoTexto «Hasta»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/campanas/TarjetaCampana.tsx": [
+      "Link «(sin nombre)»",
+      "BotonEnlace «Ver diseño»",
+      "BotonEditar «Editar diseño»",
+      "BotonEnlace «Darle su diseño»",
+      "BotonEnlace «Datos y prendas»"
+    ]
+  }
+}

@@ -895,6 +895,29 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `pnpm pruebas:vitrina-probador`. Desde `/formidable` (2026-10-17): la página deja solo lo que el probador usa (`soloLoQueEntra`, con
   `zonaDelProbador` de `packages/shared/src/categorias-de-la-tienda.ts`, la misma tabla de grupos de la tienda), la pantalla dibuja su
   cabecera con el paso que toca (`siguientePaso`) y cada fila dice «Lista» o lo primero que le falta (`veredictoDelProbador`).
+- `/tienda-web/campanas` (Tienda web ▸ Campañas, módulo `campanas`, ADR-0436 act. 1 y 4; maqueta `docs/maquetas/campanas-diseno-2026-10`) →
+  `layout.tsx` (`exigirModulo("campanas")`) → `page.tsx` lee `campanas_lista` (las etiquetas de estilo campaña con sus fechas, descuento,
+  cuántas prendas llevan y, desde `20261017160000`, su diseño publicado, su borrador y tres prendas con foto, categoría y color) y
+  `campanas_portada_dias` (qué campaña anuncia la portada cada día de tres meses: LA regla `fn_campana_en_portada(dia)`, la misma que lee
+  la tienda en `tienda_portada()`), las dos con `fn_puede_campanas` (`20261017144000`) → `lib/campanas-reglas.ts` (puro: lectura, estado
+  de cada campaña, filtros, cifras, el cruce de hoy, los tramos de la línea, la insignia del diseño `disenoDeLaLista` y sus colores) →
+  `components/campanas/CampanasPantalla.tsx` (cifras, `LineaPortada.tsx` «La portada, día a día» con los colores de cada diseño,
+  `TarjetaCampana.tsx` con su portada real: `Lienzo` + `PortadaDeCampana`). Estilos `tw-campana` y `tw-cal-*` en
+  `app/estilos/tienda-web.css`. Prueba en la base: `pnpm pruebas:campanas-portada`. «Nueva campaña» (`NuevaCampana.tsx`) → `crear_campana`
+  (nombre y fechas; el ejemplo del nombre, `lib/sugerencias-campanas.ts`) y lleva a sus Datos.
+- `/tienda-web/campanas/[id]` (una campaña por dentro, ADR-0436 act. 2 y 4; abre en «Diseño en la web», `?pestana=datos|prendas`) →
+  `page.tsx` lee `campana_detalle` (fechas, descuento, categorías, variantes y prendas por modelo), `campana_diseno` (borrador, publicado y
+  anterior), las categorías, las tiendas y, solo en Datos y Prendas, las prendas con su costo para el aviso (`aPrendasConCosto` de
+  `lib/etiqueta-campana.ts`, la misma que Atributos); en el diseño, `campanas_portada_dias` del día después de que termina («Después sale»)
+  → `DisenoCampana.tsx` (los pasos, la vista previa en `Lienzo` + `PortadaDeCampana` —el héroe de `@cayla-retail/portada`, el mismo de la
+  tienda—, la revisión de contraste del paquete; cada toque guarda el borrador con `guardar_diseno_borrador`, suelto del combo; lógica pura
+  en `lib/campana-diseno.ts`), `PublicarDiseno.tsx` (`publicar_diseno_campana`) y `VolverAlAnterior.tsx` (`volver_al_diseno_anterior`),
+  con el responsable; prueba en la base: `pnpm pruebas:campanas-diseno` → `DatosCampana.tsx` (nombre +
+  `CamposDeCampana.tsx`, la pieza compartida con la ventana «Campaña» de Atributos; guarda `guardar_campana`, todo o nada; desactiva o
+  activa con `activar_campana`; imprime las etiquetas de precio; su portada de hoy con «Diseñar la portada»; reglas y guía en
+  `lib/campana-detalle.ts`) y `PrendasCampana.tsx`
+  (`PrendasDeEtiquetaModal` → `etiquetar_variantes`). La llave de una campaña es el módulo Campañas: `fn_puede_tocar_etiqueta` mira si la
+  etiqueta es campaña (`20261017151000`), y Atributos ya no lista campañas. Prueba en la base: `pnpm pruebas:campanas-llave`.
 - `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
   `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
   `MarcasLista.tsx` (ADR-0373, 2026-10-10: cabecera de Productos con «!», resumen colapsado `components/marcas/ResumenMarcas.tsx` +
@@ -1997,8 +2020,15 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
 `tienda_web` (sin permiso sobre ninguna tabla). La conexión vive en `apps/tienda/lib/base.ts` y cada tema la usa desde su
 `lib/<tema>-servidor.ts`; lo vigila `lib/candados.test.ts` y, en la base, `pnpm pruebas:tienda-puerta`.
 
-- `/` (portada sin cuenta) → `lib/portada-servidor.ts` `leerPortada()` → `retail.tienda_portada()`: la campaña vigente que
-  termina primero. Si la base no responde, la portada sale sin campaña.
+- `/` (portada sin cuenta) → `lib/portada-servidor.ts` `leerPortada()` → `retail.tienda_portada()`: las campañas que anuncia la
+  portada, en orden (LA regla `fn_campanas_en_portada`, ADR-0436: también sin descuento, la de descuento primero; `campana` es la primera)
+  con su id, sus modelos (`fn_modelos_de_campana`) y su diseño publicado en el ERP (`20261017200000`). Un héroe por campaña
+  (`heroesDelInicio`, `lib/inicio.ts`): las prendas en oferta de una con descuento o los modelos de una sin descuento; con más de uno,
+  `components/CarruselDePortada.tsx` los pasa cada 7 s (`app/estilos/carrusel.css`; también en el Inicio). «Ver la campaña» lleva a sus
+  ofertas o a `/catalogo?lista=campana&campana=<id>` (la lista de sus modelos, `enLaLista`). `lib/portada.ts` lo revisa
+  con `disenoParaPintar` de `@cayla-retail/portada` (que se sepa leer y que la letra se lea en claro y en oscuro; si no, null) y la
+  portada y el héroe del Inicio lo pasan a `HeroeDePortada`, que escribe sus colores de día y de noche (`--t-dia*`, `--t-noche*`) y
+  `heroe.css` elige según el tema. Sin diseño, o si no pasa, el rojo de siempre. Si la base no responde, la portada sale sin campaña.
 - `/` («Nuestras tiendas», después del Club) y `/tiendas` (actividad 6) → `lib/tiendas-servidor.ts` `leerSedes()` →
   `retail.tienda_sedes()`: las tiendas encendidas en Tienda web ▸ Ajustes, abiertas y con nombre web, dirección y WhatsApp
   (el del QR del club, `ubicaciones.whatsapp_numero`), por nombre web; el enlace abre un chat sin mensaje. Sin base, la portada sale

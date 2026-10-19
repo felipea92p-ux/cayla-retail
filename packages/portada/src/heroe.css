@@ -1,0 +1,222 @@
+/* =====================================================================================================
+   LA PORTADA EN UNA SOLA PIEZA (ADR-0436, actividad 3) · los estilos del héroe de la portada de la tienda online (ADR-0408, maqueta v4):
+   el fondo de la campaña con su grano, la ceja, el nombre en dos líneas, la descripción, el contador, los botones, el colibrí que llega
+   volando y las prendas como polaroids que caen una vez. Los usan la tienda (`apps/tienda/app/layout.tsx`) y la vista previa del ERP
+   (Tienda web ▸ Campañas): una sola copia, para que la portada que se diseña en el ERP sea la que el cliente ve.
+
+   Lo que pide de quien la usa:
+   - los colores de la campaña: `--t-hero`, `--t-hero-2`, `--t-hero-tinta`, `--t-hero-acento`, `--t-hero-vidrio`, `--t-hero-filo` (la
+     tienda los tiene en sus tokens; una paleta los cambia con `variablesDePaleta`, src/paletas.ts, que suma `--t-hero-boton-letra` para
+     las paletas claras). El colibrí es un SVG que toma el color de la letra (`currentColor`: ADR-0446, el logo oficial);
+   - en la tienda, el tema: `prefers-color-scheme` o `:root[data-theme]`, como sus tokens. Un diseño publicado llega con sus colores de
+     día (`--t-dia*`) y de noche (`--t-noche*`) en `.t-hero[data-diseno]`, y aquí se elige cuáles se pintan;
+   - las letras y el ritmo de la tienda: `--serif`, `--ease`;
+   - el papel de la polaroid: `--t-papel-fijo`, `--t-tinta-fija` (iguales en claro y en oscuro: son parte de la foto);
+   - un contenedor llamado `tienda` (`container: tienda / inline-size`): el héroe cambia de forma a los 960 px DE ESE contenedor, no
+     de la pantalla, para que la vista previa del celular en el ERP se acomode como un celular.
+   ===================================================================================================== */
+.t-hero { position: relative; isolation: isolate; overflow: hidden; color: var(--t-hero-tinta); background: radial-gradient(120% 90% at 88% 6%, var(--t-hero-2), var(--t-hero) 58%); padding: 26px 20px 30px; display: grid; gap: 18px; }
+.t-hero::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .22; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E"); }
+.t-hero-texto { position: relative; z-index: 3; display: flex; flex-direction: column; }
+.t-hero-ceja { display: flex; align-items: center; gap: 10px; font-size: 10.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--t-hero-acento); }
+.t-hero-ceja::before { content: ""; width: 26px; height: 1px; background: currentColor; }
+.t-hero-tit { margin: 12px 0 0; font-family: var(--serif); font-weight: 500; font-size: clamp(48px, 15cqi, 124px); line-height: .86; letter-spacing: -.02em; }
+.t-hero-tit span { display: block; animation: subirLinea .9s var(--ease) both; }
+.t-hero-tit em { display: block; font-style: italic; color: var(--t-hero-acento); animation: subirLinea .9s var(--ease) .12s both; }
+.t-hero-desc { margin: 16px 0 0; font-size: 15px; line-height: 1.5; max-width: 36ch; color: color-mix(in srgb, var(--t-hero-tinta) 86%, transparent); }
+.t-hero-desc b { color: var(--t-hero-tinta); }
+/* El héroe con sus polaroids en la portada sin cuenta (`po-hero`): el texto un poco más angosto, para que las fotos respiren. */
+.po-hero .t-hero-desc { max-width: 40ch; }
+.t-cuenta { display: flex; gap: 6px; margin-top: 18px; }
+.t-cuenta > span { min-width: 52px; padding: 8px 6px 6px; border-radius: 12px; background: var(--t-hero-vidrio); border: 1px solid var(--t-hero-filo); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.t-cuenta b { font-family: var(--serif); font-size: 26px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
+.t-cuenta small { font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; opacity: .72; }
+.t-hero-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; margin-top: 22px; }
+.t-hero-acciones .t-enlace { color: var(--t-hero-tinta); text-decoration-color: var(--t-hero-acento); display: inline-flex; gap: 6px; align-items: center; }
+.t-hero-acciones .t-enlace .ic { width: 16px; height: 16px; }
+/* El botón claro se pinta con la letra de la campaña; sobre una paleta clara (letra oscura), su letra pasa a papel. */
+.t-hero .t-btn-claro { color: var(--t-hero-boton-letra, var(--t-tinta-fija)); }
+.t-colibri { position: absolute; z-index: 4; width: 42px; height: auto; top: 20px; right: 20px; color: var(--t-hero-tinta); opacity: .9; animation: volar 2.6s cubic-bezier(.25, .8, .25, 1) .2s both; pointer-events: none; }
+.t-hero.sin-campana { background: radial-gradient(120% 90% at 88% 6%, #3a3430, #1d1b19 58%); } /* tema-fijo: el fondo de la marca sin campaña, un dato de la portada */
+/* El diseño publicado de la campaña (ADR-0436, actividad 5): sus colores de día y, con la tienda en oscuro, los de noche. */
+.t-hero[data-diseno] {
+  --t-hero: var(--t-dia); --t-hero-2: var(--t-dia-2); --t-hero-tinta: var(--t-dia-tinta); --t-hero-acento: var(--t-dia-acento);
+  --t-hero-vidrio: var(--t-dia-vidrio); --t-hero-filo: var(--t-dia-filo); --t-hero-colibri: var(--t-dia-colibri); --t-hero-boton-letra: var(--t-dia-boton-letra);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .t-hero[data-diseno] {
+    --t-hero: var(--t-noche); --t-hero-2: var(--t-noche-2); --t-hero-tinta: var(--t-noche-tinta); --t-hero-acento: var(--t-noche-acento);
+    --t-hero-vidrio: var(--t-noche-vidrio); --t-hero-filo: var(--t-noche-filo); --t-hero-colibri: var(--t-noche-colibri); --t-hero-boton-letra: var(--t-noche-boton-letra);
+  }
+}
+:root[data-theme="dark"] .t-hero[data-diseno] {
+  --t-hero: var(--t-noche); --t-hero-2: var(--t-noche-2); --t-hero-tinta: var(--t-noche-tinta); --t-hero-acento: var(--t-noche-acento);
+  --t-hero-vidrio: var(--t-noche-vidrio); --t-hero-filo: var(--t-noche-filo); --t-hero-colibri: var(--t-noche-colibri); --t-hero-boton-letra: var(--t-noche-boton-letra);
+}
+/* La fecha de la ceja: en el celular, la corta (la larga llega hasta el colibrí). */
+.t-fecha-larga { display: none; }
+@container tienda (min-width: 700px) {
+  .t-fecha-larga { display: inline; }
+  .t-fecha-corta { display: none; }
+}
+@container tienda (min-width: 960px) {
+  .t-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); align-items: center; gap: 30px; padding: 60px 64px 64px 72px; min-height: 580px; }
+  .t-colibri { width: 56px; top: 42px; right: auto; left: 46%; }
+}
+@keyframes subirLinea { from { opacity: 0; transform: translateY(40%); } }
+@keyframes volar {
+  0% { opacity: 0; transform: translate(-340px, 160px) rotate(-18deg) scale(.7); }
+  35% { opacity: 1; transform: translate(-180px, 40px) rotate(-6deg) scale(.9); }
+  70% { transform: translate(-40px, -10px) rotate(6deg) scale(1.05); }
+  100% { opacity: .9; transform: translate(0, 0) rotate(0) scale(1); }
+}
+@keyframes heroe-aparecer { from { opacity: 0; } }
+
+/* ---- Las prendas como polaroids que caen una vez (antes `apps/tienda/app/estilos/collage.css`): el Inicio (con su precio) y la
+   portada sin cuenta (sin precio: Felipe 2026-10-16, «fotos sin precio»). El papel de una polaroid y el estudio de la foto son fijos
+   (son parte de la foto), igual en claro y en oscuro. ---- */
+.t-collage { position: relative; height: 330px; z-index: 2; }
+/* La caída empieza con la página y dura menos (2026-10-17): antes la primera polaroid esperaba 0,26 s y la tercera quedaba quieta a
+   los 1,54 s; como empiezan invisibles, lo principal del héroe (las fotos) se veía tarde. Ahora la primera cae desde el primer cuadro
+   y la tercera queda quieta a los 0,88 s: la misma caída, una sola vez, sin rebote. */
+.t-polaroid { position: absolute; width: 47%; padding: 8px 8px 34px; background: var(--t-papel-fijo); border-radius: 5px; box-shadow: 0 26px 40px -18px color-mix(in srgb, var(--t-tinta-fija) 55%, transparent); transform: rotate(var(--r)); transition: transform .45s var(--ease), box-shadow .45s; animation: t-caer .7s var(--ease) both; animation-delay: calc(var(--i) * 90ms); color: var(--t-tinta-fija); }
+.t-polaroid .t-card-foto { border-radius: 0; }
+.t-polaroid-pie { position: absolute; left: 10px; right: 10px; bottom: 8px; display: flex; justify-content: space-between; gap: 6px; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; }
+.t-polaroid-pie > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.t-polaroid:hover { transform: rotate(0deg) translateY(-8px) scale(1.04); z-index: 6; box-shadow: 0 40px 50px -20px color-mix(in srgb, var(--t-tinta-fija) 60%, transparent); }
+.t-polaroid.p1 { left: 0; top: 7%; --r: -7deg; --i: 0; z-index: 2; }
+.t-polaroid.p2 { left: 27%; top: 0; --r: 3deg; --i: 1; z-index: 3; }
+.t-polaroid.p3 { right: 0; top: 16%; --r: 8deg; --i: 2; z-index: 2; }
+.t-polaroid:focus-visible { outline: 2px solid var(--t-hero-acento); outline-offset: 3px; }
+.t-hero-pct { position: absolute; right: -10px; bottom: -36px; z-index: 0; font-family: var(--serif); font-style: italic; font-weight: 500; font-size: clamp(150px, 46cqi, 300px); line-height: 1; letter-spacing: -.04em; color: transparent; -webkit-text-stroke: 1.4px var(--t-hero-filo); pointer-events: none; animation: heroe-aparecer 1.4s var(--ease) .5s both; }
+/* En la portada no hay precio: en su lugar, «Ver precio», que lleva a crear la cuenta. */
+.t-polaroid-pie .t-polaroid-ver { flex: none; color: color-mix(in srgb, var(--t-tinta-fija) 62%, transparent); font-weight: 600; }
+
+@container tienda (min-width: 960px) {
+  .t-collage { height: 480px; }
+  .t-polaroid { width: 44%; }
+}
+@keyframes t-caer { from { opacity: 0; transform: translateY(-70px) rotate(calc(var(--r) * -2.2)) scale(.92); } }
+
+/* ---- El diseño de la campaña (ADR-0436, actividad 7; maqueta docs/maquetas/campanas-diseno-2026-10, `portada()`): el fondo, el tamaño
+   del nombre, la frase, cómo se acomodan las prendas y los detalles. `HeroeDePortada` lo dice con atributos (`data-fondo`, `data-acomodo`,
+   `data-tamano`, `data-largo`); sin diseño, nada de esto cambia la portada de siempre, salvo el tamaño del nombre de una campaña. ---- */
+
+/* El fondo liso: el color de la campaña, sin degradado ni grano. Con dibujo, el estampado en el acento, sobre el degradado y bajo el grano. */
+.t-hero[data-fondo="liso"] { background: var(--t-hero); }
+.t-hero[data-fondo="liso"]::before { display: none; }
+.t-hero-patron { position: absolute; inset: 0; z-index: -2; pointer-events: none; background: var(--t-hero-acento); -webkit-mask-repeat: repeat; mask-repeat: repeat; }
+/* Un navegador que no sabe de máscaras pintaría el acento entero encima del fondo: ahí el dibujo no sale y queda el degradado. */
+@supports not ((mask-image: none) or (-webkit-mask-image: none)) {
+  .t-hero-patron { display: none; }
+}
+
+/* «Con foto»: la foto a todo el héroe (recortada sola en el celular) y encima un velo del color de la campaña, más tupido donde va la
+   letra (arriba en el celular, a la izquierda en la computadora, parejo con solo letras). Los dos números los pone `HeroeDePortada`. */
+.t-hero-foto { position: absolute; inset: 0; z-index: -3; overflow: hidden; pointer-events: none; animation: heroe-aparecer .8s var(--ease) both; }
+.t-hero-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; }
+.t-hero-velo {
+  position: absolute; inset: 0; z-index: -2; pointer-events: none;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--t-hero) var(--t-velo-cerca), transparent) 0%, color-mix(in srgb, var(--t-hero) var(--t-velo-lejos), transparent) 62%);
+}
+.t-hero[data-acomodo="letras"] .t-hero-velo { background: color-mix(in srgb, var(--t-hero) var(--t-velo-cerca), transparent); }
+
+/* El nombre se achica si es largo (`largoDelNombre`): en el celular, 60 · 50 · 44 px a 375 de ancho; «Enorme» lo agranda. */
+.t-hero[data-largo] .t-hero-tit { font-size: calc(var(--t-tit) * var(--t-tit-x, 1)); }
+.t-hero[data-largo="corto"] { --t-tit: clamp(44px, 16cqi, 112px); }
+.t-hero[data-largo="medio"] { --t-tit: clamp(40px, 13.3cqi, 96px); }
+.t-hero[data-largo="largo"] { --t-tit: clamp(36px, 11.7cqi, 84px); }
+.t-hero[data-tamano="enorme"] { --t-tit-x: 1.16; }
+.t-hero[data-tamano="enorme"] .t-hero-tit { line-height: .84; }
+
+/* La frase propia, bajo el nombre (hasta 60 letras: una línea en la computadora, dos en el celular). */
+.t-hero-frase { margin: 14px 0 0; font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 21px; line-height: 1.15; max-width: 22ch; text-wrap: balance; }
+
+/* El lado de las prendas (o de la tarjeta del Club): el sello se ubica contra él. */
+.t-hero-lado { position: relative; z-index: 2; min-width: 0; }
+
+/* «Solo letras»: una columna centrada, sin prendas ni tarjeta del Club; el nombre manda. */
+.t-hero[data-acomodo="letras"] { text-align: center; min-height: 540px; align-content: center; padding-block: 40px; }
+.t-hero[data-acomodo="letras"] .t-hero-texto { align-items: center; }
+.t-hero[data-acomodo="letras"] .t-hero-ceja::after { content: ""; width: 26px; height: 1px; background: currentColor; }
+.t-hero[data-acomodo="letras"] .t-hero-frase { max-width: 36ch; }
+.t-hero[data-acomodo="letras"] :is(.t-hero-desc, .t-hero-frase) { margin-inline: auto; }
+.t-hero[data-acomodo="letras"] :is(.t-cuenta, .t-hero-acciones) { justify-content: center; }
+
+/* «Foto grande»: una prenda protagonista hasta el borde; su nombre y su precio (o «Ver precio») en una píldora sobre la foto. */
+.t-grande { position: relative; display: block; height: 360px; margin: 0 -20px -30px; overflow: hidden; background: var(--t-foto); color: var(--t-tinta-fija); animation: heroe-aparecer 1s var(--ease) .3s both; }
+.t-grande > :first-child { height: 100%; aspect-ratio: auto; border-radius: 0; }
+.t-grande-pie { position: absolute; left: 30px; bottom: 40px; display: inline-flex; gap: 8px; align-items: center; max-width: calc(100% - 60px); padding: 9px 14px; border-radius: 999px; background: color-mix(in srgb, var(--t-papel-fijo) 92%, transparent); color: var(--t-tinta-fija); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.t-grande-pie > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.t-grande-pie .t-polaroid-ver { color: color-mix(in srgb, var(--t-tinta-fija) 62%, transparent); }
+.t-grande:focus-visible { outline: 2px solid var(--t-hero-acento); outline-offset: -6px; }
+
+/* «Mosaico»: las prendas en orden, tres en el celular y cuatro (dos por dos) en la computadora; si faltan y hay descuento, su teja. */
+.t-mosaico { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-content: start; }
+.t-teja { position: relative; display: block; border-radius: 6px; overflow: hidden; color: var(--t-tinta-fija); animation: t-teja-entra .7s var(--ease) both; animation-delay: calc(var(--i, 0) * 110ms + 260ms); transition: transform .45s var(--ease); }
+.t-teja > :first-child { border-radius: 0; }
+.t-teja[href]:hover { transform: translateY(-6px); }
+.t-teja:focus-visible { outline: 2px solid var(--t-hero-acento); outline-offset: 3px; }
+.t-teja-pct { aspect-ratio: 4 / 5; display: grid; place-items: center; background: var(--t-hero-vidrio); border: 1px solid var(--t-hero-filo); font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 44px; letter-spacing: -.03em; color: var(--t-hero-acento); }
+@container tienda (max-width: 959px) {
+  .t-mosaico > :nth-child(n+4) { display: none; }
+}
+
+/* El % gigante fuera del collage: con «Foto grande» y «Mosaico», detrás del texto (la foto lo taparía); con «Solo letras», al centro. */
+.t-hero-pct[data-suelto] { right: -10px; bottom: auto; top: 22%; }
+.t-hero[data-acomodo="letras"] .t-hero-pct[data-suelto] { right: auto; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: clamp(200px, 62cqi, 460px); }
+
+/* El sello: un círculo del acento, girado, que se estampa una vez. Contra el lado de las prendas o, con solo letras, arriba del texto. */
+.t-hero-sello { position: absolute; z-index: 7; right: 2px; top: -26px; width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; text-align: center; background: var(--t-hero-acento); color: var(--t-hero); font-weight: 700; line-height: 1.05; transform: rotate(-12deg); box-shadow: 0 14px 30px -14px color-mix(in srgb, var(--t-tinta-fija) 50%, transparent); animation: t-sellar .6s var(--ease) 1s both; pointer-events: none; }
+.t-hero-sello::before { content: ""; position: absolute; inset: 5px; border-radius: 50%; border: 1.5px dashed color-mix(in srgb, var(--t-hero) 55%, transparent); }
+.t-hero-sello b { display: block; font-family: var(--serif); font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
+.t-hero-sello small { display: block; margin-top: 2px; font-size: 8.5px; letter-spacing: .16em; text-transform: uppercase; }
+.t-hero-sello[data-texto] b { padding-inline: 8px; font-size: 15px; font-style: italic; }
+.t-hero > .t-hero-sello { right: 16px; top: 70px; }
+.t-hero-texto > .t-hero-sello { position: relative; inset: auto; flex: none; margin: 0 0 18px; }
+.t-hero[data-acomodo="grande"] .t-hero-lado > .t-hero-sello { right: 12px; }
+
+@container tienda (min-width: 960px) {
+  .t-hero[data-largo="corto"] { --t-tit: clamp(86px, 9cqi, 116px); }
+  .t-hero[data-largo="medio"] { --t-tit: clamp(72px, 7.5cqi, 96px); }
+  .t-hero[data-largo="largo"] { --t-tit: clamp(61px, 6.4cqi, 82px); }
+  /* «Enorme» agranda menos a un nombre largo: con sus palabras largas, más letra lo metería debajo de las fotos. */
+  .t-hero[data-tamano="enorme"][data-largo="corto"] { --t-tit-x: 1.18; }
+  .t-hero[data-tamano="enorme"][data-largo="medio"] { --t-tit-x: 1.12; }
+  .t-hero[data-tamano="enorme"][data-largo="largo"] { --t-tit-x: 1.06; }
+  .t-hero[data-acomodo="letras"][data-tamano="enorme"] { --t-tit-x: 1.3; }
+  .t-hero-frase { margin-top: 18px; font-size: 27px; }
+
+  .t-hero[data-acomodo="letras"] { grid-template-columns: minmax(0, 1fr); padding: 60px 80px 64px; }
+  .t-hero:not([data-acomodo="letras"]) .t-hero-velo {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--t-hero) var(--t-velo-cerca), transparent) 0%, color-mix(in srgb, var(--t-hero) var(--t-velo-lejos), transparent) 62%);
+  }
+  .t-hero[data-acomodo="letras"] .t-colibri { left: 90px; top: 60px; }
+
+  .t-hero[data-acomodo="grande"] .t-hero-lado { align-self: stretch; margin: -60px -64px -64px 8%; }
+  .t-grande { height: 100%; margin: 0; }
+  .t-grande-pie { left: 20px; bottom: 22px; max-width: calc(100% - 40px); font-size: 13px; }
+
+  .t-mosaico { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-content: center; width: min(100%, 420px); margin-inline: auto; }
+  .t-teja-pct { font-size: 92px; }
+
+  .t-hero-pct[data-suelto] { right: auto; left: -14px; top: auto; bottom: -48px; }
+  .t-hero-sello { right: 7%; top: -18px; width: 118px; height: 118px; }
+  .t-hero-sello::before { inset: 6px; }
+  .t-hero-sello b { font-size: 38px; }
+  .t-hero-sello small { font-size: 10.5px; }
+  .t-hero-sello[data-texto] b { font-size: 21px; }
+  .t-hero > .t-hero-sello { right: 150px; top: 54px; }
+  .t-hero-texto > .t-hero-sello { margin-bottom: 22px; }
+  .t-hero[data-acomodo="grande"] .t-hero-lado > .t-hero-sello { right: 6%; top: 84px; }
+}
+@keyframes t-teja-entra { from { opacity: 0; transform: translateY(18px) scale(.97); } }
+@keyframes t-sellar { from { opacity: 0; transform: rotate(-34deg) scale(1.4); } }
+
+/* Quieto con `prefers-reduced-motion`: el colibrí ya está en su lugar, las fotos ya cayeron y el nombre ya subió. Se acorta la animación
+   en vez de quitarla, igual que la regla general de la tienda: así lo que se ve al final es exactamente lo mismo (con `animation: none`
+   el navegador dibuja los bordes de las fotos giradas de otra forma). La vista previa del ERP no tiene esa regla general: por eso va aquí. */
+@media (prefers-reduced-motion: reduce) {
+  .t-hero-tit span, .t-hero-tit em, .t-colibri, .t-polaroid, .t-hero-pct, .t-grande, .t-teja, .t-hero-sello, .t-hero-foto { animation-duration: .01ms; }
+  .t-polaroid, .t-teja { transition-duration: .01ms; }
+}

@@ -68,7 +68,7 @@ const AYUDA: Record<Tipo, string> = {
   tallas: "Vocabulario cerrado de talla. Aprobar exige un comentario: una talla mal aprobada ensucia la unicidad de variante y es más cara de deshacer con SKUs ya colgando.",
   tejidos: "Vocabulario cerrado de tejido — atributo del producto, no cambia entre tallas de la misma prenda. Haz clic en uno para ver su foto y las prendas que lo usan.",
   patrones: "Vocabulario cerrado de patrón/estampado — igual que tejido, atributo del producto. Haz clic en uno para ver su foto y las prendas que lo usan.",
-  etiquetas: "Marcas comerciales que se le ponen a una prenda (Nuevo, Black Friday, Para liquidar). No es la etiqueta física de código de barras.",
+  etiquetas: "Marcas comerciales que se le ponen a una prenda (Nuevo, Para liquidar). Las campañas (Black Friday, Navidad) viven en Tienda web ▸ Campañas. No es la etiqueta física de código de barras.",
   temporadas:
     "De qué temporada es la prenda: una sola, de una lista fija de nueve. La del color manda sobre la de la prenda, y la de la prenda sobre la de su categoría. Al empezar la estación que la termina, Frescura avisa «Temporada pasada» y sugiere qué hacer (nunca rebaja sola).",
 };

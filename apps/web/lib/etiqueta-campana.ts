@@ -4,6 +4,7 @@
 // `actualizar_campana_etiqueta`); esto solo las dice con una frase clara ANTES
 // de ir a la base, y sirve igual en el navegador y en la API.
 
+import { precioMasBajoEnTiendas } from "./precio-sede-reglas";
 import { descuentoDeCampana, totalDeLineas } from "./vender-reglas";
 import { urlEtiquetasDePrecio } from "./etiqueta-precio-reglas";
 import { fechaCorta, vigenciaDe, type Vigencia } from "./etiqueta-vigencia";
@@ -51,6 +52,29 @@ export function objecionVigencia(desde: string | null, hasta: string | null): st
  *  el de la prenda o el propio de una tienda (`precioMasBajoEnTiendas`, Felipe 2026-10-10). `enSede` dice cuál tienda lo fija
  *  («Trujillo»), o `null` si es el de la prenda: el aviso nombra la tienda para que quien configura sepa dónde está el precio. */
 export type PrendaConCosto = { id: string; categoriaId: string | null; precio: number; costo: number; nombre: string; enSede?: string | null };
+
+/** Una variante como la leen Atributos y Campañas para el aviso de costo (`variantes` con su producto). */
+export type VarianteParaCosto = { id: string; sku: string | null; precio: number | string; producto: { referencia: string; categoria_id: string | null } | null };
+
+/** Las prendas para el aviso de costo: cada variante con el precio MÁS BAJO al que se cobra en las tiendas (y cuál lo fija) y su costo
+ *  (0 si la cuenta no ve costos: entonces nunca queda «por debajo»). La usan Catálogo ▸ Atributos y Tienda web ▸ Campañas. */
+export function aPrendasConCosto(
+  variantes: readonly VarianteParaCosto[],
+  costos: ReadonlyMap<string, number> | null,
+  precios: { nombres: ReadonlyMap<string, string>; porSede: Readonly<Record<string, Readonly<Record<string, number>>>> },
+): PrendaConCosto[] {
+  return variantes.map((v) => {
+    const bajo = precioMasBajoEnTiendas(Number(v.precio), v.id, precios.porSede, precios.nombres);
+    return {
+      id: v.id,
+      categoriaId: v.producto?.categoria_id ?? null,
+      precio: bajo.precio,
+      enSede: bajo.sede,
+      costo: costos?.get(v.id) ?? 0,
+      nombre: `${v.producto?.referencia ?? "Prenda"} (${v.sku})`,
+    };
+  });
+}
 
 /** Cómo se nombra una prenda en el aviso: «Falda Emma (FAL-0008-NEG-M) · precio más bajo: S/ 69.90 en Trujillo» si el precio más bajo
  *  al que se cobra es el propio de una tienda; el nombre tal cual si es el de la prenda. Dice un HECHO (el precio más bajo y dónde), no
