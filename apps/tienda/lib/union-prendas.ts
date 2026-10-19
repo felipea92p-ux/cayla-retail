@@ -26,6 +26,8 @@ export const SALTO_MAXIMO_DEL_BAJO = 0.25;
 /** Cuánto del ancho de la prenda de arriba mira la unión para encontrar su bajo más alto: ni solo el centro, ni hasta las mangas. */
 export const FRANJA_MINIMA_DE_LA_UNION = 0.3;
 export const FRANJA_MAXIMA_DE_LA_UNION = 0.6;
+/** Una franja forma parte de la zona del bajo si su prenda termina a menos de esto (fracción del alto) del punto más bajo del torso. */
+export const ZONA_DEL_BAJO = 0.12;
 
 /** Lo que se mide de un recorte, en fracciones de su propio ancho y alto (no cambian si la imagen se achica). `null`: no se pudo medir. */
 export type MedidaDelRecorte = {
@@ -60,6 +62,24 @@ function perfilDelBajo(rgba: ArrayLike<number>, ancho: number, alto: number): (n
     columnas.sort((a, b) => a - b);
     return Math.round(((columnas[columnas.length >> 1] + 1) / alto) * 100) / 100;
   });
+}
+
+/**
+ * Cuánto mide de ancho la zona del bajo (fracción del ancho de la prenda): el tramo seguido de franjas que llegan hasta cerca del punto más bajo.
+ * Una blusa cruzada o con caída termina en una punta angosta: su fila más baja mide poco, pero su bajo de verdad es bastante más ancho, y si la
+ * unión se fiara de la punta encogería la cintura del pantalón al mínimo y la blusa parecería enorme. `null`: no hay perfil medido.
+ */
+export function anchoDelBajo(m: MedidaDelRecorte): number | null {
+  const bajo = m.bajo;
+  const fondo = m.filaDelBorde;
+  if (!bajo || bajo.length === 0 || fondo === null) return null;
+  let mejor = 0;
+  let tramo = 0;
+  for (const v of bajo) {
+    tramo = v !== null && v >= fondo - ZONA_DEL_BAJO ? tramo + 1 : 0;
+    if (tramo > mejor) mejor = tramo;
+  }
+  return mejor / bajo.length;
 }
 
 /**
@@ -160,7 +180,9 @@ export function cajaDeAbajoUnida(
   if (arriba.metida || !a || a.borde === null || a.filaDelBorde === null || !b || b.pretina === null) return null;
   if (!(abajo.proporcion > 0) || !(arriba.caja.w > 0) || !(arriba.caja.h > 0)) return null;
   const estandar = ANCHO_ESTANDAR_DE_LA_UNION * PX_POR_CM;
-  const pretinaPx = Math.min(Math.max(arriba.caja.w * a.borde, estandar * (1 - HOLGURA_DE_LA_UNION)), estandar * (1 + HOLGURA_DE_LA_UNION));
+  // El ancho del bajo es el mayor entre el de su última fila y el de toda su zona del bajo (ver `anchoDelBajo`).
+  const bordeAncho = Math.max(a.borde, anchoDelBajo(a) ?? 0);
+  const pretinaPx = Math.min(Math.max(arriba.caja.w * bordeAncho, estandar * (1 - HOLGURA_DE_LA_UNION)), estandar * (1 + HOLGURA_DE_LA_UNION));
   // El bajo de la prenda de arriba no siempre es recto: la pretina arranca donde el bajo está más ALTO dentro de su ancho (sin aire en ese lado)
   // y la parte del bajo que cuelga más abajo la tapa. Sin perfil medido, el punto más bajo de siempre.
   const franja = Math.min(Math.max(pretinaPx / arriba.caja.w, FRANJA_MINIMA_DE_LA_UNION), FRANJA_MAXIMA_DE_LA_UNION);

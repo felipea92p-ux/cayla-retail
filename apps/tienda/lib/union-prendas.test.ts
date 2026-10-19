@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ANCHO_ESTANDAR_DE_LA_UNION,
   ANCHO_PARA_MEDIR,
+  anchoDelBajo,
   cajaDeAbajoUnida,
   direccionParaMedir,
   filaAltaDelBorde,
@@ -126,6 +127,21 @@ describe("el bajo de la prenda: no siempre es recto", () => {
   });
 });
 
+describe("anchoDelBajo: el ancho de toda la zona del bajo", () => {
+  it("un bajo recto ocupa el ancho de la prenda", () => {
+    const m = medirRecorte(imagen(100, 100, (x, y) => x >= 20 && x < 80 && y < 80), 100, 100);
+    expect(anchoDelBajo(m)!).toBeGreaterThan(0.5);
+    expect(anchoDelBajo(m)!).toBeLessThanOrEqual(0.6);
+  });
+  it("dos piezas separadas no se suman: solo cuenta el tramo seguido más ancho", () => {
+    const m: MedidaDelRecorte = { filaDelBorde: 0.9, borde: 0.2, pretina: null, bajo: Array.from({ length: FRANJAS_DEL_BAJO }, (_, i) => (i < 6 || (i >= 12 && i < 14) ? 0.9 : null)) };
+    expect(anchoDelBajo(m)).toBeCloseTo(6 / FRANJAS_DEL_BAJO, 5);
+  });
+  it("sin perfil no hay medida", () => {
+    expect(anchoDelBajo(SIN_MEDIDA)).toBeNull();
+  });
+});
+
 describe("cajaDeAbajoUnida: la pretina sigue al borde del torso, dentro de la cintura estándar", () => {
   const ESTANDAR = ANCHO_ESTANDAR_DE_LA_UNION * PX_POR_CM; // 90 px
   // La prenda de arriba, con la caja que se le da y su torso: ancho de la caja × `borde` = lo que mide su borde de abajo.
@@ -171,6 +187,18 @@ describe("cajaDeAbajoUnida: la pretina sigue al borde del torso, dentro de la ci
     expect(diagonal.y).toBeLessThan(recta.y - 10);
     // El ancho de la pretina no cambia: solo dónde empieza.
     expect(diagonal.w).toBe(recta.w);
+  });
+
+  it("un bajo que termina en una punta angosta no encoge la cintura del pantalón: cuenta el ancho de toda la zona del bajo", () => {
+    // Torso de 100 de ancho que termina en diagonal: la fila más baja mide poco (la punta), pero la zona del bajo ocupa casi todo el ancho.
+    const bajo = Array.from({ length: FRANJAS_DEL_BAJO }, (_, i) => (i < 3 || i >= 21 ? null : 0.8 + (i / FRANJAS_DEL_BAJO) * 0.18));
+    const punta = { caja: { x: 66, y: 44, w: 150, h: 150 }, medida: { filaDelBorde: 0.98, borde: 0.35, pretina: null, bajo }, metida: false };
+    const sinPerfil = { ...punta, medida: { ...punta.medida, bajo: null } };
+    const conZona = cajaDeAbajoUnida(punta, falda)!;
+    const conPunta = cajaDeAbajoUnida(sinPerfil, falda)!;
+    // Con solo la punta (35 % de 150 px = 52 px) la pretina cae al mínimo; con la zona del bajo, más cerca de la cintura estándar.
+    expect(conPunta.w * 0.8).toBeCloseTo(ESTANDAR * (1 - HOLGURA_DE_LA_UNION), 0);
+    expect(conZona.w).toBeGreaterThan(conPunta.w);
   });
 
   it("una pretina ancha para su largo (una mini) sale corta; una angosta (una maxi), larga", () => {
