@@ -385,7 +385,7 @@ export default async function Catalogo({ searchParams }: Props) {
                 >
                   <Icono nombre="flechas" />
                   <span className="t-orden-rot">Orden:</span>
-                  {nombreOrden(orden, lista)}
+                  <span className="t-orden-nombre">{nombreOrden(orden, lista)}</span>
                   <PendienteDelEnlace />
                 </Link>
               </div>
@@ -399,6 +399,8 @@ export default async function Catalogo({ searchParams }: Props) {
                   tienda: esFavoritos ? null : elegida?.nombre ?? null,
                   enOtras,
                 })}
+                {/* En el celular el botón del orden es solo el ícono: aquí se lee cuál está puesto. */}
+                <span className="t-conteo-orden"> · {nombreOrden(orden, lista)}</span>
               </p>
             )}
             {vista.length > 0 ? (
