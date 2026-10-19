@@ -56,9 +56,12 @@
 --   cierra un pedido (cinco funciones vivas; el disparador cubre todas, también las que vengan).
 -- SE ROMPE SI: alguien redefine `fn_pedido_web_verificar`, `fn_pedido_web_vender`, `registrar_venta` o `validar_cupon` y pierde estos
 --   trozos (la prueba `pruebas:club-puntos-pedido-web` mira el comportamiento), o actualiza `pedidos_web.total` a mano junto con
---   `descuento_cupon` en el mismo UPDATE (el disparador restaría dos veces: el total lo mantienen los disparadores). Y si se vuelve a
---   pegar `20261015051000` (recrea `fn_pedido_web_vender` sin el cupón y vuelve a meter su bloque de verificación) o `20261015114000`
---   DESPUÉS de esta: se arregla volviendo a pegar esta (sus reemplazos lo vuelven a dejar bien).
+--   `descuento_cupon` en el mismo UPDATE (el disparador restaría dos veces: el total lo mantienen los disparadores). Y si hay que volver
+--   a pegar `20261015051000` (recrea `fn_pedido_web_vender` sin el cupón) o `20261015114000` DESPUÉS de esta: PRIMERO se deshacen los
+--   reemplazos de esta en `fn_pedido_web_verificar` y `fn_pedido_web_vender`, después se pegan esas y al final se vuelve a pegar esta.
+--   Pegarlas encima no se arregla volviendo a pegar esta: esta cambia texto dentro de los bloques que ellas insertaron, ellas ya no
+--   reconocen su cambio como aplicado y lo meten otra vez (medido: un bloque queda dos veces). Así lo hace el escenario F de
+--   `scripts/pruebas/pedidos_web_anular.mjs`.
 --
 -- CÓMO SE PEGA (producción): en DOS pegados separados, en orden, después de `20261019222000`: primero la PARTE 1 (hasta su «fin»),
 -- después la PARTE 2. Cada parte es idempotente y lleva `lock_timeout` 3 s. Sin políticas, sin `drop trigger`. Los reemplazos

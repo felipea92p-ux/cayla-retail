@@ -27,7 +27,10 @@
 -- DESCARTÉ: cambiar la firma de `registrar_venta` (rompe las pruebas, la cola sin conexión del navegador y el tipo de la web) y
 --   registrar los códigos fallidos desde `registrar_venta` (un error deshace lo que se escribió: el registro vive en `validar_cupon`).
 -- SE ROMPE SI: `registrar_venta` se redefine otra vez y pierde estos trozos (la prueba (n) mira el texto vivo), o si alguien cambia
---   `fn_club_repartir_vale` sin cambiar la regla de la web (la prueba (b) las compara con la tabla de ejemplos).
+--   `fn_club_repartir_vale` sin cambiar la regla de la web (la prueba (b) las compara con la tabla de ejemplos). Y si se vuelve a pegar
+--   esta DESPUÉS de `20261019224000`: esa edita por dentro el bloque 4c de esta, así que su guarda ya no lo reconoce y lo mete otra vez.
+--   Se deshace primero 224000 (y lo posterior), se pega esta y se rehace lo demás, como `REHACER_CLUB_PUNTOS` de
+--   `scripts/pruebas/registrar-venta-antes-de-precio-sede.mjs`. En producción se pegan una vez, en orden, y no muerde.
 --
 -- CÓMO SE PEGA: este archivo SOLO en el SQL Editor de producción, después de `20261019203000`. Idempotente. Los reemplazos son
 -- anclados: si un trozo no está exactamente una vez, la migración se detiene sin tocar nada. `lock_timeout` 3 s. Dentro de los
