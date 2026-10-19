@@ -988,6 +988,13 @@ export const PRUEBAS = [
   // (la carrera con COMMIT solo corre con BASE_DESECHABLE=1, no aquí).
   "pruebas:club-aniversario",
 
+  // Puntos del Club, actividad 1: la base. El saldo guardado es SIEMPRE igual a la suma de los movimientos y nunca negativo; no se
+  // gasta lo que no hay (puntos_insuficientes); solo una miembro gana puntos; una venta da puntos una vez y el cumpleaños una vez
+  // por año; un movimiento no se edita ni se borra; la API no toca las tablas; guardar la configuración (solo el líder; cambiar lo
+  // que valen los puntos o el canje rige a los 15 días) y que no toca club_textos. ROLLBACK (la carrera con COMMIT solo corre con
+  // BASE_DESECHABLE=1, no aquí).
+  "pruebas:club-puntos-base",
+
   // Club de clientas, tanda 1g (G-8, CL-20, CL-21): Clientas ▸ Avisos. Quién aparece (publicidad de esa tienda; no sin la
   // casilla, con BAJA, de otra tienda), cumpleaños, aniversario, novedades (llegadas de 14 días con stock libre) y rebaja en
   // su talla deducida; el grupo testigo y el tope de 2 promocionales al mes; registrar y deshacer (10 minutos); el módulo
