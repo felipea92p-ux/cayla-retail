@@ -1,5 +1,6 @@
 import { CodigoQR } from "@/components/CodigoQR";
 import { soles } from "@/lib/liquidacion-reglas";
+import { WEB_DE_LA_ETIQUETA } from "@/lib/etiqueta-precio-reglas";
 
 /** El mismo QR que la etiqueta de precio: 19 mm, leído por la pistola Zebra (ADR-0180). */
 const LADO_QR_MM = 19;
@@ -49,7 +50,7 @@ export function EtiquetaLiquidacion({
         <div className="etq-datos">
           <span className="etq-cod">{codigo}</span>
           <small>Impreso {impreso}</small>
-          <small>cayla.pe</small>
+          <small className="etq-web">{WEB_DE_LA_ETIQUETA}</small>
         </div>
         <div className="etq-qr">
           <CodigoQR texto={codigo} ladoMm={LADO_QR_MM} />

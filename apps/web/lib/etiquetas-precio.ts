@@ -3,10 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional, leerTodas } from "@/lib/resultado";
 import {
   armarEtiquetas,
+  empresaDeEtiqueta,
   fechaDeAlcance,
   iconosPorVariante,
   mejorCampanaPorVariante,
   sumarEntradas,
+  type EmpresaEtiqueta,
   type EtiquetaDeLaPrenda,
   type EtiquetaPrecio,
 } from "@/lib/etiqueta-precio-reglas";
@@ -101,7 +103,7 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
     await supabase
       .from("variantes")
       .select(
-        "id, producto_id, codigo, sku, precio, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex, familia_color, tipo ), producto:productos ( referencia, categoria_id, marca:marcas ( nombre ) ), variante_etiquetas ( etiqueta_id )",
+        "id, producto_id, codigo, sku, precio, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex, familia_color, tipo ), producto:productos ( referencia, categoria_id, empresa_id, marca:marcas ( nombre ) ), variante_etiquetas ( etiqueta_id )",
       )
       .in("id", [...entradas.keys()]),
     "las prendas a etiquetar",
@@ -119,7 +121,7 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
 
   // La campaña de HOY de cada prenda: la etiqueta dice lo que la caja cobra hoy, venga de donde venga.
   // Y el precio de ESTA tienda (precio propio, Felipe 2026-10-09): la etiqueta que se imprime aquí dice lo que cobra la caja de aquí.
-  const [deHoy, preciosSede] = await Promise.all([campanasDe(supabase, hoy, [...entradas.keys()]), getPreciosPorSede([origen.ubicacionId])]);
+  const [deHoy, preciosSede, empresas] = await Promise.all([campanasDe(supabase, hoy, [...entradas.keys()]), getPreciosPorSede([origen.ubicacionId]), getEmpresasDelPapel(supabase)]);
   const propios = preciosSede[origen.ubicacionId] ?? {};
   const etiquetaIds = [...new Set(deHoy.map((f) => f.etiqueta_id))];
   const hastas = new Map(
@@ -148,6 +150,7 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
         colorMuestra: fondoDeMuestra(v.color?.hex ?? null, v.color?.familia_color, v.color?.tipo) ?? null,
         talla: v.talla?.valor ?? null,
         marca: v.producto?.marca?.nombre ?? null,
+        empresa: (v.producto?.empresa_id ? empresas.get(v.producto.empresa_id) : null) ?? null,
       })),
       hermanas.map((h) => ({ productoId: h.producto_id, colorCodigo: h.color_codigo, talla: h.talla?.valor ?? null, activo: h.activo })),
       campanas,
@@ -155,6 +158,14 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
     ),
     ...extra,
   };
+}
+
+/** Cómo dice el papel cada empresa (ADR-0463): id → nombre, colibrí solo de CAYLA y link. Si la base todavía no tiene `fn_empresas()`
+ *  (la migración se pega antes o después de la web) o no responde, queda vacío y TODAS salen como CAYLA, como siempre: nunca se cae. */
+async function getEmpresasDelPapel(supabase: Cliente): Promise<Map<string, EmpresaEtiqueta>> {
+  const { data, error } = await supabase.rpc("fn_empresas");
+  if (error || !data) return new Map();
+  return new Map(data.map((e) => [e.id, empresaDeEtiqueta(e)] as const));
 }
 
 /** Qué íconos lleva el papel de cada prenda. Son tres lecturas chicas y ninguna crece con el envío: las etiquetas a mano

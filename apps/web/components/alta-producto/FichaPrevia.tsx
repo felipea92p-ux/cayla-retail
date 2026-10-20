@@ -27,6 +27,8 @@ import { Boton } from "@/components/ui/campos";
 export type DatosFicha = {
   nombre: string;
   codigo: string | null;
+  /** La tienda del producto («CLAURE»), o null si la base aún no tiene tiendas o todavía no se eligió (ADR-0463). */
+  empresa?: string | null;
   /** «Indumentaria › Camisas y Blusas». */
   categoria: string | null;
   marca: string | null;
@@ -114,6 +116,7 @@ function Tarjeta({ d }: { d: DatosFicha }) {
         <p className="font-mono text-[12.5px] tabular-nums text-taupe">{d.codigo ?? <Vacio>— código —</Vacio>}</p>
         <p className="font-display mt-0.5 text-2xl leading-tight text-tinta">{d.nombre || <Vacio>Sin nombre</Vacio>}</p>
         <p className="text-[13px] text-taupe">
+          {d.empresa && `${d.empresa} · `}
           {d.categoria ?? <Vacio>Sin categoría</Vacio>}
           {d.marca && ` · ${d.marca}`}
           {d.tejido && ` · ${d.tejido}`}
