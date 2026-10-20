@@ -110,10 +110,14 @@ $aviso$;
 -- 2. De qué empresa es cada producto ----------------------------------------
 -- La empresa «de la casa»: la de fábrica de todo lo que no sabe de empresas (la web vieja, el censo, «Es nueva» al recibir). Función y no
 -- un uuid suelto en la columna: si algún día la casa cambia, se cambia aquí y no en cada tabla.
+-- SECURITY DEFINER a propósito: el valor de fábrica de `productos.empresa_id` lo evalúa QUIEN inserta (un `INSERT` directo de una cuenta
+-- autenticada incluido), y esa cuenta no puede leer `empresas` (sin políticas). Sin esto, `permission denied for table empresas`
+-- (lo vio `pruebas:temporadas` en el CI de #1222; en producción se corrigió el mismo día).
 create or replace function retail.fn_empresa_casa_id()
 returns uuid
 language sql
 stable
+security definer
 set search_path = retail, public, extensions
 as $$ select id from retail.empresas where clave = 'cayla' $$;
 
