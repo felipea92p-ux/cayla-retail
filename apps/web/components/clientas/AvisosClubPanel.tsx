@@ -233,11 +233,14 @@ export function AvisosClubPanel({
   // Enter en la pantalla (fuera de un campo, un botón o una hoja): manda el de ahora o, si ya se mandó, pasa al que sigue. Así, al
   // volver de WhatsApp Web, la tanda sigue con una tecla.
   const alEnter = useRef<() => void>(() => {});
-  alEnter.current = () => {
-    if (!actual || ocupado || editando || pidioBaja) return;
-    if (envios[actual.clave]) pasarAlQueSigue();
-    else if (!sinAnotar[actual.clave] && listo && !problemaParaEnviar(actual.telefono, textoDe(actual))) enviarAhora(actual);
-  };
+  // Se pone al día después de cada dibujo (no durante: React no deja tocar una ref mientras dibuja).
+  useEffect(() => {
+    alEnter.current = () => {
+      if (!actual || ocupado || editando || pidioBaja) return;
+      if (envios[actual.clave]) pasarAlQueSigue();
+      else if (!sinAnotar[actual.clave] && listo && !problemaParaEnviar(actual.telefono, textoDe(actual))) enviarAhora(actual);
+    };
+  });
   useEffect(() => {
     function tecla(e: KeyboardEvent) {
       if (e.key !== "Enter" || e.repeat || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
