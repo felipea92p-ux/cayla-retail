@@ -68,7 +68,7 @@ export const GUIA_PROD_RESUMEN: Guia = {
       id: "hoy",
       ancla: "prod-resumen.hoy",
       titulo: "Hoy en el Taller",
-      texto: "Dónde está cada orden abierta ahora: lotes por cortar, en costura o en acabado (y en bordado, estampado o lavandería si hay alguno), con sus prendas, cuántas están afuera y con quién. Ámbar avisa que alguna pide algo. Tocas una tarjeta y te lleva a Órdenes.",
+      texto: "Dónde está cada orden abierta ahora: por cortar y en costura siempre, y por plotear, en habilitado, en planchado u otra fase si hay algún lote ahí, con sus prendas, cuántas están afuera y con quién. Ámbar avisa que alguna pide algo. Tocas una tarjeta y te lleva a Órdenes.",
     },
     {
       id: "que-producir",

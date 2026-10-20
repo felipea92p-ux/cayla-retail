@@ -101,6 +101,8 @@ function textoDeQuien(p: OrdenPagina): string {
   const actual = p.fases.find((f) => f.actual) ?? null;
   if (!actual) return todasLasQueCuentanHechas(p.fases) ? "Taller · todas las fases listas" : "Taller";
   const quien = quienDeFase(actual);
+  // Una fase que se marca (Ploteo) no cuenta prendas: no hay «0 de 0» ni «por mandar», solo quién la tiene y que falta hacerla.
+  if (actual.hito) return `${quien} · por hacer`;
   if (actual.quien === "servicio") {
     if (actual.afuera > 0) return `${quien} · ${actual.afuera} afuera`;
     return actual.hechas > 0 ? `${quien} · ${actual.hechas} de ${actual.entrada}` : `${quien} · por mandar`;
@@ -240,12 +242,15 @@ const ORDEN_DE_FASES: FaseClave[] = [
   "etiquetado_embolsado",
 ];
 
+/** Las dos tarjetas que se ven siempre en «Hoy en el Taller»: donde empieza el lote y donde se arma la prenda. */
+const TARJETAS_SIEMPRE: readonly FaseClave[] = ["corte", "costura"];
+
 /**
- * «Hoy en el Taller»: una tarjeta por fase con lo que hay ahí AHORA (lotes y prendas de las órdenes abiertas, muestras incluidas). Corte, Costura y Acabado siempre; las demás fases (Ploteo, Habilitado, Bordado, Estampado, Lavandería…) solo si alguna orden está ahí. Cada una dice lo que importa de esa fase: sin tela en el corte, lo que está afuera y con quién en un servicio, y las que esperan pasar al stock.
+ * «Hoy en el Taller»: una tarjeta por fase con lo que hay ahí AHORA (lotes y prendas de las órdenes abiertas, muestras incluidas). Corte y Costura siempre; las demás fases (Ploteo, Habilitado, Limpiar y revisar, Planchado, Etiquetar, Acabado de las órdenes de antes, Bordado, Estampado, Lavandería…) solo si alguna orden está ahí. Cada una dice lo que importa de esa fase: sin tela en el corte, lo que está afuera y con quién en un servicio, y las que esperan pasar al stock.
  */
 export function cifrasHoyEnElTaller(filas: readonly FilaDeLista[]): CifraDeFase[] {
   const abiertas = filas.filter((f) => f.estado === "en_proceso" && f.grupo !== null);
-  const claves = ORDEN_DE_FASES.filter((c) => c === "corte" || c === "costura" || c === "acabado" || abiertas.some((f) => f.grupo === c));
+  const claves = ORDEN_DE_FASES.filter((c) => TARJETAS_SIEMPRE.includes(c) || abiertas.some((f) => f.grupo === c));
   return claves.map((clave) => {
     const aca = abiertas.filter((f) => f.grupo === clave);
     const prendas = aca.reduce((s, f) => s + f.cuantas, 0);
