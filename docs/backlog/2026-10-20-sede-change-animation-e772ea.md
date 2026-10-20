@@ -1,0 +1,6 @@
+## 🎞️ Movimiento de la tienda web al cambiar de sede y de pestaña (2026-10-20) — solo maqueta, sin código ni migración; rama `claude/sede-change-animation-e772ea`
+
+- [x] Maqueta tocable `docs/maquetas/tienda-cambio-de-sede-y-pestana-2026-10/index.html`: 3 pruebas de cambio de sede (La cédula · El telón · El mapa) y 3 de cambio de pestaña (La raya que viaja · El título se cuelga · Desde la palabra), con cámara lenta ×4, computador y celular, claro y oscuro, «Reducir movimiento» y la duración medida. Verificada en el navegador integrado a 1180 px y a 375 px.
+- [ ] **Felipe elige** una prueba de sede y una de pestaña (o pide otra ronda). Hasta entonces la tienda sigue como hoy: cambiar de tienda no funde nada y cambiar de pestaña funde en 0,24 s.
+- [ ] Con lo elegido: ADR propio, la clave de vista por sede (`lib/esqueleto.ts: claveDeVista`), la pieza en `app/estilos/vistas.css` / `components/Vistas.tsx`, `prefers-reduced-motion`, y una prueba que vigile «una vez, sin rebote ni bucle» (hermana de `apps/web/lib/tienda-web-movimiento.test.ts`).
+- [ ] Si elige **El mapa**: decidir si reemplaza la lista de `SelectorTienda` (ADR-0455 la quiso como enlaces compartibles) o solo aparece durante el cambio; y si el marcador es el colibrí.
