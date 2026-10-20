@@ -149,6 +149,7 @@
     "pruebas:pedidos-web-motor": "node scripts/pruebas/pedidos_web_motor.mjs",
     "pruebas:pedidos-web-erp": "node scripts/pruebas/pedidos_web_erp.mjs",
     "pruebas:tienda-bolsa": "node scripts/pruebas/tienda_bolsa.mjs",
+    "pruebas:tienda-empresas": "node scripts/pruebas/tienda_empresas.mjs",
     "pruebas:tienda-club": "node scripts/pruebas/tienda_club.mjs",
     "pruebas:pedidos-web-cobrar": "node scripts/pruebas/pedidos_web_cobrar.mjs",
     "pruebas:pedidos-web-entregar": "node scripts/pruebas/pedidos_web_entregar.mjs",

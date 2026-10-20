@@ -299,6 +299,7 @@ export const PRUEBAS = [
   // confirmar SIN tocar el stock y la misma marca da el mismo pedido; cada cliente ve solo sus pedidos (el código de recojo, recién
   // listo); el cierre programado usa el plazo de Configuración ▸ Tienda web; solo tienda_web y service_role. ROLLBACK.
   "pruebas:tienda-bolsa",
+  "pruebas:tienda-empresas",
   // El Club en la cuenta de la tienda online (ADR-0408, actividad 12): favoritos y «Avísame» idempotentes y solo de su cuenta (la
   // ajena no se toca), con sus topes; «hay» sin Cuarentena ni lo apartado no anota; «Mi cuenta» con el cumpleaños y el vale de la
   // caja, las novedades (primera llegada, sin carga inicial) desde la visita anterior; «Esperan una talla» del ERP con el módulo y
