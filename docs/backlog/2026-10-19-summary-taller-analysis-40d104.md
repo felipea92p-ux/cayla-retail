@@ -2,7 +2,7 @@
 ## 🧵 Taller: lo que sale del resumen de fabricación (2026-10-19) — rama `claude/summary-taller-analysis-40d104`
 
 - [x] **Habilitado como fase propia entre Corte y Costura** decidido por Felipe: ADR-0400 act. (l).
-- [x] **R1 construido** (6 actividades, ADR-0400 act. m): `20261019191000` y `20261019192000`, la web de «Nueva orden», la página de la orden, la lista y la suite de punta a punta. Felipe dio el OK por adelantado para pegarlas y publicar (2026-10-19).
+- [x] **R1 construido** (6 actividades, ADR-0400 act. m): `20261019191000` y `20261019192000`, la web de «Nueva orden», la página de la orden, la lista y la suite de punta a punta. Felipe dio el OK por adelantado para pegarlas y publicar (2026-10-19). **Las dos migraciones ya están pegadas en producción y verificadas (2026-10-19)**; falta fusionar la web (PR #1214), que decide Felipe.
 - [ ] **«Servicios y tarifas» guarde una tarifa de ploteo** (el fijo por orden): hoy `TarifaServicioModal` no ofrece la fase hito y `leerTarifasDeServicios` descartaría la fila; el fijo se escribe en la orden.
 - [ ] **`tema:auditar` de la orden y sus dos hojas nuevas** (hace falta `pnpm exec playwright install`) y el **`/formidable` con agente ciego** sobre «Nueva orden» y la página de la orden.
 - [ ] **Contraer** (quitar `acabado`): dormida; solo si Felipe la pide.

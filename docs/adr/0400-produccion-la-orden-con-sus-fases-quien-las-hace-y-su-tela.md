@@ -546,3 +546,9 @@ guarda (dos marcas simultáneas dejan una; un fijo con NaN, Infinity, negativo, 
 
 **Qué se rompe si** se pega 20261019192000 sin 20261019191000 (el candado de md5 lo detiene), o si la web nueva se publica antes que las migraciones: «Nueva orden» manda `ploteo` y `habilitado` y la base los rechaza con
 `fase_desconocida`. Por eso: base primero, web después.
+
+**Pegado en producción (2026-10-19, con tu OK por adelantado).** `20261019191000` y luego `20261019192000`, con `apply_migration` sobre el proyecto de Dynamic (schema `retail`); el SQL Editor las
+registró con la versión del momento del pegado (`20261020012606`, `20261020012656` y `20261020012913`), no con la del archivo. Verificado en solo lectura: el md5 de las 7 funciones reemplazadas coincide con el del
+archivo, los guardas `fase_es_hito` están en Avance, Salida y Vuelta, la línea de tiempo de `fn_orden_produccion` lee las marcas, `produccion_fase_marcas` existe con RLS y 0 filas, los cuatro CHECK nuevos están y las
+tablas de Producción siguen en 0 filas. **Lección del pegado:** la primera migración se pegó una vez sin los comentarios que viven DENTRO de dos cuerpos (`fn_produccion_fases_normalizar`, `cambiar_quien_fase`); el md5 del
+archivo no coincidió y se repegaron esos dos cuerpos tal cual. Un cuerpo de función se pega con sus comentarios internos, siempre: el candado de md5 de la migración siguiente lo exige.
