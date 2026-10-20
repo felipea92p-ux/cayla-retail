@@ -34,3 +34,15 @@ export async function deshacerAvisoEnviado(id: string, firma: Firma | FirmaOmiti
   const { error } = await firmar(supabase.rpc("deshacer_aviso_enviado", { p_id: id }), firma);
   return { error };
 }
+
+/** «Editar mensajes»: guarda una versión nueva de cada aviso que cambió y del cierre común (`guardar_mensajes_avisos`, solo el
+ *  líder). Devuelve cuántos textos cambiaron (0 si no había nada distinto). */
+export async function guardarMensajesAvisos(
+  cuerpos: Record<TipoAviso, string>,
+  cierre: string,
+  firma: Firma | FirmaOmitida | null,
+): Promise<{ cambiados: number | null; error: ErrorEscritura }> {
+  const supabase = createClient();
+  const { data, error } = await firmar(supabase.rpc("guardar_mensajes_avisos", { p_mensajes: cuerpos, p_cierre: cierre }), firma);
+  return { cambiados: typeof data === "number" ? data : null, error };
+}

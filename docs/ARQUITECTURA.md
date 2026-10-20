@@ -1300,6 +1300,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `deshacer_aviso_enviado`; «Pidió BAJA» con `registrar_baja_whatsapp`) + `BeneficiosClubModal.tsx` (líder,
   `guardar_beneficios_club`), vía `lib/club-avisos-acciones.ts`. Reglas puras en `lib/club-avisos-reglas.ts`,
   `lib/club-beneficios-reglas.ts` y la guía en `lib/club-beneficios-guia.ts`.
+  **Desde el 2026-10-20 (diseño «Uno a la vez», migración `20261020144000`, sin pegar):** la pantalla muestra UN miembro a la vez con su
+  mensaje en burbuja (`components/clientas/BurbujaAviso.tsx`) y la fila de hoy al lado; «Editar mensajes» (solo el líder) abre
+  `EditarMensajesAvisos.tsx`, que lee `fn_club_avisos_textos` (por `lib/club-avisos.ts:getTextosDeAvisos`) y guarda con
+  `guardar_mensajes_avisos` (`lib/club-avisos-acciones.ts`). Armar, separar y validar un mensaje: `lib/club-avisos-mensajes.ts`
+  (la misma regla que `fn_club_aviso_problema` y `fn_club_aviso_componer`).
 - `/tienda-web/recomendaciones` (ADR-0408, Felipe 2026-10-15; módulo **`recomendaciones`**, nace solo para el líder; migraciones
   `20261015134000` y `20261015135000`, **sin pegar en producción**): lo que los clientes le recomiendan a CAYLA desde la tienda online,
   siempre con su nombre. Tercera hija del grupo Clientes (después de Avisos); `app/(app)/clientas/layout.tsx` también la deja pasar y

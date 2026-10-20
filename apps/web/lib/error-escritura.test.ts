@@ -905,3 +905,13 @@ describe("montos con tope de Finanzas", () => {
     ).toMatch(/vuelto pasa de S\/\u00a0500/);
   });
 });
+
+// Avisos, «Editar mensajes» (20261020144000): el mensaje de la base pasa tal cual (dice qué está mal); sin él, su respaldo.
+describe("club: editar los mensajes de los avisos", () => {
+  it("el mensaje de la base pasa tal cual y hay respaldo en castellano", () => {
+    for (const hint of ["mensaje_aviso_invalido", "avisos_solo_lider"]) {
+      expect(traducirError({ message: "Falta {nombre}.", code: "22023", hint }, "guardar los mensajes"), hint).toBe("Falta {nombre}.");
+      expect(traducirError({ message: "", code: "42501", hint }, "guardar los mensajes"), hint).toMatch(/mensaje/);
+    }
+  });
+});

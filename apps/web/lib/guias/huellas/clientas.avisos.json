@@ -2,7 +2,7 @@
   "guia": "clientas.avisos",
   "ruta": "/clientas/avisos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 10,
+  "total": 21,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -10,13 +10,26 @@
       "Boton «{control?.motivo ?? undefined}»"
     ],
     "components/clientas/AvisosClubPanel.tsx": [
-      "button «{t === \"todos\" ? \"Todos\" : INFO_TIPO_AVISO[t].titulo}»",
+      "BotonEditar «Editar mensajes»",
       "ComboResponsable «{responsable}»",
-      "button «{motivoResponsable ?? \"Vuelve a la lista de por mandar\"}»",
+      "button «→() => setElegido(a.clave)»",
+      "BotonDeshacer «{enCurso ? \"Deshaciendo…\" : \"Deshacer\"}»",
+      "Boton «También con Enter»",
       "Boton «{motivoResponsable ?? undefined}»",
-      "button «Abrir WhatsApp de nuevo»",
-      "Boton «{bloqueo ?? \"Abre WhatsApp Web con su número y el texto listos\"}»",
+      "Boton «Abrir WhatsApp de nuevo»",
+      "Boton «Enviar por WhatsApp»",
+      "Boton «Saltar por ahora»",
       "button «{motivoResponsable ?? \"Respondió BAJA a un mensaje del club\"}»"
+    ],
+    "components/clientas/EditarMensajesAvisos.tsx": [
+      "button «{INFO_TIPO_AVISO[t].titulo}»",
+      "textarea «mensaje-aviso»",
+      "button «+»",
+      "BotonDeshacer «Volver al guardado»",
+      "textarea «cierre-avisos»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Guardar mensajes»"
     ]
   }
 }
