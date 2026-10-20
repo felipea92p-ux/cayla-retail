@@ -642,29 +642,21 @@ function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; 
   );
 }
 
-// Rutas (y todo lo que cuelga de ellas) que usan el ancho completo del <main>.
-// Inventario entró el 2026-09-16: la tabla de Existencias con «En tránsito» y
-// «En la red» (6 columnas) y la de Movimientos con origen → destino no caben
-// en 64rem sin recortar la prenda.
-// `/recibir` (ADR-0113) salió de `/compras` y trae su ancho: la lista de pendientes + el envío con la tabla de
-// conteo (prenda, SKU, pendiente, llegó, dif., estado) no caben en 64rem.
-// Caja entró el 2026-09-18 (pedido de Felipe): el tablero de la caja abierta —KPIs, dona,
-// ritmo del día, movimientos— tiene qué mostrar a lo ancho y en pantalla grande sobraba
-// margen. Lo que cuelga de /caja y NO es tablero (el formulario de abrir caja y el historial
-// de cierres) se topa por su cuenta con `max-w-5xl`: no fueron pensados para estirarse.
-// Cambios y Devoluciones entraron el 2026-09-19 (pedido de Felipe): con el flujo guiado y el
-// panel de validaciones ya había de sobra qué poner a los lados.
-// Producción entró el 2026-09-22 (pedido de Felipe: «los módulos no ocupan todo el espacio»): el Resumen (cifras, tarjetas, tablas de modelos y telas), el tablero de Órdenes (cuatro
-// columnas desde 1240 px) y las tablas de Comprobantes, Por pagar y Eficiencia se apretaban en la columna de 64 rem, con ~300 px de margen vacío a cada lado en pantallas grandes.
-// «/ordenes-insumos» (Formidable de Producción, 2026-10-15): es de Producción pero su ruta no cuelga de «/produccion» (ADR-0362); fuera de la lista, al pasar de Proveedores a Órdenes de insumos
-// el título saltaba 32 px y la pantalla se estrechaba. Lo vigila `lib/ancho-completo.test.ts`.
-// Colaboradores entró el 2026-09-22 (pedido de Felipe): «Roles y accesos» pasa a tres columnas —roles, módulos del rol y el
-// efecto en el menú— y las tablas de Activos/Terminales tienen qué poner a lo ancho. Los párrafos siguen con su `max-w-*`.
-// «/etiquetas-de-precio» (Felipe 2026-10-03): la vista previa de las etiquetas va a la derecha de la tabla, a tamaño real; con el tope no
-// cabían lado a lado y quedaba al final, sin verse a la primera. «/rotulos» (ADR-0366): dos rótulos de 100 mm a tamaño real, lado a lado.
-// «/gestion» (ADR-0392, 2026-10-13): Análisis, Frescura del piso y Plan del piso vivían bajo «/inventario» y ya iban a ancho completo (sus
-// tableros por categoría y los dos rieles del plan); al mudarse al grupo «Gestión» conservan el ancho. «/rendimiento» no cuelga de ahí y sigue igual.
-const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/gestion", "/recibir", "/caja", "/cambios", "/devoluciones", "/produccion", "/ordenes-insumos", "/colaboradores", "/etiquetas-de-precio", "/rotulos"];
+// EL ANCHO DE UNA PANTALLA (regla — ADR-0462, Felipe 2026-10-20: «toda pantalla nueva ocupe todo el espacio de la pantalla»).
+// Toda pantalla usa el ancho completo del <main>. Hasta ese día era al revés: el tope de 64 rem (`max-w-5xl`) era el de fábrica y cada
+// módulo que lo necesitaba entraba a una lista (Vender 2026-09-12, Compras, Inventario, Caja, Cambios y Devoluciones, Producción,
+// Colaboradores, Gestión, Clientes…: «los módulos no ocupan todo el espacio», una y otra vez). Ahora la lista es la de las rutas que
+// TODAVÍA llevan el tope porque nacieron antes de la regla y no se han revisado a lo ancho: es deuda, solo baja, y una ruta nueva no
+// puede entrar (lo vigila `lib/ancho-completo.test.ts`). Al revisar una de estas a 1440 y 1920 px, se saca de la lista. Un párrafo largo
+// o un formulario corto se topan por su cuenta (`max-w-prose`, `max-w-2xl`…), no con la pantalla entera.
+// El Inicio («/», exacto) también lleva el tope: es de todas las cuentas y no fue pensado a lo ancho; el de almacén, el Observatorio y la
+// pantalla de Aventurero lo piden con `data-ancho-completo`.
+const CON_TOPE_DE_ANCHO = ["/actividad", "/buscar", "/comercial", "/configuracion", "/finanzas", "/global", "/movimientos", "/pedidos-no-atendidos", "/rendimiento", "/sin-acceso", "/tienda-web"];
+
+/** ¿Esta ruta lleva todavía el tope de 64 rem? El Inicio exacto y lo que cuelga de `CON_TOPE_DE_ANCHO`; todo lo demás, ancho completo. */
+function conTopeDeAncho(pathname: string): boolean {
+  return pathname === "/" || CON_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+}
 
 export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWebPorConfirmar, lateralPlegado = false, children }: Props) {
   const pathname = usePathname();
@@ -1105,16 +1097,11 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
       </header>
 
       {/* ==================== Contenido ==================== */}
-      {/* Vender y Compras van sin el tope de max-w-5xl: el catálogo + ticket
-          necesita todo el ancho (pedido de Felipe, 2026-09-12), y las tablas
-          de Compras —seis columnas con documento, proveedor, estados y
-          cifras— se apretaban en la columna de lectura (pedido de Felipe,
-          2026-09-14). El resto de la app sigue centrado en la columna
-          angosta de siempre. */}
+      {/* Toda pantalla va a lo ancho (ADR-0462); solo las de `CON_TOPE_DE_ANCHO` y el Inicio siguen centradas en 64 rem. */}
       <main className="px-4 pb-10 pt-20 sm:ml-lateral sm:px-10 sm:pb-12 sm:pt-24">
-        {/* `has-[[data-ancho-completo]]`: una pantalla que necesita todo el ancho lo pide con ese atributo (el Inicio de almacén,
-            Felipe 2026-09-30) sin entrar a la lista de rutas de arriba, que quitaría el tope a todas las cuentas de «/». */}
-        <div className={SIN_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`)) ? "" : "mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none"}>{children}</div>
+        {/* `has-[[data-ancho-completo]]`: una pantalla con tope que necesita todo el ancho lo pide con ese atributo (el Inicio de almacén,
+            Felipe 2026-09-30) sin quitarle el tope a todas las cuentas de «/». */}
+        <div className={conTopeDeAncho(pathname) ? "mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none" : ""}>{children}</div>
       </main>
 
       {/* Guías interactivas (ADR-0389): la oferta de la primera vez y la demo con el velo. `quien` decide «una vez por

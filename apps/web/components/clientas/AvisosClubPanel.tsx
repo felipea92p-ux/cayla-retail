@@ -306,7 +306,7 @@ export function AvisosClubPanel({
               Ningún miembro de esta tienda tiene un aviso pendiente. Mañana la lista se arma sola otra vez.
             </Vacio>
           ) : (
-            <div className="anim-sube grid grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]" style={{ "--i": 2 } as CSSProperties}>
+            <div className="anim-sube grid grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_380px]" style={{ "--i": 2 } as CSSProperties}>
               <section className="rounded-xl border border-sand bg-papel p-5 sm:p-6" aria-label="El aviso de ahora" data-guia="avisos.foco">
                 {actual && (
                   <Foco
@@ -469,7 +469,7 @@ function Foco({
           </span>
           <span>{info.promocional ? "Promoción · máximo 2 al mes" : "Promesa del club · no cuenta para el tope"}</span>
         </div>
-        <BurbujaAviso texto={texto} cierre={cierre} className="max-w-[460px]" />
+        <BurbujaAviso texto={texto} cierre={cierre} className="max-w-[520px]" />
       </div>
 
       {problema && <p className="mb-3 text-xs text-ambar-profundo">{problema}</p>}
