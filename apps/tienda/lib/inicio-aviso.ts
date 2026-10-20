@@ -51,6 +51,8 @@ export type AvisoClub = {
   titulo: string;
   texto: string;
   href?: string;
+  /** Cuándo llegó el aviso a la cuenta, si se sabe (la respuesta, su fecha de respuesta). Una talla no lo trae: se anota al recibirla. */
+  cuando?: string;
 };
 
 /** «Blusa Emma ya llegó», «Negro · Talla M. Hay en Trujillo: sepárala antes de que se acabe.» */
@@ -156,6 +158,7 @@ export function avisosDeRespuestas(mias: readonly MiRecomendacion[], usuarioId: 
       titulo: "CAYLA te respondió",
       texto: `Sobre ${r.sobre ? nombreTienda(r.sobre) : "CAYLA en general"}: «${recortar(r.respuesta)}»`,
       href: "/recomendaciones",
+      cuando: r.respondidaEn,
     }));
 }
 
@@ -220,6 +223,43 @@ const esClaveDeAviso = (v: unknown): v is string => typeof v === "string" && CLA
 const duenoDeClave = (clave: string) => clave.split("-")[1] ?? "";
 
 export const nombreCookieAviso = (clave: string) => `${COOKIE_AVISO}${clave}`;
+
+/** El prefijo de las cookies de los avisos BORRADOS en versiones anteriores del panel. Ya no se escriben: la papelera vive en la base
+ *  (en el historial de la base). Se leen solo para que `cookiesDeTallasSobrantes` las limpie. */
+const COOKIE_BORRADO = "tienda-borrado-";
+
+/** El prefijo de las cookies de «Entendido» del panel de la campanita: el aviso ya se vio al abrir el panel (oculta el globo rojo, no
+ *  quita el punto ni el número). Aparte del «leído» (`COOKIE_AVISO`) y del «borrado». */
+const COOKIE_PANEL_VISTO = "tienda-panel-visto-";
+/** La clave de un aviso visto en el panel a partir del nombre de su cookie; null si no es esa cookie. */
+export function claveDeCookiePanelVisto(nombre: string): string | null {
+  if (!nombre.startsWith(COOKIE_PANEL_VISTO)) return null;
+  const clave = nombre.slice(COOKIE_PANEL_VISTO.length);
+  return esClaveDeAviso(clave) ? clave : null;
+}
+
+/** La clave del aviso de una cookie que la persona ya trató (leído, visto en el panel o borrado); null si no es de esas. */
+export function claveDeCookieDeAviso(nombre: string): string | null {
+  for (const prefijo of [COOKIE_AVISO, COOKIE_PANEL_VISTO, COOKIE_BORRADO]) {
+    if (nombre.startsWith(prefijo)) {
+      const clave = nombre.slice(prefijo.length);
+      return esClaveDeAviso(clave) ? clave : null;
+    }
+  }
+  return null;
+}
+
+/** Las cookies de TALLAS de esta cuenta (leído, visto en el panel o borrado) que ya no están a su favor: la talla se volvió a acabar. Se
+ *  borran, para que si vuelve a llegar sea un aviso nuevo y no uno que quedó escondido. Solo tallas: las respuestas caducan solas, y no
+ *  se tocan (así una caída de la base no hace reaparecer lo que la persona borró). */
+export function cookiesDeTallasSobrantes(nombres: readonly string[], activas: readonly string[], usuarioId: string): string[] {
+  const dueno = usuarioId.toLowerCase().slice(0, 8);
+  return nombres.filter((n) => {
+    const clave = claveDeCookieDeAviso(n);
+    return clave !== null && clave.startsWith("llego-") && duenoDeClave(clave) === dueno && !activas.includes(clave);
+  });
+}
+
 
 /** La clave de un aviso a partir del nombre de su cookie; null si no es una cookie de aviso. */
 export function claveDeCookie(nombre: string): string | null {

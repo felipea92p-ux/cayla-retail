@@ -171,6 +171,9 @@
 .w-hito[data-e="ahora"] .w-hito-p::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--tinta); }
 .w-hito small { display: block; color: var(--tinta-60); font-size: 12px; }
 .w-hito[data-e="falta"] > span:last-child { color: var(--tinta-60); }
+/* Pedido anulado: el último paso es una X roja en un círculo rojo, y el texto «Anulado» va en el rojo de la marca. */
+.w-hito[data-e="anulado"] .w-hito-p { background: var(--rojo); border-color: var(--rojo); color: var(--papel); }
+.w-hito[data-e="anulado"] > span:last-child { color: var(--rojo-profundo); font-weight: 600; }
 .w-info { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 0; background: var(--papel); border: 1px solid var(--sand); font-size: 13px; }
 .w-info > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .w-info b { font-weight: 600; }
