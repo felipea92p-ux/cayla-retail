@@ -1167,3 +1167,25 @@ club, no antes»; y «al escanear el cartel lleva al link tienda.cayla.pe».
 - **Lo que no cambió:** las 5 personas que el cartel inscribió (del 2 al 11 de octubre) siguen en el Club con su fecha, su código y sus
   permisos (Felipe eligió no quitarles nada). `registrarse_en_el_club` sigue en la base, sin llamador en la web, porque seis pruebas del
   Club inscriben con ella; retirarla (con esas pruebas rehechas y el CSS que quedó del registro) es una tarea aparte.
+
+## Actualización 2026-10-20 — Avisos: uno a la vez y mensajes que se editan
+
+Felipe (2026-10-20): Avisos se queda aunque exista la tienda web (la web es para quien entra a mirar; el aviso le llega sin buscarlo, y los
+Términos prometen el aviso de puntos por vencer por WhatsApp). Pidió poder cambiar los mensajes desde la pantalla, que todos terminen
+invitando a tienda.cayla.pe, y eligió mirando el diseño «Uno a la vez» entre tres (`docs/maquetas/avisos-club-2026-10/`).
+
+- **Uno a la vez.** La pantalla es una tanda: cuánto va de hoy, UN miembro con su mensaje tal como le llega, «Enviar por WhatsApp» y
+  «Siguiente» (o Enter), y la fila de hoy por tipo al lado. Quién recibe y qué se anota no cambió.
+- **Mensajes editables, por tienda y con el módulo** (`guardar_mensajes_avisos(tienda, …)`, 20261020151000). Primero salió «solo el
+  líder, para las 3 tiendas» (20261020144000): fue una decisión mía sobre permisos que no me tocaba, y Felipe la corrigió el mismo día:
+  «quien tiene el módulo lo puede hacer y cada tienda (sede) personaliza sus propios mensajes predeterminados». Cada tienda guarda sus
+  versiones en `club_avisos_textos_sede`; lo que no cambió sigue al de CAYLA (`club_textos.aviso_*`, que ya no se edita desde la
+  pantalla). `fn_club_avisos_pendientes` arma cada aviso con el de su tienda (`fn_club_aviso_texto_de`). Lo ya enviado no cambia.
+- **Un cierre común** (el de la tienda, o `club_textos.tipo = 'aviso_cierre'` de CAYLA) va al final de los cuatro avisos, y después, SIEMPRE, la línea de la BAJA,
+  que la pone la base (`fn_club_aviso_componer`) y no se edita (Ley 29733). El texto guardado sigue siendo el mensaje completo, así que
+  `fn_club_avisos_pendientes`, `registrar_aviso_enviado` y la regla `club_textos_aviso_con_baja` no cambiaron.
+- **Qué no se puede guardar** lo decide `fn_club_aviso_problema` (vacío, más de 700 letras, sin `{nombre}`, un dato que ese aviso no
+  completa, la BAJA escrita a mano); la web repite la regla en `lib/club-avisos-mensajes.ts` para avisar antes, y una prueba cruza las dos.
+- **Textos nuevos** (los de la maqueta, más cálidos, con una negrita y un emoji) se publican con la migración una sola vez: si ya hay un
+  cierre, volver a pegarla no pisa lo que el líder haya editado.
+

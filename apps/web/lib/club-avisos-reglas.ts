@@ -122,13 +122,6 @@ export function agruparPorTipo(avisos: readonly AvisoPendiente[]): GrupoDeAvisos
   return TIPOS_AVISO.map((tipo) => ({ tipo, avisos: avisos.filter((a) => a.tipo === tipo) })).filter((g) => g.avisos.length > 0);
 }
 
-/** Cuántos hay de cada tipo (los cuatro, aunque sea 0) y en total. */
-export function contarPorTipo(avisos: readonly AvisoPendiente[]): Record<TipoAviso | "total", number> {
-  const cuenta = { cumpleanos: 0, puntos: 0, novedades: 0, rebaja: 0, total: avisos.length };
-  for (const a of avisos) cuenta[a.tipo] += 1;
-  return cuenta;
-}
-
 /** «9•• ••• 321»: la clienta de al lado ve la pantalla de la tienda. Sin un celular que se entienda, «Sin celular». */
 export function celularAMedias(telefono: string | null): string {
   const n = numeroWhatsApp(telefono);
