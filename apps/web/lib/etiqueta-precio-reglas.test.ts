@@ -4,6 +4,8 @@ import {
   armarEtiquetas,
   campanaSaleEnLaFila,
   cantidadDeTexto,
+  EMPRESA_CASA,
+  empresaDeEtiqueta,
   encabezadoDeEtiquetas,
   etiquetasDelAlta,
   expandir,
@@ -21,6 +23,7 @@ import {
   unidadesDeParam,
   urlEtiquetasDePrecio,
   volverDeEtiquetas,
+  WEB_DE_LA_ETIQUETA,
   type EtiquetaDeLaPrenda,
   type HermanaEtiqueta,
   type VarianteEtiqueta,
@@ -85,6 +88,29 @@ describe("armarEtiquetas · la marca de la prenda (Felipe, 2026-09-29)", () => {
     const con = armarEtiquetas(new Map([["m", 2]]), [blusa("m", "M", { marca: "CAYLA" })], [hermana("M"), hermana("L")]).etiquetas[0];
     const sin = armarEtiquetas(new Map([["m", 2]]), [blusa("m", "M")], [hermana("M"), hermana("L")]).etiquetas[0];
     expect({ ...con, marca: undefined }).toEqual({ ...sin, marca: undefined });
+  });
+});
+
+describe("la empresa en el papel (ADR-0463, Felipe 2026-10-20)", () => {
+  it("CAYLA lleva el colibrí y CLAURE solo su nombre; las dos con el link de la tienda online, no «cayla.pe»", () => {
+    expect(empresaDeEtiqueta({ clave: "cayla", nombre: "CAYLA", web: null })).toEqual({ nombre: "CAYLA", conLogo: true, web: "tienda.cayla.pe" });
+    expect(empresaDeEtiqueta({ clave: "claure", nombre: "CLAURE", web: "tienda.cayla.pe" })).toEqual({ nombre: "CLAURE", conLogo: false, web: "tienda.cayla.pe" });
+    expect(WEB_DE_LA_ETIQUETA).toBe("tienda.cayla.pe");
+  });
+  it("el colibrí se decide por la clave, no por si la empresa tiene logo cargado", () => {
+    expect(empresaDeEtiqueta({ clave: "claure", nombre: "CLAURE", web: null }).conLogo).toBe(false);
+    expect(empresaDeEtiqueta({ clave: "cayla", nombre: "  ", web: "  " })).toEqual({ nombre: "CAYLA", conLogo: true, web: "tienda.cayla.pe" });
+  });
+  it("una prenda sin empresa conocida sale como CAYLA (datos viejos, base sin empresas)", () => {
+    const { etiquetas } = armarEtiquetas(new Map([["m", 1]]), [blusa("m", "M")], [hermana("M")]);
+    expect(etiquetas[0].empresa).toEqual(EMPRESA_CASA);
+  });
+  it("la empresa de la variante llega a la etiqueta y no cambia nada más", () => {
+    const claure = empresaDeEtiqueta({ clave: "claure", nombre: "CLAURE", web: null });
+    const con = armarEtiquetas(new Map([["m", 2]]), [blusa("m", "M", { empresa: claure })], [hermana("M"), hermana("L")]).etiquetas[0];
+    const sin = armarEtiquetas(new Map([["m", 2]]), [blusa("m", "M")], [hermana("M"), hermana("L")]).etiquetas[0];
+    expect(con.empresa.nombre).toBe("CLAURE");
+    expect({ ...con, empresa: undefined }).toEqual({ ...sin, empresa: undefined });
   });
 });
 
