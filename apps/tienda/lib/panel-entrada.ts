@@ -22,7 +22,6 @@ export const BENEFICIOS_DE_ENTRADA: readonly Beneficio[] = [
 ];
 
 /** La línea de confianza al pie del panel del Club (la página de cambios lo dice igual). */
-export const CONFIANZA_CLUB = "Cambias o devuelves en cualquier tienda CAYLA.";
 
 /** El texto bajo la tarjeta de «Crear cuenta»: antes de saber el nombre, y con el nombre ya puesto. */
 export const PIE_DE_TARJETA = {

@@ -3,11 +3,12 @@ import { pctTexto } from "@/lib/portada";
 import { Icono, type NombreIcono } from "./Icono";
 import { TarjetaClub } from "./TarjetaClub";
 
-const BENEFICIOS: [NombreIcono, string, string][] = [
-  ["regalo", "Descuento en tu cumpleaños", "Te avisamos por WhatsApp y lo ves en tu cuenta."],
-  ["ticket", "Un vale de compra por cada año", "Cada aniversario con CAYLA suma un vale."],
-  ["chispa", "Lo nuevo, primero", "Lo ves aquí, en tu cuenta. Sin mensajes de publicidad."],
-  ["pedido", "Tus pedidos en un lugar", "Ves cada separación, si ya la confirmaron y cuánto falta pagar."],
+// Solo el título de cada beneficio: se entiende de un vistazo (el detalle, en «Cómo separar» y en el perfil).
+const BENEFICIOS: [NombreIcono, string][] = [
+  ["regalo", "Descuento en tu cumpleaños"],
+  ["ticket", "Un vale por cada año"],
+  ["chispa", "Lo nuevo, primero"],
+  ["pedido", "Tus pedidos en un lugar"],
 ];
 
 /**
@@ -33,31 +34,29 @@ export function SeccionClub({
     <section className="t-club" aria-labelledby="club-cayla">
       <div className="t-ancho t-club-in">
         <div className="t-revela">
-          <span className="t-ceja">Club CAYLA</span>
           <h2 id="club-cayla">
             {esDelClub ? (
               <>
-                Eres miembro del club. <em>Esto es para ti.</em>
+                Eres <em>del club.</em>
               </>
             ) : conCuenta ? (
               <>
-                Completa tus datos y <em>entra al club.</em>
+                Entra al <em>club.</em>
               </>
             ) : (
               <>
-                Crea tu cuenta y <em>forma parte del club.</em>
+                Tu cuenta es tu <em>membresía.</em>
               </>
             )}
           </h2>
           <ul className="t-beneficios">
-            {BENEFICIOS.map(([icono, titulo, texto]) => (
+            {BENEFICIOS.map(([icono, titulo]) => (
               <li key={titulo}>
                 <span>
                   <Icono nombre={icono} />
                 </span>
                 <span>
                   <b>{titulo}</b>
-                  <small>{texto}</small>
                 </span>
               </li>
             ))}

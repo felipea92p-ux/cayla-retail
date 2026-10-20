@@ -23,7 +23,8 @@ function LogoGoogle() {
   );
 }
 
-export function BotonGoogle({ volver, texto = "Continuar con Google" }: { volver: string | null; texto?: string }) {
+/** `abajo`: va después del formulario (en «Entrar»: primero el correo y «Entrar», y Google como otra manera, tras una raya «o»). */
+export function BotonGoogle({ volver, texto = "Continuar con Google", abajo = false }: { volver: string | null; texto?: string; abajo?: boolean }) {
   const [yendo, setYendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   if (!googleDisponible()) return null;
@@ -49,6 +50,11 @@ export function BotonGoogle({ volver, texto = "Continuar con Google" }: { volver
 
   return (
     <div className="en-google">
+      {abajo && (
+        <p className="en-o" aria-hidden="true">
+          <span>o</span>
+        </p>
+      )}
       <button type="button" className="t-btn t-btn-sec t-btn-ancho en-google-btn" onClick={ir} disabled={yendo} aria-busy={yendo || undefined}>
         <LogoGoogle />
         {yendo ? "Abriendo Google…" : texto}
@@ -58,9 +64,11 @@ export function BotonGoogle({ volver, texto = "Continuar con Google" }: { volver
           <span className="w-res-error">{error}</span>
         </div>
       )}
-      <p className="en-o" aria-hidden="true">
-        <span>o con tu correo</span>
-      </p>
+      {!abajo && (
+        <p className="en-o" aria-hidden="true">
+          <span>o con tu correo</span>
+        </p>
+      )}
     </div>
   );
 }

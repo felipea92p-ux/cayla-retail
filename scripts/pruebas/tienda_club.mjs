@@ -171,7 +171,9 @@ begin
   insert into retail.variantes (producto_id, color_codigo, talla_id, precio, costo, activo)
     select v_p, v.color_codigo, v.talla_id, 50, 10, true from retail.variantes v where v.id = p_como
   returning id into v_v;
-  insert into retail.vitrina_productos (producto_id, publicado, publicado_en, en_lo_nuevo) values (v_p, true, now(), p_en_lo_nuevo);
+  -- Un producto nuevo ya nace con su fila encendida (20261019214000): aquí solo se le fija cómo entra a «Lo nuevo».
+  insert into retail.vitrina_productos (producto_id, publicado, publicado_en, en_lo_nuevo) values (v_p, true, now(), p_en_lo_nuevo)
+    on conflict (producto_id) do update set publicado = true, publicado_en = now(), en_lo_nuevo = excluded.en_lo_nuevo;
   return v_v;
 end $f$;
 -- La versión viva de una función con un pedazo cambiado (un MUTANTE). Si el pedazo no está, falla: el mutante no sería tal.
@@ -899,7 +901,7 @@ end $f$;\n`;
   /** Las esperas de Ana y Bea, una por línea: «quién|prenda|tienda|viva o cerrada|pedido si la cerró «Separar»». */
   const ESPERAS = `select pg_temp.esperas(array[:'ana_w', :'bea_w']::uuid[], array['ana', 'bea'], array[:'v1', :'v2']::uuid[], array['v1', 'v2'],
                                           array[:'tru', :'lim']::uuid[], array['tru', 'lim']);\n`;
-  // Ana espera v1 en Trujillo y en cualquier tienda, y v2 en Trujillo; Bea, v1 en Trujillo. Después llegan 2 de v1 a Trujillo.
+  // Ana espera v1 en Trujillo y en cualquier tienda, y v2 en Trujillo; Bea, v1 en Trujillo. Después llegan 2 de v1 a Trujillo, y «Separar» recoge ahí (ADR-0458: cada tienda maneja lo suyo, ya no se separa lo que solo está en otra).
   const ESPERAS_DE_LA_S = `${COMO_TIENDA}
       select retail.tienda_avisame('${U.ana}', :'v1', :'tru') ->> 'estado' as _1 \\gset
       select retail.tienda_avisame('${U.ana}', :'v1', null) ->> 'estado' as _2 \\gset
@@ -907,10 +909,10 @@ end $f$;\n`;
       select retail.tienda_avisame('${U.bea}', :'v1', :'tru') ->> 'estado' as _4 \\gset
       ${COMO_POSTGRES}
       select pg_temp.dejar(:'v1', :'tru', :'tru_piso', 2) as _x \\gset
-      select x.precio as p_v1_lim from retail.fn_bolsa_web_precios(array[:'v1']::uuid[], array[:'lim']::uuid[]) x \\gset\n`;
-  /** «Separar» v1 para recoger en Lima (la trae Trujillo). */
-  const SEPARA = (usr, precio = ":'p_v1_lim'::numeric", token = "gen_random_uuid()") =>
-    `retail.tienda_separar('${usr}', :'lim', jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio', ${precio})), ${token})`;
+      select x.precio as p_v1_tru from retail.fn_bolsa_web_precios(array[:'v1']::uuid[], array[:'tru']::uuid[]) x \\gset\n`;
+  /** «Separar» v1 para recoger en Trujillo (donde llegó). */
+  const SEPARA = (usr, precio = ":'p_v1_tru'::numeric", token = "gen_random_uuid()") =>
+    `retail.tienda_separar('${usr}', :'tru', jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio', ${precio})), ${token})`;
   const TODAS_VIVAS = "ana|v1|cualquiera|viva|- # ana|v1|tru|viva|- # ana|v2|tru|viva|- # bea|v1|tru|viva|-";
   esperarValor(
     "S1 Ana separa v1: sus dos esperas de v1 (Trujillo y cualquier tienda) se cierran con el pedido; la de v2 y la de Bea siguen, y «Mi cuenta» ya no las muestra",
@@ -926,8 +928,8 @@ end $f$;\n`;
   esperarValor(
     "S2 si «Separar» falla (el precio que vio ya no es el de la base) no se cierra nada; el mismo toque dos veces no cambia nada más; quitar a mano no deja pedido",
     escenario(`${ESPERAS_DE_LA_S}
-      select pg_temp.intento(format('select retail.tienda_separar(%L, %L, %L, %L)', '${U.ana}', :'lim',
-               jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio', :'p_v1_lim'::numeric + 1)), gen_random_uuid()));
+      select pg_temp.intento(format('select retail.tienda_separar(%L, %L, %L, %L)', '${U.ana}', :'tru',
+               jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio', :'p_v1_tru'::numeric + 1)), gen_random_uuid()));
       ${ESPERAS}
       select gen_random_uuid() as tok \\gset
       select ${SEPARA(U.ana, undefined, ":'tok'")} ->> 'codigo' as c1 \\gset

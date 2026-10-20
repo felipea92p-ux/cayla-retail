@@ -13,47 +13,44 @@
 /* `scroll-padding-inline`: sin él, el navegador ajusta el primer círculo al borde (pierde el margen de 16 px al cargar). */
 .t-circs { display: flex; gap: 14px; overflow-x: auto; padding: 18px 16px 4px; scroll-padding-inline: 16px; scrollbar-width: none; scroll-snap-type: x proximity; }
 .t-circs::-webkit-scrollbar { display: none; }
-.t-circ { flex: none; width: 74px; display: flex; flex-direction: column; align-items: center; gap: 7px; scroll-snap-align: start; color: var(--tinta); }
-.t-circ-img { position: relative; width: 70px; height: 70px; border-radius: 50%; overflow: hidden; display: block; box-shadow: 0 0 0 2px var(--crema), 0 0 0 3.5px var(--sand); transition: transform .35s var(--ease), box-shadow .35s; }
-.t-circ[data-nuevo] .t-circ-img { box-shadow: 0 0 0 2px var(--crema), 0 0 0 4px var(--rojo); }
-.t-circ-img .t-card-foto { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 50%; }
-.t-circ-img .t-card-foto img { object-fit: cover; object-position: 50% 18%; }
+.t-circ { flex: none; width: 74px; display: flex; flex-direction: column; align-items: center; gap: 10px; scroll-snap-align: start; color: var(--tinta); }
+.t-circ-img { position: relative; width: 70px; height: 88px; border-radius: 0; overflow: hidden; display: block; background: var(--t-foto); }
+.t-circ[data-nuevo] b::before { content: ""; display: inline-block; width: 5px; height: 5px; margin-right: 6px; border-radius: 50%; background: var(--tinta); vertical-align: 2px; }
+.t-circ-img .t-card-foto { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; }
+.t-circ-img .t-card-foto img { object-fit: contain; padding: 8%; }
 .t-circ-img .pz { width: 76%; }
-.t-circ b { font-size: 11.5px; font-weight: 600; white-space: nowrap; }
-.t-circ:hover .t-circ-img { transform: scale(1.07); }
-.t-circ:focus-visible { outline: 2px solid var(--rojo); outline-offset: 4px; border-radius: 8px; }
+.t-circ b { font-size: 10px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; }
+.t-circ:hover .t-circ-img img { transform: scale(1.04); }
+.t-circ:focus-visible { outline: 1.5px solid var(--rojo); outline-offset: 4px; }
 
 /* Las flechas de un carril (`CarrilConFlechas`) viven en catalogo.css: también las usa «Mi perfil». Aquí, su altura en el Inicio. */
 .t-circs-envol { --flecha-y: 53px; }
 .t-carril-inicio { --flecha-y: 42%; }
 
 /* ---- Las ofertas: la banda oscura, con una píldora por campaña ---- */
-.t-ofertas { margin-top: 36px; padding-block: 38px 36px; background: var(--t-oscuro); color: var(--t-oscuro-tinta); }
-.t-ofertas .t-ceja { color: var(--t-hero-acento); }
-.t-ofertas .t-sec-cab h2 em { color: var(--t-hero-acento); }
-.t-ofertas .t-sec-cab p { color: var(--t-oscuro-suave); }
-.t-ofertas .t-ver { color: var(--t-oscuro-tinta); }
-.t-ofertas .t-ver b { background: var(--t-oscuro-filo); }
-.t-ofertas .t-card-nom, .t-ofertas .t-precio b { color: var(--t-oscuro-tinta); }
-.t-ofertas .t-precio.oferta b { color: var(--t-hero-acento); }
-.t-ofertas .t-precio s, .t-ofertas .t-muestras small, .t-ofertas .t-card-nota { color: var(--t-oscuro-suave); }
-.t-ofertas .t-muestras i { box-shadow: inset 0 0 0 1px var(--t-oscuro-filo); }
+.t-ofertas { margin-top: clamp(56px, 9cqi, 132px); padding-block: clamp(48px, 7cqi, 96px); background: var(--hueso); color: var(--tinta); }
+.t-ofertas .t-ceja { color: var(--taupe); }
+.t-ofertas .t-sec-cab h2 em { color: inherit; }
+.t-ofertas .t-sec-cab p { color: var(--taupe); }
+.t-ofertas .t-ver { color: var(--tinta); }
+.t-ofertas .t-ver b { background: none; }
+.t-ofertas .t-card-nom, .t-ofertas .t-precio b { color: var(--tinta); }
+.t-ofertas .t-precio.oferta b { color: var(--rojo); }
+.t-ofertas .t-precio s, .t-ofertas .t-muestras small { color: var(--taupe); }
 /* Las píldoras de las campañas se tocan en 44 px de alto (una capa invisible), sin cambiar de lugar. */
 .t-ofertas .t-pildoras { padding-block: 5px; margin-block: -5px 11px; }
-.t-ofertas .t-pildora { position: relative; }
+.t-ofertas .t-pildora { border-color: transparent; color: var(--taupe); }
 .t-ofertas .t-pildora::before { content: ""; position: absolute; inset: -5px -3px; }
 .t-ofertas .t-pildora { border-color: var(--t-oscuro-filo); color: var(--t-oscuro-tinta); }
-.t-ofertas .t-pildora:hover { border-color: var(--t-oscuro-tinta); }
-.t-ofertas .t-pildora[aria-current="true"], .t-ofertas .t-pildora:has(> .t-pendiente[data-pendiente]) { background: var(--t-oscuro-tinta); border-color: var(--t-oscuro-tinta); color: var(--t-tinta-fija); }
-.t-ofertas .t-pildoras:has(.t-pendiente[data-pendiente]) .t-pildora[aria-current="true"]:not(:has(> .t-pendiente[data-pendiente])) { background: transparent; border-color: var(--t-oscuro-filo); color: var(--t-oscuro-tinta); }
-.t-ofertas .t-card-nom:focus-visible, .t-ofertas .t-pildora:focus-visible, .t-ofertas .t-ver:focus-visible { outline-color: var(--t-hero-acento); }
+.t-ofertas .t-pildora:hover { color: var(--tinta); }
+.t-ofertas .t-pildora[aria-current="true"], .t-ofertas .t-pildora:has(> .t-pendiente[data-pendiente]) { background: none; border-color: var(--tinta); color: var(--tinta); }
+.t-ofertas .t-pildoras:has(.t-pendiente[data-pendiente]) .t-pildora[aria-current="true"]:not(:has(> .t-pendiente[data-pendiente])) { background: none; border-color: transparent; color: var(--taupe); }
+.t-ofertas .t-card-nom:focus-visible, .t-ofertas .t-pildora:focus-visible, .t-ofertas .t-ver:focus-visible { outline-color: var(--rojo); }
 
 /* ---- Más vendidos: el puesto grande, en contorno, junto a cada tarjeta (sin cifras de ventas) ---- */
 .t-top { list-style: none; margin: 0 -16px; padding: 0 16px 8px; display: grid; grid-auto-flow: column; grid-auto-columns: 58%; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 16px; scrollbar-width: none; }
 .t-top::-webkit-scrollbar { display: none; }
 .t-top li { position: relative; scroll-snap-align: start; }
-.t-top-n { position: absolute; left: -2px; bottom: 58px; z-index: 4; font-family: var(--serif); font-weight: 500; font-size: 112px; line-height: .78; color: var(--crema); -webkit-text-stroke: 1.5px var(--tinta); pointer-events: none; }
-.t-top li .t-card { margin-left: 30px; }
 
 /* ---- El héroe: «Ver lo nuevo» se toca en 44 px de alto, como el botón de al lado ---- */
 .t-hero-inicio .t-hero-acciones .t-enlace { min-height: 44px; }
@@ -70,12 +67,12 @@
 .t-aviso-club-envol { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .32s var(--ease), opacity .22s var(--ease); }
 .t-aviso-club-envol[data-cerrado] { grid-template-rows: 0fr; opacity: 0; }
 .t-aviso-club-pliegue { min-height: 0; overflow: hidden; }
-.t-aviso-club { margin-block: 14px 16px; padding: 16px; border-radius: 14px; background: var(--papel); border: 1px solid color-mix(in srgb, var(--verde) 45%, var(--sand)); display: flex; flex-direction: column; gap: 14px; animation: t-aviso-entra .45s var(--ease) both; }
+.t-aviso-club { margin-block: 14px 16px; padding: 18px; border-radius: 0; background: var(--papel); border: 1px solid var(--sand); border-left: 2px solid var(--verde); display: flex; flex-direction: column; gap: 14px; animation: t-aviso-entra .45s var(--ease) both; }
 .t-aviso-club-cuerpo { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .t-aviso-club .t-ceja { color: var(--verde); }
 .t-aviso-club-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .t-aviso-club-lista li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 12px; align-items: start; }
-.t-aviso-club-ic { width: 36px; height: 36px; border-radius: 50%; background: var(--hueso); display: grid; place-items: center; color: var(--rojo-profundo); }
+.t-aviso-club-ic { width: 36px; height: 36px; border-radius: 0; background: var(--hueso); display: grid; place-items: center; color: var(--tinta); }
 .t-aviso-club-ic .ic { width: 18px; height: 18px; }
 .t-aviso-club-lista b { display: block; font-size: 14.5px; font-weight: 600; line-height: 1.3; }
 .t-aviso-club-lista small { display: block; margin-top: 2px; color: var(--tinta-60); font-size: 13px; line-height: 1.45; }
@@ -108,15 +105,33 @@
   .t-circs-envol { --flecha-y: 76px; --flecha-borde: 8px; }
   .t-carril-inicio { --flecha-borde: -20px; }
   .t-circ { width: 96px; }
-  .t-circ-img { width: 92px; height: 92px; }
-  .t-circ b { font-size: 12.5px; }
-  .t-ofertas { padding-block: 60px 56px; margin-top: 60px; }
+  .t-circ-img { width: 92px; height: 115px; }
+  .t-circ b { font-size: 10.5px; }
   .t-top { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-columns: auto; margin: 0; padding: 0; overflow: visible; gap: 26px 18px; }
-  .t-top-n { font-size: 140px; }
-}
+  }
+/* El ranking es de 5: en un ancho de escritorio caben en una fila (la 5.ª no queda sola abajo). */
+@container tienda (min-width: 1100px) {
+  .t-top { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 26px 14px; }
+  }
 
 /* `t-aparecer` vive en cabecera.css (se carga en todas las páginas). */
 @keyframes t-aviso-entra { from { opacity: 0; transform: translateY(-8px); } }
 @media (prefers-reduced-motion: reduce) {
   .t-aviso-club-envol { transition: none; }
+}
+
+/* ---- «Así se separa» en el Inicio (A · Muro, `.a-pasos`): cuatro columnas con su raya arriba y entre sí, el número grande en cursiva,
+   el título y una línea. En el celular, una fila por paso. ---- */
+.t-sec-nota { font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); text-decoration: none; align-self: flex-end; padding-bottom: 4px; }
+.as-pasos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; }
+.as-paso { display: grid; grid-template-columns: 56px 1fr; column-gap: 12px; padding: 22px 0; border-top: 1px solid var(--sand); }
+.as-n { grid-row: span 2; font-family: var(--nombre); font-style: italic; font-weight: 400; font-size: 40px; line-height: 1; }
+.as-paso b { font-size: 16px; font-weight: 500; line-height: 1.3; }
+.as-x { margin-top: 6px; color: var(--taupe); font-size: 14px; line-height: 1.5; }
+@container tienda (min-width: 700px) {
+  .as-pasos { grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--sand); }
+  .as-paso { display: block; padding: 28px 24px 0 0; border-top: 0; }
+  .as-paso + .as-paso { padding-left: 24px; border-left: 1px solid var(--sand); }
+  .as-n { display: block; font-size: 52px; margin-bottom: 18px; }
+  .as-x { display: block; }
 }

@@ -78,14 +78,12 @@ export function HeroeDelInicio({
           </>
         ) : hero.tipo === "nuevo" ? (
           <>
-            <span className="t-hero-ceja">Recién llegado</span>
+            {/* «A · Muro» (Felipe 2026-10-17): el titular de la maqueta, «LO / NUEVO», y la fecha arriba, como la ficha de una sala. */}
+            <span className="t-hero-ceja">Llegó en los últimos 30 días</span>
             <h1 className="t-hero-tit">
-              <span>Lo nuevo</span>{" "}
-              <em>
-                <TextoConMarca texto="de CAYLA" />
-              </em>
+              <span>Lo</span> <span>nuevo</span>
             </h1>
-            <p className="t-hero-desc">Lo que llegó a nuestras tiendas en los últimos 30 días.</p>
+            <p className="t-hero-desc">Lo que llegó a nuestras tiendas. Mira cuánto hay en cada una y sepáralo sin pagar.</p>
             <div className="t-hero-acciones">
               {verNuevo && boton("t-btn t-btn-claro", verNuevo, "Ver lo nuevo")}
             </div>

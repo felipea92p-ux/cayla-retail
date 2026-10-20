@@ -1413,6 +1413,11 @@ export const PRUEBAS = [
   // caja, la venta) → el candado de siempre; con tabla vacía («volver») todo vuelve a exigir responsable. ROLLBACK siempre.
   "pruebas:responsable-omitido",
 
+  // ADR-0454 (temporal, hasta integrar Lima con Dynamic): una terminal con `terminales.firma_respaldo_id` no pide responsable y firma
+  // siempre como esa persona (Caja Lima y Almacén Lima, a nombre de Felipe); sin respaldo, o con el respaldo suspendido, el candado de
+  // siempre; el respaldo no da poderes de líder; «volver» es vaciar la columna. La activación solo toca «Tienda LIM». ROLLBACK siempre.
+  "pruebas:terminal-sin-responsable",
+
   // ADR-0161 act. d: las acciones que guardaban sin firmar anotan al responsable del combo (anular compra y
   // comprobante de producción, etapas, proveedores de producción, alta de insumo, terminales). ROLLBACK siempre.
   "pruebas:quien-pendientes",

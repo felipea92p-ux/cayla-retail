@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { EB_Garamond, Heebo } from "next/font/google";
+import { Archivo, Newsreader } from "next/font/google";
 import { Suspense } from "react";
 import { AvisoDeLaUrl } from "@/components/cuenta/AvisoDeLaUrl";
 import { ProveedorInstalar } from "@/components/instalar/ProveedorInstalar";
@@ -20,12 +20,12 @@ import "./estilos/instalar.css";
 // El paso de una vista a otra: el fundido, lo fijo que no se mueve y la foto que viaja a la ficha (components/Vistas.tsx).
 import "./estilos/vistas.css";
 
-// Las letras de la tienda (ADR-0446, variante B, elegida por Felipe el 2026-10-17): Heebo para el texto, los botones, los formularios y los precios
-// —sus cifras tienen todas el mismo ancho, así que los montos quedan en columna— y EB Garamond para los títulos, hasta que el autor de
-// Ahellya (la letra elegida para la marca y los títulos) dé su permiso por escrito. La palabra CAYLA no va con ninguna: es el dibujo del
-// logo (`components/Marca.tsx`).
-const serif = EB_Garamond({ subsets: ["latin"], variable: "--font-eb-garamond", display: "swap" });
-const sans = Heebo({ subsets: ["latin"], variable: "--font-heebo", display: "swap" });
+// Las letras de la dirección «A · Muro» (Felipe 2026-10-17, docs/maquetas/tienda-rediseno-2026-10/a-muro.html; el 2026-10-19 eligió A
+// completa sobre Heebo, ADR-0446): Archivo para todo el texto y, ensanchada (eje `wdth` hasta 125), para los títulos en mayúsculas, como la
+// señalética de una galería; Newsreader en cursiva para el nombre de cada prenda, como la cédula de una obra. La palabra CAYLA no va con
+// ninguna letra: es el dibujo del logo (`components/Marca.tsx`).
+const sans = Archivo({ subsets: ["latin"], axes: ["wdth"], variable: "--font-archivo", display: "swap" });
+const nombre = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], axes: ["opsz"], variable: "--font-newsreader", display: "swap" });
 
 export const metadata: Metadata = {
   title: "CAYLA · Tienda online",
@@ -38,14 +38,14 @@ export const metadata: Metadata = {
 // El color de la barra del navegador en el celular: el crema del tema claro y el fondo del oscuro (los de globals.css).
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f0e8" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1a18" },
+    { media: "(prefers-color-scheme: light)", color: "#ecebe7" },
+    { media: "(prefers-color-scheme: dark)", color: "#161615" },
   ],
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" className={`${serif.variable} ${sans.variable}`}>
+    <html lang="es" className={`${sans.variable} ${nombre.variable}`}>
       <head>
         {/* Guarda el aviso de instalar de Chrome si llega antes de que la página se arme (ADR-0431): llega una sola vez. */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_DEL_AVISO }} />

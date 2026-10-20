@@ -73,3 +73,27 @@ se ve, y recién empezaba al poner las dos prendas. Ahora (`useUnionDeLaFigura`,
 - La prenda de abajo se acomoda en 0,32 s (antes 0,55 s).
 
 Sigue sin hacerse en la figura quieta (servidor). No probado en un celular real ni en Safari.
+
+## Actualización 2026-10-19: el bajo no siempre es recto, y la figura quieta también se une
+
+Felipe mostró tres looks que «se ven raros al unirlos»: una blusa de encaje con caída asimétrica, una camisa bordada de bajo curvo y una blusa de cuadros de bajo en diagonal, todas con jeans o
+pantalón. Reproducido en `/looks/arma` con la «Blusa Cuadros Coreana» y el pantalón negro: la pretina arrancaba en el punto MÁS BAJO del bajo de la blusa, y en el lado donde el bajo sube
+quedaba una franja de aire entre la blusa y el pantalón. Causa: `medirRecorte` guardaba una sola fila para el bajo (la más baja con un tramo del 30 % del ancho) y la unión la usaba entera.
+
+- **Se mide el perfil del bajo** (`MedidaDelRecorte.bajo`): dónde termina la prenda en cada una de 24 franjas verticales (la mediana del último píxel de prenda de sus columnas, para que un hilo suelto no
+  cuente), como 24 números de 2 decimales por recorte. Lo recordado en el navegador sube a `cayla-union-v2`; lo de `v1` se vuelve a medir una vez.
+- **La pretina arranca en el punto más alto del bajo** dentro del ancho central que ocupa (`filaAltaDelBorde`: entre el 30 % y el 60 % del ancho de la prenda de arriba, según lo ancha que sea
+  la pretina). La parte del bajo que cuelga más abajo simplemente tapa la pretina: la prenda de arriba va delante. Una franja que termina más de 25 % del alto por encima del punto más bajo es un
+  hombro o una manga, no el bajo, y no cuenta. Con un bajo recto da lo mismo que antes; sin perfil medido, también.
+- **La figura quieta se une igual** (Favoritos, la página de un look guardado, el enlace compartido): `FiguraQuieta` (servidor) elige las piezas y manda al navegador solo lo que se dibuja
+  (`FiguraQuietaUnida`, cliente), que usa el mismo `useUnionDeLaFigura`. Un look se ve igual al guardarlo o compartirlo que cuando se armó. Mientras llega la medida se ve la caja por largo y la prenda de
+  abajo se acomoda en 0,35 s (sin movimiento con `prefers-reduced-motion`).
+- Medido con `sharp` sobre los 9 recortes del probador de Arequipa: el punto alto queda entre 0,00 y 0,14 del alto de la prenda por encima del bajo (la blusa de cuadros, 0,05, unos 8 px en la figura).
+
+- **La cintura del pantalón sigue el ancho de toda la zona del bajo, no el de su última fila** (`anchoDelBajo`, derivado del mismo perfil, sin guardar nada nuevo). Felipe vio que la blusa «se ve grande»
+  y pidió que fuera automático, sin revisar prenda por prenda. Causa: en una blusa cruzada o con caída la fila más baja es solo la punta, angosta (0,52 del ancho en la «Blusa Cuadros Coreana»), así
+  que la cintura del pantalón caía al mínimo de su rango (30,6 cm) y la blusa parecía enorme. Con el ancho real de la zona del bajo (0,75) la cintura sale de 37,9 cm, el pantalón recupera su largo
+  de foto (el tope de 120 cm sigue) y la figura entera se achica sola si no cabe (`escalaDe`). No se tocó el largo de las prendas de arriba: sigue mandando el que anota el ERP.
+
+Queda por hacer: probar la figura quieta en `/looks/guardado/<id>` y en una tarjeta de «Tus looks» con una cuenta real (aquí solo se comprobaron tipos, las 676 pruebas de la tienda y la medida con las
+imágenes reales), y mirar cómo se ven las prendas de arriba con volado o peplum.

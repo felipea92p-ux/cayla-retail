@@ -15,6 +15,7 @@ import { hrefDelInicio } from "@/lib/inicio";
 import { hrefDePieza, hrefLook, hrefLooks, otrosLooks, precioDePieza, totalDelLook } from "@/lib/looks";
 import { leerLook, leerLooks } from "@/lib/looks-servidor";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
+import { sedeDeLaPagina } from "@/lib/sede-servidor";
 import { hayEnTienda } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../../estilos/looks.css";
@@ -38,7 +39,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 export default async function LookAbierto({ params, searchParams }: Props) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const sedes = sedesEnOrden(await leerSedes());
-  const pedida = sedeDeLaUrl(sp.sede, sedes);
+  const pedida = await sedeDeLaPagina(sp, sedes, `/looks/${id}`, claveDeSede);
   // Con el look, los demás (para «Otros looks», abajo) y los plazos de las promesas: todo a la vez.
   const [lectura, catalogo, todos, plazos] = await Promise.all([
     esId(id) ? leerLook(id, pedida?.id ?? null) : Promise.resolve({ sede: null, look: null }),

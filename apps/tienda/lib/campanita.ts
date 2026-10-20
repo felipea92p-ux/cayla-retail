@@ -165,9 +165,8 @@ export const etiquetaCampanita = (globo: number) => (globo > 0 ? `Avisos: ${glob
 /** El número del globo: de 10 para arriba, «9+» (el globo mide 18 px). */
 export const textoGlobo = (globo: number) => (globo > 9 ? "9+" : String(globo));
 
-/** La línea de Lo nuevo: «Llegaron 3 prendas desde tu última visita.»; sin número, la invitación a mirar. */
+/** Lo nuevo, en una línea corta (2026-10-19, dentro del menú de la cuenta): «3 prendas nuevas»; sin nada (o sin dato), «Nada nuevo». */
 export function textoNovedades(n: number | null): string {
-  if (n === null) return "Lo que llega a nuestras tiendas aparece en Lo nuevo durante 30 días.";
-  if (n === 0) return "Desde tu última visita no llegó nada nuevo.";
-  return `${n === 1 ? "Llegó 1 prenda nueva" : `Llegaron ${n} prendas nuevas`} desde tu última visita.`;
+  if (!n) return "Nada nuevo";
+  return n === 1 ? "1 prenda nueva" : `${n} prendas nuevas`;
 }
