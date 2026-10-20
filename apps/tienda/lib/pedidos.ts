@@ -53,6 +53,7 @@ const esquemaPedido = z.object({
   confirmado_en: fecha.nullable(),
   pagado_en: fecha.nullable(),
   entregado_en: fecha.nullable(),
+  cerrado_en: fecha.nullable(),
   cierre_motivo: z.string().nullable(),
   listo_para_recoger: z.boolean(),
   recoger_hasta: fecha.nullable(),
@@ -113,6 +114,8 @@ export type Pedido = {
   confirmadoEn: string | null;
   pagadoEn: string | null;
   entregadoEn: string | null;
+  /** Cuándo se cerró el pedido (anulado o vencido): el paso «Anulado» de la línea de tiempo lo muestra con fecha y hora. */
+  cerradoEn: string | null;
   cierreMotivo: string | null;
   listoParaRecoger: boolean;
   recogerHasta: string | null;
@@ -144,6 +147,7 @@ function aPedido(d: z.infer<typeof esquemaPedido>): Pedido {
     confirmadoEn: d.confirmado_en,
     pagadoEn: d.pagado_en,
     entregadoEn: d.entregado_en,
+    cerradoEn: d.cerrado_en,
     cierreMotivo: d.cierre_motivo,
     listoParaRecoger: d.listo_para_recoger,
     recogerHasta: d.recoger_hasta,
@@ -298,18 +302,27 @@ export function textoCambiarlo(diasParaCambiar: number | null): string {
     : "Puedes cambiarlo en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta. El plazo va impreso en tu boleta.";
 }
 
-export type Hito = { nombre: string; cuando: string | null; estado: "hecho" | "ahora" | "falta" };
+export type Hito = { nombre: string; cuando: string | null; estado: "hecho" | "ahora" | "falta" | "anulado" };
 
 /** La línea de tiempo del pedido (maqueta, `hitos`): Separado → Confirmado por la tienda → Pagado → Entregado. Un pedido cerrado
- *  (vencido o anulado) marca hecho todo paso que tiene fecha (hasta dónde llegó antes de cerrarse) y nada como «ahora». */
-export function hitos(p: Pick<Pedido, "estado" | "creadoEn" | "confirmadoEn" | "pagadoEn" | "entregadoEn">): Hito[] {
+ *  (vencido o anulado) marca hecho todo paso que tiene fecha (hasta dónde llegó antes de cerrarse) y nada como «ahora». Un pedido
+ *  anulado NO muestra los pasos que quedaron sin hacer: solo los hechos y, al final, «Anulado» (con la X roja). */
+export function hitos(
+  p: Pick<Pedido, "estado" | "creadoEn" | "confirmadoEn" | "pagadoEn" | "entregadoEn"> & { cerradoEn?: string | null },
+): Hito[] {
   const orden: [EstadoPedido, string, string | null][] = [
     ["por_confirmar", "Separado", p.creadoEn],
     ["confirmado", "Confirmado por la tienda", p.confirmadoEn],
     ["pagado", "Pagado", p.pagadoEn],
     ["entregado", "Entregado", p.entregadoEn],
   ];
-  const cerrado = p.estado === "vencido" || p.estado === "anulado";
+  if (p.estado === "anulado") {
+    return [
+      ...orden.filter(([, , cuando]) => cuando !== null).map(([, nombre, cuando]) => ({ nombre, cuando, estado: "hecho" as const })),
+      { nombre: "Anulado", cuando: p.cerradoEn ?? null, estado: "anulado" },
+    ];
+  }
+  const cerrado = p.estado === "vencido";
   const idx = cerrado ? 0 : orden.findIndex(([e]) => e === p.estado);
   return orden.map(([, nombre, cuando], i) => ({
     nombre,

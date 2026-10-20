@@ -238,3 +238,13 @@
 @media (min-width: 960px) {
   .w-aviso { left: auto; right: 24px; max-width: 400px; }
 }
+/* El aviso destacado (la campanita: «ya llegó la talla que esperabas»): arriba, bajo la cabecera, con más letra y más aire para que no
+   se pase por alto. Mismo movimiento que el resto; sin su propia animación, para que «reducir movimiento» lo siga apagando. */
+.w-aviso.w-aviso-destacado { top: 88px; bottom: auto; padding: 16px 18px; font-size: 16px; font-weight: 600; border-radius: 16px; gap: 12px; box-shadow: 0 20px 36px -14px var(--sombra); animation-duration: 5s; }
+.w-aviso.w-aviso-destacado .ic { width: 24px; height: 24px; }
+/* El destacado que sale justo debajo de la campanita: ancho fijo (no se estira de lado a lado) y sin el ancla izquierda; el `top` y el
+   `right` los pone el hook, según dónde está el icono. */
+.w-aviso.w-aviso-bajo { left: auto; bottom: auto; width: min(360px, calc(100vw - 28px)); max-width: none; }
+@media (min-width: 960px) {
+  .w-aviso.w-aviso-destacado { left: auto; right: 24px; max-width: 460px; }
+}

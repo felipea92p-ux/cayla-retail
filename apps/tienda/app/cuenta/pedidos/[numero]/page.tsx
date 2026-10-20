@@ -90,7 +90,10 @@ export default async function MiPedido({ params }: { params: Promise<{ numero: s
             <ol className="w-linea">
               {hitos(p).map((h) => (
                 <li key={h.nombre} className="w-hito" data-e={h.estado}>
-                  <span className="w-hito-p">{h.estado === "hecho" && <Icono nombre="check" />}</span>
+                  <span className="w-hito-p">
+                    {h.estado === "hecho" && <Icono nombre="check" />}
+                    {h.estado === "anulado" && <Icono nombre="cerrar" />}
+                  </span>
                   <span>
                     {h.nombre}
                     {h.cuando && (

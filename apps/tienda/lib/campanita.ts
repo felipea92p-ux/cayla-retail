@@ -1,6 +1,5 @@
 import type { Prenda } from "./catalogo";
 import type { Dia } from "./cuentas";
-import type { AvisoClub } from "./inicio-aviso";
 
 // La campanita de la cabecera (ADR-0408; Felipe, 2026-10-17: avisar en la propia página cuando llegan prendas nuevas). Un solo lugar,
 // en toda página con cuenta, que dice dos cosas: «la talla que esperabas ya llegó» y «llegó algo nuevo desde tu última visita».
@@ -25,9 +24,6 @@ const COOKIE_CAMPANITA = "tienda-campanita-";
 
 /** Lo que dura la cookie: lo máximo que aguanta Chrome (400 días). Si se pierde, la campanita vuelve a empezar de cero, sin número. */
 const VIDA_DE_LA_COOKIE_S = 400 * 24 * 60 * 60;
-
-/** Cuántas tallas que llegaron se nombran en el panel; las demás van en una línea que lleva a «Mi perfil». */
-export const LLEGADAS_EN_LA_CAMPANITA = 4;
 
 /** El nombre de la cookie de ESTA persona (las 8 primeras letras de su usuario, como `avisosDelClub`). */
 export const nombreCookieCampanita = (usuarioId: string) => `${COOKIE_CAMPANITA}${usuarioId.toLowerCase().slice(0, 8)}`;
@@ -69,36 +65,97 @@ export function cookieDelDia(nombre: string, hoy: Dia, seguro: boolean): string 
 
 /* ---------------- Lo que dice el panel ---------------- */
 
-export type FilaLlegada = { clave: string; titulo: string; texto: string; href: string; sinVer: boolean };
+/** Cuántas notificaciones se muestran en el panel; el resto se ve en «Ver todas». */
+export const NOTIFICACIONES_EN_EL_PANEL = 5;
 
-export type DatosCampanita = {
-  /** Las tallas que esperaba y ya llegaron, las que no ha cerrado primero. Hasta `LLEGADAS_EN_LA_CAMPANITA`. */
-  llegadas: FilaLlegada[];
-  /** Cuántas tallas más llegaron y no se nombran. */
-  llegadasMas: number;
-  /** Prendas nuevas desde su última mirada; null si nunca miró (no hay número). */
-  novedades: number | null;
-  /** El número del globo: las tallas sin ver más las novedades. 0: sin globo. */
-  globo: number;
+/** Un aviso del panel: una talla que llegó o una respuesta de CAYLA, con la hora en que la cuenta lo recibió. */
+export type AvisoEnPanel = {
+  clave: string;
+  tipo: "llego" | "respuesta";
+  titulo: string;
+  texto: string;
+  href: string;
+  /** Cuándo lo recibió la cuenta (la hora guardada en el historial): el panel los ordena por esta hora, la más reciente primero. */
+  recibidoEn: string;
+  /** ¿Todavía no se leyó en profundidad? (su punto de color). */
+  sinVer: boolean;
 };
 
+export type DatosCampanita = {
+  /** Las notificaciones más recientes, la más nueva primero. Hasta `NOTIFICACIONES_EN_EL_PANEL`. */
+  recientes: AvisoEnPanel[];
+  /** ¿Hay más notificaciones de las que caben en el panel? Entonces el panel enlaza a «Ver todas». */
+  hayMas: boolean;
+  /** Prendas nuevas desde su última mirada; null si nunca miró (no hay número). */
+  novedades: number | null;
+  /** El número del globo: las notificaciones sin leer más las novedades. 0: sin globo. */
+  globo: number;
+  /** TODAS las claves de las notificaciones no borradas (no solo las del panel): la vista en vivo compara contra ellas para saber cuál es
+   *  nueva. */
+  claves: string[];
+  /** ¿Hay alguna notificación que todavía no se abrió el panel desde que llegó? Con «Entendido» (abrir el panel) el globo rojo se oculta,
+   *  y solo vuelve cuando llega una nueva. Los puntos y el número no cambian con «Entendido». */
+  pendientePanel: boolean;
+};
+
+/** Prefijos de las cookies de este aparato. «Leído» reutiliza la cookie del aviso al entrar (`tienda-aviso-`, la misma de `inicio-aviso`):
+ *  un aviso leído en profundidad también deja de salir ahí. «Entendido» del panel va aparte (`tienda-panel-visto-`). */
+export const PREFIJO_LEIDO = "tienda-aviso-";
+export const PREFIJO_PANEL_VISTO = "tienda-panel-visto-";
+/** Cuánto dura cada cookie que escribe el navegador: lo que más dura un aviso (medio año), como en `inicio-aviso`. */
+const DIAS_COOKIE_CAMPANITA = 180;
+
+/** La expresión de cookie que escribe el navegador para un aviso (`document.cookie = …`). */
+export function cookieDeClave(prefijo: string, clave: string, seguro: boolean): string {
+  return `${prefijo}${clave}=1; path=/; max-age=${DIAS_COOKIE_CAMPANITA * 24 * 60 * 60}; samesite=lax${seguro ? "; secure" : ""}`;
+}
+
+/** Un aviso que llegó, tal como lo lee la vista en vivo (`/api/avisos-club`): una talla o una respuesta. */
+export type LlegadaViva = { clave: string; titulo: string; href: string; tipo: "llego" | "respuesta" };
+
+/** Las tallas que llegaron y que la pantalla todavía no conoce (las que faltan en `conocidas`): lo que hay que avisar de inmediato. */
+export function llegadasNuevas(conocidas: ReadonlySet<string>, recibidas: readonly LlegadaViva[]): LlegadaViva[] {
+  return recibidas.filter((l) => !conocidas.has(l.clave));
+}
+
+/** Lo que dice el aviso breve cuando llega algo nuevo: una talla, una respuesta de CAYLA o varias cosas juntas. */
+export function textoLlegadasNuevas(nuevas: readonly LlegadaViva[]): string {
+  const respuestas = nuevas.filter((n) => n.tipo === "respuesta").length;
+  if (nuevas.length === 1) {
+    const [unica] = nuevas;
+    return unica.tipo === "respuesta" ? "CAYLA te respondió una recomendación." : `${unica.titulo}: la talla que esperabas.`;
+  }
+  if (respuestas === nuevas.length) return `CAYLA te respondió ${nuevas.length} recomendaciones.`;
+  if (respuestas === 0) return `Llegaron ${nuevas.length} tallas que esperabas.`;
+  return `Tienes ${nuevas.length} avisos nuevos.`;
+}
+
 /**
- * Arma lo que la campanita muestra. `avisos`: lo que está a favor de la persona (`leerAvisosDelClub`; null si la base no contestó:
- * sin tallas, y las novedades se ven igual). Solo cuentan las tallas que llegaron: el cumpleaños y el vale ya los dice el aviso del
- * Inicio y «Mi perfil». `vistos`: los avisos que cerró con «Entendido» (no suman al globo, pero siguen en el panel mientras la talla
- * esté disponible).
+ * Arma lo que la campanita muestra. `recientes`: la primera página del historial, de la más reciente a la más antigua (ya ordenada por la
+ * base). `claves`: todas las no borradas, y `total`: cuántas son en total (para saber si hay más de las que caben en el panel). `leidas`:
+ * las que ya se leyeron en profundidad (quitan el punto y restan del número). `enPanel`: las que ya se vieron al abrir el panel (ocultan
+ * el globo, no el punto ni el número). Si la base no contestó (`recientes` vacío y `claves` vacío), el panel dice que no hay nada, y
+ * las novedades se ven igual.
  */
-export function armarCampanita(avisos: readonly AvisoClub[] | null, vistos: ReadonlySet<string>, novedades: number | null): DatosCampanita {
-  const todas: FilaLlegada[] = (avisos ?? [])
-    .filter((a) => a.tipo === "llego")
-    .map((a) => ({ clave: a.clave, titulo: a.titulo, texto: a.texto, href: a.href ?? "/cuenta", sinVer: !vistos.has(a.clave) }));
-  // Las sin ver primero; entre iguales, el orden en que llegaron de la base (lo último que pidió, primero).
-  const ordenadas = [...todas.filter((f) => f.sinVer), ...todas.filter((f) => !f.sinVer)];
+export function armarCampanita(
+  recientes: readonly { clave: string; tipo: "llego" | "respuesta"; titulo: string; texto: string; href: string; recibidoEn: string }[],
+  claves: readonly string[],
+  total: number,
+  leidas: ReadonlySet<string>,
+  novedades: number | null,
+  enPanel: ReadonlySet<string> = new Set(),
+): DatosCampanita {
+  const enElPanel: AvisoEnPanel[] = recientes
+    .slice(0, NOTIFICACIONES_EN_EL_PANEL)
+    .map((a) => ({ ...a, sinVer: !leidas.has(a.clave) }));
+  const sinLeer = claves.filter((c) => !leidas.has(c)).length;
   return {
-    llegadas: ordenadas.slice(0, LLEGADAS_EN_LA_CAMPANITA),
-    llegadasMas: Math.max(0, ordenadas.length - LLEGADAS_EN_LA_CAMPANITA),
+    recientes: enElPanel,
+    hayMas: total > NOTIFICACIONES_EN_EL_PANEL,
     novedades,
-    globo: todas.filter((f) => f.sinVer).length + (novedades ?? 0),
+    globo: sinLeer + (novedades ?? 0),
+    claves: [...claves],
+    pendientePanel: claves.some((c) => !enPanel.has(c)),
   };
 }
 
@@ -114,7 +171,3 @@ export function textoNovedades(n: number | null): string {
   if (n === 0) return "Desde tu última visita no llegó nada nuevo.";
   return `${n === 1 ? "Llegó 1 prenda nueva" : `Llegaron ${n} prendas nuevas`} desde tu última visita.`;
 }
-
-/** «Y llegó 1 talla más que esperabas: mírala en Mi perfil.» */
-export const textoLlegadasMas = (n: number) =>
-  n === 1 ? "Y llegó 1 talla más que esperabas: mírala en Mi perfil." : `Y llegaron ${n} tallas más que esperabas: míralas en Mi perfil.`;
