@@ -33,9 +33,11 @@ import {
   TOPE_PRENDAS,
   unidades,
   type Bolsa,
+  vistaBolsa,
 } from "@/lib/bolsa";
+import { codigoCompleto, CUPON_SIN_RESPUESTA, mensajeDeCupon, normalizarCodigo, type ValidacionCupon } from "@/lib/cupon";
 import { hrefConVolver } from "@/lib/entrada";
-import { guardarBolsa, leerBolsaDeLaCookie, leerBolsaEnBase, separarEnBase } from "@/lib/bolsa-servidor";
+import { guardarBolsa, leerBolsaDeLaCookie, leerBolsaEnBase, separarEnBase, validarCuponEnBase } from "@/lib/bolsa-servidor";
 import { variantesParaLaBolsa } from "@/lib/looks";
 import { codigoDeLaUrl, vivas } from "@/lib/pedidos";
 import { leerPedido } from "@/lib/pedidos-servidor";
@@ -196,7 +198,19 @@ export async function separar(_previo: EstadoSeparar, datos: FormData): Promise<
     marca = randomUUID();
     await guardarBolsa({ ...bolsa, marca });
   }
-  const r = await separarEnBase(sesion.usuarioId, sede, vistas, marca);
+  // El cupón del Club (20261019224000): se pregunta antes a la base (así cuenta los códigos que no existen) y, si sirve, «Separar» lo
+  // reserva para este pedido. Si no sirve, no se separa nada: la persona lo corrige o lo quita.
+  const escrito = String(datos.get("cupon") ?? "").trim();
+  let cupon: string | null = null;
+  if (escrito) {
+    if (!codigoCompleto(escrito)) return { mensaje: "Ese código de cupón está incompleto. Revísalo o bórralo para separar.", marca };
+    cupon = normalizarCodigo(escrito);
+    const total = vistas.reduce((n, v) => n + v.precio * v.cantidad, 0);
+    const v = await validarCuponEnBase(sesion.usuarioId, cupon, Math.round(total * 100) / 100);
+    if (!v) return { mensaje: CUPON_SIN_RESPUESTA, marca };
+    if (!v.ok) return { mensaje: mensajeDeCupon(v), marca };
+  }
+  const r = await separarEnBase(sesion.usuarioId, sede, vistas, marca, cupon);
   if (!r.ok) {
     refresh();
     return { ...respuestaDeSeparar(r.hint, r.detalle), marca };
@@ -222,4 +236,23 @@ export async function volverASeparar(datos: FormData): Promise<void> {
     marca: randomUUID(),
   });
   redirect("/bolsa");
+}
+
+export type RespuestaCupon = { estado: "ok"; validacion: Extract<ValidacionCupon, { ok: true }>; total: number } | { estado: "no"; mensaje: string };
+
+/**
+ * «Código de cupón» de la bolsa (`components/bolsa/CuponDeLaBolsa.tsx`): ¿sirve este código para ESTA bolsa? El total sale de la base
+ * (la bolsa de la cookie con la tienda elegida), no de lo que diga la pantalla. Solo pregunta: el cupón se reserva al separar.
+ */
+export async function revisarCupon(codigo: unknown): Promise<RespuestaCupon> {
+  if (typeof codigo !== "string" || !codigoCompleto(codigo)) return { estado: "no", mensaje: "Escribe el código completo: CAY- y ocho letras o números." };
+  const sesion = await leerSesion();
+  if (sesion.estado !== "con_sesion") return { estado: "no", mensaje: "Entra a tu cuenta para usar tu cupón." };
+  const bolsa = await leerBolsaDeLaCookie();
+  const enBase = bolsa.lineas.length ? await leerBolsaEnBase(bolsa.lineas, bolsa.sedeId) : null;
+  if (!enBase) return { estado: "no", mensaje: CUPON_SIN_RESPUESTA };
+  const total = vistaBolsa(enBase).total;
+  const v = await validarCuponEnBase(sesion.usuarioId, normalizarCodigo(codigo), total);
+  if (!v) return { estado: "no", mensaje: CUPON_SIN_RESPUESTA };
+  return v.ok ? { estado: "ok", validacion: v, total } : { estado: "no", mensaje: mensajeDeCupon(v) };
 }

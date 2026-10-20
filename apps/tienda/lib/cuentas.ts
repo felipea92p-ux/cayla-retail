@@ -709,27 +709,9 @@ export function leerMiCuenta(dato: unknown): MiCuenta | null {
   };
 }
 
-const esquemaBeneficios = z.object({
-  pct: z.coerce.number().positive(),
-  escala: z.array(z.object({ anio: z.coerce.number().int().positive(), monto: z.coerce.number().positive() })).min(1),
-  compras: z.coerce.number().positive(),
-  monto_minimo: z.coerce.number().positive(),
-  dias: z.coerce.number().int().positive(),
-});
-
-export type Beneficios = { pct: number; escala: { anio: number; monto: number }[]; compras: number; montoMinimo: number; dias: number };
-
-/** La respuesta de `tienda_club_beneficios`. null si no se entiende: los términos se muestran sin las cifras. */
-export function leerBeneficios(dato: unknown): Beneficios | null {
-  const r = esquemaBeneficios.safeParse(dato);
-  if (!r.success) return null;
-  const { pct, escala, compras, monto_minimo, dias } = r.data;
-  return { pct, escala: [...escala].sort((a, b) => a.anio - b.anio), compras, montoMinimo: monto_minimo, dias };
-}
-
 /**
  * «S/ 20»; con céntimos, «S/ 25.50». «S/» y la cifra van con un espacio que no se parte (U+00A0, ADR-0413): en el celular, «Mi cuenta»
- * decía «recibes un vale de S/» al final de un renglón y «20» al comienzo del siguiente.
+ * decía «S/» al final de un renglón y «20» al comienzo del siguiente.
  */
 export const soles = (monto: number) => `S/\u00a0${Number.isInteger(monto) ? String(monto) : monto.toFixed(2)}`;
 

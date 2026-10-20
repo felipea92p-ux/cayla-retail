@@ -32,7 +32,7 @@ export const MENSAJES = {
   dniLimite: "Hiciste muchas búsquedas seguidas. Espera un rato y vuelve a intentar.",
   celAyuda: "Por aquí te escribe la tienda por tus pedidos.",
   celMal: "El celular empieza en 9.",
-  cumpleAyuda: "Opcional. Con tu cumpleaños te llega tu descuento: día y mes; el año es opcional.",
+  cumpleAyuda: "Opcional. Con tu cumpleaños te regalamos puntos en tu mes: día y mes; el año es opcional.",
   cumpleMal: "Revisa el día, el mes (del 1 al 12) y el año.",
   cumpleMenor: "El Club CAYLA es para mayores de 18 años.",
   mayor: "Soy mayor de 18 años.",

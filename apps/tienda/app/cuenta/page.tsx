@@ -18,13 +18,16 @@ import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { hrefConVolver } from "@/lib/entrada";
 import { conciliarCorreo } from "@/lib/mi-cuenta-servidor";
 import { leerMisPedidos } from "@/lib/pedidos-servidor";
-import { lineaDeMiembro, resumenAvisos, resumenClub, resumenFavoritos, resumenPedidos } from "@/lib/perfil";
+import { lineaDeMiembro, resumenAvisos, resumenFavoritos, resumenPedidos } from "@/lib/perfil";
+import { resumenDePuntos } from "@/lib/puntos";
+import { leerMisPuntosEnBase } from "@/lib/puntos-servidor";
 import { anioLima } from "@/lib/portada";
 import { leerSesion } from "@/lib/sesion-servidor";
 import "../estilos/catalogo.css";
 import "../estilos/club.css";
 import "../estilos/mi-cuenta.css";
 import "../estilos/perfil.css";
+import "../estilos/puntos.css";
 
 export const metadata: Metadata = { title: "Mi perfil · CAYLA", robots: { index: false, follow: false } };
 
@@ -46,10 +49,11 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
   }
 
   // La cuenta, sus pedidos, el Club (que anota la visita) y el catálogo (para dibujar las prendas con su precio) a la vez.
-  const [lectura, pedidos, club, catalogo] = await Promise.all([
+  const [lectura, pedidos, club, lecturaPuntos, catalogo] = await Promise.all([
     leerMiCuentaEnBase(sesion.usuarioId),
     leerMisPedidos(sesion.usuarioId),
     leerMiClubEnBase(sesion.usuarioId),
+    leerMisPuntosEnBase(sesion.usuarioId),
     leerCatalogo(null),
   ]);
   if (lectura.estado === "sin_respuesta") {
@@ -84,6 +88,7 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
   const correoDeEntrada = await conciliarCorreo(sesion.usuarioId, sesion.correo, cuenta.correo);
   const hoy = hoyLima();
   const miClub = club.estado === "ok" ? club.club : null;
+  const misPuntos = lecturaPuntos.estado === "ok" ? lecturaPuntos.puntos : null;
   // Las prendas del catálogo por su modelo: el mismo precio (con «Todas», el mayor) y las mismas fotos que la lista.
   const porId = new Map<string, Prenda>((catalogo?.prendas ?? []).map((p) => [p.id, p]));
   const deIds = (ids: readonly string[]) => ids.flatMap((id) => {
@@ -118,7 +123,7 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
           <AtajosDelPerfil
             atajos={[
               { ancla: "pf-pedidos", icono: "pedido", nombre: "Mis pedidos", resumen: resumenPedidos(pedidos.estado === "ok" ? pedidos.pedidos : null) },
-              { ancla: "pf-club", icono: "regalo", nombre: "Mi Club", resumen: resumenClub(miClub?.club ?? null, esDelClub) },
+              { ancla: "pf-club", icono: "regalo", nombre: "Mi Club", resumen: resumenDePuntos(misPuntos, esDelClub) },
               { ancla: "pf-favoritos", icono: "corazon", nombre: "Favoritos", resumen: resumenFavoritos(miClub ? miClub.favoritos.length : null) },
               { ancla: "pf-avisos", icono: "campana", nombre: "Te avisamos", resumen: resumenAvisos(miClub?.esperas ?? null) },
             ]}
@@ -129,7 +134,7 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
             {miClub ? (
               <>
                 {esDelClub ? (
-                  <BeneficiosDelClub club={miClub.club} hoy={hoy} tarjeta={tarjeta} />
+                  <BeneficiosDelClub club={miClub.club} puntos={misPuntos} hoy={hoy} tarjeta={tarjeta} />
                 ) : (
                   // Todavía no es del Club: lo que gana y el camino, sin tarjeta con un año que no es suyo.
                   <SeccionDelPerfil id="pf-club" titulo="Mi Club CAYLA" mitad>
@@ -137,8 +142,8 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
                       <div className="pf-club-fila">
                         <div className="pf-beneficios">
                           <p className="w-texto-sec">
-                            Con tu documento y tu celular entras al Club: descuento en tu cumpleaños y un vale de compra por cada año. Son los mismos
-                            datos que pide «Separar», y se piden una sola vez.
+                            Con tu documento y tu celular entras al Club: ganas puntos con cada compra, los cambias por cupones de descuento y
+                            recibes un regalo en tu cumpleaños. Son los mismos datos que pide «Separar», y se piden una sola vez.
                           </p>
                           <Link className="t-btn t-btn-chico" href={hrefConVolver("/cuenta/club", null)}>
                             Completar mis datos y entrar al Club

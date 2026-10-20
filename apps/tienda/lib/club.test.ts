@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  beneficioAniversario,
-  beneficioCumple,
   claveEspera,
   detalleEspera,
   etiquetaBotonAvisame,
@@ -18,14 +16,11 @@ import {
   mensajeFavorito,
   MENSAJES_CLUB,
   ordenarEsperas,
-  proximoCumple,
   textoAvisoAnotado,
   textoAvisoQuitado,
   textoBotonAvisame,
   textoNovedades,
   tituloNovedades,
-  type Aniversario,
-  type Cumple,
   type Espera,
   type MiClub,
 } from "./club";
@@ -79,22 +74,6 @@ const club = (): MiClub => {
   return c;
 };
 
-const cumple = (c: Partial<Cumple>): Cumple => ({ estado: "proximo", dia: 3, mes: 5, pct: 10, hasta: null, canjeadoEl: null, ...c });
-const aniv = (a: Partial<Aniversario>): Aniversario => ({
-  estado: "en_camino",
-  valeMonto: null,
-  valeVence: null,
-  valeCanjeadoEl: null,
-  proximo: "2027-05-03",
-  anioCuenta: false,
-  compras: 2,
-  monto: 150.5,
-  comprasMeta: 6,
-  montoMeta: 600,
-  siguienteMonto: 20,
-  dias: 60,
-  ...a,
-});
 const espera = (e: Partial<Espera>): Espera => ({ ...club().esperas[0], ...e });
 
 describe("leer lo que devuelve tienda_mi_club", () => {
@@ -128,81 +107,10 @@ describe("las fechas, como se dicen", () => {
     expect(fechaDicha("2026-02-01T05:00:00+00:00", HOY)).toBe("1 de febrero");
   });
 
-  it("el próximo cumpleaños: este año si no pasó, el que viene si ya pasó", () => {
-    expect(proximoCumple(20, 10, HOY)).toBe("20 de octubre");
-    expect(proximoCumple(14, 10, HOY)).toBe("14 de octubre");
-    expect(proximoCumple(13, 10, HOY)).toBe("13 de octubre de 2027");
-    expect(proximoCumple(3, 5, HOY)).toBe("3 de mayo de 2027");
-  });
-
   it("una lista: «Lima», «Lima y Trujillo», «Arequipa, Lima y Trujillo»", () => {
     expect(listaDicha(["Lima"])).toBe("Lima");
     expect(listaDicha(["Lima", "Trujillo"])).toBe("Lima y Trujillo");
     expect(listaDicha(["Arequipa", "Lima", "Trujillo"])).toBe("Arequipa, Lima y Trujillo");
-  });
-});
-
-describe("el descuento de cumpleaños (la regla de la caja, ADR-0288 D-5)", () => {
-  it("disponible: el %, hasta cuándo y que se usa en caja con su DNI", () => {
-    const b = beneficioCumple(cumple({ estado: "disponible", mes: 10, hasta: "2026-10-31" }), false, HOY);
-    expect(b).toEqual({
-      titulo: "Tu descuento de cumpleaños: 10 %",
-      texto: "Es tu mes: úsalo en una compra en cualquier tienda CAYLA hasta el 31 de octubre. En caja, con tu DNI.",
-      disponible: true,
-      avance: null,
-    });
-  });
-
-  it("canjeado: cuándo lo usó y cuándo vuelve", () => {
-    const b = beneficioCumple(cumple({ estado: "canjeado", mes: 10, canjeadoEl: "2026-10-05" }), false, HOY);
-    expect(b.titulo).toBe("Descuento de cumpleaños: ya lo usaste este año");
-    expect(b.texto).toBe("Lo usaste el 5 de octubre. Vuelve a estar disponible en octubre de 2027.");
-    expect(b.disponible).toBe(false);
-  });
-
-  it("próximo: WhatsApp solo si lo autorizó (los términos: «solo si lo autorizaste»)", () => {
-    expect(beneficioCumple(cumple({}), true, HOY).texto).toBe("10 % en una compra en tienda durante tu mes. Te avisamos por WhatsApp y también lo ves aquí.");
-    expect(beneficioCumple(cumple({}), false, HOY).texto).toBe("10 % en una compra en tienda durante tu mes. Lo ves aquí cuando llegue tu mes.");
-    expect(beneficioCumple(cumple({}), false, HOY).titulo).toBe("Descuento de cumpleaños: 3 de mayo de 2027");
-  });
-
-  it("sin fecha: díselo a la tienda; un % con decimales se dice con uno", () => {
-    expect(beneficioCumple(cumple({ estado: "sin_fecha", dia: null, mes: null }), false, HOY).texto).toMatch(/no tiene tu cumpleaños/);
-    expect(beneficioCumple(cumple({ estado: "disponible", pct: 12.5 }), false, HOY).titulo).toBe("Tu descuento de cumpleaños: 12.5 %");
-  });
-});
-
-describe("el vale por aniversario (la regla de la caja, ADR-0288 G-9 y G-13)", () => {
-  it("con el vale: el monto y hasta cuándo se usa", () => {
-    const b = beneficioAniversario(aniv({ estado: "vale", valeMonto: 20, valeVence: "2026-12-02" }), false, HOY);
-    expect(b).toEqual({
-      titulo: "Tienes un vale de S/\u00a020",
-      texto: "Por tu aniversario con CAYLA. Úsalo en una compra en cualquier tienda CAYLA hasta el 2 de diciembre. En caja, con tu DNI.",
-      disponible: true,
-      avance: null,
-    });
-  });
-
-  it("en camino: cuándo, cuánto, el umbral y lo que lleva, con su barra", () => {
-    const b = beneficioAniversario(aniv({}), false, HOY);
-    // «S/» y la cifra con un espacio que no se parte (ADR-0413): en el celular, «S/» no queda sola al final de un renglón.
-    expect(b.texto).toBe("El 3 de mayo de 2027 recibes un vale de S/\u00a020 si este año sumas 6 compras o S/\u00a0600. Llevas 2 compras y S/\u00a0150.50.");
-    // La barra es lo que más le acerca: 2 de 6 compras (33 %) gana a S/ 150.50 de S/ 600 (25 %).
-    expect(b.avance).toBeCloseTo(2 / 6);
-    expect(beneficioAniversario(aniv({ compras: 0, monto: 0 }), false, HOY).texto).toMatch(/Todavía no tienes compras este año\.$/);
-    expect(beneficioAniversario(aniv({ compras: 1, monto: 590 }), false, HOY).avance).toBeCloseTo(590 / 600);
-  });
-
-  it("el año ya cuenta: recibe su vale en su aniversario (y por WhatsApp solo si lo autorizó)", () => {
-    const b = beneficioAniversario(aniv({ anioCuenta: true, compras: 6, monto: 300 }), true, HOY);
-    expect(b.titulo).toBe("Vale por tu aniversario: S/\u00a020");
-    expect(b.texto).toBe("Este año ya cuenta: el 3 de mayo de 2027 recibes tu vale y te avisamos por WhatsApp.");
-    expect(b.avance).toBe(1);
-  });
-
-  it("canjeado: dice cuándo usó el de este aniversario y sigue con el próximo", () => {
-    const b = beneficioAniversario(aniv({ estado: "canjeado", valeMonto: 30, valeCanjeadoEl: "2026-09-20", siguienteMonto: 40 }), false, HOY);
-    expect(b.texto).toMatch(/^Usaste tu vale de S\/\u00a030 el 20 de septiembre\. El 3 de mayo de 2027 recibes un vale de S\/\u00a040/);
   });
 });
 
@@ -293,7 +201,7 @@ describe("los botones: corazón y «Avísame»", () => {
   });
 
   it("textos sin género: ni «clienta», ni «socia», ni «bienvenida»", () => {
-    const todo = JSON.stringify(MENSAJES_CLUB) + beneficioCumple(cumple({}), true, HOY).texto;
+    const todo = JSON.stringify(MENSAJES_CLUB);
     expect(todo).not.toMatch(/clienta|socia|bienvenida|bienvenido/i);
   });
 });

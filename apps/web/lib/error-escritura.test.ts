@@ -699,15 +699,22 @@ describe("la ficha de un cliente (ADR-0416)", () => {
   });
 });
 
-describe("club de clientas: el canje del cumpleaños (ADR-0288 tanda 1c)", () => {
+// Programa de puntos (2026-10-19): el cupón del Club en `registrar_venta` y el canje de puntos. El 10 % de cumpleaños y el vale de
+// aniversario se retiraron: la base los rechaza con `beneficio_retirado`.
+describe("club: el cupón y los puntos (programa de puntos)", () => {
   const HINTS = [
-    "cumple_sin_clienta",
-    "cumple_no_socia",
-    "cumple_fuera_de_mes",
-    "cumple_ya_canjeado",
-    "cumple_descuento_distinto",
-    "cumple_sin_canje",
-    "cumple_sin_monto",
+    "cupon_no_existe",
+    "cupon_ya_usado",
+    "cupon_vencido",
+    "cupon_compra_minima",
+    "cupon_cubre_todo",
+    "cupon_sin_monto",
+    "cupon_descuento_distinto",
+    "club_un_cupon_por_compra",
+    "beneficio_retirado",
+    "puntos_insuficientes",
+    "canje_menor_al_minimo",
+    "canje_no_multiplo",
   ];
 
   it("el mensaje de la base pasa tal cual", () => {
@@ -721,27 +728,7 @@ describe("club de clientas: el canje del cumpleaños (ADR-0288 tanda 1c)", () =>
     for (const hint of HINTS) {
       const salida = traducirError({ message: "", code: "P0001", hint }, "registrar la venta");
       expect(salida, hint).not.toContain("Código:");
-      expect(salida, hint).toMatch(/cumpleaños/);
-    }
-  });
-});
-
-// ADR-0288 tanda 1g: el vale de aniversario en `registrar_venta`, con el mismo criterio que el cumpleaños.
-describe("club de clientas: el vale de aniversario (ADR-0288 tanda 1g)", () => {
-  const HINTS = ["club_un_cupon_por_compra", "aniversario_no_disponible", "aniversario_ya_canjeado", "aniversario_sin_monto"];
-
-  it("el mensaje de la base pasa tal cual", () => {
-    for (const hint of HINTS) {
-      const message = `Mensaje de la base para ${hint}.`;
-      expect(traducirError({ message, code: "P0001", hint }, "registrar la venta"), hint).toBe(message);
-    }
-  });
-
-  it("sin mensaje de la base, cada hint tiene su frase de respaldo en castellano", () => {
-    for (const hint of HINTS) {
-      const salida = traducirError({ message: "", code: "P0001", hint }, "registrar la venta");
-      expect(salida, hint).not.toContain("Código:");
-      expect(salida, hint).toMatch(/vale de aniversario/);
+      expect(salida, hint).toMatch(/cupón|puntos|club/);
     }
   });
 });

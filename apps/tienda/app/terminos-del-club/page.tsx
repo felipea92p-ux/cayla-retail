@@ -5,7 +5,8 @@ import { IndiceLegal } from "@/components/ayuda/IndiceLegal";
 import { SeccionLegal } from "@/components/ayuda/SeccionLegal";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import type { SeccionLegal as TipoSeccion } from "@/lib/ayuda";
-import { TEXTOS_VERSION } from "@/lib/cuentas";
+import { soles, TEXTOS_VERSION } from "@/lib/cuentas";
+import { leerConfigDePuntosDelClub } from "@/lib/puntos-servidor";
 // La lectura larga (el índice, los títulos con su número y los enlaces dentro del texto) tiene su cara en ayuda.css.
 import "../estilos/ayuda.css";
 
@@ -28,19 +29,20 @@ const [miembros, codigo, puntos, cupones, devoluciones, avisos, cambios, conserv
 
 /**
  * Los términos del Club CAYLA. BORRADOR del programa de puntos (2026-10-19, docs/club/texto-legal-puntos-v1-borrador.md): reemplaza al
- * descuento de cumpleaños y al vale de aniversario, que se retiraron. Lo revisa el abogado; mientras tanto es la versión 3 de
- * `club_textos`, la misma que muestra la página del ERP (la cuenta registra la versión que aceptó). Las cifras son las que decidió Felipe
- * (2026-10-19) y van escritas: la producción todavía no tiene la configuración de los puntos, que llega con el programa (rama
- * `claude/cayla-points-loyalty-d8d7d5`, ADR-0459); ese día vuelven a leerse de la base. Cómo se lee (la letra, el índice fijo al
- * costado, cada título con su número) es el de la revisión «a nivel mundial» (2026-10-16).
+ * descuento de cumpleaños y al vale de aniversario, que se retiraron. Lo revisa el abogado antes de publicarse (`club_textos` sigue con la
+ * versión anterior hasta entonces; la cuenta registra la versión que aceptó). Las cifras (puntos por sol, lo que valen, el canje, la
+ * compra mínima, los días del cupón y el regalo de cumpleaños) salen de la base, las mismas que usa la caja (`tienda_puntos_config`); si
+ * la base no contesta, se dicen sin cifras. Cómo se lee (la letra, el índice fijo al costado, cada título con su número) es el de la
+ * revisión «a nivel mundial» (2026-10-16).
  */
-export default function TerminosDelClub() {
-  const porSol = "1 punto por cada S/ 1";
-  const valen = "100 puntos valen S/ 5";
-  const minimo = "desde 200 puntos (S/ 10)";
-  const dias = "7 días";
-  const veces = "3 veces su valor";
-  const regalo = "100 puntos";
+export default async function TerminosDelClub() {
+  const c = await leerConfigDePuntosDelClub();
+  const porSol = c ? `${c.puntosPorSol === 1 ? "1 punto" : `${c.puntosPorSol} puntos`} por cada S/\u00a01` : "puntos por cada sol";
+  const valen = c ? `100 puntos valen ${soles(c.solesPor100)}` : "cada 100 puntos valen un monto en soles";
+  const minimo = c ? `desde ${c.canjeMinimo.toLocaleString("es-PE")} puntos (${soles(Math.floor(c.canjeMinimo / 100) * c.solesPor100)})` : "desde un mínimo de puntos";
+  const dias = c ? `${c.vigenciaDias} ${c.vigenciaDias === 1 ? "día" : "días"}` : "unos días";
+  const veces = c ? `${Number.isInteger(c.compraMinimaX) ? c.compraMinimaX : c.compraMinimaX.toFixed(2)} veces su valor` : "varias veces su valor";
+  const regalo = c ? `${c.regaloCumple.toLocaleString("es-PE")} puntos` : "puntos de regalo";
   return (
     <MarcoCuenta segunSesion conPie>
       <div className="t-ancho">

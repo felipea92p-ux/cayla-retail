@@ -56,6 +56,7 @@ import {
   textoCierre,
   textoDeDonde,
   textoDisponible,
+  textoDelCupon,
   type BoletaWeb,
   type DecisionLinea,
   type EstadoPedidoWeb,
@@ -1050,6 +1051,14 @@ function BloqueDinero({
           </dd>
         </div>
       </dl>
+      {/* El cupón del Club que el cliente puso al separar (20261019224000): ya está restado del total. */}
+      {p.cupon && (
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-sand pt-2 text-[13px]">
+          <span className="tabular-nums text-tinta">{textoDelCupon(p.cupon).titulo}</span>
+          <Chip tono={p.cupon.estado === "liberado" ? "pizarra" : "verde"}>{textoDelCupon(p.cupon).chip}</Chip>
+          <span className="block w-full text-[12px] text-taupe">{textoDelCupon(p.cupon).detalle}</span>
+        </p>
+      )}
       {p.pagos.length === 0 ? (
         <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Wallet />}>
           Todavía no registra pagos.
