@@ -192,40 +192,45 @@ function Formulario({ base, hoy }: { base: ResumenDeBeneficios["vigente"]; hoy: 
   }
 
   return (
-    <form onSubmit={guardar} className="anim-sube grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]" style={{ "--i": 3 } as CSSProperties}>
+    <form onSubmit={guardar} className="anim-sube grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] min-[1760px]:grid-cols-[minmax(0,1fr)_420px]" style={{ "--i": 3 } as CSSProperties}>
       <div className="space-y-6 rounded-xl border border-sand bg-papel p-5" data-guia="beneficios.formulario">
         <section className="space-y-3">
           <TituloGrupo>Lo que gana</TituloGrupo>
-          <Fila campo="puntosPorSol" titulo={"Puntos por cada S/\u00a01 que paga"} fin="puntos" decimal {...fila}>
-            Una compra de {soles(150)} le da <b className="font-medium text-tinta">{puntos(ejemploDelPrograma(actual, 150).puntosDeLaCompra)}</b>.
-          </Fila>
-          <Fila campo="regaloCumple" titulo="Regalo de cumpleaños" fin="puntos" {...fila}>
-            {actual.regaloCumple > 0 ? (
-              <>
-                Con su primera compra de su mes. Equivalen a <b className="font-medium text-tinta">{soles(ejemplo.valorDelRegalo)}</b>.
-              </>
-            ) : (
-              "Con 0, el cumpleaños no regala puntos."
-            )}
-          </Fila>
+          {/* En una pantalla muy ancha (Clientes va a ancho completo desde el 2026-10-20), los campos van de a dos. */}
+          <div className="grid gap-3 min-[1760px]:grid-cols-2">
+            <Fila campo="puntosPorSol" titulo={"Puntos por cada S/\u00a01 que paga"} fin="puntos" decimal {...fila}>
+              Una compra de {soles(150)} le da <b className="font-medium text-tinta">{puntos(ejemploDelPrograma(actual, 150).puntosDeLaCompra)}</b>.
+            </Fila>
+            <Fila campo="regaloCumple" titulo="Regalo de cumpleaños" fin="puntos" {...fila}>
+              {actual.regaloCumple > 0 ? (
+                <>
+                  Con su primera compra de su mes. Equivalen a <b className="font-medium text-tinta">{soles(ejemplo.valorDelRegalo)}</b>.
+                </>
+              ) : (
+                "Con 0, el cumpleaños no regala puntos."
+              )}
+            </Fila>
+          </div>
         </section>
 
         <section className="space-y-3">
           <TituloGrupo>Cuánto valen y cuándo se canjean</TituloGrupo>
-          <Fila campo="solesPor100" titulo="100 puntos valen" inicio="S/" decimal aviso={conAviso("solesPor100")} {...fila}>
-            Es el descuento que recibe al canjear. Si lo cambias, rige en {DIAS_DE_AVISO} días para avisarlo a los clientes.
-          </Fila>
-          <Fila campo="canjeMinimo" titulo="Puede canjear desde" fin="puntos" aviso={conAviso("canjeMinimo")} {...fila}>
-            Su primer cupón, de <b className="font-medium text-tinta">{soles(ejemplo.valorDelPrimerCupon)}</b>, lo consigue cuando sus compras suman{" "}
-            <b className="font-medium text-tinta">{soles(ejemplo.comprasParaElPrimerCupon)}</b> (en una o varias visitas).
-          </Fila>
-          <Fila campo="compraMinimaX" titulo="El cupón se usa en compras de al menos" fin="veces su valor" decimal {...fila}>
-            Un cupón de <b className="font-medium text-tinta">{soles(ejemplo.valorDelPrimerCupon)}</b> se usa en compras desde{" "}
-            <b className="font-medium text-tinta">{soles(ejemplo.compraMinimaDelCupon)}</b>. Así nunca paga la compra entera.
-          </Fila>
-          <Fila campo="vigenciaDias" titulo="El cupón dura" fin="días" {...fila}>
-            Si no lo usa en ese tiempo, sus puntos vuelven a su saldo.
-          </Fila>
+          <div className="grid gap-3 min-[1760px]:grid-cols-2">
+            <Fila campo="solesPor100" titulo="100 puntos valen" inicio="S/" decimal aviso={conAviso("solesPor100")} {...fila}>
+              Es el descuento que recibe al canjear. Si lo cambias, rige en {DIAS_DE_AVISO} días para avisarlo a los clientes.
+            </Fila>
+            <Fila campo="canjeMinimo" titulo="Puede canjear desde" fin="puntos" aviso={conAviso("canjeMinimo")} {...fila}>
+              Su primer cupón, de <b className="font-medium text-tinta">{soles(ejemplo.valorDelPrimerCupon)}</b>, lo consigue cuando sus compras suman{" "}
+              <b className="font-medium text-tinta">{soles(ejemplo.comprasParaElPrimerCupon)}</b> (en una o varias visitas).
+            </Fila>
+            <Fila campo="compraMinimaX" titulo="El cupón se usa en compras de al menos" fin="veces su valor" decimal {...fila}>
+              Un cupón de <b className="font-medium text-tinta">{soles(ejemplo.valorDelPrimerCupon)}</b> se usa en compras desde{" "}
+              <b className="font-medium text-tinta">{soles(ejemplo.compraMinimaDelCupon)}</b>. Así nunca paga la compra entera.
+            </Fila>
+            <Fila campo="vigenciaDias" titulo="El cupón dura" fin="días" {...fila}>
+              Si no lo usa en ese tiempo, sus puntos vuelven a su saldo.
+            </Fila>
+          </div>
         </section>
 
         <section className="space-y-3">

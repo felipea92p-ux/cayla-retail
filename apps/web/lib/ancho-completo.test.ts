@@ -3,10 +3,13 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ARBOL, type Nodo } from "./menu";
 
-// Candado del ancho completo del Inicio de almacén (Felipe, 2026-09-30: «debería ocupar toda la pantalla en cualquier resolución o
-// zoom»; ADR-0292). El tope de 64 rem lo pone `AppShell` a TODA pantalla que no esté en `SIN_TOPE_DE_ANCHO`. Agregar «/» a esa lista
-// estiraría el Inicio de todas las cuentas, que no fueron pensadas para eso (Equipo de hoy, «Te toca» de la tienda). Por eso el
-// Inicio de almacén lo pide con un atributo, `data-ancho-completo`, que el `<main>` lee con `has-[[data-ancho-completo]]:max-w-none`.
+// Candado del ANCHO de las pantallas (ADR-0462, Felipe 2026-10-20: «toda pantalla nueva ocupe todo el espacio de la pantalla»). Desde ese
+// día toda pantalla va a ancho completo; el tope de 64 rem queda solo para el Inicio («/», exacto) y las rutas de `CON_TOPE_DE_ANCHO`, que
+// nacieron antes de la regla: es deuda, solo baja, y una ruta nueva no puede entrar (CON_TOPE_HOY, más abajo).
+//
+// El Inicio de almacén (Felipe, 2026-09-30, ADR-0292) pide el ancho completo con un atributo, `data-ancho-completo`, que el `<main>` lee
+// con `has-[[data-ancho-completo]]:max-w-none`: quitarle el tope a «/» estiraría el Inicio de todas las cuentas, que no fueron pensadas
+// para eso (Equipo de hoy, «Te toca» de la tienda).
 //
 // Contrato. PROMETE: que `AppShell` conserva esa regla; que el marcador vive en el Inicio de almacén; que ninguna otra pantalla o
 // componente lo escribe (una pantalla nueva que necesite ancho completo lo decide con Felipe y lo agrega acá a propósito); y que
@@ -17,6 +20,8 @@ import { ARBOL, type Nodo } from "./menu";
 
 const RAIZ = join(__dirname, "..");
 const MARCADOR = "data-ancho-completo";
+/** Las rutas que llevaban el tope el 2026-10-20, cuando se invirtió la regla. Al revisar una a lo ancho, se saca de AppShell y de aquí. */
+const CON_TOPE_HOY = ["/actividad", "/buscar", "/comercial", "/configuracion", "/finanzas", "/global", "/movimientos", "/pedidos-no-atendidos", "/rendimiento", "/sin-acceso", "/tienda-web"];
 const QUIEN_PIDE_ANCHO_COMPLETO = ["components/inicio-almacen/InicioAlmacen.tsx", "components/observatorio/Observatorio.tsx", "components/ui/Aventurero.tsx"];
 
 function archivos(dir: string): string[] {
@@ -28,19 +33,49 @@ function archivos(dir: string): string[] {
   });
 }
 
+const SHELL = () => readFileSync(join(RAIZ, "components/AppShell.tsx"), "utf8");
+const conTope = () =>
+  (/const CON_TOPE_DE_ANCHO = \[([^\]]*)\]/.exec(SHELL())?.[1] ?? "").split(",").map((r) => r.trim().replace(/"/g, "")).filter(Boolean);
+const rutas = (nodos: readonly Nodo[]): string[] => nodos.flatMap((n) => [...("ruta" in n ? [n.ruta] : []), ...("hijos" in n && n.hijos ? rutas(n.hijos) : [])]);
+const llevaTope = (ruta: string) => ruta === "/" || conTope().some((r) => ruta === r || ruta.startsWith(`${r}/`));
+
+describe("el ancho de las pantallas (ADR-0462)", () => {
+  it("AppShell le pone el tope solo al Inicio y a CON_TOPE_DE_ANCHO, y una pantalla con tope lo puede quitar con el marcador", () => {
+    const shell = SHELL();
+    expect(shell).toContain('pathname === "/" || CON_TOPE_DE_ANCHO.some(');
+    expect(shell).toContain('conTopeDeAncho(pathname) ? "mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none" : ""');
+    expect(shell).not.toContain("SIN_TOPE_DE_ANCHO");
+  });
+
+  it("CON_TOPE_DE_ANCHO es deuda: solo baja, y una ruta nueva no entra", () => {
+    const lista = conTope();
+    const nuevas = lista.filter((r) => !CON_TOPE_HOY.includes(r));
+    expect(nuevas, "Una pantalla nueva va a ancho completo (ADR-0462): no la agregues a CON_TOPE_DE_ANCHO; topa por su cuenta solo el párrafo o el formulario que lo necesite.").toEqual([]);
+    expect(lista).not.toContain("/");
+  });
+
+  it("cada ruta con tope existe todavía (una que se borró sale de la lista)", () => {
+    for (const r of conTope()) expect(statSync(join(RAIZ, "app/(app)", r.slice(1))).isDirectory(), r).toBe(true);
+  });
+
+  it("toda ruta del menú que no está en la deuda va a ancho completo", () => {
+    const nuevasConTope = rutas(ARBOL).filter((r) => llevaTope(r) && r !== "/" && !CON_TOPE_HOY.some((t) => r === t || r.startsWith(`${t}/`)));
+    expect(nuevasConTope).toEqual([]);
+  });
+
+  // Producción entró entera el 2026-09-22, y «Órdenes de insumos» (`/ordenes-insumos`, su ruta NO cuelga de `/produccion` a propósito:
+  // ADR-0362) quedó con el tope hasta la Formidable del 2026-10-15: al pasar de Proveedores a Órdenes de insumos el título saltaba 32 px.
+  // Clientes (Fichas, Avisos, Beneficios) entró el 2026-10-20 (Felipe: «no ocupan todo el espacio»). Cada grupo comparte un solo ancho.
+  for (const grupo of ["produccion", "clientas"]) {
+    it(`toda pantalla del grupo «${grupo}» va sin tope: pasar de una a otra no mueve el título`, () => {
+      const nodo = ARBOL.find((n) => n.id === grupo);
+      expect(nodo).toBeDefined();
+      for (const ruta of rutas([nodo!])) expect(llevaTope(ruta), `${ruta} quedó con el tope de ancho`).toBe(false);
+    });
+  }
+});
+
 describe("ancho completo del Inicio de almacén", () => {
-  it("AppShell le quita el tope al <main> cuando la pantalla lo pide, y no toca a las demás", () => {
-    const shell = readFileSync(join(RAIZ, "components/AppShell.tsx"), "utf8");
-    expect(shell).toContain('"mx-auto max-w-[120rem] has-[[data-ancho-completo]]:max-w-none"');
-  });
-
-  it("«/» no está en SIN_TOPE_DE_ANCHO: estiraría el Inicio de todas las cuentas", () => {
-    const shell = readFileSync(join(RAIZ, "components/AppShell.tsx"), "utf8");
-    const lista = /const SIN_TOPE_DE_ANCHO = \[([^\]]*)\]/.exec(shell)?.[1] ?? "";
-    expect(lista).not.toBe("");
-    expect(lista.split(",").map((r) => r.trim().replace(/"/g, ""))).not.toContain("/");
-  });
-
   it("solo el Inicio de almacén, el Observatorio y la pantalla de Aventurero escriben el marcador", () => {
     const quienes = archivos(RAIZ)
       .filter((f) => readFileSync(f, "utf8").includes(MARCADOR))
@@ -54,22 +89,6 @@ describe("ancho completo del Inicio de almacén", () => {
     for (const archivo of QUIEN_PIDE_ANCHO_COMPLETO) {
       const inicio = readFileSync(join(RAIZ, archivo), "utf8");
       expect(inicio).toMatch(/<span hidden data-ancho-completo \/>/);
-    }
-  });
-
-  // Producción entró entera el 2026-09-22, pero «Órdenes de insumos» (`/ordenes-insumos`, su ruta NO cuelga de `/produccion` a propósito: ADR-0362)
-  // quedó con el tope de 64 rem: al pasar de Proveedores a Órdenes de insumos el título saltaba 32 px y la pantalla se estrechaba (Formidable
-  // de Producción, 2026-10-15). Toda pantalla del grupo comparte el mismo ancho.
-  it("toda pantalla del grupo Producción va sin tope de ancho: pasar de una a otra no mueve el título", () => {
-    const shell = readFileSync(join(RAIZ, "components/AppShell.tsx"), "utf8");
-    const lista = (/const SIN_TOPE_DE_ANCHO = \[([^\]]*)\]/.exec(shell)?.[1] ?? "").split(",").map((r) => r.trim().replace(/"/g, "")).filter(Boolean);
-    const rutas = (nodos: readonly Nodo[]): string[] => nodos.flatMap((n) => [...("ruta" in n ? [n.ruta] : []), ...("hijos" in n && n.hijos ? rutas(n.hijos) : [])]);
-    const produccion = ARBOL.find((n) => n.id === "produccion");
-    expect(produccion).toBeDefined();
-    const delGrupo = rutas([produccion!]);
-    expect(delGrupo).toContain("/ordenes-insumos");
-    for (const ruta of delGrupo) {
-      expect(lista.some((r) => ruta === r || ruta.startsWith(`${r}/`)), `${ruta} quedó con el tope de ancho`).toBe(true);
     }
   });
 });
