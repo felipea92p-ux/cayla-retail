@@ -11,7 +11,7 @@ import { CampoMonto, CampoSelect, CampoTexto, type Opcion } from "@/components/u
 import { campoEtiqueta } from "@/components/ui/Modal";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import {
-  FASES,
+  FASES_DE_LA_HOJA,
   FIJO_MAXIMO,
   TARIFA_MAXIMA,
   avisoMinimo,
@@ -119,7 +119,7 @@ export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPren
   const opcionesProveedor: Opcion<string>[] = sirven.map((p) => ({ valor: p.id, texto: p.nombre }));
   const encendidas = ordenarFases(fases).filter((f) => f.encendida || faseDe(f.clave).siempre);
   // Las que se pueden encender, en el orden del catálogo (Bordado · Estampado · Lavandería), no en el de la ruta.
-  const apagadas = FASES.filter((def) => !def.siempre && !fases.some((f) => f.clave === def.clave && f.encendida));
+  const apagadas = FASES_DE_LA_HOJA.filter((def) => !def.siempre && !fases.some((f) => f.clave === def.clave && f.encendida));
   const sinServicios = opcionesProveedor.length === 0 && encendidas.some((f) => f.quien === "servicio");
 
   function cambiar(clave: FaseClave, parche: Partial<FaseBorrador>) {

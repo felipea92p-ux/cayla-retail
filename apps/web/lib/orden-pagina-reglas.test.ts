@@ -8,6 +8,8 @@ import {
   RPC_ANULAR_SALIDA,
   RPC_ANULAR_VUELTA,
   RPC_CERRAR_PRODUCCION,
+  RPC_DESHACER_MARCA,
+  RPC_MARCAR_FASE,
   RPC_REVERTIR_PRODUCCION,
   RPC_TELA_PENDIENTE,
   accionesDeFase,
@@ -24,6 +26,7 @@ import {
   detalleDeVuelta,
   devengadoDeLaRespuesta,
   diaCorto,
+  esPrimeraFase,
   estadoDeLaOrden,
   faltaTerminar,
   fechaLimaDe,
@@ -38,6 +41,7 @@ import {
   lineasDeVuelta,
   numeroDeOrdenEnUrl,
   prendasAfuera,
+  previaQueCuenta,
   problemaDeAnulacion,
   problemasDeCierre,
   problemasDeSalida,
@@ -65,6 +69,7 @@ import {
   textoSeVende,
   textoTermine,
   textoVolvieron,
+  todasLasQueCuentanHechas,
   type FasePagina,
   type OrdenPagina,
 } from "./orden-pagina-reglas";
@@ -1030,5 +1035,113 @@ describe("la tela: lo comprometido por otras órdenes y lo pedido", () => {
       const SQL_LISTA = readFileSync(join(RAIZ, "supabase", "migrations", "20261015005000_produccion_lista_de_ordenes.sql"), "utf8");
       expect(SQL_LISTA).toContain("'tela_pendiente', retail.fn_tela_pendiente_de_la_orden(v_id)");
     });
+  });
+});
+
+describe("una fase que se marca (Ploteo, ADR-0400 act. k y l): hecha con un toque, sin contar prendas", () => {
+  /** Ploteo como lo manda `fn_fases_de_orden`: sin cantidades, con `hito` y `marcada`. */
+  const ploteo = (parche: Record<string, unknown> = {}) =>
+    faseCruda({ clave: "ploteo", secuencia: 5, quien: "taller", nombre: "Ploteo", hito: true, marcada: false, estado: "pendiente", actual: true, ...parche }, { entrada: 0 });
+  /** La orden con Ploteo antes de Corte (que sigue siendo la primera que cuenta) y Acabado al final. */
+  const conPloteo = (parchePloteo: Record<string, unknown> = {}, parcheCorte: Record<string, unknown> = {}, extra: Record<string, unknown> = {}) =>
+    orden({
+      fases: [
+        ploteo(parchePloteo),
+        faseCruda({ clave: "corte", secuencia: 10, quien: "taller", estado: "pendiente", ...parcheCorte }, { entrada: 9 }),
+        faseCruda({ clave: "acabado", secuencia: 60, quien: "taller" }, { entrada: 0 }),
+      ],
+      ...extra,
+    });
+  const MARCADA = { estado: "hecha", actual: false, empezada: true, marcada: true };
+
+  it("lee hito y marcada; una fase que cuenta prendas viene con hito en falso", () => {
+    const [pl, corte] = conPloteo().fases;
+    expect([pl.hito, pl.marcada, corte.hito, corte.marcada]).toEqual([true, false, false, false]);
+    expect(conPloteo(MARCADA).fases[0].marcada).toBe(true);
+  });
+
+  it("Corte sigue siendo la primera fase que cuenta: su «lo que falta» es el plan, y la fase de antes que cuenta se salta a Ploteo", () => {
+    const p = conPloteo();
+    const [pl, corte, acabado] = p.fases;
+    expect(esPrimeraFase(pl, p.fases)).toBe(false);
+    expect(esPrimeraFase(corte, p.fases)).toBe(true);
+    expect(esPrimeraFase(acabado, p.fases)).toBe(false);
+    expect(faltaTerminar(corte, p.fases)).toBe(48);
+    expect(previaQueCuenta(p.fases, 0)).toBeNull();
+    expect(previaQueCuenta(p.fases, 1)).toBeNull();
+    expect(previaQueCuenta(p.fases, 2)?.clave).toBe("corte");
+    expect(faltaTerminar(pl, p.fases)).toBe(0);
+  });
+
+  it("accionesDeFase: «marcar» si no está marcada, «desmarcar» si ya; ninguna sin permiso o con la orden cerrada", () => {
+    const sin = conPloteo();
+    expect(accionesDeFase(sin.fases[0], sin)).toEqual(["marcar"]);
+    const con = conPloteo(MARCADA);
+    expect(accionesDeFase(con.fases[0], con)).toEqual(["desmarcar"]);
+    const ajena = conPloteo({}, {}, { permisos: { puede_operar: false, ve_costos: true } });
+    expect(accionesDeFase(ajena.fases[0], ajena)).toEqual([]);
+    const cerrada = orden({ orden: { ...crudo().orden, estado: "terminada" }, fases: [ploteo(MARCADA)] });
+    expect(accionesDeFase(cerrada.fases[0], cerrada)).toEqual([]);
+  });
+
+  it("queSigue y textoQueSigue: lo primero es marcar el ploteo; después, terminar el corte", () => {
+    const sin = conPloteo();
+    expect(queSigue(sin.fases, "en_proceso")).toMatchObject({ accion: "marcar", fase: { clave: "ploteo" } });
+    expect(textoQueSigue(queSigue(sin.fases, "en_proceso"), sin.fases)).toBe("Sigue: marcar ploteo como hecho.");
+    const con = conPloteo(MARCADA, { actual: true });
+    expect(queSigue(con.fases, "en_proceso")).toMatchObject({ accion: "terminar", fase: { clave: "corte" } });
+  });
+
+  it("«Lista para pasar al stock» no espera a un ploteo sin marcar (la base solo mira lo terminado en la última fase)", () => {
+    const todo = orden({
+      fases: [
+        ploteo(),
+        faseCruda({ clave: "corte", secuencia: 10, quien: "taller", estado: "hecha", empezada: true }, { entrada: 9, hechas: 8 }),
+        faseCruda({ clave: "acabado", secuencia: 60, quien: "taller", estado: "hecha", empezada: true }, { entrada: 8, hechas: 8 }),
+      ],
+    });
+    expect(todasLasQueCuentanHechas(todo.fases)).toBe(true);
+    expect(estadoDeLaOrden(todo.orden, todo.fases)).toEqual({ texto: "Lista para pasar al stock", tono: "verde" });
+    expect(queSigue(todo.fases, "en_proceso").accion).toBe("pasar_al_stock");
+    expect(estadoDeLaOrden(conPloteo().orden, conPloteo().fases)).toEqual({ texto: "En ploteo", tono: "pizarra" });
+    expect(todasLasQueCuentanHechas([])).toBe(false);
+  });
+
+  it("textoDeFase: «Por hacer» con quién espera, «Hecho» con el día de la marca, y lo que cobra un servicio de ploteo por orden", () => {
+    const sin = conPloteo().fases[0];
+    expect(textoDeFase(sin, { previa: null, terminoEl: null, totalPlan: 48 })).toEqual({ cifra: "Por hacer", de: "", detalle: "Se marca con un toque cuando la marcada esté lista" });
+    expect(textoDeFase(conPloteo(MARCADA).fases[0], { previa: null, terminoEl: "2026-10-15T22:40:00+00:00", totalPlan: 48 })).toEqual({ cifra: "Hecho", de: "", detalle: "Marcado el jue 15 oct" });
+    const afuera = conPloteo({ quien: "servicio", proveedor_id: "pv-2", proveedor_nombre: "Plotter Lima", fijo_orden: 40, fecha_prometida: "2026-10-21" }).fases[0];
+    expect(textoDeFase(afuera, { previa: null, terminoEl: null, totalPlan: 48 }).detalle).toBe("Con Plotter Lima · prometido mié 21 oct · S/\u00a040.00 por orden");
+    const afueraHecho = conPloteo({ ...MARCADA, quien: "servicio", proveedor_id: "pv-2", proveedor_nombre: "Plotter Lima", fijo_orden: 40 }).fases[0];
+    expect(textoDeFase(afueraHecho, { previa: null, terminoEl: "2026-10-15T22:40:00+00:00", totalPlan: 48 }).detalle).toBe("Marcado el jue 15 oct · con Plotter Lima · S/\u00a040.00 por orden");
+  });
+
+  it("«Cambiar quién» no se ofrece en una fase que se marca (cobra por orden: la hoja de hoy no sabe pedir el fijo)", () => {
+    const p = conPloteo();
+    expect(puedeCambiarQuien(p.fases[0], p)).toBe(false);
+    expect(puedeCambiarQuien(p.fases[1], p)).toBe(true);
+  });
+
+  it("la línea de tiempo cuenta lo marcado y lo deshecho, y el día de la marca es el de «Hecho»", () => {
+    const linea = [
+      { id: "m-2", cuando: "2026-10-16T15:00:00+00:00", quien_nombre: "Rosa", tipo: "marca", fase_clave: "ploteo", fase_nombre: "Ploteo", cantidad: 0, detalle: null, nota: "con Audaces", avance_id: null },
+      { id: "m-1b", cuando: "2026-10-15T23:00:00+00:00", quien_nombre: "Rosa", tipo: "desmarca", fase_clave: "ploteo", fase_nombre: "Ploteo", cantidad: 0, detalle: null, nota: null, avance_id: null },
+      { id: "m-1", cuando: "2026-10-15T22:40:00+00:00", quien_nombre: "Rosa", tipo: "marca", fase_clave: "ploteo", fase_nombre: "Ploteo", cantidad: 0, detalle: null, nota: null, avance_id: null },
+    ];
+    const p = conPloteo(MARCADA, {}, { linea_de_tiempo: linea });
+    const entradas = lineaDeTiempoAgrupada(p, HOY).flatMap((d) => d.entradas);
+    expect(entradas.map((e) => e.titulo)).toEqual(["Marcó Ploteo como hecho", "Deshizo la marca de Ploteo", "Marcó Ploteo como hecho"]);
+    expect(entradas[0]).toMatchObject({ detalle: "con Audaces", cuanto: null, avanceIds: null, anulable: null });
+    expect(cuandoTerminoLaFase("ploteo", p.lineaDeTiempo)).toBe("2026-10-16T15:00:00+00:00");
+  });
+
+  it("paridad con la migración 20261019192000: las dos RPC y sus motivos existen, y la línea de tiempo usa «marca» y «desmarca»", () => {
+    const sql = readFileSync(join(__dirname, "../../../supabase/migrations/20261019192000_produccion_ploteo_la_fase_de_un_toque.sql"), "utf8");
+    expect(sql).toContain(`create or replace function retail.${RPC_MARCAR_FASE}(`);
+    expect(sql).toContain(`create or replace function retail.${RPC_DESHACER_MARCA}(`);
+    for (const hint of ["fase_no_es_hito", "marca_ya_hecha", "marca_inexistente", "fase_es_hito"]) expect(sql, hint).toContain(`hint = '${hint}'`);
+    expect(sql).toContain("then 'marca' else 'desmarca'");
+    expect(sql).toContain("'hito', true, 'marcada', v_empezada");
   });
 });

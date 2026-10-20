@@ -24,6 +24,8 @@ export const RPC_TELA_PENDIENTE = "fn_tela_pendiente_de_la_orden";
 export const RPC_REGISTRAR_AVANCE = "registrar_avance";
 export const RPC_DESHACER_AVANCE = "deshacer_avance";
 export const RPC_CAMBIAR_QUIEN_FASE = "cambiar_quien_fase";
+export const RPC_MARCAR_FASE = "marcar_fase_hecha";
+export const RPC_DESHACER_MARCA = "deshacer_marca_fase";
 export const RPC_REGISTRAR_SALIDA = "registrar_salida";
 export const RPC_REGISTRAR_VUELTA = "registrar_vuelta";
 export const RPC_ANULAR_SALIDA = "anular_salida";
@@ -39,7 +41,7 @@ export const DIAS_SIN_MOVERSE = 4;
 
 export type EstadoOrden = "en_proceso" | "terminada" | "anulada";
 export type EstadoFase = "pendiente" | "en_curso" | "hecha";
-export type TipoEvento = "apertura" | "avance" | "deshacer" | "salida" | "vuelta" | "anulacion";
+export type TipoEvento = "apertura" | "avance" | "deshacer" | "salida" | "vuelta" | "anulacion" | "marca" | "desmarca";
 
 export type ProductoPagina = {
   id: string;
@@ -89,6 +91,10 @@ export type FasePagina = {
   desde: string | null;
   diasEnFase: number | null;
   devengado: number | null;
+  /** Una fase que se MARCA «hecha» con un toque en vez de contar prendas (Ploteo): sus cantidades vienen en 0 y no entra a la cadena de la que depende cada fase (`fn_fase_es_hito`). */
+  hito: boolean;
+  /** Solo en una fase hito: tiene una marca viva (la fase está `hecha`). */
+  marcada: boolean;
   porVariante: FaseVariante[];
 };
 
@@ -207,7 +213,7 @@ function numero(x: unknown): number | null {
 }
 const entero = (x: unknown, defecto = 0): number => Math.round(numero(x) ?? defecto);
 const claves = new Set<string>(FASES.map((f) => f.clave));
-const TIPOS_EVENTO: ReadonlySet<string> = new Set(["apertura", "avance", "deshacer", "salida", "vuelta", "anulacion"]);
+const TIPOS_EVENTO: ReadonlySet<string> = new Set(["apertura", "avance", "deshacer", "salida", "vuelta", "anulacion", "marca", "desmarca"]);
 
 function leerFase(crudo: unknown): FasePagina | null {
   if (!esObjeto(crudo)) return null;
@@ -249,6 +255,8 @@ function leerFase(crudo: unknown): FasePagina | null {
     desde: texto(crudo.desde),
     diasEnFase: numero(crudo.dias_en_fase),
     devengado: numero(crudo.devengado),
+    hito: crudo.hito === true,
+    marcada: crudo.marcada === true,
     porVariante,
   };
 }
@@ -472,7 +480,7 @@ export type EstadoDeLaOrden = { texto: string; tono: "pizarra" | "verde" | "neut
 export function estadoDeLaOrden(o: OrdenPagina["orden"], fases: readonly FasePagina[]): EstadoDeLaOrden {
   if (o.estado === "anulada") return { texto: "Anulada", tono: "neutro" };
   if (o.estado === "terminada") return { texto: "Pasó al stock", tono: "verde" };
-  if (fases.length > 0 && fases.every((f) => f.estado === "hecha")) return { texto: "Lista para pasar al stock", tono: "verde" };
+  if (todasLasQueCuentanHechas(fases)) return { texto: "Lista para pasar al stock", tono: "verde" };
   const actual = fases.find((f) => f.actual) ?? null;
   if (!actual) return { texto: "En proceso", tono: "pizarra" };
   return { texto: `En ${actual.nombre.toLocaleLowerCase("es")}${actual.quien === "servicio" ? " · afuera" : ""}`, tono: "pizarra" };
@@ -511,14 +519,30 @@ export function cifrasDeLaOrden(p: OrdenPagina, hoy: string): CifrasDeLaOrden {
 
 // ---------- Las fases ----------
 
+/**
+ * ¿Terminaron todas las fases que cuentan prendas? Una fase que se MARCA (Ploteo) no bloquea el paso al stock aunque nadie la marcó: la base solo mira lo terminado en la
+ * ÚLTIMA fase (`cerrar_produccion`), y un modelo que se repite no vuelve a plotear. Es la misma regla de «Lista para pasar al stock» en la página y en la lista.
+ */
+export function todasLasQueCuentanHechas(fases: readonly FasePagina[]): boolean {
+  const cuentan = fases.filter((f) => !f.hito);
+  return cuentan.length > 0 && cuentan.every((f) => f.estado === "hecha");
+}
+
+/** La fase de antes que SÍ cuenta prendas (la que le da lo que entra), saltando las que se marcan: `null` en la primera. Es `fn_produccion_fase_anterior`. */
+export function previaQueCuenta(fases: readonly FasePagina[], indice: number): FasePagina | null {
+  for (let i = indice - 1; i >= 0; i--) if (!fases[i].hito) return fases[i];
+  return null;
+}
+
 /** Quién la hace, en una palabra: «Taller» o el nombre del servicio. */
 export function quienDeFase(f: FasePagina): string {
   return f.quien === "servicio" ? (f.proveedorNombre ?? "Un servicio") : "Taller";
 }
 
-/** La primera fase de la ruta (Corte): su tope es el plan más un 10 %, y para «lo que falta» se cuenta contra el plan. */
+/** La primera fase que CUENTA prendas (Corte; una fase que se marca, como Ploteo, no cuenta): su tope es el plan más un 10 %, y para «lo que falta» se cuenta contra el plan. */
 export function esPrimeraFase(f: FasePagina, fases: readonly FasePagina[]): boolean {
-  return fases.every((otra) => otra.secuencia >= f.secuencia);
+  if (f.hito) return false;
+  return fases.every((otra) => otra.hito || otra.secuencia >= f.secuencia);
 }
 
 /**
@@ -546,11 +570,16 @@ export function porMandar(f: FasePagina): number {
   return Math.max(f.entrada - f.salieron, 0);
 }
 
-export type AccionFase = "terminar" | "salida" | "vuelta";
+export type AccionFase = "terminar" | "salida" | "vuelta" | "marcar" | "desmarcar";
 
-/** Las acciones que ofrece una fase: «Terminé N» en el Taller; «Salida» si queda algo por mandar y «Vuelta» si hay prendas afuera, en un servicio. Ninguna si no se puede operar. */
+/**
+ * Las acciones que ofrece una fase: «Terminé N» en el Taller; «Salida» si queda algo por mandar y «Vuelta» si hay prendas afuera, en un servicio; en una fase que se marca
+ * (Ploteo), «marcar» como hecha o, ya marcada, «desmarcar». Ninguna si no se puede operar.
+ */
 export function accionesDeFase(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos" | "fases">): AccionFase[] {
-  if (!p.permisos.puedeOperar || p.orden.estado !== "en_proceso" || f.estado === "hecha") return [];
+  if (!p.permisos.puedeOperar || p.orden.estado !== "en_proceso") return [];
+  if (f.hito) return f.marcada ? ["desmarcar"] : ["marcar"];
+  if (f.estado === "hecha") return [];
   if (f.quien === "taller") return faltaTerminar(f, p.fases) > 0 ? ["terminar"] : [];
   const acciones: AccionFase[] = [];
   if (porMandar(f) > 0) acciones.push("salida");
@@ -563,9 +592,10 @@ export type Siguiente = { fase: FasePagina | null; accion: AccionFase | "pasar_a
 /** Qué sigue en la orden: la fase actual y lo que le toca (terminar, mandar, recibir), o pasar al stock cuando las tres terminaron. */
 export function queSigue(fases: readonly FasePagina[], estado: EstadoOrden): Siguiente {
   if (estado !== "en_proceso" || fases.length === 0) return { fase: null, accion: "nada" };
-  if (fases.every((f) => f.estado === "hecha")) return { fase: fases[fases.length - 1], accion: "pasar_al_stock" };
+  if (todasLasQueCuentanHechas(fases)) return { fase: fases[fases.length - 1], accion: "pasar_al_stock" };
   const actual = fases.find((f) => f.actual) ?? null;
   if (!actual) return { fase: null, accion: "nada" };
+  if (actual.hito) return { fase: actual, accion: "marcar" };
   if (actual.quien === "taller") return { fase: actual, accion: faltaTerminar(actual, fases) > 0 ? "terminar" : "nada" };
   if (actual.afuera > 0) return { fase: actual, accion: "vuelta" };
   return { fase: actual, accion: porMandar(actual) > 0 ? "salida" : "nada" };
@@ -577,6 +607,8 @@ export function textoQueSigue(s: Siguiente, fases: readonly FasePagina[]): strin
   if (!s.fase) return null;
   const fase = s.fase.nombre.toLocaleLowerCase("es");
   switch (s.accion) {
+    case "marcar":
+      return `Sigue: marcar ${fase} como hecho.`;
     case "terminar":
       return `Sigue: terminar ${fase} (faltan ${faltaTerminar(s.fase, fases)}).`;
     case "salida":
@@ -590,7 +622,8 @@ export function textoQueSigue(s: Siguiente, fases: readonly FasePagina[]): strin
 
 /** ¿Se puede cambiar quién hace esta fase? Solo mientras no empezó y la orden sigue en proceso (la base lo exige: `fase_empezada`, `orden_cerrada`). */
 export function puedeCambiarQuien(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
-  return p.permisos.puedeOperar && p.orden.estado === "en_proceso" && !f.empezada && f.estado !== "hecha";
+  // Una fase que se marca (Ploteo) cobra el fijo por orden, no tarifa por prenda: la hoja de «Cambiar quién» todavía no sabe pedirlo (la rehace la actividad de «Nueva orden»).
+  return !f.hito && p.permisos.puedeOperar && p.orden.estado === "en_proceso" && !f.empezada && f.estado !== "hecha";
 }
 
 /** El aviso de la cantidad mínima del servicio: «Confecciones del Norte cobra desde 150 prendas; esta orden lleva 48». No bloquea (ADR-0400, decisión 5). */
@@ -611,6 +644,7 @@ export function textoDeFase(f: FasePagina, ctx: { previa: FasePagina | null; ter
   const extras = [f.segundas > 0 ? cuantas(f.segundas, "segunda", "segundas") : null, f.faltantes > 0 ? cuantas(f.faltantes, "faltante", "faltantes") : null].filter((x): x is string => x !== null);
   const conExtras = (base: string) => [base, ...extras].join(" · ");
   const servicio = f.quien === "servicio";
+  if (f.hito) return textoDeHito(f, ctx.terminoEl);
   const de = servicio ? `de ${total} de vuelta` : f.estado === "pendiente" && f.hechas === 0 ? `de ${total}` : `de ${total} terminadas`;
 
   if (f.estado === "hecha") {
@@ -637,11 +671,20 @@ export function textoDeFase(f: FasePagina, ctx: { previa: FasePagina | null; ter
   return { cifra: String(f.hechas), de, detalle: f.entrada > 0 ? `${cuantas(f.entrada, "prenda lista", "prendas listas")} para mandar a ${quien}` : `Empieza cuando termine ${previa}` };
 }
 
+/** Lo que dice la pieza de una fase que se marca (Ploteo): «Hecho · Marcado el jue 15», o «Por hacer» y de quién espera la marcada. No cuenta prendas. */
+function textoDeHito(f: FasePagina, terminoEl: string | null): TextoDeFase {
+  const quien = quienDeFase(f);
+  const cobra = f.quien === "servicio" && f.fijoOrden > 0 ? ` · S/\u00a0${f.fijoOrden.toFixed(2)} por orden` : "";
+  if (f.marcada) return { cifra: "Hecho", de: "", detalle: `${terminoEl ? `Marcado el ${diaCorto(fechaLimaDe(terminoEl))}` : "Marcado"}${f.quien === "servicio" ? ` · con ${quien}` : ""}${cobra}` };
+  const prometido = f.quien === "servicio" && f.fechaPrometida ? ` · prometido ${diaCorto(f.fechaPrometida)}` : "";
+  return { cifra: "Por hacer", de: "", detalle: f.quien === "servicio" ? `Con ${quien}${prometido}${cobra}` : "Se marca con un toque cuando la marcada esté lista" };
+}
+
 /** El instante en que se anotó lo último de una fase (avance, Salida o Vuelta), para decir «Hecha el jue 15». `null` si nunca se anotó nada. */
 export function cuandoTerminoLaFase(clave: FaseClave, linea: readonly EventoTiempo[]): string | null {
   let ultimo: string | null = null;
   for (const e of linea) {
-    if (e.faseClave !== clave || (e.tipo !== "avance" && e.tipo !== "vuelta")) continue;
+    if (e.faseClave !== clave || (e.tipo !== "avance" && e.tipo !== "vuelta" && e.tipo !== "marca")) continue;
     if (ultimo === null || Date.parse(e.cuando) > Date.parse(ultimo)) ultimo = e.cuando;
   }
   return ultimo;
@@ -911,7 +954,11 @@ export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[
       const resumen = g.length > 1 ? resumenPorColor(g, p.lineas) : null;
       const nota = g.map((x) => x.nota).find((n): n is string => n !== null) ?? null;
       detalle = g.length > 1 ? [resumen, nota].filter(Boolean).join(" · ") || null : (e.detalle ?? null);
-    } else if (e.tipo === "salida") titulo = `Salida de ${nombreFase}`;
+    } else if (e.tipo === "marca") {
+      titulo = `Marcó ${nombreFase} como hecho`;
+      detalle = e.nota;
+    } else if (e.tipo === "desmarca") titulo = `Deshizo la marca de ${nombreFase}`;
+    else if (e.tipo === "salida") titulo = `Salida de ${nombreFase}`;
     else if (e.tipo === "anulacion") {
       titulo = `Anuló la ${e.anula ?? "anotación"} de ${nombreFase}`;
       cuanto = e.anula === "vuelta" ? cuantas(e.cantidad, "prenda buena", "prendas buenas") : cuantas(e.cantidad, "prenda", "prendas");

@@ -10,6 +10,7 @@ import {
   quienDeFase,
   rojoDeLaOrden,
   textoColoresYTallas,
+  todasLasQueCuentanHechas,
   type CausaRoja,
   type EstadoDeLaOrden,
   type EstadoOrden,
@@ -98,7 +99,7 @@ function diaYNumero(iso: string): string {
 /** «Taller · 21 de 36», «Confecciones del Norte · 48 afuera», «Confecciones del Norte · por mandar». */
 function textoDeQuien(p: OrdenPagina): string {
   const actual = p.fases.find((f) => f.actual) ?? null;
-  if (!actual) return p.fases.length > 0 && p.fases.every((f) => f.estado === "hecha") ? "Taller · todas las fases listas" : "Taller";
+  if (!actual) return todasLasQueCuentanHechas(p.fases) ? "Taller · todas las fases listas" : "Taller";
   const quien = quienDeFase(actual);
   if (actual.quien === "servicio") {
     if (actual.afuera > 0) return `${quien} · ${actual.afuera} afuera`;
@@ -124,7 +125,7 @@ export function filaDeLaLista(p: OrdenPagina, hoy: string): FilaDeLista {
   const o = p.orden;
   const enProceso = o.estado === "en_proceso";
   const actual = p.fases.find((f) => f.actual) ?? null;
-  const lista = enProceso && p.fases.length > 0 && p.fases.every((f) => f.estado === "hecha");
+  const lista = enProceso && todasLasQueCuentanHechas(p.fases);
   const abierta = fechaLimaDe(o.creadoEn);
   const porColor = new Map<string, { hex: string; n: number }>();
   for (const l of p.lineas) if (l.colorHex) porColor.set(l.colorHex, { hex: l.colorHex, n: (porColor.get(l.colorHex)?.n ?? 0) + l.cantidadPlan });
@@ -210,12 +211,37 @@ export function leerListaDeOrdenes(crudo: unknown, hoy: string): ListaDeOrdenes 
 
 export type CifraDeFase = { clave: FaseClave; titulo: string; lotes: number; prendas: number; contexto: string; atencion: boolean };
 
-const TITULO_DE_FASE: Record<FaseClave, string> = { corte: "Por cortar", costura: "En costura", acabado: "En acabado", bordado: "En bordado", estampado: "En estampado", lavanderia: "En lavandería" };
-const ORDEN_DE_FASES: FaseClave[] = ["corte", "bordado", "estampado", "costura", "lavanderia", "acabado"];
+const TITULO_DE_FASE: Record<FaseClave, string> = {
+  ploteo: "Por plotear",
+  corte: "Por cortar",
+  habilitado: "En habilitado",
+  costura: "En costura",
+  ojales_botones: "En ojales y botones",
+  limpieza_revision: "En limpieza y revisión",
+  planchado: "En planchado",
+  etiquetado_embolsado: "En etiquetado",
+  acabado: "En acabado",
+  bordado: "En bordado",
+  estampado: "En estampado",
+  lavanderia: "En lavandería",
+};
+const ORDEN_DE_FASES: FaseClave[] = [
+  "ploteo",
+  "corte",
+  "habilitado",
+  "bordado",
+  "estampado",
+  "costura",
+  "ojales_botones",
+  "lavanderia",
+  "limpieza_revision",
+  "acabado",
+  "planchado",
+  "etiquetado_embolsado",
+];
 
 /**
- * «Hoy en el Taller»: una tarjeta por fase con lo que hay ahí AHORA (lotes y prendas de las órdenes abiertas, muestras incluidas). Corte, Costura y Acabado siempre; Bordado, Estampado y
- * Lavandería solo si alguna orden está ahí. Cada una dice lo que importa de esa fase: sin tela en el corte, lo que está afuera y con quién en un servicio, y las que esperan pasar al stock.
+ * «Hoy en el Taller»: una tarjeta por fase con lo que hay ahí AHORA (lotes y prendas de las órdenes abiertas, muestras incluidas). Corte, Costura y Acabado siempre; las demás fases (Ploteo, Habilitado, Bordado, Estampado, Lavandería…) solo si alguna orden está ahí. Cada una dice lo que importa de esa fase: sin tela en el corte, lo que está afuera y con quién en un servicio, y las que esperan pasar al stock.
  */
 export function cifrasHoyEnElTaller(filas: readonly FilaDeLista[]): CifraDeFase[] {
   const abiertas = filas.filter((f) => f.estado === "en_proceso" && f.grupo !== null);

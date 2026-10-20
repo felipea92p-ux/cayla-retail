@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  FASES_DE_LA_HOJA,
   FASES,
   FIJO_MAXIMO,
   HINTS_FASE,
@@ -37,7 +38,9 @@ import {
 // `scripts/pruebas/produccion_fases.mjs`.
 
 const RAIZ = join(__dirname, "..", "..", "..");
-const MIGRACION = "supabase/migrations/20261014154000_produccion_fases_y_tela_de_la_orden.sql";
+// La ruta, los nombres y el CHECK de la clave vigentes salen de 20261019191000; la normalización (con el ploteo por orden y los hints nuevos), de 20261019192000.
+const MIGRACION = "supabase/migrations/20261019191000_produccion_fases_nuevas_expandir.sql";
+const MIGRACION_NORMALIZAR = "supabase/migrations/20261019192000_produccion_ploteo_la_fase_de_un_toque.sql";
 const HOY = "2026-10-14";
 
 const CONF: ProveedorServicio = { id: "prov-conf", nombre: "Confecciones del Norte", rubro: "maquila", activo: true };
@@ -64,14 +67,27 @@ const afuera = (clave: FaseClave, cambios: Partial<FaseBorrador> = {}, base?: Fa
 const hints = (fases: FaseBorrador[]) => problemasFases(fases, CTX).map((p) => p.hint);
 
 describe("el catálogo de fases", () => {
-  it("son seis: tres de la espina (corte, costura, acabado) y tres que la orden enciende; solo bordado y estampado eligen posición", () => {
-    expect(FASES).toHaveLength(6);
-    expect(FASES.filter((f) => f.siempre).map((f) => f.clave)).toEqual(["corte", "costura", "acabado"]);
+  it("son doce: las seis de siempre y las seis de la ruta nueva; solo bordado y estampado eligen posición; solo Ploteo se marca en vez de contarse", () => {
+    expect(FASES).toHaveLength(12);
+    expect(FASES.filter((f) => f.ruta !== "nueva").map((f) => f.clave)).toEqual(["corte", "costura", "acabado", "bordado", "estampado", "lavanderia"]);
+    expect(FASES.filter((f) => f.ruta !== "anterior" && f.siempre).map((f) => f.clave)).toEqual([
+      "ploteo", "corte", "habilitado", "costura", "limpieza_revision", "planchado", "etiquetado_embolsado",
+    ]);
+    expect(FASES.filter((f) => f.ruta !== "nueva" && f.siempre).map((f) => f.clave)).toEqual(["corte", "costura", "acabado"]);
     expect(FASES.filter((f) => f.posicionable).map((f) => f.clave)).toEqual(["bordado", "estampado"]);
-    expect(FASES.map((f) => f.nombre)).toEqual(["Corte", "Costura", "Acabado", "Bordado", "Estampado", "Lavandería"]);
+    expect(FASES.filter((f) => f.hito).map((f) => f.clave)).toEqual(["ploteo"]);
     for (const f of FASES) expect(f.ayuda.length, f.clave).toBeGreaterThan(10);
   });
-  it("secuenciaDe es la tabla de la migración: 10 · 20 · 25 · 30 · 40 · 45 · 50 · 60, y un bordado sin posición no tiene lugar", () => {
+  it("la hoja de «Nueva orden» ofrece hoy las seis de siempre (la ruta nueva la activa la actividad que rehace la hoja)", () => {
+    expect(FASES_DE_LA_HOJA.map((f) => f.nombre)).toEqual(["Corte", "Costura", "Acabado", "Bordado", "Estampado", "Lavandería"]);
+  });
+  it("secuenciaDe es la tabla de la migración: 5 · 10 · 15 · 20 · 25 · 30 · 35 · 40 · 45 · 50 · 55 · 60 · 65 · 70, y un bordado sin posición no tiene lugar", () => {
+    expect(secuenciaDe("ploteo", null)).toBe(5);
+    expect(secuenciaDe("habilitado", null)).toBe(15);
+    expect(secuenciaDe("ojales_botones", null)).toBe(35);
+    expect(secuenciaDe("limpieza_revision", null)).toBe(55);
+    expect(secuenciaDe("planchado", null)).toBe(65);
+    expect(secuenciaDe("etiquetado_embolsado", null)).toBe(70);
     expect(secuenciaDe("corte", null)).toBe(10);
     expect(secuenciaDe("bordado", "pieza")).toBe(20);
     expect(secuenciaDe("estampado", "pieza")).toBe(25);
@@ -285,7 +301,7 @@ describe("fasesParaRpc — lo que viaja", () => {
     expect(vacia.fijo_orden).toBe("0");
   });
   it("las llaves de cada fase son exactamente las que `fn_produccion_fases_normalizar` lee (`v_f ->> '…'`), menos la nota, que la hoja no pide", () => {
-    const cuerpo = funcion("fn_produccion_fases_normalizar");
+    const cuerpo = funcion("fn_produccion_fases_normalizar", SQL_NORMALIZAR);
     const enSql = new Set([...cuerpo.matchAll(/v_f ->> '(\w+)'/g)].map((m) => m[1]));
     const [corte] = fasesParaRpc(fasesIniciales(), LISTA, HOY);
     const llaves = Object.keys(corte).sort();
@@ -296,25 +312,27 @@ describe("fasesParaRpc — lo que viaja", () => {
 // ---------- Paridad con la migración: lo que la pantalla dice sale del SQL, no de la memoria ----------
 
 const SQL = readFileSync(join(RAIZ, MIGRACION), "utf8");
+const SQL_NORMALIZAR = readFileSync(join(RAIZ, MIGRACION_NORMALIZAR), "utf8");
 /** El cuerpo de una función de la migración (desde su `create or replace function` hasta el `$$;` que la cierra). */
-function funcion(nombre: string): string {
-  const desde = SQL.indexOf(`create or replace function retail.${nombre}(`);
+function funcion(nombre: string, sql: string = SQL): string {
+  const desde = sql.indexOf(`create or replace function retail.${nombre}(`);
   expect(desde, nombre).toBeGreaterThan(-1);
-  return SQL.slice(desde, SQL.indexOf("$$;", desde));
+  return sql.slice(desde, sql.indexOf("$$;", desde));
 }
 
-describe("paridad con la migración 20261014154000", () => {
+describe("paridad con las migraciones 20261019191000 y 20261019192000", () => {
   it("cada hint que la pantalla puede decir existe en fn_produccion_fases_normalizar, y los de allá que no están acá son imposibles por construcción", () => {
-    const cuerpo = funcion("fn_produccion_fases_normalizar");
+    const cuerpo = funcion("fn_produccion_fases_normalizar", SQL_NORMALIZAR);
     for (const h of HINTS_FASE) expect(cuerpo, h).toContain(`hint = '${h}'`);
-    const imposibles = ["fases_espina", "fase_desconocida", "fase_repetida", "fase_con_posicion", "fase_quien", "fase_proveedor"];
+    // `fase_sin_fijo` es solo del ploteo (la hoja de hoy no lo ofrece) y `fases_mezcla` no puede pasar: la hoja manda una sola ruta.
+    const imposibles = ["fases_espina", "fases_mezcla", "fase_sin_fijo", "fase_desconocida", "fase_repetida", "fase_con_posicion", "fase_quien", "fase_proveedor"];
     const enSql = [...new Set([...cuerpo.matchAll(/hint = '([a-z_]+)'/g)].map((m) => m[1]))].sort();
     expect(enSql).toEqual([...HINTS_FASE, ...imposibles].sort());
   });
   it("la secuencia de la ruta es la de fn_fase_secuencia (se extraen los `when … then N`)", () => {
     const cuerpo = funcion("fn_fase_secuencia");
     const filas = [...cuerpo.matchAll(/when p_clave = '(\w+)'(?: and p_posicion = '(\w+)')? then (\d+)/g)];
-    expect(filas).toHaveLength(8);
+    expect(filas).toHaveLength(14);
     for (const [, clave, posicion, n] of filas) {
       expect(secuenciaDe(clave as FaseClave, (posicion as Posicion | undefined) ?? null), `${clave}/${posicion}`).toBe(Number(n));
     }
@@ -325,17 +343,22 @@ describe("paridad con la migración 20261014154000", () => {
   });
   it("los nombres son los de fn_fase_nombre y las claves las del CHECK de produccion_fases", () => {
     const nombres = new Map([...funcion("fn_fase_nombre").matchAll(/when '(\w+)' then '([^']+)'/g)].map((m) => [m[1], m[2]]));
-    expect(nombres.size).toBe(6);
+    expect(nombres.size).toBe(12);
     for (const f of FASES) expect(nombres.get(f.clave), f.clave).toBe(f.nombre);
-    const check = /clave text not null check \(clave in \(([^)]+)\)\)/.exec(SQL)?.[1] ?? "";
+    const check = /add constraint produccion_fases_clave_check check \(clave in \(([^)]+)\)\)/.exec(SQL)?.[1] ?? "";
     const claves = [...check.matchAll(/'(\w+)'/g)].map((m) => m[1]).sort();
     expect(claves).toEqual(FASES.map((f) => f.clave).sort());
   });
+  it("las fases que se marcan son las de fn_fase_es_hito (hoy solo ploteo)", () => {
+    const cuerpo = funcion("fn_fase_es_hito", SQL_NORMALIZAR);
+    const enLaBase = [...cuerpo.matchAll(/p_clave = '(\w+)'/g)].map((m) => m[1]);
+    expect(enLaBase.sort()).toEqual(FASES.filter((f) => f.hito).map((f) => f.clave).sort());
+  });
   it("los topes de tarifa y fijo son los de la función; el Taller no lleva proveedor ni tarifa ni fecha (el CHECK produccion_fases_quien)", () => {
-    const cuerpo = funcion("fn_produccion_fases_normalizar");
+    const cuerpo = funcion("fn_produccion_fases_normalizar", SQL_NORMALIZAR);
     expect(Number(/v_tarifa > ([\d.]+)/.exec(cuerpo)?.[1])).toBe(TARIFA_MAXIMA);
     expect(Number(/v_fijo < 0 or v_fijo > ([\d.]+)/.exec(cuerpo)?.[1])).toBe(FIJO_MAXIMO);
-    expect(SQL).toMatch(/else proveedor_id is null and tarifa_prenda is null and fecha_prometida is null and cantidad_minima is null/);
+    expect(SQL_NORMALIZAR).toMatch(/else proveedor_id is null and tarifa_prenda is null and fecha_prometida is null and cantidad_minima is null/);
     // Y la copia de la lista mira la vigente más reciente a hoy, como `tarifaSugerida`.
     expect(cuerpo).toMatch(/t\.vigente_desde <= retail\.fn_hoy_lima\(\)\s+order by t\.vigente_desde desc limit 1/);
   });

@@ -17,31 +17,62 @@ import { aCentimos, leerDinero, type LecturaDinero } from "./modelo-nuevo-reglas
 //   NO HACE: no escribe en la base, no decide cuándo se puede abrir la orden (eso lo suma el formulario con el resto de faltas) y no bloquea por
 //            la cantidad mínima del servicio: eso es un AVISO (`avisoMinimo`), decisión 5 del ADR-0400.
 
-export type FaseClave = "corte" | "costura" | "acabado" | "bordado" | "estampado" | "lavanderia";
+export type FaseClave =
+  | "ploteo"
+  | "corte"
+  | "habilitado"
+  | "costura"
+  | "ojales_botones"
+  | "limpieza_revision"
+  | "planchado"
+  | "etiquetado_embolsado"
+  | "acabado"
+  | "bordado"
+  | "estampado"
+  | "lavanderia";
 export type Quien = "taller" | "servicio";
 /** Solo bordado y estampado: sobre la pieza cortada (antes de costura) o sobre la prenda armada (después). */
 export type Posicion = "pieza" | "prenda";
 
+/** La ruta a la que pertenece una fase (ADR-0400 act. k y l): la anterior (corte · costura · acabado), la nueva (Ploteo · Corte · Habilitado · Costura · … · Etiquetar y embolsar) o las dos. */
+export type RutaDeFase = "anterior" | "nueva" | "ambas";
+
 export type FaseDelCatalogo = {
   clave: FaseClave;
   nombre: string;
-  /** La espina (corte · costura · acabado): va en toda orden, no se apaga. */
+  /** La espina de su ruta: va en toda orden de esa ruta, no se apaga. */
   siempre: boolean;
   /** Elige si va sobre pieza o sobre prenda (bordado y estampado). */
   posicionable: boolean;
   /** En lenguaje de tienda, para el pie de la fila. */
   ayuda: string;
+  /** De qué ruta es. `acabado` solo de la anterior; las seis nuevas solo de la nueva. */
+  ruta: RutaDeFase;
+  /** Una fase que se MARCA «hecha» con un toque en vez de contar prendas (hoy solo Ploteo): la misma regla que `fn_fase_es_hito` de la base (lo prueba `orden-fases-reglas.test.ts`). */
+  hito: boolean;
 };
 
-/** Las seis fases, fijas en código (ADR-0400: una lista que cambia una vez al año no necesita pantalla). El orden de la RUTA lo da `secuenciaDe`. */
+/** Las fases, fijas en código (ADR-0400: una lista que cambia una vez al año no necesita pantalla). El orden de la RUTA lo da `secuenciaDe`. */
 export const FASES: ReadonlyArray<FaseDelCatalogo> = [
-  { clave: "corte", nombre: "Corte", siempre: true, posicionable: false, ayuda: "Trazo, tendido, corte y habilitado" },
-  { clave: "costura", nombre: "Costura", siempre: true, posicionable: false, ayuda: "Armar la prenda: costura, ojal y botón" },
-  { clave: "acabado", nombre: "Acabado", siempre: true, posicionable: false, ayuda: "Revisión, planchado, etiqueta y embolsado" },
-  { clave: "bordado", nombre: "Bordado", siempre: false, posicionable: true, ayuda: "Sobre la pieza cortada o sobre la prenda armada" },
-  { clave: "estampado", nombre: "Estampado", siempre: false, posicionable: true, ayuda: "Sobre la pieza cortada o sobre la prenda armada" },
-  { clave: "lavanderia", nombre: "Lavandería", siempre: false, posicionable: false, ayuda: "Lavado o teñido de la prenda armada, antes del acabado" },
+  { clave: "ploteo", nombre: "Ploteo", siempre: true, posicionable: false, ayuda: "La marcada a escala real: define cuánta tela comprar", ruta: "nueva", hito: true },
+  { clave: "corte", nombre: "Corte", siempre: true, posicionable: false, ayuda: "Trazo, tendido y corte", ruta: "ambas", hito: false },
+  { clave: "habilitado", nombre: "Habilitado", siempre: true, posicionable: false, ayuda: "Preparar lo cortado para coser: numerar, armar paquetes, sumar avíos y el corte menor de Tricotex", ruta: "nueva", hito: false },
+  { clave: "costura", nombre: "Costura", siempre: true, posicionable: false, ayuda: "Armar la prenda: costura, ojal y botón", ruta: "ambas", hito: false },
+  { clave: "ojales_botones", nombre: "Ojales y botones", siempre: false, posicionable: false, ayuda: "Solo si el modelo los lleva", ruta: "nueva", hito: false },
+  { clave: "limpieza_revision", nombre: "Limpiar hilos y revisar", siempre: true, posicionable: false, ayuda: "Quitar hilos sobrantes y revisar cada prenda", ruta: "nueva", hito: false },
+  { clave: "planchado", nombre: "Planchado", siempre: true, posicionable: false, ayuda: "Planchar la prenda terminada", ruta: "nueva", hito: false },
+  { clave: "etiquetado_embolsado", nombre: "Etiquetar y embolsar", siempre: true, posicionable: false, ayuda: "Etiqueta, bolsa y lista para despachar", ruta: "nueva", hito: false },
+  { clave: "acabado", nombre: "Acabado", siempre: true, posicionable: false, ayuda: "Revisión, planchado, etiqueta y embolsado", ruta: "anterior", hito: false },
+  { clave: "bordado", nombre: "Bordado", siempre: false, posicionable: true, ayuda: "Sobre la pieza cortada o sobre la prenda armada", ruta: "ambas", hito: false },
+  { clave: "estampado", nombre: "Estampado", siempre: false, posicionable: true, ayuda: "Sobre la pieza cortada o sobre la prenda armada", ruta: "ambas", hito: false },
+  { clave: "lavanderia", nombre: "Lavandería", siempre: false, posicionable: false, ayuda: "Lavado o teñido de la prenda armada, antes del acabado", ruta: "ambas", hito: false },
 ];
+
+/**
+ * Las fases que la hoja «Nueva orden» ofrece HOY. Mientras la hoja siga abriendo la ruta anterior (la web desplegada y la base aceptan las dos; ADR-0400 act. l),
+ * las fases solo de la ruta nueva no se ofrecen: la actividad que rehace la hoja cambia esta línea.
+ */
+export const FASES_DE_LA_HOJA: ReadonlyArray<FaseDelCatalogo> = FASES.filter((f) => f.ruta !== "nueva");
 
 const POR_CLAVE = new Map(FASES.map((f) => [f.clave, f] as const));
 
@@ -51,23 +82,35 @@ export function faseDe(clave: FaseClave): FaseDelCatalogo {
 }
 
 /**
- * El lugar de la fase en la ruta, idéntico a `fn_fase_secuencia`: corte → [bordado/estampado sobre pieza] → costura → [bordado/estampado sobre
- * prenda] → [lavandería] → acabado. Un bordado o un estampado sin posición no tiene lugar (null), igual que en la base.
+ * El lugar de la fase en la ruta, idéntico a `fn_fase_secuencia`: ploteo → corte → habilitado → [bordado/estampado sobre pieza] → costura → ojales y botones →
+ * [bordado/estampado sobre prenda] → [lavandería] → limpiar y revisar → acabado (ruta anterior) → planchado → etiquetar y embolsar. Un bordado o un estampado sin posición no tiene lugar (null), igual que en la base.
  */
 export function secuenciaDe(clave: FaseClave, posicion: Posicion | null): number | null {
   switch (clave) {
+    case "ploteo":
+      return 5;
     case "corte":
       return 10;
+    case "habilitado":
+      return 15;
     case "bordado":
       return posicion === "pieza" ? 20 : posicion === "prenda" ? 40 : null;
     case "estampado":
       return posicion === "pieza" ? 25 : posicion === "prenda" ? 45 : null;
     case "costura":
       return 30;
+    case "ojales_botones":
+      return 35;
     case "lavanderia":
       return 50;
+    case "limpieza_revision":
+      return 55;
     case "acabado":
       return 60;
+    case "planchado":
+      return 65;
+    case "etiquetado_embolsado":
+      return 70;
   }
 }
 
@@ -87,7 +130,7 @@ export type FaseBorrador = {
 /** Cómo nace el bloque: la espina encendida y en el Taller; bordado y estampado apagados, sobre pieza; lavandería apagada. En el orden de la ruta. */
 export function fasesIniciales(): FaseBorrador[] {
   return ordenarFases(
-    FASES.map((f) => ({
+    FASES_DE_LA_HOJA.map((f) => ({
       clave: f.clave,
       encendida: f.siempre,
       quien: "taller",

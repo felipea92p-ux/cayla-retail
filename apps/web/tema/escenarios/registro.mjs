@@ -1103,6 +1103,11 @@ const numeroDeOrdenConVuelta = () =>
 // Una orden con una salida que todavía se puede anular (la misma regla que la base: `fn_produccion_salida_anulable`).
 const numeroDeOrdenConAnulable = () =>
   consultarLocal(`select 'OP-' || lpad(p.numero::text, 6, '0') from retail.producciones p where p.estado = 'en_proceso' and exists (select 1 from retail.produccion_salidas s join retail.produccion_fases f on f.id = s.fase_id where f.produccion_id = p.id and s.anula_id is null and retail.fn_produccion_salida_anulable(s.id) is null) order by p.numero desc limit 1`);
+// Una orden en proceso con una fase que se marca (Ploteo) sin marcar, y otra con la marca viva: las que ofrecen «Ploteo hecho» y su «Deshacer».
+const numeroDeOrdenConPloteoSinMarcar = () =>
+  consultarLocal("select 'OP-' || lpad(p.numero::text, 6, '0') from retail.producciones p where p.estado = 'en_proceso' and exists (select 1 from retail.produccion_fases f where f.produccion_id = p.id and f.clave = 'ploteo' and retail.fn_produccion_marca_viva(f.id) is null) order by p.numero desc limit 1");
+const numeroDeOrdenConPloteoMarcado = () =>
+  consultarLocal("select 'OP-' || lpad(p.numero::text, 6, '0') from retail.producciones p where p.estado = 'en_proceso' and exists (select 1 from retail.produccion_fases f where f.produccion_id = p.id and f.clave = 'ploteo' and retail.fn_produccion_marca_viva(f.id) is not null) order by p.numero desc limit 1");
 // Una orden en proceso con tela declarada: es la que ofrece «Anotar lo que usaste».
 const numeroDeOrdenConTela = () =>
   consultarLocal("select 'OP-' || lpad(p.numero::text, 6, '0') from retail.producciones p where p.estado = 'en_proceso' and exists (select 1 from retail.produccion_insumos i where i.produccion_id = p.id) and exists (select 1 from retail.produccion_fases f where f.produccion_id = p.id) order by p.numero desc limit 1");
@@ -1119,6 +1124,8 @@ ESCENARIOS.push(
   { id: "produccion.orden-tela-usada", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: '[role=dialog] [data-campo="cantidad"]', nombre: "Producción · una orden: la hoja «Anotar lo que usaste» de la tela, con lo que falta según el plan", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenConTela()}`)(pagina), clicRol("button", /^Anotar lo que usaste$/, { exact: true })) },
   { id: "produccion.orden-stock", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog] [data-matriz-mover]", nombre: "Producción · una orden: la hoja «Pasar al stock» con lo terminado precargado y el costo por prenda", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenLista()}`)(pagina), clicRol("button", /^Pasar al stock$/, { exact: true })) },
   { id: "produccion.orden-anular-orden", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · una orden: la hoja «Anular orden»", preparar: secuencia(irALaOrden, clicRol("button", /^Anular orden$/, { exact: true })) },
+  { id: "produccion.orden-marcar", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · una orden: la hoja «Ploteo hecho» (una fase que se marca, sin contar prendas)", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenConPloteoSinMarcar()}`)(pagina), clicRol("button", /^Ploteo hecho$/)) },
+  { id: "produccion.orden-desmarcar", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · una orden: la hoja «Deshacer la marca» de Ploteo", preparar: secuencia(async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenConPloteoMarcado()}`)(pagina), clicRol("button", /^Deshacer$/, { exact: true })) },
   { id: "produccion.orden-cambiar-quien", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: '[role=dialog] [data-campo="fase"]', nombre: "Producción · una orden: la hoja «Cambiar quién» de una fase que no empezó", preparar: secuencia(irALaOrden, clicRol("button", /^Cambiar quién$/, { exact: true })) },
 );
 

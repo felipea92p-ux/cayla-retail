@@ -368,6 +368,13 @@ export const GUIA_PROD_ORDEN: Guia = {
       texto: "Es la que toca ahora. Si la hace el Taller, aquí anotas «Terminé N». Si la hace un servicio de afuera, se anota lo que sale (Salida) y lo que vuelve (Vuelta), con las buenas, las segundas y las que faltan.",
     },
     {
+      id: "marcar",
+      ancla: "prod-orden.marcar",
+      opcional: true,
+      titulo: "Marcar una fase que no cuenta prendas",
+      texto: "Ploteo no cuenta prendas: se marca como hecho con un toque cuando la marcada está lista, y la hoja pide quién lo marca. Si te equivocas, «Deshacer» lo vuelve atrás sin borrar el historial. En la demo no se marca nada.",
+    },
+    {
       id: "terminar",
       ancla: "prod-orden.terminar",
       opcional: true,
