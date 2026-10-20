@@ -1338,6 +1338,11 @@ export const PRUEBAS = [
   // valida contra las fases reales de la orden; la lista de precios acepta las claves nuevas; el candado de md5 y el pegado repetido. ROLLBACK.
   "pruebas:produccion-fases-nuevas",
 
+  // Ploteo, la fase de un toque (ADR-0400 act. k y l, R1, actividad 2): se marca «hecha» y se deshace sin contar prendas; no entra a la cadena
+  // (Corte conserva su tope plan × 1,10); avance, salida y vuelta la rechazan; un servicio de ploteo cobra el fijo por orden y devenga al marcarse;
+  // lo marcado solo se agrega; la línea de tiempo y las puertas. ROLLBACK.
+  "pruebas:produccion-ploteo",
+
   // El avance de una fase, la Salida a un servicio, su Vuelta y la orden en una lectura (ADR-0400, actividades 3 y 4): «Terminé N» dentro
   // de lo que de verdad entró (por talla y color; plan × 1,10 en el corte), Deshacer solo del último y mientras nadie lo use, Salida y
   // Vuelta que no pasan de lo que hay, faltantes con motivo, devengado, nada que toque movimientos ni stock, lo rechazado no deja nada,

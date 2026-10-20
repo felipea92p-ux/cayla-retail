@@ -41,9 +41,10 @@ const BASE = arg("--base", "postgres");
 const sinCandadosDePegado = (sql) => sql.replace(/^set lock_timeout.*$/gm, "").replace(/^reset lock_timeout;$/gm, "");
 const leer = (archivo) => sinCandadosDePegado(readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8"));
 const MIGRACION = leer("20261019191000_produccion_fases_nuevas_expandir.sql");
-// Las tres migraciones que dejaron las seis funciones como estaban ANTES (en el orden en que se pegaron).
+// Las migraciones que dejaron las seis funciones (y las de avance y lectura que las rodean) como estaban ANTES (en el orden en que se pegaron).
 const ANTERIORES = [
   "20261014154000_produccion_fases_y_tela_de_la_orden.sql",
+  "20261014155000_produccion_avance_salida_y_vuelta.sql",
   "20261015160000_produccion_anular_salida_y_vuelta.sql",
   "20261015172000_produccion_tarifas_de_servicios.sql",
 ]
@@ -105,10 +106,13 @@ end;
 $f$;
 `;
 
-// Datos propios: un proveedor de maquila, uno de tela, y el modelo del seed con sus variantes (dos colores distintos).
+// Primero las funciones como estaban ANTES de esta migración (una migración posterior las pudo cambiar: la base de CI las trae todas aplicadas y el candado de md5
+// de esta migración solo acepta el cuerpo anterior o el suyo), y encima la migración. Datos propios: un proveedor de maquila, uno de tela, y el modelo del seed.
 const PRELUDIO = `
 set client_min_messages = warning;
 begin;
+set local search_path = retail, public, extensions;
+${ANTERIORES}
 set local search_path = retail, public, extensions;
 ${MIGRACION}
 set local search_path = retail, public, extensions;
@@ -186,7 +190,7 @@ caso(
   "1,1,5"
 );
 caso(
-  "E3 desde las funciones de antes (154000, 20261015160000 y 20261015172000 cargadas encima) la migración llega a las nuevas con su candado de md5, y la ruta nueva vuelve a abrir",
+  "E3 desde las funciones de antes (154000, 155000, 20261015160000 y 20261015172000 cargadas encima) la migración llega a las nuevas con su candado de md5, y la ruta nueva vuelve a abrir",
   `${ANTERIORES}
    set local search_path = retail, public, extensions;
    select coalesce(retail.fn_fase_secuencia('ploteo', null)::text, 'NULL') as antes \\gset
