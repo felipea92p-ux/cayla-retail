@@ -38,6 +38,21 @@
 .t-avisos-mas { display: block; color: var(--tinta); text-decoration: underline; text-decoration-color: var(--tinta-40); text-underline-offset: 3px; }
 .t-avisos-mas:hover { text-decoration-color: var(--rojo-profundo); color: var(--rojo-profundo); }
 .t-avisos-mas:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 0; }
+/* Cada aviso del panel trae su «×» para borrarlo, y el panel su «Eliminar todas» (Felipe, 2026-10-19). */
+.t-avisos-panel li { display: flex; align-items: stretch; }
+.t-avisos-panel li > .t-avisos-fila { flex: 1; min-width: 0; }
+.t-avisos-borrar { flex: none; align-self: center; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 0; background: transparent; color: var(--tinta-60); cursor: pointer; }
+.t-avisos-borrar .ic { width: 14px; height: 14px; }
+.t-avisos-borrar:hover { background: var(--hueso); color: var(--rojo-profundo); }
+.t-avisos-borrar:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+/* «Vaciar bandeja» (Felipe, 2026-10-19): quita las notificaciones del panel sin borrarlas. Va a la izquierda del título, a su misma altura. */
+.t-avisos-cab-fila { display: flex; align-items: center; gap: 12px; padding: 0 10px; }
+.t-avisos-cab-fila .t-avisos-sub { margin: 0; }
+.t-avisos-vaciar { flex: none; margin-left: auto; padding: 0; border: 0; background: none; font-size: 12.5px; color: var(--tinta); text-decoration: underline; text-decoration-color: var(--tinta-40); text-underline-offset: 3px; cursor: pointer; }
+.t-avisos-vaciar:hover { text-decoration-color: var(--rojo-profundo); color: var(--rojo-profundo); }
+.t-avisos-vaciar:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 4px; }
+/* La línea que separa «Lo nuevo» de lo de arriba (como en la maqueta): va en la sección misma, no depende de que sea la siguiente. */
+.t-avisos-panel .t-avisos-lo-nuevo { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--sand); }
 .t-avisos-ver { margin: 0 10px 6px; font-size: 13px; }
 .t-avisos-ayuda { margin: 8px 10px 4px; padding-top: 8px; border-top: 1px solid var(--sand); font-size: 12.5px; line-height: 1.45; color: var(--tinta-60); }
 
