@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Banknote, CircleCheck, CircleHelp, Inbox, Smartphone, Truck } from "lucide-react";
+import { ArrowRight, Banknote, CircleCheck, CircleHelp, Inbox, MessageSquareText, Smartphone, Truck } from "lucide-react";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Boton } from "@/components/ui/campos";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
@@ -20,6 +20,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { CaminoDePedidos } from "@/components/tienda-web/CaminoDePedidos";
 import { PedidoWebHoja } from "@/components/pedidos-web/PedidoWebHoja";
 import { EnviarPedidoWebHoja } from "@/components/pedidos-web/EnviarPedidoWebHoja";
+import { EditarMensajePredeterminadoHoja } from "@/components/pedidos-web/EditarMensajePredeterminadoHoja";
 import { RegistrarPagoHoja } from "@/components/pedidos-web/RegistrarPagoHoja";
 import { AnularPagoHoja } from "@/components/pedidos-web/AnularPagoHoja";
 import { AnularPedidoPagadoHoja } from "@/components/pedidos-web/AnularPedidoPagadoHoja";
@@ -27,6 +28,7 @@ import { haceCuanto } from "@/lib/vender-hoy-reglas";
 import { soles } from "@/lib/precio-sede-reglas";
 import {
   agruparPorPestana,
+  MENSAJE_PREDETERMINADO_WEB,
   cifrasDe,
   loQueTeToca,
   momentoDe,
@@ -115,6 +117,7 @@ export function PedidosWebPantalla({
   filtroInicial,
   detalle,
   detalleFallo,
+  mensajePredeterminado: mensajeInicial,
 }: {
   tablero: TableroPedidosWeb;
   tiendaId: string;
@@ -123,10 +126,16 @@ export function PedidosWebPantalla({
   filtroInicial: PestanaPedidos | null;
   detalle: PedidoDetalle | null;
   detalleFallo: boolean;
+  /** El texto del mensaje predeterminado que guardó la tienda (todas las tiendas). */
+  mensajePredeterminado: string;
 }) {
   const router = useRouter();
   const [filtro, setFiltro] = useState<PestanaPedidos | null>(filtroInicial);
   const [como, setComo] = useState(false);
+  // El texto puede cambiarlo el editor de la cabecera: la pantalla lo guarda para que el pedido abierto lo use sin recargar.
+  // Siempre hay texto: si la página no lo trajo, el de fábrica (un `undefined` aquí tumba la pantalla al abrir el editor).
+  const [mensaje, setMensaje] = useState(mensajeInicial || MENSAJE_PREDETERMINADO_WEB);
+  const [editandoMensaje, setEditandoMensaje] = useState(false);
   // «Ahora» parte de la hora del servidor (el primer dibujo es idéntico en los dos lados) y avanza cada minuto: «se cierra en 3 h».
   const [ahora, setAhora] = useState(() => Date.parse(ahoraIso));
   useEffect(() => {
@@ -193,12 +202,20 @@ export function PedidosWebPantalla({
         titulo="Pedidos"
         subtitulo={`Lo que separaron en la web para ${tienda}.`}
         acciones={
-          <Boton type="button" peso="fantasma" aria-expanded={como} aria-controls="pedidos-web-reglas" onClick={() => setComo((c) => !c)} data-guia="pedidos-web.como">
-            <span className="flex items-center gap-2">
-              <CircleHelp aria-hidden className="-my-1 h-4 w-4 shrink-0" />
-              ¿Cómo funciona?
-            </span>
-          </Boton>
+          <div className="flex flex-wrap items-center gap-2">
+            <Boton type="button" peso="fantasma" onClick={() => setEditandoMensaje(true)} data-guia="pedidos-web.mensaje">
+              <span className="flex items-center gap-2">
+                <MessageSquareText aria-hidden className="-my-1 h-4 w-4 shrink-0" />
+                Mensaje predeterminado
+              </span>
+            </Boton>
+            <Boton type="button" peso="fantasma" aria-expanded={como} aria-controls="pedidos-web-reglas" onClick={() => setComo((c) => !c)} data-guia="pedidos-web.como">
+              <span className="flex items-center gap-2">
+                <CircleHelp aria-hidden className="-my-1 h-4 w-4 shrink-0" />
+                ¿Cómo funciona?
+              </span>
+            </Boton>
+          </div>
         }
       >
         {cifras.cobradoHoy > 0 ? (
@@ -208,6 +225,10 @@ export function PedidosWebPantalla({
           />
         ) : undefined}
       </EncabezadoPagina>
+
+      {editandoMensaje && (
+        <EditarMensajePredeterminadoHoja textoActual={mensaje} tienda={tienda} onClose={() => setEditandoMensaje(false)} onGuardado={setMensaje} />
+      )}
 
       {detalleFallo && (
         <Aviso tono="atencion" titulo="No se pudo abrir ese pedido">
@@ -275,6 +296,7 @@ export function PedidosWebPantalla({
           tiendaId={tiendaId}
           tienda={tienda}
           ahora={ahora}
+          mensajePredeterminado={mensaje}
           onClose={cerrar}
           onCambio={(estado, opciones) => {
             setRecien(abierto.id);

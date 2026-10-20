@@ -35,6 +35,7 @@ import {
   datosDelCliente,
   decisionDeFabrica,
   decisionesParaLaBase,
+  enlaceWhatsappMensajePredeterminado,
   enlaceWhatsappPedido,
   errorDeEntrega,
   errorDePedidoWeb,
@@ -95,6 +96,7 @@ export function PedidoWebHoja({
   tiendaId,
   tienda,
   ahora,
+  mensajePredeterminado,
   onClose,
   onCambio,
   onEnviar,
@@ -107,6 +109,8 @@ export function PedidoWebHoja({
   tiendaId: string;
   tienda: string;
   ahora: number;
+  /** El texto propio del mensaje predeterminado de quien atiende (o el de fábrica): lo llena este pedido para el botón de WhatsApp. */
+  mensajePredeterminado: string;
   onClose: () => void;
   /** La base cambió el pedido (confirmado, cerrado, anulado o una prenda reservada): la lista se pone al día. `sigueAbierta`: la hoja
    *  no se cierra (anulado con plata por devolver): el pedido se relee ya, no al cerrar. */
@@ -346,7 +350,7 @@ export function PedidoWebHoja({
     >
       {(cerrar) => (
         <div className="space-y-5">
-          <BloqueCliente pedido={p} whatsapp={whatsapp("libre")} />
+          <BloqueCliente pedido={p} whatsapp={enlaceWhatsappMensajePredeterminado(p, mensajePredeterminado)} />
 
           {porConfirmar && modo === "revisar" && (
             <>

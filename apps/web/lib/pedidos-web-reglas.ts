@@ -1172,6 +1172,28 @@ export function enlaceWhatsappPedido(p: Parameters<typeof mensajeWhatsapp>[0], p
   return enlaceWhatsAppA(p.cliente.celular, mensajeWhatsapp(p, plantilla));
 }
 
+/** Lo que el mensaje necesita del pedido: el código, el primer nombre del cliente y el nombre de la tienda web (sin el resto). */
+type DatosDelMensaje = { codigo: string; cliente: { nombre: string; celular?: string | null }; tiendaWeb: { nombre: string } };
+
+/** El mensaje de fábrica de los pedidos web. Sus marcas se llenan con cada pedido: {nombre}, {tienda} y {codigo}. */
+export const MENSAJE_PREDETERMINADO_WEB = "Hola {nombre}, te escribimos de {tienda} por tu pedido {codigo}.";
+/** Tope de letras del mensaje propio (lo mismo que la base: `fn_guardar_mensaje_pedidos_web`). */
+export const MAX_MENSAJE_PREDETERMINADO_WEB = 600;
+
+/** El texto que se envía a este cliente: el mensaje propio de la persona (o el de fábrica si no tiene uno), con sus marcas llenas. */
+export function mensajePredeterminadoDelPedido(p: DatosDelMensaje, mensajePropio: string | null | undefined): string {
+  const plantilla = mensajePropio?.trim() ? mensajePropio : MENSAJE_PREDETERMINADO_WEB;
+  return plantilla
+    .replaceAll("{nombre}", primerNombre(p.cliente.nombre))
+    .replaceAll("{tienda}", `CAYLA ${p.tiendaWeb.nombre}`)
+    .replaceAll("{codigo}", p.codigo);
+}
+
+/** El enlace de WhatsApp del mensaje predeterminado (el propio de la persona, o el de fábrica), al celular del cliente. */
+export function enlaceWhatsappMensajePredeterminado(p: DatosDelMensaje, mensajePropio: string | null | undefined): string {
+  return enlaceWhatsAppA(p.cliente.celular, mensajePredeterminadoDelPedido(p, mensajePropio));
+}
+
 /** «DNI ••••4415 · Cel. 900 000 440 · Miembro del club». */
 export function datosDelCliente(c: PedidoDetalle["cliente"]): string {
   return [c.documento ? `DNI ${c.documento}` : null, c.celular ? `Cel. ${formatoCelular(c.celular)}` : null, c.miembroDelClub ? "Miembro del club" : null]

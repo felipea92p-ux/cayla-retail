@@ -1,6 +1,6 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
-import { leerDetalle, leerTablero, type PestanaPedidos } from "@/lib/pedidos-web-reglas";
+import { MENSAJE_PREDETERMINADO_WEB, leerDetalle, leerTablero, type PestanaPedidos } from "@/lib/pedidos-web-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { PedidosWebPantalla } from "@/components/pedidos-web/PedidosWebPantalla";
@@ -29,9 +29,11 @@ export default async function PedidosWebPage({ searchParams }: { searchParams: P
 
   const supabase = await createClient();
   const idPedido = pedido && /^[0-9a-f-]{36}$/i.test(pedido) ? pedido : null;
-  const [tablero, detalle] = await Promise.all([
+  const [tablero, detalle, mensaje] = await Promise.all([
     supabase.rpc("fn_pedidos_web_tablero", { p_ubicacion_id: persona.ubicacionId }),
     idPedido ? supabase.rpc("fn_pedido_web_detalle", { p_pedido_id: idPedido }) : Promise.resolve(null),
+    // Es el mensaje propio de quien mira (20261019120000): los tipos generados aún no la conocen.
+    supabase.rpc("fn_mensaje_pedidos_web_mio" as never) as unknown as Promise<{ data: unknown; error: unknown }>,
   ]);
 
   if (tablero.error) {
@@ -57,6 +59,8 @@ export default async function PedidosWebPage({ searchParams }: { searchParams: P
       // Un pedido de otra tienda, o que ya no existe, no abre nada: la base lo rechaza y la lista queda como estaba.
       detalle={detalle && !detalle.error ? leerDetalle(detalle.data) : null}
       detalleFallo={Boolean(idPedido && (!detalle || detalle.error))}
+      // Si la base no responde o nunca editó el suyo, el de fábrica: el botón de WhatsApp sigue funcionando.
+      mensajePredeterminado={!mensaje.error && typeof mensaje.data === "string" && mensaje.data.trim() ? mensaje.data : MENSAJE_PREDETERMINADO_WEB}
     />
   );
 }

@@ -31,7 +31,7 @@ function archivos(dir: string): string[] {
 describe("ancho completo del Inicio de almacén", () => {
   it("AppShell le quita el tope al <main> cuando la pantalla lo pide, y no toca a las demás", () => {
     const shell = readFileSync(join(RAIZ, "components/AppShell.tsx"), "utf8");
-    expect(shell).toContain('"mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none"');
+    expect(shell).toContain('"mx-auto max-w-[120rem] has-[[data-ancho-completo]]:max-w-none"');
   });
 
   it("«/» no está en SIN_TOPE_DE_ANCHO: estiraría el Inicio de todas las cuentas", () => {

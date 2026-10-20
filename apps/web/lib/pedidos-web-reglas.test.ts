@@ -22,6 +22,8 @@ import {
   leerTablero,
   limpiarCodigo,
   loQueTeToca,
+  MENSAJE_PREDETERMINADO_WEB,
+  mensajePredeterminadoDelPedido,
   mensajeWhatsapp,
   MOTIVOS_ANULAR,
   MOTIVOS_NO_CONFIRMAR,
@@ -371,6 +373,17 @@ describe("El cliente y WhatsApp", () => {
       "Hola Andrea, tu pedido W-0012 ya está listo para recoger en CAYLA Trujillo (Jr. Pizarro 123). Muestra en caja el código de tu pedido: lo ves en «Mis pedidos».",
     );
     expect(mensajeWhatsapp(p, "norecoge")).toBe("Hola Andrea, tu pedido W-0012 te espera en CAYLA Trujillo. ¿Cuándo pasas a recogerlo? Muestra en caja el código de tu pedido.");
+  });
+
+  it("el mensaje de fábrica llena sus marcas con el pedido y coincide con el de antes", () => {
+    expect(mensajePredeterminadoDelPedido(p, null)).toBe("Hola Andrea, te escribimos de CAYLA Trujillo por tu pedido W-0012.");
+    expect(mensajePredeterminadoDelPedido(p, "   ")).toBe(mensajePredeterminadoDelPedido(p, MENSAJE_PREDETERMINADO_WEB));
+  });
+
+  it("el mensaje propio de la persona usa sus marcas y deja intacto lo demás", () => {
+    expect(mensajePredeterminadoDelPedido(p, "¡Hola {nombre}! 👋 Tu pedido {codigo} de {tienda} ya casi está.")).toBe(
+      "¡Hola Andrea! 👋 Tu pedido W-0012 de CAYLA Trujillo ya casi está.",
+    );
   });
 });
 
