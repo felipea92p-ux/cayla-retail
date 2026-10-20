@@ -48,31 +48,33 @@ export type FaseDelCatalogo = {
   ayuda: string;
   /** De qué ruta es. `acabado` solo de la anterior; las seis nuevas solo de la nueva. */
   ruta: RutaDeFase;
-  /** Una fase que se MARCA «hecha» con un toque en vez de contar prendas (hoy solo Ploteo): la misma regla que `fn_fase_es_hito` de la base (lo prueba `orden-fases-reglas.test.ts`). */
+  /** Una fase que se MARCA «hecha» con un toque en vez de contar prendas (hoy solo Ploteo): la misma regla que `fn_fase_es_hito` de la base (lo prueba `orden-fases-reglas.test.ts`). Un servicio de una fase así cobra por ORDEN (el fijo), no por prenda. */
   hito: boolean;
+  /** Si la hoja «Nueva orden» la ofrece. Bordado, Estampado y Lavandería «no se usan por ahora» (Felipe, 2026-10-16) y Acabado es de la ruta anterior: siguen en la base y en lo que ya se abrió, pero no se ofrecen. */
+  enLaHoja: boolean;
 };
 
 /** Las fases, fijas en código (ADR-0400: una lista que cambia una vez al año no necesita pantalla). El orden de la RUTA lo da `secuenciaDe`. */
 export const FASES: ReadonlyArray<FaseDelCatalogo> = [
-  { clave: "ploteo", nombre: "Ploteo", siempre: true, posicionable: false, ayuda: "La marcada a escala real: define cuánta tela comprar", ruta: "nueva", hito: true },
-  { clave: "corte", nombre: "Corte", siempre: true, posicionable: false, ayuda: "Trazo, tendido y corte", ruta: "ambas", hito: false },
-  { clave: "habilitado", nombre: "Habilitado", siempre: true, posicionable: false, ayuda: "Preparar lo cortado para coser: numerar, armar paquetes, sumar avíos y el corte menor de Tricotex", ruta: "nueva", hito: false },
-  { clave: "costura", nombre: "Costura", siempre: true, posicionable: false, ayuda: "Armar la prenda: costura, ojal y botón", ruta: "ambas", hito: false },
-  { clave: "ojales_botones", nombre: "Ojales y botones", siempre: false, posicionable: false, ayuda: "Solo si el modelo los lleva", ruta: "nueva", hito: false },
-  { clave: "limpieza_revision", nombre: "Limpiar hilos y revisar", siempre: true, posicionable: false, ayuda: "Quitar hilos sobrantes y revisar cada prenda", ruta: "nueva", hito: false },
-  { clave: "planchado", nombre: "Planchado", siempre: true, posicionable: false, ayuda: "Planchar la prenda terminada", ruta: "nueva", hito: false },
-  { clave: "etiquetado_embolsado", nombre: "Etiquetar y embolsar", siempre: true, posicionable: false, ayuda: "Etiqueta, bolsa y lista para despachar", ruta: "nueva", hito: false },
-  { clave: "acabado", nombre: "Acabado", siempre: true, posicionable: false, ayuda: "Revisión, planchado, etiqueta y embolsado", ruta: "anterior", hito: false },
-  { clave: "bordado", nombre: "Bordado", siempre: false, posicionable: true, ayuda: "Sobre la pieza cortada o sobre la prenda armada", ruta: "ambas", hito: false },
-  { clave: "estampado", nombre: "Estampado", siempre: false, posicionable: true, ayuda: "Sobre la pieza cortada o sobre la prenda armada", ruta: "ambas", hito: false },
-  { clave: "lavanderia", nombre: "Lavandería", siempre: false, posicionable: false, ayuda: "Lavado o teñido de la prenda armada, antes del acabado", ruta: "ambas", hito: false },
+  { clave: "ploteo", nombre: "Ploteo", siempre: true, posicionable: false, ayuda: "La marcada a escala real: define cuánta tela comprar", ruta: "nueva", hito: true, enLaHoja: true },
+  { clave: "corte", nombre: "Corte", siempre: true, posicionable: false, ayuda: "Trazo, tendido y corte", ruta: "ambas", hito: false, enLaHoja: true },
+  { clave: "habilitado", nombre: "Habilitado", siempre: true, posicionable: false, ayuda: "Preparar lo cortado para coser: numerar, armar paquetes, sumar avíos y el corte menor de Tricotex", ruta: "nueva", hito: false, enLaHoja: true },
+  { clave: "costura", nombre: "Costura", siempre: true, posicionable: false, ayuda: "Armar la prenda: costura, ojal y botón", ruta: "ambas", hito: false, enLaHoja: true },
+  { clave: "ojales_botones", nombre: "Ojales y botones", siempre: false, posicionable: false, ayuda: "Solo si el modelo los lleva", ruta: "nueva", hito: false, enLaHoja: true },
+  { clave: "limpieza_revision", nombre: "Limpiar hilos y revisar", siempre: true, posicionable: false, ayuda: "Quitar hilos sobrantes y revisar cada prenda", ruta: "nueva", hito: false, enLaHoja: true },
+  { clave: "planchado", nombre: "Planchado", siempre: true, posicionable: false, ayuda: "Planchar la prenda terminada", ruta: "nueva", hito: false, enLaHoja: true },
+  { clave: "etiquetado_embolsado", nombre: "Etiquetar y embolsar", siempre: true, posicionable: false, ayuda: "Etiqueta, bolsa y lista para despachar", ruta: "nueva", hito: false, enLaHoja: true },
+  { clave: "acabado", nombre: "Acabado", siempre: true, posicionable: false, ayuda: "Revisión, planchado, etiqueta y embolsado", ruta: "anterior", hito: false, enLaHoja: false },
+  { clave: "bordado", nombre: "Bordado", siempre: false, posicionable: true, ayuda: "Sobre la pieza cortada o sobre la prenda armada", ruta: "ambas", hito: false, enLaHoja: false },
+  { clave: "estampado", nombre: "Estampado", siempre: false, posicionable: true, ayuda: "Sobre la pieza cortada o sobre la prenda armada", ruta: "ambas", hito: false, enLaHoja: false },
+  { clave: "lavanderia", nombre: "Lavandería", siempre: false, posicionable: false, ayuda: "Lavado o teñido de la prenda armada, antes del acabado", ruta: "ambas", hito: false, enLaHoja: false },
 ];
 
 /**
- * Las fases que la hoja «Nueva orden» ofrece HOY. Mientras la hoja siga abriendo la ruta anterior (la web desplegada y la base aceptan las dos; ADR-0400 act. l),
- * las fases solo de la ruta nueva no se ofrecen: la actividad que rehace la hoja cambia esta línea.
+ * Las fases que la hoja «Nueva orden» ofrece (ADR-0400 act. k y l): la ruta nueva —Ploteo · Corte · Habilitado · Costura · Ojales y botones (opcional) · Limpiar hilos y revisar ·
+ * Planchado · Etiquetar y embolsar—, en el orden del catálogo. Las siete fijas viajan siempre; Ojales y botones se enciende si el modelo lo lleva.
  */
-export const FASES_DE_LA_HOJA: ReadonlyArray<FaseDelCatalogo> = FASES.filter((f) => f.ruta !== "nueva");
+export const FASES_DE_LA_HOJA: ReadonlyArray<FaseDelCatalogo> = FASES.filter((f) => f.enLaHoja);
 
 const POR_CLAVE = new Map(FASES.map((f) => [f.clave, f] as const));
 
@@ -239,15 +241,19 @@ export type ServicioLeido = {
  * (la base lo rechaza con `fase_tarifa_invalida`; acá lo dice `problemasFases`).
  */
 export function leerServicio(fase: FaseBorrador, lista: readonly TarifaDeLista[], hoy: string): ServicioLeido {
-  const tarifa = leerDinero(fase.tarifa);
+  // Una fase que se marca (Ploteo) se cobra por ORDEN: el fijo, sin tarifa por prenda ni cantidad mínima (la base los deja en nada: `fn_produccion_fases_normalizar`).
+  const porOrden = faseDe(fase.clave).hito;
+  const tarifa: LecturaDinero = porOrden ? { tipo: "vacio" } : leerDinero(fase.tarifa);
   const fijo = leerDinero(fase.fijo);
-  const minimo = leerEntero(fase.minimo);
+  const minimo: LecturaEntero = porOrden ? { tipo: "vacio" } : leerEntero(fase.minimo);
   const sugerida = tarifaSugerida(fase.proveedorId, fase.clave, lista, hoy);
   let tarifaPrenda = tarifa.tipo === "ok" ? tarifa.valor : null;
   let fijoOrden = fijo.tipo === "ok" ? fijo.valor : 0;
   let cantidadMinima = minimo.tipo === "ok" ? minimo.valor : null;
   const deLaLista = tarifa.tipo === "vacio" && sugerida !== null;
-  if (deLaLista && sugerida) {
+  if (porOrden) {
+    if (sugerida) fijoOrden = fijoOrden > 0 ? fijoOrden : sugerida.fijo;
+  } else if (deLaLista && sugerida) {
     tarifaPrenda = sugerida.tarifa;
     cantidadMinima = cantidadMinima ?? sugerida.minimo;
     fijoOrden = fijoOrden > 0 ? fijoOrden : sugerida.fijo;
@@ -265,6 +271,7 @@ export const HINTS_FASE = [
   "fase_proveedor_inactivo",
   "fase_proveedor_rubro",
   "fase_sin_tarifa",
+  "fase_sin_fijo",
   "fase_tarifa_invalida",
   "fase_fecha_invalida",
   "fase_fecha_pasada",
@@ -310,7 +317,14 @@ export function problemasFases(fases: readonly FaseBorrador[], ctx: ContextoFase
     }
 
     const s = leerServicio(f, lista, ctx.hoy);
-    if (s.tarifa.tipo === "coma") di("fase_tarifa_invalida", `Escribe la tarifa de ${nombre} con punto, por ejemplo 4.50.`);
+    if (cat.hito) {
+      // Cobra por orden (el ploteo): el fijo es lo único que se escribe. El orden es el de la base: un texto que no es número, después «falta el fijo», después los topes.
+      if (s.fijo.tipo === "coma") di("fase_tarifa_invalida", `Escribe lo que cobra ${nombre} por la orden con punto, por ejemplo 40.00.`);
+      else if (s.fijo.tipo === "invalido") di("fase_tarifa_invalida", `Lo que cobra ${nombre} por la orden tiene que ser un número, por ejemplo 40.00.`);
+      else if (s.fijo.tipo === "negativo" || s.fijoOrden <= 0) {
+        di("fase_sin_fijo", s.fijo.tipo === "negativo" ? `Lo que cobra ${nombre} por la orden tiene que ser mayor que cero.` : `Falta lo que cobra ${nombre} por esta orden: escríbelo o guárdalo en la lista de precios del proveedor.`);
+      } else if (s.fijoOrden > FIJO_MAXIMO) di("fase_tarifa_invalida", `Lo que cobra ${nombre} por la orden no puede pasar de S/\u00a099,999.99.`);
+    } else if (s.tarifa.tipo === "coma") di("fase_tarifa_invalida", `Escribe la tarifa de ${nombre} con punto, por ejemplo 4.50.`);
     else if (s.tarifa.tipo === "invalido") di("fase_tarifa_invalida", `La tarifa de ${nombre} tiene que ser un número, por ejemplo 4.50.`);
     else if (s.fijo.tipo === "coma") di("fase_tarifa_invalida", `Escribe el fijo por orden de ${nombre} con punto, por ejemplo 80.00.`);
     else if (s.fijo.tipo === "invalido") di("fase_tarifa_invalida", `El fijo por orden de ${nombre} tiene que ser un número, por ejemplo 80.00.`);

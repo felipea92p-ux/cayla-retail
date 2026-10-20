@@ -132,7 +132,8 @@ export function TarifaServicioModal({
                 etiqueta={guia.etiqueta("fase", "Fase")}
                 valor={e.fase}
                 onValor={(v) => cambia({ fase: v })}
-                opciones={FASES_DE_LA_HOJA.map((f) => ({ valor: f.clave, texto: f.nombre }))}
+                // El ploteo se cobra por orden, no por prenda: su fijo se escribe en la orden (la lista de precios todavía no lo guarda).
+                opciones={FASES_DE_LA_HOJA.filter((f) => !f.hito).map((f) => ({ valor: f.clave, texto: f.nombre }))}
                 marcador="Elegir la fase"
               />
             </CampoGuiado>

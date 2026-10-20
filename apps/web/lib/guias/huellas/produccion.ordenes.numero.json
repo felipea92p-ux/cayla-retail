@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 97,
+  "total": 100,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -147,9 +147,12 @@
       "SegmentoDeslizante «{`Quién hace ${nombreEnFrase}»",
       "SegmentoDeslizante «{`Dónde va el ${nombreEnFrase}»",
       "CampoSelect «Proveedor»",
+      "CampoMonto «Cobra por esta orden»",
+      "CampoFecha «Prometido para»",
+      "CampoSelect «Proveedor» #2",
       "CampoMonto «Por prenda»",
       "CampoTexto «Cantidad mínima»",
-      "CampoFecha «Prometido para»",
+      "CampoFecha «Prometido para» #2",
       "CampoMonto «Fijo por orden»",
       "button «+ fijo por orden (ponchado, matriz)»"
     ]

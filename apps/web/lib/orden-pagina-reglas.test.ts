@@ -1117,10 +1117,12 @@ describe("una fase que se marca (Ploteo, ADR-0400 act. k y l): hecha con un toqu
     expect(textoDeFase(afueraHecho, { previa: null, terminoEl: "2026-10-15T22:40:00+00:00", totalPlan: 48 }).detalle).toBe("Marcado el jue 15 oct · con Plotter Lima · S/\u00a040.00 por orden");
   });
 
-  it("«Cambiar quién» no se ofrece en una fase que se marca (cobra por orden: la hoja de hoy no sabe pedir el fijo)", () => {
+  it("«Cambiar quién» se ofrece en Ploteo mientras no esté marcado (la hoja pide el fijo por orden); marcado ya empezó", () => {
     const p = conPloteo();
-    expect(puedeCambiarQuien(p.fases[0], p)).toBe(false);
+    expect(puedeCambiarQuien(p.fases[0], p)).toBe(true);
     expect(puedeCambiarQuien(p.fases[1], p)).toBe(true);
+    const marcado = conPloteo(MARCADA);
+    expect(puedeCambiarQuien(marcado.fases[0], marcado)).toBe(false);
   });
 
   it("la línea de tiempo cuenta lo marcado y lo deshecho, y el día de la marca es el de «Hecho»", () => {

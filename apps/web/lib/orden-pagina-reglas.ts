@@ -622,8 +622,7 @@ export function textoQueSigue(s: Siguiente, fases: readonly FasePagina[]): strin
 
 /** ¿Se puede cambiar quién hace esta fase? Solo mientras no empezó y la orden sigue en proceso (la base lo exige: `fase_empezada`, `orden_cerrada`). */
 export function puedeCambiarQuien(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
-  // Una fase que se marca (Ploteo) cobra el fijo por orden, no tarifa por prenda: la hoja de «Cambiar quién» todavía no sabe pedirlo (la rehace la actividad de «Nueva orden»).
-  return !f.hito && p.permisos.puedeOperar && p.orden.estado === "en_proceso" && !f.empezada && f.estado !== "hecha";
+  return p.permisos.puedeOperar && p.orden.estado === "en_proceso" && !f.empezada && f.estado !== "hecha";
 }
 
 /** El aviso de la cantidad mínima del servicio: «Confecciones del Norte cobra desde 150 prendas; esta orden lleva 48». No bloquea (ADR-0400, decisión 5). */

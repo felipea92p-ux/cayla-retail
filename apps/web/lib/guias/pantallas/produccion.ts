@@ -282,7 +282,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "fases",
       ancla: "prod-orden-nueva.fases",
       titulo: "Las fases y quién hace cada una",
-      texto: "Corte, Costura y Acabado van siempre; Bordado, Estampado y Lavandería se encienden si el modelo las lleva. En cada fase dices si la hace el Taller o sale afuera: si sale, eliges el servicio, su precio por prenda y para cuándo lo prometió. Se decide ahora y se puede cambiar hasta que la fase empiece.",
+      texto: "Ploteo, Corte, Habilitado, Costura, Limpiar hilos y revisar, Planchado y Etiquetar y embolsar van siempre; Ojales y botones, si el modelo los lleva. En cada fase eliges si la hace el Taller o sale afuera: si sale, el servicio, su precio y la fecha (el ploteo cobra una vez por orden).",
     },
     {
       id: "tela",
@@ -358,7 +358,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       id: "fases",
       ancla: "prod-orden.fases",
       titulo: "Las fases del lote",
-      texto: "Corte, Costura y Acabado, y Bordado, Estampado o Lavandería si la orden los lleva. Cada fase dice quién la hace —el Taller o un servicio de afuera—, cuántas prendas van y para cuándo lo prometió. ✓ es hecha; la encendida es en la que se está.",
+      texto: "Ploteo, Corte, Habilitado, Costura, Limpiar hilos y revisar, Planchado y Etiquetar y embolsar, y Ojales y botones si la orden los lleva. Cada fase dice quién la hace —el Taller o un servicio de afuera—, cuántas prendas van y para cuándo lo prometió. ✓ es hecha; la encendida es en la que se está.",
     },
     {
       id: "fase-actual",
