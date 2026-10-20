@@ -104,5 +104,15 @@ quedaba una franja de aire entre la blusa y el pantalón. Causa: `medirRecorte` 
   que anota el ERP sigue siendo el punto de partida.
 - Descartado: encoger las prendas anchas hasta la cintura del pantalón (deformaría los oversize), y subir el tope por encima de ×1,3 (un top de 9,8 cm de bajo, que es probablemente una punta de amarre y no un bajo, saldría enorme).
 
+## Actualización 2026-10-19 (b): el ancho del bajo se mide por filas, y el ajuste es proporcional
+
+Felipe mostró un chaleco sobre camisa y un corset rojo que «tampoco se adaptan». Dos causas, una mía:
+- **El chaleco con mangas largas** salía con un jean enorme (cintura 41,5 cm, largo 113 cm): el «ancho de la zona del bajo» se medía por franjas verticales seguidas y las mangas que cuelgan hasta el bajo
+  contaban como cuerpo (1,00 del ancho). Ahora se mide **por filas** (`anchoBajo`: el tramo seguido más ancho en el último 12 % del torso): las mangas separadas del cuerpo no cuentan y el chaleco vuelve a
+  30,8 cm de cintura. Se guarda en la medida; lo recordado en el navegador sube a `cayla-union-v3`.
+- **El corset rojo** medía 30 cm de ancho y el ajuste suave (raíz cuadrada) lo agrandaba apenas ×1,08, así que el jean (mínimo 30,6 cm) quedaba más ancho que el top. El ajuste de la prenda de arriba ahora es
+  **proporcional** a lo que le falta para llegar a esa cintura mínima (tope ×1,3): el corset sube ×1,26 y las dos anchuras coinciden.
+- Catálogo (105 prendas de arriba, jeans Adelle Wide Leg): 74 idénticas, 31 crecen (22 más de ×1,05) y ninguna se achica. El umbral (30,6 cm) no cambió: lo que ya se veía bien no se mueve.
+
 Queda por hacer: probar la figura quieta en `/looks/guardado/<id>` y en una tarjeta de «Tus looks» con una cuenta real (aquí solo se comprobaron tipos, las 676 pruebas de la tienda y la medida con las
 imágenes reales), y mirar cómo se ven las prendas de arriba con volado o peplum.

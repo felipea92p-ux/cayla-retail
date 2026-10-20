@@ -27,8 +27,8 @@ import {
 const ESPERA_ANTES_DE_AVISAR_MS = 180;
 /** Una imagen que no responde en tanto se da por no medible: se queda la caja de siempre y el aviso se va. */
 const LIMITE_POR_RECORTE_MS = 4000;
-// v2: las medidas ahora traen el perfil del bajo; lo recordado en v1 se vuelve a medir.
-const CLAVE_GUARDADA = "cayla-union-v2";
+// v3: las medidas traen el perfil del bajo y su ancho por filas; lo recordado en v1 y v2 se vuelve a medir.
+const CLAVE_GUARDADA = "cayla-union-v3";
 
 /** Lo que se midió de cada recorte (por su dirección); `null`: no se pudo. Dura lo que dura la pestaña, más lo recordado de otras visitas. */
 const medidas = new Map<string, MedidaDelRecorte | null>();

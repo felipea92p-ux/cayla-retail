@@ -125,21 +125,25 @@ describe("el bajo de la prenda: no siempre es recto", () => {
 
   it("sin perfil o sin torso no hay punto alto: se queda el bajo de siempre", () => {
     expect(filaAltaDelBorde(SIN_MEDIDA, 0.6)).toBeNull();
-    expect(filaAltaDelBorde({ filaDelBorde: 0.8, borde: 0.4, pretina: null, bajo: null }, 0.6)).toBeNull();
+    expect(filaAltaDelBorde({ filaDelBorde: 0.8, borde: 0.4, pretina: null, bajo: null, anchoBajo: null }, 0.6)).toBeNull();
   });
 });
 
-describe("anchoDelBajo: el ancho de toda la zona del bajo", () => {
-  it("un bajo recto ocupa el ancho de la prenda", () => {
+describe("anchoDelBajo: el ancho de toda la zona del bajo, sin las mangas", () => {
+  it("un bajo recto ocupa el ancho de su torso", () => {
     const m = medirRecorte(imagen(100, 100, (x, y) => x >= 20 && x < 80 && y < 80), 100, 100);
-    expect(anchoDelBajo(m)!).toBeGreaterThan(0.5);
-    expect(anchoDelBajo(m)!).toBeLessThanOrEqual(0.6);
+    expect(anchoDelBajo(m)!).toBeCloseTo(0.6, 2);
   });
-  it("dos piezas separadas no se suman: solo cuenta el tramo seguido más ancho", () => {
-    const m: MedidaDelRecorte = { filaDelBorde: 0.9, borde: 0.2, pretina: null, bajo: Array.from({ length: FRANJAS_DEL_BAJO }, (_, i) => (i < 6 || (i >= 12 && i < 14) ? 0.9 : null)) };
-    expect(anchoDelBajo(m)).toBeCloseTo(6 / FRANJAS_DEL_BAJO, 5);
+  it("las mangas que cuelgan a los lados no cuentan: solo el cuerpo", () => {
+    const m = medirRecorte(imagen(100, 100, polo), 100, 100);
+    expect(anchoDelBajo(m)!).toBeCloseTo(0.4, 2);
   });
-  it("sin perfil no hay medida", () => {
+  it("un bajo en diagonal mide más que su punta: toda la zona del bajo, no solo la última fila", () => {
+    const diagonal = (x: number, y: number) => x >= 20 && x < 80 && y < 70 + ((x - 20) / 60) * 20;
+    const m = medirRecorte(imagen(100, 100, diagonal), 100, 100);
+    expect(anchoDelBajo(m)!).toBeGreaterThan(m.borde! + 0.1);
+  });
+  it("sin medida no hay ancho", () => {
     expect(anchoDelBajo(SIN_MEDIDA)).toBeNull();
   });
 });
@@ -149,7 +153,7 @@ describe("cajaDeArribaAjustada: solo crece lo dibujado demasiado chico, lo demá
   // Una prenda de arriba de 160 px de ancho cuyo bajo ocupa `fraccion` de su ancho.
   const con = (fraccion: number, metida = false) => ({
     caja: { x: 110, y: 44, w: 160, h: 160 },
-    medida: { filaDelBorde: 0.9, borde: fraccion, pretina: null, bajo: null } as MedidaDelRecorte,
+    medida: { filaDelBorde: 0.9, borde: fraccion, pretina: null, bajo: null, anchoBajo: null } as MedidaDelRecorte,
     metida,
   });
 
@@ -190,18 +194,22 @@ describe("cajaDeArribaAjustada: solo crece lo dibujado demasiado chico, lo demá
   });
 
   it("usa el ancho de toda la zona del bajo, no solo el de su punta", () => {
-    // Punta angosta (borde 0,2) pero zona del bajo ancha (60 % del ancho): 96 px, ya en rango: no cambia.
-    const bajo = Array.from({ length: FRANJAS_DEL_BAJO }, (_, i) => (i >= 5 && i < 19 ? 0.9 : null));
-    expect(cajaDeArribaAjustada({ ...con(0.2), medida: { filaDelBorde: 0.9, borde: 0.2, pretina: null, bajo } })).toBeNull();
+    // Punta angosta (borde 0,2) pero zona del bajo ancha (0,6 de 160 px = 96 px, ya en rango): no cambia.
+    expect(cajaDeArribaAjustada({ ...con(0.2), medida: { filaDelBorde: 0.9, borde: 0.2, pretina: null, bajo: null, anchoBajo: 0.6 } })).toBeNull();
+  });
+
+  it("crece en proporción a lo que le falta: justo lo que necesita para llegar a la cintura mínima", () => {
+    const c = cajaDeArribaAjustada(con(0.4))!; // 64 px de bajo contra 76,5
+    expect(c.w / 160).toBeCloseTo(MINIMO / 64, 1);
   });
 });
 
 describe("cajaDeAbajoUnida: la pretina sigue al borde del torso, dentro de la cintura estándar", () => {
   const ESTANDAR = ANCHO_ESTANDAR_DE_LA_UNION * PX_POR_CM; // 90 px
   // La prenda de arriba, con la caja que se le da y su torso: ancho de la caja × `borde` = lo que mide su borde de abajo.
-  const arribaCon = (bordePx: number) => ({ caja: { x: 66, y: 44, w: 150, h: 150 }, medida: { filaDelBorde: 0.86, borde: bordePx / 150, pretina: null, bajo: null }, metida: false });
+  const arribaCon = (bordePx: number) => ({ caja: { x: 66, y: 44, w: 150, h: 150 }, medida: { filaDelBorde: 0.86, borde: bordePx / 150, pretina: null, bajo: null, anchoBajo: null }, metida: false });
   // La falda: su pretina mide el 80 % del ancho de su recorte, que es 1,13 veces más ancho que alto.
-  const falda = { proporcion: 1.13, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.8, bajo: null } };
+  const falda = { proporcion: 1.13, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.8, bajo: null, anchoBajo: null } };
 
   it("un borde dentro del rango: la pretina de la falda mide lo mismo que el borde del torso", () => {
     const c = cajaDeAbajoUnida(arribaCon(90), falda)!;
@@ -233,7 +241,7 @@ describe("cajaDeAbajoUnida: la pretina sigue al borde del torso, dentro de la ci
 
   it("con el bajo de arriba en diagonal la pretina arranca en su punto más alto, sin aire en ese lado", () => {
     const bajo = Array.from({ length: FRANJAS_DEL_BAJO }, (_, i) => (i < 4 || i >= 20 ? null : 0.7 + ((i - 4) / 15) * 0.2));
-    const arriba = { caja: { x: 66, y: 44, w: 150, h: 150 }, medida: { filaDelBorde: 0.9, borde: 0.45, pretina: null, bajo }, metida: false };
+    const arriba = { caja: { x: 66, y: 44, w: 150, h: 150 }, medida: { filaDelBorde: 0.9, borde: 0.45, pretina: null, bajo, anchoBajo: null }, metida: false };
     const diagonal = cajaDeAbajoUnida(arriba, falda)!;
     const recta = cajaDeAbajoUnida({ ...arriba, medida: { ...arriba.medida, bajo: null } }, falda)!;
     // Sin perfil: arranca en el punto más bajo (0,9). Con perfil: más arriba, por donde el bajo sube.
@@ -244,27 +252,26 @@ describe("cajaDeAbajoUnida: la pretina sigue al borde del torso, dentro de la ci
   });
 
   it("un bajo que termina en una punta angosta no encoge la cintura del pantalón: cuenta el ancho de toda la zona del bajo", () => {
-    // Torso de 100 de ancho que termina en diagonal: la fila más baja mide poco (la punta), pero la zona del bajo ocupa casi todo el ancho.
-    const bajo = Array.from({ length: FRANJAS_DEL_BAJO }, (_, i) => (i < 3 || i >= 21 ? null : 0.8 + (i / FRANJAS_DEL_BAJO) * 0.18));
-    const punta = { caja: { x: 66, y: 44, w: 150, h: 150 }, medida: { filaDelBorde: 0.98, borde: 0.35, pretina: null, bajo }, metida: false };
-    const sinPerfil = { ...punta, medida: { ...punta.medida, bajo: null } };
+    // La fila más baja mide poco (la punta: 25 % de 150 px), pero la zona del bajo ocupa el 70 % del ancho.
+    const punta = { caja: { x: 66, y: 44, w: 150, h: 150 }, medida: { filaDelBorde: 0.98, borde: 0.25, pretina: null, bajo: null, anchoBajo: 0.7 }, metida: false };
+    const sinZona = { ...punta, medida: { ...punta.medida, anchoBajo: null } };
     const conZona = cajaDeAbajoUnida(punta, falda)!;
-    const conPunta = cajaDeAbajoUnida(sinPerfil, falda)!;
-    // Con solo la punta (35 % de 150 px = 52 px) la pretina cae al mínimo; con la zona del bajo, más cerca de la cintura estándar.
+    const conPunta = cajaDeAbajoUnida(sinZona, falda)!;
+    // Con solo la punta (37 px) la pretina cae al mínimo; con la zona del bajo (105 px) llega al tope de la cintura estándar.
     expect(conPunta.w * 0.8).toBeCloseTo(ESTANDAR * (1 - HOLGURA_DE_LA_UNION), 0);
     expect(conZona.w).toBeGreaterThan(conPunta.w);
   });
 
   it("una pretina ancha para su largo (una mini) sale corta; una angosta (una maxi), larga", () => {
-    const mini = cajaDeAbajoUnida(arribaCon(90), { proporcion: 1.5, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.9, bajo: null } })!;
-    const maxi = cajaDeAbajoUnida(arribaCon(90), { proporcion: 0.7, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.35, bajo: null } })!;
+    const mini = cajaDeAbajoUnida(arribaCon(90), { proporcion: 1.5, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.9, bajo: null, anchoBajo: null } })!;
+    const maxi = cajaDeAbajoUnida(arribaCon(90), { proporcion: 0.7, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.35, bajo: null, anchoBajo: null } })!;
     expect(mini.h).toBeLessThan(maxi.h);
   });
 
   it("el largo no se sale del rango: ni un pantalón de 20 cm ni uno de 3 metros", () => {
-    const angosta = cajaDeAbajoUnida(arribaCon(90), { proporcion: 0.2, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.2, bajo: null } })!;
+    const angosta = cajaDeAbajoUnida(arribaCon(90), { proporcion: 0.2, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 0.2, bajo: null, anchoBajo: null } })!;
     expect(angosta.h).toBe(Math.round(LARGO_MAXIMO_DE_ABAJO * PX_POR_CM));
-    const ancha = cajaDeAbajoUnida(arribaCon(90), { proporcion: 4, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 1, bajo: null } })!;
+    const ancha = cajaDeAbajoUnida(arribaCon(90), { proporcion: 4, medida: { filaDelBorde: 0.1, borde: 0.9, pretina: 1, bajo: null, anchoBajo: null } })!;
     expect(ancha.h).toBe(Math.round(LARGO_MINIMO_DE_ABAJO * PX_POR_CM));
     // Al acotar el largo, el ancho acompaña (la prenda no se deforma).
     expect(ancha.w / ancha.h).toBeCloseTo(4, 1);
@@ -300,14 +307,14 @@ describe("direccionParaMedir: se mide una copia chica, no el PNG entero", () => 
 });
 
 describe("las medidas que se recuerdan entre visitas", () => {
-  const m: MedidaDelRecorte = { filaDelBorde: 0.8, borde: 0.4, pretina: null, bajo: Array.from({ length: FRANJAS_DEL_BAJO }, (_, i) => (i < 4 ? null : 0.8)) };
+  const m: MedidaDelRecorte = { filaDelBorde: 0.8, borde: 0.4, pretina: null, bajo: Array.from({ length: FRANJAS_DEL_BAJO }, (_, i) => (i < 4 ? null : 0.8)), anchoBajo: 0.5 };
   it("lo que se guarda se lee igual", () => {
     const texto = medidasATexto(new Map([["u1", m]]));
     expect(medidasDesdeTexto(texto).get("u1")).toEqual(m);
   });
   it("lo que se recordó sin perfil de bajo (de otra versión) se lee sin él, y un perfil mal formado se descarta", () => {
     const sinPerfil = JSON.stringify({ a: { filaDelBorde: 0.8, borde: 0.4, pretina: null } });
-    expect(medidasDesdeTexto(sinPerfil).get("a")).toEqual({ filaDelBorde: 0.8, borde: 0.4, pretina: null, bajo: null });
+    expect(medidasDesdeTexto(sinPerfil).get("a")).toEqual({ filaDelBorde: 0.8, borde: 0.4, pretina: null, bajo: null, anchoBajo: null });
     const malo = JSON.stringify({ a: { filaDelBorde: 0.8, borde: 0.4, pretina: null, bajo: [0.5, 2] } });
     expect(medidasDesdeTexto(malo).size).toBe(0);
   });

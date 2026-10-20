@@ -40,9 +40,13 @@ export type MedidaDelRecorte = {
   /** Dónde termina la prenda en cada una de sus `FRANJAS_DEL_BAJO` franjas, de izquierda a derecha (0–1 del alto); `null` en una franja sin prenda.
    *  Un bajo curvo o asimétrico (un top con caída, una blusa cruzada) no termina a la misma altura en todo su ancho. */
   bajo: (number | null)[] | null;
+  /** El ancho del tramo seguido más ancho en el último tramo del torso (`ZONA_DEL_BAJO` de alto sobre su fila más baja), sobre el ancho de la prenda.
+   *  Como `borde`, pero mirando toda la zona del bajo y no solo su última fila (una blusa cruzada termina en una punta angosta); las mangas separadas
+   *  del cuerpo no cuentan, porque la medida es por fila y no por franja. */
+  anchoBajo: number | null;
 };
 
-export const SIN_MEDIDA: MedidaDelRecorte = { filaDelBorde: null, borde: null, pretina: null, bajo: null };
+export const SIN_MEDIDA: MedidaDelRecorte = { filaDelBorde: null, borde: null, pretina: null, bajo: null, anchoBajo: null };
 
 /** Dónde termina la prenda en cada franja (0–1 del alto): la mediana del último píxel de prenda de sus columnas, para que un hilo suelto no cuente. */
 function perfilDelBajo(rgba: ArrayLike<number>, ancho: number, alto: number): (number | null)[] {
@@ -65,21 +69,13 @@ function perfilDelBajo(rgba: ArrayLike<number>, ancho: number, alto: number): (n
 }
 
 /**
- * Cuánto mide de ancho la zona del bajo (fracción del ancho de la prenda): el tramo seguido de franjas que llegan hasta cerca del punto más bajo.
- * Una blusa cruzada o con caída termina en una punta angosta: su fila más baja mide poco, pero su bajo de verdad es bastante más ancho, y si la
- * unión se fiara de la punta encogería la cintura del pantalón al mínimo y la blusa parecería enorme. `null`: no hay perfil medido.
+ * Cuánto mide de ancho la zona del bajo (fracción del ancho de la prenda). Una blusa cruzada o con caída termina en una punta angosta: su fila más
+ * baja mide poco, pero su bajo de verdad es bastante más ancho, y si la unión se fiara de la punta encogería la cintura del pantalón al mínimo y la
+ * blusa parecería enorme. Se mide por filas (el tramo seguido más ancho), no por franjas: las mangas largas que cuelgan a los lados del cuerpo no son
+ * parte del bajo. `null`: no hay medida.
  */
 export function anchoDelBajo(m: MedidaDelRecorte): number | null {
-  const bajo = m.bajo;
-  const fondo = m.filaDelBorde;
-  if (!bajo || bajo.length === 0 || fondo === null) return null;
-  let mejor = 0;
-  let tramo = 0;
-  for (const v of bajo) {
-    tramo = v !== null && v >= fondo - ZONA_DEL_BAJO ? tramo + 1 : 0;
-    if (tramo > mejor) mejor = tramo;
-  }
-  return mejor / bajo.length;
+  return m.anchoBajo;
 }
 
 /**
@@ -138,12 +134,16 @@ export function medirRecorte(rgba: ArrayLike<number>, ancho: number, alto: numbe
   }
   let borde: number | null = null;
   let filaDelBorde: number | null = null;
+  let anchoBajo: number | null = null;
   if (fila >= 0) {
     // Un borde curvo (un bajo redondeado) es más angosto en su última fila: se toma el más ancho de las filas de arriba.
     let m = 0;
     for (let y = Math.max(0, fila - Math.round(0.04 * alto)); y <= fila; y++) m = Math.max(m, tramos[y]);
     borde = m / ancho;
     filaDelBorde = (fila + 1) / alto;
+    let z = 0;
+    for (let y = Math.max(0, fila - Math.round(ZONA_DEL_BAJO * alto)); y <= fila; y++) z = Math.max(z, tramos[y]);
+    anchoBajo = z / ancho;
   }
 
   let p = 0;
@@ -151,7 +151,7 @@ export function medirRecorte(rgba: ArrayLike<number>, ancho: number, alto: numbe
   for (let y = desde; y < Math.max(desde + 1, Math.ceil(0.05 * alto)); y++) p = Math.max(p, tramos[y]);
   const pretina = p / ancho >= PRETINA_MINIMA ? p / ancho : null;
 
-  return { filaDelBorde, borde, pretina, bajo: filaDelBorde === null ? null : perfilDelBajo(rgba, ancho, alto) };
+  return { filaDelBorde, borde, pretina, bajo: filaDelBorde === null ? null : perfilDelBajo(rgba, ancho, alto), anchoBajo };
 }
 
 /** La cintura estándar de una pretina, plana (cm): la mitad de una cintura de 72 cm. Lo que se le deja de ancho a la pretina cuando la prenda de
@@ -171,7 +171,7 @@ export const AJUSTE_MAXIMO_DE_ARRIBA = 1.3;
  * La prenda de arriba que se dibuja con el bajo más angosto de lo que una persona puede llevar: si su bajo mide menos que la cintura más
  * angosta que admite la unión (`ANCHO_ESTANDAR_DE_LA_UNION` menos su holgura, 30,6 cm), la blusa está dibujada demasiado chica (su largo en cm
  * es el típico de su categoría, igual para todas las blusas, y no encaja con su forma): crece desde el centro de los hombros, sin subir, lo justo
- * para acercarse a esa cintura (raíz cuadrada de lo que le falta, y a lo más `AJUSTE_MAXIMO_DE_ARRIBA`). Todo lo demás queda EXACTAMENTE como estaba:
+ * hasta alcanzar esa cintura (proporcional a lo que le falta, y a lo más `AJUSTE_MAXIMO_DE_ARRIBA`). Todo lo demás queda EXACTAMENTE como estaba:
  * no encoge nunca (los oversize, las casacas y los cardigans son anchos a propósito) y desde la cintura mínima hacia arriba no toca nada, así lo que
  * ya se ve bien no se mueve ni un píxel. Continua: justo en el umbral crece 1,0. `null`: sin cambio (sin medida, metida, o ya en rango).
  */
@@ -182,7 +182,7 @@ export function cajaDeArribaAjustada(arriba: { caja: Caja; medida: MedidaDelReco
   const bajoPx = c.w * Math.max(m.borde, anchoDelBajo(m) ?? 0);
   const minimoPx = ANCHO_ESTANDAR_DE_LA_UNION * (1 - HOLGURA_DE_LA_UNION) * PX_POR_CM;
   if (!(bajoPx > 0) || bajoPx >= minimoPx) return null;
-  const k = Math.min(AJUSTE_MAXIMO_DE_ARRIBA, Math.sqrt(minimoPx / bajoPx));
+  const k = Math.min(AJUSTE_MAXIMO_DE_ARRIBA, minimoPx / bajoPx);
   const w = c.w * k;
   return { x: Math.round(c.x + c.w / 2 - w / 2), y: c.y, w: Math.round(w), h: Math.round(c.h * k) };
 }
@@ -246,10 +246,10 @@ export function medidasDesdeTexto(texto: string | null): Map<string, MedidaDelRe
     if (!dato || typeof dato !== "object" || Array.isArray(dato)) return salida;
     for (const [url, m] of Object.entries(dato)) {
       if (!m || typeof m !== "object") continue;
-      const { filaDelBorde, borde, pretina, bajo } = m as Record<string, unknown>;
+      const { filaDelBorde, borde, pretina, bajo, anchoBajo } = m as Record<string, unknown>;
       const perfil = Array.isArray(bajo) && bajo.length === FRANJAS_DEL_BAJO && bajo.every(esFraccion) ? (bajo as (number | null)[]) : null;
-      if (esFraccion(filaDelBorde) && esFraccion(borde) && esFraccion(pretina) && (bajo == null || perfil)) {
-        salida.set(url, { filaDelBorde, borde, pretina, bajo: perfil });
+      if (esFraccion(filaDelBorde) && esFraccion(borde) && esFraccion(pretina) && (bajo == null || perfil) && (anchoBajo == null || esFraccion(anchoBajo))) {
+        salida.set(url, { filaDelBorde, borde, pretina, bajo: perfil, anchoBajo: anchoBajo ?? null });
       }
     }
   } catch {
