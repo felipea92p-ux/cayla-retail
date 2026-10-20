@@ -219,6 +219,16 @@ estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en 
 contraste medido y lo que quedó fuera (formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`. **El modo oscuro entró el
 2026-10-05 sobre esos mismos tokens: ver «Modo oscuro» más abajo.**
 
+## Toda pantalla ocupa todo el ancho (regla — ADR-0462, Felipe 2026-10-20)
+
+**Una pantalla nueva usa el ancho completo de la pantalla: no se centra en una columna angosta.** El marco (`components/AppShell.tsx`) ya lo
+hace solo: una ruta nueva no tiene que pedir nada. Lo que sí te toca es **llenar ese ancho con sentido**: cifras en fila, tabla a lo ancho,
+una columna al costado (un ejemplo, un resumen, una vista previa) y campos de a dos cuando la pantalla es muy ancha, como Clientes ▸
+Beneficios del club. Un párrafo largo o un formulario corto se topan por su cuenta (`max-w-prose`, `max-w-2xl`), nunca la pantalla entera.
+Se revisa a 1440 y 1920 px, además de 375. Las pantallas que nacieron antes con el tope de 64 rem viven en `CON_TOPE_DE_ANCHO` (AppShell):
+es deuda, solo baja, y `lib/ancho-completo.test.ts` falla si una ruta nueva entra ahí. Al revisar una de ellas a lo ancho, se saca de la lista
+(y de `CON_TOPE_HOY` en la prueba). El Inicio («/») sigue con tope: el de almacén, el Observatorio y Aventurero lo quitan con `data-ancho-completo`.
+
 ## Modo oscuro (regla — ADR-0336, Felipe 2026-10-05)
 
 **El ERP tiene modo oscuro, y una pantalla que usa solo tokens lo alcanza sin hacer nada.** Es una preferencia del APARATO
