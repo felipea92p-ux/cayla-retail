@@ -244,12 +244,23 @@ begin
 end;
 $f$;
 
-select pg_temp.reemplazar(
-  'retail.fn_actor_persona_id(boolean)',
-  'crear_producto_con_stock_inicial|crear_producto_con_variantes)$',
-  'crear_producto_con_stock_inicial|crear_producto_con_empresa|crear_producto_con_variantes)$',
-  1
-);
+-- Solo si `fn_actor_persona_id` ya tiene la lista (20261013155000 pegada). Si todavía no —producción el 2026-10-20—, la hora declarada vale en
+-- TODAS las funciones y no hay nada que sumar. Pero al pegar 20261013155000 después, su lista no trae `crear_producto_con_empresa`: hay que
+-- VOLVER A PEGAR esta migración (es repetible) para sumarla; si no, una alta con empresa hecha sin internet firmaría con la hora de subida.
+do $lista$
+begin
+  if position('request.path' in pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure)) = 0 then
+    raise notice 'ADR-0463: fn_actor_persona_id no tiene aún la lista de la hora declarada (20261013155000): nada que sumar. Vuelve a pegar esta migración después de esa.';
+  else
+    perform pg_temp.reemplazar(
+      'retail.fn_actor_persona_id(boolean)',
+      'crear_producto_con_stock_inicial|crear_producto_con_variantes)$',
+      'crear_producto_con_stock_inicial|crear_producto_con_empresa|crear_producto_con_variantes)$',
+      1
+    );
+  end if;
+end
+$lista$;
 
 -- ¿SE PEGÓ ENTERO? Esta es la ÚLTIMA instrucción del archivo. Si no ves «QUEDÓ BIEN», el texto se pegó cortado o falta algo:
 -- es seguro volver a pegarlo completo.
@@ -259,5 +270,6 @@ select '20261020225000 · empresas CAYLA y CLAURE' as parte,
              and to_regclass('retail.empresa_sedes') is not null
              and exists (select 1 from information_schema.columns where table_schema = 'retail' and table_name = 'productos' and column_name = 'empresa_id')
              and to_regprocedure('retail.crear_producto_con_empresa(text, uuid, jsonb, uuid, uuid, text, uuid, uuid, uuid, boolean, uuid[], uuid, uuid, uuid, boolean, text)') is not null
-             and pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure) like '%crear_producto_con_empresa%'
+             and (pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure) like '%crear_producto_con_empresa%'
+                  or position('request.path' in pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure)) = 0)
             then 'QUEDÓ BIEN' else 'REVISAR: falta la tabla, la columna, la función o la hora declarada' end as resultado;

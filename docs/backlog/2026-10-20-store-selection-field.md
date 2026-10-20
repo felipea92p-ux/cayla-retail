@@ -12,3 +12,4 @@
 - [ ] **Ayuda del costo en Nuevo producto con CLAURE elegida** («lo que CLAURE le cobra a CAYLA»), con la regla de sugerencias coherentes (ADR-0290).
 - [ ] **Nombre de CLAURE:** hoy «CLAURE» sin tilde; si debe ser «Claurè», es una actualización de `empresas.nombre`.
 - [ ] **Imprimir una etiqueta real** (Brother) de CLAURE y de CAYLA con el link nuevo: se vio en pantalla, no en papel.
+- [ ] **Volver a pegar `20261020225000` DESPUÉS de `20261013155000`** (la lista de la hora declarada): producción el 2026-10-20 no la tenía, así que la sección 5 se saltó con un aviso. Al pegar esa migración su lista no incluye `crear_producto_con_empresa`; re-pegar esta (es repetible) la suma. Si no, una alta con empresa hecha sin internet firmaría con la hora de subida.
