@@ -15,12 +15,15 @@ import { PUNTOS_SIN_LEER, puntosDeLaFicha, type PuntosDeLaFicha as Puntos } from
 // así un cumpleaños recién editado cambia lo que dice del regalo. Si la lectura falla, la ficha sigue igual y lo dice aquí
 // (principio 9); sin ficha de miembro no se dibuja nada.
 
-type Estado = { tipo: "leyendo" } | { tipo: "listo"; puntos: Puntos | null } | { tipo: "sin_leer" };
+type EstadoPuntos = { tipo: "leyendo" } | { tipo: "listo"; puntos: Puntos | null } | { tipo: "sin_leer" };
 
-export function PuntosDeLaFicha({ clientaId, clave, cumpleMes }: { clientaId: string; clave: number; cumpleMes: number | null }) {
-  const [estado, setEstado] = useState<Estado>({ tipo: "leyendo" });
+/** La lectura de sus puntos (la misma de la caja). Vive aparte del bloque para que la hoja use el mismo dato en la cifra de arriba
+ *  y en el bloque de abajo sin leerlo dos veces. `activo` = false no lee nada (una ficha sin club no tiene puntos). */
+export function usePuntosDeLaFicha(clientaId: string, clave: number, cumpleMes: number | null, activo = true): EstadoPuntos {
+  const [estado, setEstado] = useState<EstadoPuntos>({ tipo: "leyendo" });
 
   useEffect(() => {
+    if (!activo) return;
     let vigente = true;
     resumenPuntosCaja(clientaId)
       .then(({ resumen, error }) => {
@@ -33,8 +36,12 @@ export function PuntosDeLaFicha({ clientaId, clave, cumpleMes }: { clientaId: st
     return () => {
       vigente = false;
     };
-  }, [clientaId, clave, cumpleMes]);
+  }, [clientaId, clave, cumpleMes, activo]);
 
+  return estado;
+}
+
+export function PuntosDeLaFicha({ estado }: { estado: EstadoPuntos }) {
   if (estado.tipo === "leyendo") return null;
   if (estado.tipo === "sin_leer") {
     return (

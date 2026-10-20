@@ -1318,7 +1318,7 @@ ESCENARIOS.push(
         ruta.fulfill({ json: { cuenta_web: true, pedidos_en_curso: [{ codigo: "W-0012", estado: "pagado", tienda: "Tienda Trujillo" }] } }),
       );
       await clicRol("button", /^Camila Torres/i)(pagina);
-      await clicRol("button", /^Archivar$/)(pagina);
+      await clicRol("button", /^Archivar a este cliente$/)(pagina);
     },
     limpiar: (pagina) => pagina.unroute(/\/rpc\/fn_clienta_tienda_online/).catch(() => {}),
   },
@@ -1369,7 +1369,19 @@ ESCENARIOS.push(
       await pagina.unroute(/\/rpc\/fn_clienta_acceso_web/).catch(() => {});
     },
   },
-  { id: "clientas.acciones", ruta: "/clientas", cuentas: ["admin"], abre: "[role=menu]", nombre: "Clientes · «Más acciones»", preparar: clicRol("button", /Más acciones de Clientes/i) },
+  // El historial en línea de tiempo (diseño B de Fichas, 2026-10-20): la pestaña «Historial» de la ficha.
+  {
+    id: "clientas.ficha-historial",
+    ruta: "/clientas",
+    cuentas: ["admin", "integrante"],
+    abre: '[data-guia="clientas.ficha-actividad"]',
+    nombre: "Clientes · la ficha, pestaña «Historial»",
+    async preparar(pagina) {
+      await clicRol("button", /^Camila Torres/i)(pagina);
+      await clicRol("tab", /^Historial/i)(pagina);
+      await esperar(pagina, 900);
+    },
+  },
   { id: "clientas.buscar", ruta: "/clientas", cuentas: ["admin", "terminal-ventas"], nombre: "Clientes · una búsqueda", async preparar(pagina) { await pagina.getByPlaceholder(/DNI, celular/i).first().fill("Rosa"); await esperar(pagina, 1800); } },
   { id: "avisos.beneficios", ruta: "/clientas/avisos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Avisos · «Beneficios del club»", preparar: clicRol("button", /Beneficios del club/i) },
   { id: "avisos.cumpleanos", ruta: "/clientas/avisos", cuentas: ["admin"], nombre: "Avisos · la pestaña «Cumpleaños»", preparar: clicRol("button", /^Cumpleaños/i) },
