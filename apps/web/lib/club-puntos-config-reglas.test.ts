@@ -9,6 +9,7 @@ import {
   configEnPalabras,
   fechaCorta,
   leerResumenDeBeneficios,
+  ejemploDelPrograma,
   lecturaDelRetorno,
   problemasDeConfig,
   retornoPct,
@@ -140,12 +141,40 @@ describe("cuánto devuelve el programa", () => {
     expect(retornoPct({ puntosPorSol: 2, solesPor100: 2.5 })).toBe(5);
   });
 
-  it("avisa cuando supera el tope de costo, sin bloquear", () => {
-    expect(lecturaDelRetorno(ARRANQUE)).toMatchObject({ pct: 5, superaElTope: true });
-    expect(lecturaDelRetorno(ARRANQUE).texto).toMatch(/más que tu tope de costo \(2 %\)/);
+  it("dice lo que cuesta en soles y avisa cuando pasa el tope, sin bloquear", () => {
+    const r = lecturaDelRetorno(ARRANQUE);
+    expect(r).toMatchObject({ pct: 5, superaElTope: true });
+    expect(r.frase).toBe("De cada S/\u00a0100 que vendes, le devuelves S/\u00a05 en puntos (5 %, si todos los canjean).");
+    expect(r.veredicto).toBe("Te pasas de tu tope: 5 % contra 2 %.");
     const dentro = lecturaDelRetorno({ ...ARRANQUE, solesPor100: 2 });
-    expect(dentro).toMatchObject({ pct: 2, superaElTope: false });
-    expect(dentro.texto).toMatch(/Dentro de tu tope/);
+    expect(dentro).toMatchObject({ pct: 2, superaElTope: false, veredicto: "Dentro de tu tope (2 %)." });
+  });
+});
+
+describe("el ejemplo de la clienta (diseño A)", () => {
+  it("con lo de arranque: S/ 150 dan 150 puntos, el primer cupón es de S/ 10 tras comprar S/ 200 y se usa desde S/ 30", () => {
+    expect(ejemploDelPrograma(ARRANQUE, 150)).toEqual({
+      puntosDeLaCompra: 150,
+      valorDelPrimerCupon: 10,
+      comprasParaElPrimerCupon: 200,
+      compraMinimaDelCupon: 30,
+      valorDelRegalo: 5,
+    });
+  });
+
+  it("los puntos van hacia abajo y la compra mínima hacia arriba, como la base", () => {
+    const c = { ...ARRANQUE, puntosPorSol: 1.5, solesPor100: 2.5, compraMinimaX: 2.5, canjeMinimo: 300, regaloCumple: 50 };
+    const e = ejemploDelPrograma(c, 99);
+    expect(e.puntosDeLaCompra).toBe(148); // 148.5 → 148
+    expect(e.valorDelPrimerCupon).toBe(7.5); // 3 × S/ 2.50
+    expect(e.compraMinimaDelCupon).toBe(19); // 7.5 × 2.5 = 18.75 → 19
+    expect(e.comprasParaElPrimerCupon).toBe(200); // 300 / 1.5
+    expect(e.valorDelRegalo).toBe(1.25);
+  });
+
+  it("una compra negativa o en cero no da puntos", () => {
+    expect(ejemploDelPrograma(ARRANQUE, 0).puntosDeLaCompra).toBe(0);
+    expect(ejemploDelPrograma(ARRANQUE, -10).puntosDeLaCompra).toBe(0);
   });
 });
 

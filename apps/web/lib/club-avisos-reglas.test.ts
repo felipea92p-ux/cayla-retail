@@ -5,7 +5,6 @@ import {
   agruparPorTipo,
   celularAMedias,
   claveDelAviso,
-  contarPorTipo,
   enlaceWhatsAppWeb,
   leerAvisos,
   marcadoresSinCompletar,
@@ -73,11 +72,6 @@ describe("agrupar y contar por tipo", () => {
       ["puntos", ["d"]],
       ["rebaja", ["a", "c"]],
     ]);
-  });
-
-  it("cuenta los cuatro tipos aunque alguno sea 0, y el total", () => {
-    expect(contarPorTipo(avisos)).toEqual({ cumpleanos: 1, puntos: 1, novedades: 0, rebaja: 2, total: 4 });
-    expect(contarPorTipo([])).toEqual({ cumpleanos: 0, puntos: 0, novedades: 0, rebaja: 0, total: 0 });
   });
 
   it("cada tipo tiene su texto, y solo novedades y rebajas cuentan para el tope de 2 al mes (CL-21)", () => {

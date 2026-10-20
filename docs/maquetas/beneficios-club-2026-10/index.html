@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beneficios del club · 3 diseños</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Maqueta (2026-10-20): tres formas de dibujar Clientes ▸ Beneficios del club. Colores y letras: los tokens del ERP
+   (apps/web/app/globals.css y estilos/tema.css), nada inventado. Los números se recalculan como la pantalla real
+   (lib/club-puntos-config-reglas.ts): retorno = puntos por sol × lo que valen 100 puntos; valor y canje mínimo rigen a los 15 días. */
+:root{--crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;--rojo:#b8412d;--rojo-p:#8b2a1f;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--sombra:#1a1a18}
+:root[data-tema="oscuro"]{--crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;--sombra:#000}
+*{box-sizing:border-box}
+body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.5 "DM Sans",system-ui,sans-serif}
+.serif{font-family:"EB Garamond",Georgia,serif}
+.barra{position:sticky;top:0;z-index:5;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 24px;background:var(--tinta);color:var(--crema)}
+.barra b{font-weight:600;margin-right:8px}
+.barra button{font:inherit;font-size:13px;border:1px solid color-mix(in srgb,var(--crema) 30%,transparent);background:transparent;color:var(--crema);border-radius:999px;padding:6px 14px;cursor:pointer}
+.barra button[aria-pressed="true"]{background:var(--crema);color:var(--tinta)}
+.barra .sep{flex:1}
+.hoja{max-width:1180px;margin:0 auto;padding:28px 24px 80px}
+.sede{display:flex;align-items:center;gap:10px;color:var(--taupe);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.sede:after{content:"";height:1px;width:48px;background:var(--taupe)}
+h1{font:400 46px/1.05 "EB Garamond",Georgia,serif;margin:8px 0 6px}
+.frase{color:color-mix(in srgb,var(--tinta) 70%,transparent);margin:0 0 22px}
+.diseno{display:none}.diseno.activo{display:block}
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:20px}
+.nota{background:var(--hueso);border-radius:10px;padding:12px 14px;font-size:13px}
+.etq{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);font-weight:600}
+.caja{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:8px;background:var(--hueso);border:1px solid transparent;transition:background .2s}
+.caja:focus-within{background:var(--papel);border-color:var(--rojo)}
+.caja input{width:64px;border:0;background:transparent;color:var(--tinta);font:inherit;font-size:15px;font-variant-numeric:tabular-nums;outline:none}
+.caja .u{font-size:12px;color:var(--taupe)}
+.btn{font:inherit;font-size:13.5px;border-radius:10px;padding:10px 18px;cursor:pointer;border:1px solid var(--tinta)}
+.btn.prim{background:var(--tinta);color:var(--crema)}.btn.prim:hover{background:var(--rojo-p);border-color:var(--rojo-p)}
+.btn.sec{background:transparent;color:var(--tinta);border-color:var(--sand)}
+.pie{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;align-items:center}
+.pie .resp{margin-right:auto;font-size:13px;color:var(--taupe)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:3px 10px}
+.chip:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{color:var(--ambar);background:color-mix(in srgb,var(--ambar) 12%,transparent)}
+.chip.verde{color:var(--verde);background:color-mix(in srgb,var(--verde) 12%,transparent)}
+.chip.oculto{display:none}
+.num{font-variant-numeric:tabular-nums}
+.medidor{position:relative;height:12px;background:var(--hueso);border-radius:999px;overflow:visible;margin:14px 0 6px}
+.medidor .lleno{height:100%;border-radius:999px;background:var(--tinta);transition:width .4s cubic-bezier(.2,.7,.2,1),background .3s}
+.medidor .lleno.pasa{background:var(--rojo)}
+.medidor .tope{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--taupe);transition:left .4s}
+.medidor .tope span{position:absolute;top:22px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11px;color:var(--taupe)}
+.escala{margin-top:14px;display:flex;justify-content:space-between;font-size:11px;color:var(--taupe)}
+.costo-fr{font-size:15px}
+.costo-fr b{font-variant-numeric:tabular-nums}
+.alerta{color:var(--rojo-p);font-weight:500}
+.ok{color:var(--verde);font-weight:500}
+.desc{font-size:12.5px;color:var(--taupe);margin-top:4px}
+.oscuro-nota{font-size:12px;color:var(--taupe);margin-top:30px}
+
+/* ---------- A · cliente de ejemplo ---------- */
+.a-grid{display:grid;grid-template-columns:1fr 400px;gap:20px;align-items:start}
+.a-campos{display:grid;gap:12px}
+.a-campo{display:grid;grid-template-columns:1fr auto;gap:4px 16px;align-items:center;padding:14px 16px;border:1px solid var(--sand);border-radius:12px;background:var(--papel)}
+.a-campo .t{font-weight:600}
+.a-campo .d{grid-column:1/-1;font-size:12.5px;color:var(--taupe)}
+.a-campo .d b{color:var(--tinta);font-weight:500}
+.a-sec{margin:14px 0 2px}
+.a-cliente{position:sticky;top:70px}
+.paso{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--sand)}
+.paso:first-of-type{border-top:0}
+.paso .n{width:24px;height:24px;border-radius:50%;background:var(--hueso);display:grid;place-items:center;font-size:12px;font-weight:600}
+.paso .g{font-size:20px;font-family:"EB Garamond",Georgia,serif;line-height:1.2}
+.cupon{margin-top:8px;border:1.5px dashed var(--taupe);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center}
+.cupon .v{font:500 26px/1 "EB Garamond",Georgia,serif}
+.cupon .c{font-size:11px;letter-spacing:.08em;color:var(--taupe)}
+input[type=range]{width:100%;accent-color:var(--tinta)}
+
+/* ---------- B · en frases ---------- */
+.b-lista{display:grid;gap:0}
+.b-fila{display:grid;grid-template-columns:36px 1fr 260px;gap:16px;align-items:center;padding:18px 4px;border-top:1px solid var(--sand)}
+.b-fila:first-child{border-top:0}
+.b-ico{width:32px;height:32px;border-radius:50%;background:var(--hueso);display:grid;place-items:center}
+.b-ico svg{width:16px;height:16px;stroke:var(--tinta);fill:none;stroke-width:1.75}
+.b-txt{font-size:17px;line-height:2.1}
+.b-txt .caja{height:34px;vertical-align:middle;margin:0 4px}
+.b-txt .caja input{width:48px;font-size:16px;font-weight:600}
+.b-ej{font-size:13px;color:var(--taupe);border-left:2px solid var(--sand);padding-left:12px}
+.b-ej b{color:var(--tinta);font-weight:500}
+
+/* ---------- C · por preguntas ---------- */
+.c-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.c-q h3{font:400 22px/1.2 "EB Garamond",Georgia,serif;margin:6px 0 4px}
+.c-q .sub{font-size:13px;color:var(--taupe);margin-bottom:14px}
+.opciones{display:flex;flex-wrap:wrap;gap:8px}
+.op{font:inherit;font-size:13.5px;text-align:left;border:1px solid var(--sand);background:var(--crema);color:var(--tinta);border-radius:10px;padding:10px 14px;cursor:pointer;min-width:96px;transition:border-color .2s,background .2s}
+.op small{display:block;font-size:11.5px;color:var(--taupe)}
+.op[aria-pressed="true"]{border-color:var(--tinta);background:var(--papel);box-shadow:inset 0 0 0 1px var(--tinta)}
+.op[aria-pressed="true"] small{color:var(--tinta)}
+.c-res{margin-top:14px;font-size:13px;padding-top:12px;border-top:1px solid var(--sand)}
+.c-costo{grid-column:1/-1}
+.a-mano{font-size:13px;color:var(--taupe);margin-top:10px}
+.a-mano summary{cursor:pointer;color:var(--tinta);text-decoration:underline;text-decoration-color:var(--sand);text-underline-offset:3px}
+.a-mano .fila{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+
+/* ---------- Hoy ---------- */
+.hoy-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.hoy-grid label{display:block;font-size:13px;font-weight:600}
+.hoy-grid small{font-weight:400;color:var(--taupe);margin-left:6px}
+.hoy-grid .caja{width:100%;margin-top:6px}.hoy-grid .caja input{flex:1}
+.hoy-sec{font-weight:600;font-size:13px;margin:18px 0 8px}
+
+.comparar{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 24px}
+.comparar div{font-size:12.5px;padding:12px 14px;border-radius:10px;background:var(--papel);border:1px solid var(--sand)}
+.comparar b{display:block;font-size:13px}
+@media (max-width:900px){.a-grid,.c-grid,.hoy-grid,.comparar{grid-template-columns:1fr}.a-cliente{position:static}.b-fila{grid-template-columns:36px 1fr}.b-ej{grid-column:2}}
+</style>
+</head>
+<body>
+<div class="barra">
+  <b>Beneficios del club</b>
+  <button data-ir="hoy">Hoy</button>
+  <button data-ir="a" aria-pressed="true">A · Con un cliente de ejemplo</button>
+  <button data-ir="b">B · En frases</button>
+  <button data-ir="c">C · Por preguntas</button>
+  <span class="sep"></span>
+  <button id="tema">Oscuro</button>
+</div>
+
+<div class="hoja">
+  <div class="sede">Trujillo · martes 20 de octubre</div>
+  <h1>Beneficios del club</h1>
+  <p class="frase">Lo que el club le da a tus clientes y lo que te cuesta. Vale para las 3 tiendas.</p>
+
+  <div class="comparar" id="resumen-disenos">
+    <div><b>A · Con un cliente de ejemplo</b>Los mismos 7 números, cada uno dice qué significa, y al lado una clienta de ejemplo muestra qué gana y cuándo canjea.</div>
+    <div><b>B · En frases</b>El programa se lee como un párrafo: completas los números dentro de las frases. Al lado, el ejemplo de cada una.</div>
+    <div><b>C · Por preguntas</b>Cuatro preguntas con opciones listas (las más usadas); «Otro valor» si quieres uno distinto.</div>
+  </div>
+
+  <!-- ===================== HOY (como está) ===================== -->
+  <section class="diseno" id="d-hoy">
+    <div class="tarjeta">
+      <p class="nota"><b>Cambiar lo que valen los puntos o desde cuántos se canjea rige 15 días después de guardar</b>, para avisarlo a los clientes. Lo demás rige desde hoy. Los cupones que ya se crearon no cambian.</p>
+      <div class="hoy-sec">Cómo se ganan y cuánto valen</div>
+      <div class="hoy-grid">
+        <div><label>Puntos por cada S/ 1<small>Lo que paga el cliente</small></label><span class="caja"><input data-k="porSol"><span class="u">puntos</span></span></div>
+        <div><label>Lo que valen 100 puntos<small>En soles de descuento</small></label><span class="caja"><span class="u">S/</span><input data-k="por100"></span></div>
+      </div>
+      <div class="hoy-sec">Cómo se canjean</div>
+      <div class="hoy-grid">
+        <div><label>Canje mínimo<small>De 100 en 100</small></label><span class="caja"><input data-k="minimo"><span class="u">puntos</span></span></div>
+        <div><label>Compra mínima del cupón<small>Veces el valor del cupón</small></label><span class="caja"><input data-k="x"><span class="u">veces</span></span></div>
+        <div><label>Duración del cupón<small>Si no se usa, los puntos vuelven</small></label><span class="caja"><input data-k="dias"><span class="u">días</span></span></div>
+      </div>
+      <div class="hoy-sec">Regalo y costo</div>
+      <div class="hoy-grid">
+        <div><label>Regalo de cumpleaños<small>Con su primera compra del mes</small></label><span class="caja"><input data-k="regalo"><span class="u">puntos</span></span></div>
+        <div><label>Tope de costo<small>Lo máximo que aceptas devolver</small></label><span class="caja"><input data-k="tope"><span class="u">%</span></span></div>
+      </div>
+      <p class="nota" style="margin-top:16px" data-v="textoHoy"></p>
+      <div class="pie"><span class="resp">Responsable: Felipe</span><button class="btn prim">Guardar</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== A · cliente de ejemplo ===================== -->
+  <section class="diseno activo" id="d-a">
+    <div class="a-grid">
+      <div class="tarjeta">
+        <div class="etq a-sec" style="margin-top:0">Lo que gana</div>
+        <div class="a-campos">
+          <div class="a-campo"><span class="t">Puntos por cada S/ 1 que paga</span><span class="caja"><input data-k="porSol"><span class="u">puntos</span></span>
+            <span class="d">Una compra de S/ 150 le da <b data-v="ptsDe150"></b>.</span></div>
+          <div class="a-campo"><span class="t">Regalo de cumpleaños</span><span class="caja"><input data-k="regalo"><span class="u">puntos</span></span>
+            <span class="d">Con su primera compra de su mes. Hoy equivalen a <b data-v="valorRegalo"></b>.</span></div>
+        </div>
+        <div class="etq a-sec">Cuánto valen y cuándo se canjean</div>
+        <div class="a-campos">
+          <div class="a-campo"><span class="t">100 puntos valen <span class="chip ambar oculto" data-cambia="por100">Rige el <span data-v="fecha15"></span></span></span><span class="caja"><span class="u">S/</span><input data-k="por100"></span>
+            <span class="d">Es el descuento que recibe. Si lo cambias, rige en 15 días para avisarlo a los clientes.</span></div>
+          <div class="a-campo"><span class="t">Puede canjear desde <span class="chip ambar oculto" data-cambia="minimo">Rige el <span data-v="fecha15"></span></span></span><span class="caja"><input data-k="minimo"><span class="u">puntos</span></span>
+            <span class="d">Su primer cupón: <b data-v="valorMin"></b>. Lo junta comprando <b data-v="compraParaMin"></b> en total.</span></div>
+          <div class="a-campo"><span class="t">El cupón se usa en compras de al menos</span><span class="caja"><input data-k="x"><span class="u">veces su valor</span></span>
+            <span class="d">Un cupón de <b data-v="valorMin"></b> se usa en compras desde <b data-v="compraMinCupon"></b>. Así nunca paga la compra entera.</span></div>
+          <div class="a-campo"><span class="t">El cupón dura</span><span class="caja"><input data-k="dias"><span class="u">días</span></span>
+            <span class="d">Si no lo usa en ese tiempo, sus puntos vuelven a su saldo.</span></div>
+        </div>
+        <div class="etq a-sec">Lo que te cuesta</div>
+        <div class="a-campo" style="display:block">
+          <div class="costo-fr" data-v="costoFrase"></div>
+          <div class="medidor"><div class="lleno" data-v="barra"></div><div class="tope" data-v="topeMarca"><span>tu tope</span></div></div>
+          <div class="escala"><span>0 %</span><span>10 %</span></div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:22px;flex-wrap:wrap"><span>No quiero devolver más de</span><span class="caja"><input data-k="tope"><span class="u">%</span></span><span data-v="costoVeredicto"></span></div>
+        </div>
+        <div class="pie"><span class="resp">Responsable: Felipe</span><button class="btn prim">Guardar</button></div>
+      </div>
+
+      <aside class="tarjeta a-cliente">
+        <div class="etq">Así lo vive una clienta</div>
+        <p style="margin:6px 0 14px;font-size:13px;color:var(--taupe)">Con los números de la izquierda. Mueve la compra para probar.</p>
+        <div class="paso"><span class="n">1</span><div>Compra <b class="num" data-v="compraEj"></b>
+          <input type="range" min="20" max="600" step="10" value="150" id="compra">
+          <div class="g">Gana <span data-v="ptsEj"></span></div></div></div>
+        <div class="paso"><span class="n">2</span><div>Junta <b data-v="minimoTxt"></b> y canjea
+          <div class="cupon"><div><div class="c">CUPÓN CAY-4K7P-9H2M</div><div class="v" data-v="valorMin"></div></div><div style="text-align:right;font-size:12.5px">en compras desde<br><b data-v="compraMinCupon"></b></div></div>
+          <div class="desc">Lo usa dentro de <b data-v="diasTxt"></b>. Si no, sus puntos vuelven.</div></div></div>
+        <div class="paso"><span class="n">3</span><div>En su mes de cumpleaños
+          <div class="g">+<span data-v="regaloTxt"></span></div><div class="desc">con su primera compra del mes (<span data-v="valorRegalo"></span>)</div></div></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ===================== B · en frases ===================== -->
+  <section class="diseno" id="d-b">
+    <div class="tarjeta">
+      <div class="b-lista">
+        <div class="b-fila"><span class="b-ico"><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>
+          <div class="b-txt">Por cada <b>S/ 1</b> que paga, el cliente gana <span class="caja"><input data-k="porSol"></span> punto(s).</div>
+          <div class="b-ej">Una compra de S/ 150 → <b data-v="ptsDe150"></b></div></div>
+        <div class="b-fila"><span class="b-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9.5a3 3 0 0 0-3-1.5c-1.7 0-3 .9-3 2s1.3 1.7 3 2 3 .9 3 2-1.3 2-3 2a3 3 0 0 1-3-1.5M12 6v12"/></svg></span>
+          <div class="b-txt">Cada 100 puntos valen <span class="caja"><span class="u">S/</span><input data-k="por100"></span> de descuento. <span class="chip ambar oculto" data-cambia="por100">Rige el <span data-v="fecha15"></span></span></div>
+          <div class="b-ej">1 000 puntos → <b data-v="valor1000"></b></div></div>
+        <div class="b-fila"><span class="b-ico"><svg viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2M13 17v2M13 11v2"/></svg></span>
+          <div class="b-txt">Puede canjearlos desde <span class="caja"><input data-k="minimo"></span> puntos, de 100 en 100. <span class="chip ambar oculto" data-cambia="minimo">Rige el <span data-v="fecha15"></span></span></div>
+          <div class="b-ej">Su primer cupón: <b data-v="valorMin"></b>, tras comprar <b data-v="compraParaMin"></b></div></div>
+        <div class="b-fila"><span class="b-ico"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 2h2.5l2.7 12.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L22 7H5.1"/></svg></span>
+          <div class="b-txt">El cupón se usa en compras de al menos <span class="caja"><input data-k="x"></span> veces su valor.</div>
+          <div class="b-ej">Cupón de <b data-v="valorMin"></b> → compras desde <b data-v="compraMinCupon"></b></div></div>
+        <div class="b-fila"><span class="b-ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+          <div class="b-txt">Tiene <span class="caja"><input data-k="dias"></span> días para usarlo; si no, sus puntos vuelven.</div>
+          <div class="b-ej">Lo crea hoy → vale hasta el <b data-v="venceEj"></b></div></div>
+        <div class="b-fila"><span class="b-ico"><svg viewBox="0 0 24 24"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1M2 21h20M7 8v3M12 8v3M17 8v3M7 4h.01M12 4h.01M17 4h.01"/></svg></span>
+          <div class="b-txt">En su mes de cumpleaños, su primera compra le regala <span class="caja"><input data-k="regalo"></span> puntos.</div>
+          <div class="b-ej">Equivalen a <b data-v="valorRegalo"></b></div></div>
+      </div>
+      <div class="nota" style="margin-top:18px">
+        <div class="costo-fr" data-v="costoFrase"></div>
+        <div class="medidor"><div class="lleno" data-v="barra"></div><div class="tope" data-v="topeMarca"><span>tu tope</span></div></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:26px;flex-wrap:wrap"><span>No quiero devolver más de</span><span class="caja" style="background:var(--papel)"><input data-k="tope"><span class="u">%</span></span><span data-v="costoVeredicto"></span></div>
+      </div>
+      <div class="pie"><span class="resp">Responsable: Felipe</span><button class="btn prim">Guardar</button></div>
+    </div>
+  </section>
+
+  <!-- ===================== C · por preguntas ===================== -->
+  <section class="diseno" id="d-c">
+    <div class="c-grid">
+      <div class="tarjeta c-q"><span class="etq">1 de 4</span><h3>¿Cuánto le devuelves de lo que compra?</h3>
+        <div class="sub">Gana 1 punto por cada S/ 1. Esto decide cuánto valen 100 puntos.</div>
+        <div class="opciones" data-grupo="por100">
+          <button class="op" data-val="2">2 %<small>100 pts = S/ 2</small></button>
+          <button class="op" data-val="3">3 %<small>100 pts = S/ 3</small></button>
+          <button class="op" data-val="5">5 %<small>100 pts = S/ 5</small></button>
+          <button class="op" data-otro>Otro valor<small>a tu medida</small></button>
+        </div>
+        <details class="a-mano"><summary>Ajustar a mano</summary><div class="fila"><span class="caja"><input data-k="porSol"><span class="u">pts por S/ 1</span></span><span class="caja"><span class="u">S/</span><input data-k="por100"><span class="u">por 100 pts</span></span></div></details>
+        <div class="c-res">Una compra de S/ 150 → <b data-v="ptsDe150"></b>, que valen <b data-v="valor150"></b>. <span class="chip ambar oculto" data-cambia="por100">Rige el <span data-v="fecha15"></span></span></div></div>
+
+      <div class="tarjeta c-q"><span class="etq">2 de 4</span><h3>¿Desde cuántos puntos puede canjear?</h3>
+        <div class="sub">Cuanto más alto, más compras necesita antes de su primer cupón.</div>
+        <div class="opciones" data-grupo="minimo">
+          <button class="op" data-val="100">100<small data-op-valor="100"></small></button>
+          <button class="op" data-val="200">200<small data-op-valor="200"></small></button>
+          <button class="op" data-val="300">300<small data-op-valor="300"></small></button>
+          <button class="op" data-val="500">500<small data-op-valor="500"></small></button>
+        </div>
+        <div class="c-res">Su primer cupón: <b data-v="valorMin"></b>, tras comprar <b data-v="compraParaMin"></b>. <span class="chip ambar oculto" data-cambia="minimo">Rige el <span data-v="fecha15"></span></span></div></div>
+
+      <div class="tarjeta c-q"><span class="etq">3 de 4</span><h3>¿Cómo se usa el cupón?</h3>
+        <div class="sub">En qué compras vale y cuánto tiempo tiene para usarlo.</div>
+        <div class="opciones" data-grupo="x">
+          <button class="op" data-val="2">2 veces<small>su valor</small></button>
+          <button class="op" data-val="3">3 veces<small>su valor</small></button>
+          <button class="op" data-val="4">4 veces<small>su valor</small></button>
+        </div>
+        <div class="opciones" data-grupo="dias" style="margin-top:10px">
+          <button class="op" data-val="7">7 días</button>
+          <button class="op" data-val="15">15 días</button>
+          <button class="op" data-val="30">30 días</button>
+        </div>
+        <div class="c-res">Cupón de <b data-v="valorMin"></b> → compras desde <b data-v="compraMinCupon"></b>, dentro de <b data-v="diasTxt"></b>. Si no lo usa, sus puntos vuelven.</div></div>
+
+      <div class="tarjeta c-q"><span class="etq">4 de 4</span><h3>¿Le regalas algo en su cumpleaños?</h3>
+        <div class="sub">Se suma con su primera compra de su mes, una vez al año.</div>
+        <div class="opciones" data-grupo="regalo">
+          <button class="op" data-val="0">Nada</button>
+          <button class="op" data-val="50">50 puntos<small data-op-regalo="50"></small></button>
+          <button class="op" data-val="100">100 puntos<small data-op-regalo="100"></small></button>
+          <button class="op" data-val="200">200 puntos<small data-op-regalo="200"></small></button>
+        </div>
+        <div class="c-res">Con su primera compra de su mes: <b>+<span data-v="regaloTxt"></span></b> (<span data-v="valorRegalo"></span>).</div></div>
+
+      <div class="tarjeta c-costo">
+        <span class="etq">Lo que te cuesta</span>
+        <div class="costo-fr" style="margin-top:8px" data-v="costoFrase"></div>
+        <div class="medidor"><div class="lleno" data-v="barra"></div><div class="tope" data-v="topeMarca"><span>tu tope</span></div></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:26px;flex-wrap:wrap"><span>No quiero devolver más de</span><span class="caja"><input data-k="tope"><span class="u">%</span></span><span data-v="costoVeredicto"></span></div>
+        <div class="pie"><span class="resp">Responsable: Felipe</span><button class="btn prim">Guardar</button></div>
+      </div>
+    </div>
+  </section>
+
+  <p class="oscuro-nota">Maqueta para elegir: los números se recalculan como en la pantalla real, pero «Guardar» no guarda nada. «Hoy» es la pantalla tal como está.</p>
+</div>
+
+<script>
+// Lo vigente (producción, 2026-10-19). Lo que vale y el canje mínimo, si cambian, rigen a los 15 días (Términos 5.9).
+const BASE = { porSol: 1, por100: 5, minimo: 200, x: 3, dias: 7, regalo: 100, tope: 2 };
+const S = { ...BASE };
+const HOY = new Date(2026, 9, 20);
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const fecha = (d) => `${d.getDate()} de ${MESES[d.getMonth()]}`;
+const mas = (n) => new Date(HOY.getFullYear(), HOY.getMonth(), HOY.getDate() + n);
+const sol = (n) => "S/ " + (Number.isInteger(n) ? n : n.toFixed(2));
+const pts = (n) => `${n.toLocaleString("es-PE")} ${n === 1 ? "punto" : "puntos"}`;
+const num = (v, def) => { const n = parseFloat(String(v).replace(",", ".")); return Number.isFinite(n) && n >= 0 ? n : def; };
+let compra = 150;
+
+function pintar() {
+  const valorDe = (p) => Math.floor(p / 100) * S.por100;
+  const valorMin = valorDe(S.minimo);
+  const pct = S.porSol * S.por100;
+  const v = {
+    ptsDe150: pts(Math.floor(150 * S.porSol)),
+    valor150: sol(valorDe(Math.floor(150 * S.porSol))),
+    valorRegalo: sol(S.regalo / 100 * S.por100),
+    regaloTxt: pts(S.regalo),
+    valorMin: sol(valorMin),
+    valor1000: sol(valorDe(1000)),
+    compraParaMin: sol(Math.ceil(S.minimo / Math.max(S.porSol, 0.01))),
+    compraMinCupon: sol(Math.ceil(valorMin * S.x)),
+    minimoTxt: pts(S.minimo),
+    diasTxt: `${S.dias} ${S.dias === 1 ? "día" : "días"}`,
+    venceEj: fecha(mas(S.dias)),
+    fecha15: fecha(mas(15)),
+    compraEj: sol(compra),
+    ptsEj: pts(Math.floor(compra * S.porSol)),
+    costoFrase: `De cada <b>S/ 100</b> que vendes, le devuelves <b>${sol(pct)}</b> en puntos <span style="color:var(--taupe);font-size:13px">(${pct.toLocaleString("es-PE")} %, si todos los canjean)</span>.`,
+    costoVeredicto: pct > S.tope ? `<span class="alerta">Te pasas de tu tope: ${pct.toLocaleString("es-PE")} % contra ${S.tope} %.</span>` : `<span class="ok">Dentro de tu tope.</span>`,
+    textoHoy: `Devuelves ${pct.toLocaleString("es-PE")} % de cada compra si todos los puntos se canjean. ` + (pct > S.tope ? `Es más que tu tope de costo (${S.tope} %): revisa los números o sube el tope.` : `Dentro de tu tope de costo (${S.tope} %).`),
+  };
+  document.querySelectorAll("[data-v]").forEach((el) => {
+    const k = el.dataset.v;
+    if (k === "barra") { el.style.width = Math.min(pct / 10, 1) * 100 + "%"; el.classList.toggle("pasa", pct > S.tope); }
+    else if (k === "topeMarca") el.style.left = Math.min(S.tope / 10, 1) * 100 + "%";
+    else el.innerHTML = v[k];
+  });
+  document.querySelectorAll("input[data-k]").forEach((i) => { if (document.activeElement !== i) i.value = String(S[i.dataset.k]); });
+  document.querySelectorAll("[data-cambia]").forEach((c) => c.classList.toggle("oculto", S[c.dataset.cambia] === BASE[c.dataset.cambia]));
+  document.querySelectorAll("[data-grupo]").forEach((g) => {
+    const k = g.dataset.grupo; let hay = false;
+    g.querySelectorAll("[data-val]").forEach((b) => { const on = S[k] === Number(b.dataset.val) && (k !== "por100" || S.porSol === 1); b.setAttribute("aria-pressed", on); hay ||= on; });
+    const otro = g.querySelector("[data-otro]"); if (otro) otro.setAttribute("aria-pressed", !hay);
+  });
+  document.querySelectorAll("[data-op-valor]").forEach((s) => s.textContent = "cupón de " + sol(valorDe(Number(s.dataset.opValor))));
+  document.querySelectorAll("[data-op-regalo]").forEach((s) => s.textContent = "= " + sol(Number(s.dataset.opRegalo) / 100 * S.por100));
+}
+
+document.addEventListener("input", (e) => {
+  const k = e.target.dataset?.k;
+  if (k) { S[k] = num(e.target.value, S[k]); pintar(); }
+  if (e.target.id === "compra") { compra = Number(e.target.value); pintar(); }
+});
+document.addEventListener("click", (e) => {
+  const op = e.target.closest(".op"); if (!op) return;
+  const g = op.closest("[data-grupo]").dataset.grupo;
+  if (op.dataset.otro !== undefined) { const d = op.closest(".c-q").querySelector("details"); d.open = true; d.querySelector("input").focus(); return; }
+  S[g] = Number(op.dataset.val); if (g === "por100") S.porSol = 1; pintar();
+});
+document.querySelectorAll("[data-ir]").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll("[data-ir]").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  document.querySelectorAll(".diseno").forEach((d) => d.classList.toggle("activo", d.id === "d-" + b.dataset.ir));
+}));
+document.getElementById("tema").addEventListener("click", (e) => {
+  const osc = document.documentElement.dataset.tema !== "oscuro";
+  document.documentElement.dataset.tema = osc ? "oscuro" : "";
+  e.target.textContent = osc ? "Claro" : "Oscuro";
+});
+pintar();
+</script>
+</body>
+</html>

@@ -168,14 +168,19 @@ describe("la línea de tiempo y el reloj", () => {
     expect(hitos({ ...base, estado: "por_confirmar" }).map((h) => h.estado)).toEqual(["hecho", "ahora", "falta", "falta"]);
     expect(hitos({ ...base, estado: "pagado" }).map((h) => h.estado)).toEqual(["hecho", "hecho", "hecho", "ahora"]);
     expect(hitos({ ...base, estado: "entregado" }).map((h) => h.estado)).toEqual(["hecho", "hecho", "hecho", "hecho"]);
-    // Un pedido cerrado (vencido o anulado) marca hecho cada paso que tiene fecha, y ninguno como «ahora».
+    // Un pedido vencido marca hecho cada paso que tiene fecha, y ninguno como «ahora».
     expect(hitos({ ...base, estado: "vencido" }).map((h) => h.estado)).toEqual(["hecho", "falta", "falta", "falta"]);
+    // Un pedido anulado no muestra los pasos sin hacer: solo los hechos y, al final, «Anulado» (la X roja).
     expect(hitos({ ...base, confirmadoEn: "b", pagadoEn: "c", estado: "anulado" }).map((h) => h.estado)).toEqual([
       "hecho",
       "hecho",
       "hecho",
-      "falta",
+      "anulado",
     ]);
+    expect(hitos({ ...base, estado: "anulado" }).map((h) => h.nombre)).toEqual(["Separado", "Anulado"]);
+    // El paso «Anulado» lleva la fecha y hora en que se cerró el pedido.
+    const cerrado = "2026-10-19T17:30:00+00:00";
+    expect(hitos({ ...base, confirmadoEn: "b", cerradoEn: cerrado, estado: "anulado" }).at(-1)?.cuando).toBe(cerrado);
     expect(hitos({ ...base, estado: "por_confirmar" }).map((h) => h.nombre)).toEqual([
       "Separado",
       "Confirmado por la tienda",
