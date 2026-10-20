@@ -165,7 +165,6 @@ export const precioDePieza = (p: PiezaLook): PrecioTarjeta =>
 export const totalDelLook = (l: Pick<Look, "totalFinal" | "desde">): string => `${l.desde ? "Desde " : ""}${soles(l.totalFinal)}`;
 
 /** «Look 2 · 3 prendas», la ceja de la tarjeta de un look en la lista. */
-export const cejaDeLook = (l: Pick<Look, "numero" | "piezas">): string => `Look ${l.numero} · ${cuantasPrendas(l.piezas.length)}`;
 
 /**
  * Lo que cuesta el look completo en su tarjeta, con la regla de la tarjeta de una prenda: lo que se paga («Desde …» si una campaña no

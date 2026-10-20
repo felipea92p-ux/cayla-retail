@@ -6,6 +6,7 @@ import { separar, type EstadoSeparar } from "@/app/acciones/bolsa";
 import { hrefConVolver } from "@/lib/entrada";
 import { visible } from "@/lib/visible";
 import { Icono } from "../Icono";
+import { CuponDeLaBolsa } from "./CuponDeLaBolsa";
 
 /**
  * Lo de abajo de la bolsa (maqueta, `pieTxt`): qué falta o qué pasa al separar, y «Separar en Trujillo». Viaja lo que el cliente
@@ -25,6 +26,8 @@ export function FormularioSeparar({
   faltaTienda = false,
   boton,
   nota,
+  conCupon = false,
+  misCupones = [],
 }: {
   lineas: { variante_id: string; cantidad: number; precio: number }[];
   sedeId: string | null;
@@ -38,6 +41,10 @@ export function FormularioSeparar({
   faltaTienda?: boolean;
   boton: string;
   nota: ReactNode;
+  /** Con cuenta y del Club: el campo «Código de cupón» (20261019224000). Sin cuenta no hay con qué revisarlo: se pide al entrar. */
+  conCupon?: boolean;
+  /** Sus cupones vivos, para elegirlos con un toque. */
+  misCupones?: { codigo: string; texto: string }[];
 }) {
   const [estado, accion, pendiente] = useActionState<EstadoSeparar, FormData>(separar, null);
 
@@ -53,6 +60,7 @@ export function FormularioSeparar({
     <form action={accion} className="t-bolsa-accion">
       <input type="hidden" name="lineas" value={JSON.stringify(lineas)} />
       <input type="hidden" name="sede" value={sedeId ?? ""} />
+      {conCupon && <CuponDeLaBolsa marca={marca} mios={misCupones} />}
       {estado && estado.marca === marca ? (
         <p className="w-error-general" role="alert">
           {estado.mensaje}

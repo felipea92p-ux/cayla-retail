@@ -66,7 +66,6 @@ export function Pie({ anio, conCuenta = false, sede = null }: { anio: number; co
                     </span>
                     <span className="ay-pie-tema-tx">
                       <b>{a.titulo}</b>
-                      <small>{a.texto}</small>
                     </span>
                     <Icono nombre="flecha" />
                   </Link>
@@ -79,7 +78,6 @@ export function Pie({ anio, conCuenta = false, sede = null }: { anio: number; co
               <Link className="t-logo" href="/inicio" aria-label="CAYLA, ir al inicio">
                 <Logo />
               </Link>
-              <p>Separa online, confirma por WhatsApp y recoge en tu tienda.</p>
             </div>
             {columnas(conCuenta, sede).map((c) => (
               <div key={c.titulo}>
@@ -96,7 +94,6 @@ export function Pie({ anio, conCuenta = false, sede = null }: { anio: number; co
           </div>
           <p className="t-pie-legal">
             <span>© {anio} CAYLA</span>
-            <span>Sin publicidad por WhatsApp: las novedades están aquí</span>
           </p>
         </div>
       </footer>

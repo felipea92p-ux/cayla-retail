@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import type { Caja, ColorDelProbador, PrendaDelProbador, Zona } from "@/lib/probador";
+import type { Caja, FotoDelColor, Zona } from "@/lib/probador";
 import {
   ANCHO_PARA_MEDIR,
   cajaDeAbajoUnida,
+  cajaDeArribaAjustada,
   direccionParaMedir,
   medidasATexto,
   medidasDesdeTexto,
@@ -26,7 +27,8 @@ import {
 const ESPERA_ANTES_DE_AVISAR_MS = 180;
 /** Una imagen que no responde en tanto se da por no medible: se queda la caja de siempre y el aviso se va. */
 const LIMITE_POR_RECORTE_MS = 4000;
-const CLAVE_GUARDADA = "cayla-union-v1";
+// v3: las medidas traen el perfil del bajo y su ancho por filas; lo recordado en v1 y v2 se vuelve a medir.
+const CLAVE_GUARDADA = "cayla-union-v3";
 
 /** Lo que se midió de cada recorte (por su dirección); `null`: no se pudo. Dura lo que dura la pestaña, más lo recordado de otras visitas. */
 const medidas = new Map<string, MedidaDelRecorte | null>();
@@ -121,7 +123,8 @@ function medir(foto: Foto): Promise<void> {
   return tarea;
 }
 
-type PiezaDeLaFigura = { z: Zona; p: PrendaDelProbador; c: ColorDelProbador; caja: Caja };
+/** Lo que la unión lee de cada pieza: su zona, si va metida, su recorte y su caja (la figura interactiva manda más; la quieta, solo esto). */
+export type PiezaDeLaFigura = { z: Zona; p: { metida: boolean }; c: { foto: FotoDelColor }; caja: Caja };
 
 /**
  * Las piezas de la figura con la de abajo unida a la de arriba. Con las dos zonas puestas pide medir sus recortes y, cuando están, devuelve las
@@ -151,11 +154,12 @@ export function useUnionDeLaFigura<T extends PiezaDeLaFigura>(
     if (leerRecordadas()) notificar();
   }, []);
 
+  // La de arriba se mide siempre (también sola: su tamaño se ajusta a su forma); la de abajo, cuando hay una de arriba a la que unirla.
   useEffect(() => {
-    if (!urlArriba || !urlAbajo) return;
+    if (!urlArriba) return;
     const faltan = [
       { url: urlArriba, optimizar: optimizarArriba },
-      { url: urlAbajo, optimizar: optimizarAbajo },
+      ...(urlAbajo ? [{ url: urlAbajo, optimizar: optimizarAbajo }] : []),
     ].filter((f) => !medidas.has(f.url));
     if (faltan.length === 0) return;
     void Promise.all(faltan.map(medir));
@@ -193,10 +197,19 @@ export function useUnionDeLaFigura<T extends PiezaDeLaFigura>(
   }, [pendiente, par]);
 
   const ajustando = pendiente && demoraDe === par;
-  if (!arriba || !abajo || !urlArriba || !urlAbajo || !completa) return { piezas: [...piezas], ajustando };
-  const unida = cajaDeAbajoUnida(
-    { caja: arriba.caja, medida: medidas.get(urlArriba), metida: arriba.p.metida },
-    { proporcion: abajo.c.foto.proporcion, medida: medidas.get(urlAbajo) },
-  );
-  return { piezas: unida ? piezas.map((x) => (x === abajo ? { ...x, caja: unida } : x)) : [...piezas], ajustando };
+  // 1. La de arriba, ajustada a su propia forma (solo crece, y solo si su bajo es implausiblemente angosto).
+  const cajaArriba = arriba && urlArriba ? cajaDeArribaAjustada({ caja: arriba.caja, medida: medidas.get(urlArriba), metida: arriba.p.metida }) : null;
+  const arribaFinal = arriba && cajaArriba ? { ...arriba, caja: cajaArriba } : arriba;
+  // 2. La de abajo, unida a la de arriba ya ajustada.
+  const unida =
+    arribaFinal && abajo && urlArriba && urlAbajo && completa
+      ? cajaDeAbajoUnida(
+          { caja: arribaFinal.caja, medida: medidas.get(urlArriba), metida: arribaFinal.p.metida },
+          { proporcion: abajo.c.foto.proporcion, medida: medidas.get(urlAbajo) },
+        )
+      : null;
+  return {
+    piezas: piezas.map((x) => (x === arriba && arribaFinal ? arribaFinal : x === abajo && unida ? { ...x, caja: unida } : x)),
+    ajustando,
+  };
 }

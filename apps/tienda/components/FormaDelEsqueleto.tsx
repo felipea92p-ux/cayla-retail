@@ -7,7 +7,6 @@ import { useBolsaVista } from "./bolsa/BolsaRecordada";
 import { useCabeceraVista } from "./CabeceraConCuenta";
 import { Icono } from "./Icono";
 import { usePrendaTocada } from "./PrendaTocada";
-import { TiendasDeEspera } from "./TiendasRecordadas";
 import { fotoQueViaja } from "./Vistas";
 import "@/app/estilos/probador.css";
 
@@ -27,17 +26,14 @@ export function FormaDelEsqueleto({
   forma,
   heroe = null,
   destino = null,
-  sinFranja = false,
 }: {
   forma?: FormaEsqueleto;
   heroe?: React.ReactNode;
   destino?: DestinoDeEspera | null;
-  /** Sin la franja «Ver lo que hay en»: la página de antes ya la tiene a la vista (`EnCamino`). */
-  sinFranja?: boolean;
 }) {
   // Leer la dirección en una página que se arma por adelantado (una ficha cuyo id aún no se sabe) frena el armado: se lee en su propio
   // <Suspense>, con la grilla mientras tanto (ADR-0432). Con la forma dicha de antemano no se lee nada.
-  if (forma) return <FormaDicha la={forma} heroe={heroe} destino={destino} sinFranja={sinFranja} />;
+  if (forma) return <FormaDicha la={forma} heroe={heroe} destino={destino} />;
   return (
     <Suspense fallback={<FormaDicha la="grilla" heroe={heroe} />}>
       <FormaSegunLaRuta heroe={heroe} />
@@ -50,18 +46,14 @@ function FormaSegunLaRuta({ heroe }: { heroe: React.ReactNode }) {
   return <FormaDicha la={formaDeLaRuta(ruta ?? "")} heroe={heroe} />;
 }
 
-const CON_FRANJA: readonly FormaEsqueleto[] = ["inicio", "grilla", "ficha", "probador", "looks", "look"];
-
 function FormaDicha({
   la,
   heroe,
   destino = null,
-  sinFranja = false,
 }: {
   la: FormaEsqueleto;
   heroe: React.ReactNode;
   destino?: DestinoDeEspera | null;
-  sinFranja?: boolean;
 }) {
   // La página que viene empieza arriba. Next sube la página al llegar a otra, pero con el esqueleto propio de la ficha (un segmento
   // adentro del catálogo) dejaba de hacerlo: tocada una prenda de abajo del Inicio o de «Mi perfil», la ficha llegaba con la página
@@ -73,8 +65,6 @@ function FormaDicha({
   }, []);
   return (
     <>
-      {/* La franja «Ver lo que hay en» de las páginas del catálogo, con las tiendas de la última que se vio. */}
-      {CON_FRANJA.includes(la) && !sinFranja && <TiendasDeEspera />}
       {/* El Inicio va de borde a borde (su héroe); las demás, en el ancho de la página. */}
       <div className={`${la === "inicio" ? "" : "t-ancho "}t-esqueleto`} data-forma={la} role="status">
         <span className="t-solo-lector">Cargando…</span>

@@ -1,7 +1,8 @@
 import "server-only";
+import { cache } from "react";
 import { crearClienteAnonimo } from "@/lib/supabase/anonimo";
 import { crearClienteAdmin } from "@/lib/supabase-admin";
-import { esUuid, lecturaDePagina, type LecturaPagina } from "@/lib/club-registro-reglas";
+import { esUuid, lecturaDePagina, puntosDelClub, type LecturaPagina, type PuntosClub } from "@/lib/club-registro-reglas";
 
 // La lectura de la página pública del Club CAYLA (ADR-0288 act. g), del lado del servidor. La usan las páginas de privacidad y
 // términos; la de registro (`app/club/[tienda]/page.tsx`) y su acción `registrarme` se retiraron el 2026-10-16 (el cartel lleva a
@@ -28,7 +29,29 @@ export async function leerPaginaClub(ubicacionId: string): Promise<LecturaPagina
 }
 
 /**
- * La política y los términos no dependen de la tienda (el % y la escala son de toda la empresa), pero `fn_club_pagina` pide
+ * La configuración vigente de los puntos (`fn_club_puntos_vigentes`, pública), como `anon`: las cifras que nombran los textos legales
+ * de los puntos y la descripción de los términos. Si la base no responde, o todavía no tiene la función (producción sin la migración
+ * de los puntos), null: los textos que no nombran los puntos se muestran igual, y uno que sí los nombra no se muestra a medias
+ * (`textoLegal`). `cache`: la descripción de la página y la página misma la piden en la misma visita, y se lee una sola vez.
+ */
+export const leerPuntosDelClub = cache(async (): Promise<PuntosClub | null> => {
+  try {
+    const { data, error } = await crearClienteAnonimo().rpc("fn_club_puntos_vigentes");
+    if (error) {
+      console.error("[club] fn_club_puntos_vigentes falló", error.code, error.message);
+      return null;
+    }
+    const puntos = puntosDelClub(data as unknown);
+    if (!puntos) console.error("[club] fn_club_puntos_vigentes no dio la configuración completa");
+    return puntos;
+  } catch (e) {
+    console.error("[club] fn_club_puntos_vigentes no respondió", e instanceof Error ? e.message : e);
+    return null;
+  }
+});
+
+/**
+ * La política y los términos no dependen de la tienda (las cifras son de toda la empresa), pero `fn_club_pagina` pide
  * una. Se usa la tienda de donde viene (`?t=`); si se abre la dirección suelta, la primera tienda activa, buscada con la
  * llave de servicio (la única lectura que hace: un id; `anon` no ve `ubicaciones`). `volverA`: la tienda de donde vino, para que
  * el enlace a la otra página la conserve (solo si vino con una).

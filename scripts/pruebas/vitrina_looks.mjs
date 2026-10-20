@@ -641,6 +641,17 @@ function main() {
       rollback;`),
     "0|7|2\n0|7|1",
   );
+  // ADR-0458 (20261019223000, Felipe 2026-10-19): cada tienda maneja lo suyo. Con una tienda elegida, la talla de un look dice «hay» solo si
+  // la tienda elegida la tiene; antes miraba todas las de la web y ofrecía una talla que la bolsa luego no dejaba agregar. Sin tienda, como antes.
+  const TALLAS_DEL_LOOK = (sede) => `select string_agg((select string_agg(ta ->> 'talla' || '=' || (ta ->> 'hay'), ',' order by o) from jsonb_array_elements(pz -> 'tallas') with ordinality u(ta, o)), ' ' order by (pz ->> 'posicion')::int)
+        from jsonb_array_elements(retail.tienda_look(:'look', ${sede}) -> 'look' -> 'piezas') pz;\n`;
+  esperarValor(
+    "con una tienda elegida, el «hay» de cada talla del look es el de ESA tienda: la talla que solo hay en la otra dice «no hay» (y sin tienda, el total de las dos)",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${STOCK_DE_LA_REGLA}
+      ${TALLAS_DEL_LOOK(":'tru'")}${TALLAS_DEL_LOOK(":'lim'")}${TALLAS_DEL_LOOK("null")}
+      rollback;`),
+    "S=true,M=false,L=false 28=false,30=false,32=false,34=false\nS=false,M=false,L=false 28=false,30=false,32=true,34=false\nS=true,M=false,L=false 28=false,30=false,32=true,34=false",
+  );
   esperarValor(
     "cada talla trae su variante (la de ese modelo, color y talla) para que la bolsa sepa qué agregar",
     correr(`${PREPARAR}${EN_LA_VITRINA}${crear("look")}

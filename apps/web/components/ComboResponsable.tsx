@@ -93,6 +93,27 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
     if (abierto && posLista && mostrarBuscador) buscador.current?.focus();
   }, [abierto, posLista, mostrarBuscador]);
 
+  // ADR-0454 (temporal, hasta integrar Lima con Dynamic): una terminal con firma de respaldo (Caja y Almacén de Lima) no pide nada, la base firma
+  // sola. Se dice en una línea —como al Admin— y no se deja un hueco: muchas pantallas ponen su propio título («Quién recibe») junto al combo.
+  if (estado === "respaldo" && compacto) {
+    return (
+      <p role="status" className={`flex ${className}`}>
+        <Chip tono="pizarra" versalitas={false} title="Esta terminal no pide responsable. Lo que guardes queda a nombre de quien la respalda.">
+          <ShieldCheck className="h-3 w-3 shrink-0" aria-hidden />
+          Sin responsable{control.firmaDeRespaldo ? ` · ${control.firmaDeRespaldo}` : ""}
+        </Chip>
+      </p>
+    );
+  }
+
+  if (estado === "respaldo") {
+    return (
+      <Aviso tono="info" chico className={className} titulo="Esta terminal no pide responsable">
+        {control.firmaDeRespaldo ? `Lo que guardes queda a nombre de ${control.firmaDeRespaldo}.` : "Lo que guardes queda firmado por la terminal."}
+      </Aviso>
+    );
+  }
+
   if (estado === "admin" && compacto) {
     return (
       <p role="status" className={`flex ${className}`}>

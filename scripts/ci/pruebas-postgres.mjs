@@ -940,18 +940,6 @@ export const PRUEBAS = [
   // en ROLLBACK (la carrera con COMMIT solo corre con BASE_DESECHABLE=1, no aquí).
   "pruebas:club-permisos",
 
-  // Club de clientas, tanda 1c (ADR-0288 D-5): el cumpleaños con un canje por año. `registrar_venta` con
-  // `p_canjear_cumpleanos` recalcula la parte del club de cada línea (`fn_descuento_campana(precio − descuento_sin_club, pct)`:
-  // el precio que queda al S/ 0.10 de abajo, ADR-0403 act. 2026-10-15; en cascada: 20 % → 28 %; la misma tabla de paridad que
-  // la regla de la web), acepta la cuenta vieja de una caja sin recargar (transición) y rechaza un monto distinto, un canje fuera
-  // de su mes, de una no socia o sin clienta, y el segundo del año (único parcial de `club_canjes`); la parte del club no
-  // cuenta para el costo, el tope D-67, el código, el 35 % ni el argumento; anular libera el canje y una devolución no;
-  // `resumen_clienta_caja` dice disponible, % y canjeado; una sola firma, md5 «después» = vivas, pegar las tres partes
-  // dos veces deja lo mismo, con una función cambiada en vivo aborta sin pisar, ningún `into` en un texto que el SQL
-  // Editor pueda confundir; y dos cajas canjean a la vez (la segunda espera en la lectura de la ficha). Cada caso termina
-  // en ROLLBACK (las carreras con COMMIT solo corren con BASE_DESECHABLE=1, no aquí).
-  "pruebas:club-cumpleanos",
-
   // Club de clientas, tanda 1d (ADR-0288 D-6): «buscó y no había» y «se la probó y no la llevó» son la misma tabla
   // (`pedidos_no_atendidos.motivo`, con `razon` solo para «se la probó»; la llamada vieja de 5 parámetros sigue anotando
   // `no_habia_talla`; los rechazos no dejan fila; el esquema lo exige igual sin la función; lo de antes queda
@@ -980,13 +968,59 @@ export const PRUEBAS = [
   // cambiada en vivo aborta sin pisar, y cada `alter` de una tabla en uso en su parte. Cada caso termina en ROLLBACK.
   "pruebas:club-registro-cartel",
 
-  // Club de clientas, tanda 1g (G-9, G-13): el vale de aniversario. El reparto en `registrar_venta` con
-  // `p_canjear_aniversario`, igual al de la web (tabla de ejemplos) y exacto al céntimo; el umbral (6 compras o S/ 600 en
-  // compras NETAS), la pausa y la escala (el quinto se repite), los 60 días; el canje (monto aplicado, año de club), uno por
-  // compra con el cumpleaños, uno por año de club, el vale que cubre toda la compra (aniversario_cubre_todo); anular libera,
-  // una devolución no; y dos cajas a la vez (la segunda espera en la lectura de la ficha). Cada caso termina en ROLLBACK
-  // (la carrera con COMMIT solo corre con BASE_DESECHABLE=1, no aquí).
-  "pruebas:club-aniversario",
+  // Puntos del Club, actividad 1: la base. El saldo guardado es SIEMPRE igual a la suma de los movimientos y nunca negativo; no se
+  // gasta lo que no hay (puntos_insuficientes); solo una miembro gana puntos; una venta da puntos una vez y el cumpleaños una vez
+  // por año; un movimiento no se edita ni se borra; la API no toca las tablas; guardar la configuración (solo el líder; cambiar lo
+  // que valen los puntos o el canje rige a los 15 días) y que no toca club_textos. ROLLBACK (la carrera con COMMIT solo corre con
+  // BASE_DESECHABLE=1, no aquí).
+  "pruebas:club-puntos-base",
+
+  // Puntos del Club, actividad 2: ganar al cobrar. Una venta de una miembro suma lo que PAGA (79.90 → 79; con descuento, cantidad
+  // y varias líneas), no suma una ficha «Identificado» ni una venta sin clienta, el mes de su cumpleaños suma el regalo una vez, manda
+  // la configuración del día de la venta, anular o devolver resta (reversa enlazada, nunca más de lo que tiene), el mismo token no
+  // suma dos veces y, si sumar o restar falla, la venta y la anulación siguen. ROLLBACK.
+  "pruebas:club-puntos-ganar",
+
+  // Puntos del Club, actividad 3: canjear en un cupón. Un cupón NUNCA se duplica: una clave de operación (el doble toque devuelve
+  // el mismo cupón y descuenta una vez; la misma clave con otra cosa se rechaza, también si llegan dos a la vez), un código único con
+  // reintento sin canjes huérfanos y una devolución de puntos por canje, una sola vez. Mínimo y múltiplos, quién canjea, vencer (los
+  // puntos vuelven y canjear libera primero lo vencido), la tabla no se edita ni se borra y la puerta de la tienda. ROLLBACK (la
+  // carrera con COMMIT solo corre con BASE_DESECHABLE=1, no aquí).
+  "pruebas:club-puntos-cupones",
+
+  // Puntos del Club, actividad 4: cobrar con cupón (dinero y boleta). El código viaja en p_codigo_descuento (la firma de
+  // registrar_venta NO cambia); el reparto por prenda es el de la web, exacto al céntimo (la tabla de ejemplos y 300 casos al azar);
+  // los rechazos (no existe, ya usado, vencido, mínimo, reparto distinto, junto al cumpleaños) no dejan venta ni gastan el cupón; al
+  // portador (otra ficha o sin ficha); anular lo devuelve; el mismo token no gasta dos veces; validar_cupon y su bloqueo a los 5
+  // códigos que no existen. ROLLBACK (la carrera de dos cajas con COMMIT solo corre con BASE_DESECHABLE=1, no aquí).
+  "pruebas:club-puntos-cobrar-cupon",
+
+  // Puntos del Club, actividad 5: lo que la caja muestra de los puntos (resumen_puntos_caja). Una miembro: saldo, lo que valen,
+  // configuración y cupones VIVOS con su código; «Identificado» o anonimizada: miembro false y aun así la configuración; leer libera
+  // lo vencido; el regalo de cumpleaños (su mes, una vez, otra vez si se revirtió); solo con el módulo Vender o Clientes. ROLLBACK.
+  "pruebas:club-puntos-resumen-caja",
+
+  // Puntos del Club, actividad 6: lo que «Mi Club» de la tienda web muestra (tienda_mis_puntos). Una miembro: saldo, lo que valen,
+  // configuración y cupones VIVOS con su código; sin cuenta o cerrada: null; leer libera lo vencido; el regalo de cumpleaños; el
+  // historial (15, sin venta ni nota ni responsable); solo la ejecuta tienda_web. ROLLBACK.
+  "pruebas:club-puntos-tienda",
+
+  // Puntos del Club, actividad 8: el módulo «Beneficios del club» (resumen_beneficios_puntos). El líder lee lo vigente; un cambio de lo que
+  // valen los puntos queda programado a 15 días con su historial; las cifras (circulación, deuda en soles, cupones vivos, lo canjeado del
+  // mes) suben con lo que pasa; el módulo nace sin rol. ROLLBACK.
+  "pruebas:club-puntos-beneficios",
+
+  // Puntos del Club, actividad 9: la conservación de 3 años elimina los datos Y los puntos. El cron elimina a una miembro inactiva con un
+  // «pierde» por todo su saldo y no toca a quien compró hace poco; la fecha de «Mi Club» es la del cron; los tres caminos de anonimizar
+  // eliminan los puntos; una ficha que falla no frena a las demás; un cupón vivo no se toca; dos corridas no repiten. ROLLBACK.
+  "pruebas:club-puntos-conservacion",
+
+  // Puntos del Club en el PEDIDO WEB (20261019224000): separar con cupón rebaja el total y lo RESERVA para ese pedido (ni la caja ni
+  // otro «Separar» lo usan); quitar prendas bajo el mínimo, anular, no confirmar o vencer lo libera (vencido y con sus puntos devueltos si
+  // pasó su fecha); pagar completo lo reparte en las líneas de la venta (lo vendido = total = boleta), lo deja usado y suma puntos y el
+  // regalo de cumpleaños; anular el pedido pagado lo devuelve y resta los puntos; un reservado no vence; la misma marca no duplica;
+  // tienda_validar_cupon con su bloqueo. ROLLBACK (la carrera de dos «Separar» con COMMIT solo corre con BASE_DESECHABLE=1, no aquí).
+  "pruebas:club-puntos-pedido-web",
 
   // Club de clientas, tanda 1g (G-8, CL-20, CL-21): Clientas ▸ Avisos. Quién aparece (publicidad de esa tienda; no sin la
   // casilla, con BAJA, de otra tienda), cumpleaños, aniversario, novedades (llegadas de 14 días con stock libre) y rebaja en
@@ -1333,6 +1367,21 @@ export const PRUEBAS = [
   // lo anotado inmutable y las puertas (módulo + Taller). ROLLBACK.
   "pruebas:produccion-fases",
 
+  // Las fases nuevas de la orden, «expandir» (ADR-0400 act. k y l, R1, actividad 1): la base acepta la ruta nueva (Ploteo · Corte · Habilitado · Costura ·
+  // Ojales y botones · Limpiar hilos y revisar · Planchado · Etiquetar y embolsar) sin dejar de aceptar la anterior; mezclarlas se rechaza; «Cambiar quién»
+  // valida contra las fases reales de la orden; la lista de precios acepta las claves nuevas; el candado de md5 y el pegado repetido. ROLLBACK.
+  "pruebas:produccion-fases-nuevas",
+
+  // Ploteo, la fase de un toque (ADR-0400 act. k y l, R1, actividad 2): se marca «hecha» y se deshace sin contar prendas; no entra a la cadena
+  // (Corte conserva su tope plan × 1,10); avance, salida y vuelta la rechazan; un servicio de ploteo cobra el fijo por orden y devenga al marcarse;
+  // lo marcado solo se agrega; la línea de tiempo y las puertas. ROLLBACK.
+  "pruebas:produccion-ploteo",
+
+  // Una orden completa con la ruta nueva, de punta a punta (ADR-0400 act. k y l, R1, actividad 6): ploteo marcado, costura y planchado afuera con su Salida y su Vuelta, etiquetado y
+  // pasar al stock con el costo devengado repartido entre las buenas; el candado mira la última fase; nada se cierra ni se anula con prendas afuera; un ploteo sin marcar no devenga;
+  // revertir devuelve el stock. ROLLBACK.
+  "pruebas:produccion-ruta-nueva",
+
   // El avance de una fase, la Salida a un servicio, su Vuelta y la orden en una lectura (ADR-0400, actividades 3 y 4): «Terminé N» dentro
   // de lo que de verdad entró (por talla y color; plan × 1,10 en el corte), Deshacer solo del último y mientras nadie lo use, Salida y
   // Vuelta que no pasan de lo que hay, faltantes con motivo, devengado, nada que toque movimientos ni stock, lo rechazado no deja nada,
@@ -1412,6 +1461,11 @@ export const PRUEBAS = [
   // asistencia; terminal + clave → la acción queda sin persona (NULL); sin clave, o con una que no está en la lista (la
   // caja, la venta) → el candado de siempre; con tabla vacía («volver») todo vuelve a exigir responsable. ROLLBACK siempre.
   "pruebas:responsable-omitido",
+
+  // ADR-0454 (temporal, hasta integrar Lima con Dynamic): una terminal con `terminales.firma_respaldo_id` no pide responsable y firma
+  // siempre como esa persona (Caja Lima y Almacén Lima, a nombre de Felipe); sin respaldo, o con el respaldo suspendido, el candado de
+  // siempre; el respaldo no da poderes de líder; «volver» es vaciar la columna. La activación solo toca «Tienda LIM». ROLLBACK siempre.
+  "pruebas:terminal-sin-responsable",
 
   // ADR-0161 act. d: las acciones que guardaban sin firmar anotan al responsable del combo (anular compra y
   // comprobante de producción, etapas, proveedores de producción, alta de insumo, terminales). ROLLBACK siempre.

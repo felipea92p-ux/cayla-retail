@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  cuponAMedias,
   agruparPorPestana,
+  leerCuponDelPedido,
+  textoDelCupon,
   avisosDeLinea,
   cifrasDe,
   cuandoEnLima,
@@ -385,6 +388,19 @@ describe("El cliente y WhatsApp", () => {
       "¡Hola Andrea! 👋 Tu pedido W-0012 de CAYLA Trujillo ya casi está.",
     );
   });
+
+  it("con cupón del Club, el mensaje de confirmado dice por qué bajó el total, con el código a medias (Felipe, 2026-10-19)", () => {
+    const cupon = { codigo: "CAY-4K7P-9H2M", valor: 10, descuento: 10, estado: "reservado" as const, liberadoMotivo: null };
+    const conCupon = { ...p, total: 219.8, cupon };
+    expect(mensajeWhatsapp(conCupon, "confirmado")).toBe(
+      "Hola Andrea, confirmamos tu pedido W-0012 en CAYLA Trujillo (S/\u00a0219.80, ya con tu cupón CAY-••••-9H2M de − S/\u00a010.00). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda? Lo recoges en Jr. Pizarro 123.",
+    );
+    // El código entero nunca viaja por WhatsApp.
+    expect(mensajeWhatsapp(conCupon, "confirmado")).not.toContain("4K7P");
+    // Un cupón que volvió al cliente ya no descuenta: el mensaje no lo nombra.
+    expect(mensajeWhatsapp({ ...p, cupon: { ...cupon, estado: "liberado", descuento: 0, liberadoMotivo: "compra_minima" } }, "confirmado")).not.toContain("cupón");
+    expect(cuponAMedias("cay-4k7p-9h2m")).toBe("CAY-••••-9H2M");
+  });
 });
 
 describe("Entregar con el código de 4 cifras (actividad 10)", () => {
@@ -635,5 +651,33 @@ describe("el camino y «Lo que te toca» (ADR-0430, act. 2026-10-17)", () => {
     expect(cuandoEnLima(en(15), AHORA)).toBe("mañana a las 01:00");
     expect(cuandoEnLima(hace(20), AHORA)).toBe("ayer a las 14:00");
     expect(cuandoEnLima(en(72), AHORA)).toBe("el 17 oct a las 10:00");
+  });
+});
+
+describe("El cupón del Club del pedido (20261019224000)", () => {
+  const NBSP = String.fromCharCode(0xa0);
+  it("lee el cupón del detalle; sin código, no hay cupón", () => {
+    expect(leerCuponDelPedido({ codigo: "CAY-4K7P-9H2M", valor: 5, descuento: 5, estado: "reservado", liberado_motivo: null })).toEqual({
+      codigo: "CAY-4K7P-9H2M",
+      valor: 5,
+      descuento: 5,
+      estado: "reservado",
+      liberadoMotivo: null,
+    });
+    expect(leerCuponDelPedido(null)).toBeNull();
+    expect(leerCuponDelPedido({ valor: 5 })).toBeNull();
+    // Un estado que la web no conoce se lee reservado; un motivo raro, sin motivo.
+    expect(leerCuponDelPedido({ codigo: "CAY-4K7P-9H2M", estado: "otro" })?.estado).toBe("reservado");
+    expect(leerCuponDelPedido({ codigo: "CAY-4K7P-9H2M", estado: "liberado", liberado_motivo: "raro" })?.liberadoMotivo).toBeNull();
+  });
+  it("«Cupón CAY-… · − S/ 5.00» y en qué quedó, en palabras de tienda", () => {
+    const reservado = textoDelCupon({ codigo: "CAY-4K7P-9H2M", valor: 5, descuento: 5, estado: "reservado", liberadoMotivo: null });
+    expect(reservado.titulo).toBe(`Cupón CAY-4K7P-9H2M · − S/${NBSP}5.00`);
+    expect(reservado.chip).toBe("Reservado");
+    expect(textoDelCupon({ codigo: "CAY-4K7P-9H2M", valor: 5, descuento: 5, estado: "usado", liberadoMotivo: null }).detalle).toMatch(/boleta/);
+    const liberado = textoDelCupon({ codigo: "CAY-4K7P-9H2M", valor: 5, descuento: 0, estado: "liberado", liberadoMotivo: "compra_minima" });
+    expect(liberado.titulo).toBe("Cupón CAY-4K7P-9H2M");
+    expect(liberado.detalle).toMatch(/compra mínima/);
+    expect(textoDelCupon({ codigo: "CAY-4K7P-9H2M", valor: 5, descuento: 5, estado: "liberado", liberadoMotivo: "pedido_anulado" }).detalle).toMatch(/se cerró/);
   });
 });

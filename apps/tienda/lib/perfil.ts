@@ -1,5 +1,4 @@
-import { estadoEspera, montoDicho, type Espera, type MiClub } from "./club";
-import { cumpleTexto } from "./cuentas";
+import { estadoEspera, type Espera, type MiClub } from "./club";
 import { INSIGNIA, type Pedido } from "./pedidos";
 
 // «Mi perfil» (Felipe 2026-10-15: «podría estar mejor distribuido, más ordenado y entendible»). Arriba, cuatro cuadros que dicen de un
@@ -30,31 +29,6 @@ export function resumenPedidos(pedidos: readonly Pick<Pedido, "estado" | "listoP
   if (enCurso.length > 1) return { texto: `${enCurso.length} en curso`, tono: "neutro" };
   const insignia = INSIGNIA[enCurso[0].estado];
   return { texto: insignia.texto, tono: insignia.tono === "verde" || insignia.tono === "ambar" ? insignia.tono : "neutro" };
-}
-
-/**
- * «Mi Club». Lo que se puede usar hoy va primero, en verde (el descuento de su mes, el vale); si no, cuándo llega su cumpleaños o cuánto
- * lleva para su vale. Sin ficha activa, lo dice en ámbar (el bloque explica qué hacer).
- */
-export function resumenClub(club: MiClub["club"] | null, esDelClub = true): Resumen {
-  // Una cuenta simple (ADR-0438) todavía no es del Club: se une al separar o cuando quiera, desde aquí.
-  if (!esDelClub) return { texto: "Únete: completa tus datos", tono: "ambar" };
-  if (club === null) return SIN_RESPUESTA;
-  if (!club.activa) return { texto: "Tu ficha no está activa", tono: "ambar" };
-  const { cumple, aniversario } = club;
-  const vale = aniversario.estado === "vale" && aniversario.valeMonto ? aniversario.valeMonto : null;
-  const cumpleHoy = cumple.estado === "disponible";
-  if (cumpleHoy && vale) return { texto: "2 beneficios para usar", tono: "verde" };
-  if (cumpleHoy) return { texto: "Descuento de cumpleaños", tono: "verde" };
-  if (vale) return { texto: `Vale de ${montoDicho(vale)} para usar`, tono: "verde" };
-  if (cumple.estado === "proximo" && cumple.dia && cumple.mes) {
-    // La fecha no se parte («12 de / mayo»): si no cabe en una línea, baja entera.
-    return { texto: `Cumpleaños: ${cumpleTexto(cumple.dia, cumple.mes).replaceAll(" ", "\u00a0")}`, tono: "neutro" };
-  }
-  if (aniversario.estado === "en_camino" && !aniversario.anioCuenta) {
-    return { texto: `Llevas ${aniversario.compras} de ${aniversario.comprasMeta} compras`, tono: "neutro" };
-  }
-  return { texto: "Tus beneficios", tono: "neutro" };
 }
 
 /** «Favoritos»: cuántos guardó con el corazón (los mismos que cuenta el corazón de la cabecera). */

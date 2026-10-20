@@ -41,6 +41,9 @@ export const MODULOS_DE_LA_VISTA_GLOBAL = [
   "configuracion",
   // Datos y plazos de la tienda web (20261016223000): la web es una sola, así que se abre también en CAYLA Global, como cuando la abría Configuración.
   "ajustes_web",
+  // Beneficios del club (programa de puntos, actividad 8): lo que el club le ofrece al cliente es de la empresa entera (los mismos puntos y cupones en
+  // las 3 tiendas), no de una sede: se abre también en CAYLA Global, como Configuración.
+  "beneficios_club",
   "actividad",
   // Frescura del piso (ADR-0208, act. 2026-10-10 (b)): en esta vista dibuja una barra por tienda y la suma de CAYLA (`FrescuraRed`).
   "frescura",

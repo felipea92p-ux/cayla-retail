@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import { BadgePercent, Banknote, Cake, Gift, Check, CirclePause, CreditCard, Landmark, MessageSquareText, Percent, Play, QrCode, ShoppingBag, StickyNote, Tag, Wallet, X } from "lucide-react";
+import { BadgePercent, Banknote, Check, CirclePause, CreditCard, Landmark, MessageSquareText, Percent, Play, QrCode, ShoppingBag, StickyNote, Star, Tag, Ticket, Wallet, X } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import type { TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
@@ -25,8 +25,8 @@ import { nombreDeEspera } from "@/lib/vender-hoy-reglas";
 import { money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
 import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
 import type { DetalleVariante } from "@/lib/ticket-linea-reglas";
-import { ayudaPieCumple, textoPieCumple, ticketConCumple } from "@/lib/club-cumple-canje-reglas";
-import { TEXTO_PIE_VALE, ayudaPieVale, ticketConVale } from "@/lib/club-aniversario-canje-reglas";
+import { ticketConVale } from "@/lib/club-cupon-reparto-reglas";
+import { TEXTO_PIE_CUPON } from "@/lib/club-puntos-reglas";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Volver } from "@/components/ui/Volver";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -193,16 +193,19 @@ type Props = {
   onRetomar: (id: string) => void;
   onIrAEspera: () => void;
   // Totales — ya calculados en el padre
-  /** Lo que se cobra: con el canje del cumpleaños o el vale de aniversario, ya sin la parte del club. */
+  /** Lo que se cobra: con el cupón del Club, ya sin su parte. */
   total: number;
   prendas: number;
-  /** El canje del cumpleaños aplicado (ADR-0288 D-5, tanda 1c): UNA línea en el pie, sobre el total (spike del club, punto
-   *  9). `monto` es lo que regala el club en toda la compra; `totalSinCumple`, sobre qué se calculó. null sin canje. Las
-   *  prendas no lo muestran: el reparto por línea es de la base y del comprobante. */
-  cumple?: { pct: number; monto: number; totalSinCumple: number } | null;
-  /** El vale de aniversario aplicado (tanda 1g, G-13), igual que el cumpleaños: UNA línea en el pie. `vale` es de cuánto es;
-   *  `monto`, lo que descuenta en esta compra (menos si la compra es menor); `totalSinVale`, sobre qué se repartió. */
-  vale?: { vale: number; monto: number; totalSinVale: number } | null;
+  /** El cupón del Club puesto (programa de puntos): UNA línea en el pie, sobre el total. `vale` es de cuánto es el cupón; `monto`, lo que
+   *  descuenta en esta compra; `totalSinVale`, sobre qué se repartió. Las prendas no lo muestran: el reparto por línea es de la base y
+   *  del comprobante. null sin cupón. */
+  vale?: { vale: number; monto: number; totalSinVale: number; cupon: { codigo: string; detalle: string; ayuda: string } } | null;
+  /** Quitar el cupón del Club puesto (programa de puntos): la línea del pie lo ofrece mientras se arma la venta. */
+  onQuitarCupon?: () => void;
+  /** Abre «Código de cupón», junto a «Aplicar descuento». */
+  onAbrirCodigo?: () => void;
+  /** Lo que gana la miembro identificada con esta compra: sus puntos y, si le toca, el regalo de cumpleaños. null sin miembro. */
+  gana?: { nombre: string; puntos: number; regalo: number } | null;
   // Los momentos del ticket: «armar» (líneas + total), «descuento» y «cobrar» (pago + comprobante)
   momento: MomentoTicket;
   onIrACobrar: () => void;
@@ -267,8 +270,10 @@ export function PuntoDeVentaTicket({
   onIrAEspera,
   total,
   prendas,
-  cumple = null,
   vale = null,
+  onQuitarCupon,
+  onAbrirCodigo,
+  gana = null,
   momento,
   onIrACobrar,
   onVolverATicket,
@@ -362,14 +367,11 @@ export function PuntoDeVentaTicket({
   const montoPedido = (it: ItemCarrito) => descuentoPedido(descuento.modo, porMonto ? monto : pct, it.precioUnitario);
   const descuentoUnitarioAplicando = (it: ItemCarrito) =>
     !alcanza(it.claveLinea) ? it.descuentoUnitario : descuentoResultante(it, montoPedido(it)).monto;
-  // Adelanto del total con el valor puesto: lo que va a quedar si se aplica ahora. Con el cumpleaños canjeado, también
-  // sin su parte (en cascada sobre el descuento nuevo, CL-11): el mismo número que quedará en «Total».
-  // Con el vale de aniversario, lo mismo: el vale se reparte sobre lo que quedará.
-  const totalConDescuento = cumple
-    ? ticketConCumple(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })), cumple.pct).total
-    : vale
-      ? ticketConVale(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })), vale.vale).total
-      : totalDeLineas(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })));
+  // Adelanto del total con el valor puesto: lo que va a quedar si se aplica ahora. Con un cupón del Club puesto, también sin su parte
+  // (el cupón se reparte sobre lo que quedará): el mismo número que quedará en «Total».
+  const totalConDescuento = vale
+    ? ticketConVale(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })), vale.vale).total
+    : totalDeLineas(carrito.map((it) => ({ ...it, descuentoUnitario: descuentoUnitarioAplicando(it) })));
   // «Quitar descuento» solo tiene sentido para lo puesto a mano: el de campaña no se quita.
   const hayDescuentoEnAlcance = hayDescuentoManual(carrito.filter((it) => alcanza(it.claveLinea)));
   // Si alguna prenda alcanzada va a quedar pasada del 15 %: ahí el apartado MUESTRA el
@@ -852,31 +854,39 @@ export function PuntoDeVentaTicket({
         </div>
 
         <div data-guia="vender.ticket-pie" className="border-t border-sand bg-papel px-5 pt-4 pb-5">
-          {/* El cumpleaños del club (tanda 1c; spike, `descuentoClub`): UNA línea de toda la compra, en cualquier momento
-              del ticket mientras esté aplicado, porque el Total de abajo ya lo descuenta. `key` en el monto: se asienta
-              cuando cambia (entra o sale una prenda), como el Total. */}
-          {cumple && cumple.monto > 0 && (
+          {/* El cupón del Club (programa de puntos): UNA línea de toda la compra, en cualquier momento del ticket mientras esté puesto,
+              porque el Total de abajo ya lo descuenta; el reparto por prenda queda en la base y el comprobante. Se puede quitar mientras
+              se arma la venta. `key` en el monto: se asienta cuando cambia, como el Total. */}
+          {vale && vale.monto > 0 && (
             <div className="mb-3 flex flex-wrap items-center justify-between gap-x-2 text-xs">
-              <span title={ayudaPieCumple(cumple.pct, cumple.totalSinCumple)} className="flex items-center gap-1.5 text-taupe-profundo">
-                <Cake className={ICONO_CHICO} aria-hidden />
-                {textoPieCumple(cumple.pct)}
+              <span title={vale.cupon.ayuda} className="flex min-w-0 items-center gap-1.5 text-taupe-profundo">
+                <Ticket className={ICONO_CHICO} aria-hidden />
+                <span className="min-w-0">
+                  {TEXTO_PIE_CUPON} <span className="font-mono tracking-wide">{vale.cupon.codigo}</span>
+                  <span className="block text-[11px] text-tinta/60">{vale.cupon.detalle}</span>
+                </span>
               </span>
-              <span key={cumple.monto} className="anim-asentar font-semibold text-taupe-profundo">
-                −{money(cumple.monto)}
+              <span className="flex items-center gap-2">
+                <span key={vale.monto} className="anim-asentar font-semibold text-taupe-profundo">
+                  −{money(vale.monto)}
+                </span>
+                {onQuitarCupon && momentoMostrado === "armar" && (
+                  <button type="button" onClick={onQuitarCupon} disabled={bloqueado} className="btn-cayla btn-enlace text-[11.5px]">
+                    Quitar
+                  </button>
+                )}
               </span>
             </div>
           )}
-          {/* El vale de aniversario (tanda 1g), igual: UNA línea; el reparto por prenda queda en la base y el comprobante. */}
-          {vale && vale.monto > 0 && (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-x-2 text-xs">
-              <span title={ayudaPieVale(vale.vale, vale.monto, vale.totalSinVale)} className="flex items-center gap-1.5 text-taupe-profundo">
-                <Gift className={ICONO_CHICO} aria-hidden />
-                {TEXTO_PIE_VALE}
+          {/* Lo que gana la miembro con esta compra (programa de puntos): se dice antes de cobrar, para que la cajera se lo cuente. */}
+          {gana && gana.puntos + gana.regalo > 0 && (
+            <p className="mb-3 flex items-start gap-1.5 text-xs text-taupe-profundo" data-guia="vender.gana-puntos">
+              <Star className={`${ICONO_CHICO} mt-px`} aria-hidden />
+              <span key={gana.puntos + gana.regalo}>
+                {gana.nombre} gana <b className="font-semibold">{gana.puntos.toLocaleString("es-PE")} puntos</b> con esta compra
+                {gana.regalo > 0 && <> + {gana.regalo} de regalo de cumpleaños</>}
               </span>
-              <span key={vale.monto} className="anim-asentar font-semibold text-taupe-profundo">
-                −{money(vale.monto)}
-              </span>
-            </div>
+            </p>
           )}
 
           {/* Fila «Descuento», solo mientras se arma la venta: el descuento cambia cuánto
@@ -908,6 +918,20 @@ export function PuntoDeVentaTicket({
                   <span className="flex items-center gap-1.5">
                     <Percent className={ICONO_CHICO} aria-hidden />
                     Aplicar descuento
+                  </span>
+                </button>
+              )}
+              {onAbrirCodigo && (
+                <button
+                  type="button"
+                  onClick={onAbrirCodigo}
+                  disabled={bloqueado || carrito.length === 0 || vale != null}
+                  data-guia="vender.codigo-cupon-boton"
+                  className="label-cayla -ml-2 h-7 rounded-md px-2 text-[11px] text-tinta/70 transition-colors hover:bg-sand/40 hover:text-tinta disabled:opacity-40 disabled:hover:bg-transparent"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Ticket className={ICONO_CHICO} aria-hidden />
+                    Código de cupón
                   </span>
                 </button>
               )}

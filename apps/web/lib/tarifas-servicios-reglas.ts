@@ -116,7 +116,8 @@ export type ServicioConTarifas = { proveedorId: string; nombre: string; activo: 
 
 /** Un servicio por fila con sus tarifas (una por fase, en el orden de la ruta). Los servicios activos sin ninguna tarifa también salen, vacíos: son los que faltan cargar. */
 export function tarifasPorServicio(tarifas: readonly TarifaDeServicio[], servicios: readonly ServicioParaTarifar[]): ServicioConTarifas[] {
-  const orden = ["corte", "bordado", "estampado", "costura", "lavanderia", "acabado"];
+  // El mismo orden que `fn_tarifas_de_servicios` (la ruta nueva y la anterior); lo prueba `tarifas-servicios-reglas.test.ts` contra la migración.
+  const orden = ["ploteo", "corte", "habilitado", "bordado", "estampado", "costura", "ojales_botones", "lavanderia", "limpieza_revision", "acabado", "planchado", "etiquetado_embolsado"];
   const porServicio = new Map<string, ServicioConTarifas>();
   for (const s of servicios) porServicio.set(s.id, { proveedorId: s.id, nombre: s.nombre, activo: s.activo, tarifas: [] });
   for (const t of tarifas) {

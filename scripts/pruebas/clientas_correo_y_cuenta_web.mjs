@@ -25,8 +25,9 @@
  *      «Mi cuenta» (20261015132000) sin su cambio de correo pendiente ni sus intentos de contraseña—;
  *      ninguna función la vuelve a encontrar; su usuario queda por borrar y se anota borrado una vez; una cuenta cerrada no se
  *      reabre; ninguna ficha anonimizada queda con una cuenta viva o con datos.
- *   J. La conservación (3 años): entrar hace poco, o haber creado la cuenta hace poco, la frena; sin compras ni entradas, anonimiza y
- *      cierra la cuenta; un pedido web en curso también la frena (uno anulado, no).
+ *   J. La conservación (3 años desde la última compra; ADR-0459, Felipe 2026-10-19: «a los 3 años sin compras se eliminan los datos Y
+ *      los puntos», `20261019220000`): comprar hace poco la frena, entrar a la web o crear la cuenta hace poco ya NO; al anonimizar, la
+ *      cuenta web se cierra; un pedido web en curso la frena (uno anulado, no).
  *   K. El pegado: las dos partes, dos veces; la PARTE 1 aborta con correos repetidos o con `editar_clienta` cambiada en vivo; la
  *      PARTE 2, con una cuenta que ya tiene el correo de otra ficha.
  *
@@ -81,8 +82,17 @@ const REGLAS_DE_LA_PARTE_2 = (() => {
   if (ini < 0 || fin < 0) throw new Error(`No encontré fn_cuenta_web_reglas en ${PARTE_2}`);
   return SQL_2.slice(ini, fin + "\n$$;".length);
 })();
+// 20261019220000 (ADR-0459, puntos: «a los 3 años sin compras») reescribió fn_club_anonimizar_inactivas: la fecha de «Mi Club» y una ficha a la
+// vez. Mismo caso: el candado de la PARTE 2 no la pisa; los casos de K empiezan por dejarla como la dejó la PARTE 2.
+const CONSERVACION_DE_LA_PARTE_2 = (() => {
+  const ini = SQL_2.indexOf("create or replace function retail.fn_club_anonimizar_inactivas(");
+  const fin = SQL_2.indexOf("\n$$;", ini);
+  if (ini < 0 || fin < 0) throw new Error(`No encontré fn_club_anonimizar_inactivas en ${PARTE_2}`);
+  return SQL_2.slice(ini, fin + "\n$$;".length);
+})();
 const COMO_LA_DEJO_LA_PARTE_2 = `${CIERRE_DE_LA_PARTE_2}
 ${REGLAS_DE_LA_PARTE_2}
+${CONSERVACION_DE_LA_PARTE_2}
 `;
 const APLICAR_ANTES = process.env.APLICAR_ANTES === "1";
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -421,10 +431,14 @@ function main() {
     "1",
   );
 
-  console.log("— J. La conservación: 3 años sin comprar NI entrar —");
+  console.log("— J. La conservación: 3 años sin comprar —");
   // Siete fichas de hace 5 años, cada una con lo suyo. La anonimizada pierde su DNI: se la sigue por su id, guardado antes.
+  // Hasta 20261019220000 entrar a la web (o crear la cuenta) también corría el plazo; desde ADR-0459 solo la compra (o el registro o la
+  // unión al club, que en estas fichas son de hace 5 años). Crear la cuenta web hace 1 año NO cuenta como «se registró»: lo dice
+  // fn_club_conservacion_hasta, y es una decisión abierta de Felipe (ADR-0459). La que compró hace 1 año tiene
+  // una cuenta web sin entrar hace 4 años: sigue abierta (la cuenta solo se cierra al anonimizar la ficha).
   esperarValor(
-    "entró hace 10 días, creó su cuenta hace 1 año, compró hace 1 año o tiene un pedido web en curso: sigue; sin compras ni entradas en 3 años (o con un pedido anulado): se anonimiza y su cuenta se cierra",
+    "compró hace 1 año o tiene un pedido web en curso: sigue (y su cuenta web, aunque no entre hace 4 años, sigue abierta); sin compras en 3 años —aunque haya entrado a la web hace 10 días o creado la cuenta hace 1 año— o con un pedido anulado: se anonimiza y su cuenta se cierra",
     caso(`create temp table viejas (d text, id uuid) on commit drop;
           insert into retail.clientas (documento_tipo, documento_numero, nombre) values
             ('dni', '09980051', 'Vieja Entro Hace Poco'), ('dni', '09980052', 'Vieja No Entro'), ('dni', '09980053', 'Vieja Cuenta Nueva'),
@@ -435,6 +449,7 @@ function main() {
           select pg_temp.cuenta((select id from viejas where d = '09980051'), 'zz.v1@ejemplo.com', now() - interval '4 years', now() - interval '10 days') as _1 \\gset
           select pg_temp.cuenta((select id from viejas where d = '09980052'), 'zz.v2@ejemplo.com', now() - interval '4 years', now() - interval '4 years') as v2_usuario \\gset
           select pg_temp.cuenta((select id from viejas where d = '09980053'), 'zz.v3@ejemplo.com', now() - interval '1 year') as _3 \\gset
+          select pg_temp.cuenta((select id from viejas where d = '09980054'), 'zz.v4@ejemplo.com', now() - interval '4 years', now() - interval '4 years') as _4 \\gset
           insert into retail.ventas (ubicacion_id, cliente_id, created_at, estado)
           values (:'tru', (select id from viejas where d = '09980054'), now() - interval '1 year', 'completada');
           insert into retail.pedidos_web (clienta_id, ubicacion_id) values ((select id from viejas where d = '09980056'), :'tru');
@@ -445,7 +460,7 @@ function main() {
           select (cerrada_en is not null) || '|' || (correo is null) || '|' || (usuario_cerrado_id = :'v2_usuario')
             from retail.cuentas_web where clienta_id = (select id from viejas where d = '09980052');
           select count(*) from retail.cuentas_web w join viejas v on v.id = w.clienta_id where w.cerrada_en is null;`),
-    "09980051:false,09980052:true,09980053:false,09980054:false,09980055:true,09980056:false,09980057:true\ntrue|true|true\n2",
+    "09980051:true,09980052:true,09980053:true,09980054:false,09980055:true,09980056:false,09980057:true\ntrue|true|true\n1",
   );
 
   console.log("— K. El pegado —");

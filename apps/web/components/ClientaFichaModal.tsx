@@ -38,6 +38,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { frecuenteDeLaFicha, suSedeDeLaFicha } from "@/lib/clientas-lista-reglas";
 import { PreferenciasClienta } from "@/components/clientas/PreferenciasClienta";
 import { HistoriaPermisos } from "@/components/clientas/HistoriaPermisos";
+import { PuntosDeLaFicha } from "@/components/clientas/PuntosDeLaFicha";
 import { ShoppingBag } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonEditar } from "@/components/ui/BotonEditar";
@@ -115,7 +116,7 @@ function camposDeLaGuia(
       requerido: problema !== null,
       sugerido: false,
       hecho: cumpleCompleto(escrito, anioActual),
-      pendiente: problema ?? "Sin él no hay beneficio de cumpleaños.",
+      pendiente: problema ?? "Sin él no recibe su regalo de cumpleaños.",
     };
   };
   switch (modo) {
@@ -515,7 +516,7 @@ export function ClientaFichaModal({
                           {c.codigoClub ? ` · ${c.codigoClub}` : ""}
                         </span>
                       </div>
-                      <span className="text-xs text-tinta/55 sm:col-start-2">Su cupón de cumpleaños y su vale de aniversario, en tienda.</span>
+                      <span className="text-xs text-tinta/55 sm:col-start-2">Gana puntos con cada compra y los canjea en caja por un cupón.</span>
                     </div>
                     <div className="grid gap-x-4 gap-y-1.5 p-4 sm:grid-cols-[7.5rem_1fr] sm:items-center">
                       <span className="label-cayla text-[10.5px] text-tinta/55">Publicidad</span>
@@ -543,6 +544,10 @@ export function ClientaFichaModal({
                       </span>
                     </div>
                   </div>
+
+                  {/* Sus puntos, su regalo de cumpleaños y sus cupones vivos (programa de puntos): se leen aparte y, si fallan, la
+                      ficha sigue igual. Sin ficha de miembro no se dibuja nada. */}
+                  <PuntosDeLaFicha clientaId={c.id} clave={c.version} cumpleMes={c.cumpleMes} />
 
                   <PreferenciasClienta
                     clientaId={c.id}
@@ -813,8 +818,8 @@ export function ClientaFichaModal({
             <div className="space-y-5">
               <p className="text-sm text-tinta/75">
                 Escribió BAJA (o pidió que no le manden más novedades). Desde hoy no se le envían novedades, rebajas ni los avisos de sus
-                cupones por WhatsApp, en las 3 tiendas. <strong>Sigue siendo miembro</strong>: su cupón de cumpleaños y su vale de aniversario
-                siguen, en tienda.
+                cupones por WhatsApp, en las 3 tiendas. <strong>Sigue siendo miembro</strong>: sus puntos, sus cupones y su regalo de cumpleaños
+                siguen igual.
               </p>
               <p className="text-xs text-tinta/65">Vale para toda ficha con el celular {contacto.celular}.</p>
               <CampoGuiado id="responsable" guia={guia}>
