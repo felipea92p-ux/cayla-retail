@@ -1271,6 +1271,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `components/clientas/HistoriaPermisos.tsx` (RPC `fn_clienta_permisos`; `lib/historia-permisos-reglas.ts`),
   vía `lib/club-ficha-acciones.ts`. Ayudantes internos: `fn_venta_devuelta_entera`,
   `fn_club_compras_netas`, `fn_club_resumen_compras`.
+  **Programa de puntos (ADR-0459, `20261019201000…222000`, sin pegar):** la caja lee `resumen_puntos_caja` y canjea con
+  `canjear_puntos` / valida un código con `validar_cupon` (`lib/club-acciones.ts`, `components/punto-de-venta/useCuponDelClub.ts`,
+  `PuntosYCuponModales.tsx`; reglas puras en `lib/club-puntos-reglas.ts`); el cupón viaja a `registrar_venta` en `p_codigo_descuento`,
+  repartido con `lib/club-cupon-reparto-reglas.ts`. La ficha dibuja `components/clientas/PuntosDeLaFicha.tsx`
+  (`lib/club-puntos-ficha-reglas.ts`). Clientes ▸ Avisos suma «Puntos por vencer» (`fn_club_avisos_pendientes`, tipo `puntos`).
+- `/clientas/beneficios` (módulo `beneficios_club`, ADR-0459) → `lib/club-puntos-config.ts` → RPC `resumen_beneficios_puntos`;
+  guarda con `guardar_beneficios_puntos` (`lib/club-puntos-acciones.ts`, `components/clientas/BeneficiosPuntosPanel.tsx`;
+  reglas en `lib/club-puntos-config-reglas.ts`, guía de foco en `lib/club-puntos-config-guia.ts`).
 - `/club/[tienda]`, `/club/privacidad`, `/club/terminos` (PÚBLICAS, sin sesión; `proxy.ts` deja pasar solo `/club/<uuid>` y
   esos dos nombres, `lib/rutas-publicas.ts`; ADR-0288 act. g). **Desde el 2026-10-16 el Club empieza al crear la cuenta en la tienda
   online** (Felipe; `20261016154000`, ADR-0288 act. p): `/club/<uuid>`, la dirección de los carteles ya impresos, solo redirige (307) a

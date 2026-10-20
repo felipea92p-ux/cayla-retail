@@ -19,7 +19,8 @@ import {
   leerCampana,
   type Prenda,
 } from "@/lib/catalogo";
-import { leerBeneficiosDelClub, leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
+import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
+import { leerConfigDePuntosDelClub } from "@/lib/puntos-servidor";
 import { hoyLima } from "@/lib/cuentas";
 import { heroDelInicio } from "@/lib/inicio";
 import { avisoAlEntrar, avisosDeRespuestas } from "@/lib/inicio-aviso";
@@ -61,12 +62,12 @@ export default async function Inicio({ searchParams }: Props) {
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
   const pedida = await sedeDeLaPagina(sp, sedes, "/inicio", claveDeSede);
-  const [catalogo, { campana }, sesion, lecturaLooks, beneficios] = await Promise.all([
+  const [catalogo, { campana }, sesion, lecturaLooks, puntosDelClub] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
     leerPortada(),
     leerSesion(),
     leerLooks(pedida?.id ?? null),
-    leerBeneficiosDelClub(),
+    leerConfigDePuntosDelClub(),
   ]);
   const [lectura, avisosDelClub, mias, vistos] =
     sesion.estado === "con_sesion"
@@ -247,7 +248,7 @@ export default async function Inicio({ searchParams }: Props) {
         desde={cuenta?.clubDesde ?? anioLima()}
         conCuenta={conSesion}
         esDelClub={cuenta?.esDelClub ?? conSesion}
-        cumplePct={beneficios?.pct ?? null}
+        regaloCumple={puntosDelClub?.regaloCumple ?? null}
       />
       {sedes.length > 0 && (
         <NuestrasTiendas

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { useRouter } from "next/navigation";
 import { Cake, Check, FunnelX, Gift, MessageCircle, Send, Sparkles, Store, Tag, type LucideIcon } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -13,7 +12,6 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { BeneficiosClubModal } from "@/components/clientas/BeneficiosClubModal";
 import { useResponsable } from "@/lib/useResponsable";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { firmaOmitida, type ClaveSinResponsable } from "@/lib/responsable-omitido";
@@ -21,7 +19,6 @@ import { traducirError } from "@/lib/error-escritura";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { registrarBajaWhatsapp } from "@/lib/club-acciones";
 import { deshacerAvisoEnviado, registrarAvisoEnviado } from "@/lib/club-avisos-acciones";
-import type { BeneficiosClub } from "@/lib/club-beneficios-reglas";
 import {
   INFO_TIPO_AVISO,
   TIPOS_AVISO,
@@ -52,9 +49,9 @@ import { Vacio } from "@/components/ui/Vacio";
 // volver a elegir a la misma persona en cada fila sería un clic de más cada vez (como el Conteo, 2026-09-30). Si la base lo rechaza
 // (ya no está de turno), el combo se vacía y relee la lista, como en todas partes.
 
-const ICONO: Record<TipoAviso, LucideIcon> = { cumpleanos: Cake, aniversario: Gift, novedades: Sparkles, rebaja: Tag };
+const ICONO: Record<TipoAviso, LucideIcon> = { cumpleanos: Cake, puntos: Gift, novedades: Sparkles, rebaja: Tag };
 // Como el spike: las promesas del club en neutro; la publicidad en pizarra (informativo, no semáforo). Sin rojo: nada aquí es un error.
-const TONO: Record<TipoAviso, TonoChip> = { cumpleanos: "neutro", aniversario: "neutro", novedades: "pizarra", rebaja: "pizarra" };
+const TONO: Record<TipoAviso, TonoChip> = { cumpleanos: "neutro", puntos: "neutro", novedades: "pizarra", rebaja: "pizarra" };
 
 type Envio = { id: string; texto: string; enviadoEnMs: number };
 
@@ -74,7 +71,6 @@ export function AvisosClubPanel({
   esTienda,
   avisos,
   falla,
-  beneficios,
 }: {
   /** La sede activa del selector: los avisos salen del WhatsApp de esta tienda. */
   sede: { id: string; nombre: string };
@@ -83,10 +79,7 @@ export function AvisosClubPanel({
   avisos: AvisoPendiente[];
   /** La base no pudo dar la lista (la tanda 1g sin pegar): la pantalla lo dice y sigue. */
   falla: string | null;
-  /** Solo para el líder: lo vigente del club para «Beneficios del club». `null` = no es líder (el botón no aparece). */
-  beneficios: { valores: BeneficiosClub | null; falla: string | null } | null;
 }) {
-  const router = useRouter();
   const responsable = useResponsable({ ubicacionId: sede.id, etiqueta: sede.nombre });
   // Con la cuenta de una PERSONA, los avisos firman a su nombre sin elegir a nadie (Felipe, 2026-10-02): «Enviar», «Deshacer» y
   // «Pidió BAJA» son acciones sin responsable (`lib/responsable-omitido.ts`). Una terminal (la cuenta de la tienda, sin persona)
@@ -104,7 +97,6 @@ export function AvisosClubPanel({
   const [bajas, setBajas] = useState<string[]>([]);
   const [enCurso, setEnCurso] = useState<string | null>(null);
   const [pidioBaja, setPidioBaja] = useState<AvisoPendiente | null>(null);
-  const [beneficiosAbierto, setBeneficiosAbierto] = useState(false);
   const [ahora, setAhora] = useState(relojMs);
   // Guía de foco (CLAUDE.md «Guía de foco»): lo único que se llena aquí, y solo en una terminal, es quién envía. Sin nadie elegido
   // el combo se enciende y dice que es lo que sigue; «Enviar» ya dice lo mismo en su `title` mientras está apagado. Con la cuenta de
@@ -221,13 +213,6 @@ export function AvisosClubPanel({
         sede={sede.nombre}
         titulo="Avisos"
         subtitulo="Los mensajes por mandar a cada miembro del club desde el WhatsApp de esta tienda."
-        acciones={
-          beneficios ? (
-            <Boton onClick={() => setBeneficiosAbierto(true)} title="El % del cumpleaños, el aniversario y su vale" data-guia="avisos.beneficios">
-              Beneficios del club
-            </Boton>
-          ) : undefined
-        }
       />
 
       {esTienda && !falla && (
@@ -332,7 +317,7 @@ export function AvisosClubPanel({
 
       <p className="nota-cayla anim-sube" style={{ "--i": 4 } as CSSProperties} data-guia="avisos.reglas">
         La lista la arma la base: solo miembros que pidieron novedades por WhatsApp de esta tienda; <b>máximo 2 promociones al mes</b> por miembro
-        (cumpleaños y aniversario no cuentan), y 1 de cada 5 miembros no recibe novedades ni rebajas para medir si los avisos sirven. Si un miembro
+        (cumpleaños y puntos por vencer no cuentan), y 1 de cada 5 miembros no recibe novedades ni rebajas para medir si los avisos sirven. Si un miembro
         responde <b>BAJA</b>, regístralo con «Pidió BAJA»: deja de recibir mensajes del club desde hoy, en las 3 tiendas.
       </p>
 
@@ -346,18 +331,6 @@ export function AvisosClubPanel({
             accion: () => registrarBaja(pidioBaja),
           }}
           onClose={() => setPidioBaja(null)}
-        />
-      )}
-
-      {beneficiosAbierto && beneficios && (
-        <BeneficiosClubModal
-          lectura={beneficios}
-          onClose={() => setBeneficiosAbierto(false)}
-          onGuardado={() => {
-            setBeneficiosAbierto(false);
-            // Los textos de los avisos nombran el % y los vales: se vuelven a leer de la base.
-            router.refresh();
-          }}
         />
       )}
     </div>

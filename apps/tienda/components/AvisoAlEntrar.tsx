@@ -10,7 +10,7 @@ import { Icono } from "./Icono";
 const DURACION_AVISO_MS = 5000;
 
 /**
- * El aviso al entrar (ADR-0408; Felipe, 2026-10-14): lo que la persona tiene a su favor en el Club (su descuento de cumpleaños, su vale,
+ * El aviso al entrar (ADR-0408; Felipe, 2026-10-14): lo que la persona tiene a su favor en el Club (su regalo de puntos de cumpleaños, su cupón que vence pronto,
  * la talla que esperaba y ya llegó), con hasta cuándo y el camino a «Mi cuenta». Lo arma el servidor (`lib/inicio-aviso.ts`); aquí solo
  * se dibuja y se cierra. «Entendido» lo pliega en el momento y le pide al servidor que lo recuerde en este aparato (una cookie por
  * aviso): no vuelve a salir para esos mismos beneficios; uno nuevo, sí. Desde el 2026-10-17 también trae «CAYLA te respondió» (la

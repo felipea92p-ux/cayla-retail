@@ -120,7 +120,7 @@ export type ClaveIcono =
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
   | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso" | "liquidacion"
   | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos" | "fondos" | "vitrina" | "pedidosWeb"
-  | "recomendaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb";
+  | "recomendaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb" | "puntos";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender" | "pedidosWebPorConfirmar";
@@ -482,6 +482,8 @@ export const ARBOL: readonly Nodo[] = [
     hijos: [
       { id: "clientas.fichas", modulo: "clientas", etiqueta: "Fichas", estado: "viva", ruta: "/clientas", icono: "clientas", pajaro: "07 Colibrí" },
       { id: "clientas.avisos", modulo: "avisos_club", etiqueta: "Avisos", estado: "viva", ruta: "/clientas/avisos", icono: "avisos", pajaro: "07 Colibrí" },
+      // Beneficios del club (programa de puntos, actividad 8): lo que se le ofrece al cliente, configurable sin deploy. Solo el líder.
+      { id: "clientas.beneficios", modulo: "beneficios_club", etiqueta: "Beneficios", estado: "viva", ruta: "/clientas/beneficios", icono: "puntos", pajaro: "07 Colibrí" },
       // «Recomendaciones» vivió aquí del 2026-10-15 al 2026-10-16 (ADR-0408): desde ADR-0430 es de «Tienda web».
     ],
   },

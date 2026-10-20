@@ -1,0 +1,61 @@
+/* =====================================================================================================
+   TIENDA ONLINE CAYLA · programa de puntos (actividad 6): «Mi Club» con puntos.
+   Lo que se ve dentro de «Mi Club CAYLA» (components/club/BloquesDelClub.tsx): el saldo, canjear por un cupón, los cupones vivos y el
+   historial. Sigue «A · Muro» (ADR-0455): esquinas rectas, líneas finas, letra liviana en mayúsculas para lo que es una etiqueta y los
+   tokens de app/globals.css (en oscuro se invierten solos). Sin sombras y sin movimiento que no sea del contenido (reduce-motion lo apaga).
+   ===================================================================================================== */
+
+/* ---- Tus puntos: el saldo grande y cuánto vale ---- */
+.pt-saldo { display: flex; flex-direction: column; gap: 6px; padding: 16px 14px; background: var(--papel); border: 1px solid var(--sand); }
+.pt-saldo-n { margin: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.pt-saldo-n b { font-family: var(--sans); font-variation-settings: var(--ancho); font-size: 44px; font-weight: 250; line-height: 1; letter-spacing: .01em; font-variant-numeric: tabular-nums; }
+.pt-saldo-n span { font-size: 15px; font-weight: 600; color: var(--verde); }
+.pt-saldo-r { margin: 0; font-size: 13px; line-height: 1.45; color: var(--tinta-60); }
+
+/* ---- Canjear ---- */
+.pt-canje { display: flex; flex-direction: column; gap: 10px; padding: 14px; background: var(--papel); border: 1px solid var(--sand); }
+.pt-canje-t { margin: 0; font-size: 14px; font-weight: 600; }
+.pt-canje-s { margin: 0; font-size: 13px; line-height: 1.45; color: var(--tinta-60); }
+.pt-nota { margin: 0; padding: 12px 14px; font-size: 13.5px; line-height: 1.45; color: var(--tinta-60); background: var(--papel); border: 1px solid var(--sand); }
+.pt-problema { margin: 0; padding: 10px 12px; font-size: 13px; line-height: 1.4; color: var(--rojo-profundo); border: 1px solid color-mix(in srgb, var(--rojo) 40%, var(--sand)); background: color-mix(in srgb, var(--rojo) 6%, transparent); }
+.pt-paso { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: stretch; border: 1px solid var(--tinta); }
+.pt-paso-b { display: grid; place-items: center; min-height: 52px; border: 0; background: transparent; color: var(--tinta); cursor: pointer; transition: background-color .2s var(--ease), opacity .2s; }
+.pt-paso-b .ic { width: 18px; height: 18px; }
+.pt-paso-b:hover:not(:disabled) { background: var(--hueso); }
+.pt-paso-b:disabled { opacity: .3; cursor: default; }
+.pt-paso-b:focus-visible { outline: 2px solid var(--rojo); outline-offset: -2px; }
+.pt-paso-v { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; padding: 6px 0; border-inline: 1px solid var(--sand); }
+.pt-paso-v b { font-family: var(--sans); font-variation-settings: var(--ancho); font-size: 24px; font-weight: 250; font-variant-numeric: tabular-nums; }
+.pt-paso-v small { font-size: 12px; color: var(--tinta-60); font-variant-numeric: tabular-nums; }
+
+/* ---- Tus cupones ---- */
+.pt-cupones { display: flex; flex-direction: column; gap: 10px; }
+.pt-sub { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-size: 14px; font-weight: 250; }
+.pt-cupon { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: start; padding: 14px; background: var(--papel); border: 1px solid color-mix(in srgb, var(--verde) 45%, var(--sand)); }
+.pt-cupon > .ic { width: 22px; height: 22px; color: var(--verde); margin-top: 1px; }
+.pt-cupon small { display: block; margin-top: 3px; color: var(--tinta-60); font-size: 13px; line-height: 1.45; }
+.pt-cupon .pt-vence { color: var(--tinta); font-weight: 500; }
+.pt-codigo { display: block; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 15px; font-weight: 600; letter-spacing: .08em; user-select: all; overflow-wrap: anywhere; }
+.pt-copiar { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid var(--tinta); background: transparent; color: var(--tinta); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: background-color .2s var(--ease), color .2s; }
+.pt-copiar .ic { width: 16px; height: 16px; color: var(--verde); }
+.pt-copiar:hover { background: var(--tinta); color: var(--crema); }
+.pt-copiar:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+
+/* ---- Historial ---- */
+.pt-historial { border: 1px solid var(--sand); background: var(--papel); }
+.pt-historial > summary { cursor: pointer; padding: 14px; font-size: 14px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+.pt-historial > summary::-webkit-details-marker { display: none; }
+.pt-historial > summary::after { content: "+"; font-size: 18px; font-weight: 300; color: var(--tinta-60); }
+.pt-historial[open] > summary::after { content: "−"; }
+.pt-historial > summary:focus-visible { outline: 2px solid var(--rojo); outline-offset: -2px; }
+.pt-historial ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--sand); }
+.pt-historial li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 14px; font-size: 13.5px; }
+.pt-historial li + li { border-top: 1px solid var(--sand); }
+.pt-historial li b { display: block; font-weight: 500; overflow-wrap: anywhere; }
+.pt-historial li small { display: block; margin-top: 2px; color: var(--tinta-60); font-size: 12.5px; }
+.pt-mov { flex: none; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--tinta-60); }
+.pt-mov[data-sube] { color: var(--verde); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pt-paso-b, .pt-copiar { transition: none; }
+}

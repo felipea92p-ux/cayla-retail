@@ -1,19 +1,21 @@
 import { z } from "zod";
 import { hrefDePrenda } from "./catalogo";
-import { beneficioAniversario, beneficioCumple, listaDicha, type Aniversario } from "./club";
+import { listaDicha, montoDicho } from "./club";
+import { diasQueFaltan, venceDicho, type MisPuntos } from "./puntos";
 import { hoyLima, type Dia } from "./cuentas";
 import { nombreTienda } from "./pedidos";
 import type { MiRecomendacion } from "./recomendaciones";
 
 // El aviso al entrar (ADR-0408; Felipe, 2026-10-14: «Si no le llegan los avisos por WhatsApp, cuando inicie sesión igual le debe salir
-// algún mensaje»). Al entrar se llega al Inicio, y ahí arriba sale lo que la persona tiene a su favor en el Club: su descuento de
-// cumpleaños disponible, su vale por aniversario disponible o una talla que esperaba con «Avísame» y ya llegó. Sale para todo el que
+// algún mensaje»). Al entrar se llega al Inicio, y ahí arriba sale lo que la persona tiene a su favor en el Club: su regalo de puntos de
+// cumpleaños (es su mes y todavía no lo recibió), un cupón suyo que vence pronto o una talla que esperaba con «Avísame» y ya llegó. Sale para todo el que
 // tiene cuenta (es su beneficio, no publicidad), se cierra con «Entendido» y no vuelve a salir para ESE mismo beneficio: lo recuerda el
 // navegador, con una cookie por beneficio. En «Mi cuenta» sigue siempre.
 //
-// La base dice qué hay (`retail.tienda_mis_avisos_del_club`, con las reglas que cobra la caja); aquí, qué se dice, cómo se llama cada
-// aviso y cuánto dura su cookie. Lógica pura, con su prueba al lado. Los textos del cumpleaños y del vale son los MISMOS de «Mi cuenta»
-// (`beneficioCumple`, `beneficioAniversario`): un beneficio se dice igual en los dos lugares.
+// La base dice qué hay (`retail.tienda_mis_avisos_del_club` para lo que llegó; `retail.tienda_mis_puntos` para el regalo y los cupones,
+// programa de puntos: el 10 % de cumpleaños y el vale de aniversario se retiraron el 2026-10-19, y lo que esa función todavía diga de ellos
+// se ignora); aquí, qué se dice, cómo se llama cada aviso y cuánto dura su cookie. Lógica pura, con su prueba al lado. Las claves siguen
+// llamándose `cumple-…` y `vale-…` (el regalo y el cupón): así una cookie ya escrita sigue leyéndose.
 //
 // Desde el 2026-10-17 (hoja nueva de Recomendaciones, decisión #8 A) también sale aquí «CAYLA te respondió»: la respuesta del equipo a
 // una recomendación suya, los 30 días siguientes a que se respondió. Antes la respuesta esperaba en «Recomendaciones» y nada le avisaba.
@@ -22,9 +24,8 @@ import type { MiRecomendacion } from "./recomendaciones";
 /* ---------------- Lo que devuelve la base ---------------- */
 
 const fecha = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+// `cumple` y `vale` (el 10 % y el vale de aniversario) se retiraron: la base puede seguir mandándolos, pero ya no se leen.
 const esquema = z.object({
-  cumple: z.object({ pct: z.coerce.number().positive(), hasta: fecha }).nullable(),
-  vale: z.object({ monto: z.coerce.number().positive(), vence: fecha, aniversario: fecha }).nullable(),
   llegaron: z.array(z.unknown()),
 });
 const esquemaLlego = z.object({
@@ -44,6 +45,7 @@ export type IconoAviso = "regalo" | "ticket" | "campana" | "chat";
  *  del #1180 para «llegó tu talla»: un aviso dice adónde lleva de una sola forma. */
 export type AvisoClub = {
   clave: string;
+  /** `cumple`: el regalo de puntos de su mes; `vale`: un cupón suyo que vence pronto (el nombre se quedó por las cookies ya escritas). */
   tipo: "cumple" | "vale" | "llego" | "respuesta";
   icono: IconoAviso;
   titulo: string;
@@ -68,43 +70,50 @@ function avisoDeLlegada(e: z.infer<typeof esquemaLlego>, dueno: string): AvisoCl
   };
 }
 
-/** El vale disponible como lo ve «Mi cuenta»: el caso «vale» de `beneficioAniversario` solo mira el monto y hasta cuándo. */
-const aniversarioConVale = (monto: number, vence: string): Aniversario => ({
-  estado: "vale",
-  valeMonto: monto,
-  valeVence: vence,
-  valeCanjeadoEl: null,
-  proximo: null,
-  anioCuenta: false,
-  compras: 0,
-  monto: 0,
-  comprasMeta: 1,
-  montoMeta: 1,
-  siguienteMonto: null,
-  dias: 1,
-});
+/** Cuántos días antes de vencer un cupón sale su aviso. */
+export const DIAS_DE_AVISO_DEL_CUPON = 3;
+
+/** El último día del mes de `hoy` (`aaaa-mm-dd`): el regalo del cumpleaños es de su mes. */
+const finDeMes = (hoy: Dia) => new Date(Date.UTC(hoy.anio, hoy.mes, 0)).toISOString().slice(0, 10);
 
 /**
- * Lo que la base dice que está a favor de la persona, en palabras: primero el cumpleaños, después el vale y al final lo que llegó (lo
- * último que pidió primero). `usuarioId` le pone dueño a cada clave (sus 8 primeras letras): en un aparato que comparten dos personas,
- * cerrar el aviso de una no cierra ni borra el de la otra. null si la respuesta no tiene la forma (no sale ningún aviso a medias); una
- * espera rara se deja fuera sola.
+ * Lo que la base dice que está a favor de la persona, en palabras: primero el regalo de cumpleaños, después los cupones que vencen pronto
+ * y al final lo que llegó (lo último que pidió primero). `usuarioId` le pone dueño a cada clave (sus 8 primeras letras): en un aparato
+ * que comparten dos personas, cerrar el aviso de una no cierra ni borra el de la otra. `puntos`: lo que dice `tienda_mis_puntos` (null si
+ * no contestó: sin el regalo ni los cupones, lo demás sale igual). null si la respuesta de las tallas no tiene la forma (no sale ningún
+ * aviso a medias); una espera rara se deja fuera sola.
  */
-export function avisosDelClub(dato: unknown, usuarioId: string, hoy: Dia): AvisoClub[] | null {
+export function avisosDelClub(dato: unknown, usuarioId: string, hoy: Dia, puntos: MisPuntos | null = null): AvisoClub[] | null {
   const r = esquema.safeParse(dato);
   if (!r.success) return null;
   const dueno = usuarioId.toLowerCase().slice(0, 8);
   const avisos: AvisoClub[] = [];
-  const { cumple, vale, llegaron } = r.data;
-  if (cumple) {
-    const b = beneficioCumple({ estado: "disponible", dia: null, mes: null, pct: cumple.pct, hasta: cumple.hasta, canjeadoEl: null }, false, hoy);
-    avisos.push({ clave: `cumple-${dueno}-${cumple.hasta}`, tipo: "cumple", icono: "regalo", titulo: b.titulo, texto: b.texto });
+  if (puntos?.miembro && puntos.regaloDisponible && puntos.config.regaloCumple > 0) {
+    avisos.push({
+      clave: `cumple-${dueno}-${finDeMes(hoy)}`,
+      tipo: "cumple",
+      icono: "regalo",
+      titulo: `Es tu mes: +${puntos.config.regaloCumple.toLocaleString("es-PE")} puntos de regalo`,
+      texto: "Se suman con tu primera compra de este mes, en tienda o en la web.",
+    });
   }
-  if (vale) {
-    const b = beneficioAniversario(aniversarioConVale(vale.monto, vale.vence), false, hoy);
-    avisos.push({ clave: `vale-${dueno}-${vale.vence}`, tipo: "vale", icono: "ticket", titulo: b.titulo, texto: b.texto });
+  // Los cupones que vencen pronto, uno por fecha (dos que vencen el mismo día van juntos).
+  const porFecha = new Map<string, number[]>();
+  for (const c of puntos?.miembro ? puntos.cupones : []) {
+    const faltan = diasQueFaltan(c.venceEl, hoy);
+    if (faltan >= 0 && faltan <= DIAS_DE_AVISO_DEL_CUPON) porFecha.set(c.venceEl, [...(porFecha.get(c.venceEl) ?? []), c.valor]);
   }
-  for (const crudo of llegaron) {
+  for (const [vence, valores] of [...porFecha.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    const total = valores.reduce((a, v) => a + v, 0);
+    avisos.push({
+      clave: `vale-${dueno}-${vence}`,
+      tipo: "vale",
+      icono: "ticket",
+      titulo: valores.length === 1 ? `Tu cupón de ${montoDicho(total)}: ${venceDicho(vence, hoy).toLowerCase()}` : `Tus ${valores.length} cupones (${montoDicho(total)}): ${venceDicho(vence, hoy).toLowerCase()}`,
+      texto: "Úsalo en caja o al separar en la web. Si no, tus puntos vuelven a tu saldo.",
+    });
+  }
+  for (const crudo of r.data.llegaron) {
     const e = esquemaLlego.safeParse(crudo);
     if (e.success) avisos.push(avisoDeLlegada(e.data, dueno));
   }
@@ -204,7 +213,7 @@ export const textoDeMas = (n: number) =>
 
 /** El prefijo de las cookies de los avisos cerrados (una por beneficio). */
 const COOKIE_AVISO = "tienda-aviso-";
-// tipo-dueño-qué: el cumpleaños y el vale, con su último día; lo que llegó, con su espera; una respuesta, con su recomendación.
+// tipo-dueño-qué: el regalo de cumpleaños y el cupón, con su último día; lo que llegó, con su espera; una respuesta, con su recomendación.
 const CLAVE = /^(?:(?:cumple|vale)-[0-9a-f]{8}-\d{4}-\d{2}-\d{2}|(?:llego|respuesta)-[0-9a-f]{8}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
 
 /** ¿Tiene la forma de la clave de un aviso? (lo que llega del navegador se revisa antes de escribir una cookie con ella). */

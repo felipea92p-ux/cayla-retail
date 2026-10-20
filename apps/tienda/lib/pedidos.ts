@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { soles } from "./catalogo";
+import { leerCuponDelPedido, type CuponDelPedido } from "./cupon";
 import { enlaceWhatsapp } from "./tiendas";
 
 // Los pedidos web del cliente (ADR-0408, actividad 7): lo que devuelve `retail.tienda_mis_pedidos` (y, uno solo, `tienda_pedido`).
@@ -76,6 +77,8 @@ const esquemaPedido = z.object({
     .nullable()
     .catch(null)
     .default(null),
+  // El cupón del Club que puso al separar (20261019224000). Lo lee `leerCuponDelPedido`: uno raro no tumba el pedido.
+  cupon: z.unknown().optional(),
   tienda_web: z.object({
     nombre: z.string().min(1),
     // El WhatsApp de la tienda (el del QR del club). Si la tienda lo borró, el pedido se sigue viendo, sin el botón.
@@ -126,6 +129,8 @@ export type Pedido = {
   devuelto: number;
   /** Anulado después de pagarse: «BC01-000001», la nota de crédito que anuló su boleta. */
   notaCredito: string | null;
+  /** El cupón del Club: reservado (espera el pago), usado (en su boleta) o liberado (volvió a «Mi Club», y por qué). */
+  cupon: CuponDelPedido | null;
   tienda: { nombre: string; whatsapp: string | null };
   lineas: LineaPedido[];
 };
@@ -155,6 +160,7 @@ function aPedido(d: z.infer<typeof esquemaPedido>): Pedido {
     boleta: d.boleta,
     devuelto: d.devuelto,
     notaCredito: d.nota_credito,
+    cupon: leerCuponDelPedido(d.cupon),
     tienda: d.tienda_web,
     lineas: d.lineas.map((l) => ({
       varianteId: l.variante_id,

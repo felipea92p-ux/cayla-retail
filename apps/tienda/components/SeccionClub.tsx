@@ -1,34 +1,33 @@
 import Link from "next/link";
-import { pctTexto } from "@/lib/portada";
 import { Icono, type NombreIcono } from "./Icono";
 import { TarjetaClub } from "./TarjetaClub";
 
 // Solo el título de cada beneficio: se entiende de un vistazo (el detalle, en «Cómo separar» y en el perfil).
 const BENEFICIOS: [NombreIcono, string][] = [
-  ["regalo", "Descuento en tu cumpleaños"],
-  ["ticket", "Un vale por cada año"],
+  ["ticket", "Puntos en cada compra"],
+  ["regalo", "Regalo en tu cumpleaños"],
   ["chispa", "Lo nuevo, primero"],
   ["pedido", "Tus pedidos en un lugar"],
 ];
 
 /**
  * El Club CAYLA (maqueta, `seccionClub`): los beneficios y la tarjeta. Sin cuenta, invita a crearla con «Tu nombre aquí»; con cuenta,
- * la tarjeta lleva su nombre y el botón lleva a «Mi perfil». `cumplePct`: el descuento de cumpleaños que cobra la caja
- * (`tienda_club_beneficios`), en un sello sobre la tarjeta; sin el dato, sin sello (nunca un número inventado).
+ * la tarjeta lleva su nombre y el botón lleva a «Mi perfil». `regaloCumple`: los puntos de regalo del cumpleaños (la configuración vigente,
+ * `tienda_puntos_config`, programa de puntos), en un sello sobre la tarjeta; sin el dato, sin sello (nunca un número inventado).
  */
 export function SeccionClub({
   nombre,
   desde,
   conCuenta,
   esDelClub = conCuenta,
-  cumplePct = null,
+  regaloCumple = null,
 }: {
   nombre: string | null;
   desde: number;
   conCuenta: boolean;
   /** Con cuenta pero sin Club (ADR-0438): se une al separar, o ahora, completando su documento y su celular. */
   esDelClub?: boolean;
-  cumplePct?: number | null;
+  regaloCumple?: number | null;
 }) {
   return (
     <section className="t-club" aria-labelledby="club-cayla">
@@ -77,10 +76,10 @@ export function SeccionClub({
         </div>
         <div className="t-club-tarjeta">
           <TarjetaClub nombre={nombre ?? "Tu nombre aquí"} desde={desde} />
-          {cumplePct !== null && (
+          {regaloCumple !== null && regaloCumple > 0 && (
             <span className="t-club-sello">
-              <b>−{pctTexto(cumplePct)} %</b>
-              <small>en tu cumpleaños</small>
+              <b>+{regaloCumple.toLocaleString("es-PE")}</b>
+              <small>puntos en tu cumpleaños</small>
             </span>
           )}
         </div>

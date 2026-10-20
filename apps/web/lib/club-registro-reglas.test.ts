@@ -1,8 +1,10 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   bloquesDeTexto,
   completarMarcadores,
   cuerpoLegal,
+  descripcionTerminos,
   enlaceLegal,
   escalaEnPalabras,
   esUuid,
@@ -11,9 +13,11 @@ import {
   formatoSoles,
   lecturaDePagina,
   marcadoresDePagina,
+  puntosDelClub,
   textoLegal,
   trozosDeLinea,
   type PaginaClub,
+  type PuntosClub,
 } from "./club-registro-reglas";
 
 const TIENDA = "3f2a9c1e-7b4d-4e8a-9c21-5d6e7f8a9b0c";
@@ -41,6 +45,17 @@ const JSON_PAGINA = {
   },
 };
 
+// Lo que devolvería `fn_club_puntos_vigentes` con la configuración de arranque del programa de puntos (2026-10-19).
+const JSON_PUNTOS = { puntos_por_sol: 1, soles_por_100: 5, canje_minimo: 200, compra_minima_x: 3, vigencia_dias: 7, regalo_cumple: 100 };
+const PUNTOS: PuntosClub = puntosDelClub(JSON_PUNTOS)!;
+
+// Un trozo de los Términos de puntos como los escribe `docs/club/club_textos-v3-para-pegar-tras-el-abogado.sql`.
+const TERMINOS_PUNTOS =
+  "Ganas {puntos_por_sol} por cada S/ 1. 100 puntos valen {soles_por_100}. Desde {canje_minimo} ({canje_minimo_soles}). " +
+  "El cupón vale {vigencia_dias}, en compras desde {compra_minima_x} su valor. Cumpleaños: {regalo_cumple}.";
+
+const conTerminos = (texto: string): PaginaClub => ({ ...pagina(), textos: { ...pagina().textos, terminos: { version: 3, texto, vigenteDesde: null } } });
+
 const pagina = (): PaginaClub => {
   const l = lecturaDePagina(JSON_PAGINA);
   if (l.estado !== "lista") throw new Error("la página de prueba debería leerse");
@@ -65,18 +80,27 @@ describe("lo que contesta fn_club_pagina", () => {
     expect(lecturaDePagina([])).toEqual({ estado: "no_disponible" });
   });
 
-  it("sin algo que ella tiene que leer antes de aceptar, no se le pide aceptar: «no disponible»", () => {
-    const sin = (cambio: Record<string, unknown>) => lecturaDePagina({ ...JSON_PAGINA, ...cambio }).estado;
-    expect(sin({ pct: null })).toBe("no_disponible");
-    expect(sin({ pct: 0 })).toBe("no_disponible");
-    expect(sin({ escala: [] })).toBe("no_disponible");
-    expect(sin({ escala: [{ anio: 1, monto: 0 }] })).toBe("no_disponible");
-    expect(sin({ compras: 0 })).toBe("no_disponible");
-    expect(sin({ tienda: "  " })).toBe("no_disponible");
+  it("sin la tienda o sin uno de los tres textos no se le pide aceptar nada: «no disponible»", () => {
+    expect(lecturaDePagina({ ...JSON_PAGINA, tienda: "  " }).estado).toBe("no_disponible");
     for (const falta of ["terminos", "privacidad", "casilla_publicidad"]) {
       const textos = { ...JSON_PAGINA.textos, [falta]: { version: 1, texto: "" } };
       expect(lecturaDePagina({ ...JSON_PAGINA, textos }).estado, falta).toBe("no_disponible");
     }
+  });
+
+  it("sin el % o la escala (beneficios retirados) la página se lee igual: las cifras se exigen al mostrar el texto que las nombra", () => {
+    const l = lecturaDePagina({ ...JSON_PAGINA, pct: null, escala: [], compras: 0, monto_minimo: null, dias: undefined });
+    expect(l.estado).toBe("lista");
+    if (l.estado === "lista") {
+      expect(l.pagina.pct).toBeNull();
+      expect(l.pagina.escala).toEqual([]);
+      expect([l.pagina.compras, l.pagina.montoMinimo, l.pagina.dias]).toEqual([null, null, null]);
+      // Los Términos de hoy nombran {pct} y {escala}: sin ellos no se muestran a medias.
+      expect(textoLegal(l.pagina, "terminos", PUNTOS)).toBeNull();
+      // La política no nombra ninguna cifra: se muestra.
+      expect(textoLegal(l.pagina, "privacidad", null)?.texto).toContain("CAYLA S.A.C.");
+    }
+    expect(lecturaDePagina({ ...JSON_PAGINA, escala: [{ anio: 1, monto: 0 }] }).estado === "lista").toBe(true);
   });
 
   it("sin saludo o sin WhatsApp la página sigue: solo cambia el final", () => {
@@ -126,7 +150,7 @@ describe("cifras y marcadores", () => {
   });
 
   it("la política y los términos salen con sus marcadores completos y su versión", () => {
-    const t = textoLegal(pagina(), "terminos");
+    const t = textoLegal(pagina(), "terminos", null)!;
     expect(t.version).toBe(1);
     expect(t.texto).toContain("10 % de descuento");
     expect(t.texto).toContain("S/\u00a060 el quinto");
@@ -138,6 +162,97 @@ describe("cifras y marcadores", () => {
     expect(fechaLarga("2026-10-02T03:30:00Z")).toBe("1 de octubre de 2026");
     expect(fechaLarga(null)).toBeNull();
     expect(fechaLarga("no es fecha")).toBeNull();
+  });
+});
+
+describe("los puntos del Club en los textos legales", () => {
+  it("lee fn_club_puntos_vigentes, también con cifras como texto (numeric de Postgres)", () => {
+    expect(PUNTOS).toEqual({ puntosPorSol: 1, solesPor100: 5, canjeMinimo: 200, compraMinimaX: 3, vigenciaDias: 7, regaloCumple: 100 });
+    expect(puntosDelClub({ ...JSON_PUNTOS, soles_por_100: "5.00", compra_minima_x: "2.5" })).toMatchObject({ solesPor100: 5, compraMinimaX: 2.5 });
+  });
+
+  it("sin la configuración completa, o con una cifra sin sentido, no hay puntos (nunca una cifra inventada)", () => {
+    expect(puntosDelClub(null)).toBeNull();
+    expect(puntosDelClub([])).toBeNull();
+    for (const [campo, valor] of [
+      ["puntos_por_sol", 0],
+      ["soles_por_100", null],
+      ["canje_minimo", 150.5],
+      ["compra_minima_x", -1],
+      ["vigencia_dias", 0],
+      ["regalo_cumple", -100],
+      ["regalo_cumple", undefined],
+    ] as const) {
+      expect(puntosDelClub({ ...JSON_PUNTOS, [campo]: valor }), `${campo}=${String(valor)}`).toBeNull();
+    }
+    // Sin regalo de cumpleaños (0) la configuración vale: el texto dirá «0 puntos» solo si lo nombra.
+    expect(puntosDelClub({ ...JSON_PUNTOS, regalo_cumple: 0 })?.regaloCumple).toBe(0);
+  });
+
+  it("los Términos de puntos salen con las cifras vigentes y su unidad concordada", () => {
+    const t = textoLegal(conTerminos(TERMINOS_PUNTOS), "terminos", PUNTOS)!;
+    expect(t.texto).toBe(
+      "Ganas 1 punto por cada S/ 1. 100 puntos valen S/\u00a05. Desde 200 puntos (S/\u00a010). " +
+        "El cupón vale 7 días, en compras desde 3 veces su valor. Cumpleaños: 100 puntos.",
+    );
+    expect(t.version).toBe(3);
+  });
+
+  it("si el líder cambia la configuración, el texto cambia con ella (ninguna cifra escrita a mano)", () => {
+    const otra = puntosDelClub({ puntos_por_sol: 2, soles_por_100: 2.5, canje_minimo: 1000, compra_minima_x: 1, vigencia_dias: 1, regalo_cumple: 1 })!;
+    const t = textoLegal(conTerminos(TERMINOS_PUNTOS), "terminos", otra)!;
+    expect(t.texto).toMatch(/^Ganas 2 puntos por cada S\/ 1\. 100 puntos valen S\/\u00a02\.50\. Desde 1\D?000 puntos \(S\/\u00a025\)\. /);
+    expect(t.texto).toContain("El cupón vale 1 día, en compras desde 1 vez su valor. Cumpleaños: 1 punto.");
+  });
+
+  it("si los puntos no responden, un texto que los nombra no se muestra; uno que no los nombra (los de hoy), sí", () => {
+    expect(textoLegal(conTerminos(TERMINOS_PUNTOS), "terminos", null)).toBeNull();
+    expect(textoLegal(pagina(), "terminos", null)?.texto).toContain("10 % de descuento");
+    // Un marcador que no es de los textos legales no bloquea: queda a la vista, como siempre.
+    expect(textoLegal(conTerminos("Hola {nombre}"), "terminos", null)?.texto).toBe("Hola {nombre}");
+  });
+
+  it("los marcadores viejos y los de puntos conviven en un mismo texto mientras existan los dos", () => {
+    expect(textoLegal(conTerminos("{pct} % y {regalo_cumple} en {tienda}"), "terminos", PUNTOS)?.texto).toBe("10 % y 100 puntos en Tienda TRU");
+  });
+
+  it("la descripción de los términos habla de puntos con las cifras de la base, y sin ellas no inventa ninguna", () => {
+    expect(descripcionTerminos(PUNTOS)).toBe(
+      "Las condiciones del Club CAYLA: 1 punto por cada S/\u00a01 que pagas, 100 puntos valen S/\u00a05 de descuento, 100 puntos de regalo en tu cumpleaños y cómo se canjean.",
+    );
+    expect(descripcionTerminos({ ...PUNTOS, regaloCumple: 0 })).not.toMatch(/cumpleaños/);
+    const sin = descripcionTerminos(null);
+    expect(sin).not.toMatch(/\d/);
+    for (const d of [sin, descripcionTerminos(PUNTOS)]) expect(d).not.toMatch(/vale de aniversario|cupón de cumpleaños|%/);
+  });
+});
+
+describe("el SQL de los textos v3 (para pegar tras el abogado) se lee bien en la página", () => {
+  // `docs/club/club_textos-v3-para-pegar-tras-el-abogado.sql` no es una migración: lo pega Felipe cuando el abogado apruebe. Esta prueba
+  // cuida que, el día que se pegue, la página lo muestre entero: cada marcador es uno que la web completa y ninguno queda a la vista.
+  const SQL = readFileSync(new URL("../../../docs/club/club_textos-v3-para-pegar-tras-el-abogado.sql", import.meta.url), "utf8");
+  const textos = [...SQL.matchAll(/v_(terminos|privacidad) text := \$texto\$([\s\S]*?)\$texto\$;/g)].map((m) => ({ cual: m[1] as "terminos" | "privacidad", texto: m[2]! }));
+
+  it("trae los dos textos, y los Términos ya no nombran el 10 % ni el vale", () => {
+    expect(textos.map((t) => t.cual)).toEqual(["terminos", "privacidad"]);
+    const terminos = textos[0]!.texto;
+    expect(terminos).not.toMatch(/\{(pct|escala)\}|aniversario|al menos\s+\d+\s+compras/);
+    for (const m of ["puntos_por_sol", "soles_por_100", "canje_minimo", "canje_minimo_soles", "vigencia_dias", "compra_minima_x", "regalo_cumple"]) {
+      expect(terminos, m).toContain(`{${m}}`);
+    }
+  });
+
+  it("con la configuración vigente, cada texto sale completo, sin un marcador a la vista, y en bloques que la página dibuja", () => {
+    for (const { cual, texto } of textos) {
+      const p: PaginaClub = { ...pagina(), pct: null, escala: [], textos: { ...pagina().textos, [cual]: { version: 3, texto, vigenteDesde: null } } };
+      const t = textoLegal(p, cual, PUNTOS);
+      expect(t, cual).not.toBeNull();
+      expect(t!.texto, cual).not.toMatch(/\{[a-z_]+\}/);
+      expect(cuerpoLegal(t!.texto).length, cual).toBeGreaterThan(cual === "terminos" ? 0 : 10);
+    }
+    const terminos = cuerpoLegal(textoLegal(conTerminos(textos[0]!.texto), "terminos", PUNTOS)!.texto);
+    expect(terminos).toHaveLength(1);
+    expect(terminos[0]!.tipo === "lista" && terminos[0]!.items.length).toBe(9);
   });
 });
 

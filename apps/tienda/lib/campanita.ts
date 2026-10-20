@@ -135,7 +135,8 @@ export function textoLlegadasNuevas(nuevas: readonly LlegadaViva[]): string {
  * base). `claves`: todas las no borradas, y `total`: cuántas son en total (para saber si hay más de las que caben en el panel). `leidas`:
  * las que ya se leyeron en profundidad (quitan el punto y restan del número). `enPanel`: las que ya se vieron al abrir el panel (ocultan
  * el globo, no el punto ni el número). Si la base no contestó (`recientes` vacío y `claves` vacío), el panel dice que no hay nada, y
- * las novedades se ven igual.
+ * las novedades se ven igual. Solo cuentan las tallas que llegaron: el regalo de cumpleaños y el cupón por vencer ya los dice el aviso del
+ * Inicio y «Mi perfil».
  */
 export function armarCampanita(
   recientes: readonly { clave: string; tipo: "llego" | "respuesta"; titulo: string; texto: string; href: string; recibidoEn: string }[],

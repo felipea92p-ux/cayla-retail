@@ -485,7 +485,8 @@ select retail.registrar_venta(:'ubic',
 // ---------------------------------------------------------------------------
 // 17-22: descuentos de una Colaboradora — sin código (Felipe, 2026-10-01,
 // 20261002100000_descuento_sin_codigo.sql): lo mismo que a cualquiera, motivo, argumento
-// pasado el 15 % y nunca bajo el costo, sin tope de %. Micaela opera en SU sede
+// pasado el 15 % y nunca bajo el costo, sin tope de %. (El único código que se lee hoy es
+// el de un cupón del Club, 20261019204000.) Micaela opera en SU sede
 // (Trujillo), nunca en Lima (ver escenario 2)
 // ---------------------------------------------------------------------------
 
@@ -505,20 +506,24 @@ rollback;
   ([descuento]) => Number(descuento) === 10
 );
 
-exito(
-  "colaboradora: un código escrito ya no se lee — aunque no exista, la venta pasa",
+// Desde el programa de puntos del Club (20261019204000_club_puntos_cobrar_con_cupon.sql, ADR-0459)
+// `p_codigo_descuento` vuelve a leerse: es el CÓDIGO de un cupón del Club, y la base lo busca con
+// candado de fila. Un código que no existe ya no se ignora: la venta entera se rechaza con
+// `cupon_no_existe` antes de tocar stock, pagos ni caja (es un error dentro de la misma
+// transacción, así que no queda nada guardado). Antes (20261002100000) el código escrito se
+// descartaba en silencio y la venta pasaba.
+error(
+  "colaboradora: un código de cupón que no existe rechaza la venta entera (cupon_no_existe)",
   comoPersona(
     MICAELA,
     `${fixture({ ubicacionNombre: "Tienda Trujillo" })}
 select retail.registrar_venta(:'ubic',
   jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 10, 'motivo_descuento', 'liquidacion_temporada')),
   jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', (:'v1_precio')::numeric - 10)),
-  null, gen_random_uuid(), null, 'sin_documento', null, null, 'NOEXISTE123') as venta_id \\gset
-select descuento_unitario from retail.venta_items where venta_id = :'venta_id';
-rollback;
+  null, gen_random_uuid(), null, 'sin_documento', null, null, 'NOEXISTE123');
 `
   ),
-  ([descuento]) => Number(descuento) === 10
+  "cupon_no_existe"
 );
 
 error(

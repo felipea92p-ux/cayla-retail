@@ -106,6 +106,16 @@
 .t-ahorro { color: var(--rojo-profundo); }
 .t-bolsa-accion { position: sticky; bottom: 0; z-index: 4; display: flex; flex-direction: column; gap: 10px; margin-inline: -16px; padding: 12px 16px 16px; background: var(--crema); border-top: 1px solid var(--sand); }
 .t-bolsa-accion .w-error-general { margin: 0; }
+/* «Código de cupón» (20261019224000): el campo de la cuenta, en la franja de «Separar». Sus cupones, en botones rectos que lo llenan. */
+.t-bolsa-cupon .w-caja { height: 46px; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+.t-bolsa-cupon-mios { display: flex; flex-wrap: wrap; gap: 8px; }
+.t-bolsa-cupon-mio { display: flex; gap: 8px; align-items: center; min-height: 44px; padding: 6px 12px; border: 1px solid var(--sand); border-radius: 0; background: transparent; color: var(--tinta); font: inherit; text-align: left; cursor: pointer; transition: border-color .2s var(--ease); }
+.t-bolsa-cupon-mio:hover { border-color: var(--tinta); }
+.t-bolsa-cupon-mio:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.t-bolsa-cupon-mio .ic { flex: none; width: 16px; height: 16px; color: var(--taupe); }
+.t-bolsa-cupon-mio span { display: flex; flex-direction: column; }
+.t-bolsa-cupon-mio b { font-size: 13px; letter-spacing: .04em; }
+.t-bolsa-cupon-mio small { font-size: 11.5px; color: var(--tinta-60); }
 
 /* ---- «¡Listo, lo separaste!» ---- */
 .t-separado { padding-top: 22px; }

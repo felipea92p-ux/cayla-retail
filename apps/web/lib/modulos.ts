@@ -14,7 +14,7 @@ export const CLAVES_MODULO = [
   "inicio",
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion",
   "tienda_web", "pedidos_web", "vitrina_web", "recomendaciones", "ajustes_web",
-  "clientas", "avisos_club",
+  "clientas", "avisos_club", "beneficios_club",
   "existencias", "conteos", "traslados", "movimientos", "recibir",
   "productos", "atributos", "etiquetas", "liquidacion",
   "ordenes_compra", "facturas_compra", "por_pagar", "fondos", "proveedores", "notas_credito", "plan_compra",
@@ -83,7 +83,11 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "clientas", grupo: "Clientes", nombre: "Fichas de clientes", incluye: "Registrar, editar y archivar clientes; ver sus compras" },
   // Avisos del club (ADR-0288 act. g, G-8; 20261001210500): Clientas ▸ Avisos, los mensajes del club por mandar a las socias
   // con publicidad. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo, no al líder.
-  { clave: "avisos_club", grupo: "Clientes", nombre: "Avisos del club", incluye: "Ver los mensajes del club por mandar a los miembros con WhatsApp de su tienda (cumpleaños, aniversario, novedades y rebajas en su talla), enviarlos por WhatsApp Web, deshacer un envío y anotar la BAJA" },
+  { clave: "avisos_club", grupo: "Clientes", nombre: "Avisos del club", incluye: "Ver los mensajes del club por mandar a los miembros con WhatsApp de su tienda (regalo de cumpleaños, puntos por vencer, novedades y rebajas en su talla), enviarlos por WhatsApp Web, deshacer un envío y anotar la BAJA" },
+  // Beneficios del club (programa de puntos, actividad 8; 20261019215000): Clientes ▸ Beneficios del club, lo que se le ofrece al cliente
+  // (cuánto vale cada punto, desde cuántos se canjea, cuánto dura un cupón, el regalo de cumpleaños), sin deploy. Nace SIN rol (solo el
+  // líder) y delegable: sus funciones piden este módulo. Reemplaza la hoja «Beneficios del club» de Avisos.
+  { clave: "beneficios_club", grupo: "Clientes", nombre: "Beneficios del club", incluye: "Ver y cambiar los beneficios del Club: cuánto vale cada punto, desde cuántos se canjea, cuánto dura un cupón y el regalo de cumpleaños, con lo que cuesta al negocio y los últimos cambios. Un cambio de lo que valen los puntos rige 15 días después de avisarlo" },
   // «Retirar del piso» (ADR-0208, bloque 2) vive en Existencias: el texto lo nombra para que el líder sepa qué da (20260926170000).
   // «Bajada al piso» y «Ajustar stock» NO son módulos (ADR-0306, Felipe 2026-10-02): son funciones de Existencias, porque no
   // tienen entrada propia en el menú. Regla: un módulo es una entrada del menú izquierdo; quien lo ve hace todo lo de adentro.

@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Puntos del Club · maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500&family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA · Puntos del Club CAYLA (2026-10-19)
+   1 punto por cada S/ 1 pagado · 100 puntos = S/ 5 · no vencen.
+   El cliente canjea en la tienda web → recibe un CUPÓN con código → la caja lo canjea con «Código de cupón».
+   Tokens = apps/web/app/globals.css y apps/tienda/app/globals.css (ADR-0169), claro y oscuro.
+   TODOS los datos (nombre, DNI, boletas, saldos, códigos) son INVENTADOS.
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+--t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.66);--t50:rgba(26,26,24,.55);--t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.1);
+--lienzo:#ddd5c6;--sombra:rgba(26,26,24,.35);--oscuro:#171614;--ease:cubic-bezier(.32,.72,.24,1)}
+:root[data-tema="oscuro"]{--crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;
+--t80:rgba(245,240,232,.85);--t65:rgba(245,240,232,.68);--t50:rgba(245,240,232,.58);--t30:rgba(245,240,232,.3);--t10:rgba(245,240,232,.1);--lienzo:#0f0f0e;--sombra:rgba(0,0,0,.6)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--lienzo)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+svg.ic{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}svg.s{width:14px;height:14px}svg.m{width:20px;height:20px}svg.l{width:24px;height:24px}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.serif{font-family:'EB Garamond',serif;font-weight:500}
+@keyframes sube{from{opacity:0;transform:translate3d(0,18px,0) scale(.985)}to{opacity:1;transform:none}}
+@keyframes velo{from{opacity:0}}@keyframes hoja{from{transform:translateY(100%)}}
+@keyframes llena{from{transform:scaleX(0)}to{transform:none}}
+@keyframes entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.q-hoja .velo,.q-hoja .hj{animation:none!important}
+.q-vista .barra i,.q-vista .mov div.nuevo,.q-vista .tienda>*{animation:none!important}
+/* ---- barra de la maqueta ---- */
+.spk{position:sticky;top:0;z-index:200;background:#171614;color:#f5f0e8;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:8px 16px}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{height:30px;padding:0 12px;font-size:12.5px;color:rgba(245,240,232,.72)}
+.seg button.on{background:#f5f0e8;color:#1a1a18;font-weight:600}
+.spk label{display:flex;align-items:center;gap:6px;color:rgba(245,240,232,.78)}
+.spk .go{height:30px;padding:0 12px;border-radius:8px;border:1px solid rgba(245,240,232,.35);font-size:12.5px;color:#f5f0e8}
+.spk .go:hover{background:rgba(245,240,232,.12)}
+.paso{background:var(--papel);border-bottom:1px solid var(--sand);padding:10px 16px;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;justify-content:center}
+.paso button{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px 0 6px;border-radius:999px;border:1px solid var(--sand);background:var(--crema);font-size:12.5px;color:var(--t80)}
+.paso button b{width:20px;height:20px;border-radius:50%;background:var(--hueso);display:grid;place-items:center;font-size:11px;font-weight:700}
+.paso button.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}.paso button.on b{background:var(--crema);color:var(--tinta)}
+.paso button.ok b{background:var(--verde);color:var(--crema)}
+.escena{padding:18px 16px 60px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.ley{max-width:1180px;width:100%;background:var(--papel);border:1px solid var(--sand);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--t80)}.ley b{font-weight:600}
+.ley .ej{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--hueso);font-size:11px;color:var(--taupe);font-weight:600}
+.sx{width:100%;overflow-x:auto;display:flex}.sx>.marco{margin:0 auto}
+/* ---- marcos ---- */
+.marco{container-type:inline-size;flex:none;position:relative;overflow:hidden;background:var(--crema);box-shadow:0 30px 60px -30px var(--sombra)}
+.marco.desk{width:1180px;height:780px;border-radius:14px;border:1px solid var(--t30)}
+.tel{width:391px;height:812px;border-radius:46px;background:#1b1a18;padding:8px;box-shadow:0 30px 60px -30px var(--sombra);flex:none}
+.marco.cel{width:375px;height:796px;border-radius:39px}
+.pant{position:absolute;inset:0;overflow:auto;scrollbar-width:thin}
+/* ---- botones ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:12px;border:1px solid var(--tinta);background:var(--tinta);color:var(--crema);font-weight:600;font-size:14px;transition:background .2s,transform .2s var(--ease)}
+.btn:hover{background:var(--rojo-p);border-color:var(--rojo-p);color:#fbf8f2;transform:translateY(-2px)}
+.btn:disabled{opacity:.4;pointer-events:none}
+.btn.sec{background:transparent;color:var(--tinta);border-color:var(--t30)}.btn.sec:hover{background:var(--hueso);color:var(--tinta);border-color:var(--t30)}
+.btn.chico{height:30px;padding:0 11px;font-size:12.5px;border-radius:8px}
+.btn.ancho{width:100%}
+.enl{color:var(--tinta);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--taupe);font-size:13px}.enl:hover{color:var(--rojo-p)}
+.chip{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;background:var(--hueso);color:var(--t80)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.v{color:var(--verde);background:color-mix(in srgb,var(--verde) 14%,transparent)}.chip.a{color:var(--ambar);background:color-mix(in srgb,var(--ambar) 14%,transparent)}
+.chip.r{color:var(--rojo-p);background:color-mix(in srgb,var(--rojo) 12%,transparent)}.chip.p{color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 14%,transparent)}.chip.nodot::before{display:none}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+/* ====================================================================  TIENDA WEB  */
+.tienda{font-family:'Heebo',system-ui,sans-serif;min-height:100%;background:var(--crema)}
+.t-anuncio{background:var(--oscuro);color:#f5f0e8;text-align:center;font-size:10.5px;letter-spacing:.2em;padding:7px 8px;font-weight:600}
+.t-cab{display:flex;align-items:center;gap:28px;padding:0 28px;height:60px;border-bottom:1px solid var(--sand);background:var(--crema);position:sticky;top:0;z-index:5}
+.t-marca{font-family:'Heebo';font-weight:700;letter-spacing:.14em;color:var(--rojo);font-size:21px;display:flex;align-items:center;gap:8px}
+.t-nav{display:flex;gap:20px;font-size:13px;font-weight:500}.t-nav .of{color:var(--rojo)}
+.t-ics{margin-left:auto;display:flex;gap:18px;align-items:center}
+.t-ics .n{position:relative}.t-ics .n i{position:absolute;right:-7px;top:-7px;min-width:15px;height:15px;border-radius:8px;background:var(--rojo);color:#fbf8f2;font:700 9.5px 'Heebo';display:grid;place-items:center;font-style:normal}
+.t-pag{padding:28px 40px 60px;max-width:1100px;margin:0 auto}
+.t-mig{font-size:12.5px;color:var(--t65);margin-bottom:6px}
+.t-pag h1{font-family:'EB Garamond',serif;font-weight:500;font-size:40px;line-height:1.1}
+.t-sub{color:var(--t65);margin-top:4px}
+.w-sec{margin-top:34px}
+.w-sec-t{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+.w-sec-t h2{font-family:'EB Garamond',serif;font-weight:500;font-size:26px}
+.w-sec-t .c{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:11px;background:var(--hueso);font-size:12px;font-weight:600;padding:0 6px}
+.w-sec-t .ver{margin-left:auto;font-size:12.5px;color:var(--rojo-p);font-weight:600;display:flex;align-items:center;gap:6px}
+.club-fila{display:grid;grid-template-columns:300px minmax(0,1fr);gap:22px;align-items:start}
+/* tarjeta del club (igual a apps/tienda/app/globals.css) */
+.tarj{position:relative;overflow:hidden;aspect-ratio:1.586;width:100%;max-width:300px;border-radius:18px;padding:18px 18px 14px;color:#f5f0e8;background:radial-gradient(120% 120% at 100% 0%,#5a2a20 0%,#1e1b19 52%,#111010 100%);box-shadow:0 34px 60px -30px rgba(0,0,0,.65);display:flex;flex-direction:column;justify-content:space-between}
+.tarj .f{display:flex;justify-content:space-between;align-items:flex-start}
+.tarj .m{font-weight:700;letter-spacing:.16em;font-size:13px;color:#f4c3b3}
+.tarj .chiporo{width:36px;height:27px;border-radius:6px;background:linear-gradient(135deg,#d9b878,#a37f3e);box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)}
+.tarj small{font-size:9px;letter-spacing:.18em;text-transform:uppercase;opacity:.7;display:block}
+.tarj .nom{font-family:'EB Garamond',serif;font-size:21px}
+.tarj .pt{font-family:'EB Garamond',serif;font-size:26px;line-height:1}
+.pts{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:18px 20px}
+.pts-top{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.pts-n small{font-size:12px;color:var(--t65);display:block}
+.pts-n b{font-family:'EB Garamond',serif;font-size:56px;line-height:1;font-weight:500}
+.pts-v{padding-bottom:6px;font-size:14px;color:var(--t80)}.pts-v b{font-weight:700;color:var(--verde)}
+.pts .btn{margin-left:auto}
+.barra{display:block;height:6px;margin-top:14px;border-radius:999px;background:var(--hueso);overflow:hidden}
+.barra i{display:block;height:100%;border-radius:inherit;background:var(--verde);transform-origin:left;animation:llena .9s var(--ease) .2s both}
+.pts .nota{margin-top:8px;font-size:12.5px;color:var(--t65)}
+.reglas{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.reglas span{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;background:var(--hueso);font-size:12.5px}
+.reglas b{font-weight:600}
+.benef{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:13px 14px;border-radius:12px;background:var(--papel);border:1px solid var(--sand);margin-top:10px}
+.benef>.ic{width:22px;height:22px;color:var(--rojo-p)}.benef b{display:block;font-size:14px;font-weight:600}.benef small{display:block;color:var(--t65);font-size:13px;line-height:1.4}
+.benef.disp{border-color:color-mix(in srgb,var(--verde) 45%,var(--sand))}
+.cup-lista{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.cup{position:relative;display:grid;grid-template-columns:96px minmax(0,1fr);border:1px solid var(--sand);background:var(--papel);border-radius:14px;overflow:hidden}
+.cup .izq{display:grid;place-items:center;text-align:center;padding:12px 6px;background:var(--hueso);border-right:2px dashed var(--t30)}
+.cup .izq b{font-family:'EB Garamond',serif;font-size:30px;line-height:1;font-weight:500}.cup .izq small{display:block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);margin-top:2px}
+.cup .der{padding:12px 14px;min-width:0}.cup .cod{font-size:15px;font-weight:600;letter-spacing:.08em}
+.cup .d{font-size:12.5px;color:var(--t65);margin-top:2px}.cup .ac{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.cup.off{opacity:.62}
+.mres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.mres>div{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:12px 14px}
+.mres small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.mres b{display:block;font-family:'EB Garamond',serif;font-size:30px;line-height:1.15;font-weight:500}.mres b.mas{color:var(--verde)}.mres b.menos{color:var(--rojo-p)}
+.mres span{font-size:12.5px;color:var(--t65)}
+.mv-fil{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.mv-fil button{height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);font-size:12.5px;font-weight:500;transition:background .2s}
+.mv-fil button:hover{background:var(--hueso)}.mv-fil button.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.mov2{border:1px solid var(--sand);border-radius:16px;background:var(--papel);overflow:hidden}
+.mv-mes{padding:9px 16px;background:var(--crema);border-bottom:1px solid var(--sand);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;color:var(--t65)}
+.mv{display:grid;grid-template-columns:40px minmax(0,1fr) 110px 110px;gap:14px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--sand);transition:background .2s}
+.mv:hover{background:var(--crema)}
+.mv.nuevo{animation:entra .5s var(--ease) both;background:color-mix(in srgb,var(--verde) 8%,transparent)}
+.mv-i{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--hueso)}
+.mv-i.t-compra{background:color-mix(in srgb,var(--verde) 14%,transparent);color:var(--verde)}.mv-i.t-cumple{background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar)}
+.mv-i.t-canje{background:color-mix(in srgb,var(--rojo) 12%,transparent);color:var(--rojo-p)}.mv-i.t-vence{background:color-mix(in srgb,var(--pizarra) 15%,transparent);color:var(--pizarra)}
+.mv-t{min-width:0}.mv-t b{display:block;font-weight:600;font-size:14px}.mv-t small,.mv-e small,.mv-p small{display:block;font-size:12px;color:var(--t65)}
+.mv-e{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.chip.t-compra{color:var(--verde);background:color-mix(in srgb,var(--verde) 12%,transparent)}.chip.t-cumple{color:var(--ambar);background:color-mix(in srgb,var(--ambar) 14%,transparent)}
+.chip.t-canje{color:var(--rojo-p);background:color-mix(in srgb,var(--rojo) 11%,transparent)}.chip.t-vence{color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 14%,transparent)}
+.mv-p{text-align:right}.mv-p b{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}.mv-p b.mas{color:var(--verde)}.mv-p b.menos{color:var(--rojo-p)}
+.mv-mas{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;height:44px;font-size:13px;font-weight:600;color:var(--t80);background:var(--crema)}.mv-mas:hover{background:var(--hueso)}
+.mv-vacio{display:flex;flex-direction:column;align-items:center;gap:4px;padding:34px 16px;text-align:center}.mv-vacio small{color:var(--t65)}
+.mov{border:1px solid var(--sand);border-radius:14px;background:var(--papel);overflow:hidden}
+.mov div{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--sand);font-size:13.5px}.mov div:last-child{border:0}
+.mov .f{width:54px;color:var(--t65);font-size:12px}.mov .p{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}.mov .p.mas{color:var(--verde)}.mov .p.menos{color:var(--rojo-p)}
+.mov small{display:block;color:var(--t65);font-size:12px}
+.mov div.nuevo{animation:entra .5s var(--ease) both;background:color-mix(in srgb,var(--verde) 8%,transparent)}
+/* hoja / modal */
+.velo{position:absolute;inset:0;background:rgba(26,26,24,.34);backdrop-filter:blur(3px);z-index:50;display:flex;justify-content:center;align-items:flex-start;padding-top:56px;animation:velo .2s both}
+:root[data-tema="oscuro"] .velo{background:rgba(0,0,0,.55)}
+.hj{width:470px;max-width:calc(100% - 24px);background:var(--papel);border:1px solid var(--sand);border-radius:22px;padding:22px 24px;animation:sube .38s var(--ease) both;position:relative;max-height:calc(100% - 80px);overflow:auto;color:var(--tinta)}
+.hj h3{font-family:'EB Garamond',serif;font-weight:500;font-size:25px;line-height:1.15}
+.hj .baj{font-size:13px;color:var(--taupe);margin-top:3px}
+.hj .x{position:absolute;right:12px;top:12px;width:34px;height:34px;border-radius:8px;display:grid;place-items:center;color:var(--t65)}.hj .x:hover{background:var(--hueso)}
+.pie{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.paso-c{display:flex;align-items:center;justify-content:center;gap:16px;margin:20px 0 6px}
+.paso-c button{width:48px;height:48px;border-radius:12px;border:1px solid var(--t30);display:grid;place-items:center;background:var(--crema)}.paso-c button:hover:not(:disabled){background:var(--hueso)}.paso-c button:disabled{opacity:.35;cursor:default}
+.paso-c .v{text-align:center;min-width:150px}.paso-c .v b{font-family:'EB Garamond',serif;font-size:52px;line-height:1;font-weight:500;display:block}.paso-c .v small{color:var(--t65);font-size:13px}
+.hechos{border:1px solid var(--sand);border-radius:12px;background:var(--crema);overflow:hidden;margin-top:14px}
+.hechos div{display:flex;gap:10px;padding:9px 12px;border-bottom:1px solid var(--sand);font-size:13px}.hechos div:last-child{border:0}.hechos span{margin-left:auto;font-weight:600;text-align:right}
+.nota{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--hueso);font-size:12.5px;color:var(--t80)}
+.nota.ok{background:color-mix(in srgb,var(--verde) 12%,transparent);color:var(--t80)}.nota.mal{background:color-mix(in srgb,var(--rojo) 11%,transparent)}.nota.am{background:color-mix(in srgb,var(--ambar) 13%,transparent)}
+/* cupón grande */
+.cupg{margin-top:16px;border:1px solid var(--sand);border-radius:16px;overflow:hidden;background:var(--crema)}
+.cupg .arr{padding:18px 20px;text-align:center;background:linear-gradient(var(--hueso),var(--crema))}
+.cupg .arr small{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--t65);font-weight:600}
+.cupg .arr b{display:block;font-family:'EB Garamond',serif;font-size:58px;line-height:1;font-weight:500;margin:4px 0}
+.cupg .corte{border-top:2px dashed var(--t30);position:relative}
+.cupg .corte::before,.cupg .corte::after{content:"";position:absolute;top:-10px;width:18px;height:18px;border-radius:50%;background:var(--papel);border:1px solid var(--sand)}
+.cupg .corte::before{left:-10px}.cupg .corte::after{right:-10px}
+.cupg .ab{padding:16px 20px;display:flex;gap:16px;align-items:center}
+.cupg .code{flex:1;min-width:0}.cupg .code .mono{font-size:21px;font-weight:700;letter-spacing:.1em;display:block;word-break:break-all}
+.qr{width:92px;height:92px;flex:none;background:#fff;border-radius:8px;padding:6px;border:1px solid var(--sand)}
+/* bolsa */
+.bol{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:26px;margin-top:20px;align-items:start}
+.bi{display:grid;grid-template-columns:70px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px;border:1px solid var(--sand);background:var(--papel);border-radius:14px;margin-bottom:10px}
+.foto{aspect-ratio:1;border-radius:10px;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:22px;color:rgba(26,26,24,.5)}
+.res{border:1px solid var(--sand);border-radius:16px;background:var(--papel);padding:18px}
+.res .l{display:flex;padding:5px 0;font-size:14px}.res .l span:last-child{margin-left:auto;font-variant-numeric:tabular-nums}
+.res .l.tot{border-top:1px solid var(--sand);margin-top:8px;padding-top:12px;font-weight:700;font-size:17px}
+.res .l.dto{color:var(--verde);font-weight:600}
+.cin{display:flex;gap:8px;margin-top:6px}
+.campo{flex:1;display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border:1px solid var(--sand);border-radius:12px;background:var(--hueso);transition:background .2s,border-color .2s}
+.campo:focus-within{background:var(--papel);border-color:var(--tinta)}
+.campo input{flex:1;min-width:0;border:0;background:transparent;outline:0;font-size:15px}
+.chipcup{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 12px;border:1px dashed var(--t30);border-radius:12px;margin-top:8px;font-size:13px}.chipcup:hover{background:var(--hueso)}
+.chipcup b{font-weight:700;letter-spacing:.06em}.chipcup span{margin-left:auto;color:var(--verde);font-weight:700}
+/* ====================================================================  CAJA (ERP)  */
+.erp{min-height:100%;background:var(--crema)}
+.top{height:46px;border-bottom:1px solid var(--t10);display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:0 20px;font-size:11px;letter-spacing:.12em;color:var(--t65)}
+.top .sede{height:28px;display:flex;align-items:center;padding:0 12px;border:1px solid var(--sand);border-radius:8px;background:var(--papel);color:var(--tinta);font-weight:600}
+.pos{margin:10px 20px 16px;height:calc(100% - 66px);display:grid;grid-template-columns:minmax(0,1fr) 410px;border:1px solid var(--sand);border-radius:18px;background:var(--crema);overflow:hidden}
+.cat{padding:14px 18px;overflow:hidden;min-height:0}
+.lugar{color:var(--taupe);font-size:11px}
+.busca{display:flex;align-items:center;gap:10px;height:50px;margin-top:10px;padding:0 16px;border:1px solid var(--sand);border-radius:14px;background:var(--papel);color:var(--t50);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:9px}
+.card .foto{border-radius:9px;font-size:18px}.card h4{font-weight:500;font-size:13px;margin-top:7px}.card .co{font-size:11.5px;color:var(--t65)}.card .pr{font-weight:600;font-size:13px;margin-top:4px}
+.tk{display:flex;flex-direction:column;background:var(--papel);border-left:1px solid var(--sand);min-height:0;height:100%}
+.tk-cab{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--sand);flex:none}
+.tk-cab h3{font-family:'EB Garamond',serif;font-weight:500;font-size:23px}
+.cli{margin:10px 18px 0;flex:none}
+.cli .vacio{display:flex;align-items:center;gap:8px;width:100%;padding:9px 12px;border:1px dashed var(--t30);border-radius:12px;font-size:13px;color:var(--t65);text-align:left}
+.cli .caja{overflow:hidden;border-radius:12px;border:1px solid var(--sand);background:var(--crema)}
+.cli .ca1{display:flex;align-items:center;gap:8px;padding:8px 12px}
+.av{width:32px;height:32px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:15px;flex:none}
+.cli .ca1 .tx{flex:1;min-width:0}.cli .ca1 .tx b{display:block;font-size:13.5px;font-weight:600}.cli .ca1 .tx small{display:block;font-size:11.5px;color:var(--t65)}
+.cli .fl{display:flex;align-items:center;gap:10px;border-top:1px solid var(--sand);padding:6px 12px;font-size:12.5px}
+.cli .fl>.ic{color:var(--taupe);width:15px;height:15px}.cli .fl .tx{flex:1;min-width:0;line-height:1.3}.cli .fl .tx small{display:block;font-size:11px;color:var(--t65)}
+.bch{height:28px;padding:0 10px;border-radius:8px;border:1px solid var(--t30);font-size:12.5px;font-weight:600;white-space:nowrap}.bch:hover:not(:disabled){background:var(--hueso)}
+.bch.pri{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}.bch.pri:hover:not(:disabled){background:var(--rojo-p);border-color:var(--rojo-p);color:#fbf8f2}
+.bch:disabled{opacity:.4;cursor:default}
+.items{flex:1;min-height:0;overflow:auto;margin-top:8px;border-top:1px solid var(--sand)}
+.it{padding:11px 18px;border-bottom:1px solid var(--sand)}.it .r1{display:flex}.it h5{font-size:14px;font-weight:600}.it .sku{font:11.5px ui-monospace,Menlo,monospace;color:var(--t65)}
+.it .imp{margin-left:auto;font-weight:600}
+.it.dto .imp{color:var(--verde)}.it.dto h5{font-weight:500}
+.acc{display:flex;flex-wrap:wrap;gap:6px 14px;padding:9px 18px;border-top:1px solid var(--sand);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);flex:none;align-items:center}
+.acc button{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);border:1px solid var(--sand);border-radius:7px;padding:5px 9px}
+.acc button:hover{background:var(--hueso);color:var(--tinta)}
+.acc button.cod{color:var(--tinta);border-color:var(--t30);background:var(--crema)}
+.tpie{padding:10px 18px 16px;border-top:1px solid var(--sand);flex:none}
+.tot{display:flex;align-items:flex-end}.tot .d{font-size:12px;color:var(--t65);line-height:1.6}.tot .g{margin-left:auto;text-align:right}.tot .g .v{font-family:'EB Garamond',serif;font-size:42px;line-height:1;font-weight:500}
+.gana{display:inline-flex;align-items:center;gap:5px;min-height:22px;max-width:190px;line-height:1.25;padding:2px 9px;border-radius:999px;background:color-mix(in srgb,var(--verde) 14%,transparent);color:var(--verde);font-size:11px;font-weight:700;margin-top:6px}
+.gana.no{background:var(--hueso);color:var(--t65);font-weight:600}
+.cobrar{margin-top:10px;width:100%;height:54px;border-radius:12px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;gap:10px;padding:0 18px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;transition:background .2s,transform .2s var(--ease)}
+.cobrar:hover{background:var(--rojo-p);color:#fbf8f2;transform:translateY(-2px)}.cobrar b{margin-left:auto;font-size:17px;letter-spacing:.04em}.cobrar:disabled{opacity:.4;pointer-events:none}
+.entrada{display:flex;align-items:center;gap:10px;height:62px;padding:0 16px;border:1px solid var(--sand);border-radius:14px;background:var(--hueso);margin-top:14px;transition:background .2s,border-color .2s}
+.entrada:focus-within{background:var(--papel);border-color:var(--tinta)}
+.entrada input{flex:1;min-width:0;border:0;background:transparent;outline:0;font:700 22px ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase}
+.entrada.mal{border-color:var(--rojo)}.entrada.bien{border-color:var(--verde)}
+.prueba{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;align-items:center;padding:9px 11px;border:1px dashed var(--t30);border-radius:10px}
+.prueba small{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--t65);width:100%}
+.prueba button{height:26px;padding:0 9px;border-radius:7px;background:var(--hueso);font-size:11.5px}.prueba button:hover{background:var(--sand)}
+.res-cup{margin-top:14px;border:1px solid color-mix(in srgb,var(--verde) 45%,var(--sand));border-radius:14px;padding:14px 16px;background:var(--crema);display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.res-cup .btn{width:100%}
+.res-cup b.v{font-family:'EB Garamond',serif;font-size:38px;line-height:1;font-weight:500}
+/* ====================================================================  LÍDER  */
+.lid{padding:24px 28px 40px;max-width:1100px;margin:0 auto}
+.lid h1{font-family:'EB Garamond',serif;font-weight:500;font-size:40px;line-height:1.1}
+.cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:20px}
+.cifra{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:14px 16px}
+.cifra small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.cifra b{display:block;font-family:'EB Garamond',serif;font-size:34px;line-height:1.1;font-weight:500;margin-top:4px}.cifra span{font-size:12.5px;color:var(--t65)}
+.cuad{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:18px 20px}
+.tarjeta h2{font-family:'EB Garamond',serif;font-weight:500;font-size:22px;margin-bottom:4px}
+.par{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--sand)}.par:last-of-type{border:0}
+.par b{display:block;font-size:14px;font-weight:600}.par small{color:var(--t65);font-size:12.5px;line-height:1.35;display:block}
+.caj{display:flex;align-items:center;gap:6px;height:40px;padding:0 10px;border:1px solid var(--sand);border-radius:10px;background:var(--hueso)}.caj:focus-within{background:var(--papel);border-color:var(--tinta)}
+.caj input{width:100%;min-width:0;border:0;background:transparent;outline:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}.caj span{font-size:12px;color:var(--t65);white-space:nowrap}
+.menuc{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 4px}.menuc span{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);font-size:13px;color:var(--t80)}.menuc span.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta);font-weight:600}.menuc i{font-style:normal;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--crema);color:var(--tinta)}
+.caj.fijo{justify-content:flex-end;background:var(--hueso);opacity:.8}.caj.fijo b{font-variant-numeric:tabular-nums}
+.ejemplo{margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--hueso);font-size:13.5px}.ejemplo b{font-weight:700}
+.sem{display:flex;height:12px;border-radius:999px;overflow:hidden;background:var(--hueso);margin-top:10px}.sem i{display:block}
+/* ====================================================================  RESPONSIVO (el marco es el contenedor)  */
+@container (max-width:760px){
+ .t-anuncio{font-size:9.5px}
+ .t-cab{gap:12px;padding:0 14px;height:54px}.t-nav{display:none}.t-ics{gap:14px}
+ .t-pag{padding:18px 16px 50px}.t-pag h1{font-size:32px}
+ .club-fila{grid-template-columns:1fr}.tarj{max-width:290px}
+ .pts-n b{font-size:46px}.pts .btn{margin-left:0;width:100%;margin-top:6px}
+ .cup-lista{grid-template-columns:1fr}
+ .mres b{font-size:24px}.mres span{display:none}.mres>div{padding:10px 11px}
+ .mv{grid-template-columns:36px minmax(0,1fr) auto;gap:10px;padding:11px 12px}.mv-i{width:36px;height:36px}.mv-e{display:none}
+ .bol{grid-template-columns:1fr}
+ .velo{padding-top:0;align-items:flex-end}
+ .hj{width:100%;max-width:100%;border-radius:22px 22px 0 0;max-height:92%;animation:hoja .34s var(--ease) both;padding:20px 18px}
+ .paso-c .v b{font-size:44px}
+ .top{display:none}.pos{margin:0;height:100%;grid-template-columns:1fr;border:0;border-radius:0}.cat{display:none}.tk{border-left:0}
+ .tk-cab{padding-top:16px}
+ .lid{padding:18px 16px 40px}.lid h1{font-size:32px}.cifras{grid-template-columns:1fr 1fr}.cuad{grid-template-columns:1fr}
+ .par{grid-template-columns:minmax(0,1fr) 120px}
+ .cupg .ab{flex-direction:column;align-items:stretch;text-align:center}.qr{margin:0 auto}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></symbol>
+<symbol id="i-ticket" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></symbol>
+<symbol id="i-cake" viewBox="0 0 24 24"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3"/><path d="M12 8v3"/><path d="M17 8v3"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+<symbol id="i-bag" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+<symbol id="i-qr" viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+<symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+<symbol id="i-pct" viewBox="0 0 24 24"><line x1="19" x2="5" y1="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+<symbol id="i-bar" viewBox="0 0 24 24"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="10" x2="10" y1="15" y2="9"/><line x1="14" x2="14" y1="15" y2="9"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+</svg>
+<div class="spk" id="spk"></div>
+<div class="paso" id="paso"></div>
+<div class="escena"><div class="ley" id="ley"></div><div id="esc" style="width:100%;display:flex;justify-content:center"></div></div>
+<script>
+/* =========================== estado =========================== */
+const HOY = '19 oct';
+const CODIGOS = ['CAY-7KM4-Q92X','CAY-H3TB-W8NE','CAY-2RXP-5DJA','CAY-N6VC-4FHT'];
+const PRENDAS = {
+  blusa:{n:'Blusa Carlita',sku:'CMS-0001-BLA-S',p:90,c:'#ece6dc'},
+  polo:{n:'Polo Básico M/corta',sku:'POL-0005-ARE-M',p:39.9,c:'#d8c3a5'},
+  jean:{n:'Jean Palazzo',sku:'JEA-0012-AZU-30',p:129,c:'#a9bfd6'}
+};
+const INICIAL = () => ({
+  vista:'tienda', dev:'escritorio', t:'perfil', hoja:null, paso:0,
+  params:{ptsPorSol:1, solesPor100:5, minCanje:200, minCompraX:3, vigencia:7, regaloCumple:100, topeCosto:2},
+  saldo:1240, movFiltro:'todos', movTodos:false, cumpleRecibido:false, canje:600, ultimo:null, copiado:false,
+  cupones:[
+    {codigo:'CAY-3M7P-A4QX',valor:10,pts:200,min:30,gen:'28 set',vence:'8 oct',estado:'vencido'},
+    {codigo:'CAY-9ZK2-77HD',valor:20,pts:400,min:60,gen:'2 set',vence:'2 oct',estado:'usado',usadoEn:'12 oct · Tienda TRU · B004-000187'}
+  ],
+  hist:[
+    {f:'12 oct',t:'Compra B004-000187 · Tienda TRU',s:'S/ 148.00 pagados',p:148},
+    {f:'8 oct',t:'Cupón vencido · tus puntos volvieron',s:'CAY-3M7P-A4QX',p:200},
+    {f:'28 set',t:'Compra B004-000141 · Tienda AQP',s:'S/ 96.00 pagados',p:96},
+    {f:'15 set',t:'Compra B004-000098 · Tienda TRU',s:'S/ 100.00 pagados',p:100},
+    {f:'2 set',t:'Canje · cupón de S/ 20',s:'CAY-9ZK2-77HD',p:-400},
+    {f:'20 ago',t:'Compra B004-000063 · Tienda LIM',s:'S/ 120.00 pagados',p:120},
+    {f:'4 ago',t:'Compra B004-000041 · Tienda TRU',s:'S/ 185.00 pagados',p:185},
+    {f:'18 jul',t:'Compra B004-000022 · Tienda TRU',s:'S/ 90.00 pagados',p:90}
+  ],
+  bolsaCupon:null,
+  caja:{items:['blusa','polo','jean'], cliente:true, quien:'duena', amiga:85, cuponAp:null, entrada:'', res:null, fallos:0, cobro:null}
+});
+let S = INICIAL();
+const fmt = n => n.toLocaleString('en-US');
+const S2 = n => 'S/ ' + (Number.isInteger(n) ? n.toLocaleString('en-US') : n.toFixed(2));
+const S2c = n => 'S/' + n.toFixed(2);
+const soles = pts => Math.floor(pts/100)*S.params.solesPor100;
+const maxCanje = () => Math.floor(S.saldo/100)*100;
+const ic = (n,c='') => `<svg class="ic ${c}"><use href="#i-${n}"/></svg>`;
+const sumaCaja = () => S.caja.items.reduce((a,k)=>a+PRENDAS[k].p,0);
+const MESES=['ene','feb','mar','abr','may','jun','jul','ago','set','oct','nov','dic'];
+const fechaEn=n=>{const d=new Date(2026,9,19+n);return d.getDate()+' '+MESES[d.getMonth()]};
+const fechaVence=()=>fechaEn(S.params.vigencia);
+/* El código nunca se repite: sale de un alfabeto sin 0/O/1/I y se revisa contra todos los que existen (en la base: índice único + reintento). */
+const ALFA='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function nuevoCodigo(){
+  const usados=new Set(S.cupones.map(c=>c.codigo));
+  for(const c of CODIGOS)if(!usados.has(c))return c;
+  let r=S.cupones.length*7919+13,c;
+  do{let t='';for(let i=0;i<8;i++){r=(r*1664525+1013904223)>>>0;t+=ALFA[(r>>>24)%ALFA.length]}c='CAY-'+t.slice(0,4)+'-'+t.slice(4)}while(usados.has(c));
+  return c}
+
+/* =========================== el recorrido =========================== */
+const PASOS = [
+ {t:'Mi Club',v:'tienda',h:null,s:'perfil',ley:'<b>Paso 1 · El cliente ve sus puntos.</b> En «Mi perfil ▸ Mi Club CAYLA» el saldo manda: <b>1,240 puntos = S/ 60</b>, con las reglas a la vista (1 punto por S/ 1, 100 puntos = S/ 5, no vencen). Debajo, sus cupones y sus movimientos.'},
+ {t:'Canjear',v:'tienda',h:'canje',s:'perfil',ley:'<b>Paso 2 · Canjea.</b> Elige cuántos soles quiere y se descuentan al instante. Mínimo 200 puntos (S/ 10); y el cupón pide una compra de al menos 3 veces su valor, para que nunca cubra la compra entera.'},
+ {t:'Su cupón',v:'tienda',h:'cupon',s:'perfil',ley:'<b>Paso 3 · Recibe un cupón con código.</b> Un código corto y un QR. Vale <b>7 días</b>; si no lo usa, <b>los puntos vuelven solos a su saldo</b> (no se pierden). Puede usarlo online al pagar o enseñarlo en cualquier tienda.'},
+ {t:'En la caja',v:'caja',h:'codigo',s:'perfil',ley:'<b>Paso 4 · La caja recibe el código.</b> Nuevo botón «Código de cupón» junto a «Aplicar descuento». Lo puede canjear <b>cualquier persona</b> (una amiga, un familiar): el cupón es de quien lo trae, pero los puntos de la compra son de quien se identifica con su DNI. Funciona escribiéndolo o con el escáner (el QR entra como texto). La base valida; la pantalla solo pregunta. Prueba los casos de abajo: vencido, ya usado, compra chica…'},
+ {t:'Cobrar',v:'caja',h:null,s:'perfil',ley:'<b>Paso 5 · Se cobra y se gana de nuevo.</b> El cupón entra al ticket como un descuento en soles. Los puntos nuevos se calculan sobre <b>lo que de verdad paga</b>, y solo si el cliente está identificado. En su mes de cumpleaños, su primera compra suma además <b>100 puntos de regalo</b>.'},
+ {t:'Saldo nuevo',v:'tienda',h:null,s:'perfil',ley:'<b>Paso 6 · Todo cuadra.</b> El saldo bajó por el canje y subió por la compra nueva; el cupón quedó «usado» con la boleta donde se usó. Cada cambio es un movimiento, como el stock: nada se edita a mano.'}
+];
+const LEYES = {
+ tienda:'<b>Tienda web · Mi perfil.</b> Así lo ve el cliente en la tienda online. Pruébalo: toca «Canjear puntos», copia el código y úsalo en la pestaña Caja, también como «Ana (una amiga)».',
+ bolsa:'<b>Tienda web · Bolsa.</b> Al pagar online el cupón también entra: sus cupones activos aparecen listos para usar, o escribe el código.',
+ caja:'<b>Caja (ERP).</b> Pantalla de Vender con la ficha del cliente. Dos caminos, un solo mecanismo por debajo (un cupón): «Usar puntos» (el cliente está en la caja) y «Código de cupón» (lo trae de la web).',
+ lider:'<b>Líder · Clientes ▸ Beneficios del club (módulo nuevo).</b> Aparece como tercera pantalla de Clientes, junto a Fichas y Avisos, y nace disponible solo para el líder. Los números del programa se editan sin deploy; el tablero dice cuánto debes en puntos.'
+};
+
+/* =========================== barra y pasos =========================== */
+function barra(){
+  const seg=(k,o)=>`<div class="seg">${o.map(([v,t])=>`<button class="${S[k]===v?'on':''}" onclick="A.set('${k}','${v}')">${t}</button>`).join('')}</div>`;
+  const cj=S.vista==='caja';
+  document.getElementById('spk').innerHTML=`<span class="tag">Maqueta · Puntos del Club</span>
+   ${seg('vista',[['tienda','Tienda web'],['caja','Caja'],['lider','Líder']])}
+   ${S.vista==='tienda'?seg('t',[['perfil','Mi perfil'],['bolsa','Bolsa']]):''}
+   ${seg('dev',[['escritorio','Escritorio'],['celular','Celular']])}
+   ${cj?`<label>Prendas <div class="seg">${[1,3].map(n=>`<button class="${S.caja.items.length===n?'on':''}" onclick="A.prendas(${n})">${n}</button>`).join('')}</div></label>
+   <label>Quién compra <div class="seg">${[['duena','Lucía (dueña del cupón)'],['amiga','Ana (una amiga)'],['nadie','Sin identificar']].map(([v,t])=>`<button class="${S.caja.quien===v?'on':''}" onclick="A.quien('${v}')">${t}</button>`).join('')}</div></label>`:''}
+   <button class="go" onclick="A.pasanDias()" title="Vence todo cupón activo y devuelve sus puntos">Probar: pasan 8 días</button><button class="go" onclick="A.dobleToque()">Probar: doble toque</button><button class="go" onclick="A.tema()">Claro / oscuro</button><button class="go" onclick="A.reiniciar()">Reiniciar</button>`;
+  document.getElementById('paso').innerHTML=PASOS.map((p,i)=>`<button class="${S.paso===i?'on':i<S.paso?'ok':''}" onclick="A.irPaso(${i})"><b>${i<S.paso?'✓':i+1}</b>${p.t}</button>`).join('')
+    +`<button class="go" style="border-color:var(--t30)" onclick="A.irPaso(Math.min(${PASOS.length-1},S.paso+1))">Siguiente ${ic('arrow','s')}</button>`;
+  document.getElementById('ley').innerHTML=(LEYES[S.vista==='tienda'&&S.t==='bolsa'?'bolsa':S.vista])+` <span class="ej">Todos los datos son inventados</span>`;
+}
+
+/* =========================== QR de ilustración =========================== */
+function qr(code){
+  let h=0;for(const ch of code)h=(h*31+ch.charCodeAt(0))>>>0;
+  const N=21;let cel='';
+  const finder=(x,y)=>(x<7&&y<7)||(x>=N-7&&y<7)||(x<7&&y>=N-7);
+  const dibF=(ox,oy)=>{let s='';for(let y=0;y<7;y++)for(let x=0;x<7;x++){const e=(x==0||y==0||x==6||y==6)||(x>=2&&x<=4&&y>=2&&y<=4);if(e)s+=`<rect x="${ox+x}" y="${oy+y}" width="1" height="1"/>`}return s};
+  cel+=dibF(0,0)+dibF(N-7,0)+dibF(0,N-7);
+  let r=h||1;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){if(finder(x,y)||(x==7||y==7||x==N-8||y==N-8)&&finder(Math.min(x,6),Math.min(y,6)))continue;r=(r*1664525+1013904223)>>>0;if(r>>>28&1)cel+=`<rect x="${x}" y="${y}" width="1" height="1"/>`}
+  return `<svg class="qr" viewBox="-1 -1 ${N+2} ${N+2}" shape-rendering="crispEdges" fill="#1a1a18" role="img" aria-label="Código QR del cupón (ilustración)">${cel}</svg>`;
+}
+
+/* =========================== TIENDA =========================== */
+const cabTienda=()=>`<div class="t-anuncio">SEPARA ONLINE Y RECOGE EN TU TIENDA</div>
+<header class="t-cab"><span class="t-marca">CAYLA</span><nav class="t-nav"><span>Lo nuevo</span><span>Ropa ⌄</span><span>Accesorios ⌄</span><span>Arma tu look</span><span>Más vendidas</span><span class="of">Ofertas</span></nav>
+<div class="t-ics">${ic('search')}${ic('heart')}${ic('user')}<span class="n" style="cursor:pointer" onclick="A.set('t','bolsa')">${ic('bag')}<i>3</i></span></div></header>`;
+
+function tarjetaClub(){return `<div class="tarj" role="img" aria-label="Tarjeta del Club CAYLA"><div class="f"><span class="m">CAYLA</span><span class="chiporo"></span></div><div class="f" style="align-items:flex-end"><span><small>Miembro del club</small><div class="nom">Lucía Paredes</div></span><span style="text-align:right"><small>Desde</small><div class="nom">2025</div></span></div></div>`}
+
+function cuponCard(c){
+  const act=c.estado==='activo';
+  const chip=c.estado==='activo'?'<span class="chip v">Activo</span>':c.estado==='usado'?'<span class="chip nodot">Usado</span>':'<span class="chip a">Venció · puntos devueltos</span>';
+  return `<div class="cup ${act?'':'off'}"><div class="izq"><div><b>S/ ${c.valor}</b><small>cupón</small></div></div><div class="der"><div class="cod mono">${c.codigo}</div>
+  <div class="d">${act?`Vence el ${c.vence}${c.dias?` · quedan ${c.dias} días`:''} · compras desde S/ ${c.min}`:c.estado==='usado'?`Usado el ${c.usadoEn}`:`Venció el ${c.vence}`}</div>
+  <div class="ac">${chip}${act?`<button class="btn sec chico" onclick="A.copiar('${c.codigo}')">${ic('copy','s')}Copiar</button><button class="enl" onclick="A.abrir('cupon',{ver:'${c.codigo}'})">Ver QR</button>`:''}</div></div></div>`;
+}
+
+function perfil(){
+  const v=soles(S.saldo), resto=S.saldo%100, activos=S.cupones.filter(c=>c.estado==='activo');
+  return `<div class="t-pag"><div class="t-mig">Inicio › Mi perfil</div><h1>Hola, Lucía</h1><p class="t-sub">Tus puntos, tus cupones y todo lo que haces con el Club.</p>
+  <section class="w-sec"><div class="w-sec-t"><h2>Mi Club CAYLA</h2><a class="ver">Cómo funciona ${ic('arrow','s')}</a></div>
+   <div class="club-fila">${tarjetaClub()}<div>
+    <div class="pts"><div class="pts-top"><div class="pts-n"><small>Tus puntos</small><b id="saldoN">${fmt(S.saldo)}</b></div>
+      <div class="pts-v">valen <b>${S2(v)}</b> en tu próxima compra</div>
+      <button class="btn" ${S.saldo<S.params.minCanje?'disabled':''} onclick="A.abrir('canje')">${ic('gift')} Canjear puntos</button></div>
+      <span class="barra" role="progressbar" aria-valuenow="${resto}" aria-valuemin="0" aria-valuemax="100" aria-label="Para tus siguientes ${S2(S.params.solesPor100)}"><i style="width:${resto}%"></i></span>
+      <div class="nota" style="background:none;padding:0;margin-top:8px;color:var(--t65)">${resto} de 100 para sumar otros ${S2(S.params.solesPor100)}</div>
+      <div class="reglas"><span>${ic('star','s')}<b>${S.params.ptsPorSol} punto</b> por cada S/ 1 que pagas</span><span><b>100 puntos</b> = ${S2(S.params.solesPor100)}</span><span>No vencen mientras compres</span></div>
+      <p style="font-size:12.5px;color:var(--t65);margin-top:10px">${ic('info','s')} Si pasan <b>3 años sin que compres</b>, tu ficha y tus puntos se eliminan. Te avisamos 30 días antes.</p></div>
+    <div class="benef ${S.cumpleRecibido?'':'disp'}">${ic('cake')}<span><b>${S.cumpleRecibido?'Regalo de cumpleaños':'Tu mes de cumpleaños: compra y gana '+S.params.regaloCumple+' puntos adicionales'}</b><small>${S.cumpleRecibido?`Ya recibiste tus ${S.params.regaloCumple} puntos este año.`:`Haz tu primera compra de octubre, en tienda o en la web, y se suman solos a los puntos de tu compra. Una vez al año.`}</small></span>${S.cumpleRecibido?'<span class="chip nodot">Recibido</span>':'<span class="chip v">Disponible</span>'}</div>
+   </div></div></section>
+  <section class="w-sec"><div class="w-sec-t"><h2>Tus cupones</h2><span class="c">${activos.length}</span></div>
+   <div class="cup-lista">${[...S.cupones].reverse().map(cuponCard).join('')}</div>
+   <p style="font-size:12.5px;color:var(--t65);margin-top:10px">${ic('info','s')} Un cupón dura 7 días y se usa una sola vez. Si vence, tus puntos vuelven a tu saldo.</p></section>
+  ${movimientos()}</div>`;
+}
+
+const MESES_L={ene:'Enero',feb:'Febrero',mar:'Marzo',abr:'Abril',may:'Mayo',jun:'Junio',jul:'Julio',ago:'Agosto',set:'Septiembre',oct:'Octubre',nov:'Noviembre',dic:'Diciembre'};
+const tipoMov=h=>h.t.startsWith('Compra')?'compra':h.t.startsWith('Regalo')?'cumple':h.t.startsWith('Canje')?'canje':h.t.startsWith('Cupón vencido')?'vence':'usado';
+const ICO_MOV={compra:'bag',cumple:'cake',canje:'ticket',vence:'undo',usado:'check'};
+const ETQ_MOV={compra:'Compra',cumple:'Regalo',canje:'Canje',vence:'Devueltos',usado:'Cupón usado'};
+function movimientos(){
+  // Saldo después de cada movimiento: se calcula hacia atrás desde el saldo de hoy.
+  let acum=S.saldo; const todos=S.hist.map(h=>{const o={...h,tipo:tipoMov(h),despues:acum};acum-=h.p;return o});
+  const ganados=todos.filter(h=>h.tipo==='compra'||h.tipo==='cumple').reduce((a,h)=>a+h.p,0);
+  const canjeados=todos.filter(h=>h.tipo==='canje').reduce((a,h)=>a-h.p,0);
+  const devueltos=todos.filter(h=>h.tipo==='vence').reduce((a,h)=>a+h.p,0);
+  const f=S.movFiltro;
+  const vis=todos.filter(h=>f==='todos'||(f==='ganados'&&h.p>0&&h.tipo!=='vence')||(f==='canjes'&&(h.tipo==='canje'||h.tipo==='usado'||h.tipo==='vence')));
+  const lista=S.movTodos?vis:vis.slice(0,6);
+  let mesAnt='',filas='';
+  for(const h of lista){
+    const m=MESES_L[h.f.split(' ')[1]]+' 2026';
+    if(m!==mesAnt){filas+=`<div class="mv-mes">${m}</div>`;mesAnt=m}
+    const pts=h.tipo==='usado'?'<span class="chip v">Usado</span>':`<b class="${h.p>0?'mas':'menos'}">${h.p>0?'+':'−'}${fmt(Math.abs(h.p))}</b>`;
+    filas+=`<div class="mv ${h.nuevo?'nuevo':''}"><span class="mv-i t-${h.tipo}">${ic(ICO_MOV[h.tipo])}</span><span class="mv-t"><b>${h.t.replace(/ · Tienda \w+/,'')}</b><small>${h.s}${/Tienda (\w+)/.test(h.t)?' · Tienda '+h.t.match(/Tienda (\w+)/)[1]:''}</small></span><span class="mv-e"><span class="chip nodot t-${h.tipo}">${ETQ_MOV[h.tipo]}</span><small>${h.f}</small></span><span class="mv-p">${pts}<small>saldo ${fmt(h.despues)}</small></span></div>`;
+  }
+  const fil=[['todos','Todos'],['ganados','Ganados'],['canjes','Canjes y devueltos']];
+  return `<section class="w-sec"><div class="w-sec-t"><h2>Movimientos de tus puntos</h2><span class="c">${S.hist.length}</span></div>
+   <div class="mres"><div><small>Ganaste</small><b class="mas">+${fmt(ganados)}</b><span>en compras y regalos</span></div><div><small>Canjeaste</small><b class="menos">−${fmt(canjeados)}</b><span>en cupones</span></div><div><small>Te devolvimos</small><b>+${fmt(devueltos)}</b><span>de cupones vencidos</span></div></div>
+   <div class="mv-fil" role="tablist">${fil.map(([v,t])=>`<button class="${f===v?'on':''}" onclick="A.movFiltro('${v}')">${t}</button>`).join('')}</div>
+   <div class="mov2">${filas||'<div class="mv-vacio">'+ic('search','m')+'<b>Nada por aquí todavía</b><small>Cuando canjees o te devolvamos puntos, aparece en esta lista.</small></div>'}${vis.length>6?`<button class="mv-mas" onclick="A.movMas()">${S.movTodos?'Ver menos':'Ver '+(vis.length-6)+' más'} ${ic(S.movTodos?'up':'down','s')}</button>`:''}</div></section>`;
+}
+function bolsa(){
+  const sub=90+39.9+129, ap=S.bolsaCupon, dto=ap?ap.valor:0, tot=sub-dto;
+  const activos=S.cupones.filter(c=>c.estado==='activo');
+  const item=(k,c)=>`<div class="bi"><div class="foto" style="background:${PRENDAS[k].c}">${PRENDAS[k].n[0]}</div><div><b style="font-weight:600">${PRENDAS[k].n}</b><div style="font-size:12.5px;color:var(--t65)">${PRENDAS[k].sku.split('-').slice(-2).join(' · ')}</div></div><b>${S2(PRENDAS[k].p)}</b></div>`;
+  let bloque='';
+  if(ap){bloque=`<div class="nota ok" style="display:flex;align-items:center;gap:8px">${ic('check','s')}<span>Cupón <b class="mono">${ap.codigo}</b> aplicado</span><button class="enl" style="margin-left:auto" onclick="A.bolsaQuitar()">Quitar</button></div>`}
+  else{
+    const dsp=activos.filter(c=>sub>=c.min);
+    bloque=`<div class="cin"><label class="campo">${ic('ticket','s')}<input id="bolsaIn" placeholder="CAY-XXXX-XXXX" maxlength="14" autocomplete="off" oninput="this.value=A.dar(this.value)" onkeydown="if(event.key==='Enter')A.bolsaUsar(this.value)"></label><button class="btn sec" onclick="A.bolsaUsar(document.getElementById('bolsaIn').value)">Aplicar</button></div>
+    <div id="bolsaMsg" style="font-size:12.5px;color:var(--rojo-p);margin-top:6px;min-height:18px"></div>
+    ${dsp.map(c=>`<button class="chipcup" onclick="A.bolsaUsar('${c.codigo}')">${ic('ticket','s')}<b class="mono">${c.codigo}</b><span>Usar · −${S2(c.valor)}</span></button>`).join('')}`;
+  }
+  return `<div class="t-pag"><div class="t-mig">Inicio › Bolsa</div><h1>Tu bolsa</h1><div class="bol"><div>${['blusa','polo','jean'].map(item).join('')}</div>
+   <aside class="res"><b style="font-weight:600">¿Tienes un cupón?</b>${bloque}
+    <div style="margin-top:16px"><div class="l"><span>Subtotal</span><span>${S2(sub)}</span></div>${ap?`<div class="l dto"><span>Cupón del Club</span><span>−${S2(dto)}</span></div>`:''}<div class="l tot"><span>Total</span><span>${S2(tot)}</span></div></div>
+    <p style="font-size:12.5px;color:var(--t65);margin-top:8px">${ic('star','s')} Con esta compra sumas <b>${fmt(Math.floor(tot*S.params.ptsPorSol))} puntos</b> (sobre lo que pagas).</p>${S.cumpleRecibido?'':`<div class="nota ok" style="display:flex;gap:8px;align-items:center">${ic('cake','s')}<span><b>Es tu mes de cumpleaños:</b> esta compra suma además <b>+${S.params.regaloCumple} puntos</b> de regalo.</span></div>`}
+    <button class="btn ancho" style="margin-top:12px">Ir a pagar ${ic('arrow','s')}</button></aside></div></div>`;
+}
+
+function hojaCanje(){
+  const max=maxCanje(), c=Math.min(S.canje,max), s=soles(c), min=Math.ceil(s*S.params.minCompraX);
+  const mal=S.saldo<S.params.minCanje;
+  return `<div class="hj" role="dialog" aria-label="Canjear puntos"><button class="x" onclick="A.cerrar()" aria-label="Cerrar">${ic('x')}</button>
+   <h3>Canjear puntos</h3><div class="baj">Conviértelos en un cupón con código.</div>
+   ${mal?`<div class="nota am">Necesitas al menos ${S.params.minCanje} puntos para canjear (${S2(soles(S.params.minCanje))}). Tienes ${fmt(S.saldo)}.</div>`:`
+   <div class="paso-c"><button onclick="A.canjeMenos()" ${c<=S.params.minCanje?'disabled':''} aria-label="Menos">${ic('minus')}</button><div class="v"><b>${S2(s)}</b><small>${fmt(c)} puntos</small></div><button onclick="A.canjeMas()" ${c>=max?'disabled':''} aria-label="Más">${ic('plus')}</button></div>
+   <div class="hechos"><div>Te quedan<span>${fmt(S.saldo-c)} puntos</span></div><div>Úsalo en compras desde<span>${S2(min)}</span></div><div>Vale<span>${S.params.vigencia} días · hasta el ${fechaVence()}</span></div><div>Si no lo usas<span>tus puntos vuelven</span></div></div>
+   <div class="nota">${ic('info','s')} Un solo cupón por compra. Si tocas dos veces, es el mismo cupón: tus puntos se descuentan una sola vez.</div>
+   <div class="pie"><button class="btn sec" onclick="A.cerrar()">Cancelar</button><button class="btn" onclick="A.crearCupon('web')">Crear cupón de ${S2(s)}</button></div>`}</div>`;
+}
+function hojaCupon(ver){
+  const c=ver?S.cupones.find(x=>x.codigo===ver):S.ultimo; if(!c)return'';
+  return `<div class="hj" role="dialog" aria-label="Tu cupón"><button class="x" onclick="A.cerrar()" aria-label="Cerrar">${ic('x')}</button>
+   <h3>${ver?'Tu cupón':'Listo, aquí está tu cupón'}</h3><div class="baj">Enséñalo en la caja de cualquier tienda o úsalo al pagar online.</div>
+   <div class="cupg"><div class="arr"><small>Cupón CAYLA</small><b>${S2(c.valor)}</b><div style="font-size:13px;color:var(--t65)">en compras desde ${S2(c.min)}</div></div><div class="corte"></div>
+    <div class="ab"><div class="code"><small class="lbl" style="color:var(--t65)">Tu código</small><span class="mono">${c.codigo}</span><div style="font-size:12.5px;color:var(--t65);margin-top:4px">Vence el ${c.vence}${c.dias?` · te quedan ${c.dias} días`:''}</div></div>${qr(c.codigo)}</div></div>
+   <div class="nota ok">${ic('check','s')} Si no lo usas hasta el ${c.vence}, tus <b>${fmt(c.pts)} puntos</b> vuelven a tu saldo.</div>
+   <div class="pie"><button class="btn sec" onclick="A.copiar('${c.codigo}')" id="btnCopiar">${S.copiado?ic('check')+' ¡Copiado!':ic('copy')+' Copiar código'}</button><button class="btn" onclick="A.set('t','bolsa');A.cerrar()">Usarlo en mi bolsa</button></div></div>`;
+}
+
+/* =========================== CAJA =========================== */
+function caja(){
+  const C=S.caja, bruto=sumaCaja(), dCup=C.cuponAp?C.cuponAp.valor:0, total=Math.max(0,bruto-dCup), bono=(C.quien==='duena'&&C.cliente&&!S.cumpleRecibido)?S.params.regaloCumple:0;
+  const gana=C.cliente?Math.floor(total*S.params.ptsPorSol):0;
+  const hay=C.items.length>0;
+  const amiga=C.quien==='amiga';
+  const cli=C.cliente?`<div class="caja"><div class="ca1"><span class="av">${amiga?'A':'L'}</span><div class="tx"><b>${amiga?'Ana Torres Díaz':'Lucía Paredes Quispe'}</b><small>${amiga?'DNI 71•••••• · 9•• ••• 508':'DNI 45•••••• · 9•• ••• 214'}</small></div><span class="chip nodot">Miembro</span></div>
+    ${amiga?`<div class="fl">${ic('cake')}<span class="tx"><b>Cumple el 14 de marzo</b><small>Este mes no es su cumpleaños</small></span></div>
+    <div class="fl">${ic('star')}<span class="tx"><b>${fmt(S.caja.amiga)} puntos</b> · valen ${S2(soles(S.caja.amiga))}<small>Aún no llega a ${S.params.minCanje} para canjear</small></span><button class="bch pri" disabled>Usar puntos</button></div></div>`
+    :`<div class="fl">${ic('cake')}<span class="tx"><b>Cumple este mes</b> · +${S.params.regaloCumple} puntos de regalo<small>${S.cumpleRecibido?'Ya recibido este año':'Se suman solos al cobrar esta compra'}</small></span>${S.cumpleRecibido?'<span class="chip nodot">Recibido</span>':'<span class="chip v">Al cobrar</span>'}</div>
+    <div class="fl">${ic('star')}<span class="tx"><b>${fmt(S.saldo)} puntos</b> · valen ${S2(soles(S.saldo))}<small>Crea un cupón al instante · no vencen</small></span><button class="bch pri" ${S.saldo<S.params.minCanje||C.cuponAp||!hay?'disabled':''} onclick="A.abrir('usar')">Usar puntos</button></div></div>`}`
+    :`<button class="vacio">${ic('user','s')} Agregar cliente <span style="margin-left:auto;font-size:11px;opacity:.7">Documento, celular o nombre · opcional</span></button>`;
+  const lineas=C.items.map(k=>`<div class="it"><div class="r1"><div><h5>${PRENDAS[k].n}</h5><div class="sku">${PRENDAS[k].sku}</div></div><span class="imp">${S2c(PRENDAS[k].p)}</span></div></div>`).join('')
+   +(C.cuponAp?`<div class="it dto"><div class="r1"><div><h5>${ic('ticket','s')} Cupón del Club · ${C.cuponAp.codigo}</h5><div class="sku">${C.cuponAp.origen==='caja'?'Puntos canjeados en caja':(amiga?'Cupón de Lucía P. · lo usa otra persona':'Canjeado en la tienda web')} · <button class="enl" style="font-size:11.5px" onclick="A.quitarCupon()">Quitar</button></div></div><span class="imp">−${S2c(dCup)}</span></div></div>`:'');
+  const cat=['blusa','polo','jean','blusa','polo','jean','blusa','polo'].map(k=>`<div class="card"><div class="foto" style="background:${PRENDAS[k].c}">${PRENDAS[k].n[0]}</div><h4>${PRENDAS[k].n}</h4><div class="co">${PRENDAS[k].sku.split('-').slice(-1)}</div><div class="pr">${S2c(PRENDAS[k].p)}</div></div>`).join('');
+  return `<div class="erp"><div class="top">${ic('clock','s')} ACTIVIDAD <span class="sede">TIENDA TRU</span></div>
+  <div class="pos"><section class="cat"><span class="lbl lugar">Venta en tienda · Tienda TRU</span><div class="busca">${ic('bar')} Escanea la etiqueta, o el QR de un cupón</div><div class="grid">${cat}</div></section>
+  <aside class="tk"><div class="tk-cab">${ic('bag','l')}<h3>Ticket actual</h3></div><div class="cli">${cli}</div>
+   <div class="items">${hay?lineas:'<div class="it" style="color:var(--t65)">El ticket está vacío. Escanea una prenda.</div>'}</div>
+   <div class="acc"><button>${ic('pct','s')} Aplicar descuento</button><button class="cod" onclick="A.abrir('codigo')" ${hay?'':'disabled'}>${ic('ticket','s')} Código de cupón</button><button style="margin-left:auto">${ic('pause','s')} Dejar en espera</button></div>
+   <div class="tpie"><div class="tot"><div class="d">${C.items.length} prendas${dCup?`<br>Cupón −${S2c(dCup)}`:''}<br>${C.cliente?`<span class="gana">${ic('star','s')} ${amiga?'Ana':'Lucía'} gana ${fmt(gana)} puntos con esta compra</span>${bono?`<br><span class="gana">${ic('cake','s')} +${bono} de cumpleaños</span>`:''}`:`<span class="gana no">Sin identificar no suma puntos · el cupón vale igual</span>`}</div><div class="g"><div class="lbl" style="color:var(--t65);font-size:10px">Total a pagar</div><div class="v">${S2c(total)}</div></div></div>
+   <button class="cobrar" ${hay?'':'disabled'} onclick="A.cobrar()">${ic('wallet')} Cobrar <b>${S2c(total)}</b></button></div></aside></div></div>`;
+}
+
+function hojaCodigo(){
+  const C=S.caja, bruto=sumaCaja(), r=C.res, bloqueado=C.fallos>=5;
+  const e=C.entrada;
+  let resHtml='', cls='';
+  if(bloqueado){cls='mal';resHtml=`<div class="nota mal">${ic('lock','s')} Demasiados intentos con códigos que no existen. Los códigos están bloqueados 5 minutos en esta caja. Puedes seguir vendiendo.</div>`}
+  else if(r){
+    if(r.estado==='ok'){cls='bien';const c=r.cupon;resHtml=`<div class="res-cup"><b class="v">${S2(c.valor)}</b><div style="flex:1;min-width:0"><b style="font-weight:600">Cupón válido</b><div style="font-size:12.5px;color:var(--t65)">De Lucía P. · ${c.gen==='hoy'?'creado hoy':'creado el '+c.gen} · vence el ${c.vence}<br><b style="font-weight:600;color:var(--tinta)">Lo puede usar cualquier persona, una sola vez.</b></div></div><button class="btn" onclick="A.aplicarCupon('${c.codigo}')">Aplicar al ticket</button></div>`}
+    else{cls='mal';const m={
+      noexiste:['No encontramos ese código','Revisa que esté completo (CAY-XXXX-XXXX).'],
+      vencido:['Este cupón venció el '+(r.cupon||{}).vence,'Los puntos ya volvieron al saldo del cliente. Puede crear otro cupón.'],
+      usado:['Este cupón ya se usó',(r.cupon||{}).usadoEn||''],
+      minimo:['La compra no llega al mínimo del cupón',r.cupon?`Pide una compra de ${S2(r.cupon.min)} o más. El ticket va en ${S2(bruto)}; faltan ${S2(+(r.cupon.min-bruto).toFixed(2))}.`:'']}[r.estado];
+      resHtml=`<div class="nota ${r.estado==='noexiste'?'mal':'am'}"><b>${m[0]}.</b> ${m[1]}</div>`}
+  }
+  const pruebas=[['Válido ahora',(S.cupones.find(c=>c.estado==='activo')||{}).codigo||'',!S.cupones.some(c=>c.estado==='activo')],['Vencido','CAY-3M7P-A4QX'],['Ya usado','CAY-9ZK2-77HD'],['No existe','CAY-ZZZZ-0000']];
+  return `<div class="hj" role="dialog" aria-label="Código de cupón"><button class="x" onclick="A.cerrar()" aria-label="Cerrar">${ic('x')}</button>
+   <h3>Código de cupón</h3><div class="baj">Escríbelo o escanea el QR del cliente.</div>
+   <div class="entrada ${cls}">${ic('ticket','m')}<input id="cin" value="${e}" placeholder="CAY-XXXX-XXXX" maxlength="14" autocomplete="off" ${bloqueado?'disabled':''} oninput="A.escribe(this.value)" onkeydown="if(event.key==='Enter')A.validar()"><button class="btn chico" onclick="A.validar()" ${bloqueado?'disabled':''}>Validar</button></div>
+   <div id="resCod">${resHtml}</div>
+   <div class="prueba"><small>Solo para probar la maqueta</small>${pruebas.map(([t,c,d])=>d?'':`<button onclick="A.probar('${c}')">${t}</button>`).join('')}</div>
+   <div class="nota">${ic('info','s')} Los intentos con códigos inexistentes se cuentan (${C.fallos} de 5): así nadie puede adivinar cupones probando en la caja.</div></div>`;
+}
+function hojaUsar(){
+  const C=S.caja, bruto=sumaCaja(), max=maxCanje(), tope=Math.floor(bruto/S.params.minCompraX/ S.params.solesPor100)*100*1; // pts máx por mínimo de compra
+  const maxPts=Math.min(max,Math.floor(bruto/S.params.minCompraX/S.params.solesPor100)*100);
+  const c=Math.max(S.params.minCanje,Math.min(S.canje,maxPts)), s=soles(c);
+  const ok=maxPts>=S.params.minCanje;
+  return `<div class="hj" role="dialog" aria-label="Usar puntos"><button class="x" onclick="A.cerrar()" aria-label="Cerrar">${ic('x')}</button>
+   <h3>Usar puntos en esta compra</h3><div class="baj">Se crea un cupón de Lucía y se aplica al ticket.</div>
+   ${ok?`<div class="paso-c"><button onclick="A.canjeMenos()" ${c<=S.params.minCanje?'disabled':''} aria-label="Menos">${ic('minus')}</button><div class="v"><b>${S2(s)}</b><small>${fmt(c)} puntos</small></div><button onclick="A.canjeMas()" ${c>=maxPts?'disabled':''} aria-label="Más">${ic('plus')}</button></div>
+   <div class="hechos"><div>Compra del ticket<span>${S2c(bruto)}</span></div><div>Máximo para esta compra<span>${S2(soles(maxPts))} (${S.params.minCompraX}× el cupón)</span></div><div>Le quedan<span>${fmt(S.saldo-c)} puntos</span></div></div>
+   <div class="pie"><button class="btn sec" onclick="A.cerrar()">Cancelar</button><button class="btn" onclick="A.crearCupon('caja')">Aplicar ${S2(s)}</button></div>`
+   :`<div class="nota am">Con una compra de ${S2c(bruto)} el cupón más chico (${S2(soles(S.params.minCanje))}) pide al menos ${S2(soles(S.params.minCanje)*S.params.minCompraX)}. Agrega prendas al ticket.</div>`}</div>`;
+}
+function hojaCobrado(){
+  const k=S.caja.cobro; if(!k)return '';
+  return `<div class="hj" role="dialog" aria-label="Venta cobrada"><h3>Venta cobrada</h3><div class="baj">Boleta B004-000${231} · ${S2c(k.total)}</div>
+   <div class="hechos"><div>Pagó<span>${S2c(k.total)}</span></div>${k.cupon?`<div>Cupón usado<span>${k.cupon} · −${S2c(k.dcup)}</span></div>`:''}${k.bono?`<div>Regalo de cumpleaños<span>+${k.bono} puntos</span></div>`:''}</div>
+   ${k.cliente?`<div class="nota ok">${ic('star','s')} <b>${k.quien==='amiga'?'Ana':'Lucía'} ganó ${fmt(k.gana+(k.bono||0))} puntos</b>${k.bono?` (${fmt(k.gana)} de la compra y ${k.bono} de cumpleaños)`:''}. Su saldo ahora es <b>${fmt(k.quien==='amiga'?S.caja.amiga:S.saldo)}</b> (${S2(soles(k.quien==='amiga'?S.caja.amiga:S.saldo))}).</div>${k.quien==='amiga'&&k.cupon?`<div class="nota">${ic('ticket','s')} El cupón era de Lucía: queda <b>usado</b> y a ella le llega el aviso «tu cupón se usó». No se le quitan puntos otra vez.</div>`:''}`:`<div class="nota am">Sin cliente identificado: esta compra no sumó puntos. Se pudo identificar antes de cobrar.</div>`}
+   <div class="pie"><button class="btn sec" onclick="A.irPaso(5)">${k.quien==='amiga'?'Ver lo que ve Lucía en la tienda':'Ver su saldo en la tienda web'}</button><button class="btn" onclick="A.nuevaVenta()">Nueva venta</button></div></div>`;
+}
+
+/* =========================== LÍDER =========================== */
+function lider(){
+  const P=S.params, ret=(P.solesPor100/100)/P.ptsPorSol*100;
+  const circ=184300, deuda=Math.floor(circ/100)*P.solesPor100;
+  return `<div class="lid"><div style="font-size:11px;letter-spacing:.13em;color:var(--taupe);font-weight:600">CLIENTES ▸ BENEFICIOS DEL CLUB</div><h1>Beneficios del club</h1>
+  <div class="menuc"><span>Fichas</span><span>Avisos</span><span class="on">Beneficios del club <i>Nuevo</i></span></div>
+  <p class="t-sub" style="color:var(--t65)">Aquí se configura el programa de puntos. Los números cambian en todas las pantallas sin pedir un deploy (pruébalo: cambia «100 puntos valen» y vuelve a la tienda). Reemplaza la hoja «Beneficios del club» que hoy vive dentro de Avisos.</p>
+  <div class="cifras"><div class="cifra"><small>Puntos en circulación</small><b>${fmt(circ)}</b><span>de 1,412 clientes</span></div>
+   <div class="cifra"><small>Lo que debes en puntos</small><b>${S2(deuda)}</b><span>si todos los canjearan hoy</span></div>
+   <div class="cifra"><small>Canjeado este mes</small><b>S/ 1,340</b><span>en 61 cupones</span></div>
+   <div class="cifra"><small>Cupones activos</small><b>23</b><span>S/ 640 por usar</span></div></div>
+  <div class="cuad"><div class="tarjeta"><h2>Cómo se ganan y se canjean</h2>
+   ${par('Puntos por cada S/ 1 pagado','Sobre lo que de verdad paga, ya descontado.','ptsPorSol','pts')}
+   ${par('100 puntos valen','Soles de descuento por cada 100 puntos.','solesPor100','S/')}
+   ${par('Canje mínimo','Menos que esto no se puede canjear.','minCanje','pts')}
+   ${par('Compra mínima del cupón','Veces el valor del cupón. Evita que cubra la compra entera.','minCompraX','×')}
+   ${par('Vigencia del cupón','Si vence, los puntos vuelven al cliente.','vigencia','días')}
+   ${par('Regalo de cumpleaños','Puntos que recibe una vez al año, con su primera compra de su mes.','regaloCumple','pts')}
+   ${par('Tope de costo del Club','Lo máximo que quieres devolver en puntos, como % de lo que compra el cliente.','topeCosto','%')}
+   <div class="par"><span><b>Años sin compras para eliminar la ficha</b><small>Fijo: lo dicen los términos (5.7). Cambiarlo exige cambiar los términos.</small></span><span class="caj fijo"><b>3</b><span>años</span></span></div>
+   <div class="nota am" style="margin-top:12px">${ic('info','s')} <b>Cambiar lo que valen los puntos o el canje toca lo que los clientes ya ganaron.</b> Esos cambios rigen desde dentro de <b>15 días</b> (${fechaEn(15)}) y se avisa a los clientes; los demás rigen desde hoy. Queda registrado quién lo cambió y cuándo.</div></div>
+   <div><div class="tarjeta"><h2>Lo que le devuelves al cliente</h2><div style="font-family:'EB Garamond',serif;font-size:56px;line-height:1">${ret.toFixed(1).replace('.0','')} %</div>
+    <div style="color:var(--t65);font-size:13px">nominal, sobre lo que paga. El costo real es menor: parte de los puntos nunca se canjea.</div>
+    <div class="ejemplo">Una compra de <b>S/ 200</b> gana <b>${200*P.ptsPorSol} puntos</b>. Valen <b>${S2(soles(200*P.ptsPorSol))}</b> de descuento, canjeables desde ${fmt(P.minCanje)} puntos.</div>
+    <div class="nota am" style="margin-top:12px">${ic('info','s')} Tu tope de costo es <b>${P.topeCosto} %</b>. Con estos números, el nominal está ${ret>P.topeCosto?'<b>por encima</b>':'dentro'} de ese tope. Decide con datos reales de canje después del primer mes.</div></div>
+    <div class="tarjeta" style="margin-top:14px"><h2>Cambios recientes <span class="chip nodot">ejemplo inventado</span></h2>
+     <div class="hechos" style="margin-top:8px"><div>Vigencia del cupón 14 → 7 días<span>12 oct · Felipe</span></div><div>Canje mínimo 100 → 200 puntos<span>2 oct · Felipe</span></div><div>Tope de costo 3 → 2 %<span>2 oct · Felipe</span></div></div></div>
+    <div class="tarjeta" style="margin-top:14px"><h2>De dónde sale cada punto</h2><div class="sem"><i style="width:88%;background:var(--verde)"></i><i style="width:4%;background:var(--pizarra)"></i><i style="width:8%;background:var(--ambar)"></i></div>
+     <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;margin-top:8px;color:var(--t80)"><span>● <span style="color:var(--verde)">Compras</span> 88 %</span><span>● <span style="color:var(--pizarra)">Cumpleaños</span> 4 %</span><span>● <span style="color:var(--ambar)">Devueltos por cupón vencido</span> 8 %</span></div></div></div></div></div>`;
+}
+function par(t,s,k,u){return `<div class="par"><span><b>${t}</b><small>${s}</small></span><label class="caj"><input inputmode="decimal" value="${S.params[k]}" onchange="A.param('${k}',this.value)" aria-label="${t}"><span>${u}</span></label></div>`}
+
+/* =========================== acciones =========================== */
+const A={
+ set(k,v){S[k]=v;if(k==='vista'||k==='t')S.hoja=null;pinta()},
+ prendas(n){S.caja.items=n===1?['polo']:['blusa','polo','jean'];S.caja.cuponAp=null;S.caja.res=null;pinta()},
+ quien(q){const C=S.caja;C.quien=q;C.cliente=q!=='nadie';C.cuponAp&&C.cuponAp.origen==='caja'&&q!=='duena'&&A.quitarCupon();pinta()},
+ tema(){const r=document.documentElement;r.dataset.tema=r.dataset.tema==='oscuro'?'claro':'oscuro';pinta()},
+ movFiltro(v){S.movFiltro=v;S.movTodos=false;pinta()},
+ movMas(){S.movTodos=!S.movTodos;pinta()},
+ aviso(t){let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#171614;color:#f5f0e8;padding:10px 16px;border-radius:12px;font-size:13px;z-index:300;max-width:90vw;text-align:center';document.body.appendChild(e)}e.textContent=t;e.style.display='block';clearTimeout(A._t);A._t=setTimeout(()=>e.style.display='none',3800)},
+ pasanDias(){let n=0;S.cupones.forEach(c=>{if(c.estado==='activo'){c.estado='vencido';S.saldo+=c.pts;n++;S.hist.unshift({f:c.vence,t:'Cupón vencido · tus puntos volvieron',s:c.codigo,p:c.pts,nuevo:true})}});A.aviso(n?'Pasaron 8 días: '+n+' cupón(es) vencieron y sus puntos volvieron al saldo.':'No hay cupones activos que vencer.');pinta()},
+ dobleToque(){if(S.vista!=='tienda'){A.set('vista','tienda')}A.set('t','perfil');A.abrir('canje');const antes=S.saldo,n=S.cupones.length;A.crearCupon('web');A.crearCupon('web');A.aviso('2 toques → '+(S.cupones.length-n)+' cupón · puntos descontados: '+fmt(antes-S.saldo)+' (una sola vez)')},
+ reiniciar(){const d=S.dev,t=document.documentElement.dataset.tema;S=INICIAL();S.dev=d;pinta()},
+ irPaso(i){const p=PASOS[i];S.paso=i;S.vista=p.v;S.t=p.s;S.hoja=null;
+   if(p.h==='canje'||p.h==='cupon'){if(p.h==='cupon'&&!S.ultimo){const c=A._crear('web',true);}S.hoja=p.h}
+   if(p.h==='codigo'){if(!S.ultimo)A._crear('web',true);S.caja.cuponAp=null;S.caja.res=null;S.caja.entrada='';S.hoja='codigo'}
+   if(i===4){S.caja.items=['blusa','polo','jean'];if(!S.caja.cuponAp){const c=S.ultimo||A._crear('web',true);A._aplicar(c.codigo)}}
+   if(i===5){S.t='perfil';}
+   pinta()},
+ abrir(h,o){S.hoja=h;S.ver=o?o.ver:null;if(h==='codigo'){S.caja.entrada='';S.caja.res=null}if(h==='canje'||h==='usar'){S.token=(S.token||0)+1;S.canje=Math.max(S.params.minCanje,Math.min(S.canje,maxCanje()))}pinta()},
+ cerrar(){S.hoja=null;S.ver=null;pinta()},
+ canjeMas(){S.canje=Math.min(maxCanje(),S.canje+100);pinta()},
+ canjeMenos(){S.canje=Math.max(S.params.minCanje,S.canje-100);pinta()},
+ _crear(origen,silencioso){
+   const mx=origen==='caja'?Math.min(maxCanje(),Math.floor(sumaCaja()/S.params.minCompraX/S.params.solesPor100)*100):maxCanje();
+   const pts=Math.max(S.params.minCanje,Math.min(S.canje,mx)), valor=soles(pts);
+   const c={codigo:nuevoCodigo(),valor,pts,min:Math.ceil(valor*S.params.minCompraX),gen:'hoy',vence:fechaVence(),dias:S.params.vigencia,estado:'activo',origen};
+   S.saldo-=pts;S.cupones.push(c);S.ultimo=c;
+   S.hist.unshift({f:HOY.split(' ')[0]+' oct',t:'Canje · cupón de '+S2(valor),s:c.codigo,p:-pts,nuevo:true});
+   return c},
+ crearCupon(origen){
+   // Un toque, un cupón: la hoja trae una clave propia; repetirla (doble toque, reintento, otra pestaña) devuelve el MISMO cupón.
+   if(S.tokenUsado===S.token&&S.ultimo){A.aviso('Ya estaba creado: es el mismo cupón. Tus puntos se descontaron una sola vez.');if(origen==='web'){S.hoja='cupon';S.ver=null;pinta()}return S.ultimo}
+   S.tokenUsado=S.token;const c=A._crear(origen);
+   if(origen==='caja'){A._aplicar(c.codigo);S.hoja=null}else{S.hoja='cupon';S.ver=null}
+   pinta()},
+ async copiar(code){try{await navigator.clipboard.writeText(code)}catch(e){}S.copiado=true;pinta();setTimeout(()=>{S.copiado=false;pinta()},1600)},
+ dar(v){let s=v.toUpperCase().replace(/[^A-Z0-9]/g,'');if(s.startsWith('CAY'))s=s.slice(3);s=s.slice(0,8);return s?'CAY-'+(s.length>4?s.slice(0,4)+'-'+s.slice(4):s):''},
+ escribe(v){const nv=A.dar(v);S.caja.entrada=nv;S.caja.res=null;const i=document.getElementById('cin');if(i)i.value=nv;document.getElementById('resCod').innerHTML=''},
+ probar(c){S.caja.entrada=c;S.caja.res=null;A.validar()},
+ validar(){
+   const C=S.caja, code=(C.entrada||'').trim(); if(!code){pinta();return}
+   const cup=S.cupones.find(c=>c.codigo===code), bruto=sumaCaja();
+   if(!cup){C.fallos++;C.res={estado:'noexiste'}}
+   else if(cup.estado==='vencido')C.res={estado:'vencido',cupon:cup};
+   else if(cup.estado==='usado')C.res={estado:'usado',cupon:cup};
+   else if(C.cuponAp&&C.cuponAp.codigo===cup.codigo)C.res={estado:'usado',cupon:{usadoEn:'este mismo ticket'}};
+   else if(bruto<cup.min)C.res={estado:'minimo',cupon:cup};
+   else C.res={estado:'ok',cupon:cup};
+   pinta();const i=document.getElementById('cin');if(i){i.focus();i.setSelectionRange(99,99)}},
+ _aplicar(code){const c=S.cupones.find(x=>x.codigo===code);S.caja.cuponAp={codigo:c.codigo,valor:c.valor,origen:c.origen||'web'};c.estado='aplicado'},
+ aplicarCupon(code){A._aplicar(code);S.hoja=null;S.caja.res=null;pinta()},
+ quitarCupon(){const a=S.caja.cuponAp;if(!a)return;const c=S.cupones.find(x=>x.codigo===a.codigo);if(c)c.estado='activo';S.caja.cuponAp=null;pinta()},
+ cobrar(){
+   const C=S.caja,bruto=sumaCaja(),dcup=C.cuponAp?C.cuponAp.valor:0,total=Math.max(0,bruto-dcup),bono=(C.quien==='duena'&&C.cliente&&!S.cumpleRecibido)?S.params.regaloCumple:0,gana=C.cliente?Math.floor(total*S.params.ptsPorSol):0;
+   if(C.cliente&&gana>0){if(C.quien==='amiga')C.amiga+=gana;else{S.saldo+=gana;S.hist.unshift({f:'19 oct',t:'Compra B004-000231 · Tienda TRU',s:S2c(total)+' pagados',p:gana,nuevo:true})}}
+   if(bono){S.saldo+=bono;S.cumpleRecibido=true;S.hist.unshift({f:'19 oct',t:'Regalo de cumpleaños',s:'Tu primera compra de tu mes',p:bono,nuevo:true})}
+   if(C.cuponAp&&C.quien!=='duena')S.hist.unshift({f:'19 oct',t:'Tu cupón lo usó otra persona',s:C.cuponAp.codigo+' · Tienda TRU',p:0,nuevo:true});
+   if(C.cuponAp){const c=S.cupones.find(x=>x.codigo===C.cuponAp.codigo);if(c){c.estado='usado';c.usadoEn='hoy · Tienda TRU · B004-000231'}}
+   C.cobro={total,gana,bono,dcup,cupon:C.cuponAp?C.cuponAp.codigo:null,cliente:C.cliente,quien:C.quien};S.hoja='cobrado';pinta()},
+ nuevaVenta(){const C=S.caja;C.cuponAp=null;C.res=null;C.entrada='';C.cobro=null;S.hoja=null;pinta()},
+ bolsaUsar(v){const code=A.dar(v||''),c=S.cupones.find(x=>x.codigo===code),sub=258.9;let m='';
+   if(!c)m='No encontramos ese cupón.';else if(c.estado==='usado')m='Ese cupón ya se usó.';else if(c.estado==='vencido')m='Ese cupón venció.';else if(sub<c.min)m=`Este cupón pide una compra de ${S2(c.min)} o más.`;
+   if(m){const e=document.getElementById('bolsaMsg');if(e)e.textContent=m;return}
+   S.bolsaCupon={codigo:c.codigo,valor:c.valor};pinta()},
+ bolsaQuitar(){S.bolsaCupon=null;pinta()},
+ param(k,v){const n=parseFloat(String(v).replace(',','.'));if(isFinite(n)&&n>0){S.params[k]=(k==='solesPor100'||k==='topeCosto')?n:Math.round(n);S.canje=Math.max(S.params.minCanje,S.canje)}pinta()}
+};
+
+/* =========================== dibujo =========================== */
+function pantalla(){
+  if(S.vista==='tienda'){
+    const cuerpo=S.t==='bolsa'?bolsa():perfil();
+    const hoja=S.hoja==='canje'?hojaCanje():S.hoja==='cupon'?hojaCupon(S.ver):'';
+    return {html:`<div class="tienda">${cabTienda()}${cuerpo}</div>`,hoja};
+  }
+  if(S.vista==='caja'){
+    const hoja=S.hoja==='codigo'?hojaCodigo():S.hoja==='usar'?hojaUsar():S.hoja==='cobrado'?hojaCobrado():'';
+    return {html:caja(),hoja};
+  }
+  return {html:`<div class="tienda erp">${lider()}</div>`,hoja:''};
+}
+let lastHoja=null,lastK=null;
+function pinta(){
+  barra();
+  const sc=document.querySelector('.pant'), y=sc?sc.scrollTop:0, yTipo=sc?sc.dataset.k:null;
+  const {html,hoja}=pantalla();
+  const k=S.vista+S.t+S.dev;
+  // La animación de entrada solo corre al abrir la hoja o al cambiar de pantalla, no en cada toque de «+» o «−».
+  const quieta=(S.hoja&&S.hoja===lastHoja?' q-hoja':'')+(k===lastK?' q-vista':'');
+  lastHoja=S.hoja;lastK=k;
+  const velo=hoja?`<div class="velo" onclick="if(event.target===this)A.cerrar()">${hoja}</div>`:'';
+  const inner=`<div class="pant" data-k="${k}">${html}</div>${velo}`;
+  const marco=S.dev==='celular'?`<div class="tel"><div class="marco cel${quieta}">${inner}</div></div>`:`<div class="sx"><div class="marco desk${quieta}">${inner}</div></div>`;
+  document.getElementById('esc').innerHTML=marco;
+  const n=document.querySelector('.pant');if(n&&yTipo===k)n.scrollTop=y;
+  const i=document.getElementById('cin');if(i&&S.hoja==='codigo'&&S.caja.fallos<5){i.focus();i.setSelectionRange(99,99)}
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.hoja)A.cerrar()});
+A.irPaso(0);
+</script>
+</body>
+</html>

@@ -101,6 +101,15 @@ export default async function Separado({ params }: { params: Promise<{ numero: s
               <PrendaDelPedido key={`${l.varianteId}-${i}`} linea={l} />
             ))}
             <div className="w-resumen">
+              {/* El cupón del Club que quedó reservado para este pedido (20261019224000): se usa cuando lo pagues. */}
+              {p.cupon && p.cupon.descuento > 0 && (
+                <div>
+                  <span>
+                    Cupón <span className="t-codigo">{p.cupon.codigo}</span>
+                  </span>
+                  <span className="num t-ahorro">−{soles(p.cupon.descuento)}</span>
+                </div>
+              )}
               <div className="tot">
                 <span>Total</span>
                 <span className="num">{soles(p.total)}</span>
