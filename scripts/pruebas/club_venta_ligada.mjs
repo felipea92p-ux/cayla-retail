@@ -508,7 +508,7 @@ caso(
 // d. CL-27: sus compras anteriores pasan a su ficha
 // =====================================================================================================================
 caso(
-  "(d) registrar con DNI liga la venta anterior sin clienta con boleta a ese DNI; no mueve la que ya era de otra ficha, ni la de otro DNI, ni la que no llevó comprobante",
+  "(d) registrar con DNI YA NO liga la venta anterior con boleta a ese DNI (CL-27 retirado, 2026-10-19): ninguna boleta anterior pasa a la ficha nueva, y la que ya era de otra ficha sigue siendo suya",
   SEDE() + como(FELIPE) +
     ALTA("otra", { nombre: "Club Otra Ficha", celular: "987880701" }) +
     VENDER("v_suya", { tipoDoc: "'dni'", num: "'90880701'" }) +
@@ -517,26 +517,27 @@ caso(
     VENDER("v_sin_doc") +
     ALTA("nueva", { numero: "90880701", nombre: "Club Ligada Prueba" }) +
     `reset role;
-select (select cliente_id = :'nueva'::uuid from retail.ventas where id::text = :'v_suya'),
+select (select cliente_id is null from retail.ventas where id::text = :'v_suya'),
        (select cliente_id = :'otra'::uuid from retail.ventas where id::text = :'v_de_otra'),
        (select cliente_id is null from retail.ventas where id::text = :'v_otro_dni'),
        (select cliente_id is null from retail.ventas where id::text = :'v_sin_doc');
 select count(*), max(a.detalle ->> 'ventas_ligadas'), bool_and(a::text !~* '(90880701|ligada prueba)')
   from retail.actividad a where a.modulo = 'clientas' and a.accion = 'ligar_ventas' and a.registro_id = :'nueva';
 `,
-  "t|t|t|t\n1|1|t"
+  // El ligado retroactivo se retiró (actividad 11 de los puntos): la ficha nueva empieza sin historia y no anota «ligar_ventas».
+  "t|t|t|t\n0||"
 );
 caso(
-  "(d) corregir el documento en la ficha también liga la venta anterior con ese DNI (y la actividad de editar dice cuántas)",
+  "(d) corregir el documento en la ficha tampoco liga la venta anterior con ese DNI (CL-27 retirado): la venta sigue sin clienta y la actividad de editar dice 0",
   SEDE() + como(FELIPE) +
     ALTA("e", { nombre: "Club Editada Prueba", celular: "987880801" }) +
     VENDER("venta", { tipoDoc: "'dni'", num: "'90880801'" }) +
     `select retail.editar_clienta(:'e', 'dni', '90880801', 'Club Editada Prueba', '987880801', null, null, null, null, null) as _v \\gset
 reset role;
-select (select cliente_id = :'e'::uuid from retail.ventas where id::text = :'venta'),
+select (select cliente_id is null from retail.ventas where id::text = :'venta'),
        (select detalle ->> 'ventas_ligadas' from retail.actividad where modulo = 'clientas' and accion = 'editar' and registro_id = :'e');
 `,
-  "t|1"
+  "t|0"
 );
 caso(
   "(d) corregirlo al documento de OTRA ficha: documento_de_otra_ficha, y no cambia nada; el mismo número con otro tipo sí se puede",

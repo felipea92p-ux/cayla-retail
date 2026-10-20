@@ -77,6 +77,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         personaSesionId={persona.personaId}
         esAdmin={persona.esAdmin}
         nombreSesion={persona.nombre}
+        firmaRespaldo={persona.firmaRespaldo}
       >
         {/* Service worker, copias por persona y aviso «sin conexión / copia guardada» (ADR-0210). `generadoEn` sella
             esta carga: en una copia servida sin red, es la hora de la copia. */}

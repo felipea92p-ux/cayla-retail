@@ -248,6 +248,8 @@ update retail.conteo_items set movimiento_id = :'m5' where id = :'ci';
 insert into retail.conteo_items (conteo_id, variante_id, cantidad_sistema, cantidad_contada) values (:'conteo', :'o1', 5, 5) returning id as ci_otro \\gset
 -- Un pedido que no se pudo atender.
 insert into retail.pedidos_no_atendidos (ubicacion_id, producto_id) values (:'ubic', :'prod');
+-- Su fila de la vitrina de la tienda online: un producto nuevo ya nace con ella (ADR-0457); sin la purga conociéndola, la frenaría.
+insert into retail.vitrina_productos (producto_id, publicado, publicado_en) values (:'prod', true, now()) on conflict (producto_id) do nothing;
 -- Dos renglones de la libreta de «Ya decidí» (Frescura del piso, ADR-0208 paso 4b): la purga la conoce, la respalda y la
 -- devuelve; sin esto, un producto decidido pararía la purga («otra parte del sistema todavía lo usa»).
 insert into retail.frescura_decisiones (ubicacion_id, producto_id, color_codigo, accion, plazo_dias, persona_id, token_cliente)

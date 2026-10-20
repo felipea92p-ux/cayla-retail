@@ -31,6 +31,8 @@ import { detalleDeLaPrenda, nombreTienda } from "@/lib/pedidos";
 import { claveDeSede, sedesEnOrden } from "@/lib/sede-elegida";
 import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
+import { cuponDicho } from "@/lib/puntos";
+import { leerMisPuntosEnBase } from "@/lib/puntos-servidor";
 import { notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../estilos/catalogo.css";
@@ -106,7 +108,15 @@ export default async function Bolsa() {
   }
 
   // Los plazos de las promesas del resumen (la misma lectura de la ayuda) van junto con la bolsa: una sola espera.
-  const [enBase, plazos] = await Promise.all([leerBolsaEnBase(bolsa.lineas, bolsa.sedeId), leerAyuda()]);
+  // Sus cupones vivos (20261019224000), para elegirlos con un toque en «Código de cupón». Si «Mi Club» no responde, el campo sigue: se escribe.
+  const conCupon = sesion.estado === "con_sesion" && !sinClub;
+  const [enBase, plazos, puntos] = await Promise.all([
+    leerBolsaEnBase(bolsa.lineas, bolsa.sedeId),
+    leerAyuda(),
+    conCupon ? leerMisPuntosEnBase(sesion.usuarioId) : null,
+  ]);
+  const misCupones =
+    puntos?.estado === "ok" ? puntos.puntos.cupones.filter((c) => c.estado === "activo").map((c) => ({ codigo: c.codigo, texto: cuponDicho(c) })) : [];
   if (!enBase)
     return (
       <Aviso
@@ -189,11 +199,6 @@ export default async function Bolsa() {
                             <Icono nombre="check" />
                             {texto}
                           </small>
-                        ) : marca.tipo === "traslado" ? (
-                          <small className="t-traslado">
-                            <Icono nombre="traslado" />
-                            {texto}
-                          </small>
                         ) : (
                           <em>{texto}</em>
                         ))}
@@ -220,7 +225,27 @@ export default async function Bolsa() {
               })}
             </div>
 
-            {v.tiendas.length > 0 && (
+            {/* La bolsa es de UNA tienda, la que se eligió arriba (cambiarla vacía la bolsa): se muestra solo esa. Solo si todavía no
+                tiene tienda (una bolsa vieja) se ofrecen las demás para elegir. */}
+            {v.sede && v.tiendas.some((t) => t.elegida) ? (
+              <div id="bloque-tienda" className="w-bloque t-bolsa-tiendas" data-campo="tienda" data-estado="hecho">
+                <span className="w-lbl">Recoges en</span>
+                {v.tiendas
+                  .filter((t) => t.elegida)
+                  .map((t) => (
+                    <div key={t.sede.id} className="w-opcion t-op-tienda t-op-fija">
+                      <span className="w-opcion-cab">
+                        <span className="w-opcion-t">
+                          <b>{nombreTienda(t.sede.nombre)}</b>
+                          {t.texto && <small>{t.texto}</small>}
+                        </span>
+                        <Icono nombre="tienda" />
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+            v.tiendas.length > 0 && (
               <div id="bloque-tienda" className="w-bloque t-bolsa-tiendas" data-campo="tienda" data-estado={v.sede ? "hecho" : "sigue"}>
                 <span className="w-lbl" id="tienda-de-recojo">
                   ¿En qué tienda lo recoges? <span className="w-marca">{v.sede ? "✓ Listo" : "Sigue aquí"}</span>
@@ -247,7 +272,7 @@ export default async function Bolsa() {
                   ))}
                 </form>
               </div>
-            )}
+            ))}
           </div>
 
           {/* El resumen y «Separar»: en la computadora, la columna de la derecha que acompaña al bajar; en el celular, «Separar» queda
@@ -287,6 +312,8 @@ export default async function Bolsa() {
               sinClub={sinClub}
               faltaTienda={v.faltaTienda}
               boton={v.boton}
+              conCupon={conCupon}
+              misCupones={misCupones}
               nota={
                 <>
                   {v.nota.antes}

@@ -170,6 +170,9 @@ insert into zz_hoja values
   ('producto_color_temporadas', 'producto_id', 'productos'),
   -- En qué sede se registró el producto (ADR-0292): nace con la ficha y se va con ella.
   ('producto_origen', 'producto_id', 'productos'),
+  -- Si el producto se ve en la tienda online (ADR-0408): desde el 2026-10-19 (ADR-0457) TODO producto nuevo nace con su fila encendida,
+  -- así que sin esto la purga se negaría a borrar cualquiera. Es configuración de la ficha: se respalda, se va con ella y se devuelve.
+  ('vitrina_productos', 'producto_id', 'productos'),
   -- La libreta de «Ya decidí» de Frescura del piso (ADR-0208, paso 4b): lo que la tienda anotó sobre su propio piso.
   ('frescura_decisiones', 'producto_id', 'productos'),
   ('bajada_piso_items', 'movimiento_id', 'movimientos'),
@@ -542,6 +545,7 @@ delete from variante_etiquetas where variante_id in (select id from zz_var);
 delete from producto_fotos where id in (select id from zz_borrar where tabla = 'producto_fotos');
 delete from producto_color_temporadas where producto_id in (select id from zz_prod);
 delete from producto_origen where producto_id in (select id from zz_prod);
+delete from vitrina_productos where producto_id in (select id from zz_prod);
 delete from variantes where id in (select id from zz_var);
 delete from productos where id in (select id from zz_prod);
 

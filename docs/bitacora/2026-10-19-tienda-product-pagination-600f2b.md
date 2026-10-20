@@ -1,0 +1,5 @@
+## 2026-10-19 (Tienda online: el catálogo en páginas de 30 y «Arma el tuyo» de 8 en 8 — ADR-0456)
+Qué hice: cambié el scroll sin fondo del catálogo por páginas de 30 prendas (`?pagina=`, con «‹ 1 2 3 ›» y «31–60 de 74 prendas» al pie) en toda la tienda, la ropa, los accesorios, lo nuevo, las ofertas, los más vendidos y los favoritos; y la tira de opciones de «Arma el tuyo» ahora muestra 8 por página (dos filas de cuatro) con su paginador y «Buscar otra».
+Por qué así: el scroll sin fondo no decía cuánto faltaba, «atrás» volvía a medias y el pie quedaba fuera de alcance; y la tira del probador empujaba el total y «Agregar» fuera de la pantalla. La página va en la dirección para que «atrás» y los enlaces compartidos vuelvan al mismo lugar.
+Qué se rompería sin esto: una clienta con 298 prendas tenía que bajar sin ver el final y, al volver de una ficha, perdía el lugar; en el probador, elegir una blusa obligaba a bajar para ver cuánto sumaba el look.
+Felipe se lleva: mirar el catálogo con las prendas reales de producción (la prueba fue con 74 de relleno y fotos dibujadas) y decir si prefiere 30 o 36 si algún día se agrega una cuarta columna.

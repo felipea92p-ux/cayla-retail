@@ -5,18 +5,18 @@
 //
 // Cada categoría va en un grupo y cada grupo en un menú de la cabecera («Ropa» o «Accesorios»), siempre por su PREFIJO
 // (`categorias.prefijo`, nunca el nombre visible, que se renombra). Un prefijo que no está en ninguna lista (una categoría que un Líder
-// creó después) cae en «Encima y más»: se ve, aunque no en su mejor lugar, hasta que se sume aquí.
+// creó después) cae en «Casacas/Abrigos»: se ve, aunque no en su mejor lugar, hasta que se sume aquí.
 
 export type MenuDeLaTienda = "ropa" | "accesorios";
 export type GrupoDeLaTienda = { clave: string; nombre: string; menu: MenuDeLaTienda; prefijos: readonly string[] };
 
 export const GRUPOS_DE_LA_TIENDA: readonly GrupoDeLaTienda[] = [
-  { clave: "arriba", nombre: "Arriba", menu: "ropa", prefijos: ["CMS", "BLU", "TOP", "POL", "BOD", "COR", "SUD", "CMP", "LEN"] },
-  { clave: "vestidos", nombre: "Vestidos y conjuntos", menu: "ropa", prefijos: ["VES", "CON", "ENT", "TBA"] },
-  { clave: "abajo", nombre: "Abajo", menu: "ropa", prefijos: ["PAN", "JEA", "FAL", "SHO"] },
-  { clave: "encima", nombre: "Encima y más", menu: "ropa", prefijos: ["CAS", "BLZ", "CHA", "CAP", "ABR"] },
-  { clave: "accesorios", nombre: "Bolsos y accesorios", menu: "accesorios", prefijos: ["CAR", "MOC", "RIN", "ACC", "CIN", "BUF", "PAS", "GOR", "LSO", "REL"] },
-  { clave: "bisuteria", nombre: "Bisutería y belleza", menu: "accesorios", prefijos: ["ARE", "COL", "ANL", "PUL", "MAQ"] },
+  { clave: "arriba", nombre: "Blusas/Tops", menu: "ropa", prefijos: ["CMS", "BLU", "TOP", "POL", "BOD", "COR", "SUD", "CMP", "LEN"] },
+  { clave: "vestidos", nombre: "Vestidos/Conjuntos", menu: "ropa", prefijos: ["VES", "CON", "ENT", "TBA"] },
+  { clave: "abajo", nombre: "Pantalones/Faldas", menu: "ropa", prefijos: ["PAN", "JEA", "FAL", "SHO"] },
+  { clave: "encima", nombre: "Casacas/Abrigos", menu: "ropa", prefijos: ["CAS", "BLZ", "CHA", "CAP", "ABR"] },
+  { clave: "accesorios", nombre: "Bolsos/Accesorios", menu: "accesorios", prefijos: ["CAR", "MOC", "RIN", "ACC", "CIN", "BUF", "PAS", "GOR", "LSO", "REL"] },
+  { clave: "bisuteria", nombre: "Bisutería/Belleza", menu: "accesorios", prefijos: ["ARE", "COL", "ANL", "PUL", "MAQ"] },
   { clave: "calzado", nombre: "Calzado", menu: "accesorios", prefijos: ["ZAP", "ZFO", "BAI", "BOI", "BOT", "MSN", "SAN"] },
   { clave: "mas", nombre: "Más", menu: "accesorios", prefijos: ["LAP", "LIB", "UOF", "UTC", "BOL"] },
 ];

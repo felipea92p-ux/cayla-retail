@@ -5,9 +5,13 @@
 // por el cartel.
 //
 // CONTRATO
-//   PROMETE: leer lo que contesta `fn_club_pagina` sin confiar en su forma; completar los marcadores de los textos aprobados
-//            (`{pct}`, `{escala}`, `{tienda}`); dibujar la política y los términos sin interpretar HTML.
-//   NO HACE: no inventa textos legales: la política y los términos vienen de `club_textos` con su versión.
+//   PROMETE: leer lo que contestan `fn_club_pagina` y `fn_club_puntos_vigentes` sin confiar en su forma; completar los marcadores de
+//            los textos aprobados: los del cumpleaños y el vale (`{pct}`, `{escala}`, `{tienda}`), mientras los textos vigentes los
+//            usen, y los de los puntos (`{puntos_por_sol}`, `{soles_por_100}`, `{canje_minimo}`, `{canje_minimo_soles}`,
+//            `{vigencia_dias}`, `{compra_minima_x}`, `{regalo_cumple}`), para los textos que publique el abogado; no mostrar un texto
+//            legal al que le falta una cifra que nombra; dibujar la política y los términos sin interpretar HTML.
+//   NO HACE: no inventa textos legales: la política y los términos vienen de `club_textos` con su versión. Ninguna cifra de los
+//            beneficios se escribe aquí: todas salen de la base.
 
 import { celularValido } from "./club-reglas";
 import { MESES_DEL_ANIO } from "./club-cumple-reglas";
@@ -26,22 +30,25 @@ export type PaginaClub = {
   tienda: string;
   /** El WhatsApp de la tienda (9 dígitos), o null si no lo tiene cargado: entonces no hay saludo al final. */
   whatsapp: string | null;
-  /** El % del cupón de cumpleaños vigente. */
-  pct: number;
-  /** El vale de aniversario por año de club que cuenta, de menor a mayor año. */
+  /**
+   * El % del cupón de cumpleaños, o null si la base no lo da. Con los puntos (2026-10-19) el 10 % se retiró, pero los Términos
+   * vigentes todavía lo nombran (`{pct}`) hasta que el abogado apruebe los nuevos: mientras un texto lo nombre, hace falta.
+   */
+  pct: number | null;
+  /** El vale de aniversario por año de club que cuenta, de menor a mayor año (vacío si la base no lo da). Como `pct`. */
   escala: { anio: number; monto: number }[];
-  /** Un año de club cuenta con tantas compras… */
-  compras: number;
+  /** Un año de club cuenta con tantas compras… (null si no viene). */
+  compras: number | null;
   /** …o con tanto en compras netas. */
-  montoMinimo: number;
+  montoMinimo: number | null;
   /** Días para usar el vale. */
-  dias: number;
+  dias: number | null;
   textos: { terminos: TextoDelClub; privacidad: TextoDelClub; casillaPublicidad: TextoDelClub; saludo: TextoDelClub | null };
 };
 
 /**
- * Lo que la página sabe al abrirse. `no_disponible`: la base no respondió, o le falta algo que ella tiene que leer antes de
- * aceptar (un texto, el % o la escala). Sin eso no se le pide que acepte nada: el consentimiento tiene que ser informado.
+ * Lo que la página sabe al abrirse. `no_disponible`: la base no respondió, o le falta un texto. Las cifras que un texto nombra
+ * (el % y la escala de antes, los puntos de ahora) se exigen al mostrarlo (`textoLegal`): un texto legal no se muestra a medias.
  */
 export type LecturaPagina = { estado: "lista"; pagina: PaginaClub } | { estado: "no_es_tienda" } | { estado: "no_disponible" };
 
@@ -51,6 +58,9 @@ function numero(x: unknown): number | null {
   const n = typeof x === "number" ? x : typeof x === "string" && x.trim() !== "" ? Number(x) : NaN;
   return Number.isFinite(n) ? n : null;
 }
+
+/** Una cifra que solo tiene sentido mayor que 0; si no, null (un 0 de un beneficio retirado no se promete). */
+const positivo = (n: number | null): number | null => (n !== null && n > 0 ? n : null);
 
 function textoDelClub(x: unknown): TextoDelClub | null {
   if (!esObjeto(x)) return null;
@@ -66,10 +76,6 @@ export function lecturaDePagina(json: unknown): LecturaPagina {
   if (json === null || json === undefined) return { estado: "no_es_tienda" };
   if (!esObjeto(json)) return { estado: "no_disponible" };
   const tienda = typeof json.tienda === "string" ? json.tienda.trim() : "";
-  const pct = numero(json.pct);
-  const compras = numero(json.compras);
-  const montoMinimo = numero(json.monto_minimo);
-  const dias = numero(json.dias);
   const escala = (Array.isArray(json.escala) ? json.escala : [])
     .map((f) => (esObjeto(f) ? { anio: numero(f.anio), monto: numero(f.monto) } : null))
     .filter((f): f is { anio: number; monto: number } => f !== null && f.anio !== null && Number.isInteger(f.anio) && f.anio > 0 && f.monto !== null && f.monto > 0)
@@ -78,21 +84,18 @@ export function lecturaDePagina(json: unknown): LecturaPagina {
   const terminos = textoDelClub(textos.terminos);
   const privacidad = textoDelClub(textos.privacidad);
   const casillaPublicidad = textoDelClub(textos.casilla_publicidad);
-  if (!tienda || pct === null || pct <= 0 || compras === null || compras <= 0 || montoMinimo === null || montoMinimo <= 0 || dias === null || dias <= 0) {
-    return { estado: "no_disponible" };
-  }
-  if (escala.length === 0 || !terminos || !privacidad || !casillaPublicidad) return { estado: "no_disponible" };
+  if (!tienda || !terminos || !privacidad || !casillaPublicidad) return { estado: "no_disponible" };
   const whatsapp = typeof json.whatsapp === "string" ? json.whatsapp.replace(/\s/g, "") : "";
   return {
     estado: "lista",
     pagina: {
       tienda,
       whatsapp: celularValido(whatsapp) ? whatsapp : null,
-      pct,
+      pct: positivo(numero(json.pct)),
       escala,
-      compras,
-      montoMinimo,
-      dias,
+      compras: positivo(numero(json.compras)),
+      montoMinimo: positivo(numero(json.monto_minimo)),
+      dias: positivo(numero(json.dias)),
       textos: { terminos, privacidad, casillaPublicidad, saludo: textoDelClub(textos.saludo) },
     },
   };
@@ -124,7 +127,24 @@ export function escalaEnPalabras(escala: readonly { anio: number; monto: number 
   return `${partes.slice(0, -1).join(", ")} y ${partes[partes.length - 1]}`;
 }
 
-export type Marcadores = Partial<Record<"pct" | "escala" | "tienda" | "nombre" | "codigo", string>>;
+/** Los marcadores de los puntos que puede nombrar un texto legal (el borrador para el abogado y su SQL usan estos nombres). */
+const MARCADORES_DE_PUNTOS = [
+  "puntos_por_sol",
+  "soles_por_100",
+  "canje_minimo",
+  "canje_minimo_soles",
+  "vigencia_dias",
+  "compra_minima_x",
+  "regalo_cumple",
+] as const;
+
+/**
+ * Los marcadores que puede traer la política o los términos: los de antes (cumpleaños y vale) y los de los puntos. `{nombre}` y
+ * `{codigo}` son del saludo, nunca de un texto legal. Si un texto nombra uno de estos y su cifra no llegó, no se muestra.
+ */
+const MARCADORES_LEGALES = ["pct", "escala", "tienda", ...MARCADORES_DE_PUNTOS] as const;
+
+export type Marcadores = Partial<Record<(typeof MARCADORES_LEGALES)[number] | "nombre" | "codigo", string>>;
 
 /**
  * Completa los marcadores de un texto del club. Uno que no se conoce (o que no llegó) queda como está: mejor que se note a que
@@ -140,15 +160,94 @@ export function completarMarcadores(texto: string, valores: Marcadores): string 
   return out;
 }
 
-/** Los marcadores que valen en toda la página: el % del cumpleaños, la escala del vale y la tienda del cartel. */
+/**
+ * Los marcadores de antes que valen en toda la página: el % del cumpleaños y la escala del vale (solo si la base los da; los
+ * Términos vigentes los nombran hasta que se publiquen los de puntos) y la tienda del cartel.
+ */
 export function marcadoresDePagina(p: PaginaClub): Marcadores {
-  return { pct: formatoPct(p.pct), escala: escalaEnPalabras(p.escala), tienda: p.tienda };
+  return {
+    ...(p.pct !== null ? { pct: formatoPct(p.pct) } : {}),
+    ...(p.escala.length > 0 ? { escala: escalaEnPalabras(p.escala) } : {}),
+    tienda: p.tienda,
+  };
 }
 
-/** La política o los términos, con sus marcadores completos. */
-export function textoLegal(p: PaginaClub, cual: "privacidad" | "terminos"): TextoDelClub {
+/* ------------------------------------------------------------------ Los puntos del Club */
+
+/**
+ * La configuración vigente de los puntos, como la da `fn_club_puntos_vigentes()` (pública, la misma que cobra la caja y que lee el
+ * cartel): lo que se gana por cada sol pagado, lo que valen 100 puntos, el canje mínimo, la compra mínima (veces el valor del
+ * cupón), los días del cupón y el regalo de cumpleaños (0 = sin regalo).
+ */
+export type PuntosClub = {
+  puntosPorSol: number;
+  solesPor100: number;
+  canjeMinimo: number;
+  compraMinimaX: number;
+  vigenciaDias: number;
+  regaloCumple: number;
+};
+
+/** El jsonb de `fn_club_puntos_vigentes` → la configuración, o null si no viene completa o una cifra no tiene sentido. */
+export function puntosDelClub(json: unknown): PuntosClub | null {
+  if (!esObjeto(json)) return null;
+  const puntosPorSol = positivo(numero(json.puntos_por_sol));
+  const solesPor100 = positivo(numero(json.soles_por_100));
+  const canjeMinimo = positivo(numero(json.canje_minimo));
+  const compraMinimaX = positivo(numero(json.compra_minima_x));
+  const vigenciaDias = positivo(numero(json.vigencia_dias));
+  const regaloCumple = numero(json.regalo_cumple);
+  if (puntosPorSol === null || solesPor100 === null || compraMinimaX === null) return null;
+  if (canjeMinimo === null || !Number.isInteger(canjeMinimo) || vigenciaDias === null || !Number.isInteger(vigenciaDias)) return null;
+  if (regaloCumple === null || regaloCumple < 0 || !Number.isInteger(regaloCumple)) return null;
+  return { puntosPorSol, solesPor100, canjeMinimo, compraMinimaX, vigenciaDias, regaloCumple };
+}
+
+const miles = (n: number) => n.toLocaleString("es-PE");
+const cifra = (n: number) => (Number.isInteger(n) ? miles(n) : formatoPct(n));
+const conUnidad = (n: number, una: string, varias: string) => `${cifra(n)} ${n === 1 ? una : varias}`;
+
+/**
+ * Los marcadores de los puntos, cada uno con su unidad para que la frase concuerde con la cifra (1 punto / 2 puntos, 1 día /
+ * 7 días): `{puntos_por_sol}` «1 punto» (el texto sigue «por cada S/ 1»), `{soles_por_100}` «S/ 5», `{canje_minimo}` «200 puntos»,
+ * `{canje_minimo_soles}` «S/ 10» (lo que vale el canje mínimo), `{vigencia_dias}` «7 días», `{compra_minima_x}` «3 veces» (el texto
+ * sigue «su valor») y `{regalo_cumple}` «100 puntos».
+ */
+function marcadoresDePuntos(c: PuntosClub): Marcadores {
+  return {
+    puntos_por_sol: conUnidad(c.puntosPorSol, "punto", "puntos"),
+    soles_por_100: formatoSoles(c.solesPor100),
+    canje_minimo: conUnidad(c.canjeMinimo, "punto", "puntos"),
+    canje_minimo_soles: formatoSoles(Math.round(Math.floor(c.canjeMinimo / 100) * c.solesPor100 * 100) / 100),
+    vigencia_dias: conUnidad(c.vigenciaDias, "día", "días"),
+    compra_minima_x: conUnidad(c.compraMinimaX, "vez", "veces"),
+    regalo_cumple: conUnidad(c.regaloCumple, "punto", "puntos"),
+  };
+}
+
+/**
+ * La política o los términos, con sus marcadores completos: los de antes (si la base los da) y los de los puntos (si
+ * `fn_club_puntos_vigentes` respondió). null si el texto nombra una cifra que no llegó: el consentimiento tiene que ser
+ * informado, así que un texto legal con un «{canje_minimo}» a la vista o con un hueco no se muestra (la página dice que no pudo
+ * abrirse). Un texto que no nombra los puntos (los Términos v2 de hoy) se muestra igual aunque los puntos no respondan.
+ */
+export function textoLegal(p: PaginaClub, cual: "privacidad" | "terminos", puntos: PuntosClub | null): TextoDelClub | null {
   const t = p.textos[cual];
-  return { ...t, texto: completarMarcadores(t.texto, marcadoresDePagina(p)) };
+  const valores: Marcadores = { ...marcadoresDePagina(p), ...(puntos ? marcadoresDePuntos(puntos) : {}) };
+  const faltan = MARCADORES_LEGALES.filter((m) => t.texto.includes(`{${m}}`) && valores[m] === undefined);
+  if (faltan.length > 0) return null;
+  return { ...t, texto: completarMarcadores(t.texto, valores) };
+}
+
+/**
+ * La descripción de `/club/terminos` para un buscador o un enlace compartido: habla de puntos con las cifras vigentes; sin ellas
+ * (la base no respondió), lo mismo sin cifras. Nunca promete el 10 % ni el vale, que se retiraron.
+ */
+export function descripcionTerminos(puntos: PuntosClub | null): string {
+  if (!puntos) return "Las condiciones del Club CAYLA: quién puede ser miembro, cómo se ganan y se canjean los puntos y cuánto duran.";
+  const m = marcadoresDePuntos(puntos);
+  const regalo = puntos.regaloCumple > 0 ? `, ${m.regalo_cumple} de regalo en tu cumpleaños` : "";
+  return `Las condiciones del Club CAYLA: ${m.puntos_por_sol} por cada ${formatoSoles(1)} que pagas, 100 puntos valen ${m.soles_por_100} de descuento${regalo} y cómo se canjean.`;
 }
 
 /** «1 de octubre de 2026», en hora de Lima. Acepta `aaaa-mm-dd` o un instante con zona. null si no se entiende. */

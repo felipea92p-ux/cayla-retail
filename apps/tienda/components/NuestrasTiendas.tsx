@@ -109,7 +109,7 @@ export function NuestrasTiendas({
                       </>
                     ) : (
                       <>
-                        <span>Ver solo lo que hay aquí</span>
+                        <span>Ver lo que hay</span>
                         <Icono nombre="flecha" />
                       </>
                     )}
@@ -153,7 +153,7 @@ export function NuestrasTiendas({
     <section className="t-sec t-ancho ay-tiendas-sec" aria-labelledby={idTitulo}>
       <div className="t-sec-cab">
         <div>
-          <span className="t-ceja">{laCeja}</span>
+          {laCeja && <span className="t-ceja">{laCeja}</span>}
           <h2 id={idTitulo}>
             Nuestras <em>tiendas</em>
           </h2>

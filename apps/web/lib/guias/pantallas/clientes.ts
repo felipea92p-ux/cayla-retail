@@ -1,7 +1,7 @@
 // Guías de Clientes (ADR-0389): Fichas (la libreta de clientes y el club) y Avisos (los mensajes del club por WhatsApp). El plan de
 // este módulo es de Dany (ADR-0288, acta D-92 a D-111): estas guías solo lo EXPLICAN como está, sin cambiar nada. En pantalla se
 // dice «cliente» y, en el club, «miembro». El piloto busca un cliente de la lista, abre su ficha y la ventana de «Nuevo cliente» o
-// la de los beneficios para mostrarlas, y las cierra. Registrar, Editar, Enviar, Pidió BAJA, Archivar y Guardar se EXPLICAN.
+// la de «Nuevo cliente» para mostrarlas, y las cierra. Registrar, Editar, Enviar, Pidió BAJA, Archivar y Guardar se EXPLICAN.
 
 import type { Guia } from "../tipos";
 
@@ -129,6 +129,13 @@ export const GUIA_CLIENTES: Guia = {
       texto: "Si es miembro y desde cuándo, y si pidió novedades por WhatsApp. Si responde BAJA, se registra aquí y deja de recibir mensajes en las 3 tiendas.",
     },
     {
+      id: "ficha-puntos",
+      ancla: "clientas.ficha-puntos",
+      opcional: true,
+      titulo: "Sus puntos y sus cupones",
+      texto: "Cuántos puntos tiene y cuánto valen, si este mes le toca su regalo de cumpleaños y sus cupones por usar, con su código y hasta cuándo valen. Los puntos se canjean en caja, al vender.",
+    },
+    {
       id: "ficha-preferencias",
       ancla: "clientas.ficha-preferencias",
       opcional: true,
@@ -198,50 +205,7 @@ export const GUIA_AVISOS_CLUB: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Los avisos del club",
-      texto: "Cada día el sistema arma la lista de mensajes por mandar a los miembros del club: su cumpleaños, su aniversario, una novedad. Tú los envías desde el WhatsApp de la tienda. Es una demo: no se envía nada.",
-    },
-    {
-      id: "beneficios",
-      ancla: "avisos.beneficios",
-      opcional: true,
-      titulo: "Beneficios del club",
-      texto: "El % del cupón de cumpleaños y el vale de aniversario, para las 3 tiendas. Solo el líder lo cambia. Te abrimos la ventana para verla.",
-      demostrar: [{ tipo: "clic", ancla: "avisos.beneficios" }],
-    },
-    {
-      id: "beneficios-cumple",
-      ancla: "avisos.beneficios-cumple",
-      opcional: true,
-      titulo: "El cupón de cumpleaños",
-      texto: "El descuento que el miembro usa una vez en su mes de cumpleaños, sobre toda la compra.",
-    },
-    {
-      id: "beneficios-anio",
-      ancla: "avisos.beneficios-anio",
-      opcional: true,
-      titulo: "Qué cuenta como un año",
-      texto: "Cuántas compras, o cuánto en soles, necesita en el año para ganarse su aniversario. Basta una de las dos; si un año no llega, su aniversario se pausa sin perder lo acumulado.",
-    },
-    {
-      id: "beneficios-dias",
-      ancla: "avisos.beneficios-dias",
-      opcional: true,
-      titulo: "Días para usar el vale",
-      texto: "Cuántos días tiene el miembro, desde su aniversario en el club, para usar su vale. Pasado ese plazo, el vale vence.",
-    },
-    {
-      id: "beneficios-vale",
-      ancla: "avisos.beneficios-vale",
-      opcional: true,
-      titulo: "El vale de aniversario",
-      texto: "Cuántos soles gana en cada aniversario, año por año, para comprar en cualquier tienda.",
-    },
-    {
-      id: "beneficios-guardar",
-      ancla: "avisos.beneficios-guardar",
-      opcional: true,
-      titulo: "Guardar",
-      texto: "Al guardar, los términos del club cambian de versión; lo ya canjeado no cambia. En la demo no guardamos: cerramos la ventana.",
+      texto: "Cada día el sistema arma la lista de mensajes por mandar a los miembros del club: su regalo de cumpleaños, sus puntos por vencer, una novedad. Tú los envías desde el WhatsApp de la tienda. Es una demo: no se envía nada.",
     },
     {
       id: "cifras",
@@ -263,7 +227,7 @@ export const GUIA_AVISOS_CLUB: Guia = {
       ancla: "avisos.filtros",
       opcional: true,
       titulo: "Por tipo de aviso",
-      texto: "Deja en la lista solo los de un tipo: cumpleaños, aniversario, novedades…",
+      texto: "Deja en la lista solo los de un tipo: cumpleaños, puntos, novedades…",
     },
     {
       id: "responsable",
@@ -325,6 +289,77 @@ export const GUIA_AVISOS_CLUB: Guia = {
       ancla: null,
       titulo: "¡Listo!",
       texto: "Ya sabes mandar los avisos del club. Para repasarlo: Mi perfil ▸ Demo ▸ Avisos del club.",
+    },
+  ],
+  alSalir: [{ tipo: "escape" }],
+};
+
+export const GUIA_BENEFICIOS_CLUB: Guia = {
+  id: "clientas.beneficios",
+  ruta: "/clientas/beneficios",
+  titulo: "Beneficios del club",
+  resumen: "Cuánto valen los puntos, desde cuándo se canjean y cuánto dura un cupón.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Los beneficios del club",
+      texto: "Aquí se decide lo que el club le ofrece al cliente: cuánto gana por cada sol, cuánto valen sus puntos y cuánto dura un cupón. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "cifras",
+      ancla: "beneficios.cifras",
+      opcional: true,
+      titulo: "Lo que cuesta el programa",
+      texto: "Los puntos que hay en circulación, lo que debes en soles si todos los canjearan hoy, los cupones por usar y lo canjeado este mes. Así sabes qué pasa antes de cambiar un número.",
+    },
+    {
+      id: "programada",
+      ancla: "beneficios.programada",
+      opcional: true,
+      titulo: "Un cambio ya programado",
+      texto: "Si cambiaste lo que valen los puntos o el canje mínimo, aquí ves desde cuándo rige: se avisa 15 días antes. Hasta entonces sigue todo igual.",
+    },
+    {
+      id: "formulario",
+      ancla: "beneficios.formulario",
+      opcional: true,
+      titulo: "Los números del programa",
+      texto: "Puntos por cada S/\u00a01, lo que valen 100 puntos, desde cuántos se canjea, la compra mínima del cupón, cuántos días dura, el regalo de cumpleaños y tu tope de costo. Cada campo dice si está bien o qué falta.",
+    },
+    {
+      id: "retorno",
+      ancla: "beneficios.retorno",
+      opcional: true,
+      titulo: "Cuánto devuelves",
+      texto: "Cuánto devuelve el programa de cada compra si todos los puntos se canjearan, comparado con tu tope de costo. Si lo pasa, te avisa; no te frena.",
+    },
+    {
+      id: "responsable",
+      ancla: "beneficios.responsable",
+      opcional: true,
+      titulo: "Quién hace el cambio",
+      texto: "Cada cambio queda anotado con su nombre y la fecha. Con la cuenta de una persona se firma solo; en la cuenta de la tienda se elige quién.",
+    },
+    {
+      id: "guardar",
+      ancla: "beneficios.guardar",
+      opcional: true,
+      titulo: "Guardar",
+      texto: "Guarda una versión nueva. Lo que valen los puntos y el canje mínimo rigen 15 días después; lo demás, desde hoy. Los cupones ya creados no cambian. En la demo no guardamos.",
+    },
+    {
+      id: "historial",
+      ancla: "beneficios.historial",
+      opcional: true,
+      titulo: "Últimos cambios",
+      texto: "Quién cambió los beneficios, cuándo rige cada cambio y qué había antes. Los Términos los publica el abogado: esta pantalla no los toca.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes dónde se cambian los beneficios del club. Para repasarlo: Mi perfil ▸ Demo ▸ Beneficios del club.",
     },
   ],
   alSalir: [{ tipo: "escape" }],

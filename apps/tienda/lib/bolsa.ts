@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { deFavoritos, soles, type Prenda } from "./catalogo";
 import { paraSeguirMirando } from "./catalogo-lista";
+import { MENSAJES_CUPON_AL_SEPARAR } from "./cupon";
 import { nombreTienda } from "./pedidos";
 import { sedesEnOrden } from "./sede-elegida";
 import { interpretarSedes, type Sede } from "./tiendas";
@@ -186,13 +187,20 @@ export type BolsaEnBase = { sedeId: string | null; sedes: Sede[]; lineas: LineaE
 export const yaNoEsta = (l: LineaEnBase): l is PrendaQueYaNoEsta => "noEsta" in l;
 
 /** Lo que dice la base de una prenda que se quiere agregar (preguntada con TODAS las que llevaría): si entra, si ya no está en la
- *  tienda online, si se agotó (no queda ninguna en las tiendas de la web) o si quedan pero no tantas (`no_alcanza`: las que quedan ya
- *  están en la bolsa; decirle «ya no está en ninguna tienda» a quien tiene las dos últimas en su bolsa era falso). La misma regla para
- *  una prenda (la ficha, la tarjeta, el «+» de la bolsa) y para cada prenda de un look. */
+ *  tienda online, si se agotó o si quedan pero no tantas (`no_alcanza`: las que quedan ya están en la bolsa; decirle «ya no está» a
+ *  quien tiene las dos últimas en su bolsa era falso). **Cada tienda maneja lo suyo (2026-10-19):** con `sedeId` (la tienda de la
+ *  bolsa o la que se mira) cuenta solo lo que hay AHÍ; la tienda no trae de otra. Sin tienda (la web sin tiendas), lo de todas juntas.
+ *  La misma regla para una prenda (la ficha, la tarjeta, el «+» de la bolsa) y para cada prenda de un look. */
 export function revisarParaAgregar(
   linea: LineaEnBase | undefined,
+  sedeId: string | null = null,
 ): { tipo: "entra"; linea: PrendaEnLaBolsa } | { tipo: "no_esta" } | { tipo: "agotada" } | { tipo: "no_alcanza" } {
   if (!linea || yaNoEsta(linea)) return { tipo: "no_esta" };
+  const ahi = sedeId ? linea.enSedes[sedeId] : undefined;
+  if (sedeId && ahi) {
+    if (ahi.alcanza) return { tipo: "entra", linea };
+    return ahi.hay ? { tipo: "no_alcanza" } : { tipo: "agotada" };
+  }
   if (linea.alcanzaEnTotal) return { tipo: "entra", linea };
   return Object.values(linea.enSedes).some((s) => s.hay) ? { tipo: "no_alcanza" } : { tipo: "agotada" };
 }
@@ -237,35 +245,29 @@ export function interpretarBolsaEnBase(dato: unknown): BolsaEnBase | null {
 
 export type MarcaDeLinea =
   | { tipo: "no_esta" }
-  | { tipo: "agotada" }
-  | { tipo: "no_alcanza" }
+  /** `sede`: la tienda donde se agotó (cada tienda maneja lo suyo); `null`: sin tienda elegida, en ninguna. */
+  | { tipo: "agotada"; sede: string | null }
+  | { tipo: "no_alcanza"; sede: string | null }
   | { tipo: "no_se_vende"; sede: string }
   | { tipo: "hay"; sede: string }
-  /** `parte`: en la tienda elegida hay alguna, pero no todas las que lleva; `varias`: lleva más de una (la frase va en plural). */
-  | { tipo: "traslado"; sede: string; desde: string | null; parte: boolean; varias: boolean }
   | { tipo: "nada" };
 
-/** Lo que se dice debajo de cada prenda (maqueta: «Se agotó…», «Hay en Trujillo», «No está en Trujillo: la tienda puede traerla de
- *  Lima»). Lo que no está en la maqueta —una prenda que ya no está, una que no se vende en esa tienda, o que no alcanza para todas
- *  las que lleva— dice qué hacer en una línea. Si en la tienda elegida hay alguna pero no todas, no dice «No está» (sería falso): dice
- *  que no alcanzan y que la tienda trae las que faltan. */
+/** Lo que se dice debajo de cada prenda (maqueta: «Se agotó…», «Hay en Trujillo»). Cada tienda maneja lo suyo (2026-10-19): lo que
+ *  no hay en la tienda de la bolsa se dice como agotado AHÍ, sin ofrecer traerlo de otra (la maqueta decía «la tienda puede traerla
+ *  de Lima»). Una prenda que ya no está, una que no se vende en esa tienda, o que no alcanza para todas las que lleva, dice qué hacer
+ *  en una línea; si en la tienda hay alguna pero no todas, no dice «agotada» (sería falso): dice que no quedan tantas. */
 export function textoDeLaMarca(m: MarcaDeLinea): string | null {
   switch (m.tipo) {
     case "no_esta":
       return "Ya no está en la tienda online. Quítala para separar.";
     case "agotada":
-      return "Se agotó en todas las tiendas. Quítala para separar.";
+      return m.sede ? `Se agotó en ${m.sede}. Quítala para separar.` : "Se agotó en todas las tiendas. Quítala para separar.";
     case "no_alcanza":
-      return "No quedan tantas en las tiendas: baja la cantidad para separar.";
+      return m.sede ? `En ${m.sede} no quedan tantas: baja la cantidad para separar.` : "No quedan tantas en las tiendas: baja la cantidad para separar.";
     case "no_se_vende":
       return `No se vende en ${m.sede}. Quítala o elige otra tienda.`;
     case "hay":
       return `Hay en ${m.sede}`;
-    case "traslado": {
-      const de = m.desde ?? "otra tienda";
-      if (m.parte) return `No alcanzan en ${m.sede}: la tienda puede traer las que faltan de ${de}`;
-      return m.varias ? `No están en ${m.sede}: la tienda puede traerlas de ${de}` : `No está en ${m.sede}: la tienda puede traerla de ${de}`;
-    }
     case "nada":
       return null;
   }
@@ -304,32 +306,27 @@ export function vistaBolsa(b: BolsaEnBase): VistaBolsa {
   const lineas = b.lineas.map((linea) => {
     if (yaNoEsta(linea)) return { linea, marca: { tipo: "no_esta" } as MarcaDeLinea, importe: null, antes: null };
     let marca: MarcaDeLinea = { tipo: "nada" };
-    if (!linea.alcanzaEnTotal) marca = Object.values(linea.enSedes).some((s) => s.hay) ? { tipo: "no_alcanza" } : { tipo: "agotada" };
-    else if (sede) {
-      const ahi = linea.enSedes[sede.id];
-      if (ahi && !ahi.seVende) marca = { tipo: "no_se_vende", sede: sede.nombre };
-      else if (ahi?.alcanza) marca = { tipo: "hay", sede: sede.nombre };
-      else {
-        const otras = sedes.filter((s) => s.id !== sede.id);
-        const desde = otras.find((s) => linea.enSedes[s.id]?.alcanza) ?? otras.find((s) => linea.enSedes[s.id]?.hay) ?? null;
-        marca = { tipo: "traslado", sede: sede.nombre, desde: desde?.nombre ?? null, parte: Boolean(ahi?.hay), varias: linea.cantidad > 1 };
-      }
+    const ahi = sede ? linea.enSedes[sede.id] : undefined;
+    if (sede && ahi) {
+      // Cada tienda maneja lo suyo: solo cuenta lo que hay en la tienda de la bolsa.
+      if (!ahi.seVende) marca = { tipo: "no_se_vende", sede: sede.nombre };
+      else if (ahi.alcanza) marca = { tipo: "hay", sede: sede.nombre };
+      else marca = ahi.hay ? { tipo: "no_alcanza", sede: sede.nombre } : { tipo: "agotada", sede: sede.nombre };
+    } else if (!linea.alcanzaEnTotal) {
+      marca = Object.values(linea.enSedes).some((s) => s.hay) ? { tipo: "no_alcanza", sede: null } : { tipo: "agotada", sede: null };
     }
     const antes = linea.precioLista > linea.precio ? redondear(linea.precioLista * linea.cantidad) : null;
     return { linea, marca, importe: redondear(linea.precio * linea.cantidad), antes };
   });
 
-  // «Tiene todo lo que elegiste» o «Tiene 1 de 2; lo demás lo trae de otra tienda» (maqueta, `cobertura`: cuenta filas). Lo que esa
-  // tienda no vende (sin precio ahí) no lo puede traer de otra: se dice aparte, «1 no se vende ahí».
+  // «Tiene todo lo que elegiste» o «Tiene 1 de 2» (maqueta, `cobertura`: cuenta filas). Cada tienda maneja lo suyo: lo que ahí no hay
+  // no se trae de otra (2026-10-19). Lo que esa tienda no vende (sin precio ahí) se dice aparte, «1 no se vende ahí».
   const tiendas = sedes.map((s) => {
     const total = disponibles.length;
     const ahi = disponibles.filter((l) => l.enSedes[s.id]?.alcanza && l.enSedes[s.id]?.seVende).length;
-    const ninguna = disponibles.filter((l) => !l.alcanzaEnTotal).length;
-    const noSeVende = disponibles.filter((l) => l.alcanzaEnTotal && l.enSedes[s.id] && !l.enSedes[s.id].seVende).length;
-    const resto = total - ahi - ninguna - noSeVende;
+    const noSeVende = disponibles.filter((l) => l.enSedes[s.id] && !l.enSedes[s.id].seVende).length;
     const partes = [`Tiene ${ahi} de ${total}`];
     if (noSeVende > 0) partes.push(`${noSeVende} no se ${noSeVende === 1 ? "vende" : "venden"} ahí`);
-    if (resto > 0) partes.push("lo demás lo trae de otra tienda");
     const texto = total === 0 ? null : ahi === total ? "Tiene todo lo que elegiste" : partes.join("; ");
     return { sede: s, elegida: s.id === sede?.id, texto };
   });
@@ -418,6 +415,8 @@ const MENSAJES_SEPARAR: Record<string, string> = {
   // Lo que llegó no se pudo leer (una bolsa vieja, una pestaña a medias): se vuelve a mirar la bolsa de ahora.
   pedido_web_linea_invalida: "Revisa tu bolsa y vuelve a tocar «Separar».",
   pedido_web_bolsa_vacia: "Revisa tu bolsa y vuelve a tocar «Separar».",
+  // El cupón del Club (20261019224000): si no sirve al separar, no se separa nada.
+  ...MENSAJES_CUPON_AL_SEPARAR,
 };
 /** Cuando lo que hay que hacer está en otra página, el mensaje lleva su camino: con el tope, los pedidos que esperan. */
 const CAMINOS_SEPARAR: Record<string, { texto: string; href: string }> = {
@@ -452,10 +451,13 @@ export function respuestaDeSeparar(
 /** El aviso de abajo al agregar (maqueta, `agregarABolsa`). */
 export const avisoAgregada = (p: Pick<PrendaEnLaBolsa, "nombre" | "color" | "talla">) =>
   `Agregaste ${[p.nombre, p.color.nombre, p.talla].filter(Boolean).join(" · ")} a tu bolsa.`;
-export const AGREGAR_AGOTADA = "Esa talla ya no está en ninguna tienda.";
+/** Cada tienda maneja lo suyo (2026-10-19): se agotó en la tienda que se mira o en la de la bolsa. */
+export const AGREGAR_AGOTADA = "Esa talla se agotó en esta tienda.";
 /** Quedan, pero todas las que quedan ya están en su bolsa (agregar otra más no se puede). */
 export const AGREGAR_NO_ALCANZA = "Ya tienes en tu bolsa todas las que quedan de esa talla.";
 export const AGREGAR_NO_ESTA = "Esa prenda ya no está en la tienda online.";
+/** La bolsa es de UNA tienda (la elegida arriba): agregar desde otra no mezcla las dos. */
+export const AGREGAR_OTRA_TIENDA = "Tu bolsa es de otra tienda.";
 export const AGREGAR_LLENA = `Tu bolsa lleva hasta ${TOPE_PRENDAS} prendas.`;
 export const AGREGAR_TOPE_PRENDA = `Puedes llevar hasta ${TOPE_POR_PRENDA} de la misma prenda y talla.`;
 export const AGREGAR_TOPE_PRENDA_LOOK = `Ya llevas ${TOPE_POR_PRENDA} de alguna de esas prendas: quita una para agregar el look.`;

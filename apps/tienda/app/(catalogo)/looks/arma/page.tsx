@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 import { Promesas } from "@/components/bolsa/Promesas";
-import { FiltroTienda } from "@/components/FiltroTienda";
 import { Icono } from "@/components/Icono";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
-import { FiltroDelProbador, type TiendaDelFiltro } from "@/components/probador/FiltroDelProbador";
 import { Probador } from "@/components/probador/Probador";
 import { leerAyuda } from "@/lib/ayuda-servidor";
 import { fotoOptimizable, hrefLista } from "@/lib/catalogo";
@@ -15,7 +12,8 @@ import { promesasDeCompra } from "@/lib/ficha";
 import { hrefLooks } from "@/lib/looks";
 import { armarProbador, completarLook, hrefDelProbador, lookDeLaUrl, lookInicial, PARAMETRO_DEL_LOOK } from "@/lib/probador";
 import { leerProbador } from "@/lib/probador-servidor";
-import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
+import { claveDeSede, sedesEnOrden } from "@/lib/sede-elegida";
+import { sedeDeLaPagina } from "@/lib/sede-servidor";
 import { hayEnTienda } from "@/lib/stock";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { leerSedes } from "@/lib/tiendas-servidor";
@@ -31,7 +29,7 @@ export const metadata: Metadata = { title: "Arma el tuyo · CAYLA" };
 export default async function ArmaElTuyo({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
-  const pedida = sedeDeLaUrl(sp.sede, sedes);
+  const pedida = await sedeDeLaPagina(sp, sedes, "/looks/arma", claveDeSede);
   const sesion = await leerSesion();
   // Lo de todos (el catálogo, el probador y los plazos) y lo de la persona (sus looks guardados, para el corazón), a la vez.
   const [catalogo, lectura, plazos, guardados] = await Promise.all([
@@ -51,7 +49,7 @@ export default async function ArmaElTuyo({ searchParams }: { searchParams: Promi
   // El look de la dirección (lo que siga en esta tienda, completado si perdió lo de arriba o lo de abajo) o, sin él, lo primero que hay.
   const deLaDireccion = lookDeLaUrl(sp[PARAMETRO_DEL_LOOK], prendas);
   const inicial = deLaDireccion ? completarLook(deLaDireccion, prendas) : lookInicial(prendas);
-  const tiendas: TiendaDelFiltro[] = [
+  const tiendas: { nombre: string; sede: string | null; actual: boolean }[] = [
     { nombre: "Todas", sede: null, actual: elegida === null },
     ...sedes.map((s) => ({ nombre: s.nombre, sede: claveDeSede(s.nombre), actual: elegida?.id === s.id })),
   ];
@@ -62,14 +60,7 @@ export default async function ArmaElTuyo({ searchParams }: { searchParams: Promi
       prendas={deLaTienda}
       sede={sede}
       actual="probador"
-      franja={
-        tiendas.length > 2 ? (
-          // Mientras llega lo de la dirección, la franja con el look con que se abrió la página.
-          <Suspense fallback={<FiltroTienda opciones={tiendas.map((t) => ({ nombre: t.nombre, href: hrefDelProbador(t.sede, lookDeLaDireccion), actual: t.actual }))} />}>
-            <FiltroDelProbador tiendas={tiendas} />
-          </Suspense>
-        ) : null
-      }
+      filtro={tiendas.filter((t) => t.sede).map((t) => ({ nombre: t.nombre, href: hrefDelProbador(t.sede, lookDeLaDireccion), actual: t.actual }))}
     >
       {catalogo === null || lectura === null ? (
         <div className="t-ancho">

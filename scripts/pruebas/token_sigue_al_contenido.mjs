@@ -25,6 +25,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DESHACER_CLUB_PUNTOS, REHACER_CLUB_PUNTOS } from "./registrar-venta-antes-de-precio-sede.mjs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -292,7 +293,10 @@ select 'res|' || (retail.fn_resolver_intento('registrar_movimiento_caja', '${TOK
 {
   const huellas = `select string_agg(md5(pg_get_functiondef(p.oid)), ',' order by p.proname) from pg_proc p
     where p.pronamespace = 'retail'::regnamespace and p.proname in (${FUNCIONES.map((f) => `'${f}'`).join(", ")});`;
-  const r = correr(`begin;\n${huellas}\n${FUNCIONES.map(sinToken).join("")}\n${PARTE2}\n${huellas}`);
+  // La parte 2 se vuelve a pegar sobre SU punto de partida: el cupón del Club (20261019204000, 4c) metió en registrar_venta otro
+  // «if p_token is not null then» (el reintento que esperó en el candado del cupón) y el ancla de la parte 2 ya no aparece 3 veces
+  // sino 4. Se deshacen los reemplazos del programa de puntos, se pega la parte 2 y se rehacen: la base termina como empezó.
+  const r = correr(`begin;\n${huellas}\n${DESHACER_CLUB_PUNTOS}\n${FUNCIONES.map(sinToken).join("")}\n${PARTE2}\n${REHACER_CLUB_PUNTOS}\n${huellas}`);
   const [antes, despues] = r.salida.split("\n").filter(Boolean);
   esperar("deshacer las diez llamadas y volver a pegar la parte 2 deja las funciones idénticas", r.ok && antes && antes === despues,
     r.ok ? `${antes?.slice(0, 40)} · ${despues?.slice(0, 40)}` : r.error);

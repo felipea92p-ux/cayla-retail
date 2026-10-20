@@ -138,11 +138,14 @@ export function interpretarFicha(dato: unknown): Ficha | "no_esta" | null {
 /** ¿Este id puede ser el de una prenda? (un uuid). Si no, la página es «no está» sin preguntarle a la base. */
 export const esIdDePrenda = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-/** El color con que abre la ficha: el pedido (`?color=`) si existe; si no, el primero con foto y con algo en alguna tienda; si no,
- *  el primero con foto; si no, el primero (maqueta, `vProducto`). */
-export function colorInicial(f: Ficha, pedido?: string | null): string {
+/** Cuánto hay de una talla donde la persona mira: en su tienda elegida (cada tienda maneja lo suyo) o, sin tienda elegida, en todas. */
+export const nivelAqui = (v: Variante, sedeId: string | null): Nivel | undefined => (sedeId ? v.stock[sedeId] : v.total);
+
+/** El color con que abre la ficha: el pedido (`?color=`) si existe; si no, el primero con foto y con algo en la tienda elegida (o en
+ *  alguna, sin tienda); si no, el primero con foto; si no, el primero (maqueta, `vProducto`). */
+export function colorInicial(f: Ficha, pedido?: string | null, sedeId: string | null = null): string {
   if (pedido && f.colores.some((c) => c.codigo === pedido)) return pedido;
-  const conAlgo = (c: Color) => f.variantes.some((v) => v.color === c.codigo && hayAlgo(v.total));
+  const conAlgo = (c: Color) => f.variantes.some((v) => v.color === c.codigo && hayAlgo(nivelAqui(v, sedeId)));
   return (f.colores.find((c) => c.foto && conAlgo(c)) ?? f.colores.find((c) => c.foto) ?? f.colores[0]).codigo;
 }
 
@@ -162,27 +165,24 @@ export function fotosDelColor(f: Ficha, color: string): { fotos: string[]; enOtr
   return { fotos: [...propias, ...otras], enOtroColor: propias.length === 0 && otras.length > 0 };
 }
 
-/** Lo que dice debajo de una talla sin stock (maqueta, `vProducto`): «Otra tienda» si la elegida no tiene y otra sí; «Avísame» si
- *  ninguna tiene (el botón de abajo ofrece el aviso). Con stock, o sin tiendas en la web, nada. */
+/** Lo que dice debajo de una talla sin stock (cada tienda maneja lo suyo, 2026-10-19): «Agotada» si en la tienda elegida no queda (aunque
+ *  otra tienda tenga: eso lo dice `pistaOtraTienda`, sin prometerlo); sin tienda elegida, «Agotada» si ninguna tiene. Con stock, o sin
+ *  tiendas en la web, nada. */
 export function notaDeTalla(v: Variante, sedeElegida: string | null, hayTiendas: boolean): string | null {
   if (!hayTiendas) return null;
-  if (sedeElegida) {
-    if (hayAlgo(v.stock[sedeElegida])) return null;
-    return hayAlgo(v.total) ? "Otra tienda" : "Avísame";
-  }
-  return hayAlgo(v.total) ? null : "Avísame";
+  return hayAlgo(nivelAqui(v, sedeElegida)) ? null : "Agotada";
 }
 
 /**
- * El botón principal de la ficha (maqueta, `cta` de `vProducto`): sin talla elegida, «Elige tu talla» (apagado); si esa talla hay en
- * ALGUNA tienda de la web, «Agregar a la bolsa» (si no está en la tienda elegida, la tienda la trae de otra); si no hay en ninguna,
- * «Avísame cuando llegue».
+ * El botón principal de la ficha (maqueta, `cta` de `vProducto`): sin talla elegida, «Elige tu talla» (apagado); si esa talla hay en la
+ * tienda elegida, «Agregar a la bolsa»; si ahí no hay, «Avísame cuando llegue» (cada tienda maneja lo suyo: la tienda no trae de otra,
+ * 2026-10-19). Sin tienda elegida (la web sin tiendas), vale lo que haya en todas.
  */
 export type BotonDeLaFicha = { tipo: "elige" } | { tipo: "agregar"; varianteId: string } | { tipo: "avisame"; varianteId: string };
 
-export function botonDeLaFicha(elegida: Variante | null): BotonDeLaFicha {
+export function botonDeLaFicha(elegida: Variante | null, sedeId: string | null = null): BotonDeLaFicha {
   if (!elegida) return { tipo: "elige" };
-  return hayAlgo(elegida.total) ? { tipo: "agregar", varianteId: elegida.id } : { tipo: "avisame", varianteId: elegida.id };
+  return hayAlgo(nivelAqui(elegida, sedeId)) ? { tipo: "agregar", varianteId: elegida.id } : { tipo: "avisame", varianteId: elegida.id };
 }
 
 /**
@@ -204,19 +204,20 @@ export function avisoOtrosSepararon(
 }
 
 /**
- * Con una tienda elegida y una talla que ahí no hay pero sí en otra tienda de la web: qué pasa si igual la separa en la elegida. La
- * talla ya dice «Otra tienda», que se puede leer como «anda a la otra tienda»; esto aclara que no: se separa igual y la tienda la
- * puede traer (la misma promesa que la bolsa, «No está en Lima: la tienda puede traerla de Trujillo»; maqueta y DECIDÍ «una tienda
- * para todo, lo que falta se trae con un traslado»). Sin tienda elegida, con algo ahí o sin otra que tenga, nada.
+ * Con una tienda elegida y una talla que ahí no hay pero sí en otra tienda de la web: una pista, «Hay en Arequipa.», sin prometer nada:
+ * cada tienda maneja lo suyo y la tienda elegida no la trae (Felipe 2026-10-19; antes «la tienda puede traerla de Arequipa»). Con dos
+ * tiendas que la tienen: «Hay en Arequipa y Lima.». Sin tienda elegida, con algo ahí o sin otra que tenga, nada.
  */
-export function avisoOtraTienda(
+export function pistaOtraTienda(
   v: Variante | null,
   sede: { id: string; nombre: string } | null,
   sedes: readonly { id: string; nombre: string }[],
 ): string | null {
   if (!v || !sede || hayAlgo(v.stock[sede.id])) return null;
-  const otra = sedes.find((s) => s.id !== sede.id && hayAlgo(v.stock[s.id]));
-  return otra ? `No hay en ${sede.nombre}. Igual puedes separarla ahí: la tienda puede traerla de ${otra.nombre}.` : null;
+  const otras = sedes.filter((s) => s.id !== sede.id && hayAlgo(v.stock[s.id])).map((s) => s.nombre);
+  if (otras.length === 0) return null;
+  const donde = otras.length === 1 ? otras[0] : `${otras.slice(0, -1).join(", ")} y ${otras[otras.length - 1]}`;
+  return `Hay en ${donde}.`;
 }
 
 /** Lo que dice la ficha junto al botón después de «Agregar a la bolsa»: corto (la barra del celular es angosta) y con la talla, que
@@ -293,7 +294,7 @@ const enDias = (n: number) => `${n} ${n === 1 ? "día" : "días"}`;
 /**
  * Lo que la tienda ya cumple, dicho junto al botón de comprar (2026-10-16, la confianza a la vista de las marcas grandes): separas sin
  * pagar en la web, recoges en tu tienda y cambias en cualquier tienda CAYLA. Promete lo mismo que «Cómo separar» y «Cambios y
- * devoluciones» (`lib/ayuda.ts`: `pasosParaSeparar`, `avisosParaSeparar`, `textoCambios`), con sus mismos plazos (`tienda_ayuda()`); sin
+ * devoluciones» (`lib/ayuda.ts`: `pasosParaSeparar`, `avisosParaSeparar`), con sus mismos plazos (`tienda_ayuda()`); sin
  * el plazo, la frase va sin número, nunca uno inventado. La usan la ficha, el look y la bolsa.
  */
 export function promesasDeCompra(p: Plazos): Promesa[] {
