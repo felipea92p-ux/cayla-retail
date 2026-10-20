@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { CheckCheck } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, Campo } from "@/components/ui/campos";
@@ -12,6 +13,12 @@ import { MAX_MENSAJE_PREDETERMINADO_WEB, MENSAJE_PREDETERMINADO_WEB, mensajePred
 
 /** Un pedido de muestra para la vista previa: el mensaje se ve con un nombre, un código y la tienda reales. */
 const PEDIDO_DE_MUESTRA = { codigo: "W-0001", cliente: { nombre: "Valeria Chávez" } } as const;
+const INICIALES_MUESTRA = PEDIDO_DE_MUESTRA.cliente.nombre
+  .split(" ")
+  .map((parte) => parte[0])
+  .join("")
+  .slice(0, 2)
+  .toUpperCase();
 
 /**
  * Editar el mensaje predeterminado de WhatsApp de los pedidos web. Es PROPIO de quien lo edita (cada colaborador tiene el suyo):
@@ -38,6 +45,8 @@ export function EditarMensajePredeterminadoHoja({
   const enVuelo = useRef(false);
   const largo = texto.trim().length;
   const demasiado = largo > MAX_MENSAJE_PREDETERMINADO_WEB;
+  // La hora de la burbuja: la de ahora, como en el celular.
+  const hora = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
   const vista = mensajePredeterminadoDelPedido({ ...PEDIDO_DE_MUESTRA, tiendaWeb: { nombre: tienda } }, texto);
 
   async function guardar(cerrar: () => void, nuevo: string) {
@@ -103,9 +112,27 @@ export function EditarMensajePredeterminadoHoja({
             </div>
           </Campo>
 
-          <div className="rounded-xl border border-sand bg-hueso/40 px-4 py-3">
-            <span className="block text-[12px] text-taupe">Así lo verá el cliente</span>
-            <span className="block whitespace-pre-line text-[14px] text-tinta">{vista}</span>
+          <div>
+            <span className="mb-2 block text-[12px] text-taupe">Así lo verá el cliente en WhatsApp</span>
+            {/* Una captura del chat del celular: la cabecera verde con el nombre, el fondo de la conversación y la burbuja de salida
+                (la de quien atiende) con la hora y las dos marcas de «leído». Solo es una vista: no envía nada. */}
+            <div className="overflow-hidden rounded-xl border border-sand">
+              <div className="flex items-center gap-3 bg-verde px-4 py-2.5 text-crema">
+                <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-crema/20 font-display text-[13px]">
+                  {INICIALES_MUESTRA}
+                </span>
+                <span className="truncate text-[14px] font-medium">{PEDIDO_DE_MUESTRA.cliente.nombre}</span>
+              </div>
+              <div className="bg-hueso/50 px-4 py-4">
+                <div className="ml-auto max-w-[85%] rounded-2xl rounded-tr-sm bg-verde/15 px-3 py-2">
+                  <p className="whitespace-pre-wrap break-words text-[14px] text-tinta">{vista}</p>
+                  <p className="mt-1 flex items-center justify-end gap-1 text-[11px] text-taupe">
+                    <span className="tabular-nums">{hora}</span>
+                    <CheckCheck aria-hidden className="h-3.5 w-3.5 text-verde" />
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="pie-hoja-fijo space-y-2 pt-1">
@@ -115,7 +142,15 @@ export function EditarMensajePredeterminadoHoja({
               </Aviso>
             )}
             <PieAcciones>
-              <Boton type="button" onClick={() => void guardar(cerrar, "")} disabled={guardando}>
+              {/* Solo cambia el texto del panel: no guarda. Para que quede, hay que presionar «Guardar». */}
+              <Boton
+                type="button"
+                disabled={guardando}
+                onClick={() => {
+                  setTexto(MENSAJE_PREDETERMINADO_WEB);
+                  setErrorBase(null);
+                }}
+              >
                 Usar el de fábrica
               </Boton>
               <Boton type="button" onClick={cerrar} disabled={guardando}>
