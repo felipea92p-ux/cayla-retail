@@ -1,6 +1,6 @@
 # ADR-0463 — Empresas: CAYLA y CLAURE, y a cuál pertenece cada producto
 
-**Estado:** propuesta (migración sin pegar en producción) · **Fecha:** 2026-10-20 · **Decidió:** Felipe
+**Estado:** aceptada · migración EN PRODUCCIÓN desde 2026-10-20 (pegada por Felipe; la web sigue en el PR #1222) · **Fecha:** 2026-10-20 · **Decidió:** Felipe
 
 ## Contexto
 
@@ -57,4 +57,4 @@ marca; Felipe eligió que sea un campo del producto.
 Migración probada dos veces seguidas con `begin … rollback` en el Postgres local (simulando la lista de `fn_actor_persona_id` de producción);
 `fn_empresas_de_sede` da CAYLA+CLAURE en Lima y solo CAYLA en Trujillo, Taller y una sede inventada; CLAURE desde Trujillo se rechaza.
 Pruebas: `alta-producto-guia.test.ts` (4 nuevas), `cola-hora-declarada.test.ts`, `guias.test.ts`. Pantalla vista en el navegador con datos
-inventados (escritorio y 375 px). No verificado: un alta completa de punta a punta contra una base con la migración aplicada.
+inventados (escritorio y 375 px). En producción (2026-10-20): `QUEDÓ BIEN`; CAYLA+CLAURE en «Tienda LIM», solo CAYLA en AQP, TRU y Taller; los 398 productos quedaron como CAYLA; `anon` no puede ejecutar la función. La sección de la hora declarada se saltó (producción aún no tiene la lista de 20261013155000: ver el backlog). No verificado: un alta completa de punta a punta con cuenta real.

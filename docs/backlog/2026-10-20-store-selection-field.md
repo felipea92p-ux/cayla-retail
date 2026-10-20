@@ -1,6 +1,6 @@
 ## Empresas CAYLA y CLAURE en Nuevo producto (ADR-0463, 2026-10-20)
 
-- [ ] **Pegar `20261020225000_empresas_cayla_y_claure.sql` en producción** (una sola ejecución; no está en producción). Con OK de Felipe, y antes que la migración de la otra sesión. Después: refrescar el diccionario (`pnpm datos:generar:produccion`) y mirar que «Tienda LIM» quedó con las dos empresas en `empresa_sedes`.
+- [x] **Pegar `20261020225000_empresas_cayla_y_claure.sql` en producción:** hecho el 2026-10-20 con OK de Felipe («QUEDÓ BIEN»; Lima con CAYLA+CLAURE, el resto solo CAYLA). Falta: refrescar el diccionario (`pnpm datos:generar:produccion`) cuando se refresque el volcado.
 - [ ] **Probar un alta de punta a punta** desde Lima con una cuenta real y desde Trujillo (la base local no tiene la migración aplicada y el worktree no tiene sesión): la pantalla se vio solo con datos inventados.
 - [ ] **La palabra en pantalla:** hoy dice «Tienda» (como lo pidió Felipe); en la base es «empresa». Decidir si queda así.
 - [ ] **«Es nueva» al recibir y al contar, y el censo:** hoy caen a CAYLA sin preguntar. En Lima, una cartera de CLAURE debería preguntar.
