@@ -516,3 +516,33 @@ concentración de proveedores al abrir una orden («este servicio ya tiene N pre
 (recomiendo marcar «sin hoja firmada» en vez de bloquear la Salida: si el bulto ya salió, bloquear solo logra que salga sin registrar; es lo mismo que la cláusula 3 del borrador
 de P-18); personas cosiendo por día (choca con P-12, diferida); comparar proveedores al abrir una orden (sin historial no hay con qué); y los tres destinos (Lima, Arequipa,
 Trujillo), que tocan P-34 y Traslados (decisión de más de un módulo).
+
+## Actualización 2026-10-19 (m) · R1 construido: la ruta nueva con Habilitado y Ploteo de un toque (6 actividades, rama `claude/summary-taller-analysis-40d104`)
+
+**Qué quedó hecho** (Felipe aprobó la lista de actividades el 2026-10-19, tal cual, con tres supuestos; cada una con su commit y su prueba):
+
+1. **La base acepta las fases nuevas** (`20261019191000`): `ploteo`, `habilitado`, `ojales_botones`, `limpieza_revision`, `planchado` y `etiquetado_embolsado` entran a la secuencia (5 · 15 · 35 · 55 · 65 · 70),
+   los nombres, los dos CHECK de la clave y la lista de precios. **La orden acepta la ruta anterior (Corte · Costura · Acabado) o la nueva, y rechaza mezclarlas** (`fases_mezcla`): la web desplegada
+   siguió abriendo órdenes durante toda la obra. `cambiar_quien_fase` validaba con una espina fija de tres y rechazaba cualquier cambio en la ruta nueva: ahora valida contra las fases reales de la orden.
+2. **Ploteo, la fase de un toque** (`20261019192000`): se MARCA «hecha» y se deshace (`marcar_fase_hecha`, `deshacer_marca_fase`; tabla `produccion_fase_marcas`, solo se agrega; `fn_fase_es_hito`), **no cuenta
+   prendas y no entra a la cadena de cantidades** (`fn_produccion_fase_anterior` y `siguiente` la saltan: Corte sigue siendo la primera que cuenta, con su margen de cortar de más). Avance, Salida y Vuelta la
+   rechazan (`fase_es_hito`). **Un servicio de ploteo cobra por ORDEN** (el fijo, sin tarifa por prenda ni mínimo) y **devenga cuando se marca**. Decisiones mías: un ploteo sin marcar **no impide pasar al stock**
+   ni devenga (un modelo que se repite no vuelve a plotear), y una fase hito pendiente es la «actual» solo mientras nadie empezó una posterior.
+3. **«Nueva orden» abre con la ruta nueva**: las siete fijas (cada una en el Taller o afuera) y Ojales y botones como opción; **Acabado, Bordado, Estampado y Lavandería no se ofrecen** («no se usan por
+   ahora», `FaseDelCatalogo.enLaHoja`) pero siguen en la base. Ploteo pide su fijo a la vista («Cobra por esta orden»); lo mismo en «Cambiar quién».
+4. **La página de la orden** dibuja la ruta (4 + 3 o 4 + 4 columnas con lugar, 3 a 1024 px), con «Ploteo hecho» y «Deshacer», «Marcó / Deshizo la marca» en la línea de tiempo, y «lista para pasar al stock» sin
+   esperar a un ploteo sin marcar (`todasLasQueCuentanHechas`, la misma regla en la lista).
+5. **La lista de Órdenes y «Hoy en el Taller»**: «Taller · por hacer» en vez de «0 de 0»; Por cortar y En costura siempre, las demás fases solo con un lote ahí (ya no hay una tarjeta «En acabado» vacía).
+6. **Una orden completa, de punta a punta** (`pruebas:produccion-ruta-nueva`): el costo de los servicios es lo devengado (ploteo 40.00 + costura 207.00 + planchado 55.20 = 302.20, a 6.57 por las 46 buenas),
+   el candado de las buenas mira la ÚLTIMA fase, no se cierra ni se anula con prendas afuera, revertir devuelve el stock.
+
+**Se aparta de lo escrito arriba.** (k) decía «Patronaje y Muestreo en el modelo» y «Ploteo con un toque»: se cumple. (l) pedía Habilitado «justo después de Corte»: secuencia 15, antes del bordado y estampado sobre pieza.
+La reconstrucción de la lista de precios para el ploteo **no se hizo** (ver «Pendiente»).
+
+**Pendiente (no bloquea R1).** (a) **«Servicios y tarifas» todavía no guarda una tarifa de ploteo** (su fijo se escribe en la orden; `TarifaServicioModal` no ofrece la fase hito; `leerTarifasDeServicios` descartaría una fila
+sin tarifa por prenda). (b) **Contraer** (quitar `acabado` de la base y de la web) queda dormida: con 0 filas no estorba y deja el retroceso abierto; solo si Felipe la pide. (c) Las tensiones 2 a 5 de (l) siguen abiertas.
+(d) `tema:auditar` no se corrió (falta el Chromium de Playwright en esta Mac): el modo oscuro se revisó a ojo. (e) El `/formidable` con agente ciego y el `/chaos` completo no se corrieron: sí un caos a mano sobre lo que
+guarda (dos marcas simultáneas dejan una; un fijo con NaN, Infinity, negativo, cero, 1e999, coma o texto con SQL se rechaza). (f) R2 a R10 de (k) siguen sin construirse (el tope de cortar de más sigue en × 1,10).
+
+**Qué se rompe si** se pega 20261019192000 sin 20261019191000 (el candado de md5 lo detiene), o si la web nueva se publica antes que las migraciones: «Nueva orden» manda `ploteo` y `habilitado` y la base los rechaza con
+`fase_desconocida`. Por eso: base primero, web después.
