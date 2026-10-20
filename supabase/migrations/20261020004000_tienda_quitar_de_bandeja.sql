@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261019230000_tienda_quitar_de_bandeja.sql — CAYLA V2 · Tienda online: quitar UNA notificación de la bandeja (Felipe, 2026-10-19)
+-- 20261020004000_tienda_quitar_de_bandeja.sql — CAYLA V2 · Tienda online: quitar UNA notificación de la bandeja (Felipe, 2026-10-19)
 --
 -- EL CAMBIO. La «×» del panel de la campanita ya no borra la notificación: solo la quita de la bandeja (del panel). Sigue en
 -- «Todas las notificaciones». «Vaciar bandeja» hace lo mismo con todas a la vez.

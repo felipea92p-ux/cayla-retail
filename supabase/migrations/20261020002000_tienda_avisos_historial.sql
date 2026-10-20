@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261019210000_tienda_avisos_historial.sql — CAYLA V2 · Tienda online: historial de notificaciones por cuenta (Felipe, 2026-10-19)
+-- 20261020002000_tienda_avisos_historial.sql — CAYLA V2 · Tienda online: historial de notificaciones por cuenta (Felipe, 2026-10-19)
 --
 -- EL PROBLEMA. La campanita solo sabía lo que estaba a favor HOY (una talla que llegó, una respuesta reciente). Una talla que se separó o
 -- se volvió a acabar desaparecía, y nada guardaba CUÁNDO le llegó el aviso a la clienta. Felipe quiere: el panel con las 5 más recientes,

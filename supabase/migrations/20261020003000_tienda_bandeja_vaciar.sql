@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261019220000_tienda_bandeja_vaciar.sql — CAYLA V2 · Tienda online: «vaciar bandeja» de las notificaciones (Felipe, 2026-10-19)
+-- 20261020003000_tienda_bandeja_vaciar.sql — CAYLA V2 · Tienda online: «vaciar bandeja» de las notificaciones (Felipe, 2026-10-19)
 --
 -- EL CAMBIO. El panel de la campanita tenía «Eliminar todas», que borraba. Felipe quiere otra cosa: «vaciar bandeja» quita las notificaciones
 -- DEL PANEL, pero no las borra: siguen en «Todas las notificaciones». Lo que llegue después vuelve a salir en el panel.

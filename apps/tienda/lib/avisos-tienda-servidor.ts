@@ -2,7 +2,7 @@ import "server-only";
 import { base } from "./base";
 
 // El historial de notificaciones de cada cuenta (Felipe, 2026-10-19), guardado en la base con sus tres funciones de la tienda
-// (`tienda_avisos_*`, migración 20261019210000). La cuenta llega validada con el proyecto de clientes (`leerSesion`): la base solo
+// (`tienda_avisos_*`, migración 20261020002000). La cuenta llega validada con el proyecto de clientes (`leerSesion`): la base solo
 // toca lo de esa cuenta. Si la base no responde, la lectura devuelve null y la campanita se dibuja sin el historial: nunca se cae.
 // En los registros del servidor no va el texto de ningún aviso: solo el evento y el error de la base.
 
