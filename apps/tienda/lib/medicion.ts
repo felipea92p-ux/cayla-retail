@@ -52,6 +52,7 @@ export const RUTAS_MEDIDAS = [
   "/looks/[id]",
   "/looks/arma",
   "/looks/guardado/[id]",
+  "/notificaciones",
   "/nueva-contrasena",
   "/olvide-mi-contrasena",
   "/privacidad",

@@ -91,9 +91,20 @@ if (ANCLADOS_PUNTOS.length !== 1) {
   console.error(`✗ Esperaba 1 reemplazo anclado de registrar_aviso_enviado en 20261019222000 y encontré ${ANCLADOS_PUNTOS.length}.`);
   process.exit(1);
 }
+// Avisos por tienda (20261020151000, Felipe 2026-10-20): un reemplazo anclado en fn_club_avisos_pendientes (lee el mensaje de su tienda).
+// Se deshace igual que el de arriba, para medir la lista de avisos contra el «después» de su archivo de puntos (20261019222000).
+const ANCLADOS_AVISOS_SEDE = [
+  ...leer("supabase", "migrations", "20261020151000_club_avisos_mensajes_por_tienda.sql").matchAll(
+    /pg_temp\.reemplazar\(\s*'(retail\.fn_club_avisos_pendientes\([^']*\))',\s*\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$,\s*1\);/g
+  ),
+].map((m) => ({ firma: m[1], viejo: m[2], nuevo: m[3] }));
+if (ANCLADOS_AVISOS_SEDE.length !== 1) {
+  console.error(`✗ Esperaba 1 reemplazo anclado de fn_club_avisos_pendientes en 20261020151000 y encontré ${ANCLADOS_AVISOS_SEDE.length}.`);
+  process.exit(1);
+}
 const DESHACER_PUNTOS = `do $deshacer_puntos$
 begin
-${ANCLADOS_PUNTOS.map(({ firma, viejo, nuevo }) => `  execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`).join("\n")}
+${[...ANCLADOS_PUNTOS, ...ANCLADOS_AVISOS_SEDE].map(({ firma, viejo, nuevo }) => `  execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`).join("\n")}
 end $deshacer_puntos$;
 `;
 const ENTERAS_PUNTOS = [
@@ -624,16 +635,16 @@ select retail.fn_club_pagina(:'taller') is null, retail.fn_club_pagina(gen_rando
   "Tienda Lima|966000111|10.00|1=20.00,2=30.00,3=40.00,4=50.00,5=60.00|6|600.00|60|casilla_publicidad,privacidad,saludo,terminos|t|t|t|t|t\nt|t|t"
 );
 caso(
-  "(i) fn_club_textos_legales (como anon): lo mismo sin la tienda, con los términos y la privacidad; y las cinco plantillas de avisos, en cada versión (cumpleaños y novedades tienen v2: act. k; cumpleaños tiene v3 y nace «Puntos por vencer», aviso_puntos v1: programa de puntos, 20261019222000), terminan con «Si no quieres recibir más mensajes, responde BAJA.» y saludan por {nombre}",
+  "(i) fn_club_textos_legales (como anon): lo mismo sin la tienda, con los términos y la privacidad; y las cinco plantillas de avisos, en cada versión (cumpleaños y novedades tienen v2: act. k; cumpleaños tiene v3 y nace «Puntos por vencer», aviso_puntos v1: programa de puntos, 20261019222000; los cuatro con su versión nueva, con el cierre de la tienda web: 20261020144000, cuyo `aviso_cierre` no es un mensaje y no entra), terminan con «Si no quieres recibir más mensajes, responde BAJA.» y saludan por {nombre}",
   comoAnon +
     `select (select string_agg(k, ',' order by k) from jsonb_object_keys(p) k), (select string_agg(k, ',' order by k) from jsonb_object_keys(p -> 'textos') k),
        p -> 'textos' -> 'terminos' ->> 'texto' = $t$${TEXTO_TERMINOS}$t$, p -> 'textos' -> 'privacidad' ->> 'version'
   from (select retail.fn_club_textos_legales() as p) x;
 reset role;
 select string_agg(tipo || ' v' || version || ':' || (texto like '%Si no quieres recibir más mensajes, responde BAJA.' and texto like '%{nombre}%'), ',' order by tipo, version)
-  from retail.club_textos where tipo like 'aviso\\_%';
+  from retail.club_textos where tipo like 'aviso\\_%' and tipo <> 'aviso_cierre';
 ` + intento(`insert into retail.club_textos (tipo, version, texto) values ('aviso_rebaja', 9, 'Hola {nombre}, sin baja.')`),
-  "compras,dias,escala,monto_minimo,pct,textos|privacidad,terminos|t|2\naviso_aniversario v1:true,aviso_cumpleanos v1:true,aviso_cumpleanos v2:true,aviso_cumpleanos v3:true,aviso_novedades v1:true,aviso_novedades v2:true,aviso_puntos v1:true,aviso_rebaja v1:true\n23514|new row for relation \"club_textos\" violates check constraint \"club_textos_aviso_con_baja\""
+  "compras,dias,escala,monto_minimo,pct,textos|privacidad,terminos|t|2\naviso_aniversario v1:true,aviso_cumpleanos v1:true,aviso_cumpleanos v2:true,aviso_cumpleanos v3:true,aviso_cumpleanos v4:true,aviso_novedades v1:true,aviso_novedades v2:true,aviso_novedades v3:true,aviso_puntos v1:true,aviso_puntos v2:true,aviso_rebaja v1:true,aviso_rebaja v2:true\n23514|new row for relation \"club_textos\" violates check constraint \"club_textos_aviso_con_baja\""
 );
 
 // =====================================================================================================================
@@ -733,8 +744,12 @@ select a.detalle ? 'automatica' from retail.actividad a where a.accion = 'anonim
 // =====================================================================================================================
 // El «después» de las funciones que el programa de puntos reemplazó ENTERAS: se pega su archivo en una transacción que se deshace y se
 // mide lo que deja (la última fila: el archivo puede imprimir filas vacías de sus `select pg_temp.reemplazar(…)`).
+// 20261020144000 sumó el texto `aviso_cierre`, que la regla de tipos de 20261019222000 no conoce: para volver a pegar ese archivo en la
+// transacción que se deshace, esa fila se quita antes (sin el disparador de «solo agregar»: igual se deshace todo).
+// Y antes, el anclado de 20261020151000 se deshace en la viva: 20261019222000 solo se vuelve a pegar sobre la suya o la nueva.
+const SIN_CIERRE = `set local session_replication_role = replica;\ndelete from retail.club_textos where tipo = 'aviso_cierre';\nset local session_replication_role = origin;\n${ANCLADOS_AVISOS_SEDE.map(({ firma, viejo, nuevo }) => `do $d$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$); end $d$;\n`).join("")}`;
 for (const { firma, archivo } of ENTERAS_PUNTOS) {
-  const r = correr(`begin;\n${leer("supabase", "migrations", archivo)}\nselect coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${firma}')), 'NO_EXISTE');\nrollback;`);
+  const r = correr(`begin;\n${archivo.startsWith("20261019222000") ? SIN_CIERRE : ""}${leer("supabase", "migrations", archivo)}\nselect coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${firma}')), 'NO_EXISTE');\nrollback;`);
   DESPUES_ENTERAS_PUNTOS.set(firma, r.ok ? r.salida.split("\n").filter(Boolean).at(-1) : `NO_SE_PUDO_MEDIR (${archivo}): ${r.mensaje.split("\n").find((l) => l.includes("ERROR")) ?? r.mensaje}`);
 }
 caso(

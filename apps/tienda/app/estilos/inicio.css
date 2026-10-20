@@ -82,6 +82,11 @@
 .t-aviso-club-acc .t-enlace .ic { width: 15px; height: 15px; }
 .t-aviso-club-acc .t-btn.t-btn-chico { margin-left: 0; }
 .t-aviso-club-acc .t-enlace:focus-visible, .t-aviso-club-acc .t-btn:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+/* El aviso al entrar flota sobre la página: centrado, justo bajo la cabecera (que no es fija), y deja pasar los clics fuera de la tarjeta.
+   Mismo aspecto: la tarjeta conserva sus colores y su ancho de la página. Se oculta sola a los 5 s (`AvisoAlEntrar`). */
+.t-aviso-flotante { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 35; width: min(calc(100vw - 32px), 1248px); pointer-events: none; }
+.t-aviso-flotante .t-aviso-club-envol { pointer-events: auto; }
+.t-aviso-flotante .t-aviso-club { margin-block: 0; }
 
 @container tienda (min-width: 700px) {
   .t-top { grid-auto-columns: calc((100% - 42px) / 3.3); }
