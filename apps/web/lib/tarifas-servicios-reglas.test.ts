@@ -24,7 +24,9 @@ import {
 // La lista de precios de los servicios (ADR-0400, actividad 8c): lo que la pantalla lee y lo que escribe coinciden con `fn_tarifas_de_servicios` y `guardar_tarifa_servicio`. La paridad se comprueba
 // LEYENDO la migración, no copiando sus números.
 
-const MIGRACION = readFileSync(join(__dirname, "../../../supabase/migrations/20261015172000_produccion_tarifas_de_servicios.sql"), "utf8");
+// La vigente: guardar_tarifa_servicio (con el ploteo por orden) viene de 20261019192000; fn_tarifas_de_servicios (la lista ordenada por la ruta nueva), de 20261019191000.
+const MIGRACION = readFileSync(join(__dirname, "../../../supabase/migrations/20261019192000_produccion_ploteo_la_fase_de_un_toque.sql"), "utf8");
+const MIGRACION_LISTA = readFileSync(join(__dirname, "../../../supabase/migrations/20261019191000_produccion_fases_nuevas_expandir.sql"), "utf8");
 
 const cruda = (o: Record<string, unknown> = {}) => ({
   proveedor_id: "p1",
@@ -49,13 +51,13 @@ describe("paridad con la base", () => {
     expect(MIGRACION).toContain(`coalesce(p_fijo_orden, 0) > ${TARIFA_MAXIMA}`);
   });
 
-  it("las seis fases son las que la base acepta, y todas las de la web están en la lista de la base", () => {
+  it("las doce fases son las que la base acepta, y todas las de la web están en la lista de la base", () => {
     const enLaBase = /p_fase_clave not in \(([^)]*)\)/.exec(MIGRACION)?.[1].split(",").map((s) => s.trim().replace(/'/g, "")) ?? [];
     expect([...enLaBase].sort()).toEqual(FASES.map((f) => f.clave as string).sort());
   });
 
   it("la lista sale en el orden de la ruta, el mismo de la base", () => {
-    const enLaBase = /array\[('corte'[^\]]*)\]/.exec(MIGRACION)?.[1].split(",").map((s) => s.trim().replace(/'/g, "")) ?? [];
+    const enLaBase = /array\[('ploteo'[^\]]*)\]/.exec(MIGRACION_LISTA)?.[1].split(",").map((s) => s.trim().replace(/'/g, "")) ?? [];
     const lista = leerTarifasDeServicios(
       [...enLaBase].reverse().map((fase) => cruda({ fase_clave: fase })),
     );
@@ -69,12 +71,13 @@ describe("paridad con la base", () => {
     );
     const enLaBase = new Set([...MIGRACION.matchAll(/hint = '(tarifa_[a-z_]+)'/g)].map((m) => m[1]));
     for (const h of enLaWeb) expect(enLaBase.has(h), h).toBe(true);
-    // Los dos que la web no repite: el proveedor que no es de servicio y el que no es líder se explican con la pantalla (no se ofrece).
-    expect([...enLaBase].filter((h) => !enLaWeb.has(h)).sort()).toEqual(["tarifa_no_es_servicio", "tarifa_solo_lider"]);
+    // Los que la web no repite: el proveedor que no es de servicio y el que no es líder se explican con la pantalla (no se ofrece), y los dos del ploteo (se cobra por orden,
+    // no por prenda) no pueden pasar mientras la pantalla no ofrezca esa fase (la actividad que rehace «Nueva orden» la suma).
+    expect([...enLaBase].filter((h) => !enLaWeb.has(h)).sort()).toEqual(["tarifa_no_es_servicio", "tarifa_ploteo_es_fijo", "tarifa_ploteo_sin_fijo", "tarifa_solo_lider"]);
   });
 
   it("los servicios son los de rubro distinto de tela y avíos, como en la base", () => {
-    expect(MIGRACION).toContain("pr.rubro not in ('tela', 'avios')");
+    expect(MIGRACION_LISTA).toContain("pr.rubro not in ('tela', 'avios')");
     const lista = serviciosParaTarifar([
       { id: "a", nombre: "Tela", rubro: "tela", activo: true },
       { id: "b", nombre: "Avíos", rubro: "avios", activo: true },

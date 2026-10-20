@@ -10,7 +10,7 @@ import { Boton, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/camp
 import { Modal } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
-import { FASES } from "@/lib/orden-fases-reglas";
+import { FASES_DE_LA_HOJA } from "@/lib/orden-fases-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { createClient } from "@/lib/supabase/client";
@@ -132,7 +132,8 @@ export function TarifaServicioModal({
                 etiqueta={guia.etiqueta("fase", "Fase")}
                 valor={e.fase}
                 onValor={(v) => cambia({ fase: v })}
-                opciones={FASES.map((f) => ({ valor: f.clave, texto: f.nombre }))}
+                // El ploteo se cobra por orden, no por prenda: su fijo se escribe en la orden (la lista de precios todavía no lo guarda).
+                opciones={FASES_DE_LA_HOJA.filter((f) => !f.hito).map((f) => ({ valor: f.clave, texto: f.nombre }))}
                 marcador="Elegir la fase"
               />
             </CampoGuiado>

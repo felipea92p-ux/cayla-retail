@@ -237,16 +237,50 @@ export function cambiosDeConfig(antes: ConfigDelClub, despues: ConfigDelClub): s
 /** Cuánto devuelve el programa de cada compra si TODOS los puntos se canjearan: puntos por sol × lo que vale cada punto, en %. */
 export const retornoPct = (c: Pick<ConfigDelClub, "puntosPorSol" | "solesPor100">): number => Math.round(c.puntosPorSol * c.solesPor100 * 100) / 100;
 
-export type LecturaDelRetorno = { pct: number; texto: string; superaElTope: boolean };
+/**
+ * Lo que te cuesta el programa, dicho para la tienda (diseño A, 2026-10-20): `frase` en soles («De cada S/ 100 que vendes, le devuelves
+ * S/ 5 en puntos»), `veredicto` contra tu tope y si lo pasa. Avisa, nunca frena: el tope es una referencia del líder, no una regla de la base.
+ */
+export type LecturaDelRetorno = { pct: number; superaElTope: boolean; frase: string; veredicto: string };
 
-/** «Devuelves 5 % de cada compra si todos los puntos se canjean.» y si pasa tu tope de costo. */
 export function lecturaDelRetorno(c: Pick<ConfigDelClub, "puntosPorSol" | "solesPor100" | "topeCostoPct">): LecturaDelRetorno {
   const pct = retornoPct(c);
-  const base = `Devuelves ${veces(pct)} % de cada compra si todos los puntos se canjean.`;
-  return pct > c.topeCostoPct
-    ? { pct, superaElTope: true, texto: `${base} Es más que tu tope de costo (${veces(c.topeCostoPct)} %): revisa los números o sube el tope.` }
-    : { pct, superaElTope: false, texto: `${base} Dentro de tu tope de costo (${veces(c.topeCostoPct)} %).` };
+  const superaElTope = pct > c.topeCostoPct;
+  return {
+    pct,
+    superaElTope,
+    frase: `De cada ${soles(100)} que vendes, le devuelves ${soles(pct)} en puntos (${veces(pct)} %, si todos los canjean).`,
+    veredicto: superaElTope ? `Te pasas de tu tope: ${veces(pct)} % contra ${veces(c.topeCostoPct)} %.` : `Dentro de tu tope (${veces(c.topeCostoPct)} %).`,
+  };
 }
+
+/** El ejemplo de una clienta que acompaña al formulario (diseño A): todo sale de los mismos números que guarda la base. */
+export type EjemploDelPrograma = {
+  /** Los puntos que gana con esta compra (enteros, hacia abajo, como `fn_club_puntos_por_venta`). */
+  puntosDeLaCompra: number;
+  /** Lo que vale su primer cupón: el canje mínimo (siempre de 100 en 100) en soles. */
+  valorDelPrimerCupon: number;
+  /** Cuánto tiene que comprar, sumando sus compras, para juntar el canje mínimo. */
+  comprasParaElPrimerCupon: number;
+  /** Desde qué compra se usa ese cupón: su valor × la compra mínima, hacia arriba (como `fn_club_cupon_crear`). */
+  compraMinimaDelCupon: number;
+  /** Lo que valen los puntos del cumpleaños cuando se juntan con otros (a razón de lo que valen 100 puntos). */
+  valorDelRegalo: number;
+};
+
+export function ejemploDelPrograma(c: ConfigDelClub, compra: number): EjemploDelPrograma {
+  const valorDelPrimerCupon = Math.floor(c.canjeMinimo / 100) * c.solesPor100;
+  return {
+    puntosDeLaCompra: Math.floor(Math.max(compra, 0) * c.puntosPorSol),
+    valorDelPrimerCupon,
+    comprasParaElPrimerCupon: c.puntosPorSol > 0 ? Math.ceil(c.canjeMinimo / c.puntosPorSol) : 0,
+    compraMinimaDelCupon: Math.ceil(Math.round(valorDelPrimerCupon * c.compraMinimaX * 100) / 100),
+    valorDelRegalo: Math.round((c.regaloCumple / 100) * c.solesPor100 * 100) / 100,
+  };
+}
+
+/** El tramo de la compra de ejemplo (S/): de cuánto a cuánto se mueve y cuánto salta. */
+export const COMPRA_DE_EJEMPLO = { min: 20, max: 600, paso: 10, inicial: 150 } as const;
 
 /** Los días de aviso de un cambio de lo que valen los puntos o el canje (Términos 5.9): la base lo hace cumplir. */
 export const DIAS_DE_AVISO = 15;

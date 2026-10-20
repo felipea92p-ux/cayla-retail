@@ -472,3 +472,83 @@ huella y los escenarios de tema que toque.
 
 **Qué se rompe si** se cambia la web antes que la base: la hoja «Nueva orden» manda claves que `produccion_fases_clave_check` rechaza. Y si se contrae primero (quitando
 `acabado`) con la web vieja desplegada, esa misma hoja deja de abrir órdenes. Por eso: expandir, web, contraer.
+
+## Actualización 2026-10-19 (l) · «Habilitado» es una fase propia, entre Corte y Costura (decisión de Felipe)
+
+**De dónde sale.** Felipe trajo un resumen del flujo de fabricación y control de lotes (infografía «Estructura Integral de Fabricación y Control de Lotes»). Cruzado contra
+d.2 y la actualización (k), mostró una contradicción: d.2 metió el habilitado **dentro de Corte** («en Lima son operaciones de la sala de corte, el mismo día y la misma
+persona»), pero en el resumen el corte industrial de la tela sale a un tercero y el habilitado —armar y colocar cierres, juntar piezas, avíos y el Tricotex que se corta
+adentro, y etiquetar— lo hace el Taller. Una fase tiene UN solo «quién» (d.3), así que dos cosas con distinto «quién» no pueden vivir en la misma fase. **Felipe, el
+2026-10-19: «sí, agrega Habilitado como fase del Taller entre Corte y Costura».**
+
+**Qué cambia (sustituye a d.2 en este punto; el resto de d.2 y de (k) sigue en pie).**
+1. Las fases de cada orden pasan a ser: **Ploteo · Corte · Habilitado · Costura · Ojales y botones · Limpiar hilos y revisar · Planchado · Etiquetar y embolsar**. Cada una la
+   hace el Taller o un servicio. Patronaje y Muestreo siguen en el modelo, no en la orden.
+2. **Habilitado** = juntar y preparar lo cortado para coser: numerar y armar paquetes, sumar avíos y cierres, y el **corte menor de Tricotex** (que es una operación de esta
+   fase, no una fase aparte: el Tricotex es un insumo con su propio consumo en `produccion_insumos`). Se anota como las demás del Taller, «Terminé N de M»; lo que entra a la
+   fase son las buenas de Corte, y lo que sale son las que entran a Costura.
+3. **Secuencia 15** (`fn_fase_secuencia`): justo después de Corte (10) y antes de Bordado o Estampado sobre pieza (20 y 25, hoy apagados en pantalla) y de Costura (30). Es un
+   supuesto mío: si una pieza sale a bordar, se habilita antes de salir.
+
+**Supuestos míos (cada uno cambia en una línea de migración).** Habilitado va **siempre**, como Corte y Costura (el resumen la muestra como trabajo interno de todo lote); el
+Taller es su «quién» de fábrica, y puede salir a un servicio como cualquier otra. No lleva tarifa propia mientras la haga el Taller. «Etiquetar y embolsar» se queda como la
+última fase y no se funde con Habilitado (el resumen dice «habilitado y etiquetado» junto, pero son dos momentos: antes de coser y antes de despachar).
+
+**Cómo se aplica.** Entra en el paquete **R1** de (k), en el mismo pegado de las fases nuevas: la base acepta la clave `habilitado` (`produccion_fases_clave_check`,
+`proveedor_tarifas_fase_clave_check`, `fn_fase_secuencia`, `fn_fase_nombre`, `fn_produccion_fases_normalizar`, `fn_fases_de_orden`) y la web la dibuja. Mismo orden de siempre:
+expandir, web, contraer. **Todavía no está construido**, y cambiar el esquema en producción lo confirma Felipe. Es el momento barato: las tablas de Producción tenían 0 filas
+el 2026-10-16 y la ventana se cierra con la primera orden real.
+
+**Qué se rompe si** Habilitado se queda dentro de Corte: cuando el corte sale a un tercero, el habilitado interno no tiene dónde anotarse ni quién (el tercero no lo hace), y la
+fase de Corte no puede cerrar sin que el servicio devuelva lo que en realidad el Taller prepara.
+
+### Lo que el resumen planteó y sigue ABIERTO (no decidido; no re-preguntar lo ya resuelto arriba)
+
+| # | Tensión | Recomendación del arquitecto | Quién decide |
+|---|---|---|---|
+| 2 | **«Sin tela confirmada no hay avance».** Hoy `registrar_avance` deja cortar sin mirar la tela. | Candado en la base para el **primer avance de Corte** (y la Salida de Corte, porque la tela viaja con ella): tela principal **recibida y medida** (P-23) ≥ plan; «en camino» no cuenta. Avíos: solo aviso. | Felipe (cambia una función en producción) |
+| 3 | **El orden real es ploteo → metraje → comprar tela.** Para un modelo nuevo el consumo hoy se teclea a mano en la primera orden. | «Ploteo hecho» pide metros de la marcada y prendas por marcada, y de ahí sale el consumo declarado. Va con **R4**. | Felipe (R4 toca stock y dinero: OK aparte) |
+| 4 | **El patrón entra en la fórmula del costo del resumen, pero no tiene tarifa** (Patronaje y Muestreo viven en el modelo sin costo, (k)). | Dejarlo **fuera** del costo de la prenda y mostrarlo aparte como «costo de desarrollo del modelo». Alternativas: amortizarlo en N lotes o cargarlo al primer lote. | El contador (cómo cierra el costo de ventas) y Felipe |
+| 5 | **Quién corta por defecto.** `docs/datos/15` R-29 dice que el Taller corta adentro; el resumen dice corte industrial tercerizado (y corte de Tricotex menor adentro). | Lo soporta el modelo en cualquier caso. Falta elegir el valor de fábrica de «quién» en Corte y, entonces, corregir R-29. | Felipe |
+
+**Ideas nuevas del resumen, sin decidir:** atribución del atraso (tela, servicio o Taller; sale de fechas que ya existen y completa P-30, va con R8); saturación y
+concentración de proveedores al abrir una orden («este servicio ya tiene N prendas tuyas»; sale de lo que ya está afuera); **hoja de cargo impresa con «firmada»** al salir
+(recomiendo marcar «sin hoja firmada» en vez de bloquear la Salida: si el bulto ya salió, bloquear solo logra que salga sin registrar; es lo mismo que la cláusula 3 del borrador
+de P-18); personas cosiendo por día (choca con P-12, diferida); comparar proveedores al abrir una orden (sin historial no hay con qué); y los tres destinos (Lima, Arequipa,
+Trujillo), que tocan P-34 y Traslados (decisión de más de un módulo).
+
+## Actualización 2026-10-19 (m) · R1 construido: la ruta nueva con Habilitado y Ploteo de un toque (6 actividades, rama `claude/summary-taller-analysis-40d104`)
+
+**Qué quedó hecho** (Felipe aprobó la lista de actividades el 2026-10-19, tal cual, con tres supuestos; cada una con su commit y su prueba):
+
+1. **La base acepta las fases nuevas** (`20261019191000`): `ploteo`, `habilitado`, `ojales_botones`, `limpieza_revision`, `planchado` y `etiquetado_embolsado` entran a la secuencia (5 · 15 · 35 · 55 · 65 · 70),
+   los nombres, los dos CHECK de la clave y la lista de precios. **La orden acepta la ruta anterior (Corte · Costura · Acabado) o la nueva, y rechaza mezclarlas** (`fases_mezcla`): la web desplegada
+   siguió abriendo órdenes durante toda la obra. `cambiar_quien_fase` validaba con una espina fija de tres y rechazaba cualquier cambio en la ruta nueva: ahora valida contra las fases reales de la orden.
+2. **Ploteo, la fase de un toque** (`20261019192000`): se MARCA «hecha» y se deshace (`marcar_fase_hecha`, `deshacer_marca_fase`; tabla `produccion_fase_marcas`, solo se agrega; `fn_fase_es_hito`), **no cuenta
+   prendas y no entra a la cadena de cantidades** (`fn_produccion_fase_anterior` y `siguiente` la saltan: Corte sigue siendo la primera que cuenta, con su margen de cortar de más). Avance, Salida y Vuelta la
+   rechazan (`fase_es_hito`). **Un servicio de ploteo cobra por ORDEN** (el fijo, sin tarifa por prenda ni mínimo) y **devenga cuando se marca**. Decisiones mías: un ploteo sin marcar **no impide pasar al stock**
+   ni devenga (un modelo que se repite no vuelve a plotear), y una fase hito pendiente es la «actual» solo mientras nadie empezó una posterior.
+3. **«Nueva orden» abre con la ruta nueva**: las siete fijas (cada una en el Taller o afuera) y Ojales y botones como opción; **Acabado, Bordado, Estampado y Lavandería no se ofrecen** («no se usan por
+   ahora», `FaseDelCatalogo.enLaHoja`) pero siguen en la base. Ploteo pide su fijo a la vista («Cobra por esta orden»); lo mismo en «Cambiar quién».
+4. **La página de la orden** dibuja la ruta (4 + 3 o 4 + 4 columnas con lugar, 3 a 1024 px), con «Ploteo hecho» y «Deshacer», «Marcó / Deshizo la marca» en la línea de tiempo, y «lista para pasar al stock» sin
+   esperar a un ploteo sin marcar (`todasLasQueCuentanHechas`, la misma regla en la lista).
+5. **La lista de Órdenes y «Hoy en el Taller»**: «Taller · por hacer» en vez de «0 de 0»; Por cortar y En costura siempre, las demás fases solo con un lote ahí (ya no hay una tarjeta «En acabado» vacía).
+6. **Una orden completa, de punta a punta** (`pruebas:produccion-ruta-nueva`): el costo de los servicios es lo devengado (ploteo 40.00 + costura 207.00 + planchado 55.20 = 302.20, a 6.57 por las 46 buenas),
+   el candado de las buenas mira la ÚLTIMA fase, no se cierra ni se anula con prendas afuera, revertir devuelve el stock.
+
+**Se aparta de lo escrito arriba.** (k) decía «Patronaje y Muestreo en el modelo» y «Ploteo con un toque»: se cumple. (l) pedía Habilitado «justo después de Corte»: secuencia 15, antes del bordado y estampado sobre pieza.
+La reconstrucción de la lista de precios para el ploteo **no se hizo** (ver «Pendiente»).
+
+**Pendiente (no bloquea R1).** (a) **«Servicios y tarifas» todavía no guarda una tarifa de ploteo** (su fijo se escribe en la orden; `TarifaServicioModal` no ofrece la fase hito; `leerTarifasDeServicios` descartaría una fila
+sin tarifa por prenda). (b) **Contraer** (quitar `acabado` de la base y de la web) queda dormida: con 0 filas no estorba y deja el retroceso abierto; solo si Felipe la pide. (c) Las tensiones 2 a 5 de (l) siguen abiertas.
+(d) `tema:auditar` no se corrió (falta el Chromium de Playwright en esta Mac): el modo oscuro se revisó a ojo. (e) El `/formidable` con agente ciego y el `/chaos` completo no se corrieron: sí un caos a mano sobre lo que
+guarda (dos marcas simultáneas dejan una; un fijo con NaN, Infinity, negativo, cero, 1e999, coma o texto con SQL se rechaza). (f) R2 a R10 de (k) siguen sin construirse (el tope de cortar de más sigue en × 1,10).
+
+**Qué se rompe si** se pega 20261019192000 sin 20261019191000 (el candado de md5 lo detiene), o si la web nueva se publica antes que las migraciones: «Nueva orden» manda `ploteo` y `habilitado` y la base los rechaza con
+`fase_desconocida`. Por eso: base primero, web después.
+
+**Pegado en producción (2026-10-19, con tu OK por adelantado).** `20261019191000` y luego `20261019192000`, con `apply_migration` sobre el proyecto de Dynamic (schema `retail`); el SQL Editor las
+registró con la versión del momento del pegado (`20261020012606`, `20261020012656` y `20261020012913`), no con la del archivo. Verificado en solo lectura: el md5 de las 7 funciones reemplazadas coincide con el del
+archivo, los guardas `fase_es_hito` están en Avance, Salida y Vuelta, la línea de tiempo de `fn_orden_produccion` lee las marcas, `produccion_fase_marcas` existe con RLS y 0 filas, los cuatro CHECK nuevos están y las
+tablas de Producción siguen en 0 filas. **Lección del pegado:** la primera migración se pegó una vez sin los comentarios que viven DENTRO de dos cuerpos (`fn_produccion_fases_normalizar`, `cambiar_quien_fase`); el md5 del
+archivo no coincidió y se repegaron esos dos cuerpos tal cual. Un cuerpo de función se pega con sus comentarios internos, siempre: el candado de md5 de la migración siguiente lo exige.

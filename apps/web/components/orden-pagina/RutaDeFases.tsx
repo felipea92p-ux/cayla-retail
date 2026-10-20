@@ -6,7 +6,9 @@ import { AnotarAvanceModal } from "@/components/orden-pagina/AnotarAvanceModal";
 import { AnotarSalidaModal } from "@/components/orden-pagina/AnotarSalidaModal";
 import { AnotarVueltaModal } from "@/components/orden-pagina/AnotarVueltaModal";
 import { CambiarQuienModal } from "@/components/orden-pagina/CambiarQuienModal";
+import { MarcarFaseModal } from "@/components/orden-pagina/MarcarFaseModal";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { Boton } from "@/components/ui/campos";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
@@ -17,6 +19,7 @@ import {
   avisoMinimoDeFase,
   cuandoTerminoLaFase,
   faltaTerminar,
+  previaQueCuenta,
   puedeCambiarQuien,
   quienDeFase,
   textoDeFase,
@@ -29,7 +32,7 @@ import {
 // «Salida» y «Vuelta» abren sus hojas (actividad 4): lo que sale a un servicio y lo que regresa, por talla y color. En la fase actual, la que toca primero lleva el botón principal: «Vuelta»
 // si hay prendas afuera, «Salida» si no.
 
-type Hoja = { tipo: "terminar" | "quien" | "salida" | "vuelta"; faseId: string };
+type Hoja = { tipo: "terminar" | "quien" | "salida" | "vuelta" | "marcar" | "desmarcar"; faseId: string };
 
 export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opciones: Tolerado<OpcionesNuevaOrden> | null; hoy: string }) {
   const [hoja, setHoja] = useState<Hoja | null>(null);
@@ -40,6 +43,8 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
   // «Salida» y «Vuelta» se anclan en la primera fase que las ofrece (no solo en la actual: con el corte a medias, la costura ya puede recibir una salida).
   const idDeLaQueSale = fases.find((f) => accionesDeFase(f, datos).includes("salida"))?.id ?? null;
   const idDeLaQueRecibe = fases.find((f) => accionesDeFase(f, datos).includes("vuelta"))?.id ?? null;
+  // «Ploteo hecho» y su «Deshacer» (una fase que se marca en vez de contar prendas): una sola pieza por ancla.
+  const idDeLaQueMarca = fases.find((f) => accionesDeFase(f, datos).includes("marcar"))?.id ?? null;
   const faseDeLaHoja = hoja ? (fases.find((f) => f.id === hoja.faseId) ?? null) : null;
   const dato = fases.every((f) => f.estado === "hecha")
     ? "las fases terminaron"
@@ -64,7 +69,8 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
       <TituloSeccion dato={dato}>Fases</TituloSeccion>
       <ol className="op-ruta m-0 list-none p-0" data-n={fases.length} data-guia="prod-orden.fases">
         {fases.map((fase, i) => {
-          const previa = i > 0 ? fases[i - 1] : null;
+          // De quién espera: la fase de antes QUE CUENTA prendas (una que se marca, como Ploteo, no le da nada a la siguiente).
+          const previa = previaQueCuenta(fases, i);
           const t = textoDeFase(fase, { previa, terminoEl: fase.estado === "hecha" ? cuandoTerminoLaFase(fase.clave, lineaDeTiempo) : null, totalPlan: orden.cantidadPlan });
           const acciones = accionesDeFase(fase, datos);
           const aviso = avisoMinimoDeFase(fase, orden.cantidadPlan);
@@ -111,6 +117,12 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
               )}
               {(acciones.length > 0 || cambiar) && (
                 <div className="op-fase-acciones">
+                  {acciones.includes("marcar") && (
+                    <Boton type="button" peso={fase.actual ? "primario" : "fantasma"} aria-haspopup="dialog" data-guia={fase.id === idDeLaQueMarca ? "prod-orden.marcar" : undefined} onClick={() => setHoja({ tipo: "marcar", faseId: fase.id })}>
+                      {fase.nombre} hecho
+                    </Boton>
+                  )}
+                  {acciones.includes("desmarcar") && <BotonDeshacer onClick={() => setHoja({ tipo: "desmarcar", faseId: fase.id })} />}
                   {acciones.includes("terminar") && (
                     <Boton type="button" peso={fase.actual ? "primario" : "fantasma"} aria-haspopup="dialog" data-guia={fase.actual ? "prod-orden.terminar" : undefined} onClick={() => setHoja({ tipo: "terminar", faseId: fase.id })}>
                       Terminé {faltaTerminar(fase, fases)}
@@ -137,6 +149,7 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
           );
         })}
       </ol>
+      {(hoja?.tipo === "marcar" || hoja?.tipo === "desmarcar") && faseDeLaHoja && <MarcarFaseModal datos={datos} fase={faseDeLaHoja} modo={hoja.tipo === "marcar" ? "marcar" : "deshacer"} onClose={() => setHoja(null)} />}
       {hoja?.tipo === "terminar" && faseDeLaHoja && <AnotarAvanceModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {hoja?.tipo === "salida" && faseDeLaHoja && <AnotarSalidaModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {hoja?.tipo === "vuelta" && faseDeLaHoja && <AnotarVueltaModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}

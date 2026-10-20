@@ -11,13 +11,13 @@ import { problemasDeConfig, type BorradorConfig, type CampoConfig } from "./club
 
 /** Cómo llama la persona a cada campo, en el orden en que aparecen en la pantalla. */
 export const NOMBRES_CAMPOS_CONFIG: readonly { id: CampoConfig; nombre: string }[] = [
-  { id: "puntosPorSol", nombre: "Puntos por cada S/\u00a01" },
-  { id: "solesPor100", nombre: "Lo que valen 100 puntos" },
-  { id: "canjeMinimo", nombre: "Canje mínimo" },
-  { id: "compraMinimaX", nombre: "Compra mínima del cupón" },
-  { id: "vigenciaDias", nombre: "Duración del cupón" },
+  { id: "puntosPorSol", nombre: "Puntos por cada S/\u00a01 que paga" },
   { id: "regaloCumple", nombre: "Regalo de cumpleaños" },
-  { id: "topeCostoPct", nombre: "Tope de costo" },
+  { id: "solesPor100", nombre: "Lo que valen 100 puntos" },
+  { id: "canjeMinimo", nombre: "Desde cuántos puntos canjea" },
+  { id: "compraMinimaX", nombre: "La compra mínima del cupón" },
+  { id: "vigenciaDias", nombre: "Cuánto dura el cupón" },
+  { id: "topeCostoPct", nombre: "Lo máximo que quieres devolver" },
 ];
 
 export function camposDeConfig(b: BorradorConfig, responsableListo: boolean): CampoDeGuia[] {
