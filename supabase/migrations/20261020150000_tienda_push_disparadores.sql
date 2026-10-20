@@ -28,7 +28,7 @@ set lock_timeout = '3s';
 
 -- ---------------------------------------------------------------------------
 -- Talla que llegó: el stock de una tienda pasa de 0 a algo, y la prenda tiene una espera que se puede separar ahí.
-create or replace function retail.tienda_push_talla()
+create or replace function retail.fn_push_talla()
 returns trigger
 language plpgsql
 security definer
@@ -61,17 +61,17 @@ create or replace trigger tienda_push_talla
   after update of cantidad on retail.stock
   for each row
   when (old.cantidad = 0 and new.cantidad > 0)
-  execute function retail.tienda_push_talla();
+  execute function retail.fn_push_talla();
 
 create or replace trigger tienda_push_talla_nueva
   after insert on retail.stock
   for each row
   when (new.cantidad > 0)
-  execute function retail.tienda_push_talla();
+  execute function retail.fn_push_talla();
 
 -- ---------------------------------------------------------------------------
 -- Pedido: la clienta con cuenta web tiene un cambio importante en su pedido (pagado, vencido o anulado).
-create or replace function retail.tienda_push_pedido()
+create or replace function retail.fn_push_pedido()
 returns trigger
 language plpgsql
 security definer
@@ -107,7 +107,7 @@ create or replace trigger tienda_push_pedido
   after update of estado on retail.pedidos_web
   for each row
   when (old.estado is distinct from new.estado and new.estado in ('pagado', 'vencido', 'anulado'))
-  execute function retail.tienda_push_pedido();
+  execute function retail.fn_push_pedido();
 
-revoke all on function retail.tienda_push_talla() from public, anon, authenticated, tienda_web;
-revoke all on function retail.tienda_push_pedido() from public, anon, authenticated, tienda_web;
+revoke all on function retail.fn_push_talla() from public, anon, authenticated, tienda_web;
+revoke all on function retail.fn_push_pedido() from public, anon, authenticated, tienda_web;
