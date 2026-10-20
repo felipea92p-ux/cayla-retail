@@ -31,8 +31,9 @@ import { BurbujaAviso } from "./BurbujaAviso";
 
 // Clientes ▸ Avisos, «Editar mensajes» (Felipe 2026-10-20; maqueta `docs/maquetas/avisos-club-2026-10/`, migración 20261020144000).
 // Arriba, los cuatro avisos; en el medio, el mensaje del elegido y el cierre común; a la derecha, cómo le llega a un miembro de
-// ejemplo. La BAJA no se escribe: la pone la base al final de todo mensaje (Ley 29733). Solo el líder guarda (la base lo exige,
-// `avisos_solo_lider`); lo que guarda llega a las 3 tiendas desde el próximo aviso, y lo ya enviado no cambia.
+// ejemplo. La BAJA no se escribe: la pone la base al final de todo mensaje (Ley 29733). Cada tienda edita SUS mensajes y lo hace quien
+// tiene el módulo (Felipe 2026-10-20, migración 20261020151000): lo que no cambió sigue al de CAYLA. Rige desde el próximo aviso de
+// esta tienda; lo ya enviado no cambia.
 //
 // Guía de foco: cada aviso es un campo (está bien o dice qué le falta) y el cierre otro, opcional; los cuatro llegan escritos, así que
 // la guía solo se enciende cuando algo se rompe. No agrega reglas: son las de `fn_club_aviso_problema`.
@@ -41,12 +42,12 @@ const recortar = (s: string) => s.trim();
 
 export function EditarMensajesAvisos({
   textos,
-  tienda,
+  sede,
   onClose,
 }: {
   textos: TextosDeAvisos;
-  /** El nombre de la tienda activa: completa {tienda} en la vista previa. */
-  tienda: string;
+  /** La tienda activa: sus mensajes son los que se editan, y su nombre completa {tienda} en la vista previa. */
+  sede: { id: string; nombre: string };
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -99,7 +100,7 @@ export function EditarMensajesAvisos({
       return;
     }
     setGuardando(true);
-    const { cambiados: n, error } = await guardarMensajesAvisos(cuerpos, cierre, responsable.firma());
+    const { cambiados: n, error } = await guardarMensajesAvisos(sede.id, cuerpos, cierre, responsable.firma());
     setGuardando(false);
     responsable.despues(error);
     if (error) {
@@ -110,7 +111,7 @@ export function EditarMensajesAvisos({
       return;
     }
     avisar.exito("Mensajes guardados", {
-      detalle: n ? "Los próximos avisos de las 3 tiendas ya salen con el texto nuevo. Lo que ya se mandó no cambia." : "No había nada distinto que guardar.",
+      detalle: n ? `Los próximos avisos de ${sede.nombre} ya salen con el texto nuevo. Lo que ya se mandó no cambia.` : "No había nada distinto que guardar.",
     });
     router.refresh();
     onClose();
@@ -122,7 +123,7 @@ export function EditarMensajesAvisos({
   return (
     <Modal
       titulo="Editar mensajes"
-      subtitulo="El texto de cada aviso. Lo que guardes llega a los miembros de las 3 tiendas desde el próximo aviso; lo que ya se mandó no cambia."
+      subtitulo={`Los mensajes de ${sede.nombre}. ${textos.personalizada ? "Ya los personalizaste" : "Hoy usa los de CAYLA"}; lo que guardes sale desde su próximo aviso, y lo que ya se mandó no cambia.`}
       onClose={onClose}
       ancho="max-w-[1000px]" /* unificar-fijo: hoja de diseño propio, el mensaje y su vista previa lado a lado */
       bloqueado={guardando}
@@ -205,7 +206,7 @@ export function EditarMensajesAvisos({
 
           <aside className="self-start rounded-xl border border-sand bg-crema p-4 md:sticky md:top-0" aria-label="Así le llega" data-guia="avisos.editar-previa">
             <p className="label-cayla mb-2.5 text-[11px] text-taupe">Así le llega a {nombreDeEjemplo(tipo)}</p>
-            <BurbujaAviso texto={mensajeDeEjemplo(tipo, cuerpo, cierre, tienda)} cierre={cierre} hora="10:24" />
+            <BurbujaAviso texto={mensajeDeEjemplo(tipo, cuerpo, cierre, sede.nombre)} cierre={cierre} hora="10:24" />
             <p className="mt-2.5 text-xs text-taupe">Con los datos de un miembro de ejemplo. A cada miembro le llegan los suyos.</p>
           </aside>
         </div>

@@ -43,7 +43,8 @@ import { EditarMensajesAvisos } from "./EditarMensajesAvisos";
 // Clientas ▸ Avisos (ADR-0288, «Actualización 2026-10-01 (g)», G-8), con el diseño «Uno a la vez» que Felipe eligió el 2026-10-20
 // (`docs/maquetas/avisos-club-2026-10/`, opción A): la pantalla es una tanda. Arriba, cuánto va de hoy y quién envía; en el centro, UN
 // miembro grande con su mensaje tal como le llega; «Enviar» abre WhatsApp Web y lo anota, y «Siguiente» pasa al que falta (o Enter);
-// a la derecha, la fila de hoy agrupada por tipo, tocable. «Editar mensajes» (solo el líder) abre la hoja que cambia lo que dicen.
+// a la derecha, la fila de hoy agrupada por tipo, tocable. «Editar mensajes» abre la hoja que cambia lo que dicen los de ESTA tienda
+// (quien tiene el módulo lo hace, Felipe 2026-10-20).
 //
 // QUIÉN aparece lo decide la base (`fn_club_avisos_pendientes`: publicidad vigente de esta tienda, tope CL-21, grupo testigo CL-20);
 // la pantalla no filtra a nadie. «Enviar» abre WhatsApp Web con el número y el texto listos y, en el mismo toque, lo anota
@@ -81,7 +82,7 @@ export function AvisosClubPanel({
   avisos: AvisoPendiente[];
   /** La base no pudo dar la lista (la tanda 1g sin pegar): la pantalla lo dice y sigue. */
   falla: string | null;
-  /** Los mensajes vigentes y si quien mira puede cambiarlos (`fn_club_avisos_textos`); null si la base no los dio. */
+  /** Los mensajes que rigen en esta tienda (`fn_club_avisos_textos`); null fuera de una tienda o si la base no los dio. */
   textos: TextosDeAvisos | null;
 }) {
   const responsable = useResponsable({ ubicacionId: sede.id, etiqueta: sede.nombre });
@@ -250,7 +251,6 @@ export function AvisosClubPanel({
   }, []);
 
   const pct = fila.length ? (enviados / fila.length) * 100 : 0;
-  const puedeEditar = textos?.puedeEditar ?? false;
 
   return (
     <div className="space-y-6">
@@ -260,12 +260,7 @@ export function AvisosClubPanel({
         subtitulo="Los mensajes que hoy le tocan a cada miembro del club, listos para mandar desde el WhatsApp de esta tienda."
         acciones={
           textos && (
-            <BotonEditar
-              onClick={() => setEditando(true)}
-              disabled={!puedeEditar}
-              title={puedeEditar ? "Cambia lo que dice cada aviso, para las 3 tiendas" : "Los mensajes los cambia el líder: llegan a las 3 tiendas."}
-              guia="avisos.editar"
-            >
+            <BotonEditar onClick={() => setEditando(true)} title={`Cambia lo que dice cada aviso de ${sede.nombre}`} guia="avisos.editar">
               Editar mensajes
             </BotonEditar>
           )
@@ -385,7 +380,7 @@ export function AvisosClubPanel({
         </p>
       )}
 
-      {editando && textos && <EditarMensajesAvisos textos={textos} tienda={sede.nombre} onClose={() => setEditando(false)} />}
+      {editando && textos && <EditarMensajesAvisos textos={textos} sede={sede} onClose={() => setEditando(false)} />}
 
       {pidioBaja && (
         <ConfirmarConResponsable

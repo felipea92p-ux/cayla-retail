@@ -126,16 +126,16 @@ export function trozosConNegrita(texto: string): Trozo[] {
 }
 
 export type TextosDeAvisos = {
-  /** Si quien mira puede cambiar los mensajes (el líder: `fn_es_lider()`). */
-  puedeEditar: boolean;
+  /** Si esta tienda ya cambió alguno de sus mensajes; si no, usa los de CAYLA (20261020151000). */
+  personalizada: boolean;
   cierre: string;
   /** Lo que se edita de cada aviso (sin cierre ni BAJA). Un aviso sin texto en la base queda vacío. */
   cuerpos: Record<TipoAviso, string>;
 };
 
-/** Lo que devuelve `fn_club_avisos_textos()`, sin confiar en su forma. */
+/** Lo que devuelve `fn_club_avisos_textos(tienda)`, sin confiar en su forma. */
 export function leerTextosDeAvisos(crudo: unknown): TextosDeAvisos {
-  const o = (crudo && typeof crudo === "object" ? crudo : {}) as { puede_editar?: unknown; cierre?: unknown; mensajes?: unknown };
+  const o = (crudo && typeof crudo === "object" ? crudo : {}) as { personalizada?: unknown; cierre?: unknown; mensajes?: unknown };
   const cierre = cierreDeLaBase(typeof o.cierre === "string" ? o.cierre : null);
   const cuerpos = Object.fromEntries(TIPOS_AVISO.map((t) => [t, ""])) as Record<TipoAviso, string>;
   for (const m of Array.isArray(o.mensajes) ? o.mensajes : []) {
@@ -145,5 +145,5 @@ export function leerTextosDeAvisos(crudo: unknown): TextosDeAvisos {
       cuerpos[tipo as TipoAviso] = cuerpoDelMensaje(texto, cierre);
     }
   }
-  return { puedeEditar: o.puede_editar === true, cierre, cuerpos };
+  return { personalizada: o.personalizada === true, cierre, cuerpos };
 }

@@ -559,7 +559,7 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
  *   · `beneficio_retirado`: el 10 % de cumpleaños y el vale de aniversario ya no existen (los reemplazaron los puntos).
  *   · `puntos_insuficientes`, `canje_menor_al_minimo`, `canje_no_multiplo`: el canje de puntos no alcanza o no es de a 100.
  * Avisos, «Editar mensajes» (20261020144000): `mensaje_aviso_invalido` (`22023`, el mensaje no pasa `fn_club_aviso_problema`; su
- * `detail` dice cuál) y `avisos_solo_lider` (`42501`: lo que se cambia llega a las 3 tiendas).
+ * `detail` dice cuál) y `avisos_otra_tienda` (`42501`, 20261020151000: cada tienda edita sus mensajes, y solo donde se puede operar).
  */
 const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["documento_invalido", "El documento del cliente no tiene el formato de su tipo: el DNI tiene 8 dígitos; el carné y el pasaporte, de 6 a 12 letras o números."],
@@ -595,7 +595,7 @@ const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["canje_menor_al_minimo", "Todavía no llega al mínimo de puntos para canjear."],
   ["canje_no_multiplo", "Los puntos se canjean de 100 en 100."],
   ["mensaje_aviso_invalido", "Uno de los mensajes no se puede guardar así: revisa el que está marcado."],
-  ["avisos_solo_lider", "Los mensajes de los avisos los cambia el líder: llegan a los miembros de las 3 tiendas."],
+  ["avisos_otra_tienda", "No puedes cambiar los mensajes de esa tienda: elige una tienda donde trabajas en el selector de sede."],
 ]);
 
 /**

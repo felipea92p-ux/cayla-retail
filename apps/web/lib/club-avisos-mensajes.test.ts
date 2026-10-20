@@ -115,17 +115,17 @@ describe("la vista previa", () => {
 describe("leer lo que devuelve fn_club_avisos_textos", () => {
   it("separa cada cuerpo del cierre y la BAJA; el «-» de la base es sin cierre", () => {
     const leido = leerTextosDeAvisos({
-      puede_editar: true,
+      personalizada: true,
       cierre: CIERRE,
       mensajes: [
         { tipo: "novedades", texto: componerMensaje("Hola {nombre}", CIERRE) },
         { tipo: "aniversario", texto: "viejo" },
       ],
     });
-    expect(leido.puedeEditar).toBe(true);
+    expect(leido.personalizada).toBe(true);
     expect(leido.cuerpos.novedades).toBe("Hola {nombre}");
     expect(leido.cuerpos.rebaja).toBe("");
     expect(leerTextosDeAvisos({ cierre: "-" }).cierre).toBe("");
-    expect(leerTextosDeAvisos(null)).toEqual({ puedeEditar: false, cierre: "", cuerpos: { cumpleanos: "", puntos: "", novedades: "", rebaja: "" } });
+    expect(leerTextosDeAvisos(null)).toEqual({ personalizada: false, cierre: "", cuerpos: { cumpleanos: "", puntos: "", novedades: "", rebaja: "" } });
   });
 });

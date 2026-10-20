@@ -17,10 +17,10 @@ export async function getAvisosPendientes(ubicacionId: string): Promise<LecturaA
   return { avisos: leerAvisos(data ?? []), falla: null };
 }
 
-/** Los mensajes vigentes de cada aviso y el cierre común, para la hoja «Editar mensajes» (`fn_club_avisos_textos`, 20261020144000).
- *  Sin la migración (o si la base no responde), `null`: la pantalla sigue y el botón no aparece. */
-export async function getTextosDeAvisos(): Promise<TextosDeAvisos | null> {
+/** Los mensajes que rigen en esta tienda (los suyos, o los de CAYLA si no los cambió) y su cierre, para la hoja «Editar mensajes»
+ *  (`fn_club_avisos_textos`, 20261020151000). Sin la migración (o si la base no responde), `null`: la pantalla sigue y el botón no aparece. */
+export async function getTextosDeAvisos(ubicacionId: string): Promise<TextosDeAvisos | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_club_avisos_textos");
+  const { data, error } = await supabase.rpc("fn_club_avisos_textos", { p_ubicacion_id: ubicacionId });
   return error ? null : leerTextosDeAvisos(data);
 }

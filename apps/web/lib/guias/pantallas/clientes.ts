@@ -269,7 +269,7 @@ export const GUIA_AVISOS_CLUB: Guia = {
       ancla: "avisos.editar",
       opcional: true,
       titulo: "Editar mensajes",
-      texto: "Cambia lo que dice cada aviso, para las 3 tiendas. Solo el líder puede guardar; los demás lo ven apagado.",
+      texto: "Cambia lo que dice cada aviso de esta tienda: cada tienda tiene sus propios mensajes. Lo que no cambies sigue con el de CAYLA.",
     },
     {
       id: "editar-tipos",
@@ -305,7 +305,7 @@ export const GUIA_AVISOS_CLUB: Guia = {
       ancla: "avisos.editar-guardar",
       opcional: true,
       titulo: "Guardar mensajes",
-      texto: "Eliges quién lo cambia y guardas. Los próximos avisos de las 3 tiendas salen con el texto nuevo; lo ya enviado no cambia. En la demo no guardamos.",
+      texto: "Eliges quién lo cambia y guardas. Los próximos avisos de esta tienda salen con el texto nuevo; lo ya enviado no cambia. En la demo no guardamos.",
     },
     {
       id: "reglas",

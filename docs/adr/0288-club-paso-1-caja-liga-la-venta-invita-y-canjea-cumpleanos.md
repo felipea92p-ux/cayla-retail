@@ -1176,9 +1176,12 @@ invitando a tienda.cayla.pe, y eligió mirando el diseño «Uno a la vez» entre
 
 - **Uno a la vez.** La pantalla es una tanda: cuánto va de hoy, UN miembro con su mensaje tal como le llega, «Enviar por WhatsApp» y
   «Siguiente» (o Enter), y la fila de hoy por tipo al lado. Quién recibe y qué se anota no cambió.
-- **Mensajes editables, solo el líder** (`guardar_mensajes_avisos`, `fn_es_lider()`): lo que se cambia llega a las 3 tiendas. Cada aviso
-  guarda una versión nueva en `club_textos` solo si cambió; lo ya enviado no cambia.
-- **Un cierre común** (`club_textos.tipo = 'aviso_cierre'`) va al final de los cuatro avisos, y después, SIEMPRE, la línea de la BAJA,
+- **Mensajes editables, por tienda y con el módulo** (`guardar_mensajes_avisos(tienda, …)`, 20261020151000). Primero salió «solo el
+  líder, para las 3 tiendas» (20261020144000): fue una decisión mía sobre permisos que no me tocaba, y Felipe la corrigió el mismo día:
+  «quien tiene el módulo lo puede hacer y cada tienda (sede) personaliza sus propios mensajes predeterminados». Cada tienda guarda sus
+  versiones en `club_avisos_textos_sede`; lo que no cambió sigue al de CAYLA (`club_textos.aviso_*`, que ya no se edita desde la
+  pantalla). `fn_club_avisos_pendientes` arma cada aviso con el de su tienda (`fn_club_aviso_texto_de`). Lo ya enviado no cambia.
+- **Un cierre común** (el de la tienda, o `club_textos.tipo = 'aviso_cierre'` de CAYLA) va al final de los cuatro avisos, y después, SIEMPRE, la línea de la BAJA,
   que la pone la base (`fn_club_aviso_componer`) y no se edita (Ley 29733). El texto guardado sigue siendo el mensaje completo, así que
   `fn_club_avisos_pendientes`, `registrar_aviso_enviado` y la regla `club_textos_aviso_con_baja` no cambiaron.
 - **Qué no se puede guardar** lo decide `fn_club_aviso_problema` (vacío, más de 700 letras, sin `{nombre}`, un dato que ese aviso no

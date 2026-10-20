@@ -10,7 +10,7 @@
       "Boton «{control?.motivo ?? undefined}»"
     ],
     "components/clientas/AvisosClubPanel.tsx": [
-      "BotonEditar «Editar mensajes»",
+      "BotonEditar «{`Cambia lo que dice cada aviso de ${sede.nombre}»",
       "ComboResponsable «{responsable}»",
       "button «→() => setElegido(a.clave)»",
       "BotonDeshacer «{enCurso ? \"Deshaciendo…\" : \"Deshacer\"}»",

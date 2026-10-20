@@ -6091,16 +6091,16 @@ export type Database = {
         Args: { p_clienta_id: string; p_tipo: string; p_referencia: string; p_texto: string; p_ubicacion_id: string }
         Returns: string
       }
-      /** Módulo «Avisos del club», «Editar mensajes» (20261020144000): el texto vigente de cada aviso (completo), el cierre común
-       *  («-» = sin cierre) y si quien pregunta puede editarlos (líder). */
+      /** Módulo «Avisos del club», «Editar mensajes» (20261020151000): el mensaje que rige en esa tienda para cada aviso (completo),
+       *  su cierre (null = sin cierre) y si ya personalizó alguno. */
       fn_club_avisos_textos: {
-        Args: Record<PropertyKey, never>
+        Args: { p_ubicacion_id: string }
         Returns: Json
       }
-      /** «Editar mensajes»: guarda solo lo que cambió (cuerpos sin cierre ni BAJA). Solo el líder. Hints: mensaje_aviso_invalido
-       *  (detail = el aviso), avisos_solo_lider. Devuelve cuántos textos cambió. */
+      /** «Editar mensajes»: guarda los mensajes propios de una tienda, solo lo que cambió (cuerpos sin cierre ni BAJA). Con el
+       *  módulo. Hints: mensaje_aviso_invalido (detail = el aviso), avisos_otra_tienda. Devuelve cuántos textos cambió. */
       guardar_mensajes_avisos: {
-        Args: { p_mensajes: Json; p_cierre: string }
+        Args: { p_ubicacion_id: string; p_mensajes: Json; p_cierre: string }
         Returns: number
       }
       /** Módulo «Avisos del club»: cuántos avisos no deshechos se anotaron HOY (Lima) desde esa tienda, por tipo (solo los
