@@ -2,5 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "ignoreCommand": "node \"$(git rev-parse --show-toplevel)/scripts/ci/vercel-ignorar-tienda.mjs\"",
   "regions": ["gru1"],
-  "crons": [{ "path": "/api/cuentas-cerradas", "schedule": "30 8 * * *" }]
+  "crons": [
+    { "path": "/api/cuentas-cerradas", "schedule": "30 8 * * *" },
+    { "path": "/api/push-enviar", "schedule": "* * * * *" }
+  ]
 }

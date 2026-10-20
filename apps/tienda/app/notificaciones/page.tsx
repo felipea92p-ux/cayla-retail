@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
+import { AvisarEnCelular } from "@/components/notificaciones/AvisarEnCelular";
 import { BuscadorNotificaciones } from "@/components/notificaciones/BuscadorNotificaciones";
 import { ListaNotificaciones, type FilaNotificacion } from "@/components/notificaciones/ListaNotificaciones";
 import { listarAvisos } from "@/lib/avisos-tienda-servidor";
@@ -59,6 +60,7 @@ export default async function Notificaciones({ searchParams }: { searchParams: P
             Todo lo que <em>te llegó.</em>
           </h1>
           <BuscadorNotificaciones inicial={busqueda} />
+          <AvisarEnCelular clavePublica={process.env.TIENDA_VAPID_PUBLIC_KEY ?? null} />
           <ListaNotificaciones filas={filas} total={lista.total} busqueda={busqueda} />
           <nav className="n-paginas" aria-label="Páginas">
             {pedida > 1 ? <Link href={enlace(busqueda, pedida - 1)}>Anterior</Link> : <span />}
