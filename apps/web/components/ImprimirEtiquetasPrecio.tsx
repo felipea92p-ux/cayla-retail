@@ -205,7 +205,7 @@ export function ImprimirEtiquetasPrecio({
 
   // Dos columnas desde 1280 px (Felipe 2026-10-03: «ocupar todo el espacio […] al lado derecho que se muestren las etiquetas en vez
   // de que queden al último»): a la izquierda qué se imprime y cómo; a la derecha la vista previa, pegada arriba mientras se baja.
-  // La ruta está en `SIN_TOPE_DE_ANCHO` del AppShell (sin el tope de `max-w-5xl`). Más angosta, una columna como antes, con la vista
+  // La ruta va a ancho completo (AppShell, ADR-0462: sin el tope de `max-w-5xl`). Más angosta, una columna como antes, con la vista
   // previa justo después de la tabla.
   const vistaPrevia =
     visibles.length > 0 ? (

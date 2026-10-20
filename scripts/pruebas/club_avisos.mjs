@@ -233,7 +233,7 @@ select pg_temp.compra(:'sinsaldo', :'ubic', :'emma_bei_m', interval '3 years' - 
 update retail.clientas set club_desde = now() - interval '3 years', created_at = now() - interval '3 years' where id in (:'f', :'lejos', :'sinsaldo');
 select retail.fn_club_conservacion_hasta(:'f')::text as hasta_f \\gset
 ` + como(FELIPE) +
-    `select referencia = :'hasta_f', texto like '%240 puntos%' and texto like '%valen S/ 10)%' and texto not like '%{%', detalle like '240 puntos se eliminan si no compra hasta el %'
+    `select referencia = :'hasta_f', texto like '%240 puntos%' and texto like '%valen *S/ 10*%' and texto not like '%{%', detalle like '240 puntos se eliminan si no compra hasta el %'
   from retail.fn_club_avisos_pendientes(:'ubic') where clienta_id = :'f' and tipo = 'puntos';
 ` + QUIENES("puntos", ["f", "lejos", "sinsaldo"]) +
     `select texto as t, referencia as r from retail.fn_club_avisos_pendientes(:'ubic') where clienta_id = :'f' and tipo = 'puntos' \\gset
@@ -302,7 +302,7 @@ select pg_temp.compra(:'m', :'ubic', :'emma_bei_m') as _1 \\gset
 select pg_temp.compra(:'l', :'ubic', :'emma_neg_l') as _2 \\gset
 select pg_temp.compra(:'t', :'ubic', :'emma_bei_m') as _3 \\gset
 ` + QUIENES("rebaja", ["m", "l", "t"]) + como(FELIPE) +
-    `select referencia = :'etq' || ':' || :'etq_desde', detalle, texto like '%Blusa Valentina está con 20 % de descuento en Tienda Lima%'
+    `select referencia = :'etq' || ':' || :'etq_desde', detalle, texto like '%*Blusa Valentina* está con *20 % de descuento* en Tienda Lima%'
   from retail.fn_club_avisos_pendientes(:'ubic') where clienta_id = :'m' and tipo = 'rebaja';
 `,
   "m\nt|Blusa Valentina talla M: 20 % menos|t"

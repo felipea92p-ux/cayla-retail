@@ -24,17 +24,29 @@ import type { TonoChip } from "@/components/ui/Chip";
 
 export type FiltroLista = "todas" | "socias" | "frecuentes" | "con_publicidad" | "sin_publicidad" | "sin_celular" | "cumplen_este_mes" | "archivadas";
 
-/** En el orden del spike (`fichasHTML`), con «Archivados» al final: es la única que mira fuera de las fichas activas. */
+/** En el orden del spike (`fichasHTML`), con «Archivados» al final: es la única que mira fuera de las fichas activas. Los nombres
+ *  hablan en palabras de tienda (Felipe 2026-10-20, diseño B de Fichas): «Compran seguido» y «Reciben novedades» en vez de
+ *  «Frecuentes» y «Con publicidad». Lo que filtran no cambia. */
 export const FILTROS_LISTA: readonly { valor: FiltroLista; texto: string }[] = [
   { valor: "todas", texto: "Todos" },
   { valor: "socias", texto: "Miembros" },
-  { valor: "frecuentes", texto: "Frecuentes" },
-  { valor: "con_publicidad", texto: "Con publicidad" },
-  { valor: "sin_publicidad", texto: "Sin publicidad" },
+  { valor: "frecuentes", texto: "Compran seguido" },
+  { valor: "con_publicidad", texto: "Reciben novedades" },
+  { valor: "sin_publicidad", texto: "No reciben novedades" },
   { valor: "sin_celular", texto: "Sin celular" },
   { valor: "cumplen_este_mes", texto: "Cumplen este mes" },
   { valor: "archivadas", texto: "Archivados" },
 ];
+
+/** @internal Lo lee su prueba (que los cuatro sean los de las cifras de la pantalla).
+ *  Los cuatro filtros que son también las cifras de arriba (diseño B): tocar la cifra filtra la lista, así que no se repiten como
+ *  píldora. Sin las cifras (la base no las dio), la pantalla vuelve a mostrarlos todos como píldora. */
+export const FILTROS_DE_LAS_CIFRAS: readonly FiltroLista[] = ["todas", "socias", "con_publicidad", "frecuentes"];
+
+/** Las píldoras «Para revisar»: lo que no es una cifra (ver `FILTROS_DE_LAS_CIFRAS`). */
+export function filtrosParaRevisar(conCifras: boolean): readonly { valor: FiltroLista; texto: string }[] {
+  return conCifras ? FILTROS_LISTA.filter((f) => !FILTROS_DE_LAS_CIFRAS.includes(f.valor)) : FILTROS_LISTA;
+}
 
 /** Cuántas fichas trae cada página. */
 export const POR_PAGINA = 20;
@@ -180,12 +192,12 @@ export function aClientaDeLista(f: FilaListaClienta): ClientaDeLista {
 
 export type Insignia = { texto: string; tono: TonoChip };
 
-/** La columna «Estado» (spike: `estadoClienta`): Identificado, Miembro o Miembro frecuente; una ficha fuera de la libreta dice
+/** El estado de la fila (spike: `estadoClienta`): «Solo ficha» (antes «Identificado»: tiene ficha y no se unió al club), Miembro o Miembro frecuente; una ficha fuera de la libreta dice
  *  por qué (archivado, anonimizado o unido a otra ficha). «Frecuente» sin ser socia no se pinta: es de las del club (CL-16), y el filtro
  *  «Frecuentes» igual la encuentra para invitarla. */
 export function estadoDeLaFila(c: Pick<ClientaDeLista, "archivadaEn" | "anonimizada" | "fusionadaEnId" | "clubDesde" | "esFrecuente">): Insignia {
   if (c.archivadaEn) return { texto: c.anonimizada && !c.fusionadaEnId ? "Anonimizado" : c.fusionadaEnId ? "Unido a otra ficha" : "Archivado", tono: "apagado" };
-  if (!c.clubDesde) return { texto: "Identificado", tono: "pizarra" };
+  if (!c.clubDesde) return { texto: "Solo ficha", tono: "pizarra" };
   return c.esFrecuente ? { texto: "Miembro frecuente", tono: "verde" } : { texto: "Miembro", tono: "neutro" };
 }
 
@@ -193,8 +205,8 @@ export function estadoDeLaFila(c: Pick<ClientaDeLista, "archivadaEn" | "anonimiz
  *  escribió BAJA dice «Pidió BAJA» (apagada): no es lo mismo que una que todavía no la pidió. */
 export function publicidadDeLaFila(c: Pick<ClientaDeLista, "archivadaEn" | "clubDesde" | "publicidadDesde" | "bajaEn">): Insignia | null {
   if (c.archivadaEn || !c.clubDesde) return null;
-  if (c.publicidadDesde) return { texto: "Publicidad", tono: "verde" };
-  return c.bajaEn ? { texto: "Pidió BAJA", tono: "apagado" } : { texto: "Sin publicidad", tono: "neutro" };
+  if (c.publicidadDesde) return { texto: "Recibe novedades", tono: "verde" };
+  return c.bajaEn ? { texto: "Pidió BAJA", tono: "apagado" } : { texto: "No recibe novedades", tono: "neutro" };
 }
 
 /** «Trujillo» (sin «Tienda»), o «—» si no compró en 12 meses. */
@@ -278,19 +290,41 @@ export function cuentaDelFiltro(c: CifrasClientas, filtro: FiltroLista): number 
   }
 }
 
-/** «40 % de los identificados» (o «Todavía ninguno» si no hay fichas). */
+/** «Sus compras quedan ligadas a ellos»: la línea de «Clientes con ficha». */
+export function detalleConFicha(): string {
+  return "Sus compras quedan ligadas a ellos";
+}
+
+/** «40 de cada 100 clientes» (o «Todavía ninguno» si no hay fichas). */
 export function detalleSocias(c: Pick<CifrasClientas, "identificadas" | "socias">): string {
-  return c.identificadas > 0 ? `${Math.round((c.socias / c.identificadas) * 100)} % de los identificados` : "Todavía ninguno";
+  return c.identificadas > 0 ? `${Math.round((c.socias / c.identificadas) * 100)} de cada 100 clientes` : "Todavía ninguno";
 }
 
-/** «3 miembros sin publicidad» / «1 miembro sin publicidad». */
+/** «124 miembros no las pidieron» / «1 miembro no las pidió»: los miembros que no reciben novedades. */
 export function detallePublicidad(c: Pick<CifrasClientas, "sinPublicidad">): string {
-  return `${c.sinPublicidad} miembro${c.sinPublicidad === 1 ? "" : "s"} sin publicidad`;
+  return c.sinPublicidad === 1 ? "1 miembro no las pidió" : `${c.sinPublicidad} miembros no las pidieron`;
 }
 
-/** «3 compras en 6 meses»: el umbral de `clienta-actividad-reglas.ts`, el mismo que usa la base. */
+/** «3 compras o más en 6 meses»: el umbral de `clienta-actividad-reglas.ts`, el mismo que usa la base. */
 export function detalleFrecuentes(): string {
-  return `${COMPRAS_PARA_FRECUENTE} compras en 6 meses`;
+  return `${COMPRAS_PARA_FRECUENTE} compras o más en 6 meses`;
+}
+
+/** La frase de una tarjeta de la lista (diseño B): lo que de verdad se lee de una persona, en una línea —«Miembro desde mar 2026 ·
+ *  compra seguido · recibe novedades»—. Una ficha fuera de la libreta dice por qué (archivada, anonimizada o unida a otra). */
+export function fraseDeLaFila(c: Pick<ClientaDeLista, "archivadaEn" | "anonimizada" | "fusionadaEnId" | "clubDesde" | "esFrecuente" | "publicidadDesde" | "bajaEn">): string {
+  if (c.archivadaEn) {
+    const por = c.anonimizada && !c.fusionadaEnId ? "Ficha anonimizada" : c.fusionadaEnId ? "Ficha unida a otra" : "Ficha archivada";
+    return por;
+  }
+  if (!c.clubDesde) return "Solo tiene ficha, no está en el club";
+  const desde = diaLima(c.clubDesde);
+  const [anio, mes] = desde ? desde.split("-") : [];
+  const partes = [desde ? `Miembro desde ${MESES_CORTOS[Number(mes) - 1]} ${anio}` : "Miembro del club"];
+  if (c.esFrecuente) partes.push("compra seguido");
+  const novedades = publicidadDeLaFila(c);
+  if (novedades) partes.push(novedades.texto === "Pidió BAJA" ? "pidió BAJA" : novedades.texto.toLowerCase());
+  return partes.join(" · ");
 }
 
 /** El pie de la tabla (spike: «N de N clientas · todas las cuentas con el módulo ven a todas»). `total` = cuántas pasan el
