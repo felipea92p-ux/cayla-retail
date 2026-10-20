@@ -90,5 +90,10 @@ quedaba una franja de aire entre la blusa y el pantalón. Causa: `medirRecorte` 
   abajo se acomoda en 0,35 s (sin movimiento con `prefers-reduced-motion`).
 - Medido con `sharp` sobre los 9 recortes del probador de Arequipa: el punto alto queda entre 0,00 y 0,14 del alto de la prenda por encima del bajo (la blusa de cuadros, 0,05, unos 8 px en la figura).
 
+- **La cintura del pantalón sigue el ancho de toda la zona del bajo, no el de su última fila** (`anchoDelBajo`, derivado del mismo perfil, sin guardar nada nuevo). Felipe vio que la blusa «se ve grande»
+  y pidió que fuera automático, sin revisar prenda por prenda. Causa: en una blusa cruzada o con caída la fila más baja es solo la punta, angosta (0,52 del ancho en la «Blusa Cuadros Coreana»), así
+  que la cintura del pantalón caía al mínimo de su rango (30,6 cm) y la blusa parecía enorme. Con el ancho real de la zona del bajo (0,75) la cintura sale de 37,9 cm, el pantalón recupera su largo
+  de foto (el tope de 120 cm sigue) y la figura entera se achica sola si no cabe (`escalaDe`). No se tocó el largo de las prendas de arriba: sigue mandando el que anota el ERP.
+
 Queda por hacer: probar la figura quieta en `/looks/guardado/<id>` y en una tarjeta de «Tus looks» con una cuenta real (aquí solo se comprobaron tipos, las 676 pruebas de la tienda y la medida con las
 imágenes reales), y mirar cómo se ven las prendas de arriba con volado o peplum.
