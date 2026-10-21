@@ -1097,3 +1097,59 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
     },
   ],
 };
+
+// Tienda web ▸ Campañas (Felipe 2026-10-21): cómo se ve la tienda online durante cada campaña. Primera entrega: la lista. La demo solo
+// mira: no hay nada que guarde. Cuando llegue el editor de diseño, sus pasos se suman a esta misma guía.
+export const GUIA_CAMPANAS_WEB: Guia = {
+  id: "tienda-web.campanas",
+  ruta: "/tienda-web/campanas",
+  titulo: "Campañas",
+  resumen: "Cómo se ve la tienda online durante cada campaña.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Las campañas de la tienda web",
+      texto: "Aquí ves las campañas que tiene la tienda online y cuáles ya tienen su propio diseño. Las fechas, el descuento y las prendas se arman en Catálogo ▸ Etiquetas; esta pantalla es para decidir cómo se ve la tienda mientras dura cada una. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "cifras",
+      ancla: "campanas.cifras",
+      titulo: "En tres números",
+      texto: "Cuántas campañas están en vivo ahora, cuántas hay programadas y cuántas se verán «como siempre» porque todavía no tienen diseño. Debajo de cada número dice cuál termina primero o cuál viene.",
+    },
+    {
+      id: "filtros",
+      ancla: "campanas.filtros",
+      opcional: true,
+      titulo: "Por estado",
+      texto: "Filtra por las que están en vivo, las programadas o las que ya terminaron. El número al lado de cada filtro dice cuántas hay.",
+    },
+    {
+      id: "lista",
+      ancla: "campanas.lista",
+      opcional: true,
+      titulo: "Cada campaña",
+      texto: "Su nombre y sus fechas, cuánto descuenta, cuántos modelos toca, qué diseño tiene —o si se ve «como siempre»— y en qué estado está. «Borrador» quiere decir que el diseño todavía no se programó.",
+    },
+    {
+      id: "tiempo",
+      ancla: "campanas.tiempo",
+      opcional: true,
+      titulo: "Los próximos 3 meses",
+      texto: "Cada campaña como una barra en el calendario, con la línea roja en el día de hoy. Sirve para ver cuándo se cruzan dos campañas: la tienda muestra el diseño de la que termina primero.",
+    },
+    {
+      id: "nota",
+      ancla: "campanas.nota",
+      titulo: "Cuando termina una campaña",
+      texto: "No hay nada que apagar: el diseño empieza y termina con las fechas de la campaña, y la tienda vuelve sola a verse como siempre.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes leer la lista de campañas de la tienda web. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Campañas.",
+    },
+  ],
+};

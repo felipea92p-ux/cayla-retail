@@ -233,6 +233,11 @@ export const PRUEBAS = [
   // público. ROLLBACK.
   "pruebas:vitrina-web",
 
+  // Tienda web ▸ Campañas (actividad 1): el módulo nace sin rol y sin él no se lee la lista; `fn_campanas_web` solo da campañas
+  // aprobadas, activas y con descuento, mide su estado con la fecha de Lima y cuenta modelos; la tabla `campana_disenos` no la toca
+  // nadie directo y sus CHECK dejan fuera todo lo que la tienda no conoce. ROLLBACK.
+  "pruebas:campanas-web",
+
   // La ficha de la tienda online y cuánto hay en cada tienda (ADR-0408, actividad 4): el nivel («hay», 3, 2, «Última», «—») cuenta
   // piso + almacén sin Cuarentena, sin lo apartado, sin el Taller ni las tiendas escondidas, baja al vender o apartar, respeta el
   // umbral de Configuración y NUNCA deja salir la cifra de 4 o más; la ficha de un oculto es null; precio por talla. Y UN SOLO
