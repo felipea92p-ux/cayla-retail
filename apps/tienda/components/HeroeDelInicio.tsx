@@ -100,20 +100,43 @@ export function HeroeDelInicio({
             </span>
             <TituloHeroe texto={vestido?.textos.titular ?? hero.campana.nombre} />
             {vestido?.textos.bajada && <p className="t-hero-baj">{vestido.textos.bajada}</p>}
-            <p className="t-hero-desc">
-              <b>−{pctTexto(hero.campana.pct)} % en prendas elegidas.</b> Sepáralas online, confírmalas por WhatsApp y recógelas en tu tienda.
-            </p>
+            {vestido ? (
+              // Con diseño de campaña: el descuento grande en cursiva y lo demás debajo, como en la vista previa del ERP.
+              <>
+                <p className="t-hero-dcto">
+                  <b>−{pctTexto(hero.campana.pct)}&nbsp;%</b>
+                  <span>en las prendas de la campaña</span>
+                </p>
+                <p className="t-hero-como">Sepáralas online, confírmalas por WhatsApp y recógelas en tu tienda.</p>
+              </>
+            ) : (
+              <p className="t-hero-desc">
+                <b>−{pctTexto(hero.campana.pct)} % en prendas elegidas.</b> Sepáralas online, confírmalas por WhatsApp y recógelas en tu tienda.
+              </p>
+            )}
             {hero.campana.hasta && vestido?.movimiento.cuenta !== "no" && <CuentaRegresiva hasta={hero.campana.hasta} soloElUltimoDia={vestido?.movimiento.cuenta === "ultimo"} />}
             <div className="t-hero-acciones">
-              {boton("t-btn t-btn-claro", verCampana, vestido?.textos.boton ?? "Ver la campaña")}
-              {(verNuevo || enEspera) &&
-                boton(
-                  "t-enlace",
-                  verNuevo,
+              {boton(
+                "t-btn t-btn-claro",
+                verCampana,
+                vestido ? (
                   <>
-                    Ver lo nuevo <Icono nombre="flecha" />
-                  </>,
-                )}
+                    {vestido.textos.boton ?? "Ver la campaña"} <Icono nombre="flecha" />
+                  </>
+                ) : (
+                  "Ver la campaña"
+                ),
+              )}
+              {(verNuevo || enEspera) &&
+                (vestido
+                  ? boton("t-btn t-btn-borde", verNuevo, "Lo nuevo")
+                  : boton(
+                      "t-enlace",
+                      verNuevo,
+                      <>
+                        Ver lo nuevo <Icono nombre="flecha" />
+                      </>,
+                    ))}
             </div>
           </>
         ) : hero.tipo === "nuevo" ? (
