@@ -2,7 +2,7 @@
   "guia": "tienda-web.pedidos",
   "ruta": "/tienda-web/pedidos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 69,
+  "total": 74,
   "controles": {
     "components/pedidos-web/AnularPagoHoja.tsx": [
       "BotonVer «Ir a Caja»",
@@ -19,6 +19,12 @@
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/pedidos-web/EditarMensajePredeterminadoHoja.tsx": [
+      "textarea «Mensaje predeterminado»",
+      "Boton «Usar el de fábrica»",
+      "Boton «Cancelar»",
+      "Boton «Guardar»"
     ],
     "components/pedidos-web/EnviarPedidoWebHoja.tsx": [
       "CampoFecha «{guia.etiqueta(\"llega\", \"¿Cuándo llega?\")}»",
@@ -67,6 +73,7 @@
       "Boton «{anulado ? \"Devolver\" : \"Anular pago\"}»"
     ],
     "components/pedidos-web/PedidosWebPantalla.tsx": [
+      "Boton «pedidos-web.mensaje»",
       "Boton «pedidos-web.como»",
       "FiltroPuesto «{`Quitar el filtro «${titulo}»",
       "button «{primera ? \"pedidos-web.abrir\" : undefined}»",

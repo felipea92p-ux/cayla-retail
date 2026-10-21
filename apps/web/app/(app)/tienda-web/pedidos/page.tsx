@@ -1,6 +1,6 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
-import { conEmpresas, leerDetalle, leerTablero, type PestanaPedidos } from "@/lib/pedidos-web-reglas";
+import { MENSAJE_PREDETERMINADO_WEB, conEmpresas, leerDetalle, leerTablero, type PestanaPedidos } from "@/lib/pedidos-web-reglas";
 import { getEmpresaDeProductos, getEmpresasDeLaSede } from "@/lib/pedidos-web";
 import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -30,11 +30,13 @@ export default async function PedidosWebPage({ searchParams }: { searchParams: P
 
   const supabase = await createClient();
   const idPedido = pedido && /^[0-9a-f-]{36}$/i.test(pedido) ? pedido : null;
-  const [tablero, detalle, empresas] = await Promise.all([
+  const [tablero, detalle, empresas, mensaje] = await Promise.all([
     supabase.rpc("fn_pedidos_web_tablero", { p_ubicacion_id: persona.ubicacionId }),
     idPedido ? supabase.rpc("fn_pedido_web_detalle", { p_pedido_id: idPedido }) : Promise.resolve(null),
     // En Lima conviven CAYLA y CLAURE: el detalle dice de cuál es cada prenda (ADR-0463). En las demás sedes no se nombra.
     getEmpresasDeLaSede(persona.ubicacionId),
+    // Es el mensaje propio de quien mira (20261019120000): los tipos generados aún no la conocen.
+    supabase.rpc("fn_mensaje_pedidos_web_mio" as never) as unknown as Promise<{ data: unknown; error: unknown }>,
   ]);
 
   // En Lima cada prenda dice su empresa: se lee de `productos.empresa_id`, así que no depende de una función nueva en la base.
@@ -67,6 +69,8 @@ export default async function PedidosWebPage({ searchParams }: { searchParams: P
       // Un pedido de otra tienda, o que ya no existe, no abre nada: la base lo rechaza y la lista queda como estaba.
       detalle={detalleLeido}
       detalleFallo={Boolean(idPedido && (!detalle || detalle.error))}
+      // Si la base no responde o nunca editó el suyo, el de fábrica: el botón de WhatsApp sigue funcionando.
+      mensajePredeterminado={!mensaje.error && typeof mensaje.data === "string" && mensaje.data.trim() ? mensaje.data : MENSAJE_PREDETERMINADO_WEB}
     />
   );
 }
