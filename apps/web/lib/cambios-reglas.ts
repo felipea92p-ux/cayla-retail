@@ -431,6 +431,22 @@ export function descripcionEntregada(
   return entregada.productoId === productoVendidoId ? variante : [entregada.referencia, variante].filter(Boolean).join(" · ");
 }
 
+/** Lo que se le entregó a la clienta en un cambio YA hecho: lo de siempre si fue una prenda, y todas con su cantidad si fueron varias (ADR-0470):
+ *  «Negro · Talla S (×2) + Top Rib · Blanco · Talla M». */
+export function descripcionEntregadaTodas(
+  cambio: {
+    productoId: string;
+    referencia: string;
+    talla: string | null;
+    color: string | null;
+    salidas?: readonly { productoId: string; referencia: string; talla: string | null; color: string | null; cantidad: number }[];
+  },
+  productoVendidoId: string
+): string {
+  if (!cambio.salidas || cambio.salidas.length === 0) return descripcionEntregada(cambio, productoVendidoId);
+  return cambio.salidas.map((x) => `${descripcionEntregada(x, productoVendidoId)}${x.cantidad > 1 ? ` (×${x.cantidad})` : ""}`).join(" + ");
+}
+
 // ============================================================================
 // Plazo de cambio (rediseño visual, 2026-09-18)
 //

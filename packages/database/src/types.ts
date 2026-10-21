@@ -388,6 +388,48 @@ export type Database = {
           },
         ]
       }
+      cambio_salidas: {
+        Row: {
+          cambio_id: string
+          cantidad: number
+          created_at: string
+          id: string
+          precio_unitario: number
+          variante_id: string
+        }
+        Insert: {
+          cambio_id: string
+          cantidad: number
+          created_at?: string
+          id?: string
+          precio_unitario: number
+          variante_id: string
+        }
+        Update: {
+          cambio_id?: string
+          cantidad?: number
+          created_at?: string
+          id?: string
+          precio_unitario?: number
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cambio_salidas_cambio_id_fkey"
+            columns: ["cambio_id"]
+            isOneToOne: false
+            referencedRelation: "cambios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cambio_salidas_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cambios: {
         Row: {
           caja_id: string | null

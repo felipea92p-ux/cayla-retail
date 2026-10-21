@@ -12,7 +12,7 @@
 --   · Una entrada de la prenda devuelta (al piso, o a cuarentena si viene con defecto o uso) y una salida por cada prenda que se lleva, en
 --     `movimientos` con el mismo `cambio_id`: la misma fuente de verdad de siempre. La salida la rechaza `fn_aplicar_movimiento` si no
 --     queda stock en el piso: ninguna prenda a medias.
---   · Un renglón en `cambio_salidas` por cada prenda que se llevó, con el precio de ese momento.
+--   · Un renglón en `cambio_salidas` por cada prenda que se llevó, con el precio de ese momento (se anotan ANTES que el cambio: ver la parte 1).
 --   · La fila de `cambios` es la de siempre: la prenda devuelta, la diferencia TOTAL, su medio (efectivo cuenta en el cierre de caja; QR,
 --     Yape, tarjeta… caen en su cuenta, 20261021183000) y, como `variante_nueva_id`, la primera prenda.
 -- Todo lo demás es `registrar_cambio` tal cual está HOY en producción (leída de la base viva, no de una migración vieja): permiso de sede,
@@ -197,12 +197,18 @@ begin
     end if;
   end if;
 
+  v_cambio_id := gen_random_uuid();
   begin
-    insert into cambios (venta_item_id, ubicacion_id, variante_nueva_id, cantidad, diferencia, metodo_pago_diferencia,
+    -- Las prendas PRIMERO (su llave al cambio es diferida): el disparador que anota la actividad al insertar el cambio ya las ve todas.
+    -- Si el token ya existía, el bloque entero se deshace (las prendas también) y se devuelve el cambio que guardó el primero.
+    for i in 1 .. cardinality(v_vars) loop
+      insert into cambio_salidas (cambio_id, variante_id, cantidad, precio_unitario)
+        values (v_cambio_id, v_vars[i], v_cants[i], v_precios[i]);
+    end loop;
+    insert into cambios (id, venta_item_id, ubicacion_id, variante_nueva_id, cantidad, diferencia, metodo_pago_diferencia,
                          usuario_id, token_cliente, caja_id, motivo, condicion)
-      values (p_venta_item_id, p_ubicacion_id, v_vars[1], p_cantidad, v_diferencia, p_metodo_pago_diferencia,
-              v_persona, p_token, v_caja_id, p_motivo, p_condicion)
-      returning id into v_cambio_id;
+      values (v_cambio_id, p_venta_item_id, p_ubicacion_id, v_vars[1], p_cantidad, v_diferencia, p_metodo_pago_diferencia,
+              v_persona, p_token, v_caja_id, p_motivo, p_condicion);
   exception when unique_violation then
     if p_token is null then raise; end if;
     select * into v_existente from cambios where token_cliente = p_token;
@@ -225,9 +231,6 @@ begin
       values (v_vars[i], p_ubicacion_id, v_sub, 'salida', v_cants[i], 'cambio', v_cambio_id, v_persona)
       returning id into v_mov_salida;
     perform fn_aplicar_movimiento(v_mov_salida);
-
-    insert into cambio_salidas (cambio_id, variante_id, cantidad, precio_unitario)
-      values (v_cambio_id, v_vars[i], v_cants[i], v_precios[i]);
   end loop;
 
   return v_cambio_id;

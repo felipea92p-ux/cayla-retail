@@ -56,7 +56,7 @@ ${sqlDespues}
  * `registrar_venta` exige que el precio de la línea coincida con el vigente, así que el catálogo se ajusta primero.
  * Pagada con tarjeta, nunca en efectivo, para que su monto no entre al cajón y ensucie las aserciones de caja.
  */
-function fixture({ precioViejo = 45.9, descuento = 0, precio1 = 35.9, precio2 = 35.9 } = {}) {
+function fixture({ precioViejo = 45.9, descuento = 0, precio1 = 35.9, precio2 = 35.9, costos = null } = {}) {
   return `
 select id as ubic from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 
@@ -94,6 +94,14 @@ select retail.fn_aplicar_movimiento(:'mov_n2') as _d3 \\gset
 update retail.variantes set precio = ${precioViejo} where id = :'v_old';
 update retail.variantes set precio = ${precio1} where id = :'v_n1';
 update retail.variantes set precio = ${precio2} where id = :'v_n2';
+${
+  costos
+    ? `-- Los costos van ANTES de vender: la línea de venta copia el costo de ese momento (registrar_venta).
+update retail.variantes set costo = ${costos[0]} where id = :'v_old';
+update retail.variantes set costo = ${costos[1]} where id = :'v_n1';
+update retail.variantes set costo = ${costos[2]} where id = :'v_n2';`
+    : ""
+}
 
 select retail.registrar_venta(:'ubic',
   jsonb_build_array(jsonb_build_object('variante_id', :'v_old', 'cantidad', 1, 'precio_unitario', ${precioViejo}, 'descuento_unitario', ${descuento}${
@@ -423,6 +431,93 @@ update retail.cambio_salidas set cantidad = 9 where cambio_id = :'cambio_id';
 `
   ),
   "no se editan ni se borran"
+);
+
+// ---------------------------------------------------------------------------
+// Lo que se lee DESPUÉS del cambio (20261021193000): Resumen, el Diario, el plan del piso y la actividad
+// ---------------------------------------------------------------------------
+
+exito(
+  "Resumen: cada prenda que sale en un cambio por varias vale SU precio (35.90 + 35.90 = S/ 71.80), no el pagado más la diferencia total repetida en cada una (antes: S/ 143.60)",
+  // Resumen deja fuera lo que ocurre en el mismo instante que la consulta (`created_at < now()`), y todo lo de una transacción de prueba tiene
+  // el mismo `now()`. Por eso el cambio se escribe con fecha de hace una hora, tal como lo dejaría `registrar_cambio_varias`
+  // (las mismas filas: el cambio, sus renglones y una entrada y dos salidas), igual que la prueba de fn_resumen_comparacion. La venta original
+  // queda fuera de la ventana (es de ahora), así que la entrada de la prenda devuelta no resta nada: el importe es el de las dos salidas.
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+select coalesce(sum(r.b_importe), 0) as imp_antes
+  from retail.fn_resumen_comparacion(:'ubic', retail.fn_hoy_lima() - 29, retail.fn_hoy_lima() - 15, retail.fn_hoy_lima() - 14, retail.fn_hoy_lima()) r \\gset
+select gen_random_uuid() as cid, (now() - interval '1 hour') as hace1h \\gset
+insert into retail.cambios (id, venta_item_id, ubicacion_id, variante_nueva_id, cantidad, diferencia, metodo_pago_diferencia, created_at)
+  values (:'cid', :'venta_item', :'ubic', :'v_n1', 1, 25.90, 'qr', :'hace1h');
+insert into retail.cambio_salidas (cambio_id, variante_id, cantidad, precio_unitario)
+  values (:'cid', :'v_n1', 1, 35.90), (:'cid', :'v_n2', 1, 35.90);
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, cambio_id, created_at)
+  values (:'v_old', :'ubic', :'sub_piso', 'entrada', 1, 'cambio', :'cid', :'hace1h'),
+         (:'v_n1', :'ubic', :'sub_piso', 'salida', 1, 'cambio', :'cid', :'hace1h'),
+         (:'v_n2', :'ubic', :'sub_piso', 'salida', 1, 'cambio', :'cid', :'hace1h');
+select round(coalesce(sum(r.b_importe), 0) - :'imp_antes', 2)
+  from retail.fn_resumen_comparacion(:'ubic', retail.fn_hoy_lima() - 29, retail.fn_hoy_lima() - 15, retail.fn_hoy_lima() - 14, retail.fn_hoy_lima()) r;
+rollback;
+`
+  ),
+  ([delta]) => Number(delta) === 71.8
+);
+
+exito(
+  "Diario: el ajuste de costo de un cambio por varias es el costo de TODO lo que se lleva menos el de lo que devolvió, a 691 y a 201 (antes: solo la primera prenda)",
+  comoPersona(
+    FELIPE,
+    `${fixture({ costos: [20, 12, 15] })}
+select retail.registrar_cambio_varias(:'venta_item', :'ubic', ${DOS_TOPS}, 1, 'qr', gen_random_uuid()) as cambio_id \\gset
+-- Lo esperado sale del costo oficial de cada prenda al momento del cambio (fn_costo_variante_al) y del costo que quedó en la línea vendida.
+select (retail.fn_costo_variante_al(:'v_n1', now()) + retail.fn_costo_variante_al(:'v_n2', now())
+        - (select vi.costo_unitario from retail.venta_items vi where vi.id = :'venta_item')) as esperado \\gset
+select
+  (select coalesce(sum(a.debe), 0) from retail.fn_asientos(retail.fn_hoy_lima(), retail.fn_hoy_lima(), :'ubic') a
+    where a.asiento = 'cambio:' || :'cambio_id' and a.cuenta = '691') = :'esperado'::numeric,
+  (select coalesce(sum(a.haber), 0) from retail.fn_asientos(retail.fn_hoy_lima(), retail.fn_hoy_lima(), :'ubic') a
+    where a.asiento = 'cambio:' || :'cambio_id' and a.cuenta = '201') = :'esperado'::numeric,
+  :'esperado'::numeric > 0,
+  (select coalesce(sum(a.debe - a.haber), 0) from retail.fn_asientos(retail.fn_hoy_lima(), retail.fn_hoy_lima(), :'ubic') a
+    where a.asiento = 'cambio:' || :'cambio_id' and a.cuenta in ('105', '104', '101'));
+rollback;
+`
+  ),
+  ([en691, en201, hayAjuste, cobro]) => en691 === "t" && en201 === "t" && hayAjuste === "t" && Number(cobro) === 25.9
+);
+
+exito(
+  "Actividad: el registro dice las dos prendas que se llevó («… + …»), no solo la primera",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+select retail.registrar_cambio_varias(:'venta_item', :'ubic', ${DOS_TOPS}, 1, 'qr', gen_random_uuid()) as cambio_id \\gset
+select (a.descripcion like '% + %'), (a.descripcion ilike '%' || (select p.referencia from retail.variantes v join retail.productos p on p.id = v.producto_id where v.id = :'v_n1') || '%'),
+       (a.descripcion ilike '%' || (select p.referencia from retail.variantes v join retail.productos p on p.id = v.producto_id where v.id = :'v_n2') || '%')
+  from retail.actividad a where a.tabla = 'cambios' and a.registro_id = :'cambio_id';
+rollback;
+`
+  ),
+  ([conMas, primera, segunda]) => conMas === "t" && primera === "t" && segunda === "t"
+);
+
+exito(
+  "Plan del piso: la 2.ª prenda de un cambio por varias cuenta como vendida hoy (antes el plan solo veía la primera)",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+create function pg_temp.vendidas(u uuid, v uuid) returns integer language sql as $$
+  select coalesce((select (t ->> 'vendidas_hoy')::integer from jsonb_array_elements(retail.fn_piso_plan_lectura(u) -> 'tallas') t where t ->> 'variante_id' = v::text), 0)
+$$;
+select pg_temp.vendidas(:'ubic', :'v_n1') as n1_antes, pg_temp.vendidas(:'ubic', :'v_n2') as n2_antes \\gset
+select retail.registrar_cambio_varias(:'venta_item', :'ubic', ${DOS_TOPS}, 1, 'qr', gen_random_uuid()) as cambio_id \\gset
+select pg_temp.vendidas(:'ubic', :'v_n1') - :'n1_antes', pg_temp.vendidas(:'ubic', :'v_n2') - :'n2_antes';
+rollback;
+`
+  ),
+  ([d1, d2]) => Number(d1) === 1 && Number(d2) === 1
 );
 
 // ---------------------------------------------------------------------------

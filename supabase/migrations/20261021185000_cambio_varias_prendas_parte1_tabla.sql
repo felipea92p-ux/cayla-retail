@@ -21,6 +21,10 @@
 -- DESCARTÉ: guardar las prendas en un `jsonb` dentro de `cambios`: no se puede unir con el catálogo ni auditar, y las pantallas de abajo
 -- (ticket, historial) las tendrían que desarmar a mano.
 --
+-- DECIDÍ: la llave a `cambios` es DIFERIDA (`deferrable initially deferred`): `registrar_cambio_varias` anota las prendas ANTES que el cambio, y así
+-- el disparador que escribe el registro de actividad al insertar el cambio (`fn_actividad_cambio`) ya las ve todas y dice «cambió el body por
+-- Top Rib + Top Rib», no solo por la primera. Al confirmar, cada prenda tiene su cambio: nada queda huérfano.
+--
 -- SE ROMPE SI: alguien lee `cambios.variante_nueva_id` creyendo que es TODO lo que se llevó la clienta: en un cambio por varias es solo la
 -- primera. La actividad 4 de ADR-0470 pone al día el ticket, el historial y los invariantes.
 --
@@ -34,7 +38,7 @@ set search_path = retail, public, extensions;
 
 create table if not exists retail.cambio_salidas (
   id uuid primary key default gen_random_uuid(),
-  cambio_id uuid not null references retail.cambios (id),
+  cambio_id uuid not null references retail.cambios (id) deferrable initially deferred,
   variante_id uuid not null references retail.variantes (id),
   cantidad integer not null check (cantidad > 0),
   -- El precio con que se calculó la diferencia (`fn_precio_para_cambio`): se guarda porque el catálogo cambia y el cambio no.
@@ -44,6 +48,17 @@ create table if not exists retail.cambio_salidas (
 );
 comment on table retail.cambio_salidas is
   'ADR-0470: las prendas que se lleva la clienta en un cambio por VARIAS prendas (todas, la primera incluida). Solo la escribe registrar_cambio_varias; de solo agregar. Un cambio de una por una no tiene filas aquí.';
+
+-- Una base donde la tabla ya se había creado con la llave inmediata (una copia de desarrollo anterior a este ajuste): se rehace diferida.
+do $$
+begin
+  if exists (select 1 from pg_constraint c where c.conrelid = 'retail.cambio_salidas'::regclass and c.contype = 'f'
+                and c.confrelid = 'retail.cambios'::regclass and not c.condeferrable) then
+    alter table retail.cambio_salidas drop constraint cambio_salidas_cambio_id_fkey;
+    alter table retail.cambio_salidas add constraint cambio_salidas_cambio_id_fkey
+      foreign key (cambio_id) references retail.cambios (id) deferrable initially deferred;
+  end if;
+end $$;
 
 create index if not exists cambio_salidas_cambio_idx on retail.cambio_salidas (cambio_id);
 

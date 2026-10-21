@@ -7,6 +7,7 @@ import {
   clasificarBusqueda,
   condicionForzada,
   descripcionEntregada,
+  descripcionEntregadaTodas,
   DIAS_PLAZO_CAMBIO,
   estadoPlazoCambio,
   estadoPlazoVenta,
@@ -436,5 +437,25 @@ describe("clasificarBusqueda — tope de largo y números que no son comprobante
   });
   it("«B001-12345678901» no se busca como comprobante (se busca como texto)", () => {
     expect(clasificarBusqueda("B001-12345678901")).toEqual({ tipo: "texto", texto: "B001-12345678901" });
+  });
+});
+
+describe("descripcionEntregadaTodas — lo que se llevó en un cambio ya hecho (ADR-0470)", () => {
+  const top = (talla: string, color: string, cantidad = 1) => ({ productoId: "top", referencia: "Top Rib", talla, color, cantidad });
+
+  it("sin renglones (un cambio de una por una) dice lo de siempre", () => {
+    const c = { productoId: "body", referencia: "Body", talla: "L", color: "Negro" };
+    expect(descripcionEntregadaTodas(c, "body")).toBe(descripcionEntregada(c, "body"));
+    expect(descripcionEntregadaTodas({ ...c, salidas: [] }, "body")).toBe("Negro · Talla L");
+  });
+
+  it("con varias prendas las dice todas, con su cantidad cuando es más de una", () => {
+    const c = { productoId: "top", referencia: "Top Rib", talla: "S", color: "Negro", salidas: [top("S", "Negro"), top("M", "Blanco", 2)] };
+    expect(descripcionEntregadaTodas(c, "body")).toBe("Top Rib · Negro · Talla S + Top Rib · Blanco · Talla M (×2)");
+  });
+
+  it("si una de las prendas es la misma que compró, dice solo su talla y color, como el cambio de siempre", () => {
+    const c = { productoId: "top", referencia: "Top Rib", talla: "S", color: "Negro", salidas: [top("S", "Negro"), top("M", "Blanco")] };
+    expect(descripcionEntregadaTodas(c, "top")).toBe("Negro · Talla S + Blanco · Talla M");
   });
 });
