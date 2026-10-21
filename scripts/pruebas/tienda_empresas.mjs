@@ -20,6 +20,8 @@
  *      publicar un look que lleve una; ese look sale en Lima (lista y enlace) y NO en Trujillo; un look solo de CAYLA sale en las dos.
  *      Y cada prenda del look dice su empresa (`20261021005000_tienda_looks_trae_la_empresa_de_cada_prenda.sql`) con la misma regla del
  *      catálogo: en Lima sí, en Trujillo no.
+ *   J. La bolsa (`20261021011000_tienda_bolsa_trae_la_empresa_de_cada_prenda.sql`): cada línea dice la empresa de su prenda con la misma regla
+ *      del catálogo: en Lima sí; en Trujillo no.
  *   G. El catálogo dice la empresa de cada prenda (`20261021001000_tienda_catalogo_trae_la_empresa.sql`): `empresa.clave` y
  *      `empresa.nombre` de CAYLA y de CLAURE, que es lo que dibuja la insignia de la tarjeta, SOLO con una tienda donde operan dos o
  *      más empresas (Lima): con Trujillo, sin tienda o con una inventada, ninguna prenda trae `empresa` y no hay insignia.
@@ -46,6 +48,7 @@ const MIGRACIONES = [
   "supabase/migrations/20261021002000_tienda_separar_y_bolsa_empresa_por_tienda.sql",
   "supabase/migrations/20261021003000_vitrina_looks_con_claure_solo_en_lima.sql",
   "supabase/migrations/20261021005000_tienda_looks_trae_la_empresa_de_cada_prenda.sql",
+  "supabase/migrations/20261021011000_tienda_bolsa_trae_la_empresa_de_cada_prenda.sql",
 ];
 const APLICAR_ANTES = process.env.APLICAR_ANTES
   ? process.env.APLICAR_ANTES.split(",")
@@ -248,6 +251,16 @@ esperarValor(
   escenario(CUENTA + `select retail.tienda_separadas_por_otros(:'usr', :'carla', ${LIMA}) is not null;`),
   "t",
 );
+
+console.log("J. La bolsa dice la empresa de cada prenda");
+const empresasDeLaBolsa = (sede) =>
+  `select string_agg(coalesce(l -> 'empresa' ->> 'nombre', 'sin'), ',' order by (l ->> 'cantidad')::int, l ->> 'nombre') from jsonb_array_elements(retail.tienda_bolsa(jsonb_build_array(jsonb_build_object('variante_id', :'v_emma'::uuid, 'cantidad', 1), jsonb_build_object('variante_id', :'v_carla'::uuid, 'cantidad', 2)), ${sede}) -> 'lineas') l;`;
+const VARIANTES_BOLSA = `
+select id as v_carla from retail.variantes where producto_id = :'carla' and activo order by id limit 1 \\gset
+select id as v_emma from retail.variantes where producto_id = :'emma' and activo order by id limit 1 \\gset
+`;
+esperarValor("Lima: la bolsa dice CAYLA para Emma y CLAURE para Carla", escenario(VARIANTES_BOLSA + empresasDeLaBolsa(LIMA)), "CAYLA,CLAURE");
+esperarValor("Trujillo: la bolsa no dice empresa", escenario(VARIANTES_BOLSA + empresasDeLaBolsa(TRU)), "sin,sin");
 
 console.log("I. Los looks");
 // Un look solo de CAYLA (Emma + Falda) y uno con CLAURE (Emma + Carla). Las piezas llevan su color, como en el editor.

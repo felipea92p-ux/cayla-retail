@@ -35,8 +35,12 @@ tiene, y si no, arriba». La tienda ya no tiene «Todas» (Felipe 2026-10-19: «
   **Cada prenda del look dice su empresa encima de su nombre** (Felipe 2026-10-21; la frase del look no se usa para eso: la escribe quien arma el look):
   `fn_tienda_looks_json` copia el `empresa` del catálogo de esa tienda a cada prenda (`20261021005000`), así que sigue la misma regla —solo en Lima— y la página del
   look y su hoja de tallas lo escriben como una línea chica sobre el nombre (`.t-look-empresa`).
+- **La bolsa (Felipe 2026-10-21):** (1) la bolsa también muestra la tienda en que se está: el selector de tienda de la cabecera (el mismo del catálogo; cambiar de
+  tienda vacía la bolsa y lo avisa antes) y su dirección `/bolsa?sede=` (con prendas, manda la tienda de la bolsa; sin ellas, la de la dirección o la última elegida);
+  (2) la bolsa vacía ofrece Lo nuevo y los favoritos **de esa tienda** (antes leía el catálogo sin tienda, que no trae CLAURE ni la empresa): en Lima salen con su
+  insignia; (3) cada línea de la bolsa dice su empresa encima del nombre (`tienda_bolsa` suma `empresa`, `20261021011000`, con la regla de siempre: solo en Lima).
 - **Migraciones** (todas idempotentes, una parte, sin tablas en exclusiva ni políticas): `20261021000000_tienda_empresa_solo_en_sus_sedes`,
-  `20261021001000_tienda_catalogo_trae_la_empresa`, `20261021002000_tienda_separar_y_bolsa_empresa_por_tienda`, `20261021003000_vitrina_looks_con_claure_solo_en_lima`, `20261021005000_tienda_looks_trae_la_empresa_de_cada_prenda` (el 004 lo tomó otra rama). Requieren `20261020225000` (ya en
+  `20261021001000_tienda_catalogo_trae_la_empresa`, `20261021002000_tienda_separar_y_bolsa_empresa_por_tienda`, `20261021003000_vitrina_looks_con_claure_solo_en_lima`, `20261021005000_tienda_looks_trae_la_empresa_de_cada_prenda` (el 004 lo tomó otra rama), `20261021011000_tienda_bolsa_trae_la_empresa_de_cada_prenda`. Requieren `20261020225000` (ya en
   producción). El orden con la publicación de la web no importa.
 
 ## Alternativas descartadas
@@ -51,7 +55,7 @@ tiene, y si no, arriba». La tienda ya no tiene «Todas» (Felipe 2026-10-19: «
 ## Lo que se rompe si…
 
 - Una función nueva de la tienda arma su lista con `fn_vitrina_publicable` sin llamar a `fn_tienda_empresa_se_ve`: la vigila `pnpm pruebas:tienda-empresas`
-  (41 comprobaciones; dos mutantes —el ayudante siempre responde sí, el editor mira solo el catálogo sin tienda— la ponen en rojo).
+  (43 comprobaciones; dos mutantes —el ayudante siempre responde sí, el editor mira solo el catálogo sin tienda— la ponen en rojo).
 - CLAURE abre otra sede y nadie suma su fila en `empresa_sedes`: no se ve ahí (es seguro).
 
 ## Lo que queda (decisión de Felipe)
@@ -67,10 +71,11 @@ tiene, y si no, arriba». La tienda ya no tiene «Todas» (Felipe 2026-10-19: «
 
 ## Verificación
 
-`pnpm pruebas:tienda-empresas` (41/41: catálogo, ficha, probador, una tienda inventada, sin tienda, CLAURE abriendo en Trujillo con una fila, puerta de
+`pnpm pruebas:tienda-empresas` (43/43: catálogo, ficha, probador, una tienda inventada, sin tienda, CLAURE abriendo en Trujillo con una fila, puerta de
 `tienda_web`, pegado dos veces, empresa en el catálogo, bolsa, «Separar» y looks: el editor ofrece y deja publicar una prenda de CLAURE, el look con CLAURE sale en Lima y no en Trujillo, el solo de CAYLA sale en las dos); `tienda-bolsa`, `tienda-probador`, `tienda-club`, `tienda-puerta`,
 `tienda-separadas`, `tienda-looks-guardados`, `tienda-lugares` en verde; `tienda-ficha` y `tienda-inicio` aceptan la clave `empresa` en la lista exacta del catálogo
 (`tienda-ficha`, `vitrina-looks` y `vitrina-web` dejan un escenario en rojo SOLO en esta base local, por las fotos y publicaciones de demo que se cargaron). Tienda: 741 pruebas, tipos y lint en verde (6 nuevas
 de las insignias). Navegador: Lima muestra 13 prendas con «NUEVO / CLAURE» y «NUEVO / CAYLA»; Trujillo, solo CAYLA y SIN insignia de empresa, y el enlace de una prenda de CLAURE
-abre «Esta prenda ya no está en la tienda»; en Lo nuevo la insignia de la empresa queda arriba; a 375 px cabe. No recorrido en el navegador: agregar a la
-bolsa y separar (cubierto por la prueba de la base).
+abre «Esta prenda ya no está en la tienda»; en Lo nuevo la insignia de la empresa queda arriba; a 375 px cabe. La bolsa se vio en el navegador vacía (Lima y Trujillo, con su selector y las tarjetas con insignia solo en Lima) y con prendas pidiendo la página al servidor
+con la cookie de la bolsa (Lima: «CAYLA» y «CLAURE» sobre cada nombre y «Tienda: Lima»; Trujillo: selector y sin empresa). No recorrido con clics: agregar a la
+bolsa y separar (el servidor de desarrollo no hidrata la ficha por avisos de `Date.now()` ya existentes; cubierto por la prueba de la base).
