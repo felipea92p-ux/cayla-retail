@@ -2,7 +2,7 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 78,
+  "total": 79,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
@@ -42,6 +42,7 @@
       "DesplegablePildora «Proveedor»",
       "DesplegablePildora «Estado»",
       "DesplegablePildora «Temporada»",
+      "DesplegablePildora «Tienda»",
       "DesplegablePildora «Por completar»",
       "BotonFiltros «→alTocarFiltros»",
       "BotonFiltros «→alTocarFiltros» #2",

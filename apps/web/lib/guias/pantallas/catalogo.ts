@@ -79,7 +79,7 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "productos.panel",
       opcional: true,
       titulo: "Filtra por lo que te piden",
-      texto: "Arriba, lo que pide el cliente en el mostrador: categoría, talla, color y precio. Abajo, lo de gestión: si hay en tu sede, marca, proveedor, estado, temporada y qué le falta a la ficha. Cada opción dice cuántas prendas trae.",
+      texto: "Arriba, lo que pide el cliente en el mostrador: categoría, talla, color y precio. Abajo, lo de gestión: si hay en tu sede, marca, proveedor, estado, temporada, la tienda (CAYLA o CLAURE) y qué le falta a la ficha. Casi todas las opciones dicen cuántas prendas traen.",
     },
     {
       id: "resultados",

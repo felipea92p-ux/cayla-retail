@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import type { EmpresaAlta } from "@/lib/alta-producto-datos";
 
@@ -20,5 +22,21 @@ export function ElegirEmpresa({ empresas, empresaId, onElegir }: { empresas: Emp
         </div>
       ))}
     </div>
+  );
+}
+
+// La tarjeta propia de la pregunta, ANTES del paso 1 (Felipe 2026-10-20): el paso 1 se llama «¿A qué categoría pertenece?» y
+// la tienda no es una categoría, así que no vive adentro. Misma cara y misma entrada que `PasoAlta`, sin número ni pie: «Falta: Tienda» lo
+// sigue diciendo el pie del paso 1 (la tienda cuenta como campo del paso 1 en la guía).
+export function TarjetaEmpresa({ children }: { children: ReactNode }) {
+  return (
+    <section aria-labelledby="pregunta-empresa" className="scroll-mt-32 rounded-xl border border-sand bg-papel sm:scroll-mt-[11.5rem]">
+      <div className="px-4 pt-4 sm:px-5">
+        <h2 id="pregunta-empresa" className="text-[14.5px] font-semibold text-tinta">{/* unificar-fijo: el título de una pregunta de Nuevo producto, que tiene su diseño aprobado (ADR-0260, ADR-0284) */}
+          ¿De qué tienda es esta prenda?
+        </h2>
+      </div>
+      <div className="px-4 pb-5 pt-3 [animation:cayla-revelar_240ms_var(--ease-cayla)] sm:px-5">{children}</div>
+    </section>
   );
 }

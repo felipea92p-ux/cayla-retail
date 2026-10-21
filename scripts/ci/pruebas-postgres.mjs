@@ -1614,6 +1614,10 @@ export const PRUEBAS = [
   // trae el listado al elegir esa opción, en ocho escenas; conteo disyuntivo; ninguna opción vacía; rango de precio y tramos.
   "pruebas:productos-facetas",
 
+  // El filtro «Tienda» de Productos (20261021004000, ADR-0467): sin empresa, lo mismo que antes; con una, la lista y los conteos ven solo
+  // sus prendas y las dos suman el total; los permisos no cambian; una sola firma de cada función; aplicarla dos veces es inocuo.
+  "pruebas:productos-empresa",
+
   // Una talla con prendas no se retira (20260929030000, ADR-0270 decisión 13): con prendas en cualquier sede (Cuarentena
   // incluida) o en camino, pasar `variantes.activo` a false se rechaza diciendo dónde están; en 0 se retira; reactivar
   // siempre se puede; una talla ya retirada con prendas (datos viejos) no bloquea otros cambios. Con control.

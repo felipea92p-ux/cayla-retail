@@ -30,6 +30,12 @@ export default async function Looks({ searchParams }: { searchParams: Promise<Re
   const elegida = lectura?.sede ? sedes.find((s) => s.id === lectura.sede) ?? null : null;
   const sede = elegida ? claveDeSede(elegida.nombre) : null;
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
+  // Cada tienda muestra solo los looks que puede vestir con lo que tiene (ADR-0468). Si en la elegida no hay ninguno, se mira en cuáles de
+  // las otras sí hay, para llevar allá (solo en ese caso se hacen las otras lecturas, que se comparten entre visitas).
+  const otrasConLooks =
+    elegida && lectura?.looks.length === 0
+      ? (await Promise.all(sedes.filter((s) => s.id !== elegida.id).map(async (s) => ((await leerLooks(s.id))?.looks.length ? s : null)))).flatMap((s) => (s ? [s] : []))
+      : [];
   // La cabecera (el menú y el buscador) dice lo mismo que el catálogo de esa tienda.
   const prendas = (catalogo?.prendas ?? []).filter((p) => hayEnTienda(p.stock, elegida?.id ?? null));
   return (
@@ -62,6 +68,17 @@ export default async function Looks({ searchParams }: { searchParams: Promise<Re
             <Link className="t-btn" href={hrefLooks(pedida ? claveDeSede(pedida.nombre) : null)}>
               Volver a intentar
             </Link>
+          </div>
+        ) : lectura.looks.length === 0 && elegida && otrasConLooks.length > 0 ? (
+          <div className="t-vacio">
+            <Icono nombre="tienda" />
+            <h3>{`Por ahora no hay looks completos en ${elegida.nombre}`}</h3>
+            <p>A estos looks les faltan prendas que hoy están en otras tiendas. Mira los que sí están completos o arma el tuyo con lo que hay aquí.</p>
+            {otrasConLooks.map((s) => (
+              <Link key={s.id} className="t-btn" href={hrefLooks(claveDeSede(s.nombre))}>
+                {`Ver los looks de ${s.nombre}`}
+              </Link>
+            ))}
           </div>
         ) : lectura.looks.length === 0 ? (
           <div className="t-vacio">
