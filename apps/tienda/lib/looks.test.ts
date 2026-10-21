@@ -72,6 +72,17 @@ describe("interpretar lo que devuelve la base", () => {
     expect(look.piezas[0].tallas.map((t) => `${t.talla}=${t.hay}`)).toEqual(["S=true", "M=false"]);
   });
 
+  it("la empresa de cada prenda (ADR-0465): la lee; sin ella —Trujillo, o una base que aún no la manda— o con una rara, la prenda se ve igual y sin empresa", () => {
+    const con = (empresa: unknown) => {
+      const p = pieza(1, "Vestido Aurora", 219.9);
+      return interpretarLook({ sede: TRUJILLO, look: { ...JSON_LOOK, piezas: [{ ...p, prenda: { ...p.prenda, empresa } }, pieza(2, "Casaca Ximena", 179.9)] } })?.look;
+    };
+    expect(con({ clave: "claure", nombre: "CLAURE" })?.piezas.map((x) => x.prenda.empresa?.nombre ?? null)).toEqual(["CLAURE", null]);
+    expect(con(null)?.piezas[0].prenda.empresa).toBeNull();
+    expect(con({ clave: "", nombre: "" })?.piezas[0].prenda.empresa).toBeNull();
+    expect(look.piezas.map((x) => x.prenda.empresa)).toEqual([null, null, null]);
+  });
+
   it("la lista: un look raro se deja fuera; una respuesta rara es «no se pudo cargar» (null), nunca una página caída", () => {
     const lista = interpretarLooks({ sede: null, looks: [JSON_LOOK, { ...JSON_LOOK, id: "no-es-un-uuid" }] });
     expect(lista?.looks.map((l) => l.nombre)).toEqual(["Fin de semana en la ciudad"]);

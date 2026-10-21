@@ -28,7 +28,8 @@ import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
 import { promesasDeCompra } from "@/lib/ficha";
 import { detalleDeLaPrenda, nombreTienda } from "@/lib/pedidos";
-import { claveDeSede, sedesEnOrden } from "@/lib/sede-elegida";
+import { claveDeSede, sedesEnOrden, soloTiendas } from "@/lib/sede-elegida";
+import { sedeDeLaPagina } from "@/lib/sede-servidor";
 import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { cuponDicho } from "@/lib/puntos";
@@ -54,7 +55,8 @@ const CARRIL_DE_LA_BOLSA: Record<CarrilDeLaBolsaVacia["lista"], { ceja: string; 
  * (`retail.tienda_bolsa`); la bolsa solo guarda qué prendas y cuántas. El resumen termina con lo que la tienda ya cumple (las promesas
  * de la ficha, en corto) y, arriba, «Seguir mirando» vuelve a la tienda. Vacía, ofrece sus favoritos y Lo nuevo en carriles (2026-10-16).
  */
-export default async function Bolsa() {
+export default async function Bolsa({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = await searchParams;
   const sesion = await leerSesion();
   // La bolsa se arma sin cuenta (vive en la cookie de este aparato); la cuenta se pide al «Separar» (Felipe 2026-10-17).
   const visitante = sesion.estado === "sin_sesion";
@@ -65,16 +67,26 @@ export default async function Bolsa() {
     return <Aviso titulo="No pudimos revisar tu sesión" texto="Vuelve a intentarlo en unos minutos." />;
 
   const bolsa = await leerBolsaDeLaCookie();
+  // La tienda en la que se está (ADR-0465, Felipe 2026-10-21: «es importante mostrar la sede»): con prendas, la de la bolsa (cambiar de tienda la
+  // vacía); sin ellas, la de la dirección o la que se eligió la última vez. Con ella, el selector de la cabecera y el catálogo de ESA tienda
+  // (en Lima, con lo de CLAURE y su empresa en cada tarjeta).
+  const sedes = sedesEnOrden(await leerSedes());
+  const deLaBolsa = bolsa.lineas.length > 0 && bolsa.sedeId ? sedes.find((s) => s.id === bolsa.sedeId) ?? null : null;
+  const elegida = deLaBolsa ?? (await sedeDeLaPagina(sp, sedes, "/bolsa", claveDeSede));
+  const tiendasDeLaCabecera = soloTiendas(
+    sedes.map((s) => ({ nombre: s.nombre, href: `/bolsa?sede=${claveDeSede(s.nombre)}`, actual: s.id === elegida?.id })),
+  );
+  const prendasEnBolsa = bolsa.lineas.reduce((n, l) => n + l.cantidad, 0);
   if (bolsa.lineas.length === 0) {
     // Vacía no es un callejón (2026-10-16): sus favoritos y Lo nuevo, en carriles, para llenarla desde aquí. El catálogo es la misma
     // lectura de la cabecera (`MarcoCuenta`, con «Todas»); si la base no responde, solo queda el vacío con sus dos caminos.
-    const [catalogo, guardados, sedes] = await Promise.all([leerCatalogo(null), sesion.estado === "con_sesion" ? leerGuardadosEnBase(sesion.usuarioId) : null, leerSedes()]);
-    const tiendas = sedesEnOrden(sedes);
+    const [catalogo, guardados] = await Promise.all([leerCatalogo(elegida?.id ?? null), sesion.estado === "con_sesion" ? leerGuardadosEnBase(sesion.usuarioId) : null]);
+    const tiendas = sedes;
     const favoritos = guardados?.favoritos ?? new Set<string>();
     const carriles = carrilesDeLaBolsaVacia(catalogo?.prendas ?? [], favoritos);
     const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
     return (
-      <MarcoCuenta conCuenta conPie visitante={visitante}>
+      <MarcoCuenta conCuenta conPie visitante={visitante} tiendas={tiendasDeLaCabecera} prendasEnBolsa={prendasEnBolsa}>
         <div className="t-ancho cp-bolsa-vacia">
           <SubirAlLlenar />
           <div className="t-vacio">
@@ -96,9 +108,9 @@ export default async function Bolsa() {
               id={`bolsa-${c.lista}`}
               {...CARRIL_DE_LA_BOLSA[c.lista]}
               prendas={c.prendas}
-              sede={null}
+              sede={elegida ? claveDeSede(elegida.nombre) : null}
               origenFotos={origenFotos}
-              nota={(p) => notaDeStock(p.stock, null, tiendas)}
+              nota={(p) => notaDeStock(p.stock, elegida, tiendas)}
               guardados={favoritos}
             />
           ))}
@@ -133,7 +145,7 @@ export default async function Bolsa() {
   const totalPrendas = bolsa.lineas.reduce((n, l) => n + l.cantidad, 0);
 
   return (
-    <MarcoCuenta conCuenta conPie visitante={visitante}>
+    <MarcoCuenta conCuenta conPie visitante={visitante} tiendas={tiendasDeLaCabecera} prendasEnBolsa={prendasEnBolsa}>
       <div className="t-ancho">
         <header className="t-lista-cab t-bolsa-cab cp-sec-cab">
           <span className="t-ceja">Tu bolsa</span>
@@ -189,6 +201,8 @@ export default async function Bolsa() {
                       />
                     </Link>
                     <span>
+                      {/* La empresa de la prenda, encima de su nombre (ADR-0465; solo en Lima, donde conviven CAYLA y CLAURE). */}
+                      {linea.empresa && <span className="t-bolsa-empresa">{linea.empresa.nombre}</span>}
                       <Link className="t-card-nom" href={href}>
                         {linea.nombre}
                       </Link>

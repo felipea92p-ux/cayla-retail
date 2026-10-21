@@ -28,6 +28,8 @@ const esquemaPieza = z.object({
       id: uuid,
       nombre: z.string().min(1),
       categoria: z.object({ nombre: z.string().min(1), prefijo: z.string().nullable() }).nullable(),
+      // De qué empresa es la prenda (ADR-0465): solo viene en una tienda con dos o más empresas (Lima). Sin el dato, no se escribe.
+      empresa: z.object({ clave: z.string().min(1), nombre: z.string().min(1) }).nullable().catch(null),
       precio: z.number().positive(),
       precio_final: z.number().nonnegative(),
       desde: z.boolean(),
@@ -62,6 +64,7 @@ export type PiezaLook = {
     id: string;
     nombre: string;
     categoria: { nombre: string; prefijo: string | null } | null;
+    empresa: { clave: string; nombre: string } | null;
     precio: number;
     precioFinal: number;
     desde: boolean;
@@ -111,6 +114,7 @@ function leerUno(dato: unknown): Look | null {
           id: p.prenda.id,
           nombre: p.prenda.nombre,
           categoria: p.prenda.categoria,
+          empresa: p.prenda.empresa,
           precio: p.prenda.precio,
           precioFinal: p.prenda.precio_final,
           desde: p.prenda.desde,
@@ -153,6 +157,7 @@ export const precioDePieza = (p: PiezaLook): PrecioTarjeta =>
   precioTarjeta({
     ...p.prenda,
     codigo: null,
+    empresa: null,
     colores: [],
     fotos: [],
     stock: null,
