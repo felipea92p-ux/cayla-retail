@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261021161000_campanas_web_modulo_y_lista.sql — Tienda web ▸ Campañas, actividad 1: el módulo, el diseño de cada campaña y la lista
+-- 20261021161000_campanas_web_modulo_y_lista.sql — Tienda web ▸ Campañas, actividades 1 y 2: el módulo, el diseño de cada campaña, la lista y guardar
 --
 -- EL PROBLEMA PRIMERO. Una campaña de la tienda online hoy es una fila de `retail.etiquetas` (estilo 'campana': nombre, descuento,
 -- vigencia, prendas) y la tienda solo la dice en una frase. Felipe pidió que cada campaña tenga su propio diseño y movimiento
@@ -13,12 +13,21 @@
 --      versión vertical opcional, colores, movimiento, textos cortos, dónde se ve y si es borrador o está programado). RLS encendido
 --      y SIN políticas: solo la tocan funciones `security definer` (la de escribir llega en la actividad 2).
 --   3. `retail.fn_campanas_web()`: la lectura de la lista (campañas con su estado, descuento, vigencia, prendas y su diseño).
+--   4. `retail.fn_campana_diseno(etiqueta)`: la lectura de UNA campaña con su diseño completo (lo que abre el editor).
+--   5. `retail.guardar_campana_diseno(etiqueta, version, diseno jsonb)`: crea o cambia el diseño. Pide el módulo y firma con el
+--      responsable (`fn_actor_persona_id(true)`, ADR-0162); la versión frena a la segunda persona; sin cambios no escribe ni anota; cada
+--      cambio deja su línea en la Actividad (módulo `campanas_web`). Recibe un jsonb (un parche) y no columnas sueltas: las actividades
+--      que siguen (movimiento, textos, imagen) suman llaves sin cambiar la firma (un `create or replace` con otros parámetros crearía
+--      una segunda función). NO toca `estado`: pasar de borrador a programado es de la actividad que programa.
 --
 -- REGLAS (Lamport: lo que la base no deja que pase)
 --   · Un diseño es de UNA campaña (la clave es la etiqueta) y se va con ella (`on delete cascade`: es configuración, no historia).
 --   · Ambiente O imagen, nunca los dos ni ninguno: `plantilla` solo si el modo es 'ambiente', y una imagen horizontal obligatoria
 --     si el modo es 'imagen'. Los valores salen de listas cerradas (CHECK): la tienda nunca recibe un efecto o ambiente que no
 --     conoce, y el líder nunca escribe CSS.
+--   · Una campaña terminada ya no se rediseña (la tienda volvió sola a su diseño de siempre) y solo se guarda el diseño de una campaña
+--     que existe (etiqueta de estilo campana, aprobada, activa y con %).
+--   · Dos personas con la misma campaña abierta: gana la primera y la segunda recibe `campana_cambio_otro` (la fila lleva `version`).
 --   · Textos con tope (titular 28, bajada 40, botón 22) y colores solo `#rrggbb`: nada que rompa la portada.
 --
 -- DECIDÍ: «Dónde se ve» son cinco columnas booleanas y no un jsonb: la base las valida sola y la tienda las lee sin interpretar.
@@ -112,7 +121,102 @@ comment on column retail.campana_disenos.acento is 'Color propio #rrggbb: el ace
 alter table retail.campana_disenos enable row level security;
 revoke all on table retail.campana_disenos from public, anon, authenticated;
 
--- ---------- 3. La lista ----------
+-- ---------- 3. Piezas internas ----------
+
+-- Una línea en la Actividad (quién y cuándo). Si anotar falla, lo guardado sigue en pie (como en los demás módulos).
+create or replace function retail.fn_campana_web_anotar(
+  p_accion text, p_descripcion text, p_persona_id uuid, p_registro_id text, p_detalle jsonb
+)
+returns void
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $fn$
+begin
+  begin
+    perform retail.fn_actividad_anotar(
+      'campanas_web', p_accion, p_descripcion, p_persona_id, retail.fn_actividad_terminal_ahora(),
+      retail.fn_actividad_sede_de(p_persona_id, 'vivo'), null, 'campana_disenos', p_registro_id, now(), p_detalle, 'vivo');
+  exception when others then
+    raise warning 'actividad: no se anotó la campaña web (%)', sqlerrm;
+  end;
+end;
+$fn$;
+revoke all on function retail.fn_campana_web_anotar(text, text, uuid, text, jsonb) from public, anon, authenticated;
+
+-- ¿Esta etiqueta es una campaña de la tienda web? Estilo campana, aprobada, activa y con descuento: la misma que lista `fn_campanas_web`.
+create or replace function retail.fn_campana_web_valida(p_etiqueta_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = retail, public
+as $$
+  select exists (
+    select 1 from retail.etiquetas e
+     where e.id = p_etiqueta_id and e.estilo = 'campana' and e.estado = 'aprobado' and e.activo and e.descuento_pct > 0)
+$$;
+revoke all on function retail.fn_campana_web_valida(uuid) from public, anon, authenticated;
+
+-- El diseño de una campaña, completo, tal como lo lee el editor; null si la campaña no tiene.
+create or replace function retail.fn_campana_diseno_json(p_etiqueta_id uuid)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = retail, public
+as $$
+  select jsonb_build_object(
+    'modo', d.modo, 'plantilla', d.plantilla, 'paleta', d.paleta, 'acento', d.acento,
+    'franja', d.franja, 'entrada', d.entrada, 'efecto', d.efecto, 'intensidad', d.intensidad, 'duracion', d.duracion, 'cuenta', d.cuenta,
+    'titular', d.titular, 'bajada', d.bajada, 'boton', d.boton,
+    'imagen_ruta', d.imagen_ruta, 'imagen_vertical_ruta', d.imagen_vertical_ruta,
+    'donde', jsonb_build_object('franja', d.donde_franja, 'portada', d.donde_portada, 'catalogo', d.donde_catalogo,
+                                'sello', d.donde_sello, 'bolsa', d.donde_bolsa),
+    'estado', d.estado, 'version', d.version, 'actualizado_en', d.actualizado_en)
+  from retail.campana_disenos d where d.etiqueta_id = p_etiqueta_id
+$$;
+revoke all on function retail.fn_campana_diseno_json(uuid) from public, anon, authenticated;
+
+-- Una campaña como la lista: estado con la fecha de Lima, modelos que toca y el resumen de su diseño. Lo usan la lista y el editor.
+create or replace function retail.fn_campana_web_fila(p_etiqueta_id uuid, p_hoy date)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = retail, public
+as $$
+  select jsonb_build_object(
+    'id', e.id,
+    'nombre', e.nombre,
+    'pct', e.descuento_pct,
+    'desde', e.vigente_desde,
+    'hasta', e.vigente_hasta,
+    'estado', case when e.vigente_desde is not null and e.vigente_desde > p_hoy then 'prog'
+                   when e.vigente_hasta is not null and e.vigente_hasta < p_hoy then 'fin'
+                   else 'vivo' end,
+    'prendas', (
+      select count(*) from retail.productos p
+       where p.estado = 'activo'
+         and (
+           exists (select 1 from retail.variante_etiquetas ve
+                     join retail.variantes v on v.id = ve.variante_id
+                    where ve.etiqueta_id = e.id and v.producto_id = p.id)
+           or exists (select 1 from retail.etiqueta_categorias ec
+                       where ec.etiqueta_id = e.id and ec.categoria_id = p.categoria_id)
+         )
+    ),
+    'diseno', (
+      select jsonb_build_object(
+               'modo', d.modo, 'plantilla', d.plantilla, 'estado', d.estado,
+               'imagen_ruta', d.imagen_ruta, 'version', d.version, 'actualizado_en', d.actualizado_en)
+        from retail.campana_disenos d where d.etiqueta_id = e.id)
+  )
+  from retail.etiquetas e where e.id = p_etiqueta_id
+$$;
+revoke all on function retail.fn_campana_web_fila(uuid, date) from public, anon, authenticated;
+
+-- ---------- 4. La lista ----------
 -- Las campañas que se ven aquí: etiquetas de estilo 'campana', aprobadas, activas y con descuento, que están vigentes, por empezar
 -- o terminaron hace menos de cuatro meses (la Tienda web no necesita ver las de hace un año). El estado se mide con la fecha de
 -- Lima, igual que la portada de la tienda (`tienda_portada`) y la caja (`fn_campanas_por_variante`).
@@ -131,9 +235,10 @@ begin
   return jsonb_build_object(
     'hoy', v_hoy,
     'campanas', coalesce((
-      select jsonb_agg(c.fila order by c.orden_estado, c.orden_fecha, c.nombre)
+      select jsonb_agg(retail.fn_campana_web_fila(c.id, v_hoy) order by c.orden_estado, c.orden_fecha, c.nombre)
         from (
           select
+            e.id,
             e.nombre,
             case when e.vigente_desde is not null and e.vigente_desde > v_hoy then 2
                  when e.vigente_hasta is not null and e.vigente_hasta < v_hoy then 3
@@ -141,39 +246,9 @@ begin
             -- vivas: la que termina primero (como la portada); programadas: la que empieza primero; terminadas: la más reciente.
             case when e.vigente_hasta is not null and e.vigente_hasta < v_hoy then (v_hoy - e.vigente_hasta)::numeric
                  when e.vigente_desde is not null and e.vigente_desde > v_hoy then (e.vigente_desde - v_hoy)::numeric
-                 else coalesce((e.vigente_hasta - v_hoy)::numeric, 100000) end as orden_fecha,
-            jsonb_build_object(
-              'id', e.id,
-              'nombre', e.nombre,
-              'pct', e.descuento_pct,
-              'desde', e.vigente_desde,
-              'hasta', e.vigente_hasta,
-              'estado', case when e.vigente_desde is not null and e.vigente_desde > v_hoy then 'prog'
-                             when e.vigente_hasta is not null and e.vigente_hasta < v_hoy then 'fin'
-                             else 'vivo' end,
-              'prendas', (
-                select count(*) from retail.productos p
-                 where p.estado = 'activo'
-                   and (
-                     exists (select 1 from retail.variante_etiquetas ve
-                               join retail.variantes v on v.id = ve.variante_id
-                              where ve.etiqueta_id = e.id and v.producto_id = p.id)
-                     or exists (select 1 from retail.etiqueta_categorias ec
-                                 where ec.etiqueta_id = e.id and ec.categoria_id = p.categoria_id)
-                   )
-              ),
-              'diseno', (
-                select jsonb_build_object(
-                         'modo', d.modo, 'plantilla', d.plantilla, 'estado', d.estado,
-                         'imagen_ruta', d.imagen_ruta, 'version', d.version, 'actualizado_en', d.actualizado_en)
-                  from retail.campana_disenos d where d.etiqueta_id = e.id
-              )
-            ) as fila
+                 else coalesce((e.vigente_hasta - v_hoy)::numeric, 100000) end as orden_fecha
           from retail.etiquetas e
-          where e.estilo = 'campana'
-            and e.estado = 'aprobado'
-            and e.activo
-            and e.descuento_pct > 0
+          where retail.fn_campana_web_valida(e.id)
             and (e.vigente_hasta is null or e.vigente_hasta >= v_hoy - 120)
         ) c
     ), '[]'::jsonb)
@@ -186,3 +261,154 @@ comment on function retail.fn_campanas_web() is
 
 revoke all on function retail.fn_campanas_web() from public, anon;
 grant execute on function retail.fn_campanas_web() to authenticated;
+
+-- ---------- 5. Una campaña con su diseño completo (lo que abre el editor) ----------
+create or replace function retail.fn_campana_diseno(p_etiqueta_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $fn$
+declare
+  v_hoy date := retail.fn_hoy_lima();
+begin
+  perform retail.fn_exigir_modulo('campanas_web');
+  if p_etiqueta_id is null or not retail.fn_campana_web_valida(p_etiqueta_id) then
+    raise exception 'campana_no_existe' using hint = 'Esa campaña ya no existe o dejó de ser una campaña. Vuelve a la lista.';
+  end if;
+  return jsonb_build_object(
+    'hoy', v_hoy,
+    'campana', retail.fn_campana_web_fila(p_etiqueta_id, v_hoy) - 'diseno',
+    'diseno', retail.fn_campana_diseno_json(p_etiqueta_id));
+end;
+$fn$;
+
+comment on function retail.fn_campana_diseno(uuid) is
+  'Tienda web ▸ Campañas: una campaña con su diseño completo (null si no tiene). Pide el módulo campanas_web.';
+
+revoke all on function retail.fn_campana_diseno(uuid) from public, anon;
+grant execute on function retail.fn_campana_diseno(uuid) to authenticated;
+
+-- ---------- 6. Guardar el diseño ----------
+-- `p_diseno` es un parche: solo las llaves que trae cambian; el resto queda como estaba (o de fábrica, la primera vez). `p_version`: la que
+-- leyó el editor (`null` si la campaña aún no tenía diseño). Las llaves son las columnas de `campana_disenos` menos las que la base
+-- maneja sola (`estado`, `version`, quién y cuándo): cualquier otra llave se rechaza, así un error de escritura no se pierde en silencio.
+create or replace function retail.guardar_campana_diseno(p_etiqueta_id uuid, p_version integer, p_diseno jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $fn$
+declare
+  c_llaves constant text[] := array[
+    'modo', 'plantilla', 'paleta', 'acento', 'franja', 'entrada', 'efecto', 'intensidad', 'duracion', 'cuenta',
+    'titular', 'bajada', 'boton', 'imagen_ruta', 'imagen_vertical_ruta',
+    'donde_franja', 'donde_portada', 'donde_catalogo', 'donde_sello', 'donde_bolsa'];
+  c_de_fabrica constant jsonb := jsonb_build_object(
+    'paleta', 0, 'franja', 'rota', 'entrada', 'telon', 'efecto', 'ninguno', 'intensidad', 'poca', 'duracion', 'una', 'cuenta', 'siempre',
+    'donde_franja', true, 'donde_portada', true, 'donde_catalogo', true, 'donde_sello', true, 'donde_bolsa', true);
+  v_actor uuid;
+  v_hoy date := retail.fn_hoy_lima();
+  v_nombre text;
+  v_hasta date;
+  v_fila retail.campana_disenos%rowtype;
+  v_existe boolean;
+  v_actual jsonb;
+  v_nuevo jsonb;
+  v_rara text;
+  v_constraint text;
+begin
+  perform retail.fn_exigir_modulo('campanas_web');
+  v_actor := retail.fn_actor_persona_id(true);
+
+  if p_etiqueta_id is null or not retail.fn_campana_web_valida(p_etiqueta_id) then
+    raise exception 'campana_no_existe' using hint = 'Esa campaña ya no existe o dejó de ser una campaña. Vuelve a la lista.';
+  end if;
+  if p_diseno is null or jsonb_typeof(p_diseno) <> 'object' then
+    raise exception 'campana_diseno_datos_invalidos' using hint = 'Falta el diseño que se quiere guardar.';
+  end if;
+  v_rara := (select k from jsonb_object_keys(p_diseno) k where k <> all (c_llaves) limit 1);
+  if v_rara is not null then
+    raise exception 'campana_diseno_datos_invalidos' using hint = format('«%s» no es algo que se pueda cambiar del diseño.', v_rara);
+  end if;
+
+  select e.nombre, e.vigente_hasta into v_nombre, v_hasta from retail.etiquetas e where e.id = p_etiqueta_id;
+  if v_hasta is not null and v_hasta < v_hoy then
+    raise exception 'campana_terminada' using hint = format('«%s» ya terminó: su diseño no se cambia.', v_nombre);
+  end if;
+
+  select * into v_fila from retail.campana_disenos where etiqueta_id = p_etiqueta_id for update;
+  v_existe := found;
+
+  if v_existe then
+    if p_version is null or p_version <> v_fila.version then
+      raise exception 'campana_cambio_otro' using hint = 'Esta campaña cambió mientras la tenías abierta. Vuelve a abrirla.';
+    end if;
+    v_actual := retail.fn_campana_diseno_json(p_etiqueta_id);
+    -- Lo que el parche compara contra lo guardado: las columnas planas (la lectura trae «donde» anidado).
+    v_actual := (v_actual - 'donde' - 'estado' - 'version' - 'actualizado_en') || jsonb_build_object(
+      'donde_franja', v_fila.donde_franja, 'donde_portada', v_fila.donde_portada, 'donde_catalogo', v_fila.donde_catalogo,
+      'donde_sello', v_fila.donde_sello, 'donde_bolsa', v_fila.donde_bolsa);
+    v_nuevo := v_actual || p_diseno;
+    if v_nuevo = v_actual then
+      return retail.fn_campana_diseno_json(p_etiqueta_id);  -- sin cambios: ni se escribe ni se anota
+    end if;
+  else
+    if p_version is not null then
+      raise exception 'campana_cambio_otro' using hint = 'Esta campaña cambió mientras la tenías abierta. Vuelve a abrirla.';
+    end if;
+    v_nuevo := c_de_fabrica || p_diseno;
+  end if;
+
+  begin
+    if v_existe then
+      update retail.campana_disenos d
+         set modo = x.modo, plantilla = x.plantilla, paleta = x.paleta, acento = x.acento,
+             franja = x.franja, entrada = x.entrada, efecto = x.efecto, intensidad = x.intensidad, duracion = x.duracion, cuenta = x.cuenta,
+             titular = x.titular, bajada = x.bajada, boton = x.boton,
+             imagen_ruta = x.imagen_ruta, imagen_vertical_ruta = x.imagen_vertical_ruta,
+             donde_franja = x.donde_franja, donde_portada = x.donde_portada, donde_catalogo = x.donde_catalogo,
+             donde_sello = x.donde_sello, donde_bolsa = x.donde_bolsa,
+             version = d.version + 1, actualizado_en = now(), actualizado_por = v_actor
+        from jsonb_populate_record(null::retail.campana_disenos, v_nuevo) x
+       where d.etiqueta_id = p_etiqueta_id;
+    else
+      insert into retail.campana_disenos
+        (etiqueta_id, modo, plantilla, paleta, acento, franja, entrada, efecto, intensidad, duracion, cuenta, titular, bajada, boton,
+         imagen_ruta, imagen_vertical_ruta, donde_franja, donde_portada, donde_catalogo, donde_sello, donde_bolsa, creado_por, actualizado_por)
+      select p_etiqueta_id, x.modo, x.plantilla, x.paleta, x.acento, x.franja, x.entrada, x.efecto, x.intensidad, x.duracion, x.cuenta,
+             x.titular, x.bajada, x.boton, x.imagen_ruta, x.imagen_vertical_ruta,
+             x.donde_franja, x.donde_portada, x.donde_catalogo, x.donde_sello, x.donde_bolsa, v_actor, v_actor
+        from jsonb_populate_record(null::retail.campana_disenos, v_nuevo) x
+      on conflict (etiqueta_id) do nothing;
+      if not found then
+        -- Otra persona lo creó en el mismo instante: que esta vuelva a abrirla y vea lo que quedó.
+        raise exception 'campana_cambio_otro' using hint = 'Esta campaña cambió mientras la tenías abierta. Vuelve a abrirla.';
+      end if;
+    end if;
+  exception
+    when check_violation then
+      get stacked diagnostics v_constraint = constraint_name;
+      raise exception 'campana_diseno_datos_invalidos' using hint = format('Ese diseño no es válido (%s).', v_constraint);
+    when invalid_text_representation or invalid_parameter_value or datatype_mismatch or numeric_value_out_of_range then
+      raise exception 'campana_diseno_datos_invalidos' using hint = 'Hay un dato del diseño con una forma que no es la esperada.';
+  end;
+
+  perform retail.fn_campana_web_anotar(
+    'campana_diseno_guardado',
+    '«' || v_nombre || '»: ' || case when v_existe then 'cambió su diseño' else 'creó su diseño' end
+      || case when v_nuevo ->> 'modo' = 'imagen' then ' (imagen propia)'
+              else ' (' || coalesce(v_nuevo ->> 'plantilla', '') || ')' end,
+    v_actor, p_etiqueta_id::text,
+    jsonb_build_object('etiqueta_id', p_etiqueta_id, 'modo', v_nuevo ->> 'modo', 'plantilla', v_nuevo ->> 'plantilla'));
+
+  return retail.fn_campana_diseno_json(p_etiqueta_id);
+end;
+$fn$;
+
+comment on function retail.guardar_campana_diseno(uuid, integer, jsonb) is
+  'Tienda web ▸ Campañas: crea o cambia el diseño de una campaña con un parche jsonb. Pide el módulo campanas_web y firma con el responsable; la versión frena a la segunda persona; sin cambios no escribe; deja su línea en la Actividad. No toca el estado (borrador/programado).';
+
+revoke all on function retail.guardar_campana_diseno(uuid, integer, jsonb) from public, anon;
+grant execute on function retail.guardar_campana_diseno(uuid, integer, jsonb) to authenticated;

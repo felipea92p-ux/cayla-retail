@@ -1,0 +1,22 @@
+{
+  "guia": "tienda-web.campanas.editor",
+  "ruta": "/tienda-web/campanas/[id]",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 10,
+  "controles": {
+    "app/(app)/tienda-web/campanas/[id]/page.tsx": [
+      "Volver «/tienda-web/campanas»"
+    ],
+    "components/campanas-web/EditorCampana.tsx": [
+      "button «Aa»",
+      "button «{p.nombre}»",
+      "SegmentoDeslizante «Tamaño de la vista previa»",
+      "ComboResponsable «{responsable}»",
+      "Boton «{terminada ? \"La campaña ya terminó\" : (guia.frase ?? undefined)}»",
+      "button «{hecho && !falta ? <Check className=\"h-3.5 w-3.5\" /> : numero}»",
+      "input «Elegir el color de acento»",
+      "CampoTexto «Color en hexadecimal»",
+      "button «Quitar»"
+    ]
+  }
+}

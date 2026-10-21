@@ -220,6 +220,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/tienda-web/recomendaciones": { estado: "aplicada", evidencia: ["components/recomendaciones/RecomendacionHoja.tsx"] },
   // ADR-0408 (actividad 3): Tienda web ▸ Vitrina. Lo que se llena vive en sus dos hojas: la del modelo (precio web —lo que la base
   // rechaza: vacío, inválido o bajo el costo—, descripción opcional y quién lo cambia) y la del lote (cuánto subir o bajar, y quién).
+  "/tienda-web/campanas/[id]": { estado: "aplicada", evidencia: ["components/campanas-web/EditorCampana.tsx"] },
   "/tienda-web/campanas": { estado: "no-aplica", motivo: "Tienda web ▸ Campañas (Felipe 2026-10-21), primera entrega: la lista de las campañas con su diseño. Solo mira: unas cifras, un filtro por estado y una tabla, sin campos que llenar ni pasos. Cuando llegue el editor de diseño (ambiente, colores, movimiento, textos), su pantalla y sus hojas se declaran `aplicada` con su guía de foco." },
   "/tienda-web/vitrina": { estado: "aplicada", evidencia: ["components/vitrina/VitrinaModeloHoja.tsx", "components/vitrina/VitrinaLoteHoja.tsx"] },
   // ADR-0408 (actividad 12): lo que los clientes esperan con «Avísame». Solo se lee: un buscador y píldoras de tienda, nada que guardar.

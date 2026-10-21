@@ -1099,7 +1099,7 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
 };
 
 // Tienda web ▸ Campañas (Felipe 2026-10-21): cómo se ve la tienda online durante cada campaña. Primera entrega: la lista. La demo solo
-// mira: no hay nada que guarde. Cuando llegue el editor de diseño, sus pasos se suman a esta misma guía.
+// mira: no hay nada que guarde. El editor de diseño tiene su propia guía (GUIA_CAMPANAS_EDITOR).
 export const GUIA_CAMPANAS_WEB: Guia = {
   id: "tienda-web.campanas",
   ruta: "/tienda-web/campanas",
@@ -1140,6 +1140,13 @@ export const GUIA_CAMPANAS_WEB: Guia = {
       texto: "Cada campaña como una barra en el calendario, con la línea roja en el día de hoy. Sirve para ver cuándo se cruzan dos campañas: la tienda muestra el diseño de la que termina primero.",
     },
     {
+      id: "diseno",
+      ancla: "campanas.diseno",
+      opcional: true,
+      titulo: "Diseñar una campaña",
+      texto: "«Diseñar» abre el editor de esa campaña: eliges el ambiente, los colores y ves cómo queda la portada. Las campañas que ya terminaron solo se pueden mirar: ahí dice «Ver diseño».",
+    },
+    {
       id: "nota",
       ancla: "campanas.nota",
       titulo: "Cuando termina una campaña",
@@ -1150,6 +1157,67 @@ export const GUIA_CAMPANAS_WEB: Guia = {
       ancla: null,
       titulo: "¡Listo!",
       texto: "Ya sabes leer la lista de campañas de la tienda web. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Campañas.",
+    },
+  ],
+};
+
+// Tienda web ▸ Campañas ▸ Diseñar la campaña (Felipe 2026-10-21). Por ahora: el ambiente y los colores. La demo elige un ambiente y una paleta
+// para mostrar cómo cambia la vista previa, pero nunca guarda: «Guardar borrador» se explica con la pieza encendida, sin tocarla.
+export const GUIA_CAMPANAS_EDITOR: Guia = {
+  id: "tienda-web.campanas.editor",
+  ruta: "/tienda-web/campanas/[id]",
+  titulo: "Diseñar la campaña",
+  resumen: "Elige el ambiente y los colores de la tienda durante una campaña.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "El diseño de una campaña",
+      texto: "Aquí decides cómo se ve la tienda online mientras dura esta campaña: su ambiente y sus colores. El descuento, las fechas y las prendas no se cambian aquí: salen de Etiquetas. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "ambiente",
+      ancla: "campana-editor.ambiente",
+      titulo: "Elige un ambiente",
+      texto: "Cada ambiente es un diseño ya probado, con sus colores, sus letras y su movimiento: Aniversario, Black Week, Navidad, Día del Gato… Tú no escribes nada; solo eliges el que va con la campaña.",
+    },
+    {
+      id: "colores",
+      ancla: "campana-editor.colores",
+      opcional: true,
+      titulo: "Ajusta los colores",
+      texto: "Cada ambiente trae tres paletas. Si ninguna te gusta, puedes ponerle tu propio color de acento al botón y a la palabra de color.",
+    },
+    {
+      id: "lectura",
+      ancla: "campana-editor.lectura",
+      opcional: true,
+      titulo: "¿Se lee bien?",
+      texto: "El sistema mide si las letras se ven sobre el fondo. Si un color no se lee, la campaña no se puede programar: así la tienda nunca queda con letras que no se ven.",
+    },
+    {
+      id: "vista",
+      ancla: "campana-editor.vista",
+      titulo: "Así se ve",
+      texto: "La portada de la tienda cambia mientras eliges. Puedes verla como en un computador o como en un celular. Es un dibujo para decidir los colores; la tienda de verdad lleva las fotos de las prendas.",
+    },
+    {
+      id: "responsable",
+      ancla: "campana-editor.responsable",
+      titulo: "Quién lo cambia",
+      texto: "Elige quién hace el cambio, como en el resto del ERP: queda anotado en la Actividad con su nombre. Si trabajas solo en tu sesión, ya viene elegido.",
+    },
+    {
+      id: "guardar",
+      ancla: "campana-editor.guardar",
+      titulo: "Guardar el borrador",
+      texto: "«Guardar borrador» deja el diseño anotado. Un borrador no se ve en la tienda todavía: la tienda solo cambia cuando la campaña se programa. Antes eliges quién hace el cambio, como en el resto del ERP.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes elegir el ambiente y los colores de una campaña. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Campañas.",
     },
   ],
 };

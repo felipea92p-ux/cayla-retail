@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Image as ImagenIcono, Palette, Sparkles } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 import { BotonEnlace } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
@@ -30,7 +31,7 @@ import {
 } from "@/lib/campanas-web-reglas";
 
 // En el celular la fila es una tarjeta: la campaña arriba y, debajo, su diseño y su estado. Desde `sm`, columnas.
-const PLANTILLA = "grid-cols-1 gap-y-2 sm:grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_minmax(9rem,13rem)_7.5rem]";
+const PLANTILLA = "grid-cols-1 gap-y-2 sm:grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_minmax(9rem,13rem)_7.5rem_6.5rem]";
 const TONO_ESTADO: Record<EstadoCampana, TonoChip> = { vivo: "verde", prog: "pizarra", fin: "neutro" };
 const FILTROS: { valor: FiltroCampanas; texto: string }[] = [
   { valor: "todas", texto: "Todas" },
@@ -130,6 +131,7 @@ export function CampanasPantalla({ lectura, puedeIrAEtiquetas }: { lectura: Lect
                   { titulo: "Prendas", alinear: "der", soloEscritorio: true },
                   { titulo: "Diseño", soloEscritorio: true },
                   { titulo: "Estado" },
+                  { titulo: "", soloEscritorio: true },
                 ]}
               />
               {visibles.map((c) => (
@@ -228,11 +230,19 @@ function FilaCampana({ c, hoy }: { c: CampanaWeb; hoy: string }) {
       <span className={celda("der", "hidden sm:block")}>
         <Chip tono={TONO_ESTADO[c.estado]}>{ESTADO_DICHO[c.estado]}</Chip>
       </span>
+      <span className={celda("der", "hidden sm:block")}>
+        <BotonEditar href={`/tienda-web/campanas/${c.id}`} chico guia="campanas.diseno">
+          {c.estado === "fin" ? "Ver diseño" : "Diseñar"}
+        </BotonEditar>
+      </span>
       <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-tinta/65 sm:hidden">
         <Chip tono={TONO_ESTADO[c.estado]}>{ESTADO_DICHO[c.estado]}</Chip>
         <span>
           {pctDicho(c.pct)} · {diseno.texto}
         </span>
+        <BotonEditar href={`/tienda-web/campanas/${c.id}`} chico>
+          {c.estado === "fin" ? "Ver diseño" : "Diseñar"}
+        </BotonEditar>
       </span>
     </div>
   );

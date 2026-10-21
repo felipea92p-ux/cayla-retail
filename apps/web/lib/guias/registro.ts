@@ -115,6 +115,7 @@ import {
 import { GUIA_ANALISIS, GUIA_FRESCURA, GUIA_PLAN_DEL_PISO, GUIA_RENDIMIENTO } from "./pantallas/gestion";
 import { GUIA_AVISOS_CLUB, GUIA_BENEFICIOS_CLUB, GUIA_CLIENTES } from "./pantallas/clientes";
 import {
+  GUIA_CAMPANAS_EDITOR,
   GUIA_CAMPANAS_WEB,
   GUIA_PEDIDOS_WEB,
   GUIA_RECOMENDACIONES,
@@ -242,6 +243,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_VITRINA_LOOKS,
   GUIA_VITRINA_PROBADOR,
   GUIA_CAMPANAS_WEB,
+  GUIA_CAMPANAS_EDITOR,
   GUIA_RECOMENDACIONES,
   GUIA_TIENDA_WEB_AJUSTES,
 ];
@@ -390,6 +392,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/tienda-web": { estado: "aplicada", guia: GUIA_TIENDA_WEB_RESUMEN.id },
   "/tienda-web/ajustes": { estado: "aplicada", guia: GUIA_TIENDA_WEB_AJUSTES.id },
   "/tienda-web/campanas": { estado: "aplicada", guia: GUIA_CAMPANAS_WEB.id },
+  "/tienda-web/campanas/[id]": { estado: "aplicada", guia: GUIA_CAMPANAS_EDITOR.id },
   "/tienda-web/pedidos": { estado: "aplicada", guia: GUIA_PEDIDOS_WEB.id },
   "/tienda-web/recomendaciones": { estado: "aplicada", guia: GUIA_RECOMENDACIONES.id },
   "/tienda-web/vitrina": { estado: "aplicada", guia: GUIA_VITRINA.id },
