@@ -41,17 +41,45 @@ export function usuarioDeGoogle(u: UsuarioDelProyecto): UsuarioDeGoogle | null {
 /** Qué sigue cuando entra alguien con Google que todavía no tiene cuenta y la base ya contestó si su correo era de una ficha
  *  (ADR-0469). `listo`: la cuenta ya existe (se unió a su ficha, o ya la tenía). `registrar`: no es de ninguna ficha, o la base no
  *  contestó: se crea la cuenta simple de siempre (que dirá lo que ya decía si hay un problema). `rechazar`: hay una ficha con ese
- *  correo pero no se puede unir sola (otro nombre, archivada, ya con cuenta): nadie queda a medias, y se manda a una tienda. */
-export type SiguienteTrasVincular = "listo" | "registrar" | "rechazar";
+ *  correo pero no se puede unir sola (otro nombre, archivada, cuenta cerrada): nadie queda a medias, y se manda a una tienda.
+ *  `otro_correo`: la ficha ya tiene cuenta abierta con otro correo y el nombre coincide: se le dice con cuál entrar (20261021182000). */
+export type SiguienteTrasVincular = "listo" | "registrar" | "rechazar" | "otro_correo";
 
-export function siguienteTrasVincular(estado: "vinculada" | "ya_tiene_cuenta" | "no_aplica" | "no_coincide" | "sin_respuesta"): SiguienteTrasVincular {
+export function siguienteTrasVincular(estado: "vinculada" | "ya_tiene_cuenta" | "no_aplica" | "no_coincide" | "otro_correo" | "sin_respuesta"): SiguienteTrasVincular {
   switch (estado) {
     case "vinculada":
     case "ya_tiene_cuenta":
       return "listo";
     case "no_coincide":
       return "rechazar";
+    case "otro_correo":
+      return "otro_correo";
     default:
       return "registrar";
   }
+}
+
+/** La cookie corta con que la ruta de Google le deja a «Entrar» el correo de la cuenta, a medias: un correo no viaja en la dirección. */
+export const COOKIE_GOOGLE_CORREO = "cayla-google-correo";
+/** Cuánto vive: lo justo para volver a «Entrar» y leerla. */
+export const COOKIE_GOOGLE_CORREO_S = 120;
+
+/** «su••••@gmail.com», tal como lo arma la base (dos letras, cuatro puntos y el dominio); cualquier otra cosa no se muestra. */
+export function correoOcultoValido(valor: unknown): string | null {
+  return typeof valor === "string" && /^[^\s@•]{1,4}•{4}@[^\s@•]{3,100}$/.test(valor) ? valor : null;
+}
+
+/** Lo que dice la cookie (`document.cookie`), o null si no está o no es un correo a medias. */
+export function correoOcultoDeLaCookie(cookies: string): string | null {
+  for (const parte of cookies.split(";")) {
+    const [nombre, ...resto] = parte.trim().split("=");
+    if (nombre === COOKIE_GOOGLE_CORREO) {
+      try {
+        return correoOcultoValido(decodeURIComponent(resto.join("=")));
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
 }
