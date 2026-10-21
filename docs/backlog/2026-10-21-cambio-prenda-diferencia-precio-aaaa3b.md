@@ -1,6 +1,6 @@
 ## Cambios: una prenda por varias y QR (ADR-0470, 2026-10-21)
 
-- [ ] **Pegar en producción las 7 migraciones** (con el OK de Felipe, por partes y en el orden del ADR-0470; la política `20261021191000` SOLA y al final). Verificar el `md5(prosrc)` de cada función tocada y `fn_acepta_qr_en_cambios() = true`. Hasta entonces la web nueva cae al camino de una prenda y sin QR.
+- [x] **Pegar en producción las 7 migraciones:** hecho el 2026-10-21 con el OK de Felipe, por partes y en orden (la política sola y al final); md5 y `fn_acepta_qr_en_cambios() = true` verificados (ADR-0470, «Verificación en producción»). Falta publicar la web de esta rama: hasta entonces producción tiene la base nueva y la pantalla de antes.
 - [ ] **Refrescar el diccionario** (`pnpm datos:generar:produccion`) cuando se refresque el volcado: tabla nueva `cambio_salidas`.
 - [ ] **Boleta y nota de crédito de un cambio** (decisión de Felipe/contador, SUNAT): hoy un cambio no emite comprobante y esta entrega tampoco. En B005-000670 las dos boletas suman S/ 10 de más sin nota de crédito.
 - [ ] **El candado de líder para un cambio que devuelve plata se quitó el 2026-09-23** (`20260923110500`): hoy cualquier colaboradora lo registra. Revisar si es lo que Felipe quiere (dinero: decide él).

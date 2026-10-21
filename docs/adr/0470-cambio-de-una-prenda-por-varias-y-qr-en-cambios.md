@@ -1,6 +1,6 @@
 # ADR-0470 — Cambiar una prenda por VARIAS y cobrar la diferencia por QR
 
-**Estado:** construido y probado en local; **SQL NO está en producción** (las 7 migraciones esperan el OK de Felipe, en el orden de abajo) · **Fecha:** 2026-10-21 · **Decidió:** Felipe (aprobó las 5 actividades, y que esta entrega siga sin emitir comprobante nuevo)
+**Estado:** construido y probado en local; **SQL EN PRODUCCIÓN desde 2026-10-21** (las 7 migraciones, pegadas con el OK de Felipe por partes y en el orden de abajo; la web nueva va en el PR de esta rama) · **Fecha:** 2026-10-21 · **Decidió:** Felipe (aprobó las 5 actividades, y que esta entrega siga sin emitir comprobante nuevo)
 
 ## Contexto
 
@@ -66,7 +66,7 @@ método de pago (siguen mostrando QR 117.70 y transferencia −10, porque salen 
 
 ## Producción
 
-Siete archivos, ninguno aplicado todavía. Cada uno es idempotente. Orden (la política va **sola y al final**, regla «Políticas y deadlocks», ADR-0195):
+Siete archivos, **pegados el 2026-10-21** con `apply_migration` (la versión que queda en `schema_migrations` es la hora del pegado; se verificó por `md5(prosrc)`). Cada uno es idempotente. Orden (la política va **sola y al final**, regla «Políticas y deadlocks», ADR-0195):
 
 1. `20261021183000_cambios_acepta_qr_parte1_candado.sql` — un `alter table` de `cambios` solo.
 2. `20261021184000_cambios_acepta_qr_parte2_funciones.sql` — reemplazo anclado de `fn_dinero_libro` + `fn_acepta_qr_en_cambios`.
@@ -91,3 +91,12 @@ de la base cae al camino de una prenda). Refrescar el diccionario (`pnpm datos:g
 - vitest 569 archivos / 161.167 pruebas; tipos, eslint y Knip (los dos modos) en verde.
 - En el navegador (base local): el cambio de una blusa de S/ 79.90 por dos polos de S/ 49.90 guardó S/ 19.90 por QR en «Por depositar Izipay» con las dos prendas, una entrada y dos salidas; a 375 px sin
   desborde horizontal.
+
+## Verificación en producción (2026-10-21)
+
+- `md5(prosrc)` igual al de la base local en: `fn_acepta_qr_en_cambios` fea61f3c…, `fn_dinero_libro` 3bda3634…, `fn_cambio_salidas_solo_agregar` 947b52fa…, `registrar_cambio_varias` c1adaac6…, `fn_resolver_intento` fff182d5…,
+  `fn_actividad_cambio` 42c1d744…, `fn_analisis_sede` 38ba197d…, `fn_asientos` e8799a68…, `fn_demanda_sede` 3e03af81….
+- **Distintos a propósito de local:** `fn_piso_plan_lectura` (prod 9fd51152…) y `fn_resumen_comparacion` (prod d5300100…). Sin mi parche, local y producción ya diferían (migraciones de otras ramas que aún no están en producción);
+  el parche está puesto en las dos (comprobado por su texto).
+- `fn_acepta_qr_en_cambios()` = true; el candado de `cambios` acepta `qr`; la política `cambio_salidas_select` existe; `anon` no ejecuta `registrar_cambio_varias` y `authenticated` sí; `cambio_salidas` tiene 0 filas (nadie ha guardado un cambio por varias en producción).
+- Humo de lectura con una sesión de admin: `fn_asientos` (5.663 filas en 30 días), `fn_analisis_sede`, `fn_demanda_sede` y `fn_piso_plan_lectura` se ejecutan sin error; `fn_resumen_comparacion` corre (0 filas para la primera sede que devolvió el orden alfabético).
