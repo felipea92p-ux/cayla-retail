@@ -20,8 +20,9 @@
        «Por colgar» (el verbo de lo que la asesora hace con la prenda en la mano).
      · El mínimo nunca genera «pedir este modelo» (los modelos no se repiten): lo que falta se suma por categoría × talla ×
        familia de color, y esa es la señal para el Taller.
-     · Velocidad = ventas escaneadas + ventas anotadas «sin registrar» que siguen pendientes, en 14 días, por sede; cada cifra
-       dice cuántas ventas la respaldan y cuántas son anotadas a mano.
+     · Velocidad = ventas escaneadas + ventas anotadas «sin registrar» que siguen sin prenda (pendientes, o cerradas sin prenda
+       por el cierre de arranque de ADR-0334), en 14 días, por sede; cada cifra dice cuántas ventas la respaldan y cuántas son
+       anotadas a mano.
      · Sin el piso cuadrado, «Por colgar» queda en pausa (ADR-0328, decisión técnica 5). «Sin cuadrar» = la sede separa piso y
        almacén y la lectura no trae fecha de cuadre (`cuadradoEn`): nunca se cuadró, o la base todavía no guarda cuadres. No
        saber cuenta como no cuadrado: publicar «Por colgar» sobre el piso de TRU de hoy (138 colgadas en el sistema contra 600–750
@@ -197,7 +198,8 @@ export type TallaEnSede = {
   vendidas14: number;
 };
 
-/** Lo vendido en la ventana por categoría × talla × familia de color: escaneadas y anotadas a mano (pendientes). */
+/** Lo vendido en la ventana por categoría × talla × familia de color: escaneadas y anotadas a mano (mientras no tengan prenda:
+ *  pendientes o cerradas sin prenda, ADR-0334). */
 export type VentaPorAtributo = {
   categoriaId: string | null;
   tallaId: string | null;
@@ -207,8 +209,8 @@ export type VentaPorAtributo = {
   anotadas: number;
 };
 
-/** Lo anotado a mano «sin registrar» hoy y ayer (pendiente), por categoría × talla × color EXACTO: el reloj rápido de lo que no
- *  tiene prenda. Una llave con algún vacío no se cruza con ninguna talla (no se sabe a cuál pertenece). */
+/** Lo anotado a mano «sin registrar» hoy y ayer (pendiente o cerrado sin prenda), por categoría × talla × color EXACTO: el reloj
+ *  rápido de lo que no tiene prenda. Una llave con algún vacío no se cruza con ninguna talla (no se sabe a cuál pertenece). */
 export type AnotadaReciente = { categoriaId: string | null; tallaId: string | null; colorCodigo: string | null; hoy: number; ayer: number };
 
 /** Las tallas que ofrece una categoría (`categoria_tallas`), con lo que la identifica: el nombre y —solo para dibujar la prenda
@@ -343,7 +345,7 @@ export function planDelPiso(lectura: LecturaDelPiso, opciones: OpcionesPlan = {}
   const nombreCategoria = new Map(lectura.curvas.map((c) => [c.categoriaId, c.categoria]));
   const curvas = curvasPorCategoria(lectura);
 
-  // Lo vendido por llave (14 días): escaneadas + anotadas pendientes, cada venta una vez (lo garantiza la lectura).
+  // Lo vendido por llave (14 días): escaneadas + anotadas sin prenda, cada venta una vez (lo garantiza la lectura).
   const ventasPorClave = new Map<string, VentaPorAtributo>();
   for (const v of lectura.ventas) {
     const k = claveAtributo(v.categoriaId, v.tallaId, v.familiaColor);
