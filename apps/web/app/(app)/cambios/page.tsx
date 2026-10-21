@@ -10,6 +10,7 @@ import { getCajaAbierta } from "@/lib/caja";
 import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { getEstadisticasCambios, getTallasQueNoCalzan } from "@/lib/cambios-estadisticas";
 import { exigir } from "@/lib/resultado";
+import { createClient } from "@/lib/supabase/server";
 import { CambiosPanel } from "@/components/CambiosPanel";
 import { TrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { claveDeCambios } from "@/lib/cambios-cambio-de-sede";
@@ -31,7 +32,8 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
   // Mismas lecturas de stock que Vender (vender/page.tsx): el piso de ESTA ubicación
   // decide qué se puede entregar (`registrar_cambio` rechaza lo que no está), y
   // `fn_stock_por_sede` dice dónde más hay cuando aquí no queda la talla.
-  const [lineas, catalogo, stock, resStockSedes, ubicaciones, estadisticas, tallasQueNoCalzan, caja, preciosSede] = await Promise.all([
+  const supabase = await createClient();
+  const [lineas, catalogo, stock, resStockSedes, ubicaciones, estadisticas, tallasQueNoCalzan, caja, preciosSede, resAceptaQr] = await Promise.all([
     getVentasRecientes(persona.ubicacionId, { busqueda: q, todasLasSedes, ventaItemId: item }),
     getCatalogo(),
     getDisponibleEnSede(persona.ubicacionId),
@@ -43,7 +45,11 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
     // Precios propios de las tiendas (Felipe 2026-10-09; 2026-10-10): otra prenda se cobra al de ESTA tienda; otra talla o color de
     // la misma, al de la tienda donde se compró (`fn_precio_para_cambio`).
     getPreciosDeLasTiendas(),
+    // ¿La base ya acepta el QR como medio de la diferencia? (20261021184000). Si la función no existe todavía, el error deja el combo con
+    // los cinco medios de siempre: nunca ofrece algo que la base rechazaría.
+    supabase.rpc("fn_acepta_qr_en_cambios"),
   ]);
+  const aceptaQr = resAceptaQr.data === true;
   // Una venta de una tienda que ya cerró puede conservar su precio propio y la base lo usa (`fn_precio_para_cambio`): se leen también
   // los de las tiendas de las ventas listadas que no están entre las abiertas.
   const sinLeer = [...new Set(lineas.map((l) => l.ubicacionVentaId).filter((id): id is string => !!id && !(id in preciosSede.porSede)))];
@@ -91,6 +97,7 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
           ubicacionId={persona.ubicacionId}
           colaboradora={persona.nombre}
           cajaAbierta={caja !== null}
+          aceptaQr={aceptaQr}
           tallasQueNoCalzan={tallasQueNoCalzan}
           abrirItemId={item}
           sedes={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))}
