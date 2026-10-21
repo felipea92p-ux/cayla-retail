@@ -13,8 +13,11 @@ import {
   colorDelSello,
   comprobarLectura,
   coloresDeCampana,
+  coloresDeImagenDeCampana,
+  comprobarLecturaDeImagen,
   limpiarTextoDeCampana,
   textoSobre,
+  urlDeImagenDeCampana,
   type CuentaCampana,
   type DuracionCampana,
   type EfectoCampana,
@@ -37,24 +40,40 @@ const esquemaDonde = z.object({
   bolsa: z.boolean().catch(true),
 });
 
-const esquemaDiseno = z.object({
-  modo: z.literal("ambiente"),
-  plantilla: z.string(),
-  paleta: z.number().int().min(0).max(2),
-  acento: z.string().nullable().optional(),
-  // El movimiento: lo que falte o venga raro toma su valor de siempre (la tienda nunca se cae por un dato de movimiento).
+// Lo que tienen en común los dos modos: el movimiento (lo que falte o venga raro toma su valor de siempre: la tienda nunca se cae por un dato de
+// movimiento) y dónde se ve.
+const movimientoYDonde = {
   franja: z.enum(FRANJAS_CAMPANA).catch("rota"),
   entrada: z.enum(ENTRADAS_CAMPANA).catch("telon"),
   efecto: z.enum(EFECTOS_CAMPANA).catch("ninguno"),
   intensidad: z.enum(INTENSIDADES_CAMPANA).catch("poca"),
   duracion: z.enum(DURACIONES_CAMPANA).catch("una"),
   cuenta: z.enum(CUENTAS_CAMPANA).catch("siempre"),
+  donde: esquemaDonde.optional(),
+};
+
+const esquemaAmbiente = z.object({
+  modo: z.literal("ambiente"),
+  plantilla: z.string(),
+  paleta: z.number().int().min(0).max(2),
+  acento: z.string().nullable().optional(),
+  ...movimientoYDonde,
   // Los textos: lo que no sea un texto (o venga vacío) es «sin texto».
   titular: z.string().nullable().catch(null),
   bajada: z.string().nullable().catch(null),
   boton: z.string().nullable().catch(null),
-  donde: esquemaDonde.optional(),
 });
+
+// Imagen propia: solo se lee la ruta de la imagen (la dirección la arma la tienda) y el color del botón; los textos van dentro de la imagen.
+const esquemaImagen = z.object({
+  modo: z.literal("imagen"),
+  imagen_ruta: z.string(),
+  imagen_vertical_ruta: z.string().nullable().catch(null),
+  acento: z.string().nullable().optional(),
+  ...movimientoYDonde,
+});
+
+const esquemaDiseno = z.discriminatedUnion("modo", [esquemaAmbiente, esquemaImagen]);
 
 const esquema = z.object({
   campana: z
@@ -68,8 +87,10 @@ const esquema = z.object({
 export type DisenoDeLaTienda = {
   /** El nombre de la campaña que viste: una pieza solo se viste si es de ESA campaña (`aplicaA`). */
   campana: string;
-  /** La clave del ambiente: la hoja de estilos de la tienda se viste por ella (`data-campana`). */
+  /** La clave del ambiente (`imagen` si la campaña usa su propia imagen): la hoja de estilos de la tienda se viste por ella (`data-campana`). */
   plantilla: string;
+  /** Con imagen propia: las direcciones públicas del banner del computador y de la versión vertical del celular (opcional). Sin ella, `null`. */
+  imagen: { horizontal: string; vertical: string | null } | null;
   colores: { fondo: string; texto: string; acento: string; /** La letra que se lee sobre el acento (el botón). */ boton: string };
   /** El sello de descuento de cada prenda: un color que se lee sobre la foto (se ajusta solo) y la letra que se lee sobre él. */
   sello: { fondo: string; texto: string };
@@ -92,25 +113,42 @@ const TODO = { franja: true, portada: true, catalogo: true, sello: true, bolsa: 
 
 /** El diseño que la tienda pinta para la campaña `nombreDeLaPortada`, o `null` (se ve como siempre). El nombre debe ser el de la campaña
  *  que anuncia la portada: si la base y la portada no están de acuerdo en cuál gana, no se mezcla el diseño de una con el texto de otra. */
-export function interpretarDisenoCampana(dato: unknown, nombreDeLaPortada: string | null | undefined): DisenoDeLaTienda | null {
+export function interpretarDisenoCampana(dato: unknown, nombreDeLaPortada: string | null | undefined, origenDeImagenes?: string | null): DisenoDeLaTienda | null {
   if (!nombreDeLaPortada) return null;
   const leido = esquema.safeParse(dato);
   if (!leido.success || !leido.data.campana) return null;
   const { nombre, diseno } = leido.data.campana;
   if (!diseno || nombre !== nombreDeLaPortada) return null;
-  if (!ambienteDeCampana(diseno.plantilla)) return null;
-  const colores = coloresDeCampana(diseno.plantilla, diseno.paleta, diseno.acento ?? null);
-  if (!colores || !comprobarLectura(colores).ok) return null;
-  return {
-    campana: nombre,
-    plantilla: diseno.plantilla,
-    colores: { ...colores, boton: textoSobre(colores.acento) },
-    sello: colorDelSello(colores),
-    textos: {
+  let plantilla: string;
+  let colores: ReturnType<typeof coloresDeCampana>;
+  let imagen: DisenoDeLaTienda["imagen"] = null;
+  let textos: DisenoDeLaTienda["textos"] = { titular: null, bajada: null, boton: null };
+  if (diseno.modo === "imagen") {
+    // La imagen horizontal es obligatoria y debe ser una ruta que el ERP pudo subir; la vertical, si no sirve, se ignora (en el celular se recorta la horizontal).
+    const horizontal = urlDeImagenDeCampana(origenDeImagenes, diseno.imagen_ruta);
+    if (!horizontal) return null;
+    imagen = { horizontal, vertical: urlDeImagenDeCampana(origenDeImagenes, diseno.imagen_vertical_ruta) };
+    plantilla = "imagen";
+    colores = coloresDeImagenDeCampana(diseno.acento ?? null);
+    if (!comprobarLecturaDeImagen(colores).ok) return null;
+  } else {
+    if (!ambienteDeCampana(diseno.plantilla)) return null;
+    plantilla = diseno.plantilla;
+    colores = coloresDeCampana(diseno.plantilla, diseno.paleta, diseno.acento ?? null);
+    if (!colores || !comprobarLectura(colores).ok) return null;
+    textos = {
       titular: limpiarTextoDeCampana(diseno.titular, TOPE_TITULAR_CAMPANA),
       bajada: limpiarTextoDeCampana(diseno.bajada, TOPE_BAJADA_CAMPANA),
       boton: limpiarTextoDeCampana(diseno.boton, TOPE_BOTON_CAMPANA),
-    },
+    };
+  }
+  return {
+    campana: nombre,
+    plantilla,
+    imagen,
+    colores: { ...colores, boton: textoSobre(colores.acento) },
+    sello: colorDelSello(colores),
+    textos,
     movimiento: {
       franja: diseno.franja,
       entrada: diseno.entrada,

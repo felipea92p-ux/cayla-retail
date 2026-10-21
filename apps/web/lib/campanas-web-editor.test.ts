@@ -9,9 +9,13 @@ import {
   conAcento,
   conAmbiente,
   conDonde,
+  conImagen,
+  conImagenVertical,
+  conModo,
   conMovimiento,
   conPaleta,
   conTexto,
+  hayDiseno,
   hayDonde,
   errorDeCampanas,
   faltanDelDiseno,
@@ -21,10 +25,12 @@ import {
   type DisenoGuardado,
 } from "./campanas-web-editor";
 
+const RUTA_H = "campanas/11111111-2222-4333-8444-555555555555/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.webp";
+const RUTA_V = "campanas/11111111-2222-4333-8444-555555555555/bbbbbbbb-bbbb-4ccc-8ddd-eeeeeeeeeeee.webp";
 const campana = { id: "c1", nombre: "Aniversario CAYLA", pct: 20, desde: "2026-10-12", hasta: "2026-10-25", estado: "vivo", prendas: 112, diseno: null };
 const diseno = (p: Partial<DisenoGuardado> = {}): DisenoGuardado => ({
   modo: "ambiente", plantilla: "aniversario", paleta: 0, acento: null, franja: "rota", entrada: "telon", efecto: "destellos",
-  intensidad: "poca", duracion: "una", cuenta: "siempre", titular: null, bajada: null, boton: null, donde: { ...DONDE_TODO }, estado: "borrador", version: 1, ...p,
+  intensidad: "poca", duracion: "una", cuenta: "siempre", titular: null, bajada: null, boton: null, donde: { ...DONDE_TODO }, imagenRuta: null, imagenVerticalRuta: null, estado: "borrador", version: 1, ...p,
 });
 
 describe("leerFichaCampana: lo que manda la base", () => {
@@ -64,9 +70,13 @@ describe("el borrador", () => {
     expect(borradorDe({ diseno: diseno({ plantilla: "gato", paleta: 2, acento: "#aabbcc", efecto: "patitas" }) })).toEqual(bor({ plantilla: "gato", paleta: 2, acento: "#aabbcc", efecto: "patitas" }));
   });
 
-  it("un diseño de imagen propia o de un ambiente que el catálogo no conoce no se abre como ambiente", () => {
-    expect(borradorDe({ diseno: diseno({ modo: "imagen", plantilla: null }) })).toEqual(BORRADOR_VACIO);
+  it("un diseño de un ambiente que el catálogo ya no conoce abre vacío (hay que volver a elegir)", () => {
     expect(borradorDe({ diseno: diseno({ plantilla: "halloween" }) })).toEqual(BORRADOR_VACIO);
+  });
+
+  it("un diseño de imagen propia abre en su modo, con sus imágenes y su color de botón", () => {
+    const b = borradorDe({ diseno: diseno({ modo: "imagen", plantilla: null, acento: "#00aa55", imagenRuta: RUTA_H, imagenVerticalRuta: RUTA_V, franja: "quieta" }) });
+    expect(b).toMatchObject({ modo: "imagen", plantilla: null, acento: "#00aa55", imagen: RUTA_H, imagenVertical: RUTA_V, franja: "quieta" });
   });
 
   it("elegir un ambiente trae su primera paleta, su efecto y su franja, y suelta el color propio", () => {
@@ -107,7 +117,6 @@ describe("parcheDeCambios: solo lo que cambió", () => {
     expect(parcheDeCambios(null, ahora)).toEqual({
       modo: "ambiente", plantilla: "navidad", paleta: 0, acento: null, franja: "rota", entrada: "telon", efecto: "copos", intensidad: "poca", duracion: "una", cuenta: "siempre",
     });
-    expect(parcheDeCambios(BORRADOR_VACIO, ahora)).toEqual(parcheDeCambios(null, ahora));
   });
 
   it("sin cambios es null (el botón de guardar se apaga)", () => {
@@ -201,5 +210,69 @@ describe("errores de la base en palabras de tienda", () => {
     expect(errorDeCampanas("campana_no_existe")?.titulo).toBe("Esa campaña ya no existe");
     expect(errorDeCampanas("campana_diseno_datos_invalidos Ese diseño no es válido (campana_disenos_paleta)")?.titulo).toBe("El diseño no es válido");
     expect(errorDeCampanas("otra cosa")).toBeNull();
+  });
+});
+
+describe("el modo «Mi propia imagen»", () => {
+  const conFoto = (b: BorradorDiseno = BORRADOR_VACIO) => conImagen(conModo(b, "imagen"), RUTA_H);
+
+  it("pasar a imagen: nace con su movimiento de fábrica y sin color propio; sin imagen aún no hay diseño", () => {
+    const b = conModo(conAmbiente(BORRADOR_VACIO, "gato"), "imagen");
+    expect(b).toMatchObject({ modo: "imagen", acento: null, franja: "quieta", entrada: "telon", efecto: "ninguno", cuenta: "siempre" });
+    expect(hayDiseno(b)).toBe(false);
+    expect(parcheDeCambios(null, b)).toBeNull();
+    expect(faltanDelDiseno(b)).toEqual([{ paso: "ambiente", texto: "subir la imagen" }]);
+  });
+
+  it("subir la imagen crea el diseño: modo imagen, su ruta y nada de ambiente ni de textos", () => {
+    const b = conImagenVertical(conFoto(), RUTA_V);
+    const p = parcheDeCambios(null, conTexto(b, "titular", "Hola"))!;
+    expect(p).toMatchObject({ modo: "imagen", imagen_ruta: RUTA_H, imagen_vertical_ruta: RUTA_V });
+    expect(p).not.toHaveProperty("plantilla");
+    expect(p).not.toHaveProperty("titular");
+    expect(faltanDelDiseno(b)).toEqual([]);
+  });
+
+  it("los colores son los del botón: el de fábrica o el propio, y se leen", () => {
+    expect(coloresDelBorrador(conFoto())?.acento).toBe("#9e1d32");
+    expect(coloresDelBorrador(conAcento(conFoto(), "#00aa55"))?.acento).toBe("#00aa55");
+    expect(coloresDelBorrador(conModo(BORRADOR_VACIO, "imagen"))).toBeNull();
+  });
+
+  it("un botón gris de en medio no se lee: falta «un color que se lea bien»", () => {
+    expect(faltanDelDiseno(conAcento(conFoto(), "#777777"))).toEqual([{ paso: "colores", texto: "un color que se lea bien" }]);
+  });
+
+  it("de un ambiente guardado a imagen: el parche pone la plantilla en null y trae la imagen (lo que la base exige)", () => {
+    const guardado = borradorDe({ diseno: diseno() });
+    const p = parcheDeCambios(guardado, conFoto(guardado))!;
+    expect(p).toMatchObject({ modo: "imagen", plantilla: null, imagen_ruta: RUTA_H });
+  });
+
+  it("de imagen guardada a ambiente: el parche trae el modo y la plantilla", () => {
+    const guardado = borradorDe({ diseno: diseno({ modo: "imagen", plantilla: null, imagenRuta: RUTA_H }) });
+    const vuelta = conAmbiente(guardado, "navidad");
+    expect(parcheDeCambios(guardado, vuelta)).toMatchObject({ modo: "ambiente", plantilla: "navidad" });
+    // volver al ambiente no borra la imagen ya subida (el parche no la toca)
+    expect(parcheDeCambios(guardado, vuelta)).not.toHaveProperty("imagen_ruta");
+  });
+
+  it("ir y volver de modo no pierde lo escrito ni las imágenes subidas", () => {
+    const b = conModo(conImagenVertical(conFoto(conTexto(conAmbiente(BORRADOR_VACIO, "gato"), "titular", "Mi campaña")), RUTA_V), "ambiente");
+    expect(b).toMatchObject({ modo: "ambiente", plantilla: "gato", titular: "Mi campaña", imagen: RUTA_H, imagenVertical: RUTA_V });
+    expect(conModo(b, "ambiente")).toBe(b);
+  });
+
+  it("quitar la vertical viaja como null; quitar la horizontal deja sin diseño y suelta también la vertical", () => {
+    const guardado = borradorDe({ diseno: diseno({ modo: "imagen", plantilla: null, imagenRuta: RUTA_H, imagenVerticalRuta: RUTA_V }) });
+    expect(parcheDeCambios(guardado, conImagenVertical(guardado, null))).toEqual({ imagen_vertical_ruta: null });
+    const sin = conImagen(guardado, null);
+    expect(sin.imagenVertical).toBeNull();
+    expect(parcheDeCambios(guardado, sin)).toBeNull();
+  });
+
+  it("cambiar la imagen viaja sola", () => {
+    const guardado = borradorDe({ diseno: diseno({ modo: "imagen", plantilla: null, imagenRuta: RUTA_H }) });
+    expect(parcheDeCambios(guardado, conImagen(guardado, RUTA_V))).toEqual({ imagen_ruta: RUTA_V });
   });
 });

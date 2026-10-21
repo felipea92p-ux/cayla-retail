@@ -50,6 +50,32 @@ export function HeroeDelInicio({
       </Link>
     );
   const vestido = hero.tipo === "campana" && diseno?.donde.portada ? diseno : null;
+  // Campaña con imagen propia: la portada ES la imagen (el texto de la campaña va dentro de ella) y encima, abajo a la izquierda, los botones.
+  // En el celular, la versión vertical si el líder la subió; si no, la horizontal recortada al centro.
+  if (hero.tipo === "campana" && vestido?.imagen) {
+    return (
+      <section className="t-hero t-hero-imagen" data-campana={vestido.plantilla} data-entrada={vestido.movimiento.entrada} style={variablesDelDiseno(vestido)}>
+        <picture>
+          {vestido.imagen.vertical && <source media="(max-width: 700px)" srcSet={vestido.imagen.vertical} />}
+          {/* eslint-disable-next-line @next/next/no-img-element -- el banner de la campaña ya viene reducido por el ERP (300 KB o menos) y se sirve desde el almacén público */}
+          <img className="t-hero-img" src={vestido.imagen.horizontal} alt={hero.campana.nombre} fetchPriority="high" decoding="async" />
+        </picture>
+        {!enEspera && <EfectoDeCampana efecto={vestido.movimiento.efecto} intensidad={vestido.movimiento.intensidad} duracion={vestido.movimiento.duracion} />}
+        {/* La cuenta regresiva arriba a la derecha: abajo a la izquierda está el espacio que el texto de la imagen deja libre para los botones. */}
+        {hero.campana.hasta && vestido.movimiento.cuenta !== "no" && !enEspera && (
+          <div className="t-hero-img-cuenta">
+            <CuentaRegresiva hasta={hero.campana.hasta} soloElUltimoDia={vestido.movimiento.cuenta === "ultimo"} />
+          </div>
+        )}
+        <div className="t-hero-img-acciones">
+          <div className="t-hero-acciones">
+            {boton("t-btn t-btn-claro", verCampana, "Ver la campaña")}
+            {(verNuevo || enEspera) && boton("t-btn t-btn-vidrio", verNuevo, "Lo nuevo")}
+          </div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section
       className={`t-hero t-hero-inicio${hero.tipo === "campana" ? "" : " sin-campana"}`}

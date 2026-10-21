@@ -1176,17 +1176,23 @@ export const GUIA_CAMPANAS_EDITOR: Guia = {
       texto: "Aquí decides cómo se ve la tienda online mientras dura esta campaña: su ambiente y sus colores. El descuento, las fechas y las prendas no se cambian aquí: salen de Etiquetas. Es una demo: no se guarda nada.",
     },
     {
+      id: "modo",
+      ancla: "campana-editor.modo",
+      titulo: "Ambiente o tu propia imagen",
+      texto: "Hay dos caminos: un ambiente del catálogo (ya viene con colores, letras y movimiento) o tu propia imagen, un banner que ya trae el texto de la campaña y encima del cual la tienda pone «Ver la campaña» y «Lo nuevo».",
+    },
+    {
       id: "ambiente",
       ancla: "campana-editor.ambiente",
-      titulo: "Elige un ambiente",
-      texto: "Cada ambiente es un diseño ya probado, con sus colores, sus letras y su movimiento: Aniversario, Black Week, Navidad, Día del Gato… Tú no escribes nada; solo eliges el que va con la campaña.",
+      titulo: "Elige el ambiente o sube la imagen",
+      texto: "Con un ambiente: Aniversario, Black Week, Navidad, Día del Gato… tú no escribes nada, solo eliges el que va con la campaña. Con tu imagen: subes una para el computador y, si quieres, otra vertical para el celular; sin la vertical, se recorta la del computador al centro. Se reducen solas a 300 KB o menos.",
     },
     {
       id: "colores",
       ancla: "campana-editor.colores",
       opcional: true,
       titulo: "Ajusta los colores",
-      texto: "Cada ambiente trae tres paletas. Si ninguna te gusta, puedes ponerle tu propio color de acento al botón y a la palabra de color.",
+      texto: "Cada ambiente trae tres paletas; si ninguna te gusta, ponle tu propio color de acento. Con tu imagen solo eliges el color del botón «Ver la campaña»: lo demás sale de la foto.",
     },
     {
       id: "movimiento",

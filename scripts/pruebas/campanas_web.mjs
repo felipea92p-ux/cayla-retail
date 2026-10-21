@@ -485,6 +485,58 @@ function main() {
     console.log("  (omitido: se prueba con APLICAR_ANTES=…)");
   }
 
+  // ---------------------------------------------------------------- 7. El almacén de las imágenes (20261021181000)
+  console.log("\n— Almacén de imágenes —");
+  const MIGRACION_IMAGENES = readFileSync("supabase/migrations/20261021181000_campanas_web_imagenes.sql", "utf8");
+  const hayStorage = correr("select to_regclass('storage.objects') is not null;");
+  if (hayStorage.salida !== "t") {
+    console.log("  (omitido: este Postgres no tiene Storage)");
+  } else {
+    const COMO_AUTENTICADA = `set local role authenticated;\n`;
+    const SUBIR = (nombre) => `insert into storage.objects (bucket_id, name) values ('retail-campanas', '${nombre}');\n`;
+    const RUTA = "campanas/0a1b2c3d-0000-4000-8000-000000000001/0a1b2c3d-0000-4000-8000-000000000002.webp";
+    esperarValor(
+      "el almacén existe, se ve sin llaves, pesa a lo más 1 MB y solo acepta JPG y WebP",
+      correr(`${EN_LA_BASE}${MIGRACION_IMAGENES}
+        select concat_ws('|', public, file_size_limit, (select string_agg(m, ',' order by m) from unnest(allowed_mime_types) m)) from storage.buckets where id = 'retail-campanas';
+        rollback;`),
+      "t|1048576|image/jpeg,image/webp",
+    );
+    esperarValor(
+      "quien tiene el módulo (el líder) puede subir una imagen",
+      correr(`${EN_LA_BASE}${MIGRACION_IMAGENES}set local request.jwt.claim.sub = '${FELIPE}';\n${COMO_AUTENTICADA}${SUBIR(RUTA)}reset role;
+        select count(*) from storage.objects where bucket_id = 'retail-campanas';
+        rollback;`),
+      "1",
+    );
+    esperarError(
+      "quien no tiene el módulo (la integrante) no puede subir",
+      correr(`${EN_LA_BASE}${MIGRACION_IMAGENES}${COMO_MICAELA}${COMO_AUTENTICADA}${SUBIR(RUTA)}rollback;`),
+      "row-level security",
+    );
+    esperarValor(
+      "al darle el módulo a su rol, la integrante sí puede subir",
+      correr(`${EN_LA_BASE}${MIGRACION_IMAGENES}${MODULO_A_INTEGRANTE}${COMO_MICAELA}${COMO_AUTENTICADA}${SUBIR(RUTA)}reset role;
+        select count(*) from storage.objects where bucket_id = 'retail-campanas';
+        rollback;`),
+      "1",
+    );
+    esperarValor(
+      "solo se sube: el almacén no tiene política de borrar ni de cambiar lo subido desde el ERP",
+      correr(`${EN_LA_BASE}${MIGRACION_IMAGENES}
+        select string_agg(cmd, ',' order by cmd) from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname like 'retail_campanas%';
+        rollback;`),
+      "INSERT",
+    );
+    esperarValor(
+      "la migración se puede volver a pegar sin duplicar la política",
+      correr(`${EN_LA_BASE}${MIGRACION_IMAGENES}${MIGRACION_IMAGENES}
+        select count(*) from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'retail_campanas_insert';
+        rollback;`),
+      "1",
+    );
+  }
+
   console.log(`\n${total - fallos}/${total} escenarios en verde.`);
   if (fallos > 0) process.exit(1);
 }

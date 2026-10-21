@@ -39,3 +39,22 @@ a.t-campana[data-campana]:hover, .t-campana[data-campana][aria-current="true"] {
 
 /* La línea debajo del titular (texto del diseño, opcional): entre el titular y el descuento. */
 .t-hero[data-campana] .t-hero-baj { margin: 20px 0 0; max-width: 34ch; font-size: 17px; line-height: 1.5; color: var(--cmp-texto); }
+
+/* La portada con imagen propia (modo «Mi propia imagen»): la imagen llena la portada y los botones van encima, abajo a la izquierda. El texto de la
+   campaña va dentro de la imagen. En el celular se pide 4:5: la versión vertical si el líder la subió; si no, la horizontal recortada al centro. */
+.t-hero.t-hero-imagen { position: relative; isolation: isolate; display: block; overflow: hidden; padding: 0; min-height: 0; aspect-ratio: 2.5 / 1; background: var(--cmp-fondo); }
+.t-hero-imagen picture, .t-hero-imagen .t-hero-img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.t-hero-imagen .t-hero-img { object-fit: cover; object-position: center; }
+.t-hero-imagen::after { content: ""; position: absolute; inset: auto 0 0 0; height: 55%; z-index: 1; pointer-events: none; background: linear-gradient(to top, color-mix(in srgb, var(--cmp-fondo) 70%, transparent), transparent); }
+.t-hero-img-acciones { position: absolute; z-index: 5; left: clamp(20px, 4vw, 56px); bottom: clamp(16px, 3vw, 40px); }
+.t-hero-img-cuenta { position: absolute; z-index: 5; top: clamp(14px, 2.5vw, 32px); right: clamp(16px, 3vw, 40px); }
+.t-hero-imagen .t-cuenta { background: color-mix(in srgb, var(--cmp-fondo) 55%, transparent); }
+.t-hero-imagen .t-btn-vidrio { background: color-mix(in srgb, var(--cmp-fondo) 45%, transparent); border: 1px solid color-mix(in srgb, var(--cmp-texto) 75%, transparent); color: var(--cmp-texto); backdrop-filter: blur(6px); }
+@media (hover: hover) {
+  .t-hero-imagen .t-btn-vidrio:hover:not(:disabled) { background: var(--cmp-texto); color: var(--cmp-fondo); }
+}
+@media (max-width: 700px) {
+  .t-hero.t-hero-imagen { aspect-ratio: 4 / 5; }
+  .t-hero-img-acciones { right: 20px; }
+  .t-hero-img-cuenta { right: 14px; }
+}

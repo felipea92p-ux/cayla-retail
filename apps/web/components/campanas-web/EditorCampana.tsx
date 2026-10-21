@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Ban, Bubbles, Check, Heart, Leaf, PartyPopper, PawPrint, RotateCcw, Sparkles, Star, createLucideIcon, type LucideIcon } from "lucide-react";
+import { useId, useRef, useState } from "react";
+import { Ban, Bubbles, Check, Heart, Image as IconoImagen, Leaf, PartyPopper, PawPrint, RotateCcw, Sparkles, Star, createLucideIcon, type LucideIcon } from "lucide-react";
 import {
   AMBIENTES_CAMPANA,
   CUENTAS_CAMPANA,
@@ -14,10 +14,12 @@ import {
   NOMBRE_DE_DURACION,
   NOMBRE_DE_EFECTO,
   NOMBRE_DE_INTENSIDAD,
+  IMAGEN_CAMPANA,
   esColorHex,
   limpiarTextoDeCampana,
   type AmbienteCampana,
   type EfectoCampana,
+  type TipoDeImagenDeCampana,
 } from "@cayla-retail/shared";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -26,7 +28,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto, Interruptor } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
-import { PreviewCampana, type PiezaDeVista } from "./PreviewCampana";
+import { PreviewCampana, type ImagenesDeVista, type PiezaDeVista } from "./PreviewCampana";
 import { createClient } from "@/lib/supabase/client";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
@@ -38,11 +40,15 @@ import {
   conAcento,
   conAmbiente,
   conDonde,
+  conImagen,
+  conImagenVertical,
+  conModo,
   conMovimiento,
   TOPES_TEXTO,
   conPaleta,
   conTexto,
   errorDeCampanas,
+  hayDiseno,
   hayDonde,
   leerFichaCampana,
   lecturaDelBorrador,
@@ -52,6 +58,7 @@ import {
 } from "@/lib/campanas-web-editor";
 import { camposDeDiseno } from "@/lib/campanas-web-guia";
 import { sugerirTextos } from "@/lib/sugerencias-campanas-web";
+import { direccionDeImagenDeCampana, prepararImagenDeCampana, subirImagenDeCampana } from "@/lib/imagen-de-campana";
 
 type Paso = "ambiente" | "colores" | "movimiento" | "textos" | "donde";
 
@@ -77,16 +84,16 @@ const CORTO_ENTRADA = { telon: "Telón", caen: "Prendas caen", aparece: "Aparece
 /** Las cinco piezas de la tienda que el diseño puede vestir, en palabras de tienda. */
 const PIEZAS: Record<(typeof PIEZAS_DONDE)[number], { titulo: string; ayuda: string }> = {
   franja: { titulo: "La franja de arriba", ayuda: "Una frase con el nombre, el % y la fecha" },
-  portada: { titulo: "La portada", ayuda: "La cabecera grande con el titular y los botones" },
+  portada: { titulo: "La portada", ayuda: "La cabecera grande con el titular y los botones (con imagen propia, tu imagen con los botones encima)" },
   catalogo: { titulo: "Una banda en el catálogo", ayuda: "Una tarjeta con el nombre de la campaña sobre las prendas" },
   sello: { titulo: "El sello en cada prenda", ayuda: "El descuento sobre la foto y el precio rebajado" },
   bolsa: { titulo: "La línea en la bolsa", ayuda: "Dice de qué campaña es el descuento" },
 };
 
 /**
- * Tienda web ▸ Campañas ▸ el editor de diseño de una campaña (maqueta docs/maquetas/campanas-tienda-2026-10, pantalla 2). Esta entrega: elegir
- * el ambiente y los colores, ver cómo queda la portada y guardar el borrador. Movimiento, textos, imagen propia y «dónde se ve» llegan en las
- * actividades que siguen. Guardar firma el «Responsable» (ADR-0162); si otra persona cambió la campaña mientras estaba abierta, la base lo dice
+ * Tienda web ▸ Campañas ▸ el editor de diseño de una campaña (maqueta docs/maquetas/campanas-tienda-2026-10, pantalla 2). Dos modos: un ambiente del
+ * catálogo (con sus colores, movimiento, textos) o una imagen propia (con el color de su botón, el movimiento y dónde se ve), la vista previa viva y
+ * guardar el borrador. Guardar firma el «Responsable» (ADR-0162); si otra persona cambió la campaña mientras estaba abierta, la base lo dice
  * y no pisa nada. Un borrador no se ve en la tienda: eso lo decide programar.
  */
 export function EditorCampana({ ficha }: { ficha: FichaCampana }) {
@@ -104,17 +111,52 @@ export function EditorCampana({ ficha }: { ficha: FichaCampana }) {
   const [quieto, setQuieto] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState<string | null>(null);
+  // Las direcciones con que se ve cada imagen ya subida (la ruta es lo que se guarda; la dirección, lo que dibuja la vista previa).
+  const [direcciones, setDirecciones] = useState<Record<string, string>>({});
+  const [subiendo, setSubiendo] = useState<TipoDeImagenDeCampana | null>(null);
+  const [errorImagen, setErrorImagen] = useState<string | null>(null);
+  const [avisoImagen, setAvisoImagen] = useState<string | null>(null);
   // Un doble clic no manda dos veces: el estado de React llega tarde dentro de un mismo clic.
   const enVuelo = useRef(false);
 
   const guia = useGuiaCampos(camposDeDiseno(borrador, { responsableListo: responsable.listo, responsableMotivo: responsable.motivo }), { enModal: false });
-  const parche = parcheDeCambios(guardado.plantilla ? guardado : null, borrador);
+  const parche = parcheDeCambios(version === null ? null : guardado, borrador);
+  const hay = hayDiseno(borrador);
+  const modoImagen = borrador.modo === "imagen";
   // Los ejemplos de las cajas de texto siguen al ambiente elegido (ADR-0290).
   const ejemplos = sugerirTextos(borrador.plantilla);
   const colores = coloresDelBorrador(borrador);
   const lectura = lecturaDelBorrador(borrador);
   const ambiente = AMBIENTES_CAMPANA.find((a) => a.clave === borrador.plantilla) ?? null;
   const puedeGuardar = !terminada && parche !== null && guia.puedeConfirmar;
+
+  /** La dirección con que se ve una imagen: la que quedó al subirla o, si viene guardada de antes, la pública de su ruta. */
+  const direccionDe = (ruta: string | null): string | null => (ruta ? (direcciones[ruta] ?? direccionDeImagenDeCampana(createClient(), ruta)) : null);
+  const imagenes: ImagenesDeVista | null = modoImagen && borrador.imagen ? { horizontal: direccionDe(borrador.imagen) ?? "", vertical: direccionDe(borrador.imagenVertical) } : null;
+
+  /** Reduce la imagen elegida, la sube al almacén y la deja en el borrador (la horizontal es la que manda; la vertical es opcional). */
+  async function elegirImagen(tipo: TipoDeImagenDeCampana, archivo: File | undefined) {
+    if (!archivo || subiendo) return;
+    setSubiendo(tipo);
+    setErrorImagen(null);
+    setAvisoImagen(null);
+    const lista = await prepararImagenDeCampana(archivo, tipo);
+    if ("error" in lista) {
+      setSubiendo(null);
+      setErrorImagen(lista.error);
+      return;
+    }
+    const subida = await subirImagenDeCampana(createClient(), ficha.campana.id, lista.archivo);
+    setSubiendo(null);
+    if ("error" in subida) {
+      setErrorImagen(subida.error);
+      return;
+    }
+    setDirecciones((d) => ({ ...d, [subida.ruta]: subida.url }));
+    setAvisoImagen(lista.aviso);
+    setBorrador((b) => (tipo === "horizontal" ? conImagen(b, subida.ruta) : conImagenVertical(b, subida.ruta)));
+    if (tipo === "horizontal") setPaso("colores");
+  }
 
   function elegirAmbiente(clave: AmbienteCampana) {
     setBorrador((b) => conAmbiente(b, clave));
@@ -164,13 +206,37 @@ export function EditorCampana({ ficha }: { ficha: FichaCampana }) {
           <PasoDelEditor
             numero={1}
             titulo="Ambiente"
-            resumen={ambiente ? ambiente.nombre : "Elige cómo se va a sentir la tienda"}
-            hecho={borrador.plantilla !== null}
+            resumen={modoImagen ? (borrador.imagen ? `Mi imagen${borrador.imagenVertical ? " + versión para celular" : ""}` : "Sube tu imagen") : ambiente ? ambiente.nombre : "Elige cómo se va a sentir la tienda"}
+            hecho={hay}
             abierto={paso === "ambiente"}
             onAbrir={() => setPaso("ambiente")}
             guia="campana-editor.ambiente"
           >
-            <CampoGuiado id="ambiente" guia={guia}>
+            <div className="mb-3 grid gap-2 sm:grid-cols-2" role="group" aria-label="Cómo se verá la campaña" data-guia="campana-editor.modo">
+              {([["ambiente", Sparkles, "Un ambiente del catálogo", "Colores, letras y movimiento ya probados"], ["imagen", IconoImagen, "Mi propia imagen", "Subes un banner y encima van los botones"]] as const).map(([modo, Icono, nombre, ayuda]) => (
+                // unificar-fijo: tarjeta de opción con ícono para elegir entre dos modos de diseño (Felipe 2026-10-21); ninguna pieza del sistema elige entre modos con su explicación.
+                <button
+                  key={modo}
+                  type="button"
+                  aria-pressed={borrador.modo === modo}
+                  disabled={terminada || guardando}
+                  onClick={() => {
+                    setBorrador((b) => conModo(b, modo));
+                    setErrorGuardar(null);
+                  }}
+                  className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-colors ${borrador.modo === modo ? "border-tinta bg-papel shadow-[0_0_0_1px_var(--color-tinta)]" : "border-sand bg-crema hover:bg-hueso"}`}
+                >
+                  <Icono className="h-4 w-4 shrink-0" aria-hidden />
+                  <span className="min-w-0">
+                    <b className="block text-[13px] font-semibold">{nombre}</b>
+                    <small className="block text-[11.5px] leading-snug text-tinta/65">{ayuda}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+            {!modoImagen && (
+              <>
+                <CampoGuiado id="ambiente" guia={guia}>
               <div className="grid gap-2 sm:grid-cols-2" role="group" aria-label="Ambiente de la campaña">
                 {AMBIENTES_CAMPANA.map((a) => {
                   const p = a.paletas[0];
@@ -196,24 +262,92 @@ export function EditorCampana({ ficha }: { ficha: FichaCampana }) {
                 })}
               </div>
             </CampoGuiado>
-            <p className="nota-cayla mt-3">
+                <p className="nota-cayla mt-3">
               Cada ambiente es un diseño ya probado: sus colores, sus letras y su movimiento. Tú eliges y ajustas; no se escribe código. ¿Falta uno? Se
               pide y lo agrega el equipo.
             </p>
+              </>
+            )}
+            {modoImagen && (
+              <CampoGuiado id="ambiente" guia={guia}>
+                <div className="space-y-4">
+                  <SubidaDeImagen
+                    tipo="horizontal"
+                    titulo="Imagen para computador"
+                    ruta={borrador.imagen}
+                    direccion={direccionDe(borrador.imagen)}
+                    subiendo={subiendo === "horizontal"}
+                    deshabilitado={terminada || guardando || subiendo !== null}
+                    onArchivo={(f) => void elegirImagen("horizontal", f)}
+                    onQuitar={() => setBorrador((b) => conImagen(b, null))}
+                  />
+                  {borrador.imagen && (
+                    <SubidaDeImagen
+                      tipo="vertical"
+                      titulo="Versión para celular"
+                      opcional
+                      ruta={borrador.imagenVertical}
+                      direccion={direccionDe(borrador.imagenVertical)}
+                      subiendo={subiendo === "vertical"}
+                      deshabilitado={terminada || guardando || subiendo !== null}
+                      onArchivo={(f) => void elegirImagen("vertical", f)}
+                      onQuitar={() => setBorrador((b) => conImagenVertical(b, null))}
+                    />
+                  )}
+                  {errorImagen && (
+                    <Aviso tono="error" titulo="No se pudo usar la imagen" chico>
+                      {errorImagen}
+                    </Aviso>
+                  )}
+                  {avisoImagen && !errorImagen && (
+                    <Aviso tono="atencion" chico>
+                      {avisoImagen}
+                    </Aviso>
+                  )}
+                  <p className="nota-cayla">
+                    El texto de la campaña va dentro de tu imagen. Deja libre la parte de abajo a la izquierda: ahí se ponen «Ver la campaña» y «Lo nuevo». El descuento lo pone el
+                    sello de cada prenda. Sin versión para celular, se recorta la imagen del computador al centro.
+                  </p>
+                </div>
+              </CampoGuiado>
+            )}
           </PasoDelEditor>
 
           <PasoDelEditor
             numero={2}
-            titulo="Colores"
-            resumen={!ambiente ? "Primero elige el ambiente" : borrador.acento ? `Color propio ${borrador.acento}` : ambiente.paletas[borrador.paleta]?.nombre ?? ""}
-            hecho={borrador.plantilla !== null && lectura.ok}
-            falta={borrador.plantilla !== null && !lectura.ok}
-            bloqueado={!ambiente}
-            abierto={paso === "colores" && !!ambiente}
+            titulo={modoImagen ? "Color del botón" : "Colores"}
+            resumen={!hay ? (modoImagen ? "Primero sube la imagen" : "Primero elige el ambiente") : modoImagen ? `Botón ${colores?.acento ?? ""}` : borrador.acento ? `Color propio ${borrador.acento}` : ambiente?.paletas[borrador.paleta]?.nombre ?? ""}
+            hecho={hay && lectura.ok}
+            falta={hay && !lectura.ok}
+            bloqueado={!hay}
+            abierto={paso === "colores" && hay}
             onAbrir={() => setPaso("colores")}
             guia="campana-editor.colores"
           >
-            {ambiente && (
+            {modoImagen && hay && (
+              <div className="space-y-4">
+                <CampoGuiado id="colores" guia={guia} titulo="Color de los botones" ayuda="Cambia «Ver la campaña»">
+                  <AcentoPropio valor={colores?.acento ?? ""} propio={borrador.acento !== null} deshabilitado={terminada || guardando} onCambio={(hex) => setBorrador((b) => conAcento(b, hex))} />
+                </CampoGuiado>
+                <div data-guia="campana-editor.lectura">
+                  <p className="campo-etiqueta">¿Se lee bien?</p>
+                  <ul className="mt-2 space-y-1.5 text-[13px]">
+                    {lectura.items.map((x) => (
+                      <li key={x.nombre} className="flex items-center gap-2">
+                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${x.ok ? "bg-verde/15 text-verde" : "bg-rojo/10 text-rojo-profundo"}`} aria-hidden>
+                          {x.ok ? <Check className="h-3 w-3" /> : "!"}
+                        </span>
+                        <span className="min-w-0 flex-1">{x.nombre}</span>
+                        <b className="tabular-nums">{x.ratio.toFixed(1)} : 1</b>
+                        <span className="sr-only">{x.ok ? "se lee bien" : `no se lee: pide al menos ${x.minimo} : 1`}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="nota-cayla mt-3">Los demás colores salen de tu imagen: aquí solo eliges el del botón. «Lo nuevo» va en vidrio oscuro para que se lea sobre cualquier foto.</p>
+                </div>
+              </div>
+            )}
+            {!modoImagen && ambiente && (
               <div className="space-y-4">
                 <CampoGuiado id="colores" guia={guia} titulo="Paleta del ambiente">
                   <div className="space-y-2" role="group" aria-label="Paleta del ambiente">
@@ -275,14 +409,14 @@ export function EditorCampana({ ficha }: { ficha: FichaCampana }) {
           <PasoDelEditor
             numero={3}
             titulo="Movimiento"
-            resumen={!ambiente ? "Primero elige el ambiente" : resumenDelMovimiento(borrador)}
-            hecho={borrador.plantilla !== null}
-            bloqueado={!ambiente}
-            abierto={paso === "movimiento" && !!ambiente}
+            resumen={!hay ? (modoImagen ? "Primero sube la imagen" : "Primero elige el ambiente") : resumenDelMovimiento(borrador)}
+            hecho={hay}
+            bloqueado={!hay}
+            abierto={paso === "movimiento" && hay}
             onAbrir={() => setPaso("movimiento")}
             guia="campana-editor.movimiento"
           >
-            {ambiente && (
+            {hay && (
               <div className="space-y-4">
                 <CampoGuiado id="movimiento" guia={guia} titulo="Franja de arriba" ayuda="Opcional · nace con el movimiento de su ambiente">
                   <SegmentoDeslizante
@@ -377,66 +511,68 @@ export function EditorCampana({ ficha }: { ficha: FichaCampana }) {
             )}
           </PasoDelEditor>
 
-          <PasoDelEditor
-            numero={4}
-            titulo="Textos"
-            resumen={!ambiente ? "Primero elige el ambiente" : resumenDeLosTextos(borrador, ficha.campana.nombre)}
-            hecho={borrador.plantilla !== null}
-            bloqueado={!ambiente}
-            abierto={paso === "textos" && !!ambiente}
-            onAbrir={() => setPaso("textos")}
-            guia="campana-editor.textos"
-          >
-            {ambiente && (
-              <CampoGuiado id="textos" guia={guia}>
-                <div className="space-y-3">
-                  <CampoTexto
-                    etiqueta={<>Titular <Opcional /></>}
-                    pie={`${borrador.titular.length}/${TOPES_TEXTO.titular} · Vacío: usa «${ficha.campana.nombre}»`}
-                    value={borrador.titular}
-                    maxLength={TOPES_TEXTO.titular}
-                    placeholder={`Ej. ${ejemplos.titular}`}
-                    disabled={terminada || guardando}
-                    onChange={(e) => setBorrador((b) => conTexto(b, "titular", e.target.value))}
-                  />
-                  <CampoTexto
-                    etiqueta={<>Una línea debajo <Opcional /></>}
-                    pie={`${borrador.bajada.length}/${TOPES_TEXTO.bajada}`}
-                    value={borrador.bajada}
-                    maxLength={TOPES_TEXTO.bajada}
-                    placeholder={`Ej. ${ejemplos.bajada}`}
-                    disabled={terminada || guardando}
-                    onChange={(e) => setBorrador((b) => conTexto(b, "bajada", e.target.value))}
-                  />
-                  <CampoTexto
-                    etiqueta={<>Texto del botón <Opcional /></>}
-                    pie={`${borrador.boton.length}/${TOPES_TEXTO.boton} · Vacío: dice «Ver la campaña»`}
-                    value={borrador.boton}
-                    maxLength={TOPES_TEXTO.boton}
-                    placeholder={`Ej. ${ejemplos.boton}`}
-                    disabled={terminada || guardando}
-                    onChange={(e) => setBorrador((b) => conTexto(b, "boton", e.target.value))}
-                  />
-                  <p className="nota-cayla">
-                    El descuento y las fechas no se escriben aquí: salen de la campaña en Etiquetas, para que la tienda nunca diga un precio distinto al de la caja.
-                  </p>
-                </div>
-              </CampoGuiado>
-            )}
-          </PasoDelEditor>
+          {!modoImagen && (
+            <PasoDelEditor
+              numero={4}
+              titulo="Textos"
+              resumen={!hay ? "Primero elige el ambiente" : resumenDeLosTextos(borrador, ficha.campana.nombre)}
+              hecho={hay}
+              bloqueado={!hay}
+              abierto={paso === "textos" && hay}
+              onAbrir={() => setPaso("textos")}
+              guia="campana-editor.textos"
+            >
+              {hay && (
+                <CampoGuiado id="textos" guia={guia}>
+                  <div className="space-y-3">
+                    <CampoTexto
+                      etiqueta={<>Titular <Opcional /></>}
+                      pie={`${borrador.titular.length}/${TOPES_TEXTO.titular} · Vacío: usa «${ficha.campana.nombre}»`}
+                      value={borrador.titular}
+                      maxLength={TOPES_TEXTO.titular}
+                      placeholder={`Ej. ${ejemplos.titular}`}
+                      disabled={terminada || guardando}
+                      onChange={(e) => setBorrador((b) => conTexto(b, "titular", e.target.value))}
+                    />
+                    <CampoTexto
+                      etiqueta={<>Una línea debajo <Opcional /></>}
+                      pie={`${borrador.bajada.length}/${TOPES_TEXTO.bajada}`}
+                      value={borrador.bajada}
+                      maxLength={TOPES_TEXTO.bajada}
+                      placeholder={`Ej. ${ejemplos.bajada}`}
+                      disabled={terminada || guardando}
+                      onChange={(e) => setBorrador((b) => conTexto(b, "bajada", e.target.value))}
+                    />
+                    <CampoTexto
+                      etiqueta={<>Texto del botón <Opcional /></>}
+                      pie={`${borrador.boton.length}/${TOPES_TEXTO.boton} · Vacío: dice «Ver la campaña»`}
+                      value={borrador.boton}
+                      maxLength={TOPES_TEXTO.boton}
+                      placeholder={`Ej. ${ejemplos.boton}`}
+                      disabled={terminada || guardando}
+                      onChange={(e) => setBorrador((b) => conTexto(b, "boton", e.target.value))}
+                    />
+                    <p className="nota-cayla">
+                      El descuento y las fechas no se escriben aquí: salen de la campaña en Etiquetas, para que la tienda nunca diga un precio distinto al de la caja.
+                    </p>
+                  </div>
+                </CampoGuiado>
+              )}
+            </PasoDelEditor>
+          )}
 
           <PasoDelEditor
-            numero={5}
+            numero={modoImagen ? 4 : 5}
             titulo="Dónde se ve"
-            resumen={!ambiente ? "Primero elige el ambiente" : `${PIEZAS_DONDE.filter((k) => borrador.donde[k]).length} de ${PIEZAS_DONDE.length} piezas`}
-            hecho={borrador.plantilla !== null && hayDonde(borrador)}
-            falta={borrador.plantilla !== null && !hayDonde(borrador)}
-            bloqueado={!ambiente}
-            abierto={paso === "donde" && !!ambiente}
+            resumen={!hay ? (modoImagen ? "Primero sube la imagen" : "Primero elige el ambiente") : `${PIEZAS_DONDE.filter((k) => borrador.donde[k]).length} de ${PIEZAS_DONDE.length} piezas`}
+            hecho={hay && hayDonde(borrador)}
+            falta={hay && !hayDonde(borrador)}
+            bloqueado={!hay}
+            abierto={paso === "donde" && hay}
             onAbrir={() => setPaso("donde")}
             guia="campana-editor.donde"
           >
-            {ambiente && (
+            {hay && (
               <CampoGuiado id="donde" guia={guia}>
                 <div className="space-y-3">
                   {PIEZAS_DONDE.map((k) => (
@@ -496,6 +632,7 @@ export function EditorCampana({ ficha }: { ficha: FichaCampana }) {
               pieza={pieza}
               movimiento={{ franja: borrador.franja, entrada: borrador.entrada, efecto: borrador.efecto, intensidad: borrador.intensidad, duracion: borrador.duracion, cuenta: borrador.cuenta }}
               donde={borrador.donde}
+              imagenes={imagenes}
               quieto={quieto}
               textos={{
                 titular: limpiarTextoDeCampana(borrador.titular, TOPES_TEXTO.titular),
@@ -651,4 +788,68 @@ function resumenDeLosTextos(b: BorradorDiseno, nombreDeLaCampana: string): strin
 /** «· opcional» tenue junto al título de un campo (la forma de `Campo`: «Titular · opcional»). */
 function Opcional() {
   return <span className="font-normal normal-case tracking-normal text-tinta/65">· opcional</span>;
+}
+
+/** Subir una imagen de campaña: el recuadro para elegirla, su miniatura ya subida y «Cambiar» / «Quitar». Reduce y sube al elegir (la vertical es opcional). */
+function SubidaDeImagen({
+  tipo,
+  titulo,
+  opcional = false,
+  ruta,
+  direccion,
+  subiendo,
+  deshabilitado,
+  onArchivo,
+  onQuitar,
+}: {
+  tipo: TipoDeImagenDeCampana;
+  titulo: string;
+  opcional?: boolean;
+  ruta: string | null;
+  direccion: string | null;
+  subiendo: boolean;
+  deshabilitado: boolean;
+  onArchivo: (f: File | undefined) => void;
+  onQuitar: () => void;
+}) {
+  const id = useId();
+  const medida = tipo === "horizontal" ? `${IMAGEN_CAMPANA.horizontal.ancho} × ${IMAGEN_CAMPANA.horizontal.alto}` : `${IMAGEN_CAMPANA.vertical.ancho} × ${IMAGEN_CAMPANA.vertical.alto}`;
+  return (
+    <div className="space-y-2" data-subida={tipo}>
+      <p className="campo-etiqueta">
+        {titulo} {opcional && <span className="font-normal normal-case tracking-normal text-tinta/65">· opcional</span>}
+      </p>
+      {ruta && direccion ? (
+        <div className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element -- miniatura de la imagen recién subida, sin optimizador */}
+          <img src={direccion} alt="" className={`rounded-lg border border-sand object-cover ${tipo === "horizontal" ? "h-14 w-36" : "h-20 w-16"}`} />
+          <div className="flex flex-wrap gap-2">
+            <label htmlFor={id} className={`btn-cayla btn-secundario btn-chico ${deshabilitado ? "pointer-events-none opacity-50" : "cursor-pointer"}`}>
+              {subiendo ? "Subiendo…" : "Cambiar"}
+            </label>
+            <button type="button" className="btn-cayla btn-enlace" onClick={onQuitar} disabled={deshabilitado}>
+              Quitar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <label htmlFor={id} className={`flex flex-col items-center gap-1 rounded-xl border border-dashed border-taupe bg-hueso px-4 py-5 text-center text-[13px] ${deshabilitado ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>
+          <IconoImagen className="h-4 w-4" aria-hidden />
+          <b>{subiendo ? "Subiendo…" : "Sube tu imagen"}</b>
+          <small className="max-w-[40ch] text-[11.5px] text-tinta/65">JPG, PNG o WebP · ideal {medida} · se reduce a 300 KB o menos al subirla.</small>
+        </label>
+      )}
+      <input
+        id={id}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="sr-only"
+        disabled={deshabilitado}
+        onChange={(e) => {
+          onArchivo(e.target.files?.[0]);
+          e.target.value = "";
+        }}
+      />
+    </div>
+  );
 }

@@ -23,6 +23,9 @@ const NB = String.fromCharCode(160);
 export type TextosDeVista = { titular: string | null; bajada: string | null; boton: string | null };
 export const SIN_TEXTOS: TextosDeVista = { titular: null, bajada: null, boton: null };
 
+/** Las imágenes de una campaña con imagen propia (direcciones públicas): la horizontal del computador y la vertical opcional del celular. */
+export type ImagenesDeVista = { horizontal: string; vertical: string | null };
+
 export type PiezaDeVista = "portada" | "catalogo" | "bolsa";
 
 /**
@@ -47,6 +50,7 @@ export function PreviewCampana({
   donde = DONDE_TODO,
   quieto = false,
   textos = SIN_TEXTOS,
+  imagenes = null,
 }: {
   colores: ColoresDeCampana | null;
   nombre: string;
@@ -58,6 +62,8 @@ export function PreviewCampana({
   donde?: Donde;
   quieto?: boolean;
   textos?: TextosDeVista;
+  /** Con imagen propia, la portada ES la imagen y los botones van encima; sin ella, la portada de un ambiente. */
+  imagenes?: ImagenesDeVista | null;
 }) {
   const sello = colores ? colorDelSello(colores) : null;
   const vars = colores
@@ -74,7 +80,8 @@ export function PreviewCampana({
         <span className="font-serif text-lg tracking-[0.3em]">CAYLA</span>
         <span className="w-6" />
       </div>
-      {pieza === "portada" && <Portada colores={colores} vestida={!!colores && donde.portada} nombre={nombre} pct={pct} hasta={hasta} celular={celular} movimiento={movimiento} textos={!!colores && donde.portada ? textos : SIN_TEXTOS} />}
+      {pieza === "portada" && imagenes && !!colores && donde.portada && <PortadaConImagen colores={colores} imagenes={imagenes} celular={celular} movimiento={movimiento} />}
+      {pieza === "portada" && !(imagenes && !!colores && donde.portada) && <Portada colores={colores} vestida={!!colores && donde.portada} nombre={nombre} pct={pct} hasta={hasta} celular={celular} movimiento={movimiento} textos={!!colores && donde.portada ? textos : SIN_TEXTOS} />}
       {pieza === "catalogo" && <Catalogo colores={colores} banda={!!colores && donde.catalogo} sello={!!colores && donde.sello ? sello : null} nombre={nombre} pct={pct} hasta={hasta} />}
       {pieza === "bolsa" && <Bolsa linea={!!colores && donde.bolsa ? sello : null} nombre={nombre} pct={pct} />}
       {pieza === "portada" && <Prendas pct={pct} sello={!!colores && donde.sello ? sello : null} />}
@@ -190,6 +197,38 @@ function Portada({
             </span>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/** La portada de una campaña con imagen propia: la imagen llena el cuadro (en el celular, la vertical si hay; si no, la horizontal recortada al centro) y
+ *  los botones «Ver la campaña» y «Lo nuevo» van encima, abajo a la izquierda, con la cuenta regresiva si se eligió. El texto de la campaña va DENTRO de la imagen. */
+function PortadaConImagen({ colores, imagenes, celular, movimiento }: { colores: ColoresDeCampana; imagenes: ImagenesDeVista; celular: boolean; movimiento: MovimientoDeVista }) {
+  const url = celular ? (imagenes.vertical ?? imagenes.horizontal) : imagenes.horizontal;
+  return (
+    <div className="relative isolate overflow-hidden bg-tinta-fija" style={{ aspectRatio: celular ? "4 / 5" : "2.5 / 1" }} data-entrada={movimiento.entrada}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- la vista previa muestra la imagen tal cual la subió el líder, sin pasar por el optimizador */}
+      <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-tinta-fija/60 to-transparent" aria-hidden />
+      <EfectoDePreview efecto={movimiento.efecto} intensidad={movimiento.intensidad} duracion={movimiento.duracion} />
+      <div className={`absolute z-[5] ${celular ? "inset-x-5 bottom-5" : "bottom-6 left-8"}`}>
+        {movimiento.cuenta === "siempre" && (
+          <div className="mb-3 flex w-fit border-y border-crema-fija/40 text-crema-fija" aria-hidden>
+            {[["04", "días"], ["11", "horas"], ["36", "min"], ["01", "seg"]].map(([n, u]) => (
+              <span key={u} className="flex min-w-12 flex-col border-l border-crema-fija/40 bg-tinta-fija/50 px-2 py-1 first:border-l-0">
+                <b className="font-serif text-lg font-normal italic leading-none">{n}</b>
+                <small className="text-[8px] uppercase tracking-[0.14em] opacity-80">{u}</small>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <span className="inline-flex h-9 items-center gap-2 px-4 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ backgroundColor: colores.acento, color: textoSobre(colores.acento) }}>
+            Ver la campaña <ArrowRight className="h-3 w-3" aria-hidden />
+          </span>
+          <span className="inline-flex h-9 items-center border border-crema-fija/75 bg-tinta-fija/45 px-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-crema-fija">Lo nuevo</span>
+        </div>
       </div>
     </div>
   );

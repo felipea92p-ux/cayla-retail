@@ -30,7 +30,7 @@ async function disenoGuardado(): Promise<unknown> {
 export const leerDisenoDeCampana = cache(async (nombre: string | null | undefined): Promise<DisenoDeLaTienda | null> => {
   if (!nombre) return null;
   try {
-    return interpretarDisenoCampana(await disenoGuardado(), nombre);
+    return interpretarDisenoCampana(await disenoGuardado(), nombre, process.env.TIENDA_FOTOS_ORIGEN);
   } catch (error) {
     console.error(JSON.stringify({ evento: "tienda_diseno_campana_fallo", mensaje: error instanceof Error ? error.message : String(error) }));
     return null;

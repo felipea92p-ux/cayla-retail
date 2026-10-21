@@ -6,3 +6,4 @@ export * from "./nombre-del-padron";
 export * from "./documento-clienta";
 export * from "./campanas-web";
 export * from "./campana-movimiento";
+export * from "./campana-imagen";

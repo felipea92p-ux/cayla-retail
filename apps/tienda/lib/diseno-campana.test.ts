@@ -41,8 +41,8 @@ describe("interpretarDisenoCampana: lo que la tienda pinta", () => {
     expect(interpretarDisenoCampana(dato(disenoOk, "Black Week"), "Aniversario CAYLA")).toBeNull();
   });
 
-  it("un diseño que no se sabe pintar es «como siempre»: imagen propia (llega después), ambiente desconocido, paleta fuera de rango", () => {
-    expect(interpretarDisenoCampana(dato({ modo: "imagen", plantilla: null, paleta: 0 }), "Aniversario CAYLA")).toBeNull();
+  it("un diseño que no se sabe pintar es «como siempre»: ambiente desconocido, paleta fuera de rango, un modo que no existe", () => {
+    expect(interpretarDisenoCampana(dato({ modo: "video", plantilla: null, paleta: 0 }), "Aniversario CAYLA")).toBeNull();
     expect(interpretarDisenoCampana(dato({ ...disenoOk, plantilla: "halloween" }), "Aniversario CAYLA")).toBeNull();
     expect(interpretarDisenoCampana(dato({ ...disenoOk, paleta: 3 }), "Aniversario CAYLA")).toBeNull();
     expect(interpretarDisenoCampana(dato({ ...disenoOk, paleta: "x" }), "Aniversario CAYLA")).toBeNull();
@@ -126,5 +126,47 @@ describe("los textos del diseño", () => {
     expect(d?.textos.titular).toBeNull();
     expect(d?.textos.bajada).toBeNull();
     expect(d?.textos.boton).toHaveLength(22);
+  });
+});
+
+describe("campaña con imagen propia", () => {
+  const ORIGEN = "https://abc.supabase.co";
+  const A = "0a1b2c3d-0000-4000-8000-000000000001";
+  const B = "0a1b2c3d-0000-4000-8000-000000000002";
+  const C = "0a1b2c3d-0000-4000-8000-000000000003";
+  const imagen = (extra: Record<string, unknown> = {}) => ({ modo: "imagen", imagen_ruta: `campanas/${A}/${B}.webp`, imagen_vertical_ruta: null, acento: null, ...extra });
+
+  it("arma la dirección pública de la imagen y se viste con el botón de fábrica; los textos van dentro de la imagen (no hay)", () => {
+    const d = interpretarDisenoCampana(dato(imagen()), "Aniversario CAYLA", ORIGEN);
+    expect(d?.plantilla).toBe("imagen");
+    expect(d?.imagen).toEqual({ horizontal: `${ORIGEN}/storage/v1/object/public/retail-campanas/campanas/${A}/${B}.webp`, vertical: null });
+    expect(d?.colores.acento).toBe("#9e1d32");
+    expect(d?.textos).toEqual({ titular: null, bajada: null, boton: null });
+    expect(ratioContraste(d!.colores.acento, d!.colores.boton)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("la versión vertical se pasa si es válida; si no sirve, se ignora y queda la horizontal", () => {
+    expect(interpretarDisenoCampana(dato(imagen({ imagen_vertical_ruta: `campanas/${A}/${C}.webp` })), "Aniversario CAYLA", ORIGEN)?.imagen?.vertical).toBe(
+      `${ORIGEN}/storage/v1/object/public/retail-campanas/campanas/${A}/${C}.webp`,
+    );
+    expect(interpretarDisenoCampana(dato(imagen({ imagen_vertical_ruta: "../secreto.webp" })), "Aniversario CAYLA", ORIGEN)?.imagen?.vertical).toBeNull();
+  });
+
+  it("el color propio del botón se respeta", () => {
+    expect(interpretarDisenoCampana(dato(imagen({ acento: "#00aa55" })), "Aniversario CAYLA", ORIGEN)?.colores.acento).toBe("#00aa55");
+  });
+
+  it("sin origen del almacén, con una ruta que no es de la tienda o sin imagen, la tienda se ve como siempre", () => {
+    expect(interpretarDisenoCampana(dato(imagen()), "Aniversario CAYLA")).toBeNull();
+    expect(interpretarDisenoCampana(dato(imagen()), "Aniversario CAYLA", "no es una dirección")).toBeNull();
+    for (const ruta of ["https://malo.com/x.webp", "campanas/../../otro.webp", "otro-almacen/x/y.webp", `campanas/${A}/${B}.svg`, "", null, 7]) {
+      expect(interpretarDisenoCampana(dato(imagen({ imagen_ruta: ruta })), "Aniversario CAYLA", ORIGEN), String(ruta)).toBeNull();
+    }
+  });
+
+  it("conserva el movimiento y dónde se ve", () => {
+    const d = interpretarDisenoCampana(dato(imagen({ efecto: "copos", cuenta: "no", donde: { portada: false } })), "Aniversario CAYLA", ORIGEN);
+    expect(d?.movimiento).toMatchObject({ efecto: "copos", cuenta: "no" });
+    expect(d?.donde.portada).toBe(false);
   });
 });
