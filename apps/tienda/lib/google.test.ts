@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { usuarioDeGoogle, type UsuarioDelProyecto } from "./google";
+import { siguienteTrasVincular, usuarioDeGoogle, type UsuarioDelProyecto } from "./google";
 
 const base: UsuarioDelProyecto = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -46,5 +46,21 @@ describe("el usuario que entró con Google", () => {
     const u = usuarioDeGoogle(largo);
     expect(u?.nombre.length).toBe(120);
     expect(u?.nombre.startsWith("Ana x")).toBe(true);
+  });
+});
+
+describe("qué sigue cuando la base dijo si el correo de Google era de una ficha (ADR-0469)", () => {
+  it("unida a su ficha, o con la cuenta que ya tenía: se termina de entrar", () => {
+    expect(siguienteTrasVincular("vinculada")).toBe("listo");
+    expect(siguienteTrasVincular("ya_tiene_cuenta")).toBe("listo");
+  });
+
+  it("hay una ficha con ese correo pero no se puede unir sola: se rechaza, sin crear otra cuenta encima", () => {
+    expect(siguienteTrasVincular("no_coincide")).toBe("rechazar");
+  });
+
+  it("el correo no es de ninguna ficha, o la base no contestó (aún sin la función): sigue el registro de siempre", () => {
+    expect(siguienteTrasVincular("no_aplica")).toBe("registrar");
+    expect(siguienteTrasVincular("sin_respuesta")).toBe("registrar");
   });
 });

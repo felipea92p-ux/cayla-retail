@@ -215,6 +215,13 @@ export const GUIA_AVISOS_CLUB: Guia = {
       texto: "Cada día el sistema arma la lista de mensajes por mandar a los miembros del club: su regalo de cumpleaños, sus puntos por vencer, una novedad. Tú los envías uno a uno desde el WhatsApp de la tienda. Es una demo: no se envía nada.",
     },
     {
+      id: "vinculos",
+      ancla: "avisos.vinculos",
+      opcional: true,
+      titulo: "Cuentas de Google unidas",
+      texto: "Si alguien que ya está en CAYLA entra a la tienda online con Google, su cuenta se une a su ficha. Aquí le avisas a la dueña por WhatsApp. Si no fue ella, un líder puede deshacer la unión. En la demo no tocamos nada.",
+    },
+    {
       id: "avance",
       ancla: "avisos.avance",
       opcional: true,

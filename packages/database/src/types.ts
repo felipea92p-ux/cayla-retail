@@ -6117,6 +6117,32 @@ export type Database = {
         Args: { p_id: string }
         Returns: undefined
       }
+      /** Módulo «Avisos del club»: las cuentas de Google unidas a una ficha en los últimos 60 días y todavía abiertas, las que
+       *  faltan avisar primero (ADR-0469, 20261021170000). aviso_estado: pendiente, enviado o sin_celular. */
+      fn_vinculos_google_recientes: {
+        Args: never
+        Returns: {
+          id: string
+          clienta_id: string
+          nombre: string
+          telefono: string | null
+          nombre_google: string
+          correo: string
+          creado_en: string
+          aviso_estado: string
+          avisado_en: string | null
+        }[]
+      }
+      /** Módulo «Avisos del club»; firma con el responsable. Repetido no hace nada. Hints: vinculo_no_existe, vinculo_deshecho. */
+      registrar_vinculo_google_avisado: {
+        Args: { p_id: string; p_ubicacion_id: string }
+        Returns: undefined
+      }
+      /** Solo el líder; firma con su cuenta. Cierra la cuenta web y deja la ficha intacta. Hints: solo_lider, vinculo_no_existe. */
+      desvincular_cuenta_google: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       /** Solo el líder. p_escala = [{ "anio": 1, "monto": 20 }, …] (los cinco años, como la devuelve fn_club_pagina; montos que
        *  no bajan). Si cambia algo, publica una versión nueva de `terminos`. Hints: solo_lider, beneficios_invalidos
        *  (detail = el campo), terminos_no_reconocidos. */

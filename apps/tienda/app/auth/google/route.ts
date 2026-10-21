@@ -17,6 +17,8 @@ export async function GET(request: NextRequest) {
   const r = await terminarConGoogle(codigo);
   switch (r.estado) {
     case "ok":
+      // `vinculada`: su correo ya era de una ficha de CAYLA y la cuenta se unió a ella (ADR-0469): se le dice con otras palabras.
+      if (r.vinculada) return hacia(conAviso(volver ?? INICIO_CON_CUENTA, "cuenta-vinculada"));
       return hacia(r.nueva ? conAviso(volver ?? INICIO_CON_CUENTA, "cuenta-lista") : (volver ?? INICIO_CON_CUENTA));
     case "sin_codigo":
       return fallo("cancelado");
