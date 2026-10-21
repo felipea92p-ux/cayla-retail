@@ -3368,6 +3368,7 @@ export type Database = {
           codigo: string | null
           created_at: string
           descripcion: string | null
+          empresa_id: string
           es_prueba: boolean
           estado: string
           estado_alta: string
@@ -3391,6 +3392,7 @@ export type Database = {
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
+          empresa_id?: string
           es_prueba?: boolean
           estado?: string
           estado_alta?: string
@@ -3414,6 +3416,7 @@ export type Database = {
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
+          empresa_id?: string
           es_prueba?: boolean
           estado?: string
           estado_alta?: string
@@ -6657,6 +6660,47 @@ export type Database = {
           orden: number
         }[]
       }
+      fn_empresas: {
+        Args: never
+        Returns: {
+          clave: string
+          id: string
+          logo_url: string | null
+          nombre: string
+          orden: number
+          web: string | null
+        }[]
+      }
+      fn_empresas_de_sede: {
+        Args: { p_sede_id: string }
+        Returns: {
+          clave: string
+          id: string
+          nombre: string
+          orden: number
+        }[]
+      }
+      crear_producto_con_empresa: {
+        Args: {
+          p_al_piso?: boolean
+          p_categoria_id: string
+          p_confirmo_distinto?: boolean
+          p_descripcion?: string
+          p_etiqueta_ids?: string[]
+          p_marca_id?: string
+          p_patron_id?: string
+          p_proveedor_id?: string
+          p_referencia: string
+          p_sede_id: string
+          p_tejido_id?: string
+          p_temporada?: string
+          p_empresa_id: string
+          p_token?: string
+          p_ubicacion_id?: string
+          p_variantes: Json
+        }
+        Returns: string
+      }
       crear_producto_con_stock_inicial: {
         Args: {
           p_al_piso?: boolean
@@ -7468,6 +7512,7 @@ export type Database = {
           p_categoria_id?: string
           p_colores?: string[]
           p_disponibilidad?: string
+          p_empresa_id?: string
           p_estado?: string
           p_falta?: string
           p_familias?: string[]
@@ -7487,6 +7532,7 @@ export type Database = {
           p_categoria_id?: string
           p_colores?: string[]
           p_disponibilidad?: string
+          p_empresa_id?: string
           p_estado?: string
           p_falta?: string
           p_familias?: string[]

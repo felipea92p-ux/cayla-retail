@@ -14,10 +14,10 @@
 // fondo de cada paso y en la columna de la derecha; los campos mismos no decían nada, y el paso 3 salía «Listo» sin haberlo
 // abierto y con cero colores. La persona no sabía por dónde ir ni qué seguía.
 
-import { claveReferencia, faltaDelPaso, faltaLugarCarga, pasoHecho, textoCeldaSinPrecio, TEXTO_FALTA_LUGAR, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
+import { claveReferencia, faltaDelPaso, faltaLugarCarga, pasoHecho, textoCeldaSinPrecio, TEXTO_FALTA_LUGAR, TEXTO_FALTA_EMPRESA, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
 
 /** Cada cosa que la persona llena o decide en el alta, en el orden en que la encuentra en pantalla. */
-export type CampoAlta = "categoria" | "nombre" | "descripcion" | "marca" | "tejido" | "patron" | "tallas" | "colores" | "precio" | "stock" | "responsable";
+export type CampoAlta = "empresa" | "categoria" | "nombre" | "descripcion" | "marca" | "tejido" | "patron" | "tallas" | "colores" | "precio" | "stock" | "responsable";
 
 /** Cómo se ve un campo en la guía: la marca de su título y el tinte de su fila. Vive en `lib/guia-campos.ts` (lo comparten los modales). */
 export type { EstadoCampo } from "./guia-campos";
@@ -58,6 +58,10 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
   const configurar = (tipo: "tejidos" | "patrones") => `Habilita los ${tipo} de esta categoría.`;
 
   return [
+    // ADR-0463: solo existe como campo cuando la base ya tiene tiendas (`exigeEmpresa`); si no, la guía queda como era.
+    ...(e.exigeEmpresa
+      ? [{ id: "empresa" as const, paso: 1 as const, nombre: "Tienda", requerido: true, sugerido: false, hecho: Boolean(e.empresaId), pendiente: TEXTO_FALTA_EMPRESA }]
+      : []),
     { id: "categoria", paso: 1, nombre: "Categoría", requerido: true, sugerido: false, hecho: Boolean(e.categoriaId), pendiente: "Elige qué producto es (familia y categoría)." },
     // Va ANTES del nombre, como en pantalla (Felipe, 2026-09-30): con la marca elegida la lectura de lo que ya existe de esa marca empieza antes de que se
     // escriba una letra. Opcional (ADR-0283): nunca se lista como «falta» ni bloquea nada; solo lleva ✓ si se eligió. Pero con el paso 2 recién abierto,

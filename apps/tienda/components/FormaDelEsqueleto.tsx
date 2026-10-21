@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense, useLayoutEffect } from "react";
+import { Fragment, Suspense, useLayoutEffect, type CSSProperties } from "react";
 import { formaDeLaRuta, prendaDeLaRuta, tituloDeEspera, type FormaEsqueleto, type TituloDeEspera } from "@/lib/esqueleto";
 import { useBolsaVista } from "./bolsa/BolsaRecordada";
 import { useCabeceraVista } from "./CabeceraConCuenta";
@@ -115,10 +115,11 @@ function marcarTrasEsqueleto() {
 
 /* ---------------- Piezas ---------------- */
 
-/** Una tarjeta de prenda que espera: la foto que brilla y dos líneas (el nombre y el precio), con las cajas de `TarjetaPrenda`. */
-function Tarjeta() {
+/** Una tarjeta de prenda que espera: la foto que brilla y dos líneas (el nombre y el precio), con las cajas de `TarjetaPrenda`. Se cuelga en
+ *  cascada (ADR-0466): `i` es su lugar en la fila, que da el retraso (las de más allá de la octava entran junto con ella). */
+function Tarjeta({ i = 0 }: { i?: number }) {
   return (
-    <div className="t-card">
+    <div className="t-card" style={{ "--i": Math.min(i, 7) } as CSSProperties}>
       <div className="t-card-media">
         <span className="t-card-foto" />
       </div>
@@ -135,9 +136,32 @@ function Tarjetas({ cuantas }: { cuantas: number }) {
   return (
     <>
       {Array.from({ length: cuantas }, (_, i) => (
-        <Tarjeta key={i} />
+        <Tarjeta key={i} i={i} />
       ))}
     </>
+  );
+}
+
+/**
+ * El título de una lista que se cuelga (ADR-0466, Felipe 2026-10-20: «el título se cuelga»): cada palabra sube desde su línea, una tras
+ * otra, y la última (la cursiva) cierra. Es el esqueleto el que lo hace —la pantalla de carga del cambio de pestaña—; la página, al llegar,
+ * escribe el mismo título quieto en el mismo lugar. Las palabras llevan su lugar (`--j`) para el retraso.
+ */
+function TituloQueSeCuelga({ primera, cursiva }: { primera: string; cursiva: string }) {
+  const palabras = primera.split(" ").filter(Boolean);
+  return (
+    <h1>
+      {palabras.map((p, j) => (
+        <Fragment key={j}>
+          <span className="t-pal" style={{ "--j": j } as CSSProperties}>
+            {p}
+          </span>{" "}
+        </Fragment>
+      ))}
+      <em className="t-pal" style={{ "--j": palabras.length } as CSSProperties}>
+        {cursiva}
+      </em>
+    </h1>
   );
 }
 
@@ -152,12 +176,9 @@ function CabeceraDeLista({ titulo }: { titulo: TituloDeEspera | null }) {
     );
   const [primera, cursiva] = titulo.titulo;
   return (
-    <header className="t-lista-cab" aria-hidden="true">
+    <header className="t-lista-cab t-cuelga" aria-hidden="true">
       <span className="t-ceja">{titulo.ceja}</span>
-      <h1>
-        {primera ? `${primera} ` : null}
-        <em>{cursiva}</em>
-      </h1>
+      <TituloQueSeCuelga primera={primera} cursiva={cursiva} />
       {titulo.frase && <p>{titulo.frase}</p>}
     </header>
   );
@@ -412,17 +433,15 @@ function FichaDe({ id, tocada }: { id: string | null; tocada: ReturnType<typeof 
 function Looks() {
   return (
     <div aria-hidden="true">
-      <header className="t-lista-cab">
+      <header className="t-lista-cab t-cuelga">
         <span className="t-ceja">Combinaciones listas</span>
-        <h1>
-          Arma tu <em>look</em>
-        </h1>
+        <TituloQueSeCuelga primera="Arma tu" cursiva="look" />
         <p>Prendas que se ven bien juntas. Agrega el look completo y eliges cada talla en un solo paso.</p>
       </header>
       {/* De a tres, como la página con tres looks (`looksDeATres`). */}
       <div className="t-looks" data-tres="">
         {Array.from({ length: 3 }, (_, i) => (
-          <div key={i} className="t-look-card">
+          <div key={i} className="t-look-card" style={{ "--i": i } as CSSProperties}>
             <div className="t-lamina t-esq-lamina" />
             <i className="t-esqueleto-linea t-esq-ceja" />
             <i className="t-esq-look-nombre" />

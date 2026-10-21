@@ -31,6 +31,8 @@ import { getCatalogoMarcas, type CatalogoMarcas } from "@/lib/marcas-datos";
 // hace dos años no debería competir con el de esta temporada).
 
 export type FamiliaAlta = { codigo: string; nombre: string; exigeTejidoPatron: boolean };
+/** Una tienda a la que puede pertenecer un producto (ADR-0463): CAYLA, CLAURE. */
+export type EmpresaAlta = { id: string; clave: string; nombre: string };
 export type CategoriaAlta = { id: string; nombre: string; familia: string | null; prefijo: string | null; padreNombre: string | null };
 export type EtiquetaAlta = {
   id: string;
@@ -64,13 +66,26 @@ export type ContextoAlta = CatalogoMarcas & {
   /** La lista de temporadas y la de cada categoría (ADR-0246). `null` = la base todavía no la tiene: el alta sigue
    *  sin la fila de temporada (lo dice en una nota), nunca se cae por eso. */
   temporadas: TemporadasCatalogo | null;
+  /** Las tiendas entre las que se elige ANTES de la categoría (ADR-0463): solo si la sede desde donde se registra opera más de una
+   *  (Lima). `null` = una sola (Trujillo, Arequipa) o la base todavía no las tiene (la migración se pega antes o después de la web): el
+   *  alta sigue como siempre y el producto nace en CAYLA, nunca se cae por eso. */
+  empresas: EmpresaAlta[] | null;
 };
+
+/** Las tiendas que operan en la sede desde donde se registra (ADR-0463). Con UNA sola (Trujillo, Arequipa: solo CAYLA) o sin respuesta,
+ *  `null`: el alta no pregunta nada y el producto nace en CAYLA. Solo Lima, donde conviven CAYLA y CLAURE, trae dos. */
+async function getEmpresasAlta(sedeId: string): Promise<EmpresaAlta[] | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_empresas_de_sede", { p_sede_id: sedeId });
+  if (error || !data || data.length < 2) return null;
+  return data.map((t) => ({ id: t.id, clave: t.clave, nombre: t.nombre }));
+}
 
 const VENTANA_VARIANTES = 2000;
 
-export async function getContextoAlta(): Promise<ContextoAlta> {
+export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
   const supabase = await createClient();
-  const [resFamilias, resCategorias, resColores, resVariantes, resCorrelativos, resEtiquetas, resTallas, resTejidos, resPatrones, ejes, catalogoMarcas, temporadas, imagenes] =
+  const [resFamilias, resCategorias, resColores, resVariantes, resCorrelativos, resEtiquetas, resTallas, resTejidos, resPatrones, ejes, catalogoMarcas, temporadas, imagenes, empresas] =
     await Promise.all([
       supabase.from("familias").select("codigo, nombre, exige_tejido_patron").eq("activo", true).order("orden"),
       supabase.from("categorias").select("id, nombre, familia, prefijo, categoria_padre_id").eq("activo", true).order("nombre"),
@@ -95,6 +110,7 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
       getCatalogoMarcas(),
       getTemporadasCatalogo(),
       getImagenesMuestra(),
+      getEmpresasAlta(sedeId),
     ]);
 
   const categoriasCrudas = exigir(resCategorias, "las categorías del catálogo");
@@ -173,5 +189,6 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
     },
     imagenes,
     temporadas,
+    empresas,
   };
 }

@@ -113,6 +113,7 @@ export function PedidosWebPantalla({
   tablero,
   tiendaId,
   tienda,
+  variasEmpresas,
   ahoraIso,
   filtroInicial,
   detalle,
@@ -122,6 +123,8 @@ export function PedidosWebPantalla({
   tablero: TableroPedidosWeb;
   tiendaId: string;
   tienda: string;
+  /** En esta sede conviven dos empresas (Lima): el detalle del pedido dice de cuál es cada prenda (ADR-0463). */
+  variasEmpresas: boolean;
   ahoraIso: string;
   filtroInicial: PestanaPedidos | null;
   detalle: PedidoDetalle | null;
@@ -295,6 +298,7 @@ export function PedidosWebPantalla({
           pedido={abierto}
           tiendaId={tiendaId}
           tienda={tienda}
+          variasEmpresas={variasEmpresas}
           ahora={ahora}
           mensajePredeterminado={mensaje}
           onClose={cerrar}

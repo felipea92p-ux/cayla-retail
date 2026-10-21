@@ -79,7 +79,7 @@ export const GUIA_PRODUCTOS: Guia = {
       ancla: "productos.panel",
       opcional: true,
       titulo: "Filtra por lo que te piden",
-      texto: "Arriba, lo que pide el cliente en el mostrador: categoría, talla, color y precio. Abajo, lo de gestión: si hay en tu sede, marca, proveedor, estado, temporada y qué le falta a la ficha. Cada opción dice cuántas prendas trae.",
+      texto: "Arriba, lo que pide el cliente en el mostrador: categoría, talla, color y precio. Abajo, lo de gestión: si hay en tu sede, marca, proveedor, estado, temporada, la tienda (CAYLA o CLAURE) y qué le falta a la ficha. Casi todas las opciones dicen cuántas prendas traen.",
     },
     {
       id: "resultados",
@@ -1078,8 +1078,19 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       texto: "La prenda queda a nombre de quien la registra. Se elige una sola vez, al empezar.",
     },
     {
+      id: "empresa",
+      ancla: "nuevo.empresa",
+      // Solo existe cuando la base ya tiene las tiendas (ADR-0463): sin ellas el alta empieza por la familia.
+      opcional: true,
+      titulo: "Primero, la tienda",
+      texto: "Di de qué negocio es la prenda: CAYLA o CLAURE. Hasta que lo hagas, la familia y la categoría esperan. En la demo elegimos la primera, solo para seguir.",
+      demostrar: [{ tipo: "clic", ancla: "nuevo.empresa-elegir", siEsta: true }],
+    },
+    {
       id: "familias",
       ancla: "nuevo.familias",
+      // La demo elige la tienda si hace falta: sin ella la familia espera y no se puede tocar.
+      preparar: [{ tipo: "clic", ancla: "nuevo.empresa-elegir", siEsta: true }],
       titulo: "Empieza por la familia",
       texto: "«Sigue aquí» te marca lo que toca ahora. Elige la familia de la prenda: ropa, calzado, accesorios… (te abrimos la primera).",
     },
