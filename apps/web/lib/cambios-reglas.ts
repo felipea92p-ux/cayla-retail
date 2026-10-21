@@ -371,7 +371,10 @@ export type ImpactoOperacion = {
 export function impactoCambio(e: {
   devuelta: string;
   entregada: string;
+  /** Cuántas de la devuelta vuelven (y, en un cambio de una por una, cuántas de la nueva salen). */
   cantidad: number;
+  /** Un cambio por VARIAS prendas (ADR-0470): cada prenda que sale del piso con su cantidad. Sin esto, sale `entregada` × `cantidad`. */
+  entregadas?: readonly { prenda: string; cantidad: number }[];
   condicion: CondicionCambio;
   diferencia: number;
   metodo: MetodoDiferencia;
@@ -401,7 +404,12 @@ export function impactoCambio(e: {
         prenda: e.devuelta,
         donde: e.condicion === "vendible" ? `vuelve al piso de ${e.sede}` : `entra a cuarentena en ${e.sede}`,
       },
-      { signo: "−", cantidad: e.cantidad, prenda: e.entregada, donde: `sale del piso de ${e.sede}` },
+      ...(e.entregadas && e.entregadas.length > 0 ? e.entregadas : [{ prenda: e.entregada, cantidad: e.cantidad }]).map((x) => ({
+        signo: "−" as const,
+        cantidad: x.cantidad,
+        prenda: x.prenda,
+        donde: `sale del piso de ${e.sede}`,
+      })),
     ],
     caja,
   };

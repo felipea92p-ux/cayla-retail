@@ -31,6 +31,8 @@ export const OPERACIONES_CON_MARCA = [
   "editar_separacion",
   "enviar_pedido_para_apartar",
   "registrar_cambio",
+  // Cambiar una prenda por varias (ADR-0470; 20261021190000 la guarda y 20261021192000 la hace revisable).
+  "registrar_cambio_varias",
   "separar_pedido_para_apartar",
   "iniciar_traslado",
   "enviar_pedido_a_otra_sede",

@@ -8783,6 +8783,19 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_cambio_varias: {
+        Args: {
+          p_cantidad?: number
+          p_condicion?: string
+          p_metodo_pago_diferencia?: string
+          p_motivo?: string
+          p_salidas: Json
+          p_token?: string
+          p_ubicacion_id: string
+          p_venta_item_id: string
+        }
+        Returns: string
+      }
       registrar_clienta: {
         Args: {
           p_cumple_anio?: number

@@ -425,6 +425,54 @@ update retail.cambio_salidas set cantidad = 9 where cambio_id = :'cambio_id';
   "no se editan ni se borran"
 );
 
+// ---------------------------------------------------------------------------
+// «Revisar si se guardó» (20261021192000): la pantalla le pregunta a la base por el token cuando se pierde la respuesta
+// ---------------------------------------------------------------------------
+
+exito(
+  "«revisar si se guardó» encuentra un cambio por varias que sí quedó (y dice cuánto era la diferencia)",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+select gen_random_uuid() as tk \\gset
+select retail.registrar_cambio_varias(:'venta_item', :'ubic', ${DOS_TOPS}, 1, 'qr', :'tk') as cambio_id \\gset
+select r ->> 'estado', (r ->> 'diferencia')::numeric from (select retail.fn_resolver_intento('registrar_cambio_varias', :'tk') as r) x;
+rollback;
+`
+  ),
+  ([estado, diferencia]) => estado === "hecho" && Number(diferencia) === 25.9
+);
+
+exito(
+  "«revisar si se guardó» con un token que nunca llegó dice «no llegó», y ese envío ya no puede guardarse después",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+select gen_random_uuid() as tk \\gset
+select retail.fn_resolver_intento('registrar_cambio_varias', :'tk') ->> 'estado' as estado \\gset
+select set_config('cv.tk', :'tk', true), set_config('cv.item', :'venta_item', true), set_config('cv.ubic', :'ubic', true),
+       set_config('cv.n1', :'v_n1', true), set_config('cv.n2', :'v_n2', true) as _ajustes \\gset
+-- El envío original llega tarde, con el mismo token: la base lo rechaza en vez de guardarlo después de haber dicho «no llegó».
+do $prueba$
+declare v_llego boolean := true;
+begin
+  begin
+    perform retail.registrar_cambio_varias(current_setting('cv.item')::uuid, current_setting('cv.ubic')::uuid,
+      jsonb_build_array(jsonb_build_object('variante_id', current_setting('cv.n1'), 'cantidad', 1),
+                        jsonb_build_object('variante_id', current_setting('cv.n2'), 'cantidad', 1)),
+      1, 'qr', current_setting('cv.tk')::uuid);
+  exception when others then
+    v_llego := false;
+  end;
+  perform set_config('cv.llego', v_llego::text, true);
+end $prueba$;
+select :'estado', current_setting('cv.llego'), (select count(*) from retail.cambios where token_cliente = :'tk'::uuid);
+rollback;
+`
+  ),
+  ([estado, llego, cambios]) => estado === "no_llego" && llego === "false" && Number(cambios) === 0
+);
+
 function main() {
   try {
     execFileSync("docker", ["exec", CONTENEDOR_LOCAL, "true"]);
