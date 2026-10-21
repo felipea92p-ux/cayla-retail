@@ -115,7 +115,7 @@ export function estadoParaBase(estado: EstadoListado): "activo" | "descontinuado
 export function contarFiltrosActivos(consulta: string): number {
   const p = new URLSearchParams(consulta);
   // Color y familia son un mismo filtro (el de color, con su lista agrupada por familia): cuentan una vez.
-  const claves = ["cat", "marca", "proveedor", "stock", "talla", "temporada", "falta"].filter((k) => p.get(k));
+  const claves = ["cat", "marca", "proveedor", "stock", "talla", "temporada", "falta", "empresa"].filter((k) => p.get(k));
   if (p.get("color") || p.get("familia")) claves.push("color");
   // El precio cuenta solo si se entiende, con la misma regla que aplica el servidor (`leerMonto`): «abc» no filtra ni cuenta.
   const precio = leerMonto(p.get("precioMin") ?? "") != null || leerMonto(p.get("precioMax") ?? "") != null ? 1 : 0;
@@ -174,6 +174,12 @@ export function temporadaDeUrl(valor: string | null | undefined): string | undef
   return valor && /^[a-z0-9_-]{1,40}$/.test(valor) ? valor : undefined;
 }
 
+/** La empresa dueña de la prenda (CAYLA o CLAURE, ADR-0467): el id de `fn_empresas()`, como `cat` y `marca` llevan el suyo.
+ *  Lo que no es un uuid no filtra ni cuenta. */
+export function empresaDeUrl(valor: string | null | undefined): string | undefined {
+  return valor && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(valor) ? valor : undefined;
+}
+
 /** Lo que le falta a la ficha: el filtro de quien carga el catálogo (76 de 86 prendas sin foto el 2026-10-02). */
 export const FALTAS = ["foto", "temporada", "marca", "proveedor"] as const;
 export type Falta = (typeof FALTAS)[number];
@@ -197,6 +203,8 @@ export function chipsDeFiltros(
     /** La sede elegida arriba (`null` en CAYLA Global): da nombre a «Hay en …». */
     sede?: string | null;
     temporada?: (clave: string) => string | undefined;
+    /** El nombre de la empresa elegida (en pantalla «Tienda»). */
+    empresa?: (id: string) => string | undefined;
   },
   sin = "sin",
 ): { texto: string; quitar: string[] }[] {
@@ -223,6 +231,8 @@ export function chipsDeFiltros(
   if (temporada) {
     chips.push({ texto: temporada === SIN_TEMPORADA ? "Sin temporada" : `Temporada: ${nombres.temporada?.(temporada) ?? temporada}`, quitar: ["temporada"] });
   }
+  const empresa = empresaDeUrl(p.get("empresa"));
+  if (empresa) chips.push({ texto: `Tienda: ${nombres.empresa?.(empresa) ?? "—"}`, quitar: ["empresa"] });
   const falta = faltaDeUrl(p.get("falta"));
   if (falta) chips.push({ texto: `Por completar: ${ROTULO_FALTA[falta]}`, quitar: ["falta"] });
   const disp = disponibilidadDeUrl(p.get("stock"), nombres.sede != null);
