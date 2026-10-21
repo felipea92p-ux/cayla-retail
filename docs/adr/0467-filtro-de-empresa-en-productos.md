@@ -1,6 +1,6 @@
 # ADR-0467 — Filtro «Tienda» (empresa) en Catálogo ▸ Productos
 
-**Estado:** aceptada · **Fecha:** 2026-10-20 · **Decidió:** Felipe · Sigue a ADR-0463
+**Estado:** aceptada · migración EN PRODUCCIÓN desde 2026-10-20 (pegada con el OK de Felipe; la web va en el PR #1223) · **Fecha:** 2026-10-20 · **Decidió:** Felipe · Sigue a ADR-0463
 
 ## Contexto
 
