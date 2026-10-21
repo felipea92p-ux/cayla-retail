@@ -376,6 +376,13 @@ describe("datos para pagar (ADR-0134)", () => {
     expect(d.saldoFavor).toBe(120);
     expect("saldoFavor" in datosPagoDe({ ...{ id: "prov-1", banco: null, cuenta_bancaria: null, cci: null, celular_billetera: null, billeteras: null, titular_cuenta: null, telefono: null, plazo_credito_dias: null, forma_pago_preferida: null } })).toBe(false);
   });
+
+  it("datosPagoDe marca `ocultos` solo cuando la base no entregó los datos bancarios (permiso), no cuando el proveedor no tiene cuenta", () => {
+    const fila = { id: "prov-1", banco: null, cuenta_bancaria: null, cci: null, celular_billetera: null, billeteras: null, titular_cuenta: null, telefono: null, plazo_credito_dias: null, forma_pago_preferida: null };
+    expect("ocultos" in datosPagoDe(fila)).toBe(false); // sin dato: se leyeron bien
+    expect("ocultos" in datosPagoDe({ ...fila, bancarios_visibles: true })).toBe(false); // se leyeron y no hay cuenta cargada
+    expect(datosPagoDe({ ...fila, bancarios_visibles: false }).ocultos).toBe(true); // no se pudo ver
+  });
 });
 
 describe("marcasPorProveedor (ADR-0140)", () => {

@@ -22,6 +22,8 @@ export type DestinoDelMedio = {
   /** El nombre que muestra el banco/Yape antes de confirmar; se compara al pagar. */
   titular: string | null;
   aviso: string | null;
+  /** `true` = el aviso es «no puedes verlos» (la cuenta no tiene permiso), no «le falta el dato»: no hay nada que agregar en su ficha. */
+  sinPermiso?: true;
 };
 
 /**
@@ -31,6 +33,11 @@ export type DestinoDelMedio = {
  */
 export function destinoDelMedio(metodo: string, datos: DatosPagoProveedor | null | undefined): DestinoDelMedio | null {
   if (!datos) return null;
+  // La cuenta que mira no puede ver los datos para pagar: no se sabe si el proveedor tiene cuenta, y decir «no tiene» sería mentir
+  // (una transferencia que no se revierte se paga con lo que dice la pantalla). Solo para los medios que llevan destino.
+  if (datos.ocultos && ["transferencia", "deposito", "yape", "plin"].includes(metodo)) {
+    return { banco: null, filas: [], titular: null, aviso: "No puedes ver los datos de pago de este proveedor. Pídeselos a quien paga.", sinPermiso: true };
+  }
   const titular = datos.titular?.trim() || null;
 
   if (metodo === "transferencia" || metodo === "deposito") {
