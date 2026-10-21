@@ -525,6 +525,36 @@
   "tabla": "retail.cajas"
  },
  {
+  "conname": "cambio_salidas_cambio_id_fkey",
+  "definicion": "FOREIGN KEY (cambio_id) REFERENCES retail.cambios(id) DEFERRABLE INITIALLY DEFERRED",
+  "tabla": "retail.cambio_salidas"
+ },
+ {
+  "conname": "cambio_salidas_cambio_id_variante_id_key",
+  "definicion": "UNIQUE (cambio_id, variante_id)",
+  "tabla": "retail.cambio_salidas"
+ },
+ {
+  "conname": "cambio_salidas_cantidad_check",
+  "definicion": "CHECK ((cantidad > 0))",
+  "tabla": "retail.cambio_salidas"
+ },
+ {
+  "conname": "cambio_salidas_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.cambio_salidas"
+ },
+ {
+  "conname": "cambio_salidas_precio_unitario_check",
+  "definicion": "CHECK ((precio_unitario > (0)::numeric))",
+  "tabla": "retail.cambio_salidas"
+ },
+ {
+  "conname": "cambio_salidas_variante_id_fkey",
+  "definicion": "FOREIGN KEY (variante_id) REFERENCES retail.variantes(id)",
+  "tabla": "retail.cambio_salidas"
+ },
+ {
   "conname": "cambios_caja_id_fkey",
   "definicion": "FOREIGN KEY (caja_id) REFERENCES retail.cajas(id)",
   "tabla": "retail.cambios"
@@ -561,7 +591,7 @@
  },
  {
   "conname": "cambios_metodo_pago_diferencia_check",
-  "definicion": "CHECK ((metodo_pago_diferencia = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text])))",
+  "definicion": "CHECK ((metodo_pago_diferencia = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text, 'qr'::text])))",
   "tabla": "retail.cambios"
  },
  {
@@ -733,6 +763,136 @@
   "conname": "campana_efecto_caja_ubicacion_id_fkey",
   "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
   "tabla": "retail.campana_efecto_caja"
+ },
+ {
+  "conname": "campana_web_disenos_acento",
+  "definicion": "CHECK (((acento IS NULL) OR (acento ~ '^#[0-9a-f]{6}$'::text)))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_actualizado_por_fkey",
+  "definicion": "FOREIGN KEY (actualizado_por) REFERENCES personas(id)",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_bajada",
+  "definicion": "CHECK (((bajada IS NULL) OR ((char_length(bajada) >= 1) AND (char_length(bajada) <= 40))))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_boton",
+  "definicion": "CHECK (((boton IS NULL) OR ((char_length(boton) >= 1) AND (char_length(boton) <= 22))))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_creado_por_fkey",
+  "definicion": "FOREIGN KEY (creado_por) REFERENCES personas(id)",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_cuenta",
+  "definicion": "CHECK ((cuenta = ANY (ARRAY['siempre'::text, 'ultimo'::text, 'no'::text])))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_duracion",
+  "definicion": "CHECK ((duracion = ANY (ARRAY['una'::text, 'continuo'::text])))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_efecto",
+  "definicion": "CHECK ((efecto = ANY (ARRAY['ninguno'::text, 'destellos'::text, 'confeti'::text, 'petalos'::text, 'copos'::text, 'corazones'::text, 'estrellas'::text, 'hojas'::text, 'burbujas'::text, 'patitas'::text])))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_entrada",
+  "definicion": "CHECK ((entrada = ANY (ARRAY['telon'::text, 'caen'::text, 'aparece'::text, 'ninguna'::text])))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_estado",
+  "definicion": "CHECK ((estado = ANY (ARRAY['borrador'::text, 'programado'::text])))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_etiqueta_id_fkey",
+  "definicion": "FOREIGN KEY (etiqueta_id) REFERENCES retail.etiquetas(id) ON DELETE CASCADE",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_franja",
+  "definicion": "CHECK ((franja = ANY (ARRAY['rota'::text, 'marquesina'::text, 'quieta'::text])))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_imagen_ruta_forma",
+  "definicion": "CHECK (((imagen_ruta IS NULL) OR (imagen_ruta ~ '^campanas/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(webp|jpg)$'::text)))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_imagen_vertical_forma",
+  "definicion": "CHECK (((imagen_vertical_ruta IS NULL) OR ((imagen_ruta IS NOT NULL) AND (imagen_vertical_ruta ~ '^campanas/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(webp|jpg)$'::text))))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_intensidad",
+  "definicion": "CHECK ((intensidad = ANY (ARRAY['poca'::text, 'media'::text])))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_modo",
+  "definicion": "CHECK ((modo = ANY (ARRAY['ambiente'::text, 'imagen'::text])))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_modo_coherente",
+  "definicion": "CHECK ((((modo = 'ambiente'::text) = (plantilla IS NOT NULL)) AND ((modo <> 'imagen'::text) OR (imagen_ruta IS NOT NULL))))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_paleta",
+  "definicion": "CHECK (((paleta >= 0) AND (paleta <= 2)))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_pkey",
+  "definicion": "PRIMARY KEY (etiqueta_id)",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_plantilla",
+  "definicion": "CHECK (((plantilla IS NULL) OR (plantilla = ANY (ARRAY['sobrio'::text, 'aniversario'::text, 'patrias'::text, 'madre'::text, 'cyber'::text, 'gato'::text, 'navidad'::text]))))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_titular",
+  "definicion": "CHECK (((titular IS NULL) OR ((char_length(titular) >= 1) AND (char_length(titular) <= 28))))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_version",
+  "definicion": "CHECK ((version >= 1))",
+  "tabla": "retail.campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_previas_etiqueta_id_fkey",
+  "definicion": "FOREIGN KEY (etiqueta_id) REFERENCES retail.etiquetas(id) ON DELETE CASCADE",
+  "tabla": "retail.campana_web_previas"
+ },
+ {
+  "conname": "campana_web_previas_huella_check",
+  "definicion": "CHECK ((huella ~ '^[0-9a-f]{64}$'::text))",
+  "tabla": "retail.campana_web_previas"
+ },
+ {
+  "conname": "campana_web_previas_huella_key",
+  "definicion": "UNIQUE (huella)",
+  "tabla": "retail.campana_web_previas"
+ },
+ {
+  "conname": "campana_web_previas_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.campana_web_previas"
  },
  {
   "conname": "capacidad_piso_cabe_al_menos_una",

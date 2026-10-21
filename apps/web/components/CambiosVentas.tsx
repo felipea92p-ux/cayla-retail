@@ -3,7 +3,7 @@
 import { ArrowRight, Check } from "lucide-react";
 import { CLASE_BOTON_FILA, ChipEstado, ComprasAgrupadas, FilaPrendaVenta, formatearHora, type CompraAgrupada } from "@/components/ComprasAgrupadas";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
-import { actividadPreviaVenta, descripcionEntregada, estadoPlazoVenta, estadoPrendaVendida, etiquetaDia, totalesVenta } from "@/lib/cambios-reglas";
+import { actividadPreviaVenta, descripcionEntregadaTodas, estadoPlazoVenta, estadoPrendaVendida, etiquetaDia, totalesVenta } from "@/lib/cambios-reglas";
 import { soles } from "@/lib/compras-reglas";
 
 /**
@@ -54,7 +54,7 @@ export function CambiosVentas({
             detalle={linea.cambiosHechos.map((c, i) => (
               <p key={i} className="mt-1 flex items-center gap-1.5 text-xs text-verde-profundo">
                 <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                {linea.cantidad > 1 ? `${c.cantidad} cambiada${c.cantidad === 1 ? "" : "s"}` : "Cambiada"} por {descripcionEntregada(c, linea.productoId)} ·{" "}
+                {linea.cantidad > 1 ? `${c.cantidad} cambiada${c.cantidad === 1 ? "" : "s"}` : "Cambiada"} por {descripcionEntregadaTodas(c, linea.productoId)} ·{" "}
                 {etiquetaDia(c.creadoEn, ahora).toLowerCase()} {formatearHora(c.creadoEn)}
               </p>
             ))}

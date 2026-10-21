@@ -524,6 +524,30 @@ select c.id as caja_id, c.ubicacion_id, c.monto_cierre_real, c.monto_fondo,
     corrompe: `set local session_replication_role = replica;
 update retail.cajas set monto_fondo = monto_fondo + 700 where ctid = (select ctid from retail.cajas where estado = 'cerrada' and not es_prueba and monto_fondo is not null limit 1);`,
   },
+  {
+    id: "INV-22",
+    nombre: "cambio_por_varias_cuadra",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Un cambio de una prenda por VARIAS cuadra en las tres cosas que lo definen (ADR-0470): su diferencia es el valor de todo lo que se llevó menos lo que la clienta pagó por lo que devolvió; las unidades que salieron del piso son las que dice su lista de prendas; y las que volvieron son las que se devolvieron. Si no, la caja o la cuenta de Izipay cobraron una cifra y el stock movió otra. `registrar_cambio_varias` lo guarda todo junto; esto vigila lo que se cuele por otra puerta o un arreglo a mano. Nació del cambio del body por dos Top Rib (B005-000670, 2026-10-21), que se había registrado como un cambio uno por uno y una venta aparte.",
+    sql: `
+select c.id as cambio_id, c.diferencia,
+       round(sum(s.precio_unitario * s.cantidad) - (vi.precio_unitario - vi.descuento_unitario) * c.cantidad, 2) as diferencia_esperada,
+       sum(s.cantidad) as unidades_anotadas,
+       (select coalesce(sum(m.cantidad), 0) from retail.movimientos m where m.cambio_id = c.id and m.tipo = 'salida') as unidades_que_salieron,
+       c.cantidad as unidades_devueltas,
+       (select coalesce(sum(m.cantidad), 0) from retail.movimientos m where m.cambio_id = c.id and m.tipo = 'entrada') as unidades_que_volvieron
+  from retail.cambios c
+  join retail.venta_items vi on vi.id = c.venta_item_id
+  join retail.cambio_salidas s on s.cambio_id = c.id
+ group by c.id, c.diferencia, c.cantidad, vi.precio_unitario, vi.descuento_unitario
+having c.diferencia <> round(sum(s.precio_unitario * s.cantidad) - (vi.precio_unitario - vi.descuento_unitario) * c.cantidad, 2)
+    or sum(s.cantidad) <> (select coalesce(sum(m.cantidad), 0) from retail.movimientos m where m.cambio_id = c.id and m.tipo = 'salida')
+    or c.cantidad <> (select coalesce(sum(m.cantidad), 0) from retail.movimientos m where m.cambio_id = c.id and m.tipo = 'entrada')`,
+    // La diferencia de un cambio por varias deja de ser la que sale de sus prendas: un arreglo a mano que la "corrige" sin tocar la lista.
+    corrompe: `update retail.cambios set diferencia = diferencia + 5
+ where ctid = (select c.ctid from retail.cambios c where exists (select 1 from retail.cambio_salidas s where s.cambio_id = c.id) limit 1);`,
+  },
 ];
 
 // ── Instrumento (Docker + psql) ─────────────────────────────────────────────────────────────────────────────────────────────
