@@ -1,6 +1,7 @@
 ## 🎨 Diseños y animaciones por campaña en la tienda web (2026-10-20) — solo maqueta, sin migración; rama `claude/campaign-designs-animations-d1ffae`
 
 - [x] Maqueta `docs/maquetas/campanas-tienda-2026-10/` (lista, editor con vista previa viva, programar, tienda del cliente). Verificada en el navegador: ciclo antes/en vivo/último día/terminó, candado de contraste, movimiento reducido, claro y oscuro, tienda en celular.
-- [ ] **Falta el OK de Felipe** sobre las 4 decisiones del README (movimiento una vez o continuo, foto propia, módulo `campanas_web` y a quién se delega, cruce de campañas).
+- [x] **Decidido por Felipe (2026-10-21):** módulo `campanas_web` delegable, nace solo para el líder; con dos campañas a la vez gana la que termina primero; movimiento «una vez» con «suave y continuo» opcional; ambiente propio «Día del Gato»; el paso 1 ofrece ambiente del catálogo, **imagen propia** (4 pasos: color del botón, movimiento, dónde se ve; botones «Ver la campaña»/«Lo nuevo» encima). Sin opción «Como está hoy» (una campaña sin diseño ya se ve como siempre). Maqueta ajustada; ver README.
+- [x] **Decidido:** la imagen propia lleva versión vertical opcional para celular (si no, se recorta al centro). Añade al esquema de `campana_disenos`: `modo`, ruta de imagen horizontal y de imagen vertical, y compresión (≤ 300 KB).
 - [ ] **Sin construir:** tabla `retail.campana_disenos` + funciones, módulo `campanas_web` en Roles y accesos (nace solo líder), pantallas del ERP, los 6 ambientes en `apps/tienda`, vista previa privada. Orden sugerido en el README.
 - [ ] **Sin probar:** el celular del ERP (la maqueta solo muestra el celular de la tienda) y la guía de foco / guía interactiva reales (se dibujan, no se programan).

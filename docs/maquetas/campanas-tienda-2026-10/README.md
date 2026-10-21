@@ -52,6 +52,15 @@ la muestra como una frase en la franja de arriba y una cuenta regresiva en el h�
 9. **Sugerencias coherentes (ADR-0290):** el ejemplo de cada caja de texto sigue el ambiente elegido (Black Week sugiere «Una semana,
    una sola vez al año»; Navidad, «Regala algo que se queda»).
 
+## Ajustes del 2026-10-21 (Felipe, tras ver la maqueta)
+
+- **Movimiento:** se ofrece también «Suave y continuo» (con «Una vez al llegar» de fábrica). Pasa por encima de la regla de ADR-0430, por decisión de Felipe.
+- **Ambiente propio «Día del Gato»** (3 paletas, efecto de patitas), además de los 6 que había.
+- **El paso 1 tiene dos caminos:** un ambiente del catálogo · **Mi propia imagen**. «Como está hoy» se quitó (Felipe, 2026-10-21): una campaña sin diseño ya se ve como siempre, así que no hacía falta una opción para eso.
+- **Con imagen propia** el editor tiene 4 pasos, no 5: Ambiente (sube la imagen) · **Color del botón** (solo el botón «Ver la campaña»; «Lo nuevo» va en vidrio oscuro) · Movimiento · Dónde se ve. No hay titular ni bajada: el texto va dentro de la imagen. La portada es la imagen y **los botones «Ver la campaña» / «Lo nuevo» van encima**, abajo a la izquierda, con la cuenta regresiva si se elige.
+- Esto **reemplaza** la decisión «solo prendas»: la foto propia entra como un modo aparte, no como un campo dentro del ambiente.
+- **Versión vertical opcional para celular** (decidido 2026-10-21): bajo la imagen horizontal hay un segundo recuadro (4:5, ≤ 300 KB). Si no se sube, en celular se recorta la horizontal al centro. En la maqueta, Black Week ya trae las dos.
+
 ## Lo que Felipe tiene que decidir
 
 - **Movimiento: ¿una vez o continuo?** La regla de la tienda web hasta hoy es «ricas, una vez, sin bucle» (ADR-0430). La maqueta deja
