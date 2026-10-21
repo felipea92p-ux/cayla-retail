@@ -1,9 +1,14 @@
 import type { CSSProperties } from "react";
+import { Archivo } from "next/font/google";
 import { ArrowRight } from "lucide-react";
 import { colorDelSello, particulasDeEfecto, textoSobre, type ColoresDeCampana, type CuentaCampana, type DuracionCampana, type EfectoCampana, type EntradaCampana, type FranjaCampana, type IntensidadCampana } from "@cayla-retail/shared";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { fechaCortaDicha, pctDicho } from "@/lib/campanas-web-reglas";
 import { DONDE_TODO, type Donde } from "@/lib/campanas-web-editor";
+
+// La letra de la portada de la tienda online (Archivo, ensanchada en los títulos: `apps/tienda/app/layout.tsx`): la vista previa la usa para que el líder vea
+// lo mismo que verá el cliente (antes dibujaba el título con la letra del ERP y no se parecía).
+const archivo = Archivo({ subsets: ["latin"], axes: ["wdth"], variable: "--font-archivo-previa", display: "swap" });
 
 /** El movimiento que dibuja la vista previa: el mismo que programa el líder (Tienda web ▸ Campañas ▸ Movimiento). */
 export type MovimientoDeVista = {
@@ -66,14 +71,16 @@ export function PreviewCampana({
   imagenes?: ImagenesDeVista | null;
 }) {
   const sello = colores ? colorDelSello(colores) : null;
-  const vars = colores
-    ? ({ "--cmp-fondo": colores.fondo, "--cmp-texto": colores.texto, "--cmp-acento": colores.acento, "--cmp-boton": textoSobre(colores.acento) } as CSSProperties)
-    : undefined;
+  // `containerType`: el título de la portada mide un porcentaje del ancho de la vista (como en la tienda, que lo mide del ancho de la pantalla).
+  const vars = {
+    ...(colores ? { "--cmp-fondo": colores.fondo, "--cmp-texto": colores.texto, "--cmp-acento": colores.acento, "--cmp-boton": textoSobre(colores.acento) } : {}),
+    containerType: "inline-size",
+  } as CSSProperties;
   const frase = `${nombre} · ${pctDicho(pct)}${hasta ? ` hasta el ${fechaCortaDicha(hasta)}` : ""}`;
   const franjaVestida = !!colores && donde.franja;
 
   return (
-    <div className={`papel-fijo overflow-hidden rounded-lg border border-sand bg-papel text-tinta ${quieto ? "cmp-quieto" : ""}`} style={vars} data-color-dato aria-label="Vista previa de la tienda">
+    <div className={`papel-fijo ${archivo.variable} overflow-hidden rounded-lg border border-sand bg-papel text-tinta ${quieto ? "cmp-quieto" : ""}`} style={vars} data-color-dato aria-label="Vista previa de la tienda">
       <Franja frase={frase} modo={franjaVestida ? movimiento.franja : "rota"} vestida={franjaVestida} />
       <div className="flex items-center justify-between border-b border-sand px-4 py-3">
         <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">{celular ? "☰" : "Lo nuevo · Ropa · Looks"}</span>
@@ -149,20 +156,29 @@ function Portada({
       {vestida && <EfectoDePreview efecto={movimiento.efecto} intensidad={movimiento.intensidad} duracion={movimiento.duracion} />}
       <div className="relative z-[3] min-w-0">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-90">{`Campaña${hasta ? ` · hasta el ${fechaCortaDicha(hasta)}` : ""}`}</p>
-        <h3 className={`mt-3 font-sans font-medium uppercase leading-[1.02] ${celular ? "text-2xl" : "text-4xl"}`}>
-          {cabeza}
+        {/* El título como en la tienda: Archivo ensanchada y liviana, en mayúsculas, la última palabra con el color de acento; mide una parte del ancho (en el celular, mínimo 54 px) que lo parte donde lo parte la tienda y se parte donde se parte allá. */}
+        <h3
+          className="mt-3 uppercase"
+          style={{
+            fontFamily: "var(--font-archivo-previa), Archivo, ui-sans-serif, system-ui, sans-serif",
+            fontVariationSettings: '"wdth" 125',
+            fontWeight: 200,
+            letterSpacing: ".02em",
+            lineHeight: 0.9,
+            fontSize: celular ? "clamp(54px, 10cqi, 156px)" : "8.4cqi",
+            overflowWrap: "break-word",
+          }}
+        >
+          <span className="block">{cabeza}</span>
           {cola && (
-            <em className="block font-serif text-[1.18em] font-normal normal-case italic" style={acento}>
+            <em className="block not-italic" style={acento}>
               {cola}
             </em>
           )}
         </h3>
         {textos.bajada && <p className="mt-3 max-w-[34ch] text-[13px] opacity-90">{textos.bajada}</p>}
-        <p className="mt-3 flex items-baseline gap-3">
-          <b className="font-serif text-3xl font-normal italic" style={acento}>
-            {pctDicho(pct)}
-          </b>
-          <span className="text-[11px] opacity-85">en las prendas de la campaña</span>
+        <p className="mt-4 max-w-[34ch] text-[13px] leading-[1.65]">
+          <b className="font-semibold">{pct !== null ? `${pctDicho(pct)} en prendas elegidas.` : "En prendas elegidas."}</b> Sepáralas online, confírmalas por WhatsApp y recógelas en tu tienda.
         </p>
         {movimiento.cuenta === "siempre" && vestida && (
           <div className="mt-3 flex w-fit border-y border-current/30" aria-hidden>
@@ -180,9 +196,11 @@ function Portada({
             className={`inline-flex h-9 items-center gap-2 px-4 text-[10px] font-semibold uppercase tracking-[0.16em] ${vestida ? "" : "bg-tinta text-crema"}`}
             style={vestida && colores ? { backgroundColor: colores.acento, color: textoSobre(colores.acento) } : undefined}
           >
-            {textos.boton ?? "Ver la campaña"} <ArrowRight className="h-3 w-3" aria-hidden />
+            {textos.boton ?? "Ver la campaña"}
           </span>
-          <span className="inline-flex h-9 items-center border border-current px-4 text-[10px] font-semibold uppercase tracking-[0.16em] opacity-90">Lo nuevo</span>
+          <span className="inline-flex h-9 items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.16em] underline decoration-current/55 underline-offset-4">
+            Ver lo nuevo <ArrowRight className="h-3 w-3" aria-hidden />
+          </span>
         </div>
       </div>
       <div className={`relative z-[3] flex items-center justify-center ${celular ? "mt-5" : ""}`} aria-hidden>
