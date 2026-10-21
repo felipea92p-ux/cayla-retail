@@ -1,6 +1,6 @@
 # ADR-0465 — Tienda online: una prenda de CLAURE solo se ve y se separa en las tiendas donde CLAURE opera, y cada tarjeta dice su empresa
 
-**Estado:** construido y verificado en local (base + web de la tienda). **Las 3 migraciones NO están en producción** (esperan el OK de Felipe) ·
+**Estado:** construido y verificado en local (base + web de la tienda). **Las 7 migraciones están EN PRODUCCIÓN desde 2026-10-21** (Felipe: «súbelo, no esperes confirmación»; pegadas con `apply_migration`, una por una, con las anclas contadas antes; la web sigue en el PR #1228) ·
 **Fecha:** 2026-10-21 · **Decidió:** Felipe · **Continúa:** ADR-0463 (empresas CAYLA y CLAURE)
 
 ## Contexto
@@ -74,7 +74,10 @@ tiene, y si no, arriba». La tienda ya no tiene «Todas» (Felipe 2026-10-19: «
 - **Favoritos y «Avísame»:** se guardan por id; una de CLAURE guardada desde Lima no se dibuja con otra tienda elegida.
 - **La ficha de la prenda** no muestra la empresa (las tarjetas y las prendas de un look, como se pidió). Tampoco el probador («Tu look»).
 - **El texto del rechazo en «Separar»:** una prenda de CLAURE con Trujillo dice «no se vende en esa tienda» (el de siempre).
-- **Pegar a producción:** pendiente del OK de Felipe (partes y orden en cada migración).
+- **Producción (2026-10-21):** las 7 migraciones pegadas en orden (`…000`, `…001`, `…002`, `…003`, `…011`, `…013`, `…014`). Las filas del historial llevan la hora del pegado, no el número del archivo
+  (`20261021011806`…`20261021011919`): para saber si están, comprobar el efecto (`fn_tienda_empresa_se_ve`, `'empresa'` en `tienda_catalogo`, `fn_vitrina_catalogo_de_looks`…). Verificado en solo lectura: las 11
+  funciones parchadas; Lima trae la empresa en sus 327 prendas y TRU, AQP y «sin tienda» no; `anon` y `tienda_web` no ejecutan los ayudantes. Hoy los 407 productos son de CAYLA: nada cambia de lo que
+  se ve hasta que alguien cree uno de CLAURE.
 
 ## Verificación
 
