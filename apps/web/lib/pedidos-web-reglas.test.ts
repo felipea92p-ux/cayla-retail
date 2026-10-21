@@ -11,7 +11,9 @@ import {
   cuandoEnLima,
   datosDelCliente,
   decisionDeFabrica,
+  conEmpresas,
   decisionesParaLaBase,
+  empresaDeLaPrenda,
   errorDeEntrega,
   errorDePedidoWeb,
   estadoDeBoleta,
@@ -666,5 +668,44 @@ describe("El cupón del Club del pedido (20261019224000)", () => {
     expect(liberado.titulo).toBe("Cupón CAY-4K7P-9H2M");
     expect(liberado.detalle).toMatch(/compra mínima/);
     expect(textoDelCupon({ codigo: "CAY-4K7P-9H2M", valor: 5, descuento: 5, estado: "liberado", liberadoMotivo: "pedido_anulado" }).detalle).toMatch(/se cerró/);
+  });
+});
+
+describe("la empresa de cada prenda en el detalle (ADR-0463)", () => {
+  const detalle = () =>
+    leerDetalle({
+      pedido_id: "p",
+      codigo: "W-1",
+      estado: "por_confirmar",
+      lineas: [
+        { linea_id: "a", referencia: "Casaca", producto_id: "p1" },
+        { linea_id: "b", referencia: "Blusa", producto_id: "p2" },
+        { linea_id: "c", referencia: "Pantalón", producto_id: "p3" },
+        { linea_id: "d", referencia: "Sin producto" },
+      ],
+    })!;
+  const empresas = [
+    { id: "e1", clave: "cayla", nombre: "CAYLA" },
+    { id: "e2", clave: "claure", nombre: "CLAURE" },
+  ];
+
+  it("sin empresas leídas, ninguna prenda trae empresa", () => {
+    expect(detalle().lineas.map((l) => l.empresa)).toEqual([null, null, null, null]);
+  });
+
+  it("le pone a cada prenda la empresa de su producto, y no inventa una cuando no la conoce", () => {
+    const d = conEmpresas(detalle(), empresas, new Map([["p1", "e2"], ["p2", "e1"], ["p3", "e9"]]));
+    expect(d.lineas.map((l) => [l.empresa, l.empresaClave])).toEqual([["CLAURE", "claure"], ["CAYLA", "cayla"], [null, null], [null, null]]);
+  });
+
+  it("solo la dice donde conviven dos empresas (Lima): en las demás sedes no se nombra", () => {
+    const claure = { empresa: "CLAURE", empresaClave: "claure" };
+    expect(empresaDeLaPrenda(claure, true)).toEqual({ texto: "CLAURE", tono: "pizarra" });
+    expect(empresaDeLaPrenda(claure, false)).toBeNull();
+  });
+
+  it("CAYLA va en neutro, y una prenda sin empresa no inventa una", () => {
+    expect(empresaDeLaPrenda({ empresa: "CAYLA", empresaClave: "cayla" }, true)).toEqual({ texto: "CAYLA", tono: "neutro" });
+    expect(empresaDeLaPrenda({ empresa: null, empresaClave: null }, true)).toBeNull();
   });
 });
