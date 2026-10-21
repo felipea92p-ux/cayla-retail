@@ -79,7 +79,8 @@ reglas: cambio visual chico, pero toca todas las páginas, así que queda para q
   pasaba antes y no se cambió. En la maqueta se bajó a 36 px.
 - **Probado en la tienda real con sesión y con datos:** no. La base local no tiene tiendas publicadas en la web y le falta una migración
   (`tienda_puntos_config`), así que el selector se probó con la cabecera real y un servidor que tarda (página de prueba temporal, ya borrada) y el esqueleto,
-  montado solo. Falta verlo en una pila de clientes completa o en la vista previa de la rama.
+  montado solo. Falta verlo en local con la pila de clientes completa y tiendas publicadas. **La tienda no tiene vista previa de rama** (sus variables viven solo en
+  Producción: `scripts/ci/vercel-ignorar-tienda.mjs`), así que fusionar publica: esto se mira antes de fusionar.
 
 ## Pruebas
 
