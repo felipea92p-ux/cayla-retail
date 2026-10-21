@@ -18,6 +18,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { MarcaCampo } from "@/components/alta-producto/guia";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { ComoPagarle } from "@/components/ordenes-compra/ComoPagarle";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
@@ -105,6 +106,8 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
     () => editar?.inicial ?? { proveedorId: "", destino: destinoInicial, entrega: "", nota: "", lineas: [lineaVacia("l1")] },
   );
   const [guardando, setGuardando] = useState(false);
+  // La hoja «Cómo pagarle» del proveedor elegido (solo lectura: no entra al borrador ni a lo que se guarda).
+  const [verComoPagarle, setVerComoPagarle] = useState(false);
   // «Llega a» viene puesto con la sede donde se trabaja: hasta que la persona lo elige (aunque elija la misma), la guía lo trata como
   // sugerido y no lo marca con ✓ (ADR-0284 act. h). Al editar, el destino es el que la orden ya tenía: cuenta como elegido.
   const [destinoElegido, setDestinoElegido] = useState(Boolean(editar));
@@ -213,7 +216,8 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
   const problemaEntrega = problemaDeEntrega(orden.entrega, hoy, editar?.entregaOriginal);
   // «Nos debe» (ADR-0362, fase 5a, decisión 14): si el proveedor elegido debe prendas por reponer, se avisa antes de pedirle lo nuevo.
   const deudaDelProveedor = orden.proveedorId ? (datos.nosDebe?.[orden.proveedorId] ?? null) : null;
-  const nombreDelProveedor = datos.proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? deudaDelProveedor?.nombre ?? "Este proveedor";
+  const proveedorElegido = datos.proveedores.find((p) => p.id === orden.proveedorId);
+  const nombreDelProveedor = proveedorElegido?.nombre ?? deudaDelProveedor?.nombre ?? "Este proveedor";
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -362,7 +366,14 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
               (con ✓ 25 px, con «Sigue aquí» 21 px) y las cuatro cajas quedaban a distinta altura mientras se llenaba (Felipe, 2026-10-10:
               «debería estar alineado»). El proveedor va sin ayuda al lado: con «Sigue aquí» no cabía en la columna. */}
           <CampoGuiado id="proveedor" guia={guia}>
-            <p className={TITULO_FIJO}>{etiqueta("proveedor", "Proveedor")}</p>
+            <p className={TITULO_FIJO}>
+              {etiqueta("proveedor", "Proveedor")}
+              {proveedorElegido && (
+                <button type="button" data-guia="orden-form.como-pagarle" onClick={() => setVerComoPagarle(true)} className="btn-cayla btn-enlace ml-auto text-xs font-normal">
+                  Cómo pagarle
+                </button>
+              )}
+            </p>
             <ComboBuscable
               id="oc-proveedor"
               caja
@@ -509,6 +520,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
       </form>
 
       {avisoSalida.aviso}
+      {verComoPagarle && proveedorElegido && <ComoPagarle proveedor={proveedorElegido} onClose={() => setVerComoPagarle(false)} />}
     </div>
   );
 }

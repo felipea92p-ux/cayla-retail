@@ -61,8 +61,17 @@ export const RPC_RESUMEN_ORDENES = "fn_ordenes_compra_resumen";
 export const TAMANO_PAGINA_ORDENES = 50;
 
 /** Lo que «Nueva orden de compra» lee de la base (`getDatosNuevaOrden`). */
+/** Cómo contactar a un proveedor y cómo se le paga por lo general (sin lo bancario: eso se pide al abrir «Cómo pagarle», porque solo lo ve
+ *  quien tiene permiso). Opcional: un proveedor inactivo que Editar agrega para que el combo no se vea vacío no lo trae. */
+export type ContactoProveedorOrden = {
+  contacto?: string | null;
+  telefono?: string | null;
+  forma_pago_preferida?: string | null;
+  plazo_credito_dias?: number | null;
+};
+
 export type DatosNuevaOrden = {
-  proveedores: (ProveedorOpcion & { ruc: string | null })[];
+  proveedores: (ProveedorOpcion & { ruc: string | null } & ContactoProveedorOrden)[];
   marcas: MarcaOpcion[];
   vinculos: Vinculo[];
   categorias: { id: string; nombre: string; prefijo: string | null; familia: string | null }[];

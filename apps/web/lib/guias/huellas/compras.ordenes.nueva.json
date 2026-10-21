@@ -2,10 +2,19 @@
   "guia": "compras.ordenes.nueva",
   "ruta": "/compras/ordenes/nueva",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 17,
+  "total": 22,
   "controles": {
+    "components/CuentasProveedor.tsx": [
+      "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
+      "LapizEditar «la cuenta»",
+      "BotonCopiar «{que}»"
+    ],
+    "components/ProveedorElegido.tsx": [
+      "a «{tel.texto}»"
+    ],
     "components/ordenes-compra/NuevaOrdenCompra.tsx": [
       "Volver «/compras/ordenes»",
+      "button «orden-form.como-pagarle»",
       "ComboBuscable «oc-proveedor»",
       "CampoSelect «Llega a»",
       "CampoFecha «Entrega estimada»",

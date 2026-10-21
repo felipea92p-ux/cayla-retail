@@ -1479,6 +1479,14 @@ const PASOS_FORMULARIO_ORDEN = {
     titulo: "Si el proveedor te debe algo",
     texto: "Si este proveedor todavía te debe prendas de otra compra, aquí te lo recuerda, con cuántas y cuánto valen: pídeselas en esta orden o márcalas cuando lleguen.",
   },
+  // «Cómo pagarle» (2026-10-21): aparece al elegir el proveedor. Es una hoja que solo se lee; la demo la abre y la cierra sin tocar nada.
+  comoPagarle: {
+    id: "como-pagarle",
+    ancla: "orden-form.como-pagarle",
+    opcional: true,
+    titulo: "Cómo se le paga",
+    texto: "Con el proveedor elegido, «Cómo pagarle» te muestra su teléfono y a dónde va la plata: primero el titular, para compararlo con el nombre que muestra el banco, y luego la cuenta, el CCI o el Yape. Cada dato se copia con un toque.",
+  },
   lineas: {
     id: "lineas",
     ancla: "orden-form.lineas",
@@ -1520,6 +1528,7 @@ export const GUIA_NUEVA_ORDEN: Guia = {
     },
     PASOS_FORMULARIO_ORDEN.datos,
     PASOS_FORMULARIO_ORDEN.nosDebe,
+    PASOS_FORMULARIO_ORDEN.comoPagarle,
     PASOS_FORMULARIO_ORDEN.lineas,
     PASOS_FORMULARIO_ORDEN.linea,
     PASOS_FORMULARIO_ORDEN.agregar,
@@ -1695,6 +1704,7 @@ export const GUIA_EDITAR_ORDEN: Guia = {
     },
     { ...PASOS_FORMULARIO_ORDEN.datos, opcional: true },
     PASOS_FORMULARIO_ORDEN.nosDebe,
+    PASOS_FORMULARIO_ORDEN.comoPagarle,
     { ...PASOS_FORMULARIO_ORDEN.lineas, opcional: true },
     PASOS_FORMULARIO_ORDEN.linea,
     { ...PASOS_FORMULARIO_ORDEN.agregar, opcional: true },

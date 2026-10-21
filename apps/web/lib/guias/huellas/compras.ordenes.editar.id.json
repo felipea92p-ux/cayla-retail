@@ -2,7 +2,7 @@
   "guia": "compras.ordenes.editar.id",
   "ruta": "/compras/ordenes/editar/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 21,
+  "total": 26,
   "controles": {
     "app/(app)/compras/ordenes/editar/[id]/page.tsx": [
       "Volver «/compras/ordenes»",
@@ -10,8 +10,17 @@
       "BotonEnlace «Ver la orden»",
       "BotonEnlace «Ver la orden» #2"
     ],
+    "components/CuentasProveedor.tsx": [
+      "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
+      "LapizEditar «la cuenta»",
+      "BotonCopiar «{que}»"
+    ],
+    "components/ProveedorElegido.tsx": [
+      "a «{tel.texto}»"
+    ],
     "components/ordenes-compra/NuevaOrdenCompra.tsx": [
       "Volver «/compras/ordenes»",
+      "button «orden-form.como-pagarle»",
       "ComboBuscable «oc-proveedor»",
       "CampoSelect «Llega a»",
       "CampoFecha «Entrega estimada»",
