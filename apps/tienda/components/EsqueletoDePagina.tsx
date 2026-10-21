@@ -6,6 +6,7 @@ import { CabeceraDeEspera } from "./CabeceraConCuenta";
 import { CampanitaApagada } from "./campanita/CampanitaApagada";
 import { ElegirPorCookie } from "./cuenta/ElegirPorCookie";
 import { FormaDelEsqueleto } from "./FormaDelEsqueleto";
+import type { DisenoDeLaTienda } from "@/lib/diseno-campana";
 import { HeroeDelInicio } from "./HeroeDelInicio";
 import { Icono } from "./Icono";
 import { MarcaDeEspera } from "./Vistas";
@@ -24,10 +25,10 @@ import "@/app/estilos/recomendaciones.css";
  * está guardada (`campana`, la de la franja) y la forma de la página que viene (`FormaDelEsqueleto`), que brilla (`.t-esqueleto`,
  * quieta con prefers-reduced-motion). Sin `forma`, la saca de la dirección.
  */
-export function EsqueletoDePagina({ forma, campana = null }: { forma?: FormaEsqueleto; campana?: Campana | null }) {
+export function EsqueletoDePagina({ forma, campana = null, diseno = null }: { forma?: FormaEsqueleto; campana?: Campana | null; diseno?: DisenoDeLaTienda | null }) {
   // El héroe del Inicio, con la campaña de verdad (la misma de la franja): si lo que viene es el Inicio, ya está escrito.
   const heroe = campana ? (
-    <HeroeDelInicio hero={{ tipo: "campana", campana, piezas: [], campanaId: null }} sede={null} origenFotos={undefined} verCampana="" verNuevo={null} enEspera />
+    <HeroeDelInicio hero={{ tipo: "campana", campana, piezas: [], campanaId: null }} sede={null} origenFotos={undefined} verCampana="" verNuevo={null} enEspera diseno={diseno} />
   ) : null;
   return (
     <>
