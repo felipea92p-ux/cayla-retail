@@ -1,7 +1,7 @@
 # Maqueta · Cambio de sede y cambio de pestaña en la tienda web (2026-10-20)
 
-> **Estado: para que Felipe elija mirando.** Solo maqueta: nada de esto existe en `apps/tienda`, no hay migración ni cambio en
-> producción. Los **precios y el stock son de ejemplo**; las fotos y los nombres de las 8 prendas son los de la portada pública.
+> **Estado: Felipe eligió «velo y cuelga» (2026-10-20): construido en `apps/tienda`, ADR-0466.** Las otras cuatro quedan aquí como referencia, sin
+> construir. Solo la maqueta es de ejemplo; no hay migración ni cambio en producción. Los **precios y el stock son de ejemplo**; las fotos y los nombres de las 8 prendas son los de la portada pública.
 > Segunda vuelta (misma tarde, Felipe: «hazlo responsive pero quédate con esas opciones, y que funcionen como pantallas de carga»):
 > las seis pruebas se quedan, caben en el celular y **cada una es también la pantalla de carga** de la página que llega.
 
