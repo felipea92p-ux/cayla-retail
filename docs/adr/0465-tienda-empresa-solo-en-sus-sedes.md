@@ -32,8 +32,11 @@ tiene, y si no, arriba». La tienda ya no tiene «Todas» (Felipe 2026-10-19: «
   con una prenda de CLAURE no sale en Trujillo ni por su enlace. Lo que faltaba era el **editor de la Vitrina**: `fn_vitrina_looks`, `vitrina_guardar_look` y
   `vitrina_mostrar_look` usaban el catálogo sin tienda (que ya no trae CLAURE), así que no ofrecían sus prendas y rechazaban el look. Ahora usan
   `fn_vitrina_catalogo_de_looks()`: las prendas que se ven en alguna tienda de la web (sin tienda + cada tienda), sin marcar el look con una tienda.
+  **Cada prenda del look dice su empresa encima de su nombre** (Felipe 2026-10-21; la frase del look no se usa para eso: la escribe quien arma el look):
+  `fn_tienda_looks_json` copia el `empresa` del catálogo de esa tienda a cada prenda (`20261021005000`), así que sigue la misma regla —solo en Lima— y la página del
+  look y su hoja de tallas lo escriben como una línea chica sobre el nombre (`.t-look-empresa`).
 - **Migraciones** (todas idempotentes, una parte, sin tablas en exclusiva ni políticas): `20261021000000_tienda_empresa_solo_en_sus_sedes`,
-  `20261021001000_tienda_catalogo_trae_la_empresa`, `20261021002000_tienda_separar_y_bolsa_empresa_por_tienda`, `20261021003000_vitrina_looks_con_claure_solo_en_lima`. Requieren `20261020225000` (ya en
+  `20261021001000_tienda_catalogo_trae_la_empresa`, `20261021002000_tienda_separar_y_bolsa_empresa_por_tienda`, `20261021003000_vitrina_looks_con_claure_solo_en_lima`, `20261021005000_tienda_looks_trae_la_empresa_de_cada_prenda` (el 004 lo tomó otra rama). Requieren `20261020225000` (ya en
   producción). El orden con la publicación de la web no importa.
 
 ## Alternativas descartadas
@@ -48,7 +51,7 @@ tiene, y si no, arriba». La tienda ya no tiene «Todas» (Felipe 2026-10-19: «
 ## Lo que se rompe si…
 
 - Una función nueva de la tienda arma su lista con `fn_vitrina_publicable` sin llamar a `fn_tienda_empresa_se_ve`: la vigila `pnpm pruebas:tienda-empresas`
-  (38 comprobaciones; dos mutantes —el ayudante siempre responde sí, el editor mira solo el catálogo sin tienda— la ponen en rojo).
+  (41 comprobaciones; dos mutantes —el ayudante siempre responde sí, el editor mira solo el catálogo sin tienda— la ponen en rojo).
 - CLAURE abre otra sede y nadie suma su fila en `empresa_sedes`: no se ve ahí (es seguro).
 
 ## Lo que queda (decisión de Felipe)
@@ -58,13 +61,13 @@ tiene, y si no, arriba». La tienda ya no tiene «Todas» (Felipe 2026-10-19: «
 - **«Novedades para ti» del Club** (`tienda_mi_club` → `fn_tienda_novedades`) no recibe tienda: su cifra `total` puede contar una prenda de CLAURE que
   quien mira Trujillo no ve (las tarjetas salen del catálogo de la tienda y la omiten). No filtrado aún.
 - **Favoritos y «Avísame»:** se guardan por id; una de CLAURE guardada desde Lima no se dibuja con otra tienda elegida.
-- **La ficha de la prenda** no muestra la empresa (solo las tarjetas, como se pidió).
+- **La ficha de la prenda** no muestra la empresa (las tarjetas y las prendas de un look, como se pidió). Tampoco el probador («Tu look»).
 - **El texto del rechazo en «Separar»:** una prenda de CLAURE con Trujillo dice «no se vende en esa tienda» (el de siempre).
 - **Pegar a producción:** pendiente del OK de Felipe (partes y orden en cada migración).
 
 ## Verificación
 
-`pnpm pruebas:tienda-empresas` (38/38: catálogo, ficha, probador, una tienda inventada, sin tienda, CLAURE abriendo en Trujillo con una fila, puerta de
+`pnpm pruebas:tienda-empresas` (41/41: catálogo, ficha, probador, una tienda inventada, sin tienda, CLAURE abriendo en Trujillo con una fila, puerta de
 `tienda_web`, pegado dos veces, empresa en el catálogo, bolsa, «Separar» y looks: el editor ofrece y deja publicar una prenda de CLAURE, el look con CLAURE sale en Lima y no en Trujillo, el solo de CAYLA sale en las dos); `tienda-bolsa`, `tienda-probador`, `tienda-club`, `tienda-puerta`,
 `tienda-separadas`, `tienda-looks-guardados`, `tienda-lugares` en verde; `tienda-ficha` y `tienda-inicio` aceptan la clave `empresa` en la lista exacta del catálogo
 (`tienda-ficha`, `vitrina-looks` y `vitrina-web` dejan un escenario en rojo SOLO en esta base local, por las fotos y publicaciones de demo que se cargaron). Tienda: 741 pruebas, tipos y lint en verde (6 nuevas

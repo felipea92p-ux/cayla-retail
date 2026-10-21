@@ -18,6 +18,8 @@
  *      tienda no muestra.
  *   I. Los looks (`20261021003000_vitrina_looks_con_claure_solo_en_lima.sql`): el editor de la Vitrina ofrece las prendas de CLAURE y deja
  *      publicar un look que lleve una; ese look sale en Lima (lista y enlace) y NO en Trujillo; un look solo de CAYLA sale en las dos.
+ *      Y cada prenda del look dice su empresa (`20261021005000_tienda_looks_trae_la_empresa_de_cada_prenda.sql`) con la misma regla del
+ *      catálogo: en Lima sí, en Trujillo no.
  *   G. El catálogo dice la empresa de cada prenda (`20261021001000_tienda_catalogo_trae_la_empresa.sql`): `empresa.clave` y
  *      `empresa.nombre` de CAYLA y de CLAURE, que es lo que dibuja la insignia de la tarjeta, SOLO con una tienda donde operan dos o
  *      más empresas (Lima): con Trujillo, sin tienda o con una inventada, ninguna prenda trae `empresa` y no hay insignia.
@@ -43,6 +45,7 @@ const MIGRACIONES = [
   "supabase/migrations/20261021001000_tienda_catalogo_trae_la_empresa.sql",
   "supabase/migrations/20261021002000_tienda_separar_y_bolsa_empresa_por_tienda.sql",
   "supabase/migrations/20261021003000_vitrina_looks_con_claure_solo_en_lima.sql",
+  "supabase/migrations/20261021005000_tienda_looks_trae_la_empresa_de_cada_prenda.sql",
 ];
 const APLICAR_ANTES = process.env.APLICAR_ANTES
   ? process.env.APLICAR_ANTES.split(",")
@@ -266,6 +269,11 @@ esperarValor("Lima: la lista de looks trae el look con CLAURE", escenario(LOOKS 
 esperarValor("Trujillo: la lista de looks NO trae el look con CLAURE", escenario(LOOKS + listaTrae("ZZ Look con CLAURE", TRU)), "f");
 esperarValor("Lima: el look con CLAURE se abre por su enlace", escenario(LOOKS + lookAbre("look_claure", LIMA)), "t");
 esperarValor("Trujillo: el look con CLAURE no se abre por su enlace", escenario(LOOKS + lookAbre("look_claure", TRU)), "f");
+const empresasDelLook = (id, sede) =>
+  `select string_agg(coalesce(p -> 'prenda' -> 'empresa' ->> 'nombre', 'sin'), ',' order by (p ->> 'posicion')::int) from jsonb_array_elements(retail.tienda_look(:'${id}'::uuid, ${sede}) -> 'look' -> 'piezas') p;`;
+esperarValor("Lima: cada prenda del look con CLAURE dice su empresa (Emma, CAYLA; Carla, CLAURE)", escenario(LOOKS + empresasDelLook("look_claure", LIMA)), "CAYLA,CLAURE");
+esperarValor("Lima: el look solo de CAYLA dice CAYLA en cada prenda", escenario(LOOKS + empresasDelLook("look_cayla", LIMA)), "CAYLA,CAYLA");
+esperarValor("Trujillo: las prendas del look de CAYLA no dicen empresa (no hay insignia)", escenario(LOOKS + empresasDelLook("look_cayla", TRU)), "sin,sin");
 esperarValor("Trujillo: el look solo de CAYLA sigue saliendo", escenario(LOOKS + listaTrae("ZZ Look solo CAYLA", TRU)), "t");
 esperarValor("Lima: el look solo de CAYLA sigue saliendo", escenario(LOOKS + listaTrae("ZZ Look solo CAYLA", LIMA)), "t");
 
