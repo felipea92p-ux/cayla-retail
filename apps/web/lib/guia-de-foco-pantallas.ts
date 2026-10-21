@@ -220,6 +220,8 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/tienda-web/recomendaciones": { estado: "aplicada", evidencia: ["components/recomendaciones/RecomendacionHoja.tsx"] },
   // ADR-0408 (actividad 3): Tienda web ▸ Vitrina. Lo que se llena vive en sus dos hojas: la del modelo (precio web —lo que la base
   // rechaza: vacío, inválido o bajo el costo—, descripción opcional y quién lo cambia) y la del lote (cuánto subir o bajar, y quién).
+  "/tienda-web/campanas/[id]": { estado: "aplicada", evidencia: ["components/campanas-web/EditorCampana.tsx"] },
+  "/tienda-web/campanas": { estado: "no-aplica", motivo: "Tienda web ▸ Campañas (Felipe 2026-10-21), primera entrega: la lista de las campañas con su diseño. Solo mira: unas cifras, un filtro por estado y una tabla, sin campos que llenar ni pasos. Cuando llegue el editor de diseño (ambiente, colores, movimiento, textos), su pantalla y sus hojas se declaran `aplicada` con su guía de foco." },
   "/tienda-web/vitrina": { estado: "aplicada", evidencia: ["components/vitrina/VitrinaModeloHoja.tsx", "components/vitrina/VitrinaLoteHoja.tsx"] },
   // ADR-0408 (actividad 12): lo que los clientes esperan con «Avísame». Solo se lee: un buscador y píldoras de tienda, nada que guardar.
   "/tienda-web/vitrina/esperan": { estado: "no-aplica", motivo: "Lista de solo lectura de lo que los clientes de la tienda online esperan (Esperan una talla): un buscador y píldoras de tienda para filtrar, sin campos que llenar ni pasos que seguir." },
@@ -309,6 +311,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // «No tiene RUC», y el WhatsApp si se escribió; la pregunta «¿no será uno que ya tienes?» sin contestar también bloquea. Sale de lo que la función
   // `registrar_proveedor_de_orden` ya exige (`lib/proveedor-de-orden-reglas.ts`, con su prueba).
   "components/ordenes-compra/RegistrarProveedorOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/RegistrarProveedorOrden.tsx"] },
+  "components/campanas-web/VistaPreviaCampana.tsx": { estado: "no-aplica", motivo: "Una hoja de un solo paso: «Crear enlace» y copiarlo. El único control es el «Responsable» de siempre y la hoja dice qué hace antes de pedir nada." },
   // Avisos, «Editar mensajes» (2026-10-20): cada aviso es un campo (lo que rechazaría `fn_club_aviso_problema`), el cierre opcional y quién lo cambia.
   "components/clientas/EditarMensajesAvisos.tsx": { estado: "aplicada", evidencia: ["components/clientas/EditarMensajesAvisos.tsx"] },
   // Pedidos web (ADR-0408 act. 8): confirmar enciende prenda por prenda y después quién; cerrar y anular, el motivo y quién; enviar, el día.

@@ -22,6 +22,8 @@ export type ResultadoGoogle =
   | { estado: "correo_de_otra_persona" }
   /** Ya hay una cuenta con ese correo que no es este usuario de Google. */
   | { estado: "correo_repetido" }
+  /** Su ficha ya tiene cuenta con OTRO correo (el nombre coincide): `correoCuenta`, a medias, es con el que entra (20261021182000). */
+  | { estado: "otro_correo"; correoCuenta: string }
   | { estado: "sin_respuesta" };
 
 /** Canjea el código de Google por la sesión y deja la cuenta lista. Si algo falla, la sesión se cierra: nadie queda a medias. */
@@ -59,6 +61,7 @@ export async function terminarConGoogle(codigo: string): Promise<ResultadoGoogle
     const vinculo = await vincularCuentaGoogleEnBase({ usuarioWebId: usuario.id, correo: usuario.correo, nombre: usuario.nombre, textos: TEXTOS_VERSION });
     const siguiente = siguienteTrasVincular(vinculo.estado);
     if (siguiente === "rechazar") return fallar({ estado: "correo_de_otra_persona" });
+    if (siguiente === "otro_correo" && vinculo.estado === "otro_correo") return fallar({ estado: "otro_correo", correoCuenta: vinculo.correoCuenta });
     if (siguiente === "listo") {
       vinculada = vinculo.estado === "vinculada";
     } else {

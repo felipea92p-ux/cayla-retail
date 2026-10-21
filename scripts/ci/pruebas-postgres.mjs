@@ -143,6 +143,10 @@ export const PRUEBAS = [
   // candados (destino, caja fuerte, comisión, sin ser líder), anular, pegar dos veces. ROLLBACK.
   "pruebas:pago-planilla-y-sunat",
 
+  // La planilla estimada por sede (ADR-0453): lo devengado hasta hoy y lo que costaría el período entero, con el sueldo fijo en
+  // proporción; sin el grupo prueba ni sedes de menos de 3 personas; lo pagado y lo cerrado no se estima; permisos; pegar dos veces. ROLLBACK.
+  "pruebas:planilla-provision",
+
   // El piso de fecha de un movimiento de dinero y lo de la empresa en la lista de una tienda (ADR-0417 act. 2026-10-17, los dos
   // hallazgos de /chaos del 2026-10-16): una fecha anterior al inicio de Finanzas se rechaza como un gasto; el líder ve la planilla,
   // SUNAT y lo entre bancos mirando cualquier tienda; la colaboradora, solo lo suyo; pegar dos veces y las anclas vecinas. ROLLBACK.
@@ -236,6 +240,11 @@ export const PRUEBAS = [
   // tiendas de la web (no hay precio web), con la campaña de la caja encima (ADR-0403), sus colores activos y las fotos del almacén
   // público. ROLLBACK.
   "pruebas:vitrina-web",
+
+  // Tienda web ▸ Campañas (actividad 1): el módulo nace sin rol y sin él no se lee la lista; `fn_campanas_web` solo da campañas
+  // aprobadas, activas y con descuento, mide su estado con la fecha de Lima y cuenta modelos; la tabla `campana_web_disenos` no la toca
+  // nadie directo y sus CHECK dejan fuera todo lo que la tienda no conoce. ROLLBACK.
+  "pruebas:campanas-web",
 
   // La ficha de la tienda online y cuánto hay en cada tienda (ADR-0408, actividad 4): el nivel («hay», 3, 2, «Última», «—») cuenta
   // piso + almacén sin Cuarentena, sin lo apartado, sin el Taller ni las tiendas escondidas, baja al vender o apartar, respeta el
