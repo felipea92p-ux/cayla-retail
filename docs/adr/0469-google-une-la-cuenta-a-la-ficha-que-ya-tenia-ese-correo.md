@@ -1,7 +1,7 @@
 # ADR-0469 — Entrar con Google une la cuenta a la ficha que ya tenía ese correo (con cinco candados)
 
 - **Fecha:** 2026-10-21 · **Estado:** código, base y pruebas listos en local (prueba de base 38/38, web 570 archivos, tienda 49, tipos, Knip, ESLint) y mirado en el
-  navegador (Avisar y Deshacer la unión). **La migración `20261021170000` NO está en producción**: espera el OK de Felipe. **Google no se probó de punta a
+  navegador (Avisar y Deshacer la unión). **La migración `20261021170000` está pegada en producción desde el 2026-10-21** (Felipe lo pidió; verificada por permisos, RLS y la regla del nombre). **Google no se probó de punta a
   punta** (sigue faltando el cliente de Google Cloud en local); lo que sí está probado es cada decisión de la base y cada paso del ERP.
   Rama `claude/google-login-auto-existing-account-7ace9a`.
 - **Pedido:** Felipe, 2026-10-21: quien ya tiene una ficha en CAYLA y entra con Google debería entrar solo, no leer «tu correo ya está registrado con otros datos,
@@ -57,5 +57,5 @@ no tiene cuenta. Si el correo es el de una ficha y pasa **cinco candados**, la c
 
 ## Pendiente
 
-- **Pegar `20261021170000` en producción** (una sola parte, idempotente, sin `alter` de tablas en uso ni políticas) y refrescar el diccionario de datos.
+- Refrescar el diccionario de datos (`pnpm datos:generar:produccion`) ahora que la migración está en producción.
 - Decidir si el aviso por WhatsApp se automatiza (proveedor de envío) o se queda como tarea de la tienda.
