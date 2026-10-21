@@ -1,5 +1,6 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { getAvisosPendientes, getTextosDeAvisos, type LecturaAvisos } from "@/lib/club-avisos";
+import { getVinculosGoogle } from "@/lib/vinculos-google";
 import { AvisosClubPanel } from "@/components/clientas/AvisosClubPanel";
 
 // Clientas ▸ Avisos (ADR-0288, «Actualización 2026-10-01 (g)», G-8): los mensajes por mandar a cada socia desde el WhatsApp de la
@@ -14,6 +15,8 @@ export default async function AvisosClubPage() {
   const [lectura, textos] = esTienda
     ? await Promise.all([getAvisosPendientes(persona.ubicacionId), getTextosDeAvisos(persona.ubicacionId)])
     : [sinLista, null];
+  // Las cuentas de Google unidas a una ficha (ADR-0469): se le avisa a la dueña desde el WhatsApp de esta tienda. Sin tienda no se mandan.
+  const vinculos = esTienda ? await getVinculosGoogle() : [];
   return (
     <AvisosClubPanel
       sede={{ id: persona.ubicacionId, nombre: persona.ubicacionEtiqueta }}
@@ -21,6 +24,8 @@ export default async function AvisosClubPage() {
       avisos={lectura.avisos}
       falla={lectura.falla}
       textos={textos}
+      vinculos={vinculos}
+      esLider={persona.rol === "lider"}
     />
   );
 }

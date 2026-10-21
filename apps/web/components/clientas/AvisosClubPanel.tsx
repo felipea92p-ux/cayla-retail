@@ -39,6 +39,8 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { BurbujaAviso } from "./BurbujaAviso";
 import { EditarMensajesAvisos } from "./EditarMensajesAvisos";
+import { VinculosGoogleAvisos } from "./VinculosGoogleAvisos";
+import type { VinculoGoogle } from "@/lib/vinculos-google-reglas";
 
 // Clientas ▸ Avisos (ADR-0288, «Actualización 2026-10-01 (g)», G-8), con el diseño «Uno a la vez» que Felipe eligió el 2026-10-20
 // (`docs/maquetas/avisos-club-2026-10/`, opción A): la pantalla es una tanda. Arriba, cuánto va de hoy y quién envía; en el centro, UN
@@ -74,6 +76,8 @@ export function AvisosClubPanel({
   avisos,
   falla,
   textos,
+  vinculos,
+  esLider,
 }: {
   /** La sede activa del selector: los avisos salen del WhatsApp de esta tienda. */
   sede: { id: string; nombre: string };
@@ -84,6 +88,10 @@ export function AvisosClubPanel({
   falla: string | null;
   /** Los mensajes que rigen en esta tienda (`fn_club_avisos_textos`); null fuera de una tienda o si la base no los dio. */
   textos: TextosDeAvisos | null;
+  /** Las cuentas de Google unidas a una ficha en los últimos 60 días (ADR-0469): se avisa a la dueña desde aquí. Vacío si no hay o la base aún no tiene la migración. */
+  vinculos: VinculoGoogle[];
+  /** Solo un líder deshace una unión (`desvincular_cuenta_google`). */
+  esLider: boolean;
 }) {
   const responsable = useResponsable({ ubicacionId: sede.id, etiqueta: sede.nombre });
   // Con la cuenta de una PERSONA, los avisos firman a su nombre sin elegir a nadie (Felipe, 2026-10-02): «Enviar», «Deshacer» y
@@ -269,6 +277,15 @@ export function AvisosClubPanel({
           )
         }
       />
+
+      {esTienda && (
+        <VinculosGoogleAvisos
+          vinculos={vinculos}
+          sede={sede}
+          esLider={esLider}
+          puerta={{ listo, motivo, firmaDe, despues: (error) => (esPersona ? undefined : responsable.despues(error)) }}
+        />
+      )}
 
       {!esTienda ? (
         <Vacio guia="avisos.sin-tienda" icono={<Store />} titulo="Elige una tienda">
