@@ -65,7 +65,7 @@ no tiene cuenta. Si el correo es el de una ficha y pasa **cinco candados**, la c
 **El caso real (Felipe, 2026-10-21):** su ficha tiene el correo `fel…@gmail.com` y su cuenta de la tienda entra con `sub…@gmail.com`. Con Google y `fel…`, el primer candado
 (una ficha es de una sola cuenta) lo rechazaba con «ya está registrado con otros datos, acércate a una tienda»: no decía que ya tenía cuenta ni con cuál.
 
-**Qué cambia** (migración `20261021182000`, **sin pegar en producción hasta que Felipe lo diga**): el candado del nombre corre antes de mirar la cuenta de la ficha. Si el
+**Qué cambia** (migración `20261021182000`, **pegada en producción el 2026-10-21, cuando Felipe lo dijo**): el candado del nombre corre antes de mirar la cuenta de la ficha. Si el
 nombre coincide y la ficha tiene una cuenta ABIERTA con otro correo, `tienda_vincular_cuenta_google` devuelve `otro_correo` con ese correo **a medias** (`su••••@gmail.com`:
 dos letras y el dominio) y «Entrar» dice «Ya tienes una cuenta con otro correo: su••••@gmail.com. Entra con ese correo y tu contraseña, y cámbialo en «Mi cuenta» si quieres usar
 Google.» No se une ni se crea nada. Sin nombre parecido, con cuenta cerrada, ficha archivada o varias fichas, sigue `no_coincide` y no se dice nada del correo de la cuenta.
