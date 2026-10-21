@@ -24,9 +24,10 @@ const esquemaPrenda = z
     id: z.string().uuid(),
     codigo: z.string().nullable(),
     nombre: z.string().min(1),
-    // `familia`: la de la categoría (indumentaria, accesorios…), para ubicar en su sección una categoría que la tabla de grupos no conoce.
-    // Una base que todavía no la manda no rompe nada: queda sin familia.
-    categoria: z.object({ nombre: z.string().min(1), prefijo: z.string().nullable(), familia: z.string().nullish().catch(null) }).nullable(),
+    categoria: z.object({ nombre: z.string().min(1), prefijo: z.string().nullable() }).nullable(),
+    // La familia de la categoría (indumentaria, accesorios…), para ubicar en su sección una categoría que la tabla de grupos no conoce. Una base
+    // que todavía no la manda no rompe nada: queda sin familia.
+    categoria_familia: z.string().nullish().catch(null),
     // De qué empresa es la prenda (CAYLA o CLAURE, ADR-0465). Sin el dato (una base que aún no lo manda), la tarjeta no dibuja la insignia.
     empresa: z.object({ clave: z.string().min(1), nombre: z.string().min(1) }).nullable().catch(null),
     // El precio del modelo en la tienda elegida (con «Todas», el mayor entre las tiendas de la web).
@@ -94,7 +95,7 @@ export function interpretarCatalogo(dato: unknown): Catalogo | null {
         id: d.id,
         codigo: d.codigo,
         nombre: d.nombre,
-        categoria: d.categoria,
+        categoria: d.categoria ? { ...d.categoria, familia: d.categoria_familia ?? null } : null,
         empresa: d.empresa,
         precio: d.precio,
         precioFinal: d.precio_final,

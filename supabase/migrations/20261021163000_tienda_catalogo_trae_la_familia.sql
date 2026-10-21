@@ -12,15 +12,18 @@
 -- ANALOGÍA CAYLA. El grupo fino («Bolsos/Cinturones») es el pasillo que decide la tienda; la familia es el letrero de la sección
 -- («Accesorios»). Una prenda que nadie ubicó va al pasillo «otros» de SU sección, no a cualquier lado.
 --
--- QUÉ HACE. `tienda_catalogo(sede)` suma `'familia'` al objeto `categoria` de cada prenda, leída de `categorias.familia`. Es un dato más
--- del mismo objeto: la web de antes lo ignora y la web nueva, si no llega, usa el respaldo de siempre (principio 9: se degrada, no se
+-- QUÉ HACE. `tienda_catalogo(sede)` suma `'categoria_familia'` a cada prenda, leída de `categorias.familia`. Es un dato más del mismo
+-- objeto: la web de antes lo ignora y la web nueva, si no llega, usa el respaldo de siempre (principio 9: se degrada, no se
 -- cae). Solo el catálogo: los looks, las fichas y los favoritos arman sus tarjetas desde él.
 -- DECIDÍ: la tabla por prefijo sigue mandando para lo que conoce (el grupo fino es una decisión de diseño y cambia poco); la familia
 --   es solo el respaldo de lo que la tabla no conoce.
 -- DESCARTÉ: columnas nuevas de grupo en `categorias` (un paso más para quien crea la categoría) y la categoría madre
 --   (`categoria_padre_id`: casi sin uso, y obligaría a crear categorías vacías que aparecerían en el combo de Nuevo producto).
 --
--- SE ROMPE SI: otra función de la tienda arma el objeto `categoria` por su cuenta (no traería la familia; la web usa el respaldo).
+-- DECIDÍ: una clave hermana de `categoria` y no `categoria.familia`. Cambiar el texto de `'categoria', …` rompería el ancla de
+--   20261021001000 (se repega en las pruebas de Postgres y en producción): la clave nueva va ANTES de esa línea y la deja intacta.
+--
+-- SE ROMPE SI: otra función de la tienda arma la prenda por su cuenta (no traería `categoria_familia`; la web usa el respaldo).
 --
 -- PRODUCCIÓN. Una sola parte, idempotente (se puede pegar dos veces): un reemplazo anclado; no toma tablas en exclusiva ni toca
 -- políticas (sin riesgo de 40P01). Cuenta que su ancla aparezca UNA vez: si alguien cambió la función, se detiene sin tocar nada. Sin
@@ -55,9 +58,10 @@ $f$;
 select pg_temp.reemplazar_anclado(
   'retail.tienda_catalogo(uuid)',
   $v$'categoria', case when c.id is null then null else jsonb_build_object('nombre', c.nombre, 'prefijo', c.prefijo) end,$v$,
-  $v$'categoria', case when c.id is null then null else jsonb_build_object('nombre', c.nombre, 'prefijo', c.prefijo, 'familia', c.familia) end,$v$
+  $v$'categoria_familia', c.familia,
+        'categoria', case when c.id is null then null else jsonb_build_object('nombre', c.nombre, 'prefijo', c.prefijo) end,$v$
 );
 
 select 'ADR-0408 · tienda: el catálogo trae la familia de cada categoría' as parte,
-       case when pg_get_functiondef('retail.tienda_catalogo(uuid)'::regprocedure) like '%''prefijo'', c.prefijo, ''familia'', c.familia%'
+       case when pg_get_functiondef('retail.tienda_catalogo(uuid)'::regprocedure) like '%''categoria_familia'', c.familia,%'
             then 'QUEDÓ BIEN' else 'REVISAR' end as resultado;
