@@ -15,7 +15,8 @@ import { FotoTarjeta } from "./FotoTarjeta";
 import { EVENTO_BUSCAR } from "@/lib/buscar-evento";
 import { claveDeLaOpcion, type OpcionTienda } from "@/lib/sede-elegida";
 import { vaciarBolsaPorCambioDeTienda } from "@/app/acciones/bolsa";
-import { recordarSede } from "@/lib/sede-cookie";
+import { marcarUbicacionPreguntada, recordarSede, sedeYaRecordada, ubicacionYaPreguntada } from "@/lib/sede-cookie";
+import { claveMasCercana, debePedirUbicacion } from "@/lib/sede-cercana";
 import { ahoraMs, debeCubrir, esperaHastaElTope, esperaParaSalir, VELO_SALE_MS } from "@/lib/sede-velo";
 import { Icono } from "./Icono";
 import { Logo } from "./Marca";
@@ -393,6 +394,46 @@ function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]
       router.push(o.href, { scroll: false });
     });
   };
+  // Lo último que vio este selector, para que la respuesta de la ubicación (que llega segundos después) decida con lo de AHORA y no con lo
+  // de cuando se preguntó: otra tienda elegida a mano, otra página o prendas nuevas en la bolsa.
+  const vivo = useRef({ opciones, prendasEnBolsa, ir });
+  useEffect(() => {
+    vivo.current = { opciones, prendasEnBolsa, ir };
+  });
+  const pidioUbicacion = useRef(false);
+  // La tienda más cercana (Felipe 2026-10-21): al entrar al Inicio por primera vez se pide la ubicación y se pasa a la tienda más cercana, con
+  // el mismo velo de cambiar de tienda. La ubicación solo se usa para esto, aquí en el aparato: no se manda ni se guarda; se recuerda la
+  // tienda (la cookie de siempre). Si dice que no, o no hay señal, se queda en la tienda de siempre y no se le vuelve a preguntar.
+  useEffect(() => {
+    if (pidioUbicacion.current || !("geolocation" in navigator)) return;
+    const estado = () => ({
+      ruta: window.location.pathname,
+      tiendaRecordada: sedeYaRecordada(),
+      yaPreguntada: ubicacionYaPreguntada(),
+      prendasEnBolsa: vivo.current.prendasEnBolsa,
+      tiendas: vivo.current.opciones.length,
+    });
+    if (!debePedirUbicacion(estado())) return;
+    pidioUbicacion.current = true;
+    navigator.geolocation.getCurrentPosition(
+      (posicion) => {
+        marcarUbicacionPreguntada();
+        const { opciones: ahora, ir: irA } = vivo.current;
+        // Si mientras tanto eligió una a mano, cambió de página o llenó la bolsa, no se le cambia nada por su cuenta.
+        if (!debePedirUbicacion({ ...estado(), yaPreguntada: false })) return;
+        const clave = claveMasCercana(
+          { lat: posicion.coords.latitude, lng: posicion.coords.longitude },
+          ahora.flatMap((o) => claveDeLaOpcion(o.href) ?? []),
+        );
+        const cercana = clave ? ahora.find((o) => claveDeLaOpcion(o.href) === clave) : undefined;
+        if (!cercana) return;
+        if (cercana.actual) recordarSede(clave!);
+        else irA(cercana, false);
+      },
+      () => marcarUbicacionPreguntada(),
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 600_000 },
+    );
+  }, [opciones, prendasEnBolsa]);
   return (
     <div className="t-persona t-sel-tienda" ref={caja}>
       <button
