@@ -253,6 +253,11 @@ export function CabeceraConCuenta({
  * para reconocerla de un vistazo; a la derecha, lo último que llegó de ese menú (Felipe 2026-10-15: el menú «Ropa» era una lista de
  * texto con un hueco al medio y una columna de 17 filas que mezclaba la ropa con los aretes y el maquillaje).
  */
+/** «Lentes/Gorros/Pañuelos» es una sola palabra sin espacios: sin un punto de corte no cabe en su columna y pisa a la vecina. */
+function conCortes(nombre: string) {
+  return nombre.split("/").flatMap((parte, i) => (i === 0 ? [parte] : ["/", <wbr key={i} />, parte]));
+}
+
 function MenuGrande({ menu, hrefNuevo }: { menu: MenuCabecera; hrefNuevo: string }) {
   return (
     <div className="t-mega-envol">
@@ -265,7 +270,7 @@ function MenuGrande({ menu, hrefNuevo }: { menu: MenuCabecera; hrefNuevo: string
           {menu.grupos.map((g) => (
             <div key={g.clave} className="t-mega-grupo">
               <h4>
-                <Link href={g.href}>{g.nombre}</Link>
+                <Link href={g.href}>{conCortes(g.nombre)}</Link>
               </h4>
               <ul>
                 {g.categorias.map((c) => (
