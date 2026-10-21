@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { conAviso, hrefConVolver, PARAMETRO_VOLVER, rutaParaVolver } from "@/lib/entrada";
+import { COOKIE_GOOGLE_CORREO, COOKIE_GOOGLE_CORREO_S } from "@/lib/google";
 import { terminarConGoogle } from "@/lib/google-servidor";
 import { INICIO_CON_CUENTA } from "@/lib/sesion";
 
@@ -22,6 +23,17 @@ export async function GET(request: NextRequest) {
       return hacia(r.nueva ? conAviso(volver ?? INICIO_CON_CUENTA, "cuenta-lista") : (volver ?? INICIO_CON_CUENTA));
     case "sin_codigo":
       return fallo("cancelado");
+    case "otro_correo": {
+      // Su ficha ya tiene cuenta con otro correo: se le dice con cuál entrar. El correo (a medias) va en una cookie corta, no en la dirección.
+      const respuesta = fallo("ya-tienes-cuenta");
+      respuesta.cookies.set(COOKIE_GOOGLE_CORREO, encodeURIComponent(r.correoCuenta), {
+        path: "/entrar",
+        maxAge: COOKIE_GOOGLE_CORREO_S,
+        sameSite: "lax",
+        secure: request.nextUrl.protocol === "https:",
+      });
+      return respuesta;
+    }
     case "correo_de_otra_persona":
       return fallo("correo-de-otra-persona");
     case "correo_repetido":

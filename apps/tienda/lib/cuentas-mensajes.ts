@@ -72,6 +72,7 @@ export const MENSAJES = {
   googleNoDisponible: "No pudimos entrar con Google ahora. Intenta de nuevo en unos minutos, o entra con tu correo.",
   googleCorreoRepetido: "Ya hay una cuenta con el correo de tu Google. Entra con tu correo y tu contraseña.",
   googleCorreoDeOtraPersona: "El correo de tu Google ya está registrado en CAYLA con otros datos. Usa otro correo o, si es tuyo, acércate a una tienda CAYLA y lo revisamos.",
+  googleYaTienesCuenta: "Ya tienes una cuenta con otro correo. Entra con tu correo y tu contraseña, y cámbialo en «Mi cuenta» si quieres usar Google.",
   // «Entrar» ya no espera con el botón apagado: al tocarlo dice qué falta, bajo su caja (lib/entrada.ts, `problemaAlEntrar`).
   entrarSinCorreo: "Escribe el correo con el que creaste tu cuenta.",
   entrarSinClave: "Escribe tu contraseña.",
@@ -85,3 +86,8 @@ export const MENSAJES = {
   claveIgual: "Esa ya era tu contraseña: entraste con ella.",
   claveNoDisponible: "No pudimos guardar tu contraseña ahora. Intenta de nuevo en unos minutos.",
 } as const;
+
+/** Lo que dice «Entrar» cuando Google trae un correo cuya ficha ya tiene cuenta con otro: con cuál entrar, a medias (20261021182000). */
+export function googleYaTienesCuentaCon(correoOculto: string): string {
+  return `Ya tienes una cuenta con otro correo: ${correoOculto}. Entra con ese correo y tu contraseña, y cámbialo en «Mi cuenta» si quieres usar Google.`;
+}

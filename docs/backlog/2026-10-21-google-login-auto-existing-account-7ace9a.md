@@ -6,3 +6,10 @@
 - [x] **Pegada en producción (2026-10-21, Felipe lo pidió):** `20261021170000`, una parte, con `apply_migration` en cayla-dynamic; verificada: 5 funciones con sus permisos (solo `tienda_web` la de la tienda, `authenticated` las de Avisos), tabla con RLS y sin políticas ni acceso de la API, acción `vinculo_google_desvincular` en la lista, la regla del nombre da lo esperado. Queda: refrescar el volcado del diccionario (`pnpm datos:generar:produccion`).
 - [ ] **De Felipe:** el aviso a la dueña es una tarea de la tienda (no hay WhatsApp automático): decidir si se contrata un envío. Hasta entonces, quien abre Avisos debe mirar ese bloque.
 - [ ] **Sin probar:** Google de punta a punta (falta el cliente de Google Cloud); `/chaos` y `/formidable` del bloque nuevo; el modo oscuro del bloque con `tema:auditar` (solo usa tokens, y `tema-colores.test.ts` pasa).
+
+## 🔗 «Ya tienes cuenta con otro correo» (2026-10-21, ADR-0469 act. b) — migración `20261021182000` PEGADA en producción (2026-10-21)
+
+- [x] Base: `tienda_vincular_cuenta_google` devuelve `otro_correo` (con el correo de la cuenta a medias) si el nombre coincide y la ficha tiene cuenta abierta; el candado del nombre corre antes. `pnpm pruebas:tienda-vincular-google` 39/39 (con y sin `APLICAR_ANTES`).
+- [x] Tienda: `siguienteTrasVincular("otro_correo")`, cookie corta `cayla-google-correo` (nunca el correo en la dirección), mensaje en «Entrar»; pruebas puras en `google.test.ts`.
+- [x] **Pegada en producción el 2026-10-21** (Felipe lo dijo): `20261021182000`, una parte, con guarda de md5 (tenía `201de991…`). Verificado: la función quedó con md5 `0fbfa5e4…`, solo `tienda_web` la ejecuta (`anon` y `authenticated` no).
+- [ ] **Sin probar:** el recorrido en el navegador con Google real (la cookie y el mensaje solo tienen pruebas puras).
