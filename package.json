@@ -25,6 +25,7 @@
     "chaos:invariantes": "node scripts/chaos/invariantes.mjs",
     "chaos:catalogo": "node scripts/chaos/catalogo.mjs",
     "pruebas:registrar-cambio": "node scripts/pruebas/registrar_cambio.mjs",
+    "pruebas:registrar-cambio-varias": "node scripts/pruebas/registrar_cambio_varias.mjs",
     "pruebas:cambio-sin-precio": "node scripts/pruebas/cambio_sin_precio.mjs",
     "pruebas:actividad": "node scripts/pruebas/actividad.mjs",
     "pruebas:sesion-no-es-equipo": "node scripts/pruebas/sesion_no_es_equipo.mjs",

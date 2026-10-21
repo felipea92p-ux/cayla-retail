@@ -149,6 +149,7 @@ export const PRUEBAS = [
   "pruebas:movimientos-dinero-inicio-y-empresa",
 
   "pruebas:registrar-cambio",
+  "pruebas:registrar-cambio-varias",
 
   // No se cambia por una prenda sin precio (ADR-0385): un cambio por una prenda en S/ 0 (ni la bolsa de obsequio) se rechaza sin
   // escribir nada; con precio, o con precio de tienda sobre un base 0, sigue funcionando; la migración se puede pegar dos veces. ROLLBACK.
