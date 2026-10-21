@@ -8,7 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
-import { ElegirEmpresa } from "@/components/alta-producto/ElegirEmpresa";
+import { ElegirEmpresa, TarjetaEmpresa } from "@/components/alta-producto/ElegirEmpresa";
 import { ElegirEtiquetas } from "@/components/alta-producto/ElegirEtiquetas";
 import { ElegirMuestra } from "@/components/alta-producto/ElegirMuestra";
 import { ElegirTemporada } from "@/components/alta-producto/ElegirTemporada";
@@ -899,12 +899,7 @@ export function NuevoProductoForm({
           <p className="text-[13px] text-taupe">
             Con la categoría, el sistema ya sabe el código, las tallas y los tejidos que suele llevar. Al tocarla pasas solo al siguiente paso.
           </p>
-          {empresas && (
-            <FilaAlta etiqueta="Tienda" ayuda="¿De qué negocio es esta prenda?" campo="empresa" estado={est.empresa}>
-              <ElegirEmpresa empresas={empresas} empresaId={empresaId} onElegir={setEmpresaId} />
-            </FilaAlta>
-          )}
-          {/* Sin tienda no se elige categoría (ADR-0463): se ve el camino, atenuado, y se enciende al elegir la tienda. */}
+          {/* Sin tienda no se elige categoría (ADR-0463): se ve el camino, atenuado, y se enciende al elegir la tienda. La pregunta vive en su propia tarjeta, sobre este paso. */}
           <div inert={faltaEmpresa} className={faltaEmpresa ? "opacity-50 transition-opacity" : "transition-opacity"}>
             <ArbolCategoria familias={contexto.familias} categorias={contexto.categorias} categoriaId={categoriaId} onElegir={elegirCategoria} onCambiar={cambiarCategoria} pausado={faltaEmpresa} />
           </div>
@@ -1323,6 +1318,13 @@ export function NuevoProductoForm({
                 </Aviso>
               )}
               {/* Solo el paso abierto: los demás están en los puntos de arriba. `key` lo vuelve a montar al cambiar de paso (entra con su revelado). */}
+              {paso === 1 && empresas && (
+                <TarjetaEmpresa>
+                  <FilaAlta etiqueta="Tienda" campo="empresa" estado={est.empresa}>
+                    <ElegirEmpresa empresas={empresas} empresaId={empresaId} onElegir={setEmpresaId} />
+                  </FilaAlta>
+                </TarjetaEmpresa>
+              )}
               <PasoAlta key={paso} numero={paso} titulo={TITULOS[paso]} pie={pie(paso)}>
                 {cuerpo(paso)}
               </PasoAlta>
