@@ -22,6 +22,8 @@
  *      catálogo: en Lima sí, en Trujillo no.
  *   J. La bolsa (`20261021011000_tienda_bolsa_trae_la_empresa_de_cada_prenda.sql`): cada línea dice la empresa de su prenda con la misma regla
  *      del catálogo: en Lima sí; en Trujillo no.
+ *   K. El pedido (`20261021013000_tienda_pedidos_traen_la_empresa_de_cada_prenda.sql`): cada prenda del pedido separado dice su empresa si la
+ *      tienda del pedido tiene dos o más empresas (Lima); un pedido a Trujillo no dice empresa. Lo leen «Separado» y «Mis pedidos».
  *   G. El catálogo dice la empresa de cada prenda (`20261021001000_tienda_catalogo_trae_la_empresa.sql`): `empresa.clave` y
  *      `empresa.nombre` de CAYLA y de CLAURE, que es lo que dibuja la insignia de la tarjeta, SOLO con una tienda donde operan dos o
  *      más empresas (Lima): con Trujillo, sin tienda o con una inventada, ninguna prenda trae `empresa` y no hay insignia.
@@ -49,6 +51,7 @@ const MIGRACIONES = [
   "supabase/migrations/20261021003000_vitrina_looks_con_claure_solo_en_lima.sql",
   "supabase/migrations/20261021005000_tienda_looks_trae_la_empresa_de_cada_prenda.sql",
   "supabase/migrations/20261021011000_tienda_bolsa_trae_la_empresa_de_cada_prenda.sql",
+  "supabase/migrations/20261021013000_tienda_pedidos_traen_la_empresa_de_cada_prenda.sql",
 ];
 const APLICAR_ANTES = process.env.APLICAR_ANTES
   ? process.env.APLICAR_ANTES.split(",")
@@ -251,6 +254,35 @@ esperarValor(
   escenario(CUENTA + `select retail.tienda_separadas_por_otros(:'usr', :'carla', ${LIMA}) is not null;`),
   "t",
 );
+
+console.log("K. El pedido dice la empresa de cada prenda");
+const DEJAR = `
+select id as lim_piso from retail.sububicaciones where ubicacion_id = :'lim' and tipo = 'piso_venta' \\gset
+select id as tru_piso from retail.sububicaciones where ubicacion_id = :'tru' and tipo = 'piso_venta' \\gset
+insert into retail.configuracion_tienda_web (id) values (true) on conflict (id) do nothing;
+update retail.configuracion_tienda_web set horas_para_confirmar = 24, horas_aviso_sin_pagar = 48, dias_aviso_sin_recoger = 7 where id;
+create function pg_temp.dejar(p_v uuid, p_u uuid, p_sub uuid, p_n integer) returns void language plpgsql as $f$
+declare v_mov uuid;
+begin
+  insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, nota)
+    values (p_v, p_u, p_sub, 'entrada', p_n, 'prueba', 'prueba tienda empresas: colchón') returning id into v_mov;
+  perform retail.fn_aplicar_movimiento(v_mov);
+end $f$;
+select pg_temp.dejar(:'v_emma', :'lim', :'lim_piso', 5), pg_temp.dejar(:'v_carla', :'lim', :'lim_piso', 5), pg_temp.dejar(:'v_emma', :'tru', :'tru_piso', 5);
+`;
+// Separa en una tienda las prendas dadas (al precio que dice la bolsa) y devuelve la empresa de cada línea del pedido, por nombre.
+const pedidoEn = (sede, ...variantes) => `
+select retail.tienda_separar(:'usr', ${sede},
+  (select jsonb_agg(jsonb_build_object('variante_id', x ->> 'variante_id', 'cantidad', (x ->> 'cantidad')::int, 'precio', (x ->> 'precio')::numeric))
+     from jsonb_array_elements(retail.tienda_bolsa(jsonb_build_array(${variantes.map((v) => `jsonb_build_object('variante_id', :'${v}'::uuid, 'cantidad', 1)`).join(", ")}), ${sede}) -> 'lineas') x),
+  gen_random_uuid()) ->> 'codigo' as codigo \\gset
+select string_agg(coalesce(l -> 'empresa' ->> 'nombre', 'sin'), ',' order by l ->> 'nombre')
+  from jsonb_array_elements(retail.tienda_pedido(:'usr', :'codigo') -> 'pedido' -> 'lineas') l;
+`;
+// Las líneas de `\\gset` imprimen separadores vacíos: el veredicto es la ÚLTIMA línea de la salida.
+const ultima = (r) => (r.ok ? { ...r, salida: r.salida.split("\n").pop() } : r);
+esperarValor("Lima: el pedido dice CAYLA para Emma y CLAURE para Carla", ultima(escenario(CUENTA + DEJAR + pedidoEn(LIMA, "v_emma", "v_carla"))), "CAYLA,CLAURE");
+esperarValor("Trujillo: el pedido no dice empresa", ultima(escenario(CUENTA + DEJAR + pedidoEn(TRU, "v_emma"))), "sin");
 
 console.log("J. La bolsa dice la empresa de cada prenda");
 const empresasDeLaBolsa = (sede) =>
