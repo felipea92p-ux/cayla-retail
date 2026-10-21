@@ -36,7 +36,7 @@
  *   pnpm pruebas:campanas-web -- --contenedor supabase_db_<mi-pila>
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
@@ -114,7 +114,7 @@ const AMBIENTE = `{"modo":"ambiente","plantilla":"aniversario"}`;
 const diseno = (extra = "") =>
   `insert into retail.campana_web_disenos (etiqueta_id, modo, plantilla${extra ? ", " + extra.split("=")[0] : ""}) values (:'etq', 'ambiente', 'aniversario'${extra ? ", " + extra.split("=")[1] : ""});\n`;
 
-function main() {
+async function main() {
   const base = correr("select 1;");
   if (!base.ok) {
     console.error(`No hay Postgres local en el contenedor ${CONTENEDOR_LOCAL}. Levántalo con: npx supabase start`);
@@ -246,10 +246,10 @@ function main() {
     "un diseño de imagen lleva su horizontal y, si quiere, su vertical",
     correr(`${PREPARAR}${campana("ZZ Imagen", 25, { hasta: "5" })}
       insert into retail.campana_web_disenos (etiqueta_id, modo, imagen_ruta, imagen_vertical_ruta, acento)
-      values (:'etq', 'imagen', 'campanas/x/h.webp', 'campanas/x/v.webp', '#9e1d32');
+      values (:'etq', 'imagen', 'campanas/0a1b2c3d-0000-4000-8000-0000000000a1/0a1b2c3d-0000-4000-8000-0000000000b1.webp', 'campanas/0a1b2c3d-0000-4000-8000-0000000000a1/0a1b2c3d-0000-4000-8000-0000000000b2.webp', '#9e1d32');
       select concat_ws('|', c #>> '{diseno,modo}', c #>> '{diseno,plantilla}', c #>> '{diseno,imagen_ruta}') from jsonb_array_elements(${LISTA}) c;
       rollback;`),
-    "imagen|campanas/x/h.webp",
+    "imagen|campanas/0a1b2c3d-0000-4000-8000-0000000000a1/0a1b2c3d-0000-4000-8000-0000000000b1.webp",
   );
   const malo = (nombre, columnas, valores, que) =>
     esperarError(
@@ -260,7 +260,7 @@ function main() {
       que,
     );
   malo("un ambiente sin plantilla no entra", "modo", "'ambiente'", "campana_web_disenos_modo_coherente");
-  malo("una plantilla con modo imagen no entra", "modo, plantilla, imagen_ruta", "'imagen', 'cyber', 'campanas/x/h.webp'", "campana_web_disenos_modo_coherente");
+  malo("una plantilla con modo imagen no entra", "modo, plantilla, imagen_ruta", "'imagen', 'cyber', 'campanas/0a1b2c3d-0000-4000-8000-0000000000a1/0a1b2c3d-0000-4000-8000-0000000000b1.webp'", "campana_web_disenos_modo_coherente");
   malo("una imagen sin su horizontal no entra", "modo", "'imagen'", "campana_web_disenos_modo_coherente");
   malo("un ambiente fuera del catálogo no entra", "modo, plantilla", "'ambiente', 'halloween'", "campana_web_disenos_plantilla");
   malo("un efecto que la tienda no conoce no entra", "modo, plantilla, efecto", "'ambiente', 'cyber', 'fuegos'", "campana_web_disenos_efecto");
@@ -269,7 +269,7 @@ function main() {
   malo("un titular de 29 letras no entra", "modo, plantilla, titular", `'ambiente', 'cyber', '${"a".repeat(29)}'`, "campana_web_disenos_titular");
   malo("un botón de 23 letras no entra", "modo, plantilla, boton", `'ambiente', 'cyber', '${"a".repeat(23)}'`, "campana_web_disenos_boton");
   malo("un color que no es #rrggbb no entra", "modo, plantilla, acento", "'ambiente', 'cyber', 'rojo'", "campana_web_disenos_acento");
-  malo("una vertical sin horizontal no entra", "modo, plantilla, imagen_vertical_ruta", "'ambiente', 'cyber', 'campanas/x/v.webp'", "campana_web_disenos_imagen_vertical");
+  malo("una vertical sin horizontal no entra", "modo, plantilla, imagen_vertical_ruta", "'ambiente', 'cyber', 'campanas/0a1b2c3d-0000-4000-8000-0000000000a1/0a1b2c3d-0000-4000-8000-0000000000b2.webp'", "campana_web_disenos_imagen_vertical");
   malo("una ruta fuera de «campanas/» no entra", "modo, imagen_ruta", "'imagen', '../otra/h.webp'", "campana_web_disenos_imagen_ruta");
   malo("un estado que no es borrador ni programado no entra", "modo, plantilla, estado", "'ambiente', 'cyber', 'publicado'", "campana_web_disenos_estado");
   esperarError(
@@ -342,10 +342,10 @@ function main() {
     correr(`${PREPARAR}${campana("ZZ Modo", 20, { hasta: "5" })}${guardar('{"modo":"ambiente","plantilla":"navidad","titular":"Hola"}')} \\gset
       ${guardar('{"titular":null}', VERSION)} \\gset
       select coalesce(titular, 'sin titular') from retail.campana_web_disenos where etiqueta_id = :'etq';
-      ${guardar('{"modo":"imagen","plantilla":null,"imagen_ruta":"campanas/x/h.webp"}', VERSION)} \\gset
+      ${guardar('{"modo":"imagen","plantilla":null,"imagen_ruta":"campanas/0a1b2c3d-0000-4000-8000-0000000000a1/0a1b2c3d-0000-4000-8000-0000000000b1.webp"}', VERSION)} \\gset
       select concat_ws('|', modo, coalesce(plantilla, 'sin'), imagen_ruta, version) from retail.campana_web_disenos where etiqueta_id = :'etq';
       rollback;`),
-    "sin titular\nimagen|sin|campanas/x/h.webp|3",
+    "sin titular\nimagen|sin|campanas/0a1b2c3d-0000-4000-8000-0000000000a1/0a1b2c3d-0000-4000-8000-0000000000b1.webp|3",
   );
   esperarValor(
     "sin cambios no escribe ni anota: la versión, la fecha y la Actividad se quedan",
@@ -696,8 +696,74 @@ function main() {
     );
   }
 
+  // ---------------------------------------------------------------- 9. Lo que dejó el caos (20261021195000)
+  console.log("\n— Endurecer: reintento, ruta de imagen y tope de enlaces —");
+  const MIGRACION_ENDURECER = "supabase/migrations/20261021195000_campanas_web_endurecer.sql";
+  const hayEndurecer = correr("select exists (select 1 from pg_constraint where conname = 'campana_web_disenos_imagen_ruta_forma');");
+  if (hayEndurecer.salida !== "t") {
+    console.log(`  (SIN APLICAR: ${MIGRACION_ENDURECER})`);
+    esperar("la migración de endurecer está aplicada", false, `aplica ${MIGRACION_ENDURECER}`);
+  } else {
+    const CD = (nombre = "ZZ End") => `${PREPARAR}${campana(nombre, 20, { desde: "-1", hasta: "9" })}${guardar(AMBIENTE)} \\gset\n`;
+    const SIN_SALIDA = (sql) => `${sql} \\g /dev/null\n`;
+    const ESTADO_ = `(select estado || '/' || version from retail.campana_web_disenos where etiqueta_id = :'etq')`;
+    // Hallazgo 1 (RS-03): la respuesta se perdió y la persona reintenta con la versión de antes.
+    esperarValor(
+      "reintentar programar con la versión de antes, cuando ya quedó programado, responde bien y no escribe ni anota otra vez",
+      correr(`${CD()}${SIN_SALIDA(`select retail.programar_campana_diseno(:'etq', 1)`)}
+        select ${ACTIVIDAD} as antes \\gset
+        select (retail.programar_campana_diseno(:'etq', 1) ->> 'estado') || '|' || ${ESTADO_} || '|' || (${ACTIVIDAD} - :antes);
+        rollback;`),
+      "programado|programado/2|0",
+    );
+    esperarValor(
+      "reintentar pasar a borrador con la versión de antes, cuando ya quedó en borrador, responde bien",
+      correr(`${CD()}${SIN_SALIDA(`select retail.programar_campana_diseno(:'etq', 1)`)}${SIN_SALIDA(`select retail.desprogramar_campana_diseno(:'etq', 2)`)}
+        select (retail.desprogramar_campana_diseno(:'etq', 2) ->> 'estado') || '|' || ${ESTADO_};
+        rollback;`),
+      "borrador|borrador/3",
+    );
+    esperarError(
+      "pero con la versión de antes y el estado distinto sí frena (otra persona cambió algo)",
+      correr(`${CD()}${SIN_SALIDA(`select retail.programar_campana_diseno(:'etq', 1)`)}${SIN_SALIDA(`select retail.guardar_campana_diseno(:'etq', 2, '{"efecto":"copos"}')`)}select retail.desprogramar_campana_diseno(:'etq', 2);\nrollback;`),
+      "campana_cambio_otro",
+    );
+    // Hallazgo 2: la base acepta solo la ruta que sube el ERP (la misma que deja pasar la tienda).
+    const RUTA_OK = "campanas/0a1b2c3d-0000-4000-8000-000000000001/0a1b2c3d-0000-4000-8000-000000000002.webp";
+    for (const mala of ["campanas/../x.webp", "campanas/x", "campanas/x/y.webp", "campanas/0a1b2c3d-0000-4000-8000-000000000001/0a1b2c3d-0000-4000-8000-000000000002.svg", "campanas/0A1B2C3D-0000-4000-8000-000000000001/0a1b2c3d-0000-4000-8000-000000000002.webp", `${RUTA_OK}/x`]) {
+      esperarError(`una ruta de imagen que la tienda no deja pasar («${mala.slice(0, 30)}…») no entra`, correr(`${CD()}${guardar(`{"modo":"imagen","plantilla":null,"imagen_ruta":"${mala}"}`, VERSION)};\nrollback;`), "campana_diseno_datos_invalidos");
+    }
+    esperarError("ni como versión vertical", correr(`${CD()}${guardar(`{"modo":"imagen","plantilla":null,"imagen_ruta":"${RUTA_OK}","imagen_vertical_ruta":"campanas/../v.webp"}`, VERSION)};\nrollback;`), "campana_diseno_datos_invalidos");
+    esperarValor(
+      "la ruta que sube el ERP (webp o jpg) sí entra, horizontal y vertical",
+      correr(`${CD()}${SIN_SALIDA(guardar(`{"modo":"imagen","plantilla":null,"imagen_ruta":"${RUTA_OK}","imagen_vertical_ruta":"${RUTA_OK.replace(".webp", ".jpg")}"}`, VERSION))}
+        select modo || '|' || (imagen_vertical_ruta like '%.jpg') from retail.campana_web_disenos where etiqueta_id = :'etq';
+        rollback;`),
+      "imagen|true",
+    );
+    // Hallazgo 3: el tope de 20 enlaces se cumple aunque dos personas pidan el último a la vez.
+    const sesion = (sql) => new Promise((ok) => {
+      const p = spawn("docker", ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-t", "-A", "-F", "|", "-f", "-"]);
+      let e = ""; p.stderr.on("data", (d) => (e += d)); p.on("close", () => ok(e.match(/ERROR:\s+([^\n]+)/)?.[1] ?? "ok")); p.stdin.end(sql);
+    });
+    const preparado = correr(`set request.jwt.claim.sub = '${FELIPE}';
+      insert into retail.etiquetas (nombre, estilo, activo, descuento_pct, vigente_desde, vigente_hasta) values ('ZZ Tope ' || gen_random_uuid(), 'campana', true, 20, retail.fn_hoy_lima() - 1, retail.fn_hoy_lima() + 9) returning id as id \\gset
+      select retail.guardar_campana_diseno(:'id', null, '{"modo":"ambiente","plantilla":"aniversario"}') \\g /dev/null
+      insert into retail.campana_web_previas (etiqueta_id, huella, expira_en) select :'id', encode(extensions.digest(g::text, 'sha256'), 'hex'), now() + interval '1 day' from generate_series(1, 19) g;
+      select :'id';`);
+    const id = preparado.ok ? preparado.salida.split("\n").pop() : null;
+    try {
+      const crea = `set request.jwt.claim.sub = '${FELIPE}';\nselect retail.crear_campana_vista_previa('${id}') \\g /dev/null\n`;
+      const respuestas = await Promise.all(Array.from({ length: 8 }, () => sesion(crea)));
+      const filas = psql(`select count(*) from retail.campana_web_previas where etiqueta_id = '${id}'`).trim();
+      esperar("con 19 enlaces vivos y ocho personas pidiendo el último a la vez, solo uno se crea (el tope de 20 se cumple)", filas === "20" && respuestas.filter((x) => x === "ok").length === 1 && respuestas.filter((x) => x.includes("campana_previa_demasiadas")).length === 7, `filas=${filas}, respuestas=${respuestas.join(" | ")}`);
+    } finally {
+      if (id) correr(`set request.jwt.claim.sub = '${FELIPE}';\ndelete from retail.etiquetas where id = '${id}';\ncommit;`);
+    }
+  }
+
   console.log(`\n${total - fallos}/${total} escenarios en verde.`);
   if (fallos > 0) process.exit(1);
 }
 
-main();
+await main();

@@ -374,3 +374,18 @@ export function vencimientoDicho(expiraEn: string): string | null {
   const lima = new Date(t - 5 * 3600 * 1000).toISOString().slice(0, 10);
   return `hasta el ${fechaCortaDicha(lima)}`;
 }
+
+/** Lo que se estaba intentando cuando algo falló. */
+export type AccionDelEditor = "guardar" | "programar" | "aBorrador";
+
+const TITULO_DE_FALLO: Record<AccionDelEditor, string> = {
+  guardar: "No se pudo guardar el diseño",
+  programar: "No se pudo programar el diseño",
+  aBorrador: "No se pudo pasar el diseño a borrador",
+};
+
+/** El título del aviso cuando una acción falla. Si la respuesta no llegó (`incierta`: la base pudo haber guardado igual), no afirma que falló y pide
+ *  rehacer la pantalla con lo que quedó en la base, para que no se vea un estado viejo ni se reintente con una versión de antes. */
+export function avisoDeFallo(accion: AccionDelEditor, incierta: boolean): { titulo: string; rehacerPantalla: boolean } {
+  return incierta ? { titulo: "No pudimos confirmar el cambio", rehacerPantalla: true } : { titulo: TITULO_DE_FALLO[accion], rehacerPantalla: false };
+}

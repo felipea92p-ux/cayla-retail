@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { AMBIENTES_CAMPANA } from "@cayla-retail/shared";
 import {
+  avisoDeFallo,
   accionesDelDiseno,
   enlaceDeVistaPrevia,
   vencimientoDicho,
@@ -359,5 +360,19 @@ describe("enlaceDeVistaPrevia y vencimientoDicho", () => {
     expect(errorDeCampanas("campana_diseno_incompleto")?.titulo).toBe("Falta una pieza de la tienda");
     expect(errorDeCampanas("campana_sin_diseno")?.titulo).toContain("todavía no tiene diseño");
     expect(errorDeCampanas("campana_previa_demasiadas")?.titulo).toContain("20 enlaces");
+  });
+});
+
+describe("avisoDeFallo: el título dice lo que se intentaba y qué hacer si no se sabe qué pasó", () => {
+  it("cada acción dice la suya: nunca «guardar» cuando se programaba", () => {
+    expect(avisoDeFallo("guardar", false)).toEqual({ titulo: "No se pudo guardar el diseño", rehacerPantalla: false });
+    expect(avisoDeFallo("programar", false)).toEqual({ titulo: "No se pudo programar el diseño", rehacerPantalla: false });
+    expect(avisoDeFallo("aBorrador", false)).toEqual({ titulo: "No se pudo pasar el diseño a borrador", rehacerPantalla: false });
+  });
+
+  it("si la respuesta no llegó (pudo guardarse), no afirma que falló y pide rehacer la pantalla con lo que dice la base", () => {
+    for (const accion of ["guardar", "programar", "aBorrador"] as const) {
+      expect(avisoDeFallo(accion, true)).toEqual({ titulo: "No pudimos confirmar el cambio", rehacerPantalla: true });
+    }
   });
 });

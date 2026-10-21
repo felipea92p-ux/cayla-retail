@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 import { Ban, Bubbles, Check, Heart, Image as IconoImagen, Leaf, PartyPopper, PawPrint, RotateCcw, Sparkles, Star, createLucideIcon, type LucideIcon } from "lucide-react";
 import {
@@ -34,10 +35,11 @@ import { VistaPreviaCampana } from "./VistaPreviaCampana";
 import { createClient } from "@/lib/supabase/client";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
-import { traducirError } from "@/lib/error-escritura";
+import { esRespuestaIncierta, traducirError } from "@/lib/error-escritura";
 import { fechaCortaDicha } from "@/lib/campanas-web-reglas";
 import {
   accionesDelDiseno,
+  avisoDeFallo,
   borradorDe,
   coloresDelBorrador,
   PIEZAS_DONDE,
@@ -57,6 +59,7 @@ import {
   leerFichaCampana,
   lecturaDelBorrador,
   parcheDeCambios,
+  type AccionDelEditor,
   type BorradorDiseno,
   type FichaCampana,
 } from "@/lib/campanas-web-editor";
@@ -119,7 +122,8 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
   const [vuelta, setVuelta] = useState(0);
   const [quieto, setQuieto] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  const [errorGuardar, setErrorGuardar] = useState<string | null>(null);
+  const router = useRouter();
+  const [errorGuardar, setErrorGuardar] = useState<{ titulo: string; frase: string } | null>(null);
   // Las direcciones con que se ve cada imagen ya subida (la ruta es lo que se guarda; la dirección, lo que dibuja la vista previa).
   const [direcciones, setDirecciones] = useState<Record<string, string>>({});
   const [subiendo, setSubiendo] = useState<TipoDeImagenDeCampana | null>(null);
@@ -191,12 +195,12 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
       const propio = errorDeCampanas(`${error?.message ?? ""} ${error?.hint ?? ""}`);
       const frase = propio ? `${propio.titulo}. ${propio.detalle ?? ""}`.trim() : traducirError(error ?? { message: "sin respuesta" }, "guardar el diseño de la campaña");
       // Queda a la vista en la pantalla (con lo que hay que hacer), no en un aviso que se va solo.
-      setErrorGuardar(frase);
+      avisarFallo("guardar", frase, error);
       return;
     }
     const nueva = leerFichaCampana({ hoy: ficha.hoy, campana: { ...ficha.campana, diseno: null }, diseno: data });
     if (!nueva?.diseno) {
-      setErrorGuardar("El diseño se guardó, pero no se pudo leer lo que quedó. Recarga la página.");
+      setErrorGuardar({ titulo: "No se pudo leer lo que quedó", frase: "El diseño se guardó, pero no se pudo leer lo que quedó. Recarga la página." });
       return;
     }
     setGuardado(borradorDe(nueva));
@@ -204,6 +208,14 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
     setVersion(nueva.diseno.version);
     setEstado(nueva.diseno.estado);
     avisar.exito(nueva.diseno.estado === "programado" ? "Cambios guardados: la tienda los muestra en menos de un minuto" : "Borrador guardado");
+  }
+
+  /** Deja a la vista por qué falló la acción. Si la respuesta no llegó (pudo guardarse igual), no dice que falló y, un momento después, vuelve a leer la campaña:
+   *  así no queda un estado viejo en pantalla ni se reintenta con una versión de antes. */
+  function avisarFallo(accion: AccionDelEditor, frase: string, error: { message?: string; code?: string } | null) {
+    const { titulo, rehacerPantalla } = avisoDeFallo(accion, !!error && esRespuestaIncierta(error as never));
+    setErrorGuardar({ titulo, frase });
+    if (rehacerPantalla) window.setTimeout(() => router.refresh(), 2500);
   }
 
   /** Programar el diseño guardado o volver a borrador. Lo que se programa es lo guardado (por eso pide guardar antes); la base vuelve a comprobarlo todo. */
@@ -222,12 +234,14 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
     const nueva = error || !data ? null : leerFichaCampana({ hoy: ficha.hoy, campana: { ...ficha.campana, diseno: null }, diseno: data });
     if (error || !nueva?.diseno) {
       const propio = errorDeCampanas(`${error?.message ?? ""} ${error?.hint ?? ""}`);
-      setErrorGuardar(
+      avisarFallo(
+        programar ? "programar" : "aBorrador",
         propio
           ? `${propio.titulo}. ${propio.detalle ?? ""}`.trim()
           : error
             ? traducirError(error, programar ? "programar el diseño" : "volver el diseño a borrador")
             : "Se hizo el cambio, pero no se pudo leer lo que quedó. Recarga la página.",
+        error,
       );
       return;
     }
@@ -709,8 +723,8 @@ export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiend
       )}
 
       {errorGuardar && (
-        <Aviso tono="error" titulo="No se pudo guardar el diseño">
-          {errorGuardar}
+        <Aviso tono="error" titulo={errorGuardar.titulo}>
+          {errorGuardar.frase}
         </Aviso>
       )}
 
