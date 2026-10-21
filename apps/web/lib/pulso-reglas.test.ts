@@ -9,12 +9,16 @@ const tru = leerResumen(fixture.tru);
 const taller = leerResumen(fixture.taller);
 const empresa = leerResumen(fixture.empresa);
 
-/** Un Resumen de CAYLA entera con un Estado de resultados escrito a mano: el 15 de octubre, con cifras redondas. */
+/**
+ * Un Resumen de CAYLA entera con un Estado de resultados escrito a mano: el 15 de octubre, con cifras redondas. Con la FORMA REAL de la
+ * base: `gastos` (los gastos de operación) INCLUYE los sueldos (cuenta 62) y el desgaste (681), así que `resultado = margen − gastos`.
+ */
 function conMes(filas: Partial<FilaER>[], extra: Partial<ResumenFinanzas> = {}): ResumenFinanzas {
   const base: FilaER = {
     ubicacionId: null, unidad: "consolidado", nombre: "CAYLA", orden: 0,
     ventas: 0, costo: 0, fletes: 0, mermas: 0, margen: 0, planilla: 0, depreciacion: 0, gastos: 0, resultado: 0, igvVentas: 0,
     detalleGastos: [], detalleMermas: [], sinCosto: 0, mermasSinCosto: 0, descuadres: 0, planillaVisible: true, planillaNota: null,
+    planillaEstimada: 0, planillaAlCierre: 0, planillaPersonas: 0,
   };
   return {
     ...todas,
@@ -44,7 +48,7 @@ describe("respuestaPulso", () => {
   });
 
   it("gana: «te quedan», con lo vendido y a quién se le pagó", () => {
-    const r = respuestaPulso(conMes([{ ventas: 46900, costo: 22500, margen: 24400, planilla: 12290, gastos: 7300, depreciacion: 440, resultado: 4370 }]));
+    const r = respuestaPulso(conMes([{ ventas: 46900, costo: 22500, margen: 24400, planilla: 12290, gastos: 20030, depreciacion: 440, resultado: 4370 }]));
     expect(r).toMatchObject({ estado: "gana", monto: 4370, vendido: 46900, verbo: "te quedan", corto: "Sí" });
     if (r.estado === "sin_datos") return;
     expect(r.explica).toBe("De los S/ 46,900 que vendiste (sin IGV), esto es lo que queda tuyo después de pagar la ropa, los sueldos, los alquileres y los servicios y el desgaste de máquinas y muebles.");
@@ -77,7 +81,7 @@ describe("respuestaPulso", () => {
 describe("ritmoPulso", () => {
   // 15 de octubre (31 días): vendido 46,900 → 3,126.67 al día; margen 24,400/46,900 = 52.03 %; gastos 7,300 + desgaste 440 a la
   // fecha, llevados al mes (× 31/15) = 15,996; planilla asentada 25,400 → fijo del mes 41,396; necesario 79,568.7 al mes = 2,566.73 al día.
-  const r = ritmoPulso(conMes([{ ventas: 46900, costo: 22500, margen: 24400, planilla: 25400, gastos: 7300, depreciacion: 440, resultado: -8740 }]))!;
+  const r = ritmoPulso(conMes([{ ventas: 46900, costo: 22500, margen: 24400, planilla: 25400, gastos: 33140, depreciacion: 440, resultado: -8740 }]))!;
 
   it("lo vendido por día y lo que hace falta por día para cubrir lo fijo del mes", () => {
     expect(r.porDia).toBe(3126.67);
@@ -95,14 +99,14 @@ describe("ritmoPulso", () => {
   });
 
   it("si la planilla todavía no se asentó, toma la que el Flujo proyecta para el mes", () => {
-    const sinPlanilla = conMes([{ ventas: 46900, costo: 22500, margen: 24400, planilla: 0, gastos: 7300, depreciacion: 440, resultado: 16660 }], {
+    const sinPlanilla = conMes([{ ventas: 46900, costo: 22500, margen: 24400, planilla: 0, gastos: 7740, depreciacion: 440, resultado: 16660 }], {
       flujo: { estado: "ok", datos: { ...(todas.flujo.estado === "ok" ? todas.flujo.datos : (null as never)), salidas: [{ tipo: "planilla", fecha: "2026-10-30", monto: 25400, texto: "Planilla", ubicacionId: null, ubicacionNombre: null } as never] } },
     });
     expect(ritmoPulso(sinPlanilla)!.fijoMes).toBe(41396);
   });
 
   it("a un ritmo corto, no llega: lo dice y el día de cubrir queda en nada", () => {
-    const corto = ritmoPulso(conMes([{ ventas: 15000, costo: 8000, margen: 7000, planilla: 25400, gastos: 7300, depreciacion: 440, resultado: -25700 }]))!;
+    const corto = ritmoPulso(conMes([{ ventas: 15000, costo: 8000, margen: 7000, planilla: 25400, gastos: 33140, depreciacion: 440, resultado: -26140 }]))!;
     expect(corto.tono).toBe("rojo");
     expect(corto.diaCubre).toBeNull();
     expect(corto.cierreFrase).toContain("no llegas a cubrir lo fijo del mes");
@@ -122,8 +126,10 @@ describe("ritmoPulso", () => {
 
 describe("cascadaPulso", () => {
   it("vendiste → costó → sueldos → gastos → desgaste → te queda, y los tramos vacíos no aparecen", () => {
-    const c = cascadaPulso(conMes([{ ventas: 46900, costo: 22500, margen: 24400, planilla: 12290, gastos: 7300, depreciacion: 440, resultado: 4370, detalleGastos: [{ cuenta: "635", nombre: "Alquileres", monto: 6050 }, { cuenta: "636", nombre: "Luz y agua", monto: 860 }, { cuenta: "631", nombre: "Transporte", monto: 390 }, { cuenta: "639", nombre: "Comisiones", monto: 0 }] }]));
+    const c = cascadaPulso(conMes([{ ventas: 46900, costo: 22500, margen: 24400, planilla: 12290, gastos: 20030, depreciacion: 440, resultado: 4370, detalleGastos: [{ cuenta: "62", nombre: "Gastos de personal", monto: 12290 }, { cuenta: "635", nombre: "Alquileres", monto: 6050 }, { cuenta: "636", nombre: "Luz y agua", monto: 860 }, { cuenta: "631", nombre: "Transporte", monto: 390 }, { cuenta: "639", nombre: "Comisiones", monto: 0 }, { cuenta: "681", nombre: "Depreciación", monto: 440 }] }]));
     expect(c.map((t) => t.clave)).toEqual(["ventas", "costo", "planilla", "gastos", "depreciacion", "queda"]);
+    // Los sueldos y el desgaste tienen su tramo: «otros gastos» no los repite (ni en el monto ni en el detalle), y no sobra ningún ajuste.
+    expect(c.find((t) => t.clave === "gastos")!.monto).toBe(7300);
     expect(c[0]).toMatchObject({ tipo: "entra", monto: 46900 });
     expect(c.at(-1)).toMatchObject({ tipo: "queda", nombre: "Te queda", monto: 4370 });
     expect(c.find((t) => t.clave === "gastos")!.detalle).toBe("Alquileres S/ 6,050 · Luz y agua S/ 860 · Transporte S/ 390");
@@ -164,7 +170,7 @@ describe("lugaresPulso", () => {
 
 describe("respuestaDeFila y cascadaDeFila (la misma pieza para Reportes)", () => {
   it("dan lo mismo que el Resumen para la misma fila", () => {
-    const r = conMes([{ ventas: 46900, costo: 22500, margen: 24400, planilla: 12290, gastos: 7300, depreciacion: 440, resultado: 4370 }]);
+    const r = conMes([{ ventas: 46900, costo: 22500, margen: 24400, planilla: 12290, gastos: 20030, depreciacion: 440, resultado: 4370 }]);
     const f = (r.resultadosMes.estado === "ok" ? r.resultadosMes.datos : [])[0]!;
     expect(respuestaDeFila(f, { mes: "2026-10", vende: true, taller: false })).toEqual(respuestaPulso(r));
     expect(cascadaDeFila(f)).toEqual(cascadaPulso(r));
@@ -209,5 +215,46 @@ describe("matizarRespuesta (el «Sí» solo con confianza alta, ADR-0417)", () =
   it("no cambia la cifra ni el verbo: solo cómo se dice", () => {
     expect(gana.monto).toBe(5000);
     expect(gana.verbo).toBe("te quedan");
+  });
+});
+
+describe("la forma REAL de la base: `gastos` ya incluye los sueldos y el desgaste (ADR-0453)", () => {
+  // Con el fixture de la base (TRU: sueldos 7,800, desgaste 87, gastos de operación 13,283) la cascada repetía los sueldos dentro de
+  // «Alquileres y otros gastos» y una línea inventada de «Otros ajustes a favor» los compensaba; «lo fijo del mes» los contaba dos veces.
+  it("la cascada de una tienda real no repite los sueldos ni inventa ajustes", () => {
+    const c = cascadaPulso(tru);
+    expect(c.find((t) => t.clave === "planilla")!.monto).toBe(7800);
+    expect(c.find((t) => t.clave === "gastos")!.monto).toBe(5396); // 13,283 − 7,800 − 87
+    expect(c.map((t) => t.clave)).not.toContain("ajustes");
+    const suma = c.filter((t) => t.tipo !== "queda").reduce((s, t) => s + (t.tipo === "entra" ? t.monto : -t.monto), 0);
+    expect(Math.round(suma * 100) / 100).toBe(5653);
+  });
+
+  it("lo fijo del mes cuenta los sueldos una sola vez: otros gastos y desgaste al mes, más la planilla entera", () => {
+    // 24 de septiembre (30 días): (5,396 + 87) × 30/24 = 6,853.75, más la planilla asentada 7,800.
+    expect(ritmoPulso(tru)!.fijoMes).toBe(14653.75);
+  });
+});
+
+describe("la planilla estimada (ADR-0453): fuera del libro, marcada y al mes entero en «lo fijo»", () => {
+  // 15 de octubre: lo asentado sería 0; Dynamic aún no pagó. Las boletas dicen 8,000 hasta hoy y 12,000 al cierre del período.
+  const estimada = { planilla: 8000, planillaEstimada: 8000, planillaAlCierre: 12000, planillaPersonas: 12, gastos: 8000 + 440 + 7300, depreciacion: 440 };
+
+  it("lo fijo del mes lleva los sueldos estimados al período entero, y lo demás al mes por regla de tres", () => {
+    const r = ritmoPulso(conMes([{ ventas: 46900, costo: 22500, margen: 24400, resultado: 24400 - (8000 + 440 + 7300), ...estimada }]))!;
+    // (7,300 + 440) × 31/15 = 15,996 + 12,000 al cierre = 27,996.
+    expect(r.fijoMes).toBe(27996);
+  });
+
+  it("si una parte ya se pagó y otra es estimada, la pagada cuenta entera y la estimada, al cierre", () => {
+    // 5,000 pagados (asentados) + 3,000 estimados que cerrarían en 4,500 → 9,500; lo demás igual.
+    const r = ritmoPulso(conMes([{ ventas: 46900, costo: 22500, margen: 24400, planilla: 8000, planillaEstimada: 3000, planillaAlCierre: 4500, planillaPersonas: 3, gastos: 8000 + 440 + 7300, depreciacion: 440, resultado: 24400 - (8000 + 440 + 7300) }]))!;
+    expect(r.fijoMes).toBe(15996 + 9500);
+  });
+
+  it("la cascada dice que los sueldos son un estimado y con cuántas personas", () => {
+    const c = cascadaPulso(conMes([{ ventas: 46900, costo: 22500, margen: 24400, resultado: 24400 - (8000 + 440 + 7300), planillaNota: "Estimado hasta hoy con las boletas de Dynamic (12 personas); cuando Dynamic pague el período, entra lo pagado de verdad.", ...estimada }]));
+    expect(c.find((t) => t.clave === "planilla")).toMatchObject({ monto: 8000, detalle: expect.stringContaining("Estimado hasta hoy") });
+    expect(c.map((t) => t.clave)).not.toContain("ajustes");
   });
 });

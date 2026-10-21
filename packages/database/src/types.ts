@@ -388,6 +388,48 @@ export type Database = {
           },
         ]
       }
+      cambio_salidas: {
+        Row: {
+          cambio_id: string
+          cantidad: number
+          created_at: string
+          id: string
+          precio_unitario: number
+          variante_id: string
+        }
+        Insert: {
+          cambio_id: string
+          cantidad: number
+          created_at?: string
+          id?: string
+          precio_unitario: number
+          variante_id: string
+        }
+        Update: {
+          cambio_id?: string
+          cantidad?: number
+          created_at?: string
+          id?: string
+          precio_unitario?: number
+          variante_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cambio_salidas_cambio_id_fkey"
+            columns: ["cambio_id"]
+            isOneToOne: false
+            referencedRelation: "cambios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cambio_salidas_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cambios: {
         Row: {
           caja_id: string | null
@@ -5491,6 +5533,7 @@ export type Database = {
       // 20261013153000: md5 del stock que la cuenta ve en una sede; useStockEnVivo solo relee si cambia.
       fn_stock_huella: { Args: { p_ubicacion_id: string }; Returns: string }
       fn_acepta_pago_qr: { Args: never; Returns: boolean }
+      fn_acepta_qr_en_cambios: { Args: never; Returns: boolean }
       fn_acepta_redondeo_efectivo: { Args: never; Returns: boolean }
       fn_variantes_con_costo_oficial: { Args: { p_ids: string[] }; Returns: string[] }
       fn_variantes_estado: { Args: { p_producto_id: string }; Returns: Json }
@@ -5864,6 +5907,13 @@ export type Database = {
         Args: { p_ubicacion_id: string }
         Returns: Json
       }
+      // Tienda web ▸ Campañas (20261021161000): las campañas de la tienda online con el diseño de cada una.
+      fn_campanas_web: { Args: never; Returns: Json }
+      fn_campana_diseno: { Args: { p_etiqueta_id: string }; Returns: Json }
+      guardar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null; p_diseno: Json }; Returns: Json }
+      programar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null }; Returns: Json }
+      desprogramar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null }; Returns: Json }
+      crear_campana_vista_previa: { Args: { p_etiqueta_id: string }; Returns: Json }
       // Vitrina web ▸ Esperan una talla (ADR-0408, actividad 12; 20261015030000): lo que esperan los clientes, sin datos personales.
       fn_vitrina_esperan: { Args: never; Returns: Json }
       // Vitrina web (ADR-0408, actividad 3; 20261014225000). Sin precio web: en la web vale el precio de cada tienda.
@@ -8804,6 +8854,19 @@ export type Database = {
           p_token?: string
           p_ubicacion_id: string
           p_variante_nueva_id: string
+          p_venta_item_id: string
+        }
+        Returns: string
+      }
+      registrar_cambio_varias: {
+        Args: {
+          p_cantidad?: number
+          p_condicion?: string
+          p_metodo_pago_diferencia?: string
+          p_motivo?: string
+          p_salidas: Json
+          p_token?: string
+          p_ubicacion_id: string
           p_venta_item_id: string
         }
         Returns: string

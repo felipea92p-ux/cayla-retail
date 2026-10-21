@@ -503,6 +503,25 @@ Dos avisos para quien lo construya:
   se pega a la prenda, no gasto administrativo. Esa es la conexión directa con
   el módulo 10 y la razón de que D-33 y D-31 se construyan juntas.
 
+### 7.3 La planilla ESTIMADA mientras Dynamic no paga (ADR-0453, 2026-10-17)
+
+`planilla_por_sede` solo trae períodos pagados: casi todo el mes cada sede se veía sin sueldos. Retail ahora también lee la boleta EN VIVO del período
+abierto, **por la puerta oficial** `public.fn_proyeccion_periodo(periodo)` (concedida a `authenticated`, con la guardia `fn_es_admin_o_lider()` adentro; la
+misma que alimenta la pantalla de Planilla de Dynamic) y la agrega por sede en `retail.fn_planilla_provision`:
+
+| Qué | Cómo se lee |
+|---|---|
+| Qué períodos | `public.periodos_planilla` con `estado <> 'pagado'` cuyo `fecha_fin` cae en el rango (el que termina en un mes es la planilla de ese mes, D-35) |
+| Qué filas | `filas[]` de la boleta: `sede`, `tipo_vinculo` (sin `prueba`), `sueldo_fijo`, `total`, `provision_total` |
+| Cuánto cuesta | `total + provision_total`, igual que `planilla_por_sede` |
+| Hasta hoy | quien cobra por horas, lo que trae la boleta (las horas ya trabajadas); con `sueldo_fijo`, la boleta ya trae el mes ENTERO: se prorratea por los días corridos del período |
+| Al cierre | las horas al ritmo de lo trabajado + el fijo entero; solo con 7 días corridos o más |
+| Privacidad | solo importes por sede, con el mismo piso (menos de 3 personas, oculta); nunca nombre ni sueldo de una persona |
+
+**Lo que NO se usa, a propósito:** `fn_planilla_calcular` y su núcleo (Dynamic los deja sin permiso para `authenticated`: «la defensa real es nunca conceder
+EXECUTE»). **Qué rompería esto desde Dynamic:** renombrar una de las claves de arriba o dejar de devolver `filas`; la provisión saldría vacía y el mes volvería a
+verse sin sueldos, sin error. Quien toque esa boleta debe avisar a retail.
+
 ---
 
 ## 8. Qué NO se puede tocar desde retail

@@ -69,6 +69,11 @@
   "relkind": "r",
   "rls": true
  },
+ "cambio_salidas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "cambios": {
   "forzado": false,
   "relkind": "r",
@@ -80,6 +85,16 @@
   "rls": true
  },
  "campana_efecto_caja": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_web_disenos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_web_previas": {
   "forzado": false,
   "relkind": "r",
   "rls": true

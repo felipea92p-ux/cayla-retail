@@ -66,6 +66,7 @@ export function CambiosPanel({
   colaboradora,
   cajaAbierta,
   catalogo,
+  aceptaQr,
   tallasQueNoCalzan,
   abrirItemId,
   sedes,
@@ -79,6 +80,8 @@ export function CambiosPanel({
   colaboradora: string;
   cajaAbierta: boolean;
   catalogo: VarianteCatalogo[];
+  /** `fn_acepta_qr_en_cambios` (20261021184000): si la base ya acepta el QR como medio de la diferencia. */
+  aceptaQr: boolean;
   tallasQueNoCalzan: TallaQueNoCalza[];
   abrirItemId?: string;
   /** Todas las sedes, para prellenar un traslado cuando la talla está en otra (`sedesDeOrigen`). */
@@ -189,6 +192,7 @@ export function CambiosPanel({
         esLider={puedeVerTodas}
         sedes={sedes}
         catalogo={catalogo}
+        aceptaQr={aceptaQr}
         ahora={ahora}
         onCerrar={cerrarFlujo}
         onNuevo={() => {

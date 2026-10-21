@@ -82,6 +82,9 @@ export const AVIARIO = [
       // es de la misma vitrina y de la etiqueta, que son de Loro. En producción desde el 2026-10-17 (migraciones `campanas_*` de
       // otra sesión, todavía fuera de main); la asignó el refresco del volcado de ese día.
       "campana_disenos",
+      // Refresco del 2026-10-21: los diseños y las vistas previas de la campaña de la tienda web (migraciones de otra sesión): son del
+      // mismo cuaderno de campañas que `campana_disenos`.
+      "campana_web_disenos", "campana_web_previas",
       // ADR-0463: la empresa a la que pertenece cada prenda (CAYLA o CLAURE) y en qué sedes opera cada una. La empresa es un dato del producto,
       // no de la marca ni de la factura (que sale siempre con el RUC de CAYLA): lo maneja quien responde por el catálogo. En producción desde
       // el 2026-10-20; las asignó el refresco del volcado del 2026-10-21.
@@ -152,6 +155,8 @@ export const AVIARIO = [
       "venta_pagos_correcciones",
       // `clientes` pasó a llamarse `clientas` (D-48, vocabulario obligatorio); el refresco del 2026-09-23 lo confirmó.
       "clientas", "codigos_descuento", "cambios", "devoluciones", "devolucion_items",
+      // ADR-0470 (2026-10-21): las prendas que se lleva la clienta en un cambio por VARIAS prendas; hijas de `cambios`.
+      "cambio_salidas",
       // ADR-0249: qué ficha de clienta se unió a cuál (unir fichas repetidas). Refresco del 2026-09-28.
       "clientas_fusiones",
       // Separaciones (apartar prendas con adelanto) y lo que la clienta pidió y no había: nacen en el mostrador.
