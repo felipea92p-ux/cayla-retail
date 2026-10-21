@@ -1,0 +1,15 @@
+## 🧾 Nueva orden de compra: entrega 1 (formulario) (2026-10-21, ADR-0362 actualización) — web + 3 migraciones SIN pegar; rama `claude/provider-category-filtering-d73e8b`
+
+- [x] Datos de pago para quien tiene Órdenes de compra (`20261021200000`): prueba de base 23 casos con control del hueco; `CuentasProveedor` con el titular primero y «no puedes verlos» ≠ «no tiene cuenta». Probado en el navegador con una cuenta que solo ve Órdenes de compra.
+- [x] «Cómo pagarle» en Nueva orden (hoja con cuatro estados). Probado en escritorio y a 375 px, con y sin permiso.
+- [x] Prefiltro de categorías y marcas por proveedor (`20261021201000`, `fn_proveedor_categorias`): prueba de base 17 casos, cuatro mutaciones detectadas; sin la función la pantalla queda como hoy; proveedor sin historial ve todo.
+- [x] Aviso en la línea que no calza al cambiar de proveedor (derivado; A→B→A lo limpia).
+- [x] «+ Registrar proveedor» (`20261021202000`, `registrar_proveedor_de_orden`): prueba de base 26 casos, seis mutaciones detectadas, carrera de 8 llamadas simultáneas = 1 ficha nueva y 7 la misma; hoja con consulta de RUC, «No tiene RUC», «¿no será…?» y doble clic.
+- [ ] **Pegar en producción, en este orden y cada una sola, con el OK de Felipe:** `20261021200000`, `20261021201000`, `20261021202000`. Antes de la segunda, correr la consulta SQL de cobertura del informe (cuántos proveedores tendrían categoría derivada el día 1).
+- [ ] **Sin probar:** `tema:auditar` (modo oscuro; solo se usaron tokens y pasó `tema-colores`/`tema-tokens`), `/chaos` y `/formidable` sobre las dos hojas nuevas; la consulta de RUC contra SUNAT real (en local no hay proveedor de padrón: se registró escribiendo el nombre a mano).
+- [ ] **Choque:** la rama sin fusionar `claude/skills-todos-agents-94f745` (Análisis, líneas «Por revisar») toca los mismos 4 archivos; ver el ADR-0362. Se regeneran las huellas de las guías de Nueva y Editar orden al fusionar la segunda.
+- [ ] **Entrega 2 (estructura del día):** `dias_compra` + historial, `ordenes_compra.dia_compra_id NOT NULL`, `crear_orden_compra` de 7 argumentos con `drop function` de la de 6, atajo «Abrir el día de hoy», y separar quién compra de quién registró en los 5 sitios que leen `creada_por`. Hacerla ANTES de que existan órdenes sueltas (producción tiene 0).
+- [ ] **Entrega 3:** vista «Bitácora», «Pagó X de Y», `completar_papel_de_compra`, aviso de doble pago entre compradoras, ✕ de 44 px con «Deshacer».
+- [ ] Decisiones abiertas de Felipe: ver el ADR-0362 (actualización 2026-10-21).
+- [ ] Aparte (no bloquea): `compras/nueva/page.tsx` arma los datos de pago desde `fn_proveedores`, que devuelve la cuenta en blanco a quien no la ve: ahí «sin cuenta» también puede ser «no puedes verla». Cuenta a quien tiene Facturas de compra sin Por pagar.
+- [ ] Aparte: la columna Categoría queda muy angosta a 1280 px (la lista desplegable envuelve «Ver todas (N)» en tres líneas); la rama de Análisis ya le da 11 rem desde 62 rem de ancho.

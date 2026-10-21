@@ -1478,6 +1478,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `cerrar_linea_compra` las rechazan. El papel es único entre los vigentes (`compras_papel_vigente_unico`). **«Sin comprobante»**
   (decisión 50, migración `20261012235000`, **sin pegar**): cuarto tipo, sin serie ni número (la base pone `SC` + la secuencia
   `compras_sin_comprobante_seq`), sin IGV; en la web, `pidePapel`/`palabrasDelTipo` y, a 375 px, el tipo en un desplegable.
+- **Nueva orden de compra: prefiltro, registrar proveedor y «Cómo pagarle»** (ADR-0362, actualización 2026-10-21; migraciones `20261021200000`,
+  `201000` y `202000`, **sin pegar**): `lib/ordenes-compra.ts` `getDatosNuevaOrden` suma `fn_proveedor_categorias` (lectura; pares proveedor↔categoría derivados de sus
+  productos, las marcas de un solo proveedor, sus órdenes generadas y sus comprobantes vigentes) → `lib/orden-compra-prefiltro.ts` (puro: `afinidadDe`, `prefiltrar`,
+  `lineaNoCalza`) → `NuevaOrdenCompra.tsx`, con la fila «Ver todas (N)» (`ampliar`) de `ComboBuscable`. «+ Registrar proveedor» →
+  `RegistrarProveedorOrden.tsx` + `lib/proveedor-de-orden-reglas.ts` (puro) → RPC `registrar_proveedor_de_orden` (módulo Órdenes de compra; firma `proveedor_de_orden`).
+  «Cómo pagarle» → `ComoPagarle.tsx` → `ProveedorElegido` → `fn_proveedor_datos_bancarios` (que ahora lee también quien tiene Órdenes de compra).
 - **Enviar una orden a una sede** (ADR-0362, fase 3, 2026-10-12; migraciones `20261012225000` y `20261012230000`, **sin pegar**):
   `/compras/ordenes/envio/[id]` → `components/ordenes-compra/EnviarOrdenASede.tsx` + `lib/envio-orden-reglas.ts` (puro: precarga de lo por
   enviar, validación espejo, `p_lineas`) → RPC `crear_envio` (tablas `despachos` y `despacho_items`: una guía, una sede, `ENV-000001`,

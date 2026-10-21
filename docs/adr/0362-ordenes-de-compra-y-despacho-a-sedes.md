@@ -627,3 +627,48 @@ Fondo: cada persona tiene su cuenta «por rendir» con su nombre; entrega y devo
 rendición abierta por persona; el saldo se calcula; nadie se entrega plata a sí mismo ni aprueba su propia rendición; quien gasta
 del fondo es solo su dueña (se compara la cuenta que entró y el combo Responsable). La compradora no necesita Finanzas: ve su fondo
 como tarjeta donde compra y en Inicio. Órdenes de compra entra a la regla de celular (375 px) porque se usa en Gamarra.
+
+## Actualización 2026-10-21 · Nueva orden: prefiltro por proveedor, «Registrar proveedor», «Cómo pagarle»; y el Día de compra (decidido, sin construir)
+
+Origen: Felipe, mirando «Nueva orden de compra»: al elegir proveedor seguían saliendo todas las categorías y marcas; la compradora no puede
+registrar a un proveedor nuevo; las compras se hacen en ciertos días y ahí van varias órdenes, con presupuesto, quién compra, si se le pagó y
+sus datos de pago. Análisis completo en `docs/pantallas/compras-ordenes-nueva.md` (6 agentes, 8 revisores escépticos y 24 decisiones de
+Felipe, 20 antes del informe y 4 después). **Construida la entrega 1 (el formulario)**; las entregas 2 y 3 quedan diseñadas.
+
+### Construido (entrega 1)
+
+| Qué | Decisión de Felipe | Cómo quedó |
+|---|---|---|
+| Datos de pago visibles para la compradora | `ordenes_compra` entra a `fn_puede_ver_datos_bancarios()` (decisión 2026-10-21; antes solo Proveedores, Por pagar y Cuentas y dinero) | Migración `20261021200000`. La web distingue «no tiene cuenta» de «no puedes verlos» (`bancarios_visibles` → `ocultos`); el titular va primero |
+| «Cómo pagarle» en la orden | Hoja con teléfono y destino de la plata, con copiar | `ComoPagarle.tsx` sobre `ProveedorElegido`; cuatro estados (`estadoDeLosBancarios`) |
+| Prefiltro | Solo lo que el proveedor maneja + «Ver todas (N)» (nunca candado) | Migración `20261021201000` (`fn_proveedor_categorias`, solo lectura: sus productos, las marcas de un solo proveedor, sus órdenes generadas y sus comprobantes vigentes); `ComboBuscable` gana la prop `ampliar`. **Sin casilla «Recordar»**: guardar la orden ya es el recuerdo (la decisión de mantenerla se retira) |
+| Línea que no calza | Al cambiar de proveedor las líneas se quedan, marcadas | `lineaNoCalza` (derivado: A→B→A lo limpia; marca ajena = atención, categoría ajena = info) |
+| «Registrar proveedor» | Nombre + RUC o «No tiene RUC»; por el módulo Órdenes de compra; ficha «incompleta» sin columna nueva | Migración `20261021202000` (`registrar_proveedor_de_orden`: no duplica, devuelve el que ya estaba, rechaza el mismo nombre con otro RUC y un desactivado, no escribe banco ni rubros); clave `proveedor_de_orden` en `acciones_sin_responsable`; «¿no será…?» obligatoria (no existe fusionar proveedores) |
+
+### Decidido, sin construir (entregas 2 y 3)
+
+- **Día de compra** = ficha propia `dias_compra`, **una fila por (compradora, fecha)** con su presupuesto y su historial (disparador); **toda orden pertenece a
+  un día** (`ordenes_compra.dia_compra_id NOT NULL`, se abre con un atajo dentro de Nueva orden); hoy a 7 días atrás, sin cierre, una orden no cambia de día; la
+  compradora fija su propio presupuesto (puede quedar en blanco) y pasarse avisa sin bloquear; la compradora se deriva del día (no se duplica en la orden).
+  Al agregar el parámetro a `crear_orden_compra`: `drop function` de la de 6 argumentos en la misma migración y un ayudante para las 18 suites con 47 `insert` directos.
+- **Quién manda: la compradora del día** (deuda, sede y regla «quien compra no recibe»); `creada_por` sigue siendo la firma, y la regla 17 excluye a ambas. Toca
+  `fn_orden_compra_gestora`, `fn_recepcion_exigir`, `recibir_orden_sin_envio`, tres banderas de pantalla y la sede del gasto del viaje (5 sitios que hoy leen `creada_por`).
+- **Quién compra:** las tres compradoras de CAYLA siempre visibles (excepción al horario: no es una firma) más una lista que edita el líder; presupuesto por compradora.
+- **«Pagó X de Y» por proveedor y día**, calculado de pagos reales (`fn_dia_compra_pagos`; Y = lo facturado si hay papel, lo pedido si no); el check abre «Registrar pago», no se tilda.
+- **Pagar al contado antes del papel:** una compra «Sin comprobante» pagada se convierte en su papel con una función nueva `completar_papel_de_compra` (hoy una SC con pagos no
+  se puede reemplazar). Dinero: se ensaya antes de pegarse. **Descartado:** una tabla de anticipos (reabre 5 funciones de Finanzas).
+- **Vista «Bitácora»** dentro de Órdenes de compra (ruta hermana, `<Pestanas href>`), sin módulo nuevo (ADR-0306).
+
+### Pendiente de Felipe (si no responde, lo recomendado)
+
+Permiso para pagar a crédito desde la bitácora (hoy exige Por pagar); qué hacer con la marca obligatoria cuando un proveedor no tiene ninguna; contra qué se mide el
+presupuesto (pedido, facturado o pagado, con o sin IGV); la regla de 7 días; si el nombre es «Presupuesto» o «Plata para hoy»; si `/compras/ordenes*` pasa a «Celular
+obligatorio»; que «toda orden pertenece a un día» no cubre las órdenes de insumos del Taller.
+
+### En producción
+
+Las tres migraciones de la entrega 1 están **sin pegar**; se pegan **en este orden** (cada una, una sola parte, re-pegable): `20261021200000` (datos de pago), `20261021201000`
+(`fn_proveedor_categorias`) y `20261021202000` (`registrar_proveedor_de_orden`). La web se puede publicar antes: sin cada función la pantalla se ve como hoy o dice que no
+está disponible todavía. **Choque conocido:** la rama sin fusionar `claude/skills-todos-agents-94f745` (Análisis: «Comprar» abre una orden armada, líneas «Por revisar») toca los
+mismos archivos; al fusionarla, `lineaNoCalza` debe saltarse las líneas `prellenadas` y se regeneran las huellas de las guías de Nueva y Editar orden.
+
