@@ -1469,7 +1469,7 @@ const PASOS_FORMULARIO_ORDEN = {
     id: "datos",
     ancla: "orden-form.datos",
     titulo: "Proveedor y a dónde llega",
-    texto: "El proveedor (búscalo por nombre, marca o RUC) y a qué tienda llega la mercadería; «por repartir» si llega a Lima y se separa después. La entrega estimada va si la sabes, y la nota es para lo que el proveedor debe saber.",
+    texto: "El proveedor (búscalo por nombre, marca o RUC; si no está, «+ Registrar proveedor» con su RUC y nombre) y a qué tienda llega la mercadería; «por repartir» si llega a Lima. La entrega estimada va si la sabes, y la nota es para lo que el proveedor debe saber.",
   },
   // «Nos debe» (ADR-0362, fase 5a): sale al elegir un proveedor que todavía debe prendas por reponer de otra compra.
   nosDebe: {

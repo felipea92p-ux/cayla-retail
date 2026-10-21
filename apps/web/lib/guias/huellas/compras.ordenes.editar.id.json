@@ -2,13 +2,18 @@
   "guia": "compras.ordenes.editar.id",
   "ruta": "/compras/ordenes/editar/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 26,
+  "total": 34,
   "controles": {
     "app/(app)/compras/ordenes/editar/[id]/page.tsx": [
       "Volver «/compras/ordenes»",
       "BotonEnlace «Ver las órdenes de compra»",
       "BotonEnlace «Ver la orden»",
       "BotonEnlace «Ver la orden» #2"
+    ],
+    "components/ConsultaDocumento.tsx": [
+      "CampoTexto «{contador ? ( <> {}»",
+      "BotonBuscar «→buscar»",
+      "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
@@ -37,6 +42,13 @@
       "CampoTexto «{`Precio por unidad de la línea ${numero}»",
       "CampoTexto «{`Descuento de la línea ${numero}»",
       "SegmentoDeslizante «{`Descuento de la línea ${numero}»"
+    ],
+    "components/ordenes-compra/RegistrarProveedorOrden.tsx": [
+      "CampoTexto «Nombre del proveedor»",
+      "Casilla «No tiene RUC»",
+      "CampoTexto «WhatsApp del proveedor»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ]
   }
 }

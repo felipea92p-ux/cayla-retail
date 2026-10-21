@@ -1294,6 +1294,11 @@ export const PRUEBAS = [
   // comprobante anulado, un producto rechazado o de prueba, y una marca que traen dos proveedores no cuentan. ROLLBACK siempre.
   "pruebas:proveedor-categorias",
 
+  // Registrar un proveedor nuevo desde la orden de compra con lo básico (nombre + RUC o «sin RUC»): solo con el módulo Órdenes de compra; no
+  // duplica (mismo RUC o mismo nombre devuelve el que ya estaba), el mismo nombre con otro RUC y un desactivado se rechazan, no escribe banco
+  // ni rubros ni toca lo que ya existía, y los errores no repiten lo escrito. ROLLBACK siempre.
+  "pruebas:proveedor-de-orden",
+
   // Recibir en la sede un envío de orden de compra (ADR-0362, fase 4): con solo Recibir se abre, se crea la prenda que llegó y se
   // cuenta talla por talla (buenas al almacén, dañadas a la cuarentena), con el costo corregido promediado, un lote por proveedor y el
   // papel hasta su cupo; faltante y sobrante con causa; quien hizo la orden no la recibe; token y costo atípico. ROLLBACK siempre.

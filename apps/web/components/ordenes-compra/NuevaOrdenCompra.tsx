@@ -19,6 +19,8 @@ import { MarcaCampo } from "@/components/alta-producto/guia";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ComoPagarle } from "@/components/ordenes-compra/ComoPagarle";
+import { RegistrarProveedorOrden, type ProveedorDeLista } from "@/components/ordenes-compra/RegistrarProveedorOrden";
+import type { ProveedorRegistrado } from "@/lib/proveedor-de-orden-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
@@ -109,6 +111,14 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
   const [guardando, setGuardando] = useState(false);
   // La hoja «Cómo pagarle» del proveedor elegido (solo lectura: no entra al borrador ni a lo que se guarda).
   const [verComoPagarle, setVerComoPagarle] = useState(false);
+  // «Registrar proveedor» (Felipe 2026-10-21): lo que se había tipeado en el buscador (la hoja está abierta si no es `null`) y los
+  // proveedores que se registraron en esta pantalla, que se suman a los que cargó la página (que no se vuelve a pedir).
+  const [registro, setRegistro] = useState<string | null>(null);
+  const [nuevos, setNuevos] = useState<ProveedorDeLista[]>([]);
+  const proveedores = useMemo(
+    () => (nuevos.length ? [...datos.proveedores, ...nuevos.filter((n) => !datos.proveedores.some((p) => p.id === n.id))] : datos.proveedores),
+    [datos.proveedores, nuevos],
+  );
   // Con el proveedor elegido, las categorías y las marcas ofrecen primero lo suyo; «Ver todas» (al pie de cada lista) amplía una de
   // las dos y se apaga al cambiar de proveedor (`orden-compra-prefiltro.ts`).
   const [categoriasTodas, setCategoriasTodas] = useState(false);
@@ -129,14 +139,14 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
   const ctx: ContextoValidacion = useMemo(
     () => ({
       hoy,
-      proveedoresActivos: new Set(datos.proveedores.map((p) => p.id)),
+      proveedoresActivos: new Set(proveedores.map((p) => p.id)),
       categoriasActivas: new Set(datos.categorias.map((c) => c.id)),
       marcasActivas: new Set(datos.marcas.map((m) => m.id)),
       destinos: new Set(datos.destinos.map((d) => d.id)),
       entregaOriginal: editar?.entregaOriginal,
       destinoElegido,
     }),
-    [datos, hoy, editar?.entregaOriginal, destinoElegido],
+    [datos, proveedores, hoy, editar?.entregaOriginal, destinoElegido],
   );
   const campos = camposDeLaOrden(orden, ctx, { pide: !esPersona, listo: responsable.listo, motivo: responsable.motivo });
   const guia = useGuiaCampos(campos, { enModal: false });
@@ -163,7 +173,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
   const nombreMarca = useMemo(() => new Map(datos.marcas.map((m) => [m.id, m.nombre])), [datos.marcas]);
   const opcionesProveedor: OpcionCombo<string>[] = useMemo(
     () =>
-      datos.proveedores.map((p) => {
+      proveedores.map((p) => {
         const suyas = datos.vinculos.filter((v) => v.proveedorId === p.id).map((v) => nombreMarca.get(v.marcaId) ?? "");
         return {
           valor: p.id,
@@ -173,12 +183,12 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
           claves: [...suyas, ...(p.ruc ? [p.ruc] : [])],
         };
       }),
-    [datos.proveedores, datos.vinculos, nombreMarca],
+    [proveedores, datos.vinculos, nombreMarca],
   );
   // Con el proveedor elegido, sus marcas van primero (la orden acepta cualquiera y no toca el catálogo: decisión por defecto).
   const opcionesMarca: OpcionCombo<string>[] = useMemo(
-    () => opcionesDeMarca(datos.marcas, datos.proveedores, datos.vinculos, orden.proveedorId),
-    [datos.marcas, datos.proveedores, datos.vinculos, orden.proveedorId],
+    () => opcionesDeMarca(datos.marcas, proveedores, datos.vinculos, orden.proveedorId),
+    [datos.marcas, proveedores, datos.vinculos, orden.proveedorId],
   );
   const opcionesCategoria: OpcionCombo<string>[] = useMemo(() => datos.categorias.map((c) => ({ valor: c.id, texto: c.nombre })), [datos.categorias]);
   // El prefiltro (Felipe 2026-10-21): solo lo que el proveedor maneja, más lo ya elegido en alguna línea (no desaparece), con «Ver todas».
@@ -213,6 +223,12 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
     setMarcasTodas(false);
     setOrden((o) => ({ ...o, proveedorId, lineas: o.lineas.map((l) => (l.marcaId || !unica ? l : { ...l, marcaId: unica })) }));
   }
+  /** Un proveedor que se acaba de registrar (o que ya estaba y no se había cargado): se suma a la lista y se elige, y la hoja se cierra. */
+  function alRegistrarse(p: ProveedorRegistrado) {
+    setNuevos((n) => (n.some((x) => x.id === p.id) ? n : [...n, { id: p.id, nombre: p.nombre, ruc: p.ruc }]));
+    setRegistro(null);
+    elegirProveedor(p.id);
+  }
   function cambiarLinea(clave: string, cambios: Partial<LineaBorrador>) {
     setOrden((o) => ({ ...o, lineas: o.lineas.map((l) => (l.clave === clave ? { ...l, ...cambios } : l)) }));
   }
@@ -232,7 +248,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
   const problemaEntrega = problemaDeEntrega(orden.entrega, hoy, editar?.entregaOriginal);
   // «Nos debe» (ADR-0362, fase 5a, decisión 14): si el proveedor elegido debe prendas por reponer, se avisa antes de pedirle lo nuevo.
   const deudaDelProveedor = orden.proveedorId ? (datos.nosDebe?.[orden.proveedorId] ?? null) : null;
-  const proveedorElegido = datos.proveedores.find((p) => p.id === orden.proveedorId);
+  const proveedorElegido = proveedores.find((p) => p.id === orden.proveedorId);
   const nombreDelProveedor = proveedorElegido?.nombre ?? deudaDelProveedor?.nombre ?? "Este proveedor";
 
   async function guardar(e: React.FormEvent) {
@@ -289,7 +305,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
 
   // «Textiles Andina SAC · S/ 1,260.00 · llega a Tienda TRU»: lo guardado, dicho como se ve en la lista.
   function detalleGuardada(): string {
-    const proveedor = datos.proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? "";
+    const proveedor = proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? "";
     const destino = fraseDestino(orden.destino === POR_REPARTIR ? null : (datos.destinos.find((d) => d.id === orden.destino)?.nombre ?? null));
     return [proveedor, soles(total), destino.charAt(0).toLowerCase() + destino.slice(1)].filter(Boolean).join(" · ");
   }
@@ -398,6 +414,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
               valor={orden.proveedorId}
               onValor={elegirProveedor}
               opciones={opcionesProveedor}
+              crear={{ etiqueta: (q) => (q ? `+ Registrar proveedor «${q}»` : "+ Registrar proveedor"), onCrear: (q) => setRegistro(q) }}
             />
           </CampoGuiado>
           <CampoGuiado id="destino" guia={guia}>
@@ -541,6 +558,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
 
       {avisoSalida.aviso}
       {verComoPagarle && proveedorElegido && <ComoPagarle proveedor={proveedorElegido} onClose={() => setVerComoPagarle(false)} />}
+      {registro !== null && <RegistrarProveedorOrden proveedores={proveedores} tipeado={registro} onRegistrado={alRegistrarse} onClose={() => setRegistro(null)} />}
     </div>
   );
 }

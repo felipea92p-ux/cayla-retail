@@ -25,6 +25,8 @@ export const RPC_ANULAR_ENVIO = "anular_envio";
 export const RPC_DETALLE_ENVIO = "fn_envio_detalle";
 /** Las órdenes generadas con algo por enviar: el número y el filtro «Por enviar» de la lista. Empieza con `fn_`: lectura, no abre el loader. */
 export const RPC_ORDENES_POR_ENVIAR = "fn_ordenes_compra_por_enviar";
+/** Registrar un proveedor nuevo desde la orden, con lo básico (`registrar_proveedor_de_orden`, 20261021202000). */
+export const RPC_REGISTRAR_PROVEEDOR_ORDEN = "registrar_proveedor_de_orden";
 /** Los pares (proveedor, categoría) derivados de lo que ya existe (`fn_proveedor_categorias`, 20261021201000): para el prefiltro de Nueva orden. */
 export const RPC_PROVEEDOR_CATEGORIAS = "fn_proveedor_categorias";
 
