@@ -59,3 +59,20 @@ no tiene cuenta. Si el correo es el de una ficha y pasa **cinco candados**, la c
 
 - Refrescar el diccionario de datos (`pnpm datos:generar:produccion`) ahora que la migración está en producción.
 - Decidir si el aviso por WhatsApp se automatiza (proveedor de envío) o se queda como tarea de la tienda.
+
+## Actualización 2026-10-21 (b) — si la ficha ya tiene cuenta con otro correo, se le dice con cuál entrar
+
+**El caso real (Felipe, 2026-10-21):** su ficha tiene el correo `fel…@gmail.com` y su cuenta de la tienda entra con `sub…@gmail.com`. Con Google y `fel…`, el primer candado
+(una ficha es de una sola cuenta) lo rechazaba con «ya está registrado con otros datos, acércate a una tienda»: no decía que ya tenía cuenta ni con cuál.
+
+**Qué cambia** (migración `20261021182000`, **pegada en producción el 2026-10-21, cuando Felipe lo dijo**): el candado del nombre corre antes de mirar la cuenta de la ficha. Si el
+nombre coincide y la ficha tiene una cuenta ABIERTA con otro correo, `tienda_vincular_cuenta_google` devuelve `otro_correo` con ese correo **a medias** (`su••••@gmail.com`:
+dos letras y el dominio) y «Entrar» dice «Ya tienes una cuenta con otro correo: su••••@gmail.com. Entra con ese correo y tu contraseña, y cámbialo en «Mi cuenta» si quieres usar
+Google.» No se une ni se crea nada. Sin nombre parecido, con cuenta cerrada, ficha archivada o varias fichas, sigue `no_coincide` y no se dice nada del correo de la cuenta.
+
+**El correo no viaja en la dirección** (regla de privacidad del repo): la ruta de Google lo deja en una cookie corta (`cayla-google-correo`, 120 s, solo en `/entrar`), y «Entrar»
+la lee, la borra y la valida (solo se muestra un correo con la forma que arma la base). Sin la cookie, el mensaje dice lo mismo sin el correo.
+
+**Descartado:** sumar un segundo correo de entrada a la misma cuenta (otra decisión y otro riesgo), mostrar el correo completo, y decirlo sin el candado del nombre.
+
+**Para usar Google con esa ficha:** entrar con el correo de siempre y, en «Mi cuenta», cambiarlo por el de Google; después, «Continuar con Google» entra directo. No se probó de punta a punta con Google real.

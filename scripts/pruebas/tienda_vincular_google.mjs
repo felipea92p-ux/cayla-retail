@@ -7,7 +7,8 @@
  *      Clientas ▸ Avisos las ejecuta `authenticated` y no `anon`; la tabla del vínculo está cerrada a todos; un correo de ficha es único.
  *   2. `fn_nombres_se_parecen` (el candado de identidad): sí con dos palabras en común o con una si algún nombre tiene una sola, sin
  *      tildes ni mayúsculas ni orden; no con una sola palabra común entre dos nombres largos ni con nombres distintos.
- *   3. `tienda_vincular_cuenta_google`: une la cuenta a la ficha que ya tenía ese correo (sin crear otra ficha), también cuando Google lo
+ *   3. `tienda_vincular_cuenta_google` (y 20261021182000, que dice con qué correo entrar si la ficha ya tiene cuenta con otro: solo si el
+ *      nombre coincide, y a medias): une la cuenta a la ficha que ya tenía ese correo (sin crear otra ficha), también cuando Google lo
  *      escribe con mayúsculas; deja el vínculo «pendiente de avisar» (o «sin_celular») y la actividad SIN el nombre ni el
  *      correo; NO une —sin escribir nada— con un nombre distinto, una ficha archivada, una ficha que ya tiene cuenta (abierta o cerrada)
  *      ni un correo que ya es de una cuenta; dice no_aplica si el correo no es de ninguna ficha; rechaza datos inválidos.
@@ -34,8 +35,14 @@ import { readFileSync } from "node:fs";
 
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
-const MIGRACION = "supabase/migrations/20261021170000_tienda_vincular_cuenta_google_con_ficha.sql";
-const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(MIGRACION, "utf8") : "";
+// Dos migraciones, en orden: la unión con Google (20261021170000) y la que dice con qué correo entrar si la ficha ya tiene cuenta (20261021182000).
+const MIGRACIONES = [
+  "supabase/migrations/20261021170000_tienda_vincular_cuenta_google_con_ficha.sql",
+  "supabase/migrations/20261021182000_tienda_vincular_google_dice_con_que_correo_entrar.sql",
+];
+const MIGRACION = MIGRACIONES[0];
+const SQL_MIGRACIONES = MIGRACIONES.map((m) => readFileSync(m, "utf8")).join("\n");
+const APLICAR_ANTES = process.env.APLICAR_ANTES ? SQL_MIGRACIONES : "";
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -271,13 +278,22 @@ function main() {
     "no_coincide\ntrue",
   );
   esperarValor(
-    "una ficha que ya tiene cuenta abierta no se une: no_coincide y no se escribe nada",
+    "una ficha que ya tiene cuenta abierta con OTRO correo no se une: dice otro_correo y con cuál entrar (a medias), sin escribir nada",
     correr(`${PREPARAR}
       select (${RECUENTO}) as antes \\gset
-      ${estado(randomUUID(), C.diana, "Diana Con Cuenta")}
+      select r ->> 'estado', r ->> 'correo_cuenta' from (select ${vincular(randomUUID(), C.diana, "Diana Con Cuenta")} as r) x;
       select ((${RECUENTO}) = :'antes')::text;
       rollback;`),
-    "no_coincide\ntrue",
+    "otro_correo|zz••••@ejemplo.com\ntrue",
+  );
+  esperarValor(
+    "esa misma ficha con un nombre que no se parece: no_coincide y NO dice con qué correo entra la dueña",
+    correr(`${PREPARAR}
+      select (${RECUENTO}) as antes \\gset
+      select r ->> 'estado', coalesce(r ->> 'correo_cuenta', 'sin dato') from (select ${vincular(randomUUID(), C.diana, "Pedro Quispe")} as r) x;
+      select ((${RECUENTO}) = :'antes')::text;
+      rollback;`),
+    "no_coincide|sin dato\ntrue",
   );
   esperarValor(
     "una ficha con cuenta CERRADA tampoco: no_coincide y no se escribe nada",
@@ -454,7 +470,7 @@ select id as vinculo from retail.cuentas_web_vinculos_google where usuario_web_i
   }
 
   console.log("— La migración —");
-  const sql = readFileSync(MIGRACION, "utf8");
+  const sql = SQL_MIGRACIONES;
   esperarValor("se puede volver a correr (dos veces seguidas, como un segundo pegado)", correr(`begin;\n${sql}\n${sql}\nselect 'ok';\nrollback;`), "ok");
 
   console.log(`\n${total - fallos}/${total} escenarios en verde.`);

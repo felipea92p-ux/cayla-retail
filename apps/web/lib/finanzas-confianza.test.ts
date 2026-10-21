@@ -88,6 +88,28 @@ describe("calcularConfianza", () => {
     expect(mes.logrado).toBe(12);
   });
 
+  it("con la planilla sin pagar pero estimada con las boletas de Dynamic (ADR-0453), el mes ya no se ve sin sueldos", () => {
+    const sin = calcularConfianza(HOY).piezas.find((p) => p.clave === "planilla")!;
+    const est = calcularConfianza({ ...HOY, planilla: { visible: true, mesPagada: false, provision: { sedes: 5, personas: 35, devengado: 22000, alCierre: 34000 } } }).piezas.find((p) => p.clave === "planilla")!;
+    expect(sin.detalle).toContain("se ve sin sueldos");
+    expect(est.estado).toBe("parcial");
+    expect(est.detalle).toBe("Dynamic todavía no pagó el período: el mes lleva S/\u00a022,000 de sueldos estimados hasta hoy con las boletas de 35 personas. Se corrige solo cuando Dynamic pague.");
+    // Aporta más que sin estimar, pero menos que pagada: un estimado no es un dato pagado.
+    expect(est.logrado).toBeGreaterThan(sin.logrado);
+    expect(est.logrado).toBeLessThan(est.peso);
+  });
+
+  it("pagada manda sobre estimada: si el mes ya se pagó, la estimación no cuenta", () => {
+    const p = calcularConfianza({ ...HOY, planilla: { visible: true, mesPagada: true, provision: { sedes: 1, personas: 1, devengado: 5, alCierre: 5 } } }).piezas.find((x) => x.clave === "planilla")!;
+    expect(p.estado).toBe("ok");
+    expect(p.logrado).toBe(p.peso);
+  });
+
+  it("una persona se escribe en singular", () => {
+    const p = calcularConfianza({ ...HOY, planilla: { visible: true, mesPagada: false, provision: { sedes: 1, personas: 1, devengado: 100, alCierre: 150 } } }).piezas.find((x) => x.clave === "planilla")!;
+    expect(p.detalle).toContain("las boletas de 1 persona.");
+  });
+
   it("la planilla que el líder no ve queda sin dato y no cuenta en el porcentaje", () => {
     const c = calcularConfianza({ ...TODO_BIEN, planilla: { visible: false, mesPagada: false } });
     const planilla = c.piezas.find((p) => p.clave === "planilla")!;
