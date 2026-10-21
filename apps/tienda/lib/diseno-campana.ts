@@ -6,10 +6,14 @@ import {
   ENTRADAS_CAMPANA,
   FRANJAS_CAMPANA,
   INTENSIDADES_CAMPANA,
+  TOPE_BAJADA_CAMPANA,
+  TOPE_BOTON_CAMPANA,
+  TOPE_TITULAR_CAMPANA,
   ambienteDeCampana,
   colorDelSello,
   comprobarLectura,
   coloresDeCampana,
+  limpiarTextoDeCampana,
   textoSobre,
   type CuentaCampana,
   type DuracionCampana,
@@ -45,6 +49,10 @@ const esquemaDiseno = z.object({
   intensidad: z.enum(INTENSIDADES_CAMPANA).catch("poca"),
   duracion: z.enum(DURACIONES_CAMPANA).catch("una"),
   cuenta: z.enum(CUENTAS_CAMPANA).catch("siempre"),
+  // Los textos: lo que no sea un texto (o venga vacío) es «sin texto».
+  titular: z.string().nullable().catch(null),
+  bajada: z.string().nullable().catch(null),
+  boton: z.string().nullable().catch(null),
   donde: esquemaDonde.optional(),
 });
 
@@ -74,6 +82,8 @@ export type DisenoDeLaTienda = {
     duracion: DuracionCampana;
     cuenta: CuentaCampana;
   };
+  /** Los tres textos de la portada, limpios y dentro de su tope (`null` = sin texto: el héroe dice el nombre de la campaña, sin bajada y «Ver la campaña»). */
+  textos: { titular: string | null; bajada: string | null; boton: string | null };
   /** Dónde se ve: lo que el líder apagó vuelve a verse como siempre. */
   donde: { franja: boolean; portada: boolean; catalogo: boolean; sello: boolean; bolsa: boolean };
 };
@@ -96,6 +106,11 @@ export function interpretarDisenoCampana(dato: unknown, nombreDeLaPortada: strin
     plantilla: diseno.plantilla,
     colores: { ...colores, boton: textoSobre(colores.acento) },
     sello: colorDelSello(colores),
+    textos: {
+      titular: limpiarTextoDeCampana(diseno.titular, TOPE_TITULAR_CAMPANA),
+      bajada: limpiarTextoDeCampana(diseno.bajada, TOPE_BAJADA_CAMPANA),
+      boton: limpiarTextoDeCampana(diseno.boton, TOPE_BOTON_CAMPANA),
+    },
     movimiento: {
       franja: diseno.franja,
       entrada: diseno.entrada,

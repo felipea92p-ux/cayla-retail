@@ -36,3 +36,6 @@ a.t-campana[data-campana]:hover, .t-campana[data-campana][aria-current="true"] {
 
 /* La línea de la bolsa: de qué campaña es el descuento de la prenda, con el color de su sello (los pone el diseño en línea). */
 .t-bolsa-campana { display: inline-block; width: fit-content; margin-top: 6px; padding: 3px 8px 2px; font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; border-radius: 2px; }
+
+/* La línea debajo del titular (texto del diseño, opcional): entre el titular y el descuento. */
+.t-hero[data-campana] .t-hero-baj { margin: 20px 0 0; max-width: 34ch; font-size: 17px; line-height: 1.5; color: var(--cmp-texto); }

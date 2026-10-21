@@ -11,7 +11,7 @@
 //            o el candado ya exigen.
 //   NO HACE: leer ni escribir en la base, ni decidir permisos (lo hace `fn_exigir_modulo('campanas_web')`).
 //
-// Esta entrega edita ambiente, colores, movimiento y «dónde se ve». Textos e imagen propia se suman al borrador en las actividades que siguen;
+// Esta entrega edita ambiente, colores, movimiento, textos y «dónde se ve». La imagen propia se suma al borrador en la actividad que sigue;
 // el parche ya viaja como llaves sueltas, así que sumarlos no cambia nada de lo que hay aquí.
 
 import {
@@ -25,7 +25,11 @@ import {
   ambienteDeCampana,
   comprobarLectura,
   coloresDeCampana,
+  TOPE_BAJADA_CAMPANA,
+  TOPE_BOTON_CAMPANA,
+  TOPE_TITULAR_CAMPANA,
   esColorHex,
+  limpiarTextoDeCampana,
   type AmbienteCampana,
   type ColoresDeCampana,
   type ComprobacionDeLectura,
@@ -125,6 +129,11 @@ export type BorradorDiseno = {
   intensidad: IntensidadCampana;
   duracion: DuracionCampana;
   cuenta: CuentaCampana;
+  /** Los tres textos cortos de la portada, TAL COMO se escriben (con su espacio al final mientras se teclea); vacío = sin texto (sale el nombre de la
+   *  campaña, sin bajada y con «Ver la campaña»). Al guardar se limpian (`limpiarTextoDeCampana`). */
+  titular: string;
+  bajada: string;
+  boton: string;
   /** Dónde se ve: qué piezas de la tienda viste el diseño. */
   donde: Donde;
 };
@@ -132,8 +141,13 @@ export type BorradorDiseno = {
 export const BORRADOR_VACIO: BorradorDiseno = {
   plantilla: null, paleta: 0, acento: null,
   franja: "rota", entrada: "telon", efecto: "ninguno", intensidad: "poca", duracion: "una", cuenta: "siempre",
+  titular: "", bajada: "", boton: "",
   donde: DONDE_TODO,
 };
+
+/** Los topes de las tres cajas de texto. */
+export const TOPES_TEXTO = { titular: TOPE_TITULAR_CAMPANA, bajada: TOPE_BAJADA_CAMPANA, boton: TOPE_BOTON_CAMPANA } as const;
+export type LlaveDeTexto = keyof typeof TOPES_TEXTO;
 
 const esAmbiente = (v: string | null): v is AmbienteCampana => AMBIENTES_CAMPANA.some((a) => a.clave === v);
 
@@ -144,22 +158,26 @@ export function borradorDe(ficha: Pick<FichaCampana, "diseno">): BorradorDiseno 
   return {
     plantilla: d.plantilla, paleta: d.paleta, acento: d.acento,
     franja: d.franja, entrada: d.entrada, efecto: d.efecto, intensidad: d.intensidad, duracion: d.duracion, cuenta: d.cuenta,
+    titular: d.titular ?? "", bajada: d.bajada ?? "", boton: d.boton ?? "",
     donde: { ...d.donde },
   };
 }
 
 /** Elegir un ambiente: nace con su primera paleta y su movimiento de fábrica (su efecto, su franja y lo demás de siempre), sin color propio (el que
- *  había era para otro fondo). Lo que ya se eligió de «dónde se ve» se conserva: no depende del ambiente. */
+ *  había era para otro fondo). Lo que ya se escribió y lo que ya se eligió de «dónde se ve» se conserva: no depende del ambiente. */
 export function conAmbiente(b: BorradorDiseno, clave: AmbienteCampana): BorradorDiseno {
   if (b.plantilla === clave) return b;
   const a = ambienteDeCampana(clave)!;
   return {
-    ...BORRADOR_VACIO, plantilla: clave, efecto: a.efecto, franja: a.franja, donde: b.donde,
+    ...BORRADOR_VACIO, plantilla: clave, efecto: a.efecto, franja: a.franja, donde: b.donde, titular: b.titular, bajada: b.bajada, boton: b.boton,
   };
 }
 
 /** Cambiar una pieza del movimiento (la franja, la entrada, el efecto…). */
 export const conMovimiento = <K extends "franja" | "entrada" | "efecto" | "intensidad" | "duracion" | "cuenta">(b: BorradorDiseno, llave: K, valor: BorradorDiseno[K]): BorradorDiseno => ({ ...b, [llave]: valor });
+
+/** Escribir uno de los textos (se guarda como se escribe: la limpieza es de `parcheDeCambios`). */
+export const conTexto = (b: BorradorDiseno, llave: LlaveDeTexto, texto: string): BorradorDiseno => ({ ...b, [llave]: texto.slice(0, TOPES_TEXTO[llave] + 20) });
 
 /** Encender o apagar una pieza de «dónde se ve». */
 export const conDonde = (b: BorradorDiseno, pieza: PiezaDonde, encendida: boolean): BorradorDiseno => ({ ...b, donde: { ...b.donde, [pieza]: encendida } });
@@ -193,6 +211,12 @@ export function parcheDeCambios(guardado: BorradorDiseno | null, ahora: Borrador
   const antes = crea ? BORRADOR_VACIO : guardado;
   for (const k of ["paleta", "acento", "franja", "entrada", "efecto", "intensidad", "duracion", "cuenta"] as const) {
     if (crea || ahora[k] !== antes[k]) parche[k] = ahora[k];
+  }
+  // Los textos se comparan YA limpios: escribir un espacio al final no es un cambio, y vaciar la caja es «sin texto» (null).
+  for (const k of ["titular", "bajada", "boton"] as const) {
+    const nuevo = limpiarTextoDeCampana(ahora[k], TOPES_TEXTO[k]);
+    const viejo = crea ? null : limpiarTextoDeCampana(antes[k], TOPES_TEXTO[k]);
+    if (nuevo !== viejo) parche[k] = nuevo;
   }
   for (const k of PIEZAS_DONDE) if (crea ? ahora.donde[k] !== BORRADOR_VACIO.donde[k] : ahora.donde[k] !== antes.donde[k]) parche[`donde_${k}`] = ahora.donde[k];
   return Object.keys(parche).length ? parche : null;

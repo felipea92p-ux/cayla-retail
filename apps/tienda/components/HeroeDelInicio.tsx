@@ -72,13 +72,14 @@ export function HeroeDelInicio({
                 "Campaña vigente"
               )}
             </span>
-            <TituloHeroe texto={hero.campana.nombre} />
+            <TituloHeroe texto={vestido?.textos.titular ?? hero.campana.nombre} />
+            {vestido?.textos.bajada && <p className="t-hero-baj">{vestido.textos.bajada}</p>}
             <p className="t-hero-desc">
               <b>−{pctTexto(hero.campana.pct)} % en prendas elegidas.</b> Sepáralas online, confírmalas por WhatsApp y recógelas en tu tienda.
             </p>
             {hero.campana.hasta && vestido?.movimiento.cuenta !== "no" && <CuentaRegresiva hasta={hero.campana.hasta} soloElUltimoDia={vestido?.movimiento.cuenta === "ultimo"} />}
             <div className="t-hero-acciones">
-              {boton("t-btn t-btn-claro", verCampana, "Ver la campaña")}
+              {boton("t-btn t-btn-claro", verCampana, vestido?.textos.boton ?? "Ver la campaña")}
               {(verNuevo || enEspera) &&
                 boton(
                   "t-enlace",

@@ -2,7 +2,7 @@
   "guia": "tienda-web.campanas.editor",
   "ruta": "/tienda-web/campanas/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 19,
+  "total": 22,
   "controles": {
     "app/(app)/tienda-web/campanas/[id]/page.tsx": [
       "Volver «/tienda-web/campanas»"
@@ -17,6 +17,9 @@
       "SegmentoDeslizante «Cuánto dura el efecto»",
       "SegmentoDeslizante «Cuándo se ve la cuenta regresiva»",
       "Boton «Ver la entrada otra vez»",
+      "CampoTexto «{<>Titular <Opcional /></>}»",
+      "CampoTexto «{<>Una línea debajo <Opcional /></>}»",
+      "CampoTexto «{<>Texto del botón <Opcional /></>}»",
       "SegmentoDeslizante «Qué parte de la tienda ver»",
       "SegmentoDeslizante «Tamaño de la vista previa»",
       "button «Movimiento reducido»",

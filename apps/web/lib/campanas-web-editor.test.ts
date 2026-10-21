@@ -11,6 +11,7 @@ import {
   conDonde,
   conMovimiento,
   conPaleta,
+  conTexto,
   hayDonde,
   errorDeCampanas,
   faltanDelDiseno,
@@ -122,6 +123,26 @@ describe("parcheDeCambios: solo lo que cambió", () => {
   it("lo que se aparta de fábrica en «dónde se ve» viaja con el primer guardado", () => {
     expect(parcheDeCambios(null, conDonde(conAmbiente(BORRADOR_VACIO, "gato"), "sello", false))).toMatchObject({ donde_sello: false });
     expect(parcheDeCambios(null, conAmbiente(BORRADOR_VACIO, "gato"))).not.toHaveProperty("donde_sello");
+  });
+
+  it("los textos viajan limpios: el espacio al final no es un cambio, y vaciar la caja es «sin texto»", () => {
+    expect(parcheDeCambios(guardado, conTexto(guardado, "titular", "Hola"))).toEqual({ titular: "Hola" });
+    expect(parcheDeCambios(guardado, conTexto(guardado, "titular", "   "))).toBeNull();
+    const conTitular = { ...guardado, titular: "Hola" };
+    expect(parcheDeCambios(conTitular, conTexto(conTitular, "titular", "Hola  "))).toBeNull();
+    expect(parcheDeCambios(conTitular, conTexto(conTitular, "titular", ""))).toEqual({ titular: null });
+    expect(parcheDeCambios(guardado, conTexto(conTexto(guardado, "bajada", " Una  línea "), "boton", "Ver"))).toEqual({ bajada: "Una línea", boton: "Ver" });
+  });
+
+  it("la primera vez, un texto escrito viaja y uno vacío no", () => {
+    const b = conTexto(conAmbiente(BORRADOR_VACIO, "gato"), "titular", "Día del Gato ");
+    expect(parcheDeCambios(null, b)).toMatchObject({ titular: "Día del Gato" });
+    expect(parcheDeCambios(null, conAmbiente(BORRADOR_VACIO, "gato"))).not.toHaveProperty("titular");
+  });
+
+  it("cambiar de ambiente no borra lo que ya se escribió", () => {
+    const b = conAmbiente(conTexto(conAmbiente(BORRADOR_VACIO, "gato"), "titular", "Mi campaña"), "navidad");
+    expect(b.titular).toBe("Mi campaña");
   });
 
   it("cada pieza del movimiento y de «dónde se ve» viaja sola", () => {

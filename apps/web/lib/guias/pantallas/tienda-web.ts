@@ -1161,7 +1161,7 @@ export const GUIA_CAMPANAS_WEB: Guia = {
   ],
 };
 
-// Tienda web ▸ Campañas ▸ Diseñar la campaña (Felipe 2026-10-21): ambiente, colores, movimiento y dónde se ve. La demo elige un ambiente y una paleta
+// Tienda web ▸ Campañas ▸ Diseñar la campaña (Felipe 2026-10-21): ambiente, colores, movimiento, textos y dónde se ve. La demo elige un ambiente y una paleta
 // para mostrar cómo cambia la vista previa, pero nunca guarda: «Guardar borrador» se explica con la pieza encendida, sin tocarla.
 export const GUIA_CAMPANAS_EDITOR: Guia = {
   id: "tienda-web.campanas.editor",
@@ -1194,6 +1194,13 @@ export const GUIA_CAMPANAS_EDITOR: Guia = {
       opcional: true,
       titulo: "El movimiento",
       texto: "Cómo corre la franja de arriba, cómo entra la portada y qué efecto cae o brilla sobre ella: confeti, copos, patitas… Cada ambiente trae el suyo y tú lo cambias si quieres. Puede pasar una vez al llegar o seguir suave. Quien tiene «reducir movimiento» en su aparato ve la tienda quieta.",
+    },
+    {
+      id: "textos",
+      ancla: "campana-editor.textos",
+      opcional: true,
+      titulo: "Los textos",
+      texto: "El titular, una línea debajo y el texto del botón de la portada. Los tres son opcionales: sin ellos sale el nombre de la campaña y «Ver la campaña». El ejemplo de cada caja cambia con el ambiente que elegiste. El descuento y las fechas no se escriben: salen de Etiquetas.",
     },
     {
       id: "donde",

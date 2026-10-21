@@ -8,6 +8,7 @@ import {
   coloresDeCampana,
   comprobarLectura,
   esColorHex,
+  limpiarTextoDeCampana,
   ratioContraste,
   textoSobre,
 } from "@cayla-retail/shared";
@@ -111,5 +112,36 @@ describe("el color propio", () => {
     expect(champan.fondo).toBe("#2b1016");
     // ni el acento ni el fondo se leen (los dos claros): cae al grafito
     expect(colorDelSello({ fondo: "#f5f5f5", texto: "#111111", acento: "#eeeeee" }).fondo).toBe("#1c1c1a");
+  });
+});
+
+describe("limpiarTextoDeCampana", () => {
+  it("quita los espacios de más y el espacio al final (lo que se ve es lo que se guarda)", () => {
+    expect(limpiarTextoDeCampana("  Black   Week  ", 28)).toBe("Black Week");
+    expect(limpiarTextoDeCampana("Hola ", 28)).toBe("Hola");
+  });
+
+  it("vacío, solo espacios o solo letras invisibles es «sin texto» (null)", () => {
+    expect(limpiarTextoDeCampana("", 28)).toBeNull();
+    expect(limpiarTextoDeCampana("   ", 28)).toBeNull();
+    expect(limpiarTextoDeCampana(null, 28)).toBeNull();
+    expect(limpiarTextoDeCampana(undefined, 28)).toBeNull();
+    expect(limpiarTextoDeCampana(String.fromCharCode(0x200b, 0x200b), 28)).toBeNull();
+  });
+
+  it("las letras invisibles pegadas de otro lugar se quitan y los saltos de línea se vuelven un espacio", () => {
+    expect(limpiarTextoDeCampana("Navi" + String.fromCharCode(0x200b) + "dad", 28)).toBe("Navi dad");
+    expect(limpiarTextoDeCampana("Una\nsemana", 40)).toBe("Una semana");
+    expect(limpiarTextoDeCampana("Con" + String.fromCharCode(0xfeff) + " BOM", 28)).toBe("Con BOM");
+  });
+
+  it("corta en el tope y no deja un espacio colgando", () => {
+    expect(limpiarTextoDeCampana("a".repeat(40), 28)).toHaveLength(28);
+    expect(limpiarTextoDeCampana("Hola mundo cruel y bonito", 10)).toBe("Hola mundo");
+    expect(limpiarTextoDeCampana("Hola mund o", 9)).toBe("Hola mund");
+  });
+
+  it("las tildes y la ñ se respetan", () => {
+    expect(limpiarTextoDeCampana("Día de la Madre · mamá", 28)).toBe("Día de la Madre · mamá");
   });
 });

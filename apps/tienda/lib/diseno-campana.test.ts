@@ -110,3 +110,21 @@ describe("el movimiento del diseño", () => {
     expect(d?.movimiento).toMatchObject({ efecto: "ninguno", franja: "rota", cuenta: "siempre", duracion: "una" });
   });
 });
+
+describe("los textos del diseño", () => {
+  it("sin textos, todo es null (el héroe dice el nombre de la campaña y «Ver la campaña»)", () => {
+    expect(interpretarDisenoCampana(dato(disenoOk), "Aniversario CAYLA")?.textos).toEqual({ titular: null, bajada: null, boton: null });
+  });
+
+  it("lee los textos y los deja limpios", () => {
+    const d = interpretarDisenoCampana(dato({ ...disenoOk, titular: "  Black   Week ", bajada: "Una semana, una sola vez al año", boton: "Ver las ofertas" }), "Aniversario CAYLA");
+    expect(d?.textos).toEqual({ titular: "Black Week", bajada: "Una semana, una sola vez al año", boton: "Ver las ofertas" });
+  });
+
+  it("un texto vacío, de solo espacios o que no es texto es «sin texto»; uno largo se corta en su tope", () => {
+    const d = interpretarDisenoCampana(dato({ ...disenoOk, titular: "   ", bajada: 7, boton: "a".repeat(60) }), "Aniversario CAYLA");
+    expect(d?.textos.titular).toBeNull();
+    expect(d?.textos.bajada).toBeNull();
+    expect(d?.textos.boton).toHaveLength(22);
+  });
+});

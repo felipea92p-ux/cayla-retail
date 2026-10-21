@@ -15,6 +15,7 @@ import {
   NOMBRE_DE_EFECTO,
   NOMBRE_DE_INTENSIDAD,
   esColorHex,
+  limpiarTextoDeCampana,
   type AmbienteCampana,
   type EfectoCampana,
 } from "@cayla-retail/shared";
@@ -38,7 +39,9 @@ import {
   conAmbiente,
   conDonde,
   conMovimiento,
+  TOPES_TEXTO,
   conPaleta,
+  conTexto,
   errorDeCampanas,
   hayDonde,
   leerFichaCampana,
@@ -48,8 +51,9 @@ import {
   type FichaCampana,
 } from "@/lib/campanas-web-editor";
 import { camposDeDiseno } from "@/lib/campanas-web-guia";
+import { sugerirTextos } from "@/lib/sugerencias-campanas-web";
 
-type Paso = "ambiente" | "colores" | "movimiento" | "donde";
+type Paso = "ambiente" | "colores" | "movimiento" | "textos" | "donde";
 
 /** Un pétalo y un copo de nieve con el MISMO dibujo de lo que cae en la vista previa y en la tienda (`campana-efectos.css`): el líder elige por el ícono. */
 const Petalo = createLucideIcon("petalo", [["path", { d: "M12 2C8 6.5 6 10 6 14.5a6 6 0 0 0 12 0C18 10 16 6.5 12 2z" }]]);
@@ -105,6 +109,8 @@ export function EditorCampana({ ficha }: { ficha: FichaCampana }) {
 
   const guia = useGuiaCampos(camposDeDiseno(borrador, { responsableListo: responsable.listo, responsableMotivo: responsable.motivo }), { enModal: false });
   const parche = parcheDeCambios(guardado.plantilla ? guardado : null, borrador);
+  // Los ejemplos de las cajas de texto siguen al ambiente elegido (ADR-0290).
+  const ejemplos = sugerirTextos(borrador.plantilla);
   const colores = coloresDelBorrador(borrador);
   const lectura = lecturaDelBorrador(borrador);
   const ambiente = AMBIENTES_CAMPANA.find((a) => a.clave === borrador.plantilla) ?? null;
@@ -373,6 +379,54 @@ export function EditorCampana({ ficha }: { ficha: FichaCampana }) {
 
           <PasoDelEditor
             numero={4}
+            titulo="Textos"
+            resumen={!ambiente ? "Primero elige el ambiente" : resumenDeLosTextos(borrador, ficha.campana.nombre)}
+            hecho={borrador.plantilla !== null}
+            bloqueado={!ambiente}
+            abierto={paso === "textos" && !!ambiente}
+            onAbrir={() => setPaso("textos")}
+            guia="campana-editor.textos"
+          >
+            {ambiente && (
+              <CampoGuiado id="textos" guia={guia}>
+                <div className="space-y-3">
+                  <CampoTexto
+                    etiqueta={<>Titular <Opcional /></>}
+                    pie={`${borrador.titular.length}/${TOPES_TEXTO.titular} · Vacío: usa «${ficha.campana.nombre}»`}
+                    value={borrador.titular}
+                    maxLength={TOPES_TEXTO.titular}
+                    placeholder={`Ej. ${ejemplos.titular}`}
+                    disabled={terminada || guardando}
+                    onChange={(e) => setBorrador((b) => conTexto(b, "titular", e.target.value))}
+                  />
+                  <CampoTexto
+                    etiqueta={<>Una línea debajo <Opcional /></>}
+                    pie={`${borrador.bajada.length}/${TOPES_TEXTO.bajada}`}
+                    value={borrador.bajada}
+                    maxLength={TOPES_TEXTO.bajada}
+                    placeholder={`Ej. ${ejemplos.bajada}`}
+                    disabled={terminada || guardando}
+                    onChange={(e) => setBorrador((b) => conTexto(b, "bajada", e.target.value))}
+                  />
+                  <CampoTexto
+                    etiqueta={<>Texto del botón <Opcional /></>}
+                    pie={`${borrador.boton.length}/${TOPES_TEXTO.boton} · Vacío: dice «Ver la campaña»`}
+                    value={borrador.boton}
+                    maxLength={TOPES_TEXTO.boton}
+                    placeholder={`Ej. ${ejemplos.boton}`}
+                    disabled={terminada || guardando}
+                    onChange={(e) => setBorrador((b) => conTexto(b, "boton", e.target.value))}
+                  />
+                  <p className="nota-cayla">
+                    El descuento y las fechas no se escriben aquí: salen de la campaña en Etiquetas, para que la tienda nunca diga un precio distinto al de la caja.
+                  </p>
+                </div>
+              </CampoGuiado>
+            )}
+          </PasoDelEditor>
+
+          <PasoDelEditor
+            numero={5}
             titulo="Dónde se ve"
             resumen={!ambiente ? "Primero elige el ambiente" : `${PIEZAS_DONDE.filter((k) => borrador.donde[k]).length} de ${PIEZAS_DONDE.length} piezas`}
             hecho={borrador.plantilla !== null && hayDonde(borrador)}
@@ -443,6 +497,11 @@ export function EditorCampana({ ficha }: { ficha: FichaCampana }) {
               movimiento={{ franja: borrador.franja, entrada: borrador.entrada, efecto: borrador.efecto, intensidad: borrador.intensidad, duracion: borrador.duracion, cuenta: borrador.cuenta }}
               donde={borrador.donde}
               quieto={quieto}
+              textos={{
+                titular: limpiarTextoDeCampana(borrador.titular, TOPES_TEXTO.titular),
+                bajada: limpiarTextoDeCampana(borrador.bajada, TOPES_TEXTO.bajada),
+                boton: limpiarTextoDeCampana(borrador.boton, TOPES_TEXTO.boton),
+              }}
             />
           </div>
           <p className="text-[12px] text-taupe">Es un dibujo para decidir los colores; la tienda de verdad se ve con las fotos de las prendas.</p>
@@ -580,4 +639,16 @@ function AcentoPropio({
 function resumenDelMovimiento(b: BorradorDiseno): string {
   const efecto = b.efecto === "ninguno" ? "Sin efecto" : `${NOMBRE_DE_EFECTO[b.efecto]} · ${b.duracion === "una" ? "una vez" : "continuo"}`;
   return `${efecto} · franja ${{ rota: "rota", marquesina: "en marquesina", quieta: "quieta" }[b.franja]}`;
+}
+
+/** Los textos en una línea, para el título del paso: el titular y la bajada, o el nombre de la campaña si no se escribió nada. */
+function resumenDeLosTextos(b: BorradorDiseno, nombreDeLaCampana: string): string {
+  const titular = limpiarTextoDeCampana(b.titular, TOPES_TEXTO.titular);
+  const bajada = limpiarTextoDeCampana(b.bajada, TOPES_TEXTO.bajada);
+  return `${titular ?? nombreDeLaCampana}${bajada ? ` · ${bajada}` : ""}`;
+}
+
+/** «· opcional» tenue junto al título de un campo (la forma de `Campo`: «Titular · opcional»). */
+function Opcional() {
+  return <span className="font-normal normal-case tracking-normal text-tinta/65">· opcional</span>;
 }

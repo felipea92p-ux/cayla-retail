@@ -1,6 +1,6 @@
 // La guía de foco del editor de Campañas (ADR-0284, Felipe 2026-10-21). No agrega reglas: «falta» es lo que el candado de lectura y la base ya
 // exigen (un ambiente elegido, letras que se lean y al menos una pieza de la tienda donde se vea); quién lo cambia lo pide
-// `guardar_campana_diseno` (el responsable firma). El color propio y el movimiento son opcionales: nacen elegidos y nunca bloquean. La prueba `campanas-web-guia.test.ts` exige que «falta» y `faltanDelDiseno` digan lo mismo.
+// `guardar_campana_diseno` (el responsable firma). El color propio, el movimiento y los textos son opcionales: nunca bloquean. La prueba `campanas-web-guia.test.ts` exige que «falta» y `faltanDelDiseno` digan lo mismo.
 
 import type { CampoDeGuia } from "./guia-campos";
 import { conAmbiente, BORRADOR_VACIO, faltanDelDiseno, hayDonde, type BorradorDiseno } from "./campanas-web-editor";
@@ -23,6 +23,8 @@ export function camposDeDiseno(b: BorradorDiseno, r: Responsable): CampoDeGuia[]
     { id: "acento", nombre: "Color propio", requerido: false, hecho: b.acento !== null, pendiente: "" },
     // El movimiento nace elegido (el de su ambiente): «hecho» es que ya se apartó de él.
     { id: "movimiento", nombre: "Movimiento", requerido: false, hecho: hayAmbiente && !mismoMovimiento(b), pendiente: "" },
+    // Los textos son opcionales (sin ellos sale el nombre de la campaña): «hecho» es que ya se escribió alguno.
+    { id: "textos", nombre: "Textos", requerido: false, hecho: hayAmbiente && [b.titular, b.bajada, b.boton].some((t) => t.trim() !== ""), pendiente: "" },
     { id: "donde", nombre: "Dónde se ve", requerido: true, hecho: hayAmbiente && hayDonde(b), pendiente: hayAmbiente ? "Elige al menos una pieza de la tienda." : "Primero elige un ambiente." },
     { id: "responsable", nombre: "Quién lo cambia", requerido: true, hecho: r.responsableListo, pendiente: r.responsableMotivo ?? "Elige quién hace el cambio." },
   ];

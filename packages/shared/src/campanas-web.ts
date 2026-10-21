@@ -156,3 +156,22 @@ export function comprobarLectura(c: ColoresDeCampana): { ok: boolean; items: Com
   ].map((x) => ({ ...x, ok: x.ratio >= x.minimo }));
   return { ok: items.every((x) => x.ok), items };
 }
+
+// ---------------------------------------------------------------- Textos de una campaña
+
+/** Cuántas letras caben en cada texto del diseño (los mismos topes que los CHECK de `retail.campana_web_disenos`: una prueba los cruza). */
+export const TOPE_TITULAR_CAMPANA = 28;
+export const TOPE_BAJADA_CAMPANA = 40;
+export const TOPE_BOTON_CAMPANA = 22;
+
+/** Un texto corto de una campaña, limpio: sin letras invisibles ni saltos de línea, con los espacios de más quitados y dentro del tope; `null` si
+ *  queda vacío (la base no acepta un texto vacío: no hay texto). Lo que la persona escribe con un espacio al final o pegado de otro lugar con
+ *  caracteres invisibles se guarda igual que lo que ve. */
+/** Los caracteres de control y las letras invisibles (espacio de ancho cero, marcas de dirección, separadores de línea, BOM). */
+const INVISIBLES = new RegExp("[" + [[0, 31], [127, 127], [0x200b, 0x200f], [0x2028, 0x202e], [0x2060, 0x206f], [0xfeff, 0xfeff]].map(([a, b]) => String.fromCharCode(a!) + "-" + String.fromCharCode(b!)).join("") + "]", "g");
+
+export function limpiarTextoDeCampana(texto: string | null | undefined, tope: number): string | null {
+  if (!texto) return null;
+  const limpio = texto.replace(INVISIBLES, " ").replace(/\s+/g, " ").trim().slice(0, tope).trim();
+  return limpio === "" ? null : limpio;
+}

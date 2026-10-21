@@ -19,6 +19,10 @@ export const MOVIMIENTO_DE_SIEMPRE: MovimientoDeVista = { franja: "rota", entrad
 /** El espacio que no se parte: «S/ 95» nunca queda en dos líneas. */
 const NB = String.fromCharCode(160);
 
+/** Los textos de la portada, ya limpios (`null` = sin texto: sale el nombre de la campaña, sin bajada y con «Ver la campaña»). */
+export type TextosDeVista = { titular: string | null; bajada: string | null; boton: string | null };
+export const SIN_TEXTOS: TextosDeVista = { titular: null, bajada: null, boton: null };
+
 export type PiezaDeVista = "portada" | "catalogo" | "bolsa";
 
 /**
@@ -42,6 +46,7 @@ export function PreviewCampana({
   movimiento = MOVIMIENTO_DE_SIEMPRE,
   donde = DONDE_TODO,
   quieto = false,
+  textos = SIN_TEXTOS,
 }: {
   colores: ColoresDeCampana | null;
   nombre: string;
@@ -52,6 +57,7 @@ export function PreviewCampana({
   movimiento?: MovimientoDeVista;
   donde?: Donde;
   quieto?: boolean;
+  textos?: TextosDeVista;
 }) {
   const sello = colores ? colorDelSello(colores) : null;
   const vars = colores
@@ -68,7 +74,7 @@ export function PreviewCampana({
         <span className="font-serif text-lg tracking-[0.3em]">CAYLA</span>
         <span className="w-6" />
       </div>
-      {pieza === "portada" && <Portada colores={colores} vestida={!!colores && donde.portada} nombre={nombre} pct={pct} hasta={hasta} celular={celular} movimiento={movimiento} />}
+      {pieza === "portada" && <Portada colores={colores} vestida={!!colores && donde.portada} nombre={nombre} pct={pct} hasta={hasta} celular={celular} movimiento={movimiento} textos={!!colores && donde.portada ? textos : SIN_TEXTOS} />}
       {pieza === "catalogo" && <Catalogo colores={colores} banda={!!colores && donde.catalogo} sello={!!colores && donde.sello ? sello : null} nombre={nombre} pct={pct} hasta={hasta} />}
       {pieza === "bolsa" && <Bolsa linea={!!colores && donde.bolsa ? sello : null} nombre={nombre} pct={pct} />}
       {pieza === "portada" && <Prendas pct={pct} sello={!!colores && donde.sello ? sello : null} />}
@@ -112,6 +118,7 @@ function Portada({
   hasta,
   celular,
   movimiento,
+  textos,
 }: {
   colores: ColoresDeCampana | null;
   vestida: boolean;
@@ -120,8 +127,9 @@ function Portada({
   hasta: string | null;
   celular: boolean;
   movimiento: MovimientoDeVista;
+  textos: TextosDeVista;
 }) {
-  const partes = nombre.trim().split(/\s+/);
+  const partes = (textos.titular ?? nombre).trim().split(/\s+/);
   const cola = partes.length > 1 ? (partes.pop() as string) : "";
   const cabeza = partes.join(" ");
   const acento = vestida && colores ? { color: colores.acento } : undefined;
@@ -142,6 +150,7 @@ function Portada({
             </em>
           )}
         </h3>
+        {textos.bajada && <p className="mt-3 max-w-[34ch] text-[13px] opacity-90">{textos.bajada}</p>}
         <p className="mt-3 flex items-baseline gap-3">
           <b className="font-serif text-3xl font-normal italic" style={acento}>
             {pctDicho(pct)}
@@ -164,7 +173,7 @@ function Portada({
             className={`inline-flex h-9 items-center gap-2 px-4 text-[10px] font-semibold uppercase tracking-[0.16em] ${vestida ? "" : "bg-tinta text-crema"}`}
             style={vestida && colores ? { backgroundColor: colores.acento, color: textoSobre(colores.acento) } : undefined}
           >
-            Ver la campaña <ArrowRight className="h-3 w-3" aria-hidden />
+            {textos.boton ?? "Ver la campaña"} <ArrowRight className="h-3 w-3" aria-hidden />
           </span>
           <span className="inline-flex h-9 items-center border border-current px-4 text-[10px] font-semibold uppercase tracking-[0.16em] opacity-90">Lo nuevo</span>
         </div>
