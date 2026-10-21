@@ -12,6 +12,7 @@ import {
 } from "@/lib/catalogo";
 import type { NotaStock } from "@/lib/stock";
 import { BotonFavorito } from "./club/BotonFavorito";
+import { aplicaA, type DisenoDeLaTienda } from "@/lib/diseno-campana";
 import { FotoTarjeta } from "./FotoTarjeta";
 import { RapidoDeTarjeta } from "./RapidoDeTarjeta";
 
@@ -39,6 +40,7 @@ export function TarjetaPrenda({
   sinNuevo = false,
   guardado,
   arriba = false,
+  diseno = null,
 }: {
   prenda: Prenda;
   sede: string | null;
@@ -52,6 +54,8 @@ export function TarjetaPrenda({
   guardado?: boolean;
   /** Va en la primera fila de la lista (se ve sin bajar): su foto se pide apenas llega la página. */
   arriba?: boolean;
+  /** El diseño de la campaña (Tienda web ▸ Campañas): viste el sello de descuento de las prendas de ESA campaña. Sin él, el de siempre. */
+  diseno?: DisenoDeLaTienda | null;
 }) {
   const [foto, segunda] = fotosDeTarjeta(prenda);
   const precio = precioTarjeta(prenda);
@@ -88,7 +92,12 @@ export function TarjetaPrenda({
               {/* «Nuevo» va claro (2026-10-16): con casi todo el catálogo nuevo, un sello negro en cada foto le quitaba la vista a la prenda.
                   La empresa es esa misma insignia con su nombre (ADR-0465): debajo de «Nuevo», o arriba si la tarjeta no lo tiene. */}
               {insignias.map((i) => (
-                <span key={i.clave} className={CLASE_INSIGNIA[i.clave]}>
+                <span
+                  key={i.clave}
+                  className={CLASE_INSIGNIA[i.clave]}
+                  // El sello de descuento de la campaña con diseño (si el líder lo dejó encendido): su color, que se lee sobre la foto.
+                  style={i.clave === "oferta" && diseno?.donde.sello && aplicaA(diseno, prenda.campana?.nombre) ? { background: diseno.sello.fondo, color: diseno.sello.texto } : undefined}
+                >
                   {i.texto}
                 </span>
               ))}

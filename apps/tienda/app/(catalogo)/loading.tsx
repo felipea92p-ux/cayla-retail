@@ -1,4 +1,5 @@
 import { EsqueletoDePagina } from "@/components/EsqueletoDePagina";
+import { leerDisenoDeCampana } from "@/lib/diseno-campana-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
 
 // Mientras llega una página del catálogo (Inicio, Catálogo, una ficha, Looks…), al instante: la forma de la página que viene, que sale
@@ -7,5 +8,5 @@ import { leerPortada } from "@/lib/portada-servidor";
 // el marco del catálogo (`layout.tsx`).
 export default async function CargandoCatalogo() {
   const { campana } = await leerPortada();
-  return <EsqueletoDePagina campana={campana} />;
+  return <EsqueletoDePagina campana={campana} diseno={await leerDisenoDeCampana(campana?.nombre)} />;
 }

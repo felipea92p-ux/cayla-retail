@@ -30,6 +30,8 @@ const ANOTAN: ReadonlySet<ClaveModulo> = new Set<ClaveModulo>([
   "notas_credito",
   // Vitrina web (ADR-0408, actividad 3, 20261014225000): mostrar, ocultar, el precio web y Lo nuevo anotan su línea con quién lo hizo.
   "vitrina_web",
+  // Campañas de la tienda web (20261021161000): crear y cambiar el diseño de una campaña anota su línea con quién lo hizo.
+  "campanas_web",
   // Recomendaciones (ADR-0408, 20261015135000): marcar como leída, responder, archivar y sacar del archivo anotan su línea, sin el nombre
   // ni el texto del cliente.
   "recomendaciones",
