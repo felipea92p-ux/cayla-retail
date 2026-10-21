@@ -111,6 +111,9 @@ select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select id as lim from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select id as claure from retail.empresas where clave = 'claure' \\gset
 select id as cayla from retail.empresas where clave = 'cayla' \\gset
+-- CLAURE opera en Lima: la migración de ADR-0463 lo siembra por el nombre de la sede, y en una base limpia (el CI) corre ANTES del seed que crea las
+-- sedes, así que aquí no se supone: se escribe.
+insert into retail.empresa_sedes (empresa_id, ubicacion_id) values (:'claure', :'lim') on conflict do nothing;
 update retail.productos set empresa_id = :'cayla' where id = :'emma';
 update retail.productos set empresa_id = :'claure' where id = :'carla';
 update retail.ubicaciones set whatsapp_numero = '987000001' where id = :'tru';
