@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { conCambio, lecturaDePistola, MAX_MS_ENTRE_TECLAS, PAUSA_FIN_LECTURA_MS, TECLAS_MIN_LECTURA, type Rafaga } from "./lectura-pistola";
+import {
+  conCambio,
+  lecturaDePistola,
+  MAX_MS_ENTRE_TECLAS,
+  MAX_MS_DE_TROPIEZO,
+  PAUSA_FIN_LECTURA_MS,
+  TECLAS_MIN_LECTURA,
+  TECLAS_PARA_PERDONAR,
+  type Rafaga,
+} from "./lectura-pistola";
 import { resolverCodigoV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 
 /** Escribe `texto` al final de `antes`, una tecla cada `cadaMs`, empezando en `desde`; devuelve el campo, la ráfaga y la
@@ -114,5 +123,60 @@ describe("el código leído se resuelve como si hubiera llegado su Enter", () =>
 describe("el silencio que da por terminada la lectura", () => {
   it("es más largo que el ritmo de una ráfaga: si no, cortaría la lectura a la mitad", () => {
     expect(PAUSA_FIN_LECTURA_MS).toBeGreaterThan(MAX_MS_ENTRE_TECLAS);
+  });
+});
+
+/** Escribe `texto` con una pausa de `pausaMs` justo antes de la tecla número `enTecla` (1 = la primera). */
+function teclearConTropiezo(antes: { valor: string; rafaga: Rafaga | null; t: number }, texto: string, cadaMs: number, desde: number, enTecla: number, pausaMs: number) {
+  let { valor, rafaga } = antes;
+  let t = desde;
+  let n = 0;
+  for (const c of texto) {
+    n += 1;
+    if (n === enTecla) t += pausaMs - cadaMs;
+    rafaga = conCambio(rafaga, valor, valor + c, t);
+    valor += c;
+    t += cadaMs;
+  }
+  return { valor, rafaga, t: t - cadaMs };
+}
+
+describe("una pistola que se atrasa un instante a mitad del código sigue siendo una pistola", () => {
+  it("un tropiezo corto en medio de la lectura no la parte en dos", () => {
+    const c = teclearConTropiezo(vacio, CODIGO, 5, 1000, 9, 90);
+    expect(lecturaDePistola(c.valor, c.rafaga)).toBe(CODIGO);
+  });
+
+  it("el tropiezo más largo que se perdona", () => {
+    const c = teclearConTropiezo(vacio, CODIGO, 5, 1000, 9, MAX_MS_DE_TROPIEZO);
+    expect(lecturaDePistola(c.valor, c.rafaga)).toBe(CODIGO);
+  });
+
+  it("una pausa mayor ya es otra cosa: la ráfaga se corta y solo cuenta lo que vino después", () => {
+    const c = teclearConTropiezo(vacio, CODIGO, 5, 1000, 9, MAX_MS_DE_TROPIEZO + 1);
+    expect(lecturaDePistola(c.valor, c.rafaga)).not.toBe(CODIGO);
+  });
+
+  it("no se perdona antes de que se note que es una máquina", () => {
+    // Pausa tras solo (TECLAS_PARA_PERDONAR - 1) teclas rápidas: todavía puede ser una persona.
+    const c = teclearConTropiezo(vacio, CODIGO, 5, 1000, TECLAS_PARA_PERDONAR, 90);
+    expect(lecturaDePistola(c.valor, c.rafaga)).not.toBe(CODIGO);
+  });
+
+  it("una persona tecleando a su ritmo sigue sin ser lectura, aunque un par de teclas le salgan seguidas", () => {
+    const c = teclearConTropiezo(vacio, CODIGO, 90, 1000, 3, 90);
+    expect(lecturaDePistola(c.valor, c.rafaga)).toBeNull();
+  });
+
+  it("con un código a medias en el campo, la lectura con tropiezo lo reemplaza y no se le pega", () => {
+    const resto = teclear(vacio, "CMS-00", 5, 1000); // una lectura que se cortó y quedó escrita
+    const c = teclearConTropiezo(resto, CODIGO, 5, resto.t + 1500, 9, 90);
+    expect(c.valor).toBe("CMS-00" + CODIGO);
+    expect(lecturaDePistola(c.valor, c.rafaga)).toBe(CODIGO);
+  });
+
+  it("el tropiezo que se perdona es menor que el silencio que cierra la lectura", () => {
+    expect(MAX_MS_DE_TROPIEZO).toBeGreaterThan(MAX_MS_ENTRE_TECLAS);
+    expect(MAX_MS_DE_TROPIEZO).toBeLessThan(PAUSA_FIN_LECTURA_MS);
   });
 });

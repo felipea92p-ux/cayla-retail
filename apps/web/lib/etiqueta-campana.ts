@@ -147,7 +147,7 @@ export function chipDeTarjeta(v: Vigencia | null, alcance: number | null, hoy: s
     const cuando = v.enDias === 1 ? "Mañana" : `En ${v.enDias} días`;
     if (alcance === null) return { texto: cuando, tono: "ambar" };
     return alcance === 0
-      ? { texto: cuando, tono: "neutro", alerta: "Sin preparar", title: "Todavía no llega a ninguna prenda a la venta: márcalas en «Prendas» o elige categorías en «Campaña»." }
+      ? { texto: cuando, tono: "neutro", alerta: "Sin preparar", title: "Todavía no llega a ninguna prenda a la venta: márcalas en «Prendas» o elige categorías en «Configurar»." }
       : { texto: cuando, tono: "pizarra" };
   }
   const anio = v.hasta.slice(0, 4) === hoy.slice(0, 4) ? "" : ` de ${v.hasta.slice(0, 4)}`;

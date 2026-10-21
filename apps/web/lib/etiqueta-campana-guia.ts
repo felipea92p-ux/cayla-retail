@@ -1,4 +1,4 @@
-// La guía de foco de la ventana «Campaña» de una etiqueta (CLAUDE.md «Guía de foco», ADR-0284). Sin React ni red.
+// La guía de foco de la ventana «Configuración» (antes «Campaña») de una etiqueta (CLAUDE.md «Guía de foco», ADR-0284). Sin React ni red.
 //
 // CONTRATO
 //   PROMETE: decir, campo por campo, qué está hecho y qué hay que corregir, con la MISMA regla que apaga «Guardar»

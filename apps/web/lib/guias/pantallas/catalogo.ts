@@ -550,8 +550,8 @@ export const GUIA_ATRIBUTOS: Guia = {
       id: "campana",
       ancla: "atributos.campana",
       opcional: true,
-      titulo: "La campaña",
-      texto: "«Campaña» es para una etiqueta como Black Friday: el descuento, las fechas y a qué categorías se aplica (te la abrimos). Un chip ámbar avisa que no llega a ninguna prenda («Sin prendas», «Sin preparar»). Si ya pasó, el botón dice «Repetir»: abre con las fechas del año que viene.",
+      titulo: "Configurar la etiqueta",
+      texto: "«Configurar» le pone a la etiqueta su descuento, sus fechas y a qué categorías se aplica, como en Black Friday (te la abrimos). Un chip ámbar avisa que no llega a ninguna prenda («Sin prendas», «Sin preparar»). Si ya pasó, el botón dice «Repetir»: abre con las fechas del año que viene.",
     },
     {
       id: "campana-form",
