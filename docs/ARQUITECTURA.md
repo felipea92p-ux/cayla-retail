@@ -353,8 +353,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - `/inventario` (Existencias) → `lib/inventario-v2.ts:getExistencias` = `getStockPorUbicacion`
   (tabla `stock` agregada por variante) + RPC `fn_stock_por_sede` (dónde más hay, la misma
   de Vender, vía `lib/stock-por-sede.ts`) + `transferencia_items` en tránsito hacia acá →
-  + RPC `fn_piso_plan_lectura` (ADR-0328 act. 7, migración `20261004213000`: lo libre en piso y almacén, lo vendido
-  escaneado y anotado «sin registrar» en 14 días por prenda y por categoría × talla × familia de color —lo que el cliente
+  + RPC `fn_piso_plan_lectura` (ADR-0328 act. 7, migraciones `20261004213000` y `20261005160100`: lo libre en piso y almacén, lo vendido
+  escaneado y anotado «sin registrar» en 14 días —la anotada cuenta mientras no tenga prenda: pendiente o cerrada sin prenda,
+  ADR-0334— por prenda y por categoría × talla × familia de color —lo que el cliente
   se llevó: un cambio cuenta como la prenda nueva, sin devoluciones aprobadas ni liquidaciones de dañadas—, lo anotado a mano
   hoy y ayer por categoría × talla × color (el reloj rápido de lo que no tiene prenda), las curvas de
   tallas y la fecha del último cuadre del piso —`cuadres_piso`, actividad 3; sin ella, lo que manda a bajar queda «En pausa»,
@@ -878,6 +879,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `LookHoja.tsx` (`vitrina_guardar_look`: nombre, frase, 2 a 4 prendas con su color, si se ve y su lugar) + `LookMostrarHoja.tsx`
   (`vitrina_mostrar_look`); reglas en `lib/vitrina-looks-reglas.ts`, guía de foco en `lib/vitrina-looks-guia.ts`. Qué se ve en la web
   lo decide `tienda_catalogo(null)` (la misma regla del cliente). Prueba en la base: `pnpm pruebas:vitrina-looks`.
+- `/tienda-web/campanas` (Tienda web ▸ Campañas, módulo `campanas_web`, nace solo para el líder, ADR-0471) → `page.tsx` lee `fn_campanas_web` (las campañas vigentes, por empezar o terminadas hace menos de 120 días, con su estado, modelos que toca y el resumen de su diseño) → `CampanasPantalla.tsx` (cifras, filtros, lista y los próximos 3 meses; reglas en `lib/campanas-web-reglas.ts`).
+  `/tienda-web/campanas/[id]` (Diseñar la campaña, el mismo módulo) → `page.tsx` lee `fn_campana_diseno` → `EditorCampana.tsx` (los dos modos —ambiente del catálogo o imagen propia—, colores con el candado de lectura de `packages/shared`, movimiento, textos, dónde se ve y la vista previa viva `PreviewCampana.tsx`) con `guardar_campana_diseno` (parche con versión), `programar_campana_diseno` / `desprogramar_campana_diseno` y la hoja `VistaPreviaCampana.tsx` (`crear_campana_vista_previa`); lógica pura en `lib/campanas-web-editor.ts`, guía en `lib/campanas-web-guia.ts`, ejemplos en `lib/sugerencias-campanas-web.ts`, imagen en `lib/imagen-de-campana*.ts` (bucket `retail-campanas`). En la tienda: `lib/diseno-campana.ts` (lee `tienda_diseno_campana()`, solo el diseño PROGRAMADO y que se lea) viste la franja, `HeroeDelInicio`, la banda del catálogo, el sello y la bolsa; `app/vista-previa/[llave]` muestra el diseño con la llave de `tienda_diseno_campana_previa`. Migraciones `20261021161000`, `20261021181000`, `20261021194000`, `20261021195000` (en producción desde el 2026-10-21). Prueba: `pnpm pruebas:campanas-web`.
 - `/tienda-web/vitrina/probador` (Vitrina ▸ Probador, el mismo módulo `vitrina_web`, ADR-0434 act. 1 y 3: lo que necesita «Arma el
   tuyo», el probador de looks de la tienda online) → `page.tsx` lee `fn_vitrina_probador` (la lista viva: cada prenda publicada, de lo que
   más vendió en 90 días a lo que menos, con su largo propio y el típico, sus colores con o sin foto propia y cuánto hay, y cómo van sus
@@ -1786,6 +1789,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `fn_finanzas_confianza` (20261015235000) → `lib/finanzas-confianza.ts` (los pesos) → `<Confianza>` en `/finanzas/resumen`; y los tipos
   `pago_planilla` y `pago_sunat` de `movimientos_dinero` (20261016002000; `registrar_movimiento_dinero`, `fn_asientos_dinero_y_caja` 41 | 104 y
   4011 | 104), que ofrece el modal de `/finanzas/dinero` (`OPCIONES_QUE_PASO`) y enlaza Impuestos.
+  **La planilla estimada por sede (ADR-0453, pegada en producción el 2026-10-17):** `fn_planilla_provision` (20261018040000; la interna
+  `fn_planilla_provision_calc` pide a Dynamic `public.fn_proyeccion_periodo` y agrega por sede lo devengado hasta hoy y lo que costaría el
+  período entero) → `lib/planilla-provision.ts` (lectura; tolera que falte) → `lib/planilla-provision-reglas.ts` (`aplicarProvision` la suma,
+  marcada «estimado» y fuera del libro, a las filas de `fn_estado_resultados`) en `getEstadoResultados` (`lib/resultados.ts`, Reportes y
+  Escenarios), `getResumenFinanzas` y `getConfianzaFinanzas` (`lib/resumen-finanzas.ts`); `lib/pulso-reglas.ts` ya no cuenta dos veces los
+  sueldos ni el desgaste (los gastos de operación de la base los incluyen). El Flujo de caja sigue repitiendo el último período (pendiente).
 - **Finanzas F3–F10** (2026-09-25, ADR-0195, PR #396; detalle por fase en `docs/finanzas/fases/`). Todas las pantallas se
   arman con `components/finanzas/kit.tsx` + `app/estilos/finanzas.css`; permisos en la base con `fn_es_lider()` o
   `fn_capacidad_por_modulos(array['<clave>'])` y la tienda de la cuenta.

@@ -53,6 +53,9 @@ const fila = (p: Partial<FilaER> & Pick<FilaER, "unidad" | "nombre">): FilaER =>
   descuadres: 0,
   planillaVisible: true,
   planillaNota: null,
+  planillaEstimada: 0,
+  planillaAlCierre: 0,
+  planillaPersonas: 0,
   ...p,
 });
 

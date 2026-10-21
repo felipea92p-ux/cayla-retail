@@ -1104,3 +1104,173 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
     },
   ],
 };
+
+// Tienda web ▸ Campañas (Felipe 2026-10-21): cómo se ve la tienda online durante cada campaña. Primera entrega: la lista. La demo solo
+// mira: no hay nada que guarde. El editor de diseño tiene su propia guía (GUIA_CAMPANAS_EDITOR).
+export const GUIA_CAMPANAS_WEB: Guia = {
+  id: "tienda-web.campanas",
+  ruta: "/tienda-web/campanas",
+  titulo: "Campañas",
+  resumen: "Cómo se ve la tienda online durante cada campaña.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Las campañas de la tienda web",
+      texto: "Aquí ves las campañas que tiene la tienda online y cuáles ya tienen su propio diseño. Las fechas, el descuento y las prendas se arman en Catálogo ▸ Etiquetas; esta pantalla es para decidir cómo se ve la tienda mientras dura cada una. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "cifras",
+      ancla: "campanas.cifras",
+      titulo: "En tres números",
+      texto: "Cuántas campañas están en vivo ahora, cuántas hay programadas y cuántas se verán «como siempre» porque todavía no tienen diseño. Debajo de cada número dice cuál termina primero o cuál viene.",
+    },
+    {
+      id: "filtros",
+      ancla: "campanas.filtros",
+      opcional: true,
+      titulo: "Por estado",
+      texto: "Filtra por las que están en vivo, las programadas o las que ya terminaron. El número al lado de cada filtro dice cuántas hay.",
+    },
+    {
+      id: "lista",
+      ancla: "campanas.lista",
+      opcional: true,
+      titulo: "Cada campaña",
+      texto: "Su nombre y sus fechas, cuánto descuenta, cuántos modelos toca, qué diseño tiene —o si se ve «como siempre»— y en qué estado está. «Borrador» quiere decir que el diseño todavía no se programó.",
+    },
+    {
+      id: "tiempo",
+      ancla: "campanas.tiempo",
+      opcional: true,
+      titulo: "Los próximos 3 meses",
+      texto: "Cada campaña como una barra en el calendario, con la línea roja en el día de hoy. Sirve para ver cuándo se cruzan dos campañas: la tienda muestra el diseño de la que termina primero.",
+    },
+    {
+      id: "diseno",
+      ancla: "campanas.diseno",
+      opcional: true,
+      titulo: "Diseñar una campaña",
+      texto: "«Diseñar» abre el editor de esa campaña: eliges el ambiente, los colores y ves cómo queda la portada. Las campañas que ya terminaron solo se pueden mirar: ahí dice «Ver diseño».",
+    },
+    {
+      id: "nota",
+      ancla: "campanas.nota",
+      titulo: "Cuando termina una campaña",
+      texto: "No hay nada que apagar: el diseño empieza y termina con las fechas de la campaña, y la tienda vuelve sola a verse como siempre.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes leer la lista de campañas de la tienda web. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Campañas.",
+    },
+  ],
+};
+
+// Tienda web ▸ Campañas ▸ Diseñar la campaña (Felipe 2026-10-21): ambiente, colores, movimiento, textos y dónde se ve. La demo elige un ambiente y una paleta
+// para mostrar cómo cambia la vista previa, pero nunca guarda: «Guardar borrador» se explica con la pieza encendida, sin tocarla.
+export const GUIA_CAMPANAS_EDITOR: Guia = {
+  id: "tienda-web.campanas.editor",
+  ruta: "/tienda-web/campanas/[id]",
+  titulo: "Diseñar la campaña",
+  resumen: "Elige el ambiente y los colores de la tienda durante una campaña.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "El diseño de una campaña",
+      texto: "Aquí decides cómo se ve la tienda online mientras dura esta campaña: su ambiente o tu propia imagen, los colores y el movimiento. El descuento, las fechas y las prendas no se cambian aquí: salen de Etiquetas. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "modo",
+      ancla: "campana-editor.modo",
+      titulo: "Ambiente o tu propia imagen",
+      texto: "Hay dos caminos: un ambiente del catálogo (ya viene con colores, letras y movimiento) o tu propia imagen, un banner que ya trae el texto de la campaña y encima del cual la tienda pone «Ver la campaña» y «Lo nuevo».",
+    },
+    {
+      id: "ambiente",
+      ancla: "campana-editor.ambiente",
+      titulo: "Elige el ambiente o sube la imagen",
+      texto: "Con un ambiente: Aniversario, Black Week, Navidad, Día del Gato… tú no escribes nada, solo eliges el que va con la campaña. Con tu imagen: subes una para el computador y, si quieres, otra vertical para el celular; sin la vertical, se recorta la del computador al centro. Se reducen solas a 300 KB o menos.",
+    },
+    {
+      id: "colores",
+      ancla: "campana-editor.colores",
+      opcional: true,
+      titulo: "Ajusta los colores",
+      texto: "Cada ambiente trae tres paletas; si ninguna te gusta, ponle tu propio color de acento. Con tu imagen solo eliges el color del botón «Ver la campaña»: lo demás sale de la foto.",
+    },
+    {
+      id: "movimiento",
+      ancla: "campana-editor.movimiento",
+      opcional: true,
+      titulo: "El movimiento",
+      texto: "Cómo corre la franja de arriba, cómo entra la portada y qué efecto cae o brilla sobre ella: confeti, copos, patitas… Cada ambiente trae el suyo y tú lo cambias si quieres. Puede pasar una vez al llegar o seguir suave. Quien tiene «reducir movimiento» en su aparato ve la tienda quieta.",
+    },
+    {
+      id: "textos",
+      ancla: "campana-editor.textos",
+      opcional: true,
+      titulo: "Los textos",
+      texto: "El titular, una línea debajo y el texto del botón de la portada. Los tres son opcionales: sin ellos sale el nombre de la campaña y «Ver la campaña». El ejemplo de cada caja cambia con el ambiente que elegiste. El descuento y las fechas no se escriben: salen de Etiquetas.",
+    },
+    {
+      id: "donde",
+      ancla: "campana-editor.donde",
+      titulo: "Dónde se ve",
+      texto: "Eliges qué partes de la tienda se visten con el diseño: la franja de arriba, la portada, una banda en el catálogo, el sello de cada prenda y la línea de la bolsa. Una que apagas se ve como siempre. Al menos una tiene que quedar encendida.",
+    },
+    {
+      id: "lectura",
+      ancla: "campana-editor.lectura",
+      opcional: true,
+      titulo: "¿Se lee bien?",
+      texto: "El sistema mide si las letras se ven sobre el fondo. Si un color no se lee, la campaña no se puede programar: así la tienda nunca queda con letras que no se ven.",
+    },
+    {
+      id: "vista",
+      ancla: "campana-editor.vista",
+      titulo: "Así se ve",
+      texto: "La tienda cambia mientras eliges: la portada, el catálogo y la bolsa, como en un computador o en un celular. «Movimiento reducido» muestra cómo la ve quien tiene el movimiento apagado. Es un dibujo para decidir; la tienda de verdad lleva las fotos de las prendas.",
+    },
+    {
+      id: "responsable",
+      ancla: "campana-editor.responsable",
+      titulo: "Quién lo cambia",
+      texto: "Elige quién hace el cambio, como en el resto del ERP: queda anotado en la Actividad con su nombre. Si trabajas solo en tu sesión, ya viene elegido.",
+    },
+    {
+      id: "estado",
+      ancla: "campana-editor.estado",
+      titulo: "Borrador o programada",
+      texto: "Un diseño nace como borrador: la tienda todavía no lo muestra. Cuando lo programas, la tienda lo muestra mientras dure la campaña, con las fechas que ya tiene en Etiquetas; al terminar, la tienda vuelve sola a verse como siempre.",
+    },
+    {
+      id: "guardar",
+      ancla: "campana-editor.guardar",
+      titulo: "Guardar el diseño",
+      texto: "«Guardar borrador» deja el diseño anotado (si ya está programada, «Guardar cambios» se ve en la tienda en menos de un minuto).",
+    },
+    {
+      id: "programar",
+      ancla: "campana-editor.programar",
+      opcional: true,
+      titulo: "Programar",
+      texto: "«Programar» pone el diseño en la tienda: se ve mientras dure la campaña, con las fechas de Etiquetas. Solo se puede con lo ya guardado, con letras que se lean y con alguna pieza encendida; si algo falta, pasa el mouse y dice qué. Si ya está programada, aquí aparece «Pasar a borrador», que la saca de la tienda.",
+    },
+    {
+      id: "previa",
+      ancla: "campana-editor.previa",
+      opcional: true,
+      titulo: "Vista previa privada",
+      texto: "Crea un enlace para ver el diseño guardado en la tienda de verdad, con sus prendas, antes de programarlo. Dura 7 días y solo lo ve quien lo tenga; sirve para mostrárselo a alguien o probarlo en el celular. Se muestra una sola vez: si lo pierdes, creas otro.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes diseñar una campaña: elegir, guardar, ver y programar. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Campañas.",
+    },
+  ],
+};
