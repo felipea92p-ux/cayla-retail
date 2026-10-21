@@ -20,7 +20,8 @@
  *      CLAURE (`vitrina_guardar_look` lo valida contra el catálogo sin tienda, que ya no la trae): se rechaza con su motivo de siempre,
  *      `vitrina_look_prenda_no_se_ve`. Un look de CLAURE solo para Lima es una decisión de Felipe (ADR-0465, «Lo que falta»).
  *   G. El catálogo dice la empresa de cada prenda (`20261021001000_tienda_catalogo_trae_la_empresa.sql`): `empresa.clave` y
- *      `empresa.nombre` de CAYLA y de CLAURE, que es lo que dibuja la insignia de la tarjeta.
+ *      `empresa.nombre` de CAYLA y de CLAURE, que es lo que dibuja la insignia de la tarjeta, SOLO con una tienda donde operan dos o
+ *      más empresas (Lima): con Trujillo, sin tienda o con una inventada, ninguna prenda trae `empresa` y no hay insignia.
  *
  * CÓMO. Cada escenario corre en su transacción y termina en ROLLBACK: nunca se commitea nada en el Postgres local que comparten los
  * worktrees. Cada uno arma su punto de partida: Emma (CAYLA) y Carla (CLAURE) publicadas, con su foto, su recorte y su largo; Trujillo y
@@ -182,10 +183,17 @@ console.log("F. Las migraciones se pueden pegar dos veces");
 }
 
 console.log("G. El catálogo dice la empresa de cada prenda");
-const empresaDe = (prenda) =>
-  `select (x -> 'empresa' ->> 'clave') || '/' || (x -> 'empresa' ->> 'nombre') from jsonb_array_elements(retail.tienda_catalogo(:'lim') -> 'prendas') x where (x ->> 'id')::uuid = :'${prenda}';`;
-esperarValor("la prenda de CAYLA trae cayla/CAYLA", escenario(empresaDe("emma")), "cayla/CAYLA");
-esperarValor("la prenda de CLAURE trae claure/CLAURE", escenario(empresaDe("carla")), "claure/CLAURE");
+const empresaDe = (prenda, sede) =>
+  `select coalesce((x -> 'empresa' ->> 'clave') || '/' || (x -> 'empresa' ->> 'nombre'), 'sin') from jsonb_array_elements(retail.tienda_catalogo(${sede}) -> 'prendas') x where (x ->> 'id')::uuid = :'${prenda}';`;
+esperarValor("Lima: la prenda de CAYLA trae cayla/CAYLA", escenario(empresaDe("emma", LIMA)), "cayla/CAYLA");
+esperarValor("Lima: la prenda de CLAURE trae claure/CLAURE", escenario(empresaDe("carla", LIMA)), "claure/CLAURE");
+esperarValor("Trujillo: la prenda de CAYLA NO trae empresa (no hay insignia)", escenario(empresaDe("emma", TRU)), "sin");
+esperarValor("sin tienda: la prenda de CAYLA NO trae empresa", escenario(empresaDe("emma", SIN_SEDE)), "sin");
+esperarValor(
+  "si CLAURE abre en Trujillo (dos empresas), las prendas de Trujillo traen su empresa",
+  escenario(`insert into retail.empresa_sedes (empresa_id, ubicacion_id) values (:'claure', :'tru');\n${empresaDe("emma", TRU)}`),
+  "cayla/CAYLA",
+);
 
 console.log("H. «Separar», la bolsa y «separadas por otros»");
 // Una cuenta web de prueba (su usuario del proyecto de clientes es un id cualquiera) y una variante de cada prenda.

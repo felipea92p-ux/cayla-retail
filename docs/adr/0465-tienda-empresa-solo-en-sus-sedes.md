@@ -21,7 +21,10 @@ tiene, y si no, arriba». La tienda ya no tiene «Todas» (Felipe 2026-10-19: «
   `tienda_ficha` (responde `null`, igual que una prenda sin publicar: la web dice «Esta prenda ya no está en la tienda»), `tienda_probador`,
   `tienda_separar` (rechazo de siempre `tienda_separar_no_se_vende`), `tienda_bolsa` (`se_vende` de cada tienda: la prenda de CLAURE sigue en la
   bolsa pero dice «no se vende en esa tienda») y `tienda_separadas_por_otros`.
-- **El catálogo dice la empresa** (`'empresa': {clave, nombre}` por prenda, de `empresas.nombre` tal cual) y la tarjeta la dibuja con la misma cara
+- **El catálogo dice la empresa SOLO en una tienda donde operan dos o más empresas** (Felipe 2026-10-21: «la insignia con la empresa solo debe aparecer en la
+  sede Lima»): `'empresa': {clave, nombre}` por prenda, de `empresas.nombre` tal cual, si `fn_empresas_de_sede(tienda)` trae más de una; en Trujillo (todo es
+  CAYLA), sin tienda o con una tienda inventada, `empresa` va `null` y no hay insignia. La regla es «más de una empresa», no «Lima» por su nombre: si CLAURE abre
+  otra sede, la insignia aparece ahí sola. La tarjeta la dibuja con la misma cara
   de «Nuevo» (`insigniasDeTarjeta`, `apps/tienda/lib/catalogo.ts`): de arriba abajo puesto, oferta, «Nuevo» y la empresa; **sin «Nuevo» (por
   ejemplo en Lo nuevo, donde no se repite), la empresa sube al principio**. Sin el dato (base vieja), no hay insignia ni error.
 - **Migraciones** (todas idempotentes, una parte, sin tablas en exclusiva ni políticas): `20261021000000_tienda_empresa_solo_en_sus_sedes`,
@@ -39,7 +42,7 @@ tiene, y si no, arriba». La tienda ya no tiene «Todas» (Felipe 2026-10-19: «
 ## Lo que se rompe si…
 
 - Una función nueva de la tienda arma su lista con `fn_vitrina_publicable` sin llamar a `fn_tienda_empresa_se_ve`: la vigila `pnpm pruebas:tienda-empresas`
-  (28 comprobaciones; un mutante —el ayudante siempre responde sí— la pone en rojo: 9 de 27 fallan).
+  (31 comprobaciones; un mutante —el ayudante siempre responde sí— la pone en rojo: 9 de 27 fallaron).
 - CLAURE abre otra sede y nadie suma su fila en `empresa_sedes`: no se ve ahí (es seguro).
 
 ## Lo que queda (decisión de Felipe)
@@ -55,10 +58,10 @@ tiene, y si no, arriba». La tienda ya no tiene «Todas» (Felipe 2026-10-19: «
 
 ## Verificación
 
-`pnpm pruebas:tienda-empresas` (28/28: catálogo, ficha, probador, una tienda inventada, sin tienda, CLAURE abriendo en Trujillo con una fila, puerta de
+`pnpm pruebas:tienda-empresas` (31/31: catálogo, ficha, probador, una tienda inventada, sin tienda, CLAURE abriendo en Trujillo con una fila, puerta de
 `tienda_web`, pegado dos veces, empresa en el catálogo, bolsa, «Separar» y looks); `tienda-bolsa`, `tienda-probador`, `tienda-club`, `tienda-puerta`,
 `tienda-separadas`, `tienda-looks-guardados`, `tienda-lugares` en verde; `tienda-ficha` y `tienda-inicio` aceptan la clave `empresa` en la lista exacta del catálogo
 (`tienda-ficha` deja un escenario de fotos en rojo SOLO en esta base local, por las fotos de demo que se cargaron). Tienda: 741 pruebas, tipos y lint en verde (6 nuevas
-de las insignias). Navegador: Lima muestra 13 prendas con «NUEVO / CLAURE» y «NUEVO / CAYLA»; Trujillo, solo CAYLA, y el enlace de una prenda de CLAURE
+de las insignias). Navegador: Lima muestra 13 prendas con «NUEVO / CLAURE» y «NUEVO / CAYLA»; Trujillo, solo CAYLA y SIN insignia de empresa, y el enlace de una prenda de CLAURE
 abre «Esta prenda ya no está en la tienda»; en Lo nuevo la insignia de la empresa queda arriba; a 375 px cabe. No recorrido en el navegador: agregar a la
 bolsa y separar (cubierto por la prueba de la base).

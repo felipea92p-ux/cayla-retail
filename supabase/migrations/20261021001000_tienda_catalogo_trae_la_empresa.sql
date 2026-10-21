@@ -1,6 +1,7 @@
 -- ============================================================================
 -- 20261021001000_tienda_catalogo_trae_la_empresa.sql — CAYLA V2 · Tienda online (ADR-0463, ADR-0465)
--- Cada prenda del catálogo dice a qué empresa pertenece (CAYLA o CLAURE), para que su tarjeta lo muestre.
+-- Cada prenda del catálogo dice a qué empresa pertenece (CAYLA o CLAURE), para que su tarjeta lo muestre, SOLO en una tienda donde operan
+-- dos o más empresas (hoy, Lima).
 --
 -- EL PROBLEMA PRIMERO. Con dos empresas en la misma tienda online, una tarjeta sin su empresa no dice de quién es la prenda: en Lima
 -- conviven CAYLA y CLAURE (ADR-0465, 20261021000000). Felipe (2026-10-20): «todas las tarjetas deben indicar la empresa a la que
@@ -10,8 +11,11 @@
 -- ANALOGÍA CAYLA. La etiqueta del perchero ya existía en la base (`productos.empresa_id`); esto la cuelga de cada prenda de la vidriera.
 --
 -- QUÉ HACE. `tienda_catalogo(sede)` suma a cada prenda `'empresa': {'clave', 'nombre'}`, leída de `empresas` por `productos.empresa_id`
--- (nunca nulo: obligatorio desde ADR-0463). Es un dato más del mismo objeto: la web de antes lo ignora y la web nueva, si no llega,
--- no dibuja la insignia (principio 9: se degrada, no se cae).
+-- (nunca nulo: obligatorio desde ADR-0463), pero solo si la tienda elegida tiene dos o más empresas (`fn_empresas_de_sede`: Lima); en
+-- Trujillo, donde todo es CAYLA, la insignia no dice nada y no viaja. Es un dato más del mismo objeto: la web de antes lo ignora y la web
+-- nueva, si no llega, no dibuja la insignia (principio 9: se degrada, no se cae).
+-- DECIDÍ (Felipe 2026-10-21): «la insignia con la empresa solo debe aparecer en la sede Lima». La regla es «tiendas con más de una
+--   empresa» y no «Lima» por su nombre: el dato vive en `empresa_sedes`, y si CLAURE abre otra sede, la insignia aparece ahí sola.
 --
 -- DECIDÍ: el nombre sale de `empresas.nombre` tal cual está (hoy «CLAURE», sin tilde, como lo sembró ADR-0463) y no de un texto
 --   escrito en la web: cambiar cómo se llama una empresa es un dato, no un deploy.
@@ -57,10 +61,11 @@ select pg_temp.reemplazar_anclado(
   'retail.tienda_catalogo(uuid)',
   $v$'categoria', case when c.id is null then null else jsonb_build_object('nombre', c.nombre, 'prefijo', c.prefijo) end,$v$,
   $v$'categoria', case when c.id is null then null else jsonb_build_object('nombre', c.nombre, 'prefijo', c.prefijo) end,
-        -- ADR-0465: de qué empresa es la prenda (CAYLA o CLAURE), para su tarjeta.
-        'empresa', (select jsonb_build_object('clave', em.clave, 'nombre', em.nombre) from retail.empresas em where em.id = p.empresa_id),$v$
+        -- ADR-0465: de qué empresa es la prenda (CAYLA o CLAURE), para su tarjeta, solo en una tienda donde operan dos o más empresas (Lima).
+        'empresa', case when (select count(*) from retail.fn_empresas_de_sede(v_sede)) > 1
+                        then (select jsonb_build_object('clave', em.clave, 'nombre', em.nombre) from retail.empresas em where em.id = p.empresa_id) end,$v$
 );
 
 select 'ADR-0465 · tienda: el catálogo trae la empresa de cada prenda' as parte,
-       case when pg_get_functiondef('retail.tienda_catalogo(uuid)'::regprocedure) like '%''empresa'', (select jsonb_build_object(%'
+       case when pg_get_functiondef('retail.tienda_catalogo(uuid)'::regprocedure) like '%''empresa'', case when (select count(*) from retail.fn_empresas_de_sede(v_sede)) > 1%'
             then 'QUEDÓ BIEN' else 'REVISAR' end as resultado;
