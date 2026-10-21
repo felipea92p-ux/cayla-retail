@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AMBIENTES_CAMPANA, ratioContraste } from "@cayla-retail/shared";
-import { interpretarDisenoCampana, variablesDelDiseno } from "./diseno-campana";
+import { aplicaA, interpretarDisenoCampana, variablesDelDiseno } from "./diseno-campana";
 
 const dato = (diseno: unknown, nombre = "Aniversario CAYLA") => ({ campana: { nombre, diseno } });
 const disenoOk = { modo: "ambiente", plantilla: "aniversario", paleta: 0, acento: null };
@@ -8,7 +8,7 @@ const disenoOk = { modo: "ambiente", plantilla: "aniversario", paleta: 0, acento
 describe("interpretarDisenoCampana: lo que la tienda pinta", () => {
   it("un diseño programado se convierte en tres colores, la letra del botón y dónde se ve", () => {
     const d = interpretarDisenoCampana(dato(disenoOk), "Aniversario CAYLA");
-    expect(d).toEqual({
+    expect(d).toMatchObject({
       plantilla: "aniversario",
       colores: { fondo: "#2b1016", texto: "#f6ecd8", acento: "#d9b878", boton: expect.any(String) },
       donde: { franja: true, portada: true, catalogo: true, sello: true, bolsa: true },
@@ -62,5 +62,30 @@ describe("variablesDelDiseno", () => {
     const d = interpretarDisenoCampana(dato(disenoOk), "Aniversario CAYLA")!;
     expect(Object.keys(variablesDelDiseno(d)).sort()).toEqual(["--cmp-acento", "--cmp-boton", "--cmp-fondo", "--cmp-texto"]);
     expect(variablesDelDiseno(d)["--cmp-fondo"]).toBe("#2b1016");
+  });
+});
+
+describe("el sello y a quién se le aplica", () => {
+  const d = () => interpretarDisenoCampana(dato(disenoOk), "Aniversario CAYLA")!;
+
+  it("el sello se lee sobre la foto y su letra se lee sobre él", () => {
+    const { sello } = d();
+    expect(ratioContraste(sello.fondo, "#e1ded7")).toBeGreaterThanOrEqual(3);
+    expect(ratioContraste(sello.fondo, sello.texto)).toBeGreaterThanOrEqual(4.5);
+    // el acento champán no se lee sobre la foto: el sello usa el fondo de la campaña
+    expect(sello.fondo).toBe("#2b1016");
+  });
+
+  it("el diseño sabe de qué campaña es", () => {
+    expect(d().campana).toBe("Aniversario CAYLA");
+  });
+
+  it("solo viste las piezas de SU campaña (sin tildes ni mayúsculas); las de otra o sin campaña quedan como siempre", () => {
+    expect(aplicaA(d(), "Aniversario CAYLA")).toBe(true);
+    expect(aplicaA(d(), "aniversario cayla")).toBe(true);
+    expect(aplicaA(d(), "Black Week")).toBe(false);
+    expect(aplicaA(d(), null)).toBe(false);
+    expect(aplicaA(d(), undefined)).toBe(false);
+    expect(aplicaA(null, "Aniversario CAYLA")).toBe(false);
   });
 });

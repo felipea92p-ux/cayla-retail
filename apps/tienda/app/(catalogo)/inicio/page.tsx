@@ -98,8 +98,8 @@ export default async function Inicio({ searchParams }: Props) {
   const nota = (p: Prenda) => notaDeStock(p.stock, elegida, sedes);
 
   const hero = heroDelInicio(campana, prendas);
-  // El diseño de la campaña que anuncia el héroe (la misma que la franja); sin él, el héroe de siempre.
-  const diseno = hero.tipo === "campana" ? await leerDisenoDeCampana(hero.campana.nombre) : null;
+  // El diseño de la campaña que anuncia la portada (la misma que la franja): viste el héroe y el sello de sus prendas; sin él, todo como siempre.
+  const diseno = await leerDisenoDeCampana(campana?.nombre);
   const nuevos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "nuevo" });
   const ofertas = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "ofertas" });
   const campanas = campanasDe(prendas);
@@ -151,7 +151,7 @@ export default async function Inicio({ searchParams }: Props) {
               <CarrilConFlechas className="t-carril-inicio">
                 <div className="t-carril">
                   {nuevos.slice(0, 10).map((p) => (
-                    <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} sinNuevo />
+                    <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} sinNuevo diseno={diseno} />
                   ))}
                 </div>
               </CarrilConFlechas>
@@ -213,7 +213,7 @@ export default async function Inicio({ searchParams }: Props) {
                 </nav>
                 <div className="t-grilla">
                   {ofertasVistas.slice(0, 8).map((p) => (
-                    <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} />
+                    <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} diseno={diseno} />
                   ))}
                 </div>
               </div>
@@ -236,7 +236,7 @@ export default async function Inicio({ searchParams }: Props) {
                 {/* El orden de izquierda a derecha ya es el ranking (la lista es ordenada): sin números grandes sobre las fotos. */}
                 {vendidos.map((p) => (
                   <li key={p.id}>
-                    <TarjetaPrenda prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} sinNuevo />
+                    <TarjetaPrenda prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} sinNuevo diseno={diseno} />
                   </li>
                 ))}
               </ol>

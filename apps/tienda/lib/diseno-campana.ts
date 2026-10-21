@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { ambienteDeCampana, comprobarLectura, coloresDeCampana, textoSobre } from "@cayla-retail/shared";
+import { ambienteDeCampana, colorDelSello, comprobarLectura, coloresDeCampana, textoSobre } from "@cayla-retail/shared";
+import { normalizar } from "./buscador";
 
 // El diseño de la campaña que gana la portada (Tienda web ▸ Campañas, maqueta docs/maquetas/campanas-tienda-2026-10): la base lo arma en
 // `retail.tienda_diseno_campana()` solo si el líder lo PROGRAMÓ; aquí se valida y se convierte en lo que la tienda pinta: tres colores
@@ -32,9 +33,13 @@ const esquema = z.object({
 });
 
 export type DisenoDeLaTienda = {
+  /** El nombre de la campaña que viste: una pieza solo se viste si es de ESA campaña (`aplicaA`). */
+  campana: string;
   /** La clave del ambiente: la hoja de estilos de la tienda se viste por ella (`data-campana`). */
   plantilla: string;
   colores: { fondo: string; texto: string; acento: string; /** La letra que se lee sobre el acento (el botón). */ boton: string };
+  /** El sello de descuento de cada prenda: un color que se lee sobre la foto (se ajusta solo) y la letra que se lee sobre él. */
+  sello: { fondo: string; texto: string };
   /** Dónde se ve: lo que el líder apagó vuelve a verse como siempre. */
   donde: { franja: boolean; portada: boolean; catalogo: boolean; sello: boolean; bolsa: boolean };
 };
@@ -52,8 +57,18 @@ export function interpretarDisenoCampana(dato: unknown, nombreDeLaPortada: strin
   if (!ambienteDeCampana(diseno.plantilla)) return null;
   const colores = coloresDeCampana(diseno.plantilla, diseno.paleta, diseno.acento ?? null);
   if (!colores || !comprobarLectura(colores).ok) return null;
-  return { plantilla: diseno.plantilla, colores: { ...colores, boton: textoSobre(colores.acento) }, donde: { ...TODO, ...diseno.donde } };
+  return {
+    campana: nombre,
+    plantilla: diseno.plantilla,
+    colores: { ...colores, boton: textoSobre(colores.acento) },
+    sello: colorDelSello(colores),
+    donde: { ...TODO, ...diseno.donde },
+  };
 }
+
+/** ¿Esta pieza es de la campaña que viste el diseño? (una prenda de OTRA campaña conserva su sello de siempre, sin tildes ni mayúsculas). */
+export const aplicaA = (d: DisenoDeLaTienda | null | undefined, nombreDeCampana: string | null | undefined): d is DisenoDeLaTienda =>
+  !!d && !!nombreDeCampana && normalizar(d.campana) === normalizar(nombreDeCampana);
 
 /** Las variables de CSS con que se viste una pieza de la portada (`app/estilos/campana.css`). */
 export function variablesDelDiseno(d: DisenoDeLaTienda): Record<string, string> {

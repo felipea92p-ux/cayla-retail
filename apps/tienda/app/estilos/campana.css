@@ -25,3 +25,14 @@
 @media (hover: hover) {
   .t-hero[data-campana] .t-btn-claro:hover:not(:disabled) { background: transparent; color: var(--cmp-acento); }
 }
+
+/* La banda de la campaña en el catálogo: su tarjeta toma los colores del diseño. */
+.t-campana[data-campana] { background: var(--cmp-fondo); border-color: var(--cmp-fondo); color: var(--cmp-texto); }
+.t-campana[data-campana] .pct { color: var(--cmp-acento); }
+.t-campana[data-campana] small { color: var(--cmp-texto); opacity: .85; }
+a.t-campana[data-campana]:hover, .t-campana[data-campana][aria-current="true"] { border-color: var(--cmp-acento); }
+.t-campana[data-campana][aria-current="true"] { box-shadow: inset 0 0 0 1px var(--cmp-acento); }
+.t-campana[data-campana]:focus-visible { outline-color: var(--cmp-acento); }
+
+/* La línea de la bolsa: de qué campaña es el descuento de la prenda, con el color de su sello (los pone el diseño en línea). */
+.t-bolsa-campana { display: inline-block; width: fit-content; margin-top: 6px; padding: 3px 8px 2px; font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; border-radius: 2px; }
