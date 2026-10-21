@@ -234,7 +234,7 @@ export const PRUEBAS = [
   "pruebas:vitrina-web",
 
   // Tienda web ▸ Campañas (actividad 1): el módulo nace sin rol y sin él no se lee la lista; `fn_campanas_web` solo da campañas
-  // aprobadas, activas y con descuento, mide su estado con la fecha de Lima y cuenta modelos; la tabla `campana_disenos` no la toca
+  // aprobadas, activas y con descuento, mide su estado con la fecha de Lima y cuenta modelos; la tabla `campana_web_disenos` no la toca
   // nadie directo y sus CHECK dejan fuera todo lo que la tienda no conoce. ROLLBACK.
   "pruebas:campanas-web",
 

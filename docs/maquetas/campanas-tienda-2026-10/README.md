@@ -71,7 +71,7 @@ la muestra como una frase en la franja de arriba y una cuenta regresiva en el h�
 
 ## Lo que implicaría construirlo (no se hizo)
 
-- **Base:** tabla `retail.campana_disenos` (1 fila por etiqueta de campaña: `plantilla` con CHECK al catálogo, `paleta` y `movimiento` como
+- **Base:** tabla `retail.campana_web_disenos` (1 fila por etiqueta de campaña: `plantilla` con CHECK al catálogo, `paleta` y `movimiento` como
   `jsonb` validado, textos con tope, ruta de la foto, `donde`, estado borrador/programado). RLS encendido **sin políticas**; solo se
   toca con `fn_campana_diseno` y `guardar_campana_diseno`, que piden el módulo y firman con `fn_actor_persona_id(true)`. La función
   `tienda_portada()` devuelve además el diseño (sin tocar el descuento).

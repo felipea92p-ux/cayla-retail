@@ -9,7 +9,7 @@
 --
 -- LO QUE HACE
 --   1. El módulo `campanas_web` (Tienda web ▸ Campañas). Nace SIN rol (ADR-0161): solo lo ve el líder hasta que él lo da; delegable.
---   2. `retail.campana_disenos`: una fila por etiqueta de campaña con su diseño (ambiente del catálogo cerrado O imagen propia con su
+--   2. `retail.campana_web_disenos`: una fila por etiqueta de campaña con su diseño (ambiente del catálogo cerrado O imagen propia con su
 --      versión vertical opcional, colores, movimiento, textos cortos, dónde se ve y si es borrador o está programado). RLS encendido
 --      y SIN políticas: solo la tocan funciones `security definer` (la de escribir llega en la actividad 2).
 --   3. `retail.fn_campanas_web()`: la lectura de la lista (campañas con su estado, descuento, vigencia, prendas y su diseño).
@@ -30,6 +30,10 @@
 --   · Dos personas con la misma campaña abierta: gana la primera y la segunda recibe `campana_cambio_otro` (la fila lleva `version`).
 --   · Textos con tope (titular 28, bajada 40, botón 22) y colores solo `#rrggbb`: nada que rompa la portada.
 --
+-- NOMBRE DE LA TABLA. Se llama `campana_web_disenos` y no `campana_disenos` a propósito: en producción ya existe una `retail.campana_disenos`
+--   (otro esquema: paleta, fondo, patrón, acomodo, estado «publicado») que llegó con el PR #1190 (ADR-0436). Con ese nombre, el
+--   `create table if not exists` de esta migración se habría saltado en silencio y las funciones de abajo habrían fallado contra la tabla ajena.
+--   Ningún otro nombre de aquí (funciones, módulo) choca con los de producción (consultados el 2026-10-21).
 -- DECIDÍ: «Dónde se ve» son cinco columnas booleanas y no un jsonb: la base las valida sola y la tienda las lee sin interpretar.
 --   La campaña sin fila de diseño se ve como siempre (no hace falta una opción «sin diseño»). La imagen vive en el almacenamiento
 --   público de la web; aquí solo su ruta (`campanas/…`, validada).
@@ -53,7 +57,7 @@ insert into retail.modulos (clave, grupo, nombre, incluye, orden, solo_lider, de
 on conflict (clave) do nothing;
 
 -- ---------- 2. El diseño de cada campaña ----------
-create table if not exists retail.campana_disenos (
+create table if not exists retail.campana_web_disenos (
   etiqueta_id            uuid primary key references retail.etiquetas (id) on delete cascade,
   -- 'ambiente': uno del catálogo cerrado (con 3 paletas); 'imagen': el banner que sube el líder, con los botones encima.
   modo                   text not null,
@@ -84,42 +88,42 @@ create table if not exists retail.campana_disenos (
   creado_por             uuid references public.personas (id),
   actualizado_en         timestamptz not null default now(),
   actualizado_por        uuid references public.personas (id),
-  constraint campana_disenos_modo check (modo in ('ambiente', 'imagen')),
-  constraint campana_disenos_plantilla check (
+  constraint campana_web_disenos_modo check (modo in ('ambiente', 'imagen')),
+  constraint campana_web_disenos_plantilla check (
     plantilla is null or plantilla in ('sobrio', 'aniversario', 'patrias', 'madre', 'cyber', 'gato', 'navidad')
   ),
-  constraint campana_disenos_modo_coherente check (
+  constraint campana_web_disenos_modo_coherente check (
     (modo = 'ambiente') = (plantilla is not null) and (modo <> 'imagen' or imagen_ruta is not null)
   ),
-  constraint campana_disenos_paleta check (paleta between 0 and 2),
-  constraint campana_disenos_acento check (acento is null or acento ~ '^#[0-9a-f]{6}$'),
-  constraint campana_disenos_franja check (franja in ('rota', 'marquesina', 'quieta')),
-  constraint campana_disenos_entrada check (entrada in ('telon', 'caen', 'aparece', 'ninguna')),
-  constraint campana_disenos_efecto check (
+  constraint campana_web_disenos_paleta check (paleta between 0 and 2),
+  constraint campana_web_disenos_acento check (acento is null or acento ~ '^#[0-9a-f]{6}$'),
+  constraint campana_web_disenos_franja check (franja in ('rota', 'marquesina', 'quieta')),
+  constraint campana_web_disenos_entrada check (entrada in ('telon', 'caen', 'aparece', 'ninguna')),
+  constraint campana_web_disenos_efecto check (
     efecto in ('ninguno', 'destellos', 'confeti', 'petalos', 'copos', 'corazones', 'estrellas', 'hojas', 'burbujas', 'patitas')
   ),
-  constraint campana_disenos_intensidad check (intensidad in ('poca', 'media')),
-  constraint campana_disenos_duracion check (duracion in ('una', 'continuo')),
-  constraint campana_disenos_cuenta check (cuenta in ('siempre', 'ultimo', 'no')),
-  constraint campana_disenos_titular check (titular is null or char_length(titular) between 1 and 28),
-  constraint campana_disenos_bajada check (bajada is null or char_length(bajada) between 1 and 40),
-  constraint campana_disenos_boton check (boton is null or char_length(boton) between 1 and 22),
-  constraint campana_disenos_imagen_ruta check (imagen_ruta is null or (imagen_ruta like 'campanas/%' and char_length(imagen_ruta) <= 300)),
-  constraint campana_disenos_imagen_vertical check (
+  constraint campana_web_disenos_intensidad check (intensidad in ('poca', 'media')),
+  constraint campana_web_disenos_duracion check (duracion in ('una', 'continuo')),
+  constraint campana_web_disenos_cuenta check (cuenta in ('siempre', 'ultimo', 'no')),
+  constraint campana_web_disenos_titular check (titular is null or char_length(titular) between 1 and 28),
+  constraint campana_web_disenos_bajada check (bajada is null or char_length(bajada) between 1 and 40),
+  constraint campana_web_disenos_boton check (boton is null or char_length(boton) between 1 and 22),
+  constraint campana_web_disenos_imagen_ruta check (imagen_ruta is null or (imagen_ruta like 'campanas/%' and char_length(imagen_ruta) <= 300)),
+  constraint campana_web_disenos_imagen_vertical check (
     imagen_vertical_ruta is null
     or (imagen_ruta is not null and imagen_vertical_ruta like 'campanas/%' and char_length(imagen_vertical_ruta) <= 300)
   ),
-  constraint campana_disenos_estado check (estado in ('borrador', 'programado')),
-  constraint campana_disenos_version check (version >= 1)
+  constraint campana_web_disenos_estado check (estado in ('borrador', 'programado')),
+  constraint campana_web_disenos_version check (version >= 1)
 );
 
-comment on table retail.campana_disenos is
+comment on table retail.campana_web_disenos is
   'El diseño de la tienda online durante una campaña (Tienda web ▸ Campañas): ambiente del catálogo cerrado o imagen propia, colores, movimiento, textos cortos y dónde se ve. Cuelga de retail.etiquetas (estilo campana): fechas, % y prendas viven allí. Sin fila, la campaña se ve como siempre. Se escribe solo con funciones security definer; quién y cuándo, en retail.actividad (módulo campanas_web).';
-comment on column retail.campana_disenos.modo is 'ambiente | imagen. Con ambiente, plantilla obligatoria; con imagen, imagen_ruta obligatoria (la vertical es opcional y se usa en celular).';
-comment on column retail.campana_disenos.acento is 'Color propio #rrggbb: el acento del ambiente o el del botón «Ver la campaña» sobre la imagen. Null = el de la paleta o el de fábrica.';
+comment on column retail.campana_web_disenos.modo is 'ambiente | imagen. Con ambiente, plantilla obligatoria; con imagen, imagen_ruta obligatoria (la vertical es opcional y se usa en celular).';
+comment on column retail.campana_web_disenos.acento is 'Color propio #rrggbb: el acento del ambiente o el del botón «Ver la campaña» sobre la imagen. Null = el de la paleta o el de fábrica.';
 
-alter table retail.campana_disenos enable row level security;
-revoke all on table retail.campana_disenos from public, anon, authenticated;
+alter table retail.campana_web_disenos enable row level security;
+revoke all on table retail.campana_web_disenos from public, anon, authenticated;
 
 -- ---------- 3. Piezas internas ----------
 
@@ -136,7 +140,7 @@ begin
   begin
     perform retail.fn_actividad_anotar(
       'campanas_web', p_accion, p_descripcion, p_persona_id, retail.fn_actividad_terminal_ahora(),
-      retail.fn_actividad_sede_de(p_persona_id, 'vivo'), null, 'campana_disenos', p_registro_id, now(), p_detalle, 'vivo');
+      retail.fn_actividad_sede_de(p_persona_id, 'vivo'), null, 'campana_web_disenos', p_registro_id, now(), p_detalle, 'vivo');
   exception when others then
     raise warning 'actividad: no se anotó la campaña web (%)', sqlerrm;
   end;
@@ -174,7 +178,7 @@ as $$
     'donde', jsonb_build_object('franja', d.donde_franja, 'portada', d.donde_portada, 'catalogo', d.donde_catalogo,
                                 'sello', d.donde_sello, 'bolsa', d.donde_bolsa),
     'estado', d.estado, 'version', d.version, 'actualizado_en', d.actualizado_en)
-  from retail.campana_disenos d where d.etiqueta_id = p_etiqueta_id
+  from retail.campana_web_disenos d where d.etiqueta_id = p_etiqueta_id
 $$;
 revoke all on function retail.fn_campana_diseno_json(uuid) from public, anon, authenticated;
 
@@ -210,7 +214,7 @@ as $$
       select jsonb_build_object(
                'modo', d.modo, 'plantilla', d.plantilla, 'estado', d.estado,
                'imagen_ruta', d.imagen_ruta, 'version', d.version, 'actualizado_en', d.actualizado_en)
-        from retail.campana_disenos d where d.etiqueta_id = e.id)
+        from retail.campana_web_disenos d where d.etiqueta_id = e.id)
   )
   from retail.etiquetas e where e.id = p_etiqueta_id
 $$;
@@ -292,7 +296,7 @@ grant execute on function retail.fn_campana_diseno(uuid) to authenticated;
 
 -- ---------- 6. Guardar el diseño ----------
 -- `p_diseno` es un parche: solo las llaves que trae cambian; el resto queda como estaba (o de fábrica, la primera vez). `p_version`: la que
--- leyó el editor (`null` si la campaña aún no tenía diseño). Las llaves son las columnas de `campana_disenos` menos las que la base
+-- leyó el editor (`null` si la campaña aún no tenía diseño). Las llaves son las columnas de `campana_web_disenos` menos las que la base
 -- maneja sola (`estado`, `version`, quién y cuándo): cualquier otra llave se rechaza, así un error de escritura no se pierde en silencio.
 create or replace function retail.guardar_campana_diseno(p_etiqueta_id uuid, p_version integer, p_diseno jsonb)
 returns jsonb
@@ -312,7 +316,7 @@ declare
   v_hoy date := retail.fn_hoy_lima();
   v_nombre text;
   v_hasta date;
-  v_fila retail.campana_disenos%rowtype;
+  v_fila retail.campana_web_disenos%rowtype;
   v_existe boolean;
   v_actual jsonb;
   v_nuevo jsonb;
@@ -338,7 +342,7 @@ begin
     raise exception 'campana_terminada' using hint = format('«%s» ya terminó: su diseño no se cambia.', v_nombre);
   end if;
 
-  select * into v_fila from retail.campana_disenos where etiqueta_id = p_etiqueta_id for update;
+  select * into v_fila from retail.campana_web_disenos where etiqueta_id = p_etiqueta_id for update;
   v_existe := found;
 
   if v_existe then
@@ -363,7 +367,7 @@ begin
 
   begin
     if v_existe then
-      update retail.campana_disenos d
+      update retail.campana_web_disenos d
          set modo = x.modo, plantilla = x.plantilla, paleta = x.paleta, acento = x.acento,
              franja = x.franja, entrada = x.entrada, efecto = x.efecto, intensidad = x.intensidad, duracion = x.duracion, cuenta = x.cuenta,
              titular = x.titular, bajada = x.bajada, boton = x.boton,
@@ -371,16 +375,16 @@ begin
              donde_franja = x.donde_franja, donde_portada = x.donde_portada, donde_catalogo = x.donde_catalogo,
              donde_sello = x.donde_sello, donde_bolsa = x.donde_bolsa,
              version = d.version + 1, actualizado_en = now(), actualizado_por = v_actor
-        from jsonb_populate_record(null::retail.campana_disenos, v_nuevo) x
+        from jsonb_populate_record(null::retail.campana_web_disenos, v_nuevo) x
        where d.etiqueta_id = p_etiqueta_id;
     else
-      insert into retail.campana_disenos
+      insert into retail.campana_web_disenos
         (etiqueta_id, modo, plantilla, paleta, acento, franja, entrada, efecto, intensidad, duracion, cuenta, titular, bajada, boton,
          imagen_ruta, imagen_vertical_ruta, donde_franja, donde_portada, donde_catalogo, donde_sello, donde_bolsa, creado_por, actualizado_por)
       select p_etiqueta_id, x.modo, x.plantilla, x.paleta, x.acento, x.franja, x.entrada, x.efecto, x.intensidad, x.duracion, x.cuenta,
              x.titular, x.bajada, x.boton, x.imagen_ruta, x.imagen_vertical_ruta,
              x.donde_franja, x.donde_portada, x.donde_catalogo, x.donde_sello, x.donde_bolsa, v_actor, v_actor
-        from jsonb_populate_record(null::retail.campana_disenos, v_nuevo) x
+        from jsonb_populate_record(null::retail.campana_web_disenos, v_nuevo) x
       on conflict (etiqueta_id) do nothing;
       if not found then
         -- Otra persona lo creó en el mismo instante: que esta vuelva a abrirla y vea lo que quedó.

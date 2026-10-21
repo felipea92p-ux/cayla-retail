@@ -102,11 +102,11 @@ const LISTA = `retail.fn_campanas_web() -> 'campanas'`;
 const ACTIVIDAD = `(select count(*) from retail.actividad where modulo = 'campanas_web')`;
 /** Guardar un parche de diseño (`version`: «null» o una expresión SQL). Sobre la campaña `:etq`. */
 const guardar = (parche, version = "null", etq = "etq") => `select retail.guardar_campana_diseno(:'${etq}', ${version}, '${parche}'::jsonb)`;
-const VERSION = `(select version from retail.campana_disenos where etiqueta_id = :'etq')`;
+const VERSION = `(select version from retail.campana_web_disenos where etiqueta_id = :'etq')`;
 const AMBIENTE = `{"modo":"ambiente","plantilla":"aniversario"}`;
 /** Un diseño válido de ambiente para la campaña `:etq`, con los cambios que se pasen. */
 const diseno = (extra = "") =>
-  `insert into retail.campana_disenos (etiqueta_id, modo, plantilla${extra ? ", " + extra.split("=")[0] : ""}) values (:'etq', 'ambiente', 'aniversario'${extra ? ", " + extra.split("=")[1] : ""});\n`;
+  `insert into retail.campana_web_disenos (etiqueta_id, modo, plantilla${extra ? ", " + extra.split("=")[0] : ""}) values (:'etq', 'ambiente', 'aniversario'${extra ? ", " + extra.split("=")[1] : ""});\n`;
 
 function main() {
   const base = correr("select 1;");
@@ -147,11 +147,11 @@ function main() {
   );
   esperarValor(
     "nadie lee ni escribe la tabla directo (ni el ERP, ni un visitante, ni la tienda)",
-    correr(`${EN_LA_BASE}select concat_ws('|', has_table_privilege('authenticated', 'retail.campana_disenos', 'SELECT'),
-        has_table_privilege('anon', 'retail.campana_disenos', 'SELECT'), has_table_privilege('tienda_web', 'retail.campana_disenos', 'SELECT'),
-        has_table_privilege('authenticated', 'retail.campana_disenos', 'INSERT, UPDATE, DELETE'),
-        (select relrowsecurity from pg_class where oid = 'retail.campana_disenos'::regclass),
-        (select count(*) from pg_policies where schemaname = 'retail' and tablename = 'campana_disenos'));\nrollback;`),
+    correr(`${EN_LA_BASE}select concat_ws('|', has_table_privilege('authenticated', 'retail.campana_web_disenos', 'SELECT'),
+        has_table_privilege('anon', 'retail.campana_web_disenos', 'SELECT'), has_table_privilege('tienda_web', 'retail.campana_web_disenos', 'SELECT'),
+        has_table_privilege('authenticated', 'retail.campana_web_disenos', 'INSERT, UPDATE, DELETE'),
+        (select relrowsecurity from pg_class where oid = 'retail.campana_web_disenos'::regclass),
+        (select count(*) from pg_policies where schemaname = 'retail' and tablename = 'campana_web_disenos'));\nrollback;`),
     "f|f|f|f|t|0",
   );
   esperarValor(
@@ -232,14 +232,14 @@ function main() {
       select concat_ws('|', c #>> '{diseno,modo}', c #>> '{diseno,plantilla}', c #>> '{diseno,estado}', c #>> '{diseno,version}')
         from jsonb_array_elements(${LISTA}) c;
       select concat_ws('|', paleta, franja, entrada, efecto, intensidad, duracion, cuenta, donde_franja, donde_portada, donde_catalogo, donde_sello, donde_bolsa)
-        from retail.campana_disenos where etiqueta_id = :'etq';
+        from retail.campana_web_disenos where etiqueta_id = :'etq';
       rollback;`),
     "ambiente|aniversario|borrador|1\n0|rota|telon|ninguno|poca|una|siempre|t|t|t|t|t",
   );
   esperarValor(
     "un diseño de imagen lleva su horizontal y, si quiere, su vertical",
     correr(`${PREPARAR}${campana("ZZ Imagen", 25, { hasta: "5" })}
-      insert into retail.campana_disenos (etiqueta_id, modo, imagen_ruta, imagen_vertical_ruta, acento)
+      insert into retail.campana_web_disenos (etiqueta_id, modo, imagen_ruta, imagen_vertical_ruta, acento)
       values (:'etq', 'imagen', 'campanas/x/h.webp', 'campanas/x/v.webp', '#9e1d32');
       select concat_ws('|', c #>> '{diseno,modo}', c #>> '{diseno,plantilla}', c #>> '{diseno,imagen_ruta}') from jsonb_array_elements(${LISTA}) c;
       rollback;`),
@@ -249,33 +249,33 @@ function main() {
     esperarError(
       nombre,
       correr(`${PREPARAR}${campana("ZZ Malo", 20, { hasta: "5" })}
-        insert into retail.campana_disenos (etiqueta_id, ${columnas}) values (:'etq', ${valores});
+        insert into retail.campana_web_disenos (etiqueta_id, ${columnas}) values (:'etq', ${valores});
         rollback;`),
       que,
     );
-  malo("un ambiente sin plantilla no entra", "modo", "'ambiente'", "campana_disenos_modo_coherente");
-  malo("una plantilla con modo imagen no entra", "modo, plantilla, imagen_ruta", "'imagen', 'cyber', 'campanas/x/h.webp'", "campana_disenos_modo_coherente");
-  malo("una imagen sin su horizontal no entra", "modo", "'imagen'", "campana_disenos_modo_coherente");
-  malo("un ambiente fuera del catálogo no entra", "modo, plantilla", "'ambiente', 'halloween'", "campana_disenos_plantilla");
-  malo("un efecto que la tienda no conoce no entra", "modo, plantilla, efecto", "'ambiente', 'cyber', 'fuegos'", "campana_disenos_efecto");
-  malo("un movimiento fuera de la lista no entra", "modo, plantilla, entrada", "'ambiente', 'cyber', 'vuela'", "campana_disenos_entrada");
-  malo("una paleta que no existe no entra", "modo, plantilla, paleta", "'ambiente', 'cyber', 3", "campana_disenos_paleta");
-  malo("un titular de 29 letras no entra", "modo, plantilla, titular", `'ambiente', 'cyber', '${"a".repeat(29)}'`, "campana_disenos_titular");
-  malo("un botón de 23 letras no entra", "modo, plantilla, boton", `'ambiente', 'cyber', '${"a".repeat(23)}'`, "campana_disenos_boton");
-  malo("un color que no es #rrggbb no entra", "modo, plantilla, acento", "'ambiente', 'cyber', 'rojo'", "campana_disenos_acento");
-  malo("una vertical sin horizontal no entra", "modo, plantilla, imagen_vertical_ruta", "'ambiente', 'cyber', 'campanas/x/v.webp'", "campana_disenos_imagen_vertical");
-  malo("una ruta fuera de «campanas/» no entra", "modo, imagen_ruta", "'imagen', '../otra/h.webp'", "campana_disenos_imagen_ruta");
-  malo("un estado que no es borrador ni programado no entra", "modo, plantilla, estado", "'ambiente', 'cyber', 'publicado'", "campana_disenos_estado");
+  malo("un ambiente sin plantilla no entra", "modo", "'ambiente'", "campana_web_disenos_modo_coherente");
+  malo("una plantilla con modo imagen no entra", "modo, plantilla, imagen_ruta", "'imagen', 'cyber', 'campanas/x/h.webp'", "campana_web_disenos_modo_coherente");
+  malo("una imagen sin su horizontal no entra", "modo", "'imagen'", "campana_web_disenos_modo_coherente");
+  malo("un ambiente fuera del catálogo no entra", "modo, plantilla", "'ambiente', 'halloween'", "campana_web_disenos_plantilla");
+  malo("un efecto que la tienda no conoce no entra", "modo, plantilla, efecto", "'ambiente', 'cyber', 'fuegos'", "campana_web_disenos_efecto");
+  malo("un movimiento fuera de la lista no entra", "modo, plantilla, entrada", "'ambiente', 'cyber', 'vuela'", "campana_web_disenos_entrada");
+  malo("una paleta que no existe no entra", "modo, plantilla, paleta", "'ambiente', 'cyber', 3", "campana_web_disenos_paleta");
+  malo("un titular de 29 letras no entra", "modo, plantilla, titular", `'ambiente', 'cyber', '${"a".repeat(29)}'`, "campana_web_disenos_titular");
+  malo("un botón de 23 letras no entra", "modo, plantilla, boton", `'ambiente', 'cyber', '${"a".repeat(23)}'`, "campana_web_disenos_boton");
+  malo("un color que no es #rrggbb no entra", "modo, plantilla, acento", "'ambiente', 'cyber', 'rojo'", "campana_web_disenos_acento");
+  malo("una vertical sin horizontal no entra", "modo, plantilla, imagen_vertical_ruta", "'ambiente', 'cyber', 'campanas/x/v.webp'", "campana_web_disenos_imagen_vertical");
+  malo("una ruta fuera de «campanas/» no entra", "modo, imagen_ruta", "'imagen', '../otra/h.webp'", "campana_web_disenos_imagen_ruta");
+  malo("un estado que no es borrador ni programado no entra", "modo, plantilla, estado", "'ambiente', 'cyber', 'publicado'", "campana_web_disenos_estado");
   esperarError(
     "una campaña solo tiene un diseño",
     correr(`${PREPARAR}${campana("ZZ Doble", 20, { hasta: "5" })}${diseno()}${diseno()}rollback;`),
-    "campana_disenos_pkey",
+    "campana_web_disenos_pkey",
   );
   esperarValor(
     "el diseño se va con su campaña (es configuración, no historia)",
     correr(`${PREPARAR}${campana("ZZ Se va", 20, { hasta: "5" })}${diseno()}
       delete from retail.etiquetas where id = :'etq';
-      select count(*) from retail.campana_disenos where etiqueta_id = :'etq';
+      select count(*) from retail.campana_web_disenos where etiqueta_id = :'etq';
       rollback;`),
     "0",
   );
@@ -301,7 +301,7 @@ function main() {
     "la primera vez crea el diseño con los valores de fábrica, en borrador y versión 1",
     correr(`${PREPARAR}${campana("ZZ Crea", 20, { hasta: "5" })}${guardar(AMBIENTE)} \\gset
       select concat_ws('|', modo, plantilla, paleta, franja, entrada, efecto, estado, version, donde_franja, donde_bolsa)
-        from retail.campana_disenos where etiqueta_id = :'etq';
+        from retail.campana_web_disenos where etiqueta_id = :'etq';
       rollback;`),
     "ambiente|aniversario|0|rota|telon|ninguno|borrador|1|t|t",
   );
@@ -319,7 +319,7 @@ function main() {
     "firma el responsable: una integrante con el módulo guarda y firma ella",
     correr(`${PREPARAR}${MODULO_A_INTEGRANTE}${campana("ZZ Firma", 20, { hasta: "5" })}${COMO_MICAELA}${guardar(AMBIENTE)} \\gset
       select (select p.nombres from public.personas p where p.id = d.actualizado_por) || '|' || (select p.nombres from public.personas p where p.id = d.creado_por)
-        from retail.campana_disenos d where d.etiqueta_id = :'etq';
+        from retail.campana_web_disenos d where d.etiqueta_id = :'etq';
       rollback;`),
     "Micaela|Micaela",
   );
@@ -327,7 +327,7 @@ function main() {
     "un parche solo cambia lo que trae: lo demás no se pisa, y cada cambio sube la versión",
     correr(`${PREPARAR}${campana("ZZ Parche", 20, { hasta: "5" })}${guardar('{"modo":"ambiente","plantilla":"navidad","paleta":1,"titular":"Hola"}')} \\gset
       ${guardar('{"efecto":"copos","donde_sello":false}', VERSION)} \\gset
-      select concat_ws('|', plantilla, paleta, titular, efecto, donde_sello, donde_bolsa, version) from retail.campana_disenos where etiqueta_id = :'etq';
+      select concat_ws('|', plantilla, paleta, titular, efecto, donde_sello, donde_bolsa, version) from retail.campana_web_disenos where etiqueta_id = :'etq';
       rollback;`),
     "navidad|1|Hola|copos|f|t|2",
   );
@@ -335,18 +335,18 @@ function main() {
     "poner un dato en null lo borra (el titular), y se puede pasar de ambiente a imagen en un solo guardado",
     correr(`${PREPARAR}${campana("ZZ Modo", 20, { hasta: "5" })}${guardar('{"modo":"ambiente","plantilla":"navidad","titular":"Hola"}')} \\gset
       ${guardar('{"titular":null}', VERSION)} \\gset
-      select coalesce(titular, 'sin titular') from retail.campana_disenos where etiqueta_id = :'etq';
+      select coalesce(titular, 'sin titular') from retail.campana_web_disenos where etiqueta_id = :'etq';
       ${guardar('{"modo":"imagen","plantilla":null,"imagen_ruta":"campanas/x/h.webp"}', VERSION)} \\gset
-      select concat_ws('|', modo, coalesce(plantilla, 'sin'), imagen_ruta, version) from retail.campana_disenos where etiqueta_id = :'etq';
+      select concat_ws('|', modo, coalesce(plantilla, 'sin'), imagen_ruta, version) from retail.campana_web_disenos where etiqueta_id = :'etq';
       rollback;`),
     "sin titular\nimagen|sin|campanas/x/h.webp|3",
   );
   esperarValor(
     "sin cambios no escribe ni anota: la versión, la fecha y la Actividad se quedan",
     correr(`${PREPARAR}${campana("ZZ Igual", 20, { hasta: "5" })}${guardar('{"modo":"ambiente","plantilla":"gato","paleta":2}')} \\gset
-      select ${ACTIVIDAD} as antes, version as v0, actualizado_en as t0 from retail.campana_disenos where etiqueta_id = :'etq' \\gset
+      select ${ACTIVIDAD} as antes, version as v0, actualizado_en as t0 from retail.campana_web_disenos where etiqueta_id = :'etq' \\gset
       ${guardar('{"paleta":2,"plantilla":"gato"}', VERSION)} \\gset
-      select concat_ws('|', ${ACTIVIDAD} = :antes, version = :v0, actualizado_en = :'t0') from retail.campana_disenos where etiqueta_id = :'etq';
+      select concat_ws('|', ${ACTIVIDAD} = :antes, version = :v0, actualizado_en = :'t0') from retail.campana_web_disenos where etiqueta_id = :'etq';
       rollback;`),
     "t|t|t",
   );
@@ -390,18 +390,18 @@ function main() {
   rechaza("una llave que no es del diseño se rechaza (no se pierde en silencio)", '{"modo":"ambiente","plantilla":"cyber","color":"rojo"}');
   rechaza("no se puede tocar el estado desde aquí (programar es de otra función)", '{"modo":"ambiente","plantilla":"cyber","estado":"programado"}');
   rechaza("ni la versión", '{"modo":"ambiente","plantilla":"cyber","version":9}');
-  rechaza("un ambiente fuera del catálogo se rechaza y dice cuál regla", '{"modo":"ambiente","plantilla":"halloween"}', "campana_disenos_plantilla");
-  rechaza("una paleta que no existe se rechaza", '{"modo":"ambiente","plantilla":"cyber","paleta":3}', "campana_disenos_paleta");
-  rechaza("un color que no es #rrggbb se rechaza", '{"modo":"ambiente","plantilla":"cyber","acento":"rojo"}', "campana_disenos_acento");
+  rechaza("un ambiente fuera del catálogo se rechaza y dice cuál regla", '{"modo":"ambiente","plantilla":"halloween"}', "campana_web_disenos_plantilla");
+  rechaza("una paleta que no existe se rechaza", '{"modo":"ambiente","plantilla":"cyber","paleta":3}', "campana_web_disenos_paleta");
+  rechaza("un color que no es #rrggbb se rechaza", '{"modo":"ambiente","plantilla":"cyber","acento":"rojo"}', "campana_web_disenos_acento");
   rechaza("un dato con forma torcida («paleta»: texto) se rechaza", '{"modo":"ambiente","plantilla":"cyber","paleta":"x"}');
   rechaza("el diseño que no es un objeto se rechaza", '[1]');
-  rechaza("un ambiente sin plantilla se rechaza", '{"modo":"ambiente"}', "campana_disenos_modo_coherente");
+  rechaza("un ambiente sin plantilla se rechaza", '{"modo":"ambiente"}', "campana_web_disenos_modo_coherente");
   esperarValor(
     "tras un rechazo no queda nada escrito",
     correr(`${PREPARAR}${campana("ZZ Nada", 20, { hasta: "5" })}
       select ${ACTIVIDAD} as a0 \\gset
       do $$ begin perform retail.guardar_campana_diseno((select id from retail.etiquetas where nombre = 'ZZ Nada'), null, '{"modo":"ambiente","plantilla":"halloween"}'::jsonb); exception when others then null; end $$;
-      select (select count(*) from retail.campana_disenos where etiqueta_id = :'etq') || '|' || (${ACTIVIDAD} = :a0);
+      select (select count(*) from retail.campana_web_disenos where etiqueta_id = :'etq') || '|' || (${ACTIVIDAD} = :a0);
       rollback;`),
     "0|true",
   );
@@ -424,7 +424,7 @@ function main() {
       correr(`${PREPARAR}${campana("ZZ Repite", 20, { hasta: "5" })}${diseno()}
         ${APLICAR_ANTES}
         select concat_ws('|', (select count(*) from retail.modulos where clave = 'campanas_web'),
-          (select count(*) from retail.campana_disenos where etiqueta_id = :'etq'), jsonb_array_length(${LISTA}));
+          (select count(*) from retail.campana_web_disenos where etiqueta_id = :'etq'), jsonb_array_length(${LISTA}));
         rollback;`),
       "1|1|1",
     );
