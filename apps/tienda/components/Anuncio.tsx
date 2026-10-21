@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { CADA_MS, estadoDeFrase } from "@/lib/anuncio";
+import { variablesDelDiseno, type DisenoDeLaTienda } from "@/lib/diseno-campana";
 import "@/app/estilos/anuncio.css";
+import "@/app/estilos/campana.css";
 
 // Lo que dijo la última franja a la vista y en qué vuelta iba (2026-10-17, Felipe: «cuando cambia de vista es muy abrupto»). Las páginas
 // de la bolsa y de la cuenta dibujan su propia franja: sin esto, mientras cargaban la franja quedaba vacía y, al llegar, volvía a la
@@ -18,7 +20,7 @@ const mismas = (a: readonly string[], b: readonly string[]) => a.length === b.le
  * mientras la pestaña no está a la vista y, con «reducir movimiento», en la primera. Un lector de pantalla lee la frase a la vista, sin
  * que se le anuncie cada cambio.
  */
-export function Anuncio({ frases: propias }: { frases: string[] }) {
+export function Anuncio({ frases: propias, diseno = null }: { frases: string[]; diseno?: DisenoDeLaTienda | null }) {
   // La primera vez que se dibuja (también al hidratar una página recién abierta) no hay nada recordado: lo mismo que mandó el servidor.
   const [inicio] = useState(() => {
     const recordada = ultima;
@@ -51,6 +53,9 @@ export function Anuncio({ frases: propias }: { frases: string[] }) {
   return (
     <div
       className="t-anuncio t-anuncio-pila"
+      // Con el diseño de una campaña (si el líder dejó la franja encendida), la franja toma sus colores; sin él, la de siempre.
+      data-campana={diseno?.donde.franja ? diseno.plantilla : undefined}
+      style={diseno?.donde.franja ? variablesDelDiseno(diseno) : undefined}
       // Solo el mouse la detiene: en el celular un toque no debe dejarla quieta para siempre.
       onPointerEnter={(e) => e.pointerType === "mouse" && setQuieta(true)}
       onPointerLeave={() => setQuieta(false)}

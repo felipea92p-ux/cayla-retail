@@ -15,7 +15,9 @@
  *      (lo que no se manda no se pisa); la versión frena a la segunda persona; sin cambios no escribe ni anota; solo lo que la base
  *      acepta (una llave rara, un ambiente fuera del catálogo, un dato con forma torcida); una campaña terminada o que no es campaña no se
  *      diseña; no toca el estado; y cada cambio deja su línea en la Actividad. `fn_campana_diseno` lee una campaña con su diseño.
- *   5. La migración se puede volver a correr sin duplicar nada.
+ *   5. Lo que lee la tienda (`tienda_diseno_campana`, solo de `tienda_web`): la campaña que gana la portada con su diseño PROGRAMADO; un
+ *      borrador no se ve; gana primero la campaña y después su diseño; sin prendas, terminada o por empezar no se anuncia.
+ *   6. La migración se puede volver a correr sin duplicar nada.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK, como Felipe (líder) o Micaela (integrante de Trujillo): nunca se
  * commitea nada en el Postgres local que comparten los worktrees.
@@ -416,7 +418,58 @@ function main() {
     "2|«ZZ Act»: creó su diseño (aniversario) // «ZZ Act»: cambió su diseño (aniversario)",
   );
 
-  // ---------------------------------------------------------------- 5. Se puede volver a pegar
+  // ---------------------------------------------------------------- 5. Lo que lee la tienda
+  console.log("\n— Lo que lee la tienda —");
+  const PROGRAMAR = `update retail.campana_web_disenos set estado = 'programado' where etiqueta_id = :'etq';\n`;
+  const TIENDA = (sql) => `${COMO_TIENDA}${sql}`;
+  esperarValor(
+    "solo la tienda llama la función: ni un visitante ni el ERP",
+    correr(`${EN_LA_BASE}select concat_ws('|', has_function_privilege('anon', 'retail.tienda_diseno_campana()', 'EXECUTE'),
+        has_function_privilege('authenticated', 'retail.tienda_diseno_campana()', 'EXECUTE'), has_function_privilege('tienda_web', 'retail.tienda_diseno_campana()', 'EXECUTE'));\nrollback;`),
+    "f|f|t",
+  );
+  esperarValor(
+    "sin campañas, la tienda recibe campana null",
+    correr(`${PREPARAR}${TIENDA(`select coalesce((retail.tienda_diseno_campana() -> 'campana')::text, 'null');`)}\nrollback;`),
+    "null",
+  );
+  esperarValor(
+    "una campaña con diseño PROGRAMADO llega con su diseño completo y solo lo que la tienda pinta",
+    correr(`${PREPARAR}${campana("ZZ Tienda", 20, { desde: "-1", hasta: "5" })}${aTodasLasTallas("emma")}${guardar('{"modo":"ambiente","plantilla":"navidad","paleta":1,"acento":"#00aa55","efecto":"copos"}')} \\gset
+      ${PROGRAMAR}
+      ${TIENDA(`select concat_ws('|', c ->> 'nombre', c #>> '{diseno,plantilla}', c #>> '{diseno,paleta}', c #>> '{diseno,acento}', c #>> '{diseno,efecto}', c #>> '{diseno,donde,sello}',
+          (select string_agg(k, ',' order by k) from jsonb_object_keys(c) k), (select string_agg(k, ',' order by k) from jsonb_object_keys(c -> 'diseno') k))
+        from (select retail.tienda_diseno_campana() -> 'campana' c) x;`)}
+      rollback;`),
+    "ZZ Tienda|navidad|1|#00aa55|copos|true|diseno,nombre|acento,bajada,boton,cuenta,donde,duracion,efecto,entrada,franja,imagen_ruta,imagen_vertical_ruta,intensidad,modo,paleta,plantilla,titular",
+  );
+  esperarValor(
+    "un BORRADOR no se ve: la campaña gana la portada pero su diseño es null",
+    correr(`${PREPARAR}${campana("ZZ Borrador", 20, { desde: "-1", hasta: "5" })}${aTodasLasTallas("emma")}${guardar(AMBIENTE)} \\gset
+      ${TIENDA(`select concat_ws('|', c ->> 'nombre', coalesce((c -> 'diseno')::text, 'null')) from (select retail.tienda_diseno_campana() -> 'campana' c) x;`)}
+      rollback;`),
+    "ZZ Borrador|null",
+  );
+  esperarValor(
+    "gana primero la campaña: una con diseño que termina más tarde no le quita el lugar a una sin diseño que termina antes",
+    correr(`${PREPARAR}${campana("ZZ Corta sin diseno", 10, { desde: "-1", hasta: "3" })}${aTodasLasTallas("emma")}${campana("ZZ Larga con diseno", 30, { desde: "-1", hasta: "20" })}${aTodasLasTallas("emma")}${guardar(AMBIENTE)} \\gset
+      ${PROGRAMAR}
+      ${TIENDA(`select concat_ws('|', c ->> 'nombre', coalesce((c -> 'diseno')::text, 'null')) from (select retail.tienda_diseno_campana() -> 'campana' c) x;`)}
+      rollback;`),
+    "ZZ Corta sin diseno|null",
+  );
+  esperarValor(
+    "una campaña sin prendas, por empezar o terminada no se anuncia, aunque tenga diseño programado",
+    correr(`${PREPARAR}${campana("ZZ Sin prendas", 20, { desde: "-1", hasta: "5" })}${guardar(AMBIENTE)} \\gset
+      ${PROGRAMAR}
+      ${campana("ZZ Futura", 20, { desde: "3", hasta: "9" })}${aTodasLasTallas("emma")}${guardar(AMBIENTE)} \\gset
+      ${PROGRAMAR}
+      ${TIENDA(`select coalesce((retail.tienda_diseno_campana() -> 'campana')::text, 'null');`)}
+      rollback;`),
+    "null",
+  );
+
+  // ---------------------------------------------------------------- 6. Se puede volver a pegar
   console.log("\n— Re-ejecutable —");
   if (APLICAR_ANTES) {
     esperarValor(

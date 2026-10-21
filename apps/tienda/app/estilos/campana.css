@@ -1,0 +1,27 @@
+/* =====================================================================================================
+   TIENDA ONLINE CAYLA · La tienda vestida con el diseño de una campaña (Tienda web ▸ Campañas, ERP).
+   El líder elige un ambiente y una paleta; la base manda tres colores y aquí se pintan (`lib/diseno-campana.ts` los valida y deja pasar solo lo
+   que se lee). Las piezas se visten por el atributo `data-campana` —la clave del ambiente— y sus variables `--cmp-*`; sin ese atributo, la
+   tienda es la de siempre. Los colores son DATO del diseño: no cambian con el tema claro/oscuro de la tienda. Un ambiente nuevo no pide CSS
+   nuevo mientras solo cambie de colores; su movimiento, sus efectos y sus piezas llegan con las actividades que siguen.
+   ===================================================================================================== */
+
+/* La franja de arriba. */
+.t-anuncio[data-campana] { background: var(--cmp-fondo); color: var(--cmp-texto); }
+
+/* La portada del Inicio. */
+.t-hero[data-campana] { background: var(--cmp-fondo); color: var(--cmp-texto); }
+.t-hero[data-campana] .t-hero-ceja { color: var(--cmp-texto); opacity: .9; }
+.t-hero[data-campana] .t-hero-tit { color: var(--cmp-texto); }
+.t-hero[data-campana] .t-hero-tit em { color: var(--cmp-acento); }
+.t-hero[data-campana] .t-hero-desc,
+.t-hero[data-campana] .t-hero-desc b { color: var(--cmp-texto); }
+.t-hero[data-campana] .t-cuenta { border-color: color-mix(in srgb, var(--cmp-texto) 35%, transparent); }
+.t-hero[data-campana] .t-cuenta > span + span { border-left-color: color-mix(in srgb, var(--cmp-texto) 35%, transparent); }
+.t-hero[data-campana] .t-hero-acciones .t-enlace { color: var(--cmp-texto); text-decoration-color: color-mix(in srgb, var(--cmp-texto) 55%, transparent); }
+.t-hero[data-campana] .t-hero-acciones .t-enlace:hover { text-decoration-color: var(--cmp-texto); }
+/* El botón principal toma el acento; su letra, la que se lee sobre él. */
+.t-hero[data-campana] .t-btn-claro { background: var(--cmp-acento); border-color: var(--cmp-acento); color: var(--cmp-boton); }
+@media (hover: hover) {
+  .t-hero[data-campana] .t-btn-claro:hover:not(:disabled) { background: transparent; color: var(--cmp-acento); }
+}

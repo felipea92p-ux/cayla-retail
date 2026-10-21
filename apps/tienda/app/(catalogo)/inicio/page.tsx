@@ -22,6 +22,7 @@ import {
 import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { leerConfigDePuntosDelClub } from "@/lib/puntos-servidor";
 import { hoyLima } from "@/lib/cuentas";
+import { leerDisenoDeCampana } from "@/lib/diseno-campana-servidor";
 import { heroDelInicio } from "@/lib/inicio";
 import { avisoAlEntrar, avisosDeRespuestas } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
@@ -97,6 +98,8 @@ export default async function Inicio({ searchParams }: Props) {
   const nota = (p: Prenda) => notaDeStock(p.stock, elegida, sedes);
 
   const hero = heroDelInicio(campana, prendas);
+  // El diseño de la campaña que anuncia el héroe (la misma que la franja); sin él, el héroe de siempre.
+  const diseno = hero.tipo === "campana" ? await leerDisenoDeCampana(hero.campana.nombre) : null;
   const nuevos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "nuevo" });
   const ofertas = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "ofertas" });
   const campanas = campanasDe(prendas);
@@ -117,7 +120,7 @@ export default async function Inicio({ searchParams }: Props) {
       ]}
     >
       {aviso && avisos && <AvisoAlEntrar aviso={aviso} activas={avisos.map((a) => a.clave)} />}
-      <HeroeDelInicio hero={hero} sede={sede} origenFotos={origenFotos} verCampana={lista("ofertas", hero.tipo === "campana" ? hero.campanaId : null)} verNuevo={nuevos.length > 0 ? lista("nuevo") : null} />
+      <HeroeDelInicio hero={hero} diseno={diseno} sede={sede} origenFotos={origenFotos} verCampana={lista("ofertas", hero.tipo === "campana" ? hero.campanaId : null)} verNuevo={nuevos.length > 0 ? lista("nuevo") : null} />
 
       {catalogo === null ? (
         <div className="t-ancho">

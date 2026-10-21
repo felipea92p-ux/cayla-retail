@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { hrefDePrenda, hrefLista } from "@/lib/catalogo";
 import type { Hero } from "@/lib/inicio";
+import { variablesDelDiseno, type DisenoDeLaTienda } from "@/lib/diseno-campana";
 import { fechaCorta, fechaLarga, partirTitulo, pctTexto } from "@/lib/portada";
 import { CollageDePrendas } from "./CollageDePrendas";
 import { CuentaRegresiva } from "./CuentaRegresiva";
 import { Icono } from "./Icono";
 import { Isotipo } from "./Isotipo";
 import { TextoConMarca } from "./Marca";
+import "@/app/estilos/campana.css";
 import "@/app/estilos/collage.css";
 import "@/app/estilos/inicio.css";
 
@@ -23,6 +25,7 @@ export function HeroeDelInicio({
   verCampana,
   verNuevo,
   enEspera = false,
+  diseno = null,
 }: {
   hero: Hero;
   sede: string | null;
@@ -30,6 +33,8 @@ export function HeroeDelInicio({
   verCampana: string;
   verNuevo: string | null;
   enEspera?: boolean;
+  /** El diseño de la campaña que anuncia el héroe (Tienda web ▸ Campañas); sin él, el de siempre. Solo viste al héroe de una campaña. */
+  diseno?: DisenoDeLaTienda | null;
 }) {
   const piezas = hero.tipo === "marca" ? [] : hero.piezas;
   // Un botón del esqueleto se ve igual pero no lleva a ningún lado: la dirección de la campaña sale de las prendas, que aún no llegan.
@@ -43,8 +48,13 @@ export function HeroeDelInicio({
         {contenido}
       </Link>
     );
+  const vestido = hero.tipo === "campana" && diseno?.donde.portada ? diseno : null;
   return (
-    <section className={`t-hero t-hero-inicio${hero.tipo === "campana" ? "" : " sin-campana"}`}>
+    <section
+      className={`t-hero t-hero-inicio${hero.tipo === "campana" ? "" : " sin-campana"}`}
+      data-campana={vestido?.plantilla}
+      style={vestido ? variablesDelDiseno(vestido) : undefined}
+    >
       <Isotipo className="t-colibri" />
       <div className="t-hero-texto">
         {hero.tipo === "campana" ? (

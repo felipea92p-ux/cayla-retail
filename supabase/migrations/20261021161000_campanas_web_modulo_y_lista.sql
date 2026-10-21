@@ -19,6 +19,9 @@
 --      cambio deja su línea en la Actividad (módulo `campanas_web`). Recibe un jsonb (un parche) y no columnas sueltas: las actividades
 --      que siguen (movimiento, textos, imagen) suman llaves sin cambiar la firma (un `create or replace` con otros parámetros crearía
 --      una segunda función). NO toca `estado`: pasar de borrador a programado es de la actividad que programa.
+--   6. `retail.tienda_diseno_campana()`: lo que la TIENDA lee (rol `tienda_web`): la campaña que gana la portada y, si su diseño está
+--      programado, ese diseño. Es una función aparte y NO toca `tienda_portada()`: esa ya está en producción con el diseño del PR #1190
+--      (ADR-0436) y reescribirla lo pisaría. La tienda aplica el diseño solo si el nombre de la campaña coincide con el de la portada.
 --
 -- REGLAS (Lamport: lo que la base no deja que pase)
 --   · Un diseño es de UNA campaña (la clave es la etiqueta) y se va con ella (`on delete cascade`: es configuración, no historia).
@@ -416,3 +419,62 @@ comment on function retail.guardar_campana_diseno(uuid, integer, jsonb) is
 
 revoke all on function retail.guardar_campana_diseno(uuid, integer, jsonb) from public, anon;
 grant execute on function retail.guardar_campana_diseno(uuid, integer, jsonb) to authenticated;
+
+-- ---------- 7. Lo que lee la tienda ----------
+-- La campaña que gana la portada (la que termina primero; las que no tienen fecha de fin, al final; empate, la de mayor descuento y
+-- luego el nombre: la misma regla de `tienda_portada` de `20261014220000`) y su diseño si está PROGRAMADO (un borrador no se ve). Gana
+-- primero la campaña y después se mira su diseño: una campaña con diseño que termina más tarde que otra sin diseño no le quita el lugar.
+-- Devuelve solo lo que la tienda pinta (ningún id de persona ni fecha de edición). Sin campaña o sin diseño programado, `diseno` es null y
+-- la tienda se ve como siempre.
+create or replace function retail.tienda_diseno_campana()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = retail, public
+as $$
+  select jsonb_build_object(
+    'campana', (
+      select jsonb_build_object(
+        'nombre', e.nombre,
+        'diseno', (
+          select jsonb_build_object(
+            'modo', d.modo, 'plantilla', d.plantilla, 'paleta', d.paleta, 'acento', d.acento,
+            'franja', d.franja, 'entrada', d.entrada, 'efecto', d.efecto, 'intensidad', d.intensidad, 'duracion', d.duracion, 'cuenta', d.cuenta,
+            'titular', d.titular, 'bajada', d.bajada, 'boton', d.boton,
+            'imagen_ruta', d.imagen_ruta, 'imagen_vertical_ruta', d.imagen_vertical_ruta,
+            'donde', jsonb_build_object('franja', d.donde_franja, 'portada', d.donde_portada, 'catalogo', d.donde_catalogo,
+                                        'sello', d.donde_sello, 'bolsa', d.donde_bolsa))
+          from retail.campana_web_disenos d where d.etiqueta_id = e.id and d.estado = 'programado')
+      )
+      from retail.etiquetas e
+      where e.estilo = 'campana'
+        and e.estado = 'aprobado'
+        and e.activo
+        and e.descuento_pct > 0
+        and (e.vigente_desde is null or e.vigente_desde <= retail.fn_hoy_lima())
+        and (e.vigente_hasta is null or e.vigente_hasta >= retail.fn_hoy_lima())
+        and (
+          exists (select 1 from retail.variante_etiquetas ve where ve.etiqueta_id = e.id)
+          or exists (select 1 from retail.etiqueta_categorias ec where ec.etiqueta_id = e.id)
+        )
+      order by e.vigente_hasta nulls last, e.descuento_pct desc, e.nombre
+      limit 1
+    )
+  );
+$$;
+
+comment on function retail.tienda_diseno_campana() is
+  'Tienda online: la campaña que gana la portada y su diseño PROGRAMADO (null si no tiene). {campana: {nombre, diseno} | null}. Solo la llama tienda_web. No reemplaza a tienda_portada().';
+
+do $$
+begin
+  -- `tienda_web` nace en 20261014220000; en una base donde aún no existe, esta parte no aplica (la tienda tampoco).
+  if exists (select 1 from pg_roles where rolname = 'tienda_web') then
+    revoke all on function retail.tienda_diseno_campana() from public, anon, authenticated;
+    grant execute on function retail.tienda_diseno_campana() to tienda_web;
+  else
+    revoke all on function retail.tienda_diseno_campana() from public, anon, authenticated;
+  end if;
+end
+$$;

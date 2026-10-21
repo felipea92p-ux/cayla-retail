@@ -1,0 +1,66 @@
+import { describe, expect, it } from "vitest";
+import { AMBIENTES_CAMPANA, ratioContraste } from "@cayla-retail/shared";
+import { interpretarDisenoCampana, variablesDelDiseno } from "./diseno-campana";
+
+const dato = (diseno: unknown, nombre = "Aniversario CAYLA") => ({ campana: { nombre, diseno } });
+const disenoOk = { modo: "ambiente", plantilla: "aniversario", paleta: 0, acento: null };
+
+describe("interpretarDisenoCampana: lo que la tienda pinta", () => {
+  it("un diseño programado se convierte en tres colores, la letra del botón y dónde se ve", () => {
+    const d = interpretarDisenoCampana(dato(disenoOk), "Aniversario CAYLA");
+    expect(d).toEqual({
+      plantilla: "aniversario",
+      colores: { fondo: "#2b1016", texto: "#f6ecd8", acento: "#d9b878", boton: expect.any(String) },
+      donde: { franja: true, portada: true, catalogo: true, sello: true, bolsa: true },
+    });
+    expect(ratioContraste(d!.colores.acento, d!.colores.boton)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("el color propio manda sobre el de la paleta", () => {
+    expect(interpretarDisenoCampana(dato({ ...disenoOk, paleta: 1, acento: "#00aa55" }), "Aniversario CAYLA")?.colores.acento).toBe("#00aa55");
+  });
+
+  it("lo que el líder apagó de «dónde se ve» se respeta; lo que falta o viene raro se ve (como siempre)", () => {
+    const d = interpretarDisenoCampana(dato({ ...disenoOk, donde: { franja: false, portada: "no", sello: false } }), "Aniversario CAYLA");
+    expect(d?.donde).toEqual({ franja: false, portada: true, catalogo: true, sello: false, bolsa: true });
+  });
+
+  it("todas las paletas del catálogo se pintan", () => {
+    for (const a of AMBIENTES_CAMPANA) for (let p = 0; p < 3; p++) expect(interpretarDisenoCampana(dato({ modo: "ambiente", plantilla: a.clave, paleta: p }, "X"), "X")).not.toBeNull();
+  });
+
+  it("sin diseño, sin campaña o sin datos, la tienda se ve como siempre", () => {
+    expect(interpretarDisenoCampana(dato(null), "Aniversario CAYLA")).toBeNull();
+    expect(interpretarDisenoCampana({ campana: null }, "Aniversario CAYLA")).toBeNull();
+    expect(interpretarDisenoCampana(null, "Aniversario CAYLA")).toBeNull();
+    expect(interpretarDisenoCampana({}, "Aniversario CAYLA")).toBeNull();
+    expect(interpretarDisenoCampana(dato(disenoOk), null)).toBeNull();
+  });
+
+  it("si la base y la portada no coinciden en cuál campaña gana, no se mezclan", () => {
+    expect(interpretarDisenoCampana(dato(disenoOk, "Black Week"), "Aniversario CAYLA")).toBeNull();
+  });
+
+  it("un diseño que no se sabe pintar es «como siempre»: imagen propia (llega después), ambiente desconocido, paleta fuera de rango", () => {
+    expect(interpretarDisenoCampana(dato({ modo: "imagen", plantilla: null, paleta: 0 }), "Aniversario CAYLA")).toBeNull();
+    expect(interpretarDisenoCampana(dato({ ...disenoOk, plantilla: "halloween" }), "Aniversario CAYLA")).toBeNull();
+    expect(interpretarDisenoCampana(dato({ ...disenoOk, paleta: 3 }), "Aniversario CAYLA")).toBeNull();
+    expect(interpretarDisenoCampana(dato({ ...disenoOk, paleta: "x" }), "Aniversario CAYLA")).toBeNull();
+  });
+
+  it("un diseño cuyas letras no se leen nunca se pinta (candado de lectura)", () => {
+    expect(interpretarDisenoCampana(dato({ modo: "ambiente", plantilla: "cyber", paleta: 0, acento: "#1a1a19" }, "X"), "X")).toBeNull();
+  });
+
+  it("un color propio que no es #rrggbb se ignora y queda el de la paleta", () => {
+    expect(interpretarDisenoCampana(dato({ ...disenoOk, acento: "rojo" }), "Aniversario CAYLA")?.colores.acento).toBe("#d9b878");
+  });
+});
+
+describe("variablesDelDiseno", () => {
+  it("son las cuatro variables que usa campana.css", () => {
+    const d = interpretarDisenoCampana(dato(disenoOk), "Aniversario CAYLA")!;
+    expect(Object.keys(variablesDelDiseno(d)).sort()).toEqual(["--cmp-acento", "--cmp-boton", "--cmp-fondo", "--cmp-texto"]);
+    expect(variablesDelDiseno(d)["--cmp-fondo"]).toBe("#2b1016");
+  });
+});
