@@ -16,8 +16,10 @@ import { EVENTO_BUSCAR } from "@/lib/buscar-evento";
 import { claveDeLaOpcion, type OpcionTienda } from "@/lib/sede-elegida";
 import { vaciarBolsaPorCambioDeTienda } from "@/app/acciones/bolsa";
 import { recordarSede } from "@/lib/sede-cookie";
+import { ahoraMs, debeCubrir, esperaHastaElTope, esperaParaSalir, VELO_SALE_MS } from "@/lib/sede-velo";
 import { Icono } from "./Icono";
 import { Logo } from "./Marca";
+import { NombreQueRueda, VeloDeSede } from "./VeloDeSede";
 // El globo rojo de la bolsa y del corazón (`.t-globo`).
 import "@/app/estilos/bolsa.css";
 
@@ -330,6 +332,9 @@ function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]
   // La tienda a la que quiere pasar mientras la bolsa lleva prendas: se confirma antes (cambiar de tienda vacía la bolsa).
   const [pendiente, setPendiente] = useState<OpcionTienda | null>(null);
   const [cambiando, cambiar] = useTransition();
+  // El velo de «Ahora ves lo que hay en LIMA» (ADR-0466): la pantalla de carga de este cambio, que Next no muestra por su cuenta (cambiar de
+  // tienda es la misma vista, `claveDeVista`). Se queda mientras llega la página y un mínimo, y se va sola a los 8 s si no llega.
+  const [velo, setVelo] = useState<{ nombre: string; desde: number; arriba: number; fase: "espera" | "sale" } | null>(null);
   const router = useRouter();
   const caja = useRef<HTMLDivElement | null>(null);
   const boton = useRef<HTMLButtonElement | null>(null);
@@ -356,19 +361,38 @@ function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]
       window.removeEventListener("keydown", alEscape);
     };
   }, [abierto]);
+  // El velo se disipa cuando la página llegó (`cambiando` vuelve a false) y ya estuvo a la vista el mínimo; o al tope, aunque no llegue.
+  useEffect(() => {
+    if (!velo || velo.fase !== "espera" || cambiando) return;
+    const t = window.setTimeout(() => setVelo((v) => (v ? { ...v, fase: "sale" } : v)), esperaParaSalir(ahoraMs() - velo.desde));
+    return () => window.clearTimeout(t);
+  }, [velo, cambiando]);
+  useEffect(() => {
+    if (!velo || velo.fase !== "espera") return;
+    const t = window.setTimeout(() => setVelo((v) => (v ? { ...v, fase: "sale" } : v)), esperaHastaElTope(ahoraMs() - velo.desde));
+    return () => window.clearTimeout(t);
+  }, [velo]);
+  useEffect(() => {
+    if (velo?.fase !== "sale") return;
+    const t = window.setTimeout(() => setVelo(null), VELO_SALE_MS);
+    return () => window.clearTimeout(t);
+  }, [velo]);
   const elegida = opciones.find((o) => o.actual) ?? opciones[0];
-  const recordar = (o: OpcionTienda) => {
+  // Elegir una tienda: se recuerda en la cookie, se cubre con el velo y se navega dentro de una transición (`cambiando` dura hasta que la
+  // página nueva llega). Con prendas en la bolsa, antes se vacía (la persona ya lo confirmó).
+  const ir = (o: OpcionTienda, vaciar: boolean) => {
     const clave = claveDeLaOpcion(o.href);
     if (clave) recordarSede(clave);
     setAbierto(false);
-  };
-  const confirmar = (o: OpcionTienda) =>
+    setPendiente(null);
+    // Justo bajo la cabecera: lo que rueda en ella se ve nítido (el velo es `fixed` en el `<body>`).
+    const arriba = Math.max(0, Math.round(document.querySelector(".t-cab")?.getBoundingClientRect().bottom ?? 0));
+    setVelo({ nombre: o.nombre, desde: ahoraMs(), arriba, fase: "espera" });
     cambiar(async () => {
-      await vaciarBolsaPorCambioDeTienda();
-      recordar(o);
-      setPendiente(null);
-      router.push(o.href);
+      if (vaciar) await vaciarBolsaPorCambioDeTienda();
+      router.push(o.href, { scroll: false });
     });
+  };
   return (
     <div className="t-persona t-sel-tienda" ref={caja}>
       <button
@@ -383,8 +407,9 @@ function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]
           setAbierto((a) => !a);
         }}
       >
-        {elegida.nombre} <span aria-hidden="true">▾</span>
+        <NombreQueRueda nombre={elegida.nombre} /> <span aria-hidden="true">▾</span>
       </button>
+      {velo && <VeloDeSede nombre={velo.nombre} fase={velo.fase} arriba={velo.arriba} />}
       {abierto && (
         <div className="t-persona-menu" id={idMenu}>
           {pendiente ? (
@@ -392,7 +417,7 @@ function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]
             <div className="t-sel-aviso" role="alert">
               <p>Tu bolsa se vaciará.</p>
               <div className="t-sel-aviso-acc">
-                <button type="button" className="t-btn t-btn-chico" disabled={cambiando} onClick={() => confirmar(pendiente)}>
+                <button type="button" className="t-btn t-btn-chico" disabled={cambiando} onClick={() => ir(pendiente, true)}>
                   Cambiar a {pendiente.nombre}
                 </button>
                 <button type="button" className="t-enlace" onClick={() => setPendiente(null)}>
@@ -409,10 +434,16 @@ function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]
                 scroll={false}
                 aria-current={o.actual ? "true" : undefined}
                 onClick={(e) => {
-                  if (prendasEnBolsa > 0 && !o.actual) {
-                    e.preventDefault();
-                    setPendiente(o);
-                  } else recordar(o);
+                  // Un clic con modificador (abrir en otra pestaña) sigue siendo un enlace normal.
+                  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                  e.preventDefault();
+                  // La misma tienda: no hay nada que esperar (un velo se quedaría hasta el tope).
+                  if (!debeCubrir(claveDeLaOpcion(elegida.href), claveDeLaOpcion(o.href) ?? "")) {
+                    setAbierto(false);
+                    return;
+                  }
+                  if (prendasEnBolsa > 0) setPendiente(o);
+                  else ir(o, false);
                 }}
               >
                 {o.nombre}

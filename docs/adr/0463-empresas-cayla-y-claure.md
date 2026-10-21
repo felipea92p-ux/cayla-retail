@@ -13,6 +13,7 @@ marca; Felipe eligió que sea un campo del producto.
 
 - **La empresa es un dato del producto** (`productos.empresa_id`, obligatorio, CAYLA de fábrica por `fn_empresa_casa_id()`), no de la marca:
   la marca es opcional al crear (ADR-0283) y la dueña de la prenda no siempre es la marca (CAYLA podría revender algo de CLAURE).
+- **La pregunta vive en su propia tarjeta, sobre el paso 1** («¿De qué tienda es esta prenda?», `TarjetaEmpresa`), no dentro de «¿A qué categoría pertenece?» (Felipe 2026-10-20: la tienda no es una categoría). Para la guía de foco sigue siendo un campo del paso 1: su «Falta: Tienda» sale en el pie de ese paso.
 - **Se pregunta solo desde una sede donde operan dos empresas** (hoy Lima): `retail.empresa_sedes` lista qué empresa opera en qué sede.
   Trujillo y Arequipa no ven el campo y guardan con CAYLA. Ninguna opción viene marcada (Felipe 2026-10-20).
 - **En la base se llama «empresa», no «tienda»:** «tienda» ya es la sede y «Tienda web» es la tienda online. En pantalla el alta dice
