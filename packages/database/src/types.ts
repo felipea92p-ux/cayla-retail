@@ -7512,6 +7512,7 @@ export type Database = {
           p_categoria_id?: string
           p_colores?: string[]
           p_disponibilidad?: string
+          p_empresa_id?: string
           p_estado?: string
           p_falta?: string
           p_familias?: string[]
@@ -7531,6 +7532,7 @@ export type Database = {
           p_categoria_id?: string
           p_colores?: string[]
           p_disponibilidad?: string
+          p_empresa_id?: string
           p_estado?: string
           p_falta?: string
           p_familias?: string[]
