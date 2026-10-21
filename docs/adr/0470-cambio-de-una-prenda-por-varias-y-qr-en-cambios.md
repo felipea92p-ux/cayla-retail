@@ -76,6 +76,9 @@ Siete archivos, ninguno aplicado todavía. Cada uno es idempotente. Orden (la po
 6. `20261021193000_cambio_varias_prendas_parte5_lecturas.sql` — seis funciones (cada ancla se cuenta antes; si el texto cambió, se detiene sin tocar nada).
 7. `20261021191000_cambio_varias_prendas_parte3_politica.sql` — la política de lectura, SOLA.
 
+**Anclas comprobadas en producción en solo lectura el 2026-10-21:** las 12 aparecen exactamente una vez en las funciones vivas (`fn_dinero_libro`, `fn_resolver_intento`, las seis de la parte 5) y ninguna estaba ya aplicada;
+el candado `cambios_metodo_pago_diferencia_check` existe con ese nombre.
+
 Verificar después: el `md5(prosrc)` de cada función tocada y que `select * from retail.fn_acepta_qr_en_cambios()` dé `true`. Orden con la web: no importa (la web pregunta antes de ofrecer el QR, y sin la función
 de la base cae al camino de una prenda). Refrescar el diccionario (`pnpm datos:generar:produccion`) cuando se refresque el volcado: hay una tabla nueva (`cambio_salidas`).
 
