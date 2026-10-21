@@ -10,6 +10,7 @@ const AREQUIPA = { id: "5d1c2b96-1d3e-4801-b92f-9271696ee999", nombre: "Arequipa
 const TIENDAS = [AREQUIPA, LIMA, TRUJILLO];
 
 const prenda = (nombre: string, prefijo: string, sedes: Record<string, Nivel> | null): Prenda => ({
+  empresa: null,
   id: nombre,
   codigo: null,
   nombre,

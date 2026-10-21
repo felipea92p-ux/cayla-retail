@@ -11,7 +11,9 @@
  *   D. La regla única: una sede nueva que nadie sumó a `empresa_sedes` es solo-CAYLA (`fn_empresas_de_sede`), y la prueba lo comprueba
  *      sumándole CLAURE a Trujillo: la prenda aparece ahí sin tocar ninguna función de la tienda.
  *   E. La puerta: `tienda_web` no ejecuta el ayudante `fn_tienda_empresa_se_ve`.
- *   F. La migración se puede pegar dos veces.
+ *   F. Las migraciones se pueden pegar dos veces.
+ *   G. El catálogo dice la empresa de cada prenda (`20261021001000_tienda_catalogo_trae_la_empresa.sql`): `empresa.clave` y
+ *      `empresa.nombre` de CAYLA y de CLAURE, que es lo que dibuja la insignia de la tarjeta.
  *
  * CÓMO. Cada escenario corre en su transacción y termina en ROLLBACK: nunca se commitea nada en el Postgres local que comparten los
  * worktrees. Cada uno arma su punto de partida: Emma (CAYLA) y Carla (CLAURE) publicadas, con su foto, su recorte y su largo; Trujillo y
@@ -29,7 +31,10 @@ import { readFileSync } from "node:fs";
 
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
-const MIGRACION = "supabase/migrations/20261021000000_tienda_empresa_solo_en_sus_sedes.sql";
+const MIGRACIONES = [
+  "supabase/migrations/20261021000000_tienda_empresa_solo_en_sus_sedes.sql",
+  "supabase/migrations/20261021001000_tienda_catalogo_trae_la_empresa.sql",
+];
 const APLICAR_ANTES = process.env.APLICAR_ANTES
   ? process.env.APLICAR_ANTES.split(",")
       .map((f) => f.trim())
@@ -161,12 +166,18 @@ esperarValor(
   "f",
 );
 
-console.log("F. La migración se puede pegar dos veces");
+console.log("F. Las migraciones se pueden pegar dos veces");
 {
-  const sql = readFileSync(MIGRACION, "utf8");
+  const sql = MIGRACIONES.map((f) => readFileSync(f, "utf8")).join("\n");
   const dos = correr(`begin;\n${sql}\n${sql}\nrollback;`);
-  esperar("pegada dos veces no falla", dos.ok, dos.mensaje);
+  esperar("pegadas dos veces no fallan", dos.ok, dos.mensaje);
 }
+
+console.log("G. El catálogo dice la empresa de cada prenda");
+const empresaDe = (prenda) =>
+  `select (x -> 'empresa' ->> 'clave') || '/' || (x -> 'empresa' ->> 'nombre') from jsonb_array_elements(retail.tienda_catalogo(:'lim') -> 'prendas') x where (x ->> 'id')::uuid = :'${prenda}';`;
+esperarValor("la prenda de CAYLA trae cayla/CAYLA", escenario(empresaDe("emma")), "cayla/CAYLA");
+esperarValor("la prenda de CLAURE trae claure/CLAURE", escenario(empresaDe("carla")), "claure/CLAURE");
 
 console.log(fallos === 0 ? `\nTodo bien: ${total} comprobaciones.` : `\n${fallos} de ${total} comprobaciones fallaron.`);
 process.exit(fallos === 0 ? 0 : 1);

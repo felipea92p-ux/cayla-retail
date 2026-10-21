@@ -153,6 +153,7 @@ export const precioDePieza = (p: PiezaLook): PrecioTarjeta =>
   precioTarjeta({
     ...p.prenda,
     codigo: null,
+    empresa: null,
     colores: [],
     fotos: [],
     stock: null,
