@@ -98,6 +98,8 @@ export function mensajeDeRegistroProveedor(error: ErrorEscritura | undefined): s
     return "Registrar un proveedor desde la orden todavía no está disponible. Pídele a tu líder que lo registre en Compras ▸ Proveedores.";
   }
   if (hint === "ordenes_compra_sin_modulo") return "Tu rol no puede registrar proveedores desde una orden. Pídeselo a tu líder.";
+  // Una terminal sin quién la usa (la base no deja registrar sin una persona, como en las demás acciones de la orden).
+  if (hint === "responsable_requerido") return "Elige quién hace la orden (al final del formulario) y vuelve a registrar el proveedor.";
   if (hint.startsWith("proveedor_") && error?.message) return error.message;
   if (esFalloDeRed(error ?? null)) return "No llegó la señal. Vuelve a intentarlo: si el proveedor ya se había registrado, no se duplica.";
   return traducirError(error ?? null, "registrar el proveedor");
@@ -115,8 +117,20 @@ export function avisoDelRegistro(res: ProveedorRegistrado, escrito: BorradorProv
   const sinElRuc = rucEscrito !== "" && res.ruc !== rucEscrito;
   return {
     titulo: `«${res.nombre}» ya estaba registrado: lo elegí`,
-    detalle: sinElRuc ? "Esa ficha no tiene tu RUC cargado. Pídele a quien administra proveedores que se lo ponga." : undefined,
+    detalle: sinElRuc ? "Esa ficha no tiene ese RUC cargado. Pídele a quien administra proveedores que se lo ponga." : undefined,
   };
+}
+
+/**
+ * El nombre que queda cuando cambia el RUC. Un RUC COMPLETO trae (o se acompaña de) la razón social de ESA empresa: si se corrige a otro
+ * RUC, el nombre de antes es de la empresa anterior y se vacía, para que no se registre el RUC nuevo con el nombre de otra empresa (el
+ * padrón vuelve a llenarlo, o se escribe). Mientras el RUC viejo estaba a medias (se está tipeando), el nombre es lo que la persona
+ * escribió y se respeta. Lo encontró la revisión independiente del 2026-10-21.
+ */
+export function nombreTrasCambiarRuc(rucAnterior: string, rucNuevo: string, nombre: string): string {
+  const antes = soloDigitos(rucAnterior);
+  const ahora = soloDigitos(rucNuevo);
+  return antes.length === 11 && antes !== ahora ? "" : nombre;
 }
 
 /** Si lo tipeado en el combo parece un RUC (11 dígitos), la hoja abre con el RUC puesto; si no, con el nombre. */

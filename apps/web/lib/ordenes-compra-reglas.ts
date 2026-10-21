@@ -27,7 +27,8 @@ export const RPC_DETALLE_ENVIO = "fn_envio_detalle";
 export const RPC_ORDENES_POR_ENVIAR = "fn_ordenes_compra_por_enviar";
 /** Registrar un proveedor nuevo desde la orden, con lo básico (`registrar_proveedor_de_orden`, 20261021202000). */
 export const RPC_REGISTRAR_PROVEEDOR_ORDEN = "registrar_proveedor_de_orden";
-/** Los pares (proveedor, categoría) derivados de lo que ya existe (`fn_proveedor_categorias`, 20261021201000): para el prefiltro de Nueva orden. */
+/** Las categorías de cada proveedor, derivadas de lo que ya existe (`fn_proveedor_categorias`, 20261021201000; una fila por proveedor para no
+ *  pasar el tope de 1.000 filas de PostgREST): para el prefiltro de Nueva orden. */
 export const RPC_PROVEEDOR_CATEGORIAS = "fn_proveedor_categorias";
 
 /** Hasta cuántas letras lleva el motivo de una anulación (el mismo tope que `anular_orden_compra`). */
@@ -646,7 +647,8 @@ export function leerEnvios(data: unknown): EnvioDeOrden[] | null {
     .filter((e): e is EnvioDeOrden => e !== null);
 }
 
-/** Lee `fn_proveedor_categorias`: por proveedor, las categorías que maneja. `null` si la respuesta no es una lista (la base todavía no tiene la función). */
+/** Lee `fn_proveedor_categorias`: por proveedor, las categorías que maneja (una fila por proveedor, con `categorias` en un arreglo). `null` si la
+ *  respuesta no es una lista (la base todavía no tiene la función). */
 export function leerCategoriasDeProveedor(data: unknown): Record<string, string[]> | null {
   if (!Array.isArray(data)) return null;
   const salida: Record<string, string[]> = {};
@@ -654,10 +656,12 @@ export function leerCategoriasDeProveedor(data: unknown): Record<string, string[
     if (!f || typeof f !== "object") continue;
     const r = f as Record<string, unknown>;
     const proveedor = texto(r.proveedor_id);
-    const categoria = texto(r.categoria_id);
-    if (!proveedor || !categoria) continue;
+    if (!proveedor || !Array.isArray(r.categorias)) continue;
     const lista = (salida[proveedor] ??= []);
-    if (!lista.includes(categoria)) lista.push(categoria);
+    for (const c of r.categorias) {
+      const categoria = texto(c);
+      if (categoria && !lista.includes(categoria)) lista.push(categoria);
+    }
   }
   return salida;
 }

@@ -4,6 +4,7 @@ import {
   avisoDelRegistro,
   borradorDesdeLoTipeado,
   camposDeProveedorNuevo,
+  nombreTrasCambiarRuc,
   leerProveedorRegistrado,
   mensajeDeRegistroProveedor,
   problemaDelCelular,
@@ -140,6 +141,9 @@ describe("mensajeDeRegistroProveedor", () => {
       expect(mensajeDeRegistroProveedor({ code: "P0001", hint, message: `frase de ${hint}` })).toBe(`frase de ${hint}`);
     }
   });
+  it("una terminal sin quién la usa: dice dónde elegirlo", () => {
+    expect(mensajeDeRegistroProveedor({ code: "42501", hint: "responsable_requerido", message: "x" })).toContain("Elige quién hace la orden");
+  });
   it("un corte de señal no asusta: reintentar no duplica", () => {
     expect(mensajeDeRegistroProveedor({ code: "", message: "Failed to fetch" })).toContain("no se duplica");
   });
@@ -158,7 +162,7 @@ describe("avisoDelRegistro", () => {
   });
   it("uno que ya estaba SIN el RUC que se escribió: no se descarta en silencio", () => {
     const a = avisoDelRegistro({ id: "p", nombre: "Textiles del Sur SAC", ruc: null, yaExistia: true }, base);
-    expect(a.detalle).toContain("no tiene tu RUC");
+    expect(a.detalle).toContain("no tiene ese RUC");
   });
   it("con «No tiene RUC» no se compara el RUC", () => {
     expect(avisoDelRegistro({ id: "p", nombre: "Puesto 14", ruc: null, yaExistia: true }, { ...base, ruc: "", sinRuc: true }).detalle).toBeUndefined();
@@ -174,5 +178,20 @@ describe("borradorDesdeLoTipeado", () => {
     expect(borradorDesdeLoTipeado("Textiles del Sur")).toMatchObject({ ruc: "", nombre: "Textiles del Sur" });
     expect(borradorDesdeLoTipeado("Puesto 2010007097")).toMatchObject({ ruc: "", nombre: "Puesto 2010007097" });
     expect(borradorDesdeLoTipeado("")).toMatchObject({ ruc: "", nombre: "" });
+  });
+});
+
+describe("nombreTrasCambiarRuc: el RUC cambia y el nombre no puede quedar de otra empresa", () => {
+  it("con un RUC completo que se corrige a otro, el nombre de antes se vacía", () => {
+    expect(nombreTrasCambiarRuc(RUC_OK, "20100070971", "Supermercados A")).toBe("");
+    expect(nombreTrasCambiarRuc(RUC_OK, "2010007097", "Supermercados A")).toBe(""); // borró un dígito
+    expect(nombreTrasCambiarRuc(RUC_OK, "", "Supermercados A")).toBe("");
+  });
+  it("mientras el RUC está a medias, el nombre que la persona escribió se respeta", () => {
+    expect(nombreTrasCambiarRuc("", "2", "Textiles del Sur")).toBe("Textiles del Sur");
+    expect(nombreTrasCambiarRuc("2010007097", RUC_OK, "Textiles del Sur")).toBe("Textiles del Sur");
+  });
+  it("si el RUC no cambió (solo espacios o guiones), nada cambia", () => {
+    expect(nombreTrasCambiarRuc(RUC_OK, "20 100 070 970", "Supermercados A")).toBe("Supermercados A");
   });
 });

@@ -16,9 +16,13 @@
 --   Guardar una orden ES el recuerdo de que ese proveedor ahora maneja esa categoría: no hace falta una casilla «Recordar».
 -- DESCARTÉ: una tabla `proveedor_categorias` (una segunda verdad que alguien tendría que mantener; ~115 proveedores a capturar) y
 -- leer `productos` crudo en el navegador (crece con el catálogo y no ve las órdenes: RLS sin políticas).
+-- UNA FILA POR PROVEEDOR (con sus categorías en un arreglo) y no una por par: PostgREST corta toda lectura en 1.000 filas sin avisar
+-- (`max_rows`), y los pares pueden llegar a ~5.900 (115 proveedores × 52 categorías); un proveedor por fila nunca pasa de ~115. Lo
+-- encontró la revisión independiente del 2026-10-21.
 -- SE ROMPE SI: muy pocos proveedores tienen alguna categoría derivada el día 1 (hay ~410 productos para ~115 proveedores y
--- `productos.proveedor_id` es opcional): el prefiltro se sentiría roto. La web lo cubre mostrando TODO a un proveedor sin pares
--- («primera vez con este proveedor»), y la consulta de cobertura del informe mide cuántos son. O si los pares pasan de ~5.000.
+-- `productos.proveedor_id` es opcional; medido el 2026-10-21 en solo lectura: 50 de 113 proveedores activos): el prefiltro se sentiría
+-- roto para el resto. La web lo cubre mostrando TODO a un proveedor sin categorías («primera vez con este proveedor»), y la consulta de
+-- cobertura del informe mide cuántos son. O si los proveedores pasan de 1.000 (la lectura volvería a cortarse).
 --
 -- PRODUCCIÓN. Una sola parte: crea UNA función (no toma candados sobre tablas ni sobre `auth`/`storage`; sin políticas). Re-pegable.
 -- La web se puede publicar ANTES: sin esta función (PGRST202) la pantalla se ve como hoy, con todo el catálogo.
@@ -27,7 +31,7 @@ set search_path = retail, public, extensions;
 set lock_timeout = '3s';
 
 create or replace function retail.fn_proveedor_categorias()
-returns table (proveedor_id uuid, categoria_id uuid)
+returns table (proveedor_id uuid, categorias uuid[])
 language plpgsql
 stable
 security definer
@@ -41,7 +45,7 @@ begin
   end if;
 
   return query
-  select distinct x.proveedor_id, x.categoria_id
+  select x.proveedor_id, array_agg(distinct x.categoria_id)
     from (
       -- 1. Lo que ya se le puso a ese proveedor en el catálogo.
       select p.proveedor_id, p.categoria_id
@@ -77,10 +81,11 @@ begin
        where c.estado = 'vigente'
     ) x
    where x.proveedor_id is not null
-     and x.categoria_id is not null;
+     and x.categoria_id is not null
+   group by x.proveedor_id;
 end;
 $$;
 revoke all on function retail.fn_proveedor_categorias() from public, anon;
 grant execute on function retail.fn_proveedor_categorias() to authenticated;
 comment on function retail.fn_proveedor_categorias() is
-  'Pares (proveedor, categoría) derivados de lo que ya existe: productos, marcas de un solo proveedor, órdenes generadas y comprobantes vigentes. Solo con el módulo Órdenes de compra. Para el prefiltro de Nueva orden (Felipe 2026-10-21).';
+  'Por proveedor, las categorías que maneja (en un arreglo), derivadas de lo que ya existe: productos, marcas de un solo proveedor, órdenes generadas y comprobantes vigentes. Una fila por proveedor (la lectura no pasa del tope de 1.000 filas). Solo con el módulo Órdenes de compra. Para el prefiltro de Nueva orden (Felipe 2026-10-21).';

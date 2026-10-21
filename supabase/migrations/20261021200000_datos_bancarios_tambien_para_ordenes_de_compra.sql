@@ -6,8 +6,10 @@
 -- proveedor: pagaba a ciegas, y la pantalla le decía «este proveedor no tiene cuenta» aunque la tuviera (la base le devolvía cero
 -- filas y la web lo leía como «no hay»). Para una transferencia que no se revierte, un «no se ve» dicho como «no hay» es un riesgo.
 --
--- LO QUE DECIDIÓ FELIPE (2026-10-21): sumar Órdenes de compra a quienes ven los datos para pagar. Nada más cambia: el historial de
--- cambios de cuenta y su aviso al líder (20261013161000) siguen igual, y quien la cambia sigue quedando anotado.
+-- LO QUE DECIDIÓ FELIPE (2026-10-21): sumar Órdenes de compra a quienes ven los datos para pagar. El aviso al líder por un cambio de
+-- cuenta (20261013161000) sigue igual, y quien la cambia sigue quedando anotado. UNA CONSECUENCIA que hay que saber: el historial de
+-- cambios de cuenta (`fn_proveedor_cambios_bancarios`) se protege con la MISMA regla, así que quien tiene Órdenes de compra también
+-- puede leerlo llamando a la función; ninguna pantalla se lo muestra (vive en la ficha del proveedor, que pide Proveedores).
 --
 -- DECIDÍ: una línea más en la regla única `fn_puede_ver_datos_bancarios()`. Todo lo que la usa (`fn_proveedores`,
 -- `fn_proveedor_datos_bancarios`, `fn_proveedor_cambios_bancarios`) se entera solo.

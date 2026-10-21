@@ -74,8 +74,8 @@ export const ACCIONES_SIN_RESPONSABLE = {
   // Registrar el comprobante de una orden y anularlo (fase 2, migración 20261012211000): una sola clave para las dos acciones.
   orden_compra_comprobante: "Registrar o anular el comprobante de una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // Registrar un proveedor nuevo desde la orden (2026-10-21, migración 20261021202000): la compradora, en Gamarra, no puede esperar a quien administra
-  // proveedores. Con su cuenta firma ella; desde una terminal queda sin persona (un proveedor no necesita autor).
-  proveedor_de_orden: "Registrar un proveedor nuevo desde una orden de compra (con la cuenta de una persona firma ella, desde una terminal queda sin persona)",
+  // proveedores. Con su cuenta firma ella; una terminal sigue eligiendo quién, como en las demás acciones de la orden.
+  proveedor_de_orden: "Registrar un proveedor nuevo desde una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // Enviar lo de una orden a una sede y anular el envío (fase 3, migración 20261012225000): una sola clave para las dos acciones.
   orden_compra_envio: "Enviar a una sede lo de una orden de compra, o anular ese envío (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // Órdenes de insumos del Taller (ADR-0362, fase 7; migración 20261013040000): la decisión 39 extendida al Taller, por la misma razón

@@ -238,8 +238,11 @@ export function ComboBuscable<T extends string>({
       cerrarSinElegir();
     } else if (e.key === "Tab") {
       // Tab elige lo resaltado si hay una sola coincidencia clara: es lo
-      // que uno espera al tipear "lino" y saltar al siguiente campo.
-      if (filtradas.length === 1) elegir(filtradas[0]);
+      // que uno espera al tipear "lino" y saltar al siguiente campo. Solo si se
+      // ESCRIBIÓ algo: con el campo vacío y una sola opción (el prefiltro de Nueva
+      // orden deja una sola categoría a un proveedor), pasar por él con Tab no
+      // debe elegir nada por la persona (revisión independiente, 2026-10-21).
+      if (filtradas.length === 1 && clave(texto) !== "") elegir(filtradas[0]);
       else cerrarSinElegir();
     }
   }

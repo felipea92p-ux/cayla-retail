@@ -114,7 +114,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
   // «Registrar proveedor» (Felipe 2026-10-21): lo que se había tipeado en el buscador (la hoja está abierta si no es `null`) y los
   // proveedores que se registraron en esta pantalla, que se suman a los que cargó la página (que no se vuelve a pedir).
   const [registro, setRegistro] = useState<string | null>(null);
-  const [nuevos, setNuevos] = useState<ProveedorDeLista[]>([]);
+  const [nuevos, setNuevos] = useState<(ProveedorDeLista & { telefono: string | null })[]>([]);
   const proveedores = useMemo(
     () => (nuevos.length ? [...datos.proveedores, ...nuevos.filter((n) => !datos.proveedores.some((p) => p.id === n.id))] : datos.proveedores),
     [datos.proveedores, nuevos],
@@ -224,8 +224,9 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
     setOrden((o) => ({ ...o, proveedorId, lineas: o.lineas.map((l) => (l.marcaId || !unica ? l : { ...l, marcaId: unica })) }));
   }
   /** Un proveedor que se acaba de registrar (o que ya estaba y no se había cargado): se suma a la lista y se elige, y la hoja se cierra. */
-  function alRegistrarse(p: ProveedorRegistrado) {
-    setNuevos((n) => (n.some((x) => x.id === p.id) ? n : [...n, { id: p.id, nombre: p.nombre, ruc: p.ruc }]));
+  function alRegistrarse(p: ProveedorRegistrado, telefono: string | null) {
+    // Con su WhatsApp, para que «Cómo pagarle» no diga «Falta teléfono» de uno que acaba de registrarse con él.
+    setNuevos((n) => (n.some((x) => x.id === p.id) ? n : [...n, { id: p.id, nombre: p.nombre, ruc: p.ruc, telefono }]));
     setRegistro(null);
     elegirProveedor(p.id);
   }
@@ -558,7 +559,9 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
 
       {avisoSalida.aviso}
       {verComoPagarle && proveedorElegido && <ComoPagarle proveedor={proveedorElegido} onClose={() => setVerComoPagarle(false)} />}
-      {registro !== null && <RegistrarProveedorOrden proveedores={proveedores} tipeado={registro} onRegistrado={alRegistrarse} onClose={() => setRegistro(null)} />}
+      {registro !== null && (
+        <RegistrarProveedorOrden proveedores={proveedores} tipeado={registro} esPersona={esPersona} responsable={responsable} onRegistrado={alRegistrarse} onClose={() => setRegistro(null)} />
+      )}
     </div>
   );
 }

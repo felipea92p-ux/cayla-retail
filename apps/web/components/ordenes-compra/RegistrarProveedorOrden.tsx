@@ -14,12 +14,14 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { registrarProveedorDeOrden } from "@/lib/ordenes-compra-acciones";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { proveedorConRuc, proveedoresParecidos } from "@/lib/proveedores-reglas";
+import type { ControlResponsable } from "@/lib/useResponsable";
 import {
   argsRegistrarProveedor,
   avisoDelRegistro,
   borradorDesdeLoTipeado,
   camposDeProveedorNuevo,
   mensajeDeRegistroProveedor,
+  nombreTrasCambiarRuc,
   TOPE_NOMBRE_PROVEEDOR,
   type ProveedorRegistrado,
 } from "@/lib/proveedor-de-orden-reglas";
@@ -36,14 +38,17 @@ import {
 // en dos fichas. Lo que se guarda lo decide la función `registrar_proveedor_de_orden`, que además no duplica si dos personas lo
 // registran a la vez ni si se aprieta dos veces: devuelve el que ya estaba, y la pantalla lo dice.
 //
-// Se firma siempre con `proveedor_de_orden`: con la cuenta de una persona firma ella; desde una terminal queda sin persona (un
-// proveedor no necesita autor, a diferencia de una orden).
+// Se firma como las demás acciones de la orden (decisión 39): con la cuenta de una persona, `proveedor_de_orden` (firma ella, sin combo);
+// desde una terminal, el combo «Responsable» que ya está en el formulario de la orden (la base no deja registrar sin una persona). Un
+// cambio de la revisión independiente del 2026-10-21: la primera versión dejaba a una terminal registrar sin persona.
 
 export type ProveedorDeLista = { id: string; nombre: string; ruc: string | null };
 
 export function RegistrarProveedorOrden({
   proveedores,
   tipeado,
+  esPersona,
+  responsable,
   onRegistrado,
   onClose,
 }: {
@@ -51,8 +56,12 @@ export function RegistrarProveedorOrden({
   proveedores: readonly ProveedorDeLista[];
   /** Lo que se había escrito en el buscador de proveedor: abre la hoja con el nombre (o el RUC, si eran 11 dígitos) ya puesto. */
   tipeado: string;
-  /** El proveedor, nuevo o el que ya estaba: quien llama lo suma a su lista (si hace falta) y lo elige. */
-  onRegistrado: (proveedor: ProveedorRegistrado) => void;
+  /** La cuenta es la de una persona (firma ella) y no la de una terminal (elige quién en el combo «Responsable» de la orden). */
+  esPersona: boolean;
+  responsable: ControlResponsable;
+  /** El proveedor, nuevo o el que ya estaba, y el WhatsApp que se escribió (`null` si ninguno, o si ya estaba): quien llama lo suma a su lista
+   *  (si hace falta) y lo elige. */
+  onRegistrado: (proveedor: ProveedorRegistrado, telefono: string | null) => void;
   onClose: () => void;
 }) {
   const [b, setB] = useState(() => borradorDesdeLoTipeado(tipeado));
@@ -71,14 +80,24 @@ export function RegistrarProveedorOrden({
   const campos = camposDeProveedorNuevo(b, { rucYaRegistrado: Boolean(repetido), preguntaPendiente });
   const guia = useGuiaCampos(campos);
 
-  /** Elegir uno que ya estaba: no hace falta llamar a la base. */
+  // Una terminal tiene que haber elegido quién hace la orden antes de registrar (la base no deja registrar sin una persona).
+  const faltaResponsable = !esPersona && !responsable.listo;
+
+  /** Elegir uno que ya estaba: no hace falta llamar a la base. Si se escribió un RUC que esa ficha no tiene, se dice (no se descarta en silencio). */
   function usar(p: ProveedorDeLista) {
-    onRegistrado({ id: p.id, nombre: p.nombre, ruc: p.ruc, yaExistia: true });
+    const ya = { id: p.id, nombre: p.nombre, ruc: p.ruc, yaExistia: true };
+    const aviso = avisoDelRegistro(ya, b);
+    avisar.exito(aviso.titulo, { detalle: aviso.detalle });
+    onRegistrado(ya, null);
   }
 
   async function registrar(e: React.FormEvent) {
     e.preventDefault();
     if (guardando || enVuelo.current) return;
+    if (faltaResponsable) {
+      setError(mensajeDeRegistroProveedor({ message: "", hint: "responsable_requerido" }));
+      return;
+    }
     if (!guia.puedeConfirmar) {
       const ahora = guia.ahora ?? guia.faltan[0]?.id;
       if (ahora) guia.ir(ahora);
@@ -88,14 +107,17 @@ export function RegistrarProveedorOrden({
     setGuardando(true);
     setError(null);
     try {
-      const { proveedor, error: falla } = await registrarProveedorDeOrden(argsRegistrarProveedor(b), firmaOmitida("proveedor_de_orden"));
+      const args = argsRegistrarProveedor(b);
+      const firma = esPersona ? firmaOmitida("proveedor_de_orden") : responsable.firma();
+      const { proveedor, error: falla } = await registrarProveedorDeOrden(args, firma);
+      if (!esPersona) responsable.despues(falla);
       if (falla || !proveedor) {
         setError(mensajeDeRegistroProveedor(falla));
         return;
       }
       const aviso = avisoDelRegistro(proveedor, b);
       avisar.exito(aviso.titulo, { detalle: aviso.detalle });
-      onRegistrado(proveedor);
+      onRegistrado(proveedor, proveedor.yaExistia ? null : args.p_celular);
     } finally {
       enVuelo.current = false;
       setGuardando(false);
@@ -132,7 +154,8 @@ export function RegistrarProveedorOrden({
                 disparo="automatico"
                 contador
                 numero={b.ruc}
-                onNumero={(ruc) => setB((x) => ({ ...x, ruc }))}
+                // Al corregir un RUC completo, el nombre de la empresa de antes se vacía (`nombreTrasCambiarRuc`).
+                onNumero={(ruc) => setB((x) => ({ ...x, ruc, nombre: nombreTrasCambiarRuc(x.ruc, ruc, x.nombre) }))}
                 nombre={b.nombre}
                 onNombre={(nombre) => setB((x) => ({ ...x, nombre }))}
                 conocido={repetido ? { nombre: repetido.nombre, origen: "tus proveedores" } : null}
@@ -192,6 +215,7 @@ export function RegistrarProveedorOrden({
             />
           </CampoGuiado>
 
+          {faltaResponsable && <Aviso tono="info">Antes elige quién hace la orden: está al final del formulario.</Aviso>}
           {error && <Aviso tono="error">{error}</Aviso>}
 
           <PieGuia guia={guia} listo="Todo listo para registrar." />
@@ -199,7 +223,7 @@ export function RegistrarProveedorOrden({
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Registrando…" title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Registrando…" disabled={faltaResponsable} title={faltaResponsable ? (responsable.motivo ?? undefined) : (guia.frase ?? undefined)} className={guia.claseConfirmar}>
               Registrar proveedor
             </Boton>
           </div>

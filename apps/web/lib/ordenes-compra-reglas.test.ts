@@ -644,13 +644,11 @@ describe("qué se puede hacer con una orden que tiene (o no) envíos", () => {
   });
 });
 
-describe("leerCategoriasDeProveedor: lo que devuelve fn_proveedor_categorias", () => {
-  it("agrupa por proveedor, sin repetir", () => {
+describe("leerCategoriasDeProveedor: lo que devuelve fn_proveedor_categorias (una fila por proveedor)", () => {
+  it("arma el mapa proveedor → categorías, sin repetir", () => {
     const r = leerCategoriasDeProveedor([
-      { proveedor_id: "p1", categoria_id: "c1" },
-      { proveedor_id: "p1", categoria_id: "c2" },
-      { proveedor_id: "p1", categoria_id: "c1" },
-      { proveedor_id: "p2", categoria_id: "c3" },
+      { proveedor_id: "p1", categorias: ["c1", "c2", "c1"] },
+      { proveedor_id: "p2", categorias: ["c3"] },
     ]);
     expect(r).toEqual({ p1: ["c1", "c2"], p2: ["c3"] });
   });
@@ -662,7 +660,16 @@ describe("leerCategoriasDeProveedor: lo que devuelve fn_proveedor_categorias", (
     expect(leerCategoriasDeProveedor({})).toBeNull();
     expect(leerCategoriasDeProveedor(undefined)).toBeNull();
   });
-  it("ignora filas incompletas o con forma rara", () => {
-    expect(leerCategoriasDeProveedor([null, 3, {}, { proveedor_id: "p1" }, { categoria_id: "c1" }, { proveedor_id: "p1", categoria_id: "c1" }])).toEqual({ p1: ["c1"] });
+  it("ignora filas incompletas, sin arreglo o con categorías que no son texto", () => {
+    expect(
+      leerCategoriasDeProveedor([null, 3, {}, { proveedor_id: "p1" }, { categorias: ["c1"] }, { proveedor_id: "p1", categorias: "c1" }, { proveedor_id: "p1", categorias: [7, "", "c1"] }]),
+    ).toEqual({ p1: ["c1"] });
+  });
+  it("con cientos de proveedores sigue siendo una fila por proveedor (el tope de PostgREST son 1.000 filas)", () => {
+    const filas = Array.from({ length: 300 }, (_, i) => ({ proveedor_id: `p${i}`, categorias: Array.from({ length: 52 }, (_, k) => `c${k}`) }));
+    expect(filas.length).toBeLessThan(1000);
+    const r = leerCategoriasDeProveedor(filas)!;
+    expect(Object.keys(r)).toHaveLength(300);
+    expect(r["p299"]).toHaveLength(52);
   });
 });

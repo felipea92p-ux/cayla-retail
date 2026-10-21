@@ -18,13 +18,17 @@
 -- tildes ni mayúsculas; «S.A.C.» y «SAC» siguen siendo distintos, docs/BACKLOG.md P-25) y quedan dos fichas. No existe fusionar
 -- proveedores; por eso la pantalla pregunta «¿no será…?» ANTES de registrar.
 --
--- DOS LLAMADAS A LA VEZ. Toma los mismos candados que `registrar_proveedor_de_gasto` (`proveedor:<RUC>` y `proveedor:<clave del
--- nombre>`, siempre primero el del nombre y luego el del RUC): dos compradoras o un doble clic se serializan, la segunda encuentra a la
--- primera y devuelve el MISMO proveedor con `ya_existia = true`. Si aun así un índice único se adelanta, relee y devuelve ese.
+-- DOS LLAMADAS A LA VEZ. Usa las MISMAS CLAVES de candado que `registrar_proveedor_de_gasto` (`proveedor:<RUC>` y `proveedor:<clave del
+-- nombre>`), pero toma las dos, siempre primero la del nombre y luego la del RUC (la de gastos toma una sola: el RUC si lo hay y, si
+-- no, el nombre): dos compradoras o un doble clic se serializan, la segunda encuentra a la primera y devuelve el MISMO proveedor con
+-- `ya_existia = true`. Si aun así un índice único se adelanta, relee y devuelve ese, salvo que sea otra empresa (mismo nombre, otro
+-- RUC): ahí rechaza, como arriba.
 --
 -- FIRMA. `fn_actor_persona_id(true)` y la clave `proveedor_de_orden` en `acciones_sin_responsable`: con la cuenta de una persona firma
--- ella sin combo; desde una terminal queda sin persona (un proveedor no necesita autor, a diferencia de una orden). Anota en Actividad
--- sin RUC ni montos; si la nota falla, el proveedor igual queda guardado.
+-- ella sin combo; desde una terminal se elige quién (como en las demás acciones de la orden, decisión 39): sin autor, rechaza con
+-- `responsable_requerido`. Anota en Actividad sin RUC ni montos; si la nota falla, el proveedor igual queda guardado. (La primera versión
+-- dejaba a una terminal registrar sin persona; la revisión independiente del 2026-10-21 la corrigió: la regla de CLAUDE.md es que toda
+-- acción que guarda firma, y las excepciones las suelta Felipe una por una.)
 --
 -- PRODUCCIÓN. Una sola parte: crea UNA función y siembra UNA clave de una tabla chica (`acciones_sin_responsable`); no toma candados
 -- sobre `auth`/`storage` ni sobre tablas en uso (sin políticas, sin `alter`). Re-pegable. La web se puede publicar ANTES: sin esta
@@ -34,7 +38,7 @@ set search_path = retail, public, extensions;
 set lock_timeout = '3s';
 
 insert into retail.acciones_sin_responsable (clave, descripcion) values
-  ('proveedor_de_orden', 'Registrar un proveedor nuevo desde una orden de compra (con la cuenta de una persona firma ella, desde una terminal queda sin persona)')
+  ('proveedor_de_orden', 'Registrar un proveedor nuevo desde una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)')
 on conflict (clave) do update set descripcion = excluded.descripcion;
 
 create or replace function retail.registrar_proveedor_de_orden(
@@ -63,6 +67,10 @@ begin
       using errcode = '42501', hint = 'ordenes_compra_sin_modulo';
   end if;
   v_actor := retail.fn_actor_persona_id(true);
+  -- Desde una terminal la clave suelta el combo, pero la acción sigue necesitando una persona (quien registró queda en Actividad).
+  if v_actor is null then
+    raise exception 'Elige quién hace esta operación.' using errcode = '42501', hint = 'responsable_requerido';
+  end if;
 
   -- Lo escrito, en orden de lo que más se puede equivocar. Ningún mensaje lleva el nombre ni el RUC (el repo es público y los logs
   -- también: un RUC que empieza con 10 contiene el DNI de una persona).
@@ -132,6 +140,11 @@ begin
      where (v_ruc is not null and p.ruc = v_ruc) or retail.fn_clave_texto(p.nombre) = v_clave
      order by (p.ruc = v_ruc) desc nulls last limit 1;
     if not found then raise; end if;
+    -- Si el que se adelantó es OTRA empresa (el mismo nombre con otro RUC), no se devuelve: sería pedirle a quien no es.
+    if v_ruc is not null and v_fila.ruc is not null and v_fila.ruc <> v_ruc then
+      raise exception 'Ya hay un proveedor con ese nombre y otro RUC. Revisa el RUC o cambia el nombre.'
+        using errcode = 'P0001', hint = 'proveedor_nombre_en_uso';
+    end if;
     if not v_fila.activo then
       raise exception 'Ese proveedor está desactivado. Pídele a quien administra proveedores que lo reactive.'
         using errcode = 'P0001', hint = 'proveedor_desactivado';

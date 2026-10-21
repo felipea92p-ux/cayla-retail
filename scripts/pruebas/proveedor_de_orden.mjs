@@ -32,6 +32,7 @@ const arg = (nombre, porDefecto) => {
 const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const MIGRACION = readFileSync(join(RAIZ, "supabase/migrations/20261021202000_registrar_proveedor_de_orden.sql"), "utf8");
 const INTEGRANTE = "22222222-2222-4222-8222-000000000003";
+const T_VENTAS = "33333333-3333-4333-8333-0000000000c1";
 
 function psql(sql) {
   return execFileSync(
@@ -45,6 +46,7 @@ function psql(sql) {
 const ESCENA = `
 select c.rol_id as rol_int from retail.colaboradores c join public.personas p on p.id = c.persona_id where p.auth_user_id = '${INTEGRANTE}' \\gset
 select p.id as micaela_p from public.personas p where p.auth_user_id = '${INTEGRANTE}' \\gset
+select id as tru from retail.ubicaciones where tipo = 'tienda' order by nombre limit 1 \\gset
 delete from retail.rol_modulos where rol_id = :'rol_int' and modulo = 'ordenes_compra';
 `;
 const conModulo = `insert into retail.rol_modulos (rol_id, modulo) values (:'rol_int', 'ordenes_compra') on conflict do nothing;`;
@@ -52,6 +54,17 @@ const conModulo = `insert into retail.rol_modulos (rol_id, modulo) values (:'rol
 const comoMicaela = `set local role authenticated;
 set local request.jwt.claim.sub = '${INTEGRANTE}';
 set local request.jwt.claims = '{"sub":"${INTEGRANTE}","role":"authenticated"}';
+select set_config('request.headers', '{"x-responsable-omitido":"proveedor_de_orden"}', true) \\g /dev/null
+`;
+/** Una terminal de la tienda con el módulo Órdenes de compra (como la de las pruebas de órdenes): sin persona detrás. */
+const TERMINAL = `reset role;
+insert into auth.users (id, aud, role, email) values ('${T_VENTAS}', 'authenticated', 'authenticated', 'rp-terminal@prueba.local');
+insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id)
+  values (:'tru', 'Terminal RP Prueba', retail.fn_rol_por_clave('terminal_ventas'), '${T_VENTAS}');
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('terminal_ventas'), 'ordenes_compra') on conflict do nothing;
+set local role authenticated;
+set local request.jwt.claim.sub = '${T_VENTAS}';
+set local request.jwt.claims = '{"sub":"${T_VENTAS}","role":"authenticated"}';
 select set_config('request.headers', '{"x-responsable-omitido":"proveedor_de_orden"}', true) \\g /dev/null
 `;
 const llama = (args) => `retail.registrar_proveedor_de_orden(${args})`;
@@ -216,6 +229,10 @@ select proveedor_id as nuevo from ${llama(`'${NOMBRE}', '${RUC}'`)} \\gset
 reset role;
 select count(*) = 1 and bool_and(persona_id = :'micaela_p') and bool_and(detalle::text not like '%${RUC}%') and bool_and(descripcion not like '%${RUC}%')
   from retail.actividad where modulo = 'ordenes_compra' and accion = 'proveedor_registrado' and registro_id = :'nuevo'::text;`)
+);
+caso(
+  "una terminal NO registra sin elegir a alguien, ni mandando la clave: la acción necesita una persona (responsable_requerido)",
+  rechaza(`${TERMINAL}\nselect * from ${llama(`'${NOMBRE}', '${RUC}'`)};`, /responsable_requerido/)
 );
 caso(
   "devolver el que ya estaba NO anota otra vez en Actividad",

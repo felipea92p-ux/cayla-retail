@@ -98,7 +98,7 @@ const rechaza = (sql, patron) => () => {
 
 /** Expresiones sobre lo que la función le devuelve al líder. UNA sola consulta por caso (`afirma`): con varias, bastaba que una
  *  imprimiera `t` para que el caso pasara aunque otra dijera `f` (lo descubrió un mutante que sobrevivía). */
-const existe = (prov, cat) => `exists (select 1 from retail.fn_proveedor_categorias() where proveedor_id = :'${prov}' and categoria_id = :'${cat}')`;
+const existe = (prov, cat) => `exists (select 1 from retail.fn_proveedor_categorias() f where f.proveedor_id = :'${prov}' and :'${cat}'::uuid = any (f.categorias))`;
 const hay = (prov, cat) => existe(prov, cat);
 const noHay = (prov, cat) => `not ${existe(prov, cat)}`;
 const afirma = (...condiciones) => como(LIDER, `select ${condiciones.join(" and ")};`);
@@ -167,12 +167,30 @@ caso(
   pasa(`${COMPRA("update retail.compras set estado = 'anulada', motivo_anulacion = 'Prueba', anulada_por = :'felipe_p', anulada_at = now() where id = :'cp';")}\n${afirma(noHay("pu", "c4"))}`)
 );
 
-// Sin repetidos.
+// Fuente 4 por la PRENDA: toda línea de comprobante anterior al 12-oct (y toda línea con prenda) no trae categoría propia; su categoría es la
+// de la prenda. Lo vio la revisión independiente: sin estos casos, quitar el `left join` con productos dejaba todas las pruebas en verde.
+const COMPRA_CON_PRENDA = (lineaConCategoria) => `insert into retail.productos (referencia, categoria_id) values ('ZZ Prenda de factura', :'c2') returning id as prenda \\gset
+insert into retail.compras (proveedor_id, tipo, serie, numero, fecha_emision, condicion, fecha_vencimiento, subtotal, igv, total, naturaleza, ubicacion_gestion_id)
+  values (:'pu', 'factura', 'FZP', substr(replace(gen_random_uuid()::text, '-', ''), 1, 8), retail.fn_hoy_lima(), 'credito', retail.fn_hoy_lima() + 20, 100, 18, 118, 'mercaderia', :'tru') returning id as cp \\gset
+insert into retail.compra_items (compra_id, producto_id, cantidad, costo_unitario${lineaConCategoria ? ", categoria_id, marca_id" : ""}) values (:'cp', :'prenda', 2, 50${lineaConCategoria ? ", :'c4', :'m_sola'" : ""});`;
+caso("un comprobante con una línea de PRENDA, sin categoría propia, toma la categoría de la prenda", pasa(`${COMPRA_CON_PRENDA(false)}\n${afirma(hay("pu", "c2"))}`));
 caso(
-  "el par sale una sola vez aunque venga de varias fuentes",
+  "si la línea trae su propia categoría, manda la de la línea y no la de su prenda",
+  pasa(`${COMPRA_CON_PRENDA(true)}\n${afirma(hay("pu", "c4"), noHay("pu", "c2"))}`)
+);
+
+// Una fila por proveedor y sin repetidos (PostgREST corta toda lectura en 1.000 filas: una por par podía pasarse).
+caso(
+  "devuelve UNA fila por proveedor, con todas sus categorías en un arreglo",
+  pasa(`insert into retail.productos (referencia, categoria_id, proveedor_id) values ('ZZ U1', :'c1', :'pu'), ('ZZ U2', :'c2', :'pu');
+${como(LIDER, `select (select count(*) from retail.fn_proveedor_categorias() where proveedor_id = :'pu') = 1
+   and (select cardinality(categorias) from retail.fn_proveedor_categorias() where proveedor_id = :'pu') = 2;`)}`)
+);
+caso(
+  "la categoría sale una sola vez aunque venga de varias fuentes",
   pasa(`insert into retail.productos (referencia, categoria_id, proveedor_id) values ('ZZ R1', :'c1', :'pu'), ('ZZ R2', :'c1', :'pu');
 insert into retail.productos (referencia, categoria_id, marca_id) values ('ZZ R3', :'c1', :'m_sola');
-${como(LIDER, `select count(*) = 1 from retail.fn_proveedor_categorias() where proveedor_id = :'pu' and categoria_id = :'c1';`)}`)
+${como(LIDER, `select (select cardinality(categorias) from retail.fn_proveedor_categorias() where proveedor_id = :'pu') = 1;`)}`)
 );
 
 // Re-pegable.

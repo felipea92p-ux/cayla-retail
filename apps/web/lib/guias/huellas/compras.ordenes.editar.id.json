@@ -48,7 +48,7 @@
       "Casilla «No tiene RUC»",
       "CampoTexto «WhatsApp del proveedor»",
       "Boton «Cancelar»",
-      "Boton «{guia.frase ?? undefined}»"
+      "Boton «{faltaResponsable ? (responsable.motivo ?? undefined) : (guia.frase ?? undefined)}»"
     ]
   }
 }
