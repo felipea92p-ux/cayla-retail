@@ -13,6 +13,7 @@ const CAT = {
 };
 
 const prenda = (nombre: string, extra: Partial<Prenda> = {}): Prenda => ({
+  empresa: null,
   id: nombre,
   codigo: null,
   nombre,

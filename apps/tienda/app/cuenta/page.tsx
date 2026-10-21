@@ -12,6 +12,9 @@ import { TarjetaClub } from "@/components/TarjetaClub";
 import type { Prenda } from "@/lib/catalogo";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { leerMiClubEnBase } from "@/lib/club-servidor";
+import { claveDeSede, sedesEnOrden } from "@/lib/sede-elegida";
+import { sedeRecordada } from "@/lib/sede-servidor";
+import { leerSedes } from "@/lib/tiendas-servidor";
 import { hoyLima } from "@/lib/cuentas";
 import { MENSAJES } from "@/lib/cuentas-mensajes";
 import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
@@ -48,13 +51,18 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
     return <NoDisponible texto="No pudimos revisar tu sesión ahora. Vuelve a intentarlo en unos minutos." />;
   }
 
+  // La tienda en que se mira (la que eligió la última vez): las prendas se dibujan con el catálogo de ESA tienda (ADR-0465: en Lima, con la
+  // empresa de cada tarjeta).
+  const sedes = sedesEnOrden(await leerSedes());
+  const elegida = await sedeRecordada(sedes);
+  const sedeClave = elegida ? claveDeSede(elegida.nombre) : null;
   // La cuenta, sus pedidos, el Club (que anota la visita) y el catálogo (para dibujar las prendas con su precio) a la vez.
   const [lectura, pedidos, club, lecturaPuntos, catalogo] = await Promise.all([
     leerMiCuentaEnBase(sesion.usuarioId),
     leerMisPedidos(sesion.usuarioId),
     leerMiClubEnBase(sesion.usuarioId),
     leerMisPuntosEnBase(sesion.usuarioId),
-    leerCatalogo(null),
+    leerCatalogo(elegida?.id ?? null),
   ]);
   if (lectura.estado === "sin_respuesta") {
     return <NoDisponible texto="No pudimos cargar tu cuenta ahora. Vuelve a intentarlo en unos minutos." />;
@@ -158,9 +166,10 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
                   cuantos={miClub.favoritos.length}
                   sinMostrar={catalogo ? miClub.favoritos.filter((id) => !porId.has(id)).length : 0}
                   origenFotos={origenFotos}
+                  sede={sedeClave}
                 />
                 <TeAvisamos esperas={miClub.esperas} prendas={porId} origenFotos={origenFotos} />
-                <NovedadesParaTi novedades={miClub.novedades} prendas={deIds(miClub.novedades.productos)} favoritos={favoritos} origenFotos={origenFotos} />
+                <NovedadesParaTi novedades={miClub.novedades} prendas={deIds(miClub.novedades.productos)} favoritos={favoritos} origenFotos={origenFotos} sede={sedeClave} />
               </>
             ) : (
               // Sin el Club (la base no contestó): la tarjeta igual (es de la cuenta) y una sola nota para lo que falta.

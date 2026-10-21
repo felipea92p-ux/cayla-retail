@@ -15,6 +15,8 @@ const esquemaLinea = z.object({
   producto_id: z.string().uuid().nullable().catch(null),
   nombre: z.string().min(1),
   categoria: z.object({ nombre: z.string(), prefijo: z.string().nullable() }).nullable().catch(null),
+  // De qué empresa es la prenda (ADR-0465): solo viene en un pedido a una tienda con dos o más empresas (Lima). Sin el dato, no se escribe.
+  empresa: z.object({ clave: z.string().min(1), nombre: z.string().min(1) }).nullable().catch(null),
   color: z
     .object({
       nombre: z.string().nullable(),
@@ -96,6 +98,7 @@ export type LineaPedido = {
   productoId: string | null;
   nombre: string;
   categoria: { nombre: string; prefijo: string | null } | null;
+  empresa: { clave: string; nombre: string } | null;
   color: { nombre: string | null; hex: string | null };
   talla: string | null;
   foto: string | null;
@@ -167,6 +170,7 @@ function aPedido(d: z.infer<typeof esquemaPedido>): Pedido {
       productoId: l.producto_id,
       nombre: l.nombre,
       categoria: l.categoria,
+      empresa: l.empresa,
       color: l.color,
       talla: l.talla,
       foto: l.foto,

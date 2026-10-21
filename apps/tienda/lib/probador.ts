@@ -526,7 +526,7 @@ export function lookParaLaHoja(look: Look, indice: ReadonlyMap<string, PrendaDel
           y: 0,
           ancho: 0,
           giro: 0,
-          prenda: { id: p.id, nombre: p.nombre, categoria: null, precio: c.precio, precioFinal: c.precioFinal, desde: c.desde, campana: null },
+          prenda: { id: p.id, nombre: p.nombre, categoria: null, empresa: null, precio: c.precio, precioFinal: c.precioFinal, desde: c.desde, campana: null },
           color: { codigo: c.codigo, nombre: c.nombre, hex: c.hex },
           foto: c.foto.url,
           tallas: tallas.find((x) => x.id === p.id && x.color === c.codigo)?.tallas ?? [],

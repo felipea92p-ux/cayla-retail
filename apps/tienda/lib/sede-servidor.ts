@@ -28,3 +28,13 @@ export async function sedeDeLaPagina<T extends { nombre: string }>(
   }
   redirect(`${ruta}?${query.toString()}`);
 }
+
+/**
+ * La tienda que la persona eligió la última vez (la cookie del selector de la cabecera), para las páginas que no llevan `?sede=` (Mi perfil,
+ * «esta prenda ya no está»): con ella el catálogo trae lo de ESA tienda y, en una con dos o más empresas (Lima), la empresa de cada tarjeta
+ * (ADR-0465). Sin cookie, la primera tienda en orden; con una sola tienda en la web (o sin lectura de la base), `null`. No redirige.
+ */
+export async function sedeRecordada<T extends { nombre: string }>(sedes: readonly T[]): Promise<T | null> {
+  const recordada = (await cookies()).get(COOKIE_SEDE)?.value;
+  return resolverSede(undefined, recordada, sedes).sede;
+}

@@ -105,6 +105,13 @@ describe("el mensaje de WhatsApp (el de la maqueta, palabra por palabra)", () =>
 });
 
 describe("lo que dice la base", () => {
+  it("la empresa de cada prenda (ADR-0465): la lee; sin ella —un pedido a Trujillo, o una base que aún no la manda— o con una rara, la prenda se ve igual y sin empresa", () => {
+    const empresas = (...e: unknown[]) =>
+      unoDe(pedidoBase({ lineas: e.map((x, i) => ({ ...linea(`Prenda ${i}`, "M", "Negro"), ...(x === undefined ? {} : { empresa: x }) })) })).lineas.map((l) => l.empresa?.nombre ?? null);
+    expect(empresas({ clave: "claure", nombre: "CLAURE" }, { clave: "cayla", nombre: "CAYLA" })).toEqual(["CLAURE", "CAYLA"]);
+    expect(empresas(null, undefined, { clave: "", nombre: "" })).toEqual([null, null, null]);
+  });
+
   it("un pedido con un dato raro se deja fuera y los demás se ven; sin forma, null", () => {
     const r = interpretarMisPedidos({
       plazos: { horas_para_confirmar: 24, dias_para_recoger: 7 },

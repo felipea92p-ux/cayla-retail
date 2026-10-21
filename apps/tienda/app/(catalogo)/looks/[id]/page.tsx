@@ -117,6 +117,8 @@ export default async function LookAbierto({ params, searchParams }: Props) {
                         <Foto pieza={p} origenFotos={origenFotos} />
                       </span>
                       <span className="t-look-item-txt">
+                        {/* La empresa de la prenda, encima de su nombre (ADR-0465; solo en Lima, donde conviven CAYLA y CLAURE). */}
+                        {p.prenda.empresa && <span className="t-look-empresa">{p.prenda.empresa.nombre}</span>}
                         <Link className="t-card-nom" href={hrefDePieza(p, sede)}>
                           {p.prenda.nombre}
                         </Link>

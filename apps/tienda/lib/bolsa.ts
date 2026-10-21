@@ -144,6 +144,8 @@ const esquemaDisponible = z.object({
   producto_id: z.string().uuid(),
   nombre: z.string().min(1),
   categoria: z.object({ nombre: z.string(), prefijo: z.string().nullable() }).nullable().catch(null),
+  // De qué empresa es la prenda (ADR-0465): solo viene en una tienda con dos o más empresas (Lima). Sin el dato, no se escribe.
+  empresa: z.object({ clave: z.string().min(1), nombre: z.string().min(1) }).nullable().catch(null),
   color: z
     .object({
       nombre: z.string().nullable(),
@@ -170,6 +172,7 @@ export type PrendaEnLaBolsa = {
   productoId: string;
   nombre: string;
   categoria: { nombre: string; prefijo: string | null } | null;
+  empresa: { clave: string; nombre: string } | null;
   color: { nombre: string | null; hex: string | null };
   talla: string | null;
   foto: string | null;
@@ -220,6 +223,7 @@ export function interpretarBolsaEnBase(dato: unknown): BolsaEnBase | null {
         productoId: x.producto_id,
         nombre: x.nombre,
         categoria: x.categoria,
+        empresa: x.empresa,
         color: x.color,
         talla: x.talla,
         foto: x.foto,
