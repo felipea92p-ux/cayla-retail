@@ -1,6 +1,6 @@
 # ADR-0468 — «Arma tu look»: cada tienda muestra solo los looks que puede vestir
 
-- **Fecha:** 2026-10-20 · **Estado:** código y pruebas listos; **la migración `20261021010000` NO está pegada en producción** (pide el OK de Felipe). La web no cambia de orden: sin la migración todo sigue como hoy.
+- **Fecha:** 2026-10-20 · **Estado:** código y pruebas listos; **la migración `20261021010000` está pegada en producción desde el 2026-10-20** (Felipe lo pidió). Falta fusionar el PR para publicar el vacío nuevo de la web.
 - **Relacionados:** ADR-0408 (la tienda online, «Arma tu look»), ADR-0458 (cada tienda maneja lo suyo), ADR-0455 (siempre una tienda elegida), ADR-0434 (el probador «Arma el tuyo»).
 
 ## El problema
@@ -33,3 +33,7 @@ Alguien vuelve a decidir qué look se ve solo con `fn_vitrina_look_se_ve`. Lo vi
 ## Producción
 
 Una parte, idempotente, sin políticas ni `alter` (ADR-0195). Orden con la web: da igual.
+
+## Efecto medido en producción (2026-10-20)
+
+Al pegarla, los dos looks encendidos («Frontera Urbana», «Brisa de Mediodía») dejaron de verse en las tres tiendas: cada uno mezcla prendas que solo hay en Trujillo con otras que solo hay en Arequipa, así que ninguna tienda los puede vestir completos. No es un error: es la regla funcionando. Para que vuelvan, el equipo rearma los looks con prendas de una misma tienda o repone lo que falta. Un look pensado por tienda (elegir en el ERP para qué tienda es) queda como siguiente paso si Felipe lo quiere.
