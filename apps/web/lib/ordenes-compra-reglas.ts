@@ -25,6 +25,8 @@ export const RPC_ANULAR_ENVIO = "anular_envio";
 export const RPC_DETALLE_ENVIO = "fn_envio_detalle";
 /** Las órdenes generadas con algo por enviar: el número y el filtro «Por enviar» de la lista. Empieza con `fn_`: lectura, no abre el loader. */
 export const RPC_ORDENES_POR_ENVIAR = "fn_ordenes_compra_por_enviar";
+/** Los pares (proveedor, categoría) derivados de lo que ya existe (`fn_proveedor_categorias`, 20261021201000): para el prefiltro de Nueva orden. */
+export const RPC_PROVEEDOR_CATEGORIAS = "fn_proveedor_categorias";
 
 /** Hasta cuántas letras lleva el motivo de una anulación (el mismo tope que `anular_orden_compra`). */
 export const MAX_MOTIVO_ANULACION = 300;
@@ -79,6 +81,9 @@ export type DatosNuevaOrden = {
   /** El número que le tocaría; null si la vista previa no respondió (se numera igual al guardar). */
   siguiente: number | null;
   falla: string | null;
+  /** Qué categorías maneja cada proveedor, para ofrecer primero lo suyo (`fn_proveedor_categorias`). `null` o ausente = no se pudo leer (la web
+   *  antes que la migración, o la base no respondió): no se filtra nada y la orden se ve como siempre. Un proveedor que no aparece no tiene nada. */
+  categoriasDeProveedor?: Readonly<Record<string, readonly string[]>> | null;
   /** Lo que cada proveedor debe por reponer (ADR-0362, fase 5a: `fn_nos_debe_resumen`), para avisarlo al elegirlo. `null` o ausente = no se
    *  pudo leer: la orden se llena igual, sin el aviso. */
   nosDebe?: Readonly<Record<string, ResumenNosDebe>> | null;
@@ -637,6 +642,22 @@ export function leerEnvios(data: unknown): EnvioDeOrden[] | null {
       };
     })
     .filter((e): e is EnvioDeOrden => e !== null);
+}
+
+/** Lee `fn_proveedor_categorias`: por proveedor, las categorías que maneja. `null` si la respuesta no es una lista (la base todavía no tiene la función). */
+export function leerCategoriasDeProveedor(data: unknown): Record<string, string[]> | null {
+  if (!Array.isArray(data)) return null;
+  const salida: Record<string, string[]> = {};
+  for (const f of data) {
+    if (!f || typeof f !== "object") continue;
+    const r = f as Record<string, unknown>;
+    const proveedor = texto(r.proveedor_id);
+    const categoria = texto(r.categoria_id);
+    if (!proveedor || !categoria) continue;
+    const lista = (salida[proveedor] ??= []);
+    if (!lista.includes(categoria)) lista.push(categoria);
+  }
+  return salida;
 }
 
 /** Lee `fn_ordenes_compra_por_enviar`: por cada orden generada, cuántas unidades le quedan por enviar. Solo quedan las que tienen algo

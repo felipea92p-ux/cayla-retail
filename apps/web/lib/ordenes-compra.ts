@@ -10,11 +10,13 @@ import {
   argsLista,
   leerDetalleOrden,
   leerFilasOrdenes,
+  leerCategoriasDeProveedor,
   leerPorEnviar,
   leerResumen,
   RPC_DETALLE_ORDEN,
   RPC_LISTA_ORDENES,
   RPC_ORDENES_POR_ENVIAR,
+  RPC_PROVEEDOR_CATEGORIAS,
   RPC_RESUMEN_ORDENES,
   RPC_SIGUIENTE_ORDEN,
   TAMANO_PAGINA_ORDENES,
@@ -120,7 +122,7 @@ export async function getDestinosOrden(): Promise<{ id: string; nombre: string }
 // dice (principio 9): un formulario sin proveedores que parezca «no hay proveedores» haría crear uno repetido.
 export async function getDatosNuevaOrden(): Promise<DatosNuevaOrden> {
   const supabase = await createClient();
-  const [resProveedores, resMarcas, resVinculos, resCategorias, destinos, resSiguiente, nosDebe] = await Promise.all([
+  const [resProveedores, resMarcas, resVinculos, resCategorias, destinos, resSiguiente, nosDebe, resAfinidad] = await Promise.all([
     supabase.from("proveedores").select("id, nombre, ruc, contacto, telefono, forma_pago_preferida, plazo_credito_dias").eq("activo", true).order("nombre"),
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("marca_proveedores").select("marca_id, proveedor_id"),
@@ -130,7 +132,11 @@ export async function getDatosNuevaOrden(): Promise<DatosNuevaOrden> {
     supabase.rpc(RPC_SIGUIENTE_ORDEN as never) as unknown as PromiseLike<{ data: unknown; error: unknown }>,
     // Lo que cada proveedor debe por reponer (fase 5a): un adorno. Si no responde, la orden se llena igual, sin el aviso.
     getNosDebeResumen().catch(() => null),
+    // Qué categorías maneja cada proveedor (prefiltro, 2026-10-21): un adorno. Sin la función (la web antes que la migración) o si no responde, la
+    // orden se llena igual con todo el catálogo, como siempre.
+    supabase.rpc(RPC_PROVEEDOR_CATEGORIAS as never) as unknown as PromiseLike<{ data: unknown; error: { message: string; code?: string } | null }>,
   ]);
+  if (resAfinidad.error && resAfinidad.error.code !== "PGRST202") console.error(`[ordenes-compra] ${RPC_PROVEEDOR_CATEGORIAS}: ${resAfinidad.error.message}`);
   const falla =
     resProveedores.error || resMarcas.error || resVinculos.error || resCategorias.error || !destinos
       ? "No se pudieron leer los proveedores, las marcas o las categorías. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder."
@@ -160,6 +166,7 @@ export async function getDatosNuevaOrden(): Promise<DatosNuevaOrden> {
     siguiente: typeof resSiguiente.data === "number" ? resSiguiente.data : null,
     falla,
     nosDebe,
+    categoriasDeProveedor: resAfinidad.error ? null : leerCategoriasDeProveedor(resAfinidad.data),
   };
 }
 

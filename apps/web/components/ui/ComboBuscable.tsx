@@ -68,6 +68,7 @@ export function ComboBuscable<T extends string>({
   crear,
   crearArriba = false,
   alEscribir,
+  ampliar,
   campoRef,
 }: {
   valor: T | "";
@@ -98,6 +99,11 @@ export function ComboBuscable<T extends string>({
   caja?: boolean;
   /** Una acción que aparece primera solo cuando lo escrito la pide (ver `OpcionAlEscribir`). */
   alEscribir?: (texto: string) => OpcionAlEscribir | null;
+  /** Una fila fija al PIE de la lista, después de todas, que AMPLÍA lo que se ofrece sin cerrarla («Ver todas (45)»: Nueva orden de
+   *  compra muestra primero lo que maneja el proveedor, 2026-10-21). Quien la pasa cambia `opciones` en `onAmpliar` y deja de pasarla;
+   *  la lista sigue abierta y la búsqueda sigue en pie. Se alcanza con las flechas y Enter como cualquier fila, y no se pierde con
+   *  «Nada coincide»: justo ahí hace falta. Sin la prop, todo queda como estaba. */
+  ampliar?: { texto: string; onAmpliar: () => void };
   /** El input, para quien lo escucha desde afuera (la pistola de Cambios: `usePistola` necesita saber cuál es su campo). */
   campoRef?: RefObject<HTMLInputElement | null>;
 }) {
@@ -155,6 +161,9 @@ export function ComboBuscable<T extends string>({
   const indiceCrear = hayCrear ? (crearArriba ? 0 : mostradas.length) : -1;
   const opcionEn = (fila: number) => mostradas[fila - base];
   const ultimo = mostradas.length - 1 + (hayCrear ? 1 : 0);
+  // La fila de «ampliar» es la ÚLTIMA de todas (después de la de crear, si va abajo).
+  const indiceAmpliar = ampliar ? ultimo + 1 : -1;
+  const ultimoTotal = ampliar ? ultimo + 1 : ultimo;
   // Lo resaltado al abrir o al tipear: la primera opción real, aunque crear vaya arriba (Enter elige, no crea); si no
   // hay ninguna, la de crear.
   // (Lo que se acaba de tipear todavía no está en `filtradas`: se pregunta si ALGUNA opción responde a ese texto.)
@@ -187,6 +196,12 @@ export function ComboBuscable<T extends string>({
     setAbierto(false);
   }
 
+  /** Pide ver más opciones SIN cerrar la lista (a diferencia de elegir o crear): la lista crece y lo resaltado vuelve a la primera. */
+  function ampliarLista() {
+    ampliar?.onAmpliar();
+    setActivo(primeraFila(texto));
+  }
+
   function crearDesdeTexto() {
     setAbierto(false);
     crear?.onCrear(texto.trim());
@@ -206,13 +221,14 @@ export function ComboBuscable<T extends string>({
     if (!abierto) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActivo((a) => Math.min(ultimo, a + 1));
+      setActivo((a) => Math.min(ultimoTotal, a + 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActivo((a) => Math.max(0, a - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (hayCrear && activo === indiceCrear) crearDesdeTexto();
+      if (ampliar && activo === indiceAmpliar) ampliarLista();
+      else if (hayCrear && activo === indiceCrear) crearDesdeTexto();
       else if (opcionEn(activo)) elegir(opcionEn(activo));
     } else if (e.key === "Escape") {
       e.preventDefault();
@@ -272,7 +288,7 @@ export function ComboBuscable<T extends string>({
         aria-label={etiquetaAccesible}
         aria-expanded={abierto}
         aria-controls={`${id}-lista`}
-        aria-activedescendant={abierto && (opcionEn(activo) || activo === indiceCrear) ? `${id}-op-${activo}` : undefined}
+        aria-activedescendant={abierto && (opcionEn(activo) || activo === indiceCrear || activo === indiceAmpliar) ? `${id}-op-${activo}` : undefined}
         aria-autocomplete="list"
         autoComplete="off"
         autoFocus={autoFocus}
@@ -361,6 +377,23 @@ export function ComboBuscable<T extends string>({
             <li className="px-3 py-2 text-xs text-tinta/55">+{filtradas.length - mostradas.length} más: sigue escribiendo</li>
           )}
           {!crearArriba && filaCrear}
+          {ampliar && (
+            <li
+              id={`${id}-op-${indiceAmpliar}`}
+              data-i={indiceAmpliar}
+              role="option"
+              aria-selected={false}
+              onMouseEnter={() => setActivo(indiceAmpliar)}
+              // mousedown y no click (el blur del input cerraría la lista antes), y sin cerrarla: es una acción, no un valor.
+              onMouseDown={(e) => {
+                e.preventDefault();
+                ampliarLista();
+              }}
+              className={`cursor-pointer border-t border-sand px-3 py-2.5 text-sm font-semibold ${activo === indiceAmpliar ? "opcion-activa text-tinta" : "text-tinta/70"}`}
+            >
+              {ampliar.texto}
+            </li>
+          )}
         </ul>,
           destino
         )}

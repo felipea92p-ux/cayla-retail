@@ -221,6 +221,7 @@
     "pruebas:ordenes-compra-comprobante": "node scripts/pruebas/ordenes_compra_comprobante.mjs",
     "pruebas:compras-lineas-sin-prenda": "node scripts/pruebas/compras_lineas_sin_prenda.mjs",
     "pruebas:ordenes-compra-envios": "node scripts/pruebas/ordenes_compra_envios.mjs",
+    "pruebas:proveedor-categorias": "node scripts/pruebas/proveedor_categorias.mjs",
     "pruebas:ordenes-compra-sin-comprobante": "node scripts/pruebas/ordenes_compra_sin_comprobante.mjs",
     "pruebas:recepcion-de-envio": "node scripts/pruebas/recepcion_de_envio.mjs",
     "pruebas:conteo-de-envio": "node scripts/pruebas/conteo_de_envio.mjs",

@@ -1289,6 +1289,11 @@ export const PRUEBAS = [
   // sin IGV, al crédito o al contado, y fuera del Registro de Compras de Impuestos. ROLLBACK siempre.
   "pruebas:ordenes-compra-sin-comprobante",
 
+  // Qué categorías maneja cada proveedor, derivado de lo que ya existe (productos, marcas de un solo proveedor, órdenes generadas y
+  // comprobantes vigentes), para que Nueva orden ofrezca primero lo suyo: solo con el módulo Órdenes de compra; una orden o un
+  // comprobante anulado, un producto rechazado o de prueba, y una marca que traen dos proveedores no cuentan. ROLLBACK siempre.
+  "pruebas:proveedor-categorias",
+
   // Recibir en la sede un envío de orden de compra (ADR-0362, fase 4): con solo Recibir se abre, se crea la prenda que llegó y se
   // cuenta talla por talla (buenas al almacén, dañadas a la cuarentena), con el costo corregido promediado, un lote por proveedor y el
   // papel hasta su cupo; faltante y sobrante con causa; quien hizo la orden no la recibe; token y costo atípico. ROLLBACK siempre.

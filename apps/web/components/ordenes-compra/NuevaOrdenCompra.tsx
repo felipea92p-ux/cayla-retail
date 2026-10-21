@@ -24,6 +24,7 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import type { EstadoCampo } from "@/lib/guia-campos";
 import { opcionesDeMarca } from "@/lib/marca-proveedor-reglas";
+import { afinidadDe, prefiltrar, textoDeAfinidad } from "@/lib/orden-compra-prefiltro";
 import { sugerirDescripcion } from "@/lib/sugerencias-alta-producto";
 import { soles } from "@/lib/compras-reglas";
 import { TEXTO_AVISO_ORDEN, tituloAvisoOrden } from "@/lib/nos-debe-reglas";
@@ -108,6 +109,10 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
   const [guardando, setGuardando] = useState(false);
   // La hoja «Cómo pagarle» del proveedor elegido (solo lectura: no entra al borrador ni a lo que se guarda).
   const [verComoPagarle, setVerComoPagarle] = useState(false);
+  // Con el proveedor elegido, las categorías y las marcas ofrecen primero lo suyo; «Ver todas» (al pie de cada lista) amplía una de
+  // las dos y se apaga al cambiar de proveedor (`orden-compra-prefiltro.ts`).
+  const [categoriasTodas, setCategoriasTodas] = useState(false);
+  const [marcasTodas, setMarcasTodas] = useState(false);
   // «Llega a» viene puesto con la sede donde se trabaja: hasta que la persona lo elige (aunque elija la misma), la guía lo trata como
   // sugerido y no lo marca con ✓ (ADR-0284 act. h). Al editar, el destino es el que la orden ya tenía: cuenta como elegido.
   const [destinoElegido, setDestinoElegido] = useState(Boolean(editar));
@@ -176,6 +181,12 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
     [datos.marcas, datos.proveedores, datos.vinculos, orden.proveedorId],
   );
   const opcionesCategoria: OpcionCombo<string>[] = useMemo(() => datos.categorias.map((c) => ({ valor: c.id, texto: c.nombre })), [datos.categorias]);
+  // El prefiltro (Felipe 2026-10-21): solo lo que el proveedor maneja, más lo ya elegido en alguna línea (no desaparece), con «Ver todas».
+  const afinidad = useMemo(() => afinidadDe(orden.proveedorId, datos.categoriasDeProveedor, datos.vinculos), [orden.proveedorId, datos.categoriasDeProveedor, datos.vinculos]);
+  const yaElegidas = useMemo(() => new Set(orden.lineas.flatMap((l) => [l.categoriaId, l.marcaId]).filter(Boolean)), [orden.lineas]);
+  const categoriasVista = prefiltrar(opcionesCategoria, afinidad?.categorias ?? null, { verTodas: categoriasTodas, conservar: yaElegidas });
+  const marcasVista = prefiltrar(opcionesMarca, afinidad?.marcas ?? null, { verTodas: marcasTodas, conservar: yaElegidas });
+  const textoAfinidad = textoDeAfinidad(afinidad);
   const opcionesDestino = useMemo(
     // «Por repartir», corto en la caja: «(llega a Lima)» la partía en dos renglones en una pantalla angosta. Lo explica el título de su
     // grupo en la lista abierta, ANTES de elegirlo (Formidable, 2026-10-10: dos de dos pruebas ciegas no sabían qué era).
@@ -195,6 +206,9 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
 
   function elegirProveedor(proveedorId: string) {
     const unica = marcaUnicaDe(proveedorId);
+    // Otro proveedor, otra lista: «Ver todas» vuelve a empezar cerrado.
+    setCategoriasTodas(false);
+    setMarcasTodas(false);
     setOrden((o) => ({ ...o, proveedorId, lineas: o.lineas.map((l) => (l.marcaId || !unica ? l : { ...l, marcaId: unica })) }));
   }
   function cambiarLinea(clave: string, cambios: Partial<LineaBorrador>) {
@@ -449,6 +463,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
           >
             Lo que pides
           </TituloSeccion>
+          {textoAfinidad && <p className="text-xs text-taupe">{textoAfinidad}</p>}
 
           {orden.lineas.length === 0 && (
             <CampoGuiado id="lineas" guia={guia}>
@@ -485,8 +500,10 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
               guia={guia}
               etiqueta={etiqueta}
               estado={estadoVisible}
-              opcionesCategoria={opcionesCategoria}
-              opcionesMarca={opcionesMarca}
+              opcionesCategoria={categoriasVista.opciones}
+              opcionesMarca={marcasVista.opciones}
+              ampliarCategoria={categoriasVista.filtrada ? { texto: `Ver todas (${categoriasVista.total})`, onAmpliar: () => setCategoriasTodas(true) } : undefined}
+              ampliarMarca={marcasVista.filtrada ? { texto: `Ver todas (${marcasVista.total})`, onAmpliar: () => setMarcasTodas(true) } : undefined}
               placeholderDescripcion={sugerirDescripcion(categoriaPor.get(l.categoriaId) ?? null).texto}
               onCambio={(cambios) => cambiarLinea(l.clave, cambios)}
               onQuitar={() => quitarLinea(l.clave)}
@@ -540,6 +557,8 @@ function LineaOrden({
   estado,
   opcionesCategoria,
   opcionesMarca,
+  ampliarCategoria,
+  ampliarMarca,
   placeholderDescripcion,
   onCambio,
   onQuitar,
@@ -552,6 +571,9 @@ function LineaOrden({
   estado: (id: string) => EstadoCampo | null;
   opcionesCategoria: OpcionCombo<string>[];
   opcionesMarca: OpcionCombo<string>[];
+  /** «Ver todas (N)» al pie de la lista cuando se está mostrando solo lo que el proveedor maneja; sin esto, la lista ya es la completa. */
+  ampliarCategoria?: { texto: string; onAmpliar: () => void };
+  ampliarMarca?: { texto: string; onAmpliar: () => void };
   placeholderDescripcion: string;
   onCambio: (cambios: Partial<LineaBorrador>) => void;
   onQuitar: () => void;
@@ -590,11 +612,11 @@ function LineaOrden({
         </div>
         <div className="col-span-2 @min-[28rem]:col-span-1">
           <p className={`${TITULO} @min-[56rem]:hidden`}>Categoría</p>
-          <ComboBuscable caja etiquetaAccesible={`Categoría de la línea ${numero}`} marcador="Categoría…" valor={l.categoriaId} onValor={(categoriaId) => onCambio({ categoriaId })} opciones={opcionesCategoria} />
+          <ComboBuscable caja etiquetaAccesible={`Categoría de la línea ${numero}`} marcador="Categoría…" valor={l.categoriaId} onValor={(categoriaId) => onCambio({ categoriaId })} opciones={opcionesCategoria} ampliar={ampliarCategoria} />
         </div>
         <div className="col-span-2 @min-[28rem]:col-span-1">
           <p className={`${TITULO} @min-[56rem]:hidden`}>Marca</p>
-          <ComboBuscable caja etiquetaAccesible={`Marca de la línea ${numero}`} marcador="Marca…" valor={l.marcaId} onValor={(marcaId) => onCambio({ marcaId })} opciones={opcionesMarca} />
+          <ComboBuscable caja etiquetaAccesible={`Marca de la línea ${numero}`} marcador="Marca…" valor={l.marcaId} onValor={(marcaId) => onCambio({ marcaId })} opciones={opcionesMarca} ampliar={ampliarMarca} />
         </div>
         <div className="col-span-2 @min-[56rem]:col-span-1">
           <p className={`${TITULO} @min-[56rem]:hidden`}>

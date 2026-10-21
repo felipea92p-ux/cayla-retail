@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
+import { leerCategoriasDeProveedor,
   ESTADO_ENVIO,
   ESTADO_ORDEN,
   POR_REPARTIR_LISTA,
@@ -641,5 +641,28 @@ describe("qué se puede hacer con una orden que tiene (o no) envíos", () => {
     expect(estadoDeEnvioDeOrden({ envios: [], lineas: [linea({ enviado: 0 })] })).toBe("ninguno");
     expect(estadoDeEnvioDeOrden({ envios: [vivo()], lineas: [linea({ enviado: 4, porEnviar: 6 })] })).toBe("en_parte");
     expect(estadoDeEnvioDeOrden({ envios: [vivo()], lineas: [linea({ enviado: 10, porEnviar: 0 }), linea({ id: "i2", enviado: 0, porEnviar: 0 })] })).toBe("completo");
+  });
+});
+
+describe("leerCategoriasDeProveedor: lo que devuelve fn_proveedor_categorias", () => {
+  it("agrupa por proveedor, sin repetir", () => {
+    const r = leerCategoriasDeProveedor([
+      { proveedor_id: "p1", categoria_id: "c1" },
+      { proveedor_id: "p1", categoria_id: "c2" },
+      { proveedor_id: "p1", categoria_id: "c1" },
+      { proveedor_id: "p2", categoria_id: "c3" },
+    ]);
+    expect(r).toEqual({ p1: ["c1", "c2"], p2: ["c3"] });
+  });
+  it("una lista vacía es «nadie maneja nada todavía», no «no se pudo leer»", () => {
+    expect(leerCategoriasDeProveedor([])).toEqual({});
+  });
+  it("si la respuesta no es una lista (la base aún no tiene la función) es null: no se filtra", () => {
+    expect(leerCategoriasDeProveedor(null)).toBeNull();
+    expect(leerCategoriasDeProveedor({})).toBeNull();
+    expect(leerCategoriasDeProveedor(undefined)).toBeNull();
+  });
+  it("ignora filas incompletas o con forma rara", () => {
+    expect(leerCategoriasDeProveedor([null, 3, {}, { proveedor_id: "p1" }, { categoria_id: "c1" }, { proveedor_id: "p1", categoria_id: "c1" }])).toEqual({ p1: ["c1"] });
   });
 });

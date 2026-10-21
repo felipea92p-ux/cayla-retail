@@ -1498,7 +1498,7 @@ const PASOS_FORMULARIO_ORDEN = {
     ancla: "orden-form.linea",
     opcional: true,
     titulo: "Cada línea",
-    texto: "Categoría y marca, una descripción si ayuda a reconocerla, cuántas y a cuánto cada una. El descuento lo escribes en % o en soles, y al lado ves el otro y el subtotal. La ✕ quita la línea.",
+    texto: "Categoría y marca (con el proveedor elegido ves primero lo que él maneja; «Ver todas», al pie de la lista, muestra el resto), una descripción si ayuda a reconocerla, cuántas y a cuánto cada una. El descuento lo escribes en % o en soles. La ✕ quita la línea.",
   },
   agregar: {
     id: "agregar",
