@@ -439,30 +439,42 @@ update retail.cambio_salidas set cantidad = 9 where cambio_id = :'cambio_id';
 
 exito(
   "Resumen: cada prenda que sale en un cambio por varias vale SU precio (35.90 + 35.90 = S/ 71.80), no el pagado más la diferencia total repetida en cada una (antes: S/ 143.60)",
-  // Resumen deja fuera lo que ocurre en el mismo instante que la consulta (`created_at < now()`), y todo lo de una transacción de prueba tiene
-  // el mismo `now()`. Por eso el cambio se escribe con fecha de hace una hora, tal como lo dejaría `registrar_cambio_varias`
-  // (las mismas filas: el cambio, sus renglones y una entrada y dos salidas), igual que la prueba de fn_resumen_comparacion. La venta original
-  // queda fuera de la ventana (es de ahora), así que la entrada de la prenda devuelta no resta nada: el importe es el de las dos salidas.
+  // Resumen deja fuera lo que ocurre en el mismo instante que la consulta (`created_at < now()`), y todo lo de una transacción de prueba tiene el
+  // mismo `now()`: el cambio se escribe con fecha de hace una hora, con las mismas filas que dejaría `registrar_cambio_varias` (el cambio, sus
+  // renglones, una entrada y dos salidas). Y recorta a cero el neto negativo de CADA prenda, así que se usan prendas PROPIAS de la prueba
+  // (sin historia): con las de siembra, lo que ya tuvieran vendido o devuelto cambiaría el resultado. La venta original queda fuera de la ventana.
   comoPersona(
     FELIPE,
     `${fixture()}
-select coalesce(sum(r.b_importe), 0) as imp_antes
-  from retail.fn_resumen_comparacion(:'ubic', retail.fn_hoy_lima() - 29, retail.fn_hoy_lima() - 15, retail.fn_hoy_lima() - 14, retail.fn_hoy_lima()) r \\gset
-select gen_random_uuid() as cid, (now() - interval '1 hour') as hace1h \\gset
+create function pg_temp.variante_zz(p_sku text) returns uuid language plpgsql as $$
+declare p uuid; v uuid;
+begin
+  insert into retail.productos (referencia, estado, marca_id, proveedor_id)
+    select 'ZZ ' || p_sku, 'activo', mp.marca_id, mp.proveedor_id from retail.marca_proveedores mp order by mp.created_at limit 1
+    returning id into p;
+  insert into retail.variantes (producto_id, sku, precio, costo, activo) values (p, p_sku, 100, 40, true) returning id into v;
+  return v;
+end $$;
+select pg_temp.variante_zz('ZZ-CV-VIEJA') as zv_old, pg_temp.variante_zz('ZZ-CV-NUEVA1') as zv_n1, pg_temp.variante_zz('ZZ-CV-NUEVA2') as zv_n2 \\gset
+select gen_random_uuid() as cid, gen_random_uuid() as vt, gen_random_uuid() as li, (now() - interval '1 hour') as hace1h \\gset
+insert into retail.ventas (id, ubicacion_id, estado) values (:'vt', :'ubic', 'completada');
+insert into retail.venta_items (id, venta_id, variante_id, cantidad, precio_unitario, descuento_unitario, costo_unitario)
+  values (:'li', :'vt', :'zv_old', 1, 45.90, 0, 20);
 insert into retail.cambios (id, venta_item_id, ubicacion_id, variante_nueva_id, cantidad, diferencia, metodo_pago_diferencia, created_at)
-  values (:'cid', :'venta_item', :'ubic', :'v_n1', 1, 25.90, 'qr', :'hace1h');
+  values (:'cid', :'li', :'ubic', :'zv_n1', 1, 25.90, 'qr', :'hace1h');
 insert into retail.cambio_salidas (cambio_id, variante_id, cantidad, precio_unitario)
-  values (:'cid', :'v_n1', 1, 35.90), (:'cid', :'v_n2', 1, 35.90);
+  values (:'cid', :'zv_n1', 1, 35.90), (:'cid', :'zv_n2', 1, 35.90);
 insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, cambio_id, created_at)
-  values (:'v_old', :'ubic', :'sub_piso', 'entrada', 1, 'cambio', :'cid', :'hace1h'),
-         (:'v_n1', :'ubic', :'sub_piso', 'salida', 1, 'cambio', :'cid', :'hace1h'),
-         (:'v_n2', :'ubic', :'sub_piso', 'salida', 1, 'cambio', :'cid', :'hace1h');
-select round(coalesce(sum(r.b_importe), 0) - :'imp_antes', 2)
-  from retail.fn_resumen_comparacion(:'ubic', retail.fn_hoy_lima() - 29, retail.fn_hoy_lima() - 15, retail.fn_hoy_lima() - 14, retail.fn_hoy_lima()) r;
+  values (:'zv_old', :'ubic', :'sub_piso', 'entrada', 1, 'cambio', :'cid', :'hace1h'),
+         (:'zv_n1', :'ubic', :'sub_piso', 'salida', 1, 'cambio', :'cid', :'hace1h'),
+         (:'zv_n2', :'ubic', :'sub_piso', 'salida', 1, 'cambio', :'cid', :'hace1h');
+select round(coalesce(sum(r.b_importe), 0), 2), coalesce(sum(r.b_ventas), 0), coalesce(sum(r.b_devoluciones), 0)
+  from retail.fn_resumen_comparacion(:'ubic', retail.fn_hoy_lima() - 29, retail.fn_hoy_lima() - 15, retail.fn_hoy_lima() - 14, retail.fn_hoy_lima()) r
+ where r.sku in ('ZZ-CV-VIEJA', 'ZZ-CV-NUEVA1', 'ZZ-CV-NUEVA2');
 rollback;
 `
   ),
-  ([delta]) => Number(delta) === 71.8
+  ([importe, ventas, devoluciones]) => Number(importe) === 71.8 && Number(ventas) === 2 && Number(devoluciones) === 1
 );
 
 exito(
