@@ -24,7 +24,7 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import type { EstadoCampo } from "@/lib/guia-campos";
 import { opcionesDeMarca } from "@/lib/marca-proveedor-reglas";
-import { afinidadDe, prefiltrar, textoDeAfinidad } from "@/lib/orden-compra-prefiltro";
+import { afinidadDe, lineaNoCalza, prefiltrar, textoDeAfinidad, type AvisoDeLinea } from "@/lib/orden-compra-prefiltro";
 import { sugerirDescripcion } from "@/lib/sugerencias-alta-producto";
 import { soles } from "@/lib/compras-reglas";
 import { TEXTO_AVISO_ORDEN, tituloAvisoOrden } from "@/lib/nos-debe-reglas";
@@ -197,6 +197,8 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
     [datos.destinos],
   );
   const categoriaPor = useMemo(() => new Map(datos.categorias.map((c) => [c.id, c])), [datos.categorias]);
+  // Cada línea dice si su categoría o su marca ya no son de este proveedor (se deriva: al volver al proveedor de antes, se va sola).
+  const nombresDeLinea = { categoria: (id: string) => categoriaPor.get(id)?.nombre, marca: (id: string) => nombreMarca.get(id) };
 
   // La única marca de un proveedor se pone sola en las líneas que todavía no tienen marca (casi todos traen una sola).
   const marcaUnicaDe = (proveedorId: string) => {
@@ -504,6 +506,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
               opcionesMarca={marcasVista.opciones}
               ampliarCategoria={categoriasVista.filtrada ? { texto: `Ver todas (${categoriasVista.total})`, onAmpliar: () => setCategoriasTodas(true) } : undefined}
               ampliarMarca={marcasVista.filtrada ? { texto: `Ver todas (${marcasVista.total})`, onAmpliar: () => setMarcasTodas(true) } : undefined}
+              noCalza={lineaNoCalza(l, afinidad, nombresDeLinea)}
               placeholderDescripcion={sugerirDescripcion(categoriaPor.get(l.categoriaId) ?? null).texto}
               onCambio={(cambios) => cambiarLinea(l.clave, cambios)}
               onQuitar={() => quitarLinea(l.clave)}
@@ -559,6 +562,7 @@ function LineaOrden({
   opcionesMarca,
   ampliarCategoria,
   ampliarMarca,
+  noCalza,
   placeholderDescripcion,
   onCambio,
   onQuitar,
@@ -574,6 +578,8 @@ function LineaOrden({
   /** «Ver todas (N)» al pie de la lista cuando se está mostrando solo lo que el proveedor maneja; sin esto, la lista ya es la completa. */
   ampliarCategoria?: { texto: string; onAmpliar: () => void };
   ampliarMarca?: { texto: string; onAmpliar: () => void };
+  /** La categoría o la marca de esta línea no son de lo que maneja el proveedor elegido (derivado; nunca bloquea). */
+  noCalza?: AvisoDeLinea | null;
   placeholderDescripcion: string;
   onCambio: (cambios: Partial<LineaBorrador>) => void;
   onQuitar: () => void;
@@ -675,6 +681,11 @@ function LineaOrden({
       {duda && (
         <Aviso tono="atencion" chico className="mt-2">
           {duda}
+        </Aviso>
+      )}
+      {noCalza && (
+        <Aviso tono={noCalza.tono} chico className="mt-2">
+          {noCalza.texto}
         </Aviso>
       )}
     </CampoGuiado>

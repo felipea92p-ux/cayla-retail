@@ -68,3 +68,32 @@ export function textoDeAfinidad(afinidad: Afinidad | null): string | null {
   if (sinMarcas) return "Este proveedor no tiene marcas registradas: ves todas.";
   return null;
 }
+
+export type AvisoDeLinea = { texto: string; tono: "info" | "atencion" };
+
+/**
+ * ¿La categoría o la marca de esta línea no son de lo que maneja el proveedor elegido? Es una DERIVACIÓN de lo que hay en pantalla, no un
+ * estado guardado: cambiar de proveedor y volver al de antes la limpia sola (Felipe 2026-10-21: las líneas se quedan, marcadas con aviso).
+ * Nunca bloquea ni toca la guía de foco: la orden acepta cualquier categoría y marca (ADR-0362:503).
+ *
+ *  · Una categoría fuera es `info`: al guardar la orden queda entre las del proveedor (`fn_proveedor_categorias` la deriva de la orden).
+ *  · Una marca fuera es `atencion`: nada la aprende (el vínculo marca↔proveedor se escribe al recibir, no al pedir).
+ *
+ * Solo se juzga lo que se puede juzgar: sin saber qué maneja el proveedor (`afinidad` null, o un conjunto vacío) no se dice nada de eso.
+ * Una línea sin categoría o sin marca todavía no tiene de qué avisar. `nombres` trae cómo se llama cada una (el aviso las nombra).
+ */
+export function lineaNoCalza(
+  linea: { categoriaId: string; marcaId: string },
+  afinidad: Afinidad | null,
+  nombres: { categoria: (id: string) => string | undefined; marca: (id: string) => string | undefined },
+): AvisoDeLinea | null {
+  if (!afinidad) return null;
+  const categoriaFuera = afinidad.categorias.size > 0 && Boolean(linea.categoriaId) && !afinidad.categorias.has(linea.categoriaId);
+  const marcaFuera = afinidad.marcas.size > 0 && Boolean(linea.marcaId) && !afinidad.marcas.has(linea.marcaId);
+  const categoria = nombres.categoria(linea.categoriaId) ?? "Esta categoría";
+  const marca = nombres.marca(linea.marcaId) ?? "Esta marca";
+  if (categoriaFuera && marcaFuera) return { texto: `«${categoria}» y «${marca}» no son de lo que maneja este proveedor. Revisa la línea.`, tono: "atencion" };
+  if (marcaFuera) return { texto: `«${marca}» no es una marca de este proveedor. Revisa la línea.`, tono: "atencion" };
+  if (categoriaFuera) return { texto: `«${categoria}» es nueva para este proveedor: al guardar, queda entre las suyas.`, tono: "info" };
+  return null;
+}

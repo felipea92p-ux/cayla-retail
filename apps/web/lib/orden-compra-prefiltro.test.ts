@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { afinidadDe, prefiltrar, textoDeAfinidad } from "./orden-compra-prefiltro";
+import { afinidadDe, lineaNoCalza, prefiltrar, textoDeAfinidad } from "./orden-compra-prefiltro";
 
 const op = (...ids: string[]) => ids.map((valor) => ({ valor, texto: valor.toUpperCase() }));
 const sinElegidas = new Set<string>();
@@ -93,5 +93,52 @@ describe("textoDeAfinidad: por qué se ve todo, solo cuando es por no saber", ()
   });
   it("con las dos cosas no lleva texto: el pie «Ver todas (N)» del combo ya lo dice", () => {
     expect(textoDeAfinidad(con(["c1"], ["m1"]))).toBeNull();
+  });
+});
+
+describe("lineaNoCalza: la línea que ya no es de este proveedor", () => {
+  const nombres = {
+    categoria: (id: string) => ({ c1: "Casacas", c2: "Vestidos", c9: "Polos" })[id],
+    marca: (id: string) => ({ m1: "Mias", m2: "Kero", m9: "Jacard" })[id],
+  };
+  const afin = { categorias: new Set(["c1", "c2"]), marcas: new Set(["m1", "m2"]) };
+
+  it("una línea de lo suyo no avisa nada", () => {
+    expect(lineaNoCalza({ categoriaId: "c1", marcaId: "m1" }, afin, nombres)).toBeNull();
+  });
+  it("una marca ajena avisa con atención y la nombra", () => {
+    const a = lineaNoCalza({ categoriaId: "c1", marcaId: "m9" }, afin, nombres)!;
+    expect(a.tono).toBe("atencion");
+    expect(a.texto).toBe("«Jacard» no es una marca de este proveedor. Revisa la línea.");
+  });
+  it("una categoría ajena solo informa: al guardar, queda entre las suyas", () => {
+    const a = lineaNoCalza({ categoriaId: "c9", marcaId: "m1" }, afin, nombres)!;
+    expect(a.tono).toBe("info");
+    expect(a.texto).toBe("«Polos» es nueva para este proveedor: al guardar, queda entre las suyas.");
+  });
+  it("las dos ajenas avisan juntas y con atención", () => {
+    const a = lineaNoCalza({ categoriaId: "c9", marcaId: "m9" }, afin, nombres)!;
+    expect(a.tono).toBe("atencion");
+    expect(a.texto).toContain("«Polos» y «Jacard»");
+  });
+  it("sin saber qué maneja el proveedor no juzga: ni sin lectura, ni con el conjunto vacío", () => {
+    expect(lineaNoCalza({ categoriaId: "c9", marcaId: "m9" }, null, nombres)).toBeNull();
+    expect(lineaNoCalza({ categoriaId: "c9", marcaId: "m9" }, { categorias: new Set(), marcas: new Set() }, nombres)).toBeNull();
+    // Solo juzga lo que puede: sin marcas conocidas, la marca no se juzga pero la categoría sí.
+    expect(lineaNoCalza({ categoriaId: "c9", marcaId: "m9" }, { categorias: new Set(["c1"]), marcas: new Set() }, nombres)?.tono).toBe("info");
+  });
+  it("una línea sin categoría o sin marca todavía no tiene de qué avisar", () => {
+    expect(lineaNoCalza({ categoriaId: "", marcaId: "" }, afin, nombres)).toBeNull();
+    expect(lineaNoCalza({ categoriaId: "c9", marcaId: "" }, afin, nombres)?.tono).toBe("info");
+  });
+  it("es derivada: cambiar de proveedor y volver al de antes deja la línea sin aviso (A → B → A)", () => {
+    const linea = { categoriaId: "c1", marcaId: "m1" };
+    const proveedorB = { categorias: new Set(["c5"]), marcas: new Set(["m5"]) };
+    expect(lineaNoCalza(linea, afin, nombres)).toBeNull();
+    expect(lineaNoCalza(linea, proveedorB, nombres)?.tono).toBe("atencion");
+    expect(lineaNoCalza(linea, afin, nombres)).toBeNull();
+  });
+  it("si una categoría o marca no tiene nombre conocido no se cae: dice «Esta categoría»", () => {
+    expect(lineaNoCalza({ categoriaId: "zz", marcaId: "m1" }, afin, { categoria: () => undefined, marca: () => undefined })?.texto).toContain("«Esta categoría»");
   });
 });
