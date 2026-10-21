@@ -5,6 +5,8 @@ import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { TarjetaPrenda } from "@/components/TarjetaPrenda";
 import { filtrarYOrdenar, hrefLista } from "@/lib/catalogo";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
+import { claveDeSede, sedesEnOrden } from "@/lib/sede-elegida";
+import { sedeRecordada } from "@/lib/sede-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 
@@ -15,15 +17,19 @@ import { leerSedes } from "@/lib/tiendas-servidor";
  * Sale de la misma lectura del catálogo que ya hace la cabecera (`leerCatalogo` va una vez por petición).
  */
 export default async function PrendaQueNoEsta() {
-  const [catalogo, sedes] = await Promise.all([leerCatalogo(null), leerSedes()]);
+  // La tienda que eligió la última vez (ADR-0465): sus prendas, y en Lima con la empresa de cada tarjeta.
+  const sedes = sedesEnOrden(await leerSedes());
+  const elegida = await sedeRecordada(sedes);
+  const sedeClave = elegida ? claveDeSede(elegida.nombre) : null;
+  const catalogo = await leerCatalogo(elegida?.id ?? null);
   const todas = catalogo?.prendas ?? [];
-  const hay = todas.filter((p) => hayEnTienda(p.stock, null));
+  const hay = todas.filter((p) => hayEnTienda(p.stock, elegida?.id ?? null));
   const nuevas = filtrarYOrdenar(hay, { categoria: null, orden: "destacado", lista: "nuevo" });
   const conNuevas = nuevas.length > 0;
   const sugeridas = (conNuevas ? nuevas : hay).slice(0, 4);
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
   return (
-    <MarcoCatalogo prendas={todas} sede={null}>
+    <MarcoCatalogo prendas={todas} sede={sedeClave}>
       <PorDondeSeguir
         ceja="Prenda no disponible"
         titulo={
@@ -66,7 +72,7 @@ export default async function PrendaQueNoEsta() {
             </div>
             <div className="t-grilla">
               {sugeridas.map((p) => (
-                <TarjetaPrenda key={p.id} prenda={p} sede={null} origenFotos={origenFotos} nota={notaDeStock(p.stock, null, sedes)} sinNuevo={conNuevas} />
+                <TarjetaPrenda key={p.id} prenda={p} sede={sedeClave} origenFotos={origenFotos} nota={notaDeStock(p.stock, elegida, sedes)} sinNuevo={conNuevas} />
               ))}
             </div>
           </section>

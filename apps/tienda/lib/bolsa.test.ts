@@ -199,6 +199,14 @@ const lineaBase = (id: string, cantidad: number, en: Record<string, [boolean, bo
 const enBase = (sede: string | null, lineas: unknown[]): BolsaEnBase => interpretarBolsaEnBase({ sede, sedes: sedesBase, lineas })!;
 
 describe("lo que dice la base", () => {
+  it("la empresa de cada prenda (ADR-0465): la lee; sin ella —Trujillo, o una base que aún no la manda— o con una rara, la prenda se ve igual y sin empresa", () => {
+    const empresas = (...e: unknown[]) =>
+      enBase(null, e.map((x, i) => lineaBase([A, B, M2][i], 1, { [TRU]: [true, true] }, x === undefined ? {} : { empresa: x })))
+        .lineas.map((l) => ("noEsta" in l ? "no" : l.empresa?.nombre ?? null));
+    expect(empresas({ clave: "claure", nombre: "CLAURE" }, { clave: "cayla", nombre: "CAYLA" })).toEqual(["CLAURE", "CAYLA"]);
+    expect(empresas(null, undefined, { clave: "", nombre: "" })).toEqual([null, null, null]);
+  });
+
   it("una prenda que ya no está llega sin nombre; un dato raro de una prenda la deja como «ya no está», no tumba la bolsa", () => {
     const b = enBase(null, [
       lineaBase(A, 1, { [TRU]: [true, true] }),

@@ -335,10 +335,14 @@ end;
 $function$;
 `;
 /** ¿El catálogo nuevo devuelve, byte a byte, lo mismo que el de antes con «Todas», Trujillo, Lima y el Taller (que no está en la web)? */
-const IGUALES = `select concat_ws('|', retail.tienda_catalogo()::text = pg_temp.catalogo_de_antes()::text,
-    retail.tienda_catalogo(:'tru')::text = pg_temp.catalogo_de_antes(:'tru')::text,
-    retail.tienda_catalogo(:'lim')::text = pg_temp.catalogo_de_antes(:'lim')::text,
-    retail.tienda_catalogo(:'taller')::text = pg_temp.catalogo_de_antes(:'taller')::text);\n`;
+// Desde ADR-0465 el catálogo trae `empresa` en cada prenda (null fuera de una tienda con dos o más empresas) y esconde lo de una empresa que no
+// opera en la tienda: esta prueba mide que la reescritura no cambie lo demás, así que compara sin esa clave (en esta base ninguna prenda es de CLAURE).
+const SIN_EMPRESA = `create or replace function pg_temp.sin_empresa(j jsonb) returns jsonb language sql as $f$
+  select jsonb_set(j, '{prendas}', coalesce((select jsonb_agg(p - 'empresa' order by n) from jsonb_array_elements(j -> 'prendas') with ordinality t (p, n)), '[]'::jsonb)) $f$;\n`;
+const IGUALES = `${SIN_EMPRESA}select concat_ws('|', pg_temp.sin_empresa(retail.tienda_catalogo())::text = pg_temp.catalogo_de_antes()::text,
+    pg_temp.sin_empresa(retail.tienda_catalogo(:'tru'))::text = pg_temp.catalogo_de_antes(:'tru')::text,
+    pg_temp.sin_empresa(retail.tienda_catalogo(:'lim'))::text = pg_temp.catalogo_de_antes(:'lim')::text,
+    pg_temp.sin_empresa(retail.tienda_catalogo(:'taller'))::text = pg_temp.catalogo_de_antes(:'taller')::text);\n`;
 esperarValor(
   "el catálogo nuevo devuelve EXACTAMENTE el JSON de antes: con «Todas», Trujillo, Lima y el Taller; sin tiendas en la web; con la vitrina vacía",
   correr(`${PREPARAR}${VARIADO}${CATALOGO_DE_ANTES}${IGUALES}
@@ -373,10 +377,21 @@ esperarValor(
 
 // ---------------------------------------------------------------- 4. Las migraciones
 console.log("— 4. Las migraciones —");
+// `20261017173000` reescribe `tienda_catalogo` ENTERO («se vuelve a escribir igual»): vuelve a su cuerpo de siempre y se lleva lo que le sumaron
+// 20261021000000 y 20261021001000 (ADR-0465: el filtro por empresa y la clave `empresa`). Para medir que el segundo pegado no cambia nada, se parte
+// de ese cuerpo: se les quita lo de la empresa antes de medir.
+const SIN_PARCHES_DE_EMPRESA = `do $quitar$
+declare v_def text := pg_get_functiondef('retail.tienda_catalogo(uuid)'::regprocedure);
+begin
+  v_def := regexp_replace(v_def, '\\n\\s*-- ADR-0465: de qué empresa es la prenda[^\\n]*\\n\\s*''empresa'', case when[^\\n]*\\n\\s*then [^\\n]*end,', '');
+  v_def := replace(v_def, E'\\n                  and retail.fn_tienda_empresa_se_ve(vp.producto_id, v_sede)', '');
+  execute v_def;
+end $quitar$;`;
 const sql = (archivo) => readFileSync(archivo, "utf8");
 esperarValor(
   "las tres se pueden volver a correr (dos veces seguidas, como un segundo pegado) y no cambian nada",
   correr(`begin;
+${SIN_PARCHES_DE_EMPRESA}
 select md5(string_agg(md5(pg_get_functiondef(p.oid)), ',' order by p.proname)) as antes from pg_proc p join pg_namespace n on n.oid = p.pronamespace
  where n.nspname = 'retail' and p.proname in ('fn_tienda_precio_talla', 'fn_categoria_entra_a_motores', 'fn_tienda_modelo_se_ve', 'fn_vitrina_por_que_no', 'fn_vitrina_publicable', 'tienda_catalogo') \\gset
 set client_min_messages = warning;

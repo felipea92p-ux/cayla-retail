@@ -52,6 +52,7 @@ marca; Felipe eligió que sea un campo del producto.
 - La ayuda del campo de **costo** de Nuevo producto, con CLAURE elegida, debería decir que es lo que CLAURE le cobra a CAYLA (la liquidación lee ese costo).
 - El nombre se sembró «CLAURE» sin tilde; el logo y la otra sesión dicen «Claurè»: es un dato (`empresas.nombre`) y sale tal cual en el papel.
 - Filtros por empresa, pedidos web partidos y liquidación: los hace la otra sesión, leyendo `productos.empresa_id`.
+- **Pedidos web (2026-10-21):** el detalle de un pedido dice la empresa de cada prenda (insignia encima del nombre) solo en una sede con más de una empresa (`fn_empresas_de_sede`). La web lee `productos.empresa_id`; no hay migración. No parte el pedido ni cambia el cobro: sigue siendo un pedido, una boleta con el RUC de CAYLA.
 
 ## Verificación
 

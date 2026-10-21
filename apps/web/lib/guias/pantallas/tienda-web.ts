@@ -88,6 +88,12 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       texto: "Cuando no queda nada por hacer, te lo dice en una línea, con lo último que pasó. Abajo quedan los pedidos cerrados de los últimos 30 días.",
     },
     {
+      id: "mensaje",
+      ancla: "pedidos-web.mensaje",
+      titulo: "Mensaje predeterminado",
+      texto: "Edita tu texto para WhatsApp de los pedidos web. Es tuyo: cada persona tiene el suyo, y cada pedido lo llena con el nombre, la tienda y su código.",
+    },
+    {
       id: "como",
       ancla: "pedidos-web.como",
       titulo: "¿Cómo funciona?",

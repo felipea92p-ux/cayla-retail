@@ -3,6 +3,7 @@ import type { Prenda } from "./catalogo";
 import { delGrupo, delMenu, grupoDe, gruposDe, GRUPOS, leerGrupo, leerMenu, MENUS, tituloPartido } from "./grupos";
 
 const prenda = (nombre: string, prefijo: string | null, extra: Partial<Prenda> = {}): Prenda => ({
+  empresa: null,
   id: nombre,
   codigo: null,
   nombre,

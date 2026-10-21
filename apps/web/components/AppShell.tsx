@@ -1098,7 +1098,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
 
       {/* ==================== Contenido ==================== */}
       {/* Toda pantalla va a lo ancho (ADR-0462); solo las de `CON_TOPE_DE_ANCHO` y el Inicio siguen centradas en 64 rem. */}
-      <main className="px-4 pb-10 pt-20 sm:ml-lateral sm:px-10 sm:pb-12 sm:pt-24">
+      <main className="px-4 pb-10 pt-20 sm:ml-lateral sm:pl-5 sm:pr-10 sm:pb-12 sm:pt-24">
         {/* `has-[[data-ancho-completo]]`: una pantalla con tope que necesita todo el ancho lo pide con ese atributo (el Inicio de almacén,
             Felipe 2026-09-30) sin quitarle el tope a todas las cuentas de «/». */}
         <div className={conTopeDeAncho(pathname) ? "mx-auto max-w-5xl has-[[data-ancho-completo]]:max-w-none" : ""}>{children}</div>

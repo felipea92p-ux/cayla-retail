@@ -315,6 +315,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/pedidos-web/RegistrarPagoHoja.tsx": { estado: "aplicada", evidencia: ["components/pedidos-web/RegistrarPagoHoja.tsx"] },
   "components/pedidos-web/AnularPagoHoja.tsx": { estado: "aplicada", evidencia: ["components/pedidos-web/AnularPagoHoja.tsx"] },
   "components/pedidos-web/AnularPedidoPagadoHoja.tsx": { estado: "aplicada", evidencia: ["components/pedidos-web/AnularPedidoPagadoHoja.tsx"] },
+  "components/pedidos-web/EditarMensajePredeterminadoHoja.tsx": { estado: "no-aplica", motivo: "Un solo campo de texto (el mensaje) con su vista previa; los botones no dependen de otros campos." },
   "components/liquidacion/EtiquetarPiezaModal.tsx": { estado: "aplicada", evidencia: ["components/liquidacion/EtiquetarPiezaModal.tsx"] },
   "components/liquidacion/PiezaLiquidacionModal.tsx": { estado: "aplicada", evidencia: ["components/liquidacion/PiezaLiquidacionModal.tsx"] },
   // Precio por tienda (Felipe 2026-10-09): «Precio distinto en una sede» (tienda, precio, por qué, quién) y «Quitar» (quién).

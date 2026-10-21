@@ -39,6 +39,11 @@ export type PrendaWeb = {
   categoria: string | null;
   categoriaPrefijo: string | null;
   categoriaFamilia: string | null;
+  /** El producto de la prenda: con él se busca su empresa (`productos.empresa_id`). */
+  productoId: string | null;
+  /** La empresa a la que pertenece la prenda (ADR-0463): su nombre y su clave. Solo se llena en una sede con dos empresas (`conEmpresas`). */
+  empresa: string | null;
+  empresaClave: string | null;
 };
 
 export type PedidoDeLista = {
@@ -279,7 +284,33 @@ function leerPrenda(x: unknown): PrendaWeb {
     categoria: texto(p.categoria),
     categoriaPrefijo: texto(p.categoria_prefijo),
     categoriaFamilia: texto(p.categoria_familia),
+    productoId: texto(p.producto_id),
+    empresa: null,
+    empresaClave: null,
   };
+}
+
+export type EmpresaDeSede = { id: string; clave: string; nombre: string };
+
+/** Le pone a cada prenda de un detalle su empresa. `empresaDeProducto` es producto → id de empresa (`productos.empresa_id`) y `empresas` las
+ *  de la sede (`fn_empresas_de_sede`). Una prenda cuya empresa no se conoce queda sin ella: nunca se inventa una. */
+export function conEmpresas(detalle: PedidoDetalle, empresas: EmpresaDeSede[], empresaDeProducto: Map<string, string>): PedidoDetalle {
+  const porId = new Map(empresas.map((e) => [e.id, e]));
+  return {
+    ...detalle,
+    lineas: detalle.lineas.map((l) => {
+      const e = l.productoId ? porId.get(empresaDeProducto.get(l.productoId) ?? "") : undefined;
+      return e ? { ...l, empresa: e.nombre, empresaClave: e.clave } : l;
+    }),
+  };
+}
+
+/** Lo que el detalle del pedido dice de la empresa de una prenda (ADR-0463, Felipe 2026-10-20): solo donde conviven dos empresas (Lima:
+ *  `variasEmpresas`, que sale de `fn_empresas_de_sede`, nunca del nombre de la sede) y solo si la base la trajo. CAYLA va en neutro y las
+ *  demás en pizarra: es informativo, no un semáforo. */
+export function empresaDeLaPrenda(prenda: Pick<PrendaWeb, "empresa" | "empresaClave">, variasEmpresas: boolean): { texto: string; tono: "neutro" | "pizarra" } | null {
+  if (!variasEmpresas || !prenda.empresa) return null;
+  return { texto: prenda.empresa, tono: prenda.empresaClave === "cayla" ? "neutro" : "pizarra" };
 }
 
 /** Lo de `fn_pedidos_web_tablero`. Lo que no se entiende se salta (una fila rota no tumba la lista). */
@@ -1228,6 +1259,28 @@ export function mensajeWhatsapp(
 /** El enlace de WhatsApp al celular del cliente (si su número se entiende; si no, WhatsApp pregunta a quién). */
 export function enlaceWhatsappPedido(p: Parameters<typeof mensajeWhatsapp>[0], plantilla: PlantillaWhatsapp): string {
   return enlaceWhatsAppA(p.cliente.celular, mensajeWhatsapp(p, plantilla));
+}
+
+/** Lo que el mensaje necesita del pedido: el código, el primer nombre del cliente y el nombre de la tienda web (sin el resto). */
+type DatosDelMensaje = { codigo: string; cliente: { nombre: string; celular?: string | null }; tiendaWeb: { nombre: string } };
+
+/** El mensaje de fábrica de los pedidos web. Sus marcas se llenan con cada pedido: {nombre}, {tienda} y {codigo}. */
+export const MENSAJE_PREDETERMINADO_WEB = "Hola {nombre}, te escribimos de {tienda} por tu pedido {codigo}.";
+/** Tope de letras del mensaje propio (lo mismo que la base: `fn_guardar_mensaje_pedidos_web`). */
+export const MAX_MENSAJE_PREDETERMINADO_WEB = 600;
+
+/** El texto que se envía a este cliente: el mensaje propio de la persona (o el de fábrica si no tiene uno), con sus marcas llenas. */
+export function mensajePredeterminadoDelPedido(p: DatosDelMensaje, mensajePropio: string | null | undefined): string {
+  const plantilla = mensajePropio?.trim() ? mensajePropio : MENSAJE_PREDETERMINADO_WEB;
+  return plantilla
+    .replaceAll("{nombre}", primerNombre(p.cliente.nombre))
+    .replaceAll("{tienda}", `CAYLA ${p.tiendaWeb.nombre}`)
+    .replaceAll("{codigo}", p.codigo);
+}
+
+/** El enlace de WhatsApp del mensaje predeterminado (el propio de la persona, o el de fábrica), al celular del cliente. */
+export function enlaceWhatsappMensajePredeterminado(p: DatosDelMensaje, mensajePropio: string | null | undefined): string {
+  return enlaceWhatsAppA(p.cliente.celular, mensajePredeterminadoDelPedido(p, mensajePropio));
 }
 
 /** «DNI ••••4415 · Cel. 900 000 440 · Miembro del club». */
