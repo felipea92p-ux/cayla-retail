@@ -16,6 +16,9 @@
  *      Trujillo dice que una prenda de CLAURE «no se vende» ahí (y que sí en Lima); «Separar» para recoger en Trujillo la rechaza con
  *      `tienda_separar_no_se_vende` y, para recoger en Lima, no por la empresa; la ficha no cuenta separadas de una prenda que esa
  *      tienda no muestra.
+ *   I. Los looks: un look se ve en TODAS las tiendas y CLAURE solo opera en Lima, así que un look publicado no puede llevar una prenda de
+ *      CLAURE (`vitrina_guardar_look` lo valida contra el catálogo sin tienda, que ya no la trae): se rechaza con su motivo de siempre,
+ *      `vitrina_look_prenda_no_se_ve`. Un look de CLAURE solo para Lima es una decisión de Felipe (ADR-0465, «Lo que falta»).
  *   G. El catálogo dice la empresa de cada prenda (`20261021001000_tienda_catalogo_trae_la_empresa.sql`): `empresa.clave` y
  *      `empresa.nombre` de CAYLA y de CLAURE, que es lo que dibuja la insignia de la tarjeta.
  *
@@ -233,6 +236,28 @@ esperarValor(
   "y en Lima sí responde (la muestra)",
   escenario(CUENTA + `select retail.tienda_separadas_por_otros(:'usr', :'carla', ${LIMA}) is not null;`),
   "t",
+);
+
+console.log("I. Los looks");
+esperarValor(
+  "publicar un look con una prenda de CLAURE se rechaza (un look se ve en todas las tiendas)",
+  escenario(`
+create function pg_temp.hint(p_sql text) returns text language plpgsql as $f$
+declare v_hint text;
+begin
+  begin
+    execute p_sql;
+    raise exception 'PROBAR_OK';
+  exception when others then
+    get stacked diagnostics v_hint = pg_exception_hint;
+    if sqlerrm = 'PROBAR_OK' then return 'ok'; end if;
+    return coalesce(sqlerrm, 'sin-motivo');
+  end;
+end $f$;
+update retail.producto_fotos set color_codigo = 'NEG' where producto_id in (:'emma', :'carla');
+select pg_temp.hint(format('select retail.vitrina_guardar_look(null, %L, null, true, %L::jsonb, null, null)', 'ZZ Look con CLAURE',
+  jsonb_build_array(jsonb_build_object('producto_id', :'emma', 'color', 'NEG'), jsonb_build_object('producto_id', :'carla', 'color', 'NEG'))::text));`),
+  "vitrina_look_prenda_no_se_ve",
 );
 
 console.log(fallos === 0 ? `\nTodo bien: ${total} comprobaciones.` : `\n${fallos} de ${total} comprobaciones fallaron.`);
