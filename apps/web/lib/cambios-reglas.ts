@@ -51,8 +51,18 @@ export const METODOS_DIFERENCIA = [
   { valor: "yape", etiqueta: "Yape" },
   { valor: "plin", etiqueta: "Plin" },
   { valor: "transferencia", etiqueta: "Transferencia" },
+  { valor: "qr", etiqueta: "QR" },
 ] as const;
 export type MetodoDiferencia = (typeof METODOS_DIFERENCIA)[number]["valor"];
+
+/**
+ * Los medios que el paso «Reemplazo» ofrece. El QR solo si la base ya lo acepta (`fn_acepta_qr_en_cambios`, 20261021184000): si la
+ * migración aún no está en producción, la lista sigue con los cinco de siempre y nunca ofrece algo que la base rechazaría — la misma
+ * regla que `fn_acepta_pago_qr` en Vender. Sin QR, la clienta que pagó con Izipay terminaba anotada como «transferencia» (2026-10-21).
+ */
+export function metodosDiferencia(aceptaQr: boolean) {
+  return METODOS_DIFERENCIA.filter((m) => aceptaQr || m.valor !== "qr");
+}
 
 // ============================================================================
 // Qué escribió (o escaneó) la colaboradora en el buscador (2026-09-18). Tres
@@ -369,7 +379,7 @@ export function impactoCambio(e: {
 }): ImpactoOperacion {
   // En medio de una frase: "con tarjeta", pero "con Yape" — las marcas no se achican.
   const etiqueta = METODOS_DIFERENCIA.find((m) => m.valor === e.metodo)?.etiqueta ?? e.metodo;
-  const metodo = e.metodo === "yape" || e.metodo === "plin" ? etiqueta : etiqueta.toLowerCase();
+  const metodo = e.metodo === "yape" || e.metodo === "plin" || e.metodo === "qr" ? etiqueta : etiqueta.toLowerCase();
   const enEfectivo = e.metodo === "efectivo";
   const caja =
     e.diferencia === 0

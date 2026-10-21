@@ -96,6 +96,7 @@ export function CambiosFlujo({
   esLider,
   sedes,
   catalogo: catalogoProp,
+  aceptaQr,
   ahora,
   onCerrar,
   onNuevo,
@@ -112,6 +113,8 @@ export function CambiosFlujo({
   esLider: boolean;
   sedes: SedeConId[];
   catalogo: VarianteCatalogo[];
+  /** `fn_acepta_qr_en_cambios`: ofrece el QR entre los medios de la diferencia. */
+  aceptaQr: boolean;
   ahora: Date;
   onCerrar: () => void;
   onNuevo: () => void;
@@ -483,6 +486,7 @@ export function CambiosFlujo({
                 onEscanear={escanearPrenda}
                 lectura={lectura}
                 esperandoPistola={esperandoPistola}
+                aceptaQr={aceptaQr}
               />
               {camara && (
                 <EscanerBusqueda

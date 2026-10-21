@@ -12,7 +12,7 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 import type { SedeConId } from "@/lib/cambios-atajos-reglas";
 import { OPCION, OPCION_ACTIVA, OPCION_INACTIVA } from "@/components/FlujoGuiado";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
-import { unidadesDisponibles, METODOS_DIFERENCIA, MOTIVOS_CAMBIO, type MetodoDiferencia } from "@/lib/cambios-reglas";
+import { unidadesDisponibles, metodosDiferencia, MOTIVOS_CAMBIO, type MetodoDiferencia } from "@/lib/cambios-reglas";
 import { textoPagoConDescuento, type Reemplazo, type Seleccion } from "@/lib/cambio-reemplazo-reglas";
 
 /** Talla que no queda en esta sede: se puede tocar igual — así se ve dónde más hay. */
@@ -45,6 +45,7 @@ export function CambioReemplazo({
   onEscanear,
   lectura,
   esperandoPistola,
+  aceptaQr,
 }: {
   linea: LineaVentaReciente;
   seleccion: Seleccion;
@@ -65,6 +66,8 @@ export function CambioReemplazo({
   lectura: { tono: TonoAvisoLinea; texto: string } | null;
   /** El botón se tocó en el mostrador: el campo espera a la pistola. */
   esperandoPistola: boolean;
+  /** La base ya acepta el QR como medio de la diferencia (`fn_acepta_qr_en_cambios`): sin eso, el combo no lo ofrece. */
+  aceptaQr: boolean;
 }) {
   const disponible = unidadesDisponibles(linea);
   const idBase = `cambio-${linea.ventaItemId}`;
@@ -281,7 +284,7 @@ export function CambioReemplazo({
               className="w-56 max-w-full"
               valor={s.metodo}
               onValor={(metodo) => onCambio({ metodo })}
-              opciones={METODOS_DIFERENCIA.map((m) => ({ valor: m.valor, texto: m.etiqueta }))}
+              opciones={metodosDiferencia(aceptaQr).map((m) => ({ valor: m.valor, texto: m.etiqueta }))}
             />
           </div>
         )}

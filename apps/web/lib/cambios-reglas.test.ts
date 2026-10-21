@@ -14,6 +14,7 @@ import {
   etiquetaDia,
   fechaLimiteCambio,
   impactoCambio,
+  metodosDiferencia,
   primerBloqueo,
   tallasQueNoCalzan,
   totalesVenta,
@@ -379,6 +380,24 @@ describe("impactoCambio", () => {
       titulo: "− S/\u00a020.00 a devolver",
       detalle: "Por Yape: no pasa por el cajón.",
     });
+  });
+
+  it("caja: la diferencia cobrada con QR no pasa por el cajón y el QR no se escribe en minúsculas", () => {
+    expect(impactoCambio({ ...base, diferencia: 25.9, metodo: "qr" }).caja).toEqual({
+      titulo: "+ S/ 25.90 por cobrar",
+      detalle: "Con QR: no pasa por el cajón.",
+    });
+  });
+});
+
+describe("metodosDiferencia", () => {
+  it("sin que la base acepte el QR, ofrece los cinco de siempre y en el mismo orden", () => {
+    expect(metodosDiferencia(false).map((m) => m.valor)).toEqual(["efectivo", "tarjeta", "yape", "plin", "transferencia"]);
+  });
+
+  it("con el QR aceptado, lo suma al final y nada más cambia", () => {
+    expect(metodosDiferencia(true).map((m) => m.valor)).toEqual(["efectivo", "tarjeta", "yape", "plin", "transferencia", "qr"]);
+    expect(metodosDiferencia(true).find((m) => m.valor === "qr")?.etiqueta).toBe("QR");
   });
 });
 
