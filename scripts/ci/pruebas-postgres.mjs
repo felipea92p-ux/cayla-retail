@@ -153,6 +153,7 @@ export const PRUEBAS = [
   "pruebas:movimientos-dinero-inicio-y-empresa",
 
   "pruebas:registrar-cambio",
+  "pruebas:registrar-cambio-varias",
 
   // No se cambia por una prenda sin precio (ADR-0385): un cambio por una prenda en S/ 0 (ni la bolsa de obsequio) se rechaza sin
   // escribir nada; con precio, o con precio de tienda sobre un base 0, sigue funcionando; la migración se puede pegar dos veces. ROLLBACK.
@@ -1223,9 +1224,10 @@ export const PRUEBAS = [
   "pruebas:terminales-red",
 
   // El motor del piso (ADR-0328 act. 7): `fn_piso_plan_lectura` junta lo libre en piso y almacén (la cifra de ADR-0270), lo
-  // vendido en 14 días por prenda y por categoría × talla × familia de color con las ventas «sin registrar» pendientes, lo
-  // anotado hoy y ayer, y la fecha del último cuadre del piso. Vigila que una venta cuente UNA vez y en el día en que se cobró
-  // (al regularizarla con la función real pasa de anotada a escaneada sin moverse de fecha), que cuente lo que el cliente se
+  // vendido en 14 días por prenda y por categoría × talla × familia de color con las ventas «sin registrar» que siguen sin
+  // prenda (pendientes o cerradas sin prenda, ADR-0334: `20261005160100`), lo anotado hoy y ayer, y la fecha del último cuadre
+  // del piso. Vigila que una venta cuente UNA vez y en el día en que se cobró (al regularizarla con la función real pasa de
+  // anotada a escaneada sin moverse de fecha; cerrarla, reabrirla y regularizarla no la duplica), que cuente lo que el cliente se
   // llevó (cambio = la prenda nueva; sin devoluciones aprobadas ni liquidaciones de dañadas), las dos puertas (la de retail y
   // la de la sede: otra sede, terminal apagada, de afuera o sin sesión → NULL, nunca «al día»), el día de Lima, el cuadre de
   // SU sede, que las tallas de la base sean las que recorre `piso-plan.test.ts`, y el costo (~800 unidades y ~150 ventas,

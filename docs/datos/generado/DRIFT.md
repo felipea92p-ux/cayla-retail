@@ -1,17 +1,17 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 733 llamadas `.rpc` de `apps/web` contra 1520 funciones del schema `retail` en producción: 515 con los parámetros leídos (se comparan uno por uno), 70 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 148 con el nombre en un ternario o una variable.
-> **Foto de producción: 2026-10-21 17:29 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
+> Comparadas 735 llamadas `.rpc` de `apps/web` contra 1537 funciones del schema `retail` en producción: 516 con los parámetros leídos (se comparan uno por uno), 71 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 148 con el nombre en un ternario o una variable.
+> **Foto de producción: 2026-10-21 19:52 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
 > creada o cambiada DESPUÉS sale como «no existe», con parámetros de más o con un aviso de un parámetro que ya no existe, aunque en
 > producción ya esté bien. Antes de dar una pantalla por rota, confirmarlo en producción; para refrescar la foto,
 > `docs/datos/generado/COMO-REFRESCAR.md`.
 
 > **Palabras de este informe.** *Foto*: la lista de funciones de producción que está en `funciones-produccion.txt`, tomada en la fecha
 > de arriba. *Aviso*: la pantalla no manda un parámetro que la función acepta (normal si tiene valor por defecto). *Sobrecarga*: dos
-> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las `fn_*` (1062 en la
+> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las `fn_*` (1072 en la
 > foto: en su mayoría disparadores, candados de dinero y ayudantes que llaman otras funciones) se dejan fuera de «sin llamada» a
-> propósito; 302 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 760 no las nombra ninguna pantalla y aquí no se listan.
+> propósito; 303 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 769 no las nombra ninguna pantalla y aquí no se listan.
 
 ---
 
@@ -75,9 +75,9 @@ Ninguna. Cada función tiene una sola firma en producción.
 - `buscar_separaciones` · `apps/web/lib/separaciones.ts:70` — no manda `p_texto`, `p_estados`, `p_desde`, `p_hasta` (normal si tienen valor por defecto)
 - `fn_totales_historial_ventas` · `apps/web/lib/ventas-historial.ts:251` — no manda `p_ids` (normal si tienen valor por defecto)
 
-## No analizadas — 361
+## No analizadas — 362
 
-Estas 361 entradas son **entradas, no llamadas** (un ternario da dos; una función mencionada da una aunque no haya llamada):
+Estas 362 entradas son **entradas, no llamadas** (un ternario da dos; una función mencionada da una aunque no haya llamada):
 arman sus parámetros fuera de la propia llamada, o la pantalla nombra la función sin un `.rpc("…")` directo (un ternario, un
 ayudante, una constante), o usan `.rpc` como valor (`.bind`, `const { rpc } = x`). No se pueden revisar leyendo el texto.
 **No están aprobadas: están sin revisar.** Una llamada directa o de un ternario a una función que la foto no tiene también está arriba,
@@ -96,7 +96,8 @@ foto ni ninguna migración del repo conocen.
 - `ajustar_inventario` · `apps/web/components/AjustarInventarioModal.tsx:386` — los parámetros no van escritos ahí mismo
 - `(nombre calculado)` · `apps/web/components/BajarAlPisoForm.tsx:695` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `(nombre calculado)` · `apps/web/components/BajarEnManoModal.tsx:116` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
-- `registrar_cambio` · `apps/web/components/CambiosFlujo.tsx:347` — el objeto se arma con «...», no se puede leer entero
+- `registrar_cambio_varias` · `apps/web/components/CambiosFlujo.tsx:388` — el objeto se arma con «...», no se puede leer entero
+- `registrar_cambio` · `apps/web/components/CambiosFlujo.tsx:389` — el objeto se arma con «...», no se puede leer entero
 - `cerrar_linea_compra` · `apps/web/components/CerrarFaltanteModal.tsx:64` — el objeto se arma con «...», no se puede leer entero
 - `registrar_compra` · `apps/web/components/CompraFormV2.tsx:416` — el objeto se arma con «...», no se puede leer entero
 - `(nombre calculado)` · `apps/web/components/EliminarProductoModal.tsx:82` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
@@ -446,7 +447,7 @@ foto ni ninguna migración del repo conocen.
 - `fn_tela_en_camino` · `apps/web/lib/tela-del-taller-reglas.ts:70` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `crear_producto_con_variantes` · `apps/web/lib/useColaProductos.ts:13` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 
-## Funciones sin llamada detectada desde `apps/web` — 148
+## Funciones sin llamada detectada desde `apps/web` — 154
 
 Existen en producción y ninguna pantalla de `apps/web` las nombra entre comillas (ni con un `.rpc("…")` directo ni de otra
 forma; los comentarios y las pruebas no cuentan; las `fn_*` se descartan a propósito). **Esto NO prueba que sobren.** Cada
@@ -494,19 +495,23 @@ select p.proname from pg_proc p
 - `confirmar_invitacion_club`
 - `convertir_proforma_a_comprobante`
 - `crear_campana`
+- `crear_campana_vista_previa`
 - `crear_invitacion_club`
 - `crear_pedido_web`
+- `desprogramar_campana_diseno`
 - `emitir_comprobante`
 - `emitir_nota`
 - `extender_separacion`
 - `fijar_capacidad_piso`
 - `guardar_beneficios_club`
 - `guardar_campana`
+- `guardar_campana_diseno`
 - `guardar_diseno_borrador`
 - `huellas_catalogo`
 - `marcar_recomendacion_leida`
 - `mover_entre_piso_y_almacen`
 - `mover_interno`
+- `programar_campana_diseno`
 - `publicar_diseno_campana`
 - `quitar_comprador_de_tienda`
 - `recalcular_compras`
@@ -541,6 +546,8 @@ select p.proname from pg_proc p
 - `tienda_consultar_correo`
 - `tienda_consultar_documento`
 - `tienda_correo_confirmado`
+- `tienda_diseno_campana`
+- `tienda_diseno_campana_previa`
 - `tienda_eliminar_mi_cuenta`
 - `tienda_favorito`
 - `tienda_ficha`

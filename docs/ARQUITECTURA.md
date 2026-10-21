@@ -353,8 +353,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - `/inventario` (Existencias) → `lib/inventario-v2.ts:getExistencias` = `getStockPorUbicacion`
   (tabla `stock` agregada por variante) + RPC `fn_stock_por_sede` (dónde más hay, la misma
   de Vender, vía `lib/stock-por-sede.ts`) + `transferencia_items` en tránsito hacia acá →
-  + RPC `fn_piso_plan_lectura` (ADR-0328 act. 7, migración `20261004213000`: lo libre en piso y almacén, lo vendido
-  escaneado y anotado «sin registrar» en 14 días por prenda y por categoría × talla × familia de color —lo que el cliente
+  + RPC `fn_piso_plan_lectura` (ADR-0328 act. 7, migraciones `20261004213000` y `20261005160100`: lo libre en piso y almacén, lo vendido
+  escaneado y anotado «sin registrar» en 14 días —la anotada cuenta mientras no tenga prenda: pendiente o cerrada sin prenda,
+  ADR-0334— por prenda y por categoría × talla × familia de color —lo que el cliente
   se llevó: un cambio cuenta como la prenda nueva, sin devoluciones aprobadas ni liquidaciones de dañadas—, lo anotado a mano
   hoy y ayer por categoría × talla × color (el reloj rápido de lo que no tiene prenda), las curvas de
   tallas y la fecha del último cuadre del piso —`cuadres_piso`, actividad 3; sin ella, lo que manda a bajar queda «En pausa»,
@@ -1193,7 +1194,20 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   vendible al piso, no vendible a cuarentena con fila en `prendas_danadas.cambio_id`; rechaza
   ventas anuladas; migración 20260919000100; y desde el ADR-0385 rechaza una prenda nueva cuyo
   precio de cambio es 0 —`cambio_sin_precio`, 20261012201000—, que la pantalla adelanta en
-  `validarCambio` con el `precio` de la prenda nueva).
+  `validarCambio` con el `precio` de la prenda nueva). **Desde el ADR-0470 (2026-10-21) un cambio
+  puede llevarse VARIAS prendas y cobrarse por QR:** el paso 3 suma «Se lleva otra prenda más»
+  (`PrendaExtra` en `Seleccion.extras`, `lib/cambio-reemplazo-reglas.ts`: `totalesDelCambio`,
+  `validarPrendasExtra`, `salidasParaBase`, `describirSalidas`; la diferencia es la de TODO lo que
+  se lleva contra lo que la clienta pagó) y con extras `CambiosFlujo` llama a la RPC
+  `registrar_cambio_varias` (una entrada, una salida por prenda, todo o nada; renglones en
+  `cambio_salidas`, de solo agregar, con su llave diferida al cambio; operación propia
+  `registrar_cambio_varias` en `OPERACIONES_CON_MARCA` y en `fn_resolver_intento`). Sin extras, el
+  cambio de una por una sigue por `registrar_cambio`. `cambios.metodo_pago_diferencia` acepta `qr`
+  (la pantalla lo ofrece solo si `fn_acepta_qr_en_cambios`). Lo que lee un cambio cuenta todas sus
+  prendas: `fn_resumen_comparacion`, `fn_asientos` (costo 691/201), `fn_analisis_sede`,
+  `fn_demanda_sede`, `fn_piso_plan_lectura` y `fn_actividad_cambio` leen `cambio_salidas` con un
+  `left join` (20261021193000); `getVentasRecientes` trae `salidas` y las listas dicen
+  `descripcionEntregadaTodas`; /chaos vigila `INV-22`. Migraciones 20261021183000 a 20261021193000.
 - `/devoluciones` (ADR-0122, ADR-0232) → `getVentasRecientes` + `lib/devoluciones.ts`
   (`getDevolucionesPendientes`, `getDevolucionesResueltas`, `getEstadisticasDevoluciones`,
   `contarPrendasEnCuarentena`) + `getCajaAbierta` → `DevolucionesPanel.tsx` (avisos de cuarentena →

@@ -2,7 +2,7 @@
   "guia": "cambios",
   "ruta": "/cambios",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 39,
+  "total": 42,
   "controles": {
     "components/BuscadorVentas.tsx": [
       "BotonBuscar «(sin nombre)»",
@@ -11,12 +11,15 @@
       "Desplegable «{todas ? \"todas\" : \"aqui\"}»"
     ],
     "components/CambioReemplazo.tsx": [
+      "button «{hay ? `Talla ${t}»",
+      "button «{hay ? `Color ${nombre}»",
       "button «{m.etiqueta}»",
       "ComboBuscable «{`${idBase}»",
       "button «Escanear»",
       "Link «¿Nada de su agrado? Pasar a devolución»",
-      "button «{hay ? `Talla ${t}»",
-      "button «{hay ? `Color ${nombre}»",
+      "button «{`Quitar la ${cual}»",
+      "ComboBuscable «{`${idBase}» #2",
+      "button «→onAgregarExtra»",
       "button «{o.titulo}»",
       "input «{`${idBase}»",
       "Desplegable «{`${idBase}»"
