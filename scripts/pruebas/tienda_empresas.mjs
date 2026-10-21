@@ -16,9 +16,8 @@
  *      Trujillo dice que una prenda de CLAURE «no se vende» ahí (y que sí en Lima); «Separar» para recoger en Trujillo la rechaza con
  *      `tienda_separar_no_se_vende` y, para recoger en Lima, no por la empresa; la ficha no cuenta separadas de una prenda que esa
  *      tienda no muestra.
- *   I. Los looks: un look se ve en TODAS las tiendas y CLAURE solo opera en Lima, así que un look publicado no puede llevar una prenda de
- *      CLAURE (`vitrina_guardar_look` lo valida contra el catálogo sin tienda, que ya no la trae): se rechaza con su motivo de siempre,
- *      `vitrina_look_prenda_no_se_ve`. Un look de CLAURE solo para Lima es una decisión de Felipe (ADR-0465, «Lo que falta»).
+ *   I. Los looks (`20261021003000_vitrina_looks_con_claure_solo_en_lima.sql`): el editor de la Vitrina ofrece las prendas de CLAURE y deja
+ *      publicar un look que lleve una; ese look sale en Lima (lista y enlace) y NO en Trujillo; un look solo de CAYLA sale en las dos.
  *   G. El catálogo dice la empresa de cada prenda (`20261021001000_tienda_catalogo_trae_la_empresa.sql`): `empresa.clave` y
  *      `empresa.nombre` de CAYLA y de CLAURE, que es lo que dibuja la insignia de la tarjeta, SOLO con una tienda donde operan dos o
  *      más empresas (Lima): con Trujillo, sin tienda o con una inventada, ninguna prenda trae `empresa` y no hay insignia.
@@ -43,6 +42,7 @@ const MIGRACIONES = [
   "supabase/migrations/20261021000000_tienda_empresa_solo_en_sus_sedes.sql",
   "supabase/migrations/20261021001000_tienda_catalogo_trae_la_empresa.sql",
   "supabase/migrations/20261021002000_tienda_separar_y_bolsa_empresa_por_tienda.sql",
+  "supabase/migrations/20261021003000_vitrina_looks_con_claure_solo_en_lima.sql",
 ];
 const APLICAR_ANTES = process.env.APLICAR_ANTES
   ? process.env.APLICAR_ANTES.split(",")
@@ -247,26 +247,27 @@ esperarValor(
 );
 
 console.log("I. Los looks");
-esperarValor(
-  "publicar un look con una prenda de CLAURE se rechaza (un look se ve en todas las tiendas)",
-  escenario(`
-create function pg_temp.hint(p_sql text) returns text language plpgsql as $f$
-declare v_hint text;
-begin
-  begin
-    execute p_sql;
-    raise exception 'PROBAR_OK';
-  exception when others then
-    get stacked diagnostics v_hint = pg_exception_hint;
-    if sqlerrm = 'PROBAR_OK' then return 'ok'; end if;
-    return coalesce(sqlerrm, 'sin-motivo');
-  end;
-end $f$;
-update retail.producto_fotos set color_codigo = 'NEG' where producto_id in (:'emma', :'carla');
-select pg_temp.hint(format('select retail.vitrina_guardar_look(null, %L, null, true, %L::jsonb, null, null)', 'ZZ Look con CLAURE',
-  jsonb_build_array(jsonb_build_object('producto_id', :'emma', 'color', 'NEG'), jsonb_build_object('producto_id', :'carla', 'color', 'NEG'))::text));`),
-  "vitrina_look_prenda_no_se_ve",
-);
+// Un look solo de CAYLA (Emma + Falda) y uno con CLAURE (Emma + Carla). Las piezas llevan su color, como en el editor.
+const LOOKS = `
+select id as falda from retail.productos where referencia = 'Falda Renata' \\gset
+select retail.vitrina_mostrar(array[:'falda']::uuid[], true) \\gset
+select retail.vitrina_guardar_look(null, 'ZZ Look solo CAYLA', null, true,
+         jsonb_build_array(jsonb_build_object('producto_id', :'emma', 'color', 'NEG'), jsonb_build_object('producto_id', :'falda', 'color', 'NEG')),
+         null, null) ->> 'id' as look_cayla \\gset
+select retail.vitrina_guardar_look(null, 'ZZ Look con CLAURE', null, true,
+         jsonb_build_array(jsonb_build_object('producto_id', :'emma', 'color', 'NEG'), jsonb_build_object('producto_id', :'carla', 'color', 'NEG')),
+         null, null) ->> 'id' as look_claure \\gset
+`;
+const listaTrae = (nombre, sede) => `select retail.tienda_looks(${sede})::text like '%${nombre}%';`;
+const lookAbre = (id, sede) => `select (retail.tienda_look(:'${id}'::uuid, ${sede}) -> 'look') is not null and (retail.tienda_look(:'${id}'::uuid, ${sede}) -> 'look') <> 'null'::jsonb;`;
+esperarValor("el editor deja publicar un look con una prenda de CLAURE (y dice que se ve)", escenario(LOOKS + `select (retail.fn_vitrina_looks() -> 'looks') @> jsonb_build_array(jsonb_build_object('id', :'look_claure', 'se_ve', true));`), "t");
+esperarValor("el editor ofrece la prenda de CLAURE para elegirla", escenario(`select jsonb_path_exists(retail.fn_vitrina_looks() -> 'modelos', ('$[*] ? (@.id == "' || :'carla' || '")')::jsonpath);`), "t");
+esperarValor("Lima: la lista de looks trae el look con CLAURE", escenario(LOOKS + listaTrae("ZZ Look con CLAURE", LIMA)), "t");
+esperarValor("Trujillo: la lista de looks NO trae el look con CLAURE", escenario(LOOKS + listaTrae("ZZ Look con CLAURE", TRU)), "f");
+esperarValor("Lima: el look con CLAURE se abre por su enlace", escenario(LOOKS + lookAbre("look_claure", LIMA)), "t");
+esperarValor("Trujillo: el look con CLAURE no se abre por su enlace", escenario(LOOKS + lookAbre("look_claure", TRU)), "f");
+esperarValor("Trujillo: el look solo de CAYLA sigue saliendo", escenario(LOOKS + listaTrae("ZZ Look solo CAYLA", TRU)), "t");
+esperarValor("Lima: el look solo de CAYLA sigue saliendo", escenario(LOOKS + listaTrae("ZZ Look solo CAYLA", LIMA)), "t");
 
 console.log(fallos === 0 ? `\nTodo bien: ${total} comprobaciones.` : `\n${fallos} de ${total} comprobaciones fallaron.`);
 process.exit(fallos === 0 ? 0 : 1);

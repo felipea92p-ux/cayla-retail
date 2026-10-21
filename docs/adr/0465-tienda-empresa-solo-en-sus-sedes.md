@@ -27,13 +27,19 @@ tiene, y si no, arriba». La tienda ya no tiene «Todas» (Felipe 2026-10-19: «
   otra sede, la insignia aparece ahí sola. La tarjeta la dibuja con la misma cara
   de «Nuevo» (`insigniasDeTarjeta`, `apps/tienda/lib/catalogo.ts`): de arriba abajo puesto, oferta, «Nuevo» y la empresa; **sin «Nuevo» (por
   ejemplo en Lo nuevo, donde no se repite), la empresa sube al principio**. Sin el dato (base vieja), no hay insignia ni error.
+- **Looks con CLAURE (Felipe 2026-10-21):** «validar si un look contiene algún producto CLAURE: si es así, ese look solo debe estar disponible cuando la sede
+  sea Lima». La tienda ya mostraba un look solo si TODAS sus prendas están en el catálogo de esa tienda, así que «solo en Lima» sale solo de la regla de arriba: el look
+  con una prenda de CLAURE no sale en Trujillo ni por su enlace. Lo que faltaba era el **editor de la Vitrina**: `fn_vitrina_looks`, `vitrina_guardar_look` y
+  `vitrina_mostrar_look` usaban el catálogo sin tienda (que ya no trae CLAURE), así que no ofrecían sus prendas y rechazaban el look. Ahora usan
+  `fn_vitrina_catalogo_de_looks()`: las prendas que se ven en alguna tienda de la web (sin tienda + cada tienda), sin marcar el look con una tienda.
 - **Migraciones** (todas idempotentes, una parte, sin tablas en exclusiva ni políticas): `20261021000000_tienda_empresa_solo_en_sus_sedes`,
-  `20261021001000_tienda_catalogo_trae_la_empresa`, `20261021002000_tienda_separar_y_bolsa_empresa_por_tienda`. Requieren `20261020225000` (ya en
+  `20261021001000_tienda_catalogo_trae_la_empresa`, `20261021002000_tienda_separar_y_bolsa_empresa_por_tienda`, `20261021003000_vitrina_looks_con_claure_solo_en_lima`. Requieren `20261020225000` (ya en
   producción). El orden con la publicación de la web no importa.
 
 ## Alternativas descartadas
 
 - **Filtrar en `apps/tienda`:** deja el enlace directo y «Separar» abiertos.
+- **Marcar cada look con una tienda (`vitrina_looks.ubicacion_id`):** dos datos que se contradicen; la regla de las prendas ya decide dónde sale.
 - **Reescribir `fn_vitrina_publicable` con una sede:** es de la Vitrina del ERP, que tiene que ver todo lo publicado de cualquier empresa.
 - **Tocar `fn_variante_permitida_en_sede`:** la usan también la caja y los traslados del ERP; qué empresa va a qué sede allí es otra decisión.
 - **Decir «solo en Lima» en una ficha de CLAURE abierta desde otra tienda:** obliga a un caso más en la web; se trata como una prenda que no está.
@@ -42,13 +48,13 @@ tiene, y si no, arriba». La tienda ya no tiene «Todas» (Felipe 2026-10-19: «
 ## Lo que se rompe si…
 
 - Una función nueva de la tienda arma su lista con `fn_vitrina_publicable` sin llamar a `fn_tienda_empresa_se_ve`: la vigila `pnpm pruebas:tienda-empresas`
-  (31 comprobaciones; un mutante —el ayudante siempre responde sí— la pone en rojo: 9 de 27 fallaron).
+  (38 comprobaciones; dos mutantes —el ayudante siempre responde sí, el editor mira solo el catálogo sin tienda— la ponen en rojo).
 - CLAURE abre otra sede y nadie suma su fila en `empresa_sedes`: no se ve ahí (es seguro).
 
 ## Lo que queda (decisión de Felipe)
 
-- **Looks:** `vitrina_guardar_look` valida cada pieza contra `tienda_catalogo(null)`, que ya no trae CLAURE, así que **un look publicado no puede llevar una
-  prenda de CLAURE** (se rechaza con «tiene que verse en la web en ese color»). Un look de CLAURE solo para Lima pide un look por tienda.
+- **Editor de looks:** el aviso «solo en Lima» en la pantalla de Vitrina web ▸ Looks (hoy el editor ofrece las prendas de CLAURE y deja publicar el look, pero no
+  dice que ese look saldrá solo en Lima). Es una pantalla del ERP y se pide aparte.
 - **«Novedades para ti» del Club** (`tienda_mi_club` → `fn_tienda_novedades`) no recibe tienda: su cifra `total` puede contar una prenda de CLAURE que
   quien mira Trujillo no ve (las tarjetas salen del catálogo de la tienda y la omiten). No filtrado aún.
 - **Favoritos y «Avísame»:** se guardan por id; una de CLAURE guardada desde Lima no se dibuja con otra tienda elegida.
@@ -58,10 +64,10 @@ tiene, y si no, arriba». La tienda ya no tiene «Todas» (Felipe 2026-10-19: «
 
 ## Verificación
 
-`pnpm pruebas:tienda-empresas` (31/31: catálogo, ficha, probador, una tienda inventada, sin tienda, CLAURE abriendo en Trujillo con una fila, puerta de
-`tienda_web`, pegado dos veces, empresa en el catálogo, bolsa, «Separar» y looks); `tienda-bolsa`, `tienda-probador`, `tienda-club`, `tienda-puerta`,
+`pnpm pruebas:tienda-empresas` (38/38: catálogo, ficha, probador, una tienda inventada, sin tienda, CLAURE abriendo en Trujillo con una fila, puerta de
+`tienda_web`, pegado dos veces, empresa en el catálogo, bolsa, «Separar» y looks: el editor ofrece y deja publicar una prenda de CLAURE, el look con CLAURE sale en Lima y no en Trujillo, el solo de CAYLA sale en las dos); `tienda-bolsa`, `tienda-probador`, `tienda-club`, `tienda-puerta`,
 `tienda-separadas`, `tienda-looks-guardados`, `tienda-lugares` en verde; `tienda-ficha` y `tienda-inicio` aceptan la clave `empresa` en la lista exacta del catálogo
-(`tienda-ficha` deja un escenario de fotos en rojo SOLO en esta base local, por las fotos de demo que se cargaron). Tienda: 741 pruebas, tipos y lint en verde (6 nuevas
+(`tienda-ficha`, `vitrina-looks` y `vitrina-web` dejan un escenario en rojo SOLO en esta base local, por las fotos y publicaciones de demo que se cargaron). Tienda: 741 pruebas, tipos y lint en verde (6 nuevas
 de las insignias). Navegador: Lima muestra 13 prendas con «NUEVO / CLAURE» y «NUEVO / CAYLA»; Trujillo, solo CAYLA y SIN insignia de empresa, y el enlace de una prenda de CLAURE
 abre «Esta prenda ya no está en la tienda»; en Lo nuevo la insignia de la empresa queda arriba; a 375 px cabe. No recorrido en el navegador: agregar a la
 bolsa y separar (cubierto por la prueba de la base).
