@@ -12,6 +12,10 @@
  *      sumándole CLAURE a Trujillo: la prenda aparece ahí sin tocar ninguna función de la tienda.
  *   E. La puerta: `tienda_web` no ejecuta el ayudante `fn_tienda_empresa_se_ve`.
  *   F. Las migraciones se pueden pegar dos veces.
+ *   H. «Separar», la bolsa y «separadas por otros» (`20261021002000_tienda_separar_y_bolsa_empresa_por_tienda.sql`): la bolsa de
+ *      Trujillo dice que una prenda de CLAURE «no se vende» ahí (y que sí en Lima); «Separar» para recoger en Trujillo la rechaza con
+ *      `tienda_separar_no_se_vende` y, para recoger en Lima, no por la empresa; la ficha no cuenta separadas de una prenda que esa
+ *      tienda no muestra.
  *   G. El catálogo dice la empresa de cada prenda (`20261021001000_tienda_catalogo_trae_la_empresa.sql`): `empresa.clave` y
  *      `empresa.nombre` de CAYLA y de CLAURE, que es lo que dibuja la insignia de la tarjeta.
  *
@@ -34,6 +38,7 @@ const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] :
 const MIGRACIONES = [
   "supabase/migrations/20261021000000_tienda_empresa_solo_en_sus_sedes.sql",
   "supabase/migrations/20261021001000_tienda_catalogo_trae_la_empresa.sql",
+  "supabase/migrations/20261021002000_tienda_separar_y_bolsa_empresa_por_tienda.sql",
 ];
 const APLICAR_ANTES = process.env.APLICAR_ANTES
   ? process.env.APLICAR_ANTES.split(",")
@@ -178,6 +183,57 @@ const empresaDe = (prenda) =>
   `select (x -> 'empresa' ->> 'clave') || '/' || (x -> 'empresa' ->> 'nombre') from jsonb_array_elements(retail.tienda_catalogo(:'lim') -> 'prendas') x where (x ->> 'id')::uuid = :'${prenda}';`;
 esperarValor("la prenda de CAYLA trae cayla/CAYLA", escenario(empresaDe("emma")), "cayla/CAYLA");
 esperarValor("la prenda de CLAURE trae claure/CLAURE", escenario(empresaDe("carla")), "claure/CLAURE");
+
+console.log("H. «Separar», la bolsa y «separadas por otros»");
+// Una cuenta web de prueba (su usuario del proyecto de clientes es un id cualquiera) y una variante de cada prenda.
+const CUENTA = `
+insert into retail.clientas (nombre, telefono_whatsapp, documento_tipo, documento_numero, club_desde, codigo_club)
+values ('ZZ Cliente empresas', '999888779', 'dni', '09997009', now(), retail.fn_club_codigo_nuevo()) returning id as cli \\gset
+select gen_random_uuid() as usr \\gset
+insert into retail.cuentas_web (usuario_web_id, clienta_id, correo, textos_aceptados) values (:'usr', :'cli', 'zz-e@prueba-tienda.test', 'prueba');
+select id as v_carla from retail.variantes where producto_id = :'carla' and activo order by id limit 1 \\gset
+select id as v_emma from retail.variantes where producto_id = :'emma' and activo order by id limit 1 \\gset
+create function pg_temp.hint(p_sql text) returns text language plpgsql as $f$
+declare v_hint text;
+begin
+  begin
+    execute p_sql;
+    raise exception 'PROBAR_OK';
+  exception when others then
+    get stacked diagnostics v_hint = pg_exception_hint;
+    if sqlerrm = 'PROBAR_OK' then return 'ok'; end if;
+    return coalesce(v_hint, 'sin-hint:' || sqlerrm);
+  end;
+end $f$;
+`;
+const linea = (v) => `jsonb_build_array(jsonb_build_object('variante_id', :'${v}'::uuid, 'cantidad', 1))`;
+const seVende = (v, sede) =>
+  `select retail.tienda_bolsa(${linea(v)}, ${sede}) -> 'lineas' -> 0 -> 'en_sedes' -> (${sede})::text ->> 'se_vende';`;
+const separarHint = (v, sede) =>
+  `select pg_temp.hint(format('select retail.tienda_separar(%L, %L, %L, %L)', :'usr', ${sede}, jsonb_build_array(jsonb_build_object('variante_id', :'${v}'::uuid, 'cantidad', 1, 'precio', 1)), gen_random_uuid()));`;
+
+esperarValor("la bolsa de Lima dice que CLAURE se vende en Lima", escenario(CUENTA + seVende("v_carla", LIMA)), "true");
+esperarValor("la bolsa de Trujillo dice que CLAURE NO se vende en Trujillo", escenario(CUENTA + seVende("v_carla", TRU)), "false");
+esperarValor("la bolsa de Trujillo dice que CAYLA sí se vende en Trujillo", escenario(CUENTA + seVende("v_emma", TRU)), "true");
+esperarValor("«Separar» para recoger en Trujillo rechaza CLAURE: no se vende en esa tienda", escenario(CUENTA + separarHint("v_carla", TRU)), "tienda_separar_no_se_vende");
+esperar(
+  "«Separar» para recoger en Lima no rechaza CLAURE por la empresa",
+  (() => {
+    const r = escenario(CUENTA + separarHint("v_carla", LIMA));
+    return r.ok && r.salida !== "tienda_separar_no_se_vende" && r.salida !== "tienda_separar_no_publicada";
+  })(),
+  "rechazó por la empresa en Lima",
+);
+esperarValor(
+  "la ficha no cuenta separadas de CLAURE en Trujillo (no la muestra)",
+  escenario(CUENTA + `select retail.tienda_separadas_por_otros(:'usr', :'carla', ${TRU}) is null;`),
+  "t",
+);
+esperarValor(
+  "y en Lima sí responde (la muestra)",
+  escenario(CUENTA + `select retail.tienda_separadas_por_otros(:'usr', :'carla', ${LIMA}) is not null;`),
+  "t",
+);
 
 console.log(fallos === 0 ? `\nTodo bien: ${total} comprobaciones.` : `\n${fallos} de ${total} comprobaciones fallaron.`);
 process.exit(fallos === 0 ? 0 : 1);
