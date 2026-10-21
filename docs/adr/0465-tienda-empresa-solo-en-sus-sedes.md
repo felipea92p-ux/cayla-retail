@@ -39,6 +39,10 @@ tiene, y si no, arriba». La tienda ya no tiene «Todas» (Felipe 2026-10-19: «
   tienda vacía la bolsa y lo avisa antes) y su dirección `/bolsa?sede=` (con prendas, manda la tienda de la bolsa; sin ellas, la de la dirección o la última elegida);
   (2) la bolsa vacía ofrece Lo nuevo y los favoritos **de esa tienda** (antes leía el catálogo sin tienda, que no trae CLAURE ni la empresa): en Lima salen con su
   insignia; (3) cada línea de la bolsa dice su empresa encima del nombre (`tienda_bolsa` suma `empresa`, `20261021011000`, con la regla de siempre: solo en Lima).
+- **Toda tarjeta, en Lima (Felipe 2026-10-21):** la insignia de empresa sale solo si la página lee el catálogo DE UNA TIENDA. Mi perfil («Favoritos» y «Novedades para ti»)
+  y la página «Esta prenda ya no está» leían el catálogo sin tienda (que no trae CLAURE ni la empresa); ahora leen el de la tienda que la persona eligió la última vez
+  (`sedeRecordada`, `lib/sede-servidor.ts`: la cookie del selector; sin ella, la primera tienda; no redirige). Queda con el catálogo sin tienda solo lo que no dibuja tarjetas
+  (los menús de la cabecera).
 - **El pedido (Felipe 2026-10-21):** el detalle de un pedido (`/cuenta/pedidos/<n>`) y la página «Separado» dicen la empresa de cada prenda encima de su nombre
   (`PrendaDelPedido`). `tienda_mis_pedidos` (de la que sale `tienda_pedido`) suma `empresa` a cada línea, con la regla de siempre pero mirando la tienda DEL PEDIDO (donde
   se recoge): un pedido a Lima la dice; uno a Trujillo, no (`20261021013000`).

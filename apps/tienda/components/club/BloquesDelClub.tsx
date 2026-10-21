@@ -193,12 +193,15 @@ export function NovedadesParaTi({
   prendas,
   favoritos,
   origenFotos,
+  sede = null,
 }: {
   novedades: MiClub["novedades"];
   /** Las prendas del catálogo de esas novedades, en su orden (las que ya no se ven no llegan). */
   prendas: Prenda[];
   favoritos: ReadonlySet<string>;
   origenFotos: string | undefined;
+  /** La tienda en que se mira (su clave): los enlaces de cada tarjeta la llevan. */
+  sede?: string | null;
 }) {
   const enCarril = prendas.slice(0, NOVEDADES_EN_EL_CARRIL);
   const verMas =
@@ -218,7 +221,7 @@ export function NovedadesParaTi({
       {enCarril.length > 0 && (
         <Carril>
           {enCarril.map((p) => (
-            <TarjetaPrenda key={p.id} prenda={p} sede={null} origenFotos={origenFotos} guardado={favoritos.has(p.id)} />
+            <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} guardado={favoritos.has(p.id)} />
           ))}
         </Carril>
       )}
@@ -232,6 +235,7 @@ export function TusFavoritos({
   cuantos,
   sinMostrar,
   origenFotos,
+  sede = null,
 }: {
   prendas: Prenda[];
   /** Cuántos guardó (los mismos que cuenta el corazón de la cabecera). */
@@ -239,6 +243,8 @@ export function TusFavoritos({
   /** Cuántos de sus favoritos ya no se ven en la tienda online. */
   sinMostrar: number;
   origenFotos: string | undefined;
+  /** La tienda en que se mira (su clave): los enlaces de cada tarjeta la llevan. */
+  sede?: string | null;
 }) {
   return (
     <SeccionDelPerfil
@@ -250,7 +256,7 @@ export function TusFavoritos({
       {prendas.length > 0 ? (
         <Carril>
           {prendas.slice(0, FAVORITOS_EN_EL_PERFIL).map((p) => (
-            <TarjetaPrenda key={p.id} prenda={p} sede={null} origenFotos={origenFotos} guardado />
+            <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} guardado />
           ))}
         </Carril>
       ) : (
