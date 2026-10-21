@@ -39,6 +39,11 @@ export type PrendaWeb = {
   categoria: string | null;
   categoriaPrefijo: string | null;
   categoriaFamilia: string | null;
+  /** El producto de la prenda: con él se busca su empresa (`productos.empresa_id`). */
+  productoId: string | null;
+  /** La empresa a la que pertenece la prenda (ADR-0463): su nombre y su clave. Solo se llena en una sede con dos empresas (`conEmpresas`). */
+  empresa: string | null;
+  empresaClave: string | null;
 };
 
 export type PedidoDeLista = {
@@ -279,7 +284,33 @@ function leerPrenda(x: unknown): PrendaWeb {
     categoria: texto(p.categoria),
     categoriaPrefijo: texto(p.categoria_prefijo),
     categoriaFamilia: texto(p.categoria_familia),
+    productoId: texto(p.producto_id),
+    empresa: null,
+    empresaClave: null,
   };
+}
+
+export type EmpresaDeSede = { id: string; clave: string; nombre: string };
+
+/** Le pone a cada prenda de un detalle su empresa. `empresaDeProducto` es producto → id de empresa (`productos.empresa_id`) y `empresas` las
+ *  de la sede (`fn_empresas_de_sede`). Una prenda cuya empresa no se conoce queda sin ella: nunca se inventa una. */
+export function conEmpresas(detalle: PedidoDetalle, empresas: EmpresaDeSede[], empresaDeProducto: Map<string, string>): PedidoDetalle {
+  const porId = new Map(empresas.map((e) => [e.id, e]));
+  return {
+    ...detalle,
+    lineas: detalle.lineas.map((l) => {
+      const e = l.productoId ? porId.get(empresaDeProducto.get(l.productoId) ?? "") : undefined;
+      return e ? { ...l, empresa: e.nombre, empresaClave: e.clave } : l;
+    }),
+  };
+}
+
+/** Lo que el detalle del pedido dice de la empresa de una prenda (ADR-0463, Felipe 2026-10-20): solo donde conviven dos empresas (Lima:
+ *  `variasEmpresas`, que sale de `fn_empresas_de_sede`, nunca del nombre de la sede) y solo si la base la trajo. CAYLA va en neutro y las
+ *  demás en pizarra: es informativo, no un semáforo. */
+export function empresaDeLaPrenda(prenda: Pick<PrendaWeb, "empresa" | "empresaClave">, variasEmpresas: boolean): { texto: string; tono: "neutro" | "pizarra" } | null {
+  if (!variasEmpresas || !prenda.empresa) return null;
+  return { texto: prenda.empresa, tono: prenda.empresaClave === "cayla" ? "neutro" : "pizarra" };
 }
 
 /** Lo de `fn_pedidos_web_tablero`. Lo que no se entiende se salta (una fila rota no tumba la lista). */

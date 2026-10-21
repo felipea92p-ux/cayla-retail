@@ -1,6 +1,7 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
-import { leerDetalle, leerTablero, type PestanaPedidos } from "@/lib/pedidos-web-reglas";
+import { conEmpresas, leerDetalle, leerTablero, type PestanaPedidos } from "@/lib/pedidos-web-reglas";
+import { getEmpresaDeProductos, getEmpresasDeLaSede } from "@/lib/pedidos-web";
 import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { PedidosWebPantalla } from "@/components/pedidos-web/PedidosWebPantalla";
@@ -29,10 +30,18 @@ export default async function PedidosWebPage({ searchParams }: { searchParams: P
 
   const supabase = await createClient();
   const idPedido = pedido && /^[0-9a-f-]{36}$/i.test(pedido) ? pedido : null;
-  const [tablero, detalle] = await Promise.all([
+  const [tablero, detalle, empresas] = await Promise.all([
     supabase.rpc("fn_pedidos_web_tablero", { p_ubicacion_id: persona.ubicacionId }),
     idPedido ? supabase.rpc("fn_pedido_web_detalle", { p_pedido_id: idPedido }) : Promise.resolve(null),
+    // En Lima conviven CAYLA y CLAURE: el detalle dice de cuál es cada prenda (ADR-0463). En las demás sedes no se nombra.
+    getEmpresasDeLaSede(persona.ubicacionId),
   ]);
+
+  // En Lima cada prenda dice su empresa: se lee de `productos.empresa_id`, así que no depende de una función nueva en la base.
+  let detalleLeido = detalle && !detalle.error ? leerDetalle(detalle.data) : null;
+  if (detalleLeido && empresas.length > 0) {
+    detalleLeido = conEmpresas(detalleLeido, empresas, await getEmpresaDeProductos(detalleLeido.lineas.flatMap((l) => (l.productoId ? [l.productoId] : []))));
+  }
 
   if (tablero.error) {
     return (
@@ -51,11 +60,12 @@ export default async function PedidosWebPage({ searchParams }: { searchParams: P
       tablero={leerTablero(tablero.data)}
       tiendaId={persona.ubicacionId}
       tienda={persona.ubicacionEtiqueta}
+      variasEmpresas={empresas.length > 0}
       ahoraIso={new Date().toISOString()}
       // `?pestana=` es el filtro del camino (el nombre viene de cuando eran pestañas: un enlace guardado o del Resumen sigue sirviendo).
       filtroInicial={PESTANAS.find((p) => p === pestana) ?? null}
       // Un pedido de otra tienda, o que ya no existe, no abre nada: la base lo rechaza y la lista queda como estaba.
-      detalle={detalle && !detalle.error ? leerDetalle(detalle.data) : null}
+      detalle={detalleLeido}
       detalleFallo={Boolean(idPedido && (!detalle || detalle.error))}
     />
   );
