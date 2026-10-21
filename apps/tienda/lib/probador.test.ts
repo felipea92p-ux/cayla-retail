@@ -131,7 +131,7 @@ describe("zonaDe: la zona de cada categoría, por su prefijo (máximo 3 prendas:
     expect(["MOC", "ARE", "ZAP", "BOL", "MAQ"].map((p) => de(p))).toEqual([null, null, null, null, null]);
     expect(zonaDe(null)).toBeNull();
   });
-  it("una categoría nueva que nadie ordenó cae en «Encima y más» del menú, y en el armador es prenda de arriba", () => {
+  it("una categoría nueva que nadie ordenó cae en «Chompas/Abrigos» del menú, y en el armador es prenda de arriba", () => {
     expect(de("KIM")).toBe("arriba");
   });
 });
