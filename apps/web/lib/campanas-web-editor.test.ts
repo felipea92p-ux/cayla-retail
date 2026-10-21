@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { AMBIENTES_CAMPANA } from "@cayla-retail/shared";
 import {
+  accionesDelDiseno,
+  enlaceDeVistaPrevia,
+  vencimientoDicho,
   BORRADOR_VACIO,
   DONDE_TODO,
   PIEZAS_DONDE,
@@ -274,5 +277,87 @@ describe("el modo «Mi propia imagen»", () => {
   it("cambiar la imagen viaja sola", () => {
     const guardado = borradorDe({ diseno: diseno({ modo: "imagen", plantilla: null, imagenRuta: RUTA_H }) });
     expect(parcheDeCambios(guardado, conImagen(guardado, RUTA_V))).toEqual({ imagen_ruta: RUTA_V });
+  });
+});
+
+describe("accionesDelDiseno: qué se puede hacer con el diseño ahora", () => {
+  const guardadoOk = borradorDe({ diseno: diseno() });
+  const ahora = (b: BorradorDiseno = guardadoOk) => ({ terminada: false, estado: "borrador" as const, guardado: guardadoOk, ahora: b });
+
+  it("un borrador guardado, sin cambios sueltos y que se lee, se puede programar (y tiene vista previa)", () => {
+    expect(accionesDelDiseno(ahora())).toEqual({ programar: true, porQueNoProgramar: null, aBorrador: false, vistaPrevia: true });
+  });
+
+  it("sin diseño guardado no se programa ni tiene vista previa", () => {
+    const a = accionesDelDiseno({ terminada: false, estado: null, guardado: null, ahora: conAmbiente(BORRADOR_VACIO, "aniversario") });
+    expect(a).toEqual({ programar: false, porQueNoProgramar: "Guarda el borrador primero.", aBorrador: false, vistaPrevia: false });
+  });
+
+  it("con cambios sin guardar no se programa: primero se guarda (lo que se programa es lo guardado)", () => {
+    const a = accionesDelDiseno(ahora(conPaleta(guardadoOk, 1)));
+    expect(a.programar).toBe(false);
+    expect(a.porQueNoProgramar).toBe("Guarda tus cambios antes de programar.");
+    expect(a.vistaPrevia).toBe(true);
+  });
+
+  it("un diseño guardado que no se lee (color propio casi igual al fondo) no se programa y dice qué falta", () => {
+    const malo = conAcento(borradorDe({ diseno: diseno({ plantilla: "cyber" }) }), "#1a1a19");
+    const a = accionesDelDiseno({ terminada: false, estado: "borrador", guardado: malo, ahora: malo });
+    expect(a.programar).toBe(false);
+    expect(a.porQueNoProgramar).toBe("Falta: un color que se lea bien.");
+  });
+
+  it("sin ninguna pieza encendida no se programa", () => {
+    let b = guardadoOk;
+    for (const k of PIEZAS_DONDE) b = conDonde(b, k, false);
+    const a = accionesDelDiseno({ terminada: false, estado: "borrador", guardado: b, ahora: b });
+    expect(a.programar).toBe(false);
+    expect(a.porQueNoProgramar).toBe("Falta: elegir dónde se ve.");
+  });
+
+  it("un diseño ya programado se puede volver a borrador, no se vuelve a programar y no dice por qué no", () => {
+    expect(accionesDelDiseno({ ...ahora(), estado: "programado" })).toEqual({ programar: false, porQueNoProgramar: null, aBorrador: true, vistaPrevia: true });
+  });
+
+  it("una campaña que terminó no se programa, no vuelve a borrador ni tiene vista previa", () => {
+    expect(accionesDelDiseno({ ...ahora(), terminada: true })).toEqual({ programar: false, porQueNoProgramar: "La campaña ya terminó.", aBorrador: false, vistaPrevia: false });
+    expect(accionesDelDiseno({ ...ahora(), terminada: true, estado: "programado" }).aBorrador).toBe(false);
+  });
+
+  it("con imagen propia: programable cuando la imagen está guardada", () => {
+    const img = conImagen(conModo(BORRADOR_VACIO, "imagen"), RUTA_H);
+    expect(accionesDelDiseno({ terminada: false, estado: "borrador", guardado: img, ahora: img }).programar).toBe(true);
+  });
+});
+
+describe("enlaceDeVistaPrevia y vencimientoDicho", () => {
+  const llave = "0123456789abcdef".repeat(3);
+
+  it("arma la dirección con el origen de la tienda y la llave, sin importar un «/» al final ni una ruta", () => {
+    expect(enlaceDeVistaPrevia("https://tienda.cayla.pe", llave)).toBe(`https://tienda.cayla.pe/vista-previa/${llave}`);
+    expect(enlaceDeVistaPrevia("https://tienda.cayla.pe/", llave)).toBe(`https://tienda.cayla.pe/vista-previa/${llave}`);
+    expect(enlaceDeVistaPrevia("http://localhost:3100/inicio", llave)).toBe(`http://localhost:3100/vista-previa/${llave}`);
+  });
+
+  it("sin tienda, con una dirección rara o con una llave que no es de 48 letras de 0 a f, no hay enlace", () => {
+    expect(enlaceDeVistaPrevia(null, llave)).toBeNull();
+    expect(enlaceDeVistaPrevia("tienda.cayla.pe", llave)).toBeNull();
+    expect(enlaceDeVistaPrevia("javascript:alert(1)", llave)).toBeNull();
+    expect(enlaceDeVistaPrevia("https://tienda.cayla.pe", "corta")).toBeNull();
+    expect(enlaceDeVistaPrevia("https://tienda.cayla.pe", llave.toUpperCase())).toBeNull();
+    expect(enlaceDeVistaPrevia("https://tienda.cayla.pe", `${llave}/../x`)).toBeNull();
+  });
+
+  it("dice hasta qué día vale, en la hora de Lima", () => {
+    expect(vencimientoDicho("2026-10-28T19:00:00Z")).toBe("hasta el 28 oct");
+    // a las 03:00 UTC todavía es el día anterior en Lima
+    expect(vencimientoDicho("2026-10-29T03:00:00Z")).toBe("hasta el 28 oct");
+    expect(vencimientoDicho("no es una fecha")).toBeNull();
+  });
+
+  it("los errores nuevos de la base salen en palabras de tienda", () => {
+    expect(errorDeCampanas("campana_diseno_incompleto")?.titulo).toBe("Falta una pieza de la tienda");
+    expect(errorDeCampanas("campana_sin_diseno")?.titulo).toContain("todavía no tiene diseño");
+    expect(errorDeCampanas("campana_previa_demasiadas")?.titulo).toContain("20 enlaces");
   });
 });

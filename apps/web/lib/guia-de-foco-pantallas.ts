@@ -307,6 +307,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/InsumoModales.tsx": { estado: "aplicada", evidencia: ["components/InsumoModales.tsx"] },
   "components/MovimientoCajaModal.tsx": PENDIENTE, // 6 controles
   "components/NuevaClientaModal.tsx": { estado: "aplicada", evidencia: ["components/NuevaClientaModal.tsx"] },
+  "components/campanas-web/VistaPreviaCampana.tsx": { estado: "no-aplica", motivo: "Una hoja de un solo paso: «Crear enlace» y copiarlo. El único control es el «Responsable» de siempre y la hoja dice qué hace antes de pedir nada." },
   // Avisos, «Editar mensajes» (2026-10-20): cada aviso es un campo (lo que rechazaría `fn_club_aviso_problema`), el cierre opcional y quién lo cambia.
   "components/clientas/EditarMensajesAvisos.tsx": { estado: "aplicada", evidencia: ["components/clientas/EditarMensajesAvisos.tsx"] },
   // Pedidos web (ADR-0408 act. 8): confirmar enciende prenda por prenda y después quién; cerrar y anular, el motivo y quién; enviar, el día.

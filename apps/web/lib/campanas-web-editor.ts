@@ -43,7 +43,7 @@ import {
   type FranjaCampana,
   type IntensidadCampana,
 } from "@cayla-retail/shared";
-import { campanaDeJson, type CampanaWeb, type EstadoDiseno, type ModoDiseno } from "./campanas-web-reglas";
+import { campanaDeJson, fechaCortaDicha, type CampanaWeb, type EstadoDiseno, type ModoDiseno } from "./campanas-web-reglas";
 
 /** Las cinco piezas de la tienda que el diseño puede vestir. */
 export const PIEZAS_DONDE = ["franja", "portada", "catalogo", "sello", "bolsa"] as const;
@@ -299,6 +299,9 @@ const ERRORES: Record<string, { titulo: string; detalle?: string }> = {
   campana_terminada: { titulo: "Esa campaña ya terminó", detalle: "Su diseño ya no se cambia: la tienda volvió sola a verse como siempre." },
   campana_no_existe: { titulo: "Esa campaña ya no existe", detalle: "Vuelve a la lista de campañas." },
   campana_diseno_datos_invalidos: { titulo: "El diseño no es válido", detalle: "Revisa el ambiente y los colores." },
+  campana_diseno_incompleto: { titulo: "Falta una pieza de la tienda", detalle: "Enciende al menos una en «Dónde se ve»: si no, programarlo no cambiaría nada." },
+  campana_sin_diseno: { titulo: "Esta campaña todavía no tiene diseño", detalle: "Guárdalo primero como borrador." },
+  campana_previa_demasiadas: { titulo: "Ya hay 20 enlaces de vista previa vivos", detalle: "Espera a que venzan los anteriores (duran 7 días)." },
 };
 
 /** El error de la base (su código está en el mensaje y la frase en `hint`) en un título y un detalle; `null` si no es de las campañas. */
@@ -307,4 +310,67 @@ export function errorDeCampanas(mensaje: string): { titulo: string; detalle?: st
     if (mensaje.includes(codigo)) return e;
   }
   return null;
+}
+
+// ---------------------------------------------------------------- Programar, volver a borrador y la vista previa privada
+
+export type AccionesDelDiseno = {
+  /** Se puede pasar a «programado»: guardado, sin cambios sueltos, que se lea y que se vea en alguna pieza. */
+  programar: boolean;
+  /** Si no se puede programar, por qué, en palabras de tienda (`null` si se puede o si ya está programado). */
+  porQueNoProgramar: string | null;
+  /** Se puede volver a borrador (está programado y la campaña no terminó). */
+  aBorrador: boolean;
+  /** Se puede crear un enlace de vista previa privada (hay un diseño guardado y la campaña no terminó). */
+  vistaPrevia: boolean;
+};
+
+/** Qué se puede hacer con el diseño en este momento. Lo que decide la base (versión, módulo, campaña que terminó) se vuelve a comprobar allá: esto solo
+ *  evita ofrecer un botón que va a fallar. `guardado` es el borrador tal como está en la base (`null` si la campaña aún no tiene diseño). */
+export function accionesDelDiseno({
+  terminada,
+  estado,
+  guardado,
+  ahora,
+}: {
+  terminada: boolean;
+  estado: EstadoDiseno | null;
+  guardado: BorradorDiseno | null;
+  ahora: BorradorDiseno;
+}): AccionesDelDiseno {
+  const hayGuardado = guardado !== null && estado !== null;
+  const sinCambios = parcheDeCambios(guardado, ahora) === null;
+  const faltan = faltanDelDiseno(ahora);
+  let porQue: string | null = null;
+  if (terminada) porQue = "La campaña ya terminó.";
+  else if (!hayGuardado) porQue = "Guarda el borrador primero.";
+  else if (!sinCambios) porQue = "Guarda tus cambios antes de programar.";
+  else if (faltan.length > 0) porQue = `Falta: ${faltan.map((f) => f.texto).join(", ")}.`;
+  const programar = estado === "borrador" && porQue === null;
+  return {
+    programar,
+    porQueNoProgramar: estado === "programado" ? null : porQue,
+    aBorrador: !terminada && estado === "programado",
+    vistaPrevia: !terminada && hayGuardado,
+  };
+}
+
+/** La dirección de la vista previa privada: la tienda online y la llave (que viaja una sola vez, al crearla). Sin dirección de la tienda, `null`. */
+export function enlaceDeVistaPrevia(tienda: string | null | undefined, llave: string): string | null {
+  if (!tienda || !/^[0-9a-f]{48}$/.test(llave)) return null;
+  try {
+    const origen = new URL(tienda);
+    if (origen.protocol !== "https:" && origen.protocol !== "http:") return null;
+    return `${origen.origin}/vista-previa/${llave}`;
+  } catch {
+    return null;
+  }
+}
+
+/** «hasta el 28 oct» de la fecha y hora en que vence el enlace (la hora de Lima). */
+export function vencimientoDicho(expiraEn: string): string | null {
+  const t = Date.parse(expiraEn);
+  if (Number.isNaN(t)) return null;
+  const lima = new Date(t - 5 * 3600 * 1000).toISOString().slice(0, 10);
+  return `hasta el ${fechaCortaDicha(lima)}`;
 }

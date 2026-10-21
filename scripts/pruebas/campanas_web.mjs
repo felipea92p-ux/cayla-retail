@@ -18,6 +18,10 @@
  *   5. Lo que lee la tienda (`tienda_diseno_campana`, solo de `tienda_web`): la campaña que gana la portada con su diseño PROGRAMADO; un
  *      borrador no se ve; gana primero la campaña y después su diseño; sin prendas, terminada o por empezar no se anuncia.
  *   6. La migración se puede volver a correr sin duplicar nada.
+ *   7. El almacén de las imágenes (`20261021181000`): el bucket público, quién puede subir (el módulo) y que nadie borra ni cambia lo subido.
+ *   8. Programar y la vista previa privada (`20261021194000`): programar / pasar a borrador (módulo, versión, una pieza encendida, campaña que
+ *      terminó, idempotente, Actividad), que editar un programado lo deja programado, y los enlaces de vista previa (solo la huella en la tabla,
+ *      7 días, tope de 20, vencidos y campañas terminadas no abren, la tienda no toca la tabla).
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK, como Felipe (líder) o Micaela (integrante de Trujillo): nunca se
  * commitea nada en el Postgres local que comparten los worktrees.
@@ -534,6 +538,161 @@ function main() {
         select count(*) from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'retail_campanas_insert';
         rollback;`),
       "1",
+    );
+  }
+
+  // ---------------------------------------------------------------- 8. Programar y la vista previa privada (20261021194000)
+  console.log("\n— Programar y vista previa privada —");
+  const MIGRACION_PROGRAMAR = readFileSync("supabase/migrations/20261021194000_campanas_web_programar_y_vista_previa.sql", "utf8");
+  const hayProgramar = correr("select to_regprocedure('retail.programar_campana_diseno(uuid,integer)') is not null;");
+  if (hayProgramar.salida !== "t") {
+    console.log(`  (omitido: aplica supabase/migrations/20261021194000_campanas_web_programar_y_vista_previa.sql)`);
+  } else {
+    const CON_DISENO = (nombre = "ZZ Prog", extra = {}) =>
+      `${PREPARAR}${campana(nombre, 20, { desde: "-1", hasta: "9", ...extra })}${aTodasLasTallas("emma")}${guardar(AMBIENTE)} \\gset\n`;
+    // Sin imprimir lo que devuelve (el JSON del diseño): solo importa lo que deja en la base.
+    const PROGRAMA = `select retail.programar_campana_diseno(:'etq', ${VERSION}) \\g /dev/null\n`;
+    const ESTADO = `(select estado || '/' || version from retail.campana_web_disenos where etiqueta_id = :'etq')`;
+    for (const [que, sql] of [
+      ["programar", `select retail.programar_campana_diseno(:'etq', 1);`],
+      ["volver a borrador", `select retail.desprogramar_campana_diseno(:'etq', 1);`],
+      ["crear una vista previa", `select retail.crear_campana_vista_previa(:'etq');`],
+    ]) {
+      esperarError(`sin el módulo no se puede ${que}`, correr(`${CON_DISENO()}${COMO_MICAELA}${sql}\nrollback;`), "campanas_web_sin_modulo");
+    }
+    esperarError("la tienda no puede programar ni crear enlaces de vista previa", correr(`${CON_DISENO()}${COMO_TIENDA}select retail.programar_campana_diseno(:'etq', 1);\nrollback;`), "permission denied");
+    esperarError("una campaña sin diseño no se programa", correr(`${PREPARAR}${campana("ZZ Sin", 20, { hasta: "5" })}select retail.programar_campana_diseno(:'etq', 1);\nrollback;`), "campana_sin_diseno");
+    esperarError("ni tiene vista previa", correr(`${PREPARAR}${campana("ZZ Sin", 20, { hasta: "5" })}select retail.crear_campana_vista_previa(:'etq');\nrollback;`), "campana_sin_diseno");
+    esperarValor(
+      "programar pasa de borrador a programado, sube la versión, deja una línea en la Actividad y la tienda lo ve",
+      correr(`${CON_DISENO()}
+        select ${ACTIVIDAD} as antes \\gset
+        ${PROGRAMA}
+        select concat_ws('|', ${ESTADO}, ${ACTIVIDAD} - :antes,
+          (select count(*) from retail.actividad where modulo = 'campanas_web' and accion = 'campana_diseno_programado' and registro_id = :'etq'::text));
+        ${COMO_TIENDA}select retail.tienda_diseno_campana() #>> '{campana,diseno,plantilla}';
+        rollback;`),
+      "programado/2|1|1\naniversario",
+    );
+    esperarValor(
+      "programar dos veces no escribe ni anota la segunda",
+      correr(`${CON_DISENO()}
+        ${PROGRAMA}        select ${ACTIVIDAD} as antes \\gset
+        select retail.programar_campana_diseno(:'etq', ${VERSION}) is not null;
+        select concat_ws('|', ${ESTADO}, ${ACTIVIDAD} - :antes);
+        rollback;`),
+      "t\nprogramado/2|0",
+    );
+    esperarError("con la versión vieja no pisa a otra persona", correr(`${CON_DISENO()}select retail.programar_campana_diseno(:'etq', 99);\nrollback;`), "campana_cambio_otro");
+    esperarError(
+      "sin ninguna pieza de la tienda encendida no se programa",
+      correr(`${PREPARAR}${campana("ZZ Nada", 20, { hasta: "5" })}${guardar('{"modo":"ambiente","plantilla":"aniversario","donde_franja":false,"donde_portada":false,"donde_catalogo":false,"donde_sello":false,"donde_bolsa":false}')} \\gset
+        ${PROGRAMA}rollback;`),
+      "campana_diseno_incompleto",
+    );
+    esperarError(
+      "una campaña que ya terminó no se programa ni tiene vista previa",
+      correr(`${PREPARAR}${campana("ZZ Fin", 20, { desde: "-10", hasta: "-3" })}${diseno()}${PROGRAMA}rollback;`),
+      "campana_terminada",
+    );
+    esperarValor(
+      "volver a borrador saca el diseño de la tienda, y volver a hacerlo no cambia nada",
+      correr(`${CON_DISENO()}
+        ${PROGRAMA}
+        select retail.desprogramar_campana_diseno(:'etq', ${VERSION}) is not null;
+        select ${ESTADO};
+        select retail.desprogramar_campana_diseno(:'etq', ${VERSION}) is not null;
+        select ${ESTADO};
+        ${COMO_TIENDA}select coalesce((retail.tienda_diseno_campana() #> '{campana,diseno}')::text, 'null');
+        rollback;`),
+      "t\nborrador/3\nt\nborrador/3\nnull",
+    );
+    esperarValor(
+      "editar un diseño programado lo deja programado (se ve en la tienda sin otro paso)",
+      correr(`${CON_DISENO()}
+        ${PROGRAMA}
+        select retail.guardar_campana_diseno(:'etq', ${VERSION}, '{"efecto":"copos"}'::jsonb) is not null;
+        select ${ESTADO};
+        ${COMO_TIENDA}select retail.tienda_diseno_campana() #>> '{campana,diseno,efecto}';
+        rollback;`),
+      "t\nprogramado/3\ncopos",
+    );
+
+    // ---- la vista previa privada
+    esperarValor(
+      "una vista previa da una llave de 48 letras que la tabla no guarda (solo su huella), vence en 7 días y deja su línea en la Actividad",
+      correr(`${CON_DISENO()}
+        select ${ACTIVIDAD} as antes \\gset
+        select retail.crear_campana_vista_previa(:'etq') ->> 'llave' as llave \\gset
+        select concat_ws('|', length(:'llave'), (select count(*) from retail.campana_web_previas where huella = :'llave'),
+          (select count(*) from retail.campana_web_previas where huella = encode(extensions.digest(:'llave', 'sha256'), 'hex')),
+          (select round(extract(epoch from expira_en - now()) / 86400) from retail.campana_web_previas where etiqueta_id = :'etq'), ${ACTIVIDAD} - :antes);
+        rollback;`),
+      "48|0|1|7|1",
+    );
+    esperarValor(
+      "con la llave la tienda ve el diseño aunque sea un borrador y la campaña aún no empiece",
+      correr(`${PREPARAR}${campana("ZZ Futura", 20, { desde: "3", hasta: "9" })}${guardar(AMBIENTE)} \\gset
+        select retail.crear_campana_vista_previa(:'etq') ->> 'llave' as llave \\gset
+        ${COMO_TIENDA}select concat_ws('|', r #>> '{campana,nombre}', r #>> '{campana,diseno,plantilla}', r #>> '{campana,pct}', (r ->> 'expira_en') is not null)
+          from (select retail.tienda_diseno_campana_previa(:'llave') r) x;
+        rollback;`),
+      "ZZ Futura|aniversario|20.00|t",
+    );
+    esperarValor(
+      "una llave que no existe, vacía, nula o vencida no abre nada",
+      correr(`${CON_DISENO()}
+        select retail.crear_campana_vista_previa(:'etq') ->> 'llave' as llave \\gset
+        update retail.campana_web_previas set expira_en = now() - interval '1 minute' where etiqueta_id = :'etq';
+        ${COMO_TIENDA}select concat_ws('|',
+          coalesce((retail.tienda_diseno_campana_previa(:'llave') -> 'campana')::text, 'null'),
+          coalesce((retail.tienda_diseno_campana_previa('no-existe') -> 'campana')::text, 'null'),
+          coalesce((retail.tienda_diseno_campana_previa('') -> 'campana')::text, 'null'),
+          coalesce((retail.tienda_diseno_campana_previa(null) -> 'campana')::text, 'null'));
+        rollback;`),
+      "null|null|null|null",
+    );
+    esperarValor(
+      "si la campaña termina, su enlace deja de abrir",
+      correr(`${CON_DISENO()}
+        select retail.crear_campana_vista_previa(:'etq') ->> 'llave' as llave \\gset
+        update retail.etiquetas set vigente_hasta = :'hoy'::date - 1 where id = :'etq';
+        ${COMO_TIENDA}select coalesce((retail.tienda_diseno_campana_previa(:'llave') -> 'campana')::text, 'null');
+        rollback;`),
+      "null",
+    );
+    esperarValor(
+      "la tienda no puede leer la tabla de enlaces y los vencidos se limpian al crear otro",
+      correr(`${CON_DISENO()}
+        select retail.crear_campana_vista_previa(:'etq') ->> 'llave' as llave \\gset
+        update retail.campana_web_previas set expira_en = now() - interval '1 day' where etiqueta_id = :'etq';
+        select retail.crear_campana_vista_previa(:'etq') is not null;
+        select count(*) from retail.campana_web_previas where etiqueta_id = :'etq';
+        rollback;`),
+      "t\n1",
+    );
+    esperarError(
+      "la tienda no puede leer la tabla de enlaces",
+      correr(`${CON_DISENO()}${COMO_TIENDA}select count(*) from retail.campana_web_previas;\nrollback;`),
+      "permission denied",
+    );
+    esperarError(
+      "a lo más 20 enlaces vivos por campaña",
+      correr(`${CON_DISENO()}
+        insert into retail.campana_web_previas (etiqueta_id, huella, expira_en)
+          select :'etq', encode(extensions.digest(g::text, 'sha256'), 'hex'), now() + interval '1 day' from generate_series(1, 20) g;
+        select retail.crear_campana_vista_previa(:'etq');
+        rollback;`),
+      "campana_previa_demasiadas",
+    );
+    esperarValor(
+      "pegar la migración dos veces no rompe nada",
+      correr(`${CON_DISENO()}
+        ${MIGRACION_PROGRAMAR}
+        ${MIGRACION_PROGRAMAR}
+        select ${ESTADO};
+        rollback;`),
+      "borrador/1",
     );
   }
 

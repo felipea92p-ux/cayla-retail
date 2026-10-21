@@ -25,15 +25,19 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso } from "@/components/ui/Aviso";
+import { Chip } from "@/components/ui/Chip";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto, Interruptor } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { PreviewCampana, type ImagenesDeVista, type PiezaDeVista } from "./PreviewCampana";
+import { VistaPreviaCampana } from "./VistaPreviaCampana";
 import { createClient } from "@/lib/supabase/client";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { traducirError } from "@/lib/error-escritura";
+import { fechaCortaDicha } from "@/lib/campanas-web-reglas";
 import {
+  accionesDelDiseno,
   borradorDe,
   coloresDelBorrador,
   PIEZAS_DONDE,
@@ -56,6 +60,7 @@ import {
   type BorradorDiseno,
   type FichaCampana,
 } from "@/lib/campanas-web-editor";
+import type { EstadoDiseno } from "@/lib/campanas-web-reglas";
 import { camposDeDiseno } from "@/lib/campanas-web-guia";
 import { sugerirTextos } from "@/lib/sugerencias-campanas-web";
 import { direccionDeImagenDeCampana, prepararImagenDeCampana, subirImagenDeCampana } from "@/lib/imagen-de-campana";
@@ -96,12 +101,16 @@ const PIEZAS: Record<(typeof PIEZAS_DONDE)[number], { titulo: string; ayuda: str
  * guardar el borrador. Guardar firma el «Responsable» (ADR-0162); si otra persona cambió la campaña mientras estaba abierta, la base lo dice
  * y no pisa nada. Un borrador no se ve en la tienda: eso lo decide programar.
  */
-export function EditorCampana({ ficha }: { ficha: FichaCampana }) {
+export function EditorCampana({ ficha, tiendaUrl }: { ficha: FichaCampana; tiendaUrl: string | null }) {
   const responsable = useResponsable();
   const terminada = ficha.campana.estado === "fin";
   // Lo guardado y su versión: tras cada guardado se reemplazan por lo que devuelve la base.
   const [guardado, setGuardado] = useState<BorradorDiseno>(() => borradorDe(ficha));
   const [version, setVersion] = useState<number | null>(ficha.diseno?.version ?? null);
+  // Borrador (la tienda no lo ve) o programado (la tienda lo muestra mientras dure la campaña); `null` mientras la campaña no tiene diseño guardado.
+  const [estado, setEstado] = useState<EstadoDiseno | null>(ficha.diseno?.estado ?? null);
+  const [cambiandoEstado, setCambiandoEstado] = useState(false);
+  const [verPrevia, setVerPrevia] = useState(false);
   const [borrador, setBorrador] = useState<BorradorDiseno>(() => borradorDe(ficha));
   const [paso, setPaso] = useState<Paso>("ambiente");
   const [vista, setVista] = useState<"computador" | "celular">("computador");
@@ -129,6 +138,8 @@ export function EditorCampana({ ficha }: { ficha: FichaCampana }) {
   const lectura = lecturaDelBorrador(borrador);
   const ambiente = AMBIENTES_CAMPANA.find((a) => a.clave === borrador.plantilla) ?? null;
   const puedeGuardar = !terminada && parche !== null && guia.puedeConfirmar;
+  const acciones = accionesDelDiseno({ terminada, estado, guardado: version === null ? null : guardado, ahora: borrador });
+  const ocupado = guardando || cambiandoEstado;
 
   /** La dirección con que se ve una imagen: la que quedó al subirla o, si viene guardada de antes, la pública de su ruta. */
   const direccionDe = (ruta: string | null): string | null => (ruta ? (direcciones[ruta] ?? direccionDeImagenDeCampana(createClient(), ruta)) : null);
@@ -191,7 +202,38 @@ export function EditorCampana({ ficha }: { ficha: FichaCampana }) {
     setGuardado(borradorDe(nueva));
     setBorrador(borradorDe(nueva));
     setVersion(nueva.diseno.version);
-    avisar.exito("Borrador guardado");
+    setEstado(nueva.diseno.estado);
+    avisar.exito(nueva.diseno.estado === "programado" ? "Cambios guardados: la tienda los muestra en menos de un minuto" : "Borrador guardado");
+  }
+
+  /** Programar el diseño guardado o volver a borrador. Lo que se programa es lo guardado (por eso pide guardar antes); la base vuelve a comprobarlo todo. */
+  async function cambiarEstado(programar: boolean) {
+    if (enVuelo.current || version === null) return;
+    enVuelo.current = true;
+    setCambiandoEstado(true);
+    setErrorGuardar(null);
+    const { data, error } = await firmar(
+      createClient().rpc(programar ? "programar_campana_diseno" : "desprogramar_campana_diseno", { p_etiqueta_id: ficha.campana.id, p_version: version }),
+      responsable.firma(),
+    );
+    enVuelo.current = false;
+    setCambiandoEstado(false);
+    responsable.despues(error);
+    const nueva = error || !data ? null : leerFichaCampana({ hoy: ficha.hoy, campana: { ...ficha.campana, diseno: null }, diseno: data });
+    if (error || !nueva?.diseno) {
+      const propio = errorDeCampanas(`${error?.message ?? ""} ${error?.hint ?? ""}`);
+      setErrorGuardar(
+        propio
+          ? `${propio.titulo}. ${propio.detalle ?? ""}`.trim()
+          : error
+            ? traducirError(error, programar ? "programar el diseño" : "volver el diseño a borrador")
+            : "Se hizo el cambio, pero no se pudo leer lo que quedó. Recarga la página.",
+      );
+      return;
+    }
+    setVersion(nueva.diseno.version);
+    setEstado(nueva.diseno.estado);
+    avisar.exito(programar ? `Programada: la tienda la muestra ${ficha.campana.estado === "prog" && ficha.campana.desde ? `desde el ${fechaCortaDicha(ficha.campana.desde)}` : "ahora"}` : "Pasó a borrador: la tienda ya no la muestra");
   }
 
   return (
@@ -201,6 +243,16 @@ export function EditorCampana({ ficha }: { ficha: FichaCampana }) {
           Su diseño ya no se cambia: la tienda volvió sola a verse como siempre.
         </Aviso>
       )}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1" data-guia="campana-editor.estado">
+        <Chip tono={estado === "programado" ? "verde" : estado === "borrador" ? "ambar" : "neutro"}>{estado === "programado" ? "Programada" : estado === "borrador" ? "Borrador" : "Sin diseño"}</Chip>
+        <p className="text-[13px] text-tinta/80">
+          {estado === "programado"
+            ? "La tienda muestra este diseño mientras dure la campaña. Lo que guardes se ve en menos de un minuto."
+            : estado === "borrador"
+              ? "La tienda todavía no lo muestra: se ve cuando lo programas."
+              : "Elige un ambiente o sube tu imagen y guárdalo como borrador."}
+        </p>
+      </div>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,27rem)_minmax(0,1fr)]">
         <div className="space-y-3">
           <PasoDelEditor
@@ -645,6 +697,17 @@ export function EditorCampana({ ficha }: { ficha: FichaCampana }) {
         </div>
       </div>
 
+      {verPrevia && (
+        <VistaPreviaCampana
+          etiquetaId={ficha.campana.id}
+          nombre={ficha.campana.nombre}
+          tiendaUrl={tiendaUrl}
+          responsable={responsable}
+          cambiosSinGuardar={parche !== null}
+          onClose={() => setVerPrevia(false)}
+        />
+      )}
+
       {errorGuardar && (
         <Aviso tono="error" titulo="No se pudo guardar el diseño">
           {errorGuardar}
@@ -659,19 +722,40 @@ export function EditorCampana({ ficha }: { ficha: FichaCampana }) {
             </div>
           </CampoGuiado>
           <PieGuia guia={guia} listo={parche === null ? "No cambiaste nada." : "Todo listo."} />
+          <Boton type="button" peso="fantasma" className="btn-chico" disabled={!acciones.vistaPrevia || ocupado} title={acciones.vistaPrevia ? undefined : "Guarda el borrador para poder verlo en la tienda"} onClick={() => setVerPrevia(true)} data-guia="campana-editor.previa">
+            Vista previa privada
+          </Boton>
         </div>
         <div className="pie-acciones" data-guia="campana-editor.guardar">
+          {estado === "programado" ? (
+            <Boton type="button" peso="fantasma" cargando={cambiandoEstado} textoCargando="Pasando a borrador…" disabled={!acciones.aBorrador || guardando} onClick={() => cambiarEstado(false)} data-guia="campana-editor.programar">
+              Pasar a borrador
+            </Boton>
+          ) : (
+            <Boton
+              type="button"
+              peso={parche === null && acciones.programar ? "primario" : "fantasma"}
+              cargando={cambiandoEstado}
+              textoCargando="Programando…"
+              disabled={!acciones.programar || guardando || !responsable.listo}
+              title={acciones.porQueNoProgramar ?? responsable.motivo ?? undefined}
+              onClick={() => cambiarEstado(true)}
+              data-guia="campana-editor.programar"
+            >
+              Programar
+            </Boton>
+          )}
           <Boton
             type="button"
-            peso="primario"
+            peso={estado === "borrador" && parche === null && acciones.programar ? "fantasma" : "primario"}
             cargando={guardando}
             textoCargando="Guardando…"
-            disabled={!puedeGuardar}
+            disabled={!puedeGuardar || cambiandoEstado}
             title={terminada ? "La campaña ya terminó" : (guia.frase ?? undefined)}
             className={guia.claseConfirmar}
             onClick={guardar}
           >
-            Guardar borrador
+            {estado === "programado" ? "Guardar cambios" : "Guardar borrador"}
           </Boton>
         </div>
       </div>

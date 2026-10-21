@@ -1173,7 +1173,7 @@ export const GUIA_CAMPANAS_EDITOR: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "El diseño de una campaña",
-      texto: "Aquí decides cómo se ve la tienda online mientras dura esta campaña: su ambiente y sus colores. El descuento, las fechas y las prendas no se cambian aquí: salen de Etiquetas. Es una demo: no se guarda nada.",
+      texto: "Aquí decides cómo se ve la tienda online mientras dura esta campaña: su ambiente o tu propia imagen, los colores y el movimiento. El descuento, las fechas y las prendas no se cambian aquí: salen de Etiquetas. Es una demo: no se guarda nada.",
     },
     {
       id: "modo",
@@ -1234,16 +1234,36 @@ export const GUIA_CAMPANAS_EDITOR: Guia = {
       texto: "Elige quién hace el cambio, como en el resto del ERP: queda anotado en la Actividad con su nombre. Si trabajas solo en tu sesión, ya viene elegido.",
     },
     {
+      id: "estado",
+      ancla: "campana-editor.estado",
+      titulo: "Borrador o programada",
+      texto: "Un diseño nace como borrador: la tienda todavía no lo muestra. Cuando lo programas, la tienda lo muestra mientras dure la campaña, con las fechas que ya tiene en Etiquetas; al terminar, la tienda vuelve sola a verse como siempre.",
+    },
+    {
       id: "guardar",
       ancla: "campana-editor.guardar",
-      titulo: "Guardar el borrador",
-      texto: "«Guardar borrador» deja el diseño anotado. Un borrador no se ve en la tienda todavía: la tienda solo cambia cuando la campaña se programa. Antes eliges quién hace el cambio, como en el resto del ERP.",
+      titulo: "Guardar el diseño",
+      texto: "«Guardar borrador» deja el diseño anotado (si ya está programada, «Guardar cambios» se ve en la tienda en menos de un minuto).",
+    },
+    {
+      id: "programar",
+      ancla: "campana-editor.programar",
+      opcional: true,
+      titulo: "Programar",
+      texto: "«Programar» pone el diseño en la tienda: se ve mientras dure la campaña, con las fechas de Etiquetas. Solo se puede con lo ya guardado, con letras que se lean y con alguna pieza encendida; si algo falta, pasa el mouse y dice qué. Si ya está programada, aquí aparece «Pasar a borrador», que la saca de la tienda.",
+    },
+    {
+      id: "previa",
+      ancla: "campana-editor.previa",
+      opcional: true,
+      titulo: "Vista previa privada",
+      texto: "Crea un enlace para ver el diseño guardado en la tienda de verdad, con sus prendas, antes de programarlo. Dura 7 días y solo lo ve quien lo tenga; sirve para mostrárselo a alguien o probarlo en el celular. Se muestra una sola vez: si lo pierdes, creas otro.",
     },
     {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes elegir el ambiente y los colores de una campaña. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Campañas.",
+      texto: "Ya sabes diseñar una campaña: elegir, guardar, ver y programar. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Campañas.",
     },
   ],
 };

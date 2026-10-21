@@ -5868,6 +5868,9 @@ export type Database = {
       fn_campanas_web: { Args: never; Returns: Json }
       fn_campana_diseno: { Args: { p_etiqueta_id: string }; Returns: Json }
       guardar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null; p_diseno: Json }; Returns: Json }
+      programar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null }; Returns: Json }
+      desprogramar_campana_diseno: { Args: { p_etiqueta_id: string; p_version: number | null }; Returns: Json }
+      crear_campana_vista_previa: { Args: { p_etiqueta_id: string }; Returns: Json }
       // Vitrina web ▸ Esperan una talla (ADR-0408, actividad 12; 20261015030000): lo que esperan los clientes, sin datos personales.
       fn_vitrina_esperan: { Args: never; Returns: Json }
       // Vitrina web (ADR-0408, actividad 3; 20261014225000). Sin precio web: en la web vale el precio de cada tienda.

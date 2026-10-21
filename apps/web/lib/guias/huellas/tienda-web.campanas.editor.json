@@ -2,7 +2,7 @@
   "guia": "tienda-web.campanas.editor",
   "ruta": "/tienda-web/campanas/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 25,
+  "total": 34,
   "controles": {
     "app/(app)/tienda-web/campanas/[id]/page.tsx": [
       "Volver «/tienda-web/campanas»"
@@ -25,6 +25,9 @@
       "SegmentoDeslizante «Tamaño de la vista previa»",
       "button «Movimiento reducido»",
       "ComboResponsable «{responsable}»",
+      "Boton «campana-editor.previa»",
+      "Boton «campana-editor.programar»",
+      "Boton «campana-editor.programar» #2",
       "Boton «{terminada ? \"La campaña ya terminó\" : (guia.frase ?? undefined)}»",
       "button «{hecho && !falta ? <Check className=\"h-3.5 w-3.5\" /> : numero}»",
       "input «Elegir el color de acento»",
@@ -32,6 +35,14 @@
       "button «Quitar»",
       "button «Quitar» #2",
       "input «{id}»"
+    ],
+    "components/campanas-web/VistaPreviaCampana.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "CampoTexto «Enlace de la vista previa»",
+      "BotonCopiar «el enlace»",
+      "a «Abrirlo en otra pestaña»"
     ]
   }
 }

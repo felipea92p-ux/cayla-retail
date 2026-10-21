@@ -58,3 +58,8 @@ a.t-campana[data-campana]:hover, .t-campana[data-campana][aria-current="true"] {
   .t-hero-img-acciones { right: 20px; }
   .t-hero-img-cuenta { right: 14px; }
 }
+
+/* La vista previa privada de un diseño (`app/vista-previa/[llave]`): una franja arriba que dice que es una prueba y no la tienda en vivo. */
+.cp-previa-aviso { position: sticky; top: 0; z-index: 60; padding: 8px 16px; font-size: 12.5px; line-height: 1.4; text-align: center; background: var(--tinta); color: var(--crema); }
+.cp-previa-aviso b { font-weight: 600; letter-spacing: .06em; text-transform: uppercase; font-size: 11px; }
+.cp-previa-nota { margin: 16px 0 0; padding: 12px 16px; font-size: 13px; background: var(--hueso); border-left: 3px solid var(--ambar, var(--tinta)); }

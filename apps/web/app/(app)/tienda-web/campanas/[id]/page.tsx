@@ -7,6 +7,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { Volver } from "@/components/ui/Volver";
 import { EditorCampana } from "@/components/campanas-web/EditorCampana";
+import { DIRECCION_TIENDA_ONLINE } from "@/lib/club-qr-reglas";
 
 const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -37,7 +38,7 @@ export default async function DisenarCampanaPage({ params }: { params: Promise<{
         }
       />
       {ficha ? (
-        <EditorCampana key={`${ficha.campana.id}-${ficha.diseno?.version ?? 0}`} ficha={ficha} />
+        <EditorCampana key={`${ficha.campana.id}-${ficha.diseno?.version ?? 0}`} ficha={ficha} tiendaUrl={process.env.TIENDA_URL || DIRECCION_TIENDA_ONLINE} />
       ) : noExiste ? (
         <Aviso tono="atencion" titulo="Esa campaña ya no existe">
           Puede que se haya archivado en Etiquetas o que el enlace esté viejo. Vuelve a la lista de campañas.
