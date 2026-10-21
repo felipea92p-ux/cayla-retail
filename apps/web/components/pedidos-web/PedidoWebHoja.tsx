@@ -32,6 +32,7 @@ import { detalleDelPago, esAdelanto, estadoDelPago, porDevolver, sePuedeAnular, 
 import { devueltoAlCliente } from "@/lib/pedidos-web-anular-reglas";
 import {
   avisosDeLinea,
+  empresaDeLaPrenda,
   datosDelCliente,
   decisionDeFabrica,
   decisionesParaLaBase,
@@ -95,6 +96,7 @@ export function PedidoWebHoja({
   pedido: p,
   tiendaId,
   tienda,
+  variasEmpresas,
   ahora,
   onClose,
   onCambio,
@@ -107,6 +109,8 @@ export function PedidoWebHoja({
   pedido: PedidoDetalle;
   tiendaId: string;
   tienda: string;
+  /** En esta sede conviven dos empresas (Lima): cada prenda dice de cuál es (ADR-0463). */
+  variasEmpresas: boolean;
   ahora: number;
   onClose: () => void;
   /** La base cambió el pedido (confirmado, cerrado, anulado o una prenda reservada): la lista se pone al día. `sigueAbierta`: la hoja
@@ -369,6 +373,7 @@ export function PedidoWebHoja({
                       onDecision={(d) => setDecisiones((ds) => ({ ...ds, [l.lineaId]: d }))}
                       tiendaId={p.ubicacionId}
                       tienda={tienda}
+                      variasEmpresas={variasEmpresas}
                       hoy={hoy}
                       deshabilitado={guardando}
                     />
@@ -492,7 +497,7 @@ export function PedidoWebHoja({
                   Sus prendas quedaron reservadas y el pedido queda por cobrar.
                 </Aviso>
               )}
-              <LineasDelPedido pedido={p} tiendaId={tiendaId} onEnviar={onEnviar} onReservar={reservar} />
+              <LineasDelPedido pedido={p} tiendaId={tiendaId} variasEmpresas={variasEmpresas} onEnviar={onEnviar} onReservar={reservar} />
               <BloqueDinero pedido={p} ahora={ahora} onAnularPago={onAnularPago} />
               {esAdelanto(p) && (
                 <Aviso tono="info" titulo="Espera una prenda por conseguir">
@@ -644,7 +649,7 @@ export function PedidoWebHoja({
                   Ya pagó: el pedido no se libera solo. Escríbele y, si no lo va a recoger, decídelo con tu líder.
                 </Aviso>
               )}
-              <LineasDelPedido pedido={p} tiendaId={tiendaId} onEnviar={onEnviar} onReservar={reservar} />
+              <LineasDelPedido pedido={p} tiendaId={tiendaId} variasEmpresas={variasEmpresas} onEnviar={onEnviar} onReservar={reservar} />
               <BloqueDinero pedido={p} ahora={ahora} />
               <BloqueBoleta boleta={p.boleta} />
               {faltan.length > 0 ? (
@@ -723,7 +728,7 @@ export function PedidoWebHoja({
 
           {!porConfirmar && p.estado !== "confirmado" && p.estado !== "pagado" && modo !== "reservar" && (
             <>
-              <LineasDelPedido pedido={p} tiendaId={tiendaId} onEnviar={onEnviar} />
+              <LineasDelPedido pedido={p} tiendaId={tiendaId} variasEmpresas={variasEmpresas} onEnviar={onEnviar} />
               {porDevolver(p) > 0 && (
                 <Aviso
                   tono="atencion"
@@ -828,6 +833,19 @@ function BotonAnularPedido({ onClick, deshabilitado = false }: { onClick: () => 
   );
 }
 
+/** De qué empresa es la prenda (CAYLA o CLAURE), solo donde conviven las dos (ADR-0463). Es un dato, no un estado: sin punto. */
+function EmpresaDeLaPrenda({ prenda, variasEmpresas }: { prenda: LineaDetalle; variasEmpresas: boolean }) {
+  const e = empresaDeLaPrenda(prenda, variasEmpresas);
+  if (!e) return null;
+  return (
+    <span className="mb-1 block">
+      <Chip tono={e.tono} versalitas={false} title={`Esta prenda es de ${e.texto}`}>
+        {e.texto}
+      </Chip>
+    </span>
+  );
+}
+
 /** Una prenda por confirmar: lo que hay, de dónde sale (o traerla, conseguirla, quitarla) y sus avisos. */
 function LineaPorConfirmar({
   linea: l,
@@ -836,6 +854,7 @@ function LineaPorConfirmar({
   onDecision,
   tiendaId,
   tienda,
+  variasEmpresas,
   hoy,
   deshabilitado,
 }: {
@@ -846,6 +865,7 @@ function LineaPorConfirmar({
   onDecision: (d: DecisionLinea | null) => void;
   tiendaId: string;
   tienda: string;
+  variasEmpresas: boolean;
   hoy: string;
   deshabilitado: boolean;
 }) {
@@ -864,6 +884,7 @@ function LineaPorConfirmar({
       <div className="flex items-start gap-3">
         <MiniPrenda prenda={l} tamano="lg" />
         <span className="min-w-0 flex-1">
+          <EmpresaDeLaPrenda prenda={l} variasEmpresas={variasEmpresas} />
           <span className={`block font-medium text-tinta ${quitada ? "line-through decoration-tinta/40" : ""}`}>
             {[l.referencia, l.color, l.talla].filter(Boolean).join(" · ")}
           </span>
@@ -951,11 +972,13 @@ function LineaPorConfirmar({
 function LineasDelPedido({
   pedido: p,
   tiendaId,
+  variasEmpresas,
   onEnviar,
   onReservar,
 }: {
   pedido: PedidoDetalle;
   tiendaId: string;
+  variasEmpresas: boolean;
   onEnviar: (desdeId: string) => void;
   /** Reservar una prenda por conseguir que ya llegó a la tienda del pedido (`reservar_linea_pedido_web`). */
   onReservar?: (l: LineaDetalle) => void;
@@ -976,6 +999,7 @@ function LineasDelPedido({
             <li key={l.lineaId} className="flex items-start gap-3 px-4 py-2.5">
               <MiniPrenda prenda={l} tamano="md" />
               <span className="min-w-0 flex-1">
+                <EmpresaDeLaPrenda prenda={l} variasEmpresas={variasEmpresas} />
                 <span className={`block text-tinta ${l.estado === "quitada" ? "line-through decoration-tinta/40" : ""}`}>
                   {[l.referencia, l.color, l.talla].filter(Boolean).join(" · ")}
                 </span>
