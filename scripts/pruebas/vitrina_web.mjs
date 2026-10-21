@@ -607,7 +607,7 @@ function main() {
     correr(`${PREPARAR}${guardar("emma")} \\gset
       select string_agg(k, ',' order by k) from ${EN_CATALOGO("emma")} t(x), jsonb_object_keys(x) k;
       rollback;`),
-    "campana,categoria,codigo,colores,desde,empresa,fotos,id,nombre,nuevo,precio,precio_final,stock,vendidos",
+    "campana,categoria,categoria_familia,codigo,colores,desde,empresa,fotos,id,nombre,nuevo,precio,precio_final,stock,vendidos",
   );
   esperarValor(
     "como tienda_web: el catálogo responde (con «Todas» y con una tienda) y la tabla se niega",

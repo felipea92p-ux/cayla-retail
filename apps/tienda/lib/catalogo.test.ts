@@ -438,3 +438,12 @@ describe("la empresa de la prenda (ADR-0465)", () => {
     expect(dicen(emma)).toEqual([]);
   });
 });
+
+describe("la familia de la categoría (20261021163000)", () => {
+  it("la lee de la base y la deja dentro de la categoría; sin el dato (una base que aún no lo manda) o con uno raro, la prenda se ve igual", () => {
+    expect(leer({ ...EMMA, categoria_familia: "indumentaria" }).categoria).toEqual({ nombre: "Camisas y Blusas", prefijo: "CMS", familia: "indumentaria" });
+    expect(leer(EMMA).categoria?.familia ?? null).toBeNull();
+    expect(leer({ ...EMMA, categoria_familia: 7 }).categoria?.familia ?? null).toBeNull();
+    expect(leer({ ...EMMA, categoria: null, categoria_familia: "calzado" }).categoria).toBeNull();
+  });
+});
