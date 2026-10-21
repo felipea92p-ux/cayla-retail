@@ -1776,6 +1776,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `fn_finanzas_confianza` (20261015235000) → `lib/finanzas-confianza.ts` (los pesos) → `<Confianza>` en `/finanzas/resumen`; y los tipos
   `pago_planilla` y `pago_sunat` de `movimientos_dinero` (20261016002000; `registrar_movimiento_dinero`, `fn_asientos_dinero_y_caja` 41 | 104 y
   4011 | 104), que ofrece el modal de `/finanzas/dinero` (`OPCIONES_QUE_PASO`) y enlaza Impuestos.
+  **La planilla estimada por sede (ADR-0453, pegada en producción el 2026-10-17):** `fn_planilla_provision` (20261018040000; la interna
+  `fn_planilla_provision_calc` pide a Dynamic `public.fn_proyeccion_periodo` y agrega por sede lo devengado hasta hoy y lo que costaría el
+  período entero) → `lib/planilla-provision.ts` (lectura; tolera que falte) → `lib/planilla-provision-reglas.ts` (`aplicarProvision` la suma,
+  marcada «estimado» y fuera del libro, a las filas de `fn_estado_resultados`) en `getEstadoResultados` (`lib/resultados.ts`, Reportes y
+  Escenarios), `getResumenFinanzas` y `getConfianzaFinanzas` (`lib/resumen-finanzas.ts`); `lib/pulso-reglas.ts` ya no cuenta dos veces los
+  sueldos ni el desgaste (los gastos de operación de la base los incluyen). El Flujo de caja sigue repitiendo el último período (pendiente).
 - **Finanzas F3–F10** (2026-09-25, ADR-0195, PR #396; detalle por fase en `docs/finanzas/fases/`). Todas las pantallas se
   arman con `components/finanzas/kit.tsx` + `app/estilos/finanzas.css`; permisos en la base con `fn_es_lider()` o
   `fn_capacidad_por_modulos(array['<clave>'])` y la tienda de la cuenta.
